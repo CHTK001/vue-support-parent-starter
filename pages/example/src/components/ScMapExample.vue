@@ -214,17 +214,174 @@
           <div class="config-item">
             <div class="label">飞线图操作</div>
             <div class="controls">
+              <!-- 添加飞线图功能开关 -->
+              <div class="control-row">
+                <span>启用飞线图:</span>
+                <el-switch 
+                  v-model="migrationSettings.enabled" 
+                  @change="toggleMigrationFeature" 
+                />
+              </div>
+              
+              <!-- 飞线图数据和配置按钮 -->
+              <div class="control-row buttons-row">
+                <el-button 
+                  size="small" 
+                  @click="addSampleMigrationData" 
+                  :disabled="!migrationSettings.enabled"
+                >
+                  添加飞线数据
+                </el-button>
+                <el-button 
+                  size="small" 
+                  @click="clearMigrationData" 
+                  :disabled="!migrationSettings.enabled"
+                >
+                  清除飞线数据
+                </el-button>
+              </div>
+              
+              <!-- 飞线动画控制按钮 -->
+              <div class="control-row buttons-row">
+                <el-button 
+                  size="small" 
+                  type="primary" 
+                  @click="startMigrationAnimation" 
+                  :disabled="!migrationSettings.enabled || migrationSettings.isPlaying"
+                >
+                  开始飞线动画
+                </el-button>
+                <el-button 
+                  size="small" 
+                  type="danger" 
+                  @click="stopMigrationAnimation" 
+                  :disabled="!migrationSettings.enabled || !migrationSettings.isPlaying"
+                >
+                  停止飞线动画
+                </el-button>
+              </div>
+              
+              <!-- 快捷示例按钮 -->
+              <div class="control-row buttons-row" style="margin-top: 10px;">
+                <el-button 
+                  size="small" 
+                  type="success" 
+                  @click="quickEnableMigration"
+                  :disabled="migrationSettings.isPlaying"
+                >
+                  <i class="el-icon-connection"></i> 一键开启飞线
+                </el-button>
+              </div>
               <div class="control-row buttons-row">
                 <el-button size="small" type="primary" @click="addSampleMigration">添加飞线图示例</el-button>
                 <el-button size="small" @click="addAdvancedMigration">添加高级飞线图示例</el-button>
               </div>
               <div class="control-row buttons-row">
                 <el-button size="small" type="success" @click="addCityMigration">添加城市间飞线图</el-button>
-                <el-button size="small" @click="toggleMigration">{{ isMigrationEnabled ? '停止飞线动画' : '开始飞线动画' }}</el-button>
-              </div>
-              <div class="control-row buttons-row">
-                <el-button size="small" type="danger" @click="clearMigration">清除飞线图</el-button>
                 <el-button size="small" type="warning" @click="addSequentialMigration">添加顺序飞线</el-button>
+              </div>
+              
+              <!-- 添加飞线图样式控制 -->
+              <div v-if="migrationSettings.enabled" class="migration-style-controls">
+                <div class="control-subtitle">飞线样式设置</div>
+                
+                <div class="control-row">
+                  <span>线条宽度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.lineStyle.width" 
+                    :min="1" 
+                    :max="5" 
+                    :step="0.5"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.lineStyle.width }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>透明度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.lineStyle.opacity" 
+                    :min="0.1" 
+                    :max="1" 
+                    :step="0.1"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.lineStyle.opacity }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>曲线度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.lineStyle.curveness" 
+                    :min="0" 
+                    :max="0.5" 
+                    :step="0.05"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.lineStyle.curveness }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>颜色:</span>
+                  <el-color-picker 
+                    v-model="migrationOptions.lineStyle.color" 
+                    size="small"
+                    @change="updateMigrationStyle" 
+                  />
+                </div>
+                
+                <div class="control-subtitle">动画效果设置</div>
+                
+                <div class="control-row">
+                  <span>动画速度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.effect.period" 
+                    :min="1" 
+                    :max="10" 
+                    :step="1"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.effect.period }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>轨迹长度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.effect.trailLength" 
+                    :min="0.1" 
+                    :max="0.9" 
+                    :step="0.1"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.effect.trailLength }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>效果颜色:</span>
+                  <el-color-picker 
+                    v-model="migrationOptions.effect.color" 
+                    size="small"
+                    @change="updateMigrationStyle" 
+                  />
+                </div>
+                
+                <div class="control-row">
+                  <span>循环播放:</span>
+                  <el-switch v-model="migrationOptions.loop" @change="updateMigrationStyle" />
+                </div>
+                
+                <div class="control-subtitle">样式应用</div>
+                
+                <div class="control-row">
+                  <el-button 
+                    size="small" 
+                    type="primary" 
+                    @click="applyMigrationStyle"
+                    style="width: 100%;"
+                  >
+                    应用飞线样式
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -1232,6 +1389,16 @@ onMounted(() => {
   setTimeout(() => {
     // 默认添加一些点位
     addDefaultMarkers();
+    
+    // 提示用户可以使用一键开启飞线功能
+    setTimeout(() => {
+      ElMessage({
+        message: '提示：您可以点击"一键开启飞线"按钮来体验新的飞线图功能',
+        type: 'info',
+        duration: 5000,
+        showClose: true
+      });
+    }, 2000);
   }, 1000);
 });
 
@@ -1854,11 +2021,16 @@ const addSampleMigration = () => {
       loop: true
     });
     
+    // 启用飞线图功能
+    mapRef.value.enableMigration();
+    
     // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, true);
     
-    // 启用飞线图
-    mapRef.value.toggleMigration(true);
+    // 开始播放飞线动画
+    mapRef.value.startMigration();
+    
+    isMigrationEnabled.value = true;
     
     // 提示用户
     ElMessage({
@@ -1941,11 +2113,16 @@ const addAdvancedMigration = () => {
       hideAfterCompletion: false
     });
     
+    // 启用飞线图功能
+    mapRef.value.enableMigration();
+    
     // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, true);
     
-    // 启用飞线图
-    mapRef.value.toggleMigration(true);
+    // 开始播放飞线动画
+    mapRef.value.startMigration();
+    
+    isMigrationEnabled.value = true;
     
     // 提示用户
     ElMessage({
@@ -2350,7 +2527,7 @@ const addCityMigration = () => {
     mapRef.value.setMigrationData(migrationData, true);
     
     // 启用飞线图
-    mapRef.value.toggleMigration(true);
+    mapRef.value.startMigration();
     isMigrationEnabled.value = true;
     
     // 提示用户
@@ -2373,8 +2550,58 @@ const addCityMigration = () => {
 
 // 切换飞线图状态
 const toggleMigration = () => {
-  mapRef.value.toggleMigration(!isMigrationEnabled.value);
-  isMigrationEnabled.value = !isMigrationEnabled.value;
+  if (!mapRef.value) return;
+  
+  try {
+    // 如果要开启飞线图
+    if (!isMigrationEnabled.value) {
+      // 应用自定义样式
+      mapRef.value.updateMigrationOptions({
+        lineStyle: {
+          color: migrationOptions.lineStyle.color,
+          width: migrationOptions.lineStyle.width,
+          opacity: migrationOptions.lineStyle.opacity,
+          curveness: migrationOptions.lineStyle.curveness
+        },
+        effect: {
+          show: true,
+          period: migrationOptions.effect.period,
+          trailLength: migrationOptions.effect.trailLength,
+          symbol: 'circle',
+          symbolSize: 5,
+          color: migrationOptions.effect.color
+        },
+        autoStart: true,
+        loop: migrationOptions.loop
+      });
+      
+      // 启用飞线图功能
+      mapRef.value.enableMigration();
+      
+      // 尝试开始播放飞线动画
+      try {
+        mapRef.value.startMigration();
+        isMigrationEnabled.value = true;
+      } catch (err) {
+        // 如果启用失败或没有数据，调用quickEnableMigration来添加默认数据
+        log.warn(`开始播放飞线失败: ${err}, 尝试添加默认数据`);
+        quickEnableMigration();
+      }
+    } else {
+      // 停止飞线动画
+      mapRef.value.stopMigration();
+      
+      // 关闭飞线图功能
+      mapRef.value.disableMigration();
+      
+      isMigrationEnabled.value = false;
+    }
+    
+    // 显示状态信息
+    log.info(`飞线图已${isMigrationEnabled.value ? '开启' : '关闭'}`);
+  } catch (e) {
+    log.error(`切换飞线图状态失败: ${e}`);
+  }
 };
 
 // 是否启用飞线图
@@ -2386,8 +2613,8 @@ const clearMigration = () => {
     // 停止飞线动画
     mapRef.value.stopMigration();
     
-    // 禁用飞线图
-    mapRef.value.toggleMigration(false);
+    // 禁用飞线图功能
+    mapRef.value.disableMigration();
     
     // 清除飞线图数据
     mapRef.value.setMigrationData([]);
@@ -2399,7 +2626,7 @@ const clearMigration = () => {
     ElMessage({
       message: '飞线图已清除',
       type: 'success',
-      duration: 3000
+      duration: 2000
     });
   } catch (e) {
     log.error(`清除飞线图失败: ${e}`);
@@ -2487,7 +2714,7 @@ const addSequentialMigration = () => {
     mapRef.value.setMigrationData(migrationData, false);
     
     // 启用飞线图
-    mapRef.value.toggleMigration(true);
+    mapRef.value.startMigration();
     isMigrationEnabled.value = true;
     
     // 提示用户准备开始
@@ -2540,9 +2767,407 @@ const addSequentialMigration = () => {
     });
   }
 };
+
+// 添加一键开启飞线的大按钮
+const quickEnableMigration = () => {
+  try {
+    // 如果没有现有的飞线数据，先添加一个默认的飞线图
+    if (!mapRef.value || !migrationSettings.isPlaying) {
+      // 确保飞线功能已启用
+      if (!migrationSettings.enabled) {
+        mapRef.value.enableMigration();
+        migrationSettings.enabled = true;
+      }
+      
+      // 创建一些基本的飞线数据
+      const defaultMigrationData = generateDefaultMigrationData();
+
+      // 设置飞线图选项
+      mapRef.value.updateMigrationOptions({
+        lineStyle: {
+          color: migrationOptions.lineStyle.color,
+          width: migrationOptions.lineStyle.width,
+          opacity: migrationOptions.lineStyle.opacity,
+          curveness: migrationOptions.lineStyle.curveness
+        },
+        effect: {
+          show: true,
+          period: migrationOptions.effect.period,
+          trailLength: migrationOptions.effect.trailLength,
+          symbol: 'circle',
+          symbolSize: 5,
+          color: migrationOptions.effect.color
+        },
+        autoStart: true,
+        loop: migrationOptions.loop
+      });
+      
+      // 设置飞线图数据
+      mapRef.value.setMigrationData(defaultMigrationData, true);
+      migrationSettings.hasData = true;
+      
+      // 开始播放飞线动画
+      mapRef.value.startMigration();
+      migrationSettings.isPlaying = true;
+      
+      ElMessage({
+        message: '已开启默认飞线图',
+        type: 'success',
+        duration: 2000
+      });
+    }
+  } catch (e) {
+    log.error(`开启飞线图失败: ${e}`);
+    
+    ElMessage({
+      message: '开启飞线图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 生成默认飞线图数据
+const generateDefaultMigrationData = () => {
+  // 获取当前地图中心点
+  const center = config.center;
+  
+  // 创建以中心点为起点的多条飞线
+  const directions = [
+    { offset: [0.1, 0.1], name: '东北' },
+    { offset: [0.1, -0.1], name: '东南' },
+    { offset: [-0.1, -0.1], name: '西南' },
+    { offset: [-0.1, 0.1], name: '西北' },
+    { offset: [0.15, 0], name: '东' },
+    { offset: [-0.15, 0], name: '西' },
+    { offset: [0, 0.15], name: '北' },
+    { offset: [0, -0.15], name: '南' }
+  ];
+  
+  // 生成飞线数据
+  return directions.map((dir, index) => {
+    // 为每条线生成不同的颜色
+    const hue = (index * 45) % 360;
+    const color = `hsl(${hue}, 100%, 50%)`;
+    
+    return {
+      from: [center[1], center[0]] as [number, number], // 注意：这里需要交换经纬度顺序 [lng, lat]
+      to: [center[1] + dir.offset[0], center[0] + dir.offset[1]] as [number, number],
+      labels: {
+        from: '中心',
+        to: dir.name
+      },
+      color: color,
+      weight: 2 + Math.random(),
+      time: 500 + Math.random() * 500
+    };
+  });
+};
+
+// 更新飞线图样式
+const updateMigrationStyle = () => {
+  if (!mapRef.value || !isMigrationEnabled.value) return;
+  
+  try {
+    // 更新飞线图选项
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        color: migrationOptions.lineStyle.color,
+        width: migrationOptions.lineStyle.width,
+        opacity: migrationOptions.lineStyle.opacity,
+        curveness: migrationOptions.lineStyle.curveness
+      },
+      effect: {
+        show: true,
+        period: migrationOptions.effect.period,
+        trailLength: migrationOptions.effect.trailLength,
+        symbol: 'circle',
+        symbolSize: 5,
+        color: migrationOptions.effect.color
+      },
+      autoStart: true,
+      loop: migrationOptions.loop
+    });
+    
+    log.info('飞线图样式已更新');
+  } catch (e) {
+    log.error(`更新飞线图样式失败: ${e}`);
+  }
+};
+
+// 添加飞线图样式控制
+const migrationOptions = reactive({
+  lineStyle: {
+    width: 2,
+    opacity: 0.8,
+    curveness: 0.2,
+    color: '#FF5252'
+  },
+  effect: {
+    period: 5,
+    trailLength: 0.5,
+    color: '#FFFFFF'
+  },
+  loop: true
+});
+
+// 添加飞线图配置和状态
+const migrationSettings = reactive({
+  enabled: false,
+  isPlaying: false,
+  hasData: false
+});
+
+// 切换飞线图功能状态（开启/关闭）
+const toggleMigrationFeature = (enabled: boolean) => {
+  if (!mapRef.value) return;
+  
+  try {
+    if (enabled) {
+      // 启用飞线图功能
+      mapRef.value.enableMigration();
+      migrationSettings.enabled = true;
+      
+      // 应用默认样式
+      updateMigrationStyle();
+      
+      ElMessage({
+        message: '飞线图功能已开启',
+        type: 'success',
+        duration: 2000
+      });
+    } else {
+      // 如果正在播放，先停止动画
+      if (migrationSettings.isPlaying) {
+        stopMigrationAnimation();
+      }
+      
+      // 禁用飞线图功能
+      mapRef.value.disableMigration();
+      migrationSettings.enabled = false;
+      
+      ElMessage({
+        message: '飞线图功能已关闭',
+        type: 'info',
+        duration: 2000
+      });
+    }
+  } catch (e) {
+    log.error(`切换飞线图功能失败: ${e}`);
+    
+    // 恢复状态
+    migrationSettings.enabled = !enabled;
+    
+    ElMessage({
+      message: '切换飞线图功能失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加飞线图样本数据
+const addSampleMigrationData = () => {
+  if (!mapRef.value || !migrationSettings.enabled) return;
+  
+  try {
+    // 创建一些基本的飞线数据
+    const defaultMigrationData = generateDefaultMigrationData();
+    
+    // 设置飞线图数据
+    mapRef.value.setMigrationData(defaultMigrationData, true);
+    migrationSettings.hasData = true;
+    
+    ElMessage({
+      message: '已添加飞线数据',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`添加飞线图数据失败: ${e}`);
+    
+    ElMessage({
+      message: '添加飞线数据失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 清除飞线数据
+const clearMigrationData = () => {
+  if (!mapRef.value || !migrationSettings.enabled) return;
+  
+  try {
+    // 如果正在播放，先停止动画
+    if (migrationSettings.isPlaying) {
+      stopMigrationAnimation();
+    }
+    
+    // 清除飞线图数据
+    mapRef.value.setMigrationData([]);
+    migrationSettings.hasData = false;
+    
+    ElMessage({
+      message: '已清除飞线数据',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`清除飞线数据失败: ${e}`);
+    
+    ElMessage({
+      message: '清除飞线数据失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 开始飞线动画
+const startMigrationAnimation = () => {
+  if (!mapRef.value || !migrationSettings.enabled || migrationSettings.isPlaying) return;
+  
+  try {
+    // 如果没有数据，先添加数据
+    if (!migrationSettings.hasData) {
+      addSampleMigrationData();
+    }
+    
+    // 开始播放飞线动画
+    mapRef.value.startMigration();
+    migrationSettings.isPlaying = true;
+    
+    ElMessage({
+      message: '飞线动画已开始播放',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`开始飞线动画失败: ${e}`);
+    
+    ElMessage({
+      message: '开始飞线动画失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 停止飞线动画
+const stopMigrationAnimation = () => {
+  if (!mapRef.value || !migrationSettings.enabled || !migrationSettings.isPlaying) return;
+  
+  try {
+    // 停止飞线动画
+    mapRef.value.stopMigration();
+    migrationSettings.isPlaying = false;
+    
+    ElMessage({
+      message: '飞线动画已停止',
+      type: 'info',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`停止飞线动画失败: ${e}`);
+    
+    ElMessage({
+      message: '停止飞线动画失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 立即应用飞线样式
+const applyMigrationStyle = () => {
+  if (!mapRef.value || !migrationSettings.enabled) return;
+  
+  try {
+    updateMigrationStyle();
+    
+    ElMessage({
+      message: '已应用飞线样式',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`应用飞线样式失败: ${e}`);
+    
+    ElMessage({
+      message: '应用飞线样式失败',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 监听migrationSettings与isMigrationEnabled的变化，保持同步
+watch(
+  () => migrationSettings.isPlaying, 
+  (isPlaying) => {
+    isMigrationEnabled.value = isPlaying;
+  }
+);
+
+watch(
+  () => isMigrationEnabled.value, 
+  (enabled) => {
+    migrationSettings.isPlaying = enabled;
+  }
+);
 </script>
 
 <style scoped>
+.migration-style-controls {
+  margin-top: 16px;
+  padding: 14px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e6e8eb;
+  transition: all 0.3s ease;
+}
+
+.migration-style-controls:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.control-subtitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1890ff;
+  margin: 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #e6e8eb;
+  display: flex;
+  align-items: center;
+}
+
+.control-subtitle::before {
+  content: "•";
+  margin-right: 6px;
+  color: #1890ff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* 为大按钮添加动画效果 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.el-button.el-button--large {
+  transition: all 0.3s ease;
+}
+
+.el-button.el-button--large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
 .sc-map-example {
   padding: 20px;
   height: 100vh;
@@ -2850,5 +3475,13 @@ h4 {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+.control-row {
+  margin-bottom: 10px;
+}
+
+.value {
+  margin-left: 10px;
 }
 </style>

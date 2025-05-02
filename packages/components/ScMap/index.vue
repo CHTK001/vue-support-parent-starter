@@ -87,13 +87,16 @@ import { Aggregation } from './plugin/Aggregation';
 import type { AggregationOptions, HeatMapOptions, HeatPoint, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
 import { HeatMap } from './plugin/HeatMap';
 import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
-import { LayerType } from './types';
+import { LayerType, OpenStatus } from './types';
 import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAYER_THEMES } from './types/default';
 // 导入日志工具
 import { error, warn, info } from '@repo/utils';
-// 导入迁徙图插件
+// 导入迁徙图插件和基础接口
 import { Migration } from './plugin/Migration';
-import type { MigrationOptions, MigrationPoint } from './plugin/Migration';
+import { EchartsMigration } from './plugin/EchartsMigration';
+import type { MigrationPoint } from './plugin/MigrationBase';
+import type { MigrationOptions } from './plugin/Migration';
+import type { MigrationBase } from './plugin/MigrationBase';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
 
@@ -195,7 +198,9 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     enabled: false,
     options: {},
     autoStart: false
-  })
+  }),
+  // 飞线图实现类型，可选 'antPath' 或 'echarts'
+  migrationImpl: 'echarts'
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -260,7 +265,7 @@ const debugPanelRef = ref<InstanceType<typeof MapDebugPanel> | null>(null);
 const heatMapTool: Ref<HeatMap | null> = ref(null);
 
 // 迁徙图工具
-const migrationTool: Ref<Migration | null> = ref(null);
+const migrationTool: Ref<MigrationBase | null> = ref(null);
 
 // 轨迹播放器内部状态
 const trackPlayerState = reactive({
@@ -379,15 +384,15 @@ const handleToolActivated = (toolId: string) => {
   
   // 取消激活其他绘图工具 - 确保同时只有一种绘图工具处于激活状态
   if (mapToolbarRef.value && (drawToolIds.includes(toolId) || toolId === 'measure' || toolId === 'drawPoint')) {
-    const tools = mapToolbarRef.value.getTools();
-    const updatedTools = tools.map(tool => {
+      const tools = mapToolbarRef.value.getTools();
+      const updatedTools = tools.map(tool => {
       // 如果是绘图工具，并且不是当前激活的工具，取消其激活状态
       if (drawToolIds.includes(tool.id) && tool.id !== toolId) {
         return { ...tool, active: false };
-      }
-      return tool;
-    });
-    mapToolbarRef.value.setTools(updatedTools);
+        }
+        return tool;
+      });
+      mapToolbarRef.value.setTools(updatedTools);
     addLog('确保其他绘图工具未被激活');
     
     // 取消任何进行中的绘制
@@ -428,7 +433,7 @@ const handleToolActivated = (toolId: string) => {
     // 使用setTimeout确保前一个绘图工具完全停用后再启动新的
     setTimeout(() => {
       // 如果成功获取形状类型，并且绘图工具已初始化
-      if (shapeType && shapeTool.value) {
+    if (shapeType && shapeTool.value) {
         try {
           // 再次确认绘制状态
           if (shapeTool.value.isDrawing()) {
@@ -501,7 +506,7 @@ const handleToolActivated = (toolId: string) => {
     showLayerDropdown.value = true;
     // 更新下拉菜单位置
     nextTick(() => {
-      updateLayerDropdownPosition();
+    updateLayerDropdownPosition();
     });
     addLog('显示图层选择下拉菜单');
   } else if (toolId === 'cluster' && aggregationTool.value) {
@@ -605,7 +610,7 @@ const handleToolActivated = (toolId: string) => {
     }
     
     // 注册标记点点击事件
-    if (markerTool.value) {
+        if (markerTool.value) {
       // 使用marker-click事件处理删除标记点
       markerTool.value.on('marker-click', (marker) => {
         // 如果删除工具处于激活状态，则删除被点击的标记点
@@ -914,7 +919,7 @@ onUnmounted(() => {
     
     if (markerTool.value) {
       markerTool.value.destroy();
-      markerTool.value = null;
+    markerTool.value = null;
     }
     
     if (aggregationTool.value) {
@@ -922,14 +927,14 @@ onUnmounted(() => {
       aggregationTool.value = null;
     }
     
-    if (shapeTool.value) {
+  if (shapeTool.value) {
       // 取消当前绘图
       if (shapeTool.value.isDrawing()) {
-        shapeTool.value.cancelDrawing();
+    shapeTool.value.cancelDrawing();
       }
       // 清除所有图形
       shapeTool.value.clearShapes();
-      shapeTool.value = null;
+    shapeTool.value = null;
     }
     
     if (measureTool.value) {
@@ -981,7 +986,7 @@ const registerMapEvents = (): void => {
     // 记录缩放动画结束
     addLog('地图缩放动画结束', {zoom: newZoom});
   });
-
+  
   // 监听地图缩放过程事件
   mapInstance.value.on('zoom', () => {
     // 在缩放过程中关闭所有弹窗，防止出现错误
@@ -2311,53 +2316,67 @@ const initMigration = () => {
     }
     
     // 记录初始化迁徙图工具
-    addLog('初始化迁徙图工具');
+    addLog(`初始化飞线图工具，使用${props.migrationImpl}实现`);
     
     // 确保有正确的配置选项
     const options = props.migrationConfig?.options || {};
     
-    // 创建迁徙图工具实例
-    migrationTool.value = new Migration(mapInstance.value, options);
+    // 根据migrationImpl属性选择使用的实现类
+    if (props.migrationImpl === 'echarts') {
+      // 使用基于ECharts的飞线图实现
+      migrationTool.value = new EchartsMigration(mapInstance.value, options) as MigrationBase;
+      addLog('使用ECharts实现飞线图');
+    } else {
+      // 默认使用AntPath实现飞线图
+      migrationTool.value = new Migration(mapInstance.value, options) as MigrationBase;
+      addLog('使用AntPath实现飞线图');
+    }
     
     // 如果配置了数据点，设置数据
     if (props.migrationConfig?.dataPoints && props.migrationConfig.dataPoints.length > 0) {
       try {
+        if (migrationTool.value) {
         migrationTool.value.setData(props.migrationConfig.dataPoints, false);
-        addLog(`迁徙图数据点已加载: ${props.migrationConfig.dataPoints.length}个`);
+          addLog(`飞线图数据点已加载: ${props.migrationConfig.dataPoints.length}个`);
+        }
     } catch (e) {
-        error('设置迁徙图数据失败:', e);
-        addLog('设置迁徙图数据失败', e);
+        error('设置飞线图数据失败:', e);
+        addLog('设置飞线图数据失败', e);
       }
     }
     
     // 如果配置了启用，则启用迁徙图
     if (props.migrationConfig?.enabled) {
       try {
+        if (migrationTool.value) {
         migrationTool.value.enable();
-        addLog('迁徙图功能已启用');
+          addLog('飞线图功能已启用');
         
         // 如果配置了自动开始动画，则开始动画
         if (props.migrationConfig.autoStart) {
           setTimeout(() => {
             try {
-              migrationTool.value?.start();
-              addLog('迁徙图动画已自动开始');
+                if (migrationTool.value) {
+                  migrationTool.value.start();
+                  addLog('飞线图动画已自动开始');
+                }
     } catch (e) {
-              error('启动迁徙图动画失败:', e);
-              addLog('启动迁徙图动画失败', e);
+                error('启动飞线图动画失败:', e);
+                addLog('启动飞线图动画失败', e);
             }
           }, 500);
+          }
         }
     } catch (e) {
-        error('启用迁徙图功能失败:', e);
-        addLog('启用迁徙图功能失败', e);
+        error('启用飞线图功能失败:', e);
+        addLog('启用飞线图功能失败', e);
       }
     } else {
-      addLog('迁徙图功能未启用（配置设置为禁用）');
+      addLog('飞线图功能未启用（配置设置为禁用）');
     }
     } catch (e) {
-    error('初始化迁徙图工具失败:', e);
-    addLog('初始化迁徙图工具失败', e);
+    error('初始化飞线图工具失败:', e);
+    addLog('初始化飞线图工具失败', e);
   }
 };
 
@@ -2414,27 +2433,27 @@ const toggleHeatMap = (enable?: boolean): boolean => {
   }
 };
 
-// API - 更新迁徙图选项
-const updateMigrationOptions = (options: Partial<MigrationOptions>): boolean => {
+// API - 更新飞线图选项
+const updateMigrationOptions = (options: any): boolean => {
   if (!migrationTool.value) {
-    warn('迁徙图工具未初始化，无法更新选项');
+    warn('飞线图工具未初始化，无法更新选项');
     return false;
   }
   
   return migrationTool.value.updateOptions(options);
 };
 
-// API - 设置迁徙图数据
+// API - 设置飞线图数据
 const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true): boolean => {
   if (!migrationTool.value) {
-    warn('迁徙图工具未初始化，无法设置数据');
+    warn('飞线图工具未初始化，无法设置数据');
     return false;
   }
   
   try {
     // 检查数据格式
     if (!Array.isArray(data)) {
-      warn('迁徙图数据必须是数组');
+      warn('飞线图数据必须是数组');
       return false;
     }
     
@@ -2448,30 +2467,30 @@ const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true
     );
     
     if (validData.length !== data.length) {
-      warn(`迁徙图数据格式有误, 共${data.length}条数据，有效数据${validData.length}条`);
+      warn(`飞线图数据格式有误, 共${data.length}条数据，有效数据${validData.length}条`);
     }
     
     if (validData.length === 0) {
-      warn('没有有效的迁徙图数据点');
+      warn('没有有效的飞线图数据点');
       return false;
     }
     
     const result = migrationTool.value.setData(validData, startAnimation);
     if (result) {
-      addLog(`迁徙图数据已更新，共${validData.length}条有效路径`);
+      addLog(`飞线图数据已更新，共${validData.length}条有效路径`);
     }
     return result;
     } catch (e) {
-    error('设置迁徙图数据失败:', e);
-    addLog('设置迁徙图数据失败', e);
+    error('设置飞线图数据失败:', e);
+    addLog('设置飞线图数据失败', e);
     return false;
   }
 };
 
-// API - 启用/禁用迁徙图
+// API - 启用/禁用飞线图
 const toggleMigration = (enable?: boolean): boolean => {
   if (!migrationTool.value) {
-    warn('迁徙图工具未初始化，无法切换状态');
+    warn('飞线图工具未初始化，无法切换状态');
     return false;
   }
   
@@ -2484,20 +2503,20 @@ const toggleMigration = (enable?: boolean): boolean => {
   }
 };
 
-// API - 开始迁徙动画
+// API - 开始飞线动画
 const startMigration = (): boolean => {
   if (!migrationTool.value) {
-    warn('迁徙图工具未初始化，无法开始动画');
+    warn('飞线图工具未初始化，无法开始动画');
     return false;
   }
   
   return migrationTool.value.start();
 };
 
-// API - 停止迁徙动画
+// API - 停止飞线动画
 const stopMigration = (): boolean => {
   if (!migrationTool.value) {
-    warn('迁徙图工具未初始化，无法停止动画');
+    warn('飞线图工具未初始化，无法停止动画');
     return false;
   }
   
@@ -3363,7 +3382,7 @@ defineExpose({
   clearMeasurement,
   getMap: () => mapInstance.value,
   getMapContainer: () => mapContainer.value,
-
+  
   // 地图基本操作
   setCenter,
   setZoom,
@@ -3374,7 +3393,7 @@ defineExpose({
   disableDragging,
   toggleDragging,
   getVisibleBounds, // 添加获取可视区域边界方法
-
+  
   // 标记相关方法
   hideGroup: (groupName: string) => {
     if (!markerTool.value) {
@@ -3400,20 +3419,20 @@ defineExpose({
   hideMarkersByGroup,
   getMarkerGroups,
   fitToMarkers,
-
+  
   // 坐标显示相关方法
   openCoordinate,
   closeCoordinate,
   toggleCoordinate,
   isCoordinateVisible,
-
+  
   // 测量相关方法
   startMeasure,
   stopMeasure,
   toggleMeasure,
   clearMeasure,
   isMeasuring,
-
+  
   // 绘图相关方法
   clearShapes,
   isDrawing,
@@ -3442,39 +3461,60 @@ defineExpose({
       return false;
     }
   },
-
+  
   // 鹰眼相关方法
   enableOverview,
   disableOverview,
   toggleOverview,
   isOverviewEnabled,
-
+  
   // 聚合相关方法
   enableAggregation,
   disableAggregation,
   toggleAggregation,
   updateAggregationOptions,
   isAggregationEnabled,
-
+  
   // 轨迹播放相关方法
   startTrackPlayer,
   pauseTrackPlayer,
   stopTrackPlayer,
   updateTrackPlayerOptions,
   setTrackProgressByTime,
-
+  
   // 热力图相关方法
   updateHeatMapOptions,
   setHeatMapData,
   toggleHeatMap,
-
+  
   // 迁徙图相关方法
   updateMigrationOptions,
   setMigrationData,
   toggleMigration,
+  migrationStatus: () => {
+    if (!migrationTool.value) {
+      warn('迁徙图控制器未初始化，无法获取迁徙图状态');
+      return OpenStatus.CLOSE;
+    }
+    return migrationTool.value.isEnabled() ? OpenStatus.OPEN : OpenStatus.CLOSE;
+  },
+  enableMigration: () => {
+    if (!migrationTool.value) {
+      warn('迁徙图控制器未初始化，无法启用迁徙图');
+      return;
+    }
+    migrationTool.value.enable();
+  },
+  disableMigration: () => {
+    if (!migrationTool.value) {
+      warn('迁徙图控制器未初始化，无法禁用迁徙图');
+      return;
+    }
+    migrationTool.value.disable();
+  },
   startMigration,
   stopMigration,
-
+  
   // 调试相关方法
   showDebugPanel,
   hideDebugPanel,
@@ -3677,7 +3717,7 @@ defineExpose({
 .marker-popup-action-btn:hover {
   background-color: #1976d2;
 }
-</style>
+</style> 
 
 <!-- 添加全局CSS样式 -->
 <style>

@@ -31,6 +31,13 @@ export interface MapTypes {
   [key: string]: MapTypeItem;
 }
 
+export enum OpenStatus {
+  OPEN = 'OPEN',
+  CLOSE = 'CLOSE',
+  PLAYING = 'PLAYING',
+  STOPPED = 'STOPPED'
+}
+
 // 聚合功能配置接口
 export interface AggregationOptions {
   // 是否启用聚合
@@ -126,6 +133,8 @@ export interface ScMapProps {
   heatMapConfig?: HeatMapOptions;
   // 迁徙图配置
   migrationConfig?: MigrationConfig;
+  // 飞线图实现类型，可选 'antPath' 或 'echarts'
+  migrationImpl?: 'antPath' | 'echarts';
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
