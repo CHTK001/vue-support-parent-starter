@@ -21,6 +21,7 @@
             :show-toolbar="config.showToolbar"
             :aggregation-config="aggregationConfig"
             :heat-map-config="config.heatMapConfig"
+            :migration-impl="migrationImpl"
             @tool-activated="onToolActivated"
             @tool-deactivated="onToolDeactivated"
             @update:zoom="onZoomChange"
@@ -2376,13 +2377,14 @@ const addCityMigration = () => {
   try {
     // 先设置地图组件使用leaflet-charts5实现
     if (mapRef.value) {
-      // 设置迁徙图实现类型
-      mapRef.value.setProps?.({
-        migrationImpl: 'leafletCharts5'
-      });
+      // 设置迁徙图实现类型 - 通过响应式变量
+      migrationImpl.value = 'leafletCharts5' as any;
       
       // 记录日志
       log.info('已设置地图组件使用leaflet-charts5实现飞线图');
+      
+      // 确保地图已完全初始化和渲染
+      mapRef.value.getMap()?.invalidateSize(true);
     }
     
     // 中国主要城市坐标（经度,纬度）- 真实经纬度
@@ -2431,139 +2433,132 @@ const addCityMigration = () => {
       {from: '北京', to: '哈尔滨', weight: 3, color: '#66BB6A'}
     ];
 
-    // 转换为飞线图数据
-    const migrationData = cityConnections.map(conn => ({
-      from: cities[conn.from] as [number, number],
-      to: cities[conn.to] as [number, number],
-      labels: {
-        from: conn.from,
-        to: conn.to
-      },
-      color: conn.color,
-      weight: conn.weight,
-      time: 800 - conn.weight * 100 // 权重越大，动画越快
-    }));
-
     // 设置地图视图以包含所有城市
     // 中国大致边界
     mapRef.value.fitBounds(
       [[18, 73], [54, 135]], 
       {padding: 50, maxZoom: 5}
     );
-
-    // 添加城市标记点
-    const cityMarkers = [];
-
-    // 定义不同类型城市的图标样式
-    const cityIcons = {
-      '一线城市': {
-        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      },
-      '二线城市': {
-        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      },
-      '其他城市': {
-        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      }
-    };
     
-    // 定义城市类型
-    const cityTypes = {
-      '北京': '一线城市',
-      '上海': '一线城市',
-      '广州': '一线城市',
-      '深圳': '一线城市',
-      '成都': '二线城市',
-      '重庆': '二线城市',
-      '武汉': '二线城市',
-      '西安': '二线城市',
-      '南京': '二线城市',
-      '杭州': '二线城市',
-      '济南': '其他城市',
-      '天津': '其他城市'
-    };
-    
-    // 先清除之前可能存在的标记点
-    mapRef.value.removeAllMarkers();
-    
-    // 添加城市标记
-    Object.keys(cities).forEach(cityName => {
-      const [lng, lat] = cities[cityName];
-      const cityType = cityTypes[cityName] || '其他城市';
-      const iconStyle = cityIcons[cityType];
+    // 稍等片刻让地图视图变化完成
+    setTimeout(() => {
+      // 先清除之前可能存在的标记点
+      mapRef.value.removeAllMarkers();
       
-      // 为每个城市添加标记
-      const markerId = mapRef.value.addMarker(
-        { lat, lng },
-        {
-          icon: iconStyle,
-          markerLabel: cityName,
-          markerGroup: cityType,
-          markerCustomData: {
-            cityName: cityName,
-            cityType: cityType,
-            population: Math.floor(Math.random() * 2000) / 100 + 'M', // 模拟数据
-            connections: cityConnections.filter(c => c.from === cityName || c.to === cityName).length
-          }
+      // 清空之前可能存在的迁移数据
+      try {
+        // 如果正在播放，停止动画
+        if (migrationSettings.isPlaying) {
+          mapRef.value.stopMigration();
         }
-      );
-      
-      if (markerId) {
-        cityMarkers.push(markerId);
+        
+        // 禁用迁移
+        mapRef.value.disableMigration();
+        
+        // 稍等片刻后再次操作，确保DOM更新
+        setTimeout(() => {
+          // 转换为飞线图数据
+          const migrationData = cityConnections.map(conn => ({
+            from: cities[conn.from] as [number, number],
+            to: cities[conn.to] as [number, number],
+            labels: {
+              from: conn.from,
+              to: conn.to
+            },
+            color: conn.color,
+            weight: conn.weight,
+            time: 800 - conn.weight * 100 // 权重越大，动画越快
+          }));
+          
+          // 添加城市标记
+          Object.keys(cities).forEach(cityName => {
+            const [lng, lat] = cities[cityName];
+            const cityType = cityTypes[cityName] || '其他城市';
+            const iconStyle = cityIcons[cityType];
+            
+            // 为每个城市添加标记
+            const markerId = mapRef.value.addMarker(
+              { lat, lng },
+              {
+                icon: iconStyle,
+                markerLabel: cityName,
+                markerGroup: cityType,
+                markerCustomData: {
+                  cityName: cityName,
+                  cityType: cityType,
+                  population: Math.floor(Math.random() * 2000) / 100 + 'M', // 模拟数据
+                  connections: cityConnections.filter(c => c.from === cityName || c.to === cityName).length
+                }
+              }
+            );
+          });
+          
+          // 重新调整地图大小确保容器正确
+          mapRef.value.getMap()?.invalidateSize(true);
+          
+          // 再次等待DOM刷新
+          setTimeout(() => {
+            // 确保配置适用于ECharts 5的飞线图
+            mapRef.value.updateMigrationOptions({
+              // ECharts特有配置 - 适用于leaflet-charts5实现
+              animation: true,
+              lineWidth: 2,           // 线宽
+              lineOpacity: 0.75,      // 不透明度
+              symbolSize: 6,          // 标记点大小
+              curvature: 0.3,         // 曲线弯曲度
+              rippleEffect: {         // 波纹效果
+                period: 4,            // 动画周期
+                scale: 4,             // 波纹大小
+                brushType: 'fill'     // 填充类型
+              },
+              label: {                // 标签配置
+                show: true,           // 显示标签
+                position: 'right',    // 标签位置
+                formatter: '{b}'      // 标签格式
+              },
+              // 通用选项
+              autoStart: true,        // 自动开始
+              loop: true              // 循环播放
+            });
+          
+            // 等待配置应用后再启用飞线图
+            setTimeout(() => {
+              // 再次启用迁移
+              mapRef.value.enableMigration();
+              
+              // 再次等待组件渲染和初始化
+              setTimeout(() => {
+                // 设置飞线图数据，但不自动开始动画
+                mapRef.value.setMigrationData(migrationData, false);
+                
+                // 稍等片刻后手动启动动画
+                setTimeout(() => {
+                  // 启用飞线图
+                  mapRef.value.startMigration();
+                  migrationSettings.isPlaying = true;
+                  
+                  // 提示用户
+                  ElMessage({
+                    message: '城市间飞线图示例已添加到地图上 (使用新版Echarts 5实现)',
+                    type: 'success',
+                    duration: 3000
+                  });
+                }, 500);
+              }, 500);
+            }, 300);
+          }, 300);
+        }, 300);
+      } catch (e) {
+        log.error(`添加城市间飞线图示例失败: ${e}`);
+        
+        // 提示用户
+        ElMessage({
+          message: '添加城市间飞线图示例失败，请检查控制台日志',
+          type: 'error',
+          duration: 3000
+        });
       }
-    });
-
-    // 设置飞线图选项
-    mapRef.value.updateMigrationOptions({
-      // ECharts特有配置 - 适用于leaflet-charts5实现
-      animation: true,
-      lineWidth: 2,           // 线宽
-      lineOpacity: 0.75,      // 不透明度
-      symbolSize: 6,          // 标记点大小
-      curvature: 0.3,         // 曲线弯曲度
-      rippleEffect: {         // 波纹效果
-        period: 4,            // 动画周期
-        scale: 4,             // 波纹大小
-        brushType: 'fill'     // 填充类型
-      },
-      label: {                // 标签配置
-        show: true,           // 显示标签
-        position: 'right',    // 标签位置
-        formatter: '{b}'      // 标签格式
-      },
-      // 通用选项
-      autoStart: true,        // 自动开始
-      loop: true              // 循环播放
-    });
-    
-    // 设置飞线图数据
-    mapRef.value.setMigrationData(migrationData, true);
-    
-    // 启用飞线图
-    mapRef.value.startMigration();
-    isMigrationEnabled.value = true;
-    
-    // 提示用户
-    ElMessage({
-      message: '城市间飞线图示例已添加到地图上 (使用新版Echarts 5实现)',
-      type: 'success',
-      duration: 3000
-    });
+    }, 500);
   } catch (e) {
     log.error(`添加城市间飞线图示例失败: ${e}`);
     
@@ -2802,55 +2797,65 @@ const quickEnableMigration = () => {
     // 如果没有现有的飞线数据，先添加一个默认的飞线图
     if (!mapRef.value || !migrationSettings.isPlaying) {
       // 设置使用新的leaflet-charts5实现
-      mapRef.value.setProps?.({
-        migrationImpl: 'leafletCharts5'
-      });
+      migrationImpl.value = 'echarts5';
       
-      // 确保飞线功能已启用
-      if (!migrationSettings.enabled) {
-        mapRef.value.enableMigration();
-        migrationSettings.enabled = true;
-      }
+      // 记录当前使用的实现
+      migrationSettings.useECharts5 = true;
       
-      // 创建一些基本的飞线数据
-      const defaultMigrationData = generateDefaultMigrationData();
-
-      // 设置飞线图选项 - 使用ECharts 5配置格式
-      mapRef.value.updateMigrationOptions({
-        // ECharts 5格式
-        animation: true,
-        lineWidth: migrationOptions.lineStyle.width,
-        lineOpacity: migrationOptions.lineStyle.opacity,
-        symbolSize: 5,
-        curvature: migrationOptions.lineStyle.curveness,
-        rippleEffect: {
-          period: migrationOptions.effect.period,
-          scale: 4,
-          brushType: 'fill'
-        },
-        label: {
-          show: false,
-          position: 'right',
-          formatter: '{b}'
-        },
-        // 通用选项
-        autoStart: true,
-        loop: migrationOptions.loop
-      });
-      
-      // 设置飞线图数据
-      mapRef.value.setMigrationData(defaultMigrationData, true);
-      migrationSettings.hasData = true;
-      
-      // 开始播放飞线动画
-      mapRef.value.startMigration();
-      migrationSettings.isPlaying = true;
-      
-      ElMessage({
-        message: '已开启飞线图 (使用新版Echarts 5实现)',
-        type: 'success',
-        duration: 2000
-      });
+      // 等待DOM刷新和组件重新渲染
+      setTimeout(() => {
+        // 确保飞线功能已启用
+        if (!migrationSettings.enabled) {
+          mapRef.value.enableMigration();
+          migrationSettings.enabled = true;
+        }
+        
+        // 创建一些基本的飞线数据
+        const defaultMigrationData = generateDefaultMigrationData();
+  
+        // 设置飞线图选项 - 使用ECharts 5配置格式
+        mapRef.value.updateMigrationOptions({
+          // ECharts 5格式
+          animation: true,
+          lineWidth: migrationOptions.lineStyle.width,
+          lineOpacity: migrationOptions.lineStyle.opacity,
+          symbolSize: 5,
+          curvature: migrationOptions.lineStyle.curveness,
+          rippleEffect: {
+            period: migrationOptions.effect.period,
+            scale: 4,
+            brushType: 'fill'
+          },
+          label: {
+            show: false,
+            position: 'right',
+            formatter: '{b}'
+          },
+          // 通用选项
+          autoStart: true,
+          loop: migrationOptions.loop
+        });
+        
+        // 等待选项应用后设置数据
+        setTimeout(() => {
+          // 设置飞线图数据
+          mapRef.value.setMigrationData(defaultMigrationData, false);
+          migrationSettings.hasData = true;
+          
+          // 等待数据应用后开始动画
+          setTimeout(() => {
+            // 开始播放飞线动画
+            mapRef.value.startMigration();
+            migrationSettings.isPlaying = true;
+            
+            ElMessage({
+              message: '已开启飞线图 (使用新版Echarts 5实现)',
+              type: 'success',
+              duration: 2000
+            });
+          }, 300);
+        }, 300);
+      }, 300);
     }
   } catch (e) {
     log.error(`开启飞线图失败: ${e}`);
@@ -2865,39 +2870,53 @@ const quickEnableMigration = () => {
 
 // 生成默认飞线图数据
 const generateDefaultMigrationData = () => {
-  // 获取当前地图中心点
-  const center = config.center;
-  
-  // 创建以中心点为起点的多条飞线
-  const directions = [
-    { offset: [0.1, 0.1], name: '东北' },
-    { offset: [0.1, -0.1], name: '东南' },
-    { offset: [-0.1, -0.1], name: '西南' },
-    { offset: [-0.1, 0.1], name: '西北' },
-    { offset: [0.15, 0], name: '东' },
-    { offset: [-0.15, 0], name: '西' },
-    { offset: [0, 0.15], name: '北' },
-    { offset: [0, -0.15], name: '南' }
-  ];
-  
-  // 生成飞线数据
-  return directions.map((dir, index) => {
-    // 为每条线生成不同的颜色
-    const hue = (index * 45) % 360;
-    const color = `hsl(${hue}, 100%, 50%)`;
-    
-    return {
-      from: [center[1], center[0]] as [number, number], // 注意：这里需要交换经纬度顺序 [lng, lat]
-      to: [center[1] + dir.offset[0], center[0] + dir.offset[1]] as [number, number],
-      labels: {
-        from: '中心',
-        to: dir.name
+  try {
+    // 使用硬编码的安全坐标
+    const testData = [
+      {
+        from: [116.4074, 39.9042], // 北京 [经度, 纬度]
+        to: [121.4737, 31.2304],   // 上海 [经度, 纬度]
+        labels: {
+          from: '北京',
+          to: '上海'
+        },
+        color: '#FF5252'
       },
-      color: color,
-      weight: 2 + Math.random(),
-      time: 500 + Math.random() * 500
-    };
-  });
+      {
+        from: [116.4074, 39.9042], // 北京
+        to: [113.2644, 23.1291],   // 广州
+        labels: {
+          from: '北京',
+          to: '广州'
+        },
+        color: '#448AFF'
+      },
+      {
+        from: [116.4074, 39.9042], // 北京
+        to: [114.0579, 22.5431],   // 深圳
+        labels: {
+          from: '北京',
+          to: '深圳'
+        },
+        color: '#4CAF50'
+      },
+      {
+        from: [116.4074, 39.9042], // 北京
+        to: [104.0668, 30.5728],   // 成都
+        labels: {
+          from: '北京',
+          to: '成都'
+        },
+        color: '#FFC107'
+      }
+    ];
+    
+    log.info(`已生成${testData.length}条飞线数据`);
+    return testData;
+  } catch (e) {
+    log.error(`生成飞线数据失败: ${e}`);
+    return [];
+  }
 };
 
 // 更新飞线图样式
@@ -2906,7 +2925,7 @@ const updateMigrationStyle = () => {
   
   try {
     // 检测当前使用的飞线图实现类型
-    const isUsingECharts5 = mapRef.value.migrationImpl === 'leafletCharts5';
+    const isUsingECharts5 = mapRef.value.migrationImpl === 'echarts5';
     
     if (isUsingECharts5) {
       // ECharts 5格式 - 为leaflet-charts5实现
@@ -3034,18 +3053,74 @@ const addSampleMigrationData = () => {
   if (!mapRef.value || !migrationSettings.enabled) return;
   
   try {
-    // 创建一些基本的飞线数据
-    const defaultMigrationData = generateDefaultMigrationData();
+    log.info('正在添加飞线图样本数据...');
     
-    // 设置飞线图数据
-    mapRef.value.setMigrationData(defaultMigrationData, true);
-    migrationSettings.hasData = true;
-    
-    ElMessage({
-      message: '已添加飞线数据',
-      type: 'success',
-      duration: 2000
-    });
+    // 在进行所有操作前，给予充足时间让DOM完全渲染
+    setTimeout(() => {
+      try {
+        // 创建一些基本的飞线数据
+        const defaultMigrationData = generateDefaultMigrationData();
+        
+        // 确保数据格式正确
+        if (!defaultMigrationData.length) {
+          throw new Error('无法生成飞线数据');
+        }
+        
+        log.info(`已生成${defaultMigrationData.length}条飞线数据`);
+        
+        // 第二步：等待一小段时间再设置数据
+        setTimeout(() => {
+          try {
+            // 先禁用动画，减少初始化复杂度
+            mapRef.value.updateMigrationOptions({
+              animation: false
+            });
+            
+            // 设置飞线图数据，但不自动开始动画
+            mapRef.value.setMigrationData(defaultMigrationData, false);
+            migrationSettings.hasData = true;
+            
+            log.info('飞线数据设置完成，等待渲染...');
+            
+            // 第三步：等待数据应用后再启用动画效果
+            setTimeout(() => {
+              try {
+                // 重新启用动画效果
+                mapRef.value.updateMigrationOptions({
+                  animation: true
+                });
+                
+                // 手动开始动画
+                mapRef.value.startMigration();
+                migrationSettings.isPlaying = true;
+                
+                ElMessage({
+                  message: '已添加飞线数据并开始动画',
+                  type: 'success',
+                  duration: 2000
+                });
+              } catch (e) {
+                log.error(`启动飞线动画失败: ${e}`);
+              }
+            }, 500);
+          } catch (e) {
+            log.error(`设置飞线数据失败: ${e}`);
+            ElMessage({
+              message: '设置飞线数据失败',
+              type: 'error',
+              duration: 3000
+            });
+          }
+        }, 300);
+      } catch (e) {
+        log.error(`生成飞线数据失败: ${e}`);
+        ElMessage({
+          message: '生成飞线数据失败',
+          type: 'error',
+          duration: 3000
+        });
+      }
+    }, 500); // 增加延迟，确保DOM已完全渲染
   } catch (e) {
     log.error(`添加飞线图数据失败: ${e}`);
     
@@ -3181,37 +3256,88 @@ watch(
 );
 
 // 切换飞线图实现类型
+const migrationImpl = ref<'antPath' | 'echarts5'>('echarts5');
+
+// 切换飞线图实现类型
 const toggleMigrationImpl = (useECharts5) => {
   try {
     if (!mapRef.value) return;
     
-    // 设置飞线图实现类型
-    const implType = useECharts5 ? 'leafletCharts5' : 'antPath';
-    mapRef.value.setProps?.({
-      migrationImpl: implType
-    });
-    
     // 停止当前动画
     mapRef.value.stopMigration();
     
-    // 重新启用飞线图
-    mapRef.value.enableMigration();
+    // 禁用当前飞线图
+    mapRef.value.disableMigration();
     
-    // 应用样式
-    updateMigrationStyle();
+    // 设置飞线图实现类型
+    const implType = useECharts5 ? 'echarts5' : 'antPath';
+    migrationImpl.value = implType;
     
-    // 如果之前在播放，重新开始
-    if (migrationSettings.isPlaying) {
-      mapRef.value.startMigration();
-    }
+    // 等待DOM刷新和组件重新渲染
+    setTimeout(() => {
+      // 重新启用飞线图
+      mapRef.value.enableMigration();
     
-    log.info(`飞线图实现已切换为: ${implType}`);
-    
-    ElMessage({
-      message: `飞线图实现已切换为: ${useECharts5 ? 'ECharts 5' : '默认样式'}`,
-      type: 'success',
-      duration: 2000
-    });
+      // 应用样式 - 需要根据不同实现调整配置格式
+      if (useECharts5) {
+        // ECharts 5格式 - 为leaflet-charts5实现
+        mapRef.value.updateMigrationOptions({
+          animation: true,
+          lineWidth: migrationOptions.lineStyle.width,
+          lineOpacity: migrationOptions.lineStyle.opacity,
+          symbolSize: 5,
+          curvature: migrationOptions.lineStyle.curveness,
+          rippleEffect: {
+            period: migrationOptions.effect.period,
+            scale: 4,
+            brushType: 'fill'
+          },
+          label: {
+            show: false,
+            position: 'right',
+            formatter: '{b}'
+          },
+          autoStart: true,
+          loop: migrationOptions.loop
+        });
+      } else {
+        // 传统格式 - 为antPath或其他实现
+        mapRef.value.updateMigrationOptions({
+          lineStyle: {
+            color: migrationOptions.lineStyle.color,
+            width: migrationOptions.lineStyle.width,
+            opacity: migrationOptions.lineStyle.opacity,
+            curveness: migrationOptions.lineStyle.curveness
+          },
+          effect: {
+            show: true,
+            period: migrationOptions.effect.period,
+            trailLength: migrationOptions.effect.trailLength,
+            symbol: 'circle',
+            symbolSize: 5,
+            color: migrationOptions.effect.color
+          },
+          autoStart: true,
+          loop: migrationOptions.loop
+        });
+      }
+      
+      // 等待配置应用后重新开始动画
+      setTimeout(() => {
+        // 如果之前在播放，重新开始
+        if (migrationSettings.isPlaying) {
+          mapRef.value.startMigration();
+        }
+        
+        log.info(`飞线图实现已切换为: ${implType}`);
+        
+        ElMessage({
+          message: `飞线图实现已切换为: ${useECharts5 ? 'ECharts 5' : '默认样式'}`,
+          type: 'success',
+          duration: 2000
+        });
+      }, 500);
+    }, 300);
   } catch (e) {
     log.error(`切换飞线图实现失败: ${e}`);
     
@@ -3224,6 +3350,50 @@ const toggleMigrationImpl = (useECharts5) => {
       duration: 3000
     });
   }
+};
+
+// 定义不同类型城市的图标样式
+const cityIcons = {
+  '一线城市': {
+    iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  },
+  '二线城市': {
+    iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  },
+  '其他城市': {
+    iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }
+};
+
+// 定义城市类型
+const cityTypes = {
+  '北京': '一线城市',
+  '上海': '一线城市',
+  '广州': '一线城市',
+  '深圳': '一线城市',
+  '成都': '二线城市',
+  '重庆': '二线城市',
+  '武汉': '二线城市',
+  '西安': '二线城市',
+  '南京': '二线城市',
+  '杭州': '二线城市',
+  '济南': '其他城市',
+  '天津': '其他城市'
 };
 </script>
 

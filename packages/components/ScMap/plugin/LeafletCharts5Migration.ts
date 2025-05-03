@@ -8,28 +8,13 @@
 import { info, warn, error } from "@repo/utils";
 import type { Map as LeafletMap } from 'leaflet';
 import L from 'leaflet';
-import * as echarts from 'echarts/core';
-import type { ECharts, EChartsCoreOption } from 'echarts/core';
-import { ScatterChart, LinesChart, EffectScatterChart } from 'echarts/charts';
-import { GridComponent, TitleComponent, LegendComponent, TooltipComponent, GeoComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
+// 导入完整版本的echarts，确保有所有注册方法
+import * as echarts from "echarts";
+import type { ECharts, EChartsCoreOption } from 'echarts';
 import type { MigrationBase, MigrationEventType, MigrationEventListener, MigrationPoint } from './MigrationBase';
 import type { MigrationOptions } from "./types";
 import { LeafletEChartsLayer } from './leaflet-charts5';
 import { nextTick } from "vue";
-
-// 注册必要的组件
-echarts.use([
-  ScatterChart,
-  LinesChart,
-  EffectScatterChart,
-  GridComponent,
-  TitleComponent,
-  LegendComponent,
-  TooltipComponent,
-  GeoComponent,
-  CanvasRenderer
-]);
 
 /**
  * 基于leaflet-charts5的飞线图插件类
@@ -43,6 +28,8 @@ export class LeafletCharts5Migration implements MigrationBase {
   private isAnimating: boolean = false;
   private echartsLayer: LeafletEChartsLayer | null = null;
   private chart: echarts.ECharts | null = null;
+  private initRetries: number = 0;
+  private maxInitRetries: number = 5;
 
   /**
    * 构造函数
@@ -95,48 +82,99 @@ export class LeafletCharts5Migration implements MigrationBase {
     if (this.enabled) return true;
     
     try {
-      info('正在启用基于leaflet-charts5的飞线图...');
+      console.info('正在启用飞线图...');
+      
+      // 首先确保全局地图实例引用存在
+      if (this.map && typeof window !== 'undefined') {
+        (window as any).__leafletMap = this.map;
+        (window as any).__leafletMapLastUpdated = Date.now();
+      }
       
       // 创建并添加echarts图层
       this.echartsLayer = new LeafletEChartsLayer(this.map);
       this.map.addLayer(this.echartsLayer);
       
-      // 获取echarts实例
-      this.chart = this.echartsLayer.getECharts();
-      
-      // 设置初始空配置
+      // 延迟初始化
       setTimeout(() => {
-        if (this.chart && this.enabled) {
-          // 设置一个空的初始配置
-          this.updateChartOption();
+        // 获取echarts实例
+        this.chart = this.echartsLayer?.getECharts();
+        
+        if (this.chart) {
+          // 再次确保地图实例引用存在
+          if (this.map && typeof window !== 'undefined') {
+            (window as any).__leafletMap = this.map;
+            (window as any).__leafletMapLastUpdated = Date.now();
+          }
+          
+          try {
+            // 设置基础配置 - 使用leaflet坐标系
+            this.chart.setOption({
+              animation: true,
+              // 明确设置leaflet组件
+              leaflet: {
+                roam: true,
+                // 添加唯一ID，确保leaflet组件能被找到
+                id: 'leaflet-migration-' + Date.now()
+              },
+              // 移除其他可能的坐标系
+              xAxis: undefined,
+              yAxis: undefined,
+              geo: undefined,
+              grid: undefined,
+              series: [{
+                type: 'lines',
+                coordinateSystem: 'leaflet',
+                // 即使没有数据也设置一个空数组，确保系列被创建
+                data: []
+              }]
+            }, true); // 使用notMerge=true避免配置混合
+            
+            // 强制更新图表，确保坐标系初始化
+            if (this.echartsLayer) {
+              // 第一次更新可能失败，延迟执行确保成功
+              setTimeout(() => {
+                if (this.echartsLayer) {
+                  try {
+                    this.echartsLayer.update();
+                    console.info('飞线图图层已初始化并更新');
+                    
+                    // 如果有数据则应用，延迟500ms确保坐标系已初始化
+                    if (this.data.length > 0) {
+                      setTimeout(() => {
+                        if (this.chart) {
+                          this.applyDirectOption();
+                        }
+                      }, 500);
+                    }
+                  } catch (e) {
+                    console.warn('初始更新图表失败:', e);
+                  }
+                }
+              }, 200);
+            }
+          } catch (e) {
+            console.error('设置初始配置失败:', e);
+          }
+        } else {
+          console.error('echarts实例获取失败');
+          // 重试逻辑
+          if (this.initRetries < this.maxInitRetries) {
+            this.initRetries++;
+            console.warn(`初始化失败，正在尝试重新初始化 (${this.initRetries}/${this.maxInitRetries})...`);
+            setTimeout(() => {
+              this.disable();
+              this.enable();
+            }, 300);
+          }
         }
-      }, 200);
+      }, 800); // 增加延迟以确保地图完全加载
       
       this.enabled = true;
-      info('leaflet-charts5飞线图已启用');
-      
-      // 如果已经有数据，等待初始化完成后应用
-      if (this.data.length > 0) {
-        setTimeout(() => {
-          if (this.enabled) {
-            this.updateChartOption();
-            
-            // 如果配置了自动开始，延迟启动动画
-            if (this.options.autoStart) {
-              setTimeout(() => {
-                if (this.enabled) {
-                  this.start();
-                }
-              }, 300);
-            }
-          }
-        }, 300);
-      }
       
       this.emit('migration-started');
       return true;
     } catch (e) {
-      error('启用leaflet-charts5飞线图失败:', e);
+      console.error('启用飞线图失败:', e);
       return false;
     }
   }
@@ -150,17 +188,32 @@ export class LeafletCharts5Migration implements MigrationBase {
     try {
       // 先停止动画
       if (this.isAnimating) {
-        this.stop();
+        this.isAnimating = false; // 直接设置状态，避免调用stop方法
+      }
+      
+      // 移除图层前先清理ECharts实例
+      if (this.chart) {
+        try {
+          // 清空图表内容
+          this.chart.clear();
+          // 设置为空选项
+          this.chart.setOption({}, true);
+          this.chart = null;
+        } catch (e) {
+          console.warn('清理ECharts实例失败:', e);
+        }
       }
       
       // 移除图层
       if (this.echartsLayer) {
-        this.map.removeLayer(this.echartsLayer);
+        try {
+          this.map.removeLayer(this.echartsLayer);
+        } catch (e) {
+          console.warn('移除ECharts图层失败:', e);
+        }
         this.echartsLayer = null;
       }
       
-      // 清理引用
-      this.chart = null;
       this.enabled = false;
       
       info('leaflet-charts5飞线图已禁用');
@@ -172,10 +225,14 @@ export class LeafletCharts5Migration implements MigrationBase {
   }
 
   /**
-   * 切换飞线图启用状态
+   * 切换飞线图状态
    */
   public toggle(): boolean {
-    return this.enabled ? this.disable() : this.enable();
+    if (this.enabled) {
+      return this.disable();
+    } else {
+      return this.enable();
+    }
   }
 
   /**
@@ -187,248 +244,205 @@ export class LeafletCharts5Migration implements MigrationBase {
 
   /**
    * 设置飞线图数据
-   * @param data 飞线图数据点数组
-   * @param startAnimation 是否自动开始动画
    */
   public setData(data: MigrationPoint[], startAnimation: boolean = true): boolean {
     try {
-      info(`设置飞线图数据，共${data?.length || 0}条路径`);
+      console.info(`设置飞线图数据，${data?.length || 0}条路径`);
       
-      // 验证数据
-      if (!Array.isArray(data)) {
-        warn('飞线图数据必须是数组类型');
-        return false;
-      }
-      
-      // 验证并处理数据
+      // 保存有效数据
       this.data = this.validateData(data);
       
-      // 更新图表配置
       if (this.enabled && this.chart) {
-        this.updateChartOption();
+        // 尝试在设置数据前确保坐标系已注册
+        const ensureCoordinateSystem = () => {
+          try {
+            // 设置极简配置避免坐标系统问题
+            this.applyDirectOption();
+            
+            if (startAnimation) {
+              setTimeout(() => this.start(), 300);
+            }
+          } catch (e) {
+            console.error('应用飞线图配置失败:', e);
+          }
+        };
         
-        // 如果需要开始动画
-        if (startAnimation) {
-          // 延迟启动动画，确保图表已正确更新
-          setTimeout(() => {
-            return this.start();
-          }, 200);
-        }
+        // 先确保leaflet组件存在，强制重新创建坐标系
+        this.chart.setOption({
+          leaflet: {
+            roam: true,
+            id: 'leaflet-migration-' + Date.now()
+          }
+        }, false);
+        
+        // 延迟执行以确保坐标系已注册
+        setTimeout(ensureCoordinateSystem, 100);
+      } else if (!this.enabled) {
+        // 如果飞线图尚未启用，先启用它
+        this.enable();
+        // 延迟设置数据
+        setTimeout(() => {
+          if (this.chart) {
+            this.applyDirectOption();
+            if (startAnimation) this.start();
+          }
+        }, 800);
       }
-      
-      // 触发数据更新事件
-      this.emit('migration-data-updated', { count: this.data.length });
       
       return true;
     } catch (e) {
-      error('设置飞线图数据失败:', e);
+      console.error('设置飞线图数据失败:', e);
       return false;
     }
   }
 
   /**
-   * 验证并处理飞线数据
+   * 验证并处理数据，确保格式正确
    * @param data 原始数据
-   * @returns 验证后的数据
+   * @returns 处理后的数据
    */
   private validateData(data: MigrationPoint[]): MigrationPoint[] {
-    const validatedData: MigrationPoint[] = [];
-    
-    data.forEach((point, index) => {
-      try {
-        // 检查必要属性
-        if (!point.from || !point.to) {
-          warn(`第${index}条路径缺少必要的from或to属性，将被跳过`);
-          return;
+    try {
+      return data.filter((point, index) => {
+        // 检查必要字段
+        if (!point.from || !point.to || !Array.isArray(point.from) || !Array.isArray(point.to)) {
+          warn(`飞线图数据点 #${index} 格式错误，必须包含from和to坐标`);
+          return false;
         }
         
-        // 确保坐标是数组类型
-        if (!Array.isArray(point.from) || !Array.isArray(point.to)) {
-          warn(`第${index}条路径的坐标格式错误，应为数组，将被跳过`);
-          return;
-        }
-        
-        // 检查坐标长度
+        // 检查坐标格式
         if (point.from.length < 2 || point.to.length < 2) {
-          warn(`第${index}条路径的坐标格式错误，数组长度不足，将被跳过`);
-          return;
+          warn(`飞线图数据点 #${index} 坐标格式错误，必须是[lng, lat]格式`);
+          return false;
         }
         
-        // 检查坐标值是否为数字
-        if (typeof point.from[0] !== 'number' || typeof point.from[1] !== 'number' ||
-            typeof point.to[0] !== 'number' || typeof point.to[1] !== 'number') {
-          warn(`第${index}条路径的坐标值必须为数字类型，将被跳过`);
-          return;
+        // 检查坐标值范围 
+        const fromLng = point.from[0];
+        const fromLat = point.from[1];
+        const toLng = point.to[0];
+        const toLat = point.to[1];
+        
+        // 经度范围检查
+        if (fromLng < -180 || fromLng > 180 || toLng < -180 || toLng > 180) {
+          warn(`飞线图数据点 #${index} 经度值超出范围 (-180 到 180): [${fromLng}, ${toLng}]`);
+          return false;
         }
         
-        // 确保坐标格式正确 [经度,纬度]
-        const validated: MigrationPoint = {
-          ...point,
-          from: this.ensureCoordinateFormat(point.from),
-          to: this.ensureCoordinateFormat(point.to),
-        };
+        // 纬度范围检查
+        if (fromLat < -90 || fromLat > 90 || toLat < -90 || toLat > 90) {
+          warn(`飞线图数据点 #${index} 纬度值超出范围 (-90 到 90): [${fromLat}, ${toLat}]`);
+          return false;
+        }
         
-        validatedData.push(validated);
-      } catch (e) {
-        warn(`验证第${index}条路径时出错:`, e);
-      }
-    });
-    
-    return validatedData;
+        // 检查起点和终点是否相同
+        if (fromLng === toLng && fromLat === toLat) {
+          warn(`飞线图数据点 #${index} 起点和终点相同，将被忽略`);
+          return false;
+        }
+        
+        // 记录有效数据点
+        info(`有效飞线数据点 #${index}: [${fromLng},${fromLat}] → [${toLng},${toLat}]`);
+        return true;
+      });
+    } catch (e) {
+      error('验证飞线图数据失败:', e);
+      return [];
+    }
   }
 
   /**
-   * 确保坐标格式正确 [经度,纬度]
+   * 直接应用简单的配置，避免坐标系统问题
    */
-  private ensureCoordinateFormat(coord: number[]): [number, number] {
-    // 创建一个新的坐标数组
-    const result: [number, number] = [coord[0], coord[1]];
-    
-    // 检测并记录坐标范围
-    const isFirstLikelyLatitude = Math.abs(coord[0]) <= 90;
-    const isSecondLikelyLongitude = Math.abs(coord[1]) <= 180 && Math.abs(coord[1]) > 90;
-    
-    // 如果看起来是[纬度,经度]格式，需要交换
-    if (isFirstLikelyLatitude && isSecondLikelyLongitude) {
-      return [coord[1], coord[0]];
-    }
-    
-    // 确保坐标在合理范围内
-    if (Math.abs(result[0]) > 180) {
-      result[0] = ((result[0] + 180) % 360) - 180;
-    }
-    
-    if (Math.abs(result[1]) > 90) {
-      result[1] = Math.max(-90, Math.min(90, result[1]));
-    }
-    
-    return result;
-  }
-
-  /**
-   * 更新ECharts配置选项
-   */
-  private updateChartOption(): void {
-    if (!this.enabled || !this.chart) {
-      return;
-    }
+  private applyDirectOption(): void {
+    if (!this.chart) return;
     
     try {
-      info('更新leaflet-charts5飞线图配置选项...');
-      
-      // 检查数据是否为空
-      if (this.data.length === 0) {
-        // 设置空配置
-        this.chart.setOption({
-          animation: false,
-          series: []
-        });
-        return;
-      }
-      
-      // 准备系列数据
-      const scatterData = [];
-      const linesData = [];
-      
-      // 转换迁徙数据为ECharts格式
-      this.data.forEach(point => {
-        const { from, to, labels, color } = point;
-        
-        // 添加飞线数据
-        linesData.push({
-          coords: [
-            [from[0], from[1]],  // 起点坐标 [经度, 纬度]
-            [to[0], to[1]]       // 终点坐标 [经度, 纬度]
-          ],
-          lineStyle: {
-            color: color || '#1e88e5',
-            width: this.options.lineWidth,
-            opacity: this.options.lineOpacity,
-            curveness: this.options.curvature
-          }
-        });
-        
-        // 如果需要显示标签，添加起点和终点标记
-        if (this.options.label?.show) {
-          // 起点
-          if (labels?.from) {
-            scatterData.push({
-              name: labels.from,
-              value: [from[0], from[1], labels.from],
-              itemStyle: { color: color || '#1e88e5' }
-            });
-          }
-          
-          // 终点
-          if (labels?.to) {
-            scatterData.push({
-              name: labels.to,
-              value: [to[0], to[1], labels.to],
-              itemStyle: { color: color || '#1e88e5' }
-            });
-          }
-        }
+      // 转换数据为echarts格式
+      const linesData = this.data.map(item => {
+        // 确保坐标顺序正确：[经度, 纬度]
+        return [
+          // 起点 [经度, 纬度]
+          [item.from[0], item.from[1]],
+          // 终点 [经度, 纬度]
+          [item.to[0], item.to[1]]
+        ];
       });
       
-      // 完整ECharts配置
+      // 获取颜色
+      const colors = this.data.map(item => item.color || '#1e88e5');
+      
+      // 确保全局地图实例引用存在
+      if (this.map && typeof window !== 'undefined') {
+        (window as any).__leafletMap = this.map;
+        (window as any).__leafletMapLastUpdated = Date.now();
+      }
+      
+      // 先尝试设置一个基础的leaflet配置，确保坐标系存在
+      this.chart.setOption({
+        leaflet: {
+          roam: true,
+          id: 'leaflet-migration-pre-' + Date.now()
+        }
+      }, false);
+      
+      // 创建使用leaflet坐标系的配置
       const option = {
-        animation: this.options.animation,
+        animation: true,
+        // 确保有leaflet组件，系列才能找到坐标系
+        leaflet: {
+          roam: true,
+          id: 'leaflet-migration-' + Date.now()
+        },
+        // 移除可能存在的其他坐标系
+        xAxis: undefined,
+        yAxis: undefined,
+        geo: undefined,
+        grid: undefined,
         series: [
-          // 标记点
           {
-            type: 'scatter',
-            coordinateSystem: 'leaflet',
-            symbolSize: this.options.symbolSize,
-            zlevel: 2,
-            label: {
-              show: this.options.label?.show,
-              position: this.options.label?.position || 'right',
-              formatter: this.options.label?.formatter || '{b}',
-              fontSize: 10,
-              color: '#fff'
-            },
-            itemStyle: {
-              color: '#1e88e5'
-            },
-            data: scatterData
-          },
-          // 飞线图
-          {
+            name: '飞线',
             type: 'lines',
+            // 明确设置坐标系类型
             coordinateSystem: 'leaflet',
-            zlevel: 1,
+            zlevel: 2,
+            // 飞线特效
             effect: {
               show: this.isAnimating,
-              period: this.options.rippleEffect?.period || 4,
-              trailLength: 0.5,
-              symbolSize: this.options.symbolSize || 5,
-              symbol: 'circle',
-              loop: true
+              period: 5,
+              trailLength: 0.7,
+              color: '#fff',
+              symbolSize: 3
             },
             lineStyle: {
-              color: '#1e88e5',
-              width: this.options.lineWidth || 1,
-              opacity: this.options.lineOpacity || 0.6,
+              color: colors,
+              width: 1,
+              opacity: 0.5,
               curveness: this.options.curvature || 0.2
             },
-            data: linesData
+            // 基本数据
+            data: linesData.map((coords, index) => {
+              return {
+                coords: coords,
+                lineStyle: {
+                  color: colors[index]
+                }
+              };
+            })
           }
         ]
       };
       
-      // 使用nextTick避免在主进程中调用setOption
-      nextTick(() => {
-        if (this.enabled && this.chart) {
-          try {
-            this.chart.setOption(option, true);
-            info(`leaflet-charts5飞线图配置已更新: ${linesData.length}条飞线, ${scatterData.length}个标记点`);
-          } catch (e) {
-            error('更新飞线图配置失败:', e);
-          }
-        }
-      });
+      // 应用配置 - 使用notMerge避免配置混合导致坐标系错误
+      this.chart.setOption(option, true);
+      
+      // 强制更新图表
+      if (this.echartsLayer) {
+        this.echartsLayer.update();
+      }
+      
+      console.info('已应用飞线图配置');
     } catch (e) {
-      error('更新leaflet-charts5飞线图配置失败:', e);
+      console.error('应用飞线图配置失败', e);
     }
   }
 
@@ -436,22 +450,27 @@ export class LeafletCharts5Migration implements MigrationBase {
    * 开始动画
    */
   public start(): boolean {
-    if (!this.enabled || !this.chart) {
-      warn('飞线图未启用或图表实例不存在，无法开始动画');
-      return false;
-    }
+    if (!this.enabled || !this.chart) return false;
     
     try {
       this.isAnimating = true;
       
-      // 重新更新图表配置，设置effect.show为true
-      this.updateChartOption();
+      // 设置动画属性，避免修改坐标系配置
+      this.chart.setOption({
+        series: [{
+          type: 'lines',
+          effect: {
+            show: true
+          }
+        }]
+      }, { 
+        notMerge: false, // 使用merge确保只更新指定配置
+        replaceMerge: ['series'] // 确保series被完整替换
+      } as any);
       
-      this.emit('migration-started');
-      info('飞线图动画已开始');
       return true;
     } catch (e) {
-      error('开始飞线图动画失败:', e);
+      console.error('开始飞线图动画失败:', e);
       return false;
     }
   }
@@ -460,20 +479,27 @@ export class LeafletCharts5Migration implements MigrationBase {
    * 停止动画
    */
   public stop(): boolean {
-    if (!this.enabled || !this.isAnimating || !this.chart) {
-      return true;
-    }
+    if (!this.enabled || !this.chart) return true;
     
     try {
       this.isAnimating = false;
       
-      // 重新更新图表选项
-      this.updateChartOption();
+      // 关闭动画效果，避免修改坐标系配置
+      this.chart.setOption({
+        series: [{
+          type: 'lines',
+          effect: {
+            show: false
+          }
+        }]
+      }, {
+        notMerge: false, // 使用merge确保只更新指定配置 
+        replaceMerge: ['series'] // 确保series被完整替换
+      } as any);
       
-      this.emit('migration-completed');
       return true;
     } catch (e) {
-      error('停止飞线图动画失败:', e);
+      console.error('停止飞线图动画失败:', e);
       return false;
     }
   }
@@ -526,7 +552,7 @@ export class LeafletCharts5Migration implements MigrationBase {
     try {
       // 如果启用了图表且有数据，更新配置
       if (this.enabled && this.data.length > 0 && this.chart) {
-        this.updateChartOption();
+        this.applyDirectOption();
       }
       
       return true;

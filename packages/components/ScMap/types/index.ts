@@ -134,7 +134,7 @@ export interface ScMapProps {
   // 迁徙图配置
   migrationConfig?: MigrationConfig;
   // 飞线图实现类型，可选 'antPath', 'echarts', 'leafletEcharts' 或 'leafletCharts5'
-  migrationImpl?: 'antPath' | 'echarts' | 'leafletEcharts' | 'leafletCharts5';
+  migrationImpl?: 'antPath' | 'echarts5';
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
