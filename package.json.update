@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@joakimono/echarts-extension-leaflet": "^1.2.0"
+  }
+} 
