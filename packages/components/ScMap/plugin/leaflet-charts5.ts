@@ -158,6 +158,9 @@ export class LeafletEChartsLayer extends L.Layer {
   private _leaflet_map: LeafletMap;
   private _coordsys: LeafletCoordSys | null = null;
   private _unbindEvents: (() => void) | null = null;
+  private _initializationPromise: Promise<void> | null = null;
+  private _initRetries: number = 0;
+  private _maxRetries: number = 3;
 
   constructor(map: LeafletMap, options: any = {}) {
     super(options);
@@ -190,8 +193,10 @@ export class LeafletEChartsLayer extends L.Layer {
     this._echartsContainer.style.width = '100%';
     this._echartsContainer.style.height = '100%';
     
-    // 初始化ECharts实例
-    this.initECharts();
+    // 延迟初始化ECharts实例，确保容器已经正确渲染
+    setTimeout(() => {
+      this.initECharts();
+    }, 100);
     
     // 绑定事件
     this._bindEvents();
@@ -236,6 +241,28 @@ export class LeafletEChartsLayer extends L.Layer {
         error('ECharts容器不存在');
         return;
       }
+
+      // 检查容器尺寸
+      const width = this._echartsContainer.clientWidth;
+      const height = this._echartsContainer.clientHeight;
+      
+      if (width === 0 || height === 0) {
+        // 容器尺寸为0，说明可能DOM还未完全渲染或样式问题
+        if (this._initRetries < this._maxRetries) {
+          this._initRetries++;
+          warn(`ECharts容器尺寸为0，延迟重试初始化 #${this._initRetries}...`);
+          // 延迟重试
+          setTimeout(() => {
+            this.initECharts();
+          }, 200);
+          return;
+        } else {
+          // 强制设置尺寸
+          warn('ECharts容器尺寸异常，强制设置尺寸');
+          this._echartsContainer.style.width = this._leaflet_map.getSize().x + 'px';
+          this._echartsContainer.style.height = this._leaflet_map.getSize().y + 'px';
+        }
+      }
       
       // 如果已经有实例，先销毁
       if (this._ec) {
@@ -243,8 +270,12 @@ export class LeafletEChartsLayer extends L.Layer {
       }
       
       // 创建新实例
-      this._ec = echarts.init(this._echartsContainer);
-      info('ECharts实例创建成功');
+      this._ec = echarts.init(this._echartsContainer, undefined, {
+        width: this._echartsContainer.clientWidth || this._leaflet_map.getSize().x,
+        height: this._echartsContainer.clientHeight || this._leaflet_map.getSize().y
+      });
+      
+      info('ECharts实例创建成功', this._ec);
       
       // 设置初始配置
       if (this._echartsOption) {
@@ -291,7 +322,10 @@ export class LeafletEChartsLayer extends L.Layer {
     const handleMapChange = () => {
       if (this._ec) {
         try {
-          this._ec.resize();
+          this._ec.resize({
+            width: this._echartsContainer.clientWidth || this._leaflet_map.getSize().x,
+            height: this._echartsContainer.clientHeight || this._leaflet_map.getSize().y
+          });
           this._ec.dispatchAction({
             type: 'leafletRoam'
           });
@@ -376,7 +410,14 @@ export class LeafletEChartsLayer extends L.Layer {
   update(): void {
     if (this._ec) {
       try {
-        this._ec.resize();
+        // 确保容器有正确的尺寸
+        const width = this._echartsContainer.clientWidth || this._leaflet_map.getSize().x;
+        const height = this._echartsContainer.clientHeight || this._leaflet_map.getSize().y;
+        
+        this._ec.resize({
+          width: width,
+          height: height
+        });
         this._ec.dispatchAction({
           type: 'leafletRoam'
         });
@@ -405,7 +446,15 @@ export class LeafletEChartsLayer extends L.Layer {
   redraw(): void {
     if (this._ec) {
       try {
-        this._ec.resize();
+        // 先确保容器尺寸正确
+        const width = this._echartsContainer.clientWidth || this._leaflet_map.getSize().x;
+        const height = this._echartsContainer.clientHeight || this._leaflet_map.getSize().y;
+        
+        this._ec.resize({
+          width: width,
+          height: height
+        });
+        
         if (this._echartsOption) {
           this.setOption(this._echartsOption, true);
         }
