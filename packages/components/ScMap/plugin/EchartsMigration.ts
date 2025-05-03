@@ -13,12 +13,12 @@ import * as echarts from "echarts";
 // 导入必要的组件
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { LinesChart } from 'echarts/charts';
+import { LinesChart, EffectScatterChart } from 'echarts/charts';
 // 全局导入echarts-extension-leaflet以自动注册组件
 import '@joakimono/echarts-extension-leaflet';
 
 // 注册必须的组件
-use([CanvasRenderer, LinesChart]);
+use([CanvasRenderer, LinesChart, EffectScatterChart]);
 
 import type { ECharts, EChartsCoreOption } from 'echarts';
 import type { MigrationBase, MigrationEventType, MigrationEventListener, MigrationPoint } from './MigrationBase';
@@ -49,6 +49,9 @@ export class EchartsMigration implements MigrationBase {
   constructor(map: LeafletMap, options: Partial<MigrationOptions> = {}) {
     this.map = map;
     
+    // 默认飞机图标路径
+    const planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z';
+
     // 默认选项
     const defaultOptions: MigrationOptions = {
       enable3D: false,
@@ -59,13 +62,15 @@ export class EchartsMigration implements MigrationBase {
       animationEasing: 'cubicOut',
       lineType: 'line',
       pathEffect: 'path',
+      pathSymbol: planePath, // 默认使用飞机图标
+      pathSymbolColor: '#1E90FF', // 默认蓝色飞机
       lineWidth: 1,
       lineOpacity: 0.6,
-      symbolSize: 5,
+      symbolSize: 12, // 飞机图标尺寸
       curvature: 0.2,
       rippleEffect: {
-        period: 4,
-        scale: 4,
+        period: 2, // 更快的周期
+        scale: 2,  // 更小的涟漪效果
         brushType: 'fill'
       },
       hoverAnimation: true,
@@ -353,6 +358,14 @@ export class EchartsMigration implements MigrationBase {
       // 确定是否使用3D效果
       const is3D = this.options.enable3D === true;
       
+      // 自定义飞机图标路径
+      const planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z';
+      
+      // 获取用户配置的图标
+      const symbol = this.options.pathSymbol || planePath;
+      // 获取图标颜色
+      const symbolColor = this.options.pathSymbolColor || '#00BFFF';
+
       // 设置echarts配置
       const option: any = {
         animation: this.options.animation,
@@ -380,8 +393,9 @@ export class EchartsMigration implements MigrationBase {
               show: true,
               period: 6,
               trailLength: 0.7,
-              color: '#fff',
+              color: symbolColor,
               symbolSize: this.options.symbolSize,
+              symbol: symbol
             },
             // 数据项
             data: seriesData
@@ -392,14 +406,15 @@ export class EchartsMigration implements MigrationBase {
             type: 'effectScatter',
             coordinateSystem: 'lmap',
             zlevel: is3D ? 2 : 2,
-            // 散点大小
+            // 散点大小，改为更小的值
             symbolSize: (val) => {
-              return this.options.symbolSize * 2 * (Array.isArray(val) ? (val[2] || 1) : 1);
+              // 默认较小的尺寸，根据权重稍微调整
+              return this.options.symbolSize * 1.2 * (Array.isArray(val) ? Math.min((val[2] || 1), 2) : 1);
             },
             // 波动效果
             rippleEffect: {
-              period: this.options.rippleEffect?.period || 4,
-              scale: this.options.rippleEffect?.scale || 4,
+              period: this.options.rippleEffect?.period || 2,
+              scale: this.options.rippleEffect?.scale || 2,
               brushType: this.options.rippleEffect?.brushType || 'fill'
             },
             // 标签设置
@@ -410,10 +425,11 @@ export class EchartsMigration implements MigrationBase {
             },
             // 是否启用鼠标悬停动画
             hoverAnimation: this.options.hoverAnimation,
-            // 散点样式
+            // 散点样式，降低亮度和透明度
             itemStyle: {
-              shadowBlur: 10,
-              shadowColor: 'rgba(120, 36, 50, 0.5)'
+              shadowBlur: 5,
+              shadowColor: 'rgba(120, 36, 50, 0.3)',
+              opacity: 0.7
             },
             // 数据项
             data: effectScatterData
@@ -455,6 +471,14 @@ export class EchartsMigration implements MigrationBase {
         this.animationTimer = null;
       }
       
+      // 自定义飞机图标路径
+      const planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z';
+      
+      // 获取用户配置的图标
+      const symbol = this.options.pathSymbol || planePath;
+      // 获取图标颜色
+      const symbolColor = this.options.pathSymbolColor || '#00BFFF';
+      
       // 应用动画配置
       this.chart.setOption({
         series: [
@@ -465,16 +489,17 @@ export class EchartsMigration implements MigrationBase {
               show: true,
               period: 6,
               trailLength: 0.7,
-              color: '#fff',
+              color: symbolColor,
               symbolSize: this.options.symbolSize,
+              symbol: symbol
             }
           },
           {
             // 散点动画
             type: 'effectScatter',
             rippleEffect: {
-              period: this.options.rippleEffect?.period || 4,
-              scale: this.options.rippleEffect?.scale || 4,
+              period: this.options.rippleEffect?.period || 2,
+              scale: this.options.rippleEffect?.scale || 2,
               brushType: this.options.rippleEffect?.brushType || 'fill'
             }
           }
