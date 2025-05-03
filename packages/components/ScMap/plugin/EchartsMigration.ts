@@ -14,11 +14,11 @@ import * as echarts from "echarts";
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { LinesChart } from 'echarts/charts';
-// 使用完整导入方式确保坐标系统被正确注册
-import { LeafletComponent } from '@joakimono/echarts-extension-leaflet/src/export';
+// 全局导入echarts-extension-leaflet以自动注册组件
+import '@joakimono/echarts-extension-leaflet';
 
 // 注册必须的组件
-use([CanvasRenderer, LinesChart, LeafletComponent]);
+use([CanvasRenderer, LinesChart]);
 
 import type { ECharts, EChartsCoreOption } from 'echarts';
 import type { MigrationBase, MigrationEventType, MigrationEventListener, MigrationPoint } from './MigrationBase';
@@ -94,35 +94,33 @@ export class EchartsMigration implements MigrationBase {
     try {
       info('正在启用ECharts飞线图...');
 
-      // 创建ECharts容器元素
+      // 为地图创建一个容器元素
       const container = document.createElement('div');
       container.style.position = 'absolute';
-      container.style.top = '0';
-      container.style.left = '0';
-      container.style.width = '100%';
-      container.style.height = '100%';
-      container.style.pointerEvents = 'none';
+      container.style.top = '0px';
+      container.style.left = '0px';
+      container.style.right = '0px';
+      container.style.bottom = '0px';
+      container.style.pointerEvents = 'none'; // 确保不阻挡鼠标事件
       
-      // 将容器添加到地图的容器中
+      // 添加到地图容器
       this.map.getContainer().appendChild(container);
       
-      // 确保地图实例保存到容器中，供echarts-extension-leaflet使用
-      (container as any)._leaflet_map_ = this.map;
-      
-      // 初始化ECharts实例
+      // 初始化echarts实例
       this.chart = echarts.init(container);
+      
+      // 将地图实例关联到容器
+      (container as any)._leaflet_map_ = this.map;
       
       // 设置基础配置
       this.chart.setOption({
         animation: true,
-        // 设置leaflet组件选项 - 注意这里使用lmap作为坐标系统的设置键
         lmap: {
-          // 镜像地图状态
-          center: this.map.getCenter() ? [this.map.getCenter().lng, this.map.getCenter().lat] : [0, 0],
-          zoom: this.map.getZoom() || 3,
+          center: [this.map.getCenter().lng, this.map.getCenter().lat],
+          zoom: this.map.getZoom(),
           roam: true,
-          renderOnMoving: false, // 移动时不渲染以提高性能
-          echartsLayerInteractive: true // 启用ECharts交互
+          renderOnMoving: true, // 地图移动时保持渲染
+          echartsLayerInteractive: false // 设为false，确保ECharts图层不拦截交互事件
         },
         series: [{
           type: 'lines',
@@ -131,6 +129,14 @@ export class EchartsMigration implements MigrationBase {
           data: []
         }]
       }, true); // 使用notMerge=true避免配置混合
+      
+      // 禁用ECharts的默认交互
+      this.chart.getZr().setCursorStyle('inherit');
+      this.chart.getZr().off('mousedown');
+      this.chart.getZr().off('mouseup');
+      this.chart.getZr().off('mousemove');
+      
+      this.echartsLayer = container;
       
       // 如果有数据，则应用数据
       if (this.data.length > 0) {
@@ -144,19 +150,15 @@ export class EchartsMigration implements MigrationBase {
         }, 300);
       }
       
-      // 绑定地图事件，当地图缩放或移动时更新ECharts视图
-      this.map.on('moveend', () => {
-        if (this.chart) {
-          this.chart.setOption({
-            lmap: {
-              center: this.map.getCenter() ? [this.map.getCenter().lng, this.map.getCenter().lat] : [0, 0],
-              zoom: this.map.getZoom() || 3
-            }
-          });
-        }
-      });
+      // 使用bind绑定this到updatePosition方法
+      const boundUpdatePosition = this.updatePosition.bind(this);
+      (this as any)._boundUpdatePosition = boundUpdatePosition;
       
-      this.echartsLayer = container; // 保存容器引用
+      // 地图移动事件，使用绑定的方法
+      this.map.on('move', boundUpdatePosition);
+      this.map.on('zoom', boundUpdatePosition);
+      this.map.on('resize', boundUpdatePosition);
+      
       this.enabled = true;
       
       info('飞线图初始化完成');
@@ -165,6 +167,20 @@ export class EchartsMigration implements MigrationBase {
     } catch (e) {
       error('启用飞线图失败:', e);
       return false;
+    }
+  }
+
+  /**
+   * 更新容器位置
+   */
+  private updatePosition(): void {
+    if (this.chart) {
+      this.chart.setOption({
+        lmap: {
+          center: [this.map.getCenter().lng, this.map.getCenter().lat],
+          zoom: this.map.getZoom()
+        }
+      });
     }
   }
 
@@ -184,8 +200,13 @@ export class EchartsMigration implements MigrationBase {
         this.chart = null;
       }
       
-      // 移除地图事件监听
-      this.map.off('moveend');
+      // 移除地图事件监听器
+      if ((this as any)._boundUpdatePosition) {
+        this.map.off('move', (this as any)._boundUpdatePosition);
+        this.map.off('zoom', (this as any)._boundUpdatePosition);
+        this.map.off('resize', (this as any)._boundUpdatePosition);
+        (this as any)._boundUpdatePosition = null;
+      }
       
       // 移除容器元素
       if (this.echartsLayer && this.echartsLayer.parentNode) {
