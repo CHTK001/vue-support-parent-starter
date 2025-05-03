@@ -96,6 +96,9 @@ catalogs:
     '@intlify/unplugin-vue-i18n':
       specifier: ^6.0.3
       version: 6.0.3
+    '@joakimono/echarts-extension-leaflet':
+      specifier: ^1.0.3
+      version: 1.0.3
     '@kjgl77/datav-vue3':
       specifier: ^1.7.4
       version: 1.7.4
@@ -3783,6 +3786,9 @@ importers:
       '@codemirror/theme-one-dark':
         specifier: 'catalog:'
         version: 6.1.2
+      '@joakimono/echarts-extension-leaflet':
+        specifier: 'catalog:'
+        version: 1.0.3(echarts@5.6.0)(leaflet@1.9.4)
       '@pureadmin/descriptions':
         specifier: 'catalog:'
         version: 1.2.1(echarts@5.6.0)(element-plus@2.9.6(vue@3.5.13(typescript@5.8.2)))(typescript@5.8.2)
@@ -8588,6 +8594,12 @@ packages:
 
   '@jiaminghi/transition@1.1.11':
     resolution: {integrity: sha512-owBggipoHMikDHHDW5Gc7RZYlVuvxHADiU4bxfjBVkHDAmmck+fCkm46n2JzC3j33hWvP9nSCAeh37t6stgWeg==}
+
+  '@joakimono/echarts-extension-leaflet@1.0.3':
+    resolution: {integrity: sha512-J+GY55/h1tR1uq+F9gDtvvB/VJBwtgMkvDB2XKT29bgVYXbjJTOrTa0t0wefUQqH2kGfRzROooo24NJZls3AtA==}
+    peerDependencies:
+      echarts: ^5.0.1
+      leaflet: ^1.7.1
 
   '@jridgewell/gen-mapping@0.3.8':
     resolution: {integrity: sha512-imAbBGkb+ebQyxKgzv5Hu2nmROxoDOXHh80evxdoXNOrvAnVx7zimzc1Oo5h9RlfV4vPXaE2iM5pOFbvOCClWA==}
@@ -20486,6 +20498,11 @@ snapshots:
   '@jiaminghi/transition@1.1.11':
     dependencies:
       '@babel/runtime': 7.26.10
+
+  '@joakimono/echarts-extension-leaflet@1.0.3(echarts@5.6.0)(leaflet@1.9.4)':
+    dependencies:
+      echarts: 5.6.0
+      leaflet: 1.9.4
 
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:

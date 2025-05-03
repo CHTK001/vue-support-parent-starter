@@ -90,7 +90,7 @@ import { DEFAULT_TOOL_ITEMS, DEFAULT_TRACK_PLAYER_OPTIONS, MAP_TYPES, TRACK_PLAY
 // 导入日志工具
 import { error, info, warn } from '@repo/utils';
 // 导入飞线图插件和基础接口
-import { LeafletCharts5Migration } from './plugin/LeafletCharts5Migration';
+import { EchartsMigration } from './plugin/EchartsMigration';
 import { Migration } from './plugin/Migration';
 import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入leaflet类型但动态加载实现
@@ -2320,7 +2320,7 @@ const initMigration = () => {
     // 根据migrationImpl属性选择使用的实现类
     if (props.migrationImpl === 'echarts5') {
       // 使用基于leaflet-charts5的现代化实现
-      migrationTool.value = new LeafletCharts5Migration(mapInstance.value, options) as MigrationBase;
+      migrationTool.value = new EchartsMigration(mapInstance.value, options) as MigrationBase;
       addLog('使用leaflet-charts5实现飞线图，基于ECharts 5优化的现代化实现');
     } else {
       // 默认使用AntPath实现飞线图
