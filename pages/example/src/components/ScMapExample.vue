@@ -277,13 +277,22 @@
                 <el-button size="small" @click="addAdvancedMigration">添加高级飞线图示例</el-button>
               </div>
               <div class="control-row buttons-row">
-                <el-button size="small" type="success" @click="addCityMigration">添加城市间飞线图</el-button>
+                <el-button size="small" type="success" @click="addCityMigration" title="使用leaflet-charts5实现">添加城市间飞线图 (Echarts 5)</el-button>
                 <el-button size="small" type="warning" @click="addSequentialMigration">添加顺序飞线</el-button>
               </div>
               
               <!-- 添加飞线图样式控制 -->
               <div v-if="migrationSettings.enabled" class="migration-style-controls">
                 <div class="control-subtitle">飞线样式设置</div>
+                
+                <div class="control-row">
+                  <span class="label">使用ECharts 5:</span>
+                  <el-switch 
+                    v-model="migrationSettings.useECharts5"
+                    @change="toggleMigrationImpl"
+                  />
+                  <span class="value">{{ migrationSettings.useECharts5 ? '是' : '否' }}</span>
+                </div>
                 
                 <div class="control-row">
                   <span>线条宽度:</span>
@@ -2365,6 +2374,17 @@ const addCustomTool = () => {
 // 添加城市间飞线图示例
 const addCityMigration = () => {
   try {
+    // 先设置地图组件使用leaflet-charts5实现
+    if (mapRef.value) {
+      // 设置迁徙图实现类型
+      mapRef.value.setProps?.({
+        migrationImpl: 'leafletCharts5'
+      });
+      
+      // 记录日志
+      log.info('已设置地图组件使用leaflet-charts5实现飞线图');
+    }
+    
     // 中国主要城市坐标（经度,纬度）- 真实经纬度
     const cities = {
       '北京': [116.4074, 39.9042],
@@ -2510,17 +2530,25 @@ const addCityMigration = () => {
 
     // 设置飞线图选项
     mapRef.value.updateMigrationOptions({
-      lineStyle: {
-        opacity: 0.75
+      // ECharts特有配置 - 适用于leaflet-charts5实现
+      animation: true,
+      lineWidth: 2,           // 线宽
+      lineOpacity: 0.75,      // 不透明度
+      symbolSize: 6,          // 标记点大小
+      curvature: 0.3,         // 曲线弯曲度
+      rippleEffect: {         // 波纹效果
+        period: 4,            // 动画周期
+        scale: 4,             // 波纹大小
+        brushType: 'fill'     // 填充类型
       },
-      antPath: {
-        delay: 600,
-        dashArray: [5, 15],
-        pulseColor: '#FFFFFF',
-        hardwareAccelerated: true
+      label: {                // 标签配置
+        show: true,           // 显示标签
+        position: 'right',    // 标签位置
+        formatter: '{b}'      // 标签格式
       },
-      autoStart: true,
-      loop: true
+      // 通用选项
+      autoStart: true,        // 自动开始
+      loop: true              // 循环播放
     });
     
     // 设置飞线图数据
@@ -2532,7 +2560,7 @@ const addCityMigration = () => {
     
     // 提示用户
     ElMessage({
-      message: '城市间飞线图示例已添加到地图上',
+      message: '城市间飞线图示例已添加到地图上 (使用新版Echarts 5实现)',
       type: 'success',
       duration: 3000
     });
@@ -2773,6 +2801,11 @@ const quickEnableMigration = () => {
   try {
     // 如果没有现有的飞线数据，先添加一个默认的飞线图
     if (!mapRef.value || !migrationSettings.isPlaying) {
+      // 设置使用新的leaflet-charts5实现
+      mapRef.value.setProps?.({
+        migrationImpl: 'leafletCharts5'
+      });
+      
       // 确保飞线功能已启用
       if (!migrationSettings.enabled) {
         mapRef.value.enableMigration();
@@ -2782,22 +2815,25 @@ const quickEnableMigration = () => {
       // 创建一些基本的飞线数据
       const defaultMigrationData = generateDefaultMigrationData();
 
-      // 设置飞线图选项
+      // 设置飞线图选项 - 使用ECharts 5配置格式
       mapRef.value.updateMigrationOptions({
-        lineStyle: {
-          color: migrationOptions.lineStyle.color,
-          width: migrationOptions.lineStyle.width,
-          opacity: migrationOptions.lineStyle.opacity,
-          curveness: migrationOptions.lineStyle.curveness
-        },
-        effect: {
-          show: true,
+        // ECharts 5格式
+        animation: true,
+        lineWidth: migrationOptions.lineStyle.width,
+        lineOpacity: migrationOptions.lineStyle.opacity,
+        symbolSize: 5,
+        curvature: migrationOptions.lineStyle.curveness,
+        rippleEffect: {
           period: migrationOptions.effect.period,
-          trailLength: migrationOptions.effect.trailLength,
-          symbol: 'circle',
-          symbolSize: 5,
-          color: migrationOptions.effect.color
+          scale: 4,
+          brushType: 'fill'
         },
+        label: {
+          show: false,
+          position: 'right',
+          formatter: '{b}'
+        },
+        // 通用选项
         autoStart: true,
         loop: migrationOptions.loop
       });
@@ -2811,7 +2847,7 @@ const quickEnableMigration = () => {
       migrationSettings.isPlaying = true;
       
       ElMessage({
-        message: '已开启默认飞线图',
+        message: '已开启飞线图 (使用新版Echarts 5实现)',
         type: 'success',
         duration: 2000
       });
@@ -2869,27 +2905,53 @@ const updateMigrationStyle = () => {
   if (!mapRef.value || !isMigrationEnabled.value) return;
   
   try {
-    // 更新飞线图选项
-    mapRef.value.updateMigrationOptions({
-      lineStyle: {
-        color: migrationOptions.lineStyle.color,
-        width: migrationOptions.lineStyle.width,
-        opacity: migrationOptions.lineStyle.opacity,
-        curveness: migrationOptions.lineStyle.curveness
-      },
-      effect: {
-        show: true,
-        period: migrationOptions.effect.period,
-        trailLength: migrationOptions.effect.trailLength,
-        symbol: 'circle',
-        symbolSize: 5,
-        color: migrationOptions.effect.color
-      },
-      autoStart: true,
-      loop: migrationOptions.loop
-    });
+    // 检测当前使用的飞线图实现类型
+    const isUsingECharts5 = mapRef.value.migrationImpl === 'leafletCharts5';
     
-    log.info('飞线图样式已更新');
+    if (isUsingECharts5) {
+      // ECharts 5格式 - 为leaflet-charts5实现
+      mapRef.value.updateMigrationOptions({
+        animation: true,
+        lineWidth: migrationOptions.lineStyle.width,
+        lineOpacity: migrationOptions.lineStyle.opacity,
+        symbolSize: 5,
+        curvature: migrationOptions.lineStyle.curveness,
+        rippleEffect: {
+          period: migrationOptions.effect.period,
+          scale: 4,
+          brushType: 'fill'
+        },
+        label: {
+          show: false,
+          position: 'right',
+          formatter: '{b}'
+        },
+        autoStart: true,
+        loop: migrationOptions.loop
+      });
+    } else {
+      // 传统格式 - 为antPath或其他实现
+      mapRef.value.updateMigrationOptions({
+        lineStyle: {
+          color: migrationOptions.lineStyle.color,
+          width: migrationOptions.lineStyle.width,
+          opacity: migrationOptions.lineStyle.opacity,
+          curveness: migrationOptions.lineStyle.curveness
+        },
+        effect: {
+          show: true,
+          period: migrationOptions.effect.period,
+          trailLength: migrationOptions.effect.trailLength,
+          symbol: 'circle',
+          symbolSize: 5,
+          color: migrationOptions.effect.color
+        },
+        autoStart: true,
+        loop: migrationOptions.loop
+      });
+    }
+    
+    log.info(`飞线图样式已更新 (${isUsingECharts5 ? 'ECharts 5' : '传统'}格式)`);
   } catch (e) {
     log.error(`更新飞线图样式失败: ${e}`);
   }
@@ -2915,7 +2977,8 @@ const migrationOptions = reactive({
 const migrationSettings = reactive({
   enabled: false,
   isPlaying: false,
-  hasData: false
+  hasData: false,
+  useECharts5: false
 });
 
 // 切换飞线图功能状态（开启/关闭）
@@ -3116,6 +3179,52 @@ watch(
     migrationSettings.isPlaying = enabled;
   }
 );
+
+// 切换飞线图实现类型
+const toggleMigrationImpl = (useECharts5) => {
+  try {
+    if (!mapRef.value) return;
+    
+    // 设置飞线图实现类型
+    const implType = useECharts5 ? 'leafletCharts5' : 'antPath';
+    mapRef.value.setProps?.({
+      migrationImpl: implType
+    });
+    
+    // 停止当前动画
+    mapRef.value.stopMigration();
+    
+    // 重新启用飞线图
+    mapRef.value.enableMigration();
+    
+    // 应用样式
+    updateMigrationStyle();
+    
+    // 如果之前在播放，重新开始
+    if (migrationSettings.isPlaying) {
+      mapRef.value.startMigration();
+    }
+    
+    log.info(`飞线图实现已切换为: ${implType}`);
+    
+    ElMessage({
+      message: `飞线图实现已切换为: ${useECharts5 ? 'ECharts 5' : '默认样式'}`,
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`切换飞线图实现失败: ${e}`);
+    
+    // 恢复状态
+    migrationSettings.useECharts5 = !useECharts5;
+    
+    ElMessage({
+      message: '切换飞线图实现失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 </script>
 
 <style scoped>

@@ -65,39 +65,34 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, reactive } from "vue";
-import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import type { Ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
-import MarkerDetailsPopup from './components/MarkerDetailsPopup.vue';
-import ShapeDetailsPopup from './components/ShapeDetailsPopup.vue';
+import MapDebugPanel from './components/MapDebugPanel.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
 import MapToolbar from './components/MapToolbar.vue';
-import MapDebugPanel from './components/MapDebugPanel.vue';
+import MarkerDetailsPopup from './components/MarkerDetailsPopup.vue';
 import TrackPlayer from './components/TrackPlayer.vue';
+import { Aggregation } from './plugin/Aggregation';
+import { HeatMap } from './plugin/HeatMap';
 import type { CustomMarkerOptions, MarkerLatLng } from './plugin/Marker';
 import { Marker } from './plugin/Marker';
 import { Measure } from './plugin/Measure';
-import { Overview } from './plugin/Overview';
 import type { OverviewOptions } from './plugin/Overview';
+import { Overview } from './plugin/Overview';
 import { ShapeType } from './plugin/Shape';
 import ShapeEditable from "./plugin/ShapeEditable";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
-import { Aggregation } from './plugin/Aggregation';
-import type { AggregationOptions, HeatMapOptions, HeatPoint, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
-import { HeatMap } from './plugin/HeatMap';
-import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
+import type { AddToolOptions, AggregationOptions, HeatMapOptions, HeatPoint, ScMapProps, ToolbarConfig, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
 import { LayerType, OpenStatus } from './types';
-import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAYER_THEMES } from './types/default';
+import { DEFAULT_TOOL_ITEMS, DEFAULT_TRACK_PLAYER_OPTIONS, MAP_TYPES, TRACK_PLAYER_THEMES } from './types/default';
 // 导入日志工具
-import { error, warn, info } from '@repo/utils';
+import { error, info, warn } from '@repo/utils';
 // 导入飞线图插件和基础接口
-import { Migration } from './plugin/Migration';
 import { LeafletCharts5Migration } from './plugin/LeafletCharts5Migration';
-import type { MigrationPoint } from './plugin/MigrationBase';
-import type { MigrationOptions } from './plugin/Migration';
-import type { MigrationBase } from './plugin/MigrationBase';
+import { Migration } from './plugin/Migration';
+import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
 
@@ -200,8 +195,8 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     options: {},
     autoStart: false
   }),
-  // 飞线图实现类型，可选 'antPath', 'echarts' 或 'leafletEcharts'
-  migrationImpl: 'leafletEcharts'
+  // 飞线图实现类型，可选 'antPath', 'echarts5'
+  migrationImpl: 'echarts5'
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -2323,7 +2318,7 @@ const initMigration = () => {
     const options = props.migrationConfig?.options || {};
     
     // 根据migrationImpl属性选择使用的实现类
-    if (props.migrationImpl === 'leafletCharts5') {
+    if (props.migrationImpl === 'echarts5') {
       // 使用基于leaflet-charts5的现代化实现
       migrationTool.value = new LeafletCharts5Migration(mapInstance.value, options) as MigrationBase;
       addLog('使用leaflet-charts5实现飞线图，基于ECharts 5优化的现代化实现');
@@ -3558,53 +3553,4 @@ defineExpose({
 <!-- 添加全局CSS样式 -->
 <style>
 @import "./styles/migration.scss";
-/* 全局自定义弹窗动画样式 */
-@keyframes popup-fade-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -90%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -100%);
-  }
-}
-
-/* 自定义弹窗容器样式 */
-.sc-map-custom-popup {
-  position: absolute;
-  z-index: 1000;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.4);
-  background: white;
-  border-radius: 4px;
-  padding: 10px;
-  max-width: 300px;
-  min-width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
-  transform: translate(-50%, -100%);
-  animation: popup-fade-in 0.2s ease-out;
-}
-
-/* 自定义弹窗关闭按钮样式 */
-.custom-popup-close-button {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 16px;
-  color: #555;
-}
-
-.custom-popup-close-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #000;
-}
-.rotated-svg-icon,
-:deep(.rotated-svg-icon) {
-  background-color: transparent !important;
-  border: none !important;
-}
 </style>
