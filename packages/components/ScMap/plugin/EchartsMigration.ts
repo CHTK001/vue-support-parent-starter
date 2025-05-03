@@ -69,8 +69,8 @@ export class EchartsMigration implements MigrationBase {
       symbolSize: 12, // 飞机图标尺寸
       curvature: 0.2,
       rippleEffect: {
-        period: 2, // 更快的周期
-        scale: 2,  // 更小的涟漪效果
+        period: 3, // 稍慢的周期
+        scale: 1.5, // 更小的涟漪效果
         brushType: 'fill'
       },
       hoverAnimation: true,
@@ -408,13 +408,13 @@ export class EchartsMigration implements MigrationBase {
             zlevel: is3D ? 2 : 2,
             // 散点大小，改为更小的值
             symbolSize: (val) => {
-              // 默认较小的尺寸，根据权重稍微调整
-              return this.options.symbolSize * 1.2 * (Array.isArray(val) ? Math.min((val[2] || 1), 2) : 1);
+              // 明显减小散点大小
+              return this.options.symbolSize * 0.8 * (Array.isArray(val) ? Math.min((val[2] || 1), 1.5) : 1);
             },
             // 波动效果
             rippleEffect: {
-              period: this.options.rippleEffect?.period || 2,
-              scale: this.options.rippleEffect?.scale || 2,
+              period: this.options.rippleEffect?.period || 3,
+              scale: this.options.rippleEffect?.scale || 1.5,
               brushType: this.options.rippleEffect?.brushType || 'fill'
             },
             // 标签设置
@@ -488,9 +488,9 @@ export class EchartsMigration implements MigrationBase {
             effect: {
               show: true,
               period: 6,
-              trailLength: 0.7,
+              trailLength: 0,
               color: symbolColor,
-              symbolSize: this.options.symbolSize,
+              symbolSize: this.options.symbolSize || 24,
               symbol: symbol
             }
           },
@@ -498,8 +498,8 @@ export class EchartsMigration implements MigrationBase {
             // 散点动画
             type: 'effectScatter',
             rippleEffect: {
-              period: this.options.rippleEffect?.period || 2,
-              scale: this.options.rippleEffect?.scale || 2,
+              period: this.options.rippleEffect?.period || 3,
+              scale: this.options.rippleEffect?.scale || 1.5,
               brushType: this.options.rippleEffect?.brushType || 'fill'
             }
           }
