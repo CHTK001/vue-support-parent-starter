@@ -133,8 +133,8 @@ export interface ScMapProps {
   heatMapConfig?: HeatMapOptions;
   // 迁徙图配置
   migrationConfig?: MigrationConfig;
-  // 飞线图实现类型，可选 'antPath' 或 'echarts'
-  migrationImpl?: 'antPath' | 'echarts';
+  // 飞线图实现类型，可选 'antPath', 'echarts', 'leafletEcharts' 或 'leafletCharts5'
+  migrationImpl?: 'antPath' | 'echarts' | 'leafletEcharts' | 'leafletCharts5';
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
