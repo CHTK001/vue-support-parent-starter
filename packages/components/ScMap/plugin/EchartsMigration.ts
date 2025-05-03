@@ -315,6 +315,9 @@ export class EchartsMigration implements MigrationBase {
     }
     
     try {
+      // 获取曲率设置
+      const curveness = this.options.curvature || 0.2;
+      
       // 转换数据为ECharts所需格式
       const seriesData = this.data.map(point => {
         const { from, to, labels, color, weight } = point;
@@ -328,11 +331,23 @@ export class EchartsMigration implements MigrationBase {
           // 使用权重作为线宽的系数
           lineStyle: {
             width: (weight || 1) * this.options.lineWidth,
-            color: color || undefined
+            color: color || undefined,
+            curveness: curveness // 应用曲率
           }
         };
         
         return item;
+      });
+      
+      // 获取所有目标点，用于创建散点效果
+      const effectScatterData = this.data.map(point => {
+        return {
+          name: point.labels?.to || '',
+          value: [...point.to, point.weight || 1], // [lng, lat, weight]
+          itemStyle: {
+            color: point.color || undefined
+          }
+        };
       });
       
       // 确定是否使用3D效果
@@ -344,32 +359,66 @@ export class EchartsMigration implements MigrationBase {
         animationDuration: this.options.animationDuration,
         animationEasing: this.options.animationEasing,
         animationDelay: this.options.animationDelay,
-        series: [{
-          type: 'lines',
-          coordinateSystem: 'lmap',
-          zlevel: is3D ? 2 : 1,
-          // 使用曲线效果
-          polyline: false,
-          // 曲率配置
-          curveness: this.options.curvature,
-          // 线条样式
-          lineStyle: {
-            width: this.options.lineWidth,
-            opacity: this.options.lineOpacity,
-            // 动态缓动线效果
-            type: this.options.lineType
+        series: [
+          // 飞线图系列
+          {
+            type: 'lines',
+            coordinateSystem: 'lmap',
+            zlevel: is3D ? 1 : 1,
+            // 使用曲线效果
+            polyline: false,
+            // 曲率配置
+            lineStyle: {
+              width: this.options.lineWidth,
+              opacity: this.options.lineOpacity,
+              // 动态缓动线效果
+              type: this.options.lineType,
+              curveness: curveness
+            },
+            // 是否启用动画效果
+            effect: this.options.pathEffect === 'none' ? undefined : {
+              show: true,
+              period: 6,
+              trailLength: 0.7,
+              color: '#fff',
+              symbolSize: this.options.symbolSize,
+            },
+            // 数据项
+            data: seriesData
           },
-          // 是否启用动画效果
-          effect: this.options.pathEffect === 'none' ? undefined : {
-            show: true,
-            period: 6,
-            trailLength: 0.7,
-            color: '#fff',
-            symbolSize: this.options.symbolSize,
-          },
-          // 数据项
-          data: seriesData
-        }]
+          // 目标点散点图效果
+          {
+            name: '目标点',
+            type: 'effectScatter',
+            coordinateSystem: 'lmap',
+            zlevel: is3D ? 2 : 2,
+            // 散点大小
+            symbolSize: (val) => {
+              return this.options.symbolSize * 2 * (Array.isArray(val) ? (val[2] || 1) : 1);
+            },
+            // 波动效果
+            rippleEffect: {
+              period: this.options.rippleEffect?.period || 4,
+              scale: this.options.rippleEffect?.scale || 4,
+              brushType: this.options.rippleEffect?.brushType || 'fill'
+            },
+            // 标签设置
+            label: {
+              show: this.options.label?.show || false,
+              position: this.options.label?.position || 'right',
+              formatter: this.options.label?.formatter || '{b}'
+            },
+            // 是否启用鼠标悬停动画
+            hoverAnimation: this.options.hoverAnimation,
+            // 散点样式
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(120, 36, 50, 0.5)'
+            },
+            // 数据项
+            data: effectScatterData
+          }
+        ]
       };
       
       // 应用配置
@@ -408,16 +457,28 @@ export class EchartsMigration implements MigrationBase {
       
       // 应用动画配置
       this.chart.setOption({
-        series: [{
-          type: 'lines',
-          effect: {
-            show: true,
-            period: 6,
-            trailLength: 0.7,
-            color: '#fff',
-            symbolSize: this.options.symbolSize,
+        series: [
+          {
+            // 飞线动画
+            type: 'lines',
+            effect: {
+              show: true,
+              period: 6,
+              trailLength: 0.7,
+              color: '#fff',
+              symbolSize: this.options.symbolSize,
+            }
+          },
+          {
+            // 散点动画
+            type: 'effectScatter',
+            rippleEffect: {
+              period: this.options.rippleEffect?.period || 4,
+              scale: this.options.rippleEffect?.scale || 4,
+              brushType: this.options.rippleEffect?.brushType || 'fill'
+            }
           }
-        }]
+        ]
       });
       
       info('飞线动画已启动');
@@ -448,12 +509,22 @@ export class EchartsMigration implements MigrationBase {
       
       // 隐藏动画效果
       this.chart.setOption({
-        series: [{
-          type: 'lines',
-          effect: {
-            show: false
+        series: [
+          {
+            // 飞线动画
+            type: 'lines',
+            effect: {
+              show: false
+            }
+          },
+          {
+            // 散点动画 - 停止波动效果
+            type: 'effectScatter',
+            rippleEffect: {
+              scale: 0
+            }
           }
-        }]
+        ]
       });
       
       info('飞线动画已停止');
