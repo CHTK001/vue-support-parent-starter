@@ -39,6 +39,8 @@
     "@repo/components": "workspace:^",
     "element-plus": "catalog:",
     "unbuild": "catalog:",
+    "echarts": "catalog:",
+    "leaflet":"catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:"
   },

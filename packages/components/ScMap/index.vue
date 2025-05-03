@@ -94,7 +94,7 @@ import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAY
 import { error, warn, info } from '@repo/utils';
 // 导入飞线图插件和基础接口
 import { Migration } from './plugin/Migration';
-import { EchartsMigration } from './plugin/EchartsMigration';
+import { LeafletCharts5Migration } from './plugin/LeafletCharts5Migration';
 import type { MigrationPoint } from './plugin/MigrationBase';
 import type { MigrationOptions } from './plugin/Migration';
 import type { MigrationBase } from './plugin/MigrationBase';
@@ -200,8 +200,8 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     options: {},
     autoStart: false
   }),
-  // 飞线图实现类型，可选 'antPath' 或 'echarts'
-  migrationImpl: 'echarts'
+  // 飞线图实现类型，可选 'antPath', 'echarts' 或 'leafletEcharts'
+  migrationImpl: 'leafletEcharts'
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -337,7 +337,7 @@ const addLog = (message: any, data?: any) => {
   // 如果调试面板可见，同步日志到面板
   if (debugPanelRef.value) {
     debugPanelRef.value.addLog('info', message, data);
-  }
+}
 };
 
 // 安全关闭所有弹窗的函数
@@ -405,8 +405,8 @@ const handleToolActivated = (toolId: string) => {
       }
       addLog('取消当前绘制以激活新工具');
     }
-  }
-  
+    }
+    
   // 如果是绘图工具被激活（确保编辑工具不会触发绘图）
   if (drawToolIds.includes(toolId) && toolId !== editToolId) {
     // 确保地图双击缩放被禁用
@@ -540,7 +540,7 @@ const handleToolActivated = (toolId: string) => {
     if (mapInstance.value && mapInstance.value.getContainer()) {
       mapInstance.value.getContainer().style.cursor = 'pointer';
       addLog('更新鼠标样式为pointer，表示可以编辑');
-    }
+        }
     
     // 监听地图点击事件，用于处理编辑模式下的图形选择
     if (mapInstance.value) {
@@ -632,12 +632,12 @@ const handleToolActivated = (toolId: string) => {
             } else {
               warn(`无法删除标记点 ${marker.options.markerId}`);
               addLog(`删除标记点失败: ${marker.options.markerId}`);
-            }
+        }
           } catch (e) {
             error(`删除标记点时出错:`, e);
             addLog(`删除标记点出错: ${marker.options.markerId}`, e);
-          }
-        }
+      }
+    }
       });
     }
   }  // 标记点显示/隐藏
@@ -921,13 +921,13 @@ onUnmounted(() => {
     if (markerTool.value) {
       markerTool.value.destroy();
     markerTool.value = null;
-    }
-    
+  }
+  
     if (aggregationTool.value) {
       aggregationTool.value.destroy();
       aggregationTool.value = null;
-    }
-    
+  }
+  
   if (shapeTool.value) {
       // 取消当前绘图
       if (shapeTool.value.isDrawing()) {
@@ -2323,10 +2323,10 @@ const initMigration = () => {
     const options = props.migrationConfig?.options || {};
     
     // 根据migrationImpl属性选择使用的实现类
-    if (props.migrationImpl === 'echarts') {
-      // 使用基于ECharts的飞线图实现
-      migrationTool.value = new EchartsMigration(mapInstance.value, options) as MigrationBase;
-      addLog('使用ECharts实现飞线图，已创建Leaflet图层');
+    if (props.migrationImpl === 'leafletCharts5') {
+      // 使用基于leaflet-charts5的现代化实现
+      migrationTool.value = new LeafletCharts5Migration(mapInstance.value, options) as MigrationBase;
+      addLog('使用leaflet-charts5实现飞线图，基于ECharts 5优化的现代化实现');
     } else {
       // 默认使用AntPath实现飞线图
       migrationTool.value = new Migration(mapInstance.value, options) as MigrationBase;
@@ -2338,10 +2338,10 @@ const initMigration = () => {
       try {
         if (migrationTool.value) {
           // 暂不启动动画，仅设置数据
-          migrationTool.value.setData(props.migrationConfig.dataPoints, false);
+        migrationTool.value.setData(props.migrationConfig.dataPoints, false);
           addLog(`飞线图数据点已加载: ${props.migrationConfig.dataPoints.length}个`);
         }
-      } catch (e) {
+    } catch (e) {
         error('设置飞线图数据失败:', e);
         addLog('设置飞线图数据失败', e);
       }
@@ -2351,17 +2351,17 @@ const initMigration = () => {
     if (props.migrationConfig?.enabled) {
       try {
         if (migrationTool.value) {
-          migrationTool.value.enable();
+        migrationTool.value.enable();
           addLog('飞线图功能已启用');
         }
-      } catch (e) {
+    } catch (e) {
         error('启用飞线图功能失败:', e);
         addLog('启用飞线图功能失败', e);
       }
     } else {
       addLog('飞线图功能未启用（配置设置为禁用）');
     }
-  } catch (e) {
+    } catch (e) {
     error('初始化飞线图工具失败:', e);
     addLog('初始化飞线图工具失败', e);
   }
@@ -2386,7 +2386,7 @@ const initMapTools = (): void => {
     initHeatMap();
     nextTick(() => {
       // 初始化飞线图工具
-      initMigration();
+    initMigration();
     });
     
     addLog('地图工具初始化完成');

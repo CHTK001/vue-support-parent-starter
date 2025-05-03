@@ -1700,7 +1700,7 @@ const addCircle = () => {
   if (!mapRef.value) return;
   
   try {
-    const center = config.center;
+  const center = config.center;
     const radius = 500; // 500米
     
     // 使用addShapes方法而不是直接访问shapeTool
@@ -1769,8 +1769,8 @@ const addRectangle = () => {
     console.error('添加矩形详细错误:', e);
     ElMessage.error(`添加矩形失败: ${e}`);
   }
-};
-
+      };
+      
 // 添加多边形
 const addPolygon = () => {
   if (!mapRef.value) return;
@@ -1851,7 +1851,7 @@ const addPolyline = () => {
     error('添加折线失败:', e);
     console.error('添加折线详细错误:', e);
     ElMessage.error(`添加折线失败: ${e}`);
-  }
+            }
 };
 
 // 添加命名形状
@@ -1892,7 +1892,7 @@ const addNamedShapes = () => {
         }
       }
     ];
-    
+      
     // 添加所有形状
     mapRef.value.addShapes(shapes);
     
