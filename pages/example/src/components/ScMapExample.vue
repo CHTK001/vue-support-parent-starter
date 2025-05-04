@@ -2997,7 +2997,7 @@ const migrationSettings = reactive({
   enabled: false,
   isPlaying: false,
   hasData: false,
-  useECharts5: false
+  useECharts5: true
 });
 
 // 切换飞线图功能状态（开启/关闭）
