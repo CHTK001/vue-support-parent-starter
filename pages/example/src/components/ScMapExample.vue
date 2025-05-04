@@ -281,6 +281,10 @@
                 <el-button size="small" type="success" @click="addCityMigration" title="使用leaflet-charts5实现">添加城市间飞线图 (Echarts 5)</el-button>
                 <el-button size="small" type="warning" @click="addSequentialMigration">添加顺序飞线</el-button>
               </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="info" @click="applyRadarEffect">应用雷达波动效果</el-button>
+                <el-button size="small" type="danger" @click="resetRippleEffect">重置波动效果</el-button>
+              </div>
               
               <!-- 添加飞线图样式控制 -->
               <div v-if="migrationSettings.enabled" class="migration-style-controls">
@@ -413,6 +417,68 @@
                     <el-option label="填充" value="fill" />
                     <el-option label="描边" value="stroke" />
                   </el-select>
+                </div>
+                
+                <div class="control-row" v-if="migrationOptions.rippleEffect.brushType === 'stroke'">
+                  <span>描边宽度:</span>
+                  <el-slider 
+                    v-model="migrationOptions.rippleEffect.strokeWidth" 
+                    :min="1" 
+                    :max="5" 
+                    :step="0.5"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.rippleEffect.strokeWidth }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>波纹颜色:</span>
+                  <el-color-picker 
+                    v-model="migrationOptions.rippleEffect.color" 
+                    size="small"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle" 
+                  />
+                </div>
+                
+                <div class="control-row">
+                  <span>雷达效果:</span>
+                  <el-switch 
+                    v-model="migrationOptions.rippleEffect.multilayer"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle"
+                  >
+                    <span class="value">{{ migrationOptions.rippleEffect.multilayer ? '开启' : '关闭' }}</span>
+                  </el-switch>
+                </div>
+                
+                <div class="control-row" v-if="migrationOptions.rippleEffect.multilayer">
+                  <span>波纹数量:</span>
+                  <el-slider 
+                    v-model="migrationOptions.rippleEffect.layerCount" 
+                    :min="1" 
+                    :max="5" 
+                    :step="1"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle"
+                  >
+                    <span class="value">{{ migrationOptions.rippleEffect.layerCount }}</span>
+                  </el-slider>
+                </div>
+                
+                <div class="control-row" v-if="migrationOptions.rippleEffect.multilayer">
+                  <span>波纹角度范围:</span>
+                  <el-slider 
+                    v-model="migrationOptions.rippleEffect.angleRange" 
+                    :min="0" 
+                    :max="180" 
+                    :step="10"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle"
+                  >
+                    <span class="value">{{ migrationOptions.rippleEffect.angleRange }}°</span>
+                  </el-slider>
                 </div>
                 
                 <div class="control-row">
@@ -2961,6 +3027,13 @@ const updateMigrationStyle = () => {
     migrationOptions.effect.symbolSize = migrationOptions.symbolSize;
     migrationOptions.pathSymbolColor = migrationOptions.effect.color;
     
+    // 处理角度范围
+    if (migrationOptions.useAngleRange) {
+      migrationOptions.rippleEffect.angleRange = [migrationOptions.angleStart, migrationOptions.angleEnd];
+    } else {
+      migrationOptions.rippleEffect.angleRange = undefined;
+    }
+    
     if (isUsingECharts5) {
       // 直接传递符合MigrationOptions接口的配置对象
       const options = {
@@ -3018,7 +3091,13 @@ const updateMigrationStyle = () => {
         rippleEffect: {
           period: migrationOptions.rippleEffect.period,
           scale: migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0,
-          brushType: migrationOptions.rippleEffect.brushType
+          brushType: migrationOptions.rippleEffect.brushType,
+          color: migrationOptions.rippleEffect.color,
+          strokeWidth: migrationOptions.rippleEffect.strokeWidth,
+          strokeColor: migrationOptions.rippleEffect.strokeColor,
+          multilayer: migrationOptions.rippleEffect.multilayer,
+          layerCount: migrationOptions.rippleEffect.layerCount,
+          angleRange: migrationOptions.rippleEffect.angleRange
         },
         
         // 鼠标悬停动画
@@ -3029,7 +3108,7 @@ const updateMigrationStyle = () => {
       mapRef.value.updateMigrationOptions(options);
       
       // 添加调试日志，记录关键参数值
-      log.info(`更新飞线图配置: symbolSize=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}`);
+      log.info(`更新飞线图配置: symbolSize=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}, 雷达效果=${migrationOptions.rippleEffect.multilayer ? '开启' : '关闭'}`);
     } else {
       // 传统格式 - 为antPath或其他实现
       mapRef.value.updateMigrationOptions({
@@ -3097,7 +3176,13 @@ const migrationOptions = reactive({
   rippleEffect: {
     period: 3,
     scale: 2.5,
-    brushType: 'fill'
+    brushType: 'fill',
+    color: undefined, // 波纹颜色
+    strokeWidth: 2,   // 波纹线条宽度，仅在brushType为'stroke'时有效
+    strokeColor: undefined, // 波纹线条颜色
+    multilayer: false, // 是否显示多层波纹效果，创建类似雷达的扫描效果
+    layerCount: 3,    // 多层波纹中的波纹数量
+    angleRange: undefined // 波纹角度范围
   },
   
   // 标签显示配置
@@ -3117,7 +3202,10 @@ const migrationOptions = reactive({
   
   // 兼容UI控制的扩展属性 (不属于MigrationOptions接口，但用于UI控制)
   symbolEffectEnabled: true,  // 控制rippleEffect.scale值
-  showSymbolName: false       // 控制label.show值，初始值设为false
+  showSymbolName: false,      // 控制label.show值，初始值设为false
+  useAngleRange: false,       // 控制是否启用角度范围
+  angleStart: 0,              // 角度范围起始角度
+  angleEnd: 180              // 角度范围结束角度
 });
 
 // 添加飞线图配置和状态
@@ -3575,372 +3663,114 @@ const cityTypes = {
   '济南': '其他城市',
   '天津': '其他城市'
 };
-</script>
 
-<style scoped>
-.migration-style-controls {
-  margin-top: 16px;
-  padding: 14px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e6e8eb;
-  transition: all 0.3s ease;
-}
+// 应用雷达波动效果
+const applyRadarEffect = () => {
+  if (!mapRef.value || !migrationSettings.enabled) {
+    ElMessage.warning('请先启用飞线图');
+    return;
+  }
+  
+  try {
+    // 先确保使用Echarts 5实现
+    if (migrationImpl.value !== 'echarts5') {
+      migrationSettings.useECharts5 = true;
+      migrationImpl.value = 'echarts5';
+      
+      // 等待实现切换完成
+      setTimeout(() => {
+        applyRadarEffectSettings();
+      }, 300);
+    } else {
+      applyRadarEffectSettings();
+    }
+  } catch (e) {
+    log.error(`应用雷达波动效果失败: ${e}`);
+    
+    ElMessage({
+      message: '应用雷达波动效果失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 
-.migration-style-controls:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+// 应用雷达效果配置
+const applyRadarEffectSettings = () => {
+  // 设置散点大小
+  migrationOptions.symbolSize = 16;
+  
+  // 启用散点波动
+  migrationOptions.symbolEffectEnabled = true;
+  
+  // 设置波动效果属性
+  migrationOptions.rippleEffect.period = 4;
+  migrationOptions.rippleEffect.scale = 3;
+  migrationOptions.rippleEffect.brushType = 'stroke';
+  migrationOptions.rippleEffect.strokeWidth = 2;
+  migrationOptions.rippleEffect.color = '#00FFFF';
+  migrationOptions.rippleEffect.strokeColor = '#00FFFF';
+  migrationOptions.rippleEffect.multilayer = true;
+  migrationOptions.rippleEffect.layerCount = 4;
+  
+  // 启用扇形波纹
+  migrationOptions.useAngleRange = true;
+  migrationOptions.angleStart = 0;
+  migrationOptions.angleEnd = 180;
+  
+  // 应用更新
+  updateMigrationStyle();
+  
+  // 启用名称显示
+  migrationOptions.showSymbolName = true;
+  
+  // 触发强制刷新
+  applyMigrationStyle();
+  
+  // 提示用户
+  ElMessage({
+    message: '雷达波动效果已应用',
+    type: 'success',
+    duration: 2000
+  });
+};
 
-.control-subtitle {
-  font-size: 14px;
-  font-weight: bold;
-  color: #1890ff;
-  margin: 10px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed #e6e8eb;
-  display: flex;
-  align-items: center;
-}
-
-.control-subtitle::before {
-  content: "•";
-  margin-right: 6px;
-  color: #1890ff;
-  font-size: 18px;
-  line-height: 1;
-}
-
-/* 为大按钮添加动画效果 */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-
-.el-button.el-button--large {
-  transition: all 0.3s ease;
-}
-
-.el-button.el-button--large:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-  animation: pulse 1.5s infinite;
-}
-
-.sc-map-example {
-  padding: 20px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.example-content {
-  display: flex;
-  gap: 20px;
-  min-height: 500px;
-  flex: 1;
-  overflow: hidden;
-}
-
-.map-area {
-  flex: 1;
-  min-width: 0;
-}
-
-.config-area {
-  width: 400px;
-  flex-shrink: 0;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  max-height: calc(100vh - 100px);
-}
-
-.map-container {
-  height: 500px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-h4 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-  font-size: 16px;
-}
-
-.config-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.config-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.label {
-  font-weight: bold;
-  color: #606266;
-  display: flex;
-  align-items: center;
-}
-
-.value-badge {
-  margin-left: 8px;
-  background-color: #409eff;
-  color: white;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-weight: normal;
-}
-
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.control-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.control-row span {
-  width: 70px;
-  flex-shrink: 0;
-}
-
-.value {
-  width: 40px;
-  text-align: right;
-}
-
-.status-text {
-  font-size: 12px;
-  color: #606266;
-  width: auto !important;
-}
-
-.zoom-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.preset-section {
-  margin-top: 20px;
-}
-
-.preset-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.custom-url-hint {
-  font-size: 12px;
-  color: #E6A23C;
-  margin-top: 5px;
-}
-
-.map-info {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-}
-
-.info-item {
-  display: flex;
-  margin-bottom: 5px;
-}
-
-.info-label {
-  font-weight: bold;
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.info-value {
-  color: #409eff;
-}
-
-.buttons-row {
-  display: flex;
-  justify-content: space-s;
-  width: 100%;
-}
-
-.buttons-row .el-button {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 自定义弹框样式 */
-.simple-popup {
-  font-size: 13px;
-  color: #333;
-}
-
-.simple-popup-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.simple-data-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.simple-label {
-  font-weight: 600;
-  color: #606266;
-  margin-right: 8px;
-}
-
-.simple-value {
-  color: #303133;
-}
-
-/* 自定义形状弹框标题样式 */
-.custom-shape-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 12px;
-}
-
-.shape-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.shape-tag {
-  font-size: 12px;
-  padding: 2px 6px;
-  background-color: #409eff;
-  color: white;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-/* 根据分类显示不同颜色的标签 */
-.shape-tag:global(.安防) {
-  background-color: #E91E63;
-}
-
-.shape-tag:global(.商业) {
-  background-color: #9C27B0;
-}
-
-.shape-tag:global(.教育) {
-  background-color: #009688;
-}
-
-.shape-tag:global(.示例) {
-  background-color: #FF9800;
-}
-
-/* 事件日志显示区域 */
-.event-logs {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.event-logs h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 16px;
-  color: #303133;
-}
-
-.no-logs {
-  font-size: 14px;
-  color: #909399;
-  text-align: center;
-  padding: 20px 0;
-}
-
-.logs-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.log-item {
-  padding: 8px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-item:hover {
-  background-color: #f0f9ff;
-}
-
-.log-time {
-  color: #909399;
-  font-size: 11px;
-}
-
-.log-event {
-  color: #1890ff;
-  font-weight: 500;
-}
-
-.log-data {
-  color: #606266;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.control-row {
-  margin-bottom: 10px;
-}
-
-.value {
-  margin-left: 10px;
-}
-</style>
+// 重置波动效果
+const resetRippleEffect = () => {
+  if (!mapRef.value || !migrationSettings.enabled) {
+    return;
+  }
+  
+  try {
+    // 重置为默认值
+    migrationOptions.symbolSize = 12;
+    migrationOptions.symbolEffectEnabled = true;
+    migrationOptions.rippleEffect.period = 3;
+    migrationOptions.rippleEffect.scale = 2.5;
+    migrationOptions.rippleEffect.brushType = 'fill';
+    migrationOptions.rippleEffect.color = undefined;
+    migrationOptions.rippleEffect.strokeWidth = 2;
+    migrationOptions.rippleEffect.strokeColor = undefined;
+    migrationOptions.rippleEffect.multilayer = false;
+    migrationOptions.rippleEffect.layerCount = 3;
+    migrationOptions.useAngleRange = false;
+    migrationOptions.angleStart = 0;
+    migrationOptions.angleEnd = 180;
+    migrationOptions.showSymbolName = false;
+    
+    // 应用更新
+    updateMigrationStyle();
+    
+    // 触发强制刷新
+    applyMigrationStyle();
+    
+    // 提示用户
+    ElMessage({
+      message: '波动效果已重置',
+      type: 'info',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`重置波动效果失败: ${e}`);
+  }
+};

@@ -402,6 +402,38 @@ export class EchartsMigration implements MigrationBase {
       // 获取图标颜色
       const symbolColor = this.options.pathSymbolColor || this.options.effect?.color || '#00BFFF';
       
+      // 构建波纹效果配置
+      const rippleEffectConfig: any = {
+        period: this.options.rippleEffect?.period || 3,
+        scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 0,
+        brushType: this.options.rippleEffect?.brushType || 'fill'
+      };
+      
+      // 添加额外的波纹效果配置
+      if (this.options.rippleEffect?.color) {
+        rippleEffectConfig.color = this.options.rippleEffect.color;
+      }
+      
+      // 对于stroke类型，设置线宽和线条颜色
+      if (this.options.rippleEffect?.brushType === 'stroke') {
+        if (this.options.rippleEffect?.strokeWidth) {
+          rippleEffectConfig.lineWidth = this.options.rippleEffect.strokeWidth;
+        }
+        if (this.options.rippleEffect?.strokeColor) {
+          rippleEffectConfig.strokeColor = this.options.rippleEffect.strokeColor;
+        }
+      }
+      
+      // 支持多层波纹
+      if (this.options.rippleEffect?.multilayer === true) {
+        rippleEffectConfig.number = this.options.rippleEffect.layerCount || 3;
+      }
+      
+      // 支持角度范围
+      if (this.options.rippleEffect?.angleRange) {
+        rippleEffectConfig.angleRange = this.options.rippleEffect.angleRange;
+      }
+      
       // 基础配置选项
       const baseOption: any = {
         animation: this.options.animation,
@@ -447,12 +479,7 @@ export class EchartsMigration implements MigrationBase {
             // 散点大小 - 直接使用配置的symbolSize
             symbolSize: this.options.symbolSize,
             // 波动效果
-            rippleEffect: {
-              period: this.options.rippleEffect?.period || 3,
-              // 使用用户配置的scale值
-              scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 0,
-              brushType: this.options.rippleEffect?.brushType || 'fill'
-            },
+            rippleEffect: rippleEffectConfig,
             // 标签设置
             label: {
               // 显示标签
@@ -827,6 +854,38 @@ export class EchartsMigration implements MigrationBase {
       // 确保图表尺寸正确
       this.chart.resize();
       
+      // 构建波纹效果配置
+      const rippleEffectConfig: any = {
+        period: this.options.rippleEffect?.period || 3,
+        scale: rippleScale !== undefined ? rippleScale : (this.options.rippleEffect?.scale || 0),
+        brushType: this.options.rippleEffect?.brushType || 'fill'
+      };
+      
+      // 添加额外的波纹效果配置
+      if (this.options.rippleEffect?.color) {
+        rippleEffectConfig.color = this.options.rippleEffect.color;
+      }
+      
+      // 对于stroke类型，设置线宽和线条颜色
+      if (this.options.rippleEffect?.brushType === 'stroke') {
+        if (this.options.rippleEffect?.strokeWidth) {
+          rippleEffectConfig.lineWidth = this.options.rippleEffect.strokeWidth;
+        }
+        if (this.options.rippleEffect?.strokeColor) {
+          rippleEffectConfig.strokeColor = this.options.rippleEffect.strokeColor;
+        }
+      }
+      
+      // 支持多层波纹
+      if (this.options.rippleEffect?.multilayer === true) {
+        rippleEffectConfig.number = this.options.rippleEffect.layerCount || 3;
+      }
+      
+      // 支持角度范围
+      if (this.options.rippleEffect?.angleRange) {
+        rippleEffectConfig.angleRange = this.options.rippleEffect.angleRange;
+      }
+      
       // 使用getOption方法，创建包含明确设置所有关键参数的配置
       const refreshOption = this.getOption({
         series: [
@@ -857,11 +916,7 @@ export class EchartsMigration implements MigrationBase {
             // 明确设置散点大小 - 使用记录的symbolSize，确保正确值
             symbolSize: symbolSize,
             // 明确设置波动效果 - 使用记录的rippleScale，确保正确值
-            rippleEffect: {
-              period: this.options.rippleEffect?.period || 3,
-              scale: rippleScale !== undefined ? rippleScale : (this.options.rippleEffect?.scale || 0),
-              brushType: this.options.rippleEffect?.brushType || 'fill'
-            },
+            rippleEffect: rippleEffectConfig,
             // 明确设置标签显示 - 使用记录的labelShow，确保正确值
             label: {
               show: labelShow === true, // 确保布尔值处理正确
