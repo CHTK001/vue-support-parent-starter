@@ -93,6 +93,11 @@ export interface MigrationOptions {
    */
   rippleEffect: {
     /**
+     * 是否显示波动效果
+     */
+    show?: boolean;
+
+    /**
      * 动画周期，秒数
      */
     period: number;
@@ -106,38 +111,6 @@ export interface MigrationOptions {
      * 波纹的绘制方式，可选 'stroke' 和 'fill'
      */
     brushType: 'stroke' | 'fill';
-    
-    /**
-     * 波纹的颜色，默认为散点的颜色
-     */
-    color?: string;
-    
-    /**
-     * 波纹线条宽度，仅在brushType为'stroke'时有效
-     */
-    strokeWidth?: number;
-    
-    /**
-     * 波纹线条颜色，默认为散点颜色的半透明版本
-     */
-    strokeColor?: string;
-    
-    /**
-     * 是否显示多层波纹效果，创建类似雷达的扫描效果
-     */
-    multilayer?: boolean;
-    
-    /**
-     * 多层波纹中的波纹数量，默认为3
-     */
-    layerCount?: number;
-    
-    /**
-     * 波纹的角度范围，用于创建扇形波纹效果
-     * 格式: [起始角度, 结束角度]，角度为度数，0度为右方，顺时针方向
-     * 例如: [0, 180]表示半圆形波纹
-     */
-    angleRange?: [number, number];
   };
   
   /**

@@ -63,7 +63,7 @@ export class EchartsMigration implements MigrationBase {
       pathEffect: 'path',
       pathSymbol: planePath, // 默认使用飞机图标
       pathSymbolColor: '#1E90FF', // 默认蓝色飞机
-      symbolSize: 12, // 飞机图标尺寸
+      symbolSize: 16, // 增大默认点大小
       lineStyle: {
         width: 1,
         opacity: 0.6,
@@ -72,8 +72,9 @@ export class EchartsMigration implements MigrationBase {
         color: undefined
       },
       rippleEffect: {
-        period: 3, // 稍慢的周期
-        scale: 1.5, // 更小的涟漪效果
+        show: true, // 默认显示波动效果
+        period: 2.5, // 更快的周期使波动更明显
+        scale: 3.0, // 更大的波动效果
         brushType: 'fill'
       },
       hoverAnimation: true,
@@ -207,15 +208,55 @@ export class EchartsMigration implements MigrationBase {
       
       // 清除图表
       if (this.chart) {
-        // 先设置空选项，确保清除所有数据
+        // 完全重置图表选项，移除所有系列数据
         this.chart.setOption({
-          animation: false,
-          series: []
-        }, true);
+          animation: false, // 禁用动画过渡效果，立即清除
+          lmap: {
+            center: [this.map.getCenter().lng, this.map.getCenter().lat],
+            zoom: this.map.getZoom(),
+            roam: true,
+            renderOnMoving: true
+          },
+          series: [] // 清空所有系列
+        }, true); // 使用notMerge=true以完全替换选项，而不是合并
         
-        // 然后彻底销毁
-        this.chart.dispose();
-        this.chart = null;
+        // 确保重置任何悬停状态
+        this.chart.dispatchAction({
+          type: 'downplay'
+        });
+        
+        // 如果当前启用状态，重建echarts实例以完全清除
+        if (this.enabled) {
+          // 销毁当前实例
+          this.chart.dispose();
+          
+          // 如果容器还存在，重新创建echarts实例
+          if (this.echartsLayer) {
+            // 初始化echarts实例
+            this.chart = echarts.init(this.echartsLayer);
+            
+            // 设置基础配置
+            this.chart.setOption({
+              animation: true,
+              lmap: {
+                center: [this.map.getCenter().lng, this.map.getCenter().lat],
+                zoom: this.map.getZoom(),
+                roam: true,
+                renderOnMoving: true, // 地图移动时保持渲染
+                echartsLayerInteractive: false // 设为false，确保ECharts图层不拦截交互事件
+              },
+              series: [] // 开始时不设置任何系列数据
+            }, true);
+            
+            // 禁用ECharts的默认交互
+            this.chart.getZr().setCursorStyle('inherit');
+            this.chart.getZr().off('mousedown');
+            this.chart.getZr().off('mouseup');
+            this.chart.getZr().off('mousemove');
+            
+            info('飞线图实例已重建');
+          }
+        }
       }
       
       // 移除地图事件监听器
@@ -358,6 +399,13 @@ export class EchartsMigration implements MigrationBase {
       const lineType = lineStyle.type || 'solid';
       const lineColor = lineStyle.color;
       
+      // 获取涟漪效果配置
+      const rippleEffect = this.options.rippleEffect || {
+        period: 3,
+        scale: 2.5,
+        brushType: 'fill'
+      };
+      
       // 转换数据为ECharts所需格式
       const seriesData = this.data.map(point => {
         const { from, to, labels, color, weight } = point;
@@ -402,38 +450,6 @@ export class EchartsMigration implements MigrationBase {
       // 获取图标颜色
       const symbolColor = this.options.pathSymbolColor || this.options.effect?.color || '#00BFFF';
       
-      // 构建波纹效果配置
-      const rippleEffectConfig: any = {
-        period: this.options.rippleEffect?.period || 3,
-        scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 0,
-        brushType: this.options.rippleEffect?.brushType || 'fill'
-      };
-      
-      // 添加额外的波纹效果配置
-      if (this.options.rippleEffect?.color) {
-        rippleEffectConfig.color = this.options.rippleEffect.color;
-      }
-      
-      // 对于stroke类型，设置线宽和线条颜色
-      if (this.options.rippleEffect?.brushType === 'stroke') {
-        if (this.options.rippleEffect?.strokeWidth) {
-          rippleEffectConfig.lineWidth = this.options.rippleEffect.strokeWidth;
-        }
-        if (this.options.rippleEffect?.strokeColor) {
-          rippleEffectConfig.strokeColor = this.options.rippleEffect.strokeColor;
-        }
-      }
-      
-      // 支持多层波纹
-      if (this.options.rippleEffect?.multilayer === true) {
-        rippleEffectConfig.number = this.options.rippleEffect.layerCount || 3;
-      }
-      
-      // 支持角度范围
-      if (this.options.rippleEffect?.angleRange) {
-        rippleEffectConfig.angleRange = this.options.rippleEffect.angleRange;
-      }
-      
       // 基础配置选项
       const baseOption: any = {
         animation: this.options.animation,
@@ -445,7 +461,8 @@ export class EchartsMigration implements MigrationBase {
           {
             type: 'lines',
             coordinateSystem: 'lmap',
-            zlevel: is3D ? 1 : 1,
+            zlevel: is3D ? 2 : 2, // 提高飞线的zlevel，确保其显示在散点上方
+            z: 2, // 增加z值，控制同zlevel中的显示顺序
             // 使用曲线效果
             polyline: false,
             // 曲率配置
@@ -461,7 +478,7 @@ export class EchartsMigration implements MigrationBase {
             effect: this.options.pathEffect === 'none' ? undefined : {
               show: this.options.effect?.show !== false, // 默认显示
               period: this.options.effect?.period || 6,
-              trailLength: this.options.effect?.trailLength || 0.7,
+              trailLength: this.options.effect?.trailLength || 0,
               color: symbolColor,
               symbolSize: this.options.effect?.symbolSize || this.options.symbolSize,
               symbol: symbol,
@@ -475,11 +492,25 @@ export class EchartsMigration implements MigrationBase {
             name: '目标点',
             type: 'effectScatter',
             coordinateSystem: 'lmap',
-            zlevel: is3D ? 2 : 2,
+            zlevel: is3D ? 1 : 1, // 降低散点的zlevel，确保其显示在飞线下方
+            z: 1, // 设置较低的z值
             // 散点大小 - 直接使用配置的symbolSize
             symbolSize: this.options.symbolSize,
             // 波动效果
-            rippleEffect: rippleEffectConfig,
+            rippleEffect: {
+              // 支持show属性控制波动效果显示/隐藏
+              show: rippleEffect.show !== false,
+              period: rippleEffect.period || 2.5,
+              // 使用用户配置的scale值，默认值设置更大
+              scale: rippleEffect.show === false ? 0 : (typeof rippleEffect.scale === 'number' ? rippleEffect.scale : 3.5),
+              brushType: rippleEffect.brushType || 'fill'
+            },
+            // 添加特效显示设置，确保波动效果生效
+            showEffectOn: 'render',
+            // 添加特效渲染器类型
+            effectType: 'ripple',
+            // 设置散点形状
+            symbol: 'circle',
             // 标签设置
             label: {
               // 显示标签
@@ -498,9 +529,17 @@ export class EchartsMigration implements MigrationBase {
             hoverAnimation: this.options.hoverAnimation,
             // 散点样式
             itemStyle: {
-              shadowBlur: 5,
-              shadowColor: 'rgba(120, 36, 50, 0.3)',
-              opacity: 0.7
+              shadowBlur: 15,
+              shadowColor: 'rgba(255, 36, 50, 0.7)',
+              opacity: 0.9,
+              // 添加边框增强视觉效果
+              borderColor: '#fff',
+              borderWidth: 2,
+              // 添加颜色
+              color: function(params) {
+                // 使用数据项颜色或默认颜色
+                return params.data.itemStyle?.color || lineColor || '#ff5252';
+              }
             },
             // 数据项
             data: effectScatterData
@@ -606,6 +645,8 @@ export class EchartsMigration implements MigrationBase {
           {
             // 飞线动画
             type: 'lines',
+            zlevel: this.options.enable3D ? 2 : 2, // 保持飞线的zlevel为2
+            z: 2, // 保持z值为2
             effect: {
               show: true,
               period: this.options.effect?.period || 6,
@@ -616,10 +657,24 @@ export class EchartsMigration implements MigrationBase {
           {
             // 散点动画
             type: 'effectScatter',
+            zlevel: this.options.enable3D ? 1 : 1, // 保持散点的zlevel为1
+            z: 1, // 保持z值为1
             // 设置波动效果
             rippleEffect: {
-              period: this.options.rippleEffect?.period || 3,
-              scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 2.5
+              show: this.options.rippleEffect?.show !== false, // 使用配置的show属性，默认为true
+              period: this.options.rippleEffect?.period || 2.5,
+              scale: this.options.rippleEffect?.show === false ? 0 : (typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 3.5),
+              brushType: this.options.rippleEffect?.brushType || 'fill'
+            },
+            // 添加特效显示设置，确保波动效果生效
+            showEffectOn: 'render',
+            // 添加特效渲染器类型
+            effectType: 'ripple',
+            // 设置散点形状
+            symbol: 'circle',
+            // 调整散点不透明度，减少对飞线的干扰
+            itemStyle: {
+              opacity: 0.7
             }
           }
         ]
@@ -668,7 +723,16 @@ export class EchartsMigration implements MigrationBase {
             // 散点动画 - 停止波动效果
             type: 'effectScatter',
             rippleEffect: {
+              show: false, // 隐藏波动效果
               scale: 0
+            },
+            // 保持特效渲染器类型一致，但禁用特效渲染
+            showEffectOn: 'none',
+            effectType: 'none',
+            // 减少散点不透明度，进一步减轻视觉干扰
+            itemStyle: {
+              opacity: 0.5,
+              shadowBlur: 0
             }
           }
         ]
@@ -704,7 +768,7 @@ export class EchartsMigration implements MigrationBase {
       if (this.chart) {
         // 完全重置图表选项，移除所有系列数据
         this.chart.setOption({
-          animation: true,
+          animation: false, // 禁用动画过渡效果，立即清除
           lmap: {
             center: [this.map.getCenter().lng, this.map.getCenter().lat],
             zoom: this.map.getZoom(),
@@ -713,6 +777,11 @@ export class EchartsMigration implements MigrationBase {
           },
           series: [] // 清空所有系列
         }, true); // 使用notMerge=true以完全替换选项，而不是合并
+        
+        // 确保重置任何悬停状态
+        this.chart.dispatchAction({
+          type: 'downplay'
+        });
         
         // 如果当前启用状态，重建echarts实例以完全清除
         if (this.enabled) {
@@ -854,44 +923,14 @@ export class EchartsMigration implements MigrationBase {
       // 确保图表尺寸正确
       this.chart.resize();
       
-      // 构建波纹效果配置
-      const rippleEffectConfig: any = {
-        period: this.options.rippleEffect?.period || 3,
-        scale: rippleScale !== undefined ? rippleScale : (this.options.rippleEffect?.scale || 0),
-        brushType: this.options.rippleEffect?.brushType || 'fill'
-      };
-      
-      // 添加额外的波纹效果配置
-      if (this.options.rippleEffect?.color) {
-        rippleEffectConfig.color = this.options.rippleEffect.color;
-      }
-      
-      // 对于stroke类型，设置线宽和线条颜色
-      if (this.options.rippleEffect?.brushType === 'stroke') {
-        if (this.options.rippleEffect?.strokeWidth) {
-          rippleEffectConfig.lineWidth = this.options.rippleEffect.strokeWidth;
-        }
-        if (this.options.rippleEffect?.strokeColor) {
-          rippleEffectConfig.strokeColor = this.options.rippleEffect.strokeColor;
-        }
-      }
-      
-      // 支持多层波纹
-      if (this.options.rippleEffect?.multilayer === true) {
-        rippleEffectConfig.number = this.options.rippleEffect.layerCount || 3;
-      }
-      
-      // 支持角度范围
-      if (this.options.rippleEffect?.angleRange) {
-        rippleEffectConfig.angleRange = this.options.rippleEffect.angleRange;
-      }
-      
       // 使用getOption方法，创建包含明确设置所有关键参数的配置
       const refreshOption = this.getOption({
         series: [
           {
             // 线条
             type: 'lines',
+            zlevel: this.options.enable3D ? 2 : 2, // 保持飞线的zlevel为2
+            z: 2, // 保持z值为2
             lineStyle: {
               width: lineWidth,
               opacity: lineOpacity,
@@ -904,7 +943,7 @@ export class EchartsMigration implements MigrationBase {
               show: this.options.effect?.show !== false,
               period: this.options.effect?.period || 6,
               trailLength: this.options.effect?.trailLength || 0.7,
-              color: this.options.pathSymbolColor || this.options.effect?.color || '#00BFFF',
+              color: this.options.pathSymbolColor || lineColor || '#00BFFF',
               symbolSize: symbolSize, // 使用记录的symbolSize确保正确值
               symbol: this.options.pathSymbol || this.options.effect?.symbol || 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z',
               loop: this.options.effect?.loop !== false || this.options.loop !== false
@@ -913,10 +952,37 @@ export class EchartsMigration implements MigrationBase {
           {
             // 散点
             type: 'effectScatter',
+            zlevel: this.options.enable3D ? 1 : 1, // 保持散点的zlevel为1
+            z: 1, // 保持z值为1
             // 明确设置散点大小 - 使用记录的symbolSize，确保正确值
             symbolSize: symbolSize,
             // 明确设置波动效果 - 使用记录的rippleScale，确保正确值
-            rippleEffect: rippleEffectConfig,
+            rippleEffect: {
+              show: rippleScale !== undefined ? true : false, // 确保始终设置show属性
+              period: this.options.rippleEffect?.period || 2.5,
+              scale: rippleScale !== undefined ? rippleScale : (this.options.rippleEffect?.scale || 3.5),
+              brushType: this.options.rippleEffect?.brushType || 'fill'
+            },
+            // 添加特效显示设置，确保波动效果生效
+            showEffectOn: 'render',
+            // 添加特效渲染器类型
+            effectType: 'ripple',
+            // 设置散点形状
+            symbol: 'circle',
+            // 添加散点阴影效果
+            itemStyle: {
+              shadowBlur: 15,
+              shadowColor: 'rgba(255, 36, 50, 0.7)',
+              opacity: 0.9,
+              // 添加边框增强视觉效果
+              borderColor: '#fff',
+              borderWidth: 2,
+              // 添加颜色
+              color: function(params) {
+                // 使用数据项颜色或默认颜色
+                return params.data.itemStyle?.color || lineColor || '#ff5252';
+              }
+            },
             // 明确设置标签显示 - 使用记录的labelShow，确保正确值
             label: {
               show: labelShow === true, // 确保布尔值处理正确

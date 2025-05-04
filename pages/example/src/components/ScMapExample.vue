@@ -6,37 +6,18 @@
       <!-- 左侧地图区域 -->
       <div class="map-area">
         <div class="map-container">
-          <sc-map 
-            ref="mapRef"
-            :layer-type="'NORMAL'"
-            :map-type="config.mapType"
-            :center="config.center" 
-            :zoom="config.zoom" 
-            :height="`${config.height}px`"
-            :dragging="config.dragging" 
-            :scroll-wheel-zoom="config.scrollWheelZoom"
-            :url="config.apiKey ? undefined : undefined"
-            :api-key="config.apiKey"
-            :toolbar-config="toolbarConfig"
-            :show-toolbar="config.showToolbar"
-            :aggregation-config="aggregationConfig"
-            :heat-map-config="config.heatMapConfig"
-            :migration-impl="migrationImpl"
-            @tool-activated="onToolActivated"
-            @tool-deactivated="onToolDeactivated"
-            @update:zoom="onZoomChange"
-            @update:center="onCenterChange"
-            @shape-click="onShapeClick"
-            @shape-created="onShapeCreated"
-            @shape-removed="onShapeRemoved"
-            @marker-click="onMarkerClick"
-            @marker-created="onMarkerCreated"
-            @marker-removed="onMarkerRemoved"
-            @map-click="onMapClick"
-          >
+          <sc-map ref="mapRef" :layer-type="'NORMAL'" :map-type="config.mapType" :center="config.center"
+            :zoom="config.zoom" :height="`${config.height}px`" :dragging="config.dragging"
+            :scroll-wheel-zoom="config.scrollWheelZoom" :url="config.apiKey ? undefined : undefined"
+            :api-key="config.apiKey" :toolbar-config="toolbarConfig" :show-toolbar="config.showToolbar"
+            :aggregation-config="aggregationConfig" :heat-map-config="config.heatMapConfig"
+            :migration-impl="migrationImpl" @tool-activated="onToolActivated" @tool-deactivated="onToolDeactivated"
+            @update:zoom="onZoomChange" @update:center="onCenterChange" @shape-click="onShapeClick"
+            @shape-created="onShapeCreated" @shape-removed="onShapeRemoved" @marker-click="onMarkerClick"
+            @marker-created="onMarkerCreated" @marker-removed="onMarkerRemoved" @map-click="onMapClick">
             <!-- 自定义标记点弹窗模板 -->
             <template #marker="{ latlng, data }">
-              <div  class="simple-popup">
+              <div class="simple-popup">
                 <div class="simple-popup-content">
                   <div class="simple-data-row">
                     <span class="simple-label">位置:</span>
@@ -45,7 +26,7 @@
                 </div>
               </div>
             </template>
-            
+
             <!-- 自定义形状弹窗模板 -->
             <template #shape="{ data, type }">
               <div class="simple-popup">
@@ -69,7 +50,7 @@
                 </div>
               </div>
             </template>
-            
+
             <!-- 自定义形状弹窗标题 -->
             <template #shape-header="{ data }">
               <div class="custom-shape-header">
@@ -84,7 +65,7 @@
       <!-- 右侧配置区域 -->
       <div class="config-area thin-scrollbar">
         <h3>配置参数</h3>
-        
+
         <div class="config-section">
           <div class="config-item">
             <div class="label">交互控制</div>
@@ -98,6 +79,24 @@
                 <span>滚轮缩放:</span>
                 <el-switch v-model="config.scrollWheelZoom" />
                 <span class="status-text">{{ config.scrollWheelZoom ? '开启' : '关闭' }}</span>
+              </div>
+              <div class="control-row">
+                <span>缩放级别:</span>
+                <el-slider v-model="config.zoom" :min="3" :max="18" :step="1" @change="updateZoom" />
+                <span class="value">{{ config.zoom }}</span>
+              </div>
+              <div class="control-row">
+                <span>飞线级别:</span>
+                <el-button size="small" @click="() => {
+                  config.zoom = 5;
+                  updateZoom(5);
+               }"></el-button>
+              </div>
+              <div class="control-row">
+                <span>飞线视图:</span>
+                <el-button size="small" type="primary" @click="setOptimalZoomForMigration">
+                  设置飞线最佳视图
+                </el-button>
               </div>
             </div>
           </div>
@@ -127,12 +126,7 @@
               </div>
               <div class="control-row" v-if="config.showToolbar">
                 <span>每行工具数:</span>
-                <el-slider 
-                  v-model="toolbarSettings.itemsPerLine" 
-                  :min="1" 
-                  :max="10" 
-                  :step="1"
-                />
+                <el-slider v-model="toolbarSettings.itemsPerLine" :min="1" :max="10" :step="1" />
                 <span class="value">{{ toolbarSettings.itemsPerLine }}</span>
               </div>
             </div>
@@ -145,6 +139,10 @@
               <div class="control-row buttons-row">
                 <el-button size="small" @click="addRandomMarkers(3)">添加随机标记</el-button>
                 <el-button size="small" @click="clearAllMarkers">清除所有标记</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addRandomMarkers(10)" type="primary">添加多个随机点位</el-button>
+                <el-button size="small" @click="addRandomMarkersWithCount">自定义添加点位</el-button>
               </div>
               <div class="control-row buttons-row">
                 <el-button size="small" @click="addMarkerGroup('group1', 'red')">添加红色组</el-button>
@@ -172,7 +170,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 添加形状操作区域 -->
           <div class="config-item">
             <div class="label">形状操作</div>
@@ -218,58 +216,35 @@
               <!-- 添加飞线图功能开关 -->
               <div class="control-row">
                 <span>启用飞线图:</span>
-                <el-switch 
-                  v-model="migrationSettings.enabled" 
-                  @change="toggleMigrationFeature" 
-                />
+                <el-switch v-model="migrationSettings.enabled" @change="toggleMigrationFeature" />
               </div>
-              
+
               <!-- 飞线图数据和配置按钮 -->
               <div class="control-row buttons-row">
-                <el-button 
-                  size="small" 
-                  @click="addSampleMigrationData" 
-                  :disabled="!migrationSettings.enabled"
-                >
+                <el-button size="small" @click="addSampleMigrationData" :disabled="!migrationSettings.enabled">
                   添加飞线数据
                 </el-button>
-                <el-button 
-                  size="small" 
-                  @click="clearMigrationData" 
-                  :disabled="!migrationSettings.enabled"
-                >
+                <el-button size="small" @click="clearMigrationData" :disabled="!migrationSettings.enabled">
                   清除飞线数据
                 </el-button>
               </div>
-              
+
               <!-- 飞线动画控制按钮 -->
               <div class="control-row buttons-row">
-                <el-button 
-                  size="small" 
-                  type="primary" 
-                  @click="startMigrationAnimation" 
-                  :disabled="!migrationSettings.enabled || migrationSettings.isPlaying"
-                >
+                <el-button size="small" type="primary" @click="startMigrationAnimation"
+                  :disabled="!migrationSettings.enabled || migrationSettings.isPlaying">
                   开始飞线动画
                 </el-button>
-                <el-button 
-                  size="small" 
-                  type="danger" 
-                  @click="stopMigrationAnimation" 
-                  :disabled="!migrationSettings.enabled || !migrationSettings.isPlaying"
-                >
+                <el-button size="small" type="danger" @click="stopMigrationAnimation"
+                  :disabled="!migrationSettings.enabled || !migrationSettings.isPlaying">
                   停止飞线动画
                 </el-button>
               </div>
-              
+
               <!-- 快捷示例按钮 -->
               <div class="control-row buttons-row" style="margin-top: 10px;">
-                <el-button 
-                  size="small" 
-                  type="success" 
-                  @click="quickEnableMigration"
-                  :disabled="migrationSettings.isPlaying"
-                >
+                <el-button size="small" type="success" @click="quickEnableMigration"
+                  :disabled="migrationSettings.isPlaying">
                   <i class="el-icon-connection"></i> 一键开启飞线
                 </el-button>
               </div>
@@ -278,66 +253,45 @@
                 <el-button size="small" @click="addAdvancedMigration">添加高级飞线图示例</el-button>
               </div>
               <div class="control-row buttons-row">
-                <el-button size="small" type="success" @click="addCityMigration" title="使用leaflet-charts5实现">添加城市间飞线图 (Echarts 5)</el-button>
+                <el-button size="small" type="success" @click="addCityMigration" title="使用leaflet-charts5实现">添加城市间飞线图
+                  (Echarts 5)</el-button>
                 <el-button size="small" type="warning" @click="addSequentialMigration">添加顺序飞线</el-button>
               </div>
-              <div class="control-row buttons-row">
-                <el-button size="small" type="info" @click="applyRadarEffect">应用雷达波动效果</el-button>
-                <el-button size="small" type="danger" @click="resetRippleEffect">重置波动效果</el-button>
-              </div>
-              
+
               <!-- 添加飞线图样式控制 -->
               <div v-if="migrationSettings.enabled" class="migration-style-controls">
                 <div class="control-subtitle">飞线样式设置</div>
-                
+
                 <div class="control-row">
                   <span class="label">使用ECharts 5:</span>
-                  <el-switch 
-                    v-model="migrationSettings.useECharts5"
-                    @change="toggleMigrationImpl"
-                  />
+                  <el-switch v-model="migrationSettings.useECharts5" @change="toggleMigrationImpl" />
                   <span class="value">{{ migrationSettings.useECharts5 ? '是' : '否' }}</span>
                 </div>
-                
+
                 <!-- 线条样式设置 -->
                 <div class="control-subtitle">线条样式</div>
-                
+
                 <div class="control-row">
                   <span>线条宽度:</span>
-                  <el-slider 
-                    v-model="migrationOptions.lineStyle.width" 
-                    :min="1" 
-                    :max="5" 
-                    :step="0.5"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.lineStyle.width" :min="1" :max="5" :step="0.5"
+                    @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.lineStyle.width }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>透明度:</span>
-                  <el-slider 
-                    v-model="migrationOptions.lineStyle.opacity" 
-                    :min="0.1" 
-                    :max="1" 
-                    :step="0.1"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.lineStyle.opacity" :min="0.1" :max="1" :step="0.1"
+                    @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.lineStyle.opacity }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>曲线度:</span>
-                  <el-slider 
-                    v-model="migrationOptions.lineStyle.curveness" 
-                    :min="0" 
-                    :max="0.5" 
-                    :step="0.05"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.lineStyle.curveness" :min="0" :max="0.5" :step="0.05"
+                    @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.lineStyle.curveness }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>线条类型:</span>
                   <el-select v-model="migrationOptions.lineStyle.type" size="small" @change="updateMigrationStyle">
@@ -346,185 +300,83 @@
                     <el-option label="点线" value="dotted" />
                   </el-select>
                 </div>
-                
+
                 <div class="control-row">
                   <span>线条颜色:</span>
-                  <el-color-picker 
-                    v-model="migrationOptions.lineStyle.color" 
-                    size="small"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-color-picker v-model="migrationOptions.lineStyle.color" size="small"
+                    @change="updateMigrationStyle" />
                 </div>
-                
+
                 <!-- 散点样式设置 -->
                 <div class="control-subtitle">散点样式</div>
-                
-                <div class="control-row">
-                  <span>散点大小:</span>
-                  <el-slider 
-                    v-model="migrationOptions.symbolSize" 
-                    :min="4" 
-                    :max="24" 
-                    :step="1"
-                    @change="updateMigrationStyle" 
-                  />
-                  <span class="value">{{ migrationOptions.symbolSize }}</span>
-                </div>
-                
+
+
                 <div class="control-row">
                   <span>散点波动:</span>
-                  <el-switch 
-                    v-model="migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle"
-                  />
+                  <el-switch v-model="migrationOptions.symbolEffectEnabled" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.symbolEffectEnabled ? '开启' : '关闭' }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>波动周期:</span>
-                  <el-slider 
-                    v-model="migrationOptions.rippleEffect.period" 
-                    :min="1" 
-                    :max="8" 
-                    :step="0.5"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.rippleEffect.period" :min="1" :max="8" :step="0.5"
+                    :disabled="!migrationOptions.symbolEffectEnabled" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.rippleEffect.period }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>波动大小:</span>
-                  <el-slider 
-                    v-model="migrationOptions.rippleEffect.scale" 
-                    :min="1" 
-                    :max="5" 
-                    :step="0.5"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.rippleEffect.scale" :min="1" :max="10" :step="0.5"
+                    :disabled="!migrationOptions.symbolEffectEnabled" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.rippleEffect.scale }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>波动样式:</span>
-                  <el-select 
-                    v-model="migrationOptions.rippleEffect.brushType" 
-                    size="small" 
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle"
-                  >
+                  <el-select v-model="migrationOptions.rippleEffect.brushType" size="small"
+                    :disabled="!migrationOptions.symbolEffectEnabled" @change="updateMigrationStyle">
                     <el-option label="填充" value="fill" />
                     <el-option label="描边" value="stroke" />
                   </el-select>
                 </div>
-                
-                <div class="control-row" v-if="migrationOptions.rippleEffect.brushType === 'stroke'">
-                  <span>描边宽度:</span>
-                  <el-slider 
-                    v-model="migrationOptions.rippleEffect.strokeWidth" 
-                    :min="1" 
-                    :max="5" 
-                    :step="0.5"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle" 
-                  />
-                  <span class="value">{{ migrationOptions.rippleEffect.strokeWidth }}</span>
-                </div>
-                
-                <div class="control-row">
-                  <span>波纹颜色:</span>
-                  <el-color-picker 
-                    v-model="migrationOptions.rippleEffect.color" 
-                    size="small"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle" 
-                  />
-                </div>
-                
-                <div class="control-row">
-                  <span>雷达效果:</span>
-                  <el-switch 
-                    v-model="migrationOptions.rippleEffect.multilayer"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle"
-                  >
-                    <span class="value">{{ migrationOptions.rippleEffect.multilayer ? '开启' : '关闭' }}</span>
-                  </el-switch>
-                </div>
-                
-                <div class="control-row" v-if="migrationOptions.rippleEffect.multilayer">
-                  <span>波纹数量:</span>
-                  <el-slider 
-                    v-model="migrationOptions.rippleEffect.layerCount" 
-                    :min="1" 
-                    :max="5" 
-                    :step="1"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle"
-                  >
-                    <span class="value">{{ migrationOptions.rippleEffect.layerCount }}</span>
-                  </el-slider>
-                </div>
-                
-                <div class="control-row" v-if="migrationOptions.rippleEffect.multilayer">
-                  <span>波纹角度范围:</span>
-                  <el-slider 
-                    v-model="migrationOptions.rippleEffect.angleRange" 
-                    :min="0" 
-                    :max="180" 
-                    :step="10"
-                    :disabled="!migrationOptions.symbolEffectEnabled"
-                    @change="updateMigrationStyle"
-                  >
-                    <span class="value">{{ migrationOptions.rippleEffect.angleRange }}°</span>
-                  </el-slider>
-                </div>
-                
+
                 <div class="control-row">
                   <span>显示名称:</span>
-                  <el-switch 
-                    v-model="migrationOptions.showSymbolName"
-                    @change="updateMigrationStyle"
-                  />
+                  <el-switch v-model="migrationOptions.showSymbolName" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.showSymbolName ? '开启' : '关闭' }}</span>
                 </div>
-                
+
                 <!-- 飞线动画效果设置 -->
                 <div class="control-subtitle">飞线动画效果</div>
-                
+
                 <div class="control-row">
                   <span>动画速度:</span>
-                  <el-slider 
-                    v-model="migrationOptions.effect.period" 
-                    :min="1" 
-                    :max="10" 
-                    :step="1"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.effect.period" :min="1" :max="10" :step="1"
+                    @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.effect.period }}</span>
                 </div>
-                
+                <div class="control-row">
+                  <span>图标大小:</span>
+                  <el-slider v-model="migrationOptions.symbolSize" :min="4" :max="24" :step="1"
+                    @change="updateMigrationStyle" />
+                  <span class="value">{{ migrationOptions.symbolSize }}</span>
+                </div>
                 <div class="control-row">
                   <span>拖尾:</span>
-                  <el-slider 
-                    v-model="migrationOptions.effect.trailLength" 
-                    :min="0" 
-                    :max="0.9" 
-                    :step="0.1"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-slider v-model="migrationOptions.effect.trailLength" :min="0" :max="0.9" :step="0.1"
+                    @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.effect.trailLength }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>动画类型:</span>
-                  <el-select v-model="migrationOptions.effect.animationType" size="small" @change="updateMigrationStyle">
+                  <el-select v-model="migrationOptions.effect.animationType" size="small"
+                    @change="updateMigrationStyle">
                     <el-option label="均匀移动" value="normal" />
                     <el-option label="弹跳效果" value="bounce" />
                   </el-select>
                 </div>
-                
+
                 <div class="control-row">
                   <span>动画图标:</span>
                   <el-select v-model="migrationOptions.pathSymbol" size="small" @change="updateMigrationStyle">
@@ -533,48 +385,41 @@
                     <el-option label="三角形" value="triangle" />
                     <el-option label="菱形" value="diamond" />
                     <el-option label="箭头" value="arrow" />
-                    <el-option label="飞机" value="path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z" />
+                    <el-option label="飞机"
+                      value="path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z" />
                   </el-select>
                 </div>
-                
+
                 <div class="control-row">
                   <span>效果颜色:</span>
-                  <el-color-picker 
-                    v-model="migrationOptions.effect.color" 
-                    size="small"
-                    @change="updateMigrationStyle" 
-                  />
+                  <el-color-picker v-model="migrationOptions.effect.color" size="small"
+                    @change="updateMigrationStyle" />
                 </div>
-                
+
                 <div class="control-row">
                   <span>循环播放:</span>
                   <el-switch v-model="migrationOptions.loop" @change="updateMigrationStyle" />
                 </div>
-                
+
                 <!-- 高级设置 -->
                 <div class="control-subtitle">高级设置</div>
-                
+
                 <div class="control-row">
                   <span>启用3D:</span>
                   <el-switch v-model="migrationOptions.enable3D" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.enable3D ? '开启' : '关闭' }}</span>
                 </div>
-                
+
                 <div class="control-row">
                   <span>悬停动画:</span>
                   <el-switch v-model="migrationOptions.hoverAnimation" @change="updateMigrationStyle" />
                   <span class="value">{{ migrationOptions.hoverAnimation ? '开启' : '关闭' }}</span>
                 </div>
-                
+
                 <div class="control-subtitle">样式应用</div>
-                
+
                 <div class="control-row">
-                  <el-button 
-                    size="small" 
-                    type="primary" 
-                    @click="applyMigrationStyle"
-                    style="width: 100%;"
-                  >
+                  <el-button size="small" type="primary" @click="applyMigrationStyle" style="width: 100%;">
                     应用飞线样式
                   </el-button>
                 </div>
@@ -600,24 +445,14 @@
               </div>
               <div class="control-row">
                 <span>热力点半径:</span>
-                <el-slider 
-                  v-model="config.heatMapConfig.options.radius" 
-                  :min="10" 
-                  :max="50" 
-                  :step="1"
-                  @change="updateHeatMapOptions"
-                />
+                <el-slider v-model="config.heatMapConfig.options.radius" :min="10" :max="50" :step="1"
+                  @change="updateHeatMapOptions" />
                 <span class="value">{{ config.heatMapConfig.options.radius }}</span>
               </div>
               <div class="control-row">
                 <span>模糊度:</span>
-                <el-slider 
-                  v-model="config.heatMapConfig.options.blur" 
-                  :min="5" 
-                  :max="30" 
-                  :step="1"
-                  @change="updateHeatMapOptions"
-                />
+                <el-slider v-model="config.heatMapConfig.options.blur" :min="5" :max="30" :step="1"
+                  @change="updateHeatMapOptions" />
                 <span class="value">{{ config.heatMapConfig.options.blur }}</span>
               </div>
             </div>
@@ -638,7 +473,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="preset-section">
           <h4>预设位置</h4>
           <div class="preset-buttons">
@@ -660,7 +495,8 @@
           </div>
           <div class="info-item">
             <span class="info-label">交互状态:</span>
-            <span class="info-value">{{ config.dragging ? '可拖动' : '禁止拖动' }}, {{ config.scrollWheelZoom ? '可缩放' : '禁止缩放' }}</span>
+            <span class="info-value">{{ config.dragging ? '可拖动' : '禁止拖动' }}, {{ config.scrollWheelZoom ? '可缩放' : '禁止缩放'
+              }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">活动工具:</span>
@@ -669,7 +505,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 事件日志显示区域 -->
     <div class="event-logs">
       <h4>事件日志</h4>
@@ -680,7 +516,8 @@
         <li v-for="(log, index) in eventLogs" :key="index" class="log-item">
           <span class="log-time">{{ formatTime(log.time) }}</span>
           <span class="log-event">{{ log.event }}</span>
-          <span class="log-data">{{ JSON.stringify(log.data).substring(0, 100) }}{{ JSON.stringify(log.data).length > 100 ? '...' : '' }}</span>
+          <span class="log-data">{{ JSON.stringify(log.data).substring(0, 100) }}{{ JSON.stringify(log.data).length >
+            100 ? '...' : '' }}</span>
         </li>
       </ul>
     </div>
@@ -694,7 +531,7 @@ import MAP_TYPES from '@repo/components/ScMap/types/default';
 import { ShapeType } from '@repo/components/ScMap/plugin/Shape';
 import * as logUtil from '@repo/utils';
 import { computed, reactive, ref, onMounted, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 // 导入Leaflet库（实际使用时可能需要安装leaflet包）
 // import L from 'leaflet';
 
@@ -1583,8 +1420,8 @@ const fitTracksInView = () => {
 onMounted(() => {
   // 延迟一点时间确保地图已完全加载
   setTimeout(() => {
-    // 默认添加一些点位
-    addDefaultMarkers();
+    // 移除自动添加点位的功能，改为让用户手动添加
+    // addDefaultMarkers();
     
     // 提示用户可以使用一键开启飞线功能
     setTimeout(() => {
@@ -3023,16 +2860,12 @@ const updateMigrationStyle = () => {
     
     // 根据UI控制更新一些关联属性
     migrationOptions.label.show = migrationOptions.showSymbolName;
-    migrationOptions.rippleEffect.scale = migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0;
     migrationOptions.effect.symbolSize = migrationOptions.symbolSize;
     migrationOptions.pathSymbolColor = migrationOptions.effect.color;
     
-    // 处理角度范围
-    if (migrationOptions.useAngleRange) {
-      migrationOptions.rippleEffect.angleRange = [migrationOptions.angleStart, migrationOptions.angleEnd];
-    } else {
-      migrationOptions.rippleEffect.angleRange = undefined;
-    }
+    // 记录波动效果设置，用于调试
+    const wasEffectEnabled = migrationOptions.symbolEffectEnabled;
+    const rippleScale = migrationOptions.rippleEffect.scale;
     
     if (isUsingECharts5) {
       // 直接传递符合MigrationOptions接口的配置对象
@@ -3087,17 +2920,12 @@ const updateMigrationStyle = () => {
           textBorderWidth: migrationOptions.label.textBorderWidth
         },
         
-        // 涟漪效果配置
+        // 涟漪效果配置 - 确保show属性与symbolEffectEnabled保持同步
         rippleEffect: {
+          show: migrationOptions.symbolEffectEnabled, // 关键:确保show属性与UI开关状态同步
           period: migrationOptions.rippleEffect.period,
-          scale: migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0,
-          brushType: migrationOptions.rippleEffect.brushType,
-          color: migrationOptions.rippleEffect.color,
-          strokeWidth: migrationOptions.rippleEffect.strokeWidth,
-          strokeColor: migrationOptions.rippleEffect.strokeColor,
-          multilayer: migrationOptions.rippleEffect.multilayer,
-          layerCount: migrationOptions.rippleEffect.layerCount,
-          angleRange: migrationOptions.rippleEffect.angleRange
+          scale: migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0, // 当关闭时强制设为0
+          brushType: migrationOptions.rippleEffect.brushType
         },
         
         // 鼠标悬停动画
@@ -3108,7 +2936,42 @@ const updateMigrationStyle = () => {
       mapRef.value.updateMigrationOptions(options);
       
       // 添加调试日志，记录关键参数值
-      log.info(`更新飞线图配置: symbolSize=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}, 雷达效果=${migrationOptions.rippleEffect.multilayer ? '开启' : '关闭'}`);
+      log.info(`更新飞线图配置: symbolSize=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}`);
+      
+      // 如果波动效果设置发生变化，则立即刷新图表
+      if (typeof mapRef.value.refreshMigration === 'function') {
+        log.info('正在刷新飞线图以应用波动效果设置...');
+        
+        try {
+          // 使用refreshMigration方法立即刷新飞线图表
+          const refreshResult = mapRef.value.refreshMigration();
+          
+          if (refreshResult) {
+            log.info(`飞线图刷新成功，波动效果已${migrationOptions.symbolEffectEnabled ? '启用' : '禁用'}, 波动大小=${migrationOptions.rippleEffect.scale}`);
+          } else {
+            log.warn('飞线图刷新失败，波动效果可能未正确应用');
+          }
+        } catch (err) {
+          log.warn(`刷新飞线图失败: ${err}`);
+        }
+      } else {
+        // 如果refreshMigration不可用，尝试通过重新开始动画来强制刷新
+        log.warn('refreshMigration方法不可用，尝试其他方式刷新');
+        
+        // 保存当前动画状态
+        const wasPlaying = migrationSettings.isPlaying;
+        
+        if (wasPlaying) {
+          // 先停止动画
+          mapRef.value.stopMigration();
+          
+          // 短暂延迟后重新开始动画
+          setTimeout(() => {
+            mapRef.value.startMigration();
+            log.info('通过重新开始动画方式刷新飞线图');
+          }, 200);
+        }
+      }
     } else {
       // 传统格式 - 为antPath或其他实现
       mapRef.value.updateMigrationOptions({
@@ -3175,14 +3038,8 @@ const migrationOptions = reactive({
   // 波动效果配置
   rippleEffect: {
     period: 3,
-    scale: 2.5,
-    brushType: 'fill',
-    color: undefined, // 波纹颜色
-    strokeWidth: 2,   // 波纹线条宽度，仅在brushType为'stroke'时有效
-    strokeColor: undefined, // 波纹线条颜色
-    multilayer: false, // 是否显示多层波纹效果，创建类似雷达的扫描效果
-    layerCount: 3,    // 多层波纹中的波纹数量
-    angleRange: undefined // 波纹角度范围
+    scale: 3.5,
+    brushType: 'fill'
   },
   
   // 标签显示配置
@@ -3202,10 +3059,7 @@ const migrationOptions = reactive({
   
   // 兼容UI控制的扩展属性 (不属于MigrationOptions接口，但用于UI控制)
   symbolEffectEnabled: true,  // 控制rippleEffect.scale值
-  showSymbolName: false,      // 控制label.show值，初始值设为false
-  useAngleRange: false,       // 控制是否启用角度范围
-  angleStart: 0,              // 角度范围起始角度
-  angleEnd: 180              // 角度范围结束角度
+  showSymbolName: false       // 控制label.show值，初始值设为false
 });
 
 // 添加飞线图配置和状态
@@ -3664,113 +3518,435 @@ const cityTypes = {
   '天津': '其他城市'
 };
 
-// 应用雷达波动效果
-const applyRadarEffect = () => {
-  if (!mapRef.value || !migrationSettings.enabled) {
-    ElMessage.warning('请先启用飞线图');
-    return;
-  }
+// 更新缩放级别
+const updateZoom = (zoom: number) => {
+  if (!mapRef.value) return;
   
   try {
-    // 先确保使用Echarts 5实现
-    if (migrationImpl.value !== 'echarts5') {
-      migrationSettings.useECharts5 = true;
-      migrationImpl.value = 'echarts5';
-      
-      // 等待实现切换完成
-      setTimeout(() => {
-        applyRadarEffectSettings();
-      }, 300);
-    } else {
-      applyRadarEffectSettings();
-    }
+    // 设置地图的缩放级别
+    mapRef.value.setZoom(zoom);
+    log.info(`已更新地图缩放级别: ${zoom}`);
   } catch (e) {
-    log.error(`应用雷达波动效果失败: ${e}`);
-    
-    ElMessage({
-      message: '应用雷达波动效果失败，请检查控制台日志',
-      type: 'error',
-      duration: 3000
-    });
+    log.error(`更新缩放级别失败: ${e}`);
   }
 };
 
-// 应用雷达效果配置
-const applyRadarEffectSettings = () => {
-  // 设置散点大小
-  migrationOptions.symbolSize = 16;
-  
-  // 启用散点波动
-  migrationOptions.symbolEffectEnabled = true;
-  
-  // 设置波动效果属性
-  migrationOptions.rippleEffect.period = 4;
-  migrationOptions.rippleEffect.scale = 3;
-  migrationOptions.rippleEffect.brushType = 'stroke';
-  migrationOptions.rippleEffect.strokeWidth = 2;
-  migrationOptions.rippleEffect.color = '#00FFFF';
-  migrationOptions.rippleEffect.strokeColor = '#00FFFF';
-  migrationOptions.rippleEffect.multilayer = true;
-  migrationOptions.rippleEffect.layerCount = 4;
-  
-  // 启用扇形波纹
-  migrationOptions.useAngleRange = true;
-  migrationOptions.angleStart = 0;
-  migrationOptions.angleEnd = 180;
-  
-  // 应用更新
-  updateMigrationStyle();
-  
-  // 启用名称显示
-  migrationOptions.showSymbolName = true;
-  
-  // 触发强制刷新
-  applyMigrationStyle();
-  
-  // 提示用户
-  ElMessage({
-    message: '雷达波动效果已应用',
-    type: 'success',
-    duration: 2000
+// 添加自定义数量的随机标记点
+const addRandomMarkersWithCount = () => {
+  // 使用ElMessageBox创建一个弹窗，让用户输入要添加的标记点数量
+  ElMessageBox.prompt('请输入要添加的随机点位数量', '自定义添加点位', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPattern: /^[1-9][0-9]*$/,
+    inputErrorMessage: '请输入正整数'
+  }).then(({ value }) => {
+    // 将输入值转换为数字
+    const count = parseInt(value, 10);
+    
+    // 调用添加随机标记点的函数
+    addRandomMarkers(count);
+    
+    // 显示成功消息
+    ElMessage({
+      message: `已添加 ${count} 个随机点位`,
+      type: 'success',
+      duration: 2000
+    });
   });
 };
 
-// 重置波动效果
-const resetRippleEffect = () => {
-  if (!mapRef.value || !migrationSettings.enabled) {
-    return;
-  }
+// 设置飞线最佳视图
+const setOptimalZoomForMigration = () => {
+  if (!mapRef.value) return;
   
   try {
-    // 重置为默认值
-    migrationOptions.symbolSize = 12;
-    migrationOptions.symbolEffectEnabled = true;
-    migrationOptions.rippleEffect.period = 3;
-    migrationOptions.rippleEffect.scale = 2.5;
-    migrationOptions.rippleEffect.brushType = 'fill';
-    migrationOptions.rippleEffect.color = undefined;
-    migrationOptions.rippleEffect.strokeWidth = 2;
-    migrationOptions.rippleEffect.strokeColor = undefined;
-    migrationOptions.rippleEffect.multilayer = false;
-    migrationOptions.rippleEffect.layerCount = 3;
-    migrationOptions.useAngleRange = false;
-    migrationOptions.angleStart = 0;
-    migrationOptions.angleEnd = 180;
-    migrationOptions.showSymbolName = false;
+    // 设置适合飞线图显示的缩放级别
+    config.zoom = 5;
+    updateZoom(5);
     
-    // 应用更新
-    updateMigrationStyle();
+    // 如果有城市数据，设置中国大致中心位置
+    const chinaCenter: [number, number] = [35, 105]; // 中国大致中心位置
+    mapRef.value.setCenter(chinaCenter);
     
-    // 触发强制刷新
-    applyMigrationStyle();
-    
-    // 提示用户
+    // 显示成功消息
     ElMessage({
-      message: '波动效果已重置',
-      type: 'info',
+      message: '已设置为飞线图最佳视图',
+      type: 'success',
       duration: 2000
     });
+    
+    log.info('已设置飞线图最佳视图: 缩放级别=5, 中心点=[35, 105]');
   } catch (e) {
-    log.error(`重置波动效果失败: ${e}`);
+    log.error(`设置飞线图最佳视图失败: ${e}`);
   }
 };
+</script>
+
+<style scoped>
+.migration-style-controls {
+  margin-top: 16px;
+  padding: 14px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e6e8eb;
+  transition: all 0.3s ease;
+}
+
+.migration-style-controls:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.control-subtitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1890ff;
+  margin: 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #e6e8eb;
+  display: flex;
+  align-items: center;
+}
+
+.control-subtitle::before {
+  content: "•";
+  margin-right: 6px;
+  color: #1890ff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* 为大按钮添加动画效果 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.el-button.el-button--large {
+  transition: all 0.3s ease;
+}
+
+.el-button.el-button--large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
+.sc-map-example {
+  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.example-content {
+  display: flex;
+  gap: 20px;
+  min-height: 500px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.map-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-area {
+  width: 400px;
+  flex-shrink: 0;
+  padding: 15px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
+}
+
+.map-container {
+  height: 500px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-weight: bold;
+  color: #606266;
+  display: flex;
+  align-items: center;
+}
+
+.value-badge {
+  margin-left: 8px;
+  background-color: #409eff;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: normal;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-row span {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.value {
+  width: 40px;
+  text-align: right;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #606266;
+  width: auto !important;
+}
+
+.zoom-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.preset-section {
+  margin-top: 20px;
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.custom-url-hint {
+  font-size: 12px;
+  color: #E6A23C;
+  margin-top: 5px;
+}
+
+.map-info {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.info-item {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.info-label {
+  font-weight: bold;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: #409eff;
+}
+
+.buttons-row {
+  display: flex;
+  justify-content: space-s;
+  width: 100%;
+}
+
+.buttons-row .el-button {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 自定义弹框样式 */
+.simple-popup {
+  font-size: 13px;
+  color: #333;
+}
+
+.simple-popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.simple-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.simple-label {
+  font-weight: 600;
+  color: #606266;
+  margin-right: 8px;
+}
+
+.simple-value {
+  color: #303133;
+}
+
+/* 自定义形状弹框标题样式 */
+.custom-shape-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+}
+
+.shape-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.shape-tag {
+  font-size: 12px;
+  padding: 2px 6px;
+  background-color: #409eff;
+  color: white;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 根据分类显示不同颜色的标签 */
+.shape-tag:global(.安防) {
+  background-color: #E91E63;
+}
+
+.shape-tag:global(.商业) {
+  background-color: #9C27B0;
+}
+
+.shape-tag:global(.教育) {
+  background-color: #009688;
+}
+
+.shape-tag:global(.示例) {
+  background-color: #FF9800;
+}
+
+/* 事件日志显示区域 */
+.event-logs {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.event-logs h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #303133;
+}
+
+.no-logs {
+  font-size: 14px;
+  color: #909399;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.logs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.log-item {
+  padding: 8px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-item:hover {
+  background-color: #f0f9ff;
+}
+
+.log-time {
+  color: #909399;
+  font-size: 11px;
+}
+
+.log-event {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.log-data {
+  color: #606266;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.control-row {
+  margin-bottom: 10px;
+}
+
+.value {
+  margin-left: 10px;
+}
+</style>
+
