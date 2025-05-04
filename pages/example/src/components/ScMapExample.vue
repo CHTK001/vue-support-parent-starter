@@ -340,6 +340,18 @@
                   />
                 </div>
                 
+                <div class="control-row">
+                  <span>散点大小:</span>
+                  <el-slider 
+                    v-model="migrationOptions.symbolSize" 
+                    :min="4" 
+                    :max="24" 
+                    :step="1"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.symbolSize }}</span>
+                </div>
+                
                 <div class="control-subtitle">动画效果设置</div>
                 
                 <div class="control-row">
@@ -2017,22 +2029,11 @@ const addSampleMigration = () => {
       }
     ];
     
-    // 设置飞线图选项
-    mapRef.value.updateMigrationOptions({
-      lineStyle: {
-        opacity: 0.8
-      },
-      antPath: {
-        delay: 800,
-        dashArray: [10, 20],
-        pulseColor: '#FFFFFF'
-      },
-      autoStart: true,
-      loop: true
-    });
-    
     // 启用飞线图功能
     mapRef.value.enableMigration();
+    
+    // 应用当前飞线图样式设置
+    updateMigrationStyle();
     
     // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, true);
@@ -2107,24 +2108,11 @@ const addAdvancedMigration = () => {
       });
     });
     
-    // 设置高级飞线图选项
-    mapRef.value.updateMigrationOptions({
-      lineStyle: {
-        opacity: 0.7
-      },
-      antPath: {
-        delay: 500,
-        dashArray: [8, 16],
-        pulseColor: '#FFFFFF',
-        hardwareAccelerated: true
-      },
-      autoStart: true,
-      loop: true,
-      hideAfterCompletion: false
-    });
-    
     // 启用飞线图功能
     mapRef.value.enableMigration();
+    
+    // 应用当前飞线图样式设置
+    updateMigrationStyle();
     
     // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, true);
@@ -2498,28 +2486,8 @@ const addCityMigration = () => {
           
           // 再次等待DOM刷新
           setTimeout(() => {
-            // 确保配置适用于ECharts 5的飞线图
-            mapRef.value.updateMigrationOptions({
-              // ECharts特有配置 - 适用于leaflet-charts5实现
-              animation: true,
-              lineWidth: 2,           // 线宽
-              lineOpacity: 0.75,      // 不透明度
-              symbolSize: 6,          // 标记点大小
-              curvature: 0.3,         // 曲线弯曲度
-              rippleEffect: {         // 波纹效果
-                period: 4,            // 动画周期
-                scale: 4,             // 波纹大小
-                brushType: 'fill'     // 填充类型
-              },
-              label: {                // 标签配置
-                show: true,           // 显示标签
-                position: 'right',    // 标签位置
-                formatter: '{b}'      // 标签格式
-              },
-              // 通用选项
-              autoStart: true,        // 自动开始
-              loop: true              // 循环播放
-            });
+            // 应用当前飞线图样式设置
+            updateMigrationStyle();
           
             // 等待配置应用后再启用飞线图
             setTimeout(() => {
@@ -2578,25 +2546,8 @@ const toggleMigration = () => {
   try {
     // 如果要开启飞线图
     if (!isMigrationEnabled.value) {
-      // 应用自定义样式
-      mapRef.value.updateMigrationOptions({
-        lineStyle: {
-          color: migrationOptions.lineStyle.color,
-          width: migrationOptions.lineStyle.width,
-          opacity: migrationOptions.lineStyle.opacity,
-          curveness: migrationOptions.lineStyle.curveness
-        },
-        effect: {
-          show: true,
-          period: migrationOptions.effect.period,
-          trailLength: migrationOptions.effect.trailLength,
-          symbol: 'circle',
-          symbolSize: 5,
-          color: migrationOptions.effect.color
-        },
-        autoStart: true,
-        loop: migrationOptions.loop
-      });
+      // 应用当前飞线图样式设置
+      updateMigrationStyle();
       
       // 启用飞线图功能
       mapRef.value.enableMigration();
@@ -2719,19 +2670,8 @@ const addSequentialMigration = () => {
     // 停止当前动画
     mapRef.value.stopMigration();
     
-    // 设置飞线图选项
-    mapRef.value.updateMigrationOptions({
-      lineStyle: {
-        opacity: 0.8
-      },
-      antPath: {
-        delay: 800,
-        dashArray: [8, 16],
-        pulseColor: '#FFFFFF'
-      },
-      autoStart: false, // 不自动开始
-      loop: false // 不循环
-    });
+    // 应用当前飞线图样式设置
+    updateMigrationStyle();
     
     // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, false);
@@ -2812,6 +2752,10 @@ const quickEnableMigration = () => {
         
         // 创建一些基本的飞线数据
         const defaultMigrationData = generateDefaultMigrationData();
+        
+        // 应用当前样式设置
+        updateMigrationStyle();
+        
         // 等待选项应用后设置数据
         setTimeout(() => {
           // 设置飞线图数据
@@ -2909,7 +2853,7 @@ const updateMigrationStyle = () => {
         animation: true,
         lineWidth: migrationOptions.lineStyle.width,
         lineOpacity: migrationOptions.lineStyle.opacity,
-        symbolSize: 5,
+        symbolSize: migrationOptions.symbolSize,
         curvature: migrationOptions.lineStyle.curveness,
         rippleEffect: {
           period: migrationOptions.effect.period,
@@ -2938,7 +2882,7 @@ const updateMigrationStyle = () => {
           period: migrationOptions.effect.period,
           trailLength: migrationOptions.effect.trailLength,
           symbol: 'circle',
-          symbolSize: 5,
+          symbolSize: migrationOptions.symbolSize,
           color: migrationOptions.effect.color
         },
         autoStart: true,
@@ -2965,6 +2909,7 @@ const migrationOptions = reactive({
     trailLength: 0.5,
     color: '#FFFFFF'
   },
+  symbolSize: 12,
   loop: true
 });
 
@@ -3196,13 +3141,58 @@ const applyMigrationStyle = () => {
   if (!mapRef.value || !migrationSettings.enabled) return;
   
   try {
+    // 先调用updateMigrationStyle更新配置
     updateMigrationStyle();
     
-    ElMessage({
-      message: '已应用飞线样式',
-      type: 'success',
-      duration: 2000
-    });
+    // 如果当前使用的是ECharts 5实现，需要强制刷新ECharts实例
+    if (mapRef.value.migrationImpl === 'echarts5') {
+      // 尝试获取echarts实例并强制刷新
+      try {
+        // 尝试调用可能存在的refreshMigration方法
+        const mapWithRefresh = mapRef.value as any;
+        if (typeof mapWithRefresh.refreshMigration === 'function') {
+          mapWithRefresh.refreshMigration();
+        }
+      } catch (err) {
+        // 忽略错误，这只是一个可选的增强功能
+        log.info('刷新图表时出现问题，继续执行其他操作');
+      }
+      
+      // 如果当前有数据并在播放中，先暂停再重新启动动画以应用新设置
+      if (migrationSettings.hasData) {
+        const wasPlaying = migrationSettings.isPlaying;
+        
+        if (wasPlaying) {
+          // 先停止动画
+          mapRef.value.stopMigration();
+        }
+        
+        // 短暂延迟后重新启动动画
+        setTimeout(() => {
+          if (wasPlaying) {
+            mapRef.value.startMigration();
+          }
+          
+          ElMessage({
+            message: '已应用飞线样式并刷新图表',
+            type: 'success',
+            duration: 2000
+          });
+        }, 100);
+      } else {
+        ElMessage({
+          message: '已应用飞线样式',
+          type: 'success',
+          duration: 2000
+        });
+      }
+    } else {
+      ElMessage({
+        message: '已应用飞线样式',
+        type: 'success',
+        duration: 2000
+      });
+    }
   } catch (e) {
     log.error(`应用飞线样式失败: ${e}`);
     
@@ -3251,50 +3241,9 @@ const toggleMigrationImpl = (useECharts5) => {
     setTimeout(() => {
       // 重新启用飞线图
       mapRef.value.enableMigration();
-    
-      // 应用样式 - 需要根据不同实现调整配置格式
-      if (useECharts5) {
-        // ECharts 5格式 - 为leaflet-charts5实现
-        mapRef.value.updateMigrationOptions({
-          animation: true,
-          lineWidth: migrationOptions.lineStyle.width,
-          lineOpacity: migrationOptions.lineStyle.opacity,
-          symbolSize: 5,
-          curvature: migrationOptions.lineStyle.curveness,
-          rippleEffect: {
-            period: migrationOptions.effect.period,
-            scale: 4,
-            brushType: 'fill'
-          },
-          label: {
-            show: false,
-            position: 'right',
-            formatter: '{b}'
-          },
-          autoStart: true,
-          loop: migrationOptions.loop
-        });
-      } else {
-        // 传统格式 - 为antPath或其他实现
-        mapRef.value.updateMigrationOptions({
-          lineStyle: {
-            color: migrationOptions.lineStyle.color,
-            width: migrationOptions.lineStyle.width,
-            opacity: migrationOptions.lineStyle.opacity,
-            curveness: migrationOptions.lineStyle.curveness
-          },
-          effect: {
-            show: true,
-            period: migrationOptions.effect.period,
-            trailLength: migrationOptions.effect.trailLength,
-            symbol: 'circle',
-            symbolSize: 5,
-            color: migrationOptions.effect.color
-          },
-          autoStart: true,
-          loop: migrationOptions.loop
-        });
-      }
+      
+      // 应用当前样式设置
+      updateMigrationStyle();
       
       // 等待配置应用后重新开始动画
       setTimeout(() => {
