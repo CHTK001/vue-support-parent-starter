@@ -16,7 +16,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { LinesChart, EffectScatterChart } from 'echarts/charts';
 // 全局导入echarts-extension-leaflet以自动注册组件
 import '@joakimono/echarts-extension-leaflet';
-
+import 'echarts-gl';
 // 注册必须的组件
 use([CanvasRenderer, LinesChart, EffectScatterChart]);
 
