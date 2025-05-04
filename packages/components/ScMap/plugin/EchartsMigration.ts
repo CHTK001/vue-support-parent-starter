@@ -60,14 +60,17 @@ export class EchartsMigration implements MigrationBase {
       animationDelay: 10,
       animationDuration: 1000,
       animationEasing: 'cubicOut',
-      lineType: 'line',
       pathEffect: 'path',
       pathSymbol: planePath, // 默认使用飞机图标
       pathSymbolColor: '#1E90FF', // 默认蓝色飞机
-      lineWidth: 1,
-      lineOpacity: 0.6,
       symbolSize: 12, // 飞机图标尺寸
-      curvature: 0.2,
+      lineStyle: {
+        width: 1,
+        opacity: 0.6,
+        type: 'solid',
+        curveness: 0.2,
+        color: undefined
+      },
       rippleEffect: {
         period: 3, // 稍慢的周期
         scale: 1.5, // 更小的涟漪效果
@@ -326,17 +329,34 @@ export class EchartsMigration implements MigrationBase {
   }
 
   /**
-   * 应用数据到图表
+   * 获取ECharts配置选项
+   * 统一处理配置生成逻辑，确保配置一致性
+   * @param customOptions 自定义选项，用于覆盖默认选项
+   * @returns ECharts配置对象
    */
-  private applyData(): void {
+  private getOption(customOptions: Partial<any> = {}): any {
     if (!this.chart) {
-      warn('图表实例不存在，无法应用数据');
-      return;
+      warn('图表实例不存在，无法获取配置');
+      return {};
     }
     
     try {
+      // 获取线条样式，必须保证存在
+      const lineStyle = this.options.lineStyle || {
+        width: 2,
+        opacity: 0.8,
+        type: 'solid',
+        curveness: 0.2
+      };
+      
       // 获取曲率设置
-      const curveness = this.options.curvature || 0.2;
+      const curveness = lineStyle.curveness || 0.2;
+      
+      // 获取线条宽度、透明度和类型
+      const lineWidth = lineStyle.width || 2;
+      const lineOpacity = lineStyle.opacity || 0.8;
+      const lineType = lineStyle.type || 'solid';
+      const lineColor = lineStyle.color;
       
       // 转换数据为ECharts所需格式
       const seriesData = this.data.map(point => {
@@ -350,8 +370,8 @@ export class EchartsMigration implements MigrationBase {
           toName: labels?.to || '',
           // 使用权重作为线宽的系数
           lineStyle: {
-            width: (weight || 1) * this.options.lineWidth,
-            color: color || undefined,
+            width: (weight || 1) * lineWidth,
+            color: color || lineColor || undefined,
             curveness: curveness // 应用曲率
           }
         };
@@ -365,7 +385,7 @@ export class EchartsMigration implements MigrationBase {
           name: point.labels?.to || '',
           value: [...point.to, point.weight || 1], // [lng, lat, weight]
           itemStyle: {
-            color: point.color || undefined
+            color: point.color || lineColor || undefined
           }
         };
       });
@@ -377,12 +397,13 @@ export class EchartsMigration implements MigrationBase {
       const planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z';
       
       // 获取用户配置的图标
-      const symbol = this.options.pathSymbol || planePath;
+      const symbol = this.options.pathSymbol || this.options.effect?.symbol || planePath;
+      
       // 获取图标颜色
-      const symbolColor = this.options.pathSymbolColor || '#00BFFF';
-
-      // 设置echarts配置
-      const option: any = {
+      const symbolColor = this.options.pathSymbolColor || this.options.effect?.color || '#00BFFF';
+      
+      // 基础配置选项
+      const baseOption: any = {
         animation: this.options.animation,
         animationDuration: this.options.animationDuration,
         animationEasing: this.options.animationEasing,
@@ -397,20 +418,22 @@ export class EchartsMigration implements MigrationBase {
             polyline: false,
             // 曲率配置
             lineStyle: {
-              width: this.options.lineWidth,
-              opacity: this.options.lineOpacity,
+              width: lineWidth,
+              opacity: lineOpacity,
               // 动态缓动线效果
-              type: this.options.lineType,
-              curveness: curveness
+              type: lineType,
+              curveness: curveness,
+              color: lineColor
             },
             // 是否启用动画效果
             effect: this.options.pathEffect === 'none' ? undefined : {
-              show: true,
-              period: 6,
-              trailLength: 0.7,
+              show: this.options.effect?.show !== false, // 默认显示
+              period: this.options.effect?.period || 6,
+              trailLength: this.options.effect?.trailLength || 0.7,
               color: symbolColor,
-              symbolSize: this.options.symbolSize,
-              symbol: symbol
+              symbolSize: this.options.effect?.symbolSize || this.options.symbolSize,
+              symbol: symbol,
+              loop: this.options.effect?.loop !== false, // 默认循环
             },
             // 数据项
             data: seriesData
@@ -421,26 +444,32 @@ export class EchartsMigration implements MigrationBase {
             type: 'effectScatter',
             coordinateSystem: 'lmap',
             zlevel: is3D ? 2 : 2,
-            // 散点大小，改为更小的值
-            symbolSize: (val) => {
-              // 明显减小散点大小
-              return this.options.symbolSize * 0.8 * (Array.isArray(val) ? Math.min((val[2] || 1), 1.5) : 1);
-            },
+            // 散点大小 - 直接使用配置的symbolSize
+            symbolSize: this.options.symbolSize,
             // 波动效果
             rippleEffect: {
               period: this.options.rippleEffect?.period || 3,
-              scale: this.options.rippleEffect?.scale || 1.5,
+              // 使用用户配置的scale值
+              scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 0,
               brushType: this.options.rippleEffect?.brushType || 'fill'
             },
             // 标签设置
             label: {
-              show: this.options.label?.show || false,
+              // 显示标签
+              show: this.options.label?.show === true,
               position: this.options.label?.position || 'right',
-              formatter: this.options.label?.formatter || '{b}'
+              formatter: this.options.label?.formatter || '{b}',
+              // 确保标签可见性的样式
+              fontSize: this.options.label?.fontSize || 12,
+              color: this.options.label?.color || '#fff',
+              textBorderColor: this.options.label?.textBorderColor || '#000',
+              textBorderWidth: this.options.label?.textBorderWidth || 2,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              padding: [3, 5]
             },
             // 是否启用鼠标悬停动画
             hoverAnimation: this.options.hoverAnimation,
-            // 散点样式，降低亮度和透明度
+            // 散点样式
             itemStyle: {
               shadowBlur: 5,
               shadowColor: 'rgba(120, 36, 50, 0.3)',
@@ -452,10 +481,65 @@ export class EchartsMigration implements MigrationBase {
         ]
       };
       
+      // 合并自定义选项
+      const mergedOption = this.mergeOptions(baseOption, customOptions);
+      
+      return mergedOption;
+    } catch (e) {
+      error('生成配置选项失败:', e);
+      return {};
+    }
+  }
+  
+  /**
+   * 合并配置选项，支持深度合并
+   * @param baseOption 基础配置
+   * @param customOption 自定义配置
+   * @returns 合并后的配置
+   */
+  private mergeOptions(baseOption: any, customOption: any): any {
+    if (!customOption || typeof customOption !== 'object') {
+      return baseOption;
+    }
+    
+    const result = { ...baseOption };
+    
+    Object.keys(customOption).forEach(key => {
+      const value = customOption[key];
+      
+      // 如果是对象且不是数组，进行递归合并
+      if (value && typeof value === 'object' && !Array.isArray(value) && 
+          baseOption[key] && typeof baseOption[key] === 'object' && !Array.isArray(baseOption[key])) {
+        result[key] = this.mergeOptions(baseOption[key], value);
+      } else {
+        // 否则直接覆盖
+        result[key] = value;
+      }
+    });
+    
+    return result;
+  }
+
+  /**
+   * 应用数据到图表
+   */
+  private applyData(): void {
+    if (!this.chart) {
+      warn('图表实例不存在，无法应用数据');
+      return;
+    }
+    
+    try {
+      // 输出关键参数值，帮助调试
+      info(`应用飞线配置: symbolSize=${this.options.symbolSize}, rippleEffect.scale=${this.options.rippleEffect?.scale || 0}, label.show=${this.options.label?.show}`);
+
+      // 使用getOption方法获取配置
+      const option = this.getOption();
+      
       // 应用配置
       this.chart.setOption(option);
       
-      info(`已应用${seriesData.length}条飞线数据到图表`);
+      info(`已应用${this.data.length}条飞线数据到图表`);
     } catch (e) {
       error('应用数据到图表失败:', e);
     }
@@ -486,40 +570,36 @@ export class EchartsMigration implements MigrationBase {
         this.animationTimer = null;
       }
       
-      // 自定义飞机图标路径
-      const planePath = 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z';
+      // 输出开始动画时的关键参数，用于调试
+      info(`开始飞线动画: 散点大小=${this.options.symbolSize}, 波动效果scale=${this.options.rippleEffect?.scale || 0}`);
       
-      // 获取用户配置的图标
-      const symbol = this.options.pathSymbol || planePath;
-      // 获取图标颜色
-      const symbolColor = this.options.pathSymbolColor || '#00BFFF';
-      
-      // 应用动画配置
-      this.chart.setOption({
+      // 使用getOption方法获取带动画效果的配置
+      const animationOption = this.getOption({
         series: [
           {
             // 飞线动画
             type: 'lines',
             effect: {
               show: true,
-              period: 6,
-              trailLength: 0,
-              color: symbolColor,
-              symbolSize: this.options.symbolSize || 24,
-              symbol: symbol
+              period: this.options.effect?.period || 6,
+              trailLength: this.options.effect?.trailLength || 0,
+              loop: this.options.loop !== false
             }
           },
           {
             // 散点动画
             type: 'effectScatter',
+            // 设置波动效果
             rippleEffect: {
               period: this.options.rippleEffect?.period || 3,
-              scale: this.options.rippleEffect?.scale || 1.5,
-              brushType: this.options.rippleEffect?.brushType || 'fill'
+              scale: typeof this.options.rippleEffect?.scale === 'number' ? this.options.rippleEffect.scale : 2.5
             }
           }
         ]
       });
+      
+      // 应用动画配置
+      this.chart.setOption(animationOption);
       
       info('飞线动画已启动');
       return true;
@@ -650,22 +730,46 @@ export class EchartsMigration implements MigrationBase {
   }
 
   /**
-   * 更新飞线图选项
-   * @param options 飞线图配置选项
+   * 更新飞线图配置选项
+   * @param options 要更新的选项
+   * @returns 是否更新成功
    */
   public updateOptions(options: Partial<MigrationOptions>): boolean {
     try {
+      const wasAnimating = this.isAnimating;
+      
       // 合并选项
       this.options = { ...this.options, ...options };
       
+      // 确保lineStyle存在
+      if (!this.options.lineStyle) {
+        this.options.lineStyle = {
+          width: 2,
+          opacity: 0.8,
+          type: 'solid',
+          curveness: 0.2
+        };
+      }
+      
       // 如果图表已创建并启用，应用更新
       if (this.enabled && this.chart) {
-        // 重新应用数据会使用新配置
+        // 如果在动画中且设置了不动画，先停止动画以避免冲突
+        if (wasAnimating && options.animation === false) {
+          this.stop();
+        }
+        
+        // 立即重新应用数据，这会使用新配置
         this.applyData();
         
-        // 如果正在动画中，重启动画
-        if (this.isAnimating) {
-          this.start();
+        // 记录已应用的关键配置值，便于调试
+        info(`应用飞线配置: symbolSize=${this.options.symbolSize}, label.show=${this.options.label?.show}, rippleEffect.scale=${this.options.rippleEffect?.scale}, lineStyle=${this.options.lineStyle ? JSON.stringify(this.options.lineStyle) : '未设置'}`);
+        
+        // 如果动画状态需要改变
+        if (wasAnimating && !this.isAnimating && this.options.animation !== false) {
+          // 短暂延迟后重新启动动画，确保配置已完全应用
+          setTimeout(() => {
+            this.start();
+          }, 50);
         }
       }
       
@@ -673,6 +777,124 @@ export class EchartsMigration implements MigrationBase {
       return true;
     } catch (e) {
       error('更新飞线图选项失败:', e);
+      return false;
+    }
+  }
+
+  /**
+   * 强制刷新飞线图
+   * 该方法用于在更新选项后强制刷新ECharts实例，确保散点大小、波动效果和名称显示等选项立即生效
+   */
+  public refreshMigration(): boolean {
+    try {
+      if (!this.enabled || !this.chart) {
+        warn('飞线图未启用或图表实例不存在，无法刷新');
+        return false;
+      }
+
+      // 记录当前动画状态和关键配置值
+      const wasAnimating = this.isAnimating;
+      const symbolSize = this.options.symbolSize;
+      const rippleScale = this.options.rippleEffect?.scale;
+      const labelShow = this.options.label?.show;
+      
+      // 获取线条样式，必须保证存在
+      const lineStyle = this.options.lineStyle || {
+        width: 2,
+        opacity: 0.8,
+        type: 'solid',
+        curveness: 0.2
+      };
+      
+      // 获取线条样式
+      const lineWidth = lineStyle.width || 2;
+      const lineOpacity = lineStyle.opacity || 0.8;
+      const lineType = lineStyle.type || 'solid';
+      const curveness = lineStyle.curveness || 0.2;
+      const lineColor = lineStyle.color;
+      
+      // 输出刷新前的状态，帮助调试
+      info(`开始刷新飞线图: 当前symbolSize=${symbolSize}, rippleScale=${rippleScale}, labelShow=${labelShow}, 动画状态=${wasAnimating ? '运行中' : '停止'}`);
+      
+      // 如果正在动画中，先停止动画
+      if (wasAnimating) {
+        this.stop();
+      }
+      
+      // 强制重新应用数据和所有配置
+      this.applyData();
+      
+      // 确保图表尺寸正确
+      this.chart.resize();
+      
+      // 使用getOption方法，创建包含明确设置所有关键参数的配置
+      const refreshOption = this.getOption({
+        series: [
+          {
+            // 线条
+            type: 'lines',
+            lineStyle: {
+              width: lineWidth,
+              opacity: lineOpacity,
+              type: lineType,
+              curveness: curveness,
+              color: lineColor
+            },
+            // 明确设置动画效果
+            effect: this.options.pathEffect === 'none' ? undefined : {
+              show: this.options.effect?.show !== false,
+              period: this.options.effect?.period || 6,
+              trailLength: this.options.effect?.trailLength || 0.7,
+              color: this.options.pathSymbolColor || this.options.effect?.color || '#00BFFF',
+              symbolSize: symbolSize, // 使用记录的symbolSize确保正确值
+              symbol: this.options.pathSymbol || this.options.effect?.symbol || 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z',
+              loop: this.options.effect?.loop !== false || this.options.loop !== false
+            }
+          },
+          {
+            // 散点
+            type: 'effectScatter',
+            // 明确设置散点大小 - 使用记录的symbolSize，确保正确值
+            symbolSize: symbolSize,
+            // 明确设置波动效果 - 使用记录的rippleScale，确保正确值
+            rippleEffect: {
+              period: this.options.rippleEffect?.period || 3,
+              scale: rippleScale !== undefined ? rippleScale : (this.options.rippleEffect?.scale || 0),
+              brushType: this.options.rippleEffect?.brushType || 'fill'
+            },
+            // 明确设置标签显示 - 使用记录的labelShow，确保正确值
+            label: {
+              show: labelShow === true, // 确保布尔值处理正确
+              position: this.options.label?.position || 'right',
+              formatter: this.options.label?.formatter || '{b}',
+              fontSize: this.options.label?.fontSize || 12,
+              color: this.options.label?.color || '#ffffff',
+              textBorderColor: this.options.label?.textBorderColor || '#000000',
+              textBorderWidth: this.options.label?.textBorderWidth || 2,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              padding: [3, 5]
+            },
+            hoverAnimation: this.options.hoverAnimation === true
+          }
+        ]
+      });
+      
+      // 应用刷新配置
+      this.chart.setOption(refreshOption, true); // 第二个参数设为true表示不合并配置，强制覆盖
+      
+      // 如果之前在动画中，延迟重新启动动画
+      if (wasAnimating) {
+        // 短暂延迟后重新启动动画，确保配置已完全应用
+        setTimeout(() => {
+          this.start();
+          info('动画已重新启动');
+        }, 100);
+      }
+      
+      info('飞线图已刷新完成');
+      return true;
+    } catch (e) {
+      error('刷新飞线图失败:', e);
       return false;
     }
   }
