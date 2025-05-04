@@ -3485,7 +3485,7 @@ const initGrid = async (): Promise<void> => {
     // 创建基于GridLayer的Geohash网格工具
     gridTool.value = new GridLayerGeohash(mapInstance.value, {
       // 使用Geohash网格算法
-      level: 6, // 设置初始精度为6，相当于1.2km左右的网格大小
+      level: 8, // 设置初始精度为6，相当于1.2km左右的网格大小
       color: '#3388ff',
       weight: 1,
       opacity: 0.6,
