@@ -94,11 +94,11 @@ import { EchartsMigration } from './plugin/EchartsMigration';
 import { Migration } from './plugin/Migration';
 import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入网格插件
-import { Grid } from './plugin/Grid';
+import { GridLayerGeohash } from './plugin/GridLayerGeohash';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
 // 网格工具实例
-let gridTool: Grid | null = null;
+const gridTool = ref<any>(null);
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -875,9 +875,8 @@ onUnmounted(() => {
     measureTool.value.stop();
   }
 
-  if (gridTool) {
-    gridTool.destroy();
-    gridTool = null;
+  if (gridTool.value) {
+    gridTool.value.destroy();
   }
   
   if (markerTool.value) {
@@ -3466,10 +3465,9 @@ const getMigrationData = () => {
   }
 };
 
-
 // 初始化网格
 const initGrid = async (): Promise<void> => {
-  if (gridTool) return;
+  if (gridTool.value) return;
   
   try {
     // 延迟加载 L
@@ -3477,24 +3475,46 @@ const initGrid = async (): Promise<void> => {
       L = (await import('leaflet')).default;
     }
     
-    // 创建网格工具，使用符合国标的配置
-    gridTool = new Grid(mapInstance.value, {
-      // 遵循《地球空间网格编码规则》(GB/T 40087-2021)标准
-      level: 3,
+    // 确保地图实例已初始化
+    if (!mapInstance.value) {
+      warn('地图实例未初始化，无法创建网格工具');
+      addLog('网格工具初始化失败: 地图实例未初始化');
+      return;
+    }
+    
+    // 创建基于GridLayer的Geohash网格工具
+    gridTool.value = new GridLayerGeohash(mapInstance.value, {
+      // 使用Geohash网格算法
+      level: 6, // 设置初始精度为6，相当于1.2km左右的网格大小
       color: '#3388ff',
       weight: 1,
       opacity: 0.6,
       fillColor: '#3388ff',
       fillOpacity: 0.1,
-      showCode: true,
+      showCode: true, // 默认显示网格编码
       codeColor: '#333',
       codeSize: 12,
       interactive: true,
-      gridType: 'rect' // 默认使用矩形网格
+      gridType: 'rect', // 默认使用矩形网格
+      autoAdjustLevel: true, // 启用自动调整网格级别，根据zoom动态调整网格
+      // 配置默认显示的白色边框
+      showGridBorder: true, // 启用网格边框显示
+      gridBorderColor: '#ffffff', // 设置边框为白色
+      gridBorderWidth: 1, // 设置边框宽度
+      // 强制使用DOM渲染方式
+      useCanvas: false,
+      // GridLayer特有参数
+      tileSize: 256,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 8, // 保留更多缓冲瓦片
+      className: 'map-geohash-grid-layer', // 添加自定义类名
+      zIndex: 350, // 设置较高的z-index确保显示在地图上方
+      pane: 'overlayPane' // 使用覆盖物图层
     });
     
-    addLog('网格工具初始化成功');
-    info('网格工具初始化成功');
+    addLog('基于GridLayer的网格工具初始化成功');
+    info('基于GridLayer的网格工具初始化成功');
   } catch (e) {
     error('网格工具初始化失败:', e);
     addLog('网格工具初始化失败', e);
@@ -3503,19 +3523,49 @@ const initGrid = async (): Promise<void> => {
 
 // 启用网格显示
 const enableGrid = async (): Promise<void> => {
-  if (!mapInstance.value) return;
-  
   try {
-    // 确保网格工具已初始化
-    if (!gridTool) {
+    // 初始化网格(如果尚未初始化)
+    if (!gridTool.value) {
       await initGrid();
+      
+      if (!gridTool.value) {
+        throw new Error('网格工具初始化失败');
+      }
+      
+      // 给初始化一点时间
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // 显示网格
-    if (gridTool) {
-      gridTool.show();
-      addLog('网格已启用');
-      info('网格已启用');
+    // 尝试安全地显示网格
+    try {
+      // 检查gridTool的必要方法
+      if (typeof gridTool.value.show === 'function') {
+        gridTool.value.show();
+        addLog('网格已启用');
+      } else {
+        throw new Error('网格工具缺少show方法');
+      }
+    } catch (showError) {
+      // 如果第一次尝试失败，重新尝试
+      error('首次显示网格失败，尝试重新初始化:', showError);
+      
+      // 再次初始化网格工具
+      await initGrid();
+      
+      // 延迟后再次尝试
+      setTimeout(() => {
+        try {
+          if (gridTool.value && typeof gridTool.value.show === 'function') {
+            gridTool.value.show();
+            addLog('网格已启用(重试成功)');
+          } else {
+            addLog('启用网格失败: 无法显示网格');
+          }
+        } catch (retryError) {
+          error('重试显示网格失败:', retryError);
+          addLog('启用网格失败: 显示错误');
+        }
+      }, 300);
     }
   } catch (e) {
     error('启用网格失败:', e);
@@ -3525,29 +3575,35 @@ const enableGrid = async (): Promise<void> => {
 
 // 禁用网格显示
 const disableGrid = (): void => {
-  if (!gridTool) return;
-  
   try {
-    // 隐藏网格
-    gridTool.hide();
-    addLog('网格已禁用');
-    info('网格已禁用');
+    if (gridTool.value) {
+      gridTool.value.hide();
+      addLog('网格已禁用');
+    }
   } catch (e) {
     error('禁用网格失败:', e);
     addLog('禁用网格失败', e);
   }
 };
 
-// 切换网格类型（矩形/蜂窝）
+// 切换网格类型(矩形/六边形)
 const toggleGridType = (): void => {
-  if (!gridTool) return;
-  
   try {
-    const currentType = gridTool.getType();
-    const newType = currentType === 'rect' ? 'hex' : 'rect';
-    gridTool.setType(newType);
-    addLog(`网格类型已切换为: ${newType}`);
-    info(`网格类型已切换为: ${newType}`);
+    if (gridTool.value) {
+      // 检查是否支持toggleType方法(新的GridLayerGeohash类)
+      if (typeof gridTool.value.toggleType === 'function') {
+        gridTool.value.toggleType();
+        addLog(`网格类型已切换为 ${gridTool.value.options.gridType}`); 
+      } 
+      // 兼容旧的Grid类API
+      else if (gridTool.value.getType && gridTool.value.setType) {
+        const currentType = gridTool.value.getType();
+        const newType = currentType === 'rect' ? 'hex' : 'rect';
+        gridTool.value.setType(newType);
+      }
+      
+      addLog(`网格类型已切换为 ${gridTool.value.getType()}`);
+    }
   } catch (e) {
     error('切换网格类型失败:', e);
     addLog('切换网格类型失败', e);
@@ -3556,15 +3612,57 @@ const toggleGridType = (): void => {
 
 // 设置网格级别
 const setGridLevel = (level: number): void => {
-  if (!gridTool) return;
-  
   try {
-    gridTool.setLevel(level);
-    addLog(`网格级别已设置为: ${level}`);
-    info(`网格级别已设置为: ${level}`);
+    if (gridTool.value && typeof gridTool.value.setLevel === 'function') {
+      gridTool.value.setLevel(level);
+      addLog(`网格精度级别已设置为 ${level}`);
+    }
   } catch (e) {
     error('设置网格级别失败:', e);
     addLog('设置网格级别失败', e);
+  }
+};
+
+// 切换网格显示状态
+const toggleGrid = async (): Promise<void> => {
+  try {
+    // 初始化网格(如果尚未初始化)
+    if (!gridTool.value) {
+      await initGrid();
+      
+      if (!gridTool.value) {
+        throw new Error('网格工具初始化失败');
+      }
+      
+      // 初始化后默认显示
+      gridTool.value.show();
+      addLog('网格已启用');
+      return;
+    }
+    
+    // 根据当前状态切换
+    if (typeof gridTool.value.isVisible === 'function') {
+      if (gridTool.value.isVisible()) {
+        gridTool.value.hide();
+        addLog('网格已禁用');
+      } else {
+        gridTool.value.show();
+        addLog('网格已启用');
+      }
+    } 
+    // 兼容处理
+    else if (typeof gridTool.value.visible === 'boolean') {
+      if (gridTool.value.visible) {
+        gridTool.value.hide();
+        addLog('网格已禁用');
+      } else {
+        gridTool.value.show();
+        addLog('网格已启用');
+      }
+    }
+  } catch (e) {
+    error('切换网格状态失败:', e);
+    addLog('切换网格状态失败', e);
   }
 };
 
@@ -3736,12 +3834,28 @@ defineExpose({
   toggleGridType,
   setGridLevel,
   gridStatus: () => {
-    if (!gridTool) {
+    if (!gridTool.value) {
       return OpenStatus.CLOSE;
     }
 
-    return gridTool.isVisible() ? OpenStatus.OPEN : OpenStatus.CLOSE;
-  }
+    // 安全地检查gridTool的isVisible方法
+    try {
+      // 检查isVisible是否为函数
+      if (typeof gridTool.value.isVisible === 'function') {
+        return gridTool.value.isVisible() ? OpenStatus.OPEN : OpenStatus.CLOSE;
+      } 
+      // 检查visible属性
+      else if (typeof gridTool.value.visible === 'boolean') {
+        return gridTool.value.visible ? OpenStatus.OPEN : OpenStatus.CLOSE;
+      }
+      // 如果都不可用,返回关闭状态
+      return OpenStatus.CLOSE;
+    } catch (e) {
+      error('获取网格状态失败:', e);
+      return OpenStatus.CLOSE;
+    }
+  },
+  toggleGrid
 });
 </script>
 

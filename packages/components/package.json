@@ -27,6 +27,7 @@
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
     "lodash-es": "catalog:",
+    "ngeohash": "catalog:",
     "leaflet": "catalog:",
     "@joakimono/echarts-extension-leaflet": "catalog:",
     "leaflet-ant-path": "catalog:",
