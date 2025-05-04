@@ -554,3 +554,23 @@ export const formatFilePath = (filePrefix: string | null, filePath: string): str
   // 返回最终的格式化路径
   return formattedPath;
 };
+
+/**
+ * 兼容requestAnimationFrame
+ */
+window.requestAnimationFrame = (function () {
+  return (
+    window.requestAnimationFrame ||
+    // @ts-ignore
+    window?.webkitRequestAnimationFrame ||
+    // @ts-ignore
+    window?.mozRequestAnimationFrame ||
+    // @ts-ignore
+    window?.oRequestAnimationFrame ||
+    // @ts-ignore
+    window?.msRequestAnimationFrame ||
+    function (callback) {
+      return window.setTimeout(callback, 1000 / 60);
+    }
+  );
+})();
