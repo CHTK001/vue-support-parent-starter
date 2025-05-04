@@ -33,11 +33,6 @@ export interface MigrationOptions {
   animationEasing: string;
   
   /**
-   * 线条类型，支持 'solid', 'dashed', 'dotted'
-   */
-  lineType: string;
-  
-  /**
    * 路径效果类型，支持 'path', 'none'
    */
   pathEffect: string;
@@ -57,24 +52,41 @@ export interface MigrationOptions {
   pathSymbolColor?: string;
   
   /**
-   * 线条宽度
-   */
-  lineWidth: number;
-  
-  /**
-   * 线条透明度
-   */
-  lineOpacity: number;
-  
-  /**
    * 符号大小
    */
   symbolSize: number;
   
   /**
-   * 曲线曲率，值越大曲线越弯曲，取值范围0-1
+   * 线条样式的配置
+   * 用于统一配置所有线条相关参数
    */
-  curvature: number;
+  lineStyle: {
+    /**
+     * 线条宽度
+     */
+    width: number;
+    
+    /**
+     * 线条透明度
+     */
+    opacity: number;
+    
+    /**
+     * 线条类型，支持 'solid', 'dashed', 'dotted'
+     */
+    type: string;
+    
+    /**
+     * 曲线曲率，值越大曲线越弯曲，取值范围0-1
+     */
+    curveness: number;
+    
+    /**
+     * 线条颜色
+     * 支持颜色名称、十六进制、rgba等格式
+     */
+    color?: string;
+  };
   
   /**
    * 涟漪特效配置
@@ -121,5 +133,102 @@ export interface MigrationOptions {
      * 模板变量：{a}（系列名），{b}（数据名），{c}（数据值）
      */
     formatter: string;
+    
+    /**
+     * 字体大小
+     */
+    fontSize?: number;
+    
+    /**
+     * 文本颜色
+     */
+    color?: string;
+    
+    /**
+     * 文本描边颜色
+     */
+    textBorderColor?: string;
+    
+    /**
+     * 文本描边宽度
+     */
+    textBorderWidth?: number;
   };
+  
+  /**
+   * 飞线动画效果配置
+   * 控制飞线动画的各种效果参数
+   */
+  effect?: {
+    /**
+     * 是否显示动画效果
+     */
+    show?: boolean;
+    
+    /**
+     * 动画周期，单位秒
+     * 值越小动画速度越快
+     */
+    period?: number;
+    
+    /**
+     * 拖尾长度，取值范围 0 到 1
+     * 值越大尾迹越长
+     */
+    trailLength?: number;
+    
+    /**
+     * 动画图标颜色
+     * 支持颜色名称、十六进制、rgba等格式
+     */
+    color?: string;
+    
+    /**
+     * 动画符号类型
+     * 可选: 'circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'
+     * 或自定义SVG路径: 'path://...'
+     */
+    symbol?: string;
+    
+    /**
+     * 动画符号大小
+     * 如果不设置，默认使用全局的symbolSize
+     */
+    symbolSize?: number;
+    
+    /**
+     * 动画类型
+     * 'normal': 均匀移动
+     * 'bounce': 弹跳效果 
+     */
+    animationType?: 'normal' | 'bounce';
+    
+    /**
+     * 是否循环播放
+     */
+    loop?: boolean;
+    
+    /**
+     * 动画延迟（毫秒）
+     * 每条飞线的延迟播放时间
+     */
+    delay?: number;
+    
+    /**
+     * 动画持续时间（毫秒）
+     * 单次动画的持续时间
+     */
+    duration?: number;
+    
+    /**
+     * 动画起点位置 
+     * 范围: 0-1，表示飞线起点位置的百分比
+     */
+    constantSpeed?: number;
+  };
+  
+  /**
+   * 是否循环播放飞线动画
+   */
+  loop?: boolean;
 } 

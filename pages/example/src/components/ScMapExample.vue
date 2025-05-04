@@ -295,6 +295,9 @@
                   <span class="value">{{ migrationSettings.useECharts5 ? '是' : '否' }}</span>
                 </div>
                 
+                <!-- 线条样式设置 -->
+                <div class="control-subtitle">线条样式</div>
+                
                 <div class="control-row">
                   <span>线条宽度:</span>
                   <el-slider 
@@ -332,13 +335,25 @@
                 </div>
                 
                 <div class="control-row">
-                  <span>颜色:</span>
+                  <span>线条类型:</span>
+                  <el-select v-model="migrationOptions.lineStyle.type" size="small" @change="updateMigrationStyle">
+                    <el-option label="实线" value="solid" />
+                    <el-option label="虚线" value="dashed" />
+                    <el-option label="点线" value="dotted" />
+                  </el-select>
+                </div>
+                
+                <div class="control-row">
+                  <span>线条颜色:</span>
                   <el-color-picker 
                     v-model="migrationOptions.lineStyle.color" 
                     size="small"
                     @change="updateMigrationStyle" 
                   />
                 </div>
+                
+                <!-- 散点样式设置 -->
+                <div class="control-subtitle">散点样式</div>
                 
                 <div class="control-row">
                   <span>散点大小:</span>
@@ -352,7 +367,65 @@
                   <span class="value">{{ migrationOptions.symbolSize }}</span>
                 </div>
                 
-                <div class="control-subtitle">动画效果设置</div>
+                <div class="control-row">
+                  <span>散点波动:</span>
+                  <el-switch 
+                    v-model="migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle"
+                  />
+                  <span class="value">{{ migrationOptions.symbolEffectEnabled ? '开启' : '关闭' }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>波动周期:</span>
+                  <el-slider 
+                    v-model="migrationOptions.rippleEffect.period" 
+                    :min="1" 
+                    :max="8" 
+                    :step="0.5"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.rippleEffect.period }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>波动大小:</span>
+                  <el-slider 
+                    v-model="migrationOptions.rippleEffect.scale" 
+                    :min="1" 
+                    :max="5" 
+                    :step="0.5"
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle" 
+                  />
+                  <span class="value">{{ migrationOptions.rippleEffect.scale }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>波动样式:</span>
+                  <el-select 
+                    v-model="migrationOptions.rippleEffect.brushType" 
+                    size="small" 
+                    :disabled="!migrationOptions.symbolEffectEnabled"
+                    @change="updateMigrationStyle"
+                  >
+                    <el-option label="填充" value="fill" />
+                    <el-option label="描边" value="stroke" />
+                  </el-select>
+                </div>
+                
+                <div class="control-row">
+                  <span>显示名称:</span>
+                  <el-switch 
+                    v-model="migrationOptions.showSymbolName"
+                    @change="updateMigrationStyle"
+                  />
+                  <span class="value">{{ migrationOptions.showSymbolName ? '开启' : '关闭' }}</span>
+                </div>
+                
+                <!-- 飞线动画效果设置 -->
+                <div class="control-subtitle">飞线动画效果</div>
                 
                 <div class="control-row">
                   <span>动画速度:</span>
@@ -367,15 +440,35 @@
                 </div>
                 
                 <div class="control-row">
-                  <span>轨迹长度:</span>
+                  <span>拖尾:</span>
                   <el-slider 
                     v-model="migrationOptions.effect.trailLength" 
-                    :min="0.1" 
+                    :min="0" 
                     :max="0.9" 
                     :step="0.1"
                     @change="updateMigrationStyle" 
                   />
                   <span class="value">{{ migrationOptions.effect.trailLength }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>动画类型:</span>
+                  <el-select v-model="migrationOptions.effect.animationType" size="small" @change="updateMigrationStyle">
+                    <el-option label="均匀移动" value="normal" />
+                    <el-option label="弹跳效果" value="bounce" />
+                  </el-select>
+                </div>
+                
+                <div class="control-row">
+                  <span>动画图标:</span>
+                  <el-select v-model="migrationOptions.pathSymbol" size="small" @change="updateMigrationStyle">
+                    <el-option label="圆形" value="circle" />
+                    <el-option label="矩形" value="rect" />
+                    <el-option label="三角形" value="triangle" />
+                    <el-option label="菱形" value="diamond" />
+                    <el-option label="箭头" value="arrow" />
+                    <el-option label="飞机" value="path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z" />
+                  </el-select>
                 </div>
                 
                 <div class="control-row">
@@ -390,6 +483,21 @@
                 <div class="control-row">
                   <span>循环播放:</span>
                   <el-switch v-model="migrationOptions.loop" @change="updateMigrationStyle" />
+                </div>
+                
+                <!-- 高级设置 -->
+                <div class="control-subtitle">高级设置</div>
+                
+                <div class="control-row">
+                  <span>启用3D:</span>
+                  <el-switch v-model="migrationOptions.enable3D" @change="updateMigrationStyle" />
+                  <span class="value">{{ migrationOptions.enable3D ? '开启' : '关闭' }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>悬停动画:</span>
+                  <el-switch v-model="migrationOptions.hoverAnimation" @change="updateMigrationStyle" />
+                  <span class="value">{{ migrationOptions.hoverAnimation ? '开启' : '关闭' }}</span>
                 </div>
                 
                 <div class="control-subtitle">样式应用</div>
@@ -2847,45 +2955,92 @@ const updateMigrationStyle = () => {
     // 检测当前使用的飞线图实现类型
     const isUsingECharts5 = mapRef.value.migrationImpl === 'echarts5';
     
+    // 根据UI控制更新一些关联属性
+    migrationOptions.label.show = migrationOptions.showSymbolName;
+    migrationOptions.rippleEffect.scale = migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0;
+    migrationOptions.effect.symbolSize = migrationOptions.symbolSize;
+    migrationOptions.pathSymbolColor = migrationOptions.effect.color;
+    
     if (isUsingECharts5) {
-      // ECharts 5格式 - 为leaflet-charts5实现
-      mapRef.value.updateMigrationOptions({
-        animation: true,
-        lineWidth: migrationOptions.lineStyle.width,
-        lineOpacity: migrationOptions.lineStyle.opacity,
+      // 直接传递符合MigrationOptions接口的配置对象
+      const options = {
+        // 动画相关
+        animation: migrationOptions.animation,
+        animationDuration: migrationOptions.animationDuration,
+        animationEasing: migrationOptions.animationEasing,
+        animationDelay: migrationOptions.animationDelay,
+        
+        // 线条样式 - 统一使用lineStyle
+        lineStyle: migrationOptions.lineStyle,
+        
+        // 符号大小
         symbolSize: migrationOptions.symbolSize,
-        curvature: migrationOptions.lineStyle.curveness,
-        rippleEffect: {
+        
+        // 路径效果相关
+        pathEffect: migrationOptions.pathEffect,
+        pathSymbol: migrationOptions.pathSymbol,
+        pathSymbolColor: migrationOptions.pathSymbolColor,
+        
+        // 飞线动画效果配置
+        effect: {
+          show: migrationOptions.effect.show,
           period: migrationOptions.effect.period,
-          scale: 4,
-          brushType: 'fill'
+          trailLength: migrationOptions.effect.trailLength,
+          color: migrationOptions.effect.color,
+          symbolSize: migrationOptions.symbolSize,
+          symbol: migrationOptions.pathSymbol,
+          animationType: migrationOptions.effect.animationType,
+          loop: migrationOptions.effect.loop,
+          delay: migrationOptions.effect.delay,
+          duration: migrationOptions.effect.duration,
+          constantSpeed: migrationOptions.effect.constantSpeed
         },
+        
+        // 3D效果
+        enable3D: migrationOptions.enable3D,
+        
+        // 自动播放和循环
+        autoStart: migrationOptions.autoStart,
+        loop: migrationOptions.loop,
+        
+        // 标签设置
         label: {
-          show: false,
-          position: 'right',
-          formatter: '{b}'
+          show: migrationOptions.showSymbolName,
+          position: migrationOptions.label.position,
+          formatter: migrationOptions.label.formatter,
+          fontSize: migrationOptions.label.fontSize,
+          color: migrationOptions.label.color,
+          textBorderColor: migrationOptions.label.textBorderColor,
+          textBorderWidth: migrationOptions.label.textBorderWidth
         },
-        autoStart: true,
-        loop: migrationOptions.loop
-      });
+        
+        // 涟漪效果配置
+        rippleEffect: {
+          period: migrationOptions.rippleEffect.period,
+          scale: migrationOptions.symbolEffectEnabled ? migrationOptions.rippleEffect.scale : 0,
+          brushType: migrationOptions.rippleEffect.brushType
+        },
+        
+        // 鼠标悬停动画
+        hoverAnimation: migrationOptions.hoverAnimation
+      };
+      
+      // 应用配置更新
+      mapRef.value.updateMigrationOptions(options);
+      
+      // 添加调试日志，记录关键参数值
+      log.info(`更新飞线图配置: symbolSize=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}`);
     } else {
       // 传统格式 - 为antPath或其他实现
       mapRef.value.updateMigrationOptions({
-        lineStyle: {
-          color: migrationOptions.lineStyle.color,
-          width: migrationOptions.lineStyle.width,
-          opacity: migrationOptions.lineStyle.opacity,
-          curveness: migrationOptions.lineStyle.curveness
-        },
+        lineStyle: migrationOptions.lineStyle,
         effect: {
-          show: true,
-          period: migrationOptions.effect.period,
-          trailLength: migrationOptions.effect.trailLength,
-          symbol: 'circle',
-          symbolSize: migrationOptions.symbolSize,
-          color: migrationOptions.effect.color
+          ...migrationOptions.effect,
+          rippleEffect: migrationOptions.symbolEffectEnabled,
+          showSymbolName: migrationOptions.showSymbolName
         },
-        autoStart: true,
+        label: migrationOptions.label,
+        autoStart: migrationOptions.autoStart,
         loop: migrationOptions.loop
       });
     }
@@ -2898,19 +3053,71 @@ const updateMigrationStyle = () => {
 
 // 添加飞线图样式控制
 const migrationOptions = reactive({
+  // 全局设置
+  enable3D: false,
+  autoStart: true,
+  animation: true,
+  animationDuration: 1000,
+  animationEasing: 'cubicOut',
+  animationDelay: 0,
+  
+  // 符号大小
+  symbolSize: 12,
+  
+  // 线条相关 - 统一使用lineStyle
   lineStyle: {
     width: 2,
     opacity: 0.8,
     curveness: 0.2,
-    color: '#FF5252'
+    color: '#FF5252',
+    type: 'solid'
   },
+  
+  // 路径效果
+  pathEffect: 'path',
+  pathSymbol: 'circle',
+  pathSymbolColor: '#FFFFFF',
+  
+  // 飞线动画效果配置
   effect: {
+    show: true,
     period: 5,
-    trailLength: 0.5,
-    color: '#FFFFFF'
+    trailLength: 0, // 与slider中改为从0开始匹配
+    color: '#FFFFFF',
+    symbol: 'circle',
+    symbolSize: 12, // 保持与外层symbolSize同步
+    animationType: 'normal',
+    loop: true,
+    delay: 0,
+    duration: 1000,
+    constantSpeed: 0.2
   },
-  symbolSize: 12,
-  loop: true
+  
+  // 波动效果配置
+  rippleEffect: {
+    period: 3,
+    scale: 2.5,
+    brushType: 'fill'
+  },
+  
+  // 标签显示配置
+  label: {
+    show: false, // 初始值设为false，与showSymbolName保持同步
+    position: 'right',
+    formatter: '{b}',
+    fontSize: 12,
+    color: '#ffffff',
+    textBorderColor: '#000000',
+    textBorderWidth: 2
+  },
+  
+  // 全局控制
+  loop: true,
+  hoverAnimation: true,
+  
+  // 兼容UI控制的扩展属性 (不属于MigrationOptions接口，但用于UI控制)
+  symbolEffectEnabled: true,  // 控制rippleEffect.scale值
+  showSymbolName: false       // 控制label.show值，初始值设为false
 });
 
 // 添加飞线图配置和状态
@@ -3144,51 +3351,101 @@ const applyMigrationStyle = () => {
     // 先调用updateMigrationStyle更新配置
     updateMigrationStyle();
     
-    // 如果当前使用的是ECharts 5实现，需要强制刷新ECharts实例
+    // 记录关键参数
+    log.info(`应用飞线样式: 散点大小=${migrationOptions.symbolSize}, 波动效果=${migrationOptions.symbolEffectEnabled ? '开启' : '关闭'}, 波动大小=${migrationOptions.rippleEffect.scale}, 显示名称=${migrationOptions.showSymbolName ? '开启' : '关闭'}`);
+    
+    // 如果当前使用的是ECharts 5实现，使用refreshMigration方法刷新图表
     if (mapRef.value.migrationImpl === 'echarts5') {
-      // 尝试获取echarts实例并强制刷新
-      try {
-        // 尝试调用可能存在的refreshMigration方法
-        const mapWithRefresh = mapRef.value as any;
-        if (typeof mapWithRefresh.refreshMigration === 'function') {
-          mapWithRefresh.refreshMigration();
-        }
-      } catch (err) {
-        // 忽略错误，这只是一个可选的增强功能
-        log.info('刷新图表时出现问题，继续执行其他操作');
+      // 保存当前动画状态
+      const wasAnimating = migrationSettings.isPlaying;
+      
+      // 如果正在播放动画，先停止
+      if (wasAnimating) {
+        mapRef.value.stopMigration();
+        log.info('暂停动画以应用新的样式设置');
       }
       
-      // 如果当前有数据并在播放中，先暂停再重新启动动画以应用新设置
-      if (migrationSettings.hasData) {
-        const wasPlaying = migrationSettings.isPlaying;
-        
-        if (wasPlaying) {
-          // 先停止动画
-          mapRef.value.stopMigration();
-        }
-        
-        // 短暂延迟后重新启动动画
-        setTimeout(() => {
-          if (wasPlaying) {
-            mapRef.value.startMigration();
+      // 等待停止动画完成
+      setTimeout(() => {
+        // 尝试刷新飞线图
+        if (typeof mapRef.value.refreshMigration === 'function') {
+          const result = mapRef.value.refreshMigration();
+          
+          if (result) {
+            log.info('飞线图已成功刷新，样式已应用');
+            
+            // 如果之前在播放，恢复动画
+            if (wasAnimating) {
+              setTimeout(() => {
+                mapRef.value.startMigration();
+                log.info('已恢复动画播放');
+              }, 200);
+            }
+            
+            ElMessage({
+              message: '飞线样式已应用',
+              type: 'success',
+              duration: 2000
+            });
+          } else {
+            log.warn('飞线图刷新失败，尝试重新加载数据');
+            
+            // 如果refreshMigration返回失败，尝试通过重新加载数据来刷新
+            if (migrationSettings.hasData && typeof mapRef.value.getMigrationData === 'function') {
+              // 获取当前数据
+              const currentData = mapRef.value.getMigrationData();
+              if (currentData && currentData.length > 0) {
+                // 重新设置数据并启动动画
+                mapRef.value.setMigrationData(currentData, wasAnimating);
+                log.info('已通过重新加载数据方式刷新飞线图');
+                
+                ElMessage({
+                  message: '已通过重新加载数据方式应用飞线样式',
+                  type: 'success',
+                  duration: 2000
+                });
+              }
+            }
+          }
+        } else {
+          // 如果refreshMigration方法不存在，尝试通过切换动画状态来刷新
+          log.warn('组件不支持refreshMigration方法，尝试通过切换动画状态来刷新');
+          
+          // 如果当前有数据，先获取数据
+          let currentData = [];
+          if (typeof mapRef.value.getMigrationData === 'function') {
+            currentData = mapRef.value.getMigrationData();
           }
           
-          ElMessage({
-            message: '已应用飞线样式并刷新图表',
-            type: 'success',
-            duration: 2000
-          });
-        }, 100);
-      } else {
-        ElMessage({
-          message: '已应用飞线样式',
-          type: 'success',
-          duration: 2000
-        });
-      }
+          // 如果有数据，重新设置数据
+          if (currentData && currentData.length > 0) {
+            // 简单的延迟后重新设置数据
+            setTimeout(() => {
+              mapRef.value.setMigrationData(currentData, wasAnimating);
+              log.info('已通过重新设置数据方式刷新飞线图');
+              
+              ElMessage({
+                message: '飞线样式已应用',
+                type: 'success',
+                duration: 2000
+              });
+            }, 200);
+          } else {
+            // 如果没有数据或无法获取数据，提示用户先添加数据
+            ElMessage({
+              message: '请先添加飞线数据',
+              type: 'warning',
+              duration: 2000
+            });
+          }
+        }
+      }, 200);
     } else {
+      // 对于非ECharts 5实现，样式更新可能立即生效
+      log.info('对于非ECharts 5实现，样式已通过updateMigrationOptions更新');
+      
       ElMessage({
-        message: '已应用飞线样式',
+        message: '飞线样式已更新',
         type: 'success',
         duration: 2000
       });
@@ -3197,7 +3454,7 @@ const applyMigrationStyle = () => {
     log.error(`应用飞线样式失败: ${e}`);
     
     ElMessage({
-      message: '应用飞线样式失败',
+      message: `应用飞线样式失败: ${e}`,
       type: 'error',
       duration: 3000
     });

@@ -2320,11 +2320,11 @@ const initMigration = () => {
     // 根据migrationImpl属性选择使用的实现类
     if (props.migrationImpl === 'echarts5') {
       // 使用基于leaflet-charts5的现代化实现
-      migrationTool.value = new EchartsMigration(mapInstance.value, options) as MigrationBase;
+      migrationTool.value = new EchartsMigration(mapInstance.value, options as any) as MigrationBase;
       addLog('使用leaflet-charts5实现飞线图，基于ECharts 5优化的现代化实现');
     } else {
       // 默认使用AntPath实现飞线图
-      migrationTool.value = new Migration(mapInstance.value, options) as MigrationBase;
+      migrationTool.value = new Migration(mapInstance.value, options as any) as MigrationBase;
       addLog('使用AntPath实现飞线图');
     }
     
@@ -2526,10 +2526,62 @@ const startMigration = (): boolean => {
 const stopMigration = (): boolean => {
   if (!migrationTool.value) {
     warn('飞线图工具未初始化，无法停止动画');
+    addLog('停止飞线图动画失败：工具未初始化');
     return false;
   }
   
   return migrationTool.value.stop();
+};
+
+/**
+ * 刷新飞线图
+ * 强制刷新ECharts实例，确保散点大小、波动效果和显示名称等设置立即生效
+ */
+const refreshMigration = (): boolean => {
+  if (!migrationTool.value) {
+    warn('飞线图工具未初始化，无法刷新');
+    addLog('刷新飞线图失败：工具未初始化');
+    return false;
+  }
+  
+  try {
+    // 检查是否是EChartsMigration实例并且有refreshMigration方法
+    if (props.migrationImpl === 'echarts5' && typeof (migrationTool.value as any).refreshMigration === 'function') {
+      // 调用refreshMigration方法刷新图表
+      const result = (migrationTool.value as any).refreshMigration();
+      
+      if (result) {
+        info('飞线图已刷新');
+        addLog('刷新飞线图成功');
+      } else {
+        warn('飞线图刷新失败');
+        addLog('刷新飞线图失败');
+      }
+      
+      return result;
+    } else {
+      // 如果不是EChartsMigration实例或没有refreshMigration方法，尝试使用更新选项和重启动画的方式刷新
+      const isAnimating = migrationTool.value.getAnimatingState?.() || false;
+      
+      if (isAnimating) {
+        migrationTool.value.stop();
+      }
+      
+      setTimeout(() => {
+        if (isAnimating) {
+          migrationTool.value?.start();
+        }
+      }, 50);
+      
+      info('已通过重启动画方式刷新飞线图');
+      addLog('通过重启动画方式刷新飞线图');
+      return true;
+    }
+  } catch (e) {
+    error('刷新飞线图失败:', e);
+    addLog('刷新飞线图出错', e);
+    return false;
+  }
 };
 
 // 以下是缺失的API方法实现
@@ -3376,6 +3428,35 @@ const showAllTracks = (): void => {
   info('已显示所有轨迹');
 }
 
+/**
+ * 获取当前飞线图数据
+ * 返回当前已加载的飞线图数据，用于刷新或其他操作
+ */
+const getMigrationData = () => {
+  if (!migrationTool.value) {
+    warn('飞线图工具未初始化，无法获取数据');
+    addLog('获取飞线图数据失败：工具未初始化');
+    return [];
+  }
+  
+  try {
+    // 调用飞线图工具的getData方法获取当前数据
+    const data = migrationTool.value.getData ? migrationTool.value.getData() : [];
+    
+    if (data && data.length > 0) {
+      info(`获取到${data.length}条飞线数据`);
+    } else {
+      warn('飞线图数据为空');
+    }
+    
+    return data;
+  } catch (e) {
+    error('获取飞线图数据失败:', e);
+    addLog('获取飞线图数据失败', e);
+    return [];
+  }
+};
+
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -3502,27 +3583,28 @@ defineExpose({
   toggleMigration,
   migrationStatus: () => {
     if (!migrationTool.value) {
-      warn('飞线图控制器未初始化，无法获取飞线图状态');
       return OpenStatus.CLOSE;
     }
+    
     return migrationTool.value.isEnabled() ? OpenStatus.OPEN : OpenStatus.CLOSE;
   },
   enableMigration: () => {
     if (!migrationTool.value) {
-      warn('飞线图控制器未初始化，无法启用飞线图');
-      return;
+      return false;
     }
+    
     migrationTool.value.enable();
   },
   disableMigration: () => {
     if (!migrationTool.value) {
-      warn('飞线图控制器未初始化，无法禁用飞线图');
-      return;
+      return false;
     }
+    
     migrationTool.value.disable();
   },
   startMigration,
   stopMigration,
+  refreshMigration, // 添加新方法
   
   // 调试相关方法
   showDebugPanel,
@@ -3534,7 +3616,8 @@ defineExpose({
   hideTrack,
   deleteTrack,
   hideAllTracksExcept,
-  showAllTracks
+  showAllTracks,
+  getMigrationData // 添加新方法
 });
 </script>
 
