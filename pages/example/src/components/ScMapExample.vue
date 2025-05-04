@@ -2812,34 +2812,10 @@ const quickEnableMigration = () => {
         
         // 创建一些基本的飞线数据
         const defaultMigrationData = generateDefaultMigrationData();
-  
-        // 设置飞线图选项 - 使用ECharts 5配置格式
-        mapRef.value.updateMigrationOptions({
-          // ECharts 5格式
-          animation: true,
-          lineWidth: migrationOptions.lineStyle.width,
-          lineOpacity: migrationOptions.lineStyle.opacity,
-          symbolSize: 5,
-          curvature: migrationOptions.lineStyle.curveness,
-          rippleEffect: {
-            period: migrationOptions.effect.period,
-            scale: 4,
-            brushType: 'fill'
-          },
-          label: {
-            show: false,
-            position: 'right',
-            formatter: '{b}'
-          },
-          // 通用选项
-          autoStart: true,
-          loop: migrationOptions.loop
-        });
-        
         // 等待选项应用后设置数据
         setTimeout(() => {
           // 设置飞线图数据
-          mapRef.value.setMigrationData(defaultMigrationData, false);
+          mapRef.value.setMigrationData(defaultMigrationData as any, false);
           migrationSettings.hasData = true;
           
           // 等待数据应用后开始动画
@@ -3010,8 +2986,6 @@ const toggleMigrationFeature = (enabled: boolean) => {
       mapRef.value.enableMigration();
       migrationSettings.enabled = true;
       
-      // 应用默认样式
-      updateMigrationStyle();
       
       ElMessage({
         message: '飞线图功能已开启',
@@ -3077,7 +3051,7 @@ const addSampleMigrationData = () => {
             });
             
             // 设置飞线图数据，但不自动开始动画
-            mapRef.value.setMigrationData(defaultMigrationData, false);
+            mapRef.value.setMigrationData(defaultMigrationData as any, false);
             migrationSettings.hasData = true;
             
             log.info('飞线数据设置完成，等待渲染...');

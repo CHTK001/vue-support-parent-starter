@@ -2441,6 +2441,11 @@ const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true
       return false;
     }
     
+    // 如果是空数组，调用清除方法
+    if (data.length === 0) {
+      return clearMigrationData();
+    }
+    
     // 验证数据格式
     const validData = data.filter(point => 
       point && 
@@ -2456,7 +2461,7 @@ const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true
     
     if (validData.length === 0) {
       warn('没有有效的飞线图数据点');
-      return false;
+      return clearMigrationData();
     }
     
     const result = migrationTool.value.setData(validData, startAnimation);
@@ -2464,9 +2469,29 @@ const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true
       addLog(`飞线图数据已更新，共${validData.length}条有效路径`);
     }
     return result;
-    } catch (e) {
+  } catch (e) {
     error('设置飞线图数据失败:', e);
     addLog('设置飞线图数据失败', e);
+    return false;
+  }
+};
+
+// API - 清除飞线图数据
+const clearMigrationData = (): boolean => {
+  if (!migrationTool.value) {
+    warn('飞线图工具未初始化，无法清除数据');
+    return false;
+  }
+  
+  try {
+    const result = migrationTool.value.clearData();
+    if (result) {
+      addLog('飞线图数据已清除');
+    }
+    return result;
+  } catch (e) {
+    error('清除飞线图数据失败:', e);
+    addLog('清除飞线图数据失败', e);
     return false;
   }
 };

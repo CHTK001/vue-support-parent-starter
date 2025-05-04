@@ -199,8 +199,18 @@ export class EchartsMigration implements MigrationBase {
       // 停止动画
       this.stop();
       
+      // 清除数据
+      this.data = [];
+      
       // 清除图表
       if (this.chart) {
+        // 先设置空选项，确保清除所有数据
+        this.chart.setOption({
+          animation: false,
+          series: []
+        }, true);
+        
+        // 然后彻底销毁
         this.chart.dispose();
         this.chart = null;
       }
@@ -257,6 +267,11 @@ export class EchartsMigration implements MigrationBase {
       if (!this.enabled) {
         info(`飞线图数据已更新（${data.length}条路径），但飞线图尚未启用`);
         return true;
+      }
+      
+      // 检查是否为空数据
+      if (this.data.length === 0) {
+        return this.clearData();
       }
       
       // 应用数据到图表
@@ -580,12 +595,50 @@ export class EchartsMigration implements MigrationBase {
       
       // 如果图表已创建，清除数据
       if (this.chart) {
+        // 完全重置图表选项，移除所有系列数据
         this.chart.setOption({
-          series: [{
-            type: 'lines',
-            data: []
-          }]
-        });
+          animation: true,
+          lmap: {
+            center: [this.map.getCenter().lng, this.map.getCenter().lat],
+            zoom: this.map.getZoom(),
+            roam: true,
+            renderOnMoving: true
+          },
+          series: [] // 清空所有系列
+        }, true); // 使用notMerge=true以完全替换选项，而不是合并
+        
+        // 如果当前启用状态，重建echarts实例以完全清除
+        if (this.enabled) {
+          // 销毁当前实例
+          this.chart.dispose();
+          
+          // 如果容器还存在，重新创建echarts实例
+          if (this.echartsLayer) {
+            // 初始化echarts实例
+            this.chart = echarts.init(this.echartsLayer);
+            
+            // 设置基础配置
+            this.chart.setOption({
+              animation: true,
+              lmap: {
+                center: [this.map.getCenter().lng, this.map.getCenter().lat],
+                zoom: this.map.getZoom(),
+                roam: true,
+                renderOnMoving: true, // 地图移动时保持渲染
+                echartsLayerInteractive: false // 设为false，确保ECharts图层不拦截交互事件
+              },
+              series: [] // 开始时不设置任何系列数据
+            }, true);
+            
+            // 禁用ECharts的默认交互
+            this.chart.getZr().setCursorStyle('inherit');
+            this.chart.getZr().off('mousedown');
+            this.chart.getZr().off('mouseup');
+            this.chart.getZr().off('mousemove');
+            
+            info('飞线图实例已重建');
+          }
+        }
       }
       
       info('飞线图数据已清除');
