@@ -100,30 +100,6 @@ let L: any = null;
 // 网格工具实例
 let gridTool: Grid | null = null;
 
-/**
- * 问题修复说明：
- * 
- * 修复了 "点击marker显示弹框后在新增新marker，缩放地图会出现Cannot read properties of null 
- * (reading '_latLngToNewLayerPoint')" 错误。
- * 
- * 这个问题发生在popup存在的情况下进行地图缩放操作时，主要是因为Leaflet尝试为已经不在DOM中
- * 或没有正确初始化的popup元素计算新位置导致。
- * 
- * 最新的解决方案更彻底：
- * 
- * 完全摒弃使用Leaflet自带的popup机制，改为使用自定义DOM元素和Vue组件实现标记弹窗。
- * 我们现在直接在地图外部DOM中创建弹窗元素，并使用createApp手动挂载Vue组件。
- * 这样的实现有以下优点：
- * 
- * 1. 完全避免了Leaflet popup的内部缓存和引用问题
- * 2. 在地图缩放、平移时可以手动更新弹窗位置，更加可控
- * 3. 当地图开始缩放时可以立即清除弹窗，避免任何引用错误
- * 4. 组件卸载时能够彻底清理所有资源，避免内存泄漏
- * 5. 可以完全自定义弹窗的样式和行为，不受Leaflet内部实现的限制
- * 
- * 这些修改彻底解决了"_latLngToNewLayerPoint"相关错误，使地图操作更加流畅可靠。
- */
-
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
 const currentLat = ref(0);
@@ -3810,5 +3786,3 @@ defineExpose({
 <style>
 @import "./styles/migration.scss";
 </style>
-
-
