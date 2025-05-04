@@ -21,7 +21,8 @@ import {
   MARKER_VISIBLE_ICON, 
   MARKER_HIDDEN_ICON,
   EDIT_ICON,
-  DELETE_ICON
+  DELETE_ICON,
+  GRID_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -121,6 +122,13 @@ export const DEFAULT_TOOL_ITEMS = [
     tooltip: '点击图形或标记点进行删除',
     multi: true,
     className: 'delete-btn'
+  },
+  {
+    id: 'grid',
+    name: '网格',
+    icon: GRID_ICON,
+    tooltip: '显示地图空间网格',
+    multi: true
   },
   {
     id: 'coordinate',
