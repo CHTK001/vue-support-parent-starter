@@ -226,6 +226,12 @@ export const DELETE_ICON = `
 <svg t="1746170300914" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="13540" width="16" height="16"><path d="M107.632 107.632c15.52-15.52 40.64-15.52 56.16 0L512 455.824 860.208 107.632a39.712 39.712 0 0 1 56.16 56.16L568.176 512l348.192 348.208c14.832 14.832 15.472 38.48 1.936 54.08l-1.936 2.08c-15.52 15.52-40.64 15.52-56.16 0L512 568.176 163.792 916.368a39.712 39.712 0 1 1-56.16-56.16L455.824 512 107.632 163.792a39.712 39.712 0 0 1-1.936-54.08z" fill="#000000" p-id="13541"></path></svg>
 `;
 
+// 添加网格图标
+export const GRID_ICON = `
+<svg viewBox="0 0 24 24" width="24" height="24">
+  <path d="M3 3h18v18H3V3zm8 0v8h-8v2h8v8h2v-8h8v-2h-8V3H11z" fill="currentColor"/>
+</svg>`;
+
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,

@@ -93,8 +93,12 @@ import { error, info, warn } from '@repo/utils';
 import { EchartsMigration } from './plugin/EchartsMigration';
 import { Migration } from './plugin/Migration';
 import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
+// 导入网格插件
+import { Grid } from './plugin/Grid';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
+// 网格工具实例
+let gridTool: Grid | null = null;
 
 /**
  * 问题修复说明：
@@ -517,6 +521,10 @@ const handleToolActivated = (toolId: string) => {
     // 隐藏所有标记
     markerTool.value.hideAllMarkers();
     addLog('所有标记已隐藏');
+  } else if (toolId === 'grid') {
+    // 启用网格
+    enableGrid();
+    addLog('网格功能已启用');
   } else if (toolId === 'showShapes' && shapeTool.value) {
     // 如果有显示图形的功能，可以在这里实现
     addLog('显示图形功能未实现');
@@ -772,6 +780,11 @@ const handleToolDeactivated = (toolId: string) => {
       addLog('热力图已禁用');
     }
   } 
+  else if (toolId === 'grid') {
+    // 禁用网格
+    disableGrid();
+    addLog('网格功能已禁用');
+  }
   // 标记点显示/隐藏
   else if (toolId === 'toggleMarkers') {
     if (markerTool.value) {
@@ -885,6 +898,11 @@ onUnmounted(() => {
   if (measureTool.value) {
     measureTool.value.stop();
   }
+
+  if (gridTool) {
+    gridTool.destroy();
+    gridTool = null;
+  }
   
   if (markerTool.value) {
     markerTool.value.deactivate();
@@ -913,17 +931,18 @@ onUnmounted(() => {
       migrationTool.value = null;
     }
     
+    
     if (markerTool.value) {
       markerTool.value.destroy();
-    markerTool.value = null;
-  }
-  
+      markerTool.value = null;
+    }
+    
     if (aggregationTool.value) {
       aggregationTool.value.destroy();
       aggregationTool.value = null;
-  }
-  
-  if (shapeTool.value) {
+    }
+    
+    if (shapeTool.value) {
       // 取消当前绘图
       if (shapeTool.value.isDrawing()) {
     shapeTool.value.cancelDrawing();
@@ -967,6 +986,7 @@ onUnmounted(() => {
   }
   
   addLog('地图组件卸载完成');
+  
 });
 
 // 注册地图事件处理函数
@@ -1028,10 +1048,20 @@ const updateDraggingState = (): void => {
 };
 
 // 处理工具点击事件
-const handleToolClick = (event: { id: string; active: boolean; toggleState?: boolean }): void => {
+const handleToolClick = async (event: { id: string; active: boolean; toggleState?: boolean }): Promise<void> => {
   //记录日志
   info(`工具点击事件: ${event.id}, 激活状态: ${event.active}`);
   addLog('工具点击事件', {id: event.id, active: event.active, toggleState: event.toggleState});
+  
+  // 如果点击的是网格工具
+  if (event.id === 'grid') {
+    if (event.active) {
+      enableGrid();
+    } else {
+      disableGrid();
+    }
+    return;
+  }
   
   // 注意：toggleMarkers和toggleLabels的功能已移至handleToolActivated和handleToolDeactivated
 };
@@ -2379,13 +2409,15 @@ const initMapTools = (): void => {
     initTrackPlayer();
     // 初始化热力图工具
     initHeatMap();
+    // 初始化网格工具
+    initGrid();
     nextTick(() => {
       // 初始化飞线图工具
-    initMigration();
+      initMigration();
     });
     
     addLog('地图工具初始化完成');
-    } catch (e) {
+  } catch (e) {
     error('初始化地图工具失败:', e);
     addLog('初始化地图工具失败', e);
   }
@@ -2712,6 +2744,7 @@ const addMarkers = (latlngs: MarkerLatLng[], options: CustomMarkerOptions): stri
       markers.push(markerId);
     }
   }
+  
   
   addLog(`已批量添加${markers.length}个标记`);
   return markers;
@@ -3457,6 +3490,108 @@ const getMigrationData = () => {
   }
 };
 
+
+// 初始化网格
+const initGrid = async (): Promise<void> => {
+  if (gridTool) return;
+  
+  try {
+    // 延迟加载 L
+    if (!L) {
+      L = (await import('leaflet')).default;
+    }
+    
+    // 创建网格工具，使用符合国标的配置
+    gridTool = new Grid(mapInstance.value, {
+      // 遵循《地球空间网格编码规则》(GB/T 40087-2021)标准
+      level: 3,
+      color: '#3388ff',
+      weight: 1,
+      opacity: 0.6,
+      fillColor: '#3388ff',
+      fillOpacity: 0.1,
+      showCode: true,
+      codeColor: '#333',
+      codeSize: 12,
+      interactive: true,
+      gridType: 'rect' // 默认使用矩形网格
+    });
+    
+    addLog('网格工具初始化成功');
+    info('网格工具初始化成功');
+  } catch (e) {
+    error('网格工具初始化失败:', e);
+    addLog('网格工具初始化失败', e);
+  }
+};
+
+// 启用网格显示
+const enableGrid = async (): Promise<void> => {
+  if (!mapInstance.value) return;
+  
+  try {
+    // 确保网格工具已初始化
+    if (!gridTool) {
+      await initGrid();
+    }
+    
+    // 显示网格
+    if (gridTool) {
+      gridTool.show();
+      addLog('网格已启用');
+      info('网格已启用');
+    }
+  } catch (e) {
+    error('启用网格失败:', e);
+    addLog('启用网格失败', e);
+  }
+};
+
+// 禁用网格显示
+const disableGrid = (): void => {
+  if (!gridTool) return;
+  
+  try {
+    // 隐藏网格
+    gridTool.hide();
+    addLog('网格已禁用');
+    info('网格已禁用');
+  } catch (e) {
+    error('禁用网格失败:', e);
+    addLog('禁用网格失败', e);
+  }
+};
+
+// 切换网格类型（矩形/蜂窝）
+const toggleGridType = (): void => {
+  if (!gridTool) return;
+  
+  try {
+    const currentType = gridTool.getType();
+    const newType = currentType === 'rect' ? 'hex' : 'rect';
+    gridTool.setType(newType);
+    addLog(`网格类型已切换为: ${newType}`);
+    info(`网格类型已切换为: ${newType}`);
+  } catch (e) {
+    error('切换网格类型失败:', e);
+    addLog('切换网格类型失败', e);
+  }
+};
+
+// 设置网格级别
+const setGridLevel = (level: number): void => {
+  if (!gridTool) return;
+  
+  try {
+    gridTool.setLevel(level);
+    addLog(`网格级别已设置为: ${level}`);
+    info(`网格级别已设置为: ${level}`);
+  } catch (e) {
+    error('设置网格级别失败:', e);
+    addLog('设置网格级别失败', e);
+  }
+};
+
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -3472,7 +3607,7 @@ defineExpose({
   clearMeasurement,
   getMap: () => mapInstance.value,
   getMapContainer: () => mapContainer.value,
-  
+
   // 地图基本操作
   setCenter,
   setZoom,
@@ -3483,7 +3618,7 @@ defineExpose({
   disableDragging,
   toggleDragging,
   getVisibleBounds, // 添加获取可视区域边界方法
-  
+
   // 标记相关方法
   hideGroup: (groupName: string) => {
     if (!markerTool.value) {
@@ -3509,20 +3644,20 @@ defineExpose({
   hideMarkersByGroup,
   getMarkerGroups,
   fitToMarkers,
-  
+
   // 坐标显示相关方法
   openCoordinate,
   closeCoordinate,
   toggleCoordinate,
   isCoordinateVisible,
-  
+
   // 测量相关方法
   startMeasure,
   stopMeasure,
   toggleMeasure,
   clearMeasure,
   isMeasuring,
-  
+
   // 绘图相关方法
   clearShapes,
   isDrawing,
@@ -3534,7 +3669,7 @@ defineExpose({
       addLog('删除图形失败: 绘图工具未初始化');
       return false;
     }
-    
+
     try {
       const result = shapeTool.value.removeShape(shapeId);
       if (result) {
@@ -3551,32 +3686,32 @@ defineExpose({
       return false;
     }
   },
-  
+
   // 鹰眼相关方法
   enableOverview,
   disableOverview,
   toggleOverview,
   isOverviewEnabled,
-  
+
   // 聚合相关方法
   enableAggregation,
   disableAggregation,
   toggleAggregation,
   updateAggregationOptions,
   isAggregationEnabled,
-  
+
   // 轨迹播放相关方法
   startTrackPlayer,
   pauseTrackPlayer,
   stopTrackPlayer,
   updateTrackPlayerOptions,
   setTrackProgressByTime,
-  
+
   // 热力图相关方法
   updateHeatMapOptions,
   setHeatMapData,
   toggleHeatMap,
-  
+
   // 飞线图相关方法
   updateMigrationOptions,
   setMigrationData,
@@ -3585,27 +3720,27 @@ defineExpose({
     if (!migrationTool.value) {
       return OpenStatus.CLOSE;
     }
-    
+
     return migrationTool.value.isEnabled() ? OpenStatus.OPEN : OpenStatus.CLOSE;
   },
   enableMigration: () => {
     if (!migrationTool.value) {
       return false;
     }
-    
+
     migrationTool.value.enable();
   },
   disableMigration: () => {
     if (!migrationTool.value) {
       return false;
     }
-    
+
     migrationTool.value.disable();
   },
   startMigration,
   stopMigration,
   refreshMigration, // 添加新方法
-  
+
   // 调试相关方法
   showDebugPanel,
   hideDebugPanel,
@@ -3617,7 +3752,20 @@ defineExpose({
   deleteTrack,
   hideAllTracksExcept,
   showAllTracks,
-  getMigrationData // 添加新方法
+  getMigrationData, // 添加新方法
+
+  // 网格相关方法
+  enableGrid,
+  disableGrid,
+  toggleGridType,
+  setGridLevel,
+  gridStatus: () => {
+    if (!gridTool) {
+      return OpenStatus.CLOSE;
+    }
+
+    return gridTool.isVisible() ? OpenStatus.OPEN : OpenStatus.CLOSE;
+  }
 });
 </script>
 
@@ -3662,3 +3810,5 @@ defineExpose({
 <style>
 @import "./styles/migration.scss";
 </style>
+
+
