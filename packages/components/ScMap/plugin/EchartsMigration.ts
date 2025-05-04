@@ -40,6 +40,9 @@ export class EchartsMigration implements MigrationBase {
   private initRetries: number = 0;
   private maxInitRetries: number = 5;
   private animationTimer: number | null = null;
+  private updateRAF: number | null = null; // 添加requestAnimationFrame标识符
+  private pendingUpdate: boolean = false; // 标记是否有待处理的更新
+  private resizeRAF: number | null = null; // 添加resize的requestAnimationFrame标识符
 
   /**
    * 构造函数
@@ -163,9 +166,14 @@ export class EchartsMigration implements MigrationBase {
       const boundUpdatePosition = this.updatePosition.bind(this);
       (this as any)._boundUpdatePosition = boundUpdatePosition;
       
+      // 绑定缩放结束处理方法
+      const boundHandleZoomEnd = this.handleZoomEnd.bind(this);
+      (this as any)._boundHandleZoomEnd = boundHandleZoomEnd;
+      
       // 地图移动事件，使用绑定的方法
       this.map.on('move', boundUpdatePosition);
       this.map.on('zoom', boundUpdatePosition);
+      this.map.on('zoomend', boundHandleZoomEnd);
       this.map.on('resize', boundUpdatePosition);
       
       this.enabled = true;
@@ -183,14 +191,93 @@ export class EchartsMigration implements MigrationBase {
    * 更新容器位置
    */
   private updatePosition(): void {
-    if (this.chart) {
-      this.chart.setOption({
-        lmap: {
-          center: [this.map.getCenter().lng, this.map.getCenter().lat],
-          zoom: this.map.getZoom()
-        }
-      });
+    // 如果已经有一个更新请求在进行中，标记为需要更新但不再请求新的帧
+    if (this.updateRAF !== null) {
+      this.pendingUpdate = true;
+      return;
     }
+
+    // 请求一个动画帧来执行更新
+    this.updateRAF = window.requestAnimationFrame(() => {
+      if (this.chart) {
+        this.chart.setOption({
+          lmap: {
+            center: [this.map.getCenter().lng, this.map.getCenter().lat],
+            zoom: this.map.getZoom()
+          }
+        });
+
+        // 检查是否在执行此更新时又有新的更新请求
+        this.updateRAF = null;
+        if (this.pendingUpdate) {
+          this.pendingUpdate = false;
+          // 如果有待处理的更新，再次请求更新
+          this.updateRAF = window.requestAnimationFrame(() => {
+            this.updateRAF = null;
+            if (this.chart) {
+              this.chart.setOption({
+                lmap: {
+                  center: [this.map.getCenter().lng, this.map.getCenter().lat],
+                  zoom: this.map.getZoom()
+                }
+              });
+            }
+          });
+        }
+      } else {
+        this.updateRAF = null;
+      }
+    });
+  }
+
+  /**
+   * 处理地图缩放结束事件
+   * 在缩放完成后使用requestAnimationFrame平滑刷新飞线图
+   * @private
+   */
+  private handleZoomEnd(): void {
+    if (!this.enabled || !this.chart) return;
+    
+    // 取消之前的请求
+    if (this.resizeRAF !== null) {
+      window.cancelAnimationFrame(this.resizeRAF);
+    }
+    
+    // 延迟执行布局刷新以确保平滑过渡
+    this.resizeRAF = window.requestAnimationFrame(() => {
+      if (this.chart) {
+        // 重新调整大小并刷新
+        this.chart.resize();
+        
+        // 使用新的缩放级别刷新图表
+        this.chart.setOption({
+          animation: true,
+          animationDuration: 300,
+          animationEasing: 'cubicOut',
+          lmap: {
+            center: [this.map.getCenter().lng, this.map.getCenter().lat],
+            zoom: this.map.getZoom()
+          }
+        });
+        
+        // 如果有数据，确保渲染正确
+        if (this.data.length > 0 && this.isAnimating) {
+          // 轻量刷新飞线动画，保持流畅性
+          window.requestAnimationFrame(() => {
+            if (this.chart && this.isAnimating) {
+              this.chart.dispatchAction({
+                type: 'lines:startEffect'
+              });
+            }
+            this.resizeRAF = null;
+          });
+        } else {
+          this.resizeRAF = null;
+        }
+      } else {
+        this.resizeRAF = null;
+      }
+    });
   }
 
   /**
@@ -202,6 +289,19 @@ export class EchartsMigration implements MigrationBase {
     try {
       // 停止动画
       this.stop();
+      
+      // 取消任何待处理的更新帧
+      if (this.updateRAF !== null) {
+        window.cancelAnimationFrame(this.updateRAF);
+        this.updateRAF = null;
+        this.pendingUpdate = false;
+      }
+      
+      // 取消任何待处理的缩放结束帧
+      if (this.resizeRAF !== null) {
+        window.cancelAnimationFrame(this.resizeRAF);
+        this.resizeRAF = null;
+      }
       
       // 清除数据
       this.data = [];
@@ -265,6 +365,12 @@ export class EchartsMigration implements MigrationBase {
         this.map.off('zoom', (this as any)._boundUpdatePosition);
         this.map.off('resize', (this as any)._boundUpdatePosition);
         (this as any)._boundUpdatePosition = null;
+      }
+      
+      // 移除缩放结束事件监听器
+      if ((this as any)._boundHandleZoomEnd) {
+        this.map.off('zoomend', (this as any)._boundHandleZoomEnd);
+        (this as any)._boundHandleZoomEnd = null;
       }
       
       // 移除容器元素
@@ -1068,6 +1174,19 @@ export class EchartsMigration implements MigrationBase {
   public destroy(): void {
     // 停止动画
     this.stop();
+    
+    // 取消所有待处理的动画帧
+    if (this.updateRAF !== null) {
+      window.cancelAnimationFrame(this.updateRAF);
+      this.updateRAF = null;
+      this.pendingUpdate = false;
+    }
+    
+    // 取消所有待处理的缩放结束帧
+    if (this.resizeRAF !== null) {
+      window.cancelAnimationFrame(this.resizeRAF);
+      this.resizeRAF = null;
+    }
     
     // 禁用图层
     this.disable();
