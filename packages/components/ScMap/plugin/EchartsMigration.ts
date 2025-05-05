@@ -126,7 +126,7 @@ export class EchartsMigration implements MigrationBase {
       
       // 设置基础配置
       this.chart.setOption({
-        animation: true,
+        animation: false,
         lmap: {
           center: [this.map.getCenter().lng, this.map.getCenter().lat],
           zoom: this.map.getZoom(),
@@ -201,6 +201,7 @@ export class EchartsMigration implements MigrationBase {
     this.updateRAF = window.requestAnimationFrame(() => {
       if (this.chart) {
         this.chart.setOption({
+          renderer: 'webgl',
           lmap: {
             center: [this.map.getCenter().lng, this.map.getCenter().lat],
             zoom: this.map.getZoom()
@@ -251,6 +252,7 @@ export class EchartsMigration implements MigrationBase {
         
         // 使用新的缩放级别刷新图表
         this.chart.setOption({
+          renderer: 'webgl',
           animation: true,
           animationDuration: 300,
           animationEasing: 'cubicOut',
@@ -558,6 +560,7 @@ export class EchartsMigration implements MigrationBase {
       
       // 基础配置选项
       const baseOption: any = {
+        renderer: 'webgl',
         animation: this.options.animation,
         animationDuration: this.options.animationDuration,
         animationEasing: this.options.animationEasing,

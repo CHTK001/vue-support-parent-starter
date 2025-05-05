@@ -153,7 +153,7 @@ export class GridLayerGeohash {
     
     try {
       // 定义自定义的网格图层
-      const CustomGridLayer = L.GridLayer.extend({
+    const CustomGridLayer = L.GridLayer.extend({
         // 为每个瓦片创建DOM元素
         createTile(coords) {
           const tile = L.DomUtil.create('div', 'geohash-tile');
@@ -502,7 +502,7 @@ export class GridLayerGeohash {
             }, 250);
           });
         }
-      } catch (e) {
+    } catch (e) {
         warn('网格缩放动画失败:', e);
         this._zoomAnimationFrame = null;
       }
@@ -536,9 +536,9 @@ export class GridLayerGeohash {
       }
       
       // 添加到地图并标记为可见
-      this.gridLayer.addTo(this.map);
-      this.visible = true;
-      
+    this.gridLayer.addTo(this.map);
+    this.visible = true;
+    
       // 使用requestAnimationFrame来平滑显示
       window.requestAnimationFrame(() => {
         if (this.gridLayer && this.gridLayer._container) {
@@ -597,8 +597,8 @@ export class GridLayerGeohash {
             this.visible = false;
           }, 300);
         } else {
-          this.gridLayer.removeFrom(this.map);
-          this.visible = false;
+    this.gridLayer.removeFrom(this.map);
+    this.visible = false;
         }
       } else {
         this.visible = false;
