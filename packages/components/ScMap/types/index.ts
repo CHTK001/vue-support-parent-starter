@@ -204,6 +204,16 @@ export interface ToolItem {
    * 自定义CSS类名，用于按钮样式定制
    */
   className?: string;
+  /**
+   * 工具类型，决定显示方式
+   * - `button`: 普通按钮（默认）
+   * - `menu`: 下拉菜单按钮，点击时显示子菜单
+   */
+  type?: 'button' | 'menu';
+  /**
+   * 子菜单项，仅当type为menu时有效
+   */
+  children?: ToolItem[];
 }
 
 // 面板位置类型

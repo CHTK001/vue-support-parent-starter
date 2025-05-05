@@ -22,7 +22,9 @@ import {
   MARKER_HIDDEN_ICON,
   EDIT_ICON,
   DELETE_ICON,
-  GRID_ICON
+  GRID_ICON,
+  GEOHASH_GRID_ICON,
+  H3_GRID_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -128,7 +130,24 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '网格',
     icon: GRID_ICON,
     tooltip: '显示地图空间网格',
-    multi: true
+    multi: true,
+    type: 'menu',
+    children: [
+      {
+        id: 'geohash',
+        name: 'GeoHash网格',
+        icon: GEOHASH_GRID_ICON,
+        tooltip: '显示GeoHash空间网格',
+        multi: true
+      },
+      {
+        id: 'h3',
+        name: '蜂窝网格',
+        icon: H3_GRID_ICON,
+        tooltip: '显示H3蜂窝空间网格',
+        multi: true
+      }
+    ]
   },
   {
     id: 'coordinate',
@@ -284,25 +303,21 @@ export const MAP_TYPES: MapTypes = {
   NORMAL: {
     name: "标准地图",
     url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-    attribution: '&copy; <a href="https://amap.com">高德地图</a>',
     image: DEFAULT_NORMAL_MAP_IMAGE
   },
   SATELLITE: {
     name: "卫星图",
     url: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
-    attribution: '&copy; <a href="https://amap.com">高德地图</a>',
     image: DEFAULT_SATELLITE_MAP_IMAGE
   },
   TRAFFIC: {
     name: "交通图",
-    url: "https://webrd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=7",
-    attribution: '&copy; <a href="https://amap.com">高德地图</a>',
+    url: "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
     image: DEFAULT_TRAFFIC_MAP_IMAGE
   },
   ROAD: {
     name: "路网图",
     url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
-    attribution: '&copy; <a href="https://amap.com">高德地图</a>',
     image: DEFAULT_ROAD_MAP_IMAGE
   },
 };

@@ -704,4 +704,11 @@ export class GridLayerGeohash {
     
     return `#${rHex}${gHex}${bHex}`;
   }
+  /**
+   * 销毁网格图层
+   */
+  destroy() {
+    this.gridLayer?.removeFrom(this.map);
+      this.gridLayer = null;
+  }
 } 
