@@ -20,7 +20,7 @@ export interface OverviewOptions {
   zoomAnimation: boolean;
   toggleDisplay: boolean;
   autoToggleDisplay: boolean;
-  minimized: boolean;
+  tileType: boolean;
   aimingRectOptions: L.PathOptions;
   shadowRectOptions: L.PathOptions;
   strings: { hideText: string; showText: string };
@@ -76,7 +76,7 @@ export class Overview {
       zoomAnimation: false,
       toggleDisplay: true,
       autoToggleDisplay: false,
-      minimized: false,
+      tileType: false,
       aimingRectOptions: { 
         color: '#ff7800',
         weight: 2,
@@ -163,7 +163,7 @@ export class Overview {
           zoomAnimation: this.options.zoomAnimation,
           toggleDisplay: this.options.toggleDisplay,
           autoToggleDisplay: this.options.autoToggleDisplay,
-          minimized: this.options.minimized,
+          minimized: this.options.tileType,
           aimingRectOptions: this.options.aimingRectOptions,
           shadowRectOptions: this.options.shadowRectOptions,
           strings: this.options.strings,
