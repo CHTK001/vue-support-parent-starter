@@ -465,6 +465,64 @@
             </div>
           </div>
 
+          <!-- 添加散点图操作区域 -->
+          <div class="config-item">
+            <div class="label">散点图操作</div>
+            <div class="controls">
+              <div class="control-row">
+                <span>启用散点图:</span>
+                <el-switch v-model="scatterSettings.enabled" @change="toggleScatter" />
+              </div>
+              
+              <div class="control-row buttons-row">
+                <el-button size="small" type="primary" @click="addScatterExample">添加随机散点</el-button>
+                <el-button size="small" type="warning" @click="clearScatter">清除散点</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="success" @click="addClusterScatter">添加聚类散点</el-button>
+                <el-button size="small" type="danger" @click="addScatterHeatmap">添加散点热力图</el-button>
+              </div>
+              
+              <!-- 散点样式设置 -->
+              <div v-if="scatterSettings.enabled" class="scatter-style-controls">
+                <div class="control-subtitle">散点样式设置</div>
+                
+                <div class="control-row">
+                  <span>散点大小:</span>
+                  <el-slider v-model="scatterSettings.symbolSize" :min="5" :max="30" :step="1" @change="updateScatterStyle" />
+                  <span class="value">{{ scatterSettings.symbolSize }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>散点颜色:</span>
+                  <el-color-picker v-model="scatterSettings.color" size="small" @change="updateScatterStyle" />
+                </div>
+                
+                <div class="control-row">
+                  <span>波动效果:</span>
+                  <el-switch v-model="scatterSettings.effect.show" @change="updateScatterStyle" />
+                </div>
+                
+                <div class="control-row" v-if="scatterSettings.effect.show">
+                  <span>波动大小:</span>
+                  <el-slider v-model="scatterSettings.effect.scale" :min="1" :max="5" :step="0.5" @change="updateScatterStyle" />
+                  <span class="value">{{ scatterSettings.effect.scale }}</span>
+                </div>
+                
+                <div class="control-row" v-if="scatterSettings.effect.show">
+                  <span>波动周期:</span>
+                  <el-slider v-model="scatterSettings.effect.period" :min="1" :max="10" :step="0.5" @change="updateScatterStyle" />
+                  <span class="value">{{ scatterSettings.effect.period }}</span>
+                </div>
+                
+                <div class="control-row">
+                  <span>显示标签:</span>
+                  <el-switch v-model="scatterSettings.showLabel" @change="updateScatterStyle" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 添加热力图操作区域 -->
           <div class="config-item">
             <div class="label">热力图操作</div>
@@ -4154,6 +4212,566 @@ const addCustomPathline = () => {
     });
   }
 };
+
+// 添加散点图设置数据
+const scatterSettings = reactive({
+  enabled: false,
+  hasData: false,
+  symbolSize: 15,
+  color: '#409EFF',
+  effect: {
+    show: true,
+    brushType: 'fill',
+    scale: 2.5,
+    period: 4
+  },
+  showLabel: false
+});
+
+// 生成散点图数据
+const generateScatterData = (count = 30, isRandom = true) => {
+  try {
+    const center = config.center;
+    const radius = 0.3; // 散点分布半径，约30公里
+    const scatterData = [];
+    
+    if (isRandom) {
+      // 生成随机分布的散点
+      for (let i = 0; i < count; i++) {
+        // 极坐标系生成点，实现均匀分布
+        const r = Math.sqrt(Math.random()) * radius; // 平方根使分布更均匀
+        const theta = Math.random() * Math.PI * 2; // 随机角度
+        
+        // 转换为笛卡尔坐标
+        const lng = center[1] + r * Math.cos(theta);
+        const lat = center[0] + r * Math.sin(theta);
+        
+        // 随机生成不同大小和值
+        const value = Math.random() * 100;
+        const size = 5 + Math.sqrt(value) * 0.5;
+        
+        scatterData.push({
+          position: [lng, lat],
+          value: value.toFixed(1),
+          symbolSize: size,
+          name: `散点 ${i+1}`,
+          category: getRandomCategory()
+        });
+      }
+    } else {
+      // 生成规则分布的散点 - 环形布局
+      const rings = 3; // 3个环
+      const pointsPerRing = count / rings;
+      
+      for (let ring = 0; ring < rings; ring++) {
+        const ringRadius = (ring + 1) * (radius / rings);
+        const currentPointCount = Math.floor(pointsPerRing * (ring + 1));
+        
+        for (let i = 0; i < currentPointCount; i++) {
+          const angle = (i / currentPointCount) * Math.PI * 2;
+          const lng = center[1] + ringRadius * Math.cos(angle);
+          const lat = center[0] + ringRadius * Math.sin(angle);
+          
+          // 不同环使用不同大小
+          const ringValue = (rings - ring) * 30;
+          const size = 10 + (rings - ring) * 5;
+          
+          scatterData.push({
+            position: [lng, lat],
+            value: ringValue.toFixed(0),
+            symbolSize: size,
+            name: `环 ${ring+1}-${i+1}`,
+            category: `环 ${ring+1}`
+          });
+        }
+      }
+    }
+    
+    log.info(`已生成${scatterData.length}个散点数据`);
+    return scatterData;
+  } catch (e) {
+    log.error(`生成散点图数据失败: ${e}`);
+    return [];
+  }
+};
+
+// 获取随机类别
+const getRandomCategory = () => {
+  const categories = ['高', '中', '低', '未知'];
+  return categories[Math.floor(Math.random() * categories.length)];
+};
+
+// 添加散点图示例
+const addScatterExample = () => {
+  try {
+    // 生成随机散点数据
+    const scatterData = generateScatterData(50, true);
+    
+    // 确保飞线组件已启用，但配置为散点图模式
+    if (!mapRef.value) return;
+    
+    // 开启迁移图组件作为基础支持
+    mapRef.value.enableMigration();
+    
+    // 设置散点图样式
+    mapRef.value.updateMigrationOptions({
+      animation: false,
+      symbol: 'circle',
+      symbolSize: scatterSettings.symbolSize,
+      itemStyle: {
+        color: scatterSettings.color
+      },
+      // 使用涟漪效果
+      rippleEffect: {
+        show: scatterSettings.effect.show,
+        period: scatterSettings.effect.period,
+        scale: scatterSettings.effect.scale,
+        brushType: scatterSettings.effect.brushType
+      },
+      // 标签设置
+      label: {
+        show: scatterSettings.showLabel,
+        position: 'right',
+        formatter: '{b}',
+        fontSize: 12,
+        color: '#ffffff',
+        textBorderColor: '#000000',
+        textBorderWidth: 2
+      },
+      // 禁用飞线动画效果
+      effect: {
+        show: false
+      },
+      // 禁用线条
+      lineStyle: {
+        opacity: 0
+      }
+    });
+    
+    // 转换为飞线图数据格式（但线条不可见）
+    const migrationData = scatterData.map(point => ({
+      from: point.position,
+      to: point.position, // 相同的起点和终点使其不产生线条
+      value: point.value,
+      name: point.name,
+      category: point.category,
+      symbolSize: point.symbolSize,
+      itemStyle: {
+        color: getColorByCategory(point.category)
+      }
+    }));
+    
+    // 设置数据
+    mapRef.value.setMigrationData(migrationData, false);
+    
+    // 更新状态
+    scatterSettings.hasData = true;
+    scatterSettings.enabled = true;
+    isMigrationEnabled.value = true;
+    
+    // 提示用户
+    ElMessage({
+      message: `已添加${scatterData.length}个随机散点`,
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`添加散点图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加散点图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加聚类散点图
+const addClusterScatter = () => {
+  try {
+    // 生成聚类散点数据
+    const center = config.center;
+    const scatterData = [];
+    
+    // 创建几个聚类中心点
+    const clusterCenters = [
+      { position: [center[1] - 0.2, center[0] - 0.2], count: 20, name: '聚类A' },
+      { position: [center[1] + 0.2, center[0] - 0.1], count: 15, name: '聚类B' },
+      { position: [center[1], center[0] + 0.2], count: 25, name: '聚类C' }
+    ];
+    
+    // 为每个聚类生成点
+    clusterCenters.forEach(cluster => {
+      const clusterRadius = 0.1; // 聚类半径
+      
+      for (let i = 0; i < cluster.count; i++) {
+        // 生成高斯分布的随机点 (更聚集在中心)
+        const r = Math.abs(Math.random() + Math.random() - 1) * clusterRadius;
+        const theta = Math.random() * Math.PI * 2;
+        
+        const lng = cluster.position[0] + r * Math.cos(theta);
+        const lat = cluster.position[1] + r * Math.sin(theta);
+        
+        // 随机生成数值，靠近中心的值更大
+        const dist = r / clusterRadius; // 归一化距离
+        const value = 100 - dist * 90; // 值随距离降低
+        
+        scatterData.push({
+          position: [lng, lat],
+          value: value.toFixed(1),
+          symbolSize: 8 + (1 - dist) * 12,
+          name: `${cluster.name}-${i+1}`,
+          category: cluster.name
+        });
+      }
+    });
+    
+    // 确保飞线组件已启用，但配置为散点图模式
+    if (!mapRef.value) return;
+    
+    // 开启迁移图组件作为基础支持
+    mapRef.value.enableMigration();
+    
+    // 设置散点图样式
+    mapRef.value.updateMigrationOptions({
+      animation: false,
+      symbol: 'circle',
+      symbolSize: scatterSettings.symbolSize,
+      itemStyle: {
+        color: scatterSettings.color
+      },
+      // 使用涟漪效果
+      rippleEffect: {
+        show: scatterSettings.effect.show,
+        period: scatterSettings.effect.period,
+        scale: scatterSettings.effect.scale,
+        brushType: scatterSettings.effect.brushType
+      },
+      // 标签设置
+      label: {
+        show: scatterSettings.showLabel,
+        position: 'right',
+        formatter: '{b}',
+        fontSize: 12,
+        color: '#ffffff',
+        textBorderColor: '#000000',
+        textBorderWidth: 2
+      },
+      // 禁用飞线动画效果
+      effect: {
+        show: false
+      },
+      // 禁用线条
+      lineStyle: {
+        opacity: 0
+      }
+    });
+    
+    // 转换为飞线图数据格式（但线条不可见）
+    const migrationData = scatterData.map(point => ({
+      from: point.position,
+      to: point.position, // 相同的起点和终点使其不产生线条
+      value: point.value,
+      name: point.name,
+      category: point.category,
+      symbolSize: point.symbolSize,
+      itemStyle: {
+        color: getColorForCluster(point.category)
+      }
+    }));
+    
+    // 设置数据
+    mapRef.value.setMigrationData(migrationData, false);
+    
+    // 更新状态
+    scatterSettings.hasData = true;
+    scatterSettings.enabled = true;
+    isMigrationEnabled.value = true;
+    
+    // 提示用户
+    ElMessage({
+      message: `已添加${scatterData.length}个聚类散点`,
+      type: 'success',
+      duration: 2000
+    });
+    
+    // 调整地图视图以显示所有散点
+    mapRef.value.setZoom(9);
+  } catch (e) {
+    log.error(`添加聚类散点图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加聚类散点图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加散点热力图
+const addScatterHeatmap = () => {
+  try {
+    // 生成有梯度的散点数据
+    const center = config.center;
+    const scatterData = [];
+    const count = 100;
+    
+    // 创建从中心辐射出的热力分布
+    for (let i = 0; i < count; i++) {
+      // 使用极坐标系
+      const r = Math.sqrt(Math.random()) * 0.3; // 散点半径约30公里
+      const theta = Math.random() * Math.PI * 2;
+      
+      const lng = center[1] + r * Math.cos(theta);
+      const lat = center[0] + r * Math.sin(theta);
+      
+      // 距离中心越近，值越大
+      const value = 100 - (r / 0.3) * 100;
+      
+      // 根据值确定大小和类别
+      let category;
+      if (value > 70) category = '高';
+      else if (value > 40) category = '中';
+      else category = '低';
+      
+      scatterData.push({
+        position: [lng, lat],
+        value: value.toFixed(1),
+        symbolSize: 5 + value / 10,
+        name: `热力点 ${i+1} (${value.toFixed(0)})`,
+        category: category
+      });
+    }
+    
+    // 确保飞线组件已启用
+    if (!mapRef.value) return;
+    mapRef.value.enableMigration();
+    
+    // 设置散点热力图样式
+    mapRef.value.updateMigrationOptions({
+      animation: false,
+      symbol: 'circle',
+      // 使用视觉映射来设置颜色
+      visualMap: {
+        show: false,
+        min: 0,
+        max: 100,
+        inRange: {
+          color: ['blue', 'green', 'yellow', 'red']
+        }
+      },
+      // 禁用涟漪效果，使其更像热力图
+      rippleEffect: {
+        show: false
+      },
+      // 标签设置
+      label: {
+        show: false
+      },
+      // 禁用飞线动画效果
+      effect: {
+        show: false
+      },
+      // 禁用线条
+      lineStyle: {
+        opacity: 0
+      }
+    });
+    
+    // 转换为飞线图数据格式
+    const migrationData = scatterData.map(point => ({
+      from: point.position,
+      to: point.position,
+      value: point.value,
+      name: point.name,
+      category: point.category,
+      symbolSize: point.symbolSize,
+      itemStyle: {
+        color: getHeatmapColor(parseFloat(point.value))
+      }
+    }));
+    
+    // 设置数据
+    mapRef.value.setMigrationData(migrationData, false);
+    
+    // 更新状态
+    scatterSettings.hasData = true;
+    scatterSettings.enabled = true;
+    isMigrationEnabled.value = true;
+    
+    // 提示用户
+    ElMessage({
+      message: `已添加${scatterData.length}个热力散点`,
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`添加散点热力图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加散点热力图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 清除散点图
+const clearScatter = () => {
+  try {
+    // 清除飞线图数据（使用飞线图方法）
+    if (mapRef.value) {
+      mapRef.value.setMigrationData([]);
+      mapRef.value.disableMigration();
+    }
+    
+    // 更新状态
+    scatterSettings.hasData = false;
+    scatterSettings.enabled = false;
+    isMigrationEnabled.value = false;
+    
+    // 提示用户
+    ElMessage({
+      message: '已清除散点图',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`清除散点图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '清除散点图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 更新散点图样式
+const updateScatterStyle = () => {
+  if (!mapRef.value || !scatterSettings.hasData) return;
+  
+  try {
+    // 更新散点图样式
+    mapRef.value.updateMigrationOptions({
+      symbolSize: scatterSettings.symbolSize,
+      itemStyle: {
+        color: scatterSettings.color
+      },
+      rippleEffect: {
+        show: scatterSettings.effect.show,
+        period: scatterSettings.effect.period,
+        scale: scatterSettings.effect.scale,
+        brushType: scatterSettings.effect.brushType
+      },
+      label: {
+        show: scatterSettings.showLabel
+      }
+    });
+    
+    // 提示用户
+    ElMessage({
+      message: '已更新散点图样式',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`更新散点图样式失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '更新散点图样式失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 根据类别获取颜色
+const getColorByCategory = (category: string) => {
+  const colorMap = {
+    '高': '#FF5252',
+    '中': '#FFC107',
+    '低': '#4CAF50',
+    '未知': '#9E9E9E'
+  };
+  
+  return colorMap[category] || '#1890FF';
+};
+
+// 获取聚类颜色
+const getColorForCluster = (clusterName: string) => {
+  const colorMap = {
+    '聚类A': '#FF5252',
+    '聚类B': '#4CAF50',
+    '聚类C': '#448AFF'
+  };
+  
+  return colorMap[clusterName] || '#1890FF';
+};
+
+// 获取热力图颜色
+const getHeatmapColor = (value: number) => {
+  // 创建热力图渐变色
+  if (value > 80) return '#FF0000';  // 红色
+  if (value > 60) return '#FFAA00';  // 橙色
+  if (value > 40) return '#FFFF00';  // 黄色
+  if (value > 20) return '#00FF00';  // 绿色
+  return '#0000FF';                  // 蓝色
+};
+
+// 添加toggleScatter函数
+const toggleScatter = (enabled: boolean) => {
+  if (!mapRef.value) return;
+  
+  try {
+    if (enabled) {
+      // 启用散点图
+      if (!scatterSettings.hasData) {
+        // 如果没有数据，添加随机散点
+        addScatterExample();
+      } else {
+        // 如果已有数据，重新启用
+        mapRef.value.enableMigration();
+      }
+      
+      // 提示用户
+      ElMessage({
+        message: '散点图已启用',
+        type: 'success',
+        duration: 2000
+      });
+    } else {
+      // 禁用散点图
+      if (mapRef.value) {
+        mapRef.value.disableMigration();
+      }
+      
+      // 提示用户
+      ElMessage({
+        message: '散点图已禁用',
+        type: 'info',
+        duration: 2000
+      });
+    }
+  } catch (e) {
+    log.error(`切换散点图状态失败: ${e}`);
+    
+    // 恢复状态
+    scatterSettings.enabled = !enabled;
+    
+    // 提示用户
+    ElMessage({
+      message: '切换散点图状态失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 </script>
 
 <style scoped>
@@ -4365,5 +4983,13 @@ const addCustomPathline = () => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.scatter-style-controls {
+  margin-top: 16px;
+  padding: 10px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e6e8eb;
 }
 </style>
