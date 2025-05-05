@@ -435,6 +435,10 @@
                 <el-button size="small" type="primary" @click="addPathlineExample">添加高速公路路径</el-button>
                 <el-button size="small" type="primary" @click="addCircularPathline">添加环形路径</el-button>
               </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="success" @click="addCustomPathline">绘制自定义路径</el-button>
+                <el-button size="small" type="warning" @click="clearPathline">清除路径</el-button>
+              </div>
               <div class="control-row">
                 <span>路径样式:</span>
                 <el-select v-model="pathlineSettings.style" size="small" @change="updatePathlineStyle">
@@ -3972,365 +3976,330 @@ const clearPathline = () => {
   }
 };
 
+// 添加自定义路径图
+const addCustomPathline = () => {
+  try {
+    // 弹出提示，让用户选择是否继续
+    ElMessageBox.confirm(
+      '即将在地图上绘制自定义路径。您可以通过点击地图添加路径点，完成后点击"完成绘制"按钮。',
+      '绘制自定义路径',
+      {
+        confirmButtonText: '开始绘制',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    ).then(() => {
+      // 先清除当前飞线图
+      clearMigration();
+      
+      // 进入自定义绘制模式
+      const customPathPoints: {position: [number, number], name: string}[] = [];
+      let isDrawingPath = true;
+      
+      // 保存原始地图点击事件
+      const originalMapClickHandler = onMapClick;
+      
+      // 显示绘制中的提示
+      ElMessage({
+        message: '请点击地图添加路径点，完成后点击"完成绘制"按钮',
+        type: 'info',
+        duration: 5000
+      });
+      
+      // 添加临时UI元素
+      const finishButton = document.createElement('button');
+      finishButton.innerText = '完成绘制';
+      finishButton.className = 'custom-finish-button';
+      finishButton.style.position = 'absolute';
+      finishButton.style.top = '10px';
+      finishButton.style.left = '50%';
+      finishButton.style.transform = 'translateX(-50%)';
+      finishButton.style.zIndex = '1000';
+      finishButton.style.padding = '8px 16px';
+      finishButton.style.backgroundColor = '#409EFF';
+      finishButton.style.color = 'white';
+      finishButton.style.border = 'none';
+      finishButton.style.borderRadius = '4px';
+      finishButton.style.cursor = 'pointer';
+      
+      // 获取地图容器并添加按钮
+      const mapContainer = document.querySelector('.map-container');
+      if (mapContainer) {
+        mapContainer.appendChild(finishButton);
+      }
+      
+      // 覆盖地图点击事件处理函数
+      onMapClick = (event: any) => {
+        if (!isDrawingPath || !event || !event.latlng) return;
+        
+        // 提取经纬度
+        const lat = event.latlng.lat;
+        const lng = event.latlng.lng;
+        
+        // 添加点位
+        const pointIndex = customPathPoints.length + 1;
+        const pointName = `点${pointIndex}`;
+        
+        // 添加标记点
+        mapRef.value.addMarker(
+          { lat, lng },
+          {
+            markerLabel: pointName,
+            markerShowLabel: true,
+            markerCustomData: {
+              index: pointIndex - 1,
+              name: pointName
+            }
+          }
+        );
+        
+        // 保存点位数据
+        customPathPoints.push({
+          position: [lng, lat] as [number, number],
+          name: pointName
+        });
+        
+        // 如果有两个以上的点，则绘制路径
+        if (customPathPoints.length >= 2) {
+          // 清除之前的路径
+          mapRef.value.setMigrationData([]);
+          
+          // 生成路径数据
+          const pathData = [];
+          
+          // 生成路径连接
+          for (let i = 0; i < customPathPoints.length - 1; i++) {
+            pathData.push({
+              from: customPathPoints[i].position,
+              to: customPathPoints[i + 1].position,
+              color: pathlineSettings.color,
+              weight: pathlineSettings.width
+            });
+          }
+          
+          // 确保飞线组件已启用，但配置为路径图模式
+          mapRef.value.enableMigration();
+          
+          // 更新配置为路径图样式
+          mapRef.value.updateMigrationOptions({
+            lineStyle: {
+              width: pathlineSettings.width,
+              opacity: 0.9,
+              type: pathlineSettings.style,
+              curveness: pathlineSettings.curveness,
+              color: pathlineSettings.color
+            },
+            animation: false,
+            effect: {
+              show: false
+            },
+            symbol: ['circle', 'arrow'],
+            symbolSize: [5, 8]
+          });
+          
+          // 设置路径数据
+          mapRef.value.setMigrationData(pathData, false);
+          
+          // 保存路径数据以便后续应用样式
+          pathlineSettings.lastPathData = pathData;
+          
+          // 更新状态
+          isMigrationEnabled.value = true;
+          pathlineSettings.enabled = true;
+          
+          // 提示用户
+          ElMessage({
+            message: `已添加路径点: ${pointName}，当前有 ${customPathPoints.length} 个点`,
+            type: 'success',
+            duration: 2000
+          });
+        }
+      };
+      
+      // 完成绘制按钮点击事件
+      finishButton.onclick = () => {
+        // 退出绘制模式
+        isDrawingPath = false;
+        
+        // 恢复原始点击事件处理函数
+        onMapClick = originalMapClickHandler;
+        
+        // 移除按钮
+        if (mapContainer) {
+          mapContainer.removeChild(finishButton);
+        }
+        
+        // 提示用户
+        ElMessage({
+          message: `自定义路径已完成，共添加 ${customPathPoints.length} 个点`,
+          type: 'success',
+          duration: 3000
+        });
+      };
+    }).catch(() => {
+      // 用户取消
+      ElMessage({
+        type: 'info',
+        message: '已取消绘制自定义路径'
+      });
+    });
+  } catch (e) {
+    log.error(`添加自定义路径图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加自定义路径图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 </script>
 
 <style scoped>
-.migration-style-controls {
-  margin-top: 16px;
-  padding: 14px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e6e8eb;
-  transition: all 0.3s ease;
-}
-
-.migration-style-controls:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.control-subtitle {
-  font-size: 14px;
-  font-weight: bold;
-  color: #1890ff;
-  margin: 10px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed #e6e8eb;
-  display: flex;
-  align-items: center;
-}
-
-.control-subtitle::before {
-  content: "•";
-  margin-right: 6px;
-  color: #1890ff;
-  font-size: 18px;
-  line-height: 1;
-}
-
-/* 为大按钮添加动画效果 */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-
-.el-button.el-button--large {
-  transition: all 0.3s ease;
-}
-
-.el-button.el-button--large:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
-  animation: pulse 1.5s infinite;
-}
-
+/* 样式 */
 .sc-map-example {
-  padding: 20px;
+  position: relative;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  font-weight: bold;
 }
 
 .example-content {
-  display: flex;
-  gap: 20px;
-  min-height: 500px;
   flex: 1;
-  overflow: hidden;
+  display: flex;
 }
 
 .map-area {
   flex: 1;
-  min-width: 0;
-}
-
-.config-area {
-  width: 400px;
-  flex-shrink: 0;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  max-height: calc(100vh - 100px);
+  position: relative;
 }
 
 .map-container {
-  height: 500px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
-h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-h4 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-  font-size: 16px;
+.config-area {
+  width: 300px;
+  max-height: 500px;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .config-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .config-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 15px;
 }
 
 .label {
+  display: block;
+  margin-bottom: 5px;
   font-weight: bold;
-  color: #606266;
-  display: flex;
-  align-items: center;
-}
-
-.value-badge {
-  margin-left: 8px;
-  background-color: #409eff;
-  color: white;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-weight: normal;
 }
 
 .controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .control-row {
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.control-row span {
-  width: 70px;
-  flex-shrink: 0;
-}
-
-.value {
-  width: 40px;
-  text-align: right;
 }
 
 .status-text {
-  font-size: 12px;
-  color: #606266;
-  width: auto !important;
-}
-
-.zoom-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.preset-section {
-  margin-top: 20px;
-}
-
-.preset-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.custom-url-hint {
-  font-size: 12px;
-  color: #E6A23C;
-  margin-top: 5px;
-}
-
-.map-info {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-}
-
-.info-item {
-  display: flex;
-  margin-bottom: 5px;
-}
-
-.info-label {
-  font-weight: bold;
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.info-value {
-  color: #409eff;
+  margin-left: 10px;
+  color: #909399;
 }
 
 .buttons-row {
   display: flex;
-  justify-content: space-s;
-  width: 100%;
+  justify-content: space-between;
 }
 
-.buttons-row .el-button {
-  flex: 1;
-  min-width: 0;
+.preset-section {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
 }
 
-/* 自定义弹框样式 */
-.simple-popup {
-  font-size: 13px;
-  color: #333;
-}
-
-.simple-popup-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.simple-data-row {
+.preset-buttons {
   display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
-.simple-label {
-  font-weight: 600;
-  color: #606266;
-  margin-right: 8px;
+.map-info {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
 }
 
-.simple-value {
-  color: #303133;
+.info-item {
+  margin-bottom: 10px;
 }
 
-/* 自定义形状弹框标题样式 */
-.custom-shape-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 12px;
+.info-label {
+  font-weight: bold;
 }
 
-.shape-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+.info-value {
+  margin-left: 10px;
 }
 
-.shape-tag {
-  font-size: 12px;
-  padding: 2px 6px;
-  background-color: #409eff;
-  color: white;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-/* 根据分类显示不同颜色的标签 */
-.shape-tag:global(.安防) {
-  background-color: #E91E63;
-}
-
-.shape-tag:global(.商业) {
-  background-color: #9C27B0;
-}
-
-.shape-tag:global(.教育) {
-  background-color: #009688;
-}
-
-.shape-tag:global(.示例) {
-  background-color: #FF9800;
-}
-
-/* 事件日志显示区域 */
 .event-logs {
   margin-top: 20px;
-  padding: 10px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.event-logs h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 16px;
-  color: #303133;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
 }
 
 .no-logs {
-  font-size: 14px;
-  color: #909399;
   text-align: center;
-  padding: 20px 0;
+  color: #909399;
 }
 
 .logs-list {
   list-style: none;
   padding: 0;
-  margin: 0;
 }
 
 .log-item {
-  padding: 8px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-item:hover {
-  background-color: #f0f9ff;
+  margin-bottom: 10px;
+  padding: 5px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
 }
 
 .log-time {
-  color: #909399;
-  font-size: 11px;
+  font-weight: bold;
 }
 
 .log-event {
-  color: #1890ff;
-  font-weight: 500;
+  margin-left: 10px;
 }
 
 .log-data {
+  margin-left: 20px;
   color: #606266;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+}
+
+.migration-style-controls {
+  margin-top: 20px;
+}
+
+.control-subtitle {
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
 .control-row {
@@ -4340,5 +4309,61 @@ h4 {
 .value {
   margin-left: 10px;
 }
-</style>
 
+.simple-popup {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.simple-popup-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.simple-data-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.simple-label {
+  font-weight: bold;
+}
+
+.simple-value {
+  margin-left: 10px;
+}
+
+.custom-shape-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.shape-title {
+  font-weight: bold;
+}
+
+.shape-tag {
+  background-color: #ff7b7b;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.custom-finish-button {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 8px 16px;
+  background-color: #409EFF;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>
