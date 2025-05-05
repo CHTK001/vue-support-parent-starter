@@ -26,7 +26,8 @@ import {
   GRID_ICON,
   GEOHASH_GRID_ICON,
   H3_GRID_ICON,
-  FLYLINE_ICON
+  FLYLINE_ICON,
+  PATHLINE_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -190,6 +191,12 @@ export const DEFAULT_TOOL_ITEMS = [
     id: 'flyline',
     icon: FLYLINE_ICON,
     tooltip: '飞线图',
+    type: 'toggle' // 使用toggle类型，这样按钮可以有激活/非激活状态
+  },
+  {
+    id: 'pathline',
+    icon: PATHLINE_ICON, // 使用合适的路径图标
+    tooltip: '路径图',
     type: 'toggle' // 使用toggle类型，这样按钮可以有激活/非激活状态
   }
 ];

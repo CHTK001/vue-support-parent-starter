@@ -688,6 +688,38 @@ const handleToolActivated = (toolId: string) => {
       warn('飞线图工具未初始化，无法启用');
       addLog('启用飞线图失败: 飞线图工具未初始化');
     }
+  } else if (toolId === 'pathline') {
+    // 处理路径图开关
+    if (migrationTool.value) {
+      // 使用飞线图组件但配置为路径显示模式
+      migrationTool.value.enable();
+      
+      // 更新配置使其显示为路径而不是飞线
+      migrationTool.value.updateOptions({
+        lineStyle: {
+          width: 3,
+          opacity: 0.9,
+          type: 'solid',
+          curveness: 0.1  // 较小的曲率使其更像路径
+        },
+        animation: false, // 禁用动画效果
+        effect: {
+          show: false,   // 关闭线条动画效果
+          period: 0,
+          symbolSize: 0
+        },
+        showEffectOn: 'none',  // 不显示特效
+        // 设置端点样式
+        symbol: ['circle', 'arrow'], // 起点为圆形，终点为箭头
+        symbolSize: [5, 8]  // 起点和终点的大小
+      });
+      
+      addLog('路径图已启用');
+      info('通过工具栏启用路径图');
+    } else {
+      warn('路径图工具未初始化，无法启用');
+      addLog('启用路径图失败: 路径图工具未初始化');
+    }
   } else if (toolId === 'geohash') {
     // 启用网格
     enableGrid();
@@ -994,6 +1026,13 @@ const handleToolDeactivated = (toolId: string) => {
       migrationTool.value.disable();
       addLog('飞线图已禁用');
       info('通过工具栏禁用飞线图');
+    }
+  } else if (toolId === 'pathline') {
+    if (migrationTool.value && migrationTool.value.isEnabled()) {
+      // 禁用路径图功能
+      migrationTool.value.disable();
+      addLog('路径图已禁用');
+      info('通过工具栏禁用路径图');
     }
   }
 };

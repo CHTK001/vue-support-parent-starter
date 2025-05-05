@@ -209,7 +209,7 @@
             </div>
           </div>
 
-          <!-- 添加独立的飞线图操作区域 -->
+          <!-- 添加一个新的路径数据操作区域，放在飞线图操作区域之后 -->
           <div class="config-item">
             <div class="label">飞线图操作</div>
             <div class="controls">
@@ -221,7 +221,7 @@
 
               <!-- 飞线图数据和配置按钮 -->
               <div class="control-row buttons-row">
-                <el-button size="small" @click="addSampleMigrationData" :disabled="!migrationSettings.enabled">
+                <el-button size="small" @click="addSampleMigration" :disabled="!migrationSettings.enabled">
                   添加飞线数据
                 </el-button>
                 <el-button size="small" @click="clearMigrationData" :disabled="!migrationSettings.enabled">
@@ -423,6 +423,40 @@
                     应用飞线样式
                   </el-button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加单独的路径数据操作区域 -->
+          <div class="config-item">
+            <div class="label">路径数据操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <el-button size="small" type="primary" @click="addPathlineExample">添加高速公路路径</el-button>
+                <el-button size="small" type="primary" @click="addCircularPathline">添加环形路径</el-button>
+              </div>
+              <div class="control-row">
+                <span>路径样式:</span>
+                <el-select v-model="pathlineSettings.style" size="small" @change="updatePathlineStyle">
+                  <el-option label="实线" value="solid" />
+                  <el-option label="虚线" value="dashed" />
+                  <el-option label="点线" value="dotted" />
+                </el-select>
+                <el-color-picker v-model="pathlineSettings.color" size="small" @change="updatePathlineStyle" />
+              </div>
+              <div class="control-row">
+                <span>线条宽度:</span>
+                <el-slider v-model="pathlineSettings.width" :min="1" :max="8" :step="1" @change="updatePathlineStyle" />
+                <span class="value">{{ pathlineSettings.width }}</span>
+              </div>
+              <div class="control-row">
+                <span>曲率:</span>
+                <el-slider v-model="pathlineSettings.curveness" :min="0" :max="0.3" :step="0.05" @change="updatePathlineStyle" />
+                <span class="value">{{ pathlineSettings.curveness }}</span>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="warning" @click="clearPathline">清除路径</el-button>
+                <el-button size="small" type="success" @click="applyPathlineStyle">应用路径样式</el-button>
               </div>
             </div>
           </div>
@@ -3580,6 +3614,364 @@ const setOptimalZoomForMigration = () => {
     log.error(`设置飞线图最佳视图失败: ${e}`);
   }
 };
+
+// 添加环形路径图
+const addCircularPathline = () => {
+  try {
+    // 先清除当前飞线图
+    clearMigration();
+    
+    // 创建环形路径数据
+    const center = [116.3972, 39.9075] as [number, number]; // 北京中心
+    const radius = 0.6; // 大约60公里的半径
+    const pointsCount = 12; // 生成12个点形成环形
+    const pathPoints = [];
+    
+    // 生成环形上的点
+    for (let i = 0; i < pointsCount; i++) {
+      const angle = (i / pointsCount) * Math.PI * 2;
+      const lng = center[0] + Math.cos(angle) * radius;
+      const lat = center[1] + Math.sin(angle) * radius;
+      
+      pathPoints.push({
+        position: [lng, lat] as [number, number],
+        name: `环形点${i+1}`
+      });
+    }
+    
+    // 添加中心点
+    pathPoints.push({
+      position: center,
+      name: '中心'
+    });
+    
+    // 生成路径数据 - 环形连接
+    const pathData = [];
+    
+    // 先添加标记点
+    pathPoints.forEach((point, index) => {
+      mapRef.value.addMarker(
+        { lat: point.position[1], lng: point.position[0] },
+        {
+          markerLabel: point.name,
+          markerShowLabel: index === pathPoints.length - 1, // 只显示中心点标签
+          markerCustomData: {
+            index: index,
+            name: point.name,
+            isCenter: index === pathPoints.length - 1
+          }
+        }
+      );
+    });
+
+    // 生成环形路径连接
+    for (let i = 0; i < pointsCount; i++) {
+      pathData.push({
+        from: pathPoints[i].position,
+        to: pathPoints[(i + 1) % pointsCount].position,
+        color: `hsl(${(360 * i) / pointsCount}, 70%, 50%)`,
+        weight: 3
+      });
+      
+      // 添加到中心的辐射线
+      pathData.push({
+        from: pathPoints[i].position,
+        to: center,
+        color: '#999999',
+        weight: 1.5
+      });
+    }
+    
+    // 确保飞线组件已启用，但配置为路径图模式
+    mapRef.value.enableMigration();
+    
+    // 更新配置为路径图样式
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        opacity: 0.8,
+        type: 'solid',
+        curveness: 0.05  // 很小的曲率
+      },
+      animation: false,
+      effect: {
+        show: false
+      },
+      symbol: ['none', 'none'], // 不显示起点和终点标记
+      symbolSize: [0, 0]
+    });
+    
+    // 设置路径数据
+    mapRef.value.setMigrationData(pathData, false);
+    
+    // 更新状态
+    isMigrationEnabled.value = true;
+    
+    // 提示用户
+    ElMessage({
+      message: '环形路径图已绘制',
+      type: 'success',
+      duration: 2000
+    });
+    
+    // 调整地图视图
+    mapRef.value.setCenter([center[1], center[0]]);
+    mapRef.value.setZoom(9);
+    
+  } catch (e) {
+    log.error(`添加环形路径图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加环形路径图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 在飞线图相关代码之后添加路径图函数
+
+// 添加路径图示例
+const addPathlineExample = () => {
+  try {
+    // 先清除当前飞线图
+    clearMigration();
+    
+    // 创建线性路径，使用真实经纬度
+    
+    // 定义路径点 - 使用中国高速公路路线示例
+    const pathPoints = [
+      { position: [116.4074, 39.9042] as [number, number], name: '北京' },
+      { position: [116.7969, 39.2847] as [number, number], name: '廊坊' },
+      { position: [117.2010, 39.0842] as [number, number], name: '天津' },
+      { position: [117.9249, 38.3125] as [number, number], name: '黄骅' },
+      { position: [118.4575, 37.4639] as [number, number], name: '滨州' },
+      { position: [118.7969, 36.6677] as [number, number], name: '淄博' },
+      { position: [117.1205, 36.6510] as [number, number], name: '济南' }
+    ];
+    
+    // 生成路径数据
+    const pathData = [];
+    
+    // 先添加标记点
+    pathPoints.forEach((point, index) => {
+      mapRef.value.addMarker(
+        { lat: point.position[1], lng: point.position[0] },
+        {
+          markerLabel: point.name,
+          markerShowLabel: true,
+          markerCustomData: {
+            index: index,
+            name: point.name,
+            isStart: index === 0,
+            isEnd: index === pathPoints.length - 1
+          }
+        }
+      );
+    });
+
+    // 生成路径数据
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      pathData.push({
+        from: pathPoints[i].position,
+        to: pathPoints[i + 1].position,
+        labels: {
+          from: pathPoints[i].name,
+          to: pathPoints[i + 1].name
+        },
+        color: pathlineSettings.color, // 使用路径设置中的颜色
+        weight: pathlineSettings.width // 使用路径设置中的宽度
+      });
+    }
+    
+    // 保存路径数据以便后续应用样式
+    pathlineSettings.lastPathData = pathData;
+    
+    // 确保飞线组件已启用，但配置为路径图模式
+    mapRef.value.enableMigration();
+    
+    // 更新配置为路径图样式
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        width: pathlineSettings.width,
+        opacity: 0.9,
+        type: pathlineSettings.style,
+        curveness: pathlineSettings.curveness,
+        color: pathlineSettings.color
+      },
+      animation: false, // 禁用动画效果
+      effect: {
+        show: false,   // 关闭线条动画效果
+        period: 0,
+        symbolSize: 0
+      },
+      showEffectOn: 'none',  // 不显示特效
+      // 设置端点样式
+      symbol: ['circle', 'arrow'], // 起点为圆形，终点为箭头
+      symbolSize: [5, 8]  // 起点和终点的大小
+    });
+    
+    // 设置路径数据
+    mapRef.value.setMigrationData(pathData, false);
+    
+    // 更新状态
+    isMigrationEnabled.value = true;
+    pathlineSettings.enabled = true;
+    
+    // 提示用户
+    ElMessage({
+      message: '高速公路路径已绘制',
+      type: 'success',
+      duration: 2000
+    });
+    
+    // 调整地图视图以显示全部路径
+    const boundsArray = [
+      [Math.min(...pathPoints.map(p => p.position[1])) - 0.5, Math.min(...pathPoints.map(p => p.position[0])) - 0.5],
+      [Math.max(...pathPoints.map(p => p.position[1])) + 0.5, Math.max(...pathPoints.map(p => p.position[0])) + 0.5]
+    ] as [[number, number], [number, number]];
+    
+    mapRef.value.fitBounds(boundsArray);
+    
+  } catch (e) {
+    log.error(`添加路径图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加路径图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加路径设置数据，放在migrationSettings后面
+const pathlineSettings = reactive({
+  style: 'solid',
+  width: 4,
+  color: '#409EFF',
+  curveness: 0.1,
+  enabled: false,
+  lastPathData: [] // 保存最后一次设置的路径数据
+});
+
+// 更新路径样式
+const updatePathlineStyle = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    // 确保飞线组件已启用，但配置为路径图模式
+    if (!isMigrationEnabled.value) {
+      mapRef.value.enableMigration();
+      isMigrationEnabled.value = true;
+    }
+    
+    // 更新配置为路径图样式
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        width: pathlineSettings.width,
+        opacity: 0.9,
+        type: pathlineSettings.style,
+        curveness: pathlineSettings.curveness,
+        color: pathlineSettings.color
+      },
+      animation: false, // 禁用动画效果
+      effect: {
+        show: false,   // 关闭线条动画效果
+        period: 0,
+        symbolSize: 0
+      },
+      showEffectOn: 'none',  // 不显示特效
+      // 设置端点样式
+      symbol: ['circle', 'arrow'], // 起点为圆形，终点为箭头
+      symbolSize: [5, 8]  // 起点和终点的大小
+    });
+    
+    // 提示用户
+    ElMessage({
+      message: '路径样式已更新',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`更新路径样式失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '更新路径样式失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 应用路径样式
+const applyPathlineStyle = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    // 更新路径样式
+    updatePathlineStyle();
+    
+    // 如果有已保存的路径数据，重新应用
+    if (pathlineSettings.lastPathData && pathlineSettings.lastPathData.length > 0) {
+      // 重新设置路径数据
+      mapRef.value.setMigrationData(pathlineSettings.lastPathData, false);
+      
+      // 提示用户
+      ElMessage({
+        message: '路径样式已应用到当前路径',
+        type: 'success',
+        duration: 2000
+      });
+    } else {
+      ElMessage({
+        message: '请先添加路径数据',
+        type: 'warning',
+        duration: 2000
+      });
+    }
+  } catch (e) {
+    log.error(`应用路径样式失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '应用路径样式失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 清除路径
+const clearPathline = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    // 清除迁移数据
+    clearMigration();
+    
+    // 清除保存的路径数据
+    pathlineSettings.lastPathData = [];
+    
+    // 提示用户
+    ElMessage({
+      message: '路径已清除',
+      type: 'success',
+      duration: 2000
+    });
+  } catch (e) {
+    log.error(`清除路径失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '清除路径失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
 </script>
 
 <style scoped>
