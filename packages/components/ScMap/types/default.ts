@@ -25,7 +25,8 @@ import {
   DELETE_ICON,
   GRID_ICON,
   GEOHASH_GRID_ICON,
-  H3_GRID_ICON
+  H3_GRID_ICON,
+  FLYLINE_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -185,6 +186,12 @@ export const DEFAULT_TOOL_ITEMS = [
     tooltip: '打开/关闭调试面板',
     multi: true
   },
+  {
+    id: 'flyline',
+    icon: FLYLINE_ICON,
+    tooltip: '飞线图',
+    type: 'toggle' // 使用toggle类型，这样按钮可以有激活/非激活状态
+  }
 ];
 
 // 轨迹播放器默认主题配置

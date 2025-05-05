@@ -515,11 +515,188 @@ const handleToolActivated = (toolId: string) => {
     // 启用网格
     enableGrid();
     addLog('网格功能已启用');
-    } else if (toolId === 'h3') {
+  } else if (toolId === 'h3') {
     // 启用H3蜂窝网格
     enableH3Grid();
     addLog('H3蜂窝网格功能已启用');
-    } else if (toolId === 'showShapes' && shapeTool.value) {
+  } else if (toolId === 'showShapes' && shapeTool.value) {
+    // 如果有显示图形的功能，可以在这里实现
+    addLog('显示图形功能未实现');
+  } else if (toolId === 'hideShapes' && shapeTool.value) {
+    // 如果有隐藏图形的功能，可以在这里实现
+    addLog('隐藏图形功能未实现');
+  } else if (toolId === 'viewTrack' && trackPlayerController.value) {
+    // 显示轨迹播放控制器
+    trackPlayerState.visible = true;
+    addLog('轨迹播放控制器已显示');
+  } else if (toolId === 'edit' && shapeTool.value) {
+    // 处理编辑工具激活，但不启动绘图
+    addLog('编辑工具激活');
+    
+    // 更改鼠标样式为pointer，表示可以点击编辑
+    if (mapInstance.value && mapInstance.value.getContainer()) {
+      mapInstance.value.getContainer().style.cursor = 'pointer';
+      addLog('更新鼠标样式为pointer，表示可以编辑');
+        }
+    
+    // 监听地图点击事件，用于处理编辑模式下的图形选择
+    if (mapInstance.value) {
+      // 注册shape-click事件，当点击图形时，将启用该图形的编辑功能
+      shapeTool.value.on('shape-click', (data) => {
+        // 如果编辑工具处于激活状态，则启用点击的图形编辑功能
+        const editButton = mapToolbarRef.value?.getTools().find(tool => tool.id === 'edit');
+        if (editButton && editButton.active === true && data.id) {
+          try {
+            // 先禁用所有图形的编辑功能
+            shapeTool.value?.disableAllEditing();
+            
+            // 然后启用当前点击图形的编辑功能
+            const editSuccess = shapeTool.value?.enableEditing(data.id);
+            if (editSuccess) {
+              addLog(`启用图形编辑: ${data.id}, 类型: ${data.type}`);
+              info(`启用图形 ${data.id} 的编辑功能`);
+            } else {
+              warn(`无法启用图形 ${data.id} 的编辑功能`);
+              addLog(`启用图形编辑失败: ${data.id}`);
+            }
+          } catch (e) {
+            error(`启用图形编辑时出错:`, e);
+            addLog(`启用图形编辑出错: ${data.id}`, e);
+          }
+        }
+      });
+    }
+  } else if (toolId === 'delete' && shapeTool.value) {
+    // 处理删除工具激活
+    addLog('删除工具激活');
+    
+    // 更改鼠标样式为pointer，表示可以点击删除
+    if (mapInstance.value && mapInstance.value.getContainer()) {
+      mapInstance.value.getContainer().style.cursor = 'pointer';
+      addLog('更新鼠标样式为pointer，表示可以删除');
+    }
+    
+    // 注册图形点击事件
+    if (shapeTool.value) {
+      shapeTool.value.on('shape-click', (data) => {
+        // 如果删除工具处于激活状态，则删除被点击的图形
+        const deleteButton = mapToolbarRef.value?.getTools().find(tool => tool.id === 'delete');
+        if (deleteButton && deleteButton.active === true && data.id) {
+          try {
+            // 删除被点击的图形
+            const removeSuccess = shapeTool.value?.removeShape(data.id);
+            if (removeSuccess) {
+              addLog(`删除图形: ${data.id}, 类型: ${data.type}`);
+              info(`删除图形 ${data.id} 成功`);
+              
+              // 触发shape-removed事件，传递已删除的图形信息
+              emit('shape-removed', {
+                id: data.id,
+                type: data.type,
+                options: data.options || {}
+              });
+            } else {
+              warn(`无法删除图形 ${data.id}`);
+              addLog(`删除图形失败: ${data.id}`);
+            }
+          } catch (e) {
+            error(`删除图形时出错:`, e);
+            addLog(`删除图形出错: ${data.id}`, e);
+          }
+        }
+      });
+    }
+    
+    // 注册标记点点击事件
+        if (markerTool.value) {
+      // 使用marker-click事件处理删除标记点
+      markerTool.value.on('marker-click', (marker) => {
+        // 如果删除工具处于激活状态，则删除被点击的标记点
+        const deleteButton = mapToolbarRef.value?.getTools().find(tool => tool.id === 'delete');
+        if (deleteButton && deleteButton.active === true && marker && marker.options && marker.options.markerId) {
+          try {
+            // 删除被点击的标记点
+            const removeSuccess = markerTool.value?.removeMarker(marker.options.markerId);
+            if (removeSuccess) {
+              addLog(`删除标记点: ${marker.options.markerId}`);
+              info(`删除标记点 ${marker.options.markerId} 成功`);
+              
+              // 触发marker-removed事件，传递已删除的标记点信息
+              emit('marker-removed', {
+                id: marker.options.markerId,
+                options: marker.options || {}
+              });
+            } else {
+              warn(`无法删除标记点 ${marker.options.markerId}`);
+              addLog(`删除标记点失败: ${marker.options.markerId}`);
+        }
+          } catch (e) {
+            error(`删除标记点时出错:`, e);
+            addLog(`删除标记点出错: ${marker.options.markerId}`, e);
+      }
+    }
+      });
+    }
+  }  // 标记点显示/隐藏
+  else if (toolId === 'toggleMarkers') {
+    if (markerTool.value) {
+      markerTool.value.hideAllMarkers();
+      info('隐藏所有标记点');
+      addLog('隐藏所有标记点');
+    }
+  }
+  // 标签显示/隐藏
+  else if (toolId === 'toggleLabels') {
+    if (markerTool.value) {
+      markerTool.value.hideAllLabels();
+      info('隐藏所有标记点标签');
+      addLog('隐藏所有标记点标签');
+    }
+  }else if (toolId === 'overview' && overviewTool.value) {
+    // 禁用鹰眼控件
+    overviewTool.value.enable();
+    addLog('启用鹰眼控件'); // 添加日志记录
+    info('通过工具栏启用鹰眼控件');
+  }  
+  else if (toolId === 'trackPlay') {
+    // 停止轨迹播放
+    if (trackPlayerController.value) {
+      trackPlayerController.value.pause();
+      addLog('停止轨迹播放'); // 添加日志记录
+      info('通过工具栏停止轨迹播放');
+    }
+    // 隐藏轨迹播放器面板
+    showTrackPlayerPanel();
+    addLog('显示轨迹播放器面板'); // 添加日志记录
+    info('显示轨迹播放器面板');
+  }
+  // 在handleToolActivated函数中添加飞线图开关处理
+  else if (toolId === 'heatmap') {
+    if (heatMapTool.value && !heatMapTool.value.isEnabled()) {
+      heatMapTool.value.enable();
+      addLog('热力图已启用');
+    }
+  } else if (toolId === 'flyline') {
+    // 处理飞线图开关
+    if (migrationTool.value) {
+      // 启用飞线图并开始动画
+      migrationTool.value.enable();
+      migrationTool.value.start();
+      addLog('飞线图已启用');
+      info('通过工具栏启用飞线图');
+    } else {
+      warn('飞线图工具未初始化，无法启用');
+      addLog('启用飞线图失败: 飞线图工具未初始化');
+    }
+  } else if (toolId === 'geohash') {
+    // 启用网格
+    enableGrid();
+    addLog('网格功能已启用');
+  } else if (toolId === 'h3') {
+    // 启用H3蜂窝网格
+    enableH3Grid();
+    addLog('H3蜂窝网格功能已启用');
+  } else if (toolId === 'showShapes' && shapeTool.value) {
     // 如果有显示图形的功能，可以在这里实现
     addLog('显示图形功能未实现');
   } else if (toolId === 'hideShapes' && shapeTool.value) {
@@ -808,6 +985,16 @@ const handleToolDeactivated = (toolId: string) => {
     }
     
     addLog('禁用所有图形的编辑功能');
+  }
+  // 添加飞线图开关功能
+  else if (toolId === 'flyline') {
+    if (migrationTool.value && migrationTool.value.isEnabled()) {
+      // 先停止动画，再禁用飞线图
+      migrationTool.value.stop();
+      migrationTool.value.disable();
+      addLog('飞线图已禁用');
+      info('通过工具栏禁用飞线图');
+    }
   }
 };
 
