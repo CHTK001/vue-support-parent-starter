@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem, TrackPlayerConfig, TrackPlayerOptions } from ".";
+import { ProjectionType } from ".";
 import { 
   OVERVIEW_ICON, 
   MEASURE_ICON, 
@@ -298,29 +299,104 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfig = {
   trackList: []
 };
 
-// 地图类型常量 - 所有使用高德地图
+// 预定义地图类型
 export const MAP_TYPES: MapTypes = {
   NORMAL: {
-    name: "标准地图",
-    url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-    image: DEFAULT_NORMAL_MAP_IMAGE
+    name: '标准地图',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    image: DEFAULT_NORMAL_MAP_IMAGE,
+    description: '显示道路和基本地理信息',
+    maxZoom: 19,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
   },
   SATELLITE: {
-    name: "卫星图",
-    url: "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}",
-    image: DEFAULT_SATELLITE_MAP_IMAGE
+    name: '卫星影像',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    image: DEFAULT_SATELLITE_MAP_IMAGE,
+    description: '高清卫星影像',
+    maxZoom: 18,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
+  },
+  TERRAIN: {
+    name: '地形图',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    image: DEFAULT_NORMAL_MAP_IMAGE,
+    description: '地形图',
+    maxZoom: 17,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
   },
   TRAFFIC: {
-    name: "交通图",
-    url: "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-    image: DEFAULT_TRAFFIC_MAP_IMAGE
+    name: '交通图',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    image: DEFAULT_TRAFFIC_MAP_IMAGE,
+    description: '显示路网交通信息',
+    maxZoom: 19,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
   },
-  ROAD: {
-    name: "路网图",
-    url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
-    image: DEFAULT_ROAD_MAP_IMAGE
+  DARK: {
+    name: '暗黑地图',
+    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+    image: DEFAULT_ROAD_MAP_IMAGE,
+    description: '暗色调地图',
+    maxZoom: 20,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
   },
+  LIGHT: {
+    name: '浅色地图',
+    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+    image: DEFAULT_ROAD_MAP_IMAGE,
+    description: '浅色调地图',
+    maxZoom: 20,
+    tileSize: 256,
+    projectionType: ProjectionType.WebMercator
+  },
+  TIAN_DI_TU: {
+    name: '天地图',
+    url: 'https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk={key}',
+    attribution: '&copy; <a href="https://www.tianditu.gov.cn/">天地图</a>',
+    image: DEFAULT_NORMAL_MAP_IMAGE,
+    description: '国家基础地理信息中心提供的电子地图服务',
+    maxZoom: 18,
+    minZoom: 1,
+    tileSize: 256,
+    subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+    projectionType: ProjectionType.TianDiTu
+  },
+  GCJ02: {
+    name: '高德地图',
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>',
+    image: DEFAULT_NORMAL_MAP_IMAGE,
+    description: '高德地图（GCJ-02坐标系）',
+    maxZoom: 18,
+    minZoom: 3,
+    tileSize: 256,
+    subdomains: ['1', '2', '3', '4'],
+    projectionType: ProjectionType.GCJ02
+  },
+  BD09: {
+    name: '百度地图',
+    url: 'https://online{s}.map.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&p=1',
+    attribution: '&copy; <a href="https://map.baidu.com/">百度地图</a>',
+    image: DEFAULT_NORMAL_MAP_IMAGE,
+    description: '百度地图（BD-09坐标系）',
+    maxZoom: 19,
+    minZoom: 3,
+    tileSize: 256,
+    subdomains: ['0', '1', '2', '3'],
+    projectionType: ProjectionType.BD09
+  }
 };
-
 
 export default MAP_TYPES;

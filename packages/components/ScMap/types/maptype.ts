@@ -1,6 +1,8 @@
 /**
  * 地图类型配置接口
  */
+import { ProjectionType } from ".";
+
 export interface MapTypeConfig {
   /**
    * 地图类型名称
@@ -66,4 +68,10 @@ export interface MapTypeConfig {
    * 额外选项配置
    */
   options?: Record<string, any>;
+  
+  /**
+   * 地图投影类型
+   * 用于指定图层使用的坐标系统
+   */
+  projectionType?: ProjectionType;
 } 
