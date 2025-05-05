@@ -288,7 +288,7 @@ const computedToolbarConfig = computed((): ToolbarConfig => {
   }
 
   if (!config.items || config.items.length == 0) {
-    config.items = DEFAULT_TOOL_ITEMS;
+    config.items = DEFAULT_TOOL_ITEMS as any;
   }
 
   // 返回合并后的配置
@@ -497,7 +497,7 @@ const handleToolActivated = (toolId: string) => {
     // 隐藏所有标记
     markerTool.value.hideAllMarkers();
     addLog('所有标记已隐藏');
-  } else if (toolId === 'grid') {
+  } else if (toolId === 'geohash') {
     // 启用网格
     enableGrid();
     addLog('网格功能已启用');
@@ -756,7 +756,7 @@ const handleToolDeactivated = (toolId: string) => {
       addLog('热力图已禁用');
     }
   } 
-  else if (toolId === 'grid') {
+  else if (toolId === 'geohash') {
     // 禁用网格
     disableGrid();
     addLog('网格功能已禁用');
@@ -876,7 +876,7 @@ onUnmounted(() => {
   }
 
   if (gridTool.value) {
-    gridTool.value.destroy();
+    gridTool.value?.destroy();
   }
   
   if (markerTool.value) {

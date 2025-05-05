@@ -17,6 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "h3-js": "^4.2.1",
     "ngeohash": "^0.6.3"
   },
   "devDependencies": {
