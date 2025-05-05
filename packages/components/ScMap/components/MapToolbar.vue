@@ -30,12 +30,12 @@
            ]">
         <div class="submenu-arrow"></div>
         <div v-for="subTool in tool.children" :key="subTool.id"
-             class="submenu-item toolbar-item"
+             class="submenu-item toolbar-item color-override"
              :class="[{ active: subTool.active === true }, subTool.className]"
              :data-tool-id="subTool.id"
              @click.stop.prevent="(e) => handleSubMenuClick(tool, subTool, e)">
-          <span v-if="typeof subTool.icon === 'string'" class="svg-icon" v-html="subTool.icon"></span>
-          <component v-else-if="subTool.icon" :is="subTool.icon" />
+          <span v-if="typeof subTool.icon === 'string'" class="svg-icon submenu-icon" v-html="subTool.icon"></span>
+          <component v-else-if="subTool.icon" :is="subTool.icon" class="submenu-icon" />
           <div class="toolbar-tooltip">
             {{ subTool.tooltip || subTool.name }}
           </div>
@@ -1493,6 +1493,46 @@ defineExpose({
   }
 }
 
+/* 特殊处理子菜单项的图标样式，确保不受父菜单影响 */
+.color-override {
+  /* 重置继承的颜色 */
+  color: #666666 !important;
+  
+  /* 强制子菜单图标颜色 */
+  .submenu-icon {
+    color: #666666 !important;
+  }
+  
+  .submenu-icon svg * {
+    fill: #666666 !important;
+    stroke: #666666 !important;
+  }
+  
+  .submenu-icon path {
+    fill: #666666 !important;
+    stroke: #666666 !important;
+  }
+  
+  /* 激活状态单独处理 */
+  &.active {
+    color: #ffffff !important;
+    
+    .submenu-icon {
+      color: #ffffff !important;
+    }
+    
+    .submenu-icon svg * {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
+    }
+    
+    .submenu-icon path {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
+    }
+  }
+}
+
 /* 确保子菜单项不继承父菜单的active样式 */
 .toolbar-item.active .toolbar-submenu .submenu-item:not(.active) {
   background-color: #ffffff;
@@ -1521,16 +1561,22 @@ defineExpose({
   }
 }
 
-/* 强制覆盖子菜单项的图标颜色样式 */
-.toolbar-submenu .submenu-item .svg-icon svg * {
+/* 最高优先级样式，确保子菜单项图标颜色不受任何影响 */
+.toolbar-submenu .submenu-item .submenu-icon svg *,
+.toolbar-submenu .submenu-item .submenu-icon path,
+.toolbar-submenu .submenu-item .submenu-icon circle {
   fill: #666666 !important;
   stroke: #666666 !important;
+  color: #666666 !important;
 }
 
-/* 只有激活的子菜单项才应该有白色图标 */
-.toolbar-submenu .submenu-item.active .svg-icon svg * {
+/* 子菜单项激活状态特殊处理 */
+.toolbar-submenu .submenu-item.active .submenu-icon svg *,
+.toolbar-submenu .submenu-item.active .submenu-icon path,
+.toolbar-submenu .submenu-item.active .submenu-icon circle {
   fill: #ffffff !important;
   stroke: #ffffff !important;
+  color: #ffffff !important;
 }
 
 /* 增加子菜单点击的稳定性 */
@@ -1551,7 +1597,7 @@ defineExpose({
 }
 
 /* 修改全局active样式，避免影响子菜单项 */
-.active:not(.submenu-item){
+.active:not(.submenu-item):not(.color-override){
   path {
     fill: #FFF;
   }
@@ -1567,6 +1613,16 @@ defineExpose({
   }
   circle{
     fill: #FFF !important;
+  }
+}
+
+/* 父菜单激活时重置子菜单图标样式 */
+.toolbar-item.active .toolbar-submenu .submenu-item:not(.active) {
+  path {
+    fill: #666666 !important;
+  }
+  circle{
+    fill: #666666 !important;
   }
 }
 
