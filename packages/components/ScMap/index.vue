@@ -68,6 +68,7 @@ export default {
 import "leaflet/dist/leaflet.css";
 import type { Ref } from "vue";
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import L from 'leaflet';
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapDebugPanel from './components/MapDebugPanel.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
@@ -85,7 +86,7 @@ import { ShapeType } from './plugin/Shape';
 import ShapeEditable from "./plugin/ShapeEditable";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
 import type { AddToolOptions, AggregationOptions, HeatMapOptions, HeatPoint, ScMapProps, ToolbarConfig, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
-import { LayerType, OpenStatus } from './types';
+import { LayerType, OpenStatus, ProjectionType } from './types';
 import { DEFAULT_TOOL_ITEMS, DEFAULT_TRACK_PLAYER_OPTIONS, MAP_TYPES, TRACK_PLAYER_THEMES } from './types/default';
 // 导入日志工具
 import { error, info, warn } from '@repo/utils';
@@ -96,12 +97,9 @@ import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入网格插件
 import { GridLayerGeohash } from './plugin/GridLayerGeohash';
 import { GridLayerH3 } from './plugin/GridLayerH3';
-// 导入leaflet类型但动态加载实现
-let L: any = null;
-// 网格工具实例
-const gridTool = ref<any>(null);
-// H3蜂窝网格工具实例
-const h3GridTool = ref<any>(null);
+// 导入投影相关工具
+import { createCRS, getProjectionConfig } from './utils';
+import projectionHelper from './utils/projectionHelper';
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -148,7 +146,14 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     zoomAnimation: false,
     toggleDisplay: true,
     minimized: false,
+    collapsedWidth: 30,
+    collapsedHeight: 30,
+    zoomLevelFixed: null,
+    centerFixed: null,
+    autoToggleDisplay: false,
+    tileType: false,
     aimingRectOptions: { color: '#ff7800', weight: 1, interactive: false },
+    shadowRectOptions: { color: '#000000', weight: 1, opacity: 0.3, fillOpacity: 0.1, interactive: false },
     strings: { hideText: '收起鹰眼', showText: '展开鹰眼' },
     autoActivate: false
   } as OverviewOptions),
@@ -179,7 +184,9 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     autoStart: false
   }),
   // 飞线图实现类型，可选 'antPath', 'echarts5'
-  migrationImpl: 'echarts5'
+  migrationImpl: 'echarts5',
+  // 默认使用Web墨卡托投影
+  projectionType: ProjectionType.WebMercator
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -245,6 +252,10 @@ const heatMapTool: Ref<HeatMap | null> = ref(null);
 
 // 飞线图工具
 const migrationTool: Ref<MigrationBase | null> = ref(null);
+
+// 网格工具
+const gridTool: Ref<GridLayerGeohash | null> = ref(null);
+const h3GridTool: Ref<GridLayerH3 | null> = ref(null);
 
 // 轨迹播放器内部状态
 const trackPlayerState = reactive({
@@ -723,6 +734,21 @@ const handleToolDeactivated = (toolId: string) => {
   } else if (toolId === 'debug') {
     closeDebugPanel();
     addLog('关闭调试面板'); // 添加日志记录
+  } // 标记点显示/隐藏
+  else if (toolId === 'toggleMarkers') {
+    if (markerTool.value) {
+      markerTool.value.showAllMarkers();
+      info('隐藏所有标记点');
+      addLog('隐藏所有标记点');
+    }
+  }
+  // 标签显示/隐藏
+  else if (toolId === 'toggleLabels') {
+    if (markerTool.value) {
+      markerTool.value.showAllLabels();
+      info('隐藏所有标记点标签');
+      addLog('隐藏所有标记点标签');
+    }
   } else if (toolId === 'coordinate') {
     // 停用坐标显示模式
     disableCoordinateMode();
@@ -806,62 +832,21 @@ const clearMeasurement = (): void => {
   }
 };
 
+// 地图挂载
 onMounted(async () => {
   addLog('地图组件挂载开始');
-  // 动态导入leaflet
-  if (!L) {
-    info('动态导入Leaflet');
-    addLog('开始动态导入Leaflet');
-    try {
-      L = (await import("leaflet")).default;
-      info('Leaflet导入成功:', !!L);
-      addLog('Leaflet导入成功');
-      
-      // 动态导入leaflet-minimap
-      try {
-        await import("leaflet-minimap");
-        info('leaflet-minimap导入成功');
-        addLog('leaflet-minimap导入成功');
-        
-        // 尝试加载CSS样式
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css';
-        document.head.appendChild(link);
-      } catch (miniMapError) {
-        console.error('导入leaflet-minimap失败:', miniMapError);
-        addLog('导入leaflet-minimap失败', miniMapError);
-      }
-      
-      // 尝试加载leaflet.markercluster插件
-      try {
-        // 尝试加载CSS样式
-        const clusterCssLink1 = document.createElement('link');
-        clusterCssLink1.rel = 'stylesheet';
-        clusterCssLink1.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
-        document.head.appendChild(clusterCssLink1);
-        
-        const clusterCssLink2 = document.createElement('link');
-        clusterCssLink2.rel = 'stylesheet';
-        clusterCssLink2.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
-        document.head.appendChild(clusterCssLink2);
-        
-        await import("leaflet.markercluster");
-        info('leaflet.markercluster导入成功');
-        addLog('leaflet.markercluster导入成功');
-      } catch (clusterError) {
-        console.error('导入leaflet.markercluster失败:', clusterError);
-        warn('标记点聚合功能将不可用，请安装leaflet.markercluster依赖');
-        addLog('导入leaflet.markercluster失败', clusterError);
-      }
-    } catch (e) {
-      console.error('导入Leaflet失败:', e);
-      addLog('导入Leaflet失败', e);
-    }
+  
+  // 初始化地图
+  initMap();
+  
+  // 延迟一点初始化，确保DOM已经完全渲染
+  await nextTick();
+  
+  // 如果此时mapInstance尚未创建，可能是因为需要延迟加载
+  if (!mapInstance.value) {
+    initMap();
   }
   
-  await nextTick();
-  initMap();
   addLog('地图组件挂载完成');
 });
 
@@ -1216,7 +1201,12 @@ const initMap = (): void => {
       addLog('地图容器尺寸', containerSize);
     }
     
-    mapInstance.value = L.map(mapContainer.value, {
+    // 获取当前图层对应的配置
+    const currentLayerKey = props.layerType;
+    const mapTypeConfig = props.mapType[currentLayerKey];
+    
+    // 基本地图选项
+    const mapOptions: L.MapOptions = {
       center: props.center,
       editable: true,
       zoom: props.zoom,
@@ -1225,7 +1215,15 @@ const initMap = (): void => {
       zoomControl: false, // 禁用默认的缩放控件
       attributionControl: false,
       doubleClickZoom: false // 全局禁用双击缩放
-    });
+    };
+    
+    // 使用投影辅助工具创建地图，支持不同的投影
+    mapInstance.value = projectionHelper.initMapWithProjection(
+      mapContainer.value,
+      mapOptions,
+      props.projectionType,
+      mapTypeConfig
+    );
     
     // 添加防止缩放时出现popup错误的保护措施
     mapInstance.value.on('zoomstart', () => {
@@ -1294,15 +1292,41 @@ const addTileLayer = (): void => {
     mapInstance.value.removeLayer(tileLayer.value);
   }
   
+  // 获取当前图层配置
+  const currentLayerKey = props.layerType;
+  const mapTypeConfig = props.mapType[currentLayerKey] || props.mapType.NORMAL;
+  
   // 添加新图层
   let url = tileUrl.value;
-  if (props.apiKey) {
-    url += url.includes('?') ? `&key=${props.apiKey}` : `?key=${props.apiKey}`;
+  if (props.apiKey && url.includes('{key}')) {
+    url = url.replace('{key}', props.apiKey);
   }
   
-  tileLayer.value = L.tileLayer(url, {
-    attribution: attribution.value
-  }).addTo(mapInstance.value);
+  // 添加图层选项
+  const tileOptions: L.TileLayerOptions = {
+    attribution: attribution.value,
+    maxZoom: mapTypeConfig.maxZoom || 18,
+    minZoom: mapTypeConfig.minZoom || 1,
+    tileSize: mapTypeConfig.tileSize || 256
+  };
+  
+  // 如果有子域名配置，添加到选项中
+  if (mapTypeConfig.subdomains) {
+    tileOptions.subdomains = mapTypeConfig.subdomains;
+  }
+  
+  // 如果有不透明度设置，添加到选项中
+  if (mapTypeConfig.opacity !== undefined) {
+    tileOptions.opacity = mapTypeConfig.opacity;
+  }
+  
+  // 如果有边界设置，添加到选项中
+  if (mapTypeConfig.bounds) {
+    tileOptions.bounds = mapTypeConfig.bounds;
+  }
+  
+  // 创建新图层
+  tileLayer.value = L.tileLayer(url, tileOptions).addTo(mapInstance.value);
 };
 
 // 监听图层类型变化
@@ -2780,7 +2804,21 @@ const showAllMarkers = (): void => {
     return;
   }
   
-      markerTool.value.showAllMarkers();
+  // 获取所有标记并逐个显示
+  const markers = markerTool.value.getMarkers();
+  for (const marker of markers) {
+    if (marker && marker.options && marker.options.markerId) {
+      const markerId = marker.options.markerId;
+      const m = markerTool.value.getMarkerById(markerId);
+      if (m) {
+        m.setOpacity(1);
+        if (m.getElement()) {
+          m.getElement().style.display = '';
+        }
+      }
+    }
+  }
+  
   addLog('所有标记已显示');
 };
 
@@ -2791,7 +2829,21 @@ const hideAllMarkers = (): void => {
     return;
   }
   
-          markerTool.value.hideAllMarkers();
+  // 获取所有标记并逐个隐藏
+  const markers = markerTool.value.getMarkers();
+  for (const marker of markers) {
+    if (marker && marker.options && marker.options.markerId) {
+      const markerId = marker.options.markerId;
+      const m = markerTool.value.getMarkerById(markerId);
+      if (m) {
+        m.setOpacity(0);
+        if (m.getElement()) {
+          m.getElement().style.display = 'none';
+        }
+      }
+    }
+  }
+  
   addLog('所有标记已隐藏');
 };
 
@@ -3486,15 +3538,9 @@ const initGrid = async (): Promise<void> => {
   if (gridTool.value) return;
   
   try {
-    // 延迟加载 L
-    if (!L) {
-      L = (await import('leaflet')).default;
-    }
-    
     // 确保地图实例已初始化
     if (!mapInstance.value) {
-      warn('地图实例未初始化，无法创建网格工具');
-      addLog('网格工具初始化失败: 地图实例未初始化');
+      warn('地图实例未初始化，无法创建网格');
       return;
     }
     
@@ -3503,37 +3549,19 @@ const initGrid = async (): Promise<void> => {
       // 使用Geohash网格算法
       level: 8, // 设置初始精度为6，相当于1.2km左右的网格大小
       color: '#3388ff',
-      weight: 1,
-      opacity: 0.6,
-      fillColor: '#3388ff',
-      fillOpacity: 0.1,
-      showCode: true, // 默认显示网格编码
-      codeColor: '#333',
-      codeSize: 12,
-      interactive: true, // 默认使用矩形网格
-      gridType: 'rect', // 默认使用矩形网格
-      autoAdjustLevel: true, // 启用自动调整网格级别，根据zoom动态调整网格
-      // 配置默认显示的白色边框
-      showGridBorder: true, // 启用网格边框显示
-      gridBorderColor: '#ffffff', // 设置边框为白色
-      gridBorderWidth: 1, // 设置边框宽度
-      // 强制使用DOM渲染方式
-      useCanvas: false,
-      // GridLayer特有参数
-      tileSize: 256,
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-      keepBuffer: 8, // 保留更多缓冲瓦片
-      className: 'map-geohash-grid-layer', // 添加自定义类名
-      zIndex: 350, // 设置较高的z-index确保显示在地图上方
-      pane: 'overlayPane' // 使用覆盖物图层
+      weight: 1.5,
+      fillOpacity: 0.15,
+      showCode: true, // 显示Geohash编码
+      interactive: true, // 支持点击交互
+      gridType: 'rect' // 默认使用矩形网格
     });
     
-    addLog('基于GridLayer的网格工具初始化成功');
-    info('基于GridLayer的网格工具初始化成功');
+    info('网格工具创建成功');
+    addLog('网格工具创建成功');
   } catch (e) {
-    error('网格工具初始化失败:', e);
-    addLog('网格工具初始化失败', e);
+    console.error('创建网格工具失败:', e);
+    error('创建网格工具失败:', e);
+    addLog('创建网格工具失败', e);
   }
 };
 
@@ -3556,7 +3584,7 @@ const enableGrid = async (): Promise<void> => {
     try {
       // 检查gridTool的必要方法
       if (typeof gridTool.value.show === 'function') {
-        gridTool.value.show();
+        (gridTool.value as any).show();
         addLog('网格已启用');
       } else {
         throw new Error('网格工具缺少show方法');
@@ -3572,7 +3600,7 @@ const enableGrid = async (): Promise<void> => {
       setTimeout(() => {
         try {
           if (gridTool.value && typeof gridTool.value.show === 'function') {
-            gridTool.value.show();
+            (gridTool.value as any).show();
             addLog('网格已启用(重试成功)');
           } else {
             addLog('启用网格失败: 无法显示网格');
@@ -3593,7 +3621,7 @@ const enableGrid = async (): Promise<void> => {
 const disableGrid = (): void => {
   try {
     if (gridTool.value) {
-      gridTool.value.hide();
+      (gridTool.value as any).hide();
       addLog('网格已禁用');
     }
   } catch (e) {
@@ -3609,7 +3637,7 @@ const toggleGridType = (): void => {
       // 检查是否支持toggleType方法(新的GridLayerGeohash类)
       if (typeof gridTool.value.toggleType === 'function') {
         gridTool.value.toggleType();
-        addLog(`网格类型已切换为 ${gridTool.value.options.gridType}`); 
+        addLog(`网格类型已切换为 ${gridTool.value.getType()}`); 
       } 
       // 兼容旧的Grid类API
       else if (gridTool.value.getType && gridTool.value.setType) {
@@ -3650,31 +3678,23 @@ const toggleGrid = async (): Promise<void> => {
         throw new Error('网格工具初始化失败');
       }
       
-      // 初始化后默认显示
-      gridTool.value.show();
-      addLog('网格已启用');
-      return;
     }
     
     // 根据当前状态切换
     if (typeof gridTool.value.isVisible === 'function') {
       if (gridTool.value.isVisible()) {
-        gridTool.value.hide();
+        (gridTool.value as any).hide();
         addLog('网格已禁用');
       } else {
-        gridTool.value.show();
+        (gridTool.value as any).show();
         addLog('网格已启用');
       }
     } 
     // 兼容处理
-    else if (typeof gridTool.value.visible === 'boolean') {
-      if (gridTool.value.visible) {
-        gridTool.value.hide();
-        addLog('网格已禁用');
-      } else {
-        gridTool.value.show();
-        addLog('网格已启用');
-      }
+    else if (typeof gridTool.value.toggle === 'function') {
+      gridTool.value.toggle();
+      const isVisible = gridTool.value.isVisible();
+      addLog(isVisible ? '网格已启用' : '网格已禁用');
     }
   } catch (e) {
     error('切换网格状态失败:', e);
@@ -3701,7 +3721,7 @@ const enableH3Grid = async (): Promise<void> => {
     try {
       // 检查h3GridTool的必要方法
       if (typeof h3GridTool.value.show === 'function') {
-        h3GridTool.value.show();
+        (h3GridTool.value as any).show();
         addLog('H3蜂窝网格已启用');
       } else {
         throw new Error('H3蜂窝网格工具缺少show方法');
@@ -3717,7 +3737,7 @@ const enableH3Grid = async (): Promise<void> => {
       setTimeout(() => {
         try {
           if (h3GridTool.value && typeof h3GridTool.value.show === 'function') {
-            h3GridTool.value.show();
+            (h3GridTool.value as any).show();
             addLog('H3蜂窝网格已启用(重试成功)');
           } else {
             addLog('启用H3蜂窝网格失败: 无法显示网格');
@@ -3738,7 +3758,7 @@ const enableH3Grid = async (): Promise<void> => {
 const disableH3Grid = (): void => {
   try {
     if (h3GridTool.value) {
-      h3GridTool.value.hide();
+      (h3GridTool.value as any).hide();
       addLog('H3蜂窝网格已禁用');
     }
   } catch (e) {
@@ -3752,15 +3772,9 @@ const initH3Grid = async (): Promise<void> => {
   if (h3GridTool.value) return;
   
   try {
-    // 延迟加载 L
-    if (!L) {
-      L = (await import('leaflet')).default;
-    }
-    
     // 确保地图实例已初始化
     if (!mapInstance.value) {
-      warn('地图实例未初始化，无法创建H3蜂窝网格工具');
-      addLog('H3蜂窝网格工具初始化失败: 地图实例未初始化');
+      warn('地图实例未初始化，无法创建H3蜂窝网格');
       return;
     }
     
@@ -3769,20 +3783,17 @@ const initH3Grid = async (): Promise<void> => {
       resolution: 8, // 设置初始精度为8
       color: '#3388ff',
       weight: 1,
-      fillColor: '#3388ff',
-      fillOpacity: 0.1,
-      showCode: true, // 默认显示网格编码
-      codeColor: '#333',
-      codeSize: 12,
-      interactive: true,
-      useRandomColors: true // 使用随机颜色
+      fillOpacity: 0.15,
+      // 移除不在接口定义中的showHex属性
+      interactive: true
     });
     
-    addLog('H3蜂窝网格工具初始化成功');
-    info('H3蜂窝网格工具初始化成功');
+    info('H3蜂窝网格工具创建成功');
+    addLog('H3蜂窝网格工具创建成功');
   } catch (e) {
-    error('H3蜂窝网格工具初始化失败:', e);
-    addLog('H3蜂窝网格工具初始化失败', e);
+    console.error('创建H3蜂窝网格失败:', e);
+    error('创建H3蜂窝网格失败:', e);
+    addLog('创建H3蜂窝网格失败', e);
   }
 };
 
@@ -3964,9 +3975,9 @@ defineExpose({
       if (typeof gridTool.value.isVisible === 'function') {
         return gridTool.value.isVisible() ? OpenStatus.OPEN : OpenStatus.CLOSE;
       } 
-      // 检查visible属性
-      else if (typeof gridTool.value.visible === 'boolean') {
-        return gridTool.value.visible ? OpenStatus.OPEN : OpenStatus.CLOSE;
+      // 检查toggle方法是否存在，如果存在，使用isVisible方法
+      else if (typeof gridTool.value.toggle === 'function' && typeof gridTool.value.isVisible === 'function') {
+        return gridTool.value.isVisible() ? OpenStatus.OPEN : OpenStatus.CLOSE;
       }
       // 如果都不可用,返回关闭状态
       return OpenStatus.CLOSE;

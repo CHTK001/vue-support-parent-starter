@@ -709,6 +709,59 @@ export class GridLayerGeohash {
    */
   destroy() {
     this.gridLayer?.removeFrom(this.map);
-      this.gridLayer = null;
+    this.gridLayer = null;
+  }
+  
+  /**
+   * 切换网格类型 (rect/hex)
+   */
+  public toggleType(): void {
+    const newType = this.options.gridType === 'rect' ? 'hex' : 'rect';
+    this.setType(newType);
+  }
+  
+  /**
+   * 获取当前网格类型
+   * @returns 当前网格类型 ('rect' | 'hex')
+   */
+  public getType(): 'rect' | 'hex' {
+    return this.options.gridType || 'rect';
+  }
+  
+  /**
+   * 设置网格类型
+   * @param type 网格类型 ('rect' | 'hex')
+   */
+  public setType(type: 'rect' | 'hex'): void {
+    if (this.options.gridType === type) return;
+    
+    this.options.gridType = type;
+    info(`网格类型已切换为 ${type}`);
+    
+    if (this.visible) {
+      // 重新初始化网格
+      this.hide();
+      setTimeout(() => this.show(), 50);
+    }
+  }
+  
+  /**
+   * 设置网格精度级别
+   * @param level 精度级别(1-12)
+   */
+  public setLevel(level: number): void {
+    // 确保level在有效范围内
+    level = Math.max(1, Math.min(12, level));
+    
+    if (this.options.level === level) return;
+    
+    this.options.level = level;
+    info(`网格精度级别已设置为 ${level}`);
+    
+    if (this.visible) {
+      // 重新初始化网格以应用新的精度级别
+      this.hide();
+      setTimeout(() => this.show(), 50);
+    }
   }
 } 

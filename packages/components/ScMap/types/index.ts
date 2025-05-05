@@ -24,6 +24,7 @@ export interface MapTypeItem {
   isOverlay?: boolean; // 是否为叠加层
   opacity?: number;    // 不透明度
   options?: Record<string, any>; // 额外选项
+  projectionType?: ProjectionType; // 地图投影类型
 }
 
 // 地图类型集合接口
@@ -135,6 +136,8 @@ export interface ScMapProps {
   migrationConfig?: MigrationConfig;
   // 飞线图实现类型，可选 'antPath', 'echarts', 'leafletEcharts' 或 'leafletCharts5'
   migrationImpl?: 'antPath' | 'echarts5';
+  // 投影类型
+  projectionType?: ProjectionType;
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
@@ -236,6 +239,42 @@ export enum LayerType {
   LIGHT = 'LIGHT',
   HYBRID = 'HYBRID',
   CUSTOM = 'CUSTOM'
+}
+
+// 投影类型枚举
+export enum ProjectionType {
+  WGS84 = 'WGS84',         // 国际标准，GPS使用的投影
+  GCJ02 = 'GCJ02',         // 高德、腾讯地图使用的投影
+  BD09 = 'BD09',           // 百度地图使用的投影
+  WebMercator = 'WebMercator', // Web墨卡托投影，谷歌地图等使用
+  TianDiTu = 'TianDiTu'    // 天地图投影
+}
+
+// 投影配置接口
+export interface ProjectionConfig {
+  // 投影类型
+  type: ProjectionType;
+  // proj4字符串定义
+  proj4def?: string;
+  // 投影坐标系统代码
+  code?: string;
+  // 投影范围[minx, miny, maxx, maxy]
+  bounds?: [number, number, number, number];
+  // 投影原点[x, y]
+  origin?: [number, number];
+  // 分辨率数组
+  resolutions?: number[];
+  // 缩放级别范围[minZoom, maxZoom]
+  zoomLevels?: [number, number];
+  // 瓦片大小
+  tileSize?: number;
+  // 自定义转换函数
+  transformation?: {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+  };
 }
 
 // 轨迹点类型定义
