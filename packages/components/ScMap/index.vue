@@ -95,10 +95,13 @@ import { Migration } from './plugin/Migration';
 import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入网格插件
 import { GridLayerGeohash } from './plugin/GridLayerGeohash';
+import { GridLayerH3 } from './plugin/GridLayerH3';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
 // 网格工具实例
 const gridTool = ref<any>(null);
+// H3蜂窝网格工具实例
+const h3GridTool = ref<any>(null);
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -501,7 +504,11 @@ const handleToolActivated = (toolId: string) => {
     // 启用网格
     enableGrid();
     addLog('网格功能已启用');
-  } else if (toolId === 'showShapes' && shapeTool.value) {
+    } else if (toolId === 'h3') {
+    // 启用H3蜂窝网格
+    enableH3Grid();
+    addLog('H3蜂窝网格功能已启用');
+    } else if (toolId === 'showShapes' && shapeTool.value) {
     // 如果有显示图形的功能，可以在这里实现
     addLog('显示图形功能未实现');
   } else if (toolId === 'hideShapes' && shapeTool.value) {
@@ -717,7 +724,7 @@ const handleToolDeactivated = (toolId: string) => {
     closeDebugPanel();
     addLog('关闭调试面板'); // 添加日志记录
   } else if (toolId === 'coordinate') {
-    // 停用坐标模式
+    // 停用坐标显示模式
     disableCoordinateMode();
     addLog('停用坐标模式'); // 添加日志记录
   } else if (toolId === 'layerSwitch') {
@@ -760,22 +767,21 @@ const handleToolDeactivated = (toolId: string) => {
     // 禁用网格
     disableGrid();
     addLog('网格功能已禁用');
-  }
-  // 标记点显示/隐藏
-  else if (toolId === 'toggleMarkers') {
-    if (markerTool.value) {
-      markerTool.value.showAllMarkers();
-      info('显示所有标记点');
-      addLog('显示所有标记点');
+  } else if (toolId === 'h3') {
+    // 禁用H3蜂窝网格
+    disableH3Grid();
+    addLog('H3蜂窝网格功能已禁用');
+  } else if (toolId === 'edit' && shapeTool.value) {
+    // 停用编辑工具时，禁用所有图形的编辑功能
+    shapeTool.value.disableAllEditing();
+    
+    // 恢复鼠标样式
+    if (mapInstance.value && mapInstance.value.getContainer()) {
+      mapInstance.value.getContainer().style.cursor = '';
+      addLog('恢复默认鼠标样式');
     }
-  }
-  // 标签显示/隐藏
-  else if (toolId === 'toggleLabels') {
-    if (markerTool.value) {
-      markerTool.value.showAllLabels();
-      info('显示所有标记点标签');
-      addLog('显示所有标记点标签');
-    }
+    
+    addLog('禁用所有图形的编辑功能');
   }
 };
 
@@ -1034,6 +1040,16 @@ const handleToolClick = async (event: { id: string; active: boolean; toggleState
       enableGrid();
     } else {
       disableGrid();
+    }
+    return;
+  }
+  
+  // 如果点击的是H3蜂窝网格工具
+  if (event.id === 'h3') {
+    if (event.active) {
+      enableH3Grid();
+    } else {
+      disableH3Grid();
     }
     return;
   }
@@ -3494,7 +3510,7 @@ const initGrid = async (): Promise<void> => {
       showCode: true, // 默认显示网格编码
       codeColor: '#333',
       codeSize: 12,
-      interactive: true,
+      interactive: true, // 默认使用矩形网格
       gridType: 'rect', // 默认使用矩形网格
       autoAdjustLevel: true, // 启用自动调整网格级别，根据zoom动态调整网格
       // 配置默认显示的白色边框
@@ -3663,6 +3679,110 @@ const toggleGrid = async (): Promise<void> => {
   } catch (e) {
     error('切换网格状态失败:', e);
     addLog('切换网格状态失败', e);
+  }
+};
+
+// 启用H3蜂窝网格
+const enableH3Grid = async (): Promise<void> => {
+  try {
+    // 初始化H3蜂窝网格(如果尚未初始化)
+    if (!h3GridTool.value) {
+      await initH3Grid();
+      
+      if (!h3GridTool.value) {
+        throw new Error('H3蜂窝网格工具初始化失败');
+      }
+      
+      // 给初始化一点时间
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // 尝试安全地显示网格
+    try {
+      // 检查h3GridTool的必要方法
+      if (typeof h3GridTool.value.show === 'function') {
+        h3GridTool.value.show();
+        addLog('H3蜂窝网格已启用');
+      } else {
+        throw new Error('H3蜂窝网格工具缺少show方法');
+      }
+    } catch (showError) {
+      // 如果第一次尝试失败，重新尝试
+      error('首次显示H3蜂窝网格失败，尝试重新初始化:', showError);
+      
+      // 再次初始化H3蜂窝网格工具
+      await initH3Grid();
+      
+      // 延迟后再次尝试
+      setTimeout(() => {
+        try {
+          if (h3GridTool.value && typeof h3GridTool.value.show === 'function') {
+            h3GridTool.value.show();
+            addLog('H3蜂窝网格已启用(重试成功)');
+          } else {
+            addLog('启用H3蜂窝网格失败: 无法显示网格');
+          }
+        } catch (retryError) {
+          error('重试显示H3蜂窝网格失败:', retryError);
+          addLog('启用H3蜂窝网格失败: 显示错误');
+        }
+      }, 300);
+    }
+  } catch (e) {
+    error('启用H3蜂窝网格失败:', e);
+    addLog('启用H3蜂窝网格失败', e);
+  }
+};
+
+// 禁用H3蜂窝网格显示
+const disableH3Grid = (): void => {
+  try {
+    if (h3GridTool.value) {
+      h3GridTool.value.hide();
+      addLog('H3蜂窝网格已禁用');
+    }
+  } catch (e) {
+    error('禁用H3蜂窝网格失败:', e);
+    addLog('禁用H3蜂窝网格失败', e);
+  }
+};
+
+// 初始化H3蜂窝网格
+const initH3Grid = async (): Promise<void> => {
+  if (h3GridTool.value) return;
+  
+  try {
+    // 延迟加载 L
+    if (!L) {
+      L = (await import('leaflet')).default;
+    }
+    
+    // 确保地图实例已初始化
+    if (!mapInstance.value) {
+      warn('地图实例未初始化，无法创建H3蜂窝网格工具');
+      addLog('H3蜂窝网格工具初始化失败: 地图实例未初始化');
+      return;
+    }
+    
+    // 创建H3蜂窝网格工具
+    h3GridTool.value = new GridLayerH3(mapInstance.value, {
+      resolution: 8, // 设置初始精度为8
+      color: '#3388ff',
+      weight: 1,
+      fillColor: '#3388ff',
+      fillOpacity: 0.1,
+      showCode: true, // 默认显示网格编码
+      codeColor: '#333',
+      codeSize: 12,
+      interactive: true,
+      useRandomColors: true // 使用随机颜色
+    });
+    
+    addLog('H3蜂窝网格工具初始化成功');
+    info('H3蜂窝网格工具初始化成功');
+  } catch (e) {
+    error('H3蜂窝网格工具初始化失败:', e);
+    addLog('H3蜂窝网格工具初始化失败', e);
   }
 };
 
@@ -3855,7 +3975,9 @@ defineExpose({
       return OpenStatus.CLOSE;
     }
   },
-  toggleGrid
+  toggleGrid,
+  enableH3Grid,
+  disableH3Grid
 });
 </script>
 

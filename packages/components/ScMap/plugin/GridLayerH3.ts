@@ -4,7 +4,8 @@
  */
 import type { Map as LeafletMap } from 'leaflet';
 import { warn, info, error } from '@repo/utils';
-import * as h3 from 'h3-js';
+// 移除h3-js依赖
+// import * as h3 from 'h3-js';
 
 // 类型安全的方式获取Leaflet实例
 declare const L: any;
@@ -56,6 +57,7 @@ export class GridLayerH3 {
   private labels: Map<string, any> = new Map(); // 存储已创建的标签
   private highlightedH3Index: string | null = null;
   private highlightLayer: any = null;
+  private gridSize: number = 0.02; // 默认网格大小
   
   /**
    * 构造函数
@@ -78,6 +80,9 @@ export class GridLayerH3 {
       ...options
     };
     
+    // 根据分辨率调整网格大小
+    this.adjustGridSizeByResolution(this.options.resolution || 7);
+    
     // 创建图层组
     this.h3Layer = L.featureGroup();
     
@@ -86,6 +91,16 @@ export class GridLayerH3 {
     this.map.on('zoomend', this.updateGrid, this);
     
     info("H3蜂窝网格已初始化，默认精度为7级");
+  }
+  
+  /**
+   * 根据分辨率调整网格大小
+   * @param resolution 分辨率级别
+   */
+  private adjustGridSizeByResolution(resolution: number): void {
+    // 分辨率越高，网格越小
+    // 这是一个简化的计算，实际H3的分辨率计算更复杂
+    this.gridSize = 0.1 / Math.pow(2, resolution - 4);
   }
   
   /**
@@ -104,17 +119,9 @@ export class GridLayerH3 {
     const east = bounds.getEast();
     const west = bounds.getWest();
     
-    // 使用h3.polyfill获取覆盖当前视图的H3索引
-    const polygon = [
-      [north, west],
-      [north, east],
-      [south, east],
-      [south, west]
-    ];
-    
     try {
-      // 获取覆盖多边形的H3索引
-      const h3Indexes = h3.polyfill(polygon, this.options.resolution || 7);
+      // 生成覆盖区域的六边形网格
+      const h3Indexes = this.generateHexGrid(north, south, east, west);
       
       // 为每个H3索引创建六边形
       h3Indexes.forEach(h3Index => {
@@ -131,13 +138,96 @@ export class GridLayerH3 {
   }
   
   /**
+   * 生成六边形网格
+   * @param north 北边界
+   * @param south 南边界
+   * @param east 东边界
+   * @param west 西边界
+   * @returns 六边形索引数组
+   */
+  private generateHexGrid(north: number, south: number, east: number, west: number): string[] {
+    const h3Indexes: string[] = [];
+    const gridSize = this.gridSize;
+    const sqrt3 = Math.sqrt(3);
+    
+    // 六边形高度
+    const hexHeight = gridSize * 2;
+    // 六边形宽度
+    const hexWidth = sqrt3 * gridSize;
+    
+    // 计算区域内需要的六边形行列数
+    const rows = Math.ceil((north - south) / (hexHeight * 0.75));
+    const cols = Math.ceil((east - west) / hexWidth);
+    
+    // 生成六边形网格
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        // 计算六边形中心点
+        let centerLat = north - row * (hexHeight * 0.75);
+        let centerLng = west + col * hexWidth + (row % 2 === 0 ? 0 : hexWidth / 2);
+        
+        // 检查中心点是否在范围内
+        if (centerLat <= north && centerLat >= south && centerLng >= west && centerLng <= east) {
+          // 生成唯一的ID
+          const h3Index = `h3_${this.options.resolution}_${row}_${col}`;
+          
+          // 保存中心点和边界点
+          this.hexCoords.set(h3Index, {
+            center: [centerLat, centerLng],
+            boundary: this.generateHexBoundary(centerLat, centerLng, gridSize)
+          });
+          
+          h3Indexes.push(h3Index);
+        }
+      }
+    }
+    
+    return h3Indexes;
+  }
+  
+  // 存储六边形的坐标信息
+  private hexCoords: Map<string, {
+    center: [number, number],
+    boundary: [number, number][]
+  }> = new Map();
+  
+  /**
+   * 生成六边形边界坐标
+   * @param centerLat 中心纬度
+   * @param centerLng 中心经度
+   * @param size 网格大小
+   * @returns 六边形边界坐标数组
+   */
+  private generateHexBoundary(centerLat: number, centerLng: number, size: number): [number, number][] {
+    const sqrt3 = Math.sqrt(3);
+    const boundary: [number, number][] = [];
+    
+    // 六边形六个顶点的角度
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i;
+      const x = centerLng + size * Math.sin(angle);
+      const y = centerLat + size * Math.cos(angle);
+      boundary.push([y, x]);
+    }
+    
+    // 闭合六边形
+    boundary.push(boundary[0]);
+    
+    return boundary;
+  }
+  
+  /**
    * 创建单个六边形
    * @param h3Index H3索引
    */
   private createHexagon(h3Index: string): void {
     try {
+      // 获取六边形坐标信息
+      const hexCoord = this.hexCoords.get(h3Index);
+      if (!hexCoord) return;
+      
       // 获取六边形边界坐标
-      const boundary = h3.h3ToGeoBoundary(h3Index, true);
+      const boundary = hexCoord.boundary;
       
       // 确定样式
       let style: any = {
@@ -199,8 +289,11 @@ export class GridLayerH3 {
    */
   private createLabel(h3Index: string): void {
     try {
-      // 获取中心点
-      const center = h3.h3ToGeo(h3Index);
+      // 获取六边形中心点
+      const hexCoord = this.hexCoords.get(h3Index);
+      if (!hexCoord) return;
+      
+      const center = hexCoord.center;
       
       // 截断过长的H3索引显示
       const displayText = h3Index.length > 8 ? h3Index.substring(0, 8) + '...' : h3Index;
@@ -245,82 +338,71 @@ export class GridLayerH3 {
     this.h3Layer.clearLayers();
     this.hexagons.clear();
     this.labels.clear();
+    this.hexCoords.clear();
+    this.highlightedH3Index = null;
+    this.highlightLayer = null;
   }
   
   /**
    * 从H3索引生成颜色
    * @param h3Index H3索引
-   * @returns 十六进制颜色
+   * @returns 颜色十六进制字符串
    */
   private getColorFromH3Index(h3Index: string): string {
-    if (!h3Index || h3Index.length === 0) {
-      return '#e9ecef'; // 默认颜色
+    // 使用h3Index的哈希值生成颜色
+    let hash = 0;
+    for (let i = 0; i < h3Index.length; i++) {
+      hash = h3Index.charCodeAt(i) + ((hash << 5) - hash);
     }
     
-    // 从H3索引中提取数字部分
-    const numPart = h3Index.match(/\d+/g) || ['0'];
-    const num = parseInt(numPart.join(''), 10);
+    // 转换为HSL颜色（保持亮度和饱和度一致，只改变色相）
+    const h = ((hash % 360) + 360) % 360; // 0-359的色相值
+    const s = 70; // 固定饱和度
+    const l = 60; // 固定亮度
     
-    // 专业地图色彩范围
-    const hueRanges = [
-      [180, 225],  // 蓝绿色系
-      [195, 240],  // 蓝色系
-      [155, 195],  // 青色系
-      [85, 130],   // 绿色系
-      [35, 70],    // 黄绿色系
-      [215, 265],  // 紫蓝色系
-      [40, 80]     // 浅黄色系
-    ];
-    
-    // 根据H3索引选择色相范围
-    const rangeIndex = num % hueRanges.length;
-    const [minHue, maxHue] = hueRanges[rangeIndex];
-    
-    // 在选定范围内微调色相
-    const huePercent = (num % 36) / 36;
-    const hue = minHue + (maxHue - minHue) * huePercent;
-    
-    // 饱和度和亮度
-    const saturation = 80;
-    const lightness = 55;
-    
-    // 返回HSL颜色
-    return this.hslToHex(hue, saturation, lightness);
+    return this.hslToHex(h, s, l);
   }
   
   /**
-   * 将HSL颜色转换为十六进制颜色
+   * 将HSL颜色转换为HEX颜色
+   * @param h 色相 (0-360)
+   * @param s 饱和度 (0-100)
+   * @param l 亮度 (0-100)
+   * @returns 十六进制颜色字符串
    */
   private hslToHex(h: number, s: number, l: number): string {
+    h /= 360;
     s /= 100;
     l /= 100;
     
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c / 2;
+    let r, g, b;
     
-    let r = 0, g = 0, b = 0;
-    
-    if (0 <= h && h < 60) {
-      r = c; g = x; b = 0;
-    } else if (60 <= h && h < 120) {
-      r = x; g = c; b = 0;
-    } else if (120 <= h && h < 180) {
-      r = 0; g = c; b = x;
-    } else if (180 <= h && h < 240) {
-      r = 0; g = x; b = c;
-    } else if (240 <= h && h < 300) {
-      r = x; g = 0; b = c;
-    } else if (300 <= h && h < 360) {
-      r = c; g = 0; b = x;
+    if (s === 0) {
+      r = g = b = l; // 灰度
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
     }
     
-    // 转换为RGB
-    const rHex = Math.round((r + m) * 255).toString(16).padStart(2, '0');
-    const gHex = Math.round((g + m) * 255).toString(16).padStart(2, '0');
-    const bHex = Math.round((b + m) * 255).toString(16).padStart(2, '0');
+    const toHex = (x: number) => {
+      const hex = Math.round(x * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
     
-    return `#${rHex}${gHex}${bHex}`;
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
   
   /**
@@ -332,10 +414,10 @@ export class GridLayerH3 {
       // 清除之前的高亮
       this.clearHighlight();
       
-      // 保存当前高亮索引
+      // 保存当前高亮的H3索引
       this.highlightedH3Index = h3Index;
       
-      // 获取已有的六边形
+      // 获取对应的六边形
       const hexagon = this.hexagons.get(h3Index);
       
       if (hexagon) {
@@ -359,7 +441,10 @@ export class GridLayerH3 {
           this.h3Layer.removeLayer(label);
           
           // 获取中心点
-          const center = h3.h3ToGeo(h3Index);
+          const hexCoord = this.hexCoords.get(h3Index);
+          if (!hexCoord) return;
+          
+          const center = hexCoord.center;
           
           // 创建高亮标签
           const highlightLabel = L.marker([center[0], center[1]], {
@@ -387,7 +472,10 @@ export class GridLayerH3 {
       } else {
         // 如果没有找到现有的六边形，创建新的高亮六边形
         // 获取六边形边界坐标
-        const boundary = h3.h3ToGeoBoundary(h3Index, true);
+        const hexCoord = this.hexCoords.get(h3Index);
+        if (!hexCoord) return;
+        
+        const boundary = hexCoord.boundary;
         
         // 创建多边形
         const polygon = L.polygon(boundary, {
@@ -405,7 +493,7 @@ export class GridLayerH3 {
         // 如果显示编码，添加标签
         if (this.options.showCode) {
           // 获取中心点
-          const center = h3.h3ToGeo(h3Index);
+          const center = hexCoord.center;
           
           // 创建标记
           const label = L.marker([center[0], center[1]], {
@@ -528,6 +616,7 @@ export class GridLayerH3 {
     }
     
     this.options.resolution = resolution;
+    this.adjustGridSizeByResolution(resolution);
     
     if (this.visible) {
       this.updateGrid();
