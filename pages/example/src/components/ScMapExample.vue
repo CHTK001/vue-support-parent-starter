@@ -65,7 +65,7 @@
       <!-- 右侧配置区域 -->
       <div class="config-area thin-scrollbar">
         <h3>配置参数</h3>
-
+        
         <div class="config-section">
           <div class="config-item">
             <div class="label">交互控制</div>
@@ -569,7 +569,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="preset-section">
           <h4>预设位置</h4>
           <div class="preset-buttons">
@@ -851,14 +851,14 @@ const toggleAllMarkers = () => {
   if (!mapRef.value) return;
   
   try {
-    if (allMarkersVisible.value) {
-      // 隐藏所有标记
-      mapRef.value.hideAllMarkers();
-      allMarkersVisible.value = false;
-    } else {
-      // 显示所有标记
-      mapRef.value.showAllMarkers();
-      allMarkersVisible.value = true;
+  if (allMarkersVisible.value) {
+    // 隐藏所有标记
+    mapRef.value.hideAllMarkers();
+    allMarkersVisible.value = false;
+  } else {
+    // 显示所有标记
+    mapRef.value.showAllMarkers();
+    allMarkersVisible.value = true;
     }
     log.info(`标记点已${allMarkersVisible.value ? '显示' : '隐藏'}`);
   } catch (e) {
@@ -986,20 +986,20 @@ const updateAggregation = () => {
 const addSampleTrack = () => {
   try {
     // 创建示例轨迹数据
-    const center = config.center;
-    const now = Math.floor(Date.now() / 1000);
+  const center = config.center;
+  const now = Math.floor(Date.now() / 1000);
     const points = [];
     
     // 生成一条简单的轨迹，沿着当前视图中心向东前进
     for (let i = 0; i < 20; i++) {
       const offset = i * 0.005; // 每步骤移动的距离
-      points.push({
+    points.push({
         lat: center[0], 
         lng: center[1] + offset,
         time: now + i * 60, // 每分钟一个点
         dir: 90,  // 向东
         title: `轨迹点 ${i+1}`,
-        info: [
+      info: [
           { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
           { key: '速度', value: '45 km/h' },
           { key: '方向', value: '90°' }
@@ -1008,20 +1008,20 @@ const addSampleTrack = () => {
     }
     
     // 创建轨迹对象
-    const track = {
+  const track = {
       id: 'sample-track',
       name: '示例轨迹',
       points: points,
-      color: '#FF5252',
-      visible: true
-    };
-    
+    color: '#FF5252',
+    visible: true
+  };
+  
     // 直接添加轨迹
-    mapRef.value.addTrack(track);
+      mapRef.value.addTrack(track);
     hasTrack.value = true;
     info(`已添加示例轨迹，包含 ${points.length} 个点`);
     
-    // 提示用户
+      // 提示用户
     ElMessage({
       message: '示例轨迹已添加到地图上',
       type: 'success',
@@ -1118,8 +1118,8 @@ const addTrackToMap = (id: string, name: string, points: any[], color: string) =
       mapRef.value.startTrackPlayer(track.id);
     }
     
-    hasTrack.value = true;
-    info(`已添加轨迹: ${name}，包含 ${points.length} 个点`);
+      hasTrack.value = true;
+      info(`已添加轨迹: ${name}，包含 ${points.length} 个点`);
   } catch (e) {
     error(`添加轨迹失败: ${name}`, e);
   }
@@ -1129,7 +1129,7 @@ const addTrackToMap = (id: string, name: string, points: any[], color: string) =
 const addMultipleTracks = () => {
   try {
     // 生成多条轨迹
-    const center = config.center;
+  const center = config.center;
     const tracks = [];
     
     // 生成四条不同方向的轨迹
@@ -1162,10 +1162,10 @@ const addMultipleTracks = () => {
     
     if (addedCount > 0) {
       hasTrack.value = true;
-      
-      // 调整视图以包含所有轨迹
-      fitTracksInView();
-      
+    
+    // 调整视图以包含所有轨迹
+    fitTracksInView();
+    
       log.info(`已添加 ${addedCount} 条轨迹`);
       
       // 提示用户
@@ -1200,32 +1200,32 @@ const addMultipleTracks = () => {
 const addCircularTrack = () => {
   try {
     // 生成环形轨迹
-    const center = config.center;
-    const now = Math.floor(Date.now() / 1000);
+  const center = config.center;
+  const now = Math.floor(Date.now() / 1000);
     const points = [];
     const radius = 0.02; // 大约2公里的半径
     const steps = 36; // 36个点，每10度一个点
-    
+  
     for (let i = 0; i <= steps; i++) {
       const angle = (i * 10) * (Math.PI / 180); // 转换为弧度
-      const lat = center[0] + radius * Math.sin(angle);
-      const lng = center[1] + radius * Math.cos(angle);
+    const lat = center[0] + radius * Math.sin(angle);
+    const lng = center[1] + radius * Math.cos(angle);
       const direction = (i * 10 + 90) % 360; // 切线方向
-      
-      points.push({
-        lat,
-        lng,
-        time: now + i * 60, // 每分钟一个点
-        dir: direction,
-        title: `环形轨迹点 ${i+1}`,
-        info: [
-          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
-          { key: '速度', value: '30 km/h' },
-          { key: '方向', value: `${direction}°` }
-        ]
-      });
-    }
     
+    points.push({
+      lat,
+      lng,
+        time: now + i * 60, // 每分钟一个点
+      dir: direction,
+      title: `环形轨迹点 ${i+1}`,
+      info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+        { key: '速度', value: '30 km/h' },
+          { key: '方向', value: `${direction}°` }
+      ]
+    });
+  }
+  
     // 创建轨迹对象
     const track = {
       id: 'circular-track',
@@ -1272,12 +1272,12 @@ const addCircularTrack = () => {
 const addZigzagTrack = () => {
   try {
     // 生成Z字形轨迹
-    const center = config.center;
-    const now = Math.floor(Date.now() / 1000);
+  const center = config.center;
+  const now = Math.floor(Date.now() / 1000);
     const points = [];
-    
+  
     // Z字形的五个关键点
-    const keyPoints = [
+  const keyPoints = [
       { lat: center[0] - 0.02, lng: center[1] - 0.02 }, // 左上
       { lat: center[0] - 0.02, lng: center[1] + 0.02 }, // 右上
       { lat: center[0], lng: center[1] - 0.01 }, // 中间
@@ -1286,9 +1286,9 @@ const addZigzagTrack = () => {
     ];
     
     // 为每个关键点之间插入中间点
-    for (let i = 0; i < keyPoints.length - 1; i++) {
-      const start = keyPoints[i];
-      const end = keyPoints[i + 1];
+  for (let i = 0; i < keyPoints.length - 1; i++) {
+    const start = keyPoints[i];
+    const end = keyPoints[i + 1];
       const steps = 5; // 每段插入5个点
       
       for (let j = 0; j <= steps; j++) {
@@ -1298,19 +1298,19 @@ const addZigzagTrack = () => {
         
         // 计算方向（使用简单的角度计算）
         const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
-        
-        points.push({
+    
+    points.push({
           lat,
           lng,
           time: now + (i * steps + j) * 60, // 每分钟一个点
-          dir: direction,
+      dir: direction,
           title: `Z字形轨迹点 ${points.length + 1}`,
-          info: [
+      info: [
             { key: '时间', value: new Date((now + (i * steps + j) * 60) * 1000).toLocaleTimeString() },
             { key: '速度', value: '40 km/h' },
-            { key: '方向', value: `${Math.round(direction)}°` }
-          ]
-        });
+        { key: '方向', value: `${Math.round(direction)}°` }
+      ]
+    });
       }
     }
     
@@ -1360,8 +1360,8 @@ const addZigzagTrack = () => {
 const addRandomTrack = () => {
   try {
     // 生成随机轨迹
-    const center = config.center;
-    const now = Math.floor(Date.now() / 1000);
+  const center = config.center;
+  const now = Math.floor(Date.now() / 1000);
     const points = [];
     const pointsCount = 20 + Math.floor(Math.random() * 10); // 20-30个点
     
@@ -1383,20 +1383,20 @@ const addRandomTrack = () => {
       // 随机速度 (30-60 km/h)
       const speed = 30 + Math.floor(Math.random() * 30);
       
-      points.push({
-        lat: currentLat,
-        lng: currentLng,
+    points.push({
+      lat: currentLat,
+      lng: currentLng,
         time: now + i * 60, // 每分钟一个点
-        dir: direction,
-        title: `随机轨迹点 ${i+1}`,
-        info: [
+      dir: direction,
+      title: `随机轨迹点 ${i+1}`,
+      info: [
           { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
           { key: '速度', value: `${speed} km/h` },
-          { key: '方向', value: `${Math.round(direction)}°` }
-        ]
-      });
-    }
-    
+        { key: '方向', value: `${Math.round(direction)}°` }
+      ]
+    });
+  }
+  
     // 创建轨迹对象
     const track = {
       id: 'random-track',
