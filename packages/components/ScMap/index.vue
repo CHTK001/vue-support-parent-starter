@@ -95,8 +95,8 @@ import { EchartsMigration } from './plugin/EchartsMigration';
 import { Migration } from './plugin/Migration';
 import type { MigrationBase, MigrationPoint } from './plugin/MigrationBase';
 // 导入网格插件
-import { GridLayerGeohash } from './plugin/GridLayerGeohash';
-import { GridLayerH3 } from './plugin/GridLayerH3';
+import { GridLayerGeohash } from './layers/GeohashLayer';
+import { GridLayerH3 } from './layers/H3Layer';
 // 导入投影相关工具
 import { createCRS, getProjectionConfig } from './utils';
 import projectionHelper from './utils/projectionHelper';
@@ -1091,7 +1091,7 @@ onUnmounted(() => {
   if (measureTool.value) {
     measureTool.value.stop();
   }
-
+  
   if (gridTool.value) {
     gridTool.value?.destroy();
   }
@@ -1126,7 +1126,7 @@ onUnmounted(() => {
     
     if (markerTool.value) {
       markerTool.value.destroy();
-      markerTool.value = null;
+    markerTool.value = null;
     }
     
     if (aggregationTool.value) {
@@ -1134,7 +1134,7 @@ onUnmounted(() => {
       aggregationTool.value = null;
     }
     
-    if (shapeTool.value) {
+  if (shapeTool.value) {
       // 取消当前绘图
       if (shapeTool.value.isDrawing()) {
     shapeTool.value.cancelDrawing();
@@ -1249,7 +1249,7 @@ const handleToolClick = async (event: { id: string; active: boolean; toggleState
   if (event.id === 'grid') {
     if (event.active) {
       enableGrid();
-    } else {
+      } else {
       disableGrid();
     }
     return;
@@ -1693,7 +1693,7 @@ const initShapeTool = () => {
     });
     
     // 形状绘制结束事件
-    shapeTool.value.on('drawing-end', (data) => {
+      shapeTool.value.on('drawing-end', (data) => {
       try {
         info('绘制结束:', data);
         addLog('绘制结束', {id: data.id, type: data.type});
@@ -1707,7 +1707,7 @@ const initShapeTool = () => {
     });
     
     // 形状绘制取消事件
-    shapeTool.value.on('drawing-cancel', () => {
+      shapeTool.value.on('drawing-cancel', () => {
       try {
         info('绘制已取消');
         addLog('绘制已取消');
@@ -2542,7 +2542,7 @@ const updateHeatMapOptions = (options: Partial<HeatMapOptions>): boolean => {
     warn('热力图工具未初始化，无法更新配置');
     return false;
   }
-  
+
   try {
     const result = heatMapTool.value.updateOptions(options);
     if (result) {
@@ -2658,7 +2658,7 @@ const initMapTools = (): void => {
     });
     
     addLog('地图工具初始化完成');
-  } catch (e) {
+    } catch (e) {
     error('初始化地图工具失败:', e);
     addLog('初始化地图工具失败', e);
   }
@@ -2742,7 +2742,7 @@ const setMigrationData = (data: MigrationPoint[], startAnimation: boolean = true
       addLog(`飞线图数据已更新，共${validData.length}条有效路径`);
     }
     return result;
-  } catch (e) {
+    } catch (e) {
     error('设置飞线图数据失败:', e);
     addLog('设置飞线图数据失败', e);
     return false;
@@ -2762,7 +2762,7 @@ const clearMigrationData = (): boolean => {
       addLog('飞线图数据已清除');
     }
     return result;
-  } catch (e) {
+    } catch (e) {
     error('清除飞线图数据失败:', e);
     addLog('清除飞线图数据失败', e);
     return false;
@@ -2850,7 +2850,7 @@ const refreshMigration = (): boolean => {
       addLog('通过重启动画方式刷新飞线图');
       return true;
     }
-  } catch (e) {
+    } catch (e) {
     error('刷新飞线图失败:', e);
     addLog('刷新飞线图出错', e);
     return false;
@@ -3340,7 +3340,7 @@ const setDrawMode = (mode: 'create' | 'edit' | 'view'): void => {
       }
       addLog('绘图工具已设置为查看模式');
       break;
-    default:
+        default:
       warn(`未知的绘图模式: ${mode}`);
   }
 };
@@ -3593,8 +3593,8 @@ const handleViewMoreMarkerDetails = () => {
 const getVisibleBounds = (): [[number, number], [number, number]] | null => {
   if (!mapInstance.value) {
     warn('地图实例未初始化，无法获取可视区域');
-    return null;
-  }
+          return null;
+      }
 
   try {
     // 获取当前地图的边界
@@ -3608,69 +3608,69 @@ const getVisibleBounds = (): [[number, number], [number, number]] | null => {
       [southWest.lat, southWest.lng],
       [northEast.lat, northEast.lng]
     ];
-  } catch (e) {
+    } catch (e) {
     error('获取地图可视区域失败:', e);
     addLog('获取地图可视区域失败', e);
-    return null;
-  }
+      return null;
+    }
 };
 
 /**
  * 从地图上移除轨迹但保留数据
  */
 const hideTrack = (trackId: string): boolean => {
-  if (!trackPlayerController.value) {
-    warn('轨迹播放器尚未初始化');
-    return false;
-  }
-  
-  try {
+    if (!trackPlayerController.value) {
+      warn('轨迹播放器尚未初始化');
+      return false;
+    }
+    
+    try {
     // 使用 trackPlayerController 中的 hideTrack 方法
     // 现在这是 TrackPlayer 类中的公有方法
     const result = trackPlayerController.value.hideTrack(trackId);
-    
-    if (result) {
+      
+      if (result) {
       info(`成功从地图上移除轨迹: ${trackId}（数据已保留）`);
       addLog('轨迹已从地图上移除', {trackId});
-      return true;
-    } else {
+        return true;
+      } else {
       warn(`从地图上移除轨迹失败: ${trackId}`);
+        return false;
+      }
+    } catch (e) {
+    error('从地图上移除轨迹出错:', e);
       return false;
     }
-  } catch (e) {
-    error('从地图上移除轨迹出错:', e);
-    return false;
-  }
 };
 
 /**
  * 完全删除轨迹（从数据和地图上都移除）
  */
 const deleteTrack = (trackId: string): boolean => {
-  if (!trackPlayerController.value) {
-    warn('轨迹播放器尚未初始化');
-    return false;
-  }
-  
-  try {
+    if (!trackPlayerController.value) {
+      warn('轨迹播放器尚未初始化');
+      return false;
+    }
+    
+    try {
     // 先确保从地图上移除轨迹（即使数据删除失败，也要尝试从地图上移除）
     trackPlayerController.value.hideTrack(trackId);
     
     // 然后从数据中删除轨迹
-    const result = trackPlayerController.value.removeTrack(trackId);
-    
-    if (result) {
+      const result = trackPlayerController.value.removeTrack(trackId);
+      
+      if (result) {
       info(`成功删除轨迹: ${trackId}`);
       addLog('轨迹已删除', {trackId});
-      return true;
-    } else {
+        return true;
+      } else {
       warn(`删除轨迹失败: ${trackId}`);
+        return false;
+      }
+    } catch (e) {
+    error('删除轨迹出错:', e);
       return false;
     }
-  } catch (e) {
-    error('删除轨迹出错:', e);
-    return false;
-  }
 };
 
 /**
