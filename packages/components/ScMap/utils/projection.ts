@@ -5,7 +5,21 @@
 
 import { ProjectionType, ProjectionConfig } from '../types';
 import L from 'leaflet';
-import 'proj4leaflet';
+// 尝试导入proj4leaflet
+try {
+  require('proj4leaflet');
+} catch (e) {
+  console.warn('导入proj4leaflet失败，将使用简化投影');
+}
+
+import proj4Support from './proj4-support';
+
+// 检查Proj4Leaflet是否正确加载
+const hasProjSupport = typeof L.Proj !== 'undefined' && proj4Support.hasProj4Support;
+if (!hasProjSupport) {
+  console.warn('警告: Proj4Leaflet未正确加载或proj4未找到，自定义投影将不可用');
+  console.warn('将使用标准Web墨卡托投影(EPSG:3857)作为替代，这可能会导致坐标偏移');
+}
 
 // 默认的EPSG:3857 Web墨卡托投影（大多数在线地图使用）
 const WEB_MERCATOR: ProjectionConfig = {
@@ -40,43 +54,26 @@ const TIAN_DI_TU: ProjectionConfig = {
   zoomLevels: [0, 18]
 };
 
-// 高德地图(GCJ-02)投影
+// 高德地图(GCJ-02)投影 - 简化版本
 const GCJ02: ProjectionConfig = {
   type: ProjectionType.GCJ02,
-  code: 'EPSG:GCJ02',
-  // 这个proj4def是一个近似值，实际上GCJ-02是对WGS84的加密偏移
-  proj4def: '+proj=longlat +datum=GCJ02',
-  bounds: [-180, -90, 180, 90],
-  origin: [-180, 90],
+  code: 'EPSG:3857', // 使用标准Web墨卡托投影
+  proj4def: '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs',
+  bounds: [-20037508.34, -20037508.34, 20037508.34, 20037508.34],
+  origin: [-20037508.34, 20037508.34],
   tileSize: 256,
   zoomLevels: [0, 18]
 };
 
-// 百度地图(BD-09)投影
+// 百度地图(BD-09)投影 - 简化版本
 const BD09: ProjectionConfig = {
   type: ProjectionType.BD09,
-  code: 'EPSG:BD09',
-  // 这个proj4def是一个近似值，实际上BD-09是对GCJ-02的进一步偏移
-  proj4def: '+proj=longlat +datum=BD09',
-  bounds: [-180, -90, 180, 90],
-  origin: [0, 0],
+  code: 'EPSG:3857', // 使用标准Web墨卡托投影
+  proj4def: '+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs',
+  bounds: [-20037508.34, -20037508.34, 20037508.34, 20037508.34],
+  origin: [-20037508.34, 20037508.34],
   tileSize: 256,
-  zoomLevels: [0, 18],
-  // 百度地图的特殊变换矩阵
-  transformation: {
-    a: 1,
-    b: 0,
-    c: 0,
-    d: -1
-  },
-  // 百度地图使用的分辨率数组
-  resolutions: [
-    1.40625, 0.703125, 0.3515625, 0.17578125, 0.087890625,
-    0.0439453125, 0.02197265625, 0.010986328125, 0.0054931640625,
-    0.00274658203125, 0.001373291015625, 0.0006866455078125, 0.00034332275390625,
-    0.000171661376953125, 0.0000858306884765625, 0.00004291534423828125, 0.000021457672119140625,
-    0.0000107288360595703125, 0.00000536441802978515625
-  ]
+  zoomLevels: [0, 18]
 };
 
 // 投影配置集合
@@ -99,8 +96,6 @@ export function createCRS(projectionType: ProjectionType | string): L.CRS {
     return L.CRS.EPSG3857;
   }
   
-  const config = PROJECTIONS[projectionType as ProjectionType];
-  
   // 对于标准Web墨卡托投影，直接使用Leaflet内置CRS
   if (projectionType === ProjectionType.WebMercator) {
     return L.CRS.EPSG3857;
@@ -111,13 +106,27 @@ export function createCRS(projectionType: ProjectionType | string): L.CRS {
     return L.CRS.EPSG4326;
   }
   
-  // 百度地图使用特殊的CRS
-  if (projectionType === ProjectionType.BD09) {
-    return createBaiduCRS(config);
+  // 对于高德地图(GCJ02)，简化处理使用Web墨卡托投影
+  if (projectionType === ProjectionType.GCJ02) {
+    console.info('使用Web墨卡托投影(EPSG:3857)加载高德地图，地图显示正常但可能有约300-500米的坐标偏差');
+    return L.CRS.EPSG3857;
   }
   
-  // 其他投影使用proj4leaflet创建
-  return createProj4CRS(config);
+  // 百度地图使用Web墨卡托投影
+  if (projectionType === ProjectionType.BD09) {
+    console.info('使用Web墨卡托投影(EPSG:3857)加载百度地图，地图显示正常但可能有约500-1000米的坐标偏差');
+    return L.CRS.EPSG3857;
+  }
+  
+  // 天地图使用WGS84投影
+  if (projectionType === ProjectionType.TianDiTu) {
+    console.info('使用WGS84投影(EPSG:4326)加载天地图');
+    return L.CRS.EPSG4326;
+  }
+  
+  // 对于其他投影类型，使用Web墨卡托投影
+  console.warn(`未知的投影类型: ${projectionType}，使用Web墨卡托投影(EPSG:3857)替代`);
+  return L.CRS.EPSG3857;
 }
 
 /**
@@ -126,33 +135,37 @@ export function createCRS(projectionType: ProjectionType | string): L.CRS {
  * @returns Proj4Leaflet CRS对象
  */
 function createProj4CRS(config: ProjectionConfig): L.CRS {
-  // @ts-ignore - 由于使用外部扩展库
-  const proj4Def = L.Proj.CRS.TMS.prototype;
-  
   const bounds = config.bounds ? 
     L.bounds([config.bounds[0], config.bounds[1]], [config.bounds[2], config.bounds[3]]) : 
     undefined;
   
   const origin = config.origin || [0, 0];
   
-  // 创建基于proj4的坐标参考系统
-  return new L.Proj.CRS(
-    config.code || 'EPSG:3857',
-    config.proj4def || '',
-    {
-      resolutions: config.resolutions,
-      bounds: bounds,
-      origin: origin,
-      transformation: config.transformation ? 
-        new L.Transformation(
-          config.transformation.a,
-          config.transformation.b,
-          config.transformation.c,
-          config.transformation.d
-        ) : 
-        new L.Transformation(1, 0, -1, 0)
-    }
-  );
+  try {
+    // 创建基于proj4的坐标参考系统
+    // @ts-ignore - 由于使用外部扩展库
+    return new L.Proj.CRS(
+      config.code || 'EPSG:3857',
+      config.proj4def || '',
+      {
+        resolutions: config.resolutions,
+        bounds: bounds,
+        origin: origin,
+        transformation: config.transformation ? 
+          new L.Transformation(
+            config.transformation.a,
+            config.transformation.b,
+            config.transformation.c,
+            config.transformation.d
+          ) : 
+          new L.Transformation(1, 0, -1, 0)
+      }
+    );
+  } catch (e) {
+    console.error('创建Proj4 CRS失败:', e);
+    // 如果创建失败，回退到标准Web Mercator投影
+    return L.CRS.EPSG3857;
+  }
 }
 
 /**

@@ -1,16 +1,13 @@
-import ScTree from './ScTree';
-import ScMap from './ScMap';
+import ScLayer from './ScLayer';
 
 // 导出组件
 export {
-  ScTree,
-  ScMap,
+  ScLayer
 };
 
 // 导出所有组件
 export default {
   install(app) {
-    app.use(ScTree);
-    app.use(ScMap);
+    app.use(ScLayer);
   }
 };

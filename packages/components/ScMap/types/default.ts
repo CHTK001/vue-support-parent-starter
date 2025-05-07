@@ -53,7 +53,7 @@ export const DEFAULT_TOOL_ITEMS = [
     tooltip: '测量距离',
     active: false,
   },
-  {
+    {
     id: 'toggleMarkers',
     name: '显示/隐藏标记',
     icon: MARKER_ICON,
@@ -317,63 +317,90 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfig = {
 export const MAP_TYPES: MapTypes = {
   NORMAL: {
     name: '标准地图',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>',
     image: DEFAULT_NORMAL_MAP_IMAGE,
-    description: '显示道路和基本地理信息',
-    maxZoom: 19,
+    description: '高德标准地图',
+    maxZoom: 18,
+    minZoom: 3,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    subdomains: ['1', '2', '3', '4'],
+    projectionType: ProjectionType.GCJ02
   },
   SATELLITE: {
     name: '卫星影像',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>',
     image: DEFAULT_SATELLITE_MAP_IMAGE,
-    description: '高清卫星影像',
+    description: '高德卫星影像',
     maxZoom: 18,
+    minZoom: 3,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    subdomains: ['1', '2', '3', '4'],
+    projectionType: ProjectionType.GCJ02
+  },
+  HYBRID: {
+    name: '卫星路网',
+    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>',
+    image: DEFAULT_SATELLITE_MAP_IMAGE,
+    description: '高德卫星影像+路网',
+    maxZoom: 18,
+    minZoom: 3,
+    tileSize: 256,
+    subdomains: ['1', '2', '3', '4'],
+    projectionType: ProjectionType.GCJ02
   },
   TERRAIN: {
     name: '地形图',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
     image: DEFAULT_NORMAL_MAP_IMAGE,
-    description: '地形图',
+    description: '地形图（注意：此图层使用WGS84坐标系，与高德地图会有偏差）',
     maxZoom: 17,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    projectionType: ProjectionType.WebMercator,
+    options: {
+      coordSystemWarning: true
+    }
   },
   TRAFFIC: {
     name: '交通图',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=9&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>',
     image: DEFAULT_TRAFFIC_MAP_IMAGE,
-    description: '显示路网交通信息',
-    maxZoom: 19,
+    description: '高德实时交通地图',
+    maxZoom: 18,
+    minZoom: 3,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    subdomains: ['1', '2', '3', '4'],
+    projectionType: ProjectionType.GCJ02
   },
   DARK: {
     name: '暗黑地图',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     image: DEFAULT_ROAD_MAP_IMAGE,
-    description: '暗色调地图',
+    description: '暗色调地图（注意：此图层使用WGS84坐标系，与高德地图会有偏差）',
     maxZoom: 20,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    projectionType: ProjectionType.WebMercator,
+    options: {
+      coordSystemWarning: true
+    }
   },
   LIGHT: {
     name: '浅色地图',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     image: DEFAULT_ROAD_MAP_IMAGE,
-    description: '浅色调地图',
+    description: '浅色调地图（注意：此图层使用WGS84坐标系，与高德地图会有偏差）',
     maxZoom: 20,
     tileSize: 256,
-    projectionType: ProjectionType.WebMercator
+    projectionType: ProjectionType.WebMercator,
+    options: {
+      coordSystemWarning: true
+    }
   },
   TIAN_DI_TU: {
     name: '天地图',

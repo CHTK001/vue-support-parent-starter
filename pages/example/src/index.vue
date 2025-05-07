@@ -184,6 +184,12 @@ const components = [
     component: resolveComponent("./components/ScMapExample.vue"),
   },
   {
+    name: "ScLayer",
+    icon: "ri:map-2-line",
+    description: "基于OpenLayers的地图图层组件，提供测距、标记点、形状绘制等功能",
+    component: resolveComponent("./components/ScLayerExample.vue"),
+  },
+  {
     name: "ScCron",
     icon: "carbon:time",
     description: "Cron表达式组件，提供Cron表达式生成和解析功能，支持可视化配置",
