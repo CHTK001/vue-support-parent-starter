@@ -81,7 +81,6 @@ export class CoordinateObject {
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }
-    
     if (options) {
       this.setOptions(options);
     }
@@ -134,21 +133,19 @@ export class CoordinateObject {
       return;
     }
     
+    // 设置回调函数
     if (callback) {
       this.callback = callback;
     }
     
+    // 如果已启用，先禁用
     if (this.enabled) {
-      logger.debug('坐标跟踪已经启用，无需重复启用');
-      return;
+      this.disable();
     }
     
-    // 绑定鼠标移动事件
-    this.pointerMoveListener = this.handlePointerMove.bind(this);
-    this.mapInstance.on('pointermove', this.pointerMoveListener);
-    
+    // 设置启用状态
     this.enabled = true;
-    logger.debug('坐标跟踪已启用');
+    logger.info('坐标跟踪已启用');
   }
 
   /**
@@ -159,11 +156,6 @@ export class CoordinateObject {
       return;
     }
     
-    // 解绑鼠标移动事件
-    if (this.pointerMoveListener) {
-      this.mapInstance.un('pointermove', this.pointerMoveListener);
-      this.pointerMoveListener = null;
-    }
     
     this.enabled = false;
     logger.debug('坐标跟踪已禁用');
@@ -209,38 +201,6 @@ export class CoordinateObject {
    */
   public setShowProjected(show: boolean): void {
     this.options.showProjected = show;
-  }
-
-  /**
-   * 处理鼠标移动事件
-   * @param event 鼠标移动事件
-   */
-  private handlePointerMove(event: any): void {
-    if (!this.mapInstance || !this.enabled) return;
-    
-    // 获取鼠标位置的地图坐标
-    const pixel = event.pixel;
-    const coord = this.mapInstance.getCoordinateFromPixel(pixel);
-    
-    if (!coord || coord.length < 2) return;
-    
-    // 获取当前地图投影
-    const mapProjection = this.mapInstance.getView().getProjection().getCode();
-    
-    // 保存原始投影坐标
-    this.coordinate.projectedX = coord[0];
-    this.coordinate.projectedY = coord[1];
-    this.coordinate.projection = mapProjection;
-    
-    // 转换为WGS84坐标 (经纬度)
-    const wgs84Coord = toLonLat(coord, mapProjection);
-    this.coordinate.longitude = wgs84Coord[0];
-    this.coordinate.latitude = wgs84Coord[1];
-    
-    // 触发回调
-    if (this.callback) {
-      this.callback(this.getCoordinate());
-    }
   }
 
   /**

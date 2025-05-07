@@ -8,7 +8,7 @@
     <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="[
       { active: isToolActive(tool.id) },
       { 'has-submenu': tool.type === 'menu' && tool.children?.length },
-      tool.className
+      tool?.className || ''
     ]" :data-tool-id="tool.id" @click.stop="(e) => handleToolClick(tool, e)" @dblclick.stop.prevent>
       <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
       <component v-else :is="tool.icon" />
@@ -112,7 +112,7 @@ const props = withDefaults(defineProps<Props>(), {
     itemsPerLine: 8,
     size: 36,
     items: []
-  })
+  } as ToolbarConfig)
 });
 
 // 方便在模板和计算属性中使用
@@ -129,7 +129,7 @@ const config = computed(() => ({
 // 这样可以保持与ToolbarObject的一致性
 const visibleTools = computed(() => {
   return (props.toolbarConfig.items || []).filter(tool => tool.show !== false);
-});
+}) as unknown as ToolItem[];
 
 // 判断工具是否激活
 const isToolActive = (toolId: string): boolean => {
@@ -244,7 +244,7 @@ const handleSubMenuClick = (parentTool: ToolItem, subTool: ToolItem, event: Mous
     parentTool,
     tool: subTool,
     event
-  });
+});
 
   // 处理切换类型工具
   if (subTool.type === 'toggle') {
@@ -378,7 +378,7 @@ const toolbarStyle = computed(() => {
       }
     }
   } else {
-    // 不限制工具数量时使用flex布局
+  // 不限制工具数量时使用flex布局
     style.display = 'flex';
     style.gap = `${buttonMargin.value}px`;
 

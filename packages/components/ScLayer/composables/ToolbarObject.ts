@@ -7,12 +7,23 @@ import { DEFAULT_TOOLBAR_CONFIG } from '../types/toolbar';
 import { Map as OlMap } from 'ol';
 import type { MapObject } from './MapObject';
 import logger from './LogObject';
+import { CoordinateObject, CoordinateInfo, CoordinateOptions, CoordinatePosition } from './CoordinateObject';
+import { MeasureObject, MeasureType } from './MeasureObject';
 
 export class ToolbarObject {
   private config: ToolbarConfig;
   private mapObj: MapObject;
   private tools: ToolItem[] = [];
   private activeToolId: string | null = null;
+  
+  // 坐标对象
+  private coordinateObj: CoordinateObject | null = null;
+  // 测距对象
+  private measureObj: MeasureObject | null = null;
+  // 坐标面板是否显示
+  private showCoordinatePanel: boolean = false;
+  // 坐标信息回调
+  private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
 
   /**
    * 构造函数
@@ -23,7 +34,63 @@ export class ToolbarObject {
     this.config = config || DEFAULT_TOOLBAR_CONFIG;
     this.mapObj = mapObj;
     this.tools = [...(this.config.items || [])];
+    // 设置默认的坐标回调函数，避免每次激活时判断
+    this.coordinateCallback = (coordinate) => {
+      logger.debug('坐标更新:', 
+        `经度=${coordinate.longitude.toFixed(6)}, ` +
+        `纬度=${coordinate.latitude.toFixed(6)}`
+      );
+    };
+    
+    // 初始化坐标对象
+    this.initCoordinateObject();
+    
+    // 初始化测距对象
+    this.initMeasureObject();
+    
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
+  }
+  
+  /**
+   * 初始化坐标对象
+   */
+  private initCoordinateObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化坐标对象');
+      return;
+    }
+    
+    // 创建坐标对象
+    this.coordinateObj = new CoordinateObject(mapInstance);
+    
+    // 设置默认的坐标选项
+    if (this.config.coordinateConfig) {
+      const options: CoordinateOptions = {
+        decimals: this.config.coordinateConfig.decimals,
+        position: this.config.coordinateConfig.position as CoordinatePosition,
+        showProjected: this.config.coordinateConfig.showProjected
+      };
+      this.coordinateObj.setOptions(options);
+    }
+    
+    logger.debug('坐标对象初始化成功');
+  }
+  
+  /**
+   * 初始化测距对象
+   */
+  private initMeasureObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化测距对象');
+      return;
+    }
+    
+    // 创建测距对象
+    this.measureObj = new MeasureObject(mapInstance);
+    
+    logger.debug('测距对象初始化成功');
   }
 
   /**
@@ -134,7 +201,7 @@ export class ToolbarObject {
     
     if (tool && (tool.type === 'toggle' || tool.type === 'button')) {
       // 如果之前有激活的工具，先停用它
-      if (this.activeToolId) {
+      if (this.activeToolId && this.activeToolId !== toolId) {
         this.deactivateTool(this.activeToolId);
       }
       
@@ -183,7 +250,10 @@ export class ToolbarObject {
         this.handleFitToExtent();
         break;
       case 'measure':
-        // 实现测量功能
+        this.handleMeasureActivate();
+        break;
+      case 'coordinate':
+        this.handleCoordinateActivate();
         break;
       case 'draw':
         // 实现绘制功能
@@ -204,7 +274,10 @@ export class ToolbarObject {
     // 根据工具类型执行不同的操作
     switch (tool.id) {
       case 'measure':
-        // 停止测量
+        this.handleMeasureDeactivate();
+        break;
+      case 'coordinate':
+        this.handleCoordinateDeactivate();
         break;
       case 'draw':
         // 停止绘制
@@ -312,17 +385,110 @@ export class ToolbarObject {
       }
     }
   }
+  
+  /**
+   * 处理测距工具激活
+   */
+  private handleMeasureActivate(): void {
+    if (!this.measureObj) {
+      logger.warn('测距对象不存在，无法启用测距功能');
+      return;
+    }
+    
+    // 启用测距功能
+    this.measureObj.enable('distance');
+    logger.debug('测距功能已启用');
+  }
+  
+  /**
+   * 处理测距工具停用
+   */
+  private handleMeasureDeactivate(): void {
+    if (!this.measureObj) return;
+    
+    // 禁用测距功能
+    this.measureObj.disable();
+    logger.debug('测距功能已禁用');
+  }
+  
+  /**
+   * 处理坐标工具激活
+   */
+  private handleCoordinateActivate(): void {
+    if (!this.coordinateObj) {
+      logger.warn('坐标对象不存在，无法启用坐标功能');
+      return;
+    }
+    
+    // 显示坐标面板
+    this.showCoordinatePanel = true;
+    
+    // 确保我们有地图实例
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法启用坐标跟踪功能');
+      return;
+    }
+    
+    // 确保坐标对象绑定到最新的地图实例
+    this.coordinateObj.setMapInstance(mapInstance);
+    
+    // 先禁用再启用，确保监听器正确绑定
+    this.coordinateObj.disable();
+    
+    // 启用坐标跟踪
+    this.coordinateObj.enable(this.coordinateCallback);
+    
+    logger.info('坐标面板已显示，坐标跟踪已启用');
+  }
+  
+  /**
+   * 处理坐标工具停用
+   */
+  private handleCoordinateDeactivate(): void {
+    // 隐藏坐标面板
+    this.showCoordinatePanel = false;
+    
+    // 禁用坐标跟踪
+    if (this.coordinateObj && this.coordinateObj.isEnabled()) {
+      this.coordinateObj.disable();
+    }
+    
+    logger.debug('坐标面板已隐藏，坐标跟踪已禁用');
+  }
 
   /**
    * 处理清除要素
    */
   private handleClearFeatures(): void {
     if (this.mapObj && this.mapObj.getMapInstance()) {
-      // 清除所有矢量要素的逻辑
-      const map = this.mapObj.getMapInstance();
-      // 实现清除要素的逻辑，具体实现取决于应用需求
+      // 清除测距结果
+      if (this.measureObj) {
+        this.measureObj.clear();
+      }
+      
+      // 实现清除其他要素的逻辑，具体实现取决于应用需求
       logger.info('清除地图要素');
     }
+  }
+  
+  /**
+   * 获取坐标面板显示状态
+   * @returns 坐标面板是否显示
+   */
+  isCoordinatePanelVisible(): boolean {
+    return this.showCoordinatePanel;
+  }
+  
+  
+  /**
+   * 切换测距类型
+   * @param type 测距类型
+   */
+  switchMeasureType(type: MeasureType): void {
+    if (!this.measureObj) return;
+    
+    this.measureObj.switchType(type);
   }
 
   /**
@@ -333,6 +499,18 @@ export class ToolbarObject {
     // 停用所有激活的工具
     if (this.activeToolId) {
       this.deactivateTool(this.activeToolId);
+    }
+    
+    // 销毁坐标对象
+    if (this.coordinateObj) {
+      this.coordinateObj.destroy();
+      this.coordinateObj = null;
+    }
+    
+    // 销毁测距对象
+    if (this.measureObj) {
+      this.measureObj.destroy();
+      this.measureObj = null;
     }
     
     // 清空工具列表

@@ -17,6 +17,7 @@ import { MapTile } from '../types';
 import { MapType } from '../types/map';
 import { ConfigObject } from './ConfigObject';
 import logger from './LogObject';
+import type { CoordinateInfo } from './CoordinateObject';
 
 export interface MapEmitter {
   'map-click': (event: any) => void;
@@ -34,12 +35,25 @@ export class MapObject {
   private vectorLayer: VectorLayer<any> | null = null;
   // 矢量数据源
   private vectorSource: VectorSource = new VectorSource();
+  // 自定义鼠标移动事件监听器
+  private customPointerMoveListener: (event: any, coordinate: CoordinateInfo) => void = () => { };
   // 标记点信息
   private markerInfo: { coordinates: number[] | null; data: any | null } = {
     coordinates: null,
     data: null
   };
-
+// 当前坐标信息
+  private coordinate: CoordinateInfo = {
+    longitude: 0,
+    latitude: 0,
+    projectedX: 0,
+    projectedY: 0,
+    projection: 'EPSG:3857',
+    decimals: 6,
+    position: 'bottom-right'
+  };
+  // 鼠标移动事件监听器
+  private pointerMoveListener: any = null;
   // 交互控制
   private dragPan: DragPan | null = null;
   private mouseWheelZoom: MouseWheelZoom | null = null;
@@ -53,9 +67,17 @@ export class MapObject {
    */
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
+    this.pointerMoveListener = (event: any) => { 
+    this.registerPointerMoveEvent(event);
+    this.customPointerMoveListener(event, this.coordinate);
+  };
     logger.debug('MapObject实例已创建，配置类型:', configObject.getMapType());
   }
 
+  // 设置鼠标移动事件监听器
+  public setPointerMoveListener(listener: (event: any, coordinate: CoordinateInfo) => void): void {
+    this.customPointerMoveListener = listener;
+  }
   /**
    * 初始化地图
    * @param target 地图容器DOM元素
@@ -106,7 +128,8 @@ export class MapObject {
         }),
         controls: [], // 禁用所有默认控件，包括缩放按钮
       });
-
+      
+      this.mapInstance.on('pointermove', this.pointerMoveListener);
       // 检查地图实例是否正确创建
       if (!this.mapInstance) {
         logger.error('地图实例创建失败');
@@ -549,6 +572,37 @@ export class MapObject {
   public getConfigObject(): ConfigObject {
     return this.configObject;
   }
+ /**
+   * 处理鼠标移动事件
+   * @param event 鼠标移动事件
+   */
+  private registerPointerMoveEvent(event: any): void {
+    
+    try {
+      // 获取鼠标位置的地图坐标
+      const pixel = event.pixel;
+      const coord = this.mapInstance.getCoordinateFromPixel(pixel);
+      
+      if (!coord || coord.length < 2) return;
+      
+      // 获取当前地图投影
+      const mapProjection = this.mapInstance.getView().getProjection().getCode();
+      
+      // 保存原始投影坐标
+      this.coordinate.projectedX = coord[0];
+      this.coordinate.projectedY = coord[1];
+      this.coordinate.projection = mapProjection;
+      
+      // 转换为WGS84坐标 (经纬度)
+      const wgs84Coord = toLonLat(coord, mapProjection);
+      this.coordinate.longitude = wgs84Coord[0];
+      this.coordinate.latitude = wgs84Coord[1];
+      
+      this.coordinate.decimals = 8;
+    } catch (error) {
+      logger.error('处理坐标失败:', error);
+    }
+  }
 
   /**
    * 销毁地图对象
@@ -556,6 +610,7 @@ export class MapObject {
   public destroy(): void {
     logger.info('销毁地图对象');
     if (this.mapInstance) {
+      this.mapInstance.un('pointermove', this.pointerMoveListener);
       this.mapInstance.dispose();
       this.mapInstance = null;
     }
