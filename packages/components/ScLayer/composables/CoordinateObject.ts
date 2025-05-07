@@ -63,8 +63,6 @@ export class CoordinateObject {
   private callback: ((coordinate: CoordinateInfo) => void) | null = null;
   // 是否启用
   private enabled: boolean = false;
-  // 指针移动事件绑定
-  private pointerMoveListener: any = null;
   // 配置项
   private options: CoordinateOptions = {
     decimals: 6,
@@ -78,9 +76,6 @@ export class CoordinateObject {
    * @param options 配置选项
    */
   constructor(mapInstance: Map | null = null, options?: CoordinateOptions) {
-    // 创建指针移动事件监听器
-    this.pointerMoveListener = this.handlePointerMove.bind(this);
-    
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }
@@ -89,41 +84,6 @@ export class CoordinateObject {
     }
   }
 
-  /**
-   * 处理指针移动事件
-   * @param event 指针移动事件
-   */
-  private handlePointerMove(event: any): void {
-    if (!this.mapInstance || !this.enabled) return;
-    
-    try {
-      // 获取鼠标位置的地图坐标
-      const pixel = event.pixel;
-      const coord = this.mapInstance.getCoordinateFromPixel(pixel);
-      
-      if (!coord || coord.length < 2) return;
-      
-      // 获取当前地图投影
-      const mapProjection = this.mapInstance.getView().getProjection().getCode();
-      
-      // 保存原始投影坐标
-      this.coordinate.projectedX = coord[0];
-      this.coordinate.projectedY = coord[1];
-      this.coordinate.projection = mapProjection;
-      
-      // 转换为WGS84坐标 (经纬度)
-      const wgs84Coord = toLonLat(coord, mapProjection);
-      this.coordinate.longitude = wgs84Coord[0];
-      this.coordinate.latitude = wgs84Coord[1];
-      
-      // 调用回调函数
-      if (this.callback) {
-        this.callback({...this.coordinate});
-      }
-    } catch (error) {
-      logger.error('处理坐标失败:', error);
-    }
-  }
 
   /**
    * 设置配置选项
@@ -150,20 +110,9 @@ export class CoordinateObject {
    * @param mapInstance 地图实例
    */
   public setMapInstance(mapInstance: Map): void {
-    // 如果之前已经有地图实例，先移除事件监听
-    if (this.mapInstance && this.enabled) {
-      this.mapInstance.un('pointermove', this.pointerMoveListener);
-    }
-    
     this.mapInstance = mapInstance;
     this.coordinate.projection = this.mapInstance.getView().getProjection().getCode();
-    
     logger.debug('坐标跟踪对象已初始化，投影:', this.coordinate.projection);
-    
-    // 如果之前是启用状态，需要在新地图上重新绑定事件
-    if (this.enabled && this.mapInstance) {
-      this.mapInstance.on('pointermove', this.pointerMoveListener);
-    }
   }
 
   /**
@@ -185,10 +134,6 @@ export class CoordinateObject {
     if (this.enabled) {
       this.disable();
     }
-    
-    // 绑定事件监听器
-    this.mapInstance.on('pointermove', this.pointerMoveListener);
-    
     // 设置启用状态
     this.enabled = true;
     logger.info('坐标跟踪已启用');
@@ -201,10 +146,6 @@ export class CoordinateObject {
     if (!this.mapInstance || !this.enabled) {
       return;
     }
-    
-    // 移除事件监听器
-    this.mapInstance.un('pointermove', this.pointerMoveListener);
-    
     this.enabled = false;
     logger.debug('坐标跟踪已禁用');
   }

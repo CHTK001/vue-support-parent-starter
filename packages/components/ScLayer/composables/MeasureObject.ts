@@ -287,9 +287,12 @@ export class MeasureObject {
 
     // 移除帮助提示
     this.removeHelpTooltip();
+    
+    // 清除所有测距数据
+    this.clear();
 
     this.enabled = false;
-    logger.debug('测距功能已禁用');
+    logger.debug('测距功能已禁用，所有测距数据已清除');
   }
 
   /**
@@ -379,14 +382,6 @@ export class MeasureObject {
     // 添加绘制交互
     this.mapInstance.addInteraction(this.draw);
 
-    // 创建修改交互
-    this.modify = new Modify({
-      source: this.source
-    });
-    
-    // 添加修改交互
-    this.mapInstance.addInteraction(this.modify);
-
     // 创建捕捉交互
     this.snap = new Snap({
       source: this.source
@@ -457,6 +452,11 @@ export class MeasureObject {
         const length = getLength(geom);
         output = this.formatLength(length);
         tooltipCoord = (geom as LineString).getLastCoordinate();
+        
+        // 触发要素重新绘制，使节点距离标签更新
+        if (this.source) {
+          this.source.dispatchEvent('change');
+        }
       } else {
         const area = getArea(geom);
         output = this.formatArea(area);
@@ -575,7 +575,6 @@ export class MeasureObject {
       this.mapInstance.removeOverlay(this.helpTooltip);
       this.helpTooltip = null;
     }
-    
     // 移除鼠标移动监听器
     this.mapInstance.getViewport().removeEventListener('pointermove', this.handlePointerMove.bind(this));
   }
@@ -636,9 +635,9 @@ export class MeasureObject {
     let output;
     
     if (length > 1000) {
-      output = `${Math.round((length / 1000) * 100) / 100} km`;
+      output = `${(Math.round(length / 10) / 100).toFixed(2)} 公里`;
     } else {
-      output = `${Math.round(length * 100) / 100} m`;
+      output = `${Math.round(length * 100) / 100} 米`;
     }
     
     return `总距离: ${output}`;
@@ -695,13 +694,29 @@ export class MeasureObject {
         })
       );
       
-      // 添加顶点样式
+      // 添加顶点样式和距离标签
       const coordinates = geometry.getCoordinates();
       
+      // 计算从起点到每个点的距离
+      let cumulativeDistance = 0;
+      let previousCoord = null;
+      
       for (let i = 0; i < coordinates.length; i++) {
+        const coord = coordinates[i];
+        
+        // 计算距离
+        if (i > 0 && previousCoord) {
+          const segmentLine = new LineString([previousCoord, coord]);
+          const segmentLength = getLength(segmentLine);
+          cumulativeDistance += segmentLength;
+        }
+        
+        previousCoord = coord;
+        
+        // 添加节点样式
         styles.push(
           new Style({
-            geometry: new Point(coordinates[i]),
+            geometry: new Point(coord),
             image: new CircleStyle({
               radius: this.style.point?.radius || 5,
               stroke: new Stroke({
@@ -714,6 +729,35 @@ export class MeasureObject {
             })
           })
         );
+        
+        // 跳过起点的标签，因为距离为0
+        if (i > 0) {
+          // 添加距离标签
+          const label = this.formatDistanceLabel(cumulativeDistance);
+          
+          styles.push(
+            new Style({
+              geometry: new Point(coord),
+              text: new Text({
+                text: label,
+                font: 'bold 12px Arial,sans-serif',
+                fill: new Fill({
+                  color: '#1890ff'
+                }),
+                backgroundFill: new Fill({
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }),
+                padding: [3, 5, 3, 5],
+                stroke: new Stroke({
+                  color: '#fff',
+                  width: 3
+                }),
+                offsetY: -20,
+                textAlign: 'center'
+              })
+            })
+          );
+        }
       }
     } 
     // 面样式
@@ -754,6 +798,19 @@ export class MeasureObject {
     }
     
     return styles;
+  }
+  
+  /**
+   * 格式化距离标签
+   * @param distance 距离
+   * @returns 格式化后的距离标签
+   */
+  private formatDistanceLabel(distance: number): string {
+    if (distance > 1000) {
+      return `${(Math.round(distance / 10) / 100).toFixed(2)}km`;
+    } else {
+      return `${Math.round(distance)}m`;
+    }
   }
 }
 

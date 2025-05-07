@@ -13,7 +13,8 @@ import {
   MARKER_VISIBLE_ICON,
   LOCATION_ICON,
   DEBUG_ICON,
-  COORDINATE_ICON
+  COORDINATE_ICON,
+  EAGLE_EYE_ICON
 } from './icon';
 
 /**
@@ -53,6 +54,7 @@ export interface ToolItem {
   show?: boolean;
   active?: boolean;
   disabled?: boolean;
+  multi?: boolean;  // 是否可以与其它工具同时激活
   children?: ToolItem[];
 }
 
@@ -110,7 +112,16 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       type: 'toggle',
       icon: COORDINATE_ICON,
       title: '坐标',
-      name: '坐标'
+      name: '坐标',
+      multi: true  // 坐标工具可以与其它工具同时激活
+    },
+    {
+      id: 'overview',
+      type: 'toggle',
+      icon: EAGLE_EYE_ICON,
+      title: '鹰眼',
+      name: '鹰眼',
+      multi: true  // 鹰眼工具可以与其它工具同时激活
     }
   ],
   // 默认坐标工具配置

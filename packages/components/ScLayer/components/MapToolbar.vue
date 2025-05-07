@@ -4,7 +4,7 @@
 * @date 2025-04-29
 */
 <template>
-  <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent @click.stop>
+  <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent @click.stop :key="forceUpdateKey">
     <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="[
       { active: isToolActive(tool.id) },
       { 'has-submenu': tool.type === 'menu' && tool.children?.length },
@@ -99,10 +99,12 @@ import { ref, computed, watch, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import type { ToolItem, ToolbarConfig } from '../types';
 import type { AddToolOptions } from '../types';
 import { info } from "@repo/utils";
+import type { ToolbarObject } from '../composables/ToolbarObject';
 
 interface Props {
   toolbarConfig: ToolbarConfig;
   activeToolId?: string;
+  toolbarObj?: ToolbarObject | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -112,7 +114,8 @@ const props = withDefaults(defineProps<Props>(), {
     itemsPerLine: 8,
     size: 36,
     items: []
-  } as ToolbarConfig)
+  } as ToolbarConfig),
+  toolbarObj: null
 });
 
 // 方便在模板和计算属性中使用
@@ -133,7 +136,19 @@ const visibleTools = computed(() => {
 
 // 判断工具是否激活
 const isToolActive = (toolId: string): boolean => {
+  console.debug(`检查工具状态: ${toolId}, activeToolsMap:`, activeToolsMap.value);
+  
+  // 兼容旧模式
   if (props.activeToolId === toolId) return true;
+  
+  // 优先使用toolbarObj判断工具状态
+  if (props.toolbarObj) {
+    const tools = props.toolbarObj.getTools();
+    const tool = tools.find(t => t.id === toolId);
+    const isActive = !!tool?.active;
+    console.debug(`工具 ${toolId} 状态: ${isActive ? '激活' : '未激活'}`);
+    return isActive;
+  }
   
   // 在工具配置中查找
   const tool = (props.toolbarConfig.items || []).find(t => t.id === toolId);
@@ -171,6 +186,43 @@ const emit = defineEmits([
   'submenu-close',
   'submenu-item-click'
 ]);
+
+// 监听toolbarObj的变化
+watch(() => props.toolbarObj, (newToolbarObj) => {
+  if (newToolbarObj) {
+    // 可以在这里添加额外的初始化逻辑
+    console.debug('工具栏对象已更新');
+  }
+}, { immediate: true });
+
+// 本地激活的工具ID
+const activeToolsMap = ref<Record<string, boolean>>({});
+// 强制刷新视图的key
+const forceUpdateKey = ref(0);
+
+// 更新激活工具状态
+const updateActiveTools = () => {
+  if (!props.toolbarObj) return;
+  
+  const tools = props.toolbarObj.getTools();
+  const activeToolsObj: Record<string, boolean> = {};
+  
+  tools.forEach(tool => {
+    if (tool.active) {
+      activeToolsObj[tool.id] = true;
+    }
+  });
+  
+  // 更新激活状态Map
+  activeToolsMap.value = activeToolsObj;
+  console.debug('当前激活工具: ', Object.keys(activeToolsObj));
+  
+  // 强制刷新视图
+  forceUpdateKey.value++;
+};
+
+// 当toolbarObj变化时更新激活工具
+watch(() => props.toolbarObj, updateActiveTools, { immediate: true, deep: true });
 
 // 处理工具点击
 const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
@@ -213,18 +265,27 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
     return;
   }
 
-  // 处理切换类型工具
-  if (tool.type === 'toggle') {
-    const active = !isToolActive(tool.id);
-    if (active) {
+  // 使用toolbarObj处理工具点击
+  console.debug(`点击工具 ${tool.id} 前状态: ${isToolActive(tool.id) ? '激活' : '未激活'}`);
+  
+  // 使用toolbarObj处理工具点击
+  props.toolbarObj.handleToolClick(tool.id);
+  
+  // 等待下一个渲染周期，确保工具状态已更新
+  nextTick(() => {
+    // 手动更新工具状态
+    updateActiveTools();
+    
+    // 获取处理后的工具状态，发送相应事件
+    const isActive = isToolActive(tool.id);
+    console.debug(`点击工具 ${tool.id} 后状态: ${isActive ? '激活' : '未激活'}`);
+    
+    if (isActive) {
       emit('tool-activated', tool.id);
     } else {
       emit('tool-deactivated', tool.id);
     }
-  } else {
-    // 其他类型工具直接触发激活事件
-    emit('tool-activated', tool.id);
-  }
+  });
 };
 
 // 处理子菜单项点击
@@ -244,19 +305,43 @@ const handleSubMenuClick = (parentTool: ToolItem, subTool: ToolItem, event: Mous
     parentTool,
     tool: subTool,
     event
-});
+  });
 
-  // 处理切换类型工具
-  if (subTool.type === 'toggle') {
-    const active = !isToolActive(subTool.id);
-    if (active) {
-      emit('tool-activated', subTool.id);
-    } else {
-      emit('tool-deactivated', subTool.id);
-    }
+  // 使用toolbarObj处理子菜单项点击
+  if (props.toolbarObj) {
+    console.debug(`点击子菜单项 ${subTool.id} 前状态: ${isToolActive(subTool.id) ? '激活' : '未激活'}`);
+    
+    props.toolbarObj.handleSubMenuClick(parentTool.id, subTool.id);
+    
+    // 等待下一个渲染周期，确保工具状态已更新
+    nextTick(() => {
+      // 手动更新工具状态
+      updateActiveTools();
+      
+      // 获取处理后的工具状态并发送事件
+      const isActive = isToolActive(subTool.id);
+      console.debug(`点击子菜单项 ${subTool.id} 后状态: ${isActive ? '激活' : '未激活'}`);
+      
+      if (isActive) {
+        emit('tool-activated', subTool.id);
+      } else {
+        emit('tool-deactivated', subTool.id);
+      }
+    });
   } else {
-    // 其他类型工具直接触发激活事件
-    emit('tool-activated', subTool.id);
+    // 兼容旧逻辑
+    // 处理切换类型工具
+    if (subTool.type === 'toggle') {
+      const active = !isToolActive(subTool.id);
+      if (active) {
+        emit('tool-activated', subTool.id);
+      } else {
+        emit('tool-deactivated', subTool.id);
+      }
+    } else {
+      // 其他类型工具直接触发激活事件
+      emit('tool-activated', subTool.id);
+    }
   }
 };
 

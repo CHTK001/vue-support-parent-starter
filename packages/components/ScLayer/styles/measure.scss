@@ -70,6 +70,31 @@
   z-index: 2000;
 }
 
+// 节点距离标签样式
+.ol-measure-node-label {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 4px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 3px;
+  border: 1px solid #1890ff;
+  color: #1890ff;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1500;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px 5px 0;
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+  }
+}
+
 // 鼠标样式
 .ol-viewport.measure-cursor {
   cursor: crosshair !important;

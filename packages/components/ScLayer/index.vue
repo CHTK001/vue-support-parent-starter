@@ -11,6 +11,7 @@
         v-if="config.showToolbar"
         :toolbar-config="toolbarConfig"
         :active-tool-id="activeToolId"
+        :toolbar-obj="toolbarObject"
         @tool-activated="handleToolActivated"
         @tool-deactivated="handleToolDeactivated"
       />
@@ -72,6 +73,9 @@ const emit = defineEmits<{
   (e: MapEventType, payload: any): void;
   (e: 'update:center', center: [number, number]): void;
   (e: 'update:zoom', zoom: number): void;
+  (e: 'toolbar-tool-activated', payload: { toolId: string, toolbarObj: ToolbarObject }): void;
+  (e: 'toolbar-tool-deactivated', payload: { toolId: string, toolbarObj: ToolbarObject }): void;
+  (e: 'map-initialized', payload: { map: MapObject, toolbar: ToolbarObject }): void;
 }>();
 
 // 组件状态
@@ -185,16 +189,7 @@ watch(() => props.coordinateOptions, (newOptions) => {
 
 // 处理工具栏工具激活
 const handleToolActivated = (toolId: string) => {
-  // 更新UI状态
-  activeToolId.value = toolId;
-  
-  // 检查是否是坐标工具
-  if (toolId === 'coordinate') {
-    showCoordinatePanel.value = true;
-  }
-
-  toolbarObject.activateTool(toolId);
-  // 向父组件传递事件
+  // 只传递事件给父组件，不在这里处理业务逻辑
   emit('toolbar-tool-activated', {
     toolId,
     toolbarObj: toolbarObject
@@ -203,17 +198,7 @@ const handleToolActivated = (toolId: string) => {
 
 // 处理工具栏工具停用
 const handleToolDeactivated = (toolId: string) => {
-  if (activeToolId.value === toolId) {
-    activeToolId.value = undefined;
-  }
-  
-  // 检查是否是坐标工具
-  if (toolId === 'coordinate') {
-    showCoordinatePanel.value = false;
-  }
-
-  toolbarObject.deactivateTool(toolId);
-  // 向父组件传递事件
+  // 只传递事件给父组件，不在这里处理业务逻辑
   emit('toolbar-tool-deactivated', {
     toolId,
     toolbarObj: toolbarObject

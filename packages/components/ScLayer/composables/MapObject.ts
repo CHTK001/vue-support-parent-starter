@@ -12,6 +12,7 @@ import XYZ from 'ol/source/XYZ';
 import DragPan from 'ol/interaction/DragPan';
 import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
 import { defaults as defaultInteractions } from 'ol/interaction';
+import { defaults as defaultControls } from 'ol/control';
 
 import { MapTile } from '../types';
 import { MapType } from '../types/map';
@@ -42,7 +43,7 @@ export class MapObject {
     coordinates: null,
     data: null
   };
-// 当前坐标信息
+  // 当前坐标信息
   private coordinate: CoordinateInfo = {
     longitude: 0,
     latitude: 0,
@@ -52,8 +53,6 @@ export class MapObject {
     decimals: 6,
     position: 'bottom-right'
   };
-  // 鼠标移动事件监听器
-  private pointerMoveListener: any = null;
   // 交互控制
   private dragPan: DragPan | null = null;
   private mouseWheelZoom: MouseWheelZoom | null = null;
@@ -67,12 +66,6 @@ export class MapObject {
    */
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
-    this.pointerMoveListener = (event: any) => { 
-      this.registerPointerMoveEvent(event);
-      if (this.customPointerMoveListener) {
-        this.customPointerMoveListener(event, this.coordinate);
-      }
-    };
     logger.debug('MapObject实例已创建，配置类型:', configObject.getMapType());
   }
 
@@ -80,6 +73,7 @@ export class MapObject {
   public setPointerMoveListener(listener: (event: any, coordinate: CoordinateInfo) => void): void {
     this.customPointerMoveListener = listener;
   }
+
   /**
    * 初始化地图
    * @param target 地图容器DOM元素
@@ -128,10 +122,8 @@ export class MapObject {
           dragPan: false,
           mouseWheelZoom: false
         }),
-        controls: [], // 禁用所有默认控件，包括缩放按钮
       });
       
-      this.mapInstance.on('pointermove', this.pointerMoveListener);
       // 检查地图实例是否正确创建
       if (!this.mapInstance) {
         logger.error('地图实例创建失败');
@@ -144,6 +136,9 @@ export class MapObject {
       } else {
         logger.info(`地图共有 ${this.mapInstance.getLayers().getLength()} 个图层`);
       }
+
+      // 添加pointermove事件，使用MousePosition控件处理坐标
+      this.mapInstance.on('pointermove', this.handleMouseMove.bind(this));
 
       // 初始化交互控制
       this.initInteractions();
@@ -574,35 +569,43 @@ export class MapObject {
   public getConfigObject(): ConfigObject {
     return this.configObject;
   }
- /**
+
+  /**
    * 处理鼠标移动事件
    * @param event 鼠标移动事件
    */
-  private registerPointerMoveEvent(event: any): void {
+  private handleMouseMove(event: any): void {
+    if (!this.mapInstance) return;
     
     try {
-      // 获取鼠标位置的地图坐标
+      // 从事件中获取坐标
       const pixel = event.pixel;
       const coord = this.mapInstance.getCoordinateFromPixel(pixel);
       
       if (!coord || coord.length < 2) return;
       
       // 获取当前地图投影
-      const mapProjection = this.mapInstance.getView().getProjection().getCode();
+      const mapProjection = this.mapInstance.getView().getProjection();
       
-      // 保存原始投影坐标
-      this.coordinate.projectedX = coord[0];
-      this.coordinate.projectedY = coord[1];
-      this.coordinate.projection = mapProjection;
-      
-      // 转换为WGS84坐标 (经纬度)
+      // 转换为WGS84坐标(经纬度)
       const wgs84Coord = toLonLat(coord, mapProjection);
+      
+      // 设置经纬度
       this.coordinate.longitude = wgs84Coord[0];
       this.coordinate.latitude = wgs84Coord[1];
       
+      // 设置投影坐标
+      this.coordinate.projectedX = coord[0];
+      this.coordinate.projectedY = coord[1];
+      this.coordinate.projection = mapProjection.getCode();
       this.coordinate.decimals = 8;
+      
+      // 调用自定义回调
+      if (this.customPointerMoveListener) {
+        this.customPointerMoveListener(event, {...this.coordinate});
+      }
     } catch (error) {
-      logger.error('处理坐标失败:', error);
+      logger.error('处理鼠标坐标失败:', error);
     }
   }
 
@@ -612,7 +615,9 @@ export class MapObject {
   public destroy(): void {
     logger.info('销毁地图对象');
     if (this.mapInstance) {
-      this.mapInstance.un('pointermove', this.pointerMoveListener);
+      // 移除pointermove事件监听
+      this.mapInstance.un('pointermove', this.handleMouseMove.bind(this));
+      
       this.mapInstance.dispose();
       this.mapInstance = null;
     }
