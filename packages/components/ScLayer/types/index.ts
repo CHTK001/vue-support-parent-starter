@@ -4,6 +4,7 @@
 import type { MapUrlConfig } from "./map";
 import { MapType } from "./map";
 import type { ToolbarConfig, ToolItem } from "./toolbar";
+import type { CoordinateOptions } from "../composables/CoordinateObject";
 export * from "./map";
 export * from "./toolbar";
 
@@ -37,6 +38,8 @@ export interface MapConfig {
   toolbarConfig?: ToolbarConfig;
   // 向下兼容 - 自定义工具列表
   toolbar?: ToolItem[];
+  // 坐标面板配置
+  coordinateOptions?: CoordinateOptions;
 }
 
 // 事件类型

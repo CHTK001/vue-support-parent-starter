@@ -77,10 +77,6 @@ export class MapObject {
         source: this.vectorSource
       });
 
-      // 创建主图层（底图）
-      this.mainLayer = this.createBaseLayer();
-      logger.debug('创建底图图层:', this.mainLayer);
-      
       const center = this.configObject.getCenter();
       logger.debug('原始中心点:', center);
       
@@ -94,8 +90,12 @@ export class MapObject {
       
       // 创建视图，考虑投影
       const view = this.createMapView(center, this.configObject.getZoom(), projection);
+
+      // 创建主图层（底图）
+      this.mainLayer = this.createBaseLayer();
+      logger.debug('创建底图图层:', this.mainLayer);
       
-      // 创建地图实例，禁用默认交互
+      // 创建地图实例，禁用默认交互和控件
       this.mapInstance = new Map({
         target: target,
         layers: [this.mainLayer, this.vectorLayer],
@@ -103,7 +103,8 @@ export class MapObject {
         interactions: defaultInteractions({
           dragPan: false,
           mouseWheelZoom: false
-        })
+        }),
+        controls: [], // 禁用所有默认控件，包括缩放按钮
       });
 
       // 检查地图实例是否正确创建
@@ -309,19 +310,6 @@ export class MapObject {
       properties: {
         name: `${mapType}-${tileType}` // 添加名称以便于调试
       }
-    });
-    
-    // 监听图层加载状态
-    tileLayer.getSource().on('tileloadstart', () => {
-      logger.debug('开始加载瓦片...');
-    });
-    
-    tileLayer.getSource().on('tileloadend', () => {
-      logger.debug('瓦片加载完成');
-    });
-    
-    tileLayer.getSource().on('tileloaderror', (err) => {
-      logger.warn('瓦片加载失败:', err);
     });
     
     return tileLayer;
