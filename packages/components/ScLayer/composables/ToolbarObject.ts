@@ -9,6 +9,7 @@ import type { MapObject } from './MapObject';
 import logger from './LogObject';
 import { CoordinateObject, CoordinateInfo, CoordinateOptions, CoordinatePosition } from './CoordinateObject';
 import { MeasureObject, MeasureType } from './MeasureObject';
+import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 
 export class ToolbarObject {
   private config: ToolbarConfig;
@@ -20,6 +21,8 @@ export class ToolbarObject {
   private coordinateObj: CoordinateObject | null = null;
   // 测距对象
   private measureObj: MeasureObject | null = null;
+  // 鹰眼对象
+  private overviewMapObj: OverviewMapObject | null = null;
   // 坐标面板是否显示
   private showCoordinatePanel: boolean = false;
   // 坐标信息回调
@@ -47,6 +50,9 @@ export class ToolbarObject {
     
     // 初始化测距对象
     this.initMeasureObject();
+    
+    // 初始化鹰眼对象
+    this.initOverviewMapObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -91,6 +97,41 @@ export class ToolbarObject {
     this.measureObj = new MeasureObject(mapInstance);
     
     logger.debug('测距对象初始化成功');
+  }
+
+  /**
+   * 初始化鹰眼对象
+   */
+  private initOverviewMapObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化鹰眼对象');
+      return;
+    }
+    
+    // 获取地图配置
+    const configObj = this.mapObj.getConfigObject();
+    const mapType = configObj.getMapType();
+    const mapTile = configObj.getMapTile();
+    const mapConfig = configObj.getMapConfig();
+    // 获取地图API密钥配置对象
+    const mapKeys: Record<string, string> = {};
+    mapKeys[mapType] = configObj.getMapKey(mapType);
+    
+    // 创建鹰眼对象
+    this.overviewMapObj = new OverviewMapObject(
+      mapInstance,
+      {
+        collapsed: true,
+        rotateWithView: false
+      },
+      mapType,
+      mapTile,
+      mapConfig,
+      mapKeys
+    );
+    
+    logger.debug('鹰眼对象初始化成功');
   }
 
   /**
@@ -199,18 +240,59 @@ export class ToolbarObject {
   activateTool(toolId: string): void {
     const tool = this.tools.find(tool => tool.id === toolId);
     
-    if (tool && (tool.type === 'toggle' || tool.type === 'button')) {
-      // 如果之前有激活的工具，先停用它
-      if (this.activeToolId && this.activeToolId !== toolId) {
-        this.deactivateTool(this.activeToolId);
+    if (!tool || (tool.type !== 'toggle' && tool.type !== 'button')) {
+      logger.debug(`无法激活工具 ${toolId}: 工具不存在或类型不支持`);
+      return;
+    }
+
+    logger.debug(`正在激活工具 ${toolId}, 多选模式: ${tool.multi ? '是' : '否'}`);
+
+    // 多选模式：如果工具不支持多选，先停用之前激活的其他工具
+    if (!tool.multi) {
+      // 获取当前已激活的工具列表(排除当前工具)
+      const activeTools = this.tools.filter(t => 
+        t.active && t.id !== toolId && !t.multi
+      );
+      
+      if (activeTools.length > 0) {
+        logger.debug(`需要停用其他工具: ${activeTools.map(t => t.id).join(', ')}`);
       }
       
-      tool.active = true;
-      this.activeToolId = toolId;
+      // 记录是否有测距工具被停用
+      const measureToolDeactivated = activeTools.some(t => t.id === 'measure');
       
-      // 执行工具激活后的操作
-      this.handleToolActivation(tool);
+      // 停用其他不支持多选的工具
+      activeTools.forEach(activeTool => {
+        this.deactivateTool(activeTool.id);
+      });
+      
+      // 如果激活的不是测距工具，并且之前测距工具被停用，确保测距数据被清除
+      if (toolId !== 'measure' && measureToolDeactivated && this.measureObj) {
+        // 确保测距数据被彻底清除
+        this.measureObj.clear();
+        logger.debug('激活其他工具，测距数据已清除');
+      }
+    } else if (tool.multi && toolId !== 'measure' && this.measureObj) {
+      // 如果是多选工具但不是测距工具，检查测距工具状态
+      const measureTool = this.tools.find(t => t.id === 'measure');
+      if (measureTool && !measureTool.active) {
+        // 确保测距数据被清除
+        this.measureObj.clear();
+      }
     }
+    
+    // 激活当前工具
+    tool.active = true;
+    logger.debug(`工具 ${toolId} 已设置为激活状态`);
+    
+    // 仅当工具不支持多选时，设置为当前激活工具
+    if (!tool.multi) {
+      this.activeToolId = toolId;
+      logger.debug(`设置当前激活工具ID为 ${toolId}`);
+    }
+    
+    // 执行工具激活后的操作
+    this.handleToolActivation(tool);
   }
 
   /**
@@ -220,16 +302,24 @@ export class ToolbarObject {
   deactivateTool(toolId: string): void {
     const tool = this.tools.find(tool => tool.id === toolId);
     
-    if (tool && (tool.type === 'toggle' || tool.type === 'button')) {
-      tool.active = false;
-      
-      // 执行工具停用后的操作
-      this.handleToolDeactivation(tool);
-      
-      // 如果停用的是当前激活的工具，清除激活状态
-      if (this.activeToolId === toolId) {
-        this.activeToolId = null;
-      }
+    if (!tool || (tool.type !== 'toggle' && tool.type !== 'button')) {
+      logger.debug(`无法停用工具 ${toolId}: 工具不存在或类型不支持`);
+      return;
+    }
+    
+    logger.debug(`正在停用工具 ${toolId}`);
+    
+    // 设置工具为非激活状态
+    tool.active = false;
+    logger.debug(`工具 ${toolId} 已设置为非激活状态`);
+    
+    // 执行工具停用后的操作
+    this.handleToolDeactivation(tool);
+    
+    // 如果停用的是当前激活的工具，清除激活状态
+    if (this.activeToolId === toolId) {
+      this.activeToolId = null;
+      logger.debug(`清除当前激活工具ID`);
     }
   }
 
@@ -255,6 +345,9 @@ export class ToolbarObject {
       case 'coordinate':
         this.handleCoordinateActivate();
         break;
+      case 'overview':
+        this.handleOverviewMapActivate();
+        break;
       case 'draw':
         // 实现绘制功能
         break;
@@ -279,6 +372,9 @@ export class ToolbarObject {
       case 'coordinate':
         this.handleCoordinateDeactivate();
         break;
+      case 'overview':
+        this.handleOverviewMapDeactivate();
+        break;
       case 'draw':
         // 停止绘制
         break;
@@ -298,11 +394,17 @@ export class ToolbarObject {
       return;
     }
     
-    // 如果是切换类型，切换激活状态
+    logger.debug(`处理工具点击: ${toolId}, 当前状态: ${tool.active ? '激活' : '未激活'}`);
+    
+    // 如果是切换类型，始终切换状态
     if (tool.type === 'toggle') {
-      if (tool.active) {
+      // 总是切换状态，不检查当前状态
+      const currentActive = !!tool.active;
+      if (currentActive) {
+        logger.debug(`工具 ${toolId} 将被停用`);
         this.deactivateTool(toolId);
       } else {
+        logger.debug(`工具 ${toolId} 将被激活`);
         this.activateTool(toolId);
       }
     } else {
@@ -317,17 +419,24 @@ export class ToolbarObject {
    * @param toolId 工具ID
    */
   handleSubMenuClick(parentToolId: string, toolId: string): void {
-    const tool = this.tools.find(tool => tool.id === toolId);
+    const parentTool = this.tools.find(tool => tool.id === parentToolId);
+    const tool = parentTool?.children?.find(child => child.id === toolId);
     
     if (!tool || tool.disabled) {
       return;
     }
     
-    // 如果是切换类型，切换激活状态
+    logger.debug(`处理子菜单项点击: ${parentToolId} > ${toolId}, 当前状态: ${tool.active ? '激活' : '未激活'}`);
+    
+    // 如果是切换类型，始终切换状态
     if (tool.type === 'toggle') {
-      if (tool.active) {
+      // 总是切换状态，不检查当前状态
+      const currentActive = !!tool.active;
+      if (currentActive) {
+        logger.debug(`子菜单项 ${toolId} 将被停用`);
         this.deactivateTool(toolId);
       } else {
+        logger.debug(`子菜单项 ${toolId} 将被激活`);
         this.activateTool(toolId);
       }
     } else {
@@ -492,6 +601,31 @@ export class ToolbarObject {
   }
 
   /**
+   * 处理鹰眼工具激活
+   */
+  private handleOverviewMapActivate(): void {
+    if (!this.overviewMapObj) {
+      logger.warn('鹰眼对象不存在，无法启用鹰眼功能');
+      return;
+    }
+    
+    // 启用鹰眼功能
+    this.overviewMapObj.enable();
+    logger.debug('鹰眼功能已启用');
+  }
+  
+  /**
+   * 处理鹰眼工具停用
+   */
+  private handleOverviewMapDeactivate(): void {
+    if (!this.overviewMapObj) return;
+    
+    // 禁用鹰眼功能
+    this.overviewMapObj.disable();
+    logger.debug('鹰眼功能已禁用');
+  }
+
+  /**
    * 销毁工具栏对象
    */
   destroy(): void {
@@ -511,6 +645,12 @@ export class ToolbarObject {
     if (this.measureObj) {
       this.measureObj.destroy();
       this.measureObj = null;
+    }
+    
+    // 销毁鹰眼对象
+    if (this.overviewMapObj) {
+      this.overviewMapObj.destroy();
+      this.overviewMapObj = null;
     }
     
     // 清空工具列表
