@@ -2,11 +2,11 @@
  * 配置对象
  * @description 主要用于处理参数的默认值问题
  */
-import { MapType, MapTile, type MapConfig } from '../types';
-import { DEFAULT_MAP_CONFIG } from '../types/map';
+import { MapTile, type MapConfig } from '../types';
+import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
 
 export class ConfigObject {
-  private config: MapConfig;
+  public config: MapConfig;
 
   /**
    * 构造函数
@@ -17,7 +17,7 @@ export class ConfigObject {
     const defaultConfig: MapConfig = {
       mapType: MapType.GAODE,
       mapTile: MapTile.NORMAL,
-      map: DEFAULT_MAP_CONFIG as any,
+      map: DEFAULT_MAP_CONFIG,
       mapKey: {},
       height: 500,
       center: [39.92, 116.40],
@@ -32,6 +32,9 @@ export class ConfigObject {
       ...defaultConfig,
       ...options
     };
+    if(Object.keys(this.config.map).length === 0) {
+      this.config.map = DEFAULT_MAP_CONFIG;
+    }
   }
 
   /**
@@ -51,6 +54,9 @@ export class ConfigObject {
       ...this.config,
       ...options
     };
+    if(Object.keys(this.config.map).length === 0) {
+      this.config.map = DEFAULT_MAP_CONFIG;
+    }
   }
 
   /**
@@ -129,8 +135,8 @@ export class ConfigObject {
    * 获取地图配置
    * @returns 地图配置
    */
-  public getMapConfig(): any {
-    return Object.assign({}, DEFAULT_MAP_CONFIG, this.config.map);
+  public getMapConfig(): MapConfig['map'] {
+    return this.config.map || DEFAULT_MAP_CONFIG;
   }
 
   /**

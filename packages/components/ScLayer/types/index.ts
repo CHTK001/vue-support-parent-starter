@@ -2,13 +2,10 @@
  * 地图相关配置
  */
 import type { MapUrlConfig } from "./map";
+import { MapType } from "./map";
+import type { ToolbarConfig, ToolItem } from "./toolbar";
 export * from "./map";
-// 地图类型
-export enum MapType {
-  GAODE = 'GAODE',
-  TIANDI = 'TIANDI',
-  OSM = 'OSM'
-}
+export * from "./toolbar";
 
 //图层类型
 export enum MapTile {
@@ -16,20 +13,68 @@ export enum MapTile {
   SATELLITE = 'SATELLITE',
   HYBRID = 'HYBRID',
 }
+
 // 地图类型配置
 export interface MapConfig {
   mapType: MapType;
   mapTile: MapTile;
   map: {
-    [key: string]: MapUrlConfig
-  },
+    [key in MapType]: {
+      [key: string]: MapUrlConfig
+    }
+  };
   mapKey: {
-    [key: string]: string
-  },
-  height: number,
-  center: [number, number],
-  zoom: number,
-  dragging: boolean,
-  scrollWheelZoom: boolean,
-  showToolbar: boolean,
+    [key in MapType]?: string
+  };
+  height: number;
+  center: [number, number];
+  zoom: number;
+  dragging: boolean;
+  scrollWheelZoom: boolean;
+  // 是否显示工具栏
+  showToolbar?: boolean;
+  // 工具栏配置
+  toolbarConfig?: ToolbarConfig;
+  // 向下兼容 - 自定义工具列表
+  toolbar?: ToolItem[];
 }
+
+// 事件类型
+export type MapEventType = 
+  | 'init'
+  | 'click'
+  | 'dblclick'
+  | 'rightclick'
+  | 'mousemove'
+  | 'mouseover'
+  | 'mouseout'
+  | 'mousedown'
+  | 'mouseup'
+  | 'dragstart'
+  | 'drag'
+  | 'dragend'
+  | 'zoomstart'
+  | 'zoomend'
+  | 'movestart'
+  | 'moveend'
+  | 'load'
+  | 'unload'
+  | 'viewreset'
+  | 'resize'
+  | 'autopanstart'
+  | 'layeradd'
+  | 'layerremove'
+  | 'baselayerchange'
+  | 'overlayadd'
+  | 'overlayremove'
+  | 'locationfound'
+  | 'locationerror'
+  | 'popupopen'
+  | 'popupclose'
+  | 'toolbar-tool-click'
+  | 'toolbar-tool-activated'
+  | 'toolbar-tool-deactivated'
+  | 'toolbar-submenu-item-click'
+  | 'map-initialized'
+  | 'update:center'
+  | 'update:zoom';

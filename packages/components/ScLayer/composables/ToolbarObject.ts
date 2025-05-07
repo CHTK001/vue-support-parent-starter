@@ -3,328 +3,340 @@
  * @description 处理地图工具栏的显示和交互
  */
 import type { ToolbarConfig, ToolItem, ToolbarPosition, ToolbarDirection } from '../types/toolbar';
+import { DEFAULT_TOOLBAR_CONFIG } from '../types/toolbar';
 import { Map as OlMap } from 'ol';
+import type { MapObject } from './MapObject';
+import logger from './LogObject';
 
 export class ToolbarObject {
-  private toolbarConfig: ToolbarConfig;
-  private mapInstance: OlMap | null = null;
-  private activeTool: string | null = null;
-  private toolHandlers: Map<string, Function> = new Map();
+  private config: ToolbarConfig;
+  private mapObj: MapObject;
+  private tools: ToolItem[] = [];
+  private activeToolId: string | null = null;
 
   /**
    * 构造函数
    * @param config 工具栏配置
+   * @param mapObj 地图对象
    */
-  constructor(config: ToolbarConfig = {}) {
-    // 默认工具栏配置
-    const defaultConfig: ToolbarConfig = {
-      position: 'top-right',
-      direction: 'vertical',
-      itemsPerLine: 5,
-      size: 36,
-      items: [],
-      buttons: {
-        measure: true,
-        drawPoint: true,
-        coordinate: true,
-        zoomIn: true,
-        zoomOut: true,
-        fullView: true,
-        layerSwitch: true,
-        toggleMarkers: true
-      }
-    };
-
-    // 合并配置
-    this.toolbarConfig = {
-      ...defaultConfig,
-      ...config
-    };
-
-    // 确保items数组存在
-    if (!this.toolbarConfig.items) {
-      this.toolbarConfig.items = [];
-    }
-
-    // 初始化默认工具项
-    this.initDefaultTools();
-  }
-
-  /**
-   * 初始化地图工具栏
-   * @param map 地图实例
-   */
-  public init(map: OlMap): void {
-    this.mapInstance = map;
-    
-    // 注册工具处理函数
-    this.registerToolHandlers();
-  }
-
-  /**
-   * 初始化默认工具项
-   */
-  private initDefaultTools(): void {
-    // 只有在buttons配置中启用的工具才会被添加
-    if (!this.toolbarConfig.buttons) return;
-    
-    const buttons = this.toolbarConfig.buttons;
-    const defaultTools: ToolItem[] = [];
-    
-    // 添加缩放工具
-    if (buttons.zoomIn) {
-      defaultTools.push({
-        id: 'zoom-in',
-        name: '放大',
-        icon: 'icon-zoom-in',
-        tooltip: '放大地图',
-        active: false
-      });
-    }
-    
-    if (buttons.zoomOut) {
-      defaultTools.push({
-        id: 'zoom-out',
-        name: '缩小',
-        icon: 'icon-zoom-out',
-        tooltip: '缩小地图',
-        active: false
-      });
-    }
-    
-    // 添加测量工具
-    if (buttons.measure) {
-      defaultTools.push({
-        id: 'measure',
-        name: '测量',
-        icon: 'icon-ruler',
-        tooltip: '测量距离',
-        active: false
-      });
-    }
-    
-    // 添加绘制点工具
-    if (buttons.drawPoint) {
-      defaultTools.push({
-        id: 'draw-point',
-        name: '绘制点',
-        icon: 'icon-marker',
-        tooltip: '在地图上添加标记点',
-        active: false
-      });
-    }
-    
-    // 添加坐标查看工具
-    if (buttons.coordinate) {
-      defaultTools.push({
-        id: 'coordinate',
-        name: '坐标',
-        icon: 'icon-coordinate',
-        tooltip: '查看地图坐标',
-        active: false,
-        multi: true
-      });
-    }
-    
-    // 添加全图查看工具
-    if (buttons.fullView) {
-      defaultTools.push({
-        id: 'full-view',
-        name: '全图',
-        icon: 'icon-full-view',
-        tooltip: '查看全图',
-        active: false
-      });
-    }
-    
-    // 添加图层切换工具
-    if (buttons.layerSwitch) {
-      defaultTools.push({
-        id: 'layer-switch',
-        name: '图层切换',
-        icon: 'icon-layers',
-        tooltip: '切换地图图层',
-        active: false,
-        type: 'menu',
-        children: [
-          {
-            id: 'normal-layer',
-            name: '标准图层',
-            icon: 'icon-normal-layer',
-            tooltip: '切换到标准图层',
-            active: false
-          },
-          {
-            id: 'satellite-layer',
-            name: '卫星图层',
-            icon: 'icon-satellite-layer',
-            tooltip: '切换到卫星图层',
-            active: false
-          }
-        ]
-      });
-    }
-    
-    // 添加标记显示/隐藏工具
-    if (buttons.toggleMarkers) {
-      defaultTools.push({
-        id: 'toggle-markers',
-        name: '标记显示',
-        icon: 'icon-eye',
-        alternateIcon: 'icon-eye-off',
-        tooltip: '显示/隐藏标记点',
-        active: false,
-        toggleState: false
-      });
-    }
-    
-    // 将默认工具添加到配置中
-    this.toolbarConfig.items = [
-      ...defaultTools,
-      ...(this.toolbarConfig.items || [])
-    ];
-  }
-
-  /**
-   * 注册工具处理函数
-   */
-  private registerToolHandlers(): void {
-    if (!this.mapInstance) return;
-    
-    // 注册放大工具
-    this.toolHandlers.set('zoom-in', () => {
-      if (!this.mapInstance) return;
-      
-      const view = this.mapInstance.getView();
-      const currentZoom = view.getZoom() || 0;
-      view.animate({
-        zoom: currentZoom + 1,
-        duration: 250
-      });
-    });
-    
-    // 注册缩小工具
-    this.toolHandlers.set('zoom-out', () => {
-      if (!this.mapInstance) return;
-      
-      const view = this.mapInstance.getView();
-      const currentZoom = view.getZoom() || 0;
-      view.animate({
-        zoom: Math.max(currentZoom - 1, 0),
-        duration: 250
-      });
-    });
-    
-    // 注册全图查看工具
-    this.toolHandlers.set('full-view', () => {
-      if (!this.mapInstance) return;
-      
-      // 此处需要根据地图的初始配置设置适当的视图范围
-      // 这里假设地图有一个初始视图
-      const view = this.mapInstance.getView();
-      view.setZoom(5);
-      // 还可以设置初始中心点等
-    });
-    
-    // 其他工具的处理函数可以按需添加
+  constructor(config: ToolbarConfig | undefined, mapObj: MapObject) {
+    this.config = config || DEFAULT_TOOLBAR_CONFIG;
+    this.mapObj = mapObj;
+    this.tools = [...(this.config.items || [])];
+    logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
 
   /**
    * 获取工具栏配置
    * @returns 工具栏配置
    */
-  public getToolbarConfig(): ToolbarConfig {
-    return this.toolbarConfig;
+  getConfig(): ToolbarConfig {
+    return this.config;
   }
 
   /**
-   * 获取工具栏位置类名
-   * @returns 工具栏位置类名
+   * 获取所有工具
+   * @returns 所有工具
    */
-  public getPositionClass(): string {
-    return `toolbar-${this.toolbarConfig.position || 'top-right'}`;
+  getTools(): ToolItem[] {
+    return this.tools;
   }
 
   /**
-   * 设置活动工具
-   * @param toolId 工具ID
+   * 获取可见的工具
+   * @returns 可见的工具
    */
-  public setActiveTool(toolId: string): void {
-    if (this.activeTool === toolId) {
-      this.activeTool = null;
-    } else {
-      this.activeTool = toolId;
-    }
-    
-    // 执行工具处理函数
-    const handler = this.toolHandlers.get(toolId);
-    if (handler) {
-      handler();
-    }
+  getVisibleTools(): ToolItem[] {
+    return this.tools.filter(tool => tool.show !== false);
   }
 
   /**
-   * 获取活动工具ID
-   * @returns 活动工具ID
+   * 获取当前激活的工具ID
+   * @returns 当前激活的工具ID
    */
-  public getActiveTool(): string | null {
-    return this.activeTool;
+  getActiveToolId(): string | null {
+    return this.activeToolId;
   }
 
   /**
-   * 获取工具栏项目
-   * @returns 工具栏项目
-   */
-  public getToolbarItems(): ToolItem[] {
-    return this.toolbarConfig.items || [];
-  }
-
-  /**
-   * 添加自定义工具
+   * 添加工具
    * @param tool 工具项
+   * @param position 添加位置
    */
-  public addTool(tool: ToolItem): void {
-    if (!this.toolbarConfig.items) {
-      this.toolbarConfig.items = [];
+  addTool(tool: ToolItem, position: 'start' | 'end' = 'end'): void {
+    const existingIndex = this.tools.findIndex(t => t.id === tool.id);
+    
+    if (existingIndex !== -1) {
+      // 如果工具已存在，更新工具
+      this.tools[existingIndex] = { ...tool };
+    } else {
+      // 如果工具不存在，添加新工具
+      if (position === 'start') {
+        this.tools.unshift(tool);
+      } else {
+        this.tools.push(tool);
+      }
     }
-    this.toolbarConfig.items.push(tool);
   }
 
   /**
    * 移除工具
    * @param toolId 工具ID
-   * @returns 是否成功移除
    */
-  public removeTool(toolId: string): boolean {
-    if (!this.toolbarConfig.items) return false;
+  removeTool(toolId: string): void {
+    const index = this.tools.findIndex(tool => tool.id === toolId);
     
-    const index = this.toolbarConfig.items.findIndex(item => item.id === toolId);
-    if (index === -1) return false;
-    
-    this.toolbarConfig.items.splice(index, 1);
-    return true;
-  }
-  
-  /**
-   * 处理工具点击事件
-   * @param tool 被点击的工具
-   */
-  public handleToolClick(tool: ToolItem): void {
-    // 如果工具有自定义处理函数，则调用
-    if (tool.handler) {
-      tool.handler();
-      return;
+    if (index !== -1) {
+      this.tools.splice(index, 1);
+      
+      // 如果移除的是当前激活的工具，清除激活状态
+      if (this.activeToolId === toolId) {
+        this.activeToolId = null;
+      }
     }
-    
-    // 否则使用默认处理
-    this.setActiveTool(tool.id);
   }
 
   /**
-   * 销毁资源
+   * 隐藏工具
+   * @param toolId 工具ID
    */
-  public destroy(): void {
-    this.mapInstance = null;
-    this.toolHandlers.clear();
+  hideTool(toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (tool) {
+      tool.show = false;
+      
+      // 如果隐藏的是当前激活的工具，清除激活状态
+      if (this.activeToolId === toolId) {
+        this.activeToolId = null;
+      }
+    }
+  }
+
+  /**
+   * 显示工具
+   * @param toolId 工具ID
+   */
+  showTool(toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (tool) {
+      tool.show = true;
+    }
+  }
+
+  /**
+   * 激活工具
+   * @param toolId 工具ID
+   */
+  activateTool(toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (tool && (tool.type === 'toggle' || tool.type === 'button')) {
+      // 如果之前有激活的工具，先停用它
+      if (this.activeToolId) {
+        this.deactivateTool(this.activeToolId);
+      }
+      
+      tool.active = true;
+      this.activeToolId = toolId;
+      
+      // 执行工具激活后的操作
+      this.handleToolActivation(tool);
+    }
+  }
+
+  /**
+   * 停用工具
+   * @param toolId 工具ID
+   */
+  deactivateTool(toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (tool && (tool.type === 'toggle' || tool.type === 'button')) {
+      tool.active = false;
+      
+      // 执行工具停用后的操作
+      this.handleToolDeactivation(tool);
+      
+      // 如果停用的是当前激活的工具，清除激活状态
+      if (this.activeToolId === toolId) {
+        this.activeToolId = null;
+      }
+    }
+  }
+
+  /**
+   * 处理工具激活
+   * @param tool 工具项
+   */
+  private handleToolActivation(tool: ToolItem): void {
+    // 根据工具类型执行不同的操作
+    switch (tool.id) {
+      case 'zoom-in':
+        this.handleZoomIn();
+        break;
+      case 'zoom-out':
+        this.handleZoomOut();
+        break;
+      case 'full-extent':
+        this.handleFitToExtent();
+        break;
+      case 'measure':
+        // 实现测量功能
+        break;
+      case 'draw':
+        // 实现绘制功能
+        break;
+      case 'clear':
+        this.handleClearFeatures();
+        break;
+      default:
+        logger.info(`工具 ${tool.id} 已激活`);
+    }
+  }
+
+  /**
+   * 处理工具停用
+   * @param tool 工具项
+   */
+  private handleToolDeactivation(tool: ToolItem): void {
+    // 根据工具类型执行不同的操作
+    switch (tool.id) {
+      case 'measure':
+        // 停止测量
+        break;
+      case 'draw':
+        // 停止绘制
+        break;
+      default:
+        logger.info(`工具 ${tool.id} 已停用`);
+    }
+  }
+
+  /**
+   * 处理工具点击
+   * @param toolId 工具ID
+   */
+  handleToolClick(toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (!tool || tool.disabled) {
+      return;
+    }
+    
+    // 如果是切换类型，切换激活状态
+    if (tool.type === 'toggle') {
+      if (tool.active) {
+        this.deactivateTool(toolId);
+      } else {
+        this.activateTool(toolId);
+      }
+    } else {
+      // 如果是普通工具，直接执行操作
+      this.handleToolActivation(tool);
+    }
+  }
+
+  /**
+   * 处理子菜单项点击
+   * @param parentToolId 父工具ID
+   * @param toolId 工具ID
+   */
+  handleSubMenuClick(parentToolId: string, toolId: string): void {
+    const tool = this.tools.find(tool => tool.id === toolId);
+    
+    if (!tool || tool.disabled) {
+      return;
+    }
+    
+    // 如果是切换类型，切换激活状态
+    if (tool.type === 'toggle') {
+      if (tool.active) {
+        this.deactivateTool(toolId);
+      } else {
+        this.activateTool(toolId);
+      }
+    } else {
+      // 如果是普通工具，直接执行操作
+      this.handleToolActivation(tool);
+    }
+  }
+
+  /**
+   * 处理缩放放大
+   */
+  private handleZoomIn(): void {
+    if (this.mapObj && this.mapObj.getMapInstance()) {
+      const view = this.mapObj.getMapInstance()?.getView();
+      if (view) {
+        const currentZoom = view.getZoom() || 0;
+        view.animate({
+          zoom: currentZoom + 1,
+          duration: 250
+        });
+      }
+    }
+  }
+
+  /**
+   * 处理缩放缩小
+   */
+  private handleZoomOut(): void {
+    if (this.mapObj && this.mapObj.getMapInstance()) {
+      const view = this.mapObj.getMapInstance()?.getView();
+      if (view) {
+        const currentZoom = view.getZoom() || 0;
+        view.animate({
+          zoom: Math.max(0, currentZoom - 1),
+          duration: 250
+        });
+      }
+    }
+  }
+
+  /**
+   * 处理适应范围
+   */
+  private handleFitToExtent(): void {
+    if (this.mapObj && this.mapObj.getMapInstance()) {
+      // 使用初始配置的中心点和缩放级别
+      const config = this.mapObj.getConfigObject();
+      if (config) {
+        const center = config.getCenter();
+        const zoom = config.getZoom();
+        if (center && zoom) {
+          this.mapObj.setCenter(center[0], center[1]);
+          this.mapObj.setZoom(zoom);
+        }
+      }
+    }
+  }
+
+  /**
+   * 处理清除要素
+   */
+  private handleClearFeatures(): void {
+    if (this.mapObj && this.mapObj.getMapInstance()) {
+      // 清除所有矢量要素的逻辑
+      const map = this.mapObj.getMapInstance();
+      // 实现清除要素的逻辑，具体实现取决于应用需求
+      logger.info('清除地图要素');
+    }
+  }
+
+  /**
+   * 销毁工具栏对象
+   */
+  destroy(): void {
+    logger.debug('销毁工具栏对象');
+    // 停用所有激活的工具
+    if (this.activeToolId) {
+      this.deactivateTool(this.activeToolId);
+    }
+    
+    // 清空工具列表
+    this.tools = [];
+    this.activeToolId = null;
   }
 }
