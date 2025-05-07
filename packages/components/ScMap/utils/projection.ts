@@ -12,10 +12,10 @@ try {
   console.warn('导入proj4leaflet失败，将使用简化投影');
 }
 
-import proj4Support from './proj4-support';
+// import proj4Support from './proj4-support';
 
 // 检查Proj4Leaflet是否正确加载
-const hasProjSupport = typeof L.Proj !== 'undefined' && proj4Support.hasProj4Support;
+const hasProjSupport = false;
 if (!hasProjSupport) {
   console.warn('警告: Proj4Leaflet未正确加载或proj4未找到，自定义投影将不可用');
   console.warn('将使用标准Web墨卡托投影(EPSG:3857)作为替代，这可能会导致坐标偏移');

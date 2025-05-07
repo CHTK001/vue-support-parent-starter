@@ -13,8 +13,17 @@ import DragPan from 'ol/interaction/DragPan';
 import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
 import { defaults as defaultInteractions } from 'ol/interaction';
 
-import { MapTile, MapType } from '../types';
+import { MapTile } from '../types';
+import { MapType } from '../types/map';
 import { ConfigObject } from './ConfigObject';
+import logger from './LogObject';
+
+export interface MapEmitter {
+  'map-click': (event: any) => void;
+  'marker-click': (event: any) => void;
+  'update:center': (center: [number, number]) => void;
+  'update:zoom': (zoom: number) => void;
+}
 
 export class MapObject {
   // 地图实例
@@ -44,6 +53,7 @@ export class MapObject {
    */
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
+    logger.debug('MapObject实例已创建，配置类型:', configObject.getMapType());
   }
 
   /**
@@ -58,66 +68,177 @@ export class MapObject {
   ): boolean {
     if (!target) return false;
 
-    // 创建矢量图层
-    this.vectorLayer = new VectorLayer({
-      source: this.vectorSource
-    });
+    logger.info('开始初始化地图，容器尺寸：', target.clientWidth, target.clientHeight);
+    logger.debug('地图配置:', this.configObject.getConfig());
+    
+    try {
+      // 创建矢量图层
+      this.vectorLayer = new VectorLayer({
+        source: this.vectorSource
+      });
 
-    // 创建主图层（底图）
-    this.mainLayer = this.createBaseLayer();
+      // 创建主图层（底图）
+      this.mainLayer = this.createBaseLayer();
+      logger.debug('创建底图图层:', this.mainLayer);
+      
+      const center = this.configObject.getCenter();
+      logger.debug('原始中心点:', center);
+      
+      // 获取底图投影
+      const mapType = this.configObject.getMapType();
+      const mapTile = this.configObject.getMapTile();
+      const mapConfig = this.configObject.getMapConfig();
+      const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
+      const urlConfig = mapConfig[mapType]?.[tileType];
+      const projection = urlConfig?.projection || 'EPSG:3857';
+      
+      // 创建视图，考虑投影
+      const view = this.createMapView(center, this.configObject.getZoom(), projection);
+      
+      // 创建地图实例，禁用默认交互
+      this.mapInstance = new Map({
+        target: target,
+        layers: [this.mainLayer, this.vectorLayer],
+        view: view,
+        interactions: defaultInteractions({
+          dragPan: false,
+          mouseWheelZoom: false
+        })
+      });
 
-    // 创建地图实例，禁用默认交互
-    this.mapInstance = new Map({
-      target: target,
-      layers: [this.mainLayer, this.vectorLayer],
-      view: new View({
-        center: fromLonLat([this.configObject.getCenter()[1], this.configObject.getCenter()[0]]),
-        zoom: this.configObject.getZoom()
-      }),
-      interactions: defaultInteractions({
-        dragPan: false,
-        mouseWheelZoom: false
-      })
-    });
-
-    // 初始化交互控制
-    this.initInteractions();
-
-    // 配置地图交互
-    this.configureMapInteractions(
-      this.configObject.isDraggingEnabled(), 
-      this.configObject.isScrollWheelZoomEnabled()
-    );
-
-     // 绑定地图点击事件
-    this.bindClickEvents(
-      // 地图点击事件处理
-      (coordinates) => {
-        emitter('map-click', { coordinates });
-      },
-      // 标记点击事件处理
-      (coordinates, data) => {
-        emitter('marker-click', { coordinates, data });
+      // 检查地图实例是否正确创建
+      if (!this.mapInstance) {
+        logger.error('地图实例创建失败');
+        return false;
       }
-    );
 
-    // 绑定视图变更事件
-    this.bindViewChangeEvents(
-      // 中心点变更事件处理
-      (center) => {
-        emitter('update:center', center);
-        // 更新配置对象中的中心点
-        this.configObject.setCenter(center);
-      },
-      // 缩放级别变更事件处理
-      (zoom) => {
-        emitter('update:zoom', zoom);
-        // 更新配置对象中的缩放级别
-        this.configObject.setZoom(zoom);
+      // 检查主图层是否正确添加到地图中
+      if (this.mapInstance.getLayers().getLength() < 1) {
+        logger.warn('地图图层可能未正确添加');
+      } else {
+        logger.info(`地图共有 ${this.mapInstance.getLayers().getLength()} 个图层`);
       }
-    );
 
-    return true;
+      // 初始化交互控制
+      this.initInteractions();
+
+      // 配置地图交互
+      this.configureMapInteractions(
+        this.configObject.isDraggingEnabled(), 
+        this.configObject.isScrollWheelZoomEnabled()
+      );
+
+      // 绑定地图点击事件
+      this.bindClickEvents(
+        // 地图点击事件处理
+        (coordinates) => {
+          emitter('map-click', { coordinates });
+        },
+        // 标记点击事件处理
+        (coordinates, data) => {
+          emitter('marker-click', { coordinates, data });
+        }
+      );
+
+      // 绑定视图变更事件
+      this.bindViewChangeEvents(
+        // 中心点变更事件处理
+        (center) => {
+          emitter('update:center', center);
+          // 更新配置对象中的中心点
+          this.configObject.setCenter(center);
+        },
+        // 缩放级别变更事件处理
+        (zoom) => {
+          emitter('update:zoom', zoom);
+          // 更新配置对象中的缩放级别
+          this.configObject.setZoom(zoom);
+        }
+      );
+      
+      // 强制多次触发地图重绘，确保图层正确渲染
+      this.triggerMapResize();
+      
+      return true;
+    } catch (error) {
+      logger.error('地图初始化失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 触发地图尺寸更新，确保图层正确渲染
+   */
+  public triggerMapResize(): void {
+    if (!this.mapInstance) return;
+    
+    // 强制预加载瓦片
+    if (this.mainLayer && this.mainLayer.getSource()) {
+      this.mainLayer.getSource().refresh();
+    }
+    
+    // 立即更新一次
+    this.mapInstance.updateSize();
+    
+    // 延迟100ms后再更新一次
+    setTimeout(() => {
+      if (this.mapInstance) {
+        this.mapInstance.updateSize();
+        // 强制重绘地图
+        this.mapInstance.renderSync();
+        logger.info('地图尺寸更新(100ms)');
+      }
+    }, 100);
+    
+    // 延迟300ms后再更新一次
+    setTimeout(() => {
+      if (this.mapInstance) {
+        this.mapInstance.updateSize();
+        // 强制重绘地图
+        this.mapInstance.renderSync();
+        logger.info('地图尺寸更新(300ms)');
+      }
+    }, 300);
+    
+    // 延迟800ms后再更新一次，确保在各种环境下都能正确显示
+    setTimeout(() => {
+      if (this.mapInstance) {
+        this.mapInstance.updateSize();
+        // 强制重绘地图
+        this.mapInstance.renderSync();
+        logger.info('地图尺寸更新(800ms)');
+        
+        // 检查地图状态
+        this.checkMapStatus();
+      }
+    }, 800);
+  }
+
+  /**
+   * 检查地图状态，输出诊断信息
+   */
+  private checkMapStatus(): void {
+    if (!this.mapInstance) return;
+    
+    const size = this.mapInstance.getSize();
+    const target = this.mapInstance.getTarget();
+    const layers = this.mapInstance.getLayers().getArray();
+    
+    logger.debug('地图状态检查:', {
+      size: size,
+      layerCount: layers.length,
+      targetElement: typeof target === 'string' ? target : '已设置DOM元素',
+      viewCenter: this.mapInstance.getView().getCenter(),
+      viewZoom: this.mapInstance.getView().getZoom()
+    });
+    
+    // 检查各图层的状态
+    layers.forEach((layer, index) => {
+      if (layer instanceof TileLayer) {
+        const source = layer.getSource();
+        logger.debug(`图层 ${index}: ${source.constructor.name}`);
+      }
+    });
   }
 
   /**
@@ -126,6 +247,7 @@ export class MapObject {
   private initInteractions(): void {
     if (!this.mapInstance) return;
 
+    logger.debug('初始化地图交互控件');
     // 创建拖动交互
     this.dragPan = new DragPan();
     this.mapInstance.addInteraction(this.dragPan);
@@ -149,8 +271,12 @@ export class MapObject {
     // 检查配置是否存在
     if (!mapConfig[mapType] || !mapConfig[mapType][tileType]) {
       // 默认使用OSM
+      logger.warn(`找不到地图配置 ${mapType}/${tileType}，使用OSM作为默认地图`);
       return new TileLayer({
-        source: new OSM()
+        source: new OSM(),
+        zIndex: 0, // 确保底图的z-index为0
+        visible: true, // 显式设置为可见
+        opacity: 1.0 // 确保不透明
       });
     }
     
@@ -161,14 +287,44 @@ export class MapObject {
     let url = urlConfig.url;
     if (url.includes('{key}') && apiKey) {
       url = url.replace('{key}', apiKey);
+    } else if (url.includes('{key}') && !apiKey) {
+      logger.warn(`地图需要API密钥，但未提供 ${mapType} 的密钥`);
     }
     
-    return new TileLayer({
+    // 获取投影信息
+    const projection = urlConfig.projection || 'EPSG:3857'; // 默认使用Web墨卡托投影
+    
+    logger.debug(`创建图层 ${mapType}/${tileType}，URL: ${url}，投影: ${projection}`);
+    
+    // 创建XYZ图层，确保设置正确的z-index
+    const tileLayer = new TileLayer({
       source: new XYZ({
         url: url,
-        attributions: [urlConfig.attribution]
-      })
+        attributions: [urlConfig.attribution],
+        projection: projection
+      }),
+      zIndex: 0, // 确保底图的z-index为0
+      visible: true, // 显式设置为可见
+      opacity: 1.0, // 确保不透明
+      properties: {
+        name: `${mapType}-${tileType}` // 添加名称以便于调试
+      }
     });
+    
+    // 监听图层加载状态
+    tileLayer.getSource().on('tileloadstart', () => {
+      logger.debug('开始加载瓦片...');
+    });
+    
+    tileLayer.getSource().on('tileloadend', () => {
+      logger.debug('瓦片加载完成');
+    });
+    
+    tileLayer.getSource().on('tileloaderror', (err) => {
+      logger.warn('瓦片加载失败:', err);
+    });
+    
+    return tileLayer;
   }
 
   /**
@@ -179,6 +335,7 @@ export class MapObject {
   private configureMapInteractions(dragging: boolean, scrollWheelZoom: boolean): void {
     if (!this.mapInstance || !this.dragPan || !this.mouseWheelZoom) return;
     
+    logger.debug(`配置地图交互：拖动=${dragging}, 滚轮缩放=${scrollWheelZoom}`);
     // 配置拖动功能
     this.dragPan.setActive(dragging);
 
@@ -195,6 +352,7 @@ export class MapObject {
   public setCenter(lat: number, lon: number, animate: boolean = true): void {
     if (!this.mapInstance) return;
     
+    logger.debug(`设置地图中心点: [${lat}, ${lon}], 动画=${animate}`);
     // 更新配置对象
     this.configObject.setCenter([lat, lon]);
     
@@ -216,6 +374,7 @@ export class MapObject {
   public setZoom(zoom: number, animate: boolean = true): void {
     if (!this.mapInstance) return;
     
+    logger.debug(`设置地图缩放级别: ${zoom}, 动画=${animate}`);
     // 更新配置对象
     this.configObject.setZoom(zoom);
     
@@ -238,6 +397,7 @@ export class MapObject {
   public switchBaseLayer(mapType: MapType, mapTile: MapTile): boolean {
     if (!this.mapInstance || !this.mainLayer) return false;
     
+    logger.info(`切换地图底图: 类型=${mapType}, 图层=${mapTile}`);
     // 更新配置对象
     this.configObject.setMapType(mapType);
     this.configObject.setMapTile(mapTile);
@@ -247,24 +407,42 @@ export class MapObject {
     
     // 检查地图配置是否存在
     if (mapConfig[mapType] && mapConfig[mapType][tileType]) {
+      // 获取当前图层列表
+      const layers = this.mapInstance.getLayers();
+      const layersArray = layers.getArray();
+      
+      // 记录当前图层状态
+      logger.debug('当前图层状态:', layersArray.map((layer, index) => {
+        return {
+          index,
+          type: layer instanceof VectorLayer ? 'Vector' : 'Tile',
+          visible: layer.getVisible()
+        };
+      }));
+      
       // 移除当前底图
       this.mapInstance.removeLayer(this.mainLayer);
       
       // 创建新底图
       this.mainLayer = this.createBaseLayer();
       
-      // 添加到地图最底层
+      // 添加新底图并确保它位于底部
       this.mapInstance.getLayers().insertAt(0, this.mainLayer);
       
+      // 触发地图更新
+      this.triggerMapResize();
+      
+      logger.info('地图底图切换成功');
       return true;
     }
     
+    logger.warn(`无法切换底图，配置不存在: ${mapType}/${tileType}`);
     return false;
   }
 
   /**
-   * 获取当前地图中心点
-   * @returns [纬度, 经度]
+   * 获取地图中心点
+   * @returns 地图中心点 [纬度, 经度]
    */
   public getCenter(): [number, number] | null {
     if (!this.mapInstance) return null;
@@ -272,13 +450,13 @@ export class MapObject {
     const center = this.mapInstance.getView().getCenter();
     if (!center) return null;
     
-    const lonLat = toLonLat(center);
-    return [lonLat[1], lonLat[0]];
+    const [lon, lat] = toLonLat(center);
+    return [lat, lon];
   }
 
   /**
-   * 获取当前缩放级别
-   * @returns 缩放级别
+   * 获取地图缩放级别
+   * @returns 地图缩放级别
    */
   public getZoom(): number | null {
     if (!this.mapInstance) return null;
@@ -287,80 +465,83 @@ export class MapObject {
   }
 
   /**
-   * 绑定点击事件处理器
-   * @param clickHandler 点击事件处理函数
+   * 绑定地图点击事件
+   * @param clickHandler 地图点击事件处理函数
    * @param markerClickHandler 标记点击事件处理函数
    */
-  public bindClickEvents(
+  private bindClickEvents(
     clickHandler: (coordinates: number[]) => void,
     markerClickHandler: (coordinates: number[], data: any) => void
   ): void {
     if (!this.mapInstance) return;
     
-    this.mapInstance.on('click', (evt) => {
-      const coordinate = toLonLat(evt.coordinate);
+    logger.debug('绑定地图点击事件');
+    this.mapInstance.on('click', (event) => {
+      const coordinates = toLonLat(event.coordinate);
       
-      // 检查是否点击了要素
-      const feature = this.mapInstance?.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
+      // 检查是否点击了标记点
+      const feature = this.mapInstance?.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature
+      );
       
       if (feature) {
-        const featureData = feature.get('data') || null;
-        
-        // 更新标记信息
-        this.markerInfo = {
-          coordinates: coordinate,
-          data: featureData
-        };
-        
-        // 调用标记点击处理函数
-        markerClickHandler(coordinate, featureData);
+        // 如果点击了标记点，触发标记点点击事件
+        const data = feature.get('data');
+        logger.debug('点击了标记点:', coordinates, data);
+        markerClickHandler(coordinates, data);
       } else {
-        // 调用地图点击处理函数
-        clickHandler(coordinate);
+        // 否则触发地图点击事件
+        logger.debug('点击了地图:', coordinates);
+        clickHandler(coordinates);
       }
     });
   }
 
   /**
-   * 绑定视图变更事件处理器
+   * 绑定视图变更事件
    * @param centerChangeHandler 中心点变更事件处理函数
    * @param zoomChangeHandler 缩放级别变更事件处理函数
    */
-  public bindViewChangeEvents(
+  private bindViewChangeEvents(
     centerChangeHandler: (center: [number, number]) => void,
     zoomChangeHandler: (zoom: number) => void
   ): void {
     if (!this.mapInstance) return;
     
-    // 中心点变更事件
+    logger.debug('绑定地图视图变更事件');
+    // 监听中心点变更
     this.mapInstance.getView().on('change:center', () => {
       const center = this.getCenter();
       if (center) {
+        logger.debug('地图中心点已变更:', center);
         centerChangeHandler(center);
       }
     });
-
-    // 缩放级别变更事件
+    
+    // 监听缩放级别变更
     this.mapInstance.getView().on('change:resolution', () => {
       const zoom = this.getZoom();
       if (zoom !== null) {
+        logger.debug('地图缩放级别已变更:', zoom);
         zoomChangeHandler(zoom);
       }
     });
   }
 
   /**
-   * 设置地图交互状态
-   * @param interactions 交互配置对象
+   * 设置交互选项
+   * @param interactions 交互选项
    */
   public setInteractions(interactions: { dragging?: boolean; scrollWheelZoom?: boolean }): void {
     if (!this.mapInstance || !this.dragPan || !this.mouseWheelZoom) return;
     
-    if (interactions.dragging !== undefined) {
+    logger.debug('更新地图交互设置:', interactions);
+    if (typeof interactions.dragging === 'boolean') {
       this.dragPan.setActive(interactions.dragging);
     }
     
-    if (interactions.scrollWheelZoom !== undefined) {
+    if (typeof interactions.scrollWheelZoom === 'boolean') {
       this.mouseWheelZoom.setActive(interactions.scrollWheelZoom);
     }
   }
@@ -382,17 +563,47 @@ export class MapObject {
   }
 
   /**
-   * 销毁地图实例
+   * 销毁地图对象
    */
   public destroy(): void {
+    logger.info('销毁地图对象');
     if (this.mapInstance) {
-      this.mapInstance.setTarget(undefined);
+      this.mapInstance.dispose();
       this.mapInstance = null;
-      this.mainLayer = null;
-      this.vectorLayer = null;
-      this.vectorSource.clear();
-      this.dragPan = null;
-      this.mouseWheelZoom = null;
     }
+    
+    this.mainLayer = null;
+    this.vectorLayer = null;
+    this.dragPan = null;
+    this.mouseWheelZoom = null;
+  }
+
+  /**
+   * 创建地图视图
+   * @param center 中心点 [纬度, 经度]
+   * @param zoom 缩放级别
+   * @param projection 投影
+   * @returns 地图视图
+   */
+  private createMapView(center: [number, number], zoom: number, projection: string): View {
+    logger.debug(`创建地图视图: 中心点=${center}, 缩放级别=${zoom}, 投影=${projection}`);
+    
+    // 根据投影处理坐标转换
+    let projectedCenter;
+    if (projection === 'EPSG:4326') {
+      // 如果是WGS84坐标系，直接使用[经度, 纬度]
+      projectedCenter = [center[1], center[0]];
+      logger.debug('使用WGS84投影，坐标:', projectedCenter);
+    } else {
+      // 默认使用Web墨卡托投影
+      projectedCenter = fromLonLat([center[1], center[0]]);
+      logger.debug('使用Web墨卡托投影，转换后坐标:', projectedCenter);
+    }
+    
+    return new View({
+      center: projectedCenter,
+      zoom: zoom,
+      projection: projection
+    });
   }
 }
