@@ -142,7 +142,16 @@ const initMap = () => {
     
     // 监听鼠标事件
     mapObj.setPointerMoveListener((event, coordinate) => {
-      coordinateInfo.value = coordinate;
+      // 深拷贝坐标信息，确保Vue能检测到变化
+      coordinateInfo.value = {
+        longitude: coordinate.longitude || 0,
+        latitude: coordinate.latitude || 0,
+        projectedX: coordinate.projectedX || 0,
+        projectedY: coordinate.projectedY || 0,
+        projection: coordinate.projection || 'EPSG:3857',
+        decimals: coordinate.decimals || coordinateOptions.value.decimals,
+        position: coordinate.position || coordinateOptions.value.position as CoordinatePosition
+      };
     });
     
     logger.info('地图初始化成功');
