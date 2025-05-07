@@ -16,6 +16,15 @@
   height: 100% !important;
   z-index: 0 !important;
   /* 确保视口不会覆盖工具栏 */
+  cursor: grab !important;
+}
+
+.ol-viewport.ol-viewport-dragging {
+  cursor: grabbing !important;
+}
+
+.ol-viewport.measure-active {
+  cursor: crosshair !important;
 }
 
 .ol-layers {
@@ -29,6 +38,7 @@
 /* OpenLayers容器相关样式，防止其捕获工具栏事件 */
 .ol-overlay-container {
   pointer-events: none !important;
+  z-index: 999 !important;
 }
 
 .ol-overlaycontainer {
@@ -226,4 +236,9 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* 测量工具样式覆盖 */
+.ol-tooltip {
+  z-index: 1500 !important;
 } 
