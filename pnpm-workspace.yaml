@@ -192,7 +192,7 @@ catalog:
   find-up: ^7.0.0
   fingerprintjs2: 2.1.4
   get-port: ^7.1.0
-  '@alexpavlov/geohash-js': ^1.3.1
+  "@alexpavlov/geohash-js": ^1.3.1
   grid-layout-plus: ^1.0.6
   gridstack: ^11.1.0
   gradient-string: ^3.0.0
@@ -232,6 +232,11 @@ catalog:
   leaflet-minimap: ^3.6.1
   leaflet.markercluster: ^1.5.3
   leaflet-trackplayer: ^2.0.3
+  ol: ^10.5.0
+  ol-layerswitcher: ^4.1.2
+  ol-contextmenu: ^5.5.0
+  ol-ext: ^4.0.31
+  ol3-echarts: ^3.0.1
   lint-staged: ^15.3.0
   lodash: ^4.17.21
   localforage: ^1.10.0
