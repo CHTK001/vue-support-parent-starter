@@ -10,7 +10,78 @@
     transform: translate(-50%, -100%);
   }
 }
+/* OpenLayers必要样式 */
+.ol-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+  /* 确保视口不会覆盖工具栏 */
+}
 
+.ol-layers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0 !important;
+  /* 确保图层不会覆盖工具栏 */
+}
+
+/* OpenLayers容器相关样式，防止其捕获工具栏事件 */
+.ol-overlay-container {
+  pointer-events: none !important;
+}
+
+.ol-overlaycontainer {
+  pointer-events: none !important;
+}
+
+.ol-overlaycontainer-stopevent {
+  pointer-events: none !important;
+}
+
+/* 隐藏OpenLayers默认控件 */
+.ol-control {
+  display: none !important;
+}
+
+/* 特别隐藏缩放按钮 */
+.ol-zoom {
+  display: none !important;
+}
+
+/* 隐藏归属控件 */
+.ol-attribution {
+  display: none !important;
+}
+
+/* 全局工具栏样式覆盖 */
+.map-toolbar {
+  z-index: 2000 !important;
+  position: absolute !important;
+  pointer-events: auto !important;
+}
+
+.toolbar-item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-collapse {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-submenu {
+  pointer-events: auto !important;
+}
+
+/* 确保工具栏子元素可以接收事件 */
+.map-toolbar *,
+.toolbar-item *,
+.toolbar-collapse *,
+.toolbar-submenu * {
+  pointer-events: auto !important;
+}
 /* 自定义弹窗容器样式 */
 .sc-map-custom-popup {
   position: absolute;

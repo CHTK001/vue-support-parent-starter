@@ -12,7 +12,8 @@ import {
   LAYER_SWITCH_ICON,
   MARKER_VISIBLE_ICON,
   LOCATION_ICON,
-  DEBUG_ICON
+  DEBUG_ICON,
+  COORDINATE_ICON
 } from './icon';
 
 // 工具栏配置接口
@@ -117,30 +118,9 @@ export interface AddToolOptions extends ToolItem {
 export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
   position: 'top-left',
   direction: 'horizontal',
-  itemsPerLine: 5,
+  itemsPerLine: 8,
   size: 36,
   items: [
-    {
-      id: 'zoom-in',
-      name: '放大',
-      icon: ZOOM_IN_ICON,
-      tooltip: '放大',
-      type: 'button'
-    },
-    {
-      id: 'zoom-out',
-      name: '缩小',
-      icon: ZOOM_OUT_ICON,
-      tooltip: '缩小',
-      type: 'button'
-    },
-    {
-      id: 'full-extent',
-      name: '全图',
-      icon: FULL_VIEW_ICON,
-      tooltip: '显示全图',
-      type: 'button'
-    },
     {
       id: 'measure',
       name: '测量',
@@ -223,16 +203,9 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       type: 'toggle'
     },
     {
-      id: 'location',
-      name: '定位',
-      icon: LOCATION_ICON,
-      tooltip: '定位到当前位置',
-      type: 'button'
-    },
-    {
       id: 'coordinate',
       name: '坐标',
-      icon: DEBUG_ICON,
+      icon: COORDINATE_ICON,
       tooltip: '显示坐标',
       type: 'toggle'
     }

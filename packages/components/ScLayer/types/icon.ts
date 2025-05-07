@@ -258,6 +258,14 @@ export const H3_GRID_ICON = `
   <path d="M512 234.7l-192 106.7v213.3l192 106.7 192-106.7V341.3L512 234.7z m0-64l234.7 128v256L512 682.7l-234.7-128v-256L512 170.7z" fill="#666666"></path>
 </svg>`;
 
+// 坐标图标
+export const COORDINATE_ICON = `
+<svg viewBox="0 0 1024 1024" width="16" height="16">
+  <path d="M512 64C264.8 64 64 264.8 64 512s200.8 448 448 448 448-200.8 448-448S759.2 64 512 64z m0 832c-212 0-384-172-384-384s172-384 384-384 384 172 384 384-172 384-384 384z" fill="#666666"></path>
+  <path d="M512 512m-64 0a64 64 0 1 0 128 0 64 64 0 1 0-128 0Z" fill="#666666"></path>
+  <path d="M512 208v144M512 672v144M208 512h144M672 512h144" stroke="#666666" stroke-width="48" fill="none"></path>
+</svg>`;
+
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,
@@ -299,7 +307,8 @@ export const IconMap = {
   trackDelete: TRACK_DELETE_ICON,
   trackToggleAll: TRACK_TOGGLE_ALL_ICON,
   edit: EDIT_ICON,
-  delete: DELETE_ICON
+  delete: DELETE_ICON,
+  coordinate: COORDINATE_ICON
 };
 
 /**
