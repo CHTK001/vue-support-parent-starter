@@ -68,9 +68,11 @@ export class MapObject {
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
     this.pointerMoveListener = (event: any) => { 
-    this.registerPointerMoveEvent(event);
-    this.customPointerMoveListener(event, this.coordinate);
-  };
+      this.registerPointerMoveEvent(event);
+      if (this.customPointerMoveListener) {
+        this.customPointerMoveListener(event, this.coordinate);
+      }
+    };
     logger.debug('MapObject实例已创建，配置类型:', configObject.getMapType());
   }
 

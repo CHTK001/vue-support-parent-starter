@@ -120,6 +120,7 @@ watch(() => props.coordinateInfo, (newValue) => {
       decimals: newValue.decimals || 6,
       position: newValue.position || 'bottom-right'
     };
+    console.log('坐标面板更新坐标:', currentCoords.value);
   }
 }, { 
   deep: true,  // 深度监听对象内部属性变化
