@@ -764,6 +764,13 @@ export class ToolbarObject {
           logger.debug('已激活矩形绘制工具');
         }
         break;
+      case 'draw-square':
+        // 激活正方形绘制工具
+        if (this.shapeObj) {
+          this.shapeObj.enable('Square');
+          logger.debug('已激活正方形绘制工具');
+        }
+        break;
       case 'draw-circle':
         if (this.shapeObj) {
           this.shapeObj.enable('Circle');
@@ -801,53 +808,32 @@ export class ToolbarObject {
    * @param tool 工具
    */
   private handleToolDeactivation(tool: ToolItem): void {
-    logger.debug(`处理工具停用: ${tool.id}, 类型: ${tool.type}`);
+    if (!tool || !tool.id) return;
     
-    // 坐标工具的特殊处理
-    if (tool.id === 'coordinate' && this.coordinateObj) {
-      // 隐藏坐标面板
-      this.showCoordinatePanel = false;
-      
-      // 禁用坐标功能
-      this.coordinateObj.disable();
-      
-      logger.debug('坐标工具已停用，面板已隐藏');
-      return;
-    }
-    
-    // 聚合工具的特殊处理
-    if (tool.id === 'cluster' && this.markerObj) {
-      // 禁用聚合功能
-      this.disableCluster();
-      logger.debug('聚合工具已停用');
-      return;
-    }
-    
-    // 测距工具的特殊处理
-    if (tool.id === 'measure' && this.measureObj) {
-      // 禁用测距功能
-      this.measureObj.disable();
-      
-      logger.debug('测距工具已停用');
-      return;
-    }
-    
-    // 鹰眼工具的特殊处理
-    if (tool.id === 'overview' && this.overviewMapObj) {
-      // 禁用鹰眼功能
-      this.overviewMapObj.disable();
-      
-      logger.debug('[Overview] 鹰眼工具已停用');
-      return;
-    }
-    
-    // 绘制工具停用
-    if ((tool.id === 'draw-rectangle' || tool.id === 'draw-circle' || 
-         tool.id === 'draw-polygon' || tool.id === 'draw-line') && 
-        this.shapeObj && this.shapeObj.isEnabled()) {
-      this.shapeObj.disable();
-      logger.debug(`[Shape] 绘制工具 ${tool.id} 已停用`);
-      return;
+    switch (tool.id) {
+      case 'measure':
+        this.handleMeasureDeactivate();
+        break;
+      case 'coordinate':
+        this.handleCoordinateDeactivate();
+        break;
+      case 'overview':
+        this.handleOverviewMapDeactivate();
+        break;
+      case 'cluster':
+        this.disableCluster();
+        break;
+      case 'draw-rectangle':
+      case 'draw-circle':
+      case 'draw-polygon':
+      case 'draw-line':
+      case 'draw-square':
+        // 停用图形绘制工具
+        if (this.shapeObj) {
+          this.shapeObj.disable();
+          logger.debug(`已停用 ${tool.id} 绘制工具`);
+        }
+        break;
     }
   }
 
