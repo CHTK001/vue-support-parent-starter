@@ -337,6 +337,14 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
+    // 聚合工具状态变化
+    'cluster': () => {
+      if (markerObject) {
+        markerObject.setClusterMode(active);
+        logger.debug(`[Marker] 标记点聚合模式: ${active ? '启用' : '禁用'}`);
+      }
+    },
+    
     // 绘制矩形工具
     'draw-rectangle': () => {
       if (active && shapeObject) {
@@ -595,6 +603,7 @@ defineExpose({
   hideAllMarkers: () => markerObject?.hideAllMarkers(),
   showAllLabels: () => markerObject?.showAllLabels(),
   hideAllLabels: () => markerObject?.hideAllLabels(),
+  setClusterMode: (enabled: boolean) => markerObject?.setClusterMode(enabled),
   // 图形绘制相关方法
   enableShape: (type: ShapeType) => shapeObject?.enable(type),
   disableShape: () => shapeObject?.disable(),

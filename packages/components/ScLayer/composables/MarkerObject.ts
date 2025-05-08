@@ -82,6 +82,8 @@ export class MarkerObject {
   private labelsVisible: boolean = true;
   // 全局标记点显示状态
   private markersVisible: boolean = true;
+  // 标记点聚合模式状态
+  private clusterMode: boolean = false;
   // 默认标记点样式
   private defaultStyle = {
     scale: 1, // 固定为1，不放大
@@ -344,6 +346,23 @@ export class MarkerObject {
   }
 
   /**
+   * 设置聚合模式
+   * @param enabled 是否启用聚合模式
+   */
+  public setClusterMode(enabled: boolean): void {
+    this.clusterMode = enabled;
+    this.log('info', `标记点聚合模式已${enabled ? '启用' : '禁用'}`);
+  }
+
+  /**
+   * 获取聚合模式状态
+   * @returns 聚合模式是否启用
+   */
+  public getClusterMode(): boolean {
+    return this.clusterMode;
+  }
+
+  /**
    * 添加标记点
    * @param options 标记点配置选项
    * @returns 标记点ID
@@ -361,7 +380,15 @@ export class MarkerObject {
     // 设置默认值
     options.visible = options.visible !== undefined ? options.visible : true;
     options.clickable = options.clickable !== undefined ? options.clickable : true;
-    options.cluster = options.cluster !== undefined ? options.cluster : false;
+    
+    // 在聚合模式下，自动设置新添加标记的cluster属性为true
+    if (this.clusterMode && options.cluster === undefined) {
+      options.cluster = true;
+      this.log('debug', `标记点 "${id}" 在聚合模式下自动设置为可聚合`);
+    } else {
+      options.cluster = options.cluster !== undefined ? options.cluster : false;
+    }
+    
     options.usePopover = options.usePopover !== undefined ? options.usePopover : true;
     options.showPopover = options.showPopover !== undefined ? options.showPopover : false;
     options.isPopoverOpen = false; // 初始化时popover为关闭状态
