@@ -15,8 +15,10 @@
       :data-tool-id="tool.id"
       @click="(e) => handleToolClick(tool, e)" 
       @dblclick.stop.prevent>
-      <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
-      <component v-else :is="tool.icon" />
+      <span v-if="typeof (tool.active && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'" 
+        class="svg-icon" 
+        v-html="tool.active && tool.activeIcon ? tool.activeIcon : tool.icon"></span>
+      <component v-else :is="tool.active && tool.activeIcon ? tool.activeIcon : tool.icon" />
       <div class="toolbar-tooltip" v-if="!(tool.type === 'menu' && openSubMenus.includes(tool.id))">
         {{ tool.tooltip || tool.name }}
       </div>
@@ -34,8 +36,12 @@
              :class="[{ active: subTool.active === true }, subTool.className]"
              :data-tool-id="subTool.id"
              @click.stop.prevent="(e) => handleSubMenuClick(tool, subTool, e)">
-          <span v-if="typeof subTool.icon === 'string'" class="svg-icon submenu-icon" v-html="subTool.icon"></span>
-          <component v-else-if="subTool.icon" :is="subTool.icon" class="submenu-icon" />
+          <span v-if="typeof (subTool.active && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'" 
+                class="svg-icon submenu-icon" 
+                v-html="subTool.active && subTool.activeIcon ? subTool.activeIcon : subTool.icon"></span>
+          <component v-else-if="subTool.active && subTool.activeIcon ? subTool.activeIcon : subTool.icon" 
+                     :is="subTool.active && subTool.activeIcon ? subTool.activeIcon : subTool.icon" 
+                     class="submenu-icon" />
           <div class="toolbar-tooltip">
             {{ subTool.tooltip || subTool.name }}
           </div>
@@ -479,8 +485,9 @@ const handleToolClick = (tool: ToolItem, event?: MouseEvent) => {
     newTools[toolIndex] = { 
       ...currentTool, 
       toggleState: newToggleState,
-      // 根据当前状态切换图标
+      // 根据当前状态切换图标，保留activeIcon属性
       icon: newToggleState ? currentTool.alternateIcon : (currentTool.originalIcon || currentTool.icon),
+      activeIcon: currentTool.activeIcon, // 保留activeIcon
       // 只有在"隐藏"状态时才保持激活样式
       active: newToggleState ? true : undefined
     };
@@ -1029,6 +1036,68 @@ defineExpose({
     
     &.active:active {
       background-color: #f5222d;
+    }
+  }
+
+  /* 红色按钮样式 */
+  &.red-btn {
+    color: #ff4d4f;
+    
+    &:hover {
+      background-color: #fff1f0;
+      border-color: #ffccc7;
+    }
+    
+    &.active {
+      background-color: #ff4d4f;
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(255, 77, 79, 0.3);
+    }
+    
+    &.active:hover {
+      background-color: #ff7875;
+      box-shadow: 0 6px 12px rgba(255, 77, 79, 0.4);
+    }
+    
+    &.active:active {
+      background-color: #f5222d;
+    }
+
+    /* 确保红色按钮的激活态图标为白色 */
+    &.active .svg-icon svg * {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
+    }
+  }
+
+  /* 灰色按钮样式 */
+  &.gray-btn {
+    color: #666666;
+    
+    &:hover {
+      background-color: #f5f5f5;
+      border-color: #d9d9d9;
+    }
+    
+    &.active {
+      background-color: #8c8c8c;
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(140, 140, 140, 0.3);
+    }
+    
+    &.active:hover {
+      background-color: #a6a6a6;
+      box-shadow: 0 6px 12px rgba(140, 140, 140, 0.4);
+    }
+    
+    &.active:active {
+      background-color: #595959;
+    }
+
+    /* 确保灰色按钮的激活态图标为白色 */
+    &.active .svg-icon svg * {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
     }
   }
 

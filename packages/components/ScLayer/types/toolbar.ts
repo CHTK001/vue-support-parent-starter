@@ -6,15 +6,22 @@ import {
   ZOOM_IN_ICON,
   ZOOM_OUT_ICON,
   FULL_VIEW_ICON,
-  MEASURE_ICON,
-  POLYGON_ICON,
   DELETE_ICON,
   LAYER_SWITCH_ICON,
   MARKER_VISIBLE_ICON,
   LOCATION_ICON,
   DEBUG_ICON,
+  CIRCLE_ICON,
+  RECTANGLE_ICON,
+  LABEL_ICON,
+  MARKER_ICON,
+  EAGLE_EYE_ICON,
   COORDINATE_ICON,
-  EAGLE_EYE_ICON
+  MEASURE_ICON,
+  CLEAR_ICON,
+  LINE_ICON,
+  POLYGON_ICON,
+  POPOVER_TOGGLE_ICON,
 } from './icon';
 
 /**
@@ -122,6 +129,58 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       title: '鹰眼',
       name: '鹰眼',
       multi: true  // 鹰眼工具可以与其它工具同时激活
+    },
+    {
+      id: 'marker-toggle',
+      type: 'toggle',
+      icon: MARKER_ICON,
+      title: '显示/隐藏标记点',
+      name: '标记点',
+      multi: true  // 标记点工具可以与其它工具同时激活
+    },
+    {
+      id: 'label-toggle',
+      type: 'toggle',
+      icon: POPOVER_TOGGLE_ICON,
+      title: '显示/隐藏标签',
+      name: '标签',
+      multi: true  // 标签工具可以与其它工具同时激活
+    },
+    {
+      id: 'draw-rectangle',
+      type: 'toggle',
+      icon: RECTANGLE_ICON,
+      title: '绘制矩形',
+      name: '矩形'
+    },
+    {
+      id: 'draw-circle',
+      type: 'toggle',
+      icon: CIRCLE_ICON,
+      title: '绘制圆形',
+      name: '圆形'
+    },
+    {
+      id: 'draw-polygon',
+      type: 'toggle',
+      icon: POLYGON_ICON,
+      title: '绘制多边形',
+      name: '多边形'
+    },
+    {
+      id: 'draw-line',
+      type: 'toggle',
+      icon: LINE_ICON,
+      title: '绘制线段',
+      name: '线段'
+    },
+    {
+      id: 'clear-shapes',
+      type: 'button',
+      icon: CLEAR_ICON,
+      title: '清除所有图形',
+      name: '清除',
+      multi: true
     }
   ],
   // 默认坐标工具配置

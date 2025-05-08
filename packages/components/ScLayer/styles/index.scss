@@ -1,3 +1,5 @@
+@import './variables.scss';
+
 /* 全局自定义弹窗动画样式 */
 @keyframes popup-fade-in {
   from {
@@ -92,6 +94,13 @@
 .toolbar-submenu * {
   pointer-events: auto !important;
 }
+
+/* 提示框样式覆盖 */
+.toolbar-tooltip {
+  z-index: 9999 !important; /* 确保提示框显示在最顶层 */
+  pointer-events: none !important; /* 确保提示框不接收鼠标事件 */
+}
+
 /* 自定义弹窗容器样式 */
 .sc-map-custom-popup {
   position: absolute;
@@ -248,36 +257,212 @@
   display: none !important;
 }
 
-/* 鹰眼控件样式 */
-.ol-overviewmap {
+/* Base styles for OpenLayers map */
+.ol-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* Control styles */
+.ol-control {
+  background-color: rgba(255,255,255,0.4);
+  border-radius: 4px;
   position: absolute;
-  left: auto;
-  right: 8px;
-  bottom: 8px;
-  
-  &:not(.ol-collapsed) {
-    background: rgba(255,255,255,0.8);
-    border-radius: 4px;
-    border: 1px solid #ccc;
-  }
-  
-  .ol-overviewmap-map {
-    border: none;
-    width: 150px;
-    height: 150px;
-  }
-  
-  .ol-overviewmap-box {
-    border: 2px solid rgba(0, 60, 136, 0.7);
-  }
+  padding: 2px;
   
   button {
-    background-color: rgba(255,255,255,0.8);
-    border-radius: 4px;
-    color: #333;
+    display: block;
+    margin: 1px;
+    padding: 0;
+    color: $primary-color;
+    font-size: 1.14em;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    height: 1.375em;
+    width: 1.375em;
+    line-height: .4em;
+    background-color: rgba(255,255,255,0.4);
+    border: none;
+    border-radius: 2px;
     
     &:hover {
-      background-color: #fff;
+      background-color: rgba(255,255,255,0.6);
     }
+  }
+  
+  &:hover {
+    background-color: rgba(255,255,255,0.6);
+  }
+}
+
+/* Attribution */
+.ol-attribution {
+  text-align: right;
+  bottom: .5em;
+  right: .5em;
+  max-width: calc(100% - 1.3em);
+  display: flex;
+  flex-flow: row-reverse;
+  align-items: center;
+  
+  a {
+    color: rgba(0,60,136,0.7);
+    text-decoration: none;
+  }
+}
+
+/* Zoom controls */
+.ol-zoom {
+  top: .5em;
+  left: .5em;
+  
+  &-in {
+    border-radius: 2px 2px 0 0;
+  }
+  
+  &-out {
+    border-radius: 0 0 2px 2px;
+  }
+}
+
+/* Rotate control */
+.ol-rotate {
+  top: .5em;
+  right: .5em;
+  transition: opacity .25s linear, visibility 0s linear;
+  
+  &.ol-hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s linear, visibility 0s linear .25s;
+  }
+}
+
+/* Mouse position */
+.ol-mouse-position {
+  top: 8px;
+  right: 8px;
+  position: absolute;
+}
+
+/* Overview Map */
+/* 特别注意：这些样式将强制覆盖OpenLayers默认样式 */
+.ol-overviewmap {
+  position: absolute !important;
+  left: auto !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  /* 确保控件可见 */
+  z-index: 10000 !important;
+  border: 2px solid rgba(24, 144, 255, 0.8) !important;
+  border-radius: 4px !important;
+  /* 加入阴影提高可见性 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  
+  /* 修复可能的隐藏问题 */
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  
+  /* 控件未折叠时 */
+  &:not(.ol-collapsed) {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    padding: 4px !important;
+    
+    /* 鹰眼地图容器 */
+    .ol-overviewmap-map {
+      min-width: 150px !important;
+      min-height: 150px !important;
+      margin: 2px !important;
+      border: 1px solid #ccc !important;
+    }
+    
+    /* 折叠按钮 */
+    button {
+      top: 2px !important;
+      right: 2px !important;
+      border-radius: 2px !important;
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      color: #333 !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 控件折叠时 */
+  &.ol-collapsed {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 4px !important;
+    
+    /* 展开按钮 */
+    button {
+      width: 26px !important;
+      height: 26px !important;
+      border-radius: 2px !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 确保鹰眼控件框的样式 */
+  .ol-overviewmap-box {
+    border: 2px solid rgba(24, 144, 255, 0.9) !important;
+  }
+}
+
+/* 自定义清晰版鹰眼控件 */
+.clear-overview-map {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 150px;
+  height: 150px;
+  border: 2px solid rgba(24, 144, 255, 0.8);
+  background-color: white;
+  z-index: 10000;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* 标记点popover样式 */
+.marker-popover {
+  position: relative;
+  background: white;
+  border-radius: 4px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  margin-bottom: 8px;
+  font-size: 12px;
+  max-width: 200px;
+  pointer-events: none;
+  z-index: 1000;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+  }
+  
+  &-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
+    color: #333;
   }
 } 
