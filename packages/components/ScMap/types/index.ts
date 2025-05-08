@@ -169,6 +169,10 @@ export interface ToolItem {
   name: string;
   icon: string | Component;
   /**
+   * 激活状态下显示的图标，当此属性存在时，激活状态使用此图标，非激活状态使用icon
+   */
+  activeIcon?: string | Component;
+  /**
    * 工具的激活状态
    * - `true`: 工具被激活
    * - `false`: 工具被隐藏，不会在工具栏中显示
@@ -205,6 +209,7 @@ export interface ToolItem {
   originalIcon?: string | Component;
   /**
    * 自定义CSS类名，用于按钮样式定制
+   * 预设值: 'red-btn', 'gray-btn'（默认为蓝色样式）
    */
   className?: string;
   /**

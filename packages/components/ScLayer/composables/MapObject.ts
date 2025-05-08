@@ -578,6 +578,8 @@ export class MapObject {
     if (!this.mapInstance) return;
     
     try {
+      const hit = this.mapInstance.hasFeatureAtPixel(event.pixel);
+      this.mapInstance.getTargetElement().style.cursor = hit ? 'pointer' : '';
       // 从事件中获取坐标
       const pixel = event.pixel;
       const coord = this.mapInstance.getCoordinateFromPixel(pixel);

@@ -8,8 +8,12 @@ import { MapType, MapTile } from './types';
 import { ConfigObject } from './composables/ConfigObject';
 import { MapObject } from './composables/MapObject';
 import { ToolbarObject } from './composables/ToolbarObject';
+import { MarkerObject } from './composables/MarkerObject';
+import { ShapeObject } from './composables/ShapeObject';
 import type { ToolbarConfig, ToolItem } from './types/toolbar';
 import type { MapConfig } from './types';
+import type { MarkerOptions } from './composables/MarkerObject';
+import type { ShapeType, ShapeStyle } from './composables/ShapeObject';
 
 // 导出组件
 export default ScLayer;
@@ -21,12 +25,17 @@ export {
   MapTile,
   ConfigObject,
   MapObject,
-  ToolbarObject
+  ToolbarObject,
+  MarkerObject,
+  ShapeObject
 };
 
 // 导出类型定义
 export type {
   ToolbarConfig,
   ToolItem,
-  MapConfig
+  MapConfig,
+  MarkerOptions,
+  ShapeType,
+  ShapeStyle
 }; 
