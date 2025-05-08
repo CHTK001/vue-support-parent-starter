@@ -312,6 +312,7 @@ export class MarkerObject {
     let pulseStartSize = 1; // 脉冲起始大小比例
     let pulseLayers = 3; // 脉冲效果层数
     let pulseDecay = 1.5; // 透明度衰减指数
+    let zoomToBoundsOnClick = false; // 默认不自动缩放到聚合范围
     let colorRanges: { value: number; color: string }[] = []; // 颜色范围
     
     // 获取工具栏对象，如果存在
@@ -338,6 +339,7 @@ export class MarkerObject {
         pulseStartSize = toolbarConfig.pulseStartSize || pulseStartSize;
         pulseLayers = toolbarConfig.pulseLayers || pulseLayers;
         pulseDecay = toolbarConfig.pulseDecay || pulseDecay;
+        zoomToBoundsOnClick = toolbarConfig.zoomToBoundsOnClick !== undefined ? toolbarConfig.zoomToBoundsOnClick : zoomToBoundsOnClick;
         colorRanges = toolbarConfig.colorRanges || [];
       }
     }
@@ -1423,14 +1425,28 @@ export class MarkerObject {
               this.log('debug', `点击了聚合点，包含 ${clusterFeatures.length} 个标记点`);
               hasHandledClick = true;
               
+              // 检查是否配置了自动缩放到聚合范围
+              let shouldZoom = false;
+              
+              // 获取聚合配置
+              const mapElement = this.mapInstance?.getTargetElement();
+              if (mapElement) {
+                const toolbarConfig = mapElement['clusterConfig'];
+                if (toolbarConfig) {
+                  shouldZoom = toolbarConfig.zoomToBoundsOnClick === true;
+                }
+              }
+              
               // 如果提供了自定义处理函数，则调用
               if (handler) {
                 handler(clusterFeatures, event.coordinate);
                 return true; // 停止遍历
               }
               
-              // 缩放到聚合点包含的所有标记点的范围
-              this.zoomToClusterExtent(clusterFeatures);
+              // 根据配置决定是否缩放
+              if (shouldZoom) {
+                this.zoomToClusterExtent(clusterFeatures);
+              }
             }
           } else {
             // 处理普通点
@@ -1492,17 +1508,21 @@ export class MarkerObject {
       
       // 添加一点缓冲以确保所有点都在视图中
       const buffer = 50; // 像素
+      const viewResolution = this.mapInstance.getView().getResolution() || 1;
+      const bufferInCoords = buffer * viewResolution;
+      
       extent = [
-        extent[0] - buffer,
-        extent[1] - buffer,
-        extent[2] + buffer,
-        extent[3] + buffer
+        extent[0] - bufferInCoords,
+        extent[1] - bufferInCoords,
+        extent[2] + bufferInCoords,
+        extent[3] + bufferInCoords
       ];
       
       // 缓慢缩放到范围
       this.mapInstance.getView().fit(extent, {
         duration: 400,
-        padding: [20, 20, 20, 20]
+        padding: [50, 50, 50, 50], // 增加边距让视图更舒适
+        maxZoom: 19 // 设置最大缩放级别以避免缩放过度
       });
       
       this.log('info', `已缩放到聚合点的范围: ${JSON.stringify(extent)}`);

@@ -3,7 +3,7 @@
  * @description 用于地图测量距离功能
  */
 import { Map } from 'ol';
-import { Draw, Modify, Snap } from 'ol/interaction';
+import { Draw, Snap } from 'ol/interaction';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
@@ -119,8 +119,6 @@ export class MeasureObject {
   private layer: VectorLayer | null = null;
   // 绘制交互
   private draw: Draw | null = null;
-  // 修改交互
-  private modify: Modify | null = null;
   // 捕捉交互
   private snap: Snap | null = null;
   // 监听器
@@ -412,12 +410,6 @@ export class MeasureObject {
     if (this.draw) {
       this.mapInstance.removeInteraction(this.draw);
       this.draw = null;
-    }
-
-    // 移除修改交互
-    if (this.modify) {
-      this.mapInstance.removeInteraction(this.modify);
-      this.modify = null;
     }
 
     // 移除捕捉交互
