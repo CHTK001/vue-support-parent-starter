@@ -127,7 +127,7 @@ const handleClose = () => {
   line-height: 20px;
   text-align: center;
   border-radius: 10px;
-}
+  }
 
 .coordinate-close:hover {
   background-color: #f0f0f0;
@@ -161,7 +161,7 @@ const handleClose = () => {
   font-size: 11px;
   color: #999;
 }
-</style>
+</style> 
 
 <script lang="ts">
 export default {
