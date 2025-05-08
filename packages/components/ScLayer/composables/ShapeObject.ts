@@ -3,7 +3,7 @@
  * @description 用于地图上绘制各种形状，包括矩形、圆形、多边形和线段
  */
 import { Map as OlMap } from 'ol';
-import { Draw, Modify, Snap, Select } from 'ol/interaction';
+import { Draw, Snap } from 'ol/interaction';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
@@ -108,10 +108,6 @@ export class ShapeObject {
   private layer: VectorLayer<VectorSource> | null = null;
   // 绘制交互
   private draw: Draw | null = null;
-  // 修改交互
-  private modify: Modify | null = null;
-  // 选择交互
-  private select: Select | null = null;
   // 捕捉交互
   private snap: Snap | null = null;
   // 样式配置
@@ -290,24 +286,6 @@ export class ShapeObject {
 
     // 添加绘制交互
     this.mapInstance.addInteraction(this.draw);
-
-    // 创建修改交互
-    this.modify = new Modify({
-      source: this.source
-    });
-    
-    // 添加修改交互
-    this.mapInstance.addInteraction(this.modify);
-
-    // 创建选择交互
-    this.select = new Select({
-      style: (feature) => {
-        return this.createSelectStyle(feature as Feature);
-      }
-    });
-    
-    // 添加选择交互
-    this.mapInstance.addInteraction(this.select);
     
     // 创建捕捉交互
     this.snap = new Snap({
@@ -336,18 +314,6 @@ export class ShapeObject {
     if (this.draw) {
       this.mapInstance.removeInteraction(this.draw);
       this.draw = null;
-    }
-    
-    // 移除修改交互
-    if (this.modify) {
-      this.mapInstance.removeInteraction(this.modify);
-      this.modify = null;
-    }
-    
-    // 移除选择交互
-    if (this.select) {
-      this.mapInstance.removeInteraction(this.select);
-      this.select = null;
     }
     
     // 移除捕捉交互
@@ -420,16 +386,6 @@ export class ShapeObject {
     const createVertexStyles = (coordinates: number[][]): Style[] => {
       return coordinates.map(coord => new Style({
         geometry: new Point(coord),
-        image: new CircleStyle({
-          radius: this.style.point?.radius || 5,
-          stroke: new Stroke({
-            color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 0.8)',
-            width: this.style.point?.stroke?.width || 2
-          }),
-          fill: new Fill({
-            color: this.style.point?.fill?.color || 'rgba(255, 255, 255, 0.8)'
-          })
-        })
       }));
     };
     
@@ -452,39 +408,10 @@ export class ShapeObject {
       const center = geometry.getCenter();
       styles.push(new Style({
         geometry: new Point(center),
-        image: new CircleStyle({
-          radius: this.style.point?.radius || 5,
-          stroke: new Stroke({
-            color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 0.8)',
-            width: this.style.point?.stroke?.width || 2
-          }),
-          fill: new Fill({
-            color: this.style.point?.fill?.color || 'rgba(255, 255, 255, 0.8)'
-          })
-        })
       }));
     }
     
     return styles;
-  }
-
-  /**
-   * 创建选中要素样式
-   * @param feature 要素
-   * @returns 样式
-   */
-  private createSelectStyle(feature: Feature): Style | Style[] {
-    const styles = this.createFeatureStyle(feature);
-    const styleArray = Array.isArray(styles) ? styles : [styles];
-    
-    // 修改第一个样式的描边样式，使其更突出
-    if (styleArray.length > 0) {
-      const baseStyle = styleArray[0];
-      baseStyle.getStroke().setColor('rgba(255, 153, 51, 1)');
-      baseStyle.getStroke().setWidth(3);
-    }
-    
-    return styleArray;
   }
 
   /**
