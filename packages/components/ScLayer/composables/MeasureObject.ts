@@ -141,6 +141,8 @@ export class MeasureObject {
   private style: MeasureStyle = DEFAULT_STYLE;
   // 是否启用
   private enabled: boolean = false;
+  // 添加一个标志位，用于防抖
+  private _redrawScheduled: boolean = false;
 
   /**
    * 构造函数
@@ -444,33 +446,41 @@ export class MeasureObject {
 
     // 添加几何变化监听器
     this.measureListener = this.sketch.getGeometry().on('change', (e: any) => {
-      const geom = e.target;
-      let output = '';
-      let tooltipCoord = null;
+      // 使用requestAnimationFrame优化，减少频繁更新
+      window.requestAnimationFrame(() => {
+        const geom = e.target;
+        let output = '';
+        let tooltipCoord = null;
 
-      if (this.measureType === 'distance') {
-        const length = getLength(geom);
-        output = this.formatLength(length);
-        tooltipCoord = (geom as LineString).getLastCoordinate();
-        
-        // 触发要素重新绘制，使节点距离标签更新
-        if (this.source) {
-          this.source.dispatchEvent('change');
+        if (this.measureType === 'distance') {
+          const length = getLength(geom);
+          output = this.formatLength(length);
+          tooltipCoord = (geom as LineString).getLastCoordinate();
+          
+          // 触发要素重新绘制，使节点距离标签更新
+          // 添加防抖，避免频繁触发重绘
+          if (this.source && !this._redrawScheduled) {
+            this._redrawScheduled = true;
+            window.requestAnimationFrame(() => {
+              this.source.dispatchEvent('change');
+              this._redrawScheduled = false;
+            });
+          }
+        } else {
+          const area = getArea(geom);
+          output = this.formatArea(area);
+          tooltipCoord = (geom as Polygon).getInteriorPoint().getCoordinates();
         }
-      } else {
-        const area = getArea(geom);
-        output = this.formatArea(area);
-        tooltipCoord = (geom as Polygon).getInteriorPoint().getCoordinates();
-      }
 
-      if (this.measureTooltipElement) {
-        this.measureTooltipElement.innerHTML = output;
-      }
+        if (this.measureTooltipElement) {
+          this.measureTooltipElement.innerHTML = output;
+        }
 
-      if (this.measureTooltips.length > 0) {
-        const tooltip = this.measureTooltips[this.measureTooltips.length - 1];
-        tooltip.setPosition(tooltipCoord);
-      }
+        if (this.measureTooltips.length > 0) {
+          const tooltip = this.measureTooltips[this.measureTooltips.length - 1];
+          tooltip.setPosition(tooltipCoord);
+        }
+      });
     });
   }
 
@@ -605,25 +615,28 @@ export class MeasureObject {
   private handlePointerMove(event: any): void {
     if (!this.mapInstance || !this.helpTooltipElement || !this.helpTooltip) return;
 
-    const pixel = this.mapInstance.getEventPixel(event);
-    const hit = this.mapInstance.hasFeatureAtPixel(pixel);
-    
-    // 更新帮助提示内容和位置
-    if (this.helpTooltipElement) {
-      this.helpTooltipElement.style.display = this.sketch ? '' : 'none';
+    // 使用requestAnimationFrame提高性能
+    window.requestAnimationFrame(() => {
+      const pixel = this.mapInstance!.getEventPixel(event);
+      const hit = this.mapInstance!.hasFeatureAtPixel(pixel);
       
-      if (this.sketch) {
-        const type = this.measureType === 'distance' ? '单击继续绘制, 双击结束' : '单击绘制多边形, 双击结束';
-        this.helpTooltipElement.innerHTML = type;
+      // 更新帮助提示内容和位置
+      if (this.helpTooltipElement) {
+        this.helpTooltipElement.style.display = this.sketch ? '' : 'none';
+        
+        if (this.sketch) {
+          const type = this.measureType === 'distance' ? '单击继续绘制, 双击结束' : '单击绘制多边形, 双击结束';
+          this.helpTooltipElement.innerHTML = type;
+        }
       }
-    }
-    
-    if (this.helpTooltip) {
-      this.helpTooltip.setPosition(this.mapInstance.getEventCoordinate(event));
-    }
-    
-    // 更新鼠标样式
-    this.mapInstance.getTargetElement().style.cursor = hit ? 'pointer' : 'crosshair';
+      
+      if (this.helpTooltip) {
+        this.helpTooltip.setPosition(this.mapInstance!.getEventCoordinate(event));
+      }
+      
+      // 更新鼠标样式
+      this.mapInstance!.getTargetElement().style.cursor = hit ? 'pointer' : 'crosshair';
+    });
   }
 
   /**
@@ -689,7 +702,9 @@ export class MeasureObject {
           stroke: new Stroke({
             color: this.style.line?.stroke?.color || 'rgba(24, 144, 255, 1)',
             width: this.style.line?.stroke?.width || 3,
-            lineDash: this.style.line?.stroke?.lineDash || [5, 5]
+            lineDash: this.style.line?.stroke?.lineDash || [5, 5],
+            lineCap: 'round',  // 添加圆角端点，提高视觉效果
+            lineJoin: 'round'  // 添加圆角连接，提高视觉效果
           })
         })
       );
@@ -713,26 +728,27 @@ export class MeasureObject {
         
         previousCoord = coord;
         
-        // 添加节点样式
+        // 添加节点样式 - 增强节点样式使其更明显
         styles.push(
           new Style({
             geometry: new Point(coord),
             image: new CircleStyle({
-              radius: this.style.point?.radius || 5,
+              radius: this.style.point?.radius || 8,  // 增大节点半径
               stroke: new Stroke({
-                color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 0.8)',
-                width: this.style.point?.stroke?.width || 2
+                color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 1)',  // 更鲜艳的颜色
+                width: this.style.point?.stroke?.width || 3  // 增加边框宽度
               }),
               fill: new Fill({
-                color: this.style.point?.fill?.color || 'rgba(255, 255, 255, 0.8)'
+                color: i === 0 ? 'rgba(24, 144, 255, 0.8)' : 'rgba(255, 255, 255, 0.9)'  // 起点使用特殊颜色
               })
-            })
+            }),
+            zIndex: 10  // 确保节点在线上方
           })
         );
         
         // 跳过起点的标签，因为距离为0
         if (i > 0) {
-          // 添加距离标签
+          // 添加距离标签 - 使标签更加明显
           const label = this.formatDistanceLabel(cumulativeDistance);
           
           styles.push(
@@ -740,21 +756,23 @@ export class MeasureObject {
               geometry: new Point(coord),
               text: new Text({
                 text: label,
-                font: 'bold 12px Arial,sans-serif',
+                font: 'bold 13px Arial,sans-serif',  // 增大字体
                 fill: new Fill({
-                  color: '#1890ff'
+                  color: '#ffffff'  // 白色文字
                 }),
                 backgroundFill: new Fill({
-                  color: 'rgba(255, 255, 255, 0.8)'
+                  color: 'rgba(24, 144, 255, 0.9)'  // 更鲜艳的背景色
                 }),
-                padding: [3, 5, 3, 5],
+                padding: [5, 7, 5, 7],  // 增大内边距
                 stroke: new Stroke({
-                  color: '#fff',
-                  width: 3
+                  color: 'rgba(0, 0, 0, 0.2)',  // 添加阴影效果
+                  width: 4
                 }),
-                offsetY: -20,
-                textAlign: 'center'
-              })
+                offsetY: -25,  // 增大偏移量
+                textAlign: 'center',
+                textBaseline: 'middle'
+              }),
+              zIndex: 11  // 确保文字在节点上方
             })
           );
         }
@@ -807,9 +825,9 @@ export class MeasureObject {
    */
   private formatDistanceLabel(distance: number): string {
     if (distance > 1000) {
-      return `${(Math.round(distance / 10) / 100).toFixed(2)}km`;
+      return `${(Math.round(distance / 10) / 100).toFixed(2)} km`;  // 添加空格使显示更清晰
     } else {
-      return `${Math.round(distance)}m`;
+      return `${Math.round(distance)} m`;  // 添加空格使显示更清晰
     }
   }
 }

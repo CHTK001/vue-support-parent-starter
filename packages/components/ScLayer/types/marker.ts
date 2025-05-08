@@ -32,14 +32,6 @@ export interface MarkerOptions {
   usePopover?: boolean; // 是否使用popover显示标题，默认false
   showPopover?: boolean; // 是否默认显示popover，默认false
   isPopoverOpen?: boolean; // 内部属性：当前popover是否打开，默认false
-  // 散点动画效果
-  pulse?: {
-    enabled?: boolean; // 是否启用脉冲动画
-    duration?: number; // 动画持续时间(ms)，默认1500
-    scale?: number; // 缩放比例，默认1.5
-    color?: string; // 脉冲颜色，默认继承标记点颜色
-    opacity?: number; // 脉冲透明度，默认0.6
-  };
   style?: {
     scale?: number;
     anchor?: [number, number];

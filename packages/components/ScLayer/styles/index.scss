@@ -187,26 +187,28 @@
 
 /* 测距样式 */
 .measure-segment-label .segment-distance {
-  background: rgba(255, 71, 87, 0.8);
+  background: rgba(24, 144, 255, 0.9);
   color: white;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   font-weight: bold;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  animation: measure-fade-in 0.3s ease-out;
 }
 
 .measure-node-label .node-distance {
-  background: rgba(0, 92, 175, 0.8);
+  background: rgba(0, 92, 175, 0.9);
   color: white;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  animation: fade-in 0.3s ease-out;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  animation: measure-fade-in 0.3s ease-out;
 }
 
 .measure-total-label .total-distance-label {
@@ -216,19 +218,54 @@
   border-radius: 4px;
   font-size: 14px;
   font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
   white-space: nowrap;
-  animation: scale-in 0.3s ease-out;
+  animation: measure-scale-in 0.3s ease-out;
 }
 
 .total-distance-label::after {
   content: attr(data-distance);
 }
 
-@keyframes fade-in {
+/* 测量点样式 */
+.ol-measure-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  pointer-events: all;
+  cursor: move;
+}
+
+.ol-measure-point:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+}
+
+/* 测量线样式 */
+.ol-measure-line {
+  stroke: #1890ff;
+  stroke-width: 3px;
+  stroke-dasharray: 5, 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.ol-measure-line:hover {
+  stroke-width: 4px;
+  stroke-dasharray: none;
+}
+
+@keyframes measure-fade-in {
   from {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -236,7 +273,7 @@
   }
 }
 
-@keyframes scale-in {
+@keyframes measure-scale-in {
   from {
     opacity: 0;
     transform: scale(0.8);
@@ -250,6 +287,25 @@
 /* 测量工具样式覆盖 */
 .ol-tooltip {
   z-index: 1500 !important;
+}
+
+.ol-tooltip.ol-tooltip-measure {
+  background-color: rgba(24, 144, 255, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: all 0.2s ease;
+}
+
+.ol-tooltip.ol-tooltip-static {
+  background-color: rgba(0, 177, 89, 0.9);
+  padding: 6px 10px;
+  border-radius: 4px;
+  transform: translate(-50%, -100%);
 }
 
 // 隐藏原生MousePosition控件显示

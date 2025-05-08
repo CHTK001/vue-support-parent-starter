@@ -1,4 +1,3 @@
-
 // 聚合功能配置接口
 export interface AggregationOptions {
   // 聚合距离半径
@@ -21,6 +20,16 @@ export interface AggregationOptions {
   pulseOpacity?: number;
   // 每秒扩散次数
   pulseFrequency?: number;
+  // 扩散动画缩放比例
+  pulseScale?: number;
+  // 扩散起始大小比例(相对于点大小)
+  pulseStartSize?: number;
+  // 扩散颜色
+  pulseColor?: string;
+  // 扩散效果层数（1-3）
+  pulseLayers?: number;
+  // 透明度衰减指数
+  pulseDecay?: number;
   // 聚合点样式
   clusterIconStyle?: any;
   // 是否缩放到聚合范围当点击聚合点时

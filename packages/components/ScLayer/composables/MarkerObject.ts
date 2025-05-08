@@ -8,6 +8,8 @@ import Point from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Style, Icon, Text, Fill, Stroke } from 'ol/style';
+import Circle from 'ol/style/Circle';
+import RegularShape from 'ol/style/RegularShape';
 import Cluster from 'ol/source/Cluster';
 import { fromLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
@@ -277,7 +279,7 @@ export class MarkerObject {
    * @param feature 要素
    * @returns 样式
    */
-  private createClusterStyle(feature: Feature): Style {
+  private createClusterStyle(feature: Feature): Style | Style[] {
     const features = feature.get('features');
     
     if (!features) return new Style();
@@ -298,14 +300,18 @@ export class MarkerObject {
     let borderColor = '#ffffff'; // 默认边框颜色
     let showCount = true; // 默认显示数量
     let useWeightAsSize = true; // 根据数量显示大小
-    let minClusterSize = 2; // 最小聚合数量
+    let minClusterSize = 24; // 最小聚合数量
     let maxClusterSize = 60; // 最大聚合点尺寸
     let defaultSize = 40; // 默认聚合点大小
     let enablePulse = true; // 是否启用脉冲效果
-    let pulseDuration = 1500; // 脉冲动画持续时间
-    let pulseScale = 1.5; // 脉冲缩放比例
+    let pulseDuration = 2000; // 脉冲动画持续时间，调整为2000ms更缓慢
+    let pulseScale = 2.5; // 脉冲缩放比例
     let pulseColor = color; // 脉冲颜色
-    let pulseOpacity = 0.6; // 脉冲透明度
+    let pulseOpacity = 0.8; // 脉冲透明度
+    let pulseFrequency = 1; // 每秒扩散次数
+    let pulseStartSize = 1; // 脉冲起始大小比例
+    let pulseLayers = 3; // 脉冲效果层数
+    let pulseDecay = 1.5; // 透明度衰减指数
     let colorRanges: { value: number; color: string }[] = []; // 颜色范围
     
     // 获取工具栏对象，如果存在
@@ -328,6 +334,10 @@ export class MarkerObject {
         pulseScale = toolbarConfig.pulseScale || pulseScale;
         pulseColor = toolbarConfig.pulseColor || color;
         pulseOpacity = toolbarConfig.pulseOpacity !== undefined ? toolbarConfig.pulseOpacity : pulseOpacity;
+        pulseFrequency = toolbarConfig.pulseFrequency || pulseFrequency;
+        pulseStartSize = toolbarConfig.pulseStartSize || pulseStartSize;
+        pulseLayers = toolbarConfig.pulseLayers || pulseLayers;
+        pulseDecay = toolbarConfig.pulseDecay || pulseDecay;
         colorRanges = toolbarConfig.colorRanges || [];
       }
     }
@@ -348,45 +358,134 @@ export class MarkerObject {
     
     // 计算聚合点大小
     let pointSize = defaultSize;
-    if (useWeightAsSize && size > minClusterSize) {
+    if (useWeightAsSize && size > 1) {
       // 根据数量计算大小，限制在最大尺寸范围内
       const sizeScale = Math.min(1, Math.log(size) / Math.log(100)); // 使用对数缩放，更合理
       pointSize = minClusterSize + sizeScale * (maxClusterSize - minClusterSize);
     }
     
-    // 创建SVG图标
-    const svgSize = pointSize;
-    const circleRadius = svgSize / 2;
-    const borderWidth = 2;
+    // 创建涟漪层样式数组
+    const styles: Style[] = [];
     
-    // 创建SVG
-    const svg = `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="${circleRadius}" cy="${circleRadius}" r="${circleRadius}" fill="${color}" fill-opacity="0.8"/>
-      <circle cx="${circleRadius}" cy="${circleRadius}" r="${circleRadius - borderWidth/2}" stroke="${borderColor}" stroke-width="${borderWidth}" fill="none"/>
-    </svg>`;
+    // 如果启用涟漪效果，创建多个圆圈样式形成涟漪效果
+    if (enablePulse) {
+      // 创建涟漪层，每个层级使用不同的透明度和大小
+      // 模拟动画效果，不再使用SVG动画
+      
+      // 获取当前时间的毫秒数，用于计算动画状态
+      const time = Date.now() % pulseDuration;
+      const animationProgress = time / pulseDuration; // 0-1之间的值
+      
+      // 确保层数在有效范围内
+      pulseLayers = Math.max(1, Math.min(3, pulseLayers));
+      
+      // 创建涟漪圆圈，根据配置的层数
+      for (let i = 0; i < pulseLayers; i++) {
+        // 计算每个涟漪的相位偏移，形成连续效果
+        const phaseOffset = i / pulseLayers;
+        let progress = (animationProgress + phaseOffset) % 1;
+        
+        // 根据动画进度计算当前大小和透明度
+        // 起始大小由配置决定
+        const startSize = pointSize * pulseStartSize;
+        // 最大大小调整为原来的pulseScale倍
+        const maxSize = startSize * pulseScale;
+        // 根据进度计算当前大小
+        const currentSize = startSize + (maxSize - startSize) * progress;
+        
+        // 透明度从设定值衰减到0，衰减指数由配置决定
+        const currentOpacity = Math.max(0, pulseOpacity * Math.pow(1 - progress, pulseDecay));
+        
+        if (currentOpacity > 0.01) { // 只有透明度足够高时才添加样式，提高性能
+          // 创建涟漪圆圈样式
+          styles.push(
+            new Style({
+              // 使用RegularShape实现圆形
+              image: new RegularShape({
+                radius: currentSize / 2,
+                radius2: currentSize / 2,
+                points: 64, // 增加点数使圆形更平滑
+                fill: new Fill({
+                  color: this.colorWithOpacity(pulseColor, currentOpacity)
+                })
+              }),
+              zIndex: 99 + i // 涟漪层级低于主圆圈
+            })
+          );
+        }
+      }
+      
+      // 设置关键帧请求以刷新样式
+      if (this.mapInstance) {
+        // 请求下一帧重绘，实现动画效果
+        window.requestAnimationFrame(() => {
+          if (this.mapInstance) this.mapInstance.render();
+        });
+      }
+    }
     
-    // 将SVG转为base64
-    const iconUrl = 'data:image/svg+xml;base64,' + btoa(svg);
-    
-    // 创建图标样式
-    return new Style({
-      image: new Icon({
-        src: iconUrl,
-        scale: 1,
-        anchor: [0.5, 0.5],
-        anchorXUnits: 'fraction',
-        anchorYUnits: 'fraction'
-      }),
-      text: showCount ? new Text({
-        text: size.toString(),
-        fill: new Fill({
-          color: '#fff'
+    // 创建主聚合点样式
+    styles.push(
+      new Style({
+        image: new RegularShape({
+          radius: pointSize / 2,
+          radius2: pointSize / 2,
+          points: 30, // 足够多的点数使其看起来像圆形
+          fill: new Fill({
+            color: this.colorWithOpacity(color, 0.8)
+          }),
+          stroke: new Stroke({
+            color: borderColor,
+            width: 2
+          })
         }),
-        font: 'bold 12px Arial',
-        offsetY: 1
-      }) : undefined,
-      zIndex: 100 + size // 数量越多的聚合点层级越高
-    });
+        text: showCount ? new Text({
+          text: size.toString(),
+          fill: new Fill({
+            color: '#fff'
+          }),
+          font: 'bold 12px Arial',
+          offsetY: 1
+        }) : undefined,
+        zIndex: 100 + size // 数量越多的聚合点层级越高
+      })
+    );
+    
+    return styles;
+  }
+  
+  /**
+   * 添加透明度到颜色值
+   * @param color 颜色（十六进制或RGB格式）
+   * @param opacity 透明度 (0-1)
+   * @returns 带透明度的RGBA颜色字符串
+   */
+  private colorWithOpacity(color: string, opacity: number): string {
+    // 处理十六进制颜色
+    if (color.startsWith('#')) {
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    
+    // 处理rgb颜色
+    if (color.startsWith('rgb(')) {
+      const rgb = color.slice(4, -1).split(',').map(x => parseInt(x.trim(), 10));
+      return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity})`;
+    }
+    
+    // 处理rgba颜色
+    if (color.startsWith('rgba(')) {
+      // 提取当前rgba值
+      const rgba = color.slice(5, -1).split(',');
+      // 替换最后的透明度值
+      rgba[3] = opacity.toString();
+      return `rgba(${rgba.join(',')})`;
+    }
+    
+    // 如果是其他格式，返回带透明度的默认颜色
+    return `rgba(24, 144, 255, ${opacity})`;
   }
 
   /**
@@ -603,64 +702,6 @@ export class MarkerObject {
       }
     } else {
       iconUrl = this.defaultIconUrl;
-    }
-    
-    // 检查是否需要添加脉冲效果
-    if (options.pulse && options.pulse.enabled) {
-      // 从全局配置获取脉冲默认值
-      let pulseScale = options.pulse.scale || 1.5;
-      let pulseDuration = options.pulse.duration || 1500;
-      let pulseColor = options.pulse.color || '#1677ff';
-      let pulseOpacity = options.pulse.opacity !== undefined ? options.pulse.opacity : 0.6;
-    
-      // 尝试获取更多的配置（如工具栏配置）
-      const mapElement = this.mapInstance?.getTargetElement();
-      if (mapElement) {
-        const pulseConfig = mapElement['clusterConfig'];
-        if (pulseConfig) {
-          pulseScale = pulseConfig.pulseScale || pulseScale;
-          pulseDuration = pulseConfig.pulseDuration || pulseDuration;
-          pulseColor = pulseConfig.pulseColor || pulseColor;
-          pulseOpacity = pulseConfig.pulseOpacity !== undefined ? pulseConfig.pulseOpacity : pulseOpacity;
-        }
-      }
-      
-      // 创建带有脉冲/涟漪效果的SVG
-      // 先创建临时图标以获取大小信息
-      const tempIcon = new Icon({
-        src: iconUrl,
-        scale: 1
-      });
-      
-      // 获取图像大小信息（如果有）
-      const imageSize = tempIcon.getSize();
-      const iconWidth = imageSize ? imageSize[0] : 24;
-      const iconHeight = imageSize ? imageSize[1] : 24;
-      const size = Math.max(iconWidth, iconHeight);
-      const svgWidth = size * pulseScale;
-      const svgHeight = size * pulseScale;
-      
-      // 创建带有动画的SVG
-      const pulseId = `pulse-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-      const svg = `
-      <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-          <radialGradient id="${pulseId}-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-            <stop offset="0%" stop-color="${pulseColor}" stop-opacity="${pulseOpacity}" />
-            <stop offset="100%" stop-color="${pulseColor}" stop-opacity="0" />
-          </radialGradient>
-        </defs>
-        
-        <circle cx="${svgWidth/2}" cy="${svgHeight/2}" r="${svgWidth/2}" fill="url(#${pulseId}-gradient)" opacity="${pulseOpacity}">
-          <animate attributeName="r" values="${svgWidth/4};${svgWidth/2}" dur="${pulseDuration}ms" begin="0s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="${pulseOpacity};0" dur="${pulseDuration}ms" begin="0s" repeatCount="indefinite" />
-        </circle>
-        
-        <image x="${(svgWidth - iconWidth) / 2}" y="${(svgHeight - iconHeight) / 2}" width="${iconWidth}" height="${iconHeight}" href="${iconUrl}" />
-      </svg>`;
-      
-      // 将SVG转为base64
-      iconUrl = 'data:image/svg+xml;base64,' + btoa(svg);
     }
     
     // 创建标准图标样式
