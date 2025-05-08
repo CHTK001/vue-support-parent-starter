@@ -209,7 +209,7 @@ const initializeMapComponents = () => {
   toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
 
   // 创建标记点对象
-  markerObject = new MarkerObject(mapObj.getMapInstance());
+  markerObject = toolbarObject.getMarkerObject();
   // 设置工具栏对象
   mapToolbarRef.value?.setToolbarObj(toolbarObject);
   // 设置标记点点击回调
@@ -219,7 +219,7 @@ const initializeMapComponents = () => {
   });
   
   // 创建图形绘制对象
-  shapeObject = new ShapeObject(mapObj.getMapInstance());
+  shapeObject = toolbarObject.getShapeObject();
   logger.debug('图形绘制对象已初始化');
 };
 
@@ -390,12 +390,11 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
-    // 清除所有图形
+    // 删除模式按钮 - 启用单击删除图形或标记点的功能
     'clear-shapes': () => {
-      if (active && shapeObject) {
-        shapeObject.clear();
-        logger.debug('[Shape] 已清除所有图形');
-      }
+      // 此处不需要做任何操作，因为ToolbarObject中的activateTool方法已经处理了激活删除模式
+      // 避免与ToolbarObject中的逻辑重复，以防止删除功能被错误触发两次
+      logger.debug('[Shape] 删除模式按钮处理 - 已由ToolbarObject处理');
     }
   };
   

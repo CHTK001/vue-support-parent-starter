@@ -813,7 +813,6 @@ defineExpose({
 
   /* 删除按钮样式 */
   &.delete-btn {
-    color: #ff4d4f;
 
     &:hover {
       background-color: #fff1f0;
