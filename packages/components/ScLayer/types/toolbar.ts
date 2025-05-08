@@ -22,6 +22,7 @@ import {
   LINE_ICON,
   POLYGON_ICON,
   POPOVER_TOGGLE_ICON,
+  HIDDEN_MARKER_ICON,
 } from './icon';
 
 /**
@@ -54,6 +55,7 @@ export interface ToolItem {
   id: string;
   type: ToolType;
   icon?: string | Component;
+  activeIcon?: string | Component;
   title?: string;
   name?: string;
   className?: string;
@@ -134,6 +136,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       id: 'marker-toggle',
       type: 'toggle',
       icon: MARKER_ICON,
+      activeIcon: HIDDEN_MARKER_ICON,
       title: '显示/隐藏标记点',
       name: '标记点',
       multi: true  // 标记点工具可以与其它工具同时激活
