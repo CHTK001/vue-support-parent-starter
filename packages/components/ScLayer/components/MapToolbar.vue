@@ -10,8 +10,8 @@
       { 'has-submenu': (tool.type === 'menu' || tool.type === 'button') && tool.children?.length },
       tool?.className || ''
     ]" :data-tool-id="tool.id" @click.stop="(e) => handleToolClick(tool, e)" @dblclick.stop.prevent>
-      <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
-      <component v-else :is="tool.icon" />
+      <span v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'" class="svg-icon" v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"></span>
+      <component v-else :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" />
       <div class="toolbar-tooltip" v-if="!(openSubMenus.includes(tool.id))">
         {{ tool.tooltip || tool.name }}
       </div>
@@ -29,8 +29,8 @@
             subTool.className
           ]" :data-tool-id="subTool.id"
           @click.stop.prevent="(e) => handleSubMenuClick(tool, subTool, e)">
-          <span v-if="typeof subTool.icon === 'string'" class="svg-icon submenu-icon" v-html="subTool.icon"></span>
-          <component v-else-if="subTool.icon" :is="subTool.icon" class="submenu-icon" />
+          <span v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'" class="svg-icon submenu-icon" v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"></span>
+          <component v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" class="submenu-icon" />
           <div class="toolbar-tooltip">
             {{ subTool.tooltip || subTool.name }}
           </div>
@@ -44,8 +44,8 @@
             <div v-for="nestedTool in subTool.children" :key="nestedTool.id" class="submenu-item toolbar-item color-override"
               :class="[{ active: isToolActive(nestedTool.id) }, nestedTool.className]" :data-tool-id="nestedTool.id"
               @click.stop.prevent="(e) => handleSubMenuClick(subTool, nestedTool, e)">
-              <span v-if="typeof nestedTool.icon === 'string'" class="svg-icon submenu-icon" v-html="nestedTool.icon"></span>
-              <component v-else-if="nestedTool.icon" :is="nestedTool.icon" class="submenu-icon" />
+              <span v-if="typeof (isToolActive(nestedTool.id) && nestedTool.activeIcon ? nestedTool.activeIcon : nestedTool.icon) === 'string'" class="svg-icon submenu-icon" v-html="isToolActive(nestedTool.id) && nestedTool.activeIcon ? nestedTool.activeIcon : nestedTool.icon"></span>
+              <component v-else-if="nestedTool.icon || (isToolActive(nestedTool.id) && nestedTool.activeIcon)" :is="isToolActive(nestedTool.id) && nestedTool.activeIcon ? nestedTool.activeIcon : nestedTool.icon" class="submenu-icon" />
               <div class="toolbar-tooltip">
                 {{ nestedTool.tooltip || nestedTool.name }}
               </div>
