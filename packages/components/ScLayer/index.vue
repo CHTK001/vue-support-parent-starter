@@ -67,7 +67,8 @@ import type { MapConfig, MapEventType } from './types';
 import { MapTile } from './types';
 import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
 import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
-import { MarkerObject, MarkerOptions } from './composables/MarkerObject';
+import { MarkerObject } from './composables/MarkerObject';
+import { MarkerOptions } from '.';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 // 引入OpenLayers样式
 import 'ol/ol.css';

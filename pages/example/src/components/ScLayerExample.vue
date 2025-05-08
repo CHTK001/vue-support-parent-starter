@@ -154,7 +154,7 @@ export default {
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { MapType, MapTile } from '@repo/components/ScLayer/types';
+import { MapType, MapTile, MarkerClusterMode } from '@repo/components/ScLayer/types';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types/map';
 import type { MarkerOptions } from '@repo/components/ScLayer/composables/MarkerObject';
 
@@ -242,7 +242,6 @@ function addCenterMarker() {
     position: [centerLon, centerLat],
     title: '中心点',
     clickable: true,
-    cluster: false,
     usePopover: true,
     data: { type: 'center', importance: 'high' },
     template: '<div><h3>{{title}}</h3><p>这是地图中心点</p></div>',
@@ -325,7 +324,6 @@ function addRandomMarkers(count) {
       icon: icon,
       iconType: iconType,
       clickable: true,
-      cluster: false,
       usePopover: usePopover,
       data: { type: 'random', index: i }
     });
@@ -388,7 +386,6 @@ function addColoredMarkers() {
       icon: icon,
       iconType: dir.iconType,
       clickable: true,
-      cluster: false,
       usePopover: dir.usePopover,
       data: { type: 'direction', name: dir.name },
       style: {
@@ -428,7 +425,7 @@ function addClusterMarkers() {
       position: [lon, lat],
       title: `聚合点 ${i + 1}`,
       clickable: true,
-      cluster: true, // 设置为聚合点
+      clusterMode: MarkerClusterMode.CLUSTER,
       data: { type: 'cluster', index: i }
     });
   }
@@ -607,7 +604,6 @@ function addPopoverMarker() {
     position: [centerLon, centerLat],
     title: 'Popover标记',
     clickable: true,
-    cluster: false,
     usePopover: true,
     showPopover: true,
     data: { type: 'pop', importance: 'high' },
@@ -640,7 +636,6 @@ function addTemplateMarker() {
     position: [lon, lat],
     title: '带模板标记',
     clickable: true,
-    cluster: false,
     usePopover: false,
     data: { type: 'template', importance: 'high' },
     template: '<div><h3>{{title}}</h3><p>这是带模板的标记</p></div>',
@@ -672,7 +667,6 @@ function addNoTemplateMarker() {
     position: [lon, lat],
     title: '无模板标记',
     clickable: true,
-    cluster: false,
     usePopover: true,
     data: { type: 'no-template', importance: 'high' },
     style: {

@@ -1,13 +1,16 @@
 /**
- * 坐标跟踪对象
- * @description 用于跟踪鼠标在地图上的坐标位置
+ * 坐标对象
+ * @description 管理地图上的坐标显示
  */
-import { Map } from 'ol';
-import { toLonLat, transform } from 'ol/proj';
+import { Map as OlMap } from 'ol';
+import { toLonLat } from 'ol/proj';
+import { toStringXY } from 'ol/coordinate';
+import { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 import logger from './LogObject';
 
 /**
- * 坐标位置类型
+ * 坐标面板位置
  */
 export type CoordinatePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -15,201 +18,203 @@ export type CoordinatePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bot
  * 坐标信息接口
  */
 export interface CoordinateInfo {
-  // 经度 (WGS84坐标)
+  // 经度
   longitude: number;
-  // 纬度 (WGS84坐标)
+  // 纬度
   latitude: number;
-  // 投影X坐标 (原始投影坐标)
+  // 投影坐标X
   projectedX: number;
-  // 投影Y坐标 (原始投影坐标)
+  // 投影坐标Y
   projectedY: number;
-  // 投影坐标系
+  // 投影系统
   projection: string;
   // 小数位数
   decimals?: number;
-  // 面板显示位置
+  // 坐标面板位置
   position?: CoordinatePosition;
 }
 
 /**
- * 坐标跟踪对象配置接口
+ * 坐标选项接口
  */
 export interface CoordinateOptions {
   // 小数位数
   decimals?: number;
-  // 面板显示位置
+  // 坐标面板位置
   position?: CoordinatePosition;
   // 是否显示投影坐标
   showProjected?: boolean;
 }
 
 /**
- * 坐标跟踪对象类
+ * 坐标回调函数类型
+ */
+export type CoordinateCallback = (info: CoordinateInfo) => void;
+
+/**
+ * 坐标对象类
  */
 export class CoordinateObject {
   // 地图实例
-  private mapInstance: Map | null = null;
-  // 当前坐标信息
-  private coordinate: CoordinateInfo = {
-    longitude: 0,
-    latitude: 0,
-    projectedX: 0,
-    projectedY: 0,
-    projection: 'EPSG:3857',
-    decimals: 6,
-    position: 'bottom-right'
-  };
-  // 回调函数
-  private callback: ((coordinate: CoordinateInfo) => void) | null = null;
-  // 是否启用
-  private enabled: boolean = false;
-  // 配置项
+  private mapInstance: OlMap | null = null;
+  // 坐标选项
   private options: CoordinateOptions = {
     decimals: 6,
     position: 'bottom-right',
     showProjected: true
   };
+  // 指针移动监听器
+  private pointerMoveListener: EventsKey | null = null;
+  // 坐标回调函数
+  private callback: CoordinateCallback | null = null;
+  // 是否已启用
+  private enabled: boolean = false;
 
   /**
    * 构造函数
    * @param mapInstance 地图实例
-   * @param options 配置选项
+   * @param options 坐标选项
    */
-  constructor(mapInstance: Map | null = null, options?: CoordinateOptions) {
-    if (mapInstance) {
-      this.setMapInstance(mapInstance);
-    }
+  constructor(mapInstance: OlMap, options?: CoordinateOptions) {
+    this.mapInstance = mapInstance;
+    
     if (options) {
       this.setOptions(options);
     }
-  }
-
-
-  /**
-   * 设置配置选项
-   * @param options 配置选项
-   */
-  public setOptions(options: CoordinateOptions): void {
-    this.options = { ...this.options, ...options };
-    this.coordinate.decimals = this.options.decimals;
-    this.coordinate.position = this.options.position;
     
-    logger.debug('坐标跟踪对象配置已更新:', this.options);
+    logger.debug('坐标对象已创建');
   }
 
   /**
-   * 获取配置选项
-   * @returns 配置选项
+   * 设置坐标选项
+   * @param options 坐标选项
    */
-  public getOptions(): CoordinateOptions {
-    return { ...this.options };
+  setOptions(options: CoordinateOptions): void {
+    this.options = { ...this.options, ...options };
+    logger.debug('坐标选项已更新', this.options);
   }
 
   /**
    * 设置地图实例
    * @param mapInstance 地图实例
    */
-  public setMapInstance(mapInstance: Map): void {
+  setMapInstance(mapInstance: OlMap): void {
+    // 如果已经绑定了事件监听器，先解绑
+    if (this.pointerMoveListener && this.mapInstance) {
+      unByKey(this.pointerMoveListener);
+      this.pointerMoveListener = null;
+    }
+    
     this.mapInstance = mapInstance;
-    this.coordinate.projection = this.mapInstance.getView().getProjection().getCode();
-    logger.debug('坐标跟踪对象已初始化，投影:', this.coordinate.projection);
+    
+    // 如果已启用，需要重新绑定事件
+    if (this.enabled && this.callback) {
+      this.enable(this.callback);
+    }
+    
+    logger.debug('坐标对象地图实例已更新');
   }
 
   /**
    * 启用坐标跟踪
-   * @param callback 坐标变化回调函数
+   * @param callback 坐标回调函数
    */
-  public enable(callback?: (coordinate: CoordinateInfo) => void): void {
+  enable(callback: CoordinateCallback): void {
     if (!this.mapInstance) {
       logger.warn('地图实例未设置，无法启用坐标跟踪');
       return;
     }
     
-    // 设置回调函数
-    if (callback) {
-      this.callback = callback;
+    // 保存回调函数
+    this.callback = callback;
+    
+    // 如果已经绑定了事件监听器，先解绑
+    if (this.pointerMoveListener) {
+      unByKey(this.pointerMoveListener);
+      this.pointerMoveListener = null;
     }
     
-    // 如果已启用，先禁用
-    if (this.enabled) {
-      this.disable();
-    }
-    // 设置启用状态
+    // 绑定指针移动事件
+    this.pointerMoveListener = this.mapInstance.on('pointermove', (event) => {
+      const pixel = this.mapInstance!.getEventPixel(event.originalEvent);
+      const coordinate = this.mapInstance!.getCoordinateFromPixel(pixel);
+      
+      if (coordinate && this.callback) {
+        // 获取当前投影
+        const projection = this.mapInstance!.getView().getProjection();
+        const projectionCode = projection.getCode();
+        
+        // 转换为经纬度
+        const lonLat = toLonLat(coordinate, projection);
+        
+        // 创建坐标信息对象
+        const info: CoordinateInfo = {
+          longitude: lonLat[0],
+          latitude: lonLat[1],
+          projectedX: coordinate[0],
+          projectedY: coordinate[1],
+          projection: projectionCode,
+          decimals: this.options.decimals,
+          position: this.options.position
+        };
+        
+        // 调用回调函数
+        this.callback(info);
+      }
+    });
+    
     this.enabled = true;
-    logger.info('坐标跟踪已启用');
+    logger.debug('坐标跟踪已启用');
   }
 
   /**
    * 禁用坐标跟踪
    */
-  public disable(): void {
-    if (!this.mapInstance || !this.enabled) {
-      return;
+  disable(): void {
+    if (this.pointerMoveListener) {
+      unByKey(this.pointerMoveListener);
+      this.pointerMoveListener = null;
     }
+    
     this.enabled = false;
     logger.debug('坐标跟踪已禁用');
   }
 
   /**
-   * 获取当前坐标信息
-   * @returns 坐标信息
+   * 获取当前是否启用
+   * @returns 是否启用
    */
-  public getCoordinate(): CoordinateInfo {
-    return { ...this.coordinate };
-  }
-
-  /**
-   * 是否已启用
-   * @returns 是否已启用
-   */
-  public isEnabled(): boolean {
+  isEnabled(): boolean {
     return this.enabled;
   }
 
   /**
-   * 设置小数位数
-   * @param decimals 小数位数
+   * 获取当前坐标选项
+   * @returns 坐标选项
    */
-  public setDecimals(decimals: number): void {
-    this.options.decimals = decimals;
-    this.coordinate.decimals = decimals;
-  }
-
-  /**
-   * 设置面板位置
-   * @param position 面板位置
-   */
-  public setPosition(position: CoordinatePosition): void {
-    this.options.position = position;
-    this.coordinate.position = position;
-  }
-
-  /**
-   * 设置是否显示投影坐标
-   * @param show 是否显示
-   */
-  public setShowProjected(show: boolean): void {
-    this.options.showProjected = show;
+  getOptions(): CoordinateOptions {
+    return { ...this.options };
   }
 
   /**
    * 销毁对象
    */
-  public destroy(): void {
+  destroy(): void {
     this.disable();
     this.mapInstance = null;
     this.callback = null;
+    logger.debug('坐标对象已销毁');
   }
 }
 
 /**
- * 创建坐标跟踪对象
+ * 创建坐标对象
  * @param mapInstance 地图实例
- * @param options 配置选项
- * @returns 坐标跟踪对象
+ * @param options 坐标选项
+ * @returns 坐标对象
  */
-export function createCoordinateObject(mapInstance?: Map, options?: CoordinateOptions): CoordinateObject {
-  return new CoordinateObject(mapInstance || null, options);
+export function createCoordinateObject(mapInstance: OlMap, options?: CoordinateOptions): CoordinateObject {
+  return new CoordinateObject(mapInstance, options);
 }
 
 export default CoordinateObject; 

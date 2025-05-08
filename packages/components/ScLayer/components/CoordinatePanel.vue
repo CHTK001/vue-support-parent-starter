@@ -1,40 +1,34 @@
 /**
  * 坐标面板组件
- * 显示当前鼠标位置的坐标信息
+ * 用于显示鼠标在地图上的坐标信息
  */
 <template>
-  <div class="coordinate-panel" :class="{ 
-    'active': active,
-    'top-left': coordinateInfo.position === 'top-left',
-    'top-right': coordinateInfo.position === 'top-right',
-    'bottom-left': coordinateInfo.position === 'bottom-left',
-    'bottom-right': coordinateInfo.position === 'bottom-right' || !coordinateInfo.position
-  }">
-    <div class="panel-content">
-      <div class="coordinate-group">
-        <div class="coordinate-label">经度:</div>
-        <div class="coordinate-value" :title="`${formatCoordinate(coordinateInfo.longitude, coordinateInfo.decimals)}°E`">
-          {{ formatCoordinate(currentCoords.longitude, displayDecimals) }}°E
-        </div>
+  <div class="coordinate-panel" :class="positionClass">
+    <div class="coordinate-header">
+      <div class="coordinate-title">{{ $t('坐标信息') }}</div>
+      <div class="coordinate-close" @click="handleClose">×</div>
+    </div>
+    <div class="coordinate-content">
+      <div class="coordinate-item">
+        <div class="coordinate-label">{{ $t('经度') }}:</div>
+        <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.longitude) }}</div>
       </div>
-      <div class="coordinate-group">
-        <div class="coordinate-label">纬度:</div>
-        <div class="coordinate-value" :title="`${formatCoordinate(coordinateInfo.latitude, coordinateInfo.decimals)}°N`">
-          {{ formatCoordinate(currentCoords.latitude, displayDecimals) }}°N
-        </div>
+      <div class="coordinate-item">
+        <div class="coordinate-label">{{ $t('纬度') }}:</div>
+        <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.latitude) }}</div>
       </div>
       <template v-if="showProjected">
-        <div class="coordinate-group">
-          <div class="coordinate-label">X:</div>
-          <div class="coordinate-value" :title="`${formatCoordinate(coordinateInfo.projectedX, coordinateInfo.decimals)}`">
-            {{ formatCoordinate(currentCoords.projectedX, displayDecimals) }}
-          </div>
+        <div class="coordinate-item">
+          <div class="coordinate-label">{{ $t('投影X') }}:</div>
+          <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedX, 2) }}</div>
         </div>
-        <div class="coordinate-group">
-          <div class="coordinate-label">Y:</div>
-          <div class="coordinate-value" :title="`${formatCoordinate(coordinateInfo.projectedY, coordinateInfo.decimals)}`">
-            {{ formatCoordinate(currentCoords.projectedY, displayDecimals) }}
-          </div>
+        <div class="coordinate-item">
+          <div class="coordinate-label">{{ $t('投影Y') }}:</div>
+          <div class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedY, 2) }}</div>
+        </div>
+        <div class="coordinate-item coordinate-projection">
+          <div class="coordinate-label">{{ $t('投影') }}:</div>
+          <div class="coordinate-value">{{ coordinateInfo.projection }}</div>
         </div>
       </template>
     </div>
@@ -42,187 +36,135 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import type { CoordinateInfo } from '../composables/CoordinateObject';
+import { computed } from 'vue';
+import { CoordinateInfo } from '../composables/CoordinateObject';
 
-const props = defineProps({
-  /**
-   * 是否激活
-   */
-  active: {
-    type: Boolean,
-    default: false
-  },
-  /**
-   * 坐标信息
-   */
-  coordinateInfo: {
-    type: Object as () => CoordinateInfo,
-    required: true,
-    default: () => ({
-      longitude: 0,
-      latitude: 0,
-      projectedX: 0,
-      projectedY: 0,
-      projection: 'EPSG:3857',
-      decimals: 12,
-      position: 'bottom-right'
-    })
-  },
-  /**
-   * 是否显示投影坐标
-   */
-  showProjected: {
-    type: Boolean,
-    default: false
-  }
+// 定义组件属性
+const props = defineProps<{
+  active: boolean;
+  coordinateInfo: CoordinateInfo;
+  showProjected?: boolean;
+}>();
+
+// 定义组件事件
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
+
+// 计算坐标面板位置类
+const positionClass = computed(() => {
+  return `position-${props.coordinateInfo.position || 'bottom-right'}`;
 });
 
-// 使用响应式引用保存当前坐标，不直接使用props，避免父组件不更新的问题
-const currentCoords = ref<CoordinateInfo>({
-  longitude: props.coordinateInfo.longitude || 0,
-  latitude: props.coordinateInfo.latitude || 0,
-  projectedX: props.coordinateInfo.projectedX || 0,
-  projectedY: props.coordinateInfo.projectedY || 0,
-  projection: props.coordinateInfo.projection || 'EPSG:3857',
-  decimals: props.coordinateInfo.decimals || 6,
-  position: props.coordinateInfo.position || 'bottom-right'
-});
-
-// 显示的小数位数，为了确保完整显示，可以在界面上显示较少的小数位
-const displayDecimals = computed(() => {
-  return Math.min(6, currentCoords.value.decimals || 6);
-});
-
-// 保留close事件，用于外部控制关闭
-defineEmits(['close']);
-
-/**
- * 格式化坐标，保留指定小数位
- */
-const formatCoordinate = (value: number, digits: number = 6): string => {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return '0.000000';
-  }
-  return value.toFixed(digits);
+// 格式化坐标值
+const formatCoordinate = (value: number, fractionDigits: number = 6): string => {
+  if (typeof value !== 'number') return '0';
+  return value.toFixed(fractionDigits);
 };
 
-// 监听props中坐标信息的变化
-watch(() => props.coordinateInfo, (newValue) => {
-  if (newValue) {
-    // 更新当前显示的坐标
-    currentCoords.value = {
-      longitude: newValue.longitude || 0,
-      latitude: newValue.latitude || 0,
-      projectedX: newValue.projectedX || 0,
-      projectedY: newValue.projectedY || 0,
-      projection: newValue.projection || 'EPSG:3857',
-      decimals: newValue.decimals || 6,
-      position: newValue.position || 'bottom-right'
-    };
-    console.log('坐标面板更新坐标:', currentCoords.value);
-  }
-}, { 
-  deep: true,  // 深度监听对象内部属性变化
-  immediate: true  // 立即执行一次
-});
-
-// 组件挂载时初始化
-onMounted(() => {
-  // 初始化当前坐标
-  currentCoords.value = { ...props.coordinateInfo };
-});
+// 处理关闭按钮点击
+const handleClose = () => {
+  emit('close');
+};
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .coordinate-panel {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
-  pointer-events: auto !important;
-  z-index: 2500 !important;
-  border: 1px solid rgba(220, 220, 220, 0.8);
-  overflow: hidden;
-  transition: all 0.25s ease;
-  opacity: 0;
-  transform: translateY(10px);
-  visibility: hidden;
-  min-width: 180px;
-  max-width: 240px;
-  width: auto;
-  padding: 8px 10px;
-  
-  &.active {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-  }
+  min-width: 200px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  font-size: 12px;
+  color: #333;
+  z-index: 2000;
+  border: 1px solid #e8e8e8;
+  backdrop-filter: blur(4px);
+}
 
-  // 左上角
-  &.top-left {
-    top: 15px;
-    left: 15px;
-  }
-  
-  // 右上角
-  &.top-right {
-    top: 15px;
-    right: 15px;
-  }
-  
-  // 左下角
-  &.bottom-left {
-    bottom: 15px;
-    left: 15px;
-  }
-  
-  // 右下角（默认）
-  &.bottom-right {
-    bottom: 15px;
-    right: 15px;
-  }
+.coordinate-panel.position-top-left {
+  top: 10px;
+  left: 10px;
+}
 
-  .panel-content {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    
-    .coordinate-group {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      width: 100%;
-      
-      .coordinate-label {
-        font-size: 10px;
-        color: #666;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        min-width: 40px;
-      }
-      
-      .coordinate-value {
-        color: #1976D2;
-        font-size: 10px;
-        font-family: 'Roboto Mono', 'Courier New', monospace;
-        font-weight: 500;
-        background-color: rgba(240, 245, 250, 0.9);
-        padding: 3px 4px;
-        border-radius: 4px;
-        border: 1px solid rgba(25, 118, 210, 0.1);
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.2;
-        cursor: default;
-        flex: 1;
-        margin-left: 5px;
-      }
-    }
-  }
+.coordinate-panel.position-top-right {
+  top: 10px;
+  right: 10px;
+}
+
+.coordinate-panel.position-bottom-left {
+  bottom: 10px;
+  left: 10px;
+}
+
+.coordinate-panel.position-bottom-right {
+  bottom: 10px;
+  right: 10px;
+}
+
+.coordinate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+}
+
+.coordinate-title {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.coordinate-close {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #999;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 10px;
+}
+
+.coordinate-close:hover {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.coordinate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coordinate-item {
+  display: flex;
+  align-items: center;
+}
+
+.coordinate-label {
+  width: 40px;
+  color: #666;
+  margin-right: 8px;
+}
+
+.coordinate-value {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.coordinate-projection {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #999;
 }
 </style>
+
+<script lang="ts">
+export default {
+  name: 'CoordinatePanel'
+};
+</script> 

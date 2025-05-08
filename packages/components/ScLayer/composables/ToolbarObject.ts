@@ -12,7 +12,7 @@ import { MeasureObject, MeasureType } from './MeasureObject';
 import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
-
+import { AggregationOptions } from '../types/cluster';
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -40,6 +40,27 @@ export class ToolbarObject {
   private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   // 按钮状态变化回调
   private toolStateChangeCallback: ToolStateChangeCallback | null = null;
+  // 聚合配置
+  private clusterConfig: AggregationOptions = {
+    maxClusterRadius: 40,    // 聚合半径（像素）
+    radiusUnit: 'pixel',     // 半径单位
+    color: '#1677ff',        // 聚合点颜色
+    borderColor: '#fff',     // 边框颜色
+    showCount: true,         // 显示数量
+    zoomToBoundsOnClick: true, // 点击时缩放到范围
+    useWeightAsSize: true,   // 根据数量显示大小
+    // 脉冲/涟漪动画效果
+    enablePulse: true,       // 启用脉冲效果
+    pulseDuration: 1500,     // 动画持续时间(ms) 
+    pulseOpacity: 0.6,       // 脉冲透明度
+    pulseFrequency: 1,       // 每秒脉冲次数
+    colorRanges: [           // 颜色范围
+      { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色
+      { value: 50, color: '#91cc75' },  // 聚合点数量≥50时使用绿色
+      { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
+      { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
+    ]
+  };
 
   /**
    * 构造函数
@@ -650,6 +671,9 @@ export class ToolbarObject {
       case 'clear-shapes':
         this.handleClearFeatures();
         break;
+      case 'cluster':
+        this.handleClusterActivate();
+        break;
       case 'marker-toggle':
         this.handleButtonActivation(tool);
         // 切换标记点显示/隐藏
@@ -665,12 +689,16 @@ export class ToolbarObject {
           if (visibleCount > 0) {
             // 如果有可见的标记点，则全部隐藏
             const count = this.markerObj.hideAllMarkers();
-            this.triggerToolStateChange(tool.id, false, 'button', { count });
+            if (this.toolStateChangeCallback) {
+              this.toolStateChangeCallback(tool.id, false, 'button', { count });
+            }
             logger.debug(`隐藏了 ${count} 个标记点`);
           } else {
             // 如果全部隐藏，则全部显示
             const count = this.markerObj.showAllMarkers();
-            this.triggerToolStateChange(tool.id, true, 'button', { count });
+            if (this.toolStateChangeCallback) {
+              this.toolStateChangeCallback(tool.id, true, 'button', { count });
+            }
             logger.debug(`显示了 ${count} 个标记点`);
           }
         }
@@ -704,12 +732,16 @@ export class ToolbarObject {
           if (currentPopover) {
             // 如果当前有显示的popover，隐藏所有
             const count = this.markerObj.hideAllLabels(); // 这个方法现在会调用hideAllPopovers
-            this.triggerToolStateChange(tool.id, false, 'button', { count });
+            if (this.toolStateChangeCallback) {
+              this.toolStateChangeCallback(tool.id, false, 'button', { count });
+            }
             logger.debug(`隐藏了所有标记点的标签（popover），共 ${count} 个`);
           } else {
             // 如果当前没有显示的popover，显示所有
             const count = this.markerObj.showAllLabels(); // 这个方法现在会显示所有popover
-            this.triggerToolStateChange(tool.id, true, 'button', { count });
+            if (this.toolStateChangeCallback) {
+              this.toolStateChangeCallback(tool.id, true, 'button', { count });
+            }
             logger.debug(`显示了所有标记点的标签（popover），共 ${count} 个`);
           }
         }
@@ -719,7 +751,9 @@ export class ToolbarObject {
         // 隐藏所有popover
         if (this.markerObj) {
           const count = this.markerObj.hideAllPopovers();
-          this.triggerToolStateChange(tool.id, false, 'button', { count });
+          if (this.toolStateChangeCallback) {
+            this.toolStateChangeCallback(tool.id, false, 'button', { count });
+          }
           logger.debug(`隐藏了所有标记点气泡，共 ${count} 个`);
         }
         break;
@@ -752,6 +786,17 @@ export class ToolbarObject {
   }
 
   /**
+   * 处理按钮类型工具的临时激活
+   * @param tool 工具项
+   * @param duration 激活持续时间（毫秒）
+   * @deprecated 使用统一的activateTool和deactivateTool方法代替
+   */
+  private handleButtonActivation(tool: ToolItem, duration: number = 300): void {
+    // 直接调用统一的激活方法，逻辑已经移到activateTool中
+    this.activateTool(tool.id);
+  }
+
+  /**
    * 处理工具停用
    * @param tool 工具
    */
@@ -767,6 +812,14 @@ export class ToolbarObject {
       this.coordinateObj.disable();
       
       logger.debug('坐标工具已停用，面板已隐藏');
+      return;
+    }
+    
+    // 聚合工具的特殊处理
+    if (tool.id === 'cluster' && this.markerObj) {
+      // 禁用聚合功能
+      this.disableCluster();
+      logger.debug('聚合工具已停用');
       return;
     }
     
@@ -1031,6 +1084,177 @@ export class ToolbarObject {
   }
 
   /**
+   * 处理聚合工具激活
+   */
+  private handleClusterActivate(): void {
+    if (!this.markerObj) {
+      logger.warn('标记点对象不存在，无法启用聚合功能');
+      return;
+    }
+    
+    // 启用聚合模式
+    this.enableCluster();
+    
+    // 触发工具状态变化回调
+    if (this.toolStateChangeCallback) {
+      this.toolStateChangeCallback('cluster-enabled', true, 'feature', {
+        source: 'cluster-activate',
+        config: this.clusterConfig
+      });
+    }
+    
+    logger.info('聚合功能已启用');
+  }
+
+  /**
+   * 设置聚合配置
+   * @param config 聚合配置
+   */
+  public setClusterConfig(config: Partial<AggregationOptions>): void {
+    if (!this.markerObj) {
+      logger.warn('标记点对象不存在，无法设置聚合配置');
+      return;
+    }
+    
+    // 合并配置
+    this.clusterConfig = { ...this.clusterConfig, ...config };
+    
+    // 更新地图元素上的配置，使得MarkerObject可以访问最新配置
+    const mapInstance = this.mapObj.getMapInstance();
+    if (mapInstance) {
+      const targetElement = mapInstance.getTargetElement();
+      if (targetElement) {
+        targetElement['clusterConfig'] = this.clusterConfig;
+        logger.debug('更新了地图元素上的聚合配置');
+      }
+    }
+    
+    // 如果指定了聚合半径并且是数字类型，将其应用到标记点对象
+    if (typeof this.clusterConfig.maxClusterRadius === 'number' && this.clusterConfig.maxClusterRadius > 0) {
+      // 确保半径是有效的像素值
+      let distanceInPixels = this.clusterConfig.maxClusterRadius;
+      
+      // 如果单位是千米，转换为像素（大约的转换，不同缩放级别可能需要调整）
+      if (this.clusterConfig.radiusUnit === 'kilometer') {
+        // 假设1千米约等于屏幕上的40像素
+        distanceInPixels = Math.round(this.clusterConfig.maxClusterRadius * 40);
+      }
+      
+      // 设置聚合距离
+      this.markerObj.setClusterDistance(distanceInPixels);
+      
+      logger.debug(`已将聚合半径设置为 ${this.clusterConfig.maxClusterRadius} ${this.clusterConfig.radiusUnit} (约 ${distanceInPixels} 像素)`);
+    }
+    
+    // 如果正在使用聚合模式，需要重新应用设置
+    if (this.isClusterEnabled()) {
+      // 先禁用再启用聚合，以应用新的设置
+      this.markerObj.setClusterMode(false);
+      this.markerObj.setClusterMode(true);
+      
+      logger.debug('已应用新的聚合配置');
+    }
+  }
+
+  /**
+   * 获取当前聚合配置
+   * @returns 聚合配置
+   */
+  public getClusterConfig(): AggregationOptions {
+    return { ...this.clusterConfig };
+  }
+
+  /**
+   * 启用聚合功能
+   */
+  private enableCluster(): void {
+    if (!this.markerObj) {
+      logger.warn('标记点对象不存在，无法启用聚合功能');
+      return;
+    }
+    
+    // 如果指定了聚合半径并且是数字类型，先设置距离
+    if (typeof this.clusterConfig.maxClusterRadius === 'number' && this.clusterConfig.maxClusterRadius > 0) {
+      // 确保半径是有效的像素值
+      let distanceInPixels = this.clusterConfig.maxClusterRadius;
+      
+      // 如果单位是千米，转换为像素
+      if (this.clusterConfig.radiusUnit === 'kilometer') {
+        distanceInPixels = Math.round(this.clusterConfig.maxClusterRadius * 40);
+      }
+      
+      this.markerObj.setClusterDistance(distanceInPixels);
+      logger.debug(`聚合半径设置为 ${this.clusterConfig.maxClusterRadius} ${this.clusterConfig.radiusUnit} (约 ${distanceInPixels} 像素)`);
+    }
+    
+    // 将聚合配置传递给地图元素，使得MarkerObject可以访问
+    const mapInstance = this.mapObj.getMapInstance();
+    if (mapInstance) {
+      const targetElement = mapInstance.getTargetElement();
+      if (targetElement) {
+        // 在DOM元素上设置配置属性，让其他组件可以获取
+        targetElement['clusterConfig'] = this.clusterConfig;
+        logger.debug('聚合配置已传递给地图元素，其他组件可以访问');
+      }
+    }
+    
+    // 启用标记点的聚合模式
+    this.markerObj.setClusterMode(true);
+    
+    // 添加聚合点击事件处理
+    this.setupClusterClickHandler();
+    
+    logger.debug('聚合功能已启用');
+  }
+
+  /**
+   * 禁用聚合功能
+   */
+  private disableCluster(): void {
+    if (!this.markerObj) {
+      return;
+    }
+    
+    // 禁用标记点的聚合模式
+    this.markerObj.setClusterMode(false);
+    
+    logger.debug('聚合功能已禁用');
+  }
+
+  /**
+   * 设置聚合点击事件处理
+   * 当点击聚合点时，根据配置决定是否自动缩放到聚合点的范围
+   */
+  private setupClusterClickHandler(): void {
+    if (!this.markerObj) {
+      logger.warn('标记点对象不存在，无法设置聚合点击事件处理');
+      return;
+    }
+
+    // 设置聚合点击处理函数
+    if (this.clusterConfig.zoomToBoundsOnClick) {
+      // 使用标记点对象提供的聚合点击处理功能，会自动缩放到聚合点的范围
+      this.markerObj.setClusterClickHandler();
+      logger.info('已设置聚合点击时缩放到范围');
+    } else {
+      // 如果不需要缩放到范围，可以设置一个自定义的点击处理函数
+      this.markerObj.setClusterClickHandler((features, coordinate) => {
+        // 仅记录信息，不执行缩放操作
+        logger.info(`点击了聚合点，包含 ${features.length} 个标记点，坐标: [${coordinate[0].toFixed(2)}, ${coordinate[1].toFixed(2)}]`);
+      });
+      logger.info('已设置聚合点击时不缩放到范围');
+    }
+  }
+
+  /**
+   * 获取聚合状态
+   * @returns 是否启用聚合
+   */
+  public isClusterEnabled(): boolean {
+    return this.markerObj ? this.markerObj.getClusterMode() : false;
+  }
+
+  /**
    * 销毁工具栏对象
    */
   destroy(): void {
@@ -1045,10 +1269,12 @@ export class ToolbarObject {
           logger.debug(`销毁过程中停用工具: ${tool.id}`);
           
           // 触发工具状态变化回调 - 停用
-          this.triggerToolStateChange(tool.id, false, tool.type, {
-            multi: tool.multi,
-            hasChildren: Boolean(tool.children && tool.children.length > 0)
-          });
+          if (this.toolStateChangeCallback) {
+            this.toolStateChangeCallback(tool.id, false, tool.type, {
+              multi: tool.multi,
+              hasChildren: Boolean(tool.children && tool.children.length > 0)
+            });
+          }
         }
         
         // 递归处理子菜单项
@@ -1066,6 +1292,9 @@ export class ToolbarObject {
       this.activeToolId = null;
       logger.debug('销毁过程中清除当前激活工具ID');
     }
+    
+    // 禁用聚合功能
+    this.disableCluster();
     
     // 销毁坐标对象
     if (this.coordinateObj) {
@@ -1097,17 +1326,6 @@ export class ToolbarObject {
     // 清空工具列表
     this.tools = [];
     logger.debug('工具栏对象销毁完成');
-  }
-
-  /**
-   * 处理按钮类型工具的临时激活
-   * @param tool 工具项
-   * @param duration 激活持续时间（毫秒）
-   * @deprecated 使用统一的activateTool和deactivateTool方法代替
-   */
-  private handleButtonActivation(tool: ToolItem, duration: number = 300): void {
-    // 直接调用统一的激活方法，逻辑已经移到activateTool中
-    this.activateTool(tool.id);
   }
 
   /**
