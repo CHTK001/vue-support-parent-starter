@@ -23,6 +23,7 @@ import {
   POLYGON_ICON,
   POPOVER_TOGGLE_ICON,
   HIDDEN_MARKER_ICON,
+  CLUSTER_ICON,
 } from './icon';
 
 /**
@@ -148,6 +149,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       title: '显示/隐藏标签',
       name: '标签',
       multi: true  // 标签工具可以与其它工具同时激活
+    },
+    {
+      id: 'cluster',
+      type: 'toggle',
+      icon: CLUSTER_ICON,
+      title: '标记点聚合',
+      name: '聚合',
+      multi: true  // 聚合工具可以与其它工具同时激活
     },
     {
       id: 'draw-rectangle',
