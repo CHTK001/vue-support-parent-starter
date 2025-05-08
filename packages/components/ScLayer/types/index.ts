@@ -7,7 +7,8 @@ import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
 export * from "./map";
 export * from "./toolbar";
-
+export * from "./marker";
+export * from "./cluster";
 //图层类型
 export enum MapTile {
   NORMAL = 'NORMAL',

@@ -48,9 +48,9 @@
               <component v-else-if="nestedTool.icon || (isToolActive(nestedTool.id) && nestedTool.activeIcon)" :is="isToolActive(nestedTool.id) && nestedTool.activeIcon ? nestedTool.activeIcon : nestedTool.icon" class="submenu-icon" />
               <div class="toolbar-tooltip">
                 {{ nestedTool.tooltip || nestedTool.name }}
-              </div>
-            </div>
-          </div>
+        </div>
+      </div>
+    </div>
         </div>
       </div>
     </div>

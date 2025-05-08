@@ -14,47 +14,10 @@ import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { Overlay } from 'ol';
 import logger from './LogObject';
+import { MarkerClusterMode, MarkerOptions, MarkerEventHandler } from '../types/marker';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
-
-/**
- * 标记点配置选项
- */
-export interface MarkerOptions {
-  id: string;
-  position: [number, number]; // [经度, 纬度]
-  icon?: string; // 图标URL或SVG字符串
-  iconType?: 'url' | 'svg' | 'base64' | 'default'; // 图标类型，默认为'default'
-  title?: string; // 标题
-  clickable?: boolean; // 是否可点击
-  cluster?: boolean; // 是否参与聚合
-  visible?: boolean; // 是否可见
-  zIndex?: number; // 层级
-  data?: any; // 附加数据
-  template?: string; // 点击弹窗模板
-  usePopover?: boolean; // 是否使用popover显示标题，默认false
-  showPopover?: boolean; // 是否默认显示popover，默认false
-  isPopoverOpen?: boolean; // 内部属性：当前popover是否打开，默认false
-  style?: {
-    scale?: number;
-    anchor?: [number, number];
-    offset?: [number, number];
-    rotation?: number;
-    textColor?: string;
-    textOutlineColor?: string;
-    textOutlineWidth?: number;
-    textFont?: string;
-    textOffsetY?: number;
-  };
-}
-
-/**
- * 标记点事件处理函数
- */
-export interface MarkerEventHandler {
-  (coordinates: number[], data: MarkerOptions): void;
-}
 
 /**
  * 标记点对象类
@@ -176,14 +139,15 @@ export class MarkerObject {
       properties: {
         name: 'cluster-layer'
       },
-      style: this.createClusterStyle.bind(this)
+      style: this.createClusterStyle.bind(this),
+      visible: false // 默认隐藏聚合图层
     });
 
     // 添加图层到地图
     this.mapInstance.addLayer(this.markerLayer);
     this.mapInstance.addLayer(this.clusterLayer);
     
-    this.log('debug', '标记点图层已初始化');
+    this.log('debug', '标记点图层已初始化，普通图层可见，聚合图层隐藏');
   }
 
   /**
@@ -304,13 +268,13 @@ export class MarkerObject {
     // 如果是可点击的，触发点击回调
     if (options.clickable && this.clickHandler) {
       this.log('debug', `点击了标记点: ${markerId}`);
-      this.clickHandler(options.position, options);
+      this.clickHandler(options.position, options || {} as MarkerOptions);
     }
   }
 
   /**
    * 创建聚合点样式
-   * @param feature 聚合点要素
+   * @param feature 要素
    * @returns 样式
    */
   private createClusterStyle(feature: Feature): Style {
@@ -329,19 +293,99 @@ export class MarkerObject {
       return new Style();
     }
     
-    // 聚合点使用圆形样式
+    // 获取聚合配置（如果有）
+    let color = '#1890ff'; // 默认颜色
+    let borderColor = '#ffffff'; // 默认边框颜色
+    let showCount = true; // 默认显示数量
+    let useWeightAsSize = true; // 根据数量显示大小
+    let minClusterSize = 2; // 最小聚合数量
+    let maxClusterSize = 60; // 最大聚合点尺寸
+    let defaultSize = 40; // 默认聚合点大小
+    let enablePulse = true; // 是否启用脉冲效果
+    let pulseDuration = 1500; // 脉冲动画持续时间
+    let pulseScale = 1.5; // 脉冲缩放比例
+    let pulseColor = color; // 脉冲颜色
+    let pulseOpacity = 0.6; // 脉冲透明度
+    let colorRanges: { value: number; color: string }[] = []; // 颜色范围
+    
+    // 获取工具栏对象，如果存在
+    // 从外部获取配置，这里只是查找链接到的工具栏对象
+    // 如果工具栏对象存在，获取聚合配置
+    const mapElement = this.mapInstance?.getTargetElement();
+    if (mapElement) {
+      // 尝试获取挂载在地图元素上的工具栏对象
+      const toolbarConfig = mapElement['clusterConfig'];
+      if (toolbarConfig) {
+        color = toolbarConfig.color || color;
+        borderColor = toolbarConfig.borderColor || borderColor;
+        showCount = toolbarConfig.showCount !== undefined ? toolbarConfig.showCount : showCount;
+        useWeightAsSize = toolbarConfig.useWeightAsSize !== undefined ? toolbarConfig.useWeightAsSize : useWeightAsSize;
+        minClusterSize = toolbarConfig.minClusterSize || minClusterSize;
+        maxClusterSize = toolbarConfig.maxClusterSize || maxClusterSize;
+        defaultSize = toolbarConfig.defaultSize || defaultSize;
+        enablePulse = toolbarConfig.enablePulse !== undefined ? toolbarConfig.enablePulse : enablePulse;
+        pulseDuration = toolbarConfig.pulseDuration || pulseDuration;
+        pulseScale = toolbarConfig.pulseScale || pulseScale;
+        pulseColor = toolbarConfig.pulseColor || color;
+        pulseOpacity = toolbarConfig.pulseOpacity !== undefined ? toolbarConfig.pulseOpacity : pulseOpacity;
+        colorRanges = toolbarConfig.colorRanges || [];
+      }
+    }
+    
+    // 根据聚合点数量确定颜色
+    if (colorRanges && colorRanges.length > 0) {
+      // 按value降序排序
+      const sortedRanges = [...colorRanges].sort((a, b) => b.value - a.value);
+      
+      // 找到第一个小于等于当前size的范围
+      for (const range of sortedRanges) {
+        if (size >= range.value) {
+          color = range.color;
+          break;
+        }
+      }
+    }
+    
+    // 计算聚合点大小
+    let pointSize = defaultSize;
+    if (useWeightAsSize && size > minClusterSize) {
+      // 根据数量计算大小，限制在最大尺寸范围内
+      const sizeScale = Math.min(1, Math.log(size) / Math.log(100)); // 使用对数缩放，更合理
+      pointSize = minClusterSize + sizeScale * (maxClusterSize - minClusterSize);
+    }
+    
+    // 创建SVG图标
+    const svgSize = pointSize;
+    const circleRadius = svgSize / 2;
+    const borderWidth = 2;
+    
+    // 创建SVG
+    const svg = `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${circleRadius}" cy="${circleRadius}" r="${circleRadius}" fill="${color}" fill-opacity="0.8"/>
+      <circle cx="${circleRadius}" cy="${circleRadius}" r="${circleRadius - borderWidth/2}" stroke="${borderColor}" stroke-width="${borderWidth}" fill="none"/>
+    </svg>`;
+    
+    // 将SVG转为base64
+    const iconUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+    
+    // 创建图标样式
     return new Style({
       image: new Icon({
-        src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzE4OTBmZiIgZmlsbC1vcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxNiIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxMiIgZmlsbD0iIzE4OTBmZiIvPjwvc3ZnPg==',
-        scale: 1
+        src: iconUrl,
+        scale: 1,
+        anchor: [0.5, 0.5],
+        anchorXUnits: 'fraction',
+        anchorYUnits: 'fraction'
       }),
-      text: new Text({
+      text: showCount ? new Text({
         text: size.toString(),
         fill: new Fill({
           color: '#fff'
         }),
-        font: 'bold 14px Arial'
-      })
+        font: 'bold 12px Arial',
+        offsetY: 1
+      }) : undefined,
+      zIndex: 100 + size // 数量越多的聚合点层级越高
     });
   }
 
@@ -350,7 +394,72 @@ export class MarkerObject {
    * @param enabled 是否启用聚合模式
    */
   public setClusterMode(enabled: boolean): void {
+    // 如果状态没有变化，则不需要操作
+    if (this.clusterMode === enabled) {
+      return;
+    }
+    
     this.clusterMode = enabled;
+
+    // 如果没有图层，无法执行聚合操作
+    if (!this.markerLayer || !this.clusterLayer) {
+      this.log('warn', `没有标记点图层，无法${enabled ? '启用' : '禁用'}聚合模式`);
+      return;
+    }
+
+    // 获取聚合图层的源
+    const clusterSource = this.clusterLayer.getSource() as Cluster;
+    // 获取普通图层的源
+    const markerSource = this.markerLayer.getSource() as VectorSource;
+
+    // 设置聚合距离 (如果需要从外部传入配置，可以添加参数)
+    if (enabled) {
+      clusterSource.setDistance(40);
+    }
+
+    // 处理所有标记点
+    this.markerOptions.forEach((options, id) => {
+      const feature = this.markers.get(id);
+      if (!feature) return;
+
+      // 首先从当前图层移除
+      markerSource.removeFeature(feature);
+      clusterSource.getSource()!.removeFeature(feature);
+
+      // 根据聚合模式和标记点设置决定添加到哪个图层
+      const shouldAddToCluster = enabled && (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+      const shouldAddToMarker = !enabled || options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
+      
+      // 添加到相应图层
+      if (shouldAddToCluster) {
+        // 添加到聚合图层
+        clusterSource.getSource()!.addFeature(feature);
+        this.log('debug', `标记点 "${id}" 已添加到聚合图层`);
+      }
+      
+      if (shouldAddToMarker) {
+        // 添加到普通图层
+        markerSource.addFeature(feature);
+        this.log('debug', `标记点 "${id}" 已添加到普通图层`);
+      }
+
+      // 不再需要修改标记点的聚合模式，让其保持不变
+    });
+
+    // 切换图层可见性
+    if (enabled) {
+      this.markerLayer.setVisible(false);  // 隐藏普通标记点图层
+      this.clusterLayer.setVisible(true);  // 显示聚合图层
+      this.log('debug', '已隐藏普通标记点图层，显示聚合图层');
+    } else {
+      this.markerLayer.setVisible(true);   // 显示普通标记点图层
+      this.clusterLayer.setVisible(false); // 隐藏聚合图层
+      this.log('debug', '已显示普通标记点图层，隐藏聚合图层');
+    }
+
+    // 当聚合模式改变时，重新设置点击监听器
+    this.setupClickListener();
+
     this.log('info', `标记点聚合模式已${enabled ? '启用' : '禁用'}`);
   }
 
@@ -381,12 +490,12 @@ export class MarkerObject {
     options.visible = options.visible !== undefined ? options.visible : true;
     options.clickable = options.clickable !== undefined ? options.clickable : true;
     
-    // 在聚合模式下，自动设置新添加标记的cluster属性为true
-    if (this.clusterMode && options.cluster === undefined) {
-      options.cluster = true;
+    // 在聚合模式下，自动设置新添加标记的聚合模式
+    if (this.clusterMode && options.clusterMode === undefined) {
+      options.clusterMode = MarkerClusterMode.CLUSTER;
       this.log('debug', `标记点 "${id}" 在聚合模式下自动设置为可聚合`);
     } else {
-      options.cluster = options.cluster !== undefined ? options.cluster : false;
+      options.clusterMode = options.clusterMode || MarkerClusterMode.BOTH;
     }
     
     options.usePopover = options.usePopover !== undefined ? options.usePopover : true;
@@ -431,11 +540,18 @@ export class MarkerObject {
     this.markers.set(id, marker);
     this.markerOptions.set(id, { ...options });
     
-    // 添加到图层
-    if (options.cluster) {
+    // 根据当前的聚合模式和标记点的聚合模式添加到相应图层
+    const shouldAddToCluster =  (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+    const shouldAddToMarker =  options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
+    
+    if (shouldAddToCluster) {
+      // 在聚合模式下，添加到聚合图层
       (this.clusterLayer.getSource() as Cluster).getSource()!.addFeature(marker);
       this.log('debug', `标记点 "${id}" 已添加到聚合图层`);
-    } else {
+    }
+    
+    if (shouldAddToMarker) {
+      // 非聚合模式或BOTH模式，添加到普通图层
       (this.markerLayer.getSource() as VectorSource).addFeature(marker);
       this.log('debug', `标记点 "${id}" 已添加到普通图层`);
     }
@@ -489,6 +605,64 @@ export class MarkerObject {
       iconUrl = this.defaultIconUrl;
     }
     
+    // 检查是否需要添加脉冲效果
+    if (options.pulse && options.pulse.enabled) {
+      // 从全局配置获取脉冲默认值
+      let pulseScale = options.pulse.scale || 1.5;
+      let pulseDuration = options.pulse.duration || 1500;
+      let pulseColor = options.pulse.color || '#1677ff';
+      let pulseOpacity = options.pulse.opacity !== undefined ? options.pulse.opacity : 0.6;
+    
+      // 尝试获取更多的配置（如工具栏配置）
+      const mapElement = this.mapInstance?.getTargetElement();
+      if (mapElement) {
+        const pulseConfig = mapElement['clusterConfig'];
+        if (pulseConfig) {
+          pulseScale = pulseConfig.pulseScale || pulseScale;
+          pulseDuration = pulseConfig.pulseDuration || pulseDuration;
+          pulseColor = pulseConfig.pulseColor || pulseColor;
+          pulseOpacity = pulseConfig.pulseOpacity !== undefined ? pulseConfig.pulseOpacity : pulseOpacity;
+        }
+      }
+      
+      // 创建带有脉冲/涟漪效果的SVG
+      // 先创建临时图标以获取大小信息
+      const tempIcon = new Icon({
+        src: iconUrl,
+        scale: 1
+      });
+      
+      // 获取图像大小信息（如果有）
+      const imageSize = tempIcon.getSize();
+      const iconWidth = imageSize ? imageSize[0] : 24;
+      const iconHeight = imageSize ? imageSize[1] : 24;
+      const size = Math.max(iconWidth, iconHeight);
+      const svgWidth = size * pulseScale;
+      const svgHeight = size * pulseScale;
+      
+      // 创建带有动画的SVG
+      const pulseId = `pulse-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const svg = `
+      <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+          <radialGradient id="${pulseId}-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="${pulseColor}" stop-opacity="${pulseOpacity}" />
+            <stop offset="100%" stop-color="${pulseColor}" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <circle cx="${svgWidth/2}" cy="${svgHeight/2}" r="${svgWidth/2}" fill="url(#${pulseId}-gradient)" opacity="${pulseOpacity}">
+          <animate attributeName="r" values="${svgWidth/4};${svgWidth/2}" dur="${pulseDuration}ms" begin="0s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="${pulseOpacity};0" dur="${pulseDuration}ms" begin="0s" repeatCount="indefinite" />
+        </circle>
+        
+        <image x="${(svgWidth - iconWidth) / 2}" y="${(svgHeight - iconHeight) / 2}" width="${iconWidth}" height="${iconHeight}" href="${iconUrl}" />
+      </svg>`;
+      
+      // 将SVG转为base64
+      iconUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+    }
+    
     // 创建标准图标样式
     const iconImage = new Icon({
       src: iconUrl,
@@ -500,8 +674,8 @@ export class MarkerObject {
       rotation: styleOptions.rotation || 0
     });
     
-    // 使用自定义渲染函数
-    return new Style({
+    // 创建样式对象
+    const style = new Style({
       image: iconImage,
       // 使用hitDetectionRenderer扩大点击区域
       hitDetectionRenderer: function(pixelCoordinates, state) {
@@ -538,6 +712,8 @@ export class MarkerObject {
       },
       zIndex: options.zIndex || 1
     });
+    
+    return style;
   }
 
   /**
@@ -572,22 +748,28 @@ export class MarkerObject {
       this.log('debug', `标记点 "${id}" 位置已更新为 [${options.position[0]}, ${options.position[1]}]`);
     }
     
-    // 聚合状态变化，需要从一个图层移到另一个图层
-    if (options.cluster !== undefined && options.cluster !== oldOptions.cluster) {
-      // 从原图层移除
-      if (oldOptions.cluster) {
-        (this.clusterLayer!.getSource() as Cluster).getSource()!.removeFeature(marker);
-      } else {
-        (this.markerLayer!.getSource() as VectorSource).removeFeature(marker);
+    // 聚合模式变化，需要从一个图层移到另一个图层
+    if (options.clusterMode !== undefined && options.clusterMode !== oldOptions.clusterMode) {
+      // 获取图层源
+      const markerSource = this.markerLayer!.getSource() as VectorSource;
+      const clusterSource = this.clusterLayer!.getSource() as Cluster;
+      
+      // 从所有图层移除
+      markerSource.removeFeature(marker);
+      clusterSource.getSource()!.removeFeature(marker);
+      
+      // 根据新的聚合模式添加到相应图层
+      const shouldAddToCluster =  (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+      const shouldAddToMarker =  options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
+      
+      if (shouldAddToCluster) {
+        clusterSource.getSource()!.addFeature(marker);
+        this.log('debug', `标记点 "${id}" 已添加到聚合图层`);
       }
       
-      // 添加到新图层
-      if (options.cluster) {
-        (this.clusterLayer!.getSource() as Cluster).getSource()!.addFeature(marker);
-        this.log('debug', `标记点 "${id}" 已移至聚合图层`);
-      } else {
-        (this.markerLayer!.getSource() as VectorSource).addFeature(marker);
-        this.log('debug', `标记点 "${id}" 已移至普通图层`);
+      if (shouldAddToMarker) {
+        markerSource.addFeature(marker);
+        this.log('debug', `标记点 "${id}" 已添加到普通图层`);
       }
     }
     
@@ -722,10 +904,17 @@ export class MarkerObject {
     const options = this.markerOptions.get(id)!;
     
     // 从图层中移除
-    if (options.cluster) {
-      (this.clusterLayer!.getSource() as Cluster).getSource()!.removeFeature(marker);
-    } else {
-      (this.markerLayer!.getSource() as VectorSource).removeFeature(marker);
+    if (this.markerLayer) {
+      (this.markerLayer.getSource() as VectorSource).removeFeature(marker);
+    }
+    
+    if (this.clusterLayer) {
+      (this.clusterLayer.getSource() as Cluster).getSource()!.removeFeature(marker);
+    }
+    
+    // 如果有popover，移除它
+    if (this.currentPopover === id) {
+      this.hideCurrentPopover();
     }
     
     // 从集合中移除
@@ -1117,6 +1306,168 @@ export class MarkerObject {
    */
   public isMarkersVisible(): boolean {
     return this.markersVisible;
+  }
+
+  /**
+   * 设置聚合距离
+   * @param distance 聚合距离（单位：像素）
+   * @returns 是否设置成功
+   */
+  public setClusterDistance(distance: number): boolean {
+    if (!this.clusterLayer) {
+      this.log('warn', '聚合图层未初始化，无法设置聚合距离');
+      return false;
+    }
+    
+    if (typeof distance !== 'number' || distance < 0) {
+      this.log('warn', '聚合距离必须是正数');
+      return false;
+    }
+    
+    const clusterSource = this.clusterLayer.getSource() as Cluster;
+    clusterSource.setDistance(distance);
+    
+    this.log('info', `聚合距离已设置为 ${distance} 像素`);
+    return true;
+  }
+
+  /**
+   * 添加聚合点击处理，在点击聚合点时缩放到适合的范围
+   * @param handler 处理函数
+   */
+  public setClusterClickHandler(handler?: (clusterFeatures: Feature[], coordinate: number[]) => void): void {
+    // 确保地图实例存在
+    if (!this.mapInstance) {
+      this.log('warn', '地图实例不存在，无法设置聚合点击处理');
+      return;
+    }
+
+    // 移除之前添加的点击监听器
+    if (this.clickListener) {
+      unByKey(this.clickListener);
+      this.clickListener = null;
+    }
+
+    // 添加新的点击监听器
+    this.clickListener = this.mapInstance.on('click', (event) => {
+      const hit = this.mapInstance!.hasFeatureAtPixel(event.pixel, {
+        hitTolerance: 30, // 增加点击容差到30像素
+        layerFilter: (layer) => {
+          return layer === this.markerLayer || layer === this.clusterLayer;
+        }
+      });
+      
+      // 如果没有点击到要素，直接返回
+      if (!hit) return;
+      
+      let hasHandledClick = false;
+      
+      this.mapInstance!.forEachFeatureAtPixel(
+        event.pixel,
+        (feature, layer) => {
+          // 确保只处理marker和cluster图层
+          if (layer !== this.markerLayer && layer !== this.clusterLayer) {
+            return;
+          }
+          
+          // 处理聚合点
+          if (feature.get('features')) {
+            const clusterFeatures = feature.get('features');
+            if (clusterFeatures.length === 1) {
+              // 只有一个点时，当作普通点处理
+              this.handleMarkerClick(clusterFeatures[0], event.coordinate);
+              hasHandledClick = true;
+            } else if (clusterFeatures.length > 1) {
+              // 多个点的聚合
+              this.log('debug', `点击了聚合点，包含 ${clusterFeatures.length} 个标记点`);
+              hasHandledClick = true;
+              
+              // 如果提供了自定义处理函数，则调用
+              if (handler) {
+                handler(clusterFeatures, event.coordinate);
+                return true; // 停止遍历
+              }
+              
+              // 缩放到聚合点包含的所有标记点的范围
+              this.zoomToClusterExtent(clusterFeatures);
+            }
+          } else {
+            // 处理普通点
+            this.handleMarkerClick(feature as any, event.coordinate);
+            hasHandledClick = true;
+          }
+          
+          // 返回true表示找到了要处理的要素，可以停止遍历
+          return true;
+        },
+        {
+          hitTolerance: 30, // 增加点击容差到30像素
+          layerFilter: (layer) => {
+            // 只对标记点图层生效
+            return layer === this.markerLayer || layer === this.clusterLayer;
+          }
+        }
+      );
+      
+      this.log('debug', `点击事件处理结果: ${hasHandledClick ? '处理了标记点点击' : '未处理任何标记点'}`);
+    });
+    
+    this.log('debug', '已设置聚合点击处理');
+  }
+
+  /**
+   * 缩放到聚合点包含的所有标记点的范围
+   * @param features 要素数组
+   */
+  private zoomToClusterExtent(features: Feature[]): void {
+    if (!this.mapInstance || features.length === 0) return;
+    
+    try {
+      // 创建一个空的范围
+      let extent = null;
+      
+      // 计算所有标记点的范围
+      features.forEach(feature => {
+        const geometry = feature.getGeometry();
+        if (!geometry) return;
+        
+        // 获取几何对象的范围
+        const featureExtent = geometry.getExtent();
+        
+        // 合并范围
+        if (!extent) {
+          extent = featureExtent;
+        } else {
+          extent = [ 
+            Math.min(extent[0], featureExtent[0]),
+            Math.min(extent[1], featureExtent[1]),
+            Math.max(extent[2], featureExtent[2]),
+            Math.max(extent[3], featureExtent[3])
+          ];
+        }
+      });
+      
+      if (!extent) return;
+      
+      // 添加一点缓冲以确保所有点都在视图中
+      const buffer = 50; // 像素
+      extent = [
+        extent[0] - buffer,
+        extent[1] - buffer,
+        extent[2] + buffer,
+        extent[3] + buffer
+      ];
+      
+      // 缓慢缩放到范围
+      this.mapInstance.getView().fit(extent, {
+        duration: 400,
+        padding: [20, 20, 20, 20]
+      });
+      
+      this.log('info', `已缩放到聚合点的范围: ${JSON.stringify(extent)}`);
+    } catch (error) {
+      this.log('error', '缩放到聚合范围时出错:', error);
+    }
   }
 }
 
