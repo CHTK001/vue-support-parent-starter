@@ -226,7 +226,7 @@ function onMapClick(evt) {
 // 标记点击事件
 function onMarkerClick(evt) {
   const data = evt.data;
-  const markerId = data.id;
+  const markerId = data?.id;
   addLog('点击', `标记点: ${data.title || '未命名'} [ID: ${markerId.slice(-8)}]`);
 }
 

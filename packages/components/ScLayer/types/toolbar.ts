@@ -197,10 +197,11 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     },
     {
       id: 'clear-shapes',
-      type: 'button',
+      type: 'toggle',
       icon: CLEAR_ICON,
-      title: '清除所有图形',
-      name: '清除',
+      title: '删除模式 - 点击要素删除',
+      name: '删除',
+      className: 'delete-btn',
       multi: true
     }
   ],

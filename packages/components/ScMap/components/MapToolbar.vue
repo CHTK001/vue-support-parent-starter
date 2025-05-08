@@ -1016,8 +1016,6 @@ defineExpose({
   
   /* 删除按钮样式 */
   &.delete-btn {
-    color: #ff4d4f;
-    
     &:hover {
       background-color: #fff1f0;
       border-color: #ffccc7;
@@ -1041,7 +1039,6 @@ defineExpose({
 
   /* 红色按钮样式 */
   &.red-btn {
-    color: #ff4d4f;
     
     &:hover {
       background-color: #fff1f0;

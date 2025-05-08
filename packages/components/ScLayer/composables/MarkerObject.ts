@@ -1328,8 +1328,8 @@ export class MarkerObject {
   }
 
   /**
-   * 获取当前显示的popover ID
-   * @returns 当前显示的popover ID，如果没有则返回null
+   * 获取当前显示的popover
+   * @returns 当前显示的popover的ID
    */
   public getCurrentPopover(): string | null {
     return this.currentPopover;
@@ -1529,6 +1529,39 @@ export class MarkerObject {
     } catch (error) {
       this.log('error', '缩放到聚合范围时出错:', error);
     }
+  }
+
+  /**
+   * 检查点击位置是否有标记点
+   * @param pixel 点击位置的像素坐标
+   * @returns 如果有标记点则返回标记点信息，否则返回null
+   */
+  public checkMarkerClick(pixel: number[]): MarkerOptions | null {
+    if (!this.mapInstance) return null;
+    
+    // 检查点击位置是否有特征
+    const feature = this.mapInstance.forEachFeatureAtPixel(
+      pixel,
+      (feature) => feature,
+      {
+        hitTolerance: 30, // 增加点击容差到30像素
+        layerFilter: (layer) => {
+          // 只检查标记点图层
+          return layer === this.markerLayer;
+        }
+      }
+    );
+    
+    // 如果找到了特征，并且是标记点
+    if (feature) {
+      const id = feature.getId() as string;
+      // 确保是标记点
+      if (id && this.markers.has(id) && this.markerOptions.has(id)) {
+        return this.markerOptions.get(id) || null;
+      }
+    }
+    
+    return null;
   }
 }
 
