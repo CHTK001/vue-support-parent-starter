@@ -4,10 +4,6 @@
  */
 <template>
   <div class="coordinate-panel" :class="positionClass">
-    <div class="coordinate-header">
-      <div class="coordinate-title">{{ $t('坐标信息') }}</div>
-      <div class="coordinate-close" @click="handleClose">×</div>
-    </div>
     <div class="coordinate-content">
       <div class="coordinate-item">
         <div class="coordinate-label">{{ $t('经度') }}:</div>
@@ -153,6 +149,7 @@ const handleClose = () => {
 
 .coordinate-value {
   font-family: 'Courier New', monospace;
+  color: rgba(24, 144, 255, 0.9);
   font-weight: 500;
 }
 

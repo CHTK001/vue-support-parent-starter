@@ -24,6 +24,8 @@ import {
   POPOVER_TOGGLE_ICON,
   HIDDEN_MARKER_ICON,
   CLUSTER_ICON,
+  SQUARE_ICON,
+  POLYLINE_ICON,
 } from './icon';
 
 /**
@@ -166,6 +168,13 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       name: '矩形'
     },
     {
+      id: 'draw-square',
+      type: 'toggle',
+      icon: SQUARE_ICON,
+      title: '绘制正方形',
+      name: '正方形'
+    },
+    {
       id: 'draw-circle',
       type: 'toggle',
       icon: CIRCLE_ICON,
@@ -182,7 +191,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     {
       id: 'draw-line',
       type: 'toggle',
-      icon: LINE_ICON,
+      icon: POLYLINE_ICON,
       title: '绘制线段',
       name: '线段'
     },

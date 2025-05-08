@@ -11,14 +11,14 @@ import { LineString, Polygon, Circle, Point } from 'ol/geom';
 import { Feature } from 'ol';
 import { unByKey } from 'ol/Observable';
 import { EventsKey } from 'ol/events';
-import { createBox } from 'ol/interaction/Draw';
+import { createBox, createRegularPolygon } from 'ol/interaction/Draw';
 import logger from './LogObject';
 
 // 图形模块日志前缀
 const LOG_MODULE = 'Shape';
 
 // 图形类型
-export type ShapeType = 'Point' | 'LineString' | 'Polygon' | 'Circle' | 'Rectangle';
+export type ShapeType = 'Point' | 'LineString' | 'Polygon' | 'Circle' | 'Rectangle' | 'Square';
 
 // 图形样式接口
 export interface ShapeStyle {
@@ -272,6 +272,11 @@ export class ShapeObject {
     if (type === 'Rectangle') {
       type = 'Circle';
       geometryFunction = createBox();
+    } 
+    // 处理正方形特殊情况
+    else if (type === 'Square') {
+      type = 'Circle';
+      geometryFunction = createRegularPolygon(4); // 创建4边形正多边形即正方形
     }
 
     // 创建绘制交互
