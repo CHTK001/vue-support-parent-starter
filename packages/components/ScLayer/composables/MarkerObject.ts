@@ -85,7 +85,7 @@ export class MarkerObject {
   // 默认标记点样式
   private defaultStyle = {
     scale: 1, // 固定为1，不放大
-    anchor: [0.5, 0.5] as [number, number], // 使用中心点作为锚点
+    anchor: [0.5, 1] as [number, number], // 使用中心点作为锚点
     offset: [0, 0] as [number, number],
     rotation: 0,
     textColor: '#333',
@@ -188,32 +188,46 @@ export class MarkerObject {
    * 设置点击事件监听
    */
   private setupClickListener(): void {
+    // 如果地图实例未设置，则无法设置点击监听
     if (!this.mapInstance) {
       this.log('warn', '地图实例未设置，无法设置点击监听');
       return;
     }
 
-    // 移除之前的监听器
+    // 清除现有的点击监听器
     if (this.clickListener) {
       unByKey(this.clickListener);
+      this.clickListener = null;
+      this.log('debug', '已清除旧的点击监听器');
     }
-
+    
     // 添加鼠标移动事件处理，用于在hover到marker上时改变鼠标样式
     this.mapInstance.on('pointermove', (evt) => {
-      const hit = this.mapInstance.hasFeatureAtPixel(evt.pixel, {
-        hitTolerance: 35, // 使用同样的点击容差
+      const hit = this.mapInstance!.hasFeatureAtPixel(evt.pixel, {
+        hitTolerance: 30, // 增加点击容差到30像素
         layerFilter: (layer) => {
           // 只对标记点图层生效
           return layer === this.markerLayer || layer === this.clusterLayer;
         }
       });
       // 改变鼠标光标样式
-      this.mapInstance.getTargetElement().style.cursor = hit ? 'pointer' : '';
+      this.mapInstance!.getTargetElement().style.cursor = hit ? 'pointer' : '';
     });
-
+    
     // 添加新的点击监听器
     this.clickListener = this.mapInstance.on('click', (event) => {
-      // 使用forEachFeatureAtPixel而不是getFeaturesAtPixel，更符合OpenLayers的标准用法
+      const hit = this.mapInstance!.hasFeatureAtPixel(event.pixel, {
+        hitTolerance: 30, // 增加点击容差到30像素
+        layerFilter: (layer) => {
+          return layer === this.markerLayer || layer === this.clusterLayer;
+        }
+      });
+      // 如果没有点击到要素，直接返回
+      if (!hit) {
+        return;
+      }
+      
+      // 使用forEachFeatureAtPixel处理点击的具体要素
       let hasHandledClick = false;
       
       this.mapInstance!.forEachFeatureAtPixel(
@@ -246,7 +260,7 @@ export class MarkerObject {
           return true;
         },
         {
-          hitTolerance: 15, // 增加点击容差，确保整个图标都能触发点击事件
+          hitTolerance: 30, // 增加点击容差到30像素
           layerFilter: (layer) => {
             // 只对标记点图层生效
             return layer === this.markerLayer || layer === this.clusterLayer;
@@ -356,7 +370,6 @@ export class MarkerObject {
     // 确保style中scale为1，anchor为中心点，以便整个图标接收点击事件
     if (options.style) {
       options.style.scale = 1; // 强制设置scale为1
-      options.style.anchor = options.style.anchor || [0.5, 0.5]; // 如果未设置则使用中心点
     }
     
     options.style = { ...this.defaultStyle, ...options.style };
@@ -449,17 +462,53 @@ export class MarkerObject {
       iconUrl = this.defaultIconUrl;
     }
     
+    // 创建标准图标样式
+    const iconImage = new Icon({
+      src: iconUrl,
+      scale: 1,
+      anchor: styleOptions.anchor || [0.5, 1],  // 修改默认锚点为图标底部中心[0.5, 1]
+      anchorXUnits: 'fraction',
+      anchorYUnits: 'pixels',
+      offset: styleOptions.offset || [0, 0],
+      rotation: styleOptions.rotation || 0
+    });
+    
+    // 使用自定义渲染函数
     return new Style({
-      image: new Icon({
-        src: iconUrl,
-        scale: 1, // 固定scale为1，确保不会放大
-        anchor: styleOptions.anchor || [0.5, 46], // 默认使用中心点作为锚点，确保整个图标都能接收点击事件
-        anchorXUnits: 'fraction',
-        anchorYUnits: 'fraction',
-        offset: styleOptions.offset || [0, 0],
-        rotation: styleOptions.rotation || 0
-      }),
-      // 移除text属性，只使用popover显示标题
+      image: iconImage,
+      // 使用hitDetectionRenderer扩大点击区域
+      hitDetectionRenderer: function(pixelCoordinates, state) {
+        const x = pixelCoordinates[0][0];
+        const y = pixelCoordinates[0][1];
+        
+        // 获取图标尺寸
+        const imageSize = iconImage.getSize();
+        // 如果无法获取图标大小，使用默认值
+        const iconWidth = imageSize ? imageSize[0] : 30;
+        const iconHeight = imageSize ? imageSize[1] : 30;
+        
+        // 创建点击区域
+        const context = state.context;
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+        
+        // 简单处理：点击区域只比图标大3像素
+        const padding = 2;
+        
+        // 使用圆形作为点击区域
+        context.beginPath();
+        
+        // 计算圆心位置（与图标中心一致）
+        const centerX = x;
+        const centerY = y - iconHeight / 2; // 调整垂直位置到图标中心
+        
+        // 半径取图标宽高中的较大值，再加上padding
+        const radius = Math.max(iconWidth, iconHeight) / 2 + padding;
+        
+        // 绘制圆形
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        context.fillStyle = 'rgba(255, 0, 0, 1)'; // 纯红色用于点击检测
+        context.fill();
+      },
       zIndex: options.zIndex || 1
     });
   }
@@ -482,7 +531,6 @@ export class MarkerObject {
     // 确保style中scale为1，anchor为中心点
     if (options.style) {
       options.style.scale = 1; // 强制设置scale为1
-      options.style.anchor = options.style.anchor || oldOptions.style?.anchor || [0.5, 0.5]; // 保持中心点锚点
     }
     
     const newOptions = { ...oldOptions, ...options };
@@ -903,7 +951,7 @@ export class MarkerObject {
     const popover = new Overlay({
       element: popoverElement,
       positioning: 'bottom-center', // 将定位改为bottom-center，使popover在标记点正上方
-      offset: [0, -10], // 调整偏移量，使popover紧贴标记点
+      offset: [0, 0], // 调整偏移量，使popover紧贴标记点
       position: position,
       stopEvent: true
     });
