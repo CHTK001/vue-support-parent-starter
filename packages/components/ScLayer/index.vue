@@ -7,42 +7,32 @@
   <div class="sc-layer" :style="{ height: config.height + 'px' }">
     <div ref="mapContainer" class="map-container"></div>
     <div class="toolbar-container">
-      <MapToolbar
-        ref="mapToolbarRef"
-        v-if="config.showToolbar"
-        :toolbar-config="toolbarConfig"
-        :active-tool-id="activeToolId"
-        @tool-activated="handleToolActivated"
-        @tool-deactivated="handleToolDeactivated"
-      />
+      <MapToolbar ref="mapToolbarRef" v-if="config.showToolbar" :toolbar-config="toolbarConfig"
+        :active-tool-id="activeToolId" @tool-activated="handleToolActivated"
+        @tool-deactivated="handleToolDeactivated" />
     </div>
     <!-- 添加坐标面板 -->
-    <CoordinatePanel
-      v-if="showCoordinatePanel"
-      :active="true"
-      :coordinate-info="coordinateInfo"
-      :show-projected="coordinateOptions.showProjected"
-    />
+    <CoordinatePanel v-if="showCoordinatePanel" :active="true" :coordinate-info="coordinateInfo"
+      :show-projected="coordinateOptions.showProjected" />
     <!-- 添加图层面板 -->
-    <LayerPanel
-      v-if="showLayerPanel"
-      :active="showLayerPanel"
-      :position="layerPanelPosition"
-      :map-type="configObject?.getMapType()"
-      :map-tile="configObject?.getMapTile()"
-      :map-config="configObject?.getMapConfig()"
-      @close="handleLayerPanelClose"
-      @layer-change="handleLayerChange"
-    />
-    
+    <LayerPanel v-if="showLayerPanel" :active="showLayerPanel" :position="layerPanelPosition"
+      :map-type="configObject?.getMapType()" :map-tile="configObject?.getMapTile()"
+      :map-config="configObject?.getMapConfig()" @close="handleLayerPanelClose" @layer-change="handleLayerChange" />
+
     <!-- 增加引入OverviewMap组件 -->
-    <OverviewMap 
-      v-if="showOverviewMap" 
-      :main-map-obj="mapObj" 
-      :visible="showOverviewMap"
-      :position="determineOverviewMapPosition()"
-      :config="overviewMapConfig"
-      @collapse-change="handleOverviewMapCollapseChange"
+    <OverviewMap v-if="showOverviewMap" :main-map-obj="mapObj" :visible="showOverviewMap"
+      :position="determineOverviewMapPosition()" :config="overviewMapConfig"
+      @collapse-change="handleOverviewMapCollapseChange" />
+
+    <!-- 添加轨迹播放器 -->
+    <TrackPlayerMap 
+      v-if="showTrackPlayer && mapReady && trackObj" 
+      :trackObj="trackObj"
+      :config="props.trackPlayerConfig"
+      @track-selected="handleTrackSelected" 
+      @track-deleted="handleTrackDeleted"
+      @collapse-change="handleTrackPlayerCollapseChange" 
+      ref="trackPlayerRef" 
     />
   </div>
 </template>
@@ -60,6 +50,7 @@ import MapToolbar from './components/MapToolbar.vue';
 import OverviewMap from './components/OverviewMap.vue';
 import { OverviewMapConfig } from './components/OverviewMap.vue';
 import LayerPanel from './components/LayerPanel.vue';
+import TrackPlayerMap from './components/TrackPlayer.vue';
 import { ConfigObject } from './composables/ConfigObject';
 import { 
   CoordinateInfo, 
@@ -69,20 +60,26 @@ import {
 import logger, { LogLevel } from './composables/LogObject';
 import { MapObject } from './composables/MapObject';
 import { ToolbarObject } from './composables/ToolbarObject';
-import type { MapConfig, MapEventType } from './types';
+import type { MapConfig, MapEventType, Track, TrackPlayer } from './types';
 import { MapTile } from './types';
+import { TrackPlayerConfigOptions } from './types/track';
 import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
 import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
 import { MarkerObject } from './composables/MarkerObject';
 import { MarkerOptions } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
+import { TrackObject } from './composables/TrackObject';
+import { Map as OlMap } from 'ol';
 // 引入OpenLayers样式
 import 'ol/ol.css';
+import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
+
 
 // 定义组件属性 - 使用types中的配置作为类型定义
 const props = withDefaults(defineProps<MapConfig & {
-  overviewMapConfig?: OverviewMapConfig
+  overviewMapConfig?: OverviewMapConfig,
+  trackPlayerConfig?: Partial<TrackPlayerConfigOptions>
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -101,7 +98,8 @@ const props = withDefaults(defineProps<MapConfig & {
     showProjected: false
   }),
   overviewMapConfig: () => ({}),
-  showScaleLine: true // 默认显示比例尺
+  showScaleLine: true, // 默认显示比例尺
+  trackPlayerConfig: () => ({ ...DEFAULT_TRACK_PLAYER_CONFIG }) // 使用默认轨迹播放器配置
 });
 
 // 定义组件事件
@@ -131,6 +129,7 @@ let mapObj: MapObject | null = null;
 let toolbarObject: ToolbarObject | null = null;
 let markerObject: MarkerObject | null = null;
 let shapeObject: ShapeObject | null = null;
+let trackObj: TrackObject | null = null;
 
 // 响应式状态
 const activeToolId = ref<string | undefined>(undefined);
@@ -139,8 +138,11 @@ const showCoordinatePanel = ref<boolean>(false);
 const showOverviewButton = ref<boolean>(false);
 const showOverviewMap = ref<boolean>(false);
 const showLayerPanel = ref<boolean>(false);
+const showTrackPlayer = ref<boolean>(false);
 const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 const mapToolbarRef = ref(null);
+const trackPlayerRef = ref(null);
+const mapReady = ref(false);
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -204,27 +206,30 @@ const initMap = () => {
 
 // 记录地图容器信息
 const logMapContainerInfo = () => {
-  logger.info('开始初始化地图组件，容器尺寸:', {
-    width: mapContainer.value!.clientWidth,
-    height: mapContainer.value!.clientHeight
-  });
+      logger.info('开始初始化地图组件，容器尺寸:', {
+        width: mapContainer.value!.clientWidth,
+        height: mapContainer.value!.clientHeight
+      });
 };
-
+      
 // 初始化地图组件
 const initializeMapComponents = async () => {
   try {
-    // 创建配置对象
+      // 创建配置对象
     configObject = new ConfigObject(config.value);
-  
+      
     // 创建地图对象 - 正确传递参数
     mapObj = new MapObject(configObject);
-  
-    // 初始化地图
+      
+      // 初始化地图
     if (mapContainer.value) {
       const initResult = await mapObj.init(mapContainer.value, emit);
       if (!initResult) {
         throw new Error('地图初始化失败');
       }
+      
+      // 标记地图已准备就绪
+      mapReady.value = true;
     } else {
       throw new Error('地图容器未找到');
     }
@@ -237,8 +242,8 @@ const initializeMapComponents = async () => {
         configMapKey[mapType] = config.value.mapKey[mapType];
       }
     }
-
-    // 创建工具栏对象
+      
+      // 创建工具栏对象
     toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
 
     // 设置工具栏对象到地图对象
@@ -266,6 +271,9 @@ const initializeMapComponents = async () => {
     
     // 初始化后立即检查鹰眼状态，确保UI状态与实际工具状态一致
     checkOverviewMapState();
+    
+    // 初始化后立即检查轨迹播放器状态，确保UI状态与工具状态一致
+    checkTrackPlayerState();
     
     logger.info('地图和工具栏初始化完成');
   } catch (error) {
@@ -350,6 +358,42 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
+    // 轨迹播放器工具状态变化
+    'track-player': () => {
+      showTrackPlayer.value = active;
+      if (active) {
+        logger.debug('[Track] 轨迹播放器工具已激活');
+        
+        // 获取轨迹对象
+        if (data && data.trackObj) {
+          trackObj = data.trackObj;
+          logger.debug('[Track] 从事件数据中获取轨迹对象');
+        } else if (toolbarObject) {
+          const toolbarTrackObj = toolbarObject.getTrackObject();
+          if (toolbarTrackObj) {
+            trackObj = toolbarTrackObj;
+            logger.debug('[Track] 从工具栏对象获取轨迹对象');
+          } else {
+            // 如果工具栏没有轨迹对象，尝试初始化
+            if (mapObj && mapReady.value) {
+              initTrackObject();
+            } else {
+              logger.warn('[Track] 无法初始化轨迹对象：地图未就绪');
+            }
+          }
+        }
+        
+        if (!trackObj && mapObj && mapReady.value) {
+          logger.debug('[Track] 未获取到轨迹对象，尝试初始化');
+          initTrackObject();
+        }
+        
+        logger.debug('[Track] 显示轨迹播放器面板，trackObj状态: ' + !!trackObj);
+      } else {
+        logger.debug('[Track] 轨迹播放器工具已停用，隐藏轨迹播放器面板');
+      }
+    },
+    
     // 图层切换按钮状态变化
     'layer-switch': () => {
       // 当图层按钮状态变化时，控制图层面板的显示/隐藏
@@ -372,13 +416,6 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       
       if (active) {
         logger.debug('[Overview] 鹰眼工具已激活，显示鹰眼地图');
-        // 确保在下一个tick渲染完成后，鹰眼地图容器已存在
-        nextTick(() => {
-          // 强制刷新鹰眼地图大小
-          if (mapObj) {
-            mapObj.triggerMapResize();
-          }
-        });
       } else {
         logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
       }
@@ -545,18 +582,20 @@ const handleToolActivated = (payload) => {
     showOverviewMap.value = true;
     // 隐藏overview按钮，因为已经激活了鹰眼工具
     showOverviewButton.value = false;
-    
-    // 确保在下一个tick中鹰眼地图可以正确初始化
-    nextTick(() => {
-      logger.debug('[Overview] 确保鹰眼地图在工具激活后显示');
-      if (mapObj) {
-        // 强制刷新地图尺寸以确保鹰眼组件正确显示
-        mapObj.triggerMapResize();
-      }
-    });
   } else if (toolId === 'layer-switch') {
     showLayerPanel.value = true;
     layerPanelPosition.value = determineLayerPanelPosition();
+  } else if (toolId === 'track-player') {
+    // 激活轨迹播放器
+    logger.debug('[Track] 轨迹播放器按钮已激活，尝试初始化轨迹对象');
+    
+    // 显示轨迹播放器
+    showTrackPlayer.value = true;
+    
+    // 如果轨迹对象未初始化，进行初始化
+    if (!trackObj && mapObj && mapReady.value) {
+      forceInitTrackPlayer();
+    }
   }
   
   // 将工具激活事件传递给父组件
@@ -593,6 +632,10 @@ const handleToolDeactivated = (payload) => {
     showOverviewButton.value = false;
   } else if (toolId === 'layer-switch') {
     showLayerPanel.value = false;
+  } else if (toolId === 'track-player') {
+    // 停用轨迹播放器
+    showTrackPlayer.value = false;
+    logger.debug('轨迹播放器已停用，隐藏面板');
   }
   
   // 将工具停用事件传递给父组件
@@ -656,14 +699,14 @@ watch(() => props, (newConfig) => {
 // 检测地图容器尺寸变化
 const resizeMap = () => {
   if (mapObj && mapObj.getMapInstance()) {
-    // 使用地图实例的updateSize方法更新尺寸
+      // 使用地图实例的updateSize方法更新尺寸
     mapObj.triggerMapResize();
-    logger.debug('窗口大小变化，已更新地图尺寸');
+      logger.debug('窗口大小变化，已更新地图尺寸');
   } else if (!mapInitialized.value) {
     // 如果地图尚未初始化，尝试重新初始化
     logger.info('地图尚未初始化，尝试初始化');
     initMap();
-  }
+    }
 };
 
 // 切换图层
@@ -687,6 +730,9 @@ onMounted(() => {
   
   // 设置地图初始化完成监听
   setupMapInitializedWatcher();
+  
+  // 设置地图就绪状态
+  mapReady.value = true;
 });
 
 // 配置日志级别
@@ -705,6 +751,9 @@ const setupMapInitializedWatcher = () => {
     
     logger.debug('[Overview] 地图已初始化，设置鹰眼控件检查器');
     setTimeout(checkOverviewMapState, 1000);
+    
+    // 也检查轨迹播放器状态
+    setTimeout(checkTrackPlayerState, 1000);
   });
 };
 
@@ -741,6 +790,67 @@ const checkOverviewMapState = () => {
   
   // 不再需要辅助按钮
   showOverviewButton.value = false;
+};
+
+// 检查轨迹播放器状态
+const checkTrackPlayerState = () => {
+  logger.debug(`[Track] 检查轨迹播放器状态: mapReady=${mapReady.value}, mapObj=${!!mapObj}, trackObj=${!!trackObj}`);
+  if (mapReady.value && mapObj && !trackObj) {
+    logger.debug('[Track] 地图已就绪，但轨迹对象未初始化，开始初始化轨迹对象');
+    initTrackObject();
+  } else if (mapReady.value && mapObj && trackObj) {
+    logger.debug('[Track] 地图和轨迹对象都已初始化');
+    // 确保轨迹播放器可见
+    showTrackPlayer.value = true;
+  } else {
+    logger.debug('[Track] 地图未就绪或缺少必要对象，无法初始化轨迹播放器');
+  }
+};
+
+// 初始化轨迹对象
+const initTrackObject = () => {
+  if (!mapObj) {
+    logger.warn('[Track] 无法初始化轨迹对象: 地图对象不存在');
+    return;
+  }
+  
+  try {
+    // 创建轨迹对象
+    trackObj = new TrackObject(mapObj.getMapInstance());
+    
+    // 显示轨迹播放器
+    showTrackPlayer.value = true;
+    
+    logger.info('[Track] 轨迹对象初始化成功');
+  } catch (error) {
+    logger.error('[Track] 轨迹对象初始化失败:', error);
+  }
+};
+
+// 处理轨迹选择事件
+const handleTrackSelected = (trackId) => {
+  console.log('轨迹已选择:', trackId);
+};
+
+// 处理轨迹删除事件
+const handleTrackDeleted = (trackId) => {
+  console.log('轨迹已删除:', trackId);
+};
+
+// 处理轨迹播放器折叠状态变化
+const handleTrackPlayerCollapseChange = (collapsed) => {
+  console.log('轨迹播放器折叠状态:', collapsed ? '已折叠' : '已展开');
+};
+
+// 刷新轨迹列表
+const refreshTrackList = () => {
+  // 获取轨迹播放器组件引用
+  if (trackPlayerRef.value) {
+    trackPlayerRef.value.refreshTrackList();
+    console.log('已刷新轨迹列表');
+  } else {
+    console.warn('未找到轨迹播放器组件引用，无法刷新列表');
+  }
 };
 
 // 监听地图组件销毁事件
@@ -962,6 +1072,137 @@ watch(() => props.showScaleLine, (newValue) => {
   mapObj.toggleScaleLine(newValue);
 });
 
+// 新增轨迹（演示）
+const addDemoTrack = () => {
+  if (!trackObj) {
+    console.error('轨迹对象未初始化');
+    return;
+  }
+  
+  // 生成随机ID
+  const trackId = 'track-' + Date.now();
+  
+  // 生成模拟轨迹点
+  const points = [];
+  const startTime = Math.floor(Date.now() / 1000) - 3600; // 一小时前
+  const pointCount = 100;
+  
+  // 生成随机起始位置（北京附近）
+  const startLng = 116.4 + (Math.random() - 0.5) * 0.2;
+  const startLat = 39.9 + (Math.random() - 0.5) * 0.2;
+  
+  // 基础速度和方向
+  let baseSpeed = 30 + Math.random() * 30; // 30-60 km/h的基础速度
+  let direction = Math.random() * 360; // 初始随机方向
+  
+  for (let i = 0; i < pointCount; i++) {
+    // 轻微改变方向（模拟弯曲的路径）
+    direction = (direction + (Math.random() - 0.5) * 10) % 360;
+    if (direction < 0) direction += 360;
+    
+    // 速度变化模式（模拟加速减速）
+    // 在轨迹的1/3和2/3处有明显速度变化
+    let speedFactor = 1;
+    if (i < pointCount / 3) {
+      // 开始部分速度逐渐增加
+      speedFactor = 0.8 + (i / (pointCount / 3)) * 0.4;
+    } else if (i < pointCount * 2 / 3) {
+      // 中间部分速度较快
+      speedFactor = 1.2;
+    } else {
+      // 结束部分速度逐渐降低
+      speedFactor = 1.2 - ((i - pointCount * 2 / 3) / (pointCount / 3)) * 0.5;
+    }
+    
+    // 每隔10个点添加速度波动
+    if (i % 10 === 0) {
+      speedFactor *= (0.8 + Math.random() * 0.4); // 增加0.8-1.2的随机系数
+    }
+    
+    // 计算当前速度
+    const currentSpeed = baseSpeed * speedFactor;
+    
+    // 根据方向计算位置变化
+    // 这里是简化计算，实际上应该使用更精确的地理计算
+    const distanceFactor = 0.00001 * currentSpeed / 10; // 根据速度调整距离
+    const lng = startLng + (Math.random() - 0.5) * 0.001 * i + Math.sin(direction * Math.PI / 180) * distanceFactor * i;
+    const lat = startLat + (Math.random() - 0.5) * 0.001 * i + Math.cos(direction * Math.PI / 180) * distanceFactor * i;
+    
+    // 是否为关键点（每15个点设置一个标题点）
+    const isKeyPoint = i % 15 === 0 || i === pointCount - 1;
+    
+    points.push({
+      lng: lng,
+      lat: lat,
+      time: startTime + i * 36, // 每个点间隔36秒
+      dir: direction,
+      speed: currentSpeed,
+      title: isKeyPoint ? `点位 ${i + 1}` : undefined
+    });
+  }
+  
+  // 创建轨迹
+  const track = {
+    id: trackId,
+    name: '测试轨迹 ' + new Date().toLocaleTimeString(),
+    points,
+    color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.8)`
+  };
+  
+  // 添加轨迹
+  trackObj.addTrack(track);
+  
+  // 刷新轨迹列表
+  refreshTrackList();
+  
+  // 自定义事件通知轨迹添加
+  const trackPlayerElement = document.querySelector('.track-player');
+  if (trackPlayerElement) {
+    trackPlayerElement.dispatchEvent(new CustomEvent('track-added'));
+  }
+  
+  console.log('已添加演示轨迹:', trackId);
+};
+
+// 手动初始化轨迹播放器
+const forceInitTrackPlayer = () => {
+  logger.debug('[Track] 手动强制初始化轨迹播放器');
+  
+  // 确保地图已加载
+  if (!mapObj || !mapReady.value) {
+    logger.warn('[Track] 地图未就绪，无法初始化轨迹播放器');
+    return;
+  }
+  
+  // 如果已有轨迹对象，确保显示
+  if (trackObj) {
+    logger.debug('[Track] 轨迹对象已存在，确保显示轨迹播放器');
+    showTrackPlayer.value = true;
+    return;
+  }
+  
+  // 初始化轨迹对象
+  try {
+    trackObj = new TrackObject(mapObj.getMapInstance());
+    
+    // 确保播放器显示
+    showTrackPlayer.value = true;
+    
+    // 如果工具栏存在，同步激活工具栏中的轨迹按钮
+    if (toolbarObject) {
+      const trackTool = toolbarObject.getTools().find(t => t.id === 'track-player');
+      if (trackTool && !trackTool.active) {
+        logger.debug('[Track] 同步激活工具栏轨迹按钮');
+        toolbarObject.activateTool('track-player');
+      }
+    }
+    
+    logger.info('[Track] 轨迹播放器已手动初始化');
+  } catch (error) {
+    logger.error('[Track] 手动初始化轨迹播放器失败:', error);
+  }
+};
+
 // 暴露方法给父组件
 defineExpose({
   getMapObject: () => mapObj,
@@ -1141,8 +1382,219 @@ defineExpose({
     
     logger.debug('手动打开图层面板');
   },
+  // 轨迹相关方法
+  addTrack: (track: Track) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法添加轨迹');
+      return false;
+    }
+    
+    // 确保轨迹有名称
+    if (!track.name) {
+      track.name = `轨迹 ${new Date().toLocaleString()}`;
+    }
+    
+    const result = trackObj.addTrack(track);
+    
+    // 手动强制刷新轨迹播放器
+    if (result) {
+      logger.debug(`轨迹 "${track.id}" 添加成功`);
+      
+      // 通过多种方式确保轨迹列表更新
+      if (showTrackPlayer.value) {
+        if (trackPlayerRef.value) {
+          // 方法1: 直接调用组件刷新方法
+          logger.debug(`通过组件引用刷新轨迹列表`);
+          trackPlayerRef.value.refreshTrackList();
+          
+          // 如有必要，可延迟再次刷新确保更新
+          setTimeout(() => {
+            if (trackPlayerRef.value) {
+              trackPlayerRef.value.refreshTrackList();
+            }
+          }, 100);
+        } else {
+          // 方法2: DOM事件通知 (备用方案)
+          logger.debug(`通过事件刷新轨迹列表`);
+          const trackPlayerElement = document.querySelector('.track-player');
+          if (trackPlayerElement) {
+            const event = new CustomEvent('track-added', { detail: { trackId: track.id } });
+            trackPlayerElement.dispatchEvent(event);
+          }
+        }
+      } else {
+        // 如果轨迹播放器未显示，先显示再刷新
+        showTrackPlayer.value = true;
+        nextTick(() => {
+          if (trackPlayerRef.value) {
+            trackPlayerRef.value.refreshTrackList();
+          }
+        });
+      }
+    }
+    
+    return result;
+  },
+  playTrack: (trackId: string, customConfig?: Partial<TrackPlayer>) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法播放轨迹');
+      return false;
+    }
+    
+    // 激活轨迹播放器工具
+    if (toolbarObject) {
+      toolbarObject.activateTool('track-player');
+    }
+    
+    // 显示轨迹播放器
+    showTrackPlayer.value = true;
+    
+    try {
+      // 合并配置：默认配置 + props配置 + 自定义配置
+      const mergedConfig: Partial<TrackPlayer> = {
+        // 从全局配置中提取基础播放属性
+        loop: props.trackPlayerConfig?.loop,
+        speed: props.trackPlayerConfig?.speed,
+        withCamera: props.trackPlayerConfig?.withCamera,
+        speedFactor: props.trackPlayerConfig?.speedFactor,
+        // 覆盖自定义配置
+        ...customConfig
+      };
+      
+      logger.debug('播放轨迹，使用配置', { trackId, config: mergedConfig });
+      
+      // 应用轨迹显示设置
+      if (trackObj) {
+        // 设置节点显示（静态点位）
+        if (props.trackPlayerConfig?.showNodes !== undefined) {
+          trackObj.setTrackNodesVisible(trackId, props.trackPlayerConfig.showNodes);
+        }
+        
+        // 设置节点锚点显示（当节点显示开启时生效）
+        if (props.trackPlayerConfig?.showNodeAnchors !== undefined) {
+          trackObj.setTrackNodeAnchorsVisible(trackId, props.trackPlayerConfig.showNodeAnchors);
+        }
+        
+        // 设置节点名称显示（静态点位名称）
+        if (props.trackPlayerConfig?.showNodeNames !== undefined) {
+          trackObj.setTrackNodePopoversVisible(trackId, props.trackPlayerConfig.showNodeNames);
+        }
+        
+        // 设置点位名称显示（移动点位名称）
+        if (props.trackPlayerConfig?.showPointNames !== undefined) {
+          trackObj.setMovingPointNameVisible(trackId, props.trackPlayerConfig.showPointNames);
+        }
+        
+        // 设置速度显示（移动速度）
+        if (props.trackPlayerConfig?.showSpeed !== undefined) {
+          trackObj.setTrackSpeedPopoversVisible(trackId, props.trackPlayerConfig.showSpeed);
+        }
+        
+        // 设置节点速度显示（节点速度）
+        if (props.trackPlayerConfig?.showNodeSpeed !== undefined) {
+          trackObj.setTrackNodeSpeedsVisible(trackId, props.trackPlayerConfig.showNodeSpeed);
+        }
+      }
+      
+      // 播放轨迹
+      return trackObj.play(trackId, mergedConfig);
+    } catch (error) {
+      logger.error('播放轨迹时出错', error);
+      return false;
+    }
+  },
+  stopTrack: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法停止轨迹');
+      return false;
+    }
+    return trackObj.stop(trackId);
+  },
+  pauseTrack: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法暂停轨迹');
+      return false;
+    }
+    return trackObj.pause(trackId);
+  },
+  resumeTrack: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法恢复轨迹播放');
+      return false;
+    }
+    return trackObj.play(trackId);
+  },
+  clearAllTracks: () => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法清除轨迹');
+      return false;
+    }
+    return trackObj.clearAllTracks();
+  },
+  hideAllTracks: () => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法隐藏轨迹');
+      return false;
+    }
+    return trackObj.hideAllTracks();
+  },
+  showAllTracks: () => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法显示轨迹');
+      return false;
+    }
+    return trackObj.showAllTracks();
+  },
+  showTrack: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法显示轨迹');
+      return false;
+    }
+    return trackObj.showTrack(trackId);
+  },
+  hideTrack: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法隐藏轨迹');
+      return false;
+    }
+    return trackObj.hideTrack(trackId);
+  },
+  getTrackObject: () => trackObj,
+  getTrackPlayState: (trackId: string) => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法获取轨迹播放状态');
+      return null;
+    }
+    return trackObj.getTrackPlayState(trackId);
+  },
+  getAllTracks: () => {
+    if (!trackObj) {
+      logger.warn('轨迹对象未初始化，无法获取轨迹列表');
+      return new Map();
+    }
+    return trackObj.getAllTracks();
+  },
+  // 激活/停用工具的方法
+  activateTool: (toolId: string) => {
+    if (!toolbarObject) {
+      logger.warn(`工具栏未初始化，无法激活工具: ${toolId}`);
+      return false;
+    }
+    return toolbarObject.activateTool(toolId);
+  },
+  deactivateTool: (toolId: string) => {
+    if (!toolbarObject) {
+      logger.warn(`工具栏未初始化，无法停用工具: ${toolId}`);
+      return false;
+    }
+    return toolbarObject.deactivateTool(toolId);
+  },
   // 暴露日志实例，允许外部控制日志行为
   logger,
+  addDemoTrack,
+  refreshTrackList,
+  // 手动初始化轨迹播放器
+  initTrackPlayer: forceInitTrackPlayer
 });
 </script>
 

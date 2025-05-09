@@ -155,6 +155,29 @@
             </div>
           </div>
 
+          <!-- 添加轨迹操作部分 -->
+          <div class="config-item">
+            <div class="label">轨迹操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="addSampleTrack">添加示例轨迹</button>
+                <button @click="addMultipleTrack">添加多条轨迹</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addCircularTrack">添加环形轨迹</button>
+                <button @click="addZigzagTrack">添加Z字型轨迹</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="playTrack">播放轨迹</button>
+                <button @click="stopTrack">停止轨迹</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="clearAllTracks">清除所有轨迹</button>
+                <button @click="toggleTrackVisible">{{ allTracksVisible ? '隐藏所有轨迹' : '显示所有轨迹' }}</button>
+              </div>
+            </div>
+          </div>
+
           <div class="config-item">
             <div class="label">标记点列表</div>
             <div class="marker-stats">
@@ -216,13 +239,6 @@
                     数据: {{ shape.data }}
                   </template>
                 </div>
-                <div class="shape-actions">
-                  <button @click="toggleShapeVisibility(shape)">
-                    {{ shape.visible !== false ? '隐藏' : '显示' }}
-                  </button>
-                  <button @click="changeShapeStyle(shape)">修改样式</button>
-                  <button @click="removeShape(shape)">删除</button>
-                </div>
               </div>
               <div v-if="shapes.length > 5" class="more-shapes">
                 还有 {{ shapes.length - 5 }} 个图形未显示...
@@ -256,15 +272,21 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, type Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { MapType } from '@repo/components/ScLayer/types/map';
-import { MapTile } from '@repo/components/ScLayer/types';
-import { MarkerClusterMode } from '@repo/components/ScLayer/types/marker';
-import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types/map';
-import { Shape } from '@repo/components/ScLayer/types/shape';
-import type { ShapeOption } from '@repo/components/ScLayer/types/shape';
+import { 
+  LogLevel, 
+  MapType,
+  MapTile,
+  MarkerObject,
+  Shape,
+  TrackObject,
+  MarkerClusterMode,
+  DEFAULT_MAP_CONFIG
+} from '@repo/components/ScLayer';
+import type { ShapeOption, Track, TrackPlayer, TrackPlayerConfigOptions } from '@repo/components/ScLayer';
+
 
 // 地图实例引用
 const layerRef = ref(null);
@@ -293,8 +315,13 @@ const allMarkersVisible = ref(true);
 const allLabelsVisible = ref(true);
 
 // 图形数据
-const shapes = ref<any[]>([]);
+const shapes = ref<ShapeOption[]>([]);
 const allShapesVisible = ref(true);
+
+// 轨迹相关状态
+const tracks = ref<{ id: string; name: string; points: any[]; visible: boolean }[]>([]);
+const allTracksVisible = ref(true);
+const hasTrack = ref(false);
 
 // 计算可见标记点数量
 const visibleMarkerCount = computed(() => {
@@ -1385,6 +1412,465 @@ function onShapeDelete(evt) {
   // 更新图形列表
   updateShapeList();
 }
+
+// 添加示例轨迹
+const addSampleTrack = () => {
+  try {
+    // 创建示例轨迹数据
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    
+    // 生成一条简单的轨迹，沿着当前视图中心向东前进
+    for (let i = 0; i < 20; i++) {
+      const offset = i * 0.005; // 每步骤移动的距离
+      points.push({
+        lat: center[0], 
+        lng: center[1] + offset,
+        time: now + i * 60, // 每分钟一个点
+        dir: 90,  // 向东
+        title: `轨迹点 ${i+1}`,
+        info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '速度', value: '45 km/h' },
+          { key: '方向', value: '90°' }
+        ]
+      });
+    }
+    
+    // 创建轨迹对象
+    const track = {
+      id: 'sample-track-' + Math.floor(Math.random() * 1000),
+      name: '示例轨迹',
+      points: points,
+      color: '#FF5252',
+      visible: true
+    };
+    
+    // 添加轨迹
+    if (layerRef.value) {
+      layerRef.value.addTrack(track);
+      tracks.value.push(track);
+      hasTrack.value = true;
+      addLog('info', `已添加示例轨迹，包含 ${points.length} 个点`);
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加示例轨迹失败: ${e}`);
+  }
+};
+
+// 添加多条轨迹
+const addMultipleTrack = () => {
+  try {
+    const center = config.center;
+    const tracksToAdd = [];
+    
+    // 生成四条不同方向的轨迹
+    const directions = ['north', 'east', 'south', 'west'];
+    const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107'];
+    
+    for (let i = 0; i < directions.length; i++) {
+      const direction = directions[i];
+      const points = generateDirectionalTrack(center, direction, 0.05, 10);
+      
+      tracksToAdd.push({
+        id: `track-${direction}-${Math.floor(Math.random() * 1000)}`,
+        name: `${getDirectionName(direction)}向轨迹`,
+        points: points,
+        color: colors[i],
+        visible: true
+      });
+    }
+    
+    // 添加所有轨迹
+    if (layerRef.value) {
+      let addedCount = 0;
+      tracksToAdd.forEach(track => {
+        try {
+          layerRef.value.addTrack(track);
+          tracks.value.push(track);
+          addedCount++;
+        } catch (e) {
+          addLog('error', `添加轨迹 ${track.name} 失败: ${e}`);
+        }
+      });
+      
+      if (addedCount > 0) {
+        hasTrack.value = true;
+        addLog('info', `已添加 ${addedCount} 条轨迹`);
+      } else {
+        addLog('warn', '未能添加任何轨迹');
+      }
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加多条轨迹失败: ${e}`);
+  }
+};
+
+// 添加环形轨迹
+const addCircularTrack = () => {
+  try {
+    // 创建圆形轨迹数据
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    const radius = 0.02; // 半径
+    const totalPoints = 36; // 点数量
+    
+    // 生成一个圆形轨迹
+    for (let i = 0; i <= totalPoints; i++) {
+      const angle = (i / totalPoints) * Math.PI * 2;
+      const lat = center[0] + Math.sin(angle) * radius;
+      const lng = center[1] + Math.cos(angle) * radius;
+      
+      // 计算方向角度（切线方向）
+      const direction = (angle * (180 / Math.PI) + 90) % 360;
+      
+      points.push({
+        lat,
+        lng,
+        time: now + i * 60, // 每分钟一个点
+        dir: direction,
+        title: `环形轨迹点 ${i+1}`,
+        info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '速度', value: '30 km/h' },
+          { key: '方向', value: `${Math.round(direction)}°` }
+        ]
+      });
+    }
+    
+    // 创建轨迹对象
+    const track = {
+      id: 'circular-track-' + Math.floor(Math.random() * 1000),
+      name: '环形轨迹',
+      points: points,
+      color: '#9C27B0', // 紫色
+      visible: true
+    };
+    
+    // 添加轨迹
+    if (layerRef.value) {
+      layerRef.value.addTrack(track);
+      tracks.value.push(track);
+      hasTrack.value = true;
+      addLog('info', `已添加环形轨迹，包含 ${points.length} 个点`);
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加环形轨迹失败: ${e}`);
+  }
+};
+
+// 添加Z字型轨迹
+const addZigzagTrack = () => {
+  try {
+    // 生成Z字形轨迹
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+  
+    // Z字形的五个关键点
+    const keyPoints = [
+      { lat: center[0] - 0.02, lng: center[1] - 0.02 }, // 左上
+      { lat: center[0] - 0.02, lng: center[1] + 0.02 }, // 右上
+      { lat: center[0], lng: center[1] - 0.01 }, // 中间
+      { lat: center[0] + 0.02, lng: center[1] - 0.02 }, // 左下
+      { lat: center[0] + 0.02, lng: center[1] + 0.02 }, // 右下
+    ];
+    
+    // 为每个关键点之间插入中间点
+    for (let i = 0; i < keyPoints.length - 1; i++) {
+      const start = keyPoints[i];
+      const end = keyPoints[i + 1];
+      const steps = 5; // 每段插入5个点
+      
+      for (let j = 0; j <= steps; j++) {
+        const ratio = j / steps;
+        const lat = start.lat + (end.lat - start.lat) * ratio;
+        const lng = start.lng + (end.lng - start.lng) * ratio;
+        
+        // 计算方向（使用简单的角度计算）
+        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        
+        points.push({
+          lat,
+          lng,
+          time: now + (i * steps + j) * 60, // 每分钟一个点
+          dir: direction,
+          title: `Z字形轨迹点 ${points.length + 1}`,
+          info: [
+            { key: '时间', value: new Date((now + (i * steps + j) * 60) * 1000).toLocaleTimeString() },
+            { key: '速度', value: '40 km/h' },
+            { key: '方向', value: `${Math.round(direction)}°` }
+          ]
+        });
+      }
+    }
+    
+    // 创建轨迹对象
+    const track = {
+      id: 'zigzag-track-' + Math.floor(Math.random() * 1000),
+      name: 'Z字形轨迹',
+      points: points,
+      color: '#E74C3C', // 红色
+      visible: true
+    };
+    
+    // 添加轨迹
+    if (layerRef.value) {
+      layerRef.value.addTrack(track);
+      tracks.value.push(track);
+      hasTrack.value = true;
+      addLog('info', `已添加Z字形轨迹，包含 ${points.length} 个点`);
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加Z字形轨迹失败: ${e}`);
+  }
+};
+
+// 播放轨迹
+const playTrack = () => {
+  try {
+    if (!hasTrack.value || tracks.value.length === 0) {
+      addLog('warn', '没有可播放的轨迹');
+      return;
+    }
+    
+    if (layerRef.value) {
+      // 尝试播放第一条轨迹
+      const track = tracks.value[0];
+      
+      const success = layerRef.value.playTrack(track.id, {
+        // 设置播放参数
+        loop: false,
+        speed: 30,
+        withCamera: false,
+        speedFactor: 1.0,
+        showNodes: false,
+        // 使用全局配置，但覆盖速度以加快演示
+        ...trackPlayerConfig,
+        speed: 30 // 演示时使用30km/h的速度
+      });
+      
+      if (success) {
+        // 尝试激活轨迹播放器工具
+        if (layerRef.value) {
+          layerRef.value.activateTool('track-player');
+          addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlayerConfig.speed} km/h，播放因子: ${trackPlayerConfig.speedFactor}x`);
+        } else {
+          addLog('warn', '无法获取工具栏对象，轨迹播放但可能没有显示播放器UI');
+        }
+      } else {
+        addLog('error', `播放轨迹失败: ${track.name}`);
+      }
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `播放轨迹失败: ${e}`);
+  }
+};
+
+// 停止轨迹播放
+const stopTrack = () => {
+  try {
+    if (!hasTrack.value || tracks.value.length === 0) {
+      addLog('warn', '没有正在播放的轨迹');
+      return;
+    }
+    
+    if (layerRef.value) {
+      // 尝试停止所有轨迹播放
+      let stopped = false;
+      tracks.value.forEach(track => {
+        try {
+          const success = layerRef.value.stopTrack(track.id);
+          if (success) stopped = true;
+        } catch (e) {
+          // 忽略单个轨迹停止失败
+          console.error(`停止轨迹 ${track.name} 失败:`, e);
+        }
+      });
+      
+      if (stopped) {
+        // 尝试停用轨迹播放器工具
+        if (layerRef.value) {
+          layerRef.value.deactivateTool('track-player');
+        }
+        
+        addLog('info', '已停止轨迹播放');
+      } else {
+        addLog('warn', '没有正在播放的轨迹');
+      }
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `停止轨迹播放失败: ${e}`);
+  }
+};
+
+// 清除所有轨迹
+const clearAllTracks = () => {
+  try {
+    if (!hasTrack.value || tracks.value.length === 0) {
+      addLog('warn', '没有轨迹可清除');
+      return;
+    }
+    
+    if (layerRef.value) {
+      // 停止所有轨迹播放
+      tracks.value.forEach(track => {
+        try {
+          layerRef.value.stopTrack(track.id);
+        } catch (e) {
+          // 忽略停止失败
+        }
+      });
+      
+      // 清除所有轨迹
+      const success = layerRef.value.clearAllTracks();
+      
+      if (success) {
+        tracks.value = [];
+        hasTrack.value = false;
+        
+        // 停用轨迹播放器工具
+        if (layerRef.value) {
+          layerRef.value.deactivateTool('track-player');
+        }
+        
+        addLog('info', '已清除所有轨迹');
+      } else {
+        addLog('error', '清除轨迹失败');
+      }
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `清除所有轨迹失败: ${e}`);
+  }
+};
+
+// 切换所有轨迹的可见性
+const toggleTrackVisible = () => {
+  try {
+    if (!hasTrack.value || tracks.value.length === 0) {
+      addLog('warn', '没有轨迹可操作');
+      return;
+    }
+    
+    if (layerRef.value) {
+      if (allTracksVisible.value) {
+        // 隐藏所有轨迹
+        layerRef.value.hideAllTracks();
+        allTracksVisible.value = false;
+        addLog('info', '已隐藏所有轨迹');
+      } else {
+        // 显示所有轨迹
+        layerRef.value.showAllTracks();
+        allTracksVisible.value = true;
+        addLog('info', '已显示所有轨迹');
+      }
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `切换轨迹可见性失败: ${e}`);
+  }
+};
+
+// 生成定向轨迹
+const generateDirectionalTrack = (center: [number, number], direction: string, distance: number, points: number) => {
+  const now = Math.floor(Date.now() / 1000);
+  const interval = 60; // 每点间隔1分钟
+  const result = [];
+  
+  // 每点之间的距离
+  const step = distance / (points - 1);
+  
+  // 方向转换为度数
+  let dirDegrees = 0;
+  let latMultiplier = 0;
+  let lngMultiplier = 0;
+  
+  switch (direction) {
+    case 'north':
+      dirDegrees = 0;
+      latMultiplier = 1;
+      lngMultiplier = 0;
+      break;
+    case 'east':
+      dirDegrees = 90;
+      latMultiplier = 0;
+      lngMultiplier = 1;
+      break;
+    case 'south':
+      dirDegrees = 180;
+      latMultiplier = -1;
+      lngMultiplier = 0;
+      break;
+    case 'west':
+      dirDegrees = 270;
+      latMultiplier = 0;
+      lngMultiplier = -1;
+      break;
+  }
+  
+  // 生成轨迹点
+  for (let i = 0; i < points; i++) {
+    const lat = center[0] + latMultiplier * i * step;
+    const lng = center[1] + lngMultiplier * i * step;
+    
+    result.push({
+      lat,
+      lng,
+      time: now + i * interval,
+      dir: dirDegrees,
+      title: `${getDirectionName(direction)}向轨迹点 ${i+1}`,
+      info: [
+        { key: '时间', value: new Date((now + i * interval) * 1000).toLocaleTimeString() },
+        { key: '速度', value: '45 km/h' },
+        { key: '方向', value: `${dirDegrees}°` }
+      ]
+    });
+  }
+  
+  return result;
+};
+
+// 获取方向名称
+const getDirectionName = (direction: string) => {
+  switch (direction) {
+    case 'north': return '北';
+    case 'east': return '东';
+    case 'south': return '南';
+    case 'west': return '西';
+    default: return direction;
+  }
+};
+
+// 轨迹播放器配置
+const trackPlayerConfig = reactive({
+  loop: false,               // 是否循环播放
+  speed: 50,                 // 默认播放速度(km/h)
+  withCamera: false,         // 是否跟随相机
+  speedFactor: 1.0,          // 速度因子
+  showNodes: false,          // 是否显示节点（静态点位）
+  showNodeAnchors: true,     // 是否显示锚点
+  showNodeNames: false,      // 是否显示节点名称（静态点位名称）
+  showPointNames: true,      // 是否显示点位名称（移动点位名称）
+  showSpeed: true,           // 是否显示移动速度
+  showNodeSpeed: true        // 是否显示节点速度
+});
 </script>
 
 <style scoped>

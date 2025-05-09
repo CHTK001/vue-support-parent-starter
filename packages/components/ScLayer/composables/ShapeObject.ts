@@ -60,6 +60,10 @@ export class ShapeObject {
   private shapes: Map<string, Feature> = new Map();
   // 新增绘制完成回调类型
   private drawEndCallback: ((id: string, shapeType: ShapeType, feature: Feature) => void) | null = null;
+  // 删除模式状态
+  private deleteMode: boolean = false;
+  // 点击监听器 - 用于删除模式
+  private clickListener: EventsKey | null = null;
 
   /**
    * 构造函数
@@ -731,6 +735,73 @@ export class ShapeObject {
     };
     
     return this.addShape(shapeOptions);
+  }
+
+  /**
+   * 启用删除模式
+   * 允许用户通过点击删除图形
+   */
+  public enableDeleteMode(): void {
+    if (!this.mapInstance) {
+      this.log('warn', '地图实例未设置，无法启用删除模式');
+      return;
+    }
+
+    // 如果已经启用删除模式，则不做操作
+    if (this.deleteMode) {
+      return;
+    }
+
+    // 如果当前在绘制模式，先禁用绘制
+    if (this.enabled) {
+      this.disable();
+    }
+
+    // 添加点击监听
+    this.clickListener = this.mapInstance.on('click', (event) => {
+      if (!this.deleteMode) return;
+
+      // 获取点击位置的图形
+      const feature = this.mapInstance!.forEachFeatureAtPixel(event.pixel, (feature) => feature);
+      
+      if (feature) {
+        // 检查是否是我们的图形
+        const shapeId = feature.get('shapeId');
+        if (shapeId && this.shapes.has(shapeId)) {
+          // 删除图形
+          this.removeShape(shapeId);
+          this.log('info', `删除模式: 已删除图形 ID=${shapeId}`);
+        }
+      }
+    });
+
+    this.deleteMode = true;
+    this.log('info', '删除模式已启用');
+  }
+
+  /**
+   * 禁用删除模式
+   */
+  public disableDeleteMode(): void {
+    if (!this.deleteMode) {
+      return;
+    }
+
+    // 移除点击监听
+    if (this.clickListener) {
+      unByKey(this.clickListener);
+      this.clickListener = null;
+    }
+
+    this.deleteMode = false;
+    this.log('info', '删除模式已禁用');
+  }
+
+  /**
+   * 检查是否处于删除模式
+   */
+  public isDeleteMode(): boolean {
+    return this.deleteMode;
   }
 }
 

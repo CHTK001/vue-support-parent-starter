@@ -34,6 +34,21 @@ export interface TrackPlayer {
   speed: number;
   // 是否跟随相机
   withCamera: boolean;
+  // 分段加速系数（可选，默认为1.0）
+  speedFactor?: number;
+}
+// 定义轨迹播放器配置接口
+export interface TrackPlayerConfigOptions {
+  loop?: boolean;         // 是否循环播放
+  speed?: number;         // 默认播放速度(km/h)
+  withCamera?: boolean;   // 是否跟随相机
+  speedFactor?: number;   // 速度因子
+  showNodes?: boolean;    // 是否显示节点（静态点位）
+  showNodeAnchors?: boolean; // 是否显示节点锚点（当showNodes开启时生效）
+  showNodeNames?: boolean;// 是否显示节点名称（静态点位名称）
+  showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
+  showSpeed?: boolean;    // 是否显示移动速度
+  showNodeSpeed?: boolean;// 是否显示节点速度
 }
 
 // 轨迹数据接口

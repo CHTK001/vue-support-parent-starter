@@ -86,6 +86,20 @@ export interface MeasureToolConfig {
   clearOnComplete?: boolean; // 测量完成后是否自动清除
 }
 
+// 轨迹播放器配置选项
+export interface TrackPlayerConfigOptions {
+  loop: boolean;          // 是否循环播放
+  speed: number;          // 默认播放速度(km/h)
+  withCamera: boolean;    // 是否跟随相机
+  speedFactor: number;    // 速度因子
+  showNodes: boolean;     // 是否显示节点（静态点位）
+  showNodeAnchors: boolean;// 是否显示节点锚点（当showNodes设置为true时有效）
+  showNodeNames: boolean; // 是否显示节点名称（静态点位名称）
+  showPointNames: boolean;// 是否显示点位名称（移动点位名称）
+  showSpeed: boolean;     // 是否显示移动速度
+  showNodeSpeed: boolean; // 是否显示节点速度
+}
+
 // 工具栏配置接口
 export interface ToolbarConfig {
   position?: ToolbarPosition;
@@ -97,6 +111,8 @@ export interface ToolbarConfig {
   coordinateConfig?: CoordinateToolConfig;
   // 测距工具配置
   measureConfig?: MeasureToolConfig;
+  // 轨迹播放器配置
+  trackPlayerConfig?: TrackPlayerConfigOptions;
 }
 
 // 添加自定义工具的选项
@@ -234,5 +250,18 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     showArea: true,
     showSegment: true,
     clearOnComplete: false
+  },
+  // 默认轨迹播放器配置
+  trackPlayerConfig: {
+    loop: false,          // 是否循环播放
+    speed: 50,            // 默认播放速度(km/h)
+    withCamera: false,     // 是否跟随相机
+    speedFactor: 1.0,     // 速度因子
+    showNodes: false,     // 是否显示节点（静态点位）
+    showNodeAnchors: false,// 是否显示节点锚点（当showNodes设置为true时有效）
+    showNodeNames: false, // 是否显示节点名称（静态点位名称）
+    showPointNames: true, // 是否显示点位名称（移动点位名称）
+    showSpeed: true,      // 是否显示移动速度
+    showNodeSpeed: true   // 是否显示节点速度
   }
 };

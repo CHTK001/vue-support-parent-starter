@@ -206,10 +206,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   opacity: 0;
   transition: opacity $transition-time;
-  
-  &:hover {
-    background-color: lighten($error-color, 10%);
-  }
 }
 
 .ol-tooltip-static:hover .delete-measure-btn {
