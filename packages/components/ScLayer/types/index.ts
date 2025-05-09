@@ -11,6 +11,7 @@ export * from "./toolbar";
 export * from "./marker";
 export * from "./cluster";
 export * from "./shape";
+export * from "./track";
 //图层类型
 export enum MapTile {
   NORMAL = 'normal',

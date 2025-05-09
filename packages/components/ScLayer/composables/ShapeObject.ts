@@ -364,7 +364,7 @@ export class ShapeObject {
    * @returns 图形ID数组
    */
   public getAllShapes(): string[] {
-     return Array.from(this.shapes.keys());
+    return Array.from(this.shapes.keys());
   }
   /**
    * 获取所有图形ID

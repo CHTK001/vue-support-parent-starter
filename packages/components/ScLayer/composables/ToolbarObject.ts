@@ -787,15 +787,15 @@ export class ToolbarObject {
     logger.debug(`正在停用工具 ${toolId}，当前活动工具ID: ${this.activeToolId}`);
     
     // 设置工具为非激活状态
-    tool.active = false;
+      tool.active = false;
     logger.debug(`工具 ${toolId} 已设置为非激活状态`);
       
-    // 执行工具停用后的操作
-    this.handleToolDeactivation(tool);
+      // 执行工具停用后的操作
+      this.handleToolDeactivation(tool);
       
-    // 如果停用的是当前激活的工具，清除激活状态
-    if (this.activeToolId === toolId) {
-      this.activeToolId = null;
+      // 如果停用的是当前激活的工具，清除激活状态
+      if (this.activeToolId === toolId) {
+        this.activeToolId = null;
       logger.debug(`清除当前激活工具ID`);
     }
     
@@ -1209,7 +1209,7 @@ export class ToolbarObject {
     }
     
     // 通知状态变化，由ScLayer组件处理显示自定义OverviewMap
-    if (this.toolStateChangeCallback) {
+            if (this.toolStateChangeCallback) {
       // 发送工具状态变化通知，只发送工具状态变化，而不发送expanded相关的通知
       this.toolStateChangeCallback('overview', true, 'toggle');
     }
@@ -1221,7 +1221,7 @@ export class ToolbarObject {
   private handleOverviewMapDeactivate(): void {
     if (this.overviewMapObj) {
       // 即使是空实现，也明确调用disable以确保内置鹰眼被禁用
-      this.overviewMapObj.disable();
+    this.overviewMapObj.disable();
     }
     
     // 通知停用状态变化
