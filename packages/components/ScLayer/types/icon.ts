@@ -335,3 +335,6 @@ export const SQUARE_ICON = `
   <path d="M342.4 342.4h339.2v339.2H342.4V342.4z m-64-64v467.2h467.2V278.4H278.4z" fill="#666666"></path>
   <path d="M170.7 170.7v682.7h682.7V170.7H170.7z m0-64h682.7c35.2 0 64 28.8 64 64v682.7c0 35.2-28.8 64-64 64H170.7c-35.2 0-64-28.8-64-64V170.7c0-35.2 28.8-64 64-64z" fill="#666666"></path>
 </svg>`;
+
+// 轨迹播放器图标
+export const TRACK_PLAYER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>`;
