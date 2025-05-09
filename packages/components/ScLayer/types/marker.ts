@@ -2,6 +2,8 @@
  * 标记点相关类型定义
  */
 
+import type { DataType } from ".";
+
 /**
  * 标记点聚合模式枚举
  */
@@ -20,6 +22,7 @@ export enum MarkerClusterMode {
 export interface MarkerOptions {
   id: string;
   position: [number, number]; // [经度, 纬度]
+  dataType?: DataType; // 类型，默认为'marker'
   icon?: string; // 图标URL或SVG字符串
   iconType?: 'url' | 'svg' | 'base64' | 'default'; // 图标类型，默认为'default'
   title?: string; // 标题

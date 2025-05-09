@@ -16,6 +16,7 @@ import { fromLonLat, transformExtent } from 'ol/proj';
 import { getCenter } from 'ol/extent';
 import { ShapeStyle, Shape, ShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
 import logger from './LogObject';
+import { DataType } from '../types';
 
 // 图形模块日志前缀
 const LOG_MODULE = 'Shape';
@@ -57,6 +58,8 @@ export class ShapeObject {
   private idCounter: number = 0;
   // 图形对象映射
   private shapes: Map<string, Feature> = new Map();
+  // 新增绘制完成回调类型
+  private drawEndCallback: ((id: string, shapeType: ShapeType, feature: Feature) => void) | null = null;
 
   /**
    * 构造函数
@@ -260,6 +263,15 @@ export class ShapeObject {
   }
 
   /**
+   * 设置绘制完成回调函数
+   * @param callback 回调函数，参数为图形ID、图形类型和图形特征
+   */
+  public setDrawEndCallback(callback: (id: string, shapeType: ShapeType, feature: Feature) => void): void {
+    this.drawEndCallback = callback;
+    this.log('debug', '已设置绘制完成回调函数');
+  }
+
+  /**
    * 处理绘制完成事件
    * @param evt 事件对象
    */
@@ -278,6 +290,11 @@ export class ShapeObject {
     this.shapes.set(id, feature);
     
     this.log('info', `图形绘制完成，类型: ${this.currentType}, ID: ${id}`);
+    
+    // 如果设置了回调函数，调用回调函数通知绘制完成
+    if (this.drawEndCallback && this.currentType) {
+      this.drawEndCallback(id, this.currentType, feature);
+    }
   }
 
   /**
@@ -454,7 +471,7 @@ export class ShapeObject {
     if (!this.isLayerAdded()) {
       this.mapInstance.addLayer(this.layer);
     }
-
+    options.dataType = DataType.SHAPE;
     // 生成唯一ID
     const id = options.id || `shape-${Date.now()}-${this.idCounter++}`;
     let feature: Feature | null = null;
@@ -577,7 +594,7 @@ export class ShapeObject {
       feature.set('createdAt', new Date().toISOString());
       
       if (options.data) {
-        feature.set('data', options.data);
+        feature.set('data', options);
       }
       
       // 设置自定义样式

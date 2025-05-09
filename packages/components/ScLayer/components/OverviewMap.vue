@@ -1,10 +1,14 @@
 <template>
-  <div class="overview-map" :class="{ 'visible': visible, 'collapsed': collapsed }">
+  <div class="overview-map" 
+    :class="{ 'visible': visible, 'collapsed': collapsed }"
+    :style="overviewMapStyle"
+  >
     <div ref="overviewMapContainer" class="overview-map-container"></div>
     <div 
       class="overview-collapse-btn" 
       :class="getCollapseButtonPosition()"
       @click.stop="toggleCollapse"
+      :style="collapseButtonStyle"
     >
       <div class="collapse-icon">
         <span v-if="collapsed">+</span>
@@ -15,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -32,6 +36,25 @@ import { getCenter } from 'ol/extent';
 import { DragBox, Translate } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 
+// 定义配置接口
+export interface OverviewMapConfig {
+  width?: number;          // 宽度(px)
+  height?: number;         // 高度(px)
+  opacity?: number;        // 透明度(0-1)
+  borderColor?: string;    // 边框颜色
+  borderWidth?: number;    // 边框宽度(px)
+  backgroundColor?: string; // 背景颜色
+  boxColor?: string;       // 视图矩形框颜色
+  boxOpacity?: number;     // 视图矩形框透明度(0-1)
+  boxBorderColor?: string; // 视图矩形框边框颜色
+  boxBorderWidth?: number; // 视图矩形框边框宽度(px)
+  zoomOffset?: number;     // 缩放级别偏移量
+  collapsedSize?: number;  // 折叠后的尺寸(px)
+  buttonSize?: number;     // 折叠按钮尺寸(px)
+  buttonColor?: string;    // 折叠按钮颜色
+  buttonBgColor?: string;  // 折叠按钮背景色
+}
+
 const props = defineProps({
   mainMapObj: {
     type: Object,
@@ -45,10 +68,87 @@ const props = defineProps({
     type: String,
     default: 'bottom-right', // 可选值：'top-left', 'top-right', 'bottom-left', 'bottom-right'
     validator: (value: string) => ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(value)
+  },
+  config: {
+    type: Object as () => OverviewMapConfig,
+    default: () => ({})
   }
 });
 
 const emit = defineEmits(['close', 'collapse-change']);
+
+// 合并默认配置和用户传入的配置
+const defaultConfig: OverviewMapConfig = {
+  width: 200,
+  height: 150,
+  opacity: 1,
+  borderColor: 'rgba(24, 144, 255, 0.8)',
+  borderWidth: 2,
+  backgroundColor: '#f5f5f5',
+  boxColor: 'rgba(24, 144, 255, 0.15)',
+  boxOpacity: 0.15,
+  boxBorderColor: 'rgba(24, 144, 255, 1)',
+  boxBorderWidth: 3,
+  zoomOffset: 4,
+  collapsedSize: 30,
+  buttonSize: 30,
+  buttonColor: '#fff',
+  buttonBgColor: 'rgba(24, 144, 255, 0.9)'
+};
+
+// 合并配置
+const mergedConfig = computed(() => {
+  return { ...defaultConfig, ...props.config };
+});
+
+// 计算鹰眼地图样式
+const overviewMapStyle = computed(() => {
+  const config = mergedConfig.value;
+  const posStyle: Record<string, any> = {};
+  
+  // 根据位置设置定位样式
+  switch (props.position) {
+    case 'top-left':
+      posStyle.top = '10px';
+      posStyle.left = '10px';
+      break;
+    case 'top-right':
+      posStyle.top = '10px';
+      posStyle.right = '10px';
+      break;
+    case 'bottom-left':
+      posStyle.bottom = '10px';
+      posStyle.left = '10px';
+      break;
+    case 'bottom-right':
+      posStyle.bottom = '10px';
+      posStyle.right = '10px';
+      break;
+  }
+  
+  return {
+    ...posStyle,
+    width: collapsed.value ? `${config.collapsedSize}px` : `${config.width}px`,
+    height: collapsed.value ? `${config.collapsedSize}px` : `${config.height}px`,
+    opacity: config.opacity,
+    borderColor: config.borderColor,
+    borderWidth: `${config.borderWidth}px`,
+    backgroundColor: config.backgroundColor,
+    zIndex: 1001
+  };
+});
+
+// 计算折叠按钮样式
+const collapseButtonStyle = computed(() => {
+  const config = mergedConfig.value;
+  return {
+    width: `${config.buttonSize}px`,
+    height: `${config.buttonSize}px`,
+    backgroundColor: config.buttonBgColor,
+    color: config.buttonColor,
+    borderRadius: collapsed.value ? '50%' : '4px' // 根据折叠状态自动调整
+  };
+});
 
 const overviewMapContainer = ref<HTMLElement | null>(null);
 let overviewMap: Map | null = null;
@@ -124,10 +224,11 @@ const createOverviewMap = async () => {
     const center = mainView.getCenter();
     const zoom = mainView.getZoom();
     const projection = mainView.getProjection();
+    const config = mergedConfig.value;
     
     logger.debug('[Overview] 创建鹰眼地图, 中心点:', center, '缩放级别:', zoom);
     
-    // 创建矩形图层
+    // 创建矩形图层，使用配置的样式
     viewExtentFeature = new Feature();
     const vectorSource = new VectorSource({
       features: [viewExtentFeature]
@@ -137,11 +238,11 @@ const createOverviewMap = async () => {
       source: vectorSource,
       style: new Style({
         stroke: new Stroke({
-          color: 'rgba(24, 144, 255, 1)',
-          width: 3
+          color: config.boxBorderColor,
+          width: config.boxBorderWidth
         }),
         fill: new Fill({
-          color: 'rgba(24, 144, 255, 0.15)'
+          color: config.boxColor
         })
       }),
       // 确保矩形始终显示在顶层
@@ -159,7 +260,7 @@ const createOverviewMap = async () => {
       ],
       view: new View({
         center: center,
-        zoom: zoom ? zoom - 4 : 0, // 更小的缩放级别，以显示更大的区域
+        zoom: zoom ? zoom - config.zoomOffset : 0, // 使用配置的缩放偏移
         projection: projection
       }),
       controls: []
@@ -191,10 +292,11 @@ const createOverviewMap = async () => {
       
       const mainView = mainMap.getView();
       const overviewView = overviewMap.getView();
+      const config = mergedConfig.value;
       
       // 同步中心点和缩放级别
       overviewView.setCenter(mainView.getCenter());
-      overviewView.setZoom(mainView.getZoom() ? mainView.getZoom() - 4 : 0);
+      overviewView.setZoom(mainView.getZoom() ? mainView.getZoom() - config.zoomOffset : 0);
       
       // 更新视图矩形
       updateViewExtentRectangle();
@@ -295,6 +397,7 @@ const updateViewExtentRectangle = () => {
     
     // 获取主地图的视图范围
     const extent = mainMap.getView().calculateExtent(mainMap.getSize());
+    const config = mergedConfig.value;
     
     // 缩小矩形大小，让它显示为主视图区域的一部分
     // 计算中心点
@@ -323,6 +426,19 @@ const updateViewExtentRectangle = () => {
     
     // 更新特征几何形状
     viewExtentFeature.setGeometry(polygon);
+    
+    // 更新矩形样式
+    if (viewExtentLayer) {
+      viewExtentLayer.setStyle(new Style({
+        stroke: new Stroke({
+          color: config.boxBorderColor, 
+          width: config.boxBorderWidth
+        }),
+        fill: new Fill({
+          color: config.boxColor
+        })
+      }));
+    }
     
     logger.debug('[Overview] 更新视图矩形，原始范围:', extent, '缩放后范围:', scaledExtent);
   } catch (error) {
@@ -416,35 +532,17 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-// 鹰眼地图样式变量
-$overview-map-width: 200px;
-$overview-map-height: 200px;
-$overview-map-collapsed-size: 30px;
-$overview-map-border-color: var(--overview-map-border-color, rgba(24, 144, 255, 0.8));
-$overview-map-border-width: var(--overview-map-border-width, 2px);
-$overview-map-shadow: var(--overview-map-shadow, 0 4px 12px rgba(0, 0, 0, 0.2));
-$overview-map-bg-color: var(--overview-map-bg-color, #f5f5f5);
-
-// 折叠按钮样式
-$collapse-btn-size: 30px; // 增大到与最小化状态一致(30px)
-$collapse-btn-color: var(--collapse-btn-color, #fff);
-$collapse-btn-bg: var(--collapse-btn-bg, rgba(24, 144, 255, 0.9));
-$collapse-btn-hover-bg: var(--collapse-btn-hover-bg, rgba(24, 144, 255, 1));
-
 .overview-map {
   position: absolute;
-  right: 10px;
-  bottom: 30px;
-  width: $overview-map-width;
-  height: $overview-map-height;
-  background-color: white;
-  border: $overview-map-border-width solid $overview-map-border-color;
-  border-radius: 4px;
-  box-shadow: $overview-map-shadow;
   display: none;
   overflow: hidden;
   z-index: 1001;
+  border-style: solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
   transition: all 0.3s ease-in-out;
+  box-sizing: border-box; // 确保尺寸计算包含边框
+  padding: 0; // 消除内边距
   
   &.visible {
     display: block;
@@ -452,10 +550,10 @@ $collapse-btn-hover-bg: var(--collapse-btn-hover-bg, rgba(24, 144, 255, 1));
   }
   
   &.collapsed {
-    width: $overview-map-collapsed-size;
-    height: $overview-map-collapsed-size;
     overflow: hidden;
-    border-radius: $overview-map-collapsed-size / 2; // 折叠状态为圆形
+    border-radius: 50%; // 折叠状态为圆形
+    padding: 0; // 确保没有内边距
+    box-sizing: border-box; // 确保尺寸包含边框
     
     .overview-map-container {
       display: none;
@@ -466,13 +564,28 @@ $collapse-btn-hover-bg: var(--collapse-btn-hover-bg, rgba(24, 144, 255, 1));
       width: 100%;
       height: 100%;
       top: 0;
-      left:.0;
+      left: 0;
       right: 0;
       bottom: 0;
       border-radius: 50%; // 完全圆形
+      margin: 0; // 清除可能的外边距
+      transform: none !important; // 防止hover效果导致偏移
+      padding: 0; // 确保没有内边距
       
       .collapse-icon {
         font-size: 20px; // 增大字体大小
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        
+        span {
+          position: relative;
+          top: -1px; // 微调位置使其视觉上居中
+          line-height: 1;
+          text-align: center;
+        }
       }
     }
   }
@@ -485,16 +598,12 @@ $collapse-btn-hover-bg: var(--collapse-btn-hover-bg, rgba(24, 144, 255, 1));
   &-container {
     width: 100%;
     height: 100%;
-    background-color: $overview-map-bg-color;
     cursor: pointer;
   }
   
   // 折叠按钮
   .overview-collapse-btn {
     position: absolute;
-    width: $collapse-btn-size;
-    height: $collapse-btn-size;
-    background-color: $collapse-btn-bg;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -505,15 +614,22 @@ $collapse-btn-hover-bg: var(--collapse-btn-hover-bg, rgba(24, 144, 255, 1));
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     
     &:hover {
-      background-color: $collapse-btn-hover-bg;
       transform: scale(1.05);
     }
     
     .collapse-icon {
-      color: $collapse-btn-color;
-      font-size: 18px;
       font-weight: bold;
       line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      
+      span {
+        position: relative;
+        text-align: center;
+      }
     }
     
     // 不同位置的折叠按钮

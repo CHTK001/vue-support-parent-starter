@@ -16,7 +16,7 @@ import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { Overlay } from 'ol';
 import logger from './LogObject';
-import { MarkerClusterMode, MarkerOptions, MarkerEventHandler } from '../types/marker';
+import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType } from '../types';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
@@ -604,6 +604,7 @@ export class MarkerObject {
     }
     
     options.style = { ...this.defaultStyle, ...options.style };
+    options.dataType = DataType.MARKER;
     
     // 检查已存在的标记点
     if (this.markers.has(id)) {
@@ -619,7 +620,9 @@ export class MarkerObject {
       geometry: new Point(coordinates),
       id: id,
     });
-    
+    marker.set('dataType', DataType.MARKER);
+    marker.set('createdAt', new Date().toISOString());
+    marker.set('data', options);
     // 根据全局标记点显示状态决定是否显示
     if (this.markersVisible) {
       // 设置样式
@@ -798,7 +801,7 @@ export class MarkerObject {
       // 根据新的聚合模式添加到相应图层
       const shouldAddToCluster =  (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
       const shouldAddToMarker =  options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
-      
+      options.dataType = DataType.MARKER;
       if (shouldAddToCluster) {
         clusterSource.getSource()!.addFeature(marker);
         this.log('debug', `标记点 "${id}" 已添加到聚合图层`);
