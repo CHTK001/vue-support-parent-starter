@@ -23,22 +23,25 @@
       :coordinate-info="coordinateInfo"
       :show-projected="coordinateOptions.showProjected"
     />
-    <!-- 添加鹰眼控件强制显示按钮 -->
-    <div v-if="showOverviewButton" class="overview-button" @click="emit('toolbar-state-change', {toolId: 'overview', active: true, toolType: 'toggle'})">
-      <div class="overview-icon">
-        <svg viewBox="0 0 1024 1024" width="24" height="24">
-          <path d="M512 128c212.1 0 384 171.9 384 384S724.1 896 512 896 128 724.1 128 512s171.9-384 384-384m0-64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z" fill="currentColor"/>
-          <path d="M764 612c-38.1 83.3-123.1 141-221.9 141-132.6 0-240-107.4-240-240s107.4-240 240-240c98.9 0 183.8 57.7 221.9 141h75.3C797.4 289.2 662.7 197 541 197c-173.7 0-314.5 140.8-314.5 314.5S367.3 826 541 826c121.7 0 256.4-92.2 298.3-217.2H764v3.2z" fill="currentColor"/>
-          <path d="M512 393c-65.5 0-119 53.5-119 119s53.5 119 119 119 119-53.5 119-119-53.5-119-119-119z" fill="currentColor"/>
-        </svg>
-      </div>
-    </div>
-    <!-- 增加引入CustomOverviewMap组件 -->
-    <CustomOverviewMap 
-      v-if="showCustomOverview" 
+    <!-- 添加图层面板 -->
+    <LayerPanel
+      v-if="showLayerPanel"
+      :active="showLayerPanel"
+      :position="layerPanelPosition"
+      :map-type="config.mapType"
+      :map-tile="config.mapTile"
+      :map-config="config.map"
+      @close="handleLayerPanelClose"
+      @layer-change="handleLayerChange"
+    />
+    
+    <!-- 增加引入OverviewMap组件 -->
+    <OverviewMap 
+      v-if="showOverviewMap" 
       :main-map-obj="mapObj" 
-      :visible="showCustomOverview"
-      @close="showCustomOverview = false"
+      :visible="showOverviewMap"
+      :position="determineOverviewMapPosition()"
+      @collapse-change="handleOverviewMapCollapseChange"
     />
   </div>
 </template>
@@ -53,7 +56,8 @@ export default {
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapToolbar from './components/MapToolbar.vue';
-import CustomOverviewMap from './components/CustomOverviewMap.vue';
+import OverviewMap from './components/OverviewMap.vue';
+import LayerPanel from './components/LayerPanel.vue';
 import { ConfigObject } from './composables/ConfigObject';
 import { 
   CoordinateInfo, 
@@ -70,6 +74,7 @@ import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
 import { MarkerObject } from './composables/MarkerObject';
 import { MarkerOptions } from '.';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
+import { Shape, ShapeOption } from './types/shape';
 // 引入OpenLayers样式
 import 'ol/ol.css';
 
@@ -103,6 +108,12 @@ const emit = defineEmits<{
   (e: 'toolbar-state-change', payload: { toolId: string, active: boolean, toolType: string, data?: any }): void;
   (e: 'map-initialized', payload: { map: MapObject, toolbar: ToolbarObject }): void;
   (e: 'marker-click', payload: { coordinates: number[], data: MarkerOptions }): void;
+  (e: 'marker-create', payload: { id: string, options: MarkerOptions }): void;
+  (e: 'marker-update', payload: { id: string, options: Partial<MarkerOptions> }): void;
+  (e: 'marker-delete', payload: { id: string }): void;
+  (e: 'shape-create', payload: { id: string, options: ShapeOption }): void;
+  (e: 'shape-update', payload: { id: string, options: Partial<ShapeOption> }): void;
+  (e: 'shape-delete', payload: { id: string }): void;
 }>();
 
 // 组件状态
@@ -119,7 +130,9 @@ const activeToolId = ref<string | undefined>(undefined);
 const mapInitialized = ref<boolean>(false);
 const showCoordinatePanel = ref<boolean>(false);
 const showOverviewButton = ref<boolean>(false);
-const showCustomOverview = ref<boolean>(false);
+const showOverviewMap = ref<boolean>(false);
+const showLayerPanel = ref<boolean>(false);
+const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 const mapToolbarRef = ref(null);
 
 // 坐标选项
@@ -191,36 +204,67 @@ const logMapContainerInfo = () => {
 };
 
 // 初始化地图组件
-const initializeMapComponents = () => {
+const initializeMapComponents = async () => {
+  try {
   // 创建配置对象
-  configObject = new ConfigObject(props);
+    configObject = new ConfigObject(config.value);
   
-  // 创建地图对象
+    // 创建地图对象 - 正确传递参数
   mapObj = new MapObject(configObject);
-  
-  // 初始化地图
-  mapObj.init(mapContainer.value as HTMLElement, emit);
-  
-  // 标记地图初始化完成
-  logger.info('地图初始化成功');
-  mapInitialized.value = true;
   
   // 创建工具栏对象
   toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
+    
+    // 初始化地图
+    if (mapContainer.value) {
+      const initResult = await mapObj.init(mapContainer.value, emit);
+      if (!initResult) {
+        throw new Error('地图初始化失败');
+      }
+    } else {
+      throw new Error('地图容器未找到');
+    }
+    
+    // 如果有配置的mapKey，添加到配置对象中
+    if (config.value.mapKey && Object.keys(config.value.mapKey).length > 0) {
+      // 直接更新配置对象的mapKey
+      const configMapKey = configObject.getConfig().mapKey;
+      for (const mapType in config.value.mapKey) {
+        configMapKey[mapType] = config.value.mapKey[mapType];
+      }
+    }
 
   // 创建标记点对象
-  markerObject = toolbarObject.getMarkerObject();
-  // 设置工具栏对象
-  mapToolbarRef.value?.setToolbarObj(toolbarObject);
-  // 设置标记点点击回调
-  markerObject.setClickHandler((coordinates: number[], data: MarkerOptions) => {
-    emit('marker-click', { coordinates, data });
-    logger.debug(`[Marker] 标记点 ${data.id} 被点击，发送事件到父组件`);
-  });
+    markerObject = new MarkerObject(mapObj.getMapInstance());
   
   // 创建图形绘制对象
-  shapeObject = toolbarObject.getShapeObject();
-  logger.debug('图形绘制对象已初始化');
+    shapeObject = new ShapeObject(mapObj.getMapInstance());
+    
+    // 设置工具栏对象到地图对象
+    if (mapToolbarRef.value) {
+      mapToolbarRef.value.setToolbarObj(toolbarObject);
+    }
+    
+    // 设置工具栏状态变化监听器
+    setupToolbarStateChangeListener();
+    
+    // 设置坐标面板监听
+    setupCoordinatePanelWatcher();
+    
+    // 标记地图初始化完成
+    mapInitialized.value = true;
+    
+    // 添加窗口尺寸变化监听，响应式调整地图尺寸
+    window.addEventListener('resize', resizeMap);
+    
+    // 检查鹰眼状态
+    checkOverviewMapState();
+    
+    logger.info('地图和工具栏初始化完成');
+  } catch (error) {
+    logger.error('初始化地图组件时发生错误:', error);
+    throw error;
+  }
 };
 
 // 注册各种事件处理程序
@@ -290,9 +334,50 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
+    // 图层面板强制显示事件
+    'layer-panel-visible': () => {
+      if (toolType === 'panel' && active) {
+        showLayerPanel.value = true;
+        layerPanelPosition.value = determineLayerPanelPosition();
+        logger.debug('收到图层面板强制显示事件');
+      }
+    },
+    
+    // 图层切换按钮状态变化
+    'layer-switch': () => {
+      // 当图层按钮状态变化时，控制图层面板的显示/隐藏
+      showLayerPanel.value = active;
+      if (active) {
+        // 如果激活按钮，确定面板位置
+        layerPanelPosition.value = determineLayerPanelPosition();
+        logger.debug('图层切换按钮已激活，显示图层面板');
+      } else {
+        logger.debug('图层切换按钮已停用，隐藏图层面板');
+      }
+    },
+    
     // 鹰眼工具状态变化
     'overview': () => {
       logger.debug(`[Overview] 鹰眼工具状态变化: ${active ? '激活' : '停用'}`);
+      
+      // 直接控制鹰眼地图的显示和隐藏
+      showOverviewMap.value = active;
+      
+      if (active) {
+        logger.debug('[Overview] 鹰眼工具已激活，显示鹰眼地图');
+        // 确保在下一个tick渲染完成后，鹰眼地图容器已存在
+        nextTick(() => {
+          // 强制刷新鹰眼地图大小
+          if (mapObj) {
+            mapObj.triggerMapResize();
+          }
+        });
+      } else {
+        logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
+      }
+      
+      // 既然没有关闭按钮，就不需要辅助按钮
+      showOverviewButton.value = false;
     },
     
     // 鹰眼控件特殊事件
@@ -413,29 +498,81 @@ watch(() => props.coordinateOptions, (newOptions) => {
 }, { deep: true });
 
 // 处理工具栏工具激活
-const handleToolActivated = (toolId: string) => {
+const handleToolActivated = (payload) => {
   if (!toolbarObject) return;
   
+  const toolId = payload.toolId;
   logger.debug(`工具 ${toolId} 已被激活`);
+  
+  // 更新活动工具ID
+  activeToolId.value = toolId;
+  
+  // 处理特定工具的激活
+  if (toolId === 'coordinate') {
+    showCoordinatePanel.value = true;
+  } else if (toolId === 'overview') {
+    // 激活鹰眼工具
+    showOverviewMap.value = true;
+    // 隐藏overview按钮，因为已经激活了鹰眼工具
+    showOverviewButton.value = false;
+    
+    // 确保在下一个tick中鹰眼地图可以正确初始化
+    nextTick(() => {
+      logger.debug('[Overview] 确保鹰眼地图在工具激活后显示');
+      if (mapObj) {
+        // 强制刷新地图尺寸以确保鹰眼组件正确显示
+        mapObj.triggerMapResize();
+      }
+    });
+  } else if (toolId === 'layer-switch') {
+    showLayerPanel.value = true;
+    layerPanelPosition.value = determineLayerPanelPosition();
+  }
   
   // 将工具激活事件传递给父组件
   emit('toolbar-tool-activated', {
     toolId,
     toolbarObj: toolbarObject
   });
+  
+  // 触发工具栏状态变化事件
+  emit('toolbar-state-change', { toolId, active: true, toolType: 'toggle' });
 };
 
 // 处理工具栏工具停用
-const handleToolDeactivated = (toolId: string) => {
+const handleToolDeactivated = (payload) => {
   if (!toolbarObject) return;
   
+  const toolId = payload.toolId;
   logger.debug(`工具 ${toolId} 已被停用`);
+  
+  // 如果当前激活的工具是被停用的工具，则清除activeToolId
+  if (activeToolId.value === toolId) {
+    activeToolId.value = undefined;
+  }
+  
+  // 处理特定工具的停用
+  if (toolId === 'coordinate') {
+    showCoordinatePanel.value = false;
+  } else if (toolId === 'overview') {
+    // 停用鹰眼工具时，隐藏鹰眼地图
+    showOverviewMap.value = false;
+    logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
+    
+    // 不需要显示辅助按钮
+    showOverviewButton.value = false;
+  } else if (toolId === 'layer-switch') {
+    showLayerPanel.value = false;
+  }
   
   // 将工具停用事件传递给父组件
   emit('toolbar-tool-deactivated', {
     toolId,
     toolbarObj: toolbarObject
   });
+  
+  // 触发工具栏状态变化事件
+  emit('toolbar-state-change', { toolId, active: false, toolType: 'toggle' });
 };
 
 // 设置工具栏状态变化监听器
@@ -547,28 +684,41 @@ const checkOverviewMapState = () => {
   
   // 查找激活的鹰眼工具
   const tools = toolbarObject.getTools();
-  const overviewTool = tools.find(t => t.id === 'overview' && t.active);
+  const overviewTool = tools.find(t => t.id === 'overview');
   
-  // 鹰眼工具已激活但控件未启用时显示辅助按钮
-  if (!overviewTool) return;
+  logger.debug('[Overview] 检查鹰眼状态，工具存在:', !!overviewTool, '工具激活状态:', overviewTool?.active);
   
-  const overviewObj = toolbarObject.getOverviewMapObject();
-  const controlEnabled = overviewObj && overviewObj.isEnabled();
+  // 如果鹰眼工具已激活但鹰眼地图未显示，强制显示
+  if (overviewTool?.active && !showOverviewMap.value) {
+    logger.debug('[Overview] 发现鹰眼工具已激活但地图未显示，强制显示鹰眼地图');
+    showOverviewMap.value = true;
+    
+    // 强制刷新地图大小
+    nextTick(() => {
+      if (mapObj) {
+        mapObj.triggerMapResize();
+      }
+    });
+  }
   
-  if (!controlEnabled) {
-    logger.warn('[Overview] 检测到鹰眼工具已激活但控件未显示，显示辅助按钮');
-    showOverviewButton.value = true;
+  // 确保辅助按钮不显示，因为现在已经没有关闭按钮了
+  showOverviewButton.value = false;
+  
+  // 如果鹰眼工具未激活，确保不显示鹰眼地图
+  if (!overviewTool?.active && showOverviewMap.value) {
+    showOverviewMap.value = false;
+    logger.debug('[Overview] 鹰眼工具未激活，隐藏鹰眼地图');
   }
 };
 
-// 组件销毁前清理资源
+// 监听地图组件销毁事件
 onBeforeUnmount(() => {
+  logger.info('地图组件即将销毁，清理资源');
+  
+  // 移除窗口resize事件监听
   window.removeEventListener('resize', resizeMap);
   
-  if (markerObject) {
-    markerObject.destroy();
-  }
-  
+  // 清理图形对象
   if (shapeObject) {
     shapeObject.destroy();
   }
@@ -582,6 +732,109 @@ onBeforeUnmount(() => {
   }
 });
 
+// 关闭图层面板处理函数
+const handleLayerPanelClose = () => {
+  showLayerPanel.value = false;
+  // 停用图层切换工具
+  if (toolbarObject && activeToolId.value === 'layer-switch') {
+    toolbarObject.deactivateTool('layer-switch');
+    activeToolId.value = undefined;
+  }
+};
+
+// 处理图层切换
+const handleLayerChange = (payload: { mapType: MapType, mapTile: MapTile }) => {
+  if (!mapObj) return;
+  
+  // 切换地图图层
+  switchMapLayer(payload.mapType, payload.mapTile);
+  
+  // 在选择图层后关闭面板
+  showLayerPanel.value = false;
+  
+  // 停用图层切换工具
+  if (toolbarObject && activeToolId.value === 'layer-switch') {
+    toolbarObject.deactivateTool('layer-switch');
+    activeToolId.value = undefined;
+    logger.debug('图层已选择，自动停用图层切换工具');
+  }
+};
+
+// 确定图层面板位置
+const determineLayerPanelPosition = (): 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' => {
+  // 如果有工具栏配置，根据工具栏位置和方向确定图层面板位置
+  if (toolbarObject) {
+    const toolbarConfig = toolbarObject.getConfig();
+    const toolbarPosition = toolbarConfig.position || DEFAULT_TOOLBAR_CONFIG.position;
+    const toolbarDirection = toolbarConfig.direction || DEFAULT_TOOLBAR_CONFIG.direction;
+    
+    // 根据工具栏方向和位置确定面板位置
+    if (toolbarDirection === 'horizontal') {
+      // 水平工具栏时，面板在工具栏下方
+      if (toolbarPosition.startsWith('top-')) {
+        // 如果工具栏在顶部，面板放在其下方相同水平位置
+        return toolbarPosition as 'top-left' | 'top-right';
+      } else {
+        // 如果工具栏在底部，面板放在其上方相同水平位置
+        return toolbarPosition === 'bottom-left' ? 'bottom-left' : 'bottom-right';
+      }
+    } else {
+      // 垂直工具栏时，面板在工具栏旁边
+      if (toolbarPosition.endsWith('-left')) {
+        // 如果工具栏在左侧，面板放在其右侧
+        return toolbarPosition === 'top-left' ? 'top-left' : 'bottom-left';
+      } else {
+        // 如果工具栏在右侧，面板放在其左侧
+        return toolbarPosition === 'top-right' ? 'top-right' : 'bottom-right';
+      }
+    }
+  }
+  
+  return 'top-left'; // 默认位置为左上角
+};
+
+// 检查是否需要显示鹰眼按钮
+const checkAndUpdateOverviewButton = () => {
+  if (!toolbarObject) return;
+  
+  // 获取鹰眼对象
+  const overviewObj = toolbarObject.getOverviewMapObject();
+  // 检查鹰眼工具是否已启用
+  const isOverviewEnabled = toolbarObject.getActiveToolId() === 'overview';
+  
+  // 如果鹰眼已启用并且控件不为空，则显示鹰眼按钮
+  showOverviewButton.value = isOverviewEnabled && !!overviewObj;
+  
+  logger.debug('[Overview] 鹰眼按钮显示状态:', showOverviewButton.value);
+};
+
+// 确定鹰眼地图位置
+const determineOverviewMapPosition = (): 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' => {
+  // 使用与图层面板相同的逻辑，但位置相反，以避免重叠
+  if (toolbarObject) {
+    const toolbarConfig = toolbarObject.getConfig();
+    const toolbarPosition = toolbarConfig.position || DEFAULT_TOOLBAR_CONFIG.position;
+    
+    // 与图层面板相反的位置
+    switch (toolbarPosition) {
+      case 'top-left': return 'bottom-right';
+      case 'top-right': return 'bottom-left';
+      case 'bottom-left': return 'top-right';
+      case 'bottom-right': return 'top-left';
+      default: return 'bottom-right';
+    }
+  }
+  
+  return 'bottom-right'; // 默认位置为右下角
+};
+
+// 处理鹰眼地图折叠状态变化
+const handleOverviewMapCollapseChange = (collapsed: boolean) => {
+  logger.debug(`[Overview] 鹰眼地图折叠状态变化: ${collapsed ? '已折叠' : '已展开'}`);
+  
+  // 可以在这里添加额外的逻辑，例如更新其他UI元素
+};
+
 // 暴露方法给父组件
 defineExpose({
   getMapObject: () => mapObj,
@@ -591,14 +844,39 @@ defineExpose({
   reinitMap: initMap,
   changeMapLayer: switchMapLayer,
   // 标记点相关方法
-  addMarker: (options: MarkerOptions) => markerObject?.addMarker(options),
-  updateMarker: (id: string, options: Partial<MarkerOptions>) => markerObject?.updateMarker(id, options),
+  addMarker: (options: MarkerOptions) => {
+    const id = markerObject?.addMarker(options);
+    if (id) {
+      emit('marker-create' as MapEventType, { id, options });
+    }
+    return id;
+  },
+  updateMarker: (id: string, options: Partial<MarkerOptions>) => {
+    const success = markerObject?.updateMarker(id, options);
+    if (success) {
+      emit('marker-update' as MapEventType, { id, options });
+    }
+    return success;
+  },
   getMarker: (id: string) => markerObject?.getMarker(id),
   getAllMarkers: () => markerObject?.getAllMarkers(),
   showMarker: (id: string) => markerObject?.showMarker(id),
   hideMarker: (id: string) => markerObject?.hideMarker(id),
-  removeMarker: (id: string) => markerObject?.removeMarker(id),
-  clearMarkers: () => markerObject?.clearMarkers(),
+  removeMarker: (id: string) => {
+    const success = markerObject?.removeMarker(id);
+    if (success) {
+      emit('marker-delete' as MapEventType, { id });
+    }
+    return success;
+  },
+  clearMarkers: () => {
+    const ids = markerObject?.getAllMarkers() || [];
+    const result = markerObject?.clearMarkers();
+    ids.forEach(id => {
+      emit('marker-delete' as MapEventType, { id });
+    });
+    return result;
+  },
   showAllMarkers: () => markerObject?.showAllMarkers(),
   hideAllMarkers: () => markerObject?.hideAllMarkers(),
   showAllLabels: () => markerObject?.showAllLabels(),
@@ -607,10 +885,134 @@ defineExpose({
   // 图形绘制相关方法
   enableShape: (type: ShapeType) => shapeObject?.enable(type),
   disableShape: () => shapeObject?.disable(),
-  clearShapes: () => shapeObject?.clear(),
-  removeShape: (id: string) => shapeObject?.removeShape(id),
+  clearShapes: () => {
+    const ids = shapeObject?.getAllShapes() || [];
+    const result = shapeObject?.clear();
+    ids.forEach(id => {
+      emit('shape-delete' as MapEventType, { id });
+    });
+    return result;
+  },
+  removeShape: (id: string) => {
+    const success = shapeObject?.removeShape(id);
+    if (success) {
+      emit('shape-delete' as MapEventType, { id });
+    }
+    return success;
+  },
   getAllShapes: () => shapeObject?.getAllShapes(),
   getShapeCount: () => shapeObject?.getShapeCount(),
+  // 新增图形添加、更新和清除方法
+  updateShape: (id: string, options: Partial<ShapeOption>) => {
+    const success = shapeObject?.updateShape(id, options);
+    if (success) {
+      emit('shape-update' as MapEventType, { id, options });
+    }
+    return success;
+  },
+  clearAllShapes: () => {
+    const ids = shapeObject?.getAllShapes() || [];
+    const result = shapeObject?.clearAllShapes();
+    ids.forEach(id => {
+      emit('shape-delete' as MapEventType, { id });
+    });
+    return result;
+  },
+  addShape: (options: ShapeOption) => {
+    const id = shapeObject?.addShape(options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options });
+    }
+    return id;
+  },
+  addPoint: (center: number[], options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.POINT,
+      coordinates: center,
+      ...options
+    };
+    const id = shapeObject?.addPoint(center, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  addLine: (coordinates: number[][], options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.LINE,
+      coordinates: coordinates,
+      ...options
+    };
+    const id = shapeObject?.addLine(coordinates, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  addPolygon: (coordinates: number[][], options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.POLYGON,
+      coordinates: coordinates,
+      ...options
+    };
+    const id = shapeObject?.addPolygon(coordinates, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  addCircle: (center: number[], radius: number, options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.CIRCLE,
+      center: center,
+      radius: radius,
+      ...options
+    };
+    const id = shapeObject?.addCircle(center, radius, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  addRectangle: (minCoord: number[], maxCoord: number[], options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.RECTANGLE,
+      coordinates: [minCoord, maxCoord],
+      ...options
+    };
+    const id = shapeObject?.addRectangle(minCoord, maxCoord, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  addSquare: (center: number[], width: number, options?: Partial<ShapeOption>) => {
+    const fullOptions: ShapeOption = {
+      type: Shape.SQUARE,
+      center: center,
+      width: width,
+      ...options
+    };
+    const id = shapeObject?.addSquare(center, width, options);
+    if (id) {
+      emit('shape-create' as MapEventType, { id, options: fullOptions });
+    }
+    return id;
+  },
+  // 图层面板相关方法
+  openLayerPanel: () => {
+    // 显示图层面板并确定位置
+    showLayerPanel.value = true;
+    layerPanelPosition.value = determineLayerPanelPosition();
+    
+    // 如果工具栏对象存在，激活图层切换工具
+    if (toolbarObject) {
+      toolbarObject.activateTool('layer-switch');
+      activeToolId.value = 'layer-switch';
+    }
+    
+    logger.debug('手动打开图层面板');
+  },
   // 暴露日志实例，允许外部控制日志行为
   logger,
 });
@@ -663,22 +1065,6 @@ defineExpose({
 :deep(.toolbar-tooltip) {
   z-index: 9999 !important;
   pointer-events: none !important;
-}
-
-.overview-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 5px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.overview-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>
 

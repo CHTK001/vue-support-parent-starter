@@ -14,6 +14,7 @@ import type { ToolbarConfig, ToolItem } from './types/toolbar';
 import type { MapConfig } from './types';
 import type { MarkerOptions } from './composables/MarkerObject';
 import type { ShapeType, ShapeStyle } from './composables/ShapeObject';
+import { Shape, ShapeOption } from './types/shape';
 
 // 导出组件
 export default ScLayer;
@@ -27,7 +28,8 @@ export {
   MapObject,
   ToolbarObject,
   MarkerObject,
-  ShapeObject
+  ShapeObject,
+  Shape
 };
 
 // 导出类型定义
@@ -37,5 +39,6 @@ export type {
   MapConfig,
   MarkerOptions,
   ShapeType,
-  ShapeStyle
+  ShapeStyle,
+  ShapeOption
 }; 

@@ -9,6 +9,7 @@ export * from "./map";
 export * from "./toolbar";
 export * from "./marker";
 export * from "./cluster";
+export * from "./shape";
 //图层类型
 export enum MapTile {
   NORMAL = 'NORMAL',
@@ -80,5 +81,12 @@ export type MapEventType =
   | 'toolbar-tool-deactivated'
   | 'toolbar-submenu-item-click'
   | 'map-initialized'
+  | 'marker-click'
+  | 'marker-create'
+  | 'marker-update'
+  | 'marker-delete'
+  | 'shape-create'
+  | 'shape-update'
+  | 'shape-delete'
   | 'update:center'
   | 'update:zoom';

@@ -513,11 +513,6 @@ export class MarkerObject {
     // 获取普通图层的源
     const markerSource = this.markerLayer.getSource() as VectorSource;
 
-    // 设置聚合距离 (如果需要从外部传入配置，可以添加参数)
-    if (enabled) {
-      clusterSource.setDistance(40);
-    }
-
     // 处理所有标记点
     this.markerOptions.forEach((options, id) => {
       const feature = this.markers.get(id);
@@ -528,9 +523,8 @@ export class MarkerObject {
       clusterSource.getSource()!.removeFeature(feature);
 
       // 根据聚合模式和标记点设置决定添加到哪个图层
-      const shouldAddToCluster = enabled && (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
-      const shouldAddToMarker = !enabled || options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
-      
+      const shouldAddToCluster = (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+      const shouldAddToMarker = options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
       // 添加到相应图层
       if (shouldAddToCluster) {
         // 添加到聚合图层

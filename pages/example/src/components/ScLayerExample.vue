@@ -19,7 +19,8 @@
             :show-toolbar="config.showToolbar"
             @map-initialized="onMapInit"
             @map-click="onMapClick"
-            @marker-click="onMarkerClick">
+            @marker-click="onMarkerClick"
+            @toolbar-state-change="onToolbarStateChange">
           </sc-layer>
         </div>
       </div>
@@ -43,6 +44,7 @@
                 <select v-model="tileType" @change="handleLayerTypeChange">
                   <option value="normal">标准图层</option>
                   <option value="satellite">卫星图层</option>
+                  <option value="hybrid">混合图层</option>
                 </select>
               </div>
               <div class="control-row">
@@ -57,6 +59,36 @@
                 <span>缩放级别:</span>
                 <input type="range" v-model.number="config.zoom" min="3" max="18" @change="handleZoomChange">
                 <span class="value">{{ config.zoom }}</span>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="openLayerPanel">打开图层面板</button>
+              </div>
+              <div class="control-row">
+                <span>快速切换:</span>
+              </div>
+              <div class="control-row buttons-row">
+                <button 
+                  @click="switchToLayer(MapType.GAODE, MapTile.NORMAL)" 
+                  :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.NORMAL }">
+                  高德标准
+                </button>
+                <button 
+                  @click="switchToLayer(MapType.GAODE, MapTile.SATELLITE)" 
+                  :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.SATELLITE }">
+                  高德卫星
+                </button>
+              </div>
+              <div class="control-row buttons-row">
+                <button 
+                  @click="switchToLayer(MapType.OSM, MapTile.NORMAL)" 
+                  :class="{ 'active-button': config.mapType === MapType.OSM && config.mapTile === MapTile.NORMAL }">
+                  OSM地图
+                </button>
+                <button 
+                  @click="switchToLayer(MapType.TIANDI, MapTile.NORMAL)" 
+                  :class="{ 'active-button': config.mapType === MapType.TIANDI && config.mapTile === MapTile.NORMAL }">
+                  天地图
+                </button>
               </div>
             </div>
           </div>
@@ -85,6 +117,32 @@
               <div class="control-row buttons-row">
                 <button @click="addTemplateMarker">添加带模板的标记点</button>
                 <button @click="addNoTemplateMarker">添加无模板的标记点</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-item">
+            <div class="label">图形操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="addSquareShape">添加正方形</button>
+                <button @click="addCircleShape">添加圆形</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addRectangleShape">添加矩形</button>
+                <button @click="addPolygonShape">添加多边形</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addLineShape">添加线段</button>
+                <button @click="addPointShape">添加点</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addCustomShapeExample">添加复合图形示例</button>
+                <button @click="clearAllShapes">清除所有图形</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="toggleShapeVisible">{{ allShapesVisible ? '隐藏所有图形' : '显示所有图形' }}</button>
+                <button @click="modifyRandomShape">修改随机图形</button>
               </div>
             </div>
           </div>
@@ -126,6 +184,45 @@
           </div>
 
           <div class="config-item">
+            <div class="label">图形列表</div>
+            <div class="shape-stats">
+              <span>总数: {{ shapes.length }}</span>
+              <span>可见: {{ allShapesVisible ? shapes.length : 0 }}</span>
+            </div>
+            <div class="shape-list">
+              <div v-if="shapes.length === 0" class="no-shapes">
+                暂无图形
+              </div>
+              <div v-for="shape in shapes.slice(0, 5)" :key="shape.id" class="shape-item">
+                <div class="shape-header">
+                  <span class="shape-id">ID: {{ shape.id.slice(-8) }}</span>
+                  <span class="shape-type">类型: {{ getShapeTypeName(shape.type) }}</span>
+                </div>
+                <div class="shape-data" v-if="shape.data">
+                  <template v-if="typeof shape.data === 'object'">
+                    <div v-for="(value, key) in shape.data" :key="key" class="shape-data-item">
+                      {{ key }}: {{ value }}
+                    </div>
+                  </template>
+                  <template v-else>
+                    数据: {{ shape.data }}
+                  </template>
+                </div>
+                <div class="shape-actions">
+                  <button @click="toggleShapeVisibility(shape)">
+                    {{ shape.visible !== false ? '隐藏' : '显示' }}
+                  </button>
+                  <button @click="changeShapeStyle(shape)">修改样式</button>
+                  <button @click="removeShape(shape)">删除</button>
+                </div>
+              </div>
+              <div v-if="shapes.length > 5" class="more-shapes">
+                还有 {{ shapes.length - 5 }} 个图形未显示...
+              </div>
+            </div>
+          </div>
+
+          <div class="config-item">
             <div class="label">事件日志</div>
             <div class="log-container">
               <div v-for="(log, index) in logs" :key="index" class="log-item">
@@ -154,9 +251,12 @@ export default {
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { MapType, MapTile, MarkerClusterMode } from '@repo/components/ScLayer/types';
+import { MapType } from '@repo/components/ScLayer/types/map';
+import { MapTile } from '@repo/components/ScLayer/types';
+import { MarkerClusterMode } from '@repo/components/ScLayer/types/marker';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types/map';
-import type { MarkerOptions } from '@repo/components/ScLayer/composables/MarkerObject';
+import { Shape } from '@repo/components/ScLayer/types/shape';
+import type { ShapeOption } from '@repo/components/ScLayer/types/shape';
 
 // 地图实例引用
 const layerRef = ref(null);
@@ -179,9 +279,13 @@ const config = reactive({
 });
 
 // 标记点数据
-const markers = ref<MarkerOptions[]>([]);
+const markers = ref<any[]>([]);
 const allMarkersVisible = ref(true);
 const allLabelsVisible = ref(true);
+
+// 图形数据
+const shapes = ref<any[]>([]);
+const allShapesVisible = ref(true);
 
 // 计算可见标记点数量
 const visibleMarkerCount = computed(() => {
@@ -215,6 +319,12 @@ function onMapInit(mapInstance) {
   
   // 添加一个中心标记点
   addCenterMarker();
+  
+  // 更新图形列表
+  updateShapeList();
+  
+  // 更新图层类型显示
+  updateLayerTypeDisplay();
 }
 
 // 地图点击事件
@@ -484,7 +594,7 @@ function toggleAllLabels() {
 }
 
 // 切换标记点可见性
-function toggleMarkerVisibility(marker: MarkerOptions) {
+function toggleMarkerVisibility(marker: any) {
   if (!layerRef.value) return;
   
   if (marker.visible) {
@@ -500,7 +610,7 @@ function toggleMarkerVisibility(marker: MarkerOptions) {
 }
 
 // 切换标记点Popover显示状态
-function toggleMarkerPopover(marker: MarkerOptions) {
+function toggleMarkerPopover(marker: any) {
   if (!layerRef.value) return;
   
   const showPopover = !marker.showPopover;
@@ -514,7 +624,7 @@ function toggleMarkerPopover(marker: MarkerOptions) {
 }
 
 // 移动标记点
-function moveMarker(marker: MarkerOptions) {
+function moveMarker(marker: any) {
   if (!layerRef.value) return;
   
   // 随机移动一点距离
@@ -531,7 +641,7 @@ function moveMarker(marker: MarkerOptions) {
 }
 
 // 删除标记点
-function removeMarker(marker: MarkerOptions) {
+function removeMarker(marker: any) {
   if (!layerRef.value) return;
   
   layerRef.value.removeMarker(marker.id);
@@ -557,6 +667,10 @@ function handleMapTypeChange() {
   if (!layerRef.value) return;
   
   layerRef.value.changeMapLayer(config.mapType, config.mapTile);
+  
+  // 更新图层类型显示
+  updateLayerTypeDisplay();
+  
   addLog('操作', `切换地图类型为: ${config.mapType}`);
 }
 
@@ -565,9 +679,24 @@ function handleLayerTypeChange() {
   if (!layerRef.value) return;
   
   // 转换图层类型
-  config.mapTile = tileType.value === 'normal' ? MapTile.NORMAL : (MapTile.NORMAL + 1) as MapTile;
+  switch (tileType.value) {
+    case 'normal':
+      config.mapTile = MapTile.NORMAL;
+      break;
+    case 'satellite':
+      config.mapTile = MapTile.SATELLITE;
+      break;
+    case 'hybrid':
+      config.mapTile = MapTile.HYBRID;
+      break;
+    default:
+      config.mapTile = MapTile.NORMAL;
+  }
+  
+  // 切换地图图层
   layerRef.value.changeMapLayer(config.mapType, config.mapTile);
-  addLog('操作', `切换图层类型为: ${tileType.value}`);
+  
+  addLog('操作', `切换图层类型为: ${getMapTileName(config.mapTile)}`);
 }
 
 // 处理缩放级别变更
@@ -680,6 +809,512 @@ function addNoTemplateMarker() {
   updateMarkerList();
   addLog('操作', '已添加无模板的标记点，将在点击时显示popover');
 }
+
+// 添加正方形图形
+function addSquareShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 创建一个正方形，边长为500米
+  const id = layerRef.value.addSquare(
+    [centerLon, centerLat], 
+    500, 
+    {
+      id: `square-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(255, 165, 0, 0.3)' },
+        stroke: { color: 'orange', width: 3 }
+      },
+      data: { type: 'square', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  addLog('操作', `已添加正方形图形，ID: ${id}`);
+}
+
+// 添加圆形图形
+function addCircleShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 向右上角偏移位置
+  const lon = centerLon + 0.01;
+  const lat = centerLat + 0.01;
+  
+  // 创建一个圆，半径为300米
+  const id = layerRef.value.addCircle(
+    [lon, lat], 
+    300, 
+    {
+      id: `circle-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(24, 144, 255, 0.3)' },
+        stroke: { color: '#1890ff', width: 2 }
+      },
+      data: { type: 'circle', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  addLog('操作', `已添加圆形图形，ID: ${id}`);
+}
+
+// 添加矩形图形
+function addRectangleShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 向左下角偏移
+  const minLon = centerLon - 0.02;
+  const minLat = centerLat - 0.02;
+  const maxLon = centerLon - 0.005;
+  const maxLat = centerLat - 0.005;
+  
+  // 创建一个矩形
+  const id = layerRef.value.addRectangle(
+    [minLon, minLat], 
+    [maxLon, maxLat], 
+    {
+      id: `rectangle-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(82, 196, 26, 0.3)' },
+        stroke: { color: '#52c41a', width: 2, lineDash: [5, 5] }
+      },
+      data: { type: 'rectangle', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  addLog('操作', `已添加矩形图形，ID: ${id}`);
+}
+
+// 添加多边形图形
+function addPolygonShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 构建三角形的三个顶点
+  const coordinates = [
+    [centerLon + 0.02, centerLat],
+    [centerLon + 0.01, centerLat + 0.015],
+    [centerLon + 0.03, centerLat + 0.015],
+  ];
+  
+  // 创建一个多边形（三角形）
+  const id = layerRef.value.addPolygon(
+    coordinates, 
+    {
+      id: `polygon-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(245, 34, 45, 0.3)' },
+        stroke: { color: '#f5222d', width: 2 }
+      },
+      data: { type: 'polygon', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  addLog('操作', `已添加多边形图形（三角形），ID: ${id}`);
+}
+
+// 添加线段图形
+function addLineShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 创建一条线的坐标
+  const coordinates = [
+    [centerLon - 0.02, centerLat + 0.02],
+    [centerLon, centerLat + 0.03],
+    [centerLon + 0.02, centerLat + 0.02]
+  ];
+  
+  // 创建一条线
+  const id = layerRef.value.addLine(
+    coordinates, 
+    {
+      id: `line-${Date.now()}`,
+      style: {
+        stroke: { color: '#722ed1', width: 4, lineDash: [10, 5] }
+      },
+      data: { type: 'line', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  addLog('操作', `已添加线段图形，ID: ${id}`);
+}
+
+// 添加点图形
+function addPointShape() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 向上方偏移位置
+  const lon = centerLon;
+  const lat = centerLat + 0.02;
+  
+  // 创建一个点
+  const id = layerRef.value.addPoint(
+    [lon, lat], 
+    {
+      id: `point-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(255, 0, 0, 0.8)' },
+        stroke: { color: '#ffffff', width: 2 },
+        radius: 8, // 点的半径
+        zIndex: 10 // 置于其他图形之上
+      },
+      data: { type: 'point', createdAt: new Date().toISOString() }
+    }
+  );
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', `已添加点图形，ID: ${id}`);
+}
+
+// 添加复合图形示例
+function addCustomShapeExample() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 创建一个正方形作为基础
+  const squareId = layerRef.value.addSquare(
+    [centerLon, centerLat], 
+    600, 
+    {
+      id: `complex-base-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(230, 230, 230, 0.5)' },
+        stroke: { color: '#333333', width: 2 }
+      },
+      data: { type: 'complex-base', part: 'base' }
+    }
+  );
+  
+  // 在四个角添加圆形
+  const radius = 100;
+  const offset = 300 * 0.7; // 正方形的一半乘以0.7，使圆在角落位置
+  
+  // 右上角圆形
+  layerRef.value.addCircle(
+    [centerLon + offset/111000, centerLat + offset/111000], 
+    radius, 
+    {
+      id: `complex-circle-ne-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(24, 144, 255, 0.6)' },
+        stroke: { color: '#1890ff', width: 2 }
+      },
+      data: { type: 'complex-part', part: 'northeast' }
+    }
+  );
+  
+  // 左上角圆形
+  layerRef.value.addCircle(
+    [centerLon - offset/111000, centerLat + offset/111000], 
+    radius, 
+    {
+      id: `complex-circle-nw-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(82, 196, 26, 0.6)' },
+        stroke: { color: '#52c41a', width: 2 }
+      },
+      data: { type: 'complex-part', part: 'northwest' }
+    }
+  );
+  
+  // 左下角圆形
+  layerRef.value.addCircle(
+    [centerLon - offset/111000, centerLat - offset/111000], 
+    radius, 
+    {
+      id: `complex-circle-sw-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(250, 173, 20, 0.6)' },
+        stroke: { color: '#faad14', width: 2 }
+      },
+      data: { type: 'complex-part', part: 'southwest' }
+    }
+  );
+  
+  // 右下角圆形
+  layerRef.value.addCircle(
+    [centerLon + offset/111000, centerLat - offset/111000], 
+    radius, 
+    {
+      id: `complex-circle-se-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(245, 34, 45, 0.6)' },
+        stroke: { color: '#f5222d', width: 2 }
+      },
+      data: { type: 'complex-part', part: 'southeast' }
+    }
+  );
+  
+  // 添加中心点
+  layerRef.value.addPoint(
+    [centerLon, centerLat], 
+    {
+      id: `complex-center-${Date.now()}`,
+      style: {
+        fill: { color: 'rgba(0, 0, 0, 0.8)' },
+        stroke: { color: '#ffffff', width: 2 },
+        radius: 10
+      },
+      data: { type: 'complex-part', part: 'center' }
+    }
+  );
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', '已添加复合图形示例');
+}
+
+// 清除所有图形
+function clearAllShapes() {
+  if (!layerRef.value) return;
+  
+  layerRef.value.clearAllShapes();
+  addLog('操作', '已清除所有图形');
+}
+
+// 切换所有图形的可见性
+function toggleShapeVisible() {
+  if (!layerRef.value || !layerRef.value.getShapeObject) return;
+  
+  const shapeObj = layerRef.value.getShapeObject();
+  if (!shapeObj) return;
+  
+  if (allShapesVisible.value) {
+    // 隐藏所有图形
+    shapes.value.forEach(shape => {
+      if (shape.id) {
+        layerRef.value.updateShape(shape.id, { visible: false });
+      }
+    });
+    allShapesVisible.value = false;
+    addLog('操作', '已隐藏所有图形');
+  } else {
+    // 显示所有图形
+    shapes.value.forEach(shape => {
+      if (shape.id) {
+        layerRef.value.updateShape(shape.id, { visible: true });
+      }
+    });
+    allShapesVisible.value = true;
+    addLog('操作', '已显示所有图形');
+  }
+  
+  // 更新图形列表
+  updateShapeList();
+}
+
+// 随机修改一个图形的样式
+function modifyRandomShape() {
+  if (!layerRef.value || shapes.value.length === 0) return;
+  
+  // 随机选择一个图形
+  const randomIndex = Math.floor(Math.random() * shapes.value.length);
+  const shape = shapes.value[randomIndex];
+  
+  if (!shape || !shape.id) {
+    addLog('操作', '没有可修改的图形');
+    return;
+  }
+  
+  // 生成随机颜色
+  const randomColor = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
+  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+  
+  // 修改图形样式
+  layerRef.value.updateShape(shape.id, {
+    style: {
+      fill: { color: randomColor },
+      stroke: { color: randomStrokeColor, width: Math.floor(Math.random() * 5) + 1 }
+    }
+  });
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', `已随机修改图形样式，ID: ${shape.id}`);
+}
+
+// 更新图形列表
+function updateShapeList() {
+  if (!layerRef.value || !layerRef.value.getAllShapes) return;
+  
+  const allShapes = layerRef.value.getAllShapes() || [];
+  shapes.value = allShapes;
+  
+  // 检查图形可见性状态
+  allShapesVisible.value = allShapes.length > 0 && allShapes.every(s => s.visible !== false);
+}
+
+// 获取图形类型名称
+function getShapeTypeName(type: Shape): string {
+  const typeNames = {
+    [Shape.POINT]: '点',
+    [Shape.LINE]: '线',
+    [Shape.POLYGON]: '多边形',
+    [Shape.CIRCLE]: '圆形',
+    [Shape.RECTANGLE]: '矩形',
+    [Shape.SQUARE]: '正方形'
+  };
+  
+  return typeNames[type] || '未知类型';
+}
+
+// 切换图形可见性
+function toggleShapeVisibility(shape: any) {
+  if (!layerRef.value) return;
+  
+  const newVisible = shape.visible === false; // 如果当前是隐藏的，则显示
+  
+  layerRef.value.updateShape(shape.id, {
+    visible: newVisible
+  });
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', `已${newVisible ? '显示' : '隐藏'}图形: ${shape.id.slice(-8)}`);
+}
+
+// 修改图形样式
+function changeShapeStyle(shape: any) {
+  if (!layerRef.value) return;
+  
+  // 根据图形类型生成不同的随机样式
+  let style: any = {};
+  
+  // 随机颜色
+  const randomFillColor = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.5)`;
+  const randomStrokeColor = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+  
+  // 基础样式
+  style = {
+    fill: { color: randomFillColor },
+    stroke: { color: randomStrokeColor, width: Math.floor(Math.random() * 4) + 1 }
+  };
+  
+  // 对于点类型，增加半径属性
+  if (shape.type === Shape.POINT) {
+    style.radius = Math.floor(Math.random() * 10) + 5;
+  }
+  
+  // 应用样式变更
+  layerRef.value.updateShape(shape.id, { style });
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', `已修改图形样式: ${shape.id.slice(-8)}`);
+}
+
+// 删除图形
+function removeShape(shape: any) {
+  if (!layerRef.value) return;
+  
+  layerRef.value.removeShape(shape.id);
+  
+  // 更新图形列表
+  updateShapeList();
+  addLog('操作', `已删除图形: ${shape.id.slice(-8)}`);
+}
+
+// 打开图层面板
+function openLayerPanel() {
+  if (!layerRef.value) return;
+  
+  // 调用ScLayer组件的openLayerPanel方法
+  layerRef.value.openLayerPanel();
+  
+  addLog('操作', '打开图层面板');
+}
+
+// 更新显示的图层类型（根据配置中的实际值）
+function updateLayerTypeDisplay() {
+  // 根据 config.mapTile 设置 tileType 显示值
+  switch (config.mapTile) {
+    case MapTile.NORMAL:
+      tileType.value = 'normal';
+      break;
+    case MapTile.SATELLITE:
+      tileType.value = 'satellite';
+      break;
+    case MapTile.HYBRID:
+      tileType.value = 'hybrid';
+      break;
+    default:
+      tileType.value = 'normal';
+  }
+}
+
+// 处理工具栏状态变更
+function onToolbarStateChange(state) {
+  const { toolId, active, toolType, data } = state;
+  
+  // 记录工具栏状态变化
+  addLog('工具栏', `工具ID: ${toolId}, 激活状态: ${active}, 类型: ${toolType}`);
+  
+  // 检测图层面板关闭事件
+  if (toolId === 'layer-switch' && !active) {
+    addLog('图层', '图层选择面板已关闭');
+    // 确保UI更新为最新的图层类型
+    updateLayerTypeDisplay();
+  }
+  
+  // 检测图层变更事件
+  if (toolId === 'layer-change' && data) {
+    addLog('图层', `图层已变更为: ${data.mapType} - ${data.mapTile}`);
+    // 更新本地配置
+    config.mapType = data.mapType;
+    config.mapTile = data.mapTile;
+    // 更新UI显示
+    updateLayerTypeDisplay();
+  }
+}
+
+// 切换到指定地图类型和图层类型
+function switchToLayer(mapType: MapType, mapTile: MapTile) {
+  if (!layerRef.value) return;
+  
+  // 更新本地配置
+  config.mapType = mapType;
+  config.mapTile = mapTile;
+  
+  // 切换地图图层
+  layerRef.value.changeMapLayer(mapType, mapTile);
+  
+  // 更新UI显示
+  updateLayerTypeDisplay();
+  
+  addLog('操作', `切换地图: ${mapType} - ${getMapTileName(mapTile)}`);
+}
+
+// 获取图层类型名称
+function getMapTileName(mapTile: MapTile): string {
+  switch (mapTile) {
+    case MapTile.NORMAL:
+      return '标准图层';
+    case MapTile.SATELLITE:
+      return '卫星图层';
+    case MapTile.HYBRID:
+      return '混合图层';
+    default:
+      return '未知图层';
+  }
+}
 </script>
 
 <style scoped>
@@ -769,6 +1404,18 @@ button {
 button:hover {
   border-color: #1890ff;
   color: #1890ff;
+}
+
+.active-button {
+  background-color: #1890ff;
+  color: white;
+  border-color: #1890ff;
+}
+
+.active-button:hover {
+  background-color: #40a9ff;
+  color: white;
+  border-color: #40a9ff;
 }
 
 .log-container {
@@ -882,6 +1529,82 @@ button:hover {
 }
 
 .more-markers {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.shape-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.shape-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.no-shapes {
+  color: #999;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.shape-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.shape-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.shape-id {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.shape-type {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.shape-data {
+  font-size: 12px;
+  color: #666;
+  margin: 4px 0;
+}
+
+.shape-data-item {
+  margin: 2px 0;
+}
+
+.shape-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.more-shapes {
   font-size: 12px;
   color: #999;
   text-align: center;
