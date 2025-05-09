@@ -21,7 +21,13 @@
             @map-initialized="onMapInit"
             @map-click="onMapClick"
             @marker-click="onMarkerClick"
-            @toolbar-state-change="onToolbarStateChange">
+            @toolbar-state-change="onToolbarStateChange"
+            @marker-create="onMarkerCreate"
+            @marker-update="onMarkerUpdate"
+            @marker-delete="onMarkerDelete"
+            @shape-create="onShapeCreate"
+            @shape-update="onShapeUpdate"
+            @shape-delete="onShapeDelete">
           </sc-layer>
         </div>
       </div>
@@ -161,7 +167,7 @@
               </div>
               <div v-for="marker in markers.slice(0, 5)" :key="marker.id" class="marker-item">
                 <div class="marker-header">
-                  <span class="marker-id">ID: {{ marker.id.slice(-8) }}</span>
+                  <span class="marker-id">ID: {{ safeSlice(marker.id) }}</span>
                   <span :class="['marker-status', marker.visible ? 'visible' : 'hidden']">
                     {{ marker.visible ? '可见' : '隐藏' }}
                   </span>
@@ -197,7 +203,7 @@
               </div>
               <div v-for="shape in shapes.slice(0, 5)" :key="shape.id" class="shape-item">
                 <div class="shape-header">
-                  <span class="shape-id">ID: {{ shape.id.slice(-8) }}</span>
+                  <span class="shape-id">ID: {{ safeSlice(shape.id) }}</span>
                   <span class="shape-type">类型: {{ getShapeTypeName(shape.type) }}</span>
                 </div>
                 <div class="shape-data" v-if="shape.data">
@@ -298,6 +304,12 @@ const visibleMarkerCount = computed(() => {
 // 事件日志
 const logs = reactive([]);
 
+// 安全地获取ID的后8位字符
+function safeSlice(id: any): string {
+  if (!id) return '无ID';
+  return typeof id === 'string' ? id.slice(-8) : String(id);
+}
+
 // 添加日志
 function addLog(type, message) {
   const now = new Date();
@@ -340,7 +352,7 @@ function onMapClick(evt) {
 function onMarkerClick(evt) {
   const data = evt.data;
   const markerId = data?.id;
-  addLog('点击', `标记点: ${data.title || '未命名'} [ID: ${markerId.slice(-8)}]`);
+  addLog('点击', `标记点: ${data.title || '未命名'} [ID: ${safeSlice(markerId)}]`);
 }
 
 // 添加中心标记点
@@ -602,10 +614,10 @@ function toggleMarkerVisibility(marker: any) {
   
   if (marker.visible) {
     layerRef.value.hideMarker(marker.id);
-    addLog('操作', `已隐藏标记点: ${marker.id.slice(-8)}`);
+    addLog('操作', `已隐藏标记点: ${safeSlice(marker.id)}`);
   } else {
     layerRef.value.showMarker(marker.id);
-    addLog('操作', `已显示标记点: ${marker.id.slice(-8)}`);
+    addLog('操作', `已显示标记点: ${safeSlice(marker.id)}`);
   }
   
   // 更新标记点列表
@@ -623,7 +635,7 @@ function toggleMarkerPopover(marker: any) {
   
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已${showPopover ? '显示' : '隐藏'}标记点 ${marker.id.slice(-8)} 的Popover`);
+  addLog('操作', `已${showPopover ? '显示' : '隐藏'}标记点 ${safeSlice(marker.id)} 的Popover`);
 }
 
 // 移动标记点
@@ -640,7 +652,7 @@ function moveMarker(marker: any) {
   
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已移动标记点: ${marker.id.slice(-8)}`);
+  addLog('操作', `已移动标记点: ${safeSlice(marker.id)}`);
 }
 
 // 删除标记点
@@ -651,7 +663,7 @@ function removeMarker(marker: any) {
   
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已删除标记点: ${marker.id.slice(-8)}`);
+  addLog('操作', `已删除标记点: ${safeSlice(marker.id)}`);
 }
 
 // 更新标记点列表
@@ -1159,16 +1171,15 @@ function modifyRandomShape() {
   
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已随机修改图形样式，ID: ${shape.id}`);
+  addLog('操作', `已随机修改图形样式，ID: ${safeSlice(shape.id)}`);
 }
 
 // 更新图形列表
 function updateShapeList() {
   if (!layerRef.value || !layerRef.value.getAllShapes) return;
   
-  const allShapes = layerRef.value.getAllShapes() || [];
+  const allShapes = layerRef.value.getAllShapeDatas() || [];
   shapes.value = allShapes;
-  
   // 检查图形可见性状态
   allShapesVisible.value = allShapes.length > 0 && allShapes.every(s => s.visible !== false);
 }
@@ -1199,7 +1210,7 @@ function toggleShapeVisibility(shape: any) {
   
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已${newVisible ? '显示' : '隐藏'}图形: ${shape.id.slice(-8)}`);
+  addLog('操作', `已${newVisible ? '显示' : '隐藏'}图形: ${safeSlice(shape.id)}`);
 }
 
 // 修改图形样式
@@ -1229,7 +1240,7 @@ function changeShapeStyle(shape: any) {
   
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已修改图形样式: ${shape.id.slice(-8)}`);
+  addLog('操作', `已修改图形样式: ${safeSlice(shape.id)}`);
 }
 
 // 删除图形
@@ -1240,7 +1251,7 @@ function removeShape(shape: any) {
   
   // 更新图形列表
   updateShapeList();
-  addLog('操作', `已删除图形: ${shape.id.slice(-8)}`);
+  addLog('操作', `已删除图形: ${safeSlice(shape.id)}`);
 }
 
 
@@ -1316,6 +1327,63 @@ function getMapTileName(mapTile: MapTile): string {
     default:
       return '未知图层';
   }
+}
+
+// 添加标记创建事件处理函数
+function onMarkerCreate(evt) {
+  const { id, options } = evt;
+  const title = options.title || '未命名标记';
+  addLog('创建', `标记点已创建: ${title} [ID: ${safeSlice(id)}]`);
+  
+  // 更新标记点列表
+  updateMarkerList();
+}
+
+// 添加标记更新事件处理函数
+function onMarkerUpdate(evt) {
+  const { id, options } = evt;
+  const position = options.position ? `[${options.position[0].toFixed(4)}, ${options.position[1].toFixed(4)}]` : '位置未变';
+  addLog('更新', `标记点已更新: [ID: ${safeSlice(id)}] ${position}`);
+  
+  // 更新标记点列表
+  updateMarkerList();
+}
+
+// 添加标记删除事件处理函数
+function onMarkerDelete(evt) {
+  const { id } = evt;
+  addLog('删除', `标记点已删除: [ID: ${safeSlice(id)}]`);
+  
+  // 更新标记点列表
+  updateMarkerList();
+}
+
+// 添加图形创建事件处理函数
+function onShapeCreate(evt) {
+  const { id, options } = evt;
+  const type = getShapeTypeName(options.type);
+  addLog('创建', `图形已创建: ${type} [ID: ${safeSlice(id)}]`);
+  
+  // 更新图形列表
+  updateShapeList();
+}
+
+// 添加图形更新事件处理函数
+function onShapeUpdate(evt) {
+  const { id, options } = evt;
+  addLog('更新', `图形已更新: [ID: ${safeSlice(id)}]`);
+  
+  // 更新图形列表
+  updateShapeList();
+}
+
+// 添加图形删除事件处理函数
+function onShapeDelete(evt) {
+  const { id } = evt;
+  addLog('删除', `图形已删除: [ID: ${safeSlice(id)}]`);
+  
+  // 更新图形列表
+  updateShapeList();
 }
 </script>
 

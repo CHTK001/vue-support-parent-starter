@@ -1028,6 +1028,7 @@ defineExpose({
     return success;
   },
   getAllShapes: () => shapeObject?.getAllShapes(),
+  getAllShapeDatas: () => shapeObject?.getAllShapeDatas(),
   getShapeCount: () => shapeObject?.getShapeCount(),
   // 新增图形添加、更新和清除方法
   updateShape: (id: string, options: Partial<ShapeOption>) => {

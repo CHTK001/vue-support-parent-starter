@@ -837,7 +837,7 @@ export class MeasureObject {
                   backgroundFill: new Fill({
                     color: 'rgba(0, 177, 89, 0.9)' // 使用绿色背景
                   }),
-                  padding: [5, 8, 5, 8], // 增大内边距
+                  padding: [6, 10, 6, 10], // 增大内边距
                   stroke: new Stroke({
                     color: 'rgba(0, 0, 0, 0.2)',
                     width: 3

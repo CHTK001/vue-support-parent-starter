@@ -920,6 +920,7 @@ defineExpose({
 .toolbar-item:hover .toolbar-tooltip {
   opacity: 1;
   visibility: visible;
+  z-index: 9999; /* 确保在hover状态下tooltip始终在最上层 */
 }
 
 /* 当子菜单激活时，禁用父菜单的tooltip */
@@ -955,6 +956,14 @@ defineExpose({
   z-index: 2005; /* 确保悬停的按钮在其他按钮之上 */
 }
 
+/* 修正垂直工具栏的tooltip位置 */
+.position-top-left .toolbar-item .toolbar-tooltip {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+}
+
 .position-bottom-left .toolbar-item .toolbar-tooltip {
   left: 100%;
   top: 50%;
@@ -974,15 +983,16 @@ defineExpose({
   /* 右对齐文本 */
 }
 
-/* 水平方向工具栏的提示框位置调整 */
+/* 水平方向工具栏的提示框位置调整 - 修复被按钮挡住的问题 */
 .direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
 .direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
   left: 50%;
-  top: 100%;
+  bottom: 100%; /* 改为显示在按钮上方 */
+  top: auto;
   transform: translateX(-50%);
   margin-left: 0;
   margin-right: 0;
-  margin-top: 10px;
+  margin-bottom: 8px; /* 与按钮保持适当距离 */
   text-align: center;
   /* 居中对齐文本 */
 }
@@ -990,12 +1000,12 @@ defineExpose({
 .direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
 .direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
   left: 50%;
-  bottom: 100%;
-  top: auto;
+  bottom: auto;
+  top: 100%; /* 显示在按钮下方 */
   transform: translateX(-50%);
   margin-left: 0;
   margin-right: 0;
-  margin-bottom: 10px;
+  margin-top: 8px; /* 与按钮保持适当距离 */
   text-align: center;
   /* 居中对齐文本 */
 }
