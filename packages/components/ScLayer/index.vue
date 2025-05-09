@@ -28,9 +28,9 @@
       v-if="showLayerPanel"
       :active="showLayerPanel"
       :position="layerPanelPosition"
-      :map-type="config.mapType"
-      :map-tile="config.mapTile"
-      :map-config="config.map"
+      :map-type="configObject?.getMapType()"
+      :map-tile="configObject?.getMapTile()"
+      :map-config="configObject?.getMapConfig()"
       @close="handleLayerPanelClose"
       @layer-change="handleLayerChange"
     />
@@ -119,6 +119,7 @@ const emit = defineEmits<{
   (e: 'shape-create', payload: { id: string, options: ShapeOption }): void;
   (e: 'shape-update', payload: { id: string, options: Partial<ShapeOption> }): void;
   (e: 'shape-delete', payload: { id: string }): void;
+  (e: 'layer-change', payload: { mapType: MapType, mapTile: MapTile }): void;
 }>();
 
 // 组件状态
@@ -767,14 +768,22 @@ const handleLayerPanelClose = () => {
   showLayerPanel.value = false;
   // 停用图层切换工具
   if (toolbarObject && activeToolId.value === 'layer-switch') {
-    toolbarObject.deactivateTool('layer-switch');
-    activeToolId.value = undefined;
+    logger.debug('图层已选择，停用图层切换工具');
+    
+    // 确保工具栏UI更新
+    nextTick(() => {
+      // 使用deactivateTool方法停用工具，确保事件和UI状态都正确处理
+      toolbarObject.deactivateTool('layer-switch');
+      activeToolId.value = undefined;
+    });
   }
 };
 
 // 处理图层切换
 const handleLayerChange = (payload: { mapType: MapType, mapTile: MapTile }) => {
   if (!mapObj) return;
+  
+  logger.debug(`图层已切换: 类型=${payload.mapType}, 瓦片=${payload.mapTile}`);
   
   // 切换地图图层
   switchMapLayer(payload.mapType, payload.mapTile);
@@ -783,11 +792,28 @@ const handleLayerChange = (payload: { mapType: MapType, mapTile: MapTile }) => {
   showLayerPanel.value = false;
   
   // 停用图层切换工具
-  if (toolbarObject && activeToolId.value === 'layer-switch') {
-    toolbarObject.deactivateTool('layer-switch');
-    activeToolId.value = undefined;
-    logger.debug('图层已选择，自动停用图层切换工具');
+  if (toolbarObject) {
+    // 检查当前活动的工具ID
+    const currentActiveToolId = toolbarObject.getActiveToolId();
+    logger.debug(`当前活动工具ID: ${currentActiveToolId}, 组件内活动工具ID: ${activeToolId.value}`);
+    
+    if (currentActiveToolId === 'layer-switch' || activeToolId.value === 'layer-switch') {
+      logger.debug('图层已选择，停用图层切换工具');
+      
+      // 强制停用工具栏中的图层按钮
+      toolbarObject.deactivateTool('layer-switch');
+      
+      // 确保组件内状态也更新
+      activeToolId.value = undefined;
+      
+      logger.debug('图层切换工具已停用');
+    }
+  } else {
+    logger.warn('工具栏对象不存在，无法停用图层切换工具');
   }
+  
+  // 发出图层变更事件供父组件处理
+  emit('layer-change', payload);
 };
 
 // 确定图层面板位置

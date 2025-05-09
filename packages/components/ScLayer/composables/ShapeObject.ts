@@ -281,7 +281,15 @@ export class ShapeObject {
     // 生成唯一ID
     const id = `shape-${Date.now()}-${this.idCounter++}`;
     feature.setId(id);
-    
+    feature.set('dataType', DataType.SHAPE);
+    feature.set('data', {
+      type: this.currentType,
+      //@ts-ignore
+      coordinates: feature.getGeometry()?.getCoordinates(),
+      style: this.style,
+      id: id,
+      dataType: DataType.SHAPE
+    });
     // 设置属性
     feature.set('shapeType', this.currentType);
     feature.set('createdAt', new Date().toISOString());
