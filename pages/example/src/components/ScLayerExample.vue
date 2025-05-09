@@ -17,6 +17,7 @@
             :map-key="config.mapKey"
             :map="config.map"
             :show-toolbar="config.showToolbar"
+            :show-scale-line="config.showScaleLine"
             @map-initialized="onMapInit"
             @map-click="onMapClick"
             @marker-click="onMarkerClick"
@@ -56,12 +57,13 @@
                 <input type="checkbox" v-model="config.scrollWheelZoom" @change="handleInteractionChange">
               </div>
               <div class="control-row">
+                <span>比例尺:</span>
+                <input type="checkbox" v-model="config.showScaleLine" @change="handleScaleLineChange">
+              </div>
+              <div class="control-row">
                 <span>缩放级别:</span>
                 <input type="range" v-model.number="config.zoom" min="3" max="18" @change="handleZoomChange">
                 <span class="value">{{ config.zoom }}</span>
-              </div>
-              <div class="control-row buttons-row">
-                <button @click="openLayerPanel">打开图层面板</button>
               </div>
               <div class="control-row">
                 <span>快速切换:</span>
@@ -275,7 +277,8 @@ const config = reactive({
   height: 700,
   dragging: true,
   scrollWheelZoom: true,
-  showToolbar: true
+  showToolbar: true,
+  showScaleLine: true // 默认显示比例尺
 });
 
 // 标记点数据
@@ -712,13 +715,21 @@ function handleZoomChange() {
 function handleInteractionChange() {
   if (!layerRef.value) return;
   
-  // 设置交互控制
-  layerRef.value.getMapObject().setInteractions({
+  addLog('用户交互', `地图交互状态变更: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`);
+  
+  layerRef.value.setInteractions({
     dragging: config.dragging,
     scrollWheelZoom: config.scrollWheelZoom
   });
+}
+
+// 处理比例尺显示变化
+function handleScaleLineChange() {
+  if (!layerRef.value) return;
   
-  addLog('操作', `更新交互控制: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`);
+  addLog('比例尺', `比例尺显示状态: ${config.showScaleLine ? '显示' : '隐藏'}`);
+  
+  // 注意：由于使用props传递，配置变更会自动更新，不需要额外调用方法
 }
 
 // 添加默认显示Popover标记
@@ -1232,15 +1243,6 @@ function removeShape(shape: any) {
   addLog('操作', `已删除图形: ${shape.id.slice(-8)}`);
 }
 
-// 打开图层面板
-function openLayerPanel() {
-  if (!layerRef.value) return;
-  
-  // 调用ScLayer组件的openLayerPanel方法
-  layerRef.value.openLayerPanel();
-  
-  addLog('操作', '打开图层面板');
-}
 
 // 更新显示的图层类型（根据配置中的实际值）
 function updateLayerTypeDisplay() {

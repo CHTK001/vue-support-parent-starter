@@ -50,13 +50,15 @@
 
 // 静态提示样式（测量完成后）
 .ol-tooltip-static {
-  background-color: rgba(255, 255, 255, 0.95);
-  color: $text-color;
-  border: 1px solid $primary-color;
-  font-weight: 500;
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: bold;
+  font-size: 14px;
+  padding: 5px 10px;
   
   &::before {
-    border-top-color: $primary-color;
+    border-top-color: rgba(0, 177, 89, 0.9);
   }
 }
 
@@ -71,34 +73,147 @@
   z-index: $popup-z-index;
 }
 
-// 节点距离标签样式
-.ol-measure-node-label {
+// 中间节点距离标签样式
+.measure-segment-label .segment-distance {
+  background: rgba(24, 144, 255, 0.9);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
-  padding: 2px 4px;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 3px;
-  border: 1px solid $primary-color;
-  color: $primary-color;
-  pointer-events: none;
   white-space: nowrap;
-  z-index: 1500;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px 5px 0;
-    border-style: solid;
-    border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+  font-weight: normal;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  animation: measure-fade-in 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+// 终点总距离标签样式
+.measure-total-label .total-distance-label {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  animation: measure-scale-in 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.total-distance-label::after {
+  content: attr(data-distance);
+}
+
+// 更好的测距节点样式
+.ol-measure-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  pointer-events: all;
+  cursor: move;
+}
+
+// 显著的终点节点样式 - 绿色
+.ol-measure-point-end {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #00b159;
+  box-shadow: 0 0 0 4px rgba(0, 177, 89, 0.3);
+}
+
+// 起点节点样式 - 蓝色
+.ol-measure-point-start {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.4);
+}
+
+.ol-measure-point:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+}
+
+/* 测量线样式 */
+.ol-measure-line {
+  stroke: #1890ff;
+  stroke-width: 3px;
+  stroke-dasharray: 5, 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.ol-measure-line:hover {
+  stroke-width: 4px;
+  stroke-dasharray: none;
+}
+
+@keyframes measure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-// 鼠标样式
-.ol-viewport.measure-cursor {
+@keyframes measure-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 测量工具样式覆盖 */
+.ol-tooltip {
+  z-index: 1500 !important;
+}
+
+/* 自定义鼠标样式 */
+.ol-viewport.measure-active {
   cursor: crosshair !important;
+}
+
+/* 删除按钮 */
+.delete-measure-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: $error-color;
+  color: $light-text-color;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity $transition-time;
+  
+  &:hover {
+    background-color: lighten($error-color, 10%);
+  }
+}
+
+.ol-tooltip-static:hover .delete-measure-btn {
+  opacity: 1;
 }
 
 // 测量结果面板
@@ -154,32 +269,4 @@
       color: $primary-color;
     }
   }
-}
-
-// 删除按钮
-.delete-measure-btn {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 16px;
-  height: 16px;
-  background-color: $error-color;
-  color: $light-text-color;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transition: opacity $transition-time;
-  
-  &:hover {
-    background-color: lighten($error-color, 10%);
-  }
-}
-
-.ol-tooltip-static:hover .delete-measure-btn {
-  opacity: 1;
 } 

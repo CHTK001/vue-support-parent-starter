@@ -54,6 +54,8 @@ export interface MapConfig {
   coordinateOptions?: CoordinateOptions;
   // 鹰眼地图配置
   overviewMapConfig?: OverviewMapConfig;
+  // 是否显示比例尺
+  showScaleLine?: boolean;
 }
 
 // 事件类型

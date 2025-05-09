@@ -100,7 +100,8 @@ const props = withDefaults(defineProps<MapConfig & {
     position: 'bottom-right',
     showProjected: false
   }),
-  overviewMapConfig: () => ({})
+  overviewMapConfig: () => ({}),
+  showScaleLine: true // 默认显示比例尺
 });
 
 // 定义组件事件
@@ -727,12 +728,12 @@ const checkOverviewMapState = () => {
     logger.debug('[Overview] 发现鹰眼工具已激活但地图未显示，显示鹰眼地图');
     showOverviewMap.value = true;
     
-    // 强制刷新地图大小
-    nextTick(() => {
-      if (mapObj) {
-        mapObj.triggerMapResize();
-      }
-    });
+    // 移除触发主地图刷新的代码
+    // nextTick(() => {
+    //   if (mapObj) {
+    //     mapObj.triggerMapResize();
+    //   }
+    // });
   } else if (!isOverviewActive && showOverviewMap.value) {
     logger.debug('[Overview] 鹰眼工具未激活但地图显示中，隐藏鹰眼地图');
     showOverviewMap.value = false;
@@ -923,6 +924,43 @@ const handleOverviewMapCollapseChange = (collapsed: boolean) => {
   
   // 可以在这里添加额外的逻辑，例如更新其他UI元素
 };
+
+// 监听地图类型和图层变化
+watch([() => props.mapType, () => props.mapTile], ([newMapType, newMapTile]) => {
+  if (!mapObj) return;
+
+  logger.debug('地图类型或图层变化:', newMapType, newMapTile);
+  
+  // 切换底图
+  mapObj.switchBaseLayer(newMapType, newMapTile);
+  
+  // 触发地图大小更新
+  mapObj.triggerMapResize();
+});
+
+// 监听中心点变化
+watch(() => props.center, (newCenter) => {
+  if (!mapObj) return;
+  
+  logger.debug('中心点变化:', newCenter);
+  mapObj.setCenter(newCenter[0], newCenter[1]);
+});
+
+// 监听缩放级别变化
+watch(() => props.zoom, (newZoom) => {
+  if (!mapObj) return;
+  
+  logger.debug('缩放级别变化:', newZoom);
+  mapObj.setZoom(newZoom);
+});
+
+// 监听比例尺显示状态变化
+watch(() => props.showScaleLine, (newValue) => {
+  if (!mapObj) return;
+  
+  logger.debug('比例尺显示状态变化:', newValue);
+  mapObj.toggleScaleLine(newValue);
+});
 
 // 暴露方法给父组件
 defineExpose({

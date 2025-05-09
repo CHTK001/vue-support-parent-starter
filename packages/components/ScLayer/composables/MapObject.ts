@@ -13,6 +13,7 @@ import DragPan from 'ol/interaction/DragPan';
 import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import { defaults as defaultControls } from 'ol/control';
+import ScaleLine from 'ol/control/ScaleLine';
 
 import { DataType, MapTile } from '../types';
 import { MapType } from '../types/map';
@@ -57,6 +58,8 @@ export class MapObject {
   // 交互控制
   private dragPan: DragPan | null = null;
   private mouseWheelZoom: MouseWheelZoom | null = null;
+  // 比例尺控件
+  private scaleLineControl: ScaleLine | null = null;
 
   // 使用ConfigObject管理配置
   private configObject: ConfigObject;
@@ -114,6 +117,16 @@ export class MapObject {
       this.mainLayer = this.createBaseLayer();
       logger.debug('创建底图图层:', this.mainLayer);
       
+      // 创建比例尺控件
+      this.scaleLineControl = new ScaleLine({
+        units: 'metric', // 使用公制单位
+        bar: false, // 使用条形比例尺
+        steps: 2, // 显示4个刻度
+        text: false, // 显示文本
+       // minWidth: 140, // 最小宽度
+        className: 'ol-scale-line custom-scale-line' // 自定义样式类名
+      });
+      
       // 创建地图实例，禁用默认交互和控件
       this.mapInstance = new Map({
         target: target,
@@ -123,7 +136,17 @@ export class MapObject {
           dragPan: false,
           mouseWheelZoom: false
         }),
+        controls: defaultControls({
+          zoom: false, // 禁用默认缩放控件
+          rotate: false, // 禁用默认旋转控件
+          attribution: false // 禁用默认归属控件
+        }).extend([
+          this.scaleLineControl
+        ])
       });
+      
+      // 根据配置设置比例尺显示状态
+      this.toggleScaleLine(this.configObject.isScaleLineVisible());
       
       // 检查地图实例是否正确创建
       if (!this.mapInstance) {
@@ -623,22 +646,77 @@ export class MapObject {
   }
 
   /**
-   * 销毁地图对象
+   * 显示或隐藏比例尺
+   * @param visible 是否显示
    */
-  public destroy(): void {
-    logger.info('销毁地图对象');
-    if (this.mapInstance) {
-      // 移除pointermove事件监听
-      this.mapInstance.un('pointermove', this.handleMouseMove.bind(this));
-      
-      this.mapInstance.dispose();
-      this.mapInstance = null;
+  public toggleScaleLine(visible: boolean): void {
+    if (!this.mapInstance || !this.scaleLineControl) {
+      return;
     }
     
+    if (visible) {
+      // 确保比例尺已添加到地图
+      this.mapInstance.removeControl(this.scaleLineControl); // 先移除以防重复添加
+      this.mapInstance.addControl(this.scaleLineControl);
+      logger.debug('比例尺已显示');
+    } else {
+      // 移除比例尺
+      this.mapInstance.removeControl(this.scaleLineControl);
+      logger.debug('比例尺已隐藏');
+    }
+    
+    // 更新配置对象
+    this.configObject.setScaleLineVisible(visible);
+  }
+  
+  /**
+   * 获取比例尺显示状态
+   * @returns 是否显示比例尺
+   */
+  public isScaleLineVisible(): boolean {
+    return this.configObject.isScaleLineVisible();
+  }
+
+  /**
+   * 销毁地图实例
+   */
+  public destroy(): void {
+    if (!this.mapInstance) return;
+
+    // 清除交互控制
+    this.mapInstance.getInteractions().clear();
+    
+    // 清除控件，确保比例尺控件被正确移除
+    if (this.scaleLineControl) {
+      try {
+        this.mapInstance.removeControl(this.scaleLineControl);
+      } catch (e) {
+        logger.warn('移除比例尺控件失败:', e);
+      }
+    }
+    this.mapInstance.getControls().clear();
+    this.scaleLineControl = null;
+    
+    // 清除图层
+    this.mapInstance.getLayers().clear();
     this.mainLayer = null;
     this.vectorLayer = null;
-    this.dragPan = null;
-    this.mouseWheelZoom = null;
+    
+    // 清除监听器
+    this.mapInstance.getTargetElement().removeEventListener('pointermove', this.handleMouseMove.bind(this));
+    this.customPointerMoveListener = () => {};
+    
+    // 清除地图实例
+    this.mapInstance.dispose();
+    this.mapInstance = null;
+
+    // 清除标记信息
+    this.markerInfo = {
+      coordinates: null,
+      data: null
+    };
+    
+    logger.info('地图实例已销毁');
   }
 
   /**
