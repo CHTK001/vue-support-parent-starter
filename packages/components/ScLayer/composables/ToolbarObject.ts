@@ -784,19 +784,33 @@ export class ToolbarObject {
       return;
     }
     
-    logger.debug(`正在停用工具 ${toolId}`);
+    logger.debug(`正在停用工具 ${toolId}，当前活动工具ID: ${this.activeToolId}`);
     
     // 设置工具为非激活状态
-      tool.active = false;
+    tool.active = false;
     logger.debug(`工具 ${toolId} 已设置为非激活状态`);
       
-      // 执行工具停用后的操作
-      this.handleToolDeactivation(tool);
+    // 执行工具停用后的操作
+    this.handleToolDeactivation(tool);
       
-      // 如果停用的是当前激活的工具，清除激活状态
-      if (this.activeToolId === toolId) {
-        this.activeToolId = null;
+    // 如果停用的是当前激活的工具，清除激活状态
+    if (this.activeToolId === toolId) {
+      this.activeToolId = null;
       logger.debug(`清除当前激活工具ID`);
+    }
+    
+    // 特殊处理layer-switch工具停用
+    if (toolId === 'layer-switch') {
+      // 确保UI更新反映工具停用状态
+      logger.debug('图层切换工具停用，确保其状态为非激活');
+      // 强制刷新工具状态
+      tool.active = false;
+      
+      // 确保激活工具ID不是layer-switch
+      if (this.activeToolId === 'layer-switch') {
+        this.activeToolId = null;
+        logger.debug('强制清除图层切换工具激活状态');
+      }
     }
     
     // 如果是button类型工具，改为menu类型处理
@@ -810,6 +824,8 @@ export class ToolbarObject {
       multi: tool.multi,
       hasChildren: Boolean(tool.children && tool.children.length > 0)
     });
+    
+    logger.debug(`工具 ${toolId} 停用完成`);
   }
 
   /**

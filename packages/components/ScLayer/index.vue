@@ -768,14 +768,11 @@ const handleLayerPanelClose = () => {
   showLayerPanel.value = false;
   // 停用图层切换工具
   if (toolbarObject && activeToolId.value === 'layer-switch') {
-    logger.debug('图层已选择，停用图层切换工具');
+    logger.debug('图层面板关闭，停用图层切换工具');
     
-    // 确保工具栏UI更新
-    nextTick(() => {
-      // 使用deactivateTool方法停用工具，确保事件和UI状态都正确处理
-      toolbarObject.deactivateTool('layer-switch');
-      activeToolId.value = undefined;
-    });
+    // 直接停用工具，不使用nextTick延迟
+    toolbarObject.deactivateTool('layer-switch');
+    activeToolId.value = undefined;
   }
 };
 
@@ -797,17 +794,25 @@ const handleLayerChange = (payload: { mapType: MapType, mapTile: MapTile }) => {
     const currentActiveToolId = toolbarObject.getActiveToolId();
     logger.debug(`当前活动工具ID: ${currentActiveToolId}, 组件内活动工具ID: ${activeToolId.value}`);
     
-    if (currentActiveToolId === 'layer-switch' || activeToolId.value === 'layer-switch') {
-      logger.debug('图层已选择，停用图层切换工具');
-      
-      // 强制停用工具栏中的图层按钮
-      toolbarObject.deactivateTool('layer-switch');
-      
-      // 确保组件内状态也更新
-      activeToolId.value = undefined;
-      
-      logger.debug('图层切换工具已停用');
-    }
+    // 无论是否为当前活动工具，都尝试停用图层切换工具
+    logger.debug('图层已选择，停用图层切换工具');
+    
+    // 强制停用工具栏中的图层按钮
+    toolbarObject.deactivateTool('layer-switch');
+    
+    // 确保组件内状态也更新
+    activeToolId.value = undefined;
+    
+    // 刷新工具栏UI状态
+    nextTick(() => {
+      if (mapToolbarRef.value) {
+        // 调用工具栏组件的刷新方法
+        mapToolbarRef.value.refreshToolbarState();
+        logger.debug('已刷新工具栏UI状态');
+      }
+    });
+    
+    logger.debug('图层切换工具已停用');
   } else {
     logger.warn('工具栏对象不存在，无法停用图层切换工具');
   }

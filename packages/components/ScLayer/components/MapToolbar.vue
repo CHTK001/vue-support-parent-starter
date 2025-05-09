@@ -157,13 +157,10 @@ const visibleTools = computed(() => {
 
 // 判断工具是否激活
 const isToolActive = (toolId: string): boolean => {
-  // 优先使用activeToolsMap中的记录，保证视图与数据一致
+  // 首先使用activeToolsMap中的记录，保证视图与数据一致
   if (toolId in activeToolsMap.value) {
     return activeToolsMap.value[toolId];
   }
-  
-  // 兼容旧模式
-  if (props.activeToolId === toolId) return true;
   
   // 优先使用toolbarObj判断工具状态
   if (toolbarObj.value) {
@@ -179,9 +176,21 @@ const isToolActive = (toolId: string): boolean => {
     return isActive;
   }
   
+  // 兼容旧模式 - 使用传入的activeToolId
+  if (props.activeToolId === toolId) {
+    // 记录到状态缓存中
+    activeToolsMap.value[toolId] = true;
+    return true;
+  }
+  
   // 在工具配置中查找
   const tool = (props.toolbarConfig.items || []).find(t => t.id === toolId);
-  return !!tool?.active;
+  const configActive = !!tool?.active;
+  if (configActive) {
+    activeToolsMap.value[toolId] = true;
+  }
+  
+  return configActive;
 };
 
 // 保持原有的状态变量
@@ -576,7 +585,30 @@ const toolbarStyle = computed(() => {
   return style;
 });
 
+// 确保在layer-switch工具状态变化时强制刷新工具条
+watch(() => props.activeToolId, (newVal, oldVal) => {
+  // 处理layer-switch特殊情况
+  if (oldVal === 'layer-switch' && newVal !== 'layer-switch') {
+    console.debug('图层按钮状态已变更，强制刷新工具栏');
+    if (toolbarObj.value) {
+      // 确保图层工具在Map中标记为非激活状态
+      activeToolsMap.value['layer-switch'] = false;
+      forceUpdateKey.value++; // 强制刷新视图
+    }
+  }
+}, { immediate: false });
+
+// 添加一个直接刷新状态的方法
+const refreshToolbarState = () => {
+  if (toolbarObj.value) {
+    updateActiveTools();
+  }
+};
+
+// 暴露方法给父组件
 defineExpose({
+  updateActiveTools,
+  refreshToolbarState,
   getToolbarObj: () => toolbarObj.value,
   setToolbarObj: (obj: ToolbarObject) => {
     toolbarObj.value = obj;
