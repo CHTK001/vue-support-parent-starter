@@ -4,6 +4,26 @@
  */
 import { MapTile, type MapConfig } from '../types';
 import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
+import { OverviewMapConfig } from '../components/OverviewMap.vue';
+
+// 默认鹰眼地图配置
+const DEFAULT_OVERVIEW_CONFIG: OverviewMapConfig = {
+  width: 200,
+  height: 150,
+  opacity: 1,
+  borderColor: 'rgba(24, 144, 255, 0.8)',
+  borderWidth: 2,
+  backgroundColor: '#f5f5f5',
+  boxColor: 'rgba(24, 144, 255, 0.15)',
+  boxOpacity: 0.15,
+  boxBorderColor: 'rgba(24, 144, 255, 1)',
+  boxBorderWidth: 3,
+  zoomOffset: 4,
+  collapsedSize: 30,
+  buttonSize: 30,
+  buttonColor: '#fff',
+  buttonBgColor: 'rgba(24, 144, 255, 0.9)'
+};
 
 export class ConfigObject {
   public config: MapConfig;
@@ -24,7 +44,8 @@ export class ConfigObject {
       zoom: 12,
       dragging: true,
       scrollWheelZoom: true,
-      showToolbar: true
+      showToolbar: true,
+      overviewMapConfig: DEFAULT_OVERVIEW_CONFIG
     };
 
     // 合并用户配置与默认配置
@@ -34,6 +55,14 @@ export class ConfigObject {
     };
     if(Object.keys(this.config.map).length === 0) {
       this.config.map = DEFAULT_MAP_CONFIG;
+    }
+    
+    // 合并鹰眼地图配置
+    if (options.overviewMapConfig) {
+      this.config.overviewMapConfig = {
+        ...DEFAULT_OVERVIEW_CONFIG,
+        ...options.overviewMapConfig
+      };
     }
   }
 

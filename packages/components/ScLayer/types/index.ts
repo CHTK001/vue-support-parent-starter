@@ -5,6 +5,7 @@ import type { MapUrlConfig } from "./map";
 import { MapType } from "./map";
 import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
+import { OverviewMapConfig } from "../components/OverviewMap.vue";
 export * from "./map";
 export * from "./toolbar";
 export * from "./marker";
@@ -12,11 +13,20 @@ export * from "./cluster";
 export * from "./shape";
 //图层类型
 export enum MapTile {
-  NORMAL = 'NORMAL',
-  SATELLITE = 'SATELLITE',
-  HYBRID = 'HYBRID',
+  NORMAL = 'normal',
+  SATELLITE = 'satellite',
+  HYBRID = 'hybrid',
 }
-
+/**
+ * 数据类型枚举
+ */
+export enum DataType {
+  /** 标记点 */
+  MARKER = 'marker',
+  /** 图形 */
+  SHAPE = 'shape',
+  POPOVER = 'popover'
+}
 // 地图类型配置
 export interface MapConfig {
   mapType: MapType;
@@ -42,6 +52,8 @@ export interface MapConfig {
   toolbar?: ToolItem[];
   // 坐标面板配置
   coordinateOptions?: CoordinateOptions;
+  // 鹰眼地图配置
+  overviewMapConfig?: OverviewMapConfig;
 }
 
 // 事件类型

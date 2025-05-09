@@ -41,6 +41,7 @@
       :main-map-obj="mapObj" 
       :visible="showOverviewMap"
       :position="determineOverviewMapPosition()"
+      :config="overviewMapConfig"
       @collapse-change="handleOverviewMapCollapseChange"
     />
   </div>
@@ -57,6 +58,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import OverviewMap from './components/OverviewMap.vue';
+import { OverviewMapConfig } from './components/OverviewMap.vue';
 import LayerPanel from './components/LayerPanel.vue';
 import { ConfigObject } from './composables/ConfigObject';
 import { 
@@ -79,7 +81,9 @@ import { Shape, ShapeOption } from './types/shape';
 import 'ol/ol.css';
 
 // 定义组件属性 - 使用types中的配置作为类型定义
-const props = withDefaults(defineProps<MapConfig>(), {
+const props = withDefaults(defineProps<MapConfig & {
+  overviewMapConfig?: OverviewMapConfig
+}>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
   mapType: MapType.GAODE,
@@ -95,7 +99,8 @@ const props = withDefaults(defineProps<MapConfig>(), {
     decimals: 8,
     position: 'bottom-right',
     showProjected: false
-  })
+  }),
+  overviewMapConfig: () => ({})
 });
 
 // 定义组件事件
@@ -206,15 +211,12 @@ const logMapContainerInfo = () => {
 // 初始化地图组件
 const initializeMapComponents = async () => {
   try {
-  // 创建配置对象
+    // 创建配置对象
     configObject = new ConfigObject(config.value);
   
     // 创建地图对象 - 正确传递参数
-  mapObj = new MapObject(configObject);
+    mapObj = new MapObject(configObject);
   
-  // 创建工具栏对象
-  toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
-    
     // 初始化地图
     if (mapContainer.value) {
       const initResult = await mapObj.init(mapContainer.value, emit);
@@ -234,16 +236,19 @@ const initializeMapComponents = async () => {
       }
     }
 
-  // 创建标记点对象
-    markerObject = new MarkerObject(mapObj.getMapInstance());
-  
-  // 创建图形绘制对象
-    shapeObject = new ShapeObject(mapObj.getMapInstance());
-    
+    // 创建工具栏对象
+    toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
+
     // 设置工具栏对象到地图对象
     if (mapToolbarRef.value) {
       mapToolbarRef.value.setToolbarObj(toolbarObject);
     }
+
+    // 创建标记点对象 - 从toolbarObject获取
+    markerObject = toolbarObject.getMarkerObject();
+  
+    // 创建图形绘制对象 - 从toolbarObject获取
+    shapeObject = toolbarObject.getShapeObject();
     
     // 设置工具栏状态变化监听器
     setupToolbarStateChangeListener();
@@ -257,7 +262,7 @@ const initializeMapComponents = async () => {
     // 添加窗口尺寸变化监听，响应式调整地图尺寸
     window.addEventListener('resize', resizeMap);
     
-    // 检查鹰眼状态
+    // 初始化后立即检查鹰眼状态，确保UI状态与实际工具状态一致
     checkOverviewMapState();
     
     logger.info('地图和工具栏初始化完成');
@@ -475,12 +480,35 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
+    // 绘制正方形工具
+    'draw-square': () => {
+      if (active && shapeObject) {
+        shapeObject.enable('Square');
+        logger.debug('[Shape] 正方形绘制工具已激活');
+      } else if (!active && shapeObject && shapeObject.isEnabled()) {
+        shapeObject.disable();
+        logger.debug('[Shape] 正方形绘制工具已停用');
+      }
+    },
+    
     // 删除模式按钮 - 启用单击删除图形或标记点的功能
     'clear-shapes': () => {
       // 此处不需要做任何操作，因为ToolbarObject中的activateTool方法已经处理了激活删除模式
       // 避免与ToolbarObject中的逻辑重复，以防止删除功能被错误触发两次
       logger.debug('[Shape] 删除模式按钮处理 - 已由ToolbarObject处理');
-    }
+    },
+    
+    // 处理图形创建完成事件
+    'shape-created': () => {
+      if (toolType === 'shape' && active && data) {
+        // 图形绘制完成后，发出创建事件
+        const { id, options } = data;
+        if (id && options) {
+          logger.debug(`[Shape] 接收到图形创建事件，ID: ${id}, 类型: ${options.type}`);
+          emit('shape-create' as MapEventType, { id, options });
+        }
+      }
+    },
   };
   
   // 执行对应的处理函数
@@ -686,11 +714,16 @@ const checkOverviewMapState = () => {
   const tools = toolbarObject.getTools();
   const overviewTool = tools.find(t => t.id === 'overview');
   
-  logger.debug('[Overview] 检查鹰眼状态，工具存在:', !!overviewTool, '工具激活状态:', overviewTool?.active);
+  // 获取鹰眼工具的激活状态
+  const isOverviewActive = overviewTool?.active || false;
   
-  // 如果鹰眼工具已激活但鹰眼地图未显示，强制显示
-  if (overviewTool?.active && !showOverviewMap.value) {
-    logger.debug('[Overview] 发现鹰眼工具已激活但地图未显示，强制显示鹰眼地图');
+  logger.debug('[Overview] 检查鹰眼状态，工具存在:', !!overviewTool, 
+               '工具激活状态:', isOverviewActive, 
+               '当前显示状态:', showOverviewMap.value);
+  
+  // 确保UI状态与工具状态一致
+  if (isOverviewActive && !showOverviewMap.value) {
+    logger.debug('[Overview] 发现鹰眼工具已激活但地图未显示，显示鹰眼地图');
     showOverviewMap.value = true;
     
     // 强制刷新地图大小
@@ -699,16 +732,13 @@ const checkOverviewMapState = () => {
         mapObj.triggerMapResize();
       }
     });
-  }
-  
-  // 确保辅助按钮不显示，因为现在已经没有关闭按钮了
-  showOverviewButton.value = false;
-  
-  // 如果鹰眼工具未激活，确保不显示鹰眼地图
-  if (!overviewTool?.active && showOverviewMap.value) {
+  } else if (!isOverviewActive && showOverviewMap.value) {
+    logger.debug('[Overview] 鹰眼工具未激活但地图显示中，隐藏鹰眼地图');
     showOverviewMap.value = false;
-    logger.debug('[Overview] 鹰眼工具未激活，隐藏鹰眼地图');
   }
+  
+  // 不再需要辅助按钮
+  showOverviewButton.value = false;
 };
 
 // 监听地图组件销毁事件
@@ -827,6 +857,34 @@ const determineOverviewMapPosition = (): 'top-left' | 'top-right' | 'bottom-left
   
   return 'bottom-right'; // 默认位置为右下角
 };
+
+/**
+ * 鹰眼地图配置说明
+ * 可通过 overviewMapConfig 属性配置鹰眼地图的各种参数：
+ * 
+ * 尺寸与位置：
+ * - width: 鹰眼地图宽度，默认200px
+ * - height: 鹰眼地图高度，默认150px
+ * - collapsedSize: 折叠后的尺寸，默认30px
+ * 
+ * 样式：
+ * - opacity: 整体透明度，范围0-1
+ * - borderColor: 边框颜色
+ * - borderWidth: 边框宽度
+ * - backgroundColor: 背景颜色
+ * 
+ * 视图框样式：
+ * - boxColor: 视图矩形框填充颜色
+ * - boxOpacity: 视图矩形框透明度
+ * - boxBorderColor: 视图矩形框边框颜色
+ * - boxBorderWidth: 视图矩形框边框宽度
+ * 
+ * 其他：
+ * - zoomOffset: 缩放级别偏移量，默认4
+ * - buttonSize: 折叠按钮尺寸
+ * - buttonColor: 折叠按钮文字颜色
+ * - buttonBgColor: 折叠按钮背景色
+ */
 
 // 处理鹰眼地图折叠状态变化
 const handleOverviewMapCollapseChange = (collapsed: boolean) => {

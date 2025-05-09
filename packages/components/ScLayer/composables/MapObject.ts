@@ -14,11 +14,12 @@ import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import { defaults as defaultControls } from 'ol/control';
 
-import { MapTile } from '../types';
+import { DataType, MapTile } from '../types';
 import { MapType } from '../types/map';
 import { ConfigObject } from './ConfigObject';
 import logger from './LogObject';
 import type { CoordinateInfo } from './CoordinateObject';
+import { da } from 'element-plus/es/locales.mjs';
 
 export interface MapEmitter {
   'map-click': (event: any) => void;
@@ -158,6 +159,10 @@ export class MapObject {
         // 标记点击事件处理
         (coordinates, data) => {
           emitter('marker-click', { coordinates, data });
+        },
+        // 标记点击事件处理
+        (coordinates, data) => {
+          emitter('shape-click', { coordinates, data });
         }
       );
 
@@ -479,7 +484,8 @@ export class MapObject {
    */
   private bindClickEvents(
     clickHandler: (coordinates: number[]) => void,
-    markerClickHandler: (coordinates: number[], data: any) => void
+    markerClickHandler: (coordinates: number[], data: any) => void,
+    shapeClickHandler: (coordinates: number[], data: any) => void
   ): void {
     if (!this.mapInstance) return;
     
@@ -497,7 +503,12 @@ export class MapObject {
         // 如果点击了标记点，触发标记点点击事件
         const data = feature.get('data');
         logger.debug('点击了标记点:', coordinates, data);
-        markerClickHandler(coordinates, data);
+        if(!data) return;
+        if(data.dataType === DataType.MARKER){
+          markerClickHandler(coordinates, data);
+        }else if(data.dataType === DataType.SHAPE){
+          shapeClickHandler(coordinates, data);
+        }
       } else {
         // 否则触发地图点击事件
         logger.debug('点击了地图:', coordinates);

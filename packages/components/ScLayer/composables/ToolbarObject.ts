@@ -5,7 +5,7 @@
 import type { ToolbarConfig, ToolItem, ToolbarPosition, ToolbarDirection } from '../types/toolbar';
 import { DEFAULT_TOOLBAR_CONFIG } from '../types/toolbar';
 import { Map as OlMap } from 'ol';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import type { MapObject } from './MapObject';
 import logger from './LogObject';
 import { CoordinateObject, CoordinateInfo, CoordinateOptions, CoordinatePosition } from './CoordinateObject';
@@ -14,6 +14,9 @@ import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
 import { AggregationOptions } from '../types/cluster';
+import { DataType } from '../types';
+import { LineString, Polygon, Circle } from 'ol/geom';
+import { ShapeOption, Shape } from '../types/shape';
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -144,35 +147,43 @@ export class ToolbarObject {
    * 初始化鹰眼对象
    */
   private initOverviewMapObject(): void {
-    const mapInstance = this.mapObj.getMapInstance();
-    if (!mapInstance) {
-      logger.warn('[Overview] 地图实例不存在，无法初始化鹰眼对象');
-      return;
-    }
+    // 不再创建内置鹰眼地图对象，使用自定义OverviewMap组件替代
+    // 仅保留空实现，确保API兼容性
+    logger.debug('[Overview] 跳过内置鹰眼对象初始化，使用自定义OverviewMap组件');
     
-    // 获取地图配置
-    const configObj = this.mapObj.getConfigObject();
-    const mapType = configObj.getMapType();
-    const mapTile = configObj.getMapTile();
-    const mapConfig = configObj.getMapConfig();
-    // 获取地图API密钥配置对象
-    const mapKeys: Record<string, string> = {};
-    mapKeys[mapType] = configObj.getMapKey(mapType);
-    
-    // 创建鹰眼对象
-    this.overviewMapObj = new OverviewMapObject(
-      mapInstance,
-      {
-        collapsed: true,
-        rotateWithView: false
+    // 创建一个空对象，先转为unknown然后转为OverviewMapObject类型
+    this.overviewMapObj = {
+      enable: () => {
+        logger.debug('[Overview] 使用自定义OverviewMap组件，内置鹰眼被禁用');
+        return false;
       },
-      mapType,
-      mapTile,
-      mapConfig,
-      mapKeys
-    );
-    
-    logger.debug('[Overview] 鹰眼对象初始化成功');
+      disable: () => {
+        logger.debug('[Overview] 使用自定义OverviewMap组件，内置鹰眼被禁用');
+        return false;
+      },
+      toggle: () => {
+        logger.debug('[Overview] 使用自定义OverviewMap组件，内置鹰眼被禁用');
+        return false;
+      },
+      setCollapsed: () => {
+        logger.debug('[Overview] 使用自定义OverviewMap组件，内置鹰眼被禁用');
+        return false;
+      },
+      isCollapsed: () => false,
+      setMapInstance: () => {
+        logger.debug('[Overview] 使用自定义OverviewMap组件，内置鹰眼被禁用');
+        return false;
+      },
+      destroy: () => {
+        logger.debug('[Overview] 销毁空的内置鹰眼对象');
+        return true;
+      },
+      // 添加必要的属性以符合OverviewMapObject接口
+      mapInstance: null,
+      overviewMapControl: null,
+      options: {},
+      enabled: false
+    } as unknown as OverviewMapObject;
   }
 
   /**
@@ -204,6 +215,111 @@ export class ToolbarObject {
     
     // 创建图形绘制对象
     this.shapeObj = new ShapeObject(mapInstance);
+    
+    // 设置绘制完成回调函数，在绘制完成后自动调用addShape方法
+    this.shapeObj.setDrawEndCallback((id, shapeType, feature) => {
+      // 获取特征的几何体
+      const geometry = feature.getGeometry();
+      if (!geometry) return;
+      
+      // 根据不同形状类型处理几何数据
+      let shapeOption: ShapeOption | null = null;
+      
+      switch (shapeType) {
+        case 'Point':
+          // 处理Point类型，需要类型转换
+          // 由于Geometry基类没有getCoordinates方法，需要先断言为Point类型
+          const pointGeom = geometry as any; // 先使用any类型绕过类型检查
+          const point = pointGeom.getCoordinates ? pointGeom.getCoordinates() : [0, 0];
+          // 转换为经纬度坐标
+          const lonlat = toLonLat(point);
+          shapeOption = {
+            type: Shape.POINT,
+            coordinates: lonlat,
+            dataType: DataType.SHAPE,
+            id
+          };
+          break;
+          
+        case 'LineString':
+          const line = (geometry as LineString).getCoordinates();
+          // 转换所有点为经纬度坐标
+          const lineCoords = line.map(coord => toLonLat(coord));
+          shapeOption = {
+            type: Shape.LINE,
+            coordinates: lineCoords,
+            dataType: DataType.SHAPE,
+            id
+          };
+          break;
+          
+        case 'Polygon':
+          const polygon = (geometry as Polygon).getCoordinates()[0];
+          // 转换所有点为经纬度坐标
+          const polygonCoords = polygon.map(coord => toLonLat(coord));
+          shapeOption = {
+            type: Shape.POLYGON,
+            coordinates: polygonCoords,
+            dataType: DataType.SHAPE,
+            id
+          };
+          break;
+          
+        case 'Circle':
+          const center = (geometry as Circle).getCenter();
+          const radius = (geometry as Circle).getRadius();
+          // 转换中心点为经纬度坐标
+          const centerLonLat = toLonLat(center);
+          shapeOption = {
+            type: Shape.CIRCLE,
+            center: centerLonLat,
+            radius: radius,
+            dataType: DataType.SHAPE,
+            id
+          };
+          break;
+          
+        case 'Rectangle':
+        case 'Square':
+          const extent = (geometry as Polygon).getExtent();
+          // 转换为左下角和右上角坐标
+          const minCoord = toLonLat([extent[0], extent[1]]);
+          const maxCoord = toLonLat([extent[2], extent[3]]);
+          if (shapeType === 'Rectangle') {
+            shapeOption = {
+              type: Shape.RECTANGLE,
+              coordinates: [minCoord, maxCoord],
+              dataType: DataType.SHAPE,
+              id
+            };
+          } else {
+            // 为正方形计算中心点和宽度
+            const centerX = (extent[0] + extent[2]) / 2;
+            const centerY = (extent[1] + extent[3]) / 2;
+            const width = Math.abs(extent[2] - extent[0]);
+            const squareCenter = toLonLat([centerX, centerY]);
+            shapeOption = {
+              type: Shape.SQUARE,
+              center: squareCenter,
+              width: width,
+              dataType: DataType.SHAPE,
+              id
+            };
+          }
+          break;
+      }
+      
+      // 如果成功创建了ShapeOption，通知状态变化
+      if (shapeOption && this.toolStateChangeCallback) {
+        logger.debug(`图形绘制完成，自动调用addShape，类型: ${shapeType}, ID: ${id}`);
+        // 通知状态变化，用于ScLayer组件监听并调用emit('shape-create')
+        this.toolStateChangeCallback('shape-created', true, 'shape', {
+          id,
+          options: shapeOption
+        });
+      }
+    });
+    
     logger.debug('图形绘制对象已初始化');
   }
 
@@ -1067,56 +1183,24 @@ export class ToolbarObject {
    * 处理鹰眼工具激活
    */
   private handleOverviewMapActivate(): void {
-    if (!this.overviewMapObj) {
-      logger.warn('[Overview] 鹰眼对象不存在，无法启用鹰眼功能');
-      return;
+    // 不使用内置的鹰眼对象，完全靠ToolbarStateChange回调通知ScLayer显示自定义OverviewMap组件
+    logger.debug('[Overview] 鹰眼工具激活，使用自定义OverviewMap组件');
+    
+    // 确保内置鹰眼对象不会被激活
+    if (this.overviewMapObj) {
+      // 明确禁用内置鹰眼，避免重复显示
+      this.overviewMapObj.disable();
     }
     
-    try {
-      // 停用现有鹰眼控件，确保重新初始化
-      this.overviewMapObj.disable();
-      
-      // 确保地图实例是最新的
-      if (this.mapObj && this.mapObj.getMapInstance()) {
-        this.overviewMapObj.setMapInstance(this.mapObj.getMapInstance());
-      }
-      
-      // 强制重新初始化并启用鹰眼功能
-      logger.debug('[Overview] 正在强制重新初始化并启用鹰眼功能...');
-      this.overviewMapObj.enable(true);
-      
-      // 延迟200ms再次确保展开状态
-      setTimeout(() => {
-        try {
-          if (this.overviewMapObj) {
-            logger.debug('[Overview] 延迟操作：确保鹰眼控件为展开状态');
-            this.overviewMapObj.setCollapsed(false);
-            
-            // 手动触发状态变化通知
-            if (this.toolStateChangeCallback) {
-              this.toolStateChangeCallback('overview-map-expanded', true, 'control', {
-                source: 'overview-activate',
-                expanded: true,
-                delayed: true
-              });
-            }
-          }
-        } catch (error) {
-          logger.error('[Overview] 延迟展开鹰眼控件失败:', error);
-        }
-      }, 200);
-      
-      // 手动触发状态变化通知
-      if (this.toolStateChangeCallback) {
-        this.toolStateChangeCallback('overview-map-enabled', true, 'control', {
-          source: 'overview-activate',
-          expanded: true
-        });
-      }
-      
-      logger.info('[Overview] 鹰眼功能已启用并展开');
-    } catch (error) {
-      logger.error('[Overview] 启用鹰眼功能失败:', error);
+    // 通知状态变化，由ScLayer组件处理显示自定义OverviewMap
+    if (this.toolStateChangeCallback) {
+      // 发送工具状态变化通知
+      this.toolStateChangeCallback('overview', true, 'toggle');
+      this.toolStateChangeCallback('overview-map-expanded', true, 'control', {
+        source: 'overview-activate',
+        expanded: true,
+        forced: true
+      });
     }
   }
   
@@ -1124,10 +1208,16 @@ export class ToolbarObject {
    * 处理鹰眼工具停用
    */
   private handleOverviewMapDeactivate(): void {
-    if (!this.overviewMapObj) return;
+    if (this.overviewMapObj) {
+      // 即使是空实现，也明确调用disable以确保内置鹰眼被禁用
+      this.overviewMapObj.disable();
+    }
     
-    // 禁用鹰眼功能
-    this.overviewMapObj.disable();
+    // 通知停用状态变化
+    if (this.toolStateChangeCallback) {
+      this.toolStateChangeCallback('overview', false, 'toggle');
+    }
+    
     logger.debug('[Overview] 鹰眼功能已禁用');
   }
 
@@ -1303,25 +1393,42 @@ export class ToolbarObject {
   }
 
   /**
-   * 销毁工具栏对象
+   * 销毁对象
    */
   destroy(): void {
-    logger.debug('销毁工具栏对象');
+    logger.debug('开始销毁工具栏对象');
     
-    // 停用所有激活的工具（包括子菜单项）
+    // 递归函数，用于停用所有工具
     const deactivateTools = (items: ToolItem[]) => {
       items.forEach(tool => {
         if (tool.active) {
-          // 停用当前工具
-          tool.active = false;
           logger.debug(`销毁过程中停用工具: ${tool.id}`);
           
-          // 触发工具状态变化回调 - 停用
-          if (this.toolStateChangeCallback) {
-            this.toolStateChangeCallback(tool.id, false, tool.type, {
-              multi: tool.multi,
-              hasChildren: Boolean(tool.children && tool.children.length > 0)
-            });
+          // 根据工具类型执行不同的停用逻辑
+          switch (tool.id) {
+            case 'measure':
+              this.handleMeasureDeactivate();
+              break;
+              
+            case 'coordinate':
+              this.handleCoordinateDeactivate();
+              break;
+              
+            case 'overview':
+              this.handleOverviewMapDeactivate();
+              break;
+              
+            case 'clear-shapes':
+              this.deactivateDeleteMode();
+              break;
+              
+            case 'cluster':
+              this.disableCluster();
+              break;
+              
+            default:
+              // 对于其他工具，简单地设置激活状态为false
+              tool.active = false;
           }
         }
         
@@ -1356,10 +1463,23 @@ export class ToolbarObject {
       this.measureObj = null;
     }
     
-    // 销毁鹰眼对象
+    // 销毁鹰眼对象 - 确保内置鹰眼对象被完全销毁
     if (this.overviewMapObj) {
+      // 先禁用再销毁，确保清理干净
+      this.overviewMapObj.disable();
       this.overviewMapObj.destroy();
       this.overviewMapObj = null;
+      
+      // 通知ScLayer隐藏自定义鹰眼地图
+      if (this.toolStateChangeCallback) {
+        this.toolStateChangeCallback('overview', false, 'toggle');
+      }
+    }
+    
+    // 销毁标记点对象
+    if (this.markerObj) {
+      this.markerObj.destroy();
+      this.markerObj = null;
     }
     
     // 销毁图形绘制对象
@@ -1472,8 +1592,9 @@ export class ToolbarObject {
           (feature) => {
             if (hasDeleted) return true;
             
-            const id = feature.getId();
-            if (id && typeof id === 'string' && id.startsWith('shape-')) {
+            const id = feature.getId() || feature.get('id') || feature.get('id') || feature.get('id');
+            const data = feature.get('data');
+            if(data.dataType === DataType.SHAPE){
               logger.debug(`发现图形: ${id}`);
               // 删除图形
               const success = this.shapeObj!.removeShape(id);
@@ -1507,7 +1628,7 @@ export class ToolbarObject {
               const firstFeature = features[0];
               const clusterId = firstFeature.get('id');
               
-              if (clusterId && typeof clusterId === 'string') {
+              if(firstFeature.get('dataType') === DataType.MARKER){
                 logger.debug(`尝试删除聚合中的标记点: ${clusterId}`);
                 
                 if (this.markerObj!.getMarker(clusterId)) {
@@ -1525,7 +1646,7 @@ export class ToolbarObject {
             
             // 常规标记点处理
             const markerId = feature.get('id');
-            if (markerId && typeof markerId === 'string') {
+            if(feature.get('dataType') === DataType.MARKER){
               logger.debug(`发现标记点 (方法1): ${markerId}`);
               
               // 检查标记点是否存在
