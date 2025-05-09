@@ -13,6 +13,7 @@ import { MeasureObject, MeasureType } from './MeasureObject';
 import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
+import { TrackObject } from './TrackObject';
 import { AggregationOptions } from '../types/cluster';
 import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
@@ -38,6 +39,8 @@ export class ToolbarObject {
   private markerObj: MarkerObject | null = null;
   // 图形绘制对象
   private shapeObj: ShapeObject | null = null;
+  // 轨迹对象
+  private trackObj: TrackObject | null = null;
   // 坐标面板是否显示
   private showCoordinatePanel: boolean = false;
   // 坐标信息回调
@@ -97,6 +100,9 @@ export class ToolbarObject {
     
     // 初始化图形绘制对象
     this.initShapeObject();
+    
+    // 初始化轨迹对象
+    this.initTrackObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -321,6 +327,22 @@ export class ToolbarObject {
     });
     
     logger.debug('图形绘制对象已初始化');
+  }
+
+  /**
+   * 初始化轨迹对象
+   */
+  private initTrackObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化轨迹对象');
+      return;
+    }
+    
+    // 创建轨迹对象
+    this.trackObj = new TrackObject(mapInstance);
+    
+    logger.debug('轨迹对象初始化成功');
   }
 
   /**
@@ -830,7 +852,7 @@ export class ToolbarObject {
 
   /**
    * 处理工具激活
-   * @param tool 工具
+   * @param tool 工具项
    */
   private handleToolActivation(tool: ToolItem): void {
     if (!tool || !tool.id) return;
@@ -975,6 +997,9 @@ export class ToolbarObject {
           logger.debug('已激活线段绘制工具');
         }
         break;
+      case 'track-player':
+        this.handleTrackPlayerActivate();
+        break;
     }
   }
 
@@ -991,7 +1016,7 @@ export class ToolbarObject {
 
   /**
    * 处理工具停用
-   * @param tool 工具
+   * @param tool 工具项
    */
   private handleToolDeactivation(tool: ToolItem): void {
     if (!tool || !tool.id) return;
@@ -1023,6 +1048,9 @@ export class ToolbarObject {
           this.shapeObj.disable();
           logger.debug(`已停用 ${tool.id} 绘制工具`);
         }
+        break;
+      case 'track-player':
+        this.handleTrackPlayerDeactivate();
         break;
     }
   }
@@ -1404,6 +1432,34 @@ export class ToolbarObject {
   }
 
   /**
+   * 处理轨迹播放器激活
+   */
+  private handleTrackPlayerActivate(): void {
+    // 触发工具状态变化事件，传递轨迹对象
+    this.triggerToolStateChange('track-player', true, 'track-player', { trackObj: this.trackObj });
+    
+    logger.debug('轨迹播放器已激活');
+  }
+
+  /**
+   * 处理轨迹播放器停用
+   */
+  private handleTrackPlayerDeactivate(): void {
+    // 触发工具状态变化事件
+    this.triggerToolStateChange('track-player', false, 'track-player');
+    
+    logger.debug('轨迹播放器已停用');
+  }
+
+  /**
+   * 获取轨迹对象
+   * @returns 轨迹对象
+   */
+  public getTrackObject(): TrackObject | null {
+    return this.trackObj;
+  }
+
+  /**
    * 销毁对象
    */
   destroy(): void {
@@ -1499,6 +1555,12 @@ export class ToolbarObject {
       this.shapeObj = null;
     }
     
+    // 销毁轨迹对象
+    if (this.trackObj) {
+      // 轨迹对象没有destroy方法，暂时不处理
+      this.trackObj = null;
+    }
+    
     // 移除工具状态变化回调
     this.removeToolStateChangeCallback();
     
@@ -1564,225 +1626,5 @@ export class ToolbarObject {
    */
   getShapeObject(): ShapeObject | null {
     return this.shapeObj;
-  }
-
-  /**
-   * 激活删除模式
-   * 允许用户点击图形或标记点来删除特定元素
-   */
-  private activateDeleteMode(): void {
-    const mapInstance = this.mapObj.getMapInstance();
-    if (!mapInstance) return;
-    
-    // 检查是否已有绘制工具激活
-    const drawingTools = ['draw-rectangle', 'draw-circle', 'draw-polygon', 'draw-line', 'draw-square'];
-    for (const toolId of drawingTools) {
-      const tool = this.tools.find(t => t.id === toolId);
-      if (tool && tool.active) {
-        // 如果有绘制工具已激活，先停用它
-        logger.debug(`删除模式激活，需要先停用绘制工具 ${toolId}`);
-        this.deactivateTool(toolId);
-      }
-    }
-    
-    // 修改鼠标指针样式，指示当前处于删除模式
-    if (mapInstance.getTargetElement()) {
-      mapInstance.getTargetElement().style.cursor = 'pointer';
-    }
-    
-    // 创建一个点击监听器，用于处理删除操作
-    const deleteClickListener = (evt: any) => {
-      let hasDeleted = false; // 标记是否已删除了某个要素
-      
-      logger.debug(`删除模式：处理点击事件，坐标: ${evt.pixel.join(',')}`);
-      
-      // 首先尝试检测并删除图形
-      if (this.shapeObj && !hasDeleted) {
-        mapInstance.forEachFeatureAtPixel(
-          evt.pixel,
-          (feature) => {
-            if (hasDeleted) return true;
-            
-            const id = feature.getId() || feature.get('id') || feature.get('id') || feature.get('id');
-            const data = feature.get('data');
-            if(data.dataType === DataType.SHAPE){
-              logger.debug(`发现图形: ${id}`);
-              // 删除图形
-              const success = this.shapeObj!.removeShape(id);
-              if (success) {
-                logger.info(`成功删除图形: ${id}`);
-                hasDeleted = true;
-                return true; // 停止遍历
-              }
-            }
-            return false;
-          },
-          { hitTolerance: 30 }
-        );
-      }
-      
-      // 如果没有删除图形，尝试删除标记点
-      if (!hasDeleted && this.markerObj) {
-        // 尝试方法1: 直接使用forEachFeatureAtPixel遍历所有要素
-        mapInstance.forEachFeatureAtPixel(
-          evt.pixel,
-          (feature) => {
-            if (hasDeleted) return true;
-            
-            // 检查是否为聚合点
-            const features = feature.get('features');
-            if (features && Array.isArray(features) && features.length > 0) {
-              // 是聚合点，检查聚合的第一个要素
-              logger.debug(`发现聚合点，包含 ${features.length} 个标记点`);
-              
-              // 尝试删除聚合中的第一个标记点
-              const firstFeature = features[0];
-              const clusterId = firstFeature.get('id');
-              
-              if(firstFeature.get('dataType') === DataType.MARKER){
-                logger.debug(`尝试删除聚合中的标记点: ${clusterId}`);
-                
-                if (this.markerObj!.getMarker(clusterId)) {
-                  const success = this.markerObj!.removeMarker(clusterId);
-                  if (success) {
-                    logger.info(`成功删除聚合中的标记点: ${clusterId}`);
-                    hasDeleted = true;
-                    return true;
-                  }
-                }
-              }
-              
-              return false;
-            }
-            
-            // 常规标记点处理
-            const markerId = feature.get('id');
-            if(feature.get('dataType') === DataType.MARKER){
-              logger.debug(`发现标记点 (方法1): ${markerId}`);
-              
-              // 检查标记点是否存在
-              if (this.markerObj!.getMarker(markerId)) {
-                const success = this.markerObj!.removeMarker(markerId);
-                if (success) {
-                  logger.info(`成功删除标记点 (方法1): ${markerId}`);
-                  hasDeleted = true;
-                  return true; // 停止遍历
-                }
-              }
-            }
-            
-            return false;
-          },
-          { hitTolerance: 30 }
-        );
-        
-        // 尝试方法2: 使用标记点对象提供的检测方法
-        if (!hasDeleted) {
-          const markerHit = this.markerObj.checkMarkerClick(evt.pixel);
-          if (markerHit && markerHit.id) {
-            logger.debug(`发现标记点 (方法2): ${markerHit.id}`);
-            const success = this.markerObj.removeMarker(markerHit.id);
-            if (success) {
-              logger.info(`成功删除标记点 (方法2): ${markerHit.id}`);
-              hasDeleted = true;
-            }
-          }
-        }
-        
-        // 尝试方法3: 使用点击位置在地图坐标上查找最接近的标记点
-        if (!hasDeleted) {
-          // 将屏幕坐标转换为地图坐标
-          const clickCoordinate = mapInstance.getCoordinateFromPixel(evt.pixel);
-          logger.debug(`点击地图坐标: [${clickCoordinate.join(', ')}]`);
-          
-          // 获取所有标记点
-          const allMarkers = this.markerObj.getAllMarkers();
-          logger.debug(`尝试方法3: 检查 ${allMarkers.length} 个标记点的位置`);
-          
-          // 用于存储最近的标记点
-          let closestMarkerId: string | null = null;
-          let minDistance = Infinity;
-          const hitTolerance = 30 * mapInstance.getView().getResolution()!; // 将屏幕像素转换为地图单位
-          
-          // 查找最近的标记点
-          for (const marker of allMarkers) {
-            if (marker.id && marker.visible !== false && marker.position) {
-              // 获取标记点位置并计算距离
-              const markerCoord = marker.position;
-              // 确保坐标是地图使用的投影
-              const markerMapCoord = mapInstance.getView().getProjection().getCode() === 'EPSG:4326' 
-                ? markerCoord 
-                : fromLonLat(markerCoord);
-                
-              // 计算距离
-              const dx = clickCoordinate[0] - markerMapCoord[0];
-              const dy = clickCoordinate[1] - markerMapCoord[1];
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              
-              if (distance < minDistance && distance < hitTolerance) {
-                minDistance = distance;
-                closestMarkerId = marker.id;
-              }
-            }
-          }
-          
-          // 如果找到了足够近的标记点，删除它
-          if (closestMarkerId) {
-            logger.debug(`找到距离点击位置最近的标记点: ${closestMarkerId}, 距离: ${minDistance}`);
-            const success = this.markerObj.removeMarker(closestMarkerId);
-            if (success) {
-              logger.info(`成功删除最近的标记点 (方法3): ${closestMarkerId}`);
-              hasDeleted = true;
-            }
-          } else {
-            logger.debug('找不到距离点击位置足够近的标记点');
-          }
-        }
-      }
-      
-      if (!hasDeleted) {
-        logger.debug('没有找到要删除的元素');
-      }
-    };
-    
-    // 保存监听器引用，以便后续可以移除
-    (mapInstance as any)._deleteClickListener = mapInstance.on('click', deleteClickListener);
-    
-    logger.info('已激活删除模式，点击图形或标记点可以删除它们');
-    
-    // 修改命令提示
-    if (this.toolStateChangeCallback) {
-      this.toolStateChangeCallback('delete-mode', true, 'mode', {
-        message: '点击要素可以删除它们'
-      });
-    }
-  }
-  
-  /**
-   * 停用删除模式
-   */
-  private deactivateDeleteMode(): void {
-    const mapInstance = this.mapObj.getMapInstance();
-    if (!mapInstance) return;
-    
-    // 恢复鼠标指针样式
-    if (mapInstance.getTargetElement()) {
-      mapInstance.getTargetElement().style.cursor = '';
-    }
-    
-    // 移除点击监听器
-    if ((mapInstance as any)._deleteClickListener) {
-      mapInstance.un('click', (mapInstance as any)._deleteClickListener);
-      delete (mapInstance as any)._deleteClickListener;
-    }
-    
-    logger.info('已停用删除模式');
-    
-    // 修改命令提示
-    if (this.toolStateChangeCallback) {
-      this.toolStateChangeCallback('delete-mode', false, 'mode', {
-        message: '已退出删除模式'
-      });
-    }
   }
 }

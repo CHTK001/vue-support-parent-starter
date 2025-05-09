@@ -26,6 +26,7 @@ import {
   CLUSTER_ICON,
   SQUARE_ICON,
   POLYLINE_ICON,
+  TRACK_PLAYER_ICON,
 } from './icon';
 
 /**
@@ -142,6 +143,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       title: '鹰眼',
       name: '鹰眼',
       multi: true  // 鹰眼工具可以与其它工具同时激活
+    },
+    {
+      id: 'track-player',
+      type: 'toggle',
+      icon: TRACK_PLAYER_ICON,
+      title: '轨迹播放器',
+      name: '轨迹',
+      multi: true  // 轨迹播放器可以与其它工具同时激活
     },
     {
       id: 'marker-toggle',
