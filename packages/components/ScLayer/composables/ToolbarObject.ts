@@ -378,6 +378,32 @@ export class ToolbarObject {
       return;
     }
     
+    // 图层切换按钮的特殊处理
+    if (toolId === 'layer-switch') {
+      // 直接切换图层工具状态
+      const currentActive = !!tool.active;
+      
+      if (currentActive) {
+        // 如果当前已激活，则停用
+        this.deactivateTool(toolId);
+        logger.debug('图层切换工具停用');
+      } else {
+        // 如果当前未激活，则激活
+        this.activateTool(toolId);
+        logger.debug('图层切换工具激活');
+        
+        // 手动触发图层面板显示事件
+        if (this.toolStateChangeCallback) {
+          this.toolStateChangeCallback('layer-panel-visible', true, 'panel', {
+            source: 'layer-switch-click',
+            forced: true
+          });
+        }
+      }
+      
+      return;
+    }
+    
     // 针对不同类型工具进行处理
     if (tool.type === 'button') {
       // 对于按钮类型，如果有子菜单，则像菜单一样处理

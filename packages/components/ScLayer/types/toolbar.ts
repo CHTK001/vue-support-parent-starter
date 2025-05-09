@@ -120,6 +120,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       name: '测距'
     },
     {
+      id: 'layer-switch',
+      type: 'toggle',
+      icon: LAYER_SWITCH_ICON,
+      title: '图层切换',
+      name: '图层',
+      multi: true  // 图层切换工具可以与其它工具同时激活
+    },
+    {
       id: 'coordinate',
       type: 'toggle',
       icon: COORDINATE_ICON,
