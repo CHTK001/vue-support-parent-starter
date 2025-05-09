@@ -1210,13 +1210,8 @@ export class ToolbarObject {
     
     // 通知状态变化，由ScLayer组件处理显示自定义OverviewMap
     if (this.toolStateChangeCallback) {
-      // 发送工具状态变化通知
+      // 发送工具状态变化通知，只发送工具状态变化，而不发送expanded相关的通知
       this.toolStateChangeCallback('overview', true, 'toggle');
-      this.toolStateChangeCallback('overview-map-expanded', true, 'control', {
-        source: 'overview-activate',
-        expanded: true,
-        forced: true
-      });
     }
   }
   

@@ -51,9 +51,49 @@
   pointer-events: none !important;
 }
 
-/* 隐藏OpenLayers默认控件 */
+/* 隐藏OpenLayers默认控件，但保留比例尺 */
 .ol-control {
   display: none !important;
+}
+
+/* 允许比例尺控件显示 */
+.ol-scale-line {
+  display: block !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 4px !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  padding: 2px 5px !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.ol-scale-line-inner {
+  border: 1px solid #333333 !important;
+  border-top: none !important;
+  color: #333333 !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  margin: 1px !important;
+  will-change: contents, width !important;
+  transition: all 0.25s !important;
+}
+
+/* 自定义比例尺样式 */
+.custom-scale-line {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #1890ff !important;
+  padding: 3px 6px !important;
+  font-family: Arial, sans-serif !important;
+  font-weight: normal !important;
+}
+
+.custom-scale-line .ol-scale-line-inner {
+  border-color: #1890ff !important;
+  color: #333333 !important;
+  font-weight: 600 !important;
 }
 
 /* 特别隐藏缩放按钮 */

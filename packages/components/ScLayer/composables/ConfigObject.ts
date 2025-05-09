@@ -45,7 +45,8 @@ export class ConfigObject {
       dragging: true,
       scrollWheelZoom: true,
       showToolbar: true,
-      overviewMapConfig: DEFAULT_OVERVIEW_CONFIG
+      overviewMapConfig: DEFAULT_OVERVIEW_CONFIG,
+      showScaleLine: true // 默认显示比例尺
     };
 
     // 合并用户配置与默认配置
@@ -198,5 +199,21 @@ export class ConfigObject {
    */
   public setZoom(zoom: number): void {
     this.config.zoom = zoom;
+  }
+
+  /**
+   * 检查是否显示比例尺
+   * @returns 是否显示比例尺
+   */
+  public isScaleLineVisible(): boolean {
+    return this.config.showScaleLine !== false; // 默认为true
+  }
+
+  /**
+   * 设置是否显示比例尺
+   * @param visible 是否显示
+   */
+  public setScaleLineVisible(visible: boolean): void {
+    this.config.showScaleLine = visible;
   }
 }

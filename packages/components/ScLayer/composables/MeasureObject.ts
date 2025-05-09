@@ -483,6 +483,41 @@ export class MeasureObject {
     // 更新测量提示样式
     if (this.measureTooltipElement) {
       this.measureTooltipElement.className = 'ol-tooltip ol-tooltip-static';
+      
+      // 添加删除按钮
+      const deleteButton = document.createElement('span');
+      deleteButton.className = 'delete-measure-btn';
+      deleteButton.innerHTML = '×';
+      deleteButton.title = '删除此测量';
+      deleteButton.onclick = (e) => {
+        e.stopPropagation();
+        // 如果当前测量提示有对应的要素，则删除
+        if (this.source && this.measureTooltips.length > 0) {
+          const tooltipToRemove = this.measureTooltips[this.measureTooltips.length - 1];
+          const features = this.source.getFeatures();
+          if (features.length > 0) {
+            // 移除最后添加的要素
+            this.source.removeFeature(features[features.length - 1]);
+          }
+          
+          // 移除提示
+          if (tooltipToRemove && this.mapInstance) {
+            this.mapInstance.removeOverlay(tooltipToRemove);
+            const element = tooltipToRemove.getElement();
+            if (element && element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
+            
+            // 从数组中移除
+            const index = this.measureTooltips.indexOf(tooltipToRemove);
+            if (index !== -1) {
+              this.measureTooltips.splice(index, 1);
+            }
+          }
+        }
+      };
+      
+      this.measureTooltipElement.appendChild(deleteButton);
     }
 
     // 将最后一个提示固定位置
@@ -502,6 +537,11 @@ export class MeasureObject {
     if (this.measureListener) {
       unByKey(this.measureListener);
       this.measureListener = null;
+    }
+    
+    // 刷新图层，使总距离标签更新
+    if (this.source) {
+      this.source.changed();
     }
   }
 
@@ -701,73 +741,121 @@ export class MeasureObject {
         })
       );
       
-      // 添加顶点样式和距离标签
+      // 添加顶点样式
       const coordinates = geometry.getCoordinates();
       
-      // 计算从起点到每个点的距离
-      let cumulativeDistance = 0;
-      let previousCoord = null;
+      // 计算总距离
+      const totalDistance = getLength(geometry);
+      
+      // 检查是否已绘制完成
+      const isDrawComplete = feature.get('drawComplete');
+      
+      // 计算每个节点的累计距离，用于显示在每个节点处
+      let accumulatedDistance = 0;
       
       for (let i = 0; i < coordinates.length; i++) {
         const coord = coordinates[i];
+        const isLastPoint = i === coordinates.length - 1;
+        const isFirstPoint = i === 0;
         
-        // 计算距离
-        if (i > 0 && previousCoord) {
-          const segmentLine = new LineString([previousCoord, coord]);
-          const segmentLength = getLength(segmentLine);
-          cumulativeDistance += segmentLength;
-        }
-        
-        previousCoord = coord;
-        
-        // 添加节点样式 - 增强节点样式使其更明显
+        // 添加节点样式 - 使用ol-tooltip-measure样式
         styles.push(
           new Style({
             geometry: new Point(coord),
             image: new CircleStyle({
-              radius: this.style.point?.radius || 8,  // 增大节点半径
+              radius: isFirstPoint || isLastPoint ? 7 : 5, // 首尾节点稍大
               stroke: new Stroke({
-                color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 1)',  // 更鲜艳的颜色
-                width: this.style.point?.stroke?.width || 3  // 增加边框宽度
+                color: 'rgba(255, 255, 255, 0.8)',
+                width: 2
               }),
               fill: new Fill({
-                color: i === 0 ? 'rgba(24, 144, 255, 0.8)' : 'rgba(255, 255, 255, 0.9)'  // 起点使用特殊颜色
+                color: isFirstPoint ? 'rgba(24, 144, 255, 0.9)' : 
+                      isLastPoint ? 'rgba(0, 177, 89, 0.9)' : 'rgba(24, 144, 255, 0.7)'
               })
             }),
-            zIndex: 10  // 确保节点在线上方
+            zIndex: 10
           })
         );
         
-        // 跳过起点的标签，因为距离为0
+        // 计算当前节点的累计距离
         if (i > 0) {
-          // 添加距离标签 - 使标签更加明显
-          const label = this.formatDistanceLabel(cumulativeDistance);
+          const segment = new LineString([coordinates[i-1], coordinates[i]]);
+          const segmentLength = getLength(segment);
+          accumulatedDistance += segmentLength;
           
-          styles.push(
-            new Style({
-              geometry: new Point(coord),
-              text: new Text({
-                text: label,
-                font: 'bold 13px Arial,sans-serif',  // 增大字体
-                fill: new Fill({
-                  color: '#ffffff'  // 白色文字
+          // 为每个节点添加距离标签（除了起始点）
+          if (!isFirstPoint) {
+            // 格式化累计距离
+            let distanceText = '';
+            if (accumulatedDistance > 1000) {
+              distanceText = `${(Math.round(accumulatedDistance / 10) / 100).toFixed(2)} 公里`;
+            } else {
+              distanceText = `${Math.round(accumulatedDistance * 100) / 100} 米`;
+            }
+            
+            // 添加节点距离标签，区分中间节点和终点
+            styles.push(
+              new Style({
+                geometry: new Point(coord),
+                text: new Text({
+                  text: isLastPoint ? '' : distanceText, // 终点不显示累计距离，只显示总距离
+                  font: '12px Arial,sans-serif',
+                  fill: new Fill({
+                    color: '#ffffff'
+                  }),
+                  backgroundFill: new Fill({
+                    color: 'rgba(24, 144, 255, 0.9)' // 中间节点使用蓝色背景
+                  }),
+                  padding: [3, 5, 3, 5],
+                  offsetY: -18,
+                  textAlign: 'center',
+                  textBaseline: 'middle'
                 }),
-                backgroundFill: new Fill({
-                  color: 'rgba(24, 144, 255, 0.9)'  // 更鲜艳的背景色
-                }),
-                padding: [5, 7, 5, 7],  // 增大内边距
-                stroke: new Stroke({
-                  color: 'rgba(0, 0, 0, 0.2)',  // 添加阴影效果
-                  width: 4
-                }),
-                offsetY: -25,  // 增大偏移量
-                textAlign: 'center',
-                textBaseline: 'middle'
-              }),
-              zIndex: 11  // 确保文字在节点上方
-            })
-          );
+                zIndex: 11
+              })
+            );
+          }
         }
+        
+        // 只在绘制过程中的最后一个点添加总距离标签
+        // 绘制完成后，由Overlay显示总距离，避免重复
+        if (isLastPoint && !isDrawComplete) {
+          // 添加总距离标签 - 使用绿色背景和更大的字体
+          const label = this.formatLength(totalDistance);
+          
+          // 当测量结束后，由Overlay显示总距离，避免重复
+          if (this.sketch) {
+            styles.push(
+              new Style({
+                geometry: new Point(coord),
+                text: new Text({
+                  text: label,
+                  font: 'bold 16px Arial,sans-serif', // 增大字体
+                  fill: new Fill({
+                    color: '#ffffff'
+                  }),
+                  backgroundFill: new Fill({
+                    color: 'rgba(0, 177, 89, 0.9)' // 使用绿色背景
+                  }),
+                  padding: [5, 8, 5, 8], // 增大内边距
+                  stroke: new Stroke({
+                    color: 'rgba(0, 0, 0, 0.2)',
+                    width: 3
+                  }),
+                  offsetY: -30, // 调整位置，避免与节点距离标签重叠
+                  textAlign: 'center',
+                  textBaseline: 'middle'
+                }),
+                zIndex: 12 // 确保总距离标签显示在最上层
+              })
+            );
+          }
+        }
+      }
+      
+      // 当绘制完成后，标记要素
+      if (!isDrawComplete && !this.sketch) {
+        feature.set('drawComplete', true);
       }
     } 
     // 面样式
@@ -808,19 +896,6 @@ export class MeasureObject {
     }
     
     return styles;
-  }
-  
-  /**
-   * 格式化距离标签
-   * @param distance 距离
-   * @returns 格式化后的距离标签
-   */
-  private formatDistanceLabel(distance: number): string {
-    if (distance > 1000) {
-      return `${(Math.round(distance / 10) / 100).toFixed(2)} km`;  // 添加空格使显示更清晰
-    } else {
-      return `${Math.round(distance)} m`;  // 添加空格使显示更清晰
-    }
   }
 }
 
