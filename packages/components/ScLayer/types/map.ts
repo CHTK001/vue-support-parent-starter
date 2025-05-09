@@ -48,6 +48,18 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       attribution: '© 高德地图',
       name: '混合地图',
       projection: 'EPSG:3857'
+    },
+    dark: {
+      url: 'https://webst01.is.autonavi.com/appmaptile?style=3&x={x}&y={y}&z={z}',
+      attribution: '© 高德地图',
+      name: '深色地图',
+      projection: 'EPSG:3857'
+    },
+    light: {
+      url: 'https://webst01.is.autonavi.com/appmaptile?style=4&x={x}&y={y}&z={z}',
+      attribution: '© 高德地图',
+      name: '浅色地图',
+      projection: 'EPSG:3857'
     }
   },
   [MapType.TIANDI]: {
