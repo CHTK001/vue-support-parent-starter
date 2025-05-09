@@ -1206,8 +1206,8 @@ export class ToolbarObject {
     if (this.overviewMapObj) {
       // 明确禁用内置鹰眼，避免重复显示
       this.overviewMapObj.disable();
-    }
-    
+      }
+      
     // 通知状态变化，由ScLayer组件处理显示自定义OverviewMap
             if (this.toolStateChangeCallback) {
       // 发送工具状态变化通知，只发送工具状态变化，而不发送expanded相关的通知
