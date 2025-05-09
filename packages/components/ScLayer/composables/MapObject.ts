@@ -307,63 +307,6 @@ export class MapObject {
   }
 
   /**
-   * 创建底图图层
-   * @returns 地图图层
-   */
-  private createBaseLayer(): TileLayer<any> {
-    const mapType = this.configObject.getMapType();
-    const mapTile = this.configObject.getMapTile();
-    const mapConfig = this.configObject.getMapConfig();
-    
-    const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
-    
-    // 检查配置是否存在
-    if (!mapConfig[mapType] || !mapConfig[mapType][tileType]) {
-      // 默认使用OSM
-      logger.warn(`找不到地图配置 ${mapType}/${tileType}，使用OSM作为默认地图`);
-      return new TileLayer({
-        source: new OSM(),
-        zIndex: 0, // 确保底图的z-index为0
-        visible: true, // 显式设置为可见
-        opacity: 1.0 // 确保不透明
-      });
-    }
-    
-    const apiKey = this.configObject.getMapKey(mapType);
-    const urlConfig = mapConfig[mapType][tileType];
-    
-    // 处理API密钥
-    let url = urlConfig.url;
-    if (url.includes('{key}') && apiKey) {
-      url = url.replace('{key}', apiKey);
-    } else if (url.includes('{key}') && !apiKey) {
-      logger.warn(`地图需要API密钥，但未提供 ${mapType} 的密钥`);
-    }
-    
-    // 获取投影信息
-    const projection = urlConfig.projection || 'EPSG:3857'; // 默认使用Web墨卡托投影
-    
-    logger.debug(`创建图层 ${mapType}/${tileType}，URL: ${url}，投影: ${projection}`);
-    
-    // 创建XYZ图层，确保设置正确的z-index
-    const tileLayer = new TileLayer({
-      source: new XYZ({
-        url: url,
-        attributions: [urlConfig.attribution],
-        projection: projection
-      }),
-      zIndex: 0, // 确保底图的z-index为0
-      visible: true, // 显式设置为可见
-      opacity: 1.0, // 确保不透明
-      properties: {
-        name: `${mapType}-${tileType}` // 添加名称以便于调试
-      }
-    });
-    
-    return tileLayer;
-  }
-
-  /**
    * 配置地图交互选项
    * @param dragging 是否允许拖动
    * @param scrollWheelZoom 是否允许滚轮缩放
@@ -746,5 +689,77 @@ export class MapObject {
       zoom: zoom,
       projection: projection
     });
+  }
+
+  /**
+   * 创建瓦片图层
+   * @param mapType 地图类型
+   * @param mapTile 图层类型
+   * @param mapConfig 地图配置(可选)，如果未提供则使用configObject中的配置
+   * @returns 瓦片图层
+   */
+  public createTileLayer(mapType: MapType, mapTile: MapTile, mapConfig?: any): TileLayer<any> {
+    // 使用传入的mapConfig或从configObject中获取
+    const config = mapConfig || this.configObject.getMapConfig();
+    
+    const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
+    
+    // 检查配置是否存在
+    if (!config[mapType] || !config[mapType][tileType]) {
+      // 默认使用OSM
+      logger.warn(`找不到地图配置 ${mapType}/${tileType}，使用OSM作为默认地图`);
+      return new TileLayer({
+        source: new OSM(),
+        zIndex: 0, // 确保底图的z-index为0
+        visible: true, // 显式设置为可见
+        opacity: 1.0 // 确保不透明
+      });
+    }
+    
+    // 获取API密钥，优先使用configObject中的
+    const apiKey = this.configObject.getMapKey(mapType);
+    const urlConfig = config[mapType][tileType];
+    
+    // 处理API密钥
+    let url = urlConfig.url;
+    if (url.includes('{key}') && apiKey) {
+      url = url.replace('{key}', apiKey);
+    } else if (url.includes('{key}') && !apiKey) {
+      logger.warn(`地图需要API密钥，但未提供 ${mapType} 的密钥`);
+    }
+    
+    // 获取投影信息
+    const projection = urlConfig.projection || 'EPSG:3857'; // 默认使用Web墨卡托投影
+    
+    logger.debug(`创建图层 ${mapType}/${tileType}，URL: ${url}，投影: ${projection}`);
+    
+    // 创建XYZ图层，确保设置正确的z-index
+    const tileLayer = new TileLayer({
+      source: new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection
+      }),
+      zIndex: 0, // 确保底图的z-index为0
+      visible: true, // 显式设置为可见
+      opacity: 1.0, // 确保不透明
+      properties: {
+        name: `${mapType}-${tileType}` // 添加名称以便于调试
+      }
+    });
+    
+    return tileLayer;
+  }
+  
+  /**
+   * 创建底图图层
+   * @returns 地图图层
+   */
+  private createBaseLayer(): TileLayer<any> {
+    const mapType = this.configObject.getMapType();
+    const mapTile = this.configObject.getMapTile();
+    
+    // 调用createTileLayer方法创建图层
+    return this.createTileLayer(mapType, mapTile);
   }
 }

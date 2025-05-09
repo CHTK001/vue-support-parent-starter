@@ -920,7 +920,6 @@ defineExpose({
 .toolbar-item:hover .toolbar-tooltip {
   opacity: 1;
   visibility: visible;
-  z-index: 9999; /* 确保在hover状态下tooltip始终在最上层 */
 }
 
 /* 当子菜单激活时，禁用父菜单的tooltip */
@@ -956,14 +955,6 @@ defineExpose({
   z-index: 2005; /* 确保悬停的按钮在其他按钮之上 */
 }
 
-/* 修正垂直工具栏的tooltip位置 */
-.position-top-left .toolbar-item .toolbar-tooltip {
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 10px;
-}
-
 .position-bottom-left .toolbar-item .toolbar-tooltip {
   left: 100%;
   top: 50%;
@@ -983,29 +974,30 @@ defineExpose({
   /* 右对齐文本 */
 }
 
-/* 水平方向工具栏的提示框位置调整 - 修复被按钮挡住的问题 */
+/* 水平方向工具栏的提示框位置调整 */
 .direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
 .direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
   left: 50%;
-  bottom: 100%; /* 改为显示在按钮上方 */
-  top: auto;
+  top: 100%; /* 改为显示在按钮下方 */
+  bottom: auto;
   transform: translateX(-50%);
   margin-left: 0;
   margin-right: 0;
-  margin-bottom: 8px; /* 与按钮保持适当距离 */
+  margin-top: 10px; /* 设置上边距 */
   text-align: center;
+  z-index: 10000; /* 确保比按钮悬停状态的z-index更高 */
   /* 居中对齐文本 */
 }
 
 .direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
 .direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
   left: 50%;
-  bottom: auto;
-  top: 100%; /* 显示在按钮下方 */
+  bottom: 100%;
+  top: auto;
   transform: translateX(-50%);
   margin-left: 0;
   margin-right: 0;
-  margin-top: 8px; /* 与按钮保持适当距离 */
+  margin-bottom: 10px;
   text-align: center;
   /* 居中对齐文本 */
 }
@@ -1612,6 +1604,41 @@ defineExpose({
 
 .toolbar-item.has-submenu[data-tool-id] .toolbar-submenu.submenu-active {
   display: flex;
+}
+
+/* 确保任何类型工具的子菜单只在打开状态下显示 */
+.toolbar-submenu:not(.submenu-active) {
+  display: none !important;
+}
+
+/* 全局提示框位置修复，确保显示在按钮上方 */
+.direction-horizontal .toolbar-item .toolbar-tooltip {
+  z-index: 10000 !important; /* 最高层级 */
+  margin-bottom: 15px !important; /* 增加与按钮的距离 */
+  bottom: 100% !important; /* 确保在按钮上方 */
+  top: auto !important; /* 禁用顶部定位 */
+}
+
+/* 全局提示框位置修复 */
+.direction-horizontal .toolbar-item .toolbar-tooltip {
+  z-index: 10000 !important; /* 最高层级 */
+}
+
+/* 根据工具栏位置调整tooltip显示位置 */
+/* 底部工具栏tooltip显示在上方 */
+.direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
+.direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
+  bottom: 100% !important; 
+  top: auto !important;
+  margin-bottom: 15px !important;
+}
+
+/* 顶部工具栏tooltip显示在下方 */
+.direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
+.direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
+  top: 100% !important;
+  bottom: auto !important;
+  margin-top: 10px !important;
 }
 </style>
 <style lang="scss">

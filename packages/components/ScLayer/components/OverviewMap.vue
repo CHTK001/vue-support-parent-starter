@@ -35,6 +35,8 @@ import { getCenter } from 'ol/extent';
 // 导入拖动交互控件
 import { DragBox, Translate } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
+// 导入地图类型
+import { MapType } from '../types/map';
 
 // 定义配置接口
 export interface OverviewMapConfig {
@@ -53,6 +55,20 @@ export interface OverviewMapConfig {
   buttonSize?: number;     // 折叠按钮尺寸(px)
   buttonColor?: string;    // 折叠按钮颜色
   buttonBgColor?: string;  // 折叠按钮背景色
+  
+  // 地图类型和瓦片配置
+  mapType?: MapType;       // 地图类型
+  mapTile?: string;        // 地图瓦片类型，如'normal'、'satellite'等
+  map?: {                  // 地图配置对象
+    [key in MapType]?: {
+      [key: string]: {
+        url: string;
+        attribution: string;
+        name: string;
+        projection?: string;
+      }
+    }
+  };
 }
 
 const props = defineProps({
@@ -253,9 +269,8 @@ const createOverviewMap = async () => {
     overviewMap = new Map({
       target: overviewMapContainer.value,
       layers: [
-        new TileLayer({
-          source: new OSM()
-        }),
+        // 根据配置使用指定的地图类型，或者默认使用OSM
+        createTileLayer(),
         viewExtentLayer
       ],
       view: new View({
@@ -529,6 +544,45 @@ onMounted(() => {
 onBeforeUnmount(() => {
   destroyOverviewMap();
 });
+
+// 创建瓦片图层函数
+function createTileLayer() {
+  const config = mergedConfig.value;
+  
+  // 如果有配置map、mapType和mapTile属性，并且主地图对象有获取瓦片图层的方法
+  if (config.map && config.mapType && config.mapTile && props.mainMapObj.createTileLayer) {
+    logger.debug('[Overview] 使用配置的地图类型创建瓦片图层:', config.mapType, config.mapTile);
+    try {
+      // 尝试使用与主地图相同的方法创建瓦片图层
+      return props.mainMapObj.createTileLayer(config.mapType, config.mapTile, config.map);
+    } catch (error) {
+      logger.warn('[Overview] 创建自定义瓦片图层失败，使用默认OSM:', error);
+    }
+  }
+  
+  // 尝试从主地图获取地图类型和瓦片类型
+  try {
+    const mainMapInfo = props.mainMapObj.getConfigObject().config;
+    if (mainMapInfo && mainMapInfo.mapType && mainMapInfo.mapTile && props.mainMapObj.createTileLayer) {
+      logger.debug('[Overview] 使用主地图配置创建瓦片图层:', mainMapInfo.mapType, mainMapInfo.mapTile);
+      
+      // 将主地图配置赋值给鹰眼配置，确保下次创建时使用相同配置
+      if (!config.mapType) config.mapType = mainMapInfo.mapType;
+      if (!config.mapTile) config.mapTile = mainMapInfo.mapTile;
+      if (!config.map) config.map = mainMapInfo.map;
+      
+      return props.mainMapObj.createTileLayer(mainMapInfo.mapType, mainMapInfo.mapTile, mainMapInfo.map);
+    }
+  } catch (error) {
+    logger.warn('[Overview] 从主地图获取配置失败:', error);
+  }
+  
+  // 如果都失败，使用默认的OSM
+  logger.debug('[Overview] 使用默认OSM瓦片图层');
+  return new TileLayer({
+    source: new OSM()
+  });
+}
 </script>
 
 <style lang="scss" scoped>

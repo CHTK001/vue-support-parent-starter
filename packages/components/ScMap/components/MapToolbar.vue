@@ -1654,6 +1654,28 @@ defineExpose({
   position: relative;
   z-index: 2020; /* 确保子菜单项显示在最高层级 */
 }
+
+/* 全局提示框位置修复 */
+.direction-horizontal .toolbar-item .toolbar-tooltip {
+  z-index: 10000 !important; /* 最高层级 */
+}
+
+/* 根据工具栏位置调整tooltip显示位置 */
+/* 底部工具栏tooltip显示在上方 */
+.direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
+.direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
+  bottom: 100% !important; 
+  top: auto !important;
+  margin-bottom: 15px !important;
+}
+
+/* 顶部工具栏tooltip显示在下方 */
+.direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
+.direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
+  top: 100% !important;
+  bottom: auto !important;
+  margin-top: 10px !important;
+}
 </style>
 <style lang="scss">
 .total-distance {
