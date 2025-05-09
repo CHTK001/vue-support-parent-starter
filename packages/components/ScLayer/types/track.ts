@@ -1,4 +1,3 @@
-
 // 轨迹点类型定义
 export interface TrackPoint {
   // 纬度
@@ -17,18 +16,24 @@ export interface TrackPoint {
   info?: Array<{key: string, value: string}>;
 }
 
-// 图标与速度分组接口
+// 图标速度分组
 export interface IconSpeedGroup {
-  // 最小速度范围（km/h），大于等于此速度
+  // 最小速度（包含）
   minSpeed: number;
-  // 最大速度范围（km/h），小于等于此速度
+  // 最大速度（不包含）
   maxSpeed: number;
-  // 该速度下显示的图标URL
+  // 图标URL
   iconUrl: string;
-  // 图标宽度（可选）
-  width?: number;
-  // 图标高度（可选）
-  height?: number;
+}
+
+//播放参数
+export interface TrackPlayer {
+  // 是否循环播放
+  loop: boolean;
+  // 播放速度(km/h默认速度)
+  speed: number;
+  // 是否跟随相机
+  withCamera: boolean;
 }
 
 // 轨迹数据接口

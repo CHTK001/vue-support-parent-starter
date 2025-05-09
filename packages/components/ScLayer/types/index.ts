@@ -26,6 +26,11 @@ export enum DataType {
   MARKER = 'marker',
   /** 图形 */
   SHAPE = 'shape',
+  /** 轨迹 */
+  TRACK = 'track',
+  /** 轨迹点 */
+  TRACK_POINT = 'track_point',
+  /** 弹窗 */
   POPOVER = 'popover'
 }
 // 地图类型配置

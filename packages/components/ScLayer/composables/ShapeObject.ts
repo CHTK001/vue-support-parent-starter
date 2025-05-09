@@ -208,11 +208,11 @@ export class ShapeObject {
     // 根据不同类型创建不同的绘制交互
     switch (this.currentType) {
       case 'Rectangle':
-        type = 'Circle';
-        geometryFunction = createBox();
+      type = 'Circle';
+      geometryFunction = createBox();
         break;
       case 'Square':
-        type = 'Circle';
+      type = 'Circle';
         geometryFunction = createRegularPolygon(4);
         break;
       default:
@@ -231,7 +231,7 @@ export class ShapeObject {
 
     // 添加交互到地图
     this.mapInstance.addInteraction(this.draw);
-
+    
     // 创建捕捉交互
     this.snap = new Snap({ source: this.source });
     this.mapInstance.addInteraction(this.snap);
@@ -254,7 +254,7 @@ export class ShapeObject {
       this.mapInstance.removeInteraction(this.draw);
       this.draw = null;
     }
-
+    
     // 移除捕捉交互
     if (this.snap) {
       this.mapInstance.removeInteraction(this.snap);
@@ -330,12 +330,12 @@ export class ShapeObject {
     // 为多边形创建顶点样式
     const geometry = feature.getGeometry();
     if (geometry instanceof Polygon) {
-      const createVertexStyles = (coordinates: number[][]): Style[] => {
-        return coordinates.map(coord => new Style({
-          geometry: new Point(coord),
-        }));
-      };
-      
+    const createVertexStyles = (coordinates: number[][]): Style[] => {
+      return coordinates.map(coord => new Style({
+        geometry: new Point(coord),
+      }));
+    };
+    
       const coordinates = geometry.getCoordinates()[0];
       styles.push(...createVertexStyles(coordinates));
     }
@@ -458,12 +458,12 @@ export class ShapeObject {
   public destroy(): void {
     // 移除交互
     this.removeInteraction();
-    
+
     // 移除图层
     if (this.mapInstance && this.layer) {
       this.mapInstance.removeLayer(this.layer);
     }
-    
+
     // 清除数据
     this.source.clear();
     this.shapes.clear();
@@ -741,4 +741,4 @@ export class ShapeObject {
  */
 export function createShapeObject(mapInstance?: OlMap): ShapeObject {
   return new ShapeObject(mapInstance);
-} 
+}
