@@ -1,6 +1,6 @@
 <!-- 轨迹播放器组件 -->
 <template>
-  <div class="track-player" :class="{ 'collapsed': collapsed }" :style="trackPlayerStyle" @click="collapsed && toggleCollapse()">
+  <div class="track-player" :class="{ 'collapsed': collapsed, 'playing': playState === 'playing' }" :style="trackPlayerStyle" @click="collapsed && toggleCollapse()">
     <!-- 标题栏 -->
     <div class="track-player-header">
       <div class="track-player-title">轨迹播放器</div>
@@ -90,7 +90,8 @@
 
     <!-- 折叠状态时显示的图标 -->
     <div class="collapsed-icon" v-if="collapsed">
-      <span>+</span>
+      <span v-if="playState === 'playing'" class="playing-indicator">▶</span>
+      <span v-else>+</span>
     </div>
     
     <!-- 播放器主体内容 -->
@@ -389,16 +390,6 @@ onBeforeUnmount(() => {
 
 // 切换收缩/展开状态
 const toggleCollapse = () => {
-  // 如果正在播放轨迹，先暂停播放以减少资源占用
-  if (activeTrackId.value && playState.value === 'playing') {
-    // 仅在需要折叠时暂停播放
-    if (!collapsed.value) {
-      props.trackObj.pause(activeTrackId.value);
-      playState.value = 'paused';
-      stopProgressTimer();
-    }
-  }
-  
   // 更改折叠状态
   collapsed.value = !collapsed.value;
   
@@ -942,6 +933,12 @@ const applyConfig = () => {
   cursor: pointer; /* 添加指针样式表明可点击 */
 }
 
+/* 播放中的折叠状态样式 */
+.track-player.collapsed.playing {
+  box-shadow: 0 0 0 rgba(24, 144, 255, 0.4);
+  animation: pulse-border 2s infinite;
+}
+
 .track-player-header {
   display: flex;
   justify-content: space-between;
@@ -1343,9 +1340,29 @@ const applyConfig = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fff;
   font-size: 20px;
   font-weight: bold;
+}
+
+.playing-indicator {
+  animation: pulse 1.5s infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .track-speed-control {
@@ -1572,5 +1589,17 @@ const applyConfig = () => {
 
 .settings-option.disabled input[type="checkbox"] {
   cursor: not-allowed;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
 }
 </style> 
