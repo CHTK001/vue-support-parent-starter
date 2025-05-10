@@ -31,7 +31,9 @@ export enum DataType {
   /** 轨迹点 */
   TRACK_POINT = 'track_point',
   /** 弹窗 */
-  POPOVER = 'popover'
+  POPOVER = 'popover',
+  /** 网格 */
+  GRID = 'grid'
 }
 // 地图类型配置
 export interface MapConfig {

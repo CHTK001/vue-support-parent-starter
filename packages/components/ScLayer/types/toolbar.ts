@@ -27,6 +27,9 @@ import {
   SQUARE_ICON,
   POLYLINE_ICON,
   TRACK_PLAYER_ICON,
+  GRID_ICON,
+  GEOHASH_GRID_ICON,
+  H3_GRID_ICON,
 } from './icon';
 
 /**
@@ -167,6 +170,30 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       title: '轨迹播放器',
       name: '轨迹',
       multi: true  // 轨迹播放器可以与其它工具同时激活
+    },
+    {
+      id: 'grid',
+      type: 'menu',
+      icon: GRID_ICON,
+      title: '网格',
+      name: '网格',
+      multi: true, // 网格工具可以与其它工具同时激活
+      children: [
+        {
+          id: 'grid-geohash',
+          type: 'toggle',
+          icon: GEOHASH_GRID_ICON,
+          title: 'GeoHash网格',
+          name: 'GeoHash'
+        },
+        {
+          id: 'grid-hexagon',
+          type: 'toggle',
+          icon: H3_GRID_ICON,
+          title: '蜂窝网格',
+          name: '蜂窝'
+        }
+      ]
     },
     {
       id: 'marker-toggle',

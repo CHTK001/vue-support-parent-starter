@@ -14,6 +14,7 @@ import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
 import { TrackObject } from './TrackObject';
+import { GridObject, GridType } from './GridObject';
 import { AggregationOptions } from '../types/cluster';
 import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
@@ -69,6 +70,9 @@ export class ToolbarObject {
     ]
   };
 
+  // 网格对象
+  private gridObj: GridObject | null = null;
+
   /**
    * 构造函数
    * @param config 工具栏配置
@@ -78,6 +82,17 @@ export class ToolbarObject {
     this.config = config || DEFAULT_TOOLBAR_CONFIG;
     this.mapObj = mapObj;
     this.tools = [...(this.config.items || [])];
+    
+    // 将toolbarObj对象保存到地图元素中，使其可以被其他组件访问
+    const mapInstance = this.mapObj.getMapInstance();
+    if (mapInstance) {
+      const targetElement = mapInstance.getTargetElement();
+      if (targetElement) {
+        targetElement['toolbarObj'] = this;
+        logger.debug('toolbarObj对象已保存到地图元素中');
+      }
+    }
+    
     // 设置默认的坐标回调函数，避免每次激活时判断
     this.coordinateCallback = (coordinate) => {
       logger.debug('坐标更新:', 
@@ -103,6 +118,9 @@ export class ToolbarObject {
     
     // 初始化轨迹对象
     this.initTrackObject();
+    
+    // 初始化网格对象
+    this.initGridObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -343,6 +361,22 @@ export class ToolbarObject {
     this.trackObj = new TrackObject(mapInstance);
     
     logger.debug('轨迹对象初始化成功');
+  }
+
+  /**
+   * 初始化网格对象
+   */
+  private initGridObject(): void {
+    // 获取地图实例
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例未创建，无法初始化网格对象');
+      return;
+    }
+    
+    // 创建网格对象
+    this.gridObj = new GridObject(mapInstance);
+    logger.debug('网格对象已初始化');
   }
 
   /**
@@ -882,6 +916,9 @@ export class ToolbarObject {
       case 'cluster':
         this.handleClusterActivate();
         break;
+      case 'track-player':
+        this.handleTrackPlayerActivate();
+        break;
       case 'marker-toggle':
         this.handleButtonActivation(tool);
         // 切换标记点显示/隐藏
@@ -997,8 +1034,11 @@ export class ToolbarObject {
           logger.debug('已激活线段绘制工具');
         }
         break;
-      case 'track-player':
-        this.handleTrackPlayerActivate();
+      case 'grid-geohash':
+        this.handleGridActivate(GridType.GEOHASH);
+        break;
+      case 'grid-hexagon':
+        this.handleGridActivate(GridType.HEXAGON);
         break;
     }
   }
@@ -1038,6 +1078,9 @@ export class ToolbarObject {
         // 停用删除模式
         this.deactivateDeleteMode();
         break;
+      case 'track-player':
+        this.handleTrackPlayerDeactivate();
+        break;
       case 'draw-rectangle':
       case 'draw-circle':
       case 'draw-polygon':
@@ -1049,8 +1092,9 @@ export class ToolbarObject {
           logger.debug(`已停用 ${tool.id} 绘制工具`);
         }
         break;
-      case 'track-player':
-        this.handleTrackPlayerDeactivate();
+      case 'grid-geohash':
+      case 'grid-hexagon':
+        this.handleGridDeactivate(tool.id.includes('geohash') ? GridType.GEOHASH : GridType.HEXAGON);
         break;
     }
   }
@@ -1435,6 +1479,16 @@ export class ToolbarObject {
    * 处理轨迹播放器激活
    */
   private handleTrackPlayerActivate(): void {
+    // 确保工具真正被标记为激活
+    const trackPlayerTool = this.tools.find(tool => tool.id === 'track-player');
+    if (trackPlayerTool) {
+      trackPlayerTool.active = true;
+      this.activeToolId = 'track-player';
+      logger.debug('轨迹播放器工具已设置为激活状态');
+    } else {
+      logger.warn('找不到轨迹播放器工具，无法设置激活状态');
+    }
+    
     // 触发工具状态变化事件，传递轨迹对象
     this.triggerToolStateChange('track-player', true, 'track-player', { trackObj: this.trackObj });
     
@@ -1445,6 +1499,16 @@ export class ToolbarObject {
    * 处理轨迹播放器停用
    */
   private handleTrackPlayerDeactivate(): void {
+    // 确保工具真正被标记为非激活
+    const trackPlayerTool = this.tools.find(tool => tool.id === 'track-player');
+    if (trackPlayerTool) {
+      trackPlayerTool.active = false;
+      if (this.activeToolId === 'track-player') {
+        this.activeToolId = null;
+      }
+      logger.debug('轨迹播放器工具已设置为非激活状态');
+    }
+    
     // 触发工具状态变化事件
     this.triggerToolStateChange('track-player', false, 'track-player');
     
@@ -1457,6 +1521,59 @@ export class ToolbarObject {
    */
   public getTrackObject(): TrackObject | null {
     return this.trackObj;
+  }
+
+  /**
+   * 处理网格工具激活
+   * @param gridType 网格类型
+   */
+  private handleGridActivate(gridType: GridType): void {
+    if (!this.gridObj) {
+      logger.warn('网格对象不存在，无法启用网格功能');
+      return;
+    }
+    
+    // 启用对应类型的网格
+    this.gridObj.enable(gridType);
+    logger.debug(`${gridType === GridType.GEOHASH ? 'GeoHash' : '蜂窝'}网格已启用`);
+    
+    // 触发工具状态变化回调
+    if (this.toolStateChangeCallback) {
+      this.toolStateChangeCallback('grid-active', true, 'feature', {
+        gridType,
+        source: 'grid-activate'
+      });
+    }
+  }
+  
+  /**
+   * 处理网格工具停用
+   * @param gridType 网格类型
+   */
+  private handleGridDeactivate(gridType: GridType): void {
+    if (!this.gridObj) {
+      return;
+    }
+    
+    // 禁用对应类型的网格
+    this.gridObj.disable(gridType);
+    logger.debug(`${gridType === GridType.GEOHASH ? 'GeoHash' : '蜂窝'}网格已禁用`);
+    
+    // 触发工具状态变化回调
+    if (this.toolStateChangeCallback) {
+      this.toolStateChangeCallback('grid-active', false, 'feature', {
+        gridType,
+        source: 'grid-deactivate'
+      });
+    }
+  }
+  
+  /**
+   * 获取网格对象
+   * @returns 网格对象
+   */
+  public getGridObject(): GridObject | null {
+    return this.gridObj;
   }
 
   /**
@@ -1491,6 +1608,14 @@ export class ToolbarObject {
               
             case 'cluster':
               this.disableCluster();
+              break;
+              
+            case 'grid-geohash':
+              this.handleGridDeactivate(GridType.GEOHASH);
+              break;
+              
+            case 'grid-hexagon':
+              this.handleGridDeactivate(GridType.HEXAGON);
               break;
               
             default:
@@ -1559,6 +1684,22 @@ export class ToolbarObject {
     if (this.trackObj) {
       // 轨迹对象没有destroy方法，暂时不处理
       this.trackObj = null;
+    }
+    
+    // 销毁网格对象
+    if (this.gridObj) {
+      this.gridObj.destroy();
+      this.gridObj = null;
+    }
+    
+    // 移除对toolbarObj的引用
+    const mapInstance = this.mapObj.getMapInstance();
+    if (mapInstance) {
+      const targetElement = mapInstance.getTargetElement();
+      if (targetElement && targetElement['toolbarObj']) {
+        delete targetElement['toolbarObj'];
+        logger.debug('已从地图元素中移除toolbarObj引用');
+      }
     }
     
     // 移除工具状态变化回调

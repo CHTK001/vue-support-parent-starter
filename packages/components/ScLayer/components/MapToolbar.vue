@@ -48,9 +48,9 @@
               <component v-else-if="nestedTool.icon || (isToolActive(nestedTool.id) && nestedTool.activeIcon)" :is="isToolActive(nestedTool.id) && nestedTool.activeIcon ? nestedTool.activeIcon : nestedTool.icon" class="submenu-icon" />
               <div class="toolbar-tooltip">
                 {{ nestedTool.tooltip || nestedTool.name }}
-        </div>
-      </div>
-    </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ const visible = ref(true); // 控制工具栏整体显示/隐藏
 const openSubMenus = ref<string[]>([]);
 const isCollapsed = ref(false);
 
-// 组件挂载时初始化收缩状态
+// 在setup函数结束前添加teleport逻辑，用于将子菜单移动到body下
 onMounted(() => {
   // 尝试从localStorage读取收缩状态
   try {
@@ -209,7 +209,54 @@ onMounted(() => {
   } catch (e) {
     console.error('读取工具栏状态失败:', e);
   }
+
+  // 为子菜单创建全局样式
+  createGlobalStyles();
 });
+
+// 创建全局样式以确保子菜单在最高层级显示
+const createGlobalStyles = () => {
+  // 检查是否已存在我们的全局样式
+  if (document.getElementById('toolbar-submenu-styles')) {
+    return;
+  }
+
+  // 创建style元素
+  const styleEl = document.createElement('style');
+  styleEl.id = 'toolbar-submenu-styles';
+  
+  // 设置高优先级样式
+  styleEl.innerHTML = `
+    .toolbar-submenu {
+      z-index: 999999 !important;
+      position: fixed !important;
+    }
+    .toolbar-submenu.submenu-active {
+      display: flex !important;
+      z-index: 999999 !important;
+    }
+    body > .toolbar-submenu-container {
+      position: fixed;
+      z-index: 999999 !important;
+      pointer-events: none;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    body > .toolbar-submenu-container > .toolbar-submenu {
+      pointer-events: auto;
+    }
+  `;
+  
+  // 添加到head
+  document.head.appendChild(styleEl);
+  
+  // 创建子菜单容器
+  const container = document.createElement('div');
+  container.className = 'toolbar-submenu-container';
+  document.body.appendChild(container);
+};
 
 // 关闭窗口点击事件监听器函数引用
 let globalClickListener: ((e: MouseEvent) => void) | null = null;
@@ -276,7 +323,7 @@ const updateActiveTools = () => {
   forceUpdateKey.value++;
 };
 
-// 处理工具点击
+// 处理工具点击 - 修改处理子菜单显示的逻辑
 const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   if (tool.disabled) return;
 
@@ -287,32 +334,93 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
     event
   });
 
-  // 处理菜单工具或有子菜单的按钮工具
-  if (tool.type === 'menu' || (tool.type === 'button' && tool.children?.length)) {
-    const menuIndex = openSubMenus.value.indexOf(tool.id);
-    if (menuIndex === -1) {
-      // 打开子菜单
-      openSubMenus.value.push(tool.id);
-      emit('submenu-open', tool.id);
+  // 处理有子菜单的工具
+  if ((tool.type === 'menu' || tool.type === 'button') && tool.children?.length) {
+    // 获取按钮元素
+    const toolBtn = event.currentTarget as HTMLElement;
+    if (toolBtn) {
+      // 记录工具ID，下面处理子菜单时会用到
+      const toolId = tool.id;
+      const menuIndex = openSubMenus.value.indexOf(toolId);
       
-      // 添加点击外部关闭子菜单的处理
-      if (!globalClickListener) {
-        globalClickListener = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          // 检查点击是否在子菜单外部
-          if (!target.closest('.toolbar-submenu') && !target.closest(`[data-tool-id="${tool.id}"]`)) {
-            closeAllSubMenus();
-          }
-        };
-        // 延迟添加监听器，避免与当前点击冲突
+      if (menuIndex === -1) {
+        // 打开子菜单 - 先获取位置信息
+        const rect = toolBtn.getBoundingClientRect();
+        
+        // 将子菜单元素移动到body下的容器中
         nextTick(() => {
-          document.addEventListener('click', globalClickListener as EventListener);
+          // 找到对应子菜单
+          const submenu = toolBtn.querySelector('.toolbar-submenu') as HTMLElement;
+          if (submenu) {
+            // 克隆子菜单以保留事件处理器
+            const submenuClone = submenu.cloneNode(true) as HTMLElement;
+            submenuClone.classList.add('submenu-active', 'submenu-teleported');
+            submenuClone.setAttribute('data-parent-tool', toolId);
+            
+            // 设置位置样式
+            if (config.value.direction === 'horizontal') {
+              submenuClone.style.top = `${rect.bottom + 5}px`;
+              submenuClone.style.left = `${rect.left}px`;
+            } else {
+              submenuClone.style.top = `${rect.top}px`;
+              submenuClone.style.left = `${rect.right + 5}px`;
+            }
+            
+            // 获取全局容器
+            const container = document.querySelector('.toolbar-submenu-container');
+            if (container) {
+              // 移除之前可能存在的相同工具子菜单
+              const oldSubmenu = container.querySelector(`[data-parent-tool="${toolId}"]`);
+              if (oldSubmenu) {
+                container.removeChild(oldSubmenu);
+              }
+              
+              // 添加到容器
+              container.appendChild(submenuClone);
+              
+              // 为子菜单项添加点击事件
+              const menuItems = submenuClone.querySelectorAll('.submenu-item');
+              menuItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  // 获取子菜单项ID
+                  const subToolId = item.getAttribute('data-tool-id');
+                  if (subToolId) {
+                    // 找到对应子工具
+                    const subTool = tool.children?.find(t => t.id === subToolId);
+                    if (subTool) {
+                      // 手动触发子菜单点击事件
+                      handleSubMenuClick(tool, subTool, e as MouseEvent);
+                    }
+                  }
+                });
+              });
+            }
+          }
         });
+        
+        // 记录已打开的子菜单
+        openSubMenus.value.push(toolId);
+        emit('submenu-open', toolId);
+        
+        // 添加点击外部关闭子菜单的处理
+        if (!globalClickListener) {
+          globalClickListener = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            // 检查点击是否在子菜单外部
+            if (!target.closest('.toolbar-submenu') && !target.closest(`[data-tool-id="${toolId}"]`)) {
+              closeAllSubMenus();
+            }
+          };
+          // 延迟添加监听器，避免与当前点击冲突
+          nextTick(() => {
+            document.addEventListener('click', globalClickListener as EventListener);
+          });
+        }
+      } else {
+        // 关闭子菜单
+        closeSubMenu(toolId);
       }
-    } else {
-      // 关闭子菜单
-      openSubMenus.value.splice(menuIndex, 1);
-      emit('submenu-close', tool.id);
     }
   }
 
@@ -348,91 +456,44 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   }
 };
 
-// 处理子菜单项点击
-const handleSubMenuClick = (parentTool: ToolItem, subTool: ToolItem, event: MouseEvent) => {
-  if (subTool.disabled) return;
-
-  // 向父组件发送事件
-  emit('submenu-item-click', {
-    parentToolId: parentTool.id,
-    toolId: subTool.id,
-    parentTool,
-    tool: subTool,
-    event
-  });
-  
-  // 处理子菜单工具或有子菜单的按钮工具
-  if (subTool.type === 'menu' || (subTool.type === 'button' && subTool.children?.length)) {
-    // 对于有子菜单的工具，不关闭父菜单
+// 关闭特定的子菜单
+const closeSubMenu = (toolId: string) => {
+  const menuIndex = openSubMenus.value.indexOf(toolId);
+  if (menuIndex !== -1) {
+    // 移除子菜单状态
+    openSubMenus.value.splice(menuIndex, 1);
     
-    const menuIndex = openSubMenus.value.indexOf(subTool.id);
-    if (menuIndex === -1) {
-      // 打开子菜单
-      openSubMenus.value.push(subTool.id);
-      emit('submenu-open', subTool.id);
-    } else {
-      // 关闭子菜单
-      openSubMenus.value.splice(menuIndex, 1);
-      emit('submenu-close', subTool.id);
-    }
-  } else {
-    // 对于没有子菜单的工具，点击后关闭父菜单
-    const menuIndex = openSubMenus.value.indexOf(parentTool.id);
-    if (menuIndex !== -1) {
-      openSubMenus.value.splice(menuIndex, 1);
-      emit('submenu-close', parentTool.id);
-    }
-  }
-
-  // 使用toolbarObj处理子菜单项点击
-  if (toolbarObj.value) {
-    try {
-      console.debug(`点击子菜单项 ${subTool.id} 前状态: ${isToolActive(subTool.id) ? '激活' : '未激活'}`);
-      
-      // 调用工具栏对象的处理方法
-      toolbarObj.value.handleSubMenuClick(parentTool.id, subTool.id);
-      
-      // 手动更新工具状态并强制刷新视图
-      nextTick(() => {
-        updateActiveTools();
-        
-        // 获取最新状态
-        const isActive = isToolActive(subTool.id);
-        console.debug(`点击子菜单项 ${subTool.id} 后状态: ${isActive ? '激活' : '未激活'}`);
-        
-        // 发送相应事件
-        if (isActive) {
-          emit('tool-activated', subTool.id);
-        } else {
-          emit('tool-deactivated', subTool.id);
-        }
-      });
-    } catch (error) {
-      console.error(`处理子菜单项 ${subTool.id} 点击事件失败:`, error);
-    }
-  } else {
-    // 兼容旧逻辑
-    // 处理切换类型工具
-    if (subTool.type === 'toggle') {
-      const active = !isToolActive(subTool.id);
-      if (active) {
-        emit('tool-activated', subTool.id);
-      } else {
-        emit('tool-deactivated', subTool.id);
+    // 从DOM中移除子菜单元素
+    const container = document.querySelector('.toolbar-submenu-container');
+    if (container) {
+      const submenu = container.querySelector(`[data-parent-tool="${toolId}"]`);
+      if (submenu) {
+        container.removeChild(submenu);
       }
-    } else {
-      // 其他类型工具直接触发激活事件
-      emit('tool-activated', subTool.id);
     }
+    
+    emit('submenu-close', toolId);
   }
 };
 
 // 关闭所有子菜单
 const closeAllSubMenus = () => {
   if (openSubMenus.value.length > 0) {
+    // 从DOM中移除所有子菜单
+    const container = document.querySelector('.toolbar-submenu-container');
+    if (container) {
+      const submenus = container.querySelectorAll('.toolbar-submenu');
+      submenus.forEach(submenu => {
+        container.removeChild(submenu);
+      });
+    }
+    
+    // 发送关闭事件
     openSubMenus.value.forEach(menuId => {
       emit('submenu-close', menuId);
     });
+    
+    // 清空打开状态
     openSubMenus.value = [];
   }
 
@@ -614,6 +675,81 @@ defineExpose({
     toolbarObj.value = obj;
   }
 });
+
+// 处理子菜单项点击
+const handleSubMenuClick = (parentTool: ToolItem, subTool: ToolItem, event: MouseEvent) => {
+  if (subTool.disabled) return;
+
+  // 向父组件发送事件
+  emit('submenu-item-click', {
+    parentToolId: parentTool.id,
+    toolId: subTool.id,
+    parentTool,
+    tool: subTool,
+    event
+  });
+  
+  // 处理子菜单工具或有子菜单的按钮工具
+  if (subTool.type === 'menu' || (subTool.type === 'button' && subTool.children?.length)) {
+    // 对于有子菜单的工具，不关闭父菜单
+    
+    const menuIndex = openSubMenus.value.indexOf(subTool.id);
+    if (menuIndex === -1) {
+      // 打开子菜单
+      openSubMenus.value.push(subTool.id);
+      emit('submenu-open', subTool.id);
+    } else {
+      // 关闭子菜单
+      openSubMenus.value.splice(menuIndex, 1);
+      emit('submenu-close', subTool.id);
+    }
+  } else {
+    // 对于没有子菜单的工具，点击后关闭父菜单
+    closeSubMenu(parentTool.id);
+  }
+
+  // 使用toolbarObj处理子菜单项点击
+  if (toolbarObj.value) {
+    try {
+      console.debug(`点击子菜单项 ${subTool.id} 前状态: ${isToolActive(subTool.id) ? '激活' : '未激活'}`);
+      
+      // 调用工具栏对象的处理方法
+      toolbarObj.value.handleSubMenuClick(parentTool.id, subTool.id);
+      
+      // 手动更新工具状态并强制刷新视图
+      nextTick(() => {
+        updateActiveTools();
+        
+        // 获取最新状态
+        const isActive = isToolActive(subTool.id);
+        console.debug(`点击子菜单项 ${subTool.id} 后状态: ${isActive ? '激活' : '未激活'}`);
+        
+        // 发送相应事件
+        if (isActive) {
+          emit('tool-activated', subTool.id);
+        } else {
+          emit('tool-deactivated', subTool.id);
+        }
+      });
+    } catch (error) {
+      console.error(`处理子菜单项 ${subTool.id} 点击事件失败:`, error);
+    }
+  } else {
+    // 兼容旧逻辑
+    // 处理切换类型工具
+    if (subTool.type === 'toggle') {
+      const active = !isToolActive(subTool.id);
+      if (active) {
+        emit('tool-activated', subTool.id);
+      } else {
+        emit('tool-deactivated', subTool.id);
+      }
+    } else {
+      // 其他类型工具直接触发激活事件
+      emit('tool-activated', subTool.id);
+    }
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1146,12 +1282,12 @@ defineExpose({
 /* 确保子菜单在点击时不会被意外关闭 */
 .toolbar-submenu.submenu-active {
   pointer-events: auto;
-  z-index: 3010; /* 激活的子菜单位于更高层级 */
+  z-index: 20000 !important; /* 显著提高激活的子菜单层级 */
 }
 
 /* 子菜单项hover状态 */
 .toolbar-submenu .submenu-item:hover {
-  z-index: 3020; /* 子菜单项在子菜单之上 */
+  z-index: 20001 !important; /* 确保子菜单项在悬停时显示在最上层 */
 }
 
 /* 横向排列时的子菜单指示器 */
@@ -1167,12 +1303,13 @@ defineExpose({
   transform: translateY(-50%);
 }
 
+/* 子菜单样式 */
 .toolbar-submenu {
-  position: absolute;
+  position: absolute; /* 使用绝对定位 */
   background-color: #ffffff;
   border-radius: 4px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  z-index: 3000; /* 高于工具栏的层级 */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important; /* 增强阴影 */
+  z-index: 99999 !important; /* 使用最高层级 */
   display: none;
   padding: 4px;
   transform-origin: top left;
@@ -1180,15 +1317,14 @@ defineExpose({
 
   &.submenu-active {
     display: flex;
-    z-index: 3010; /* 激活的子菜单位于更高层级 */
+    z-index: 99999 !important; /* 使用最高层级 */
   }
 
   /* 横向排列的子菜单 */
   &.direction-horizontal {
     top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 8px;
+    left: 0;
+    margin-top: 5px;
     display: flex;
     flex-direction: row;
 
@@ -1196,58 +1332,13 @@ defineExpose({
     .submenu-arrow {
       position: absolute;
       top: -8px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 20px;
       width: 0;
       height: 0;
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
       border-bottom: 8px solid #ffffff;
-      z-index: 2011;
-    }
-
-    /* 在右侧边缘时左对齐 */
-    .position-top-right &,
-    .position-bottom-right & {
-      left: auto;
-      right: 0;
-      transform: none;
-
-      .submenu-arrow {
-        left: auto;
-        right: calc(50% - 20px);
-        /* 相对于子菜单项居中 */
-        transform: none;
-      }
-    }
-
-    /* 在左侧边缘时右对齐 */
-    .position-top-left &,
-    .position-bottom-left & {
-      left: 0;
-      transform: none;
-
-      .submenu-arrow {
-        left: calc(50% - 20px);
-        /* 相对于子菜单项居中 */
-        transform: none;
-      }
-    }
-
-    /* 当工具栏在底部时，子菜单显示在上方 */
-    .position-bottom-left &,
-    .position-bottom-right & {
-      top: auto;
-      bottom: 100%;
-      margin-top: 0;
-      margin-bottom: 8px;
-
-      .submenu-arrow {
-        top: auto;
-        bottom: -8px;
-        border-bottom: none;
-        border-top: 8px solid #ffffff;
-      }
+      z-index: 99999;
     }
   }
 
@@ -1255,7 +1346,7 @@ defineExpose({
   &.direction-vertical {
     top: 0;
     left: 100%;
-    margin-left: 8px;
+    margin-left: 5px;
     display: flex;
     flex-direction: column;
 
@@ -1263,7 +1354,6 @@ defineExpose({
     .submenu-arrow {
       position: absolute;
       top: 18px;
-      /* 约为按钮高度的一半 */
       left: -8px;
       transform: translateY(-50%);
       width: 0;
@@ -1271,32 +1361,7 @@ defineExpose({
       border-top: 8px solid transparent;
       border-bottom: 8px solid transparent;
       border-right: 8px solid #ffffff;
-      z-index: 2011;
-    }
-
-    /* 位于右侧时的子菜单 */
-    .position-top-right &,
-    .position-bottom-right & {
-      left: auto;
-      right: 100%;
-      margin-right: 8px;
-      margin-left: 0;
-
-      .submenu-arrow {
-        left: auto;
-        right: -8px;
-        top: 18px;
-        /* 与左侧保持一致 */
-        border-right: none;
-        border-left: 8px solid #ffffff;
-      }
-    }
-
-    /* 位于底部时的子菜单 */
-    .position-bottom-left &,
-    .position-bottom-right & {
-      top: auto;
-      bottom: 0;
+      z-index: 99999;
     }
   }
 
@@ -1313,6 +1378,7 @@ defineExpose({
   }
 }
 
+/* 子菜单项样式 */
 .submenu-item {
   margin: 4px;
 
@@ -1348,44 +1414,23 @@ defineExpose({
   }
 }
 
-/* 特殊处理子菜单项的图标样式，确保不受父菜单影响 */
-.color-override {
-  /* 重置继承的颜色 */
-  color: #666666 !important;
+/* 嵌套子菜单特殊处理 */
+.nested-submenu.toolbar-submenu {
+  position: absolute; /* 嵌套子菜单使用绝对定位，相对于父元素 */
+}
 
-  /* 强制子菜单图标颜色 */
-  .submenu-icon {
-    color: #666666 !important;
-  }
+/* 确保工具栏项可以正确定位子菜单 */
+.toolbar-item {
+  position: relative !important; /* 确保可以作为子菜单的定位父元素 */
+}
 
-  .submenu-icon svg * {
-    fill: #666666 !important;
-    stroke: #666666 !important;
-  }
+/* 确保子菜单容器不会受到父容器的限制 */
+.map-toolbar {
+  overflow: visible !important;
+}
 
-  .submenu-icon path {
-    fill: #666666 !important;
-    stroke: #666666 !important;
-  }
-
-  /* 激活状态单独处理 */
-  &.active {
-    color: #ffffff !important;
-
-    .submenu-icon {
-      color: #ffffff !important;
-    }
-
-    .submenu-icon svg * {
-      fill: #ffffff !important;
-      stroke: #ffffff !important;
-    }
-
-    .submenu-icon path {
-      fill: #ffffff !important;
-      stroke: #ffffff !important;
-    }
-  }
+.toolbar-item.has-submenu {
+  overflow: visible !important; 
 }
 
 /* 确保子菜单项不继承父菜单的active样式 */
@@ -1416,229 +1461,9 @@ defineExpose({
   }
 }
 
-/* 最高优先级样式，确保子菜单项图标颜色不受任何影响 */
-.toolbar-submenu .submenu-item .submenu-icon svg *,
-.toolbar-submenu .submenu-item .submenu-icon path,
-.toolbar-submenu .submenu-item .submenu-icon circle {
-  fill: #666666 !important;
-  stroke: #666666 !important;
-  color: #666666 !important;
-}
-
-/* 子菜单项激活状态特殊处理 */
-.toolbar-submenu .submenu-item.active .submenu-icon svg *,
-.toolbar-submenu .submenu-item.active .submenu-icon path,
-.toolbar-submenu .submenu-item.active .submenu-icon circle {
-  fill: #ffffff !important;
-  stroke: #ffffff !important;
-  color: #ffffff !important;
-}
-
-/* 增加子菜单点击的稳定性 */
-.toolbar-item.has-submenu.active {
-  z-index: 2010;
-  /* 确保激活的父菜单显示在较高层级 */
-}
-
-.toolbar-submenu.submenu-active .submenu-item {
-  position: relative;
-  z-index: 2020;
-  /* 确保子菜单项显示在最高层级 */
-}
-
-/* 收缩状态下的收缩按钮样式 */
-.map-toolbar[style*="translateX"] .toolbar-collapse,
-.map-toolbar[style*="translateY"] .toolbar-collapse {
-  background-color: #1890ff !important;
-  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.4) !important;
-  
-  .collapse-icon {
-    color: white !important;
-  }
-}
-
-/* 水平左侧工具栏收缩时 */
-.direction-horizontal.position-top-left[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-left[style*="translateX"] .toolbar-collapse {
-  right: -34px !important; // 增加偏移
-  transform: translateY(-50%) !important;
-}
-
-/* 水平右侧工具栏收缩时 */
-.direction-horizontal.position-top-right[style*="translateX"] .toolbar-collapse,
-.direction-horizontal.position-bottom-right[style*="translateX"] .toolbar-collapse {
-  left: -34px !important; // 增加偏移
-  transform: translateY(-50%) !important;
-}
-
-/* 垂直顶部工具栏收缩时 */
-.direction-vertical.position-top-left[style*="translateY"] .toolbar-collapse,
-.direction-vertical.position-top-right[style*="translateY"] .toolbar-collapse {
-  bottom: -34px !important; // 增加偏移
-  transform: translateX(-50%) !important;
-}
-
-/* 垂直底部工具栏收缩时 */
-.direction-vertical.position-bottom-left[style*="translateY"] .toolbar-collapse,
-.direction-vertical.position-bottom-right[style*="translateY"] .toolbar-collapse {
-  top: -34px !important; // 增加偏移
-  transform: translateX(-50%) !important;
-}
-
-/* 嵌套子菜单样式 */
-.nested-submenu {
-  position: absolute;
-  left: 100%;
-  top: 0;
-  margin-left: 2px;
-  
-  &.direction-horizontal {
-    left: 0;
-    top: 100%;
-    margin-left: 0;
-    margin-top: 2px;
-  }
-  
-  &.direction-vertical {
-    &.position-top-right, &.position-bottom-right {
-      left: auto;
-      right: 100%;
-      margin-left: 0;
-      margin-right: 2px;
-    }
-  }
-}
-
-/* 显示嵌套子菜单的条件 */
-.submenu-item.has-submenu .nested-submenu {
-  display: none;
-}
-
-.submenu-item.has-submenu .nested-submenu.submenu-active {
-  display: flex;
-}
-
-/* 扩展原有样式以支持button类型工具的子菜单 */
-.toolbar-item.active:not(.submenu-item) .toolbar-submenu.submenu-active,
-.toolbar-item.has-submenu .toolbar-submenu.submenu-active {
-  display: flex;
-}
-
-/* 确保任何类型工具的子菜单只在打开状态下显示 */
-.toolbar-submenu:not(.submenu-active) {
-  display: none !important;
-}
-
-/* 将button类型工具与menu类型统一样式 */
-.toolbar-item.has-submenu {
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: #666;
-    right: 3px;
-    bottom: 3px;
-    transition: all 0.3s ease;
-  }
-
-  &.active::after {
-    background-color: #fff;
-  }
-
-  &:hover::after {
-    background-color: #1890ff;
-  }
-}
-
-/* 确保button和menu类型工具的子菜单样式统一 */
-.toolbar-item[data-tool-id].has-submenu:not(.active) .toolbar-submenu {
-  display: none !important;
-}
-
-.toolbar-item[data-tool-id].has-submenu.active .toolbar-submenu,
-.toolbar-item[data-tool-id].has-submenu .toolbar-submenu.submenu-active {
-  display: flex !important;
-}
-
-/* 菜单类工具激活样式 */
-.toolbar-item[data-tool-id].has-submenu.active {
-  background-color: #1890ff;
-  color: white;
-  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
-}
-
-.toolbar-item[data-tool-id].has-submenu.active * {
-  color: white;
-}
-
-.toolbar-item[data-tool-id].has-submenu.active svg * {
-  fill: white !important;
-  stroke: white !important;
-}
-
-/* 设置button类型工具的子菜单显示逻辑 */
-.toolbar-item[data-tool-id][class*="button"].has-submenu:not(.active) .toolbar-submenu:not(.submenu-active) {
-  display: none !important;
-}
-
-.toolbar-item[data-tool-id][class*="button"].has-submenu.active .toolbar-submenu,
-.toolbar-submenu.submenu-active {
-  display: flex !important;
-}
-
-/* 增强子菜单箭头样式 */
-.submenu-arrow {
-  position: absolute;
-  border-width: 8px;
-  z-index: 2011;
-}
-
-/* 直接对应menu和button类型的工具 */
-.toolbar-item.has-submenu[data-tool-id] .toolbar-submenu {
-  display: none;
-}
-
-.toolbar-item.has-submenu[data-tool-id] .toolbar-submenu.submenu-active {
-  display: flex;
-}
-
-/* 确保任何类型工具的子菜单只在打开状态下显示 */
-.toolbar-submenu:not(.submenu-active) {
-  display: none !important;
-}
-
-/* 全局提示框位置修复，确保显示在按钮上方 */
-.direction-horizontal .toolbar-item .toolbar-tooltip {
-  z-index: 10000 !important; /* 最高层级 */
-  margin-bottom: 15px !important; /* 增加与按钮的距离 */
-  bottom: 100% !important; /* 确保在按钮上方 */
-  top: auto !important; /* 禁用顶部定位 */
-}
-
-/* 全局提示框位置修复 */
-.direction-horizontal .toolbar-item .toolbar-tooltip {
-  z-index: 10000 !important; /* 最高层级 */
-}
-
-/* 根据工具栏位置调整tooltip显示位置 */
-/* 底部工具栏tooltip显示在上方 */
-.direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
-.direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
-  bottom: 100% !important; 
-  top: auto !important;
-  margin-bottom: 15px !important;
-}
-
-/* 顶部工具栏tooltip显示在下方 */
-.direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
-.direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
-  top: 100% !important;
-  bottom: auto !important;
-  margin-top: 10px !important;
+/* 为网格子菜单添加专门的样式 */
+.toolbar-item[data-tool-id="grid"] .toolbar-submenu {
+  min-width: 120px; /* 确保有足够的宽度 */
 }
 </style>
 <style lang="scss">

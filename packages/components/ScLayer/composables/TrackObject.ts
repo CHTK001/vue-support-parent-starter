@@ -36,7 +36,7 @@ const DEFAULT_TRACK_CONFIG: TrackConfig = {
 // 默认轨迹播放器配置
 const DEFAULT_TRACK_PLAYER: TrackPlayer = {
   loop: false,
-  speed: 50, // 50 km/h
+  speed: 20, // 20 km/h 默认速度
   withCamera: true
 };
 
@@ -240,6 +240,18 @@ export class TrackObject {
       this.removeTrack(track.id);
     }
     
+    // 确保所有轨迹点都有时间戳
+    const pointsWithoutTime = track.points.filter(p => p.time === undefined);
+    if (pointsWithoutTime.length > 0) {
+      this.log('warn', `轨迹 "${track.id}" 包含 ${pointsWithoutTime.length} 个点没有时间戳，将自动设置为当前时间`);
+      
+      // 为没有时间戳的点设置当前时间
+      const now = Math.floor(Date.now() / 1000);
+      pointsWithoutTime.forEach(p => {
+        p.time = now;
+      });
+    }
+    
     // 确保轨迹点按时间排序
     const sortedPoints = [...track.points].sort((a, b) => a.time - b.time);
     
@@ -427,7 +439,23 @@ export class TrackObject {
     
     // 如果更新了点数据，重新排序
     if (track.points) {
+      // 确保轨迹点按时间排序
       updatedTrack.points = [...track.points].sort((a, b) => a.time - b.time);
+      
+      // 验证每个点都有时间戳
+      const invalidPoints = updatedTrack.points.filter(p => p.time === undefined);
+      if (invalidPoints.length > 0) {
+        this.log('warn', `轨迹 "${id}" 包含 ${invalidPoints.length} 个没有时间戳的点，将被设置为当前时间`);
+        
+        // 为无时间戳的点添加时间戳（使用当前时间）
+        const now = Math.floor(Date.now() / 1000);
+        invalidPoints.forEach(p => {
+          p.time = now;
+        });
+        
+        // 重新排序
+        updatedTrack.points = updatedTrack.points.sort((a, b) => a.time - b.time);
+      }
     }
     
     // 存储更新后的轨迹
@@ -951,7 +979,7 @@ export class TrackObject {
     // 获取播放配置
     const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
     
-    // 获取当前的速度因子
+    // 获取当前的速度因子（倍速）
     const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
     
     // 初始化经过的线特征
@@ -990,9 +1018,18 @@ export class TrackObject {
       
       // 如果正在播放，更新进度
       if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
-        // 计算新的进度（考虑速度因子）
+        // 计算新的进度
+        // 1. 获取轨迹的实际时间范围（秒）
         const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
+        
+        // 2. 计算默认速度下应走完全程所需时间（毫秒）
+        // 使用轨迹实际距离和默认速度计算
+        const defaultSpeed = player.speed; // km/h
+        
+        // 3. 应用倍速因子，计算进度增量
+        // 进度变化 = 经过时间(ms) / (轨迹时间范围(s) * 1000) * 速度因子
         const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
+        
         let newProgress = (this.trackProgressValues.get(id) || 0) + progressChange;
         
         // 处理循环播放
@@ -1117,10 +1154,13 @@ export class TrackObject {
    */
   private drawPositionMarker(id: string, vectorContext: any, position: TrackPoint): void {
     const track = this.tracks.get(id)!;
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 获取实际速度（除以倍速因子，得到真实速度）
+    const realSpeed = position.speed ? position.speed / speedFactor : 0;
     
     // 保存当前速度
-    const speed = position.speed || 0;
-    this.trackCurrentSpeeds.set(id, speed);
+    this.trackCurrentSpeeds.set(id, realSpeed);
     
     // 创建点几何
     const point = new Point(fromLonLat([position.lng, position.lat]));
@@ -1169,15 +1209,47 @@ export class TrackObject {
       
       vectorContext.setStyle(textStyle);
       vectorContext.drawGeometry(point);
+      
+      // 如果经过了有名称的静态点位，显示提示信息
+      if (position.staticTitle && position.staticTitle !== position.title) {
+        const passedNodeStyle = new Style({
+          text: new Text({
+            text: `经过: ${position.staticTitle}`,
+            offsetY: showSpeed ? -40 : -30, // 比名称再上移
+            offsetX: 0,
+            font: 'italic 10px sans-serif',
+            fill: new Fill({
+              color: '#666666'
+            }),
+            stroke: new Stroke({
+              color: '#ffffff',
+              width: 2
+            }),
+            overflow: true
+          })
+        });
+        
+        vectorContext.setStyle(passedNodeStyle);
+        vectorContext.drawGeometry(point);
+      }
     }
     
     // 绘制移动速度弹窗（如果需要）
-    if (showSpeed && speed > 0) {
+    if (showSpeed && realSpeed > 0) {
+      // 计算垂直偏移量，根据是否显示标题和经过点信息调整
+      let offsetY = -15;
+      if (movingPointNameVisible && position.title) {
+        offsetY = -25;
+        if (position.staticTitle && position.staticTitle !== position.title) {
+          offsetY = -40;
+        }
+      }
+      
       // 创建速度文本样式
       const speedTextStyle = new Style({
         text: new Text({
-          text: `移动: ${speed.toFixed(1)} km/h`, // 明确标识为移动速度
-          offsetY: movingPointNameVisible && position.title ? -40 : -15, // 根据是否显示标题调整位置
+          text: `移动: ${realSpeed.toFixed(1)} km/h`, // 显示真实速度
+          offsetY: offsetY,
           font: 'bold 10px sans-serif',
           fill: new Fill({
             color: '#1890ff'
@@ -1221,6 +1293,12 @@ export class TrackObject {
     const currentPoint = points[index];
     const nextPoint = points[index + 1];
     
+    // 获取当前轨迹ID和倍速因子
+    const trackId = track.id;
+    const speedFactor = this.trackSpeedFactors.get(trackId) || 1.0;
+    const player = this.trackPlayers.get(trackId) || DEFAULT_TRACK_PLAYER;
+    const defaultSpeed = player.speed; // 默认速度（km/h）
+    
     // 计算方向（如果有）
     let dir: number | undefined;
     if (currentPoint.dir !== undefined && nextPoint.dir !== undefined) {
@@ -1242,28 +1320,71 @@ export class TrackObject {
       dir = currentPoint.dir || nextPoint.dir;
     }
     
-    // 计算速度（如果有）
-    let speed: number | undefined;
-    if (currentPoint.speed !== undefined || nextPoint.speed !== undefined) {
-      const currentSpeed = currentPoint.speed || 0;
-      const nextSpeed = nextPoint.speed || 0;
-      speed = currentSpeed + (nextSpeed - currentSpeed) * fraction;
+    // 计算时间
+    const timeDiff = nextPoint.time - currentPoint.time;
+    const currentTime = currentPoint.time + timeDiff * fraction;
+    
+    // 计算实际速度：基于两个点之间的地理距离和时间差
+    let speed: number;
+    // 如果已经提供了速度，使用线性插值，并应用倍速因子
+    if (currentPoint.speed !== undefined && nextPoint.speed !== undefined) {
+      // 使用已有速度进行插值
+      const baseSpeed = currentPoint.speed + (nextPoint.speed - currentPoint.speed) * fraction;
+      // 应用倍速因子
+      speed = baseSpeed * speedFactor;
+    } else {
+      // 根据距离和时间计算速度
+      // 将经纬度坐标转换为地球表面距离（米）
+      const R = 6371000; // 地球半径，单位米
+      const lat1 = currentPoint.lat * Math.PI / 180;
+      const lat2 = nextPoint.lat * Math.PI / 180;
+      const lon1 = currentPoint.lng * Math.PI / 180;
+      const lon2 = nextPoint.lng * Math.PI / 180;
+      
+      const dLat = lat2 - lat1;
+      const dLon = lon2 - lon1;
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // 距离，单位米
+      
+      // 如果时间差为0，则使用默认速度
+      if (timeDiff <= 0) {
+        // 使用默认速度并应用倍速因子
+        speed = defaultSpeed * speedFactor;
+      } else {
+        // 计算基础速度（km/h） = 距离(m) / 时间(s) * 3.6
+        const baseSpeed = (distance / timeDiff) * 3.6;
+        // 应用倍速因子
+        speed = baseSpeed * speedFactor;
+      }
     }
     
     // 提取或构建标题
-    let title = currentPoint.title;
-    if (!title && nextPoint.title) {
-      title = nextPoint.title;
+    // 1. 使用轨迹的整体名称作为移动点位的默认标题
+    let dynamicTitle = track.name;
+    
+    // 2. 如果轨迹有指定的移动点位标题，优先使用
+    if (track.movingPointTitle) {
+      dynamicTitle = track.movingPointTitle;
     }
+    
+    // 3. 保存静态点位的名称，用于在经过静态点位时在UI中显示其他信息
+    const staticTitle = currentPoint.title || nextPoint.title;
     
     // 线性插值计算当前位置
     return {
       lng: currentPoint.lng + (nextPoint.lng - currentPoint.lng) * fraction,
       lat: currentPoint.lat + (nextPoint.lat - currentPoint.lat) * fraction,
-      time: currentPoint.time + (nextPoint.time - currentPoint.time) * fraction,
+      time: currentTime,
       dir: dir,
       speed: speed,
-      title: title,
+      // 使用dynamicTitle作为主标题，保持移动点位名称不变
+      title: dynamicTitle,
+      // 使用新属性staticTitle存储当前经过的静态点位名称
+      staticTitle: staticTitle,
       info: currentPoint.info || nextPoint.info
     };
   }
@@ -1921,6 +2042,8 @@ export class TrackObject {
     const showNodeSpeeds = this.trackNodeSpeedsVisible.get(id) || false;
     // 获取节点锚点显示设置，默认为true
     const showNodeAnchors = this.trackNodeAnchorsVisible.get(id) !== false;
+    // 获取倍速因子
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
     
     if (!showNodes) return;
     
@@ -1984,9 +2107,12 @@ export class TrackObject {
       
       // 绘制节点速度（如果需要且为当前经过的节点）
       if (showNodeSpeeds && i === currentIndex && point.speed && point.speed > 0) {
+        // 显示真实速度，不受倍速因子影响
+        const realSpeed = point.speed;
+        
         const nodeSpeedTextStyle = new Style({
           text: new Text({
-            text: `节点: ${point.speed.toFixed(1)} km/h`,
+            text: `节点: ${realSpeed.toFixed(1)} km/h`,
             offsetY: showNodePopovers && point.title ? -30 : -12,
             font: 'bold 10px sans-serif',
             fill: new Fill({
