@@ -18,20 +18,20 @@
     <LayerPanel v-if="showLayerPanel" :active="showLayerPanel" :position="layerPanelPosition"
       :map-type="configObject?.getMapType()" :map-tile="configObject?.getMapTile()"
       :map-config="configObject?.getMapConfig()" @close="handleLayerPanelClose" @layer-change="handleLayerChange" />
-
+    
     <!-- 增加引入OverviewMap组件 -->
     <OverviewMap v-if="showOverviewMap" :main-map-obj="mapObj" :visible="showOverviewMap"
       :position="determineOverviewMapPosition()" :config="overviewMapConfig"
       @collapse-change="handleOverviewMapCollapseChange" />
-
+    
     <!-- 添加轨迹播放器 -->
     <TrackPlayerMap 
       v-if="showTrackPlayer && mapReady && trackObj" 
       :trackObj="trackObj"
       :config="props.trackPlayerConfig"
-      @track-selected="handleTrackSelected" 
+      @track-selected="handleTrackSelected"
       @track-deleted="handleTrackDeleted"
-      @collapse-change="handleTrackPlayerCollapseChange" 
+      @collapse-change="handleTrackPlayerCollapseChange"
       ref="trackPlayerRef" 
     />
   </div>
@@ -1151,7 +1151,7 @@ const addDemoTrack = () => {
   
   // 添加轨迹
   trackObj.addTrack(track);
-  
+
   // 刷新轨迹列表
   refreshTrackList();
   
