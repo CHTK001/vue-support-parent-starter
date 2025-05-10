@@ -113,6 +113,7 @@ import type { ToolItem, ToolbarConfig } from '../types';
 import type { AddToolOptions } from '../types';
 import { info } from "@repo/utils";
 import type { ToolbarObject } from '../composables/ToolbarObject';
+import { GridType } from '../composables/GridObject';
 
 interface Props {
   toolbarConfig: ToolbarConfig;
@@ -149,7 +150,7 @@ const visibleTools = computed<ToolItem[]>(() => {
   return Array.isArray(items) ? items.filter(tool => tool.show !== false) : [];
 });
 
-// 判断工具是否激活
+// 修改isToolActive方法，增强对子菜单项激活状态的判断
 const isToolActive = (toolId: string): boolean => {
   // 首先使用activeToolsMap中的记录，保证视图与数据一致
   if (toolId in activeToolsMap.value) {
@@ -159,7 +160,23 @@ const isToolActive = (toolId: string): boolean => {
   // 优先使用toolbarObj判断工具状态
   if (toolbarObj.value) {
     const tools = toolbarObj.value.getTools();
-    const tool = tools.find(t => t.id === toolId);
+    
+    // 查找工具，处理包括子菜单在内的所有工具
+    const findTool = (items: ToolItem[]): ToolItem | undefined => {
+      for (const item of items) {
+        if (item.id === toolId) {
+          return item;
+        }
+        
+        if (item.children && item.children.length > 0) {
+          const found = findTool(item.children);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    
+    const tool = findTool(tools);
     const isActive = !!tool?.active;
     
     // 更新本地状态缓存
@@ -177,9 +194,24 @@ const isToolActive = (toolId: string): boolean => {
     return true;
   }
   
-  // 在工具配置中查找
-  const tool = (props.toolbarConfig.items || []).find(t => t.id === toolId);
+  // 在工具配置中查找，包括子菜单中的工具
+  const findToolInConfig = (items: ToolItem[]): ToolItem | undefined => {
+    for (const item of items) {
+      if (item.id === toolId) {
+        return item;
+      }
+      
+      if (item.children && item.children.length > 0) {
+        const found = findToolInConfig(item.children);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
+  
+  const tool = findToolInConfig(props.toolbarConfig.items || []);
   const configActive = !!tool?.active;
+  
   if (configActive) {
     activeToolsMap.value[toolId] = true;
   }
@@ -249,6 +281,35 @@ const updateActiveTools = () => {
   if (activeToolId && !activeToolsObj[activeToolId]) {
     console.debug(`添加主激活工具: ${activeToolId}`);
     activeToolsObj[activeToolId] = true;
+  }
+  
+  // 特殊处理子菜单项激活状态
+  // 确保网格工具的子菜单项状态被正确捕获
+  const gridTool = tools.find(t => t.id === 'grid');
+  if (gridTool && gridTool.children) {
+    gridTool.children.forEach(subTool => {
+      if (subTool.active) {
+        console.debug(`子菜单项 ${subTool.id} 处于激活状态，设置父菜单 grid 也为激活状态`);
+        activeToolsObj[subTool.id] = true;
+        activeToolsObj['grid'] = true; // 如果子菜单项激活，父菜单也应该显示为激活
+      }
+    });
+  }
+  
+  // 检查网格类型状态
+  const gridObj = toolbarObj.value.getGridObject();
+  if (gridObj) {
+    const activeGridTypes = gridObj.getActiveGridTypes();
+    if (activeGridTypes.has(GridType.GEOHASH)) {
+      console.debug('GeoHash网格处于激活状态');
+      activeToolsObj['grid-geohash'] = true;
+      activeToolsObj['grid'] = true; // 如果GeoHash网格激活，网格菜单也应该显示为激活
+    }
+    if (activeGridTypes.has(GridType.HEXAGON)) {
+      console.debug('蜂窝网格处于激活状态');
+      activeToolsObj['grid-hexagon'] = true;
+      activeToolsObj['grid'] = true; // 如果蜂窝网格激活，网格菜单也应该显示为激活
+    }
   }
   
   // 更新激活状态Map
@@ -590,15 +651,24 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
     tool: subTool,
     event
   });
-  
+
   // 处理工具点击
   if (toolbarObj.value) {
     try {
-      toolbarObj.value.handleToolClick(subTool.id);
+      toolbarObj.value.handleSubMenuClick(parentTool.id, subTool.id);
       
       // 更新激活状态
       nextTick(() => {
+        // 立即更新
         updateActiveTools();
+        
+        // 网格工具特殊处理：延迟再次更新，确保状态正确同步
+        if (subTool.id === 'grid-geohash' || subTool.id === 'grid-hexagon') {
+          setTimeout(() => {
+            console.debug(`延迟更新网格工具 ${subTool.id} 状态`);
+            updateActiveTools();
+          }, 100);
+        }
         
         // 获取最新状态
         const isActive = isToolActive(subTool.id);
@@ -635,6 +705,32 @@ const emit = defineEmits([
 
 // 重新声明globalClickListener
 let globalClickListener: ((e: MouseEvent) => void) | null = null;
+
+// 监听toolbarObj变化，确保在对象加载后立即更新状态
+watch(() => props.toolbarObj, (newValue) => {
+  if (newValue) {
+    toolbarObj.value = newValue;
+    
+    // 延迟执行以确保对象已完全加载
+    nextTick(() => {
+      console.debug('toolbarObj已更新，刷新工具栏状态');
+      updateActiveTools();
+      
+      // 特别检查网格工具状态
+      const gridObj = newValue.getGridObject();
+      if (gridObj) {
+        const activeGridTypes = gridObj.getActiveGridTypes();
+        if (activeGridTypes.size > 0) {
+          console.debug('检测到已启用的网格类型:', Array.from(activeGridTypes).join(', '));
+          // 延迟再次更新状态，确保完全同步
+          setTimeout(() => {
+            updateActiveTools();
+          }, 200);
+        }
+      }
+    });
+  }
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
