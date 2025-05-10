@@ -4,7 +4,7 @@ export interface TrackPoint {
   lat: number;
   // 经度
   lng: number;
-  // 时间戳（Unix时间戳，单位：秒）
+  // 时间戳（Unix时间戳，单位：秒）- 必填字段
   time: number;
   // 方向（可选，0-360度，顺时针方向）
   dir?: number;
@@ -12,6 +12,8 @@ export interface TrackPoint {
   speed?: number;
   // 标题（可选，显示在标记上的信息）
   title?: string;
+  // 静态点位标题（可选，用于记录移动点位经过的静态点位名称）
+  staticTitle?: string;
   // 附加信息（可选，用于标记弹窗或其他展示）
   info?: Array<{key: string, value: string}>;
 }
@@ -67,6 +69,8 @@ export interface Track {
   iconGroup?: IconSpeedGroup[];
   // 是否可见
   visible?: boolean;
+  // 移动点位自定义标题（可选，用于覆盖默认名称）
+  movingPointTitle?: string;
 }
 
 export interface TrackConfig {

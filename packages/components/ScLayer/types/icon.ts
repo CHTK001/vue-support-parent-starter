@@ -325,7 +325,10 @@ export const IconMap = {
   edit: EDIT_ICON,
   delete: DELETE_ICON,
   coordinate: COORDINATE_ICON,
-  trackPlayer: TRACK_PLAYER_ICON
+  trackPlayer: TRACK_PLAYER_ICON,
+  grid: GRID_ICON,
+  geohashGrid: GEOHASH_GRID_ICON,
+  hexagonGrid: H3_GRID_ICON
 };
 
 /**
