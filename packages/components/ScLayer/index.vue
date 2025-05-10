@@ -60,6 +60,7 @@ import {
 import logger, { LogLevel } from './composables/LogObject';
 import { MapObject } from './composables/MapObject';
 import { ToolbarObject } from './composables/ToolbarObject';
+import { GridObject, GridType, GridConfig } from './composables/GridObject';
 import type { MapConfig, MapEventType, Track, TrackPlayer } from './types';
 import { MapTile } from './types';
 import { TrackPlayerConfigOptions } from './types/track';
@@ -79,7 +80,8 @@ import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 // 定义组件属性 - 使用types中的配置作为类型定义
 const props = withDefaults(defineProps<MapConfig & {
   overviewMapConfig?: OverviewMapConfig,
-  trackPlayerConfig?: Partial<TrackPlayerConfigOptions>
+  trackPlayerConfig?: Partial<TrackPlayerConfigOptions>,
+  geohashGridConfig?: Partial<GridConfig>
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -99,7 +101,16 @@ const props = withDefaults(defineProps<MapConfig & {
   }),
   overviewMapConfig: () => ({}),
   showScaleLine: true, // 默认显示比例尺
-  trackPlayerConfig: () => ({ ...DEFAULT_TRACK_PLAYER_CONFIG }) // 使用默认轨迹播放器配置
+  trackPlayerConfig: () => ({ ...DEFAULT_TRACK_PLAYER_CONFIG }), // 使用默认轨迹播放器配置
+  geohashGridConfig: () => ({
+    geohash: {
+      buffer: 4, // 计算可视范围外2个网格
+      precision: 6, // 精度为6
+      strokeColor: 'rgba(0, 60, 136, 0.8)', // 边框颜色
+      fillColor: 'rgba(0, 60, 136, 0.2)', // 填充颜色
+      showLabels: true // 显示标签
+    }
+  } as GridConfig) // 使用默认配置
 });
 
 // 定义组件事件
@@ -119,6 +130,8 @@ const emit = defineEmits<{
   (e: 'shape-update', payload: { id: string, options: Partial<ShapeOption> }): void;
   (e: 'shape-delete', payload: { id: string }): void;
   (e: 'layer-change', payload: { mapType: MapType, mapTile: MapTile }): void;
+  (e: 'grid-enabled', payload: { gridType: GridType }): void;
+  (e: 'grid-disabled', payload: { gridType: GridType }): void;
 }>();
 
 // 组件状态
@@ -256,6 +269,17 @@ const initializeMapComponents = async () => {
   
     // 创建图形绘制对象 - 从toolbarObject获取
     shapeObject = toolbarObject.getShapeObject();
+    
+    // 如果有GeoHash网格配置，应用到GridObject
+    if (props.geohashGridConfig && Object.keys(props.geohashGridConfig).length > 0) {
+      const gridObject = toolbarObject.getGridObject();
+      if (gridObject) {
+        logger.debug('应用GeoHash网格配置:', props.geohashGridConfig);
+        gridObject.setConfig(props.geohashGridConfig);
+      } else {
+        logger.warn('GridObject未初始化，无法应用GeoHash网格配置');
+      }
+    }
     
     // 设置工具栏状态变化监听器
     setupToolbarStateChangeListener();
@@ -653,21 +677,25 @@ const setupToolbarStateChangeListener = () => {
   if (!toolbarObject) return;
   
   toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
-    // 将工具状态变化通知给父组件
-    emit('toolbar-state-change', {
-      toolId,
-      active,
-      toolType,
-      data
-    });
-    
-    // 更新activeToolId状态
+    // 更新激活的工具ID
     updateActiveToolId(toolId, active);
     
-    // 使用工具ID分发到不同处理函数
+    // 处理工具状态变化
     handleToolStateByType(toolId, active, toolType, data);
     
-    logger.debug(`工具状态变化通知: 工具ID=${toolId}, 激活状态=${active}, 类型=${toolType}`);
+    // 网格状态变化的特殊处理
+    if (toolId === 'grid-active' && data?.gridType) {
+      if (active) {
+        // 网格已启用
+        emit('grid-enabled', { gridType: data.gridType });
+      } else {
+        // 网格已禁用
+        emit('grid-disabled', { gridType: data.gridType });
+      }
+    }
+    
+    // 触发工具栏状态变化事件
+    emit('toolbar-state-change', { toolId, active, toolType, data });
   });
 };
 
@@ -1072,6 +1100,24 @@ watch(() => props.showScaleLine, (newValue) => {
   mapObj.toggleScaleLine(newValue);
 });
 
+// 监听GeoHash网格配置变化
+watch(() => props.geohashGridConfig, (newConfig) => {
+  if (!toolbarObject) return;
+  
+  const gridObj = toolbarObject.getGridObject();
+  if (gridObj && newConfig && Object.keys(newConfig).length > 0) {
+    logger.debug('GeoHash网格配置变化，应用新配置:', newConfig);
+    gridObj.setConfig(newConfig);
+    
+    // 如果有活动的网格，刷新显示
+    const activeGridTypes = gridObj.getActiveGridTypes();
+    if (activeGridTypes.has(GridType.GEOHASH)) {
+      logger.debug('刷新活动的GeoHash网格显示');
+      gridObj.refresh();
+    }
+  }
+}, { deep: true });
+
 // 新增轨迹（演示）
 const addDemoTrack = () => {
   if (!trackObj) {
@@ -1209,8 +1255,36 @@ defineExpose({
   getToolbarObject: () => toolbarObject,
   getMarkerObject: () => markerObject,
   getShapeObject: () => shapeObject,
+  getGridObject: () => toolbarObject?.getGridObject(),
   reinitMap: initMap,
   changeMapLayer: switchMapLayer,
+  
+  // 网格相关方法
+  enableGeohashGrid: () => {
+    const gridObj = toolbarObject?.getGridObject();
+    if (gridObj) {
+      gridObj.enable(GridType.GEOHASH);
+      return true;
+    }
+    return false;
+  },
+  disableGeohashGrid: () => {
+    const gridObj = toolbarObject?.getGridObject();
+    if (gridObj) {
+      gridObj.disable(GridType.GEOHASH);
+      return true;
+    }
+    return false;
+  },
+  setGridConfig: (config: Partial<GridConfig>) => {
+    const gridObj = toolbarObject?.getGridObject();
+    if (gridObj) {
+      gridObj.setConfig(config);
+      return true;
+    }
+    return false;
+  },
+  
   // 标记点相关方法
   addMarker: (options: MarkerOptions) => {
     const id = markerObject?.addMarker(options);
