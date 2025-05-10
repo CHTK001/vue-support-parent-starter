@@ -285,7 +285,7 @@ import {
   MarkerClusterMode,
   DEFAULT_MAP_CONFIG
 } from '@repo/components/ScLayer';
-import type { ShapeOption, Track, TrackPlayer, TrackPlayerConfigOptions } from '@repo/components/ScLayer';
+import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 
 
 // 地图实例引用
@@ -1655,16 +1655,18 @@ const playTrack = () => {
         withCamera: false,
         speedFactor: 1.0,
         showNodes: false,
-        // 使用全局配置，但覆盖速度以加快演示
-        ...trackPlayerConfig,
-        speed: 30 // 演示时使用30km/h的速度
+        showNodeAnchors: true,
+        showNodeNames: false,
+        showPointNames: true,
+        showSpeed: true,
+        showNodeSpeed: true
       });
       
       if (success) {
         // 尝试激活轨迹播放器工具
         if (layerRef.value) {
           layerRef.value.activateTool('track-player');
-          addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlayerConfig.speed} km/h，播放因子: ${trackPlayerConfig.speedFactor}x`);
+          addLog('info', `正在播放轨迹: ${track.name}，速度: 30 km/h，播放因子: 1.0x`);
         } else {
           addLog('warn', '无法获取工具栏对象，轨迹播放但可能没有显示播放器UI');
         }
@@ -1857,20 +1859,6 @@ const getDirectionName = (direction: string) => {
     default: return direction;
   }
 };
-
-// 轨迹播放器配置
-const trackPlayerConfig = reactive({
-  loop: false,               // 是否循环播放
-  speed: 50,                 // 默认播放速度(km/h)
-  withCamera: false,         // 是否跟随相机
-  speedFactor: 1.0,          // 速度因子
-  showNodes: false,          // 是否显示节点（静态点位）
-  showNodeAnchors: true,     // 是否显示锚点
-  showNodeNames: false,      // 是否显示节点名称（静态点位名称）
-  showPointNames: true,      // 是否显示点位名称（移动点位名称）
-  showSpeed: true,           // 是否显示移动速度
-  showNodeSpeed: true        // 是否显示节点速度
-});
 </script>
 
 <style scoped>
