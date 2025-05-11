@@ -825,13 +825,31 @@ const checkOverviewMapState = () => {
 // 检查轨迹播放器状态
 const checkTrackPlayerState = () => {
   logger.debug(`[Track] 检查轨迹播放器状态: mapReady=${mapReady.value}, mapObj=${!!mapObj}, trackObj=${!!trackObj}`);
-  if (mapReady.value && mapObj && !trackObj) {
-    logger.debug('[Track] 地图已就绪，但轨迹对象未初始化，开始初始化轨迹对象');
-    initTrackObject();
-  } else if (mapReady.value && mapObj && trackObj) {
-    logger.debug('[Track] 地图和轨迹对象都已初始化');
-    // 确保轨迹播放器可见
-    showTrackPlayer.value = true;
+  
+  // 检查轨迹播放器工具是否激活
+  const isTrackPlayerActive = toolbarObject && 
+    toolbarObject.getActiveToolId() === 'track-player';
+  
+  logger.debug(`[Track] 轨迹播放器工具激活状态: ${isTrackPlayerActive}`);
+  
+  if (mapReady.value && mapObj) {
+    if (!trackObj) {
+      // 如果轨迹对象未初始化但需要显示
+      if (isTrackPlayerActive) {
+        logger.debug('[Track] 地图已就绪，但轨迹对象未初始化，开始初始化轨迹对象');
+        initTrackObject();
+      }
+    } else {
+      // 轨迹对象已存在，根据工具激活状态决定显示与否
+      logger.debug('[Track] 地图和轨迹对象都已初始化');
+      showTrackPlayer.value = isTrackPlayerActive;
+      
+      if (showTrackPlayer.value) {
+        logger.debug('[Track] 轨迹播放器已显示');
+      } else {
+        logger.debug('[Track] 轨迹播放器已隐藏（工具未激活）');
+      }
+    }
   } else {
     logger.debug('[Track] 地图未就绪或缺少必要对象，无法初始化轨迹播放器');
   }
@@ -848,10 +866,14 @@ const initTrackObject = () => {
     // 创建轨迹对象
     trackObj = new TrackObject(mapObj.getMapInstance());
     
-    // 显示轨迹播放器
-    showTrackPlayer.value = true;
+    // 检查轨迹播放器工具是否激活
+    const isTrackPlayerActive = toolbarObject && 
+      toolbarObject.getActiveToolId() === 'track-player';
     
-    logger.info('[Track] 轨迹对象初始化成功');
+    // 只有在工具激活状态下才显示播放器
+    showTrackPlayer.value = isTrackPlayerActive;
+    
+    logger.info(`[Track] 轨迹对象初始化成功，显示状态: ${showTrackPlayer.value}`);
   } catch (error) {
     logger.error('[Track] 轨迹对象初始化失败:', error);
   }
@@ -1212,10 +1234,16 @@ const forceInitTrackPlayer = () => {
     return;
   }
   
-  // 如果已有轨迹对象，确保显示
+  // 如果已有轨迹对象，先确保工具栏按钮激活，再显示UI
   if (trackObj) {
-    logger.debug('[Track] 轨迹对象已存在，确保显示轨迹播放器');
-    showTrackPlayer.value = true;
+    logger.debug('[Track] 轨迹对象已存在，确保工具栏按钮激活');
+    // 先激活工具栏按钮
+    if (toolbarObject) {
+      toolbarObject.activateTool('track-player');
+      activeToolId.value = 'track-player';
+      // UI状态会随着工具栏状态变化
+      logger.debug('[Track] 已激活轨迹播放器工具栏按钮');
+    }
     return;
   }
   
@@ -1223,16 +1251,17 @@ const forceInitTrackPlayer = () => {
   try {
     trackObj = new TrackObject(mapObj.getMapInstance());
     
-    // 确保播放器显示
-    showTrackPlayer.value = true;
-    
-    // 如果工具栏存在，同步激活工具栏中的轨迹按钮
+    // 先激活工具栏按钮，再显示UI
     if (toolbarObject) {
-      const trackTool = toolbarObject.getTools().find(t => t.id === 'track-player');
-      if (trackTool && !trackTool.active) {
-        logger.debug('[Track] 同步激活工具栏轨迹按钮');
-        toolbarObject.activateTool('track-player');
-      }
+      logger.debug('[Track] 同步激活工具栏轨迹按钮');
+      toolbarObject.activateTool('track-player');
+      activeToolId.value = 'track-player';
+      // 显示轨迹播放器UI（这应该由工具激活事件触发，但为确保UI显示，也在这里设置）
+      showTrackPlayer.value = true;
+    } else {
+      // 如果没有工具栏，显示轨迹播放器UI
+      showTrackPlayer.value = true;
+      logger.debug('[Track] 无工具栏对象，直接显示轨迹播放器UI');
     }
     
     logger.info('[Track] 轨迹播放器已手动初始化');
@@ -1519,37 +1548,26 @@ defineExpose({
     if (result) {
       logger.debug(`轨迹 "${track.id}" 添加成功`);
       
-      // 通过多种方式确保轨迹列表更新
-      if (showTrackPlayer.value) {
+      // 激活轨迹播放器工具
+      if (toolbarObject) {
+        // 确保工具栏上的轨迹播放器按钮被激活
+        logger.debug(`[Track] 激活轨迹播放器工具`);
+        toolbarObject.activateTool('track-player');
+        // UI状态将由工具激活事件处理
+      } else {
+        // 如果没有工具栏，直接显示轨迹播放器UI
+        showTrackPlayer.value = true;
+        logger.debug(`[Track] 无工具栏对象，直接显示轨迹播放器UI`);
+      }
+      
+      // 刷新轨迹列表
+      nextTick(() => {
         if (trackPlayerRef.value) {
-          // 方法1: 直接调用组件刷新方法
+          // 直接调用组件刷新方法
           logger.debug(`通过组件引用刷新轨迹列表`);
           trackPlayerRef.value.refreshTrackList();
-          
-          // 如有必要，可延迟再次刷新确保更新
-          setTimeout(() => {
-            if (trackPlayerRef.value) {
-              trackPlayerRef.value.refreshTrackList();
-            }
-          }, 100);
-        } else {
-          // 方法2: DOM事件通知 (备用方案)
-          logger.debug(`通过事件刷新轨迹列表`);
-          const trackPlayerElement = document.querySelector('.track-player');
-          if (trackPlayerElement) {
-            const event = new CustomEvent('track-added', { detail: { trackId: track.id } });
-            trackPlayerElement.dispatchEvent(event);
-          }
         }
-      } else {
-        // 如果轨迹播放器未显示，先显示再刷新
-        showTrackPlayer.value = true;
-        nextTick(() => {
-          if (trackPlayerRef.value) {
-            trackPlayerRef.value.refreshTrackList();
-          }
-        });
-      }
+      });
     }
     
     return result;

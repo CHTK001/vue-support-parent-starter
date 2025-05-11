@@ -238,7 +238,7 @@ catalog:
   ol-layerswitcher: ^4.1.2
   ol-contextmenu: ^5.5.0
   ol-ext: ^4.0.31
-  ol3-echarts: ^3.0.1
+  ol-echarts: ^4.0.1
   lint-staged: ^15.3.0
   lodash: ^4.17.21
   localforage: ^1.10.0
