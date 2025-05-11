@@ -55,6 +55,19 @@
                 </select>
               </div>
               <div class="control-row">
+                <span>工具栏位置:</span>
+                <select v-model="toolbarPosition" @change="handleToolbarPositionChange">
+                  <option :value="ToolbarPosition.TOP_LEFT">左上角</option>
+                  <option :value="ToolbarPosition.TOP_RIGHT">右上角</option>
+                  <option :value="ToolbarPosition.BOTTOM_LEFT">左下角</option>
+                  <option :value="ToolbarPosition.BOTTOM_RIGHT">右下角</option>
+                  <option :value="ToolbarPosition.TOP_CENTER">顶部中央</option>
+                  <option :value="ToolbarPosition.BOTTOM_CENTER">底部中央</option>
+                  <option :value="ToolbarPosition.LEFT_CENTER">左侧中央</option>
+                  <option :value="ToolbarPosition.RIGHT_CENTER">右侧中央</option>
+                </select>
+              </div>
+              <div class="control-row">
                 <span>可拖动:</span>
                 <input type="checkbox" v-model="config.dragging" @change="handleInteractionChange">
               </div>
@@ -201,6 +214,43 @@
             </div>
           </div>
 
+          <!-- 添加飞线图操作部分 -->
+          <div class="config-item">
+            <div class="label">飞线图操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="enableFlightLine">启用飞线图</button>
+                <button @click="disableFlightLine">禁用飞线图</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addRandomFlightLines">添加随机飞线</button>
+                <button @click="addChainFlightLines">添加链状飞线</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addStarFlightLines">添加星型飞线</button>
+                <button @click="clearFlightLines">清除飞线</button>
+              </div>
+              <div class="control-row">
+                <span>曲率:</span>
+                <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1" @change="updateFlightLineConfig">
+                <span class="value">{{ flightLineConfig.curveness.toFixed(1) }}</span>
+              </div>
+              <div class="control-row">
+                <span>动画:</span>
+                <input type="checkbox" v-model="flightLineConfig.showEffect" @change="updateFlightLineConfig">
+              </div>
+              <div class="control-row">
+                <span>线宽:</span>
+                <input type="range" v-model.number="flightLineConfig.width" min="1" max="10" @change="updateFlightLineConfig">
+                <span class="value">{{ flightLineConfig.width }}</span>
+              </div>
+              <div class="control-row">
+                <span>节点显示:</span>
+                <input type="checkbox" v-model="flightLineConfig.showNodes" @change="updateFlightLineConfig">
+              </div>
+            </div>
+          </div>
+
           <div class="config-item">
             <div class="label">标记点列表</div>
             <div class="marker-stats">
@@ -269,6 +319,40 @@
             </div>
           </div>
 
+          <!-- 飞线图列表 -->
+          <div class="config-item">
+            <div class="label">飞线图列表</div>
+            <div class="flight-line-stats">
+              <span>总数: {{ flightLines.length }}</span>
+              <span>已选择: {{ selectedFlightLines.length }}</span>
+            </div>
+            <div class="flight-line-list">
+              <div v-if="flightLines.length === 0" class="no-flight-lines">
+                暂无飞线数据
+              </div>
+              <div 
+                v-for="line in flightLines" 
+                :key="line.id" 
+                class="flight-line-item"
+                :class="{'flight-line-selected': line.selected}"
+                @click="toggleFlightLineSelection(line.id)"
+              >
+                <div class="flight-line-header">
+                  <span class="flight-line-id">ID: {{ safeSlice(line.id) }}</span>
+                  <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
+                </div>
+                <div class="flight-line-route">
+                  <span>{{ line.fromName }}</span>
+                  <span class="flight-line-arrow">→</span>
+                  <span>{{ line.toName }}</span>
+                </div>
+              </div>
+              <div v-if="flightLines.length > 10" class="more-flight-lines">
+                还有 {{ flightLines.length - 10 }} 条飞线未显示...
+              </div>
+            </div>
+          </div>
+
           <div class="config-item">
             <div class="label">事件日志</div>
             <div class="log-container">
@@ -310,6 +394,9 @@ import {
 } from '@repo/components/ScLayer';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
+import { ToolbarPosition } from '@repo/components/ScLayer/types/toolbar';
+// 引入飞线图类型定义
+import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types/flightline';
 
 // 地图实例引用
 const layerRef = ref(null);
@@ -317,6 +404,28 @@ const layerRef = ref(null);
 // 热力图相关
 const heatmapPoints = ref<Array<HeatmapPoint>>([]);
 const pointsVisible = ref(false);
+
+// 飞线图相关
+const flightLinePoints = ref<Array<FlightLinePoint>>([]);
+const flightLineConfig = ref<FlightLineConfig>({
+  visible: true,
+  color: '#1677ff',
+  width: 2,
+  opacity: 0.8,
+  curveness: 0.5,
+  showEffect: true,
+  effectPeriod: 4,
+  effectTrailLength: 0.7,
+  effectSymbol: 'circle',
+  effectSymbolSize: 5,
+  showNodes: true,
+  nodeSymbolSize: 8,
+  nodeEffect: true,
+  zIndex: 90
+});
+
+// 飞线图相关状态
+const flightLineActive = ref(false);
 
 // 创建一个Shape枚举常量
 const ShapeType = {
@@ -2100,6 +2209,427 @@ const togglePointsVisible = () => {
   
   addLog('热力图', pointsVisible.value ? '显示数据点' : '隐藏数据点');
 };
+
+// 工具栏位置
+const toolbarPosition = ref<ToolbarPosition>(ToolbarPosition.TOP_LEFT);
+
+// 添加处理工具栏位置变化的方法
+const handleToolbarPositionChange = () => {
+  if (!layerRef.value) return;
+  
+  // 记录操作
+  console.log('toolbarPosition changed:', toolbarPosition.value);
+  addLog('工具栏', `位置变更为: ${toolbarPosition.value}`);
+  
+  try {
+    // 获取工具栏管理器
+    const toolbarManager = layerRef.value.getToolbarManager();
+    if (toolbarManager) {
+      console.log('当前工具栏配置:', toolbarManager.getConfig());
+    }
+    
+    // 使用ScLayer组件暴露的updateToolbarConfig方法更新工具栏配置
+    if (typeof layerRef.value.updateToolbarConfig === 'function') {
+      // 调用组件暴露的方法更新工具栏配置
+      console.log('Calling updateToolbarConfig with position:', toolbarPosition.value);
+      const result = layerRef.value.updateToolbarConfig({
+        position: toolbarPosition.value // 确保使用ToolbarPosition枚举值
+      });
+      
+      // 再次检查工具栏配置
+      if (toolbarManager) {
+        console.log('更新后工具栏配置:', toolbarManager.getConfig());
+      }
+      
+      if (result) {
+        console.log('工具栏位置更新成功');
+        addLog('工具栏', '位置更新成功');
+        
+        // 尝试触发地图刷新，确保UI更新
+        setTimeout(() => {
+          if (layerRef.value && layerRef.value.getMapObject()) {
+            console.log('强制刷新地图组件');
+            layerRef.value.getMapObject().triggerMapResize();
+          }
+        }, 100);
+      } else {
+        console.warn('工具栏位置更新失败');
+        addLog('工具栏', '位置更新失败');
+      }
+    } else {
+      console.error('updateToolbarConfig方法不存在');
+      addLog('工具栏', '更新方法不存在，无法更新工具栏位置');
+    }
+  } catch (error) {
+    console.error('更新工具栏位置失败:', error);
+    addLog('工具栏', `位置更新失败: ${error.message}`);
+  }
+};
+
+/**
+ * 启用飞线图
+ */
+const enableFlightLine = () => {
+  if (!layerRef.value) return;
+  
+  // 尝试激活飞线图工具
+  const result = layerRef.value.activateTool('flightLine');
+  
+  if (result) {
+    flightLineActive.value = true;
+    
+    // 延迟更新飞线列表，确保飞线图对象已完全初始化
+    setTimeout(() => {
+      updateFlightLineList();
+    }, 500);
+    
+    addLog('飞线图', '启用飞线图');
+  } else {
+    addLog('飞线图', '启用飞线图失败，请确认工具栏中包含飞线图工具');
+  }
+};
+
+/**
+ * 禁用飞线图
+ */
+const disableFlightLine = () => {
+  if (!layerRef.value) return;
+  
+  // 尝试停用飞线图工具
+  const result = layerRef.value.deactivateTool('flightLine');
+  
+  if (result) {
+    flightLineActive.value = false;
+    
+    // 清空飞线列表
+    flightLines.value = [];
+    selectedFlightLines.value = [];
+    
+    addLog('飞线图', '禁用飞线图');
+  } else {
+    addLog('飞线图', '禁用飞线图失败，请确认飞线图工具已激活');
+  }
+};
+
+/**
+ * 更新飞线列表
+ */
+const updateFlightLineList = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  try {
+    // 获取所有飞线数据
+    const allFlightLines = flightLineObj.getAllFlightLines();
+    if (!allFlightLines) {
+      flightLines.value = [];
+      return;
+    }
+    
+    // 转换Map为数组
+    const linesArray: Array<FlightLineData & { id: string, selected?: boolean }> = [];
+    allFlightLines.forEach((line, id) => {
+      // 检查该行是否已选中
+      const isSelected = selectedFlightLines.value.includes(id);
+      linesArray.push({
+        ...line,
+        id,
+        selected: isSelected
+      });
+    });
+    
+    // 更新列表
+    flightLines.value = linesArray;
+    
+    // 记录操作
+    if (linesArray.length > 0) {
+      addLog('飞线图', `已更新飞线列表，共 ${linesArray.length} 条飞线`);
+    }
+  } catch (error) {
+    console.error('获取飞线数据失败:', error);
+    addLog('飞线图', `获取飞线数据失败: ${error.message}`);
+  }
+};
+
+// 切换飞线选择状态
+const toggleFlightLineSelection = (id: string) => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  const line = flightLines.value.find(line => line.id === id);
+  if (line) {
+    // 切换选中状态
+    line.selected = !line.selected;
+    
+    // 更新选中列表
+    selectedFlightLines.value = flightLines.value
+      .filter(line => line.selected)
+      .map(line => line.id);
+    
+    // 如果有飞线图对象，尝试更新飞线显示状态
+    try {
+      // 尝试更新飞线线条样式，使选中的飞线高亮显示
+      flightLineObj.updateFlightLine(id, { 
+        highlight: line.selected,
+        style: line.selected ? {
+          width: flightLineConfig.value.width * 2,
+          opacity: 1,
+          color: '#ff0000', // 使用红色突出显示
+        } : undefined
+      });
+      
+      addLog('飞线图', `${line.selected ? '选中' : '取消选中'}飞线: ${line.fromName} -> ${line.toName}`);
+    } catch (error) {
+      console.error('切换飞线选中状态失败:', error);
+      addLog('飞线图', `切换飞线状态失败: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * 添加随机飞线
+ */
+const addRandomFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用飞线图
+  if (!flightLineActive.value) {
+    enableFlightLine();
+  }
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取地图中心点
+  const center = config.center;
+  const centerLon = center[1];
+  const centerLat = center[0];
+  
+  // 创建随机飞线数据
+  const lineCount = 10;
+  const lines = [];
+  
+  for (let i = 0; i < lineCount; i++) {
+    // 随机起点和终点坐标
+    const fromLat = centerLat + (Math.random() - 0.5) * 0.2;
+    const fromLon = centerLon + (Math.random() - 0.5) * 0.2;
+    const toLat = centerLat + (Math.random() - 0.5) * 0.2;
+    const toLon = centerLon + (Math.random() - 0.5) * 0.2;
+    
+    const fromName = `起点${i+1}`;
+    const toName = `终点${i+1}`;
+    
+    lines.push({
+      fromName,
+      toName,
+      coords: [
+        [fromLon, fromLat],
+        [toLon, toLat]
+      ],
+      value: Math.floor(Math.random() * 100)
+    });
+  }
+  
+  // 添加飞线
+  const ids = flightLineObj.addFlightLines(lines);
+  
+  // 更新飞线列表
+  updateFlightLineList();
+  
+  addLog('飞线图', `已添加${lines.length}条随机飞线`);
+};
+
+/**
+ * 添加链状飞线
+ */
+const addChainFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用飞线图
+  if (!flightLineActive.value) {
+    enableFlightLine();
+  }
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取地图中心点
+  const center = config.center;
+  const centerLon = center[1];
+  const centerLat = center[0];
+  
+  // 创建链状飞线数据
+  const nodeCount = 6;
+  const lines = [];
+  const points = [];
+  
+  // 先创建一系列点，形成链状结构
+  for (let i = 0; i < nodeCount; i++) {
+    // 使点沿水平线分布
+    const lat = centerLat;
+    const lon = centerLon - 0.1 + (i * 0.2 / (nodeCount - 1));
+    
+    points.push({
+      name: `节点${i+1}`,
+      coords: [lon, lat]
+    });
+  }
+  
+  // 创建相邻点之间的飞线连接
+  for (let i = 0; i < nodeCount - 1; i++) {
+    lines.push({
+      fromName: points[i].name,
+      toName: points[i+1].name,
+      coords: [
+        points[i].coords,
+        points[i+1].coords
+      ],
+      value: 50
+    });
+  }
+  
+  // 添加飞线
+  flightLineObj.addFlightLines(lines);
+  
+  // 更新飞线列表
+  updateFlightLineList();
+  
+  addLog('飞线图', `已添加${lines.length}条链状飞线`);
+};
+
+/**
+ * 添加星型飞线
+ */
+const addStarFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用飞线图
+  if (!flightLineActive.value) {
+    enableFlightLine();
+  }
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取地图中心点
+  const center = config.center;
+  const centerLon = center[1];
+  const centerLat = center[0];
+  
+  // 创建星型飞线数据
+  const nodeCount = 8; // 外围节点数量
+  const lines = [];
+  
+  // 创建中心点
+  const centerName = "中心点";
+  
+  // 创建周围的点，形成星型结构
+  for (let i = 0; i < nodeCount; i++) {
+    // 计算角度，使节点均匀分布在圆周上
+    const angle = (i / nodeCount) * Math.PI * 2;
+    const radius = 0.05; // 半径
+    
+    // 计算坐标
+    const lat = centerLat + Math.sin(angle) * radius;
+    const lon = centerLon + Math.cos(angle) * radius;
+    
+    const name = `节点${i+1}`;
+    
+    // 添加从中心点到外围节点的连线
+    lines.push({
+      fromName: centerName,
+      toName: name,
+      coords: [
+        [centerLon, centerLat],
+        [lon, lat]
+      ],
+      value: 70
+    });
+  }
+  
+  // 添加飞线
+  flightLineObj.addFlightLines(lines);
+  
+  // 更新飞线列表
+  updateFlightLineList();
+  
+  addLog('飞线图', `已添加${lines.length}条星型飞线`);
+};
+
+/**
+ * 清除飞线
+ */
+const clearFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 清除飞线
+  flightLineObj.clear();
+  
+  // 更新飞线列表
+  flightLines.value = [];
+  selectedFlightLines.value = [];
+  
+  addLog('飞线图', '已清除所有飞线');
+};
+
+/**
+ * 更新飞线图配置
+ */
+const updateFlightLineConfig = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 更新飞线图配置
+  flightLineObj.setConfig(flightLineConfig.value);
+  
+  addLog('飞线图', '更新飞线图配置');
+};
+
+// 飞线图列表数据
+const flightLines = ref<Array<FlightLineData & { id: string, selected?: boolean }>>([]);
+const selectedFlightLines = ref<Array<string>>([]);
+
+// 检查飞线是否被选中
+const isFlightLineSelected = (id: string) => {
+  return selectedFlightLines.value.some(line => line === id);
+};
 </script>
 
 <style scoped>
@@ -2390,6 +2920,86 @@ button:hover {
 }
 
 .more-shapes {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.flight-line-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.no-flight-lines {
+  color: #999;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.flight-line-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.flight-line-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.flight-line-item:hover {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.flight-line-selected {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.flight-line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.flight-line-id {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.flight-line-value {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.flight-line-route {
+  font-size: 12px;
+  color: #666;
+  margin: 4px 0;
+}
+
+.flight-line-arrow {
+  margin: 0 4px;
+}
+
+.more-flight-lines {
   font-size: 12px;
   color: #999;
   text-align: center;
