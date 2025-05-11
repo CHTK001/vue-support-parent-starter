@@ -19,6 +19,8 @@ import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
 import { ShapeOption, Shape } from '../types/shape';
 import { GridManager, GridType } from './GridManager';
+// 引入热力图对象
+import { HeatmapObject } from './HeatmapObject';
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -72,6 +74,9 @@ export class ToolbarObject {
 
   // 网格对象
   private gridObj: GridManager | null = null;
+  
+  // 热力图对象
+  private heatmapObj: HeatmapObject | null = null;
 
   /**
    * 构造函数
@@ -121,6 +126,9 @@ export class ToolbarObject {
     
     // 初始化网格对象
     this.initGridObject();
+    
+    // 初始化热力图对象
+    this.initHeatmapObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -377,6 +385,22 @@ export class ToolbarObject {
     // 创建网格对象
     this.gridObj = new GridManager(mapInstance);
     logger.debug('网格对象已初始化');
+  }
+
+  /**
+   * 初始化热力图对象
+   */
+  private initHeatmapObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化热力图对象');
+      return;
+    }
+    
+    // 创建热力图对象
+    this.heatmapObj = new HeatmapObject(mapInstance);
+    
+    logger.debug('热力图对象初始化成功');
   }
 
   /**
@@ -1040,6 +1064,9 @@ export class ToolbarObject {
       case 'grid-hexagon':
         this.handleGridActivate(GridType.HEXAGON);
         break;
+      case 'heatmap':
+        this.handleHeatmapActivate();
+        break;
     }
   }
 
@@ -1095,6 +1122,9 @@ export class ToolbarObject {
       case 'grid-geohash':
       case 'grid-hexagon':
         this.handleGridDeactivate(tool.id.includes('geohash') ? GridType.GEOHASH : GridType.HEXAGON);
+        break;
+      case 'heatmap':
+        this.handleHeatmapDeactivate();
         break;
     }
   }
@@ -1577,6 +1607,44 @@ export class ToolbarObject {
   }
 
   /**
+   * 处理热力图激活
+   * @private
+   */
+  private handleHeatmapActivate(): void {
+    if (!this.heatmapObj) {
+      logger.warn('热力图对象不存在，无法激活');
+      return;
+    }
+    
+    // 启用热力图
+    this.heatmapObj.enable();
+    
+    logger.debug('热力图已激活');
+    
+    // 触发状态变化回调
+    this.triggerToolStateChange('heatmap', true, 'toggle');
+  }
+  
+  /**
+   * 处理热力图禁用
+   * @private
+   */
+  private handleHeatmapDeactivate(): void {
+    if (!this.heatmapObj) {
+      logger.warn('热力图对象不存在，无法禁用');
+      return;
+    }
+    
+    // 禁用热力图
+    this.heatmapObj.disable();
+    
+    logger.debug('热力图已禁用');
+    
+    // 触发状态变化回调
+    this.triggerToolStateChange('heatmap', false, 'toggle');
+  }
+
+  /**
    * 销毁对象
    */
   destroy(): void {
@@ -1690,6 +1758,12 @@ export class ToolbarObject {
     if (this.gridObj) {
       this.gridObj.destroy();
       this.gridObj = null;
+    }
+    
+    // 销毁热力图对象
+    if (this.heatmapObj) {
+      this.heatmapObj.destroy();
+      this.heatmapObj = null;
     }
     
     // 移除对toolbarObj的引用
@@ -1986,5 +2060,13 @@ export class ToolbarObject {
    */
   getShapeObject(): ShapeObject | null {
     return this.shapeObj;
+  }
+
+  /**
+   * 获取热力图对象
+   * @returns 热力图对象
+   */
+  public getHeatmapObject(): HeatmapObject | null {
+    return this.heatmapObj;
   }
 }
