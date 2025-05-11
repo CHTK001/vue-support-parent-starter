@@ -28,6 +28,8 @@
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
     "h3-js": "catalog:",
+    "mapv": "catalog:",
+    "@turf/turf": "catalog:",
     "ol": "catalog:",
     "ol-contextmenu": "catalog:",
     "ol-ext": "catalog:",

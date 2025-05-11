@@ -113,7 +113,7 @@ import type { ToolItem, ToolbarConfig } from '../types';
 import type { AddToolOptions } from '../types';
 import { info } from "@repo/utils";
 import type { ToolbarObject } from '../composables/ToolbarObject';
-import { GridType } from '../composables/GridObject';
+import { GridType } from '../composables/GridManager';
 
 interface Props {
   toolbarConfig: ToolbarConfig;
