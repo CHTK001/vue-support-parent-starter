@@ -21,6 +21,8 @@ import { ShapeOption, Shape } from '../types/shape';
 import { GridManager, GridType } from './GridManager';
 // 引入热力图对象
 import { HeatmapObject } from './HeatmapObject';
+// 引入飞线图对象
+import { FlightLineObject } from './FlightLineObject';
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -78,6 +80,9 @@ export class ToolbarObject {
   // 热力图对象
   private heatmapObj: HeatmapObject | null = null;
 
+  // 飞线图对象
+  private flightLineObj: FlightLineObject | null = null;
+
   /**
    * 构造函数
    * @param config 工具栏配置
@@ -129,6 +134,9 @@ export class ToolbarObject {
     
     // 初始化热力图对象
     this.initHeatmapObject();
+    
+    // 初始化飞线图对象
+    this.initFlightLineObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -391,16 +399,32 @@ export class ToolbarObject {
    * 初始化热力图对象
    */
   private initHeatmapObject(): void {
+    // 获取地图实例
     const mapInstance = this.mapObj.getMapInstance();
     if (!mapInstance) {
-      logger.warn('地图实例不存在，无法初始化热力图对象');
+      logger.warn('地图实例未创建，无法初始化热力图对象');
       return;
     }
     
     // 创建热力图对象
     this.heatmapObj = new HeatmapObject(mapInstance);
+    logger.debug('热力图对象已初始化');
+  }
+
+  /**
+   * 初始化飞线图对象
+   */
+  private initFlightLineObject(): void {
+    // 获取地图实例
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例未创建，无法初始化飞线图对象');
+      return;
+    }
     
-    logger.debug('热力图对象初始化成功');
+    // 创建飞线图对象
+    this.flightLineObj = new FlightLineObject(mapInstance);
+    logger.debug('飞线图对象已初始化');
   }
 
   /**
@@ -409,6 +433,25 @@ export class ToolbarObject {
    */
   getConfig(): ToolbarConfig {
     return this.config;
+  }
+
+  /**
+   * 设置工具栏配置
+   * @param config 新的工具栏配置或部分配置
+   */
+  setConfig(config: Partial<ToolbarConfig>): void {
+    // 合并配置
+    this.config = {
+      ...this.config,
+      ...config
+    };
+    
+    // 触发配置更新事件
+    this.triggerToolStateChange('toolbar-config-update', true, 'config', {
+      config: this.config
+    });
+    
+    logger.debug('工具栏配置已更新', config);
   }
 
   /**
@@ -915,6 +958,8 @@ export class ToolbarObject {
   private handleToolActivation(tool: ToolItem): void {
     if (!tool || !tool.id) return;
     
+    logger.debug(`处理工具激活: ${tool.id}`);
+    
     switch (tool.id) {
       case 'zoom-in':
         this.handleZoomIn();
@@ -942,6 +987,9 @@ export class ToolbarObject {
         break;
       case 'track-player':
         this.handleTrackPlayerActivate();
+        break;
+      case 'flight-line':
+        this.handleFlightLineActivate();
         break;
       case 'marker-toggle':
         this.handleButtonActivation(tool);
@@ -1067,6 +1115,9 @@ export class ToolbarObject {
       case 'heatmap':
         this.handleHeatmapActivate();
         break;
+      case 'flight-line':
+        this.handleFlightLineActivate();
+        break;
     }
   }
 
@@ -1088,6 +1139,8 @@ export class ToolbarObject {
   private handleToolDeactivation(tool: ToolItem): void {
     if (!tool || !tool.id) return;
     
+    logger.debug(`处理工具停用: ${tool.id}`);
+    
     switch (tool.id) {
       case 'measure':
         this.handleMeasureDeactivate();
@@ -1098,34 +1151,26 @@ export class ToolbarObject {
       case 'overview':
         this.handleOverviewMapDeactivate();
         break;
-      case 'cluster':
-        this.disableCluster();
-        break;
       case 'clear-shapes':
-        // 停用删除模式
         this.deactivateDeleteMode();
+        break;
+      case 'grid-geohash':
+        this.handleGridDeactivate(GridType.GEOHASH);
+        break;
+      case 'grid-hexagon':
+        this.handleGridDeactivate(GridType.HEXAGON);
         break;
       case 'track-player':
         this.handleTrackPlayerDeactivate();
         break;
-      case 'draw-rectangle':
-      case 'draw-circle':
-      case 'draw-polygon':
-      case 'draw-line':
-      case 'draw-square':
-        // 停用图形绘制工具
-        if (this.shapeObj) {
-          this.shapeObj.disable();
-          logger.debug(`已停用 ${tool.id} 绘制工具`);
-        }
-        break;
-      case 'grid-geohash':
-      case 'grid-hexagon':
-        this.handleGridDeactivate(tool.id.includes('geohash') ? GridType.GEOHASH : GridType.HEXAGON);
+      case 'flight-line':
+        this.handleFlightLineDeactivate();
         break;
       case 'heatmap':
         this.handleHeatmapDeactivate();
         break;
+      default:
+        logger.debug(`工具 ${tool.id} 无特殊停用处理`);
     }
   }
 
@@ -1631,17 +1676,57 @@ export class ToolbarObject {
    */
   private handleHeatmapDeactivate(): void {
     if (!this.heatmapObj) {
-      logger.warn('热力图对象不存在，无法禁用');
+      logger.warn('热力图对象不存在，无法停用热力图');
       return;
     }
     
-    // 禁用热力图
+    // 停用热力图
     this.heatmapObj.disable();
     
-    logger.debug('热力图已禁用');
+    // 触发事件
+    this.triggerToolStateChange('heatmap', false, 'layer');
+  }
+
+  /**
+   * 处理飞线图激活
+   */
+  private handleFlightLineActivate(): void {
+    if (!this.flightLineObj) {
+      logger.warn('飞线图对象不存在，无法激活飞线图');
+      return;
+    }
     
-    // 触发状态变化回调
-    this.triggerToolStateChange('heatmap', false, 'toggle');
+    // 激活飞线图
+    this.flightLineObj.enable();
+    logger.debug('[FlightLine] 飞线图已启用');
+    
+    // 触发事件
+    this.triggerToolStateChange('flightLine', true, 'layer', {
+      showFlightLineList: true // 添加显示飞线列表的信号
+    });
+    
+    // 额外日志信息，帮助诊断
+    logger.info('[FlightLine] 飞线图工具已激活，发送显示飞线列表面板信号');
+  }
+
+  /**
+   * 处理飞线图停用
+   */
+  private handleFlightLineDeactivate(): void {
+    if (!this.flightLineObj) {
+      logger.warn('飞线图对象不存在，无法停用飞线图');
+      return;
+    }
+    
+    // 停用飞线图
+    this.flightLineObj.disable();
+    logger.debug('[FlightLine] 飞线图已停用');
+    
+    // 触发事件
+    this.triggerToolStateChange('flightLine', false, 'layer');
+    
+    // 额外日志信息
+    logger.info('[FlightLine] 飞线图工具已停用');
   }
 
   /**
@@ -2068,5 +2153,13 @@ export class ToolbarObject {
    */
   public getHeatmapObject(): HeatmapObject | null {
     return this.heatmapObj;
+  }
+
+  /**
+   * 获取飞线图对象
+   * @returns 飞线图对象
+   */
+  public getFlightLineObject(): FlightLineObject | null {
+    return this.flightLineObj;
   }
 }

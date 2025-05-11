@@ -31,6 +31,9 @@ import {
   GEOHASH_GRID_ICON,
   H3_GRID_ICON,
   HEATMAP_ICON,
+  FLIGHT_LINE_ICON,
+  SHOW_MARKERS_ICON,
+  HIDE_MARKERS_LABEL_ICON,
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -163,7 +166,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     },
     {
       id: 'marker-toggle',
-      type: 'button',
+      type: 'toggle',
       icon: MARKER_VISIBLE_ICON,
       activeIcon: HIDDEN_MARKER_ICON,
       title: '标记',
@@ -172,8 +175,9 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     },
     {
       id: 'label-toggle',
-      type: 'button',
-      icon: LABEL_ICON,
+      type: 'toggle',
+      icon: SHOW_MARKERS_ICON,
+       activeIcon: HIDE_MARKERS_LABEL_ICON,
       title: '标签',
       tooltip: '显示/隐藏标签',
       multi: true
@@ -187,45 +191,45 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       multi: true
     },
     {
-        id: 'draw-rectangle',
-        type: 'toggle',
-        icon: RECTANGLE_ICON,
-        title: '矩形',
-        tooltip: '绘制矩形',
-        multi: false
-      },
-      {
-        id: 'draw-square',
-        type: 'toggle',
-        icon: SQUARE_ICON,
-        title: '正方形',
-        tooltip: '绘制正方形',
-        multi: false
-      },
-      {
-        id: 'draw-circle',
-        type: 'toggle',
-        icon: CIRCLE_ICON,
-        title: '圆形',
-        tooltip: '绘制圆形',
-        multi: false
-      },
-      {
-        id: 'draw-polygon',
-        type: 'toggle',
-        icon: POLYGON_ICON,
-        title: '多边形',
-        tooltip: '绘制多边形',
-        multi: false
-      },
-      {
-        id: 'draw-line',
-        type: 'toggle',
-        icon: POLYLINE_ICON,
-        title: '线段',
-        tooltip: '绘制线段',
-        multi: false
-      },
+      id: 'draw-rectangle',
+      type: 'toggle',
+      icon: RECTANGLE_ICON,
+      title: '矩形',
+      tooltip: '绘制矩形',
+      multi: false
+    },
+    {
+      id: 'draw-square',
+      type: 'toggle',
+      icon: SQUARE_ICON,
+      title: '正方形',
+      tooltip: '绘制正方形',
+      multi: false
+    },
+    {
+      id: 'draw-circle',
+      type: 'toggle',
+      icon: CIRCLE_ICON,
+      title: '圆形',
+      tooltip: '绘制圆形',
+      multi: false
+    },
+    {
+      id: 'draw-polygon',
+      type: 'toggle',
+      icon: POLYGON_ICON,
+      title: '多边形',
+      tooltip: '绘制多边形',
+      multi: false
+    },
+    {
+      id: 'draw-line',
+      type: 'toggle',
+      icon: POLYLINE_ICON,
+      title: '线段',
+      tooltip: '绘制线段',
+      multi: false
+    },
     {
       id: 'track-player',
       type: 'toggle',
@@ -248,15 +252,15 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
           icon: GEOHASH_GRID_ICON,
           title: 'GeoHash',
           tooltip: 'GeoHash网格',
-          multi: false
+          multi: true
         },
         {
-          id: 'grid-hexagon',
+          id: 'grid-h3',
           type: 'toggle',
           icon: H3_GRID_ICON,
-          title: '蜂窝',
-          tooltip: '蜂窝网格',
-          multi: false
+          title: 'H3',
+          tooltip: 'H3蜂窝网格',
+          multi: true
         }
       ]
     },
@@ -266,6 +270,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       icon: HEATMAP_ICON,
       title: '热力图',
       tooltip: '显示热力图',
+      multi: true
+    },
+    {
+      id: 'flight-line',
+      type: 'toggle',
+      icon: FLIGHT_LINE_ICON,
+      title: '飞线图',
+      tooltip: '显示飞线图',
       multi: true
     }
   ],
