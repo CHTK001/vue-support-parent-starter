@@ -60,7 +60,8 @@ import {
 import logger, { LogLevel } from './composables/LogObject';
 import { MapObject } from './composables/MapObject';
 import { ToolbarObject } from './composables/ToolbarObject';
-import { GridObject, GridType, GridConfig } from './composables/GridObject';
+import { GridManager, GridType } from './composables/GridManager';
+import type { GridConfig } from './composables/GridManager';
 import type { MapConfig, MapEventType, Track, TrackPlayer } from './types';
 import { MapTile } from './types';
 import { TrackPlayerConfigOptions } from './types/track';
@@ -81,7 +82,7 @@ import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 const props = withDefaults(defineProps<MapConfig & {
   overviewMapConfig?: OverviewMapConfig,
   trackPlayerConfig?: Partial<TrackPlayerConfigOptions>,
-  geohashGridConfig?: Partial<GridConfig>
+  gridConfig?: Partial<GridConfig>
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -105,7 +106,7 @@ const props = withDefaults(defineProps<MapConfig & {
   geohashGridConfig: () => ({
     geohash: {
       buffer: 4, // 计算可视范围外2个网格
-      precision: 6, // 精度为6
+      precision: 8, // 精度为6
       strokeColor: 'rgba(0, 60, 136, 0.8)', // 边框颜色
       fillColor: 'rgba(0, 60, 136, 0.2)', // 填充颜色
       showLabels: true // 显示标签
@@ -143,6 +144,7 @@ let toolbarObject: ToolbarObject | null = null;
 let markerObject: MarkerObject | null = null;
 let shapeObject: ShapeObject | null = null;
 let trackObj: TrackObject | null = null;
+let gridManager: GridManager | null = null;
 
 // 响应式状态
 const activeToolId = ref<string | undefined>(undefined);
@@ -270,15 +272,13 @@ const initializeMapComponents = async () => {
     // 创建图形绘制对象 - 从toolbarObject获取
     shapeObject = toolbarObject.getShapeObject();
     
-    // 如果有GeoHash网格配置，应用到GridObject
-    if (props.geohashGridConfig && Object.keys(props.geohashGridConfig).length > 0) {
-      const gridObject = toolbarObject.getGridObject();
-      if (gridObject) {
-        logger.debug('应用GeoHash网格配置:', props.geohashGridConfig);
-        gridObject.setConfig(props.geohashGridConfig);
-      } else {
-        logger.warn('GridObject未初始化，无法应用GeoHash网格配置');
-      }
+    // 创建轨迹对象 - 从toolbarObject获取
+    trackObj = toolbarObject.getTrackObject();
+    
+    // 获取地图实例并创建GridManager
+    const olMap = mapObj.getMapInstance();
+    if (olMap) {
+      gridManager = new GridManager(olMap, props.gridConfig);
     }
     
     // 设置工具栏状态变化监听器
@@ -1100,22 +1100,12 @@ watch(() => props.showScaleLine, (newValue) => {
   mapObj.toggleScaleLine(newValue);
 });
 
-// 监听GeoHash网格配置变化
-watch(() => props.geohashGridConfig, (newConfig) => {
-  if (!toolbarObject) return;
+// 监听网格配置变化
+watch(() => props.gridConfig, (newConfig) => {
+  if (!gridManager || !newConfig) return;
   
-  const gridObj = toolbarObject.getGridObject();
-  if (gridObj && newConfig && Object.keys(newConfig).length > 0) {
-    logger.debug('GeoHash网格配置变化，应用新配置:', newConfig);
-    gridObj.setConfig(newConfig);
-    
-    // 如果有活动的网格，刷新显示
-    const activeGridTypes = gridObj.getActiveGridTypes();
-    if (activeGridTypes.has(GridType.GEOHASH)) {
-      logger.debug('刷新活动的GeoHash网格显示');
-      gridObj.refresh();
-    }
-  }
+  logger.debug('网格配置变化，应用新配置:', newConfig);
+  gridManager.setConfig(newConfig);
 }, { deep: true });
 
 // 新增轨迹（演示）
@@ -1272,14 +1262,6 @@ defineExpose({
     const gridObj = toolbarObject?.getGridObject();
     if (gridObj) {
       gridObj.disable(GridType.GEOHASH);
-      return true;
-    }
-    return false;
-  },
-  setGridConfig: (config: Partial<GridConfig>) => {
-    const gridObj = toolbarObject?.getGridObject();
-    if (gridObj) {
-      gridObj.setConfig(config);
       return true;
     }
     return false;

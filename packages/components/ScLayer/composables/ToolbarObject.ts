@@ -14,11 +14,11 @@ import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
 import { TrackObject } from './TrackObject';
-import { GridObject, GridType } from './GridObject';
 import { AggregationOptions } from '../types/cluster';
 import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
 import { ShapeOption, Shape } from '../types/shape';
+import { GridManager, GridType } from './GridManager';
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -71,7 +71,7 @@ export class ToolbarObject {
   };
 
   // 网格对象
-  private gridObj: GridObject | null = null;
+  private gridObj: GridManager | null = null;
 
   /**
    * 构造函数
@@ -375,7 +375,7 @@ export class ToolbarObject {
     }
     
     // 创建网格对象
-    this.gridObj = new GridObject(mapInstance);
+    this.gridObj = new GridManager(mapInstance);
     logger.debug('网格对象已初始化');
   }
 
@@ -1572,7 +1572,7 @@ export class ToolbarObject {
    * 获取网格对象
    * @returns 网格对象
    */
-  public getGridObject(): GridObject | null {
+  public getGridObject(): GridManager | null {
     return this.gridObj;
   }
 
