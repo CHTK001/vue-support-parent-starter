@@ -178,6 +178,29 @@
             </div>
           </div>
 
+          <!-- 添加热力图操作部分 -->
+          <div class="config-item">
+            <div class="label">热力图操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="enableHeatmap">启用热力图</button>
+                <button @click="disableHeatmap">禁用热力图</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addRandomHeatmapPoints(20)">添加随机热力点</button>
+                <button @click="addClusteredHeatmapPoints">添加聚类热力点</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addWeightedHeatmapPoints">添加权重热力点</button>
+                <button @click="clearHeatmap">清除热力图</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="configureHeatmap">配置热力图样式</button>
+                <button @click="togglePointsVisible">{{ pointsVisible ? '隐藏数据点' : '显示数据点' }}</button>
+              </div>
+            </div>
+          </div>
+
           <div class="config-item">
             <div class="label">标记点列表</div>
             <div class="marker-stats">
@@ -277,8 +300,8 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import ScLayer from '@repo/components/ScLayer/index.vue';
 import { 
   LogLevel, 
-  MapType,
-  MapTile,
+  MapType, 
+  MapTile, 
   MarkerObject,
   Shape,
   TrackObject,
@@ -286,10 +309,24 @@ import {
   DEFAULT_MAP_CONFIG
 } from '@repo/components/ScLayer';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
-
+import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 
 // 地图实例引用
 const layerRef = ref(null);
+
+// 热力图相关
+const heatmapPoints = ref<Array<HeatmapPoint>>([]);
+const pointsVisible = ref(false);
+
+// 创建一个Shape枚举常量
+const ShapeType = {
+  POINT: 'Point',
+  LINE: 'LineString',
+  POLYGON: 'Polygon',
+  CIRCLE: 'Circle',
+  RECTANGLE: 'Rectangle',
+  SQUARE: 'Square'
+};
 
 // 图层类型选择（UI展示用）
 const tileType = ref('normal');
@@ -1212,14 +1249,14 @@ function updateShapeList() {
 }
 
 // 获取图形类型名称
-function getShapeTypeName(type: Shape): string {
+function getShapeTypeName(type: string): string {
   const typeNames = {
-    [Shape.POINT]: '点',
-    [Shape.LINE]: '线',
-    [Shape.POLYGON]: '多边形',
-    [Shape.CIRCLE]: '圆形',
-    [Shape.RECTANGLE]: '矩形',
-    [Shape.SQUARE]: '正方形'
+    [ShapeType.POINT]: '点',
+    [ShapeType.LINE]: '线',
+    [ShapeType.POLYGON]: '多边形',
+    [ShapeType.CIRCLE]: '圆形',
+    [ShapeType.RECTANGLE]: '矩形',
+    [ShapeType.SQUARE]: '正方形'
   };
   
   return typeNames[type] || '未知类型';
@@ -1258,7 +1295,7 @@ function changeShapeStyle(shape: any) {
   };
   
   // 对于点类型，增加半径属性
-  if (shape.type === Shape.POINT) {
+  if (shape.type === ShapeType.POINT) {
     style.radius = Math.floor(Math.random() * 10) + 5;
   }
   
@@ -1858,6 +1895,210 @@ const getDirectionName = (direction: string) => {
     case 'west': return '西';
     default: return direction;
   }
+};
+
+/**
+ * 启用热力图
+ */
+const enableHeatmap = () => {
+  if (!layerRef.value) return;
+  const result = layerRef.value.enableHeatmap();
+  if (result) {
+    addLog('热力图', '启用热力图');
+  }
+};
+
+/**
+ * 禁用热力图
+ */
+const disableHeatmap = () => {
+  if (!layerRef.value) return;
+  const result = layerRef.value.disableHeatmap();
+  if (result) {
+    addLog('热力图', '禁用热力图');
+  }
+};
+
+/**
+ * 添加随机热力点
+ * @param count 热力点数量
+ */
+const addRandomHeatmapPoints = (count) => {
+  if (!layerRef.value) return;
+  
+  // 先启用热力图
+  layerRef.value.enableHeatmap();
+  
+  // 获取地图中心点
+  const center = config.center;
+  const points = [];
+  
+  // 生成随机热力点
+  for (let i = 0; i < count; i++) {
+    // 生成随机经纬度偏移
+    const latOffset = Math.random() * 0.1 - 0.05;
+    const lngOffset = Math.random() * 0.1 - 0.05;
+    
+    const point = {
+      longitude: center[1] + lngOffset,
+      latitude: center[0] + latOffset,
+      weight: 0.4 + Math.random() * 0.6, // 0.4 - 1.0之间的随机权重
+      name: `热力点 ${i+1}`,
+      properties: {
+        value: Math.floor(Math.random() * 100),
+        type: '随机点'
+      }
+    };
+    
+    points.push(point);
+  }
+  
+  // 批量添加热力点
+  const ids = layerRef.value.addHeatmapPoints(points);
+  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  
+  addLog('热力图', `添加了${count}个随机热力点`);
+};
+
+/**
+ * 添加聚类热力点
+ */
+const addClusteredHeatmapPoints = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用热力图
+  layerRef.value.enableHeatmap();
+  
+  // 获取地图中心点
+  const center = config.center;
+  const clusters = 5; // 聚类数量
+  const pointsPerCluster = 10; // 每个聚类的点数
+  const points = [];
+  
+  // 生成聚类热力点
+  for (let c = 0; c < clusters; c++) {
+    // 聚类中心点
+    const clusterCenterLat = center[0] + (Math.random() * 0.2 - 0.1);
+    const clusterCenterLng = center[1] + (Math.random() * 0.2 - 0.1);
+    
+    for (let i = 0; i < pointsPerCluster; i++) {
+      // 在聚类中心周围生成点
+      const latOffset = Math.random() * 0.02 - 0.01;
+      const lngOffset = Math.random() * 0.02 - 0.01;
+      
+      const point = {
+        longitude: clusterCenterLng + lngOffset,
+        latitude: clusterCenterLat + latOffset,
+        weight: 0.6 + Math.random() * 0.4, // 0.6 - 1.0之间的随机权重
+        name: `聚类 ${c+1} 热力点 ${i+1}`,
+        properties: {
+          cluster: c + 1,
+          value: Math.floor(Math.random() * 100),
+          type: '聚类点'
+        }
+      };
+      
+      points.push(point);
+    }
+  }
+  
+  // 批量添加热力点
+  const ids = layerRef.value.addHeatmapPoints(points);
+  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  
+  addLog('热力图', `添加了${clusters}个聚类，共${clusters * pointsPerCluster}个热力点`);
+};
+
+/**
+ * 添加权重热力点
+ */
+const addWeightedHeatmapPoints = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用热力图
+  layerRef.value.enableHeatmap();
+  
+  // 获取地图中心点
+  const center = config.center;
+  const points = [];
+  
+  // 创建一个权重递增的线性分布
+  for (let i = 0; i < 10; i++) {
+    const weight = 0.1 + (i * 0.1); // 权重从0.1递增到1.0
+    const latOffset = -0.05 + (i * 0.01);
+    const lngOffset = 0;
+    
+    const point = {
+      longitude: center[1] + lngOffset,
+      latitude: center[0] + latOffset,
+      weight: weight,
+      name: `权重${weight.toFixed(1)}的点`,
+      properties: {
+        value: Math.round(weight * 100),
+        type: '权重点'
+      }
+    };
+    
+    points.push(point);
+  }
+  
+  // 批量添加热力点
+  const ids = layerRef.value.addHeatmapPoints(points);
+  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  
+  addLog('热力图', '添加了10个权重递增的热力点');
+};
+
+/**
+ * 清除热力图
+ */
+const clearHeatmap = () => {
+  if (!layerRef.value) return;
+  
+  const result = layerRef.value.clearHeatmap();
+  if (result) {
+    heatmapPoints.value = [];
+    addLog('热力图', '清除热力图点');
+  }
+};
+
+/**
+ * 配置热力图样式
+ */
+const configureHeatmap = () => {
+  if (!layerRef.value) return;
+  
+  // 设置热力图配置
+  const heatmapConfig = {
+    radius: 20,                // 热力点半径
+    blur: 15,                  // 模糊大小
+    opacity: 0.8,              // 不透明度
+    gradient: ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000'], // 渐变色
+    showPoints: pointsVisible.value,  // 显示数据点
+    pointRadius: 4,            // 点半径
+    pointColor: 'rgba(0, 0, 255, 0.7)' // 点颜色
+  };
+  
+  const result = layerRef.value.configureHeatmap(heatmapConfig);
+  if (result) {
+    addLog('热力图', '更新热力图配置');
+  }
+};
+
+/**
+ * 切换是否显示数据点
+ */
+const togglePointsVisible = () => {
+  if (!layerRef.value) return;
+  
+  pointsVisible.value = !pointsVisible.value;
+  
+  // 更新热力图配置，切换数据点显示
+  layerRef.value.configureHeatmap({
+    showPoints: pointsVisible.value
+  });
+  
+  addLog('热力图', pointsVisible.value ? '显示数据点' : '隐藏数据点');
 };
 </script>
 

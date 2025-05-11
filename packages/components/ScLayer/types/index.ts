@@ -12,6 +12,7 @@ export * from "./marker";
 export * from "./cluster";
 export * from "./shape";
 export * from "./track";
+export * from "./heatmap";
 //图层类型
 export enum MapTile {
   NORMAL = 'normal',

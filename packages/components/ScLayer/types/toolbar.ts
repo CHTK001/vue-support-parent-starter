@@ -30,7 +30,9 @@ import {
   GRID_ICON,
   GEOHASH_GRID_ICON,
   H3_GRID_ICON,
+  HEATMAP_ICON,
 } from './icon';
+import type { TrackPlayerConfigOptions } from './track';
 
 /**
  * 工具栏类型定义
@@ -89,19 +91,6 @@ export interface MeasureToolConfig {
   clearOnComplete?: boolean; // 测量完成后是否自动清除
 }
 
-// 轨迹播放器配置选项
-export interface TrackPlayerConfigOptions {
-  loop: boolean;          // 是否循环播放
-  speed: number;          // 默认播放速度(km/h)
-  withCamera: boolean;    // 是否跟随相机
-  speedFactor: number;    // 速度因子
-  showNodes: boolean;     // 是否显示节点（静态点位）
-  showNodeAnchors: boolean;// 是否显示节点锚点（当showNodes设置为true时有效）
-  showNodeNames: boolean; // 是否显示节点名称（静态点位名称）
-  showPointNames: boolean;// 是否显示点位名称（移动点位名称）
-  showSpeed: boolean;     // 是否显示移动速度
-  showNodeSpeed: boolean; // 是否显示节点速度
-}
 
 // 工具栏配置接口
 export interface ToolbarConfig {
@@ -137,131 +126,146 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       type: 'toggle',
       icon: MEASURE_ICON,
       title: '测距',
-      name: '测距'
-    },
-    {
-      id: 'layer-switch',
-      type: 'toggle',
-      icon: LAYER_SWITCH_ICON,
-      title: '图层切换',
-      name: '图层',
-      multi: true  // 图层切换工具可以与其它工具同时激活
+      tooltip: '测量距离',
+      multi: false
     },
     {
       id: 'coordinate',
       type: 'toggle',
       icon: COORDINATE_ICON,
       title: '坐标',
-      name: '坐标',
-      multi: true  // 坐标工具可以与其它工具同时激活
+      tooltip: '显示坐标信息',
+      multi: true
     },
     {
       id: 'overview',
       type: 'toggle',
       icon: EAGLE_EYE_ICON,
       title: '鹰眼',
-      name: '鹰眼',
-      multi: true  // 鹰眼工具可以与其它工具同时激活
+      tooltip: '显示鹰眼地图',
+      multi: true
     },
     {
-      id: 'track-player',
+      id: 'layer-switch',
       type: 'toggle',
-      icon: TRACK_PLAYER_ICON,
-      title: '轨迹播放器',
-      name: '轨迹',
-      multi: true  // 轨迹播放器可以与其它工具同时激活
+      icon: LAYER_SWITCH_ICON,
+      title: '图层',
+      tooltip: '切换地图图层',
+      multi: true
     },
     {
-      id: 'grid',
-      type: 'menu',
-      icon: GRID_ICON,
-      title: '网格',
-      name: '网格',
-      multi: true, // 网格工具可以与其它工具同时激活
-      children: [
-        {
-          id: 'grid-geohash',
-          type: 'toggle',
-          icon: GEOHASH_GRID_ICON,
-          title: 'GeoHash网格',
-          name: 'GeoHash'
-        },
-        {
-          id: 'grid-hexagon',
-          type: 'toggle',
-          icon: H3_GRID_ICON,
-          title: '蜂窝网格',
-          name: '蜂窝'
-        }
-      ]
+      id: 'clear-shapes',
+      type: 'toggle',
+      icon: DELETE_ICON,
+      title: '删除',
+      tooltip: '删除图形或标记',
+      multi: false
     },
     {
       id: 'marker-toggle',
-      type: 'toggle',
-      icon: MARKER_ICON,
+      type: 'button',
+      icon: MARKER_VISIBLE_ICON,
       activeIcon: HIDDEN_MARKER_ICON,
-      title: '显示/隐藏标记点',
-      name: '标记点',
-      multi: true  // 标记点工具可以与其它工具同时激活
+      title: '标记',
+      tooltip: '显示/隐藏标记点',
+      multi: true
     },
     {
       id: 'label-toggle',
-      type: 'toggle',
-      icon: POPOVER_TOGGLE_ICON,
-      title: '显示/隐藏标签',
-      name: '标签',
-      multi: true  // 标签工具可以与其它工具同时激活
+      type: 'button',
+      icon: LABEL_ICON,
+      title: '标签',
+      tooltip: '显示/隐藏标签',
+      multi: true
     },
     {
       id: 'cluster',
       type: 'toggle',
       icon: CLUSTER_ICON,
-      title: '标记点聚合',
-      name: '聚合',
-      multi: true  // 聚合工具可以与其它工具同时激活
+      title: '聚合',
+      tooltip: '标记点聚合',
+      multi: true
     },
     {
-      id: 'draw-rectangle',
+        id: 'draw-rectangle',
+        type: 'toggle',
+        icon: RECTANGLE_ICON,
+        title: '矩形',
+        tooltip: '绘制矩形',
+        multi: false
+      },
+      {
+        id: 'draw-square',
+        type: 'toggle',
+        icon: SQUARE_ICON,
+        title: '正方形',
+        tooltip: '绘制正方形',
+        multi: false
+      },
+      {
+        id: 'draw-circle',
+        type: 'toggle',
+        icon: CIRCLE_ICON,
+        title: '圆形',
+        tooltip: '绘制圆形',
+        multi: false
+      },
+      {
+        id: 'draw-polygon',
+        type: 'toggle',
+        icon: POLYGON_ICON,
+        title: '多边形',
+        tooltip: '绘制多边形',
+        multi: false
+      },
+      {
+        id: 'draw-line',
+        type: 'toggle',
+        icon: POLYLINE_ICON,
+        title: '线段',
+        tooltip: '绘制线段',
+        multi: false
+      },
+    {
+      id: 'track-player',
       type: 'toggle',
-      icon: RECTANGLE_ICON,
-      title: '绘制矩形',
-      name: '矩形'
+      icon: TRACK_PLAYER_ICON,
+      title: '轨迹',
+      tooltip: '轨迹播放器',
+      multi: true
     },
     {
-      id: 'draw-square',
-      type: 'toggle',
-      icon: SQUARE_ICON,
-      title: '绘制正方形',
-      name: '正方形'
+      id: 'grid',
+      type: 'button',
+      icon: GRID_ICON,
+      title: '网格',
+      tooltip: '网格工具',
+      multi: true,
+      children: [
+        {
+          id: 'grid-geohash',
+          type: 'toggle',
+          icon: GEOHASH_GRID_ICON,
+          title: 'GeoHash',
+          tooltip: 'GeoHash网格',
+          multi: false
+        },
+        {
+          id: 'grid-hexagon',
+          type: 'toggle',
+          icon: H3_GRID_ICON,
+          title: '蜂窝',
+          tooltip: '蜂窝网格',
+          multi: false
+        }
+      ]
     },
     {
-      id: 'draw-circle',
+      id: 'heatmap',
       type: 'toggle',
-      icon: CIRCLE_ICON,
-      title: '绘制圆形',
-      name: '圆形'
-    },
-    {
-      id: 'draw-polygon',
-      type: 'toggle',
-      icon: POLYGON_ICON,
-      title: '绘制多边形',
-      name: '多边形'
-    },
-    {
-      id: 'draw-line',
-      type: 'toggle',
-      icon: POLYLINE_ICON,
-      title: '绘制线段',
-      name: '线段'
-    },
-    {
-      id: 'clear-shapes',
-      type: 'toggle',
-      icon: CLEAR_ICON,
-      title: '删除模式 - 点击要素删除',
-      name: '删除',
-      className: 'delete-btn',
+      icon: HEATMAP_ICON,
+      title: '热力图',
+      tooltip: '显示热力图',
       multi: true
     }
   ],

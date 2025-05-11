@@ -59,19 +59,21 @@ import {
 } from './composables/CoordinateObject';
 import logger, { LogLevel } from './composables/LogObject';
 import { MapObject } from './composables/MapObject';
+import { MapType, DEFAULT_MAP_CONFIG } from './types/map';
+import { MapTile, MapConfig } from './types';
 import { ToolbarObject } from './composables/ToolbarObject';
 import { GridManager, GridType } from './composables/GridManager';
 import type { GridConfig } from './composables/GridManager';
-import type { MapConfig, MapEventType, Track, TrackPlayer } from './types';
-import { MapTile } from './types';
+import type { MapEventType, Track, TrackPlayer } from './types';
 import { TrackPlayerConfigOptions } from './types/track';
-import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
 import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
 import { MarkerObject } from './composables/MarkerObject';
-import { MarkerOptions } from './types/marker';
+import type { MarkerOptions } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
+// 导入热力图相关类型
+import type { HeatmapPoint, HeatmapConfig } from './types/heatmap';
 import { Map as OlMap } from 'ol';
 // 引入OpenLayers样式
 import 'ol/ol.css';
@@ -1246,6 +1248,7 @@ defineExpose({
   getMarkerObject: () => markerObject,
   getShapeObject: () => shapeObject,
   getGridObject: () => toolbarObject?.getGridObject(),
+  getHeatmapObject: () => toolbarObject?.getHeatmapObject(),
   reinitMap: initMap,
   changeMapLayer: switchMapLayer,
   
@@ -1262,6 +1265,66 @@ defineExpose({
     const gridObj = toolbarObject?.getGridObject();
     if (gridObj) {
       gridObj.disable(GridType.GEOHASH);
+      return true;
+    }
+    return false;
+  },
+  
+  // 热力图相关方法
+  enableHeatmap: () => {
+    if (toolbarObject) {
+      toolbarObject.activateTool('heatmap');
+      return true;
+    }
+    return false;
+  },
+  disableHeatmap: () => {
+    if (toolbarObject) {
+      toolbarObject.deactivateTool('heatmap');
+      return true;
+    }
+    return false;
+  },
+  addHeatmapPoint: (point: HeatmapPoint) => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      return heatmapObj.addPoint(point);
+    }
+    return null;
+  },
+  addHeatmapPoints: (points: HeatmapPoint[]) => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      return heatmapObj.addPoints(points);
+    }
+    return [];
+  },
+  updateHeatmapPoint: (id: string, point: Partial<HeatmapPoint>) => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      return heatmapObj.updatePoint(id, point);
+    }
+    return false;
+  },
+  removeHeatmapPoint: (id: string) => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      return heatmapObj.removePoint(id);
+    }
+    return false;
+  },
+  clearHeatmap: () => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      heatmapObj.clear();
+      return true;
+    }
+    return false;
+  },
+  configureHeatmap: (config: Partial<HeatmapConfig>) => {
+    const heatmapObj = toolbarObject?.getHeatmapObject();
+    if (heatmapObj) {
+      heatmapObj.setConfig(config);
       return true;
     }
     return false;

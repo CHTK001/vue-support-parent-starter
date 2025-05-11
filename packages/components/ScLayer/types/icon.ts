@@ -282,6 +282,14 @@ export const LABEL_ICON = `<svg viewBox="0 0 1024 1024" width="24" height="24"><
 
 // 清除图标
 export const CLEAR_ICON = `<svg viewBox="0 0 1024 1024" width="24" height="24"><path d="M899.1 869.6l-53-305.6H864c14.4 0 26-11.6 26-26V346c0-14.4-11.6-26-26-26H618V138c0-14.4-11.6-26-26-26H432c-14.4 0-26 11.6-26 26v182H160c-14.4 0-26 11.6-26 26v192c0 14.4 11.6 26 26 26h17.9l-53 305.6c-0.3 1.5-0.4 3-0.4 4.4 0 14.4 11.6 26 26 26h723c1.5 0 3-0.1 4.4-0.4 14.2-2.4 23.7-15.9 21.2-30zM204 390h272V182h72v208h272v104H204V390z m468 440V674c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v156H416V674c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v156H202.8l45.1-260H776l45.1 260H672z" fill="currentColor"/></svg>`;
+
+// 添加热力图图标到icon.ts文件中
+export const HEATMAP_ICON = `
+<svg viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 2c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.14-7-7 3.14-7 7-7z" fill="currentColor" fill-opacity="0.5"/>
+  <circle cx="12" cy="12" r="5" fill="currentColor" fill-opacity="0.8"/>
+  <circle cx="12" cy="12" r="3" fill="currentColor"/>
+</svg>`;
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,
@@ -328,7 +336,8 @@ export const IconMap = {
   trackPlayer: TRACK_PLAYER_ICON,
   grid: GRID_ICON,
   geohashGrid: GEOHASH_GRID_ICON,
-  hexagonGrid: H3_GRID_ICON
+  hexagonGrid: H3_GRID_ICON,
+  heatmap: HEATMAP_ICON
 };
 
 /**
