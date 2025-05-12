@@ -230,6 +230,10 @@
                 <button @click="addStarFlightLines">添加星型飞线</button>
                 <button @click="clearFlightLines">清除飞线</button>
               </div>
+              <!-- 添加最佳视角按钮 -->
+              <div class="control-row buttons-row">
+                <button @click="setFlightLineOptimalView" class="primary-button">飞线最佳视角</button>
+              </div>
               <div class="control-row">
                 <span>曲率:</span>
                 <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1" @change="updateFlightLineConfig">
