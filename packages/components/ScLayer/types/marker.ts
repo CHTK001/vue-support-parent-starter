@@ -17,6 +17,22 @@ export enum MarkerClusterMode {
 }
 
 /**
+ * 标记点全局配置
+ */
+export interface MarkerConfig {
+  /** 图标大小是否受到zoom影响，默认true */
+  scaleWithZoom?: boolean;
+  /** 分组图标集合，用于根据group设置图标 */
+  groupIcon?: Record<string, string>;
+  /** 缩放系数，默认0.05，正值表示放大时图标变小，负值表示放大时图标变大 */
+  zoomFactor?: number;
+  /** 最小缩放比例，默认0.7 */
+  minScale?: number;
+  /** 最大缩放比例，默认1.5 */
+  maxScale?: number;
+}
+
+/**
  * 标记点配置选项
  */
 export interface MarkerOptions {
