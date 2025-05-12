@@ -605,7 +605,7 @@ const toolbarStyle = computed(() => {
     } else {
       style.transform = config.value.position.startsWith('top') ? 'translateY(-100%)' : 'translateY(100%)';
     }
-    style.opacity = '0'; // 完全隐藏工具栏
+    style.opacity = '0.4'; // 完全隐藏工具栏
     style.pointerEvents = 'none'; // 收缩状态下禁用工具栏交互
   } else {
     style.transform = 'translate(0, 0)';
@@ -969,10 +969,13 @@ defineExpose({
   background-color: #1890ff !important; /* 使用更醒目的蓝色背景 */
   box-shadow: 0 2px 10px rgba(24, 144, 255, 0.5) !important; /* 增强阴影效果 */
   opacity: 1 !important; /* 完全不透明 */
-  border: 2px solid white !important; /* 添加白色边框 */
+  border: 2px solid rgba(24, 143, 255, 0.507)a6 !important; /* 添加白色边框 */
   width: 32px !important; /* 略微增大尺寸 */
   height: 32px !important;
   z-index: 3001 !important; /* 确保在最上层 */
+  visibility: visible !important; /* 确保可见 */
+  display: flex !important; /* 确保显示 */
+  pointer-events: auto !important; /* 确保可点击 */
 }
 
 /* 收缩状态下的图标颜色 */
@@ -1537,6 +1540,15 @@ defineExpose({
   top: -30px;
   bottom: auto;
   transform: translateX(-50%);
+}
+
+/* 添加额外的选择器确保收缩按钮始终可见 */
+.toolbar-collapse {
+  opacity: 1 !important;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  display: flex !important;
 }
 </style>
 <style lang="scss">
