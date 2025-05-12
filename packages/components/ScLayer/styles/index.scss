@@ -12,6 +12,39 @@
     transform: translate(-50%, -100%);
   }
 }
+.thin-scrollbar,
+.pure-scrollbar {
+  scrollbar-color: var(--el-color-primary) transparent;
+  /* 滑块颜色、轨道颜色 */
+
+  /* Firefox */
+  scrollbar-width: thin;
+
+  /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px;
+    /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);
+    ;
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary);
+    /* 滑块hover颜色 */
+  }
+}
 /* OpenLayers必要样式 */
 .ol-viewport {
   width: 100% !important;

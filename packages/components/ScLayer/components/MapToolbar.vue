@@ -132,14 +132,14 @@ const props = withDefaults(defineProps<Props>(), {
   toolbarObj: null
 });
 
+const configConfig = ref<ToolbarConfig>(props.toolbarConfig);
 // 方便在模板和计算属性中使用
 const config = computed(() => ({
-  position: 'top-left',
-  direction: 'horizontal',
-  itemsPerLine: 8,
-  size: 36,
-  items: [],
-  ...props.toolbarConfig
+  position: configConfig.value.position || 'top-left',
+  direction: configConfig.value.direction || 'horizontal',
+  itemsPerLine: configConfig.value.itemsPerLine || 8,
+  size: configConfig.value.size || 36,
+  items: configConfig.value.items || [],
 }));
 
 const toolbarObj = ref<ToolbarObject | null>(null);
@@ -619,15 +619,29 @@ const refreshToolbarState = () => {
   }
 };
 
-// 暴露方法给父组件
-defineExpose({
-  updateActiveTools,
-  refreshToolbarState,
-  getToolbarObj: () => toolbarObj.value,
-  setToolbarObj: (obj: ToolbarObject) => {
-    toolbarObj.value = obj;
+// 强制更新组件方法
+const forceUpdate = () => {
+  // 增加键值，触发组件重新渲染
+  forceUpdateKey.value++;
+  console.debug('工具栏组件强制更新', forceUpdateKey.value);
+};
+
+// 添加更新配置的方法
+const updateConfig = (newConfig: ToolbarConfig) => {
+  // 如果有toolbarObj，通过它来设置配置
+  if (toolbarObj.value) {
+    toolbarObj.value.setConfig(newConfig);
   }
-});
+  
+  // 强制更新组件
+  forceUpdate();
+  // 更新配置
+  configConfig.value = newConfig;
+  // 更新工具栏状态
+  nextTick(() => {
+    updateActiveTools();
+  });
+};
 
 // 添加子菜单状态对象
 const submenuState = ref({
@@ -731,6 +745,19 @@ watch(() => props.toolbarObj, (newValue) => {
     });
   }
 }, { immediate: true });
+
+
+// 暴露方法给父组件
+defineExpose({
+  updateActiveTools,
+  refreshToolbarState,
+  forceUpdate,        // 新增：强制更新方法
+  updateConfig,       // 新增：更新配置方法
+  getToolbarObj: () => toolbarObj.value,
+  setToolbarObj: (obj: ToolbarObject) => {
+    toolbarObj.value = obj;
+  },
+});
 </script>
 
 <style lang="scss" scoped>

@@ -62,11 +62,11 @@
         </div>
       </div>
     </div>
-    <!-- 折叠/最小化状态下的图标面板 -->
-    <div class="flight-line-panel-minimized" v-if="collapsed" @click.stop="toggleCollapse">
-      <div class="minimized-icon">📊</div>
-      <div class="minimized-text">飞线数据</div>
-      <div class="collapsed-icon">+</div>
+    <!-- 折叠/最小化状态下的图标 -->
+    <div class="track-player-minimized" v-if="collapsed" @click.stop="toggleCollapse">
+      <div class="minimized-restore-icon">        
+        <span v-html="FLIGHT_LINE_ICON" />
+    </div>
     </div>
   </div>
 </template>
@@ -78,7 +78,8 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, defineEmits, watch, onMounted, onBeforeUnmount } from 'vue';
+import { FLIGHT_LINE_ICON } from '../types/icon';
+import { ref, computed, defineProps, defineEmits, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import type { FlightLineData } from '../types/flightline';
 
 const props = defineProps<{
@@ -100,6 +101,7 @@ const hiddenIds = ref<Array<string>>([]);
 const hideMode = ref(false);
 const isInitialized = ref(false);
 const isPanelTouched = ref(false);
+const panelInitialized = ref(false);
 
 // 计算属性
 const selectedCount = computed(() => selectedIds.value.length);
@@ -128,6 +130,13 @@ const toggleCollapse = () => {
   
   // 标记面板已被用户触摸
   isPanelTouched.value = true;
+  
+  // 如果是从折叠状态展开，则刷新列表
+  if (!collapsed.value) {
+    nextTick(() => {
+      refreshFlightLineList();
+    });
+  }
 };
 
 
@@ -227,7 +236,7 @@ const updateFlightLineHighlight = (id: string) => {
       style: selected ? {
         width: 3, // 加粗线条
         opacity: 1,
-        color: '#ff0000' // 红色高亮
+        color: '#1890ff' // 蓝色高亮，从红色(#ff0000)改为蓝色(#1890ff)
       } : undefined
     });
   } catch (error) {
@@ -364,18 +373,32 @@ const addDemoFlightLines = () => {
   }
 };
 
+// 修复首次展示问题
+const initPanel = () => {
+  if (panelInitialized.value) return;
+  
+  // 延迟刷新数据，确保组件已完全挂载
+  nextTick(() => {
+    setTimeout(() => {
+      refreshFlightLineList();
+      panelInitialized.value = true;
+    }, 300);
+  });
+};
+
 // 初始化数据加载
 onMounted(() => {
-  // 延迟加载飞线数据
-  setTimeout(() => {
-    refreshFlightLineList();
-  }, 300);
+  // 确保初始化只执行一次
+  initPanel();
   
   // 监听active属性变化
   watch(() => props.active, (active) => {
     if (active) {
       // 当面板变为活动状态时，刷新飞线列表
-      refreshFlightLineList();
+      initPanel();
+      nextTick(() => {
+        refreshFlightLineList();
+      });
     }
   }, { immediate: true });
 });
@@ -415,11 +438,13 @@ defineExpose({
 }
 
 .flight-line-panel.collapsed {
-  width: auto;
-  height: auto;
-  min-width: 40px;
-  min-height: 40px;
-  overflow: visible;
+  width: 40px !important;
+  height: 40px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  cursor: pointer;
+  border-radius: 10px;
 }
 
 /* 位置样式 */
@@ -427,10 +452,17 @@ defineExpose({
   top: 10px;
   left: 10px;
 }
+.flight-line-panel.collapsed.position-top-left {
+  top: 60px !important;
+}
 
 .flight-line-panel.position-top-right {
   top: 10px;
   right: 10px;
+}
+
+.flight-line-panel.collapsed.position-top-right {
+  top: 60px !important;
 }
 
 .flight-line-panel.position-bottom-left {
@@ -451,6 +483,10 @@ defineExpose({
   color: white;
   padding: 8px 12px;
   font-weight: bold;
+}
+
+.flight-line-panel.collapsed .flight-line-panel-header {
+  display: none;
 }
 
 .panel-actions {
@@ -568,8 +604,8 @@ defineExpose({
 }
 
 .flight-line-item.flight-line-selected {
-  border-color: #e74c3c;
-  background-color: rgba(231, 76, 60, 0.05);
+  border-color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.05);
 }
 
 .flight-line-item.flight-line-hidden {
@@ -596,36 +632,28 @@ defineExpose({
   font-weight: bold;
 }
 
-/* 折叠/最小化状态下的样式 */
-.flight-line-panel-minimized {
+/* 最小化后的样式，参考轨迹播放器的实现 */
+.track-player-minimized {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  justify-content: center;
   cursor: pointer;
-  background-color: #3498db;
   color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s;
+  font-size: 18px;
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  /* border-radius: 50%; */
+  transition: transform 0.3s;
 }
 
-.flight-line-panel-minimized:hover {
-  background-color: #2980b9;
+.track-player-minimized:hover {
+  transform: scale(1.05);
 }
 
-.minimized-icon {
-  font-size: 16px;
-}
-
-.minimized-text {
-  font-size: 14px;
+.minimized-restore-icon {
+  font-size: 20px;
   font-weight: bold;
-}
-
-.collapsed-icon {
-  margin-left: 8px;
-  font-size: 16px;
-  opacity: 0.8;
 }
 </style> 

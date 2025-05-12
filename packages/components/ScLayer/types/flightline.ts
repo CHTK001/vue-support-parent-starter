@@ -8,6 +8,13 @@ export interface FlightLinePoint {
   value: number[];
 }
 
+// 飞线样式接口
+export interface FlightLineStyle {
+  color?: string;
+  width?: number;
+  opacity?: number;
+}
+
 // 飞线数据接口
 export interface FlightLineData {
   id?: string;
@@ -15,6 +22,11 @@ export interface FlightLineData {
   toName: string;
   coords: number[][];
   value?: number;
+  from?: number[];
+  to?: number[];
+  visible?: boolean;   // 是否可见
+  highlight?: boolean; // 是否高亮显示
+  style?: FlightLineStyle; // 线条样式
 }
 
 // 飞线图配置接口
