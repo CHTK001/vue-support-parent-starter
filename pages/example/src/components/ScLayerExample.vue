@@ -2323,56 +2323,33 @@ const togglePointsVisible = () => {
 // 工具栏位置
 const toolbarPosition = ref<ToolbarPosition>(ToolbarPosition.TOP_LEFT);
 
-// 添加处理工具栏位置变化的方法
-const handleToolbarPositionChange = () => {
+// 简化工具栏位置更新方法
+const changeToolbarPosition = (position: ToolbarPosition) => {
+  toolbarPosition.value = position;
+  
   if (!layerRef.value) return;
   
-  // 记录操作
-  console.log('toolbarPosition changed:', toolbarPosition.value);
-  addLog('工具栏', `位置变更为: ${toolbarPosition.value}`);
+  // 更新工具栏位置配置
+  layerRef.value.updateToolbarConfig({ position });
   
-  try {
-    // 获取工具栏管理器
-    const toolbarManager = layerRef.value.getToolbarManager();
-    if (toolbarManager) {
-      console.log('当前工具栏配置:', toolbarManager.getConfig());
-    }
-    
-    // 使用ScLayer组件暴露的updateToolbarConfig方法更新工具栏配置
-    if (typeof layerRef.value.updateToolbarConfig === 'function') {
-      // 调用组件暴露的方法更新工具栏配置
-      console.log('Calling updateToolbarConfig with position:', toolbarPosition.value);
-      const result = layerRef.value.updateToolbarConfig({
-        position: toolbarPosition.value // 确保使用ToolbarPosition枚举值
-      });
-      
-      // 再次检查工具栏配置
-      if (toolbarManager) {
-        console.log('更新后工具栏配置:', toolbarManager.getConfig());
-      }
-      
-      if (result) {
-        console.log('工具栏位置更新成功');
-        addLog('工具栏', '位置更新成功');
-        
-        // 尝试触发地图刷新，确保UI更新
-        setTimeout(() => {
-          if (layerRef.value && layerRef.value.getMapObject()) {
-            layerRef.value.getMapObject().triggerMapResize();
-          }
-        }, 100);
-      } else {
-        console.warn('工具栏位置更新失败');
-        addLog('工具栏', '位置更新失败');
-      }
-    } else {
-      console.error('updateToolbarConfig方法不存在');
-      addLog('工具栏', '更新方法不存在，无法更新工具栏位置');
-    }
-  } catch (error) {
-    console.error('更新工具栏位置失败:', error);
-    addLog('工具栏', `位置更新失败: ${error.message}`);
-  }
+  // 记录日志
+  addLog('工具栏', `切换位置: ${position}`);
+};
+
+// 添加工具栏方向数据
+const toolbarDirection = ref<ToolbarDirection>(ToolbarDirection.HORIZONTAL);
+
+// 简化工具栏方向更新方法
+const changeToolbarDirection = (direction: ToolbarDirection) => {
+  toolbarDirection.value = direction;
+  
+  if (!layerRef.value) return;
+  
+  // 更新工具栏方向配置
+  layerRef.value.updateToolbarConfig({ direction });
+  
+  // 记录日志
+  addLog('工具栏', `切换方向: ${direction}`);
 };
 
 /**
@@ -2387,10 +2364,8 @@ const enableFlightLine = () => {
   if (result) {
     flightLineActive.value = true;
     
-    // 延迟更新飞线列表，确保飞线图对象已完全初始化
-    setTimeout(() => {
-      updateFlightLineList();
-    }, 500);
+    // 直接更新飞线列表
+    updateFlightLineList();
     
     addLog('飞线图', '启用飞线图');
   } else {
@@ -2876,93 +2851,6 @@ const changeMapType = (mapType: MapType) => {
 const changeLayerType = (layerType: string) => {
   tileType.value = layerType;
   handleLayerTypeChange();
-};
-
-// 切换工具栏位置
-const changeToolbarPosition = (position: ToolbarPosition) => {
-  toolbarPosition.value = position;
-  
-  if (!layerRef.value) {
-    addLog('工具栏', '地图组件未初始化，无法更新工具栏位置');
-    return;
-  }
-  
-  // 记录操作
-  console.log('正在切换工具栏位置到:', position);
-  addLog('工具栏', `正在切换位置到: ${position}`);
-  
-  try {
-    // 直接调用ScLayer组件的updateToolbarConfig方法
-    const result = layerRef.value.updateToolbarConfig({
-      position: position // 设置新的位置
-    });
-    
-    if (result) {
-      // 如果更新成功，添加视觉反馈
-      ElMessage.success('工具栏位置已更新');
-      addLog('工具栏', '位置更新成功');
-      
-      // 尝试触发地图刷新，确保UI更新
-      setTimeout(() => {
-        if (layerRef.value && layerRef.value.getMapObject()) {
-          layerRef.value.getMapObject().updateSize();
-        }
-      }, 100);
-    } else {
-      ElMessage.error('工具栏位置更新失败');
-      addLog('工具栏', '位置更新失败');
-    }
-  } catch (error) {
-    console.error('更新工具栏位置时发生错误:', error);
-    ElMessage.error(`工具栏位置更新失败: ${error.message}`);
-    addLog('工具栏', `位置更新失败: ${error.message}`);
-  }
-};
-
-
-// 在data定义部分添加toolbarDirection数据
-const toolbarDirection = ref<ToolbarDirection>(ToolbarDirection.HORIZONTAL);
-
-// 添加方向切换方法
-// 切换工具栏方向
-const changeToolbarDirection = (direction: ToolbarDirection) => {
-  toolbarDirection.value = direction;
-  
-  if (!layerRef.value) {
-    addLog('工具栏', '地图组件未初始化，无法更新工具栏方向');
-    return;
-  }
-  
-  // 记录操作
-  console.log('正在切换工具栏方向为:', direction);
-  addLog('工具栏', `正在切换方向为: ${direction}`);
-  
-  try {
-    // 调用ScLayer组件的updateToolbarConfig方法
-    const result = layerRef.value.updateToolbarConfig({
-      direction: direction // 设置新的方向
-    });
-    
-    if (result) {
-      // 如果更新成功，添加视觉反馈
-      ElMessage.success('工具栏方向已更新');
-      addLog('工具栏', '方向更新成功');
-      
-      // 尝试触发地图刷新，确保UI更新
-      setTimeout(() => {
-        if (layerRef.value && layerRef.value.getMapObject()) {
-          layerRef.value.getMapObject().updateSize();
-        }
-      }, 100);
-    } else {
-      ElMessage.error('工具栏方向更新失败');
-      addLog('工具栏', '方向更新失败');
-    }
-  } catch (error) {
-    console.error('更新工具栏方向时发生错误:', error);
-    ElMessage.error(`工具栏方向更新失败: ${error.message}`);
-    addLog('工具栏', `方向更新失败: ${error.message}`);
-  }
 };
 
 // 添加标记点聚合模式的枚举

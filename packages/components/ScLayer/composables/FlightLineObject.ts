@@ -1303,19 +1303,6 @@ export class FlightLineObject {
       testLines.push(createRandomLine(0, i));
     }
     
-    // 添加一些随机连接
-    // for (let i = 0; i < 5; i++) {
-    //   const fromIndex = 1 + Math.floor(Math.random() * (cityNames.length - 1));
-    //   let toIndex = 1 + Math.floor(Math.random() * (cityNames.length - 1));
-      
-    //   // 确保起点和终点不同
-    //   while (toIndex === fromIndex) {
-    //     toIndex = 1 + Math.floor(Math.random() * (cityNames.length - 1));
-    //   }
-      
-    //   testLines.push(createRandomLine(fromIndex, toIndex));
-    // }
-    
     // 添加测试飞线
     testLines.forEach(line => {
       const id = this.addFlightLine(line);

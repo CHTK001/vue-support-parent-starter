@@ -41,7 +41,7 @@
         <div 
           v-for="line in flightLines" 
           :key="line.id" 
-          class="flight-line-item"
+          class="flight-line-item thin-scrollbar"
           :class="{
             'flight-line-selected': isSelected(line.id),
             'flight-line-hidden': isHidden(line.id)
@@ -350,6 +350,7 @@ const addDemoFlightLines = () => {
         from: [from.lng, from.lat],
         to: [to.lng, to.lat],
         fromName: from.name,
+        visible: false,
         toName: to.name,
         value: Math.floor(Math.random() * 1000) + 100,
         style: {
@@ -358,7 +359,7 @@ const addDemoFlightLines = () => {
         }
       });
     }
-    
+
     // 添加示例数据
     props.flightLineObj.addFlightLines(demoLines, true, 5);
     
@@ -588,7 +589,39 @@ defineExpose({
   color: #999;
   font-size: 14px;
 }
+.thin-scrollbar,
+.pure-scrollbar {
+  scrollbar-color: var(--el-color-primary) transparent;
+  /* 滑块颜色、轨道颜色 */
 
+  /* Firefox */
+  scrollbar-width: thin;
+
+  /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px;
+    /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);
+    ;
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary);
+    /* 滑块hover颜色 */
+  }
+}
 .flight-line-item {
   border: 1px solid #eee;
   border-radius: 4px;
