@@ -10,6 +10,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
 import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
+import { EventsKey } from 'ol/events';
 import logger from './LogObject';
 import { HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG } from '../types/heatmap';
 
@@ -33,6 +34,8 @@ export class HeatmapObject {
   private points: Map<string, HeatmapPoint> = new Map();
   // 激活状态
   private active: boolean = false;
+  // 事件监听器
+  private eventListeners: EventsKey[] = [];
 
   /**
    * 构造函数
@@ -63,6 +66,7 @@ export class HeatmapObject {
 
     this.mapInstance = mapInstance;
     this.initLayers();
+    this.setupMapListeners();
     logger.debug('[Heatmap] 地图实例已设置');
   }
 
@@ -116,6 +120,100 @@ export class HeatmapObject {
     this.mapInstance.addLayer(this.pointsLayer);
 
     logger.debug('[Heatmap] 热力图图层已初始化');
+  }
+
+  /**
+   * 设置地图事件监听器
+   * @private
+   */
+  private setupMapListeners(): void {
+    if (!this.mapInstance) return;
+    
+    try {
+      // 监听视图变化事件（缩放）
+      const viewChangeKey = this.mapInstance.getView().on('change:resolution', () => {
+        if (this.heatmapLayer && this.active) {
+          // 如果配置为缩放时隐藏，则隐藏热力图层
+          if (this.config.hideOnZooming) {
+            this.heatmapLayer.setVisible(false);
+            if (this.pointsLayer && this.config.showPoints) {
+              this.pointsLayer.setVisible(false);
+            }
+            logger.debug('[Heatmap] 视图分辨率变化，隐藏热力图');
+          }
+        }
+      });
+      
+      // 监听地图移动开始事件
+      const moveStartKey = this.mapInstance.on('movestart', () => {
+        if (this.heatmapLayer && this.active) {
+          // 如果配置为移动时隐藏，则隐藏热力图层
+          if (this.config.hideOnMoving) {
+            this.heatmapLayer.setVisible(false);
+            if (this.pointsLayer && this.config.showPoints) {
+              this.pointsLayer.setVisible(false);
+            }
+            logger.debug('[Heatmap] 地图移动开始，隐藏热力图');
+          }
+        }
+      });
+      
+      // 监听地图移动结束事件
+      const moveEndKey = this.mapInstance.on('moveend', () => {
+        if (this.heatmapLayer && this.active) {
+          // 如果配置为移动时隐藏，则移动结束后显示热力图层
+          if (this.config.hideOnMoving) {
+            this.heatmapLayer.setVisible(true);
+            if (this.pointsLayer && this.config.showPoints) {
+              this.pointsLayer.setVisible(true);
+            }
+            logger.debug('[Heatmap] 地图移动结束，显示热力图');
+          }
+        }
+      });
+      
+      // 缩放结束事件
+      const zoomEndKey = this.mapInstance.on('rendercomplete', () => {
+        if (this.heatmapLayer && this.active) {
+          // 如果配置为缩放时隐藏，则缩放结束后显示热力图层
+          if (this.config.hideOnZooming && !this.heatmapLayer.getVisible()) {
+            this.heatmapLayer.setVisible(true);
+            if (this.pointsLayer && this.config.showPoints) {
+              this.pointsLayer.setVisible(true);
+            }
+            logger.debug('[Heatmap] 渲染完成，显示热力图');
+          }
+        }
+      });
+      
+      // 存储事件监听器，以便后续移除
+      this.eventListeners.push(viewChangeKey, moveStartKey, moveEndKey, zoomEndKey);
+      
+      logger.debug('[Heatmap] 已设置地图事件监听器');
+    } catch (error) {
+      logger.error('[Heatmap] 设置地图事件监听器失败:', error);
+    }
+  }
+
+  /**
+   * 移除地图事件监听器
+   * @private
+   */
+  private removeMapListeners(): void {
+    if (this.eventListeners.length > 0) {
+      try {
+        // 解除所有事件监听
+        this.eventListeners.forEach(key => {
+          if (key) {
+            Object.getPrototypeOf(key).constructor.unByKey(key);
+          }
+        });
+        this.eventListeners = [];
+        logger.debug('[Heatmap] 已移除所有地图事件监听器');
+      } catch (error) {
+        logger.error('[Heatmap] 移除事件监听器失败:', error);
+      }
+    }
   }
 
   /**
@@ -376,9 +474,25 @@ export class HeatmapObject {
   }
 
   /**
+   * 设置热力图性能模式
+   * @param enable 是否启用性能模式（移动和缩放时隐藏热力图）
+   */
+  public setPerformanceMode(enable: boolean): void {
+    this.setConfig({
+      hideOnMoving: enable,
+      hideOnZooming: enable
+    });
+    
+    logger.debug(`[Heatmap] 性能模式已${enable ? '启用' : '禁用'}`);
+  }
+
+  /**
    * 销毁热力图对象
    */
   public destroy(): void {
+    // 移除事件监听器
+    this.removeMapListeners();
+
     if (this.mapInstance) {
       if (this.heatmapLayer) {
         this.mapInstance.removeLayer(this.heatmapLayer);
