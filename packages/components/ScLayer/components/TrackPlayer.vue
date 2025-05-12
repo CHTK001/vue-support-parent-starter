@@ -230,6 +230,9 @@ interface Props {
     setTrackSpeedPopoversVisible?: (id: string, visible: boolean) => boolean;
     setTrackNodeSpeedsVisible?: (id: string, visible: boolean) => boolean;
     setTrackNodeAnchorsVisible?: (id: string, visible: boolean) => boolean;
+    hideTrack?: (id: string) => boolean;
+    showTrack?: (id: string) => boolean;
+    
   };
   config?: {
     loop?: boolean;         // 是否循环播放

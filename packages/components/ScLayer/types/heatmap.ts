@@ -26,6 +26,8 @@ export interface HeatmapConfig {
   pointStrokeColor: string; // 点边框颜色
   pointStrokeWidth: number; // 点边框宽度
   zIndex: number;           // 层级
+  hideOnMoving: boolean;    // 移动时隐藏热力图提高性能
+  hideOnZooming: boolean;   // 缩放时隐藏热力图提高性能
 }
 
 // 默认热力图配置
@@ -41,5 +43,7 @@ export const DEFAULT_HEATMAP_CONFIG: HeatmapConfig = {
   pointRadius: 4,
   pointStrokeColor: '#fff',
   pointStrokeWidth: 1,
-  zIndex: 90
+  zIndex: 90,
+  hideOnMoving: false,
+  hideOnZooming: false
 }; 

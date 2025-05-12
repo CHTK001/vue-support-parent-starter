@@ -58,6 +58,7 @@ export interface ShapePoint {
 export interface ShapeOption {
   id?: string;
   type: Shape;
+  visible?: boolean;
   dataType?: DataType;
   coordinates?: number[] | number[][] | number[][][]; // 根据图形类型不同使用不同的坐标格式
   center?: number[]; // 圆形的中心点

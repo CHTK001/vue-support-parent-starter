@@ -1441,12 +1441,25 @@ const handleFlightLinePanelClose = () => {
 /**
  * 处理飞线图选择变更
  */
-const handleFlightLineSelectionChange = (selectedIds: string[]) => {
-  // 这里可以触发外部事件
-  emit('flight-line-selection-change', {
-    selectedIds,
-    count: selectedIds.length
-  });
+const handleFlightLineSelectionChange = (selectedIds: string[] | string | null) => {
+  try {
+    // 确保 selectedIds 是数组，处理 null 或单个字符串的情况
+    const ids = Array.isArray(selectedIds) ? selectedIds : 
+                (selectedIds ? [selectedIds] : []);
+    
+    // 触发外部事件
+    emit('flight-line-selection-change', {
+      selectedIds: ids,
+      count: ids.length
+    });
+  } catch (error) {
+    logger.error('[FlightLine] 处理选择变更时发生错误:', error);
+    // 确保总是提供有效的数据
+    emit('flight-line-selection-change', {
+      selectedIds: [],
+      count: 0
+    });
+  }
 };
 
 /**

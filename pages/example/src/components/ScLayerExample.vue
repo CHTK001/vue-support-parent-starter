@@ -6,21 +6,22 @@
       <!-- 左侧地图区域 -->
       <div class="map-area">
         <div class="map-container">
-          <sc-layer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
+          <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
             :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
             :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
-            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" @map-initialized="onMapInit"
+            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" 
+             @map-initialized="onMapInit"
             @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
             @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
             @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
-          </sc-layer>
+          </ScLayer>
         </div>
       </div>
 
       <!-- 右侧配置区域 -->
       <div class="config-area thin-scrollbar">
         <div class="config-section">
-          <div class="config-item">
+          <div class="config-item"></div>
             <div class="label">地图配置</div>
             <div class="controls">
               <!-- 替换地图类型下拉框为按钮组 -->
@@ -248,6 +249,9 @@
                 <button @click="enableHeatmap">启用热力图</button>
                 <button @click="disableHeatmap">禁用热力图</button>
               </div>
+              <div class="control-row buttons-row">
+                <button @click="toggleHeatmapPerformanceMode">{{ heatmapPerformanceMode ? '禁用性能模式' : '启用性能模式' }}</button>
+              </div>
 
               <div class="feature-group-title">热力点管理</div>
               <div class="control-row buttons-row">
@@ -289,7 +293,7 @@
                 <span>曲率:</span>
                 <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1"
                   @change="updateFlightLineConfig">
-                <span class="value">{{ flightLineConfig.curveness.toFixed(1) }}</span>
+                <span class="value">{{ flightLineConfig.curveness?.toFixed(1) || '0.0' }}</span>
               </div>
               <div class="control-row">
                 <span>动画:</span>
@@ -398,14 +402,15 @@
             <div class="label">飞线图列表</div>
             <div class="flight-line-stats">
               <span>总数: {{ flightLines.length }}</span>
-              <span>已选择: {{ selectedFlightLines.length }}</span>
+              <span>已选择: {{ selectedFlightLine ? 1 : 0 }}</span>
             </div>
             <div class="flight-line-list">
               <div v-if="flightLines.length === 0" class="no-flight-lines">
                 暂无飞线数据
               </div>
               <div v-for="line in flightLines" :key="line.id" class="flight-line-item thin-scrollbar"
-                :class="{'flight-line-selected': line.selected}" @click="toggleFlightLineSelection(line.id)">
+                :class="{'flight-line-selected': selectedFlightLine === line.id}" 
+                @click="selectFlightLine(line.id)">
                 <div class="flight-line-header">
                   <span class="flight-line-id">ID: {{ safeSlice(line.id) }}</span>
                   <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
@@ -463,8 +468,37 @@
               </div>
             </div>
           </div>
+
+          <!-- 添加热力图点列表 -->
+          <div class="config-item">
+            <div class="label">热力图点列表</div>
+            <div class="controls">
+              <div class="heatmap-stats">
+                <span>总数: {{ heatmapPoints.length }}</span>
+                <span>已选择: {{ selectedHeatmapPoint ? 1 : 0 }}</span>
+              </div>
+              <div class="heatmap-list">
+                <div v-if="heatmapPoints.length === 0" class="no-heatmap-points">
+                  暂无热力图点数据
+                </div>
+                <div v-for="point in heatmapPoints" :key="point.id" class="heatmap-item thin-scrollbar"
+                  :class="{'heatmap-selected': selectedHeatmapPoint === point.id}" 
+                  @click="selectHeatmapPoint(point.id)">
+                  <div class="heatmap-header">
+                    <span class="heatmap-name">{{ point.name || '未命名点' }}</span>
+                    <span class="heatmap-weight">权重: {{ point.weight?.toFixed(2) || '0.00' }}</span>
+                  </div>
+                  <div class="heatmap-position">
+                    坐标: [{{ point.longitude?.toFixed(4) || '0.0000' }}, {{ point.latitude?.toFixed(4) || '0.0000' }}]
+                  </div>
+                </div>
+                <div v-if="heatmapPoints.length > 10" class="more-heatmap-points">
+                  还有 {{ heatmapPoints.length - 10 }} 个热力点未显示...
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
     </div>
   </div>
 </template>
@@ -499,28 +533,40 @@ const layerRef = ref(null);
 // 热力图相关
 const heatmapPoints = ref<Array<HeatmapPoint>>([]);
 const pointsVisible = ref(false);
+// 添加当前选中的热力图记录
+const selectedHeatmapPoint = ref<string | null>(null);
+// 热力图性能模式
+const heatmapPerformanceMode = ref(false);
 
 // 飞线图相关
 const flightLinePoints = ref<Array<FlightLinePoint>>([]);
 const flightLineConfig = ref<FlightLineConfig>({
-  visible: true,
-  color: '#1677ff',
-  width: 2,
-  opacity: 0.8,
-  curveness: 0.5,
-  showEffect: true,
-  effectPeriod: 4,
-  effectTrailLength: 0.7,
-  effectSymbol: 'circle',
-  effectSymbolSize: 5,
-  showNodes: true,
-  nodeSymbolSize: 8,
-  nodeEffect: true,
-  zIndex: 90
+  curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
+  width: 1,              // 线宽调整为1
+  showEffect: true,      // 显示效果
+  showNodes: true,       // 显示节点
+  color: '#a6c84c',      // 使用sakitam示例中的颜色
+  opacity: 0.5,          // 透明度调整为0.5
+  effectPeriod: 6,       // 效果周期调整为6
+  effectTrailLength: 0.7, // 效果轨迹长度调整为0.7
+  effectSymbolSize: 8,   // 动画效果大小设为8
+  nodeSymbolSize: 3,     // 节点大小从8减小到3
+  effectSymbol: 'arrow', // 效果符号改为arrow
+  visible: true,         // 可见性
+  nodeColor: '#ddb926',  // 节点颜色
+  nodeEffect: true,      // 节点效果
+  zIndex: 90,            // 层级
+  hideOnMoving: false,   // 移动时不隐藏
+  hideOnZooming: false,  // 缩放时不隐藏
+  enablePerformanceMode: false // 关闭性能模式以确保显示
 });
 
 // 飞线图相关状态
 const flightLineActive = ref(false);
+
+// 飞线图列表数据 - 修改为单选模式
+const flightLines = ref<Array<FlightLineData & { id: string }>>([]);
+const selectedFlightLine = ref<string | null>(null);
 
 // 创建一个Shape枚举常量
 const ShapeType = {
@@ -612,7 +658,38 @@ function onMapInit(mapInstance) {
   
   // 更新图层类型显示
   updateLayerTypeDisplay();
+  
+  // 初始化时添加默认热力图并选择第一条记录
+  setTimeout(() => {
+    addRandomHeatmapPoints(10);
+    // 选中第一条热力点
+    selectFirstHeatmapPoint();
+  }, 500);
 }
+
+/**
+ * 选中第一条热力点
+ */
+const selectFirstHeatmapPoint = () => {
+  if (heatmapPoints.value.length > 0) {
+    const firstPoint = heatmapPoints.value[0];
+    if (firstPoint && firstPoint.id) {
+      selectedHeatmapPoint.value = firstPoint.id;
+      addLog('热力图', `已选中热力点: ${firstPoint.name || '未命名'}`);
+    }
+  }
+};
+
+/**
+ * 选择热力点
+ */
+const selectHeatmapPoint = (id: string) => {
+  selectedHeatmapPoint.value = id;
+  const point = heatmapPoints.value.find(p => p.id === id);
+  if (point) {
+    addLog('热力图', `已选中热力点: ${point.name || '未命名'}`);
+  }
+};
 
 // 地图点击事件
 function onMapClick(evt) {
@@ -2174,7 +2251,14 @@ const addRandomHeatmapPoints = (count) => {
   
   // 批量添加热力点
   const ids = layerRef.value.addHeatmapPoints(points);
-  heatmapPoints.value = [...heatmapPoints.value, ...points.map((p, i) => ({ ...p, id: ids[i] }))];
+  const newPoints = points.map((p, i) => ({ ...p, id: ids[i] }));
+  heatmapPoints.value = [...heatmapPoints.value, ...newPoints];
+  
+  // 如果没有选中的热力点，则选择第一个
+  if (!selectedHeatmapPoint.value && newPoints.length > 0) {
+    selectedHeatmapPoint.value = newPoints[0].id;
+    addLog('热力图', `已选中热力点: ${newPoints[0].name}`);
+  }
   
   addLog('热力图', `添加了${count}个随机热力点`);
 };
@@ -2355,7 +2439,7 @@ const changeToolbarDirection = (direction: ToolbarDirection) => {
 /**
  * 启用飞线图
  */
-const enableFlightLine = () => {
+const enableFlightLine = async () => {
   if (!layerRef.value) return;
   
   // 尝试激活飞线图工具
@@ -2364,8 +2448,23 @@ const enableFlightLine = () => {
   if (result) {
     flightLineActive.value = true;
     
-    // 直接更新飞线列表
-    updateFlightLineList();
+    // 延迟300ms确保飞线图初始化完成
+    setTimeout(() => {
+      // 检查是否有飞线图对象
+      const flightLineObj = layerRef.value.getFlightLineObject();
+      if (flightLineObj) {
+        // 确保飞线图启用
+        flightLineObj.enable().then(() => {
+          console.log('飞线图已启用成功');
+          // 添加一些测试飞线数据确保可见
+          addRandomFlightLines();
+          // 更新飞线列表
+          updateFlightLineList();
+        }).catch(err => {
+          console.error('启用飞线图失败:', err);
+        });
+      }
+    }, 300);
     
     addLog('飞线图', '启用飞线图');
   } else {
@@ -2387,7 +2486,7 @@ const disableFlightLine = () => {
     
     // 清空飞线列表
     flightLines.value = [];
-    selectedFlightLines.value = [];
+    selectedFlightLine.value = null; // 修改为单选变量
     
     addLog('飞线图', '禁用飞线图');
   } else {
@@ -2413,23 +2512,27 @@ const updateFlightLineList = () => {
     const allFlightLines = flightLineObj.getAllFlightLines();
     if (!allFlightLines) {
       flightLines.value = [];
+      selectedFlightLine.value = null;
       return;
     }
     
     // 转换Map为数组
-    const linesArray: Array<FlightLineData & { id: string, selected?: boolean }> = [];
+    const linesArray: Array<FlightLineData & { id: string }> = [];
     allFlightLines.forEach((line, id) => {
-      // 检查该行是否已选中
-      const isSelected = selectedFlightLines.value.includes(id);
       linesArray.push({
         ...line,
-        id,
-        selected: isSelected
+        id
       });
     });
     
     // 更新列表
     flightLines.value = linesArray;
+    
+    // 获取当前激活的飞线
+    const activeFlightLine = flightLineObj.getActiveFlightLine();
+    
+    // 更新选中状态
+    selectedFlightLine.value = activeFlightLine;
     
     // 记录操作
     if (linesArray.length > 0) {
@@ -2441,8 +2544,11 @@ const updateFlightLineList = () => {
   }
 };
 
-// 切换飞线选择状态
-const toggleFlightLineSelection = (id: string) => {
+/**
+ * 选择飞线
+ * @param id 飞线ID
+ */
+const selectFlightLine = (id: string) => {
   if (!layerRef.value) return;
   
   // 获取飞线图对象
@@ -2452,267 +2558,36 @@ const toggleFlightLineSelection = (id: string) => {
     return;
   }
   
-  const line = flightLines.value.find(line => line.id === id);
-  if (line) {
-    // 切换选中状态
-    line.selected = !line.selected;
+  // 如果当前选中的就是这个ID，则取消选中
+  if (selectedFlightLine.value === id) {
+    // 取消选中当前飞线
+    flightLineObj.updateFlightLine(id, {
+      highlight: false,
+      style: undefined
+    });
+    selectedFlightLine.value = null;
     
-    // 更新选中列表
-    selectedFlightLines.value = flightLines.value
-      .filter(line => line.selected)
-      .map(line => line.id);
+    // 获取飞线数据记录日志
+    const line = flightLines.value.find(line => line.id === id);
+    if (line) {
+      addLog('飞线图', `取消选中飞线: ${line.fromName} -> ${line.toName}`);
+    }
+  } else {
+    // 设置新选中的飞线
+    flightLineObj.setActiveFlightLine(id);
+    selectedFlightLine.value = id;
     
-    // 如果有飞线图对象，尝试更新飞线显示状态
-    try {
-      // 尝试更新飞线线条样式，使选中的飞线高亮显示
-      flightLineObj.updateFlightLine(id, { 
-        highlight: line.selected,
-        style: line.selected ? {
-          width: flightLineConfig.value.width * 2,
-          opacity: 1,
-          color: '#ff0000', // 使用红色突出显示
-        } : undefined
-      });
-      
-      addLog('飞线图', `${line.selected ? '选中' : '取消选中'}飞线: ${line.fromName} -> ${line.toName}`);
-    } catch (error) {
-      console.error('切换飞线选中状态失败:', error);
-      addLog('飞线图', `切换飞线状态失败: ${error.message}`);
+    // 获取飞线数据记录日志
+    const line = flightLines.value.find(line => line.id === id);
+    if (line) {
+      addLog('飞线图', `选中飞线: ${line.fromName} -> ${line.toName}`);
     }
   }
 };
 
-/**
- * 添加随机飞线
- */
-const addRandomFlightLines = () => {
-  if (!layerRef.value) return;
-  
-  // 先启用飞线图
-  if (!flightLineActive.value) {
-    enableFlightLine();
-  }
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 获取地图中心点
-  const center = config.center;
-  const centerLon = center[1];
-  const centerLat = center[0];
-  
-  // 创建随机飞线数据
-  const lineCount = 10;
-  const lines = [];
-  
-  for (let i = 0; i < lineCount; i++) {
-    // 随机起点和终点坐标
-    const fromLat = centerLat + (Math.random() - 0.5) * 0.2;
-    const fromLon = centerLon + (Math.random() - 0.5) * 0.2;
-    const toLat = centerLat + (Math.random() - 0.5) * 0.2;
-    const toLon = centerLon + (Math.random() - 0.5) * 0.2;
-    
-    const fromName = `起点${i+1}`;
-    const toName = `终点${i+1}`;
-    
-    lines.push({
-      fromName,
-      toName,
-      coords: [
-        [fromLon, fromLat],
-        [toLon, toLat]
-      ],
-      value: Math.floor(Math.random() * 100)
-    });
-  }
-  
-  // 添加飞线
-  const ids = flightLineObj.addFlightLines(lines);
-  
-  // 更新飞线列表
-  updateFlightLineList();
-  
-  addLog('飞线图', `已添加${lines.length}条随机飞线`);
-};
-
-/**
- * 添加链状飞线
- */
-const addChainFlightLines = () => {
-  if (!layerRef.value) return;
-  
-  // 先启用飞线图
-  if (!flightLineActive.value) {
-    enableFlightLine();
-  }
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 获取地图中心点
-  const center = config.center;
-  const centerLon = center[1];
-  const centerLat = center[0];
-  
-  // 创建链状飞线数据
-  const nodeCount = 6;
-  const lines = [];
-  const points = [];
-  
-  // 先创建一系列点，形成链状结构
-  for (let i = 0; i < nodeCount; i++) {
-    // 使点沿水平线分布
-    const lat = centerLat;
-    const lon = centerLon - 0.1 + (i * 0.2 / (nodeCount - 1));
-    
-    points.push({
-      name: `节点${i+1}`,
-      coords: [lon, lat]
-    });
-  }
-  
-  // 创建相邻点之间的飞线连接
-  for (let i = 0; i < nodeCount - 1; i++) {
-    lines.push({
-      fromName: points[i].name,
-      toName: points[i+1].name,
-      coords: [
-        points[i].coords,
-        points[i+1].coords
-      ],
-      value: 50
-    });
-  }
-  
-  // 添加飞线
-  flightLineObj.addFlightLines(lines);
-  
-  // 更新飞线列表
-  updateFlightLineList();
-  
-  addLog('飞线图', `已添加${lines.length}条链状飞线`);
-};
-
-/**
- * 添加星型飞线
- */
-const addStarFlightLines = () => {
-  if (!layerRef.value) return;
-  
-  // 先启用飞线图
-  if (!flightLineActive.value) {
-    enableFlightLine();
-  }
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 获取地图中心点
-  const center = config.center;
-  const centerLon = center[1];
-  const centerLat = center[0];
-  
-  // 创建星型飞线数据
-  const nodeCount = 8; // 外围节点数量
-  const lines = [];
-  
-  // 创建中心点
-  const centerName = "中心点";
-  
-  // 创建周围的点，形成星型结构
-  for (let i = 0; i < nodeCount; i++) {
-    // 计算角度，使节点均匀分布在圆周上
-    const angle = (i / nodeCount) * Math.PI * 2;
-    const radius = 0.05; // 半径
-    
-    // 计算坐标
-    const lat = centerLat + Math.sin(angle) * radius;
-    const lon = centerLon + Math.cos(angle) * radius;
-    
-    const name = `节点${i+1}`;
-    
-    // 添加从中心点到外围节点的连线
-    lines.push({
-      fromName: centerName,
-      toName: name,
-      coords: [
-        [centerLon, centerLat],
-        [lon, lat]
-      ],
-      value: 70
-    });
-  }
-  
-  // 添加飞线
-  flightLineObj.addFlightLines(lines);
-  
-  // 更新飞线列表
-  updateFlightLineList();
-  
-  addLog('飞线图', `已添加${lines.length}条星型飞线`);
-};
-
-/**
- * 清除飞线
- */
-const clearFlightLines = () => {
-  if (!layerRef.value) return;
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 清除飞线
-  flightLineObj.clear();
-  
-  // 更新飞线列表
-  flightLines.value = [];
-  selectedFlightLines.value = [];
-  
-  addLog('飞线图', '已清除所有飞线');
-};
-
-/**
- * 更新飞线图配置
- */
-const updateFlightLineConfig = () => {
-  if (!layerRef.value) return;
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 更新飞线图配置
-  flightLineObj.setConfig(flightLineConfig.value);
-  
-  addLog('飞线图', '更新飞线图配置');
-};
-
-// 飞线图列表数据
-const flightLines = ref<Array<FlightLineData & { id: string, selected?: boolean }>>([]);
-const selectedFlightLines = ref<Array<string>>([]);
-
 // 检查飞线是否被选中
 const isFlightLineSelected = (id: string) => {
-  return selectedFlightLines.value.some(line => line === id);
+  return selectedFlightLine.value === id;
 };
 
 // 获取分组中的标记点数量
@@ -2858,6 +2733,350 @@ const MarkerClusterMode = {
   CLUSTER: 'cluster',
   NONE: 'none'
 };
+
+/**
+ * 添加随机飞线
+ */
+const addRandomFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 强制启用飞线图
+  flightLineObj.enable().then(() => {
+    try {
+      // 获取地图中心点
+      const center = config.center;
+      const centerLon = center[1];
+      const centerLat = center[0];
+      
+      addLog('飞线图', `地图中心点: [${centerLat}, ${centerLon}]`);
+      
+      // 创建坐标映射表 - 参考sakitam.com示例
+      const geoCoordMap = {
+        '中心点': [centerLon, centerLat]
+      };
+      
+      // 创建四个主要方向点
+      const directions = ['东', '南', '西', '北'];
+      const offsets = [
+        [0.05, 0],    // 东
+        [0, -0.05],   // 南
+        [-0.05, 0],   // 西
+        [0, 0.05]     // 北
+      ];
+      
+      // 添加四个固定方向点
+      for (let i = 0; i < 4; i++) {
+        const name = `${directions[i]}方向`;
+        const lon = centerLon + offsets[i][0];
+        const lat = centerLat + offsets[i][1];
+        geoCoordMap[name] = [lon, lat];
+      }
+      
+      // 添加一些随机点
+      for (let i = 0; i < 6; i++) {
+        const name = `随机点${i+1}`;
+        const lon = centerLon + (Math.random() - 0.5) * 0.1;
+        const lat = centerLat + (Math.random() - 0.5) * 0.1;
+        geoCoordMap[name] = [lon, lat];
+      }
+      
+      // 将所有坐标点添加到飞线对象中
+      flightLineObj.addCoordinates(geoCoordMap);
+      
+      // 创建从中心点出发的数据
+      const centerData = [
+        [{ name: '中心点' }, { name: '东方向', value: 95 }],
+        [{ name: '中心点' }, { name: '南方向', value: 85 }],
+        [{ name: '中心点' }, { name: '西方向', value: 75 }],
+        [{ name: '中心点' }, { name: '北方向', value: 65 }]
+      ];
+      
+      // 创建从东方向出发的数据
+      const eastData = [
+        [{ name: '东方向' }, { name: '随机点1', value: 90 }],
+        [{ name: '东方向' }, { name: '随机点2', value: 80 }]
+      ];
+      
+      // 创建从南方向出发的数据
+      const southData = [
+        [{ name: '南方向' }, { name: '随机点3', value: 85 }],
+        [{ name: '南方向' }, { name: '随机点4', value: 75 }]
+      ];
+      
+      // 转换数据为飞线数据
+      const convertData = (data) => {
+        const res = [];
+        for (let i = 0; i < data.length; i++) {
+          const dataItem = data[i];
+          const fromCoord = geoCoordMap[dataItem[0].name];
+          const toCoord = geoCoordMap[dataItem[1].name];
+          if (fromCoord && toCoord) {
+            res.push({
+              fromName: dataItem[0].name,
+              toName: dataItem[1].name,
+              coords: [fromCoord, toCoord],
+              value: dataItem[1].value
+            });
+          }
+        }
+        return res;
+      };
+      
+      // 转换数据
+      const lines = [
+        ...convertData(centerData),
+        ...convertData(eastData),
+        ...convertData(southData)
+      ];
+      
+      // 为每条线添加样式
+      const colors = ['#a6c84c', '#ffa022', '#46bee9'];
+      lines.forEach((line, index) => {
+        const colorIndex = index % colors.length;
+        line.style = {
+          color: colors[colorIndex],
+          width: 1,
+          opacity: 0.5,
+          curveness: 0.2
+        };
+      });
+      
+      // 添加飞线
+      const ids = flightLineObj.addFlightLines(lines, true, 6);
+      
+      // 设置最佳视角
+      setTimeout(() => {
+        flightLineObj.setOptimalView(6);
+      }, 300);
+      
+      // 更新飞线列表
+      setTimeout(() => {
+        updateFlightLineList();
+      }, 500);
+      
+      addLog('飞线图', `已添加${lines.length}条飞线，请等待显示`);
+    } catch (error) {
+      console.error('添加飞线时发生错误:', error);
+      addLog('飞线图', `添加飞线时发生错误: ${error.message || error}`);
+    }
+  }).catch(err => {
+    console.error('启用飞线图失败:', err);
+    addLog('飞线图', `启用飞线图失败: ${err.message || err}`);
+  });
+};
+
+/**
+ * 添加链状飞线
+ */
+const addChainFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用飞线图
+  if (!flightLineActive.value) {
+    enableFlightLine();
+  }
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取地图中心点
+  const center = config.center;
+  const centerLon = center[1];
+  const centerLat = center[0];
+  
+  // 创建链状飞线数据
+  const nodeCount = 6;
+  const lines = [];
+  const points = [];
+  
+  // 先创建一系列点，形成链状结构
+  for (let i = 0; i < nodeCount; i++) {
+    // 使点沿水平线分布
+    const lat = centerLat;
+    const lon = centerLon - 0.1 + (i * 0.2 / (nodeCount - 1));
+    
+    points.push({
+      name: `节点${i+1}`,
+      coords: [lon, lat]
+    });
+  }
+  
+  // 创建相邻点之间的飞线连接
+  for (let i = 0; i < nodeCount - 1; i++) {
+    lines.push({
+      fromName: points[i].name,
+      toName: points[i+1].name,
+      coords: [
+        points[i].coords,
+        points[i+1].coords
+      ],
+      value: 50
+    });
+  }
+  
+  // 添加飞线
+  flightLineObj.addFlightLines(lines);
+  
+  // 更新飞线列表
+  updateFlightLineList();
+  
+  addLog('飞线图', `已添加${lines.length}条链状飞线`);
+};
+
+/**
+ * 添加星型飞线
+ */
+const addStarFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用飞线图
+  if (!flightLineActive.value) {
+    enableFlightLine();
+  }
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取地图中心点
+  const center = config.center;
+  const centerLon = center[1];
+  const centerLat = center[0];
+  
+  // 创建星型飞线数据
+  const nodeCount = 8; // 外围节点数量
+  const lines = [];
+  
+  // 创建中心点
+  const centerName = "中心点";
+  
+  // 创建周围的点，形成星型结构
+  for (let i = 0; i < nodeCount; i++) {
+    // 计算角度，使节点均匀分布在圆周上
+    const angle = (i / nodeCount) * Math.PI * 2;
+    const radius = 0.05; // 半径
+    
+    // 计算坐标
+    const lat = centerLat + Math.sin(angle) * radius;
+    const lon = centerLon + Math.cos(angle) * radius;
+    
+    const name = `节点${i+1}`;
+    
+    // 添加从中心点到外围节点的连线
+    lines.push({
+      fromName: centerName,
+      toName: name,
+      coords: [
+        [centerLon, centerLat],
+        [lon, lat]
+      ],
+      value: 70
+    });
+  }
+  
+  // 添加飞线
+  flightLineObj.addFlightLines(lines);
+  
+  // 更新飞线列表
+  updateFlightLineList();
+  
+  addLog('飞线图', `已添加${lines.length}条星型飞线`);
+};
+
+/**
+ * 更新飞线图配置
+ */
+const updateFlightLineConfig = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 更新飞线图配置
+  flightLineObj.setConfig(flightLineConfig.value);
+  
+  addLog('飞线图', '更新飞线图配置');
+};
+
+/**
+ * 清除飞线
+ */
+const clearFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 清除飞线
+  try {
+    // 移除所有飞线
+    const allFlightLines = flightLineObj.getAllFlightLines();
+    if (allFlightLines && allFlightLines.size > 0) {
+      // 逐个删除飞线
+      allFlightLines.forEach((line, id) => {
+        try {
+          flightLineObj.removeFlightLine(id);
+        } catch (e) {
+          console.error(`删除飞线 ${id} 失败:`, e);
+        }
+      });
+    }
+    
+    // 更新飞线列表
+    flightLines.value = [];
+    selectedFlightLine.value = null;
+    
+    addLog('飞线图', '已清除所有飞线');
+  } catch (error) {
+    console.error('清除飞线失败:', error);
+    addLog('飞线图', `清除飞线失败: ${error.message}`);
+  }
+};
+
+/**
+ * 切换热力图性能模式
+ */
+const toggleHeatmapPerformanceMode = () => {
+  if (!layerRef.value) return;
+  
+  // 获取热力图对象
+  const heatmapObj = layerRef.value.getHeatmapObject();
+  if (!heatmapObj) {
+    addLog('热力图', '无法获取热力图对象');
+    return;
+  }
+  
+  // 切换性能模式
+  heatmapPerformanceMode.value = !heatmapPerformanceMode.value;
+  
+  // 设置热力图性能模式
+  heatmapObj.setPerformanceMode(heatmapPerformanceMode.value);
+  
+  // 记录日志
+  addLog('热力图', `性能模式已${heatmapPerformanceMode.value ? '启用' : '禁用'}`);
+};
 </script>
 
 <style scoped>
@@ -2966,7 +3185,7 @@ button:hover {
   border-color: #1890ff;
 }
 
-.marker-stats, .shape-stats, .flight-line-stats, .marker-group-stats {
+.marker-stats, .shape-stats, .flight-line-stats, .marker-group-stats, .heatmap-stats {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
@@ -2974,7 +3193,7 @@ button:hover {
   color: #666;
 }
 
-.marker-list, .shape-list, .flight-line-list, .marker-group-list {
+.marker-list, .shape-list, .flight-line-list, .marker-group-list, .heatmap-list {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #e8e8e8;
@@ -2983,7 +3202,7 @@ button:hover {
   padding: 8px;
 }
 
-.marker-item, .shape-item, .flight-line-item, .marker-group-item {
+.marker-item, .shape-item, .flight-line-item, .marker-group-item, .heatmap-item {
   padding: 8px;
   margin-bottom: 8px;
   border: 1px solid #e8e8e8;
@@ -2991,53 +3210,46 @@ button:hover {
   background-color: #f9f9f9;
 }
 
-.marker-header, .shape-header, .flight-line-header, .marker-group-header {
+.marker-header, .shape-header, .flight-line-header, .marker-group-header, .heatmap-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
 
-.marker-id, .shape-id, .flight-line-id, .marker-group-name {
+.marker-id, .shape-id, .flight-line-id, .marker-group-name, .heatmap-name {
   font-weight: bold;
   font-size: 12px;
 }
 
-.marker-status, .marker-group-status {
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
+.heatmap-item {
+  cursor: pointer;
 }
 
-.marker-status.visible, .marker-group-status.visible {
+.heatmap-selected {
+  border-color: #1890ff;
   background-color: #e6f7ff;
-  color: #1890ff;
 }
 
-.marker-status.hidden, .marker-group-status.hidden {
-  background-color: #fff1f0;
-  color: #f5222d;
+.heatmap-weight {
+  font-size: 12px;
+  color: #ff4d4f;
 }
 
-.marker-position, .marker-title, .shape-type, .marker-group-count, .shape-status {
+.heatmap-position {
   font-size: 12px;
   margin-bottom: 4px;
+  color: #666;
 }
 
-.marker-actions, .marker-group-actions, .shape-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.no-markers, .no-shapes, .no-flight-lines, .no-marker-groups {
+.no-markers, .no-shapes, .no-flight-lines, .no-marker-groups, .no-heatmap-points {
   color: #999;
   font-style: italic;
   padding: 8px 0;
   text-align: center;
 }
 
-.more-markers, .more-shapes, .more-flight-lines {
+.more-markers, .more-shapes, .more-flight-lines, .more-heatmap-points {
   color: #999;
   font-style: italic;
   text-align: center;
@@ -3181,5 +3393,75 @@ button:hover {
   font-size: 12px;
   margin-bottom: 2px;
   color: #666;
+}
+
+/* 热力图样式 */
+.heatmap-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.heatmap-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.heatmap-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.heatmap-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.heatmap-selected {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.heatmap-weight {
+  font-size: 12px;
+  color: #ff4d4f;
+}
+
+.heatmap-position {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #666;
+}
+
+.no-heatmap-points {
+  color: #999;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.more-heatmap-points {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
 }
 </style> 
