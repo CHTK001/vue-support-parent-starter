@@ -6,66 +6,79 @@
       <!-- 左侧地图区域 -->
       <div class="map-area">
         <div class="map-container">
-          <sc-layer ref="layerRef" 
-            :height="config.height"
-            :map-type="config.mapType" 
-            :map-tile="config.mapTile"
-            :center="config.center"
-            :zoom="config.zoom" 
-            :dragging="config.dragging"
-            :scroll-wheel-zoom="config.scrollWheelZoom" 
-            :map-key="config.mapKey"
-            :map="config.map"
-            :show-toolbar="config.showToolbar"
-            :show-scale-line="config.showScaleLine"
-            @map-initialized="onMapInit"
-            @map-click="onMapClick"
-            @marker-click="onMarkerClick"
-            @toolbar-state-change="onToolbarStateChange"
-            @marker-create="onMarkerCreate"
-            @marker-update="onMarkerUpdate"
-            @marker-delete="onMarkerDelete"
-            @shape-create="onShapeCreate"
-            @shape-update="onShapeUpdate"
-            @shape-delete="onShapeDelete">
+          <sc-layer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
+            :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
+            :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey" :map="config.map"
+            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" @map-initialized="onMapInit"
+            @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
+            @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
+            @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
           </sc-layer>
         </div>
       </div>
 
       <!-- 右侧配置区域 -->
-      <div class="config-area">
+      <div class="config-area thin-scrollbar">
         <div class="config-section">
           <div class="config-item">
             <div class="label">地图配置</div>
             <div class="controls">
+              <!-- 替换地图类型下拉框为按钮组 -->
               <div class="control-row">
                 <span>地图类型:</span>
-                <select v-model="config.mapType" @change="handleMapTypeChange">
-                  <option :value="MapType.GAODE">高德地图</option>
-                  <option :value="MapType.OSM">OpenStreetMap</option>
-                  <option :value="MapType.TIANDI">天地图</option>
-                </select>
+                <div class="button-group">
+                  <button @click="changeMapType(MapType.GAODE)"
+                    :class="{ 'active-button': config.mapType === MapType.GAODE }">
+                    高德地图
+                  </button>
+                  <button @click="changeMapType(MapType.OSM)"
+                    :class="{ 'active-button': config.mapType === MapType.OSM }">
+                    OpenStreetMap
+                  </button>
+                  <button @click="changeMapType(MapType.TIANDI)"
+                    :class="{ 'active-button': config.mapType === MapType.TIANDI }">
+                    天地图
+                  </button>
+                </div>
               </div>
               <div class="control-row">
                 <span>图层类型:</span>
-                <select v-model="tileType" @change="handleLayerTypeChange">
-                  <option value="normal">标准图层</option>
-                  <option value="satellite">卫星图层</option>
-                  <option value="hybrid">混合图层</option>
-                </select>
+                <div class="button-group">
+                  <button @click="changeLayerType('normal')" :class="{ 'active-button': tileType === 'normal' }">
+                    标准图层
+                  </button>
+                  <button @click="changeLayerType('satellite')" :class="{ 'active-button': tileType === 'satellite' }">
+                    卫星图层
+                  </button>
+                  <button @click="changeLayerType('hybrid')" :class="{ 'active-button': tileType === 'hybrid' }">
+                    混合图层
+                  </button>
+                </div>
               </div>
               <div class="control-row">
                 <span>工具栏位置:</span>
-                <select v-model="toolbarPosition" @change="handleToolbarPositionChange">
-                  <option :value="ToolbarPosition.TOP_LEFT">左上角</option>
-                  <option :value="ToolbarPosition.TOP_RIGHT">右上角</option>
-                  <option :value="ToolbarPosition.BOTTOM_LEFT">左下角</option>
-                  <option :value="ToolbarPosition.BOTTOM_RIGHT">右下角</option>
-                  <option :value="ToolbarPosition.TOP_CENTER">顶部中央</option>
-                  <option :value="ToolbarPosition.BOTTOM_CENTER">底部中央</option>
-                  <option :value="ToolbarPosition.LEFT_CENTER">左侧中央</option>
-                  <option :value="ToolbarPosition.RIGHT_CENTER">右侧中央</option>
-                </select>
+                <div class="button-group">
+                  <button @click="changeToolbarPosition(ToolbarPosition.TOP_LEFT)"
+                    :class="{ 'active-button': toolbarPosition === ToolbarPosition.TOP_LEFT }">
+                    左上角
+                  </button>
+                  <button @click="changeToolbarPosition(ToolbarPosition.TOP_RIGHT)"
+                    :class="{ 'active-button': toolbarPosition === ToolbarPosition.TOP_RIGHT }">
+                    右上角
+                  </button>
+                </div>
+              </div>
+              <div class="control-row toolbar-position-row">
+                <div class="button-group">
+                  <button @click="changeToolbarPosition(ToolbarPosition.BOTTOM_LEFT)"
+                    :class="{ 'active-button': toolbarPosition === ToolbarPosition.BOTTOM_LEFT }">
+                    左下角
+                  </button>
+                  <button @click="changeToolbarPosition(ToolbarPosition.BOTTOM_RIGHT)"
+                    :class="{ 'active-button': toolbarPosition === ToolbarPosition.BOTTOM_RIGHT }">
+                    右下角
+                  </button>
+                </div>
               </div>
               <div class="control-row">
                 <span>可拖动:</span>
@@ -88,25 +101,21 @@
                 <span>快速切换:</span>
               </div>
               <div class="control-row buttons-row">
-                <button 
-                  @click="switchToLayer(MapType.GAODE, MapTile.NORMAL)" 
+                <button @click="switchToLayer(MapType.GAODE, MapTile.NORMAL)"
                   :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.NORMAL }">
                   高德标准
                 </button>
-                <button 
-                  @click="switchToLayer(MapType.GAODE, MapTile.SATELLITE)" 
+                <button @click="switchToLayer(MapType.GAODE, MapTile.SATELLITE)"
                   :class="{ 'active-button': config.mapType === MapType.GAODE && config.mapTile === MapTile.SATELLITE }">
                   高德卫星
                 </button>
               </div>
               <div class="control-row buttons-row">
-                <button 
-                  @click="switchToLayer(MapType.OSM, MapTile.NORMAL)" 
+                <button @click="switchToLayer(MapType.OSM, MapTile.NORMAL)"
                   :class="{ 'active-button': config.mapType === MapType.OSM && config.mapTile === MapTile.NORMAL }">
                   OSM地图
                 </button>
-                <button 
-                  @click="switchToLayer(MapType.TIANDI, MapTile.NORMAL)" 
+                <button @click="switchToLayer(MapType.TIANDI, MapTile.NORMAL)"
                   :class="{ 'active-button': config.mapType === MapType.TIANDI && config.mapTile === MapTile.NORMAL }">
                   天地图
                 </button>
@@ -117,6 +126,8 @@
           <div class="config-item">
             <div class="label">标记点操作</div>
             <div class="controls">
+              <!-- 标记点操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">基本标记</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomMarkers(3)">添加随机标记</button>
                 <button @click="clearAllMarkers">清除所有标记</button>
@@ -124,6 +135,8 @@
               <div class="control-row buttons-row">
                 <button @click="addRandomMarkers(10)">添加10个随机点</button>
               </div>
+
+              <div class="feature-group-title">特殊标记</div>
               <div class="control-row buttons-row">
                 <button @click="addColoredMarkers">添加图标类型示例</button>
                 <button @click="addClusterMarkers">添加聚合标记</button>
@@ -132,6 +145,8 @@
                 <button @click="toggleAllMarkers">{{ allMarkersVisible ? '隐藏所有标记点' : '显示所有标记点' }}</button>
                 <button @click="toggleAllLabels">{{ allLabelsVisible ? '隐藏所有标签' : '显示所有标签' }}</button>
               </div>
+
+              <div class="feature-group-title">Popover标记</div>
               <div class="control-row buttons-row">
                 <button @click="addPopoverMarker">添加默认显示Popover标记</button>
               </div>
@@ -139,12 +154,20 @@
                 <button @click="addTemplateMarker">添加带模板的标记点</button>
                 <button @click="addNoTemplateMarker">添加无模板的标记点</button>
               </div>
+
+              <div class="feature-group-title">分组标记</div>
+              <div class="control-row buttons-row">
+                <button @click="addGroupedMarkers">添加分组标记点</button>
+                <button @click="toggleGroupVisibility">切换分组显示</button>
+              </div>
             </div>
           </div>
 
           <div class="config-item">
             <div class="label">图形操作</div>
             <div class="controls">
+              <!-- 图形操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">基本图形</div>
               <div class="control-row buttons-row">
                 <button @click="addSquareShape">添加正方形</button>
                 <button @click="addCircleShape">添加圆形</button>
@@ -153,10 +176,14 @@
                 <button @click="addRectangleShape">添加矩形</button>
                 <button @click="addPolygonShape">添加多边形</button>
               </div>
+
+              <div class="feature-group-title">线段和点</div>
               <div class="control-row buttons-row">
                 <button @click="addLineShape">添加线段</button>
                 <button @click="addPointShape">添加点</button>
               </div>
+
+              <div class="feature-group-title">复合和管理</div>
               <div class="control-row buttons-row">
                 <button @click="addCustomShapeExample">添加复合图形示例</button>
                 <button @click="clearAllShapes">清除所有图形</button>
@@ -172,6 +199,8 @@
           <div class="config-item">
             <div class="label">轨迹操作</div>
             <div class="controls">
+              <!-- 轨迹操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">轨迹示例</div>
               <div class="control-row buttons-row">
                 <button @click="addSampleTrack">添加示例轨迹</button>
                 <button @click="addMultipleTrack">添加多条轨迹</button>
@@ -180,6 +209,8 @@
                 <button @click="addCircularTrack">添加环形轨迹</button>
                 <button @click="addZigzagTrack">添加Z字型轨迹</button>
               </div>
+
+              <div class="feature-group-title">轨迹控制</div>
               <div class="control-row buttons-row">
                 <button @click="playTrack">播放轨迹</button>
                 <button @click="stopTrack">停止轨迹</button>
@@ -195,10 +226,14 @@
           <div class="config-item">
             <div class="label">热力图操作</div>
             <div class="controls">
+              <!-- 热力图操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">热力图控制</div>
               <div class="control-row buttons-row">
                 <button @click="enableHeatmap">启用热力图</button>
                 <button @click="disableHeatmap">禁用热力图</button>
               </div>
+
+              <div class="feature-group-title">热力点管理</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomHeatmapPoints(20)">添加随机热力点</button>
                 <button @click="addClusteredHeatmapPoints">添加聚类热力点</button>
@@ -218,10 +253,14 @@
           <div class="config-item">
             <div class="label">飞线图操作</div>
             <div class="controls">
+              <!-- 飞线图操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">飞线控制</div>
               <div class="control-row buttons-row">
                 <button @click="enableFlightLine">启用飞线图</button>
                 <button @click="disableFlightLine">禁用飞线图</button>
               </div>
+
+              <div class="feature-group-title">飞线样式</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomFlightLines">添加随机飞线</button>
                 <button @click="addChainFlightLines">添加链状飞线</button>
@@ -236,7 +275,8 @@
               </div>
               <div class="control-row">
                 <span>曲率:</span>
-                <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1" @change="updateFlightLineConfig">
+                <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1"
+                  @change="updateFlightLineConfig">
                 <span class="value">{{ flightLineConfig.curveness.toFixed(1) }}</span>
               </div>
               <div class="control-row">
@@ -245,7 +285,8 @@
               </div>
               <div class="control-row">
                 <span>线宽:</span>
-                <input type="range" v-model.number="flightLineConfig.width" min="1" max="10" @change="updateFlightLineConfig">
+                <input type="range" v-model.number="flightLineConfig.width" min="1" max="10"
+                  @change="updateFlightLineConfig">
                 <span class="value">{{ flightLineConfig.width }}</span>
               </div>
               <div class="control-row">
@@ -265,14 +306,15 @@
               <div v-if="markers.length === 0" class="no-markers">
                 暂无标记点
               </div>
-              <div v-for="marker in markers.slice(0, 5)" :key="marker.id" class="marker-item">
+              <div v-for="marker in markers.slice(0, 5)" :key="marker.id" class="marker-item thin-scrollbar">
                 <div class="marker-header">
                   <span class="marker-id">ID: {{ safeSlice(marker.id) }}</span>
                   <span :class="['marker-status', marker.visible ? 'visible' : 'hidden']">
                     {{ marker.visible ? '可见' : '隐藏' }}
                   </span>
                 </div>
-                <div class="marker-position">位置: [{{ marker.position[0].toFixed(4) }}, {{ marker.position[1].toFixed(4) }}]</div>
+                <div class="marker-position">位置: [{{ marker.position[0].toFixed(4) }}, {{ marker.position[1].toFixed(4)
+                  }}]</div>
                 <div class="marker-title" v-if="marker.title">标题: {{ marker.title }}</div>
                 <div class="marker-actions">
                   <button @click="toggleMarkerVisibility(marker)">
@@ -301,7 +343,7 @@
               <div v-if="shapes.length === 0" class="no-shapes">
                 暂无图形
               </div>
-              <div v-for="shape in shapes.slice(0, 5)" :key="shape.id" class="shape-item">
+              <div v-for="shape in shapes.slice(0, 5)" :key="shape.id" class="shape-item thin-scrollbar">
                 <div class="shape-header">
                   <span class="shape-id">ID: {{ safeSlice(shape.id) }}</span>
                   <span class="shape-type">类型: {{ getShapeTypeName(shape.type) }}</span>
@@ -315,6 +357,22 @@
                   <template v-else>
                     数据: {{ shape.data }}
                   </template>
+                </div>
+                <div class="shape-status">
+                  状态: <span :class="[shape.visible === false ? 'hidden' : 'visible']">
+                    {{ shape.visible === false ? '隐藏' : '可见' }}
+                  </span>
+                </div>
+                <div class="shape-actions">
+                  <button @click="toggleShapeVisibility(shape)">
+                    {{ shape.visible === false ? '显示' : '隐藏' }}
+                  </button>
+                  <button @click="changeShapeStyle(shape)">
+                    修改样式
+                  </button>
+                  <button @click="removeShape(shape)">
+                    删除
+                  </button>
                 </div>
               </div>
               <div v-if="shapes.length > 5" class="more-shapes">
@@ -334,13 +392,8 @@
               <div v-if="flightLines.length === 0" class="no-flight-lines">
                 暂无飞线数据
               </div>
-              <div 
-                v-for="line in flightLines" 
-                :key="line.id" 
-                class="flight-line-item"
-                :class="{'flight-line-selected': line.selected}"
-                @click="toggleFlightLineSelection(line.id)"
-              >
+              <div v-for="line in flightLines" :key="line.id" class="flight-line-item thin-scrollbar"
+                :class="{'flight-line-selected': line.selected}" @click="toggleFlightLineSelection(line.id)">
                 <div class="flight-line-header">
                   <span class="flight-line-id">ID: {{ safeSlice(line.id) }}</span>
                   <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
@@ -360,13 +413,41 @@
           <div class="config-item">
             <div class="label">事件日志</div>
             <div class="log-container">
-              <div v-for="(log, index) in logs" :key="index" class="log-item">
+              <div v-for="(log, index) in logs" :key="index" class="log-item thin-scrollbar">
                 <span class="log-time">{{ log.time }}</span>
                 <span class="log-type">{{ log.type }}:</span>
                 <span class="log-message">{{ log.message }}</span>
               </div>
               <div v-if="logs.length === 0" class="no-logs">
                 暂无事件记录
+              </div>
+            </div>
+          </div>
+
+          <div class="config-item">
+            <div class="label">标记点分组</div>
+            <div class="controls">
+              <div class="marker-group-stats">
+                <span>分组总数: {{ markerGroups.length }}</span>
+              </div>
+              <div class="marker-group-list">
+                <div v-if="markerGroups.length === 0" class="no-marker-groups">
+                  暂无标记点分组
+                </div>
+                <div v-for="group in markerGroups" :key="group.name" class="marker-group-item thin-scrollbar">
+                  <div class="marker-group-header">
+                    <span class="marker-group-name">{{ group.name }}</span>
+                    <span :class="['marker-group-status', group.visible ? 'visible' : 'hidden']">
+                      {{ group.visible ? '可见' : '隐藏' }}
+                    </span>
+                  </div>
+                  <div class="marker-group-count">标记点数量: {{ getGroupMarkerCount(group.name) }}</div>
+                  <div class="marker-group-actions">
+                    <button @click="toggleMarkerGroupVisibility(group.name)">
+                      {{ group.visible ? '隐藏' : '显示' }}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -463,6 +544,11 @@ const config = reactive({
 const markers = ref<any[]>([]);
 const allMarkersVisible = ref(true);
 const allLabelsVisible = ref(true);
+
+// 标记点分组数据
+const markerGroups = ref<{ name: string, visible: boolean }[]>([]);
+// 当前选中的用于切换显示的分组索引
+const currentGroupIndex = ref(0);
 
 // 图形数据
 const shapes = ref<ShapeOption[]>([]);
@@ -577,6 +663,8 @@ function addRandomMarkers(count) {
   ];
   // 随机颜色
   const colors = ['#1890ff', '#52c41a', '#faad14', '#722ed1', '#eb2f96', '#fa541c'];
+  // 随机分组
+  const groups = ['景点', '餐厅', '交通', '购物', null]; // null表示不分组
   
   for (let i = 0; i < count; i++) {
     const offsetLon = (Math.random() - 0.5) * 0.1;
@@ -592,6 +680,8 @@ function addRandomMarkers(count) {
     const iconType = iconTypes[Math.floor(Math.random() * iconTypes.length)];
     // 随机选择一个颜色
     const color = colors[Math.floor(Math.random() * colors.length)];
+    // 随机选择一个分组
+    const group = groups[Math.floor(Math.random() * groups.length)];
     
     // 准备图标
     let icon;
@@ -622,18 +712,22 @@ function addRandomMarkers(count) {
     layerRef.value.addMarker({
       id,
       position: [lon, lat],
-      title: `标记 ${i + 1} (${iconType})`,
+      title: `标记 ${i + 1} (${iconType})${group ? ' - ' + group : ''}`,
       icon: icon,
       iconType: iconType,
       clickable: true,
       usePopover: usePopover,
+      group: group, // 设置分组属性
       data: { type: 'random', index: i }
     });
   }
   
   // 更新标记点列表
   updateMarkerList();
-  addLog('操作', `已添加 ${count} 个随机标记点 (不同图标类型)`);
+  // 更新分组列表
+  updateMarkerGroups();
+  
+  addLog('操作', `已添加 ${count} 个随机标记点 (不同图标类型${count > 1 ? '和分组' : ''})`);
 }
 
 // 添加彩色标记点
@@ -852,6 +946,9 @@ function updateMarkerList() {
   
   // 更新全局标记点可见状态
   allMarkersVisible.value = allMarkers.filter(m => m.visible).length > 0;
+  
+  // 更新分组列表
+  updateMarkerGroups();
 }
 
 // 处理地图类型变更
@@ -2252,7 +2349,6 @@ const handleToolbarPositionChange = () => {
         // 尝试触发地图刷新，确保UI更新
         setTimeout(() => {
           if (layerRef.value && layerRef.value.getMapObject()) {
-            console.log('强制刷新地图组件');
             layerRef.value.getMapObject().triggerMapResize();
           }
         }, 100);
@@ -2634,6 +2730,185 @@ const selectedFlightLines = ref<Array<string>>([]);
 const isFlightLineSelected = (id: string) => {
   return selectedFlightLines.value.some(line => line === id);
 };
+
+// 获取分组中的标记点数量
+function getGroupMarkerCount(groupName: string): number {
+  return markers.value.filter(marker => marker.group === groupName).length;
+}
+
+// 切换分组可见性
+function toggleMarkerGroupVisibility(groupName: string) {
+  if (!layerRef.value) return;
+  
+  // 找到分组信息
+  const groupInfo = markerGroups.value.find(g => g.name === groupName);
+  if (!groupInfo) return;
+  
+  if (groupInfo.visible) {
+    // 如果当前可见，则隐藏
+    layerRef.value.hideMarkerGroup(groupName);
+    groupInfo.visible = false;
+    addLog('操作', `已隐藏 "${groupName}" 分组的标记点`);
+  } else {
+    // 如果当前隐藏，则显示
+    layerRef.value.showMarkerGroup(groupName);
+    groupInfo.visible = true;
+    addLog('操作', `已显示 "${groupName}" 分组的标记点`);
+  }
+  
+  // 更新标记点列表
+  updateMarkerList();
+}
+
+// 循环切换不同分组的可见性
+function toggleGroupVisibility() {
+  if (!layerRef.value || markerGroups.value.length === 0) {
+    ElMessage.warning('没有可用的标记点分组');
+    return;
+  }
+  
+  // 确保索引在有效范围内
+  if (currentGroupIndex.value >= markerGroups.value.length) {
+    currentGroupIndex.value = 0;
+  }
+  
+  // 获取当前分组
+  const currentGroup = markerGroups.value[currentGroupIndex.value];
+  
+  // 切换当前分组的可见性
+  toggleMarkerGroupVisibility(currentGroup.name);
+  
+  // 更新索引为下一个分组
+  currentGroupIndex.value = (currentGroupIndex.value + 1) % markerGroups.value.length;
+}
+
+// 添加分组标记点
+function addGroupedMarkers() {
+  if (!layerRef.value) return;
+  
+  // 定义分组
+  const groups = ['景点', '餐厅', '交通', '购物'];
+  
+  // 为每个分组添加3个标记点
+  groups.forEach(groupName => {
+    for (let i = 0; i < 3; i++) {
+      const centerLon = config.center[1];
+      const centerLat = config.center[0];
+      
+      // 根据分组稍微调整位置，避免重叠
+      let offsetMultiplier = 0;
+      switch(groupName) {
+        case '景点': offsetMultiplier = 1; break;
+        case '餐厅': offsetMultiplier = -1; break;
+        case '交通': offsetMultiplier = 0.5; break;
+        case '购物': offsetMultiplier = -0.5; break;
+      }
+      
+      const offsetLon = (Math.random() - 0.5) * 0.05 + offsetMultiplier * 0.01;
+      const offsetLat = (Math.random() - 0.5) * 0.05 + offsetMultiplier * 0.01;
+      
+      const lon = centerLon + offsetLon;
+      const lat = centerLat + offsetLat;
+      
+      const id = `marker-${groupName}-${Date.now()}-${i}`;
+      
+      // 根据分组设置不同颜色和图标
+      let color;
+      switch(groupName) {
+        case '景点': color = '#1890ff'; break; // 蓝色
+        case '餐厅': color = '#52c41a'; break; // 绿色
+        case '交通': color = '#faad14'; break; // 橙色
+        case '购物': color = '#722ed1'; break; // 紫色
+      }
+      
+      // 创建SVG图标
+      const iconSvg = `<svg width="24" height="36" viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C28 0 24 24 12 36C0 24 -4 0 12 0Z" fill="${color}"/><circle cx="12" cy="12" r="6" fill="white"/></svg>`;
+      
+      layerRef.value.addMarker({
+        id,
+        position: [lon, lat],
+        title: `${groupName}标记 ${i + 1}`,
+        icon: iconSvg,
+        iconType: 'svg',
+        clickable: true,
+        usePopover: true,
+        group: groupName, // 设置分组属性
+        data: { type: 'grouped', index: i }
+      });
+    }
+  });
+  
+  // 更新标记点列表
+  updateMarkerList();
+  // 更新分组列表
+  updateMarkerGroups();
+  
+  addLog('操作', '已添加4个分组的标记点，每组3个');
+}
+
+// 更新分组列表
+function updateMarkerGroups() {
+  if (!layerRef.value) return;
+  
+  // 获取所有分组
+  const groups = layerRef.value.getGroups();
+  markerGroups.value = groups;
+  
+  addLog('更新', `获取到 ${groups.length} 个标记点分组`);
+}
+
+// 切换地图类型
+const changeMapType = (mapType: MapType) => {
+  config.mapType = mapType;
+  handleMapTypeChange();
+};
+
+// 切换图层类型
+const changeLayerType = (layerType: string) => {
+  tileType.value = layerType;
+  handleLayerTypeChange();
+};
+
+// 切换工具栏位置
+const changeToolbarPosition = (position: ToolbarPosition) => {
+  toolbarPosition.value = position;
+  
+  if (!layerRef.value) {
+    addLog('工具栏', '地图组件未初始化，无法更新工具栏位置');
+    return;
+  }
+  
+  // 记录操作
+  console.log('正在切换工具栏位置到:', position);
+  addLog('工具栏', `正在切换位置到: ${position}`);
+  
+  try {
+    // 直接调用ScLayer组件的updateToolbarConfig方法
+    const result = layerRef.value.updateToolbarConfig({
+      position: position // 设置新的位置
+    });
+    
+    if (result) {
+      // 如果更新成功，添加视觉反馈
+      ElMessage.success('工具栏位置已更新');
+      addLog('工具栏', '位置更新成功');
+      
+      // 尝试触发地图刷新，确保UI更新
+      setTimeout(() => {
+        if (layerRef.value && layerRef.value.getMapObject()) {
+          layerRef.value.getMapObject().updateSize();
+        }
+      }, 100);
+    } else {
+      ElMessage.error('工具栏位置更新失败');
+      addLog('工具栏', '位置更新失败');
+    }
+  } catch (error) {
+    console.error('更新工具栏位置时发生错误:', error);
+    ElMessage.error(`工具栏位置更新失败: ${error.message}`);
+    addLog('工具栏', `位置更新失败: ${error.message}`);
+  }
+};
 </script>
 
 <style scoped>
@@ -2648,93 +2923,202 @@ const isFlightLineSelected = (id: string) => {
 
 .map-area {
   flex: 1;
-  min-width: 0;
-  padding-right: 20px;
+  margin-right: 20px;
+}
+
+.config-area {
+  width: 320px;
+  overflow-y: auto;
+  max-height: 700px;
 }
 
 .map-container {
   width: 100%;
-  height: 700px;
-  border: 1px solid #e8e8e8;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #ccc;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.config-area {
-  width: 380px;
-  flex-shrink: 0;
-}
-
 .config-section {
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-  padding: 16px;
-  height: 700px;
-  overflow-y: auto;
+  width: 100%;
 }
 
 .config-item {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-.config-item .label {
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #e8e8e8;
-  color: #333;
+.label {
+  padding: 8px 12px;
+  font-weight: 600;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.controls {
+  padding: 12px;
 }
 
 .control-row {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.control-row > span {
-  width: 100px;
-  flex-shrink: 0;
+.control-row span {
+  margin-right: 8px;
+  min-width: 80px;
 }
 
 .control-row .value {
   margin-left: 8px;
-  width: 30px;
-  text-align: right;
+  min-width: auto;
+  color: #1890ff;
 }
 
 .buttons-row {
   display: flex;
+  justify-content: space-between;
   gap: 8px;
 }
 
 button {
-  background-color: #fff;
-  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
-  padding: 6px 12px;
+  background-color: #fff;
   cursor: pointer;
-  font-size: 12px;
   transition: all 0.3s;
+  font-size: 12px;
+  flex: 1;
 }
 
 button:hover {
-  border-color: #1890ff;
   color: #1890ff;
+  border-color: #1890ff;
+}
+
+.primary-button {
+  background-color: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.primary-button:hover {
+  background-color: #40a9ff;
+  color: #fff;
+  border-color: #40a9ff;
 }
 
 .active-button {
-  background-color: #1890ff;
-  color: white;
+  color: #1890ff;
   border-color: #1890ff;
 }
 
-.active-button:hover {
-  background-color: #40a9ff;
-  color: white;
-  border-color: #40a9ff;
+.marker-stats, .shape-stats, .flight-line-stats, .marker-group-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.marker-list, .shape-list, .flight-line-list, .marker-group-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.marker-item, .shape-item, .flight-line-item, .marker-group-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.marker-header, .shape-header, .flight-line-header, .marker-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.marker-id, .shape-id, .flight-line-id, .marker-group-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.marker-status, .marker-group-status {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.marker-status.visible, .marker-group-status.visible {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.marker-status.hidden, .marker-group-status.hidden {
+  background-color: #fff1f0;
+  color: #f5222d;
+}
+
+.marker-position, .marker-title, .shape-type, .marker-group-count, .shape-status {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.marker-actions, .marker-group-actions, .shape-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.no-markers, .no-shapes, .no-flight-lines, .no-marker-groups {
+  color: #999;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.more-markers, .more-shapes, .more-flight-lines {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.flight-line-item {
+  cursor: pointer;
+}
+
+.flight-line-selected {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.flight-line-route {
+  display: flex;
+  font-size: 12px;
+  align-items: center;
+}
+
+.flight-line-arrow {
+  margin: 0 4px;
+  color: #1890ff;
+}
+
+.flight-line-value {
+  font-size: 12px;
+  color: #ff4d4f;
 }
 
 .log-container {
@@ -2748,266 +3132,105 @@ button:hover {
 
 .log-item {
   font-size: 12px;
-  padding: 4px 0;
-  border-bottom: 1px dashed #f0f0f0;
+  margin-bottom: 4px;
+  padding: 4px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .log-time {
-  color: #888;
+  color: #8c8c8c;
   margin-right: 8px;
 }
 
 .log-type {
-  font-weight: bold;
   color: #1890ff;
+  font-weight: bold;
   margin-right: 8px;
 }
 
 .no-logs {
   color: #999;
   font-style: italic;
-  padding: 8px 0;
-  text-align: center;
 }
 
-.marker-list {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #fff;
-  padding: 8px;
-}
-
-.marker-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #666;
-}
-
-.no-markers {
-  color: #999;
-  font-style: italic;
-  padding: 8px 0;
-  text-align: center;
-}
-
-.marker-item {
-  padding: 8px;
-  margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-}
-
-.marker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.marker-id {
+.feature-group-title {
   font-weight: bold;
-  font-size: 12px;
-}
-
-.marker-status {
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.marker-status.visible {
-  background-color: #e6f7ff;
+  font-size: 13px;
+  margin: 16px 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
   color: #1890ff;
 }
 
-.marker-status.hidden {
-  background-color: #fff1f0;
-  color: #f5222d;
+.feature-group-title:first-child {
+  margin-top: 0;
 }
 
-.marker-position {
-  font-size: 12px;
-  color: #666;
-  margin: 4px 0;
-}
-
-.marker-title {
-  font-size: 13px;
-  margin: 4px 0;
-}
-
-.marker-actions {
+.button-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  flex: 1;
+}
+
+.button-group button {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* 增强按钮组样式，使每行只有两个按钮 */
+.control-row .button-group {
+  min-width: 0;
+  width: 100%;
+}
+
+/* 工具栏位置按钮特殊样式 */
+.toolbar-position-row {
+  margin-left: 88px; /* 与上方标签对齐 */
+}
+
+/* 添加功能分组的分隔线 */
+.feature-group-title + .control-row {
   margin-top: 8px;
 }
 
-.more-markers {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-  padding: 8px 0;
-  font-style: italic;
+/* 工具栏位置按钮样式 */
+.toolbar-position-row {
+  margin-left: 88px; /* 与上方标签对齐 */
 }
 
-.shape-list {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #fff;
-  padding: 8px;
-}
-
-.shape-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #666;
-}
-
-.no-shapes {
-  color: #999;
-  font-style: italic;
-  padding: 8px 0;
-  text-align: center;
-}
-
-.shape-item {
-  padding: 8px;
-  margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-}
-
-.shape-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.shape-id {
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.shape-type {
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
+/* 工具栏位置按钮激活状态 */
+.toolbar-position-row .active-button {
   background-color: #e6f7ff;
   color: #1890ff;
+  border-color: #1890ff;
+  font-weight: bold;
 }
 
-.shape-data {
+/* 添加功能分组的分隔线 */
+.feature-group-title + .control-row {
+  margin-top: 8px;
+}
+
+.shape-status span.visible {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  padding: 2px 6px;
+  border-radius: 10px;
   font-size: 12px;
-  color: #666;
-  margin: 4px 0;
+}
+
+.shape-status span.hidden {
+  background-color: #fff1f0;
+  color: #f5222d;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 .shape-data-item {
-  margin: 2px 0;
-}
-
-.shape-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.more-shapes {
   font-size: 12px;
-  color: #999;
-  text-align: center;
-  padding: 8px 0;
-  font-style: italic;
-}
-
-.flight-line-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
+  margin-bottom: 2px;
   color: #666;
-}
-
-.no-flight-lines {
-  color: #999;
-  font-style: italic;
-  padding: 8px 0;
-  text-align: center;
-}
-
-.flight-line-list {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #fff;
-  padding: 8px;
-}
-
-.flight-line-item {
-  padding: 8px;
-  margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.flight-line-item:hover {
-  background-color: #e6f7ff;
-  border-color: #1890ff;
-}
-
-.flight-line-selected {
-  background-color: #e6f7ff;
-  border-color: #1890ff;
-}
-
-.flight-line-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.flight-line-id {
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.flight-line-value {
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.flight-line-route {
-  font-size: 12px;
-  color: #666;
-  margin: 4px 0;
-}
-
-.flight-line-arrow {
-  margin: 0 4px;
-}
-
-.more-flight-lines {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-  padding: 8px 0;
-  font-style: italic;
 }
 </style> 

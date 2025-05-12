@@ -35,6 +35,7 @@ export interface MarkerOptions {
   usePopover?: boolean; // 是否使用popover显示标题，默认false
   showPopover?: boolean; // 是否默认显示popover，默认false
   isPopoverOpen?: boolean; // 内部属性：当前popover是否打开，默认false
+  group?: string; // 标记点分组，用于按组管理标记点的显示/隐藏
   style?: {
     scale?: number;
     anchor?: [number, number];

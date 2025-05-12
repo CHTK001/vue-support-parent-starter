@@ -105,7 +105,7 @@
         <div class="track-list-header">
           <span>轨迹列表</span>
         </div>
-        <div class="track-list-content" v-if="tracks.size > 0">
+        <div class="track-list-content thin-scrollbar" v-if="tracks.size > 0">
           <div v-for="[id, track] in tracks" :key="id" class="track-item" 
             :class="{ 'active': activeTrackId === id, 'disabled': playState === 'playing' && activeTrackId !== id }"
             @click="canSwitchTrack && selectTrack(id)">

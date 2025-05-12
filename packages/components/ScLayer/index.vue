@@ -45,6 +45,17 @@
       @selection-change="handleFlightLineSelectionChange"
       ref="flightLinePanelRef"
     />
+    
+    <!-- 添加热力图面板 -->
+    <HeatmapPanel
+      v-if="showHeatmapPanel && mapReady"
+      :heatmap-obj="toolbarObject?.getHeatmapObject()"
+      :active="isHeatmapActive"
+      :position="determineHeatmapPanelPosition()"
+      @close="handleHeatmapPanelClose"
+      @update:active="handleHeatmapActiveChange"
+      @config-update="handleHeatmapConfigUpdate"
+    />
   </div>
 </template>
 
@@ -90,6 +101,7 @@ import { Map as OlMap } from 'ol';
 import 'ol/ol.css';
 import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 import FlightLinePanel from './components/FlightLinePanel.vue';
+import HeatmapPanel from './components/HeatmapPanel.vue';
 
 
 // 定义组件属性 - 使用types中的配置作为类型定义
@@ -411,65 +423,110 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           flightLinePanelLocked.value = true;
           logger.info('[FlightLine] 飞线图已激活，显示飞线列表面板');
           
-          // 如果有飞线对象，尝试启用飞线图
+          // 尝试启用飞线图
           const flightLineObj = toolbarObject?.getFlightLineObject();
-          if (flightLineObj && typeof flightLineObj.enable === 'function') {
-            flightLineObj.enable().catch(err => {
-              logger.error('[FlightLine] 启用飞线图失败:', err);
-            });
+          if (flightLineObj) {
+            // 确保地图已就绪
+            if (mapReady.value) {
+              flightLineObj.enable().then(() => {
+                logger.debug('[FlightLine] 飞线图已启用并设置最佳视角');
+                flightLineObj.setOptimalView(5);
+              }).catch(err => {
+                logger.error('[FlightLine] 启用飞线图失败:', err);
+              });
+            } else {
+              // 地图未就绪，等待地图就绪后再启用
+              logger.debug('[FlightLine] 地图未就绪，等待地图就绪后再启用飞线图');
+              
+              // 监听地图就绪事件
+              watch(mapReady, (ready) => {
+                if (ready && flightLineObj) {
+                  flightLineObj.enable().then(() => {
+                    logger.debug('[FlightLine] 地图就绪后启用飞线图成功');
+                    flightLineObj.setOptimalView(5);
+                  }).catch(err => {
+                    logger.error('[FlightLine] 地图就绪后启用飞线图失败:', err);
+                  });
+                }
+              }, { immediate: true, once: true });
+            }
           }
         }
         
-        // 确保列表数据刷新，使用setTimeout提供额外的延迟等待组件挂载
+        // 延迟处理数据
         setTimeout(() => {
-          if (flightLinePanelRef.value) {
-            flightLinePanelRef.value.refreshFlightLineList();
-            logger.debug('[FlightLine] 刷新飞线列表数据');
-          } else {
-            logger.warn('[FlightLine] 飞线面板引用不可用，无法刷新列表，面板状态:', showFlightLinePanel.value);
-            
-            // 尝试再次延迟刷新 - 解决面板渲染延迟问题
-            setTimeout(() => {
-              if (flightLinePanelRef.value) {
-                flightLinePanelRef.value.refreshFlightLineList();
-                logger.debug('[FlightLine] 延迟500ms后成功刷新飞线列表数据');
-              } else {
-                logger.error('[FlightLine] 即使延迟500ms后面板引用依然不可用');
-                
-                // 强制重新绑定飞线面板并显示
-                const flightLineObj = toolbarObject?.getFlightLineObject();
-                if (flightLineObj) {
-                  logger.debug('[FlightLine] 尝试强制刷新飞线面板状态');
-                  // 先关闭再打开面板，尝试触发Vue重新渲染
-                  showFlightLinePanel.value = false;
-                  setTimeout(() => {
-                    showFlightLinePanel.value = true;
-                    flightLinePanelLocked.value = true; // 确保面板锁定
-                    logger.debug('[FlightLine] 强制刷新面板状态完成');
-                    
-                    // 再次尝试刷新列表
-                    setTimeout(() => {
-                      if (flightLinePanelRef.value) {
-                        flightLinePanelRef.value.refreshFlightLineList();
-                        logger.debug('[FlightLine] 强制刷新后成功获取面板引用');
-                      }
-                    }, 200);
-                  }, 50);
-                }
+          // 如果有数据，则传递到飞线图对象中
+          if (data && Array.isArray(data)) {
+            const flightLineObj = toolbarObject?.getFlightLineObject();
+            if (flightLineObj) {
+              try {
+                // 添加飞线数据
+                flightLineObj.addFlightLines(data, true, 5); // 添加数据并自动设置最佳视角，缩放级别为5
+                logger.info(`[FlightLine] 已添加 ${data.length} 条飞线数据`);
+              } catch (error) {
+                logger.error('[FlightLine] 添加飞线数据失败:', error);
               }
-            }, 500);
+            }
           }
-        }, 200); // 增加额外等待时间
-      } else if (!active) {
-        // 停用飞线图时，隐藏面板并确保飞线图对象也被停用
-        showFlightLinePanel.value = false;
-        flightLinePanelLocked.value = false; // 解除锁定
-        logger.debug('[FlightLine] 飞线图已停用，隐藏飞线列表面板');
+        }, 500);
+      } else {
+        // 如果面板未锁定，则取消显示
+        if (!flightLinePanelLocked.value) {
+          showFlightLinePanel.value = false;
+          logger.debug('[FlightLine] 飞线图已禁用，隐藏飞线列表面板');
+        } else {
+          logger.debug('[FlightLine] 飞线图已禁用，但面板已锁定，保持显示状态');
+        }
         
-        // 如果有飞线对象，尝试禁用飞线图
+        // 尝试禁用飞线图对象
         const flightLineObj = toolbarObject?.getFlightLineObject();
-        if (flightLineObj && typeof flightLineObj.disable === 'function') {
-          flightLineObj.disable();
+        if (flightLineObj) {
+          try {
+            flightLineObj.disable();
+            logger.debug('[FlightLine] 飞线图已禁用');
+          } catch (error) {
+            logger.error('[FlightLine] 禁用飞线图失败:', error);
+          }
+        }
+      }
+    },
+    
+    // 热力图状态变化
+    'heatmap': () => {
+      logger.debug(`[Heatmap] 收到热力图事件: active=${active}`);
+      
+      // 更新热力图激活状态
+      isHeatmapActive.value = active;
+      
+      if (active) {
+        // 激活时显示热力图面板
+        showHeatmapPanel.value = true;
+        logger.info('[Heatmap] 热力图已激活，显示热力图面板');
+        
+        // 尝试启用热力图对象
+        const heatmapObj = toolbarObject?.getHeatmapObject();
+        if (heatmapObj) {
+          try {
+            heatmapObj.enable();
+            logger.debug('[Heatmap] 热力图已启用');
+          } catch (error) {
+            logger.error('[Heatmap] 启用热力图失败:', error);
+          }
+        }
+      } else {
+        // 停用时隐藏热力图面板
+        showHeatmapPanel.value = false;
+        logger.debug('[Heatmap] 热力图已停用，隐藏热力图面板');
+        
+        // 尝试禁用热力图对象
+        const heatmapObj = toolbarObject?.getHeatmapObject();
+        if (heatmapObj) {
+          try {
+            heatmapObj.disable();
+            logger.debug('[Heatmap] 热力图已禁用');
+          } catch (error) {
+            logger.error('[Heatmap] 禁用热力图失败:', error);
+          }
         }
       }
     },
@@ -692,30 +749,28 @@ const handleToolActivated = (payload) => {
   
   // 飞线工具激活处理
   if (toolId === 'flightLine') {
-    // 激活飞线图
-    logger.info('[FlightLine] 飞线图按钮已激活，显示飞线列表面板');
-    
-    // 锁定面板，防止意外关闭
+    // 显示飞线图面板
+    showFlightLinePanel.value = true;
     flightLinePanelLocked.value = true;
     
-    // 确保面板显示
-    showFlightLinePanel.value = true;
-    
-    // 确保飞线对象初始化并启用
-    const flightLineObj = toolbarObject.getFlightLineObject();
+    // 启用飞线图
+    const flightLineObj = toolbarObject?.getFlightLineObject();
     if (flightLineObj) {
-      logger.debug('[FlightLine] 飞线图对象已存在，尝试启用飞线图');
+      flightLineObj.enable().catch(err => {
+        logger.error('[FlightLine] 启用飞线图失败:', err);
+      });
       
-      // 尝试启用飞线图
-      if (typeof flightLineObj.enable === 'function') {
-        try {
-          flightLineObj.enable();
-          logger.debug('[FlightLine] 飞线图已成功启用');
-        } catch (err) {
-          logger.error('[FlightLine] 启用飞线图失败:', err);
-        }
-      }
+      // 确保刷新飞线列表
+      nextTick(() => {
+        setTimeout(() => {
+          if (flightLinePanelRef.value) {
+            flightLinePanelRef.value.refreshFlightLineList();
+          }
+        }, 300);
+      });
     }
+    
+    logger.debug('[FlightLine] 飞线工具激活，显示面板');
   }
   // ... 其他工具处理保持不变
   
@@ -867,6 +922,9 @@ const setupMapInitializedWatcher = () => {
       hasPanelRef: !!flightLinePanelRef.value
     });
     setTimeout(checkFlightLineState, 1000);
+    
+    // 检查热力图状态
+    setTimeout(checkHeatmapState, 1000);
   });
 };
 
@@ -1041,20 +1099,9 @@ const handleLayerChange = (payload: { mapType: MapType, mapTile: MapTile }) => {
  * @returns 是否更新成功
  */
 const updateToolbarConfig = (newConfig: Partial<ToolbarConfig>) => {
-  if (!toolbarObject) {
-    logger.warn('工具栏对象不存在，无法更新配置');
-    return false;
-  }
-  
-  try {
-    // 调用工具栏对象的setConfig方法更新配置
-    toolbarObject.setConfig(newConfig);
+    mapToolbarRef.value.updateConfig(newConfig);
     logger.debug('工具栏配置已更新', newConfig);
     return true;
-  } catch (error) {
-    logger.error('更新工具栏配置失败:', error);
-    return false;
-  }
 };
 
 // 确定图层面板位置
@@ -1405,15 +1452,30 @@ const showFlightLineList = () => {
   showFlightLinePanel.value = true;
   logger.debug('[FlightLine] 手动显示飞线面板并锁定');
   
-  // 如果面板已经显示，刷新列表
-  nextTick(() => {
-    if (flightLinePanelRef.value) {
-      flightLinePanelRef.value.refreshFlightLineList();
-      logger.debug('[FlightLine] 刷新飞线列表数据');
-    } else {
-      logger.warn('[FlightLine] 飞线面板引用不可用，无法刷新列表');
-    }
-  });
+  // 确保飞线图已启用
+  const flightLineObj = toolbarObject?.getFlightLineObject();
+  if (flightLineObj) {
+    flightLineObj.enable().then(() => {
+      logger.debug('[FlightLine] 飞线图已成功启用');
+      
+      // 如果面板已经显示，刷新列表
+      nextTick(() => {
+        // 确保延迟执行，增加稳定性
+        setTimeout(() => {
+          if (flightLinePanelRef.value) {
+            flightLinePanelRef.value.refreshFlightLineList();
+            logger.debug('[FlightLine] 刷新飞线列表数据');
+          } else {
+            logger.warn('[FlightLine] 飞线面板引用不可用，无法刷新列表');
+          }
+        }, 300);
+      });
+    }).catch(err => {
+      logger.error('[FlightLine] 启用飞线图失败:', err);
+    });
+  } else {
+    logger.warn('[FlightLine] 无法获取飞线图对象');
+  }
   
   return true;
 };
@@ -1431,6 +1493,190 @@ const hideFlightLineList = () => {
   }
   return true;
 };
+
+
+// 检查飞线图状态
+const checkFlightLineState = () => {
+  logger.debug(`[FlightLine] 检查飞线图状态: mapReady=${mapReady.value}, mapObj=${!!mapObj}, flightLineObj=${!!toolbarObject?.getFlightLineObject()}`);
+  
+  // 检查飞线图工具是否激活
+  const isFlightLineActive = toolbarObject && 
+    toolbarObject.getActiveToolId() === 'flightLine';
+  
+  // 获取飞线对象
+  const flightLineObj = toolbarObject?.getFlightLineObject();
+  
+  logger.debug(`[FlightLine] 飞线图工具激活状态: ${isFlightLineActive}, 飞线对象存在: ${!!flightLineObj}, 面板显示状态: ${showFlightLinePanel.value}, 面板引用: ${!!flightLinePanelRef.value}`);
+  
+  if (mapReady.value && mapObj) {
+    // 根据工具激活状态决定显示与否
+    if (isFlightLineActive && !showFlightLinePanel.value) {
+      logger.info('[FlightLine] 发现飞线图工具已激活但面板未显示，显示飞线列表面板');
+      showFlightLinePanel.value = true;
+      // 设置面板锁定状态，防止意外关闭
+      flightLinePanelLocked.value = true;
+      
+      // 刷新飞线列表数据
+      nextTick(() => {
+        // 延迟执行，确保面板已完全挂载
+        setTimeout(() => {
+          if (flightLinePanelRef.value) {
+            flightLinePanelRef.value.refreshFlightLineList();
+            logger.debug('[FlightLine] 强制刷新飞线列表数据');
+          }
+        }, 300);
+      });
+    }
+  }
+};
+
+// 组件挂载时初始化地图
+onMounted(() => {
+  // 设置日志级别
+  configureLogger();
+  
+  // 初始化地图
+  logger.info('ScLayer组件已挂载');
+  nextTick(initMap);
+  
+  // 添加窗口大小变化监听
+  window.addEventListener('resize', resizeMap);
+  
+  // 设置地图初始化完成监听
+  setupMapInitializedWatcher();
+  
+  // 设置地图就绪状态
+  mapReady.value = true;
+  
+  // 延迟检查飞线状态
+  setTimeout(() => {
+    if (mapReady.value && toolbarObject) {
+      checkFlightLineState();
+    }
+  }, 2000);
+});
+
+// 配置日志级别
+const configureLogger = () => {
+  const logLevel = process.env.NODE_ENV === 'production'
+    ? LogLevel.WARN  // 生产环境只显示警告和错误
+    : LogLevel.INFO; // 开发环境显示所有日志
+  
+  logger.setLevel(logLevel);
+};
+
+/**
+ * 热力图相关
+ */
+// 热力图面板
+const showHeatmapPanel = ref(false);
+const isHeatmapActive = ref(false);
+
+/**
+ * 确定热力图面板位置
+ */
+const determineHeatmapPanelPosition = () => {
+  // 如果有配置，直接使用配置的位置
+  return props.flightLinePanelPosition;
+};
+
+/**
+ * 处理热力图面板关闭
+ */
+const handleHeatmapPanelClose = () => {
+  showHeatmapPanel.value = false;
+  logger.debug('[Heatmap] 热力图面板已关闭');
+};
+
+/**
+ * 处理热力图激活状态变化
+ */
+const handleHeatmapActiveChange = (active: boolean) => {
+  isHeatmapActive.value = active;
+  logger.debug('[Heatmap] 热力图激活状态变化:', active);
+};
+
+/**
+ * 处理热力图配置更新
+ */
+const handleHeatmapConfigUpdate = (config: Partial<HeatmapConfig>) => {
+  logger.debug('[Heatmap] 热力图配置更新:', config);
+};
+
+/**
+ * 检查热力图状态
+ */
+const checkHeatmapState = () => {
+  if (!toolbarObject) return;
+  
+  // 查找热力图工具是否激活
+  const tools = toolbarObject.getTools();
+  const heatmapTool = tools.find(t => t.id === 'heatmap');
+  
+  // 获取热力图工具的激活状态
+  const isHeatmapToolActive = heatmapTool?.active || false;
+  
+  logger.debug('[Heatmap] 检查热力图状态，工具存在:', !!heatmapTool, 
+             '工具激活状态:', isHeatmapToolActive, 
+             '当前面板显示状态:', showHeatmapPanel.value);
+  
+  // 确保UI状态与工具状态一致
+  if (isHeatmapToolActive && !showHeatmapPanel.value) {
+    logger.debug('[Heatmap] 发现热力图工具已激活但面板未显示，显示热力图面板');
+    showHeatmapPanel.value = true;
+    isHeatmapActive.value = true;
+    
+    // 确保热力图对象已启用
+    const heatmapObj = toolbarObject.getHeatmapObject();
+    if (heatmapObj) {
+      heatmapObj.enable();
+    }
+  } else if (!isHeatmapToolActive && showHeatmapPanel.value) {
+    logger.debug('[Heatmap] 热力图工具未激活但面板显示中，隐藏热力图面板');
+    showHeatmapPanel.value = false;
+    isHeatmapActive.value = false;
+  }
+};
+
+/**
+ * 显示热力图面板
+ */
+const showHeatmap = () => {
+  // 先激活热力图工具
+  if (toolbarObject) {
+    toolbarObject.activateTool('heatmap');
+    logger.debug('[Heatmap] 手动激活热力图工具');
+  }
+  
+  // 强制显示面板
+  showHeatmapPanel.value = true;
+  isHeatmapActive.value = true;
+  logger.debug('[Heatmap] 热力图面板已显示');
+  
+  // 确保热力图已启用
+  const heatmapObj = toolbarObject?.getHeatmapObject();
+  if (heatmapObj) {
+    heatmapObj.enable();
+  }
+  
+  return true;
+};
+
+/**
+ * 隐藏热力图面板
+ */
+const hideHeatmap = () => {
+  showHeatmapPanel.value = false;
+  
+  // 停用热力图工具
+  if (toolbarObject && toolbarObject.getActiveToolId() === 'heatmap') {
+    toolbarObject.deactivateTool('heatmap');
+    logger.debug('[Heatmap] 手动隐藏热力图面板，同时停用热力图工具');
+  }
+  
+  return true;
+};
+
 // 暴露方法给父组件
 defineExpose({
   // 基本方法
@@ -1443,7 +1689,7 @@ defineExpose({
   getFlightLineObject: () => toolbarObject?.getFlightLineObject(),
   reinitMap: initMap,
   changeMapLayer: switchMapLayer,
-  
+
   // 网格相关方法
   enableGeohashGrid: () => {
     const gridObj = toolbarObject?.getGridObject();
@@ -1561,7 +1807,7 @@ defineExpose({
   showAllLabels: () => markerObject?.showAllLabels(),
   hideAllLabels: () => markerObject?.hideAllLabels(),
   setClusterMode: (enabled: boolean) => markerObject?.setClusterMode(enabled),
-  
+
   // 图形绘制相关方法
   removeShape: (id: string) => {
     const success = shapeObject?.removeShape(id);
@@ -1669,7 +1915,7 @@ defineExpose({
     }
     return id;
   },
-  
+
   // 图层面板相关方法
   openLayerPanel: () => {
     // 显示图层面板并确定位置
@@ -1684,7 +1930,7 @@ defineExpose({
 
     logger.debug('手动打开图层面板');
   },
-  
+
   // 轨迹相关方法
   addTrack: (track: Track) => {
     if (!trackObj) {
@@ -1861,7 +2107,7 @@ defineExpose({
     }
     return trackObj.getAllTracks();
   },
-  
+
   // 激活/停用工具的方法
   activateTool: (toolId: string) => {
     if (!toolbarObject) {
@@ -1877,21 +2123,21 @@ defineExpose({
     }
     return toolbarObject.deactivateTool(toolId);
   },
-  
+
   // 更新工具栏配置
   updateToolbarConfig,
-  
+
   // 获取工具栏管理器
   getToolbarManager: () => toolbarObject,
-  
+
   // 暴露日志实例，允许外部控制日志行为
   logger,
   addDemoTrack,
   refreshTrackList,
-  
+
   // 手动初始化轨迹播放器
   initTrackPlayer: forceInitTrackPlayer,
-  
+
   // 飞线图相关方法
   enableFlightLine: () => {
     if (toolbarObject) {
@@ -1963,136 +2209,15 @@ defineExpose({
     }
     return new Map();
   },
-  
+
   // 显示飞线列表面板方法
   showFlightLineList,
-  hideFlightLineList
+  hideFlightLineList,
+
+  // 热力图控制方法
+  showHeatmap,
+  hideHeatmap
 });
-
-// 检查飞线图状态
-const checkFlightLineState = () => {
-  logger.debug(`[FlightLine] 检查飞线图状态: mapReady=${mapReady.value}, mapObj=${!!mapObj}, flightLineObj=${!!toolbarObject?.getFlightLineObject()}`);
-  
-  // 检查飞线图工具是否激活
-  const isFlightLineActive = toolbarObject && 
-    toolbarObject.getActiveToolId() === 'flightLine';
-  
-  // 获取飞线对象
-  const flightLineObj = toolbarObject?.getFlightLineObject();
-  
-  logger.debug(`[FlightLine] 飞线图工具激活状态: ${isFlightLineActive}, 飞线对象存在: ${!!flightLineObj}, 面板显示状态: ${showFlightLinePanel.value}, 面板引用: ${!!flightLinePanelRef.value}`);
-  
-  if (mapReady.value && mapObj) {
-    // 根据工具激活状态决定显示与否
-    if (isFlightLineActive && !showFlightLinePanel.value) {
-      logger.info('[FlightLine] 发现飞线图工具已激活但面板未显示，显示飞线列表面板');
-      showFlightLinePanel.value = true;
-      // 设置面板锁定状态，防止意外关闭
-      flightLinePanelLocked.value = true;
-      
-      // 刷新飞线列表数据
-      nextTick(() => {
-        if (flightLinePanelRef.value) {
-          flightLinePanelRef.value.refreshFlightLineList();
-          logger.debug('[FlightLine] 强制刷新飞线列表数据');
-          
-          // 如果是开发环境且没有飞线数据，可以添加示例数据
-          if (process.env.NODE_ENV !== 'production') {
-            setTimeout(() => {
-              // 检查是否有飞线数据
-              const flylineCount = flightLineObj?.getAllFlightLines().size || 0;
-              
-              if (flylineCount === 0 && flightLinePanelRef.value) {
-                logger.debug('[FlightLine] 无飞线数据，添加示例数据');
-                flightLinePanelRef.value.addDemoFlightLines();
-              }
-            }, 1000);
-          }
-        } else {
-          logger.warn('[FlightLine] 面板引用不可用，无法刷新列表，尝试延迟刷新');
-          // 延迟500ms再次尝试
-          setTimeout(() => {
-            if (flightLinePanelRef.value) {
-              flightLinePanelRef.value.refreshFlightLineList();
-              logger.debug('[FlightLine] 延迟500ms后成功刷新飞线列表数据');
-              
-              // 检查飞线数据
-              if (process.env.NODE_ENV !== 'production') {
-                const flylineCount = flightLineObj?.getAllFlightLines().size || 0;
-                
-                if (flylineCount === 0) {
-                  logger.debug('[FlightLine] 延迟后添加示例数据');
-                  flightLinePanelRef.value.addDemoFlightLines();
-                }
-              }
-            } else {
-              logger.error('[FlightLine] 延迟后仍无法获取面板引用，尝试重新显示面板');
-              // 尝试强制刷新面板
-              showFlightLinePanel.value = false;
-              setTimeout(() => {
-                showFlightLinePanel.value = true;
-                flightLinePanelLocked.value = true; // 确保面板锁定
-                logger.debug('[FlightLine] 尝试重新显示面板');
-                
-                // 再次检查面板引用
-                setTimeout(() => {
-                  if (flightLinePanelRef.value) {
-                    flightLinePanelRef.value.refreshFlightLineList();
-                    logger.debug('[FlightLine] 重新显示面板后成功获取引用');
-                  } else {
-                    logger.error('[FlightLine] 多次尝试后仍无法获取面板引用');
-                  }
-                }, 300);
-              }, 100);
-            }
-          }, 500);
-        }
-      });
-    } else if (!isFlightLineActive && showFlightLinePanel.value) {
-      logger.debug('[FlightLine] 飞线图工具未激活但面板显示中，隐藏飞线列表面板');
-      showFlightLinePanel.value = false;
-      flightLinePanelLocked.value = false; // 解除面板锁定
-    } else if (isFlightLineActive && showFlightLinePanel.value) {
-      // 确保面板处于锁定状态
-      flightLinePanelLocked.value = true;
-    }
-  }
-};
-
-// 组件挂载时初始化地图
-onMounted(() => {
-  // 设置日志级别
-  configureLogger();
-  
-  // 初始化地图
-  logger.info('ScLayer组件已挂载');
-  nextTick(initMap);
-  
-  // 添加窗口大小变化监听
-  window.addEventListener('resize', resizeMap);
-  
-  // 设置地图初始化完成监听
-  setupMapInitializedWatcher();
-  
-  // 设置地图就绪状态
-  mapReady.value = true;
-  
-  // 延迟检查飞线状态
-  setTimeout(() => {
-    if (mapReady.value && toolbarObject) {
-      checkFlightLineState();
-    }
-  }, 2000);
-});
-
-// 配置日志级别
-const configureLogger = () => {
-  const logLevel = process.env.NODE_ENV === 'production'
-    ? LogLevel.WARN  // 生产环境只显示警告和错误
-    : LogLevel.INFO; // 开发环境显示所有日志
-  
-  logger.setLevel(logLevel);
-};
 </script>
 
 <style scoped>

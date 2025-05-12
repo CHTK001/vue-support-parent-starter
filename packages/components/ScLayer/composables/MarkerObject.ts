@@ -49,6 +49,8 @@ export class MarkerObject {
   private markersVisible: boolean = true;
   // 标记点聚合模式状态
   private clusterMode: boolean = false;
+  // 分组可见性状态（key为分组名称，value为是否可见）
+  private groupVisibility = new Map<string, boolean>();
   // 默认标记点样式
   private defaultStyle = {
     scale: 1, // 固定为1，不放大
@@ -605,6 +607,15 @@ export class MarkerObject {
     
     options.style = { ...this.defaultStyle, ...options.style };
     options.dataType = DataType.MARKER;
+
+    // 处理分组可见性
+    if (options.group) {
+      // 如果该分组已经在缓存中且状态为不可见，则将该标记点也设置为不可见
+      if (this.groupVisibility.has(options.group) && !this.groupVisibility.get(options.group)) {
+        options.visible = false;
+        this.log('debug', `标记点 "${id}" 所在分组 "${options.group}" 不可见，自动设置为不可见`);
+      }
+    }
     
     // 检查已存在的标记点
     if (this.markers.has(id)) {
@@ -770,6 +781,23 @@ export class MarkerObject {
     
     const marker = this.markers.get(id)!;
     const oldOptions = this.markerOptions.get(id)!;
+    
+    // 如果更新了分组，需要处理分组可见性
+    if (options.group !== undefined && options.group !== oldOptions.group) {
+      // 记录旧分组
+      const oldGroup = oldOptions.group;
+      
+      // 更新分组
+      oldOptions.group = options.group;
+      
+      this.log('debug', `标记点 "${id}" 分组从 "${oldGroup || '无'}" 更新为 "${options.group || '无'}"`);
+      
+      // 如果新分组已经在缓存中且状态为不可见，则强制将该标记点设置为不可见
+      if (options.group && this.groupVisibility.has(options.group) && !this.groupVisibility.get(options.group)) {
+        options.visible = false;
+        this.log('debug', `标记点 "${id}" 新分组 "${options.group}" 不可见，强制设置为不可见`);
+      }
+    }
     
     // 确保style中scale为1，anchor为中心点
     if (options.style) {
@@ -980,7 +1008,15 @@ export class MarkerObject {
     this.markers.clear();
     this.markerOptions.clear();
     
-    this.log('info', '所有标记点已清除');
+    // 清除所有popover
+    this.hideAllPopovers();
+    this.markerPopovers.clear();
+    this.currentPopover = null;
+    
+    // 清除分组缓存
+    this.groupVisibility.clear();
+    
+    this.log('info', '所有标记点和分组已清除');
   }
 
   /**
@@ -1559,6 +1595,177 @@ export class MarkerObject {
     }
     
     return null;
+  }
+
+  /**
+   * 获取指定分组的所有标记点
+   * @param group 分组名称
+   * @returns 该分组下的所有标记点配置
+   */
+  public getMarkersByGroup(group: string): MarkerOptions[] {
+    if (!group) {
+      this.log('warn', '分组名称为空，无法获取分组标记点');
+      return [];
+    }
+
+    const result: MarkerOptions[] = [];
+    this.markerOptions.forEach((option) => {
+      if (option.group === group) {
+        result.push({ ...option });
+      }
+    });
+
+    this.log('debug', `获取分组 "${group}" 的标记点，共 ${result.length} 个`);
+    return result;
+  }
+
+  /**
+   * 显示指定分组的所有标记点
+   * @param group 分组名称
+   * @returns 显示的标记点数量
+   */
+  public showMarkerGroup(group: string): number {
+    if (!group) {
+      this.log('warn', '分组名称为空，无法显示分组标记点');
+      return 0;
+    }
+
+    let count = 0;
+    this.markerOptions.forEach((option, id) => {
+      if (option.group === group) {
+        if (this.showMarker(id)) {
+          count++;
+        }
+      }
+    });
+
+    // 更新分组可见性状态
+    this.groupVisibility.set(group, true);
+    this.log('info', `显示分组 "${group}" 的标记点，共 ${count} 个`);
+    return count;
+  }
+
+  /**
+   * 隐藏指定分组的所有标记点
+   * @param group 分组名称
+   * @returns 隐藏的标记点数量
+   */
+  public hideMarkerGroup(group: string): number {
+    if (!group) {
+      this.log('warn', '分组名称为空，无法隐藏分组标记点');
+      return 0;
+    }
+
+    let count = 0;
+    this.markerOptions.forEach((option, id) => {
+      if (option.group === group) {
+        if (this.hideMarker(id)) {
+          count++;
+        }
+      }
+    });
+
+    // 更新分组可见性状态
+    this.groupVisibility.set(group, false);
+    this.log('info', `隐藏分组 "${group}" 的标记点，共 ${count} 个`);
+    return count;
+  }
+
+  /**
+   * 获取所有标记点分组
+   * @returns 所有分组及其可见性状态
+   */
+  public getGroups(): { name: string, visible: boolean }[] {
+    const groups = new Map<string, boolean>();
+
+    // 遍历所有标记点，收集分组信息
+    this.markerOptions.forEach((option) => {
+      if (option.group) {
+        // 优先使用缓存的分组可见性状态
+        if (this.groupVisibility.has(option.group)) {
+          groups.set(option.group, this.groupVisibility.get(option.group)!);
+        } else {
+          // 否则使用该分组中第一个标记点的可见性作为分组可见性
+          groups.set(option.group, option.visible || false);
+        }
+      }
+    });
+
+    // 转换为数组格式
+    const result = Array.from(groups.entries()).map(([name, visible]) => ({
+      name,
+      visible
+    }));
+
+    this.log('debug', `获取所有标记点分组，共 ${result.length} 个分组`);
+    return result;
+  }
+
+  /**
+   * 设置标记点分组
+   * @param id 标记点ID
+   * @param group 分组名称
+   * @returns 是否设置成功
+   */
+  public setMarkerGroup(id: string, group: string | null): boolean {
+    // 获取标记点
+    const marker = this.markers.get(id);
+    const options = this.markerOptions.get(id);
+    
+    if (!marker || !options) {
+      this.log('warn', `标记点 "${id}" 不存在，无法设置分组`);
+      return false;
+    }
+    
+    // 更新配置
+    const oldGroup = options.group;
+    options.group = group || undefined;
+    
+    // 更新Feature中的数据
+    marker.set('data', { ...options });
+    
+    this.log('info', `标记点 "${id}" 分组从 "${oldGroup || '无'}" 更新为 "${group || '无'}"`);
+    return true;
+  }
+
+  /**
+   * 检查分组是否可见
+   * @param group 分组名称
+   * @returns 分组可见性状态
+   */
+  public isGroupVisible(group: string): boolean {
+    if (!group) {
+      this.log('warn', '分组名称为空，无法检查分组可见性');
+      return false;
+    }
+    
+    // 优先使用缓存的分组可见性状态
+    if (this.groupVisibility.has(group)) {
+      return this.groupVisibility.get(group)!;
+    }
+    
+    // 如果缓存中没有，则检查该分组下的标记点可见性
+    let hasVisibleMarker = false;
+    let hasMarker = false;
+    
+    this.markerOptions.forEach((option) => {
+      if (option.group === group) {
+        hasMarker = true;
+        if (option.visible) {
+          hasVisibleMarker = true;
+        }
+      }
+    });
+    
+    // 如果该分组没有标记点，则返回false
+    if (!hasMarker) {
+      return false;
+    }
+    
+    // 更新缓存
+    this.groupVisibility.set(group, hasVisibleMarker);
+    
+    return hasVisibleMarker;
   }
 }
 
