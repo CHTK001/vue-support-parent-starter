@@ -1689,6 +1689,13 @@ defineExpose({
   getFlightLineObject: () => toolbarObject?.getFlightLineObject(),
   reinitMap: initMap,
   changeMapLayer: switchMapLayer,
+  
+  // 添加交互设置方法
+  setInteractions: (interactions: { dragging?: boolean; scrollWheelZoom?: boolean }) => {
+    if (!mapObj) return false;
+    mapObj.setInteractions(interactions);
+    return true;
+  },
 
   // 网格相关方法
   enableGeohashGrid: () => {
@@ -2217,6 +2224,21 @@ defineExpose({
   // 热力图控制方法
   showHeatmap,
   hideHeatmap
+});
+
+// 监听拖动和滚轮缩放属性的变化
+watch(() => props.dragging, (newVal) => {
+  if (mapObj) {
+    mapObj.setInteractions({ dragging: newVal });
+    logger.debug(`[ScLayer] 拖动状态已更新: ${newVal}`);
+  }
+});
+
+watch(() => props.scrollWheelZoom, (newVal) => {
+  if (mapObj) {
+    mapObj.setInteractions({ scrollWheelZoom: newVal });
+    logger.debug(`[ScLayer] 滚轮缩放状态已更新: ${newVal}`);
+  }
 });
 </script>
 

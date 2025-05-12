@@ -523,11 +523,17 @@ export class MapObject {
     
     logger.debug('更新地图交互设置:', interactions);
     if (typeof interactions.dragging === 'boolean') {
+      // 更新拖动交互状态
       this.dragPan.setActive(interactions.dragging);
+      // 更新配置对象中的拖动状态
+      this.configObject.updateConfig({ dragging: interactions.dragging });
     }
     
     if (typeof interactions.scrollWheelZoom === 'boolean') {
+      // 更新滚轮缩放交互状态
       this.mouseWheelZoom.setActive(interactions.scrollWheelZoom);
+      // 更新配置对象中的滚轮缩放状态
+      this.configObject.updateConfig({ scrollWheelZoom: interactions.scrollWheelZoom });
     }
   }
 
