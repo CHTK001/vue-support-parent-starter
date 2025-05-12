@@ -997,6 +997,10 @@ export class TrackObject {
     const showSpeedPopovers = this.trackSpeedPopoversVisible.get(id) || false;
     const showNodeSpeeds = this.trackNodeSpeedsVisible.get(id) || false;
     
+    // 添加帧率控制，降低高频渲染
+    let lastRenderTime = Date.now();
+    const minRenderInterval = 30; // 每秒约33帧，通常足够流畅
+
     // 添加postrender事件监听器
     this.trackAnimationListeners.set(id, this.trackLayer.on('postrender', (event) => {
       const vectorContext = getVectorContext(event);
@@ -1051,10 +1055,28 @@ export class TrackObject {
         // 使相机跟随移动
         if (player.withCamera && this.mapInstance) {
           const view = this.mapInstance.getView();
-          view.animate({
-            center: fromLonLat([position.lng, position.lat]),
-            duration: 100
-          });
+          const newCenter = fromLonLat([position.lng, position.lat]);
+          
+          // 使用防抖动处理，只有当位置变化大于一定阈值时才触发视图更新
+          // 这样可以减少不必要的渲染，提高流畅性
+          const viewCenter = view.getCenter();
+          if (viewCenter) {
+            const pixelDistance = Math.sqrt(
+              Math.pow(viewCenter[0] - newCenter[0], 2) +
+              Math.pow(viewCenter[1] - newCenter[1], 2)
+            );
+            
+            // 只有当位置变化超过阈值时才更新视图
+            // 这个阈值可以根据实际情况调整 - 使用较大的值提高流畅性
+            if (pixelDistance > 5) {
+              // 直接设置中心点，不使用animate方法
+              // 这样可以避免多个动画请求堆叠导致的卡顿
+              view.setCenter(newCenter);
+            }
+          } else {
+            // 如果没有当前中心点（首次设置），直接设置
+            view.setCenter(newCenter);
+          }
         }
         
         // 绘制经过的线段
@@ -1065,13 +1087,21 @@ export class TrackObject {
         
         // 绘制轨迹节点
         this.drawTrackNodes(id, vectorContext, track, newProgress);
+        
+        // 触发进度事件
+        this.dispatchTrackProgressEvent(id, newProgress, position);
       }
       
       // 更新上一次的时间戳
       this.trackLastTimes.set(id, frameState.time);
       
-      // 请求下一帧
-      this.mapInstance!.render();
+      // 帧率控制：限制地图渲染请求频率
+      const now = Date.now();
+      if (now - lastRenderTime >= minRenderInterval) {
+        // 请求下一帧
+        this.mapInstance!.render();
+        lastRenderTime = now;
+      }
     }));
     
     // 请求动画帧以开始渲染
