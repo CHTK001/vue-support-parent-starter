@@ -127,7 +127,7 @@ const props = withDefaults(defineProps<MapConfig & {
       showLabels: true // 显示标签
     }
   } as GridConfig), // 使用默认配置
-  flightLinePanelPosition: 'top-left' // 飞线面板默认位置改为左上角
+  flightLinePanelPosition: 'top-right' // 飞线面板默认位置改为右上角
 });
 
 // 定义组件事件
@@ -407,6 +407,8 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         // 激活时强制启用飞线图，并显示面板
         if (!showFlightLinePanel.value) {
           showFlightLinePanel.value = true;
+          // 锁定面板，防止意外关闭
+          flightLinePanelLocked.value = true;
           logger.info('[FlightLine] 飞线图已激活，显示飞线列表面板');
           
           // 如果有飞线对象，尝试启用飞线图
@@ -442,6 +444,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
                   showFlightLinePanel.value = false;
                   setTimeout(() => {
                     showFlightLinePanel.value = true;
+                    flightLinePanelLocked.value = true; // 确保面板锁定
                     logger.debug('[FlightLine] 强制刷新面板状态完成');
                     
                     // 再次尝试刷新列表
@@ -460,6 +463,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       } else if (!active) {
         // 停用飞线图时，隐藏面板并确保飞线图对象也被停用
         showFlightLinePanel.value = false;
+        flightLinePanelLocked.value = false; // 解除锁定
         logger.debug('[FlightLine] 飞线图已停用，隐藏飞线列表面板');
         
         // 如果有飞线对象，尝试禁用飞线图
@@ -711,38 +715,6 @@ const handleToolActivated = (payload) => {
           logger.error('[FlightLine] 启用飞线图失败:', err);
         }
       }
-      
-      // 使用较长延迟确保面板完全渲染
-      setTimeout(() => {
-        // 再次确认面板锁定并显示
-        flightLinePanelLocked.value = true;
-        if (!showFlightLinePanel.value) {
-          logger.warn('[FlightLine] 飞线面板未显示，强制显示');
-          showFlightLinePanel.value = true;
-        }
-        
-        // 等待更长时间，确保组件完全挂载
-        setTimeout(() => {
-          if (flightLinePanelRef.value) {
-            flightLinePanelRef.value.refreshFlightLineList();
-            logger.debug('[FlightLine] 成功刷新飞线列表');
-          } else {
-            logger.warn('[FlightLine] 飞线面板引用不可用，延迟500ms重试');
-            
-            // 最后一次尝试
-            setTimeout(() => {
-              if (flightLinePanelRef.value) {
-                flightLinePanelRef.value.refreshFlightLineList();
-                logger.debug('[FlightLine] 最终成功刷新飞线列表');
-              } else {
-                logger.error('[FlightLine] 多次尝试后仍无法获取面板引用');
-              }
-            }, 500);
-          }
-        }, 200);
-      }, 100);
-    } else {
-      logger.warn('[FlightLine] 飞线图对象不存在，无法初始化');
     }
   }
   // ... 其他工具处理保持不变
@@ -788,6 +760,7 @@ const handleToolDeactivated = (payload) => {
   } else if (toolId === 'flightLine') {
     // 停用飞线图
     showFlightLinePanel.value = false;
+    flightLinePanelLocked.value = false; // 解除锁定
     logger.debug('[FlightLine] 飞线图已停用，隐藏飞线列表面板');
   }
   
@@ -1450,6 +1423,7 @@ const showFlightLineList = () => {
  */
 const hideFlightLineList = () => {
   showFlightLinePanel.value = false;
+  flightLinePanelLocked.value = false;
   // 停用飞线工具
   if (toolbarObject && activeToolId.value === 'flightLine') {
     toolbarObject.deactivateTool('flightLine');
@@ -2013,6 +1987,8 @@ const checkFlightLineState = () => {
     if (isFlightLineActive && !showFlightLinePanel.value) {
       logger.info('[FlightLine] 发现飞线图工具已激活但面板未显示，显示飞线列表面板');
       showFlightLinePanel.value = true;
+      // 设置面板锁定状态，防止意外关闭
+      flightLinePanelLocked.value = true;
       
       // 刷新飞线列表数据
       nextTick(() => {
@@ -2055,6 +2031,7 @@ const checkFlightLineState = () => {
               showFlightLinePanel.value = false;
               setTimeout(() => {
                 showFlightLinePanel.value = true;
+                flightLinePanelLocked.value = true; // 确保面板锁定
                 logger.debug('[FlightLine] 尝试重新显示面板');
                 
                 // 再次检查面板引用
@@ -2074,6 +2051,10 @@ const checkFlightLineState = () => {
     } else if (!isFlightLineActive && showFlightLinePanel.value) {
       logger.debug('[FlightLine] 飞线图工具未激活但面板显示中，隐藏飞线列表面板');
       showFlightLinePanel.value = false;
+      flightLinePanelLocked.value = false; // 解除面板锁定
+    } else if (isFlightLineActive && showFlightLinePanel.value) {
+      // 确保面板处于锁定状态
+      flightLinePanelLocked.value = true;
     }
   }
 };

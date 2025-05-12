@@ -80,18 +80,35 @@ export class FlightLineObject {
       // 保存全局echarts实例供后续使用
       this.echartsInstance = echarts;
 
-      // 创建echarts图层
-      this.echartsLayer = new EChartsLayer({
-        stopEvent: false, // 允许事件继续传播
-        hideOnMoving: false, // 移动时不隐藏
-        hideOnZooming: false, // 缩放时不隐藏
-        forcedPrecomposeRerender: true, // 强制重新渲染
-        insertFirst: false, // 确保在地图的最上层
-        polyfillEvents: true, // 支持事件
-      });
+      // 尝试不同的配置方式，以兼容不同版本的ol-echarts
+      try {
+        // 新版本配置方式
+        this.echartsLayer = new EChartsLayer({
+          stopEvent: false, // 允许事件继续传播
+          hideOnMoving: false, // 移动时不隐藏
+          hideOnZooming: false, // 缩放时不隐藏
+          forcedPrecomposeRerender: true, // 强制重新渲染
+          insertFirst: false, // 确保在地图的最上层
+          polyfillEvents: true, // 支持事件
+          source: 'ol', // 使用OpenLayers作为源
+          useMap: true, // 使用地图实例
+          debug: process.env.NODE_ENV === 'development', // 开发环境启用调试
+        });
+      } catch (error) {
+        logger.warn('[FlightLine] 使用新配置方式创建图层失败，尝试兼容方式:', error);
+        
+        // 尝试旧版本配置方式
+        this.echartsLayer = new EChartsLayer({
+          stopEvent: false,
+          hideOnMoving: false,
+          hideOnZooming: false,
+          forcedPrecomposeRerender: true
+        });
+      }
 
       // 将图层添加到地图
       this.echartsLayer.appendTo(this.mapInstance);
+      logger.debug('[FlightLine] Echarts图层已添加到地图');
 
       // 设置初始选项
       this.updateEchartsOptions();
@@ -99,7 +116,26 @@ export class FlightLineObject {
       // 添加视图改变事件监听
       const viewChangeKey = this.mapInstance.getView().on('change:resolution', () => {
         if (this.echartsLayer) {
-          this.echartsLayer.renderECharts();
+          // 使用兼容方式重新渲染
+          try {
+            // 方法1: 使用可能的其他方法名
+            if (typeof this.echartsLayer.redraw === 'function') {
+              this.echartsLayer.redraw();
+            }
+            // 方法2: 重新设置图表选项，强制刷新
+            else {
+              const currentOptions = this.echartsLayer.getChartOptions();
+              if (currentOptions) {
+                this.echartsLayer.setChartOptions(currentOptions);
+              } else {
+                this.updateEchartsOptions();
+              }
+            }
+          } catch (err) {
+            logger.warn('[FlightLine] 地图视图变化时重新渲染图表失败:', err);
+            // 如果有错误，尝试更新选项
+            this.updateEchartsOptions();
+          }
         }
       });
 
@@ -139,10 +175,10 @@ export class FlightLineObject {
         ? this.config.color 
         : [this.config.color];
 
-      // 创建普通飞线系列 - 不使用geo坐标系
+      // 创建普通飞线系列
       series.push({
         type: 'lines',
-        coordinateSystem: 'none', // 不使用任何内置坐标系
+        coordinateSystem: 'openlayers', // 使用openlayers坐标系
         zlevel: 1,
         effect: {
           show: false,
@@ -160,7 +196,7 @@ export class FlightLineObject {
       if (this.config.showEffect) {
         series.push({
           type: 'lines',
-          coordinateSystem: 'none',
+          coordinateSystem: 'openlayers', // 使用openlayers坐标系
           zlevel: 2,
           effect: {
             show: true,
@@ -181,7 +217,7 @@ export class FlightLineObject {
 
       // 如果配置了显示节点，则添加节点图层
       if (this.config.showNodes) {
-        // 提取所有节点的像素位置
+        // 提取所有节点
         const pointData: any[] = [];
         
         // 使用已转换的飞线数据提取节点
@@ -209,7 +245,7 @@ export class FlightLineObject {
         if (pointData.length > 0) {
           series.push({
             type: 'scatter',
-            coordinateSystem: 'none',
+            coordinateSystem: 'openlayers', // 使用openlayers坐标系
             zlevel: 3,
             symbolSize: this.config.nodeSymbolSize,
             itemStyle: {
@@ -221,7 +257,7 @@ export class FlightLineObject {
           // 添加节点标签层
           series.push({
             type: 'scatter',
-            coordinateSystem: 'none',
+            coordinateSystem: 'openlayers', // 使用openlayers坐标系
             zlevel: 4,
             symbolSize: 0, // 不显示符号
             label: {
@@ -259,6 +295,15 @@ export class FlightLineObject {
 
       // 更新echarts选项
       this.echartsLayer.setChartOptions(option);
+      
+      // 尝试重新渲染图表 - 兼容不同版本的ol-echarts
+      try {
+        if (typeof this.echartsLayer.redraw === 'function') {
+          this.echartsLayer.redraw();
+        }
+      } catch (renderError) {
+        logger.warn('[FlightLine] 尝试重新渲染图表失败，但不影响正常使用:', renderError);
+      }
 
       logger.debug('[FlightLine] Echarts选项已更新');
     } catch (error) {
@@ -273,6 +318,9 @@ export class FlightLineObject {
   private convertFlightLineData(): any[] {
     const result: any[] = [];
     
+    // 记录坐标转换结果
+    logger.debug(`[FlightLine] 开始转换飞线数据，共${this.flightLines.size}条`);
+    
     this.flightLines.forEach((line, id) => {
       // 跳过不可见的飞线
       if (line.visible === false) {
@@ -281,20 +329,24 @@ export class FlightLineObject {
       
       // 确保有坐标数据
       if (line.coords && line.coords.length === 2) {
-        // 将OpenLayers坐标转换为平面坐标，用于echarts
-        const fromCoord = this.getPixelCoordinate(line.coords[0]);
-        const toCoord = this.getPixelCoordinate(line.coords[1]);
+        // 确保坐标是经纬度格式
+        const fromCoord = this.ensureGeoCoordinate(line.coords[0]);
+        const toCoord = this.ensureGeoCoordinate(line.coords[1]);
         
         if (!fromCoord || !toCoord) {
-          logger.warn(`[FlightLine] 无法转换坐标 ${line.fromName} -> ${line.toName}`);
+          logger.warn(`[FlightLine] 无效的坐标 ${line.fromName} -> ${line.toName}`);
           return;
         }
+        
+        // 将经纬度转换为投影坐标（EPSG:3857）
+        const projectedFromCoord = fromLonLat(fromCoord);
+        const projectedToCoord = fromLonLat(toCoord);
         
         // 基本数据
         const lineData: any = {
           fromName: line.fromName,
           toName: line.toName,
-          coords: [fromCoord, toCoord], // 使用像素坐标
+          coords: [projectedFromCoord, projectedToCoord], // 使用投影后的坐标
           value: line.value || 1,
         };
         
@@ -318,6 +370,10 @@ export class FlightLineObject {
         }
         
         result.push(lineData);
+        
+        // 添加详细日志
+        logger.debug(`[FlightLine] 转换飞线: ${id}, ${line.fromName}[${fromCoord}] -> ${line.toName}[${toCoord}]`);
+        logger.debug(`[FlightLine] 投影后坐标: [${projectedFromCoord}] -> [${projectedToCoord}]`);
       }
     });
     
@@ -332,7 +388,8 @@ export class FlightLineObject {
   }
 
   /**
-   * 获取坐标的像素位置
+   * 获取坐标的像素位置 - 这个方法在新的实现中可能不再需要
+   * 保留备用，某些特殊场景可能需要
    * @param coord 经纬度坐标 [经度, 纬度]
    * @returns 像素坐标 [x, y]
    */
@@ -355,6 +412,35 @@ export class FlightLineObject {
     } catch (error) {
       logger.error('[FlightLine] 坐标转换错误:', error);
       return null;
+    }
+  }
+
+  /**
+   * 确保坐标是经纬度格式
+   * @param coord 输入坐标
+   * @returns 经纬度坐标 [经度, 纬度]
+   */
+  private ensureGeoCoordinate(coord: number[]): number[] {
+    if (!coord || coord.length < 2) {
+      return [0, 0];
+    }
+    
+    try {
+      // 检查坐标是否在合理的经纬度范围内
+      if (Math.abs(coord[0]) <= 180 && Math.abs(coord[1]) <= 90) {
+        return coord; // 已经是经纬度
+      }
+      
+      // 尝试从投影坐标转换为经纬度
+      if (this.mapInstance) {
+        const lonLat = toLonLat(coord, this.mapInstance.getView().getProjection());
+        return lonLat;
+      }
+      
+      return coord;
+    } catch (error) {
+      logger.error('[FlightLine] 确保经纬度坐标时发生错误:', error);
+      return coord;
     }
   }
 
@@ -418,28 +504,39 @@ export class FlightLineObject {
     // 生成唯一ID
     const id = flightLine.id || `flightline-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
+    // 确保坐标是经纬度格式
+    let coords = flightLine.coords;
+    if (coords && coords.length >= 2) {
+      // 确保坐标是经纬度格式
+      const fromCoord = this.ensureGeoCoordinate(coords[0]);
+      const toCoord = this.ensureGeoCoordinate(coords[1]);
+      
+      coords = [fromCoord, toCoord];
+      
+      // 添加调试信息
+      logger.debug(`[FlightLine] 飞线坐标: ${flightLine.fromName}[${fromCoord}] -> ${flightLine.toName}[${toCoord}]`);
+    }
+    
     // 检查起点和终点名称是否存在于地理坐标映射中
-    if (!this.geoCoordMap[flightLine.fromName]) {
-      logger.warn(`[FlightLine] 起点 ${flightLine.fromName} 未定义地理坐标`);
-      // 如果提供了坐标，则自动添加
-      if (flightLine.coords && flightLine.coords.length >= 2) {
-        this.geoCoordMap[flightLine.fromName] = flightLine.coords[0];
-      }
+    if (!this.geoCoordMap[flightLine.fromName] && coords && coords.length >= 2) {
+      this.geoCoordMap[flightLine.fromName] = coords[0];
+      logger.debug(`[FlightLine] 为起点 ${flightLine.fromName} 添加地理坐标: [${coords[0]}]`);
     }
     
-    if (!this.geoCoordMap[flightLine.toName]) {
-      logger.warn(`[FlightLine] 终点 ${flightLine.toName} 未定义地理坐标`);
-      // 如果提供了坐标，则自动添加
-      if (flightLine.coords && flightLine.coords.length >= 2) {
-        this.geoCoordMap[flightLine.toName] = flightLine.coords[1];
-      }
+    if (!this.geoCoordMap[flightLine.toName] && coords && coords.length >= 2) {
+      this.geoCoordMap[flightLine.toName] = coords[1];
+      logger.debug(`[FlightLine] 为终点 ${flightLine.toName} 添加地理坐标: [${coords[1]}]`);
     }
     
-    // 保存飞线数据
-    this.flightLines.set(id, {
+    // 保存飞线数据，确保使用更新后的坐标
+    const finalFlightLine = {
       ...flightLine,
-      id
-    });
+      id,
+      coords: coords || flightLine.coords, // 使用转换后的坐标或原始坐标
+      visible: flightLine.visible !== false // 默认可见
+    };
+    
+    this.flightLines.set(id, finalFlightLine);
     
     // 如果已激活，则更新echarts选项
     if (this.active && this.echartsLayer) {
@@ -453,9 +550,11 @@ export class FlightLineObject {
   /**
    * 批量添加飞线
    * @param flightLines 飞线数据数组
+   * @param setOptimalView 是否自动设置最佳视角，默认为false
+   * @param zoomLevel 指定的缩放级别，不指定则自动计算
    * @returns 飞线ID数组
    */
-  public addFlightLines(flightLines: FlightLineData[]): string[] {
+  public addFlightLines(flightLines: FlightLineData[], setOptimalView: boolean = false, zoomLevel?: number): string[] {
     if (!flightLines || flightLines.length === 0) {
       return [];
     }
@@ -466,6 +565,15 @@ export class FlightLineObject {
     });
 
     logger.debug(`[FlightLine] 批量添加了 ${flightLines.length} 条飞线`);
+    
+    // 如果需要设置最佳视角
+    if (setOptimalView && ids.length > 0) {
+      // 延迟设置，确保地图和图层都已准备好
+      setTimeout(() => {
+        this.setOptimalView(zoomLevel);
+      }, 300);
+    }
+    
     return ids;
   }
 
@@ -474,6 +582,15 @@ export class FlightLineObject {
    * @returns 所有飞线数据的Map集合
    */
   public getAllFlightLines(): Map<string, FlightLineData> {
+    // 确保返回的是有效的Map对象
+    if (!(this.flightLines instanceof Map)) {
+      logger.warn('[FlightLine] 飞线数据不是有效的Map对象，创建新的空Map');
+      this.flightLines = new Map<string, FlightLineData>();
+    }
+    
+    // 添加日志记录飞线数量
+    logger.debug(`[FlightLine] 获取所有飞线数据，共${this.flightLines.size}条`);
+    
     return this.flightLines;
   }
   
@@ -516,6 +633,20 @@ export class FlightLineObject {
       
       // 如果已激活，重新渲染图表
       if (this.active && this.echartsLayer) {
+        // 记录更新操作
+        if (options.highlight) {
+          logger.debug(`[FlightLine] 高亮飞线: ${id}`);
+        } else if (options.highlight === false) {
+          logger.debug(`[FlightLine] 取消高亮飞线: ${id}`);
+        }
+        
+        if (options.visible === false) {
+          logger.debug(`[FlightLine] 隐藏飞线: ${id}`);
+        } else if (options.visible === true) {
+          logger.debug(`[FlightLine] 显示飞线: ${id}`);
+        }
+        
+        // 重新设置图表选项以更新显示
         this.updateEchartsOptions();
       }
       
@@ -556,6 +687,11 @@ export class FlightLineObject {
   public async enable(): Promise<void> {
     if (this.active) {
       logger.debug('[FlightLine] 飞线图已经处于激活状态');
+      
+      // 即使已经激活，也尝试更新一次选项，确保显示正常
+      if (this.echartsLayer) {
+        this.updateEchartsOptions();
+      }
       return;
     }
 
@@ -567,10 +703,35 @@ export class FlightLineObject {
     logger.info('[FlightLine] 开始启用飞线图');
     
     try {
+      // 记录当前飞线数量和坐标点
+      const flightLineCount = this.flightLines.size;
+      const coordPointCount = Object.keys(this.geoCoordMap).length;
+      
+      logger.debug(`[FlightLine] 当前飞线数量: ${flightLineCount}, 坐标点数量: ${coordPointCount}`);
+      
+      // 打印所有飞线的坐标信息用于调试
+      if (flightLineCount > 0) {
+        logger.debug('[FlightLine] 飞线数据详情:');
+        this.flightLines.forEach((line, id) => {
+          logger.debug(`- 飞线 ${id}: ${line.fromName} -> ${line.toName}, 坐标: ${JSON.stringify(line.coords)}, 可见性: ${line.visible !== false}`);
+        });
+      }
+      
       // 初始化Echarts图层
       if (!this.echartsLayer) {
         logger.debug('[FlightLine] 初始化Echarts图层');
         await this.initEchartsLayer();
+      } else {
+        // 如果图层已存在但被移除，重新添加到地图
+        try {
+          if (this.mapInstance) {
+            this.echartsLayer.appendTo(this.mapInstance);
+            logger.debug('[FlightLine] 重新添加Echarts图层到地图');
+          }
+        } catch (appendError) {
+          logger.warn('[FlightLine] 重新添加图层发生错误，尝试重新初始化:', appendError);
+          await this.initEchartsLayer();
+        }
       }
 
       // 更新飞线图选项
@@ -579,17 +740,83 @@ export class FlightLineObject {
       this.active = true;
       logger.info('[FlightLine] 飞线图已成功启用');
       
-      // 记录当前飞线数量
-      const flylineCount = this.flightLines.size;
-      logger.debug(`[FlightLine] 当前飞线数量: ${flylineCount}`);
-      
-      // 如果没有飞线数据，添加一些示例数据以便测试
-      if (flylineCount === 0) {
+      // 如果没有飞线数据，尝试添加一些测试数据
+      if (flightLineCount === 0) {
         logger.debug('[FlightLine] 没有飞线数据，考虑添加示例数据以便测试');
+        
+        // 启用自动添加测试数据的逻辑
+        if (process.env.NODE_ENV === 'development') {
+          logger.debug('[FlightLine] 开发环境 - 添加测试飞线数据');
+          this.addTestFlightLines();
+        }
       }
+      
+      // 触发地图重新渲染以确保图层正确显示
+      setTimeout(() => {
+        if (this.mapInstance) {
+          this.mapInstance.updateSize();
+          logger.debug('[FlightLine] 触发地图重新渲染');
+          
+          // 触发一次重新渲染
+          try {
+            this.updateEchartsOptions();
+            if (typeof this.echartsLayer.redraw === 'function') {
+              this.echartsLayer.redraw();
+              logger.debug('[FlightLine] 完成额外的图表重新渲染');
+            }
+          } catch (err) {
+            logger.warn('[FlightLine] 额外的图表重新渲染失败:', err);
+          }
+        }
+      }, 100);
     } catch (error) {
       logger.error('[FlightLine] 启用飞线图时发生错误:', error);
+      throw error; // 重新抛出错误以便调用者处理
     }
+  }
+  
+  /**
+   * 添加测试飞线数据
+   * 仅用于开发测试
+   */
+  private addTestFlightLines(): void {
+    logger.debug('[FlightLine] 添加测试飞线数据');
+    
+    // 中国主要城市坐标
+    const cities = {
+      '北京': [116.4, 39.9],
+      '上海': [121.5, 31.2],
+      '广州': [113.3, 23.1],
+      '深圳': [114.1, 22.5],
+      '杭州': [120.2, 30.3]
+    };
+    
+    // 添加坐标点
+    this.addCoordinates(cities);
+    
+    // 添加飞线
+    this.addFlightLine({
+      fromName: '北京',
+      toName: '上海',
+      coords: [cities['北京'], cities['上海']],
+      value: 100
+    });
+    
+    this.addFlightLine({
+      fromName: '广州',
+      toName: '深圳',
+      coords: [cities['广州'], cities['深圳']],
+      value: 80
+    });
+    
+    this.addFlightLine({
+      fromName: '北京',
+      toName: '杭州',
+      coords: [cities['北京'], cities['杭州']],
+      value: 70
+    });
+    
+    logger.debug('[FlightLine] 测试飞线已添加');
   }
 
   /**
@@ -605,6 +832,7 @@ export class FlightLineObject {
       // 移除图层
       try {
         this.echartsLayer.remove();
+        logger.debug('[FlightLine] Echarts图层已从地图移除');
       } catch (error) {
         logger.error('[FlightLine] 移除Echarts图层失败:', error);
       }
@@ -612,11 +840,14 @@ export class FlightLineObject {
 
     // 移除事件监听
     for (const eventKey of this.eventListeners) {
-      unByKey(eventKey);
+      try {
+        unByKey(eventKey);
+      } catch (error) {
+        logger.warn('[FlightLine] 移除事件监听失败:', error);
+      }
     }
     this.eventListeners = [];
 
-    this.echartsLayer = null;
     this.active = false;
     logger.debug('[FlightLine] 飞线图已禁用');
   }
@@ -638,5 +869,142 @@ export class FlightLineObject {
     this.mapInstance = null;
     this.echartsInstance = null;
     logger.debug('[FlightLine] 飞线图对象已销毁');
+  }
+
+  /**
+   * 设置地图到最适合观看飞线的视角
+   * 根据所有可见飞线自动计算合适的缩放级别和中心点
+   * @param zoomLevel 可选指定的缩放级别，不指定则自动计算
+   */
+  public setOptimalView(zoomLevel?: number): void {
+    if (!this.mapInstance) {
+      logger.warn('[FlightLine] 地图实例不存在，无法设置最佳视角');
+      return;
+    }
+    
+    try {
+      // 获取所有可见飞线
+      const visibleLines: FlightLineData[] = [];
+      this.flightLines.forEach(line => {
+        if (line.visible !== false && line.coords && line.coords.length === 2) {
+          visibleLines.push(line);
+        }
+      });
+      
+      if (visibleLines.length === 0) {
+        logger.debug('[FlightLine] 没有可见飞线，无法计算最佳视角');
+        return;
+      }
+      
+      // 计算所有点的最大最小经纬度范围
+      let minLon = 180;
+      let maxLon = -180;
+      let minLat = 90;
+      let maxLat = -90;
+      
+      visibleLines.forEach(line => {
+        const fromCoord = line.coords[0];
+        const toCoord = line.coords[1];
+        
+        minLon = Math.min(minLon, fromCoord[0], toCoord[0]);
+        maxLon = Math.max(maxLon, fromCoord[0], toCoord[0]);
+        minLat = Math.min(minLat, fromCoord[1], toCoord[1]);
+        maxLat = Math.max(maxLat, fromCoord[1], toCoord[1]);
+      });
+      
+      // 添加边距以确保所有飞线都可见
+      const padding = 1; // 1度
+      minLon -= padding;
+      maxLon += padding;
+      minLat -= padding;
+      maxLat += padding;
+      
+      // 计算中心点
+      const centerLon = (minLon + maxLon) / 2;
+      const centerLat = (minLat + maxLat) / 2;
+      
+      // 转换为地图投影坐标
+      const centerCoord = fromLonLat([centerLon, centerLat]);
+      
+      // 使用提供的缩放级别或自动计算合适的缩放级别
+      let zoom = zoomLevel;
+      if (zoom === undefined) {
+        // 判断是否为中国区域
+        const isChinaRegion = 
+          centerLon >= 70 && centerLon <= 140 && 
+          centerLat >= 15 && centerLat <= 55;
+          
+        if (isChinaRegion) {
+          // 中国区域的飞线图，缩放级别5最合适
+          zoom = 5;
+          logger.debug('[FlightLine] 检测到中国区域飞线图，使用最佳缩放级别5');
+        } else {
+          // 其他区域根据经纬度范围计算合适的缩放级别
+          const lonRange = maxLon - minLon;
+          const latRange = maxLat - minLat;
+          const range = Math.max(lonRange, latRange);
+          
+          // 根据范围大小设置缩放级别
+          if (range > 50) zoom = 4;       // 全球/洲际范围
+          else if (range > 20) zoom = 5;  // 国家范围
+          else if (range > 10) zoom = 6;  // 大省范围
+          else if (range > 5) zoom = 7;   // 省级范围
+          else if (range > 2) zoom = 8;   // 城市群范围
+          else if (range > 1) zoom = 9;   // 城市范围
+          else if (range > 0.5) zoom = 10; // 城区范围
+          else zoom = 11;                 // 小范围
+          
+          logger.debug(`[FlightLine] 根据飞线范围(${range}度)自动设置缩放级别: ${zoom}`);
+        }
+      }
+      
+      // 设置地图视图
+      this.mapInstance.getView().animate({
+        center: centerCoord,
+        zoom: zoom,
+        duration: 800 // 动画时长缩短为800ms，感觉更流畅
+      });
+      
+      logger.debug(`[FlightLine] 设置最佳视角 - 中心点: [${centerLon.toFixed(2)}, ${centerLat.toFixed(2)}], 缩放级别: ${zoom}`);
+    } catch (error) {
+      logger.error('[FlightLine] 设置最佳视角时发生错误:', error);
+    }
+  }
+  
+  /**
+   * 设置飞线图在特定城市的最佳视角
+   * @param cityName 城市名称，需要事先通过addCoordinate添加坐标
+   * @param zoom 缩放级别，默认为8
+   */
+  public setViewForCity(cityName: string, zoom: number = 8): boolean {
+    if (!this.mapInstance) {
+      logger.warn('[FlightLine] 地图实例不存在，无法设置城市视角');
+      return false;
+    }
+    
+    // 获取城市坐标
+    const cityCoord = this.geoCoordMap[cityName];
+    if (!cityCoord) {
+      logger.warn(`[FlightLine] 未找到城市 ${cityName} 的坐标`);
+      return false;
+    }
+    
+    try {
+      // 转换为地图投影坐标
+      const projCoord = fromLonLat(cityCoord);
+      
+      // 设置地图视图
+      this.mapInstance.getView().animate({
+        center: projCoord,
+        zoom: zoom,
+        duration: 1000
+      });
+      
+      logger.debug(`[FlightLine] 设置城市 ${cityName} 视角 - 坐标: [${cityCoord[0]}, ${cityCoord[1]}], 缩放级别: ${zoom}`);
+      return true;
+    } catch (error) {
+      logger.error(`[FlightLine] 设置城市 ${cityName} 视角时发生错误:`, error);
+      return false;
+    }
   }
 } 

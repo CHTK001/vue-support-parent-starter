@@ -14,7 +14,9 @@
         <!-- 收缩/展开按钮 -->
         <div class="track-player-collapse-btn" @click.stop="toggleCollapse" title="收缩/展开">
           <div class="collapse-icon">
-            <span v-if="collapsed">+</span>
+            <span v-if="collapsed">      
+              <span v-html="TRACK_PLAYER_ICON" />
+            </span>
             <span v-else>-</span>
           </div>
         </div>
@@ -91,7 +93,9 @@
     <!-- 折叠状态时显示的图标 -->
     <div class="collapsed-icon" v-if="collapsed">
       <span v-if="playState === 'playing'" class="playing-indicator">▶</span>
-      <span v-else>+</span>
+      <span v-else>
+        <span v-html="TRACK_PLAYER_ICON" />
+      </span>
     </div>
     
     <!-- 播放器主体内容 -->
@@ -197,6 +201,7 @@ export default {
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from 'vue';
 import { Track, TrackPlayer as TrackPlayerConfig } from '../types/track';
 import { 
+  TRACK_PLAYER_ICON,
   TRACK_PLAY_ICON, 
   TRACK_PAUSE_ICON, 
   TRACK_BACKWARD_ICON, 
@@ -1083,7 +1088,7 @@ const applyConfig = () => {
 .track-player.collapsed {
   width: 40px !important;
   height: 40px !important;
-  border-radius: 50%;
+  /* border-radius: 50%; */
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   background: linear-gradient(135deg, #1890ff, #096dd9);
@@ -1492,7 +1497,7 @@ const applyConfig = () => {
 
 .collapsed-icon {
   position: absolute;
-  top: 0;
+  top: 0px;
   left: 0;
   width: 100%;
   height: 100%;
