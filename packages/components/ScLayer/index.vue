@@ -90,7 +90,7 @@ import type { MapEventType, Track, TrackPlayer } from './types';
 import { TrackPlayerConfigOptions } from './types/track';
 import { DEFAULT_TOOLBAR_CONFIG, ToolbarConfig, ToolbarPosition } from './types/toolbar';
 import { MarkerObject } from './composables/MarkerObject';
-import type { MarkerOptions } from './types/marker';
+import type { MarkerOptions, MarkerConfig } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
@@ -109,7 +109,8 @@ const props = withDefaults(defineProps<MapConfig & {
   overviewMapConfig?: OverviewMapConfig,
   trackPlayerConfig?: Partial<TrackPlayerConfigOptions>,
   gridConfig?: Partial<GridConfig>,
-  flightLinePanelPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  flightLinePanelPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
+  markerConfig?: MarkerConfig
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -139,7 +140,15 @@ const props = withDefaults(defineProps<MapConfig & {
       showLabels: true // 显示标签
     }
   } as GridConfig), // 使用默认配置
-  flightLinePanelPosition: 'top-right' // 飞线面板默认位置改为右上角
+  flightLinePanelPosition: 'top-right', // 飞线面板默认位置改为右上角
+  markerConfig: () => ({
+    scaleWithZoom: true, // 默认图标大小受到zoom影响
+    groupIcon: {}, // 空的分组图标集合
+    baseZoom: 10, // 基准缩放级别
+    zoomFactor: 0.03, // 缩放系数降低为0.03，减少缩放影响
+    minScale: 0.8, // 最小缩放比例调整为0.8
+    maxScale: 1.2 // 最大缩放比例调整为1.2，防止图标过大
+  }) // 使用默认标记点配置
 });
 
 // 定义组件事件
@@ -297,7 +306,12 @@ const initializeMapComponents = async () => {
 
     // 创建标记点对象 - 从toolbarObject获取
     markerObject = toolbarObject.getMarkerObject();
-  
+    
+    // 如果存在标记点配置，应用配置
+    if (markerObject && props.markerConfig) {
+      markerObject.setConfig(props.markerConfig);
+    }
+    
     // 创建图形绘制对象 - 从toolbarObject获取
     shapeObject = toolbarObject.getShapeObject();
     
@@ -1777,7 +1791,18 @@ defineExpose({
 
   // 标记点相关方法
   addMarker: (options: MarkerOptions) => {
-    const id = markerObject?.addMarker(options);
+    if (!markerObject) return null;
+    
+    // 处理分组图标：如果没有指定icon但指定了group，尝试从groupIcon获取图标
+    if (!options.icon && options.group && props.markerConfig?.groupIcon) {
+      const groupIcon = props.markerConfig.groupIcon[options.group];
+      if (groupIcon) {
+        options.icon = groupIcon;
+        logger.debug(`[Marker] 从分组 "${options.group}" 获取图标: ${groupIcon}`);
+      }
+    }
+    
+    const id = markerObject.addMarker(options);
     if (id) {
       emit('marker-create' as MapEventType, { id, options });
     }
@@ -1814,6 +1839,51 @@ defineExpose({
   showAllLabels: () => markerObject?.showAllLabels(),
   hideAllLabels: () => markerObject?.hideAllLabels(),
   setClusterMode: (enabled: boolean) => markerObject?.setClusterMode(enabled),
+  
+  // 分组相关方法
+  getGroups: () => {
+    if (!markerObject) return [];
+    return markerObject.getGroups();
+  },
+  showMarkerGroup: (group: string) => {
+    if (!markerObject) return 0;
+    return markerObject.showMarkerGroup(group);
+  },
+  hideMarkerGroup: (group: string) => {
+    if (!markerObject) return 0;
+    return markerObject.hideMarkerGroup(group);
+  },
+  isGroupVisible: (group: string) => {
+    if (!markerObject) return false;
+    return markerObject.isGroupVisible(group);
+  },
+  setMarkerGroup: (id: string, group: string | null) => {
+    if (!markerObject) return false;
+    return markerObject.setMarkerGroup(id, group);
+  },
+
+  // 标记点缩放参数控制
+  setScaleParams: (params: {
+    baseZoom?: number;
+    zoomFactor?: number;
+    minScale?: number;
+    maxScale?: number;
+    scaleWithZoom?: boolean;
+  }) => {
+    if (!markerObject) return false;
+    markerObject.setScaleParams(params);
+    return true;
+  },
+  getScaleParams: () => {
+    if (!markerObject) return {
+      baseZoom: 10,
+      zoomFactor: 0.03,
+      minScale: 0.8,
+      maxScale: 1.2,
+      scaleWithZoom: true
+    };
+    return markerObject.getScaleParams();
+  },
 
   // 图形绘制相关方法
   removeShape: (id: string) => {
@@ -2240,6 +2310,14 @@ watch(() => props.scrollWheelZoom, (newVal) => {
     logger.debug(`[ScLayer] 滚轮缩放状态已更新: ${newVal}`);
   }
 });
+
+// 监听标记点配置变化
+watch(() => props.markerConfig, (newConfig) => {
+  if (markerObject && newConfig) {
+    markerObject.setConfig(newConfig);
+    logger.debug('[Marker] 标记点配置已更新:', newConfig);
+  }
+}, { deep: true });
 </script>
 
 <style scoped>

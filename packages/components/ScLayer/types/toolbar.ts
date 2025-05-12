@@ -101,7 +101,12 @@ export interface ToolbarConfig {
   direction?: ToolbarDirection;
   showCollapse?: boolean;
   collapsed?: boolean;
+  // 工具栏项
   items?: ToolItem[];
+  // 工具栏大小
+  size?: number;
+  // 每行显示的工具项数量
+  itemsPerLine?: number;
   // 坐标工具配置
   coordinateConfig?: CoordinateToolConfig;
   // 测距工具配置

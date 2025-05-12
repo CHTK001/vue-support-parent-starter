@@ -7,8 +7,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Style, Icon, Text, Fill, Stroke } from 'ol/style';
-import Circle from 'ol/style/Circle';
+import { Style, Icon, Text, Fill, Stroke, Circle } from 'ol/style';
 import RegularShape from 'ol/style/RegularShape';
 import Cluster from 'ol/source/Cluster';
 import { fromLonLat } from 'ol/proj';
@@ -16,7 +15,7 @@ import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { Overlay } from 'ol';
 import logger from './LogObject';
-import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType } from '../types';
+import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType, MarkerConfig } from '../types';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
@@ -66,6 +65,15 @@ export class MarkerObject {
   // 默认图标URL
   private defaultIconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAqFJREFUWEftljtMFFEUhv8zmrU0DBuMhTQ7M2hQGyGa0BLfdqKtFkb27sZOW5dWrQy7oBa2RK2MIGrsLHw2KlF2BgssDAQuoZTIHLPDghN2HvcOBY1T7j3n/N953LOXsM0fbbM+tgSw+65baCSwfM2eyZqINoBZna4AdBiGcQzMewNhol/w/bcAf5alrooOjDJA+3D9KBM9AOFQogDjCzFfWSw771RAlACCrMm4qRJww4b9IZVqpAI0+rxjJzwt8abx6h9YafORCmCOeONgPp0FAEQTsmidSfJNBFAo/VQzeHesCKEii/ZQ3HkyQM17BnBcBheksB83Aps1dwDAo2gRGpfCOpsRwJ0D0LHZ2QD1LAjrU/j3fM074oM/RgjNS2Hv0QbID884vuFPtzrytBTO/qiAZq3+HaCuFmDf6FooF+pRPrEtyI/O9Pi+/yHCaUoK+2A0gPsVQMs8GIbRuzBYiKpO/Co2q94+EM/GlG6j/+vniXPA1ClL1k+tCqAylTM7cr/jeheeg4T+B+5yfmUXKt0regBr0z0G4GL8PebmjLT2PeTzUgr7hPYQBter6h4H4UWmJdR0YtDVJWHdzwSwdsfr7wHqzQqxCi4sC+dHZoD2av0SEz3MBsB3pHCuJ/mm/hc0q/AKoH4dCAa8HFHfXNGa3zJA26h7jnw81QIgHlwqOvfSfJQqsFYFbwzghBsRlqJJKaxTaeKNc2WAthGvj5jfKAX1jf7FcuG1kq2K0b9t590COHGoALothXVDNa5yBUIrdwJAXHmfS2FrPV60Adqr9QNMNAmgc1OWs8R8crHkfFPNXmsGwkHNqnsehOAxsvExBmTJfqIjnhkguBXhl3LKs2vLeyAugDniBRtSFq3Lupmv22vPQFahOL//AH8B63PcITqKfDEAAAAASUVORK5CYII=';
 
+  // 标记点配置
+  private config: MarkerConfig = {
+    scaleWithZoom: true, // 默认图标大小受zoom影响
+    groupIcon: {}, // 默认空的分组图标集合
+    zoomFactor: 0.05, // 缩放系数降低为0.03，减少缩放影响
+    minScale: 0.8, // 最小缩放比例调整为0.8
+    maxScale: 1.2 // 最大缩放比例调整为1.2，防止图标过大
+  };
+
   /**
    * 构造函数
    * @param mapInstance 地图实例
@@ -110,6 +118,26 @@ export class MarkerObject {
     this.mapInstance = mapInstance;
     this.initializeLayers();
     this.setupClickListener();
+    
+    // 设置缩放变化监听
+    if (this.config.scaleWithZoom) {
+      this.mapInstance.getView().on('change:resolution', () => {
+        // 只有在设置了根据zoom缩放且有标记点时才更新
+        if (this.config.scaleWithZoom && this.markers.size > 0) {
+          // 更新所有标记点的样式
+          this.markers.forEach((feature, id) => {
+            const options = this.markerOptions.get(id);
+            if (options) {
+              // 应用新样式，支持Style数组
+              feature.setStyle(this.createMarkerStyle(options));
+            }
+          });
+          
+          this.log('debug', '缩放级别变化，已更新标记点样式');
+        }
+      });
+    }
+    
     this.log('debug', '已设置地图实例');
   }
 
@@ -608,6 +636,15 @@ export class MarkerObject {
     options.style = { ...this.defaultStyle, ...options.style };
     options.dataType = DataType.MARKER;
 
+    // 记录当前缩放级别作为此标记点的基准缩放级别
+    if (this.mapInstance && this.config.scaleWithZoom) {
+      const currentZoom = this.mapInstance.getView().getZoom() || 10;
+      // 将当前缩放级别保存到标记点数据中
+      options.data = options.data || {};
+      options.data._baseZoom = currentZoom;
+      this.log('debug', `标记点 "${id}" 设置基准缩放级别为当前缩放级别: ${currentZoom}`);
+    }
+
     // 处理分组可见性
     if (options.group) {
       // 如果该分组已经在缓存中且状态为不可见，则将该标记点也设置为不可见
@@ -675,6 +712,15 @@ export class MarkerObject {
       this.showMarkerPopover(id);
     }
     
+    // 如果没有指定icon但有group，尝试从groupIcon获取图标
+    if (!options.icon && options.group && this.config.groupIcon) {
+      const groupIcon = this.config.groupIcon[options.group];
+      if (groupIcon) {
+        options.icon = groupIcon;
+        this.log('debug', `从分组 "${options.group}" 获取图标: ${groupIcon}`);
+      }
+    }
+    
     this.log('info', `添加标记点 "${id}" 成功，位置: [${options.position[0]}, ${options.position[1]}]`);
     
     return id;
@@ -685,7 +731,7 @@ export class MarkerObject {
    * @param options 标记点配置选项
    * @returns 样式
    */
-  private createMarkerStyle(options: MarkerOptions): Style {
+  private createMarkerStyle(options: MarkerOptions): Style | Style[] {
     const styleOptions = options.style || this.defaultStyle;
     let iconUrl = this.defaultIconUrl;
     
@@ -714,57 +760,48 @@ export class MarkerObject {
       iconUrl = this.defaultIconUrl;
     }
     
+    // 检查是否应该根据zoom级别缩放图标
+    if (this.config.scaleWithZoom && this.mapInstance) {
+      const zoom = this.mapInstance.getView().getZoom() || 0;
+      
+      // 获取标记点自己的基准缩放级别
+      const markerBaseZoom = options.data && options.data._baseZoom ? options.data._baseZoom : undefined;
+      
+      // 使用独立方法计算缩放因子，传入标记点自己的基准缩放级别
+      const limitedFactor = this.calculateScaleFactor(zoom, markerBaseZoom);
+      
+      // 简化：直接使用计算出的缩放因子作为样式的缩放值
+      styleOptions.scale = limitedFactor;
+      
+      this.log('debug', `应用zoom缩放: zoom=${zoom}, baseZoom=${markerBaseZoom}, factor=${limitedFactor}, scale=${styleOptions.scale}`);
+    } else {
+      // 不根据zoom缩放，使用默认缩放值
+      styleOptions.scale = this.defaultStyle.scale;
+    }
+    
+    // 获取图标锚点 - 保持锚点始终为底部中心点，确保定位准确
+    const anchor = [0.5, 1]; // 固定锚点为图标底部中心
+    
     // 创建标准图标样式
     const iconImage = new Icon({
       src: iconUrl,
-      scale: 1,
-      anchor: styleOptions.anchor || [0.5, 1],  // 修改默认锚点为图标底部中心[0.5, 1]
-      anchorXUnits: 'fraction',
-      anchorYUnits: 'pixels',
-      offset: styleOptions.offset || [0, 0],
+      scale: styleOptions.scale,
+      anchor: anchor,
+      anchorXUnits: 'fraction', // 水平锚点以分数表示（0.5表示中心）
+      anchorYUnits: 'fraction', // 修改为fraction，使垂直锚点位置与缩放无关
+      offset: [0, 0], // 不使用偏移，确保位置准确
       rotation: styleOptions.rotation || 0
     });
     
-    // 创建样式对象
-    const style = new Style({
+    // 创建图标样式
+    const iconStyle = new Style({
       image: iconImage,
-      // 使用hitDetectionRenderer扩大点击区域
-      hitDetectionRenderer: function(pixelCoordinates, state) {
-        const x = pixelCoordinates[0][0];
-        const y = pixelCoordinates[0][1];
-        
-        // 获取图标尺寸
-        const imageSize = iconImage.getSize();
-        // 如果无法获取图标大小，使用默认值
-        const iconWidth = imageSize ? imageSize[0] : 30;
-        const iconHeight = imageSize ? imageSize[1] : 30;
-        
-        // 创建点击区域
-        const context = state.context;
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        
-        // 简单处理：点击区域只比图标大3像素
-        const padding = 2;
-        
-        // 使用圆形作为点击区域
-        context.beginPath();
-        
-        // 计算圆心位置（与图标中心一致）
-        const centerX = x;
-        const centerY = y - iconHeight / 2; // 调整垂直位置到图标中心
-        
-        // 半径取图标宽高中的较大值，再加上padding
-        const radius = Math.max(iconWidth, iconHeight) / 2 + padding;
-        
-        // 绘制圆形
-        context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        context.fillStyle = 'rgba(255, 0, 0, 1)'; // 纯红色用于点击检测
-        context.fill();
-      },
       zIndex: options.zIndex || 1
     });
     
-    return style;
+    // 不再创建透明点击区域，只返回图标样式
+    // 这样点击区域就仅限于图标本身的可见部分
+    return iconStyle;
   }
 
   /**
@@ -813,6 +850,16 @@ export class MarkerObject {
       if (geometry instanceof Point) {
         geometry.setCoordinates(coordinates);
       }
+      
+      // 如果启用了缩放功能，更新基准缩放级别为当前级别
+      if (this.config.scaleWithZoom && this.mapInstance) {
+        const currentZoom = this.mapInstance.getView().getZoom()  || 10;
+        // 更新基准缩放级别
+        newOptions.data = newOptions.data || {};
+        newOptions.data._baseZoom = currentZoom;
+        this.log('debug', `标记点 "${id}" 位置更新，重置基准缩放级别为当前缩放级别: ${currentZoom}`);
+      }
+      
       this.log('debug', `标记点 "${id}" 位置已更新为 [${options.position[0]}, ${options.position[1]}]`);
     }
     
@@ -1238,12 +1285,11 @@ export class MarkerObject {
       // 没有模板，使用标题
       popoverElement.innerHTML = `<div class="marker-popover-content">${title}</div>`;
     }
-    
     // 创建Overlay对象
     const popover = new Overlay({
       element: popoverElement,
       positioning: 'bottom-center', // 将定位改为bottom-center，使popover在标记点正上方
-      offset: [0, 0], // 调整偏移量，使popover紧贴标记点
+      offset: [0, -25], // 调整偏移量，使popover紧贴标记点
       position: position,
       stopEvent: true
     });
@@ -1427,7 +1473,7 @@ export class MarkerObject {
     // 添加新的点击监听器
     this.clickListener = this.mapInstance.on('click', (event) => {
       const hit = this.mapInstance!.hasFeatureAtPixel(event.pixel, {
-        hitTolerance: 30, // 增加点击容差到30像素
+        hitTolerance: 10, // 增加点击容差到30像素
         layerFilter: (layer) => {
           return layer === this.markerLayer || layer === this.clusterLayer;
         }
@@ -1491,7 +1537,7 @@ export class MarkerObject {
           return true;
         },
         {
-          hitTolerance: 30, // 增加点击容差到30像素
+          hitTolerance: 10, // 增加点击容差到30像素
           layerFilter: (layer) => {
             // 只对标记点图层生效
             return layer === this.markerLayer || layer === this.clusterLayer;
@@ -1577,7 +1623,7 @@ export class MarkerObject {
       pixel,
       (feature) => feature,
       {
-        hitTolerance: 30, // 增加点击容差到30像素
+        hitTolerance: 10, // 增加点击容差到30像素
         layerFilter: (layer) => {
           // 只检查标记点图层
           return layer === this.markerLayer;
@@ -1766,6 +1812,127 @@ export class MarkerObject {
     this.groupVisibility.set(group, hasVisibleMarker);
     
     return hasVisibleMarker;
+  }
+
+  /**
+   * 设置标记点全局配置
+   * @param config 标记点配置
+   */
+  public setConfig(config: MarkerConfig): void {
+    // 保存旧配置的缩放设置
+    const oldScaleWithZoom = this.config.scaleWithZoom;
+    
+    // 更新配置
+    this.config = { ...this.config, ...config };
+    this.log('debug', '标记点全局配置已更新', this.config);
+    
+    // 如果地图实例存在且配置更新了
+    if (this.mapInstance) {
+      // 如果scaleWithZoom设置变化且启用了缩放，添加监听器
+      if (oldScaleWithZoom !== this.config.scaleWithZoom && this.config.scaleWithZoom) {
+        // 设置缩放变化监听
+        this.mapInstance.getView().on('change:resolution', () => {
+          // 只有在设置了根据zoom缩放且有标记点时才更新
+          if (this.config.scaleWithZoom && this.markers.size > 0) {
+            // 更新所有标记点的样式
+            this.markers.forEach((feature, id) => {
+              const options = this.markerOptions.get(id);
+              if (options) {
+                // 应用新样式，支持Style数组
+                feature.setStyle(this.createMarkerStyle(options));
+              }
+            });
+            
+            this.log('debug', '缩放级别变化，已更新标记点样式');
+          }
+        });
+      }
+      
+      // 遍历所有标记点，更新样式
+      this.markers.forEach((feature, id) => {
+        const options = this.markerOptions.get(id);
+        if (options) {
+          // 更新样式，支持Style数组
+          feature.setStyle(this.createMarkerStyle(options));
+        }
+      });
+      this.log('debug', '已重新应用标记点样式');
+    }
+  }
+
+  /**
+   * 获取标记点全局配置
+   * @returns 标记点配置
+   */
+  public getConfig(): MarkerConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * 设置图标缩放参数
+   * @param params 缩放参数
+   */
+  public setScaleParams(params: {
+    baseZoom?: number;
+    zoomFactor?: number;
+    minScale?: number;
+    maxScale?: number;
+    scaleWithZoom?: boolean;
+  }): void {
+    const update: Partial<MarkerConfig> = {};
+    
+    if (params.minScale !== undefined) update.minScale = params.minScale;
+    if (params.maxScale !== undefined) update.maxScale = params.maxScale;
+    if (params.scaleWithZoom !== undefined) update.scaleWithZoom = params.scaleWithZoom;
+    
+    // 使用setConfig方法应用更新
+    this.setConfig(update);
+    
+    this.log('info', '已更新图标缩放参数:', update);
+  }
+
+  /**
+   * 获取图标缩放参数
+   * @returns 当前缩放参数
+   */
+  public getScaleParams(): {
+    zoomFactor: number;
+    minScale: number;
+    maxScale: number;
+    scaleWithZoom: boolean;
+  } {
+    return {
+      zoomFactor: this.config.zoomFactor || 0.05,
+      minScale: this.config.minScale || 0.8, 
+      maxScale: this.config.maxScale || 1.2,
+      scaleWithZoom: this.config.scaleWithZoom || false
+    };
+  }
+
+  /**
+   * 计算缩放因子
+   * @param currentZoom 当前缩放级别
+   * @param markerBaseZoom 标记点的基准缩放级别
+   * @returns 缩放因子
+   */
+  private calculateScaleFactor(currentZoom: number, markerBaseZoom?: number): number {
+    const zoomFactor = this.config.zoomFactor || 0.05;
+    const minScale = this.config.minScale || 0.8;
+    const maxScale = this.config.maxScale || 1.2;
+    
+    // 计算当前zoom与基准zoom的差值
+    // 注意：这里与之前的逻辑相反，现在是currentZoom - baseZoom
+    // 这样当currentZoom增大时，zoomChange为正，图标变大
+    // 当currentZoom减小时，zoomChange为负，图标变小
+    const zoomChange = currentZoom - markerBaseZoom;
+    
+    // 直接将zoom变化值乘以缩放系数获得缩放比例
+    // zoomChange为正值，表示地图放大，图标放大
+    // zoomChange为负值，表示地图缩小，图标缩小
+    const scaleFactor = 1 + (zoomChange * zoomFactor);
+    
+    // 限制在配置的最小和最大缩放范围内
+    return Math.max(minScale, Math.min(maxScale, scaleFactor));
   }
 }
 
