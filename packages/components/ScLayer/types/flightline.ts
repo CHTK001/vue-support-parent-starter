@@ -44,6 +44,10 @@ export interface FlightLineData {
    * 优先级高于全局FlightLineConfig中的设置
    */
   effectSymbolSize?: number;
+  /**
+   * 创建时间戳，用于排序
+   */
+  _createTime?: number;
 }
 
 // 飞线图配置接口

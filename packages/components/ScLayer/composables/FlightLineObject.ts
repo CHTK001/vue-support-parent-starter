@@ -504,8 +504,8 @@ export class FlightLineObject {
     
     // 遍历所有飞线数据
     this.flightLines.forEach((line, id) => {
-      // 跳过不可见的飞线
-      if (line.visible === false) {
+      // 跳过不可见的飞线 - 修改判断逻辑，只有明确设置visible为true的飞线才显示
+      if (line.visible !== true) {
         return;
       }
       
@@ -758,22 +758,13 @@ export class FlightLineObject {
       ...flightLine,
       id,
       coords: coords || flightLine.coords, // 使用转换后的坐标或原始坐标
-      visible: flightLine.visible !== false // 默认可见
+      visible: false, // 默认不可见，只有在用户明确选择时才显示
+      _createTime: flightLine._createTime || Date.now() // 添加创建时间
     };
     
     this.flightLines.set(id, finalFlightLine);
     
-    // 设置当前飞线为激活状态
-    this.activeFlightLine = id;
-    
-    // 如果已激活，则更新echarts选项并高亮显示新添加的飞线
-    if (this.active && this.echartsLayer) {
-      this.updateEchartsOptions();
-      // 高亮显示新添加的飞线
-      this.setActiveFlightLine(id);
-    }
-    
-    logger.debug(`[FlightLine] 添加飞线: ${id} (${flightLine.fromName} -> ${flightLine.toName})`);
+    logger.debug(`[FlightLine] 添加飞线: ${id} (${flightLine.fromName} -> ${flightLine.toName}), 默认不可见`);
     return id;
   }
 
@@ -789,21 +780,18 @@ export class FlightLineObject {
       return [];
     }
 
+    // 生成共享的创建时间，让同批次添加的飞线具有相同的创建时间
+    const batchCreateTime = Date.now();
+    
     const ids: string[] = [];
     flightLines.forEach(line => {
-      ids.push(this.addFlightLine(line));
+      // 为每个飞线设置创建时间
+      const lineWithTime = {
+        ...line,
+        _createTime: line._createTime || batchCreateTime
+      };
+      ids.push(this.addFlightLine(lineWithTime));
     });
-
-    // 设置最后添加的飞线为当前激活飞线
-    if (ids.length > 0) {
-      const lastId = ids[ids.length - 1];
-      this.activeFlightLine = lastId;
-      
-      // 如果已激活，高亮显示最后添加的飞线
-      if (this.active && this.echartsLayer) {
-        this.setActiveFlightLine(lastId);
-      }
-    }
 
     logger.debug(`[FlightLine] 批量添加了 ${flightLines.length} 条飞线`);
     
@@ -829,8 +817,23 @@ export class FlightLineObject {
       this.flightLines = new Map<string, FlightLineData>();
     }
     
-    // 添加日志记录飞线数量
+    // 添加详细日志记录飞线数量和内容
     logger.debug(`[FlightLine] 获取所有飞线数据，共${this.flightLines.size}条`);
+    
+    // 详细记录所有飞线ID
+    const allIds = Array.from(this.flightLines.keys());
+    logger.debug(`[FlightLine] 飞线IDs: ${allIds.join(', ')}`);
+    
+    // 检查飞线数据是否有效
+    let validCount = 0;
+    this.flightLines.forEach((line, id) => {
+      if (line && line.fromName && line.toName) {
+        validCount++;
+      } else {
+        logger.warn(`[FlightLine] 发现无效飞线数据: ${id}`);
+      }
+    });
+    logger.debug(`[FlightLine] 有效飞线数: ${validCount}/${this.flightLines.size}`);
     
     return this.flightLines;
   }
@@ -969,54 +972,6 @@ export class FlightLineObject {
   }
 
   /**
-   * 选中最新添加的飞线
-   * @returns 是否有飞线可选中
-   */
-  public selectLatestFlightLine(): boolean {
-    if (this.flightLines.size === 0) {
-      logger.debug('[FlightLine] 没有可选中的飞线');
-      return false;
-    }
-    
-    try {
-      // 找出最新添加的飞线ID (通常是最后一个)
-      // 由于Map保持插入顺序，可以获取最后一个元素
-      let latestId: string | null = null;
-      let latestTimestamp = 0;
-      
-      // 从ID中提取时间戳，选择最新的
-      this.flightLines.forEach((line, id) => {
-        // 尝试从ID中提取时间戳
-        const match = id.match(/flight-line-(\d+)/);
-        if (match && match[1]) {
-          const timestamp = parseInt(match[1], 10);
-          if (timestamp > latestTimestamp) {
-            latestTimestamp = timestamp;
-            latestId = id;
-          }
-        }
-      });
-      
-      // 如果没有找到包含时间戳的ID，则使用最后插入的
-      if (!latestId) {
-        // 获取Map的最后一个键
-        const keys = Array.from(this.flightLines.keys());
-        latestId = keys[keys.length - 1];
-      }
-      
-      if (latestId) {
-        // 选中并高亮显示
-        return this.setActiveFlightLine(latestId);
-      }
-      
-      return false;
-    } catch (error) {
-      logger.error('[FlightLine] 选中最新飞线失败:', error);
-      return false;
-    }
-  }
-
-  /**
    * 启用飞线图
    */
   public async enable(): Promise<void> {
@@ -1034,8 +989,8 @@ export class FlightLineObject {
           this.updateEchartsOptions();
         }
         
-        // 选中最新添加的飞线
-        this.selectLatestFlightLine();
+        // 延迟注册后续处理，确保图层和DOM已经就绪
+        this.schedulePostEnableProcessing();
       }
       return;
     }
@@ -1069,9 +1024,6 @@ export class FlightLineObject {
         this.addTestFlightLines();
         this.updateEchartsOptions();
       }
-      
-      // 选中最新添加的飞线
-      this.selectLatestFlightLine();
       
       // 延迟注册后续处理，确保图层和DOM已经就绪
       this.schedulePostEnableProcessing();
@@ -1179,6 +1131,7 @@ export class FlightLineObject {
         toName: to,
         coords: [cities[from], cities[to]],
         value: Math.floor(Math.random() * 1000) + 100,
+        visible: false, // 确保测试数据默认不可见
         style: {
           // 使用明显的彩色线条
           color: `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 255) + 50}, 0.8)`,
@@ -1200,21 +1153,22 @@ export class FlightLineObject {
       logger.debug(`[FlightLine] 添加测试飞线: ${id} - ${line.fromName} → ${line.toName}`);
     });
     
-    // 高亮北京到上海的飞线
+    // 高亮北京到上海的飞线（但不自动显示）
     const firstLineId = Array.from(this.flightLines.keys())[0];
     if (firstLineId) {
       this.updateFlightLine(firstLineId, {
         highlight: true,
+        visible: false, // 保持隐藏状态
         style: {
           width: 4,
           color: '#1890ff',
           opacity: 1
         }
       });
-      logger.debug(`[FlightLine] 高亮测试飞线: ${firstLineId}`);
+      logger.debug(`[FlightLine] 高亮测试飞线: ${firstLineId}，但保持隐藏状态`);
     }
     
-    logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线`);
+    logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认都不可见`);
     
     // 确保配置中启用了动画效果
     this.setConfig({
