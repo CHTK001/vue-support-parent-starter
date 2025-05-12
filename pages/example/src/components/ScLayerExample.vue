@@ -8,7 +8,7 @@
         <div class="map-container">
           <sc-layer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
             :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
-            :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey" :map="config.map"
+            :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
             :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" @map-initialized="onMapInit"
             @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
             @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
@@ -80,6 +80,22 @@
                   </button>
                 </div>
               </div>
+              
+              <!-- 添加工具栏方向控制 -->
+              <div class="control-row">
+                <span>工具栏方向:</span>
+                <div class="button-group">
+                  <button @click="changeToolbarDirection(ToolbarDirection.HORIZONTAL)"
+                    :class="{ 'active-button': toolbarDirection === ToolbarDirection.HORIZONTAL }">
+                    水平方向
+                  </button>
+                  <button @click="changeToolbarDirection(ToolbarDirection.VERTICAL)"
+                    :class="{ 'active-button': toolbarDirection === ToolbarDirection.VERTICAL }">
+                    垂直方向
+                  </button>
+                </div>
+              </div>
+              
               <div class="control-row">
                 <span>可拖动:</span>
                 <input type="checkbox" v-model="config.dragging" @change="handleInteractionChange">
@@ -268,10 +284,6 @@
               <div class="control-row buttons-row">
                 <button @click="addStarFlightLines">添加星型飞线</button>
                 <button @click="clearFlightLines">清除飞线</button>
-              </div>
-              <!-- 添加最佳视角按钮 -->
-              <div class="control-row buttons-row">
-                <button @click="setFlightLineOptimalView" class="primary-button">飞线最佳视角</button>
               </div>
               <div class="control-row">
                 <span>曲率:</span>
@@ -464,24 +476,22 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, type Ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { 
-  LogLevel, 
-  MapType, 
-  MapTile, 
-  MarkerObject,
-  Shape,
-  TrackObject,
-  MarkerClusterMode,
-  DEFAULT_MAP_CONFIG
-} from '@repo/components/ScLayer';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
+import type { 
+  // MarkerOption, 
+  // MarkerObject, 
+  // ShapeObject, 
+  // ShapeType 
+} from '@repo/components/ScLayer/types/index';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
-import { ToolbarPosition } from '@repo/components/ScLayer/types/toolbar';
+import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
 // 引入飞线图类型定义
 import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types/flightline';
+// 引入Element Plus组件
+import { ElMessage } from 'element-plus';
 
 // 地图实例引用
 const layerRef = ref(null);
@@ -529,7 +539,6 @@ const tileType = ref('normal');
 const config = reactive({
   mapType: MapType.GAODE,
   mapTile: MapTile.NORMAL,
-  map: DEFAULT_MAP_CONFIG,
   mapKey: {},
   center: [39.92, 116.40] as [number, number],
   zoom: 12,
@@ -2908,6 +2917,58 @@ const changeToolbarPosition = (position: ToolbarPosition) => {
     ElMessage.error(`工具栏位置更新失败: ${error.message}`);
     addLog('工具栏', `位置更新失败: ${error.message}`);
   }
+};
+
+
+// 在data定义部分添加toolbarDirection数据
+const toolbarDirection = ref<ToolbarDirection>(ToolbarDirection.HORIZONTAL);
+
+// 添加方向切换方法
+// 切换工具栏方向
+const changeToolbarDirection = (direction: ToolbarDirection) => {
+  toolbarDirection.value = direction;
+  
+  if (!layerRef.value) {
+    addLog('工具栏', '地图组件未初始化，无法更新工具栏方向');
+    return;
+  }
+  
+  // 记录操作
+  console.log('正在切换工具栏方向为:', direction);
+  addLog('工具栏', `正在切换方向为: ${direction}`);
+  
+  try {
+    // 调用ScLayer组件的updateToolbarConfig方法
+    const result = layerRef.value.updateToolbarConfig({
+      direction: direction // 设置新的方向
+    });
+    
+    if (result) {
+      // 如果更新成功，添加视觉反馈
+      ElMessage.success('工具栏方向已更新');
+      addLog('工具栏', '方向更新成功');
+      
+      // 尝试触发地图刷新，确保UI更新
+      setTimeout(() => {
+        if (layerRef.value && layerRef.value.getMapObject()) {
+          layerRef.value.getMapObject().updateSize();
+        }
+      }, 100);
+    } else {
+      ElMessage.error('工具栏方向更新失败');
+      addLog('工具栏', '方向更新失败');
+    }
+  } catch (error) {
+    console.error('更新工具栏方向时发生错误:', error);
+    ElMessage.error(`工具栏方向更新失败: ${error.message}`);
+    addLog('工具栏', `方向更新失败: ${error.message}`);
+  }
+};
+
+// 添加标记点聚合模式的枚举
+const MarkerClusterMode = {
+  CLUSTER: 'cluster',
+  NONE: 'none'
 };
 </script>
 

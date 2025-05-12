@@ -1,7 +1,12 @@
 /**
 * 地图工具栏
+* 支持功能：
+* 1. 支持水平和垂直两种方向布局
+* 2. 支持四个角落位置摆放
+* 3. 支持收缩和展开
+* 4. 支持子菜单和工具提示
 * @author CH
-* @date 2025-04-29
+* @date 2025-05-12
 */
 <template>
   <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent @click.stop :key="forceUpdateKey">
@@ -9,12 +14,13 @@
       { active: isToolActive(tool.id) },
       { 'has-submenu': (tool.type === 'menu' || tool.type === 'button') && tool.children?.length },
       tool?.className || ''
-    ]" :data-tool-id="tool.id" @click.stop="(e) => handleToolClick(tool, e)" @dblclick.stop.prevent>
+    ]" :data-tool-id="tool.id" 
+      @click.stop="(e) => handleToolClick(tool, e)" 
+      @dblclick.stop.prevent
+      @mouseenter="(e) => handleToolHover(tool, e, true)"
+      @mouseleave="(e) => handleToolHover(tool, e, false)">
       <span v-if="typeof (isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon) === 'string'" class="svg-icon" v-html="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon"></span>
       <component v-else :is="isToolActive(tool.id) && tool.activeIcon ? tool.activeIcon : tool.icon" />
-      <div class="toolbar-tooltip" v-if="!(openSubMenus.includes(tool.id))">
-        {{ tool.tooltip || tool.name }}
-      </div>
     </div>
     <div class="toolbar-collapse" @click.stop="toggleCollapse" :title="isCollapsed ? '展开' : '收缩'">
       <!-- 水平方向工具栏 -->
@@ -88,16 +94,27 @@
            subTool.className
          ]" 
          :data-tool-id="subTool.id"
-         @click.stop.prevent="(e) => handleSubmenuItemClick(submenuState.parentTool, subTool, e)">
+         @click.stop.prevent="(e) => handleSubmenuItemClick(submenuState.parentTool, subTool, e)"
+         @mouseenter="(e) => handleToolHover(subTool, e, true)"
+         @mouseleave="(e) => handleToolHover(subTool, e, false)">
       <span v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'" 
             class="svg-icon" 
             v-html="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon"></span>
       <component v-else-if="subTool.icon || (isToolActive(subTool.id) && subTool.activeIcon)" 
                 :is="isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon" />
-      <div class="toolbar-tooltip">
-        {{ subTool.tooltip || subTool.name }}
-      </div>
     </div>
+  </div>
+
+  <!-- 使用固定定位的工具提示 -->
+  <div v-if="tooltipState.visible" 
+       class="toolbar-tooltip tooltip-positioned"
+       :style="{ 
+         position: 'fixed', 
+         top: `${tooltipState.top}px`, 
+         left: `${tooltipState.left}px`, 
+         zIndex: 999999 
+       }">
+    {{ tooltipState.text }}
   </div>
 </template>
 
@@ -588,7 +605,7 @@ const toolbarStyle = computed(() => {
     } else {
       style.transform = config.value.position.startsWith('top') ? 'translateY(-100%)' : 'translateY(100%)';
     }
-    style.opacity = '0.2';
+    style.opacity = '0'; // 完全隐藏工具栏
     style.pointerEvents = 'none'; // 收缩状态下禁用工具栏交互
   } else {
     style.transform = 'translate(0, 0)';
@@ -746,6 +763,126 @@ watch(() => props.toolbarObj, (newValue) => {
   }
 }, { immediate: true });
 
+// 工具提示状态
+const tooltipState = ref({
+  visible: false,
+  top: 0,
+  left: 0,
+  text: ''
+});
+
+// 处理工具悬停
+const handleToolHover = (tool: ToolItem, event: MouseEvent, isEnter: boolean) => {
+  if (isEnter) {
+    // 如果工具有子菜单并且已经激活，不显示工具提示
+    if ((tool.type === 'menu' || tool.type === 'button') && 
+        tool.children?.length && 
+        isToolActive(tool.id)) {
+      tooltipState.value.visible = false;
+      return;
+    }
+    
+    // 计算工具提示位置
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    let tooltipTop = 0;
+    let tooltipLeft = 0;
+    
+    // 基于工具栏的方向和位置计算提示框位置
+    if (config.value.direction === 'horizontal') {
+      // 水平方向工具栏
+      if (config.value.position.startsWith('top')) {
+        // 顶部工具栏，提示显示在下方
+        tooltipTop = rect.bottom + 10;
+        tooltipLeft = rect.left + rect.width / 2;
+      } else {
+        // 底部工具栏，提示显示在上方
+        tooltipTop = rect.top - 30;
+        tooltipLeft = rect.left + rect.width / 2;
+      }
+    } else {
+      // 垂直方向工具栏
+      if (config.value.position.endsWith('left')) {
+        // 左侧工具栏，提示显示在右侧
+        tooltipTop = rect.top + rect.height / 2;
+        tooltipLeft = rect.right + 10;
+      } else {
+        // 右侧工具栏，提示显示在左侧
+        tooltipTop = rect.top + rect.height / 2;
+        tooltipLeft = rect.left - 10;
+      }
+    }
+    
+    // 检查下排按钮，确保不会被遮挡
+    // 获取页面上所有工具栏项
+    const allToolbarItems = document.querySelectorAll('.toolbar-item');
+    let mustAdjust = false;
+    
+    // 检查是否有其他按钮可能会遮挡提示框
+    allToolbarItems.forEach((item) => {
+      if (item !== event.currentTarget) {
+        const itemRect = item.getBoundingClientRect();
+        // 如果水平工具栏
+        if (config.value.direction === 'horizontal') {
+          // 检查提示框是否被下方的按钮遮挡
+          if (Math.abs(itemRect.left - rect.left) < rect.width && 
+              itemRect.top > rect.bottom && 
+              itemRect.top < tooltipTop + 30) {
+            mustAdjust = true;
+          }
+        } else {
+          // 垂直工具栏时，检查是否有按钮在提示框可能显示的位置
+          if (config.value.position.endsWith('left')) {
+            // 左侧工具栏，检查右侧区域
+            if (itemRect.left > rect.right && 
+                itemRect.left < tooltipLeft + 150 && // 150px为估计的提示框宽度
+                Math.abs(itemRect.top - rect.top) < rect.height * 2) {
+              mustAdjust = true;
+            }
+          } else {
+            // 右侧工具栏，检查左侧区域
+            if (itemRect.right < rect.left && 
+                itemRect.right > tooltipLeft - 150 && // 150px为估计的提示框宽度
+                Math.abs(itemRect.top - rect.top) < rect.height * 2) {
+              mustAdjust = true;
+            }
+          }
+        }
+      }
+    });
+    
+    // 如果检测到可能遮挡，调整提示框位置
+    if (mustAdjust) {
+      if (config.value.direction === 'horizontal') {
+        // 水平工具栏时的调整逻辑
+        if (config.value.position.startsWith('top')) {
+          // 顶部工具栏，即使检测到遮挡也保持提示在下方，只调整水平位置
+          tooltipLeft += 20; // 水平方向偏移以避免遮挡
+        } else {
+          // 底部工具栏，提示显示在上方
+          tooltipTop = rect.top - 30;
+        }
+      } else {
+        // 垂直工具栏时，调整提示框显示在更远的位置
+        if (config.value.position.endsWith('left')) {
+          tooltipLeft = rect.right + 30;
+        } else {
+          tooltipLeft = rect.left - 30;
+        }
+      }
+    }
+    
+    // 更新工具提示状态
+    tooltipState.value = {
+      visible: true,
+      top: tooltipTop,
+      left: tooltipLeft,
+      text: tool.tooltip || tool.name || ''
+    };
+  } else {
+    // 鼠标离开，隐藏提示
+    tooltipState.value.visible = false;
+  }
+};
 
 // 暴露方法给父组件
 defineExpose({
@@ -774,7 +911,7 @@ defineExpose({
   }
 
   .toolbar-collapse {
-    opacity: 0.8;
+    opacity: 1;
     transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: auto !important;
   }
@@ -790,20 +927,22 @@ defineExpose({
   position: absolute;
   width: 28px;
   height: 28px;
-  background-color: #ffffff;
+  background-color: #ffffff; /* 非隐藏状态恢复为白色背景 */
   border-radius: 4px;
   cursor: pointer !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 恢复为灰色阴影 */
   transition: all 0.3s ease;
   z-index: 3000;
   pointer-events: auto !important;
+  opacity: 0.8; /* 保留透明度设置 */
 
   &:hover {
-    background-color: #f6f6f6;
+    background-color: #f6f6f6; /* hover时恢复为原来的浅灰色 */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    opacity: 1; /* hover时不透明 */
   }
 
   .collapse-icon {
@@ -811,57 +950,51 @@ defineExpose({
     align-items: center;
     justify-content: center;
     width: 100%;
+    opacity: 1;
     height: 100%;
-    color: #666;
+    color: #666; /* 恢复为灰色图标 */
     transition: all 0.3s ease;
     pointer-events: auto !important;
   }
 
   &:hover .collapse-icon {
-    color: #1890ff;
+    color: #1890ff; /* hover时仍然显示蓝色 */
     transform: scale(1.1);
   }
 }
 
-/* 水平方向左侧工具栏 */
-.direction-horizontal.position-top-left .toolbar-collapse,
-.direction-horizontal.position-bottom-left .toolbar-collapse {
-  right: -14px;
-  top: 50%;
-  transform: translateY(-50%);
+/* 收缩状态下的样式 - 保持蓝色 */
+.map-toolbar[style*="translateX"] .toolbar-collapse,
+.map-toolbar[style*="translateY"] .toolbar-collapse {
+  background-color: #1890ff !important; /* 使用更醒目的蓝色背景 */
+  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.5) !important; /* 增强阴影效果 */
+  opacity: 1 !important; /* 完全不透明 */
+  border: 2px solid white !important; /* 添加白色边框 */
+  width: 32px !important; /* 略微增大尺寸 */
+  height: 32px !important;
+  z-index: 3001 !important; /* 确保在最上层 */
 }
 
-/* 水平方向右侧工具栏 */
-.direction-horizontal.position-top-right .toolbar-collapse,
-.direction-horizontal.position-bottom-right .toolbar-collapse {
-  left: -14px;
-  top: 50%;
-  transform: translateY(-50%);
+/* 收缩状态下的图标颜色 */
+.map-toolbar[style*="translateX"] .toolbar-collapse .collapse-icon,
+.map-toolbar[style*="translateY"] .toolbar-collapse .collapse-icon {
+  color: white !important; /* 图标改为白色，与蓝色背景形成鲜明对比 */
+  opacity: 1 !important; /* 图标不透明 */
+  transform: scale(1.1) !important; /* 略微放大图标 */
 }
 
-/* 垂直方向顶部工具栏 - 关键修复 */
-.direction-vertical.position-top-left .toolbar-collapse,
-.direction-vertical.position-top-right .toolbar-collapse {
-  left: 50%;
-  bottom: -30px;
-  top: auto;
-  transform: translateX(-50%);
+/* 收缩状态下hover效果增强 - 水平方向 */
+.map-toolbar[style*="translateX"] .toolbar-collapse:hover {
+  background-color: #40a9ff !important; /* hover时背景色更亮 */
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important; /* hover时阴影更突出 */
+  transform: scale(1.05) translateY(-50%) !important; /* 保持垂直居中并略微放大 */
 }
 
-/* 垂直方向底部工具栏 */
-.direction-vertical.position-bottom-left .toolbar-collapse,
-.direction-vertical.position-bottom-right .toolbar-collapse {
-  left: 50%;
-  top: -30px;
-  bottom: auto;
-  transform: translateX(-50%);
-}
-
-/* 收缩状态下的样式 */
-.map-toolbar .toolbar-collapse {
-  opacity: 1;
-  background-color: #f6f6f6;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+/* 收缩状态下hover效果增强 - 垂直方向 */
+.map-toolbar[style*="translateY"] .toolbar-collapse:hover {
+  background-color: #40a9ff !important; /* hover时背景色更亮 */
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important; /* hover时阴影更突出 */
+  transform: scale(1.05) translateX(-50%) !important; /* 保持水平居中并略微放大 */
 }
 
 /* 收缩状态下的位置 - 水平方向 */
@@ -1036,117 +1169,6 @@ defineExpose({
   width: 44px;
   height: 44px;
 }
-
-/* 根据工具栏位置调整提示框位置 */
-.position-top-left .toolbar-item .toolbar-tooltip,
-/* 工具提示样式 */
-.toolbar-tooltip {
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  z-index: 9999; /* 增大z-index值，确保比所有其他元素都高 */
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s, visibility 0.2s;
-  visibility: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  max-width: none;
-  /* 确保不受最大宽度限制 */
-  width: auto;
-  /* 自动调整宽度 */
-}
-
-/* 鼠标悬停时显示提示框，但子菜单打开时父菜单不显示tooltip */
-.toolbar-item:hover .toolbar-tooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* 当子菜单激活时，禁用父菜单的tooltip */
-.toolbar-item.has-submenu.active:hover .toolbar-tooltip,
-.toolbar-submenu.submenu-active~.toolbar-tooltip,
-.toolbar-item.has-submenu.active .toolbar-tooltip {
-  opacity: 0;
-  visibility: hidden;
-  display: none;
-  /* 确保完全隐藏 */
-}
-
-/* 子菜单打开时，子菜单项的tooltip正常显示 */
-.toolbar-submenu.submenu-active .submenu-item:hover .toolbar-tooltip {
-  opacity: 1;
-  visibility: visible;
-  z-index: 9999; /* 确保tooltip显示在最上层 */
-}
-
-/* 修复工具提示位置问题 */
-.toolbar-item {
-  position: relative;
-}
-
-/* 确保工具提示在hover时显示在最前面 */
-.map-toolbar {
-  position: absolute;
-  border-radius: 4px;
-  z-index: 2000; /* 工具栏基础层级 */
-}
-
-.toolbar-item:hover {
-  z-index: 2005; /* 确保悬停的按钮在其他按钮之上 */
-}
-
-.position-bottom-left .toolbar-item .toolbar-tooltip {
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 10px;
-}
-
-.position-top-right .toolbar-item .toolbar-tooltip,
-.position-bottom-right .toolbar-item .toolbar-tooltip {
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-right: 10px;
-  left: auto;
-  /* 确保不使用左侧定位 */
-  text-align: right;
-  /* 右对齐文本 */
-}
-
-/* 水平方向工具栏的提示框位置调整 */
-.direction-horizontal.position-top-left .toolbar-item .toolbar-tooltip,
-.direction-horizontal.position-top-right .toolbar-item .toolbar-tooltip {
-  left: 50%;
-  top: 100%; /* 改为显示在按钮下方 */
-  bottom: auto;
-  transform: translateX(-50%);
-  margin-left: 0;
-  margin-right: 0;
-  margin-top: 10px; /* 设置上边距 */
-  text-align: center;
-  z-index: 10000; /* 确保比按钮悬停状态的z-index更高 */
-  /* 居中对齐文本 */
-}
-
-.direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
-.direction-horizontal.position-bottom-right .toolbar-item .toolbar-tooltip {
-  left: 50%;
-  bottom: 100%;
-  top: auto;
-  transform: translateX(-50%);
-  margin-left: 0;
-  margin-right: 0;
-  margin-bottom: 10px;
-  text-align: center;
-  /* 居中对齐文本 */
-}
-
-/* 确保右侧工具栏的提示框不会超出屏幕左侧 */
 
 /* 图标样式 */
 .toolbar-item i {
@@ -1406,6 +1428,116 @@ defineExpose({
     stroke: #ffffff !important;
   }
 }
+
+/* 父菜单激活时重置子菜单图标样式 */
+.toolbar-item.active .toolbar-submenu .submenu-item:not(.active) {
+  path {
+    fill: #666666 !important;
+  }
+
+  circle {
+    fill: #666666 !important;
+  }
+}
+
+/* 工具提示样式 */
+.toolbar-tooltip {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 9999; /* 增大z-index值，确保比所有其他元素都高 */
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: tooltip-fade-in 0.2s ease;
+  transform: translateX(-50%); /* 水平居中 */
+}
+
+/* 水平方向工具栏的提示样式 */
+.direction-horizontal .toolbar-tooltip {
+  transform: translateX(-50%); /* 水平居中 */
+}
+
+/* 垂直方向工具栏的提示样式 */
+.direction-vertical .toolbar-tooltip {
+  transform: translateY(-50%); /* 垂直居中 */
+}
+
+/* 添加左侧工具栏的提示样式 */
+.position-top-left .toolbar-tooltip,
+.position-bottom-left .toolbar-tooltip {
+  left: unset !important; /* 覆盖任何已有的left值 */
+  margin-left: 10px; /* 与工具栏保持一定距离 */
+}
+
+/* 添加右侧工具栏的提示样式 */
+.position-top-right .toolbar-tooltip,
+.position-bottom-right .toolbar-tooltip {
+  right: unset !important; /* 覆盖任何已有的right值 */
+  margin-right: 10px; /* 与工具栏保持一定距离 */
+  margin-left: -10px; /* 向左偏移 */
+}
+
+/* 更精确控制不同位置的工具提示动画 */
+@keyframes tooltip-fade-in-horizontal {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes tooltip-fade-in-vertical {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* 基础位置样式 - 水平方向左侧工具栏 */
+.direction-horizontal.position-top-left .toolbar-collapse,
+.direction-horizontal.position-bottom-left .toolbar-collapse {
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 基础位置样式 - 水平方向右侧工具栏 */
+.direction-horizontal.position-top-right .toolbar-collapse,
+.direction-horizontal.position-bottom-right .toolbar-collapse {
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 基础位置样式 - 垂直方向顶部工具栏 */
+.direction-vertical.position-top-left .toolbar-collapse,
+.direction-vertical.position-top-right .toolbar-collapse {
+  left: 50%;
+  bottom: -30px;
+  top: auto;
+  transform: translateX(-50%);
+}
+
+/* 基础位置样式 - 垂直方向底部工具栏 */
+.direction-vertical.position-bottom-left .toolbar-collapse,
+.direction-vertical.position-bottom-right .toolbar-collapse {
+  left: 50%;
+  top: -30px;
+  bottom: auto;
+  transform: translateX(-50%);
+}
 </style>
 <style lang="scss">
 .total-distance {
@@ -1445,50 +1577,5 @@ defineExpose({
   circle {
     fill: #666666 !important;
   }
-}
-
-/* 工具提示样式 */
-.toolbar-tooltip {
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  z-index: 9999; /* 增大z-index值，确保比所有其他元素都高 */
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s, visibility 0.2s;
-  visibility: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  max-width: none;
-  /* 确保不受最大宽度限制 */
-  width: auto;
-  /* 自动调整宽度 */
-}
-
-/* 鼠标悬停时显示提示框 */
-.toolbar-item:hover .toolbar-tooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* 修复工具提示位置问题 */
-.toolbar-item {
-  position: relative;
-}
-
-/* 确保工具提示在hover时显示在最前面 */
-.map-toolbar {
-  position: absolute;
-  border-radius: 4px;
-  z-index: 2000;
-  /* 工具栏基础层级 */
-}
-
-.toolbar-item:hover {
-  z-index: 2005;
-  /* 确保悬停的按钮在其他按钮之上 */
 }
 </style>
