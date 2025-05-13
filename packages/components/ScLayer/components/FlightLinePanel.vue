@@ -3,20 +3,22 @@
  * @description 显示飞线图数据列表，支持单选
  */
 <template>
-  <div class="flight-line-panel" :class="{ active, collapsed, 
+  <div class="flight-line-panel" :class="{ active: props.active, collapsed, 
     'position-top-left': position === 'top-left',
     'position-top-right': position === 'top-right', 
     'position-bottom-left': position === 'bottom-left',
     'position-bottom-right': position === 'bottom-right'
-  }" @click.stop>
+  }" @click.stop v-show="props.active">
     <div class="flight-line-panel-header">
       <span class="panel-title">飞线数据</span>
       <div class="panel-actions">
-        <span class="panel-count" v-if="!collapsed">{{ flightLines.length }}条</span>
         <span class="panel-selected" v-if="!collapsed && selectedId">
           <span class="selected-indicator"></span>
           已选中
         </span>
+        <button class="toolbar-btn toolbar-btn-settings" @click.stop="toggleSettingsPanel" title="飞线设置">
+          <i class="settings-icon">⚙</i>
+        </button>
         <button class="minimize-btn" @click.stop="toggleCollapse" title="最小化/展开面板">
           <span v-if="collapsed">+</span>
           <span v-else>-</span>
@@ -24,6 +26,9 @@
       </div>
     </div>
     <div class="flight-line-panel-content" v-if="!collapsed">
+      <!-- 添加背景蒙版，确保在内容之上但面板之下 -->
+      <div class="settings-backdrop" v-if="showSettingsPanel" @click.stop="showSettingsPanel = false"></div>
+      
       <div class="flight-line-stats">
         <span>总数: {{ flightLineCount }}</span>
         <span>选中: {{ selectedCount }}</span>
@@ -83,27 +88,220 @@
           <i class="initial-tip-icon">☝️</i>
           <span class="initial-tip-text">点击列表项可以在地图上显示对应飞线</span>
         </div>
-        <div 
-          v-for="line in filteredFlightLines" 
-          :key="line.id" 
-          class="flight-line-item"
-          :class="{
+        <div v-for="line in filteredFlightLines" :key="line.id" class="flight-line-item" :class="{
             'flight-line-item-active': line.id === selectedId
-          }" 
-          @click="selectFlightLine(line.id)"
-        >
+          }" @click="selectFlightLine(line.id)">
           <div class="flight-line-content">
             <div class="flight-line-title">{{ line.fromName }} → {{ line.toName }}</div>
             <div class="flight-line-details">
               <span class="flight-line-id">ID: {{ line.id.slice(0, 8) }}...</span>
               <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
-          </div>
+            </div>
           </div>
           <div v-if="line.id === selectedId" class="flight-line-active-badge">
             激活
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- 添加内部弹出式设置面板 -->
+      <div class="flight-line-settings-popup thin-scrollbar" v-if="showSettingsPanel">
+        <div class="settings-popup-header">
+          <span class="settings-popup-title">飞线设置</span>
+          <button class="settings-popup-close" @click.stop="showSettingsPanel = false">×</button>
+        </div>
+        <div class="settings-popup-content thin-scrollbar">
+          <div class="settings-section">
+            <div class="section-title">线条设置</div>
+
+            <div class="setting-item">
+              <label>线条粗细</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.width" :min="0.5" :max="5" :step="0.1"
+                  @change="updateLineSetting('width')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.width }}</div>
+            </div>
+
+            <div class="setting-item">
+              <label>透明度</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.opacity" :min="0.1" :max="1" :step="0.05"
+                  @change="updateLineSetting('opacity')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.opacity }}</div>
+            </div>
+
+            <div class="setting-item">
+              <label>曲率</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.curveness" :min="0" :max="1" :step="0.05"
+                  @change="updateLineSetting('curveness')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.curveness }}</div>
+            </div>
+
+            <div class="setting-item">
+              <label>平滑曲线</label>
+              <el-switch v-model="lineSettings.smooth" @change="updateLineSetting('smooth')"></el-switch>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">动画效果</div>
+
+            <div class="setting-item">
+              <label>飞线动画</label>
+              <el-switch v-model="lineSettings.showEffect" @change="updateLineSetting('showEffect')"></el-switch>
+            </div>
+
+            <div class="setting-item" v-if="lineSettings.showEffect">
+              <label>动画周期(秒)</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.effectPeriod" :min="1" :max="10" :step="0.5"
+                  @change="updateLineSetting('effectPeriod')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.effectPeriod }}</div>
+            </div>
+
+            <div class="setting-item" v-if="lineSettings.showEffect">
+              <label>动画速度</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.effectSpeed" :min="1" :max="50" :step="1"
+                  @change="updateLineSetting('effectSpeed')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.effectSpeed }}</div>
+            </div>
+
+            <div class="setting-item" v-if="lineSettings.showEffect">
+              <label>轨迹长度</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.effectTrailLength" :min="0" :max="1" :step="0.05"
+                  @change="updateLineSetting('effectTrailLength')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.effectTrailLength }}</div>
+            </div>
+
+            <!-- 添加拖尾设置选项 -->
+            <template v-if="lineSettings.showEffect && lineSettings.effectTrailLength > 0">
+              <div class="setting-item">
+                <label>拖尾颜色</label>
+                <div class="color-picker-wrap">
+                  <el-color-picker v-model="lineSettings.trailColor" @change="updateLineSetting('trailColor')"></el-color-picker>
+                </div>
+                <div class="setting-value color-value">{{ lineSettings.trailColor }}</div>
+              </div>
+
+              <div class="setting-item">
+                <label>拖尾透明度</label>
+                <div class="slider-wrap">
+                  <el-slider v-model="lineSettings.trailOpacity" :min="0.1" :max="1" :step="0.05"
+                    @change="updateLineSetting('trailOpacity')"></el-slider>
+                </div>
+                <div class="setting-value">{{ lineSettings.trailOpacity }}</div>
+              </div>
+
+              <div class="setting-item">
+                <label>拖尾宽度</label>
+                <div class="slider-wrap">
+                  <el-slider v-model="lineSettings.trailWidth" :min="1" :max="5" :step="0.5"
+                    @change="updateLineSetting('trailWidth')"></el-slider>
+                </div>
+                <div class="setting-value">{{ lineSettings.trailWidth }}</div>
+              </div>
+            </template>
+
+            <div class="setting-item" v-if="lineSettings.showEffect">
+              <label>图标大小</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.effectSymbolSize" :min="5" :max="40" :step="1"
+                  @change="updateLineSetting('effectSymbolSize')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.effectSymbolSize }}</div>
+            </div>
+
+            <div class="setting-item">
+              <label>图标类型</label>
+              <el-select v-model="lineSettings.effectSymbol" @change="updateLineSetting('effectSymbol')"
+                style="width: 120px">
+                <el-option v-for="icon in iconOptions" :key="icon.value" :label="icon.label"
+                  :value="icon.value"></el-option>
+              </el-select>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="section-title">节点设置</div>
+
+            <div class="setting-item">
+              <label>显示节点</label>
+              <el-switch v-model="lineSettings.showNodes" @change="updateLineSetting('showNodes')"></el-switch>
+            </div>
+
+            <div class="setting-item" v-if="lineSettings.showNodes">
+              <label>节点大小</label>
+              <div class="slider-wrap">
+                <el-slider v-model="lineSettings.nodeSymbolSize" :min="2" :max="20" :step="1"
+                  @change="updateLineSetting('nodeSymbolSize')"></el-slider>
+              </div>
+              <div class="setting-value">{{ lineSettings.nodeSymbolSize }}</div>
+            </div>
+
+            <div class="setting-item" v-if="lineSettings.showNodes">
+              <label>节点特效</label>
+              <el-switch v-model="lineSettings.nodeEffect" @change="updateLineSetting('nodeEffect')"></el-switch>
+            </div>
+
+            <template v-if="lineSettings.showNodes && lineSettings.nodeEffect">
+              <div class="setting-item">
+                <label>涟漪周期</label>
+                <div class="slider-wrap">
+                  <el-slider v-model="lineSettings.rippleEffect.period" :min="1" :max="5" :step="0.1"
+                    @change="updateRippleEffect('period')">
+                  </el-slider>
+                </div>
+                <div class="setting-value">{{ lineSettings.rippleEffect.period }}</div>
+              </div>
+
+              <div class="setting-item">
+                <label>涟漪比例</label>
+                <div class="slider-wrap">
+                  <el-slider v-model="lineSettings.rippleEffect.scale" :min="2" :max="15" :step="0.5"
+                    @change="updateRippleEffect('scale')">
+                  </el-slider>
+                </div>
+                <div class="setting-value">{{ lineSettings.rippleEffect.scale }}</div>
+              </div>
+
+              <div class="setting-item">
+                <label>涟漪类型</label>
+                <el-select v-model="lineSettings.rippleEffect.brushType" @change="updateRippleEffect('brushType')"
+                  style="width: 120px">
+                  <el-option label="填充" value="fill"></el-option>
+                  <el-option label="描边" value="stroke"></el-option>
+                </el-select>
+              </div>
+
+              <div class="setting-item">
+                <label>阴影模糊度</label>
+                <div class="slider-wrap">
+                  <el-slider v-model="lineSettings.shadowBlur" :min="0" :max="30" :step="1"
+                    @change="updateLineSetting('shadowBlur')">
+                  </el-slider>
+                </div>
+                <div class="setting-value">{{ lineSettings.shadowBlur }}</div>
+              </div>
+            </template>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-actions">
+              <button class="toolbar-btn" @click="resetToDefault">恢复默认值</button>
+              <button class="toolbar-btn toolbar-btn-primary" @click="applySettingsToAll">应用设置</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- 折叠/最小化状态下的图标 -->
     <div class="track-player-minimized" v-if="collapsed" @click.stop="toggleCollapse">
@@ -124,6 +322,7 @@ export default {
 import { FLIGHT_LINE_ICON } from '../types/icon';
 import { ref, computed, defineProps, defineEmits, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import type { FlightLineData } from '../types/flightline';
+import { DEFAULT_FLIGHTLINE_CONFIG } from '../types/flightline';
 import { ElButton, ElTooltip, ElSlider, ElPopover } from 'element-plus';
 
 const props = defineProps<{
@@ -144,6 +343,8 @@ const selectedId = ref<string | null>(null);
 const isInitialized = ref(false);
 const isPanelTouched = ref(false);
 const panelInitialized = ref(false);
+// 添加设置面板状态
+const showSettingsPanel = ref(false);
 
 // 性能模式
 const performanceMode = ref(false);
@@ -155,10 +356,50 @@ const glRenderMode = ref(false);
 // GL模式是否可用
 const glModeAvailable = ref(false);
 
-// 图标选择
-const selectedIcon = ref('plane');
-const customIconPath = ref('');
-const iconSize = ref(15);
+// 添加飞线设置
+const lineSettings = ref({
+  width: 1,
+  opacity: 0.8,
+  curveness: 0.4,
+  smooth: true,
+  smoothConstraint: true,
+  smoothMonotone: null,
+  
+  showEffect: true,
+  effectPeriod: 3,
+  effectTrailLength: 0.3,
+  effectSymbol: 'plane',
+  effectSymbolSize: 18,
+  effectSpeed: 40, // 添加动画速度
+  
+  // 添加拖尾相关属性
+  trailColor: '#1677ff',         // 拖尾颜色
+  trailOpacity: 0.7,             // 拖尾透明度
+  trailWidth: 3,                 // 拖尾宽度
+  
+  showNodes: true,
+  nodeSymbolSize: 12,
+  nodeColor: '#1677ff',
+  nodeEffect: true,
+  
+  rippleEffect: {
+    period: 2.5,
+    scale: 8,
+    brushType: 'stroke'
+  },
+  
+  shadowBlur: 20,
+  shadowColor: '#1677ff'
+});
+
+// 图标选项
+const iconOptions = [
+  { value: 'plane', label: '飞机' },
+  { value: 'arrow', label: '箭头' },
+  { value: 'triangle', label: '三角形' },
+  { value: 'circle', label: '圆形' },
+  { value: 'pin', label: '定位' }
+];
 
 // 图标路径定义
 const iconPaths = {
@@ -167,6 +408,29 @@ const iconPaths = {
   triangle: 'M16,0 L32,32 L0,32 L16,0 z',
   circle: 'M16,0 C7.16,0 0,7.16 0,16 C0,24.84 7.16,32 16,32 C24.84,32 32,24.84 32,16 C32,7.16 24.84,0 16,0 Z',
   pin: 'M16,0 C7.16,0 0,7.16 0,16 C0,24.84 7.16,32 16,32 C24.84,32 32,24.84 32,16 C32,7.16 24.84,0 16,0 Z M16,5 C21.15,5 25.33,9.18 25.33,14.33 C25.33,19.48 21.15,23.67 16,23.67 C10.85,23.67 6.67,19.48 6.67,14.33 C6.67,9.18 10.85,5 16,5 Z'
+};
+
+/**
+ * 获取有效的飞线图标路径
+ * 统一处理图标路径获取逻辑
+ * @param effectSymbol 图标类型名称
+ * @param effectSymbolPath 自定义图标路径
+ * @returns 处理后的有效图标路径
+ */
+const getEffectSymbol = (effectSymbol?: string, effectSymbolPath?: string): string => {
+  // 如果有自定义路径，优先使用
+  if (effectSymbolPath) {
+    // 确保路径以path://开头
+    return effectSymbolPath.startsWith('path://') ? effectSymbolPath : `path://${effectSymbolPath}`;
+  }
+  
+  // 如果有内置图标类型且在预定义图标中存在
+  if (effectSymbol && effectSymbol in iconPaths) {
+    return `path://${iconPaths[effectSymbol]}`;
+  }
+  
+  // 默认使用飞机图标
+  return `path://${iconPaths.plane}`;
 };
 
 // 飞线图标预览动画
@@ -520,43 +784,43 @@ const addDemoFlightLines = () => {
     const beijing = cities[0]; // 北京作为起点
     const currentTime = Date.now();
     
-    // 可用图标类型
-    const iconTypes = ['plane', 'arrow', 'triangle', 'circle', 'pin'];
-    
-    // 创建从北京飞往其他城市的飞线
+    // 创建从北京飞往其他城市的传统飞线
     cities.forEach((city, index) => {
       // 跳过北京自身
       if (index === 0) return;
       
-      // 为每条飞线随机生成颜色（偏蓝色系）
-      const r = Math.floor(Math.random() * 80);
-      const g = Math.floor(Math.random() * 140);
-      const b = Math.floor(Math.random() * 100) + 155; // 确保有足够蓝色
-      const color = `rgba(${r}, ${g}, ${b}, 0.8)`;
-      
-      // 随机选择一个图标
-      const iconType = iconTypes[index % iconTypes.length];
-      
-      // 随机计算曲率, 0.1-0.5之间
-      const curveness = 0.1 + (index / cities.length) * 0.4;
-      
-      // 创建飞线，从北京到目标城市
+      // 创建飞线，从北京到目标城市，使用默认样式
       demoLines.push({
         from: [beijing.lng, beijing.lat],
         to: [city.lng, city.lat],
         fromName: beijing.name,
         toName: city.name,
-        value: Math.floor(Math.random() * 1000) + 100,
-        _createTime: currentTime - ((cities.length - index) * 10000), // 越晚添加的城市，_createTime越大
-        effectSymbol: iconType, // 使用不同的图标
-        effectSymbolSize: 12 + (index % 3) * 3, // 大小在12-18之间
-        style: {
-          color: color,
-          width: 1.5 + (index % 4), // 宽度在1.5-5.5之间
-          curveness: curveness // 曲率随距离增加
-        }
-        });
+        value: 100, // 使用统一的默认值
+        _createTime: currentTime - ((cities.length - index) * 10000) // 越晚添加的城市_createTime越大
       });
+    });
+
+    // 创建一个使用FlightCoord多组坐标的飞线示例
+    // 此飞线将在一个ID下包含多条飞线路径，全部从北京出发到多个城市
+    const multiCoordsExample = {
+      fromName: "北京", // 主起点名称
+      toName: "多目的地", // 主终点名称（仅显示用）
+      isMultiCoords: true, // 标记为多组坐标
+      _createTime: currentTime, // 使其排在最前面
+      // 使用FlightCoord数组替代传统coords
+      coords: cities.slice(1, 6).map((city) => {
+        return {
+          from: [beijing.lng, beijing.lat], // 起点始终是北京
+          to: [city.lng, city.lat], // 终点是当前城市
+          fromName: beijing.name,
+          toName: city.name,
+          value: 100 // 使用统一的默认值
+        };
+      })
+    };
+    
+    // 将多组坐标示例添加到演示数据中
+    demoLines.push(multiCoordsExample);
 
     console.log('准备添加演示数据:', demoLines);
     
@@ -567,7 +831,7 @@ const addDemoFlightLines = () => {
     const ids = props.flightLineObj.addFlightLines(demoLines, false, 0);
     console.log('添加演示数据完成，返回的ID:', ids);
     
-    // 设置第一条飞线为活动状态
+    // 设置第一条飞线（多组坐标示例）为活动状态
     if (ids.length > 0) {
       props.flightLineObj.setActiveFlightLine(ids[0]);
       console.log(`设置飞线 ${ids[0]} 为活动状态`);
@@ -700,125 +964,151 @@ const updateFlightLineIcon = () => {
   try {
     // 更新飞线图对象的图标配置
     props.flightLineObj.setConfig({
-      effectSymbol: selectedIcon.value,
-      effectSymbolPath: selectedIcon.value === 'path' ? currentIconPath.value : 
-                      (selectedIcon.value in iconPaths ? `path://${iconPaths[selectedIcon.value]}` : undefined),
-      effectSymbolSize: iconSize.value
+      effectSymbol: lineSettings.value.effectSymbol,
+      effectSymbolSize: lineSettings.value.effectSymbolSize
     });
     
-    console.log(`飞线图图标已更新为: ${selectedIcon.value}, 大小: ${iconSize.value}`);
+    console.log(`飞线图图标已更新为: ${lineSettings.value.effectSymbol}, 大小: ${lineSettings.value.effectSymbolSize}`);
   } catch (error) {
     console.error('更新飞线图图标失败:', error);
   }
 };
 
-// 更新图标大小
-const updateIconSize = () => {
+// 切换设置面板
+const toggleSettingsPanel = () => {
+  showSettingsPanel.value = !showSettingsPanel.value;
+  
+  // 如果打开设置面板，从当前配置初始化设置值
+  if (showSettingsPanel.value && props.flightLineObj) {
+    const config = props.flightLineObj.config || DEFAULT_FLIGHTLINE_CONFIG;
+    
+    // 复制配置到设置中
+    lineSettings.value = {
+      width: config.width || 1,
+      opacity: config.opacity || 0.8,
+      curveness: config.curveness || 0.4,
+      smooth: config.smooth !== undefined ? config.smooth : true,
+      smoothConstraint: config.smoothConstraint !== undefined ? config.smoothConstraint : true,
+      smoothMonotone: config.smoothMonotone,
+      
+      showEffect: config.showEffect !== undefined ? config.showEffect : true,
+      effectPeriod: config.effectPeriod || 3,
+      effectTrailLength: config.effectTrailLength || 0.3,
+      effectSymbol: config.effectSymbol || 'plane',
+      effectSymbolSize: config.effectSymbolSize || 18,
+      effectSpeed: config.effectSpeed || 40, // 添加动画速度
+      
+      trailColor: config.trailColor || '#1677ff',
+      trailOpacity: config.trailOpacity || 0.7,
+      trailWidth: config.trailWidth || 3,
+      
+      showNodes: config.showNodes !== undefined ? config.showNodes : true,
+      nodeSymbolSize: config.nodeSymbolSize || 12,
+      nodeColor: config.nodeColor || '#1677ff',
+      nodeEffect: config.nodeEffect !== undefined ? config.nodeEffect : true,
+      
+      rippleEffect: {
+        period: config.rippleEffect?.period || 2.5,
+        scale: config.rippleEffect?.scale || 8,
+        brushType: config.rippleEffect?.brushType || 'stroke'
+      },
+      
+      shadowBlur: config.shadowBlur || 20,
+      shadowColor: config.shadowColor || '#1677ff'
+    };
+  }
+};
+
+// 更新线条设置
+const updateLineSetting = (name: string) => {
   if (!props.flightLineObj) return;
   
   try {
-    // 更新飞线图对象的图标大小配置
-    props.flightLineObj.setConfig({
-      effectSymbolSize: iconSize.value
-    });
+    // 构建更新对象
+    const updateConfig: any = {};
+    updateConfig[name] = lineSettings.value[name];
     
-    console.log(`飞线图图标大小已更新为: ${iconSize.value}`);
+    // 更新配置
+    props.flightLineObj.setConfig(updateConfig);
+    
+    console.log(`[FlightLine] 更新配置 ${name} 为: `, updateConfig[name]);
   } catch (error) {
-    console.error('更新飞线图图标大小失败:', error);
+    console.error(`更新配置 ${name} 失败:`, error);
   }
 };
 
-// 在script setup部分添加新的变量和方法
-const tempSelectedIcon = ref<string>('plane');
-const tempIconSize = ref<number>(5);
-
-// 获取指定飞线的图标类型
-const getLineIcon = (id) => {
-  const line = flightLines.value.find(l => l.id === id);
-  if (line && line.effectSymbol) {
-    return line.effectSymbol;
-  }
-  return selectedIcon.value; // 默认使用全局设置
-};
-
-// 获取指定飞线的图标大小
-const getLineIconSize = (id) => {
-  const line = flightLines.value.find(l => l.id === id);
-  if (line && line.effectSymbolSize !== undefined) {
-    return line.effectSymbolSize;
-  }
-  return iconSize.value; // 默认使用全局设置
-};
-
-// 应用图标更改到特定飞线
-const applyIconChanges = (id, icon, size) => {
+// 更新涟漪效果
+const updateRippleEffect = (name: string) => {
   if (!props.flightLineObj) return;
   
   try {
-    // 查找对应的飞线
-    const line = flightLines.value.find(l => l.id === id);
-    if (!line) return;
+    // 构建更新对象，包含完整的rippleEffect对象
+    const updateConfig = {
+      rippleEffect: { ...lineSettings.value.rippleEffect }
+    };
     
-    // 获取图标路径
-    let symbolPath = null;
-    if (icon in iconPaths) {
-      symbolPath = `path://${iconPaths[icon]}`;
-    }
+    // 更新配置
+    props.flightLineObj.setConfig(updateConfig);
     
-    // 更新飞线数据
-    props.flightLineObj.updateFlightLine(id, {
-      custom: {
-        effectSymbol: icon,
-        effectSymbolPath: symbolPath,
-        effectSymbolSize: size
-      }
-    });
-    
-    // 更新本地数据
-    line.effectSymbol = icon;
-    line.effectSymbolPath = symbolPath;
-    line.effectSymbolSize = size;
-    
-    console.log(`已为飞线 ${id} 设置自定义图标: ${icon}, 大小: ${size}`);
-    
-    // 刷新列表视图
-    refreshFlightLineList();
+    console.log(`[FlightLine] 更新涟漪效果 ${name} 为: `, lineSettings.value.rippleEffect[name]);
   } catch (error) {
-    console.error('为飞线设置自定义图标失败:', error);
+    console.error(`更新涟漪效果 ${name} 失败:`, error);
   }
 };
 
-// 获取飞线的图标路径
-const getSymbolPathForLine = (line) => {
-  if (line.effectSymbolPath && line.effectSymbolPath.startsWith('path://')) {
-    return line.effectSymbolPath.substring(7); // 移除'path://'前缀
-  }
+// 恢复默认值
+const resetToDefault = () => {
+  if (!props.flightLineObj) return;
   
-  if (line.effectSymbol && line.effectSymbol in iconPaths) {
-    return iconPaths[line.effectSymbol];
+  try {
+    // 使用默认配置
+    const defaultConfig = {...DEFAULT_FLIGHTLINE_CONFIG};
+    
+    // 更新设置面板数据
+    lineSettings.value = {
+      width: defaultConfig.width || 1,
+      opacity: defaultConfig.opacity || 0.8,
+      curveness: defaultConfig.curveness || 0.4,
+      smooth: defaultConfig.smooth !== undefined ? defaultConfig.smooth : true,
+      smoothConstraint: defaultConfig.smoothConstraint !== undefined ? defaultConfig.smoothConstraint : true,
+      smoothMonotone: defaultConfig.smoothMonotone,
+      
+      showEffect: defaultConfig.showEffect !== undefined ? defaultConfig.showEffect : true,
+      effectPeriod: defaultConfig.effectPeriod || 3,
+      effectTrailLength: defaultConfig.effectTrailLength || 0.3,
+      effectSymbol: defaultConfig.effectSymbol || 'plane',
+      effectSymbolSize: defaultConfig.effectSymbolSize || 18,
+      effectSpeed: defaultConfig.effectSpeed || 40, // 添加动画速度
+      
+      trailColor: defaultConfig.trailColor || '#1677ff',
+      trailOpacity: defaultConfig.trailOpacity || 0.7,
+      trailWidth: defaultConfig.trailWidth || 3,
+      
+      showNodes: defaultConfig.showNodes !== undefined ? defaultConfig.showNodes : true,
+      nodeSymbolSize: defaultConfig.nodeSymbolSize || 12,
+      nodeColor: defaultConfig.nodeColor || '#1677ff',
+      nodeEffect: defaultConfig.nodeEffect !== undefined ? defaultConfig.nodeEffect : true,
+      
+      rippleEffect: {
+        period: defaultConfig.rippleEffect?.period || 2.5,
+        scale: defaultConfig.rippleEffect?.scale || 8,
+        brushType: defaultConfig.rippleEffect?.brushType || 'stroke'
+      },
+      
+      shadowBlur: defaultConfig.shadowBlur || 20,
+      shadowColor: defaultConfig.shadowColor || '#1677ff'
+    };
+    
+    // 应用配置
+    props.flightLineObj.setConfig(defaultConfig);
+    
+    console.log('[FlightLine] 已恢复默认配置');
+  } catch (error) {
+    console.error('恢复默认配置失败:', error);
   }
-  
-  // 默认使用当前选择的图标
-  return getIconPreviewPath(selectedIcon.value);
 };
 
-// 获取当前选中图标的路径
-const currentIconPath = computed(() => {
-  if (tempSelectedIcon.value in iconPaths) {
-    return `path://${iconPaths[tempSelectedIcon.value]}`;
-  }
-  return `path://${iconPaths.plane}`;
-});
-
-// 获取图标预览路径
-const getIconPreviewPath = (icon) => {
-  if (icon in iconPaths) {
-    return iconPaths[icon];
-  }
-  return iconPaths.circle;
-};
-
-// 更新updateFlightLine方法以支持自定义配置
+// 更新飞线
 const updateFlightLine = (id, options) => {
   if (!props.flightLineObj) return false;
   
@@ -833,9 +1123,6 @@ const updateFlightLine = (id, options) => {
         if (options.custom.effectSymbol !== undefined) {
           line.effectSymbol = options.custom.effectSymbol;
         }
-        if (options.custom.effectSymbolPath !== undefined) {
-          line.effectSymbolPath = options.custom.effectSymbolPath;
-        }
         if (options.custom.effectSymbolSize !== undefined) {
           line.effectSymbolSize = options.custom.effectSymbolSize;
         }
@@ -849,16 +1136,68 @@ const updateFlightLine = (id, options) => {
   }
 };
 
-// 切换飞线可见性
-const toggleFlightLine = (id: string) => {
-  if (selectedId.value === id) {
-    clearSelection();
-  } else {
-    selectFlightLine(id);
+// 应用到所有飞线
+const applySettingsToAll = () => {
+  if (!props.flightLineObj) return;
+  
+  try {
+    // 将当前设置应用到全局配置
+    props.flightLineObj.setConfig(lineSettings.value);
+    
+    // 刷新当前显示的飞线
+    if (selectedId.value) {
+      // 如果有选中的飞线，先更新它
+      updateFlightLine(selectedId.value, {
+        custom: {
+          effectSymbol: lineSettings.value.effectSymbol,
+          effectSymbolSize: lineSettings.value.effectSymbolSize
+        }
+      });
+      // 重新显示该飞线
+      props.flightLineObj.showOnlyFlightLine(selectedId.value);
+    } else if (typeof props.flightLineObj.updateEchartsOptions === 'function') {
+      // 没有选中飞线，调用更新方法刷新图表
+      props.flightLineObj.updateEchartsOptions();
+    }
+    
+    console.log('[FlightLine] 已将设置应用到所有飞线');
+    
+    // 可选：关闭设置面板
+    showSettingsPanel.value = false;
+  } catch (error) {
+    console.error('应用设置到所有飞线失败:', error);
   }
 };
 
-// 初始化数据加载
+// 监听飞线对象状态并自动调整面板显示
+const checkFlightLineStatus = () => {
+  if (!props.flightLineObj) {
+    // 如果飞线对象不存在，确保面板处于非激活状态
+    return false;
+  }
+  
+  try {
+    // 检查飞线图层是否启用
+    const isEnabled = typeof props.flightLineObj.isEnabled === 'function' 
+      ? props.flightLineObj.isEnabled() 
+      : true;
+    
+    // 如果飞线图层被禁用，则隐藏设置面板并折叠
+    if (!isEnabled && showSettingsPanel.value) {
+      showSettingsPanel.value = false;
+      console.log('[FlightLinePanel] 飞线图层已禁用，关闭设置面板');
+    }
+    
+    return isEnabled;
+  } catch (error) {
+    console.error('[FlightLinePanel] 检查飞线状态出错:', error);
+    return false;
+  }
+};
+
+// 周期性检查飞线状态
+let statusCheckInterval: any = null;
+
 onMounted(() => {
   console.log('FlightLinePanel组件挂载');
   
@@ -881,16 +1220,43 @@ onMounted(() => {
   });
   
   // 监听active属性变化
-  watch(() => props.active, (active) => {
-    console.log('面板active状态变更:', active);
-    if (active) {
+  watch(() => props.active, (newActive) => {
+    console.log('面板active状态变更:', newActive);
+    if (newActive) {
       // 当面板变为活动状态时，加载数据
       nextTick(() => {
         console.log('面板激活，加载数据');
         loadAndEnsureData();
       });
+    } else {
+      // 当组件变为非激活状态时
+      console.log('面板非激活，清理状态');
+      
+      // 隐藏设置面板
+      showSettingsPanel.value = false;
+      
+      // 如果需要，也可以清空选中的飞线
+      if (selectedId.value) {
+        clearSelection();
+      }
+      
+      // 折叠面板
+      collapsed.value = true;
     }
   }, { immediate: true });
+  
+  // 设置周期性检查
+  statusCheckInterval = setInterval(() => {
+    checkFlightLineStatus();
+  }, 1000); // 每秒检查一次
+});
+
+onBeforeUnmount(() => {
+  // 清除定时器
+  if (statusCheckInterval) {
+    clearInterval(statusCheckInterval);
+    statusCheckInterval = null;
+  }
 });
 
 // 暴露方法给父组件
@@ -924,12 +1290,14 @@ defineExpose({
   pointer-events: none;
   transition: opacity 0.3s, transform 0.3s;
   transform: translateY(-10px);
+  visibility: hidden; /* 默认隐藏 */
 }
 
 .flight-line-panel.active {
   opacity: 1;
   pointer-events: all;
   transform: translateY(0);
+  visibility: visible; /* 激活时显示 */
 }
 
 .flight-line-panel.collapsed {
@@ -1015,10 +1383,10 @@ defineExpose({
   background: none;
   border: none;
   color: white;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -1076,14 +1444,12 @@ defineExpose({
 .toolbar-btn {
   padding: 4px 8px;
   font-size: 12px;
-  border: 1px solid #ddd;
-  background-color: #f5f5f5;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .toolbar-btn:hover {
-  background-color: #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .toolbar-btn:disabled {
@@ -1615,5 +1981,169 @@ defineExpose({
   font-size: 12px;
   color: #ff6a00;
   margin-top: 8px;
+}
+
+/* 添加设置面板 */
+.flight-line-settings-popup {
+  position: absolute;
+  top: 40px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 1001; /* 更高的z-index确保在蒙版上方 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background-color: #3498db;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.settings-popup-title {
+  font-weight: bold;
+  color: white;
+}
+
+.settings-popup-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+}
+
+.settings-popup-close:hover {
+  color: #f0f0f0;
+}
+
+.settings-popup-content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.setting-item {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.setting-item label {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.slider-wrap {
+  flex: 1;
+  min-width: 150px;
+  margin: 0 10px;
+}
+
+.setting-value {
+  width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+/* 添加设置按钮样式 */
+.toolbar-btn-settings {
+  color: white;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.settings-icon {
+  font-style: normal;
+  font-size: 16px;
+}
+
+/* 添加背景蒙版 */
+.settings-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000; /* 确保在面板内容之上，但在设置面板之下 */
+  backdrop-filter: blur(2px); /* 添加模糊效果 */
+  animation: backdrop-fade-in 0.3s ease;
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.color-value {
+  margin-left: 10px;
+  color: #666;
+  font-size: 12px;
+}
+
+.setting-subsection {
+  margin-left: 15px;
+  margin-top: 5px;
+  padding-left: 10px;
+  border-left: 2px solid #eee;
+}
+
+.subsection-title {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
 }
 </style> 
