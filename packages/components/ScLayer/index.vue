@@ -2146,6 +2146,11 @@ defineExpose({
         if (props.trackPlayerConfig?.showPointNames !== undefined) {
           trackObj.setMovingPointNameVisible(trackId, props.trackPlayerConfig.showPointNames);
         }
+        
+        // 设置节点时间显示
+        if (props.trackPlayerConfig?.showNodeTime !== undefined) {
+          trackObj.setTrackNodeTimeVisible(trackId, props.trackPlayerConfig.showNodeTime);
+        }
 
         // 设置速度显示（移动速度）
         if (props.trackPlayerConfig?.showSpeed !== undefined) {

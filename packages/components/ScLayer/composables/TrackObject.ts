@@ -1424,7 +1424,12 @@ export class TrackObject {
     const points = track.points;
     
     // 边界检查
-    if (progress <= 0) return points[0];
+    if (progress <= 0) {
+      // 第一个点速度始终为0
+      const firstPoint = { ...points[0] };
+      firstPoint.speed = 0;
+      return firstPoint;
+    }
     if (progress >= 1) return points[points.length - 1];
     
     // 获取当前轨迹ID和倍速因子
@@ -1470,41 +1475,35 @@ export class TrackObject {
     const timeDiff = nextPoint.time - currentPoint.time;
     const currentTime = currentPoint.time + timeDiff * fraction;
     
-    // 计算实际速度：基于两个点之间的地理距离和时间差
+    // 计算实际速度
     let speed: number;
-    // 如果已经提供了速度，使用线性插值，并应用倍速因子
-    if (currentPoint.speed !== undefined && nextPoint.speed !== undefined) {
-      // 使用已有速度进行插值
-      const baseSpeed = currentPoint.speed + (nextPoint.speed - currentPoint.speed) * fraction;
-      // 应用倍速因子
-      speed = baseSpeed * speedFactor;
+    
+    // 特殊处理：如果是第一个点，速度始终为0
+    if (index === 0 && fraction < 0.001) {
+      speed = 0;
     } else {
-      // 根据距离和时间计算速度
-      // 将经纬度坐标转换为地球表面距离（米）
-      const R = 6371000; // 地球半径，单位米
-      const lat1 = currentPoint.lat * Math.PI / 180;
-      const lat2 = nextPoint.lat * Math.PI / 180;
-      const lon1 = currentPoint.lng * Math.PI / 180;
-      const lon2 = nextPoint.lng * Math.PI / 180;
+      // 计算基于前一个点的速度（与需求一致：当前点速度等于当前点与上一个点的距离除以时间差）
+      const prevIndex = Math.max(0, index - 1);
+      const prevPoint = points[prevIndex];
+      const currPoint = currentPoint;
       
-      const dLat = lat2 - lat1;
-      const dLon = lon2 - lon1;
+      // 计算前一个点到当前点的距离
+      const distance = this.calculateDistance(prevPoint, currPoint);
+      const pointTimeDiff = currPoint.time - prevPoint.time;
       
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c; // 距离，单位米
-      
-      // 如果时间差为0，则使用默认速度
-      if (timeDiff <= 0) {
-        // 使用默认速度并应用倍速因子
+      if (pointTimeDiff <= 0 || index === 0) {
+        // 如果是第一个点或时间差无效，使用默认速度并应用倍速因子
         speed = defaultSpeed * speedFactor;
       } else {
         // 计算基础速度（km/h） = 距离(m) / 时间(s) * 3.6
-        const baseSpeed = (distance / timeDiff) * 3.6;
+        const baseSpeed = (distance / pointTimeDiff) * 3.6;
         // 应用倍速因子
         speed = baseSpeed * speedFactor;
+      }
+      
+      // 如果当前点已经指定了速度，使用指定的速度
+      if (currentPoint.speed !== undefined) {
+        speed = currentPoint.speed * speedFactor;
       }
     }
     
@@ -2240,6 +2239,23 @@ export class TrackObject {
     // 保存当前经过的点索引 - 用于显示实时速度
     this.trackCurrentPoints.set(id, currentIndex);
     
+    // 更新已经过的普通点位为"经过状态"
+    for (let i = 0; i <= currentIndex; i++) {
+      // 获取已存在的Overlay
+      const existingOverlays = this.trackNodeOverlays.get(id);
+      if (existingOverlays && existingOverlays.has(i)) {
+        const overlay = existingOverlays.get(i)!;
+        // 检查是否是普通Overlay（非经过状态和非当前状态）
+        const element = overlay.getElement();
+        if (element && 
+            !element.className.includes('passed-node') && 
+            !element.className.includes('current-node')) {
+          // 更新为经过状态
+          this.updateNodeOverlayToPassed(id, i);
+        }
+      }
+    }
+    
     // 为每个节点创建样式并绘制
     for (let i = 0; i < visiblePoints.length; i++) {
       const point = visiblePoints[i];
@@ -2304,32 +2320,23 @@ export class TrackObject {
             let speedText: string;
             
             // 确定节点速度
-            if (point.speed && point.speed > 0) {
+            if (i === 0) {
+              // 第一个点速度始终为0
+              nodeSpeed = 0;
+            } else if (point.speed && point.speed > 0) {
               // 使用节点自身的速度
               nodeSpeed = point.speed;
-            } else if (i < track.points.length - 1) {
-              // 计算当前节点到下一个节点的速度
-              const nextPoint = track.points[i + 1];
-              const distance = this.calculateDistance(point, nextPoint);
-              const timeDiff = nextPoint.time - point.time;
+            } else {
+              // 计算当前点与上一个点的速度
+              const prevPoint = track.points[i - 1];
+              const distance = this.calculateDistance(prevPoint, point);
+              const timeDiff = point.time - prevPoint.time;
               
               if (timeDiff > 0) {
                 // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
                 nodeSpeed = (distance / timeDiff) * 3.6;
               } else {
                 // 如果时间差为0，使用默认速度
-                const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                nodeSpeed = player.speed;
-              }
-            } else {
-              // 最后一个节点，使用之前节点的速度
-              const prevPoint = track.points[i - 1];
-              const distance = this.calculateDistance(prevPoint, point);
-              const timeDiff = point.time - prevPoint.time;
-              
-              if (timeDiff > 0) {
-                nodeSpeed = (distance / timeDiff) * 3.6;
-              } else {
                 const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
                 nodeSpeed = player.speed;
               }
@@ -2416,46 +2423,35 @@ export class TrackObject {
             nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
           }
           
-          // 添加经过时的速度信息
-          if (showNodeSpeeds) {
-            let nodeSpeed: number;
+          // 添加经过时的速度信息 - 经过的点都要显示速度信息，不受showNodeSpeeds设置影响
+          let nodeSpeed: number;
+          
+          // 确定节点速度
+          if (i === 0) {
+            // 第一个点速度始终为0
+            nodeSpeed = 0;
+          } else if (point.speed && point.speed > 0) {
+            // 使用节点自身的速度
+            nodeSpeed = point.speed;
+          } else {
+            // 计算当前点与上一个点的速度
+            const prevPoint = track.points[i - 1];
+            const distance = this.calculateDistance(prevPoint, point);
+            const timeDiff = point.time - prevPoint.time;
             
-            // 确定节点速度
-            if (point.speed && point.speed > 0) {
-              // 使用节点自身的速度
-              nodeSpeed = point.speed;
-            } else if (i < track.points.length - 1) {
-              // 计算当前节点到下一个节点的速度
-              const nextPoint = track.points[i + 1];
-              const distance = this.calculateDistance(point, nextPoint);
-              const timeDiff = nextPoint.time - point.time;
-              
-              if (timeDiff > 0) {
-                // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
-                nodeSpeed = (distance / timeDiff) * 3.6;
-              } else {
-                // 如果时间差为0，使用默认速度
-                const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                nodeSpeed = player.speed;
-              }
+            if (timeDiff > 0) {
+              // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
+              nodeSpeed = (distance / timeDiff) * 3.6;
             } else {
-              // 最后一个节点，使用之前节点的速度
-              const prevPoint = track.points[i - 1];
-              const distance = this.calculateDistance(prevPoint, point);
-              const timeDiff = point.time - prevPoint.time;
-              
-              if (timeDiff > 0) {
-                nodeSpeed = (distance / timeDiff) * 3.6;
-              } else {
-                const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                nodeSpeed = player.speed;
-              }
+              // 如果时间差为0，使用默认速度
+              const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
+              nodeSpeed = player.speed;
             }
-            
-            // 显示经过速度
-            nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
           }
           
+          // 显示经过速度（即使showNodeSpeeds为false，经过的点也要显示速度）
+          nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
+
           // 如果已经有Overlay，更新它
           if (overlayExists) {
             const existingOverlay = existingOverlays.get(i)!;
@@ -2533,45 +2529,11 @@ export class TrackObject {
               nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
             }
             
-            // 添加经过时的速度信息
-            if (showNodeSpeeds) {
-              let nodeSpeed: number;
-              
-              // 确定节点速度
-              if (point.speed && point.speed > 0) {
-                // 使用节点自身的速度
-                nodeSpeed = point.speed;
-              } else if (i < track.points.length - 1) {
-                // 计算当前节点到下一个节点的速度
-                const nextPoint = track.points[i + 1];
-                const distance = this.calculateDistance(point, nextPoint);
-                const timeDiff = nextPoint.time - point.time;
-                
-                if (timeDiff > 0) {
-                  // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
-                  nodeSpeed = (distance / timeDiff) * 3.6;
-                } else {
-                  // 如果时间差为0，使用默认速度
-                  const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                  nodeSpeed = player.speed;
-                }
-              } else {
-                // 最后一个节点，使用之前节点的速度
-                const prevPoint = track.points[i - 1];
-                const distance = this.calculateDistance(prevPoint, point);
-                const timeDiff = point.time - prevPoint.time;
-                
-                if (timeDiff > 0) {
-                  nodeSpeed = (distance / timeDiff) * 3.6;
-                } else {
-                  const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                  nodeSpeed = player.speed;
-                }
-              }
-              
-              // 显示经过速度
-              nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
-            }
+            // 添加经过时的速度信息 - 不受showNodeSpeeds设置影响
+            const nodeSpeed = 0; // 第一个点速度固定为0
+            
+            // 显示经过速度
+            nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
             
             // 创建高亮风格的Overlay
             const overlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay passed-node');
@@ -3022,11 +2984,15 @@ export class TrackObject {
     element.style.marginBottom = '15px'; // 增加底部空间用于添加箭头
     element.style.border = '1px solid rgba(0,0,0,0.1)';
     
-    // 设置特殊样式（如果是当前节点）
+    // 设置特殊样式（如果是当前节点或经过节点）
     if (className.includes('current-node')) {
       element.style.backgroundColor = '#fff8f0';
       element.style.borderColor = '#ffb980';
       element.style.boxShadow = '0 3px 10px rgba(255, 107, 24, 0.2)';
+    } else if (className.includes('passed-node')) {
+      element.style.backgroundColor = '#e6f7ff';
+      element.style.borderColor = '#91d5ff';
+      element.style.boxShadow = '0 3px 10px rgba(24, 144, 255, 0.2)';
     }
     
     // 添加箭头样式
@@ -3040,7 +3006,7 @@ export class TrackObject {
     arrow.style.borderLeft = '8px solid transparent';
     arrow.style.borderRight = '8px solid transparent';
     arrow.style.borderTop = className.includes('current-node') ? 
-      '8px solid white' : '8px solid white';
+      '8px solid #fff8f0' : (className.includes('passed-node') ? '8px solid #e6f7ff' : '8px solid white');
     
     // 添加箭头边框
     const arrowBorder = document.createElement('div');
@@ -3053,7 +3019,7 @@ export class TrackObject {
     arrowBorder.style.borderLeft = '9px solid transparent';
     arrowBorder.style.borderRight = '9px solid transparent';
     arrowBorder.style.borderTop = className.includes('current-node') ? 
-      '9px solid rgba(0,0,0,0.1)' : '9px solid rgba(0,0,0,0.1)';
+      '9px solid #ffb980' : (className.includes('passed-node') ? '9px solid #91d5ff' : '9px solid rgba(0,0,0,0.1)');
     arrowBorder.style.zIndex = '-1';
     
     // 添加箭头和边框到overlay元素
@@ -3199,6 +3165,90 @@ export class TrackObject {
     if (this.trackCurrentNodeOverlay) {
       this.mapInstance!.removeOverlay(this.trackCurrentNodeOverlay);
       this.trackCurrentNodeOverlay = null;
+    }
+  }
+
+  /**
+   * 更新普通节点为经过状态
+   * @param id 轨迹ID
+   * @param pointIndex 点索引
+   */
+  private updateNodeOverlayToPassed(id: string, pointIndex: number): void {
+    // 获取已存在的Overlay
+    const existingOverlays = this.trackNodeOverlays.get(id);
+    if (!existingOverlays || !existingOverlays.has(pointIndex)) {
+      return; // 没有找到对应的Overlay
+    }
+
+    const overlay = existingOverlays.get(pointIndex)!;
+    const element = overlay.getElement();
+    if (!element) return;
+
+    // 获取点位
+    const track = this.tracks.get(id);
+    if (!track || !track.points || pointIndex >= track.points.length) return;
+    
+    const point = track.points[pointIndex];
+    
+    // 计算速度
+    let nodeSpeed: number;
+    if (pointIndex === 0) {
+      // 第一个点速度为0
+      nodeSpeed = 0;
+    } else if (point.speed && point.speed > 0) {
+      // 使用点自身的速度
+      nodeSpeed = point.speed;
+    } else {
+      // 计算与前一个点的速度
+      const prevPoint = track.points[pointIndex - 1];
+      const distance = this.calculateDistance(prevPoint, point);
+      const timeDiff = point.time - prevPoint.time;
+      
+      if (timeDiff > 0) {
+        nodeSpeed = (distance / timeDiff) * 3.6;
+      } else {
+        const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
+        nodeSpeed = player.speed;
+      }
+    }
+
+    // 获取时间信息
+    let timeStr = '';
+    if (point.time && this.trackNodeTimeVisible.get(id) === true) {
+      const date = new Date(point.time * 1000);
+      timeStr = date.toLocaleTimeString();
+    }
+    
+    // 重建节点内容
+    let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title || ''}</div>`;
+    
+    // 添加时间信息
+    if (timeStr) {
+      nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
+    }
+    
+    // 添加速度信息
+    nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
+    
+    // 更新内容
+    element.innerHTML = nodeContent;
+    
+    // 更新样式为经过状态
+    element.className = 'track-node-overlay passed-node';
+    element.style.backgroundColor = '#e6f7ff';
+    element.style.borderColor = '#91d5ff';
+    element.style.boxShadow = '0 3px 10px rgba(24, 144, 255, 0.2)';
+    
+    // 更新箭头样式
+    const arrows = element.querySelectorAll('div');
+    if (arrows && arrows.length >= 2) {
+      // 更新箭头边框
+      const arrowBorder = arrows[0] as HTMLElement;
+      arrowBorder.style.borderTop = '9px solid #91d5ff';
+      
+      // 更新箭头
+      const arrow = arrows[1] as HTMLElement;
+      arrow.style.borderTop = '8px solid #e6f7ff';
     }
   }
 } 
