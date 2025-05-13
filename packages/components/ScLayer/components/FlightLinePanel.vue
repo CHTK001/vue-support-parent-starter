@@ -75,7 +75,7 @@
           <div class="diagnose-info">
             请点击"添加演示数据"或"刷新列表"按钮
         </div>
-          </div>
+                      </div>
         <div v-if="flightLines.length === 0" class="empty-list-debug">
           <div class="debug-panel">
             <h4>调试信息</h4>
@@ -209,16 +209,16 @@
                 </div>
                 <div class="setting-value">{{ lineSettings.trailWidth }}</div>
               </div>
-            </template>
+                  </template>
 
             <div class="setting-item" v-if="lineSettings.showEffect">
               <label>图标大小</label>
               <div class="slider-wrap">
                 <el-slider v-model="lineSettings.effectSymbolSize" :min="5" :max="40" :step="1"
                   @change="updateLineSetting('effectSymbolSize')"></el-slider>
-              </div>
+                    </div>
               <div class="setting-value">{{ lineSettings.effectSymbolSize }}</div>
-            </div>
+          </div>
 
             <div class="setting-item">
               <label>图标类型</label>
@@ -227,8 +227,8 @@
                 <el-option v-for="icon in iconOptions" :key="icon.value" :label="icon.label"
                   :value="icon.value"></el-option>
               </el-select>
-            </div>
           </div>
+        </div>
 
           <div class="settings-section">
             <div class="section-title">节点设置</div>
@@ -236,16 +236,16 @@
             <div class="setting-item">
               <label>显示节点</label>
               <el-switch v-model="lineSettings.showNodes" @change="updateLineSetting('showNodes')"></el-switch>
-            </div>
+      </div>
 
             <div class="setting-item" v-if="lineSettings.showNodes">
               <label>节点大小</label>
               <div class="slider-wrap">
                 <el-slider v-model="lineSettings.nodeSymbolSize" :min="2" :max="20" :step="1"
                   @change="updateLineSetting('nodeSymbolSize')"></el-slider>
-              </div>
+    </div>
               <div class="setting-value">{{ lineSettings.nodeSymbolSize }}</div>
-            </div>
+          </div>
 
             <div class="setting-item" v-if="lineSettings.showNodes">
               <label>节点特效</label>
@@ -259,9 +259,9 @@
                   <el-slider v-model="lineSettings.rippleEffect.period" :min="1" :max="5" :step="0.1"
                     @change="updateRippleEffect('period')">
                   </el-slider>
-                </div>
+            </div>
                 <div class="setting-value">{{ lineSettings.rippleEffect.period }}</div>
-              </div>
+            </div>
 
               <div class="setting-item">
                 <label>涟漪比例</label>
@@ -269,9 +269,9 @@
                   <el-slider v-model="lineSettings.rippleEffect.scale" :min="2" :max="15" :step="0.5"
                     @change="updateRippleEffect('scale')">
                   </el-slider>
-                </div>
-                <div class="setting-value">{{ lineSettings.rippleEffect.scale }}</div>
               </div>
+                <div class="setting-value">{{ lineSettings.rippleEffect.scale }}</div>
+            </div>
 
               <div class="setting-item">
                 <label>涟漪类型</label>
@@ -280,7 +280,7 @@
                   <el-option label="填充" value="fill"></el-option>
                   <el-option label="描边" value="stroke"></el-option>
                 </el-select>
-              </div>
+          </div>
 
               <div class="setting-item">
                 <label>阴影模糊度</label>
@@ -288,7 +288,7 @@
                   <el-slider v-model="lineSettings.shadowBlur" :min="0" :max="30" :step="1"
                     @change="updateLineSetting('shadowBlur')">
                   </el-slider>
-                </div>
+        </div>
                 <div class="setting-value">{{ lineSettings.shadowBlur }}</div>
               </div>
             </template>
@@ -667,7 +667,7 @@ const setOptimalView = () => {
       props.flightLineObj.enable().then(() => {
         // 启用后再设置最佳视角
         console.log('飞线图已启用，设置最佳视角');
-        props.flightLineObj.setOptimalView(5);
+    props.flightLineObj.setOptimalView(5);
       }).catch(err => {
         console.error('启用飞线图失败:', err);
       });
@@ -1213,9 +1213,9 @@ onMounted(() => {
   // 初始应用性能模式和GL渲染模式设置
   nextTick(() => {
     if (props.flightLineObj) {
-      updatePerformanceMode();
-      updateGLRenderMode();
-      updateFlightLineIcon(); // 初始应用图标设置
+    updatePerformanceMode();
+    updateGLRenderMode();
+    updateFlightLineIcon(); // 初始应用图标设置
     }
   });
   

@@ -1724,7 +1724,25 @@ const hideHeatmap = () => {
   
   return true;
 };
+/**
+ * 自适应显示轨迹
+ * @param id 轨迹ID
+ * @param options 配置选项
+ * @returns 是否成功
+ */
+const fitTrackToView = (id: string, options?: {
+  gotoStart?: boolean;
+  padding?: number[];
+  duration?: number;
+  maxZoom?: number;
+}): boolean => {
+  if (!trackObj) {
+    logger.warn('自适应显示轨迹失败: 轨迹对象未初始化');
+    return false;
+  }
 
+  return trackObj.fitTrackToView(id, options);
+};
 // 暴露方法给父组件
 defineExpose({
   // 基本方法
@@ -2356,25 +2374,7 @@ watch(() => props.markerConfig, (newConfig) => {
   }
 }, { deep: true });
 
-/**
- * 自适应显示轨迹
- * @param id 轨迹ID
- * @param options 配置选项
- * @returns 是否成功
- */
-const fitTrackToView = (id: string, options?: {
-  gotoStart?: boolean;
-  padding?: number[];
-  duration?: number;
-  maxZoom?: number;
-}): boolean => {
-  if (!trackObj) {
-    logger.warn('自适应显示轨迹失败: 轨迹对象未初始化');
-    return false;
-  }
-  
-  return trackObj.fitTrackToView(id, options);
-};
+
 </script>
 
 <style scoped>
