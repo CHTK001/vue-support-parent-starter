@@ -114,7 +114,7 @@ export class FlightLineObject {
       // 动态导入ol-echarts和echarts库
         const olEchartsModule = await import('ol-echarts');
         const echartsModule = await import('echarts');
-        
+
         this.echartsInstance = echartsModule;
         const EChartsLayer = olEchartsModule.default;
         
@@ -302,7 +302,7 @@ export class FlightLineObject {
             // 更新并重绘
             if (typeof this.echartsLayer.redraw === 'function') {
               this.echartsLayer.redraw();
-            }
+        }
           }
           logger.debug('[FlightLine] 地图移动结束，显示并重绘图层');
         }
@@ -310,7 +310,7 @@ export class FlightLineObject {
       
       // 存储事件监听器，以便后续移除
       this.eventListeners.push(viewChangeKey, moveStartKey, moveEndKey);
-      
+
       logger.debug('[FlightLine] 已设置地图事件监听器');
     } catch (error) {
       logger.error('[FlightLine] 设置地图事件监听器失败:', error);
@@ -364,7 +364,7 @@ export class FlightLineObject {
         return; // 直接返回，不再继续处理
       } else {
         logger.debug(`[FlightLine] 转换了 ${convertedData.length} 条飞线数据`);
-        
+
         // 创建飞线基础层
       series.push({
           name: '飞线基础',
@@ -382,10 +382,10 @@ export class FlightLineObject {
             color: this.config.color || '#a6c84c',
             width: 0,
             curveness: this.config.curveness || 0.2
-          },
+        },
           data: convertedData
-        });
-        
+      });
+
         // 创建飞线动画层
         series.push({
           name: '飞线动画',
@@ -416,15 +416,15 @@ export class FlightLineObject {
           },
           data: convertedData
         });
-        
+
         // 添加节点系列，如果配置了显示节点
         if (this.config.showNodes && convertedData.length > 0) {
           // 收集起点和终点节点数据
           const nodeData: any[] = [];
-          
+        
           // 使用Set去重
           const uniqueNodes = new Set<string>();
-          
+        
           convertedData.forEach(line => {
             // 确保有坐标
             if (line.coords && line.coords.length >= 2) {
@@ -438,8 +438,8 @@ export class FlightLineObject {
                   symbolSize: this.config.nodeSymbolSize || 5,
                   itemStyle: {
                     color: this.config.nodeColor || '#F58158'
-                  }
-                });
+          }
+        });
               }
               
               // 处理终点
@@ -456,8 +456,8 @@ export class FlightLineObject {
                 });
               }
             }
-          });
-          
+        });
+        
           // 添加节点系列
           if (nodeData.length > 0) {
           series.push({
@@ -487,7 +487,7 @@ export class FlightLineObject {
           }
         }
       }
-      
+
       // 构建完整的 echarts 选项
       const options = {
         animation: true,
@@ -510,7 +510,7 @@ export class FlightLineObject {
         },
         series: series
       };
-      
+
       // 设置选项
       if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
         this.echartsLayer.setChartOptions(options);
@@ -729,12 +729,12 @@ export class FlightLineObject {
             flightLineData['effect'] = {
               symbol: this.getEffectSymbol(line.effectSymbol, line.effectSymbolPath),
               symbolSize: line.effectSymbolSize || this.config.effectSymbolSize
-            };
-          }
-
+          };
+        }
+        
           // 添加到结果数组
           result.push(flightLineData);
-        }
+      }
       } catch (error) {
         logger.error(`[FlightLine] 转换飞线 ${id} 数据失败:`, error);
       }
@@ -742,8 +742,8 @@ export class FlightLineObject {
     
     logger.debug(`[FlightLine] 成功转换 ${result.length} 条飞线数据`);
     return result;
-  }
-
+    }
+    
   /**
    * 检查坐标是否在有效范围内
    * @param coord 坐标
@@ -1017,7 +1017,7 @@ export class FlightLineObject {
         logger.error('[FlightLine] 添加飞线失败:', error);
       }
     });
-    
+
     logger.debug(`[FlightLine] 成功添加 ${ids.length} 条飞线数据`);
     
     return ids;
@@ -1197,17 +1197,17 @@ export class FlightLineObject {
   public async enable(showTestData: boolean = false): Promise<void> {
     if (this.active) {
       logger.debug('[FlightLine] 飞线图已经处于激活状态');
-      
+    
       // 即使已经激活，也尝试更新一次选项，确保显示正常
       if (this.echartsLayer) {
         this.updateEchartsOptions();
-        
+    
         // 仅在明确指定要显示测试数据时才添加
         if (showTestData && this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
           logger.debug('[FlightLine] 已激活但无数据，添加测试数据（由用户显式请求）');
           this.updateEchartsOptions();
-        }
-        
+  }
+
         // 延迟注册后续处理，确保图层和DOM已经就绪
         this.schedulePostEnableProcessing();
       }
@@ -1231,10 +1231,10 @@ export class FlightLineObject {
         logger.warn('[FlightLine] 地图尺寸无效，尝试更新地图尺寸');
         this.mapInstance.updateSize();
       }
-      
+
       // 初始化图层
       await this.initEchartsLayer();
-      
+
       // 初始化完成后设置为激活状态
       this.active = true;
       
@@ -1288,7 +1288,7 @@ export class FlightLineObject {
         }
       } catch (error) {
         logger.warn('[FlightLine] 图表渲染处理错误:', error);
-      }
+    }
     }, 300);
 
     // 阶段3：不再自动设置最佳视角，避免自动渲染所有飞线

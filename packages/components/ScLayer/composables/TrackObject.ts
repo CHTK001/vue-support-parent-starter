@@ -364,10 +364,10 @@ export class TrackObject {
       return false;
     }
     
-    // 如果正在播放，先停止
+    // 如果正在播放，先移除动画监听
     if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING ||
         this.trackPlayStates.get(id) === TrackPlayState.PAUSED) {
-      this.stop(id);
+      this.removeTrackAnimation(id);
     }
     
     // 移除轨迹特征
@@ -386,6 +386,12 @@ export class TrackObject {
       this.trackPointFeatures.delete(id);
     }
     
+    // 移除轨迹位置特征
+    this.removePositionFeature(id);
+    
+    // 清除经过线
+    this.clearPassedLine(id);
+    
     // 移除轨迹数据
     this.tracks.delete(id);
     
@@ -398,6 +404,8 @@ export class TrackObject {
     this.trackPassedLineFeatures.delete(id);
     this.trackPositionFeatures.delete(id);
     this.trackAnimationListeners.delete(id);
+    this.trackProgressValues.delete(id);
+    this.trackSpeedFactors.delete(id);
     
     // 清除轨迹节点显示设置
     this.trackNodesVisible.delete(id);
@@ -800,6 +808,10 @@ export class TrackObject {
       this.log('debug', `轨迹 "${id}" 从暂停状态继续播放`);
       // 恢复OpenLayers动画
       this.trackPlayStates.set(id, TrackPlayState.PLAYING);
+      
+      // 确保地图重绘以触发动画继续
+      this.mapInstance.render();
+      
       return true;
     }
     
@@ -821,14 +833,11 @@ export class TrackObject {
       // 创建或获取经过线特征
       this.initPassedLineFeature(id);
       
-      // 添加OpenLayers动画事件监听
-      this.setupTrackAnimation(id);
-      
-      // 设置播放状态
+      // 设置播放状态 - 在添加动画监听器前设置，确保动画开始时状态正确
       this.trackPlayStates.set(id, TrackPlayState.PLAYING);
       
-      // 开始渲染循环
-      this.mapInstance.render();
+      // 添加OpenLayers动画事件监听
+      this.setupTrackAnimation(id);
       
       this.log('debug', `轨迹 "${id}" 开始播放`);
       return true;
@@ -870,39 +879,54 @@ export class TrackObject {
    * @returns 是否操作成功
    */
   public stop(id: string): boolean {
-    if (!this.tracks.has(id) || !this.mapInstance) {
-      this.log('warn', `轨迹 "${id}" 不存在或地图未初始化，无法停止`);
+    if (!this.tracks.has(id)) {
+      this.log('warn', `轨迹 "${id}" 不存在，无法停止播放`);
       return false;
     }
     
     // 获取播放状态
-    const currentState = this.trackPlayStates.get(id);
+    const currentState = this.trackPlayStates.get(id) || TrackPlayState.STOPPED;
     
-    // 如果已经是停止状态，不做任何操作
-    if (!currentState || currentState === TrackPlayState.STOPPED) {
+    // 如果已经停止，不做任何操作
+    if (currentState === TrackPlayState.STOPPED) {
       this.log('debug', `轨迹 "${id}" 已经是停止状态`);
-      return false;
+      return true;
     }
     
-    // 移除OpenLayers动画事件监听
-    this.removeTrackAnimation(id);
+    // 注意：我们不再移除轨迹动画监听器
+    // 我们只是改变播放状态，让动画暂停但保持视觉效果
+    // this.removeTrackAnimation(id);
     
-    // 更新状态为停止
+    // 设置为停止状态
     this.trackPlayStates.set(id, TrackPlayState.STOPPED);
     
-    // 清除经过线
-    this.clearPassedLine(id);
+    // 保持进度为当前值，而不是重置为0
+    // this.trackProgressValues.set(id, 0);
     
-    // 移除位置特征
-    this.removePositionFeature(id);
+    // 不再重置当前点索引
+    // this.trackCurrentPoints.delete(id);
     
-    // 重置进度
-    this.trackProgressValues.set(id, 0);
+    // 不再重置上一次时间戳
+    // this.trackLastTimes.delete(id);
     
-    // 触发一次渲染以清除残留效果
-    this.mapInstance.render();
+    // 不再移除位置标记特征和经过线
+    // this.removePositionFeature(id);
+    // this.clearPassedLine(id);
     
-    this.log('debug', `轨迹 "${id}" 已停止`);
+    // 移除活动标记
+    this.removeActiveMarker(id);
+    
+    // 触发进度重置事件，但使用当前进度而不是0
+    const currentProgress = this.trackProgressValues.get(id) || 0;
+    const position = this.calculatePositionAtProgress(this.tracks.get(id)!, currentProgress);
+    this.dispatchTrackProgressEvent(id, currentProgress, position);
+    
+    // 确保地图重绘以更新状态
+    if (this.mapInstance) {
+      this.mapInstance.render();
+    }
+    
+    this.log('debug', `轨迹 "${id}" 已停止播放`);
     return true;
   }
 
@@ -999,7 +1023,25 @@ export class TrackObject {
     
     // 添加帧率控制，降低高频渲染
     let lastRenderTime = Date.now();
-    const minRenderInterval = 30; // 每秒约33帧，通常足够流畅
+    const minRenderInterval = 30; // 约30FPS的刷新率
+    
+    // 创建动画循环函数
+    const animateTrack = () => {
+      if (!this.mapInstance || this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+        return; // 如果不再播放，退出动画循环
+      }
+      
+      // 请求下一帧动画
+      this.trackAnimationFrames.set(id, requestAnimationFrame(animateTrack));
+      
+      // 控制帧率，避免过高的渲染频率
+      const now = Date.now();
+      if (now - lastRenderTime >= minRenderInterval) {
+        // 触发地图重绘
+        this.mapInstance.render();
+        lastRenderTime = now;
+      }
+    };
 
     // 添加postrender事件监听器
     this.trackAnimationListeners.set(id, this.trackLayer.on('postrender', (event) => {
@@ -1009,6 +1051,9 @@ export class TrackObject {
       if (!frameState) {
         return;
       }
+      
+      // 获取当前播放状态
+      const currentState = this.trackPlayStates.get(id);
       
       // 如果没有上一次的时间戳，记录当前时间
       if (!this.trackLastTimes.has(id)) {
@@ -1020,8 +1065,11 @@ export class TrackObject {
       const lastTime = this.trackLastTimes.get(id)!;
       const elapsedTime = frameState.time - lastTime;
       
+      // 计算当前进度值
+      let progress = this.trackProgressValues.get(id) || 0;
+      
       // 如果正在播放，更新进度
-      if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
+      if (currentState === TrackPlayState.PLAYING) {
         // 计算新的进度
         // 1. 获取轨迹的实际时间范围（秒）
         const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
@@ -1034,7 +1082,7 @@ export class TrackObject {
         // 进度变化 = 经过时间(ms) / (轨迹时间范围(s) * 1000) * 速度因子
         const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
         
-        let newProgress = (this.trackProgressValues.get(id) || 0) + progressChange;
+        let newProgress = progress + progressChange;
         
         // 处理循环播放
         if (newProgress > 1) {
@@ -1048,66 +1096,65 @@ export class TrackObject {
         
         // 更新进度
         this.trackProgressValues.set(id, newProgress);
-        
-        // 计算当前位置
-        const position = this.calculatePositionAtProgress(track, newProgress);
-        
-        // 使相机跟随移动
-        if (player.withCamera && this.mapInstance) {
-          const view = this.mapInstance.getView();
-          const newCenter = fromLonLat([position.lng, position.lat]);
-          
-          // 使用防抖动处理，只有当位置变化大于一定阈值时才触发视图更新
-          // 这样可以减少不必要的渲染，提高流畅性
-          const viewCenter = view.getCenter();
-          if (viewCenter) {
-            const pixelDistance = Math.sqrt(
-              Math.pow(viewCenter[0] - newCenter[0], 2) +
-              Math.pow(viewCenter[1] - newCenter[1], 2)
-            );
-            
-            // 只有当位置变化超过阈值时才更新视图
-            // 这个阈值可以根据实际情况调整 - 使用较大的值提高流畅性
-            if (pixelDistance > 5) {
-              // 直接设置中心点，不使用animate方法
-              // 这样可以避免多个动画请求堆叠导致的卡顿
-              view.setCenter(newCenter);
-            }
-          } else {
-            // 如果没有当前中心点（首次设置），直接设置
-            view.setCenter(newCenter);
-          }
-        }
-        
-        // 绘制经过的线段
-        this.drawPassedLine(id, vectorContext, newProgress);
-        
-        // 绘制位置标记
-        this.drawPositionMarker(id, vectorContext, position);
-        
-        // 绘制轨迹节点
-        this.drawTrackNodes(id, vectorContext, track, newProgress);
-        
-        // 触发进度事件
-        this.dispatchTrackProgressEvent(id, newProgress, position);
+        progress = newProgress;
       }
       
-      // 更新上一次的时间戳
-      this.trackLastTimes.set(id, frameState.time);
+      // 始终绘制当前进度的轨迹（即使已停止或暂停）
+      // 这确保了轨迹在播放结束后保持最终状态，不会被重置
       
-      // 帧率控制：限制地图渲染请求频率
-      const now = Date.now();
-      if (now - lastRenderTime >= minRenderInterval) {
-        // 请求下一帧
-        this.mapInstance!.render();
-        lastRenderTime = now;
+      // 计算当前位置
+      const position = this.calculatePositionAtProgress(track, progress);
+      
+      // 使相机跟随移动 - 仅在播放状态下
+      if (currentState === TrackPlayState.PLAYING && player.withCamera && this.mapInstance) {
+        const view = this.mapInstance.getView();
+        const newCenter = fromLonLat([position.lng, position.lat]);
+        
+        // 使用防抖动处理，只有当位置变化大于一定阈值时才触发视图更新
+        // 这样可以减少不必要的渲染，提高流畅性
+        const viewCenter = view.getCenter();
+        if (viewCenter) {
+          const pixelDistance = Math.sqrt(
+            Math.pow(viewCenter[0] - newCenter[0], 2) +
+            Math.pow(viewCenter[1] - newCenter[1], 2)
+          );
+          
+          // 只有当位置变化超过阈值时才更新视图
+          // 这个阈值可以根据实际情况调整 - 使用较大的值提高流畅性
+          if (pixelDistance > 5) {
+            // 直接设置中心点，不使用animate方法
+            // 这样可以避免多个动画请求堆叠导致的卡顿
+            view.setCenter(newCenter);
+          }
+        } else {
+          // 如果没有当前中心点（首次设置），直接设置
+          view.setCenter(newCenter);
+        }
+      }
+      
+      // 绘制经过的线段
+      this.drawPassedLine(id, vectorContext, progress);
+      
+      // 绘制位置标记
+      this.drawPositionMarker(id, vectorContext, position);
+      
+      // 绘制轨迹节点
+      this.drawTrackNodes(id, vectorContext, track, progress);
+      
+      // 只在播放状态下触发进度事件
+      if (currentState === TrackPlayState.PLAYING) {
+        // 触发进度事件
+        this.dispatchTrackProgressEvent(id, progress, position);
+      }
+      
+      // 更新上一次的时间戳，只在播放状态下更新
+      if (currentState === TrackPlayState.PLAYING) {
+        this.trackLastTimes.set(id, frameState.time);
       }
     }));
     
-    // 请求动画帧以开始渲染
-    this.trackAnimationFrames.set(id, requestAnimationFrame(() => {
-      this.mapInstance!.render();
-    }));
+    // 启动动画循环
+    animateTrack();
     
     console.debug(`轨迹 "${id}" 动画已设置`);
   }
@@ -1121,6 +1168,12 @@ export class TrackObject {
     if (this.trackAnimationListeners.has(id)) {
       unByKey(this.trackAnimationListeners.get(id)!);
       this.trackAnimationListeners.delete(id);
+    }
+    
+    // 取消动画帧请求
+    if (this.trackAnimationFrames.has(id)) {
+      cancelAnimationFrame(this.trackAnimationFrames.get(id)!);
+      this.trackAnimationFrames.delete(id);
     }
   }
 
@@ -1633,11 +1686,9 @@ export class TrackObject {
     // 保存当前所有轨迹ID
     const trackIds = [...this.tracks.keys()];
     
-    // 停止所有正在播放的轨迹
+    // 移除所有轨迹动画监听器
     for (const id of trackIds) {
-      if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
-        this.stop(id);
-      }
+      this.removeTrackAnimation(id);
     }
     
     // 移除所有轨迹
@@ -2220,5 +2271,103 @@ export class TrackObject {
    */
   private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: any): void {
     logger[level](`[${LOG_MODULE}] ${message}`, data);
+  }
+
+  /**
+   * 自适应显示轨迹
+   * @param id 轨迹ID
+   * @param options 配置选项
+   * @returns 是否成功
+   */
+  public fitTrackToView(id: string, options?: {
+    gotoStart?: boolean;  // 是否定位到起点，默认为true
+    padding?: number[];   // 边距，默认[50, 50, 50, 50]
+    duration?: number;    // 动画持续时间，默认400ms
+    maxZoom?: number;     // 最大缩放级别，防止过度缩放
+  }): boolean {
+    if (!this.tracks.has(id) || !this.mapInstance) {
+      this.log('warn', `无法自适应显示轨迹: 轨迹 "${id}" 不存在或地图未初始化`);
+      return false;
+    }
+    
+    try {
+      const track = this.tracks.get(id)!;
+      
+      // 确保轨迹可见
+      if (!track.visible) {
+        this.showTrack(id);
+      }
+      
+      // 获取轨迹线要素
+      const trackFeature = this.trackFeatures.get(id);
+      if (!trackFeature) {
+        this.log('warn', `无法自适应显示轨迹: 轨迹 "${id}" 的线要素不存在`);
+        return false;
+      }
+      
+      // 获取轨迹几何范围
+      const geometry = trackFeature.getGeometry();
+      if (!geometry) {
+        this.log('warn', `无法自适应显示轨迹: 轨迹 "${id}" 的几何对象不存在`);
+        return false;
+      }
+      
+      // 获取轨迹范围
+      const extent = geometry.getExtent();
+      
+      // 使用默认或自定义选项
+      const defaultOptions = {
+        gotoStart: true,
+        padding: [50, 50, 50, 50],
+        duration: 400,
+        maxZoom: 19
+      };
+      
+      const fitOptions = {
+        ...defaultOptions,
+        ...options
+      };
+      
+      // 如果需要定位到起点，先移动到起点位置
+      if (fitOptions.gotoStart && track.points.length > 0) {
+        const startPoint = track.points[0];
+        const startCoord = fromLonLat([startPoint.lng, startPoint.lat]);
+        
+        // 先定位到起点
+        this.mapInstance.getView().animate({
+          center: startCoord,
+          duration: fitOptions.duration / 2
+        });
+        
+        // 延迟执行自适应显示，确保先完成定位到起点的动画
+        setTimeout(() => {
+          // 自适应显示整条轨迹
+          this.mapInstance!.getView().fit(extent, {
+            duration: fitOptions.duration / 2,
+            padding: fitOptions.padding,
+            maxZoom: fitOptions.maxZoom
+          });
+        }, fitOptions.duration / 2 + 50);
+      } else {
+        // 直接自适应显示整条轨迹
+        this.mapInstance.getView().fit(extent, {
+          duration: fitOptions.duration,
+          padding: fitOptions.padding,
+          maxZoom: fitOptions.maxZoom
+        });
+      }
+      
+      // 重置轨迹播放进度
+      this.trackProgressValues.set(id, 0);
+      
+      // 更新地图渲染
+      this.mapInstance.render();
+      
+      this.log('info', `已自适应显示轨迹 "${id}"`);
+      return true;
+    } catch (error) {
+      this.log('error', `自适应显示轨迹 "${id}" 失败:`, error);
+      return false;
+    }
   }
 } 

@@ -9,7 +9,7 @@
           <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
             :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
             :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
-            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" 
+            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" :map="config.map"
              @map-initialized="onMapInit"
             @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
             @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
@@ -209,6 +209,11 @@
                 <button @click="toggleShapeVisible">{{ allShapesVisible ? '隐藏所有图形' : '显示所有图形' }}</button>
                 <button @click="modifyRandomShape">修改随机图形</button>
               </div>
+              
+              <div class="feature-group-title">边界绘制</div>
+              <div class="control-row buttons-row">
+                <button @click="drawTaizhouBoundary">绘制台州边界</button>
+              </div>
             </div>
           </div>
 
@@ -235,6 +240,52 @@
               <div class="control-row buttons-row">
                 <button @click="clearAllTracks">清除所有轨迹</button>
                 <button @click="toggleTrackVisible">{{ allTracksVisible ? '隐藏所有轨迹' : '显示所有轨迹' }}</button>
+              </div>
+
+              <!-- 在轨迹操作区域添加轨迹播放配置选项 -->
+              <div class="feature-group-title">轨迹播放配置</div>
+              <div class="control-row">
+                <span>速度:</span>
+                <input type="range" v-model.number="trackPlaySpeed" min="10" max="200" step="10" @change="updateTrackPlayConfig">
+                <span class="value">{{ trackPlaySpeed }} km/h</span>
+              </div>
+              <div class="control-row">
+                <span>循环播放:</span>
+                <input type="checkbox" v-model="trackPlayLoop" @change="updateTrackPlayConfig">
+              </div>
+              <div class="control-row">
+                <span>跟随相机:</span>
+                <input type="checkbox" v-model="trackPlayWithCamera" @change="updateTrackPlayConfig">
+              </div>
+              <div class="control-row">
+                <span>显示节点:</span>
+                <input type="checkbox" v-model="trackPlayShowNodes" @change="updateTrackPlayConfig">
+              </div>
+
+              <!-- 在轨迹操作区域的轨迹列表部分添加 -->
+              <div class="feature-group-title">轨迹列表</div>
+              <div class="track-list">
+                <div v-if="tracks.length === 0" class="no-tracks">暂无轨迹</div>
+                <div v-else>
+                  <div 
+                    v-for="track in tracks" 
+                    :key="track.id" 
+                    class="track-item" 
+                    :class="{ 'active': track.id === activeTrackId }"
+                    @click="selectTrack(track.id)"
+                    @dblclick="locateTrack(track.id)"
+                  >
+                    <div class="track-item-header">
+                      <span class="track-name">{{ track.name }}</span>
+                      <span class="track-points-count">{{ track.points.length }}个点</span>
+                    </div>
+                    <div class="track-item-actions">
+                      <button @click.stop="playTrackById(track.id)">播放</button>
+                      <button @click.stop="stopTrackById(track.id)">停止</button>
+                      <button @click.stop="removeTrackById(track.id)">删除</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -514,12 +565,7 @@ export default {
 import ScLayer from '@repo/components/ScLayer/index.vue';
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
-import type { 
-  // MarkerOption, 
-  // MarkerObject, 
-  // ShapeObject, 
-  // ShapeType 
-} from '@repo/components/ScLayer/types/index';
+import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
@@ -584,16 +630,17 @@ const tileType = ref('normal');
 
 // 地图配置
 const config = reactive({
+  height: 600,
   mapType: MapType.GAODE,
   mapTile: MapTile.NORMAL,
-  mapKey: {},
-  center: [39.92, 116.40] as [number, number],
-  zoom: 12,
-  height: 700,
+  map: DEFAULT_MAP_CONFIG,
+  center: [39.909186, 116.397411] as [number, number],
+  zoom: 10,
   dragging: true,
   scrollWheelZoom: true,
   showToolbar: true,
-  showScaleLine: true // 默认显示比例尺
+  showScaleLine: true,
+  mapKey: {}
 });
 
 // 标记点数据
@@ -614,6 +661,35 @@ const allShapesVisible = ref(true);
 const tracks = ref<{ id: string; name: string; points: any[]; visible: boolean }[]>([]);
 const allTracksVisible = ref(true);
 const hasTrack = ref(false);
+const activeTrackId = ref<string | null>(null); // 当前选中的轨迹ID
+
+// 轨迹播放配置
+const trackPlaySpeed = ref(60);
+const trackPlayLoop = ref(true);
+const trackPlayWithCamera = ref(false);
+const trackPlayShowNodes = ref(false);
+
+// 更新轨迹播放配置
+const updateTrackPlayConfig = () => {
+  if (layerRef.value && hasTrack.value && tracks.value.length > 0) {
+    const trackId = tracks.value[0].id;
+    
+    // 获取播放状态
+    const isPlaying = layerRef.value.isTrackPlaying && layerRef.value.isTrackPlaying(trackId);
+    
+    if (isPlaying) {
+      // 如果正在播放，应用新配置
+      layerRef.value.updateTrackPlayer(trackId, {
+        loop: trackPlayLoop.value,
+        speed: trackPlaySpeed.value,
+        withCamera: trackPlayWithCamera.value,
+        showNodes: trackPlayShowNodes.value
+      });
+      
+      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}`);
+    }
+  }
+};
 
 // 计算可见标记点数量
 const visibleMarkerCount = computed(() => {
@@ -1978,39 +2054,55 @@ const playTrack = () => {
       return;
     }
     
-    if (layerRef.value) {
-      // 尝试播放第一条轨迹
-      const track = tracks.value[0];
+    if (!layerRef.value) {
+      addLog('error', '地图组件未初始化');
+      return;
+    }
+    
+    // 尝试播放第一条轨迹
+    const track = tracks.value[0];
+    
+    // 获取地图对象，确保地图已正确初始化
+    const map = layerRef.value.getMapObject();
+    if (!map) {
+      addLog('error', '获取地图对象失败');
+      return;
+    }
+    
+    // 使用配置变量设置播放参数
+    const success = layerRef.value.playTrack(track.id, {
+      // 使用配置变量
+      loop: trackPlayLoop.value,
+      speed: trackPlaySpeed.value,
+      withCamera: trackPlayWithCamera.value,
+      speedFactor: 1.0,
+      // 显示设置
+      showNodes: trackPlayShowNodes.value,
+      showNodeAnchors: true,
+      showPointNames: true,
+      showSpeed: true,
+      showNodeSpeed: true
+    });
+    
+    if (success) {
+      // 尝试激活轨迹播放器工具
+      layerRef.value.activateTool('track-player');
       
-      const success = layerRef.value.playTrack(track.id, {
-        // 设置播放参数
-        loop: false,
-        speed: 30,
-        withCamera: false,
-        speedFactor: 1.0,
-        showNodes: false,
-        showNodeAnchors: true,
-        showNodeNames: false,
-        showPointNames: true,
-        showSpeed: true,
-        showNodeSpeed: true
-      });
+      // 触发一次地图渲染，确保动画开始
+      map.render();
       
-      if (success) {
-        // 尝试激活轨迹播放器工具
-        if (layerRef.value) {
-          layerRef.value.activateTool('track-player');
-          addLog('info', `正在播放轨迹: ${track.name}，速度: 30 km/h，播放因子: 1.0x`);
-        } else {
-          addLog('warn', '无法获取工具栏对象，轨迹播放但可能没有显示播放器UI');
-        }
-      } else {
-        addLog('error', `播放轨迹失败: ${track.name}`);
-      }
+      // 确保动画流畅性，添加定时器定期触发渲染
+      setTimeout(() => {
+        // 再次触发一次渲染，避免初始化延迟问题
+        map.render();
+      }, 100);
+      
+      addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h，循环: ${trackPlayLoop.value ? '是' : '否'}`);
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog('error', `播放轨迹失败: ${track.name}`);
     }
   } catch (e) {
+    console.error('播放轨迹失败:', e);
     addLog('error', `播放轨迹失败: ${e}`);
   }
 };
@@ -2023,33 +2115,33 @@ const stopTrack = () => {
       return;
     }
     
-    if (layerRef.value) {
-      // 尝试停止所有轨迹播放
-      let stopped = false;
-      tracks.value.forEach(track => {
-        try {
-          const success = layerRef.value.stopTrack(track.id);
-          if (success) stopped = true;
-        } catch (e) {
-          // 忽略单个轨迹停止失败
-          console.error(`停止轨迹 ${track.name} 失败:`, e);
-        }
-      });
-      
-      if (stopped) {
-        // 尝试停用轨迹播放器工具
-        if (layerRef.value) {
-          layerRef.value.deactivateTool('track-player');
-        }
-        
-        addLog('info', '已停止轨迹播放');
-      } else {
-        addLog('warn', '没有正在播放的轨迹');
+    if (!layerRef.value) {
+      addLog('error', '地图组件未初始化');
+      return;
+    }
+    
+    // 尝试停止所有轨迹播放
+    let stopped = false;
+    
+    // 遍历所有轨迹并停止播放
+    tracks.value.forEach(track => {
+      try {
+        const success = layerRef.value.stopTrack(track.id);
+        if (success) stopped = true;
+      } catch (e) {
+        console.error(`停止轨迹 ${track.name} 失败:`, e);
       }
+    });
+    
+    if (stopped) {
+      // 停用轨迹播放器工具
+      layerRef.value.deactivateTool('track-player');
+      addLog('info', '已停止轨迹播放');
     } else {
-      addLog('error', '获取轨迹对象失败');
+      addLog('warn', '没有正在播放的轨迹');
     }
   } catch (e) {
+    console.error('停止轨迹播放失败:', e);
     addLog('error', `停止轨迹播放失败: ${e}`);
   }
 };
@@ -3226,6 +3318,256 @@ const addTestFlightLines = () => {
   addLog('飞线图', `添加了${testLines.length}条测试飞线`);
 };
 
+/**
+ * 绘制台州边界
+ */
+const drawTaizhouBoundary = () => {
+  if (!layerRef.value) return;
+  
+  addLog('操作', '开始绘制台州边界');
+  
+  // 台州市边界GeoJSON数据 (简化版坐标)
+  const taizhouBoundaryData = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "name": "台州市",
+          "id": "331000",
+          "cp": [121.42079, 28.655716],
+          "childNum": 9
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [121.25183, 28.34585],
+              [121.10168, 28.39856],
+              [121.01562, 28.35297],
+              [120.89355, 28.36189],
+              [120.83862, 28.32241],
+              [120.75256, 28.35297],
+              [120.68115, 28.28024],
+              [120.55359, 28.30966],
+              [120.47852, 28.41366],
+              [120.42358, 28.38077],
+              [120.33203, 28.41098],
+              [120.22644, 28.51578],
+              [120.18799, 28.61237],
+              [120.10193, 28.63289],
+              [120.00488, 28.75915],
+              [119.87183, 28.80852],
+              [119.81689, 28.89682],
+              [119.84436, 28.99861],
+              [119.80591, 29.11122],
+              [119.73999, 29.13695],
+              [119.68506, 29.25199],
+              [119.60449, 29.31404],
+              [119.62097, 29.37159],
+              [119.57153, 29.43986],
+              [119.60999, 29.56245],
+              [119.68506, 29.59875],
+              [119.77112, 29.58347],
+              [119.89319, 29.63828],
+              [119.96460, 29.61777],
+              [120.07019, 29.66443],
+              [120.12512, 29.65181],
+              [120.20020, 29.68259],
+              [120.34485, 29.65443],
+              [120.44189, 29.68259],
+              [120.55847, 29.64180],
+              [120.62988, 29.55766],
+              [120.69580, 29.53970],
+              [120.83496, 29.57079],
+              [120.93750, 29.58347],
+              [121.01257, 29.54760],
+              [121.11511, 29.56530],
+              [121.16455, 29.61777],
+              [121.29211, 29.59036],
+              [121.32507, 29.51934],
+              [121.47522, 29.45004],
+              [121.52466, 29.36679],
+              [121.57959, 29.38721],
+              [121.69067, 29.32686],
+              [121.74011, 29.25199],
+              [121.78955, 29.16644],
+              [121.84448, 29.10164],
+              [121.98914, 28.99592],
+              [122.11121, 28.92111],
+              [122.15515, 28.84060],
+              [122.11121, 28.75377],
+              [122.04529, 28.72253],
+              [121.96472, 28.71171],
+              [121.90430, 28.66504],
+              [121.87683, 28.60480],
+              [121.88232, 28.52933],
+              [121.96472, 28.45234],
+              [121.89880, 28.41635],
+              [121.83838, 28.46588],
+              [121.74683, 28.42527],
+              [121.72485, 28.35297],
+              [121.66992, 28.32510],
+              [121.48681, 28.33673],
+              [121.36475, 28.36189],
+              [121.25183, 28.34585]
+            ]
+          ]
+        }
+      }
+    ]
+  };
+  
+  try {
+    // 提取多边形坐标
+    const coordinates = taizhouBoundaryData.features[0].geometry.coordinates[0];
+    
+    // 转换成适合ScLayer的格式 - 将[lon, lat]格式转为[lat, lon]格式
+    const taizhouCoordinates = coordinates.map(point => [point[1], point[0]]);
+    
+    // 使用addPolygon方法绘制台州边界
+    const id = layerRef.value.addPolygon(taizhouCoordinates, {
+      name: '台州市边界',
+      data: { regionId: '331000', regionType: 'city' },
+      fillColor: 'rgba(24, 144, 255, 0.3)',
+      strokeColor: 'rgba(24, 144, 255, 0.8)',
+      strokeWidth: 3,
+      dashArray: '5,5',
+      fillOpacity: 0.4
+    });
+    
+    // 更新图形列表
+    updateShapeList();
+    
+    // 设置地图视角到台州中心
+    layerRef.value.getMapObject().setView([28.655716, 121.42079] as [number, number], 9);
+    
+    addLog('边界', `已绘制台州市边界 [ID: ${safeSlice(id)}]`);
+  } catch (error) {
+    console.error('绘制台州边界失败:', error);
+    addLog('错误', `绘制台州边界失败: ${error.message}`);
+  }
+};
+
+// 选择轨迹
+const selectTrack = (trackId: string) => {
+  // 如果选中的是当前已选中的轨迹，则取消选中
+  if (activeTrackId.value === trackId) {
+    activeTrackId.value = null;
+  } else {
+    activeTrackId.value = trackId;
+  }
+  
+  addLog('轨迹', `选中轨迹: ${trackId}`);
+};
+
+// 双击定位到轨迹
+const locateTrack = (trackId: string) => {
+  if (!layerRef.value) {
+    addLog('error', '地图组件未初始化');
+    return;
+  }
+  
+  // 使用fitTrackToView方法定位到轨迹
+  const success = layerRef.value.fitTrackToView(trackId, {
+    gotoStart: true,
+    padding: [100, 100, 100, 100],
+    duration: 600,
+    maxZoom: 16
+  });
+  
+  if (success) {
+    addLog('轨迹', `已定位到轨迹: ${trackId}`);
+    // 自动选中轨迹
+    activeTrackId.value = trackId;
+  } else {
+    addLog('error', `定位轨迹失败: ${trackId}`);
+  }
+};
+
+// 播放指定ID的轨迹
+const playTrackById = (trackId: string) => {
+  if (!layerRef.value) {
+    addLog('error', '地图组件未初始化');
+    return;
+  }
+  
+  // 使用配置变量设置播放参数
+  const success = layerRef.value.playTrack(trackId, {
+    loop: trackPlayLoop.value,
+    speed: trackPlaySpeed.value,
+    withCamera: trackPlayWithCamera.value,
+    speedFactor: 1.0,
+    showNodes: trackPlayShowNodes.value,
+    showNodeAnchors: true,
+    showPointNames: true,
+    showSpeed: true,
+    showNodeSpeed: true
+  });
+  
+  if (success) {
+    // 尝试激活轨迹播放器工具
+    layerRef.value.activateTool('track-player');
+    
+    // 获取轨迹数据记录日志
+    const track = tracks.value.find(t => t.id === trackId);
+    if (track) {
+      addLog('轨迹', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h`);
+    }
+  } else {
+    addLog('error', `播放轨迹失败: ${trackId}`);
+  }
+};
+
+// 停止指定ID的轨迹
+const stopTrackById = (trackId: string) => {
+  if (!layerRef.value) {
+    addLog('error', '地图组件未初始化');
+    return;
+  }
+  
+  const success = layerRef.value.stopTrack(trackId);
+  
+  if (success) {
+    addLog('轨迹', `已停止播放轨迹: ${trackId}`);
+  } else {
+    addLog('warn', `停止轨迹播放失败: ${trackId}`);
+  }
+};
+
+// 删除指定ID的轨迹
+const removeTrackById = (trackId: string) => {
+  if (!layerRef.value) {
+    addLog('error', '地图组件未初始化');
+    return;
+  }
+  
+  // 如果正在播放，先停止
+  stopTrackById(trackId);
+  
+  // 移除轨迹
+  const success = layerRef.value.removeTrack(trackId);
+  
+  if (success) {
+    // 更新轨迹列表
+    tracks.value = tracks.value.filter(t => t.id !== trackId);
+    
+    // 如果删除的是当前选中的轨迹，清除选中状态
+    if (activeTrackId.value === trackId) {
+      activeTrackId.value = null;
+    }
+    
+    // 如果没有轨迹了，更新hasTrack状态
+    if (tracks.value.length === 0) {
+      hasTrack.value = false;
+    }
+    
+    addLog('轨迹', `已删除轨迹: ${trackId}`);
+  } else {
+    addLog('error', `删除轨迹失败: ${trackId}`);
+  }
+};
+
 // 删除出错的onMounted块
 </script>
 
@@ -3700,5 +4042,55 @@ button:hover {
   font-style: italic;
   padding: 8px 0;
   text-align: center;
+}
+
+/* 轨迹列表样式 */
+.track-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.track-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.track-item:hover {
+  background-color: #e6f7ff;
+}
+
+.track-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.track-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.track-points-count {
+  font-size: 12px;
+  color: #666;
+}
+
+.track-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.track-item.active {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
 }
 </style> 
