@@ -48,6 +48,7 @@ export interface TrackPlayerConfigOptions {
   showNodes?: boolean;    // 是否显示节点（静态点位）
   showNodeAnchors?: boolean; // 是否显示节点锚点（当showNodes开启时生效）
   showNodeNames?: boolean;// 是否显示节点名称（静态点位名称）
+  showNodeTime?: boolean; // 是否显示节点时间
   showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
   showSpeed?: boolean;    // 是否显示移动速度
   showNodeSpeed?: boolean;// 是否显示节点速度

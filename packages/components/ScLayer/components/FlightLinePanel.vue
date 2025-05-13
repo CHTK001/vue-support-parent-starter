@@ -75,7 +75,7 @@
           <div class="diagnose-info">
             请点击"添加演示数据"或"刷新列表"按钮
         </div>
-                      </div>
+          </div>
         <div v-if="flightLines.length === 0" class="empty-list-debug">
           <div class="debug-panel">
             <h4>调试信息</h4>
