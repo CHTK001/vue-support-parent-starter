@@ -2327,7 +2327,10 @@ defineExpose({
 
   // 热力图控制方法
   showHeatmap,
-  hideHeatmap
+  hideHeatmap,
+  
+  // 自适应显示轨迹
+  fitTrackToView
 });
 
 // 监听拖动和滚轮缩放属性的变化
@@ -2352,6 +2355,26 @@ watch(() => props.markerConfig, (newConfig) => {
     logger.debug('[Marker] 标记点配置已更新:', newConfig);
   }
 }, { deep: true });
+
+/**
+ * 自适应显示轨迹
+ * @param id 轨迹ID
+ * @param options 配置选项
+ * @returns 是否成功
+ */
+const fitTrackToView = (id: string, options?: {
+  gotoStart?: boolean;
+  padding?: number[];
+  duration?: number;
+  maxZoom?: number;
+}): boolean => {
+  if (!trackObj) {
+    logger.warn('自适应显示轨迹失败: 轨迹对象未初始化');
+    return false;
+  }
+  
+  return trackObj.fitTrackToView(id, options);
+};
 </script>
 
 <style scoped>
