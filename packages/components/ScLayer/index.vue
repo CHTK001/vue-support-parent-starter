@@ -425,8 +425,8 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
     
-    // 飞线图状态变化
-    'flight-line': () => {
+    // 飞线图状态变化 - 修改键名以匹配工具ID
+    'flightLine': () => {
       logger.debug(`[FlightLine] 收到飞线图事件: active=${active}, data=${JSON.stringify(data)}`);
       
       if (active) {
@@ -484,17 +484,14 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           }
         }, 500);
       } else {
-        // 如果面板未锁定，则取消显示
-        if (!flightLinePanelLocked.value) {
-          showFlightLinePanel.value = false;
-          logger.debug('[FlightLine] 飞线图已禁用，隐藏飞线列表面板');
-        } else {
-          logger.debug('[FlightLine] 飞线图已禁用，但面板已锁定，保持显示状态');
-        }
+        // 工具栏停用飞线图时，无论面板是否锁定都应该关闭面板并解除锁定
+        showFlightLinePanel.value = false;
+        flightLinePanelLocked.value = false;
+        logger.debug('[FlightLine] 飞线图已从工具栏禁用，解除面板锁定并隐藏面板');
         
         // 尝试禁用飞线图对象
         const flightLineObj = toolbarObject?.getFlightLineObject();
-        if (flightLineObj) {
+        if (flightLineObj && flightLineObj.isEnabled()) {
           try {
             flightLineObj.disable();
             logger.debug('[FlightLine] 飞线图已禁用');
@@ -503,6 +500,12 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           }
         }
       }
+    },
+    
+    // 保留原来的'flight-line'处理器以保持兼容性
+    'flight-line': () => {
+      logger.debug(`[FlightLine] 收到旧版flight-line事件，转发到flightLine处理器`);
+      handlers['flightLine']();
     },
     
     // 热力图状态变化
@@ -827,10 +830,17 @@ const handleToolDeactivated = (payload) => {
     showTrackPlayer.value = false;
     logger.debug('轨迹播放器已停用，隐藏面板');
   } else if (toolId === 'flightLine') {
-    // 停用飞线图
+    // 停用飞线图，无论面板是否锁定都应关闭
     showFlightLinePanel.value = false;
     flightLinePanelLocked.value = false; // 解除锁定
-    logger.debug('[FlightLine] 飞线图已停用，隐藏飞线列表面板');
+    logger.debug('[FlightLine] 飞线图工具被停用，解除面板锁定并隐藏面板');
+    
+    // 确保飞线图对象被禁用
+    const flightLineObj = toolbarObject?.getFlightLineObject();
+    if (flightLineObj && flightLineObj.isEnabled()) {
+      flightLineObj.disable();
+      logger.debug('[FlightLine] 飞线图对象已禁用');
+    }
   }
   
   // 将工具停用事件传递给父组件
@@ -935,7 +945,10 @@ const setupMapInitializedWatcher = () => {
       hasFlightLineObject: !!toolbarObject.getFlightLineObject(),
       hasPanelRef: !!flightLinePanelRef.value
     });
+    // 仅在初始化时检查一次飞线图状态，不再设置定时检查
     setTimeout(checkFlightLineState, 1000);
+    
+    // 移除定时检查逻辑，避免面板在激活后被意外关闭
     
     // 检查热力图状态
     setTimeout(checkHeatmapState, 1000);
@@ -1435,6 +1448,13 @@ const handleFlightLinePanelClose = () => {
   
   // 不再自动停用飞线工具，只隐藏面板
   showFlightLinePanel.value = false;
+  
+  // 同步停用工具栏中的飞线图工具
+  if (toolbarObject && toolbarObject.getActiveToolId() === 'flightLine') {
+    toolbarObject.deactivateTool('flightLine');
+    logger.debug('[FlightLine] 面板关闭，同步停用飞线图工具');
+  }
+  
   logger.debug('[FlightLine] 飞线面板关闭');
 };
 
@@ -1536,7 +1556,7 @@ const checkFlightLineState = () => {
   logger.debug(`[FlightLine] 飞线图工具激活状态: ${isFlightLineActive}, 飞线对象存在: ${!!flightLineObj}, 面板显示状态: ${showFlightLinePanel.value}, 面板引用: ${!!flightLinePanelRef.value}`);
   
   if (mapReady.value && mapObj) {
-    // 根据工具激活状态决定显示与否
+    // 仅在飞线图工具已激活但面板未显示时，开启面板
     if (isFlightLineActive && !showFlightLinePanel.value) {
       logger.info('[FlightLine] 发现飞线图工具已激活但面板未显示，显示飞线列表面板');
       showFlightLinePanel.value = true;
@@ -1554,6 +1574,7 @@ const checkFlightLineState = () => {
         }, 300);
       });
     }
+    // 移除关闭面板的逻辑，由工具激活/停用事件直接处理
   }
 };
 

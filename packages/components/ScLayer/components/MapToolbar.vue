@@ -476,7 +476,7 @@ const closeSubMenu = (toolId: string) => {
 const closeAllSubMenus = () => {
   // 清除所有打开的子菜单记录
   const submenusToClose = [...openSubMenus.value];
-  openSubMenus.value = [];
+    openSubMenus.value = [];
   
   // 对每个子菜单发送关闭事件
   submenusToClose.forEach(toolId => {
@@ -565,7 +565,7 @@ const toolbarStyle = computed(() => {
   };
 
   // 根据方向设置flex布局属性
-  if (config.value.direction === 'horizontal') {
+    if (config.value.direction === 'horizontal') {
     // 横向排列
     style.flexDirection = 'row';
     style.flexWrap = 'wrap'; // 允许换行，模拟grid的行为
@@ -577,7 +577,7 @@ const toolbarStyle = computed(() => {
     }
     
     // 根据位置设置排列顺序
-    if (config.value.position.endsWith('right')) {
+      if (config.value.position.endsWith('right')) {
       style.flexDirection = 'row-reverse';
     }
   } else {
@@ -592,9 +592,9 @@ const toolbarStyle = computed(() => {
       style.alignContent = 'flex-start';
     }
     
-    // 根据位置设置flex方向
-    if (config.value.position.endsWith('right')) {
-      style.flexDirection = 'column-reverse';
+      // 根据位置设置flex方向
+      if (config.value.position.endsWith('right')) {
+        style.flexDirection = 'column-reverse';
     }
   }
 

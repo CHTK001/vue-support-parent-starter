@@ -460,11 +460,11 @@ export class FlightLineObject {
           
           // 添加节点系列
           if (nodeData.length > 0) {
-            series.push({
+          series.push({
               name: '节点',
               type: 'effectScatter',
               coordinateSystem: 'openlayers', // 使用openlayers坐标系
-              zlevel: 3,
+            zlevel: 3,
               effectType: 'ripple',
               showEffectOn: 'render',
               rippleEffect: this.config.rippleEffect || {
@@ -475,7 +475,7 @@ export class FlightLineObject {
               symbolSize: function(val) {
                 return val[2] ? val[2] / 8 : 12;
               },
-              itemStyle: {
+            itemStyle: {
                 color: this.config.nodeColor || '#1677ff',
                 shadowBlur: this.config.shadowBlur || 20,
                 shadowColor: this.config.shadowColor || '#1677ff'
