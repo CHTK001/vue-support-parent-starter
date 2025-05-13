@@ -74,8 +74,8 @@
           暂无飞线数据
           <div class="diagnose-info">
             请点击"添加演示数据"或"刷新列表"按钮
-          </div>
         </div>
+          </div>
         <div v-if="flightLines.length === 0" class="empty-list-debug">
           <div class="debug-panel">
             <h4>调试信息</h4>
@@ -87,7 +87,7 @@
         <div v-if="filteredFlightLines.length > 0 && !selectedId" class="initial-tip">
           <i class="initial-tip-icon">☝️</i>
           <span class="initial-tip-text">点击列表项可以在地图上显示对应飞线</span>
-        </div>
+      </div>
         <div v-for="line in filteredFlightLines" :key="line.id" class="flight-line-item" :class="{
             'flight-line-item-active': line.id === selectedId
           }" @click="selectFlightLine(line.id)">
@@ -96,7 +96,7 @@
             <div class="flight-line-details">
               <span class="flight-line-id">ID: {{ line.id.slice(0, 8) }}...</span>
               <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
-            </div>
+    </div>
           </div>
           <div v-if="line.id === selectedId" class="flight-line-active-badge">
             激活
@@ -797,8 +797,8 @@ const addDemoFlightLines = () => {
         toName: city.name,
         value: 100, // 使用统一的默认值
         _createTime: currentTime - ((cities.length - index) * 10000) // 越晚添加的城市_createTime越大
+        });
       });
-    });
 
     // 创建一个使用FlightCoord多组坐标的飞线示例
     // 此飞线将在一个ID下包含多条飞线路径，全部从北京出发到多个城市
