@@ -26,18 +26,11 @@
     <div class="flight-line-panel-content" v-if="!collapsed">
       <div class="flight-line-stats">
         <span>总数: {{ flightLineCount }}</span>
-        <span>显示: {{ visibleFlightLineCount }}</span>
         <span>选中: {{ selectedCount }}</span>
       </div>
       <div class="flight-line-toolbar">
         <button class="toolbar-btn" :disabled="!selectedId" @click.stop="clearSelection">
           全部显示
-        </button>
-        <button class="toolbar-btn" :disabled="!selectedId" @click.stop="hideSelected">
-          {{ hideMode ? '显示' : '隐藏' }}选中
-        </button>
-        <button class="toolbar-btn" :class="{'toolbar-btn-active': showOnlyVisible}" @click.stop="showOnlyVisible = !showOnlyVisible" title="切换是否只显示可见飞线">
-          {{ showOnlyVisible ? '仅显示可见飞线' : '显示全部飞线' }}
         </button>
         <button class="toolbar-btn toolbar-btn-primary" @click.stop="setOptimalView" title="调整到最佳视角">
           最佳视角
@@ -78,12 +71,6 @@
             请点击"添加演示数据"或"刷新列表"按钮
           </div>
         </div>
-        <div v-else-if="filteredFlightLines.length === 0 && showOnlyVisible" class="no-flight-lines">
-          没有可见的飞线
-          <div class="diagnose-info">
-            请点击"显示全部"按钮查看所有飞线，或选择一条飞线使其可见
-          </div>
-        </div>
         <div v-if="flightLines.length === 0" class="empty-list-debug">
           <div class="debug-panel">
             <h4>调试信息</h4>
@@ -101,8 +88,7 @@
           :key="line.id" 
           class="flight-line-item"
           :class="{
-            'flight-line-item-active': line.id === selectedId,
-            'flight-line-item-hidden': !line.visible
+            'flight-line-item-active': line.id === selectedId
           }" 
           @click="selectFlightLine(line.id)"
         >
@@ -155,13 +141,9 @@ const emit = defineEmits<{
 const collapsed = ref(false);
 const flightLines = ref<Array<FlightLineData & { id: string }>>([]);
 const selectedId = ref<string | null>(null);
-const hiddenIds = ref<Array<string>>([]);
-const hideMode = ref(false);
 const isInitialized = ref(false);
 const isPanelTouched = ref(false);
 const panelInitialized = ref(false);
-// 是否只显示可见飞线 - 默认为false，即显示所有飞线，包括不可见的
-const showOnlyVisible = ref(false);
 
 // 性能模式
 const performanceMode = ref(false);
@@ -196,23 +178,14 @@ const previewTransform = computed(() => {
 const selectedCount = computed(() => selectedId.value ? 1 : 0);
 const position = computed(() => props.position || 'top-right'); // 默认右上角，使用props传入的值
 const flightLineCount = computed(() => flightLines.value.length);
-// 只显示可见的飞线（visible为true）或被选中的飞线
-const filteredFlightLines = computed(() => {
-  if (showOnlyVisible.value) {
-    return flightLines.value.filter(line => line.visible !== false);
-  }
-  return flightLines.value;
-});
-// 可见飞线数量
-const visibleFlightLineCount = computed(() => 
-  flightLines.value.filter(line => line.visible !== false).length
-);
+// 过滤飞线列表
+const filteredFlightLines = computed(() => flightLines.value);
 
 // 调试用：列出飞线数据
 const dumpFlightLines = () => {
   console.log('当前飞线列表数据:');
   flightLines.value.forEach((line, index) => {
-    console.log(`[${index}] ID: ${line.id}, 名称: ${line.fromName} → ${line.toName}, 可见: ${line.visible}`);
+    console.log(`[${index}] ID: ${line.id}, 名称: ${line.fromName} → ${line.toName}`);
   });
 };
 
@@ -289,11 +262,6 @@ const isSelected = (id: string) => {
   return selectedId.value === id;
 };
 
-// 检查是否隐藏
-const isHidden = (id: string) => {
-  return hiddenIds.value.includes(id);
-};
-
 // 切换折叠状态
 const toggleCollapse = () => {
   collapsed.value = !collapsed.value;
@@ -321,12 +289,12 @@ const selectFlightLine = (id: string) => {
     return;
   }
   
+  // 使用更可靠的切换方法
+  switchFlightLine(id);
+  
   // 记录选中的飞线ID
   selectedId.value = id;
   emit('selection-change', id);
-  
-  // 调用API只显示选中的飞线
-  props.flightLineObj.showOnlyFlightLine(id);
 };
 
 // 清除选择并清空图层
@@ -350,12 +318,15 @@ const clearSelection = () => {
 const clearFlightLineLayer = () => {
   if (!props.flightLineObj) return;
   
-  // 调用API清空飞线图层
-  props.flightLineObj.clearFlightLines();
+  console.log('开始彻底清空飞线图层');
   
-  // 再次尝试强制清空echarts图层
   try {
+    // 调用API清空飞线图层
+    props.flightLineObj.clearFlightLines();
+    
+    // 再次尝试强制清空echarts图层
     if (props.flightLineObj.echartsLayer) {
+      // 第一次清空
       props.flightLineObj.echartsLayer.setChartOptions({
         animation: false,
         backgroundColor: 'transparent',
@@ -364,16 +335,48 @@ const clearFlightLineLayer = () => {
       });
       
       // 强制重绘
-      props.flightLineObj.echartsLayer.redraw();
+      if (typeof props.flightLineObj.echartsLayer.redraw === 'function') {
+        props.flightLineObj.echartsLayer.redraw();
+      }
       
       // 延迟再次确认清除
       setTimeout(() => {
         if (props.flightLineObj && props.flightLineObj.echartsLayer) {
+          // 第二次清空
           props.flightLineObj.echartsLayer.setChartOptions({
             series: []
           });
           
-          props.flightLineObj.echartsLayer.redraw();
+          // 再次强制重绘
+          if (typeof props.flightLineObj.echartsLayer.redraw === 'function') {
+            props.flightLineObj.echartsLayer.redraw();
+          }
+          
+          // 第三次清空 - 尝试移除并重新初始化图层
+          setTimeout(() => {
+            try {
+              if (props.flightLineObj && props.flightLineObj.echartsLayer) {
+                // 如果有移除方法，则尝试移除图层
+                if (typeof props.flightLineObj.echartsLayer.remove === 'function') {
+                  props.flightLineObj.echartsLayer.remove();
+                  console.log('已移除旧的Echarts图层');
+                  
+                  // 如果有初始化方法，则重新初始化
+                  if (typeof props.flightLineObj.initEchartsLayer === 'function') {
+                    setTimeout(() => {
+                      props.flightLineObj.initEchartsLayer().then(() => {
+                        console.log('清空后重新初始化图层完成');
+                      }).catch((err: any) => {
+                        console.error('清空后重新初始化图层失败:', err);
+                      });
+                    }, 50);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('尝试重新初始化图层时出错:', error);
+            }
+          }, 100);
         }
       }, 50);
     }
@@ -381,34 +384,7 @@ const clearFlightLineLayer = () => {
     console.error('强制清空图层失败:', error);
   }
   
-  console.log('已清空飞线图层');
-};
-
-// 隐藏/显示选中的飞线
-const hideSelected = () => {
-  if (!selectedId.value) return;
-  
-  // 切换hideMode
-  hideMode.value = !hideMode.value;
-  
-  if (hideMode.value) {
-    // 隐藏选中的飞线
-    if (!hiddenIds.value.includes(selectedId.value)) {
-      hiddenIds.value.push(selectedId.value);
-    }
-  } else {
-    // 显示选中的飞线
-    const index = hiddenIds.value.indexOf(selectedId.value);
-    if (index !== -1) {
-      hiddenIds.value.splice(index, 1);
-    }
-  }
-  
-  // 标记面板已被用户触摸
-  isPanelTouched.value = true;
-  
-  // 更新飞线显示状态
-  updateVisibility();
+  console.log('已完成飞线图层清空操作');
 };
 
 // 设置最佳视角
@@ -431,7 +407,7 @@ const setOptimalView = () => {
       }).catch(err => {
         console.error('启用飞线图失败:', err);
       });
-    } else {
+  } else {
       // 已启用，直接设置最佳视角
       props.flightLineObj.setOptimalView(5);
       console.log('已设置飞线图最佳视角');
@@ -477,7 +453,6 @@ const updateFlightLineHighlight = (id: string) => {
     // 更新飞线样式
     props.flightLineObj.updateFlightLine(id, {
       highlight: selected,
-      visible: !isHidden(id), // 根据隐藏状态设置可见性
       style: selected ? {
         width: 3, // 加粗线条
         opacity: 1,
@@ -505,69 +480,17 @@ const updateAllFlightLineHighlights = () => {
   });
 };
 
-// 更新飞线可见性
-const updateVisibility = () => {
-  if (!props.flightLineObj) return;
-  
-  flightLines.value.forEach(line => {
-    props.flightLineObj.updateFlightLine(line.id, {
-      visible: !isHidden(line.id)
-    });
-  });
-};
-
 // 显示单个飞线
 const showFlightLine = (id: string) => {
   if (!props.flightLineObj) return;
   
   try {
-    // 从隐藏列表中移除
-    const index = hiddenIds.value.indexOf(id);
-    if (index !== -1) {
-      hiddenIds.value.splice(index, 1);
-    }
-    
-    // 更新飞线可见性
-      props.flightLineObj.updateFlightLine(id, {
-      visible: true
-    });
-    
-    // 更新本地状态
-    const lineIndex = flightLines.value.findIndex(l => l.id === id);
-    if (lineIndex !== -1) {
-      flightLines.value[lineIndex].visible = true;
-    }
+    // 选择该飞线，使其显示在地图上
+    selectFlightLine(id);
     
     console.log(`已显示飞线: ${id}`);
   } catch (error) {
     console.error(`显示飞线 ${id} 失败:`, error);
-  }
-};
-
-// 隐藏单个飞线
-const hideFlightLine = (id: string) => {
-  if (!props.flightLineObj) return;
-  
-  try {
-    // 添加到隐藏列表
-    if (!hiddenIds.value.includes(id)) {
-      hiddenIds.value.push(id);
-    }
-    
-    // 更新飞线可见性
-        props.flightLineObj.updateFlightLine(id, {
-      visible: false
-    });
-    
-    // 更新本地状态
-    const lineIndex = flightLines.value.findIndex(l => l.id === id);
-    if (lineIndex !== -1) {
-      flightLines.value[lineIndex].visible = false;
-    }
-    
-    console.log(`已隐藏飞线: ${id}`);
-  } catch (error) {
-    console.error(`隐藏飞线 ${id} 失败:`, error);
   }
 };
 
@@ -581,7 +504,7 @@ const addDemoFlightLines = () => {
   try {
     console.log('开始添加演示飞线数据');
     const cities = [
-      { name: '北京', lng: 116.4, lat: 39.9 },
+      { name: '北京', lng: 116.4, lat: 39.9 }, // 北京作为起点
       { name: '上海', lng: 121.4, lat: 31.2 },
       { name: '广州', lng: 113.2, lat: 23.1 },
       { name: '成都', lng: 104.0, lat: 30.6 },
@@ -594,39 +517,61 @@ const addDemoFlightLines = () => {
     ];
     
     const demoLines = [];
+    const beijing = cities[0]; // 北京作为起点
+    const currentTime = Date.now();
     
-    // 创建示例飞线数据
-    for (let i = 0; i < 8; i++) {
-      const fromIndex = Math.floor(Math.random() * cities.length);
-      let toIndex = Math.floor(Math.random() * cities.length);
+    // 可用图标类型
+    const iconTypes = ['plane', 'arrow', 'triangle', 'circle', 'pin'];
+    
+    // 创建从北京飞往其他城市的飞线
+    cities.forEach((city, index) => {
+      // 跳过北京自身
+      if (index === 0) return;
       
-      // 确保起点和终点不同
-      while (toIndex === fromIndex) {
-        toIndex = Math.floor(Math.random() * cities.length);
-      }
+      // 为每条飞线随机生成颜色（偏蓝色系）
+      const r = Math.floor(Math.random() * 80);
+      const g = Math.floor(Math.random() * 140);
+      const b = Math.floor(Math.random() * 100) + 155; // 确保有足够蓝色
+      const color = `rgba(${r}, ${g}, ${b}, 0.8)`;
       
-      const from = cities[fromIndex];
-      const to = cities[toIndex];
+      // 随机选择一个图标
+      const iconType = iconTypes[index % iconTypes.length];
       
+      // 随机计算曲率, 0.1-0.5之间
+      const curveness = 0.1 + (index / cities.length) * 0.4;
+      
+      // 创建飞线，从北京到目标城市
       demoLines.push({
-        from: [from.lng, from.lat],
-        to: [to.lng, to.lat],
-        fromName: from.name,
-        visible: false, // 默认不可见，只有在选中时才会显示
-        toName: to.name,
+        from: [beijing.lng, beijing.lat],
+        to: [city.lng, city.lat],
+        fromName: beijing.name,
+        toName: city.name,
         value: Math.floor(Math.random() * 1000) + 100,
+        _createTime: currentTime - ((cities.length - index) * 10000), // 越晚添加的城市，_createTime越大
+        effectSymbol: iconType, // 使用不同的图标
+        effectSymbolSize: 12 + (index % 3) * 3, // 大小在12-18之间
         style: {
-          color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.8)`,
-          width: 2 + Math.random() * 2
+          color: color,
+          width: 1.5 + (index % 4), // 宽度在1.5-5.5之间
+          curveness: curveness // 曲率随距离增加
         }
+        });
       });
-    }
 
     console.log('准备添加演示数据:', demoLines);
     
-    // 添加示例数据
-    const ids = props.flightLineObj.addFlightLines(demoLines, false, 5);
+    // 按照_createTime降序排序（最新的在前）
+    demoLines.sort((a, b) => (b._createTime || 0) - (a._createTime || 0));
+    
+    // 添加示例数据，使用false表示不保持原始顺序(会按_createTime排序)，0表示不限制数量
+    const ids = props.flightLineObj.addFlightLines(demoLines, false, 0);
     console.log('添加演示数据完成，返回的ID:', ids);
+    
+    // 设置第一条飞线为活动状态
+    if (ids.length > 0) {
+      props.flightLineObj.setActiveFlightLine(ids[0]);
+      console.log(`设置飞线 ${ids[0]} 为活动状态`);
+    }
     
     // 刷新列表
     console.log('开始延迟刷新列表');
@@ -635,38 +580,37 @@ const addDemoFlightLines = () => {
       refreshFlightLineList();
     }, 200);
     
-    console.log('已添加示例飞线数据，默认不可见，需要选择才能显示');
+    console.log('已添加示例飞线数据');
   } catch (error) {
     console.error('添加示例飞线数据失败:', error);
+  }
+};
+
+// 切换飞线图
+const switchFlightLine = (id: string) => {
+  if (!props.flightLineObj) return;
+  
+  console.log(`开始切换到飞线 ${id}`);
+  
+  try {
+    // 直接使用showOnlyFlightLine方法，它会处理所有必要的清空和激活逻辑
+    props.flightLineObj.showOnlyFlightLine(id);
+    
+    // 更新选中状态
+    selectedId.value = id;
+    emit('selection-change', id);
+    
+    console.log(`已切换到飞线 ${id}`);
+  } catch (error) {
+    console.error('切换飞线失败:', error);
   }
 };
 
 // 加载并确保数据显示
 const loadAndEnsureData = () => {
   console.log('执行loadAndEnsureData，确保面板有数据显示');
-  
   // 首先尝试刷新飞线列表
   refreshFlightLineList();
-  
-  // 设置延迟检查，如果刷新后仍然没有数据，则加载样例数据
-  setTimeout(() => {
-    if (flightLines.value.length === 0) {
-      console.log('刷新后列表仍为空，显示样例数据');
-      showSampleData();
-      
-      // 再次延迟检查，确保UI已更新
-      setTimeout(() => {
-        if (flightLines.value.length > 0 && !selectedId.value && !isPanelTouched.value) {
-          console.log('已加载样例数据，自动选中第一条');
-          selectFlightLine(flightLines.value[0].id);
-        }
-      }, 100);
-    } else if (!selectedId.value && !isPanelTouched.value) {
-      // 有数据但没有选中项且用户未交互，则自动选中第一条
-      console.log('列表已有数据，自动选中第一条');
-      selectFlightLine(flightLines.value[0].id);
-    }
-  }, 300);
 };
 
 // 初始化面板
@@ -681,10 +625,7 @@ const initPanel = () => {
   // 延迟加载数据，确保组件已完全挂载
   nextTick(() => {
     console.log('nextTick执行，开始延迟加载数据');
-    setTimeout(() => {
-      loadAndEnsureData();
-      panelInitialized.value = true;
-    }, 300);
+    loadAndEnsureData();
   });
 };
 
@@ -759,11 +700,13 @@ const updateFlightLineIcon = () => {
   try {
     // 更新飞线图对象的图标配置
     props.flightLineObj.setConfig({
-      effectSymbol: selectedIcon.value === 'circle' ? 'circle' : 'path',
-      effectSymbolPath: currentIconPath.value
+      effectSymbol: selectedIcon.value,
+      effectSymbolPath: selectedIcon.value === 'path' ? currentIconPath.value : 
+                      (selectedIcon.value in iconPaths ? `path://${iconPaths[selectedIcon.value]}` : undefined),
+      effectSymbolSize: iconSize.value
     });
     
-    console.log(`飞线图图标已更新为: ${selectedIcon.value}`);
+    console.log(`飞线图图标已更新为: ${selectedIcon.value}, 大小: ${iconSize.value}`);
   } catch (error) {
     console.error('更新飞线图图标失败:', error);
   }
@@ -845,53 +788,6 @@ const applyIconChanges = (id, icon, size) => {
   }
 };
 
-// 切换飞线可见性
-const toggleLineVisibility = (id) => {
-  const line = flightLines.value.find(l => l.id === id);
-  if (!line) return;
-  
-  const newVisibility = !line.visible;
-  
-  // 如果当前飞线是选中状态且要隐藏它，则先取消选择
-  if (selectedId.value === id && !newVisibility) {
-    // 先清除选择
-    clearSelection();
-    // 然后隐藏这条飞线
-    hideFlightLine(id);
-    return;
-  }
-  
-  // 如果当前有选中的飞线且不是当前飞线，则不改变其它飞线的可见性状态
-  if (selectedId.value && selectedId.value !== id) {
-    if (newVisibility) {
-      // 如果要显示这条飞线，需要先取消选择再显示所有飞线，然后重新选择之前选中的飞线
-      const prevSelectedId = selectedId.value;
-      clearSelection();
-      showFlightLine(id);
-      selectFlightLine(prevSelectedId);
-    } else {
-      // 如果要隐藏，但它本来就隐藏了（因为不是当前选中的飞线），则将其添加到hiddenIds中
-      if (!hiddenIds.value.includes(id)) {
-        hiddenIds.value.push(id);
-      }
-    }
-    return;
-  }
-  
-  // 常规切换可见性
-  if (newVisibility) {
-    showFlightLine(id);
-  } else {
-    hideFlightLine(id);
-  }
-  
-  // 更新本地状态
-  const lineIndex = flightLines.value.findIndex(l => l.id === id);
-  if (lineIndex !== -1) {
-    flightLines.value[lineIndex].visible = newVisibility;
-  }
-};
-
 // 获取飞线的图标路径
 const getSymbolPathForLine = (line) => {
   if (line.effectSymbolPath && line.effectSymbolPath.startsWith('path://')) {
@@ -953,62 +849,13 @@ const updateFlightLine = (id, options) => {
   }
 };
 
-// 强制显示样例数据，不依赖flightLineObj
-const showSampleData = () => {
-  console.log('强制显示样例数据');
-  
-  const sampleData = [
-    {
-      id: 'sample-1',
-      fromName: '北京',
-      toName: '上海',
-      coords: [[116.4, 39.9], [121.5, 31.2]],
-      visible: false, // 默认不可见，只有在选中时才会显示
-      highlight: false,
-      _createTime: Date.now() - 100000
-    },
-    {
-      id: 'sample-2',
-      fromName: '广州',
-      toName: '深圳',
-      coords: [[113.3, 23.1], [114.1, 22.5]],
-      visible: false, // 默认不可见
-      highlight: false,
-      _createTime: Date.now() - 90000
-    },
-    {
-      id: 'sample-3',
-      fromName: '成都',
-      toName: '重庆',
-      coords: [[104.1, 30.7], [106.5, 29.5]],
-      visible: false, // 默认不可见
-      highlight: false,
-      _createTime: Date.now() - 80000
-    },
-    {
-      id: 'sample-4',
-      fromName: '西安',
-      toName: '武汉',
-      coords: [[108.9, 34.3], [114.3, 30.6]],
-      visible: false, // 默认不可见
-      highlight: false,
-      _createTime: Date.now() - 70000
-    },
-    {
-      id: 'sample-5',
-      fromName: '杭州',
-      toName: '南京',
-      coords: [[120.2, 30.3], [118.8, 32.0]],
-      visible: false, // 默认不可见
-      highlight: false,
-      _createTime: Date.now() - 60000
-    }
-  ];
-  
-  // 直接设置数据
-  flightLines.value = sampleData;
-  console.log('设置了样例数据，飞线数量:', flightLines.value.length);
-  console.log('样例数据默认不可见，需要选择才会在地图上显示');
+// 切换飞线可见性
+const toggleFlightLine = (id: string) => {
+  if (selectedId.value === id) {
+    clearSelection();
+  } else {
+    selectFlightLine(id);
+  }
 };
 
 // 初始化数据加载
@@ -1054,11 +901,10 @@ defineExpose({
   addDemoFlightLines,
   setOptimalView,
   showFlightLine,
-  hideFlightLine,
   updateFlightLine,
-  showSampleData,
   loadAndEnsureData, // 暴露新方法
-  clearFlightLineLayer // 暴露清空图层方法
+  clearFlightLineLayer, // 暴露清空图层方法
+  switchFlightLine // 暴露切换飞线方法
 });
 </script>
 

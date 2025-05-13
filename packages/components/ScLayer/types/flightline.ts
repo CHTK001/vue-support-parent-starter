@@ -25,7 +25,6 @@ export interface FlightLineData {
   value?: number;        // 飞线值，可用于表示权重
   from?: number[];       // 起点坐标，可选，优先使用coords
   to?: number[];         // 终点坐标，可选，优先使用coords
-  visible?: boolean;     // 是否可见，默认为true
   highlight?: boolean;   // 是否高亮显示，默认为false
   isActive?: boolean;    // 是否为当前激活的飞线
   style?: FlightLineStyle; // 线条样式
@@ -109,9 +108,9 @@ export const DEFAULT_FLIGHTLINE_CONFIG: FlightLineConfig = {
   forcedPrecomposeRerender: true,
   showEffect: true,
   effectPeriod: 4,
-  effectTrailLength: 0.7,
-  effectSymbol: 'circle',
-  effectSymbolSize: 8,
+  effectTrailLength: 0,
+  effectSymbol: 'plane',
+  effectSymbolSize: 18,
   effectSymbolPath: 'path://M1705.06,1318.313v-89.254l-319.9-221.799l0.073-208.063c0.521-84.662-26.629-121.796-63.961-121.491c-37.332-0.305-64.482,36.829-63.961,121.491l0.073,208.063l-319.9,221.799v89.254l330.343-157.288l12.238,241.308l-134.449,92.931l0.531,42.034l175.125-42.917l175.125,42.917l0.531-42.034l-134.449-92.931l12.238-241.308L1705.06,1318.313z', // 默认飞机图标
   showNodes: true,
   nodeSymbolSize: 4,
