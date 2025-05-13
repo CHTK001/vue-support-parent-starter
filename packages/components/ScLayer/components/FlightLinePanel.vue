@@ -29,14 +29,6 @@
         <span>显示: {{ visibleFlightLineCount }}</span>
         <span>选中: {{ selectedCount }}</span>
       </div>
-      <div class="flight-line-note">
-        <i class="note-icon">ℹ️</i>
-        <span class="note-text">点击列表项显示飞线，默认飞线不显示在地图上</span>
-      </div>
-      <div v-if="selectedId" class="selection-tip">
-        <i class="selection-tip-icon">ℹ️</i>
-        <span class="selection-tip-text">已在地图上显示选中的飞线，点击相同项可显示全部</span>
-      </div>
       <div class="flight-line-toolbar">
         <button class="toolbar-btn" :disabled="!selectedId" @click.stop="clearSelection">
           全部显示
@@ -55,9 +47,6 @@
         </button>
         <button class="toolbar-btn" @click.stop="forceRefreshList" title="强制刷新列表">
           刷新列表
-        </button>
-        <button class="toolbar-btn toolbar-btn-info toolbar-btn-highlight" @click.stop="showSampleData" title="显示样例数据">
-          样例数据
         </button>
       </div>
 
@@ -105,92 +94,30 @@
         </div>
         <div v-if="filteredFlightLines.length > 0 && !selectedId" class="initial-tip">
           <i class="initial-tip-icon">☝️</i>
-          <span class="initial-tip-text">点击列表项可以在地图上显示对应飞线（默认所有飞线都是隐藏的）</span>
+          <span class="initial-tip-text">点击列表项可以在地图上显示对应飞线</span>
         </div>
-        <div v-for="line in filteredFlightLines" :key="line.id" class="flight-line-item thin-scrollbar" :class="{
-            'highlighted': line.id === selectedId,
-            'hidden': !line.visible
-          }" @click.stop="selectFlightLine(line.id)">
-          <div class="line-header">
-            <span class="line-name">{{line.fromName}} → {{line.toName}}</span>
-            <div class="line-actions">
-              <el-tooltip content="设置图标" placement="top">
-                <el-popover
-                  placement="bottom"
-                  :width="230"
-                  trigger="click"
-                  @show="tempSelectedIcon = getLineIcon(line.id); tempIconSize = getLineIconSize(line.id)"
-                  @hide="applyIconChanges(line.id, tempSelectedIcon, tempIconSize)">
-                  <template #reference>
-                    <el-button size="small" circle class="action-btn">
-                      <div class="current-icon-preview">
-                        <svg width="14" height="14" viewBox="0 0 40 40">
-                          <path :d="getSymbolPathForLine(line)" fill="#1677ff" />
-                        </svg>
-                      </div>
-                    </el-button>
-                  </template>
-                  <div class="flight-icon-container">
-                    <div class="flight-icon-preview" :style="{transform: previewTransform}">
-                      <svg width="40" height="40" viewBox="0 0 40 40">
-                        <path :d="getIconPreviewPath(tempSelectedIcon)" fill="#1677ff" />
-                      </svg>
-                    </div>
-                    <div class="icon-selector">
-                      <div class="icon-options">
-                        <div 
-                          v-for="(path, key) in iconPaths" 
-                          :key="key" 
-                          class="icon-option" 
-                          :class="{'selected': tempSelectedIcon === key}"
-                          @click="tempSelectedIcon = key">
-                          <svg width="20" height="20" viewBox="0 0 40 40">
-                            <path :d="path" fill="#1677ff" />
-                          </svg>
-                        </div>
-                      </div>
-                      <el-slider
-                        v-model="tempIconSize"
-                        :min="2"
-                        :max="20"
-                        :step="1"
-                        class="icon-size-slider"
-                      />
-                    </div>
-                  </div>
-                </el-popover>
-              </el-tooltip>
-              <el-tooltip content="切换可见性" placement="top">
-                <el-button size="small" circle class="action-btn" @click.stop="toggleLineVisibility(line.id)">
-                  <iconifyIconOnline :icon="line.visible ? 'ep:view' : 'ep:hide'" />
-                </el-button>
-              </el-tooltip>
-            </div>
+        <div 
+          v-for="line in filteredFlightLines" 
+          :key="line.id" 
+          class="flight-line-item"
+          :class="{
+            'flight-line-item-active': line.id === selectedId,
+            'flight-line-item-hidden': !line.visible
+          }" 
+          @click="selectFlightLine(line.id)"
+        >
+          <div class="flight-line-content">
+            <div class="flight-line-title">{{ line.fromName }} → {{ line.toName }}</div>
+            <div class="flight-line-details">
+              <span class="flight-line-id">ID: {{ line.id.slice(0, 8) }}...</span>
+              <span class="flight-line-value" v-if="line.value">值: {{ line.value }}</span>
           </div>
-          <div class="line-info">
-            <div class="line-detail">
-              <span class="detail-label">起点:</span>
-              <span class="detail-value">{{line.fromName}}</span>
-            </div>
-            <div class="line-detail">
-              <span class="detail-label">终点:</span>
-              <span class="detail-value">{{line.toName}}</span>
-            </div>
-            <div v-if="line.style || line.highlight" class="line-style">
-              <div class="style-color" :style="{backgroundColor: line.style?.color || (line.highlight ? '#ff0000' : '#1677ff')}"></div>
-              <span class="style-label">{{line.highlight ? '已高亮' : '自定义样式'}}</span>
-            </div>
-            <div v-if="line.effectSymbol || line.effectSymbolPath || line.effectSymbolSize" class="line-style">
-              <div class="style-icon">
-                <svg width="16" height="16" viewBox="0 0 40 40">
-                  <path :d="getSymbolPathForLine(line)" fill="#1677ff" />
-                </svg>
-              </div>
-              <span class="style-label">当前图标{{line.effectSymbolSize ? ` (${line.effectSymbolSize})` : ''}}</span>
-            </div>
           </div>
+          <div v-if="line.id === selectedId" class="flight-line-active-badge">
+            激活
         </div>
       </div>
+    </div>
     </div>
     <!-- 折叠/最小化状态下的图标 -->
     <div class="track-player-minimized" v-if="collapsed" @click.stop="toggleCollapse">
@@ -271,17 +198,15 @@ const position = computed(() => props.position || 'top-right'); // 默认右上�
 const flightLineCount = computed(() => flightLines.value.length);
 // 只显示可见的飞线（visible为true）或被选中的飞线
 const filteredFlightLines = computed(() => {
-  // 如果showOnlyVisible为false，则显示所有飞线
-  if (!showOnlyVisible.value) {
-    return flightLines.value;
+  if (showOnlyVisible.value) {
+    return flightLines.value.filter(line => line.visible !== false);
   }
-  // 否则只显示可见的飞线或被选中的飞线
-  return flightLines.value.filter(line => 
-    line.visible === true || (selectedId.value && line.id === selectedId.value)
-  );
+  return flightLines.value;
 });
 // 可见飞线数量
-const visibleFlightLineCount = computed(() => filteredFlightLines.value.length);
+const visibleFlightLineCount = computed(() => 
+  flightLines.value.filter(line => line.visible !== false).length
+);
 
 // 调试用：列出飞线数据
 const dumpFlightLines = () => {
@@ -303,90 +228,53 @@ const forceRefreshList = () => {
 // 刷新飞线列表数据
 const refreshFlightLineList = () => {
   if (!props.flightLineObj) {
-    console.error('刷新飞线列表失败：flightLineObj不存在');
-    
-    // 保留当前数据（如样例数据）
-    if (flightLines.value.length > 0) {
-      console.log('保留当前样例数据，跳过刷新');
-      return;
-    }
-    
-    flightLines.value = [];
+    console.warn('无法刷新飞线列表，飞线图对象不存在');
     return;
   }
   
-  try {
-    // 获取飞线数据
-    const linesMap = props.flightLineObj.getAllFlightLines();
-    console.log('获取到飞线Map对象:', linesMap);
-    
-    // 输出实际的飞线数据size
-    console.log('飞线Map大小:', linesMap.size);
-    
-    // 检查linesMap是否是有效的Map对象
-    if (!(linesMap instanceof Map)) {
-      console.error('linesMap不是有效的Map对象:', linesMap);
-      
-      // 保留当前数据
-      if (flightLines.value.length > 0) {
-        console.log('保留当前样例数据，跳过刷新');
-      }
-      return;
-    }
-    
-    // 如果Map为空，保留当前数据
-    if (linesMap.size === 0 && flightLines.value.length > 0) {
-      console.log('飞线Map为空，保留当前数据');
-      return;
-    }
-    
-    // 直接列出所有飞线ID以进行调试
-    const allIds = Array.from(linesMap.keys());
-    console.log('所有飞线ID:', allIds);
-    
-    const linesArray: Array<FlightLineData & { id: string }> = [];
-    
-    // 转换为数组
-    linesMap.forEach((line, id) => {
-      console.log(`处理飞线数据: ID=${id}, 名称=${line.fromName}→${line.toName}, 可见性=${line.visible}`);
-      const createTime = typeof line._createTime === 'number' ? line._createTime : Date.now();
-      linesArray.push({
-        ...line,
-        id, // 确保id字段存在
-        _createTime: createTime // 使用已存在的创建时间或创建新的
-      });
+  // 获取所有飞线数据
+  const allFlightLines = props.flightLineObj.getAllFlightLines();
+  if (!allFlightLines) {
+    flightLines.value = [];
+    selectedId.value = null;
+    return;
+  }
+  
+  // 转换Map为数组
+  const linesArray: Array<FlightLineData & { id: string }> = [];
+  allFlightLines.forEach((line, id) => {
+    linesArray.push({
+      ...line,
+      id
     });
+  });
+  
+  // 按创建时间排序，新的在前面
+  linesArray.sort((a, b) => {
+    const timeA = a._createTime || 0;
+    const timeB = b._createTime || 0;
+    return timeB - timeA;
+  });
+  
+  // 更新飞线列表
+  flightLines.value = linesArray;
+  
+  // 获取当前活跃的飞线ID，但不自动选中
+  const activeId = props.flightLineObj.getActiveFlightLine();
+  
+  // 只有当存在活跃飞线ID时才更新选中状态
+  if (activeId) {
+    selectedId.value = activeId;
+    console.log(`刷新飞线列表，当前活跃飞线ID: ${activeId}`);
+  } else {
+    // 当没有活跃飞线时，确保selectedId为null
+    selectedId.value = null;
+    console.log('刷新飞线列表，当前没有活跃飞线');
     
-    console.log(`转换后的飞线数组长度: ${linesArray.length}`);
-    
-    // 按照创建时间排序（最新的在前面）
-    linesArray.sort((a, b) => {
-      const timeA = typeof a._createTime === 'number' ? a._createTime : 0;
-      const timeB = typeof b._createTime === 'number' ? b._createTime : 0;
-      return timeB - timeA;
-    });
-    
-    // 更新飞线数据
-    flightLines.value = linesArray;
-    console.log('更新后的flightLines.value长度:', flightLines.value.length);
-    
-    // 检查当前选中的ID是否仍然存在
-    if (selectedId.value) {
-      const exists = linesArray.some(line => line.id === selectedId.value);
-      if (!exists) {
-        selectedId.value = null;
-      }
-    } else if (linesArray.length > 0 && !isPanelTouched.value) {
-      // 如果没有选中项且有数据，并且用户尚未交互，自动选中第一条记录
-      console.log('自动选中第一条飞线记录');
-      nextTick(() => {
-        selectFlightLine(linesArray[0].id);
-      });
+    // 确保地图上没有显示任何飞线
+    if (props.flightLineObj.isEnabled()) {
+      props.flightLineObj.clearFlightLines();
     }
-    
-    console.log(`已刷新飞线列表，共 ${linesArray.length} 条数据`);
-  } catch (error) {
-    console.error('刷新飞线列表失败:', error);
   }
 };
 
@@ -424,128 +312,76 @@ const toggleCollapse = () => {
 
 // 选择飞线
 const selectFlightLine = (id: string) => {
-  if (!props.flightLineObj && !flightLines.value.find(line => line.id === id)) {
-    console.log('无法选中飞线，flightLineObj不存在且在本地数据中找不到该ID');
-    return;
-  }
+  if (!props.flightLineObj) return;
   
-  // 如果已选中，则取消选中，隐藏所有飞线
+  // 如果点击的是当前选中的飞线，则取消选择并清空图层
   if (selectedId.value === id) {
+    // 调用clearSelection方法完全清空图层
     clearSelection();
     return;
   }
   
-  // 如果已有选中的飞线且不是当前选择的飞线，先取消高亮
-  if (selectedId.value && selectedId.value !== id) {
-    // 取消前一个飞线的高亮
-    if (props.flightLineObj) {
-      updateFlightLineHighlight(selectedId.value);
-    }
-  }
-  
-  // 设置选中状态
+  // 记录选中的飞线ID
   selectedId.value = id;
+  emit('selection-change', id);
   
-  // 标记面板已被用户触摸
-  isPanelTouched.value = true;
-  
-  // 通知选中状态变化
-  emit('selection-change', selectedId.value);
-  
-  // 获取选中的飞线数据
-  const selectedLine = flightLines.value.find(line => line.id === id);
-  if (!selectedLine) {
-    console.error(`未找到ID为 ${id} 的飞线数据`);
-    return;
-  }
-  
-  // 更新所有飞线的显示状态
-  flightLines.value.forEach(line => {
-    if (line.id === id) {
-      // 显示并高亮选中的飞线（在本地和地图上）
-      if (props.flightLineObj) {
-        props.flightLineObj.updateFlightLine(line.id, {
-          visible: true, // 确保选中的飞线可见
-          highlight: true,
-          style: {
-            width: 3, // 加粗线条
-            opacity: 1,
-            color: '#1890ff' // 蓝色高亮
-          }
-        });
-      }
-      
-      // 更新本地状态
-      line.visible = true;
-      line.highlight = true;
-    } else {
-      // 隐藏其他飞线（在地图上）
-      if (props.flightLineObj) {
-        props.flightLineObj.updateFlightLine(line.id, {
-          visible: false, // 确保其他飞线不可见
-          highlight: false
-        });
-      }
-      
-      // 更新本地状态（只更改visible和highlight属性，保留其他数据）
-      line.visible = false;
-      line.highlight = false;
-    }
-  });
-  
-  // 自动调整到选中飞线的最佳视角
-  if (props.flightLineObj) {
-    setOptimalViewForLine(id);
-  }
-  
-  console.log(`已选中飞线: ${id}, 显示该飞线并隐藏其他飞线`);
+  // 调用API只显示选中的飞线
+  props.flightLineObj.showOnlyFlightLine(id);
 };
 
-// 清除选择 - 隐藏所有飞线
+// 清除选择并清空图层
 const clearSelection = () => {
-  if (!props.flightLineObj && flightLines.value.length === 0) {
-    console.log('无法清除选择，flightLineObj不存在且本地无数据');
-    return;
-  }
+  if (!props.flightLineObj) return;
   
-  if (selectedId.value) {
-    // 取消当前选中飞线的高亮
-    if (props.flightLineObj) {
-      updateFlightLineHighlight(selectedId.value);
-    } else {
-      // 手动处理本地状态
-      const selectedLine = flightLines.value.find(line => line.id === selectedId.value);
-      if (selectedLine) {
-        selectedLine.highlight = false;
-      }
-    }
-  }
-  
+  // 清除选中状态
   selectedId.value = null;
   emit('selection-change', null);
   
-  // 隐藏所有飞线
-  flightLines.value.forEach(line => {
-    // 默认所有飞线都不可见
-    const shouldBeVisible = false;
-    
-    // 更新飞线可见性和高亮状态
-    if (props.flightLineObj) {
-      props.flightLineObj.updateFlightLine(line.id, {
-        visible: shouldBeVisible,
-        highlight: false
-      });
-    }
-    
-    // 直接更新本地状态
-    line.visible = shouldBeVisible;
-    line.highlight = false;
+  // 调用API清空飞线图层
+  clearFlightLineLayer(); // 使用更彻底的清空方法
+  
+  // 确保UI状态更新
+  nextTick(() => {
+    refreshFlightLineList();
   });
+};
+
+// 清空飞线图层
+const clearFlightLineLayer = () => {
+  if (!props.flightLineObj) return;
   
-  // 标记面板已被用户触摸
-  isPanelTouched.value = true;
+  // 调用API清空飞线图层
+  props.flightLineObj.clearFlightLines();
   
-  console.log('已清除选择，隐藏所有飞线');
+  // 再次尝试强制清空echarts图层
+  try {
+    if (props.flightLineObj.echartsLayer) {
+      props.flightLineObj.echartsLayer.setChartOptions({
+        animation: false,
+        backgroundColor: 'transparent',
+        tooltip: {},
+        series: [] // 完全空的系列
+      });
+      
+      // 强制重绘
+      props.flightLineObj.echartsLayer.redraw();
+      
+      // 延迟再次确认清除
+      setTimeout(() => {
+        if (props.flightLineObj && props.flightLineObj.echartsLayer) {
+          props.flightLineObj.echartsLayer.setChartOptions({
+            series: []
+          });
+          
+          props.flightLineObj.echartsLayer.redraw();
+        }
+      }, 50);
+    }
+  } catch (error) {
+    console.error('强制清空图层失败:', error);
+  }
+  
+  console.log('已清空飞线图层');
 };
 
 // 隐藏/显示选中的飞线
@@ -577,13 +413,31 @@ const hideSelected = () => {
 
 // 设置最佳视角
 const setOptimalView = () => {
-  if (!props.flightLineObj) return;
+  if (!props.flightLineObj) {
+    console.error('无法设置最佳视角：flightLineObj不可用');
+    return;
+  }
   
   try {
-    // 使用飞线对象的setOptimalView方法设置最佳视角，缩放级别为5
-    props.flightLineObj.setOptimalView(5);
+    console.log('正在设置飞线图最佳视角...');
+    
+    // 确保飞线图已启用
+    if (!props.flightLineObj.isEnabled()) {
+      console.log('飞线图未启用，正在启用...');
+      props.flightLineObj.enable().then(() => {
+        // 启用后再设置最佳视角
+        console.log('飞线图已启用，设置最佳视角');
+        props.flightLineObj.setOptimalView(5);
+      }).catch(err => {
+        console.error('启用飞线图失败:', err);
+      });
+    } else {
+      // 已启用，直接设置最佳视角
+      props.flightLineObj.setOptimalView(5);
+      console.log('已设置飞线图最佳视角');
+    }
   } catch (error) {
-    console.error('设置最佳视角失败:', error);
+    console.error('设置最佳视角时发生错误:', error);
   }
 };
 
@@ -674,7 +528,7 @@ const showFlightLine = (id: string) => {
     }
     
     // 更新飞线可见性
-    props.flightLineObj.updateFlightLine(id, {
+      props.flightLineObj.updateFlightLine(id, {
       visible: true
     });
     
@@ -701,7 +555,7 @@ const hideFlightLine = (id: string) => {
     }
     
     // 更新飞线可见性
-    props.flightLineObj.updateFlightLine(id, {
+        props.flightLineObj.updateFlightLine(id, {
       visible: false
     });
     
@@ -1203,7 +1057,8 @@ defineExpose({
   hideFlightLine,
   updateFlightLine,
   showSampleData,
-  loadAndEnsureData // 暴露新方法
+  loadAndEnsureData, // 暴露新方法
+  clearFlightLineLayer // 暴露清空图层方法
 });
 </script>
 
@@ -1508,94 +1363,58 @@ defineExpose({
   }
 }
 .flight-line-item {
-  border: 1px solid #eee;
+  position: relative;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #e8e8e8;
   border-radius: 4px;
-  padding: 8px;
-  background-color: #fff;
+  background-color: #f9f9f9;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .flight-line-item:hover {
-  border-color: #3498db;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.flight-line-item.highlighted {
-  border-color: #1890ff;
-  background-color: rgba(24, 144, 255, 0.05);
-  box-shadow: 0 1px 4px rgba(24, 144, 255, 0.2);
-  position: relative;
+.flight-line-item-active {
+  border: 2px solid #1677ff;
+  background-color: #e6f7ff;
 }
 
-.flight-line-item.highlighted::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 100%;
-  background-color: #1890ff;
+.flight-line-content {
+  flex: 1;
 }
 
-.flight-line-item.hidden {
-  opacity: 0.8;
-  background-color: #f9f9f9;
-  position: relative;
+.flight-line-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #333;
 }
 
-.flight-line-item.hidden::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 100%;
-  background-color: #ccc;
-}
-
-.flight-line-header {
+.flight-line-details {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
   font-size: 12px;
   color: #666;
+  gap: 10px;
 }
 
-.flight-line-route {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14px;
-}
-
-.flight-line-arrow {
-  color: #3498db;
-  font-weight: bold;
-}
-
-/* 飞线项操作按钮 */
-.flight-line-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 5px;
-  padding-top: 5px;
-  border-top: 1px dashed #eee;
-}
-
-.flight-line-btn {
-  padding: 3px 8px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 3px;
+.flight-line-active-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 8px;
+  background-color: #1677ff;
+  color: #fff;
+  border-radius: 10px;
   font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.flight-line-btn:hover {
-  background-color: #2980b9;
+  font-weight: bold;
 }
 
 /* 最小化后的样式，参考轨迹播放器的实现 */

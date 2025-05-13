@@ -278,6 +278,7 @@
               <div class="control-row buttons-row">
                 <button @click="enableFlightLine">启用飞线图</button>
                 <button @click="disableFlightLine">禁用飞线图</button>
+                <button @click="showAllFlightLines">显示全部飞线</button>
               </div>
 
               <div class="feature-group-title">飞线样式</div>
@@ -2442,33 +2443,31 @@ const changeToolbarDirection = (direction: ToolbarDirection) => {
 const enableFlightLine = async () => {
   if (!layerRef.value) return;
   
-  // 尝试激活飞线图工具
-  const result = layerRef.value.activateTool('flightLine');
-  
-  if (result) {
+  try {
+    // 获取飞线图对象
+    const flightLineObj = layerRef.value.getFlightLineObject();
+    if (!flightLineObj) {
+      addLog('飞线图', '无法获取飞线图对象');
+      return;
+    }
+    
+    // 启用飞线图
+    await flightLineObj.enable();
     flightLineActive.value = true;
+    addLog('飞线图', '飞线图已启用');
     
-    // 延迟300ms确保飞线图初始化完成
+    // 添加测试飞线
+    if (process.env.NODE_ENV === 'development') {
+      addTestFlightLines();
+    }
+    
+    // 更新飞线列表
     setTimeout(() => {
-      // 检查是否有飞线图对象
-      const flightLineObj = layerRef.value.getFlightLineObject();
-      if (flightLineObj) {
-        // 确保飞线图启用
-        flightLineObj.enable().then(() => {
-          console.log('飞线图已启用成功');
-          // 添加一些测试飞线数据确保可见
-          addRandomFlightLines();
-          // 更新飞线列表
-          updateFlightLineList();
-        }).catch(err => {
-          console.error('启用飞线图失败:', err);
-        });
-      }
+      updateFlightLineList();
     }, 300);
-    
-    addLog('飞线图', '启用飞线图');
-  } else {
-    addLog('飞线图', '启用飞线图失败，请确认工具栏中包含飞线图工具');
+  } catch (error) {
+    console.error('启用飞线图失败:', error);
+    addLog('飞线图', `启用飞线图失败: ${error.message}`);
   }
 };
 
@@ -2516,13 +2515,20 @@ const updateFlightLineList = () => {
       return;
     }
     
-    // 转换Map为数组
+    // 转换Map为数组并按创建时间排序
     const linesArray: Array<FlightLineData & { id: string }> = [];
     allFlightLines.forEach((line, id) => {
       linesArray.push({
         ...line,
         id
       });
+    });
+    
+    // 按创建时间倒序排序，最新的在前面
+    linesArray.sort((a, b) => {
+      const timeA = a._createTime || 0;
+      const timeB = b._createTime || 0;
+      return timeB - timeA;
     });
     
     // 更新列表
@@ -2534,13 +2540,10 @@ const updateFlightLineList = () => {
     // 更新选中状态
     selectedFlightLine.value = activeFlightLine;
     
-    // 记录操作
-    if (linesArray.length > 0) {
-      addLog('飞线图', `已更新飞线列表，共 ${linesArray.length} 条飞线`);
-    }
+    addLog('飞线图', `飞线列表已更新，共 ${linesArray.length} 条飞线`);
   } catch (error) {
-    console.error('获取飞线数据失败:', error);
-    addLog('飞线图', `获取飞线数据失败: ${error.message}`);
+    console.error('获取飞线列表错误:', error);
+    addLog('飞线图', `获取飞线列表失败: ${error.message}`);
   }
 };
 
@@ -3077,6 +3080,153 @@ const toggleHeatmapPerformanceMode = () => {
   // 记录日志
   addLog('热力图', `性能模式已${heatmapPerformanceMode.value ? '启用' : '禁用'}`);
 };
+
+// 显示全部飞线
+const showAllFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 获取所有飞线数据
+  const allFlightLines = flightLineObj.getAllFlightLines();
+  if (!allFlightLines) {
+    flightLines.value = [];
+    selectedFlightLine.value = null;
+    return;
+  }
+  
+  // 转换Map为数组
+  const linesArray: Array<FlightLineData & { id: string }> = [];
+  allFlightLines.forEach((line, id) => {
+    linesArray.push({
+      ...line,
+      id
+    });
+  });
+  
+  // 更新列表
+  flightLines.value = linesArray;
+  
+  // 获取当前激活的飞线
+  const activeFlightLine = flightLineObj.getActiveFlightLine();
+  
+  // 更新选中状态
+  selectedFlightLine.value = activeFlightLine;
+  
+  // 记录操作
+  if (linesArray.length > 0) {
+    addLog('飞线图', `已更新飞线列表，共 ${linesArray.length} 条飞线`);
+  }
+};
+
+// 选择单条飞线
+const selectSingleFlightLine = (id: string) => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 如果当前选中的就是这个ID，则切换到显示全部
+  if (selectedFlightLine.value === id) {
+    // 显示所有飞线
+    flightLineObj.showAllFlightLines();
+    selectedFlightLine.value = null;
+    
+    // 获取飞线数据记录日志
+    const line = flightLines.value.find(line => line.id === id);
+    if (line) {
+      addLog('飞线图', `取消单飞线显示，恢复显示全部`);
+    }
+  } else {
+    // 只显示选中的飞线
+    flightLineObj.showOnlyFlightLine(id);
+    selectedFlightLine.value = id;
+    
+    // 获取飞线数据记录日志
+    const line = flightLines.value.find(line => line.id === id);
+    if (line) {
+      addLog('飞线图', `只显示飞线: ${line.fromName} -> ${line.toName}`);
+    }
+  }
+};
+
+/**
+ * 地图初始化完成
+ */
+const onMapInitialized = (map: any) => {
+  addLog('地图', '地图初始化完成');
+  
+  // 启用飞线图
+  enableFlightLine();
+  
+  // 更新飞线列表
+  setTimeout(() => {
+    updateFlightLineList();
+  }, 500);
+};
+
+/**
+ * 添加测试飞线数据
+ */
+const addTestFlightLines = () => {
+  if (!layerRef.value) return;
+  
+  // 获取飞线图对象
+  const flightLineObj = layerRef.value.getFlightLineObject();
+  if (!flightLineObj) {
+    addLog('飞线图', '无法获取飞线图对象');
+    return;
+  }
+  
+  // 示例城市坐标
+  const cities = {
+    '北京': [116.4, 39.9],
+    '上海': [121.5, 31.2],
+    '广州': [113.3, 23.1],
+    '深圳': [114.1, 22.5],
+    '杭州': [120.2, 30.3],
+    '成都': [104.1, 30.7],
+    '武汉': [114.3, 30.6],
+    '西安': [108.9, 34.3],
+    '南京': [118.8, 32.0],
+    '重庆': [106.5, 29.5]
+  };
+  
+  // 添加坐标点
+  flightLineObj.addCoordinates(cities as any);
+  
+  // 创建连接所有城市的飞线网络，以北京为中心
+  const cityNames = Object.keys(cities);
+  const testLines = [];
+  
+  // 创建以北京为中心的星形网络
+  for (let i = 1; i < cityNames.length; i++) {
+    const from = '北京';
+    const to = cityNames[i];
+    testLines.push({
+      fromName: from,
+      toName: to,
+      coords: [cities[from], cities[to]],
+      value: Math.floor(Math.random() * 1000) + 100
+    });
+  }
+  
+  // 添加测试飞线
+  flightLineObj.addFlightLines(testLines);
+  
+  addLog('飞线图', `添加了${testLines.length}条测试飞线`);
+};
+
+// 删除出错的onMounted块
 </script>
 
 <style scoped>
@@ -3258,7 +3408,46 @@ button:hover {
 }
 
 .flight-line-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
   cursor: pointer;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flight-line-item:hover {
+  background-color: #f0f0f0;
+}
+
+.line-content {
+  flex: 1;
+}
+
+.line-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.line-details {
+  font-size: 12px;
+  color: #666;
+}
+
+.active-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background-color: #1890ff;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
 }
 
 .flight-line-selected {
@@ -3463,5 +3652,53 @@ button:hover {
   text-align: center;
   padding: 4px 0;
   font-size: 12px;
+}
+
+.flight-lines-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 8px;
+}
+
+.flight-line-item {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.flight-line-item.active {
+  border-color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.flight-line-title {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.flight-line-details {
+  font-size: 12px;
+  color: #666;
+}
+
+.active-badge {
+  background-color: #1890ff;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.empty-tip {
+  color: #999;
+  font-style: italic;
+  padding: 8px 0;
+  text-align: center;
 }
 </style> 
