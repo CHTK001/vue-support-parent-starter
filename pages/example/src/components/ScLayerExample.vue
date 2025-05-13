@@ -549,10 +549,10 @@ const flightLineConfig = ref<FlightLineConfig>({
   color: '#a6c84c',      // 使用sakitam示例中的颜色
   opacity: 0.5,          // 透明度调整为0.5
   effectPeriod: 6,       // 效果周期调整为6
-  effectTrailLength: 0.7, // 效果轨迹长度调整为0.7
-  effectSymbolSize: 8,   // 动画效果大小设为8
+  effectTrailLength: 0, // 效果轨迹长度调整为0.7
+  effectSymbolSize: 18,   // 动画效果大小设为8
   nodeSymbolSize: 3,     // 节点大小从8减小到3
-  effectSymbol: 'arrow', // 效果符号改为arrow
+  effectSymbol: 'plane', // 效果符号改为arrow
   visible: true,         // 可见性
   nodeColor: '#ddb926',  // 节点颜色
   nodeEffect: true,      // 节点效果

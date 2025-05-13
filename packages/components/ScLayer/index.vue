@@ -426,7 +426,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     },
     
     // 飞线图状态变化
-    'flightLine': () => {
+    'flight-line': () => {
       logger.debug(`[FlightLine] 收到飞线图事件: active=${active}, data=${JSON.stringify(data)}`);
       
       if (active) {
