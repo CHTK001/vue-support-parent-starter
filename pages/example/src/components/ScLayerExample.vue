@@ -223,7 +223,7 @@
               <div class="feature-group-title">轨迹示例</div>
               <div class="control-row buttons-row">
                 <button @click="addSampleTrack">添加示例轨迹</button>
-                <button @click="addMultipleTrack">添加多条轨迹</button>
+                <button @click="addComplexTrack">添加复杂轨迹</button>
               </div>
               <div class="control-row buttons-row">
                 <button @click="addCircularTrack">添加环形轨迹</button>
@@ -681,10 +681,13 @@ const updateTrackPlayConfig = () => {
         loop: trackPlayLoop.value,
         speed: trackPlaySpeed.value,
         withCamera: trackPlayWithCamera.value,
-        showNodes: trackPlayShowNodes.value
+        showNodes: trackPlayShowNodes.value,
+        showNodeTime: true, // 始终显示节点时间
+        showNodeNames: true, // 显示节点名称
+        showSpeed: true      // 显示速度信息
       });
       
-      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}`);
+      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}, 显示节点时间=true`);
     }
   }
 };
@@ -1838,12 +1841,15 @@ const addSampleTrack = () => {
         time: now + i * 60, // 每分钟一个点
         dir: 90,  // 向东
         title: `轨迹点 ${i+1}`,
+        // 添加自定义图标，第一个点使用一个特殊图标
+        iconUrl: i === 0 ? 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' : undefined,
+        iconSize: [24, 24],
         info: [
           { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
           { key: '速度', value: '45 km/h' },
           { key: '方向', value: '90°' }
         ]
-      });
+      } as any);
     }
     
     // 创建轨迹对象
@@ -1866,6 +1872,99 @@ const addSampleTrack = () => {
     }
   } catch (e) {
     addLog('error', `添加示例轨迹失败: ${e}`);
+  }
+};
+
+// 添加复杂轨迹示例
+const addComplexTrack = () => {
+  try {
+    // 获取地图中心点
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    
+    // 定义复杂轨迹的关键点 - 包含多个转弯点
+    const keyPoints = [
+      { lat: center[0], lng: center[1], name: '起点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/start.png' },
+      { lat: center[0] + 0.02, lng: center[1] + 0.02, name: '转弯点1', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' },
+      { lat: center[0] + 0.03, lng: center[1], name: '转弯点2', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png' },
+      { lat: center[0] + 0.01, lng: center[1] - 0.02, name: '转弯点3', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png' },
+      { lat: center[0] - 0.01, lng: center[1] - 0.03, name: '转弯点4', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-4.png' },
+      { lat: center[0] - 0.02, lng: center[1] - 0.01, name: '转弯点5', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/warning.png' },
+      { lat: center[0] - 0.01, lng: center[1] + 0.01, name: '终点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/end.png' },
+    ];
+    
+    // 为每个关键点之间插入中间点，使路径更平滑
+    for (let i = 0; i < keyPoints.length - 1; i++) {
+      const start = keyPoints[i];
+      const end = keyPoints[i + 1];
+      const steps = 8; // 每段关键点之间插入8个中间点
+      
+      for (let j = 0; j <= steps; j++) {
+        const ratio = j / steps;
+        const lat = start.lat + (end.lat - start.lat) * ratio;
+        const lng = start.lng + (end.lng - start.lng) * ratio;
+        
+        // 计算方向（使用简单的角度计算）
+        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        
+        // 设置点位的时间，每点间隔30秒
+        const time = now + (i * steps + j) * 30;
+        
+        // 创建轨迹点
+        const point = {
+          lat,
+          lng,
+          time,
+          dir: direction,
+          title: j === 0 ? start.name : (j === steps ? end.name : `路线点 ${points.length + 1}`),
+          info: [
+            { key: '时间', value: new Date(time * 1000).toLocaleTimeString() },
+            { key: '类型', value: j === 0 ? '关键点' : '路线点' },
+            { key: '方向', value: `${Math.round(direction)}°` }
+          ]
+        } as any; // 使用类型断言解决TypeScript类型问题
+        
+        // 为关键点添加自定义图标
+        if (j === 0) {
+          point.iconUrl = start.icon;
+          point.iconSize = [32, 32]; // 关键点使用大一点的图标
+        } else if (j === steps && i === keyPoints.length - 2) {
+          // 最后一个点（终点）
+          point.iconUrl = end.icon;
+          point.iconSize = [32, 32];
+        }
+        
+        points.push(point);
+      }
+    }
+    
+    // 创建轨迹对象
+    const track = {
+      id: 'complex-track-' + Math.floor(Math.random() * 1000),
+      name: '复杂轨迹示例',
+      points: points,
+      color: '#1890FF', // 蓝色
+      visible: true
+    };
+    
+    // 添加轨迹
+    if (layerRef.value) {
+      layerRef.value.addTrack(track);
+      tracks.value.push(track);
+      hasTrack.value = true;
+      addLog('info', `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`);
+      
+      // 自动将地图视图调整到包含整个轨迹
+      layerRef.value.fitTrackToView(track.id, {
+        padding: [50, 50, 50, 50],
+        maxZoom: 14
+      });
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加复杂轨迹失败: ${e}`);
   }
 };
 
@@ -2077,6 +2176,8 @@ const playTrack = () => {
       // 显示设置
       showNodes: trackPlayShowNodes.value,
       showNodeAnchors: true,
+      showNodeNames: true,
+      showNodeTime: true,  // 显示节点时间
       showPointNames: true,
       showSpeed: true,
       showNodeSpeed: true
@@ -3498,6 +3599,8 @@ const playTrackById = (trackId: string) => {
     speedFactor: 1.0,
     showNodes: trackPlayShowNodes.value,
     showNodeAnchors: true,
+    showNodeNames: true,
+    showNodeTime: true,  // 显示节点时间
     showPointNames: true,
     showSpeed: true,
     showNodeSpeed: true

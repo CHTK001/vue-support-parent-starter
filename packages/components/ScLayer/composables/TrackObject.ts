@@ -1343,19 +1343,36 @@ export class TrackObject {
     // 创建点几何
     const point = new Point(fromLonLat([position.lng, position.lat]));
     
-    // 设置标记样式
-    const style = new Style({
-      image: new CircleStyle({
-        radius: 6,
-        fill: new Fill({
-          color: track.color || 'rgba(24, 144, 255, 1)'
-        }),
-        stroke: new Stroke({
-          color: 'white',
-          width: 2
+    // 根据是否有自定义图标设置标记样式
+    let style: Style;
+    if (position.iconUrl) {
+      // 使用自定义图标
+      const iconSize = position.iconSize || [24, 24]; // 默认图标大小为24x24
+      style = new Style({
+        image: new Icon({
+          src: position.iconUrl,
+          scale: 1,
+          size: iconSize,
+          anchor: [0.5, 0.5],
+          anchorXUnits: 'fraction',
+          anchorYUnits: 'fraction'
         })
-      })
-    });
+      });
+    } else {
+      // 使用默认圆点样式
+      style = new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: track.color || 'rgba(24, 144, 255, 1)'
+          }),
+          stroke: new Stroke({
+            color: 'white',
+            width: 2
+          })
+        })
+      });
+    }
     
     // 在向量上下文中绘制点
     vectorContext.setStyle(style);
@@ -1896,19 +1913,42 @@ export class TrackObject {
     const point = track.points[pointIndex];
     const trackColor = track.color || '#1890ff';
     
-    // 创建点样式
-    const pointStyle = new Style({
-      image: new CircleStyle({
-        radius: 6,
-        fill: new Fill({
-          color: trackColor
-        }),
-        stroke: new Stroke({
-          color: '#ffffff',
-          width: 2
+    // 创建基础样式数组
+    const styles: Style[] = [];
+    
+    // 1. 判断是否有自定义图标
+    let pointStyle: Style;
+    if (point.iconUrl) {
+      // 使用自定义图标
+      const iconSize = point.iconSize || [24, 24]; // 默认图标大小为24x24
+      
+      pointStyle = new Style({
+        image: new Icon({
+          src: point.iconUrl,
+          scale: 1,
+          size: iconSize,
+          anchor: [0.5, 0.5], // 锚点设在图标中心
+          anchorXUnits: 'fraction',
+          anchorYUnits: 'fraction'
         })
-      })
-    });
+      });
+    } else {
+      // 使用默认圆点样式
+      pointStyle = new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: trackColor
+          }),
+          stroke: new Stroke({
+            color: '#ffffff',
+            width: 2
+          })
+        })
+      });
+    }
+    
+    styles.push(pointStyle);
     
     // 如果需要显示文本，且有标题
     if (showText && point.title) {
@@ -1920,12 +1960,13 @@ export class TrackObject {
       }
       
       const textStyle = new Style({
+        // 文本样式配置（如果需要）
       });
       
-      return [pointStyle, textStyle];
+      styles.push(textStyle);
     }
     
-    return pointStyle;
+    return styles.length === 1 ? styles[0] : styles;
   }
 
   /**
@@ -2268,23 +2309,37 @@ export class TrackObject {
       
       // 只有当showNodeAnchors为true时才绘制锚点
       if (showNodeAnchors) {
-        // 创建点的样式
-        // 样式逻辑:
-        // 1. 当前点 - 使用较大尺寸并使用高亮颜色 (橙色)
-        // 2. 已经过的点 - 使用中等尺寸并使用特殊颜色 (绿色)
-        // 3. 未经过的点 - 使用标准尺寸和常规颜色
-        const pointStyle = new Style({
-          image: new CircleStyle({
-            radius: isCurrentNode ? 6 : (isPastNode ? 5 : 4),
-            fill: new Fill({
-              color: isCurrentNode ? '#ff6b18' : (isPastNode ? '#52c41a' : (track.color || '#1890ff'))
-            }),
-            stroke: new Stroke({
-              color: '#ffffff',
-              width: isCurrentNode ? 2 : (isPastNode ? 1.8 : 1.5)
+        // 为点创建样式 - 根据是否有自定义图标
+        let pointStyle: Style;
+        
+        if (point.iconUrl) {
+          // 使用自定义图标
+          const iconSize = point.iconSize || [24, 24]; // 默认图标大小为24x24
+          pointStyle = new Style({
+            image: new Icon({
+              src: point.iconUrl,
+              scale: isCurrentNode ? 1.2 : (isPastNode ? 1.1 : 1),
+              size: iconSize,
+              anchor: [0.5, 0.5],
+              anchorXUnits: 'fraction',
+              anchorYUnits: 'fraction'
             })
-          })
-        });
+          });
+        } else {
+          // 使用默认圆点样式
+          pointStyle = new Style({
+            image: new CircleStyle({
+              radius: isCurrentNode ? 6 : (isPastNode ? 5 : 4),
+              fill: new Fill({
+                color: isCurrentNode ? '#ff6b18' : (isPastNode ? '#52c41a' : (track.color || '#1890ff'))
+              }),
+              stroke: new Stroke({
+                color: '#ffffff',
+                width: isCurrentNode ? 2 : (isPastNode ? 1.8 : 1.5)
+              })
+            })
+          });
+        }
         
         // 绘制点
         vectorContext.setStyle(pointStyle);
@@ -2969,9 +3024,23 @@ export class TrackObject {
    * @param className 自定义类名
    */
   private createNodeOverlay(id: string, pointIndex: number, content: string, position: number[], className = 'track-node-overlay'): Overlay {
+    const track = this.tracks.get(id);
+    const point = track?.points[pointIndex];
+    
     // 创建overlay元素
     const element = document.createElement('div');
     element.className = className;
+    
+    // 检查点位是否有自定义图标
+    if (point && point.iconUrl && !content.includes(`<img src="${point.iconUrl}"`)) {
+      // 如果有自定义图标且内容中未包含该图标，添加图标到内容顶部
+      const iconSize = point.iconSize || [24, 24];
+      const iconHtml = `<div style="text-align:center;margin-bottom:4px;">
+        <img src="${point.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" />
+      </div>`;
+      content = iconHtml + content;
+    }
+    
     element.innerHTML = content;
     element.style.position = 'absolute';
     element.style.backgroundColor = 'white';
@@ -3219,8 +3288,19 @@ export class TrackObject {
       timeStr = date.toLocaleTimeString();
     }
     
-    // 重建节点内容
-    let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title || ''}</div>`;
+    // 创建节点内容，考虑是否有自定义图标
+    let nodeContent = '';
+    
+    // 如果有自定义图标，添加图标到内容
+    if (point.iconUrl) {
+      const iconSize = point.iconSize || [24, 24];
+      nodeContent += `<div style="text-align:center;margin-bottom:4px;">
+        <img src="${point.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" />
+      </div>`;
+    }
+    
+    // 添加标题
+    nodeContent += `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title || ''}</div>`;
     
     // 添加时间信息
     if (timeStr) {
@@ -3243,11 +3323,11 @@ export class TrackObject {
     const arrows = element.querySelectorAll('div');
     if (arrows && arrows.length >= 2) {
       // 更新箭头边框
-      const arrowBorder = arrows[0] as HTMLElement;
+      const arrowBorder = arrows[arrows.length - 2] as HTMLElement;
       arrowBorder.style.borderTop = '9px solid #91d5ff';
       
       // 更新箭头
-      const arrow = arrows[1] as HTMLElement;
+      const arrow = arrows[arrows.length - 1] as HTMLElement;
       arrow.style.borderTop = '8px solid #e6f7ff';
     }
   }
