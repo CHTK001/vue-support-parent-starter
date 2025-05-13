@@ -5,17 +5,15 @@
     <div class="example-content">
       <!-- 左侧地图区域 -->
       <div class="map-area">
-        <div class="map-container">
-          <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
-            :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
-            :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
-            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" :map="config.map"
-             @map-initialized="onMapInit"
-            @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
-            @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
-            @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
-          </ScLayer>
-        </div>
+        <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
+          :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
+          :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
+          :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" :map="config.map"
+           @map-initialized="onMapInit"
+          @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
+          @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
+          @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
+        </ScLayer>
       </div>
 
       <!-- 右侧配置区域 -->
