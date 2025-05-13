@@ -27,6 +27,7 @@ export interface FlightLineData {
   to?: number[];         // 终点坐标，可选，优先使用coords
   visible?: boolean;     // 是否可见，默认为true
   highlight?: boolean;   // 是否高亮显示，默认为false
+  isActive?: boolean;    // 是否为当前激活的飞线
   style?: FlightLineStyle; // 线条样式
   /**
    * 飞线动画符号类型，例如：'plane', 'arrow', 'triangle', 'circle', 'pin'

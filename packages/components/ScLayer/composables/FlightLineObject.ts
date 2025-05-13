@@ -331,12 +331,28 @@ export class FlightLineObject {
       // 检查数据是否为空
       if (convertedData.length === 0) {
         logger.warn('[FlightLine] 没有有效的飞线数据可显示');
-        // 在图层无数据时，仍然设置一个空的系列，保持图层可见
-        series.push({
-          type: 'lines',
-          coordinateSystem: 'openlayers',
-          data: []
-        });
+        
+        // 在没有飞线数据时，设置完全空的图表选项
+        const emptyOptions = {
+          animation: false, // 禁用动画确保立即清除
+          backgroundColor: 'transparent',
+          tooltip: {},
+          series: [] // 空数组确保清除所有系列
+        };
+        
+        // 设置完全空的选项
+        if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
+          this.echartsLayer.setChartOptions(emptyOptions);
+          
+          // 强制重绘确保清空生效
+          if (typeof this.echartsLayer.redraw === 'function') {
+            this.echartsLayer.redraw();
+          }
+          
+          logger.debug('[FlightLine] 已设置空选项，清除所有飞线和节点');
+        }
+        
+        return; // 直接返回，不再继续处理
       } else {
         logger.debug(`[FlightLine] 转换了 ${convertedData.length} 条飞线数据`);
         
@@ -385,42 +401,43 @@ export class FlightLineObject {
           data: convertedData
         });
         
-        // 如果配置了显示节点，则添加节点系列
-        if (this.config.showNodes) {
+        // 如果配置了显示节点且有可见的飞线，则添加节点系列
+        if (this.config.showNodes && convertedData.length > 0) {
           // 收集节点数据
           const nodeData: any[] = [];
-          if (convertedData.length > 0) {
-            convertedData.forEach(line => {
-              if (line.coords && line.coords.length >= 2) {
-                // 添加起点
-                if (line.coords[0] && Array.isArray(line.coords[0])) {
-                  nodeData.push({
-                    name: line.fromName,
-                    value: [...line.coords[0], line.value || 10], // 添加值作为第三个坐标
-                    itemStyle: {
-                      color: this.config.nodeColor || '#ddb926'
-                    }
-                  });
-                }
-                
-                // 添加终点
-                if (line.coords[1] && Array.isArray(line.coords[1])) {
-                  nodeData.push({
-                    name: line.toName,
-                    value: [...line.coords[1], line.value || 10], // 添加值作为第三个坐标
-                    itemStyle: {
-                      color: this.config.nodeColor || '#ddb926'
-                    }
-                  });
-                }
+          
+          convertedData.forEach(line => {
+            if (line.coords && line.coords.length >= 2) {
+              // 添加起点
+              if (line.coords[0] && Array.isArray(line.coords[0])) {
+                nodeData.push({
+                  name: line.fromName,
+                  value: [...line.coords[0], line.value || 10], // 添加值作为第三个坐标
+                  itemStyle: {
+                    color: this.config.nodeColor || '#ddb926'
+                  }
+                });
               }
-            });
-            
-            // 去重节点数据
-            const uniqueNodeData = this.deduplicateNodeData(nodeData);
-            logger.debug(`[FlightLine] 创建了 ${uniqueNodeData.length} 个节点数据`);
-            
-            // 添加节点系列
+              
+              // 添加终点
+              if (line.coords[1] && Array.isArray(line.coords[1])) {
+                nodeData.push({
+                  name: line.toName,
+                  value: [...line.coords[1], line.value || 10], // 添加值作为第三个坐标
+                  itemStyle: {
+                    color: this.config.nodeColor || '#ddb926'
+                  }
+                });
+              }
+            }
+          });
+          
+          // 去重节点数据
+          const uniqueNodeData = this.deduplicateNodeData(nodeData);
+          logger.debug(`[FlightLine] 创建了 ${uniqueNodeData.length} 个节点数据`);
+          
+          // 只有当有节点数据时才添加节点系列
+          if (uniqueNodeData.length > 0) {
             series.push({
               name: '节点',
               type: 'effectScatter',
@@ -465,7 +482,7 @@ export class FlightLineObject {
       // 设置选项
       if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
         this.echartsLayer.setChartOptions(options);
-        logger.debug('[FlightLine] Echarts选项已设置');
+        logger.debug('[FlightLine] Echarts选项已设置，共有 ' + series.length + ' 个系列');
       } else {
         logger.error('[FlightLine] 无法设置选项，echartsLayer不可用或缺少setChartOptions方法');
       }
@@ -504,8 +521,8 @@ export class FlightLineObject {
     
     // 遍历所有飞线数据
     this.flightLines.forEach((line, id) => {
-      // 跳过不可见的飞线 - 修改判断逻辑，只有明确设置visible为true的飞线才显示
-      if (line.visible !== true) {
+      // 跳过不可见的飞线
+      if (line.visible === false) {
         return;
       }
       
@@ -758,13 +775,13 @@ export class FlightLineObject {
       ...flightLine,
       id,
       coords: coords || flightLine.coords, // 使用转换后的坐标或原始坐标
-      visible: false, // 默认不可见，只有在用户明确选择时才显示
+      visible: true, // 默认可见
       _createTime: flightLine._createTime || Date.now() // 添加创建时间
     };
     
     this.flightLines.set(id, finalFlightLine);
     
-    logger.debug(`[FlightLine] 添加飞线: ${id} (${flightLine.fromName} -> ${flightLine.toName}), 默认不可见`);
+    logger.debug(`[FlightLine] 添加飞线: ${id} (${flightLine.fromName} -> ${flightLine.toName}), 默认可见`);
     return id;
   }
 
@@ -860,25 +877,34 @@ export class FlightLineObject {
     
     // 如果已有高亮飞线，先取消高亮
     if (this.activeFlightLine && this.activeFlightLine !== id) {
-      this.updateFlightLine(this.activeFlightLine, {
-        highlight: false,
-        style: undefined
-      });
+      const prevLine = this.flightLines.get(this.activeFlightLine);
+      if (prevLine) {
+        prevLine.isActive = false;
+        prevLine.highlight = false;
+        delete prevLine.style; // 恢复默认样式
+      }
     }
     
     // 设置新的激活飞线
     this.activeFlightLine = id;
     
-    // 高亮显示当前激活飞线
-    this.updateFlightLine(id, {
-      highlight: true,
-      style: {
+    // 获取飞线对象并设置激活状态
+    const activeLine = this.flightLines.get(id);
+    if (activeLine) {
+      activeLine.isActive = true;
+      activeLine.highlight = true;
+      activeLine.style = {
         width: (this.config.width || 1) * 1.5,
         opacity: 1,
-        color: '#ff0000', // 红色高亮
+        color: '#1677ff', // 蓝色高亮
         curveness: this.config.curveness
-      }
-    });
+      };
+    }
+    
+    // 如果图层已激活，更新渲染
+    if (this.active && this.echartsLayer) {
+      this.updateEchartsOptions();
+    }
     
     logger.debug(`[FlightLine] 设置飞线 ${id} 为激活状态`);
     return true;
@@ -946,35 +972,12 @@ export class FlightLineObject {
       return false;
     }
   }
-  
-  /**
-   * 将颜色字符串转换为RGBA数组
-   * @param color 颜色字符串
-   * @returns RGBA数组 [r, g, b, a]
-   */
-  private colorToRgba(color: string): number[] {
-    // 创建临时元素用于解析颜色
-    const tempElement = document.createElement('div');
-    tempElement.style.color = color;
-    document.body.appendChild(tempElement);
-    
-    // 获取计算后的颜色
-    const computedColor = window.getComputedStyle(tempElement).color;
-    document.body.removeChild(tempElement);
-    
-    // 解析颜色值
-    const rgba = computedColor.match(/\d+(\.\d+)?/g)?.map(Number) || [0, 0, 0, 1];
-    if (rgba.length === 3) {
-      rgba.push(1); // 如果没有alpha值，添加默认值1
-    }
-    
-    return rgba;
-  }
 
   /**
    * 启用飞线图
+   * @param showTestData 是否显示测试数据，默认为false
    */
-  public async enable(): Promise<void> {
+  public async enable(showTestData: boolean = false): Promise<void> {
     if (this.active) {
       logger.debug('[FlightLine] 飞线图已经处于激活状态');
       
@@ -982,9 +985,9 @@ export class FlightLineObject {
       if (this.echartsLayer) {
         this.updateEchartsOptions();
         
-        // 如果飞线为空，添加测试数据
-        if (this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
-          logger.debug('[FlightLine] 已激活但无数据，添加测试数据');
+        // 仅在明确指定要显示测试数据时才添加
+        if (showTestData && this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
+          logger.debug('[FlightLine] 已激活但无数据，添加测试数据（由用户显式请求）');
           this.addTestFlightLines();
           this.updateEchartsOptions();
         }
@@ -1019,10 +1022,16 @@ export class FlightLineObject {
       // 初始化完成后设置为激活状态
       this.active = true;
       
-      // 如果没有飞线，可以添加测试数据
-      if (this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
+      // 仅在明确指定要显示测试数据时才添加
+      if (showTestData && this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
+        logger.debug('[FlightLine] 已激活但无数据，添加测试数据（由用户显式请求）');
         this.addTestFlightLines();
         this.updateEchartsOptions();
+      } else {
+        // 启用时不自动显示飞线，初始化为空图层
+        logger.debug('[FlightLine] 飞线图启用时不显示任何飞线，等待用户操作');
+        // 确保不会显示任何飞线
+        this.clearFlightLines();
       }
       
       // 延迟注册后续处理，确保图层和DOM已经就绪
@@ -1067,13 +1076,18 @@ export class FlightLineObject {
       }
     }, 300);
 
-    // 阶段3：600ms后设置最佳视角
+    // 阶段3：不再自动设置最佳视角，避免自动渲染所有飞线
+    // 只在有激活飞线的情况下考虑设置视角
     setTimeout(() => {
       try {
-        this.setOptimalView(5);
-        logger.debug('[FlightLine] 设置最佳视角完成');
+        if (this.activeFlightLine) {
+          logger.debug('[FlightLine] 有激活的飞线，设置相应视角');
+          this.setOptimalView(5);
+        } else {
+          logger.debug('[FlightLine] 没有激活的飞线，跳过设置视角');
+        }
       } catch (error) {
-        logger.warn('[FlightLine] 设置最佳视角出错:', error);
+        logger.warn('[FlightLine] 视角处理失败:', error);
       }
     }, 600);
 
@@ -1081,11 +1095,16 @@ export class FlightLineObject {
     setTimeout(() => {
       try {
         if (this.echartsLayer && typeof this.echartsLayer.redraw === 'function') {
-          this.echartsLayer.redraw();
-          logger.debug('[FlightLine] 最终刷新完成');
+          // 只在有激活飞线的情况下执行重绘
+          if (this.activeFlightLine) {
+            this.echartsLayer.redraw();
+            logger.debug('[FlightLine] 最终刷新完成');
+          } else {
+            logger.debug('[FlightLine] 没有激活的飞线，跳过最终刷新');
+          }
         }
       } catch (error) {
-        logger.warn('[FlightLine] 最终刷新出错:', error);
+        logger.warn('[FlightLine] 最终刷新处理出错:', error);
       }
     }, 1000);
   }
@@ -1131,7 +1150,7 @@ export class FlightLineObject {
         toName: to,
         coords: [cities[from], cities[to]],
         value: Math.floor(Math.random() * 1000) + 100,
-        visible: false, // 确保测试数据默认不可见
+        visible: true, // 确保测试数据默认可见
         style: {
           // 使用明显的彩色线条
           color: `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 255) + 50}, 0.8)`,
@@ -1153,22 +1172,22 @@ export class FlightLineObject {
       logger.debug(`[FlightLine] 添加测试飞线: ${id} - ${line.fromName} → ${line.toName}`);
     });
     
-    // 高亮北京到上海的飞线（但不自动显示）
+    // 高亮北京到上海的飞线
     const firstLineId = Array.from(this.flightLines.keys())[0];
     if (firstLineId) {
       this.updateFlightLine(firstLineId, {
         highlight: true,
-        visible: false, // 保持隐藏状态
+        visible: true,
         style: {
           width: 4,
           color: '#1890ff',
           opacity: 1
         }
       });
-      logger.debug(`[FlightLine] 高亮测试飞线: ${firstLineId}，但保持隐藏状态`);
+      logger.debug(`[FlightLine] 高亮测试飞线: ${firstLineId}，并设置为可见`);
     }
     
-    logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认都不可见`);
+    logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认都可见`);
     
     // 确保配置中启用了动画效果
     this.setConfig({
@@ -1241,8 +1260,17 @@ export class FlightLineObject {
    * @param zoomLevel 缩放级别，默认为5
    */
   public setOptimalView(zoomLevel?: number): void {
-    if (!this.mapInstance || this.flightLines.size === 0) {
-      logger.warn('[FlightLine] 无法设置最佳视角：缺少地图实例或没有飞线数据');
+    logger.debug('[FlightLine] 开始设置最佳视角');
+    
+    if (!this.mapInstance) {
+      logger.warn('[FlightLine] 无法设置最佳视角：地图实例不可用');
+      return;
+    }
+
+    // 获取地图视图
+    const view = this.mapInstance.getView();
+    if (!view) {
+      logger.warn('[FlightLine] 无法获取地图视图');
       return;
     }
 
@@ -1250,16 +1278,32 @@ export class FlightLineObject {
       // 设置默认缩放级别为5
       const zoom = zoomLevel !== undefined ? zoomLevel : 5;
       
+      // 如果没有飞线数据，设置一个默认的中国中心视图
+      if (this.flightLines.size === 0) {
+        logger.warn('[FlightLine] 没有飞线数据，设置默认中国中心视图');
+        const defaultCenter = [105.0, 35.0]; // 中国大致中心位置
+        view.setCenter(fromLonLat(defaultCenter));
+        view.setZoom(4); // 较小的缩放级别以便看到整个国家
+        logger.debug(`[FlightLine] 已设置默认中国中心视图: [${defaultCenter}], 缩放级别: 4`);
+        return;
+      }
+      
       // 计算所有飞线点的边界
       let minX = Infinity;
       let minY = Infinity;
       let maxX = -Infinity;
       let maxY = -Infinity;
+      let hasVisibleFlightLine = false;
 
       // 遍历所有飞线，计算边界
       this.flightLines.forEach(line => {
-        // 跳过不可见的飞线
-        if (line.visible === false) {
+        // 如果有激活的飞线，只考虑激活的飞线
+        if (this.activeFlightLine && line.id !== this.activeFlightLine) {
+          return;
+        }
+        
+        // 跳过不可见的飞线，除非没有任何可见飞线
+        if (line.visible === false && hasVisibleFlightLine) {
           return;
         }
 
@@ -1273,42 +1317,91 @@ export class FlightLineObject {
             minY = Math.min(minY, fromCoord[1], toCoord[1]);
             maxX = Math.max(maxX, fromCoord[0], toCoord[0]);
             maxY = Math.max(maxY, fromCoord[1], toCoord[1]);
+            hasVisibleFlightLine = true;
           }
         }
       });
 
-      // 检查是否找到有效边界
-      if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
-        logger.warn('[FlightLine] 无法计算飞线边界，使用默认中心点');
-        
-        // 使用第一个飞线的起点作为中心点
-        const firstLine = Array.from(this.flightLines.values())[0];
-        if (firstLine && firstLine.coords && firstLine.coords.length >= 1) {
-          const center = this.ensureGeoCoordinate(firstLine.coords[0]);
-          if (center) {
-            // 设置地图视图
-            const view = this.mapInstance.getView();
-            view.setCenter(fromLonLat(center));
-            view.setZoom(zoom);
-            
-            logger.debug(`[FlightLine] 已设置最佳视角到第一个飞线起点，中心点: [${center}], 缩放级别: ${zoom}`);
+      // 如果没有找到可见的飞线，则考虑所有飞线
+      if (!hasVisibleFlightLine) {
+        logger.debug('[FlightLine] 没有可见飞线，考虑所有飞线坐标');
+        this.flightLines.forEach(line => {
+          if (line.coords && line.coords.length === 2) {
+            const fromCoord = this.ensureGeoCoordinate(line.coords[0]);
+            const toCoord = this.ensureGeoCoordinate(line.coords[1]);
+
+            if (fromCoord && toCoord) {
+              // 更新边界
+              minX = Math.min(minX, fromCoord[0], toCoord[0]);
+              minY = Math.min(minY, fromCoord[1], toCoord[1]);
+              maxX = Math.max(maxX, fromCoord[0], toCoord[0]);
+              maxY = Math.max(maxY, fromCoord[1], toCoord[1]);
+              hasVisibleFlightLine = true;
+            }
+          }
+        });
+
+        // 如果仍然没有找到任何飞线坐标，使用城市坐标
+        if (!hasVisibleFlightLine && Object.keys(this.geoCoordMap).length > 0) {
+          logger.debug('[FlightLine] 使用已知城市坐标设置视角');
+          for (const coord of Object.values(this.geoCoordMap)) {
+            if (Array.isArray(coord) && coord.length >= 2) {
+              minX = Math.min(minX, coord[0]);
+              minY = Math.min(minY, coord[1]);
+              maxX = Math.max(maxX, coord[0]);
+              maxY = Math.max(maxY, coord[1]);
+              hasVisibleFlightLine = true;
+            }
           }
         }
+      }
+
+      // 检查是否找到有效边界
+      if (!hasVisibleFlightLine || minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+        logger.warn('[FlightLine] 无法计算飞线边界，设置默认中国中心视图');
+        // 设置默认的中国中心视图
+        const defaultCenter = [105.0, 35.0]; // 中国大致中心位置
+        view.setCenter(fromLonLat(defaultCenter));
+        view.setZoom(4); // 较小的缩放级别以便看到整个国家
+        logger.debug(`[FlightLine] 已设置默认中国中心视图: [${defaultCenter}], 缩放级别: 4`);
         return;
       }
 
-      // 计算中心点
+      // 计算中心点和动态缩放级别
       const centerX = (minX + maxX) / 2;
       const centerY = (minY + maxY) / 2;
       
-      // 设置地图视图 - 使用标准方式设置
-      const view = this.mapInstance.getView();
-      view.setCenter(fromLonLat([centerX, centerY]));
-      view.setZoom(zoom);
+      // 计算边界跨度，确保视图不会太窄
+      const spanX = Math.max(0.5, Math.abs(maxX - minX));
+      const spanY = Math.max(0.5, Math.abs(maxY - minY));
       
-      logger.debug(`[FlightLine] 已设置最佳视角，中心点: [${centerX}, ${centerY}], 缩放级别: ${zoom}`);
+      // 根据边界跨度动态调整缩放级别
+      let dynamicZoom = zoom;
+      if (spanX > 5 || spanY > 5) {
+        dynamicZoom = Math.max(3, dynamicZoom - 1); // 较大范围使用较小的缩放级别
+      } else if (spanX < 0.5 && spanY < 0.5) {
+        dynamicZoom = Math.min(8, dynamicZoom + 1); // 较小范围使用较大的缩放级别
+      }
+      
+      // 设置地图视图 - 使用标准方式设置
+      view.setCenter(fromLonLat([centerX, centerY]));
+      view.setZoom(dynamicZoom);
+      
+      logger.debug(`[FlightLine] 已设置最佳视角，中心点: [${centerX.toFixed(2)}, ${centerY.toFixed(2)}], 缩放级别: ${dynamicZoom}, 边界: [${minX.toFixed(2)},${minY.toFixed(2)},${maxX.toFixed(2)},${maxY.toFixed(2)}]`);
     } catch (error) {
       logger.error('[FlightLine] 设置最佳视角失败:', error);
+      
+      // 发生错误时设置默认中国视图
+      try {
+        const defaultCenter = [105.0, 35.0]; // 中国大致中心位置
+        if (this.mapInstance) {
+          this.mapInstance.getView().setCenter(fromLonLat(defaultCenter));
+          this.mapInstance.getView().setZoom(4);
+          logger.debug('[FlightLine] 错误恢复：已设置默认中国中心视图');
+        }
+      } catch (fallbackError) {
+        logger.error('[FlightLine] 无法设置默认视图:', fallbackError);
+      }
     }
   }
   
@@ -1347,5 +1440,249 @@ export class FlightLineObject {
       logger.error(`[FlightLine] 设置城市 ${cityName} 视角时发生错误:`, error);
       return false;
     }
+  }
+
+  /**
+   * 清空飞线图层
+   * 完全清空飞线图层，不显示任何飞线
+   */
+  public clearFlightLines(): void {
+    logger.debug('[FlightLine] 开始清空飞线图层');
+    
+    // 清除当前激活的飞线
+    this.activeFlightLine = null;
+    
+    // 设置所有飞线为不可见
+    this.flightLines.forEach(line => {
+      line.visible = false;
+      line.isActive = false;
+      line.highlight = false;
+      delete line.style;
+    });
+    
+    // 先清空图层
+    if (this.echartsLayer) {
+      try {
+        // 设置空选项，清空图层
+        if (typeof this.echartsLayer.setChartOptions === 'function') {
+          // 提供一个完整的空配置，确保Echarts完全清空
+          this.echartsLayer.setChartOptions({
+            animation: false, // 禁用动画确保立即清除
+            backgroundColor: 'transparent',
+            tooltip: {},
+            series: [] // 完全空的series数组，确保所有内容都被清除
+          });
+          
+          // 强制重绘确保清空生效
+          if (typeof this.echartsLayer.redraw === 'function') {
+            this.echartsLayer.redraw();
+          }
+          
+          // 二次确认，重复设置一次空配置
+          setTimeout(() => {
+            if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
+              this.echartsLayer.setChartOptions({
+                series: []
+              });
+              // 再次强制重绘
+              if (typeof this.echartsLayer.redraw === 'function') {
+                this.echartsLayer.redraw();
+              }
+            }
+          }, 50);
+        }
+        
+        logger.debug('[FlightLine] 已清空Echarts图层配置');
+      } catch (error) {
+        logger.error('[FlightLine] 清空图层失败:', error);
+      }
+    } else {
+      logger.warn('[FlightLine] 无法清空图层：echartsLayer不存在');
+    }
+    
+    logger.debug('[FlightLine] 已完全清空飞线图层');
+  }
+
+  /**
+   * 显示所有飞线
+   */
+  public showAllFlightLines(): void {
+    // 如果没有激活的飞线，直接清空图层
+    if (!this.activeFlightLine) {
+      logger.debug('[FlightLine] 没有激活的飞线，直接清空图层');
+      this.clearFlightLines();
+      return;
+    }
+    
+    // 先清空图层
+    if (this.echartsLayer) {
+      try {
+        // 设置空选项，清空图层
+        if (typeof this.echartsLayer.setChartOptions === 'function') {
+          this.echartsLayer.setChartOptions({
+            animation: false,
+            series: []
+          });
+          
+          // 强制重绘
+          if (typeof this.echartsLayer.redraw === 'function') {
+            this.echartsLayer.redraw();
+          }
+        }
+      } catch (error) {
+        logger.error('[FlightLine] 清空图层失败:', error);
+      }
+    }
+    
+    // 清除当前激活的飞线
+    this.activeFlightLine = null;
+    
+    // 设置所有飞线为可见
+    this.flightLines.forEach(line => {
+      line.visible = true;
+      line.isActive = false;
+      line.highlight = false;
+      delete line.style;
+    });
+    
+    // 更新图层
+    if (this.active && this.echartsLayer) {
+      this.updateEchartsOptions();
+      
+      // 确保图层更新完成
+      setTimeout(() => {
+        if (this.active && this.echartsLayer) {
+          this.updateEchartsOptions();
+        }
+      }, 100);
+    }
+    
+    logger.debug('[FlightLine] 清空图层后显示所有飞线');
+  }
+
+  /**
+   * 将颜色字符串转换为RGBA数组
+   * @param color 颜色字符串
+   * @returns RGBA数组 [r, g, b, a]
+   */
+  private colorToRgba(color: string): number[] {
+    // 创建临时元素用于解析颜色
+    const tempElement = document.createElement('div');
+    tempElement.style.color = color;
+    document.body.appendChild(tempElement);
+    
+    // 获取计算后的颜色
+    const computedColor = window.getComputedStyle(tempElement).color;
+    document.body.removeChild(tempElement);
+    
+    // 解析颜色值
+    const rgba = computedColor.match(/\d+(\.\d+)?/g)?.map(Number) || [0, 0, 0, 1];
+    if (rgba.length === 3) {
+      rgba.push(1); // 如果没有alpha值，添加默认值1
+    }
+    
+    return rgba;
+  }
+
+  /**
+   * 设置活跃飞线并只显示该飞线
+   * @param id 飞线ID
+   * @returns 是否设置成功
+   */
+  public showOnlyFlightLine(id: string): boolean {
+    // 检查飞线是否存在
+    if (!this.flightLines.has(id)) {
+      logger.warn(`[FlightLine] 飞线 ${id} 不存在，无法设置为激活状态`);
+      return false;
+    }
+    
+    // 如果当前已经是激活状态的飞线，则直接清空图层（不显示任何飞线）
+    if (this.activeFlightLine === id) {
+      logger.debug(`[FlightLine] 点击了当前已激活的飞线 ${id}，清空所有飞线图层`);
+      this.clearFlightLines();
+      
+      // 确保完全清空echarts图层
+      if (this.echartsLayer) {
+        try {
+          // 设置完全空的选项
+          if (typeof this.echartsLayer.setChartOptions === 'function') {
+            this.echartsLayer.setChartOptions({
+              animation: false,
+              backgroundColor: 'transparent',
+              tooltip: {},
+              series: [] // 完全空的系列
+            });
+            
+            // 强制重绘
+            if (typeof this.echartsLayer.redraw === 'function') {
+              this.echartsLayer.redraw();
+            }
+          }
+        } catch (error) {
+          logger.error('[FlightLine] 强制清空图层失败:', error);
+        }
+      }
+      
+      return true;
+    }
+    
+    // 先清空图层
+    if (this.echartsLayer) {
+      try {
+        // 设置空选项，清空图层
+        if (typeof this.echartsLayer.setChartOptions === 'function') {
+          this.echartsLayer.setChartOptions({
+            animation: false,
+            series: []
+          });
+          
+          // 强制重绘
+          if (typeof this.echartsLayer.redraw === 'function') {
+            this.echartsLayer.redraw();
+          }
+        }
+      } catch (error) {
+        logger.error('[FlightLine] 清空图层失败:', error);
+      }
+    }
+    
+    // 隐藏所有飞线，只显示指定ID的飞线
+    this.flightLines.forEach((line, lineId) => {
+      line.visible = lineId === id;
+      line.isActive = lineId === id;
+      
+      if (lineId === id) {
+        // 设置高亮样式
+        line.highlight = true;
+        line.style = {
+          width: (this.config.width || 1) * 1.5,
+          opacity: 1,
+          color: '#1677ff', // 蓝色高亮
+          curveness: this.config.curveness
+        };
+      } else {
+        // 清除其他飞线的高亮状态
+        line.highlight = false;
+        delete line.style;
+      }
+    });
+    
+    // 更新激活飞线ID
+    this.activeFlightLine = id;
+    
+    // 更新图层
+    if (this.active && this.echartsLayer) {
+      this.updateEchartsOptions();
+      
+      // 额外确认一次图层更新完成
+      setTimeout(() => {
+        if (this.active && this.echartsLayer) {
+          this.updateEchartsOptions();
+        }
+      }, 100);
+    }
+    
+    logger.debug(`[FlightLine] 清空图层后只显示飞线: ${id}`);
+    return true;
   }
 }
