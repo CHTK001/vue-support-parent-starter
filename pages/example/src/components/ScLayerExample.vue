@@ -5,17 +5,15 @@
     <div class="example-content">
       <!-- 左侧地图区域 -->
       <div class="map-area">
-        <div class="map-container">
-          <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
-            :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
-            :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
-            :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" :map="config.map"
-             @map-initialized="onMapInit"
-            @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
-            @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
-            @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
-          </ScLayer>
-        </div>
+        <ScLayer ref="layerRef" :height="config.height" :map-type="config.mapType" :map-tile="config.mapTile"
+          :center="config.center" :zoom="config.zoom" :dragging="config.dragging"
+          :scroll-wheel-zoom="config.scrollWheelZoom" :map-key="config.mapKey"
+          :show-toolbar="config.showToolbar" :show-scale-line="config.showScaleLine" :map="config.map"
+           @map-initialized="onMapInit"
+          @map-click="onMapClick" @marker-click="onMarkerClick" @toolbar-state-change="onToolbarStateChange"
+          @marker-create="onMarkerCreate" @marker-update="onMarkerUpdate" @marker-delete="onMarkerDelete"
+          @shape-create="onShapeCreate" @shape-update="onShapeUpdate" @shape-delete="onShapeDelete">
+        </ScLayer>
       </div>
 
       <!-- 右侧配置区域 -->
@@ -225,7 +223,7 @@
               <div class="feature-group-title">轨迹示例</div>
               <div class="control-row buttons-row">
                 <button @click="addSampleTrack">添加示例轨迹</button>
-                <button @click="addMultipleTrack">添加多条轨迹</button>
+                <button @click="addComplexTrack">添加复杂轨迹</button>
               </div>
               <div class="control-row buttons-row">
                 <button @click="addCircularTrack">添加环形轨迹</button>
@@ -291,7 +289,7 @@
           </div>
 
           <!-- 添加热力图操作部分 -->
-          <div class="config-item">
+          <div class="config-item" v-if="false">
             <div class="label">热力图操作</div>
             <div class="controls">
               <!-- 热力图操作区域 - 添加功能分组 -->
@@ -683,10 +681,23 @@ const updateTrackPlayConfig = () => {
         loop: trackPlayLoop.value,
         speed: trackPlaySpeed.value,
         withCamera: trackPlayWithCamera.value,
-        showNodes: trackPlayShowNodes.value
+        showNodes: trackPlayShowNodes.value,
+        showNodeAnchors: true,       // 始终显示节点锚点
+        showNodeNames: true,         // 显示节点名称
+        showNodeTime: true,          // 显示节点时间
+        showPointNames: true,        // 显示移动点位名称
+        showSpeed: true,             // 显示速度信息
+        showNodeSpeed: true          // 显示节点速度
       });
       
-      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}`);
+      // 获取地图对象并触发渲染
+      const map = layerRef.value.getMapObject();
+      if (map) {
+        // 触发地图渲染以更新UI
+        map.render();
+      }
+      
+      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}, 显示节点名称=true, 显示节点时间=true`);
     }
   }
 };
@@ -1840,12 +1851,15 @@ const addSampleTrack = () => {
         time: now + i * 60, // 每分钟一个点
         dir: 90,  // 向东
         title: `轨迹点 ${i+1}`,
+        // 添加自定义图标，第一个点使用一个特殊图标
+        iconUrl: i === 0 ? 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' : undefined,
+        iconSize: [24, 24],
         info: [
           { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
           { key: '速度', value: '45 km/h' },
           { key: '方向', value: '90°' }
         ]
-      });
+      } as any);
     }
     
     // 创建轨迹对象
@@ -1868,6 +1882,93 @@ const addSampleTrack = () => {
     }
   } catch (e) {
     addLog('error', `添加示例轨迹失败: ${e}`);
+  }
+};
+
+// 添加复杂轨迹示例
+const addComplexTrack = () => {
+  try {
+    // 获取地图中心点
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    
+    // 定义复杂轨迹的关键点 - 包含多个转弯点
+    const keyPoints = [
+      { lat: center[0], lng: center[1], name: '起点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/start.png' },
+      { lat: center[0] + 0.02, lng: center[1] + 0.02, name: '转弯点1', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' },
+      { lat: center[0] + 0.03, lng: center[1], name: '转弯点2', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png' },
+      { lat: center[0] + 0.01, lng: center[1] - 0.02, name: '转弯点3', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png' },
+      { lat: center[0] - 0.01, lng: center[1] - 0.03, name: '转弯点4', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-4.png' },
+      { lat: center[0] - 0.02, lng: center[1] - 0.01, name: '转弯点5', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/warning.png' },
+      { lat: center[0] - 0.01, lng: center[1] + 0.01, name: '终点', icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/end.png' },
+    ];
+    
+    // 为每个关键点之间插入中间点，使路径更平滑
+    for (let i = 0; i < keyPoints.length - 1; i++) {
+      const start = keyPoints[i];
+      const end = keyPoints[i + 1];
+      const steps = 8; // 每段关键点之间插入8个中间点
+      
+      for (let j = 0; j <= steps; j++) {
+        const ratio = j / steps;
+        const lat = start.lat + (end.lat - start.lat) * ratio;
+        const lng = start.lng + (end.lng - start.lng) * ratio;
+        
+        // 计算方向（使用简单的角度计算）
+        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        
+        // 设置点位的时间，每点间隔30秒
+        const time = now + (i * steps + j) * 30;
+        
+        // 创建轨迹点
+        const point = {
+          lat,
+          lng,
+          time,
+          dir: direction,
+          title: j === 0 ? start.name : (j === steps ? end.name : `路线点 ${points.length + 1}`),
+          info: [
+            { key: '时间', value: new Date(time * 1000).toLocaleTimeString() },
+            { key: '类型', value: j === 0 ? '关键点' : '路线点' },
+            { key: '方向', value: `${Math.round(direction)}°` }
+          ]
+        } as any; // 使用类型断言解决TypeScript类型问题
+        
+        // 为关键点添加自定义图标
+        if (j === 0) {
+          point.iconUrl = start.icon;
+          point.iconSize = [32, 32]; // 关键点使用大一点的图标
+        } else if (j === steps && i === keyPoints.length - 2) {
+          // 最后一个点（终点）
+          point.iconUrl = end.icon;
+          point.iconSize = [32, 32];
+        }
+        
+        points.push(point);
+      }
+    }
+    
+    // 创建轨迹对象
+    const track = {
+      id: 'complex-track-' + Math.floor(Math.random() * 1000),
+      name: '复杂轨迹示例',
+      points: points,
+      color: '#1890FF', // 蓝色
+      visible: true
+    };
+    
+    // 添加轨迹
+    if (layerRef.value) {
+      layerRef.value.addTrack(track);
+      tracks.value.push(track);
+      hasTrack.value = true;
+      addLog('info', `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`);
+    } else {
+      addLog('error', '获取轨迹对象失败');
+    }
+  } catch (e) {
+    addLog('error', `添加复杂轨迹失败: ${e}`);
   }
 };
 
@@ -2079,9 +2180,11 @@ const playTrack = () => {
       // 显示设置
       showNodes: trackPlayShowNodes.value,
       showNodeAnchors: true,
-      showPointNames: true,
-      showSpeed: true,
-      showNodeSpeed: true
+      showNodeNames: true,  // 显示节点名称
+      showNodeTime: true,   // 显示节点时间
+      showPointNames: true, // 显示移动点位名称
+      showSpeed: true,      // 显示速度
+      showNodeSpeed: true   // 显示节点速度
     });
     
     if (success) {
@@ -2096,6 +2199,17 @@ const playTrack = () => {
         // 再次触发一次渲染，避免初始化延迟问题
         map.render();
       }, 100);
+      
+      // 更新轨迹配置，确保设置生效
+      layerRef.value.updateTrackPlayer(track.id, {
+        showNodes: trackPlayShowNodes.value,
+        showNodeAnchors: true,
+        showNodeNames: true,  // 显示节点名称
+        showNodeTime: true,   // 显示节点时间
+        showPointNames: true, // 显示移动点位名称
+        showSpeed: true,      // 显示速度
+        showNodeSpeed: true   // 显示节点速度
+      });
       
       addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h，循环: ${trackPlayLoop.value ? '是' : '否'}`);
     } else {
@@ -2291,6 +2405,7 @@ const getDirectionName = (direction: string) => {
  */
 const enableHeatmap = () => {
   if (!layerRef.value) return;
+  
   const result = layerRef.value.enableHeatmap();
   if (result) {
     addLog('热力图', '启用热力图');
@@ -2302,6 +2417,7 @@ const enableHeatmap = () => {
  */
 const disableHeatmap = () => {
   if (!layerRef.value) return;
+  
   const result = layerRef.value.disableHeatmap();
   if (result) {
     addLog('热力图', '禁用热力图');
@@ -3500,14 +3616,38 @@ const playTrackById = (trackId: string) => {
     speedFactor: 1.0,
     showNodes: trackPlayShowNodes.value,
     showNodeAnchors: true,
-    showPointNames: true,
-    showSpeed: true,
-    showNodeSpeed: true
+    showNodeNames: true,  // 显示节点名称
+    showNodeTime: true,   // 显示节点时间
+    showPointNames: true, // 显示移动点位名称
+    showSpeed: true,      // 显示速度
+    showNodeSpeed: true   // 显示节点速度
   });
   
   if (success) {
     // 尝试激活轨迹播放器工具
     layerRef.value.activateTool('track-player');
+    
+    // 获取地图对象并触发渲染
+    const map = layerRef.value.getMapObject();
+    if (map) {
+      map.render();
+      
+      // 再次触发渲染以确保UI更新
+      setTimeout(() => {
+        map.render();
+      }, 100);
+    }
+    
+    // 确保设置立即生效
+    layerRef.value.updateTrackPlayer(trackId, {
+      showNodes: trackPlayShowNodes.value,
+      showNodeAnchors: true,
+      showNodeNames: true,  // 显示节点名称
+      showNodeTime: true,   // 显示节点时间
+      showPointNames: true, // 显示移动点位名称
+      showSpeed: true,      // 显示速度
+      showNodeSpeed: true   // 显示节点速度
+    });
     
     // 获取轨迹数据记录日志
     const track = tracks.value.find(t => t.id === trackId);

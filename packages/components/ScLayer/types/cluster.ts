@@ -14,6 +14,8 @@ export interface AggregationOptions {
   showCount?: boolean;
   // 是否启用扩散效果
   enablePulse?: boolean;
+  // 是否启用持续动画（即使地图静止不动也会持续运行动画）
+  enableAnimation?: boolean;
   // 扩散动画持续时间(ms)
   pulseDuration?: number;
   // 扩散动画透明度
