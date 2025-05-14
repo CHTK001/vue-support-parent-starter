@@ -91,4 +91,9 @@ export interface TrackConfig {
     weight?: number
     opacity?: number;
   };
+  // 速度图标分组配置，当移动点的速度大于配置的speed时，使用icon图标
+  trackSpeedGroup?: {
+    speed: number;
+    icon: string;
+  }[];
 }
