@@ -1,6 +1,7 @@
 <!-- 轨迹播放器组件 -->
 <template>
-  <div class="track-player" :class="{ 'collapsed': collapsed, 'playing': playState === 'playing' }" :style="trackPlayerStyle" @click="collapsed && toggleCollapse()">
+  <div class="track-player" :class="{ 'collapsed': collapsed, 'playing': playState === 'playing' }"
+    :style="trackPlayerStyle" @click="collapsed && toggleCollapse()">
     <!-- 标题栏 -->
     <div class="track-player-header">
       <div class="track-player-title">轨迹播放器</div>
@@ -14,7 +15,7 @@
         <!-- 收缩/展开按钮 -->
         <div class="track-player-collapse-btn" @click.stop="toggleCollapse" title="收缩/展开">
           <div class="collapse-icon">
-            <span v-if="collapsed">      
+            <span v-if="collapsed">
               <span v-html="TRACK_PLAYER_ICON" />
             </span>
             <span v-else>-</span>
@@ -45,7 +46,7 @@
               </label>
             </div>
           </div>
-          
+
           <!-- 节点设置组 -->
           <div class="settings-group">
             <div class="settings-group-title">节点设置</div>
@@ -72,7 +73,7 @@
               </label>
             </div>
           </div>
-          
+
           <!-- 点位设置组 -->
           <div class="settings-group">
             <div class="settings-group-title">点位设置</div>
@@ -101,7 +102,7 @@
         <span v-html="TRACK_PLAYER_ICON" />
       </span>
     </div>
-    
+
     <!-- 播放器主体内容 -->
     <div class="track-player-content" v-show="!collapsed">
       <!-- 轨迹列表 -->
@@ -110,18 +111,15 @@
           <span>轨迹列表</span>
         </div>
         <div class="track-list-content thin-scrollbar" v-if="tracks.size > 0">
-          <div v-for="[id, track] in tracks" :key="id" class="track-item" 
+          <div v-for="[id, track] in tracks" :key="id" class="track-item"
             :class="{ 'active': activeTrackId === id, 'disabled': playState === 'playing' && activeTrackId !== id }"
-            @click="canSwitchTrack && selectTrack(id)"
-            @dblclick="fitToTrackView(id)">
+            @click="canSwitchTrack && selectTrack(id)" @dblclick="fitToTrackView(id)">
             <div class="track-item-info">
               <div class="track-item-name">{{ track.name || '未命名轨迹' }}</div>
               <div class="track-item-detail">{{ formatTrackDetail(track) }}</div>
             </div>
             <div class="track-item-actions">
-              <button class="track-item-delete-btn" 
-                @click.stop="deleteTrack(id)" 
-                :disabled="playState === 'playing'"
+              <button class="track-item-delete-btn" @click.stop="deleteTrack(id)" :disabled="playState === 'playing'"
                 :title="playState === 'playing' ? '播放中无法删除轨迹' : '删除轨迹'">
                 <span v-html="icons.trackDelete"></span>
               </button>
@@ -132,55 +130,49 @@
           <span>暂无轨迹数据 ({{tracks.size}})</span>
         </div>
       </div>
-      
+
       <!-- 播放控制区域 -->
       <div class="track-controls">
         <!-- 播放速度控制 -->
         <div class="track-speed-control">
           <div class="speed-label">速度: {{ speedFactor.toFixed(1) }}x</div>
-          <input 
-            type="range" 
-            min="0.5" 
-            max="10" 
-            step="0.5" 
-            v-model.number="speedFactor"
-            @input="onSpeedChange"
-            class="speed-slider"
-            :disabled="!activeTrackId"
-          >
+          <input type="range" min="0.5" max="10" step="0.5" v-model.number="speedFactor" @input="onSpeedChange"
+            class="speed-slider" :disabled="!activeTrackId">
           <div class="speed-labels">
             <span>慢</span>
             <span>正常</span>
             <span>快</span>
           </div>
         </div>
-        
+
         <!-- 播放按钮 -->
         <div class="track-buttons">
           <button class="track-button track-backward" @click="setSpeed(Math.max(0.5, speedFactor - 0.5))"
             :disabled="!activeTrackId" title="减速">
             <span v-html="icons.trackBackward"></span>
           </button>
-          
+
           <button class="track-button track-play" @click="togglePlay()" :disabled="!activeTrackId" title="播放/暂停">
             <span v-if="playState === 'playing'" v-html="icons.trackPause"></span>
             <span v-else v-html="icons.trackPlay"></span>
           </button>
-          
+
           <button class="track-button track-forward" @click="setSpeed(Math.min(10, speedFactor + 0.5))"
             :disabled="!activeTrackId" title="加速">
             <span v-html="icons.trackForward"></span>
           </button>
+          <button class="track-button track-forward track-camera" :class="{'active': followCamera}" @click="followCamera = !followCamera"
+            :disabled="!activeTrackId" title="加速">
+            <span v-html="icons.trackFollowCamera"></span>
+          </button>
         </div>
-        
+
         <!-- 播放进度 -->
         <div class="track-progress" v-if="activeTrackId">
           <div class="track-progress-bar" @click="handleProgressClick">
             <div class="track-progress-filled" :style="{ width: progressPercentage + '%' }"></div>
-            <div class="track-progress-handle" 
-                 :style="{ left: progressPercentage + '%' }"
-                 @mousedown="startProgressDrag"
-                 :class="{ 'active': isDraggingProgress }"></div>
+            <div class="track-progress-handle" :style="{ left: progressPercentage + '%' }"
+              @mousedown="startProgressDrag" :class="{ 'active': isDraggingProgress }"></div>
           </div>
           <div class="track-progress-time">
             {{ formatTime(currentTime) }} / {{ formatTime(totalTime) }}
@@ -217,7 +209,8 @@ import {
   TRACK_PAUSE_ICON, 
   TRACK_BACKWARD_ICON, 
   TRACK_FORWARD_ICON, 
-  TRACK_DELETE_ICON 
+  TRACK_DELETE_ICON, 
+  TRACK_FOLLOW_CAMERA_ICON
 } from '../types/icon';
 
 interface Props {
@@ -318,7 +311,8 @@ const icons = {
   trackPause: TRACK_PAUSE_ICON,
   trackBackward: TRACK_BACKWARD_ICON,
   trackForward: TRACK_FORWARD_ICON,
-  trackDelete: TRACK_DELETE_ICON
+  trackDelete: TRACK_DELETE_ICON,
+  trackFollowCamera: TRACK_FOLLOW_CAMERA_ICON
 };
 
 // 更新播放进度的计时器
@@ -1427,6 +1421,13 @@ const onSpeedChange = () => {
 .track-item.active {
   background-color: #e6f7ff;
   border-left: 3px solid #1890ff;
+}
+.track-camera.active {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+.track-camera path{
+  color: #000 !important;
 }
 
 .track-item.disabled {
