@@ -16,6 +16,10 @@ export interface TrackPoint {
   staticTitle?: string;
   // 附加信息（可选，用于标记弹窗或其他展示）
   info?: Array<{key: string, value: string}>;
+  // 自定义图标URL（可选，用于设置点位的自定义图标）
+  iconUrl?: string;
+  // 自定义图标尺寸（可选，用于设置点位图标的尺寸）
+  iconSize?: [number, number];
 }
 
 // 图标速度分组
@@ -48,6 +52,7 @@ export interface TrackPlayerConfigOptions {
   showNodes?: boolean;    // 是否显示节点（静态点位）
   showNodeAnchors?: boolean; // 是否显示节点锚点（当showNodes开启时生效）
   showNodeNames?: boolean;// 是否显示节点名称（静态点位名称）
+  showNodeTime?: boolean; // 是否显示节点时间
   showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
   showSpeed?: boolean;    // 是否显示移动速度
   showNodeSpeed?: boolean;// 是否显示节点速度
