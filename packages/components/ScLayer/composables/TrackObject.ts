@@ -1340,32 +1340,35 @@ export class TrackObject {
       const currentPoint = track.points[passedPointCount];
       const nextPoint = track.points[passedPointCount + 1];
       
-      // 计算两点之间的插值比例
-      const segmentProgress = (progress * (track.points.length - 1)) - passedPointCount;
+      // 计算精确位置的插值
+      const exactIndex = progress * (track.points.length - 1);
+      const fraction = exactIndex - passedPointCount;
       
-      // 线性插值计算当前位置
-      const lng = currentPoint.lng + (nextPoint.lng - currentPoint.lng) * segmentProgress;
-      const lat = currentPoint.lat + (nextPoint.lat - currentPoint.lat) * segmentProgress;
+      // 插值计算当前位置
+      const lng = currentPoint.lng + (nextPoint.lng - currentPoint.lng) * fraction;
+      const lat = currentPoint.lat + (nextPoint.lat - currentPoint.lat) * fraction;
       
+      // 添加插值位置
       coordinates.push(fromLonLat([lng, lat]));
     }
     
-    // 创建线条几何
-    const lineString = new LineString(coordinates);
+    // 创建线几何
+    const passedLineGeom = new LineString(coordinates);
     
-    // 设置经过线样式
-    const style = new Style({
+    // 创建样式
+    const style = this.config?.passedLineOptions || { color: 'rgba(24, 144, 255, 1)', weight: 4, opacity: 0.8 };
+    const passedLineStyle = new Style({
       stroke: new Stroke({
-        color: this.config.passedLineOptions?.color || 'rgba(24, 144, 255, 1)',
-        width: this.config.passedLineOptions?.weight || 4,
+        color: style.color,
+        width: style.weight,
         lineCap: 'round',
         lineJoin: 'round'
       })
     });
     
-    // 在向量上下文中绘制线条
-    vectorContext.setStyle(style);
-    vectorContext.drawGeometry(lineString);
+    // 绘制线
+    vectorContext.setStyle(passedLineStyle);
+    vectorContext.drawGeometry(passedLineGeom);
   }
 
   /**
@@ -2407,18 +2410,12 @@ export class TrackObject {
         let pointStyle: Style;
         
         if (point.iconUrl) {
-          // 使用自定义图标
-          const iconSize = point.iconSize || [24, 24]; // 默认图标大小为24x24
-          pointStyle = new Style({
-            image: new Icon({
-              src: point.iconUrl,
-              scale: isCurrentNode ? 1.2 : (isPastNode ? 1.1 : 1),
-              size: iconSize,
-              anchor: [0.5, 0.5],
-              anchorXUnits: 'fraction',
-              anchorYUnits: 'fraction'
-            })
-          });
+          // 使用带安全检查的方法创建图标样式
+          const nodeColor = isCurrentNode ? '#ff6b18' : (isPastNode ? '#52c41a' : (track.color || '#1890ff'));
+          const iconSize = point.iconSize || [24, 24];
+          const iconScale = isCurrentNode ? 1.2 : (isPastNode ? 1.1 : 1);
+          
+          pointStyle = this.createSafeIconStyle(point.iconUrl, iconScale, iconSize, nodeColor);
         } else {
           // 使用默认圆点样式
           pointStyle = new Style({
@@ -2435,9 +2432,29 @@ export class TrackObject {
           });
         }
         
-        // 绘制点
-        vectorContext.setStyle(pointStyle);
-        vectorContext.drawGeometry(pointGeom);
+        // 安全绘制点
+        try {
+          vectorContext.setStyle(pointStyle);
+          vectorContext.drawGeometry(pointGeom);
+        } catch (error) {
+          console.error(`绘制轨迹点失败: ${error.message || '未知错误'}`);
+          
+          // 绘制失败时使用最简单的样式再试一次
+          try {
+            const fallbackStyle = new Style({
+              image: new CircleStyle({
+                radius: 4,
+                fill: new Fill({ color: '#1890ff' })
+              })
+            });
+            
+            vectorContext.setStyle(fallbackStyle);
+            vectorContext.drawGeometry(pointGeom);
+          } catch (e) {
+            // 如果连简单样式也失败，忽略该点
+            console.error('备用绘制也失败，跳过该点');
+          }
+        }
       }
       
       // 绘制节点标注（如果需要）- 使用Overlay替代Text
@@ -3534,5 +3551,70 @@ export class TrackObject {
     
     this.log('debug', `轨迹 "${id}" 已选中，clearOthers=${mergedOptions.clearOthers}, autoPlay=${mergedOptions.autoPlay}`);
     return true;
+  }
+
+  /**
+   * 预先验证图标资源是否可用
+   * @param url 图标URL
+   * @returns 是否可用
+   */
+  private isIconValid(url: string): boolean {
+    if (!url) return false;
+    
+    try {
+      // 检查URL是否合法
+      new URL(url);
+    } catch (e) {
+      console.warn(`图标URL无效: ${url}`);
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * 创建带安全检查的图标样式
+   * @param url 图标URL
+   * @param scale 缩放比例
+   * @param size 尺寸
+   * @param fallbackColor 备用颜色
+   * @returns 样式对象
+   */
+  private createSafeIconStyle(url: string, scale: number, size: number[], fallbackColor: string): Style {
+    // 首先验证图标URL
+    if (this.isIconValid(url)) {
+      try {
+        // 创建图标样式
+        return new Style({
+          image: new Icon({
+            src: url,
+            scale: scale,
+            size: size,
+            anchor: [0.5, 0.5],
+            anchorXUnits: 'fraction',
+            anchorYUnits: 'fraction',
+            // 设置跨域属性增加容错性
+            crossOrigin: 'anonymous'
+          })
+        });
+      } catch (error) {
+        console.warn(`创建图标样式失败: ${error.message || '未知错误'}`);
+        // 错误时创建默认样式
+      }
+    }
+    
+    // 创建默认圆点样式作为回退
+    return new Style({
+      image: new CircleStyle({
+        radius: 5,
+        fill: new Fill({
+          color: fallbackColor
+        }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 1.5
+        })
+      })
+    });
   }
 } 
