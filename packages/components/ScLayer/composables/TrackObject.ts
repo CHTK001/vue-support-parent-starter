@@ -1464,6 +1464,17 @@ export class TrackObject {
       // 添加标题内容
       if (movingPointNameVisible && position.title) {
         overlayContent += `<div style="font-weight:bold;font-size:12px;color:#333;">${position.title}</div>`;
+          // 获取格式化的时间信息
+      const timeInfo = this.formatTimeDisplay(position.time);
+      
+      // 准备时间显示HTML
+      if (timeInfo.isToday && timeInfo.timeAgoText) {
+        // 今天的轨迹点显示时分秒和"多久之前"
+        overlayContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+      } else {
+        // 过去的轨迹点显示完整日期时间
+        overlayContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText}</div>`;
+      }
         
         // 如果经过了有名称的静态点位，显示提示信息
         if (position.staticTitle && position.staticTitle !== position.title) {
@@ -2438,6 +2449,26 @@ export class TrackObject {
             !element.className.includes('current-node')) {
           // 更新为经过状态
           this.updateNodeOverlayToPassed(id, i);
+        } else if (element && element.className.includes('passed-node')) {
+          // 确保已经过的节点样式正确 - 检查是否基于时间正确设置了样式
+          // 即使节点已经标记为passed-node，也要确保其样式正确
+          const point = track.points[i];
+          if (point && point.time) {
+            const date = new Date(point.time * 1000);
+            const now = new Date();
+            const sameDay = date.getDate() === now.getDate() && 
+                          date.getMonth() === now.getMonth() && 
+                          date.getFullYear() === now.getFullYear();
+            
+            // 检查当前样式是否与时间匹配
+            const hasBlueBackground = element.style.backgroundColor === '#e6f7ff';
+            const hasGrayBackground = element.style.backgroundColor === '#f0f0f0';
+            
+            // 如果样式不匹配时间，重新更新节点
+            if ((sameDay && !hasBlueBackground) || (!sameDay && !hasGrayBackground)) {
+              this.updateNodeOverlayToPassed(id, i);
+            }
+          }
         }
       }
     }
@@ -2635,7 +2666,17 @@ export class TrackObject {
           
           // 添加时间信息（如果启用）
           if (showNodeTime && timeStr) {
-            nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
+            // 获取格式化的时间信息
+            const timeInfo = this.formatTimeDisplay(point.time);
+            
+            // 准备时间显示HTML
+            if (timeInfo.isToday && timeInfo.timeAgoText) {
+              // 今天的轨迹点显示时分秒和"多久之前"
+              nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+            } else {
+              // 过去的轨迹点显示完整日期时间
+              nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText}</div>`;
+            }
           }
           
           // 添加经过时的速度信息 - 经过的点都要显示速度信息，不受showNodeSpeeds设置影响
@@ -3297,8 +3338,14 @@ export class TrackObject {
     
     // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改背景颜色为灰色
     if (point && point.time) {
-      const timeInfo = this.formatTimeDisplay(point.time);
-      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+      // 直接基于时间戳判断是否为今天，而不依赖formatTimeDisplay返回的isToday
+      const date = new Date(point.time * 1000);
+      const now = new Date();
+      const sameDay = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (!sameDay && !className.includes('current-node') && !className.includes('passed-node')) {
         element.style.backgroundColor = '#f0f0f0'; // 灰色背景
         element.style.borderColor = '#d9d9d9';  // 灰色边框
         element.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
@@ -3320,8 +3367,14 @@ export class TrackObject {
     
     // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改箭头颜色
     if (point && point.time) {
-      const timeInfo = this.formatTimeDisplay(point.time);
-      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+      // 直接基于时间戳判断是否为今天，而不依赖formatTimeDisplay返回的isToday
+      const date = new Date(point.time * 1000);
+      const now = new Date();
+      const sameDay = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (!sameDay && !className.includes('current-node') && !className.includes('passed-node')) {
         arrow.style.borderTop = '8px solid #f0f0f0'; // 灰色箭头
       }
     }
@@ -3342,8 +3395,14 @@ export class TrackObject {
     
     // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改箭头边框颜色
     if (point && point.time) {
-      const timeInfo = this.formatTimeDisplay(point.time);
-      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+      // 直接基于时间戳判断是否为今天，而不依赖formatTimeDisplay返回的isToday
+      const date = new Date(point.time * 1000);
+      const now = new Date();
+      const sameDay = date.getDate() === now.getDate() && 
+                     date.getMonth() === now.getMonth() && 
+                     date.getFullYear() === now.getFullYear();
+      
+      if (!sameDay && !className.includes('current-node') && !className.includes('passed-node')) {
         arrowBorder.style.borderTop = '9px solid #d9d9d9'; // 灰色箭头边框
       }
     }
@@ -3810,26 +3869,46 @@ export class TrackObject {
       timeText = date.toLocaleString();
     }
     
-    // 计算时间差
+    // 计算时间差 - 使用（now - date）获取正确的时间差，不使用绝对值
     const diffMs = now.getTime() - date.getTime();
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
     
-    // 生成"多久之前"的文本
+    // 生成"多久之前"的文本 - 只有在时间差为正数时才显示（即过去的时间）
     let timeAgoText = '';
-    if (diffSec < 60) {
-      timeAgoText = `${diffSec}秒前`;
-    } else if (diffMin < 60) {
-      timeAgoText = `${diffMin}分钟前`;
-    } else if (diffHour < 24) {
-      timeAgoText = `${diffHour}小时前`;
-    } else if (diffDay <= 30) {
-      timeAgoText = `${diffDay}天前`;
+    if (diffMs > 0) {
+      if (diffSec < 60) {
+        timeAgoText = `${diffSec}秒前`;
+      } else if (diffMin < 60) {
+        timeAgoText = `${diffMin}分钟前`;
+      } else if (diffHour < 24) {
+        timeAgoText = `${diffHour}小时前`;
+      } else if (diffDay <= 30) {
+        timeAgoText = `${diffDay}天前`;
+      } else {
+        // 超过30天，不显示"多久之前"
+        timeAgoText = '';
+      }
     } else {
-      // 超过30天，不显示"多久之前"
-      timeAgoText = '';
+      const _diffMs = Math.abs(diffMs);
+      const _diffSec = Math.floor(_diffMs / 1000);
+      const _diffMin = Math.floor(_diffSec / 60);
+      const _diffHour = Math.floor(_diffMin / 60);
+      const _diffDay = Math.floor(_diffHour / 24);
+       if (_diffSec < 60) {
+        timeAgoText = `${_diffSec}秒后`;
+      } else if (_diffMin < 60) {
+        timeAgoText = `${_diffMin}分钟后`;
+      } else if (_diffHour < 24) {
+        timeAgoText = `${_diffHour}小时后`;
+      } else if (_diffDay <= 30) {
+        timeAgoText = `${_diffDay}天后`;
+      } else {
+        // 超过30天，不显示"多久之前"
+        timeAgoText = '';
+      }
     }
     
     return {
