@@ -293,8 +293,8 @@ export class TrackObject {
     const updatedTrack: Track = {
       ...track,
       points: sortedPoints,
-      // 设置为可见，但节点默认不显示
-      visible: true,
+      // 设置为不可见，直到被选中
+      visible: false,
       name: track.name || `轨迹 ${track.id}`
     };
     
@@ -357,7 +357,7 @@ export class TrackObject {
     // 确保节点锚点默认显示
     this.trackNodeAnchorsVisible.set(track.id, true);
     
-    // 创建轨迹线特征
+    // 创建轨迹线几何和特征，但不添加到图层
     const coordinates = sortedPoints.map(p => fromLonLat([p.lng, p.lat]));
     const lineString = new LineString(coordinates);
     const trackFeature = new Feature({
@@ -375,15 +375,10 @@ export class TrackObject {
       })
     }));
     
-    // 保存特征引用
+    // 保存特征引用，但不添加到图层
     this.trackFeatures.set(track.id, trackFeature);
     
-    // 添加到图层
-    if (this.trackLayer.getSource()) {
-      this.trackLayer.getSource()!.addFeature(trackFeature);
-    }
-    
-    // 创建轨迹点特征（默认隐藏）
+    // 创建轨迹点特征，但不添加到图层
     const pointFeatures: Feature[] = [];
     
     sortedPoints.forEach((point, index) => {
@@ -402,7 +397,7 @@ export class TrackObject {
       pointFeatures.push(pointFeature);
     });
     
-    // 存储点特征引用
+    // 存储点特征引用，但不添加到图层
     this.trackPointFeatures.set(track.id, pointFeatures);
     
     // 初始化轨迹播放设置
@@ -612,7 +607,11 @@ export class TrackObject {
       
       // 存储轨迹特征
       this.trackFeatures.set(id, trackFeature);
-      this.trackLayer?.getSource()?.addFeature(trackFeature);
+      
+      // 只有当轨迹可见时才添加到图层
+      if (updatedTrack.visible && this.tracksVisible) {
+        this.trackLayer?.getSource()?.addFeature(trackFeature);
+      }
       
       // 创建轨迹点特征
       const pointFeatures: Feature[] = [];
@@ -1086,7 +1085,7 @@ export class TrackObject {
     // 移除现有的位置特征
     if (this.trackPositionFeatures.has(id)) {
       const feature = this.trackPositionFeatures.get(id)!;
-      this.trackLayer.getSource().removeFeature(feature);
+      this.trackLayer.getSource()?.removeFeature(feature);
       this.trackPositionFeatures.delete(id);
     }
   }
@@ -1099,7 +1098,12 @@ export class TrackObject {
     // 移除现有的动画监听器
     this.removeTrackAnimation(id);
     
-    const track = this.tracks.get(id)!;
+    // 添加安全检查，确保轨迹存在
+    const track = this.tracks.get(id);
+    if (!track || !track.points || track.points.length < 2) {
+      this.log('warn', `设置轨迹动画失败: 轨迹 "${id}" 不存在或点数量不足`);
+      return;
+    }
     
     // 获取播放配置
     const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
@@ -1277,7 +1281,12 @@ export class TrackObject {
    * @param progress 当前进度 (0-1)
    */
   private drawPassedLine(id: string, vectorContext: any, progress: number): void {
-    const track = this.tracks.get(id)!;
+    const track = this.tracks.get(id);
+    
+    // 添加安全检查 - 确保track和track.points存在
+    if (!track || !track.points || track.points.length === 0) {
+      return; // 如果轨迹不存在或者没有点，直接返回
+    }
     
     // 计算当前已经过的点
     const passedPointCount = Math.max(1, Math.floor(progress * (track.points.length - 1)));
@@ -3331,5 +3340,69 @@ export class TrackObject {
       const arrow = arrows[arrows.length - 1] as HTMLElement;
       arrow.style.borderTop = '8px solid #e6f7ff';
     }
+  }
+
+  /**
+   * 选中轨迹
+   * @param id 轨迹ID
+   * @param options 选项
+   * @returns 是否操作成功
+   */
+  public selectTrack(id: string, options?: {
+    clearOthers?: boolean; // 是否清除其他轨迹，默认为true
+    autoPlay?: boolean;    // 是否自动播放，默认为false
+  }): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `轨迹 "${id}" 不存在，无法选中`);
+      return false;
+    }
+    
+    // 设置默认选项
+    const defaultOptions = {
+      clearOthers: true,
+      autoPlay: false
+    };
+    
+    const mergedOptions = {
+      ...defaultOptions,
+      ...options
+    };
+    
+    // 如果需要清除其他轨迹，先隐藏所有轨迹
+    if (mergedOptions.clearOthers) {
+      // 获取所有轨迹ID
+      const allTrackIds = [...this.tracks.keys()];
+      
+      // 停止所有正在播放的轨迹
+      for (const trackId of allTrackIds) {
+        if (trackId !== id) {
+          // 如果轨迹正在播放，先停止播放
+          if (this.trackPlayStates.get(trackId) === TrackPlayState.PLAYING ||
+              this.trackPlayStates.get(trackId) === TrackPlayState.PAUSED) {
+            this.stop(trackId);
+          }
+          
+          // 隐藏轨迹
+          this.hideTrack(trackId);
+        }
+      }
+    }
+    
+    // 显示当前轨迹
+    this.showTrack(id);
+    
+    // 更新选中的轨迹ID
+    this.selectedTrackId = id;
+    
+    // 如果需要自动播放
+    if (mergedOptions.autoPlay) {
+      // 确保轨迹不在播放状态
+      if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+        this.play(id);
+      }
+    }
+    
+    this.log('debug', `轨迹 "${id}" 已选中，clearOthers=${mergedOptions.clearOthers}, autoPlay=${mergedOptions.autoPlay}`);
+    return true;
   }
 } 
