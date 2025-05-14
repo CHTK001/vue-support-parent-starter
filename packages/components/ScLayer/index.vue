@@ -149,6 +149,7 @@ const props = withDefaults(defineProps<MapConfig & {
     useWeightAsSize: true, // 根据数量显示大小
     showCount: true, // 显示数量
     enablePulse: true, // 启用脉冲效果
+    enableAnimation: true, // 启用持续动画，即使地图静止不动也会运行动画
     zoomToBoundsOnClick: true, // 点击聚合点时缩放到边界
     colorRanges: [
       { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色

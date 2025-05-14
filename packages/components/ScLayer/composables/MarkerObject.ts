@@ -50,6 +50,9 @@ export class MarkerObject {
   private clusterMode: boolean = false;
   // 分组可见性状态（key为分组名称，value为是否可见）
   private groupVisibility = new Map<string, boolean>();
+  // 动画相关
+  private animationFrameId: number | null = null; // 动画帧ID
+  private animationActive: boolean = false; // 动画是否激活
   // 默认标记点样式
   private defaultStyle = {
     scale: 1, // 固定为1，不放大
@@ -160,9 +163,18 @@ export class MarkerObject {
       }
     });
 
+    // 从地图元素上获取聚合配置
+    let clusterDistance = 80; // 默认聚合距离改为与默认配置一致的80像素
+    const mapElement = this.mapInstance.getTargetElement();
+    if (mapElement && mapElement['clusterConfig'] && 
+        typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
+      clusterDistance = mapElement['clusterConfig'].maxClusterRadius;
+      this.log('debug', `从配置获取聚合距离: ${clusterDistance} 像素`);
+    }
+
     // 创建聚合标记点图层
     const clusterSource = new Cluster({
-      distance: 40,
+      distance: clusterDistance,
       source: new VectorSource()
     });
     this.clusterLayer = new VectorLayer({
@@ -179,7 +191,12 @@ export class MarkerObject {
     this.mapInstance.addLayer(this.markerLayer);
     this.mapInstance.addLayer(this.clusterLayer);
     
-    this.log('debug', '标记点图层已初始化，普通图层可见，聚合图层隐藏');
+    // 如果聚合模式已启用，启动动画
+    if (this.clusterMode) {
+      this.startAnimation();
+    }
+    
+    this.log('debug', '标记点图层已初始化，普通图层可见，聚合图层隐藏，聚合距离：' + clusterDistance + '像素');
   }
 
   /**
@@ -334,15 +351,16 @@ export class MarkerObject {
     let maxClusterSize = 60; // 最大聚合点尺寸
     let defaultSize = 40; // 默认聚合点大小
     let enablePulse = true; // 是否启用脉冲效果
-    let pulseDuration = 2000; // 脉冲动画持续时间，调整为2000ms更缓慢
-    let pulseScale = 2.5; // 脉冲缩放比例
+    let enableAnimation = true; // 是否启用持续动画
+    let pulseDuration = 3000; // 脉冲动画持续时间，3000ms适合观察
+    let pulseScale = 1.6; // 减小脉冲缩放比例，从3.0降至1.6
     let pulseColor = color; // 脉冲颜色
-    let pulseOpacity = 0.8; // 脉冲透明度
+    let pulseOpacity = 0.7; // 降低脉冲透明度初始值
     let pulseFrequency = 1; // 每秒扩散次数
-    let pulseStartSize = 1; // 脉冲起始大小比例
-    let pulseLayers = 3; // 脉冲效果层数
-    let pulseDecay = 1.5; // 透明度衰减指数
-    let zoomToBoundsOnClick = false; // 默认不自动缩放到聚合范围
+    let pulseStartSize = 0.9; // 提高脉冲起始大小比例，使扩散更有节制
+    let pulseLayers = 3; // 减少脉冲效果层数，从5降至3
+    let pulseDecay = 1.5; // 增大透明度衰减指数使效果更快消失
+    let zoomToBoundsOnClick = true; // 默认自动缩放到聚合范围
     let colorRanges: { value: number; color: string }[] = []; // 颜色范围
     
     // 获取工具栏对象，如果存在
@@ -361,6 +379,7 @@ export class MarkerObject {
         maxClusterSize = toolbarConfig.maxClusterSize || maxClusterSize;
         defaultSize = toolbarConfig.defaultSize || defaultSize;
         enablePulse = toolbarConfig.enablePulse !== undefined ? toolbarConfig.enablePulse : enablePulse;
+        enableAnimation = toolbarConfig.enableAnimation !== undefined ? toolbarConfig.enableAnimation : enableAnimation;
         pulseDuration = toolbarConfig.pulseDuration || pulseDuration;
         pulseScale = toolbarConfig.pulseScale || pulseScale;
         pulseColor = toolbarConfig.pulseColor || color;
@@ -392,7 +411,7 @@ export class MarkerObject {
     let pointSize = defaultSize;
     if (useWeightAsSize && size > 1) {
       // 根据数量计算大小，限制在最大尺寸范围内
-      const sizeScale = Math.min(1, Math.log(size) / Math.log(100)); // 使用对数缩放，更合理
+      const sizeScale = Math.min(1, Math.log(size) / Math.log(100)); // 使用对数缩放
       pointSize = minClusterSize + sizeScale * (maxClusterSize - minClusterSize);
     }
     
@@ -401,44 +420,45 @@ export class MarkerObject {
     
     // 如果启用涟漪效果，创建多个圆圈样式形成涟漪效果
     if (enablePulse) {
-      // 创建涟漪层，每个层级使用不同的透明度和大小
-      // 模拟动画效果，不再使用SVG动画
-      
       // 获取当前时间的毫秒数，用于计算动画状态
       const time = Date.now() % pulseDuration;
       const animationProgress = time / pulseDuration; // 0-1之间的值
       
       // 确保层数在有效范围内
-      pulseLayers = Math.max(1, Math.min(3, pulseLayers));
+      pulseLayers = Math.max(2, Math.min(3, pulseLayers));
       
-      // 创建涟漪圆圈，根据配置的层数
+      // 创建涟漪扩散效果，降低迭代次数，使动画更加微妙
       for (let i = 0; i < pulseLayers; i++) {
         // 计算每个涟漪的相位偏移，形成连续效果
         const phaseOffset = i / pulseLayers;
         let progress = (animationProgress + phaseOffset) % 1;
         
-        // 根据动画进度计算当前大小和透明度
-        // 起始大小由配置决定
+        // 使用缓动函数使动画更加平滑
+        const easedProgress = 0.5 - 0.5 * Math.cos(progress * Math.PI * 2);
+        
+        // 根据动画进度计算当前大小，确保扩散范围更小
         const startSize = pointSize * pulseStartSize;
-        // 最大大小调整为原来的pulseScale倍
         const maxSize = startSize * pulseScale;
-        // 根据进度计算当前大小
-        const currentSize = startSize + (maxSize - startSize) * progress;
+        const currentSize = startSize + (maxSize - startSize) * easedProgress;
         
-        // 透明度从设定值衰减到0，衰减指数由配置决定
-        const currentOpacity = Math.max(0, pulseOpacity * Math.pow(1 - progress, pulseDecay));
+        // 修改透明度曲线，使扩散更加快速消失
+        const opacityCurve = Math.pow(Math.sin(progress * Math.PI), pulseDecay);
+        const currentOpacity = Math.max(0, pulseOpacity * opacityCurve);
         
-        if (currentOpacity > 0.01) { // 只有透明度足够高时才添加样式，提高性能
+        if (currentOpacity > 0.05) { // 提高透明度阈值，减少低透明度的圆圈
           // 创建涟漪圆圈样式
           styles.push(
             new Style({
-              // 使用RegularShape实现圆形
               image: new RegularShape({
                 radius: currentSize / 2,
                 radius2: currentSize / 2,
-                points: 64, // 增加点数使圆形更平滑
+                points: 32, // 适当减少点数
                 fill: new Fill({
                   color: this.colorWithOpacity(pulseColor, currentOpacity)
+                }),
+                stroke: new Stroke({
+                  color: this.colorWithOpacity(pulseColor, currentOpacity * 0.9),
+                  width: 1.0 // 减小边框宽度
                 })
               }),
               zIndex: 99 + i // 涟漪层级低于主圆圈
@@ -447,8 +467,31 @@ export class MarkerObject {
         }
       }
       
-      // 设置关键帧请求以刷新样式
-      if (this.mapInstance) {
+      // 添加呼吸效果（脉动效果），保持更微妙的缩放
+      const breathProgress = Math.sin(animationProgress * Math.PI * 2 * pulseFrequency); 
+      const breathScale = 1 + Math.abs(breathProgress) * 0.08; // 减小呼吸效果的缩放范围
+      
+      // 创建呼吸效果的圆圈
+      styles.push(
+        new Style({
+          image: new RegularShape({
+            radius: (pointSize * breathScale) / 2,
+            radius2: (pointSize * breathScale) / 2,
+            points: 24,
+            fill: new Fill({
+              color: this.colorWithOpacity(color, 0.7)
+            }),
+            stroke: new Stroke({
+              color: this.colorWithOpacity(borderColor, 0.8),
+              width: 1.5 + breathProgress * 0.3 // 减小边框宽度变化范围
+            })
+          }),
+          zIndex: 100 // 呼吸效果的层级在主圆圈下方
+        })
+      );
+      
+      // 只有在启用持续动画时才请求动画帧
+      if (enableAnimation && this.mapInstance) {
         // 请求下一帧重绘，实现动画效果
         window.requestAnimationFrame(() => {
           if (this.mapInstance) this.mapInstance.render();
@@ -462,13 +505,13 @@ export class MarkerObject {
         image: new RegularShape({
           radius: pointSize / 2,
           radius2: pointSize / 2,
-          points: 30, // 足够多的点数使其看起来像圆形
+          points: 24, // 适当减少点数
           fill: new Fill({
-            color: this.colorWithOpacity(color, 0.8)
+            color: this.colorWithOpacity(color, 0.85) // 保持不透明度
           }),
           stroke: new Stroke({
             color: borderColor,
-            width: 2
+            width: 2 // 减小边框宽度
           })
         }),
         text: showCount ? new Text({
@@ -476,10 +519,10 @@ export class MarkerObject {
           fill: new Fill({
             color: '#fff'
           }),
-          font: 'bold 12px Arial',
+          font: 'bold 13px Arial',
           offsetY: 1
         }) : undefined,
-        zIndex: 100 + size // 数量越多的聚合点层级越高
+        zIndex: 101 + size // 主圆圈层级最高
       })
     );
     
@@ -525,21 +568,45 @@ export class MarkerObject {
    * @param enabled 是否启用聚合模式
    */
   public setClusterMode(enabled: boolean): void {
-    // 如果状态没有变化，则不需要操作
+    // 如果模式已经相同，则不进行任何操作
     if (this.clusterMode === enabled) {
+      this.log('debug', `聚合模式已经${enabled ? '启用' : '禁用'}，无需切换`);
       return;
     }
     
+    // 更新聚合模式状态
     this.clusterMode = enabled;
-
-    // 如果没有图层，无法执行聚合操作
+    
+    // 如果图层未初始化，则无法切换模式
     if (!this.markerLayer || !this.clusterLayer) {
-      this.log('warn', `没有标记点图层，无法${enabled ? '启用' : '禁用'}聚合模式`);
+      this.log('warn', '标记点图层未初始化，无法切换聚合模式');
       return;
     }
 
     // 获取聚合图层的源
     const clusterSource = this.clusterLayer.getSource() as Cluster;
+    
+    // 在启用聚合模式时应用配置的聚合距离
+    if (enabled) {
+      // 从地图元素获取聚合配置
+      let clusterDistance = 80; // 默认值
+      const mapElement = this.mapInstance?.getTargetElement();
+      if (mapElement && mapElement['clusterConfig'] && 
+          typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
+        clusterDistance = mapElement['clusterConfig'].maxClusterRadius;
+        this.log('debug', `切换聚合模式时应用配置的聚合距离: ${clusterDistance} 像素`);
+      }
+      
+      // 应用聚合距离
+      clusterSource.setDistance(clusterDistance);
+      
+      // 启动聚合点动画
+      this.startAnimation();
+    } else {
+      // 停止聚合点动画
+      this.stopAnimation();
+    }
+    
     // 获取普通图层的源
     const markerSource = this.markerLayer.getSource() as VectorSource;
 
@@ -586,6 +653,85 @@ export class MarkerObject {
     this.setupClickListener();
 
     this.log('info', `标记点聚合模式已${enabled ? '启用' : '禁用'}`);
+  }
+  
+  /**
+   * 启动聚合点动画循环
+   * 即使地图静止不动，也会持续更新动画
+   */
+  private startAnimation(): void {
+    // 如果动画已经在运行，不需要重新启动
+    if (this.animationActive) return;
+    
+    // 确保地图实例存在
+    if (!this.mapInstance) {
+      this.log('warn', '地图实例不存在，无法启动动画');
+      return;
+    }
+    
+    // 检查是否启用了动画设置
+    let enableAnimation = true; // 默认启用
+    const mapElement = this.mapInstance.getTargetElement();
+    if (mapElement && mapElement['clusterConfig']) {
+      const config = mapElement['clusterConfig'];
+      // 如果明确设置为false，则不启用动画
+      if (config.enableAnimation === false) {
+        this.log('debug', '配置设置为不启用持续动画，不启动动画循环');
+        return;
+      }
+    }
+    
+    this.animationActive = true;
+    this.log('debug', '启动聚合点动画循环');
+    
+    // 定义动画帧函数
+    const animate = () => {
+      // 如果动画不再活跃，停止循环
+      if (!this.animationActive) {
+        this.log('debug', '动画已停止，退出动画循环');
+        return;
+      }
+      
+      // 如果地图实例不存在，停止循环
+      if (!this.mapInstance) {
+        this.log('warn', '动画循环中发现地图实例不存在，停止动画');
+        this.animationActive = false;
+        return;
+      }
+      
+      try {
+        // 强制地图重绘以更新动画
+        this.mapInstance.render();
+        
+        // 如果聚合图层存在，额外触发其changed事件，确保动画更新
+        if (this.clusterLayer && this.clusterLayer.getVisible()) {
+          this.clusterLayer.changed();
+        }
+      } catch (error) {
+        this.log('error', '动画渲染过程中发生错误');
+      }
+      
+      // 请求下一帧
+      this.animationFrameId = window.requestAnimationFrame(animate);
+    };
+    
+    // 启动动画循环
+    this.animationFrameId = window.requestAnimationFrame(animate);
+  }
+  
+  /**
+   * 停止聚合点动画循环
+   */
+  private stopAnimation(): void {
+    // 标记动画为非活跃
+    this.animationActive = false;
+    
+    // 取消动画帧请求
+    if (this.animationFrameId !== null) {
+      window.cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+      this.log('debug', '停止聚合点动画循环');
+    }
   }
 
   /**
@@ -1220,6 +1366,9 @@ export class MarkerObject {
    * 销毁对象
    */
   public destroy(): void {
+    // 停止动画循环
+    this.stopAnimation();
+    
     if (this.mapInstance) {
       // 移除图层
       if (this.markerLayer) {
@@ -1933,6 +2082,50 @@ export class MarkerObject {
     
     // 限制在配置的最小和最大缩放范围内
     return Math.max(minScale, Math.min(maxScale, scaleFactor));
+  }
+
+  /**
+   * 设置聚合配置
+   * @param config 聚合配置对象
+   */
+  public setClusterConfig(config: any): void {
+    if (!this.mapInstance) {
+      this.log('warn', '地图实例不存在，无法设置聚合配置');
+      return;
+    }
+    
+    // 获取地图DOM元素
+    const mapElement = this.mapInstance.getTargetElement();
+    if (!mapElement) {
+      this.log('warn', '地图DOM元素不存在，无法设置聚合配置');
+      return;
+    }
+    
+    // 保存聚合配置到地图元素上
+    mapElement['clusterConfig'] = config;
+    
+    // 如果已经设置了聚合距离，更新聚合距离
+    if (this.clusterLayer && config.maxClusterRadius) {
+      const clusterSource = this.clusterLayer.getSource() as Cluster;
+      clusterSource.setDistance(config.maxClusterRadius);
+      this.log('debug', `更新聚合距离为 ${config.maxClusterRadius} 像素`);
+    }
+    
+    // 如果当前处于聚合模式，根据enableAnimation设置决定是否重启动画
+    if (this.clusterMode && this.clusterLayer && this.clusterLayer.getVisible()) {
+      // 先停止当前动画
+      this.stopAnimation();
+      
+      // 如果启用了动画，则重新启动
+      if (config.enableAnimation !== false) {
+        this.startAnimation();
+        this.log('debug', '已重启动画以应用新的聚合配置');
+      } else {
+        this.log('debug', '聚合配置设置为不启用持续动画，不重启动画');
+      }
+    }
+    
+    this.log('info', '已设置聚合配置');
   }
 }
 
