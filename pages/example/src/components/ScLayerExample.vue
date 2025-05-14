@@ -1964,12 +1964,6 @@ const addComplexTrack = () => {
       tracks.value.push(track);
       hasTrack.value = true;
       addLog('info', `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`);
-      
-      // 自动将地图视图调整到包含整个轨迹
-      layerRef.value.fitTrackToView(track.id, {
-        padding: [50, 50, 50, 50],
-        maxZoom: 14
-      });
     } else {
       addLog('error', '获取轨迹对象失败');
     }

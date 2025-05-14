@@ -748,6 +748,43 @@ export class TrackObject {
           feature.setStyle(this.createTrackPointStyle(id, feature.get('pointIndex'), showNodePopover));
           this.trackPointLayer?.getSource()?.addFeature(feature);
         });
+        
+        // 如果节点和节点名称都设置为显示，则创建Overlay
+        if (this.trackNodePopoversVisible.get(id)) {
+          // 先清除现有节点Overlay
+          this.clearNodeOverlays(id);
+          
+          // 如果不是播放状态，为所有节点创建Overlay
+          if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+            const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
+            
+            // 为每个有标题的节点创建Overlay
+            for (let i = 0; i < track.points.length; i++) {
+              const point = track.points[i];
+              
+              if (point.title) {
+                // 格式化时间
+                let timeStr = '';
+                if (point.time && showNodeTime) {
+                  const date = new Date(point.time * 1000);
+                  timeStr = date.toLocaleTimeString();
+                }
+                
+                // 准备节点HTML内容
+                let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
+                
+                // 添加时间信息（如果启用）
+                if (showNodeTime && timeStr) {
+                  nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
+                }
+                
+                // 创建节点Overlay
+                const coordinate = fromLonLat([point.lng, point.lat]);
+                this.createNodeOverlay(id, i, nodeContent, coordinate);
+              }
+            }
+          }
+        }
       }
     }
     
@@ -1889,6 +1926,54 @@ export class TrackObject {
       }
     }
     
+    // 处理节点Overlay
+    const track = this.tracks.get(id);
+    if (track && track.visible) {
+      if (visible) {
+        // 如果要显示节点，并且节点名称也设置为显示，则创建Overlay
+        const showNodePopovers = this.trackNodePopoversVisible.get(id) || false;
+        if (showNodePopovers) {
+          // 先清除现有节点Overlay
+          this.clearNodeOverlays(id);
+          
+          // 如果不是播放状态，为所有节点创建Overlay
+          if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+            const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
+            
+            // 为每个节点创建Overlay
+            for (let i = 0; i < track.points.length; i++) {
+              const point = track.points[i];
+              
+              // 只为有标题的点创建Overlay
+              if (point.title) {
+                // 格式化时间
+                let timeStr = '';
+                if (point.time && showNodeTime) {
+                  const date = new Date(point.time * 1000);
+                  timeStr = date.toLocaleTimeString();
+                }
+                
+                // 准备节点HTML内容
+                let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
+                
+                // 添加时间信息（如果启用）
+                if (showNodeTime && timeStr) {
+                  nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
+                }
+                
+                // 创建节点Overlay
+                const coordinate = fromLonLat([point.lng, point.lat]);
+                this.createNodeOverlay(id, i, nodeContent, coordinate);
+              }
+            }
+          }
+        }
+      } else {
+        // 如果不显示节点，则清除所有节点Overlay
+        this.clearNodeOverlays(id);
+      }
+    }
+    
     // 如果轨迹正在播放，也需要更新动画中的节点显示
     if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
       // 仅重置时间戳并触发重新渲染，而不是完全重置动画
@@ -2696,6 +2781,51 @@ export class TrackObject {
         // 更新样式以显示或隐藏节点名称
         feature.setStyle(this.createTrackPointStyle(id, feature.get('pointIndex'), visible));
       }
+    }
+    
+    // 获取轨迹
+    const track = this.tracks.get(id);
+    if (!track) return true;
+    
+    // 如果设置为可见，并且节点也是可见的，则立即创建节点Overlay
+    if (visible && this.trackNodesVisible.get(id) && track.visible) {
+      // 先清除现有节点Overlay
+      this.clearNodeOverlays(id);
+      
+      // 如果不是播放状态，创建所有节点的Overlay
+      if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+        const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
+        
+        // 为每个节点创建Overlay
+        for (let i = 0; i < track.points.length; i++) {
+          const point = track.points[i];
+          
+          // 只为有标题的点创建Overlay
+          if (point.title) {
+            // 格式化时间
+            let timeStr = '';
+            if (point.time && showNodeTime) {
+              const date = new Date(point.time * 1000);
+              timeStr = date.toLocaleTimeString();
+            }
+            
+            // 准备节点HTML内容
+            let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
+            
+            // 添加时间信息（如果启用）
+            if (showNodeTime && timeStr) {
+              nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
+            }
+            
+            // 创建节点Overlay
+            const coordinate = fromLonLat([point.lng, point.lat]);
+            this.createNodeOverlay(id, i, nodeContent, coordinate);
+          }
+        }
+      }
+    } else if (!visible) {
+      // 如果设置为不可见，则清除所有节点Overlay
+      this.clearNodeOverlays(id);
     }
     
     // 如果轨迹正在播放，也需要更新动画中的节点名称显示
