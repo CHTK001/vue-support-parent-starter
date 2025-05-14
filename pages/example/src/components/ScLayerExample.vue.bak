@@ -289,7 +289,7 @@
           </div>
 
           <!-- 添加热力图操作部分 -->
-          <div class="config-item" v-if="false">
+          <div class="config-item">
             <div class="label">热力图操作</div>
             <div class="controls">
               <!-- 热力图操作区域 - 添加功能分组 -->
@@ -2411,7 +2411,6 @@ const getDirectionName = (direction: string) => {
  */
 const enableHeatmap = () => {
   if (!layerRef.value) return;
-  
   const result = layerRef.value.enableHeatmap();
   if (result) {
     addLog('热力图', '启用热力图');
@@ -2423,7 +2422,6 @@ const enableHeatmap = () => {
  */
 const disableHeatmap = () => {
   if (!layerRef.value) return;
-  
   const result = layerRef.value.disableHeatmap();
   if (result) {
     addLog('热力图', '禁用热力图');
