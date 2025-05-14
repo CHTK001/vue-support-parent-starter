@@ -46,16 +46,6 @@
       ref="flightLinePanelRef"
     />
     
-    <!-- 添加热力图面板 -->
-    <HeatmapPanel
-      v-if="showHeatmapPanel && mapReady"
-      :heatmap-obj="toolbarObject?.getHeatmapObject()"
-      :active="isHeatmapActive"
-      :position="determineHeatmapPanelPosition()"
-      @close="handleHeatmapPanelClose"
-      @update:active="handleHeatmapActiveChange"
-      @config-update="handleHeatmapConfigUpdate"
-    />
   </div>
 </template>
 
@@ -101,7 +91,6 @@ import { Map as OlMap } from 'ol';
 import 'ol/ol.css';
 import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 import FlightLinePanel from './components/FlightLinePanel.vue';
-import HeatmapPanel from './components/HeatmapPanel.vue';
 
 
 // 定义组件属性 - 使用types中的配置作为类型定义
@@ -516,8 +505,6 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       isHeatmapActive.value = active;
       
       if (active) {
-        // 激活时显示热力图面板
-        showHeatmapPanel.value = true;
         logger.info('[Heatmap] 热力图已激活，显示热力图面板');
         
         // 尝试启用热力图对象
@@ -531,8 +518,6 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           }
         }
       } else {
-        // 停用时隐藏热力图面板
-        showHeatmapPanel.value = false;
         logger.debug('[Heatmap] 热力图已停用，隐藏热力图面板');
         
         // 尝试禁用热力图对象
@@ -1616,25 +1601,7 @@ const configureLogger = () => {
 /**
  * 热力图相关
  */
-// 热力图面板
-const showHeatmapPanel = ref(false);
 const isHeatmapActive = ref(false);
-
-/**
- * 确定热力图面板位置
- */
-const determineHeatmapPanelPosition = () => {
-  // 如果有配置，直接使用配置的位置
-  return props.flightLinePanelPosition;
-};
-
-/**
- * 处理热力图面板关闭
- */
-const handleHeatmapPanelClose = () => {
-  showHeatmapPanel.value = false;
-  logger.debug('[Heatmap] 热力图面板已关闭');
-};
 
 /**
  * 处理热力图激活状态变化
@@ -1664,14 +1631,9 @@ const checkHeatmapState = () => {
   // 获取热力图工具的激活状态
   const isHeatmapToolActive = heatmapTool?.active || false;
   
-  logger.debug('[Heatmap] 检查热力图状态，工具存在:', !!heatmapTool, 
-             '工具激活状态:', isHeatmapToolActive, 
-             '当前面板显示状态:', showHeatmapPanel.value);
-  
   // 确保UI状态与工具状态一致
-  if (isHeatmapToolActive && !showHeatmapPanel.value) {
+  if (isHeatmapToolActive ) {
     logger.debug('[Heatmap] 发现热力图工具已激活但面板未显示，显示热力图面板');
-    showHeatmapPanel.value = true;
     isHeatmapActive.value = true;
     
     // 确保热力图对象已启用
@@ -1679,9 +1641,8 @@ const checkHeatmapState = () => {
     if (heatmapObj) {
       heatmapObj.enable();
     }
-  } else if (!isHeatmapToolActive && showHeatmapPanel.value) {
+  } else if (!isHeatmapToolActive) {
     logger.debug('[Heatmap] 热力图工具未激活但面板显示中，隐藏热力图面板');
-    showHeatmapPanel.value = false;
     isHeatmapActive.value = false;
   }
 };
@@ -1697,7 +1658,6 @@ const showHeatmap = () => {
   }
   
   // 强制显示面板
-  showHeatmapPanel.value = true;
   isHeatmapActive.value = true;
   logger.debug('[Heatmap] 热力图面板已显示');
   
@@ -1714,8 +1674,6 @@ const showHeatmap = () => {
  * 隐藏热力图面板
  */
 const hideHeatmap = () => {
-  showHeatmapPanel.value = false;
-  
   // 停用热力图工具
   if (toolbarObject && toolbarObject.getActiveToolId() === 'heatmap') {
     toolbarObject.deactivateTool('heatmap');
