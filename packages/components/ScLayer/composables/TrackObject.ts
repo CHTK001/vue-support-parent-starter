@@ -595,11 +595,12 @@ export class TrackObject {
         name: updatedTrack.name
       });
       
-      // 设置轨迹样式
+      // 设置轨迹样式 - 使用notPassedLineOptions配置
+      const notPassedLineOptions = this.config.notPassedLineOptions || { color: 'rgba(160, 160, 160, 0.8)', weight: 3, opacity: 0.5 };
       trackFeature.setStyle(new Style({
         stroke: new Stroke({
-          color: updatedTrack.color || this.config.notPassedLineOptions?.color || 'rgba(160, 160, 160, 0.8)',
-          width: this.config.notPassedLineOptions?.weight || 3,
+          color: updatedTrack.color ? this.applyOpacity(updatedTrack.color, notPassedLineOptions.opacity) : this.applyOpacity(notPassedLineOptions.color, notPassedLineOptions.opacity),
+          width: notPassedLineOptions.weight,
           lineCap: 'round',
           lineJoin: 'round'
         })
@@ -666,10 +667,11 @@ export class TrackObject {
       // 如果仅更新了其他属性，只需更新样式
       if (track.color && this.trackFeatures.has(id)) {
         const feature = this.trackFeatures.get(id)!;
+        const notPassedLineOptions = this.config.notPassedLineOptions || { color: 'rgba(160, 160, 160, 0.8)', weight: 3, opacity: 0.5 };
         feature.setStyle(new Style({
           stroke: new Stroke({
-            color: track.color || this.config.notPassedLineOptions?.color || 'rgba(160, 160, 160, 0.8)',
-            width: this.config.notPassedLineOptions?.weight || 3,
+            color: track.color ? this.applyOpacity(track.color, notPassedLineOptions.opacity) : this.applyOpacity(notPassedLineOptions.color, notPassedLineOptions.opacity),
+            width: notPassedLineOptions.weight,
             lineCap: 'round',
             lineJoin: 'round'
           })
@@ -743,10 +745,32 @@ export class TrackObject {
       // 添加轨迹点 - 只有当节点显示设置为true时才添加
       if (this.trackPointFeatures.has(id) && this.trackPointLayer && this.trackNodesVisible.get(id) === true) {
         const features = this.trackPointFeatures.get(id)!;
+        const source = this.trackPointLayer.getSource()!;
+        
         features.forEach(feature => {
           const showNodePopover = this.trackNodePopoversVisible.get(id) || false;
           feature.setStyle(this.createTrackPointStyle(id, feature.get('pointIndex'), showNodePopover));
-          this.trackPointLayer?.getSource()?.addFeature(feature);
+          
+          // 检查特征是否已经在图层中
+          try {
+            const featureId = feature.getId();
+            let featureExists = false;
+            
+            if (featureId) {
+              // 如果特征有ID，通过ID检查
+              featureExists = !!source.getFeatureById(featureId);
+            } else {
+              // 如果特征没有ID，通过引用检查
+              featureExists = source.getFeatures().indexOf(feature) !== -1;
+            }
+            
+            // 只有当特征不存在时才添加
+            if (!featureExists) {
+              source.addFeature(feature);
+            }
+          } catch (e) {
+            console.warn(`添加轨迹点特征时出错: ${e.message || '未知错误'}`);
+          }
         });
         
         // 如果节点和节点名称都设置为显示，则创建Overlay
@@ -1355,12 +1379,12 @@ export class TrackObject {
     // 创建线几何
     const passedLineGeom = new LineString(coordinates);
     
-    // 创建样式
-    const style = this.config?.passedLineOptions || { color: 'rgba(24, 144, 255, 1)', weight: 4, opacity: 0.8 };
+    // 创建样式 - 确保使用配置中的所有属性，包括透明度
+    const passedLineOptions = this.config?.passedLineOptions || { color: 'rgba(24, 144, 255, 1)', weight: 4, opacity: 0.8 };
     const passedLineStyle = new Style({
       stroke: new Stroke({
-        color: style.color,
-        width: style.weight,
+        color: track.color ? this.applyOpacity(track.color, passedLineOptions.opacity) : this.applyOpacity(passedLineOptions.color, passedLineOptions.opacity),
+        width: passedLineOptions.weight,
         lineCap: 'round',
         lineJoin: 'round'
       })
@@ -1693,10 +1717,12 @@ export class TrackObject {
     });
     
     // 设置样式
+    const track = this.tracks.get(id);
+    const passedLineOptions = this.config.passedLineOptions || { color: 'rgba(24, 144, 255, 1)', weight: 4, opacity: 0.8 };
     passedLineFeature.setStyle(new Style({
       stroke: new Stroke({
-        color: this.config.passedLineOptions?.color || 'rgba(24, 144, 255, 1)',
-        width: this.config.passedLineOptions?.weight || 4,
+        color: track && track.color ? this.applyOpacity(track.color, passedLineOptions.opacity) : this.applyOpacity(passedLineOptions.color, passedLineOptions.opacity),
+        width: passedLineOptions.weight,
         lineCap: 'round',
         lineJoin: 'round'
       })
@@ -1910,8 +1936,30 @@ export class TrackObject {
           
           // 确保特征已添加到图层
           if (this.trackPointLayer && this.trackPointLayer.getSource()) {
-            // 添加到图层（如果已存在，OpenLayers会忽略这个操作）
-            this.trackPointLayer.getSource()!.addFeature(feature);
+            // 添加到图层（如果已存在，OpenLayers会抛出错误）
+            // 先检查特征是否已经在图层中
+            const source = this.trackPointLayer.getSource()!;
+            
+            try {
+              // 检查特征是否已存在于图层源中
+              const featureId = feature.getId();
+              let featureExists = false;
+              
+              if (featureId) {
+                // 如果特征有ID，通过ID检查
+                featureExists = !!source.getFeatureById(featureId);
+              } else {
+                // 如果特征没有ID，通过引用检查
+                featureExists = source.getFeatures().indexOf(feature) !== -1;
+              }
+              
+              // 只有当特征不存在时才添加
+              if (!featureExists) {
+                source.addFeature(feature);
+              }
+            } catch (e) {
+              console.warn(`添加轨迹点特征时出错: ${e.message || '未知错误'}`);
+            }
           }
         } else {
           // 如果不显示节点，则设置为null样式（隐藏）
@@ -3198,6 +3246,32 @@ export class TrackObject {
       content = iconHtml + content;
     }
     
+    // 如果点位有时间信息，可以更新内容中的时间显示格式
+    if (point && point.time && this.trackNodeTimeVisible.get(id) === true && !content.includes("⏱")) {
+      // 获取格式化的时间信息
+      const timeInfo = this.formatTimeDisplay(point.time);
+      
+      // 查找内容中最后一个 </div> 前的位置来插入时间信息
+      const lastDivPos = content.lastIndexOf('</div>');
+      
+      // 准备时间显示HTML
+      let timeHtml = '';
+      if (timeInfo.isToday && timeInfo.timeAgoText) {
+        // 今天的轨迹点显示时分秒和"多久之前"
+        timeHtml = `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+      } else {
+        // 过去的轨迹点显示完整日期时间
+        timeHtml = `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText}</div>`;
+      }
+      
+      // 插入时间信息
+      if (lastDivPos !== -1) {
+        content = content.substring(0, lastDivPos) + timeHtml + content.substring(lastDivPos);
+      } else {
+        content += timeHtml;
+      }
+    }
+    
     element.innerHTML = content;
     element.style.position = 'absolute';
     element.style.backgroundColor = 'white';
@@ -3221,6 +3295,16 @@ export class TrackObject {
       element.style.boxShadow = '0 3px 10px rgba(24, 144, 255, 0.2)';
     }
     
+    // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改背景颜色为灰色
+    if (point && point.time) {
+      const timeInfo = this.formatTimeDisplay(point.time);
+      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+        element.style.backgroundColor = '#f0f0f0'; // 灰色背景
+        element.style.borderColor = '#d9d9d9';  // 灰色边框
+        element.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
+      }
+    }
+    
     // 添加箭头样式
     const arrow = document.createElement('div');
     arrow.style.position = 'absolute';
@@ -3233,6 +3317,14 @@ export class TrackObject {
     arrow.style.borderRight = '8px solid transparent';
     arrow.style.borderTop = className.includes('current-node') ? 
       '8px solid #fff8f0' : (className.includes('passed-node') ? '8px solid #e6f7ff' : '8px solid white');
+    
+    // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改箭头颜色
+    if (point && point.time) {
+      const timeInfo = this.formatTimeDisplay(point.time);
+      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+        arrow.style.borderTop = '8px solid #f0f0f0'; // 灰色箭头
+      }
+    }
     
     // 添加箭头边框
     const arrowBorder = document.createElement('div');
@@ -3247,6 +3339,14 @@ export class TrackObject {
     arrowBorder.style.borderTop = className.includes('current-node') ? 
       '9px solid #ffb980' : (className.includes('passed-node') ? '9px solid #91d5ff' : '9px solid rgba(0,0,0,0.1)');
     arrowBorder.style.zIndex = '-1';
+    
+    // 如果是过去时间（非今天）且不是当前节点或已经过节点，修改箭头边框颜色
+    if (point && point.time) {
+      const timeInfo = this.formatTimeDisplay(point.time);
+      if (!timeInfo.isToday && !className.includes('current-node') && !className.includes('passed-node')) {
+        arrowBorder.style.borderTop = '9px solid #d9d9d9'; // 灰色箭头边框
+      }
+    }
     
     // 添加箭头和边框到overlay元素
     element.appendChild(arrowBorder);
@@ -3438,11 +3538,10 @@ export class TrackObject {
       }
     }
 
-    // 获取时间信息
-    let timeStr = '';
+    // 获取时间信息和格式化
+    let timeDisplay = { timeText: '', timeAgoText: '', isToday: true };
     if (point.time && this.trackNodeTimeVisible.get(id) === true) {
-      const date = new Date(point.time * 1000);
-      timeStr = date.toLocaleTimeString();
+      timeDisplay = this.formatTimeDisplay(point.time);
     }
     
     // 创建节点内容，考虑是否有自定义图标
@@ -3460,8 +3559,14 @@ export class TrackObject {
     nodeContent += `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title || ''}</div>`;
     
     // 添加时间信息
-    if (timeStr) {
-      nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
+    if (timeDisplay.timeText) {
+      // 如果是今天，显示时分秒和"多久之前"
+      if (timeDisplay.isToday && timeDisplay.timeAgoText) {
+        nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeDisplay.timeText} (${timeDisplay.timeAgoText})</div>`;
+      } else {
+        // 不是今天，显示完整日期时间
+        nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeDisplay.timeText}</div>`;
+      }
     }
     
     // 添加速度信息
@@ -3472,20 +3577,32 @@ export class TrackObject {
     
     // 更新样式为经过状态
     element.className = 'track-node-overlay passed-node';
-    element.style.backgroundColor = '#e6f7ff';
-    element.style.borderColor = '#91d5ff';
-    element.style.boxShadow = '0 3px 10px rgba(24, 144, 255, 0.2)';
+    
+    // 根据是否为今天的时间设置不同背景颜色
+    if (timeDisplay.isToday) {
+      // 今天的时间 - 使用默认经过样式（蓝色）
+      element.style.backgroundColor = '#e6f7ff';
+      element.style.borderColor = '#91d5ff';
+      element.style.boxShadow = '0 3px 10px rgba(24, 144, 255, 0.2)';
+    } else {
+      // 过去的时间 - 使用灰色系
+      element.style.backgroundColor = '#f0f0f0'; // 灰色背景
+      element.style.borderColor = '#d9d9d9';  // 灰色边框
+      element.style.boxShadow = '0 3px 10px rgba(0,0,0,0.1)';
+    }
     
     // 更新箭头样式
     const arrows = element.querySelectorAll('div');
     if (arrows && arrows.length >= 2) {
-      // 更新箭头边框
+      // 更新箭头边框颜色（根据是否为今天）
       const arrowBorder = arrows[arrows.length - 2] as HTMLElement;
-      arrowBorder.style.borderTop = '9px solid #91d5ff';
+      arrowBorder.style.borderTop = timeDisplay.isToday ? 
+        '9px solid #91d5ff' : '9px solid #d9d9d9';
       
-      // 更新箭头
+      // 更新箭头颜色（根据是否为今天）
       const arrow = arrows[arrows.length - 1] as HTMLElement;
-      arrow.style.borderTop = '8px solid #e6f7ff';
+      arrow.style.borderTop = timeDisplay.isToday ? 
+        '8px solid #e6f7ff' : '8px solid #f0f0f0';
     }
   }
 
@@ -3617,4 +3734,108 @@ export class TrackObject {
       })
     });
   }
-} 
+
+  /**
+   * 应用透明度到颜色
+   * @param color 颜色字符串 (支持rgba和十六进制)
+   * @param opacity 透明度 (0-1)
+   * @returns 应用透明度后的颜色
+   */
+  private applyOpacity(color: string, opacity: number = 1): string {
+    // 如果没有颜色或透明度已经是1，直接返回
+    if (!color || opacity >= 1) return color;
+    
+    // 限制opacity在0-1之间
+    opacity = Math.max(0, Math.min(1, opacity));
+    
+    // 判断颜色格式
+    if (color.startsWith('rgba')) {
+      // 已经是rgba格式，替换最后一个参数
+      return color.replace(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d\.]+\s*\)/, 
+        `rgba($1, $2, $3, ${opacity})`);
+    } else if (color.startsWith('rgb')) {
+      // rgb格式，转为rgba
+      return color.replace(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/, 
+        `rgba($1, $2, $3, ${opacity})`);
+    } else if (color.startsWith('#')) {
+      // 十六进制格式
+      let r = 0, g = 0, b = 0;
+      
+      // 处理缩写形式 #RGB
+      if (color.length === 4) {
+        r = parseInt(color[1] + color[1], 16);
+        g = parseInt(color[2] + color[2], 16);
+        b = parseInt(color[3] + color[3], 16);
+      } 
+      // 处理标准形式 #RRGGBB
+      else if (color.length === 7) {
+        r = parseInt(color.substring(1, 3), 16);
+        g = parseInt(color.substring(3, 5), 16);
+        b = parseInt(color.substring(5, 7), 16);
+      }
+      
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    
+    // 其他格式直接返回
+    return color;
+  } 
+
+  /**
+   * 格式化时间显示
+   * @param timestamp Unix时间戳（秒）
+   * @returns 格式化后的时间信息对象
+   */
+  private formatTimeDisplay(timestamp: number): {
+    timeText: string;      // 格式化的时间文本
+    timeAgoText: string;   // "多久之前"的文本
+    isToday: boolean;      // 是否为今天
+  } {
+    // 创建日期对象
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    
+    // 检查是否为今天
+    const isToday = date.getDate() === now.getDate() && 
+                   date.getMonth() === now.getMonth() && 
+                   date.getFullYear() === now.getFullYear();
+    
+    // 格式化时间文本
+    let timeText = '';
+    if (isToday) {
+      // 今天 - 只显示时分秒
+      timeText = date.toLocaleTimeString();
+    } else {
+      // 不是今天 - 显示完整的年月日时分秒
+      timeText = date.toLocaleString();
+    }
+    
+    // 计算时间差
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    // 生成"多久之前"的文本
+    let timeAgoText = '';
+    if (diffSec < 60) {
+      timeAgoText = `${diffSec}秒前`;
+    } else if (diffMin < 60) {
+      timeAgoText = `${diffMin}分钟前`;
+    } else if (diffHour < 24) {
+      timeAgoText = `${diffHour}小时前`;
+    } else if (diffDay <= 30) {
+      timeAgoText = `${diffDay}天前`;
+    } else {
+      // 超过30天，不显示"多久之前"
+      timeAgoText = '';
+    }
+    
+    return {
+      timeText,
+      timeAgoText,
+      isToday
+    };
+  }
+}
