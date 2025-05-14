@@ -13,3 +13,32 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   showSpeed: true,      // 是否显示移动速度
   showNodeSpeed: true   // 是否显示节点速度
 };
+
+// 默认的交通工具基于速度的图标分组配置
+export const DEFAULT_TRACK_SPEED_GROUPS = [
+  // 行人图标 (0-6 km/h)
+  {
+    speed: 0,
+    icon: 'https://img.icons8.com/color/48/000000/walking--v1.png'
+  },
+  // 自行车图标 (6-20 km/h)
+  {
+    speed: 6,
+    icon: 'https://img.icons8.com/color/48/000000/bicycle.png'
+  },
+  // 汽车图标 (20-100 km/h)
+  {
+    speed: 20,
+    icon: 'https://img.icons8.com/color/48/000000/car--v1.png'
+  },
+  // 动车/高铁图标 (100-300 km/h)
+  {
+    speed: 100,
+    icon: 'https://img.icons8.com/color/48/000000/high-speed-train.png'
+  },
+  // 飞机图标 (>300 km/h)
+  {
+    speed: 300,
+    icon: 'https://img.icons8.com/color/48/000000/airplane-mode-on.png'
+  }
+];

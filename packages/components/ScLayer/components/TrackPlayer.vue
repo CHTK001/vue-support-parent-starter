@@ -86,6 +86,10 @@
                 <input type="checkbox" v-model="showSpeedPopover">
                 <span>移动速度</span>
               </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="enableSpeedIcon">
+                <span>速度图标切换</span>
+              </label>
             </div>
           </div>
         </div>
@@ -203,6 +207,7 @@ export default {
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from 'vue';
 import { Track, TrackPlayer as TrackPlayerConfig } from '../types/track';
+import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 import { 
   TRACK_PLAYER_ICON,
   TRACK_PLAY_ICON, 
@@ -238,6 +243,7 @@ interface Props {
     hideTrack?: (id: string) => boolean;
     showTrack?: (id: string) => boolean;
     fitTrackToView?: (id: string, config: any) => void;
+    setConfig?: (config: any) => void;
   };
   config?: {
     loop?: boolean;         // 是否循环播放
@@ -277,6 +283,7 @@ const speedFactor = ref(1.0);
 const isDraggingProgress = ref(false);
 const currentSpeed = ref(0); // 当前轨迹点的速度
 const showSettings = ref(false);
+const enableSpeedIcon = ref(true);
 
 // 计算属性：是否可以切换轨迹
 const canSwitchTrack = computed(() => {
@@ -567,6 +574,18 @@ watch(showMovingPointName, (newValue) => {
 watch(showNodeTime, (newValue) => {
   if (activeTrackId.value && props.trackObj) {
     props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听速度图标切换设置的变化
+watch(enableSpeedIcon, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    // 获取当前轨迹配置
+    const trackConfig = {
+      trackSpeedGroup: newValue ? DEFAULT_TRACK_SPEED_GROUPS : []
+    };
+    // 设置轨迹配置
+    props.trackObj.setConfig?.(trackConfig);
   }
 });
 

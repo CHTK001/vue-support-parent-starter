@@ -24,6 +24,7 @@ import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
 import { DataType } from '../types';
 import logger from './LogObject';
 import Overlay from 'ol/Overlay';
+import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
@@ -39,7 +40,8 @@ const DEFAULT_TRACK_CONFIG: TrackConfig = {
     color: 'rgba(160, 160, 160, 0.8)',
     weight: 3,
     opacity: 0.5
-  }
+  },
+  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS // 使用默认的交通工具速度图标分组配置
 };
 
 // 扩展TrackPlayer接口以添加cameraSmoothness属性
@@ -1418,21 +1420,77 @@ export class TrackObject {
     
     // 根据是否有自定义图标设置标记样式
     let style: Style;
-    if (position.iconUrl) {
-      // 使用自定义图标
-      const iconSize = position.iconSize || [24, 24]; // 默认图标大小为24x24
-      style = new Style({
-        image: new Icon({
-          src: position.iconUrl,
-          scale: 1,
-          size: iconSize,
-          anchor: [0.5, 0.5],
-          anchorXUnits: 'fraction',
-          anchorYUnits: 'fraction'
-        })
-      });
+    let iconUrl: string | undefined = undefined;
+    let iconSize: number[] = [24, 24]; // 默认图标大小为24x24
+
+    // 处理图标选择逻辑
+    // 1. 首先检查TrackSpeedGroup配置 - 根据速度选择图标
+    if (this.config.trackSpeedGroup && this.config.trackSpeedGroup.length > 0) {
+      // 按速度阈值从高到低排序，以便优先使用高速阈值的图标
+      const sortedGroups = [...this.config.trackSpeedGroup].sort((a, b) => b.speed - a.speed);
+      
+      // 查找第一个速度阈值小于等于当前速度的分组
+      for (const group of sortedGroups) {
+        if (realSpeed > group.speed) {
+          iconUrl = group.icon;
+          this.log('debug', `根据速度 ${realSpeed} km/h 选择图标: ${iconUrl} (速度阈值: ${group.speed})`);
+          break;
+        }
+      }
+    }
+    
+    // 2. 如果通过速度配置没找到图标，检查轨迹点自身是否有图标URL
+    if (!iconUrl && position.iconUrl) {
+      iconUrl = position.iconUrl;
+      if (position.iconSize) {
+        iconSize = position.iconSize;
+      }
+      this.log('debug', `使用轨迹点自定义图标: ${iconUrl}`);
+    }
+    
+    // 3. 如果轨迹点没有图标，则检查轨迹自身的iconGroup配置
+    if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
+      // 查找适合当前速度的图标分组
+      for (const group of track.iconGroup) {
+        if (realSpeed >= group.minSpeed && (realSpeed < group.maxSpeed || group.maxSpeed === 0)) {
+          iconUrl = group.iconUrl;
+          this.log('debug', `使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.minSpeed}-${group.maxSpeed})`);
+          break;
+        }
+      }
+    }
+    
+    // 4. 如果仍然没有找到图标，使用轨迹的默认图标
+    if (!iconUrl && track.iconUrl) {
+      iconUrl = track.iconUrl;
+      this.log('debug', `使用轨迹默认图标: ${iconUrl}`);
+    }
+    
+    // 设置样式
+    if (iconUrl) {
+      try {
+        // 使用找到的图标URL创建样式
+        style = this.createSafeIconStyle(iconUrl, 1, iconSize, track.color || 'rgba(24, 144, 255, 1)');
+        this.log('debug', `创建图标样式成功: ${iconUrl}`, { size: iconSize });
+      } catch (error) {
+        // 如果创建样式失败，使用默认样式
+        this.log('error', `创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
+        style = new Style({
+          image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({
+              color: track.color || 'rgba(24, 144, 255, 1)'
+            }),
+            stroke: new Stroke({
+              color: 'white',
+              width: 2
+            })
+          })
+        });
+      }
     } else {
       // 使用默认圆点样式
+      this.log('debug', `未找到适用的图标，使用默认圆点样式`);
       style = new Style({
         image: new CircleStyle({
           radius: 6,
@@ -1448,8 +1506,34 @@ export class TrackObject {
     }
     
     // 在向量上下文中绘制点
-    vectorContext.setStyle(style);
-    vectorContext.drawGeometry(point);
+    try {
+      vectorContext.setStyle(style);
+      vectorContext.drawGeometry(point);
+      this.log('debug', `绘制位置标记成功: ${position.lng},${position.lat}`);
+    } catch (error) {
+      // 如果绘制失败，尝试使用基本样式
+      this.log('error', `绘制位置标记失败: ${error.message || '未知错误'}`);
+      const fallbackStyle = new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: track.color || 'rgba(24, 144, 255, 1)'
+          }),
+          stroke: new Stroke({
+            color: 'white',
+            width: 2
+          })
+        })
+      });
+      
+      try {
+        vectorContext.setStyle(fallbackStyle);
+        vectorContext.drawGeometry(point);
+        this.log('debug', `使用备用样式绘制位置标记成功`);
+      } catch (e) {
+        this.log('error', `使用备用样式也失败了: ${e.message || '未知错误'}`);
+      }
+    }
     
     // 获取显示设置
     // 对于移动点位名称，默认为false，除非明确设置为true
@@ -1463,22 +1547,22 @@ export class TrackObject {
       
       // 添加标题内容
       if (movingPointNameVisible && position.title) {
-        overlayContent += `<div style="font-weight:bold;font-size:12px;color:#333;">${position.title}</div>`;
-          // 获取格式化的时间信息
-      const timeInfo = this.formatTimeDisplay(position.time);
+        overlayContent += `<div style="font-weight:bold;font-size:13px;color:#333;margin-bottom:4px;">${position.title}</div>`;
+        // 获取格式化的时间信息
+        const timeInfo = this.formatTimeDisplay(position.time);
       
-      // 准备时间显示HTML
-      if (timeInfo.isToday && timeInfo.timeAgoText) {
-        // 今天的轨迹点显示时分秒和"多久之前"
-        overlayContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
-      } else {
-        // 过去的轨迹点显示完整日期时间
-        overlayContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeInfo.timeText}</div>`;
-      }
+        // 准备时间显示HTML
+        if (timeInfo.isToday && timeInfo.timeAgoText) {
+          // 今天的轨迹点显示时分秒和"多久之前"
+          overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+        } else {
+          // 过去的轨迹点显示完整日期时间
+          overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText}</div>`;
+        }
         
         // 如果经过了有名称的静态点位，显示提示信息
         if (position.staticTitle && position.staticTitle !== position.title) {
-          overlayContent += `<div style="color:#666;font-style:italic;font-size:10px;margin-top:2px;">📍 经过: ${position.staticTitle}</div>`;
+          overlayContent += `<div style="color:#666;font-style:italic;font-size:11px;margin-bottom:3px;">📍 经过: ${position.staticTitle}</div>`;
         }
       }
       
@@ -1489,15 +1573,15 @@ export class TrackObject {
         
         if (speedFactor === 1.0) {
           // 正常速度 - 只显示真实速度
-          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:11px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
-            🚄 移动: ${realSpeed.toFixed(1)} km/h
+          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+            🚄 速度: <span style="font-size:13px;">${realSpeed.toFixed(1)} km/h</span>
           </div>`;
         } else {
           // 调整的速度 - 显示调整后速度和真实速度
-          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:11px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
-            🚄 移动: ${displaySpeed.toFixed(1)} km/h
+          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+            🚄 速度: <span style="font-size:13px;">${displaySpeed.toFixed(1)} km/h</span>
           </div>
-          <div style="color:#666;font-size:9px;margin-top:2px;">
+          <div style="color:#666;font-size:10px;margin-top:2px;">
             实际速度: ${realSpeed.toFixed(1)} km/h
           </div>`;
         }
@@ -1505,8 +1589,12 @@ export class TrackObject {
       
       // 只有在有内容时才创建Overlay
       if (overlayContent) {
-        // 创建或更新移动点位Overlay
-        this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+        try {
+          // 创建或更新移动点位Overlay
+          this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+        } catch (error) {
+          this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+        }
       }
     } else if (this.trackMovingOverlay) {
       // 如果不需要显示信息，但存在Overlay，则移除
@@ -2078,16 +2166,26 @@ export class TrackObject {
       // 使用自定义图标
       const iconSize = point.iconSize || [24, 24]; // 默认图标大小为24x24
       
-      pointStyle = new Style({
-        image: new Icon({
-          src: point.iconUrl,
-          scale: 1,
-          size: iconSize,
-          anchor: [0.5, 0.5], // 锚点设在图标中心
-          anchorXUnits: 'fraction',
-          anchorYUnits: 'fraction'
-        })
-      });
+      try {
+        // 使用安全图标创建方法
+        pointStyle = this.createSafeIconStyle(point.iconUrl, 1, iconSize, trackColor);
+        this.log('debug', `创建节点图标样式成功: ${point.iconUrl}`, { index: pointIndex });
+      } catch (error) {
+        // 如果创建失败，使用默认样式
+        this.log('error', `创建节点图标样式失败: ${error.message}, URL: ${point.iconUrl}`);
+        pointStyle = new Style({
+          image: new CircleStyle({
+            radius: 6,
+            fill: new Fill({
+              color: trackColor
+            }),
+            stroke: new Stroke({
+              color: '#ffffff',
+              width: 2
+            })
+          })
+        });
+      }
     } else {
       // 使用默认圆点样式
       pointStyle = new Style({
@@ -2116,7 +2214,18 @@ export class TrackObject {
       }
       
       const textStyle = new Style({
-        // 文本样式配置（如果需要）
+        text: new Text({
+          text: point.title + timeStr,
+          offsetY: -15,
+          font: '12px Arial',
+          fill: new Fill({
+            color: '#333'
+          }),
+          stroke: new Stroke({
+            color: '#fff',
+            width: 2
+          })
+        })
       });
       
       styles.push(textStyle);
@@ -3281,9 +3390,28 @@ export class TrackObject {
     if (point && point.iconUrl && !content.includes(`<img src="${point.iconUrl}"`)) {
       // 如果有自定义图标且内容中未包含该图标，添加图标到内容顶部
       const iconSize = point.iconSize || [24, 24];
-      const iconHtml = `<div style="text-align:center;margin-bottom:4px;">
-        <img src="${point.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" />
-      </div>`;
+      let imgHtml = '';
+      
+      try {
+        // 根据图标URL类型设置不同的处理
+        if (point.iconUrl.startsWith('data:image')) {
+          // Base64 格式
+          imgHtml = `<img src="${point.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" />`;
+        } else if (point.iconUrl.startsWith('<svg') && point.iconUrl.includes('</svg>')) {
+          // SVG 字符串格式，转换为 base64
+          const svgBase64 = 'data:image/svg+xml;base64,' + btoa(point.iconUrl);
+          imgHtml = `<img src="${svgBase64}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" />`;
+        } else {
+          // 普通URL格式
+          imgHtml = `<img src="${point.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;" onerror="this.style.display='none';" />`;
+        }
+      } catch (e) {
+        this.log('warn', `创建节点图标失败: ${e.message || '未知错误'}，URL: ${point.iconUrl}`);
+        // 错误处理：使用默认标记
+        imgHtml = `<div style="width:${iconSize[0]}px;height:${iconSize[1]}px;background-color:#1890ff;border-radius:50%;display:inline-block;vertical-align:middle;"></div>`;
+      }
+      
+      const iconHtml = `<div style="text-align:center;margin-bottom:4px;">${imgHtml}</div>`;
       content = iconHtml + content;
     }
     
@@ -3324,6 +3452,10 @@ export class TrackObject {
     element.style.transform = 'translate(-50%, -100%)';
     element.style.marginBottom = '15px'; // 增加底部空间用于添加箭头
     element.style.border = '1px solid rgba(0,0,0,0.1)';
+    element.style.minWidth = '80px'; // 设置最小宽度
+    element.style.maxWidth = '480px'; // 设置最大宽度，防止过宽
+    element.style.wordWrap = 'break-word'; // 允许长单词换行
+    element.style.textAlign = 'center'; // 文本居中
     
     // 设置特殊样式（如果是当前节点或经过节点）
     if (className.includes('current-node')) {
@@ -3443,58 +3575,91 @@ export class TrackObject {
    * @param position 位置坐标
    */
   private createMovingOverlay(id: string, content: string, position: number[]): Overlay {
+    // 先删除现有的移动点位弹窗
     if (this.trackMovingOverlay) {
       this.mapInstance!.removeOverlay(this.trackMovingOverlay);
+      this.trackMovingOverlay = null;
     }
-    
-    // 获取轨迹颜色
+
     const track = this.tracks.get(id);
     const trackColor = track?.color || '#1890ff';
     
     // 创建overlay元素
     const element = document.createElement('div');
     element.className = 'track-moving-overlay';
-    element.innerHTML = content;
+    
+    // 添加自定义图标（如果有）
+    let iconContent = '';
+    if (track?.iconUrl) {
+      try {
+        const iconSize = [32, 32]; // 增大图标尺寸以更明显
+        let imgHtml = '';
+        
+        // 根据图标URL类型设置不同的处理
+        if (track.iconUrl.startsWith('data:image')) {
+          // Base64 格式
+          imgHtml = `<img src="${track.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;display:block;margin:0 auto 6px;" />`;
+        } else if (track.iconUrl.startsWith('<svg') && track.iconUrl.includes('</svg>')) {
+          // SVG 字符串格式，转换为 base64
+          const svgBase64 = 'data:image/svg+xml;base64,' + btoa(track.iconUrl);
+          imgHtml = `<img src="${svgBase64}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;display:block;margin:0 auto 6px;" />`;
+        } else {
+          // 普通URL格式
+          imgHtml = `<img src="${track.iconUrl}" style="width:${iconSize[0]}px;height:${iconSize[1]}px;vertical-align:middle;display:block;margin:0 auto 6px;" onerror="this.style.display='none';" />`;
+        }
+        
+        iconContent = `<div style="text-align:center;margin-bottom:8px;">${imgHtml}</div>`;
+      } catch (e) {
+        this.log('warn', `创建移动点位图标失败: ${e.message || '未知错误'}，URL: ${track.iconUrl}`);
+      }
+    }
+    
+    element.innerHTML = iconContent + content;
     element.style.position = 'absolute';
     element.style.backgroundColor = 'white';
-    element.style.padding = '5px 10px';
-    element.style.borderRadius = '4px';
-    element.style.boxShadow = '0 3px 12px rgba(0,0,0,0.2)';
-    element.style.whiteSpace = 'nowrap';
-    element.style.pointerEvents = 'none';
+    element.style.padding = '8px 12px'; // 增加内边距
+    element.style.borderRadius = '6px'; // 增加圆角
+    element.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.4)'; // 增强阴影
     element.style.transform = 'translate(-50%, -100%)';
-    element.style.marginBottom = '15px'; // 增加底部空间用于添加箭头
-    element.style.fontSize = '12px';
+    element.style.marginTop = '-15px'; // 向上偏移更多，为箭头留出空间
+    element.style.color = '#333';
+    element.style.fontSize = '13px'; // 增大字体
     element.style.zIndex = '1000';
-    element.style.border = `1px solid ${trackColor}`;
+    element.style.border = `2px solid ${trackColor}`; // 增加边框宽度
+    element.style.minWidth = '180px'; // 增加最小宽度
+    element.style.maxWidth = '500px'; // 增加最大宽度
+    element.style.minHeight = '60px'; // 设置最小高度
+    element.style.whiteSpace = 'normal'; // 允许文本换行
+    element.style.wordWrap = 'break-word'; // 允许长单词换行
+    element.style.textAlign = 'center'; // 文本居中
+    element.style.lineHeight = '1.4'; // 增加行高
     
     // 添加箭头边框
     const arrowBorder = document.createElement('div');
     arrowBorder.style.position = 'absolute';
-    arrowBorder.style.bottom = '-10px';
+    arrowBorder.style.bottom = '-12px'; // 增大箭头
     arrowBorder.style.left = '50%';
-    arrowBorder.style.marginLeft = '-9px';
+    arrowBorder.style.transform = 'translateX(-50%)';
     arrowBorder.style.width = '0';
     arrowBorder.style.height = '0';
-    arrowBorder.style.borderLeft = '9px solid transparent';
-    arrowBorder.style.borderRight = '9px solid transparent';
-    arrowBorder.style.borderTop = `9px solid ${trackColor}`;
+    arrowBorder.style.borderLeft = '12px solid transparent';
+    arrowBorder.style.borderRight = '12px solid transparent';
+    arrowBorder.style.borderTop = `12px solid ${trackColor}`;
     arrowBorder.style.zIndex = '-1';
     
-    // 添加箭头样式
+    // 添加箭头内部
     const arrow = document.createElement('div');
     arrow.style.position = 'absolute';
-    arrow.style.bottom = '-8px';
+    arrow.style.bottom = '-9px'; // 调整内部箭头位置
     arrow.style.left = '50%';
-    arrow.style.marginLeft = '-8px';
+    arrow.style.transform = 'translateX(-50%)';
     arrow.style.width = '0';
     arrow.style.height = '0';
-    arrow.style.borderLeft = '8px solid transparent';
-    arrow.style.borderRight = '8px solid transparent';
-    arrow.style.borderTop = '8px solid white';
-    arrow.style.pointerEvents = 'none';
+    arrow.style.borderLeft = '10px solid transparent';
+    arrow.style.borderRight = '10px solid transparent';
+    arrow.style.borderTop = '10px solid white';
+    arrow.style.zIndex = '0';
     
-    // 添加箭头和边框到overlay元素
     element.appendChild(arrowBorder);
     element.appendChild(arrow);
     
@@ -3502,15 +3667,13 @@ export class TrackObject {
     const overlay = new Overlay({
       element: element,
       position: position,
-      positioning: 'bottom-center',
-      offset: [0, -8], // 向上偏移8像素
-      stopEvent: false
+      positioning: 'center-center',
+      stopEvent: false,
+      offset: [0, -5] // 添加偏移，确保不会被其他元素遮挡
     });
     
     // 添加到地图
     this.mapInstance!.addOverlay(overlay);
-    
-    // 保存引用
     this.trackMovingOverlay = overlay;
     
     return overlay;
@@ -3737,15 +3900,29 @@ export class TrackObject {
   private isIconValid(url: string): boolean {
     if (!url) return false;
     
+    // 检查是否是base64格式
+    if (url.startsWith('data:image')) {
+      return true;
+    }
+    
+    // 检查是否是SVG字符串
+    if (url.startsWith('<svg') && url.includes('</svg>')) {
+      return true;
+    }
+    
     try {
       // 检查URL是否合法
       new URL(url);
+      return true;
     } catch (e) {
+      // 尝试将相对路径转换为绝对路径
+      if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+        // 相对路径可能有效，不做URL验证
+        return true;
+      }
       console.warn(`图标URL无效: ${url}`);
       return false;
     }
-    
-    return true;
   }
 
   /**
@@ -3761,25 +3938,85 @@ export class TrackObject {
     if (this.isIconValid(url)) {
       try {
         // 创建图标样式
+        const iconOptions: any = {
+          src: url,
+          scale: scale,
+          anchor: [0.5, 0.5],
+          anchorXUnits: 'fraction',
+          anchorYUnits: 'fraction'
+        };
+        
+        // 只有当提供了具体尺寸时才设置size属性
+        if (size && size.length === 2 && size[0] > 0 && size[1] > 0) {
+          iconOptions.size = size;
+        }
+        
+        // 根据URL类型设置不同的参数
+        if (url.startsWith('http') || url.startsWith('https')) {
+          // 对于HTTP(S)链接，添加跨域支持
+          iconOptions.crossOrigin = 'anonymous';
+          // 关键改进：添加imgSize参数和禁用缓存
+          if (size && size.length === 2) {
+            iconOptions.imgSize = size;
+          }
+          // 添加更详细的日志
+          this.log('debug', `加载远程图片: ${url}`, { crossOrigin: 'anonymous', size });
+          
+          // 预加载图片以确保能正确显示
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          // 添加随机参数避免缓存问题
+          img.src = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+          
+          img.onload = () => {
+            this.log('debug', `远程图片加载成功: ${url}`);
+            // 图片加载成功后触发地图重绘
+            if (this.mapInstance) {
+              this.mapInstance.render();
+            }
+          };
+          
+          img.onerror = (e) => {
+            this.log('error', `远程图片加载失败: ${url}`, e);
+          };
+        } else if (url.startsWith('data:image')) {
+          // base64不需要特殊处理
+          this.log('debug', `使用base64图片`);
+        } else if (url.startsWith('<svg')) {
+          // SVG字符串需要转换为data URL
+          try {
+            // 修复：使用更安全的方式处理SVG内容，防止编码问题
+            // 对于中文或特殊字符，直接使用encodeURIComponent更安全
+            const svgDataUrl = 'data:image/svg+xml,' + encodeURIComponent(url);
+            iconOptions.src = svgDataUrl;
+            this.log('debug', `SVG转换为data URL成功`);
+          } catch (e) {
+            this.log('error', `SVG转换失败: ${e.message}`);
+            // 如果转换失败，尝试使用Base64编码
+            try {
+              // 首先进行encodeURIComponent，然后用unescape转为ASCII，再使用btoa进行Base64编码
+              const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(url)));
+              iconOptions.src = svgBase64;
+              this.log('debug', `SVG转换为base64成功`);
+            } catch (err) {
+              this.log('error', `SVG所有转换方法均失败: ${err.message}`);
+              // 如果所有转换都失败，保持原SVG内容
+              iconOptions.src = url;
+            }
+          }
+        }
+        
         return new Style({
-          image: new Icon({
-            src: url,
-            scale: scale,
-            size: size,
-            anchor: [0.5, 0.5],
-            anchorXUnits: 'fraction',
-            anchorYUnits: 'fraction',
-            // 设置跨域属性增加容错性
-            crossOrigin: 'anonymous'
-          })
+          image: new Icon(iconOptions)
         });
       } catch (error) {
-        console.warn(`创建图标样式失败: ${error.message || '未知错误'}`);
+        this.log('error', `创建图标样式失败: ${error.message || '未知错误'}, URL: ${url}`);
         // 错误时创建默认样式
       }
     }
     
     // 创建默认圆点样式作为回退
+    this.log('warn', `使用默认圆点样式，URL无效或处理失败: ${url}`);
     return new Style({
       image: new CircleStyle({
         radius: 5,

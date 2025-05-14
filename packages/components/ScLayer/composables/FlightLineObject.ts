@@ -322,204 +322,137 @@ export class FlightLineObject {
    * @private
    */
   private updateEchartsOptions(): void {
-    if (!this.echartsLayer) {
-      logger.warn('[FlightLine] 无法更新选项，图层未初始化');
+    if (!this.echartsLayer || !this.active) {
+      logger.warn('[FlightLine] 无法更新Echarts选项：图层未初始化或未激活');
       return;
     }
-
+    
+    // 设置初始化标志，防止并发初始化
+    this.initializing = true;
+    
     try {
-      logger.debug('[FlightLine] 开始更新飞线图选项');
+      // 准备飞线数据
+      const lines = this.convertFlightLineData();
       
-      // 收集所有有效的飞线数据
-      const convertedData = this.convertFlightLineData();
-      logger.debug(`[FlightLine] 转换后的数据数量: ${convertedData.length}`);
-      
-      // 构建系列数据，参考 sakitam.com 的系列配置
-      const series: any[] = [];
-      
-      // 检查数据是否为空
-      if (convertedData.length === 0) {
-        logger.warn('[FlightLine] 没有有效的飞线数据可显示');
-        
-        // 在没有飞线数据时，设置完全空的图表选项
-        const emptyOptions = {
-          animation: false, // 禁用动画确保立即清除
-          backgroundColor: 'transparent',
-          tooltip: {},
-          series: [] // 空数组确保清除所有系列
-        };
-        
-        // 设置完全空的选项
-        if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
-          this.echartsLayer.setChartOptions(emptyOptions);
-          
-          // 强制重绘确保清空生效
-          if (typeof this.echartsLayer.redraw === 'function') {
-            this.echartsLayer.redraw();
-          }
-          
-          logger.debug('[FlightLine] 已设置空选项，清除所有飞线和节点');
-        }
-        
-        return; // 直接返回，不再继续处理
-      } else {
-        logger.debug(`[FlightLine] 转换了 ${convertedData.length} 条飞线数据`);
-
-        // 创建飞线基础层
-      series.push({
-          name: '飞线基础',
-        type: 'lines',
-          coordinateSystem: 'openlayers', // 使用openlayers坐标系
-        zlevel: 1,
-        effect: {
-            show: true,
-            period: this.config.effectPeriod || 6,
-            trailLength: this.config.effectTrailLength || 0.7,
-            color: '#fff',
-            symbolSize: 3
-        },
-        lineStyle: {
-            color: this.config.color || '#a6c84c',
-            width: 0,
-            curveness: this.config.curveness || 0.2
-        },
-          data: convertedData
-      });
-
-        // 创建飞线动画层
-        series.push({
-          name: '飞线动画',
-          type: 'lines',
-          coordinateSystem: 'openlayers', // 使用openlayers坐标系
-          zlevel: 2,
-          symbol: ['none', 'arrow'],
-          symbolSize: 10,
-          effect: {
-            show: this.config.showEffect,
-            period: this.config.effectPeriod || 6,
-            trailLength: this.config.effectTrailLength || 0.0,
-            symbol: this.getEffectSymbol(this.config.effectSymbol, this.config.effectSymbolPath),
-            symbolSize: this.config.effectSymbolSize || 12,
-            color: this.config.trailColor || '#ffffff', // 使用拖尾颜色配置
-            constantSpeed: this.config.effectSpeed || 30, // 使用动画速度配置
-            trail: this.config.trailWidth || 2  // 设置拖尾宽度
-          },
-          lineStyle: {
-            color: this.config.color || '#a6c84c',
-            width: this.config.width || 1,
-            opacity: this.config.opacity || 0.5,
-            curveness: this.config.curveness || 0.2,
-            // 添加平滑曲线配置
-            smooth: this.config.smooth,
-            smoothConstraint: this.config.smoothConstraint,
-            smoothMonotone: this.config.smoothMonotone
-          },
-          data: convertedData
-        });
-
-        // 添加节点系列，如果配置了显示节点
-        if (this.config.showNodes && convertedData.length > 0) {
-          // 收集起点和终点节点数据
-          const nodeData: any[] = [];
-        
-          // 使用Set去重
-          const uniqueNodes = new Set<string>();
-        
-          convertedData.forEach(line => {
-            // 确保有坐标
-            if (line.coords && line.coords.length >= 2) {
-              // 处理起点
-              const fromKey = `${line.fromName}|${line.coords[0][0]},${line.coords[0][1]}`;
-              if (!uniqueNodes.has(fromKey) && line.coords[0]) {
-                uniqueNodes.add(fromKey);
-                nodeData.push({
-                  name: line.fromName,
-                  value: [...line.coords[0], line.value || 10],
-                  symbolSize: this.config.nodeSymbolSize || 5,
-                  itemStyle: {
-                    color: this.config.nodeColor || '#F58158'
-          }
-        });
-              }
-              
-              // 处理终点
-              const toKey = `${line.toName}|${line.coords[1][0]},${line.coords[1][1]}`;
-              if (!uniqueNodes.has(toKey) && line.coords[1]) {
-                uniqueNodes.add(toKey);
-                nodeData.push({
-                  name: line.toName,
-                  value: [...line.coords[1], line.value || 10],
-                  symbolSize: this.config.nodeSymbolSize || 5,
-                  itemStyle: {
-                    color: this.config.nodeColor || '#5470c6'
-                  }
-                });
-              }
-            }
-        });
-        
-          // 添加节点系列
-          if (nodeData.length > 0) {
-          series.push({
-              name: '节点',
-              type: 'effectScatter',
-              coordinateSystem: 'openlayers', // 使用openlayers坐标系
-            zlevel: 3,
-              effectType: 'ripple',
-              showEffectOn: 'render',
-              rippleEffect: this.config.rippleEffect || {
-                period: 2.5,
-                scale: 8,
-                brushType: 'stroke'
-              },
-              symbolSize: function(val) {
-                return val[2] ? val[2] / 8 : 12;
-              },
-            itemStyle: {
-                color: this.config.nodeColor || '#1677ff',
-                shadowBlur: this.config.shadowBlur || 20,
-                shadowColor: this.config.shadowColor || '#1677ff'
-              },
-              data: nodeData
-            });
-            
-            logger.debug(`[FlightLine] 添加了 ${nodeData.length} 个节点`);
-          }
-        }
-      }
-
-      // 构建完整的 echarts 选项
+      // 准备ECharts所需的完整配置
       const options = {
-        animation: true,
+        animation: true, // 开启动画
         backgroundColor: 'transparent',
+        title: {
+          show: false  // 隐藏标题
+        },
         tooltip: {
           trigger: 'item',
-          formatter: function(params) {
-            if (params.data) {
-              // 处理飞线的提示
-              if (params.data.fromName && params.data.toName) {
-                return `${params.data.fromName} → ${params.data.toName}`;
-              }
-              // 处理节点的提示
-              else if (params.name) {
-              return params.name;
-            }
-            }
-            return '';
+          formatter: '{b}: {c}'
+        },
+        geo: {
+          map: '', // 不使用地图，只使用坐标
+          roam: false, // 不允许缩放和平移
+          silent: true, // 不响应鼠标事件
+          layoutCenter: ['50%', '50%'], // 居中布局
+          layoutSize: 100, // 尺寸使用百分比
+          itemStyle: {
+            color: 'transparent', // 透明底色
+            borderColor: 'transparent' // 透明边框
           }
         },
-        series: series
+        series: []
       };
-
-      // 设置选项
-      if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
-        this.echartsLayer.setChartOptions(options);
-        logger.debug('[FlightLine] Echarts选项已设置，共有 ' + series.length + ' 个系列');
-      } else {
-        logger.error('[FlightLine] 无法设置选项，echartsLayer不可用或缺少setChartOptions方法');
+      
+      // 如果有飞线数据，添加飞线系列
+      if (lines.length > 0) {
+        const effectScatterSeries = {
+          name: 'effectScatter',
+          type: 'effectScatter',
+          coordinateSystem: 'geo',
+          zlevel: this.config.zIndex || 90, // 使用配置中的zIndex
+          symbol: 'circle',
+          symbolSize: this.config.nodeSymbolSize || 12,
+          showEffectOn: 'render',
+          rippleEffect: {
+            period: this.config.rippleEffect?.period || 2.5,
+            scale: this.config.rippleEffect?.scale || 4,
+            brushType: this.config.rippleEffect?.brushType || 'stroke'
+          },
+          silent: true,
+          itemStyle: {
+            color: this.config.nodeColor || '#1677ff',
+            shadowBlur: this.config.shadowBlur || 10,
+            shadowColor: this.config.shadowColor || this.config.nodeColor || '#1677ff'
+          },
+          data: this.getNodeData()
+        };
+        
+        const linesSeries = {
+          name: 'lines',
+          type: 'lines',
+          coordinateSystem: 'geo',
+          zlevel: (this.config.zIndex || 90) + 1, // 比节点层级高1
+          lineStyle: {
+            color: this.config.color || '#1677ff',
+            width: this.config.width || 1,
+            opacity: this.config.opacity || 0.8,
+            curveness: this.config.curveness || 0.2,
+            // 添加平滑曲线相关配置
+            smooth: this.config.smooth !== undefined ? this.config.smooth : true,
+            smoothConstraint: this.config.smoothConstraint !== undefined ? this.config.smoothConstraint : true,
+            smoothMonotone: this.config.smoothMonotone
+          },
+          effect: {
+            show: this.config.showEffect,
+            period: this.config.effectPeriod || 3,
+            trailLength: this.config.effectTrailLength || 0.1,
+            symbol: this.getEffectSymbol(this.config.effectSymbol, this.config.effectSymbolPath),
+            symbolSize: this.config.effectSymbolSize || 18,
+            color: this.config.trailColor || this.config.color || '#1677ff',
+            opacity: this.config.trailOpacity || 0.7,
+            shadowBlur: this.config.shadowBlur || 10,
+            shadowColor: this.config.shadowColor || this.config.color || '#1677ff'
+          },
+          silent: true,
+          data: lines
+        };
+        
+        // 只有在启用节点时添加节点系列
+        if (this.config.showNodes !== false) {
+          options.series.push(effectScatterSeries);
+          
+          // 只有在启用节点特效时才添加rippleEffect
+          if (this.config.nodeEffect === false) {
+            // @ts-ignore: 类型错误但运行时有效
+            effectScatterSeries.rippleEffect.scale = 0;
+          }
+        }
+        
+        // 添加线条系列
+        options.series.push(linesSeries);
+        
+        // 当显示节点时，设置有效的geo坐标系
+        if (this.config.showNodes !== false) {
+          // 添加geo坐标系
+          options.geo = {
+            map: '',
+            roam: false,
+            silent: true,
+            layoutCenter: ['50%', '50%'], // 居中布局
+            layoutSize: 100, // 尺寸使用百分比
+            itemStyle: {
+              color: 'transparent',
+              borderColor: 'transparent'
+            }
+          };
+        }
       }
+      
+      // 设置ECharts选项
+      this.echartsLayer.setChartOptions(options);
+      
+      logger.debug('[FlightLine] Echarts选项已更新');
     } catch (error) {
-      logger.error('[FlightLine] 更新Echarts选项时出错:', error);
+      logger.error('[FlightLine] 更新Echarts选项失败:', error);
+    } finally {
+      // 清除初始化标志
+      this.initializing = false;
     }
   }
 
@@ -626,7 +559,11 @@ export class FlightLineObject {
                 opacity: (coordGroup.style?.opacity !== undefined ? coordGroup.style.opacity : 
                           (line.style?.opacity !== undefined ? line.style.opacity : this.config.opacity)),
                 curveness: (coordGroup.style?.curveness !== undefined ? coordGroup.style.curveness : 
-                            (line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness))
+                            (line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness)),
+                // 添加平滑曲线相关配置
+                smooth: this.config.smooth,
+                smoothConstraint: this.config.smoothConstraint,
+                smoothMonotone: this.config.smoothMonotone
               },
               emphasis: {
                 lineStyle: {
@@ -635,7 +572,12 @@ export class FlightLineObject {
                                         (coordGroup.style?.width || line.style?.width || this.config.width),
                   opacity: 1
                 }
-              }
+              },
+              // 添加涟漪效果配置
+              rippleEffect: this.config.rippleEffect || {},
+              // 添加阴影配置  
+              shadowBlur: this.config.shadowBlur,
+              shadowColor: this.config.shadowColor
             };
             
             // 添加自定义动画效果
@@ -713,7 +655,11 @@ export class FlightLineObject {
               color: line.style?.color || this.config.color,
               width: line.style?.width || this.config.width,
               opacity: line.style?.opacity !== undefined ? line.style.opacity : this.config.opacity,
-              curveness: line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness
+              curveness: line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness,
+              // 添加平滑曲线相关配置
+              smooth: this.config.smooth,
+              smoothConstraint: this.config.smoothConstraint,
+              smoothMonotone: this.config.smoothMonotone
             },
             emphasis: {
               lineStyle: {
@@ -721,7 +667,12 @@ export class FlightLineObject {
                 width: line.highlight ? (line.style?.width || this.config.width) + 1 : line.style?.width || this.config.width,
                 opacity: 1
               }
-            }
+            },
+            // 添加涟漪效果配置
+            rippleEffect: this.config.rippleEffect || {},
+            // 添加阴影配置  
+            shadowBlur: this.config.shadowBlur,
+            shadowColor: this.config.shadowColor
           };
 
           // 如果设置了自定义的动画符号
@@ -829,6 +780,33 @@ export class FlightLineObject {
       ...config,
       useGLMode: false // 强制禁用GL渲染模式
     };
+
+    // 确保飞线平滑度相关属性正确设置
+    if (config.smooth !== undefined) {
+      this.config.smooth = config.smooth;
+    }
+    if (config.smoothConstraint !== undefined) {
+      this.config.smoothConstraint = config.smoothConstraint;
+    }
+    if (config.smoothMonotone !== undefined) {
+      this.config.smoothMonotone = config.smoothMonotone;
+    }
+
+    // 确保rippleEffect相关配置正确设置
+    if (config.rippleEffect) {
+      this.config.rippleEffect = {
+        ...this.config.rippleEffect,
+        ...config.rippleEffect
+      };
+    }
+
+    // 确保阴影相关配置正确设置
+    if (config.shadowBlur !== undefined) {
+      this.config.shadowBlur = config.shadowBlur;
+    }
+    if (config.shadowColor !== undefined) {
+      this.config.shadowColor = config.shadowColor;
+    }
 
     // 如果已激活，则更新echarts选项
     if (this.active && this.echartsLayer) {
@@ -1848,5 +1826,97 @@ export class FlightLineObject {
     }
     
     logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认从北京出发到各个城市`);
+  }
+
+  /**
+   * 获取节点数据
+   * @returns 节点数据数组
+   */
+  private getNodeData(): any[] {
+    // 收集起点和终点节点数据
+    const nodeData: any[] = [];
+
+    // 使用Set去重
+    const uniqueNodes = new Set<string>();
+
+    // 遍历所有飞线，收集节点数据
+    this.flightLines.forEach(line => {
+      // 只处理激活的飞线
+      if (line.id !== this.activeFlightLine && this.activeFlightLine !== null) {
+        return;
+      }
+
+      // 处理多组坐标的情况
+      if (line.isMultiCoords && Array.isArray(line.coords) && line.coords.length > 0 && typeof line.coords[0] === 'object') {
+        // 多组坐标
+        const multiCoords = line.coords as any[];
+        
+        multiCoords.forEach((coord, index) => {
+          if (coord.from && coord.to) {
+            // 添加起点
+            const fromName = coord.fromName || line.fromName || `起点${index}`;
+            const fromCoord = coord.from;
+            const fromKey = `${fromName}|${fromCoord[0]},${fromCoord[1]}`;
+            
+            if (!uniqueNodes.has(fromKey)) {
+              uniqueNodes.add(fromKey);
+              nodeData.push({
+                name: fromName,
+                value: [...fromCoord, coord.value || line.value || 10],
+                itemStyle: {
+                  color: this.config.nodeColor || '#1677ff'
+                }
+              });
+            }
+            
+            // 添加终点
+            const toName = coord.toName || line.toName || `终点${index}`;
+            const toCoord = coord.to;
+            const toKey = `${toName}|${toCoord[0]},${toCoord[1]}`;
+            
+            if (!uniqueNodes.has(toKey)) {
+              uniqueNodes.add(toKey);
+              nodeData.push({
+                name: toName,
+                value: [...toCoord, coord.value || line.value || 10],
+                itemStyle: {
+                  color: this.config.nodeColor || '#1677ff'
+                }
+              });
+            }
+          }
+        });
+      }
+      // 处理单组坐标的情况
+      else if (line.from && line.to) {
+        // 添加起点
+        const fromKey = `${line.fromName}|${line.from[0]},${line.from[1]}`;
+        if (!uniqueNodes.has(fromKey)) {
+          uniqueNodes.add(fromKey);
+          nodeData.push({
+            name: line.fromName,
+            value: [...line.from, line.value || 10],
+            itemStyle: {
+              color: this.config.nodeColor || '#1677ff'
+            }
+          });
+        }
+        
+        // 添加终点
+        const toKey = `${line.toName}|${line.to[0]},${line.to[1]}`;
+        if (!uniqueNodes.has(toKey)) {
+          uniqueNodes.add(toKey);
+          nodeData.push({
+            name: line.toName,
+            value: [...line.to, line.value || 10],
+            itemStyle: {
+              color: this.config.nodeColor || '#1677ff'
+            }
+          });
+        }
+      }
+    });
+
+    return nodeData;
   }
 } 
