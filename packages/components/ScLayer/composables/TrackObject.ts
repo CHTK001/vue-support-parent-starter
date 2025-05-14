@@ -2360,116 +2360,117 @@ export class TrackObject {
         const overlayExists = existingOverlays && existingOverlays.has(i);
         
         // 如果是当前节点，添加高亮效果并显示
-        if (isCurrentNode) {
-          // 准备节点HTML内容
-          let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#ff6b18;">${point.title}</div>`;
+        // if (isCurrentNode) {
+        //   // 准备节点HTML内容
+        //   let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#ff6b18;">${point.title}</div>`;
           
-          // 添加时间信息（如果启用）
-          if (showNodeTime && timeStr) {
-            nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
-          }
+        //   // 添加时间信息（如果启用）
+        //   if (showNodeTime && timeStr) {
+        //     nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
+        //   }
           
-          // 计算和添加速度信息
-          if (showNodeSpeeds) {
-            let nodeSpeed: number;
-            let speedText: string;
+        //   // 计算和添加速度信息
+        //   if (showNodeSpeeds) {
+        //     let nodeSpeed: number;
+        //     let speedText: string;
             
-            // 确定节点速度
-            if (i === 0) {
-              // 第一个点速度始终为0
-              nodeSpeed = 0;
-            } else if (point.speed && point.speed > 0) {
-              // 使用节点自身的速度
-              nodeSpeed = point.speed;
-            } else {
-              // 计算当前点与上一个点的速度
-              const prevPoint = track.points[i - 1];
-              const distance = this.calculateDistance(prevPoint, point);
-              const timeDiff = point.time - prevPoint.time;
+        //     // 确定节点速度
+        //     if (i === 0) {
+        //       // 第一个点速度始终为0
+        //       nodeSpeed = 0;
+        //     } else if (point.speed && point.speed > 0) {
+        //       // 使用节点自身的速度
+        //       nodeSpeed = point.speed;
+        //     } else {
+        //       // 计算当前点与上一个点的速度
+        //       const prevPoint = track.points[i - 1];
+        //       const distance = this.calculateDistance(prevPoint, point);
+        //       const timeDiff = point.time - prevPoint.time;
               
-              if (timeDiff > 0) {
-                // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
-                nodeSpeed = (distance / timeDiff) * 3.6;
-              } else {
-                // 如果时间差为0，使用默认速度
-                const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-                nodeSpeed = player.speed;
-              }
-            }
+        //       if (timeDiff > 0) {
+        //         // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
+        //         nodeSpeed = (distance / timeDiff) * 3.6;
+        //       } else {
+        //         // 如果时间差为0，使用默认速度
+        //         const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
+        //         nodeSpeed = player.speed;
+        //       }
+        //     }
             
-            // 根据播放状态决定是否显示实时速度
-            if (playState === TrackPlayState.PLAYING) {
-              // 播放中 - 显示当前速度（考虑速度因子）
-              if (speedFactor === 1.0) {
-                speedText = `${nodeSpeed.toFixed(1)} km/h`;
-              } else {
-                // 显示调整后的速度和真实速度
-                const adjustedSpeed = nodeSpeed * speedFactor;
-                speedText = `${adjustedSpeed.toFixed(1)} km/h (实际: ${nodeSpeed.toFixed(1)})`;
-              }
-            } else {
-              // 未播放 - 只显示节点原始速度
-              speedText = `${nodeSpeed.toFixed(1)} km/h`;
-            }
+        //     // 根据播放状态决定是否显示实时速度
+        //     if (playState === TrackPlayState.PLAYING) {
+        //       // 播放中 - 显示当前速度（考虑速度因子）
+        //       if (speedFactor === 1.0) {
+        //         speedText = `${nodeSpeed.toFixed(1)} km/h`;
+        //       } else {
+        //         // 显示调整后的速度和真实速度
+        //         const adjustedSpeed = nodeSpeed * speedFactor;
+        //         speedText = `${adjustedSpeed.toFixed(1)} km/h (实际: ${nodeSpeed.toFixed(1)})`;
+        //       }
+        //     } else {
+        //       // 未播放 - 只显示节点原始速度
+        //       speedText = `${nodeSpeed.toFixed(1)} km/h`;
+        //     }
             
-            // 添加速度信息到节点内容
-            nodeContent += `<div style="margin-top:5px;color:#ff6b18;font-size:11px;font-weight:bold;">🚄 速度: ${speedText}</div>`;
-          }
+        //     // 添加速度信息到节点内容
+        //     nodeContent += `<div style="margin-top:5px;color:#ff6b18;font-size:11px;font-weight:bold;">🚄 速度: ${speedText}</div>`;
+        //   }
           
-          // 创建或更新当前节点Overlay
-          if (this.trackCurrentNodeOverlay) {
-            // 检查是否为同一节点的Overlay，如果是不同的节点则移除当前的
-            const existingOverlayPointIndex = this.trackCurrentNodeOverlay.get('pointIndex');
-            if (existingOverlayPointIndex !== i) {
-              this.mapInstance!.removeOverlay(this.trackCurrentNodeOverlay);
-              this.trackCurrentNodeOverlay = null;
-            } else {
-              // 如果是相同的节点，只更新内容而不重新创建
-              const element = this.trackCurrentNodeOverlay.getElement();
-              if (element) {
-                element.innerHTML = nodeContent;
+        //   // 创建或更新当前节点Overlay
+        //   if (this.trackCurrentNodeOverlay) {
+        //     // 检查是否为同一节点的Overlay，如果是不同的节点则移除当前的
+        //     const existingOverlayPointIndex = this.trackCurrentNodeOverlay.get('pointIndex');
+        //     if (existingOverlayPointIndex !== i) {
+        //       this.mapInstance!.removeOverlay(this.trackCurrentNodeOverlay);
+        //       this.trackCurrentNodeOverlay = null;
+        //     } else {
+        //       // 如果是相同的节点，只更新内容而不重新创建
+        //       const element = this.trackCurrentNodeOverlay.getElement();
+        //       if (element) {
+        //         element.innerHTML = nodeContent;
                 
-                // 添加箭头和边框样式 (确保样式不丢失)
-                const arrowBorder = document.createElement('div');
-                arrowBorder.style.position = 'absolute';
-                arrowBorder.style.bottom = '-10px';
-                arrowBorder.style.left = '50%';
-                arrowBorder.style.marginLeft = '-9px';
-                arrowBorder.style.width = '0';
-                arrowBorder.style.height = '0';
-                arrowBorder.style.borderLeft = '9px solid transparent';
-                arrowBorder.style.borderRight = '9px solid transparent';
-                arrowBorder.style.borderTop = '9px solid rgba(0,0,0,0.1)';
-                arrowBorder.style.zIndex = '-1';
+        //         // 添加箭头和边框样式 (确保样式不丢失)
+        //         const arrowBorder = document.createElement('div');
+        //         arrowBorder.style.position = 'absolute';
+        //         arrowBorder.style.bottom = '-10px';
+        //         arrowBorder.style.left = '50%';
+        //         arrowBorder.style.marginLeft = '-9px';
+        //         arrowBorder.style.width = '0';
+        //         arrowBorder.style.height = '0';
+        //         arrowBorder.style.borderLeft = '9px solid transparent';
+        //         arrowBorder.style.borderRight = '9px solid transparent';
+        //         arrowBorder.style.borderTop = '9px solid rgba(0,0,0,0.1)';
+        //         arrowBorder.style.zIndex = '-1';
                 
-                const arrow = document.createElement('div');
-                arrow.style.position = 'absolute';
-                arrow.style.bottom = '-9px';
-                arrow.style.left = '50%';
-                arrow.style.marginLeft = '-8px';
-                arrow.style.width = '0';
-                arrow.style.height = '0';
-                arrow.style.borderLeft = '8px solid transparent';
-                arrow.style.borderRight = '8px solid transparent';
-                arrow.style.borderTop = '8px solid white';
+        //         const arrow = document.createElement('div');
+        //         arrow.style.position = 'absolute';
+        //         arrow.style.bottom = '-9px';
+        //         arrow.style.left = '50%';
+        //         arrow.style.marginLeft = '-8px';
+        //         arrow.style.width = '0';
+        //         arrow.style.height = '0';
+        //         arrow.style.borderLeft = '8px solid transparent';
+        //         arrow.style.borderRight = '8px solid transparent';
+        //         arrow.style.borderTop = '8px solid white';
                 
-                element.appendChild(arrowBorder);
-                element.appendChild(arrow);
+        //         element.appendChild(arrowBorder);
+        //         element.appendChild(arrow);
                 
-                // 更新位置
-                this.trackCurrentNodeOverlay.setPosition(coordinate);
-                return; // 已更新，无需创建新的
-              }
-            }
-          }
+        //         // 更新位置
+        //         this.trackCurrentNodeOverlay.setPosition(coordinate);
+        //         return; // 已更新，无需创建新的
+        //       }
+        //     }
+        //   }
           
-          // 创建当前节点的Overlay
-          this.trackCurrentNodeOverlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay current-node');
-          // 为当前节点Overlay添加点索引属性，方便后续判断
-          this.trackCurrentNodeOverlay.set('pointIndex', i);
-        } 
+        //   // 创建当前节点的Overlay
+        //   this.trackCurrentNodeOverlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay current-node');
+        //   // 为当前节点Overlay添加点索引属性，方便后续判断
+        //   this.trackCurrentNodeOverlay.set('pointIndex', i);
+        // } 
         // 已经过的点，使用"经过"样式
-        else if (isPastNode && (!overlayExists || (overlayExists && existingOverlays.get(i)))) {
+        //else
+          if (isPastNode && (!overlayExists || (overlayExists && existingOverlays.get(i)))) {
           // 已经过的点使用高亮效果标注，类似当前点但颜色不同
           let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title}</div>`;
           
@@ -2573,58 +2574,58 @@ export class TrackObject {
         }
         
         // 额外处理第一个点，确保其标注始终显示
-        if (i === 0 && !overlayExists && showNodePopovers) {
-          // 根据是否已经过决定样式
-          if (isPastNode) {
-            // 使用高亮样式
-            let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title}</div>`;
+        // if (i === 0 && !overlayExists && showNodePopovers) {
+        //   // 根据是否已经过决定样式
+        //   if (isPastNode) {
+        //     // 使用高亮样式
+        //     let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title}</div>`;
             
-            // 添加时间信息（如果启用）
-            if (showNodeTime && timeStr) {
-              nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
-            }
+        //     // 添加时间信息（如果启用）
+        //     if (showNodeTime && timeStr) {
+        //       nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
+        //     }
             
-            // 添加经过时的速度信息 - 不受showNodeSpeeds设置影响
-            const nodeSpeed = 0; // 第一个点速度固定为0
+        //     // 添加经过时的速度信息 - 不受showNodeSpeeds设置影响
+        //     const nodeSpeed = 0; // 第一个点速度固定为0
             
-            // 显示经过速度
-            nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
+        //     // 显示经过速度
+        //     nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
             
-            // 创建高亮风格的Overlay
-            const overlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay passed-node');
+        //     // 创建高亮风格的Overlay
+        //     const overlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay passed-node');
             
-            // 手动更新样式
-            const element = overlay.getElement();
-            if (element) {
-              (element as HTMLElement).style.backgroundColor = '#e6f7ff';
-              (element as HTMLElement).style.borderColor = '#91d5ff';
+        //     // 手动更新样式
+        //     const element = overlay.getElement();
+        //     if (element) {
+        //       (element as HTMLElement).style.backgroundColor = '#e6f7ff';
+        //       (element as HTMLElement).style.borderColor = '#91d5ff';
               
-              // 更新箭头样式
-              const arrows = element.querySelectorAll('div[style*="border-top"]');
-              if (arrows && arrows.length > 0) {
-                // 更新箭头边框
-                if (arrows[0]) {
-                  (arrows[0] as HTMLElement).style.borderTop = '9px solid #91d5ff';
-                }
-                // 更新箭头
-                if (arrows[1]) {
-                  (arrows[1] as HTMLElement).style.borderTop = '8px solid #e6f7ff';
-                }
-              }
-            }
-          } else {
-            // 使用普通样式
-            let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
+        //       // 更新箭头样式
+        //       const arrows = element.querySelectorAll('div[style*="border-top"]');
+        //       if (arrows && arrows.length > 0) {
+        //         // 更新箭头边框
+        //         if (arrows[0]) {
+        //           (arrows[0] as HTMLElement).style.borderTop = '9px solid #91d5ff';
+        //         }
+        //         // 更新箭头
+        //         if (arrows[1]) {
+        //           (arrows[1] as HTMLElement).style.borderTop = '8px solid #e6f7ff';
+        //         }
+        //       }
+        //     }
+        //   } else {
+        //     // 使用普通样式
+        //     let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
             
-            // 添加时间信息（如果启用）
-            if (showNodeTime && timeStr) {
-              nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
-            }
+        //     // 添加时间信息（如果启用）
+        //     if (showNodeTime && timeStr) {
+        //       nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
+        //     }
             
-            // 创建普通节点Overlay
-            this.createNodeOverlay(id, i, nodeContent, coordinate);
-          }
-        }
+        //     // 创建普通节点Overlay
+        //     this.createNodeOverlay(id, i, nodeContent, coordinate);
+        //   }
+        // }
       }
     }
   }
