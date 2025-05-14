@@ -86,12 +86,13 @@ import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';
+// 导入聚合相关类型
+import type { AggregationOptions } from './types/cluster';
 import { Map as OlMap } from 'ol';
 // 引入OpenLayers样式
 import 'ol/ol.css';
 import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 import FlightLinePanel from './components/FlightLinePanel.vue';
-
 
 // 定义组件属性 - 使用types中的配置作为类型定义
 const props = withDefaults(defineProps<MapConfig & {
@@ -99,7 +100,9 @@ const props = withDefaults(defineProps<MapConfig & {
   trackPlayerConfig?: Partial<TrackPlayerConfigOptions>,
   gridConfig?: Partial<GridConfig>,
   flightLinePanelPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
-  markerConfig?: MarkerConfig
+  markerConfig?: MarkerConfig,
+  // 添加聚合配置选项
+  aggregationOptions?: AggregationOptions
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -137,7 +140,23 @@ const props = withDefaults(defineProps<MapConfig & {
     zoomFactor: 0.03, // 缩放系数降低为0.03，减少缩放影响
     minScale: 0.8, // 最小缩放比例调整为0.8
     maxScale: 1.2 // 最大缩放比例调整为1.2，防止图标过大
-  }) // 使用默认标记点配置
+  }), // 使用默认标记点配置
+  aggregationOptions: () => ({
+    maxClusterRadius: 80, // 默认聚合半径为80像素
+    radiusUnit: 'pixel', // 默认单位为像素
+    color: '#1890ff', // 默认颜色
+    borderColor: '#ffffff', // 默认边框颜色
+    useWeightAsSize: true, // 根据数量显示大小
+    showCount: true, // 显示数量
+    enablePulse: true, // 启用脉冲效果
+    zoomToBoundsOnClick: true, // 点击聚合点时缩放到边界
+    colorRanges: [
+      { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色
+      { value: 50, color: '#91cc75' },  // 聚合点数量≥50时使用绿色
+      { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
+      { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
+    ]
+  }) // 默认聚合配置
 });
 
 // 定义组件事件
@@ -299,6 +318,12 @@ const initializeMapComponents = async () => {
     // 如果存在标记点配置，应用配置
     if (markerObject && props.markerConfig) {
       markerObject.setConfig(props.markerConfig);
+    }
+    
+    // 设置聚合配置
+    if (props.aggregationOptions && toolbarObject) {
+      logger.debug('设置聚合配置:', props.aggregationOptions);
+      toolbarObject.setClusterConfig(props.aggregationOptions);
     }
     
     // 创建图形绘制对象 - 从toolbarObject获取
@@ -1721,6 +1746,17 @@ defineExpose({
     return true;
   },
 
+  // 聚合相关方法
+  setAggregationOptions: (options: Partial<AggregationOptions>) => {
+    if (!toolbarObject) return false;
+    toolbarObject.setClusterConfig(options);
+    return true;
+  },
+  getAggregationOptions: () => {
+    if (!toolbarObject) return null;
+    return toolbarObject.getClusterConfig();
+  },
+  
   // 网格相关方法
   enableGeohashGrid: () => {
     const gridObj = toolbarObject?.getGridObject();
@@ -2337,6 +2373,13 @@ watch(() => props.markerConfig, (newConfig) => {
   }
 }, { deep: true });
 
+// 添加对aggregationOptions变化的监听
+watch(() => props.aggregationOptions, (newOptions) => {
+  if (toolbarObject && newOptions) {
+    logger.debug('聚合配置已更新:', newOptions);
+    toolbarObject.setClusterConfig(newOptions);
+  }
+}, { deep: true });
 
 </script>
 
