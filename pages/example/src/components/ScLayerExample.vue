@@ -289,7 +289,7 @@
           </div>
 
           <!-- 添加热力图操作部分 -->
-          <div class="config-item">
+          <div class="config-item" v-if="false">
             <div class="label">热力图操作</div>
             <div class="controls">
               <!-- 热力图操作区域 - 添加功能分组 -->
@@ -682,12 +682,22 @@ const updateTrackPlayConfig = () => {
         speed: trackPlaySpeed.value,
         withCamera: trackPlayWithCamera.value,
         showNodes: trackPlayShowNodes.value,
-        showNodeTime: true, // 始终显示节点时间
-        showNodeNames: true, // 显示节点名称
-        showSpeed: true      // 显示速度信息
+        showNodeAnchors: true,       // 始终显示节点锚点
+        showNodeNames: true,         // 显示节点名称
+        showNodeTime: true,          // 显示节点时间
+        showPointNames: true,        // 显示移动点位名称
+        showSpeed: true,             // 显示速度信息
+        showNodeSpeed: true          // 显示节点速度
       });
       
-      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}, 显示节点时间=true`);
+      // 获取地图对象并触发渲染
+      const map = layerRef.value.getMapObject();
+      if (map) {
+        // 触发地图渲染以更新UI
+        map.render();
+      }
+      
+      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}, 显示节点名称=true, 显示节点时间=true`);
     }
   }
 };
@@ -2176,11 +2186,11 @@ const playTrack = () => {
       // 显示设置
       showNodes: trackPlayShowNodes.value,
       showNodeAnchors: true,
-      showNodeNames: true,
-      showNodeTime: true,  // 显示节点时间
-      showPointNames: true,
-      showSpeed: true,
-      showNodeSpeed: true
+      showNodeNames: true,  // 显示节点名称
+      showNodeTime: true,   // 显示节点时间
+      showPointNames: true, // 显示移动点位名称
+      showSpeed: true,      // 显示速度
+      showNodeSpeed: true   // 显示节点速度
     });
     
     if (success) {
@@ -2195,6 +2205,17 @@ const playTrack = () => {
         // 再次触发一次渲染，避免初始化延迟问题
         map.render();
       }, 100);
+      
+      // 更新轨迹配置，确保设置生效
+      layerRef.value.updateTrackPlayer(track.id, {
+        showNodes: trackPlayShowNodes.value,
+        showNodeAnchors: true,
+        showNodeNames: true,  // 显示节点名称
+        showNodeTime: true,   // 显示节点时间
+        showPointNames: true, // 显示移动点位名称
+        showSpeed: true,      // 显示速度
+        showNodeSpeed: true   // 显示节点速度
+      });
       
       addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h，循环: ${trackPlayLoop.value ? '是' : '否'}`);
     } else {
@@ -2390,6 +2411,7 @@ const getDirectionName = (direction: string) => {
  */
 const enableHeatmap = () => {
   if (!layerRef.value) return;
+  
   const result = layerRef.value.enableHeatmap();
   if (result) {
     addLog('热力图', '启用热力图');
@@ -2401,6 +2423,7 @@ const enableHeatmap = () => {
  */
 const disableHeatmap = () => {
   if (!layerRef.value) return;
+  
   const result = layerRef.value.disableHeatmap();
   if (result) {
     addLog('热力图', '禁用热力图');
@@ -3599,16 +3622,38 @@ const playTrackById = (trackId: string) => {
     speedFactor: 1.0,
     showNodes: trackPlayShowNodes.value,
     showNodeAnchors: true,
-    showNodeNames: true,
-    showNodeTime: true,  // 显示节点时间
-    showPointNames: true,
-    showSpeed: true,
-    showNodeSpeed: true
+    showNodeNames: true,  // 显示节点名称
+    showNodeTime: true,   // 显示节点时间
+    showPointNames: true, // 显示移动点位名称
+    showSpeed: true,      // 显示速度
+    showNodeSpeed: true   // 显示节点速度
   });
   
   if (success) {
     // 尝试激活轨迹播放器工具
     layerRef.value.activateTool('track-player');
+    
+    // 获取地图对象并触发渲染
+    const map = layerRef.value.getMapObject();
+    if (map) {
+      map.render();
+      
+      // 再次触发渲染以确保UI更新
+      setTimeout(() => {
+        map.render();
+      }, 100);
+    }
+    
+    // 确保设置立即生效
+    layerRef.value.updateTrackPlayer(trackId, {
+      showNodes: trackPlayShowNodes.value,
+      showNodeAnchors: true,
+      showNodeNames: true,  // 显示节点名称
+      showNodeTime: true,   // 显示节点时间
+      showPointNames: true, // 显示移动点位名称
+      showSpeed: true,      // 显示速度
+      showNodeSpeed: true   // 显示节点速度
+    });
     
     // 获取轨迹数据记录日志
     const track = tracks.value.find(t => t.id === trackId);
