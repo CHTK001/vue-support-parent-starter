@@ -157,7 +157,10 @@
                 <button @click="addClusterMarkers">添加聚合标记</button>
               </div>
               <div class="control-row buttons-row">
+                <button @click="addPhotoMarkers">添加Photo样式图标</button>
                 <button @click="toggleAllMarkers">{{ allMarkersVisible ? '隐藏所有标记点' : '显示所有标记点' }}</button>
+              </div>
+              <div class="control-row buttons-row">
                 <button @click="toggleAllLabels">{{ allLabelsVisible ? '隐藏所有标签' : '显示所有标签' }}</button>
               </div>
 
@@ -229,38 +232,6 @@
                 <button @click="addCircularTrack">添加环形轨迹</button>
                 <button @click="addZigzagTrack">添加Z字型轨迹</button>
               </div>
-
-              <div class="feature-group-title">轨迹控制</div>
-              <div class="control-row buttons-row">
-                <button @click="clearAllTracks">清除所有轨迹</button>
-                <button @click="toggleTrackVisible">{{ allTracksVisible ? '隐藏所有轨迹' : '显示所有轨迹' }}</button>
-              </div>
-
-              <!-- 在轨迹操作区域的轨迹列表部分添加 -->
-              <div class="feature-group-title">轨迹列表</div>
-              <div class="track-list">
-                <div v-if="tracks.length === 0" class="no-tracks">暂无轨迹</div>
-                <div v-else>
-                  <div 
-                    v-for="track in tracks" 
-                    :key="track.id" 
-                    class="track-item" 
-                    :class="{ 'active': track.id === activeTrackId }"
-                    @click="selectTrack(track.id)"
-                    @dblclick="locateTrack(track.id)"
-                  >
-                    <div class="track-item-header">
-                      <span class="track-name">{{ track.name }}</span>
-                      <span class="track-points-count">{{ track.points.length }}个点</span>
-                    </div>
-                    <div class="track-item-actions">
-                      <button @click.stop="playTrackById(track.id)">播放</button>
-                      <button @click.stop="stopTrackById(track.id)">停止</button>
-                      <button @click.stop="removeTrackById(track.id)">删除</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -286,24 +257,6 @@
               <div class="control-row buttons-row">
                 <button @click="configureHeatmap">配置热力图样式</button>
                 <button @click="togglePointsVisible">{{ pointsVisible ? '隐藏数据点' : '显示数据点' }}</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 添加飞线图操作部分 -->
-          <div class="config-item">
-            <div class="label">飞线图操作</div>
-            <div class="controls">
-              <!-- 飞线图操作区域 - 添加功能分组 -->
-              <div class="feature-group-title">飞线控制</div>
-              <div class="feature-group-title">飞线样式</div>
-              <div class="control-row buttons-row">
-                <button @click="addRandomFlightLines">添加随机飞线</button>
-                <button @click="addChainFlightLines">添加链状飞线</button>
-              </div>
-              <div class="control-row buttons-row">
-                <button @click="addStarFlightLines">添加星型飞线</button>
-                <button @click="clearFlightLines">清除飞线</button>
               </div>
             </div>
           </div>
@@ -508,7 +461,7 @@ export default {
 <script setup lang="ts">
 import ScLayer from '@repo/components/ScLayer/index.vue';
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
+import { MapType, MapTile, MarkerClusterMode } from '@repo/components/ScLayer/types/index';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
@@ -914,6 +867,96 @@ function addClusterMarkers() {
   // 更新标记点列表
   updateMarkerList();
   addLog('操作', '已添加10个聚合标记点');
+}
+
+// 添加Photo样式标记点
+function addPhotoMarkers() {
+  if (!layerRef.value) return;
+  
+  const centerLon = config.center[1];
+  const centerLat = config.center[0];
+  
+  // 远程图片URL列表
+  const photoUrls = [
+    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png',
+    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png',
+    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png',
+    'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+    'https://openlayers.org/en/latest/examples/data/icon.png'
+  ];
+  
+  // 不同的Photo样式形状
+  const photoStyles = [
+    { kind: 'circle', name: '圆形' },
+    { kind: 'square', name: '方形' },
+    { kind: 'shield', name: '盾牌形' },
+    { kind: 'anchor', name: '锚形' },
+    { kind: 'folio', name: '文件形' }
+  ];
+  
+  // 创建不同形状的Photo样式标记点
+  photoStyles.forEach((style, i) => {
+    // 计算水平放置的位置
+    const offsetLon = (i - 2) * 0.01;
+    const offsetLat = 0.005;
+    
+    const lon = centerLon + offsetLon;
+    const lat = centerLat + offsetLat;
+    
+    const photoUrl = photoUrls[i % photoUrls.length];
+    const id = `photo-marker-${style.kind}-${Date.now()}`;
+    
+    // 添加标记点，使用URL图标，并配置Photo样式
+    layerRef.value.addMarker({
+      id,
+      position: [lon, lat],
+      title: `${style.name}图片标记`,
+      icon: photoUrl,
+      iconType: 'url', // 关键：使用url类型，才会启用Photo样式
+      clickable: true,
+      usePopover: true,
+      showPopover: true,
+      data: {
+        type: 'photo',
+        photoKind: style.kind,
+        photoStroke: 2,
+        photoStrokeColor: '#ffffff',
+        photoShadow: true,
+        photoShadowBlur: 7,
+        photoShadowColor: 'rgba(0,0,0,0.5)',
+        photoCrop: true,
+        photoBackground: 'rgba(200,200,200,0.2)'
+      }
+    });
+  });
+  
+  // 额外添加一个自定义样式的Photo标记点
+  const customPhotoId = `photo-marker-custom-${Date.now()}`;
+  layerRef.value.addMarker({
+    id: customPhotoId,
+    position: [centerLon, centerLat - 0.01],
+    title: '自定义Photo样式',
+    icon: 'https://openlayers.org/en/latest/examples/data/icon.png',
+    iconType: 'url',
+    clickable: true,
+    usePopover: true,
+    showPopover: true,
+    data: {
+      type: 'photo',
+      photoKind: 'circle',
+      photoStroke: 3,
+      photoStrokeColor: '#ff5500',
+      photoShadow: true,
+      photoShadowBlur: 10,
+      photoShadowColor: 'rgba(255,85,0,0.7)',
+      photoCrop: true,
+      photoBackground: 'rgba(255,240,200,0.3)'
+    }
+  });
+  
+  // 更新标记点列表
+  updateMarkerList();
+  addLog('操作', '已添加Photo样式图片标记点，使用ol-ext渲染远程URL图标');
 }
 
 // 清除所有标记

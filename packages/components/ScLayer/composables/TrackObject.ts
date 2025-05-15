@@ -24,7 +24,7 @@ import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
 import { DataType } from '../types';
 import logger from './LogObject';
 import Overlay from 'ol/Overlay';
-import IconUtils from '../utils/IconUtils';
+import { IconUtils } from '../utils/IconUtils';
 import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 
 // 轨迹模块的日志前缀
@@ -3945,17 +3945,15 @@ export class TrackObject {
     }
   }
 
-  /**
-   * 创建带安全检查的图标样式
-   * @param url 图标URL
-   * @param scale 缩放比例
-   * @param size 尺寸
-   * @param fallbackColor 备用颜色
-   * @returns 样式对象
-   */
+  /**   * 创建带安全检查的图标样式   * @param url 图标URL   * @param scale 缩放比例   * @param size 尺寸   * @param fallbackColor 备用颜色   * @returns 样式对象   */
   private createSafeIconStyle(url: string, scale: number, size: number[], fallbackColor: string): Style {
-    // 使用IconUtils工具类创建安全的图标样式
-    return IconUtils.createSafeIconStyle(url, scale, size as [number, number], fallbackColor);
+    try {      // 使用IconUtils工具类创建安全的图标样式      
+      return IconUtils.createSafeIconStyle(url, scale, size as [number, number], fallbackColor);
+    } catch (error) {
+      this.log('error', `创建图标样式失败: ${error.message || '未知错误'}, URL: ${url}`);
+    // 使用默认圆点样式作为回退      
+      return this.createDefaultMarkerStyle(fallbackColor);
+    }
   }
 
   /**

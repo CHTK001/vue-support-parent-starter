@@ -46,7 +46,18 @@ export interface MarkerOptions {
   clusterMode?: MarkerClusterMode; // 聚合模式
   visible?: boolean; // 是否可见
   zIndex?: number; // 层级
-  data?: any; // 附加数据
+  data?: any & {
+    // Photo样式相关配置选项
+    photoKind?: 'circle' | 'square' | 'shield' | 'anchor' | 'folio'; // 图标形状，默认circle
+    photoStroke?: number; // 边框宽度，默认2
+    photoStrokeColor?: string; // 边框颜色，默认白色
+    photoShadow?: boolean; // 是否使用阴影，默认true
+    photoShadowBlur?: number; // 阴影模糊半径，默认7
+    photoShadowColor?: string; // 阴影颜色，默认rgba(0,0,0,0.5)
+    photoCrop?: boolean; // 是否裁剪图片，默认true
+    photoBackground?: string; // 背景颜色，默认无
+    _baseZoom?: number; // 基准缩放级别（内部使用）
+  }; // 附加数据
   template?: string; // 点击弹窗模板
   usePopover?: boolean; // 是否使用popover显示标题，默认false
   showPopover?: boolean; // 是否默认显示popover，默认false
