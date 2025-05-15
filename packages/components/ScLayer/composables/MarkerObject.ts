@@ -16,6 +16,8 @@ import { unByKey } from 'ol/Observable';
 import { Overlay } from 'ol';
 import logger from './LogObject';
 import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType, MarkerConfig } from '../types';
+// 导入IconUtils工具类，用于处理图标样式
+import IconUtils, { IconType } from '../utils/IconUtils';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
@@ -875,7 +877,7 @@ export class MarkerObject {
   /**
    * 创建标记点样式
    * @param options 标记点配置选项
-   * @returns 样式
+   * @returns 图标样式
    */
   private createMarkerStyle(options: MarkerOptions): Style | Style[] {
     const styleOptions = options.style || this.defaultStyle;
@@ -928,26 +930,54 @@ export class MarkerObject {
     // 获取图标锚点 - 保持锚点始终为底部中心点，确保定位准确
     const anchor = [0.5, 1]; // 固定锚点为图标底部中心
     
-    // 创建标准图标样式
-    const iconImage = new Icon({
-      src: iconUrl,
-      scale: styleOptions.scale,
-      anchor: anchor,
-      anchorXUnits: 'fraction', // 水平锚点以分数表示（0.5表示中心）
-      anchorYUnits: 'fraction', // 修改为fraction，使垂直锚点位置与缩放无关
-      offset: [0, 0], // 不使用偏移，确保位置准确
-      rotation: styleOptions.rotation || 0
-    });
-    
-    // 创建图标样式
-    const iconStyle = new Style({
-      image: iconImage,
-      zIndex: options.zIndex || 1
-    });
-    
-    // 不再创建透明点击区域，只返回图标样式
-    // 这样点击区域就仅限于图标本身的可见部分
-    return iconStyle;
+    // 使用IconUtils创建适合的样式
+    if (options.iconType === 'url' && options.icon && (options.icon.startsWith('http') || options.icon.startsWith('https'))) {
+      // 对于远程URL类型的图标，使用IconUtils的Photo样式
+      const size = [32, 32]; // 默认大小
+      
+      // 创建Photo样式所需选项
+      const photoOptions = {
+        kind: options.data?.photoKind || 'circle',
+        stroke: options.data?.photoStroke !== undefined ? options.data?.photoStroke : 2,
+        strokeColor: options.data?.photoStrokeColor || '#ffffff',
+        shadow: options.data?.photoShadow !== false,
+        shadowBlur: options.data?.photoShadowBlur || 7,
+        shadowColor: options.data?.photoShadowColor || 'rgba(0,0,0,0.5)',
+        crop: options.data?.photoCrop !== false,
+        background: options.data?.photoBackground
+      };
+      
+      this.log('debug', `使用Photo样式渲染URL图标: ${options.icon}`, { photoOptions });
+      
+      // 使用IconUtils创建Photo样式
+      return IconUtils.createSafeIconStyle(
+        options.icon,
+        styleOptions.scale || 1,
+        size,
+        '#1890ff', // 默认回退颜色
+        photoOptions
+      );
+    } else {
+      // 对于其他类型的图标，保持原有逻辑
+      // 创建标准图标样式
+      const iconImage = new Icon({
+        src: iconUrl,
+        scale: styleOptions.scale,
+        anchor: anchor,
+        anchorXUnits: 'fraction', // 水平锚点以分数表示（0.5表示中心）
+        anchorYUnits: 'fraction', // 修改为fraction，使垂直锚点位置与缩放无关
+        offset: [0, 0], // 不使用偏移，确保位置准确
+        rotation: styleOptions.rotation || 0
+      });
+      
+      // 创建图标样式
+      const iconStyle = new Style({
+        image: iconImage,
+        zIndex: options.zIndex || 1
+      });
+      
+      return iconStyle;
+    }
   }
 
   /**

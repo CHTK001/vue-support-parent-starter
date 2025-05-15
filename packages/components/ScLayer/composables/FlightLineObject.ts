@@ -345,7 +345,28 @@ export class FlightLineObject {
           trigger: 'item',
           formatter: '{b}: {c}'
         },
-        // 移除geo配置，改用坐标系统设置
+        // 添加必须的坐标系统配置
+        xAxis: {
+          show: false,
+          type: 'value',
+          min: -180,
+          max: 180
+        },
+        yAxis: {
+          show: false,
+          type: 'value',
+          min: -90,
+          max: 90
+        },
+        // 添加网格配置
+        grid: {
+          show: false,
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+          containLabel: true
+        },
         series: []
       };
       
@@ -354,7 +375,7 @@ export class FlightLineObject {
         const effectScatterSeries = {
           name: 'effectScatter',
           type: 'effectScatter',
-          coordinateSystem: 'cartesian2d', // 改用笛卡尔坐标系
+          coordinateSystem: 'cartesian2d', // 使用笛卡尔坐标系
           zlevel: this.config.zIndex || 90, // 使用配置中的zIndex
           symbol: 'circle',
           symbolSize: this.config.nodeSymbolSize || 12,
@@ -376,7 +397,7 @@ export class FlightLineObject {
         const linesSeries = {
           name: 'lines',
           type: 'lines',
-          coordinateSystem: 'cartesian2d', // 改用笛卡尔坐标系
+          coordinateSystem: 'cartesian2d', // 使用笛卡尔坐标系
           zlevel: (this.config.zIndex || 90) + 1, // 比节点层级高1
           lineStyle: {
             color: this.config.color || '#1677ff',
@@ -416,30 +437,6 @@ export class FlightLineObject {
         
         // 添加线条系列
         options.series.push(linesSeries);
-        
-        // 添加坐标轴配置
-        options.xAxis = {
-          show: false,
-          type: 'value',
-          min: -180,
-          max: 180
-        };
-        
-        options.yAxis = {
-          show: false,
-          type: 'value',
-          min: -90,
-          max: 90
-        };
-        
-        // 添加网格配置
-        options.grid = {
-          show: false,
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0
-        };
       }
       
       // 设置ECharts选项
@@ -509,21 +506,21 @@ export class FlightLineObject {
     if (activeLine.isMultiCoords && activeLine.coords && Array.isArray(activeLine.coords)) {
       // 处理多组坐标
       const multiCoords = activeLine.coords as any[];
-      
-      multiCoords.forEach((coordGroup, index) => {
+          
+          multiCoords.forEach((coordGroup, index) => {
         if (coordGroup.from && coordGroup.to) {
           const fromName = coordGroup.fromName || activeLine.fromName || `起点${index}`;
           const toName = coordGroup.toName || activeLine.toName || `终点${index}`;
-          const fromCoord = coordGroup.from;
-          const toCoord = coordGroup.to;
-          
+            const fromCoord = coordGroup.from;
+            const toCoord = coordGroup.to;
+            
           // 确保坐标都是有效的
-          if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
+            if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
             logger.warn(`[FlightLine] 无效坐标: [${fromCoord}] => [${toCoord}]`);
             return; // 跳过此条数据
           }
           
-          const lineStyle = coordGroup.style || activeLine.style || this.config;
+          const lineStyle = coordGroup.style || activeLine.style || {};
           const highlight = activeLine.highlight || false;
           
           // 使用经纬度直接用于笛卡尔坐标系
@@ -538,18 +535,18 @@ export class FlightLineObject {
             toName,
             value: coordGroup.value || activeLine.value || 1,
             // 使用自定义样式
-            lineStyle: {
-              color: highlight ? (lineStyle.highlightColor || '#ff0000') : (lineStyle.color || this.config.color || '#1677ff'),
-              width: highlight ? (lineStyle.highlightWidth || 3) : (lineStyle.width || this.config.width || 1),
+              lineStyle: {
+              color: highlight ? '#ff0000' : (lineStyle.color || this.config.color || '#1677ff'),
+              width: highlight ? 3 : (lineStyle.width || this.config.width || 1),
               opacity: highlight ? 1 : (lineStyle.opacity || this.config.opacity || 0.8),
               curveness: lineStyle.curveness || this.config.curveness || 0.2,
-              type: lineStyle.type || this.config.type || 'solid'
+              type: 'solid' // 固定为solid类型
             },
             // 使用自定义动画效果
             effect: {
-              show: lineStyle.showEffect !== undefined ? lineStyle.showEffect : this.config.showEffect,
-              period: lineStyle.effectPeriod || this.config.effectPeriod || 3,
-              trailLength: lineStyle.effectTrailLength || this.config.effectTrailLength || 0.1,
+              show: this.config.showEffect,
+              period: this.config.effectPeriod || 3,
+              trailLength: this.config.effectTrailLength || 0.1,
               // 使用单独配置的符号或全局符号
               symbol: this.getEffectSymbol(coordGroup.effectSymbol || activeLine.effectSymbol || this.config.effectSymbol,
                                       coordGroup.effectSymbolPath || activeLine.effectSymbolPath || this.config.effectSymbolPath),
@@ -586,7 +583,7 @@ export class FlightLineObject {
         return result;
       }
       
-      const lineStyle = activeLine.style || this.config;
+      const lineStyle = activeLine.style || {};
       const highlight = activeLine.highlight || false;
       
       // 对于cartesian2d坐标系，直接使用经纬度
@@ -601,17 +598,17 @@ export class FlightLineObject {
         value: activeLine.value || 1,
         // 使用自定义样式
         lineStyle: {
-          color: highlight ? (lineStyle.highlightColor || '#ff0000') : (lineStyle.color || this.config.color || '#1677ff'),
-          width: highlight ? (lineStyle.highlightWidth || 3) : (lineStyle.width || this.config.width || 1),
+          color: highlight ? '#ff0000' : (lineStyle.color || this.config.color || '#1677ff'),
+          width: highlight ? 3 : (lineStyle.width || this.config.width || 1),
           opacity: highlight ? 1 : (lineStyle.opacity || this.config.opacity || 0.8),
           curveness: lineStyle.curveness || this.config.curveness || 0.2,
-          type: lineStyle.type || this.config.type || 'solid'
+          type: 'solid' // 固定为solid类型
         },
         // 使用自定义动画效果
         effect: {
-          show: lineStyle.showEffect !== undefined ? lineStyle.showEffect : this.config.showEffect,
-          period: lineStyle.effectPeriod || this.config.effectPeriod || 3,
-          trailLength: lineStyle.effectTrailLength || this.config.effectTrailLength || 0.1,
+          show: this.config.showEffect,
+          period: this.config.effectPeriod || 3,
+          trailLength: this.config.effectTrailLength || 0.1,
           // 使用单独配置的符号或全局符号
           symbol: this.getEffectSymbol(activeLine.effectSymbol || this.config.effectSymbol,
                                   activeLine.effectSymbolPath || this.config.effectSymbolPath),
@@ -734,8 +731,8 @@ export class FlightLineObject {
     
     logger.debug(`[FlightLine] 已生成 ${result.length} 个节点数据`);
     return result;
-  }
-
+    }
+    
   /**
    * 检查坐标是否有效
    * @param coord 经纬度坐标
@@ -1880,4 +1877,4 @@ export class FlightLineObject {
     
     logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认从北京出发到各个城市`);
   }
-} 
+}   
