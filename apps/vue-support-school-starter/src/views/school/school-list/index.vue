@@ -127,9 +127,12 @@ const loadSchoolList = async () => {
   try {
     loading.value = true;
     const res = await getSchoolInfoList(queryParams);
-    if (res.code === 200) {
-      schoolList.value = res.data;
+    if (res.code === '00000') {
+      schoolList.value = res.data.data;
       total.value = res.data.length;
+      schoolList.value.forEach((index, item) => {
+        console.log(item);
+      });
     }
   } catch (error) {
     console.error("加载学校列表失败:", error);
