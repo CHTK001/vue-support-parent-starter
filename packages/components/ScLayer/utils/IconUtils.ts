@@ -177,7 +177,10 @@ export class IconUtils {
             photoConfig.shadowColor = photoOptions.shadowColor || 'rgba(0,0,0,0.5)';
           }
           
-                    // 添加背景色配置 - 默认为透明          if (photoOptions?.background) {            photoConfig.background = new Fill({              color: photoOptions.background            });          } else {            // 设置透明背景            photoConfig.background = new Fill({              color: 'transparent'            });          }
+          // 添加背景色配置 - 默认为透明
+          photoConfig.background = new Fill({
+            color: photoOptions?.background || 'transparent'
+          });
           
           // 创建Photo样式
           const photoStyle = new OLStylePhoto(photoConfig);
@@ -453,12 +456,10 @@ export class IconUtils {
         photoConfig.shadowColor = shadowColor;
       }
       
-      // 添加背景色
-      if (background) {
-        photoConfig.background = new Fill({
-          color: background
-        });
-      }
+      // 添加背景色 - 默认为透明
+      photoConfig.background = new Fill({
+        color: background || 'transparent'
+      });
       
       // 创建Photo样式
       const photoStyle = new OLStylePhoto(photoConfig);
