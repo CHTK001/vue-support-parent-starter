@@ -345,17 +345,7 @@ export class FlightLineObject {
           trigger: 'item',
           formatter: '{b}: {c}'
         },
-        geo: {
-          map: '', // 不使用地图，只使用坐标
-          roam: false, // 不允许缩放和平移
-          silent: true, // 不响应鼠标事件
-          layoutCenter: ['50%', '50%'], // 居中布局
-          layoutSize: 100, // 尺寸使用百分比
-          itemStyle: {
-            color: 'transparent', // 透明底色
-            borderColor: 'transparent' // 透明边框
-          }
-        },
+        // 移除geo配置，改用坐标系统设置
         series: []
       };
       
@@ -364,7 +354,7 @@ export class FlightLineObject {
         const effectScatterSeries = {
           name: 'effectScatter',
           type: 'effectScatter',
-          coordinateSystem: 'geo',
+          coordinateSystem: 'cartesian2d', // 改用笛卡尔坐标系
           zlevel: this.config.zIndex || 90, // 使用配置中的zIndex
           symbol: 'circle',
           symbolSize: this.config.nodeSymbolSize || 12,
@@ -386,7 +376,7 @@ export class FlightLineObject {
         const linesSeries = {
           name: 'lines',
           type: 'lines',
-          coordinateSystem: 'geo',
+          coordinateSystem: 'cartesian2d', // 改用笛卡尔坐标系
           zlevel: (this.config.zIndex || 90) + 1, // 比节点层级高1
           lineStyle: {
             color: this.config.color || '#1677ff',
@@ -421,27 +411,35 @@ export class FlightLineObject {
           if (this.config.nodeEffect === false) {
             // @ts-ignore: 类型错误但运行时有效
             effectScatterSeries.rippleEffect.scale = 0;
-            }
+          }
         }
         
         // 添加线条系列
         options.series.push(linesSeries);
         
-        // 当显示节点时，设置有效的geo坐标系
-        if (this.config.showNodes !== false) {
-          // 添加geo坐标系
-          options.geo = {
-            map: '',
-            roam: false,
-            silent: true,
-            layoutCenter: ['50%', '50%'], // 居中布局
-            layoutSize: 100, // 尺寸使用百分比
-            itemStyle: {
-              color: 'transparent',
-              borderColor: 'transparent'
-            }
-          };
-        }
+        // 添加坐标轴配置
+        options.xAxis = {
+          show: false,
+          type: 'value',
+          min: -180,
+          max: 180
+        };
+        
+        options.yAxis = {
+          show: false,
+          type: 'value',
+          min: -90,
+          max: 90
+        };
+        
+        // 添加网格配置
+        options.grid = {
+          show: false,
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0
+        };
       }
       
       // 设置ECharts选项
@@ -500,216 +498,271 @@ export class FlightLineObject {
       return result;
     }
     
-    // 遍历所有飞线数据
-    this.flightLines.forEach((line, id) => {
-      // 只显示当前激活的飞线
-      if (id !== this.activeFlightLine) {
-        return;
-      }
-      
-      try {
-        // 检查是否是多组坐标的飞线
-        if (line.isMultiCoords && line.coords && Array.isArray(line.coords) && line.coords.length > 0 && 
-            typeof line.coords[0] === 'object' && 'from' in line.coords[0] && 'to' in line.coords[0]) {
-          // 处理多组坐标的飞线
-          const multiCoords = line.coords as any[];
-          
-          logger.debug(`[FlightLine] 处理多组坐标飞线 ${id}，共 ${multiCoords.length} 组坐标`);
-          
-          multiCoords.forEach((coordGroup, index) => {
-            if (!coordGroup.from || !coordGroup.to) {
-              logger.warn(`[FlightLine] 跳过无效坐标组 ${index}`);
-          return;
-        }
-        
-            // 获取当前组的起点和终点坐标
-            const fromCoord = coordGroup.from;
-            const toCoord = coordGroup.to;
-            
-            // 获取起点和终点的名称
-            const fromName = coordGroup.fromName || line.fromName || `起点${index}`;
-            const toName = coordGroup.toName || line.toName || `终点${index}`;
-            
-            // 确保坐标是有效的数值类型
-            if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
-              logger.warn(`[FlightLine] 跳过无效坐标组 ${index}: ${fromName} -> ${toName}`);
-              return;
-            }
-            
-            // 确保坐标是数值类型
-            const fromLon = Number(fromCoord[0]);
-            const fromLat = Number(fromCoord[1]);
-            const toLon = Number(toCoord[0]);
-            const toLat = Number(toCoord[1]);
-            
-            if (isNaN(fromLon) || isNaN(fromLat) || isNaN(toLon) || isNaN(toLat)) {
-              logger.warn(`[FlightLine] 飞线坐标包含非数值: ${fromLon},${fromLat} -> ${toLon},${toLat}`);
-              return;
-            }
-            
-            // 创建当前组的飞线数据
-            const flightLineData = {
-              fromName: fromName,
-              toName: toName,
-              coords: [[fromLon, fromLat], [toLon, toLat]],
-              value: coordGroup.value || line.value || 10,
-              lineStyle: {
-                color: (coordGroup.style?.color || line.style?.color || this.config.color),
-                width: (coordGroup.style?.width || line.style?.width || this.config.width),
-                opacity: (coordGroup.style?.opacity !== undefined ? coordGroup.style.opacity : 
-                          (line.style?.opacity !== undefined ? line.style.opacity : this.config.opacity)),
-                curveness: (coordGroup.style?.curveness !== undefined ? coordGroup.style.curveness : 
-                            (line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness)),
-                // 添加平滑曲线相关配置
-                smooth: this.config.smooth,
-                smoothConstraint: this.config.smoothConstraint,
-                smoothMonotone: this.config.smoothMonotone
-              },
-              emphasis: {
-                lineStyle: {
-                  color: line.highlight ? '#ff0000' : (coordGroup.style?.color || line.style?.color || this.config.color),
-                  width: line.highlight ? ((coordGroup.style?.width || line.style?.width || this.config.width) + 1) : 
-                                        (coordGroup.style?.width || line.style?.width || this.config.width),
-                  opacity: 1
-                }
-              },
-              // 添加涟漪效果配置
-              rippleEffect: this.config.rippleEffect || {},
-              // 添加阴影配置  
-              shadowBlur: this.config.shadowBlur,
-              shadowColor: this.config.shadowColor
-            };
-            
-            // 添加自定义动画效果
-            if (line.effectSymbol) {
-              flightLineData['effect'] = {
-                symbol: this.getEffectSymbol(line.effectSymbol, line.effectSymbolPath),
-                symbolSize: line.effectSymbolSize || this.config.effectSymbolSize
-              };
-            }
-            
-            // 添加到结果数组
-            result.push(flightLineData);
-            
-            // 将坐标添加到geoCoordMap中
-            if (fromName && !this.geoCoordMap[fromName]) {
-              this.geoCoordMap[fromName] = fromCoord;
-            }
-            if (toName && !this.geoCoordMap[toName]) {
-              this.geoCoordMap[toName] = toCoord;
-            }
-          });
-        } else {
-          // 处理传统的单组坐标飞线
-          // 获取起点和终点坐标
-          let fromCoord = this.geoCoordMap[line.fromName];
-          let toCoord = this.geoCoordMap[line.toName];
-
-          logger.debug(`[FlightLine] 处理单组坐标飞线 ${id}: ${line.fromName} -> ${line.toName}, fromCoord=${JSON.stringify(fromCoord)}, toCoord=${JSON.stringify(toCoord)}`);
-
-          // 如果没有从geoCoordMap中找到坐标，尝试使用line.coords
-          if ((!fromCoord || !toCoord) && line.coords && Array.isArray(line.coords) && line.coords.length === 2 && 
-              Array.isArray(line.coords[0]) && Array.isArray(line.coords[1])) {
-            fromCoord = line.coords[0] as number[];
-            toCoord = line.coords[1] as number[];
-
-            logger.debug(`[FlightLine] 从coords获取坐标: fromCoord=${JSON.stringify(fromCoord)}, toCoord=${JSON.stringify(toCoord)}`);
-
-            // 添加坐标到geoCoordMap
-            if (fromCoord && line.fromName) this.geoCoordMap[line.fromName] = fromCoord;
-            if (toCoord && line.toName) this.geoCoordMap[line.toName] = toCoord;
-          }
-
-          // 如果仍然没有找到坐标，尝试使用from和to
-          if ((!fromCoord || !toCoord) && line.from && line.to) {
-            fromCoord = line.from;
-            toCoord = line.to;
-            logger.debug(`[FlightLine] 从from/to获取坐标: fromCoord=${JSON.stringify(fromCoord)}, toCoord=${JSON.stringify(toCoord)}`);
-          }
-
-          // 确保坐标有效
-          if (!fromCoord || !toCoord || !Array.isArray(fromCoord) || !Array.isArray(toCoord) || 
-              fromCoord.length < 2 || toCoord.length < 2) {
-            logger.warn(`[FlightLine] 飞线坐标无效: ${line.fromName} -> ${line.toName}, fromCoord=${JSON.stringify(fromCoord)}, toCoord=${JSON.stringify(toCoord)}`);
-            return;
-          }
-
-          // 确保坐标是数值类型
-          const fromLon = Number(fromCoord[0]);
-          const fromLat = Number(fromCoord[1]);
-          const toLon = Number(toCoord[0]);
-          const toLat = Number(toCoord[1]);
-          
-          if (isNaN(fromLon) || isNaN(fromLat) || isNaN(toLon) || isNaN(toLat)) {
-            logger.warn(`[FlightLine] 飞线坐标包含非数值: ${fromLon},${fromLat} -> ${toLon},${toLat}`);
-            return;
-          }
-
-          // 创建符合 sakitam.com 示例格式的数据对象
-          const flightLineData = {
-          fromName: line.fromName,
-          toName: line.toName,
-            coords: [[fromLon, fromLat], [toLon, toLat]],
-            value: line.value || 10,
-            lineStyle: {
-              color: line.style?.color || this.config.color,
-              width: line.style?.width || this.config.width,
-              opacity: line.style?.opacity !== undefined ? line.style.opacity : this.config.opacity,
-              curveness: line.style?.curveness !== undefined ? line.style.curveness : this.config.curveness,
-              // 添加平滑曲线相关配置
-              smooth: this.config.smooth,
-              smoothConstraint: this.config.smoothConstraint,
-              smoothMonotone: this.config.smoothMonotone
-            },
-            emphasis: {
-              lineStyle: {
-                color: line.highlight ? '#ff0000' : (line.style?.color || this.config.color),
-                width: line.highlight ? (line.style?.width || this.config.width) + 1 : line.style?.width || this.config.width,
-                opacity: 1
-              }
-            },
-            // 添加涟漪效果配置
-            rippleEffect: this.config.rippleEffect || {},
-            // 添加阴影配置  
-            shadowBlur: this.config.shadowBlur,
-            shadowColor: this.config.shadowColor
-          };
-
-          // 如果设置了自定义的动画符号
-          if (line.effectSymbol) {
-            flightLineData['effect'] = {
-              symbol: this.getEffectSymbol(line.effectSymbol, line.effectSymbolPath),
-              symbolSize: line.effectSymbolSize || this.config.effectSymbolSize
-          };
-        }
-        
-          // 添加到结果数组
-          result.push(flightLineData);
-      }
-      } catch (error) {
-        logger.error(`[FlightLine] 转换飞线 ${id} 数据失败:`, error);
-      }
-    });
-    
-    logger.debug(`[FlightLine] 成功转换 ${result.length} 条飞线数据`);
-    return result;
+    // 获取激活的飞线
+    const activeLine = this.flightLines.get(this.activeFlightLine);
+    if (!activeLine) {
+      logger.warn(`[FlightLine] 获取激活飞线失败, ID: ${this.activeFlightLine}`);
+      return result;
     }
     
+    // 检查激活的飞线是否是多组坐标
+    if (activeLine.isMultiCoords && activeLine.coords && Array.isArray(activeLine.coords)) {
+      // 处理多组坐标
+      const multiCoords = activeLine.coords as any[];
+      
+      multiCoords.forEach((coordGroup, index) => {
+        if (coordGroup.from && coordGroup.to) {
+          const fromName = coordGroup.fromName || activeLine.fromName || `起点${index}`;
+          const toName = coordGroup.toName || activeLine.toName || `终点${index}`;
+          const fromCoord = coordGroup.from;
+          const toCoord = coordGroup.to;
+          
+          // 确保坐标都是有效的
+          if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
+            logger.warn(`[FlightLine] 无效坐标: [${fromCoord}] => [${toCoord}]`);
+            return; // 跳过此条数据
+          }
+          
+          const lineStyle = coordGroup.style || activeLine.style || this.config;
+          const highlight = activeLine.highlight || false;
+          
+          // 使用经纬度直接用于笛卡尔坐标系
+          // 对于cartesian2d坐标系，我们需要调整数据格式
+          result.push({
+            coords: [
+              fromCoord, // [lon, lat]
+              toCoord    // [lon, lat]
+            ],
+            // 添加名称等信息
+            fromName,
+            toName,
+            value: coordGroup.value || activeLine.value || 1,
+            // 使用自定义样式
+            lineStyle: {
+              color: highlight ? (lineStyle.highlightColor || '#ff0000') : (lineStyle.color || this.config.color || '#1677ff'),
+              width: highlight ? (lineStyle.highlightWidth || 3) : (lineStyle.width || this.config.width || 1),
+              opacity: highlight ? 1 : (lineStyle.opacity || this.config.opacity || 0.8),
+              curveness: lineStyle.curveness || this.config.curveness || 0.2,
+              type: lineStyle.type || this.config.type || 'solid'
+            },
+            // 使用自定义动画效果
+            effect: {
+              show: lineStyle.showEffect !== undefined ? lineStyle.showEffect : this.config.showEffect,
+              period: lineStyle.effectPeriod || this.config.effectPeriod || 3,
+              trailLength: lineStyle.effectTrailLength || this.config.effectTrailLength || 0.1,
+              // 使用单独配置的符号或全局符号
+              symbol: this.getEffectSymbol(coordGroup.effectSymbol || activeLine.effectSymbol || this.config.effectSymbol,
+                                      coordGroup.effectSymbolPath || activeLine.effectSymbolPath || this.config.effectSymbolPath),
+              symbolSize: coordGroup.effectSymbolSize || activeLine.effectSymbolSize || this.config.effectSymbolSize || 18
+            }
+          });
+        }
+      });
+    } else {
+      // 传统单组坐标处理逻辑
+      let fromCoord, toCoord;
+      
+      // 确定起点坐标
+      if (activeLine.from) {
+        fromCoord = activeLine.from;
+      } else if (activeLine.fromName && this.geoCoordMap[activeLine.fromName]) {
+        fromCoord = this.geoCoordMap[activeLine.fromName];
+      } else if (activeLine.coords && Array.isArray(activeLine.coords) && activeLine.coords.length > 0) {
+        fromCoord = activeLine.coords[0];
+      }
+      
+      // 确定终点坐标
+      if (activeLine.to) {
+        toCoord = activeLine.to;
+      } else if (activeLine.toName && this.geoCoordMap[activeLine.toName]) {
+        toCoord = this.geoCoordMap[activeLine.toName];
+      } else if (activeLine.coords && Array.isArray(activeLine.coords) && activeLine.coords.length > 1) {
+        toCoord = activeLine.coords[1];
+      }
+      
+      // 确保坐标有效
+      if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
+        logger.warn(`[FlightLine] 无效坐标: [${fromCoord}] => [${toCoord}]`);
+        return result;
+      }
+      
+      const lineStyle = activeLine.style || this.config;
+      const highlight = activeLine.highlight || false;
+      
+      // 对于cartesian2d坐标系，直接使用经纬度
+      result.push({
+        coords: [
+          fromCoord, // [lon, lat]
+          toCoord    // [lon, lat]
+        ],
+        // 添加名称等信息
+        fromName: activeLine.fromName,
+        toName: activeLine.toName,
+        value: activeLine.value || 1,
+        // 使用自定义样式
+        lineStyle: {
+          color: highlight ? (lineStyle.highlightColor || '#ff0000') : (lineStyle.color || this.config.color || '#1677ff'),
+          width: highlight ? (lineStyle.highlightWidth || 3) : (lineStyle.width || this.config.width || 1),
+          opacity: highlight ? 1 : (lineStyle.opacity || this.config.opacity || 0.8),
+          curveness: lineStyle.curveness || this.config.curveness || 0.2,
+          type: lineStyle.type || this.config.type || 'solid'
+        },
+        // 使用自定义动画效果
+        effect: {
+          show: lineStyle.showEffect !== undefined ? lineStyle.showEffect : this.config.showEffect,
+          period: lineStyle.effectPeriod || this.config.effectPeriod || 3,
+          trailLength: lineStyle.effectTrailLength || this.config.effectTrailLength || 0.1,
+          // 使用单独配置的符号或全局符号
+          symbol: this.getEffectSymbol(activeLine.effectSymbol || this.config.effectSymbol,
+                                  activeLine.effectSymbolPath || this.config.effectSymbolPath),
+          symbolSize: activeLine.effectSymbolSize || this.config.effectSymbolSize || 18
+        }
+      });
+    }
+    
+    logger.debug(`[FlightLine] 已生成 ${result.length} 条飞线数据`);
+    return result;
+  }
+
   /**
-   * 检查坐标是否在有效范围内
-   * @param coord 坐标
+   * 获取节点数据
+   * @returns 节点数据数组
+   * @private
+   */
+  private getNodeData(): any[] {
+    const result: any[] = [];
+    
+    // 如果没有活动飞线，返回空数组
+    if (!this.activeFlightLine) {
+      return result;
+    }
+    
+    const activeLine = this.flightLines.get(this.activeFlightLine);
+    if (!activeLine) {
+      return result;
+    }
+    
+    // 节点名称集合，防止重复添加相同名称的节点
+    const nodeNames = new Set<string>();
+    
+    // 如果是多组坐标的飞线
+    if (activeLine.isMultiCoords && activeLine.coords && Array.isArray(activeLine.coords)) {
+      // 处理多组坐标
+      const multiCoords = activeLine.coords as any[];
+      
+      multiCoords.forEach((coordGroup, index) => {
+        if (coordGroup.from && coordGroup.to) {
+          const fromName = coordGroup.fromName || activeLine.fromName || `起点${index}`;
+          const toName = coordGroup.toName || activeLine.toName || `终点${index}`;
+          
+          // 只添加不存在的节点名称
+          if (!nodeNames.has(fromName) && this.isValidCoordinate(coordGroup.from)) {
+            // 对于cartesian2d坐标系，直接使用经纬度数据
+            result.push({
+              name: fromName,
+              value: coordGroup.from, // [lon, lat]
+              symbolSize: this.config.nodeSymbolSize || 12,
+              itemStyle: {
+                color: this.config.nodeColor || '#1677ff'
+              }
+            });
+            nodeNames.add(fromName);
+          }
+          
+          if (!nodeNames.has(toName) && this.isValidCoordinate(coordGroup.to)) {
+            // 对于cartesian2d坐标系，直接使用经纬度数据
+            result.push({
+              name: toName,
+              value: coordGroup.to, // [lon, lat]
+              symbolSize: this.config.nodeSymbolSize || 12,
+              itemStyle: {
+                color: this.config.nodeColor || '#1677ff'
+              }
+            });
+            nodeNames.add(toName);
+          }
+        }
+      });
+    } else {
+      // 传统单组坐标处理逻辑
+      let fromCoord, toCoord;
+      
+      // 确定起点坐标
+      if (activeLine.from) {
+        fromCoord = activeLine.from;
+      } else if (activeLine.fromName && this.geoCoordMap[activeLine.fromName]) {
+        fromCoord = this.geoCoordMap[activeLine.fromName];
+      } else if (activeLine.coords && Array.isArray(activeLine.coords) && activeLine.coords.length > 0) {
+        fromCoord = activeLine.coords[0];
+      }
+      
+      // 确定终点坐标
+      if (activeLine.to) {
+        toCoord = activeLine.to;
+      } else if (activeLine.toName && this.geoCoordMap[activeLine.toName]) {
+        toCoord = this.geoCoordMap[activeLine.toName];
+      } else if (activeLine.coords && Array.isArray(activeLine.coords) && activeLine.coords.length > 1) {
+        toCoord = activeLine.coords[1];
+      }
+      
+      // 添加起点
+      if (this.isValidCoordinate(fromCoord)) {
+        // 对于cartesian2d坐标系，直接使用经纬度数据
+        result.push({
+          name: activeLine.fromName,
+          value: fromCoord, // [lon, lat]
+          symbolSize: this.config.nodeSymbolSize || 12,
+          itemStyle: {
+            color: this.config.nodeColor || '#1677ff'
+          }
+        });
+      }
+      
+      // 添加终点
+      if (this.isValidCoordinate(toCoord)) {
+        // 对于cartesian2d坐标系，直接使用经纬度数据
+        result.push({
+          name: activeLine.toName,
+          value: toCoord, // [lon, lat]
+          symbolSize: this.config.nodeSymbolSize || 12,
+          itemStyle: {
+            color: this.config.nodeColor || '#1677ff'
+          }
+        });
+      }
+    }
+    
+    logger.debug(`[FlightLine] 已生成 ${result.length} 个节点数据`);
+    return result;
+  }
+
+  /**
+   * 检查坐标是否有效
+   * @param coord 经纬度坐标
    * @returns 是否有效
    */
-  private isValidCoordinate(coord: number[]): boolean {
+  private isValidCoordinate(coord: number[] | null | undefined): boolean {
     if (!coord || !Array.isArray(coord) || coord.length < 2) {
       return false;
     }
     
-    // 检查坐标是否是有效数字且在合理范围内
-    const [x, y] = coord;
-    return !isNaN(x) && !isNaN(y) && 
-           isFinite(x) && isFinite(y) && 
-           Math.abs(x) < 20000000 && Math.abs(y) < 20000000;
+    // 确保是数值类型
+    const lon = Number(coord[0]);
+    const lat = Number(coord[1]);
+    
+    if (isNaN(lon) || isNaN(lat)) {
+      return false;
+    }
+    
+    // 简单的经纬度范围检查
+    // 经度范围: -180 到 180
+    // 纬度范围: -90 到 90
+    if (lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+      logger.warn(`[FlightLine] 坐标超出经纬度合理范围: [${lon}, ${lat}]`);
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -1826,97 +1879,5 @@ export class FlightLineObject {
     }
     
     logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认从北京出发到各个城市`);
-  }
-
-  /**
-   * 获取节点数据
-   * @returns 节点数据数组
-   */
-  private getNodeData(): any[] {
-    // 收集起点和终点节点数据
-    const nodeData: any[] = [];
-
-    // 使用Set去重
-    const uniqueNodes = new Set<string>();
-
-    // 遍历所有飞线，收集节点数据
-    this.flightLines.forEach(line => {
-      // 只处理激活的飞线
-      if (line.id !== this.activeFlightLine && this.activeFlightLine !== null) {
-        return;
-      }
-
-      // 处理多组坐标的情况
-      if (line.isMultiCoords && Array.isArray(line.coords) && line.coords.length > 0 && typeof line.coords[0] === 'object') {
-        // 多组坐标
-        const multiCoords = line.coords as any[];
-        
-        multiCoords.forEach((coord, index) => {
-          if (coord.from && coord.to) {
-            // 添加起点
-            const fromName = coord.fromName || line.fromName || `起点${index}`;
-            const fromCoord = coord.from;
-            const fromKey = `${fromName}|${fromCoord[0]},${fromCoord[1]}`;
-            
-            if (!uniqueNodes.has(fromKey)) {
-              uniqueNodes.add(fromKey);
-              nodeData.push({
-                name: fromName,
-                value: [...fromCoord, coord.value || line.value || 10],
-                itemStyle: {
-                  color: this.config.nodeColor || '#1677ff'
-                }
-              });
-            }
-            
-            // 添加终点
-            const toName = coord.toName || line.toName || `终点${index}`;
-            const toCoord = coord.to;
-            const toKey = `${toName}|${toCoord[0]},${toCoord[1]}`;
-            
-            if (!uniqueNodes.has(toKey)) {
-              uniqueNodes.add(toKey);
-              nodeData.push({
-                name: toName,
-                value: [...toCoord, coord.value || line.value || 10],
-                itemStyle: {
-                  color: this.config.nodeColor || '#1677ff'
-                }
-              });
-            }
-          }
-        });
-      }
-      // 处理单组坐标的情况
-      else if (line.from && line.to) {
-        // 添加起点
-        const fromKey = `${line.fromName}|${line.from[0]},${line.from[1]}`;
-        if (!uniqueNodes.has(fromKey)) {
-          uniqueNodes.add(fromKey);
-          nodeData.push({
-            name: line.fromName,
-            value: [...line.from, line.value || 10],
-            itemStyle: {
-              color: this.config.nodeColor || '#1677ff'
-            }
-          });
-        }
-        
-        // 添加终点
-        const toKey = `${line.toName}|${line.to[0]},${line.to[1]}`;
-        if (!uniqueNodes.has(toKey)) {
-          uniqueNodes.add(toKey);
-          nodeData.push({
-            name: line.toName,
-            value: [...line.to, line.value || 10],
-            itemStyle: {
-              color: this.config.nodeColor || '#1677ff'
-            }
-          });
-        }
-      }
-    });
-
-    return nodeData;
   }
 } 
