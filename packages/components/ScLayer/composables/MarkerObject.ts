@@ -944,7 +944,7 @@ export class MarkerObject {
         shadowBlur: options.data?.photoShadowBlur || 7,
         shadowColor: options.data?.photoShadowColor || 'rgba(0,0,0,0.5)',
         crop: options.data?.photoCrop !== false,
-        background: options.data?.photoBackground
+        background: options.data?.photoBackground || 'transparent' // 默认透明背景
       };
       
       this.log('debug', `使用Photo样式渲染URL图标: ${options.icon}`, { photoOptions });

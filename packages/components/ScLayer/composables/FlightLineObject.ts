@@ -432,7 +432,7 @@ export class FlightLineObject {
           if (this.config.nodeEffect === false) {
             // @ts-ignore: 类型错误但运行时有效
             effectScatterSeries.rippleEffect.scale = 0;
-          }
+            }
         }
         
         // 添加线条系列
@@ -1877,4 +1877,4 @@ export class FlightLineObject {
     
     logger.debug(`[FlightLine] 共添加了${testLines.length}条测试飞线，默认从北京出发到各个城市`);
   }
-}   
+} 
