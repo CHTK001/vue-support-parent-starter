@@ -33,47 +33,71 @@ export interface MarkerConfig {
 }
 
 /**
- * 标记点配置选项
+ * 标记点样式选项
+ */
+export interface MarkerStyleOptions {
+  /** 图标缩放比例 */
+  scale?: number;
+  /** 图标锚点 [x, y] 范围0-1 */
+  anchor?: [number, number];
+  /** 图标偏移 [x, y] 像素 */
+  offset?: [number, number];
+  /** 图标旋转角度（弧度） */
+  rotation?: number;
+  /** 文字颜色 */
+  textColor?: string;
+  /** 文字外边框颜色 */
+  textOutlineColor?: string;
+  /** 文字外边框宽度 */
+  textOutlineWidth?: number;
+  /** 文字字体 */
+  textFont?: string;
+  /** 文字Y轴偏移 */
+  textOffsetY?: number;
+}
+
+/**
+ * 标记点选项配置
  */
 export interface MarkerOptions {
-  id: string;
-  position: [number, number]; // [经度, 纬度]
-  dataType?: DataType; // 类型，默认为'marker'
-  icon?: string; // 图标URL或SVG字符串
-  iconType?: 'url' | 'svg' | 'base64' | 'default'; // 图标类型，默认为'default'
-  title?: string; // 标题
-  clickable?: boolean; // 是否可点击
-  clusterMode?: MarkerClusterMode; // 聚合模式
-  visible?: boolean; // 是否可见
-  zIndex?: number; // 层级
-  data?: any & {
-    // Photo样式相关配置选项
-    photoKind?: 'circle' | 'square' | 'shield' | 'anchor' | 'folio'; // 图标形状，默认circle
-    photoStroke?: number; // 边框宽度，默认2
-    photoStrokeColor?: string; // 边框颜色，默认白色
-    photoShadow?: boolean; // 是否使用阴影，默认true
-    photoShadowBlur?: number; // 阴影模糊半径，默认7
-    photoShadowColor?: string; // 阴影颜色，默认rgba(0,0,0,0.5)
-    photoCrop?: boolean; // 是否裁剪图片，默认true
-    photoBackground?: string; // 背景颜色，默认无
-    _baseZoom?: number; // 基准缩放级别（内部使用）
-  }; // 附加数据
-  template?: string; // 点击弹窗模板
-  usePopover?: boolean; // 是否使用popover显示标题，默认false
-  showPopover?: boolean; // 是否默认显示popover，默认false
-  isPopoverOpen?: boolean; // 内部属性：当前popover是否打开，默认false
-  group?: string; // 标记点分组，用于按组管理标记点的显示/隐藏
-  style?: {
-    scale?: number;
-    anchor?: [number, number];
-    offset?: [number, number];
-    rotation?: number;
-    textColor?: string;
-    textOutlineColor?: string;
-    textOutlineWidth?: number;
-    textFont?: string;
-    textOffsetY?: number;
-  };
+  /** 标记点ID，如果不提供则自动生成 */
+  id?: string;
+  /** 标记点位置，[lon, lat] */
+  position: [number, number];
+  /** 标记点图标URL或Data URL */
+  icon?: string;
+  /** 图标类型: url, svg, base64, default, photo */
+  iconType?: 'url' | 'svg' | 'base64' | 'default' | 'photo';
+  /** 标记点样式配置 */
+  style?: MarkerStyleOptions;
+  /** 标记点标题 */
+  title?: string;
+  /** 标记点描述 */
+  description?: string;
+  /** 是否可见 */
+  visible?: boolean;
+  /** 是否可点击 */
+  clickable?: boolean;
+  /** 标记点详细内容，支持HTML */
+  content?: string;
+  /** 标记点自定义数据 */
+  data?: Record<string, any>;
+  /** 标记点图层顺序 */
+  zIndex?: number;
+  /** 标记点分组 */
+  group?: string;
+  /** 标记点聚合模式 */
+  clusterMode?: MarkerClusterMode;
+  /** 是否使用popover */
+  usePopover?: boolean;
+  /** 是否默认显示popover */
+  showPopover?: boolean;
+  /** 是否已经显示了popover (内部状态) */
+  isPopoverOpen?: boolean;
+  /** 自定义的渲染模板 */
+  template?: string;
+  /** 数据类型 */
+  dataType?: DataType;
 }
 
 /**

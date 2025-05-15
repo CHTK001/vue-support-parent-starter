@@ -19,26 +19,31 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
   // 行人图标 (0-6 km/h)
   {
     speed: 0,
-    icon: 'https://img.icons8.com/color/48/000000/walking--v1.png'
+    icon: 'https://img.icons8.com/?size=50&id=sYaA2JXjiIXq&format=png',
+    iconType: 'photo'
   },
   // 自行车图标 (6-20 km/h)
   {
     speed: 6,
-    icon: 'https://img.icons8.com/color/48/000000/bicycle.png'
+    icon: 'https://img.icons8.com/color/48/000000/bicycle.png',
+    iconType: 'photo'
   },
   // 汽车图标 (20-100 km/h)
   {
     speed: 20,
-    icon: 'https://img.icons8.com/color/48/000000/car--v1.png'
+    icon: 'https://img.icons8.com/color/48/000000/car--v1.png',
+    iconType: 'photo'
   },
   // 动车/高铁图标 (100-300 km/h)
   {
     speed: 100,
-    icon: 'https://img.icons8.com/color/48/000000/high-speed-train.png'
+    icon: 'https://img.icons8.com/color/48/000000/high-speed-train.png',
+    iconType: 'photo'
   },
   // 飞机图标 (>300 km/h)
   {
     speed: 300,
-    icon: 'https://img.icons8.com/color/48/000000/airplane-mode-on.png'
+    icon: 'https://img.icons8.com/color/48/000000/airplane-mode-on.png',
+    iconType: 'photo'
   }
 ];

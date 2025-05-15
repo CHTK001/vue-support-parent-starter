@@ -880,104 +880,20 @@ export class MarkerObject {
    * @returns 图标样式
    */
   private createMarkerStyle(options: MarkerOptions): Style | Style[] {
-    const styleOptions = options.style || this.defaultStyle;
-    let iconUrl = this.defaultIconUrl;
-    
-    // 根据不同的图标类型处理图标
-    if (options.icon) {
-      switch (options.iconType) {
-        case 'url':
-          // 直接使用URL
-          iconUrl = options.icon;
-          break;
-        case 'svg':
-          // 将SVG字符串转换为Data URL
-          iconUrl = 'data:image/svg+xml;base64,' + btoa(options.icon);
-          break;
-        case 'base64':
-          // 已经是Data URL格式，直接使用
-          iconUrl = options.icon;
-          break;
-        case 'default':
-        default:
-          // 如果提供了icon但类型是default，优先使用提供的icon
-          iconUrl = options.icon || this.defaultIconUrl;
-          break;
-      }
-    } else {
-      iconUrl = this.defaultIconUrl;
+    // 获取基准缩放级别
+    let baseZoom: number | undefined;
+    if (this.config.scaleWithZoom && options.data?._baseZoom) {
+      baseZoom = options.data._baseZoom;
     }
-    
-    // 检查是否应该根据zoom级别缩放图标
+
+    // 获取当前缩放级别
+    let currentZoom: number | undefined;
     if (this.config.scaleWithZoom && this.mapInstance) {
-      const zoom = this.mapInstance.getView().getZoom() || 0;
-      
-      // 获取标记点自己的基准缩放级别
-      const markerBaseZoom = options.data && options.data._baseZoom ? options.data._baseZoom : undefined;
-      
-      // 使用独立方法计算缩放因子，传入标记点自己的基准缩放级别
-      const limitedFactor = this.calculateScaleFactor(zoom, markerBaseZoom);
-      
-      // 简化：直接使用计算出的缩放因子作为样式的缩放值
-      styleOptions.scale = limitedFactor;
-      
-      this.log('debug', `应用zoom缩放: zoom=${zoom}, baseZoom=${markerBaseZoom}, factor=${limitedFactor}, scale=${styleOptions.scale}`);
-    } else {
-      // 不根据zoom缩放，使用默认缩放值
-      styleOptions.scale = this.defaultStyle.scale;
+      currentZoom = this.mapInstance.getView().getZoom() || undefined;
     }
-    
-    // 获取图标锚点 - 保持锚点始终为底部中心点，确保定位准确
-    const anchor = [0.5, 1]; // 固定锚点为图标底部中心
-    
-    // 使用IconUtils创建适合的样式
-    if (options.iconType === 'url' && options.icon && (options.icon.startsWith('http') || options.icon.startsWith('https'))) {
-      // 对于远程URL类型的图标，使用IconUtils的Photo样式
-      const size = [32, 32]; // 默认大小
-      
-      // 创建Photo样式所需选项
-      const photoOptions = {
-        kind: options.data?.photoKind || 'circle',
-        stroke: options.data?.photoStroke !== undefined ? options.data?.photoStroke : 2,
-        strokeColor: options.data?.photoStrokeColor || '#ffffff',
-        shadow: options.data?.photoShadow !== false,
-        shadowBlur: options.data?.photoShadowBlur || 7,
-        shadowColor: options.data?.photoShadowColor || 'rgba(0,0,0,0.5)',
-        crop: options.data?.photoCrop !== false,
-        background: options.data?.photoBackground || 'transparent' // 默认透明背景
-      };
-      
-      this.log('debug', `使用Photo样式渲染URL图标: ${options.icon}`, { photoOptions });
-      
-      // 使用IconUtils创建Photo样式
-      return IconUtils.createSafeIconStyle(
-        options.icon,
-        styleOptions.scale || 1,
-        size,
-        '#1890ff', // 默认回退颜色
-        photoOptions
-      );
-    } else {
-      // 对于其他类型的图标，保持原有逻辑
-      // 创建标准图标样式
-      const iconImage = new Icon({
-        src: iconUrl,
-        scale: styleOptions.scale,
-        anchor: anchor,
-        anchorXUnits: 'fraction', // 水平锚点以分数表示（0.5表示中心）
-        anchorYUnits: 'fraction', // 修改为fraction，使垂直锚点位置与缩放无关
-        offset: [0, 0], // 不使用偏移，确保位置准确
-        rotation: styleOptions.rotation || 0
-      });
-      
-      // 创建图标样式
-      const iconStyle = new Style({
-        image: iconImage,
-        zIndex: options.zIndex || 1
-      });
-      
-      return iconStyle;
-    }
+
+    // 使用IconUtils创建样式
+    return IconUtils.createMarkerStyleFromOptions(options, baseZoom, currentZoom);
   }
 
   /**
@@ -2086,32 +2002,6 @@ export class MarkerObject {
       maxScale: this.config.maxScale || 1.2,
       scaleWithZoom: this.config.scaleWithZoom || false
     };
-  }
-
-  /**
-   * 计算缩放因子
-   * @param currentZoom 当前缩放级别
-   * @param markerBaseZoom 标记点的基准缩放级别
-   * @returns 缩放因子
-   */
-  private calculateScaleFactor(currentZoom: number, markerBaseZoom?: number): number {
-    const zoomFactor = this.config.zoomFactor || 0.05;
-    const minScale = this.config.minScale || 0.8;
-    const maxScale = this.config.maxScale || 1.2;
-    
-    // 计算当前zoom与基准zoom的差值
-    // 注意：这里与之前的逻辑相反，现在是currentZoom - baseZoom
-    // 这样当currentZoom增大时，zoomChange为正，图标变大
-    // 当currentZoom减小时，zoomChange为负，图标变小
-    const zoomChange = currentZoom - markerBaseZoom;
-    
-    // 直接将zoom变化值乘以缩放系数获得缩放比例
-    // zoomChange为正值，表示地图放大，图标放大
-    // zoomChange为负值，表示地图缩小，图标缩小
-    const scaleFactor = 1 + (zoomChange * zoomFactor);
-    
-    // 限制在配置的最小和最大缩放范围内
-    return Math.max(minScale, Math.min(maxScale, scaleFactor));
   }
 
   /**
