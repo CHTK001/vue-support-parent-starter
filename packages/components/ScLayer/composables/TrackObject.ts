@@ -1466,6 +1466,15 @@ export class TrackObject {
       this.log('debug', `使用轨迹默认图标: ${iconUrl}`);
     }
     
+    // 检查图标URL是否为HTTP/HTTPS，记录详细信息
+    if (iconUrl && (iconUrl.startsWith('http://') || iconUrl.startsWith('https://'))) {
+      this.log('debug', `HTTP(S)图标URL: ${iconUrl}`, { 
+        id, 
+        position: `${position.lng},${position.lat}`, 
+        iconSize
+      });
+    }
+    
     // 设置样式
     if (iconUrl) {
       try {
@@ -1475,34 +1484,12 @@ export class TrackObject {
       } catch (error) {
         // 如果创建样式失败，使用默认样式
         this.log('error', `创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
-        style = new Style({
-          image: new CircleStyle({
-            radius: 6,
-            fill: new Fill({
-              color: track.color || 'rgba(24, 144, 255, 1)'
-            }),
-            stroke: new Stroke({
-              color: 'white',
-              width: 2
-            })
-          })
-        });
+        style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
       }
     } else {
       // 使用默认圆点样式
       this.log('debug', `未找到适用的图标，使用默认圆点样式`);
-      style = new Style({
-        image: new CircleStyle({
-          radius: 6,
-          fill: new Fill({
-            color: track.color || 'rgba(24, 144, 255, 1)'
-          }),
-          stroke: new Stroke({
-            color: 'white',
-            width: 2
-          })
-        })
-      });
+      style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
     }
     
     // 在向量上下文中绘制点
@@ -1513,18 +1500,9 @@ export class TrackObject {
     } catch (error) {
       // 如果绘制失败，尝试使用基本样式
       this.log('error', `绘制位置标记失败: ${error.message || '未知错误'}`);
-      const fallbackStyle = new Style({
-        image: new CircleStyle({
-          radius: 6,
-          fill: new Fill({
-            color: track.color || 'rgba(24, 144, 255, 1)'
-          }),
-          stroke: new Stroke({
-            color: 'white',
-            width: 2
-          })
-        })
-      });
+      
+      // 使用完全默认的Style，避免任何可能的错误
+      const fallbackStyle = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
       
       try {
         vectorContext.setStyle(fallbackStyle);
@@ -1597,10 +1575,30 @@ export class TrackObject {
         }
       }
     } else if (this.trackMovingOverlay) {
-      // 如果不需要显示信息，但存在Overlay，则移除
+      // 如果不需要显示内容，且存在Overlay，则移除
       this.mapInstance!.removeOverlay(this.trackMovingOverlay);
       this.trackMovingOverlay = null;
     }
+  }
+  
+  /**
+   * 创建默认的标记样式
+   * @param color 颜色
+   * @returns 样式对象
+   */
+  private createDefaultMarkerStyle(color: string): Style {
+    return new Style({
+      image: new CircleStyle({
+        radius: 6,
+        fill: new Fill({
+          color: color
+        }),
+        stroke: new Stroke({
+          color: 'white',
+          width: 2
+        })
+      })
+    });
   }
 
   /**
@@ -3910,17 +3908,37 @@ export class TrackObject {
       return true;
     }
     
+    // 检查是否是HTTP/HTTPS URL
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        // 验证URL格式
+        new URL(url);
+        return true;
+      } catch (e) {
+        this.log('warn', `HTTP/HTTPS URL格式无效: ${url}`, e);
+        return false;
+      }
+    }
+    
+    // 检查是否是相对路径
+    if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../') || !url.includes(':')) {
+      // 相对路径通常有效，返回true
+      return true;
+    }
+    
+    // 尝试验证其他可能的URL格式
     try {
       // 检查URL是否合法
       new URL(url);
       return true;
     } catch (e) {
-      // 尝试将相对路径转换为绝对路径
-      if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
-        // 相对路径可能有效，不做URL验证
+      // 如果不是有效的URL，但不包含特殊字符，也认为可能是有效的路径
+      if (!/[?&#%"]/.test(url)) {
+        this.log('debug', `未能验证但可能是有效的资源路径: ${url}`);
         return true;
       }
-      console.warn(`图标URL无效: ${url}`);
+      
+      this.log('warn', `图标URL无效: ${url}`);
       return false;
     }
   }
@@ -3955,30 +3973,48 @@ export class TrackObject {
         if (url.startsWith('http') || url.startsWith('https')) {
           // 对于HTTP(S)链接，添加跨域支持
           iconOptions.crossOrigin = 'anonymous';
-          // 关键改进：添加imgSize参数和禁用缓存
+          
+          // 关键改进：添加imgSize参数，确保图片尺寸正确
           if (size && size.length === 2) {
-            iconOptions.imgSize = size;
+            iconOptions.imgSize = [...size]; // 创建副本以避免引用问题
           }
-          // 添加更详细的日志
-          this.log('debug', `加载远程图片: ${url}`, { crossOrigin: 'anonymous', size });
           
-          // 预加载图片以确保能正确显示
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          // 添加随机参数避免缓存问题
-          img.src = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+          // 添加timestamp参数来避免浏览器缓存
+          const cacheBustUrl = url.includes('?') ? 
+            `${url}&_t=${Date.now()}` : 
+            `${url}?_t=${Date.now()}`;
+          iconOptions.src = cacheBustUrl;
           
-          img.onload = () => {
-            this.log('debug', `远程图片加载成功: ${url}`);
-            // 图片加载成功后触发地图重绘
-            if (this.mapInstance) {
-              this.mapInstance.render();
-            }
-          };
+          this.log('debug', `加载远程图片: ${cacheBustUrl}`, { crossOrigin: 'anonymous', size });
           
-          img.onerror = (e) => {
-            this.log('error', `远程图片加载失败: ${url}`, e);
-          };
+          // 在实际创建样式之前预加载图片
+          // 注意：这是异步的，但我们会返回样式对象，然后在图片加载完成后重新渲染
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              this.log('debug', `远程图片加载成功: ${url}，尺寸: ${img.width}x${img.height}`);
+              
+              // 如果没有指定尺寸，使用实际图片尺寸
+              if (!iconOptions.imgSize) {
+                iconOptions.imgSize = [img.width, img.height];
+              }
+              
+              // 图片加载成功后触发地图重绘
+              if (this.mapInstance) {
+                this.mapInstance.render();
+              }
+            };
+            
+            img.onerror = (e) => {
+              this.log('error', `远程图片加载失败: ${url}`, e);
+            };
+            
+            // 设置src开始加载图片
+            img.src = cacheBustUrl;
+          } catch (e) {
+            this.log('error', `预加载图片失败: ${e.message || '未知错误'}`);
+          }
         } else if (url.startsWith('data:image')) {
           // base64不需要特殊处理
           this.log('debug', `使用base64图片`);
@@ -3987,17 +4023,16 @@ export class TrackObject {
           try {
             // 修复：使用更安全的方式处理SVG内容，防止编码问题
             // 对于中文或特殊字符，直接使用encodeURIComponent更安全
-            const svgDataUrl = 'data:image/svg+xml,' + encodeURIComponent(url);
+            const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(url)));
             iconOptions.src = svgDataUrl;
-            this.log('debug', `SVG转换为data URL成功`);
+            this.log('debug', `SVG转换为base64成功`);
           } catch (e) {
             this.log('error', `SVG转换失败: ${e.message}`);
-            // 如果转换失败，尝试使用Base64编码
+            // 如果转换失败，尝试使用URL编码
             try {
-              // 首先进行encodeURIComponent，然后用unescape转为ASCII，再使用btoa进行Base64编码
-              const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(url)));
-              iconOptions.src = svgBase64;
-              this.log('debug', `SVG转换为base64成功`);
+              const svgDataUrl = 'data:image/svg+xml,' + encodeURIComponent(url);
+              iconOptions.src = svgDataUrl;
+              this.log('debug', `SVG转换为URL编码成功`);
             } catch (err) {
               this.log('error', `SVG所有转换方法均失败: ${err.message}`);
               // 如果所有转换都失败，保持原SVG内容
