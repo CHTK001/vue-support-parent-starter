@@ -232,32 +232,8 @@
 
               <div class="feature-group-title">轨迹控制</div>
               <div class="control-row buttons-row">
-                <button @click="playTrack">播放轨迹</button>
-                <button @click="stopTrack">停止轨迹</button>
-              </div>
-              <div class="control-row buttons-row">
                 <button @click="clearAllTracks">清除所有轨迹</button>
                 <button @click="toggleTrackVisible">{{ allTracksVisible ? '隐藏所有轨迹' : '显示所有轨迹' }}</button>
-              </div>
-
-              <!-- 在轨迹操作区域添加轨迹播放配置选项 -->
-              <div class="feature-group-title">轨迹播放配置</div>
-              <div class="control-row">
-                <span>速度:</span>
-                <input type="range" v-model.number="trackPlaySpeed" min="10" max="200" step="10" @change="updateTrackPlayConfig">
-                <span class="value">{{ trackPlaySpeed }} km/h</span>
-              </div>
-              <div class="control-row">
-                <span>循环播放:</span>
-                <input type="checkbox" v-model="trackPlayLoop" @change="updateTrackPlayConfig">
-              </div>
-              <div class="control-row">
-                <span>跟随相机:</span>
-                <input type="checkbox" v-model="trackPlayWithCamera" @change="updateTrackPlayConfig">
-              </div>
-              <div class="control-row">
-                <span>显示节点:</span>
-                <input type="checkbox" v-model="trackPlayShowNodes" @change="updateTrackPlayConfig">
               </div>
 
               <!-- 在轨迹操作区域的轨迹列表部分添加 -->
@@ -666,41 +642,6 @@ const trackPlaySpeed = ref(60);
 const trackPlayLoop = ref(true);
 const trackPlayWithCamera = ref(false);
 const trackPlayShowNodes = ref(false);
-
-// 更新轨迹播放配置
-const updateTrackPlayConfig = () => {
-  if (layerRef.value && hasTrack.value && tracks.value.length > 0) {
-    const trackId = tracks.value[0].id;
-    
-    // 获取播放状态
-    const isPlaying = layerRef.value.isTrackPlaying && layerRef.value.isTrackPlaying(trackId);
-    
-    if (isPlaying) {
-      // 如果正在播放，应用新配置
-      layerRef.value.updateTrackPlayer(trackId, {
-        loop: trackPlayLoop.value,
-        speed: trackPlaySpeed.value,
-        withCamera: trackPlayWithCamera.value,
-        showNodes: trackPlayShowNodes.value,
-        showNodeAnchors: true,       // 始终显示节点锚点
-        showNodeNames: true,         // 显示节点名称
-        showNodeTime: true,          // 显示节点时间
-        showPointNames: true,        // 显示移动点位名称
-        showSpeed: true,             // 显示速度信息
-        showNodeSpeed: true          // 显示节点速度
-      });
-      
-      // 获取地图对象并触发渲染
-      const map = layerRef.value.getMapObject();
-      if (map) {
-        // 触发地图渲染以更新UI
-        map.render();
-      }
-      
-      addLog('配置', `已更新轨迹播放配置: 速度=${trackPlaySpeed.value}km/h, 循环=${trackPlayLoop.value}, 跟随相机=${trackPlayWithCamera.value}, 显示节点=${trackPlayShowNodes.value}, 显示节点名称=true, 显示节点时间=true`);
-    }
-  }
-};
 
 // 计算可见标记点数量
 const visibleMarkerCount = computed(() => {
@@ -2144,119 +2085,6 @@ const addZigzagTrack = () => {
     }
   } catch (e) {
     addLog('error', `添加Z字形轨迹失败: ${e}`);
-  }
-};
-
-// 播放轨迹
-const playTrack = () => {
-  try {
-    if (!hasTrack.value || tracks.value.length === 0) {
-      addLog('warn', '没有可播放的轨迹');
-      return;
-    }
-    
-    if (!layerRef.value) {
-      addLog('error', '地图组件未初始化');
-      return;
-    }
-    
-    // 尝试播放第一条轨迹
-    const track = tracks.value[0];
-    
-    // 获取地图对象，确保地图已正确初始化
-    const map = layerRef.value.getMapObject();
-    if (!map) {
-      addLog('error', '获取地图对象失败');
-      return;
-    }
-    
-    // 使用配置变量设置播放参数
-    const success = layerRef.value.playTrack(track.id, {
-      // 使用配置变量
-      loop: trackPlayLoop.value,
-      speed: trackPlaySpeed.value,
-      withCamera: trackPlayWithCamera.value,
-      speedFactor: 1.0,
-      // 显示设置
-      showNodes: trackPlayShowNodes.value,
-      showNodeAnchors: true,
-      showNodeNames: true,  // 显示节点名称
-      showNodeTime: true,   // 显示节点时间
-      showPointNames: true, // 显示移动点位名称
-      showSpeed: true,      // 显示速度
-      showNodeSpeed: true   // 显示节点速度
-    });
-    
-    if (success) {
-      // 尝试激活轨迹播放器工具
-      layerRef.value.activateTool('track-player');
-      
-      // 触发一次地图渲染，确保动画开始
-      map.render();
-      
-      // 确保动画流畅性，添加定时器定期触发渲染
-      setTimeout(() => {
-        // 再次触发一次渲染，避免初始化延迟问题
-        map.render();
-      }, 100);
-      
-      // 更新轨迹配置，确保设置生效
-      layerRef.value.updateTrackPlayer(track.id, {
-        showNodes: trackPlayShowNodes.value,
-        showNodeAnchors: true,
-        showNodeNames: true,  // 显示节点名称
-        showNodeTime: true,   // 显示节点时间
-        showPointNames: true, // 显示移动点位名称
-        showSpeed: true,      // 显示速度
-        showNodeSpeed: true   // 显示节点速度
-      });
-      
-      addLog('info', `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h，循环: ${trackPlayLoop.value ? '是' : '否'}`);
-    } else {
-      addLog('error', `播放轨迹失败: ${track.name}`);
-    }
-  } catch (e) {
-    console.error('播放轨迹失败:', e);
-    addLog('error', `播放轨迹失败: ${e}`);
-  }
-};
-
-// 停止轨迹播放
-const stopTrack = () => {
-  try {
-    if (!hasTrack.value || tracks.value.length === 0) {
-      addLog('warn', '没有正在播放的轨迹');
-      return;
-    }
-    
-    if (!layerRef.value) {
-      addLog('error', '地图组件未初始化');
-      return;
-    }
-    
-    // 尝试停止所有轨迹播放
-    let stopped = false;
-    
-    // 遍历所有轨迹并停止播放
-    tracks.value.forEach(track => {
-      try {
-        const success = layerRef.value.stopTrack(track.id);
-        if (success) stopped = true;
-      } catch (e) {
-        console.error(`停止轨迹 ${track.name} 失败:`, e);
-      }
-    });
-    
-    if (stopped) {
-      // 停用轨迹播放器工具
-      layerRef.value.deactivateTool('track-player');
-      addLog('info', '已停止轨迹播放');
-    } else {
-      addLog('warn', '没有正在播放的轨迹');
-    }
-  } catch (e) {
-    console.error('停止轨迹播放失败:', e);
-    addLog('error', `停止轨迹播放失败: ${e}`);
   }
 };
 
