@@ -738,6 +738,13 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       logger.debug('[Shape] 删除模式按钮处理 - 已由ToolbarObject处理');
     },
     
+    // 处理图形编辑工具
+    'edit-shape': () => {
+      // 此处不需要做任何操作，因为ToolbarObject中的handleShapeEditActivate方法已经处理了激活编辑模式
+      // 避免与ToolbarObject中的逻辑重复
+      logger.debug('[Shape] 编辑模式按钮处理 - 已由ToolbarObject处理');
+    },
+    
     // 处理图形创建完成事件
     'shape-created': () => {
       if (toolType === 'shape' && active && data) {
@@ -747,6 +754,14 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           logger.debug(`[Shape] 接收到图形创建事件，ID: ${id}, 类型: ${options.type}`);
           emit('shape-create' as MapEventType, { id, options });
         }
+      }
+    },
+    
+    // 处理图形更新事件
+    'edit': () => {
+      if (toolType === 'edit' && data && data.action === 'update' && data.shapeId) {
+        logger.debug(`[Shape] 接收到图形更新事件，ID: ${data.shapeId}, 类型: ${data.shapeType}`);
+        emit('shape-update' as MapEventType, { id: data.shapeId, options: {} });
       }
     },
   };
@@ -2434,7 +2449,7 @@ watch(() => props.aggregationOptions, (newOptions) => {
 }
 </style>
 
-<style>
-@import "./styles/index.scss";
-@import "./styles/measure.scss";
+<style lang="scss">
+@use "./styles/index.scss";
+@use "./styles/measure.scss";
 </style>

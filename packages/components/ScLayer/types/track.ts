@@ -56,6 +56,7 @@ export interface TrackPlayerConfigOptions {
   showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
   showSpeed?: boolean;    // 是否显示移动速度
   showNodeSpeed?: boolean;// 是否显示节点速度
+  updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
 }
 
 // 轨迹数据接口

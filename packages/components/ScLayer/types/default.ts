@@ -11,7 +11,8 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   showNodeNames: true, // 是否显示节点名称（静态点位名称）
   showPointNames: true, // 是否显示点位名称（移动点位名称）
   showSpeed: true,      // 是否显示移动速度
-  showNodeSpeed: true   // 是否显示节点速度
+  showNodeSpeed: true,   // 是否显示节点速度
+  updateFrequency: 100   // 更新频率(毫秒)，默认100毫秒，高频更新
 };
 
 // 默认的交通工具基于速度的图标分组配置

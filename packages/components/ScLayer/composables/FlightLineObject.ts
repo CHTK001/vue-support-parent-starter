@@ -500,8 +500,8 @@ export class FlightLineObject {
     if (!activeLine) {
       logger.warn(`[FlightLine] 获取激活飞线失败, ID: ${this.activeFlightLine}`);
       return result;
-    }
-    
+      }
+      
     // 检查激活的飞线是否是多组坐标
     if (activeLine.isMultiCoords && activeLine.coords && Array.isArray(activeLine.coords)) {
       // 处理多组坐标
@@ -553,7 +553,7 @@ export class FlightLineObject {
               symbolSize: coordGroup.effectSymbolSize || activeLine.effectSymbolSize || this.config.effectSymbolSize || 18
             }
           });
-        }
+            }
       });
     } else {
       // 传统单组坐标处理逻辑
@@ -575,14 +575,14 @@ export class FlightLineObject {
         toCoord = this.geoCoordMap[activeLine.toName];
       } else if (activeLine.coords && Array.isArray(activeLine.coords) && activeLine.coords.length > 1) {
         toCoord = activeLine.coords[1];
-      }
-      
-      // 确保坐标有效
+          }
+
+          // 确保坐标有效
       if (!this.isValidCoordinate(fromCoord) || !this.isValidCoordinate(toCoord)) {
         logger.warn(`[FlightLine] 无效坐标: [${fromCoord}] => [${toCoord}]`);
         return result;
-      }
-      
+          }
+
       const lineStyle = activeLine.style || {};
       const highlight = activeLine.highlight || false;
       
@@ -597,7 +597,7 @@ export class FlightLineObject {
         toName: activeLine.toName,
         value: activeLine.value || 1,
         // 使用自定义样式
-        lineStyle: {
+            lineStyle: {
           color: highlight ? '#ff0000' : (lineStyle.color || this.config.color || '#1677ff'),
           width: highlight ? 3 : (lineStyle.width || this.config.width || 1),
           opacity: highlight ? 1 : (lineStyle.opacity || this.config.opacity || 0.8),
@@ -713,8 +713,8 @@ export class FlightLineObject {
             color: this.config.nodeColor || '#1677ff'
           }
         });
-      }
-      
+        }
+        
       // 添加终点
       if (this.isValidCoordinate(toCoord)) {
         // 对于cartesian2d坐标系，直接使用经纬度数据
@@ -724,8 +724,8 @@ export class FlightLineObject {
           symbolSize: this.config.nodeSymbolSize || 12,
           itemStyle: {
             color: this.config.nodeColor || '#1677ff'
-          }
-        });
+      }
+    });
       }
     }
     

@@ -34,6 +34,7 @@ import {
   FLIGHT_LINE_ICON,
   SHOW_MARKERS_ICON,
   HIDE_MARKERS_LABEL_ICON,
+  EDIT_ICON,
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -167,7 +168,8 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       icon: DELETE_ICON,
       title: '删除',
       tooltip: '删除图形或标记',
-      multi: false
+      multi: false,
+      className: 'delete-btn'
     },
     {
       id: 'marker-toggle',
@@ -233,6 +235,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       icon: POLYLINE_ICON,
       title: '线段',
       tooltip: '绘制线段',
+      multi: false
+    },
+    {
+      id: 'edit-shape',
+      type: 'toggle',
+      icon: EDIT_ICON,
+      title: '编辑',
+      tooltip: '编辑图形',
       multi: false
     },
     {
