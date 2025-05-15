@@ -9,6 +9,9 @@ import OLStyleIcon from 'ol-ext/style/FontSymbol';
 import OLStyleShadow from 'ol-ext/style/Shadow';
 import OLStylePhoto from 'ol-ext/style/Photo'; // 引入Photo样式
 import logger from '../composables/LogObject';
+import { MarkerOptions } from '../types/marker';
+import { Point } from 'ol/geom';
+import { fromLonLat } from 'ol/proj';
 
 // 图标工具模块的日志前缀
 const LOG_MODULE = 'IconUtils';
@@ -20,7 +23,8 @@ export enum IconType {
   URL = 'url',       // 直接使用URL
   SVG = 'svg',       // SVG字符串
   BASE64 = 'base64', // Data URL格式
-  DEFAULT = 'default' // 默认图标
+  DEFAULT = 'default', // 默认图标
+  PHOTO = 'photo'    // 使用Photo样式的图标
 }
 
 /**
@@ -177,9 +181,9 @@ export class IconUtils {
             photoConfig.shadowColor = photoOptions.shadowColor || 'rgba(0,0,0,0.5)';
           }
           
-          // 添加背景色配置 - 默认为透明
+          // 添加背景色配置 - 强制透明背景
           photoConfig.background = new Fill({
-            color: photoOptions?.background || 'transparent'
+            color: 'rgba(0,0,0,0)' // 使用完全透明的RGBA颜色
           });
           
           // 创建Photo样式
@@ -285,8 +289,29 @@ export class IconUtils {
       // 根据图标类型创建不同的样式
       switch (iconType) {
         case IconType.URL:
-          // 处理URL类型的图标，使用Photo样式
-          return this.createSafeIconStyle(icon, scale, size, color, photoOptions);
+          // 处理URL类型的图标，使用标准Icon样式
+          if (icon.startsWith('http') || icon.startsWith('https')) {
+            return new Style({
+              image: new Icon({
+                src: icon,
+                scale: scale,
+                size: size,
+                anchor: anchor,
+                offset: offset,
+                rotation: rotation
+              }),
+              zIndex: zIndex
+            });
+          } else {
+            return this.createSafeIconStyle(icon, scale, size, color);
+          }
+        case IconType.PHOTO:
+          // 处理PHOTO类型的图标，使用Photo样式
+          if (icon.startsWith('http') || icon.startsWith('https')) {
+            return this.createSafeIconStyle(icon, scale, size, color, photoOptions);
+          } else {
+            return this.createSafeIconStyle(icon, scale, size, color);
+          }
         case IconType.SVG:
           // 处理SVG类型的图标
           return this.createSafeIconStyle(icon, scale, size, color);
@@ -301,7 +326,18 @@ export class IconUtils {
           } else {
             // 尝试自动识别图标类型
             if (icon.startsWith('http') || icon.startsWith('https')) {
-              return this.createSafeIconStyle(icon, scale, size, color, photoOptions);
+              // 对于远程URL，默认使用标准Icon样式，除非明确指定为PHOTO类型
+              return new Style({
+                image: new Icon({
+                  src: icon,
+                  scale: scale,
+                  size: size,
+                  anchor: anchor,
+                  offset: offset,
+                  rotation: rotation
+                }),
+                zIndex: zIndex
+              });
             } else if (icon.startsWith('<svg')) {
               return this.createSafeIconStyle(icon, scale, size, color);
             } else if (icon.startsWith('data:')) {
@@ -458,7 +494,7 @@ export class IconUtils {
       
       // 添加背景色 - 默认为透明
       photoConfig.background = new Fill({
-        color: background || 'transparent'
+        color: 'rgba(0,0,0,0)' // 使用完全透明的RGBA颜色
       });
       
       // 创建Photo样式
@@ -545,6 +581,165 @@ export class IconUtils {
         background: 'rgba(255,255,200,0.8)'
       })
     };
+  }
+
+  /**
+   * 从MarkerOptions创建样式
+   * 整合MarkerObject中的createMarkerStyle逻辑
+   * @param options 标记点配置选项
+   * @param baseZoom 可选的基准缩放级别
+   * @param currentZoom 可选的当前缩放级别
+   * @returns 图标样式
+   */
+  public static createMarkerStyleFromOptions(
+    options: MarkerOptions, 
+    baseZoom?: number, 
+    currentZoom?: number
+  ): Style | Style[] {
+    if (!options) {
+      return new Style({});
+    }
+    
+    const {
+      icon,
+      iconType = 'default',
+      style = {},
+      zIndex = 10000
+    } = options;
+    
+    // 默认样式
+    const defaultStyle = {
+      scale: 1,
+      anchor: [0.5, 1] as [number, number],
+      offset: [0, 0] as [number, number],
+      rotation: 0,
+      textColor: '#333',
+      textOutlineColor: '#fff',
+      textOutlineWidth: 2,
+      textFont: '14px Arial',
+      textOffsetY: -20
+    };
+    
+    // 合并样式
+    const styleOptions = { ...defaultStyle, ...style };
+    
+    // 默认图标URL
+    const defaultIconUrl = this.defaultIconUrl;
+    
+    // 根据不同的图标类型处理图标
+    let iconUrl = defaultIconUrl;
+    if (icon) {
+      iconUrl = icon;
+    }
+    
+    // 如果提供了缩放级别，计算缩放因子
+    if (baseZoom !== undefined && currentZoom !== undefined) {
+      // 计算当前zoom与基准zoom的差值
+      const zoomChange = currentZoom - baseZoom;
+      
+      // 缩放参数
+      const zoomFactor = 0.05;
+      const minScale = 0.8;
+      const maxScale = 1.2;
+      
+      // 直接将zoom变化值乘以缩放系数获得缩放比例
+      const scaleFactor = 1 + (zoomChange * zoomFactor);
+      
+      // 限制在最小和最大缩放范围内
+      styleOptions.scale = Math.max(minScale, Math.min(maxScale, scaleFactor));
+    }
+    
+    // 获取图标锚点 - 保持锚点始终为底部中心点，确保定位准确
+    const anchor = styleOptions.anchor || [0.5, 1]; // 固定锚点为图标底部中心
+    
+    // 根据图标类型使用不同的渲染方式
+    switch (iconType) {
+      case 'photo':
+        // 使用Photo样式处理远程URL
+        if (icon && (icon.startsWith('http') || icon.startsWith('https'))) {
+          const size: [number, number] = [32, 32]; // 默认大小
+          
+          // 创建Photo样式所需选项
+          const photoOptions = {
+            kind: options.data?.photoKind || 'circle',
+            stroke: options.data?.photoStroke !== undefined ? options.data?.photoStroke : 2,
+            strokeColor: options.data?.photoStrokeColor || '#ffffff',
+            shadow: options.data?.photoShadow !== false,
+            shadowBlur: options.data?.photoShadowBlur || 7,
+            shadowColor: options.data?.photoShadowColor || 'rgba(0,0,0,0.5)',
+            crop: options.data?.photoCrop !== false,
+            background: 'rgba(0,0,0,0)' // 强制透明背景
+          };
+          
+          this.log('debug', `使用Photo样式渲染URL图标: ${icon}`, { photoOptions });
+          
+          // 使用IconUtils创建Photo样式
+          return this.createSafeIconStyle(
+            icon,
+            styleOptions.scale || 1,
+            size,
+            '#1890ff', // 默认回退颜色
+            photoOptions
+          );
+        }
+        break;
+        
+      case 'url':
+        // 使用标准Icon样式处理URL
+        if (icon && (icon.startsWith('http') || icon.startsWith('https'))) {
+          this.log('debug', `使用标准Icon样式渲染URL图标: ${icon}`);
+          
+          // 创建标准图标样式
+          return new Style({
+            image: new Icon({
+              src: iconUrl,
+              scale: styleOptions.scale,
+              anchor: anchor,
+              anchorXUnits: 'fraction',
+              anchorYUnits: 'fraction',
+              offset: styleOptions.offset,
+              rotation: styleOptions.rotation || 0
+            }),
+            zIndex: zIndex
+          });
+        }
+        break;
+        
+      case 'svg':
+        // 处理SVG字符串
+        if (icon && icon.startsWith('<svg')) {
+          try {
+            const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(icon)));
+            iconUrl = svgDataUrl;
+          } catch (e) {
+            this.log('error', `SVG转换失败: ${e.message}`);
+          }
+        }
+        break;
+        
+      case 'base64':
+        // Base64格式图标不需要特殊处理
+        break;
+        
+      case 'default':
+      default:
+        // 默认图标类型不需要特殊处理
+        break;
+    }
+    
+    // 创建标准图标样式
+    return new Style({
+      image: new Icon({
+        src: iconUrl,
+        scale: styleOptions.scale,
+        anchor: anchor,
+        anchorXUnits: 'fraction',
+        anchorYUnits: 'fraction',
+        offset: styleOptions.offset,
+        rotation: styleOptions.rotation || 0
+      }),
+      zIndex: zIndex
+    });
   }
 }
 
