@@ -1,5 +1,6 @@
 <template>
-  <el-dialog draggable v-model="visible" :title="type === 'add' ? '新增配置' : '编辑配置'" width="650px" @close="handleClose" destroy-on-close class="sync-config-dialog">
+  <el-dialog draggable v-model="visible" :title="type === 'add' ? '新增配置' : '编辑配置'" width="650px" @close="handleClose"
+    destroy-on-close class="sync-config-dialog">
     <div class="dialog-content">
       <div class="dialog-header">
         <div class="dialog-icon">
@@ -13,7 +14,8 @@
 
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="config-form">
         <el-form-item label="配置名称" prop="schoolSyncConfigName">
-          <el-input v-model="formData.schoolSyncConfigName" placeholder="请输入配置名称" :prefix-icon="useRenderIcon(' ri:file-list-line')" />
+          <el-input v-model="formData.schoolSyncConfigName" placeholder="请输入配置名称"
+            :prefix-icon="useRenderIcon(' ri:file-list-line')" />
         </el-form-item>
 
         <el-form-item label="实现方式" prop="schoolSyncConfigType">
@@ -38,12 +40,22 @@
         </el-form-item>
 
         <el-form-item label="同步Cookie" prop="schoolSyncConfigCookie">
-          <el-input v-model="formData.schoolSyncConfigCookie" type="textarea" placeholder="请输入同步Cookie" :rows="4" class="params-textarea" />
+          <el-input v-model="formData.schoolSyncConfigCookie" type="textarea" placeholder="请输入同步Cookie" :rows="4"
+            class="params-textarea" />
+        </el-form-item>
+
+        <el-form-item label="代理地址" prop="schoolSyncConfigProxyHost">
+          <el-input v-model="formData.schoolSyncConfigProxyHost" placeholder="请输入代理地址" class="params-textarea" />
+        </el-form-item>
+
+        <el-form-item label="代理地址" prop="schoolSyncConfigProxyPort">
+          <el-input-number :min="1" :max="65535" v-model="formData.schoolSyncConfigProxyPort" :step="1" />
         </el-form-item>
 
         <el-form-item label="状态" prop="schoolSyncConfigEnabled">
           <div class="status-switch">
-            <el-switch v-model="formData.schoolSyncConfigEnabled" :active-value="true" :inactive-value="false" active-text="启用" inactive-text="停用" inline-prompt />
+            <el-switch v-model="formData.schoolSyncConfigEnabled" :active-value="true" :inactive-value="false"
+              active-text="启用" inactive-text="停用" inline-prompt />
             <span class="status-text">{{ formData.schoolSyncConfigEnabled ? "配置将被启用" : "配置将被停用" }}</span>
           </div>
         </el-form-item>
@@ -89,6 +101,10 @@ const formData = ref<SchoolSyncConfig>({
   schoolSyncConfigSchedule: "",
   schoolSyncConfigStatus: 1,
   schoolSyncConfigCookie: "",
+  schoolSyncConfigProxyHost: "",
+  schoolSyncConfigProxyPort: 0,
+  schoolSyncConfigProxyUsername: "",
+  schoolSyncConfigProxyPassword: "",
   schoolSyncConfigEnabled: true,
   schoolSyncConfigType: "",
 });
