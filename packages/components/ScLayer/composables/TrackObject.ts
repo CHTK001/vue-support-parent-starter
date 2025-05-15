@@ -24,6 +24,7 @@ import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
 import { DataType } from '../types';
 import logger from './LogObject';
 import Overlay from 'ol/Overlay';
+import IconUtils from '../utils/IconUtils';
 import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 
 // 轨迹模块的日志前缀
@@ -3894,6 +3895,7 @@ export class TrackObject {
    * 预先验证图标资源是否可用
    * @param url 图标URL
    * @returns 是否可用
+   * @deprecated 建议使用IconUtils.isIconValid替代
    */
   private isIconValid(url: string): boolean {
     if (!url) return false;
@@ -3952,118 +3954,8 @@ export class TrackObject {
    * @returns 样式对象
    */
   private createSafeIconStyle(url: string, scale: number, size: number[], fallbackColor: string): Style {
-    // 首先验证图标URL
-    if (this.isIconValid(url)) {
-      try {
-        // 创建图标样式
-        const iconOptions: any = {
-          src: url,
-          scale: scale,
-          anchor: [0.5, 0.5],
-          anchorXUnits: 'fraction',
-          anchorYUnits: 'fraction'
-        };
-        
-        // 只有当提供了具体尺寸时才设置size属性
-        if (size && size.length === 2 && size[0] > 0 && size[1] > 0) {
-          iconOptions.size = size;
-        }
-        
-        // 根据URL类型设置不同的参数
-        if (url.startsWith('http') || url.startsWith('https')) {
-          // 对于HTTP(S)链接，添加跨域支持
-          iconOptions.crossOrigin = 'anonymous';
-          
-          // 关键改进：添加imgSize参数，确保图片尺寸正确
-          if (size && size.length === 2) {
-            iconOptions.imgSize = [...size]; // 创建副本以避免引用问题
-          }
-          
-          // 添加timestamp参数来避免浏览器缓存
-          const cacheBustUrl = url.includes('?') ? 
-            `${url}&_t=${Date.now()}` : 
-            `${url}?_t=${Date.now()}`;
-          iconOptions.src = cacheBustUrl;
-          
-          this.log('debug', `加载远程图片: ${cacheBustUrl}`, { crossOrigin: 'anonymous', size });
-          
-          // 在实际创建样式之前预加载图片
-          // 注意：这是异步的，但我们会返回样式对象，然后在图片加载完成后重新渲染
-          try {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              this.log('debug', `远程图片加载成功: ${url}，尺寸: ${img.width}x${img.height}`);
-              
-              // 如果没有指定尺寸，使用实际图片尺寸
-              if (!iconOptions.imgSize) {
-                iconOptions.imgSize = [img.width, img.height];
-              }
-              
-              // 图片加载成功后触发地图重绘
-              if (this.mapInstance) {
-                this.mapInstance.render();
-              }
-            };
-            
-            img.onerror = (e) => {
-              this.log('error', `远程图片加载失败: ${url}`, e);
-            };
-            
-            // 设置src开始加载图片
-            img.src = cacheBustUrl;
-          } catch (e) {
-            this.log('error', `预加载图片失败: ${e.message || '未知错误'}`);
-          }
-        } else if (url.startsWith('data:image')) {
-          // base64不需要特殊处理
-          this.log('debug', `使用base64图片`);
-        } else if (url.startsWith('<svg')) {
-          // SVG字符串需要转换为data URL
-          try {
-            // 修复：使用更安全的方式处理SVG内容，防止编码问题
-            // 对于中文或特殊字符，直接使用encodeURIComponent更安全
-            const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(url)));
-            iconOptions.src = svgDataUrl;
-            this.log('debug', `SVG转换为base64成功`);
-          } catch (e) {
-            this.log('error', `SVG转换失败: ${e.message}`);
-            // 如果转换失败，尝试使用URL编码
-            try {
-              const svgDataUrl = 'data:image/svg+xml,' + encodeURIComponent(url);
-              iconOptions.src = svgDataUrl;
-              this.log('debug', `SVG转换为URL编码成功`);
-            } catch (err) {
-              this.log('error', `SVG所有转换方法均失败: ${err.message}`);
-              // 如果所有转换都失败，保持原SVG内容
-              iconOptions.src = url;
-            }
-          }
-        }
-        
-        return new Style({
-          image: new Icon(iconOptions)
-        });
-      } catch (error) {
-        this.log('error', `创建图标样式失败: ${error.message || '未知错误'}, URL: ${url}`);
-        // 错误时创建默认样式
-      }
-    }
-    
-    // 创建默认圆点样式作为回退
-    this.log('warn', `使用默认圆点样式，URL无效或处理失败: ${url}`);
-    return new Style({
-      image: new CircleStyle({
-        radius: 5,
-        fill: new Fill({
-          color: fallbackColor
-        }),
-        stroke: new Stroke({
-          color: '#ffffff',
-          width: 1.5
-        })
-      })
-    });
+    // 使用IconUtils工具类创建安全的图标样式
+    return IconUtils.createSafeIconStyle(url, scale, size as [number, number], fallbackColor);
   }
 
   /**

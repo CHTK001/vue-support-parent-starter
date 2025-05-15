@@ -161,7 +161,7 @@ export class FlightLineObject {
         // 将echarts图层添加到地图
       this.echartsLayer.appendTo(this.mapInstance);
         logger.debug('[FlightLine] 已将Echarts图层添加到地图');
-        
+
         // 等待DOM更新
         await new Promise(resolve => setTimeout(resolve, 100));
         
@@ -246,7 +246,7 @@ export class FlightLineObject {
     
     const mapElement = this.mapInstance.getTargetElement();
     if (!mapElement) return null;
-    
+
     // 尝试查找容器
     return mapElement.querySelector('.flight-line-layer') || 
            mapElement.querySelector('.ol-echarts') || 
@@ -288,7 +288,7 @@ export class FlightLineObject {
           logger.debug('[FlightLine] 地图移动开始，隐藏图层');
         }
       });
-      
+        
       // 监听地图移动结束事件
       const moveEndKey = this.mapInstance.on('moveend', () => {
         if (this.config.hideOnMoving && this.config.enablePerformanceMode) {
@@ -297,7 +297,7 @@ export class FlightLineObject {
             const container = this.getEchartsContainer();
             if (container) {
               container.style.display = 'block';
-            }
+          }
             
             // 更新并重绘
             if (typeof this.echartsLayer.redraw === 'function') {
@@ -306,8 +306,8 @@ export class FlightLineObject {
           }
           logger.debug('[FlightLine] 地图移动结束，显示并重绘图层');
         }
-      });
-      
+        });
+        
       // 存储事件监听器，以便后续移除
       this.eventListeners.push(viewChangeKey, moveStartKey, moveEndKey);
 
@@ -421,7 +421,7 @@ export class FlightLineObject {
           if (this.config.nodeEffect === false) {
             // @ts-ignore: 类型错误但运行时有效
             effectScatterSeries.rippleEffect.scale = 0;
-          }
+            }
         }
         
         // 添加线条系列
@@ -446,7 +446,7 @@ export class FlightLineObject {
       
       // 设置ECharts选项
       this.echartsLayer.setChartOptions(options);
-      
+
       logger.debug('[FlightLine] Echarts选项已更新');
     } catch (error) {
       logger.error('[FlightLine] 更新Echarts选项失败:', error);
