@@ -271,10 +271,6 @@
               <!-- 热力图操作区域 - 添加功能分组 -->
               <div class="feature-group-title">热力图控制</div>
               <div class="control-row buttons-row">
-                <button @click="enableHeatmap">启用热力图</button>
-                <button @click="disableHeatmap">禁用热力图</button>
-              </div>
-              <div class="control-row buttons-row">
                 <button @click="toggleHeatmapPerformanceMode">{{ heatmapPerformanceMode ? '禁用性能模式' : '启用性能模式' }}</button>
               </div>
 
@@ -300,12 +296,6 @@
             <div class="controls">
               <!-- 飞线图操作区域 - 添加功能分组 -->
               <div class="feature-group-title">飞线控制</div>
-              <div class="control-row buttons-row">
-                <button @click="enableFlightLine">启用飞线图</button>
-                <button @click="disableFlightLine">禁用飞线图</button>
-                <button @click="showAllFlightLines">显示全部飞线</button>
-              </div>
-
               <div class="feature-group-title">飞线样式</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomFlightLines">添加随机飞线</button>
@@ -314,26 +304,6 @@
               <div class="control-row buttons-row">
                 <button @click="addStarFlightLines">添加星型飞线</button>
                 <button @click="clearFlightLines">清除飞线</button>
-              </div>
-              <div class="control-row">
-                <span>曲率:</span>
-                <input type="range" v-model.number="flightLineConfig.curveness" min="0" max="1" step="0.1"
-                  @change="updateFlightLineConfig">
-                <span class="value">{{ flightLineConfig.curveness?.toFixed(1) || '0.0' }}</span>
-              </div>
-              <div class="control-row">
-                <span>动画:</span>
-                <input type="checkbox" v-model="flightLineConfig.showEffect" @change="updateFlightLineConfig">
-              </div>
-              <div class="control-row">
-                <span>线宽:</span>
-                <input type="range" v-model.number="flightLineConfig.width" min="1" max="10"
-                  @change="updateFlightLineConfig">
-                <span class="value">{{ flightLineConfig.width }}</span>
-              </div>
-              <div class="control-row">
-                <span>节点显示:</span>
-                <input type="checkbox" v-model="flightLineConfig.showNodes" @change="updateFlightLineConfig">
               </div>
             </div>
           </div>
@@ -2228,29 +2198,7 @@ const getDirectionName = (direction: string) => {
   }
 };
 
-/**
- * 启用热力图
- */
-const enableHeatmap = () => {
-  if (!layerRef.value) return;
-  
-  const result = layerRef.value.enableHeatmap();
-  if (result) {
-    addLog('热力图', '启用热力图');
-  }
-};
 
-/**
- * 禁用热力图
- */
-const disableHeatmap = () => {
-  if (!layerRef.value) return;
-  
-  const result = layerRef.value.disableHeatmap();
-  if (result) {
-    addLog('热力图', '禁用热力图');
-  }
-};
 
 /**
  * 添加随机热力点
@@ -2473,61 +2421,6 @@ const changeToolbarDirection = (direction: ToolbarDirection) => {
   addLog('工具栏', `切换方向: ${direction}`);
 };
 
-/**
- * 启用飞线图
- */
-const enableFlightLine = async () => {
-  if (!layerRef.value) return;
-  
-  try {
-    // 获取飞线图对象
-    const flightLineObj = layerRef.value.getFlightLineObject();
-    if (!flightLineObj) {
-      addLog('飞线图', '无法获取飞线图对象');
-      return;
-    }
-    
-    // 启用飞线图
-    await flightLineObj.enable();
-    flightLineActive.value = true;
-    addLog('飞线图', '飞线图已启用');
-    
-    // 添加测试飞线
-    if (process.env.NODE_ENV === 'development') {
-      addTestFlightLines();
-    }
-    
-    // 更新飞线列表
-    setTimeout(() => {
-      updateFlightLineList();
-    }, 300);
-  } catch (error) {
-    console.error('启用飞线图失败:', error);
-    addLog('飞线图', `启用飞线图失败: ${error.message}`);
-  }
-};
-
-/**
- * 禁用飞线图
- */
-const disableFlightLine = () => {
-  if (!layerRef.value) return;
-  
-  // 尝试停用飞线图工具
-  const result = layerRef.value.deactivateTool('flightLine');
-  
-  if (result) {
-    flightLineActive.value = false;
-    
-    // 清空飞线列表
-    flightLines.value = [];
-    selectedFlightLine.value = null; // 修改为单选变量
-    
-    addLog('飞线图', '禁用飞线图');
-  } else {
-    addLog('飞线图', '禁用飞线图失败，请确认飞线图工具已激活');
-  }
-};
 
 /**
  * 更新飞线列表
@@ -2917,11 +2810,6 @@ const addRandomFlightLines = () => {
 const addChainFlightLines = () => {
   if (!layerRef.value) return;
   
-  // 先启用飞线图
-  if (!flightLineActive.value) {
-    enableFlightLine();
-  }
-  
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
@@ -2979,11 +2867,6 @@ const addChainFlightLines = () => {
 const addStarFlightLines = () => {
   if (!layerRef.value) return;
   
-  // 先启用飞线图
-  if (!flightLineActive.value) {
-    enableFlightLine();
-  }
-  
   // 获取飞线图对象
   const flightLineObj = layerRef.value.getFlightLineObject();
   if (!flightLineObj) {
@@ -3036,24 +2919,6 @@ const addStarFlightLines = () => {
   addLog('飞线图', `已添加${lines.length}条星型飞线`);
 };
 
-/**
- * 更新飞线图配置
- */
-const updateFlightLineConfig = () => {
-  if (!layerRef.value) return;
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 更新飞线图配置
-  flightLineObj.setConfig(flightLineConfig.value);
-  
-  addLog('飞线图', '更新飞线图配置');
-};
 
 /**
  * 清除飞线
@@ -3117,48 +2982,6 @@ const toggleHeatmapPerformanceMode = () => {
   addLog('热力图', `性能模式已${heatmapPerformanceMode.value ? '启用' : '禁用'}`);
 };
 
-// 显示全部飞线
-const showAllFlightLines = () => {
-  if (!layerRef.value) return;
-  
-  // 获取飞线图对象
-  const flightLineObj = layerRef.value.getFlightLineObject();
-  if (!flightLineObj) {
-    addLog('飞线图', '无法获取飞线图对象');
-    return;
-  }
-  
-  // 获取所有飞线数据
-  const allFlightLines = flightLineObj.getAllFlightLines();
-  if (!allFlightLines) {
-    flightLines.value = [];
-    selectedFlightLine.value = null;
-    return;
-  }
-  
-  // 转换Map为数组
-  const linesArray: Array<FlightLineData & { id: string }> = [];
-  allFlightLines.forEach((line, id) => {
-    linesArray.push({
-      ...line,
-      id
-    });
-  });
-  
-  // 更新列表
-  flightLines.value = linesArray;
-  
-  // 获取当前激活的飞线
-  const activeFlightLine = flightLineObj.getActiveFlightLine();
-  
-  // 更新选中状态
-  selectedFlightLine.value = activeFlightLine;
-  
-  // 记录操作
-  if (linesArray.length > 0) {
-    addLog('飞线图', `已更新飞线列表，共 ${linesArray.length} 条飞线`);
-  }
-};
 
 // 选择单条飞线
 const selectSingleFlightLine = (id: string) => {
@@ -3200,10 +3023,6 @@ const selectSingleFlightLine = (id: string) => {
  */
 const onMapInitialized = (map: any) => {
   addLog('地图', '地图初始化完成');
-  
-  // 启用飞线图
-  enableFlightLine();
-  
   // 更新飞线列表
   setTimeout(() => {
     updateFlightLineList();
