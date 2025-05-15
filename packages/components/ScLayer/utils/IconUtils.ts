@@ -7,6 +7,7 @@ import { Style, Icon, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import 'ol-ext/dist/ol-ext.css';
 import OLStyleIcon from 'ol-ext/style/FontSymbol';
 import OLStyleShadow from 'ol-ext/style/Shadow';
+import OLStylePhoto from 'ol-ext/style/Photo'; // 引入Photo样式
 import logger from '../composables/LogObject';
 
 // 图标工具模块的日志前缀
@@ -44,6 +45,25 @@ export interface IconOptions {
   color?: string;
   // z-index
   zIndex?: number;
+  // Photo样式特有选项
+  photoOptions?: {
+    // Photo边框形状：'circle'(默认), 'square', 'shield', 'anchor', 'folio'
+    kind?: 'circle' | 'square' | 'shield' | 'anchor' | 'folio';
+    // 边框宽度
+    stroke?: number;
+    // 边框颜色
+    strokeColor?: string;
+    // 阴影配置
+    shadow?: boolean;
+    // 阴影模糊半径
+    shadowBlur?: number;
+    // 阴影颜色
+    shadowColor?: string;
+    // 边框样式半径
+    crop?: boolean;
+    // 图片背景色
+    background?: string;
+  };
 }
 
 /**
@@ -97,80 +117,79 @@ export class IconUtils {
   /**
    * 创建安全的图标样式
    * 支持远程URL、SVG、Data URL等多种图标格式
-   * 对于远程URL，使用ol-ext的FontSymbol作为替代方案，避免跨域问题
+   * 对于远程URL，使用ol-ext的Photo样式显示图片，避免跨域问题
    * @param url 图标URL或内容
    * @param scale 缩放比例
    * @param size 图标大小 [width, height]
    * @param fallbackColor 回退颜色（远程图标加载失败时使用）
+   * @param photoOptions Photo样式特有选项
    * @returns 图标样式
    */
-  public static createSafeIconStyle(url: string, scale: number = 1, size: [number, number] = [32, 32], fallbackColor: string = '#1890ff'): Style {
+  public static createSafeIconStyle(
+    url: string, 
+    scale: number = 1, 
+    size: [number, number] = [32, 32], 
+    fallbackColor: string = '#1890ff',
+    photoOptions?: IconOptions['photoOptions']
+  ): Style {
     // 首先验证图标URL
     if (this.isIconValid(url)) {
       try {
         // 使用ol-ext处理图标显示
         if (url.startsWith('http') || url.startsWith('https')) {
-          // 对于HTTP(S)链接，使用ol-ext的FontSymbol作为替代方案
-          // 这避免了直接使用远程图片URL可能导致的跨域问题
-          this.log('debug', `使用ol-ext处理远程图片: ${url}`, { size, isHttps: url.startsWith('https:') });
+          // 对于HTTP(S)链接，使用ol-ext的Photo样式展示图片
+          this.log('debug', `使用ol-ext Photo样式处理远程图片: ${url}`, { size, photoOptions });
           
           // 计算图标大小
           const radius = Math.max(size[0], size[1]) / 2 * scale;
           
-          // 创建一个带阴影的圆形图标作为基础
-          const shadowStyle = new OLStyleShadow({
-            radius: radius * 1.2,
-            blur: 5,
-            offsetX: 0,
-            offsetY: 0,
-            fill: new Fill({
-              color: 'rgba(0,0,0,0.2)'
-            })
-          });
-          
-          // 创建主图标 - 使用FontSymbol替代远程图片
-          // FontSymbol可以使用内置图标或自定义形状
-          const iconStyle = new OLStyleIcon({
+          // 设置Photo样式配置项
+          const photoConfig: any = {
+            src: url,
             radius: radius,
-            // 使用圆形作为基础形状
-            form: 'circle',
-            // 使用自定义颜色
-            color: fallbackColor,
-            // 添加边框
-            stroke: new Stroke({
-              color: '#ffffff',
-              width: 1.5
-            }),
-            // 可以添加文本标识（可选）
-            text: url.startsWith('https:') ? 'S' : 'H',
-            // 文本样式
-            fontColor: '#ffffff',
-            fontSize: radius * 0.8
-          });
-          
-          // 组合样式 - 阴影 + 图标
-          return new Style({
-            image: iconStyle,
-            // 使用标准的OpenLayers渲染方式
-            renderer: function(coords, state) {
-              // 首先渲染阴影
-              if (shadowStyle && typeof shadowStyle.renderPoint === 'function') {
-                // 如果存在renderPoint方法，使用它
-                shadowStyle.renderPoint(coords, state);
-              } else if (shadowStyle && typeof shadowStyle.drawPoint_ === 'function') {
-                // 备选方法
-                shadowStyle.drawPoint_(coords, state);
-              }
-              
-              // 然后渲染图标
-              if (iconStyle && typeof iconStyle.renderPoint === 'function') {
-                iconStyle.renderPoint(coords, state);
-              } else if (iconStyle && typeof iconStyle.drawPoint_ === 'function') {
-                iconStyle.drawPoint_(coords, state);
-              } else if (iconStyle && typeof iconStyle.render === 'function') {
-                iconStyle.render(coords, state);
-              }
+            crop: photoOptions?.crop !== false, // 默认为true
+            kind: photoOptions?.kind || 'circle', // 默认为圆形
+            shadow: photoOptions?.shadow !== false, // 默认启用阴影
+            onload: () => {
+              this.log('debug', `远程图片加载成功: ${url}`);
             },
+            onerror: () => {
+              this.log('warn', `远程图片加载失败: ${url}，将使用替代样式`);
+            }
+          };
+          
+          // 添加边框相关配置
+          if (photoOptions?.stroke !== undefined) {
+            photoConfig.stroke = new Stroke({
+              color: photoOptions.strokeColor || '#fff',
+              width: photoOptions.stroke
+            });
+          } else {
+            photoConfig.stroke = new Stroke({
+              color: '#fff',
+              width: 1.5
+            });
+          }
+          
+          // 添加阴影相关配置
+          if (photoOptions?.shadow) {
+            photoConfig.shadowBlur = photoOptions.shadowBlur || 7;
+            photoConfig.shadowColor = photoOptions.shadowColor || 'rgba(0,0,0,0.5)';
+          }
+          
+          // 添加背景色配置
+          if (photoOptions?.background) {
+            photoConfig.background = new Fill({
+              color: photoOptions.background
+            });
+          }
+          
+          // 创建Photo样式
+          const photoStyle = new OLStylePhoto(photoConfig);
+          
+          // 返回样式
+          return new Style({
+            image: photoStyle,
             zIndex: 10000 // 保持高z-index确保可见性
           });
         } else if (url.startsWith('data:image') || url.startsWith('<svg')) {
@@ -249,68 +268,57 @@ export class IconUtils {
       icon,
       iconType = IconType.DEFAULT,
       scale = 1,
-      anchor = [0.5, 1], // 默认锚点为底部中心
+      size = [32, 32],
+      anchor = [0.5, 0.5],
       offset = [0, 0],
       rotation = 0,
-      size = [32, 32],
       color = '#1890ff',
-      zIndex = 1
+      zIndex = 10000,
+      photoOptions
     } = options;
-    
-    let iconUrl = this.defaultIconUrl;
-    
-    // 根据不同的图标类型处理图标
-    switch (iconType) {
-      case IconType.URL:
-        // 如果是远程URL，使用createSafeIconStyle处理
-        if (icon.startsWith('http') || icon.startsWith('https')) {
-          return this.createSafeIconStyle(icon, scale, size, color);
-        }
-        // 直接使用URL
-        iconUrl = icon;
-        break;
-      case IconType.SVG:
-        // 将SVG字符串转换为Data URL
-        try {
-          iconUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(icon)));
-        } catch (e) {
-          this.log('error', `SVG转换失败: ${e.message}`);
-          try {
-            iconUrl = 'data:image/svg+xml,' + encodeURIComponent(icon);
-          } catch (err) {
-            this.log('error', `SVG所有转换方法均失败: ${err.message}`);
-            iconUrl = icon;
-          }
-        }
-        break;
-      case IconType.BASE64:
-        // 已经是Data URL格式，直接使用
-        iconUrl = icon;
-        break;
-      case IconType.DEFAULT:
-      default:
-        // 如果提供了icon但类型是default，优先使用提供的icon
-        iconUrl = icon || this.defaultIconUrl;
-        break;
+
+    // 检查图标有效性
+    if (!icon) {
+      this.log('warn', `无效的图标配置，使用默认样式`);
+      return this.createSafeIconStyle(this.defaultIconUrl, scale, size, color);
     }
-    
-    // 创建标准图标样式
-    const iconImage = new Icon({
-      src: iconUrl,
-      scale: scale,
-      anchor: anchor,
-      anchorXUnits: 'fraction',
-      anchorYUnits: 'fraction',
-      offset: offset,
-      rotation: rotation,
-      size: size
-    });
-    
-    // 创建图标样式
-    return new Style({
-      image: iconImage,
-      zIndex: zIndex
-    });
+
+    try {
+      // 根据图标类型创建不同的样式
+      switch (iconType) {
+        case IconType.URL:
+          // 处理URL类型的图标，使用Photo样式
+          return this.createSafeIconStyle(icon, scale, size, color, photoOptions);
+        case IconType.SVG:
+          // 处理SVG类型的图标
+          return this.createSafeIconStyle(icon, scale, size, color);
+        case IconType.BASE64:
+          // 处理BASE64类型的图标
+          return this.createSafeIconStyle(icon, scale, size, color);
+        case IconType.DEFAULT:
+        default:
+          // 默认处理
+          if (icon === 'default' || !icon) {
+            return this.createSafeIconStyle(this.defaultIconUrl, scale, size, color);
+          } else {
+            // 尝试自动识别图标类型
+            if (icon.startsWith('http') || icon.startsWith('https')) {
+              return this.createSafeIconStyle(icon, scale, size, color, photoOptions);
+            } else if (icon.startsWith('<svg')) {
+              return this.createSafeIconStyle(icon, scale, size, color);
+            } else if (icon.startsWith('data:')) {
+              return this.createSafeIconStyle(icon, scale, size, color);
+            } else {
+              // 默认回退到内置图标
+              return this.createSafeIconStyle(this.defaultIconUrl, scale, size, color);
+            }
+          }
+      }
+    } catch (error) {
+      this.log('error', `创建标记点样式失败: ${error.message || '未知错误'}`);
+      // 错误时回退到默认样式
+      return this.createSafeIconStyle(this.defaultIconUrl, scale, size, color);
+    }
   }
 
   /**
@@ -384,6 +392,163 @@ export class IconUtils {
       },
       zIndex: zIndex
     });
+  }
+
+  /**
+   * 创建Photo样式的图标
+   * 专门使用ol-ext的Photo功能创建图片图标样式
+   * 
+   * @param imageUrl 图片URL
+   * @param options 配置选项
+   * @returns Photo样式
+   */
+  public static createPhotoStyle(imageUrl: string, options: {
+    radius?: number; // 图标半径
+    kind?: 'circle' | 'square' | 'shield' | 'anchor' | 'folio'; // 图标形状
+    stroke?: number; // 边框宽度
+    strokeColor?: string; // 边框颜色
+    shadow?: boolean; // 是否启用阴影
+    shadowBlur?: number; // 阴影模糊半径
+    shadowColor?: string; // 阴影颜色
+    crop?: boolean; // 是否裁剪图片
+    background?: string; // 背景颜色
+    border?: number; // 内边距
+    scale?: number; // 缩放比例
+    rotation?: number; // 旋转角度
+  } = {}): Style {
+    this.log('debug', `创建Photo样式图标: ${imageUrl}`, options);
+    
+    const {
+      radius = 20,
+      kind = 'circle',
+      stroke = 2,
+      strokeColor = '#fff',
+      shadow = true,
+      shadowBlur = 7,
+      shadowColor = 'rgba(0,0,0,0.5)',
+      crop = true,
+      background,
+      border = 0,
+      scale = 1,
+      rotation = 0
+    } = options;
+    
+    try {
+      // 计算实际半径
+      const actualRadius = radius * scale;
+      
+      // 配置Photo样式
+      const photoConfig: any = {
+        src: imageUrl,
+        radius: actualRadius,
+        crop,
+        kind,
+        shadow,
+        border,
+        rotation,
+        stroke: new Stroke({
+          color: strokeColor,
+          width: stroke
+        })
+      };
+      
+      // 添加阴影配置
+      if (shadow) {
+        photoConfig.shadowBlur = shadowBlur;
+        photoConfig.shadowColor = shadowColor;
+      }
+      
+      // 添加背景色
+      if (background) {
+        photoConfig.background = new Fill({
+          color: background
+        });
+      }
+      
+      // 创建Photo样式
+      const photoStyle = new OLStylePhoto(photoConfig);
+      
+      // 返回样式
+      return new Style({
+        image: photoStyle,
+        zIndex: 10000
+      });
+    } catch (error) {
+      this.log('error', `创建Photo样式失败: ${error.message}`, error);
+      
+      // 失败时返回默认样式
+      return this.createSafeIconStyle(this.defaultIconUrl, scale, [radius * 2, radius * 2]);
+    }
+  }
+  
+  /**
+   * 示例：如何使用PhotoStyle创建不同形状的图片图标
+   * @returns 各种形状的Photo图标样式
+   */
+  public static getPhotoStyleExamples(): Record<string, Style> {
+    const imageUrl = 'https://openlayers.org/en/latest/examples/data/icon.png';
+    
+    return {
+      // 圆形图标
+      circle: this.createPhotoStyle(imageUrl, {
+        kind: 'circle',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#3388ff'
+      }),
+      
+      // 方形图标
+      square: this.createPhotoStyle(imageUrl, {
+        kind: 'square',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#ff3333'
+      }),
+      
+      // 盾牌形图标
+      shield: this.createPhotoStyle(imageUrl, {
+        kind: 'shield',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#33ff33'
+      }),
+      
+      // 锚形图标
+      anchor: this.createPhotoStyle(imageUrl, {
+        kind: 'anchor',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#ffcc33'
+      }),
+      
+      // 文件形图标
+      folio: this.createPhotoStyle(imageUrl, {
+        kind: 'folio',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#9933ff'
+      }),
+      
+      // 带阴影的圆形图标
+      circleShadow: this.createPhotoStyle(imageUrl, {
+        kind: 'circle',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#fff',
+        shadow: true,
+        shadowBlur: 10,
+        shadowColor: 'rgba(0,0,0,0.7)'
+      }),
+      
+      // 带背景的圆形图标
+      circleBackground: this.createPhotoStyle(imageUrl, {
+        kind: 'circle',
+        radius: 20,
+        stroke: 2,
+        strokeColor: '#fff',
+        background: 'rgba(255,255,200,0.8)'
+      })
+    };
   }
 }
 
