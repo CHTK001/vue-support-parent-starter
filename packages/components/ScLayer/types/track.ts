@@ -42,6 +42,8 @@ export interface TrackPlayer {
   withCamera: boolean;
   // 分段加速系数（可选，默认为1.0）
   speedFactor?: number;
+  // 是否稳定视口，防止播放过程中缩放抖动（可选，默认为false）
+  stabilizeViewport?: boolean;
 }
 // 定义轨迹播放器配置接口
 export interface TrackPlayerConfigOptions {
@@ -57,6 +59,7 @@ export interface TrackPlayerConfigOptions {
   showSpeed?: boolean;    // 是否显示移动速度
   showNodeSpeed?: boolean;// 是否显示节点速度
   updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
+  stabilizeViewport?: boolean; // 是否稳定视口，防止播放过程中缩放抖动（默认为false）
 }
 
 // 轨迹数据接口
