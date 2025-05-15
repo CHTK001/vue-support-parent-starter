@@ -12,11 +12,14 @@ import { Feature } from 'ol';
 import { unByKey } from 'ol/Observable';
 import { EventsKey } from 'ol/events';
 import { createBox, createRegularPolygon } from 'ol/interaction/Draw';
-import { fromLonLat, transformExtent } from 'ol/proj';
+import { fromLonLat, transformExtent, toLonLat } from 'ol/proj';
 import { getCenter } from 'ol/extent';
 import { ShapeStyle, Shape, ShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
 import logger from './LogObject';
 import { DataType } from '../types';
+// 导入ol-ext的ModifyFeature交互
+import 'ol-ext/dist/ol-ext.css';
+import OLModifyFeature from 'ol-ext/interaction/ModifyFeature';
 
 // 图形模块日志前缀
 const LOG_MODULE = 'Shape';
@@ -64,6 +67,11 @@ export class ShapeObject {
   private deleteMode: boolean = false;
   // 点击监听器 - 用于删除模式
   private clickListener: EventsKey | null = null;
+  // 编辑相关属性
+  private editInteraction: OLModifyFeature | null = null;
+  private editFeatureId: string | null = null;
+  private editMode: boolean = false;
+  private shapeUpdateCallback: ((id: string, shapeType: ShapeType, feature: Feature) => void) | null = null;
 
   /**
    * 构造函数
@@ -317,31 +325,109 @@ export class ShapeObject {
   private createFeatureStyle(feature: Feature): Style | Style[] {
     const styles: Style[] = [];
     
+    // 检查是否处于编辑模式
+    const isEditMode = feature.get('editMode') === true;
+    
+    // 获取自定义样式或使用默认样式
+    const customStyle = feature.get('style');
+    const styleToUse = customStyle || this.style;
+    
     // 根据特征创建主样式
     const mainStyle = new Style({
       stroke: new Stroke({
-        color: this.style.stroke?.color || 'rgba(24, 144, 255, 1)',
-        width: this.style.stroke?.width || 2,
-        lineDash: this.style.stroke?.lineDash || []
+        color: isEditMode ? 'rgba(0, 120, 255, 1)' : (styleToUse.stroke?.color || 'rgba(24, 144, 255, 1)'),
+        width: isEditMode ? 3 : (styleToUse.stroke?.width || 2),
+        lineDash: isEditMode ? [5, 5] : (styleToUse.stroke?.lineDash || [])
       }),
       fill: new Fill({
-        color: this.style.fill?.color || 'rgba(24, 144, 255, 0.2)'
+        color: isEditMode ? 'rgba(0, 120, 255, 0.3)' : (styleToUse.fill?.color || 'rgba(24, 144, 255, 0.2)')
       })
     });
     
     styles.push(mainStyle);
     
-    // 为多边形创建顶点样式
-    const geometry = feature.getGeometry();
-    if (geometry instanceof Polygon) {
-    const createVertexStyles = (coordinates: number[][]): Style[] => {
-      return coordinates.map(coord => new Style({
-        geometry: new Point(coord),
-      }));
-    };
-    
-      const coordinates = geometry.getCoordinates()[0];
-      styles.push(...createVertexStyles(coordinates));
+    // 为多边形创建顶点样式，编辑模式下才显示顶点
+    if (isEditMode) {
+      const geometry = feature.getGeometry();
+      if (geometry instanceof Polygon) {
+        const createVertexStyles = (coordinates: number[][]): Style[] => {
+          return coordinates.map(coord => new Style({
+            geometry: new Point(coord),
+            image: new CircleStyle({
+              radius: 6,
+              stroke: new Stroke({
+                color: 'rgba(0, 120, 255, 1)',
+                width: 2
+              }),
+              fill: new Fill({
+                color: 'rgba(255, 255, 255, 0.8)'
+              })
+            })
+          }));
+        };
+        
+        const coordinates = geometry.getCoordinates()[0];
+        styles.push(...createVertexStyles(coordinates));
+      } else if (geometry instanceof LineString) {
+        // 为线段添加顶点样式
+        const createVertexStyles = (coordinates: number[][]): Style[] => {
+          return coordinates.map(coord => new Style({
+            geometry: new Point(coord),
+            image: new CircleStyle({
+              radius: 6,
+              stroke: new Stroke({
+                color: 'rgba(0, 120, 255, 1)',
+                width: 2
+              }),
+              fill: new Fill({
+                color: 'rgba(255, 255, 255, 0.8)'
+              })
+            })
+          }));
+        };
+        
+        styles.push(...createVertexStyles(geometry.getCoordinates()));
+      } else if (geometry instanceof Circle) {
+        // 为圆形添加中心点和边缘点样式
+        const center = geometry.getCenter();
+        const radius = geometry.getRadius();
+        
+        // 添加中心点
+        styles.push(new Style({
+          geometry: new Point(center),
+          image: new CircleStyle({
+            radius: 6,
+            stroke: new Stroke({
+              color: '#00ff00',
+              width: 2
+            }),
+            fill: new Fill({
+              color: 'rgba(0, 255, 0, 0.3)'
+            })
+          })
+        }));
+        
+        // 添加圆周上的控制点（东南西北四个点）
+        const angles = [0, Math.PI/2, Math.PI, Math.PI*3/2];
+        angles.forEach(angle => {
+          const x = center[0] + radius * Math.cos(angle);
+          const y = center[1] + radius * Math.sin(angle);
+          
+          styles.push(new Style({
+            geometry: new Point([x, y]),
+            image: new CircleStyle({
+              radius: 6,
+              stroke: new Stroke({
+                color: 'rgba(0, 120, 255, 1)',
+                width: 2
+              }),
+              fill: new Fill({
+                color: 'rgba(255, 255, 255, 0.8)'
+              })
+            })
+          }));
+        });
+      }
     }
     
     return styles;
@@ -457,6 +543,330 @@ export class ShapeObject {
   }
 
   /**
+   * 启用编辑模式
+   * 使用ol-ext的ModifyFeature交互编辑图形
+   * @returns 是否成功启用编辑模式
+   */
+  public enableEditMode(): boolean {
+    if (!this.mapInstance) {
+      this.log('warn', '地图实例未设置，无法启用编辑模式');
+      return false;
+    }
+
+    // 如果已经处于编辑模式，先禁用
+    if (this.editMode) {
+      this.disableEditMode();
+    }
+
+    // 如果正在删除模式，先彻底禁用删除模式
+    if (this.deleteMode) {
+      this.disableDeleteMode();
+      
+      // 确保地图上的删除监听器被完全清理
+      if ((this.mapInstance as any)._deleteClickListener) {
+        this.mapInstance.un('click', (this.mapInstance as any)._deleteClickListener);
+        delete (this.mapInstance as any)._deleteClickListener;
+        this.log('debug', '已移除地图上的删除模式点击监听器');
+      }
+    }
+
+    // 获取当前图层的数据源
+    const source = this.source;
+    if (!source) {
+      this.log('warn', '图形数据源不存在，无法启用编辑模式');
+      return false;
+    }
+
+    try {
+      // 创建ModifyFeature交互，参考https://viglino.github.io/ol-ext/examples/interaction/map.interaction.modifyfeature.html
+      this.editInteraction = new OLModifyFeature({
+        source: source,
+        // 使用更精细的样式，提高编辑交互体验
+        style: (feature: Feature, resolution: number) => {
+          // 生成基本样式
+          const baseStyle = this.createFeatureStyle(feature);
+          
+          // 如果是数组，返回第一个样式
+          if (Array.isArray(baseStyle)) {
+            return baseStyle;
+          }
+          
+          return baseStyle;
+        },
+        // 设置编辑点的样式
+        pointStyle: new Style({
+          image: new CircleStyle({
+            radius: 8,
+            stroke: new Stroke({
+              color: '#0000ff',
+              width: 2
+            }),
+            fill: new Fill({
+              color: 'rgba(0, 0, 255, 0.3)'
+            })
+          })
+        }),
+        // 编辑时显示中心点
+        centerStyle: new Style({
+          image: new CircleStyle({
+            radius: 6,
+            stroke: new Stroke({
+              color: '#00ff00',
+              width: 2
+            }),
+            fill: new Fill({
+              color: 'rgba(0, 255, 0, 0.3)'
+            })
+          })
+        }),
+        // 设置更大的像素容差，便于捕捉顶点
+        pixelTolerance: 15,
+        // 显示调整中心点的控制点
+        enableCenter: true
+      });
+
+      // 添加修改开始监听
+      this.editInteraction.on('modifystart', (e: any) => {
+        const feature = e.features.item(0);
+        if (feature) {
+          this.editFeatureId = feature.get('id') || feature.getId();
+          
+          // 高亮显示正在编辑的图形
+          feature.set('editMode', true);
+          
+          this.log('debug', `开始编辑图形: ${this.editFeatureId}`);
+          
+          // 触发自定义事件 - shape-edit-start
+          this.dispatchShapeEvent('shape-edit-start', this.editFeatureId, feature.get('shapeType'), feature);
+        }
+      });
+
+      // 添加修改中监听
+      this.editInteraction.on('modifying', (e: any) => {
+        const feature = e.features.item(0);
+        if (feature) {
+          const featureId = feature.get('id') || feature.getId();
+          this.log('debug', `正在编辑图形: ${featureId}`);
+          
+          // 触发自定义事件 - shape-editing
+          this.dispatchShapeEvent('shape-editing', featureId, feature.get('shapeType'), feature);
+        }
+      });
+
+      // 添加修改结束监听
+      this.editInteraction.on('modifyend', (e: any) => {
+        const feature = e.features.item(0);
+        if (feature && this.editFeatureId) {
+          // 标记不再是编辑模式
+          feature.set('editMode', false);
+          
+          this.log('info', `图形编辑完成: ${this.editFeatureId}`);
+          
+          // 获取图形类型
+          const shapeType = feature.get('shapeType') as ShapeType;
+          
+          // 更新图形数据
+          this.updateFeatureData(feature);
+          
+          // 触发更新回调
+          if (this.shapeUpdateCallback) {
+            this.shapeUpdateCallback(this.editFeatureId, shapeType, feature);
+          }
+          
+          // 触发自定义事件 - shape-update
+          this.dispatchShapeEvent('shape-update', this.editFeatureId, shapeType, feature);
+        }
+      });
+
+      // 将交互添加到地图
+      this.mapInstance.addInteraction(this.editInteraction);
+      this.editMode = true;
+
+      // 改变鼠标光标样式，提示用户处于编辑模式
+      if (this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = 'crosshair';
+      }
+
+      this.log('info', '图形编辑模式已启用');
+      return true;
+    } catch (error) {
+      this.log('error', '启用编辑模式失败:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * 更新特征数据
+   * 当图形编辑完成时，更新内部数据结构
+   * @param feature 编辑后的特征
+   */
+  private updateFeatureData(feature: Feature): void {
+    try {
+      const id = feature.get('id') || feature.getId();
+      if (!id || !this.shapes.has(id)) {
+        this.log('warn', `无法更新图形数据，ID不存在: ${id}`);
+        return;
+      }
+      
+      const shapeType = feature.get('shapeType') as ShapeType;
+      const geometry = feature.getGeometry();
+      
+      if (!geometry) {
+        this.log('warn', '几何对象为空，无法更新数据');
+        return;
+      }
+      
+      // 获取原始数据
+      const data = feature.get('data') || {};
+      
+      // 根据图形类型更新坐标数据
+      switch (shapeType) {
+        case 'Circle':
+          if (geometry instanceof Circle) {
+            const center = toLonLat(geometry.getCenter());
+            const radius = geometry.getRadius();
+            data.center = center;
+            data.radius = radius;
+          }
+          break;
+          
+        case 'LineString':
+          if (geometry instanceof LineString) {
+            const coordinates = geometry.getCoordinates().map(coord => toLonLat(coord));
+            data.coordinates = coordinates;
+          }
+          break;
+          
+        case 'Polygon':
+        case 'Rectangle':
+        case 'Square':
+          if (geometry instanceof Polygon) {
+            const coordinates = geometry.getCoordinates()[0].map(coord => toLonLat(coord));
+            data.coordinates = coordinates;
+            // 对于矩形和正方形，更新边界框
+            if (shapeType === 'Rectangle' || shapeType === 'Square') {
+              const extent = geometry.getExtent();
+              const minCoord = toLonLat([extent[0], extent[1]]);
+              const maxCoord = toLonLat([extent[2], extent[3]]);
+              data.coordinates = [minCoord, maxCoord];
+            }
+          }
+          break;
+          
+        case 'Point':
+          if (geometry instanceof Point) {
+            const coordinates = toLonLat(geometry.getCoordinates());
+            data.coordinates = coordinates;
+          }
+          break;
+      }
+      
+      // 更新特征的数据属性
+      feature.set('data', data);
+      feature.set('updatedAt', new Date().toISOString());
+      
+      // 更新shapes Map中的对象
+      this.shapes.set(id, feature);
+      
+      this.log('debug', `图形数据已更新: ${id}, 类型: ${shapeType}`);
+    } catch (error) {
+      this.log('error', '更新图形数据时出错:', error);
+    }
+  }
+  
+  /**
+   * 禁用编辑模式
+   */
+  public disableEditMode(): void {
+    if (!this.mapInstance) {
+      return;
+    }
+
+    // 恢复鼠标光标样式
+    if (this.mapInstance.getTargetElement()) {
+      this.mapInstance.getTargetElement().style.cursor = '';
+    }
+
+    // 移除编辑交互
+    if (this.editInteraction) {
+      // 移除所有事件监听
+      this.editInteraction.un('modifystart');
+      this.editInteraction.un('modifying');
+      this.editInteraction.un('modifyend');
+      
+      // 从地图中移除交互
+      this.mapInstance.removeInteraction(this.editInteraction);
+      this.editInteraction = null;
+    }
+
+    // 清除所有图形的编辑状态
+    // 不仅仅清除当前编辑的图形，还要检查所有图形，确保没有遗留的编辑状态
+    this.shapes.forEach((feature, id) => {
+      if (feature.get('editMode') === true) {
+        feature.set('editMode', false);
+        this.log('debug', `清除图形 ${id} 的编辑状态`);
+      }
+    });
+
+    // 清除编辑状态
+    if (this.editFeatureId) {
+      this.log('debug', `编辑模式停用，清除编辑图形ID: ${this.editFeatureId}`);
+      this.editFeatureId = null;
+    }
+    
+    this.editMode = false;
+    this.log('info', '图形编辑模式已禁用');
+  }
+
+  /**
+   * 设置图形更新回调
+   * @param callback 更新回调函数
+   */
+  public setShapeUpdateCallback(callback: (id: string, shapeType: ShapeType, feature: Feature) => void): void {
+    this.shapeUpdateCallback = callback;
+  }
+
+  /**
+   * 检查是否处于编辑模式
+   * @returns 是否处于编辑模式
+   */
+  public isEditMode(): boolean {
+    return this.editMode;
+  }
+
+  /**
+   * 触发图形相关事件
+   * @param eventName 事件名称
+   * @param id 图形ID
+   * @param shapeType 图形类型
+   * @param feature 图形要素
+   */
+  private dispatchShapeEvent(eventName: string, id: string, shapeType: ShapeType, feature: Feature): void {
+    if (!this.mapInstance) return;
+    
+    const map = this.mapInstance;
+    const target = map.getTargetElement();
+    
+    if (target) {
+      // 创建一个自定义事件
+      const event = new CustomEvent(eventName, {
+        bubbles: true,
+        detail: {
+          id,
+          type: shapeType,
+          feature,
+          shapeObj: this
+        }
+      });
+      
+      // 在地图元素上分发事件
+      target.dispatchEvent(event);
+      
+      this.log('debug', `触发事件 "${eventName}" 于图形 ${id}`);
+    }
+  }
+
+  /**
    * 销毁图形对象
    */
   public destroy(): void {
@@ -474,6 +884,9 @@ export class ShapeObject {
     
     this.layer = null;
     this.mapInstance = null;
+    
+    // 禁用编辑模式
+    this.disableEditMode();
     
     this.log('info', '图形对象已销毁');
   }
@@ -802,6 +1215,55 @@ export class ShapeObject {
    */
   public isDeleteMode(): boolean {
     return this.deleteMode;
+  }
+
+  /**
+   * 获取编辑模式信息
+   * @returns 编辑模式状态信息
+   */
+  public getEditModeInfo(): { enabled: boolean; editingFeatureId: string | null } {
+    return {
+      enabled: this.editMode,
+      editingFeatureId: this.editFeatureId
+    };
+  }
+
+  /**
+   * 判断指定的图形是否可编辑
+   * @param id 图形ID
+   * @returns 是否可编辑
+   */
+  public isFeatureEditable(id: string): boolean {
+    // 检查图形是否存在
+    if (!this.shapes.has(id)) {
+      return false;
+    }
+    
+    // 如果当前不在编辑模式，所有图形都不可编辑
+    if (!this.editMode) {
+      return false;
+    }
+    
+    // 如果当前正在编辑其他图形，这个图形不可编辑
+    if (this.editFeatureId && this.editFeatureId !== id) {
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * 根据ID获取图形特征
+   * @param id 图形ID
+   * @returns 图形特征，不存在时返回null
+   */
+  public getShapeById(id: string): Feature | null {
+    if (!this.shapes.has(id)) {
+      this.log('warn', `图形ID不存在: ${id}`);
+      return null;
+    }
+    
+    return this.shapes.get(id) || null;
   }
 }
 

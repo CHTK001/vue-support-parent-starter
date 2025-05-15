@@ -822,6 +822,7 @@ export class ToolbarObject {
     const drawingTools = ['draw-rectangle', 'draw-circle', 'draw-polygon', 'draw-line', 'draw-square'];
     const isDrawingTool = drawingTools.includes(toolId);
     const isDeleteTool = toolId === 'clear-shapes';
+    const isEditTool = toolId === 'edit-shape';
 
     // 如果是绘制工具，检查删除工具是否激活
     if (isDrawingTool) {
@@ -830,6 +831,14 @@ export class ToolbarObject {
         // 先停用删除工具
         logger.debug(`绘制工具 ${toolId} 激活，需要先停用删除工具`);
         this.deactivateTool('clear-shapes');
+      }
+      
+      // 检查编辑工具是否激活
+      const editToolActive = this.tools.find(t => t.id === 'edit-shape')?.active;
+      if (editToolActive) {
+        // 先停用编辑工具
+        logger.debug(`绘制工具 ${toolId} 激活，需要先停用编辑工具`);
+        this.deactivateTool('edit-shape');
       }
     }
     
@@ -840,6 +849,35 @@ export class ToolbarObject {
         if (drawTool && drawTool.active) {
           // 先停用绘制工具
           logger.debug(`删除工具激活，需要先停用绘制工具 ${drawToolId}`);
+          this.deactivateTool(drawToolId);
+        }
+      });
+      
+      // 检查编辑工具是否激活
+      const editToolActive = this.tools.find(t => t.id === 'edit-shape')?.active;
+      if (editToolActive) {
+        // 先停用编辑工具
+        logger.debug(`删除工具激活，需要先停用编辑工具`);
+        this.deactivateTool('edit-shape');
+      }
+    }
+    
+    // 如果是编辑工具，检查删除工具和绘制工具是否有激活的
+    if (isEditTool) {
+      // 检查删除工具是否激活
+      const deleteToolActive = this.tools.find(t => t.id === 'clear-shapes')?.active;
+      if (deleteToolActive) {
+        // 先停用删除工具
+        logger.debug(`编辑工具激活，需要先停用删除工具`);
+        this.deactivateTool('clear-shapes');
+      }
+      
+      // 检查绘制工具是否激活
+      drawingTools.forEach(drawToolId => {
+        const drawTool = this.tools.find(t => t.id === drawToolId);
+        if (drawTool && drawTool.active) {
+          // 先停用绘制工具
+          logger.debug(`编辑工具激活，需要先停用绘制工具 ${drawToolId}`);
           this.deactivateTool(drawToolId);
         }
       });
@@ -980,6 +1018,30 @@ export class ToolbarObject {
         this.handleOverviewMapActivate();
         break;
       case 'clear-shapes':
+        // 检查是否处于编辑模式
+        if (this.shapeObj && this.shapeObj.isEditMode()) {
+          logger.warn('当前处于编辑模式，无法激活删除模式');
+          
+          // 取消删除工具的激活状态
+          const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+          if (clearShapesTool) {
+            clearShapesTool.active = false;
+            // 确保activeToolId不是clear-shapes
+            if (this.activeToolId === 'clear-shapes') {
+              this.activeToolId = null;
+            }
+          }
+          
+          // 通知用户
+          if (this.toolStateChangeCallback) {
+            this.toolStateChangeCallback('clear-shapes', false, 'toggle', {
+              error: '编辑模式和删除模式不能同时激活',
+              message: '请先停用编辑模式再激活删除模式'
+            });
+          }
+          
+          return;
+        }
         this.activateDeleteMode();
         break;
       case 'cluster':
@@ -1106,6 +1168,10 @@ export class ToolbarObject {
           logger.debug('已激活线段绘制工具');
         }
         break;
+      case 'edit-shape':
+        // 激活图形编辑工具
+        this.handleShapeEditActivate();
+        break;
       case 'grid-geohash':
         this.handleGridActivate(GridType.GEOHASH);
         break;
@@ -1114,9 +1180,6 @@ export class ToolbarObject {
         break;
       case 'heatmap':
         this.handleHeatmapActivate();
-        break;
-      case 'flight-line':
-        this.handleFlightLineActivate();
         break;
     }
   }
@@ -1168,6 +1231,9 @@ export class ToolbarObject {
         break;
       case 'heatmap':
         this.handleHeatmapDeactivate();
+        break;
+      case 'edit-shape':
+        this.handleShapeEditDeactivate();
         break;
       default:
         logger.debug(`工具 ${tool.id} 无特殊停用处理`);
@@ -1911,6 +1977,31 @@ export class ToolbarObject {
   private activateDeleteMode(): void {
     const mapInstance = this.mapObj.getMapInstance();
     if (!mapInstance) return;
+
+    // 先检查编辑模式是否已经激活，如果是，则不应该激活删除模式
+    if (this.shapeObj && this.shapeObj.isEditMode()) {
+      logger.warn('编辑模式已激活，无法同时激活删除模式');
+      
+      // 取消删除工具的激活状态
+      const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+      if (clearShapesTool) {
+        clearShapesTool.active = false;
+        // 确保激活工具ID不是clear-shapes
+        if (this.activeToolId === 'clear-shapes') {
+          this.activeToolId = null;
+        }
+      }
+      
+      // 通知用户
+      if (this.toolStateChangeCallback) {
+        this.toolStateChangeCallback('clear-shapes', false, 'toggle', {
+          error: '编辑模式和删除模式不能同时激活',
+          message: '请先停用编辑模式再激活删除模式'
+        });
+      }
+      
+      return;
+    }
     
     // 检查是否已有绘制工具激活
     const drawingTools = ['draw-rectangle', 'draw-circle', 'draw-polygon', 'draw-line', 'draw-square'];
@@ -1930,6 +2021,20 @@ export class ToolbarObject {
     
     // 创建一个点击监听器，用于处理删除操作
     const deleteClickListener = (evt: any) => {
+      // 在开始处理删除前，再次检查是否已经进入编辑模式
+      // 防止用户激活删除模式后又立即切换到编辑模式
+      if (this.shapeObj && this.shapeObj.isEditMode()) {
+        logger.warn('当前处于编辑模式，删除操作被取消');
+        return;
+      }
+      
+      // 检查是否已激活编辑工具
+      const editTool = this.tools.find(t => t.id === 'edit-shape');
+      if (editTool && editTool.active) {
+        logger.warn('当前已激活编辑工具，删除操作被取消');
+        return;
+      }
+      
       let hasDeleted = false; // 标记是否已删除了某个要素
       
       logger.debug(`删除模式：处理点击事件，坐标: ${evt.pixel.join(',')}`);
@@ -1943,8 +2048,15 @@ export class ToolbarObject {
             
             const id = feature.getId() || feature.get('id') || feature.get('id') || feature.get('id');
             const data = feature.get('data');
-            if(data.dataType === DataType.SHAPE){
+            if(data && data.dataType === DataType.SHAPE){
               logger.debug(`发现图形: ${id}`);
+              
+              // 检查是否处于编辑模式
+              if (this.shapeObj!.isEditMode() || (editTool && editTool.active)) {
+                logger.warn(`图形 ${id} 处于编辑模式，不能删除`);
+                return true; // 停止遍历
+              }
+              
               // 删除图形
               const success = this.shapeObj!.removeShape(id);
               if (success) {
@@ -1961,6 +2073,12 @@ export class ToolbarObject {
       
       // 如果没有删除图形，尝试删除标记点
       if (!hasDeleted && this.markerObj) {
+        // 再次检查是否处于编辑模式或编辑工具已激活
+        if (this.shapeObj && (this.shapeObj.isEditMode() || (editTool && editTool.active))) {
+          logger.warn('当前处于编辑模式，标记点删除操作被取消');
+          return;
+        }
+        
         // 尝试方法1: 直接使用forEachFeatureAtPixel遍历所有要素
         mapInstance.forEachFeatureAtPixel(
           evt.pixel,
@@ -2161,5 +2279,123 @@ export class ToolbarObject {
    */
   public getFlightLineObject(): FlightLineObject | null {
     return this.flightLineObj;
+  }
+
+  /**
+   * 激活图形编辑功能
+   * 启用编辑模式，允许用户修改已有的图形
+   */
+  private handleShapeEditActivate(): void {
+    if (!this.shapeObj) {
+      logger.warn('图形对象未初始化，无法激活编辑模式');
+      return;
+    }
+    
+    // 检查是否在删除模式，如果是则先停用
+    const clearShapesTool = this.tools.find(tool => tool.id === 'clear-shapes');
+    if (clearShapesTool && clearShapesTool.active) {
+      logger.debug('发现删除模式已激活，需要先停用');
+      this.deactivateTool('clear-shapes');
+      
+      // 确保删除监听器被正确移除
+      const mapInstance = this.mapObj.getMapInstance();
+      if (mapInstance && (mapInstance as any)._deleteClickListener) {
+        mapInstance.un('click', (mapInstance as any)._deleteClickListener);
+        delete (mapInstance as any)._deleteClickListener;
+        logger.debug('已移除删除模式的点击监听器');
+      }
+    }
+    
+    // 禁用绘制模式
+    this.shapeObj.disable();
+    
+    // 确保删除模式被禁用
+    if (this.shapeObj.isDeleteMode()) {
+      this.shapeObj.disableDeleteMode();
+      logger.debug('已禁用图形对象的删除模式');
+    }
+    
+    // 启用编辑模式
+    const success = this.shapeObj.enableEditMode();
+    
+    // 设置图形更新回调
+    this.shapeObj.setShapeUpdateCallback((id, shapeType, feature) => {
+      logger.info(`图形 ${id} (${shapeType}) 已更新`);
+      
+      // 触发工具状态变化回调，传递更新的图形信息
+      this.triggerToolStateChange('edit-shape', true, 'edit', {
+        shapeId: id,
+        shapeType: shapeType,
+        action: 'update',
+        feature: {
+          id,
+          type: shapeType,
+          geometry: feature.getGeometry() ? feature.getGeometry().getType() : 'unknown',
+          data: feature.get('data')
+        }
+      });
+    });
+    
+    if (success) {
+      // 更新工具状态
+      this.triggerToolStateChange('edit-shape', true, 'edit', { 
+        action: 'enable',
+        message: '图形编辑模式已启用，点击图形开始编辑' 
+      });
+      
+      // 如果有修改过的图形，手动触发shape-update事件以通知UI刷新
+      const editInfo = this.shapeObj.getEditModeInfo();
+      if (editInfo.editingFeatureId) {
+        const feature = this.shapeObj.getShapeById(editInfo.editingFeatureId);
+        if (feature) {
+          const shapeType = feature.get('shapeType');
+          logger.debug(`编辑模式启用时发现正在编辑的图形: ${editInfo.editingFeatureId}`);
+          this.triggerToolStateChange('shape-update', true, 'event', {
+            id: editInfo.editingFeatureId,
+            type: shapeType
+          });
+        }
+      }
+      
+      logger.info('图形编辑模式已激活，点击图形开始编辑');
+    } else {
+      // 如果启动失败，取消工具激活状态
+      this.deactivateTool('edit-shape');
+      logger.warn('无法激活图形编辑模式');
+    }
+  }
+
+  /**
+   * 停用图形编辑功能
+   */
+  private handleShapeEditDeactivate(): void {
+    if (!this.shapeObj) {
+      return;
+    }
+    
+    // 检查是否在编辑模式，记录编辑的图形ID
+    const editInfo = this.shapeObj.isEditMode() ? this.shapeObj.getEditModeInfo() : null;
+    const editingFeatureId = editInfo?.editingFeatureId;
+    
+    // 禁用编辑模式
+    this.shapeObj.disableEditMode();
+    
+    // 如果有正在编辑的图形，触发更新完成事件
+    if (editingFeatureId) {
+      logger.debug(`编辑模式停用，图形 ${editingFeatureId} 的编辑已完成`);
+      
+      // 通知其他组件编辑已结束
+      this.triggerToolStateChange('edit-complete', false, 'edit', {
+        shapeId: editingFeatureId
+      });
+    }
+    
+    // 更新工具状态
+    this.triggerToolStateChange('edit-shape', false, 'edit', { 
+      action: 'disable',
+      message: '图形编辑模式已停用' 
+    });
+    
+    logger.info('图形编辑模式已停用');
   }
 }

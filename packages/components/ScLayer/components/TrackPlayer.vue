@@ -47,6 +47,21 @@
             </div>
           </div>
 
+          <!-- 更新频率设置 -->
+          <div class="settings-group">
+            <div class="settings-group-title">更新频率</div>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input type="radio" v-model="updateFrequency" :value="100">
+                <span>默认(高频更新)</span>
+              </label>
+              <label class="settings-option">
+                <input type="radio" v-model="updateFrequency" :value="500">
+                <span>低频更新</span>
+              </label>
+            </div>
+          </div>
+
           <!-- 节点设置组 -->
           <div class="settings-group">
             <div class="settings-group-title">节点设置</div>
@@ -257,6 +272,7 @@ interface Props {
     showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
     showSpeed?: boolean;    // 是否显示移动速度
     showNodeSpeed?: boolean;// 是否显示节点速度
+    updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
   }
 }
 
@@ -284,6 +300,7 @@ const isDraggingProgress = ref(false);
 const currentSpeed = ref(0); // 当前轨迹点的速度
 const showSettings = ref(false);
 const enableSpeedIcon = ref(true);
+const updateFrequency = ref(100); // 默认100毫秒更新一次，高频模式
 
 // 计算属性：是否可以切换轨迹
 const canSwitchTrack = computed(() => {
@@ -947,7 +964,7 @@ const startProgressTimer = () => {
   // 防止重复启动计时器
   stopProgressTimer();
   
-  // 每100毫秒更新一次进度
+  // 使用配置的更新频率，默认为100毫秒更新一次进度
   progressTimer = window.setInterval(() => {
     if (activeTrackId.value && props.trackObj) {
       try {
@@ -980,7 +997,7 @@ const startProgressTimer = () => {
         stopProgressTimer();
       }
     }
-  }, 100);
+  }, updateFrequency.value);
 };
 
 // 停止进度更新计时器
@@ -1129,7 +1146,8 @@ defineExpose({
       showNodeTime: showNodeTime.value,
       showSpeedPopover: showSpeedPopover.value,
       showNodeSpeed: showNodeSpeed.value,
-      showMovingPointName: showMovingPointName.value
+      showMovingPointName: showMovingPointName.value,
+      updateFrequency: updateFrequency.value
     };
   }
 });
@@ -1154,6 +1172,7 @@ const applyConfig = () => {
       if (props.config.showPointNames !== undefined) showMovingPointName.value = props.config.showPointNames;
       if (props.config.showSpeed !== undefined) showSpeedPopover.value = props.config.showSpeed;
       if (props.config.showNodeSpeed !== undefined) showNodeSpeed.value = props.config.showNodeSpeed;
+      if (props.config.updateFrequency !== undefined) updateFrequency.value = props.config.updateFrequency;
       
       console.log('轨迹播放器配置已应用:', JSON.stringify(props.config));
       
@@ -1250,40 +1269,64 @@ const onSpeedChange = () => {
 <style scoped>
 .track-player {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 320px;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
-  z-index: 500;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  transition: width 0.3s, height 0.3s, transform 0.3s;
-  /* 使用 will-change 提示浏览器这个元素将会变化，优化性能 */
-  will-change: width, height;
-  /* 使用硬件加速，减少对主线程的影响 */
-  transform: translateZ(0);
+  z-index: 1000;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.track-player.collapsed {
-  width: 40px !important;
-  height: 40px !important;
-  /* border-radius: 50%; */
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  background: linear-gradient(135deg, #1890ff, #096dd9);
-  transform: translateZ(0) scale(1);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  cursor: pointer; /* 添加指针样式表明可点击 */
+/* 设置组样式 */
+.settings-group {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 12px;
 }
 
-/* 播放中的折叠状态样式 */
-.track-player.collapsed.playing {
-  box-shadow: 0 0 0 rgba(24, 144, 255, 0.4);
-  animation: pulse-border 2s infinite;
+.settings-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
+.settings-group-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 14px;
+}
+
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 更新频率选项样式 */
+.settings-option input[type="radio"] {
+  margin-right: 5px;
+}
+
+.settings-option input[type="radio"]:checked + span {
+  font-weight: bold;
+  color: #1890ff;
+}
+
+/* 其他样式保持不变 */
 .track-player-header {
   display: flex;
   justify-content: space-between;
