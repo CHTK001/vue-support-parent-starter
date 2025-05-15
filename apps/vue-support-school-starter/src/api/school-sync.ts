@@ -21,6 +21,10 @@ export interface SchoolSyncConfig {
   schoolSyncConfigCode?: string;
   schoolSyncConfigType?: string;
   schoolSyncConfigCookie?: string;
+  schoolSyncConfigProxyHost?: string;
+  schoolSyncConfigProxyPort?: number;
+  schoolSyncConfigProxyUsername?: string;
+  schoolSyncConfigProxyPassword?: string;
   schoolSyncConfigSyncType?: string;
   schoolSyncConfigUrl?: string;
   schoolSyncConfigEnabled?: boolean;
