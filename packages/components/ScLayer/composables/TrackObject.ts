@@ -52,6 +52,7 @@ interface ExtendedTrackPlayer {
   withCamera: boolean;
   speedFactor?: number;
   cameraSmoothness?: number; // 新增的相机平滑度参数
+  stabilizeViewport?: boolean; // 是否启用视口稳定功能
 }
 
 // 使用扩展后的接口
@@ -60,7 +61,8 @@ const DEFAULT_TRACK_PLAYER: ExtendedTrackPlayer = {
   loop: false,
   speed: 20, // 20 km/h 默认速度
   withCamera: true,
-  cameraSmoothness: 0.25 // 添加相机平滑度参数
+  cameraSmoothness: 0.25, // 添加相机平滑度参数
+  stabilizeViewport: false // 默认不启用视口稳定功能
 };
 
 // 轨迹播放状态
@@ -152,6 +154,11 @@ export class TrackObject {
   private trackNodeOverlays = new Map<string, Map<number, Overlay>>(); // 轨迹节点Overlay映射
   private trackCurrentNodeOverlay: Overlay | null = null; // 当前活动节点Overlay
   private trackMovingOverlay: Overlay | null = null; // 移动点位Overlay
+
+  // 添加视口稳定相关属性
+  private originalViewResolution: number | null = null;
+  private originalViewExtent: number[] | null = null;
+  private trackViewportStabilized = new Map<string, boolean>();
 
   /**
    * 构造函数
@@ -923,96 +930,87 @@ export class TrackObject {
   /**
    * 播放轨迹
    * @param id 轨迹ID
-   * @param player 播放器配置（可选）
-   * @returns 是否操作成功
+   * @param player 播放器配置
+   * @returns 成功返回true，失败返回false
    */
   public play(id: string, player?: Partial<ExtendedTrackPlayer>): boolean {
     if (!this.tracks.has(id)) {
-      this.log('warn', `轨迹 "${id}" 不存在，无法播放`);
+      this.log('warn', `播放轨迹失败: 轨迹 "${id}" 不存在`);
       return false;
     }
     
+    // 获取轨迹数据
     const track = this.tracks.get(id)!;
     
-    // 如果轨迹不可见，自动显示
-    if (!track.visible) {
-      this.showTrack(id);
+    // 如果轨迹点数少于2，无法播放
+    if (!track.points || track.points.length < 2) {
+      this.log('warn', `播放轨迹失败: 轨迹 "${id}" 点数量不足`);
+      return false;
     }
     
-    // 获取或设置播放状态
-    const currentState = this.trackPlayStates.get(id) || TrackPlayState.STOPPED;
+    // 获取当前播放状态
+    const currentState = this.trackPlayStates.get(id);
     
-    // 如果已经在播放，不做任何操作
+    // 如果正在播放，不需要重新开始
     if (currentState === TrackPlayState.PLAYING) {
       this.log('debug', `轨迹 "${id}" 已经在播放中`);
       return true;
     }
     
-    // 更新播放器配置
-    let currentPlayer = this.trackPlayers.get(id);
-    if (!currentPlayer || player) {
-      currentPlayer = {
-        ...DEFAULT_TRACK_PLAYER,
-        ...currentPlayer,
+    // 如果已经有播放器配置，合并新的配置
+    if (this.trackPlayers.has(id)) {
+      const existingPlayer = this.trackPlayers.get(id)!;
+      this.trackPlayers.set(id, {
+        ...existingPlayer,
         ...player
-      };
-      this.trackPlayers.set(id, currentPlayer);
+      });
+    } else {
+      // 否则，创建新的播放器配置
+      this.trackPlayers.set(id, {
+        ...DEFAULT_TRACK_PLAYER,
+        ...player
+      });
     }
     
-    // 设置默认速度因子
-    if (!this.trackSpeedFactors.has(id)) {
-      this.trackSpeedFactors.set(id, 1.0);
-    }
+    // 获取当前的播放器配置
+    const currentPlayer = this.trackPlayers.get(id)!;
     
-    // 如果是暂停状态，从暂停点继续播放
+    // 如果是从暂停状态恢复，简单地更新状态
     if (currentState === TrackPlayState.PAUSED) {
-      this.log('debug', `轨迹 "${id}" 从暂停状态继续播放`);
-      // 恢复OpenLayers动画
       this.trackPlayStates.set(id, TrackPlayState.PLAYING);
-      
-      // 更新轨迹速度因子
-      if (player?.speedFactor !== undefined) {
-        this.trackSpeedFactors.set(id, player.speedFactor);
-      }
-      
-      // 重新设置动画，确保新的速度和配置立即生效
-      this.setupTrackAnimation(id);
-      
-      // 确保地图重绘以触发动画继续
-      this.mapInstance.render();
-      
+      this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放`);
       return true;
     }
     
-    // 如果是停止状态，重新开始播放
-    if (currentState === TrackPlayState.STOPPED) {
-      // 检查轨迹点数量
-      if (track.points.length < 2) {
-        this.log('warn', `轨迹 "${id}" 点数量不足，无法播放`);
-        return false;
-      }
-      
-      // 初始化播放状态
-      this.trackProgressValues.set(id, 0);
-      this.trackLastTimes.set(id, Date.now());
-      
-      // 创建初始位置特征
-      this.createPositionFeature(id);
-      
-      // 创建或获取经过线特征
-      this.initPassedLineFeature(id);
-      
-      // 设置播放状态 - 在添加动画监听器前设置，确保动画开始时状态正确
-      this.trackPlayStates.set(id, TrackPlayState.PLAYING);
-      
-      // 添加OpenLayers动画事件监听
-      this.setupTrackAnimation(id);
-      
-      this.log('debug', `轨迹 "${id}" 开始播放`);
-      return true;
+    // 从初始状态或停止状态开始播放
+    
+    // 确保轨迹可见
+    if (!this.showTrack(id)) {
+      this.log('warn', `播放轨迹失败: 无法显示轨迹 "${id}"`);
+      return false;
     }
     
-    return false;
+    // 重置进度
+    this.trackProgressValues.set(id, 0);
+    
+    // 设置为播放状态
+    this.trackPlayStates.set(id, TrackPlayState.PLAYING);
+    
+    // 创建位置标记特征
+    this.createPositionFeature(id);
+    
+    // 设置轨迹动画
+    this.setupTrackAnimation(id);
+    
+    // 如果需要跟随相机且启用了视口稳定，预先保存视图状态
+    if (currentPlayer.withCamera && currentPlayer.stabilizeViewport) {
+      // 在开始播放前保存初始视图状态
+      this.saveOriginalViewState(id);
+    }
+    
+    this.log('debug', `轨迹 "${id}" 开始播放，配置:`, currentPlayer);
+    
+    return true;
   }
 
   /**
@@ -1053,52 +1051,45 @@ export class TrackObject {
       return false;
     }
     
-    // 获取播放状态
-    const currentState = this.trackPlayStates.get(id) || TrackPlayState.STOPPED;
-    
-    // 如果已经停止，不做任何操作
-    if (currentState === TrackPlayState.STOPPED) {
-      this.log('debug', `轨迹 "${id}" 已经是停止状态`);
+    // 如果轨迹不在播放状态，直接返回
+    if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING &&
+        this.trackPlayStates.get(id) !== TrackPlayState.PAUSED) {
       return true;
     }
     
-    // 注意：我们不再移除轨迹动画监听器
-    // 我们只是改变播放状态，让动画暂停但保持视觉效果
-    // this.removeTrackAnimation(id);
+    // 移除动画
+    this.removeTrackAnimation(id);
     
-    // 设置为停止状态
+    // 更新状态
     this.trackPlayStates.set(id, TrackPlayState.STOPPED);
     
-    // 保持进度为当前值，而不是重置为0
-    // this.trackProgressValues.set(id, 0);
+    // 重置进度
+    this.trackProgressValues.set(id, 0);
     
-    // 不再重置当前点索引
-    // this.trackCurrentPoints.delete(id);
+    // 清除经过的线段
+    this.clearPassedLine(id);
     
-    // 不再重置上一次时间戳
-    // this.trackLastTimes.delete(id);
-    
-    // 不再移除位置标记特征和经过线
-    // this.removePositionFeature(id);
-    // this.clearPassedLine(id);
-    
-    // 不再清除节点Overlay，保留经过的点的覆盖物
-    // 这样用户可以看到轨迹播放经过的所有点
-    
-    // 移除活动标记
+    // 移除位置标记
     this.removeActiveMarker(id);
     
-    // 触发进度重置事件，但使用当前进度而不是0
-    const currentProgress = this.trackProgressValues.get(id) || 0;
-    const position = this.calculatePositionAtProgress(this.tracks.get(id)!, currentProgress);
-    this.dispatchTrackProgressEvent(id, currentProgress, position);
+    // 移除位置特征
+    this.removePositionFeature(id);
     
-    // 确保地图重绘以更新状态
-    if (this.mapInstance) {
-      this.mapInstance.render();
-    }
+    // 清除上一次的时间戳
+    this.trackLastTimes.delete(id);
+    
+    // 重置视图稳定状态
+    this.trackViewportStabilized.delete(id);
+    this.originalViewResolution = null;
+    this.originalViewExtent = null;
+    
+    // 注意: 不要清除节点覆盖物，保留已经过的点的Overlay
+    
+    // 通知进度更新
+    this.dispatchTrackProgressEvent(id, 0, this.tracks.get(id).points[0]);
     
     this.log('debug', `轨迹 "${id}" 已停止播放`);
+    
     return true;
   }
 
@@ -1180,6 +1171,11 @@ export class TrackObject {
     
     // 保存当前进度
     const currentProgress = this.trackProgressValues.get(id) || 0;
+    
+    // 如果启用了视口稳定，保存初始视图状态
+    if (player.stabilizeViewport) {
+      this.saveOriginalViewState(id);
+    }
     
     // 添加帧率控制，降低高频渲染
     let lastRenderTime = performance.now();
@@ -2304,7 +2300,7 @@ export class TrackObject {
    */
   public updateTrackPlayer(id: string, player: Partial<ExtendedTrackPlayer>): boolean {
     if (!this.tracks.has(id)) {
-      console.warn(`更新轨迹播放器配置失败: 轨迹 "${id}" 不存在`);
+      this.log('warn', `更新轨迹播放器配置失败: 轨迹 "${id}" 不存在`);
       return false;
     }
     
@@ -3238,6 +3234,7 @@ export class TrackObject {
       return;
     }
     
+    const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
     const view = this.mapInstance.getView();
     const currentCenter = view.getCenter();
     
@@ -3248,8 +3245,19 @@ export class TrackObject {
       return;
     }
     
+    // 如果启用了视口稳定，确保不改变分辨率（缩放级别）
+    if (player.stabilizeViewport && this.trackViewportStabilized.get(id)) {
+      if (this.originalViewResolution !== null) {
+        const currentResolution = view.getResolution();
+        
+        // 如果当前分辨率与原始分辨率不匹配，恢复到原始分辨率
+        if (currentResolution !== this.originalViewResolution) {
+          view.setResolution(this.originalViewResolution);
+        }
+      }
+    }
+    
     // 获取播放器配置中的平滑度参数，范围0-1，值越小越平滑
-    const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
     // 使用配置的平滑度参数，默认为DEFAULT_CAMERA_SMOOTHNESS
     const configuredSmoothness = player.cameraSmoothness !== undefined ? 
       Math.max(0.05, Math.min(1, player.cameraSmoothness)) : 
@@ -4078,5 +4086,20 @@ export class TrackObject {
       timeAgoText,
       isToday
     };
+  }
+
+  /**
+   * 保存原始视图状态
+   * @param id 轨迹ID
+   */
+  private saveOriginalViewState(id: string): void {
+    if (!this.mapInstance) return;
+    
+    const view = this.mapInstance.getView();
+    this.originalViewResolution = view.getResolution();
+    this.originalViewExtent = view.calculateExtent(this.mapInstance.getSize());
+    this.trackViewportStabilized.set(id, true);
+    
+    this.log('debug', `已保存轨迹 "${id}" 原始视图状态，分辨率: ${this.originalViewResolution}`);
   }
 }

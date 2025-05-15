@@ -3310,7 +3310,8 @@ const playTrackById = (trackId: string) => {
     showNodeTime: true,   // 显示节点时间
     showPointNames: true, // 显示移动点位名称
     showSpeed: true,      // 显示速度
-    showNodeSpeed: true   // 显示节点速度
+    showNodeSpeed: true,  // 显示节点速度
+    stabilizeViewport: true // 启用视口稳定，防止播放过程中不必要的缩放
   });
   
   if (success) {
@@ -3336,7 +3337,8 @@ const playTrackById = (trackId: string) => {
       showNodeTime: true,   // 显示节点时间
       showPointNames: true, // 显示移动点位名称
       showSpeed: true,      // 显示速度
-      showNodeSpeed: true   // 显示节点速度
+      showNodeSpeed: true,  // 显示节点速度
+      stabilizeViewport: true // 启用视口稳定，防止播放过程中不必要的缩放
     });
     
     // 获取轨迹数据记录日志
