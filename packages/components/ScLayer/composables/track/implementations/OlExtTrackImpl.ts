@@ -850,7 +850,35 @@ export class OlExtTrackImpl implements ITrackImplementation {
    * @returns 是否成功
    */
   public updateTrackSpeed(id: string, speedFactor: number): boolean {
-    return this.setTrackSpeedFactor(id, speedFactor);
+    if (!this.tracks.has(id)) {
+      this.log('warn', `更新轨迹速度失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 检查速度因子是否有效
+    if (speedFactor <= 0) {
+      this.log('warn', `速度因子必须大于0`);
+      return false;
+    }
+    
+    // 存储新的速度因子
+    this.trackSpeedFactors.set(id, speedFactor);
+    
+    // 如果轨迹正在播放中，确保立即应用新的速度
+    const playState = this.trackPlayStates.get(id);
+    if (playState === TrackPlayState.PLAYING) {
+      // 重置上一次时间戳，使得下一帧计算时立即反映新速度
+      // 触发渲染以立即更新动画
+      if (this.mapInstance) {
+        this.mapInstance.render();
+      }
+      
+      this.log('debug', `轨迹 "${id}" 速度因子已实时更新为: ${speedFactor}，并立即生效`);
+    } else {
+      this.log('debug', `轨迹 "${id}" 速度因子已更新为: ${speedFactor}，将在播放时生效`);
+    }
+    
+    return true;
   }
   
   /**
