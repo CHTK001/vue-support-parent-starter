@@ -2429,80 +2429,16 @@ export class ToolbarObject {
    * 启用编辑模式，允许用户修改已有的图形
    */
   private handleShapeEditActivate(): void {
-    if (!this.shapeObj) {
-      logger.warn('图形对象未初始化，无法激活编辑模式');
-      return;
-    }
+    logger.warn('图形编辑功能已被禁用');
     
-    // 检查是否在删除模式，如果是则先停用
-    const clearShapesTool = this.tools.find(tool => tool.id === 'clear-shapes');
-    if (clearShapesTool && clearShapesTool.active) {
-      logger.debug('发现删除模式已激活，需要先停用');
-      this.deactivateTool('clear-shapes');
-      
-      // 确保删除监听器被正确移除
-      const mapInstance = this.mapObj.getMapInstance();
-      if (mapInstance && (mapInstance as any)._deleteClickListener) {
-        mapInstance.un('click', (mapInstance as any)._deleteClickListener);
-        delete (mapInstance as any)._deleteClickListener;
-        logger.debug('已移除删除模式的点击监听器');
-      }
-    }
+    // 立即取消激活状态
+    this.deactivateTool('edit-shape');
     
-    // 禁用绘制模式
-    this.shapeObj.disable();
-    
-    // 确保删除模式被禁用
-    if (this.shapeObj.isDeleteMode()) {
-      this.shapeObj.disableDeleteMode();
-      logger.debug('已禁用图形对象的删除模式');
-    }
-    
-    // 绑定图形事件监听
-    this.setupShapeEventListeners();
-    
-    // 启用编辑模式
-    const success = this.shapeObj.enableEditMode();
-    
-    // 设置图形更新回调
-    this.shapeObj.setShapeUpdateCallback((id, shapeType, feature) => {
-      logger.info(`图形 ${id} (${shapeType}) 已更新`);
-      
-      // 触发工具状态变化回调，传递更新的图形信息
-      this.triggerToolStateChange('edit-shape', true, 'edit', {
-        shapeId: id,
-        shapeType: shapeType,
-        action: 'update',
-        feature: {
-          id,
-          type: shapeType,
-          geometry: feature.getGeometry() ? feature.getGeometry().getType() : 'unknown',
-          data: feature.get('data')
-        }
-      });
+    // 通知用户该功能已被禁用
+    this.triggerToolStateChange('edit-shape', false, 'edit', { 
+      action: 'disabled',
+      message: '图形编辑功能已被禁用' 
     });
-    
-    if (success) {
-      // 更新工具状态
-      this.triggerToolStateChange('edit-shape', true, 'edit', { 
-        action: 'enable',
-        message: '图形编辑模式已启用，点击图形开始编辑' 
-      });
-      
-      // 添加地图鼠标提示
-      const mapInstance = this.mapObj.getMapInstance();
-      if (mapInstance && mapInstance.getTargetElement()) {
-        // 设置自定义属性，提示用户如何操作
-        mapInstance.getTargetElement().setAttribute('data-edit-mode', 'active');
-        mapInstance.getTargetElement().title = '点击图形开始编辑，拖动控制点修改形状，点击地图空白处完成编辑';
-      }
-      
-      logger.info('图形编辑模式已激活，点击图形开始编辑');
-    } else {
-      // 如果启动失败，取消工具激活状态
-      this.deactivateTool('edit-shape');
-      logger.warn('无法激活图形编辑模式');
-    }
   }
 
   /**
