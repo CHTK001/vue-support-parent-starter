@@ -1170,11 +1170,20 @@ const onSpeedChange = () => {
     props.trackObj.updateTrackSpeed(activeTrackId.value, speedFactor.value);
     
     // 同时更新轨迹播放器配置
-    props.trackObj.setTrackPlayer(activeTrackId.value, {
+    const playerConfig = {
       loop: loopPlay.value,
       withCamera: followCamera.value,
       speedFactor: speedFactor.value
-    });
+    };
+    
+    // 先设置基本配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+    
+    // 无论播放状态如何，都确保立即应用新配置
+    if (typeof props.trackObj.updateTrackPlayer === 'function') {
+      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+      console.log(`轨迹播放速度已实时调整为: ${speedFactor.value.toFixed(1)}x`);
+    }
   }
 };
 

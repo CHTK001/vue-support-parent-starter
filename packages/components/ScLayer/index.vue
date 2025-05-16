@@ -1397,52 +1397,6 @@ const addDemoTrack = () => {
   console.log('已添加演示轨迹:', trackId);
 };
 
-// 手动初始化轨迹播放器
-const forceInitTrackPlayer = () => {
-  logger.debug('[Track] 手动强制初始化轨迹播放器');
-  
-  // 确保地图已加载
-  if (!mapObj || !mapReady.value) {
-    logger.warn('[Track] 地图未就绪，无法初始化轨迹播放器');
-    return;
-  }
-  
-  // 如果已有轨迹对象，先确保工具栏按钮激活，再显示UI
-  if (trackObj) {
-    logger.debug('[Track] 轨迹对象已存在，确保工具栏按钮激活');
-    // 先激活工具栏按钮
-    if (toolbarObject) {
-      toolbarObject.activateTool('track-player');
-      activeToolId.value = 'track-player';
-      // UI状态会随着工具栏状态变化
-      logger.debug('[Track] 已激活轨迹播放器工具栏按钮');
-    }
-    return;
-  }
-  
-  // 初始化轨迹对象
-  try {
-    trackObj = new TrackManager(mapObj.getMapInstance());
-    
-    // 先激活工具栏按钮，再显示UI
-    if (toolbarObject) {
-      logger.debug('[Track] 同步激活工具栏轨迹按钮');
-      toolbarObject.activateTool('track-player');
-      activeToolId.value = 'track-player';
-      // 显示轨迹播放器UI（这应该由工具激活事件触发，但为确保UI显示，也在这里设置）
-      showTrackPlayer.value = true;
-    } else {
-      // 如果没有工具栏，显示轨迹播放器UI
-      showTrackPlayer.value = true;
-      logger.debug('[Track] 无工具栏对象，直接显示轨迹播放器UI');
-    }
-    
-    logger.info('[Track] 轨迹播放器已手动初始化');
-  } catch (error) {
-    logger.error('[Track] 手动初始化轨迹播放器失败:', error);
-  }
-};
-
 
 /**
  * 飞线图相关
@@ -1454,13 +1408,6 @@ const flightLinePanelRef = ref<InstanceType<typeof FlightLinePanel> | null>(null
 // 在声明区域添加面板锁定状态变量
 const flightLinePanelLocked = ref(false);
 
-/**
- * 确定飞线图面板位置
- */
-const determineFlightLinePanelPosition = () => {
-  // 如果有配置，直接使用配置的位置
-  return props.flightLinePanelPosition;
-};
 
 /**
  * 处理飞线图面板关闭
@@ -2278,9 +2225,6 @@ defineExpose({
   logger,
   addDemoTrack,
   refreshTrackList,
-  
-  // 手动初始化轨迹播放器
-  initTrackPlayer: forceInitTrackPlayer,
   
   // 飞线图相关方法
   enableFlightLine: () => {
