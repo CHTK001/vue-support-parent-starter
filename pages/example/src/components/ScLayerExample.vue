@@ -236,7 +236,7 @@
           </div>
 
           <!-- 添加热力图操作部分 -->
-          <div class="config-item" v-if="false">
+          <div class="config-item">
             <div class="label">热力图操作</div>
             <div class="controls">
               <!-- 热力图操作区域 - 添加功能分组 -->
@@ -257,6 +257,9 @@
               <div class="control-row buttons-row">
                 <button @click="configureHeatmap">配置热力图样式</button>
                 <button @click="togglePointsVisible">{{ pointsVisible ? '隐藏数据点' : '显示数据点' }}</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addDenseHeatmapPoints">添加密集热力数据</button>
               </div>
             </div>
           </div>
@@ -452,20 +455,20 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  name: "ScLayerExample"
-};
-</script>
-
 <script setup lang="ts">
 import ScLayer from '@repo/components/ScLayer/index.vue';
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { MapType, MapTile, MarkerClusterMode } from '@repo/components/ScLayer/types/index';
+import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
+
+// 标记点聚合模式的枚举
+const MarkerClusterMode = {
+  CLUSTER: 'cluster',
+  NONE: 'none'
+};
 // 引入飞线图类型定义
 import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types/flightline';
 // 引入Element Plus组件
@@ -610,6 +613,16 @@ function onMapInit(mapInstance) {
   
   // 更新图层类型显示
   updateLayerTypeDisplay();
+  
+  // 移除编辑按钮
+  if (layerRef.value) {
+    const toolbarManager = layerRef.value.getToolbarManager();
+    if (toolbarManager) {
+      // 从工具栏中移除编辑按钮
+      toolbarManager.removeTool('edit-shape');
+      addLog('工具栏', '已移除编辑按钮');
+    }
+  }
   
   // 初始化时添加默认热力图并选择第一条记录
   setTimeout(() => {
@@ -859,7 +872,7 @@ function addClusterMarkers() {
       position: [lon, lat],
       title: `聚合点 ${i + 1}`,
       clickable: true,
-      clusterMode: MarkerClusterMode.CLUSTER,
+      clusterMode: MARKER_CLUSTER_MODE.CLUSTER,
       data: { type: 'cluster', index: i }
     });
   }
@@ -2432,6 +2445,96 @@ const togglePointsVisible = () => {
   addLog('热力图', pointsVisible.value ? '显示数据点' : '隐藏数据点');
 };
 
+/**
+ * 添加密集热力点数据
+ */
+const addDenseHeatmapPoints = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用热力图
+  layerRef.value.enableHeatmap();
+  
+  // 先更新热力图配置以适应密集数据展示
+  layerRef.value.configureHeatmap({
+    radius: 15,
+    blur: 12,
+    opacity: 0.85,
+    gradient: ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000', '#ff00ff'],
+  });
+  
+  // 获取地图中心点和边界
+  const center = config.center;
+  const points = [];
+  const pointCount = 200; // 使用大量点以创建密集热力图
+  
+  // 生成多个热点区
+  const hotspots = [
+    { lat: center[0] - 0.02, lng: center[1] - 0.02 },
+    { lat: center[0] + 0.02, lng: center[1] + 0.02 },
+    { lat: center[0] - 0.03, lng: center[1] + 0.01 },
+    { lat: center[0] + 0.01, lng: center[1] - 0.03 },
+    { lat: center[0], lng: center[1] }
+  ];
+  
+  // 为每个热点区域生成点
+  for (let i = 0; i < pointCount; i++) {
+    // 选择一个热点区域 (有80%概率选择热点区域，20%概率完全随机)
+    let basePoint;
+    if (Math.random() < 0.8) {
+      const hotspotIndex = Math.floor(Math.random() * hotspots.length);
+      basePoint = hotspots[hotspotIndex];
+    } else {
+      basePoint = { lat: center[0], lng: center[1] };
+    }
+    
+    // 在热点周围生成随机偏移
+    const latOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    const lngOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    
+    // 根据距离热点中心的距离计算权重（越近权重越高）
+    const distanceFromHotspot = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset);
+    const weight = Math.max(0.2, 1 - (distanceFromHotspot * 10));
+    
+    const point = {
+      longitude: basePoint.lng + lngOffset,
+      latitude: basePoint.lat + latOffset,
+      weight: weight, 
+      name: `密集点 ${i+1}`,
+      properties: {
+        value: Math.floor(weight * 100),
+        type: '密集点',
+        hotspot: basePoint === center ? "中心" : "热点区域"
+      }
+    };
+    
+    points.push(point);
+  }
+  
+  // 批量添加热力点
+  const ids = layerRef.value.addHeatmapPoints(points);
+  const newPoints = points.map((p, i) => ({ ...p, id: ids[i] }));
+  heatmapPoints.value = [...heatmapPoints.value, ...newPoints];
+  
+  addLog('热力图', `添加了${pointCount}个密集热力点数据`);
+};
+
+/**
+ * 切换热力图性能模式
+ */
+const toggleHeatmapPerformanceMode = () => {
+  if (!layerRef.value) return;
+  
+  heatmapPerformanceMode.value = !heatmapPerformanceMode.value;
+  
+  // 更新热力图配置
+  layerRef.value.configureHeatmap({
+    hideOnMoving: heatmapPerformanceMode.value,
+    hideOnZooming: heatmapPerformanceMode.value
+  });
+  
+  addLog('热力图', heatmapPerformanceMode.value ? '启用性能模式' : '禁用性能模式');
+};
+
 // 工具栏位置
 const toolbarPosition = ref<ToolbarPosition>(ToolbarPosition.TOP_LEFT);
 
@@ -2703,8 +2806,8 @@ const changeLayerType = (layerType: string) => {
   handleLayerTypeChange();
 };
 
-// 添加标记点聚合模式的枚举
-const MarkerClusterMode = {
+// 标记点聚合模式的常量
+const MARKER_CLUSTER_MODE = {
   CLUSTER: 'cluster',
   NONE: 'none'
 };
@@ -3001,30 +3104,6 @@ const clearFlightLines = () => {
     addLog('飞线图', `清除飞线失败: ${error.message}`);
   }
 };
-
-/**
- * 切换热力图性能模式
- */
-const toggleHeatmapPerformanceMode = () => {
-  if (!layerRef.value) return;
-  
-  // 获取热力图对象
-  const heatmapObj = layerRef.value.getHeatmapObject();
-  if (!heatmapObj) {
-    addLog('热力图', '无法获取热力图对象');
-    return;
-  }
-  
-  // 切换性能模式
-  heatmapPerformanceMode.value = !heatmapPerformanceMode.value;
-  
-  // 设置热力图性能模式
-  heatmapObj.setPerformanceMode(heatmapPerformanceMode.value);
-  
-  // 记录日志
-  addLog('热力图', `性能模式已${heatmapPerformanceMode.value ? '启用' : '禁用'}`);
-};
-
 
 // 选择单条飞线
 const selectSingleFlightLine = (id: string) => {
@@ -3400,7 +3479,41 @@ const removeTrackById = (trackId: string) => {
   }
 };
 
-// 删除出错的onMounted块
+// 更新热力图点列表的函数
+const updateHeatmapPointList = () => {
+  if (!layerRef.value) return;
+  
+  try {
+    // 获取热力图对象
+    const heatmapObj = layerRef.value.getHeatmapObject();
+    if (!heatmapObj) {
+      heatmapPoints.value = [];
+      return;
+    }
+    
+    // 获取所有热力点
+    const allPoints = heatmapObj.getAllPoints();
+    if (!allPoints) {
+      heatmapPoints.value = [];
+      return;
+    }
+    
+    // 转换Map为数组
+    const pointsArray = [];
+    allPoints.forEach((point, id) => {
+      pointsArray.push({
+        ...point,
+        id
+      });
+    });
+    
+    // 更新热力点列表
+    heatmapPoints.value = pointsArray;
+  } catch (error) {
+    console.error('获取热力点列表错误:', error);
+    addLog('热力图', `获取热力点列表失败: ${error.message}`);
+  }
+};
 </script>
 
 <style scoped>
@@ -3422,13 +3535,6 @@ const removeTrackById = (trackId: string) => {
   width: 320px;
   overflow-y: auto;
   max-height: 700px;
-}
-
-.map-container {
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  overflow: hidden;
 }
 
 .config-section {
