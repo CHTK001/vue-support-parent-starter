@@ -306,17 +306,51 @@ export class ToolbarObject {
           break;
           
         case 'Circle':
-          const center = (geometry as Circle).getCenter();
-          const radius = (geometry as Circle).getRadius();
-          // 转换中心点为经纬度坐标
-          const centerLonLat = toLonLat(center);
-          shapeOption = {
-            type: Shape.CIRCLE,
-            center: centerLonLat,
-            radius: radius,
-            dataType: DataType.SHAPE,
-            id
-          };
+          // 修改这部分代码处理圆形
+          // 检查几何图形类型，因为现在圆形可能是用Polygon表示的
+          if (geometry instanceof Circle) {
+            // 原始Circle类型情况处理
+            const center = geometry.getCenter();
+            const radius = geometry.getRadius();
+            // 转换中心点为经纬度坐标
+            const centerLonLat = toLonLat(center);
+            shapeOption = {
+              type: Shape.CIRCLE,
+              center: centerLonLat,
+              radius: radius,
+              dataType: DataType.SHAPE,
+              id
+            };
+          } else if (geometry instanceof Polygon) {
+            // 使用Polygon表示的Circle类型情况处理
+            // 计算多边形的外接圆
+            const extent = geometry.getExtent();
+            // 计算中心点
+            const centerX = (extent[0] + extent[2]) / 2;
+            const centerY = (extent[1] + extent[3]) / 2;
+            const center = [centerX, centerY];
+            
+            // 计算半径 - 使用第一个点到中心点的距离
+            const firstPoint = geometry.getCoordinates()[0][0];
+            const dx = firstPoint[0] - centerX;
+            const dy = firstPoint[1] - centerY;
+            const radius = Math.sqrt(dx * dx + dy * dy);
+            
+            // 转换中心点为经纬度坐标
+            const centerLonLat = toLonLat(center);
+            
+            shapeOption = {
+              type: Shape.CIRCLE,
+              center: centerLonLat,
+              radius: radius,
+              dataType: DataType.SHAPE,
+              id
+            };
+          } else {
+            // 处理其他未预期的几何图形类型情况
+            logger.warn(`绘制圆形时遇到未预期的几何图形类型: ${geometry.getType ? geometry.getType() : 'unknown'}`);
+            return; // 不处理不支持的几何图形类型
+          }
           break;
           
         case 'Rectangle':
@@ -1864,6 +1898,10 @@ export class ToolbarObject {
               this.handleGridDeactivate(GridType.HEXAGON);
               break;
               
+            case 'edit-shape':
+              this.handleShapeEditDeactivate();
+              break;
+              
             default:
               // 对于其他工具，简单地设置激活状态为false
               tool.active = false;
@@ -1888,6 +1926,9 @@ export class ToolbarObject {
     
     // 禁用聚合功能
     this.disableCluster();
+    
+    // 清理图形事件监听器
+    this.cleanupShapeEventListeners();
     
     // 销毁坐标对象
     if (this.coordinateObj) {
@@ -1922,6 +1963,11 @@ export class ToolbarObject {
     
     // 销毁图形绘制对象
     if (this.shapeObj) {
+      // 确保编辑模式被禁用
+      if (this.shapeObj.isEditMode()) {
+        this.shapeObj.disableEditMode();
+        logger.debug('销毁过程中禁用图形编辑模式');
+      }
       this.shapeObj.destroy();
       this.shapeObj = null;
     }
@@ -2412,6 +2458,9 @@ export class ToolbarObject {
       logger.debug('已禁用图形对象的删除模式');
     }
     
+    // 绑定图形事件监听
+    this.setupShapeEventListeners();
+    
     // 启用编辑模式
     const success = this.shapeObj.enableEditMode();
     
@@ -2440,18 +2489,12 @@ export class ToolbarObject {
         message: '图形编辑模式已启用，点击图形开始编辑' 
       });
       
-      // 如果有修改过的图形，手动触发shape-update事件以通知UI刷新
-      const editInfo = this.shapeObj.getEditModeInfo();
-      if (editInfo.editingFeatureId) {
-        const feature = this.shapeObj.getShapeById(editInfo.editingFeatureId);
-        if (feature) {
-          const shapeType = feature.get('shapeType');
-          logger.debug(`编辑模式启用时发现正在编辑的图形: ${editInfo.editingFeatureId}`);
-          this.triggerToolStateChange('shape-update', true, 'event', {
-            id: editInfo.editingFeatureId,
-            type: shapeType
-          });
-        }
+      // 添加地图鼠标提示
+      const mapInstance = this.mapObj.getMapInstance();
+      if (mapInstance && mapInstance.getTargetElement()) {
+        // 设置自定义属性，提示用户如何操作
+        mapInstance.getTargetElement().setAttribute('data-edit-mode', 'active');
+        mapInstance.getTargetElement().title = '点击图形开始编辑，拖动控制点修改形状，点击地图空白处完成编辑';
       }
       
       logger.info('图形编辑模式已激活，点击图形开始编辑');
@@ -2460,6 +2503,91 @@ export class ToolbarObject {
       this.deactivateTool('edit-shape');
       logger.warn('无法激活图形编辑模式');
     }
+  }
+
+  /**
+   * 设置图形事件监听器
+   * 监听图形编辑过程中的事件
+   */
+  private setupShapeEventListeners(): void {
+    if (!this.shapeObj || !this.mapObj.getMapInstance()) return;
+    
+    const mapElement = this.mapObj.getMapInstance()!.getTargetElement();
+    if (!mapElement) return;
+    
+    // 监听图形编辑开始事件
+    mapElement.addEventListener('shape-edit-start', (event: any) => {
+      const { id, type, feature } = event.detail;
+      logger.debug(`捕获到图形编辑开始事件: 图形ID=${id}, 类型=${type}`);
+      
+      // 通知状态变化
+      this.triggerToolStateChange('shape-edit-start', true, 'edit', {
+        shapeId: id,
+        shapeType: type,
+        geometry: feature.getGeometry() ? feature.getGeometry().getType() : 'unknown'
+      });
+    });
+    
+    // 监听图形编辑中事件
+    mapElement.addEventListener('shape-editing', (event: any) => {
+      const { id, type } = event.detail;
+      logger.debug(`捕获到图形编辑中事件: 图形ID=${id}, 类型=${type}`);
+      
+      // 通知状态变化 (可选，频率较高可能不需要每次都通知)
+      // this.triggerToolStateChange('shape-editing', true, 'edit', { shapeId: id, shapeType: type });
+    });
+    
+    // 监听图形编辑完成事件
+    mapElement.addEventListener('shape-update', (event: any) => {
+      const { id, type, feature } = event.detail;
+      logger.debug(`捕获到图形更新事件: 图形ID=${id}, 类型=${type}`);
+      
+      // 通知状态变化
+      this.triggerToolStateChange('shape-update', true, 'edit', {
+        shapeId: id,
+        shapeType: type,
+        action: 'update',
+        feature: {
+          id,
+          type,
+          geometry: feature.getGeometry() ? feature.getGeometry().getType() : 'unknown',
+          data: feature.get('data')
+        }
+      });
+    });
+    
+    // 监听图形修改完成事件 (新事件)
+    mapElement.addEventListener('shape-modified', (event: any) => {
+      const { id, type, feature } = event.detail;
+      logger.debug(`捕获到图形修改完成事件: 图形ID=${id}, 类型=${type}`);
+      
+      // 通知状态变化
+      this.triggerToolStateChange('shape-modified', true, 'edit', {
+        shapeId: id,
+        shapeType: type,
+        action: 'modify'
+      });
+    });
+  }
+
+  /**
+   * 清理图形事件监听器
+   */
+  private cleanupShapeEventListeners(): void {
+    if (!this.mapObj.getMapInstance()) return;
+    
+    const mapElement = this.mapObj.getMapInstance()!.getTargetElement();
+    if (!mapElement) return;
+    
+    // 移除所有事件监听器
+    const events = ['shape-edit-start', 'shape-editing', 'shape-update', 'shape-modified'];
+    events.forEach(eventName => {
+      // 因为我们无法直接引用监听器函数，我们借助克隆节点移除所有监听器
+      const clone = mapElement.cloneNode(false);
+      mapElement.parentNode?.replaceChild(clone, mapElement);
+      
+      logger.debug(`已清理 ${eventName} 事件监听器`);
+    });
   }
 
   /**
@@ -2492,6 +2620,16 @@ export class ToolbarObject {
       action: 'disable',
       message: '图形编辑模式已停用' 
     });
+    
+    // 清理事件监听器
+    this.cleanupShapeEventListeners();
+    
+    // 移除地图鼠标提示
+    const mapInstance = this.mapObj.getMapInstance();
+    if (mapInstance && mapInstance.getTargetElement()) {
+      mapInstance.getTargetElement().removeAttribute('data-edit-mode');
+      mapInstance.getTargetElement().title = '';
+    }
     
     logger.info('图形编辑模式已停用');
   }
