@@ -474,6 +474,9 @@ catalogs:
     ol-layerswitcher:
       specifier: ^4.1.2
       version: 4.1.2
+    ol-wind:
+      specifier: ^1.1.9
+      version: 1.1.9
     ora:
       specifier: ^8.1.1
       version: 8.2.0
@@ -3915,6 +3918,9 @@ importers:
       ol-layerswitcher:
         specifier: 'catalog:'
         version: 4.1.2(ol@10.5.0)
+      ol-wind:
+        specifier: 'catalog:'
+        version: 1.1.9(ol@10.5.0)
       pinyin-pro:
         specifier: 'catalog:'
         version: 3.26.0
@@ -15050,6 +15056,11 @@ packages:
     peerDependencies:
       ol: '>=5.0.0'
 
+  ol-wind@1.1.9:
+    resolution: {integrity: sha512-QLqmlJlMwmhC8QDMPEfi/WTtOaKbXUqO07Rfo0zVGnoe6imL3KYM6/QPjIIOe6niT7Bwwn5lInTaXWqHfUE08Q==}
+    peerDependencies:
+      ol: '>=6.0.0'
+
   ol@10.5.0:
     resolution: {integrity: sha512-nHFx8gkGmvYImsa7iKkwUnZidd5gn1XbMZd9GNOorvm9orjW9gQvT3Naw/MjIasVJ3cB9EJUdCGR2EFAulMHsQ==}
 
@@ -17842,6 +17853,9 @@ packages:
 
   wildcard@2.0.1:
     resolution: {integrity: sha512-CC1bOL87PIWSBhDcTrdeLo6eGT7mCFtrg0uIJtqJUFyK+eJnzl8A1niH56uu7KMa5XFrtiV+AQuHO3n7DsHnLQ==}
+
+  wind-core@1.1.8:
+    resolution: {integrity: sha512-mxnkLXkZ4hcoGsRBkBsP0TyCnTDAslbMMmInklKWnDKzkRJ/nkyxGOGG+06i+ta+PihEKCV3zTZMdGlMD9orZQ==}
 
   wkt-parser@1.4.0:
     resolution: {integrity: sha512-qpwO7Ihds/YYDTi1aADFTI1Sm9YC/tTe3SHD24EeIlZxy7Ik6a1b4HOz7jAi0xdUAw487duqpo8OGu+Tf4nwlQ==}
@@ -28510,6 +28524,11 @@ snapshots:
     dependencies:
       ol: 10.5.0
 
+  ol-wind@1.1.9(ol@10.5.0):
+    dependencies:
+      ol: 10.5.0
+      wind-core: 1.1.8
+
   ol@10.5.0:
     dependencies:
       '@types/rbush': 4.0.0
@@ -31789,6 +31808,8 @@ snapshots:
   wildcard@1.1.2: {}
 
   wildcard@2.0.1: {}
+
+  wind-core@1.1.8: {}
 
   wkt-parser@1.4.0: {}
 

@@ -3,11 +3,11 @@
  * @description 用于地图上绘制各种形状，包括矩形、圆形、多边形和线段
  */
 import { Map as OlMap } from 'ol';
-import { Draw, Snap } from 'ol/interaction';
+import { Draw, Snap, Modify, Select } from 'ol/interaction';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
-import { LineString, Polygon, Circle, Point } from 'ol/geom';
+import { LineString, Polygon, Circle, Point, GeometryCollection } from 'ol/geom';
 import { Feature } from 'ol';
 import { unByKey } from 'ol/Observable';
 import { EventsKey } from 'ol/events';
@@ -17,9 +17,12 @@ import { getCenter } from 'ol/extent';
 import { ShapeStyle, Shape, ShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
 import logger from './LogObject';
 import { DataType } from '../types';
-// 导入ol-ext的ModifyFeature交互
-import 'ol-ext/dist/ol-ext.css';
-import OLModifyFeature from 'ol-ext/interaction/ModifyFeature';
+// 删除ol-ext导入
+// import 'ol-ext/dist/ol-ext.css';
+// import OLModifyFeature from 'ol-ext/interaction/ModifyFeature';
+// 添加额外需要的导入
+import Collection from 'ol/Collection';
+import { singleClick } from 'ol/events/condition';
 
 // 图形模块日志前缀
 const LOG_MODULE = 'Shape';
@@ -68,7 +71,9 @@ export class ShapeObject {
   // 点击监听器 - 用于删除模式
   private clickListener: EventsKey | null = null;
   // 编辑相关属性
-  private editInteraction: OLModifyFeature | null = null;
+  private editInteraction: Modify | null = null;
+  private selectInteraction: Select | null = null;
+  private editFeatures: Collection<Feature> = new Collection();
   private editFeatureId: string | null = null;
   private editMode: boolean = false;
   private shapeUpdateCallback: ((id: string, shapeType: ShapeType, feature: Feature) => void) | null = null;
@@ -169,28 +174,205 @@ export class ShapeObject {
    * @param type 图形类型
    */
   public enable(type: ShapeType): void {
+    this.log('debug', `尝试启用绘图功能，类型: ${type}...`);
+    
     if (!this.mapInstance) {
       this.log('warn', '地图实例未设置，无法启用绘图功能');
       return;
     }
 
-    // 如果已经启用，先禁用
-    if (this.enabled) {
-      this.disable();
+    // 防止模式冲突：先完全清理所有模式
+    this.cleanupAllModes();
+
+    try {
+      this.currentType = type;
+
+      // 确保图层已添加到地图
+      if (!this.isLayerAdded()) {
+        this.mapInstance.addLayer(this.layer as VectorLayer<VectorSource>);
+      }
+
+      // 创建绘制交互
+      this.addInteraction();
+
+      // 设置状态标志（最后设置）
+      this.enabled = true;
+      
+      // 改变鼠标光标样式，提示用户处于绘图模式
+      if (this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = 'crosshair';
+      }
+      
+      this.log('info', `图形绘制功能已启用，类型: ${type}`);
+    } catch (error) {
+      this.log('error', `启用绘图功能失败, 类型: ${type}:`, error);
+      // 出错时清理
+      this.cleanupAllModes();
     }
+  }
 
-    this.currentType = type;
-
-    // 确保图层已添加到地图
-    if (!this.isLayerAdded()) {
-      this.mapInstance.addLayer(this.layer as VectorLayer<VectorSource>);
+  /**
+   * 清理所有交互模式
+   * 在切换到新模式前确保所有现有模式都被禁用
+   */
+  private cleanupAllModes(): void {
+    try {
+      // 直接重置状态标志，避免循环调用
+      const wasEnabled = this.enabled;
+      const wasEditMode = this.editMode;
+      const wasDeleteMode = this.deleteMode;
+      
+      // 记录需要移除的交互，后面再统一移除，减少对地图的操作
+      const interactionsToRemove = [];
+      
+      // 重置所有状态标志（在清理前）
+      this.enabled = false;
+      this.editMode = false;
+      this.deleteMode = false;
+      this.currentType = null;
+      this.editFeatureId = null;
+      
+      // 移除所有交互（直接移除而不是调用禁用方法）
+      if (this.mapInstance) {
+        // 保存对地图实例的引用
+        const map = this.mapInstance;
+        
+        // 准备移除绘制交互
+        if (this.draw) {
+          try {
+            if (this.drawListener) {
+              unByKey(this.drawListener);
+              this.drawListener = null;
+            }
+            interactionsToRemove.push(this.draw);
+            this.draw = null;
+          } catch (e) {
+            this.log('warn', '准备移除绘制交互时出错:', e);
+          }
+        }
+        
+        // 准备移除选择交互
+        if (this.selectInteraction) {
+          try {
+            this.selectInteraction.getFeatures().clear();
+            interactionsToRemove.push(this.selectInteraction);
+            this.selectInteraction = null;
+          } catch (e) {
+            this.log('warn', '准备移除选择交互时出错:', e);
+          }
+        }
+        
+        // 准备移除编辑交互
+        if (this.editInteraction) {
+          try {
+            interactionsToRemove.push(this.editInteraction);
+            this.editInteraction = null;
+          } catch (e) {
+            this.log('warn', '准备移除编辑交互时出错:', e);
+          }
+        }
+        
+        // 准备移除捕捉交互
+        if (this.snap) {
+          try {
+            interactionsToRemove.push(this.snap);
+            this.snap = null;
+          } catch (e) {
+            this.log('warn', '准备移除捕捉交互时出错:', e);
+          }
+        }
+        
+        // 移除删除点击监听
+        if (this.clickListener) {
+          try {
+            unByKey(this.clickListener);
+            this.clickListener = null;
+          } catch (e) {
+            this.log('warn', '清理删除点击监听时出错:', e);
+          }
+        }
+        
+        // 清理可能存在的旧删除监听器
+        if ((map as any)._deleteClickListener) {
+          try {
+            map.un('click', (map as any)._deleteClickListener);
+            delete (map as any)._deleteClickListener;
+          } catch (e) {
+            this.log('warn', '清理旧删除监听器时出错:', e);
+          }
+        }
+        
+        // 清空编辑的要素集合
+        if (this.editFeatures) {
+          this.editFeatures.clear();
+        }
+        
+        // 清除所有图形的编辑状态
+        this.shapes.forEach((feature, id) => {
+          if (feature.get('editMode') === true) {
+            feature.set('editMode', false);
+          }
+        });
+        
+        // 确保地图光标恢复正常
+        if (map.getTargetElement()) {
+          map.getTargetElement().style.cursor = '';
+        }
+        
+        // 现在统一移除所有交互，减少对地图的操作次数
+        interactionsToRemove.forEach(interaction => {
+          try {
+            map.removeInteraction(interaction);
+          } catch (e) {
+            this.log('warn', '移除交互时出错:', e);
+          }
+        });
+        
+        // 仅刷新图层，避免触发地图重新创建
+        if (this.layer) {
+          this.layer.changed();
+        }
+        
+        // 使用轻量级渲染，避免更新地图尺寸
+        try {
+          map.render();
+        } catch (e) {
+          this.log('warn', '渲染地图时出错:', e);
+        }
+      }
+      
+      // 记录已清理的模式
+      const modes = [];
+      if (wasEnabled) modes.push('绘制');
+      if (wasEditMode) modes.push('编辑');
+      if (wasDeleteMode) modes.push('删除');
+      
+      this.log('debug', `已清理所有交互模式和状态: ${modes.join(', ') || '无活动模式'}`);
+    } catch (error) {
+      this.log('error', '清理交互模式时出错:', error);
+      // 强制重置所有引用类型状态
+      this.draw = null;
+      this.snap = null;
+      this.selectInteraction = null;
+      this.editInteraction = null;
+      this.drawListener = null;
+      this.clickListener = null;
+      
+      // 强制重置所有标志状态
+      this.enabled = false;
+      this.editMode = false;
+      this.deleteMode = false;
+      this.currentType = null;
+      this.editFeatureId = null;
+      
+      // 确保地图光标恢复
+      if (this.mapInstance && this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = '';
+      }
+      
+      // 使用安全恢复，避免销毁地图
+      this.safeRecoverMapState();
     }
-
-    // 创建绘制交互
-    this.addInteraction();
-
-    this.enabled = true;
-    this.log('info', `图形绘制功能已启用，类型: ${type}`);
   }
 
   /**
@@ -220,12 +402,18 @@ export class ShapeObject {
     // 根据不同类型创建不同的绘制交互
     switch (this.currentType) {
       case 'Rectangle':
-      type = 'Circle';
-      geometryFunction = createBox();
+        type = 'Circle';
+        geometryFunction = createBox();
         break;
       case 'Square':
-      type = 'Circle';
+        type = 'Circle';
         geometryFunction = createRegularPolygon(4);
+        break;
+      case 'Circle':
+        // 使用正多边形绘制圆形，sides参数增加到64以获得更接近圆形的效果
+        type = 'Circle';
+        // 创建一个具有许多边的正多边形来接近圆形
+        geometryFunction = createRegularPolygon(64);
         break;
       default:
         break;
@@ -235,7 +423,58 @@ export class ShapeObject {
     this.draw = new Draw({
       source: this.source,
       type: type as any,
-      geometryFunction: geometryFunction
+      geometryFunction: geometryFunction,
+      // 样式设置
+      style: (feature) => {
+        // 绘制过程中的样式
+        const styles = [];
+        
+        // 基本样式
+        styles.push(new Style({
+          stroke: new Stroke({
+            color: 'rgba(24, 144, 255, 1)',
+            width: 2,
+            lineDash: [5, 5]
+          }),
+          fill: new Fill({
+            color: 'rgba(24, 144, 255, 0.2)'
+          })
+        }));
+        
+        // 如果是圆形或正多边形，显示中心点
+        if (this.currentType === 'Circle' || this.currentType === 'Square') {
+          const geometry = feature.getGeometry();
+          if (geometry) {
+            let center;
+            // Polygon类型时从坐标中计算中心点
+            if (geometry instanceof Polygon) {
+              const extent = geometry.getExtent();
+              center = getCenter(extent);
+            } else if (geometry instanceof Circle) {
+              center = geometry.getCenter();
+            }
+            
+            if (center) {
+              // 添加中心点样式
+              styles.push(new Style({
+                geometry: new Point(center),
+                image: new CircleStyle({
+                  radius: 6,
+                  stroke: new Stroke({
+                    color: '#00ff00',
+                    width: 2
+                  }),
+                  fill: new Fill({
+                    color: 'rgba(0, 255, 0, 0.3)'
+                  })
+                })
+              }));
+            }
+          }
+        }
+        
+        return styles;
+      }
     });
 
     // 添加绘制完成事件监听
@@ -288,20 +527,92 @@ export class ShapeObject {
    * @param evt 事件对象
    */
   private handleDrawEnd(evt: any): void {
-    const feature = evt.feature as Feature;
+    const feature = evt.feature as Feature<any>;
+    const geometry = feature.getGeometry();
     
     // 生成唯一ID
     const id = `shape-${Date.now()}-${this.idCounter++}`;
     feature.setId(id);
     feature.set('dataType', DataType.SHAPE);
+    
+    let dataCoordinates;
+    
+    // 特殊处理 Circle 类型（现在是以 Polygon 实现的）
+    if (this.currentType === 'Circle' && geometry instanceof Polygon) {
+      try {
+        const extent = geometry.getExtent();
+        const center = getCenter(extent);
+        
+        // 通过计算外接圆半径来获得半径
+        const firstPoint = geometry.getCoordinates()[0][0];
+        const dx = firstPoint[0] - center[0];
+        const dy = firstPoint[1] - center[1];
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        
+        // 设置数据
+        dataCoordinates = {
+          center: toLonLat(center),
+          radius: radius
+        };
+      } catch (error) {
+        this.log('error', '处理圆形几何体时出错:', error);
+        // 提供默认值
+        dataCoordinates = {
+          center: [0, 0],
+          radius: 1000
+        };
+      }
+    } else if (geometry) {
+      // 常规几何图形处理
+      try {
+        if (geometry instanceof Circle) {
+          const center = toLonLat(geometry.getCenter());
+          const radius = geometry.getRadius();
+          dataCoordinates = {
+            center: center,
+            radius: radius
+          };
+        } else if (geometry instanceof Polygon) {
+          if (this.currentType === 'Circle') {
+            // 对于以Polygon实现的Circle，重复上面的逻辑
+            const extent = geometry.getExtent();
+            const center = getCenter(extent);
+            
+            // 通过计算外接圆半径来获得半径
+            const firstPoint = geometry.getCoordinates()[0][0];
+            const dx = firstPoint[0] - center[0];
+            const dy = firstPoint[1] - center[1];
+            const radius = Math.sqrt(dx * dx + dy * dy);
+            
+            dataCoordinates = {
+              center: toLonLat(center),
+              radius: radius
+            };
+          } else {
+            // 普通多边形处理
+            const coordinates = geometry.getCoordinates();
+            dataCoordinates = { coordinates };
+          }
+        } else {
+          // 尝试调用getCoordinates获取坐标
+          // @ts-ignore
+          dataCoordinates = geometry.getCoordinates ? geometry.getCoordinates() : null;
+        }
+      } catch (error) {
+        this.log('error', '获取几何图形坐标失败:', error);
+        dataCoordinates = null;
+      }
+    }
+    
+    // 设置数据对象
     feature.set('data', {
       type: this.currentType,
-      //@ts-ignore
-      coordinates: feature.getGeometry()?.getCoordinates(),
+      ...(dataCoordinates || {}),
       style: this.style,
       id: id,
       dataType: DataType.SHAPE
     });
+    
     // 设置属性
     feature.set('shapeType', this.currentType);
     feature.set('createdAt', new Date().toISOString());
@@ -348,45 +659,61 @@ export class ShapeObject {
     
     // 为多边形创建顶点样式，编辑模式下才显示顶点
     if (isEditMode) {
-    const geometry = feature.getGeometry();
-    if (geometry instanceof Polygon) {
-    const createVertexStyles = (coordinates: number[][]): Style[] => {
-      return coordinates.map(coord => new Style({
+      const geometry = feature.getGeometry();
+      
+      // 通用的顶点样式创建函数
+      const createVertexStyle = (coord: number[]) => new Style({
         geometry: new Point(coord),
+        image: new CircleStyle({
+          radius: 6,
+          stroke: new Stroke({
+            color: 'rgba(0, 120, 255, 1)',
+            width: 2
+          }),
+          fill: new Fill({
+            color: 'rgba(255, 255, 255, 0.8)'
+          })
+        })
+      });
+      
+      if (geometry instanceof Polygon) {
+        // 为多边形添加顶点样式
+        const coordinates = geometry.getCoordinates()[0];
+        coordinates.forEach(coord => {
+          styles.push(createVertexStyle(coord));
+        });
+        
+        // 获取图形类型
+        const shapeType = feature.get('shapeType') as ShapeType;
+        
+        // 如果是Circle类型（但使用Polygon表示），添加中心点
+        if (shapeType === 'Circle') {
+          const extent = geometry.getExtent();
+          const center = getCenter(extent);
+          
+          // 添加中心点样式
+          styles.push(new Style({
+            geometry: new Point(center),
             image: new CircleStyle({
               radius: 6,
               stroke: new Stroke({
-                color: 'rgba(0, 120, 255, 1)',
+                color: '#00ff00',
                 width: 2
               }),
               fill: new Fill({
-                color: 'rgba(255, 255, 255, 0.8)'
-              })
-            })
-      }));
-    };
-    
-      const coordinates = geometry.getCoordinates()[0];
-      styles.push(...createVertexStyles(coordinates));
-      } else if (geometry instanceof LineString) {
-        // 为线段添加顶点样式
-        const createVertexStyles = (coordinates: number[][]): Style[] => {
-          return coordinates.map(coord => new Style({
-            geometry: new Point(coord),
-            image: new CircleStyle({
-              radius: 6,
-              stroke: new Stroke({
-                color: 'rgba(0, 120, 255, 1)',
-                width: 2
-              }),
-              fill: new Fill({
-                color: 'rgba(255, 255, 255, 0.8)'
+                color: 'rgba(0, 255, 0, 0.3)'
               })
             })
           }));
-        };
-        
-        styles.push(...createVertexStyles(geometry.getCoordinates()));
+          
+          // 可以选择添加编辑点，但这通常由Modify交互自动处理
+        }
+      } else if (geometry instanceof LineString) {
+        // 为线段添加顶点样式
+        const coordinates = geometry.getCoordinates();
+        coordinates.forEach(coord => {
+          styles.push(createVertexStyle(coord));
+        });
       } else if (geometry instanceof Circle) {
         // 为圆形添加中心点和边缘点样式
         const center = geometry.getCenter();
@@ -426,6 +753,28 @@ export class ShapeObject {
               })
             })
           }));
+        });
+      } else if (geometry instanceof Point) {
+        // 为点添加样式
+        styles.push(new Style({
+          image: new CircleStyle({
+            radius: 8,
+            stroke: new Stroke({
+              color: 'rgba(0, 120, 255, 1)',
+              width: 2
+            }),
+            fill: new Fill({
+              color: 'rgba(255, 255, 255, 0.8)'
+            })
+          })
+        }));
+      } else if (geometry instanceof GeometryCollection) {
+        // 处理几何集合（通常用于显示编辑控制点）
+        const geometries = geometry.getGeometries();
+        geometries.forEach(geom => {
+          if (geom instanceof Point) {
+            styles.push(createVertexStyle(geom.getCoordinates()));
+          }
         });
       }
     }
@@ -544,31 +893,42 @@ export class ShapeObject {
 
   /**
    * 启用编辑模式
-   * 使用ol-ext的ModifyFeature交互编辑图形
+   * 使用OpenLayers原生的Modify交互编辑图形
    * @returns 是否成功启用编辑模式
    */
   public enableEditMode(): boolean {
+    this.log('debug', '尝试启用编辑模式...');
+    
     if (!this.mapInstance) {
       this.log('warn', '地图实例未设置，无法启用编辑模式');
       return false;
     }
 
-    // 如果已经处于编辑模式，先禁用
+    // 如果已经在编辑模式，直接返回成功
     if (this.editMode) {
-      this.disableEditMode();
+      this.log('info', '已经处于编辑模式');
+      return true;
     }
 
-    // 如果正在删除模式，先彻底禁用删除模式
-    if (this.deleteMode) {
-      this.disableDeleteMode();
-      
-      // 确保地图上的删除监听器被完全清理
-      if ((this.mapInstance as any)._deleteClickListener) {
-        this.mapInstance.un('click', (this.mapInstance as any)._deleteClickListener);
-        delete (this.mapInstance as any)._deleteClickListener;
-        this.log('debug', '已移除地图上的删除模式点击监听器');
-      }
+    // 检查地图DOM元素是否存在
+    if (!this.mapInstance.getTargetElement()) {
+      this.log('warn', '地图DOM元素不存在，无法启用编辑模式');
+      return false;
     }
+
+    // 检查地图是否正常渲染
+    try {
+      const size = this.mapInstance.getSize();
+      if (!size || size[0] === 0 || size[1] === 0) {
+        this.log('warn', '地图尺寸无效，可能未正确渲染');
+        this.mapInstance.updateSize();
+      }
+    } catch (sizeError) {
+      this.log('warn', '检查地图尺寸时出错:', sizeError);
+    }
+
+    // 防止模式冲突：先完全清理所有模式
+    this.cleanupAllModes();
 
     // 获取当前图层的数据源
     const source = this.source;
@@ -577,121 +937,287 @@ export class ShapeObject {
       return false;
     }
 
+    // 确保图层已添加到地图
+    if (!this.isLayerAdded() && this.layer) {
+      try {
+        this.mapInstance.addLayer(this.layer);
+        this.log('debug', '已重新添加图形图层到地图');
+      } catch (layerError) {
+        this.log('error', '添加图层到地图时出错:', layerError);
+        return false;
+      }
+    }
+
     try {
-      // 创建ModifyFeature交互，参考https://viglino.github.io/ol-ext/examples/interaction/map.interaction.modifyfeature.html
-      this.editInteraction = new OLModifyFeature({
-        source: source,
-        // 使用更精细的样式，提高编辑交互体验
-        style: (feature: Feature, resolution: number) => {
-          // 生成基本样式
-          const baseStyle = this.createFeatureStyle(feature);
-          
-          // 如果是数组，返回第一个样式
-          if (Array.isArray(baseStyle)) {
-            return baseStyle;
-          }
-          
-          return baseStyle;
-        },
-        // 设置编辑点的样式
-        pointStyle: new Style({
-          image: new CircleStyle({
-            radius: 8,
-            stroke: new Stroke({
-              color: '#0000ff',
-              width: 2
-            }),
-            fill: new Fill({
-              color: 'rgba(0, 0, 255, 0.3)'
-            })
-          })
-        }),
-        // 编辑时显示中心点
-        centerStyle: new Style({
-          image: new CircleStyle({
-            radius: 6,
-            stroke: new Stroke({
-              color: '#00ff00',
-              width: 2
-            }),
-            fill: new Fill({
-              color: 'rgba(0, 255, 0, 0.3)'
-            })
-          })
-        }),
+      // 创建选择交互
+      this.selectInteraction = new Select({
+        layers: [this.layer!],
+        style: (feature) => {
+          // 类型断言，确保feature是Feature类型
+          const f = feature as Feature<any>;
+          // 标记选中的图形为编辑模式
+          f.set('editMode', true);
+          return this.createFeatureStyle(f);
+        }
+      });
+
+      // 使用选择交互的selectedFeatures作为Modify的features
+      this.editFeatures = this.selectInteraction.getFeatures();
+      
+      // 创建修改交互
+      this.editInteraction = new Modify({
+        features: this.editFeatures,
         // 设置更大的像素容差，便于捕捉顶点
-        pixelTolerance: 15,
-        // 显示调整中心点的控制点
-        enableCenter: true
+        pixelTolerance: 15
       });
 
-      // 添加修改开始监听
-      this.editInteraction.on('modifystart', (e: any) => {
-        const feature = e.features.item(0);
-        if (feature) {
-          this.editFeatureId = feature.get('id') || feature.getId();
-          
-          // 高亮显示正在编辑的图形
-          feature.set('editMode', true);
-          
-          this.log('debug', `开始编辑图形: ${this.editFeatureId}`);
-          
-          // 触发自定义事件 - shape-edit-start
-          this.dispatchShapeEvent('shape-edit-start', this.editFeatureId, feature.get('shapeType'), feature);
+      // 将选择交互添加到地图 - 保存添加结果以便于错误处理
+      let addSuccess = true;
+      try {
+        this.mapInstance.addInteraction(this.selectInteraction);
+      } catch (e) {
+        this.log('error', '添加选择交互失败:', e);
+        addSuccess = false;
+      }
+      
+      // 如果选择交互添加失败，终止整个过程
+      if (!addSuccess) {
+        this.log('error', '无法启用编辑模式：添加选择交互失败');
+        this.selectInteraction = null;
+        this.editInteraction = null;
+        return false;
+      }
+      
+      // 将修改交互添加到地图
+      try {
+        this.mapInstance.addInteraction(this.editInteraction);
+      } catch (e) {
+        this.log('error', '添加修改交互失败:', e);
+        // 移除前面添加的选择交互
+        try {
+          this.mapInstance.removeInteraction(this.selectInteraction);
+        } catch (removeError) {
+          this.log('warn', '移除选择交互时出错:', removeError);
         }
-      });
-
-      // 添加修改中监听
-      this.editInteraction.on('modifying', (e: any) => {
-        const feature = e.features.item(0);
-        if (feature) {
-          const featureId = feature.get('id') || feature.getId();
-          this.log('debug', `正在编辑图形: ${featureId}`);
-          
-          // 触发自定义事件 - shape-editing
-          this.dispatchShapeEvent('shape-editing', featureId, feature.get('shapeType'), feature);
-        }
-      });
-
-      // 添加修改结束监听
-      this.editInteraction.on('modifyend', (e: any) => {
-        const feature = e.features.item(0);
-        if (feature && this.editFeatureId) {
-          // 标记不再是编辑模式
-          feature.set('editMode', false);
-          
-          this.log('info', `图形编辑完成: ${this.editFeatureId}`);
-          
-          // 获取图形类型
-          const shapeType = feature.get('shapeType') as ShapeType;
-          
-          // 更新图形数据
-          this.updateFeatureData(feature);
-          
-          // 触发更新回调
-          if (this.shapeUpdateCallback) {
-            this.shapeUpdateCallback(this.editFeatureId, shapeType, feature);
-          }
-          
-          // 触发自定义事件 - shape-update
-          this.dispatchShapeEvent('shape-update', this.editFeatureId, shapeType, feature);
-        }
-      });
-
-      // 将交互添加到地图
-      this.mapInstance.addInteraction(this.editInteraction);
+        this.selectInteraction = null;
+        this.editInteraction = null;
+        return false;
+      }
+      
+      // 添加捕捉交互，提高编辑精度
+      try {
+        this.snap = new Snap({
+          source: this.source
+        });
+        this.mapInstance.addInteraction(this.snap);
+      } catch (e) {
+        this.log('warn', '添加捕捉交互失败:', e);
+        // 继续执行，因为捕捉交互不是必须的
+      }
+      
+      // 设置交互事件处理函数
+      this.setupEditInteractionEvents();
+      
+      // 设置状态标志
       this.editMode = true;
 
       // 改变鼠标光标样式，提示用户处于编辑模式
       if (this.mapInstance.getTargetElement()) {
         this.mapInstance.getTargetElement().style.cursor = 'crosshair';
       }
+      
+      // 仅更新图层，避免触发地图重建
+      if (this.layer) {
+        this.layer.changed();
+      }
 
-      this.log('info', '图形编辑模式已启用');
+      this.log('info', '图形编辑模式已启用，点击图形进行编辑');
       return true;
     } catch (error) {
       this.log('error', '启用编辑模式失败:', error);
+      // 出错时清理可能部分创建的交互
+      this.safeCleanupEditMode();
       return false;
+    }
+  }
+  
+  /**
+   * 安全清理编辑模式
+   * 当启用编辑模式失败时，确保所有相关资源都被正确清理
+   */
+  private safeCleanupEditMode(): void {
+    try {
+      // 移除交互前保存地图引用
+      const map = this.mapInstance;
+      if (!map) return;
+      
+      // 清理选择交互
+      if (this.selectInteraction) {
+        try {
+          // 先清空要素集合
+          if (this.selectInteraction.getFeatures()) {
+            this.selectInteraction.getFeatures().clear();
+          }
+          map.removeInteraction(this.selectInteraction);
+        } catch (e) {
+          this.log('warn', '清理选择交互时出错:', e);
+        } finally {
+          this.selectInteraction = null;
+        }
+      }
+      
+      // 清理编辑交互
+      if (this.editInteraction) {
+        try {
+          map.removeInteraction(this.editInteraction);
+        } catch (e) {
+          this.log('warn', '清理编辑交互时出错:', e);
+        } finally {
+          this.editInteraction = null;
+        }
+      }
+      
+      // 清理捕捉交互
+      if (this.snap) {
+        try {
+          map.removeInteraction(this.snap);
+        } catch (e) {
+          this.log('warn', '清理捕捉交互时出错:', e);
+        } finally {
+          this.snap = null;
+        }
+      }
+      
+      // 清空编辑要素集合
+      if (this.editFeatures) {
+        this.editFeatures.clear();
+      }
+      
+      // 重置编辑状态
+      this.editMode = false;
+      this.editFeatureId = null;
+      
+      // 恢复光标
+      if (map.getTargetElement()) {
+        map.getTargetElement().style.cursor = '';
+      }
+      
+      // 刷新图层
+      if (this.layer) {
+        this.layer.changed();
+      }
+      
+      this.log('debug', '已安全清理编辑模式资源');
+    } catch (error) {
+      this.log('error', '安全清理编辑模式时出错:', error);
+      // 强制重置所有状态
+      this.selectInteraction = null;
+      this.editInteraction = null;
+      this.snap = null;
+      this.editMode = false;
+      this.editFeatureId = null;
+    }
+  }
+  
+  /**
+   * 设置编辑交互的事件处理
+   * 单独提取为方法，避免在启用/禁用时出现事件绑定问题
+   */
+  private setupEditInteractionEvents(): void {
+    if (!this.selectInteraction || !this.editInteraction) return;
+    
+    try {
+      // 监听选择变化
+      this.selectInteraction.on('select', (e) => {
+        try {  // 添加错误处理
+          // 当选择变化时，更新编辑的图形
+          if (e.selected.length > 0) {
+            const feature = e.selected[0];
+            this.editFeatureId = feature.get('id') || feature.getId();
+            
+            // 触发自定义事件 - shape-edit-start
+            this.dispatchShapeEvent('shape-edit-start', this.editFeatureId, feature.get('shapeType'), feature);
+            this.log('debug', `开始编辑图形: ${this.editFeatureId}`);
+          } else if (e.deselected.length > 0) {
+            // 当取消选择时，处理编辑完成
+            const feature = e.deselected[0];
+            const deselectedId = feature.get('id') || feature.getId();
+            
+            // 移除编辑模式标记
+            feature.set('editMode', false);
+            
+            if (this.editFeatureId === deselectedId) {
+              // 更新图形数据
+              this.updateFeatureData(feature);
+              
+              // 获取图形类型
+              const shapeType = feature.get('shapeType') as ShapeType;
+              
+              // 触发更新回调
+              if (this.shapeUpdateCallback) {
+                this.shapeUpdateCallback(this.editFeatureId, shapeType, feature);
+              }
+              
+              // 触发自定义事件 - shape-update
+              this.dispatchShapeEvent('shape-update', this.editFeatureId, shapeType, feature);
+              
+              this.log('info', `图形编辑完成: ${this.editFeatureId}`);
+              this.editFeatureId = null;
+              
+              // 安全刷新图层而不修改地图
+              this.safeRefreshLayer();
+            }
+          }
+        } catch (error) {
+          this.log('error', '处理选择事件时出错:', error);
+        }
+      });
+
+      // 添加修改开始监听
+      this.editInteraction.on('modifystart', (e) => {
+        try {  // 添加错误处理
+          if (e.features.getLength() > 0) {
+            const feature = e.features.item(0);
+            // 获取当前编辑的图形ID
+            const featureId = feature.get('id') || feature.getId();
+            
+            // 触发正在编辑事件
+            this.dispatchShapeEvent('shape-editing', featureId, feature.get('shapeType'), feature);
+            this.log('debug', `正在修改图形: ${featureId}`);
+          }
+        } catch (error) {
+          this.log('error', '处理修改开始事件时出错:', error);
+        }
+      });
+
+      // 添加修改结束监听
+      this.editInteraction.on('modifyend', (e) => {
+        try {  // 添加错误处理
+          if (e.features.getLength() > 0) {
+            const feature = e.features.item(0);
+            // 获取当前编辑的图形ID
+            const featureId = feature.get('id') || feature.getId();
+            
+            // 更新图形数据
+            this.updateFeatureData(feature);
+            
+            // 获取图形类型
+            const shapeType = feature.get('shapeType') as ShapeType;
+            
+            // 触发自定义事件 - shape-modified
+            this.dispatchShapeEvent('shape-modified', featureId, shapeType, feature);
+            
+            this.log('debug', `图形修改完成: ${featureId}`);
+            
+            // 安全刷新图层而不修改地图
+            this.safeRefreshLayer();
+          }
+        } catch (error) {
+          this.log('error', '处理修改结束事件时出错:', error);
+        }
+      });
+    } catch (error) {
+      this.log('error', '设置编辑交互事件处理失败:', error);
     }
   }
   
@@ -727,6 +1253,24 @@ export class ShapeObject {
             const radius = geometry.getRadius();
             data.center = center;
             data.radius = radius;
+          } else if (geometry instanceof Polygon) {
+            // 对于以Polygon实现的Circle，计算中心点和半径
+            try {
+              const extent = geometry.getExtent();
+              const center = getCenter(extent);
+              
+              // 通过计算外接圆半径来获得半径
+              const firstPoint = geometry.getCoordinates()[0][0];
+              const dx = firstPoint[0] - center[0];
+              const dy = firstPoint[1] - center[1];
+              const radius = Math.sqrt(dx * dx + dy * dy);
+              
+              data.center = toLonLat(center);
+              data.radius = radius;
+              this.log('debug', `更新圆形数据: 中心点=${data.center}, 半径=${radius}m`);
+            } catch (error) {
+              this.log('error', '更新圆形数据时计算中心点和半径失败:', error);
+            }
           }
           break;
           
@@ -776,46 +1320,201 @@ export class ShapeObject {
   
   /**
    * 禁用编辑模式
+   * 完全重写以确保不会触发地图删除
    */
   public disableEditMode(): void {
-    if (!this.mapInstance) {
+    if (!this.mapInstance || !this.editMode) {
       return;
     }
 
-    // 恢复鼠标光标样式
-    if (this.mapInstance.getTargetElement()) {
-      this.mapInstance.getTargetElement().style.cursor = '';
-    }
+    this.log('debug', '开始禁用编辑模式...');
 
-    // 移除编辑交互
-    if (this.editInteraction) {
-      // 移除所有事件监听
-      this.editInteraction.un('modifystart');
-      this.editInteraction.un('modifying');
-      this.editInteraction.un('modifyend');
-      
-      // 从地图中移除交互
-      this.mapInstance.removeInteraction(this.editInteraction);
-      this.editInteraction = null;
-    }
-
-    // 清除所有图形的编辑状态
-    // 不仅仅清除当前编辑的图形，还要检查所有图形，确保没有遗留的编辑状态
-    this.shapes.forEach((feature, id) => {
-      if (feature.get('editMode') === true) {
-        feature.set('editMode', false);
-        this.log('debug', `清除图形 ${id} 的编辑状态`);
-      }
-    });
-
-    // 清除编辑状态
-    if (this.editFeatureId) {
-      this.log('debug', `编辑模式停用，清除编辑图形ID: ${this.editFeatureId}`);
+    try {
+      // 首先标记状态变更，避免后续操作检查editMode状态
+      this.editMode = false;
+      const currentEditingId = this.editFeatureId;
       this.editFeatureId = null;
+
+      // 安全处理：恢复所有图形的编辑状态标记
+      this.shapes.forEach((feature) => {
+        if (feature.get('editMode') === true) {
+          feature.set('editMode', false);
+        }
+      });
+
+      // 重置光标 - 这是安全操作
+      try {
+        if (this.mapInstance.getTargetElement()) {
+          this.mapInstance.getTargetElement().style.cursor = '';
+        }
+      } catch (error) {
+        this.log('warn', '重置光标时出错:', error);
+      }
+
+      // 使用安全方法移除交互
+      this.safeRemoveEditInteractions();
+
+      // 刷新图层 - 不调用任何地图方法
+      if (this.layer) {
+        try {
+          this.layer.changed();
+        } catch (error) {
+          this.log('warn', '刷新图层时出错:', error);
+        }
+      }
+
+      this.log('info', '图形编辑模式已禁用');
+    } catch (error) {
+      this.log('error', '禁用编辑模式时出错:', error);
+      
+      // 最后的安全保障：强制重置所有状态变量
+      this.editMode = false;
+      this.editFeatureId = null;
+      this.selectInteraction = null;
+      this.editInteraction = null;
+      this.snap = null;
+      
+      if (this.editFeatures) {
+        try {
+          this.editFeatures.clear();
+        } catch (e) {
+          // 忽略错误
+        }
+      }
+    }
+  }
+
+  /**
+   * 安全移除编辑交互
+   * 将移除交互的逻辑分离，确保每个步骤都有错误处理
+   */
+  private safeRemoveEditInteractions(): void {
+    if (!this.mapInstance) return;
+
+    // 1. 首先安全清空选择交互的要素
+    if (this.selectInteraction) {
+      try {
+        const features = this.selectInteraction.getFeatures();
+        if (features) {
+          features.clear();
+        }
+      } catch (e) {
+        this.log('warn', '清空选择要素时出错:', e);
+      }
+    }
+
+    // 2. 然后批量准备要移除的交互
+    const interactionsToRemove = [];
+    
+    if (this.selectInteraction) {
+      interactionsToRemove.push(this.selectInteraction);
+      // 立即设置为null以防止多次移除
+      const temp = this.selectInteraction;
+      this.selectInteraction = null;
     }
     
-    this.editMode = false;
-    this.log('info', '图形编辑模式已禁用');
+    if (this.editInteraction) {
+      interactionsToRemove.push(this.editInteraction);
+      const temp = this.editInteraction;
+      this.editInteraction = null;
+    }
+    
+    if (this.snap) {
+      interactionsToRemove.push(this.snap);
+      const temp = this.snap;
+      this.snap = null;
+    }
+
+    // 3. 一次性移除所有交互
+    if (interactionsToRemove.length > 0) {
+      try {
+        // 在一个try块中移除所有交互，避免多次操作地图
+        interactionsToRemove.forEach(interaction => {
+          try {
+            this.mapInstance?.removeInteraction(interaction);
+          } catch (e) {
+            // 单个交互移除失败，仅记录但继续
+            this.log('warn', '移除单个交互时出错:', e);
+          }
+        });
+      } catch (error) {
+        this.log('error', '批量移除交互时出错:', error);
+        // 不再尝试进一步操作地图
+      }
+    }
+
+    // 4. 最后清空编辑要素集合
+    if (this.editFeatures) {
+      try {
+        this.editFeatures.clear();
+      } catch (e) {
+        this.log('warn', '清空编辑要素集合时出错:', e);
+      }
+    }
+  }
+
+  /**
+   * 安全刷新图层
+   * 用于在编辑完成后确保图层可见但不触发地图重建
+   */
+  public safeRefreshLayer(): void {
+    if (!this.layer) return;
+    
+    try {
+      // 不检查地图状态，只操作图层
+      
+      // 确保图层可见
+      if (!this.layer.getVisible()) {
+        this.layer.setVisible(true);
+      }
+      
+      // 只刷新图层，不触发地图操作
+      this.layer.changed();
+      
+      // 不再调用地图的render方法，避免任何地图操作
+      
+      this.log('debug', '安全刷新图层完成');
+    } catch (error) {
+      this.log('warn', '安全刷新图层时出错:', error);
+    }
+  }
+
+  /**
+   * 安全恢复地图状态
+   * 修改为绝对最小操作，避免任何可能导致地图销毁的操作
+   */
+  private safeRecoverMapState(): void {
+    this.log('warn', '执行极简安全地图恢复...');
+    
+    try {
+      // 重置所有状态变量
+      this.enabled = false;
+      this.editMode = false;
+      this.deleteMode = false;
+      this.currentType = null;
+      this.editFeatureId = null;
+      
+      // 重置所有交互引用
+      this.selectInteraction = null;
+      this.editInteraction = null;
+      this.snap = null;
+      this.draw = null;
+      
+      // 尝试恢复光标
+      if (this.mapInstance && this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = '';
+      }
+      
+      // 仅操作图层，不调用地图方法
+      if (this.layer) {
+        this.layer.changed();
+      }
+      
+      this.log('info', '状态已安全重置');
+    } catch (error) {
+      this.log('error', '安全恢复状态时出错:', error);
+      // 不再进行任何操作
+    }
   }
 
   /**
@@ -1155,41 +1854,53 @@ export class ShapeObject {
    * 允许用户通过点击删除图形
    */
   public enableDeleteMode(): void {
+    this.log('debug', '尝试启用删除模式...');
+    
     if (!this.mapInstance) {
       this.log('warn', '地图实例未设置，无法启用删除模式');
       return;
     }
 
-    // 如果已经启用删除模式，则不做操作
-    if (this.deleteMode) {
-      return;
-    }
+    // 防止模式冲突：先完全清理所有模式
+    this.cleanupAllModes();
 
-    // 如果当前在绘制模式，先禁用绘制
-    if (this.enabled) {
-      this.disable();
-    }
+    try {
+      // 添加点击监听
+      this.clickListener = this.mapInstance!.on('click', (event) => {
+        try {
+          if (!this.deleteMode) return;
 
-    // 添加点击监听
-    this.clickListener = this.mapInstance.on('click', (event) => {
-      if (!this.deleteMode) return;
-
-      // 获取点击位置的图形
-      const feature = this.mapInstance!.forEachFeatureAtPixel(event.pixel, (feature) => feature);
-      
-      if (feature) {
-        // 检查是否是我们的图形
-        const shapeId = feature.get('shapeId');
-        if (shapeId && this.shapes.has(shapeId)) {
-          // 删除图形
-          this.removeShape(shapeId);
-          this.log('info', `删除模式: 已删除图形 ID=${shapeId}`);
+          // 获取点击位置的图形
+          const feature = this.mapInstance!.forEachFeatureAtPixel(event.pixel, (feature) => feature);
+          
+          if (feature) {
+            // 检查是否是我们的图形
+            const shapeId = feature.get('id') || feature.getId();
+            if (shapeId && this.shapes.has(shapeId)) {
+              // 删除图形
+              this.removeShape(shapeId);
+              this.log('info', `删除模式: 已删除图形 ID=${shapeId}`);
+            }
+          }
+        } catch (err) {
+          this.log('error', '删除图形时出错:', err);
         }
-      }
-    });
+      });
 
-    this.deleteMode = true;
-    this.log('info', '删除模式已启用');
+      // 设置状态标志（最后设置）
+      this.deleteMode = true;
+      
+      // 改变鼠标光标样式，提示用户处于删除模式
+      if (this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = 'no-drop';
+      }
+      
+      this.log('info', '删除模式已启用');
+    } catch (error) {
+      this.log('error', '启用删除模式失败:', error);
+      // 出错时清理
+      this.cleanupAllModes();
+    }
   }
 
   /**
@@ -1200,14 +1911,39 @@ export class ShapeObject {
       return;
     }
 
-    // 移除点击监听
-    if (this.clickListener) {
-      unByKey(this.clickListener);
+    try {
+      this.log('debug', '开始禁用删除模式...');
+      
+      // 恢复鼠标光标样式
+      if (this.mapInstance && this.mapInstance.getTargetElement()) {
+        this.mapInstance.getTargetElement().style.cursor = '';
+      }
+      
+      // 移除点击监听
+      if (this.clickListener) {
+        unByKey(this.clickListener);
+        this.clickListener = null;
+      }
+      
+      // 清理可能存在的旧监听器（兼容早期版本）
+      if (this.mapInstance && (this.mapInstance as any)._deleteClickListener) {
+        try {
+          this.mapInstance.un('click', (this.mapInstance as any)._deleteClickListener);
+          delete (this.mapInstance as any)._deleteClickListener;
+        } catch (e) {
+          // 忽略清理旧监听器可能产生的错误
+        }
+      }
+
+      // 最后更改状态标志
+      this.deleteMode = false;
+      this.log('info', '删除模式已禁用');
+    } catch (error) {
+      this.log('error', '禁用删除模式时出错:', error);
+      // 确保状态重置
+      this.deleteMode = false;
       this.clickListener = null;
     }
-
-    this.deleteMode = false;
-    this.log('info', '删除模式已禁用');
   }
 
   /**
