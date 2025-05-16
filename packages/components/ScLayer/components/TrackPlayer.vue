@@ -156,7 +156,7 @@
         <div class="track-speed-control">
           <div class="speed-label">速度: {{ speedFactor.toFixed(1) }}x</div>
           <input type="range" min="0.5" max="10" step="0.5" v-model.number="speedFactor" @input="onSpeedChange"
-            class="speed-slider" :disabled="!activeTrackId">
+            class="speed-slider" :disabled="!activeTrackId || playState === 'playing'">
           <div class="speed-labels">
             <span>慢</span>
             <span>正常</span>
@@ -167,7 +167,7 @@
         <!-- 播放按钮 -->
         <div class="track-buttons">
           <button class="track-button track-backward" @click="setSpeed(Math.max(0.5, speedFactor - 0.5))"
-            :disabled="!activeTrackId" title="减速">
+            :disabled="!activeTrackId || playState === 'playing'" title="减速">
             <span v-html="icons.trackBackward"></span>
           </button>
 
@@ -177,7 +177,7 @@
           </button>
 
           <button class="track-button track-forward" @click="setSpeed(Math.min(10, speedFactor + 0.5))"
-            :disabled="!activeTrackId" title="加速">
+            :disabled="!activeTrackId || playState === 'playing'" title="加速">
             <span v-html="icons.trackForward"></span>
           </button>
           <button class="track-button track-forward track-camera" :class="{'active': followCamera}" @click="followCamera = !followCamera"
@@ -836,6 +836,41 @@ const stopProgressTimer = () => {
     window.clearInterval(progressTimer);
     progressTimer = null;
   }
+};
+
+// 启动进度更新计时器
+const startProgressTimer = () => {
+  // 先停止现有的计时器
+  stopProgressTimer();
+  
+  // 设置新的计时器，每100毫秒更新一次进度
+  progressTimer = window.setInterval(() => {
+    if (activeTrackId.value && props.trackObj) {
+      // 获取轨迹当前进度
+      const progress = props.trackObj.getTrackProgress(activeTrackId.value);
+      if (progress !== null) {
+        // 更新UI进度
+        updateProgress(progress);
+        
+        // 获取当前速度
+        const speed = props.trackObj.getCurrentSpeed(activeTrackId.value);
+        if (speed !== null) {
+          currentSpeed.value = speed;
+        }
+      }
+      
+      // 检查播放状态
+      const currentPlayState = props.trackObj.getTrackPlayState(activeTrackId.value);
+      if (currentPlayState !== 'playing') {
+        playState.value = currentPlayState === 'paused' ? 'paused' : 'stopped';
+        // 如果已停止，清除计时器
+        if (currentPlayState === 'stopped') {
+          stopProgressTimer();
+          currentSpeed.value = 0;
+        }
+      }
+    }
+  }, updateFrequency.value);
 };
 
 // 更新进度UI

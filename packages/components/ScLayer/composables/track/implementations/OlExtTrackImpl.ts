@@ -942,8 +942,11 @@ export class OlExtTrackImpl implements ITrackImplementation {
       // 计算时间范围（秒）
       const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
       
+      // 每次都重新获取当前速度因子，确保实时生效
+      const currentSpeedFactor = this.trackSpeedFactors.get(id) || 1.0;
+      
       // 基于时间和速度因子计算进度变化
-      const progressChange = (elapsedTime / 1000) / timeRange * speedFactor;
+      const progressChange = (elapsedTime / 1000) / timeRange * currentSpeedFactor;
       
       // 更新进度
       let newProgress = lastProgress + progressChange;
