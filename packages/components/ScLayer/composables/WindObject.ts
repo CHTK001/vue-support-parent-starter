@@ -66,7 +66,7 @@ export class WindObject {
         return false;
       }
 
-      // 创建风场图层
+      // 创建风场图层，确保设置wrapX为true以处理循环图层
       this.windLayer = new WindLayer(this.windData, {
         windOptions: {
           velocityScale: this.config.velocityScale,
@@ -78,7 +78,10 @@ export class WindObject {
           particleAge: this.config.particleAge,
           particleFadeoutTime: this.config.particleFadeoutTime
         },
-        fieldOptions: this.config.fieldOptions || { wrapX: false }
+        fieldOptions: {
+          wrapX: true, // 启用X轴循环，解决风场图缺失问题
+          projection: this.mapInstance.getView().getProjection().getCode()
+        }
       });
 
       // 添加到地图
