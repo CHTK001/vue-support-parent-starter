@@ -305,6 +305,27 @@ export class LogObject {
   public isDebugEnabled(): boolean {
     return this.config.enabled && this.config.level <= LogLevel.DEBUG;
   }
+
+  /**
+   * 通用日志方法
+   * @param level 日志级别
+   * @param module 模块名称
+   * @param message 日志消息
+   * @param data 附加数据
+   */
+  public log(level: 'debug' | 'info' | 'warn' | 'error', module: string, message: string, data?: any): void {
+    const formattedMessage = `[${module}] ${message}`;
+    
+    if (level === 'debug') {
+      this.debug(formattedMessage, data);
+    } else if (level === 'info') {
+      this.info(formattedMessage, data);
+    } else if (level === 'warn') {
+      this.warn(formattedMessage, data);
+    } else if (level === 'error') {
+      this.error(formattedMessage, data);
+    }
+  }
 }
 
 // 导出默认实例

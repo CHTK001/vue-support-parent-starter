@@ -20,12 +20,14 @@ import { fromLonLat, toLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { getVectorContext } from 'ol/render';
-import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
-import { DataType } from '../types';
-import logger from './LogObject';
+import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../../../types/track';
+import { DataType } from '../../../types';
+import logger from '../../../composables/LogObject';
 import Overlay from 'ol/Overlay';
-import { IconUtils } from '../utils/IconUtils';
-import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
+import { IconUtils } from '../../../utils/IconUtils';
+import { DEFAULT_TRACK_SPEED_GROUPS } from '../../../types/default';
+import type { ITrackImplementation } from '../ITrackImplementation';
+import { TrackImplementationType } from '../ITrackImplementation';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
@@ -75,7 +77,7 @@ enum TrackPlayState {
 /**
  * 轨迹对象类
  */
-export class TrackObject {
+export class DefaultTrackImpl implements ITrackImplementation {
   // 地图实例
   private mapInstance: OlMap | null = null;
   // 轨迹图层
@@ -4101,5 +4103,82 @@ export class TrackObject {
     this.trackViewportStabilized.set(id, true);
     
     this.log('debug', `已保存轨迹 "${id}" 原始视图状态，分辨率: ${this.originalViewResolution}`);
+  }
+
+  /**
+   * 获取实现类型
+   * @returns 实现类型
+   */
+  public getImplementationType(): TrackImplementationType {
+    return TrackImplementationType.DEFAULT;
+  }
+  
+  /**
+   * 获取名称
+   * @returns 实现名称
+   */
+  public getName(): string {
+    return '默认轨迹实现';
+  }
+  
+  /**
+   * 获取地图实例
+   * @returns 地图实例
+   */
+  public getMapInstance(): OlMap | null {
+    return this.mapInstance;
+  }
+  
+  /**
+   * 销毁实现
+   */
+  public destroy(): void {
+    // 停止所有轨迹动画
+    this.trackAnimationFrames.forEach((frameId, trackId) => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+      this.removeTrackAnimation(trackId);
+    });
+    
+    // 清除所有轨迹
+    this.clearAllTracks();
+    
+    // 移除图层
+    if (this.mapInstance) {
+      if (this.trackLayer) {
+        this.mapInstance.removeLayer(this.trackLayer);
+      }
+      if (this.trackPointLayer) {
+        this.mapInstance.removeLayer(this.trackPointLayer);
+      }
+    }
+    
+    // 清除事件监听
+    if (this.clickListener) {
+      unByKey(this.clickListener);
+      this.clickListener = null;
+    }
+    
+    // 清除所有数据
+    this.tracks.clear();
+    this.trackFeatures.clear();
+    this.trackPointFeatures.clear();
+    this.trackPlayStates.clear();
+    this.trackPlayers.clear();
+    this.trackAnimationFrames.clear();
+    this.trackCurrentPoints.clear();
+    this.trackLastTimes.clear();
+    this.trackActiveMarkers.clear();
+    this.trackPassedLineFeatures.clear();
+    this.trackPositionFeatures.clear();
+    this.trackAnimationListeners.clear();
+    this.trackProgressValues.clear();
+    this.trackSpeedFactors.clear();
+    
+    // 清除叠加层
+    this.clearAllOverlays();
+    
+    this.log('debug', '轨迹实现已销毁');
   }
 }

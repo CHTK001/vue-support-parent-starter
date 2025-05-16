@@ -83,7 +83,8 @@ import { MarkerObject } from './composables/MarkerObject';
 import type { MarkerOptions, MarkerConfig } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
-import { TrackObject } from './composables/TrackObject';
+// 将TrackObject引用改为TrackManager
+import { TrackManager, createTrackManager } from './composables/track/TrackManager';
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';
 // 导入聚合相关类型
@@ -190,7 +191,8 @@ let mapObj: MapObject | null = null;
 let toolbarObject: ToolbarObject | null = null;
 let markerObject: MarkerObject | null = null;
 let shapeObject: ShapeObject | null = null;
-let trackObj: TrackObject | null = null;
+// 将trackObj类型从TrackObject改为TrackManager
+let trackObj: TrackManager | null = null;
 let gridManager: GridManager | null = null;
 
 // 响应式状态
@@ -1058,7 +1060,7 @@ const initTrackObject = () => {
   
   try {
     // 创建轨迹对象
-    trackObj = new TrackObject(mapObj.getMapInstance());
+    trackObj = new TrackManager(mapObj.getMapInstance());
     
     // 检查轨迹播放器工具是否激活
     const isTrackPlayerActive = toolbarObject && 
@@ -1422,7 +1424,7 @@ const forceInitTrackPlayer = () => {
   
   // 初始化轨迹对象
   try {
-    trackObj = new TrackObject(mapObj.getMapInstance());
+    trackObj = new TrackManager(mapObj.getMapInstance());
     
     // 先激活工具栏按钮，再显示UI
     if (toolbarObject) {

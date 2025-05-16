@@ -348,11 +348,11 @@ export class ShapeObject {
     
     // 为多边形创建顶点样式，编辑模式下才显示顶点
     if (isEditMode) {
-      const geometry = feature.getGeometry();
-      if (geometry instanceof Polygon) {
-        const createVertexStyles = (coordinates: number[][]): Style[] => {
-          return coordinates.map(coord => new Style({
-            geometry: new Point(coord),
+    const geometry = feature.getGeometry();
+    if (geometry instanceof Polygon) {
+    const createVertexStyles = (coordinates: number[][]): Style[] => {
+      return coordinates.map(coord => new Style({
+        geometry: new Point(coord),
             image: new CircleStyle({
               radius: 6,
               stroke: new Stroke({
@@ -363,11 +363,11 @@ export class ShapeObject {
                 color: 'rgba(255, 255, 255, 0.8)'
               })
             })
-          }));
-        };
-        
-        const coordinates = geometry.getCoordinates()[0];
-        styles.push(...createVertexStyles(coordinates));
+      }));
+    };
+    
+      const coordinates = geometry.getCoordinates()[0];
+      styles.push(...createVertexStyles(coordinates));
       } else if (geometry instanceof LineString) {
         // 为线段添加顶点样式
         const createVertexStyles = (coordinates: number[][]): Style[] => {
