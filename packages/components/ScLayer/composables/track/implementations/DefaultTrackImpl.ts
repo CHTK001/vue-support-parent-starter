@@ -1237,9 +1237,12 @@ export class DefaultTrackImpl implements ITrackImplementation {
         // 1. 获取轨迹的实际时间范围（秒）
         const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
         
-        // 2. 应用倍速因子，计算进度增量
+        // 2. 每次都重新获取当前速度因子，确保实时生效
+        const currentSpeedFactor = this.trackSpeedFactors.get(id) || 1.0;
+        
+        // 3. 应用倍速因子，计算进度增量
         // 进度变化 = 经过时间(ms) / (轨迹时间范围(s) * 1000) * 速度因子
-        const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
+        const progressChange = (elapsedTime * currentSpeedFactor) / (timeRange * 1000);
         
         let newProgress = progress + progressChange;
         

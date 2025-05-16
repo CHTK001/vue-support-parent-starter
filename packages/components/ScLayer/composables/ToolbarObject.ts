@@ -831,6 +831,9 @@ export class ToolbarObject {
         // 先停用删除工具
         logger.debug(`绘制工具 ${toolId} 激活，需要先停用删除工具`);
         this.deactivateTool('clear-shapes');
+        
+        // 确保删除模式完全被停用
+        this.deactivateDeleteMode();
       }
       
       // 检查编辑工具是否激活
@@ -844,6 +847,7 @@ export class ToolbarObject {
     
     // 如果是删除工具，检查所有绘制工具是否有激活的
     if (isDeleteTool) {
+      // 确保其他工具停用
       drawingTools.forEach(drawToolId => {
         const drawTool = this.tools.find(t => t.id === drawToolId);
         if (drawTool && drawTool.active) {
@@ -870,6 +874,9 @@ export class ToolbarObject {
         // 先停用删除工具
         logger.debug(`编辑工具激活，需要先停用删除工具`);
         this.deactivateTool('clear-shapes');
+        
+        // 确保删除模式完全被停用
+        this.deactivateDeleteMode();
       }
       
       // 检查绘制工具是否激活
@@ -1215,7 +1222,27 @@ export class ToolbarObject {
         this.handleOverviewMapDeactivate();
         break;
       case 'clear-shapes':
+        // 确保完全停用删除模式
+        logger.debug('删除工具停用，确保删除功能被完全停用');
+        // 强制清理点击监听器和其他删除模式相关状态
         this.deactivateDeleteMode();
+        
+        // 更新UI状态
+        const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+        if (clearShapesTool) {
+          clearShapesTool.active = false;
+        }
+        // 确保activeToolId不是clear-shapes
+        if (this.activeToolId === 'clear-shapes') {
+          this.activeToolId = null;
+        }
+        
+        // 触发工具栏更新
+        if (this.toolStateChangeCallback) {
+          this.toolStateChangeCallback('clear-shapes', false, 'toggle', {
+            message: '已退出删除模式'
+          });
+        }
         break;
       case 'grid-geohash':
         this.handleGridDeactivate(GridType.GEOHASH);
@@ -2014,6 +2041,13 @@ export class ToolbarObject {
       }
     }
     
+    // 确保删除模式没有被其他对象激活
+    if (this.shapeObj && this.shapeObj.isDeleteMode()) {
+      // 如果ShapeObject已经在删除模式，先禁用它
+      logger.debug('发现ShapeObject正处于删除模式，先禁用它');
+      this.shapeObj.disableDeleteMode();
+    }
+    
     // 修改鼠标指针样式，指示当前处于删除模式
     if (mapInstance.getTargetElement()) {
       mapInstance.getTargetElement().style.cursor = 'pointer';
@@ -2025,6 +2059,15 @@ export class ToolbarObject {
       // 防止用户激活删除模式后又立即切换到编辑模式
       if (this.shapeObj && this.shapeObj.isEditMode()) {
         logger.warn('当前处于编辑模式，删除操作被取消');
+        return;
+      }
+      
+      // 检查删除工具是否仍处于激活状态
+      const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+      if (!clearShapesTool || !clearShapesTool.active) {
+        logger.warn('删除工具已被停用，但收到了点击事件，将忽略');
+        // 主动停止监听
+        this.deactivateDeleteMode();
         return;
       }
       
@@ -2201,8 +2244,30 @@ export class ToolbarObject {
       }
     };
     
-    // 保存监听器引用，以便后续可以移除
-    (mapInstance as any)._deleteClickListener = mapInstance.on('click', deleteClickListener);
+    // 修正监听器绑定方式，确保正确添加和后续可以移除
+    try {
+      // 首先检查并移除可能已存在的监听器
+      if ((mapInstance as any)._deleteClickListener) {
+        logger.debug('发现已存在的删除模式监听器，先移除它');
+        mapInstance.un('click', (mapInstance as any)._deleteClickListener);
+        delete (mapInstance as any)._deleteClickListener;
+      }
+      
+      // 添加新的监听器
+      (mapInstance as any)._deleteClickListener = deleteClickListener;
+      const key = mapInstance.on('click', deleteClickListener);
+      logger.debug('成功添加删除模式的点击监听器');
+      
+      // 更新工具状态
+      const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+      if (clearShapesTool) {
+        clearShapesTool.active = true;
+      }
+      // 更新当前激活工具ID
+      this.activeToolId = 'clear-shapes';
+    } catch (error) {
+      logger.error('添加删除模式点击监听器时发生错误:', error);
+    }
     
     logger.info('已激活删除模式，点击图形或标记点可以删除它们');
     
@@ -2221,15 +2286,47 @@ export class ToolbarObject {
     const mapInstance = this.mapObj.getMapInstance();
     if (!mapInstance) return;
     
+    // 确保ShapeObject中的删除模式也被停用
+    if (this.shapeObj && this.shapeObj.isDeleteMode()) {
+      this.shapeObj.disableDeleteMode();
+      logger.debug('已停用ShapeObject的删除模式');
+    }
+    
     // 恢复鼠标指针样式
     if (mapInstance.getTargetElement()) {
       mapInstance.getTargetElement().style.cursor = '';
     }
     
-    // 移除点击监听器
-    if ((mapInstance as any)._deleteClickListener) {
-      mapInstance.un('click', (mapInstance as any)._deleteClickListener);
-      delete (mapInstance as any)._deleteClickListener;
+    // 移除所有可能的监听器
+    try {
+      // 1. 移除ToolbarObject添加的删除监听器
+      if ((mapInstance as any)._deleteClickListener) {
+        logger.debug('正在移除ToolbarObject的删除监听器');
+        mapInstance.un('click', (mapInstance as any)._deleteClickListener);
+        delete (mapInstance as any)._deleteClickListener;
+      }
+      
+      // 2. 检查是否存在其他可能的点击监听器（通过其他方式添加）
+      const events = (mapInstance as any).hasOwnProperty('ol_lm') ? 
+                    (mapInstance as any).ol_lm.click : null;
+      
+      if (events && Array.isArray(events) && events.length > 0) {
+        logger.debug(`地图上存在 ${events.length} 个点击监听器，检查是否需要清理`);
+        // 暂不删除其他监听器，避免影响其他功能
+      }
+    } catch (error) {
+      logger.error('移除删除模式点击监听器时发生错误:', error);
+    }
+    
+    // 更新UI状态
+    const clearShapesTool = this.tools.find(t => t.id === 'clear-shapes');
+    if (clearShapesTool) {
+      clearShapesTool.active = false;
+    }
+    
+    // 确保activeToolId不是clear-shapes
+    if (this.activeToolId === 'clear-shapes') {
+      this.activeToolId = null;
     }
     
     logger.info('已停用删除模式');
