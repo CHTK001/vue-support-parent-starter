@@ -566,6 +566,9 @@ export class OlExtTrackImpl implements ITrackImplementation {
         this.trackPlayers.set(id, { ...this.trackPlayers.get(id), ...player });
       }
       
+      // 设置轨迹动画以确保正确应用速度因子
+      this.setupTrackAnimation(id);
+      
       this.log('info', `轨迹 "${id}" 已开始播放`);
       return true;
     } catch (error) {
@@ -587,6 +590,9 @@ export class OlExtTrackImpl implements ITrackImplementation {
       
       // 设置轨迹播放状态
       this.trackPlayStates.set(id, TrackPlayState.PAUSED);
+      
+      // 不需要移除动画监听器，只需改变状态
+      // 下一次渲染循环中，由于状态不是PLAYING，动画将不会更新
       
       this.log('info', `轨迹 "${id}" 已暂停播放`);
       return true;
@@ -612,6 +618,15 @@ export class OlExtTrackImpl implements ITrackImplementation {
       
       // 重置进度
       this.trackProgressValues.set(id, 0);
+      
+      // 移除动画监听器
+      this.removeTrackAnimation(id);
+      
+      // 清除已通过线条
+      if (this.trackPassedLineFeatures.has(id)) {
+        const feature = this.trackPassedLineFeatures.get(id)!;
+        feature.setGeometry(new LineString([]));
+      }
       
       this.log('info', `轨迹 "${id}" 已停止播放`);
       return true;
@@ -867,7 +882,9 @@ export class OlExtTrackImpl implements ITrackImplementation {
     // 如果轨迹正在播放中，确保立即应用新的速度
     const playState = this.trackPlayStates.get(id);
     if (playState === TrackPlayState.PLAYING) {
-      // 重置上一次时间戳，使得下一帧计算时立即反映新速度
+      // 重新设置轨迹动画，使新的速度因子立即生效
+      this.setupTrackAnimation(id);
+      
       // 触发渲染以立即更新动画
       if (this.mapInstance) {
         this.mapInstance.render();
@@ -879,6 +896,139 @@ export class OlExtTrackImpl implements ITrackImplementation {
     }
     
     return true;
+  }
+  
+  /**
+   * 设置轨迹动画
+   * @param id 轨迹ID
+   */
+  private setupTrackAnimation(id: string): void {
+    // 移除现有的动画
+    this.removeTrackAnimation(id);
+    
+    const track = this.tracks.get(id);
+    if (!track || !track.points || track.points.length < 2) {
+      this.log('warn', `设置轨迹动画失败: 轨迹 "${id}" 不存在或点数量不足`);
+      return;
+    }
+    
+    // 获取当前的速度因子（倍速）
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 获取播放器配置
+    const player = this.trackPlayers.get(id) || {};
+    
+    // 初始化已通过线条
+    this.initPassedLineFeature(id);
+    
+    // 获取当前进度
+    let lastProgress = this.trackProgressValues.get(id) || 0;
+    let lastTime = Date.now();
+    
+    // 创建动画和事件监听，以处理轨迹进度更新
+    this.trackAnimationListeners.set(id, this.trackLayer!.on('postrender', (event) => {
+      // 验证当前播放状态
+      const currentState = this.trackPlayStates.get(id);
+      if (currentState !== TrackPlayState.PLAYING) return;
+      
+      // 计算经过的时间（毫秒）
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - lastTime;
+      lastTime = currentTime;
+      
+      // 在非常短的间隔内不更新，以避免过度渲染
+      if (elapsedTime < 16) return; // 约60fps
+      
+      // 计算时间范围（秒）
+      const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
+      
+      // 基于时间和速度因子计算进度变化
+      const progressChange = (elapsedTime / 1000) / timeRange * speedFactor;
+      
+      // 更新进度
+      let newProgress = lastProgress + progressChange;
+      
+      // 处理循环播放和播放结束
+      if (newProgress > 1) {
+        const loopEnabled = player.loop === true;
+        if (loopEnabled) {
+          // 循环播放，重置进度
+          newProgress = newProgress % 1;
+        } else {
+          // 播放结束
+          newProgress = 1;
+          this.trackPlayStates.set(id, TrackPlayState.STOPPED);
+        }
+      }
+      
+      // 保存新进度
+      this.trackProgressValues.set(id, newProgress);
+      lastProgress = newProgress;
+      
+      // 更新显示
+      this.updatePassedLine(id, newProgress);
+      
+      // 触发渲染以更新视图
+      if (this.mapInstance) {
+        this.mapInstance.render();
+      }
+    }));
+    
+    this.log('debug', `轨迹 "${id}" 动画已设置，速度因子: ${speedFactor}`);
+  }
+  
+  /**
+   * 更新已通过线条
+   * @param id 轨迹ID
+   * @param progress 进度(0-1)
+   */
+  private updatePassedLine(id: string, progress: number): void {
+    if (!this.tracks.has(id) || !this.trackPassedLineFeatures.has(id)) {
+      return;
+    }
+    
+    const track = this.tracks.get(id)!;
+    if (!track.points || track.points.length < 2) {
+      return;
+    }
+    
+    try {
+      // 计算截止到当前进度的点
+      const totalPoints = track.points.length;
+      const progressIndex = Math.floor(progress * (totalPoints - 1));
+      
+      // 获取这些点的坐标
+      const coordinates = track.points
+        .slice(0, progressIndex + 1)
+        .map(point => fromLonLat([point.lng, point.lat]));
+      
+      // 更新已通过线条几何
+      const feature = this.trackPassedLineFeatures.get(id)!;
+      const lineString = new LineString(coordinates);
+      feature.setGeometry(lineString);
+    } catch (error) {
+      this.log('error', `更新已通过线条失败: ${id}`, error);
+    }
+  }
+  
+  /**
+   * 移除轨迹动画
+   * @param id 轨迹ID
+   */
+  private removeTrackAnimation(id: string): void {
+    // 移除现有的监听器
+    if (this.trackAnimationListeners.has(id)) {
+      unByKey(this.trackAnimationListeners.get(id)!);
+      this.trackAnimationListeners.delete(id);
+      this.log('debug', `轨迹 "${id}" 动画监听器已移除`);
+    }
+    
+    // 移除动画要素
+    if (this.trackAnimationFeatures.has(id)) {
+      const feature = this.trackAnimationFeatures.get(id)!;
+      this.trackLayer?.getSource()?.removeFeature(feature);
+      this.trackAnimationFeatures.delete(id);
+    }
   }
   
   /**
