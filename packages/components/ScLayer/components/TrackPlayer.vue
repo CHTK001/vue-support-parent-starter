@@ -104,7 +104,7 @@
     <div class="collapsed-icon" v-if="collapsed">
       <span v-if="playState === 'playing'" class="playing-indicator">▶</span>
       <span v-else>
-        <span v-html="TRACK_PLAYER_ICON" />
+        <span v-html="TRACK_PLAYER_ICON" style="color:#000 !important;" />
       </span>
     </div>
 
@@ -1192,7 +1192,7 @@ const onSpeedChange = () => {
 <style scoped>
 .track-player {
   position: absolute;
-  bottom: 20px;
+  top: 20px;
   right: 20px;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
