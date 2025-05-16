@@ -248,18 +248,40 @@
               <div class="feature-group-title">热力点管理</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomHeatmapPoints(20)">添加随机热力点</button>
-                <button @click="addClusteredHeatmapPoints">添加聚类热力点</button>
-              </div>
-              <div class="control-row buttons-row">
-                <button @click="addWeightedHeatmapPoints">添加权重热力点</button>
-                <button @click="clearHeatmap">清除热力图</button>
-              </div>
-              <div class="control-row buttons-row">
-                <button @click="configureHeatmap">配置热力图样式</button>
-                <button @click="togglePointsVisible">{{ pointsVisible ? '隐藏数据点' : '显示数据点' }}</button>
+                <button @click="clearHeatmapPoints">清除热力点</button>
               </div>
               <div class="control-row buttons-row">
                 <button @click="addDenseHeatmapPoints">添加密集热力数据</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 添加风场图操作部分 -->
+          <div class="config-item">
+            <div class="label">风场图操作</div>
+            <div class="controls">
+              <!-- 风场图操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">风场图控制</div>
+              <div class="control-row buttons-row">
+                <button @click="activateWindLayer">启用风场图</button>
+                <button @click="deactivateWindLayer">禁用风场图</button>
+              </div>
+              
+              <div class="feature-group-title">风场参数</div>
+              <div class="control-row">
+                <span>粒子数量:</span>
+                <input type="range" v-model.number="windConfig.paths" min="100" max="5000" @input="updateWindOptions">
+                <span class="value">{{ windConfig.paths }}</span>
+              </div>
+              <div class="control-row">
+                <span>线条粗细:</span>
+                <input type="range" v-model.number="windConfig.lineWidth" min="1" max="5" step="0.5" @input="updateWindOptions">
+                <span class="value">{{ windConfig.lineWidth }}</span>
+              </div>
+              <div class="control-row">
+                <span>速度缩放:</span>
+                <input type="range" v-model.number="windConfig.velocityScale" min="0.01" max="0.1" step="0.01" @input="updateWindOptions">
+                <span class="value">{{ windConfig.velocityScale }}</span>
               </div>
             </div>
           </div>
@@ -463,6 +485,7 @@ import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
+import type { WindConfig } from '@repo/components/ScLayer/types/wind';
 
 // 标记点聚合模式的枚举
 const MarkerClusterMode = {
@@ -482,33 +505,33 @@ const heatmapPoints = ref<Array<HeatmapPoint>>([]);
 const pointsVisible = ref(false);
 // 添加当前选中的热力图记录
 const selectedHeatmapPoint = ref<string | null>(null);
-// 热力图性能模式
-const heatmapPerformanceMode = ref(false);
+  // 热力图性能模式
+  const heatmapPerformanceMode = ref(false);
 
-// 飞线图相关
-const flightLinePoints = ref<Array<FlightLinePoint>>([]);
-const flightLineConfig = ref<FlightLineConfig>({
-  curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
-  width: 1,              // 线宽调整为1
-  showEffect: true,      // 显示效果
-  showNodes: true,       // 显示节点
-  color: '#a6c84c',      // 使用sakitam示例中的颜色
-  opacity: 0.5,          // 透明度调整为0.5
-  effectPeriod: 6,       // 效果周期调整为6
-  effectTrailLength: 0, // 效果轨迹长度调整为0.7
-  effectSymbolSize: 18,   // 动画效果大小设为8
-  nodeSymbolSize: 3,     // 节点大小从8减小到3
-  effectSymbol: 'plane', // 效果符号改为arrow
-  visible: true,         // 可见性
-  nodeColor: '#ddb926',  // 节点颜色
-  nodeEffect: true,      // 节点效果
-  zIndex: 90,            // 层级
-  hideOnMoving: false,   // 移动时不隐藏
-  hideOnZooming: false,  // 缩放时不隐藏
-  enablePerformanceMode: false // 关闭性能模式以确保显示
-});
-
-// 飞线图相关状态
+  // 飞线图相关
+  const flightLinePoints = ref<Array<FlightLinePoint>>([]);
+  const flightLineConfig = ref<FlightLineConfig>({
+    curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
+    width: 1,              // 线宽调整为1
+    showEffect: true,      // 显示效果
+    showNodes: true,       // 显示节点
+    color: '#a6c84c',      // 使用sakitam示例中的颜色
+    opacity: 0.5,          // 透明度调整为0.5
+    effectPeriod: 6,       // 效果周期调整为6
+    effectTrailLength: 0,  // 效果轨迹长度调整为0.7
+    effectSymbolSize: 18,  // 动画效果大小设为8
+    nodeSymbolSize: 3,     // 节点大小从8减小到3
+    effectSymbol: 'plane', // 效果符号改为arrow
+    visible: true,         // 可见性
+    nodeColor: '#ddb926',  // 节点颜色
+    nodeEffect: true,      // 节点效果
+    zIndex: 90,            // 层级
+    hideOnMoving: false,   // 移动时不隐藏
+    hideOnZooming: false,  // 缩放时不隐藏
+    enablePerformanceMode: false // 关闭性能模式以确保显示
+  });
+  
+  // 飞线图相关状态
 const flightLineActive = ref(false);
 
 // 飞线图列表数据 - 修改为单选模式
@@ -3514,6 +3537,76 @@ const updateHeatmapPointList = () => {
     addLog('热力图', `获取热力点列表失败: ${error.message}`);
   }
 };
+
+// 添加风场图配置
+const windConfig = reactive<WindConfig>({
+  paths: 3000,           // 初始粒子数量
+  lineWidth: 2,          // 初始线条粗细
+  velocityScale: 0.05,   // 初始速度缩放
+  colorScale: [
+    "rgb(36,104,180)",
+    "rgb(60,157,194)",
+    "rgb(128,205,193)",
+    "rgb(151,218,168)",
+    "rgb(198,231,181)",
+    "rgb(238,247,217)",
+    "rgb(255,238,159)",
+    "rgb(252,217,125)",
+    "rgb(255,182,100)",
+    "rgb(252,150,75)",
+    "rgb(250,112,52)",
+    "rgb(245,64,32)",
+    "rgb(237,45,28)",
+    "rgb(220,24,32)",
+    "rgb(180,0,35)"
+  ]
+});
+
+// 激活风场图
+function activateWindLayer() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  layerRef.value.activateTool('wind-layer');
+  addLog('风场图', '风场图已启用');
+}
+
+// 禁用风场图
+function deactivateWindLayer() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  layerRef.value.deactivateTool('wind-layer');
+  addLog('风场图', '风场图已禁用');
+}
+
+// 更新风场图参数
+function updateWindOptions() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  // 获取风场图对象
+  const windObject = layerRef.value.getWindObject();
+  if (!windObject) {
+    addLog('风场图', '无法获取风场图对象');
+    return;
+  }
+  
+  // 更新风场图配置
+  windObject.setWindOptions({
+    paths: windConfig.paths,
+    lineWidth: windConfig.lineWidth,
+    velocityScale: windConfig.velocityScale
+  });
+  
+  addLog('风场图', `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`);
+}
 </script>
 
 <style scoped>
