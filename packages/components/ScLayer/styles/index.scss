@@ -1,4 +1,4 @@
-@import './variables.scss';
+@use './variables.scss' as *;
 
 /* 全局自定义弹窗动画样式 */
 @keyframes popup-fade-in {

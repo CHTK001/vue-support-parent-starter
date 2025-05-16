@@ -37,23 +37,23 @@ export interface MarkerConfig {
  */
 export interface MarkerStyleOptions {
   /** 图标缩放比例 */
-  scale?: number;
+    scale?: number;
   /** 图标锚点 [x, y] 范围0-1 */
-  anchor?: [number, number];
+    anchor?: [number, number];
   /** 图标偏移 [x, y] 像素 */
-  offset?: [number, number];
+    offset?: [number, number];
   /** 图标旋转角度（弧度） */
-  rotation?: number;
+    rotation?: number;
   /** 文字颜色 */
-  textColor?: string;
+    textColor?: string;
   /** 文字外边框颜色 */
-  textOutlineColor?: string;
+    textOutlineColor?: string;
   /** 文字外边框宽度 */
-  textOutlineWidth?: number;
+    textOutlineWidth?: number;
   /** 文字字体 */
-  textFont?: string;
+    textFont?: string;
   /** 文字Y轴偏移 */
-  textOffsetY?: number;
+    textOffsetY?: number;
 }
 
 /**

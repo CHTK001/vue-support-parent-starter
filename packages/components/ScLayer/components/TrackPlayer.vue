@@ -51,13 +51,13 @@
           <div class="settings-group">
             <div class="settings-group-title">更新频率</div>
             <div class="settings-options">
-              <label class="settings-option">
-                <input type="radio" v-model="updateFrequency" :value="100">
-                <span>默认(高频更新)</span>
+              <label class="settings-option" :class="{ 'disabled': playState === 'playing' }">
+                <input type="radio" v-model="updateFrequency" :value="100" @change="onFrequencyChange('DEFAULT')" :disabled="playState === 'playing'">
+                <span>默认</span>
               </label>
-              <label class="settings-option">
-                <input type="radio" v-model="updateFrequency" :value="500">
-                <span>低频更新</span>
+              <label class="settings-option" :class="{ 'disabled': playState === 'playing' }">
+                <input type="radio" v-model="updateFrequency" :value="500" @change="onFrequencyChange('OL_EXT')" :disabled="playState === 'playing'">
+                <span>兼容</span>
               </label>
             </div>
           </div>
@@ -223,6 +223,7 @@ export default {
 import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect } from 'vue';
 import { Track, TrackPlayer as TrackPlayerConfig } from '../types/track';
 import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
+import { TrackImplementationType } from '../composables/track/ITrackImplementation';
 import { 
   TRACK_PLAYER_ICON,
   TRACK_PLAY_ICON, 
@@ -259,6 +260,8 @@ interface Props {
     showTrack?: (id: string) => boolean;
     fitTrackToView?: (id: string, config: any) => void;
     setConfig?: (config: any) => void;
+    getActiveImplementation?: () => any;
+    switchImplementation?: (type: TrackImplementationType, preserveState?: boolean) => boolean;
   };
   config?: {
     loop?: boolean;         // 是否循环播放
@@ -346,39 +349,32 @@ let progressTimer: number | null = null;
 const refreshTrackList = () => {
   if (props.trackObj) {
     try {
-      // 检查trackObj是否有getAllTracks方法
-      if (typeof props.trackObj.getAllTracks === 'function') {
-        // 保存当前选中的轨迹ID
-        const currentActiveTrackId = activeTrackId.value;
-        
-        // 获取新的轨迹列表
-        const allTracks = props.trackObj.getAllTracks();
-        
-        // 检查是否有新增轨迹
-        if (allTracks.size !== tracks.value.size) {
-          console.log('轨迹列表已更新，总数:', allTracks.size);
-        }
-        
-        // 创建新的Map实例以触发Vue的响应式更新
-        const newTracks = new Map();
-        allTracks.forEach((track, id) => {
-          newTracks.set(id, track);
-        });
-        
-        // 更新轨迹列表 - 使用新Map实例而非直接赋值
-        tracks.value = newTracks;
-        
-        console.log('轨迹列表已刷新，当前轨迹数:', tracks.value.size, '轨迹ID:', [...tracks.value.keys()]);
-        
-        // 如果之前有选中的轨迹，且该轨迹仍然存在，保持选中状态
-        if (currentActiveTrackId && tracks.value.has(currentActiveTrackId)) {
-          // 保持当前选中状态不变
-          activeTrackId.value = currentActiveTrackId;
-        }
-      } else {
-        console.warn('trackObj没有getAllTracks方法，无法刷新轨迹列表');
-        // 如果没有getAllTracks方法，清空轨迹列表
-        tracks.value = new Map();
+      // 保存当前选中的轨迹ID
+      const currentActiveTrackId = activeTrackId.value;
+      
+      // 获取新的轨迹列表
+      const allTracks = props.trackObj.getAllTracks();
+      
+      // 检查是否有新增轨迹
+      if (allTracks.size !== tracks.value.size) {
+        console.log('轨迹列表已更新，总数:', allTracks.size);
+      }
+      
+      // 创建新的Map实例以触发Vue的响应式更新
+      const newTracks = new Map();
+      allTracks.forEach((track, id) => {
+        newTracks.set(id, track);
+      });
+      
+      // 更新轨迹列表 - 使用新Map实例而非直接赋值
+      tracks.value = newTracks;
+      
+      console.log('轨迹列表已刷新，当前轨迹数:', tracks.value.size, '轨迹ID:', [...tracks.value.keys()]);
+      
+      // 如果之前有选中的轨迹，且该轨迹仍然存在，保持选中状态
+      if (currentActiveTrackId && tracks.value.has(currentActiveTrackId)) {
+        // 保持当前选中状态不变
+        activeTrackId.value = currentActiveTrackId;
       }
     } catch (error) {
       console.error('刷新轨迹列表时发生错误:', error);
@@ -398,6 +394,16 @@ onMounted(() => {
   if (props.trackObj) {
     refreshTrackList();
     
+    // 初始化时根据选择的模式设置实现类型
+    // 频率选择值对应的实现类型
+    const implType = updateFrequency.value === 100 ? 
+      TrackImplementationType.DEFAULT : 
+      TrackImplementationType.OL_EXT;
+    
+    // 设置初始实现类型
+    props.trackObj.switchImplementation(implType, true);
+    console.log(`初始化轨迹播放器，使用${implType === TrackImplementationType.DEFAULT ? '默认' : '兼容'}实现`); 
+    
     // 监听自定义事件，当添加轨迹时强制刷新列表
     const trackPlayerElement = document.querySelector('.track-player');
     if (trackPlayerElement) {
@@ -409,25 +415,18 @@ onMounted(() => {
     
     // 检查工具是否真的激活
     try {
-      // 首先检查trackObj是否有getMapInstance方法
-      if (typeof props.trackObj.getMapInstance === 'function') {
-        const map = props.trackObj.getMapInstance();
-        if (map) {
-          // 尝试从DOM元素获取toolbarObj
-          const targetElement = map.getTargetElement();
-          if (targetElement && targetElement['toolbarObj']) {
-            const toolbarObj = targetElement['toolbarObj'];
-            const isTrackPlayerActive = toolbarObj.getTools().find(t => t.id === 'track-player')?.active || false;
-            if (!isTrackPlayerActive) {
-              console.warn('轨迹播放器组件挂载时发现工具未激活，可能需要关闭');
-              emit('close');
-            }
+      const map = props.trackObj.getMapInstance();
+      if (map) {
+        // 尝试从DOM元素获取toolbarObj
+        const targetElement = map.getTargetElement();
+        if (targetElement && targetElement['toolbarObj']) {
+          const toolbarObj = targetElement['toolbarObj'];
+          const isTrackPlayerActive = toolbarObj.getTools().find(t => t.id === 'track-player')?.active || false;
+          if (!isTrackPlayerActive) {
+            console.warn('轨迹播放器组件挂载时发现工具未激活，可能需要关闭');
+            emit('close');
           }
-        } else {
-          console.warn('trackObj没有getMapInstance方法，无法检查工具状态');
         }
-      } else {
-        console.warn('trackObj没有getMapInstance方法，无法检查工具状态');
       }
     } catch (error) {
       console.error('检查工具状态时发生错误:', error);
@@ -513,12 +512,10 @@ watch([loopPlay, followCamera], ([newLoop, newFollowCamera]) => {
     };
     
     // 无论播放状态如何，都设置基本配置
-    if (typeof props.trackObj.setTrackPlayer === 'function') {
-      props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
-    }
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
     
     // 如果正在播放，立即应用新设置
-    if (playState.value === 'playing' && typeof props.trackObj.updateTrackPlayer === 'function') {
+    if (playState.value === 'playing') {
       props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
     }
   }
@@ -527,21 +524,15 @@ watch([loopPlay, followCamera], ([newLoop, newFollowCamera]) => {
 // 监听速度因子变化
 watch(speedFactor, (newSpeedFactor) => {
   if (activeTrackId.value) {
-    // 不论播放状态如何，始终使用updateTrackSpeed立即应用新速度
-    if (typeof props.trackObj.updateTrackSpeed === 'function') {
-      props.trackObj.updateTrackSpeed(activeTrackId.value, newSpeedFactor);
-    } else if (typeof props.trackObj.setTrackSpeedFactor === 'function') {
-      props.trackObj.setTrackSpeedFactor(activeTrackId.value, newSpeedFactor);
-    }
+    // 立即应用新的速度
+    props.trackObj.updateTrackSpeed(activeTrackId.value, newSpeedFactor);
     
     // 同时更新轨迹播放器配置
-    if (typeof props.trackObj.setTrackPlayer === 'function') {
-      props.trackObj.setTrackPlayer(activeTrackId.value, {
-        loop: loopPlay.value,
-        withCamera: followCamera.value,
-        speedFactor: newSpeedFactor
-      });
-    }
+    props.trackObj.setTrackPlayer(activeTrackId.value, {
+      loop: loopPlay.value,
+      withCamera: followCamera.value,
+      speedFactor: newSpeedFactor
+    });
   }
 });
 
@@ -661,9 +652,7 @@ const selectTrack = (id: string) => {
     props.trackObj.setTrackNodesVisible(id, nodeVisible);
     props.trackObj.setTrackNodeAnchorsVisible(id, nodeAnchorsVisible);
     props.trackObj.setTrackNodePopoversVisible(id, nodeNameVisible);
-    if (props.trackObj.setTrackNodeTimeVisible) {
-      props.trackObj.setTrackNodeTimeVisible(id, nodeTimeVisible);
-    }
+    props.trackObj.setTrackNodeTimeVisible(id, nodeTimeVisible);
     props.trackObj.setTrackSpeedPopoversVisible(id, speedVisible);
     props.trackObj.setTrackNodeSpeedsVisible(id, nodeSpeedVisible);
     props.trackObj.setMovingPointNameVisible(id, movingPointNameVisible);
@@ -712,31 +701,23 @@ const deleteTrack = (id: string) => {
     try {
       // 如果正在播放，先停止
       if (activeTrackId.value === id && playState.value !== 'stopped') {
-        if (typeof props.trackObj.stop === 'function') {
-          props.trackObj.stop(id);
-        } else {
-          console.warn('trackObj没有stop方法，无法停止播放');
-        }
+        props.trackObj.stop(id);
       }
       
       // 删除轨迹
-      if (typeof props.trackObj.removeTrack === 'function') {
-        props.trackObj.removeTrack(id);
-        
-        // 如果删除的是当前活动轨迹，清空活动轨迹
-        if (activeTrackId.value === id) {
-          activeTrackId.value = null;
-          playState.value = 'stopped';
-          stopProgressTimer();
-        }
-        
-        // 刷新轨迹列表
-        refreshTrackList();
-        
-        emit('track-deleted', id);
-      } else {
-        console.warn('trackObj没有removeTrack方法，无法删除轨迹');
+      props.trackObj.removeTrack(id);
+      
+      // 如果删除的是当前活动轨迹，清空活动轨迹
+      if (activeTrackId.value === id) {
+        activeTrackId.value = null;
+        playState.value = 'stopped';
+        stopProgressTimer();
       }
+      
+      // 刷新轨迹列表
+      refreshTrackList();
+      
+      emit('track-deleted', id);
     } catch (error) {
       console.error('删除轨迹时发生错误:', error);
     }
@@ -750,13 +731,9 @@ const togglePlay = () => {
   try {
     if (playState.value === 'playing') {
       // 暂停播放
-      if (typeof props.trackObj.pause === 'function') {
-        props.trackObj.pause(activeTrackId.value);
-        playState.value = 'paused';
-        stopProgressTimer();
-      } else {
-        console.warn('trackObj没有pause方法，无法暂停播放');
-      }
+      props.trackObj.pause(activeTrackId.value);
+      playState.value = 'paused';
+      stopProgressTimer();
     } else {
       // 获取最新配置参数
       const loop = props.config?.loop !== undefined ? props.config.loop : loopPlay.value;
@@ -777,33 +754,22 @@ const togglePlay = () => {
       loopPlay.value = loop;
       followCamera.value = withCamera;
       
-      // 如果是从暂停状态恢复，不需要重新设置进度
-      if (typeof props.trackObj.play === 'function') {
-        // 播放前先设置播放器配置，确保正确应用速度等参数
-        if (typeof props.trackObj.setTrackPlayer === 'function') {
-          props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
-        }
-        
-        // 开始播放
-        props.trackObj.play(activeTrackId.value, playerConfig);
-        
-        // 无论是否从暂停状态恢复，都确保立即应用最新的速度设置
-        if (typeof props.trackObj.updateTrackSpeed === 'function') {
-          props.trackObj.updateTrackSpeed(activeTrackId.value, speedFct);
-        }
-        
-        // 额外调用updateTrackPlayer确保所有播放配置立即生效
-        if (typeof props.trackObj.updateTrackPlayer === 'function') {
-          props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
-        }
-        
-        playState.value = 'playing';
-        
-        // 开始进度更新计时器
-        startProgressTimer();
-      } else {
-        console.warn('trackObj没有play方法，无法开始播放');
-      }
+      // 播放前先设置播放器配置，确保正确应用速度等参数
+      props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+      
+      // 开始播放
+      props.trackObj.play(activeTrackId.value, playerConfig);
+      
+      // 无论是否从暂停状态恢复，都确保立即应用最新的速度设置
+      props.trackObj.updateTrackSpeed(activeTrackId.value, speedFct);
+      
+      // 额外调用updateTrackPlayer确保所有播放配置立即生效
+      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+      
+      playState.value = 'playing';
+      
+      // 开始进度更新计时器
+      startProgressTimer();
     }
   } catch (error) {
     console.error('切换播放状态时发生错误:', error);
@@ -818,11 +784,7 @@ const setSpeed = (factor: number) => {
   speedFactor.value = factor;
   
   // 无论是否正在播放，都立即更新速度
-  if (typeof props.trackObj.updateTrackSpeed === 'function') {
-    props.trackObj.updateTrackSpeed(activeTrackId.value, factor);
-  } else if (typeof props.trackObj.setTrackSpeedFactor === 'function') {
-    props.trackObj.setTrackSpeedFactor(activeTrackId.value, factor);
-  }
+  props.trackObj.updateTrackSpeed(activeTrackId.value, factor);
   
   // 更新轨迹播放器配置
   const playerConfig = {
@@ -862,142 +824,10 @@ const handleProgressClick = (e: MouseEvent) => {
     updateProgress(progress);
     
     // 设置轨迹进度
-    if (typeof props.trackObj.setTrackProgress === 'function') {
-      props.trackObj.setTrackProgress(activeTrackId.value, progress);
-    } else {
-      console.warn('trackObj没有setTrackProgress方法，无法设置进度');
-    }
+    props.trackObj.setTrackProgress(activeTrackId.value, progress);
   } catch (error) {
     console.error('设置轨迹进度时发生错误:', error);
   }
-};
-
-// 开始拖动进度条
-const startProgressDrag = (e: MouseEvent) => {
-  if (!activeTrackId.value) return;
-  
-  // 标记开始拖动
-  isDraggingProgress.value = true;
-  
-  // 暂停播放
-  const wasPlaying = playState.value === 'playing';
-  if (wasPlaying) {
-    props.trackObj.pause(activeTrackId.value);
-    playState.value = 'paused';
-  }
-  
-  // 计算并设置新进度
-  handleProgressDrag(e);
-  
-  // 添加鼠标移动和松开事件
-  const handleMouseMove = (moveEvent: MouseEvent) => {
-    handleProgressDrag(moveEvent);
-  };
-  
-  const handleMouseUp = () => {
-    // 移除事件监听
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-    
-    // 恢复播放
-    if (wasPlaying) {
-      const playerConfig = {
-        loop: loopPlay.value,
-        withCamera: followCamera.value,
-        speed: 50,
-        speedFactor: speedFactor.value
-      };
-      
-      // 设置播放配置
-      if (typeof props.trackObj.setTrackPlayer === 'function') {
-        props.trackObj.setTrackPlayer(activeTrackId.value!, playerConfig);
-      }
-      
-      // 开始播放
-      props.trackObj.play(activeTrackId.value!, playerConfig);
-      
-      // 确保应用最新的速度设置
-      if (typeof props.trackObj.updateTrackSpeed === 'function') {
-        props.trackObj.updateTrackSpeed(activeTrackId.value!, speedFactor.value);
-      }
-      
-      // 确保播放器参数实时生效
-      if (typeof props.trackObj.updateTrackPlayer === 'function') {
-        props.trackObj.updateTrackPlayer(activeTrackId.value!, playerConfig);
-      }
-      
-      playState.value = 'playing';
-    }
-    
-    // 标记拖动结束
-    isDraggingProgress.value = false;
-  };
-  
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
-};
-
-// 处理进度条拖动
-const handleProgressDrag = (e: MouseEvent) => {
-  if (!activeTrackId.value) return;
-  
-  // 获取进度条元素
-  const progressBar = document.querySelector('.track-progress-bar') as HTMLElement;
-  if (!progressBar) return;
-  
-  // 计算新进度
-  const rect = progressBar.getBoundingClientRect();
-  let progress = (e.clientX - rect.left) / rect.width;
-  
-  // 限制进度范围
-  progress = Math.max(0, Math.min(1, progress));
-  
-  // 更新进度UI
-  updateProgress(progress);
-  
-  // 设置轨迹进度
-  props.trackObj.setTrackProgress(activeTrackId.value, progress);
-};
-
-// 开始进度更新计时器
-const startProgressTimer = () => {
-  // 防止重复启动计时器
-  stopProgressTimer();
-  
-  // 使用配置的更新频率，默认为100毫秒更新一次进度
-  progressTimer = window.setInterval(() => {
-    if (activeTrackId.value && props.trackObj) {
-      try {
-        // 获取当前进度
-        if (typeof props.trackObj.getTrackProgress === 'function') {
-          const progress = props.trackObj.getTrackProgress(activeTrackId.value);
-          if (progress !== null) {
-            updateProgress(progress);
-            
-            // 获取当前速度
-            if (typeof props.trackObj.getCurrentSpeed === 'function') {
-              const speed = props.trackObj.getCurrentSpeed(activeTrackId.value);
-              if (speed !== null) {
-                currentSpeed.value = speed;
-              }
-            }
-            
-            // 如果进度为1且不是循环播放，停止计时器
-            if (progress >= 1 && !loopPlay.value) {
-              playState.value = 'stopped';
-              stopProgressTimer();
-            }
-          }
-        } else {
-          console.warn('trackObj没有getTrackProgress方法，无法更新进度');
-          stopProgressTimer();
-        }
-      } catch (error) {
-        console.error('更新进度时发生错误:', error);
-        stopProgressTimer();
-      }
-    }
-  }, updateFrequency.value);
 };
 
 // 停止进度更新计时器
@@ -1051,18 +881,13 @@ const fitToTrackView = (id: string) => {
   selectTrack(id);
   
   // 调用fitTrackToView方法自适应显示轨迹
-  // 检查trackObj是否有fitTrackToView方法
-  if (typeof props.trackObj.fitTrackToView === 'function') {
-    props.trackObj.fitTrackToView(id, {
-      gotoStart: false,
-      padding: [20, 20, 20, 20],
-      duration: 500,
-      maxZoom: 18
-    });
-    console.log(`自适应显示轨迹: ${id}`);
-  } else {
-    console.warn('trackObj没有fitTrackToView方法，无法自适应显示轨迹');
-  }
+  props.trackObj.fitTrackToView(id, {
+    gotoStart: false,
+    padding: [20, 20, 20, 20],
+    duration: 500,
+    maxZoom: 18
+  });
+  console.log(`自适应显示轨迹: ${id}`);
 };
 
 // 暴露方法供父组件调用
@@ -1183,48 +1008,32 @@ const applyConfig = () => {
           if (!activeTrackId.value) return;
           
           // 设置轨迹节点显示状态
-          if (typeof props.trackObj.setTrackNodesVisible === 'function') {
-            props.trackObj.setTrackNodesVisible(activeTrackId.value, showNodes.value);
-          }
+          props.trackObj.setTrackNodesVisible(activeTrackId.value, showNodes.value);
           
           // 设置轨迹节点锚点显示状态
-          if (typeof props.trackObj.setTrackNodeAnchorsVisible === 'function') {
-            props.trackObj.setTrackNodeAnchorsVisible(activeTrackId.value, showNodeAnchors.value);
-          }
+          props.trackObj.setTrackNodeAnchorsVisible(activeTrackId.value, showNodeAnchors.value);
           
           // 设置节点名称显示状态
-          if (typeof props.trackObj.setTrackNodePopoversVisible === 'function') {
-            props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, showNodePopover.value);
-          }
+          props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, showNodePopover.value);
           
           // 设置节点时间显示状态
-          if (typeof props.trackObj.setTrackNodeTimeVisible === 'function') {
-            props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, showNodeTime.value);
-          }
+          props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, showNodeTime.value);
           
           // 设置移动点位名称显示状态
-          if (typeof props.trackObj.setMovingPointNameVisible === 'function') {
-            props.trackObj.setMovingPointNameVisible(activeTrackId.value, showMovingPointName.value);
-          }
+          props.trackObj.setMovingPointNameVisible(activeTrackId.value, showMovingPointName.value);
           
           // 设置速度弹窗显示状态
-          if (typeof props.trackObj.setTrackSpeedPopoversVisible === 'function') {
-            props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, showSpeedPopover.value);
-          }
+          props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, showSpeedPopover.value);
           
           // 设置节点速度显示状态
-          if (typeof props.trackObj.setTrackNodeSpeedsVisible === 'function') {
-            props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, showNodeSpeed.value);
-          }
+          props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, showNodeSpeed.value);
           
           // 设置播放配置
-          if (typeof props.trackObj.setTrackPlayer === 'function') {
-            props.trackObj.setTrackPlayer(activeTrackId.value, {
-              loop: loopPlay.value,
-              withCamera: followCamera.value,
-              speedFactor: speedFactor.value
-            });
-          }
+          props.trackObj.setTrackPlayer(activeTrackId.value, {
+            loop: loopPlay.value,
+            withCamera: followCamera.value,
+            speedFactor: speedFactor.value
+          });
         };
         
         // 应用轨迹设置
@@ -1239,31 +1048,62 @@ const applyConfig = () => {
 // 速度滑块输入事件处理函数
 const onSpeedChange = () => {
   if (activeTrackId.value) {
-    // 无论是否正在播放，都立即应用新的速度
-    if (typeof props.trackObj.updateTrackSpeed === 'function') {
-      props.trackObj.updateTrackSpeed(activeTrackId.value, speedFactor.value);
-    } else if (typeof props.trackObj.setTrackSpeedFactor === 'function') {
-      props.trackObj.setTrackSpeedFactor(activeTrackId.value, speedFactor.value);
-    }
+    // 立即应用新的速度
+    props.trackObj.updateTrackSpeed(activeTrackId.value, speedFactor.value);
     
-    // 更新轨迹播放器配置
-    const playerConfig = {
+    // 同时更新轨迹播放器配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, {
       loop: loopPlay.value,
       withCamera: followCamera.value,
       speedFactor: speedFactor.value
-    };
-    
-    // 设置基本配置
-    if (typeof props.trackObj.setTrackPlayer === 'function') {
-      props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
-    }
-    
-    // 如果正在播放，确保立即应用新配置
-    if (playState.value === 'playing' && typeof props.trackObj.updateTrackPlayer === 'function') {
-      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
-    }
+    });
   }
 };
+
+/** 
+ * 处理频率切换 
+ * @param implType 实现类型 
+ */
+function handleFrequencyChange(implType: string): void {
+  if (!props.trackObj) return;
+  
+  // 保存当前轨迹和状态
+  const currentTrackId = activeTrackId.value;
+  const wasPlaying = playState.value === 'playing';
+  
+  // 如果正在播放，停止播放
+  if (currentTrackId && wasPlaying) {
+    props.trackObj.stop(currentTrackId);
+    playState.value = 'stopped';
+  }
+  
+  // 切换实现类型
+  const type = implType === 'DEFAULT' ? TrackImplementationType.DEFAULT : TrackImplementationType.OL_EXT;
+  const success = props.trackObj.switchImplementation(type, true);
+  
+  if (success) {
+    console.log(`切换到${implType === 'DEFAULT' ? '默认' : '兼容'}实现成功`);
+    
+    // 刷新轨迹列表
+    refreshTrackList();
+    
+    // 重新选择并播放
+    if (currentTrackId && tracks.value.has(currentTrackId)) {
+      setTimeout(() => {
+        selectTrack(currentTrackId);
+        
+        // 如果之前在播放，恢复播放
+        if (wasPlaying) {
+          setTimeout(() => togglePlay(), 300);
+        }
+      }, 200);
+    }
+  } else {
+    console.error(`切换实现类型失败`);
+  }
+}
+
+const onFrequencyChange = handleFrequencyChange;
 </script>
 
 <style scoped>

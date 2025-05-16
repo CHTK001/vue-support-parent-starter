@@ -1,7 +1,7 @@
 /**
  * 测距功能样式
  */
-@import './variables.scss';
+@use './variables.scss' as *;
 
 // 提示框样式
 .ol-tooltip {
