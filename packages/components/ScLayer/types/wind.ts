@@ -98,7 +98,7 @@ export const DEFAULT_WIND_CONFIG: WindConfig = {
   
   // 字段配置
   fieldOptions: {
-    wrapX: false
+    wrapX: true
   },
   
   // 性能相关
