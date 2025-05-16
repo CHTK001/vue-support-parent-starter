@@ -13,7 +13,7 @@ import { MeasureObject, MeasureType } from './MeasureObject';
 import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
-import { TrackManager } from './track/TrackManager';
+import { TrackObject } from './TrackObject';
 import { AggregationOptions } from '../types/cluster';
 import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
@@ -45,7 +45,7 @@ export class ToolbarObject {
   // 图形绘制对象
   private shapeObj: ShapeObject | null = null;
   // 轨迹对象
-  private trackObj: TrackManager | null = null;
+  private trackObj: TrackObject | null = null;
   // 坐标面板是否显示
   private showCoordinatePanel: boolean = false;
   // 坐标信息回调
@@ -374,7 +374,7 @@ export class ToolbarObject {
     }
     
     // 创建轨迹对象
-    this.trackObj = new TrackManager(mapInstance);
+    this.trackObj = new TrackObject(mapInstance);
     
     logger.debug('轨迹对象初始化成功');
   }
@@ -1687,7 +1687,7 @@ export class ToolbarObject {
    * 获取轨迹对象
    * @returns 轨迹对象
    */
-  public getTrackObject(): TrackManager | null {
+  public getTrackObject(): TrackObject | null {
     return this.trackObj;
   }
 

@@ -20,14 +20,12 @@ import { fromLonLat, toLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { getVectorContext } from 'ol/render';
-import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../../../types/track';
-import { DataType } from '../../../types';
-import logger from '../../../composables/LogObject';
+import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
+import { DataType } from '../types';
+import logger from './LogObject';
 import Overlay from 'ol/Overlay';
-import { IconUtils } from '../../../utils/IconUtils';
-import { DEFAULT_TRACK_SPEED_GROUPS } from '../../../types/default';
-import type { ITrackImplementation } from '../ITrackImplementation';
-import { TrackImplementationType } from '../ITrackImplementation';
+import { IconUtils } from '../utils/IconUtils';
+import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
@@ -77,7 +75,7 @@ enum TrackPlayState {
 /**
  * 轨迹对象类
  */
-export class DefaultTrackImpl implements ITrackImplementation {
+export class TrackObject {
   // 地图实例
   private mapInstance: OlMap | null = null;
   // 轨迹图层
@@ -870,7 +868,31 @@ export class DefaultTrackImpl implements ITrackImplementation {
       this.stop(id);
     }
     
-    this.log('debug', `轨迹 "${id}" 已隐藏`);
+    // 清除轨迹相关的所有Overlay
+    this.clearNodeOverlays(id);
+    
+    // 清除移动点位Overlay（如果属于当前轨迹）
+    if (this.trackMovingOverlay && this.selectedTrackId === id) {
+      this.mapInstance!.removeOverlay(this.trackMovingOverlay);
+      this.trackMovingOverlay = null;
+    }
+    
+    // 清除当前节点Overlay（如果属于当前轨迹）
+    if (this.trackCurrentNodeOverlay && this.selectedTrackId === id) {
+      this.mapInstance!.removeOverlay(this.trackCurrentNodeOverlay);
+      this.trackCurrentNodeOverlay = null;
+    }
+    
+    // 清除轨迹线（过去走过的部分）
+    this.clearPassedLine(id);
+    
+    // 移除位置标记特征
+    this.removePositionFeature(id);
+    
+    // 移除活动标记
+    this.removeActiveMarker(id);
+    
+    this.log('debug', `轨迹 "${id}" 已隐藏并清除所有相关Overlay`);
     return true;
   }
 
@@ -1237,12 +1259,9 @@ export class DefaultTrackImpl implements ITrackImplementation {
         // 1. 获取轨迹的实际时间范围（秒）
         const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
         
-        // 2. 每次都重新获取当前速度因子，确保实时生效
-        const currentSpeedFactor = this.trackSpeedFactors.get(id) || 1.0;
-        
-        // 3. 应用倍速因子，计算进度增量
+        // 2. 应用倍速因子，计算进度增量
         // 进度变化 = 经过时间(ms) / (轨迹时间范围(s) * 1000) * 速度因子
-        const progressChange = (elapsedTime * currentSpeedFactor) / (timeRange * 1000);
+        const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
         
         let newProgress = progress + progressChange;
         
@@ -4109,45 +4128,28 @@ export class DefaultTrackImpl implements ITrackImplementation {
   }
 
   /**
-   * 获取实现类型
-   * @returns 实现类型
-   */
-  public getImplementationType(): TrackImplementationType {
-    return TrackImplementationType.DEFAULT;
-  }
-  
-  /**
-   * 获取名称
-   * @returns 实现名称
-   */
-  public getName(): string {
-    return '默认轨迹实现';
-  }
-  
-  /**
-   * 获取地图实例
-   * @returns 地图实例
-   */
-  public getMapInstance(): OlMap | null {
-    return this.mapInstance;
-  }
-  
-  /**
-   * 销毁实现
+   * 销毁轨迹对象，清理所有资源
    */
   public destroy(): void {
-    // 停止所有轨迹动画
+    // 清理所有轨迹数据
+    this.clearAllTracks();
+    
+    // 移除所有事件监听器
+    if (this.clickListener) {
+      unByKey(this.clickListener);
+      this.clickListener = null;
+    }
+    
+    // 清理所有动画
     this.trackAnimationFrames.forEach((frameId, trackId) => {
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
+      cancelAnimationFrame(frameId);
       this.removeTrackAnimation(trackId);
     });
     
-    // 清除所有轨迹
-    this.clearAllTracks();
+    // 清理所有覆盖物
+    this.clearAllOverlays();
     
-    // 移除图层
+    // 从地图移除图层
     if (this.mapInstance) {
       if (this.trackLayer) {
         this.mapInstance.removeLayer(this.trackLayer);
@@ -4157,13 +4159,7 @@ export class DefaultTrackImpl implements ITrackImplementation {
       }
     }
     
-    // 清除事件监听
-    if (this.clickListener) {
-      unByKey(this.clickListener);
-      this.clickListener = null;
-    }
-    
-    // 清除所有数据
+    // 重置所有数据
     this.tracks.clear();
     this.trackFeatures.clear();
     this.trackPointFeatures.clear();
@@ -4175,13 +4171,15 @@ export class DefaultTrackImpl implements ITrackImplementation {
     this.trackActiveMarkers.clear();
     this.trackPassedLineFeatures.clear();
     this.trackPositionFeatures.clear();
-    this.trackAnimationListeners.clear();
     this.trackProgressValues.clear();
     this.trackSpeedFactors.clear();
+    this.trackNodeOverlays.clear();
     
-    // 清除叠加层
-    this.clearAllOverlays();
+    // 清空引用
+    this.trackLayer = null;
+    this.trackPointLayer = null;
+    this.mapInstance = null;
     
-    this.log('debug', '轨迹实现已销毁');
+    this.log('debug', '轨迹对象已销毁');
   }
 }
