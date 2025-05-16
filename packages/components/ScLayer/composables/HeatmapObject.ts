@@ -204,8 +204,12 @@ export class HeatmapObject {
       try {
         // 解除所有事件监听
         this.eventListeners.forEach(key => {
-          if (key) {
-            Object.getPrototypeOf(key).constructor.unByKey(key);
+          try {
+            if (key) {
+              Object.getPrototypeOf(key).constructor.unByKey(key);
+            }
+          } catch (error) {
+            logger.error('[Heatmap] 移除事件监听器失败:', error);
           }
         });
         this.eventListeners = [];
