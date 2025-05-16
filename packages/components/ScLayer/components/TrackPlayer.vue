@@ -142,7 +142,7 @@
         <div class="track-speed-control">
           <div class="speed-label">速度: {{ speedFactor.toFixed(1) }}x</div>
           <input type="range" min="0.5" max="10" step="0.5" v-model.number="speedFactor" @input="onSpeedChange"
-            class="speed-slider" :disabled="!activeTrackId || playState === 'playing'">
+            class="speed-slider" :disabled="!activeTrackId">
           <div class="speed-labels">
             <span>慢</span>
             <span>正常</span>
@@ -153,7 +153,7 @@
         <!-- 播放按钮 -->
         <div class="track-buttons">
           <button class="track-button track-backward" @click="setSpeed(Math.max(0.5, speedFactor - 0.5))"
-            :disabled="!activeTrackId || playState === 'playing'" title="减速">
+            :disabled="!activeTrackId" title="减速">
             <span v-html="icons.trackBackward"></span>
           </button>
 
@@ -163,7 +163,7 @@
           </button>
 
           <button class="track-button track-forward" @click="setSpeed(Math.min(10, speedFactor + 0.5))"
-            :disabled="!activeTrackId || playState === 'playing'" title="加速">
+            :disabled="!activeTrackId" title="加速">
             <span v-html="icons.trackForward"></span>
           </button>
           <button class="track-button track-forward track-camera" :class="{'active': followCamera}" @click="followCamera = !followCamera"
@@ -784,9 +784,10 @@ const setSpeed = (factor: number) => {
     props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
   }
   
-  // 如果正在播放，确保立即应用新配置
-  if (playState.value === 'playing' && typeof props.trackObj.updateTrackPlayer === 'function') {
+  // 无论播放状态如何，都确保立即应用新配置
+  if (typeof props.trackObj.updateTrackPlayer === 'function') {
     props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+    console.log(`轨迹播放速度已调整为: ${factor.toFixed(1)}x`);
   }
 };
 
