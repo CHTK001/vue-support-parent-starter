@@ -1,0 +1,268 @@
+/**
+ * 测距功能样式
+ */
+@use './variables.scss' as *;
+
+// 提示框样式
+.ol-tooltip {
+  position: relative;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: $tooltip-border-radius;
+  color: $text-color;
+  padding: $tooltip-padding;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transform: translate3d(0, 0, 0);
+  z-index: $popup-z-index;
+  max-width: 300px;
+  box-sizing: border-box;
+  border: 1px solid $border-color;
+}
+
+// 测量提示样式
+.ol-tooltip-measure {
+  opacity: 1;
+  background-color: rgba($primary-color, 0.9);
+  color: $light-text-color;
+  border: none;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all $transition-time;
+  border-radius: 12px;
+  padding: 4px 8px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgba($primary-color, 0.9);
+    transform: translateX(-50%);
+  }
+}
+
+// 静态提示样式（测量完成后）
+.ol-tooltip-static {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-weight: bold;
+  font-size: 14px;
+  padding: 5px 10px;
+  
+  &::before {
+    border-top-color: rgba(0, 177, 89, 0.9);
+  }
+}
+
+// 帮助提示样式
+.help-tooltip {
+  opacity: 0.9;
+  z-index: 1999;
+}
+
+// 测量提示覆盖层样式
+.measure-tooltip {
+  z-index: $popup-z-index;
+}
+
+// 中间节点距离标签样式
+.measure-segment-label .segment-distance {
+  background: rgba(24, 144, 255, 0.9);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: normal;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  animation: measure-fade-in 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+// 终点总距离标签样式
+.measure-total-label .total-distance-label {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  animation: measure-scale-in 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.total-distance-label::after {
+  content: attr(data-distance);
+}
+
+// 更好的测距节点样式
+.ol-measure-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  pointer-events: all;
+  cursor: move;
+}
+
+// 显著的终点节点样式 - 绿色
+.ol-measure-point-end {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #00b159;
+  box-shadow: 0 0 0 4px rgba(0, 177, 89, 0.3);
+}
+
+// 起点节点样式 - 蓝色
+.ol-measure-point-start {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.4);
+}
+
+.ol-measure-point:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+}
+
+/* 测量线样式 */
+.ol-measure-line {
+  stroke: #1890ff;
+  stroke-width: 3px;
+  stroke-dasharray: 5, 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.ol-measure-line:hover {
+  stroke-width: 4px;
+  stroke-dasharray: none;
+}
+
+@keyframes measure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes measure-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 测量工具样式覆盖 */
+.ol-tooltip {
+  z-index: 1500 !important;
+}
+
+/* 自定义鼠标样式 */
+.ol-viewport.measure-active {
+  cursor: crosshair !important;
+}
+
+/* 删除按钮 */
+.delete-measure-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: $error-color;
+  color: $light-text-color;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity $transition-time;
+}
+
+.ol-tooltip-static:hover .delete-measure-btn {
+  opacity: 1;
+}
+
+// 测量结果面板
+.measure-results-panel {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: $coordinate-panel-background;
+  border-radius: $toolbar-border-radius;
+  box-shadow: $coordinate-panel-shadow;
+  padding: 10px;
+  z-index: $toolbar-z-index;
+  min-width: 200px;
+  max-width: 300px;
+  
+  .measure-result-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: $text-color;
+  }
+  
+  .measure-result-item {
+    margin: 5px 0;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    
+    .measure-value {
+      font-weight: 500;
+      color: $primary-color;
+    }
+    
+    &:not(:last-child) {
+      border-bottom: 1px dashed $border-color;
+      padding-bottom: 5px;
+    }
+  }
+  
+  .measure-clear-btn {
+    background-color: $background-color;
+    border: 1px solid $border-color;
+    border-radius: 2px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all $transition-time;
+    
+    &:hover {
+      background-color: #e6f7ff;
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+  }
+} 

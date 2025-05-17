@@ -1,83 +1,136 @@
 /**
- * 地图点位图标定义
- * 提供各种点位图标和分组图标
+ * 标记点类型定义
+ * @description 定义标记点相关的类型和接口
  */
 
-// 默认点位图标
-export const DEFAULT_MARKER_ICON = `
-<svg viewBox="0 0 1024 1024" width="24" height="24">
-  <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#1296db"></path>
-</svg>`;
+import type { DataType } from ".";
 
-// 点位分组图标
-export const MARKER_GROUP_ICONS = {
-  // 默认分组
-  default: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#1890ff"></path>
-  </svg>`,
-  
-  // 设施分组
-  facility: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#52c41a"></path>
-  </svg>`,
-  
-  // 人员分组
-  person: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#f5222d"></path>
-  </svg>`,
-  
-  // 车辆分组
-  vehicle: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#fa8c16"></path>
-  </svg>`,
-  
-  // 重点地点
-  important: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#722ed1"></path>
-  </svg>`,
-  
-  // 危险地点
-  danger: `
-  <svg viewBox="0 0 1024 1024" width="24" height="24">
-    <path d="M512 85.333333c-164.949333 0-298.666667 133.738667-298.666667 298.666667 0 164.949333 298.666667 554.666667 298.666667 554.666667s298.666667-389.717333 298.666667-554.666667c0-164.928-133.717333-298.666667-298.666667-298.666667z m0 448a149.333333 149.333333 0 1 1 0-298.666666 149.333333 149.333333 0 0 1 0 298.666666z" fill="#eb2f96"></path>
-  </svg>`
-};
-
-// 点位大小定义
-export const MARKER_SIZE = {
-  small: {
-    iconSize: [24, 32],
-    iconAnchor: [12, 32],
-    popupAnchor: [0, -32]
-  },
-  medium: {
-    iconSize: [32, 42],
-    iconAnchor: [16, 42],
-    popupAnchor: [0, -42]
-  },
-  large: {
-    iconSize: [40, 54],
-    iconAnchor: [20, 54],
-    popupAnchor: [0, -54]
-  }
-};
-
-// 获取分组图标
-export function getMarkerGroupIcon(group: string): string {
-  return MARKER_GROUP_ICONS[group] || MARKER_GROUP_ICONS.default;
+/**
+ * 标记点聚合模式枚举
+ */
+export enum MarkerClusterMode {
+  /** 不参与聚合，仅在普通图层显示 */
+  NONE = 'none',
+  /** 参与聚合，在聚合模式下聚合显示 */
+  CLUSTER = 'cluster',
+  /** 同时在普通图层和聚合图层显示 */
+  BOTH = 'both'
 }
 
-// 创建SVG图标的HTML
-export function createMarkerIconHtml(icon: string, size: keyof typeof MARKER_SIZE = 'medium'): string {
-  const { iconSize } = MARKER_SIZE[size];
-  return `
-    <div style="display: flex; justify-content: center; align-items: center; width: ${iconSize[0]}px; height: ${iconSize[1]}px;">
-      ${icon}
-    </div>
-  `;
+/**
+ * 标记点状态
+ */
+export enum MarkerStatus {
+  NORMAL = 'normal',     // 正常
+  SELECTED = 'selected', // 选中
+  HOVER = 'hover',       // 悬停
+  HIDDEN = 'hidden',     // 隐藏
+  DISABLED = 'disabled'  // 禁用
+}
+
+/**
+ * 标记点图标选项
+ */
+export interface MarkerIconOptions {
+  iconUrl?: string;          // 图标URL
+  iconSize?: [number, number];  // 图标大小
+  iconAnchor?: [number, number]; // 锚点位置
+  popupAnchor?: [number, number]; // 弹窗锚点
+  shadowUrl?: string;        // 阴影URL
+  shadowSize?: [number, number]; // 阴影大小
+  shadowAnchor?: [number, number]; // 阴影锚点
+  className?: string;        // 自定义类名
+  html?: string;             // 自定义HTML
+  backgroundColor?: string;  // 背景颜色
+  borderColor?: string;      // 边框颜色
+  textColor?: string;        // 文本颜色
+  svgIcon?: string;          // SVG图标内容
+}
+
+/**
+ * 标记点选项
+ */
+export interface MarkerOptions {
+  id?: string;               // 标记点ID，不指定时自动生成
+  position: [number, number]; // 位置 [纬度, 经度]
+  title?: string;            // 标题
+  text?: string;             // 文本
+  icon?: MarkerIconOptions;  // 图标选项
+  draggable?: boolean;       // 是否可拖拽
+  visible?: boolean;         // 是否可见
+  zIndexOffset?: number;     // Z轴偏移
+  riseOnHover?: boolean;     // 悬停时上升
+  tooltip?: string;          // 提示文本
+  status?: MarkerStatus;     // 状态
+  showLabel?: boolean;       // 是否显示标签
+  labelOptions?: {           // 标签选项
+    offset?: [number, number]; // 偏移 [x, y]
+    direction?: 'top' | 'bottom' | 'left' | 'right'; // 方向
+    permanent?: boolean;      // 是否永久显示
+    opacity?: number;         // 不透明度
+    className?: string;       // 自定义类名
+  };
+  popupContent?: string;     // 弹窗内容
+  group?: string;            // 分组ID
+  data?: any;                // 自定义数据
+}
+
+/**
+ * 标记点配置
+ */
+export interface MarkerConfig {
+  scaleWithZoom?: boolean;   // 是否随缩放级别调整大小
+  groupIcon?: Record<string, MarkerIconOptions>; // 分组图标
+  baseZoom?: number;         // 基准缩放级别
+  zoomFactor?: number;       // 缩放系数
+  minScale?: number;         // 最小缩放比例
+  maxScale?: number;         // 最大缩放比例
+  useCanvas?: boolean;       // 是否使用Canvas渲染
+  clusterOptions?: any;      // 聚合选项
+  defaultIcon?: MarkerIconOptions; // 默认图标
+}
+
+/**
+ * 聚合点功能的配置
+ */
+export interface ClusterOptions {
+  enabled?: boolean;         // 是否启用聚合
+  maxClusterRadius?: number; // 最大聚合半径
+  showCoverageOnHover?: boolean; // 悬停时显示聚合范围
+  zoomToBoundsOnClick?: boolean; // 点击聚合点时缩放到边界
+  spiderfyOnMaxZoom?: boolean; // 在最大缩放级别时是否展开
+  disableClusteringAtZoom?: number; // 在特定缩放级别禁用聚合
+  animate?: boolean;         // 是否动画
+  iconCreateFunction?: Function; // 创建图标的函数
+}
+
+/**
+ * 标记点样式选项
+ */
+export interface MarkerStyleOptions {
+  /** 图标缩放比例 */
+    scale?: number;
+  /** 图标锚点 [x, y] 范围0-1 */
+    anchor?: [number, number];
+  /** 图标偏移 [x, y] 像素 */
+    offset?: [number, number];
+  /** 图标旋转角度（弧度） */
+    rotation?: number;
+  /** 文字颜色 */
+    textColor?: string;
+  /** 文字外边框颜色 */
+    textOutlineColor?: string;
+  /** 文字外边框宽度 */
+    textOutlineWidth?: number;
+  /** 文字字体 */
+    textFont?: string;
+  /** 文字Y轴偏移 */
+    textOffsetY?: number;
+}
+
+/**
+ * 标记点事件处理函数
+ */
+export interface MarkerEventHandler {
+  (coordinates: number[], data: MarkerOptions): void;
 } 

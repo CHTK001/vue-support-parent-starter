@@ -1,49 +1,49 @@
-import type { LayerGroup } from 'leaflet';
+/**
+ * 热力图类型定义
+ */
 
-// 热力图配置接口
-export interface HeatMapOptions {
-  // 热力点半径，默认25
-  radius?: number;
-  // 模糊度，默认15
-  blur?: number;
-  // 最大不透明度，默认0.8
-  maxOpacity?: number;
-  // 最小不透明度，默认0.1
-  minOpacity?: number;
-  // 颜色渐变配置
-  gradient?: {[key: string]: string};
-  // 是否随地图缩放改变半径
-  scaleRadius?: boolean;
-  // 是否使用局部极值
-  useLocalExtrema?: boolean;
-  // 纬度字段名
-  latField?: string;
-  // 经度字段名
-  lngField?: string;
-  // 权重字段名
-  valueField?: string;
-  // 最大值，默认1.0
-  max?: number;
-  // 是否启用
-  enabled?: boolean;
-  // 相似半径（公里），小于此距离的点会被合并为一个点
-  similarRadius?: number;
-  // 权重字段名称
-  weightField?: string;
-  // 标记图层引用
-  markerLayerGroup?: LayerGroup;
-  // 是否包含隐藏的标记点
-  includeHiddenMarkers?: boolean;
-  // 选项配置
-  options?: any;
+// 热力图数据点接口
+export interface HeatmapPoint {
+  id?: string;
+  longitude: number;
+  latitude: number;
+  weight?: number; // 权重 0-1
+  name?: string;
+  properties?: Record<string, any>;
 }
 
-// 热力点数据接口
-export interface HeatPoint {
-  // 纬度
-  lat: number;
-  // 经度
-  lng: number;
-  // 热力值
-  value: number;
-} 
+// 热力图配置接口
+export interface HeatmapConfig {
+  radius: number;           // 热力点半径(像素)
+  blur: number;             // 模糊大小(像素)
+  opacity: number;          // 不透明度 0-1
+  gradient: string[];       // 颜色渐变数组
+  minWeight: number;        // 最小权重阈值 0-1
+  maxWeight: number;        // 最大权重阈值 0-1
+  showPoints: boolean;      // 是否显示数据点
+  pointColor: string;       // 点颜色
+  pointRadius: number;      // 点半径(像素)
+  pointStrokeColor: string; // 点边框颜色
+  pointStrokeWidth: number; // 点边框宽度
+  zIndex: number;           // 层级
+  hideOnMoving: boolean;    // 移动时隐藏热力图提高性能
+  hideOnZooming: boolean;   // 缩放时隐藏热力图提高性能
+}
+
+// 默认热力图配置
+export const DEFAULT_HEATMAP_CONFIG: HeatmapConfig = {
+  radius: 15,
+  blur: 15,
+  opacity: 0.8,
+  gradient: ['#00f', '#0ff', '#0f0', '#ff0', '#f00'],
+  minWeight: 0,
+  maxWeight: 1,
+  showPoints: false,
+  pointColor: 'rgba(0, 0, 255, 0.7)',
+  pointRadius: 4,
+  pointStrokeColor: '#fff',
+  pointStrokeWidth: 1,
+  zIndex: 90,
+  hideOnMoving: false,
+  hideOnZooming: false
+}; 
