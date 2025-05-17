@@ -22,7 +22,7 @@ export class ConfigObject {
       center: config.center || [39.90923, 116.397428],
       mapType: config.mapType || MapType.GAODE,
       mapTile: config.mapTile || MapTile.NORMAL,
-      map: config.map || DEFAULT_MAP_CONFIG,
+      map: config.map || DEFAULT_MAP_CONFIG as any,
       mapKey: config.mapKey || {},
       zoom: config.zoom !== undefined ? config.zoom : 10,
       dragging: config.dragging !== undefined ? config.dragging : true,

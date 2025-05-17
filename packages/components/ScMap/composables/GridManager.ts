@@ -142,6 +142,14 @@ export class GridManager {
   }
 
   /**
+   * 启用网格 (为了与 ToolbarObject 兼容)
+   * @param gridType 网格类型
+   */
+  public enable(gridType: GridType): void {
+    this.enableGrid(gridType);
+  }
+
+  /**
    * 禁用网格
    * @param gridType 网格类型
    * @returns 是否禁用成功
@@ -162,6 +170,14 @@ export class GridManager {
     }
     
     return false;
+  }
+
+  /**
+   * 禁用网格 (为了与 ToolbarObject 兼容)
+   * @param gridType 网格类型
+   */
+  public disable(gridType: GridType): void {
+    this.disableGrid(gridType);
   }
 
   /**
