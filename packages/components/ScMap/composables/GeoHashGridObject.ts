@@ -804,4 +804,58 @@ export class GeoHashGridObject {
     ctx.fillRect(0, 0, size, size);
     
   }
+
+  /**
+   * 显示网格
+   * 用于兼容 GridManager
+   * @returns 是否显示成功
+   */
+  public show(): boolean {
+    if (this.visible) {
+      this.log('debug', '网格已经是可见状态');
+      return true;
+    }
+
+    if (!this.mapInstance || !this.gridLayer) {
+      this.log('error', '网格图层未初始化，无法显示');
+      return false;
+    }
+
+    try {
+      // 将网格层添加到地图
+      this.enable();
+      this.log('info', '网格已显示');
+      return true;
+    } catch (error) {
+      this.log('error', '显示网格失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 隐藏网格
+   * 用于兼容 GridManager
+   * @returns 是否隐藏成功
+   */
+  public hide(): boolean {
+    if (!this.visible) {
+      this.log('debug', '网格已经是隐藏状态');
+      return true;
+    }
+
+    if (!this.mapInstance || !this.gridLayer) {
+      this.log('error', '网格图层未初始化');
+      return true;
+    }
+
+    try {
+      // 从地图中移除网格层
+      this.disable();
+      this.log('info', '网格已隐藏');
+      return true;
+    } catch (error) {
+      this.log('error', '隐藏网格失败:', error);
+      return false;
+    }
+  }
 } 

@@ -1219,175 +1219,83 @@ export class FlightLineObject {
   }
   
   /**
-   * 启用飞线图
-   * @param showTestData 是否显示测试数据，默认为false
+   * 启用飞线图层
+   * @param showTestData 是否显示测试数据
    */
   public async enable(showTestData: boolean = false): Promise<void> {
-    if (this.active) {
-      logger.debug('[FlightLine] 飞线图已经处于激活状态');
-    
-      // 即使已经激活，也尝试更新一次选项，确保显示正常
-      if (this.echartsLayer) {
-        this.updateEchartsOptions();
-    
-        // 仅在明确指定要显示测试数据时才添加
-        if (showTestData && this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
-          logger.debug('[FlightLine] 已激活但无数据，添加测试数据（由用户显式请求）');
-          this.updateEchartsOptions();
-  }
-
-        // 延迟注册后续处理，确保图层和DOM已经就绪
-        this.schedulePostEnableProcessing();
-      }
-      return;
-    }
-
-    if (!this.mapInstance) {
-      logger.error('[FlightLine] 地图实例不存在，无法启用飞线图');
-      return;
-    }
-
-    logger.info('[FlightLine] 开始启用飞线图，使用普通渲染模式');
-    
-    // 确保禁用GL渲染模式
-    this.config.useGLMode = false;
-    
-    // 确保地图尺寸有效
+    // 使用现有的方法体
     try {
-      const mapSize = this.mapInstance.getSize();
-      if (!mapSize || !mapSize[0] || !mapSize[1]) {
-        logger.warn('[FlightLine] 地图尺寸无效，尝试更新地图尺寸');
-        this.mapInstance.updateSize();
+      if (this.active) {
+        logger.info('[FlightLine] 飞线图层已经启用');
+        return;
       }
-
+      
+      // 检查地图实例
+      if (!this.mapInstance) {
+        logger.error('[FlightLine] 地图实例不可用，无法启用飞线图层');
+        return;
+      }
+      
+      // 如果正在初始化，等待初始化完成
+      if (this.initializing) {
+        logger.info('[FlightLine] 飞线图层正在初始化中，请稍后');
+        return;
+      }
+      
       // 初始化图层
       await this.initEchartsLayer();
-
-      // 初始化完成后设置为激活状态
-      this.active = true;
       
-      // 仅在明确指定要显示测试数据时才添加
-      if (showTestData && this.flightLines.size === 0 && process.env.NODE_ENV === 'development') {
-        logger.debug('[FlightLine] 已激活但无数据，添加测试数据（由用户显式请求）');
-        this.updateEchartsOptions();
-      } else {
-        // 启用时不自动显示飞线，初始化为空图层
-        logger.debug('[FlightLine] 飞线图启用时不显示任何飞线，等待用户操作');
-        // 确保不会显示任何飞线
-        this.clearFlightLines();
+      // 更新飞线数据
+      await this.drawFlightLines();
+      
+      // 添加测试数据
+      if (showTestData) {
+        this.addTestFlightLines();
       }
       
-      // 延迟注册后续处理，确保图层和DOM已经就绪
+      // 等待DOM更新
       this.schedulePostEnableProcessing();
       
-      logger.info('[FlightLine] 飞线图已启用，渲染模式: 标准');
-      return;
+      logger.info('[FlightLine] 飞线图层已启用');
     } catch (error) {
-      logger.error('[FlightLine] 启用飞线图失败:', error);
-      this.active = false;
-      throw error;
+      logger.error('[FlightLine] 启用飞线图层失败:', error);
     }
   }
 
   /**
-   * 分阶段处理启用后的任务，确保稳定性
-   * @private
-   */
-  private schedulePostEnableProcessing(): void {
-    // 阶段1：立即触发地图更新尺寸
-    try {
-      if (this.mapInstance) {
-        this.mapInstance.updateSize();
-        logger.debug('[FlightLine] 阶段1: 触发地图尺寸更新');
-      }
-    } catch (error) {
-      logger.warn('[FlightLine] 阶段1处理错误:', error);
-    }
-
-    // 阶段2：300ms后重新渲染图表
-    setTimeout(() => {
-      try {
-        if (this.echartsLayer) {
-          this.updateEchartsOptions();
-          if (typeof this.echartsLayer.redraw === 'function') {
-            this.echartsLayer.redraw();
-            logger.debug('[FlightLine] 阶段2: 重新渲染图表');
-          }
-        }
-      } catch (error) {
-        logger.warn('[FlightLine] 图表渲染处理错误:', error);
-    }
-    }, 300);
-
-    // 阶段3：不再自动设置最佳视角，避免自动渲染所有飞线
-    // 只在有激活飞线的情况下考虑设置视角
-    setTimeout(() => {
-      try {
-        if (this.activeFlightLine) {
-          logger.debug('[FlightLine] 有激活的飞线，设置相应视角');
-          this.setOptimalView(5);
-        } else {
-          logger.debug('[FlightLine] 没有激活的飞线，跳过设置视角');
-        }
-      } catch (error) {
-        logger.warn('[FlightLine] 视角处理失败:', error);
-      }
-    }, 600);
-
-    // 阶段4：1000ms后最终刷新
-    setTimeout(() => {
-      try {
-        if (this.echartsLayer && typeof this.echartsLayer.redraw === 'function') {
-          // 只在有激活飞线的情况下执行重绘
-          if (this.activeFlightLine) {
-            this.echartsLayer.redraw();
-            logger.debug('[FlightLine] 最终刷新完成');
-          } else {
-            logger.debug('[FlightLine] 没有激活的飞线，跳过最终刷新');
-          }
-        }
-      } catch (error) {
-        logger.warn('[FlightLine] 最终刷新处理出错:', error);
-      }
-    }, 1000);
-  }
-
-
-  /**
-   * 禁用飞线图
+   * 禁用飞线图层
    */
   public disable(): void {
+    // 使用现有的方法体
     if (!this.active) {
-      logger.debug('[FlightLine] 飞线图已经处于禁用状态');
+      logger.debug('[FlightLine] 飞线图层已经禁用');
       return;
     }
-
-    if (this.echartsLayer) {
+    
+    try {
       // 移除图层
-      try {
+      if (this.echartsLayer) {
         this.echartsLayer.remove();
-        logger.debug('[FlightLine] Echarts图层已从地图移除');
-      } catch (error) {
-        logger.error('[FlightLine] 移除Echarts图层失败:', error);
+        logger.debug('[FlightLine] 已移除Echarts图层');
       }
-    }
-
-    // 移除事件监听
-    for (const eventKey of this.eventListeners) {
-      try {
-      unByKey(eventKey);
-      } catch (error) {
-        logger.warn('[FlightLine] 移除事件监听失败:', error);
+      
+      // 清除监听器
+      if (this.eventListeners.length > 0) {
+        this.eventListeners.forEach(key => unByKey(key));
+        this.eventListeners = [];
+        logger.debug('[FlightLine] 已清除事件监听器');
       }
+      
+      this.active = false;
+      logger.info('[FlightLine] 飞线图层已禁用');
+    } catch (error) {
+      logger.error('[FlightLine] 禁用飞线图层失败:', error);
     }
-    this.eventListeners = [];
-
-    this.active = false;
-    logger.debug('[FlightLine] 飞线图已禁用');
   }
 
   /**
-   * 检查飞线图是否启用
+   * 检查是否启用
+   * @returns 是否启用
    */
   public isEnabled(): boolean {
     return this.active;

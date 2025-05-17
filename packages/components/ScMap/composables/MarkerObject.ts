@@ -131,52 +131,52 @@ export class MarkerObject {
       
       // 创建图标
       let icon: L.Icon | L.DivIcon;
-      if (options.iconUrl) {
+      if (options.icon?.iconUrl) {
         // 使用自定义图片图标
         icon = L.icon({
-          iconUrl: options.iconUrl,
-          iconSize: options.iconSize || [32, 32],
-          iconAnchor: options.iconAnchor || [16, 32],
-          popupAnchor: options.popupAnchor || [0, -32],
-          className: 'custom-marker-icon'
+          iconUrl: options.icon.iconUrl,
+          iconSize: options.icon.iconSize,
+          iconAnchor: options.icon.iconAnchor,
+          popupAnchor: options.icon.popupAnchor,
+          className: options.icon.className || 'custom-marker-icon'
         });
-      } else if (options.iconHtml) {
+      } else if (options.icon?.html) {
         // 使用HTML内容作为图标
         icon = L.divIcon({
-          html: options.iconHtml,
-          className: options.className || 'leaflet-marker-custom-icon',
-          iconSize: options.iconSize || [32, 32],
-          iconAnchor: options.iconAnchor || [16, 32]
+          html: options.icon.html,
+          className: options.icon.className || 'leaflet-marker-custom-icon',
+          iconSize: options.icon.iconSize,
+          iconAnchor: options.icon.iconAnchor
         });
-      } else if (options.groupType && this.config.groupIcon[options.groupType]) {
+      } else if (options.group && this.config.groupIcon[options.group]) {
         // 使用分组图标
-        const groupIcon = this.config.groupIcon[options.groupType];
+        const groupIcon = this.config.groupIcon[options.group];
         if (typeof groupIcon === 'string') {
-          // 分组图标为URL
+          // 分组图标为URL字符串 (兼容旧版本写法)
           icon = L.icon({
             iconUrl: groupIcon,
-            iconSize: options.iconSize || [32, 32],
-            iconAnchor: options.iconAnchor || [16, 32],
-            popupAnchor: options.popupAnchor || [0, -32],
+            iconSize: options.icon?.iconSize || [32, 32],
+            iconAnchor: options.icon?.iconAnchor || [16, 32],
+            popupAnchor: options.icon?.popupAnchor || [0, -32],
             className: 'group-marker-icon'
           });
         } else {
           // 分组图标为对象
           icon = L.icon({
-            iconUrl: groupIcon.url,
-            iconSize: groupIcon.size || options.iconSize || [32, 32],
-            iconAnchor: groupIcon.anchor || options.iconAnchor || [16, 32],
-            popupAnchor: groupIcon.popupAnchor || options.popupAnchor || [0, -32],
-            className: 'group-marker-icon'
+            iconUrl: groupIcon.iconUrl || '',
+            iconSize: groupIcon.iconSize || options.icon?.iconSize || [32, 32],
+            iconAnchor: groupIcon.iconAnchor || options.icon?.iconAnchor || [16, 32],
+            popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -32],
+            className: groupIcon.className || 'group-marker-icon'
           });
         }
       } else {
         // 使用默认图标
         icon = L.divIcon({
-          html: `<div class="default-marker" style="background-color:${options.color || '#1890ff'}"></div>`,
+          html: `<div class="default-marker" style="background-color:${options.icon?.backgroundColor || '#1890ff'}"></div>`,
           className: 'leaflet-marker-default-icon',
-          iconSize: options.iconSize || [24, 24],
-          iconAnchor: options.iconAnchor || [12, 12]
+          iconSize: options.icon?.iconSize || [24, 24],
+          iconAnchor: options.icon?.iconAnchor || [12, 12]
         });
       }
       
@@ -185,9 +185,8 @@ export class MarkerObject {
         icon: icon,
         draggable: options.draggable || false,
         title: options.title || '',
-        alt: options.alt || '',
-        opacity: options.opacity !== undefined ? options.opacity : 1,
-        zIndexOffset: options.zIndex || 0,
+        opacity: options.visible === false ? 0 : 1,
+        zIndexOffset: options.zIndexOffset || 0,
         riseOnHover: options.riseOnHover || false
       });
       
@@ -200,18 +199,42 @@ export class MarkerObject {
         this.handleMarkerClick(id, e);
       });
       
-      // 绑定拖拽事件
+      // 如果可拖拽，绑定拖拽结束事件
       if (options.draggable) {
         marker.on('dragend', (e) => {
           this.handleMarkerDragEnd(id, e);
         });
       }
       
-      // 添加到图层
-      marker.addTo(this.markerLayer);
+      // 如果有标题且showLabel为true，显示永久提示
+      if (options.title && options.showLabel) {
+        marker.bindTooltip(options.title, {
+          permanent: options.labelOptions?.permanent || true,
+          direction: options.labelOptions?.direction || 'top',
+          offset: options.labelOptions?.offset ? L.point(options.labelOptions.offset[0], options.labelOptions.offset[1]) : undefined,
+          opacity: options.labelOptions?.opacity || 0.9,
+          className: options.labelOptions?.className || ''
+        });
+      }
       
-      // 存储标记引用
+      // 如果有弹窗内容，绑定弹窗
+      if (options.popupContent) {
+        marker.bindPopup(options.popupContent);
+      }
+      
+      // 添加到图层
+      this.markerLayer.addLayer(marker);
+      
+      // 添加到集合
       this.markers.set(id, marker);
+      
+      // 如果初始状态为隐藏，设置不可见
+      if (options.visible === false) {
+        marker.setOpacity(0);
+        marker.options.visible = false;
+      } else {
+        marker.options.visible = true;
+      }
       
       logger.debug(`添加标记点: ${id}`, options.position);
       return id;
@@ -261,12 +284,13 @@ export class MarkerObject {
 
   /**
    * 更新标记点
-   * @param id 标记ID
-   * @param options 标记选项
+   * @param id 标记点ID
+   * @param options 标记点选项
    * @returns 是否更新成功
    */
   public updateMarker(id: string, options: Partial<MarkerOptions>): boolean {
     const marker = this.markers.get(id);
+    
     if (!marker) {
       logger.warn(`更新标记点失败: ${id} 不存在`);
       return false;
@@ -275,91 +299,121 @@ export class MarkerObject {
     try {
       // 更新位置
       if (options.position) {
-        marker.setLatLng(L.latLng(options.position[0], options.position[1]));
+        const latlng = L.latLng(options.position[0], options.position[1]);
+        marker.setLatLng(latlng);
+      }
+      
+      // 更新标题
+      if (options.title !== undefined) {
+        marker.options.title = options.title;
+        
+        // 如果有提示框，更新提示框内容
+        if (marker.getTooltip()) {
+          marker.setTooltipContent(options.title);
+        }
       }
       
       // 更新图标
-      if (options.iconUrl || options.iconHtml || (options.groupType && this.config.groupIcon[options.groupType])) {
+      if (options.icon?.iconUrl || options.icon?.html || (options.group && this.config.groupIcon[options.group])) {
         let icon: L.Icon | L.DivIcon;
         
-        if (options.iconUrl) {
+        if (options.icon?.iconUrl) {
           // 使用自定义图片图标
           icon = L.icon({
-            iconUrl: options.iconUrl,
-            iconSize: options.iconSize || [32, 32],
-            iconAnchor: options.iconAnchor || [16, 32],
-            popupAnchor: options.popupAnchor || [0, -32],
-            className: 'custom-marker-icon'
+            iconUrl: options.icon.iconUrl,
+            iconSize: options.icon.iconSize,
+            iconAnchor: options.icon.iconAnchor,
+            popupAnchor: options.icon.popupAnchor,
+            className: options.icon.className || 'custom-marker-icon'
           });
-        } else if (options.iconHtml) {
+        } else if (options.icon?.html) {
           // 使用HTML内容作为图标
           icon = L.divIcon({
-            html: options.iconHtml,
-            className: options.className || 'leaflet-marker-custom-icon',
-            iconSize: options.iconSize || [32, 32],
-            iconAnchor: options.iconAnchor || [16, 32]
+            html: options.icon.html,
+            className: options.icon.className || 'leaflet-marker-custom-icon',
+            iconSize: options.icon.iconSize,
+            iconAnchor: options.icon.iconAnchor
           });
-        } else if (options.groupType && this.config.groupIcon[options.groupType]) {
+        } else if (options.group && this.config.groupIcon[options.group]) {
           // 使用分组图标
-          const groupIcon = this.config.groupIcon[options.groupType];
+          const groupIcon = this.config.groupIcon[options.group];
           if (typeof groupIcon === 'string') {
-            // 分组图标为URL
+            // 分组图标为URL字符串 (兼容旧版本写法)
             icon = L.icon({
               iconUrl: groupIcon,
-              iconSize: options.iconSize || [32, 32],
-              iconAnchor: options.iconAnchor || [16, 32],
-              popupAnchor: options.popupAnchor || [0, -32],
+              iconSize: options.icon?.iconSize || [32, 32],
+              iconAnchor: options.icon?.iconAnchor || [16, 32],
+              popupAnchor: options.icon?.popupAnchor || [0, -32],
               className: 'group-marker-icon'
             });
           } else {
             // 分组图标为对象
             icon = L.icon({
-              iconUrl: groupIcon.url,
-              iconSize: groupIcon.size || options.iconSize || [32, 32],
-              iconAnchor: groupIcon.anchor || options.iconAnchor || [16, 32],
-              popupAnchor: groupIcon.popupAnchor || options.popupAnchor || [0, -32],
-              className: 'group-marker-icon'
+              iconUrl: groupIcon.iconUrl || '',
+              iconSize: groupIcon.iconSize || options.icon?.iconSize || [32, 32],
+              iconAnchor: groupIcon.iconAnchor || options.icon?.iconAnchor || [16, 32],
+              popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -32],
+              className: groupIcon.className || 'group-marker-icon'
             });
           }
         }
         
-        marker.setIcon(icon);
+        // 设置图标
+        marker.setIcon(icon!);
       }
       
-      // 更新标题
-      if (options.title) {
-        marker.options.title = options.title;
-        const el = marker.getElement();
-        if (el) {
-          el.setAttribute('title', options.title);
-        }
+      // 更新显示状态
+      if (options.visible !== undefined) {
+        marker.options.visible = options.visible;
+        marker.setOpacity(options.visible ? 1 : 0);
       }
       
-      // 更新不透明度
-      if (options.opacity !== undefined) {
-        marker.setOpacity(options.opacity);
+      // 更新Z轴偏移
+      if (options.zIndexOffset !== undefined) {
+        marker.setZIndexOffset(options.zIndexOffset);
       }
       
-      // 更新z-index
-      if (options.zIndex !== undefined) {
-        marker.setZIndexOffset(options.zIndex);
-      }
-      
-      // 更新可拖拽性
-      if (options.draggable !== undefined) {
-        if (options.draggable) {
-          marker.dragging?.enable();
+      // 更新弹窗内容
+      if (options.popupContent !== undefined) {
+        if (marker.getPopup()) {
+          marker.setPopupContent(options.popupContent);
         } else {
-          marker.dragging?.disable();
+          marker.bindPopup(options.popupContent);
         }
       }
       
-      // 更新数据
-      if (options.data) {
+      // 更新提示框选项
+      if (options.showLabel !== undefined) {
+        if (options.showLabel && options.title && !marker.getTooltip()) {
+          // 添加提示框
+          marker.bindTooltip(options.title, {
+            permanent: options.labelOptions?.permanent || true,
+            direction: options.labelOptions?.direction || 'top',
+            offset: options.labelOptions?.offset ? L.point(options.labelOptions.offset[0], options.labelOptions.offset[1]) : undefined,
+            opacity: options.labelOptions?.opacity || 0.9,
+            className: options.labelOptions?.className || ''
+          });
+        } else if (!options.showLabel && marker.getTooltip()) {
+          // 移除提示框
+          marker.unbindTooltip();
+        }
+      }
+      
+      // 更新自定义数据
+      if (options.data !== undefined) {
         marker.options.data = {
           ...marker.options.data,
           ...options.data
         };
+      }
+      
+      // 更新可拖拽状态
+      if (options.draggable !== undefined && marker.dragging) {
+        if (options.draggable) {
+          marker.dragging.enable();
+        } else {
+          marker.dragging.disable();
+        }
       }
       
       logger.debug(`更新标记点: ${id}`);
@@ -474,5 +528,184 @@ export class MarkerObject {
     this.clickListener = null;
     
     logger.debug('MarkerObject已销毁');
+  }
+
+  /**
+   * 获取标记点数量
+   * @returns 标记点数量
+   */
+  public getMarkerCount(): number {
+    return this.markers.size;
+  }
+
+  /**
+   * 隐藏所有标记点
+   * @returns 隐藏的标记点数量
+   */
+  public hideAllMarkers(): number {
+    let count = 0;
+    this.markers.forEach((marker) => {
+      if (marker.options.visible !== false) {
+        marker.setOpacity(0);
+        marker.options.visible = false;
+        count++;
+      }
+    });
+    logger.debug(`已隐藏 ${count} 个标记点`);
+    return count;
+  }
+
+  /**
+   * 显示所有标记点
+   * @returns 显示的标记点数量
+   */
+  public showAllMarkers(): number {
+    let count = 0;
+    this.markers.forEach((marker) => {
+      if (marker.options.visible === false) {
+        marker.setOpacity(1);
+        marker.options.visible = true;
+        count++;
+      }
+    });
+    logger.debug(`已显示 ${count} 个标记点`);
+    return count;
+  }
+
+  /**
+   * 获取当前的弹出框
+   * @returns 当前的弹出框对象
+   */
+  public getCurrentPopover(): any {
+    // 在实际实现中，这里应该返回当前显示的弹出框
+    let currentPopover = null;
+    this.markers.forEach((marker) => {
+      if (marker.isPopupOpen()) {
+        currentPopover = marker.getPopup();
+      }
+    });
+    return currentPopover;
+  }
+
+  /**
+   * 隐藏所有标签
+   * @returns 隐藏的标签数量
+   */
+  public hideAllLabels(): number {
+    // 调用hideAllPopovers作为实现
+    return this.hideAllPopovers();
+  }
+
+  /**
+   * 显示所有标签
+   * @returns 显示的标签数量
+   */
+  public showAllLabels(): number {
+    let count = 0;
+    this.markers.forEach((marker) => {
+      if (marker.options.visible !== false && marker.getTooltip() === null && marker.options.title) {
+        marker.bindTooltip(marker.options.title, {
+          permanent: true,
+          direction: 'top'
+        }).openTooltip();
+        count++;
+      }
+    });
+    logger.debug(`已显示 ${count} 个标记点标签`);
+    return count;
+  }
+
+  /**
+   * 隐藏所有弹出框
+   * @returns 隐藏的弹出框数量
+   */
+  public hideAllPopovers(): number {
+    let count = 0;
+    this.markers.forEach((marker) => {
+      if (marker.isPopupOpen()) {
+        marker.closePopup();
+        count++;
+      }
+      if (marker.isTooltipOpen()) {
+        marker.closeTooltip();
+        count++;
+      }
+    });
+    logger.debug(`已隐藏 ${count} 个弹出框和提示`);
+    return count;
+  }
+
+  /**
+   * 检查标记点点击
+   * @param pixel 像素坐标
+   * @returns 点击的标记点ID
+   */
+  public checkMarkerClick(pixel: number[]): { id: string } | null {
+    // 将像素坐标转换为地图坐标
+    const point = this.mapInstance.containerPointToLatLng(L.point(pixel[0], pixel[1]));
+    
+    // 设置点击检测的容差值（像素）
+    const tolerance = 10; // 像素
+    const toleranceInMeters = tolerance * this.mapInstance.getZoom() / 10;
+    
+    let closestMarker: L.Marker | null = null;
+    let closestDistance = Infinity;
+    let closestId: string | null = null;
+    
+    // 遍历所有标记点，查找最近的
+    this.markers.forEach((marker, id) => {
+      if (marker.options.visible !== false) {
+        const markerLatLng = marker.getLatLng();
+        const distance = point.distanceTo(markerLatLng);
+        
+        if (distance < toleranceInMeters && distance < closestDistance) {
+          closestMarker = marker;
+          closestDistance = distance;
+          closestId = id;
+        }
+      }
+    });
+    
+    return closestId ? { id: closestId } : null;
+  }
+
+  /**
+   * 设置聚合距离
+   * @param distance 聚合距离（像素）
+   */
+  public setClusterDistance(distance: number): void {
+    // 在实际实现中，这里应该设置聚合距离
+    // 这里只是一个模拟实现
+    logger.debug(`设置聚合距离为 ${distance} 像素`);
+  }
+
+  /**
+   * 设置聚合模式
+   * @param enabled 是否启用聚合
+   */
+  public setClusterMode(enabled: boolean): void {
+    // 在实际实现中，这里应该启用或禁用聚合模式
+    // 这里只是一个模拟实现
+    logger.debug(`${enabled ? '启用' : '禁用'}聚合模式`);
+  }
+
+  /**
+   * 获取聚合模式状态
+   * @returns 是否启用聚合
+   */
+  public getClusterMode(): boolean {
+    // 在实际实现中，这里应该返回聚合模式的状态
+    // 这里只是一个模拟实现
+    return false;
+  }
+
+  /**
+   * 设置聚合点击处理器
+   * @param handler 点击处理函数
+   */
+  public setClusterClickHandler(handler?: (features: any[], coordinate: number[]) => void): void {
+    // 在实际实现中，这里应该设置聚合点击的处理函数
+    // 这里只是一个模拟实现
+    logger.debug('设置聚合点击处理器');
   }
 } 

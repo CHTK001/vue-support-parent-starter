@@ -5,12 +5,40 @@
 import L from 'leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './LogObject';
-import { ShapeOption, Shape, ShapeType } from '../types/shape';
+import { ShapeType } from '../types/shape';
 
+// 定义用于Leaflet的ShapeOption接口
+interface ShapeOption {
+  id: string;
+  type: ShapeType;
+  coordinates?: number[][];
+  radius?: number;
+  style?: {
+    color?: string;
+    weight?: number;
+    opacity?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    dashArray?: string;
+    className?: string;
+  };
+  data?: any;
+}
+
+// 定义内部使用的Shape类型
+interface ShapeItem {
+  id: string;
+  type: ShapeType;
+  options: ShapeOption;
+  layer: L.Layer | null;
+}
+
+// 向后兼容性的类型别名
+export type Shape = ShapeItem;
 
 export class ShapeObject {
   private mapInstance: L.Map;
-  private shapes: Map<string, Shape> = new Map();
+  private shapes: Map<string, ShapeItem> = new Map();
   private shapeLayer: L.LayerGroup;
   private clickListener: ((id: string, event: L.LeafletMouseEvent) => void) | null = null;
   
@@ -42,7 +70,7 @@ export class ShapeObject {
     const type = options.type || ShapeType.RECTANGLE;
     
     try {
-      let shape: Shape = {
+      let shape: ShapeItem = {
         id,
         type,
         options: { ...options },
@@ -90,7 +118,7 @@ export class ShapeObject {
    * @param options 图形选项
    * @returns 图形对象
    */
-  private createRectangle(id: string, options: ShapeOption): Shape {
+  private createRectangle(id: string, options: ShapeOption): ShapeItem {
     // 确保有边界
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length !== 2) {
       throw new Error('矩形边界无效');
@@ -137,7 +165,7 @@ export class ShapeObject {
    * @param options 图形选项
    * @returns 图形对象
    */
-  private createCircle(id: string, options: ShapeOption): Shape {
+  private createCircle(id: string, options: ShapeOption): ShapeItem {
     // 确保有中心点和半径
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length !== 1 || !options.radius) {
       throw new Error('圆形中心点或半径无效');
@@ -182,7 +210,7 @@ export class ShapeObject {
    * @param options 图形选项
    * @returns 图形对象
    */
-  private createPolygon(id: string, options: ShapeOption): Shape {
+  private createPolygon(id: string, options: ShapeOption): ShapeItem {
     // 确保有坐标点
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 3) {
       throw new Error('多边形坐标点不足');
@@ -226,7 +254,7 @@ export class ShapeObject {
    * @param options 图形选项
    * @returns 图形对象
    */
-  private createPolyline(id: string, options: ShapeOption): Shape {
+  private createPolyline(id: string, options: ShapeOption): ShapeItem {
     // 确保有坐标点
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 2) {
       throw new Error('折线坐标点不足');
@@ -393,7 +421,7 @@ export class ShapeObject {
    * @param id 图形ID
    * @returns 图形对象
    */
-  public getShape(id: string): Shape | null {
+  public getShape(id: string): ShapeItem | null {
     return this.shapes.get(id) || null;
   }
 
@@ -401,7 +429,7 @@ export class ShapeObject {
    * 获取所有图形
    * @returns 图形集合
    */
-  public getAllShapes(): Map<string, Shape> {
+  public getAllShapes(): Map<string, ShapeItem> {
     return this.shapes;
   }
 

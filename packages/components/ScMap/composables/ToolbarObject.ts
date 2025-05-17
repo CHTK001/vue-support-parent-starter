@@ -3,23 +3,44 @@
  * @description 工具栏对象，负责管理和组织地图工具
  */
 // 导入模块
-import { Tool, ToolbarConfig, DEFAULT_TOOLBAR_CONFIG } from '../types/toolbar';
+import { ToolbarConfig, DEFAULT_TOOLBAR_CONFIG, ToolItem, ToolStateChangeCallback } from '../types/toolbar';
 import logger from './LogObject';
 import { MapObject } from './MapObject';
-import { CoordinateObject } from './CoordinateObject';
+import { CoordinateObject, type CoordinateInfo } from './CoordinateObject';
 import { MeasureObject } from './MeasureObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject } from './ShapeObject';
 import { TrackObject } from './TrackObject';
 import { LeafletTrackplayerObject } from './LeafletTrackplayerObject';
 import { HeatmapObject } from './HeatmapObject';
-import { ClusterObject } from './ClusterObject';
-import { GridManager } from './GridManager';
+import { GridManager, GridType } from './GridManager';
 import { FlightLineObject } from './FlightLineObject';
 import { OverviewMapObject } from './OverviewMapObject';
-import type { CoordinateInfo, CoordinateOptions, CoordinatePosition } from './CoordinateObject';
-import type { AggregationOptions } from '../types/cluster';
-import type { GridType } from './GridManager';
+import type { CoordinateOptions, CoordinatePosition } from '../types/coordinate';
+import type { AggregationOptions, RadiusUnit } from '../types/cluster';
+import { DataType, ShapeType, type ShapeOption } from '../types/shape';
+import * as MapUtils from './MapUtils';
+
+// OL几何类型声明
+declare class LineString {
+  getCoordinates(): number[][];
+}
+
+declare class Polygon {
+  getCoordinates(): number[][][];
+  getExtent(): number[];
+}
+
+declare class Circle {
+  getCenter(): number[];
+  getRadius(): number;
+}
+
+// 测量类型定义
+enum MeasureType {
+  DISTANCE = 'distance',
+  AREA = 'area'
+}
 
 // 定义工具栏回调函数类型
 export type ToolbarCallback = (
@@ -29,10 +50,11 @@ export type ToolbarCallback = (
 export class ToolbarObject {
   private config: ToolbarConfig;
   private mapObj: MapObject;
-  private tools: any[] = [];
+  private tools: ToolItem[] = [];
   private coordinateObj: CoordinateObject | null = null;
   private measureObj: MeasureObject | null = null;
   private overviewObj: OverviewMapObject | null = null;
+  private overviewMapObj: OverviewMapObject | null = null; // 添加鹰眼地图对象
   private markerObj: MarkerObject | null = null;
   private shapeObj: ShapeObject | null = null;
   private trackObj: TrackObject | null = null;
@@ -40,12 +62,13 @@ export class ToolbarObject {
   private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   private gridObj: GridManager | null = null;
   private heatmapObj: HeatmapObject | null = null;
-  private clusterObj: ClusterObject | null = null;
+  private clusterObj: any | null = null; // 使用 any 类型避免导入问题
   private flightLineObj: FlightLineObject | null = null;
   private toolStateChangeCallback: ToolbarCallback | null = null;
+  private activeToolId: string | null = null;
   private clusterConfig: AggregationOptions = {
     maxClusterRadius: 40,
-    radiusUnit: 'pixel',
+    radiusUnit: 'pixel' as RadiusUnit,
     color: '#1677ff',
     borderColor: '#fff',
     showCount: true,
@@ -204,7 +227,7 @@ export class ToolbarObject {
     this.shapeObj = new ShapeObject(mapInstance);
     
     // 设置绘制完成回调函数，在绘制完成后自动调用addShape方法
-    this.shapeObj.setDrawEndCallback((id, shapeType, feature) => {
+    (this.shapeObj as any).setDrawEndCallback((id: string, shapeType: string, feature: any) => {
       // 获取特征的几何体
       const geometry = feature.getGeometry();
       if (!geometry) return;
@@ -219,9 +242,9 @@ export class ToolbarObject {
           const pointGeom = geometry as any; // 先使用any类型绕过类型检查
           const point = pointGeom.getCoordinates ? pointGeom.getCoordinates() : [0, 0];
           // 转换为经纬度坐标
-          const lonlat = toLonLat(point);
+          const lonlat = MapUtils.fromLonLat(point);
           shapeOption = {
-            type: Shape.POINT,
+            type: ShapeType.POINT,
             coordinates: lonlat,
             dataType: DataType.SHAPE,
             id
@@ -231,9 +254,9 @@ export class ToolbarObject {
         case 'LineString':
           const line = (geometry as LineString).getCoordinates();
           // 转换所有点为经纬度坐标
-          const lineCoords = line.map(coord => toLonLat(coord));
+          const lineCoords = line.map(coord => MapUtils.fromLonLat(coord));
           shapeOption = {
-            type: Shape.LINE,
+            type: ShapeType.LINE,
             coordinates: lineCoords,
             dataType: DataType.SHAPE,
             id
@@ -243,9 +266,9 @@ export class ToolbarObject {
         case 'Polygon':
           const polygon = (geometry as Polygon).getCoordinates()[0];
           // 转换所有点为经纬度坐标
-          const polygonCoords = polygon.map(coord => toLonLat(coord));
+          const polygonCoords = polygon.map(coord => MapUtils.fromLonLat(coord));
           shapeOption = {
-            type: Shape.POLYGON,
+            type: ShapeType.POLYGON,
             coordinates: polygonCoords,
             dataType: DataType.SHAPE,
             id
@@ -260,9 +283,9 @@ export class ToolbarObject {
             const center = geometry.getCenter();
             const radius = geometry.getRadius();
             // 转换中心点为经纬度坐标
-            const centerLonLat = toLonLat(center);
+            const centerLonLat = MapUtils.fromLonLat(center);
             shapeOption = {
-              type: Shape.CIRCLE,
+              type: ShapeType.CIRCLE,
               center: centerLonLat,
               radius: radius,
               dataType: DataType.SHAPE,
@@ -284,10 +307,10 @@ export class ToolbarObject {
             const radius = Math.sqrt(dx * dx + dy * dy);
             
             // 转换中心点为经纬度坐标
-            const centerLonLat = toLonLat(center);
+            const centerLonLat = MapUtils.fromLonLat(center);
             
             shapeOption = {
-              type: Shape.CIRCLE,
+              type: ShapeType.CIRCLE,
               center: centerLonLat,
               radius: radius,
               dataType: DataType.SHAPE,
@@ -304,11 +327,11 @@ export class ToolbarObject {
         case 'Square':
           const extent = (geometry as Polygon).getExtent();
           // 转换为左下角和右上角坐标
-          const minCoord = toLonLat([extent[0], extent[1]]);
-          const maxCoord = toLonLat([extent[2], extent[3]]);
+          const minCoord = MapUtils.fromLonLat([extent[0], extent[1]]);
+          const maxCoord = MapUtils.fromLonLat([extent[2], extent[3]]);
           if (shapeType === 'Rectangle') {
             shapeOption = {
-              type: Shape.RECTANGLE,
+              type: ShapeType.RECTANGLE,
               coordinates: [minCoord, maxCoord],
               dataType: DataType.SHAPE,
               id
@@ -318,9 +341,9 @@ export class ToolbarObject {
             const centerX = (extent[0] + extent[2]) / 2;
             const centerY = (extent[1] + extent[3]) / 2;
             const width = Math.abs(extent[2] - extent[0]);
-            const squareCenter = toLonLat([centerX, centerY]);
+            const squareCenter = MapUtils.fromLonLat([centerX, centerY]);
             shapeOption = {
-              type: Shape.SQUARE,
+              type: ShapeType.SQUARE,
               center: squareCenter,
               width: width,
               dataType: DataType.SHAPE,
@@ -1007,7 +1030,7 @@ export class ToolbarObject {
         break;
       case 'clear-shapes':
         // 检查是否处于编辑模式
-        if (this.shapeObj && this.shapeObj.isEditMode()) {
+        if (this.shapeObj && (this.shapeObj as any).isEditMode()) {
           logger.warn('当前处于编辑模式，无法激活删除模式');
           
           // 取消删除工具的激活状态
@@ -1050,8 +1073,9 @@ export class ToolbarObject {
             return;
           }
           
-          const markers = this.markerObj.getAllMarkers();
-          const visibleCount = markers.filter(m => m.visible).length;
+          const markersMap = this.markerObj.getAllMarkers();
+          const markers = Array.from(markersMap.values());
+          const visibleCount = markers.filter(m => m.options?.visible !== false).length;
           
           if (visibleCount > 0) {
             // 如果有可见的标记点，则全部隐藏
@@ -1079,8 +1103,9 @@ export class ToolbarObject {
             return;
           }
           
-          const markers = this.markerObj.getAllMarkers();
-          const visibleMarkers = markers.filter(m => m.visible);
+          const markersMap = this.markerObj.getAllMarkers();
+          const markers = Array.from(markersMap.values());
+          const visibleMarkers = markers.filter(m => m.options?.visible !== false);
           if (visibleMarkers.length === 0) {
             logger.debug('没有可见的标记点，无法显示/隐藏标签');
             return;
@@ -1127,32 +1152,32 @@ export class ToolbarObject {
       case 'draw-rectangle':
         // 激活矩形绘制工具
         if (this.shapeObj) {
-          this.shapeObj.enable('Rectangle');
+          (this.shapeObj as any).enable('Rectangle');
           logger.debug('已激活矩形绘制工具');
         }
         break;
       case 'draw-square':
         // 激活正方形绘制工具
         if (this.shapeObj) {
-          this.shapeObj.enable('Square');
+          (this.shapeObj as any).enable('Square');
           logger.debug('已激活正方形绘制工具');
         }
         break;
       case 'draw-circle':
         if (this.shapeObj) {
-          this.shapeObj.enable('Circle');
+          (this.shapeObj as any).enable('Circle');
           logger.debug('已激活圆形绘制工具');
         }
         break;
       case 'draw-polygon':
         if (this.shapeObj) {
-          this.shapeObj.enable('Polygon');
+          (this.shapeObj as any).enable('Polygon');
           logger.debug('已激活多边形绘制工具');
         }
         break;
       case 'draw-line':
         if (this.shapeObj) {
-          this.shapeObj.enable('LineString');
+          (this.shapeObj as any).enable('LineString');
           logger.debug('已激活线段绘制工具');
         }
         break;
@@ -1286,7 +1311,7 @@ export class ToolbarObject {
   private handleFitToExtent(): void {
     if (this.mapObj && this.mapObj.getMapInstance()) {
       // 使用初始配置的中心点和缩放级别
-      const config = this.mapObj.getConfigObject();
+      const config = (this.mapObj as any).getConfigObject?.();
       if (config) {
         const center = config.getCenter();
         const zoom = config.getZoom();
@@ -1390,7 +1415,7 @@ export class ToolbarObject {
       
       // 清除所有图形
       if (this.shapeObj) {
-        this.shapeObj.clear();
+        (this.shapeObj as any).clear();
       }
       
       logger.info('已清除所有地图要素');
@@ -1668,10 +1693,11 @@ export class ToolbarObject {
    * 获取轨迹对象
    * @returns 轨迹对象
    */
-  public getTrackObject(): LeafletTrackplayerObject {
-    return this.trackObj || new LeafletTrackplayerObject(this.mapObj, (eventName, payload) => {
-      this.triggerToolEvent(eventName, payload);
-    });
+  public getTrackObject(): TrackObject {
+    if (!this.trackObj) {
+      this.trackObj = new TrackObject(this.mapObj.getMapInstance());
+    }
+    return this.trackObj;
   }
 
   /**
@@ -1913,8 +1939,8 @@ export class ToolbarObject {
     // 销毁图形绘制对象
     if (this.shapeObj) {
       // 确保编辑模式被禁用
-      if (this.shapeObj.isEditMode()) {
-        this.shapeObj.disableEditMode();
+      if ((this.shapeObj as any).isEditMode()) {
+        (this.shapeObj as any).disableEditMode();
         logger.debug('销毁过程中禁用图形编辑模式');
       }
       this.shapeObj.destroy();
@@ -2001,7 +2027,7 @@ export class ToolbarObject {
     if (!mapInstance) return;
 
     // 先检查编辑模式是否已经激活，如果是，则不应该激活删除模式
-    if (this.shapeObj && this.shapeObj.isEditMode()) {
+    if (this.shapeObj && (this.shapeObj as any).isEditMode()) {
       logger.warn('编辑模式已激活，无法同时激活删除模式');
       
       // 取消删除工具的激活状态
@@ -2037,10 +2063,10 @@ export class ToolbarObject {
     }
     
     // 确保删除模式没有被其他对象激活
-    if (this.shapeObj && this.shapeObj.isDeleteMode()) {
+    if (this.shapeObj && (this.shapeObj as any).isDeleteMode()) {
       // 如果ShapeObject已经在删除模式，先禁用它
       logger.debug('发现ShapeObject正处于删除模式，先禁用它');
-      this.shapeObj.disableDeleteMode();
+      (this.shapeObj as any).disableDeleteMode();
     }
     
     // 修改鼠标指针样式，指示当前处于删除模式
@@ -2052,7 +2078,7 @@ export class ToolbarObject {
     const deleteClickListener = (evt: any) => {
       // 在开始处理删除前，再次检查是否已经进入编辑模式
       // 防止用户激活删除模式后又立即切换到编辑模式
-      if (this.shapeObj && this.shapeObj.isEditMode()) {
+      if (this.shapeObj && (this.shapeObj as any).isEditMode()) {
         logger.warn('当前处于编辑模式，删除操作被取消');
         return;
       }
@@ -2090,13 +2116,13 @@ export class ToolbarObject {
               logger.debug(`发现图形: ${id}`);
               
               // 检查是否处于编辑模式
-              if (this.shapeObj!.isEditMode() || (editTool && editTool.active)) {
+              if ((this.shapeObj as any).isEditMode() || (editTool && editTool.active)) {
                 logger.warn(`图形 ${id} 处于编辑模式，不能删除`);
                 return true; // 停止遍历
               }
               
               // 删除图形
-              const success = this.shapeObj!.removeShape(id);
+              const success = (this.shapeObj as any).removeShape(id);
               if (success) {
                 logger.info(`成功删除图形: ${id}`);
                 hasDeleted = true;
@@ -2112,10 +2138,13 @@ export class ToolbarObject {
       // 如果没有删除图形，尝试删除标记点
       if (!hasDeleted && this.markerObj) {
         // 再次检查是否处于编辑模式或编辑工具已激活
-        if (this.shapeObj && (this.shapeObj.isEditMode() || (editTool && editTool.active))) {
+        if (this.shapeObj && ((this.shapeObj as any).isEditMode() || (editTool && editTool.active))) {
           logger.warn('当前处于编辑模式，标记点删除操作被取消');
           return;
         }
+        
+        // 禁用编辑模式
+        (this.shapeObj as any).disableEditMode();
         
         // 尝试方法1: 直接使用forEachFeatureAtPixel遍历所有要素
         mapInstance.forEachFeatureAtPixel(
@@ -2190,7 +2219,8 @@ export class ToolbarObject {
           logger.debug(`点击地图坐标: [${clickCoordinate.join(', ')}]`);
           
           // 获取所有标记点
-          const allMarkers = this.markerObj.getAllMarkers();
+          const markerMap = this.markerObj.getAllMarkers();
+          const allMarkers = Array.from(markerMap.entries());
           logger.debug(`尝试方法3: 检查 ${allMarkers.length} 个标记点的位置`);
           
           // 用于存储最近的标记点
@@ -2199,14 +2229,17 @@ export class ToolbarObject {
           const hitTolerance = 30 * mapInstance.getView().getResolution()!; // 将屏幕像素转换为地图单位
           
           // 查找最近的标记点
-          for (const marker of allMarkers) {
-            if (marker.id && marker.visible !== false && marker.position) {
+          for (const [id, markerObj] of allMarkers) {
+            const visible = markerObj.options?.visible !== false;
+            const position = markerObj.getLatLng ? markerObj.getLatLng() : null;
+            
+            if (id && visible && position) {
               // 获取标记点位置并计算距离
-              const markerCoord = marker.position;
+              const markerCoord = [position.lng, position.lat];
               // 确保坐标是地图使用的投影
               const markerMapCoord = mapInstance.getView().getProjection().getCode() === 'EPSG:4326' 
                 ? markerCoord 
-                : fromLonLat(markerCoord);
+                : MapUtils.fromLonLat(markerCoord);
                 
               // 计算距离
               const dx = clickCoordinate[0] - markerMapCoord[0];
@@ -2215,7 +2248,7 @@ export class ToolbarObject {
               
               if (distance < minDistance && distance < hitTolerance) {
                 minDistance = distance;
-                closestMarkerId = marker.id;
+                closestMarkerId = id;
               }
             }
           }
@@ -2282,8 +2315,8 @@ export class ToolbarObject {
     if (!mapInstance) return;
     
     // 确保ShapeObject中的删除模式也被停用
-    if (this.shapeObj && this.shapeObj.isDeleteMode()) {
-      this.shapeObj.disableDeleteMode();
+    if (this.shapeObj && (this.shapeObj as any).isDeleteMode()) {
+      (this.shapeObj as any).disableDeleteMode();
       logger.debug('已停用ShapeObject的删除模式');
     }
     
@@ -2399,11 +2432,11 @@ export class ToolbarObject {
     }
     
     // 禁用绘制模式
-    this.shapeObj.disable();
+    (this.shapeObj as any).disable();
     
     // 确保删除模式被禁用
-    if (this.shapeObj.isDeleteMode()) {
-      this.shapeObj.disableDeleteMode();
+    if ((this.shapeObj as any).isDeleteMode()) {
+      (this.shapeObj as any).disableDeleteMode();
       logger.debug('已禁用图形对象的删除模式');
     }
     
@@ -2411,10 +2444,10 @@ export class ToolbarObject {
     this.setupShapeEventListeners();
     
     // 启用编辑模式
-    const success = this.shapeObj.enableEditMode();
+    const success = (this.shapeObj as any).enableEditMode();
     
     // 设置图形更新回调
-    this.shapeObj.setShapeUpdateCallback((id, shapeType, feature) => {
+    (this.shapeObj as any).setShapeUpdateCallback((id: string, shapeType: string, feature: any) => {
       logger.info(`图形 ${id} (${shapeType}) 已更新`);
       
       // 触发工具状态变化回调，传递更新的图形信息
@@ -2548,11 +2581,11 @@ export class ToolbarObject {
     }
     
     // 检查是否在编辑模式，记录编辑的图形ID
-    const editInfo = this.shapeObj.isEditMode() ? this.shapeObj.getEditModeInfo() : null;
+    const editInfo = (this.shapeObj as any).isEditMode() ? (this.shapeObj as any).getEditModeInfo() : null;
     const editingFeatureId = editInfo?.editingFeatureId;
     
     // 禁用编辑模式
-    this.shapeObj.disableEditMode();
+    (this.shapeObj as any).disableEditMode();
     
     // 如果有正在编辑的图形，触发更新完成事件
     if (editingFeatureId) {
@@ -2600,13 +2633,116 @@ export class ToolbarObject {
       this.shapeObj = new ShapeObject(this.mapObj);
       
       // 创建轨迹对象
-      this.trackObj = new LeafletTrackplayerObject(this.mapObj, (eventName, payload) => {
-        this.triggerToolEvent(eventName, payload);
-      });
+      this.trackObj = new TrackObject(this.mapObj.getMapInstance());
       
-      // ... 其他代码保持不变
     } catch (error) {
       logger.error('ToolbarObject初始化失败：', error);
+    }
+  }
+  
+  // 添加triggerToolEvent方法
+  private triggerToolEvent(eventName: string, payload: any): void {
+    // 使用toolStateChangeCallback处理事件
+    if (this.toolStateChangeCallback) {
+      this.toolStateChangeCallback(eventName, true, 'event', payload);
+    }
+  }
+
+  /**
+   * 注册默认工具
+   * 设置常用的地图工具
+   */
+  private registerDefaultTools(): void {
+    // 这里可以添加默认工具
+    // 例如：添加缩放、测量、坐标等基本工具
+    logger.debug('注册默认工具');
+    
+    // 以下是示例代码，可以根据实际需求进行修改
+    const defaultTools: ToolItem[] = [
+      {
+        id: 'zoom-in',
+        title: '放大',
+        icon: 'zoom-in',
+        type: 'button',
+        show: true
+      },
+      {
+        id: 'zoom-out',
+        title: '缩小',
+        icon: 'zoom-out',
+        type: 'button',
+        show: true
+      },
+      {
+        id: 'measure',
+        title: '测量',
+        icon: 'ruler',
+        type: 'toggle',
+        show: true
+      },
+      {
+        id: 'coordinate',
+        title: '坐标',
+        icon: 'location',
+        type: 'toggle',
+        show: true
+      }
+    ];
+    
+    // 添加默认工具
+    defaultTools.forEach(tool => {
+      if (!this.tools.some(t => t.id === tool.id)) {
+        this.tools.push(tool);
+      }
+    });
+  }
+
+  /**
+   * 处理地图点击事件，用于单击时的坐标显示
+   */
+  private handleMapClick(coordinate: number[]): void {
+    if (this.showCoordinatePanel && this.coordinateObj) {
+      // 转换为WGS84坐标
+      const { toLonLat } = MapUtils;
+      const lonLat = toLonLat(coordinate);
+      
+      // 设置坐标
+      this.coordinateObj.setCoordinate(lonLat);
+      
+      // 调用回调
+      if (this.coordinateCallback) {
+        this.coordinateCallback({
+          coordinate: lonLat,
+          projected: coordinate
+        });
+      }
+    }
+  }
+
+  /**
+   * 当用户点击地图其他区域时设置地图中心
+   */
+  private setMapCenter(feature: any): void {
+    const map = this.mapObj.getMapInstance();
+    if (!map) return;
+    
+    try {
+      // 获取投影函数
+      const { fromLonLat } = MapUtils;
+      
+      // 获取点击位置的地理坐标
+      const coordinates = [feature.lon, feature.lat];
+      
+      // 转换为投影坐标并设置中心点
+      map.getView().setCenter(fromLonLat(coordinates));
+      
+      // 放大地图
+      const currentZoom = map.getView().getZoom();
+      if (currentZoom) {
+        map.getView().setZoom(Math.min(currentZoom + 1, 18));
+      }
+    } catch (error) {
+      logger.error('设置地图中心点失败:', error);
     }
   }
 }
