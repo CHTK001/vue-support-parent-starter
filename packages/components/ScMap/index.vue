@@ -89,7 +89,7 @@ import { DEFAULT_TOOLBAR_CONFIG, ToolbarConfig, ToolbarPosition } from './types/
 import { MarkerObject } from './composables/MarkerObject';
 import type { MarkerOptions, MarkerConfig } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
-import { Shape, ShapeOption } from './types/shape';
+import type { ShapeOption } from './types/shape';
 // 不再直接导入TrackObject，使用ToolbarObject.getTrackObject()方法获取
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';

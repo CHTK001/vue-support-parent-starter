@@ -2,10 +2,7 @@
  * 图形类型定义
  * @description 定义地图图形相关的类型和接口
  */
-
-import type { DataType } from ".";
-import { ShapeType } from '../composables/ShapeObject';
-import L from 'leaflet';
+import type L from 'leaflet';
 
 // 图形类型
 export enum ShapeType {
@@ -15,7 +12,10 @@ export enum ShapeType {
   POLYGON = 'polygon',      // 多边形
   POLYLINE = 'polyline',    // 折线
   ELLIPSE = 'ellipse',      // 椭圆
-  LABEL = 'label'           // 文本标签
+  LABEL = 'label',
+  POINT = 'Point',
+  LINE = 'LineString',
+  SQUARE = 'Square'
 }
 
 // 图形状态
@@ -75,10 +75,6 @@ export interface ShapeOption {
   popup?: string;           // 弹窗内容
 }
 
-// 图形对象
-export interface Shape extends ShapeOption {
-  id: string;               // 图形ID
-}
 
 // 绘制选项
 export interface DrawOptions {
@@ -102,16 +98,6 @@ export interface EditOptions {
     middle?: ShapeStyleOptions; // 中间点样式
   };
   showTooltip?: boolean;    // 显示提示
-}
-
-// 图形类型枚举
-export enum Shape {
-  POINT = 'Point',
-  LINE = 'LineString',
-  POLYGON = 'Polygon',
-  CIRCLE = 'Circle',
-  RECTANGLE = 'Rectangle',
-  SQUARE = 'Square'
 }
 
 // 图形样式接口
@@ -154,29 +140,6 @@ export interface ShapePoint {
   y: number;
 }
 
-// 形状对象
-export interface Shape {
-  /**
-   * 形状ID
-   */
-  id: string;
-  
-  /**
-   * 形状类型
-   */
-  type: ShapeType;
-  
-  /**
-   * 形状选项
-   */
-  options: ShapeOption;
-  
-  /**
-   * Leaflet图层对象
-   */
-  layer: L.Path | null;
-}
-
 // 默认样式
 export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
   stroke: {
@@ -209,4 +172,12 @@ export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
     offsetY: -12,
     padding: [5, 5, 5, 5]
   }
-}; 
+};
+
+// 图形接口
+export interface Shape {
+  id: string;
+  type: ShapeType;
+  options: ShapeOption;
+  layer: L.Layer | null;
+} 
