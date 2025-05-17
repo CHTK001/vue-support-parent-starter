@@ -1,0 +1,597 @@
+@use './variables.scss' as *;
+
+/* 全局自定义弹窗动画样式 */
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+.thin-scrollbar,
+.pure-scrollbar {
+  scrollbar-color: var(--el-color-primary) transparent;
+  /* 滑块颜色、轨道颜色 */
+
+  /* Firefox */
+  scrollbar-width: thin;
+
+  /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px;
+    /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);
+    ;
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary);
+    /* 滑块hover颜色 */
+  }
+}
+/* OpenLayers必要样式 */
+.ol-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+  /* 确保视口不会覆盖工具栏 */
+  cursor: grab !important;
+}
+
+.ol-viewport.ol-viewport-dragging {
+  cursor: grabbing !important;
+}
+
+.ol-viewport.measure-active {
+  cursor: crosshair !important;
+}
+
+.ol-layers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0 !important;
+  /* 确保图层不会覆盖工具栏 */
+}
+
+/* OpenLayers容器相关样式，防止其捕获工具栏事件 */
+.ol-overlay-container {
+  pointer-events: none !important;
+  z-index: 999 !important;
+}
+
+.ol-overlaycontainer {
+  pointer-events: none !important;
+}
+
+.ol-overlaycontainer-stopevent {
+  pointer-events: none !important;
+}
+
+/* 隐藏OpenLayers默认控件，但保留比例尺 */
+.ol-control {
+  display: none !important;
+}
+
+/* 允许比例尺控件显示 */
+.ol-scale-line {
+  display: block !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 4px !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  padding: 2px 5px !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.ol-scale-line-inner {
+  border: 1px solid #333333 !important;
+  border-top: none !important;
+  color: #333333 !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  margin: 1px !important;
+  will-change: contents, width !important;
+  transition: all 0.25s !important;
+}
+
+/* 自定义比例尺样式 */
+.custom-scale-line {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #1890ff !important;
+  padding: 3px 6px !important;
+  font-family: Arial, sans-serif !important;
+  font-weight: normal !important;
+}
+
+.custom-scale-line .ol-scale-line-inner {
+  border-color: #1890ff !important;
+  color: #333333 !important;
+  font-weight: 600 !important;
+}
+
+/* 特别隐藏缩放按钮 */
+.ol-zoom {
+  display: none !important;
+}
+
+/* 隐藏归属控件 */
+.ol-attribution {
+  display: none !important;
+}
+
+/* 全局工具栏样式覆盖 */
+.map-toolbar {
+  z-index: 2000 !important;
+  position: absolute !important;
+  pointer-events: auto !important;
+}
+
+.toolbar-item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-collapse {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-submenu {
+  pointer-events: auto !important;
+}
+
+/* 确保工具栏子元素可以接收事件 */
+.map-toolbar *,
+.toolbar-item *,
+.toolbar-collapse *,
+.toolbar-submenu * {
+  pointer-events: auto !important;
+}
+
+/* 提示框样式覆盖 */
+.toolbar-tooltip {
+  z-index: 9999 !important; /* 确保提示框显示在最顶层 */
+  pointer-events: none !important; /* 确保提示框不接收鼠标事件 */
+}
+
+/* 自定义弹窗容器样式 */
+.sc-map-custom-popup {
+  position: absolute;
+  z-index: 1000;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+  background: white;
+  border-radius: 4px;
+  padding: 10px;
+  max-width: 300px;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  transform: translate(-50%, -100%);
+  animation: popup-fade-in 0.2s ease-out;
+}
+
+/* 自定义弹窗关闭按钮样式 */
+.custom-popup-close-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  color: #555;
+}
+
+.custom-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+.rotated-svg-icon,
+:deep(.rotated-svg-icon) {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+// 迁徙图标签样式
+.migration-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  
+  div {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 2px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    position: relative;
+    margin-bottom: 5px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
+// 自定义AntPath动画样式
+.leaflet-ant-path {
+  pointer-events: auto;
+  // 不干扰用户交互
+  &:hover {
+    cursor: pointer;
+    opacity: 0.9;
+  }
+}
+
+/* 测距样式 */
+.measure-segment-label .segment-distance {
+  background: rgba(24, 144, 255, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  animation: measure-fade-in 0.3s ease-out;
+}
+
+.measure-node-label .node-distance {
+  background: rgba(0, 92, 175, 0.9);
+  color: white;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  animation: measure-fade-in 0.3s ease-out;
+}
+
+.measure-total-label .total-distance-label {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  animation: measure-scale-in 0.3s ease-out;
+}
+
+.total-distance-label::after {
+  content: attr(data-distance);
+}
+
+/* 测量点样式 */
+.ol-measure-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  pointer-events: all;
+  cursor: move;
+}
+
+.ol-measure-point:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+}
+
+/* 测量线样式 */
+.ol-measure-line {
+  stroke: #1890ff;
+  stroke-width: 3px;
+  stroke-dasharray: 5, 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.ol-measure-line:hover {
+  stroke-width: 4px;
+  stroke-dasharray: none;
+}
+
+@keyframes measure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes measure-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 测量工具样式覆盖 */
+.ol-tooltip {
+  z-index: 1500 !important;
+}
+
+.ol-tooltip.ol-tooltip-measure {
+  background-color: rgba(24, 144, 255, 0.9);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: all 0.2s ease;
+}
+
+.ol-tooltip.ol-tooltip-static {
+  background-color: rgba(0, 177, 89, 0.9);
+  padding: 6px 10px;
+  border-radius: 4px;
+  transform: translate(-50%, -100%);
+}
+
+// 隐藏原生MousePosition控件显示
+.ol-mouse-position.hidden {
+  display: none !important;
+}
+
+/* Base styles for OpenLayers map */
+.ol-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* Control styles */
+.ol-control {
+  background-color: rgba(255,255,255,0.4);
+  border-radius: 4px;
+  position: absolute;
+  padding: 2px;
+  
+  button {
+    display: block;
+    margin: 1px;
+    padding: 0;
+    color: $primary-color;
+    font-size: 1.14em;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    height: 1.375em;
+    width: 1.375em;
+    line-height: .4em;
+    background-color: rgba(255,255,255,0.4);
+    border: none;
+    border-radius: 2px;
+    
+    &:hover {
+      background-color: rgba(255,255,255,0.6);
+    }
+  }
+  
+  &:hover {
+    background-color: rgba(255,255,255,0.6);
+  }
+}
+
+/* Attribution */
+.ol-attribution {
+  text-align: right;
+  bottom: .5em;
+  right: .5em;
+  max-width: calc(100% - 1.3em);
+  display: flex;
+  flex-flow: row-reverse;
+  align-items: center;
+  
+  a {
+    color: rgba(0,60,136,0.7);
+    text-decoration: none;
+  }
+}
+
+/* Zoom controls */
+.ol-zoom {
+  top: .5em;
+  left: .5em;
+  
+  &-in {
+    border-radius: 2px 2px 0 0;
+  }
+  
+  &-out {
+    border-radius: 0 0 2px 2px;
+  }
+}
+
+/* Rotate control */
+.ol-rotate {
+  top: .5em;
+  right: .5em;
+  transition: opacity .25s linear, visibility 0s linear;
+  
+  &.ol-hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s linear, visibility 0s linear .25s;
+  }
+}
+
+/* Mouse position */
+.ol-mouse-position {
+  top: 8px;
+  right: 8px;
+  position: absolute;
+}
+
+/* Overview Map */
+/* 特别注意：这些样式将强制覆盖OpenLayers默认样式 */
+.ol-overviewmap {
+  position: absolute !important;
+  left: auto !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  /* 确保控件可见 */
+  z-index: 10000 !important;
+  border: 2px solid rgba(24, 144, 255, 0.8) !important;
+  border-radius: 4px !important;
+  /* 加入阴影提高可见性 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  
+  /* 修复可能的隐藏问题 */
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  
+  /* 控件未折叠时 */
+  &:not(.ol-collapsed) {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    padding: 4px !important;
+    
+    /* 鹰眼地图容器 */
+    .ol-overviewmap-map {
+      min-width: 150px !important;
+      min-height: 150px !important;
+      margin: 2px !important;
+      border: 1px solid #ccc !important;
+    }
+    
+    /* 折叠按钮 */
+    button {
+      top: 2px !important;
+      right: 2px !important;
+      border-radius: 2px !important;
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      color: #333 !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 控件折叠时 */
+  &.ol-collapsed {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 4px !important;
+    
+    /* 展开按钮 */
+    button {
+      width: 26px !important;
+      height: 26px !important;
+      border-radius: 2px !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 确保鹰眼控件框的样式 */
+  .ol-overviewmap-box {
+    border: 2px solid rgba(24, 144, 255, 0.9) !important;
+  }
+}
+
+/* 自定义清晰版鹰眼控件 */
+.clear-overview-map {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 150px;
+  height: 150px;
+  border: 2px solid rgba(24, 144, 255, 0.8);
+  background-color: white;
+  z-index: 10000;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* 标记点popover样式 */
+.marker-popover {
+  position: relative;
+  background: white;
+  border-radius: 4px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  margin-bottom: 8px;
+  font-size: 12px;
+  max-width: 200px;
+  pointer-events: none;
+  z-index: 1000;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+  }
+  
+  &-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
+    color: #333;
+  }
+} 
