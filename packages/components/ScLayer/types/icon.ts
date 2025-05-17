@@ -293,6 +293,14 @@ export const HEATMAP_ICON = `
   <circle cx="12" cy="12" r="5" fill="currentColor" fill-opacity="0.8"/>
   <circle cx="12" cy="12" r="3" fill="currentColor"/>
 </svg>`;
+
+// 添加风场图图标
+export const WIND_ICON = `
+<svg viewBox="0 0 24 24" width="24" height="24">
+  <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/>
+  <path d="M5 10c1.5 0 2-1 2-2S7 6 8 6s2 1 2 2-0.5 3.5-2 3.5S5 10 5 10zm8 6c1.5 0 2-1 2-2s1-2 2-2 2 1 2 2-0.5 3.5-2 3.5-4-0.5-4-0.5z" fill="currentColor" fill-opacity="0.7"/>
+</svg>`;
+
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,
@@ -341,7 +349,8 @@ export const IconMap = {
   geohashGrid: GEOHASH_GRID_ICON,
   hexagonGrid: H3_GRID_ICON,
   heatmap: HEATMAP_ICON,
-  flightLine: FLIGHT_LINE_ICON
+  flightLine: FLIGHT_LINE_ICON,
+  wind: WIND_ICON
 };
 
 /**

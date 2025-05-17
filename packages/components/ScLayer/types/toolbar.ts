@@ -34,7 +34,7 @@ import {
   FLIGHT_LINE_ICON,
   SHOW_MARKERS_ICON,
   HIDE_MARKERS_LABEL_ICON,
-  EDIT_ICON,
+  WIND_ICON,
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -237,14 +237,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       tooltip: '绘制线段',
       multi: false
     },
-    {
-      id: 'edit-shape',
-      type: 'toggle',
-      icon: EDIT_ICON,
-      title: '编辑',
-      tooltip: '编辑图形',
-      multi: false
-    },
+    
     {
       id: 'track-player',
       type: 'toggle',
@@ -293,6 +286,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       icon: FLIGHT_LINE_ICON,
       title: '飞线图',
       tooltip: '显示飞线图',
+      multi: true
+    },
+    {
+      id: 'wind-layer',
+      type: 'toggle',
+      icon: WIND_ICON,
+      title: '风场图',
+      tooltip: '显示风场图',
       multi: true
     }
   ],
