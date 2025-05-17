@@ -149,6 +149,5 @@ class LogObject {
 // 创建单例实例
 const logger = new LogObject();
 
-// 导出日志对象和日志级别
-export { LogLevel };
+// 导出日志对象
 export default logger; 

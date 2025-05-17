@@ -381,6 +381,9 @@ catalogs:
     leaflet-trackplayer:
       specifier: ^2.0.3
       version: 2.0.3
+    leaflet-wind:
+      specifier: ^1.2.2
+      version: 1.2.2
     leaflet.heat:
       specifier: ^0.2.0
       version: 0.2.0
@@ -618,6 +621,9 @@ catalogs:
     unplugin-vue-components:
       specifier: ^0.25.2
       version: 0.25.2
+    uuid:
+      specifier: ^11.1.0
+      version: 11.1.0
     v-viewer:
       specifier: ^3.0.11
       version: 3.0.21
@@ -3155,247 +3161,6 @@ importers:
         version: 4.3.0(vue@3.5.13(typescript@5.8.2))
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@3.29.5)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
-      '@types/gradient-string':
-        specifier: 'catalog:'
-        version: 1.1.6
-      '@types/js-cookie':
-        specifier: 'catalog:'
-        version: 3.0.6
-      '@types/markdown-it':
-        specifier: 'catalog:'
-        version: 14.1.2
-      '@types/node':
-        specifier: 'catalog:'
-        version: 20.17.24
-      '@types/nprogress':
-        specifier: 'catalog:'
-        version: 0.2.3
-      '@types/qs':
-        specifier: 'catalog:'
-        version: 6.9.18
-      '@types/sortablejs':
-        specifier: 'catalog:'
-        version: 1.15.8
-      '@typescript-eslint/eslint-plugin':
-        specifier: 'catalog:'
-        version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
-      '@typescript-eslint/parser':
-        specifier: 'catalog:'
-        version: 8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
-      '@vitejs/plugin-vue':
-        specifier: 'catalog:'
-        version: 5.2.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
-      '@vitejs/plugin-vue-jsx':
-        specifier: 'catalog:'
-        version: 4.1.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
-      autoprefixer:
-        specifier: 'catalog:'
-        version: 10.4.21(postcss@8.5.3)
-      boxen:
-        specifier: 'catalog:'
-        version: 8.0.1
-      cssnano:
-        specifier: 'catalog:'
-        version: 7.0.6(postcss@8.5.3)
-      eslint:
-        specifier: 'catalog:'
-        version: 9.22.0(jiti@2.4.2)
-      eslint-config-prettier:
-        specifier: 'catalog:'
-        version: 9.1.0(eslint@9.22.0(jiti@2.4.2))
-      eslint-define-config:
-        specifier: 'catalog:'
-        version: 2.1.0
-      eslint-plugin-prettier:
-        specifier: 'catalog:'
-        version: 5.2.3(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.22.0(jiti@2.4.2)))(eslint@9.22.0(jiti@2.4.2))(prettier@3.5.3)
-      eslint-plugin-vue:
-        specifier: 'catalog:'
-        version: 9.33.0(eslint@9.22.0(jiti@2.4.2))
-      gradient-string:
-        specifier: 'catalog:'
-        version: 3.0.0
-      husky:
-        specifier: 'catalog:'
-        version: 9.1.7
-      lint-staged:
-        specifier: 'catalog:'
-        version: 15.5.0
-      postcss:
-        specifier: 'catalog:'
-        version: 8.5.3
-      postcss-html:
-        specifier: 'catalog:'
-        version: 1.8.0
-      postcss-import:
-        specifier: 'catalog:'
-        version: 16.1.0(postcss@8.5.3)
-      postcss-scss:
-        specifier: 'catalog:'
-        version: 4.0.9(postcss@8.5.3)
-      prettier:
-        specifier: 'catalog:'
-        version: 3.5.3
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.0.1
-      rollup-plugin-visualizer:
-        specifier: 'catalog:'
-        version: 5.14.0(rollup@3.29.5)
-      sass:
-        specifier: 'catalog:'
-        version: 1.85.1
-      stylelint:
-        specifier: 'catalog:'
-        version: 16.15.0(typescript@5.8.2)
-      stylelint-config-recess-order:
-        specifier: 'catalog:'
-        version: 5.1.1(stylelint@16.15.0(typescript@5.8.2))
-      stylelint-config-recommended-vue:
-        specifier: 'catalog:'
-        version: 1.6.0(postcss-html@1.8.0)(stylelint@16.15.0(typescript@5.8.2))
-      stylelint-config-standard-scss:
-        specifier: 'catalog:'
-        version: 14.0.0(postcss@8.5.3)(stylelint@16.15.0(typescript@5.8.2))
-      stylelint-prettier:
-        specifier: 'catalog:'
-        version: 5.0.3(prettier@3.5.3)(stylelint@16.15.0(typescript@5.8.2))
-      svgo:
-        specifier: 'catalog:'
-        version: 3.3.2
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
-      typescript:
-        specifier: 'catalog:'
-        version: 5.8.2
-      vite:
-        specifier: 'catalog:'
-        version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
-      vite-plugin-cdn-import:
-        specifier: 'catalog:'
-        version: 1.0.1(rollup@3.29.5)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
-      vite-plugin-checker:
-        specifier: 'catalog:'
-        version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
-      vite-plugin-compression:
-        specifier: 'catalog:'
-        version: 0.5.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
-      vite-plugin-fake-server:
-        specifier: 'catalog:'
-        version: 2.2.0
-      vite-plugin-prismjs:
-        specifier: 'catalog:'
-        version: 0.0.11(prismjs@1.30.0)
-      vite-plugin-remove-console:
-        specifier: 'catalog:'
-        version: 2.2.0
-      vite-plugin-router-warn:
-        specifier: 'catalog:'
-        version: 1.0.0
-      vite-plugin-vue-inspector:
-        specifier: 'catalog:'
-        version: 5.3.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
-      vite-svg-loader:
-        specifier: 'catalog:'
-        version: 5.1.0(vue@3.5.13(typescript@5.8.2))
-      vue-eslint-parser:
-        specifier: 'catalog:'
-        version: 9.4.3(eslint@9.22.0(jiti@2.4.2))
-      vue-tsc:
-        specifier: 'catalog:'
-        version: 2.2.8(typescript@5.8.2)
-
-  layout/default:
-    dependencies:
-      '@pureadmin/theme':
-        specifier: 'catalog:'
-        version: 3.3.0
-      '@pureadmin/theme-utils':
-        specifier: 'catalog:'
-        version: 0.1.0
-      '@pureadmin/utils':
-        specifier: 'catalog:'
-        version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
-      '@vueuse/core':
-        specifier: 'catalog:'
-        version: 12.8.2(typescript@5.8.2)
-      animate.css:
-        specifier: 'catalog:'
-        version: 4.1.1
-      element-plus:
-        specifier: 'catalog:'
-        version: 2.9.6(vue@3.5.13(typescript@5.8.2))
-      pinia:
-        specifier: 'catalog:'
-        version: 2.3.1(typescript@5.8.2)(vue@3.5.13(typescript@5.8.2))
-      pinyin-pro:
-        specifier: 'catalog:'
-        version: 3.26.0
-      qrcode.vue:
-        specifier: 'catalog:'
-        version: 3.6.0(vue@3.5.13(typescript@5.8.2))
-      sortablejs:
-        specifier: 'catalog:'
-        version: 1.15.6
-      ts-md5:
-        specifier: 'catalog:'
-        version: 1.3.1
-      unbuild:
-        specifier: 'catalog:'
-        version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.13(typescript@5.8.2)
-      vue-i18n:
-        specifier: 'catalog:'
-        version: 11.1.2(vue@3.5.13(typescript@5.8.2))
-      vue-router:
-        specifier: 'catalog:'
-        version: 4.5.0(vue@3.5.13(typescript@5.8.2))
-    devDependencies:
-      '@commitlint/cli':
-        specifier: 'catalog:'
-        version: 19.8.0(@types/node@20.17.24)(typescript@5.8.2)
-      '@commitlint/config-conventional':
-        specifier: 'catalog:'
-        version: 19.8.0
-      '@commitlint/types':
-        specifier: 'catalog:'
-        version: 19.8.0
-      '@eslint/js':
-        specifier: 'catalog:'
-        version: 9.22.0
-      '@faker-js/faker':
-        specifier: 'catalog:'
-        version: 9.6.0
-      '@iconify-icons/devicon':
-        specifier: 'catalog:'
-        version: 1.2.17
-      '@iconify-icons/ep':
-        specifier: 'catalog:'
-        version: 1.2.12
-      '@iconify-icons/humbleicons':
-        specifier: 'catalog:'
-        version: 1.2.4
-      '@iconify-icons/line-md':
-        specifier: 'catalog:'
-        version: 1.2.30
-      '@iconify-icons/meteocons':
-        specifier: 'catalog:'
-        version: 1.2.0
-      '@iconify-icons/ri':
-        specifier: 'catalog:'
-        version: 1.2.10
-      '@iconify-icons/simple-icons':
-        specifier: 'catalog:'
-        version: 1.2.74
-      '@iconify/vue':
-        specifier: 'catalog:'
-        version: 4.3.0(vue@3.5.13(typescript@5.8.2))
-      '@intlify/unplugin-vue-i18n':
-        specifier: 'catalog:'
         version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@4.35.0)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
       '@types/gradient-string':
         specifier: 'catalog:'
@@ -3517,6 +3282,247 @@ importers:
       vite-plugin-cdn-import:
         specifier: 'catalog:'
         version: 1.0.1(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-plugin-checker:
+        specifier: 'catalog:'
+        version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
+      vite-plugin-compression:
+        specifier: 'catalog:'
+        version: 0.5.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-plugin-fake-server:
+        specifier: 'catalog:'
+        version: 2.2.0
+      vite-plugin-prismjs:
+        specifier: 'catalog:'
+        version: 0.0.11(prismjs@1.30.0)
+      vite-plugin-remove-console:
+        specifier: 'catalog:'
+        version: 2.2.0
+      vite-plugin-router-warn:
+        specifier: 'catalog:'
+        version: 1.0.0
+      vite-plugin-vue-inspector:
+        specifier: 'catalog:'
+        version: 5.3.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-svg-loader:
+        specifier: 'catalog:'
+        version: 5.1.0(vue@3.5.13(typescript@5.8.2))
+      vue-eslint-parser:
+        specifier: 'catalog:'
+        version: 9.4.3(eslint@9.22.0(jiti@2.4.2))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.8(typescript@5.8.2)
+
+  layout/default:
+    dependencies:
+      '@pureadmin/theme':
+        specifier: 'catalog:'
+        version: 3.3.0
+      '@pureadmin/theme-utils':
+        specifier: 'catalog:'
+        version: 0.1.0
+      '@pureadmin/utils':
+        specifier: 'catalog:'
+        version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
+      '@vueuse/core':
+        specifier: 'catalog:'
+        version: 12.8.2(typescript@5.8.2)
+      animate.css:
+        specifier: 'catalog:'
+        version: 4.1.1
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.9.6(vue@3.5.13(typescript@5.8.2))
+      pinia:
+        specifier: 'catalog:'
+        version: 2.3.1(typescript@5.8.2)(vue@3.5.13(typescript@5.8.2))
+      pinyin-pro:
+        specifier: 'catalog:'
+        version: 3.26.0
+      qrcode.vue:
+        specifier: 'catalog:'
+        version: 3.6.0(vue@3.5.13(typescript@5.8.2))
+      sortablejs:
+        specifier: 'catalog:'
+        version: 1.15.6
+      ts-md5:
+        specifier: 'catalog:'
+        version: 1.3.1
+      unbuild:
+        specifier: 'catalog:'
+        version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.13(typescript@5.8.2)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.1.2(vue@3.5.13(typescript@5.8.2))
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.5.0(vue@3.5.13(typescript@5.8.2))
+    devDependencies:
+      '@commitlint/cli':
+        specifier: 'catalog:'
+        version: 19.8.0(@types/node@20.17.24)(typescript@5.8.2)
+      '@commitlint/config-conventional':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@commitlint/types':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@eslint/js':
+        specifier: 'catalog:'
+        version: 9.22.0
+      '@faker-js/faker':
+        specifier: 'catalog:'
+        version: 9.6.0
+      '@iconify-icons/devicon':
+        specifier: 'catalog:'
+        version: 1.2.17
+      '@iconify-icons/ep':
+        specifier: 'catalog:'
+        version: 1.2.12
+      '@iconify-icons/humbleicons':
+        specifier: 'catalog:'
+        version: 1.2.4
+      '@iconify-icons/line-md':
+        specifier: 'catalog:'
+        version: 1.2.30
+      '@iconify-icons/meteocons':
+        specifier: 'catalog:'
+        version: 1.2.0
+      '@iconify-icons/ri':
+        specifier: 'catalog:'
+        version: 1.2.10
+      '@iconify-icons/simple-icons':
+        specifier: 'catalog:'
+        version: 1.2.74
+      '@iconify/vue':
+        specifier: 'catalog:'
+        version: 4.3.0(vue@3.5.13(typescript@5.8.2))
+      '@intlify/unplugin-vue-i18n':
+        specifier: 'catalog:'
+        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@3.29.5)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
+      '@types/gradient-string':
+        specifier: 'catalog:'
+        version: 1.1.6
+      '@types/js-cookie':
+        specifier: 'catalog:'
+        version: 3.0.6
+      '@types/markdown-it':
+        specifier: 'catalog:'
+        version: 14.1.2
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.17.24
+      '@types/nprogress':
+        specifier: 'catalog:'
+        version: 0.2.3
+      '@types/qs':
+        specifier: 'catalog:'
+        version: 6.9.18
+      '@types/sortablejs':
+        specifier: 'catalog:'
+        version: 1.15.8
+      '@typescript-eslint/eslint-plugin':
+        specifier: 'catalog:'
+        version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/parser':
+        specifier: 'catalog:'
+        version: 8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 5.2.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      '@vitejs/plugin-vue-jsx':
+        specifier: 'catalog:'
+        version: 4.1.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      autoprefixer:
+        specifier: 'catalog:'
+        version: 10.4.21(postcss@8.5.3)
+      boxen:
+        specifier: 'catalog:'
+        version: 8.0.1
+      cssnano:
+        specifier: 'catalog:'
+        version: 7.0.6(postcss@8.5.3)
+      eslint:
+        specifier: 'catalog:'
+        version: 9.22.0(jiti@2.4.2)
+      eslint-config-prettier:
+        specifier: 'catalog:'
+        version: 9.1.0(eslint@9.22.0(jiti@2.4.2))
+      eslint-define-config:
+        specifier: 'catalog:'
+        version: 2.1.0
+      eslint-plugin-prettier:
+        specifier: 'catalog:'
+        version: 5.2.3(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.22.0(jiti@2.4.2)))(eslint@9.22.0(jiti@2.4.2))(prettier@3.5.3)
+      eslint-plugin-vue:
+        specifier: 'catalog:'
+        version: 9.33.0(eslint@9.22.0(jiti@2.4.2))
+      gradient-string:
+        specifier: 'catalog:'
+        version: 3.0.0
+      husky:
+        specifier: 'catalog:'
+        version: 9.1.7
+      lint-staged:
+        specifier: 'catalog:'
+        version: 15.5.0
+      postcss:
+        specifier: 'catalog:'
+        version: 8.5.3
+      postcss-html:
+        specifier: 'catalog:'
+        version: 1.8.0
+      postcss-import:
+        specifier: 'catalog:'
+        version: 16.1.0(postcss@8.5.3)
+      postcss-scss:
+        specifier: 'catalog:'
+        version: 4.0.9(postcss@8.5.3)
+      prettier:
+        specifier: 'catalog:'
+        version: 3.5.3
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.0.1
+      rollup-plugin-visualizer:
+        specifier: 'catalog:'
+        version: 5.14.0(rollup@3.29.5)
+      sass:
+        specifier: 'catalog:'
+        version: 1.85.1
+      stylelint:
+        specifier: 'catalog:'
+        version: 16.15.0(typescript@5.8.2)
+      stylelint-config-recess-order:
+        specifier: 'catalog:'
+        version: 5.1.1(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-recommended-vue:
+        specifier: 'catalog:'
+        version: 1.6.0(postcss-html@1.8.0)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-standard-scss:
+        specifier: 'catalog:'
+        version: 14.0.0(postcss@8.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-prettier:
+        specifier: 'catalog:'
+        version: 5.0.3(prettier@3.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      svgo:
+        specifier: 'catalog:'
+        version: 3.3.2
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.2
+      vite:
+        specifier: 'catalog:'
+        version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
+      vite-plugin-cdn-import:
+        specifier: 'catalog:'
+        version: 1.0.1(rollup@3.29.5)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
       vite-plugin-checker:
         specifier: 'catalog:'
         version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
@@ -3891,6 +3897,9 @@ importers:
       leaflet-trackplayer:
         specifier: 'catalog:'
         version: 2.0.3
+      leaflet-wind:
+        specifier: 'catalog:'
+        version: 1.2.2(leaflet@1.9.4)
       leaflet.heat:
         specifier: 'catalog:'
         version: 0.2.0
@@ -3939,6 +3948,9 @@ importers:
       typeit:
         specifier: 'catalog:'
         version: 8.8.7
+      uuid:
+        specifier: 'catalog:'
+        version: 11.1.0
       vue:
         specifier: 'catalog:'
         version: 3.5.13(typescript@5.8.2)
@@ -8981,6 +8993,10 @@ packages:
     resolution: {integrity: sha512-3lBouSuF7CqlseLB+FKES0K4FQ02JrbEoRtJhxnsyB1s5v4AP03gsoohN8jp7DcOImhaR9scYdztq3/sLfk/qQ==}
     engines: {node: '>=14.18.0'}
 
+  '@mapbox/geojson-rewind@0.5.2':
+    resolution: {integrity: sha512-tJaT+RbYGJYStt7wI3cq4Nl4SXxG8W7JDG5DMJu97V25RnbNg3QtQtf+KD+VLjNpWKYsRvXDNmNrBgEETr1ifA==}
+    hasBin: true
+
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
 
@@ -9563,6 +9579,10 @@ packages:
     resolution: {integrity: sha512-PIQeY5XDkrOysbQblSW7v3l1MDZzkTEzAfTPkj5VAu3FW8fS4ynyLg2sINp0fp3SjZ8xkRYpLqoKcYqAkhU1dw==}
     cpu: [x64]
     os: [win32]
+
+  '@sakitam-gis/vis-engine@1.5.3':
+    resolution: {integrity: sha512-IpuZwi0XRflJiP1mNTwOSjlAJZRCczOuVh6s/feVOpXctiAoSWrAuhK0HVITLpCWAQF1bN6CRKA3LW0z1nCr0g==}
+    engines: {node: '>= 14.18.1', npm: '>= 6.14.15'}
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -12886,6 +12906,9 @@ packages:
     resolution: {integrity: sha512-EHlpxMCpHWSAh1dgS6bVeoLAXGnJNdR93aabr4QCGbzOM73o5XmRfM/e5FUqsw3aagP8S8XEWUWFAxnRBnAF0Q==}
     engines: {node: ^18.19.0 || >=20.5.0}
 
+  exifr@7.1.3:
+    resolution: {integrity: sha512-g/aje2noHivrRSLbAUtBPWFbxKdKhgj/xr1vATDdUXPOFYJlQ62Ft0oy+72V6XLIpDJfHs6gXLbBLAolqOXYRw==}
+
   exit@0.1.2:
     resolution: {integrity: sha512-Zk/eNKV2zbjpKzrsQ+n1G6poVbErQxJ0LBOJXaKZ1EViLzH+hrLu9cdXI4zw9dBQJslwBEpbQ2P1oS7nDxs6jQ==}
     engines: {node: '>= 0.8.0'}
@@ -14152,6 +14175,11 @@ packages:
 
   leaflet-trackplayer@2.0.3:
     resolution: {integrity: sha512-5NALZ2U2//LX/PwSPGMYZ0vMuXdy2AnqF/C5jTE9W4oPVEqnwPBvypLadXuLk+4EZ6KWzGOp8msc+dsKhc8djA==}
+
+  leaflet-wind@1.2.2:
+    resolution: {integrity: sha512-vgbM4HQmricu8gLAJkjVteUoLl7i7cGCxGhCePHSJUuen3pet+T94O1XcUrnbAiviXyit+3NslCKmRRkbXXYFg==}
+    peerDependencies:
+      leaflet: '>=1.0.0'
 
   leaflet.heat@0.2.0:
     resolution: {integrity: sha512-Cd5PbAA/rX3X3XKxfDoUGi9qp78FyhWYurFg3nsfhntcM/MCNK08pRkf4iEenO1KNqwVPKCmkyktjW3UD+h9bQ==}
@@ -17452,6 +17480,10 @@ packages:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
     hasBin: true
 
+  uuid@11.1.0:
+    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
+
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
@@ -17856,6 +17888,12 @@ packages:
 
   wind-core@1.1.8:
     resolution: {integrity: sha512-mxnkLXkZ4hcoGsRBkBsP0TyCnTDAslbMMmInklKWnDKzkRJ/nkyxGOGG+06i+ta+PihEKCV3zTZMdGlMD9orZQ==}
+
+  wind-gl-core@2.0.2:
+    resolution: {integrity: sha512-EUnUQsbucaPCFns7p6BlPE5xXiXQpb2hXMmE4t/FG4W+rKlYHjtIMWzM0wAD4M6g4Wg6JzSft7SGocPJAqjssA==}
+
+  wind-gl-worker@2.0.2:
+    resolution: {integrity: sha512-uEMHjQtX5w+Kn+MT0RWGyYYqou6brZMe9BMOYAqoJh74tKGpuBx0+i+4J2XppAZmD8r7KYn/UvhjGHfpOq0UlQ==}
 
   wkt-parser@1.4.0:
     resolution: {integrity: sha512-qpwO7Ihds/YYDTi1aADFTI1Sm9YC/tTe3SHD24EeIlZxy7Ik6a1b4HOz7jAi0xdUAw487duqpo8OGu+Tf4nwlQ==}
@@ -21045,6 +21083,11 @@ snapshots:
       jju: 1.4.0
       js-yaml: 4.1.0
 
+  '@mapbox/geojson-rewind@0.5.2':
+    dependencies:
+      get-stream: 6.0.1
+      minimist: 1.2.8
+
   '@marijn/find-cluster-break@1.0.2': {}
 
   '@microsoft/fetch-event-source@2.0.1': {}
@@ -21626,6 +21669,11 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.35.0':
     optional: true
+
+  '@sakitam-gis/vis-engine@1.5.3':
+    dependencies:
+      colord: 2.9.3
+      gl-matrix: 3.4.3
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -26030,6 +26078,8 @@ snapshots:
       strip-final-newline: 4.0.0
       yoctocolors: 2.1.1
 
+  exifr@7.1.3: {}
+
   exit@0.1.2: {}
 
   expect@29.7.0:
@@ -27488,6 +27538,15 @@ snapshots:
   leaflet-minimap@3.6.1: {}
 
   leaflet-trackplayer@2.0.3: {}
+
+  leaflet-wind@1.2.2(leaflet@1.9.4):
+    dependencies:
+      '@mapbox/geojson-rewind': 0.5.2
+      '@sakitam-gis/vis-engine': 1.5.3
+      gl-matrix: 3.4.3
+      leaflet: 1.9.4
+      wind-core: 1.1.8
+      wind-gl-core: 2.0.2
 
   leaflet.heat@0.2.0: {}
 
@@ -31208,6 +31267,8 @@ snapshots:
 
   uuid@10.0.0: {}
 
+  uuid@11.1.0: {}
+
   uuid@8.3.2: {}
 
   v-viewer@3.0.21(viewerjs@1.11.7)(vue@3.5.13(typescript@5.8.2)):
@@ -31810,6 +31871,16 @@ snapshots:
   wildcard@2.0.1: {}
 
   wind-core@1.1.8: {}
+
+  wind-gl-core@2.0.2:
+    dependencies:
+      '@sakitam-gis/vis-engine': 1.5.3
+      earcut: 2.2.4
+      wind-gl-worker: 2.0.2
+
+  wind-gl-worker@2.0.2:
+    dependencies:
+      exifr: 7.1.3
 
   wkt-parser@1.4.0: {}
 

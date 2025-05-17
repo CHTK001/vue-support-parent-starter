@@ -17,6 +17,9 @@ import { ClusterObject } from './ClusterObject';
 import { GridManager } from './GridManager';
 import { FlightLineObject } from './FlightLineObject';
 import { OverviewMapObject } from './OverviewMapObject';
+import type { CoordinateInfo, CoordinateOptions, CoordinatePosition } from './CoordinateObject';
+import type { AggregationOptions } from '../types/cluster';
+import type { GridType } from './GridManager';
 
 // 定义工具栏回调函数类型
 export type ToolbarCallback = (
@@ -32,17 +35,34 @@ export class ToolbarObject {
   private overviewObj: OverviewMapObject | null = null;
   private markerObj: MarkerObject | null = null;
   private shapeObj: ShapeObject | null = null;
-  // 轨迹对象
   private trackObj: TrackObject | null = null;
-  // 坐标面板是否显示
   private showCoordinatePanel: boolean = false;
-  private coordinateCallback: ((coordinate: any) => void) | null = null;
+  private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   private gridObj: GridManager | null = null;
   private heatmapObj: HeatmapObject | null = null;
   private clusterObj: ClusterObject | null = null;
   private flightLineObj: FlightLineObject | null = null;
   private toolStateChangeCallback: ToolbarCallback | null = null;
-  
+  private clusterConfig: AggregationOptions = {
+    maxClusterRadius: 40,
+    radiusUnit: 'pixel',
+    color: '#1677ff',
+    borderColor: '#fff',
+    showCount: true,
+    zoomToBoundsOnClick: true,
+    useWeightAsSize: true,
+    enablePulse: true,
+    pulseDuration: 1500,
+    pulseOpacity: 0.6,
+    pulseFrequency: 1,
+    colorRanges: [
+      { value: 10, color: '#5470c6' },
+      { value: 50, color: '#91cc75' },
+      { value: 100, color: '#fac858' },
+      { value: 200, color: '#ee6666' }
+    ]
+  };
+
   /**
    * 构造函数
    * @param config 工具栏配置
@@ -56,51 +76,8 @@ export class ToolbarObject {
     // 将toolbarObj对象保存到地图元素中，使其可以被其他组件访问
     const mapInstance = this.mapObj.getMapInstance();
     if (mapInstance) {
-  // 坐标信息回调
-  private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
-  // 按钮状态变化回调
-  private toolStateChangeCallback: ToolStateChangeCallback | null = null;
-  // 聚合配置
-  private clusterConfig: AggregationOptions = {
-    maxClusterRadius: 40,    // 聚合半径（像素）
-    radiusUnit: 'pixel',     // 半径单位
-    color: '#1677ff',        // 聚合点颜色
-    borderColor: '#fff',     // 边框颜色
-    showCount: true,         // 显示数量
-    zoomToBoundsOnClick: true, // 点击时缩放到范围
-    useWeightAsSize: true,   // 根据数量显示大小
-    // 脉冲/涟漪动画效果
-    enablePulse: true,       // 启用脉冲效果
-    pulseDuration: 1500,     // 动画持续时间(ms) 
-    pulseOpacity: 0.6,       // 脉冲透明度
-    pulseFrequency: 1,       // 每秒脉冲次数
-    colorRanges: [           // 颜色范围
-      { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色
-      { value: 50, color: '#91cc75' },  // 聚合点数量≥50时使用绿色
-      { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
-      { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
-    ]
-  };
-
-  // 网格对象
-  private gridObj: GridManager | null = null;
-  
-  // 热力图对象
-  private heatmapObj: HeatmapObject | null = null;
-
-  // 飞线图对象
-  private flightLineObj: FlightLineObject | null = null;
-
-  /**
-   * 构造函数
-   * @param mapObj 地图对象
-   * @param config 工具栏配置
-   * @param callback 回调函数
-   */
-  constructor(mapObj: MapObject, config: ToolbarConfig = DEFAULT_TOOLBAR_CONFIG, callback?: ToolbarCallback) {
-    this.mapObj = mapObj;
-    this.config = { ...DEFAULT_TOOLBAR_CONFIG, ...config };
-    this.callback = callback || null;
+      (mapInstance as any).toolbarObj = this;
+    }
     
     // 初始化组件
     this.initialize();
@@ -2612,7 +2589,12 @@ export class ToolbarObject {
   private initialize(): void {
     try {
       // 创建标记点对象
-      this.markerObj = new MarkerObject(this.mapObj);
+      const mapInstance = this.mapObj.getMapInstance();
+      if (!mapInstance) {
+        logger.error('地图实例不存在，无法初始化工具栏对象');
+        return;
+      }
+      this.markerObj = new MarkerObject(mapInstance);
       
       // 创建形状对象
       this.shapeObj = new ShapeObject(this.mapObj);
@@ -2627,3 +2609,4 @@ export class ToolbarObject {
       logger.error('ToolbarObject初始化失败：', error);
     }
   }
+}

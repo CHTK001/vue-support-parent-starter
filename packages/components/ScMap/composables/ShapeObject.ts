@@ -5,15 +5,8 @@
 import L from 'leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './LogObject';
-import type { ShapeOption, Shape } from '../types/shape';
+import { ShapeOption, Shape, ShapeType } from '../types/shape';
 
-export enum ShapeType {
-  RECTANGLE = 'rectangle',
-  CIRCLE = 'circle',
-  POLYGON = 'polygon',
-  POLYLINE = 'polyline',
-  MARKER = 'marker'
-}
 
 export class ShapeObject {
   private mapInstance: L.Map;
@@ -99,25 +92,25 @@ export class ShapeObject {
    */
   private createRectangle(id: string, options: ShapeOption): Shape {
     // 确保有边界
-    if (!options.bounds || options.bounds.length !== 2) {
+    if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length !== 2) {
       throw new Error('矩形边界无效');
     }
     
     // 创建边界对象
     const bounds = L.latLngBounds(
-      L.latLng(options.bounds[0][0], options.bounds[0][1]),
-      L.latLng(options.bounds[1][0], options.bounds[1][1])
+      L.latLng(options.coordinates[0][0], options.coordinates[0][1]),
+      L.latLng(options.coordinates[1][0], options.coordinates[1][1])
     );
     
     // 创建矩形
     const rectangle = L.rectangle(bounds, {
-      color: options.color || '#3388ff',
-      weight: options.weight || 2,
-      opacity: options.opacity || 1,
-      fillColor: options.fillColor || '#3388ff',
-      fillOpacity: options.fillOpacity || 0.2,
-      dashArray: options.dashArray,
-      className: options.className
+      color: options.style?.color || '#3388ff',
+      weight: options.style?.weight || 2,
+      opacity: options.style?.opacity || 1,
+      fillColor: options.style?.fillColor || '#3388ff',
+      fillOpacity: options.style?.fillOpacity || 0.2,
+      dashArray: options.style?.dashArray,
+      className: options.style?.className
     });
     
     // 绑定点击事件
@@ -146,23 +139,23 @@ export class ShapeObject {
    */
   private createCircle(id: string, options: ShapeOption): Shape {
     // 确保有中心点和半径
-    if (!options.center || !options.radius) {
+    if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length !== 1 || !options.radius) {
       throw new Error('圆形中心点或半径无效');
     }
     
     // 创建中心点
-    const center = L.latLng(options.center[0], options.center[1]);
+    const center = L.latLng(options.coordinates[0][0], options.coordinates[0][1]);
     
     // 创建圆形
     const circle = L.circle(center, {
       radius: options.radius,
-      color: options.color || '#3388ff',
-      weight: options.weight || 2,
-      opacity: options.opacity || 1,
-      fillColor: options.fillColor || '#3388ff',
-      fillOpacity: options.fillOpacity || 0.2,
-      dashArray: options.dashArray,
-      className: options.className
+      color: options.style?.color || '#3388ff',
+      weight: options.style?.weight || 2,
+      opacity: options.style?.opacity || 1,
+      fillColor: options.style?.fillColor || '#3388ff',
+      fillOpacity: options.style?.fillOpacity || 0.2,
+      dashArray: options.style?.dashArray,
+      className: options.style?.className
     });
     
     // 绑定点击事件
@@ -191,22 +184,22 @@ export class ShapeObject {
    */
   private createPolygon(id: string, options: ShapeOption): Shape {
     // 确保有坐标点
-    if (!options.latlngs || options.latlngs.length < 3) {
+    if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 3) {
       throw new Error('多边形坐标点不足');
     }
     
     // 创建坐标点数组
-    const latlngs = options.latlngs.map(point => L.latLng(point[0], point[1]));
+    const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
     
     // 创建多边形
     const polygon = L.polygon(latlngs, {
-      color: options.color || '#3388ff',
-      weight: options.weight || 2,
-      opacity: options.opacity || 1,
-      fillColor: options.fillColor || '#3388ff',
-      fillOpacity: options.fillOpacity || 0.2,
-      dashArray: options.dashArray,
-      className: options.className
+      color: options.style?.color || '#3388ff',
+      weight: options.style?.weight || 2,
+      opacity: options.style?.opacity || 1,
+      fillColor: options.style?.fillColor || '#3388ff',
+      fillOpacity: options.style?.fillOpacity || 0.2,
+      dashArray: options.style?.dashArray,
+      className: options.style?.className
     });
     
     // 绑定点击事件
@@ -235,20 +228,20 @@ export class ShapeObject {
    */
   private createPolyline(id: string, options: ShapeOption): Shape {
     // 确保有坐标点
-    if (!options.latlngs || options.latlngs.length < 2) {
+    if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 2) {
       throw new Error('折线坐标点不足');
     }
     
     // 创建坐标点数组
-    const latlngs = options.latlngs.map(point => L.latLng(point[0], point[1]));
+    const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
     
     // 创建折线
     const polyline = L.polyline(latlngs, {
-      color: options.color || '#3388ff',
-      weight: options.weight || 3,
-      opacity: options.opacity || 1,
-      dashArray: options.dashArray,
-      className: options.className
+      color: options.style?.color || '#3388ff',
+      weight: options.style?.weight || 3,
+      opacity: options.style?.opacity || 1,
+      dashArray: options.style?.dashArray,
+      className: options.style?.className
     });
     
     // 绑定点击事件
@@ -311,27 +304,27 @@ export class ShapeObject {
       const layer = shape.layer;
       
       // 更新样式选项
-      if (options.color !== undefined) layer.setStyle({ color: options.color });
-      if (options.weight !== undefined) layer.setStyle({ weight: options.weight });
-      if (options.opacity !== undefined) layer.setStyle({ opacity: options.opacity });
-      if (options.fillColor !== undefined) layer.setStyle({ fillColor: options.fillColor });
-      if (options.fillOpacity !== undefined) layer.setStyle({ fillOpacity: options.fillOpacity });
-      if (options.dashArray !== undefined) layer.setStyle({ dashArray: options.dashArray });
+      if (options.style?.color !== undefined) layer.setStyle({ color: options.style.color });
+      if (options.style?.weight !== undefined) layer.setStyle({ weight: options.style.weight });
+      if (options.style?.opacity !== undefined) layer.setStyle({ opacity: options.style.opacity });
+      if (options.style?.fillColor !== undefined) layer.setStyle({ fillColor: options.style.fillColor });
+      if (options.style?.fillOpacity !== undefined) layer.setStyle({ fillOpacity: options.style.fillOpacity });
+      if (options.style?.dashArray !== undefined) layer.setStyle({ dashArray: options.style.dashArray });
       
       // 更新几何属性
       switch (shape.type) {
         case ShapeType.RECTANGLE:
-          if (options.bounds) {
+          if (options.coordinates) {
             const bounds = L.latLngBounds(
-              L.latLng(options.bounds[0][0], options.bounds[0][1]),
-              L.latLng(options.bounds[1][0], options.bounds[1][1])
+              L.latLng(options.coordinates[0][0], options.coordinates[0][1]),
+              L.latLng(options.coordinates[1][0], options.coordinates[1][1])
             );
             (layer as L.Rectangle).setBounds(bounds);
           }
           break;
         case ShapeType.CIRCLE:
-          if (options.center) {
-            const center = L.latLng(options.center[0], options.center[1]);
+          if (options.coordinates && Array.isArray(options.coordinates) && options.coordinates.length === 1) {
+            const center = L.latLng(options.coordinates[0][0], options.coordinates[0][1]);
             (layer as L.Circle).setLatLng(center);
           }
           if (options.radius) {
@@ -340,8 +333,8 @@ export class ShapeObject {
           break;
         case ShapeType.POLYGON:
         case ShapeType.POLYLINE:
-          if (options.latlngs) {
-            const latlngs = options.latlngs.map(point => L.latLng(point[0], point[1]));
+          if (options.coordinates) {
+            const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
             layer.setLatLngs(latlngs);
           }
           break;
