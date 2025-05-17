@@ -236,7 +236,7 @@
           </div>
 
           <!-- 添加热力图操作部分 -->
-          <div class="config-item" v-if="false">
+          <div class="config-item">
             <div class="label">热力图操作</div>
             <div class="controls">
               <!-- 热力图操作区域 - 添加功能分组 -->
@@ -248,15 +248,40 @@
               <div class="feature-group-title">热力点管理</div>
               <div class="control-row buttons-row">
                 <button @click="addRandomHeatmapPoints(20)">添加随机热力点</button>
-                <button @click="addClusteredHeatmapPoints">添加聚类热力点</button>
+                <button @click="clearHeatmapPoints">清除热力点</button>
               </div>
               <div class="control-row buttons-row">
-                <button @click="addWeightedHeatmapPoints">添加权重热力点</button>
-                <button @click="clearHeatmap">清除热力图</button>
+                <button @click="addDenseHeatmapPoints">添加密集热力数据</button>
               </div>
+            </div>
+          </div>
+          
+          <!-- 添加风场图操作部分 -->
+          <div class="config-item">
+            <div class="label">风场图操作</div>
+            <div class="controls">
+              <!-- 风场图操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">风场图控制</div>
               <div class="control-row buttons-row">
-                <button @click="configureHeatmap">配置热力图样式</button>
-                <button @click="togglePointsVisible">{{ pointsVisible ? '隐藏数据点' : '显示数据点' }}</button>
+                <button @click="activateWindLayer">启用风场图</button>
+                <button @click="deactivateWindLayer">禁用风场图</button>
+              </div>
+              
+              <div class="feature-group-title">风场参数</div>
+              <div class="control-row">
+                <span>粒子数量:</span>
+                <input type="range" v-model.number="windConfig.paths" min="100" max="5000" @input="updateWindOptions">
+                <span class="value">{{ windConfig.paths }}</span>
+              </div>
+              <div class="control-row">
+                <span>线条粗细:</span>
+                <input type="range" v-model.number="windConfig.lineWidth" min="1" max="5" step="0.5" @input="updateWindOptions">
+                <span class="value">{{ windConfig.lineWidth }}</span>
+              </div>
+              <div class="control-row">
+                <span>速度缩放:</span>
+                <input type="range" v-model.number="windConfig.velocityScale" min="0.01" max="0.1" step="0.01" @input="updateWindOptions">
+                <span class="value">{{ windConfig.velocityScale }}</span>
               </div>
             </div>
           </div>
@@ -452,20 +477,21 @@
   </div>
 </template>
 
-<script lang="ts">
-export default {
-  name: "ScLayerExample"
-};
-</script>
-
 <script setup lang="ts">
 import ScLayer from '@repo/components/ScLayer/index.vue';
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { MapType, MapTile, MarkerClusterMode } from '@repo/components/ScLayer/types/index';
+import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
+import type { WindConfig } from '@repo/components/ScLayer/types/wind';
+
+// 标记点聚合模式的枚举
+const MarkerClusterMode = {
+  CLUSTER: 'cluster',
+  NONE: 'none'
+};
 // 引入飞线图类型定义
 import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types/flightline';
 // 引入Element Plus组件
@@ -479,33 +505,33 @@ const heatmapPoints = ref<Array<HeatmapPoint>>([]);
 const pointsVisible = ref(false);
 // 添加当前选中的热力图记录
 const selectedHeatmapPoint = ref<string | null>(null);
-// 热力图性能模式
-const heatmapPerformanceMode = ref(false);
+  // 热力图性能模式
+  const heatmapPerformanceMode = ref(false);
 
-// 飞线图相关
-const flightLinePoints = ref<Array<FlightLinePoint>>([]);
-const flightLineConfig = ref<FlightLineConfig>({
-  curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
-  width: 1,              // 线宽调整为1
-  showEffect: true,      // 显示效果
-  showNodes: true,       // 显示节点
-  color: '#a6c84c',      // 使用sakitam示例中的颜色
-  opacity: 0.5,          // 透明度调整为0.5
-  effectPeriod: 6,       // 效果周期调整为6
-  effectTrailLength: 0, // 效果轨迹长度调整为0.7
-  effectSymbolSize: 18,   // 动画效果大小设为8
-  nodeSymbolSize: 3,     // 节点大小从8减小到3
-  effectSymbol: 'plane', // 效果符号改为arrow
-  visible: true,         // 可见性
-  nodeColor: '#ddb926',  // 节点颜色
-  nodeEffect: true,      // 节点效果
-  zIndex: 90,            // 层级
-  hideOnMoving: false,   // 移动时不隐藏
-  hideOnZooming: false,  // 缩放时不隐藏
-  enablePerformanceMode: false // 关闭性能模式以确保显示
-});
-
-// 飞线图相关状态
+  // 飞线图相关
+  const flightLinePoints = ref<Array<FlightLinePoint>>([]);
+  const flightLineConfig = ref<FlightLineConfig>({
+    curveness: 0.2,        // 曲度调整为0.2，与sakitam示例一致
+    width: 1,              // 线宽调整为1
+    showEffect: true,      // 显示效果
+    showNodes: true,       // 显示节点
+    color: '#a6c84c',      // 使用sakitam示例中的颜色
+    opacity: 0.5,          // 透明度调整为0.5
+    effectPeriod: 6,       // 效果周期调整为6
+    effectTrailLength: 0,  // 效果轨迹长度调整为0.7
+    effectSymbolSize: 18,  // 动画效果大小设为8
+    nodeSymbolSize: 3,     // 节点大小从8减小到3
+    effectSymbol: 'plane', // 效果符号改为arrow
+    visible: true,         // 可见性
+    nodeColor: '#ddb926',  // 节点颜色
+    nodeEffect: true,      // 节点效果
+    zIndex: 90,            // 层级
+    hideOnMoving: false,   // 移动时不隐藏
+    hideOnZooming: false,  // 缩放时不隐藏
+    enablePerformanceMode: false // 关闭性能模式以确保显示
+  });
+  
+  // 飞线图相关状态
 const flightLineActive = ref(false);
 
 // 飞线图列表数据 - 修改为单选模式
@@ -610,6 +636,16 @@ function onMapInit(mapInstance) {
   
   // 更新图层类型显示
   updateLayerTypeDisplay();
+  
+  // 移除编辑按钮
+  if (layerRef.value) {
+    const toolbarManager = layerRef.value.getToolbarManager();
+    if (toolbarManager) {
+      // 从工具栏中移除编辑按钮
+      toolbarManager.removeTool('edit-shape');
+      addLog('工具栏', '已移除编辑按钮');
+    }
+  }
   
   // 初始化时添加默认热力图并选择第一条记录
   setTimeout(() => {
@@ -859,7 +895,7 @@ function addClusterMarkers() {
       position: [lon, lat],
       title: `聚合点 ${i + 1}`,
       clickable: true,
-      clusterMode: MarkerClusterMode.CLUSTER,
+      clusterMode: MARKER_CLUSTER_MODE.CLUSTER,
       data: { type: 'cluster', index: i }
     });
   }
@@ -2432,6 +2468,96 @@ const togglePointsVisible = () => {
   addLog('热力图', pointsVisible.value ? '显示数据点' : '隐藏数据点');
 };
 
+/**
+ * 添加密集热力点数据
+ */
+const addDenseHeatmapPoints = () => {
+  if (!layerRef.value) return;
+  
+  // 先启用热力图
+  layerRef.value.enableHeatmap();
+  
+  // 先更新热力图配置以适应密集数据展示
+  layerRef.value.configureHeatmap({
+    radius: 15,
+    blur: 12,
+    opacity: 0.85,
+    gradient: ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000', '#ff00ff'],
+  });
+  
+  // 获取地图中心点和边界
+  const center = config.center;
+  const points = [];
+  const pointCount = 200; // 使用大量点以创建密集热力图
+  
+  // 生成多个热点区
+  const hotspots = [
+    { lat: center[0] - 0.02, lng: center[1] - 0.02 },
+    { lat: center[0] + 0.02, lng: center[1] + 0.02 },
+    { lat: center[0] - 0.03, lng: center[1] + 0.01 },
+    { lat: center[0] + 0.01, lng: center[1] - 0.03 },
+    { lat: center[0], lng: center[1] }
+  ];
+  
+  // 为每个热点区域生成点
+  for (let i = 0; i < pointCount; i++) {
+    // 选择一个热点区域 (有80%概率选择热点区域，20%概率完全随机)
+    let basePoint;
+    if (Math.random() < 0.8) {
+      const hotspotIndex = Math.floor(Math.random() * hotspots.length);
+      basePoint = hotspots[hotspotIndex];
+    } else {
+      basePoint = { lat: center[0], lng: center[1] };
+    }
+    
+    // 在热点周围生成随机偏移
+    const latOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    const lngOffset = (Math.random() * 0.06 - 0.03) * (Math.random() < 0.7 ? 0.5 : 1);
+    
+    // 根据距离热点中心的距离计算权重（越近权重越高）
+    const distanceFromHotspot = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset);
+    const weight = Math.max(0.2, 1 - (distanceFromHotspot * 10));
+    
+    const point = {
+      longitude: basePoint.lng + lngOffset,
+      latitude: basePoint.lat + latOffset,
+      weight: weight, 
+      name: `密集点 ${i+1}`,
+      properties: {
+        value: Math.floor(weight * 100),
+        type: '密集点',
+        hotspot: basePoint === center ? "中心" : "热点区域"
+      }
+    };
+    
+    points.push(point);
+  }
+  
+  // 批量添加热力点
+  const ids = layerRef.value.addHeatmapPoints(points);
+  const newPoints = points.map((p, i) => ({ ...p, id: ids[i] }));
+  heatmapPoints.value = [...heatmapPoints.value, ...newPoints];
+  
+  addLog('热力图', `添加了${pointCount}个密集热力点数据`);
+};
+
+/**
+ * 切换热力图性能模式
+ */
+const toggleHeatmapPerformanceMode = () => {
+  if (!layerRef.value) return;
+  
+  heatmapPerformanceMode.value = !heatmapPerformanceMode.value;
+  
+  // 更新热力图配置
+  layerRef.value.configureHeatmap({
+    hideOnMoving: heatmapPerformanceMode.value,
+    hideOnZooming: heatmapPerformanceMode.value
+  });
+  
+  addLog('热力图', heatmapPerformanceMode.value ? '启用性能模式' : '禁用性能模式');
+};
+
 // 工具栏位置
 const toolbarPosition = ref<ToolbarPosition>(ToolbarPosition.TOP_LEFT);
 
@@ -2703,8 +2829,8 @@ const changeLayerType = (layerType: string) => {
   handleLayerTypeChange();
 };
 
-// 添加标记点聚合模式的枚举
-const MarkerClusterMode = {
+// 标记点聚合模式的常量
+const MARKER_CLUSTER_MODE = {
   CLUSTER: 'cluster',
   NONE: 'none'
 };
@@ -3001,30 +3127,6 @@ const clearFlightLines = () => {
     addLog('飞线图', `清除飞线失败: ${error.message}`);
   }
 };
-
-/**
- * 切换热力图性能模式
- */
-const toggleHeatmapPerformanceMode = () => {
-  if (!layerRef.value) return;
-  
-  // 获取热力图对象
-  const heatmapObj = layerRef.value.getHeatmapObject();
-  if (!heatmapObj) {
-    addLog('热力图', '无法获取热力图对象');
-    return;
-  }
-  
-  // 切换性能模式
-  heatmapPerformanceMode.value = !heatmapPerformanceMode.value;
-  
-  // 设置热力图性能模式
-  heatmapObj.setPerformanceMode(heatmapPerformanceMode.value);
-  
-  // 记录日志
-  addLog('热力图', `性能模式已${heatmapPerformanceMode.value ? '启用' : '禁用'}`);
-};
-
 
 // 选择单条飞线
 const selectSingleFlightLine = (id: string) => {
@@ -3400,7 +3502,111 @@ const removeTrackById = (trackId: string) => {
   }
 };
 
-// 删除出错的onMounted块
+// 更新热力图点列表的函数
+const updateHeatmapPointList = () => {
+  if (!layerRef.value) return;
+  
+  try {
+    // 获取热力图对象
+    const heatmapObj = layerRef.value.getHeatmapObject();
+    if (!heatmapObj) {
+      heatmapPoints.value = [];
+      return;
+    }
+    
+    // 获取所有热力点
+    const allPoints = heatmapObj.getAllPoints();
+    if (!allPoints) {
+      heatmapPoints.value = [];
+      return;
+    }
+    
+    // 转换Map为数组
+    const pointsArray = [];
+    allPoints.forEach((point, id) => {
+      pointsArray.push({
+        ...point,
+        id
+      });
+    });
+    
+    // 更新热力点列表
+    heatmapPoints.value = pointsArray;
+  } catch (error) {
+    console.error('获取热力点列表错误:', error);
+    addLog('热力图', `获取热力点列表失败: ${error.message}`);
+  }
+};
+
+// 添加风场图配置
+const windConfig = reactive<WindConfig>({
+  paths: 3000,           // 初始粒子数量
+  lineWidth: 2,          // 初始线条粗细
+  velocityScale: 0.05,   // 初始速度缩放
+  colorScale: [
+    "rgb(36,104,180)",
+    "rgb(60,157,194)",
+    "rgb(128,205,193)",
+    "rgb(151,218,168)",
+    "rgb(198,231,181)",
+    "rgb(238,247,217)",
+    "rgb(255,238,159)",
+    "rgb(252,217,125)",
+    "rgb(255,182,100)",
+    "rgb(252,150,75)",
+    "rgb(250,112,52)",
+    "rgb(245,64,32)",
+    "rgb(237,45,28)",
+    "rgb(220,24,32)",
+    "rgb(180,0,35)"
+  ]
+});
+
+// 激活风场图
+function activateWindLayer() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  layerRef.value.activateTool('wind-layer');
+  addLog('风场图', '风场图已启用');
+}
+
+// 禁用风场图
+function deactivateWindLayer() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  layerRef.value.deactivateTool('wind-layer');
+  addLog('风场图', '风场图已禁用');
+}
+
+// 更新风场图参数
+function updateWindOptions() {
+  if (!layerRef.value) {
+    addLog('风场图', '地图组件未初始化');
+    return;
+  }
+  
+  // 获取风场图对象
+  const windObject = layerRef.value.getWindObject();
+  if (!windObject) {
+    addLog('风场图', '无法获取风场图对象');
+    return;
+  }
+  
+  // 更新风场图配置
+  windObject.setWindOptions({
+    paths: windConfig.paths,
+    lineWidth: windConfig.lineWidth,
+    velocityScale: windConfig.velocityScale
+  });
+  
+  addLog('风场图', `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`);
+}
 </script>
 
 <style scoped>
@@ -3422,13 +3628,6 @@ const removeTrackById = (trackId: string) => {
   width: 320px;
   overflow-y: auto;
   max-height: 700px;
-}
-
-.map-container {
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  overflow: hidden;
 }
 
 .config-section {

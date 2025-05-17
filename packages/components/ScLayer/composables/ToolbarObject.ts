@@ -23,6 +23,9 @@ import { GridManager, GridType } from './GridManager';
 import { HeatmapObject } from './HeatmapObject';
 // 引入飞线图对象
 import { FlightLineObject } from './FlightLineObject';
+// 引入风场图对象
+import { WindObject } from './WindObject';
+
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
   (toolId: string, active: boolean, toolType: string, data?: any): void;
@@ -82,6 +85,9 @@ export class ToolbarObject {
 
   // 飞线图对象
   private flightLineObj: FlightLineObject | null = null;
+  
+  // 风场图对象
+  private windObj: WindObject | null = null;
 
   /**
    * 构造函数
@@ -137,6 +143,9 @@ export class ToolbarObject {
     
     // 初始化飞线图对象
     this.initFlightLineObject();
+    
+    // 初始化风场图对象
+    this.initWindObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -459,6 +468,22 @@ export class ToolbarObject {
     // 创建飞线图对象
     this.flightLineObj = new FlightLineObject(mapInstance);
     logger.debug('飞线图对象已初始化');
+  }
+
+  /**
+   * 初始化风场图对象
+   */
+  private initWindObject(): void {
+    // 获取地图实例
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例未创建，无法初始化风场图对象');
+      return;
+    }
+    
+    // 创建风场图对象
+    this.windObj = new WindObject(mapInstance);
+    logger.debug('风场图对象已初始化');
   }
 
   /**
@@ -1094,6 +1119,9 @@ export class ToolbarObject {
       case 'flight-line':
         this.handleFlightLineActivate();
         break;
+      case 'wind-layer':
+        this.handleWindLayerActivate();
+        break;
       case 'marker-toggle':
         this.handleButtonActivation(tool);
         // 切换标记点显示/隐藏
@@ -1289,6 +1317,9 @@ export class ToolbarObject {
         break;
       case 'flight-line':
         this.handleFlightLineDeactivate();
+        break;
+      case 'wind-layer':
+        this.handleWindLayerDeactivate();
         break;
       case 'heatmap':
         this.handleHeatmapDeactivate();
@@ -2425,84 +2456,28 @@ export class ToolbarObject {
   }
 
   /**
+   * 获取风场图对象
+   * @returns 风场图对象
+   */
+  public getWindObject(): WindObject | null {
+    return this.windObj;
+  }
+
+  /**
    * 激活图形编辑功能
    * 启用编辑模式，允许用户修改已有的图形
    */
   private handleShapeEditActivate(): void {
-    if (!this.shapeObj) {
-      logger.warn('图形对象未初始化，无法激活编辑模式');
-      return;
-    }
+    logger.warn('图形编辑功能已被禁用');
     
-    // 检查是否在删除模式，如果是则先停用
-    const clearShapesTool = this.tools.find(tool => tool.id === 'clear-shapes');
-    if (clearShapesTool && clearShapesTool.active) {
-      logger.debug('发现删除模式已激活，需要先停用');
-      this.deactivateTool('clear-shapes');
-      
-      // 确保删除监听器被正确移除
-      const mapInstance = this.mapObj.getMapInstance();
-      if (mapInstance && (mapInstance as any)._deleteClickListener) {
-        mapInstance.un('click', (mapInstance as any)._deleteClickListener);
-        delete (mapInstance as any)._deleteClickListener;
-        logger.debug('已移除删除模式的点击监听器');
-      }
-    }
+    // 立即取消激活状态
+    this.deactivateTool('edit-shape');
     
-    // 禁用绘制模式
-    this.shapeObj.disable();
-    
-    // 确保删除模式被禁用
-    if (this.shapeObj.isDeleteMode()) {
-      this.shapeObj.disableDeleteMode();
-      logger.debug('已禁用图形对象的删除模式');
-    }
-    
-    // 绑定图形事件监听
-    this.setupShapeEventListeners();
-    
-    // 启用编辑模式
-    const success = this.shapeObj.enableEditMode();
-    
-    // 设置图形更新回调
-    this.shapeObj.setShapeUpdateCallback((id, shapeType, feature) => {
-      logger.info(`图形 ${id} (${shapeType}) 已更新`);
-      
-      // 触发工具状态变化回调，传递更新的图形信息
-      this.triggerToolStateChange('edit-shape', true, 'edit', {
-        shapeId: id,
-        shapeType: shapeType,
-        action: 'update',
-        feature: {
-          id,
-          type: shapeType,
-          geometry: feature.getGeometry() ? feature.getGeometry().getType() : 'unknown',
-          data: feature.get('data')
-        }
-      });
+    // 通知用户该功能已被禁用
+    this.triggerToolStateChange('edit-shape', false, 'edit', { 
+      action: 'disabled',
+      message: '图形编辑功能已被禁用' 
     });
-    
-    if (success) {
-      // 更新工具状态
-      this.triggerToolStateChange('edit-shape', true, 'edit', { 
-        action: 'enable',
-        message: '图形编辑模式已启用，点击图形开始编辑' 
-      });
-      
-      // 添加地图鼠标提示
-      const mapInstance = this.mapObj.getMapInstance();
-      if (mapInstance && mapInstance.getTargetElement()) {
-        // 设置自定义属性，提示用户如何操作
-        mapInstance.getTargetElement().setAttribute('data-edit-mode', 'active');
-        mapInstance.getTargetElement().title = '点击图形开始编辑，拖动控制点修改形状，点击地图空白处完成编辑';
-      }
-      
-      logger.info('图形编辑模式已激活，点击图形开始编辑');
-    } else {
-      // 如果启动失败，取消工具激活状态
-      this.deactivateTool('edit-shape');
-      logger.warn('无法激活图形编辑模式');
-    }
   }
 
   /**
@@ -2632,5 +2607,80 @@ export class ToolbarObject {
     }
     
     logger.info('图形编辑模式已停用');
+  }
+
+  /**
+   * 处理风场图激活
+   */
+  private handleWindLayerActivate(): void {
+    if (!this.windObj) {
+      logger.warn('风场图对象未初始化，无法启用风场图');
+      return;
+    }
+    
+    // 加载默认风场数据
+    this.loadDefaultWindData().then(data => {
+      if (data) {
+        // 设置风场数据
+        this.windObj!.setData(data);
+        // 启用风场图
+        this.windObj!.enable().then(success => {
+          if (success) {
+            logger.debug('风场图已成功启用');
+            // 触发状态变化回调
+            this.triggerToolStateChange('wind-layer', true, 'layer');
+          } else {
+            logger.warn('风场图启用失败');
+            // 通知失败
+            this.triggerToolStateChange('wind-layer', false, 'layer', {
+              error: '风场图启用失败'
+            });
+          }
+        });
+      } else {
+        logger.warn('加载风场数据失败');
+        // 通知失败
+        this.triggerToolStateChange('wind-layer', false, 'layer', {
+          error: '加载风场数据失败'
+        });
+      }
+    });
+  }
+
+  /**
+   * 处理风场图停用
+   */
+  private handleWindLayerDeactivate(): void {
+    if (!this.windObj) {
+      logger.warn('风场图对象不存在，无法停用风场图');
+      return;
+    }
+    
+    // 停用风场图
+    this.windObj.disable();
+    logger.debug('风场图已停用');
+    
+    // 触发事件
+    this.triggerToolStateChange('wind-layer', false, 'layer');
+  }
+
+  /**
+   * 加载默认风场数据
+   * @returns 返回风场数据Promise
+   */
+  //@ts-ignore
+  private async loadDefaultWindData(): Promise<WindData | null> {
+    try {
+      const response = await fetch('https://blog.sakitam.com/wind-layer/data/wind.json');
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      const data = await response.json();
+      logger.debug('默认风场数据加载成功');
+      return data;
+    } catch (error) {
+      logger.error('加载默认风场数据失败:', error);
+      return null;
+    }
   }
 }
