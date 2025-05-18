@@ -58,6 +58,7 @@ export default {
 <script setup lang="ts">
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
+import '../ScMap/styles/measure.scss'; // 导入测距样式
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 
@@ -83,6 +84,7 @@ import { MapObject } from './composables/MapObject';
 import { MarkerObject } from './composables/MarkerObject';
 import { ShapeObject } from './composables/ShapeObject';
 import { ToolbarObject } from './composables/ToolbarObject';
+import { MeasureObject } from './composables/MeasureObject';
 import type { MapEventType, Track } from './types';
 import { MapConfig, MapTile } from './types';
 import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
@@ -201,6 +203,7 @@ let mapObj: MapObject | null = null;
 let toolbarObject: ToolbarObject | null = null;
 let markerObject: MarkerObject | null = null;
 let shapeObject: ShapeObject | null = null;
+let measureObject: MeasureObject | null = null;
 // 使用类型别名表示任意满足轨迹播放接口的对象
 let trackObj: any = null;
 let gridManager: GridManager | null = null;
@@ -215,7 +218,7 @@ const showLayerPanel = ref<boolean>(false);
 const showTrackPlayer = ref<boolean>(false);
 const showFlightLinePanel = ref<boolean>(false);
 const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
-const mapToolbarRef = ref<ComponentPublicInstance<{ setToolbarObj: (obj: ToolbarObject) => void }>>(null);
+const mapToolbarRef = ref<ComponentPublicInstance<{ setToolbarObj: (obj: ToolbarObject) => void }>>();
 const trackPlayerRef = ref(null);
 const flightLinePanelRef = ref(null);
 const mapReady = ref(false);
@@ -428,8 +431,8 @@ const initMap = async () => {
       handleToolStateByType(toolId, active, toolType, data);
     });
     nextTick(() => {
-      if (mapToolbarRef.value) {
-        mapToolbarRef.value?.setToolbarObj(toolbarObject);
+      if (mapToolbarRef.value && toolbarObject) {
+        mapToolbarRef.value.setToolbarObj(toolbarObject as ToolbarObject);
       }
     });
     // 获取其他对象引用
@@ -437,6 +440,9 @@ const initMap = async () => {
     shapeObject = toolbarObject.getShapeObject();
     trackObj = toolbarObject.getTrackObject(); // 获取轨迹对象（实际是LeafletTrackplayerObject实例）
     gridManager = toolbarObject.getGridObject();
+    
+    // 创建测量对象
+    measureObject = new MeasureObject(mapObj.getMapInstance());
     
     // 标记地图已准备好
     mapReady.value = true;
@@ -464,7 +470,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     // 坐标面板强制显示事件
     'coordinate-panel-visible': () => {
       if (toolType === 'panel' && active) {
-        showCoordinatePanel.value = true;
+    showCoordinatePanel.value = true;
         logger.debug('收到坐标面板强制显示事件');
       }
     },
@@ -493,7 +499,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         // 如果激活按钮，确定面板位置
         layerPanelPosition.value = determineLayerPanelPosition();
         logger.debug('图层切换按钮已激活，显示图层面板');
-      } else {
+    } else {
         logger.debug('图层切换按钮已停用，隐藏图层面板');
       }
     },
@@ -507,7 +513,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
       if (active) {
         logger.debug('[Overview] 鹰眼工具已激活，显示鹰眼地图');
-      } else {
+  } else {
         logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
       }
 
@@ -538,7 +544,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllMarkers();
           logger.debug('[Marker] 隐藏所有标记点');
-        } else {
+  } else {
           markerObject.showAllMarkers();
           logger.debug('[Marker] 显示所有标记点');
         }
@@ -551,7 +557,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllLabels();
           logger.debug('[Marker] 隐藏所有标记点标签');
-        } else {
+      } else {
           markerObject.showAllLabels();
           logger.debug('[Marker] 显示所有标记点标签');
         }
@@ -624,20 +630,17 @@ const determineLayerPanelPosition = (): 'top-left' | 'top-right' | 'bottom-left'
         return toolbarPosition as 'top-left' | 'top-right';
       } else {
         // 如果工具栏在底部，面板放在其上方相同水平位置
-        return toolbarPosition === 'bottom-left' ? 'bottom-left' : 'bottom-right';
+        return toolbarPosition === 'bottom-left' ? 'top-left' : 'top-right';
       }
     } else {
       // 垂直工具栏时，面板在工具栏旁边
-      if (toolbarPosition.endsWith('-left')) {
-        // 如果工具栏在左侧，面板放在其右侧
-        return toolbarPosition === 'top-left' ? 'top-left' : 'bottom-left';
-      } else {
-        // 如果工具栏在右侧，面板放在其左侧
-        return toolbarPosition === 'top-right' ? 'top-right' : 'bottom-right';
-      }
+      // 如果工具栏在左侧，面板放在其右侧
+      // 如果工具栏在右侧，面板放在其左侧
+      return toolbarPosition === 'top-right' ? 'top-right' : 'bottom-right';
     }
   }
 
+  // 如果没有工具栏配置，使用默认位置
   return 'top-left'; // 默认位置为左上角
 };
 // 处理工具激活
@@ -660,6 +663,11 @@ const handleToolActivated = (toolId: string) => {
     showTrackPlayer.value = true;
   } else if (toolId === 'flightLine') {
     showFlightLinePanel.value = true;
+  }
+
+  // 处理测距工具的激活
+  if (toolId === 'measure') {
+    measureObject?.enable();
   }
 };
 
@@ -688,6 +696,12 @@ const handleToolDeactivated = (toolId: string) => {
     showTrackPlayer.value = false;
   } else if (toolId === 'flightLine') {
     showFlightLinePanel.value = false;
+  }
+
+  // 处理测距工具的停用
+  if (toolId === 'measure') {
+    measureObject?.disable();
+    measureObject?.clear();
   }
 };
 
@@ -809,6 +823,10 @@ onBeforeUnmount(() => {
     mapObj.destroy();
     mapObj = null;
   }
+  
+  // 销毁测量对象
+  measureObject?.destroy();
+  measureObject = null;
   
   // 重置状态
   mapInitialized.value = false;

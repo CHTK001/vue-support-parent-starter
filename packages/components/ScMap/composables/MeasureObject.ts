@@ -1,912 +1,520 @@
 /**
- * 测距对象
- * @description 用于地图测量距离功能
+ * 测距对象（基于Leaflet的高级实现）
  */
-import { Map } from 'ol';
-import { Draw, Snap } from 'ol/interaction';
-import { Vector as VectorSource } from 'ol/source';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Style, Stroke, Fill, Circle as CircleStyle, Text } from 'ol/style';
-import { LineString, Polygon, Point } from 'ol/geom';
-import { Feature, Overlay } from 'ol';
-import { getLength, getArea } from 'ol/sphere';
-import { unByKey } from 'ol/Observable';
-import { FeatureLike } from 'ol/Feature';
-import logger from './LogObject';
+import { info } from '@repo/utils';
+import type { Map, LatLng, Polyline, Circle, LayerGroup } from 'leaflet';
+import L from 'leaflet';
 
-// 测量类型
-export type MeasureType = 'distance' | 'area';
+export type MeasureType = 'distance';
+// 定义事件类型
+export type MeasureEventType = 'measure-end';
 
-// 测量样式配置
+// 定义事件监听器类型
+export type MeasureEventListener = () => void;
+
 export interface MeasureStyle {
-  // 线样式
-  line?: {
-    stroke?: {
-      color?: string;
-      width?: number;
-      lineDash?: number[];
-    };
-  };
-  // 面样式
-  polygon?: {
-    stroke?: {
-      color?: string;
-      width?: number;
-      lineDash?: number[];
-    };
-    fill?: {
-      color?: string;
-    };
-  };
-  // 点样式
-  point?: {
-    radius?: number;
-    stroke?: {
-      color?: string;
-      width?: number;
-    };
-    fill?: {
-      color?: string;
-    };
-  };
-  // 文本样式
-  text?: {
-    font?: string;
-    fill?: {
-      color?: string;
-    };
-    stroke?: {
-      color?: string;
-      width?: number;
-    };
-    offsetY?: number;
-    padding?: number[];
-  };
+  color?: string;
+  weight?: number;
+  dashArray?: string;
+  showUnit?: boolean;
 }
 
-// 默认样式配置
 const DEFAULT_STYLE: MeasureStyle = {
-  line: {
-    stroke: {
-      color: 'rgba(24, 144, 255, 1)',
-      width: 3,
-      lineDash: [5, 5]
-    }
-  },
-  polygon: {
-    stroke: {
-      color: 'rgba(24, 144, 255, 1)',
-      width: 3,
-      lineDash: [5, 5]
-    },
-    fill: {
-      color: 'rgba(24, 144, 255, 0.2)'
-    }
-  },
-  point: {
-    radius: 5,
-    stroke: {
-      color: 'rgba(24, 144, 255, 0.8)',
-      width: 2
-    },
-    fill: {
-      color: 'rgba(255, 255, 255, 0.8)'
-    }
-  },
-  text: {
-    font: '14px Calibri,sans-serif',
-    fill: {
-      color: '#333'
-    },
-    stroke: {
-      color: '#fff',
-      width: 3
-    },
-    offsetY: -12,
-    padding: [5, 5, 5, 5]
-  }
+  color: '#ff4757',
+  weight: 3,
+  dashArray: '5,5',
+  showUnit: true
 };
 
-/**
- * 测距对象类
- */
 export class MeasureObject {
-  // 地图实例
   private mapInstance: Map | null = null;
-  // 绘制图层源
-  private source: VectorSource = new VectorSource();
-  // 绘制图层
-  private layer: VectorLayer | null = null;
-  // 绘制交互
-  private draw: Draw | null = null;
-  // 捕捉交互
-  private snap: Snap | null = null;
-  // 监听器
-  private measureListener: any = null;
-  // 提示元素
-  private helpTooltipElement: HTMLElement | null = null;
-  // 测量提示元素
-  private measureTooltipElement: HTMLElement | null = null;
-  // 测量提示数组
-  private measureTooltips: Overlay[] = [];
-  // 帮助提示数组
-  private helpTooltip: Overlay | null = null;
-  // 绘制的特征
-  private sketch: Feature<LineString | Polygon> | null = null;
-  // 当前测量类型
-  private measureType: MeasureType = 'distance';
-  // 样式配置
-  private style: MeasureStyle = DEFAULT_STYLE;
-  // 是否启用
   private enabled: boolean = false;
-  // 添加一个标志位，用于防抖
-  private _redrawScheduled: boolean = false;
+  private style: MeasureStyle = DEFAULT_STYLE;
+  
+  // 测量相关变量
+  private measureLayerGroup: LayerGroup | null = null;
+  private points: LatLng[] = [];
+  private polyline: Polyline | null = null;
+  private markers: Circle[] = [];
+  private totalDistance: number = 0;
+  private clickHandler: (e: any) => void;
+  private moveHandler: (e: any) => void;
+  private dblclickHandler: (e: any) => void;
+  private tempLine: Polyline | null = null;
+  private resultLabel: L.Marker | null = null;
+  private firstClick: boolean = true;
+  
+  // 事件监听器存储
+  private eventListeners: { [key in MeasureEventType]: MeasureEventListener[] } = {
+    'measure-end': []
+  };
 
-  /**
-   * 构造函数
-   * @param mapInstance 地图实例
-   * @param style 样式配置
-   */
   constructor(mapInstance: Map | null = null, style?: MeasureStyle) {
+    // 初始化事件处理函数
+    this.clickHandler = (e: any) => this.handleMapClick(e);
+    this.moveHandler = (e: any) => this.handleMouseMove(e);
+    this.dblclickHandler = (e: any) => this.handleMapDblClick(e);
+    
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }
-    
     if (style) {
       this.setStyle(style);
     }
-
-    // 创建矢量图层
-    this.layer = new VectorLayer({
-      source: this.source,
-      zIndex: 999,
-      style: (feature) => {
-        return this.createFeatureStyle(feature as Feature<LineString | Polygon | Point>);
-      }
-    });
-
-    logger.debug('测距对象已创建');
   }
 
-  /**
-   * 设置地图实例
-   * @param mapInstance 地图实例
-   */
-  public setMapInstance(mapInstance: Map): void {
+  public setMapInstance(mapInstance: Map) {
     this.mapInstance = mapInstance;
+    if (this.measureLayerGroup && this.mapInstance) {
+      // 如果已存在图层组，先移除
+      this.measureLayerGroup.remove();
+    }
+    this.measureLayerGroup = L.layerGroup().addTo(mapInstance);
     
-    // 如果图层已经创建，添加到地图
-    if (this.layer && !this.isLayerAdded()) {
-      this.mapInstance.addLayer(this.layer);
-    }
-
-    logger.debug('测距对象已设置地图实例');
-  }
-
-  /**
-   * 设置样式
-   * @param style 样式配置
-   */
-  public setStyle(style: MeasureStyle): void {
-    this.style = {
-      ...DEFAULT_STYLE,
-      ...style,
-      line: {
-        ...DEFAULT_STYLE.line,
-        ...style.line,
-        stroke: {
-          ...DEFAULT_STYLE.line?.stroke,
-          ...style.line?.stroke
-        }
-      },
-      polygon: {
-        ...DEFAULT_STYLE.polygon,
-        ...style.polygon,
-        stroke: {
-          ...DEFAULT_STYLE.polygon?.stroke,
-          ...style.polygon?.stroke
-        },
-        fill: {
-          ...DEFAULT_STYLE.polygon?.fill,
-          ...style.polygon?.fill
-        }
-      },
-      point: {
-        ...DEFAULT_STYLE.point,
-        ...style.point,
-        stroke: {
-          ...DEFAULT_STYLE.point?.stroke,
-          ...style.point?.stroke
-        },
-        fill: {
-          ...DEFAULT_STYLE.point?.fill,
-          ...style.point?.fill
-        }
-      },
-      text: {
-        ...DEFAULT_STYLE.text,
-        ...style.text,
-        fill: {
-          ...DEFAULT_STYLE.text?.fill,
-          ...style.text?.fill
-        },
-        stroke: {
-          ...DEFAULT_STYLE.text?.stroke,
-          ...style.text?.stroke
-        }
-      }
-    };
-
-    // 刷新图层样式
-    if (this.layer) {
-      this.layer.changed();
-    }
-
-    logger.debug('测距对象样式已更新');
-  }
-
-  /**
-   * 启用测距功能
-   * @param type 测量类型
-   */
-  public enable(type: MeasureType = 'distance'): void {
-    if (!this.mapInstance) {
-      logger.warn('地图实例未设置，无法启用测距功能');
-      return;
-    }
-
-    // 如果已经启用，先禁用
     if (this.enabled) {
-      this.disable();
+      this.enable();
     }
-
-    this.measureType = type;
-
-    // 确保图层已添加到地图
-    if (!this.isLayerAdded()) {
-      this.mapInstance.addLayer(this.layer as VectorLayer);
-    }
-
-    // 创建绘制交互
-    this.addInteraction();
-
-    this.enabled = true;
-    logger.debug(`测距功能已启用，类型: ${type}`);
   }
 
-  /**
-   * 禁用测距功能
-   */
-  public disable(): void {
-    if (!this.mapInstance || !this.enabled) {
-      return;
-    }
+  public setStyle(style: MeasureStyle) {
+    this.style = { ...DEFAULT_STYLE, ...style };
+  }
 
-    // 移除交互
-    this.removeInteraction();
-
-    // 移除帮助提示
-    this.removeHelpTooltip();
+  public enable() {
+    if (!this.mapInstance) return;
     
-    // 清除所有测距数据
+    this.enabled = true;
     this.clear();
+    this.firstClick = true;
+    
+    // 更改鼠标样式
+    this.mapInstance.getContainer().style.cursor = 'crosshair';
+    
+    // 禁用地图的双击缩放
+    this.mapInstance.doubleClickZoom.disable();
+    
+    // 注册事件监听
+    // 使用setTimeout确保不会在当前事件循环中意外触发click事件
+    setTimeout(() => {
+      if (this.enabled && this.mapInstance) {
+        this.mapInstance.on('click', this.clickHandler);
+        this.mapInstance.on('mousemove', this.moveHandler);
+        this.mapInstance.on('dblclick', this.dblclickHandler);
+      }
+    }, 50);
+  }
 
+  public disable() {
+    if (!this.mapInstance || !this.enabled) return;
+    
     this.enabled = false;
-    logger.debug('测距功能已禁用，所有测距数据已清除');
-  }
-
-  /**
-   * 清除测量结果
-   */
-  public clear(): void {
-    // 清空图层
-    this.source.clear();
-
-    // 清除所有测量提示
-    this.clearMeasureTooltips();
-
-    logger.debug('测距结果已清除');
-  }
-
-  /**
-   * 销毁对象
-   */
-  public destroy(): void {
-    this.disable();
-
-    // 移除图层
-    if (this.mapInstance && this.layer) {
-      this.mapInstance.removeLayer(this.layer);
+    
+    // 恢复默认鼠标样式
+    this.mapInstance.getContainer().style.cursor = '';
+    
+    // 恢复地图的双击缩放
+    this.mapInstance.doubleClickZoom.enable();
+    
+    // 移除事件监听
+    this.mapInstance.off('click', this.clickHandler);
+    this.mapInstance.off('mousemove', this.moveHandler);
+    this.mapInstance.off('dblclick', this.dblclickHandler);
+    
+    // 在清空之前触发测量结束事件
+    if (this.points.length > 1) {
+      this.fireEvent('measure-end');
     }
-
-    // 清空资源
-    this.layer = null;
-    this.mapInstance = null;
-    this.source = new VectorSource();
-    this.enabled = false;
-
-    logger.debug('测距对象已销毁');
+    
+    // 彻底清除所有测量数据和图层
+    this.clear();
+    
+    // 确保图层被完全移除
+    if (this.measureLayerGroup) {
+      this.measureLayerGroup.clearLayers();
+      this.mapInstance.removeLayer(this.measureLayerGroup);
+      this.measureLayerGroup = L.layerGroup().addTo(this.mapInstance);
+    }
   }
 
-  /**
-   * 是否已启用
-   */
+  public clear() {
+    this.points = [];
+    this.totalDistance = 0;
+    
+    // 确保图层组存在并清空其中所有图层
+    if (this.measureLayerGroup) {
+      // 先移除所有已知的特定元素
+      if (this.polyline) {
+        this.measureLayerGroup.removeLayer(this.polyline);
+      }
+      
+      if (this.tempLine) {
+        this.measureLayerGroup.removeLayer(this.tempLine);
+      }
+      
+      if (this.resultLabel) {
+        this.measureLayerGroup.removeLayer(this.resultLabel);
+      }
+      
+      this.markers.forEach(marker => {
+        if (marker && this.measureLayerGroup) {
+          this.measureLayerGroup.removeLayer(marker);
+        }
+      });
+      
+      // 最后清空整个图层组
+      this.measureLayerGroup.clearLayers();
+    }
+    
+    // 重置所有引用
+    this.polyline = null;
+    this.markers = [];
+    this.tempLine = null;
+    this.resultLabel = null;
+    this.firstClick = true;
+  }
+
   public isEnabled(): boolean {
     return this.enabled;
   }
 
-  /**
-   * 获取当前测量类型
-   */
-  public getMeasureType(): MeasureType {
-    return this.measureType;
-  }
-
-  /**
-   * 切换测量类型
-   * @param type 测量类型
-   */
-  public switchType(type: MeasureType): void {
-    if (this.measureType === type) {
+  // 地图点击事件处理
+  private handleMapClick(e: any): void {
+    // 忽略双击事件触发的点击，避免在双击时添加点
+    if ((e.originalEvent && e.originalEvent._stopped) || (e._stopped)) {
       return;
     }
     
-    // 如果已启用，重新启用新类型
-    if (this.enabled) {
-      this.disable();
-      this.enable(type);
+    // 确保是有效的用户点击事件
+    if (!this.mapInstance || !e.latlng || !e.originalEvent || !this.measureLayerGroup) {
+      return;
+    }
+    
+    // 获取点击位置
+    const clickedPoint = e.latlng;
+    
+    // 添加点到测量点集合
+    this.points.push(clickedPoint);
+    
+    // 添加点标记
+    const marker = L.circle(clickedPoint, {
+      radius: 5,
+      color: this.style.color,
+      fillColor: this.style.color,
+      fillOpacity: 1
+    }).addTo(this.measureLayerGroup);
+    
+    if (marker instanceof L.Circle) {
+      this.markers.push(marker);
+    }
+    
+    // 如果是第一个点，仅添加标记
+    if (this.points.length === 1) {
+      return;
+    }
+    
+    // 计算新增的距离
+    const lastPoint = this.points[this.points.length - 2];
+    const segmentDistance = this.calculateDistance(lastPoint, clickedPoint);
+    this.totalDistance += segmentDistance;
+    
+    // 更新或创建折线
+    if (this.polyline) {
+      this.polyline.addLatLng(clickedPoint);
     } else {
-      this.measureType = type;
+      this.polyline = L.polyline(this.points, {
+        color: this.style.color,
+        weight: this.style.weight,
+        opacity: 0.8
+      }).addTo(this.measureLayerGroup);
     }
-
-    logger.debug(`测距类型已切换为: ${type}`);
-  }
-
-  /**
-   * 添加交互
-   */
-  private addInteraction(): void {
-    if (!this.mapInstance) return;
-
-    const type = this.measureType === 'distance' ? 'LineString' : 'Polygon';
-
-    // 创建绘制交互
-    this.draw = new Draw({
-      source: this.source,
-      type: type,
-      style: (feature) => {
-        return this.createFeatureStyle(feature as Feature<LineString | Polygon | Point>);
-      }
-    });
-
-    // 添加绘制交互
-    this.mapInstance.addInteraction(this.draw);
-
-    // 创建捕捉交互
-    this.snap = new Snap({
-      source: this.source
-    });
     
-    // 添加捕捉交互
-    this.mapInstance.addInteraction(this.snap);
-
-    // 创建帮助提示
-    this.createHelpTooltip();
-
-    // 添加绘制开始事件监听
-    this.draw.on('drawstart', this.handleDrawStart.bind(this));
+    // 显示此段距离的标签
+    this.addDistanceLabel(lastPoint, clickedPoint, segmentDistance);
+  }
+  
+  // 地图双击事件处理
+  private handleMapDblClick(e: any): void {
+    info('测距触发双击');
+    if (!this.mapInstance || !this.measureLayerGroup) return;
     
-    // 添加绘制结束事件监听
-    this.draw.on('drawend', this.handleDrawEnd.bind(this));
-  }
-
-  /**
-   * 移除交互
-   */
-  private removeInteraction(): void {
-    if (!this.mapInstance) return;
-
-    // 移除绘制交互
-    if (this.draw) {
-      this.mapInstance.removeInteraction(this.draw);
-      this.draw = null;
+    // 阻止地图的默认双击缩放行为
+    if (e.originalEvent) {
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
+      e.originalEvent.stopImmediatePropagation();
     }
-
-    // 移除捕捉交互
-    if (this.snap) {
-      this.mapInstance.removeInteraction(this.snap);
-      this.snap = null;
-    }
-
-    // 移除监听器
-    if (this.measureListener) {
-      unByKey(this.measureListener);
-      this.measureListener = null;
-    }
-  }
-
-  /**
-   * 处理绘制开始事件
-   * @param evt 事件对象
-   */
-  private handleDrawStart(evt: any): void {
-    // 获取绘制的要素
-    this.sketch = evt.feature as Feature<LineString | Polygon>;
-
-    // 创建测量提示
-    this.createMeasureTooltip();
-
-    // 添加几何变化监听器
-    this.measureListener = this.sketch.getGeometry().on('change', (e: any) => {
-      // 使用requestAnimationFrame优化，减少频繁更新
-      window.requestAnimationFrame(() => {
-        const geom = e.target;
-        let output = '';
-        let tooltipCoord = null;
-
-        if (this.measureType === 'distance') {
-          const length = getLength(geom);
-          output = this.formatLength(length);
-          tooltipCoord = (geom as LineString).getLastCoordinate();
+    
+    L.DomEvent.stopPropagation(e);
+    L.DomEvent.preventDefault(e);
+    L.DomEvent.stop(e);
+    
+    // 确保事件被标记为已处理
+    e._stopped = true;
+    
+    // 如果已有点，就完成测距
+    if (this.points.length > 0) {
+      // 添加最后一个点（如果和双击位置不同且不是第一个点）
+      const clickedPoint = e.latlng;
+      
+      if (this.points.length > 0) {
+        const lastPoint = this.points[this.points.length - 1];
+        
+        // 如果最后一个点和双击位置不是同一个点，且距离足够远
+        if (this.calculateDistance(lastPoint, clickedPoint) > 2) {
+          // 手动添加点，但避免触发常规的click处理
+          this.points.push(clickedPoint);
           
-          // 触发要素重新绘制，使节点距离标签更新
-          // 添加防抖，避免频繁触发重绘
-          if (this.source && !this._redrawScheduled) {
-            this._redrawScheduled = true;
-            window.requestAnimationFrame(() => {
-              this.source.dispatchEvent('change');
-              this._redrawScheduled = false;
-            });
+          // 添加点标记
+          const marker = L.circle(clickedPoint, {
+            radius: 5,
+            color: this.style.color,
+            fillColor: this.style.color,
+            fillOpacity: 1
+          }).addTo(this.measureLayerGroup);
+          
+          if (marker instanceof L.Circle) {
+            this.markers.push(marker);
           }
+          
+          // 计算新增的距离
+          const segmentDistance = this.calculateDistance(lastPoint, clickedPoint);
+          this.totalDistance += segmentDistance;
+          
+          // 更新折线
+          if (this.polyline) {
+            this.polyline.addLatLng(clickedPoint);
+          }
+          
+          // 显示此段距离的标签
+          this.addDistanceLabel(lastPoint, clickedPoint, segmentDistance);
+        }
+      }
+      
+      // 停止测距并显示结果
+      this.finishMeasurement();
+      this.enabled = false;
+      
+      // 恢复默认鼠标样式
+      this.mapInstance.getContainer().style.cursor = '';
+      
+      // 暂时禁用双击缩放
+      this.mapInstance.doubleClickZoom.disable();
+      
+      // 移除事件监听
+      this.mapInstance.off('click', this.clickHandler);
+      this.mapInstance.off('mousemove', this.moveHandler);
+      this.mapInstance.off('dblclick', this.dblclickHandler);
+      
+      // 延迟恢复双击缩放，确保不会触发地图缩放
+      setTimeout(() => {
+        if (this.mapInstance) {
+          this.mapInstance.doubleClickZoom.enable();
+        }
+      }, 1000);
+      
+      // 触发测量结束事件
+      this.fireEvent('measure-end');
+    }
+  }
+
+  // 鼠标移动事件处理
+  private handleMouseMove(e: any): void {
+    if (!this.mapInstance || !this.measureLayerGroup || this.points.length === 0) return;
+    
+    const lastPoint = this.points[this.points.length - 1];
+    const currentPoint = e.latlng;
+    
+    // 更新或创建临时线
+    if (this.tempLine) {
+      this.tempLine.setLatLngs([lastPoint, currentPoint]);
+    } else {
+      this.tempLine = L.polyline([lastPoint, currentPoint], {
+        color: this.style.color,
+        weight: this.style.weight,
+        opacity: 0.5,
+        dashArray: '5, 10'
+      }).addTo(this.measureLayerGroup);
+    }
+  }
+
+  // 完成测量
+  private finishMeasurement(): void {
+    if (!this.mapInstance || !this.measureLayerGroup) return;
+    
+    // 检查地图是否正在执行缩放动画，如果是则延迟完成测量
+    if ((this.mapInstance as any)._animatingZoom) {
+      setTimeout(() => {
+        // 再次检查地图是否仍在缩放
+        if (this.mapInstance && (this.mapInstance as any)._animatingZoom) {
+          // 如果仍在缩放，再次延迟
+          setTimeout(() => this.finishMeasurement(), 400);
         } else {
-          const area = getArea(geom);
-          output = this.formatArea(area);
-          tooltipCoord = (geom as Polygon).getInteriorPoint().getCoordinates();
+          this.finishMeasurement();
         }
-
-        if (this.measureTooltipElement) {
-          this.measureTooltipElement.innerHTML = output;
-        }
-
-        if (this.measureTooltips.length > 0) {
-          const tooltip = this.measureTooltips[this.measureTooltips.length - 1];
-          tooltip.setPosition(tooltipCoord);
+      }, 400);
+      return;
+    }
+    
+    // 移除临时线
+    if (this.tempLine) {
+      this.measureLayerGroup.removeLayer(this.tempLine);
+      this.tempLine = null;
+    }
+    
+    // 添加总距离标签
+    if (this.points.length > 1) {
+      const lastPoint = this.points[this.points.length - 1];
+      const formattedDistance = this.formatDistance(this.totalDistance);
+      
+      // 清除之前的节点累计距离标签，避免与总距离标签重叠
+      this.measureLayerGroup.eachLayer((layer: any) => {
+        if (layer instanceof L.Marker) {
+          const markerPos = layer.getLatLng();
+          // 如果是添加在最后一个点上的节点标签，则移除它
+          if (markerPos.equals(lastPoint) && layer.options && 
+              layer.options.icon && layer.options.icon.options && 
+              layer.options.icon.options.className === 'measure-node-label') {
+            this.measureLayerGroup.removeLayer(layer);
+          }
         }
       });
-    });
-  }
-
-  /**
-   * 处理绘制结束事件
-   */
-  private handleDrawEnd(): void {
-    // 更新测量提示样式
-    if (this.measureTooltipElement) {
-      this.measureTooltipElement.className = 'ol-tooltip ol-tooltip-static';
       
-      // 添加删除按钮
-      const deleteButton = document.createElement('span');
-      deleteButton.className = 'delete-measure-btn';
-      deleteButton.innerHTML = '×';
-      deleteButton.title = '删除此测量';
-      deleteButton.onclick = (e) => {
-        e.stopPropagation();
-        // 如果当前测量提示有对应的要素，则删除
-        if (this.source && this.measureTooltips.length > 0) {
-          const tooltipToRemove = this.measureTooltips[this.measureTooltips.length - 1];
-          const features = this.source.getFeatures();
-          if (features.length > 0) {
-            // 移除最后添加的要素
-            this.source.removeFeature(features[features.length - 1]);
-          }
-          
-          // 移除提示
-          if (tooltipToRemove && this.mapInstance) {
-            this.mapInstance.removeOverlay(tooltipToRemove);
-            const element = tooltipToRemove.getElement();
-            if (element && element.parentNode) {
-              element.parentNode.removeChild(element);
-            }
-            
-            // 从数组中移除
-            const index = this.measureTooltips.indexOf(tooltipToRemove);
-            if (index !== -1) {
-              this.measureTooltips.splice(index, 1);
-            }
-          }
-        }
-      };
-      
-      this.measureTooltipElement.appendChild(deleteButton);
-    }
-
-    // 将最后一个提示固定位置
-    if (this.measureTooltips.length > 0) {
-      const tooltip = this.measureTooltips[this.measureTooltips.length - 1];
-      tooltip.setOffset([0, -7]);
-    }
-
-    // 重置交互状态
-    this.sketch = null;
-    this.measureTooltipElement = null;
-    
-    // 重新创建测量提示
-    this.createMeasureTooltip();
-    
-    // 移除监听器
-    if (this.measureListener) {
-      unByKey(this.measureListener);
-      this.measureListener = null;
-    }
-    
-    // 刷新图层，使总距离标签更新
-    if (this.source) {
-      this.source.changed();
-    }
-  }
-
-  /**
-   * 创建测量提示
-   */
-  private createMeasureTooltip(): void {
-    if (!this.mapInstance) return;
-
-    // 创建提示元素
-    if (this.measureTooltipElement) {
-      this.measureTooltipElement.parentNode?.removeChild(this.measureTooltipElement);
-    }
-    
-    this.measureTooltipElement = document.createElement('div');
-    this.measureTooltipElement.className = 'ol-tooltip ol-tooltip-measure';
-    
-    // 创建提示Overlay
-    const measureTooltip = new Overlay({
-      element: this.measureTooltipElement,
-      offset: [0, -15],
-      positioning: 'bottom-center',
-      className: 'measure-tooltip'
-    });
-    
-    this.mapInstance.addOverlay(measureTooltip);
-    
-    // 保存提示
-    this.measureTooltips.push(measureTooltip);
-  }
-
-  /**
-   * 创建帮助提示
-   */
-  private createHelpTooltip(): void {
-    if (!this.mapInstance) return;
-
-    // 移除已有的帮助提示
-    this.removeHelpTooltip();
-    
-    // 创建帮助提示元素
-    this.helpTooltipElement = document.createElement('div');
-    this.helpTooltipElement.className = 'ol-tooltip';
-    
-    // 创建提示Overlay
-    this.helpTooltip = new Overlay({
-      element: this.helpTooltipElement,
-      offset: [15, 0],
-      positioning: 'center-left',
-      className: 'help-tooltip'
-    });
-    
-    this.mapInstance.addOverlay(this.helpTooltip);
-    
-    // 添加鼠标移动监听器
-    this.mapInstance.getViewport().addEventListener('pointermove', this.handlePointerMove.bind(this));
-  }
-
-  /**
-   * 移除帮助提示
-   */
-  private removeHelpTooltip(): void {
-    if (!this.mapInstance) return;
-
-    // 移除帮助提示元素
-    if (this.helpTooltipElement) {
-      this.helpTooltipElement.parentNode?.removeChild(this.helpTooltipElement);
-      this.helpTooltipElement = null;
-    }
-    
-    // 移除帮助提示Overlay
-    if (this.helpTooltip) {
-      this.mapInstance.removeOverlay(this.helpTooltip);
-      this.helpTooltip = null;
-    }
-    // 移除鼠标移动监听器
-    this.mapInstance.getViewport().removeEventListener('pointermove', this.handlePointerMove.bind(this));
-  }
-
-  /**
-   * 清除测量提示
-   */
-  private clearMeasureTooltips(): void {
-    if (!this.mapInstance) return;
-
-    // 移除所有测量提示
-    this.measureTooltips.forEach(tooltip => {
-      const element = tooltip.getElement();
-      if (element && element.parentNode) {
-        element.parentNode.removeChild(element);
-      }
-      this.mapInstance?.removeOverlay(tooltip);
-    });
-    
-    this.measureTooltips = [];
-    this.measureTooltipElement = null;
-  }
-
-  /**
-   * 处理鼠标移动事件
-   * @param event 事件对象
-   */
-  private handlePointerMove(event: any): void {
-    if (!this.mapInstance || !this.helpTooltipElement || !this.helpTooltip) return;
-
-    // 使用requestAnimationFrame提高性能
-    window.requestAnimationFrame(() => {
-      const pixel = this.mapInstance!.getEventPixel(event);
-      const hit = this.mapInstance!.hasFeatureAtPixel(pixel);
-      
-      // 更新帮助提示内容和位置
-      if (this.helpTooltipElement) {
-        this.helpTooltipElement.style.display = this.sketch ? '' : 'none';
-        
-        if (this.sketch) {
-          const type = this.measureType === 'distance' ? '单击继续绘制, 双击结束' : '单击绘制多边形, 双击结束';
-          this.helpTooltipElement.innerHTML = type;
-        }
-      }
-      
-      if (this.helpTooltip) {
-        this.helpTooltip.setPosition(this.mapInstance!.getEventCoordinate(event));
-      }
-      
-      // 更新鼠标样式
-      this.mapInstance!.getTargetElement().style.cursor = hit ? 'pointer' : 'crosshair';
-    });
-  }
-
-  /**
-   * 格式化长度
-   * @param length 长度
-   * @returns 格式化后的长度
-   */
-  private formatLength(length: number): string {
-    let output;
-    
-    if (length > 1000) {
-      output = `${(Math.round(length / 10) / 100).toFixed(2)} 公里`;
-    } else {
-      output = `${Math.round(length * 100) / 100} 米`;
-    }
-    
-    return `总距离: ${output}`;
-  }
-
-  /**
-   * 格式化面积
-   * @param area 面积
-   * @returns 格式化后的面积
-   */
-  private formatArea(area: number): string {
-    let output;
-    
-    if (area > 1000000) {
-      output = `${Math.round((area / 1000000) * 100) / 100} km²`;
-    } else {
-      output = `${Math.round(area * 100) / 100} m²`;
-    }
-    
-    return `总面积: ${output}`;
-  }
-
-  /**
-   * 检查图层是否已添加到地图
-   * @returns 是否已添加
-   */
-  private isLayerAdded(): boolean {
-    if (!this.mapInstance || !this.layer) return false;
-    
-    const layers = this.mapInstance.getLayers().getArray();
-    return layers.includes(this.layer);
-  }
-
-  /**
-   * 创建要素样式
-   * @param feature 要素
-   * @returns 样式
-   */
-  private createFeatureStyle(feature: Feature<LineString | Polygon | Point>): Style | Style[] {
-    const styles = [];
-    const geometry = feature.getGeometry();
-    
-    if (!geometry) return new Style();
-    
-    // 线样式
-    if (geometry instanceof LineString) {
-      styles.push(
-        new Style({
-          stroke: new Stroke({
-            color: this.style.line?.stroke?.color || 'rgba(24, 144, 255, 1)',
-            width: this.style.line?.stroke?.width || 3,
-            lineDash: this.style.line?.stroke?.lineDash || [5, 5],
-            lineCap: 'round',  // 添加圆角端点，提高视觉效果
-            lineJoin: 'round'  // 添加圆角连接，提高视觉效果
-          })
+      // 使用更大的尺寸，确保文本完全显示
+      this.resultLabel = L.marker(lastPoint, {
+        icon: L.divIcon({
+          className: 'measure-total-label',
+          iconSize: [200, 40],  // 增大宽度确保长文本显示
+          iconAnchor: [100, -20], // 调整位置，让总距离标签显示在点的上方
+          html: `<div class="total-distance-label" data-distance="${formattedDistance}">总距离: ${formattedDistance}</div>`
         })
-      );
-      
-      // 添加顶点样式
-      const coordinates = geometry.getCoordinates();
-      
-      // 计算总距离
-      const totalDistance = getLength(geometry);
-      
-      // 检查是否已绘制完成
-      const isDrawComplete = feature.get('drawComplete');
-      
-      // 计算每个节点的累计距离，用于显示在每个节点处
-      let accumulatedDistance = 0;
-      
-      for (let i = 0; i < coordinates.length; i++) {
-        const coord = coordinates[i];
-        const isLastPoint = i === coordinates.length - 1;
-        const isFirstPoint = i === 0;
-        
-        // 添加节点样式 - 使用ol-tooltip-measure样式
-        styles.push(
-          new Style({
-            geometry: new Point(coord),
-            image: new CircleStyle({
-              radius: isFirstPoint || isLastPoint ? 7 : 5, // 首尾节点稍大
-              stroke: new Stroke({
-                color: 'rgba(255, 255, 255, 0.8)',
-                width: 2
-              }),
-              fill: new Fill({
-                color: isFirstPoint ? 'rgba(24, 144, 255, 0.9)' : 
-                      isLastPoint ? 'rgba(0, 177, 89, 0.9)' : 'rgba(24, 144, 255, 0.7)'
-              })
-            }),
-            zIndex: 10
-          })
-        );
-        
-        // 计算当前节点的累计距离
-        if (i > 0) {
-          const segment = new LineString([coordinates[i-1], coordinates[i]]);
-          const segmentLength = getLength(segment);
-          accumulatedDistance += segmentLength;
-          
-          // 为每个节点添加距离标签（除了起始点）
-          if (!isFirstPoint) {
-            // 格式化累计距离
-            let distanceText = '';
-            if (accumulatedDistance > 1000) {
-              distanceText = `${(Math.round(accumulatedDistance / 10) / 100).toFixed(2)} 公里`;
-            } else {
-              distanceText = `${Math.round(accumulatedDistance * 100) / 100} 米`;
-            }
-            
-            // 添加节点距离标签，区分中间节点和终点
-            styles.push(
-              new Style({
-                geometry: new Point(coord),
-                text: new Text({
-                  text: isLastPoint ? '' : distanceText, // 终点不显示累计距离，只显示总距离
-                  font: '12px Arial,sans-serif',
-                  fill: new Fill({
-                    color: '#ffffff'
-                  }),
-                  backgroundFill: new Fill({
-                    color: 'rgba(24, 144, 255, 0.9)' // 中间节点使用蓝色背景
-                  }),
-                  padding: [3, 5, 3, 5],
-                  offsetY: -18,
-                  textAlign: 'center',
-                  textBaseline: 'middle'
-                }),
-                zIndex: 11
-              })
-            );
-          }
+      }).addTo(this.measureLayerGroup);
+    }
+  }
+
+  // 添加距离标签
+  private addDistanceLabel(point1: LatLng, point2: LatLng, distance: number): void {
+    if (!this.mapInstance || !this.measureLayerGroup) return;
+    
+    // 检查地图是否正在执行缩放动画，如果是则延迟添加标签
+    if ((this.mapInstance as any)._animatingZoom) {
+      setTimeout(() => {
+        // 再次检查地图是否仍在缩放
+        if (this.mapInstance && (this.mapInstance as any)._animatingZoom) {
+          // 如果仍在缩放，再次延迟
+          setTimeout(() => this.addDistanceLabel(point1, point2, distance), 400);
+        } else {
+          this.addDistanceLabel(point1, point2, distance);
         }
-        
-        // 只在绘制过程中的最后一个点添加总距离标签
-        // 绘制完成后，由Overlay显示总距离，避免重复
-        if (isLastPoint && !isDrawComplete) {
-          // 添加总距离标签 - 使用绿色背景和更大的字体
-          const label = this.formatLength(totalDistance);
-          
-          // 当测量结束后，由Overlay显示总距离，避免重复
-          if (this.sketch) {
-            styles.push(
-              new Style({
-                geometry: new Point(coord),
-                text: new Text({
-                  text: label,
-                  font: 'bold 16px Arial,sans-serif', // 增大字体
-                  fill: new Fill({
-                    color: '#ffffff'
-                  }),
-                  backgroundFill: new Fill({
-                    color: 'rgba(0, 177, 89, 0.9)' // 使用绿色背景
-                  }),
-                  padding: [6, 10, 6, 10], // 增大内边距
-                  stroke: new Stroke({
-                    color: 'rgba(0, 0, 0, 0.2)',
-                    width: 3
-                  }),
-                  offsetY: -30, // 调整位置，避免与节点距离标签重叠
-                  textAlign: 'center',
-                  textBaseline: 'middle'
-                }),
-                zIndex: 12 // 确保总距离标签显示在最上层
-              })
-            );
-          }
-        }
-      }
-      
-      // 当绘制完成后，标记要素
-      if (!isDrawComplete && !this.sketch) {
-        feature.set('drawComplete', true);
-      }
-    } 
-    // 面样式
-    else if (geometry instanceof Polygon) {
-      styles.push(
-        new Style({
-          stroke: new Stroke({
-            color: this.style.polygon?.stroke?.color || 'rgba(24, 144, 255, 1)',
-            width: this.style.polygon?.stroke?.width || 3,
-            lineDash: this.style.polygon?.stroke?.lineDash || [5, 5]
-          }),
-          fill: new Fill({
-            color: this.style.polygon?.fill?.color || 'rgba(24, 144, 255, 0.2)'
-          })
-        })
-      );
-      
-      // 添加顶点样式
-      const coordinates = geometry.getCoordinates()[0];
-      
-      for (let i = 0; i < coordinates.length - 1; i++) {
-        styles.push(
-          new Style({
-            geometry: new Point(coordinates[i]),
-            image: new CircleStyle({
-              radius: this.style.point?.radius || 5,
-              stroke: new Stroke({
-                color: this.style.point?.stroke?.color || 'rgba(24, 144, 255, 0.8)',
-                width: this.style.point?.stroke?.width || 2
-              }),
-              fill: new Fill({
-                color: this.style.point?.fill?.color || 'rgba(255, 255, 255, 0.8)'
-              })
-            })
-          })
-        );
-      }
+      }, 400);
+      return;
     }
     
-    return styles;
+    // 计算标签位置（两点之间的中点）
+    const midPoint = L.latLng(
+      (point1.lat + point2.lat) / 2,
+      (point1.lng + point2.lng) / 2
+    );
+    
+    // 计算角度以确定标签位置偏移
+    const angle = Math.atan2(point2.lat - point1.lat, point2.lng - point1.lng) * 180 / Math.PI;
+    const adjustedAngle = (angle + 360) % 360; // 转为0-360度
+    
+    // 格式化距离
+    const formattedDistance = this.formatDistance(distance);
+    
+    // 创建线段标签
+    L.marker(midPoint, {
+      icon: L.divIcon({
+        className: 'measure-segment-label',
+        html: `<div class="segment-distance" style="transform: rotate(${adjustedAngle}deg) translateY(-50%);">${formattedDistance}</div>`,
+        iconSize: [100, 30],
+        iconAnchor: [50, 15]
+      })
+    }).addTo(this.measureLayerGroup);
+    
+    // 为每个点添加距离标签（从起点累计）
+    // 但避免在双击完成测量时为最后一个点添加累计距离标签（因为会显示总距离标签）
+    if (this.points.length > 2) {
+      // 检查当前点是否是通过双击测量完成时添加的最后一个点
+      const isLastPointFromDblClick = !this.enabled && point2.equals(this.points[this.points.length - 1]);
+      
+      // 如果不是最后一次双击添加的点，则添加累计距离标签
+      if (!isLastPointFromDblClick) {
+        // 计算从起点到此点的累计距离
+        let cumulativeDistance = 0;
+        for (let i = 1; i < this.points.length; i++) {
+          cumulativeDistance += this.calculateDistance(this.points[i-1], this.points[i]);
+          if (this.points[i].equals(point2)) break;
+        }
+        
+        // 格式化累计距离
+        const formattedCumulativeDistance = this.formatDistance(cumulativeDistance);
+        
+        // 创建节点标签，添加动画效果和更好的样式
+        L.marker(point2, {
+          icon: L.divIcon({
+            className: 'measure-node-label',
+            html: `<div class="node-distance">${formattedCumulativeDistance}</div>`,
+            iconSize: [100, 30],
+            iconAnchor: [50, -5], // 调整位置使其显示在点的上方
+          })
+        }).addTo(this.measureLayerGroup);
+      }
+    }
+  }
+
+  // 计算两点间的距离（米）
+  private calculateDistance(point1: LatLng, point2: LatLng): number {
+    return point1.distanceTo(point2);
+  }
+
+  // 格式化距离显示
+  private formatDistance(distance: number): string {
+    if (!this.style.showUnit) {
+      return Math.round(distance).toString();
+    }
+    
+    if (distance >= 1000) {
+      return `${(distance / 1000).toFixed(2)} 公里`;
+    } else {
+      return `${Math.round(distance)} 米`;
+    }
+  }
+
+  // 添加事件监听器
+  public on(event: MeasureEventType, listener: MeasureEventListener): void {
+    if (!this.eventListeners[event]) {
+      this.eventListeners[event] = [];
+    }
+    this.eventListeners[event].push(listener);
+  }
+
+  // 移除事件监听器
+  public off(event: MeasureEventType, listener: MeasureEventListener): void {
+    if (this.eventListeners[event]) {
+      this.eventListeners[event] = this.eventListeners[event].filter(
+        item => item !== listener
+      );
+    }
+  }
+
+  // 触发事件
+  private fireEvent(event: MeasureEventType): void {
+    if (this.eventListeners[event]) {
+      this.eventListeners[event].forEach(listener => listener());
+    }
+  }
+  
+  public destroy() {
+    this.disable();
+    if (this.measureLayerGroup && this.mapInstance) {
+      this.measureLayerGroup.remove();
+      this.measureLayerGroup = null;
+    }
+    this.mapInstance = null;
   }
 }
 
-/**
- * 创建测距对象
- * @param mapInstance 地图实例
- * @param style 样式配置
- * @returns 测距对象
- */
 export function createMeasureObject(mapInstance?: Map, style?: MeasureStyle): MeasureObject {
-  return new MeasureObject(mapInstance || null, style);
-}
-
-export default MeasureObject; 
+  return new MeasureObject(mapInstance, style);
+} 
