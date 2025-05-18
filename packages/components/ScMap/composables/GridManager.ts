@@ -40,6 +40,9 @@ export class GridManager {
   private mapInstance: L.Map;
   private hexagonGrid: HexagonGridObject | null = null;
   private geohashGrid: GeoHashGridObject | null = null;
+  // 添加可见性跟踪
+  private hexagonVisible: boolean = false;
+  private geohashVisible: boolean = false;
   private config: GridConfig = {
     hexagon: {
       size: 1000,           // 默认1000米
@@ -129,12 +132,16 @@ export class GridManager {
       if (result && this.gridEnabledCallback) {
         this.gridEnabledCallback(gridType);
       }
+      // 设置可见性状态
+      this.hexagonVisible = result;
       return result;
     } else if (gridType === GridType.GEOHASH && this.geohashGrid) {
       const result = this.geohashGrid.show();
       if (result && this.gridEnabledCallback) {
         this.gridEnabledCallback(gridType);
       }
+      // 设置可见性状态
+      this.geohashVisible = result;
       return result;
     }
     
@@ -160,12 +167,16 @@ export class GridManager {
       if (result && this.gridDisabledCallback) {
         this.gridDisabledCallback(gridType);
       }
+      // 设置可见性状态
+      this.hexagonVisible = false;
       return result;
     } else if (gridType === GridType.GEOHASH && this.geohashGrid) {
       const result = this.geohashGrid.hide();
       if (result && this.gridDisabledCallback) {
         this.gridDisabledCallback(gridType);
       }
+      // 设置可见性状态
+      this.geohashVisible = false;
       return result;
     }
     
@@ -202,6 +213,25 @@ export class GridManager {
    */
   public getConfig(): GridConfig {
     return this.config;
+  }
+
+  /**
+   * 获取当前激活的网格类型集合
+   * @returns 激活的网格类型集合
+   */
+  public getActiveGridTypes(): Set<GridType> {
+    const activeTypes = new Set<GridType>();
+    
+    // 使用内部状态变量来检查可见性
+    if (this.hexagonVisible) {
+      activeTypes.add(GridType.HEXAGON);
+    }
+    
+    if (this.geohashVisible) {
+      activeTypes.add(GridType.GEOHASH);
+    }
+    
+    return activeTypes;
   }
 
   /**

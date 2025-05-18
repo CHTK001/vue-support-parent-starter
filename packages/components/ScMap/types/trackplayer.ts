@@ -44,5 +44,49 @@ export interface TrackPlayerConfig {
   showNodeSpeed?: boolean;
 }
 
-// 轨迹播放器事件处理器
-export type TrackPlayerEventHandler = (eventName: string, payload: any) => void; 
+/**
+ * 轨迹播放器事件类型定义
+ */
+
+/**
+ * 轨迹播放器事件处理函数类型
+ */
+export type TrackPlayerEventHandler = (eventName: string, payload: any) => void;
+
+/**
+ * 轨迹播放器事件监听器
+ */
+export interface TrackPlayerEventListener {
+  // 事件名称
+  eventName: string;
+  // 事件处理函数
+  handler: TrackPlayerEventHandler;
+}
+
+/**
+ * 轨迹播放器回调函数集合
+ */
+export interface TrackPlayerCallbacks {
+  // 播放开始回调
+  onPlay?: (time: number) => void;
+  // 播放暂停回调
+  onPause?: (time: number) => void;
+  // 播放停止回调
+  onStop?: (time: number) => void;
+  // 播放结束回调
+  onEnded?: (time: number) => void;
+  // 播放进度更新回调
+  onTick?: (time: number, tracks: any[]) => void;
+  // 点选中回调
+  onPointSelect?: (point: any) => void;
+  // 轨迹添加回调
+  onTrackAdd?: (id: string, pointCount: number) => void;
+  // 轨迹清空回调
+  onTrackClear?: () => void;
+  // 速度改变回调
+  onSpeedChange?: (speed: number) => void;
+  // 轨迹选中回调
+  onTrackSelect?: (trackId: string) => void;
+  // 初始化完成回调
+  onInit?: (message: string) => void;
+} 

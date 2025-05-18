@@ -1511,7 +1511,8 @@ defineExpose({
 /* 基础位置样式 - 水平方向左侧工具栏 */
 .direction-horizontal.position-top-left .toolbar-collapse,
 .direction-horizontal.position-bottom-left .toolbar-collapse {
-  right: -14px;
+  right: -28px;
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -1519,7 +1520,8 @@ defineExpose({
 /* 基础位置样式 - 水平方向右侧工具栏 */
 .direction-horizontal.position-top-right .toolbar-collapse,
 .direction-horizontal.position-bottom-right .toolbar-collapse {
-  left: -14px;
+  left: -28px;
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
 }

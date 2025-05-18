@@ -56,7 +56,7 @@ export class MapObject {
       });
 
       // 添加缩放控件到右上角
-      L.control.zoom({ position: 'topright' }).addTo(this.mapInstance);
+     // L.control.zoom({ position: 'topright' }).addTo(this.mapInstance);
       
       // 如果配置了比例尺，则添加比例尺控件
       if (this.configObject.getShowScaleLine()) {
@@ -245,6 +245,14 @@ export class MapObject {
       
       // 触发地图右键点击事件
       this.triggerEvent('map-right-click', {
+        coordinates: [latlng.lat, latlng.lng],
+        originalEvent: event.originalEvent
+      });
+    });
+
+    this.mapInstance.on('mousemove', (event) => {
+      const latlng = event.latlng;
+      this.triggerEvent('map-mousemove', {
         coordinates: [latlng.lat, latlng.lng],
         originalEvent: event.originalEvent
       });

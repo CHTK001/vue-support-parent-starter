@@ -5,11 +5,9 @@
 <template>
   <div class="sc-map" :style="{ height: config.height + 'px' }">
     <div ref="mapContainer" class="map-container"></div>
-    <div class="toolbar-container">
-      <MapToolbar ref="mapToolbarRef" v-if="config.showToolbar" :toolbar-config="toolbarConfig"
-        :active-tool-id="activeToolId" @tool-activated="handleToolActivated"
-        @tool-deactivated="handleToolDeactivated" />
-    </div>
+    <MapToolbar ref="mapToolbarRef" v-if="config.showToolbar" :toolbar-config="toolbarConfig"
+      :active-tool-id="activeToolId" @tool-activated="handleToolActivated"
+      @tool-deactivated="handleToolDeactivated" class=map-toolbar />
     <!-- 添加坐标面板 -->
     <CoordinatePanel v-if="showCoordinatePanel" :active="true" :coordinate-info="coordinateInfo"
       :show-projected="coordinateOptions.showProjected" />
@@ -56,43 +54,41 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, useAttrs, shallowRef } from 'vue';
-import "leaflet/dist/leaflet.css";
 import L from 'leaflet';
+import "leaflet/dist/leaflet.css";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // 组件导入
 import CoordinatePanel from './components/CoordinatePanel.vue';
-import MapToolbar from './components/MapToolbar.vue';
-import OverviewMap from './components/OverviewMap.vue';
-import { OverviewMapConfig } from './components/OverviewMap.vue';
-import LayerPanel from './components/LayerPanel.vue';
-import TrackPlayerMap from './components/TrackPlayer.vue';
 import FlightLinePanel from './components/FlightLinePanel.vue';
+import LayerPanel from './components/LayerPanel.vue';
+import MapToolbar from './components/MapToolbar.vue';
+import OverviewMap, { OverviewMapConfig } from './components/OverviewMap.vue';
+import TrackPlayerMap from './components/TrackPlayer.vue';
 
 // 类和工具导入
 import { ConfigObject } from './composables/ConfigObject';
-import { 
-  CoordinateInfo, 
-  CoordinateOptions, 
-  CoordinatePosition 
+import {
+  CoordinateInfo,
+  CoordinateOptions,
+  CoordinatePosition
 } from './composables/CoordinateObject';
+import type { GridConfig } from './composables/GridManager';
+import { GridManager, GridType } from './composables/GridManager';
 import logger, { LogLevel } from './composables/LogObject';
 import { MapObject } from './composables/MapObject';
-import { MapType, DEFAULT_MAP_CONFIG } from './types/map';
-import { MapTile, MapConfig } from './types';
-import { ToolbarObject } from './composables/ToolbarObject';
-import { GridManager, GridType } from './composables/GridManager';
-import type { GridConfig } from './composables/GridManager';
-import type { MapEventType, Track, TrackPlayer } from './types';
-import { TrackPlayerConfigOptions } from './types/track';
-import { DEFAULT_TOOLBAR_CONFIG, ToolbarConfig, ToolbarPosition } from './types/toolbar';
 import { MarkerObject } from './composables/MarkerObject';
-import type { MarkerOptions, MarkerConfig } from './types/marker';
-import { ShapeObject, ShapeType } from './composables/ShapeObject';
-import type { ShapeOption } from './types/shape';
+import { ShapeObject } from './composables/ShapeObject';
+import { ToolbarObject } from './composables/ToolbarObject';
+import type { MapEventType, Track } from './types';
+import { MapConfig, MapTile } from './types';
+import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
+import type { MarkerConfig, MarkerOptions } from './types/marker';
+import type { ShapeOption } from './types';
+import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
+import { TrackPlayerConfigOptions } from './types/track';
 // 不再直接导入TrackObject，使用ToolbarObject.getTrackObject()方法获取
 // 导入热力图相关类型
-import type { HeatmapPoint, HeatmapConfig } from './types';
 // 导入聚合相关类型
 import type { AggregationOptions } from './types/cluster';
 // 导入Leaflet插件配置
@@ -226,10 +222,10 @@ const coordinateOptions = computed<CoordinateOptions>(() => ({
 
 // 坐标信息状态
 const coordinateInfo = ref<CoordinateInfo>({
-  longitude: 0,
-  latitude: 0,
-  projectedX: 0,
-  projectedY: 0,
+  lng: 0,
+  lat: 0,
+  x: 0,
+  y: 0,
   projection: 'EPSG:3857',
   decimals: coordinateOptions.value.decimals ?? 8,
   position: coordinateOptions.value.position ?? 'bottom-right'
@@ -242,10 +238,10 @@ const config = computed(() => ({
   map: props.map,
   mapKey: props.mapKey,
   height: props.height,
-  center: props.center,
-  zoom: props.zoom,
-  dragging: props.dragging,
-  scrollWheelZoom: props.scrollWheelZoom,
+      center: props.center,
+      zoom: props.zoom,
+      dragging: props.dragging,
+      scrollWheelZoom: props.scrollWheelZoom,
   showToolbar: props.showToolbar
 }));
 
@@ -294,9 +290,9 @@ const flightLineAdapter = computed(() => {
       if (flightLineObj.getAllFlightLines().has(id)) {
         flightLineObj.getAllFlightLines().delete(id);
         flightLineObj.drawFlightLines();
-        return true;
+    return true;
       }
-      return false;
+    return false;
     },
     
     toggleFlightLineVisibility: (id: string) => {
@@ -307,9 +303,9 @@ const flightLineAdapter = computed(() => {
         line.highlight = line.highlight === false ? true : false;
         lines.set(id, line);
         flightLineObj.drawFlightLines();
-        return true;
-      }
-      return false;
+      return true;
+    }
+    return false;
     },
     
     startDrawing: () => {
@@ -377,9 +373,9 @@ const flightLineAdapter = computed(() => {
         }
         lines.set(id, line);
         flightLineObj.drawFlightLines();
-        return true;
-      }
-      return false;
+      return true;
+    }
+    return false;
     },
     
     addFlightLine: flightLineObj.addFlightLine.bind(flightLineObj)
@@ -402,17 +398,20 @@ const initMap = async () => {
     
     // 创建地图对象
     mapObj = new MapObject(configObject);
-    
+
     // 初始化地图
     const initialized = mapObj.init(mapContainer.value, (event, payload) => {
       emit(event as MapEventType, payload);
+      if(event === 'map-mousemove') {
+        handleMouseMove(payload);
+      }
     });
     
     if (!initialized) {
       logger.error('地图初始化失败');
-      return;
-    }
-    
+    return;
+  }
+  
     // 创建工具栏对象
     toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
     
@@ -427,11 +426,6 @@ const initMap = async () => {
     trackObj = toolbarObject.getTrackObject(); // 获取轨迹对象（实际是LeafletTrackplayerObject实例）
     gridManager = toolbarObject.getGridObject();
     
-    // 添加比例尺
-    if (props.showScaleLine) {
-      mapObj.addControl('scale');
-    }
-    
     // 标记地图已准备好
     mapReady.value = true;
     mapInitialized.value = true;
@@ -440,6 +434,7 @@ const initMap = async () => {
     emit('map-initialized', { map: mapObj, toolbar: toolbarObject });
     
     logger.info('地图初始化完成');
+
   } catch (error) {
     logger.error('初始化地图失败:', error);
   }
@@ -691,13 +686,13 @@ const handleMapZoomEnd = (event: any) => {
 
 const handleMouseMove = (event: any) => {
   // 更新坐标信息
-  if (event.lat !== undefined && event.lng !== undefined) {
+  if (event.coordinates) {
     coordinateInfo.value = {
       ...coordinateInfo.value,
-      latitude: event.lat,
-      longitude: event.lng,
-      projectedX: event.projectedX || 0,
-      projectedY: event.projectedY || 0
+      lat: event.coordinates[0],
+      lng: event.coordinates[1],
+      x: event.projectedX || 0,
+      y: event.projectedY || 0
     };
   }
   emit(MAP_EVENTS.MAP_MOUSE_MOVE, event);
@@ -768,9 +763,9 @@ defineExpose({
     if (flightLineObj && flightLineObj.getAllFlightLines().has(id)) {
       flightLineObj.getAllFlightLines().delete(id);
       flightLineObj.drawFlightLines(); // 重绘飞线
-      return true;
-    }
-    return false;
+        return true;
+      }
+      return false;
   },
   clearFlightLines: () => {
     const flightLineObj = toolbarObject?.getFlightLineObject();
@@ -778,7 +773,7 @@ defineExpose({
       flightLineObj.getAllFlightLines().clear();
       return true;
     }
-    return false;
+      return false;
   },
   getAllFlightLines: () => {
     const flightLineObj = toolbarObject?.getFlightLineObject();
@@ -820,9 +815,13 @@ defineExpose({
   height: 100%;
   z-index: 1;
 }
+.map-toolbar {
+  position: absolute;
+  z-index: 10;
+}
 
 .toolbar-container {
   position: absolute;
   z-index: 10;
 }
-</style> 
+</style>

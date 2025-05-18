@@ -2,32 +2,21 @@
  * 热力图对象
  * @description 管理地图热力图显示
  */
-import { Map as OlMap } from 'ol';
-import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
-import Heatmap from 'ol/layer/Heatmap';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
-import { fromLonLat } from 'ol/proj';
-import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
-import { EventsKey } from 'ol/events';
+import L from 'leaflet';
+import 'leaflet.heat';
 import logger from './LogObject';
 import { HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG } from '../types/heatmap';
-
-// 热力图数据点接口和配置接口已移至 ../types/heatmap 文件
 
 /**
  * 热力图类
  */
 export class HeatmapObject {
   // 地图实例
-  private mapInstance: OlMap | null = null;
+  private mapInstance: L.Map | null = null;
   // 热力图层
-  private heatmapLayer: Heatmap | null = null;
-  // 数据点图层
-  private pointsLayer: VectorLayer<VectorSource> | null = null;
-  // 数据源
-  private source: VectorSource | null = null;
+  private heatLayer: L.HeatLayer | null = null;
+  // 点标记图层组
+  private markerLayerGroup: L.LayerGroup | null = null;
   // 配置
   private config: HeatmapConfig = DEFAULT_HEATMAP_CONFIG;
   // 当前数据点
@@ -35,14 +24,14 @@ export class HeatmapObject {
   // 激活状态
   private active: boolean = false;
   // 事件监听器
-  private eventListeners: EventsKey[] = [];
+  private eventListeners: Array<{ target: any, type: string, handler: any }> = [];
 
   /**
    * 构造函数
    * @param mapInstance 地图实例
    * @param config 配置参数
    */
-  constructor(mapInstance: OlMap | null = null, config?: Partial<HeatmapConfig>) {
+  constructor(mapInstance: L.Map | null = null, config?: Partial<HeatmapConfig>) {
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }
@@ -58,7 +47,7 @@ export class HeatmapObject {
    * 设置地图实例
    * @param mapInstance 地图实例
    */
-  public setMapInstance(mapInstance: OlMap): void {
+  public setMapInstance(mapInstance: L.Map): void {
     if (!mapInstance) {
       logger.error('[Heatmap] 无效的地图实例');
       return;
@@ -80,46 +69,48 @@ export class HeatmapObject {
       return;
     }
 
-    // 创建数据源
-    this.source = new VectorSource();
-
-    // 创建热力图层
-    this.heatmapLayer = new Heatmap({
-      source: this.source,
-      blur: this.config.blur,
-      radius: this.config.radius,
-      opacity: this.config.opacity,
-      gradient: this.config.gradient,
-      zIndex: this.config.zIndex,
-      visible: false
-    });
-
-    // 创建点图层
-    this.pointsLayer = new VectorLayer({
-      source: this.source,
-      style: (feature) => {
-        return new Style({
-          image: new CircleStyle({
-            radius: this.config.pointRadius,
-            fill: new Fill({
-              color: this.config.pointColor
-            }),
-            stroke: new Stroke({
-              color: this.config.pointStrokeColor,
-              width: this.config.pointStrokeWidth
-            })
-          })
-        });
-      },
-      visible: false,
-      zIndex: this.config.zIndex + 1
-    });
-
-    // 添加图层到地图
-    this.mapInstance.addLayer(this.heatmapLayer);
-    this.mapInstance.addLayer(this.pointsLayer);
-
-    logger.debug('[Heatmap] 热力图图层已初始化');
+    try {
+      // 创建点标记图层组
+      this.markerLayerGroup = L.layerGroup();
+      
+      // 转换热力图数据格式
+      const heatData: Array<[number, number, number]> = [];
+      
+      // 添加已有点到热力图数据
+      this.points.forEach((point, id) => {
+        heatData.push([
+          point.lat,
+          point.lng,
+          point.weight || 1
+        ]);
+      });
+      
+      // 创建热力图层
+      this.heatLayer = L.heatLayer(heatData, {
+        radius: this.config.radius || 25,
+        blur: this.config.blur || 15,
+        maxZoom: this.config.maxZoom,
+        max: this.config.max || 1.0,
+        minOpacity: this.config.minOpacity || 0.05,
+        gradient: this.config.gradient || {
+          0.4: 'blue',
+          0.6: 'cyan',
+          0.7: 'lime',
+          0.8: 'yellow',
+          1.0: 'red'
+        }
+      });
+      
+      // 添加图层到地图
+      if (this.active) {
+        this.markerLayerGroup.addTo(this.mapInstance);
+        this.heatLayer.addTo(this.mapInstance);
+      }
+      
+      logger.debug('[Heatmap] 热力图图层已初始化');
+    } catch (error) {
+      logger.error('[Heatmap] 初始化热力图层失败:', error);
+    }
   }
 
   /**
@@ -130,64 +121,63 @@ export class HeatmapObject {
     if (!this.mapInstance) return;
     
     try {
-      // 监听视图变化事件（缩放）
-      const viewChangeKey = this.mapInstance.getView().on('change:resolution', () => {
-        if (this.heatmapLayer && this.active) {
-          // 如果配置为缩放时隐藏，则隐藏热力图层
-          if (this.config.hideOnZooming) {
-            this.heatmapLayer.setVisible(false);
-            if (this.pointsLayer && this.config.showPoints) {
-              this.pointsLayer.setVisible(false);
-            }
-            logger.debug('[Heatmap] 视图分辨率变化，隐藏热力图');
+      // 监听缩放开始事件
+      const onZoomStart = () => {
+        if (this.heatLayer && this.active && this.config.hideOnZooming) {
+          this.mapInstance?.removeLayer(this.heatLayer);
+          if (this.markerLayerGroup && this.config.showPoints) {
+            this.mapInstance?.removeLayer(this.markerLayerGroup);
           }
+          logger.debug('[Heatmap] 缩放开始，隐藏热力图');
         }
-      });
+      };
       
-      // 监听地图移动开始事件
-      const moveStartKey = this.mapInstance.on('movestart', () => {
-        if (this.heatmapLayer && this.active) {
-          // 如果配置为移动时隐藏，则隐藏热力图层
-          if (this.config.hideOnMoving) {
-            this.heatmapLayer.setVisible(false);
-            if (this.pointsLayer && this.config.showPoints) {
-              this.pointsLayer.setVisible(false);
-            }
-            logger.debug('[Heatmap] 地图移动开始，隐藏热力图');
+      // 监听缩放结束事件
+      const onZoomEnd = () => {
+        if (this.heatLayer && this.active && this.config.hideOnZooming) {
+          this.heatLayer.addTo(this.mapInstance!);
+          if (this.markerLayerGroup && this.config.showPoints) {
+            this.markerLayerGroup.addTo(this.mapInstance!);
           }
+          logger.debug('[Heatmap] 缩放结束，显示热力图');
         }
-      });
+      };
       
-      // 监听地图移动结束事件
-      const moveEndKey = this.mapInstance.on('moveend', () => {
-        if (this.heatmapLayer && this.active) {
-          // 如果配置为移动时隐藏，则移动结束后显示热力图层
-          if (this.config.hideOnMoving) {
-            this.heatmapLayer.setVisible(true);
-            if (this.pointsLayer && this.config.showPoints) {
-              this.pointsLayer.setVisible(true);
-            }
-            logger.debug('[Heatmap] 地图移动结束，显示热力图');
+      // 监听移动开始事件
+      const onMoveStart = () => {
+        if (this.heatLayer && this.active && this.config.hideOnMoving) {
+          this.mapInstance?.removeLayer(this.heatLayer);
+          if (this.markerLayerGroup && this.config.showPoints) {
+            this.mapInstance?.removeLayer(this.markerLayerGroup);
           }
+          logger.debug('[Heatmap] 移动开始，隐藏热力图');
         }
-      });
+      };
       
-      // 缩放结束事件
-      const zoomEndKey = this.mapInstance.on('rendercomplete', () => {
-        if (this.heatmapLayer && this.active) {
-          // 如果配置为缩放时隐藏，则缩放结束后显示热力图层
-          if (this.config.hideOnZooming && !this.heatmapLayer.getVisible()) {
-            this.heatmapLayer.setVisible(true);
-            if (this.pointsLayer && this.config.showPoints) {
-              this.pointsLayer.setVisible(true);
-            }
-            logger.debug('[Heatmap] 渲染完成，显示热力图');
+      // 监听移动结束事件
+      const onMoveEnd = () => {
+        if (this.heatLayer && this.active && this.config.hideOnMoving) {
+          this.heatLayer.addTo(this.mapInstance!);
+          if (this.markerLayerGroup && this.config.showPoints) {
+            this.markerLayerGroup.addTo(this.mapInstance!);
           }
+          logger.debug('[Heatmap] 移动结束，显示热力图');
         }
-      });
+      };
       
-      // 存储事件监听器，以便后续移除
-      this.eventListeners.push(viewChangeKey, moveStartKey, moveEndKey, zoomEndKey);
+      // 添加事件监听
+      this.mapInstance.on('zoomstart', onZoomStart);
+      this.mapInstance.on('zoomend', onZoomEnd);
+      this.mapInstance.on('movestart', onMoveStart);
+      this.mapInstance.on('moveend', onMoveEnd);
+      
+      // 保存事件引用，以便后续移除
+      this.eventListeners = [
+        { target: this.mapInstance, type: 'zoomstart', handler: onZoomStart },
+        { target: this.mapInstance, type: 'zoomend', handler: onZoomEnd },
+        { target: this.mapInstance, type: 'movestart', handler: onMoveStart },
+        { target: this.mapInstance, type: 'moveend', handler: onMoveEnd }
+      ];
       
       logger.debug('[Heatmap] 已设置地图事件监听器');
     } catch (error) {
@@ -200,23 +190,20 @@ export class HeatmapObject {
    * @private
    */
   private removeMapListeners(): void {
-    if (this.eventListeners.length > 0) {
-      try {
-        // 解除所有事件监听
-        this.eventListeners.forEach(key => {
-          try {
-            if (key) {
-              Object.getPrototypeOf(key).constructor.unByKey(key);
-            }
-          } catch (error) {
-            logger.error('[Heatmap] 移除事件监听器失败:', error);
-          }
-        });
-        this.eventListeners = [];
-        logger.debug('[Heatmap] 已移除所有地图事件监听器');
-      } catch (error) {
-        logger.error('[Heatmap] 移除事件监听器失败:', error);
-      }
+    if (!this.mapInstance) return;
+    
+    try {
+      // 移除所有事件监听器
+      this.eventListeners.forEach(listener => {
+        listener.target.off(listener.type, listener.handler);
+      });
+      
+      // 清空监听器列表
+      this.eventListeners = [];
+      
+      logger.debug('[Heatmap] 已移除地图事件监听器');
+    } catch (error) {
+      logger.error('[Heatmap] 移除地图事件监听器失败:', error);
     }
   }
 
@@ -225,184 +212,367 @@ export class HeatmapObject {
    * @param config 配置参数
    */
   public setConfig(config: Partial<HeatmapConfig>): void {
-    this.config = {
-      ...this.config,
-      ...config
-    };
-
-    // 更新热力图层设置
-    if (this.heatmapLayer) {
-      this.heatmapLayer.setBlur(this.config.blur);
-      this.heatmapLayer.setRadius(this.config.radius);
-      this.heatmapLayer.setOpacity(this.config.opacity);
-      this.heatmapLayer.setGradient(this.config.gradient);
-      this.heatmapLayer.setZIndex(this.config.zIndex);
+    // 合并配置
+    this.config = { ...this.config, ...config };
+    
+    // 如果已创建热力图层，则更新配置
+    if (this.heatLayer) {
+      this.heatLayer.setOptions({
+        radius: this.config.radius,
+        blur: this.config.blur,
+        max: this.config.max,
+        maxZoom: this.config.maxZoom,
+        minOpacity: this.config.minOpacity,
+        gradient: this.config.gradient
+      });
     }
-
-    // 更新点图层设置
-    if (this.pointsLayer) {
-      this.pointsLayer.setZIndex(this.config.zIndex + 1);
-      this.pointsLayer.setVisible(this.active && this.config.showPoints);
-    }
-
-    logger.debug('[Heatmap] 热力图配置已更新', this.config);
+    
+    logger.debug('[Heatmap] 配置已更新');
   }
 
   /**
-   * 添加热力点
-   * @param point 热力点数据
-   * @returns 点ID
+   * 添加热力图点
+   * @param point 热力图点
+   * @returns 生成的点ID
    */
   public addPoint(point: HeatmapPoint): string {
-    // 生成唯一ID
-    const id = point.id || `heatmap-point-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
-    // 标准化权重到0-1范围
-    const weight = point.weight !== undefined ? 
-      Math.max(this.config.minWeight, Math.min(this.config.maxWeight, point.weight)) : 
-      1.0;
-
-    // 保存点信息
-    this.points.set(id, {
-      ...point,
-      id,
-      weight
-    });
-
-    // 创建特征
-    const feature = new Feature({
-      geometry: new Point(fromLonLat([point.longitude, point.latitude])),
-      weight: weight,
-      properties: {
-        id,
-        name: point.name || '',
-        ...point.properties
-      }
-    });
-
-    feature.setId(id);
-
-    // 添加到数据源
-    if (this.source) {
-      this.source.addFeature(feature);
+    if (!point || typeof point.lat !== 'number' || typeof point.lng !== 'number') {
+      logger.error('[Heatmap] 添加热力图点失败：无效的点数据');
+      return '';
     }
-
-    logger.debug(`[Heatmap] 添加热力点 ${id} (${point.longitude}, ${point.latitude}, 权重=${weight})`);
-    return id;
+    
+    try {
+      // 生成唯一ID
+      const id = `heat_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // 保存点数据
+      this.points.set(id, { ...point });
+      
+      // 如果热力图层已存在，添加点
+      if (this.heatLayer && this.mapInstance) {
+        this.heatLayer.addLatLng([
+          point.lat,
+          point.lng,
+          point.weight || 1
+        ]);
+        
+        // 如果显示点标记，添加标记
+        if (this.config.showPoints && this.markerLayerGroup) {
+          const marker = L.circleMarker([point.lat, point.lng], {
+            radius: this.config.pointRadius || 4,
+            fillColor: this.config.pointColor || '#ff0000',
+            color: this.config.pointStrokeColor || '#ffffff',
+            weight: this.config.pointStrokeWidth || 1,
+            opacity: 0.8,
+            fillOpacity: 0.7
+          });
+          
+          // 如果有自定义数据，添加到标记
+          if (point.data) {
+            marker.bindTooltip(JSON.stringify(point.data));
+          }
+          
+          this.markerLayerGroup.addLayer(marker);
+        }
+      }
+      
+      logger.debug(`[Heatmap] 已添加热力图点: ${id}`);
+      return id;
+    } catch (error) {
+      logger.error('[Heatmap] 添加热力图点失败:', error);
+      return '';
+    }
   }
 
   /**
-   * 批量添加热力点
-   * @param points 热力点数据数组
-   * @returns 点ID数组
+   * 批量添加热力图点
+   * @param points 热力图点数组
+   * @returns 生成的点ID数组
    */
   public addPoints(points: HeatmapPoint[]): string[] {
-    if (!points || points.length === 0) {
+    if (!Array.isArray(points) || points.length === 0) {
+      logger.error('[Heatmap] 批量添加热力图点失败：无效的点数据数组');
       return [];
     }
-
+    
     const ids: string[] = [];
-    points.forEach(point => {
-      ids.push(this.addPoint(point));
-    });
-
-    logger.debug(`[Heatmap] 批量添加了 ${points.length} 个热力点`);
-    return ids;
+    
+    try {
+      // 收集所有有效点数据
+      const validPoints = points.filter(p => 
+        typeof p.lat === 'number' && typeof p.lng === 'number'
+      );
+      
+      // 如果热力图层存在，重新创建热力图层
+      if (this.heatLayer && this.mapInstance) {
+        // 移除旧图层
+        this.mapInstance.removeLayer(this.heatLayer);
+        
+        // 对于每个点，添加到集合并生成ID
+        validPoints.forEach(point => {
+          const id = `heat_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          this.points.set(id, { ...point });
+          ids.push(id);
+        });
+        
+        // 转换所有点为热力图数据格式
+        const heatData = Array.from(this.points.values()).map(p => [
+          p.lat,
+          p.lng,
+          p.weight || 1
+        ] as [number, number, number]);
+        
+        // 创建新热力图层
+        this.heatLayer = L.heatLayer(heatData, {
+          radius: this.config.radius || 25,
+          blur: this.config.blur || 15,
+          maxZoom: this.config.maxZoom,
+          max: this.config.max || 1.0,
+          minOpacity: this.config.minOpacity || 0.05,
+          gradient: this.config.gradient
+        });
+        
+        // 如果当前激活，添加到地图
+        if (this.active) {
+          this.heatLayer.addTo(this.mapInstance);
+        }
+        
+        // 更新点标记
+        if (this.config.showPoints && this.markerLayerGroup) {
+          this.markerLayerGroup.clearLayers();
+          
+          Array.from(this.points.values()).forEach(point => {
+            const marker = L.circleMarker([point.lat, point.lng], {
+              radius: this.config.pointRadius || 4,
+              fillColor: this.config.pointColor || '#ff0000',
+              color: this.config.pointStrokeColor || '#ffffff',
+              weight: this.config.pointStrokeWidth || 1,
+              opacity: 0.8,
+              fillOpacity: 0.7
+            });
+            
+            if (point.data) {
+              marker.bindTooltip(JSON.stringify(point.data));
+            }
+            
+            this.markerLayerGroup?.addLayer(marker);
+          });
+          
+          if (this.active) {
+            this.markerLayerGroup.addTo(this.mapInstance);
+          }
+        }
+      } else {
+        // 如果热力图层不存在，只添加点到集合
+        validPoints.forEach(point => {
+          const id = `heat_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          this.points.set(id, { ...point });
+          ids.push(id);
+        });
+      }
+      
+      logger.debug(`[Heatmap] 已批量添加热力图点: ${ids.length}个`);
+      return ids;
+    } catch (error) {
+      logger.error('[Heatmap] 批量添加热力图点失败:', error);
+      return ids;
+    }
   }
 
   /**
-   * 更新热力点
+   * 更新热力图点
    * @param id 点ID
-   * @param point 热力点数据
-   * @returns 是否成功
+   * @param point 更新的点数据
+   * @returns 是否更新成功
    */
   public updatePoint(id: string, point: Partial<HeatmapPoint>): boolean {
-    // 验证点是否存在
-    if (!this.points.has(id)) {
-      logger.warn(`[Heatmap] 热力点 ${id} 不存在，无法更新`);
+    if (!id || !this.points.has(id)) {
+      logger.error(`[Heatmap] 更新热力图点失败：找不到点 ${id}`);
       return false;
     }
-
-    const existingPoint = this.points.get(id)!;
-    const updatedPoint = { ...existingPoint, ...point };
-
-    // 标准化权重
-    if (point.weight !== undefined) {
-      updatedPoint.weight = Math.max(this.config.minWeight, 
-        Math.min(this.config.maxWeight, point.weight));
-    }
-
-    // 更新集合中的点
-    this.points.set(id, updatedPoint);
-
-    // 从源中移除原特征
-    if (this.source) {
-      const feature = this.source.getFeatureById(id);
-      if (feature) {
-        this.source.removeFeature(feature);
-
-        // 创建新特征
-        const newFeature = new Feature({
-          geometry: new Point(fromLonLat([updatedPoint.longitude, updatedPoint.latitude])),
-          weight: updatedPoint.weight,
-          properties: {
-            id,
-            name: updatedPoint.name || '',
-            ...updatedPoint.properties
-          }
-        });
-
-        newFeature.setId(id);
-        this.source.addFeature(newFeature);
+    
+    try {
+      // 获取原点数据
+      const oldPoint = this.points.get(id)!;
+      
+      // 合并更新的数据
+      const newPoint = { ...oldPoint, ...point };
+      
+      // 更新集合中的点数据
+      this.points.set(id, newPoint);
+      
+      // 重新生成热力图层
+      if (this.heatLayer && this.mapInstance) {
+        // 移除旧图层
+        this.mapInstance.removeLayer(this.heatLayer);
         
-        logger.debug(`[Heatmap] 更新热力点 ${id}`);
-        return true;
+        // 转换所有点为热力图数据格式
+        const heatData = Array.from(this.points.values()).map(p => [
+          p.lat,
+          p.lng,
+          p.weight || 1
+        ] as [number, number, number]);
+        
+        // 创建新热力图层
+        this.heatLayer = L.heatLayer(heatData, {
+          radius: this.config.radius || 25,
+          blur: this.config.blur || 15,
+          maxZoom: this.config.maxZoom,
+          max: this.config.max || 1.0,
+          minOpacity: this.config.minOpacity || 0.05,
+          gradient: this.config.gradient
+        });
+        
+        // 如果当前激活，添加到地图
+        if (this.active) {
+          this.heatLayer.addTo(this.mapInstance);
+        }
+        
+        // 更新点标记
+        if (this.config.showPoints && this.markerLayerGroup) {
+          this.markerLayerGroup.clearLayers();
+          
+          Array.from(this.points.values()).forEach(point => {
+            const marker = L.circleMarker([point.lat, point.lng], {
+              radius: this.config.pointRadius || 4,
+              fillColor: this.config.pointColor || '#ff0000',
+              color: this.config.pointStrokeColor || '#ffffff',
+              weight: this.config.pointStrokeWidth || 1,
+              opacity: 0.8,
+              fillOpacity: 0.7
+            });
+            
+            if (point.data) {
+              marker.bindTooltip(JSON.stringify(point.data));
+            }
+            
+            this.markerLayerGroup?.addLayer(marker);
+          });
+          
+          if (this.active) {
+            this.markerLayerGroup.addTo(this.mapInstance);
+          }
+        }
       }
+      
+      logger.debug(`[Heatmap] 已更新热力图点: ${id}`);
+      return true;
+    } catch (error) {
+      logger.error(`[Heatmap] 更新热力图点失败 ${id}:`, error);
+      return false;
     }
-
-    logger.warn(`[Heatmap] 热力点 ${id} 特征未找到，无法更新`);
-    return false;
   }
 
   /**
-   * 删除热力点
+   * 删除热力图点
    * @param id 点ID
-   * @returns 是否成功
+   * @returns 是否删除成功
    */
   public removePoint(id: string): boolean {
-    if (!this.points.has(id)) {
+    if (!id || !this.points.has(id)) {
+      logger.error(`[Heatmap] 删除热力图点失败：找不到点 ${id}`);
       return false;
     }
-
-    // 从集合中移除
-    this.points.delete(id);
-
-    // 从数据源中移除
-    if (this.source) {
-      const feature = this.source.getFeatureById(id);
-      if (feature) {
-        this.source.removeFeature(feature);
-        logger.debug(`[Heatmap] 删除热力点 ${id}`);
-        return true;
+    
+    try {
+      // 从集合中删除点
+      this.points.delete(id);
+      
+      // 重新生成热力图层
+      if (this.heatLayer && this.mapInstance) {
+        // 移除旧图层
+        this.mapInstance.removeLayer(this.heatLayer);
+        
+        // 如果没有点，则不创建新图层
+        if (this.points.size === 0) {
+          this.heatLayer = null;
+          return true;
+        }
+        
+        // 转换所有点为热力图数据格式
+        const heatData = Array.from(this.points.values()).map(p => [
+          p.lat,
+          p.lng,
+          p.weight || 1
+        ] as [number, number, number]);
+        
+        // 创建新热力图层
+        this.heatLayer = L.heatLayer(heatData, {
+          radius: this.config.radius || 25,
+          blur: this.config.blur || 15,
+          maxZoom: this.config.maxZoom,
+          max: this.config.max || 1.0,
+          minOpacity: this.config.minOpacity || 0.05,
+          gradient: this.config.gradient
+        });
+        
+        // 如果当前激活，添加到地图
+        if (this.active) {
+          this.heatLayer.addTo(this.mapInstance);
+        }
+        
+        // 更新点标记
+        if (this.config.showPoints && this.markerLayerGroup) {
+          this.markerLayerGroup.clearLayers();
+          
+          Array.from(this.points.values()).forEach(point => {
+            const marker = L.circleMarker([point.lat, point.lng], {
+              radius: this.config.pointRadius || 4,
+              fillColor: this.config.pointColor || '#ff0000',
+              color: this.config.pointStrokeColor || '#ffffff',
+              weight: this.config.pointStrokeWidth || 1,
+              opacity: 0.8,
+              fillOpacity: 0.7
+            });
+            
+            if (point.data) {
+              marker.bindTooltip(JSON.stringify(point.data));
+            }
+            
+            this.markerLayerGroup?.addLayer(marker);
+          });
+          
+          if (this.active) {
+            this.markerLayerGroup.addTo(this.mapInstance);
+          }
+        }
       }
+      
+      logger.debug(`[Heatmap] 已删除热力图点: ${id}`);
+      return true;
+    } catch (error) {
+      logger.error(`[Heatmap] 删除热力图点失败 ${id}:`, error);
+      return false;
     }
-
-    return false;
   }
 
   /**
-   * 清空所有热力点
+   * 清空所有热力图点
    */
   public clear(): void {
-    this.points.clear();
-    if (this.source) {
-      this.source.clear();
+    try {
+      // 清空点集合
+      this.points.clear();
+      
+      // 移除图层
+      if (this.heatLayer && this.mapInstance) {
+        this.mapInstance.removeLayer(this.heatLayer);
+        this.heatLayer = null;
+      }
+      
+      // 清空点标记
+      if (this.markerLayerGroup) {
+        this.markerLayerGroup.clearLayers();
+      }
+      
+      logger.debug('[Heatmap] 已清空所有热力图点');
+    } catch (error) {
+      logger.error('[Heatmap] 清空热力图点失败:', error);
     }
-    logger.debug('[Heatmap] 清空所有热力点');
   }
 
   /**
-   * 获取热力点数量
+   * 获取热力图点数量
    * @returns 点数量
    */
   public getPointCount(): number {
@@ -410,108 +580,152 @@ export class HeatmapObject {
   }
 
   /**
-   * 获取所有热力点
-   * @returns 热力点数据对象
+   * 获取所有热力图点
+   * @returns 点集合
    */
   public getAllPoints(): Map<string, HeatmapPoint> {
     return new Map(this.points);
   }
 
   /**
-   * 激活热力图
+   * 启用热力图
    */
   public enable(): void {
-    if (this.active) {
-      return;
+    if (this.active) return;
+    
+    try {
+      this.active = true;
+      
+      // 如果有热力图层且有地图实例，添加到地图
+      if (this.heatLayer && this.mapInstance) {
+        this.heatLayer.addTo(this.mapInstance);
+      } else if (this.mapInstance && this.points.size > 0) {
+        // 如果没有热力图层但有点数据，创建热力图层
+        const heatData = Array.from(this.points.values()).map(p => [
+          p.lat,
+          p.lng,
+          p.weight || 1
+        ] as [number, number, number]);
+        
+        this.heatLayer = L.heatLayer(heatData, {
+          radius: this.config.radius || 25,
+          blur: this.config.blur || 15,
+          maxZoom: this.config.maxZoom,
+          max: this.config.max || 1.0,
+          minOpacity: this.config.minOpacity || 0.05,
+          gradient: this.config.gradient
+        });
+        
+        this.heatLayer.addTo(this.mapInstance);
+      }
+      
+      // 显示点标记
+      if (this.config.showPoints && this.markerLayerGroup && this.mapInstance) {
+        this.markerLayerGroup.addTo(this.mapInstance);
+      }
+      
+      logger.debug('[Heatmap] 热力图已启用');
+    } catch (error) {
+      logger.error('[Heatmap] 启用热力图失败:', error);
+      this.active = false;
     }
-
-    if (this.heatmapLayer) {
-      this.heatmapLayer.setVisible(true);
-    }
-
-    if (this.pointsLayer && this.config.showPoints) {
-      this.pointsLayer.setVisible(true);
-    }
-
-    this.active = true;
-    logger.debug('[Heatmap] 热力图已激活');
   }
 
   /**
    * 禁用热力图
    */
   public disable(): void {
-    if (!this.active) {
-      return;
+    if (!this.active) return;
+    
+    try {
+      this.active = false;
+      
+      // 如果有热力图层且有地图实例，从地图移除
+      if (this.heatLayer && this.mapInstance) {
+        this.mapInstance.removeLayer(this.heatLayer);
+      }
+      
+      // 隐藏点标记
+      if (this.markerLayerGroup && this.mapInstance) {
+        this.mapInstance.removeLayer(this.markerLayerGroup);
+      }
+      
+      logger.debug('[Heatmap] 热力图已禁用');
+    } catch (error) {
+      logger.error('[Heatmap] 禁用热力图失败:', error);
     }
-
-    if (this.heatmapLayer) {
-      this.heatmapLayer.setVisible(false);
-    }
-
-    if (this.pointsLayer) {
-      this.pointsLayer.setVisible(false);
-    }
-
-    this.active = false;
-    logger.debug('[Heatmap] 热力图已禁用');
   }
 
   /**
-   * 设置是否显示数据点
+   * 设置点标记是否可见
    * @param show 是否显示
    */
   public setPointsVisible(show: boolean): void {
     this.config.showPoints = show;
-    if (this.pointsLayer) {
-      this.pointsLayer.setVisible(this.active && show);
+    
+    try {
+      if (this.markerLayerGroup && this.mapInstance) {
+        if (show && this.active) {
+          this.markerLayerGroup.addTo(this.mapInstance);
+        } else {
+          this.mapInstance.removeLayer(this.markerLayerGroup);
+        }
+      }
+      
+      logger.debug(`[Heatmap] 点标记可见性已设置为: ${show}`);
+    } catch (error) {
+      logger.error('[Heatmap] 设置点标记可见性失败:', error);
     }
-    logger.debug(`[Heatmap] ${show ? '显示' : '隐藏'}数据点`);
   }
 
   /**
-   * 获取当前是否激活
-   * @returns 是否激活
+   * 获取热力图是否启用
+   * @returns 是否启用
    */
   public isEnabled(): boolean {
     return this.active;
   }
 
   /**
-   * 设置热力图性能模式
-   * @param enable 是否启用性能模式（移动和缩放时隐藏热力图）
+   * 设置性能模式
+   * @param enable 是否启用性能模式
    */
   public setPerformanceMode(enable: boolean): void {
-    this.setConfig({
-      hideOnMoving: enable,
-      hideOnZooming: enable
-    });
+    this.config.hideOnMoving = enable;
+    this.config.hideOnZooming = enable;
     
-    logger.debug(`[Heatmap] 性能模式已${enable ? '启用' : '禁用'}`);
+    logger.debug(`[Heatmap] 性能模式已设置为: ${enable}`);
   }
 
   /**
    * 销毁热力图对象
    */
   public destroy(): void {
-    // 移除事件监听器
-    this.removeMapListeners();
-
-    if (this.mapInstance) {
-      if (this.heatmapLayer) {
-        this.mapInstance.removeLayer(this.heatmapLayer);
+    try {
+      // 移除事件监听器
+      this.removeMapListeners();
+      
+      // 移除图层
+      if (this.heatLayer && this.mapInstance) {
+        this.mapInstance.removeLayer(this.heatLayer);
       }
-      if (this.pointsLayer) {
-        this.mapInstance.removeLayer(this.pointsLayer);
+      
+      // 移除点标记
+      if (this.markerLayerGroup && this.mapInstance) {
+        this.mapInstance.removeLayer(this.markerLayerGroup);
       }
+      
+      // 清空点集合
+      this.points.clear();
+      
+      // 设置为空引用
+      this.heatLayer = null;
+      this.markerLayerGroup = null;
+      this.mapInstance = null;
+      
+      logger.debug('[Heatmap] 热力图对象已销毁');
+    } catch (error) {
+      logger.error('[Heatmap] 销毁热力图对象失败:', error);
     }
-
-    this.heatmapLayer = null;
-    this.pointsLayer = null;
-    this.source = null;
-    this.points.clear();
-    this.active = false;
-
-    logger.debug('[Heatmap] 热力图对象已销毁');
   }
 } 

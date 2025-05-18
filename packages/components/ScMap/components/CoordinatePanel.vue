@@ -6,19 +6,9 @@
   <div class="coordinate-panel" :class="[positionClass, { active }]">
     <div class="coordinate-inner">
       <span class="coordinate-label">经度:</span>
-      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.longitude) }}</span>
+      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.lng || 0) }}</span>
       <span class="coordinate-label">纬度:</span>
-      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.latitude) }}</span>
-      
-      <!-- 投影坐标 -->
-      <template v-if="showProjected">
-        <span class="coordinate-label">X:</span>
-        <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedX) }}</span>
-        <span class="coordinate-label">Y:</span>
-        <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.projectedY) }}</span>
-        <span class="coordinate-label">投影:</span>
-        <span class="coordinate-value">{{ coordinateInfo.projection || 'EPSG:3857' }}</span>
-      </template>
+      <span class="coordinate-value">{{ formatCoordinate(coordinateInfo.lat || 0) }}</span>
     </div>
   </div>
 </template>
@@ -44,6 +34,9 @@ const positionClass = computed(() => {
 
 // 格式化坐标值
 const formatCoordinate = (value: number): string => {
+  if (value === undefined) {
+    return '未知';
+  }
   const decimals = props.coordinateInfo.decimals || 6;
   return value.toFixed(decimals);
 };

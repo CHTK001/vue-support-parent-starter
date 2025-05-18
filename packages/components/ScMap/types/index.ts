@@ -8,14 +8,41 @@ import type { CoordinateOptions } from "../composables/CoordinateObject";
 import { OverviewMapConfig } from "../components/OverviewMap.vue";
 import { AggregationOptions } from './cluster';
 import { MarkerConfig } from './marker';
-export * from "./map";
-export * from "./toolbar";
-export * from "./marker";
-export * from "./cluster";
-export * from "./shape";
-export * from "./track";
-export * from "./heatmap";
-//图层类型
+
+/**
+ * 类型定义索引文件
+ */
+
+// 地图类型相关定义
+export * from './map';
+
+// 工具栏相关定义
+export * from './toolbar';
+
+// 标记点相关定义
+export * from './marker';
+
+// 聚合相关定义
+export * from './cluster';
+
+// 图形相关定义
+export * from './shape';
+
+// 轨迹相关定义
+export * from './track';
+
+// 热力图相关定义
+export * from './heatmap';
+
+// 轨迹播放器相关定义
+export * from './trackplayer';
+
+// 飞行线相关定义
+export * from './flightline';
+
+/**
+ * 图层类型枚举
+ */
 export enum MapTile {
   /**
    * 普通地图
@@ -33,6 +60,7 @@ export enum MapTile {
   DARK = 'dark',
   LIGHT = 'light'
 }
+
 /**
  * 数据类型枚举
  */
@@ -50,6 +78,7 @@ export enum DataType {
   /** 网格 */
   GRID = 'grid'
 }
+
 // 地图类型配置
 export interface MapConfig {
   mapType: MapType;
