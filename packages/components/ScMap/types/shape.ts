@@ -49,57 +49,6 @@ export interface ShapeStyle {
   zIndex?: number;
 }
 
-// 基础图形选项
-export interface BaseShapeOption {
-  id: string;
-  type: ShapeType;
-  dataType: DataType;
-  style?: ShapeStyle;
-  properties?: Record<string, any>;
-}
-
-// 点图形选项
-export interface PointOption extends BaseShapeOption {
-  type: ShapeType.POINT;
-  coordinates: number[]; // [lon, lat]
-}
-
-// 线图形选项
-export interface LineOption extends BaseShapeOption {
-  type: ShapeType.LINE | ShapeType.POLYLINE;
-  coordinates: number[][]; // [[lon, lat], [lon, lat], ...]
-}
-
-// 多边形图形选项
-export interface PolygonOption extends BaseShapeOption {
-  type: ShapeType.POLYGON;
-  coordinates: number[][]; // 外环坐标 [[lon, lat], [lon, lat], ...]
-  holes?: number[][][]; // 内环坐标 [[[lon, lat], [lon, lat], ...], ...]
-}
-
-// 矩形图形选项
-export interface RectangleOption extends BaseShapeOption {
-  type: ShapeType.RECTANGLE;
-  coordinates: number[][]; // 左下角和右上角坐标 [[lonMin, latMin], [lonMax, latMax]]
-}
-
-// 正方形图形选项
-export interface SquareOption extends BaseShapeOption {
-  type: ShapeType.SQUARE;
-  center: number[]; // 中心点坐标 [lon, lat]
-  width: number; // 边长
-}
-
-// 圆形图形选项
-export interface CircleOption extends BaseShapeOption {
-  type: ShapeType.CIRCLE;
-  center: number[]; // 中心点坐标 [lon, lat]
-  radius: number; // 半径(投影单位，如米)
-}
-
-// 图形选项联合类型
-export type ShapeOption = PointOption | LineOption | PolygonOption | RectangleOption | SquareOption | CircleOption;
-
 // 绘制选项
 export interface DrawOptions {
   shapeType: ShapeType;     // 绘制图形类型
@@ -129,6 +78,36 @@ export interface ShapePoint {
   x: number;
   y: number;
 }
+
+
+// 定义用于Leaflet的ShapeOption接口
+export interface ShapeOption {
+  id: string;
+  type: ShapeType;
+  coordinates?: number[][];
+  radius?: number;
+  style?: {
+    color?: string;
+    weight?: number;
+    opacity?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    dashArray?: string;
+    className?: string;
+  };
+  data?: any;
+}
+
+// 定义内部使用的Shape类型
+export interface ShapeItem {
+  id: string;
+  type: ShapeType;
+  options: ShapeOption;
+  layer: L.Layer | null;
+}
+
+// 向后兼容性的类型别名
+export type Shape = ShapeItem;
 
 // 扩展的样式类型，用于内部表示
 export interface ExtendedShapeStyle extends ShapeStyle {
@@ -197,14 +176,3 @@ export const DEFAULT_SHAPE_STYLE: ExtendedShapeStyle = {
     padding: [5, 5, 5, 5]
   }
 }; 
-
-// 图形接口
-export interface ShapeObject {
-  id: string;
-  type: ShapeType;
-  options: ShapeOption;
-  layer: L.Layer | null;
-}
-
-// 为了向后兼容，保留原Shape类型
-export type Shape = ShapeObject; 

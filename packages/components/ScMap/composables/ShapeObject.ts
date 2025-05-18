@@ -1,50 +1,36 @@
 /**
  * 图形对象
- * @description 管理地图图形的添加、更新、删除等操作
+ * @description 管理地图图形的添加、编辑、删除等操作
  */
 import L from 'leaflet';
+import 'leaflet-editable';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './LogObject';
-import { ShapeType } from '../types/shape';
-
-// 定义用于Leaflet的ShapeOption接口
-interface ShapeOption {
-  id: string;
-  type: ShapeType;
-  coordinates?: number[][];
-  radius?: number;
-  style?: {
-    color?: string;
-    weight?: number;
-    opacity?: number;
-    fillColor?: string;
-    fillOpacity?: number;
-    dashArray?: string;
-    className?: string;
-  };
-  data?: any;
-}
-
-// 定义内部使用的Shape类型
-interface ShapeItem {
-  id: string;
-  type: ShapeType;
-  options: ShapeOption;
-  layer: L.Layer | null;
-}
-
-// 向后兼容性的类型别名
-export type Shape = ShapeItem;
-
+import { ShapeType, type ShapeItem, type ShapeOption } from '../types/shape';
 export class ShapeObject {
   private mapInstance: L.Map;
   private shapes: Map<string, ShapeItem> = new Map();
   private shapeLayer: L.LayerGroup;
-  private clickListener: ((id: string, event: L.LeafletMouseEvent) => void) | null = null;
+  
+  // 事件监听器
+  private clickListeners: Array<(id: string, event: L.LeafletMouseEvent) => void> = [];
+  private createListeners: Array<(id: string, shape: ShapeItem) => void> = [];
+  private updateListeners: Array<(id: string, shape: ShapeItem) => void> = [];
+  private deleteListeners: Array<(id: string) => void> = [];
   
   // 编辑状态
-  private editEnabled: boolean = false;
+  private editMode: boolean = false;
+  private drawingMode: ShapeType | null = null;
   private currentEditingShape: string | null = null;
+  
+  // 默认样式
+  private defaultStyle = {
+    color: '#3388ff',
+    weight: 3,
+    opacity: 1,
+    fillColor: '#3388ff',
+    fillOpacity: 0.2
+  };
 
   /**
    * 构造函数
@@ -56,7 +42,205 @@ export class ShapeObject {
     // 创建图形图层
     this.shapeLayer = L.layerGroup().addTo(this.mapInstance);
     
+    // 绑定事件
+    this.bindEvents();
+    
     logger.debug('ShapeObject已初始化');
+  }
+
+  /**
+   * 绑定编辑事件
+   */
+  private bindEvents(): void {
+    if (!this.mapInstance) return;
+    
+    // 绑定编辑完成事件
+    this.mapInstance.on('editable:editing', (e: any) => {
+      const layer = e.layer;
+      const id = layer.options.id;
+      
+      if (id && this.shapes.has(id)) {
+        const shape = this.shapes.get(id)!;
+        
+        // 更新坐标
+        if (shape.type === ShapeType.RECTANGLE) {
+          const bounds = (layer as L.Rectangle).getBounds();
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          shape.options.coordinates = [
+            [sw.lat, sw.lng],
+            [ne.lat, ne.lng]
+          ];
+        } else if (shape.type === ShapeType.CIRCLE) {
+          const center = (layer as L.Circle).getLatLng();
+          const radius = (layer as L.Circle).getRadius();
+          shape.options.coordinates = [[center.lat, center.lng]];
+          shape.options.radius = radius;
+        } else if (shape.type === ShapeType.POLYGON || shape.type === ShapeType.POLYLINE) {
+          const latLngs = (layer as L.Polygon | L.Polyline).getLatLngs();
+          shape.options.coordinates = this.latLngsToCoordinates(latLngs);
+        }
+        
+        // 触发更新事件
+        this.updateListeners.forEach(listener => {
+          listener(id, shape);
+        });
+      }
+    });
+    
+    // 绑定绘制完成事件
+    this.mapInstance.on('editable:drawing:end', (e: any) => {
+      const layer = e.layer;
+      
+      if (layer && this.drawingMode) {
+        // 停止绘制
+        this.stopDrawing();
+        
+        // 生成ID
+        const id = uuidv4();
+        
+        // 创建图形对象
+        const shapeOptions: ShapeOption = {
+          id,
+          type: this.drawingMode,
+          style: this.defaultStyle
+        };
+        
+        // 获取坐标
+        if (this.drawingMode === ShapeType.RECTANGLE) {
+          const bounds = (layer as L.Rectangle).getBounds();
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          shapeOptions.coordinates = [
+            [sw.lat, sw.lng],
+            [ne.lat, ne.lng]
+          ];
+        } else if (this.drawingMode === ShapeType.CIRCLE) {
+          const center = (layer as L.Circle).getLatLng();
+          const radius = (layer as L.Circle).getRadius();
+          shapeOptions.coordinates = [[center.lat, center.lng]];
+          shapeOptions.radius = radius;
+        } else if (this.drawingMode === ShapeType.POLYGON || this.drawingMode === ShapeType.POLYLINE) {
+          const latLngs = (layer as L.Polygon | L.Polyline).getLatLngs();
+          shapeOptions.coordinates = this.latLngsToCoordinates(latLngs);
+        }
+        
+        // 保存图形
+        const shapeItem: ShapeItem = {
+          id,
+          type: this.drawingMode,
+          options: shapeOptions,
+          layer
+        };
+        
+        // 存储数据
+        layer.options.id = id;
+        this.shapes.set(id, shapeItem);
+        
+        // 从editTools图层移动到shapeLayer
+        if (this.mapInstance.editTools && this.mapInstance.editTools.featuresLayer) {
+          this.mapInstance.editTools.featuresLayer.removeLayer(layer);
+        }
+        layer.addTo(this.shapeLayer);
+        
+        // 绑定点击事件
+        layer.on('click', (event) => {
+          L.DomEvent.stopPropagation(event);
+          this.handleShapeClick(id, event);
+        });
+        
+        // 触发创建事件
+        this.createListeners.forEach(listener => {
+          listener(id, shapeItem);
+        });
+        
+        logger.debug(`图形绘制完成: ${id}, 类型: ${this.drawingMode}`);
+      }
+    });
+    
+    // 绑定绘制取消事件
+    this.mapInstance.on('editable:drawing:cancel', () => {
+      this.drawingMode = null;
+      logger.debug('图形绘制已取消');
+    });
+  }
+
+  /**
+   * LatLngs转换为坐标数组
+   * @param latLngs 经纬度数组
+   * @returns 坐标数组
+   */
+  private latLngsToCoordinates(latLngs: any): number[][] {
+    if (Array.isArray(latLngs)) {
+      if (latLngs.length > 0 && latLngs[0] instanceof L.LatLng) {
+        // 单层数组
+        return latLngs.map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
+      } else if (latLngs.length > 0 && Array.isArray(latLngs[0])) {
+        // 多层数组
+        return latLngs[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
+      }
+    }
+    return [];
+  }
+
+  /**
+   * 开始绘制图形
+   * @param type 图形类型
+   * @param options 绘制选项
+   */
+  public startDrawing(type: ShapeType, options?: any): void {
+    if (!this.mapInstance || !this.mapInstance.editTools) {
+      logger.error('地图实例或editTools不可用');
+      return;
+    }
+    
+    // 停止当前绘制
+    this.stopDrawing();
+    
+    // 设置绘制模式
+    this.drawingMode = type;
+    
+    // 合并样式选项
+    const drawOptions = {
+      ...this.defaultStyle,
+      ...options
+    };
+    
+    // 开始绘制
+    try {
+      switch (type) {
+        case ShapeType.RECTANGLE:
+          this.mapInstance.editTools.startRectangle(undefined, drawOptions);
+          break;
+        case ShapeType.CIRCLE:
+          this.mapInstance.editTools.startCircle(undefined, drawOptions);
+          break;
+        case ShapeType.POLYGON:
+          this.mapInstance.editTools.startPolygon(undefined, drawOptions);
+          break;
+        case ShapeType.POLYLINE:
+          this.mapInstance.editTools.startPolyline(undefined, drawOptions);
+          break;
+        default:
+          logger.warn(`不支持的图形类型: ${type}`);
+          return;
+      }
+      
+      logger.debug(`开始绘制图形: ${type}`);
+    } catch (error) {
+      logger.error('开始绘制图形失败:', error);
+    }
+  }
+
+  /**
+   * 停止绘制
+   */
+  public stopDrawing(): void {
+    if (this.mapInstance && this.mapInstance.editTools) {
+      this.mapInstance.editTools.stopDrawing();
+      this.drawingMode = null;
+      logger.debug('停止绘制图形');
+    }
   }
 
   /**
@@ -73,7 +257,7 @@ export class ShapeObject {
       let shape: ShapeItem = {
         id,
         type,
-        options: { ...options },
+        options: { ...options, id },
         layer: null
       };
       
@@ -102,7 +286,18 @@ export class ShapeObject {
       // 添加到图层
       if (shape.layer) {
         shape.layer.addTo(this.shapeLayer);
+        
+        // 绑定点击事件
+        shape.layer.on('click', (event) => {
+          L.DomEvent.stopPropagation(event);
+          this.handleShapeClick(id, event);
+        });
       }
+      
+      // 触发创建事件
+      this.createListeners.forEach(listener => {
+        listener(id, shape);
+      });
       
       logger.debug(`添加图形: ${id}, 类型: ${type}`);
       return id;
@@ -132,29 +327,20 @@ export class ShapeObject {
     
     // 创建矩形
     const rectangle = L.rectangle(bounds, {
-      color: options.style?.color || '#3388ff',
-      weight: options.style?.weight || 2,
-      opacity: options.style?.opacity || 1,
-      fillColor: options.style?.fillColor || '#3388ff',
-      fillOpacity: options.style?.fillOpacity || 0.2,
+      color: options.style?.color || this.defaultStyle.color,
+      weight: options.style?.weight || this.defaultStyle.weight,
+      opacity: options.style?.opacity || this.defaultStyle.opacity,
+      fillColor: options.style?.fillColor || this.defaultStyle.fillColor,
+      fillOpacity: options.style?.fillOpacity || this.defaultStyle.fillOpacity,
       dashArray: options.style?.dashArray,
-      className: options.style?.className
+      className: options.style?.className,
+      id: id
     });
-    
-    // 绑定点击事件
-    rectangle.on('click', (e) => {
-      L.DomEvent.stopPropagation(e);
-      this.handleShapeClick(id, e);
-    });
-    
-    // 存储数据
-    rectangle.options.id = id;
-    rectangle.options.data = options.data || {};
     
     return {
       id,
       type: ShapeType.RECTANGLE,
-      options,
+      options: { ...options, id },
       layer: rectangle
     };
   }
@@ -177,29 +363,20 @@ export class ShapeObject {
     // 创建圆形
     const circle = L.circle(center, {
       radius: options.radius,
-      color: options.style?.color || '#3388ff',
-      weight: options.style?.weight || 2,
-      opacity: options.style?.opacity || 1,
-      fillColor: options.style?.fillColor || '#3388ff',
-      fillOpacity: options.style?.fillOpacity || 0.2,
+      color: options.style?.color || this.defaultStyle.color,
+      weight: options.style?.weight || this.defaultStyle.weight,
+      opacity: options.style?.opacity || this.defaultStyle.opacity,
+      fillColor: options.style?.fillColor || this.defaultStyle.fillColor,
+      fillOpacity: options.style?.fillOpacity || this.defaultStyle.fillOpacity,
       dashArray: options.style?.dashArray,
-      className: options.style?.className
+      className: options.style?.className,
+      id: id
     });
-    
-    // 绑定点击事件
-    circle.on('click', (e) => {
-      L.DomEvent.stopPropagation(e);
-      this.handleShapeClick(id, e);
-    });
-    
-    // 存储数据
-    circle.options.id = id;
-    circle.options.data = options.data || {};
     
     return {
       id,
       type: ShapeType.CIRCLE,
-      options,
+      options: { ...options, id },
       layer: circle
     };
   }
@@ -211,39 +388,30 @@ export class ShapeObject {
    * @returns 图形对象
    */
   private createPolygon(id: string, options: ShapeOption): ShapeItem {
-    // 确保有坐标点
+    // 确保有坐标
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 3) {
-      throw new Error('多边形坐标点不足');
+      throw new Error('多边形坐标无效');
     }
     
     // 创建坐标点数组
-    const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
+    const latLngs = options.coordinates.map(coord => L.latLng(coord[0], coord[1]));
     
     // 创建多边形
-    const polygon = L.polygon(latlngs, {
-      color: options.style?.color || '#3388ff',
-      weight: options.style?.weight || 2,
-      opacity: options.style?.opacity || 1,
-      fillColor: options.style?.fillColor || '#3388ff',
-      fillOpacity: options.style?.fillOpacity || 0.2,
+    const polygon = L.polygon(latLngs, {
+      color: options.style?.color || this.defaultStyle.color,
+      weight: options.style?.weight || this.defaultStyle.weight,
+      opacity: options.style?.opacity || this.defaultStyle.opacity,
+      fillColor: options.style?.fillColor || this.defaultStyle.fillColor,
+      fillOpacity: options.style?.fillOpacity || this.defaultStyle.fillOpacity,
       dashArray: options.style?.dashArray,
-      className: options.style?.className
+      className: options.style?.className,
+      id: id
     });
-    
-    // 绑定点击事件
-    polygon.on('click', (e) => {
-      L.DomEvent.stopPropagation(e);
-      this.handleShapeClick(id, e);
-    });
-    
-    // 存储数据
-    polygon.options.id = id;
-    polygon.options.data = options.data || {};
     
     return {
       id,
       type: ShapeType.POLYGON,
-      options,
+      options: { ...options, id },
       layer: polygon
     };
   }
@@ -255,37 +423,28 @@ export class ShapeObject {
    * @returns 图形对象
    */
   private createPolyline(id: string, options: ShapeOption): ShapeItem {
-    // 确保有坐标点
+    // 确保有坐标
     if (!options.coordinates || !Array.isArray(options.coordinates) || options.coordinates.length < 2) {
-      throw new Error('折线坐标点不足');
+      throw new Error('折线坐标无效');
     }
     
     // 创建坐标点数组
-    const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
+    const latLngs = options.coordinates.map(coord => L.latLng(coord[0], coord[1]));
     
     // 创建折线
-    const polyline = L.polyline(latlngs, {
-      color: options.style?.color || '#3388ff',
-      weight: options.style?.weight || 3,
-      opacity: options.style?.opacity || 1,
+    const polyline = L.polyline(latLngs, {
+      color: options.style?.color || this.defaultStyle.color,
+      weight: options.style?.weight || this.defaultStyle.weight,
+      opacity: options.style?.opacity || this.defaultStyle.opacity,
       dashArray: options.style?.dashArray,
-      className: options.style?.className
+      className: options.style?.className,
+      id: id
     });
-    
-    // 绑定点击事件
-    polyline.on('click', (e) => {
-      L.DomEvent.stopPropagation(e);
-      this.handleShapeClick(id, e);
-    });
-    
-    // 存储数据
-    polyline.options.id = id;
-    polyline.options.data = options.data || {};
     
     return {
       id,
       type: ShapeType.POLYLINE,
-      options,
+      options: { ...options, id },
       layer: polyline
     };
   }
@@ -293,94 +452,219 @@ export class ShapeObject {
   /**
    * 处理图形点击事件
    * @param id 图形ID
-   * @param event 点击事件
+   * @param event 事件对象
    */
   private handleShapeClick(id: string, event: L.LeafletMouseEvent): void {
-    const shape = this.shapes.get(id);
-    if (!shape) return;
+    // 触发所有点击监听器
+    this.clickListeners.forEach(listener => {
+      listener(id, event);
+    });
     
-    // 触发回调
-    if (this.clickListener) {
-      this.clickListener(id, event);
+    // 如果在编辑模式下，开始编辑该图形
+    if (this.editMode && this.shapes.has(id)) {
+      this.startEditing(id);
     }
-    
-    logger.debug(`图形点击: ${id}`);
   }
 
   /**
-   * 设置图形点击监听器
-   * @param listener 监听函数
+   * 添加点击监听器
+   * @param listener 监听器函数
    */
-  public setClickListener(listener: (id: string, event: L.LeafletMouseEvent) => void): void {
-    this.clickListener = listener;
+  public addClickListener(listener: (id: string, event: L.LeafletMouseEvent) => void): void {
+    this.clickListeners.push(listener);
+  }
+
+  /**
+   * 添加创建监听器
+   * @param listener 监听器函数
+   */
+  public addCreateListener(listener: (id: string, shape: ShapeItem) => void): void {
+    this.createListeners.push(listener);
+  }
+
+  /**
+   * 添加更新监听器
+   * @param listener 监听器函数
+   */
+  public addUpdateListener(listener: (id: string, shape: ShapeItem) => void): void {
+    this.updateListeners.push(listener);
+  }
+
+  /**
+   * 添加删除监听器
+   * @param listener 监听器函数
+   */
+  public addDeleteListener(listener: (id: string) => void): void {
+    this.deleteListeners.push(listener);
+  }
+
+  /**
+   * 启用编辑模式
+   */
+  public enableEditMode(): void {
+    this.editMode = true;
+    logger.debug('图形编辑模式已启用');
+  }
+
+  /**
+   * 禁用编辑模式
+   */
+  public disableEditMode(): void {
+    this.editMode = false;
+    
+    // 停止当前编辑
+    if (this.currentEditingShape) {
+      this.stopEditing();
+    }
+    
+    logger.debug('图形编辑模式已禁用');
+  }
+
+  /**
+   * 开始编辑图形
+   * @param id 图形ID
+   */
+  public startEditing(id: string): void {
+    // 检查图形是否存在
+    if (!this.shapes.has(id)) {
+      logger.warn(`图形不存在: ${id}`);
+      return;
+    }
+    
+    // 停止当前编辑
+    if (this.currentEditingShape && this.currentEditingShape !== id) {
+      this.stopEditing();
+    }
+    
+    // 获取图形
+    const shape = this.shapes.get(id)!;
+    
+    // 检查图层是否存在
+    if (!shape.layer) {
+      logger.warn(`图形图层不存在: ${id}`);
+      return;
+    }
+    
+    // 开始编辑
+    try {
+      (shape.layer as any).enableEdit();
+      this.currentEditingShape = id;
+      logger.debug(`开始编辑图形: ${id}`);
+    } catch (error) {
+      logger.error(`开始编辑图形失败: ${id}`, error);
+    }
+  }
+
+  /**
+   * 停止编辑
+   */
+  public stopEditing(): void {
+    if (!this.currentEditingShape) return;
+    
+    // 获取当前编辑的图形
+    const shape = this.shapes.get(this.currentEditingShape);
+    
+    if (shape && shape.layer) {
+      try {
+        (shape.layer as any).disableEdit();
+        logger.debug(`停止编辑图形: ${this.currentEditingShape}`);
+      } catch (error) {
+        logger.error(`停止编辑图形失败: ${this.currentEditingShape}`, error);
+      }
+    }
+    
+    this.currentEditingShape = null;
   }
 
   /**
    * 更新图形
    * @param id 图形ID
-   * @param options 图形选项
+   * @param options 更新选项
    * @returns 是否更新成功
    */
   public updateShape(id: string, options: Partial<ShapeOption>): boolean {
-    const shape = this.shapes.get(id);
-    if (!shape || !shape.layer) {
-      logger.warn(`更新图形失败: ${id} 不存在`);
+    // 检查图形是否存在
+    if (!this.shapes.has(id)) {
+      logger.warn(`图形不存在: ${id}`);
       return false;
     }
     
     try {
-      const layer = shape.layer;
+      // 获取当前图形
+      const shape = this.shapes.get(id)!;
       
-      // 更新样式选项
-      if (options.style?.color !== undefined) layer.setStyle({ color: options.style.color });
-      if (options.style?.weight !== undefined) layer.setStyle({ weight: options.style.weight });
-      if (options.style?.opacity !== undefined) layer.setStyle({ opacity: options.style.opacity });
-      if (options.style?.fillColor !== undefined) layer.setStyle({ fillColor: options.style.fillColor });
-      if (options.style?.fillOpacity !== undefined) layer.setStyle({ fillOpacity: options.style.fillOpacity });
-      if (options.style?.dashArray !== undefined) layer.setStyle({ dashArray: options.style.dashArray });
+      // 停止编辑
+      if (this.currentEditingShape === id) {
+        this.stopEditing();
+      }
       
-      // 更新几何属性
-      switch (shape.type) {
-        case ShapeType.RECTANGLE:
-          if (options.coordinates) {
+      // 如果是完全替换图形，则删除旧图形并创建新的
+      if (options.type && options.type !== shape.type) {
+        this.removeShape(id);
+        this.addShape({
+          ...options,
+          id
+        } as ShapeOption);
+        return true;
+      }
+      
+      // 更新图形选项
+      const newOptions = {
+        ...shape.options,
+        ...options
+      };
+      
+      // 存储更新后的选项
+      shape.options = newOptions;
+      
+      // 更新图层样式
+      if (shape.layer) {
+        const layer = shape.layer;
+        
+        // 更新样式
+        if (options.style) {
+          const newStyle = {
+            ...shape.options.style,
+            ...options.style
+          };
+          
+          if (newStyle.color) layer.setStyle({ color: newStyle.color });
+          if (newStyle.weight !== undefined) layer.setStyle({ weight: newStyle.weight });
+          if (newStyle.opacity !== undefined) layer.setStyle({ opacity: newStyle.opacity });
+          if (newStyle.fillColor) layer.setStyle({ fillColor: newStyle.fillColor });
+          if (newStyle.fillOpacity !== undefined) layer.setStyle({ fillOpacity: newStyle.fillOpacity });
+          if (newStyle.dashArray) layer.setStyle({ dashArray: newStyle.dashArray });
+          
+          shape.options.style = newStyle;
+        }
+        
+        // 更新坐标
+        if (options.coordinates) {
+          if (shape.type === ShapeType.RECTANGLE && options.coordinates.length === 2) {
             const bounds = L.latLngBounds(
               L.latLng(options.coordinates[0][0], options.coordinates[0][1]),
               L.latLng(options.coordinates[1][0], options.coordinates[1][1])
             );
             (layer as L.Rectangle).setBounds(bounds);
-          }
-          break;
-        case ShapeType.CIRCLE:
-          if (options.coordinates && Array.isArray(options.coordinates) && options.coordinates.length === 1) {
+          } else if (shape.type === ShapeType.CIRCLE && options.coordinates.length === 1) {
             const center = L.latLng(options.coordinates[0][0], options.coordinates[0][1]);
             (layer as L.Circle).setLatLng(center);
+          } else if (shape.type === ShapeType.POLYGON || shape.type === ShapeType.POLYLINE) {
+            const latLngs = options.coordinates.map(coord => L.latLng(coord[0], coord[1]));
+            (layer as L.Polygon | L.Polyline).setLatLngs(latLngs);
           }
-          if (options.radius) {
-            (layer as L.Circle).setRadius(options.radius);
-          }
-          break;
-        case ShapeType.POLYGON:
-        case ShapeType.POLYLINE:
-          if (options.coordinates) {
-            const latlngs = options.coordinates.map(point => L.latLng(point[0], point[1]));
-            layer.setLatLngs(latlngs);
-          }
-          break;
+        }
+        
+        // 更新圆形半径
+        if (shape.type === ShapeType.CIRCLE && options.radius) {
+          (layer as L.Circle).setRadius(options.radius);
+        }
       }
       
-      // 更新数据
-      if (options.data) {
-        layer.options.data = {
-          ...layer.options.data,
-          ...options.data
-        };
-      }
-      
-      // 更新存储的选项
-      shape.options = {
-        ...shape.options,
-        ...options
-      };
+      // 触发更新事件
+      this.updateListeners.forEach(listener => {
+        listener(id, shape);
+      });
       
       logger.debug(`更新图形: ${id}`);
       return true;
@@ -391,27 +675,43 @@ export class ShapeObject {
   }
 
   /**
-   * 移除图形
+   * 删除图形
    * @param id 图形ID
-   * @returns 是否移除成功
+   * @returns 是否删除成功
    */
   public removeShape(id: string): boolean {
-    const shape = this.shapes.get(id);
-    if (!shape || !shape.layer) {
-      logger.warn(`移除图形失败: ${id} 不存在`);
+    // 检查图形是否存在
+    if (!this.shapes.has(id)) {
+      logger.warn(`图形不存在: ${id}`);
       return false;
     }
     
     try {
-      // 从图层移除
-      this.shapeLayer.removeLayer(shape.layer);
-      // 从集合移除
+      // 获取图形
+      const shape = this.shapes.get(id)!;
+      
+      // 如果正在编辑该图形，停止编辑
+      if (this.currentEditingShape === id) {
+        this.stopEditing();
+      }
+      
+      // 从图层中移除
+      if (shape.layer) {
+        this.shapeLayer.removeLayer(shape.layer);
+      }
+      
+      // 从集合中移除
       this.shapes.delete(id);
       
-      logger.debug(`移除图形: ${id}`);
+      // 触发删除事件
+      this.deleteListeners.forEach(listener => {
+        listener(id);
+      });
+      
+      logger.debug(`删除图形: ${id}`);
       return true;
     } catch (error) {
-      logger.error(`移除图形失败: ${id}`, error);
+      logger.error(`删除图形失败: ${id}`, error);
       return false;
     }
   }
@@ -430,25 +730,34 @@ export class ShapeObject {
    * @returns 图形集合
    */
   public getAllShapes(): Map<string, ShapeItem> {
-    return this.shapes;
+    return new Map(this.shapes);
   }
 
   /**
-   * 清除所有图形
+   * 清空所有图形
    */
   public clearAll(): void {
+    // 停止当前编辑
+    if (this.currentEditingShape) {
+      this.stopEditing();
+    }
+    
     // 清空图层
     this.shapeLayer.clearLayers();
+    
     // 清空集合
     this.shapes.clear();
     
-    logger.debug('清除所有图形');
+    logger.debug('清空所有图形');
   }
 
   /**
    * 显示所有图形
    */
   public showAll(): void {
+    if (!this.mapInstance) return;
+    
+    // 如果图层不在地图上，添加到地图
     if (!this.mapInstance.hasLayer(this.shapeLayer)) {
       this.shapeLayer.addTo(this.mapInstance);
     }
@@ -460,6 +769,14 @@ export class ShapeObject {
    * 隐藏所有图形
    */
   public hideAll(): void {
+    if (!this.mapInstance) return;
+    
+    // 停止当前编辑
+    if (this.currentEditingShape) {
+      this.stopEditing();
+    }
+    
+    // 从地图移除图层
     if (this.mapInstance.hasLayer(this.shapeLayer)) {
       this.mapInstance.removeLayer(this.shapeLayer);
     }
@@ -476,19 +793,27 @@ export class ShapeObject {
   }
 
   /**
-   * 销毁对象，清理资源
+   * 销毁对象
    */
   public destroy(): void {
-    // 清空图形
-    this.clearAll();
+    // 停止编辑
+    if (this.currentEditingShape) {
+      this.stopEditing();
+    }
     
-    // 从地图移除图层
-    if (this.mapInstance.hasLayer(this.shapeLayer)) {
+    // 清空图层
+    if (this.mapInstance && this.shapeLayer) {
       this.mapInstance.removeLayer(this.shapeLayer);
     }
     
-    // 清空监听器
-    this.clickListener = null;
+    // 清空集合
+    this.shapes.clear();
+    
+    // 清空事件监听器
+    this.clickListeners = [];
+    this.createListeners = [];
+    this.updateListeners = [];
+    this.deleteListeners = [];
     
     logger.debug('ShapeObject已销毁');
   }

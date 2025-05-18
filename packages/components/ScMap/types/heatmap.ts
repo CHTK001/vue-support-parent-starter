@@ -2,48 +2,85 @@
  * 热力图类型定义
  */
 
-// 热力图数据点接口
+/**
+ * 热力图数据点接口
+ */
 export interface HeatmapPoint {
-  id?: string;
-  longitude: number;
-  latitude: number;
-  weight?: number; // 权重 0-1
-  name?: string;
-  properties?: Record<string, any>;
+  // 纬度
+  lat: number;
+  // 经度
+  lng: number;
+  // 权重 (0-1)
+  weight?: number;
+  // 自定义数据
+  data?: any;
 }
 
-// 热力图配置接口
+/**
+ * 热力图配置接口
+ */
 export interface HeatmapConfig {
-  radius: number;           // 热力点半径(像素)
-  blur: number;             // 模糊大小(像素)
-  opacity: number;          // 不透明度 0-1
-  gradient: string[];       // 颜色渐变数组
-  minWeight: number;        // 最小权重阈值 0-1
-  maxWeight: number;        // 最大权重阈值 0-1
-  showPoints: boolean;      // 是否显示数据点
-  pointColor: string;       // 点颜色
-  pointRadius: number;      // 点半径(像素)
-  pointStrokeColor: string; // 点边框颜色
-  pointStrokeWidth: number; // 点边框宽度
-  zIndex: number;           // 层级
-  hideOnMoving: boolean;    // 移动时隐藏热力图提高性能
-  hideOnZooming: boolean;   // 缩放时隐藏热力图提高性能
+  // 模糊程度
+  blur: number;
+  // 半径大小
+  radius: number;
+  // 透明度
+  opacity: number;
+  // 最大权重
+  max: number;
+  // 最小权重
+  minWeight: number;
+  // 最大权重
+  maxWeight: number;
+  // 最大缩放级别
+  maxZoom: number;
+  // 最小透明度
+  minOpacity: number;
+  // 颜色渐变
+  gradient: { [key: string]: string };
+  // 堆叠顺序
+  zIndex: number;
+  // 是否显示数据点
+  showPoints: boolean;
+  // 数据点半径
+  pointRadius: number;
+  // 数据点颜色
+  pointColor: string;
+  // 数据点描边颜色
+  pointStrokeColor: string;
+  // 数据点描边宽度
+  pointStrokeWidth: number;
+  // 移动时是否隐藏热力图
+  hideOnMoving: boolean;
+  // 缩放时是否隐藏热力图
+  hideOnZooming: boolean;
 }
 
-// 默认热力图配置
+/**
+ * 默认热力图配置
+ */
 export const DEFAULT_HEATMAP_CONFIG: HeatmapConfig = {
-  radius: 15,
   blur: 15,
-  opacity: 0.8,
-  gradient: ['#00f', '#0ff', '#0f0', '#ff0', '#f00'],
+  radius: 25,
+  opacity: 0.7,
+  max: 1.0,
   minWeight: 0,
-  maxWeight: 1,
+  maxWeight: 1.0,
+  maxZoom: 18,
+  minOpacity: 0.05,
+  gradient: {
+    0.4: 'blue',
+    0.6: 'cyan',
+    0.7: 'lime',
+    0.8: 'yellow',
+    1.0: 'red'
+  },
+  zIndex: 10,
   showPoints: false,
-  pointColor: 'rgba(0, 0, 255, 0.7)',
   pointRadius: 4,
-  pointStrokeColor: '#fff',
+  pointColor: '#ff0000',
+  pointStrokeColor: '#ffffff',
   pointStrokeWidth: 1,
-  zIndex: 90,
   hideOnMoving: false,
   hideOnZooming: false
 }; 
