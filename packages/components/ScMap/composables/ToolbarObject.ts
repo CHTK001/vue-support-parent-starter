@@ -446,64 +446,6 @@ export class ToolbarObject {
     
     logger.debug(`处理工具点击: ${toolId}, 当前状态: ${tool.active ? '激活' : '未激活'}`);
     
-    // 坐标工具的特殊处理
-    if (toolId === 'coordinate') {
-      // 坐标工具特殊处理 - 直接控制坐标面板的显示/隐藏
-      const currentActive = !!tool.active;
-      
-      if (currentActive) {
-        // 如果当前已激活，则停用
-        this.deactivateTool(toolId);
-        logger.debug('坐标工具停用，面板将隐藏');
-      } else {
-        // 如果当前未激活，则激活
-        this.activateTool(toolId);
-        
-        // 确保坐标面板状态同步
-        if (!this.showCoordinatePanel) {
-          logger.debug('手动设置坐标面板显示状态');
-          this.showCoordinatePanel = true;
-          
-          // 触发特殊状态变化回调
-          if (this.toolStateChangeCallback) {
-            this.toolStateChangeCallback('coordinate-panel-visible', true, 'panel', {
-              source: 'coordinate-click',
-              forced: true
-            });
-          }
-        }
-        
-        logger.debug('坐标工具激活，面板将显示');
-      }
-      
-      return;
-    }
-
-    // 鹰眼工具的特殊处理
-    if (toolId === 'overview') {
-      // 直接切换鹰眼工具状态
-      const currentActive = !!tool.active;
-      
-      if (currentActive) {
-        // 如果当前已激活，则停用
-        this.deactivateTool(toolId);
-        logger.debug('鹰眼工具停用');
-      } else {
-        // 如果当前未激活，则激活
-        this.activateTool(toolId);
-        logger.debug('鹰眼工具激活');
-        
-        // 手动触发鹰眼状态变化通知
-        if (this.toolStateChangeCallback) {
-          this.toolStateChangeCallback('overview-map', true, 'control', {
-            source: 'overview-click',
-            forced: true
-          });
-        }
-      }
-      
-      return;
-    }
     
     // 图层切换按钮的特殊处理
     if (toolId === 'layer-switch') {
@@ -805,8 +747,8 @@ export class ToolbarObject {
       this.activeToolId = toolId;
     logger.debug(`设置当前激活工具ID为 ${toolId}`);
       
-      // 执行工具激活后的操作
-      this.handleToolActivation(tool);
+    // 执行工具激活后的操作
+    this.handleToolActivation(tool);
     
     // 如果是button类型工具，改为menu类型处理
     if (tool.type === 'button') {
