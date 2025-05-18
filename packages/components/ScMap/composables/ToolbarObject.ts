@@ -978,32 +978,32 @@ export class ToolbarObject {
       case 'draw-rectangle':
         // 激活矩形绘制工具
         if (this.shapeObj) {
-          (this.shapeObj as any).enable('Rectangle');
+          (this.shapeObj as any).enable2('Rectangle');
           logger.debug('已激活矩形绘制工具');
         }
         break;
       case 'draw-square':
         // 激活正方形绘制工具
         if (this.shapeObj) {
-          (this.shapeObj as any).enable('Square');
+          (this.shapeObj as any).enable2('Square');
           logger.debug('已激活正方形绘制工具');
         }
         break;
       case 'draw-circle':
         if (this.shapeObj) {
-          (this.shapeObj as any).enable('Circle');
+          (this.shapeObj as any).enable2('Circle');
           logger.debug('已激活圆形绘制工具');
         }
         break;
       case 'draw-polygon':
         if (this.shapeObj) {
-          (this.shapeObj as any).enable('Polygon');
+          (this.shapeObj as any).enable2('Polygon');
           logger.debug('已激活多边形绘制工具');
         }
         break;
       case 'draw-line':
         if (this.shapeObj) {
-          (this.shapeObj as any).enable('LineString');
+          (this.shapeObj as any).enable2('LineString');
           logger.debug('已激活线段绘制工具');
         }
         break;
@@ -1090,6 +1090,38 @@ export class ToolbarObject {
         break;
       case 'heatmap':
         this.handleHeatmapDeactivate();
+        break;
+       case 'draw-rectangle':
+        // 激活矩形绘制工具
+        if (this.shapeObj) {
+          (this.shapeObj as any).disable2('Rectangle');
+          logger.debug('已激活矩形绘制工具');
+        }
+        break;
+      case 'draw-square':
+        // 激活正方形绘制工具
+        if (this.shapeObj) {
+          (this.shapeObj as any).disable2('Square');
+          logger.debug('已激活正方形绘制工具');
+        }
+        break;
+      case 'draw-circle':
+        if (this.shapeObj) {
+          (this.shapeObj as any).disable2('Circle');
+          logger.debug('已激活圆形绘制工具');
+        }
+        break;
+      case 'draw-polygon':
+        if (this.shapeObj) {
+          (this.shapeObj as any).disable2('Polygon');
+          logger.debug('已激活多边形绘制工具');
+        }
+        break;
+      case 'draw-line':
+        if (this.shapeObj) {
+          (this.shapeObj as any).disable2('LineString');
+          logger.debug('已激活线段绘制工具');
+        }
         break;
       case 'edit-shape':
         this.handleShapeEditDeactivate();
