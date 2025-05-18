@@ -10,7 +10,6 @@ import { CoordinateObject, type CoordinateInfo } from './CoordinateObject';
 import { MeasureObject } from './MeasureObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject } from './ShapeObject';
-import { TrackObject } from './TrackObject';
 import { LeafletTrackplayerObject } from './LeafletTrackplayerObject';
 import { HeatmapObject } from './HeatmapObject';
 import { GridManager, GridType } from './GridManager';
@@ -57,7 +56,7 @@ export class ToolbarObject {
   private overviewMapObj: OverviewMapObject | null = null; // 添加鹰眼地图对象
   private markerObj: MarkerObject | null = null;
   private shapeObj: ShapeObject | null = null;
-  private trackObj: TrackObject | null = null;
+  private trackObj: LeafletTrackplayerObject | null = null;
   private showCoordinatePanel: boolean = false;
   private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   private gridObj: GridManager | null = null;
@@ -255,16 +254,26 @@ export class ToolbarObject {
    * 初始化轨迹对象
    */
   private initTrackObject(): void {
-    const mapInstance = this.mapObj.getMapInstance();
-    if (!mapInstance) {
-      logger.warn('地图实例不存在，无法初始化轨迹对象');
+    // 检查地图对象是否存在
+    if (!this.mapObj) {
+      logger.warn('地图对象不存在，无法初始化轨迹对象');
       return;
     }
     
-    // 创建轨迹对象
-    this.trackObj = new TrackObject(mapInstance);
-    
-    logger.debug('轨迹对象初始化成功');
+    try {
+      // 创建轨迹对象，传递MapObject而非mapInstance
+      this.trackObj = new LeafletTrackplayerObject(this.mapObj);
+      
+      // 检查地图实例是否已初始化
+      const mapInstance = this.mapObj.getMapInstance();
+      if (mapInstance) {
+        logger.debug('轨迹对象初始化成功');
+      } else {
+        logger.warn('地图实例未准备好，轨迹播放器功能可能受限');
+      }
+    } catch (error) {
+      logger.error('轨迹对象初始化失败:', error);
+    }
   }
 
   /**
@@ -1545,9 +1554,9 @@ export class ToolbarObject {
    * 获取轨迹对象
    * @returns 轨迹对象
    */
-  public getTrackObject(): TrackObject {
+  public getTrackObject(): LeafletTrackplayerObject {
     if (!this.trackObj) {
-      this.trackObj = new TrackObject(this.mapObj.getMapInstance());
+      this.trackObj = new LeafletTrackplayerObject(this.mapObj.getMapInstance());
     }
     return this.trackObj;
   }
@@ -2601,5 +2610,26 @@ export class ToolbarObject {
     } catch (error) {
       logger.error('设置地图中心点失败:', error);
     }
+  }
+
+  /**
+   * 更新工具所需的地图对象
+   * @param newMapObj 新的地图对象
+   */
+  public updateMapObject(newMapObj: MapObject): void {
+    if (!newMapObj) {
+      logger.warn('更新地图对象失败: 提供的对象为空');
+      return;
+    }
+    
+    // 更新内部地图对象引用
+    this.mapObj = newMapObj;
+    
+    // 如果轨迹对象已存在，更新其地图引用
+    if (this.trackObj && typeof this.trackObj.setMap === 'function') {
+      this.trackObj.setMap(newMapObj);
+    }
+    
+    logger.debug('地图对象已更新');
   }
 }

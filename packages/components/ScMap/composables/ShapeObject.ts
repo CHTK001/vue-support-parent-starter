@@ -22,6 +22,7 @@ export class ShapeObject {
   
   // 编辑状态
   private editMode: boolean = false;
+  private deleteMode: boolean = false;
   private drawingMode: ShapeType | null = null;
   private currentEditingShape: string | null = null;
   private _currentEditor: any = null;
@@ -1685,6 +1686,13 @@ export class ShapeObject {
    * @param event 事件对象
    */
   private handleShapeClick(id: string, event: L.LeafletMouseEvent): void {
+    // 如果在删除模式下，删除该图形
+    if (this.deleteMode && this.shapes.has(id)) {
+      logger.debug(`删除模式下点击图形: ${id}`);
+      this.deleteShape(id);
+      return; // 删除后不再触发其他点击处理逻辑
+    }
+    
     // 触发所有点击监听器
     this.clickListeners.forEach(listener => {
       listener(id, event);
@@ -1980,12 +1988,25 @@ export class ShapeObject {
           // 移除点击事件监听
           if (typeof layer.off === 'function') {
             layer.off('click');
+            // 移除其他可能的事件监听
+            layer.off('mouseover');
+            layer.off('mouseout');
+            layer.off('contextmenu');
           }
           
           // 从图层组中移除
-        this.shapeLayer.removeLayer(shape.layer);
+          this.shapeLayer.removeLayer(shape.layer);
         } catch (layerError) {
           logger.warn(`移除图形图层失败: ${id}`, layerError);
+          
+          // 尝试强制从图层组移除
+          try {
+            if (this.shapeLayer && this.shapeLayer.removeLayer) {
+        this.shapeLayer.removeLayer(shape.layer);
+            }
+          } catch (e) {
+            // 忽略额外的错误
+          }
         }
       }
       
@@ -1994,7 +2015,11 @@ export class ShapeObject {
       
       // 触发删除事件
       this.deleteListeners.forEach(listener => {
+        try {
         listener(id);
+        } catch (listenerError) {
+          logger.warn(`执行删除监听器失败: ${id}`, listenerError);
+        }
       });
       
       logger.debug(`移除图形成功: ${id}`);
@@ -2266,6 +2291,119 @@ export class ShapeObject {
       this._currentEditor = null;
       this.removeTemporaryHandlers();
       
+      return false;
+    }
+  }
+
+  /**
+   * 检查是否处于编辑模式
+   * @returns 是否处于编辑模式
+   */
+  public isEditMode(): boolean {
+    return this.editMode;
+  }
+
+  /**
+   * 检查是否处于删除模式
+   * @returns 是否处于删除模式
+   */
+  public isDeleteMode(): boolean {
+    return this.deleteMode;
+  }
+
+  /**
+   * 启用删除模式
+   */
+  public enableDeleteMode(): void {
+    // 先停止其他互斥模式
+    this.disableEditMode();
+    if (this.drawingMode) {
+      this.stopDrawing();
+    }
+    
+    // 设置删除模式标志
+    this.deleteMode = true;
+    
+    // 改变鼠标样式为删除样式（如果地图容器存在）
+    try {
+      if (this.mapInstance && this.mapInstance.getContainer()) {
+        const mapContainer = this.mapInstance.getContainer();
+        // 添加删除模式CSS类
+        mapContainer.classList.add('shape-delete-mode');
+        // 修改鼠标样式
+        mapContainer.style.cursor = 'crosshair';
+      }
+    } catch (e) {
+      logger.warn('设置删除模式鼠标样式失败:', e);
+    }
+    
+    logger.debug('启用删除模式');
+  }
+
+  /**
+   * 禁用删除模式
+   */
+  public disableDeleteMode(): void {
+    // 设置状态标志
+    this.deleteMode = false;
+    
+    // 恢复默认鼠标样式（如果地图容器存在）
+    try {
+      if (this.mapInstance && this.mapInstance.getContainer()) {
+        const mapContainer = this.mapInstance.getContainer();
+        // 移除删除模式CSS类
+        mapContainer.classList.remove('shape-delete-mode');
+        // 恢复默认鼠标样式
+        mapContainer.style.cursor = '';
+      }
+    } catch (e) {
+      logger.warn('恢复默认鼠标样式失败:', e);
+    }
+    
+    logger.debug('禁用删除模式');
+  }
+
+  /**
+   * 删除图形（在删除模式下使用）
+   * 与removeShape相比提供更好的视觉反馈和错误处理
+   * @param id 图形ID
+   * @returns 是否成功删除
+   */
+  public deleteShape(id: string): boolean {
+    try {
+      if (!this.shapes.has(id)) {
+        logger.warn(`尝试删除不存在的图形: ${id}`);
+        return false;
+      }
+      
+      logger.debug(`删除图形: ${id}`);
+      
+      // 获取图形信息，用于后续事件触发
+      const shape = this.shapes.get(id)!;
+      
+      // 如果图层存在，尝试添加删除动画效果
+      if (shape.layer) {
+        try {
+          // 添加删除效果类
+          const element = shape.layer.getElement ? shape.layer.getElement() : null;
+          if (element) {
+            element.classList.add('shape-deleting');
+            
+            // 短暂延迟后再实际删除，以便显示动画
+            setTimeout(() => {
+              this.removeShape(id);
+            }, 200);
+            return true;
+          }
+        } catch (animError) {
+          logger.warn(`图形删除动画效果失败: ${id}，直接删除`, animError);
+        }
+      }
+      
+      // 如果没有应用动画效果，直接删除
+      return this.removeShape(id);
+    } catch (error) {
+      logger.error(`删除图形失败: ${id}`, error);
       return false;
     }
   }

@@ -5,10 +5,27 @@
 import L from 'leaflet';
 import 'leaflet-trackplayer';
 import { MapObject } from './MapObject';
-import { TrackPoint, TrackOptions, TrackPlayerOptions } from '../types/track';
+import { TrackPoint, TrackOptions } from '../types/track';
 import type { TrackPlayerEventHandler } from '../types/trackplayer';
 import logger from './LogObject';
 
+/**
+ * Leaflet轨迹播放器类型定义
+ */
+interface LeafletTrackPlayerOptions {
+  playbackSpeed: number;
+  tickLen: number;
+  maxInterpolationTime: number;
+  position: string;
+  trackPointOptions: any;
+  trackLineOptions: any;
+  customControlCallbacks: any;
+  loop: boolean;
+  withCamera: boolean;
+  showNodeNames: boolean;
+  speed: number;
+  [key: string]: any;
+}
 
 /**
  * Leaflet轨迹播放器对象类
@@ -25,7 +42,7 @@ export class LeafletTrackplayerObject {
   // 轨迹数据
   private tracks: any[] = [];
   // 轨迹播放器选项
-  private options: TrackPlayerOptions = {
+  private options: LeafletTrackPlayerOptions = {
     playbackSpeed: 100,
     tickLen: 1000,
     maxInterpolationTime: 5 * 60 * 1000, // 5分钟
@@ -46,7 +63,12 @@ export class LeafletTrackplayerObject {
     customControlCallbacks: {
       onSpeedChange: (speed: number) => this.handleSpeedChange(speed),
       onTrackSelect: (trackId: string) => this.handleTrackSelect(trackId)
-    }
+    },
+    // 添加额外配置项
+    loop: false,
+    withCamera: false,
+    showNodeNames: false,
+    speed: 100
   };
   
   /**
@@ -55,25 +77,41 @@ export class LeafletTrackplayerObject {
    * @param eventHandler 事件处理器
    * @param options 播放器选项
    */
-  constructor(mapObj: MapObject, eventHandler?: TrackPlayerEventHandler, options?: Partial<TrackPlayerOptions>) {
-    // 设置地图实例
-    this.mapInstance = mapObj.getMapInstance();
-    
-    // 设置事件处理器
-    this.eventHandler = eventHandler || null;
-    
-    // 合并选项
-    if (options) {
-      this.options = { ...this.options, ...options };
+  constructor(mapObj: MapObject, eventHandler?: TrackPlayerEventHandler, options?: Partial<LeafletTrackPlayerOptions>) {
+    try {
+      // 安全获取地图实例
+      if (mapObj && typeof mapObj.getMapInstance === 'function') {
+        this.mapInstance = mapObj.getMapInstance();
+        
+        if (!this.mapInstance) {
+          logger.warn('地图实例未初始化或为null');
+        }
+      } else {
+        logger.error('传入的mapObj无效或不包含getMapInstance方法');
+      }
+      
+      // 设置事件处理器
+      this.eventHandler = eventHandler || null;
+      
+      // 合并选项
+      if (options) {
+        this.options = { ...this.options, ...options };
+      }
+      
+      // 创建轨迹图层
+      this.trackLayer = L.layerGroup();
+      
+      // 只有当地图实例存在时才初始化轨迹播放器
+      if (this.mapInstance) {
+        // 初始化轨迹播放器
+        this.initTrackplayer();
+        logger.debug('Leaflet轨迹播放器对象已创建');
+      } else {
+        logger.warn('地图实例不存在，轨迹播放器延迟初始化');
+      }
+    } catch (error) {
+      logger.error('创建Leaflet轨迹播放器对象失败:', error);
     }
-    
-    // 创建轨迹图层
-    this.trackLayer = L.layerGroup();
-    
-    // 初始化轨迹播放器
-    this.initTrackplayer();
-    
-    logger.debug('Leaflet轨迹播放器对象已创建');
   }
   
   /**
@@ -477,5 +515,320 @@ export class LeafletTrackplayerObject {
     this.tracks = [];
     
     logger.debug('Leaflet轨迹播放器已销毁');
+  }
+  
+  /**
+   * 设置配置选项
+   * @param config 配置选项
+   */
+  public setConfig(config: Partial<LeafletTrackPlayerOptions>): void {
+    if (!config) return;
+    
+    try {
+      // 合并选项
+      this.options = { ...this.options, ...config };
+      
+      // 更新轨迹播放器控件的配置
+      if (this.trackplayerControl) {
+        // 设置速度
+        if (config.speed !== undefined) {
+          this.setSpeed(config.speed);
+        }
+        
+        // 设置循环播放
+        if (config.loop !== undefined) {
+          this.setLoop(config.loop);
+        }
+        
+        // 设置跟随相机
+        if (config.withCamera !== undefined) {
+          this.setWithCamera(config.withCamera);
+        }
+        
+        // 设置显示节点名称
+        if (config.showNodeNames !== undefined) {
+          this.setShowNodeNames(config.showNodeNames);
+        }
+      }
+      
+      logger.debug('轨迹播放器配置已更新', config);
+    } catch (error) {
+      logger.error('设置轨迹播放器配置失败:', error);
+    }
+  }
+  
+  /**
+   * 设置循环播放
+   * @param loop 是否循环播放
+   */
+  public setLoop(loop: boolean): void {
+    // 保存选项
+    this.options.loop = loop;
+    
+    // 如果轨迹播放器控件支持setLoop方法，则调用
+    if (this.trackplayerControl && typeof (this.trackplayerControl as any).setLoop === 'function') {
+      (this.trackplayerControl as any).setLoop(loop);
+      logger.debug(`轨迹播放器循环播放已${loop ? '启用' : '禁用'}`);
+    } else {
+      // 否则只记录配置
+      logger.debug(`轨迹播放器循环播放选项已设置为${loop ? '启用' : '禁用'}（控件不支持直接设置）`);
+    }
+  }
+  
+  /**
+   * 设置跟随相机
+   * @param withCamera 是否跟随相机
+   */
+  public setWithCamera(withCamera: boolean): void {
+    // 保存选项
+    this.options.withCamera = withCamera;
+    
+    // 如果轨迹播放器控件支持setFollowMarker方法(leaflet-trackplayer的可能实现)，则调用
+    if (this.trackplayerControl && typeof (this.trackplayerControl as any).setFollowMarker === 'function') {
+      (this.trackplayerControl as any).setFollowMarker(withCamera);
+      logger.debug(`轨迹播放器跟随相机已${withCamera ? '启用' : '禁用'}`);
+    } else if (this.trackplayerControl && typeof (this.trackplayerControl as any).setWithCamera === 'function') {
+      // 尝试另一种可能的方法名
+      (this.trackplayerControl as any).setWithCamera(withCamera);
+      logger.debug(`轨迹播放器跟随相机已${withCamera ? '启用' : '禁用'}`);
+    } else {
+      // 否则只记录配置
+      logger.debug(`轨迹播放器跟随相机选项已设置为${withCamera ? '启用' : '禁用'}（控件不支持直接设置）`);
+    }
+  }
+  
+  /**
+   * 设置显示节点名称
+   * @param showNodeNames 是否显示节点名称
+   */
+  public setShowNodeNames(showNodeNames: boolean): void {
+    // 保存选项
+    this.options.showNodeNames = showNodeNames;
+    
+    // 如果轨迹播放器控件支持setShowNodeNames或类似方法，则调用
+    if (this.trackplayerControl && typeof (this.trackplayerControl as any).setShowNodeNames === 'function') {
+      (this.trackplayerControl as any).setShowNodeNames(showNodeNames);
+      logger.debug(`轨迹播放器节点名称显示已${showNodeNames ? '启用' : '禁用'}`);
+    } else if (this.trackplayerControl && typeof (this.trackplayerControl as any).setLabelMarkers === 'function') {
+      // 尝试另一种可能的方法名
+      (this.trackplayerControl as any).setLabelMarkers(showNodeNames);
+      logger.debug(`轨迹播放器节点名称显示已${showNodeNames ? '启用' : '禁用'}`);
+    } else {
+      // 否则只记录配置
+      logger.debug(`轨迹播放器节点名称显示选项已设置为${showNodeNames ? '启用' : '禁用'}（控件不支持直接设置）`);
+    }
+  }
+  
+  /**
+   * 设置播放时间点
+   * @param timestamp 时间戳
+   */
+  public setPlaybackTime(timestamp: number): void {
+    // 与setCursor方法功能相同
+    this.setCursor(timestamp);
+  }
+  
+  /**
+   * 设置播放速度
+   * @param speed 播放速度
+   */
+  public setPlaybackSpeed(speed: number): void {
+    this.setSpeed(speed);
+  }
+  
+  /**
+   * 设置激活的轨迹
+   * @param trackId 轨迹ID
+   * @returns 是否成功设置
+   */
+  public setActiveTrack(trackId: string): boolean {
+    try {
+      // 在轨迹列表中查找轨迹
+      const track = this.tracks.find(t => t.properties?.id === trackId);
+      
+      if (!track) {
+        logger.warn(`设置激活轨迹失败: 未找到轨迹 ${trackId}`);
+        return false;
+      }
+      
+      // 如果轨迹播放器控件支持setSelectedTrack方法，则调用
+      if (this.trackplayerControl && typeof (this.trackplayerControl as any).setSelectedTrack === 'function') {
+        (this.trackplayerControl as any).setSelectedTrack(trackId);
+      }
+      
+      this.triggerEvent('track-selected', { trackId });
+      logger.debug(`已设置激活轨迹: ${trackId}`);
+      return true;
+    } catch (error) {
+      logger.error(`设置激活轨迹失败: ${error}`);
+      return false;
+    }
+  }
+  
+  /**
+   * 获取所有轨迹
+   * @returns 轨迹列表
+   */
+  public getTracks(): any[] {
+    return this.tracks.map(track => {
+      const props = track.properties || {};
+      const points = [];
+      
+      // 构建轨迹点数组
+      if (track.geometry?.coordinates?.length) {
+        const coords = track.geometry.coordinates;
+        const times = track.time || [];
+        
+        for (let i = 0; i < coords.length; i++) {
+          points.push({
+            longitude: coords[i][0],
+            latitude: coords[i][1],
+            time: times[i] || Date.now(),
+            properties: {}
+          });
+        }
+      }
+      
+      // 返回符合Track接口的对象
+      return {
+        id: props.id || '',
+        name: props.name || `轨迹 ${props.id || ''}`,
+        color: props.color || this.options.trackLineOptions.color,
+        points: points,
+        options: {
+          width: props.weight || this.options.trackLineOptions.weight,
+          opacity: props.opacity || this.options.trackLineOptions.opacity,
+          ...props
+        }
+      };
+    });
+  }
+  
+  /**
+   * 获取指定轨迹
+   * @param trackId 轨迹ID
+   * @returns 轨迹对象
+   */
+  public getTrack(trackId: string): any {
+    const track = this.tracks.find(t => t.properties?.id === trackId);
+    
+    if (!track) {
+      logger.warn(`未找到轨迹: ${trackId}`);
+      return null;
+    }
+    
+    const props = track.properties || {};
+    const points = [];
+    
+    // 构建轨迹点数组
+    if (track.geometry?.coordinates?.length) {
+      const coords = track.geometry.coordinates;
+      const times = track.time || [];
+      
+      for (let i = 0; i < coords.length; i++) {
+        points.push({
+          longitude: coords[i][0],
+          latitude: coords[i][1],
+          time: times[i] || Date.now(),
+          properties: {}
+        });
+      }
+    }
+    
+    // 返回符合Track接口的对象
+    return {
+      id: props.id || '',
+      name: props.name || `轨迹 ${props.id || ''}`,
+      color: props.color || this.options.trackLineOptions.color,
+      points: points,
+      options: {
+        width: props.weight || this.options.trackLineOptions.weight,
+        opacity: props.opacity || this.options.trackLineOptions.opacity,
+        ...props
+      }
+    };
+  }
+  
+  /**
+   * 设置事件回调
+   * @param callback 事件回调函数
+   */
+  public setEventCallback(callback: TrackPlayerEventHandler): void {
+    this.eventHandler = callback;
+    logger.debug('已设置轨迹播放器事件回调');
+  }
+  
+  /**
+   * 播放轨迹
+   * @param trackId 轨迹ID
+   * @param startTime 开始时间
+   * @returns 是否成功开始播放
+   */
+  public play(trackId?: string, startTime?: number): boolean {
+    try {
+      // 如果指定了轨迹ID，先设置为激活轨迹
+      if (trackId) {
+        const success = this.setActiveTrack(trackId);
+        if (!success) {
+          logger.error(`播放轨迹失败: 未找到轨迹 ${trackId}`);
+          return false;
+        }
+      }
+      
+      // 如果指定了开始时间，设置时间点
+      if (startTime !== undefined) {
+        this.setCursor(startTime);
+      }
+      
+      // 开始播放
+      this.start();
+      
+      // 触发播放开始事件
+      this.triggerEvent('track-play-start', { 
+        trackId,
+        time: startTime || this.getCurrentTime()
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error(`播放轨迹失败: ${error}`);
+      return false;
+    }
+  }
+  
+  /**
+   * 设置地图对象并初始化轨迹播放器
+   * @param mapObj 地图对象
+   */
+  public setMap(mapObj: MapObject): void {
+    try {
+      if (!mapObj || typeof mapObj.getMapInstance !== 'function') {
+        logger.error('设置地图对象失败: 无效的地图对象或getMapInstance方法不存在');
+        return;
+      }
+      
+      // 获取地图实例
+      this.mapInstance = mapObj.getMapInstance();
+      
+      if (!this.mapInstance) {
+        logger.warn('地图实例未初始化或为null');
+        return;
+      }
+      
+      // 如果轨迹播放器控件已存在，先销毁
+      if (this.trackplayerControl) {
+        this.destroy();
+      }
+      
+      // 创建轨迹图层
+      this.trackLayer = L.layerGroup();
+      
+      // 初始化轨迹播放器
+      this.initTrackplayer();
+      
+      logger.debug('地图对象已设置，轨迹播放器已初始化');
+    } catch (error) {
+      logger.error('设置地图对象失败:', error);
+    }
   }
 } 

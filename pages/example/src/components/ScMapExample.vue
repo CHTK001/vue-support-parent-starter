@@ -72,13 +72,23 @@
           <div class="config-item">
             <div class="label">标记点操作</div>
             <div class="controls">
+              <div class="control-row">
+                <span>当前分组:</span>
+                <select v-model="currentGroup">
+                  <option v-for="group in markerGroups" :key="group" :value="group">{{ group }}</option>
+                </select>
+              </div>
               <div class="control-row buttons-row">
                 <button @click="addRandomMarkers(3)">添加随机标记</button>
-                <button @click="clearAllMarkers">清除所有标记</button>
+                <button @click="clearGroupMarkers">清除当前组</button>
               </div>
               <div class="control-row buttons-row">
                 <button @click="addLabeledMarkers">添加带标签标记</button>
                 <button @click="addCustomIconMarkers">添加自定义图标</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="toggleGroupMarkers">{{ isGroupVisible(currentGroup) ? '隐藏当前组' : '显示当前组' }}</button>
+                <button @click="clearAllMarkers">清除所有标记</button>
               </div>
               <div class="control-row buttons-row">
                 <button @click="toggleAllMarkers">{{ allMarkersVisible ? '隐藏所有标记点' : '显示所有标记点' }}</button>
@@ -113,6 +123,23 @@
               <div class="control-row buttons-row">
                 <button @click="addSampleFlightLine">添加示例飞线</button>
                 <button @click="clearAllFlightLines">清除所有飞线</button>
+              </div>
+            </div>
+          </div>
+          <div class="config-item">
+            <div class="label">分组管理</div>
+            <div class="controls">
+              <div class="control-row">
+                <input type="text" v-model="newGroupName" placeholder="新分组名称" class="group-input" />
+                <button @click="addGroup" class="add-group-btn">添加</button>
+              </div>
+              <div class="control-row">
+                <div class="group-list">
+                  <div v-for="group in markerGroups" :key="group" class="group-item">
+                    <span>{{ group }}</span>
+                    <button @click="removeGroup(group)" class="remove-group-btn" v-if="group !== '默认组'">&times;</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -158,6 +185,9 @@ const allMarkersVisible = ref(true);
 const shapes = ref<any[]>([]);
 const allShapesVisible = ref(true);
 const logs = reactive<any[]>([]);
+const markerGroups = ref<string[]>(['默认组', '组A', '组B']);
+const currentGroup = ref<string>('默认组');
+const newGroupName = ref<string>('');
 
 function addLog(type: string, message: string) {
   const now = new Date();
@@ -226,29 +256,35 @@ function handleInteractionChange() {
 function addRandomMarkers(count: number) {
   if (!mapRef.value) return;
   const center = config.center;
+  
   for (let i = 0; i < count; i++) {
     const offsetLon = (Math.random() - 0.5) * 0.1;
     const offsetLat = (Math.random() - 0.5) * 0.1;
     const lon = center[1] + offsetLon;
     const lat = center[0] + offsetLat;
+    
     mapRef.value.addMarker({
       id: `marker-${Date.now()}-${i}`,
-      position: [lon, lat],
-      title: `标记 ${i + 1}`,
-      clickable: true
+      position: [lat, lon],
+      title: `${currentGroup.value} - 标记 ${i + 1}`,
+      clickable: true,
+      group: currentGroup.value // 添加分组属性
     });
   }
   updateMarkerList();
-  addLog('操作', `已添加${count}个随机标记点`);
+  addLog('操作', `已添加${count}个随机标记点到分组 ${currentGroup.value}`);
 }
 function clearAllMarkers() {
   if (!mapRef.value) return;
-  mapRef.value.clearMarkers?.();
+  
+  mapRef.value.clearMarkers();
+  
   updateMarkerList();
   addLog('操作', '已清除所有标记点');
 }
 function toggleAllMarkers() {
   if (!mapRef.value) return;
+  
   if (allMarkersVisible.value) {
     mapRef.value.hideAllMarkers();
     allMarkersVisible.value = false;
@@ -258,28 +294,40 @@ function toggleAllMarkers() {
     allMarkersVisible.value = true;
     addLog('操作', '已显示所有标记点');
   }
+  
   updateMarkerList();
 }
 function updateMarkerList() {
   if (!mapRef.value) return;
-
-  const markerObj = mapRef.value.getToolbarObject()?.getMarkerObject();
-  if (!markerObj) return;
   
-  const markersMap = markerObj.getAllMarkers?.() || new Map();
-  // 将Map对象转换为数组
-  markers.value = Array.from(markersMap.values());
-  allMarkersVisible.value = markers.value.filter((m) => m.options?.visible !== false).length > 0;
+  // 使用mapRef.value.getMarkers()获取所有标记点
+  const markersArray = mapRef.value.getMarkers() || [];
+  markers.value = markersArray;
+  
+  // 检查所有标记点是否可见
+  allMarkersVisible.value = markersArray.length > 0 && markersArray.every(m => m.options?.visible !== false);
 }
 function addSquareShape() {
   if (!mapRef.value) return;
   const center = config.center;
+  // 正方形实际上是矩形，需要提供两个点作为坐标
+  // 计算正方形的两个对角点坐标（西南角和东北角）
+  // 在地图上大约500米的正方形
+  const metersToLatLon = 0.0045; // 大约500米对应的经纬度差值
+  const sw = [center[0] - metersToLatLon/2, center[1] - metersToLatLon/2];
+  const ne = [center[0] + metersToLatLon/2, center[1] + metersToLatLon/2];
+  
   mapRef.value.addShape({
-    id: `square-${Date.now()}`,
-    type: 'Square',
-    center: [center[1], center[0]],
-    size: 500,
-    style: { fill: { color: 'rgba(255, 165, 0, 0.3)' }, stroke: { color: 'orange', width: 3 } }
+    id: `rectangle-${Date.now()}`,
+    type: 'Rectangle', // 使用Rectangle而不是Square
+    coordinates: [sw, ne], // 提供两个点的坐标
+    style: {
+      color: 'orange',
+      weight: 3,
+      opacity: 1,
+      fillColor: 'orange',
+      fillOpacity: 0.3
+    }
   });
   updateShapeList();
   addLog('操作', '已添加正方形图形');
@@ -287,12 +335,19 @@ function addSquareShape() {
 function addCircleShape() {
   if (!mapRef.value) return;
   const center = config.center;
+  // 创建圆形时需要提供中心点坐标和半径
   mapRef.value.addShape({
     id: `circle-${Date.now()}`,
     type: 'Circle',
-    center: [center[1] + 0.01, center[0] + 0.01],
-    radius: 300,
-    style: { fill: { color: 'rgba(24, 144, 255, 0.3)' }, stroke: { color: '#1890ff', width: 2 } }
+    coordinates: [[center[0], center[1]]], // 注意：坐标格式为二维数组 [[lat, lng]]
+    radius: 300, // 半径，单位：米
+    style: {
+      color: '#1890ff', // 边框颜色
+      weight: 2, // 边框宽度
+      opacity: 1, // 边框透明度
+      fillColor: '#1890ff', // 填充颜色
+      fillOpacity: 0.3 // 填充透明度
+    }
   });
   updateShapeList();
   addLog('操作', '已添加圆形图形');
@@ -306,21 +361,58 @@ function clearAllShapes() {
 function toggleShapeVisible() {
   if (!mapRef.value) return;
   if (allShapesVisible.value) {
-    shapes.value.forEach((shape: any) => mapRef.value.updateShape(shape.id, { visible: false }));
+    // 隐藏所有图形
+    shapes.value.forEach((shape: any) => {
+      if (shape.id) {
+        mapRef.value.updateShape(shape.id, { 
+          style: { 
+            ...shape.options?.style,
+            hidden: true 
+          }
+        });
+      }
+    });
     allShapesVisible.value = false;
     addLog('操作', '已隐藏所有图形');
   } else {
-    shapes.value.forEach((shape: any) => mapRef.value.updateShape(shape.id, { visible: true }));
+    // 显示所有图形
+    shapes.value.forEach((shape: any) => {
+      if (shape.id) {
+        mapRef.value.updateShape(shape.id, { 
+          style: { 
+            ...shape.options?.style,
+            hidden: false 
+          }
+        });
+      }
+    });
     allShapesVisible.value = true;
     addLog('操作', '已显示所有图形');
   }
-  updateShapeList();
+  // 延迟更新列表，确保状态已更新
+  setTimeout(() => {
+    updateShapeList();
+  }, 100);
 }
 function updateShapeList() {
   if (!mapRef.value) return;
-  const all = mapRef.value.getToolbarObject()?.getShapeObject()?.getAllShapes?.() || [];
-  shapes.value = all;
-  allShapesVisible.value = all.length > 0 && all.every((s: any) => s.visible !== false);
+  
+  const shapeObj = mapRef.value.getToolbarObject()?.getShapeObject();
+  if (!shapeObj) return;
+  
+  // getAllShapes返回的是Map对象，需要转换为数组
+  const shapesMap = shapeObj.getAllShapes() || new Map();
+  
+  // 将Map对象转换为数组
+  const shapesArray = Array.from(shapesMap.entries()).map(([id, shape]) => ({
+    id,
+    type: shape.type,
+    options: shape.options,
+    visible: !shape.options?.style?.hidden
+  }));
+  
+  shapes.value = shapesArray;
+  allShapesVisible.value = shapesArray.length > 0 && shapesArray.every(s => s.visible !== false);
 }
 // 轨迹相关
 function addSampleTrack() {
@@ -369,7 +461,7 @@ function addLabeledMarkers() {
     mapRef.value.addMarker({
       id: `labeled-marker-${Date.now()}-${i}`,
       position: [lat, lon], // 注意: 坐标格式为[lat, lng]
-      title: `带标签标记 ${i + 1}`,
+      title: `${currentGroup.value} - 带标签标记 ${i + 1}`,
       showLabel: true, // 显示永久标签
       labelOptions: {
         permanent: true,
@@ -382,12 +474,13 @@ function addLabeledMarkers() {
         backgroundColor: i === 0 ? '#ff4500' : (i === 1 ? '#1890ff' : '#4caf50'), // 不同颜色
         iconSize: [24, 24]
       },
-      clickable: true
+      clickable: true,
+      group: currentGroup.value // 添加分组属性
     });
   }
   
   updateMarkerList();
-  addLog('操作', '已添加3个带标签的标记点');
+  addLog('操作', `已添加3个带标签的标记点到分组 ${currentGroup.value}`);
 }
 
 // 添加自定义图标的标记点
@@ -412,9 +505,10 @@ function addCustomIconMarkers() {
     let markerOptions: any = {
       id: `icon-marker-${Date.now()}-${i}`,
       position: [lat, lon],
-      title: `自定义图标 ${i + 1}`,
+      title: `${currentGroup.value} - 自定义图标 ${i + 1}`,
       clickable: true,
-      data: { type: 'custom-icon' }
+      data: { type: 'custom-icon' },
+      group: currentGroup.value // 添加分组属性
     };
     
     if (i < 2) {
@@ -442,7 +536,7 @@ function addCustomIconMarkers() {
       // 添加弹出窗口内容
       markerOptions.popupContent = `
         <div class="marker-popup">
-          <b>自定义HTML图标</b><br>
+          <b>${currentGroup.value} - 自定义HTML图标</b><br>
           坐标: [${lat.toFixed(4)}, ${lon.toFixed(4)}]
         </div>
       `;
@@ -452,7 +546,103 @@ function addCustomIconMarkers() {
   }
   
   updateMarkerList();
-  addLog('操作', '已添加3个自定义图标标记点');
+  addLog('操作', `已添加3个自定义图标标记点到分组 ${currentGroup.value}`);
+}
+
+function isGroupVisible(group: string): boolean {
+  const groupMarkers = getGroupMarkers(group);
+  return groupMarkers.length > 0 && groupMarkers.every(m => m.options?.visible !== false);
+}
+
+function toggleGroupMarkers() {
+  if (!mapRef.value) return;
+  
+  const visible = !isGroupVisible(currentGroup.value);
+  
+  // 获取所有标记点
+  const markers = getGroupMarkers(currentGroup.value);
+  
+  // 更新每个标记点的可见性
+  markers.forEach(marker => {
+    mapRef.value.updateMarker(marker.id, { visible });
+  });
+  
+  updateMarkerList();
+  addLog('操作', `已${visible ? '显示' : '隐藏'}分组 ${currentGroup.value} 的标记点`);
+}
+
+function clearGroupMarkers() {
+  if (!mapRef.value) return;
+  
+  // 获取当前分组的所有标记点
+  const markers = getGroupMarkers(currentGroup.value);
+  
+  // 删除每个标记点
+  markers.forEach(marker => {
+    mapRef.value.removeMarker(marker.id);
+  });
+  
+  updateMarkerList();
+  addLog('操作', `已清除分组 ${currentGroup.value} 的标记点，共${markers.length}个`);
+}
+
+function addGroup() {
+  if (!newGroupName.value.trim()) {
+    addLog('分组', '分组名称不能为空');
+    return;
+  }
+  
+  if (markerGroups.value.includes(newGroupName.value)) {
+    addLog('分组', `分组 ${newGroupName.value} 已存在`);
+    return;
+  }
+  
+  markerGroups.value.push(newGroupName.value);
+  // 切换到新分组
+  currentGroup.value = newGroupName.value;
+  newGroupName.value = '';
+  
+  addLog('分组', `成功添加分组: ${currentGroup.value}`);
+}
+
+function removeGroup(group: string) {
+  if (group === '默认组') {
+    addLog('分组', '不能删除默认组');
+    return;
+  }
+  
+  // 获取该分组的所有标记点
+  const groupMarkers = getGroupMarkers(group);
+  
+  // 如果有标记点，提示并移到默认组
+  if (groupMarkers.length > 0) {
+    groupMarkers.forEach(marker => {
+      mapRef.value.updateMarker(marker.id, { group: '默认组' });
+    });
+    addLog('分组', `已将分组 ${group} 的 ${groupMarkers.length} 个标记点移至默认组`);
+  }
+  
+  // 如果当前选中的是要删除的分组，切换到默认分组
+  if (currentGroup.value === group) {
+    currentGroup.value = '默认组';
+  }
+  
+  // 从分组列表中删除
+  markerGroups.value = markerGroups.value.filter(g => g !== group);
+  
+  addLog('分组', `成功删除分组: ${group}`);
+  updateMarkerList();
+}
+
+// 添加获取分组标记点的辅助方法
+function getGroupMarkers(group: string): any[] {
+  if (!mapRef.value) return [];
+  
+  // 使用updateMarkerList方法获取所有标记点
+  updateMarkerList();
+  
+  // 过滤出指定分组的标记点
+  return markers.value.filter(marker => marker.options?.group === group);
 }
 </script>
 
@@ -599,5 +789,57 @@ button:hover {
 
 :deep(.custom-icon-marker) {
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
+}
+
+.group-input {
+  flex: 1;
+  height: 26px;
+  padding: 2px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.add-group-btn {
+  width: 60px;
+}
+
+.group-list {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.group-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.remove-group-btn {
+  margin-left: 6px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #999;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.remove-group-btn:hover {
+  color: #ff4d4f;
+  background-color: #fff;
 }
 </style> 
