@@ -1159,7 +1159,7 @@ export class ToolbarObject {
     }
     
     // 启用测距功能
-    this.measureObj.enable('distance');
+    this.measureObj.enable();
     logger.debug('测距功能已启用');
   }
   
@@ -1169,9 +1169,10 @@ export class ToolbarObject {
   private handleMeasureDeactivate(): void {
     if (!this.measureObj) return;
     
-    // 禁用测距功能
+    // 确保禁用测距功能并彻底清除数据
     this.measureObj.disable();
-    logger.debug('测距功能已禁用');
+    this.measureObj.clear(); // 即使disable中已调用clear，这里再次调用以确保清除
+    logger.debug('测距功能已禁用，测距数据已清除');
   }
   
   /**
@@ -1257,16 +1258,6 @@ export class ToolbarObject {
   }
   
   
-  /**
-   * 切换测距类型
-   * @param type 测距类型
-   */
-  switchMeasureType(type: MeasureType): void {
-    if (!this.measureObj) return;
-    
-    this.measureObj.switchType(type);
-  }
-
   /**
    * 处理鹰眼工具激活
    */
