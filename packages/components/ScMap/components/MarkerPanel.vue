@@ -10,7 +10,8 @@
         <span class="close-btn" @click="handleClose">×</span>
       </div>
       <div class="marker-panel-body">
-        <div v-if="content" v-html="content"></div>
+        <div v-if="clickContentTemplate" v-html="clickContentTemplate"></div>
+        <div v-else-if="content" v-html="content"></div>
         <div v-else class="default-content">
           <div v-if="coords" class="coords-info">
             <div>经度: {{ coords[0].toFixed(6) }}</div>
@@ -25,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+//@ts-ignore
 import { computed, ref, watch } from 'vue';
 
 // 定义组件属性
@@ -36,6 +38,7 @@ const props = defineProps<{
   };
   title?: string;
   content?: string;
+  clickContentTemplate?: string;
   coords?: [number, number]; // [lng, lat]
   offset?: {
     x: number;
@@ -56,7 +59,7 @@ const panelStyle = computed(() => {
   
   return {
     left: `${x + offsetX}px`,
-    top: `${y + offsetY}px`,
+    top: `${y + offsetY - 10}px`,
   };
 });
 
