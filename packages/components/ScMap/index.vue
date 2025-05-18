@@ -66,6 +66,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+//@ts-ignore
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import '../ScMap/styles/measure.scss'; // 导入测距样式
