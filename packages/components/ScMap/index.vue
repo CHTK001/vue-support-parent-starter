@@ -419,9 +419,9 @@ const initMap = async () => {
     
     if (!initialized) {
       logger.error('地图初始化失败');
-    return;
-  }
-  
+      return;
+    }
+    
     // 创建工具栏对象
     toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
     
@@ -544,7 +544,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllMarkers();
           logger.debug('[Marker] 隐藏所有标记点');
-  } else {
+    } else {
           markerObject.showAllMarkers();
           logger.debug('[Marker] 显示所有标记点');
         }
@@ -557,7 +557,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllLabels();
           logger.debug('[Marker] 隐藏所有标记点标签');
-      } else {
+  } else {
           markerObject.showAllLabels();
           logger.debug('[Marker] 显示所有标记点标签');
         }
@@ -628,11 +628,11 @@ const determineLayerPanelPosition = (): 'top-left' | 'top-right' | 'bottom-left'
       if (toolbarPosition.startsWith('top-')) {
         // 如果工具栏在顶部，面板放在其下方相同水平位置
         return toolbarPosition as 'top-left' | 'top-right';
-      } else {
+        } else {
         // 如果工具栏在底部，面板放在其上方相同水平位置
         return toolbarPosition === 'bottom-left' ? 'top-left' : 'top-right';
       }
-    } else {
+      } else {
       // 垂直工具栏时，面板在工具栏旁边
       // 如果工具栏在左侧，面板放在其右侧
       // 如果工具栏在右侧，面板放在其左侧
@@ -696,6 +696,10 @@ const handleToolDeactivated = (toolId: string) => {
     showTrackPlayer.value = false;
   } else if (toolId === 'flightLine') {
     showFlightLinePanel.value = false;
+  } else if (toolId === 'label-toggle' && markerObject) {
+    // 处理标签工具停用，确保显示所有标签
+    markerObject.showAllLabels();
+    logger.debug('[Marker] 标签工具停用，显示所有标签');
   }
 
   // 处理测距工具的停用
@@ -934,7 +938,30 @@ defineExpose({
   getZoom: () => mapObj?.getZoom(),
   
   // 标记点操作
-  addMarker: (options: MarkerOptions) => markerObject?.addMarker(options),
+  addMarker: (options: MarkerOptions) => {
+    if (!markerObject) {
+      logger.error('添加标记点失败: markerObject未初始化');
+      return '';
+    }
+    
+    // 验证和记录位置信息
+    if (!options.position || options.position.length < 2) {
+      logger.error('添加标记点失败: 无效的位置信息', options.position);
+      return '';
+    }
+    
+    logger.debug('ScMap.addMarker: 添加标记点', options.position);
+    try {
+      const id = markerObject.addMarker(options);
+      if (!id) {
+        logger.error('添加标记点失败: 返回ID为空');
+      }
+      return id;
+    } catch (error) {
+      logger.error('添加标记点时发生错误:', error);
+      return '';
+    }
+  },
   updateMarker: (id: string, options: Partial<MarkerOptions>) => markerObject?.updateMarker(id, options),
   removeMarker: (id: string) => markerObject?.removeMarker(id),
   getMarker: (id: string) => markerObject?.getMarker(id),
@@ -989,8 +1016,8 @@ defineExpose({
     const flightLineObj = toolbarObject?.getFlightLineObject();
     if (flightLineObj) {
       flightLineObj.getAllFlightLines().clear();
-      return true;
-    }
+        return true;
+      }
       return false;
   },
   getAllFlightLines: () => {

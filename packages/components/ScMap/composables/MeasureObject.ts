@@ -13,7 +13,7 @@ export type MeasureEventType = 'measure-end';
 export type MeasureEventListener = () => void;
 
 export interface MeasureStyle {
-  color?: string;
+      color?: string;
   weight?: number;
   dashArray?: string;
   showUnit?: boolean;
@@ -82,7 +82,7 @@ export class MeasureObject {
 
   public enable() {
     if (!this.mapInstance) return;
-    
+
     this.enabled = true;
     this.clear();
     this.firstClick = true;
@@ -127,7 +127,7 @@ export class MeasureObject {
     
     // 彻底清除所有测量数据和图层
     this.clear();
-    
+
     // 确保图层被完全移除
     if (this.measureLayerGroup) {
       this.measureLayerGroup.clearLayers();
@@ -402,7 +402,7 @@ export class MeasureObject {
         if (this.mapInstance && (this.mapInstance as any)._animatingZoom) {
           // 如果仍在缩放，再次延迟
           setTimeout(() => this.addDistanceLabel(point1, point2, distance), 400);
-        } else {
+    } else {
           this.addDistanceLabel(point1, point2, distance);
         }
       }, 400);
@@ -517,4 +517,4 @@ export class MeasureObject {
 
 export function createMeasureObject(mapInstance?: Map, style?: MeasureStyle): MeasureObject {
   return new MeasureObject(mapInstance, style);
-} 
+}

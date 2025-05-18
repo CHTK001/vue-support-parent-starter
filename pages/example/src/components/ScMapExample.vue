@@ -77,6 +77,10 @@
                 <button @click="clearAllMarkers">清除所有标记</button>
               </div>
               <div class="control-row buttons-row">
+                <button @click="addLabeledMarkers">添加带标签标记</button>
+                <button @click="addCustomIconMarkers">添加自定义图标</button>
+              </div>
+              <div class="control-row buttons-row">
                 <button @click="toggleAllMarkers">{{ allMarkersVisible ? '隐藏所有标记点' : '显示所有标记点' }}</button>
               </div>
             </div>
@@ -350,6 +354,107 @@ function clearAllFlightLines() {
   mapRef.value.clearFlightLines?.();
   addLog('飞线', '已清除所有飞线');
 }
+
+// 添加带标签的标记点
+function addLabeledMarkers() {
+  if (!mapRef.value) return;
+  const center = config.center;
+  
+  // 添加三个带有永久标签的标记点
+  for (let i = 0; i < 3; i++) {
+    const offsetLon = (Math.random() - 0.5) * 0.05;
+    const offsetLat = (Math.random() - 0.5) * 0.05;
+    const lon = center[1] + offsetLon;
+    const lat = center[0] + offsetLat;
+    
+    mapRef.value.addMarker({
+      id: `labeled-marker-${Date.now()}-${i}`,
+      position: [lat, lon], // 注意: 坐标格式为[lat, lng]
+      title: `带标签标记 ${i + 1}`,
+      showLabel: true, // 显示永久标签
+      labelOptions: {
+        permanent: true,
+        direction: 'top',
+        className: 'custom-marker-label',
+        offset: [0, -10],
+        opacity: 1.0
+      },
+      icon: {
+        backgroundColor: i === 0 ? '#ff4500' : (i === 1 ? '#1890ff' : '#4caf50'), // 不同颜色
+        iconSize: [24, 24]
+      },
+      clickable: true
+    });
+  }
+  
+  updateMarkerList();
+  addLog('操作', '已添加3个带标签的标记点');
+}
+
+// 添加自定义图标的标记点
+function addCustomIconMarkers() {
+  if (!mapRef.value) return;
+  const center = config.center;
+  
+  // 图标URL数组
+  const iconUrls = [
+    'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon.png',
+    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    // 使用FontAwesome SVG作为图标HTML
+    null // 使用HTML自定义图标
+  ];
+  
+  for (let i = 0; i < iconUrls.length; i++) {
+    const offsetLon = (Math.random() - 0.5) * 0.07;
+    const offsetLat = (Math.random() - 0.5) * 0.07;
+    const lon = center[1] + offsetLon;
+    const lat = center[0] + offsetLat;
+    
+    let markerOptions: any = {
+      id: `icon-marker-${Date.now()}-${i}`,
+      position: [lat, lon],
+      title: `自定义图标 ${i + 1}`,
+      clickable: true,
+      data: { type: 'custom-icon' }
+    };
+    
+    if (i < 2) {
+      // 使用URL图标
+      markerOptions.icon = {
+        iconUrl: iconUrls[i],
+        iconSize: i === 0 ? [25, 41] : [35, 57],
+        iconAnchor: i === 0 ? [12, 41] : [17, 57],
+        popupAnchor: [0, -41],
+        className: 'custom-icon-marker'
+      };
+    } else {
+      // 使用HTML自定义图标
+      markerOptions.icon = {
+        html: `<div class="custom-html-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                  <path fill="#e74c3c" d="M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM12,11.5c-1.38,0 -2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5 2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5z"/>
+                </svg>
+              </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        className: 'custom-html-marker'
+      };
+      
+      // 添加弹出窗口内容
+      markerOptions.popupContent = `
+        <div class="marker-popup">
+          <b>自定义HTML图标</b><br>
+          坐标: [${lat.toFixed(4)}, ${lon.toFixed(4)}]
+        </div>
+      `;
+    }
+    
+    mapRef.value.addMarker(markerOptions);
+  }
+  
+  updateMarkerList();
+  addLog('操作', '已添加3个自定义图标标记点');
+}
 </script>
 
 <style scoped>
@@ -460,5 +565,40 @@ button:hover {
 .no-logs {
   color: #999;
   font-style: italic;
+}
+
+/* 自定义标记样式 */
+:deep(.custom-marker-label) {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #1890ff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+:deep(.custom-html-icon) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+:deep(.marker-popup) {
+  padding: 5px;
+  min-width: 150px;
+  text-align: center;
+}
+
+:deep(.custom-html-marker) {
+  background: none;
+  border: none;
+}
+
+:deep(.custom-icon-marker) {
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
 }
 </style> 

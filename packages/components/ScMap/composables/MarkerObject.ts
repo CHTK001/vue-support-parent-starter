@@ -13,6 +13,10 @@ export class MarkerObject {
   private markerLayer: L.LayerGroup;
   private clickListener: ((event: L.LeafletMouseEvent) => void) | null = null;
   
+  // 添加状态跟踪变量
+  private markersVisible: boolean = true; // 标记点是否可见
+  private labelsVisible: boolean = true;  // 标签是否可见
+  
   // 标记配置
   private config: MarkerConfig = {
     scaleWithZoom: true,
@@ -126,8 +130,35 @@ export class MarkerObject {
     const id = options.id || uuidv4();
     
     try {
-      // 创建LatLng对象
-      const latlng = L.latLng(options.position[0], options.position[1]);
+      // 检查地图实例是否存在
+      if (!this.mapInstance) {
+        logger.error('添加标记点失败: 地图实例不存在');
+        return '';
+      }
+
+      // 检查位置信息是否有效
+      if (!options.position || options.position.length < 2 || 
+          isNaN(options.position[0]) || isNaN(options.position[1])) {
+        logger.error(`添加标记点失败: 无效的位置信息`, options.position);
+        return '';
+      }
+      
+      logger.debug(`正在添加标记点，ID: ${id}, 位置:`, options.position);
+      
+      // 创建LatLng对象 - 注意：Leaflet使用[lat, lng]顺序，而大多数GIS使用[lng, lat]
+      // 判断坐标格式，如果是[lng, lat]格式，需要转换为[lat, lng]
+      let lat = options.position[0];
+      let lng = options.position[1];
+      
+      // 判断是否需要交换坐标 - 经度范围通常为-180到180，纬度范围通常为-90到90
+      if (Math.abs(options.position[0]) > 90 && Math.abs(options.position[1]) <= 90) {
+        // 可能是[lng, lat]格式，需要交换
+        lat = options.position[1];
+        lng = options.position[0];
+        logger.debug(`检测到坐标顺序为[lng, lat]，已自动转换为[lat, lng]: [${lat}, ${lng}]`);
+      }
+      
+      const latlng = L.latLng(lat, lng);
       
       // 创建图标
       let icon: L.Icon | L.DivIcon;
@@ -135,9 +166,9 @@ export class MarkerObject {
         // 使用自定义图片图标
         icon = L.icon({
           iconUrl: options.icon.iconUrl,
-          iconSize: options.icon.iconSize,
-          iconAnchor: options.icon.iconAnchor,
-          popupAnchor: options.icon.popupAnchor,
+          iconSize: options.icon.iconSize || [32, 32],
+          iconAnchor: options.icon.iconAnchor || [16, 32],
+          popupAnchor: options.icon.popupAnchor || [0, -32],
           className: options.icon.className || 'custom-marker-icon'
         });
       } else if (options.icon?.html) {
@@ -145,10 +176,10 @@ export class MarkerObject {
         icon = L.divIcon({
           html: options.icon.html,
           className: options.icon.className || 'leaflet-marker-custom-icon',
-          iconSize: options.icon.iconSize,
-          iconAnchor: options.icon.iconAnchor
+          iconSize: options.icon.iconSize || [32, 32],
+          iconAnchor: options.icon.iconAnchor || [16, 16]
         });
-      } else if (options.group && this.config.groupIcon[options.group]) {
+      } else if (options.group && this.config.groupIcon && this.config.groupIcon[options.group]) {
         // 使用分组图标
         const groupIcon = this.config.groupIcon[options.group];
         if (typeof groupIcon === 'string') {
@@ -171,9 +202,9 @@ export class MarkerObject {
           });
         }
       } else {
-        // 使用默认图标
+        // 使用默认图标 - 更明显的默认标记
         icon = L.divIcon({
-          html: `<div class="default-marker" style="background-color:${options.icon?.backgroundColor || '#1890ff'}"></div>`,
+          html: `<div class="default-marker" style="background-color:${options.icon?.backgroundColor || '#ff4500'}; width:100%; height:100%; border-radius:50%; border:2px solid white; box-shadow:0 0 3px rgba(0,0,0,0.5);"></div>`,
           className: 'leaflet-marker-default-icon',
           iconSize: options.icon?.iconSize || [24, 24],
           iconAnchor: options.icon?.iconAnchor || [12, 12]
@@ -206,8 +237,8 @@ export class MarkerObject {
         });
       }
       
-      // 如果有标题且showLabel为true，显示永久提示
-      if (options.title && options.showLabel) {
+      // 如果有标题且showLabel为true且标签当前可见，显示永久提示
+      if (options.title && (options.showLabel || false) && this.labelsVisible) {
         marker.bindTooltip(options.title, {
           permanent: options.labelOptions?.permanent || true,
           direction: options.labelOptions?.direction || 'top',
@@ -222,21 +253,36 @@ export class MarkerObject {
         marker.bindPopup(options.popupContent);
       }
       
+      // 确保markerLayer存在
+      if (!this.markerLayer) {
+        this.markerLayer = L.layerGroup().addTo(this.mapInstance);
+        logger.debug('为标记点创建新的图层组');
+      }
+      
       // 添加到图层
       this.markerLayer.addLayer(marker);
       
       // 添加到集合
       this.markers.set(id, marker);
       
-      // 如果初始状态为隐藏，设置不可见
-      if (options.visible === false) {
-        marker.setOpacity(0);
-        marker.options.visible = false;
-      } else {
-        marker.options.visible = true;
+      // 设置初始可见性 - 根据当前全局标记可见性设置和指定的options.visible
+      // 如果options.visible是明确设置的false，或者当前全局设置为隐藏，则隐藏标记点
+      const shouldBeVisible = options.visible !== false && this.markersVisible;
+      marker.options.visible = shouldBeVisible;
+      marker.setOpacity(shouldBeVisible ? 1 : 0);
+
+      // 如果标签不应该显示，则关闭tooltip
+      if (marker.getTooltip() && !this.labelsVisible) {
+        marker.closeTooltip();
       }
       
-      logger.debug(`添加标记点: ${id}`, options.position);
+      logger.debug(`成功添加标记点: ${id}`, options.position);
+
+      // 立即刷新标记缩放比例
+      if (this.config.scaleWithZoom) {
+        this.updateMarkersScale();
+      }
+      
       return id;
     } catch (error) {
       logger.error(`添加标记点失败:`, error);
@@ -299,7 +345,19 @@ export class MarkerObject {
     try {
       // 更新位置
       if (options.position) {
-        const latlng = L.latLng(options.position[0], options.position[1]);
+        // 判断坐标格式，如果是[lng, lat]格式，需要转换为[lat, lng]
+        let lat = options.position[0];
+        let lng = options.position[1];
+        
+        // 判断是否需要交换坐标
+        if (Math.abs(options.position[0]) > 90 && Math.abs(options.position[1]) <= 90) {
+          // 可能是[lng, lat]格式，需要交换
+          lat = options.position[1];
+          lng = options.position[0];
+          logger.debug(`updateMarker: 检测到坐标顺序为[lng, lat]，已自动转换为[lat, lng]: [${lat}, ${lng}]`);
+        }
+        
+        const latlng = L.latLng(lat, lng);
         marker.setLatLng(latlng);
       }
       
@@ -551,7 +609,9 @@ export class MarkerObject {
         count++;
       }
     });
-    logger.debug(`已隐藏 ${count} 个标记点`);
+    // 更新标记点可见性状态
+    this.markersVisible = false;
+    logger.debug(`已隐藏 ${count} 个标记点，全局标记点可见性设为false`);
     return count;
   }
 
@@ -568,7 +628,9 @@ export class MarkerObject {
         count++;
       }
     });
-    logger.debug(`已显示 ${count} 个标记点`);
+    // 更新标记点可见性状态
+    this.markersVisible = true;
+    logger.debug(`已显示 ${count} 个标记点，全局标记点可见性设为true`);
     return count;
   }
 
@@ -592,6 +654,10 @@ export class MarkerObject {
    * @returns 隐藏的标签数量
    */
   public hideAllLabels(): number {
+    // 更新标签可见性状态
+    this.labelsVisible = false;
+    logger.debug(`全局标签可见性设为false`);
+    
     // 调用hideAllPopovers作为实现
     return this.hideAllPopovers();
   }
@@ -601,14 +667,31 @@ export class MarkerObject {
    * @returns 显示的标签数量
    */
   public showAllLabels(): number {
+    // 更新标签可见性状态
+    this.labelsVisible = true;
+    logger.debug(`全局标签可见性设为true`);
+    
     let count = 0;
     this.markers.forEach((marker) => {
-      if (marker.options.visible !== false && marker.getTooltip() === null && marker.options.title) {
-        marker.bindTooltip(marker.options.title, {
-          permanent: true,
-          direction: 'top'
-        }).openTooltip();
-        count++;
+      // 只处理可见的标记点
+      if (marker.options.visible !== false) {
+        // 判断标记点是否有标题，如果有标题则显示标签
+        if (marker.options.title) {
+          // 如果已有tooltip但处于关闭状态，则重新打开
+          if (marker.getTooltip()) {
+            marker.openTooltip();
+            count++;
+          } 
+          // 如果没有tooltip，创建一个新的
+          else {
+            marker.bindTooltip(marker.options.title, {
+              permanent: true,
+              direction: 'top',
+              className: marker.options.labelOptions?.className || ''
+            }).openTooltip();
+            count++;
+          }
+        }
       }
     });
     logger.debug(`已显示 ${count} 个标记点标签`);
@@ -622,11 +705,16 @@ export class MarkerObject {
   public hideAllPopovers(): number {
     let count = 0;
     this.markers.forEach((marker) => {
-      if (marker.isPopupOpen()) {
+      // 检查popup
+      if (marker.getPopup() && marker.isPopupOpen()) {
         marker.closePopup();
         count++;
       }
-      if (marker.isTooltipOpen()) {
+      
+      // 检查tooltip - 先确认tooltip存在，再检查其状态
+      const tooltip = marker.getTooltip();
+      if (tooltip) {
+        // 安全地关闭tooltip
         marker.closeTooltip();
         count++;
       }
