@@ -135,7 +135,6 @@ import { GridType } from '../composables/GridManager';
 interface Props {
   toolbarConfig: ToolbarConfig;
   activeToolId?: string;
-  toolbarObj?: ToolbarObject | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -146,7 +145,6 @@ const props = withDefaults(defineProps<Props>(), {
     size: 36,
     items: []
   } as ToolbarConfig),
-  toolbarObj: null
 });
 
 const configConfig = ref<ToolbarConfig>(props.toolbarConfig);
@@ -159,7 +157,7 @@ const config = computed(() => ({
   items: configConfig.value.items || [],
 }));
 
-const toolbarObj = ref<ToolbarObject | null>(null);
+let toolbarObj: ToolbarObject | null = null;
 // 将tools当作本地状态，不再使用深拷贝，而是直接使用props中的数据
 // 这样可以保持与ToolbarObject的一致性
 const visibleTools = computed<ToolItem[]>(() => {
@@ -175,8 +173,8 @@ const isToolActive = (toolId: string): boolean => {
   }
   
   // 优先使用toolbarObj判断工具状态
-  if (toolbarObj.value) {
-    const tools = toolbarObj.value.getTools();
+  if (toolbarObj) {
+    const tools = toolbarObj.getTools();
     
     // 查找工具，处理包括子菜单在内的所有工具
     const findTool = (items: ToolItem[]): ToolItem | undefined => {
@@ -252,11 +250,6 @@ onMounted(() => {
   } catch (e) {
     console.error('读取工具栏状态失败:', e);
   }
-
-  // 设置toolbarObj
-  if (props.toolbarObj) {
-    toolbarObj.value = props.toolbarObj;
-  }
   
   // 初始化状态
   updateActiveTools();
@@ -269,9 +262,9 @@ const forceUpdateKey = ref(0);
 
 // 更新激活工具状态
 const updateActiveTools = () => {
-  if (!toolbarObj.value) return;
+  if (!toolbarObj) return;
   
-  const tools = toolbarObj.value.getTools();
+  const tools = toolbarObj.getTools();
   const activeToolsObj: Record<string, boolean> = {};
   
   // 递归收集工具和子菜单中激活的工具
@@ -294,7 +287,7 @@ const updateActiveTools = () => {
   collectActiveTools(tools);
   
   // 获取当前激活的主工具ID
-  const activeToolId = toolbarObj.value?.getActiveToolId();
+  const activeToolId = toolbarObj?.getActiveToolId();
   if (activeToolId && !activeToolsObj[activeToolId]) {
     console.debug(`添加主激活工具: ${activeToolId}`);
     activeToolsObj[activeToolId] = true;
@@ -314,7 +307,7 @@ const updateActiveTools = () => {
   }
   
   // 检查网格类型状态
-  const gridObj = toolbarObj.value.getGridObject();
+  const gridObj = toolbarObj.getGridObject();
   if (gridObj) {
     const activeGridTypes = gridObj.getActiveGridTypes();
     if (activeGridTypes.has(GridType.GEOHASH)) {
@@ -426,10 +419,10 @@ const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   // 所有工具类型都通过toolbarObj处理激活状态
   console.debug(`点击工具 ${tool.id} (${tool.type}) 前状态: ${isToolActive(tool.id) ? '激活' : '未激活'}`);
   
-  if (toolbarObj.value) {
+  if (toolbarObj) {
     try {
       // 使用toolbarObj处理工具点击
-      toolbarObj.value.handleToolClick(tool.id);
+      toolbarObj.handleToolClick(tool.id);
       
       // 手动更新工具状态并强制刷新视图
       nextTick(() => {
@@ -621,7 +614,7 @@ watch(() => props.activeToolId, (newVal, oldVal) => {
   // 处理layer-switch特殊情况
   if (oldVal === 'layer-switch' && newVal !== 'layer-switch') {
     console.debug('图层按钮状态已变更，强制刷新工具栏');
-    if (toolbarObj.value) {
+    if (toolbarObj) {
       // 确保图层工具在Map中标记为非激活状态
       activeToolsMap.value['layer-switch'] = false;
       forceUpdateKey.value++; // 强制刷新视图
@@ -631,7 +624,7 @@ watch(() => props.activeToolId, (newVal, oldVal) => {
 
 // 添加一个直接刷新状态的方法
 const refreshToolbarState = () => {
-  if (toolbarObj.value) {
+  if (toolbarObj) {
     updateActiveTools();
   }
 };
@@ -646,8 +639,8 @@ const forceUpdate = () => {
 // 添加更新配置的方法
 const updateConfig = (newConfig: ToolbarConfig) => {
   // 如果有toolbarObj，通过它来设置配置
-  if (toolbarObj.value) {
-    toolbarObj.value.setConfig(newConfig);
+  if (toolbarObj) {
+    toolbarObj.setConfig(newConfig);
   }
   
   // 强制更新组件
@@ -684,9 +677,9 @@ const handleSubmenuItemClick = (parentTool: ToolItem, subTool: ToolItem, event: 
   });
 
   // 处理工具点击
-  if (toolbarObj.value) {
+  if (toolbarObj) {
     try {
-      toolbarObj.value.handleSubMenuClick(parentTool.id, subTool.id);
+      toolbarObj.handleSubMenuClick(parentTool.id, subTool.id);
       
       // 更新激活状态
       nextTick(() => {
@@ -736,32 +729,6 @@ const emit = defineEmits([
 
 // 重新声明globalClickListener
 let globalClickListener: ((e: MouseEvent) => void) | null = null;
-
-// 监听toolbarObj变化，确保在对象加载后立即更新状态
-watch(() => props.toolbarObj, (newValue) => {
-  if (newValue) {
-    toolbarObj.value = newValue;
-    
-    // 延迟执行以确保对象已完全加载
-    nextTick(() => {
-      console.debug('toolbarObj已更新，刷新工具栏状态');
-      updateActiveTools();
-      
-      // 特别检查网格工具状态
-      const gridObj = newValue.getGridObject();
-      if (gridObj) {
-        const activeGridTypes = gridObj.getActiveGridTypes();
-        if (activeGridTypes.size > 0) {
-          console.debug('检测到已启用的网格类型:', Array.from(activeGridTypes).join(', '));
-          // 延迟再次更新状态，确保完全同步
-          setTimeout(() => {
-            updateActiveTools();
-          }, 200);
-        }
-      }
-    });
-  }
-}, { immediate: true });
 
 // 工具提示状态
 const tooltipState = ref({
@@ -890,9 +857,9 @@ defineExpose({
   refreshToolbarState,
   forceUpdate,        // 新增：强制更新方法
   updateConfig,       // 新增：更新配置方法
-  getToolbarObj: () => toolbarObj.value,
+  getToolbarObj: () => toolbarObj,
   setToolbarObj: (obj: ToolbarObject) => {
-    toolbarObj.value = obj;
+    toolbarObj = obj;
   },
 });
 </script>

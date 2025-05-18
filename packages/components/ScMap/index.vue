@@ -16,6 +16,16 @@
       :map-type="configObject?.getMapType() || MapType.GAODE" 
       :map-tile="configObject?.getMapTile() || MapTile.NORMAL"
       :map-config="configObject?.getMapConfig() || DEFAULT_MAP_CONFIG" @close="handleLayerPanelClose" @layer-change="handleLayerChange" />
+    <!-- 添加标记点信息面板 -->
+    <MarkerPanel 
+      v-if="showMarkerPanel"
+      :visible="showMarkerPanel"
+      :position="markerPanelPosition"
+      :title="activeMarker?.title"
+      :content="activeMarker?.content"
+      :coords="activeMarker?.position"
+      @close="closeMarkerPanel"
+    />
     
     <!-- 增加引入OverviewMap组件 -->
     <OverviewMap v-if="showOverviewMap && mapObj?.getMapInstance()" :main-map="mapObj.getMapInstance()!" :visible="showOverviewMap"
@@ -67,6 +77,7 @@ import CoordinatePanel from './components/CoordinatePanel.vue';
 import FlightLinePanel from './components/FlightLinePanel.vue';
 import LayerPanel from './components/LayerPanel.vue';
 import MapToolbar from './components/MapToolbar.vue';
+import MarkerPanel from './components/MarkerPanel.vue';
 import OverviewMap, { OverviewMapConfig } from './components/OverviewMap.vue';
 import TrackPlayerMap from './components/TrackPlayer.vue';
 
@@ -217,11 +228,16 @@ const showOverviewMap = ref<boolean>(false);
 const showLayerPanel = ref<boolean>(false);
 const showTrackPlayer = ref<boolean>(false);
 const showFlightLinePanel = ref<boolean>(false);
+const showMarkerPanel = ref<boolean>(false);
 const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 const mapToolbarRef = ref<ComponentPublicInstance<{ setToolbarObj: (obj: ToolbarObject) => void }>>();
 const trackPlayerRef = ref(null);
 const flightLinePanelRef = ref(null);
 const mapReady = ref(false);
+
+// 标记点面板状态
+const activeMarker = ref<any>(null);
+const markerPanelPosition = ref({ x: 0, y: 0 });
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -803,13 +819,30 @@ onMounted(() => {
   logger.setLevel(LogLevel.DEBUG);
   logger.info('ScMap组件已挂载');
   
-  // 初始化地图
-  initMap();
+  // 初始化Leaflet插件
+  setupLeafletPlugins();
   
-  // 如果配置了自动激活鹰眼地图，则激活它
-  if (props.overviewMapConfig?.autoActivate && toolbarObject) {
-    toolbarObject.activateTool('overview');
-  }
+  // 修复Leaflet图标路径问题
+  fixLeafletIcon();
+  
+  // 初始化地图
+  nextTick(() => {
+    initMap();
+    
+    // 如果配置了自动激活鹰眼地图，则激活它
+    if (props.overviewMapConfig?.autoActivate && toolbarObject) {
+      toolbarObject.activateTool('overview');
+    }
+    
+    // 监听map-click事件，用于关闭MarkerPanel
+    if (mapObj) {
+      mapObj.getMapInstance()?.on('click', () => {
+        if (showMarkerPanel.value && !activeToolId.value) {
+          closeMarkerPanel();
+        }
+      });
+    }
+  });
 });
 
 // 组件卸载前清理资源
@@ -924,6 +957,19 @@ const handleMouseMove = (event: any) => {
 const handleToolbarEvent = (eventName: string, payload: any) => {
   // 根据事件名发射对应事件
   emit(eventName as MapEventType, payload);
+};
+
+// 标记点面板方法
+const closeMarkerPanel = () => {
+  showMarkerPanel.value = false;
+  activeMarker.value = null;
+};
+
+// 显示标记点面板
+const showMarkerPanelForMarker = (marker: any, position: { x: number, y: number }) => {
+  activeMarker.value = marker;
+  markerPanelPosition.value = position;
+  showMarkerPanel.value = true;
 };
 
 // 对外暴露方法
