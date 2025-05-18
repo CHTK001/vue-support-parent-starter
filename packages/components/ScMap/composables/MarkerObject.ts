@@ -1456,21 +1456,21 @@ export class MarkerObject {
         try {
           if (this.mapInstance && this.mapInstance.hasLayer(clusterLayerRef)) {
             this.mapInstance.removeLayer(clusterLayerRef);
-          }
-          
-          // 将所有标记点添加到普通图层
-          allMarkers.forEach(marker => {
-            try {
+      }
+      
+      // 将所有标记点添加到普通图层
+      allMarkers.forEach(marker => {
+        try {
               if (marker && this.markerLayer) {
-                this.markerLayer.addLayer(marker);
+          this.markerLayer.addLayer(marker);
               }
-            } catch (addError) {
-              logger.warn(`添加标记点到普通图层失败:`, addError);
-            }
-          });
-          
-          this.clusterLayer = null;
-          logger.debug('聚合模式已禁用');
+        } catch (addError) {
+          logger.warn(`添加标记点到普通图层失败:`, addError);
+        }
+      });
+      
+      this.clusterLayer = null;
+      logger.debug('聚合模式已禁用');
         } catch (error) {
           logger.error('禁用聚合模式最终步骤失败:', error);
           this.clusterLayer = null;

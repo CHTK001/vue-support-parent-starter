@@ -860,12 +860,12 @@ onMounted(() => {
   
   // 初始化地图
   nextTick(() => {
-    initMap();
-    
-    // 如果配置了自动激活鹰眼地图，则激活它
-    if (props.overviewMapConfig?.autoActivate && toolbarObject) {
-      toolbarObject.activateTool('overview');
-    }
+  initMap();
+  
+  // 如果配置了自动激活鹰眼地图，则激活它
+  if (props.overviewMapConfig?.autoActivate && toolbarObject) {
+    toolbarObject.activateTool('overview');
+  }
     
     // 监听map-click事件，用于关闭MarkerPanel
     if (mapObj) {

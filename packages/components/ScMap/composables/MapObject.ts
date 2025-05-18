@@ -52,6 +52,7 @@ export class MapObject {
         zoom: this.configObject.getZoom(),
         dragging: this.configObject.getDragging(),
         scrollWheelZoom: this.configObject.getScrollWheelZoom(),
+        doubleClickZoom: false,
         zoomControl: false // 禁用默认缩放控件，稍后添加到右上角
       });
 
