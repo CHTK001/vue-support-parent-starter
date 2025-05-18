@@ -425,6 +425,7 @@ const initMap = async () => {
     // 设置工具状态变化回调
     toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
       emit('toolbar-state-change', { toolId, active, toolType, data });
+      handleToolStateByType(toolId, active, toolType, data);
     });
     nextTick(() => {
       if (mapToolbarRef.value) {
@@ -450,7 +451,195 @@ const initMap = async () => {
     logger.error('初始化地图失败:', error);
   }
 };
+// 根据工具ID和类型处理不同状态变化
+const handleToolStateByType = (toolId: string, active: boolean, toolType: string, data?: any) => {
+  // 使用Map对象替代条件判断链
+  const handlers: Record<string, () => void> = {
+    // 坐标工具处理
+    'coordinate': () => {
+      showCoordinatePanel.value = active;
+      logger.debug(`坐标工具状态变化: ${active ? '激活' : '停用'}, 面板显示: ${showCoordinatePanel.value}`);
+    },
 
+    // 坐标面板强制显示事件
+    'coordinate-panel-visible': () => {
+      if (toolType === 'panel' && active) {
+        showCoordinatePanel.value = true;
+        logger.debug('收到坐标面板强制显示事件');
+      }
+    },
+
+    // 图层面板强制显示事件
+    'layer-panel-visible': () => {
+      if (toolType === 'panel' && active) {
+        showLayerPanel.value = true;
+        layerPanelPosition.value = determineLayerPanelPosition();
+        logger.debug('收到图层面板强制显示事件');
+      }
+    },
+
+    // 保留原来的'flight-line'处理器以保持兼容性
+    'flight-line': () => {
+      logger.debug(`[FlightLine] 收到旧版flight-line事件，转发到flightLine处理器`);
+      handlers['flightLine']();
+    },
+
+
+    // 图层切换按钮状态变化
+    'layer-switch': () => {
+      // 当图层按钮状态变化时，控制图层面板的显示/隐藏
+      showLayerPanel.value = active;
+      if (active) {
+        // 如果激活按钮，确定面板位置
+        layerPanelPosition.value = determineLayerPanelPosition();
+        logger.debug('图层切换按钮已激活，显示图层面板');
+      } else {
+        logger.debug('图层切换按钮已停用，隐藏图层面板');
+      }
+    },
+
+    // 鹰眼工具状态变化
+    'overview': () => {
+      logger.debug(`[Overview] 鹰眼工具状态变化: ${active ? '激活' : '停用'}`);
+
+      // 直接控制鹰眼地图的显示和隐藏
+      showOverviewMap.value = active;
+
+      if (active) {
+        logger.debug('[Overview] 鹰眼工具已激活，显示鹰眼地图');
+      } else {
+        logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
+      }
+
+      // 既然没有关闭按钮，就不需要辅助按钮
+      showOverviewButton.value = false;
+    },
+
+    // 鹰眼控件特殊事件
+    'overview-map': () => {
+      if (active && data?.forced) {
+        logger.debug('[Overview] 收到鹰眼控件强制显示事件');
+      }
+    },
+    'overview-map-enabled': () => {
+      if (active && data?.forced) {
+        logger.debug('[Overview] 收到鹰眼控件启用事件');
+      }
+    },
+    'overview-map-expanded': () => {
+      if (active && data?.forced) {
+        logger.debug('[Overview] 收到鹰眼控件展开事件');
+      }
+    },
+
+    // 标记点显示/隐藏工具
+    'marker-toggle': () => {
+      if (markerObject) {
+        if (active) {
+          markerObject.hideAllMarkers();
+          logger.debug('[Marker] 隐藏所有标记点');
+        } else {
+          markerObject.showAllMarkers();
+          logger.debug('[Marker] 显示所有标记点');
+        }
+      }
+    },
+
+    // 标签显示/隐藏工具
+    'label-toggle': () => {
+      if (markerObject) {
+        if (active) {
+          markerObject.hideAllLabels();
+          logger.debug('[Marker] 隐藏所有标记点标签');
+        } else {
+          markerObject.showAllLabels();
+          logger.debug('[Marker] 显示所有标记点标签');
+        }
+      }
+    },
+
+    // 聚合工具状态变化
+    'cluster': () => {
+      if (markerObject) {
+        markerObject.setClusterMode(active);
+        logger.debug(`[Marker] 标记点聚合模式: ${active ? '启用' : '禁用'}`);
+      }
+    },
+
+    // 删除模式按钮 - 启用单击删除图形或标记点的功能
+    'clear-shapes': () => {
+      // 此处不需要做任何操作，因为ToolbarObject中的activateTool方法已经处理了激活删除模式
+      // 避免与ToolbarObject中的逻辑重复，以防止删除功能被错误触发两次
+      logger.debug('[Shape] 删除模式按钮处理 - 已由ToolbarObject处理');
+    },
+
+    // 处理图形编辑工具
+    'edit-shape': () => {
+      // 此处不需要做任何操作，因为ToolbarObject中的handleShapeEditActivate方法已经处理了激活编辑模式
+      // 避免与ToolbarObject中的逻辑重复
+      logger.debug('[Shape] 编辑模式按钮处理 - 已由ToolbarObject处理');
+    },
+
+    // 处理图形创建完成事件
+    'shape-created': () => {
+      if (toolType === 'shape' && active && data) {
+        // 图形绘制完成后，发出创建事件
+        const { id, options } = data;
+        if (id && options) {
+          logger.debug(`[Shape] 接收到图形创建事件，ID: ${id}, 类型: ${options.type}`);
+          emit('shape-create' as MapEventType, { id, options });
+        }
+      }
+    },
+
+    // 处理图形更新事件
+    'edit': () => {
+      if (toolType === 'edit' && data && data.action === 'update' && data.shapeId) {
+        logger.debug(`[Shape] 接收到图形更新事件，ID: ${data.shapeId}, 类型: ${data.shapeType}`);
+        emit('shape-update' as MapEventType, { id: data.shapeId, options: {} });
+      }
+    },
+  };
+
+  // 执行对应的处理函数
+  const handler = handlers[toolId];
+  if (handler) {
+    handler();
+  }
+};
+
+// 确定图层面板位置
+const determineLayerPanelPosition = (): 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' => {
+  // 如果有工具栏配置，根据工具栏位置和方向确定图层面板位置
+  if (toolbarObject) {
+    const toolbarConfig = toolbarObject.getConfig();
+    const toolbarPosition = toolbarConfig.position || DEFAULT_TOOLBAR_CONFIG.position as string;
+    const toolbarDirection = toolbarConfig.direction || DEFAULT_TOOLBAR_CONFIG.direction as string;
+
+    // 根据工具栏方向和位置确定面板位置
+    if (toolbarDirection === 'horizontal') {
+      // 水平工具栏时，面板在工具栏下方
+      if (toolbarPosition.startsWith('top-')) {
+        // 如果工具栏在顶部，面板放在其下方相同水平位置
+        return toolbarPosition as 'top-left' | 'top-right';
+      } else {
+        // 如果工具栏在底部，面板放在其上方相同水平位置
+        return toolbarPosition === 'bottom-left' ? 'bottom-left' : 'bottom-right';
+      }
+    } else {
+      // 垂直工具栏时，面板在工具栏旁边
+      if (toolbarPosition.endsWith('-left')) {
+        // 如果工具栏在左侧，面板放在其右侧
+        return toolbarPosition === 'top-left' ? 'top-left' : 'bottom-left';
+      } else {
+        // 如果工具栏在右侧，面板放在其左侧
+        return toolbarPosition === 'top-right' ? 'top-right' : 'bottom-right';
+      }
+    }
+  }
+
+  return 'top-left'; // 默认位置为左上角
+};
 // 处理工具激活
 const handleToolActivated = (toolId: string) => {
   if (!toolbarObject) return;

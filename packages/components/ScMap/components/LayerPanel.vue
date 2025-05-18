@@ -1,53 +1,23 @@
-/**
- * 图层面板组件
- * @description 用于切换底图类型
- */
 <template>
-  <div class="layer-panel" :class="[positionClass, { active }]">
-    <div class="layer-panel-header">
-      <div class="layer-panel-title">图层设置</div>
-      <div class="layer-panel-actions">
-        <button class="close-btn" @click="handleClose" title="关闭">
-          <svg viewBox="0 0 1024 1024" width="14" height="14">
-            <path
-              d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"
-              fill="currentColor"
-            ></path>
-          </svg>
-        </button>
-      </div>
-    </div>
+  <div class="layer-panel" :class="[`position-${position}`, { active }]">
+    <div class="layer-panel-arrow" :class="getArrowPositionClass()"></div>
     <div class="layer-panel-content">
-      <div class="layer-section">
-        <div class="section-title">地图类型</div>
-        <div class="section-content">
-        <div 
-            v-for="(item, key) in mapTypes" 
-          :key="key" 
-            :class="['map-type-item', { active: currentMapType === key }]"
-            @click="handleMapTypeChange(key)"
-        >
-            <div class="map-type-icon">
-              <img :src="item.icon" :alt="item.label" />
+      <div class="layer-list">
+        <div v-for="(layer, key) in availableLayers" :key="key" class="layer-item"
+          :class="{ active: currentMapType === mapType && currentMapTile === key }" :data-key="key"
+          @click="selectLayer(key)">
+          <div class="layer-preview">
+            <img v-if="layer?.image" :src="layer.image" alt="图层图标" />
+            <div v-else class="layer-preview-placeholder"></div>
+            <div v-if="currentMapType === mapType && currentMapTile === key" class="layer-selected-indicator">
+              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 10L9 12L13 8" stroke="white" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
             </div>
-            <div class="map-type-label">{{ item.label }}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="layer-section">
-        <div class="section-title">图层类型</div>
-        <div class="section-content">
-          <div 
-            v-for="(item, key) in getMapTiles(currentMapType)" 
-            :key="key"
-            :class="['map-tile-item', { active: currentMapTile === key }]"
-            @click="handleMapTileChange(key)"
-          >
-            <div class="map-tile-icon">
-              <img :src="item.icon" :alt="item.label" />
+            <div class="layer-name" :class="{ active: currentMapType === mapType && currentMapTile === key }">
+              {{ getLayerDisplayName(key) }}
             </div>
-            <div class="map-tile-label">{{ item.label }}</div>
           </div>
         </div>
       </div>
@@ -62,347 +32,312 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { MapType, MapTile, MapConfig } from '../types';
+import { MapTile, MapType } from '../types';
+import { computed } from 'vue';
+import { DEFAULT_MAP_CONFIG, MapUrlConfig } from '../types/map';
 
-// 组件属性
+// 定义组件属性
 const props = defineProps<{
   active: boolean;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   mapType: MapType;
   mapTile: MapTile;
-  mapConfig?: MapConfig['map'];
+  mapConfig: Record<MapType, Record<string, MapUrlConfig>>;
 }>();
 
-// 组件事件
-const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'layer-change', payload: { mapType: MapType; mapTile: MapTile }): void;
-}>();
+// 定义事件
+const emit = defineEmits(['close', 'layer-change']);
 
-// 组件状态
-const currentMapType = ref<MapType>(props.mapType);
-const currentMapTile = ref<MapTile>(props.mapTile);
+// 当前地图类型和图层
+const currentMapType = computed(() => props.mapType);
+const currentMapTile = computed(() => props.mapTile);
 
-// 计算位置样式类
-const positionClass = computed(() => props.position ? `position-${props.position}` : 'position-top-right');
-
-// 地图类型配置
-const mapTypes = {
-  [MapType.GAODE]: {
-    label: '高德地图',
-    icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png'
-  },
-  [MapType.GOOGLE]: {
-    label: '谷歌地图',
-    icon: 'https://www.gstatic.com/images/branding/product/2x/maps_round_512dp.png'
-  },
-  [MapType.OSM]: {
-    label: 'OpenStreetMap',
-    icon: 'https://www.openstreetmap.org/assets/osm_logo-b7e82afdcc98412733e1c609adc05c8907eb69ee35a2175a760055c6ef182059.svg'
-  },
-  [MapType.TENCENT]: {
-    label: '腾讯地图',
-    icon: 'https://mapapi.qq.com/web/lbs/logo/qqlbs.png'
-  },
-  [MapType.TIANDITU]: {
-    label: '天地图',
-    icon: 'https://api.tianditu.gov.cn/img/lo.png'
-  },
-  [MapType.BAIDU]: {
-    label: '百度地图',
-    icon: 'https://api.map.baidu.com/images/logo.png'
+// 根据面板位置确定箭头位置类名
+const getArrowPositionClass = () => {
+  switch (props.position) {
+    case 'top-left': return 'arrow-top-left';
+    case 'top-right': return 'arrow-top-right';
+    case 'bottom-left': return 'arrow-bottom-left';
+    case 'bottom-right': return 'arrow-bottom-right';
+    default: return 'arrow-top-left';
   }
 };
 
-// 图层类型配置（按地图类型分组）
-const mapTiles = {
-  [MapType.GAODE]: {
-    [MapTile.NORMAL]: {
-      label: '标准地图',
-      icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/normal.png'
-    },
-    [MapTile.SATELLITE]: {
-      label: '卫星地图',
-      icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/satellite.png'
-    },
-    [MapTile.TERRAIN]: {
-      label: '地形图',
-      icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/terrain.png'
-    }
-  },
-  [MapType.GOOGLE]: {
-    [MapTile.NORMAL]: {
-      label: '标准地图',
-      icon: 'https://developers.google.com/static/maps/images/landing/terrain_512.png'
-    },
-    [MapTile.SATELLITE]: {
-      label: '卫星地图',
-      icon: 'https://developers.google.com/static/maps/images/landing/satellite_512.png'
-    },
-    [MapTile.TERRAIN]: {
-      label: '地形图',
-      icon: 'https://developers.google.com/static/maps/images/landing/hybrid_512.png'
-    }
-  },
-  [MapType.OSM]: {
-    [MapTile.NORMAL]: {
-      label: '标准地图',
-      icon: 'https://assets.openstreetmap.org/assets/osm-logo-512x512-20d76fc3.png'
-    }
-  },
-  [MapType.TENCENT]: {
-    [MapTile.NORMAL]: {
-      label: '标准地图',
-      icon: 'https://mapapi.qq.com/web/lbs/demoCenter/img/map.png'
-    },
-    [MapTile.SATELLITE]: {
-      label: '卫星地图',
-      icon: 'https://mapapi.qq.com/web/lbs/demoCenter/img/satellite.png'
-    }
-  },
-  [MapType.TIANDITU]: {
-    [MapTile.NORMAL]: {
-      label: '矢量地图',
-      icon: 'https://t0.tianditu.gov.cn/img/map/vector.png'
-    },
-    [MapTile.SATELLITE]: {
-      label: '影像地图',
-      icon: 'https://t0.tianditu.gov.cn/img/map/satellite.png'
-    },
-    [MapTile.TERRAIN]: {
-      label: '地形地图',
-      icon: 'https://t0.tianditu.gov.cn/img/map/terrain.png'
-    }
-  },
-  [MapType.BAIDU]: {
-    [MapTile.NORMAL]: {
-      label: '标准地图',
-      icon: 'https://api.map.baidu.com/images/normal.png'
-    },
-    [MapTile.SATELLITE]: {
-      label: '卫星地图',
-      icon: 'https://api.map.baidu.com/images/satellite.png'
-    }
-  }
-};
-  
-// 获取当前地图类型的图层列表
-const getMapTiles = (mapType: MapType) => {
-  return mapTiles[mapType] || {};
-};
+// 可用图层
+const availableLayers = computed(() => {
+  const mapConfig = props.mapConfig[props.mapType] || {};
 
-// 处理地图类型变更
-const handleMapTypeChange = (type: MapType) => {
-  currentMapType.value = type;
-  
-  // 检查当前地图类型是否支持当前选择的图层类型
-  const availableTiles = getMapTiles(type);
-  if (!availableTiles[currentMapTile.value]) {
-    // 如果不支持，则选择第一个可用的图层类型
-    const firstTileKey = Object.keys(availableTiles)[0] as MapTile;
-    currentMapTile.value = firstTileKey;
-  }
-  
-  // 触发图层变更事件
-  emit('layer-change', {
-    mapType: currentMapType.value,
-    mapTile: currentMapTile.value
+  // 为每个图层添加预览图和描述信息
+  const layersWithMetadata: Record<string, any> = {};
+
+  Object.keys(mapConfig).forEach(key => {
+    layersWithMetadata[key] = {
+      ...mapConfig[key],
+      image: getLayerPreviewImage(key),
+      description: getLayerDescription(key)
+    };
   });
-};
 
-// 处理图层类型变更
-const handleMapTileChange = (tile: MapTile) => {
-  currentMapTile.value = tile;
-  
-  // 触发图层变更事件
-  emit('layer-change', {
-    mapType: currentMapType.value,
-    mapTile: currentMapTile.value
-  });
-};
-
-// 关闭面板
-const handleClose = () => {
-  emit('close');
-};
-
-// 组件挂载
-onMounted(() => {
-  // 初始化当前选择的地图类型和图层类型
-  currentMapType.value = props.mapType;
-  currentMapTile.value = props.mapTile;
+  return layersWithMetadata;
 });
+
+// 选择图层
+const selectLayer = (layerKey: string) => {
+  // 如果点击的是当前激活的图层，不做任何操作
+  if (layerKey === props.mapTile) {
+    console.log('已选择当前图层，无需切换');
+    return;
+  }
+
+  // 将字符串转换为MapTile枚举值
+  const mapTile = layerKey as MapTile;
+
+  // 记录已选择的图层，用于UI反馈
+  const selectedElement = document.querySelector(`.layer-item.active`);
+  const newElement = document.querySelector(`.layer-item[data-key="${layerKey}"]`);
+
+  // 移除旧选择的激活样式，添加到新选择的元素
+  if (selectedElement) {
+    selectedElement.classList.remove('active');
+  }
+
+  if (newElement) {
+    newElement.classList.add('active');
+  }
+
+  // 发出图层变更事件
+  emit('layer-change', {
+    mapType: props.mapType,
+    mapTile: mapTile
+  });
+};
+
+// 获取图层预览图
+const getLayerPreviewImage = (layerKey: string): string => {
+  // 根据不同类型返回相应地图类型的预览图
+  // 使用占位图像，实际项目中应替换为真实的预览图
+  const baseUrl = 'data:image/svg+xml;base64,';
+  const previewImages = {
+    'normal': 'http://myui.vtj.pro/my/assets/img/ChinaOnlineCommunity.df7d8c00.png',
+    'satellite': 'https://ts1.tc.mm.bing.net/th/id/OIP-C.RrTFSOvnk9EVe1k7zxzSbAHaGQ?rs=1&pid=ImgDetMain',
+    'grey': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiNlMWUxZTEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iI2UxZTFlMSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjZDBkMGQwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iI2QwZDBkMCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjZDBkMGQwIi8+PC9zdmc+',
+    'dark': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMyYTJhMmEiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzJhMmEyYSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjM2EzYTNhIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzNhM2EzYSIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjM2EzYTNhIi8+PC9zdmc+',
+    'blue': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMxMjIwMzUiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzEyMjAzNSIvPjxwYXRoIGQ9Ik01MCAzMEgxMDBWNjBINTBWMzBaIiBmaWxsPSIjMWQzMjUwIi8+PHBhdGggZD0iTTEyMCA0MEgxNjBWOTBIMTIwVjQwWiIgZmlsbD0iIzFkMzI1MCIvPjxwYXRoIGQ9Ik0yMCA3MEg3MFYxMDBIMjBWNzBaIiBmaWxsPSIjMWQzMjUwIi8+PC9zdmc+',
+    'hybrid': baseUrl + 'PHN2ZyB3aWR0aD0iMjA3IiBoZWlnaHQ9IjEzNyIgdmlld0JveD0iMCAwIDIwNyAxMzciIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwNyIgaGVpZ2h0PSIxMzciIGZpbGw9IiMzMDQ0MzAiLz48cGF0aCBkPSJNMCAwSDIwN1YxMzdIMFYwWiIgZmlsbD0iIzMwNDQzMCIvPjxwYXRoIGQ9Ik0yMCAyMEg4MFY2MEgyMFYyMFoiIGZpbGw9IiMxZDMyMWQiLz48cGF0aCBkPSJNMTIwIDMwSDE4MFY4MEgxMjBWMzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTUwIDcwSDEyMFYxMjBINTBWNzBaIiBmaWxsPSIjMWQzMjFkIi8+PHBhdGggZD0iTTAgMEgyMDdWNTBIMFYwWiIgZmlsbD0iIzMwNDQzMCIgZmlsbC1vcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNNjAgMEgxNDBWMTM3SDYwVjBaIiBmaWxsPSIjZTZlNmU2IiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvc3ZnPg=='
+  };
+
+  return previewImages[layerKey] || '';
+};
+
+// 获取图层描述
+const getLayerDescription = (layerKey: string): string => {
+  const descriptions = {
+    'normal': '标准地图，显示街道和基础地理信息',
+    'satellite': '卫星影像图，显示真实地貌',
+    'hybrid': '混合地图，卫星影像与标注结合'
+  };
+
+  return descriptions[layerKey] || '';
+};
+
+// 获取图层显示名称
+const getLayerDisplayName = (layerKey: string): string => {
+  const nameMap = {
+    'normal': '彩色版',
+    'satellite': '卫星版',
+    'hybrid': '混合版',
+    'en': '彩色英文版',
+    'dark': '暗色版',
+    'light': '亮色版',
+    'grey': '灰色版',
+    'blue': '蓝黑版'
+  };
+
+  return nameMap[layerKey] || layerKey;
+};
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// 定义变量
+$layer-panel-bg: #fff;
+$layer-panel-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+$layer-panel-border-radius: 8px;
+$layer-item-border-radius: 4px;
+$layer-item-active-bg: #1890ff;
+$layer-item-active-shadow: 0 0 8px rgba(24, 144, 255, 0.4);
+$layer-item-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+$layer-item-border: 1px solid #eaeaea;
+
 .layer-panel {
   position: absolute;
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  width: 320px;
-  max-width: 90%;
-  z-index: 1000;
-  transform: translateY(-100%);
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-.layer-panel.active {
-  transform: translateY(0);
-  opacity: 1;
-  visibility: visible;
-  }
-
-.position-top-left {
-  top: 10px;
-  left: 10px;
-  }
-
-.position-top-right {
-  top: 10px;
-  right: 10px;
-  }
-
-.position-bottom-left {
-  bottom: 10px;
-  left: 10px;
-  }
-
-.position-bottom-right {
-  bottom: 10px;
-  right: 10px;
-  }
-  
-.layer-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: #1890ff;
-  color: #fff;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  }
-  
-.layer-panel-title {
-  font-size: 14px;
-  font-weight: 500;
-  }
-  
-.layer-panel-actions {
-  display: flex;
-  align-items: center;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s ease;
-}
-
-.close-btn:hover {
-  transform: scale(1.1);
-  }
-  
-  .layer-panel-content {
-  padding: 16px;
-  max-height: 60vh;
-    overflow-y: auto;
-}
-
-.layer-section {
-  margin-bottom: 20px;
-}
-
-.layer-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: #333;
-        position: relative;
-  padding-left: 10px;
-}
-
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 14px;
-  background-color: #1890ff;
-  border-radius: 1px;
-}
-
-.section-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.map-type-item,
-.map-tile-item {
-              display: flex;
-  flex-direction: column;
-  align-items: center;
+  background-color: $layer-panel-bg;
+  border-radius: $layer-panel-border-radius;
+  box-shadow: $layer-panel-shadow;
   padding: 12px;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+  z-index: 3000;
+  transform: scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-.map-type-item:hover,
-.map-tile-item:hover {
-  background-color: #f5f5f5;
-  border-color: #d9d9d9;
-}
+  /* 添加箭头样式 */
+  .layer-panel-arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background-color: #fff;
+    transform: rotate(45deg);
+    z-index: 3001;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  }
 
-.map-type-item.active,
-.map-tile-item.active {
-  background-color: #e6f7ff;
-  border-color: #1890ff;
+  .arrow-top-left {
+    top: -7px;
+    left: 50px;
+  }
+
+  .arrow-top-right {
+    top: -7px;
+    right: 50px;
+  }
+
+  .arrow-bottom-left {
+    bottom: -7px;
+    left: 50px;
+  }
+
+  .arrow-bottom-right {
+    bottom: -7px;
+    right: 50px;
+  }
+
+  &.active {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  // 按位置调整面板显示位置，增加距离防止与按钮重叠
+  &.position-top-left {
+    top: 50px; // 增加距离
+    left: 15px;
+  }
+
+  &.position-top-right {
+    top: 50px; // 增加距离
+    right: 15px;
+  }
+
+  &.position-bottom-left {
+    bottom: 50px; // 增加距离
+    left: 15px;
+  }
+
+  &.position-bottom-right {
+    bottom: 50px; // 增加距离
+    right: 15px;
+  }
+
+  .layer-panel-content {
+    padding: 0;
+    max-height: 550px;
+    overflow-y: auto;
+
+    .layer-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+
+      .layer-item {
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+
+        &:hover {
+          transform: translateY(-2px);
+        }
+
+        &.active {
+          .layer-preview {
+            border: 2px solid $layer-item-active-bg;
+            box-shadow: $layer-item-active-shadow;
+
+            .layer-selected-indicator {
+              display: flex;
+            }
           }
-          
-.map-type-icon,
-.map-tile-icon {
-  width: 32px;
-  height: 32px;
+        }
+
+        .layer-preview {
+          width: 160px;
+          height: 105px;
+          border-radius: 2px;
+          overflow: hidden;
+          border: 1px solid #eaeaea;
+          transition: all 0.25s ease;
+          position: relative;
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.25s ease;
+          }
+
+          .layer-preview-placeholder {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
             display: flex;
             align-items: center;
             justify-content: center;
-  margin-bottom: 8px;
+            color: #999;
+            font-size: 24px;
           }
-          
-.map-type-icon img,
-.map-tile-icon img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+
+          .layer-selected-indicator {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 18px;
+            height: 18px;
+            background-color: $layer-item-active-bg;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+              width: 14px;
+              height: 14px;
+            }
           }
-          
-.map-type-label,
-.map-tile-label {
+
+          .layer-name {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            padding: 4px 6px;
+            border-radius: 6px 0 0 0;
             font-size: 12px;
             color: #333;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            text-align: right;
+            transition: all 0.25s ease;
+
+            &.active {
+              background-color: $layer-item-active-bg;
+              color: white;
+            }
+          }
+        }
+      }
+    }
+  }
 }
-</style> 
+</style>
