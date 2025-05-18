@@ -71,6 +71,7 @@ export interface MarkerOptions {
     className?: string;       // 自定义类名
   };
   popupContent?: string;     // 弹窗内容
+  clickContentTemplate?: string; // 点击时在MarkerPanel中显示的自定义模板
   group?: string;            // 分组ID
   data?: any;                // 自定义数据
   clusterable?: boolean;     // 是否参与聚合

@@ -509,10 +509,35 @@ export class MarkerObject {
         });
       }
       
-      // 不再直接添加tooltip和popup，将由MarkerPanel处理
       // 存储标题和内容以便点击时在MarkerPanel中显示
       marker.options.title = options.title;
       marker.options.content = options.popupContent;
+      // 存储clickContentTemplate到marker.options._clickContentTemplate，因为原始类型不支持该属性
+      (marker.options as any)._clickContentTemplate = options.clickContentTemplate;
+      
+      // 如果有标题且showLabel为true且标签当前可见，显示永久提示
+      if (options.title && (options.showLabel || false) && this.labelsVisible) {
+        // 保护tooltip创建过程，避免缩放过程中异常
+        try {
+          marker.bindTooltip(options.title, {
+            permanent: options.labelOptions?.permanent || true,
+            direction: options.labelOptions?.direction || 'top',
+            offset: options.labelOptions?.offset ? L.point(options.labelOptions.offset[0], options.labelOptions.offset[1]) : undefined,
+            opacity: options.labelOptions?.opacity || 0.9,
+            className: options.labelOptions?.className || '',
+            animate: false
+          });
+        } catch (tooltipError) {
+          logger.warn(`绑定标签到标记点失败: ${id}`, tooltipError);
+        }
+      }
+      
+      // 如果有弹窗内容，绑定弹窗
+      if (options.popupContent) {
+        marker.bindPopup(options.popupContent, {
+          offset: L.point(0, -marker.options.icon.options.iconSize[1] / 2)
+        });
+      }
       
       // 确保markerLayer存在
       if (!this.markerLayer) {
@@ -570,15 +595,28 @@ export class MarkerObject {
     const latlng = marker.getLatLng();
     const pixelPoint = this.mapInstance.latLngToContainerPoint(latlng);
     
-    // 为marker添加位置信息以便传递给面板
-    marker.options.pixelPosition = {
-      x: pixelPoint.x,
-      y: pixelPoint.y
+    // 构建事件数据，包含自定义属性
+    const customEvent = {
+      ...event,
+      markerId: id,
+      marker: marker,
+      pixelPosition: {
+        x: pixelPoint.x,
+        y: pixelPoint.y
+      },
+      markerData: {
+        id,
+        position: [latlng.lat, latlng.lng],
+        title: marker.options.title,
+        content: marker.options.content,
+        clickContentTemplate: marker.options._clickContentTemplate,
+        data: marker.options.data
+      }
     };
     
     // 触发回调
     if (this.clickListener) {
-      this.clickListener(event);
+      this.clickListener(customEvent);
     }
     
     logger.debug(`标记点点击: ${id}`, [latlng.lng, latlng.lat]);

@@ -23,6 +23,7 @@
       :position="markerPanelPosition"
       :title="activeMarker?.title"
       :content="activeMarker?.content"
+      :click-content-template="activeMarker?.clickContentTemplate"
       :coords="activeMarker?.position"
       @close="closeMarkerPanel"
     />
@@ -457,6 +458,37 @@ const initMap = async () => {
     shapeObject = toolbarObject.getShapeObject();
     trackObj = toolbarObject.getTrackObject(); // 获取轨迹对象（实际是LeafletTrackplayerObject实例）
     gridManager = toolbarObject.getGridObject();
+    
+    // 设置marker点击监听器，处理MarkerPanel显示逻辑
+    if (markerObject) {
+      markerObject.setClickListener((event: any) => {
+        // 如果是自定义事件，包含marker数据
+        if (event.markerData) {
+          const { markerData, pixelPosition } = event;
+          
+          // 如果需要显示面板，显示MarkerPanel
+          if (markerData.clickContentTemplate || markerData.content || markerData.title) {
+            activeMarker.value = markerData;
+            markerPanelPosition.value = pixelPosition;
+            showMarkerPanel.value = true;
+          }
+          
+          // 触发marker-click事件
+          emit('marker-click', { 
+            coordinates: markerData.position,
+            data: markerData
+          });
+        } else {
+          // 兼容旧版事件处理
+          const marker = event.target;
+          const latlng = marker.getLatLng();
+          emit('marker-click', { 
+            coordinates: [latlng.lat, latlng.lng],
+            data: marker.options
+          });
+        }
+      });
+    }
     
     // 创建测量对象
     measureObject = new MeasureObject(mapObj.getMapInstance());
