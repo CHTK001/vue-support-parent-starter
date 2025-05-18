@@ -94,7 +94,7 @@
            subTool.className
          ]" 
          :data-tool-id="subTool.id"
-         @click.stop.prevent="(e) => handleSubmenuItemClick(submenuState.parentTool, subTool, e)"
+         @click.stop.prevent="(e) => handleSubmenuItemClick(submenuState.parentTool!, subTool, e)"
          @mouseenter="(e) => handleToolHover(subTool, e, true)"
          @mouseleave="(e) => handleToolHover(subTool, e, false)">
       <span v-if="typeof (isToolActive(subTool.id) && subTool.activeIcon ? subTool.activeIcon : subTool.icon) === 'string'" 

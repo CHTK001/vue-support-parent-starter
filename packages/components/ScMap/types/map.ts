@@ -39,7 +39,7 @@ export const DEFAULT_MAP_CONFIG: Record<string, any> = {
   // 高德地图配置
   GAODE: {
     normal: {
-      url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+      url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
       subdomains: ['1', '2', '3', '4'],
       attribution: '&copy; <a href="https://amap.com">高德地图</a>',
       minZoom: 3,

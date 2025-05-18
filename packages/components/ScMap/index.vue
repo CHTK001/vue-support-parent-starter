@@ -20,6 +20,8 @@
     <!-- 增加引入OverviewMap组件 -->
     <OverviewMap v-if="showOverviewMap && mapObj?.getMapInstance()" :main-map="mapObj.getMapInstance()!" :visible="showOverviewMap"
       :position="determineOverviewMapPosition()" :config="overviewMapConfig"
+      :map="props.map"
+      :map-key="props.mapKey"
       @collapse-change="handleOverviewMapCollapseChange" />
     
     <!-- 添加轨迹播放器 -->
@@ -56,7 +58,8 @@ export default {
 <script setup lang="ts">
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 
 // 组件导入
 import CoordinatePanel from './components/CoordinatePanel.vue';
@@ -184,6 +187,10 @@ const emit = defineEmits<{
   (e: 'grid-enabled', payload: { gridType: GridType }): void;
   (e: 'grid-disabled', payload: { gridType: GridType }): void;
   (e: 'flight-line-selection-change', payload: { selectedIds: string[], count: number }): void;
+  (e: 'map-mouse-move', payload: any): void;
+  (e: 'map-mousemove', payload: any): void;
+  (e: 'map-click', payload: any): void;
+
 }>();
 
 // 组件状态
@@ -208,7 +215,7 @@ const showLayerPanel = ref<boolean>(false);
 const showTrackPlayer = ref<boolean>(false);
 const showFlightLinePanel = ref<boolean>(false);
 const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
-const mapToolbarRef = ref(null);
+const mapToolbarRef = ref<ComponentPublicInstance<{ setToolbarObj: (obj: ToolbarObject) => void }>>(null);
 const trackPlayerRef = ref(null);
 const flightLinePanelRef = ref(null);
 const mapReady = ref(false);
@@ -419,7 +426,11 @@ const initMap = async () => {
     toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
       emit('toolbar-state-change', { toolId, active, toolType, data });
     });
-    
+    nextTick(() => {
+      if (mapToolbarRef.value) {
+        mapToolbarRef.value?.setToolbarObj(toolbarObject);
+      }
+    });
     // 获取其他对象引用
     markerObject = toolbarObject.getMarkerObject();
     shapeObject = toolbarObject.getShapeObject();
