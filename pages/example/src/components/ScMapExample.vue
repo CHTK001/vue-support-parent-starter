@@ -258,9 +258,15 @@ function toggleAllMarkers() {
 }
 function updateMarkerList() {
   if (!mapRef.value) return;
-  const all = mapRef.value.getToolbarObject()?.getMarkerObject()?.getAllMarkers?.() || [];
-  markers.value = all;
-  allMarkersVisible.value = all.filter((m: any) => m.visible).length > 0;
+
+
+  const markerObj = mapRef.value.getToolbarObject()?.getMarkerObject();
+  if (!markerObj) return;
+  
+  const markersMap = markerObj.getAllMarkers?.() || new Map();
+  // 将Map对象转换为数组
+  markers.value = Array.from(markersMap.values());
+  allMarkersVisible.value = markers.value.filter((m) => m.options?.visible !== false).length > 0;
 }
 function addSquareShape() {
   if (!mapRef.value) return;

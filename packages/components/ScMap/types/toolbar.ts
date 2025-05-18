@@ -62,18 +62,13 @@ export interface ToolItem {
   children?: ToolItem[];
 }
 
-// 工具栏基础配置
+// 工具栏基础配置（临时定义，将被下方完整定义替代）
 export interface ToolbarConfig {
   position?: ToolbarPosition;
   collapsed?: boolean;
   collapsible?: boolean;
   showTitle?: boolean;
   items?: ToolItem[];
-  coordinateConfig?: {
-    decimals?: number;
-    position?: string;
-    showProjected?: boolean;
-  };
 }
 
 // 默认工具栏配置

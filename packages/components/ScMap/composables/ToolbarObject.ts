@@ -226,143 +226,27 @@ export class ToolbarObject {
     // 创建图形绘制对象
     this.shapeObj = new ShapeObject(mapInstance);
     
-    // 设置绘制完成回调函数，在绘制完成后自动调用addShape方法
-    (this.shapeObj as any).setDrawEndCallback((id: string, shapeType: string, feature: any) => {
-      // 获取特征的几何体
-      const geometry = feature.getGeometry();
-      if (!geometry) return;
-      
-      // 根据不同形状类型处理几何数据
-      let shapeOption: ShapeOption | null = null;
-      
-      switch (shapeType) {
-        case 'Point':
-          // 处理Point类型，需要类型转换
-          // 由于Geometry基类没有getCoordinates方法，需要先断言为Point类型
-          const pointGeom = geometry as any; // 先使用any类型绕过类型检查
-          const point = pointGeom.getCoordinates ? pointGeom.getCoordinates() : [0, 0];
-          // 转换为经纬度坐标
-          const lonlat = MapUtils.fromLonLat(point);
-          shapeOption = {
-            type: ShapeType.POINT,
-            coordinates: lonlat,
-            dataType: DataType.SHAPE,
-            id
-          };
-          break;
-          
-        case 'LineString':
-          const line = (geometry as LineString).getCoordinates();
-          // 转换所有点为经纬度坐标
-          const lineCoords = line.map(coord => MapUtils.fromLonLat(coord));
-          shapeOption = {
-            type: ShapeType.LINE,
-            coordinates: lineCoords,
-            dataType: DataType.SHAPE,
-            id
-          };
-          break;
-          
-        case 'Polygon':
-          const polygon = (geometry as Polygon).getCoordinates()[0];
-          // 转换所有点为经纬度坐标
-          const polygonCoords = polygon.map(coord => MapUtils.fromLonLat(coord));
-          shapeOption = {
-            type: ShapeType.POLYGON,
-            coordinates: polygonCoords,
-            dataType: DataType.SHAPE,
-            id
-          };
-          break;
-          
-        case 'Circle':
-          // 修改这部分代码处理圆形
-          // 检查几何图形类型，因为现在圆形可能是用Polygon表示的
-          if (geometry instanceof Circle) {
-            // 原始Circle类型情况处理
-            const center = geometry.getCenter();
-            const radius = geometry.getRadius();
-            // 转换中心点为经纬度坐标
-            const centerLonLat = MapUtils.fromLonLat(center);
-            shapeOption = {
-              type: ShapeType.CIRCLE,
-              center: centerLonLat,
-              radius: radius,
-              dataType: DataType.SHAPE,
-              id
-            };
-          } else if (geometry instanceof Polygon) {
-            // 使用Polygon表示的Circle类型情况处理
-            // 计算多边形的外接圆
-            const extent = geometry.getExtent();
-            // 计算中心点
-            const centerX = (extent[0] + extent[2]) / 2;
-            const centerY = (extent[1] + extent[3]) / 2;
-            const center = [centerX, centerY];
-            
-            // 计算半径 - 使用第一个点到中心点的距离
-            const firstPoint = geometry.getCoordinates()[0][0];
-            const dx = firstPoint[0] - centerX;
-            const dy = firstPoint[1] - centerY;
-            const radius = Math.sqrt(dx * dx + dy * dy);
-            
-            // 转换中心点为经纬度坐标
-            const centerLonLat = MapUtils.fromLonLat(center);
-            
-            shapeOption = {
-              type: ShapeType.CIRCLE,
-              center: centerLonLat,
-              radius: radius,
-              dataType: DataType.SHAPE,
-              id
-            };
-          } else {
-            // 处理其他未预期的几何图形类型情况
-            logger.warn(`绘制圆形时遇到未预期的几何图形类型: ${geometry.getType ? geometry.getType() : 'unknown'}`);
-            return; // 不处理不支持的几何图形类型
+    // 注册图形创建事件监听器
+    if (this.toolStateChangeCallback) {
+      // 监听地图点击事件，用于捕获绘制完成的图形
+      mapInstance.on('click', (evt: any) => {
+        // 如果有新创建的图形，触发回调
+        if (this.shapeObj && this.shapeObj.getCount() > 0) {
+          const shapes = this.shapeObj.getAllShapes();
+          const lastShapeId = Array.from(shapes.keys()).pop();
+          if (lastShapeId) {
+            const shape = shapes.get(lastShapeId);
+            if (shape) {
+              logger.debug(`检测到新图形: ${lastShapeId}, 类型: ${shape.type}`);
+              this.toolStateChangeCallback('shape-created', true, 'shape', {
+                id: lastShapeId,
+                options: shape.options
+              });
+            }
           }
-          break;
-          
-        case 'Rectangle':
-        case 'Square':
-          const extent = (geometry as Polygon).getExtent();
-          // 转换为左下角和右上角坐标
-          const minCoord = MapUtils.fromLonLat([extent[0], extent[1]]);
-          const maxCoord = MapUtils.fromLonLat([extent[2], extent[3]]);
-          if (shapeType === 'Rectangle') {
-            shapeOption = {
-              type: ShapeType.RECTANGLE,
-              coordinates: [minCoord, maxCoord],
-              dataType: DataType.SHAPE,
-              id
-            };
-          } else {
-            // 为正方形计算中心点和宽度
-            const centerX = (extent[0] + extent[2]) / 2;
-            const centerY = (extent[1] + extent[3]) / 2;
-            const width = Math.abs(extent[2] - extent[0]);
-            const squareCenter = MapUtils.fromLonLat([centerX, centerY]);
-            shapeOption = {
-              type: ShapeType.SQUARE,
-              center: squareCenter,
-              width: width,
-              dataType: DataType.SHAPE,
-              id
-            };
-          }
-          break;
-      }
-      
-      // 如果成功创建了ShapeOption，通知状态变化
-      if (shapeOption && this.toolStateChangeCallback) {
-        logger.debug(`图形绘制完成，自动调用addShape，类型: ${shapeType}, ID: ${id}`);
-        // 通知状态变化，用于ScLayer组件监听并调用emit('shape-create')
-        this.toolStateChangeCallback('shape-created', true, 'shape', {
-          id,
-          options: shapeOption
-        });
-      }
-    });
+        }
+      });
+    }
     
     logger.debug('图形绘制对象已初始化');
   }
@@ -2627,13 +2511,17 @@ export class ToolbarObject {
         logger.error('地图实例不存在，无法初始化工具栏对象');
         return;
       }
-      this.markerObj = new MarkerObject(mapInstance);
       
-      // 创建形状对象
-      this.shapeObj = new ShapeObject(this.mapObj);
-      
-      // 创建轨迹对象
-      this.trackObj = new TrackObject(this.mapObj.getMapInstance());
+      // 初始化各个组件
+      this.initMarkerObject();
+      this.initShapeObject();
+      this.initCoordinateObject();
+      this.initMeasureObject();
+      this.initOverviewMapObject();
+      this.initTrackObject();
+      this.initGridObject();
+      this.initHeatmapObject();
+      this.initFlightLineObject();
       
     } catch (error) {
       logger.error('ToolbarObject初始化失败：', error);
