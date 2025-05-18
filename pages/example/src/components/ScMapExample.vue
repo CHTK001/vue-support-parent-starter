@@ -263,7 +263,6 @@ function toggleAllMarkers() {
 function updateMarkerList() {
   if (!mapRef.value) return;
 
-
   const markerObj = mapRef.value.getToolbarObject()?.getMarkerObject();
   if (!markerObj) return;
   

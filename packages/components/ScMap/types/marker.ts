@@ -73,6 +73,7 @@ export interface MarkerOptions {
   popupContent?: string;     // 弹窗内容
   group?: string;            // 分组ID
   data?: any;                // 自定义数据
+  clusterable?: boolean;     // 是否参与聚合
 }
 
 /**
@@ -102,6 +103,10 @@ export interface ClusterOptions {
   disableClusteringAtZoom?: number; // 在特定缩放级别禁用聚合
   animate?: boolean;         // 是否动画
   iconCreateFunction?: Function; // 创建图标的函数
+  showCount?: boolean;       // 是否显示聚合数量
+  color?: string;            // 聚合点颜色
+  animateAddingMarkers?: boolean; // 添加标记时是否显示动画
+  onClusterClick?: (features: any[], coordinate: number[]) => void; // 聚合点击回调
 }
 
 /**
