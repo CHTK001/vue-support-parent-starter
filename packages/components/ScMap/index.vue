@@ -471,6 +471,15 @@ const initMap = async () => {
             activeMarker.value = markerData;
             markerPanelPosition.value = pixelPosition;
             showMarkerPanel.value = true;
+            
+            logger.debug('显示标记点面板', {
+              title: markerData.title,
+              hasContent: !!markerData.content,
+              hasClickTemplate: !!markerData.clickContentTemplate
+            });
+          } else {
+            // 如果不需要显示面板，关闭当前面板
+            closeMarkerPanel();
           }
           
           // 触发marker-click事件
@@ -482,9 +491,30 @@ const initMap = async () => {
           // 兼容旧版事件处理
           const marker = event.target;
           const latlng = marker.getLatLng();
+          
+          // 获取标记点详细信息
+          let markerInfo = marker.options || {};
+          
+          // 如果有弹窗内容或点击模板，显示面板
+          if (markerInfo.clickContentTemplate || markerInfo.popupContent || markerInfo.title) {
+            activeMarker.value = {
+              ...markerInfo,
+              position: [latlng.lat, latlng.lng],
+              content: markerInfo.popupContent || ''
+            };
+            
+            // 计算像素位置
+            const point = mapObj?.getMapInstance().latLngToContainerPoint(latlng);
+            if (point) {
+              markerPanelPosition.value = { x: point.x, y: point.y };
+            }
+            
+            showMarkerPanel.value = true;
+          }
+          
           emit('marker-click', { 
             coordinates: [latlng.lat, latlng.lng],
-            data: marker.options
+            data: markerInfo
           });
         }
       });
@@ -539,7 +569,41 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       handlers['flightLine']();
     },
 
+    // 轨迹播放器工具状态变化
+    'track-player': () => {
+      showTrackPlayer.value = active;
+      if (active) {
+        logger.debug('[Track] 轨迹播放器工具已激活');
 
+        // 获取轨迹对象
+        if (data && data.trackObj) {
+          trackObj = data.trackObj;
+          logger.debug('[Track] 从事件数据中获取轨迹对象');
+        } else if (toolbarObject) {
+          const toolbarTrackObj = toolbarObject.getTrackObject();
+          if (toolbarTrackObj) {
+            trackObj = toolbarTrackObj;
+            logger.debug('[Track] 从工具栏对象获取轨迹对象');
+          } else {
+            // 如果工具栏没有轨迹对象，尝试初始化
+            if (mapObj && mapReady.value) {
+              initTrackObject();
+            } else {
+              logger.warn('[Track] 无法初始化轨迹对象：地图未就绪');
+            }
+          }
+        }
+
+        if (!trackObj && mapObj && mapReady.value) {
+          logger.debug('[Track] 未获取到轨迹对象，尝试初始化');
+          initTrackObject();
+        }
+
+        logger.debug('[Track] 显示轨迹播放器面板，trackObj状态: ' + !!trackObj);
+      } else {
+        logger.debug('[Track] 轨迹播放器工具已停用，隐藏轨迹播放器面板');
+      }
+    },
     // 图层切换按钮状态变化
     'layer-switch': () => {
       // 当图层按钮状态变化时，控制图层面板的显示/隐藏
@@ -660,6 +724,32 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
   const handler = handlers[toolId];
   if (handler) {
     handler();
+  }
+};
+
+// 初始化轨迹播放器对象
+const initTrackObject = () => {
+  if (!toolbarObject || !mapObj) {
+    logger.warn('[Track] 无法初始化轨迹对象：工具栏或地图对象不存在');
+    return;
+  }
+  
+  try {
+    // 确保工具栏对象有最新的MapObject
+    if (typeof toolbarObject.updateMapObject === 'function') {
+      toolbarObject.updateMapObject(mapObj);
+    }
+    
+    // 获取轨迹对象
+    trackObj = toolbarObject.getTrackObject();
+    
+    if (trackObj) {
+      logger.debug('[Track] 轨迹对象初始化成功');
+    } else {
+      logger.warn('[Track] 轨迹对象初始化失败');
+    }
+  } catch (error) {
+    logger.error('[Track] 初始化轨迹对象时发生错误:', error);
   }
 };
 
@@ -1046,6 +1136,22 @@ defineExpose({
   getMarker: (id: string) => markerObject?.getMarker(id),
   showAllMarkers: () => markerObject?.showAll(),
   hideAllMarkers: () => markerObject?.hideAll(),
+  clearMarkers: () => markerObject?.clearAll(),
+  getMarkers: () => {
+    if (!markerObject) {
+      logger.error('获取标记点失败: markerObject未初始化');
+      return [];
+    }
+    
+    try {
+      // 获取所有标记点并转换为数组
+      const markersMap = markerObject.getAllMarkers() || new Map();
+      return Array.from(markersMap.values());
+    } catch (error) {
+      logger.error('获取标记点时发生错误:', error);
+      return [];
+    }
+  },
   
   // 图形操作
   addShape: (options: ShapeOption) => shapeObject?.addShape(options),

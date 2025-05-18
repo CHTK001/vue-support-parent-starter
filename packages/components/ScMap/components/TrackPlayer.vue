@@ -121,7 +121,7 @@ export default {
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { TrackObject } from '../composables/TrackObject';
+import { LeafletTrackplayerObject } from '../composables/LeafletTrackplayerObject';
 import { Track, TrackPlayerConfigOptions } from '../types/track';
 
 // 组件属性 - 使用any类型接受任何轨迹对象实现
