@@ -168,7 +168,7 @@ export class MarkerObject {
           iconUrl: options.icon.iconUrl,
           iconSize: options.icon.iconSize || [32, 32],
           iconAnchor: options.icon.iconAnchor || [16, 32],
-          popupAnchor: options.icon.popupAnchor || [0, -32],
+          popupAnchor: options.icon.popupAnchor || [0, -40],
           className: options.icon.className || 'custom-marker-icon'
         });
       } else if (options.icon?.html) {
@@ -188,7 +188,7 @@ export class MarkerObject {
             iconUrl: groupIcon,
             iconSize: options.icon?.iconSize || [32, 32],
             iconAnchor: options.icon?.iconAnchor || [16, 32],
-            popupAnchor: options.icon?.popupAnchor || [0, -32],
+            popupAnchor: options.icon?.popupAnchor || [0, -40],
             className: 'group-marker-icon'
           });
         } else {
@@ -197,7 +197,7 @@ export class MarkerObject {
             iconUrl: groupIcon.iconUrl || '',
             iconSize: groupIcon.iconSize || options.icon?.iconSize || [32, 32],
             iconAnchor: groupIcon.iconAnchor || options.icon?.iconAnchor || [16, 32],
-            popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -32],
+            popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -40],
             className: groupIcon.className || 'group-marker-icon'
           });
         }
@@ -250,7 +250,13 @@ export class MarkerObject {
       
       // 如果有弹窗内容，绑定弹窗
       if (options.popupContent) {
-        marker.bindPopup(options.popupContent);
+        marker.bindPopup(options.popupContent, {
+          offset: L.point(0, -10),  // 额外的偏移
+          autoPan: true,           // 自动平移地图以显示弹窗
+          closeButton: true,       // 显示关闭按钮
+          autoClose: true,         // 点击地图其他位置自动关闭
+          className: 'marker-popup' // 自定义CSS类名
+        });
       }
       
       // 确保markerLayer存在
@@ -381,7 +387,7 @@ export class MarkerObject {
             iconUrl: options.icon.iconUrl,
             iconSize: options.icon.iconSize,
             iconAnchor: options.icon.iconAnchor,
-            popupAnchor: options.icon.popupAnchor,
+            popupAnchor: options.icon.popupAnchor || [0, -40],
             className: options.icon.className || 'custom-marker-icon'
           });
         } else if (options.icon?.html) {
@@ -401,7 +407,7 @@ export class MarkerObject {
               iconUrl: groupIcon,
               iconSize: options.icon?.iconSize || [32, 32],
               iconAnchor: options.icon?.iconAnchor || [16, 32],
-              popupAnchor: options.icon?.popupAnchor || [0, -32],
+              popupAnchor: options.icon?.popupAnchor || [0, -40],
               className: 'group-marker-icon'
             });
           } else {
@@ -410,7 +416,7 @@ export class MarkerObject {
               iconUrl: groupIcon.iconUrl || '',
               iconSize: groupIcon.iconSize || options.icon?.iconSize || [32, 32],
               iconAnchor: groupIcon.iconAnchor || options.icon?.iconAnchor || [16, 32],
-              popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -32],
+              popupAnchor: groupIcon.popupAnchor || options.icon?.popupAnchor || [0, -40],
               className: groupIcon.className || 'group-marker-icon'
             });
           }
@@ -436,7 +442,13 @@ export class MarkerObject {
         if (marker.getPopup()) {
           marker.setPopupContent(options.popupContent);
         } else {
-          marker.bindPopup(options.popupContent);
+          marker.bindPopup(options.popupContent, {
+            offset: L.point(0, -10),  // 额外的偏移
+            autoPan: true,           // 自动平移地图以显示弹窗
+            closeButton: true,       // 显示关闭按钮
+            autoClose: true,         // 点击地图其他位置自动关闭
+            className: 'marker-popup' // 自定义CSS类名
+          });
         }
       }
       
