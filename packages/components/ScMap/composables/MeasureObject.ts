@@ -43,7 +43,7 @@ export class MeasureObject {
   private tempLine: Polyline | null = null;
   private resultLabel: L.Marker | null = null;
   private firstClick: boolean = true;
-  
+
   // 事件监听器存储
   private eventListeners: { [key in MeasureEventType]: MeasureEventListener[] } = {
     'measure-end': []
@@ -108,13 +108,13 @@ export class MeasureObject {
     if (!this.mapInstance || !this.enabled) return;
     
     this.enabled = false;
-    
+
     // 恢复默认鼠标样式
     this.mapInstance.getContainer().style.cursor = '';
     
     // 恢复地图的双击缩放
     this.mapInstance.doubleClickZoom.enable();
-    
+
     // 移除事件监听
     this.mapInstance.off('click', this.clickHandler);
     this.mapInstance.off('mousemove', this.moveHandler);
@@ -133,7 +133,7 @@ export class MeasureObject {
       this.measureLayerGroup.clearLayers();
       this.mapInstance.removeLayer(this.measureLayerGroup);
       this.measureLayerGroup = L.layerGroup().addTo(this.mapInstance);
-    }
+  }
   }
 
   public clear() {
@@ -149,8 +149,8 @@ export class MeasureObject {
       
       if (this.tempLine) {
         this.measureLayerGroup.removeLayer(this.tempLine);
-      }
-      
+  }
+
       if (this.resultLabel) {
         this.measureLayerGroup.removeLayer(this.resultLabel);
       }
@@ -164,7 +164,7 @@ export class MeasureObject {
       // 最后清空整个图层组
       this.measureLayerGroup.clearLayers();
     }
-    
+
     // 重置所有引用
     this.polyline = null;
     this.markers = [];
@@ -187,8 +187,8 @@ export class MeasureObject {
     // 确保是有效的用户点击事件
     if (!this.mapInstance || !e.latlng || !e.originalEvent || !this.measureLayerGroup) {
       return;
-    }
-    
+  }
+
     // 获取点击位置
     const clickedPoint = e.latlng;
     
@@ -216,7 +216,7 @@ export class MeasureObject {
     const lastPoint = this.points[this.points.length - 2];
     const segmentDistance = this.calculateDistance(lastPoint, clickedPoint);
     this.totalDistance += segmentDistance;
-    
+
     // 更新或创建折线
     if (this.polyline) {
       this.polyline.addLatLng(clickedPoint);
@@ -231,12 +231,12 @@ export class MeasureObject {
     // 显示此段距离的标签
     this.addDistanceLabel(lastPoint, clickedPoint, segmentDistance);
   }
-  
+
   // 地图双击事件处理
   private handleMapDblClick(e: any): void {
     info('测距触发双击');
     if (!this.mapInstance || !this.measureLayerGroup) return;
-    
+
     // 阻止地图的默认双击缩放行为
     if (e.originalEvent) {
       e.originalEvent.preventDefault();
@@ -263,7 +263,7 @@ export class MeasureObject {
         if (this.calculateDistance(lastPoint, clickedPoint) > 2) {
           // 手动添加点，但避免触发常规的click处理
           this.points.push(clickedPoint);
-          
+      
           // 添加点标记
           const marker = L.circle(clickedPoint, {
             radius: 5,
@@ -283,17 +283,17 @@ export class MeasureObject {
           // 更新折线
           if (this.polyline) {
             this.polyline.addLatLng(clickedPoint);
-          }
-          
+    }
+
           // 显示此段距离的标签
           this.addDistanceLabel(lastPoint, clickedPoint, segmentDistance);
         }
-      }
-      
+    }
+
       // 停止测距并显示结果
       this.finishMeasurement();
       this.enabled = false;
-      
+    
       // 恢复默认鼠标样式
       this.mapInstance.getContainer().style.cursor = '';
       
@@ -304,17 +304,17 @@ export class MeasureObject {
       this.mapInstance.off('click', this.clickHandler);
       this.mapInstance.off('mousemove', this.moveHandler);
       this.mapInstance.off('dblclick', this.dblclickHandler);
-      
+    
       // 延迟恢复双击缩放，确保不会触发地图缩放
       setTimeout(() => {
         if (this.mapInstance) {
           this.mapInstance.doubleClickZoom.enable();
         }
       }, 1000);
-      
+    
       // 触发测量结束事件
       this.fireEvent('measure-end');
-    }
+  }
   }
 
   // 鼠标移动事件处理
@@ -334,13 +334,13 @@ export class MeasureObject {
         opacity: 0.5,
         dashArray: '5, 10'
       }).addTo(this.measureLayerGroup);
-    }
+  }
   }
 
   // 完成测量
   private finishMeasurement(): void {
     if (!this.mapInstance || !this.measureLayerGroup) return;
-    
+
     // 检查地图是否正在执行缩放动画，如果是则延迟完成测量
     if ((this.mapInstance as any)._animatingZoom) {
       setTimeout(() => {
@@ -365,7 +365,7 @@ export class MeasureObject {
     if (this.points.length > 1) {
       const lastPoint = this.points[this.points.length - 1];
       const formattedDistance = this.formatDistance(this.totalDistance);
-      
+
       // 清除之前的节点累计距离标签，避免与总距离标签重叠
       this.measureLayerGroup.eachLayer((layer: any) => {
         if (layer instanceof L.Marker) {
@@ -407,8 +407,8 @@ export class MeasureObject {
         }
       }, 400);
       return;
-    }
-    
+  }
+
     // 计算标签位置（两点之间的中点）
     const midPoint = L.latLng(
       (point1.lat + point2.lat) / 2,
@@ -429,9 +429,9 @@ export class MeasureObject {
         html: `<div class="segment-distance" style="transform: rotate(${adjustedAngle}deg) translateY(-50%);">${formattedDistance}</div>`,
         iconSize: [100, 30],
         iconAnchor: [50, 15]
-      })
+          })
     }).addTo(this.measureLayerGroup);
-    
+      
     // 为每个点添加距离标签（从起点累计）
     // 但避免在双击完成测量时为最后一个点添加累计距离标签（因为会显示总距离标签）
     if (this.points.length > 2) {
@@ -457,7 +457,7 @@ export class MeasureObject {
             html: `<div class="node-distance">${formattedCumulativeDistance}</div>`,
             iconSize: [100, 30],
             iconAnchor: [50, -5], // 调整位置使其显示在点的上方
-          })
+              })
         }).addTo(this.measureLayerGroup);
       }
     }
@@ -476,11 +476,11 @@ export class MeasureObject {
     
     if (distance >= 1000) {
       return `${(distance / 1000).toFixed(2)} 公里`;
-    } else {
+            } else {
       return `${Math.round(distance)} 米`;
     }
-  }
-
+            }
+            
   // 添加事件监听器
   public on(event: MeasureEventType, listener: MeasureEventListener): void {
     if (!this.eventListeners[event]) {
@@ -510,7 +510,7 @@ export class MeasureObject {
     if (this.measureLayerGroup && this.mapInstance) {
       this.measureLayerGroup.remove();
       this.measureLayerGroup = null;
-    }
+  }
     this.mapInstance = null;
   }
 }

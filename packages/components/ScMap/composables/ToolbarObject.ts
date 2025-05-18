@@ -1334,10 +1334,12 @@ export class ToolbarObject {
     // 更新地图元素上的配置，使得MarkerObject可以访问最新配置
     const mapInstance = this.mapObj.getMapInstance();
     if (mapInstance) {
-      const targetElement = mapInstance.getTargetElement();
+      // 在 Leaflet 中使用 getContainer 而不是 getTargetElement 方法获取容器元素
+      const targetElement = mapInstance.getContainer();
       if (targetElement) {
+        // 在DOM元素上设置配置属性，让其他组件可以获取
         targetElement['clusterConfig'] = this.clusterConfig;
-        logger.debug('更新了地图元素上的聚合配置');
+        logger.debug('聚合配置已传递给地图元素，其他组件可以访问');
       }
     }
     
@@ -1402,7 +1404,8 @@ export class ToolbarObject {
     // 将聚合配置传递给地图元素，使得MarkerObject可以访问
     const mapInstance = this.mapObj.getMapInstance();
     if (mapInstance) {
-      const targetElement = mapInstance.getTargetElement();
+      // 在 Leaflet 中使用 getContainer 而不是 getTargetElement 方法获取容器元素
+      const targetElement = mapInstance.getContainer();
       if (targetElement) {
         // 在DOM元素上设置配置属性，让其他组件可以获取
         targetElement['clusterConfig'] = this.clusterConfig;
@@ -1785,7 +1788,8 @@ export class ToolbarObject {
     // 移除对toolbarObj的引用
     const mapInstance = this.mapObj.getMapInstance();
     if (mapInstance) {
-      const targetElement = mapInstance.getTargetElement();
+      // 在 Leaflet 中使用 getContainer 而不是 getTargetElement 方法
+      const targetElement = mapInstance.getContainer();
       if (targetElement && targetElement['toolbarObj']) {
         delete targetElement['toolbarObj'];
         logger.debug('已从地图元素中移除toolbarObj引用');
@@ -1887,8 +1891,8 @@ export class ToolbarObject {
     }
     
     // 修改鼠标指针样式，指示当前处于删除模式
-    if (mapInstance.getTargetElement()) {
-      mapInstance.getTargetElement().style.cursor = 'pointer';
+    if (mapInstance.getContainer()) {
+      mapInstance.getContainer().style.cursor = 'pointer';
     }
     
     // 创建一个点击监听器，用于处理删除操作
@@ -2138,8 +2142,8 @@ export class ToolbarObject {
     }
     
     // 恢复鼠标指针样式
-    if (mapInstance.getTargetElement()) {
-      mapInstance.getTargetElement().style.cursor = '';
+    if (mapInstance.getContainer()) {
+      mapInstance.getContainer().style.cursor = '';
     }
     
     // 移除所有可能的监听器
@@ -2290,10 +2294,10 @@ export class ToolbarObject {
       
       // 添加地图鼠标提示
       const mapInstance = this.mapObj.getMapInstance();
-      if (mapInstance && mapInstance.getTargetElement()) {
+      if (mapInstance && mapInstance.getContainer()) {
         // 设置自定义属性，提示用户如何操作
-        mapInstance.getTargetElement().setAttribute('data-edit-mode', 'active');
-        mapInstance.getTargetElement().title = '点击图形开始编辑，拖动控制点修改形状，点击地图空白处完成编辑';
+        mapInstance.getContainer().setAttribute('data-edit-mode', 'active');
+        mapInstance.getContainer().title = '点击图形开始编辑，拖动控制点修改形状，点击地图空白处完成编辑';
       }
       
       logger.info('图形编辑模式已激活，点击图形开始编辑');
@@ -2311,7 +2315,7 @@ export class ToolbarObject {
   private setupShapeEventListeners(): void {
     if (!this.shapeObj || !this.mapObj.getMapInstance()) return;
     
-    const mapElement = this.mapObj.getMapInstance()!.getTargetElement();
+    const mapElement = this.mapObj.getMapInstance()!.getContainer();
     if (!mapElement) return;
     
     // 监听图形编辑开始事件
@@ -2375,7 +2379,7 @@ export class ToolbarObject {
   private cleanupShapeEventListeners(): void {
     if (!this.mapObj.getMapInstance()) return;
     
-    const mapElement = this.mapObj.getMapInstance()!.getTargetElement();
+    const mapElement = this.mapObj.getMapInstance()!.getContainer();
     if (!mapElement) return;
     
     // 移除所有事件监听器
@@ -2425,9 +2429,9 @@ export class ToolbarObject {
     
     // 移除地图鼠标提示
     const mapInstance = this.mapObj.getMapInstance();
-    if (mapInstance && mapInstance.getTargetElement()) {
-      mapInstance.getTargetElement().removeAttribute('data-edit-mode');
-      mapInstance.getTargetElement().title = '';
+    if (mapInstance && mapInstance.getContainer()) {
+      mapInstance.getContainer().removeAttribute('data-edit-mode');
+      mapInstance.getContainer().title = '';
     }
     
     logger.info('图形编辑模式已停用');

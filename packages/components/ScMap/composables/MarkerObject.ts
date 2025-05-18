@@ -5,7 +5,51 @@
 import L from 'leaflet';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './LogObject';
-import type { MarkerOptions, MarkerConfig } from '../types/marker';
+import type { MarkerOptions, MarkerConfig, ClusterOptions } from '../types/marker';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+
+// 异步导入 leaflet.markercluster 插件
+const loadClusterPlugin = async (): Promise<boolean> => {
+  if (L.MarkerClusterGroup) {
+    return true;
+  }
+  
+  try {
+    await import('leaflet.markercluster');
+    return true;
+  } catch (e) {
+    console.error('Failed to load leaflet.markercluster', e);
+    logger.warn('聚合功能将不可用: 请安装 leaflet.markercluster 依赖');
+    return false;
+  }
+};
+
+// 检查是否存在 L.MarkerClusterGroup，如果不存在，提供警告函数
+const checkClusterPlugin = (): boolean => {
+  if (!L.MarkerClusterGroup) {
+    console.warn('L.MarkerClusterGroup 未找到。请确保已安装 leaflet.markercluster 库。');
+    logger.warn('未找到聚合插件，聚合功能将不可用');
+    
+    // 尝试检查window对象中是否有L
+    // @ts-ignore - 忽略window.L类型错误
+    if (typeof window !== 'undefined' && window.L && window.L.MarkerClusterGroup) {
+      // 如果window.L中有MarkerClusterGroup但L中没有，尝试修复
+      logger.info('在window.L中找到MarkerClusterGroup，尝试修复...');
+      try {
+        // @ts-ignore
+        L.MarkerClusterGroup = window.L.MarkerClusterGroup;
+        logger.info('已修复L.MarkerClusterGroup引用');
+        return true;
+      } catch (e) {
+        logger.error('尝试修复L.MarkerClusterGroup引用失败:', e);
+      }
+    }
+    
+    return false;
+  }
+  return true;
+};
 
 export class MarkerObject {
   private mapInstance: L.Map;
@@ -25,6 +69,21 @@ export class MarkerObject {
     zoomFactor: 0.03,
     minScale: 0.8,
     maxScale: 1.2
+  };
+
+  // 聚合相关属性
+  private clusterLayer: any = null; // MarkerClusterGroup 类型
+  private clusterEnabled: boolean = false;
+  private clusterOptions: ClusterOptions = {
+    enabled: false,
+    maxClusterRadius: 80,
+    showCount: true,
+    color: '#1677ff',
+    zoomToBoundsOnClick: true,
+    spiderfyOnMaxZoom: true,
+    disableClusteringAtZoom: null,
+    animateAddingMarkers: true,
+    iconCreateFunction: null
   };
 
   /**
@@ -51,7 +110,82 @@ export class MarkerObject {
       this.mapInstance.on('zoomend', () => this.updateMarkersScale());
     }
     
+    // 初始化聚合支持
+    this.initClusterSupport();
+    
     logger.debug('MarkerObject已初始化');
+  }
+
+  /**
+   * 初始化聚合支持
+   */
+  private async initClusterSupport(): Promise<void> {
+    try {
+      // 检查是否支持聚合
+      const isSupported = await loadClusterPlugin();
+      if (!isSupported) {
+        logger.warn('聚合功能初始化失败: 未能加载聚合插件');
+        return;
+      }
+      
+      // 添加聚合样式
+      this.addClusterStyles();
+      
+      logger.debug('聚合支持已初始化');
+    } catch (error) {
+      logger.error('初始化聚合支持失败:', error);
+    }
+  }
+  
+  /**
+   * 添加聚合样式
+   */
+  private addClusterStyles(): void {
+    const styleId = 'sc-map-marker-cluster-styles';
+    if (document.getElementById(styleId)) return;
+    
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .marker-cluster {
+        background-color: rgba(22, 119, 255, 0.6);
+      }
+      .marker-cluster div {
+        background-color: rgba(22, 119, 255, 0.8);
+        color: #fff;
+        font-weight: bold;
+      }
+      .marker-cluster-small {
+        background-color: rgba(22, 119, 255, 0.6);
+      }
+      .marker-cluster-small div {
+        background-color: rgba(22, 119, 255, 0.8);
+      }
+      .marker-cluster-medium {
+        background-color: rgba(241, 211, 87, 0.6);
+      }
+      .marker-cluster-medium div {
+        background-color: rgba(240, 194, 12, 0.8);
+      }
+      .marker-cluster-large {
+        background-color: rgba(253, 156, 115, 0.6);
+      }
+      .marker-cluster-large div {
+        background-color: rgba(241, 128, 23, 0.8);
+      }
+      
+      /* 聚合点击时效果 */
+      .marker-cluster-click {
+        animation: pulse 0.5s ease-out;
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   /**
@@ -90,35 +224,57 @@ export class MarkerObject {
   private updateMarkersScale(): void {
     if (!this.config.scaleWithZoom) return;
     
-    const currentZoom = this.mapInstance.getZoom();
-    const baseZoom = this.config.baseZoom || 10;
-    const zoomFactor = this.config.zoomFactor || 0.03;
-    const minScale = this.config.minScale || 0.8;
-    const maxScale = this.config.maxScale || 1.2;
-    
-    // 根据当前缩放级别计算比例
-    const zoomDiff = currentZoom - baseZoom;
-    let scale = 1 + (zoomDiff * zoomFactor);
-    
-    // 限制比例范围
-    scale = Math.max(minScale, Math.min(maxScale, scale));
-    
-    // 应用到所有标记
-    this.markers.forEach((marker, id) => {
-      const icon = marker.getIcon();
-      if (icon instanceof L.DivIcon) {
-        // 尝试获取原始大小
-        const element = marker.getElement();
-        if (element) {
-          const iconElement = element.querySelector('.leaflet-marker-custom-icon');
-          if (iconElement) {
-            (iconElement as HTMLElement).style.transform = `scale(${scale})`;
-          }
-        }
+    try {
+      // 确保地图实例仍然有效
+      if (!this.mapInstance) {
+        logger.warn('更新标记缩放失败: 地图实例不存在');
+        return;
       }
-    });
-    
-    logger.debug(`标记缩放比例已更新: ${scale.toFixed(2)}`);
+      
+      const currentZoom = this.mapInstance.getZoom();
+      const baseZoom = this.config.baseZoom || 10;
+      const zoomFactor = this.config.zoomFactor || 0.03;
+      const minScale = this.config.minScale || 0.8;
+      const maxScale = this.config.maxScale || 1.2;
+      
+      // 根据当前缩放级别计算比例
+      const zoomDiff = currentZoom - baseZoom;
+      let scale = 1 + (zoomDiff * zoomFactor);
+      
+      // 限制比例范围
+      scale = Math.max(minScale, Math.min(maxScale, scale));
+      
+      // 应用到所有标记
+      this.markers.forEach((marker, id) => {
+        try {
+          // 确保标记点仍然有效
+          if (!marker || !marker.getIcon) return;
+          
+          const icon = marker.getIcon();
+          if (icon instanceof L.DivIcon) {
+            // 尝试获取原始大小
+            try {
+              const element = marker.getElement();
+              if (element) {
+                const iconElement = element.querySelector('.leaflet-marker-custom-icon');
+                if (iconElement) {
+                  (iconElement as HTMLElement).style.transform = `scale(${scale})`;
+                }
+              }
+            } catch (elementError) {
+              // 获取元素时可能会失败，特别是在地图缩放期间
+              // 这里静默忽略错误，避免阻断其他标记点的处理
+            }
+          }
+        } catch (markerError) {
+          logger.warn(`更新标记点 ${id} 缩放时出错:`, markerError);
+        }
+      });
+      
+      logger.debug(`标记缩放比例已更新: ${scale.toFixed(2)}`);
+    } catch (error) {
+      logger.error(`更新标记缩放失败:`, error);
+    }
   }
 
   /**
@@ -219,11 +375,12 @@ export class MarkerObject {
         opacity: options.visible === false ? 0 : 1,
         zIndexOffset: options.zIndexOffset || 0,
         riseOnHover: options.riseOnHover || false
-      });
+      }) as L.Marker & { options: any };
       
       // 存储数据
       marker.options.id = id;
       marker.options.data = options.data || {};
+      marker.options.clusterable = options.clusterable !== false; // 添加是否可聚合的标记
       
       // 绑定点击事件
       marker.on('click', (e) => {
@@ -266,7 +423,13 @@ export class MarkerObject {
       }
       
       // 添加到图层
-      this.markerLayer.addLayer(marker);
+      if (this.clusterEnabled && marker.options.clusterable) {
+        // 如果启用了聚合且标记点允许聚合，添加到聚合图层
+        this.clusterLayer.addLayer(marker);
+      } else {
+        // 否则添加到普通图层
+        this.markerLayer.addLayer(marker);
+      }
       
       // 添加到集合
       this.markers.set(id, marker);
@@ -508,7 +671,14 @@ export class MarkerObject {
     
     try {
       // 从图层移除
-      this.markerLayer.removeLayer(marker);
+      if (this.clusterEnabled && (marker.options as any).clusterable) {
+        // 如果启用了聚合且标记点允许聚合，从聚合图层移除
+        this.clusterLayer.removeLayer(marker);
+      } else {
+        // 否则从普通图层移除
+        this.markerLayer.removeLayer(marker);
+      }
+      
       // 从集合移除
       this.markers.delete(id);
       
@@ -543,6 +713,12 @@ export class MarkerObject {
   public clearAll(): void {
     // 清空图层
     this.markerLayer.clearLayers();
+    
+    // 如果启用了聚合，也清空聚合图层
+    if (this.clusterEnabled && this.clusterLayer) {
+      this.clusterLayer.clearLayers();
+    }
+    
     // 清空集合
     this.markers.clear();
     
@@ -592,6 +768,11 @@ export class MarkerObject {
     // 从地图移除图层
     if (this.mapInstance.hasLayer(this.markerLayer)) {
       this.mapInstance.removeLayer(this.markerLayer);
+    }
+    
+    // 如果启用了聚合，从地图移除聚合图层
+    if (this.clusterEnabled && this.clusterLayer && this.mapInstance.hasLayer(this.clusterLayer)) {
+      this.mapInstance.removeLayer(this.clusterLayer);
     }
     
     // 清空监听器
@@ -662,19 +843,6 @@ export class MarkerObject {
   }
 
   /**
-   * 隐藏所有标签
-   * @returns 隐藏的标签数量
-   */
-  public hideAllLabels(): number {
-    // 更新标签可见性状态
-    this.labelsVisible = false;
-    logger.debug(`全局标签可见性设为false`);
-    
-    // 调用hideAllPopovers作为实现
-    return this.hideAllPopovers();
-  }
-
-  /**
    * 显示所有标签
    * @returns 显示的标签数量
    */
@@ -685,29 +853,108 @@ export class MarkerObject {
     
     let count = 0;
     this.markers.forEach((marker) => {
-      // 只处理可见的标记点
-      if (marker.options.visible !== false) {
-        // 判断标记点是否有标题，如果有标题则显示标签
-        if (marker.options.title) {
-          // 如果已有tooltip但处于关闭状态，则重新打开
-          if (marker.getTooltip()) {
-            marker.openTooltip();
-            count++;
-          } 
-          // 如果没有tooltip，创建一个新的
-          else {
-            marker.bindTooltip(marker.options.title, {
-              permanent: true,
-              direction: 'top',
-              className: marker.options.labelOptions?.className || ''
-            }).openTooltip();
-            count++;
+      try {
+        // 检查标记点是否有效
+        if (!marker || !marker.getLatLng) {
+          return;
+        }
+        
+        // 只处理可见的标记点
+        if (marker.options.visible !== false) {
+          // 判断标记点是否有标题，如果有标题则显示标签
+          if (marker.options.title) {
+            // 如果已有tooltip但处于关闭状态，则重新打开
+            if (marker.getTooltip()) {
+              try {
+                // 确保地图实例仍然有效
+                if (this.mapInstance && this.mapInstance.hasLayer(marker)) {
+                  marker.openTooltip();
+                  count++;
+                }
+              } catch (err) {
+                logger.warn(`打开标签失败:`, err);
+                // 如果打开失败，尝试重新绑定tooltip
+                if (marker.getTooltip()) {
+                  marker.unbindTooltip();
+                }
+                marker.bindTooltip(marker.options.title, {
+                  permanent: true,
+                  direction: 'top',
+                  className: marker.options.labelOptions?.className || ''
+                });
+              }
+            } 
+            // 如果没有tooltip，创建一个新的
+            else {
+              try {
+                marker.bindTooltip(marker.options.title, {
+                  permanent: true,
+                  direction: 'top',
+                  className: marker.options.labelOptions?.className || '',
+                  offset: [0, -5] // 添加一些偏移，避免与标记点重叠
+                });
+                
+                // 只有当标记点已添加到地图时才打开tooltip
+                if (this.mapInstance && this.mapInstance.hasLayer(marker)) {
+                  marker.openTooltip();
+                }
+                count++;
+              } catch (err) {
+                logger.warn(`绑定标签失败:`, err);
+              }
+            }
           }
         }
+      } catch (error) {
+        logger.warn(`处理标记点标签时出错:`, error);
       }
     });
     logger.debug(`已显示 ${count} 个标记点标签`);
     return count;
+  }
+
+  /**
+   * 隐藏所有标签
+   * @returns 隐藏的标签数量
+   */
+  public hideAllLabels(): number {
+    // 更新标签可见性状态
+    this.labelsVisible = false;
+    logger.debug(`全局标签可见性设为false`);
+    
+    // 在隐藏所有弹出框之前，先安全地关闭所有tooltip
+    let tooltipCount = 0;
+    this.markers.forEach((marker) => {
+      try {
+        if (marker && marker.getTooltip) {
+          const tooltip = marker.getTooltip();
+          if (tooltip) {
+            try {
+              marker.closeTooltip();
+              tooltipCount++;
+            } catch (err) {
+              // 如果关闭失败，尝试解绑tooltip
+              logger.warn(`关闭标签失败:`, err);
+              try {
+                marker.unbindTooltip();
+                tooltipCount++;
+              } catch (unbindErr) {
+                logger.warn(`解绑标签失败:`, unbindErr);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        logger.warn(`处理标记点标签时出错:`, error);
+      }
+    });
+    
+    logger.debug(`已安全关闭 ${tooltipCount} 个标签`);
+    
+    // 调用hideAllPopovers来处理弹出框
+    const popoverCount = this.hideAllPopovers();
+    
+    return tooltipCount + popoverCount;
   }
 
   /**
@@ -717,18 +964,39 @@ export class MarkerObject {
   public hideAllPopovers(): number {
     let count = 0;
     this.markers.forEach((marker) => {
-      // 检查popup
-      if (marker.getPopup() && marker.isPopupOpen()) {
-        marker.closePopup();
-        count++;
-      }
-      
-      // 检查tooltip - 先确认tooltip存在，再检查其状态
-      const tooltip = marker.getTooltip();
-      if (tooltip) {
-        // 安全地关闭tooltip
-        marker.closeTooltip();
-        count++;
+      try {
+        // 检查标记点是否有效
+        if (!marker) return;
+        
+        // 检查popup
+        try {
+          if (marker.getPopup && marker.getPopup() && marker.isPopupOpen()) {
+            marker.closePopup();
+            count++;
+          }
+        } catch (popupError) {
+          logger.warn(`关闭弹出框时出错:`, popupError);
+        }
+        
+        // 检查tooltip
+        try {
+          if (marker.getTooltip && marker.getTooltip()) {
+            marker.closeTooltip();
+            count++;
+          }
+        } catch (tooltipError) {
+          // 如果关闭失败，尝试解绑tooltip
+          logger.warn(`关闭提示框时出错:`, tooltipError);
+          try {
+            if (marker.unbindTooltip) {
+              marker.unbindTooltip();
+            }
+          } catch (unbindError) {
+            logger.warn(`解绑提示框时出错:`, unbindError);
+          }
+        }
+      } catch (markerError) {
+        logger.warn(`处理标记点弹出框时出错:`, markerError);
       }
     });
     logger.debug(`已隐藏 ${count} 个弹出框和提示`);
@@ -774,8 +1042,14 @@ export class MarkerObject {
    * @param distance 聚合距离（像素）
    */
   public setClusterDistance(distance: number): void {
-    // 在实际实现中，这里应该设置聚合距离
-    // 这里只是一个模拟实现
+    this.clusterOptions.maxClusterRadius = distance;
+    
+    // 如果已经启用了聚合，更新聚合配置
+    if (this.clusterEnabled && this.clusterLayer) {
+      this.disableCluster();
+      this.enableCluster();
+    }
+    
     logger.debug(`设置聚合距离为 ${distance} 像素`);
   }
 
@@ -784,8 +1058,14 @@ export class MarkerObject {
    * @param enabled 是否启用聚合
    */
   public setClusterMode(enabled: boolean): void {
-    // 在实际实现中，这里应该启用或禁用聚合模式
-    // 这里只是一个模拟实现
+    if (enabled === this.clusterEnabled) return;
+    
+    if (enabled) {
+      this.enableCluster();
+    } else {
+      this.disableCluster();
+    }
+    
     logger.debug(`${enabled ? '启用' : '禁用'}聚合模式`);
   }
 
@@ -794,9 +1074,7 @@ export class MarkerObject {
    * @returns 是否启用聚合
    */
   public getClusterMode(): boolean {
-    // 在实际实现中，这里应该返回聚合模式的状态
-    // 这里只是一个模拟实现
-    return false;
+    return this.clusterEnabled;
   }
 
   /**
@@ -804,8 +1082,240 @@ export class MarkerObject {
    * @param handler 点击处理函数
    */
   public setClusterClickHandler(handler?: (features: any[], coordinate: number[]) => void): void {
-    // 在实际实现中，这里应该设置聚合点击的处理函数
-    // 这里只是一个模拟实现
+    // 保存点击处理函数
+    this.clusterOptions.onClusterClick = handler;
+    
+    if (this.clusterEnabled && this.clusterLayer) {
+      // 移除先前的事件处理
+      this.clusterLayer.off('clusterclick');
+      
+      // 如果提供了处理函数，添加新的事件处理
+      if (handler) {
+        this.clusterLayer.on('clusterclick', (e: any) => {
+          const cluster = e.layer;
+          const childMarkers = cluster.getAllChildMarkers();
+          const features = childMarkers.map((marker: any) => ({
+            id: marker.options.id,
+            data: marker.options.data
+          }));
+          const latlng = cluster.getLatLng();
+          handler(features, [latlng.lat, latlng.lng]);
+        });
+      }
+    }
+    
     logger.debug('设置聚合点击处理器');
+  }
+
+  /**
+   * 启用聚合功能
+   */
+  public enableCluster(): void {
+    // 检查聚合插件是否可用
+    if (!checkClusterPlugin()) {
+      logger.error('启用聚合失败: 插件不可用');
+      return;
+    }
+    
+    if (this.clusterEnabled) {
+      logger.debug('聚合模式已经启用');
+      return;
+    }
+    
+    try {
+      // 确保地图已初始化并已添加到 DOM
+      if (!this.mapInstance || !this.mapInstance.getContainer()) {
+        logger.error('启用聚合失败: 地图实例未完全初始化');
+        return;
+      }
+
+      // 确保地图已经有边界，防止 MarkerClusterGroup 的 getBounds 错误
+      if (!this.mapInstance.getBounds()) {
+        logger.warn('地图尚未完全初始化，等待地图设置好视图后再启用聚合');
+        
+        // 延迟启用聚合功能，等待地图准备就绪
+        setTimeout(() => {
+          // 再次检查地图是否已准备就绪
+          if (this.mapInstance && this.mapInstance.getBounds()) {
+            this._doEnableCluster();
+          } else {
+            logger.error('启用聚合失败: 地图边界在延迟后仍不可用');
+          }
+        }, 500);
+        return;
+      }
+      
+      // 执行聚合启用逻辑
+      this._doEnableCluster();
+    } catch (error) {
+      logger.error('启用聚合模式失败:', error);
+    }
+  }
+
+  /**
+   * 实际执行聚合启用逻辑
+   * @private
+   */
+  private _doEnableCluster(): void {
+    try {
+      // 创建聚合图层
+      this.clusterLayer = L.markerClusterGroup({
+        maxClusterRadius: this.clusterOptions.maxClusterRadius,
+        iconCreateFunction: this.clusterOptions.iconCreateFunction || undefined,
+        spiderfyOnMaxZoom: this.clusterOptions.spiderfyOnMaxZoom,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: this.clusterOptions.zoomToBoundsOnClick,
+        disableClusteringAtZoom: this.clusterOptions.disableClusteringAtZoom,
+        animateAddingMarkers: this.clusterOptions.animateAddingMarkers
+      });
+      
+      // 将当前所有可聚合的标记点从普通图层移动到聚合图层
+      const clusterableMarkers: L.Marker[] = [];
+      const nonClusterableMarkers: L.Marker[] = [];
+      
+      this.markers.forEach((marker, id) => {
+        const options = marker.options as any;
+        if (options.clusterable !== false) {
+          clusterableMarkers.push(marker);
+        } else {
+          nonClusterableMarkers.push(marker);
+        }
+      });
+      
+      // 清空原始图层
+      this.markerLayer.clearLayers();
+      
+      // 添加不可聚合的标记点到普通图层
+      nonClusterableMarkers.forEach(marker => {
+        this.markerLayer.addLayer(marker);
+      });
+      
+      // 添加可聚合的标记点到聚合图层
+      if (clusterableMarkers.length > 0) {
+        this.clusterLayer.addLayers(clusterableMarkers);
+      }
+      
+      // 将聚合图层添加到地图
+      this.mapInstance.addLayer(this.clusterLayer);
+      
+      // 添加聚合点击事件处理
+      if (this.clusterOptions.onClusterClick) {
+        this.clusterLayer.on('clusterclick', (e: any) => {
+          const cluster = e.layer;
+          const childMarkers = cluster.getAllChildMarkers();
+          const features = childMarkers.map((marker: any) => ({
+            id: marker.options.id,
+            data: marker.options.data
+          }));
+          const latlng = cluster.getLatLng();
+          this.clusterOptions.onClusterClick!(features, [latlng.lat, latlng.lng]);
+        });
+      }
+      
+      this.clusterEnabled = true;
+      logger.debug('聚合模式已启用');
+    } catch (error) {
+      logger.error('执行聚合启用逻辑失败:', error);
+    }
+  }
+
+  /**
+   * 禁用聚合功能
+   */
+  public disableCluster(): void {
+    if (!this.clusterEnabled || !this.clusterLayer) {
+      return;
+    }
+    
+    try {
+      // 确保地图和聚合图层已正确初始化
+      if (!this.mapInstance || !this.markerLayer) {
+        logger.warn('禁用聚合失败: 地图实例或标记图层不可用');
+        // 重置状态，避免卡在错误状态
+        this.clusterEnabled = false;
+        this.clusterLayer = null;
+        return;
+      }
+      
+      // 将所有标记点从聚合图层移回普通图层
+      const allMarkers: L.Marker[] = [];
+      
+      try {
+        this.clusterLayer.eachLayer((layer: any) => {
+          allMarkers.push(layer);
+        });
+      } catch (layerError) {
+        logger.warn('获取聚合图层中的标记失败:', layerError);
+        // 即使出错，继续尝试执行后续操作
+      }
+      
+      // 从地图中移除聚合图层，确保图层存在于地图中
+      if (this.mapInstance.hasLayer(this.clusterLayer)) {
+        this.mapInstance.removeLayer(this.clusterLayer);
+      }
+      
+      // 将所有标记点添加到普通图层
+      allMarkers.forEach(marker => {
+        try {
+          this.markerLayer.addLayer(marker);
+        } catch (addError) {
+          logger.warn(`添加标记点到普通图层失败:`, addError);
+        }
+      });
+      
+      this.clusterLayer = null;
+      this.clusterEnabled = false;
+      logger.debug('聚合模式已禁用');
+    } catch (error) {
+      logger.error('禁用聚合模式失败:', error);
+      // 即使出现错误，也重置状态
+      this.clusterLayer = null;
+      this.clusterEnabled = false;
+    }
+  }
+
+  /**
+   * 设置聚合选项
+   * @param options 聚合选项
+   */
+  public setClusterOptions(options: Partial<ClusterOptions>): void {
+    const wasEnabled = this.clusterEnabled;
+    
+    // 更新配置
+    this.clusterOptions = { ...this.clusterOptions, ...options };
+    
+    // 如果已启用聚合，重新应用设置
+    if (wasEnabled) {
+      this.disableCluster();
+      this.enableCluster();
+    }
+    
+    logger.debug('更新聚合选项:', options);
+  }
+
+  /**
+   * 刷新聚合
+   */
+  public refreshCluster(): void {
+    if (!this.clusterEnabled || !this.clusterLayer) return;
+    
+    try {
+      // 确保地图已初始化并且聚合图层已添加到地图上
+      if (!this.mapInstance || !this.mapInstance.hasLayer(this.clusterLayer)) {
+        logger.warn('刷新聚合失败: 聚合图层未添加到地图');
+        return;
+      }
+      
+      // 检查地图是否有效边界
+      if (!this.mapInstance.getBounds()) {
+        logger.warn('刷新聚合失败: 地图边界不可用');
+        return;
+      }
+      
+      this.clusterLayer.refreshClusters();
+      logger.debug('已刷新聚合');
+    } catch (error) {
+      logger.error('刷新聚合失败:', error);
+    }
   }
 } 
