@@ -1,13 +1,13 @@
 /**
  * 网格管理器
- * @description 管理地图网格的显示和隐藏
+ * @description 管理地图网格，包括六边形网格和GeoHash网格
  */
 import L from 'leaflet';
-import logger from './LogObject';
 import { HexagonGridObject } from './HexagonGridObject';
 import { GeoHashGridObject } from './GeoHashGridObject';
+import logger from './LogObject';
 
-// 网格类型
+// 网格类型枚举
 export enum GridType {
   HEXAGON = 'hexagon',   // 六边形网格
   GEOHASH = 'geohash'    // GeoHash网格
