@@ -4,20 +4,7 @@
  */
 <template>
   <div class="overview-map" :class="[positionClass, { collapsed }]">
-    <div class="overview-header" @click.stop="handleToggleCollapse">
-      <div class="overview-title">鸟瞰图</div>
-      <div class="overview-actions">
-        <button class="collapse-btn" title="展开/收起" @click.stop="handleToggleCollapse">
-          <svg viewBox="0 0 1024 1024" width="14" height="14">
-            <path v-if="collapsed" d="M512 685.248l-278.624-278.624 45.248-45.248L512 594.752l233.376-233.376 45.248 45.248z" fill="currentColor"></path>
-            <path v-else d="M512 685.248l278.624-278.624-45.248-45.248L512 594.752l-233.376-233.376-45.248 45.248z" fill="currentColor"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div class="overview-content" v-show="!collapsed">
-      <div ref="overviewContainer" class="overview-container"></div>
-    </div>
+    <!-- 鹰眼控件由leaflet-minimap自动渲染，收缩/展开由其自带按钮控制 -->
   </div>
 </template>
 
@@ -30,6 +17,9 @@ export default {
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import L from 'leaflet';
+import 'leaflet-minimap';
+import { MapTile, MapType } from '../types';
+import "leaflet-minimap/dist/Control.MiniMap.min.css";
 
 // 定义配置接口
 export interface OverviewMapConfig {
@@ -39,7 +29,8 @@ export interface OverviewMapConfig {
   baseLayer?: string;
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   visible?: boolean;
-  baseTile?: 'osm' | 'gaode' | 'google' | 'tencent' | 'tianditu';
+  baseType?: MapType;
+  baseTile?: MapTile; // 支持自定义key
   autoActivate?: boolean;
 }
 
@@ -48,9 +39,10 @@ const DEFAULT_CONFIG: OverviewMapConfig = {
   width: 200,
   height: 150,
   zoomOffset: -5,
-  position: 'bottom-right',
+  position: 'bottom-right', // 默认右下角
   visible: true,
-  baseTile: 'osm',
+  baseType: MapType.GAODE,
+  baseTile: MapTile.NORMAL,
   autoActivate: false
 };
 
@@ -60,212 +52,148 @@ const props = withDefaults(defineProps<{
   visible?: boolean;
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   config?: Partial<OverviewMapConfig>;
+  map?: any; // MapConfig.map
+  mapKey?: Record<string, string>;
 }>(), {
   visible: true,
   position: 'bottom-right',
-  config: () => ({})
+  config: () => ({}),
+  map: undefined,
+  mapKey: undefined
 });
 
-// 组件事件
-const emit = defineEmits<{
-  (e: 'collapse-change', collapsed: boolean): void;
-}>();
-
 // 组件状态
-const overviewContainer = ref<HTMLElement | null>(null);
-const collapsed = ref(false);
-const overviewMap = ref<L.Map | null>(null);
-const rectangle = ref<L.Rectangle | null>(null);
+const collapsed = ref(false); // 仅用于初始化minimap的minimized参数
+const miniMapControl = ref<any>(null);
+
+// 保证props.config有值
+const safeConfig = computed(() => props.config || {});
 
 // 计算最终配置
 const finalConfig = computed(() => {
   return {
     ...DEFAULT_CONFIG,
-    ...props.config,
-    position: props.position || props.config?.position || DEFAULT_CONFIG.position,
-    visible: props.visible !== undefined ? props.visible : props.config?.visible !== undefined ? props.config.visible : DEFAULT_CONFIG.visible
+    ...safeConfig.value,
+    position: props.position || safeConfig.value.position || DEFAULT_CONFIG.position,
+    visible: props.visible !== undefined ? props.visible : safeConfig.value.visible !== undefined ? safeConfig.value.visible : DEFAULT_CONFIG.visible
   };
 });
 
 // 计算位置样式类
 const positionClass = computed(() => `position-${finalConfig.value.position}`);
 
-// 初始化鸟瞰图
-const initOverviewMap = () => {
-  if (!overviewContainer.value || !props.mainMap) return;
-
-  // 创建鸟瞰图实例
-  const map = L.map(overviewContainer.value, {
-    attributionControl: false,
-    zoomControl: false,
-    dragging: false,
-    scrollWheelZoom: false,
-    doubleClickZoom: false,
-    boxZoom: false,
-    keyboard: false,
-    tap: false,
-    touchZoom: false
-  });
-
-  // 添加底图
-  const baseTile = finalConfig.value.baseTile || 'osm';
-  
-  if (baseTile === 'osm') {
-    // OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(map);
-  } else if (baseTile === 'gaode') {
-    // 高德地图
-    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-      subdomains: '1234'
-    }).addTo(map);
-  } else if (baseTile === 'google') {
-    // 谷歌地图
-    L.tileLayer('http://mt1.google.cn/vt/lyrs=m&x={x}&y={y}&z={z}').addTo(map);
-  } else if (baseTile === 'tencent') {
-    // 腾讯地图
-    L.tileLayer('https://rt{s}.map.gtimg.com/realtimerender?z={z}&x={x}&y={y}&type=vector&style=0', {
-      subdomains: '0123'
-    }).addTo(map);
-  } else if (baseTile === 'tianditu') {
-    // 天地图
-    L.tileLayer('https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=你的密钥', {
-      subdomains: '01234567'
-    }).addTo(map);
+// 获取leaflet-minimap的控件位置
+const leafletPosition = computed(() => {
+  switch (finalConfig.value.position) {
+    case 'top-left': return 'topleft';
+    case 'top-right': return 'topright';
+    case 'bottom-left': return 'bottomleft';
+    case 'bottom-right': return 'bottomright';
+    default: return 'bottomright';
   }
-  
-  // 保存鸟瞰图实例
-  overviewMap.value = map;
-  
-  // 初始化视图
-  updateOverviewMap();
-  
-  // 添加点击事件
-  map.on('click', (e) => {
-    if (props.mainMap) {
-      props.mainMap.setView(e.latlng, props.mainMap.getZoom());
+});
+
+// 构建底图图层，优先overviewMapConfig.baseTile，其次MapConfig.map和mapKey
+function createMiniMapLayer() {
+  // 1. 优先overviewMapConfig.baseTile
+  const baseType = finalConfig.value.baseType || MapType.OSM;
+  const baseTile = finalConfig.value.baseTile || MapTile.NORMAL;
+  // 2. 支持MapConfig.map和mapKey
+  const mapConfig = props.map;
+  const mapKey = props.mapKey || {};
+  // 3. 支持自定义MapConfig.map
+  if (mapConfig && typeof mapConfig === 'object') {
+    // baseTile可为mapConfig的key
+    let tileConfig = mapConfig[baseType];
+    if (!tileConfig && mapConfig['osm']) tileConfig = mapConfig['osm'];
+    let url = tileConfig[baseTile].url || '';
+    // 替换key
+    if (url.includes('{key}')) {
+      const key = mapKey[baseType] || '';
+      url = url.replace('{key}', key);
     }
+    return L.tileLayer(url, tileConfig.options || {});
+  }
+
+  // 兜底
+  return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+}
+
+const initMiniMap = () => {
+  if (!props.mainMap) return;
+  // 移除旧控件
+  if (miniMapControl.value) {
+    props.mainMap.removeControl(miniMapControl.value);
+    miniMapControl.value = null;
+  }
+  const layer = createMiniMapLayer();
+  // @ts-ignore
+  miniMapControl.value = new (L.Control as any).MiniMap(layer, {
+    width: finalConfig.value.width,
+    height: finalConfig.value.height,
+    zoomLevelOffset: finalConfig.value.zoomOffset,
+    toggleDisplay: true, // 显示收缩按钮
+    minimized: collapsed.value, // 初始是否收缩
+    position: 'bottomright', // 强制右下角
+    aimingRectOptions: { color: '#1890ff', weight: 2, fillOpacity: 0.1 },
+    shadowRectOptions: { color: '#000', weight: 1, opacity: 0.3, fillOpacity: 0.1 },
+    strings: {
+      hideText: '隐藏鹰眼',
+      showText: '显示鹰眼'
+    },
   });
-};
-
-// 更新鸟瞰图
-const updateOverviewMap = () => {
-  if (!overviewMap.value || !props.mainMap) return;
-  
-  // 获取主地图的中心点和缩放级别
-  const center = props.mainMap.getCenter();
-  const zoom = props.mainMap.getZoom() + (finalConfig.value.zoomOffset || -5);
-      
-  // 设置鸟瞰图的视图
-  overviewMap.value.setView(center, Math.max(0, zoom));
-  
-  // 更新矩形框
-  updateRectangle();
-};
-
-// 更新矩形框
-const updateRectangle = () => {
-  if (!overviewMap.value || !props.mainMap) return;
-    
-  // 获取主地图的边界
-  const bounds = props.mainMap.getBounds();
-  
-  // 移除旧的矩形框
-  if (rectangle.value) {
-    rectangle.value.remove();
-  }
-  
-  // 创建新的矩形框
-  rectangle.value = L.rectangle(bounds, {
-    color: '#1890ff',
-    weight: 2,
-    fillColor: '#1890ff',
-    fillOpacity: 0.1
-  }).addTo(overviewMap.value);
-};
-
-// 切换收起/展开状态
-const handleToggleCollapse = () => {
-  collapsed.value = !collapsed.value;
-  emit('collapse-change', collapsed.value);
-  
-  // 如果展开，更新鸟瞰图
-  if (!collapsed.value) {
-    requestAnimationFrame(() => {
-      updateOverviewMap();
-    
-      // 如果鸟瞰图尚未初始化，初始化它
-      if (!overviewMap.value) {
-        initOverviewMap();
-      } else {
-        overviewMap.value.invalidateSize();
-      }
-    });
-  }
+  props.mainMap.addControl(miniMapControl.value);
 };
 
 // 组件挂载
 onMounted(() => {
   // 初始化鸟瞰图
   if (finalConfig.value.visible && !collapsed.value) {
-    initOverviewMap();
-  }
-  
-  // 监听主地图的事件
-  if (props.mainMap) {
-    // 移动结束事件
-    props.mainMap.on('moveend', updateOverviewMap);
-    
-    // 缩放结束事件
-    props.mainMap.on('zoomend', updateOverviewMap);
-    
-    // 大小改变事件
-    props.mainMap.on('resize', updateOverviewMap);
+    initMiniMap();
   }
 });
 
 // 组件销毁
 onBeforeUnmount(() => {
   // 移除事件监听
-  if (props.mainMap) {
-    props.mainMap.off('moveend', updateOverviewMap);
-    props.mainMap.off('zoomend', updateOverviewMap);
-    props.mainMap.off('resize', updateOverviewMap);
+  if (miniMapControl.value && props.mainMap) {
+    props.mainMap.removeControl(miniMapControl.value);
+    miniMapControl.value = null;
   }
-  
-  // 移除鸟瞰图
-  if (overviewMap.value) {
-    overviewMap.value.remove();
-    overviewMap.value = null;
-    }
 });
 
 // 监听配置变化
 watch(() => props.config, () => {
-  if (overviewMap.value) {
-    updateOverviewMap();
+  if (miniMapControl.value && props.mainMap) {
+    props.mainMap.removeControl(miniMapControl.value);
+    miniMapControl.value = null;
+  }
+  if (finalConfig.value.visible && !collapsed.value) {
+    initMiniMap();
   }
 }, { deep: true });
       
 // 监听主地图变化
 watch(() => props.mainMap, () => {
-  if (overviewMap.value) {
-    updateOverviewMap();
+  if (miniMapControl.value && props.mainMap) {
+    props.mainMap.removeControl(miniMapControl.value);
+    miniMapControl.value = null;
+  }
+  if (finalConfig.value.visible && !collapsed.value) {
+    initMiniMap();
   }
 });
 
 // 监听可见性变化
 watch(() => props.visible, (newVisible) => {
-  if (newVisible && !overviewMap.value && !collapsed.value) {
-    initOverviewMap();
+  if (newVisible && !miniMapControl.value && !collapsed.value) {
+    initMiniMap();
   }
 });
 
 // 导出方法
 defineExpose({
-  updateOverviewMap,
-  getOverviewMap: () => overviewMap.value
+  getMiniMapControl: () => miniMapControl.value
 });
 </script>
 
