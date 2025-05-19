@@ -605,12 +605,12 @@ export class LeafletTrackplayerObject {
         // 初始化时传入轨迹数据
         const trackPlayer = new L.TrackPlayer(positions, {
           speed: this.options.playbackSpeed * initialSpeedFactor * 300, // 应用速度因子后再乘以300倍
-            markerRotation: true,
+          markerRotation: true,
           markerRotationOffset: -90,
           // 明确设置相机跟随状态，默认为false
           panTo: this.options.withCamera === true ? true : false,
-            passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
-            notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
+          passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
+          notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
           weight: this.options.trackLineOptions?.weight || 8,
           // 明确设置循环播放配置
           loop: this.config.loop === true ? true : false,
@@ -620,7 +620,20 @@ export class LeafletTrackplayerObject {
             iconSize: [24, 24],
             iconAnchor: [12, 12],
             popupAnchor: [0, -5]
-          })
+          }),
+          // 启用Canvas渲染模式，提高大量点位的渲染性能
+          renderer: L.canvas(),
+          // 确保绘制所有点位
+          renderAllPoints: true,
+          // 设置Canvas渲染的参数
+          rendererOptions: {
+            // Canvas线条宽度
+            lineWidth: this.options.trackLineOptions?.weight || 8,
+            // 是否平滑绘制曲线
+            smoothFactor: 1,
+            // 提高分辨率，使绘制更加清晰
+            resolution: window.devicePixelRatio || 1
+          }
         });
         
         // 记录初始化状态，用于调试
@@ -1933,18 +1946,52 @@ export class LeafletTrackplayerObject {
    * @returns 是否成功更新
    */
   public updateTrackPlayer(trackId: string, config: any): boolean {
+    if (!this.trackPlayers.has(trackId)) {
+      this.log('warn', `更新轨迹播放器失败: 未找到轨迹 ${trackId}`);
+      return false;
+    }
+
     try {
-      if (!this.trackPlayers.has(trackId)) {
-        this.log('warn', `更新轨迹播放器配置失败: 未找到轨迹 ${trackId} 的播放器`);
+      // 获取轨迹播放器实例
+      const trackPlayerData = this.trackPlayers.get(trackId);
+      if (!trackPlayerData || !trackPlayerData.player) {
+        this.log('warn', `更新轨迹播放器失败: 轨迹播放器未初始化 ${trackId}`);
         return false;
       }
-      
-      const trackPlayerData = this.trackPlayers.get(trackId);
-      const trackPlayer = trackPlayerData?.player;
-      
-      if (!trackPlayer) {
-        this.log('warn', `更新轨迹播放器配置失败: 轨迹 ${trackId} 的播放器无效`);
-        return false;
+
+      const trackPlayer = trackPlayerData.player;
+
+      // 更新相机跟随设置
+      if (config.withCamera !== undefined && typeof trackPlayer.setPanTo === 'function') {
+        // 记录之前的状态，用于检测变化
+        const previousState = trackPlayer.options.panTo;
+        
+        // 确保地图已加载和准备好
+        if (this.mapInstance && this.mapInstance._container && 
+            this.mapInstance._container.offsetWidth &&
+            this.mapInstance._mapPane && this.mapInstance._mapPane._leaflet_pos) {
+          // 更新相机跟随状态
+          trackPlayer.setPanTo(config.withCamera);
+          
+          // 输出更多日志以便调试
+          if (previousState !== config.withCamera) {
+            this.log('info', `轨迹 ${trackId} 相机跟随状态由 ${previousState ? '开启' : '关闭'} 更改为 ${config.withCamera ? '开启' : '关闭'}`);
+          } else {
+            this.log('debug', `轨迹 ${trackId} 相机跟随状态保持不变: ${config.withCamera ? '开启' : '关闭'}`);
+          }
+        } else {
+          this.log('warn', `轨迹 ${trackId} 地图未准备好，暂不更新相机跟随状态`);
+          // 延迟尝试更新相机跟随状态
+          setTimeout(() => {
+            if (this.mapInstance && this.trackPlayers.has(trackId)) {
+              const player = this.trackPlayers.get(trackId)?.player;
+              if (player && typeof player.setPanTo === 'function') {
+                player.setPanTo(config.withCamera);
+                this.log('info', `轨迹 ${trackId} 相机跟随状态已延迟更新为 ${config.withCamera ? '开启' : '关闭'}`);
+              }
+            }
+          }, 500);
+        }
       }
       
       // 更新循环播放设置
@@ -1959,22 +2006,6 @@ export class LeafletTrackplayerObject {
           this.log('info', `轨迹 ${trackId} 循环播放状态由 ${previousLoopState ? '开启' : '关闭'} 更改为 ${config.loop ? '开启' : '关闭'}`);
         } else {
           this.log('debug', `轨迹 ${trackId} 循环播放状态保持不变: ${config.loop ? '开启' : '关闭'}`);
-        }
-      }
-      
-      // 更新相机跟随设置
-      if (config.withCamera !== undefined && typeof trackPlayer.setPanTo === 'function') {
-        // 记录之前的状态，用于检测变化
-        const previousState = trackPlayer.options.panTo;
-        
-        // 更新相机跟随状态
-        trackPlayer.setPanTo(config.withCamera);
-        
-        // 输出更多日志以便调试
-        if (previousState !== config.withCamera) {
-          this.log('info', `轨迹 ${trackId} 相机跟随状态由 ${previousState ? '开启' : '关闭'} 更改为 ${config.withCamera ? '开启' : '关闭'}`);
-        } else {
-          this.log('debug', `轨迹 ${trackId} 相机跟随状态保持不变: ${config.withCamera ? '开启' : '关闭'}`);
         }
       }
       

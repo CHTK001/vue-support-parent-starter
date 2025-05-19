@@ -80,18 +80,46 @@ L.TrackPlayer = class {
 
     let path = this.track.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
 
+    // 使用传入的渲染器或创建新的Canvas渲染器
+    const renderer = this.options.renderer || L.canvas();
+    
+    // 创建未经过轨迹线，使用Canvas渲染器提高性能
     this.notPassedLine = L.polyline(path, {
       weight: this.options.weight,
       color: this.options.notPassedLineColor,
+      // 使用Canvas渲染器
+      renderer: renderer,
+      // 线条平滑因子
+      smoothFactor: this.options.rendererOptions?.smoothFactor || 1,
+      // 提高线条绘制精度
+      interactive: false, // 非交互式可提高性能
+      // 确保线条完全绘制
+      lineJoin: 'round',
+      lineCap: 'round'
     }).addTo(this.map);
 
+    // 创建已经过轨迹线，同样使用Canvas渲染器
     this.passedLine = L.polyline([], {
       weight: this.options.weight,
       color: this.options.passedLineColor,
+      // 使用Canvas渲染器
+      renderer: renderer,
+      // 线条平滑因子
+      smoothFactor: this.options.rendererOptions?.smoothFactor || 1,
+      // 提高线条绘制精度
+      interactive: false, // 非交互式可提高性能
+      // 确保线条完全绘制
+      lineJoin: 'round',
+      lineCap: 'round'
     }).addTo(this.map);
+    // 创建轨迹装饰器（箭头等），同样使用Canvas渲染
     this.polylineDecorator = L.polylineDecorator(
       path,
-      this.options.polylineDecoratorOptions
+      {
+        ...this.options.polylineDecoratorOptions,
+        // 确保装饰器渲染在Canvas上以提高性能
+        renderer: renderer
+      }
     ).addTo(this.map);
     
     if (this.initProgress) {
@@ -182,26 +210,126 @@ L.TrackPlayer = class {
     this.markerPoint = [lat, lng];
     // 根据相机跟随设置决定是否平移地图
     if (this.options.panTo && this.map) {
-      this.map.panTo(this.markerPoint, {
-        animate: false, // 播放过程中不使用动画以避免卡顿
-      });
+      try {
+        // 检查地图是否已准备好进行平移操作
+        if (this.map._container && this.map._container.offsetWidth && 
+            this.map._mapPane && this.map._mapPane._leaflet_pos) {
+          this.map.panTo(this.markerPoint, {
+            animate: false, // 播放过程中不使用动画以避免卡顿
+          });
+        } else {
+          // 地图未准备好，跳过此次平移
+          console.warn('地图未准备好进行平移操作，跳过此次平移');
+        }
+      } catch (err) {
+        // 捕获任何可能的异常
+        console.error('相机跟随时发生错误:', err);
+      }
     }
     this.marker && this.marker.setLatLng(this.markerPoint);
+    
     //计算未经过的轨迹
     if (this.walkedDistance >= distance) {
       this.notPassedLine.setLatLngs([]);
     } else {
       let sliced = turf.lineSliceAlong(this.track, this.walkedDistance);
-      this.notPassedLine.setLatLngs(
-        sliced.geometry.coordinates.map(([lng, lat]) => [lat, lng])
-      );
+      const notPassedCoords = sliced.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      
+      // 确保全部点位都正确渲染
+      if (notPassedCoords.length > 0) {
+        // 如果启用了绘制所有点位的选项
+        if (this.options.renderAllPoints) {
+          // 使用高精度绘制所有点位
+          const highResolutionCoords = [];
+          
+          // 处理相邻点之间的距离，如果太远则插入中间点
+          for (let i = 0; i < notPassedCoords.length - 1; i++) {
+            const p1 = notPassedCoords[i];
+            const p2 = notPassedCoords[i + 1];
+            
+            // 添加当前点
+            highResolutionCoords.push(p1);
+            
+            // 计算两点之间的距离
+            const d = L.latLng(p1[0], p1[1]).distanceTo(L.latLng(p2[0], p2[1]));
+            
+            // 如果距离大于阈值，插入中间点
+            if (d > 100) { // 100米阈值
+              const steps = Math.ceil(d / 50); // 每50米一个点
+              
+              for (let step = 1; step < steps; step++) {
+                const ratio = step / steps;
+                const lat = p1[0] + (p2[0] - p1[0]) * ratio;
+                const lng = p1[1] + (p2[1] - p1[1]) * ratio;
+                highResolutionCoords.push([lat, lng]);
+              }
+            }
+          }
+          
+          // 添加最后一个点
+          if (notPassedCoords.length > 0) {
+            highResolutionCoords.push(notPassedCoords[notPassedCoords.length - 1]);
+          }
+          
+          this.notPassedLine.setLatLngs(highResolutionCoords);
+        } else {
+          // 使用默认方式设置坐标
+          this.notPassedLine.setLatLngs(notPassedCoords);
+        }
+      } else {
+        this.notPassedLine.setLatLngs([]);
+      }
     }
+    
     //计算已经过的路径
     if (this.walkedDistance > 0) {
       let sliced = turf.lineSliceAlong(this.track, 0, this.walkedDistance);
-      this.passedLine.setLatLngs(
-        sliced.geometry.coordinates.map(([lng, lat]) => [lat, lng])
-      );
+      const passedCoords = sliced.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      
+      // 确保全部点位都正确渲染
+      if (passedCoords.length > 0) {
+        // 如果启用了绘制所有点位的选项
+        if (this.options.renderAllPoints) {
+          // 使用高精度绘制所有点位
+          const highResolutionCoords = [];
+          
+          // 处理相邻点之间的距离，如果太远则插入中间点
+          for (let i = 0; i < passedCoords.length - 1; i++) {
+            const p1 = passedCoords[i];
+            const p2 = passedCoords[i + 1];
+            
+            // 添加当前点
+            highResolutionCoords.push(p1);
+            
+            // 计算两点之间的距离
+            const d = L.latLng(p1[0], p1[1]).distanceTo(L.latLng(p2[0], p2[1]));
+            
+            // 如果距离大于阈值，插入中间点
+            if (d > 100) { // 100米阈值
+              const steps = Math.ceil(d / 50); // 每50米一个点
+              
+              for (let step = 1; step < steps; step++) {
+                const ratio = step / steps;
+                const lat = p1[0] + (p2[0] - p1[0]) * ratio;
+                const lng = p1[1] + (p2[1] - p1[1]) * ratio;
+                highResolutionCoords.push([lat, lng]);
+              }
+            }
+          }
+          
+          // 添加最后一个点
+          if (passedCoords.length > 0) {
+            highResolutionCoords.push(passedCoords[passedCoords.length - 1]);
+          }
+          
+          this.passedLine.setLatLngs(highResolutionCoords);
+        } else {
+          // 使用默认方式设置坐标
+          this.passedLine.setLatLngs(passedCoords);
+        }
+      } else {
+        this.passedLine.setLatLngs([]);
+      }
     } else {
       this.passedLine.setLatLngs([]);
     }
@@ -307,12 +435,22 @@ L.TrackPlayer = class {
     // 如果已添加到地图且有定位点，立即更新地图视图位置
     if (this.addedToMap && this.markerPoint && this.map) {
       if (this.options.panTo) {
-        // 无论播放状态如何，都立即移动相机到当前位置
-        this.map.panTo(this.markerPoint, {
-          animate: true, // 使用动画效果更平滑
-          duration: 0.5  // 动画持续0.5秒
-        });
-        console.log('相机已移动到轨迹当前位置');
+        try {
+          // 检查地图是否已准备好进行平移操作
+          if (this.map._container && this.map._container.offsetWidth && 
+              this.map._mapPane && this.map._mapPane._leaflet_pos) {
+            // 无论播放状态如何，都立即移动相机到当前位置
+            this.map.panTo(this.markerPoint, {
+              animate: true, // 使用动画效果更平滑
+              duration: 0.5  // 动画持续0.5秒
+            });
+            console.log('相机已移动到轨迹当前位置');
+          } else {
+            console.warn('地图未准备好进行平移操作，跳过初始平移');
+          }
+        } catch (err) {
+          console.error('初始化相机跟随时发生错误:', err);
+        }
       }
     }
   }
