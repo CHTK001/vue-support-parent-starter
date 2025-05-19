@@ -37,7 +37,7 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
   // 动车/高铁图标 (100-300 km/h)
   {
     speed: 100,
-    icon: 'https://img.icons8.com/color/48/000000/high-speed-train.png',
+    icon: 'https://img.icons8.com/color/48/000000/train.png',
     iconType: 'photo'
   },
   // 飞机图标 (>300 km/h)

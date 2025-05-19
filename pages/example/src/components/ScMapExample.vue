@@ -115,6 +115,9 @@
                 <button @click="addSampleTrack">添加示例轨迹</button>
                 <button @click="clearAllTracks">清除所有轨迹</button>
               </div>
+              <div class="control-row buttons-row">
+                <button @click="addSimpleTrack">添加简单轨迹</button>
+              </div>
             </div>
           </div>
           <div class="config-item">
@@ -418,14 +421,213 @@ function updateShapeList() {
 function addSampleTrack() {
   if (!mapRef.value) return;
   const center = config.center;
-  const now = Math.floor(Date.now() / 1000);
+  // 使用当前时间往前推1小时的时间作为起始点
+  const endTime = Math.floor(Date.now() / 1000); // 当前时间（秒）
+  const startTime = endTime - 3600; // 1小时前（秒）
+  
+  // 创建更详细的轨迹点位数组，距离和时间间隔不一致，以模拟真实轨迹
   const points = [];
-  for (let i = 0; i < 10; i++) {
-    points.push({ lat: center[0], lng: center[1] + i * 0.005, timestamp: now + i * 60 });
+  
+  // 生成15个轨迹点，确保每段距离和时间间隔不同，以产生不同速度
+  const segmentCount = 15;
+  
+  for (let i = 0; i < segmentCount; i++) {
+    // 时间间隔不均匀，用于模拟不同的停留和移动
+    const timeProgress = i / (segmentCount - 1); // 0到1之间的进度
+    // 非线性时间分布，中间部分走得慢，开始和结束走得快
+    const timeOffset = timeProgress < 0.3 ? 
+                      timeProgress * 1000 : // 开始阶段快
+                      (timeProgress > 0.7 ? 
+                       (timeProgress - 0.7) * 1200 + 1800 : // 结束阶段快
+                       timeProgress * 600 + 300); // 中间阶段慢
+    
+    const timestamp = Math.floor(startTime + timeOffset);
+    
+    // 距离也不均匀，以模拟不同速度的移动
+    let latOffset, lngOffset;
+    
+    if (i < 3) {
+      // 开始阶段 - 小幅移动，适合测试慢速图标
+      latOffset = 0.002 * (i + 1) * (Math.random() * 0.5 + 0.8);
+      lngOffset = 0.003 * (i + 1) * (Math.random() * 0.5 + 0.8);
+    } else if (i < 7) {
+      // 中间阶段1 - 大幅移动，适合测试中速图标
+      latOffset = 0.004 * (i + 1) * (Math.random() * 0.3 + 0.9);
+      lngOffset = 0.005 * (i + 1) * (Math.random() * 0.3 + 0.9);
+    } else if (i < 12) {
+      // 中间阶段2 - 快速移动，适合测试高速图标
+      latOffset = 0.006 * (i + 0.8) * (Math.random() * 0.2 + 0.9);
+      lngOffset = 0.007 * (i + 0.8) * (Math.random() * 0.2 + 0.9);
+    } else {
+      // 结束阶段 - 减速移动
+      latOffset = 0.004 * (segmentCount - i + 1) * (Math.random() * 0.4 + 0.8);
+      lngOffset = 0.004 * (segmentCount - i + 1) * (Math.random() * 0.4 + 0.8);
+    }
+    
+    // 添加一些方向性变化，使轨迹更自然
+    const direction = i % 4;
+    switch (direction) {
+      case 0: // 向东北方向
+        points.push({ 
+          lat: center[0] + latOffset, 
+          lng: center[1] + lngOffset, 
+          timestamp,
+          // 添加额外属性，便于在轨迹播放时显示
+          properties: {
+            speed: 20 + Math.random() * 60, // 模拟速度 km/h
+            heading: 45 + Math.random() * 10, // 模拟方向
+            altitude: 100 + Math.random() * 10, // 模拟高度
+            name: i === 0 ? '起点' : (i === segmentCount - 1 ? '终点' : `路径点${i+1}`)
+          }
+        });
+        break;
+      case 1: // 向东南方向
+        points.push({ 
+          lat: center[0] - latOffset, 
+          lng: center[1] + lngOffset, 
+          timestamp,
+          properties: {
+            speed: 30 + Math.random() * 70, // 更高速度
+            heading: 135 + Math.random() * 10,
+            altitude: 100 + Math.random() * 15,
+            name: i === 0 ? '起点' : (i === segmentCount - 1 ? '终点' : `路径点${i+1}`)
+          }
+        });
+        break;
+      case 2: // 向西南方向
+        points.push({ 
+          lat: center[0] - latOffset, 
+          lng: center[1] - lngOffset, 
+          timestamp,
+          properties: {
+            speed: 40 + Math.random() * 90, // 高速
+            heading: 225 + Math.random() * 10,
+            altitude: 100 + Math.random() * 20,
+            name: i === 0 ? '起点' : (i === segmentCount - 1 ? '终点' : `路径点${i+1}`)
+          }
+        });
+        break;
+      case 3: // 向西北方向
+        points.push({ 
+          lat: center[0] + latOffset, 
+          lng: center[1] - lngOffset, 
+          timestamp,
+          properties: {
+            speed: 15 + Math.random() * 40, // 慢速
+            heading: 315 + Math.random() * 10,
+            altitude: 100 - Math.random() * 15,
+            name: i === 0 ? '起点' : (i === segmentCount - 1 ? '终点' : `路径点${i+1}`)
+          }
+        });
+        break;
+    }
   }
-  mapRef.value.addTrack({ id: `track-${Date.now()}`, name: '示例轨迹', points });
-  addLog('轨迹', '已添加示例轨迹');
+  
+  // 添加轨迹到地图
+  const currentTime = new Date();
+  const formattedTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
+  
+  mapRef.value.addTrack({ 
+    id: `track-${Date.now()}`, 
+    name: `示例轨迹 (${formattedTime})`, 
+    points,
+    options: {
+      // 添加更多选项以测试轨迹播放功能
+      showNodes: true,
+      showNodeNames: true,
+      showSpeed: true,
+      loop: true,  // 循环播放
+      withCamera: false, // 默认不跟随相机
+      speedFactor: 2.0 // 加快播放速度
+    }
+  });
+  
+  addLog('轨迹', `已添加示例轨迹，包含${points.length}个点位，时间范围：${new Date(startTime*1000).toLocaleTimeString()}-${new Date(endTime*1000).toLocaleTimeString()}`);
 }
+
+// 添加一个简单的轨迹示例（使用Canvas绘制，确保所有点位显示）
+function addSimpleTrack() {
+  if (!mapRef.value) return;
+  const center = config.center;
+  
+  // 当前时间作为结束时间
+  const endTime = Math.floor(Date.now() / 1000);
+  // 半小时前作为开始时间
+  const startTime = endTime - 1800;
+  
+  // 创建一个简单的轨迹，形成一个闭环
+  const points = [];
+  
+  // 生成8个轨迹点形成一个正方形
+  const positions = [
+    [0.01, 0.01],    // 右上
+    [0.01, -0.01],   // 右下
+    [-0.01, -0.01],  // 左下
+    [-0.01, 0.01],   // 左上
+    [0, 0.015],      // 上中
+    [0.015, 0],      // 右中
+    [0, -0.015],     // 下中
+    [-0.015, 0]      // 左中
+  ];
+  
+  // 均匀分配时间
+  const timeStep = Math.floor(1800 / positions.length);
+  
+  // 创建每个点位
+  positions.forEach((pos, index) => {
+    const timestamp = startTime + index * timeStep;
+    const speed = 20 + index * 5; // 速度逐渐增加
+    
+    points.push({
+      lat: center[0] + pos[0],
+      lng: center[1] + pos[1],
+      timestamp,
+      properties: {
+        speed: speed,
+        heading: index * 45, // 每个点旋转45度
+        altitude: 100,
+        name: index === 0 ? '起点' : (index === positions.length - 1 ? '终点' : `点${index+1}`)
+      }
+    });
+  });
+  
+  // 添加轨迹到地图，使用Canvas渲染
+  const currentTime = new Date();
+  const formattedTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
+  
+  mapRef.value.addTrack({
+    id: `simple-track-${Date.now()}`,
+    name: `简单轨迹 (${formattedTime})`,
+    points,
+    options: {
+      showNodes: true,
+      showNodeNames: true,
+      showSpeed: true,
+      loop: true,
+      withCamera: true,
+      speedFactor: 1.0,
+      // Canvas绘制相关选项
+      renderAllPoints: true,
+      passedLineOptions: {
+        color: '#ff5722',
+        weight: 6
+      },
+      notPassedLineOptions: {
+        color: '#2196f3',
+        weight: 6
+      },
+      // 轨迹速度分组
+      trackSpeedGroup: [
+        { speed: 0, icon: '/images/marker-slow.png' },
+        { speed: 30, icon: '/images/marker-medium.png' },
+        { speed: 60, icon: '/images/marker-fast.png' }
+      ]
+    }
+  });
+  
+  addLog('轨迹', `已添加简单轨迹，包含${points.length}个点位，使用Canvas绘制以确保所有点位显示`);
+}
+
 function clearAllTracks() {
   if (!mapRef.value) return;
   mapRef.value.clearTracks?.();

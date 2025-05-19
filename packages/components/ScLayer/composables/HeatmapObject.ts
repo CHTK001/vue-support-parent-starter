@@ -203,17 +203,38 @@ export class HeatmapObject {
     if (this.eventListeners.length > 0) {
       try {
         // 解除所有事件监听
-        this.eventListeners.forEach(key => {
-          try {
-            if (key) {
-              Object.getPrototypeOf(key).constructor.unByKey(key);
+        // 先导入unByKey方法，避免在循环中多次导入
+        import('ol/Observable').then(({ unByKey }) => {
+          // 使用导入的unByKey方法移除所有监听器
+          this.eventListeners.forEach(key => {
+            try {
+              if (key) {
+                unByKey(key);
+              }
+            } catch (error) {
+              logger.error('[Heatmap] 移除事件监听器失败:', error);
             }
-          } catch (error) {
-            logger.error('[Heatmap] 移除事件监听器失败:', error);
-          }
+          });
+          
+          this.eventListeners = [];
+          logger.debug('[Heatmap] 已移除所有地图事件监听器');
+        }).catch(error => {
+          logger.error('[Heatmap] 导入unByKey方法失败:', error);
+          
+          // 备选方案：尝试使用dispose方法
+          this.eventListeners.forEach(key => {
+            try {
+              if (key && key.dispose && typeof key.dispose === 'function') {
+                key.dispose();
+              }
+            } catch (error) {
+              logger.error('[Heatmap] 移除事件监听器失败(备选方案):', error);
+            }
+          });
+          
+          this.eventListeners = [];
+          logger.debug('[Heatmap] 已移除所有地图事件监听器(使用备选方案)');
         });
-        this.eventListeners = [];
-        logger.debug('[Heatmap] 已移除所有地图事件监听器');
       } catch (error) {
         logger.error('[Heatmap] 移除事件监听器失败:', error);
       }
