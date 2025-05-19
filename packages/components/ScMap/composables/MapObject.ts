@@ -9,6 +9,7 @@ import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
 import { MapTile } from '../types';
 import logger from './LogObject';
 import { CoordinateObject } from './CoordinateObject';
+import { HeatmapObject } from './HeatmapObject';
 
 // 地图事件回调类型
 export type MapEventCallback = (event: string, payload: any) => void;
@@ -21,6 +22,7 @@ export class MapObject {
   private coordinateObject: CoordinateObject | null = null;
   private eventCallback: MapEventCallback | null = null;
   private scaleControl: L.Control.Scale | null = null;
+  private toolbarObj: any = null; // 使用any类型避免类型错误
 
   /**
    * 构造函数
@@ -46,7 +48,7 @@ export class MapObject {
 
       this.eventCallback = callback || null;
 
-            // 获取渲染模式      
+      // 获取渲染模式      
       const renderMode = this.configObject.getRenderMode();
       // 创建地图实例，根据渲染模式配置renderer选项     
       this.mapInstance = L.map(container, {
@@ -89,6 +91,20 @@ export class MapObject {
 
       // 绑定地图事件
       this.bindMapEvents();
+
+      // 等待ToolbarObject初始化完成后获取其引用
+      setTimeout(() => {
+        if (this.mapInstance) {
+          // 从地图元素中获取ToolbarObject引用
+          const containerElement = this.mapInstance.getContainer();
+          if (containerElement && containerElement['toolbarObj']) {
+            this.toolbarObj = containerElement['toolbarObj'];
+            logger.debug('已获取ToolbarObject引用');
+          } else {
+            logger.warn('无法获取ToolbarObject引用');
+          }
+        }
+      }, 300);
 
       logger.info('地图初始化成功');
       return true;
@@ -551,5 +567,88 @@ export class MapObject {
     this.eventCallback = null;
     
     logger.debug('MapObject已销毁');
+  }
+
+  /**
+   * 获取热力图对象
+   * @returns 热力图对象
+   */
+  public getHeatmapObject(): HeatmapObject | null {
+    return this.toolbarObj?.getHeatmapObject() || null;
+  }
+
+  /**
+   * 获取Geohash网格对象
+   * @returns Geohash网格对象
+   */
+  public getGeohashGridObject(): any {
+    if (!this.toolbarObj) {
+      // 如果toolbarObj未初始化，尝试从地图元素中获取
+      if (this.mapInstance) {
+        const containerElement = this.mapInstance.getContainer();
+        if (containerElement && containerElement['toolbarObj']) {
+          this.toolbarObj = containerElement['toolbarObj'];
+        }
+      }
+    }
+    return this.toolbarObj?.getGeohashGridObject() || null;
+  }
+
+  /**
+   * 显示Geohash网格
+   * @param level 精度级别
+   * @param weight 线宽
+   * @param opacity 线透明度
+   * @param gridOpacity 背景透明度
+   * @param showCode 显示编码
+   * @param autoAdjustLevel 自动调整精度
+   */
+  public showGeohashGrid(level = 5, weight = 1.5, opacity = 0.5, gridOpacity = 0.2, showCode = true, autoAdjustLevel = true): void {
+    const geohashGridObj = this.getGeohashGridObject();
+    if (!geohashGridObj) return;
+
+    geohashGridObj.setOptions({
+      level,
+      weight,
+      opacity,
+      gridOpacity,
+      showCode,
+      autoAdjustLevel
+    });
+
+    geohashGridObj.show();
+  }
+
+  /**
+   * 隐藏Geohash网格
+   */
+  public hideGeohashGrid(): void {
+    const geohashGridObj = this.getGeohashGridObject();
+    if (geohashGridObj) {
+      geohashGridObj.hide();
+    }
+  }
+
+  /**
+   * 更新Geohash网格配置
+   * @param level 精度级别
+   * @param weight 线宽
+   * @param opacity 线透明度
+   * @param gridOpacity 背景透明度
+   * @param showCode 显示编码
+   * @param autoAdjustLevel 自动调整精度
+   */
+  public updateGeohashGrid(level = 5, weight = 1.5, opacity = 0.5, gridOpacity = 0.2, showCode = true, autoAdjustLevel = true): void {
+    const geohashGridObj = this.getGeohashGridObject();
+    if (!geohashGridObj) return;
+
+    geohashGridObj.setOptions({
+      level,
+      weight,
+      opacity,
+      gridOpacity,
+      showCode,
+      autoAdjustLevel
+    });
   }
 } 

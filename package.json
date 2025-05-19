@@ -18,7 +18,8 @@
   "license": "ISC",
   "dependencies": {
     "@sintef/prune-cluster": "^2.1.0",
-    "leaflet-trackplayer": "^2.0.3"
+    "leaflet-trackplayer": "^2.0.3",
+    "ngeohash": "^0.6.3"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

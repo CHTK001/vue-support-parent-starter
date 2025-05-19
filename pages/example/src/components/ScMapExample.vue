@@ -129,6 +129,80 @@
               </div>
             </div>
           </div>
+          
+          <!-- 热力图操作 -->
+          <div class="config-item">
+            <div class="label">热力图操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="addRandomHeatmap">添加随机热力图</button>
+                <button @click="clearHeatmap">清除热力图</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addHeatmapCluster">添加聚集热力图</button>
+                <button @click="toggleHeatmap">{{ heatmapEnabled ? '禁用热力图' : '启用热力图' }}</button>
+              </div>
+              <div class="control-row">
+                <span>热力点数量:</span>
+                <input type="range" v-model.number="heatmapPointCount" min="10" max="5000" @change="updateHeatmapConfig">
+                <span class="value">{{ heatmapPointCount }}</span>
+              </div>
+              <div class="control-row">
+                <span>热力点半径:</span>
+                <input type="range" v-model.number="heatmapConfig.radius" min="5" max="50" @change="updateHeatmapConfig">
+                <span class="value">{{ heatmapConfig.radius }}</span>
+              </div>
+              <div class="control-row">
+                <span>模糊度:</span>
+                <input type="range" v-model.number="heatmapConfig.blur" min="5" max="50" @change="updateHeatmapConfig">
+                <span class="value">{{ heatmapConfig.blur }}</span>
+              </div>
+              <div class="control-row">
+                <span>显示热力点:</span>
+                <input type="checkbox" v-model="heatmapConfig.showPoints" @change="updateHeatmapConfig">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Geohash网格操作 -->
+          <div class="config-item">
+            <div class="label">Geohash网格操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <button @click="showGeohashGrid">显示Geohash网格</button>
+                <button @click="hideGeohashGrid">隐藏Geohash网格</button>
+              </div>
+              <div class="control-row">
+                <span>网格精度级别:</span>
+                <input type="range" v-model.number="geohashConfig.level" min="1" max="12" @change="updateGeohashConfig">
+                <span class="value">{{ geohashConfig.level }}</span>
+              </div>
+              <div class="control-row">
+                <span>网格线宽度:</span>
+                <input type="range" v-model.number="geohashConfig.weight" min="0.5" max="3" step="0.1" @change="updateGeohashConfig">
+                <span class="value">{{ geohashConfig.weight }}</span>
+              </div>
+              <div class="control-row">
+                <span>网格线透明度:</span>
+                <input type="range" v-model.number="geohashConfig.opacity" min="0.1" max="1" step="0.1" @change="updateGeohashConfig">
+                <span class="value">{{ geohashConfig.opacity }}</span>
+              </div>
+              <div class="control-row">
+                <span>网格背景透明度:</span>
+                <input type="range" v-model.number="geohashConfig.gridOpacity" min="0.05" max="0.5" step="0.05" @change="updateGeohashConfig">
+                <span class="value">{{ geohashConfig.gridOpacity }}</span>
+              </div>
+              <div class="control-row">
+                <span>显示编码:</span>
+                <input type="checkbox" v-model="geohashConfig.showCode" @change="updateGeohashConfig">
+              </div>
+              <div class="control-row">
+                <span>自动调整精度:</span>
+                <input type="checkbox" v-model="geohashConfig.autoAdjustLevel" @change="updateGeohashConfig">
+              </div>
+            </div>
+          </div>
+          
           <div class="config-item">
             <div class="label">分组管理</div>
             <div class="controls">
@@ -191,6 +265,32 @@ const logs = reactive<any[]>([]);
 const markerGroups = ref<string[]>(['默认组', '组A', '组B']);
 const currentGroup = ref<string>('默认组');
 const newGroupName = ref<string>('');
+
+// 热力图相关
+const heatmapEnabled = ref(false);
+const heatmapPointCount = ref(500);
+const heatmapConfig = reactive({
+  radius: 25,
+  blur: 15,
+  showPoints: false,
+  gradient: {
+    0.4: 'blue',
+    0.6: 'cyan',
+    0.7: 'lime',
+    0.8: 'yellow',
+    1.0: 'red'
+  }
+});
+
+// Geohash网格相关
+const geohashConfig = reactive({
+  level: 5,
+  weight: 1.5,
+  opacity: 0.5,
+  gridOpacity: 0.2,
+  showCode: true,
+  autoAdjustLevel: true
+});
 
 function addLog(type: string, message: string) {
   const now = new Date();
@@ -644,8 +744,8 @@ function addSampleFlightLine() {
 }
 function clearAllFlightLines() {
   if (!mapRef.value) return;
-  mapRef.value.clearFlightLines?.();
-  addLog('飞线', '已清除所有飞线');
+  mapRef.value.getMapObject()?.clearFlightLines();
+  addLog('操作', '所有飞线已清除');
 }
 
 // 添加带标签的标记点
@@ -845,6 +945,217 @@ function getGroupMarkers(group: string): any[] {
   
   // 过滤出指定分组的标记点
   return markers.value.filter(marker => marker.options?.group === group);
+}
+
+// 热力图相关方法
+function addRandomHeatmap() {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value.getMapObject();
+  const heatmapObject = map?.getToolbarObject()?.getHeatmapObject();
+  
+  if (!heatmapObject) {
+    addLog('错误', '热力图对象未初始化');
+    return;
+  }
+  
+  // 清除现有热力点
+  heatmapObject.clear();
+  
+  // 获取地图边界
+  const bounds = map?.getBounds();
+  if (!bounds) {
+    addLog('错误', '无法获取地图边界');
+    return;
+  }
+  
+  const southWest = bounds.getSouthWest();
+  const northEast = bounds.getNorthEast();
+  
+  // 生成随机热力点
+  const points = [];
+  for (let i = 0; i < heatmapPointCount.value; i++) {
+    const lat = southWest.lat + Math.random() * (northEast.lat - southWest.lat);
+    const lng = southWest.lng + Math.random() * (northEast.lng - southWest.lng);
+    const weight = Math.random(); // 随机权重
+    
+    points.push({
+      lat,
+      lng,
+      weight,
+      data: { id: `point_${i}`, name: `热力点 ${i}` }
+    });
+  }
+  
+  // 添加热力点
+  const ids = heatmapObject.addPoints(points);
+  
+  // 启用热力图
+  heatmapObject.enable();
+  heatmapEnabled.value = true;
+  
+  // 应用配置
+  updateHeatmapConfig();
+  
+  addLog('操作', `已添加 ${ids.length} 个随机热力点`);
+}
+
+function addHeatmapCluster() {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value.getMapObject();
+  const heatmapObject = map?.getToolbarObject()?.getHeatmapObject();
+  
+  if (!heatmapObject) {
+    addLog('错误', '热力图对象未初始化');
+    return;
+  }
+  
+  // 清除现有热力点
+  heatmapObject.clear();
+  
+  // 获取地图中心和边界
+  const center = map?.getCenter();
+  const bounds = map?.getBounds();
+  if (!center || !bounds) {
+    addLog('错误', '无法获取地图中心或边界');
+    return;
+  }
+  
+  const southWest = bounds.getSouthWest();
+  const northEast = bounds.getNorthEast();
+  const latSpan = northEast.lat - southWest.lat;
+  const lngSpan = northEast.lng - southWest.lng;
+  
+  // 生成聚集热力点 - 创建3-5个聚集区域
+  const clusterCount = Math.floor(3 + Math.random() * 3);
+  const clusterCenters = [];
+  
+  // 生成聚集中心
+  for (let i = 0; i < clusterCount; i++) {
+    clusterCenters.push({
+      lat: southWest.lat + Math.random() * latSpan,
+      lng: southWest.lng + Math.random() * lngSpan,
+      intensity: 0.5 + Math.random() * 0.5 // 聚集强度
+    });
+  }
+  
+  // 生成热力点
+  const points = [];
+  for (let i = 0; i < heatmapPointCount.value; i++) {
+    // 随机选择一个聚集中心
+    const clusterIndex = Math.floor(Math.random() * clusterCount);
+    const cluster = clusterCenters[clusterIndex];
+    
+    // 计算与聚集中心的距离，越近权重越高
+    const distance = Math.random() * 0.02 * (1 / cluster.intensity);
+    const angle = Math.random() * Math.PI * 2;
+    
+    const lat = cluster.lat + Math.sin(angle) * distance;
+    const lng = cluster.lng + Math.cos(angle) * distance;
+    
+    // 靠近中心的点权重更高
+    const weight = Math.max(0.1, 1 - (distance / 0.02));
+    
+    points.push({
+      lat,
+      lng,
+      weight,
+      data: { id: `cluster_${clusterIndex}_point_${i}`, name: `聚集点 ${i}` }
+    });
+  }
+  
+  // 添加热力点
+  const ids = heatmapObject.addPoints(points);
+  
+  // 启用热力图
+  heatmapObject.enable();
+  heatmapEnabled.value = true;
+  
+  // 应用配置
+  updateHeatmapConfig();
+  
+  addLog('操作', `已添加 ${ids.length} 个聚集热力点，${clusterCount} 个聚集区域`);
+}
+
+function clearHeatmap() {
+  if (!mapRef.value) return;
+  
+  const heatmapObject = mapRef.value.getMapObject()?.getToolbarObject()?.getHeatmapObject();
+  
+  if (heatmapObject) {
+    heatmapObject.clear();
+    addLog('操作', '热力图已清除');
+  }
+}
+
+function toggleHeatmap() {
+  if (!mapRef.value) return;
+  
+  const heatmapObject = mapRef.value.getMapObject()?.getToolbarObject()?.getHeatmapObject();
+  
+  if (heatmapObject) {
+    if (heatmapEnabled.value) {
+      heatmapObject.disable();
+      heatmapEnabled.value = false;
+      addLog('操作', '热力图已禁用');
+    } else {
+      heatmapObject.enable();
+      heatmapEnabled.value = true;
+      addLog('操作', '热力图已启用');
+    }
+  }
+}
+
+function updateHeatmapConfig() {
+  if (!mapRef.value) return;
+  
+  const heatmapObject = mapRef.value.getMapObject()?.getToolbarObject()?.getHeatmapObject();
+  
+  if (heatmapObject) {
+    heatmapObject.setConfig({
+      radius: heatmapConfig.radius,
+      blur: heatmapConfig.blur,
+      gradient: heatmapConfig.gradient,
+      showPoints: heatmapConfig.showPoints
+    });
+    
+    // 设置点标记可见性
+    heatmapObject.setPointsVisible(heatmapConfig.showPoints);
+    
+    addLog('配置', `热力图配置已更新`);
+  }
+}
+
+// Geohash网格相关方法
+function showGeohashGrid() {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value.getMapObject();
+  if (map) {
+    map.showGeohashGrid(geohashConfig.level, geohashConfig.weight, geohashConfig.opacity, geohashConfig.gridOpacity, geohashConfig.showCode, geohashConfig.autoAdjustLevel);
+    addLog('操作', `已显示Geohash网格，精度级别: ${geohashConfig.level}, 线宽: ${geohashConfig.weight}, 透明度: ${geohashConfig.opacity}, 背景透明度: ${geohashConfig.gridOpacity}, 显示编码: ${geohashConfig.showCode}, 自动调整精度: ${geohashConfig.autoAdjustLevel}`);
+  }
+}
+
+function hideGeohashGrid() {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value.getMapObject();
+  if (map) {
+    map.hideGeohashGrid();
+    addLog('操作', '已隐藏Geohash网格');
+  }
+}
+
+function updateGeohashConfig() {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value.getMapObject();
+  if (map) {
+    map.updateGeohashGrid(geohashConfig.level, geohashConfig.weight, geohashConfig.opacity, geohashConfig.gridOpacity, geohashConfig.showCode, geohashConfig.autoAdjustLevel);
+    addLog('配置', `Geohash网格配置已更新`);
+  }
 }
 </script>
 

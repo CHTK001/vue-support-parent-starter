@@ -12,6 +12,7 @@ import { MarkerObject } from './MarkerObject';
 import { ShapeObject } from './ShapeObject';
 import { LeafletTrackplayerObject } from './LeafletTrackplayerObject';
 import { HeatmapObject } from './HeatmapObject';
+import { GeohashGridObject } from './GeohashGridObject';
 import { GridManager, GridType } from './GridManager';
 import { FlightLineObject } from './FlightLineObject';
 import { OverviewMapObject } from './OverviewMapObject';
@@ -61,6 +62,7 @@ export class ToolbarObject {
   private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   private gridObj: GridManager | null = null;
   private heatmapObj: HeatmapObject | null = null;
+  private geohashGridObj: GeohashGridObject | null = null;
   private clusterObj: any | null = null; // 使用 any 类型避免导入问题
   private flightLineObj: FlightLineObject | null = null;
   private toolStateChangeCallback: ToolbarCallback | null = null;
@@ -322,6 +324,22 @@ export class ToolbarObject {
     // 创建飞线图对象
     this.flightLineObj = new FlightLineObject(mapInstance);
     logger.debug('飞线图对象已初始化');
+  }
+
+  /**
+   * 初始化Geohash网格对象
+   */
+  private initGeohashGridObject(): void {
+    // 获取地图实例
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例未创建，无法初始化Geohash网格对象');
+      return;
+    }
+    
+    // 创建Geohash网格对象
+    this.geohashGridObj = new GeohashGridObject(mapInstance);
+    logger.debug('Geohash网格对象已初始化');
   }
 
   /**
@@ -1029,6 +1047,9 @@ export class ToolbarObject {
       case 'heatmap':
         this.handleHeatmapActivate();
         break;
+      case 'geohash-grid':
+        this.handleGeohashGridActivate();
+        break;
     }
   }
 
@@ -1099,6 +1120,9 @@ export class ToolbarObject {
         break;
       case 'heatmap':
         this.handleHeatmapDeactivate();
+        break;
+      case 'geohash-grid':
+        this.handleGeohashGridDeactivate();
         break;
        case 'draw-rectangle':
         // 激活矩形绘制工具
@@ -1639,14 +1663,13 @@ export class ToolbarObject {
    */
   private handleHeatmapDeactivate(): void {
     if (!this.heatmapObj) {
-      logger.warn('热力图对象不存在，无法停用热力图');
-      return;
+      this.initHeatmapObject();
     }
-    
-    // 停用热力图
-    this.heatmapObj.disable();
-    
-    // 触发事件
+
+    if (this.heatmapObj) {
+      this.heatmapObj.disable();
+    }
+
     this.triggerToolStateChange('heatmap', false, 'layer');
   }
 
@@ -2500,6 +2523,7 @@ export class ToolbarObject {
       this.initGridObject();
       this.initHeatmapObject();
       this.initFlightLineObject();
+      this.initGeohashGridObject();
       
     } catch (error) {
       logger.error('ToolbarObject初始化失败：', error);
@@ -2550,6 +2574,13 @@ export class ToolbarObject {
         id: 'coordinate',
         title: '坐标',
         icon: 'location',
+        type: 'toggle',
+        show: true
+      },
+      {
+        id: 'geohash-grid',
+        title: 'Geohash网格',
+        icon: 'grid',
         type: 'toggle',
         show: true
       }
@@ -2631,5 +2662,45 @@ export class ToolbarObject {
     }
     
     logger.debug('地图对象已更新');
+  }
+
+  /**
+   * 处理Geohash网格激活
+   * @private
+   */
+  private handleGeohashGridActivate(): void {
+    if (!this.geohashGridObj) {
+      this.initGeohashGridObject();
+    }
+
+    if (this.geohashGridObj) {
+      this.geohashGridObj.show();
+    }
+
+    this.triggerToolStateChange('geohash-grid', true, 'layer');
+  }
+
+  /**
+   * 处理Geohash网格停用
+   * @private
+   */
+  private handleGeohashGridDeactivate(): void {
+    if (!this.geohashGridObj) {
+      this.initGeohashGridObject();
+    }
+
+    if (this.geohashGridObj) {
+      this.geohashGridObj.hide();
+    }
+
+    this.triggerToolStateChange('geohash-grid', false, 'layer');
+  }
+
+  /**
+   * 获取Geohash网格对象
+   * @returns Geohash网格对象
+   */
+  public getGeohashGridObject(): GeohashGridObject | null {
+    return this.geohashGridObj;
   }
 }
