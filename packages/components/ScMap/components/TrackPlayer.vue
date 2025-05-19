@@ -915,11 +915,34 @@ const handleProgressClick = (e: MouseEvent) => {
     // 限制进度范围
     progress = Math.max(0, Math.min(1, progress));
     
-    // 更新进度
+    // 记录当前播放状态
+    const wasPlaying = playState.value === 'playing';
+    
+    // 如果正在播放，先暂停以防止更新进度时触发意外的行为
+    if (wasPlaying) {
+      props.trackObj.pause(activeTrackId.value);
+    }
+    
+    // 更新UI进度
     updateProgress(progress);
     
-    // 设置轨迹进度
+    // 设置轨迹进度 - 这会触发轨迹点位立即移动到新位置
     props.trackObj.setTrackProgress(activeTrackId.value, progress);
+    
+    // 如果之前正在播放，则恢复播放状态
+    if (wasPlaying) {
+      // 等待很短的时间以确保进度设置完成
+      setTimeout(() => {
+        props.trackObj.play(activeTrackId.value!, {
+          loop: loopPlay.value,
+          withCamera: followCamera.value,
+          speedFactor: speedFactor.value
+        });
+        playState.value = 'playing';
+      }, 50);
+    }
+    
+    console.log(`轨迹进度条已点击，设置进度为: ${progress.toFixed(2)}`);
   } catch (error) {
     console.error('设置轨迹进度时发生错误:', error);
   }

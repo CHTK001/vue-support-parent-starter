@@ -1044,69 +1044,68 @@ export class LeafletTrackplayerObject {
    * 添加轨迹节点样式到页面
    */
   private addTrackNodeStyles(): void {
-    // 如果已经添加过样式，不再重复添加
-    if (document.getElementById('track-player-styles')) {
-      return;
+    // 查找是否已存在样式元素
+    const existingStyle = document.getElementById('track-node-styles');
+    if (existingStyle) {
+      return; // 如果已存在样式，则不重复添加
     }
 
     // 创建样式元素
     const style = document.createElement('style');
-    style.id = 'track-player-styles';
-    style.innerHTML = `
-      .track-node {
-        background: transparent;
+    style.id = 'track-node-styles';
+    style.textContent = `
+      /* 轨迹节点popup样式 */
+      .track-node-popup-container {
+        max-width: 300px;
       }
-      .track-node-inner {
-        width: 10px;
-        height: 10px;
-        background-color: #f44336;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+      
+      /* 经过的轨迹节点popup样式 - 浅蓝色背景 */
+      .track-node-popup-passed {
+        background-color: rgba(173, 216, 230, 0.9) !important;
       }
-      .track-node-endpoint .track-node-inner {
-        width: 14px;
-        height: 14px;
-        background-color: #4CAF50;
-      }
+
       .track-node-popup {
         padding: 8px;
-        min-width: 150px;
       }
+      
       .track-node-title {
         font-weight: bold;
-        margin-bottom: 6px;
-        color: #333;
+        margin-bottom: 5px;
         font-size: 14px;
+        color: #333;
       }
+      
       .track-node-time {
-        font-size: 12px;
         color: #666;
-        margin: 4px 0;
-        padding: 2px 0;
-        border-bottom: 1px dashed #eee;
+        font-size: 12px;
+        margin-bottom: 5px;
       }
+      
       .track-node-speed {
-        font-size: 13px;
         color: #1890ff;
-        font-weight: bold;
-        margin: 4px 0;
-        background: rgba(24, 144, 255, 0.1);
-        padding: 3px 6px;
-        border-radius: 3px;
+        font-size: 12px;
+        margin-bottom: 5px;
       }
+      
+      .track-node-pass-speed {
+        color: #52c41a;
+      }
+      
       .track-node-distance {
-        font-size: 13px;
-        color: #ff9800;
-        font-weight: bold;
-        margin: 4px 0;
-        background: rgba(255, 152, 0, 0.1);
-        padding: 3px 6px;
-        border-radius: 3px;
+        color: #555;
+        font-size: 12px;
+      }
+      
+      /* 轨迹节点高亮样式 */
+      .track-node-highlighted .track-node-title {
+        color: #1890ff;
+        border-left: 3px solid #1890ff;
+        padding-left: 5px;
+        background-color: rgba(24, 144, 255, 0.1);
       }
     `;
 
-    // 添加到文档头部
+    // 添加样式到文档头部
     document.head.appendChild(style);
   }
 
@@ -1316,49 +1315,104 @@ export class LeafletTrackplayerObject {
 
                   // 更新节点的popup内容，添加经过速度信息
                   if (node.marker && node.marker.getPopup()) {
-                    // 获取节点基本信息
-                    const nodeName = node.index === 0 ? '起点' : (node.index === positions.length - 1 ? '终点' : `路径点 ${node.index}`);
-
-                    // 创建新的popup内容
+                    const popup = node.marker.getPopup();
+                    
+                    // 修改popup的CSS类，添加经过样式
+                    const className = popup.options.className || '';
+                    if (!className.includes('track-node-popup-passed')) {
+                      popup.options.className = className + ' track-node-popup-passed';
+                    }
+                    
+                    const content = popup.getContent();
                     let popupContent = `<div class="track-node-popup">`;
-                    popupContent += `<div class="track-node-title">${nodeName}</div>`;
-                    popupContent += `<div class="track-node-time">${this.formatTime(node.position.time)}</div>`;
-
+                    
+                    // 提取并保留节点名称和时间等基本信息
+                    const titleMatch = content.match(/<div class="track-node-title[^>]*>([^<]+)<\/div>/);
+                    const timeMatch = content.match(/<div class="track-node-time[^>]*>([^<]+)<\/div>/);
+                    const speedMatch = content.match(/<div class="track-node-speed[^>]*>([^<]+)<\/div>/);
+                    const distanceMatch = content.match(/<div class="track-node-distance[^>]*>([^<]+)<\/div>/);
+                    
+                    if (titleMatch) {
+                      popupContent += `<div class="track-node-title ">${titleMatch[1]}</div>`;
+                    }
+                    
+                    if (timeMatch) {
+                      popupContent += `<div class="track-node-time">${timeMatch[1]}</div>`;
+                    }
+                    
+                    if (speedMatch) {
+                      popupContent += `<div class="track-node-speed">${speedMatch[1]}</div>`;
+                    }
+                    
                     // 添加经过速度信息
                     popupContent += `<div class="track-node-speed track-node-pass-speed">经过速度: ${realSpeed.toFixed(1)} km/h</div>`;
-
-                    // 如果有原始速度，也显示
-                    if (node.position.properties && node.position.properties.speed) {
-                      popupContent += `<div class="track-node-speed">原始速度: ${node.position.properties.speed.toFixed(1)} km/h</div>`;
+                    
+                    if (distanceMatch) {
+                      popupContent += `<div class="track-node-distance">${distanceMatch[1]}</div>`;
                     }
-
+                    
                     popupContent += `</div>`;
-
+                    
                     // 更新popup内容
-                    node.marker.getPopup().setContent(popupContent);
+                    popup.setContent(popupContent);
+                    // 确保popup是打开的
+                    if (!node.marker.isPopupOpen()) {
+                      node.marker.openPopup();
+                    }
                   }
-                } else if (node && nodePassSpeeds.has(node.index) && node.marker && node.marker.getPopup()) {
-                  // 如果节点已经被经过但不是当前节点，保持其经过速度显示
-                  const passSpeed = nodePassSpeeds.get(node.index);
-                  const nodeName = node.index === 0 ? '起点' : (node.index === positions.length - 1 ? '终点' : `路径点 ${node.index}`);
-
-                  // 创建保持经过速度的popup内容
-                  let popupContent = `<div class="track-node-popup">`;
-                  popupContent += `<div class="track-node-title">${nodeName}</div>`;
-                  popupContent += `<div class="track-node-time">${this.formatTime(node.position.time)}</div>`;
-
-                  // 添加经过速度信息
-                  popupContent += `<div class="track-node-speed track-node-pass-speed">经过速度: ${passSpeed!.toFixed(1)} km/h</div>`;
-
-                  // 如果有原始速度，也显示
-                  if (node.position.properties && node.position.properties.speed) {
-                    popupContent += `<div class="track-node-speed">原始速度: ${node.position.properties.speed.toFixed(1)} km/h</div>`;
+                } else if (node && node.index < currentIndex) {
+                  // 对于已经经过但不是当前节点的点位，添加浅蓝色背景样式
+                  if (node.marker && node.marker.getPopup()) {
+                    const popup = node.marker.getPopup();
+                    
+                    // 添加经过样式
+                    const className = popup.options.className || '';
+                    if (!className.includes('track-node-popup-passed')) {
+                      popup.options.className = className + ' track-node-popup-passed';
+                    }
+                    
+                    // 如果节点已经被经过但不是当前节点，保持其经过速度显示
+                    const passSpeed = nodePassSpeeds.get(node.index);
+                    if (passSpeed !== undefined) {
+                      const content = popup.getContent();
+                      
+                      // 检查是否已经包含了经过速度信息
+                      if (!content.includes('track-node-pass-speed')) {
+                        // 创建保持经过速度的popup内容
+                        let popupContent = `<div class="track-node-popup">`;
+                        
+                        // 提取并保留节点名称和时间等基本信息
+                        const titleMatch = content.match(/<div class="track-node-title[^>]*>([^<]+)<\/div>/);
+                        const timeMatch = content.match(/<div class="track-node-time[^>]*>([^<]+)<\/div>/);
+                        const speedMatch = content.match(/<div class="track-node-speed[^>]*>([^<]+)<\/div>/);
+                        const distanceMatch = content.match(/<div class="track-node-distance[^>]*>([^<]+)<\/div>/);
+                        
+                        if (titleMatch) {
+                          popupContent += `<div class="track-node-title ">${titleMatch[1]}</div>`;
+                        }
+                        
+                        if (timeMatch) {
+                          popupContent += `<div class="track-node-time">${timeMatch[1]}</div>`;
+                        }
+                        
+                        if (speedMatch) {
+                          popupContent += `<div class="track-node-speed">${speedMatch[1]}</div>`;
+                        }
+                        
+                        // 添加经过速度信息
+                        popupContent += `<div class="track-node-speed track-node-pass-speed">经过速度: ${passSpeed.toFixed(1)} km/h</div>`;
+                        
+                        if (distanceMatch) {
+                          popupContent += `<div class="track-node-distance">${distanceMatch[1]}</div>`;
+                        }
+                        
+                        popupContent += `</div>`;
+                        
+                        // 更新popup内容
+                        popup.setContent(popupContent);
+                      }
+                    }
                   }
-
-                  popupContent += `</div>`;
-
-                  // 更新popup内容
-                  node.marker.getPopup().setContent(popupContent);
                 }
               });
             }
@@ -1737,8 +1791,8 @@ export class LeafletTrackplayerObject {
    */
   public setTrackProgress(trackId: string, progress: number): boolean {
     try {
-      if (!this.trackplayerControl) {
-        this.log('warn', '设置轨迹进度失败: 轨迹播放器未初始化');
+      if (!this.mapInstance) {
+        this.log('warn', '设置轨迹进度失败: 地图实例未设置');
         return false;
       }
       
@@ -1750,15 +1804,75 @@ export class LeafletTrackplayerObject {
       // 确保进度值在有效范围内
       const validProgress = Math.max(0, Math.min(1, progress));
       
-      // 设置轨迹播放器进度
-      if (typeof this.trackplayerControl.setProgress === 'function') {
-        this.trackplayerControl.setProgress(validProgress);
-        this.trackProgressValues.set(trackId, validProgress);
+      // 更新轨迹进度值
+      this.trackProgressValues.set(trackId, validProgress);
+      
+      // 获取轨迹播放器实例
+      const trackPlayerData = this.trackPlayers.get(trackId);
+      if (!trackPlayerData || !trackPlayerData.player) {
+        this.log('warn', `设置轨迹进度失败: 未找到轨迹 ${trackId} 的播放器实例`);
+        return false;
+      }
+      
+      const trackPlayer = trackPlayerData.player;
+      
+      // 直接设置轨迹播放器实例的进度，这将自动更新轨迹点位置
+      if (typeof trackPlayer.setProgress === 'function') {
+        // 记录当前播放状态
+        const wasPlaying = this.trackPlayStates.get(trackId) === TrackPlayState.PLAYING;
+        
+        // 暂停播放，避免设置进度时产生冲突
+        if (wasPlaying && typeof trackPlayer.pause === 'function') {
+          trackPlayer.pause();
+        }
+        
+        // 设置进度，这会立即更新轨迹点的位置
+        trackPlayer.setProgress(validProgress);
+        
+        // 更新节点popup的样式 - 将已经过的节点popup背景设为浅蓝色
+        if (trackPlayer.nodes && Array.isArray(trackPlayer.nodes)) {
+          const currentIndex = trackPlayer.trackIndex || 0;
+          
+          // 遍历所有节点，更新已经过节点的popup样式
+          trackPlayer.nodes.forEach((node: any) => {
+            if (node && node.marker && node.marker.getPopup()) {
+              const popup = node.marker.getPopup();
+              // 判断节点是否已经过
+              const isNodePassed = node.index < currentIndex;
+              
+              // 更新popup样式
+              const className = popup.options.className || '';
+              // 移除之前的passed类
+              let newClassName = className.replace(/\s*track-node-popup-passed/g, '');
+              
+              // 如果节点已经过，添加passed类
+              if (isNodePassed) {
+                newClassName += ' track-node-popup-passed';
+              }
+              
+              // 更新popup类名
+              popup.options.className = newClassName.trim();
+              
+              // 如果popup已打开，强制刷新
+              if (node.marker.isPopupOpen()) {
+                node.marker.closePopup();
+                node.marker.openPopup();
+              }
+            }
+          });
+        }
+        
+        // 如果之前正在播放，则恢复播放
+        if (wasPlaying && typeof trackPlayer.start === 'function') {
+          setTimeout(() => {
+            trackPlayer.start();
+          }, 50);
+        }
         
         this.log('debug', `轨迹 ${trackId} 进度已设置为 ${validProgress}`);
         return true;
       } else {
-        this.log('warn', '轨迹播放器不支持设置进度');
+        this.log('warn', `轨迹 ${trackId} 的播放器不支持设置进度`);
         return false;
       }
     } catch (error) {
@@ -3785,6 +3899,11 @@ export class LeafletTrackplayerObject {
       if (trackPlayer.nodeLayer && trackPlayer.nodes) {
         // 添加高亮节点标题的样式
         this.addTrackNodeHighlightedStyles();
+        
+        // 获取当前进度
+        const currentProgress = this.trackProgressValues.get(trackId) || 0;
+        // 判断当前播放的位置索引
+        const currentIndex = trackPlayer.trackIndex || 0;
 
         // 遍历所有节点，显示弹窗
         trackPlayer.nodes.forEach((node: any) => {
@@ -3805,13 +3924,29 @@ export class LeafletTrackplayerObject {
                 </div>
               `;
 
-              // 绑定popup，设置不显示关闭按钮
+              // 判断节点是否已经经过 - 如果节点索引小于当前播放位置，则认为已经经过
+              const isNodePassed = node.index < currentIndex;
+              
+              // 绑定popup，设置不显示关闭按钮，如果已经经过则添加已过类名
               node.marker.bindPopup(popupContent, {
                 closeButton: false,
-                className: 'track-marker-popup-container',
+                className: isNodePassed ? 
+                  'track-marker-popup-container track-node-popup-passed' : 
+                  'track-marker-popup-container',
                 autoClose: false,
                 closeOnClick: false
               });
+            } else {
+              // 如果已有popup，更新其类名以反映是否已经经过
+              const popup = node.marker.getPopup();
+              const isNodePassed = node.index < currentIndex;
+              
+              // 更新popup的CSS类
+              const className = isNodePassed ? 
+                'track-marker-popup-container track-node-popup-passed' : 
+                'track-marker-popup-container';
+              
+              popup.options.className = className;
             }
 
             // 自动打开弹窗显示详细信息
