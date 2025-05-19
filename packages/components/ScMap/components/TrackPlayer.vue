@@ -41,7 +41,7 @@
                 <span>循环播放</span>
               </label>
               <label class="settings-option">
-                <input type="checkbox" v-model="followCamera">
+                <input type="checkbox" v-model="followCamera" @change="toggleCameraFollow(followCamera)">
                 <span>跟随移动</span>
               </label>
             </div>
@@ -172,7 +172,7 @@
             <span v-html="icons.trackForward"></span>
           </button>
           <button class="track-button track-forward track-camera" :class="{'active': followCamera}"
-            @click="followCamera = !followCamera" :disabled="!activeTrackId" title="相机跟随">
+            @click="toggleCameraFollow(!followCamera)" :disabled="!activeTrackId" title="相机跟随">
             <span v-html="icons.trackFollowCamera"></span>
           </button>
         </div>
@@ -1240,6 +1240,24 @@ defineExpose({
 // 切换设置弹窗
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
+};
+
+// 立即切换相机跟随状态的函数
+const toggleCameraFollow = (newState) => {
+  followCamera.value = newState;
+  if (activeTrackId.value && props.trackObj) {
+    // 立即应用新的相机跟随设置
+    const playerConfig = {
+      withCamera: followCamera.value
+    };
+    
+    // 先设置基本配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+    
+    // 无论播放状态如何，都立即应用新配置确保实时更新
+    props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+    console.log(`轨迹相机跟随已切换为: ${followCamera.value ? '开启' : '关闭'}`);
+  }
 };
 
 // 速度滑块输入事件处理函数

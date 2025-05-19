@@ -38,7 +38,7 @@ L.TrackPlayer = class {
       },
       passedLineColor: options.passedLineColor ?? "#0000ff",
       notPassedLineColor: options.notPassedLineColor ?? "#ff0000",
-      panTo: options.panTo ?? true,
+      panTo: options.panTo ?? false, // 默认不跟随相机
       markerRotationOrigin: options.markerRotationOrigin ?? "center",
       markerRotationOffset: options.markerRotationOffset ?? 0,
       markerRotation: options.markerRotation ?? true,
@@ -180,9 +180,10 @@ L.TrackPlayer = class {
     let [lng, lat] = turf.along(this.track, this.walkedDistance).geometry
       .coordinates;
     this.markerPoint = [lat, lng];
-    if (this.options.panTo) {
+    // 根据相机跟随设置决定是否平移地图
+    if (this.options.panTo && this.map) {
       this.map.panTo(this.markerPoint, {
-        animate: false,
+        animate: false, // 播放过程中不使用动画以避免卡顿
       });
     }
     this.marker && this.marker.setLatLng(this.markerPoint);
@@ -288,6 +289,30 @@ L.TrackPlayer = class {
         this.startAction();
       } else {
         this.playAction(true);
+      }
+    }
+  }
+  // 添加 setPanTo 方法，动态设置是否跟随相机
+  setPanTo(panTo) {
+    // 保存原始状态以检测变化
+    const previousState = this.options.panTo;
+    // 更新跟随状态
+    this.options.panTo = panTo;
+    
+    // 记录状态变化并输出调试信息
+    if (previousState !== panTo) {
+      console.log(`相机跟随状态已更改: ${panTo ? '开启' : '关闭'}`);
+    }
+    
+    // 如果已添加到地图且有定位点，立即更新地图视图位置
+    if (this.addedToMap && this.markerPoint && this.map) {
+      if (this.options.panTo) {
+        // 无论播放状态如何，都立即移动相机到当前位置
+        this.map.panTo(this.markerPoint, {
+          animate: true, // 使用动画效果更平滑
+          duration: 0.5  // 动画持续0.5秒
+        });
+        console.log('相机已移动到轨迹当前位置');
       }
     }
   }

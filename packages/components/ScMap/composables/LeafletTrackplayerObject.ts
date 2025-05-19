@@ -605,12 +605,14 @@ export class LeafletTrackplayerObject {
         // 初始化时传入轨迹数据
         const trackPlayer = new L.TrackPlayer(positions, {
           speed: this.options.playbackSpeed * initialSpeedFactor * 300, // 应用速度因子后再乘以300倍
-            markerRotation: true,
-            markerRotationOffset: 90,
-            panTo: this.options.withCamera,
-            passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
-            notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
+          markerRotation: true,
+          markerRotationOffset: 90,
+          panTo: this.options.withCamera || false, // 确保明确传递相机跟随状态
+          passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
+          notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
           weight: this.options.trackLineOptions?.weight || 8,
+          // 添加循环播放配置
+          loop: this.options.loop || false,
           // 添加默认图标设置
           markerIcon: L.icon({
             iconUrl: this.config.trackSpeedGroup?.[0]?.icon || '/images/marker-icon.png',
@@ -1078,8 +1080,39 @@ export class LeafletTrackplayerObject {
 
       // 播放结束事件
       trackPlayer.on('finish', () => {
-        this.trackPlayStates.set(trackId, TrackPlayState.STOPPED);
-        this.triggerEvent('track-end', { trackId });
+        // 检查是否需要循环播放
+        const shouldLoop = trackPlayer.options && trackPlayer.options.loop === true;
+        
+        if (shouldLoop) {
+          // 记录当前配置
+          const currentConfig = {
+            loop: true,
+            withCamera: trackPlayer.options.panTo,
+            speedFactor: this.trackSpeedFactors.get(trackId) || 1.0
+          };
+          
+          // 重置播放进度到0
+          if (typeof trackPlayer.setProgress === 'function') {
+            trackPlayer.setProgress(0);
+          }
+          
+          // 触发正常的结束事件
+          this.triggerEvent('track-loop', { trackId });
+          
+          // 立即重新开始播放
+          setTimeout(() => {
+            if (this.activeTrackId === trackId) {
+              // 重新开始播放
+              trackPlayer.start();
+              this.trackPlayStates.set(trackId, TrackPlayState.PLAYING);
+              this.log('debug', `轨迹 ${trackId} 循环播放`);
+            }
+          }, 10);
+        } else {
+          // 正常处理播放结束
+          this.trackPlayStates.set(trackId, TrackPlayState.STOPPED);
+          this.triggerEvent('track-end', { trackId });
+        }
       });
 
       // 保存节点的经过速度信息
@@ -1854,13 +1887,16 @@ export class LeafletTrackplayerObject {
       }
       
       // 更新循环播放设置
-      if (config.loop !== undefined && typeof trackPlayer.setLoop === 'function') {
-        trackPlayer.setLoop(config.loop);
+      if (config.loop !== undefined) {
+        // 直接设置选项，因为TrackPlayer.js中没有setLoop方法
+        trackPlayer.options.loop = config.loop;
+        this.log('debug', `轨迹 ${trackId} 循环播放状态已更新为 ${config.loop}`);
       }
       
       // 更新相机跟随设置
       if (config.withCamera !== undefined && typeof trackPlayer.setPanTo === 'function') {
         trackPlayer.setPanTo(config.withCamera);
+        this.log('debug', `轨迹 ${trackId} 相机跟随状态已更新为 ${config.withCamera}`);
       }
       
       // 更新速度因子
