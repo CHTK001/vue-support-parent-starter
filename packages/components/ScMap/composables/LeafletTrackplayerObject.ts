@@ -228,7 +228,7 @@ export class LeafletTrackplayerObject {
         this.trackLayer.addTo(this.mapInstance);
       }
 
-            // 阻止地图点击关闭popup的默认行为
+      // 阻止地图点击关闭popup的默认行为
       this.mapInstance.on('click', (e) => {
         // 检查地图上是否有移动点的popup打开
         let hasMovingPopupOpen = false;
@@ -607,12 +607,13 @@ export class LeafletTrackplayerObject {
           speed: this.options.playbackSpeed * initialSpeedFactor * 300, // 应用速度因子后再乘以300倍
           markerRotation: true,
           markerRotationOffset: 90,
-          panTo: this.options.withCamera || false, // 确保明确传递相机跟随状态
+          // 明确设置相机跟随状态，默认为false
+          panTo: this.options.withCamera === true ? true : false,
           passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
           notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
           weight: this.options.trackLineOptions?.weight || 8,
-          // 添加循环播放配置，明确传递循环播放设置
-          loop: this.config.loop === true,
+          // 明确设置循环播放配置
+          loop: this.config.loop === true ? true : false,
           // 添加默认图标设置
           markerIcon: L.icon({
             iconUrl: this.config.trackSpeedGroup?.[0]?.icon || '/images/marker-icon.png',
@@ -621,6 +622,10 @@ export class LeafletTrackplayerObject {
             popupAnchor: [0, -5]
           })
         });
+        
+        // 记录初始化状态，用于调试
+        this.log('debug', `创建轨迹播放器 ${trackId}，相机跟随: ${trackPlayer.options.panTo ? '开启' : '关闭'}, 循环播放: ${trackPlayer.options.loop ? '开启' : '关闭'}`);
+        
         
         // 当轨迹播放器创建好marker后，给它添加事件处理器
         // 确保marker被创建后再添加处理
@@ -641,6 +646,12 @@ export class LeafletTrackplayerObject {
             
             // 标记已添加点击处理
             trackPlayer.marker._hasClickHandler = true;
+            
+            // 添加额外的mousedown事件处理，避免事件冒泡
+            trackPlayer.marker.on('mousedown', function(e: L.LeafletMouseEvent) {
+              L.DomEvent.stopPropagation(e);
+              L.DomEvent.preventDefault(e);
+            });
           }
         }, 100); // 短暂延时确保marker已创建
 
@@ -1079,27 +1090,31 @@ export class LeafletTrackplayerObject {
 
       // 播放结束事件
       trackPlayer.on('finish', () => {
-        // 获取最新的循环播放设置
+        // 确保从轨迹播放器获取最新的循环播放设置
         const isLoopEnabled = trackPlayer.options && trackPlayer.options.loop === true;
-        this.log('debug', `轨迹 ${trackId} 播放结束，循环播放状态: ${isLoopEnabled ? '开启' : '关闭'}`);
+        this.log('info', `轨迹 ${trackId} 播放结束，循环播放状态: ${isLoopEnabled ? '开启' : '关闭'}, 相机跟随状态: ${trackPlayer.options.panTo ? '开启' : '关闭'}`);
         
         if (isLoopEnabled) {
-          // 记录当前配置，确保保留循环播放设置
+          // 记录当前配置，确保循环播放时保留所有设置
           const currentConfig = {
-            loop: true,
-            withCamera: trackPlayer.options.panTo,
-            speedFactor: this.trackSpeedFactors.get(trackId) || 1.0
+            loop: true, // 确保循环播放设置保持开启
+            withCamera: trackPlayer.options.panTo, // 传递最新的相机跟随状态
+            speedFactor: this.trackSpeedFactors.get(trackId) || 1.0 // 保持当前速度
           };
           
           // 重置轨迹播放器的播放进度到0
           if (typeof trackPlayer.setProgress === 'function') {
+            this.log('debug', `使用setProgress重置轨迹 ${trackId} 进度到0`);
             trackPlayer.setProgress(0);
           } else {
-            // 直接重置关键属性（如果可以访问）
+            // 直接重置关键属性
             try {
+              this.log('debug', `直接重置轨迹 ${trackId} 的内部状态`);
               trackPlayer.walkedDistance = 0;
               trackPlayer.walkedDistanceTemp = 0;
               trackPlayer.startTimestamp = 0;
+              trackPlayer.isPaused = true; // 确保设为暂停状态，以便再次开始时正常启动
+              trackPlayer.finished = false; // 清除完成状态
             } catch (e) {
               this.log('warn', `重置轨迹 ${trackId} 进度失败:`, e);
             }
@@ -1108,24 +1123,24 @@ export class LeafletTrackplayerObject {
           // 确保重置完成后才开始下一次播放
           setTimeout(() => {
             if (this.activeTrackId === trackId) {
-              // 触发循环事件 
-              this.triggerEvent('track-loop', { trackId, config: currentConfig });
+              // 触发循环事件
+              this.triggerEvent('track-loop', { 
+                trackId, 
+                config: currentConfig,
+                message: '轨迹循环播放'
+              });
               
-              this.log('debug', `轨迹 ${trackId} 开始循环播放`);
+              this.log('info', `轨迹 ${trackId} 开始循环播放，相机跟随: ${currentConfig.withCamera ? '开启' : '关闭'}`);
               
-              // 重置轨迹播放器状态
-              trackPlayer.isPaused = true;  // 先设置为暂停状态
-              trackPlayer.finished = false; // 清除完成状态
-              trackPlayer.startTimestamp = 0; // 重置开始时间戳
-              
-              // 开始播放（而不是直接调用 start）
+              // 使用自定义的play方法，确保保留所有设置
               this.play(trackId, currentConfig);
             }
-          }, 20);
+          }, 50); // 增加延迟时间，确保重置完全生效
         } else {
           // 正常处理播放结束
           this.trackPlayStates.set(trackId, TrackPlayState.STOPPED);
           this.triggerEvent('track-end', { trackId });
+          this.log('debug', `轨迹 ${trackId} 播放已结束`);
         }
       });
 
@@ -1470,17 +1485,37 @@ export class LeafletTrackplayerObject {
           speedFactor: config.speedFactor || this.trackSpeedFactors.get(this.activeTrackId) || 1.0
         };
         
-        // 应用完整的配置
+        // 应用完整的配置 - 先记录一下日志，便于查看应用前的状态
+        this.log('info', `播放轨迹 ${this.activeTrackId} 前的状态: 循环=${trackPlayer.options.loop}, 跟随=${trackPlayer.options.panTo}, 速度=${this.trackSpeedFactors.get(this.activeTrackId) || 1.0}x`);
+        
+        // 确保应用配置时提供所有必要的设置
         this.updateTrackPlayer(this.activeTrackId, completeConfig);
-        this.log('debug', `播放轨迹 ${this.activeTrackId} 时应用配置: 循环=${completeConfig.loop}, 跟随=${completeConfig.withCamera}, 速度=${completeConfig.speedFactor}x`);
+        
+        // 确认配置是否已正确应用
+        setTimeout(() => {
+          this.log('info', `播放轨迹 ${this.activeTrackId} 后的状态: 循环=${trackPlayer.options.loop}, 跟随=${trackPlayer.options.panTo}, 速度=${this.trackSpeedFactors.get(this.activeTrackId) || 1.0}x`);
+        }, 10);
       } else {
-        // 如果没有配置，确保应用保存的速度因子
+        // 如果没有明确配置，我们仍需确保正确的状态被应用
+        // 1. 获取当前保存的速度因子
         const speedFactor = this.trackSpeedFactors.get(this.activeTrackId) || 1.0;
+        
+        // 2. 确保应用正确的速度
         if (typeof trackPlayer.setSpeed === 'function') {
           const baseSpeed = this.options.playbackSpeed || 1.0;
           const adjustedSpeed = baseSpeed * speedFactor * 300; // 应用速度因子后再乘以300倍
           trackPlayer.setSpeed(adjustedSpeed);
+          this.log('debug', `轨迹 ${this.activeTrackId} 应用速度: ${adjustedSpeed} (倍数: ${speedFactor}x * 300)`);
         }
+        
+        // 3. 确保循环播放和相机跟随设置保持一致 - 使用保存的配置
+        const savedConfig = {
+          loop: trackPlayer.options.loop,
+          withCamera: trackPlayer.options.panTo,
+          speedFactor: speedFactor
+        };
+        
+        this.log('debug', `播放轨迹 ${this.activeTrackId} 使用保存的配置: 循环=${savedConfig.loop}, 跟随=${savedConfig.withCamera}, 速度=${savedConfig.speedFactor}x`);
       }
       
       // 如果当前有其他轨迹正在播放，先暂停
@@ -1927,10 +1962,20 @@ export class LeafletTrackplayerObject {
         }
       }
       
-      // 更新相机跟随设置
+              // 更新相机跟随设置
       if (config.withCamera !== undefined && typeof trackPlayer.setPanTo === 'function') {
+        // 记录之前的状态，用于检测变化
+        const previousState = trackPlayer.options.panTo;
+        
+        // 更新相机跟随状态
         trackPlayer.setPanTo(config.withCamera);
-        this.log('debug', `轨迹 ${trackId} 相机跟随状态已更新为 ${config.withCamera}`);
+        
+        // 输出更多日志以便调试
+        if (previousState !== config.withCamera) {
+          this.log('info', `轨迹 ${trackId} 相机跟随状态由 ${previousState ? '开启' : '关闭'} 更改为 ${config.withCamera ? '开启' : '关闭'}`);
+        } else {
+          this.log('debug', `轨迹 ${trackId} 相机跟随状态保持不变: ${config.withCamera ? '开启' : '关闭'}`);
+        }
       }
       
       // 更新速度因子
@@ -3089,7 +3134,6 @@ export class LeafletTrackplayerObject {
               autoClose: false,
               closeOnClick: false,
               className: 'track-marker-popup-container',
-              offset: [0, -15],
               interactive: true
             });
             
