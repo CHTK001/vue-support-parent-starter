@@ -94,6 +94,27 @@ L.TrackPlayer = class {
           };
         }
         
+        // 覆盖setLatLng方法，防止其导致地图移动
+        const originalSetLatLng = this.marker.setLatLng;
+        this.marker.setLatLng = function(latlng) {
+          // 保存当前地图中心和缩放级别
+          if (this._map) {
+            const currentCenter = this._map.getCenter();
+            const currentZoom = this._map.getZoom();
+            
+            // 调用原始的setLatLng方法
+            const result = originalSetLatLng.call(this, latlng);
+            
+            // 如果地图中心点改变，恢复原来的位置
+            if (!currentCenter.equals(this._map.getCenter()) || currentZoom !== this._map.getZoom()) {
+              this._map.setView(currentCenter, currentZoom, {animate: false});
+            }
+            
+            return result;
+          }
+          return originalSetLatLng.call(this, latlng);
+        };
+        
         // 覆盖bindPopup方法，确保popup不会导致地图移动
         const originalBindPopup = this.marker.bindPopup;
         this.marker.bindPopup = function(content, options) {
@@ -310,9 +331,38 @@ L.TrackPlayer = class {
           }
           return this;
         };
+        
+        // 关闭相机跟随时，覆盖setLatLng方法
+        if (!this.marker._originalSetLatLng) {
+          this.marker._originalSetLatLng = this.marker.setLatLng;
+        }
+        
+        this.marker.setLatLng = function(latlng) {
+          // 保存当前地图中心和缩放级别
+          if (this._map) {
+            const currentCenter = this._map.getCenter();
+            const currentZoom = this._map.getZoom();
+            
+            // 调用原始的setLatLng方法
+            const result = this._originalSetLatLng.call(this, latlng);
+            
+            // 如果地图中心点改变，恢复原来的位置
+            if (!currentCenter.equals(this._map.getCenter()) || currentZoom !== this._map.getZoom()) {
+              this._map.setView(currentCenter, currentZoom, {animate: false});
+            }
+            
+            return result;
+          }
+          return this._originalSetLatLng.call(this, latlng);
+        };
       } else if (this.marker._originalBringToFront) {
         // 开启相机跟随时，恢复原始方法
         this.marker._bringToFront = this.marker._originalBringToFront;
+        
+        // 恢复原始的setLatLng方法
+        if (this.marker._originalSetLatLng) {
+          this.marker.setLatLng = this.marker._originalSetLatLng;
+        }
       }
       
       // 更新 autoPan 相关属性
@@ -357,54 +407,17 @@ L.TrackPlayer = class {
       // 根据panTo设置，决定是否使用特殊方式更新marker位置
       if (this.options.panTo === false) {
         try {
-          // 确保markerPoint是有效的经纬度数组，且map对象已初始化
-          if (this.markerPoint && Array.isArray(this.markerPoint) && this.markerPoint.length === 2 && this.map) {
-            // 使用安全的方式更新位置，防止触发地图自动平移
+          // 确保markerPoint是有效的经纬度数组
+          if (this.markerPoint && Array.isArray(this.markerPoint) && this.markerPoint.length === 2) {
+            // 使用已覆盖的setLatLng方法更新位置，该方法会自动处理防止地图移动
             const latLng = L.latLng(this.markerPoint[0], this.markerPoint[1]);
-            
-            // 安全方式：保存当前地图中心和缩放级别
-            const currentCenter = this.map.getCenter();
-            const currentZoom = this.map.getZoom();
-            
-            // 更新标记位置
             this.marker.setLatLng(latLng);
             
-            // 如果地图中心点改变，恢复原来的位置
-            if (!currentCenter.equals(this.map.getCenter()) || currentZoom !== this.map.getZoom()) {
-              this.map.setView(currentCenter, currentZoom, {animate: false});
-            }
-            
-            // 触发移动事件
+            // 触发移动事件，便于其他组件感知标记位置变化
             this.marker.fire('move', {latlng: latLng});
-          } else {
-            // 数据无效，但仍尝试更新位置
-            if (this.markerPoint) {
-              // 保存当前地图中心
-              const currentCenter = this.map && this.map.getCenter();
-              const currentZoom = this.map && this.map.getZoom();
-              
-              // 更新标记位置
-              this.marker.setLatLng(this.markerPoint);
-              
-              // 如果地图中心点改变，恢复原来的位置
-              if (currentCenter && !currentCenter.equals(this.map.getCenter())) {
-                this.map.setView(currentCenter, currentZoom, {animate: false});
-              }
-            }
           }
         } catch (err) {
           console.error('更新标记位置时出错:', err);
-          // 使用原始方法作为后备
-          try {
-            if (this.markerPoint && this.map) {
-              const currentCenter = this.map.getCenter();
-              this.marker.setLatLng(this.markerPoint);
-              // 恢复地图中心点
-              this.map.setView(currentCenter, this.map.getZoom(), {animate: false});
-            }
-          } catch (e) {
-            console.error('备用方法更新标记位置也失败:', e);
-          }
         }
       } else {
         // 正常更新位置（当启用相机跟随时）
@@ -589,20 +602,89 @@ L.TrackPlayer = class {
       (this.options.progress == 0 && progress == 0)
     )
       return;
+    
+    // 更新进度值
     this.options.progress = progress;
+    
+    // 计算新的行走距离
     this.walkedDistanceTemp = this.distance * progress;
     this.startTimestamp = 0;
-    // 对于暂停跟完成状态，调整进度。
+    
+    // 无论播放状态如何，立即更新轨迹上的移动点位置
+    this.walkedDistance = this.walkedDistanceTemp;
+    
+    // 更新轨迹段索引
+    this.trackIndex = this.distanceSlice.findIndex((item,index,arr) => {
+      return this.walkedDistance>=item&&this.walkedDistance<(arr[index+1]??Infinity);
+    });
+    
+    // 计算当前距离对应的坐标点位置
+    let pointOnTrack = turf.along(this.track, this.walkedDistance);
+    let [lng, lat] = pointOnTrack.geometry.coordinates;
+    this.markerPoint = [lat, lng];
+    
+    // 更新标记位置 - 根据panTo设置决定是否影响地图视图
+    if (this.marker) {
+      // 根据panTo设置决定是否影响地图视图
+      if (this.options.panTo === false && this.map) {
+        try {
+          // 保存当前地图中心
+          const currentCenter = this.map.getCenter();
+          const currentZoom = this.map.getZoom();
+          
+          // 更新标记位置
+          this.marker.setLatLng(this.markerPoint);
+          
+          // 确保地图视图不受影响
+          if (!currentCenter.equals(this.map.getCenter()) || currentZoom !== this.map.getZoom()) {
+            this.map.setView(currentCenter, currentZoom, {animate: false});
+          }
+        } catch (err) {
+          console.error('设置进度更新标记位置时出错:', err);
+          // 退回到简单方法
+          this.marker.setLatLng(this.markerPoint);
+        }
+      } else {
+        // panTo=true模式下直接更新位置，允许地图跟随
+        this.marker.setLatLng(this.markerPoint);
+      }
+      
+      // 更新标记旋转角度
+      if (this.options.markerRotation && this.trackIndex < this.track.geometry.coordinates.length - 1) {
+        let bearing = turf.bearing(
+          turf.point([lng, lat]),
+          turf.point(this.track.geometry.coordinates[this.trackIndex + 1])
+        );
+        this.marker.setRotationAngle(bearing / 2 + this.options.markerRotationOffset / 2);
+      }
+    }
+    
+    // 立即更新轨迹线条显示状态
+    this.playAction(true);
+    
+    // 对于暂停跟完成状态，调整进度
     if (this.isPaused || this.finished) {
-      this.walkedDistance = this.walkedDistanceTemp;
+      // 如果之前已完成但设置了新进度，则重置完成状态
+      if (this.finished && progress < 1) {
+        this.finished = false;
+      }
+      
+      // 如果不是暂停状态，则启动播放
       if (!this.isPaused) {
         this.finished = false;
         this.isPaused = false;
         this.startAction();
-      } else {
-        this.playAction(true);
       }
     }
+    
+    // 触发进度回调，确保UI能够获取到最新状态
+    this.listenedEvents.progressCallback.forEach((item) =>
+      item(
+        this.options.progress,
+        L.latLng(...this.markerPoint),
+        this.trackIndex
+      )
+    );
   }
   // 添加 setPanTo 方法，动态设置是否跟随相机
   setPanTo(panTo) {
@@ -631,9 +713,38 @@ L.TrackPlayer = class {
             }
             return this;
           };
+          
+          // 关闭相机跟随时，覆盖setLatLng方法
+          if (!this.marker._originalSetLatLng) {
+            this.marker._originalSetLatLng = this.marker.setLatLng;
+          }
+          
+          this.marker.setLatLng = function(latlng) {
+            // 保存当前地图中心和缩放级别
+            if (this._map) {
+              const currentCenter = this._map.getCenter();
+              const currentZoom = this._map.getZoom();
+              
+              // 调用原始的setLatLng方法
+              const result = this._originalSetLatLng.call(this, latlng);
+              
+              // 如果地图中心点改变，恢复原来的位置
+              if (!currentCenter.equals(this._map.getCenter()) || currentZoom !== this._map.getZoom()) {
+                this._map.setView(currentCenter, currentZoom, {animate: false});
+              }
+              
+              return result;
+            }
+            return this._originalSetLatLng.call(this, latlng);
+          };
         } else if (this.marker._originalBringToFront) {
           // 开启相机跟随时，恢复原始方法
           this.marker._bringToFront = this.marker._originalBringToFront;
+          
+          // 恢复原始的setLatLng方法
+          if (this.marker._originalSetLatLng) {
+            this.marker.setLatLng = this.marker._originalSetLatLng;
+          }
         }
         
         // 更新 autoPan 相关属性
