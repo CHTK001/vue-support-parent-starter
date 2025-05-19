@@ -606,7 +606,7 @@ export class LeafletTrackplayerObject {
         const trackPlayer = new L.TrackPlayer(positions, {
           speed: this.options.playbackSpeed * initialSpeedFactor * 300, // 应用速度因子后再乘以300倍
             markerRotation: true,
-            markerRotationOffset: 0,
+            markerRotationOffset: 90,
             panTo: this.options.withCamera,
             passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
             notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
