@@ -5,7 +5,7 @@
 import L from 'leaflet';
 
 // 导入插件
-import 'leaflet-trackplayer';
+// import 'leaflet-trackplayer';
 // 其他插件按需取消注释
 // import 'leaflet-ant-path';
 // import 'leaflet-editable';

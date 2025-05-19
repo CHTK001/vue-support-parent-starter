@@ -605,12 +605,12 @@ export class LeafletTrackplayerObject {
         // 初始化时传入轨迹数据
         const trackPlayer = new L.TrackPlayer(positions, {
           speed: this.options.playbackSpeed * initialSpeedFactor * 300, // 应用速度因子后再乘以300倍
-          markerRotation: true,
-          markerRotationOffset: 90,
+            markerRotation: true,
+          markerRotationOffset: -90,
           // 明确设置相机跟随状态，默认为false
           panTo: this.options.withCamera === true ? true : false,
-          passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
-          notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
+            passedLineColor: this.config.passedLineOptions?.color || '#0000ff',
+            notPassedLineColor: this.config.notPassedLineOptions?.color || '#ff0000',
           weight: this.options.trackLineOptions?.weight || 8,
           // 明确设置循环播放配置
           loop: this.config.loop === true ? true : false,
@@ -1106,7 +1106,7 @@ export class LeafletTrackplayerObject {
           if (typeof trackPlayer.setProgress === 'function') {
             this.log('debug', `使用setProgress重置轨迹 ${trackId} 进度到0`);
             trackPlayer.setProgress(0);
-          } else {
+      } else {
             // 直接重置关键属性
             try {
               this.log('debug', `直接重置轨迹 ${trackId} 的内部状态`);
@@ -1962,7 +1962,7 @@ export class LeafletTrackplayerObject {
         }
       }
       
-              // 更新相机跟随设置
+      // 更新相机跟随设置
       if (config.withCamera !== undefined && typeof trackPlayer.setPanTo === 'function') {
         // 记录之前的状态，用于检测变化
         const previousState = trackPlayer.options.panTo;
