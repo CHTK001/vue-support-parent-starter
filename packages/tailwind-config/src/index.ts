@@ -119,19 +119,9 @@ const customColors = {
 };
 
 export default {
-  content: [
-    "./index.html",
-    ...tailwindPackages.map((item) =>
-      path.join(item, "src/**/*.{vue,js,ts,jsx,tsx,svelte,astro,html}"),
-    ),
-  ],
+  content: ["./index.html", ...tailwindPackages.map((item) => path.join(item, "src/**/*.{vue,js,ts,jsx,tsx,svelte,astro,html}"))],
   darkMode: "selector",
-  plugins: [
-    animate,
-    typographyPlugin,
-    addDynamicIconSelectors(),
-    enterAnimationPlugin,
-  ],
+  plugins: [animate, typographyPlugin, addDynamicIconSelectors(), enterAnimationPlugin],
   prefix: "",
   safelist: ["dark"],
   theme: {
@@ -150,7 +140,9 @@ export default {
         "collapsible-up": "collapsible-up 0.2s ease-in-out",
         float: "float 5s linear 0ms infinite",
       },
-
+      borderColor: {
+        DEFAULT: "transparent", // 将默认边框颜色设为透明
+      },
       animationDuration: {
         "2000": "2000ms",
         "3000": "3000ms",

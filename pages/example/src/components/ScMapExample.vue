@@ -421,7 +421,7 @@ function addSampleTrack() {
   const now = Math.floor(Date.now() / 1000);
   const points = [];
   for (let i = 0; i < 10; i++) {
-    points.push({ lat: center[0], lng: center[1] + i * 0.005, time: now + i * 60 });
+    points.push({ lat: center[0], lng: center[1] + i * 0.005, timestamp: now + i * 60 });
   }
   mapRef.value.addTrack({ id: `track-${Date.now()}`, name: '示例轨迹', points });
   addLog('轨迹', '已添加示例轨迹');

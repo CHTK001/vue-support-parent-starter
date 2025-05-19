@@ -2,7 +2,7 @@
  * 地图相关配置
  */
 import type { MapUrlConfig } from "./map";
-import { MapType } from "./map";
+import { MapType, RenderMode } from "./map";
 import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
 import { OverviewMapConfig } from "../components/OverviewMap.vue";
@@ -96,6 +96,8 @@ export interface MapConfig {
   zoom: number;
   dragging: boolean;
   scrollWheelZoom: boolean;
+  // 渲染模式
+  renderMode?: RenderMode;
   // 是否显示工具栏
   showToolbar?: boolean;
   // 工具栏配置
@@ -153,7 +155,7 @@ export interface TrackPoint {
   /**
    * 时间戳
    */
-  time: number;
+  timestamp: number;
   /**
    * 附加数据
    */

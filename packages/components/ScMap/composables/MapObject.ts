@@ -46,15 +46,20 @@ export class MapObject {
 
       this.eventCallback = callback || null;
 
-      // 创建地图实例
+            // 获取渲染模式      
+      const renderMode = this.configObject.getRenderMode();
+      // 创建地图实例，根据渲染模式配置renderer选项     
       this.mapInstance = L.map(container, {
         center: this.configObject.getCenter(),
         zoom: this.configObject.getZoom(),
         dragging: this.configObject.getDragging(),
         scrollWheelZoom: this.configObject.getScrollWheelZoom(),
+        preferCanvas: renderMode === 'CANVAS',
+        renderer: renderMode === 'CANVAS' ? L.canvas() : L.svg(),
         doubleClickZoom: false,
-        zoomControl: false // 禁用默认缩放控件，稍后添加到右上角
+        zoomControl: false // 禁用默认缩放控件，稍后添加到右上角      
       });
+      logger.debug(`地图使用 ${renderMode} 渲染模式创建`);
 
       // 添加缩放控件到右上角
      // L.control.zoom({ position: 'topright' }).addTo(this.mapInstance);
