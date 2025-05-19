@@ -616,7 +616,7 @@ export class LeafletTrackplayerObject {
             
             // 创建弹窗内容 - 使用高亮样式的标题
             let popupContent = `<div class="track-node-popup">`;
-            popupContent += `<div class="track-node-title track-node-title-highlighted">${nodeName}</div>`;
+            popupContent += `<div class="track-node-title ">${nodeName}</div>`;
             popupContent += `<div class="track-node-time">${formattedTime}</div>`;
             
             // 如果有速度，显示速度
@@ -691,7 +691,7 @@ export class LeafletTrackplayerObject {
               // 更新节点标题部分，使其更加醒目
               const newContent = content.replace(
                 /<div class="track-node-title">.*?<\/div>/,
-                `<div class="track-node-title track-node-title-highlighted">${node.name}</div>`
+                `<div class="track-node-title ">${node.name}</div>`
               );
               existingPopup.setContent(newContent);
             }
@@ -707,7 +707,7 @@ export class LeafletTrackplayerObject {
             // 如果没有popup，创建一个带高亮标题的新popup
             const popupContent = `
               <div class="track-node-popup">
-                <div class="track-node-title track-node-title-highlighted">${node.name}</div>
+                <div class="track-node-title ">${node.name}</div>
                 <div class="track-node-time">${node.time || ''}</div>
                 ${node.distance > 0 ? `<div class="track-node-distance">距离: ${(node.distance / 1000).toFixed(2)} km</div>` : ''}
               </div>
@@ -803,7 +803,7 @@ export class LeafletTrackplayerObject {
         // 创建基本弹窗内容，只显示名称
         const popupContent = `
           <div class="track-node-popup">
-            <div class="track-node-title track-node-title-highlighted">${trackName}</div>
+            <div class="track-node-title ">${trackName}</div>
           </div>
         `;
         
@@ -816,7 +816,7 @@ export class LeafletTrackplayerObject {
             // 更新标题
             const newContent = content.replace(
               /<div class="track-node-title.*?">.*?<\/div>/,
-              `<div class="track-node-title track-node-title-highlighted">${trackName}</div>`
+              `<div class="track-node-title ">${trackName}</div>`
             );
             existingPopup.setContent(newContent);
           } else {
@@ -1069,7 +1069,7 @@ export class LeafletTrackplayerObject {
                 
                 // 如果需要显示标题
                 if (showTitle) {
-                  popupContent += `<div class="track-node-title track-node-title-highlighted">${trackName}</div>`;
+                  popupContent += `<div class="track-node-title ">${trackName}</div>`;
                 }
                 
                 // 如果需要显示速度信息
@@ -2549,7 +2549,7 @@ export class LeafletTrackplayerObject {
               // 创建高亮样式的popup内容
               const popupContent = `
                 <div class="track-node-popup">
-                  <div class="track-node-title track-node-title-highlighted">${nodeName}</div>
+                  <div class="track-node-title ">${nodeName}</div>
                   <div class="track-node-time">${this.formatTime(node.position.time)}</div>
                   ${node.position.properties && node.position.properties.speed ? 
                     `<div class="track-node-speed">速度: ${node.position.properties.speed.toFixed(1)} km/h</div>` : ''}
@@ -2599,7 +2599,7 @@ export class LeafletTrackplayerObject {
     const style = document.createElement('style');
     style.id = 'track-node-highlighted-styles';
     style.innerHTML = `
-      .track-node-title-highlighted {
+      . {
         background-color: #1890ff;
         color: white;
         padding: 4px 8px;
@@ -2702,7 +2702,7 @@ export class LeafletTrackplayerObject {
           
           // 如果同时要显示名称，添加名称部分
           if (trackPlayer._showMovingPointName) {
-            popupContent += `<div class="track-node-title track-node-title-highlighted">${trackName}</div>`;
+            popupContent += `<div class="track-node-title ">${trackName}</div>`;
           }
           
           // 添加速度信息
@@ -2737,7 +2737,7 @@ export class LeafletTrackplayerObject {
             // 更新popup内容，只保留名称部分
             const popupContent = `
               <div class="track-marker-popup">
-                <div class="track-node-title track-node-title-highlighted">${trackName}</div>
+                <div class="track-node-title ">${trackName}</div>
               </div>
             `;
             trackPlayer.marker.getPopup().setContent(popupContent);
@@ -2877,7 +2877,7 @@ export class LeafletTrackplayerObject {
           // 创建基本弹窗内容，只显示名称
           const popupContent = `
             <div class="track-marker-popup">
-              <div class="track-node-title track-node-title-highlighted">${trackName}</div>
+              <div class="track-node-title ">${trackName}</div>
             </div>
           `;
           
@@ -2890,7 +2890,7 @@ export class LeafletTrackplayerObject {
               // 更新标题
               const newContent = content.replace(
                 /<div class="track-node-title.*?">.*?<\/div>/,
-                `<div class="track-node-title track-node-title-highlighted">${trackName}</div>`
+                `<div class="track-node-title ">${trackName}</div>`
               );
               existingPopup.setContent(newContent);
             } else {
