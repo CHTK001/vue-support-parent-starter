@@ -12,8 +12,6 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   showPointNames: true, // 是否显示点位名称（移动点位名称）
   showSpeed: true,      // 是否显示移动速度
   showNodeSpeed: true,   // 是否显示节点速度
-  updateFrequency: 100,   // 更新频率(毫秒)，默认100毫秒，高频更新
-  stabilizeViewport: false // 是否稳定视口，防止播放过程中缩放抖动
 };
 
 // 默认的交通工具基于速度的图标分组配置

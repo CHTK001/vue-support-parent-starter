@@ -41,6 +41,8 @@
     "ngeohash": "catalog:",
     "proj4leaflet": "catalog:",
     "leaflet": "catalog:",
+    "leaflet-polylinedecorator": "catalog:",
+    "leaflet-rotatedmarker": "catalog:",
     "prunecluster": "catalog:",
     "@joakimono/echarts-extension-leaflet": "catalog:",
     "leaflet-ant-path": "catalog:",

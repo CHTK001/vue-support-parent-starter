@@ -1,478 +1,1475 @@
-/**
- * 轨迹播放器组件
- * @description 用于播放、暂停、停止轨迹数据
- */
+<!-- 轨迹播放器组件 -->
 <template>
-  <div class="track-player" :class="[positionClass, { collapsed }]">
-    <div class="track-player-header" @click.stop="handleToggleCollapse">
-      <div class="track-player-title">
-        <span class="icon">
-          <svg viewBox="0 0 1024 1024" width="16" height="16">
-            <path d="M832 128h-640c-70.4 0-128 57.6-128 128v512c0 70.4 57.6 128 128 128h640c70.4 0 128-57.6 128-128v-512c0-70.4-57.6-128-128-128zM320 704v-384l256 192-256 192z" fill="currentColor"></path>
-          </svg>
-            </span>
-        <span class="title">{{ currentTrack ? currentTrack.name : '轨迹播放器' }}</span>
-          </div>
+  <div class="track-player" :class="{ 'collapsed': collapsed, 'playing': playState === 'playing' }"
+    :style="trackPlayerStyle" @click="collapsed && toggleCollapse()">
+    <!-- 标题栏 -->
+    <div class="track-player-header">
+      <div class="track-player-title">轨迹播放器</div>
       <div class="track-player-actions">
-        <button class="collapse-btn" title="展开/收起" @click.stop="handleToggleCollapse">
-          <svg viewBox="0 0 1024 1024" width="14" height="14">
-            <path v-if="collapsed" d="M512 685.248l-278.624-278.624 45.248-45.248L512 594.752l233.376-233.376 45.248 45.248z" fill="currentColor"></path>
-            <path v-else d="M512 685.248l278.624-278.624-45.248-45.248L512 594.752l-233.376-233.376-45.248 45.248z" fill="currentColor"></path>
-          </svg>
-        </button>
+        <!-- 设置按钮 -->
+        <div class="track-player-setting-btn" @click.stop="toggleSettings" title="播放设置">
+          <div class="setting-icon">
+            <span>⚙</span>
+          </div>
+        </div>
+        <!-- 收缩/展开按钮 -->
+        <div class="track-player-collapse-btn" @click.stop="toggleCollapse" title="收缩/展开">
+          <div class="collapse-icon">
+            <span v-if="collapsed">
+              <span v-html="TRACK_PLAYER_ICON" />
+            </span>
+            <span v-else>-</span>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="track-settings-modal" v-if="showSettings" @click.stop>
+      <div class="track-settings-content">
+        <div class="track-settings-header">
+          <h3>轨迹播放设置</h3>
+          <div class="track-settings-close" @click="showSettings = false">×</div>
+        </div>
+        <div class="track-settings-body">
+          <!-- 轨迹设置组 -->
+          <div class="settings-group">
+            <div class="settings-group-title">轨迹设置</div>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input type="checkbox" v-model="loopPlay">
+                <span>循环播放</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="followCamera">
+                <span>跟随移动</span>
+              </label>
+            </div>
+          </div>
+
+
+          <!-- 节点设置组 -->
+          <div class="settings-group">
+            <div class="settings-group-title">节点设置</div>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodes">
+                <span>节点显示</span>
+              </label>
+              <label class="settings-option" :class="{ 'disabled': !showNodes }">
+                <input type="checkbox" v-model="showNodeAnchors" :disabled="!showNodes">
+                <span>节点锚点</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodePopover">
+                <span>节点名称</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodeTime">
+                <span>节点时间</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodeSpeed">
+                <span>节点速度</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodeDistance">
+                <span>节点距离</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 点位设置组 -->
+          <div class="settings-group">
+            <div class="settings-group-title">点位设置</div>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input type="checkbox" v-model="showMovingPointName">
+                <span>点位名称</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showSpeedPopover">
+                <span>移动速度</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="enableSpeedIcon">
+                <span>速度图标切换</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="track-settings-footer">
+          <button class="settings-apply-btn" @click="showSettings = false">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 折叠状态时显示的图标 -->
+    <div class="collapsed-icon" v-if="collapsed">
+      <span v-if="playState === 'playing'" class="playing-indicator">▶</span>
+      <span v-else>
+        <span v-html="TRACK_PLAYER_ICON" style="color:#000 !important;" />
+      </span>
+    </div>
+
+    <!-- 播放器主体内容 -->
     <div class="track-player-content" v-show="!collapsed">
       <!-- 轨迹列表 -->
-      <div class="track-list" v-if="showTrackList && tracks.length > 0">
-        <div 
-          v-for="track in tracks" 
-          :key="track.id" 
-          :class="['track-item', { active: currentTrackId === track.id }]"
-          @click="selectTrack(track.id)"
-        >
-          <div class="track-color" :style="{ backgroundColor: track.color || '#1890ff' }"></div>
-          <div class="track-name">{{ track.name }}</div>
-          <div class="track-actions">
-            <button class="track-action-btn" title="删除轨迹" @click.stop="removeTrack(track.id)">
-              <svg viewBox="0 0 1024 1024" width="14" height="14">
-                <path d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H200c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z" fill="currentColor"></path>
-              </svg>
+      <div class="track-list">
+        <div class="track-list-header">
+          <span>轨迹列表</span>
+        </div>
+        <div class="track-list-content thin-scrollbar" v-if="tracks.size > 0">
+          <div v-for="[id, track] in tracks" :key="id" class="track-item"
+            :class="{ 'active': activeTrackId === id, 'disabled': playState === 'playing' && activeTrackId !== id }"
+            :title="getTrackNameWithLength(id)"
+            @click="canSwitchTrack && selectTrack(id)" @dblclick="fitToTrackView(id)">
+            <div class="track-item-info">
+              <div class="track-item-name" :title="getTrackNameWithLength(id)">{{ getTrackNameWithLength(id) }}</div>
+              <div class="track-item-detail" :title="formatTrackDetail(track)">{{ formatTrackDetail(track) }}</div>
+            </div>
+            <div class="track-item-actions">
+              <button class="track-item-delete-btn" @click.stop="deleteTrack(id)" :disabled="playState === 'playing'"
+                :title="playState === 'playing' ? '播放中无法删除轨迹' : '删除轨迹'">
+                <span v-html="icons.trackDelete"></span>
               </button>
             </div>
+          </div>
+        </div>
+        <div class="track-list-empty" v-else>
+          <span>暂无轨迹数据 ({{tracks.size}})</span>
         </div>
       </div>
 
-      <!-- 播放器控制区 -->
-      <div class="player-controls">
-        <div class="time-slider">
-          <input 
-            type="range" 
-            :min="minTime" 
-            :max="maxTime" 
-            :step="1" 
-            v-model="currentTime"
-            :disabled="!currentTrackId || !currentTrack?.points.length"
-            @input="handleTimeChange"
-          >
-          <div class="time-display">
-            <span>{{ formatTime(currentTime) }}</span>
-            <span>{{ formatTime(maxTime) }}</span>
+      <!-- 播放控制区域 -->
+      <div class="track-controls">
+        <!-- 播放速度控制 -->
+        <div class="track-speed-control">
+          <div class="speed-label">速度: {{ speedFactor.toFixed(1) }}x</div>
+          <input type="range" min="0.5" max="10" step="0.5" v-model.number="speedFactor" @input="onSpeedChange"
+            class="speed-slider" :disabled="!activeTrackId">
+          <div class="speed-labels">
+            <span>慢</span>
+            <span>正常</span>
+            <span>快</span>
           </div>
         </div>
 
-        <div class="control-buttons">
-          <button class="control-btn" title="播放" @click="handlePlay" :disabled="isPlaying || !currentTrackId">
-            <svg viewBox="0 0 1024 1024" width="16" height="16">
-              <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="currentColor"></path>
-              <path d="M719.4 499.1l-296.1-215A15.9 15.9 0 0 0 398 297v430c0 13.1 14.8 20.5 25.3 12.9l296.1-215a15.9 15.9 0 0 0 0-25.8zm-257.6 134V390.9L628.5 512 461.8 633.1z" fill="currentColor"></path>
-            </svg>
+        <!-- 播放按钮 -->
+        <div class="track-buttons">
+          <button class="track-button track-backward" @click="setSpeed(Math.max(0.5, speedFactor - 0.5))"
+            :disabled="!activeTrackId" title="减速">
+            <span v-html="icons.trackBackward"></span>
           </button>
-          <button class="control-btn" title="暂停" @click="handlePause" :disabled="!isPlaying">
-            <svg viewBox="0 0 1024 1024" width="16" height="16">
-              <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="currentColor"></path>
-              <path d="M424 352h-48c-4.4 0-8 3.6-8 8v304c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V360c0-4.4-3.6-8-8-8zm224 0h-48c-4.4 0-8 3.6-8 8v304c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V360c0-4.4-3.6-8-8-8z" fill="currentColor"></path>
-            </svg>
+
+          <button class="track-button track-play" @click="togglePlay()" :disabled="!activeTrackId" title="播放/暂停">
+            <span v-if="playState === 'playing'" v-html="icons.trackPause"></span>
+            <span v-else v-html="icons.trackPlay"></span>
           </button>
-          <button class="control-btn" title="停止" @click="handleStop" :disabled="!currentTrackId">
-            <svg viewBox="0 0 1024 1024" width="16" height="16">
-              <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="currentColor"></path>
-              <path d="M648 376h-272c-4.4 0-8 3.6-8 8v256c0 4.4 3.6 8 8 8h272c4.4 0 8-3.6 8-8V384c0-4.4-3.6-8-8-8z" fill="currentColor"></path>
-            </svg>
+
+          <button class="track-button track-forward" @click="setSpeed(Math.min(10, speedFactor + 0.5))"
+            :disabled="!activeTrackId" title="加速">
+            <span v-html="icons.trackForward"></span>
+          </button>
+          <button class="track-button track-forward track-camera" :class="{'active': followCamera}"
+            @click="followCamera = !followCamera" :disabled="!activeTrackId" title="相机跟随">
+            <span v-html="icons.trackFollowCamera"></span>
           </button>
         </div>
 
-        <div class="speed-control">
-          <label>速度: {{ playbackSpeed }} km/h</label>
-          <input 
-            type="range" 
-            min="10" 
-            max="200" 
-            step="10" 
-            v-model="playbackSpeed"
-            @input="handleSpeedChange"
-          >
+        <!-- 播放进度 -->
+        <div class="track-progress" v-if="activeTrackId">
+          <div class="track-progress-bar" @click="handleProgressClick">
+            <div class="track-progress-filled" :style="{ width: progressPercentage + '%' }"></div>
+            <div class="track-progress-handle" :style="{ left: progressPercentage + '%' }"
+              @mousedown="startProgressDrag" :class="{ 'active': isDraggingProgress }"></div>
           </div>
-        
-        <div class="options-control">
-          <div class="option-item">
-            <input type="checkbox" id="loop" v-model="loop" @change="handleLoopChange">
-            <label for="loop">循环播放</label>
+          <div class="track-progress-time">
+            {{ formatTime(currentTime) }} / {{ formatTime(totalTime) }}
           </div>
-          <div class="option-item">
-            <input type="checkbox" id="withCamera" v-model="withCamera" @change="handleCameraChange">
-            <label for="withCamera">跟随相机</label>
+          <!-- 当前速度显示 -->
+          <div class="track-current-speed" v-if="currentSpeed > 0">
+            <template v-if="speedFactor === 1.0">
+              当前速度: {{ currentSpeed.toFixed(1) }} km/h
+            </template>
+            <template v-else>
+              当前速度: {{ (currentSpeed * speedFactor).toFixed(1) }} km/h (实际: {{ currentSpeed.toFixed(1) }} km/h)
+            </template>
           </div>
-          <div class="option-item">
-            <input type="checkbox" id="showNodeNames" v-model="showNodeNames" @change="handleNodeNamesChange">
-            <label for="showNodeNames">显示节点名称</label>
         </div>
       </div>
     </div>
-    </div>
+
+
   </div>
 </template>
 
 <script lang="ts">
 export default {
-  name: 'TrackPlayerMap'
+  name: 'TrackPlayer'
 };
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { LeafletTrackplayerObject } from '../composables/LeafletTrackplayerObject';
-import { Track, TrackPlayerConfigOptions } from '../types/track';
+import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect, getCurrentInstance } from 'vue';
+import { Track} from '../types/track';
+import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
+import { 
+  TRACK_PLAYER_ICON,
+  TRACK_PLAY_ICON, 
+  TRACK_PAUSE_ICON, 
+  TRACK_BACKWARD_ICON, 
+  TRACK_FORWARD_ICON, 
+  TRACK_DELETE_ICON, 
+  TRACK_FOLLOW_CAMERA_ICON
+} from '../types/icon';
+import logger from '../composables/LogObject';
 
-// 组件属性 - 使用any类型接受任何轨迹对象实现
-const props = defineProps<{
-  trackObj: any; // 接受任何实现了轨迹播放器接口的对象
-  config?: Partial<TrackPlayerConfigOptions>;
-}>();
+// 轨迹播放器配置类型
+interface TrackPlayerConfig {
+  loop?: boolean;
+  withCamera?: boolean;
+  speedFactor?: number;
+  speed?: number;
+  [key: string]: any;
+}
 
-// 组件事件
-const emit = defineEmits<{
-  (e: 'track-selected', payload: { trackId: string; track: Track }): void;
-  (e: 'track-deleted', payload: { trackId: string }): void;
-  (e: 'collapse-change', collapsed: boolean): void;
-}>();
+interface Props {
+  trackObj: any;
+  config?: {
+    loop?: boolean;         // 是否循环播放
+    speed?: number;         // 默认播放速度(km/h)
+    withCamera?: boolean;   // 是否跟随相机
+    speedFactor?: number;   // 速度因子
+    showNodes?: boolean;    // 是否显示节点（静态点位）
+    showNodeAnchors?: boolean; // 是否显示节点锚点
+    showNodeNames?: boolean;// 是否显示节点名称（静态点位名称）
+    showNodeTime?: boolean; // 是否显示节点时间
+    showNodeDistance?: boolean; // 是否显示节点距离
+    showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
+    showSpeed?: boolean;    // 是否显示移动速度
+    showNodeSpeed?: boolean;// 是否显示节点速度
+    updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
+  }
+}
 
-// 组件状态
-const tracks = ref<Track[]>([]);
-const currentTrackId = ref<string | null>(null);
-const currentTrack = computed(() => tracks.value.find(t => t.id === currentTrackId.value) || null);
-const isPlaying = ref(false);
-const currentTime = ref(0);
-const minTime = ref(0);
-const maxTime = ref(0);
-const playbackSpeed = ref(props.config?.speed || 50);
-const loop = ref(props.config?.loop || false);
-const withCamera = ref(props.config?.withCamera || false);
-const showNodeNames = ref(props.config?.showNodeNames || false);
-const showTrackList = ref(props.config?.showTrackList !== false);
-const position = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>(
-  props.config?.position || 'bottom-right'
-);
+const props = defineProps<Props>();
+const emit = defineEmits(['track-selected', 'track-deleted', 'collapse-change', 'close']);
+
+// 播放器状态
 const collapsed = ref(false);
+const activeTrackId = ref<string | null>(null);
+const playState = ref<'stopped' | 'playing' | 'paused'>('stopped');
+const loopPlay = ref(false);
+const followCamera = ref(false);
+const showNodes = ref(true); // 是否显示轨迹节点，默认显示
+const showNodeAnchors = ref(false); // 是否显示节点锚点，默认不显示
+const showNodePopover = ref(true); // 是否显示节点名称(popover)，默认显示
+const showNodeTime = ref(true); // 是否显示节点时间，默认显示
+const showNodeDistance = ref(true); // 是否显示节点距离，默认不显示
+const showSpeedPopover = ref(true); // 是否显示速度弹窗，默认显示
+const showNodeSpeed = ref(true); // 是否显示节点速度，默认显示
+const showMovingPointName = ref(true); // 是否显示移动点位的名称，默认显示
+const currentTime = ref(0);
+const totalTime = ref(0);
+const progressPercentage = ref(0);
+const speedFactor = ref(1.0);
+const isDraggingProgress = ref(false);
+const currentSpeed = ref(0); // 当前轨迹点的速度
+const showSettings = ref(false);
+const enableSpeedIcon = ref(true);
+const updateFrequency = ref(100); // 默认100毫秒更新一次，高频模式
 
-// 计算样式类
-const positionClass = computed(() => `position-${position.value}`);
+// 计算属性：是否可以切换轨迹
+const canSwitchTrack = computed(() => {
+  return playState.value !== 'playing';
+});
 
-// 加载轨迹数据
-const loadTracks = () => {
-  if (!props.trackObj) return;
-  tracks.value = props.trackObj.getTracks();
+// 轨迹播放器样式配置
+const trackPlayerConfig = {
+  width: 320,
+  height: 'auto',
+  collapsedWidth: 40,
+  collapsedHeight: 40,
+  buttonSize: 24
+};
 
-  // 如果有轨迹，自动选择第一个
-  if (tracks.value.length > 0 && !currentTrackId.value) {
-    selectTrack(tracks.value[0].id);
+// 计算轨迹播放器样式
+const trackPlayerStyle = computed(() => {
+  return {
+    width: collapsed.value ? `${trackPlayerConfig.collapsedWidth}px` : `${trackPlayerConfig.width}px`,
+    height: collapsed.value ? `${trackPlayerConfig.collapsedHeight}px` : trackPlayerConfig.height,
+    transition: 'width 0.3s, height 0.3s, transform 0.3s',
+    contain: 'layout style'
+  };
+});
+
+// 轨迹数据
+const tracks = ref(new Map<string, Track>());
+
+// 图标
+const icons = {
+  trackPlay: TRACK_PLAY_ICON,
+  trackPause: TRACK_PAUSE_ICON,
+  trackBackward: TRACK_BACKWARD_ICON,
+  trackForward: TRACK_FORWARD_ICON,
+  trackDelete: TRACK_DELETE_ICON,
+  trackFollowCamera: TRACK_FOLLOW_CAMERA_ICON
+};
+
+// 更新播放进度的计时器
+let progressTimer: number | null = null;
+
+// 刷新轨迹列表
+const refreshTrackList = () => {
+  if (props.trackObj) {
+    try {
+      // 保存当前选中的轨迹ID
+      const currentActiveTrackId = activeTrackId.value;
+      
+      // 获取新的轨迹列表，包含长度信息
+      const tracksArray = props.trackObj.getTracksArray();
+      
+      // 检查是否有新增轨迹
+      if (tracksArray.length !== tracks.value.size) {
+        console.log('轨迹列表已更新，总数:', tracksArray.length);
+      }
+      
+      // 创建新的Map实例以触发Vue的响应式更新
+      const newTracks = new Map();
+      tracksArray.forEach(trackInfo => {
+        newTracks.set(trackInfo.id, trackInfo.track);
+      });
+      
+      // 更新轨迹列表 - 使用新Map实例而非直接赋值
+      tracks.value = newTracks;
+      
+      console.log('轨迹列表已刷新，当前轨迹数:', tracks.value.size, '轨迹ID:', [...tracks.value.keys()]);
+      
+      // 如果之前有选中的轨迹，且该轨迹仍然存在，保持选中状态
+      if (currentActiveTrackId && tracks.value.has(currentActiveTrackId)) {
+        // 保持当前选中状态不变
+        activeTrackId.value = currentActiveTrackId;
+      }
+    } catch (error) {
+      console.error('刷新轨迹列表时发生错误:', error);
+      // 出错时清空轨迹列表
+      tracks.value = new Map();
+    }
   }
 };
 
-// 选择轨迹
-const selectTrack = (trackId: string) => {
-  if (!props.trackObj) return;
+// 组件挂载
+onMounted(() => {
+  // 应用外部配置
+    applyConfig();
   
-  props.trackObj.setActiveTrack(trackId);
-  currentTrackId.value = trackId;
+  if (props.trackObj) {
+    refreshTrackList();
+     
+    // 监听自定义事件，当添加轨迹时强制刷新列表
+    try {
+      // 直接使用document作为事件监听目标
+      document.addEventListener('track-added', (event: Event) => {
+        console.log('收到轨迹添加事件，强制刷新列表', event);
+        refreshTrackList();
+      });
+    } catch (error) {
+      console.error('设置track-added事件监听失败:', error);
+    }
+  }
+});
+
+// 应用外部配置
+const applyConfig = () => {
+  if (!props.config) return;
   
-  // 获取轨迹时间范围
-  const track = props.trackObj.getTrack(trackId);
-  if (track && track.points && track.points.length > 0) {
-    minTime.value = track.points[0].time;
-    maxTime.value = track.points[track.points.length - 1].time;
-    currentTime.value = minTime.value;
+  // 应用播放器配置
+  if (props.config.loop !== undefined) {
+    loopPlay.value = props.config.loop;
   }
   
-  emit('track-selected', { 
-    trackId, 
-    track: props.trackObj.getTrack(trackId)! 
+  if (props.config.withCamera !== undefined) {
+    followCamera.value = props.config.withCamera;
+  }
+  
+  if (props.config.speedFactor !== undefined) {
+    speedFactor.value = props.config.speedFactor;
+  }
+  
+  // 应用显示设置
+  if (props.config.showNodes !== undefined) {
+    showNodes.value = props.config.showNodes;
+  }
+  
+  if (props.config.showNodeAnchors !== undefined) {
+    showNodeAnchors.value = props.config.showNodeAnchors;
+  }
+  
+  if (props.config.showNodeNames !== undefined) {
+    showNodePopover.value = props.config.showNodeNames;
+  }
+  
+  if (props.config.showNodeTime !== undefined) {
+    showNodeTime.value = props.config.showNodeTime;
+  }
+  
+  if (props.config.showPointNames !== undefined) {
+    showMovingPointName.value = props.config.showPointNames;
+  }
+  
+  if (props.config.showSpeed !== undefined) {
+    showSpeedPopover.value = props.config.showSpeed;
+  }
+  
+  if (props.config.showNodeSpeed !== undefined) {
+    showNodeSpeed.value = props.config.showNodeSpeed;
+  }
+  
+  if (props.config.showNodeDistance !== undefined) {
+    showNodeDistance.value = props.config.showNodeDistance;
+  }
+  
+  if (props.config.updateFrequency !== undefined) {
+    updateFrequency.value = props.config.updateFrequency;
+  }
+  
+  logger.debug('轨迹播放器配置已应用', props.config);
+};
+
+// 监听config变化，动态应用新配置
+watch(() => props.config, () => {
+  console.log('轨迹播放器配置变化，重新应用配置');
+  applyConfig();
+  
+  // 如果有活动轨迹，对活动轨迹应用新的显示设置
+  if (activeTrackId.value && props.trackObj) {
+    // 应用节点显示设置
+    props.trackObj.setTrackNodesVisible(activeTrackId.value, showNodes.value);
+    props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, showNodePopover.value);
+    props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, showNodeTime.value);
+    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, showNodeDistance.value);
+    props.trackObj.setMovingPointNameVisible(activeTrackId.value, showMovingPointName.value);
+    props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, showSpeedPopover.value);
+    props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, showNodeSpeed.value);
+    
+    // 更新播放配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, {
+      loop: loopPlay.value,
+      withCamera: followCamera.value,
+      speedFactor: speedFactor.value
+    });
+  }
+}, { deep: true });
+
+// 监听props.trackObj变化，实时刷新轨迹列表
+watch(() => props.trackObj, (newTrackObj) => {
+  if (newTrackObj) {
+    refreshTrackList();
+  }
+}, { deep: true, immediate: true });
+
+// 监听props.trackObj.getAllTracks()的结果，当轨迹数据变化时刷新列表
+// 由于无法直接监听对象方法的返回值，采用副作用函数定期检查
+watchEffect(() => {
+  if (props.trackObj) {
+    // 获取当前轨迹数据
+    const tracksArray = props.trackObj.getTracksArray();
+    const tracksCount = tracksArray.length;
+    
+    // 使用多种条件检测轨迹列表是否变化
+    if (
+      tracksCount !== tracks.value.size || // 数量不同
+      JSON.stringify(tracksArray.map(t => t.id).sort()) !== JSON.stringify([...tracks.value.keys()].sort()) // ID不同
+    ) {
+      console.log('检测到轨迹列表变化，刷新列表', tracksCount, tracks.value.size);
+      refreshTrackList();
+    }
+  }
+});
+
+// 组件销毁前清理
+onBeforeUnmount(() => {
+  stopProgressTimer();
+});
+
+// 切换收缩/展开状态
+const toggleCollapse = () => {
+  // 更改折叠状态
+  collapsed.value = !collapsed.value;
+  
+  // 使用 requestAnimationFrame 确保在下一帧动画开始前通知父组件
+  // 这样可以避免在同一帧内的布局计算和重绘
+  requestAnimationFrame(() => {
+    // 通知父组件折叠状态变化
+    emit('collapse-change', collapsed.value);
   });
 };
 
-// 移除轨迹
-const removeTrack = (trackId: string) => {
-  if (!props.trackObj) return;
+// 监听播放配置变化 - 循环播放和跟随相机
+watch([loopPlay, followCamera], ([newLoop, newFollowCamera]) => {
+  // 如果有活动轨迹，实时更新播放配置
+  if (activeTrackId.value) {
+    const playerConfig: Partial<TrackPlayerConfig> = {
+      loop: newLoop,
+      withCamera: newFollowCamera,
+      speedFactor: speedFactor.value
+    };
+    
+    // 无论播放状态如何，都设置基本配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+    
+    // 如果正在播放，立即应用新设置
+    if (playState.value === 'playing') {
+      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+    }
+  }
+});
+
+// 监听速度因子变化
+watch(speedFactor, (newSpeedFactor) => {
+  if (activeTrackId.value) {
+    // 立即应用新的速度
+    props.trackObj.updateTrackSpeed(activeTrackId.value, newSpeedFactor);
+    
+    // 同时更新轨迹播放器配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, {
+      loop: loopPlay.value,
+      withCamera: followCamera.value,
+      speedFactor: newSpeedFactor
+    });
+  }
+});
+
+// 监听显示节点设置的变化
+watch(showNodes, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodesVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示节点锚点设置的变化
+watch(showNodeAnchors, (newValue) => {
+  if (activeTrackId.value && props.trackObj && showNodes.value) {
+    props.trackObj.setTrackNodeAnchorsVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示节点名称设置的变化
+watch(showNodePopover, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示速度弹窗设置的变化
+watch(showSpeedPopover, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示节点速度设置的变化
+watch(showNodeSpeed, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示移动点位名称设置的变化
+watch(showMovingPointName, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setMovingPointNameVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示节点时间设置的变化
+watch(showNodeTime, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听显示节点距离设置的变化
+watch(showNodeDistance, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 监听速度图标切换设置的变化
+watch(enableSpeedIcon, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    // 获取当前轨迹配置
+    const trackConfig = {
+      trackSpeedGroup: newValue ? DEFAULT_TRACK_SPEED_GROUPS : []
+    };
+    // 设置轨迹配置
+    props.trackObj.setConfig(trackConfig);
+  }
+});
+
+/**
+ * 获取轨迹点的时间戳（支持多种格式）
+ * @param point 轨迹点
+ * @returns 时间戳（毫秒）
+ */
+const getPointTimestamp = (point: any): number => {
+  // 如果直接有timestamp字段且为数字，直接使用
+  if (typeof point.timestamp === 'number') {
+    return point.timestamp;
+  }
   
-  if (isPlaying.value && currentTrackId.value === trackId) {
-    handleStop();
+  // 如果有time字段且为数字，直接使用
+  if (typeof point.time === 'number') {
+    return point.time;
+  }
+  
+  // 如果timestamp是字符串，尝试转换为时间戳
+  if (typeof point.timestamp === 'string') {
+    try {
+      return new Date(point.timestamp).getTime();
+    } catch (e) {
+      console.warn(`无法解析字符串时间戳: ${point.timestamp}`);
+    }
+  }
+  
+  // 如果time是字符串，尝试转换为时间戳
+  if (typeof point.time === 'string') {
+    try {
+      return new Date(point.time).getTime();
+    } catch (e) {
+      console.warn(`无法解析字符串时间戳: ${point.time}`);
+    }
+  }
+  
+  // 如果没有有效的时间戳，返回当前时间
+  console.warn(`轨迹点缺少有效的时间戳，使用当前时间作为替代`);
+  return Date.now();
+};
+
+// 选择轨迹
+const selectTrack = (id: string) => {
+  // 如果当前正在播放，不允许切换轨迹
+  if (playState.value === 'playing') {
+    console.warn('播放中无法切换轨迹');
+    return;
+  }
+  
+  // 如果选择的是当前轨迹，不做任何操作
+  if (activeTrackId.value === id) {
+    return;
+  }
+  
+  // 如果已经选择了其他轨迹，先停止播放
+  if (activeTrackId.value && activeTrackId.value !== id && playState.value !== 'stopped') {
+    props.trackObj.stop(activeTrackId.value);
+  }
+  
+  // 如果已有选中的轨迹且不是当前选择的轨迹，先隐藏之前的轨迹
+  if (activeTrackId.value && activeTrackId.value !== id) {
+    // 使用hideTrack方法隐藏之前的轨迹，而不是完全移除
+    props.trackObj.hideTrack(activeTrackId.value);
+    console.log(`已隐藏先前的轨迹: ${activeTrackId.value}`);
+  }
+  
+  // 设置新的活动轨迹
+  activeTrackId.value = id;
+  playState.value = 'stopped'; // 重置播放状态
+  
+  // 显示选中的轨迹并打印结果 - 这是关键步骤
+  let trackShown = props.trackObj.showTrack(id);
+  console.log(`显示轨迹 ${id} 的结果: ${trackShown}`);
+  
+  // 如果显示失败，尝试添加轨迹到地图上
+  if (!trackShown && tracks.value.has(id)) {
+    // 确保轨迹数据存在
+    const track = tracks.value.get(id);
+    if (track) {
+      // 先移除旧轨迹（如果存在）
+      try {
+        props.trackObj.removeTrack(id);
+      } catch (e) {
+        console.warn(`移除现有轨迹失败: ${id}`, e);
       }
       
-  props.trackObj.removeTrack(trackId);
+      // 重新添加轨迹
+      const trackAdded = props.trackObj.addTrack(track);
+      console.log(`重新添加轨迹 ${id} 结果: ${trackAdded}`);
       
-  if (currentTrackId.value === trackId) {
-    currentTrackId.value = null;
+      // 再次尝试显示轨迹
+      trackShown = props.trackObj.showTrack(id);
+      
+      // 如果仍然失败，尝试重新选择轨迹
+      if (!trackShown) {
+        console.warn(`显示轨迹失败，尝试第二次选择轨迹: ${id}`);
+        props.trackObj.selectTrack(id, { autoPlay: false });
+      }
+    }
+  }
+  
+  // 计算轨迹总时长
+  const track = tracks.value.get(id);
+  if (track && track.points && track.points.length >= 2) {
+    const startTimestamp = getPointTimestamp(track.points[0]);
+    const endTimestamp = getPointTimestamp(track.points[track.points.length - 1]);
+    
+    totalTime.value = endTimestamp - startTimestamp;
+    currentTime.value = 0;
+    progressPercentage.value = 0;
+  }
+  
+  // 应用参数设置
+  if (props.trackObj && id) {
+    // 从全局配置或当前UI状态获取显示设置
+    const nodeVisible = props.config?.showNodes !== undefined ? props.config.showNodes : showNodes.value;
+    const nodeAnchorsVisible = props.config?.showNodeAnchors !== undefined ? props.config.showNodeAnchors : showNodeAnchors.value;
+    const nodeNameVisible = props.config?.showNodeNames !== undefined ? props.config.showNodeNames : showNodePopover.value;
+    const nodeTimeVisible = props.config?.showNodeTime !== undefined ? props.config.showNodeTime : showNodeTime.value;
+    const nodeDistanceVisible = props.config?.showNodeDistance !== undefined ? props.config.showNodeDistance : showNodeDistance.value;
+    const speedVisible = props.config?.showSpeed !== undefined ? props.config.showSpeed : showSpeedPopover.value;
+    const nodeSpeedVisible = props.config?.showNodeSpeed !== undefined ? props.config.showNodeSpeed : showNodeSpeed.value;
+    const movingPointNameVisible = props.config?.showPointNames !== undefined ? props.config.showPointNames : showMovingPointName.value;
+    
+    // 应用显示设置 - 直接调用方法
+    props.trackObj.setTrackNodesVisible(id, nodeVisible);
+    props.trackObj.setTrackNodeAnchorsVisible(id, nodeAnchorsVisible);
+    props.trackObj.setTrackNodePopoversVisible(id, nodeNameVisible);
+    props.trackObj.setTrackNodeTimeVisible(id, nodeTimeVisible);
+    props.trackObj.setTrackNodeDistanceVisible(id, nodeDistanceVisible);
+    props.trackObj.setTrackSpeedPopoversVisible(id, speedVisible);
+    props.trackObj.setTrackNodeSpeedsVisible(id, nodeSpeedVisible);
+    props.trackObj.setMovingPointNameVisible(id, movingPointNameVisible);
+    
+    // 从全局配置或当前UI状态获取播放配置
+    const loop = props.config?.loop !== undefined ? props.config.loop : loopPlay.value;
+    const withCamera = props.config?.withCamera !== undefined ? props.config.withCamera : followCamera.value;
+    const speed = props.config?.speed !== undefined ? props.config.speed : 50;
+    const speedFct = props.config?.speedFactor !== undefined ? props.config.speedFactor : speedFactor.value;
+    
+    // 应用播放器设置
+    props.trackObj.setTrackPlayer(id, {
+      loop: loop,
+      withCamera: withCamera,
+      speed: speed, // 基础速度
+      speedFactor: speedFct // 倍数播放因子
+    });
+    
+    // 设置播放速度因子
+    props.trackObj.setTrackSpeedFactor(id, speedFct);
+    
+    // 同步UI控件状态
+    loopPlay.value = loop;
+    followCamera.value = withCamera;
+    showNodes.value = nodeVisible;
+    showNodePopover.value = nodeNameVisible;
+    showNodeTime.value = nodeTimeVisible;
+    showSpeedPopover.value = speedVisible;
+    showNodeSpeed.value = nodeSpeedVisible;
+    showMovingPointName.value = movingPointNameVisible;
+    speedFactor.value = speedFct;
+  }
+  
+  emit('track-selected', id);
+  
+  // 尝试将地图缩放到轨迹位置
+  try {
+    setTimeout(() => {
+      props.trackObj.fitTrackToView(id, {
+        gotoStart: false,
+        padding: [20, 20, 20, 20],
+        duration: 300,
+        maxZoom: 16
+      });
+    }, 100); // 添加延迟确保地图已准备好
+  } catch (error) {
+    console.warn(`缩放到轨迹 ${id} 视图失败:`, error);
+  }
+};
+
+// 删除轨迹
+const deleteTrack = (id: string) => {
+  // 播放中不允许删除任何轨迹
+  if (playState.value === 'playing') {
+    console.warn('播放中无法删除轨迹');
+    return;
+  }
+  
+  if (props.trackObj) {
+    try {
+      // 如果正在播放，先停止
+      if (activeTrackId.value === id && playState.value !== 'stopped') {
+        props.trackObj.stop(id);
+      }
+      
+      // 删除轨迹
+      props.trackObj.removeTrack(id);
+      
+      // 如果删除的是当前活动轨迹，清空活动轨迹
+      if (activeTrackId.value === id) {
+        activeTrackId.value = null;
+        playState.value = 'stopped';
+        stopProgressTimer();
       }
       
       // 刷新轨迹列表
-  loadTracks();
+      refreshTrackList();
       
-  emit('track-deleted', { trackId });
+      emit('track-deleted', id);
+    } catch (error) {
+      console.error('删除轨迹时发生错误:', error);
+    }
+  }
 };
 
-// 格式化时间显示
-const formatTime = (timestamp: number) => {
-  if (!currentTrack.value) return '00:00:00';
+// 播放/暂停切换
+const togglePlay = () => {
+  if (!activeTrackId.value || !props.trackObj) return;
   
-  // 使用相对时间，计算轨迹起始时间的偏移
-  const startTime = currentTrack.value.points[0]?.time || 0;
-  const relativeTime = timestamp - startTime;
-  
-  // 转换为时分秒
-  const hours = Math.floor(relativeTime / 3600000);
-  const minutes = Math.floor((relativeTime % 3600000) / 60000);
-  const seconds = Math.floor((relativeTime % 60000) / 1000);
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  try {
+    if (playState.value === 'playing') {
+      // 暂停播放
+      props.trackObj.pause(activeTrackId.value);
+      playState.value = 'paused';
+      stopProgressTimer();
+    } else {
+      // 获取最新配置参数
+      const loop = props.config?.loop !== undefined ? props.config.loop : loopPlay.value;
+      const withCamera = props.config?.withCamera !== undefined ? props.config.withCamera : followCamera.value;
+      const speed = props.config?.speed !== undefined ? props.config.speed : 50;
+      // 始终使用当前UI中的速度因子值，确保实时响应用户调整
+      const speedFct = speedFactor.value;
+      
+      // 开始播放
+      const playerConfig = {
+        loop: loop,
+        withCamera: withCamera,
+        speed: speed, // 基础速度
+        speedFactor: speedFct // 倍数播放因子
+      };
+      
+      // 同步UI状态
+      loopPlay.value = loop;
+      followCamera.value = withCamera;
+      
+      // 播放前先设置播放器配置，确保正确应用速度等参数
+      props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+      
+      // 开始播放
+      props.trackObj.play(activeTrackId.value, playerConfig);
+      
+      // 无论是否从暂停状态恢复，都确保立即应用最新的速度设置
+      props.trackObj.updateTrackSpeed(activeTrackId.value, speedFct);
+      
+      // 额外调用updateTrackPlayer确保所有播放配置立即生效
+      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+      
+      playState.value = 'playing';
+      
+      // 开始进度更新计时器
+      startProgressTimer();
+    }
+  } catch (error) {
+    console.error('切换播放状态时发生错误:', error);
+  }
 };
 
-// 播放控制
-const handlePlay = () => {
-  if (!props.trackObj || !currentTrackId.value) return;
+// 设置播放速度
+const setSpeed = (factor: number) => {
+  if (!activeTrackId.value) return;
   
-  props.trackObj.play(currentTrackId.value, currentTime.value);
-  isPlaying.value = true;
+  // 设置新的速度因子
+  speedFactor.value = factor;
+  
+  // 无论是否正在播放，都立即更新速度
+  props.trackObj.updateTrackSpeed(activeTrackId.value, factor);
+  
+  // 更新轨迹播放器配置
+  const playerConfig = {
+    loop: loopPlay.value,
+    withCamera: followCamera.value,
+    speedFactor: factor // 倍数播放因子
+  };
+  
+  // 设置基本配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+  
+  // 无论播放状态如何，都确保立即应用新配置
+    props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+    console.log(`轨迹播放速度已调整为: ${factor.toFixed(1)}x`);
 };
 
-const handlePause = () => {
-  if (!props.trackObj) return;
+// 处理进度条点击
+const handleProgressClick = (e: MouseEvent) => {
+  if (!activeTrackId.value || !props.trackObj) return;
   
-  props.trackObj.pause();
-  isPlaying.value = false;
+  try {
+    // 获取进度条元素
+    const progressBar = e.currentTarget as HTMLElement;
+    if (!progressBar) return;
+    
+    // 计算新进度
+    const rect = progressBar.getBoundingClientRect();
+    let progress = (e.clientX - rect.left) / rect.width;
+    
+    // 限制进度范围
+    progress = Math.max(0, Math.min(1, progress));
+    
+    // 更新进度
+    updateProgress(progress);
+    
+    // 设置轨迹进度
+    props.trackObj.setTrackProgress(activeTrackId.value, progress);
+  } catch (error) {
+    console.error('设置轨迹进度时发生错误:', error);
+  }
 };
 
-const handleStop = () => {
-  if (!props.trackObj) return;
-  
-  props.trackObj.stop();
-  isPlaying.value = false;
-  currentTime.value = minTime.value;
+// 停止进度更新计时器
+const stopProgressTimer = () => {
+  if (progressTimer !== null) {
+    window.clearInterval(progressTimer);
+    progressTimer = null;
+  }
 };
 
-// 时间滑块变化
-const handleTimeChange = () => {
-  if (!props.trackObj || !currentTrackId.value) return;
+// 进度条拖动处理
+const startProgressDrag = (e: MouseEvent) => {
+  if (!activeTrackId.value || !props.trackObj) return;
   
-  // 如果正在播放，先暂停
-  const wasPlaying = isPlaying.value;
-  if (wasPlaying) {
-    props.trackObj.pause();
+  // 设置拖动状态
+  isDraggingProgress.value = true;
+  
+  // 暂停播放（如果正在播放）
+  let wasPlaying = false;
+  if (playState.value === 'playing') {
+    props.trackObj.pause(activeTrackId.value);
+    wasPlaying = true;
   }
   
-  // 设置播放位置
-  props.trackObj.setPlaybackTime(currentTime.value);
+  // 获取进度条元素
+  const progressBar = (e.target as HTMLElement).parentElement;
+  if (!progressBar) return;
+  
+  // 更新进度条位置
+  const updateDragProgress = (moveEvent: MouseEvent) => {
+    const rect = progressBar.getBoundingClientRect();
+    let progress = (moveEvent.clientX - rect.left) / rect.width;
+    progress = Math.max(0, Math.min(1, progress));
     
-  // 如果之前在播放，则继续播放
+    // 更新UI进度
+    updateProgress(progress);
+    
+    // 设置轨迹进度
+    props.trackObj.setTrackProgress(activeTrackId.value!, progress);
+  };
+  
+  // 结束拖动
+  const stopDrag = () => {
+    isDraggingProgress.value = false;
+    document.removeEventListener('mousemove', updateDragProgress);
+    document.removeEventListener('mouseup', stopDrag);
+    
+    // 如果之前在播放，恢复播放
     if (wasPlaying) {
-    props.trackObj.play(currentTrackId.value, currentTime.value);
+      setTimeout(() => {
+        if (activeTrackId.value) {
+          props.trackObj.play(activeTrackId.value, {
+            loop: loopPlay.value,
+            withCamera: followCamera.value,
+            speedFactor: speedFactor.value
+          });
+          playState.value = 'playing';
+          startProgressTimer();
+        }
+      }, 100);
     }
   };
   
-// 速度滑块变化
-const handleSpeedChange = () => {
-  if (!props.trackObj) return;
+  // 添加事件监听
+  document.addEventListener('mousemove', updateDragProgress);
+  document.addEventListener('mouseup', stopDrag);
   
-  props.trackObj.setPlaybackSpeed(playbackSpeed.value);
+  // 立即更新进度
+  updateDragProgress(e);
 };
 
-// 循环播放选项变化
-const handleLoopChange = () => {
-  if (!props.trackObj) return;
+// 启动进度更新计时器
+const startProgressTimer = () => {
+  // 先停止现有的计时器
+  stopProgressTimer();
   
-  props.trackObj.setConfig({ loop: loop.value });
+  // 设置新的计时器，每100毫秒更新一次进度
+  progressTimer = window.setInterval(() => {
+    if (activeTrackId.value && props.trackObj) {
+      // 获取轨迹当前进度
+      const progress = props.trackObj.getTrackProgress(activeTrackId.value);
+      if (progress !== null) {
+        // 更新UI进度
+        updateProgress(progress);
+      }
+        
+        // 获取当前速度
+        const speed = props.trackObj.getCurrentSpeed(activeTrackId.value);
+        if (speed !== null) {
+          currentSpeed.value = speed;
+      }
+      
+      // 检查播放状态
+      const currentPlayState = props.trackObj.getTrackPlayState(activeTrackId.value);
+      if (currentPlayState !== 'playing') {
+        playState.value = currentPlayState === 'paused' ? 'paused' : 'stopped';
+        // 如果已停止，清除计时器
+        if (currentPlayState === 'stopped') {
+          stopProgressTimer();
+          currentSpeed.value = 0;
+        }
+      }
+    }
+  }, updateFrequency.value);
 };
 
-// 跟随相机选项变化
-const handleCameraChange = () => {
-  if (!props.trackObj) return;
+// 更新进度UI
+const updateProgress = (progress: number) => {
+  progressPercentage.value = progress * 100;
   
-  props.trackObj.setConfig({ withCamera: withCamera.value });
-};
-
-// 显示节点名称选项变化
-const handleNodeNamesChange = () => {
-  if (!props.trackObj) return;
-  
-  props.trackObj.setConfig({ showNodeNames: showNodeNames.value });
-};
-
-// 收起/展开面板
-const handleToggleCollapse = () => {
-  collapsed.value = !collapsed.value;
-  emit('collapse-change', collapsed.value);
-};
-
-// 监听事件更新状态
-const setupEventListeners = () => {
-  if (!props.trackObj) return;
-  
-  // 设置事件回调
-  props.trackObj.setEventCallback((eventName, payload) => {
-    if (eventName === 'track-position-update') {
-      // 更新当前时间
-      currentTime.value = payload.time;
-    } else if (eventName === 'track-play-start') {
-      isPlaying.value = true;
-    } else if (eventName === 'track-play-pause') {
-      isPlaying.value = false;
-    } else if (eventName === 'track-play-stop') {
-      isPlaying.value = false;
-      currentTime.value = minTime.value;
-    } else if (eventName === 'track-play-end') {
-      isPlaying.value = false;
-      currentTime.value = maxTime.value;
-    } else if (eventName === 'track-added' || eventName === 'track-removed') {
-      // 刷新轨迹列表
-      loadTracks();
-    } else if (eventName === 'track-selected') {
-      currentTrackId.value = payload.trackId;
+  if (activeTrackId.value) {
+    const track = tracks.value.get(activeTrackId.value);
+    if (track && track.points.length >= 2) {
+      const startTimestamp = getPointTimestamp(track.points[0]);
+      const endTimestamp = getPointTimestamp(track.points[track.points.length - 1]);
+      
+      const totalDuration = endTimestamp - startTimestamp;
+      currentTime.value = startTimestamp + totalDuration * progress;
+    }
   }
-});
 };
 
-// 更新配置
-const updateConfig = () => {
-  if (!props.trackObj || !props.config) return;
-  
-  props.trackObj.setConfig(props.config);
-  
-  // 更新本地状态
-  playbackSpeed.value = props.config.speed || 50;
-  loop.value = props.config.loop || false;
-  withCamera.value = props.config.withCamera || false;
-  showNodeNames.value = props.config.showNodeNames || false;
-  showTrackList.value = props.config.showTrackList !== false;
-  position.value = props.config.position || 'bottom-right';
-};
 
-// 生命周期钩子
-onMounted(() => {
-  // 初始化
-  updateConfig();
-  setupEventListeners();
-  loadTracks();
-});
-
-onBeforeUnmount(() => {
-  // 如果正在播放，停止播放
-  if (isPlaying.value && props.trackObj) {
-    props.trackObj.stop();
+// 格式化轨迹详情
+const formatTrackDetail = (track: Track): string => {
+  if (!track.points || track.points.length === 0) {
+    return '无轨迹点';
   }
-});
+  
+  const pointCount = track.points.length;
+  
+  // 获取第一个和最后一个点的时间戳
+  const firstPoint = track.points[0];
+  const lastPoint = track.points[pointCount - 1];
+  
+  const startTimestamp = getPointTimestamp(firstPoint);
+  const endTimestamp = getPointTimestamp(lastPoint);
+  
+  const startTime = new Date(startTimestamp * 1000).toLocaleString();
+  const endTime = new Date(endTimestamp * 1000).toLocaleString();
+  
+  return `${pointCount}个点 · ${startTime} ~ ${endTime}`;
+};
 
-// 监听配置变化
-watch(() => props.config, () => {
-  updateConfig();
-}, { deep: true });
-    
-// 导出方法
+// 格式化时间
+const formatTime = (time: number): string => {
+  // 格式化为 HH:MM:SS
+  const date = new Date(time * 1000);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+// 自适应显示轨迹（双击轨迹项时调用）
+const fitToTrackView = (id: string) => {
+  if (!props.trackObj) return;
+  
+  // 选中轨迹
+  selectTrack(id);
+  
+  // 调用fitTrackToView方法自适应显示轨迹
+  props.trackObj.fitTrackToView(id, {
+    gotoStart: false,
+    padding: [20, 20, 20, 20],
+    duration: 500,
+    maxZoom: 18
+  });
+  console.log(`自适应显示轨迹: ${id}`);
+};
+
+// 获取带有长度信息的轨迹名称
+const getTrackNameWithLength = (trackId: string) => {
+  if (!props.trackObj) return '未命名轨迹';
+  
+  // 使用getTracksArray获取轨迹数组，从中找到当前轨迹
+  const tracksArray = props.trackObj.getTracksArray();
+  const trackInfo = tracksArray.find(t => t.id === trackId);
+  
+  if (trackInfo && trackInfo.trackNameWithLength) {
+    return trackInfo.trackNameWithLength;
+  }
+  
+  // 如果没有找到或没有长度信息，返回基本名称
+  const track = tracks.value.get(trackId);
+  return track?.options?.name || '未命名轨迹';
+};
+
+// 暴露方法供父组件调用
 defineExpose({
-  selectTrack,
-  play: handlePlay,
-  pause: handlePause,
-  stop: handleStop
+  refreshTrackList,
+  play: (id: string) => {
+    if (id && tracks.value.has(id)) {
+      selectTrack(id);
+      togglePlay();
+    }
+  },
+  pause: () => {
+    if (activeTrackId.value && playState.value === 'playing') {
+      togglePlay();
+    }
+  },
+  stop: () => {
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.stop(activeTrackId.value);
+      playState.value = 'stopped';
+      stopProgressTimer();
+    }
+  },
+  setSpeed: (factor: number) => {
+    speedFactor.value = Math.max(0.5, Math.min(5, factor));
+    if (activeTrackId.value && playState.value === 'playing' && props.trackObj) {
+      props.trackObj.setTrackSpeedFactor(activeTrackId.value, speedFactor.value);
+    }
+  },
+  getActiveTrackId: () => activeTrackId.value,
+  getPlayState: () => playState.value,
+  setShowNodes: (show: boolean) => {
+    showNodes.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackNodesVisible(activeTrackId.value, show);
+    }
+  },
+  setShowNodeAnchors: (show: boolean) => {
+    showNodeAnchors.value = show;
+    if (activeTrackId.value && props.trackObj && showNodes.value) {
+      props.trackObj.setTrackNodeAnchorsVisible(activeTrackId.value, show);
+    }
+  },
+  setShowNodePopovers: (show: boolean) => {
+    showNodePopover.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, show);
+    }
+  },
+  setShowSpeedPopovers: (show: boolean) => {
+    showSpeedPopover.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, show);
+    }
+  },
+  setShowNodeSpeeds: (show: boolean) => {
+    showNodeSpeed.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, show);
+    }
+  },
+  setShowMovingPointName: (show: boolean) => {
+    showMovingPointName.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setMovingPointNameVisible(activeTrackId.value, show);
+    }
+  },
+  getCurrentSpeed: () => currentSpeed.value,
+  setShowNodeTime: (show: boolean) => {
+    showNodeTime.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, show);
+    }
+  },
+  setShowNodeDistance: (show: boolean) => {
+    showNodeDistance.value = show;
+    if (activeTrackId.value && props.trackObj) {
+      props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, show);
+    }
+  },
+  
+  // 返回当前设置的配置
+  getConfig: () => {
+    return {
+      showNodes: showNodes.value,
+      showNodePopover: showNodePopover.value,
+      showNodeTime: showNodeTime.value,
+      showNodeDistance: showNodeDistance.value,
+      showSpeedPopover: showSpeedPopover.value,
+      showNodeSpeed: showNodeSpeed.value,
+      showMovingPointName: showMovingPointName.value,
+      updateFrequency: updateFrequency.value
+    };
+  },
+  
+  // 添加一个清理方法，用于取消激活播放器时调用
+  deactivate: () => {
+    // 如果有活动轨迹，先停止播放
+    if (activeTrackId.value && props.trackObj) {
+      if (playState.value === 'playing') {
+        props.trackObj.stop(activeTrackId.value);
+        playState.value = 'stopped';
+        stopProgressTimer();
+      }
+      
+      // 记录当前轨迹ID，用于后续可能的恢复
+      const trackIdToRemove = activeTrackId.value;
+      
+      // 从地图上移除轨迹和所有Overlay
+      if (props.trackObj) {
+        console.log(`轨迹播放器停用，移除轨迹: ${trackIdToRemove}`);
+        
+        // 先保存轨迹数据
+        const track = tracks.value.get(trackIdToRemove);
+        
+        // 移除轨迹及所有Overlay
+        props.trackObj.removeTrack(trackIdToRemove);
+        
+        // 将轨迹数据重新添加回来，但不显示在地图上
+        if (track) {
+          props.trackObj.addTrack(track);
+          console.log(`轨迹数据已重新添加: ${trackIdToRemove}`);
+        }
+      }
+      
+      // 清空当前活动轨迹ID
+      activeTrackId.value = null;
+    }
+  }
 });
+
+// 切换设置弹窗
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value;
+};
+
+// 速度滑块输入事件处理函数
+const onSpeedChange = () => {
+  if (activeTrackId.value) {
+    // 立即应用新的速度
+    props.trackObj.updateTrackSpeed(activeTrackId.value, speedFactor.value);
+    
+    // 同时更新轨迹播放器配置
+    const playerConfig = {
+      loop: loopPlay.value,
+      withCamera: followCamera.value,
+      speedFactor: speedFactor.value
+    };
+    
+    // 先设置基本配置
+    props.trackObj.setTrackPlayer(activeTrackId.value, playerConfig);
+    
+    // 无论播放状态如何，都确保立即应用新配置
+      props.trackObj.updateTrackPlayer(activeTrackId.value, playerConfig);
+      console.log(`轨迹播放速度已实时调整为: ${speedFactor.value.toFixed(1)}x`);
+  }
+};
+
 </script>
 
 <style scoped>
 .track-player {
   position: absolute;
-  background-color: #fff;
-  border-radius: 4px;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  width: 300px;
-  max-width: 90%;
-  transition: all 0.3s ease;
+  overflow: hidden;
   z-index: 1000;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.position-top-left {
-  top: 10px;
-  left: 10px;
+/* 设置组样式 */
+.settings-group {
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 12px;
 }
 
-.position-top-right {
-  top: 10px;
-  right: 10px;
+.settings-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
-.position-bottom-left {
-  bottom: 10px;
-  left: 10px;
+.settings-group-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 14px;
 }
 
-.position-bottom-right {
-  bottom: 10px;
-  right: 10px;
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
 }
 
+.settings-option {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 更新频率选项样式 */
+.settings-option input[type="radio"] {
+  margin-right: 5px;
+}
+
+.settings-option input[type="radio"]:checked + span {
+  font-weight: bold;
+  color: #1890ff;
+}
+
+/* 其他样式保持不变 */
 .track-player-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background-color: #1890ff;
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #1890ff, #096dd9);
   color: #fff;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.track-player.collapsed .track-player-header {
+  padding: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .track-player-title {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.track-player-title .icon {
-  margin-right: 8px;
-  display: flex;
-  align-items: center;
+.track-player.collapsed .track-player-title {
+  display: none;
+}
+
+.track-player.collapsed .track-player-actions {
+  display: none;
+}
+
+.track-player.collapsed .track-player-content {
+  display: none;
 }
 
 .track-player-actions {
   display: flex;
-  align-items: center;
+  gap: 8px;
 }
 
-.collapse-btn {
-  background: none;
+.track-player-setting-btn {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 2px;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
-.track-player.collapsed .collapse-btn {
-  transform: rotate(180deg);
+.track-player-setting-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.setting-icon {
+  font-size: 16px;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track-player-collapse-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.track-player-collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.collapse-icon {
+  font-size: 16px;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .track-player-content {
-  padding: 12px;
-  max-height: 60vh;
-  overflow-y: auto;
+  padding: 18px;
+  background-color: #fff;
 }
 
 .track-list {
-  margin-bottom: 12px;
-  max-height: 150px;
+  margin-bottom: 18px;
+}
+
+.track-list-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.track-list-header::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(to bottom, #1890ff, #096dd9);
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.track-list-content {
+  max-height: 200px;
   overflow-y: auto;
   border: 1px solid #e8e8e8;
-  border-radius: 2px;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .track-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
+  padding: 10px 14px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.2s;
 }
 
 .track-item:last-child {
@@ -485,152 +1482,519 @@ defineExpose({
 
 .track-item.active {
   background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+.track-camera.active {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+.track-camera path{
+  color: #000 !important;
 }
 
-.track-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 8px;
+.track-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.track-name {
+.track-item-info {
   flex: 1;
+  min-width: 0;
+}
+
+.track-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #333;
+}
+
+.track-item-detail {
   font-size: 12px;
+  color: #8c8c8c;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.track-actions {
+.track-item-actions {
   display: flex;
-  align-items: center;
+  gap: 5px;
 }
 
-.track-action-btn {
+.track-item-delete-btn {
   background: none;
   border: none;
-  color: #999;
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
+  color: #999;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.3s ease;
+  transition: all 0.2s;
 }
 
-.track-action-btn:hover {
+.track-item-delete-btn:hover {
   color: #ff4d4f;
+  background-color: rgba(255, 77, 79, 0.1);
+  transform: scale(1.1);
 }
 
-.player-controls {
+.track-item-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #d9d9d9;
+  background-color: transparent;
+  transform: none;
+}
+
+.track-item-delete-btn:disabled:hover {
+  color: #d9d9d9;
+  background-color: transparent;
+  transform: none;
+}
+
+.track-list-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  color: #999;
+  font-size: 13px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.track-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.time-slider {
-  width: 100%;
-}
-
-.time-slider input {
-  width: 100%;
-  margin-bottom: 4px;
-}
-
-.time-display {
+.track-options {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #666;
+  gap: 18px;
+  margin-bottom: 5px;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 12px;
+  border-radius: 8px;
 }
 
-.control-buttons {
+.track-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #444;
+  cursor: pointer;
+  user-select: none;
+}
+
+.track-option input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #1890ff;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.track-option input[type="checkbox"]:checked {
+  background-color: #1890ff;
+}
+
+.track-option input[type="checkbox"]:checked:after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.track-buttons {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 18px;
+  margin: 5px 0;
 }
 
-.control-btn {
-  background-color: #f5f5f5;
+.track-button {
+  background: none;
   border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  padding: 6px;
-  cursor: pointer;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  cursor: pointer;
+  color: #333;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.control-btn:hover {
-  background-color: #e6f7ff;
-  border-color: #1890ff;
+.track-button:hover:not(:disabled) {
   color: #1890ff;
+  border-color: #1890ff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(24, 144, 255, 0.15);
 }
 
-.control-btn:disabled {
-  background-color: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
+.track-button:disabled {
+  color: #d9d9d9;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.track-play {
+  background-color: #f0f8ff;
+  width: 54px;
+  height: 54px;
+}
+
+.track-play:hover:not(:disabled) {
+  background-color: #e6f7ff;
+}
+
+.track-progress {
+  margin-top: 10px;
+}
+
+.track-progress-bar {
+  height: 6px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  position: relative;
+  margin-bottom: 8px;
+  overflow: visible;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.track-progress-filled {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(to right, #1890ff, #36cfc9);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.track-progress-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background-color: #fff;
+  border: 2px solid #1890ff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  z-index: 10;
+}
+
+.track-progress-handle:hover,
+.track-progress-handle.active {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.2);
+}
+
+.track-progress-time {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.collapsed-icon {
+  position: absolute;
+  top: 0px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.playing-indicator {
+  animation: pulse 1.5s infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.track-speed-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.speed-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.speed-slider {
+  width: 100%;
+  height: 5px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e0e0e0;
+  outline: none;
+  border-radius: 3px;
+  margin: 5px 0;
+}
+
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.speed-slider::-webkit-slider-thumb:hover {
+  background: #40a9ff;
+  transform: scale(1.2);
+}
+
+.speed-slider:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.speed-control {
-  margin-bottom: 12px;
-}
-
-.speed-control label {
-  display: block;
+.speed-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
   font-size: 12px;
-  margin-bottom: 4px;
+  color: #666;
+  margin-top: 5px;
 }
 
-.speed-control input {
+/* 当前速度显示样式 */
+.track-current-speed {
+  font-size: 12px;
+  color: #1890ff;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 5px;
+  padding: 3px 8px;
+  background-color: rgba(24, 144, 255, 0.1);
+  border-radius: 4px;
+  display: inline-block;
   width: 100%;
 }
 
-.options-control {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.option-item {
+/* 设置弹窗样式 */
+.track-settings-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 600;
   display: flex;
   align-items: center;
-  font-size: 12px;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-.option-item input {
-  margin-right: 4px;
+.track-settings-content {
+  width: 280px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
-input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #e6e6e6;
-  outline: none;
+.track-settings-header {
+  padding: 12px 15px;
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #1890ff;
+.track-settings-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.track-settings-close {
+  font-size: 20px;
+  line-height: 1;
   cursor: pointer;
+  padding: 0 5px;
 }
 
-input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #1890ff;
-  cursor: pointer;
+.track-settings-body {
+  padding: 15px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.track-settings-footer {
+  padding: 10px 15px;
+  border-top: 1px solid #f0f0f0;
+  text-align: right;
+}
+
+.settings-apply-btn {
+  background-color: #1890ff;
+  color: #fff;
   border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.settings-apply-btn:hover {
+  background-color: #40a9ff;
+}
+
+.settings-group {
+  margin-bottom: 20px;
+}
+
+.settings-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+  position: relative;
+  padding-left: 12px;
+}
+
+.settings-group-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(to bottom, #1890ff, #096dd9);
+  border-radius: 2px;
+}
+
+.settings-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #444;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-option input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #1890ff;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.settings-option input[type="checkbox"]:checked {
+  background-color: #1890ff;
+}
+
+.settings-option input[type="checkbox"]:checked:after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.settings-option.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-option.disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
 }
 </style> 

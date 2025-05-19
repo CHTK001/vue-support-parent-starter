@@ -14,6 +14,12 @@ export enum MapType {
   CUSTOM = 'CUSTOM'    // 自定义地图
 }
 
+// 地图渲染模式枚举
+export enum RenderMode {
+  DOM = 'DOM',         // DOM渲染模式，使用HTML+CSS渲染地图元素，适合需要更多交互效果的场景
+  CANVAS = 'CANVAS'    // Canvas渲染模式，使用HTML5 Canvas渲染地图，性能更好，适合海量数据场景
+}
+
 // 地图配置
 export interface MapTypeConfig {
   name: string;

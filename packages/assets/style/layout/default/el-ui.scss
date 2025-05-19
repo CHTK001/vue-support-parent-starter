@@ -45,7 +45,11 @@
     color: var(--main-color);
   }
 }
-
+*,
+::before,
+::after {
+  border-color: inherit;
+}
 .font-bold {
   font-weight: bold;
 }

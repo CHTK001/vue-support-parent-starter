@@ -3,6 +3,8 @@
  * @description 定义轨迹相关的类型和接口
  */
 
+import { DEFAULT_TRACK_SPEED_GROUPS } from "./default";
+
 /**
  * 轨迹点
  */
@@ -49,6 +51,8 @@ export interface TrackOptions {
     opacity?: number;
     fillOpacity?: number;
   };
+  // 速度因子，用于控制轨迹播放速度的倍数
+  speedFactor?: number;
   // 自定义属性
   properties?: Record<string, any>;
 }
@@ -72,35 +76,25 @@ export interface Track {
 /**
  * 轨迹播放器选项
  */
-export interface TrackPlayerOptions {
-  // 播放速度
-  playbackSpeed?: number;
-  // 播放间隔（毫秒）
-  tickLen?: number;
-  // 最大插值时间（毫秒）
-  maxInterpolationTime?: number;
-  // 位置
-  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
-  // 轨迹点样式
-  trackPointOptions?: {
-    radius?: number;
-    color?: string;
-    fillColor?: string;
-    weight?: number;
-    opacity?: number;
-    fillOpacity?: number;
-  };
-  // 轨迹线样式
-  trackLineOptions?: {
+
+export interface TrackConfig {
+   // 已走过轨迹样式
+  passedLineOptions?: {
     color?: string;
     weight?: number;
     opacity?: number;
   };
-  // 自定义控制回调
-  customControlCallbacks?: {
-    onSpeedChange?: (speed: number) => void;
-    onTrackSelect?: (trackId: string) => void;
+  // 未走过轨迹样式
+  notPassedLineOptions?: {
+    color?: string;
+    weight?: number
+    opacity?: number;
   };
+  // 速度图标分组配置，当移动点的速度大于配置的speed时，使用icon图标
+  trackSpeedGroup?: {
+    speed: number;
+    icon: string;
+  }[];
 }
 
 /**
@@ -145,26 +139,16 @@ export interface TrackPlayerConfigOptions {
 }
 
 // 默认轨迹播放器配置
-export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
-  loop: false,
-  speed: 50,
-  withCamera: false,
-  speedFactor: 1.0,
-  showNodes: false,
-  showNodeAnchors: false,
-  showNodeNames: false,
-  showPointNames: true,
-  showSpeed: true,
-  showNodeSpeed: true,
-  moveIcon: 'car',
-  moveIconSize: [24, 24],
-  moveIconColor: '#1890ff',
-  trackStyle: {
-    color: '#1890ff',
+export const DEFAULT_TRACK_PLAYER_CONFIG: TrackConfig = {
+  passedLineOptions: {
+    color: 'rgba(24, 144, 255, 1)',
+    weight: 4,
+    opacity: 0.8
+  },
+  notPassedLineOptions: {
+    color: 'rgba(160, 160, 160, 0.8)',
     weight: 3,
-    opacity: 0.8,
-    nodeColor: '#1890ff',
-    nodeSize: 6,
-    nodeStyle: 'circle'
-  }
+    opacity: 0.5
+  },
+  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS // 使用默认的交通工具速度图标分组配置
 };

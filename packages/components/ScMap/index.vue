@@ -1,62 +1,42 @@
 /**
- * 地图组件 - Leaflet版本
- * @author 根据ScLayer组件移植实现
- */
+* 地图组件 - Leaflet版本
+* @author 根据ScLayer组件移植实现
+*/
 <template>
   <div class="sc-map" :style="{ height: config.height + 'px' }">
     <div ref="mapContainer" class="map-container"></div>
     <MapToolbar ref="mapToolbarRef" v-if="config.showToolbar" :toolbar-config="toolbarConfig"
-      :active-tool-id="activeToolId" @tool-activated="handleToolActivated"
-      @tool-deactivated="handleToolDeactivated" class=map-toolbar />
+      :active-tool-id="activeToolId" @tool-activated="handleToolActivated" @tool-deactivated="handleToolDeactivated"
+      class=map-toolbar />
     <!-- 添加坐标面板 -->
     <CoordinatePanel v-if="showCoordinatePanel" :active="true" :coordinate-info="coordinateInfo"
       :show-projected="coordinateOptions.showProjected" />
     <!-- 添加图层面板 -->
     <LayerPanel v-if="showLayerPanel" :active="showLayerPanel" :position="layerPanelPosition"
-      :map-type="configObject?.getMapType() || MapType.GAODE" 
-      :map-tile="configObject?.getMapTile() || MapTile.NORMAL"
-      :map-config="configObject?.getMapConfig() || DEFAULT_MAP_CONFIG" @close="handleLayerPanelClose" @layer-change="handleLayerChange" />
+      :map-type="configObject?.getMapType() || MapType.GAODE" :map-tile="configObject?.getMapTile() || MapTile.NORMAL"
+      :map-config="configObject?.getMapConfig() || DEFAULT_MAP_CONFIG" @close="handleLayerPanelClose"
+      @layer-change="handleLayerChange" />
     <!-- 添加标记点信息面板 -->
-    <MarkerPanel 
-      v-if="showMarkerPanel"
-      :visible="showMarkerPanel"
-      :position="markerPanelPosition"
-      :title="activeMarker?.title"
-      :content="activeMarker?.content"
-      :click-content-template="activeMarker?.clickContentTemplate"
-      :coords="activeMarker?.position"
-      @close="closeMarkerPanel"
-    />
-    
+    <MarkerPanel v-if="showMarkerPanel" :visible="showMarkerPanel" :position="markerPanelPosition"
+      :title="activeMarker?.title" :content="activeMarker?.content"
+      :click-content-template="activeMarker?.clickContentTemplate" :coords="activeMarker?.position"
+      @close="closeMarkerPanel" />
+
     <!-- 增加引入OverviewMap组件 -->
-    <OverviewMap v-if="showOverviewMap && mapObj?.getMapInstance()" :main-map="mapObj.getMapInstance()!" :visible="showOverviewMap"
-      :position="determineOverviewMapPosition()" :config="overviewMapConfig"
-      :map="props.map"
-      :map-key="props.mapKey"
-      @collapse-change="handleOverviewMapCollapseChange" />
-    
+    <OverviewMap v-if="showOverviewMap && mapObj?.getMapInstance()" :main-map="mapObj.getMapInstance()!"
+      :visible="showOverviewMap" :position="determineOverviewMapPosition()" :config="overviewMapConfig" :map="props.map"
+      :map-key="props.mapKey" @collapse-change="handleOverviewMapCollapseChange" />
+
     <!-- 添加轨迹播放器 -->
-    <TrackPlayerMap 
-      v-if="showTrackPlayer && mapReady && trackObj" 
-      :trackObj="trackObj"
-      :config="props.trackPlayerConfig"
-      @track-selected="handleTrackSelected"
-      @track-deleted="handleTrackDeleted"
-      @collapse-change="handleTrackPlayerCollapseChange"
-      ref="trackPlayerRef" 
-    />
-    
+    <TrackPlayerMap v-if="showTrackPlayer && mapReady && trackObj" :trackObj="trackObj"
+      :config="props.trackPlayerConfig" @track-selected="handleTrackSelected" @track-deleted="handleTrackDeleted"
+      @collapse-change="handleTrackPlayerCollapseChange" ref="trackPlayerRef" />
+
     <!-- 添加飞线图面板 -->
-    <FlightLinePanel
-      v-if="showFlightLinePanel && mapReady && flightLineAdapter"
-      :flight-line-obj="flightLineAdapter"
-      :active="showFlightLinePanel"
-      :position="props.flightLinePanelPosition"
-      @close="handleFlightLinePanelClose"
-      @selection-change="handleFlightLineSelectionChange"
-      ref="flightLinePanelRef"
-    />
-    
+    <FlightLinePanel v-if="showFlightLinePanel && mapReady && flightLineAdapter" :flight-line-obj="flightLineAdapter"
+      :active="showFlightLinePanel" :position="props.flightLinePanelPosition" @close="handleFlightLinePanelClose"
+      @selection-change="handleFlightLineSelectionChange" ref="flightLinePanelRef" />
+
   </div>
 </template>
 
@@ -100,7 +80,7 @@ import { ToolbarObject } from './composables/ToolbarObject';
 import { MeasureObject } from './composables/MeasureObject';
 import type { MapEventType, Track } from './types';
 import { MapConfig, MapTile } from './types';
-import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
+import { DEFAULT_MAP_CONFIG, MapType, RenderMode } from './types/map';
 import type { MarkerConfig, MarkerOptions } from './types/marker';
 import type { ShapeOption } from './types';
 import { DEFAULT_TOOLBAR_CONFIG } from './types/toolbar';
@@ -136,7 +116,7 @@ const props = withDefaults(defineProps<MapConfig & {
   aggregationOptions?: AggregationOptions
 }>(), {
   height: 500,
-  center: () => [39.90923, 116.397428], 
+  center: () => [39.90923, 116.397428],
   mapType: MapType.GAODE,
   mapTile: MapTile.NORMAL,
   map: () => DEFAULT_MAP_CONFIG as any, // 使用类型断言处理复杂类型
@@ -144,6 +124,7 @@ const props = withDefaults(defineProps<MapConfig & {
   zoom: 10,
   dragging: true,
   scrollWheelZoom: true,
+  renderMode: RenderMode.CANVAS, // 默认使用Canvas渲染
   showToolbar: true,
   toolbarConfig: () => ({ ...DEFAULT_TOOLBAR_CONFIG }),
   coordinateOptions: () => ({
@@ -265,16 +246,17 @@ const config = computed(() => ({
   mapTile: props.mapTile,
   map: props.map,
   mapKey: props.mapKey,
+  renderMode: props.renderMode,
   height: props.height,
-      center: props.center,
-      zoom: props.zoom,
-      dragging: props.dragging,
-      scrollWheelZoom: props.scrollWheelZoom,
+  center: props.center,
+  zoom: props.zoom,
+  dragging: props.dragging,
+  scrollWheelZoom: props.scrollWheelZoom,
   showToolbar: props.showToolbar
 }));
 
 const toolbarConfig = computed(() => {
-  if (!toolbarObject) return {...props.toolbarConfig};
+  if (!toolbarObject) return { ...props.toolbarConfig };
   // 从ToolbarObject获取最新的工具栏配置
   return toolbarObject.getConfig();
 });
@@ -282,16 +264,16 @@ const toolbarConfig = computed(() => {
 // 创建飞线适配器，满足FlightLinePanel需要的接口
 const flightLineAdapter = computed(() => {
   if (!toolbarObject?.getFlightLineObject()) return null;
-  
+
   const flightLineObj = toolbarObject.getFlightLineObject()!;
-  
+
   return {
     // 原始方法
     getAllFlightLines: () => {
       // 将Map<string, FlightLineData>转换为Panel需要的FlightLine[]格式
       const lines = flightLineObj.getAllFlightLines();
       const result: any[] = [];
-      
+
       lines.forEach((line, id) => {
         result.push({
           id,
@@ -309,20 +291,20 @@ const flightLineAdapter = computed(() => {
           visible: line.highlight !== false
         });
       });
-      
+
       return result;
     },
-    
+
     // 添加必要的缺失方法
     removeFlightLine: (id: string) => {
       if (flightLineObj.getAllFlightLines().has(id)) {
         flightLineObj.getAllFlightLines().delete(id);
         flightLineObj.drawFlightLines();
-    return true;
+        return true;
       }
-    return false;
+      return false;
     },
-    
+
     toggleFlightLineVisibility: (id: string) => {
       const lines = flightLineObj.getAllFlightLines();
       const line = lines.get(id);
@@ -331,21 +313,21 @@ const flightLineAdapter = computed(() => {
         line.highlight = line.highlight === false ? true : false;
         lines.set(id, line);
         flightLineObj.drawFlightLines();
-      return true;
-    }
-    return false;
+        return true;
+      }
+      return false;
     },
-    
+
     startDrawing: () => {
       // 简单实现，可以在这里添加绘制逻辑
       console.log('开始绘制飞线');
       return true;
     },
-    
+
     getFlightLineById: (id: string) => {
       const line = flightLineObj.getAllFlightLines().get(id);
       if (!line) return null;
-      
+
       return {
         id,
         name: `${line.fromName} → ${line.toName}`,
@@ -362,7 +344,7 @@ const flightLineAdapter = computed(() => {
         visible: line.highlight !== false
       };
     },
-    
+
     updateFlightLineStyle: (options: any) => {
       // 更新所有选中飞线的样式
       const lines = flightLineObj.getAllFlightLines();
@@ -379,13 +361,13 @@ const flightLineAdapter = computed(() => {
       });
       flightLineObj.drawFlightLines();
     },
-    
+
     updateFlightLine: (id: string, options: any) => {
       // 调用原始方法如果存在
       if (typeof flightLineObj.updateFlightLine === 'function') {
         return flightLineObj.updateFlightLine(id, options);
       }
-      
+
       // 否则实现自己的逻辑
       const lines = flightLineObj.getAllFlightLines();
       const line = lines.get(id);
@@ -401,11 +383,11 @@ const flightLineAdapter = computed(() => {
         }
         lines.set(id, line);
         flightLineObj.drawFlightLines();
-      return true;
-    }
-    return false;
+        return true;
+      }
+      return false;
     },
-    
+
     addFlightLine: flightLineObj.addFlightLine.bind(flightLineObj)
   };
 });
@@ -415,34 +397,34 @@ const initMap = async () => {
   try {
     // 设置Leaflet插件
     setupLeafletPlugins();
-    
+
     if (!mapContainer.value) {
       logger.error('地图容器未找到，无法初始化地图');
       return;
     }
-    
+
     // 创建配置对象
     configObject = new ConfigObject(config.value);
-    
+
     // 创建地图对象
     mapObj = new MapObject(configObject);
 
     // 初始化地图
     const initialized = mapObj.init(mapContainer.value, (event, payload) => {
       emit(event as MapEventType, payload);
-      if(event === 'map-mousemove') {
+      if (event === 'map-mousemove') {
         handleMouseMove(payload);
       }
     });
-    
+
     if (!initialized) {
       logger.error('地图初始化失败');
       return;
     }
-    
+
     // 创建工具栏对象
     toolbarObject = new ToolbarObject(props.toolbarConfig, mapObj);
-    
+
     // 设置工具状态变化回调
     toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
       emit('toolbar-state-change', { toolId, active, toolType, data });
@@ -458,20 +440,20 @@ const initMap = async () => {
     shapeObject = toolbarObject.getShapeObject();
     trackObj = toolbarObject.getTrackObject(); // 获取轨迹对象（实际是LeafletTrackplayerObject实例）
     gridManager = toolbarObject.getGridObject();
-    
+
     // 设置marker点击监听器，处理MarkerPanel显示逻辑
     if (markerObject) {
       markerObject.setClickListener((event: any) => {
         // 如果是自定义事件，包含marker数据
         if (event.markerData) {
           const { markerData, pixelPosition } = event;
-          
+
           // 如果需要显示面板，显示MarkerPanel
           if (markerData.clickContentTemplate || markerData.content || markerData.title) {
             activeMarker.value = markerData;
             markerPanelPosition.value = pixelPosition;
             showMarkerPanel.value = true;
-            
+
             logger.debug('显示标记点面板', {
               title: markerData.title,
               hasContent: !!markerData.content,
@@ -481,9 +463,9 @@ const initMap = async () => {
             // 如果不需要显示面板，关闭当前面板
             closeMarkerPanel();
           }
-          
+
           // 触发marker-click事件
-          emit('marker-click', { 
+          emit('marker-click', {
             coordinates: markerData.position,
             data: markerData
           });
@@ -491,10 +473,10 @@ const initMap = async () => {
           // 兼容旧版事件处理
           const marker = event.target;
           const latlng = marker.getLatLng();
-          
+
           // 获取标记点详细信息
           let markerInfo = marker.options || {};
-          
+
           // 如果有弹窗内容或点击模板，显示面板
           if (markerInfo.clickContentTemplate || markerInfo.popupContent || markerInfo.title) {
             activeMarker.value = {
@@ -502,34 +484,35 @@ const initMap = async () => {
               position: [latlng.lat, latlng.lng],
               content: markerInfo.popupContent || ''
             };
-            
+
             // 计算像素位置
+            //@ts-ignore
             const point = mapObj?.getMapInstance().latLngToContainerPoint(latlng);
             if (point) {
               markerPanelPosition.value = { x: point.x, y: point.y };
             }
-            
+
             showMarkerPanel.value = true;
           }
-          
-          emit('marker-click', { 
+
+          emit('marker-click', {
             coordinates: [latlng.lat, latlng.lng],
             data: markerInfo
           });
         }
       });
     }
-    
+
     // 创建测量对象
     measureObject = new MeasureObject(mapObj.getMapInstance());
-    
+
     // 标记地图已准备好
     mapReady.value = true;
     mapInitialized.value = true;
-    
+
     // 发射地图初始化完成事件
     emit('map-initialized', { map: mapObj, toolbar: toolbarObject });
-    
+
     logger.info('地图初始化完成');
 
   } catch (error) {
@@ -549,7 +532,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     // 坐标面板强制显示事件
     'coordinate-panel-visible': () => {
       if (toolType === 'panel' && active) {
-    showCoordinatePanel.value = true;
+        showCoordinatePanel.value = true;
         logger.debug('收到坐标面板强制显示事件');
       }
     },
@@ -612,7 +595,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         // 如果激活按钮，确定面板位置
         layerPanelPosition.value = determineLayerPanelPosition();
         logger.debug('图层切换按钮已激活，显示图层面板');
-    } else {
+      } else {
         logger.debug('图层切换按钮已停用，隐藏图层面板');
       }
     },
@@ -626,7 +609,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
       if (active) {
         logger.debug('[Overview] 鹰眼工具已激活，显示鹰眼地图');
-  } else {
+      } else {
         logger.debug('[Overview] 鹰眼工具已停用，隐藏鹰眼地图');
       }
 
@@ -657,7 +640,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllMarkers();
           logger.debug('[Marker] 隐藏所有标记点');
-    } else {
+        } else {
           markerObject.showAllMarkers();
           logger.debug('[Marker] 显示所有标记点');
         }
@@ -670,7 +653,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (active) {
           markerObject.hideAllLabels();
           logger.debug('[Marker] 隐藏所有标记点标签');
-  } else {
+        } else {
           markerObject.showAllLabels();
           logger.debug('[Marker] 显示所有标记点标签');
         }
@@ -733,16 +716,16 @@ const initTrackObject = () => {
     logger.warn('[Track] 无法初始化轨迹对象：工具栏或地图对象不存在');
     return;
   }
-  
+
   try {
     // 确保工具栏对象有最新的MapObject
     if (typeof toolbarObject.updateMapObject === 'function') {
       toolbarObject.updateMapObject(mapObj);
     }
-    
+
     // 获取轨迹对象
     trackObj = toolbarObject.getTrackObject();
-    
+
     if (trackObj) {
       logger.debug('[Track] 轨迹对象初始化成功');
     } else {
@@ -767,11 +750,11 @@ const determineLayerPanelPosition = (): 'top-left' | 'top-right' | 'bottom-left'
       if (toolbarPosition.startsWith('top-')) {
         // 如果工具栏在顶部，面板放在其下方相同水平位置
         return toolbarPosition as 'top-left' | 'top-right';
-        } else {
+      } else {
         // 如果工具栏在底部，面板放在其上方相同水平位置
         return toolbarPosition === 'bottom-left' ? 'top-left' : 'top-right';
       }
-      } else {
+    } else {
       // 垂直工具栏时，面板在工具栏旁边
       // 如果工具栏在左侧，面板放在其右侧
       // 如果工具栏在右侧，面板放在其左侧
@@ -813,12 +796,12 @@ const handleToolActivated = (toolId: string) => {
 // 处理工具停用
 const handleToolDeactivated = (toolId: string) => {
   if (!toolbarObject) return;
-  
+
   // 清除激活的工具ID
   if (activeToolId.value === toolId) {
     activeToolId.value = undefined;
   }
-  
+
   emit('toolbar-tool-deactivated', {
     toolId,
     toolbarObj: toolbarObject
@@ -851,7 +834,7 @@ const handleToolDeactivated = (toolId: string) => {
 // 处理图层面板关闭
 const handleLayerPanelClose = () => {
   showLayerPanel.value = false;
-  
+
   // 如果工具栏存在，停用layer工具
   if (toolbarObject) {
     toolbarObject.deactivateTool('layer');
@@ -861,7 +844,7 @@ const handleLayerPanelClose = () => {
 // 处理飞线面板关闭
 const handleFlightLinePanelClose = () => {
   showFlightLinePanel.value = false;
-  
+
   // 如果工具栏存在，停用flightLine工具
   if (toolbarObject) {
     toolbarObject.deactivateTool('flightLine');
@@ -871,14 +854,14 @@ const handleFlightLinePanelClose = () => {
 // 处理图层切换
 const handleLayerChange = ({ mapType, mapTile }: { mapType: MapType, mapTile: MapTile }) => {
   if (!mapObj || !configObject) return;
-  
+
   // 更新配置对象
   configObject.setMapType(mapType);
   configObject.setMapTile(mapTile);
-  
+
   // 切换底图
   const success = mapObj.switchBaseLayer(mapType, mapTile);
-  
+
   if (success) {
     emit('layer-change', { mapType, mapTile });
     logger.info(`图层已切换: ${mapType} - ${mapTile}`);
@@ -941,22 +924,22 @@ onMounted(() => {
   // 设置日志级别
   logger.setLevel(LogLevel.DEBUG);
   logger.info('ScMap组件已挂载');
-  
+
   // 初始化Leaflet插件
   setupLeafletPlugins();
-  
+
   // 修复Leaflet图标路径问题
   fixLeafletIcon();
-  
+
   // 初始化地图
   nextTick(() => {
-  initMap();
-  
-  // 如果配置了自动激活鹰眼地图，则激活它
-  if (props.overviewMapConfig?.autoActivate && toolbarObject) {
-    toolbarObject.activateTool('overview');
-  }
-    
+    initMap();
+
+    // 如果配置了自动激活鹰眼地图，则激活它
+    if (props.overviewMapConfig?.autoActivate && toolbarObject) {
+      toolbarObject.activateTool('overview');
+    }
+
     // 监听map-click事件，用于关闭MarkerPanel
     if (mapObj) {
       mapObj.getMapInstance()?.on('click', () => {
@@ -971,23 +954,23 @@ onMounted(() => {
 // 组件卸载前清理资源
 onBeforeUnmount(() => {
   logger.info('ScMap组件即将卸载，清理资源...');
-  
+
   // 清理工具栏
   if (toolbarObject) {
     toolbarObject.destroy();
     toolbarObject = null;
   }
-  
+
   // 清理地图
   if (mapObj) {
     mapObj.destroy();
     mapObj = null;
   }
-  
+
   // 销毁测量对象
   measureObject?.destroy();
   measureObject = null;
-  
+
   // 重置状态
   mapInitialized.value = false;
   mapReady.value = false;
@@ -1105,20 +1088,20 @@ defineExpose({
   setZoom: (zoom: number) => mapObj?.setZoom(zoom),
   getCenter: () => mapObj?.getCenter(),
   getZoom: () => mapObj?.getZoom(),
-  
+
   // 标记点操作
   addMarker: (options: MarkerOptions) => {
     if (!markerObject) {
       logger.error('添加标记点失败: markerObject未初始化');
       return '';
     }
-    
+
     // 验证和记录位置信息
     if (!options.position || options.position.length < 2) {
       logger.error('添加标记点失败: 无效的位置信息', options.position);
       return '';
     }
-    
+
     logger.debug('ScMap.addMarker: 添加标记点', options.position);
     try {
       const id = markerObject.addMarker(options);
@@ -1139,10 +1122,9 @@ defineExpose({
   clearMarkers: () => markerObject?.clearAll(),
   getMarkers: () => {
     if (!markerObject) {
-      logger.error('获取标记点失败: markerObject未初始化');
       return [];
     }
-    
+
     try {
       // 获取所有标记点并转换为数组
       const markersMap = markerObject.getAllMarkers() || new Map();
@@ -1152,24 +1134,24 @@ defineExpose({
       return [];
     }
   },
-  
+
   // 图形操作
   addShape: (options: ShapeOption) => shapeObject?.addShape(options),
   updateShape: (id: string, options: Partial<ShapeOption>) => shapeObject?.updateShape(id, options),
   removeShape: (id: string) => shapeObject?.removeShape(id),
   getShape: (id: string) => shapeObject?.getShape(id),
   clearShapes: () => shapeObject?.clearAll(),
-  
+
   // 轨迹操作
   addTrack: (track: Track) => trackObj?.addTrack(track),
   removeTrack: (trackId: string) => trackObj?.removeTrack(trackId),
   getTrack: (trackId: string) => trackObj?.getTrack(trackId),
   clearTracks: () => trackObj?.clearTracks?.(), // 添加可选链，防止clearTracks不存在
-  
+
   // 网格操作
   enableGrid: (gridType: GridType) => gridManager?.enableGrid(gridType),
   disableGrid: (gridType: GridType) => gridManager?.disableGrid(gridType),
-  
+
   // 飞线操作
   addFlightLine: (from: [number, number], to: [number, number], options?: any) => {
     const flightLineObj = toolbarObject?.getFlightLineObject();
@@ -1193,17 +1175,17 @@ defineExpose({
     if (flightLineObj && flightLineObj.getAllFlightLines().has(id)) {
       flightLineObj.getAllFlightLines().delete(id);
       flightLineObj.drawFlightLines(); // 重绘飞线
-        return true;
-      }
-      return false;
+      return true;
+    }
+    return false;
   },
   clearFlightLines: () => {
     const flightLineObj = toolbarObject?.getFlightLineObject();
     if (flightLineObj) {
       flightLineObj.getAllFlightLines().clear();
-        return true;
-      }
-      return false;
+      return true;
+    }
+    return false;
   },
   getAllFlightLines: () => {
     const flightLineObj = toolbarObject?.getFlightLineObject();
@@ -1212,7 +1194,7 @@ defineExpose({
     }
     return new Map();
   },
-  
+
   // 工具面板控制
   showFlightLineList: () => {
     showFlightLinePanel.value = true;
@@ -1230,11 +1212,26 @@ defineExpose({
 </script>
 
 <style scoped>
+/* 修复图片四角灰色问题 */
+.leaflet-container img.leaflet-image-layer {
+  background: transparent !important;
+  image-rendering: crisp-edges;
+  border: none !important;
+  outline: none !important;
+}
+
+/* 修复瓦片图层灰色边框 */
+.leaflet-tile {
+  filter: none !important;
+  background: transparent !important;
+}
+
 .sc-map {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 300px; /* 增加最小高度，确保地图可见 */
+  min-height: 300px;
+  /* 增加最小高度，确保地图可见 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1245,6 +1242,7 @@ defineExpose({
   height: 100%;
   z-index: 1;
 }
+
 .map-toolbar {
   position: absolute;
   z-index: 10;

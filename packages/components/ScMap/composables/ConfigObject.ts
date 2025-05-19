@@ -2,7 +2,7 @@
  * 配置对象
  * @description 管理地图的配置信息
  */
-import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
+import { MapType, DEFAULT_MAP_CONFIG, RenderMode } from '../types/map';
 import { MapTile, MapConfig } from '../types';
 import { OverviewMapConfig } from '../components/OverviewMap.vue';
 import logger from './LogObject';
@@ -27,6 +27,7 @@ export class ConfigObject {
       zoom: config.zoom !== undefined ? config.zoom : 10,
       dragging: config.dragging !== undefined ? config.dragging : true,
       scrollWheelZoom: config.scrollWheelZoom !== undefined ? config.scrollWheelZoom : true,
+      renderMode: config.renderMode || RenderMode.CANVAS, // 默认使用Canvas渲染
       showToolbar: config.showToolbar !== undefined ? config.showToolbar : true,
       showScaleLine: config.showScaleLine !== undefined ? config.showScaleLine : true,
       coordinateOptions: config.coordinateOptions || {
@@ -82,6 +83,14 @@ export class ConfigObject {
    */
   public setMapTile(mapTile: MapTile): void {
     this.config.mapTile = mapTile;
+  }
+
+  /**
+   * 获取渲染模式
+   * @returns 渲染模式
+   */
+  public getRenderMode(): RenderMode {
+    return this.config.renderMode || RenderMode.CANVAS;
   }
 
   /**
