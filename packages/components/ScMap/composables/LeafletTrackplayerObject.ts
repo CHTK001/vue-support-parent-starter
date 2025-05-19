@@ -666,6 +666,35 @@ export class LeafletTrackplayerObject {
               L.DomEvent.preventDefault(e);
             });
           }
+
+          // 为轨迹线添加点击事件
+          if (trackPlayer.notPassedLine) {
+            trackPlayer.notPassedLine.on('click', (e: L.LeafletMouseEvent) => {
+              // 阻止事件冒泡，防止触发地图点击
+              L.DomEvent.stopPropagation(e);
+              // 阻止默认行为
+              L.DomEvent.preventDefault(e);
+
+              // 选中轨迹并显示所有节点点位
+              this.selectTrack(trackId);
+              // 显示所有静态点位的tooltip
+              this.showAllTrackNodeTooltips(trackId);
+            });
+          }
+
+          if (trackPlayer.passedLine) {
+            trackPlayer.passedLine.on('click', (e: L.LeafletMouseEvent) => {
+              // 阻止事件冒泡，防止触发地图点击
+              L.DomEvent.stopPropagation(e);
+              // 阻止默认行为
+              L.DomEvent.preventDefault(e);
+
+              // 选中轨迹并显示所有节点点位
+              this.selectTrack(trackId);
+              // 显示所有静态点位的tooltip
+              this.showAllTrackNodeTooltips(trackId);
+            });
+          }
         }, 100); // 短暂延时确保marker已创建
 
         // 保存当前应用的速度因子
@@ -681,7 +710,7 @@ export class LeafletTrackplayerObject {
         positions.forEach((position: any, index: number) => {
           // 只为起点、终点和特定间隔的点创建节点标记，避免节点过多
           const isStartOrEnd = index === 0 || index === positions.length - 1;
-          const isInterval = index % 5 === 0; // 每5个点创建一个节点标记
+          const isInterval = index % 1 === 0; // 每2个点创建一个节点标记，原来是5
 
           if (isStartOrEnd || isInterval) {
             // 获取点位的名称
@@ -3299,6 +3328,42 @@ export class LeafletTrackplayerObject {
         padding: 3px 6px;
         border-radius: 3px;
       }
+
+      /* 轨迹节点tooltip样式 */
+      .track-node-tooltip-container {
+        background-color: rgba(0, 0, 0, 0.8);
+        border: none;
+        border-radius: 4px;
+        color: white;
+        padding: 5px 10px;
+        font-size: 12px;
+        max-width: 300px;
+        white-space: normal;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      
+      .track-node-tooltip {
+        padding: 3px;
+      }
+      
+      .track-node-tooltip .track-node-title {
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+      
+      .track-node-tooltip .track-node-time {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 11px;
+        margin-bottom: 3px;
+      }
+      
+      .track-node-tooltip .track-node-speed, 
+      .track-node-tooltip .track-node-distance {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        margin: 1px 0;
+      }
       
       .track-marker-real-speed {
         color: #666;
@@ -3365,7 +3430,7 @@ export class LeafletTrackplayerObject {
       }
     `;
 
-    // 添加到文档头部
+    // 添加样式到文档头部
     document.head.appendChild(style);
   }
 
@@ -3605,6 +3670,17 @@ export class LeafletTrackplayerObject {
       // 如果轨迹播放器支持设置节点可见性
       if (typeof trackPlayer.setNodesVisible === 'function') {
         trackPlayer.setNodesVisible(true);
+        
+        // 确保节点完全可见
+        if (trackPlayer.nodes && trackPlayer.nodes.length > 0) {
+          // 强制重新刷新一次节点可见性
+          setTimeout(() => {
+            if (trackPlayer && typeof trackPlayer.setNodesVisible === 'function') {
+              trackPlayer.setNodesVisible(true);
+            }
+          }, 100);
+        }
+        
         this.log('debug', `轨迹 ${trackId} 静态点位已显示`);
         return true;
       }
@@ -3612,6 +3688,15 @@ export class LeafletTrackplayerObject {
       // 如果有节点图层
       if (trackPlayer.nodeLayer && this.mapInstance) {
         trackPlayer.nodeLayer.addTo(this.mapInstance);
+        
+        // 确保节点完全加载
+        setTimeout(() => {
+          if (trackPlayer.nodeLayer && this.mapInstance) {
+            this.mapInstance.invalidateSize();
+            this.mapInstance.fire('zoomend'); // 触发地图重绘
+          }
+        }, 100);
+        
         this.log('debug', `轨迹 ${trackId} 节点图层已添加到地图`);
         return true;
       }
@@ -3660,6 +3745,267 @@ export class LeafletTrackplayerObject {
       return false;
     } catch (error) {
       this.log('error', `隐藏轨迹 ${trackId} 静态点位失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 显示轨迹的所有静态点位并打开所有点位的popup
+   * @param trackId 轨迹ID
+   * @returns 是否成功显示
+   */
+  public showAllTrackNodePopovers(trackId: string): boolean {
+    try {
+      if (!this.mapInstance) {
+        this.log('warn', '显示轨迹所有静态点位popup失败: 地图实例未设置');
+        return false;
+      }
+
+      if (!this.trackPlayers.has(trackId)) {
+        this.log('warn', `显示轨迹所有静态点位popup失败: 未找到轨迹 ${trackId} 的播放器`);
+        return false;
+      }
+
+      const trackPlayerData = this.trackPlayers.get(trackId);
+      const trackPlayer = trackPlayerData?.player;
+
+      if (!trackPlayer) {
+        this.log('warn', `显示轨迹所有静态点位popup失败: 轨迹 ${trackId} 的播放器无效`);
+        return false;
+      }
+
+      // 首先确保节点图层已添加到地图上
+      if (typeof trackPlayer.setNodesVisible === 'function') {
+        trackPlayer.setNodesVisible(true);
+      } else if (trackPlayer.nodeLayer && this.mapInstance) {
+        trackPlayer.nodeLayer.addTo(this.mapInstance);
+      }
+
+      // 如果有节点图层和节点列表
+      if (trackPlayer.nodeLayer && trackPlayer.nodes) {
+        // 添加高亮节点标题的样式
+        this.addTrackNodeHighlightedStyles();
+
+        // 遍历所有节点，显示弹窗
+        trackPlayer.nodes.forEach((node: any) => {
+          if (node && node.marker) {
+            // 获取或创建popup
+            if (!node.marker.getPopup()) {
+              // 获取节点基本信息
+              const nodeName = node.name || node.title || `路径点 ${node.index || ''}`;
+
+              // 创建高亮样式的popup内容
+              const popupContent = `
+                <div class="track-node-popup">
+                  <div class="track-node-title ">${nodeName}</div>
+                  <div class="track-node-time">${this.formatTime(node.position.time)}</div>
+                  ${node.position.properties && node.position.properties.speed ?
+                  `<div class="track-node-speed">速度: ${node.position.properties.speed.toFixed(1)} km/h</div>` : ''}
+                  ${node.distance > 0 ? `<div class="track-node-distance">距离: ${(node.distance / 1000).toFixed(2)} km</div>` : ''}
+                </div>
+              `;
+
+              // 绑定popup，设置不显示关闭按钮
+              node.marker.bindPopup(popupContent, {
+                closeButton: false,
+                className: 'track-marker-popup-container',
+                autoClose: false,
+                closeOnClick: false
+              });
+            }
+
+            // 自动打开弹窗显示详细信息
+            node.marker.openPopup();
+          }
+        });
+
+        this.log('debug', `轨迹 ${trackId} 所有静态点位popup已显示`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      this.log('error', `显示轨迹 ${trackId} 所有静态点位popup失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 显示轨迹的所有静态点位并打开所有点位的tooltip
+   * @param trackId 轨迹ID
+   * @returns 是否成功显示
+   */
+  public showAllTrackNodeTooltips(trackId: string): boolean {
+    try {
+      if (!this.mapInstance) {
+        this.log('warn', '显示轨迹所有静态点位tooltip失败: 地图实例未设置');
+        return false;
+      }
+
+      if (!this.trackPlayers.has(trackId)) {
+        this.log('warn', `显示轨迹所有静态点位tooltip失败: 未找到轨迹 ${trackId} 的播放器`);
+        return false;
+      }
+
+      const trackPlayerData = this.trackPlayers.get(trackId);
+      const trackPlayer = trackPlayerData?.player;
+
+      if (!trackPlayer) {
+        this.log('warn', `显示轨迹所有静态点位tooltip失败: 轨迹 ${trackId} 的播放器无效`);
+        return false;
+      }
+
+      // 首先确保节点图层已添加到地图上
+      if (typeof trackPlayer.setNodesVisible === 'function') {
+        trackPlayer.setNodesVisible(true);
+      } else if (trackPlayer.nodeLayer && this.mapInstance) {
+        trackPlayer.nodeLayer.addTo(this.mapInstance);
+      }
+
+      // 如果有节点图层和节点列表
+      if (trackPlayer.nodeLayer && trackPlayer.nodes) {
+        // 添加高亮节点标题的样式
+        this.addTrackNodeHighlightedStyles();
+
+        // 确保地图完全渲染，防止点位漏显示
+        this.mapInstance.invalidateSize();
+        
+        // 遍历所有节点，显示tooltip
+        trackPlayer.nodes.forEach((node: any) => {
+          if (node && node.marker) {
+            // 获取或创建tooltip
+            if (!node.marker.getTooltip()) {
+              // 获取节点基本信息
+              const nodeName = node.name || node.title || `路径点 ${node.index || ''}`;
+
+              // 创建高亮样式的tooltip内容
+              const tooltipContent = `
+                <div class="track-node-tooltip">
+                  <div class="track-node-title">${nodeName}</div>
+                  <div class="track-node-time">${this.formatTime(node.position.time)}</div>
+                  ${node.position.properties && node.position.properties.speed ?
+                  `<div class="track-node-speed">速度: ${node.position.properties.speed.toFixed(1)} km/h</div>` : ''}
+                  ${node.distance > 0 ? `<div class="track-node-distance">距离: ${(node.distance / 1000).toFixed(2)} km</div>` : ''}
+                </div>
+              `;
+
+              // 绑定tooltip，设置永久显示
+              node.marker.bindTooltip(tooltipContent, {
+                permanent: true,
+                direction: 'top',
+                className: 'track-node-tooltip-container',
+                offset: [0, -10]
+              });
+            }
+
+            // 自动打开tooltip显示详细信息
+            node.marker.openTooltip();
+          }
+        });
+
+        // 使用延迟确保所有tooltip都能正确显示
+        setTimeout(() => {
+          if (trackPlayer && trackPlayer.nodes) {
+            trackPlayer.nodes.forEach((node: any) => {
+              if (node && node.marker && node.marker.getTooltip()) {
+                // 重新打开tooltip确保显示
+                node.marker.openTooltip();
+              }
+            });
+            // 触发地图重绘
+            if (this.mapInstance) {
+              this.mapInstance.fire('zoomend');
+            }
+          }
+        }, 100);
+
+        this.log('debug', `轨迹 ${trackId} 所有静态点位tooltip已显示`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      this.log('error', `显示轨迹 ${trackId} 所有静态点位tooltip失败:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 设置轨迹节点tooltip是否可见
+   * @param trackId 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setTrackNodeTooltipsVisible(trackId: string, visible: boolean): boolean {
+    try {
+      if (!this.mapInstance) {
+        this.log('warn', '设置轨迹节点tooltip可见性失败: 地图实例未设置');
+        return false;
+      }
+
+      if (!this.trackPlayers.has(trackId)) {
+        this.log('warn', `设置轨迹节点tooltip可见性失败: 未找到轨迹 ${trackId} 的播放器`);
+        return false;
+      }
+
+      const trackPlayerData = this.trackPlayers.get(trackId);
+      const trackPlayer = trackPlayerData?.player;
+
+      if (!trackPlayer) {
+        this.log('warn', `设置轨迹节点tooltip可见性失败: 轨迹 ${trackId} 的播放器无效`);
+        return false;
+      }
+
+      // 如果有节点图层和节点列表
+      if (trackPlayer.nodeLayer && trackPlayer.nodes) {
+        // 添加高亮节点标题的样式
+        this.addTrackNodeHighlightedStyles();
+
+        // 遍历所有节点，设置tooltip
+        trackPlayer.nodes.forEach((node: any) => {
+          if (node && node.marker) {
+            // 获取或创建tooltip
+            if (!node.marker.getTooltip()) {
+              // 获取节点基本信息
+              const nodeName = node.name || node.title || `路径点 ${node.index || ''}`;
+
+              // 创建高亮样式的tooltip内容
+              const tooltipContent = `
+                <div class="track-node-tooltip">
+                  <div class="track-node-title">${nodeName}</div>
+                  <div class="track-node-time">${this.formatTime(node.position.time)}</div>
+                  ${node.position.properties && node.position.properties.speed ?
+                  `<div class="track-node-speed">速度: ${node.position.properties.speed.toFixed(1)} km/h</div>` : ''}
+                  ${node.distance > 0 ? `<div class="track-node-distance">距离: ${(node.distance / 1000).toFixed(2)} km</div>` : ''}
+                </div>
+              `;
+
+              // 绑定tooltip，设置相应选项
+              node.marker.bindTooltip(tooltipContent, {
+                permanent: true,
+                direction: 'top',
+                className: 'track-node-tooltip-container',
+                offset: [0, -10]
+              });
+            }
+
+            if (visible) {
+              // 自动打开tooltip显示详细信息
+              node.marker.openTooltip();
+            } else {
+              // 关闭tooltip
+              node.marker.closeTooltip();
+            }
+          }
+        });
+
+        this.log('debug', `轨迹 ${trackId} 节点tooltip可见性已设置为 ${visible} (通过节点操作)`);
+        return true;
+      }
+
+      return true;
+    } catch (error) {
+      this.log('error', `设置轨迹 ${trackId} 节点tooltip可见性失败:`, error);
       return false;
     }
   }

@@ -396,7 +396,7 @@ const flightLineAdapter = computed(() => {
 const initMap = async () => {
   try {
     // 设置Leaflet插件
-    setupLeafletPlugins();
+   // setupLeafletPlugins();
 
     if (!mapContainer.value) {
       logger.error('地图容器未找到，无法初始化地图');
@@ -926,7 +926,7 @@ onMounted(() => {
   logger.info('ScMap组件已挂载');
 
   // 初始化Leaflet插件
-  setupLeafletPlugins();
+ // setupLeafletPlugins();
 
   // 修复Leaflet图标路径问题
   fixLeafletIcon();
