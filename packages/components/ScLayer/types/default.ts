@@ -21,19 +21,25 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
   // 行人图标 (0-6 km/h)
   {
     speed: 0,
-    icon: 'https://img.icons8.com/?size=50&id=sYaA2JXjiIXq&format=png',
+    icon: 'https://img.icons8.com/?size=100&id=sYaA2JXjiIXq&format=png&color=000000',
     iconType: 'photo'
   },
   // 自行车图标 (6-20 km/h)
   {
     speed: 6,
-    icon: 'https://img.icons8.com/color/48/000000/bicycle.png',
+    icon: 'https://img.icons8.com/?size=100&id=c5rlo5IAWvhQ&format=png&color=000000',
     iconType: 'photo'
   },
-  // 汽车图标 (20-100 km/h)
+  // 摩托车图标 (20-30 km/h)
   {
     speed: 20,
-    icon: 'https://img.icons8.com/color/48/000000/car--v1.png',
+    icon: 'https://img.icons8.com/?size=100&id=R6Cd7o14KhEg&format=png&color=000000', // 替换为合适的摩托车图标URL
+    iconType: 'photo'
+  },
+  // 汽车图标 (30-100 km/h)
+  {
+    speed: 30,
+    icon: 'https://banner2.cleanpng.com/20240115/ytk/transparent-cartoon-car-red-compact-car-with-white-tires-and-streamlined-1710921959100.webp',
     iconType: 'photo'
   },
   // 动车/高铁图标 (100-300 km/h)
