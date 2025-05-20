@@ -9,7 +9,8 @@
     <div class="toolbar-container">
       <MapToolbar ref="mapToolbarRef" v-if="config.showToolbar" :toolbar-config="toolbarConfig"
         :active-tool-id="activeToolId" @tool-activated="handleToolActivated"
-        @tool-deactivated="handleToolDeactivated" />
+        @tool-deactivated="handleToolDeactivated"
+        @toggle-3d="toggle3D" />
     </div>
     <!-- 添加坐标面板 -->
     <CoordinatePanel v-if="showCoordinatePanel" :active="true" :coordinate-info="coordinateInfo"
@@ -84,6 +85,7 @@ import type { MarkerOptions, MarkerConfig } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
+import { DEFAULT_CESIUM_BASE_URL } from './types/default';
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';
 // 导入聚合相关类型
@@ -93,6 +95,14 @@ import { Map as OlMap } from 'ol';
 import 'ol/ol.css';
 import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 import FlightLinePanel from './components/FlightLinePanel.vue';
+// ol-cesium集成
+import  OLCesium  from 'olcs';
+// ... existing code ...
+import * as Cesium from 'cesium';
+if (typeof window !== 'undefined' && !window.Cesium) {
+  window.Cesium = Cesium;
+}
+import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 // 定义组件属性 - 使用types中的配置作为类型定义
 const props = withDefaults(defineProps<MapConfig & {
@@ -102,7 +112,8 @@ const props = withDefaults(defineProps<MapConfig & {
   flightLinePanelPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
   markerConfig?: MarkerConfig,
   // 添加聚合配置选项
-  aggregationOptions?: AggregationOptions
+  aggregationOptions?: AggregationOptions,
+  cesiumBaseUrl?: string
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -157,7 +168,8 @@ const props = withDefaults(defineProps<MapConfig & {
       { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
       { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
     ]
-  }) // 默认聚合配置
+  }), // 默认聚合配置
+  cesiumBaseUrl: DEFAULT_CESIUM_BASE_URL
 });
 
 // 定义组件事件
@@ -1575,6 +1587,12 @@ onMounted(() => {
       checkFlightLineState();
     }
   }, 2000);
+  
+  // 地图初始化完成后，预创建Cesium对象但不启用
+  if (mapObj && mapObj.getMapInstance) {
+    olCesium = new OLCesium({ map: mapObj.getMapInstance(), cesiumBaseUrl: props.cesiumBaseUrl });
+    olCesium.setEnabled(false);
+  }
 });
 
 // 配置日志级别
@@ -2340,6 +2358,28 @@ watch(() => props.aggregationOptions, (newOptions) => {
     toolbarObject.setClusterConfig(newOptions);
   }
 }, { deep: true });
+
+const is3D = ref(false);
+let olCesium: any = null;
+
+function toggle3D() {
+  if (!olCesium && mapObj && mapObj.getMapInstance) {
+    // 创建CesiumMap
+    olCesium = new OLCesium({ map: mapObj.getMapInstance() });
+  }
+  if (olCesium) {
+    is3D.value = !is3D.value;
+    olCesium.setEnabled(is3D.value);
+  }
+}
+
+// 监听is3D变化，动态同步dimension-switch按钮高亮
+watch(is3D, (val) => {
+  if (toolbarObject) {
+    toolbarObject.setToolActive('dimension-switch', val);
+    mapToolbarRef.value?.refreshToolbarState?.();
+  }
+});
 
 </script>
 

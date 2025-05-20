@@ -169,22 +169,11 @@ const visibleTools = computed<ToolItem[]>(() => {
 
 // 修改isToolActive方法，增强对子菜单项激活状态的判断
 const isToolActive = (toolId: string): boolean => {
-  // 首先使用activeToolsMap中的记录，保证视图与数据一致
-  if (toolId in activeToolsMap.value) {
-    return activeToolsMap.value[toolId];
-  }
-  
-  // 优先使用toolbarObj判断工具状态
+  // 优先查找toolbarObj中的tool.active
   if (toolbarObj.value) {
-    const tools = toolbarObj.value.getTools();
-    
-    // 查找工具，处理包括子菜单在内的所有工具
     const findTool = (items: ToolItem[]): ToolItem | undefined => {
       for (const item of items) {
-        if (item.id === toolId) {
-          return item;
-        }
-        
+        if (item.id === toolId) return item;
         if (item.children && item.children.length > 0) {
           const found = findTool(item.children);
           if (found) return found;
@@ -192,32 +181,13 @@ const isToolActive = (toolId: string): boolean => {
       }
       return undefined;
     };
-    
-    const tool = findTool(tools);
-    const isActive = !!tool?.active;
-    
-    // 更新本地状态缓存
-    if (tool) {
-      activeToolsMap.value[toolId] = isActive;
-    }
-    
-    return isActive;
+    const tool = findTool(toolbarObj.value.getTools());
+    if (tool && typeof tool.active === 'boolean') return tool.active;
   }
-  
-  // 兼容旧模式 - 使用传入的activeToolId
-  if (props.activeToolId === toolId) {
-    // 记录到状态缓存中
-    activeToolsMap.value[toolId] = true;
-    return true;
-  }
-  
-  // 在工具配置中查找，包括子菜单中的工具
+  // 再查找toolbarConfig中的tool.active
   const findToolInConfig = (items: ToolItem[]): ToolItem | undefined => {
     for (const item of items) {
-      if (item.id === toolId) {
-        return item;
-      }
-      
+      if (item.id === toolId) return item;
       if (item.children && item.children.length > 0) {
         const found = findToolInConfig(item.children);
         if (found) return found;
@@ -225,15 +195,11 @@ const isToolActive = (toolId: string): boolean => {
     }
     return undefined;
   };
-  
   const tool = findToolInConfig(props.toolbarConfig.items || []);
-  const configActive = !!tool?.active;
-  
-  if (configActive) {
-    activeToolsMap.value[toolId] = true;
-  }
-  
-  return configActive;
+  if (tool && typeof tool.active === 'boolean') return tool.active;
+  // 兼容旧模式 - 使用传入的activeToolId
+  if (props.activeToolId === toolId) return true;
+  return false;
 };
 
 // 保持原有的状态变量
@@ -347,6 +313,12 @@ const submenuPositions = ref<Record<string, { top: number, left: number }>>({});
 // 处理工具点击 - 修改处理子菜单显示的逻辑
 const handleToolClick = (tool: ToolItem, event: MouseEvent) => {
   if (tool.disabled) return;
+
+  // 2D/3D切换按钮
+  if (tool.id === 'dimension-switch') {
+    emit('toggle-3d');
+    return;
+  }
 
   // 向父组件发送点击事件
   emit('tool-click', {
@@ -731,7 +703,8 @@ const emit = defineEmits([
   'collapse-change',
   'submenu-open',
   'submenu-close',
-  'submenu-item-click'
+  'submenu-item-click',
+  'toggle-3d'
 ]);
 
 // 重新声明globalClickListener

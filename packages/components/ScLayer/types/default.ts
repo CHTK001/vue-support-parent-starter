@@ -16,6 +16,10 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   stabilizeViewport: false // 是否稳定视口，防止播放过程中缩放抖动
 };
 
+export const DEFAULT_CESIUM_BASE_URL = 'https://unpkg.com/cesium@1.109.0/Build/Cesium/';
+//@ts-ignore
+window.CESIUM_BASE_URL = DEFAULT_CESIUM_BASE_URL;
+
 // 默认的交通工具基于速度的图标分组配置
 export const DEFAULT_TRACK_SPEED_GROUPS = [
   // 行人图标 (0-6 km/h)
