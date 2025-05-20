@@ -235,6 +235,39 @@
             </div>
           </div>
 
+          <!-- 添加3D模型操作部分 -->
+          <div class="config-item">
+            <div class="label">3D模型操作</div>
+            <div class="controls">
+              <!-- 3D模型操作区域 - 添加功能分组 -->
+              <div class="feature-group-title">3D模式控制</div>
+              <div class="control-row buttons-row">
+                <button @click="toggle3DMode">{{ is3DMode ? '切换为2D模式' : '切换为3D模式' }}</button>
+                <button @click="set3DViewMode" :disabled="!is3DMode">调整视角</button>
+              </div>
+              
+              <div class="feature-group-title">3D模型管理</div>
+              <div class="control-row buttons-row">
+                <button @click="addSimple3DModel" :disabled="!is3DMode">添加简单模型</button>
+                <button @click="addDetailed3DModel" :disabled="!is3DMode">添加详细模型</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="addCustom3DModel" :disabled="!is3DMode">添加自定义模型</button>
+                <button @click="clearAll3DModels" :disabled="!is3DMode">清除所有模型</button>
+              </div>
+              
+              <div class="feature-group-title">模型操作</div>
+              <div class="control-row buttons-row">
+                <button @click="flyToSelectedModel" :disabled="!is3DMode || !selectedModelId">飞行到模型</button>
+                <button @click="rotateSelectedModel" :disabled="!is3DMode || !selectedModelId">旋转模型</button>
+              </div>
+              <div class="control-row buttons-row">
+                <button @click="resizeSelectedModel" :disabled="!is3DMode || !selectedModelId">调整模型大小</button>
+                <button @click="changeModelColor" :disabled="!is3DMode || !selectedModelId">更改模型颜色</button>
+              </div>
+            </div>
+          </div>
+
           <!-- 添加热力图操作部分 -->
           <div class="config-item">
             <div class="label">热力图操作</div>
@@ -472,6 +505,37 @@
               </div>
             </div>
           </div>
+
+          <!-- 添加3D模型列表 -->
+          <div class="config-item">
+            <div class="label">3D模型列表</div>
+            <div class="controls">
+              <div class="model-stats">
+                <span>总数: {{ models.length }}</span>
+                <span>已选择: {{ selectedModelId ? 1 : 0 }}</span>
+              </div>
+              <div class="model-list">
+                <div v-if="models.length === 0" class="no-models">
+                  暂无3D模型数据
+                </div>
+                <div v-for="model in models" :key="model.id" class="model-item thin-scrollbar"
+                  :class="{'model-selected': selectedModelId === model.id}" 
+                  @click="selectedModelId = model.id">
+                  <div class="model-header">
+                    <span class="model-name">{{ model.name || '未命名模型' }}</span>
+                    <span class="model-type">类型: {{ model.type }}</span>
+                  </div>
+                  <div class="model-id">
+                    ID: {{ safeSlice(model.id) }}
+                  </div>
+                  <div class="model-actions">
+                    <button @click.stop="selectedModelId = model.id; flyToSelectedModel()">飞行到此模型</button>
+                    <button @click.stop="removeModel(model.id)">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
     </div>
   </div>
@@ -486,6 +550,8 @@ import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
 import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types/heatmap';
 import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types/toolbar';
 import type { WindConfig } from '@repo/components/ScLayer/types/wind';
+// 引入CesiumObject和模型类型定义
+import type { Model3DOptions } from '@repo/components/ScLayer/composables/CesiumModelObject';
 
 // 标记点聚合模式的枚举
 const MarkerClusterMode = {
@@ -499,6 +565,12 @@ import { ElMessage } from 'element-plus';
 
 // 地图实例引用
 const layerRef = ref(null);
+
+// 3D模型相关状态
+const is3DMode = ref(false);
+const models = ref<{ id: string; name: string; type: string }[]>([]);
+const selectedModelId = ref<string | null>(null);
+const viewMode = ref<'2D' | '3D' | '2.5D'>('3D');
 
 // 热力图相关
 const heatmapPoints = ref<Array<HeatmapPoint>>([]);
@@ -3620,6 +3692,532 @@ function updateWindOptions() {
   
   addLog('风场图', `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`);
 }
+
+// 3D模型相关函数
+
+/**
+ * 切换3D/2D模式
+ */
+const toggle3DMode = () => {
+  if (!layerRef.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 切换3D状态
+    const success = cesiumObj.toggle3D();
+    
+    if (success) {
+      is3DMode.value = cesiumObj.isEnabled();
+      viewMode.value = cesiumObj.getViewMode();
+      
+      addLog('3D', `已切换至${is3DMode.value ? '3D' : '2D'}模式`);
+      
+      // 如果切换到了3D模式，设置默认视图
+      if (is3DMode.value) {
+        setTimeout(() => {
+          set3DViewMode();
+        }, 1000);
+      }
+    } else {
+      addLog('3D', '切换3D模式失败');
+    }
+  } catch (error) {
+    console.error('切换3D模式时发生错误:', error);
+    addLog('3D', `切换3D模式失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 设置3D视图模式和视角
+ */
+const set3DViewMode = () => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 当前中心点
+    const center = config.center;
+    const centerLon = center[1];
+    const centerLat = center[0];
+    
+    // 设置相机视角
+    cesiumObj.flyTo({
+      position: {
+        longitude: centerLon,
+        latitude: centerLat,
+        height: 2000 // 高度2000米
+      },
+      heading: 0,    // 朝北
+      pitch: -30,    // 俯视30度
+      roll: 0,       // 无侧倾
+      duration: 2    // 2秒完成飞行
+    });
+    
+    addLog('3D', '已设置3D视角');
+  } catch (error) {
+    console.error('设置3D视角时发生错误:', error);
+    addLog('3D', `设置3D视角失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 添加简单3D模型
+ */
+const addSimple3DModel = () => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 当前中心点
+    const center = config.center;
+    const centerLon = center[1];
+    const centerLat = center[0];
+    
+    // 创建模型配置
+    const modelId = 'simple-box-' + Math.floor(Math.random() * 10000);
+    const modelConfig: Model3DOptions = {
+      id: modelId,
+      url: '', // 使用空URL，Cesium会创建一个默认盒体
+      position: {
+        longitude: centerLon,
+        latitude: centerLat,
+        height: 200 // 高度200米
+      },
+      scale: {
+        x: 100,
+        y: 100,
+        z: 100
+      },
+      color: '#1890FF', // 蓝色
+      label: {
+        text: '简单盒体模型',
+        fillColor: '#FFFFFF',
+        outlineColor: '#000000',
+        outlineWidth: 2,
+        heightOffset: 120
+      }
+    };
+    
+    // 添加模型
+    const result = cesiumObj.addModel(modelConfig);
+    
+    if (result) {
+      addLog('3D', `已添加简单盒体模型: ${modelId}`);
+      models.value.push({
+        id: modelId,
+        name: '简单盒体模型',
+        type: 'box'
+      });
+      
+      // 选中当前模型
+      selectedModelId.value = modelId;
+    } else {
+      addLog('3D', '添加模型失败');
+    }
+  } catch (error) {
+    console.error('添加简单模型时发生错误:', error);
+    addLog('3D', `添加简单模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 添加详细3D模型
+ */
+const addDetailed3DModel = () => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 当前中心点，向右偏移一点
+    const center = config.center;
+    const centerLon = center[1] + 0.002;
+    const centerLat = center[0];
+    
+    // 创建模型配置 - 使用一个公开的glTF模型URL
+    const modelId = 'cesium-man-' + Math.floor(Math.random() * 10000);
+    const modelConfig: Model3DOptions = {
+      id: modelId,
+      url: 'https://sandcastle.cesium.com/SampleData/models/CesiumMan/Cesium_Man.glb', // Cesium示例模型
+      position: {
+        longitude: centerLon,
+        latitude: centerLat,
+        height: 0 // 地面高度
+      },
+      scale: {
+        x: 10,
+        y: 10,
+        z: 10
+      },
+      rotation: {
+        heading: 0, // 朝北
+        pitch: 0,   // 无俯仰
+        roll: 0     // 无翻滚
+      },
+      label: {
+        text: 'Cesium人物模型',
+        fillColor: '#FFFFFF',
+        outlineColor: '#000000',
+        outlineWidth: 2,
+        heightOffset: 50
+      },
+      animation: {
+        speedFactor: 1.0,
+        loop: true,
+        autoPlay: true
+      }
+    };
+    
+    // 添加模型
+    const result = cesiumObj.addModel(modelConfig);
+    
+    if (result) {
+      addLog('3D', `已添加Cesium人物模型: ${modelId}`);
+      models.value.push({
+        id: modelId,
+        name: 'Cesium人物模型',
+        type: 'glTF'
+      });
+      
+      // 选中当前模型
+      selectedModelId.value = modelId;
+    } else {
+      addLog('3D', '添加人物模型失败');
+    }
+  } catch (error) {
+    console.error('添加详细模型时发生错误:', error);
+    addLog('3D', `添加详细模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 添加自定义3D模型
+ */
+const addCustom3DModel = () => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 当前中心点，向左偏移一点
+    const center = config.center;
+    const centerLon = center[1] - 0.002;
+    const centerLat = center[0];
+    
+    // 创建模型配置 - 使用一个公开的glTF模型URL
+    const modelId = 'custom-model-' + Math.floor(Math.random() * 10000);
+    const modelConfig: Model3DOptions = {
+      id: modelId,
+      url: 'https://sandcastle.cesium.com/SampleData/models/CesiumAir/Cesium_Air.glb', // Cesium飞机模型
+      position: {
+        longitude: centerLon,
+        latitude: centerLat,
+        height: 200 // 高度200米
+      },
+      scale: {
+        x: 10,
+        y: 10,
+        z: 10
+      },
+      rotation: {
+        heading: 45, // 东北方向
+        pitch: 0,    // 无俯仰
+        roll: 0      // 无翻滚
+      },
+      label: {
+        text: '自定义飞机模型',
+        fillColor: '#FFFFFF',
+        outlineColor: '#000000',
+        outlineWidth: 2,
+        heightOffset: 50
+      }
+    };
+    
+    // 添加模型
+    const result = cesiumObj.addModel(modelConfig);
+    
+    if (result) {
+      addLog('3D', `已添加自定义飞机模型: ${modelId}`);
+      models.value.push({
+        id: modelId,
+        name: '自定义飞机模型',
+        type: 'aircraft'
+      });
+      
+      // 选中当前模型
+      selectedModelId.value = modelId;
+    } else {
+      addLog('3D', '添加自定义模型失败');
+    }
+  } catch (error) {
+    console.error('添加自定义模型时发生错误:', error);
+    addLog('3D', `添加自定义模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 清除所有3D模型
+ */
+const clearAll3DModels = () => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 清除所有模型
+    const success = cesiumObj.clearAllModels();
+    
+    if (success) {
+      addLog('3D', '已清除所有3D模型');
+      models.value = [];
+      selectedModelId.value = null;
+    } else {
+      addLog('3D', '清除3D模型失败');
+    }
+  } catch (error) {
+    console.error('清除3D模型时发生错误:', error);
+    addLog('3D', `清除3D模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 飞行到选中的模型
+ */
+const flyToSelectedModel = () => {
+  if (!layerRef.value || !is3DMode.value || !selectedModelId.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 飞行到模型
+    const success = cesiumObj.flyToModel(selectedModelId.value, {
+      offset: {
+        heading: 45,   // 从东北方向看
+        pitch: -30,    // 俯视30度
+        range: 500     // 距离500米
+      },
+      duration: 2      // 2秒完成飞行
+    });
+    
+    if (success) {
+      const model = models.value.find(m => m.id === selectedModelId.value);
+      addLog('3D', `已飞行到模型: ${model ? model.name : selectedModelId.value}`);
+    } else {
+      addLog('3D', '飞行到模型失败');
+    }
+  } catch (error) {
+    console.error('飞行到模型时发生错误:', error);
+    addLog('3D', `飞行到模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 旋转选中的模型
+ */
+const rotateSelectedModel = () => {
+  if (!layerRef.value || !is3DMode.value || !selectedModelId.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 随机旋转角度
+    const heading = Math.random() * 360;
+    const pitch = (Math.random() - 0.5) * 30;
+    const roll = (Math.random() - 0.5) * 30;
+    
+    // 更新模型旋转
+    const success = cesiumObj.updateModel(selectedModelId.value, {
+      rotation: {
+        heading, 
+        pitch,
+        roll
+      }
+    });
+    
+    if (success) {
+      const model = models.value.find(m => m.id === selectedModelId.value);
+      addLog('3D', `已旋转模型: ${model ? model.name : selectedModelId.value}`);
+    } else {
+      addLog('3D', '旋转模型失败');
+    }
+  } catch (error) {
+    console.error('旋转模型时发生错误:', error);
+    addLog('3D', `旋转模型失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 调整选中模型的大小
+ */
+const resizeSelectedModel = () => {
+  if (!layerRef.value || !is3DMode.value || !selectedModelId.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 随机缩放因子
+    const scaleFactor = 0.5 + Math.random() * 2; // 0.5到2.5之间
+    
+    // 更新模型缩放
+    const success = cesiumObj.updateModel(selectedModelId.value, {
+      scale: {
+        x: scaleFactor * 10,
+        y: scaleFactor * 10,
+        z: scaleFactor * 10
+      }
+    });
+    
+    if (success) {
+      const model = models.value.find(m => m.id === selectedModelId.value);
+      addLog('3D', `已调整模型大小: ${model ? model.name : selectedModelId.value} (${scaleFactor.toFixed(2)}x)`);
+    } else {
+      addLog('3D', '调整模型大小失败');
+    }
+  } catch (error) {
+    console.error('调整模型大小时发生错误:', error);
+    addLog('3D', `调整模型大小失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 更改选中模型的颜色
+ */
+const changeModelColor = () => {
+  if (!layerRef.value || !is3DMode.value || !selectedModelId.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 随机颜色
+    const colors = ['#1890FF', '#52C41A', '#FAAD14', '#F5222D', '#722ED1', '#EB2F96'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    // 更新模型颜色
+    const success = cesiumObj.updateModel(selectedModelId.value, {
+      color: color
+    });
+    
+    if (success) {
+      const model = models.value.find(m => m.id === selectedModelId.value);
+      addLog('3D', `已更改模型颜色: ${model ? model.name : selectedModelId.value} (${color})`);
+    } else {
+      addLog('3D', '更改模型颜色失败');
+    }
+  } catch (error) {
+    console.error('更改模型颜色时发生错误:', error);
+    addLog('3D', `更改模型颜色失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 清除热力点
+ */
+const clearHeatmapPoints = () => {
+  if (!layerRef.value) return;
+  
+  try {
+    // 获取热力图对象
+    const heatmapObj = layerRef.value.getHeatmapObject();
+    if (!heatmapObj) {
+      addLog('热力图', '无法获取热力图对象');
+      return;
+    }
+    
+    // 清除所有热力点
+    heatmapObj.clearHeatmapPoints();
+    
+    // 更新热力点列表
+    heatmapPoints.value = [];
+    selectedHeatmapPoint.value = null;
+    
+    addLog('热力图', '已清除所有热力点');
+  } catch (error) {
+    console.error('清除热力点失败:', error);
+    addLog('热力图', `清除热力点失败: ${error.message || '未知错误'}`);
+  }
+};
+
+/**
+ * 删除单个3D模型
+ * @param id 模型ID
+ */
+const removeModel = (id: string) => {
+  if (!layerRef.value || !is3DMode.value) return;
+  
+  try {
+    const cesiumObj = layerRef.value.getCesiumObject();
+    if (!cesiumObj) {
+      addLog('3D', '无法获取Cesium对象');
+      return;
+    }
+    
+    // 删除指定ID的模型
+    const success = cesiumObj.removeModel(id);
+    
+    if (success) {
+      // 从模型列表中移除
+      const modelIndex = models.value.findIndex(m => m.id === id);
+      if (modelIndex !== -1) {
+        const model = models.value[modelIndex];
+        models.value.splice(modelIndex, 1);
+        addLog('3D', `已删除模型: ${model.name}`);
+      }
+      
+      // 如果删除的是当前选中的模型，清除选中状态
+      if (selectedModelId.value === id) {
+        selectedModelId.value = null;
+      }
+    } else {
+      addLog('3D', `删除模型 ${id} 失败`);
+    }
+  } catch (error) {
+    console.error('删除模型时发生错误:', error);
+    addLog('3D', `删除模型失败: ${error.message || '未知错误'}`);
+  }
+};
 </script>
 
 <style scoped>
