@@ -221,6 +221,7 @@ const showOverviewButton = ref<boolean>(false);
 const showOverviewMap = ref<boolean>(false);
 const showLayerPanel = ref<boolean>(false);
 const showTrackPlayer = ref<boolean>(false);
+const showBoundarySelector = ref<boolean>(false);
 const layerPanelPosition = ref<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
 const mapToolbarRef = ref(null);
 const trackPlayerRef = ref(null);
@@ -1606,6 +1607,11 @@ onMounted(() => {
     cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
     cesiumObj.setEnabled(false);
   }
+  
+  // 设置工具栏状态变更回调
+  if (toolbarObject) {
+    toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
+  }
 });
 
 // 配置日志级别
@@ -2485,6 +2491,69 @@ watch(is3D, (val) => {
     mapToolbarRef.value?.refreshToolbarState?.();
   }
 });
+
+
+/**
+ * 关闭区划边界选择器
+ */
+const closeBoundarySelector = () => {
+  showBoundarySelector.value = false;
+  // 同时取消工具栏中的选中状态
+  if (toolbarObject && activeToolId.value === 'boundary') {
+    toolbarObject.deactivateTool('boundary');
+  }
+};
+
+/**
+ * 获取区划边界对象
+ */
+const getBoundaryObject = () => {
+  return toolbarObject?.getBoundaryObject() || null;
+};
+
+// 处理工具栏状态变更
+const handleToolbarStateChange = (toolId: string, active: boolean, toolType: string, data?: any) => {
+  // 发送事件
+  emit('toolbar-state-change', { toolId, active, toolType, data });
+  
+  // 处理区划边界工具
+  if (toolId === 'boundary') {
+    showBoundarySelector.value = active;
+  }
+  
+  // 可以在这里添加其他工具的处理逻辑
+};
+
+const mapContainerId = `map-container-${Date.now()}`; // 生成唯一ID
+
+// 禁用/恢复右键菜单
+let contextMenuHandler: ((e: MouseEvent) => void) | null = null;
+function disableContextMenu() {
+  const el = document.getElementById(mapContainerId);
+  if (el && !contextMenuHandler) {
+    contextMenuHandler = (e: MouseEvent) => e.preventDefault();
+    el.addEventListener('contextmenu', contextMenuHandler);
+  }
+}
+function enableContextMenu() {
+  const el = document.getElementById(mapContainerId);
+  if (el && contextMenuHandler) {
+    el.removeEventListener('contextmenu', contextMenuHandler);
+    contextMenuHandler = null;
+  }
+}
+
+// 在3D切换时处理右键菜单
+function set3DEnabled(enabled: boolean) {
+  if (cesiumObj) {
+    cesiumObj.setEnabled(enabled);
+    if (enabled) {
+      disableContextMenu();
+    } else {
+      enableContextMenu();
+    }
+  }
+}
 
 </script>
 
