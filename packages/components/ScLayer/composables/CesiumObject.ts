@@ -126,19 +126,20 @@ export class CesiumObject {
         controller.enableTilt = true;        // 允许倾斜
         controller.enableLook = true;        // 允许四处查看
         
-        // 启用右键拖动控制视角 - 使用字符串代替Cesium枚举
-        // @ts-ignore - CameraEventType可能未导出
-        controller.tiltEventTypes = [
-          Cesium.CameraEventType ? Cesium.CameraEventType.RIGHT_DRAG : 2, // 右键拖动
-          Cesium.CameraEventType ? Cesium.CameraEventType.PINCH : 3       // 捏合手势
-        ];
-        
-        // 启用鼠标滚轮缩放
-        // @ts-ignore - CameraEventType可能未导出
-        controller.zoomEventTypes = [
-          Cesium.CameraEventType ? Cesium.CameraEventType.WHEEL : 4,     // 滚轮缩放
-          Cesium.CameraEventType ? Cesium.CameraEventType.PINCH : 3      // 捏合手势
-        ];
+        // 安全地使用CameraEventType
+        if (Cesium.CameraEventType) {
+          // 启用右键拖动控制视角
+          controller.tiltEventTypes = [
+            Cesium.CameraEventType.RIGHT_DRAG, // 右键拖动
+            Cesium.CameraEventType.PINCH       // 捏合手势
+          ];
+          
+          // 启用鼠标滚轮缩放
+          controller.zoomEventTypes = [
+            Cesium.CameraEventType.WHEEL,     // 滚轮缩放
+            Cesium.CameraEventType.PINCH      // 捏合手势
+          ];
+        }
         
         // 配置相机默认视图
         scene.globe.enableLighting = true;     // 启用光照
@@ -156,12 +157,14 @@ export class CesiumObject {
         controller.minimumZoomDistance = 1;  // 最小缩放距离
         controller.maximumZoomDistance = 20000000; // 最大缩放距离
         
-        // 禁用右键拖动控制视角，使用左键单一控制
-        // @ts-ignore - CameraEventType可能未导出
-        controller.tiltEventTypes = [
-          Cesium.CameraEventType ? Cesium.CameraEventType.MIDDLE_DRAG : 1, // 中键拖动
-          Cesium.CameraEventType ? Cesium.CameraEventType.PINCH : 3        // 捏合手势
-        ];
+        // 安全地使用CameraEventType
+        if (Cesium.CameraEventType) {
+          // 禁用右键拖动控制视角，使用左键单一控制
+          controller.tiltEventTypes = [
+            Cesium.CameraEventType.MIDDLE_DRAG, // 中键拖动
+            Cesium.CameraEventType.PINCH        // 捏合手势
+          ];
+        }
         
         // 相机设置
         scene.globe.enableLighting = false;    // 禁用光照
@@ -183,8 +186,7 @@ export class CesiumObject {
       
       // 配置地形 - 使用try-catch处理可能不存在的属性
       try {
-        // @ts-ignore - 部分版本的Cesium可能不支持terrainExaggeration
-        if (scene.globe && typeof scene.globe.terrainExaggeration !== 'undefined') {
+        if (scene.globe && 'terrainExaggeration' in scene.globe) {
           scene.globe.terrainExaggeration = viewMode === '3D' ? 1.0 : 1.0;
         }
       } catch (e) {
@@ -193,8 +195,7 @@ export class CesiumObject {
       
       // 配置基础渲染参数
       try {
-        // @ts-ignore - 部分版本的Cesium可能不支持fxaa
-        if (typeof scene.fxaa !== 'undefined') {
+        if (scene && 'fxaa' in scene) {
           scene.fxaa = true; // 抗锯齿
         }
       } catch (e) {
@@ -525,9 +526,10 @@ export class CesiumObject {
     }
     
     try {
-      // @ts-ignore - 处理可能不支持terrainExaggeration的情况
-      if (typeof scene.globe.terrainExaggeration !== 'undefined') {
-        scene.globe.terrainExaggeration = scale;
+      // 使用类型断言和安全访问
+      const globe = scene.globe as any;
+      if (globe && 'terrainExaggeration' in globe) {
+        globe.terrainExaggeration = scale;
         logger.info(`已设置地形高度夸张程度: ${scale}`);
         return true;
       } else {
@@ -584,16 +586,15 @@ export class CesiumObject {
         // 使用更安全的方式设置太阳位置
         const julianDate = date ? Cesium.JulianDate.fromDate(date) : Cesium.JulianDate.now();
         
-        // @ts-ignore - Cesium.Transforms可能不包含computePositionAtEphemeris
-        if (Cesium.Transforms && typeof Cesium.Transforms.computeSunPosition !== 'undefined') {
+        // 使用类型断言避免类型错误
+        if (Cesium.Transforms && typeof (Cesium.Transforms as any).computeSunPosition === 'function') {
           // 优先使用computeSunPosition
-          // @ts-ignore
-          scene.sun.position = Cesium.Transforms.computeSunPosition(julianDate);
-        } else if (Cesium.Simon1994PlanetaryPositions) {
+          const sunPosition = (Cesium.Transforms as any).computeSunPosition(julianDate);
+          (scene.sun as any).position = sunPosition;
+        } else if ((Cesium as any).Simon1994PlanetaryPositions) {
           // 或者使用其他方法
-          // @ts-ignore
-          const position = Cesium.Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(julianDate);
-          scene.sun.position = position;
+          const position = (Cesium as any).Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(julianDate);
+          (scene.sun as any).position = position;
         } else {
           logger.warn('当前Cesium版本不支持计算太阳位置');
           return false;

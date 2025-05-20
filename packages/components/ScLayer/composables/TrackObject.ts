@@ -37,8 +37,9 @@ interface ExtendedTrackPlayer {
   speed: number;
   withCamera: boolean;
   speedFactor?: number;
-  cameraSmoothness?: number; // 新增的相机平滑度参数
+  cameraSmoothness?: number; // 相机平滑度参数(0-1)，越小越平滑
   stabilizeViewport?: boolean; // 是否启用视口稳定功能
+  viewportUpdateThreshold?: number; // 视图更新阈值
 }
 
 // 使用扩展后的接口
@@ -47,8 +48,9 @@ const DEFAULT_TRACK_PLAYER: ExtendedTrackPlayer = {
   loop: false,
   speed: 20, // 20 km/h 默认速度
   withCamera: true,
-  cameraSmoothness: 0.25, // 添加相机平滑度参数
-  stabilizeViewport: false // 默认不启用视口稳定功能
+  cameraSmoothness: 0.15, // 降低默认平滑度，使动画更平滑
+  stabilizeViewport: true, // 默认启用视口稳定功能
+  viewportUpdateThreshold: 1.5 // 视图更新阈值
 };
 
 // 轨迹播放状态
@@ -129,12 +131,12 @@ export class TrackObject {
   }>();
 
   // 在类属性中添加性能优化相关的属性
-  private readonly TARGET_FPS = 60; // 目标帧率
-  private readonly FRAME_TIME = 1000 / 60; // 理想帧时间(ms)
+  private readonly TARGET_FPS = 45; // 降低目标帧率，提高性能
+  private readonly FRAME_TIME = 1000 / 45; // 理想帧时间(ms)
   private pendingRenderRequest: number | null = null; // 挂起的渲染请求ID
 
   // 在类属性中添加默认播放器配置的平滑度参数
-  private readonly DEFAULT_CAMERA_SMOOTHNESS = 0.25; // 默认相机平滑度(0-1)，越小越平滑
+  private readonly DEFAULT_CAMERA_SMOOTHNESS = 0.15; // 降低默认相机平滑度
 
   // 在类属性部分添加新的Overlay相关属性
   private trackNodeOverlays = new Map<string, Map<number, Overlay>>(); // 轨迹节点Overlay映射
@@ -3343,7 +3345,7 @@ export class TrackObject {
         const currentResolution = view.getResolution();
         
         // 如果当前分辨率与原始分辨率不匹配，恢复到原始分辨率
-        if (currentResolution !== this.originalViewResolution) {
+        if (Math.abs(currentResolution - this.originalViewResolution) > 0.0001) {
           view.setResolution(this.originalViewResolution);
         }
       }
@@ -3352,7 +3354,7 @@ export class TrackObject {
     // 获取播放器配置中的平滑度参数，范围0-1，值越小越平滑
     // 使用配置的平滑度参数，默认为DEFAULT_CAMERA_SMOOTHNESS
     const configuredSmoothness = player.cameraSmoothness !== undefined ? 
-      Math.max(0.05, Math.min(1, player.cameraSmoothness)) : 
+      Math.max(0.03, Math.min(0.5, player.cameraSmoothness)) : // 限制平滑度范围，提高下限和降低上限
       this.DEFAULT_CAMERA_SMOOTHNESS;
     
     // 计算当前时间和帧间隔
@@ -3368,11 +3370,11 @@ export class TrackObject {
     
     // 基于距离和配置的平滑度动态调整平滑系数
     const baseSmooth = configuredSmoothness;
-    const distanceFactor = Math.min(distance / 500, 1); // 500是参考距离
-    const adaptiveSmooth = baseSmooth + distanceFactor * 0.35;
+    const distanceFactor = Math.min(distance / 1000, 0.6); // 降低距离参考值，减少突变
+    const adaptiveSmooth = baseSmooth + distanceFactor * 0.2; // 降低距离对平滑系数的影响
     
-    // 应用基于帧率的动态调整
-    const smoothFactor = Math.min(adaptiveSmooth * (deltaTime / this.FRAME_TIME), 0.8);
+    // 应用基于帧率的动态调整，并降低最大值，避免大幅度变化
+    const smoothFactor = Math.min(adaptiveSmooth * (deltaTime / this.FRAME_TIME), 0.5);
     
     // 计算新的中心点坐标 (平滑插值)
     const dx = cameraAnimation.targetCenter[0] - currentCenter[0];
@@ -3380,18 +3382,24 @@ export class TrackObject {
     
     // 优化：只在移动距离超过阈值时才更新视图，避免微小抖动
     const moveDistance = Math.sqrt(dx * dx + dy * dy);
-    const minMoveThreshold = 0.5; // 最小移动阈值，单位为像素
+    const minMoveThreshold = player.viewportUpdateThreshold || 1.5; // 提高最小移动阈值
     
     if (moveDistance > minMoveThreshold) {
+      // 使用Cubic Easing函数使平滑过渡更自然
+      // t' = t * t * (3 - 2 * t) 三次方过渡
+      const t = Math.min(1, smoothFactor * 2); // 调整范围
+      const easeValue = t * t * (3 - 2 * t);
+      
       // 使用平滑插值计算新的中心点
-      const newX = currentCenter[0] + dx * smoothFactor;
-      const newY = currentCenter[1] + dy * smoothFactor;
+      const newX = currentCenter[0] + dx * easeValue;
+      const newY = currentCenter[1] + dy * easeValue;
       
-      // 更新视图中心点
-      view.setCenter([newX, newY]);
-      
-      // 使用GPU加速的方式渲染
-      this.requestDebouncedRender();
+      // 更新视图中心点，使用防抖动渲染请求，而不是直接更新
+      this.mapInstance.getView().animate({
+        center: [newX, newY],
+        duration: 50, // 使用短动画持续时间，减少抖动
+        easing: (t) => t // 线性缓动，因为我们已经应用了自定义easing
+      });
     }
     
     // 请求下一帧动画
@@ -3426,26 +3434,30 @@ export class TrackObject {
       return; // 已经有一个挂起的渲染请求
     }
     
-    // 使用requestAnimationFrame请求在下一帧进行渲染
+    // 使用requestAnimationFrame请求在下一帧进行渲染，并增加一些延迟以稳定
     this.pendingRenderRequest = window.requestAnimationFrame(() => {
       // 清除请求标记
       this.pendingRenderRequest = null;
       
-      // 执行地图渲染
+      // 检查地图元素是否可见
       const mapElement = this.mapInstance.getTargetElement();
       if (mapElement && 
           mapElement.offsetWidth > 0 && 
           mapElement.offsetHeight > 0 &&
           window.getComputedStyle(mapElement).display !== 'none') {
         
-        // 更新渲染时添加GPU加速hint
+        // 使用GPU加速进行渲染
         const canvas = mapElement.querySelector('canvas');
         if (canvas) {
           canvas.style.transform = 'translateZ(0)';
+          canvas.style.willChange = 'transform';
         }
         
-        // 执行渲染
-        this.mapInstance.render();
+        // 使用较低频率的渲染请求
+        setTimeout(() => {
+          // 执行渲染
+          this.mapInstance.render();
+        }, 0); // 延迟为0可以将其排到当前JS执行队列结束时执行
       }
     });
   }
@@ -3464,9 +3476,44 @@ export class TrackObject {
     
     // 添加will-change提示，告诉浏览器将有变换发生
     mapElement.style.willChange = 'transform';
-    
-    // 设置OpenLayers选项，减少不必要的渲染
-    this.mapInstance.updateSize();
+
+    // 检查并优化地图渲染选项
+    try {
+      // 设置OpenLayers选项，减少不必要的渲染
+      // 尝试设置更高效的渲染选项
+      const mapOptions = this.mapInstance.getProperties();
+      // 限制渲染帧率
+      if (!mapOptions.pixelRatio) {
+        // 使用较低的设备像素比以提高性能
+        this.mapInstance.updateSize();
+      }
+      
+      // 添加 CSS 类提示浏览器优化渲染
+      mapElement.classList.add('gpu-accelerated');
+      
+      // 设置 CSS，优化渲染性能
+      const style = document.createElement('style');
+      style.textContent = `
+        .gpu-accelerated {
+          -webkit-transform: translateZ(0);
+          -moz-transform: translateZ(0);
+          -ms-transform: translateZ(0);
+          -o-transform: translateZ(0);
+          transform: translateZ(0);
+          -webkit-backface-visibility: hidden;
+          -moz-backface-visibility: hidden;
+          -ms-backface-visibility: hidden;
+          backface-visibility: hidden;
+          -webkit-perspective: 1000;
+          -moz-perspective: 1000;
+          -ms-perspective: 1000;
+          perspective: 1000;
+        }
+      `;
+      document.head.appendChild(style);
+    } catch (error) {
+      this.log('warn', '尝试优化地图渲染时出错', error);
+    }
   }
 
   /**
@@ -4185,14 +4232,20 @@ export class TrackObject {
    * @param id 轨迹ID
    */
   private saveOriginalViewState(id: string): void {
-    if (!this.mapInstance) return;
+    // 如果跟踪已经在播放，不需要再次保存视图状态
+    if (this.trackViewportStabilized.get(id)) {
+      return;
+    }
     
+    // 获取当前视图状态
     const view = this.mapInstance.getView();
     this.originalViewResolution = view.getResolution();
-    this.originalViewExtent = view.calculateExtent(this.mapInstance.getSize());
+    this.originalViewExtent = view.calculateExtent();
+    
+    // 标记视口已稳定化
     this.trackViewportStabilized.set(id, true);
     
-    this.log('debug', `已保存轨迹 "${id}" 原始视图状态，分辨率: ${this.originalViewResolution}`);
+    this.log('debug', `已保存轨迹 "${id}" 的原始视图状态，分辨率: ${this.originalViewResolution}`);
   }
 
   /**
