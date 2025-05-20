@@ -72,6 +72,10 @@
                 <input type="checkbox" v-model="showNodeSpeed">
                 <span>节点速度</span>
               </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showNodeDistance">
+                <span>节点距离</span>
+              </label>
             </div>
           </div>
 
@@ -120,7 +124,7 @@
             :class="{ 'active': activeTrackId === id, 'disabled': playState === 'playing' && activeTrackId !== id }"
             @click="canSwitchTrack && selectTrack(id)" @dblclick="fitToTrackView(id)">
             <div class="track-item-info">
-              <div class="track-item-name">{{ track.name || '未命名轨迹' }}</div>
+              <div class="track-item-name">{{ getTrackNameWithLength(track) }}</div>
               <div class="track-item-detail">{{ formatTrackDetail(track) }}</div>
             </div>
             <div class="track-item-actions">
@@ -182,6 +186,11 @@
           <div class="track-progress-time">
             {{ formatTime(currentTime) }} / {{ formatTime(totalTime) }}
           </div>
+          <div class="track-static-points-info" v-if="getStaticPointsWithDistance().length">
+            <span v-for="item in getStaticPointsWithDistance()" :key="item.index" style="display:inline-block;margin-right:12px;">
+              静态点: {{ item.title }}（距上点 {{ item.distance.toFixed(2) }} 公里）
+            </span>
+          </div>
           <!-- 当前速度显示 -->
           <div class="track-current-speed" v-if="currentSpeed > 0">
             <template v-if="speedFactor === 1.0">
@@ -190,6 +199,11 @@
             <template v-else>
               当前速度: {{ (currentSpeed * speedFactor).toFixed(1) }} km/h (实际: {{ currentSpeed.toFixed(1) }} km/h)
             </template>
+            <!-- 新增：已行驶路程和距离下一个点 -->
+            <div class="track-current-distance-info" style="margin-top:4px;font-size:12px;color:#1890ff;">
+              <span>已行驶：{{ getDistanceFromStart().toFixed(2) }} 公里</span>
+              <span v-if="getDistanceToNextPoint() > 0" style="margin-left: 16px;">距离下个点：{{ getDistanceToNextPoint().toFixed(2) }} 公里</span>
+            </div>
           </div>
         </div>
       </div>
@@ -261,6 +275,7 @@ interface Props {
     showPointNames?: boolean;// 是否显示点位名称（移动点位名称）
     showSpeed?: boolean;    // 是否显示移动速度
     showNodeSpeed?: boolean;// 是否显示节点速度
+    showNodeDistance?: boolean;// 是否显示节点距离
     updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
   }
 }
@@ -280,6 +295,7 @@ const showNodePopover = ref(true); // 是否显示节点名称(popover)，默认
 const showNodeTime = ref(true); // 是否显示节点时间，默认显示
 const showSpeedPopover = ref(true); // 是否显示速度弹窗，默认显示
 const showNodeSpeed = ref(true); // 是否显示节点速度，默认显示
+const showNodeDistance = ref(true); // 是否显示节点距离，默认显示
 const showMovingPointName = ref(true); // 是否显示移动点位的名称，默认显示
 const currentTime = ref(0);
 const totalTime = ref(0);
@@ -569,6 +585,13 @@ watch(showNodeTime, (newValue) => {
   }
 });
 
+// 监听显示节点距离设置的变化
+watch(showNodeDistance, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
+  }
+});
+
 // 监听速度图标切换设置的变化
 watch(enableSpeedIcon, (newValue) => {
   if (activeTrackId.value && props.trackObj) {
@@ -632,6 +655,7 @@ const selectTrack = (id: string) => {
     const nodeTimeVisible = props.config?.showNodeTime !== undefined ? props.config.showNodeTime : showNodeTime.value;
     const speedVisible = props.config?.showSpeed !== undefined ? props.config.showSpeed : showSpeedPopover.value;
     const nodeSpeedVisible = props.config?.showNodeSpeed !== undefined ? props.config.showNodeSpeed : showNodeSpeed.value;
+    const nodeDistanceVisible = props.config?.showNodeDistance !== undefined ? props.config.showNodeDistance : showNodeDistance.value;
     const movingPointNameVisible = props.config?.showPointNames !== undefined ? props.config.showPointNames : showMovingPointName.value;
     
     // 应用显示设置
@@ -641,6 +665,7 @@ const selectTrack = (id: string) => {
     props.trackObj.setTrackNodeTimeVisible(id, nodeTimeVisible);
     props.trackObj.setTrackSpeedPopoversVisible(id, speedVisible);
     props.trackObj.setTrackNodeSpeedsVisible(id, nodeSpeedVisible);
+    props.trackObj.setTrackNodeDistanceVisible(id, nodeDistanceVisible);
     props.trackObj.setMovingPointNameVisible(id, movingPointNameVisible);
     
     // 从全局配置或当前UI状态获取播放配置
@@ -668,6 +693,7 @@ const selectTrack = (id: string) => {
     showNodeTime.value = nodeTimeVisible;
     showSpeedPopover.value = speedVisible;
     showNodeSpeed.value = nodeSpeedVisible;
+    showNodeDistance.value = nodeDistanceVisible;
     showMovingPointName.value = movingPointNameVisible;
     speedFactor.value = speedFct;
   }
@@ -936,6 +962,51 @@ const updateProgress = (progress: number) => {
   }
 };
 
+// 添加计算两点之间距离的辅助函数（哈弗赛因公式）
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  // 地球半径（公里）
+  const R = 6371;
+  
+  // 将角度转换为弧度
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lng2 - lng1);
+  const lat1Rad = toRad(lat1);
+  const lat2Rad = toRad(lat2);
+  
+  // 哈弗赛因公式
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.sin(dLon / 2) * Math.sin(dLon / 2) * 
+            Math.cos(lat1Rad) * Math.cos(lat2Rad);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  
+  // 距离（公里）
+  return R * c;
+};
+
+// 计算轨迹总距离
+const calculateTotalDistance = (points: TrackPoint[]): number => {
+  if (!points || points.length < 2) return 0;
+  
+  let totalDistance = 0;
+  
+  for (let i = 1; i < points.length; i++) {
+    const prevPoint = points[i - 1];
+    const currentPoint = points[i];
+    
+    // 计算相邻两点之间的距离
+    const distance = calculateDistance(
+      prevPoint.lat, prevPoint.lng,
+      currentPoint.lat, currentPoint.lng
+    );
+    
+    totalDistance += distance;
+  }
+  
+  return totalDistance;
+};
+
 // 格式化轨迹详情
 const formatTrackDetail = (track: Track): string => {
   if (!track.points || track.points.length === 0) {
@@ -946,7 +1017,11 @@ const formatTrackDetail = (track: Track): string => {
   const startTime = new Date(track.points[0].time * 1000).toLocaleString();
   const endTime = new Date(track.points[pointCount - 1].time * 1000).toLocaleString();
   
-  return `${pointCount}个点 · ${startTime} ~ ${endTime}`;
+  // 计算轨迹总距离
+  const totalDistance = calculateTotalDistance(track.points);
+  const formattedDistance = totalDistance.toFixed(2);
+  
+  return `${pointCount}个点 · ${formattedDistance}公里 · ${startTime} ~ ${endTime}`;
 };
 
 // 格式化时间
@@ -1185,6 +1260,63 @@ const onSpeedChange = () => {
       console.log(`轨迹播放速度已实时调整为: ${speedFactor.value.toFixed(1)}x`);
     }
   }
+};
+
+// 添加一个辅助函数来获取带长度的轨迹名称
+const getTrackNameWithLength = (track: Track): string => {
+  const name = track.name || '未命名轨迹';
+  const length = calculateTotalDistance(track.points).toFixed(2);
+  return `${name} · ${length}公里`;
+};
+
+// 计算当前点索引
+const getCurrentPointIndex = () => {
+  if (!activeTrackId.value) return 0;
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length === 0) return 0;
+  // 进度百分比
+  const progress = progressPercentage.value / 100;
+  const idx = Math.floor(progress * (track.points.length - 1));
+  return Math.max(0, Math.min(idx, track.points.length - 1));
+};
+
+// 计算已行驶公里数
+const getDistanceFromStart = () => {
+  if (!activeTrackId.value) return 0;
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length < 2) return 0;
+  const idx = getCurrentPointIndex();
+  if (idx === 0) return 0;
+  return calculateTotalDistance(track.points.slice(0, idx + 1));
+};
+
+// 计算距离下个点剩余公里数
+const getDistanceToNextPoint = () => {
+  if (!activeTrackId.value) return 0;
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length < 2) return 0;
+  const idx = getCurrentPointIndex();
+  if (idx >= track.points.length - 1) return 0;
+  const cur = track.points[idx];
+  const next = track.points[idx + 1];
+  return calculateDistance(cur.lat, cur.lng, next.lat, next.lng);
+};
+
+// 计算所有静态点位及其与上一点的距离
+const getStaticPointsWithDistance = () => {
+  if (!activeTrackId.value) return [];
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length < 2) return [];
+  const result: { title: string, index: number, distance: number }[] = [];
+  for (let i = 1; i < track.points.length; i++) {
+    const p = track.points[i];
+    if (p.staticTitle) {
+      const prev = track.points[i - 1];
+      const distance = calculateDistance(prev.lat, prev.lng, p.lat, p.lng);
+      result.push({ title: p.staticTitle, index: i, distance });
+    }
+  }
+  return result;
 };
 
 </script>

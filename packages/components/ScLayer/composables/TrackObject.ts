@@ -160,6 +160,12 @@ export class TrackObject {
   private originalViewExtent: number[] | null = null;
   private trackViewportStabilized = new Map<string, boolean>();
 
+  // 轨迹节点距离信息可见性
+  private trackNodeDistanceVisible = new Map<string, boolean>();
+  
+  // 轨迹总距离缓存
+  private trackTotalDistances = new Map<string, number>();
+
   /**
    * 构造函数
    * @param mapInstance 地图实例
@@ -1315,7 +1321,7 @@ export class TrackObject {
       
       // 绘制经过的线段和位置标记
       this.drawPassedLine(id, vectorContext, progress);
-      this.drawPositionMarker(id, vectorContext, position);
+      this.drawPositionMarker(id, vectorContext, position, progress);
       
       // 绘制轨迹节点
       this.drawTrackNodes(id, vectorContext, track, progress);
@@ -1424,7 +1430,7 @@ export class TrackObject {
    * @param vectorContext 向量上下文
    * @param position 当前位置
    */
-  private drawPositionMarker(id: string, vectorContext: any, position: TrackPoint): void {
+  private drawPositionMarker(id: string, vectorContext: any, position: TrackPoint, progress: number): void {
     const track = this.tracks.get(id)!;
     const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
     
@@ -1583,6 +1589,23 @@ export class TrackObject {
           <div style="color:#666;font-size:10px;margin-top:2px;">
             实际速度: ${realSpeed.toFixed(1)} km/h
           </div>`;
+        }
+        // 新增：已行驶路程和距离下一个点
+            // 计算当前位置对应的点索引
+        const exactIndex = progress * (track.points.length - 1);
+        const pointIndex = Math.floor(exactIndex);
+        if (pointIndex >= 0) {
+          const distanceFromStart = this.getDistanceFromStart(id, pointIndex, position) / 1000; // 公里
+          let distanceToNext = 0;
+          if (pointIndex < track.points.length - 1) {
+            distanceToNext = this.getDistanceBetweenPoints(id, pointIndex, pointIndex + 1, position) / 1000;
+          }
+          overlayContent += `<div style='color:#1890ff;font-size:11px;margin-top:2px;'>
+            已行驶: ${distanceFromStart.toFixed(2)} 公里`;
+          if (distanceToNext > 0) {
+            overlayContent += `，距下个点: ${distanceToNext.toFixed(2)} 公里`;
+          }
+          overlayContent += `</div>`;
         }
       }
       
@@ -4181,5 +4204,214 @@ export class TrackObject {
     this.mapInstance = null;
     
     this.log('debug', '轨迹对象已销毁');
+  }
+
+  /**
+   * 获取所有轨迹及其长度信息
+   * @returns 包含轨迹ID、对象和长度信息的数组
+   */
+  public getTracksArray(): Array<{id: string, track: Track, trackNameWithLength: string}> {
+    const tracksArray: Array<{id: string, track: Track, trackNameWithLength: string}> = [];
+    
+    this.tracks.forEach((track, id) => {
+      // 获取轨迹总距离
+      const totalDistance = this.getTrackTotalDistance(id);
+      
+      // 格式化距离显示
+      const distanceText = totalDistance >= 1000 ? 
+        `${(totalDistance / 1000).toFixed(2)}公里` : 
+        `${totalDistance.toFixed(0)}米`;
+      
+      // 组合轨迹名称与长度
+      const trackNameWithLength = track.name ? `${track.name} (${distanceText})` : `轨迹 #${id.substr(0, 6)} (${distanceText})`;
+      
+      tracksArray.push({
+        id,
+        track,
+        trackNameWithLength
+      });
+    });
+    
+    return tracksArray;
+  }
+
+  /**
+   * 计算轨迹总距离
+   * @param id 轨迹ID
+   * @returns 轨迹总距离(米)
+   */
+  public getTrackTotalDistance(id: string): number {
+    // 检查缓存中是否已有计算结果
+    if (this.trackTotalDistances.has(id)) {
+      return this.trackTotalDistances.get(id)!;
+    }
+    
+    const track = this.tracks.get(id);
+    if (!track || track.points.length < 2) {
+      return 0;
+    }
+    
+    // 计算总距离
+    let totalDistance = 0;
+    for (let i = 1; i < track.points.length; i++) {
+      const prevPoint = track.points[i - 1];
+      const currentPoint = track.points[i];
+      totalDistance += this.calculateDistance(prevPoint, currentPoint);
+    }
+    
+    // 缓存结果
+    this.trackTotalDistances.set(id, totalDistance);
+    
+    return totalDistance;
+  }
+  
+  /**
+   * 获取轨迹点位到起点的距离
+   * @param id 轨迹ID
+   * @param pointIndex 点位索引
+   * @returns 距起点的距离(米)
+   */
+  public getDistanceFromStart(id: string, pointIndex: number, position?: {lat: number, lng: number}): number {
+    const track = this.tracks.get(id);
+    if (!track || track.points.length < 2 || pointIndex < 0) {
+      return 0;
+    }
+    let distance = 0;
+    for (let i = 1; i <= Math.min(pointIndex, track.points.length - 1); i++) {
+      const prevPoint = track.points[i - 1];
+      const currentPoint = track.points[i];
+      distance += this.calculateDistance(prevPoint, currentPoint);
+    }
+    if (position && pointIndex < track.points.length - 1) {
+      const basePoint = track.points[pointIndex];
+      // 构造 TrackPoint 类型，time 用 basePoint 的 time
+      const posPoint = { lat: position.lat, lng: position.lng, time: basePoint.time };
+      distance += this.calculateDistance(basePoint, posPoint);
+    }
+    return distance;
+  }
+  
+  /**
+   * 获取两个点位之间的距离，支持插值点
+   * @param id 轨迹ID
+   * @param fromIndex 起始点索引
+   * @param toIndex 终点索引
+   * @param fromPosition 可选，起始插值点（{lat, lng}）
+   * @param toPosition 可选，终点插值点（{lat, lng}）
+   * @returns 两点间距离(米)
+   */
+  public getDistanceBetweenPoints(
+    id: string,
+    fromIndex: number,
+    toIndex: number,
+    fromPosition?: {lat: number, lng: number},
+    toPosition?: {lat: number, lng: number}
+  ): number {
+    const track = this.tracks.get(id);
+    if (!track || fromIndex < 0 || toIndex < 0 ||
+        fromIndex >= track.points.length || toIndex >= track.points.length) {
+      return 0;
+    }
+    if (fromIndex === toIndex && !fromPosition && !toPosition) {
+      return 0;
+    }
+    const startIndex = Math.min(fromIndex, toIndex);
+    const endIndex = Math.max(fromIndex, toIndex);
+    let distance = 0;
+    if (fromPosition && startIndex < track.points.length - 1) {
+      const posPoint = { lat: fromPosition.lat, lng: fromPosition.lng, time: track.points[startIndex].time };
+      distance += this.calculateDistance(posPoint, track.points[startIndex + 1]);
+    }
+    for (let i = startIndex + 1; i < endIndex; i++) {
+      const prevPoint = track.points[i - 1];
+      const currentPoint = track.points[i];
+      distance += this.calculateDistance(prevPoint, currentPoint);
+    }
+    if (toPosition && endIndex < track.points.length) {
+      const posPoint = { lat: toPosition.lat, lng: toPosition.lng, time: track.points[endIndex].time };
+      distance += this.calculateDistance(track.points[endIndex], posPoint);
+    } else if (!toPosition && endIndex > startIndex) {
+      const prevPoint = track.points[endIndex - 1];
+      const currentPoint = track.points[endIndex];
+      distance += this.calculateDistance(prevPoint, currentPoint);
+    }
+    if (fromIndex > toIndex) {
+      return distance;
+    }
+    return distance;
+  }
+  
+  /**
+   * 设置轨迹节点距离信息是否可见
+   * @param id 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setTrackNodeDistanceVisible(id: string, visible: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置轨迹节点距离信息可见性失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 明确记录旧值和新值，帮助调试
+    const oldValue = this.trackNodeDistanceVisible.get(id);
+    
+    // 更新节点距离可见性设置
+    this.trackNodeDistanceVisible.set(id, visible === true);
+    
+    this.log('debug', `轨迹 "${id}" 节点距离信息可见性从 ${oldValue} 更改为 ${visible}`);
+    
+    // 如果轨迹播放状态是停止或暂停，需要重新创建节点Overlay
+    if (this.trackNodesVisible.get(id) && this.trackNodePopoversVisible.get(id) &&
+        this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
+      // 获取轨迹
+      const track = this.tracks.get(id);
+      if (!track || !track.visible) return true;
+      
+      // 清除现有节点Overlay
+      this.clearNodeOverlays(id);
+      
+      // 重新创建所有节点的Overlay
+      const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
+      const showNodeDistance = visible;
+      
+      // 为每个节点创建Overlay
+      for (let i = 0; i < track.points.length; i++) {
+        const point = track.points[i];
+        
+        // 只为有标题的点创建Overlay
+        if (point.title) {
+          // 格式化时间
+          let timeStr = '';
+          if (point.time && showNodeTime) {
+            const date = new Date(point.time * 1000);
+            timeStr = date.toLocaleTimeString();
+          }
+          
+          // 准备节点HTML内容
+          let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
+          
+          // 添加时间信息（如果启用）
+          if (showNodeTime && timeStr) {
+            nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
+          }
+          
+          // 添加距离信息（如果启用且不是第一个点）
+          if (showNodeDistance && i > 0) {
+            const distanceFromPrev = this.calculateDistance(track.points[i-1], point);
+            const distanceText = distanceFromPrev >= 1000 ? 
+              `${(distanceFromPrev / 1000).toFixed(2)}公里` : 
+              `${Math.round(distanceFromPrev)}米`;
+            nodeContent += `<div style="margin-top:2px;color:#1890ff;font-size:9px;">↔️ 距上一点: ${distanceText}</div>`;
+          }
+          
+          // 创建节点Overlay
+          const coordinate = fromLonLat([point.lng, point.lat]);
+          this.createNodeOverlay(id, i, nodeContent, coordinate);
+        }
+      }
+    }
+    
+    return true;
   }
 }
