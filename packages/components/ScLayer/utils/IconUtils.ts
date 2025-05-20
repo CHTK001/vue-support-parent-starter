@@ -127,6 +127,7 @@ export class IconUtils {
    * @param size 图标大小 [width, height]
    * @param fallbackColor 回退颜色（远程图标加载失败时使用）
    * @param photoOptions Photo样式特有选项
+   * @param iconType 图标类型
    * @returns 图标样式
    */
   public static createSafeIconStyle(
@@ -134,12 +135,37 @@ export class IconUtils {
     scale: number = 1, 
     size: [number, number] = [32, 32], 
     fallbackColor: string = '#1890ff',
-    photoOptions?: IconOptions['photoOptions']
+    photoOptions?: IconOptions['photoOptions'],
+    iconType?: string
   ): Style {
     // 首先验证图标URL
     if (this.isIconValid(url)) {
       try {
-        // 使用ol-ext处理图标显示
+        // 新增：根据iconType判断
+        if (iconType === 'icon') {
+          // 使用FontSymbol或SVG
+          if (url.startsWith('<svg')) {
+            // SVG字符串，转base64
+            const svgBase64 = 'data:image/svg+xml;base64,' + btoa(url);
+            return new Style({
+              image: new Icon({
+                src: svgBase64,
+                scale: scale,
+                size: size
+              })
+            });
+          } else {
+            // 其他iconfont等，使用FontSymbol
+            return new Style({
+              image: new OLStyleIcon({
+                glyph: url,
+                size: Math.max(size[0], size[1]),
+                color: fallbackColor
+              })
+            });
+          }
+        }
+        // 默认photo类型
         if (url.startsWith('http') || url.startsWith('https')) {
           // 对于HTTP(S)链接，使用ol-ext的Photo样式展示图片
           this.log('debug', `使用ol-ext Photo样式处理远程图片: ${url}`, { size, photoOptions });
