@@ -95,14 +95,22 @@ import { Map as OlMap } from 'ol';
 import 'ol/ol.css';
 import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 import FlightLinePanel from './components/FlightLinePanel.vue';
-// ol-cesium集成
-import  OLCesium  from 'olcs';
-// ... existing code ...
+// 导入Cesium相关
 import * as Cesium from 'cesium';
-if (typeof window !== 'undefined' && !window.Cesium) {
-  window.Cesium = Cesium;
-}
+import OLCesium from 'olcs';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+// 导入CesiumObject和其他类型
+import { CesiumObject } from './composables/CesiumObject';
+import { Model3DOptions } from './composables/CesiumModelObject';
+
+// 设置全局Cesium对象
+if (typeof window !== 'undefined') {
+  // @ts-ignore: Cesium类型放在全局window上
+  if (!window.Cesium) {
+    // @ts-ignore: Cesium类型放在全局window上
+    window.Cesium = Cesium;
+  }
+}
 
 // 定义组件属性 - 使用types中的配置作为类型定义
 const props = withDefaults(defineProps<MapConfig & {
@@ -1123,6 +1131,11 @@ onBeforeUnmount(() => {
     shapeObject.destroy();
   }
   
+  // 清理cesium对象
+  if (cesiumObj) {
+    cesiumObj.destroy();
+  }
+  
   if (toolbarObject) {
     toolbarObject.destroy();
   }
@@ -1590,8 +1603,8 @@ onMounted(() => {
   
   // 地图初始化完成后，预创建Cesium对象但不启用
   if (mapObj && mapObj.getMapInstance) {
-    olCesium = new OLCesium({ map: mapObj.getMapInstance(), cesiumBaseUrl: props.cesiumBaseUrl });
-    olCesium.setEnabled(false);
+    cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
+    cesiumObj.setEnabled(false);
   }
 });
 
@@ -2325,7 +2338,87 @@ defineExpose({
   hideHeatmap,
   
   // 自适应显示轨迹
-  fitTrackToView
+  fitTrackToView,
+  
+  // Cesium 3D模型相关方法
+  getCesiumObject: () => cesiumObj,
+  enable3D: () => {
+    if (!cesiumObj && mapObj && mapObj.getMapInstance) {
+      cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
+    }
+    if (cesiumObj) {
+      is3D.value = true;
+      return cesiumObj.setEnabled(true);
+    }
+    return false;
+  },
+  disable3D: () => {
+    if (cesiumObj) {
+      is3D.value = false;
+      return cesiumObj.setEnabled(false);
+    }
+    return false;
+  },
+  isEnabled3D: () => {
+    return cesiumObj ? cesiumObj.isEnabled() : false;
+  },
+  addModel: (options: Model3DOptions) => {
+    if (!cesiumObj) {
+      if (mapObj && mapObj.getMapInstance) {
+        cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
+        cesiumObj.setEnabled(true);
+        is3D.value = true;
+      } else {
+        logger.error('无法添加3D模型: 地图未初始化');
+        return null;
+      }
+    }
+    
+    if (!cesiumObj.isEnabled()) {
+      cesiumObj.setEnabled(true);
+      is3D.value = true;
+    }
+    
+    return cesiumObj.addModel(options);
+  },
+  updateModel: (id: string, options: Partial<Model3DOptions>) => {
+    return cesiumObj ? cesiumObj.updateModel(id, options) : false;
+  },
+  removeModel: (id: string) => {
+    return cesiumObj ? cesiumObj.removeModel(id) : false;
+  },
+  getModel: (id: string) => {
+    return cesiumObj ? cesiumObj.getModel(id) : null;
+  },
+  getAllModels: () => {
+    return cesiumObj ? cesiumObj.getAllModels() : new Map();
+  },
+  clearAllModels: () => {
+    return cesiumObj ? cesiumObj.clearAllModels() : false;
+  },
+  flyTo: (options: {
+    position: {
+      longitude: number;
+      latitude: number;
+      height?: number;
+    };
+    heading?: number;
+    pitch?: number;
+    roll?: number;
+    duration?: number;
+  }) => {
+    return cesiumObj ? cesiumObj.flyTo(options) : false;
+  },
+  flyToModel: (id: string, options?: {
+    offset?: {
+      heading?: number;
+      pitch?: number;
+      range?: number;
+    };
+    duration?: number;
+  }) => {
+    return cesiumObj ? cesiumObj.flyToModel(id, options) : false;
+  }
 });
 
 // 监听拖动和滚轮缩放属性的变化
@@ -2360,16 +2453,28 @@ watch(() => props.aggregationOptions, (newOptions) => {
 }, { deep: true });
 
 const is3D = ref(false);
-let olCesium: any = null;
+let cesiumObj: CesiumObject | null = null;
 
 function toggle3D() {
-  if (!olCesium && mapObj && mapObj.getMapInstance) {
-    // 创建CesiumMap
-    olCesium = new OLCesium({ map: mapObj.getMapInstance() });
+  if (!cesiumObj && mapObj && mapObj.getMapInstance) {
+    // 创建CesiumObject
+    cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
   }
-  if (olCesium) {
-    is3D.value = !is3D.value;
-    olCesium.setEnabled(is3D.value);
+  if (cesiumObj) {
+    // 使用CesiumObject的toggle3D方法
+    const success = cesiumObj.toggle3D();
+    if (success) {
+      is3D.value = cesiumObj.isEnabled();
+      // 如果开启3D模式，确保右键可以旋转视角
+      if (is3D.value && cesiumObj.getScene()) {
+        const scene = cesiumObj.getScene();
+        if (scene && scene.screenSpaceCameraController) {
+          scene.screenSpaceCameraController.enableRotate = true;
+          scene.screenSpaceCameraController.enableLook = true;
+          scene.screenSpaceCameraController.enableTilt = true;
+        }
+      }
+    }
   }
 }
 
