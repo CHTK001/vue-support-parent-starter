@@ -25,6 +25,9 @@ import { HeatmapObject } from './HeatmapObject';
 import { FlightLineObject } from './FlightLineObject';
 // 引入风场图对象
 import { WindObject } from './WindObject';
+// 引入区划边界对象
+import { BoundaryObject } from './BoundaryObject';
+import { BoundaryOptions } from '../types/boundary';
 
 // 定义按钮状态回调接口
 export interface ToolStateChangeCallback {
@@ -89,6 +92,9 @@ export class ToolbarObject {
   // 风场图对象
   private windObj: WindObject | null = null;
 
+  // 区划边界对象
+  private boundaryObj: BoundaryObject | null = null;
+
   /**
    * 构造函数
    * @param config 工具栏配置
@@ -146,6 +152,9 @@ export class ToolbarObject {
     
     // 初始化风场图对象
     this.initWindObject();
+    
+    // 初始化区划边界对象
+    this.initBoundaryObject();
     
     logger.debug('工具栏初始化完成，工具数量:', this.tools.length);
   }
@@ -487,6 +496,22 @@ export class ToolbarObject {
   }
 
   /**
+   * 初始化区划边界对象
+   */
+  private initBoundaryObject(): void {
+    const mapInstance = this.mapObj.getMapInstance();
+    if (!mapInstance) {
+      logger.warn('地图实例不存在，无法初始化区划边界对象');
+      return;
+    }
+    
+    // 创建区划边界对象
+    this.boundaryObj = new BoundaryObject(mapInstance);
+    
+    logger.debug('区划边界对象初始化成功');
+  }
+
+  /**
    * 获取工具栏配置
    * @returns 工具栏配置
    */
@@ -787,6 +812,17 @@ export class ToolbarObject {
         // 如果当前是非激活状态，则激活
         logger.debug(`工具 ${toolId} 将被激活`);
         this.activateTool(toolId);
+      }
+    }
+    
+    // 区划边界工具
+    if (toolId === 'boundary') {
+      if (!tool.active) {
+        this.activateTool(toolId);
+        this.handleBoundaryActivate();
+      } else {
+        this.deactivateTool(toolId);
+        this.handleBoundaryDeactivate();
       }
     }
   }
@@ -1250,6 +1286,9 @@ export class ToolbarObject {
       case 'heatmap':
         this.handleHeatmapActivate();
         break;
+      case 'boundary':
+        this.handleBoundaryActivate();
+        break;
     }
   }
 
@@ -1326,6 +1365,9 @@ export class ToolbarObject {
         break;
       case 'edit-shape':
         this.handleShapeEditDeactivate();
+        break;
+      case 'boundary':
+        this.handleBoundaryDeactivate();
         break;
       default:
         logger.debug(`工具 ${tool.id} 无特殊停用处理`);
@@ -2036,6 +2078,13 @@ export class ToolbarObject {
     
     // 清空工具列表
     this.tools = [];
+    
+    // 销毁区划边界对象
+    if (this.boundaryObj) {
+      this.boundaryObj.destroy();
+      this.boundaryObj = null;
+    }
+    
     logger.debug('工具栏对象销毁完成');
   }
 
@@ -2701,5 +2750,48 @@ export class ToolbarObject {
         this.toolStateChangeCallback(toolId, active, tool.type, {});
       }
     }
+  }
+
+  /**
+   * 处理区划边界工具激活
+   */
+  private handleBoundaryActivate(): void {
+    if (!this.boundaryObj) {
+      logger.warn('区划边界对象未初始化');
+      return;
+    }
+    
+    // 设置图层可见
+    this.boundaryObj.setVisible(true);
+    
+    // 触发工具状态变更事件
+    this.triggerToolStateChange('boundary', true, 'toggle');
+    
+    logger.debug('区划边界工具已激活');
+  }
+  
+  /**
+   * 处理区划边界工具停用
+   */
+  private handleBoundaryDeactivate(): void {
+    if (!this.boundaryObj) {
+      logger.warn('区划边界对象未初始化');
+      return;
+    }
+    
+    // 设置图层不可见
+    this.boundaryObj.setVisible(false);
+    
+    // 触发工具状态变更事件
+    this.triggerToolStateChange('boundary', false, 'toggle');
+    
+    logger.debug('区划边界工具已停用');
+  }
+  
+  /**
+   * 获取区划边界对象
+   */
+  public getBoundaryObject(): BoundaryObject | null {
+    return this.boundaryObj;
   }
 }

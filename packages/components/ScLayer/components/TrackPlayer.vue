@@ -203,10 +203,10 @@
             <div class="track-current-distance-info" style="margin-top:4px;font-size:12px;color:#1890ff;">
               <span>已行驶：{{ getDistanceFromStart().toFixed(2) }} 公里</span>
               <span v-if="getDistanceToNextPoint() > 0" style="margin-left: 16px;">距离下个点：{{ getDistanceToNextPoint().toFixed(2) }} 公里</span>
-            </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -462,7 +462,7 @@ const applyConfig = () => {
 // 组件挂载
 onMounted(() => {
   // 应用外部配置
-  applyConfig();
+    applyConfig();
   
   if (props.trackObj) {
     refreshTrackList();
@@ -721,7 +721,7 @@ const getStaticPointsWithDistance = () => {
           if (calculatedDistance !== null) {
             distance = calculatedDistance;
           }
-        } catch (error) {
+  } catch (error) {
           console.error('计算节点距离时出错:', error);
         }
       } else {
