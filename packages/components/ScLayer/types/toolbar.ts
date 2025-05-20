@@ -35,6 +35,7 @@ import {
   SHOW_MARKERS_ICON,
   HIDE_MARKERS_LABEL_ICON,
   WIND_ICON,
+  DIMENSION_SWITCH_ICON,
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -295,6 +296,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       title: '风场图',
       tooltip: '显示风场图',
       multi: true
+    },
+    {
+      id: 'dimension-switch',
+      type: 'toggle',
+      icon: DIMENSION_SWITCH_ICON,
+      title: '2D/3D',
+      tooltip: '二维/三维切换',
+      multi: false
     }
   ],
   // 默认坐标工具配置

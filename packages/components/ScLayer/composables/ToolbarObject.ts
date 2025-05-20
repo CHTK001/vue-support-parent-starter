@@ -2683,4 +2683,23 @@ export class ToolbarObject {
       return null;
     }
   }
+
+  /**
+   * 设置指定工具的激活状态
+   */
+  public setToolActive(toolId: string, active: boolean): void {
+    const tool = this.tools.find(t => t.id === toolId);
+    if (tool) {
+      tool.active = active;
+      if (active) {
+        this.activeToolId = toolId;
+      } else if (this.activeToolId === toolId) {
+        this.activeToolId = null;
+      }
+      // 触发工具状态变化回调
+      if (this.toolStateChangeCallback) {
+        this.toolStateChangeCallback(toolId, active, tool.type, {});
+      }
+    }
+  }
 }
