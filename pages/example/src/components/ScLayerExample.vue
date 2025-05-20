@@ -240,12 +240,6 @@
             <div class="label">3D模型操作</div>
             <div class="controls">
               <!-- 3D模型操作区域 - 添加功能分组 -->
-              <div class="feature-group-title">3D模式控制</div>
-              <div class="control-row buttons-row">
-                <button @click="toggle3DMode">{{ is3DMode ? '切换为2D模式' : '切换为3D模式' }}</button>
-                <button @click="set3DViewMode" :disabled="!is3DMode">调整视角</button>
-              </div>
-              
               <div class="feature-group-title">3D模型管理</div>
               <div class="control-row buttons-row">
                 <button @click="addSimple3DModel" :disabled="!is3DMode">添加简单模型</button>
