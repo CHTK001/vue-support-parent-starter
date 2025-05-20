@@ -20,30 +20,16 @@ import { fromLonLat, toLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
 import { getVectorContext } from 'ol/render';
-import { TrackPoint, Track, TrackConfig, IconSpeedGroup } from '../types/track';
+import { TrackPoint, Track, TrackConfig, IconSpeedGroup, DEFAULT_TRACK_CONFIG } from '../types/track';
 import { DataType } from '../types';
 import logger from './LogObject';
 import Overlay from 'ol/Overlay';
 import { IconUtils } from '../utils/IconUtils';
-import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
+import { DEFAULT_TRACK_PLAYER_CONFIG, DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
 
-// 默认轨迹配置
-const DEFAULT_TRACK_CONFIG: TrackConfig = {
-  passedLineOptions: {
-    color: 'rgba(24, 144, 255, 1)',
-    weight: 4,
-    opacity: 0.8
-  },
-  notPassedLineOptions: {
-    color: 'rgba(160, 160, 160, 0.8)',
-    weight: 3,
-    opacity: 0.5
-  },
-  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS // 使用默认的交通工具速度图标分组配置
-};
 
 // 扩展TrackPlayer接口以添加cameraSmoothness属性
 interface ExtendedTrackPlayer {
@@ -304,6 +290,28 @@ export class TrackObject {
     
     // 确保轨迹点按时间排序
     const sortedPoints = [...track.points].sort((a, b) => a.time - b.time);
+    
+    // 自动计算每个点的dir方向和forward
+    const base = sortedPoints[0];
+    for (let i = 0; i < sortedPoints.length; i++) {
+      if (i < sortedPoints.length - 1) {
+        const p1 = sortedPoints[i];
+        const p2 = sortedPoints[i + 1];
+        const dLng = p2.lng - p1.lng;
+        const dLat = p2.lat - p1.lat;
+        const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+        sortedPoints[i].dir = (angle + 360) % 360;
+        // forward判断：以第一个点为基准，右侧为正向
+        const cross = (p2.lng - base.lng) * (p1.lat - base.lat) - (p2.lat - base.lat) * (p1.lng - base.lng);
+        sortedPoints[i].forward = cross <= 0; // 右侧true，左侧false
+      } else if (i > 0) {
+        sortedPoints[i].dir = sortedPoints[i - 1].dir;
+        sortedPoints[i].forward = sortedPoints[i - 1].forward;
+      } else {
+        sortedPoints[i].dir = 0;
+        sortedPoints[i].forward = true;
+      }
+    }
     
     // 更新轨迹数据
     const updatedTrack: Track = {
@@ -575,6 +583,28 @@ export class TrackObject {
       }
     }
     
+    // 自动计算每个点的dir方向和forward
+    const base = updatedTrack.points[0];
+    for (let i = 0; i < updatedTrack.points.length; i++) {
+      if (i < updatedTrack.points.length - 1) {
+        const p1 = updatedTrack.points[i];
+        const p2 = updatedTrack.points[i + 1];
+        const dLng = p2.lng - p1.lng;
+        const dLat = p2.lat - p1.lat;
+        const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+        updatedTrack.points[i].dir = (angle + 360) % 360;
+        // forward判断：以第一个点为基准，右侧为正向
+        const cross = (p2.lng - base.lng) * (p1.lat - base.lat) - (p2.lat - base.lat) * (p1.lng - base.lng);
+        updatedTrack.points[i].forward = cross <= 0;
+      } else if (i > 0) {
+        updatedTrack.points[i].dir = updatedTrack.points[i - 1].dir;
+        updatedTrack.points[i].forward = updatedTrack.points[i - 1].forward;
+      } else {
+        updatedTrack.points[i].dir = 0;
+        updatedTrack.points[i].forward = true;
+      }
+    }
+    
     // 存储更新后的轨迹
     this.tracks.set(id, updatedTrack);
     
@@ -640,6 +670,7 @@ export class TrackObject {
           pointIndex: i,
           time: point.time,
           dir: point.dir || 0,
+          forward: point.forward,
           info: point.info || []
         });
         
@@ -1479,9 +1510,9 @@ export class TrackObject {
     if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
       // 查找适合当前速度的图标分组
       for (const group of track.iconGroup) {
-        if (realSpeed >= group.minSpeed && (realSpeed < group.maxSpeed || group.maxSpeed === 0)) {
-          iconUrl = group.iconUrl;
-          this.log('debug', `使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.minSpeed}-${group.maxSpeed})`);
+        if (realSpeed >= group.speed) {
+          iconUrl = group.icon;
+          this.log('debug', `使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.speed})`);
           break;
         }
       }
@@ -1505,8 +1536,24 @@ export class TrackObject {
     // 设置样式
     if (iconUrl) {
       try {
-        // 使用找到的图标URL创建样式
+        // 只用点的dir和forward，不再做角度判断和翻转
+        let rotation = 0;
+        let scaleY = 1;
+        const autoRotate = this.config.autoRotate === true;
+        if (autoRotate && position.dir !== undefined) {
+          if (position.dir > 180) {
+            scaleY = -1;
+            rotation = ((position.dir - 180) * Math.PI) / 180;
+          } else {
+            scaleY = 1;
+            rotation = (position.dir * Math.PI) / 180;
+          }
+        }
         style = this.createSafeIconStyle(iconUrl, 1, iconSize, track.color || 'rgba(24, 144, 255, 1)');
+        if (style && style.getImage && style.getImage()) {
+          style.getImage().setRotation(rotation);
+          style.getImage().setScale([1, scaleY]);
+        }
         this.log('debug', `创建图标样式成功: ${iconUrl}`, { size: iconSize });
       } catch (error) {
         // 如果创建样式失败，使用默认样式
