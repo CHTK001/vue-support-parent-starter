@@ -1,3 +1,5 @@
+import { DEFAULT_TRACK_SPEED_GROUPS } from "./default";
+
 // 轨迹点类型定义
 export interface TrackPoint {
   // 纬度
@@ -8,6 +10,8 @@ export interface TrackPoint {
   time: number;
   // 方向（可选，0-360度，顺时针方向）
   dir?: number;
+  // 是否正向（相对于第一个点）
+  forward?: boolean;
   // 速度（可选，单位：km/h, 覆盖轨迹播放器默认速度）
   speed?: number;
   // 标题（可选，显示在标记上的信息）
@@ -24,12 +28,12 @@ export interface TrackPoint {
 
 // 图标速度分组
 export interface IconSpeedGroup {
-  // 最小速度（包含）
-  minSpeed: number;
-  // 最大速度（不包含）
-  maxSpeed: number;
+  // 速度（包含）
+  speed: number;
   // 图标URL
-  iconUrl: string;
+  icon: string;
+  // 图标类型
+  iconType: 'photo' | 'icon';
 }
 
 //播放参数
@@ -96,8 +100,21 @@ export interface TrackConfig {
     opacity?: number;
   };
   // 速度图标分组配置，当移动点的速度大于配置的speed时，使用icon图标
-  trackSpeedGroup?: {
-    speed: number;
-    icon: string;
-  }[];
+  trackSpeedGroup?: IconSpeedGroup[];
+  autoRotate?: boolean; // 新增：自动朝向图片
 }
+
+export const DEFAULT_TRACK_CONFIG: TrackConfig = {
+  passedLineOptions: {
+    color: 'rgba(24, 144, 255, 1)',
+    weight: 4,
+    opacity: 0.8
+  },
+  notPassedLineOptions: {
+    color: 'rgba(160, 160, 160, 0.8)',
+    weight: 3,
+    opacity: 0.5
+  },
+  trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS,
+  autoRotate: true // 默认开启自动朝向
+};

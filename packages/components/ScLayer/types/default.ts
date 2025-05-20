@@ -1,4 +1,4 @@
-import type { TrackPlayerConfigOptions } from './track';
+import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
 
 // 默认轨迹播放器配置
 export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
@@ -48,4 +48,4 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
     icon: 'https://img.icons8.com/color/48/000000/airplane-mode-on.png',
     iconType: 'photo'
   }
-];
+] as IconSpeedGroup[];

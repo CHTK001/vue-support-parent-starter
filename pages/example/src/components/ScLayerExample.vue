@@ -1831,27 +1831,32 @@ const addSampleTrack = () => {
     const center = config.center;
     const now = Math.floor(Date.now() / 1000);
     const points = [];
-    
-    // 生成一条简单的轨迹，沿着当前视图中心向东前进
+    // 生成一条简单的轨迹，沿着当前视图中心向东前进，距离不等间隔，时间倒序
+    let lastTime = now;
+    let lastLng = center[1];
     for (let i = 0; i < 20; i++) {
-      const offset = i * 0.005; // 每步骤移动的距离
+      // 距离不等间隔，模拟真实轨迹
+      const offset = (i === 0) ? 0 : (Math.random() * 0.008 + 0.002); // 0.002~0.01
+      lastLng += offset;
+      // 时间递减，保证不会超过当前时间
+      lastTime -= Math.floor(Math.random() * 80 + 40); // 每点间隔40~120秒
       points.push({
-        lat: center[0], 
-        lng: center[1] + offset,
-        time: now + i * 60, // 每分钟一个点
-        dir: 90,  // 向东
+        lat: center[0],
+        lng: lastLng,
+        time: lastTime,
+        dir: 90,
         title: `轨迹点 ${i+1}`,
-        // 添加自定义图标，第一个点使用一个特殊图标
         iconUrl: i === 0 ? 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-1.png' : undefined,
         iconSize: [24, 24],
         info: [
-          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '时间', value: new Date(lastTime * 1000).toLocaleTimeString() },
           { key: '速度', value: '45 km/h' },
           { key: '方向', value: '90°' }
         ]
       } as any);
     }
-    
+    // 按时间升序排列
+    points.sort((a, b) => a.time - b.time);
     // 创建轨迹对象
     const track = {
       id: 'sample-track-' + Math.floor(Math.random() * 1000),
@@ -1860,7 +1865,6 @@ const addSampleTrack = () => {
       color: '#FF5252',
       visible: true
     };
-    
     // 添加轨迹
     if (layerRef.value) {
       layerRef.value.addTrack(track);
@@ -1938,6 +1942,9 @@ const addComplexTrack = () => {
         points.push(point);
       }
     }
+    
+    // 时间升序排序
+    points.sort((a, b) => a.time - b.time);
     
     // 创建轨迹对象
     const track = {
@@ -2045,6 +2052,9 @@ const addCircularTrack = () => {
       });
     }
     
+    // 时间升序排序
+    points.sort((a, b) => a.time - b.time);
+    
     // 创建轨迹对象
     const track = {
       id: 'circular-track-' + Math.floor(Math.random() * 1000),
@@ -2113,6 +2123,9 @@ const addZigzagTrack = () => {
         });
       }
     }
+    
+    // 时间升序排序
+    points.sort((a, b) => a.time - b.time);
     
     // 创建轨迹对象
     const track = {
