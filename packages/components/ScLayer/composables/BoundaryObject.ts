@@ -15,6 +15,10 @@ import logger from './LogObject';
 import { fetchGaodeBoundary } from '../api/district';
 import { fetchGaodeDistrictTree } from '../api/district';
 import GeoJSON from 'ol/format/GeoJSON';
+import { MapType } from '../types/map';
+import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coordUtils';
+import { MapObject } from './MapObject';
+import { GeoPoint } from './GcoordObject';
 
 // 扩展全局Window接口，添加高德地图声明
 declare global {
@@ -33,13 +37,26 @@ export class BoundaryObject {
   // 缓存已加载的区划数据，避免重复请求
   private boundaryCache: Map<string, BoundaryData> = new Map();
   
+  // 引用MapObject实例以访问GcoordObject
+  private mapObject: MapObject;
+  
+  // 当前显示的行政级别
+  private currentLevel: string = 'country';
+  
+  // 行政区划历史记录，用于返回上级
+  private boundaryHistory: BoundaryData[] = [];
+  
+  // 钻取回调函数
+  private drillCallback: ((data: BoundaryData, isBack: boolean) => void) | null = null;
+  
   /**
    * 构造函数
-   * @param map OpenLayers地图实例
+   * @param mapObject MapObject实例
    * @param options 配置选项
    */
-  constructor(map: OlMap, options?: Partial<BoundaryOptions>) {
-    this.map = map;
+  constructor(mapObject: MapObject, options?: Partial<BoundaryOptions>) {
+    this.mapObject = mapObject;
+    this.map = mapObject.getMapInstance()!;
     this.options = {...DEFAULT_BOUNDARY_OPTIONS, ...options};
     
     // 创建矢量图层源
@@ -339,6 +356,12 @@ export class BoundaryObject {
     this.selectedBoundaries.clear();
     this.boundaryCache.clear();
     
+    // 移除点击事件
+    if (this.clickListener) {
+      this.map.un('click', this.clickListener);
+      this.clickListener = null;
+    }
+    
     logger.debug('区划边界对象已销毁');
   }
   
@@ -364,10 +387,12 @@ export class BoundaryObject {
       if (boundaryResponseData && boundaryResponseData.polyline) {
         // 如果获取到数据且包含polyline，则进行转换和添加
 
-        debugger
         // 获取原始数据投影和目标地图投影
-        const dataProjection = this.options.projection || 'EPSG:4326'; // 高德API返回的经纬度是WGS84，对应EPSG:4326
-        const featureProjection = 'EPSG:3857'; // 目标投影从options获取，默认EPSG:3857
+        const mapType = (this.options.provider || MapType.GAODE) as MapType;
+        const sourceCoordSystem = getCoordSystemByMapType(mapType); // 根据地图类型获取源坐标系
+        // 将CoordSystem枚举转换为字符串形式的投影
+        const dataProjection = convertCoordSystemToProjection(sourceCoordSystem);
+        const featureProjection = this.options.projection || 'EPSG:3857'; // 目标投影从options获取
 
         // 解析高德 polyline 并转换为 OpenLayers Features
         const features = this.parseGaodePolylineToFeatures(boundaryResponseData.polyline, dataProjection, featureProjection);
@@ -423,67 +448,61 @@ export class BoundaryObject {
    * @returns OpenLayers Feature 数组
    */
   private parseGaodePolylineToFeatures(polyline: string, dataProjection: string, featureProjection: string): Feature[] {
-    const multiPolygonCoordinates: number[][][][] = [];
-
-    // 按 '|' 分隔不同的多边形部分
-    const parts = polyline.split('|');
-
-    parts.forEach(part => {
-      const polygonCoordinates: number[][][] = [];
-
-      // 按 ';' 分隔多边形的环 (外环和内环)
-      const rings = part.split(';');
-
-      rings.forEach(ringStr => {
-        const ringCoordinates: number[][] = [];
-
-        // 按 ',' 分隔经纬度点
-        const points = ringStr.split(',');
-
-        points.forEach(pointStr => {
-          const [lng, lat] = pointStr.split(',').map(parseFloat);
-          if (!isNaN(lng) && !isNaN(lat)) {
-            ringCoordinates.push([lng, lat]); // GeoJSON 格式是 [longitude, latitude]
-          }
-        });
-
-        if (ringCoordinates.length > 0) {
-          polygonCoordinates.push(ringCoordinates);
-        }
-      });
-
-      if (polygonCoordinates.length > 0) {
-         multiPolygonCoordinates.push(polygonCoordinates);
-      }
-    });
-
-    // 构建 GeoJSON 对象
-    const geoJson = {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          geometry: {
-            type: 'MultiPolygon',
-            coordinates: multiPolygonCoordinates // GeoJSON MultiPolygon 格式是 [polygon1, polygon2, ...]
-          },
-          properties: {} // 可以添加属性
-        }
-      ]
-    };
-
-    try {
-      // 使用 OpenLayers GeoJSON 解析并转换投影
-      const geoJsonFormat = new GeoJSON({
-        dataProjection: dataProjection, // 原始数据投影
-        featureProjection: featureProjection // 目标投影
-      });
-
-      return geoJsonFormat.readFeatures(geoJson);
-    } catch (error) {
-      logger.error('解析 GeoJSON 数据失败:', error);
+    if (!polyline) {
+      logger.warn('无效的polyline字符串');
       return [];
     }
+    
+    const features: Feature[] = [];
+    // 按 '|' 分隔不同的多边形部分
+    const parts = polyline.split('|');
+    parts.forEach(part => {
+      if (!part.trim()) return;
+      // 每个part是一个多边形（可能有内环）
+      const rings: number[][][] = [];
+      // 按 ';' 分隔多边形的环
+      const ringStrs = part.split(';');
+      const coords: number[][] = [];
+      ringStrs.forEach(ringStr => {
+        if (!ringStr.trim()) return;
+        // 每个ringStr是"lng1,lat1,lng2,lat2,..."
+        const pointPairs = ringStr.split(',');
+        if (pointPairs.length % 2 !== 0) {
+          logger.warn('坐标点格式不正确:', ringStr);
+          return;
+        }
+        for (let i = 0; i < pointPairs.length; i += 2) {
+          const lng = parseFloat(pointPairs[i]);
+          const lat = parseFloat(pointPairs[i + 1]);
+          if (!isNaN(lng) && !isNaN(lat)) {
+            // 坐标转换
+            const gcoord = this.mapObject.getGcoordObject();
+            const pt = gcoord.convertToMapCoord({ lng, lat }, CoordSystem.GCJ02);
+            coords.push([pt.lng, pt.lat]);
+          }
+        }
+      });
+      if (coords.length > 2) {
+        // 闭合
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          coords.push([...first]);
+        }
+        rings.push(coords);
+      }
+      if (rings.length > 0) {
+        // 直接用Polygon
+        const polygon = new Polygon(rings);
+        // 坐标投影转换
+        // if (dataProjection !== featureProjection) {
+          // polygon.transform(dataProjection, featureProjection);
+        // }
+        const feature = new Feature({ geometry: polygon });
+        features.push(feature);
+      }
+    });
+    return features;
   }
   
   /**
@@ -518,7 +537,11 @@ export class BoundaryObject {
     }
   }
 
-  // 格式化区划节点数据，使其符合el-tree的要求
+  /**
+   * 格式化区划节点数据，使其符合el-tree的要求
+   * @param d 区划数据
+   * @returns 格式化后的节点数据
+   */
   private formatDistrictNode(d: any) {
     return {
       adcode: d.adcode,
@@ -527,4 +550,168 @@ export class BoundaryObject {
       children: d.districts ? d.districts.map(this.formatDistrictNode) : [] // 递归格式化子节点
     };
   }
+
+  /**
+   * 设置钻取回调函数
+   * @param callback 钻取回调函数
+   */
+  public setDrillCallback(callback: (data: BoundaryData, isBack: boolean) => void): void {
+    this.drillCallback = callback;
+    logger.debug('已设置区划钻取回调函数');
+  }
+
+  /**
+   * 钻取到指定行政区划
+   * @param adcode 行政区划代码
+   * @param isBack 是否为返回上级操作
+   */
+  public async drillToBoundary(adcode: string, isBack: boolean = false): Promise<void> {
+    if (!isBack) {
+      // 如果不是返回上级，记录当前边界到历史
+      const currentBoundaries = this.getSelectedBoundaries();
+      if (currentBoundaries.length > 0) {
+        // 只保存第一个边界到历史
+        this.boundaryHistory.push(currentBoundaries[0]);
+      }
+    }
+
+    // 清除当前显示的所有边界
+    this.clearBoundaries();
+
+    try {
+      // 加载新的边界
+      await this.addBoundaryByAdcode(adcode);
+
+      // 如果已加载边界，获取当前边界信息
+      const loadedBoundaries = this.getSelectedBoundaries();
+      if (loadedBoundaries.length > 0) {
+        const boundaryData = loadedBoundaries[0];
+        
+        // 更新当前级别
+        this.currentLevel = boundaryData.level;
+        
+        // 触发回调
+        if (this.drillCallback) {
+          this.drillCallback(boundaryData, isBack);
+        }
+        
+        // 自动平移地图到边界中心
+        this.fitToBoundary(boundaryData.code);
+      }
+    } catch (error) {
+      logger.error(`钻取到区划 ${adcode} 失败:`, error);
+    }
+  }
+
+  /**
+   * 返回上级行政区划
+   * @returns 是否成功返回上级
+   */
+  public drillUp(): boolean {
+    if (this.boundaryHistory.length === 0) {
+      logger.warn('没有上级行政区划可返回');
+      return false;
+    }
+
+    // 获取上一级边界
+    const prevBoundary = this.boundaryHistory.pop();
+    if (!prevBoundary) {
+      return false;
+    }
+
+    // 钻取到上级边界
+    this.drillToBoundary(prevBoundary.code, true);
+    return true;
+  }
+
+  /**
+   * 获取边界历史记录
+   * @returns 边界历史记录
+   */
+  public getBoundaryHistory(): BoundaryData[] {
+    return [...this.boundaryHistory];
+  }
+
+  /**
+   * 平移地图到指定边界
+   * @param code 行政区划代码
+   */
+  public fitToBoundary(code: string): void {
+    const features = this.boundarySource.getFeatures().filter(feature => {
+      const properties = feature.get('properties') || feature.getProperties();
+      return properties && properties.code === code;
+    });
+
+    if (features.length === 0) {
+      logger.warn(`找不到边界 ${code} 的要素`);
+      return;
+    }
+
+    // 计算所有要素的总范围
+    const extent = features[0].getGeometry()!.getExtent();
+    features.forEach(feature => {
+      const geometry = feature.getGeometry();
+      if (geometry) {
+        const featureExtent = geometry.getExtent();
+        // 合并范围
+        extent[0] = Math.min(extent[0], featureExtent[0]);
+        extent[1] = Math.min(extent[1], featureExtent[1]);
+        extent[2] = Math.max(extent[2], featureExtent[2]);
+        extent[3] = Math.max(extent[3], featureExtent[3]);
+      }
+    });
+
+    // 添加边界缓冲区
+    const buffer = 0.5;  // 缓冲系数
+    const width = extent[2] - extent[0];
+    const height = extent[3] - extent[1];
+    extent[0] -= width * buffer;
+    extent[1] -= height * buffer;
+    extent[2] += width * buffer;
+    extent[3] += height * buffer;
+
+    // 平移地图
+    this.map.getView().fit(extent, {
+      duration: 1000,  // 动画持续时间
+      padding: [20, 20, 20, 20]  // 边距
+    });
+  }
+
+  /**
+   * 设置区划点击事件
+   * @param enable 是否启用点击事件
+   */
+  public enableClickEvent(enable: boolean): void {
+    if (enable) {
+      // 添加点击事件
+      if (!this.clickListener) {
+        this.clickListener = this.map.on('click', (event) => {
+          const feature = this.map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
+          if (!feature) return;
+
+          const layer = this.map.forEachFeatureAtPixel(event.pixel, 
+            (feature, layer) => layer);
+          
+          // 确保点击的是区划图层的要素
+          if (layer !== this.boundaryLayer) return;
+
+          const properties = feature.get('properties') || feature.getProperties();
+          if (properties && properties.code) {
+            // 如果是省级行政区，钻取到该区域
+            logger.debug(`点击了边界: ${properties.name}(${properties.code})`);
+            this.drillToBoundary(properties.code);
+          }
+        });
+      }
+    } else {
+      // 移除点击事件
+      if (this.clickListener) {
+        this.map.un('click', this.clickListener);
+        this.clickListener = null;
+      }
+    }
+  }
+
+  // 在类的其他位置声明clickListener属性
+  private clickListener: any = null;
 } 

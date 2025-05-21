@@ -12,7 +12,7 @@ import { MarkerObject } from './MarkerObject';
 import { ShapeObject } from './ShapeObject';
 import { LeafletTrackplayerObject } from './LeafletTrackplayerObject';
 import { HeatmapObject } from './HeatmapObject';
-import { GeohashGridObject } from './GeohashGridObject';
+import { GeohashGridObject } from './GeoHashGridObject';
 import { GridManager, GridType } from './GridManager';
 import { FlightLineObject } from './FlightLineObject';
 import { OverviewMapObject } from './OverviewMapObject';
@@ -2657,7 +2657,9 @@ export class ToolbarObject {
     this.mapObj = newMapObj;
     
     // 如果轨迹对象已存在，更新其地图引用
+    //@ts-ignore
     if (this.trackObj && typeof this.trackObj.setMap === 'function') {
+      //@ts-ignore
       this.trackObj.setMap(newMapObj);
     }
     

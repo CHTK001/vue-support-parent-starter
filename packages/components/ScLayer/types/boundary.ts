@@ -1,3 +1,5 @@
+import type { MapType } from "./map";
+
 // 区划级别
 export enum BoundaryLevel {
   PROVINCE = 'province',
@@ -34,7 +36,7 @@ export interface BoundaryData {
 export interface BoundaryOptions {
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; // 区划边界位置
   url?: string; // 自定义API URL，如果使用自定义实现方式
-  provider?: string; // API提供商
+  provider?: MapType; // API提供商
   mapKey?: Record<string, string>; // 添加 mapKey 属性
   boundaryUrl?: string; // 添加 boundaryUrl 属性
   districtUrl?: string; // 添加 districtUrl 属性

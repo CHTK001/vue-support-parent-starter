@@ -4,6 +4,7 @@
  */
 import L from 'leaflet';
 import logger from './LogObject';
+import { CoordSystem, GcoordObject } from './GcoordObject';
 
 // 坐标位置枚举
 export type CoordinatePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -41,6 +42,7 @@ export class CoordinateObject {
   private enabled: boolean = false;
   private mouseMoveHandler: ((event: L.LeafletMouseEvent) => void) | null = null;
   private callback: ((info: CoordinateInfo) => void) | null = null;
+  private gcoord: GcoordObject | null = null;
 
   /**
    * 构造函数
@@ -55,13 +57,39 @@ export class CoordinateObject {
       showProjected: options.showProjected !== undefined ? options.showProjected : true
     };
 
+    // 初始化坐标转换对象
+    // 检测当前地图使用的坐标系统
+    let targetSystem: CoordSystem;
+    if (this.mapInstance.options.crs === L.CRS.EPSG3857) {
+      targetSystem = CoordSystem.EPSG3857;
+    } else if (this.mapInstance.options.crs === L.CRS.EPSG4326) {
+      targetSystem = CoordSystem.EPSG4326;
+    } else {
+      // 根据地图容器data属性检测地图类型
+      const mapContainer = this.mapInstance.getContainer();
+      const mapTypeAttr = mapContainer.getAttribute('data-map-type');
+      
+      if (mapTypeAttr === 'gaode') {
+        targetSystem = CoordSystem.GCJ02;
+      } else if (mapTypeAttr === 'baidu') {
+        targetSystem = CoordSystem.BD09;
+      } else {
+        targetSystem = CoordSystem.WGS84;
+      }
+    }
+    
+    this.gcoord = new GcoordObject({
+      sourceSystem: CoordSystem.WGS84,
+      targetSystem: targetSystem
+    });
+
     // 初始化坐标信息
     this.currentInfo = {
       lng: 0,
       lat: 0,
       x: 0,
       y: 0,
-      projection: 'EPSG:3857', // Leaflet默认使用的投影
+      projection: this.mapInstance.options.crs === L.CRS.EPSG3857 ? 'EPSG:3857' : 'GCJ02', // 根据地图CRS判断投影类型
       decimals: this.options.decimals,
       position: this.options.position,
       coordinate: [0, 0],
@@ -124,25 +152,26 @@ export class CoordinateObject {
     const lat = coordinate[1];
     const decimals = this.options.decimals || 6;
     
-    // 转换为地图投影坐标
-    const latlng = L.latLng(lat, lng);
-    const point = this.mapInstance.project(latlng, this.mapInstance.getMaxZoom());
+    // 使用GcoordObject转换坐标到地图使用的坐标系
+    let transformedLngLat: [number, number] = [lng, lat];
+    if (this.gcoord) {
+      transformedLngLat = this.gcoord.transform([lng, lat], CoordSystem.WGS84) as [number, number];
+    }
     
     // 更新坐标信息
+    const point = this.mapInstance.latLngToContainerPoint(L.latLng(transformedLngLat[1], transformedLngLat[0]));
+
     this.currentInfo = {
-      ...this.currentInfo,
-      lng,
-      lat,
+      lng: transformedLngLat[0],
+      lat: transformedLngLat[1],
       x: point.x,
       y: point.y,
-      coordinate: [lng, lat],
+      projection: this.currentInfo.projection,
+      decimals: this.options.decimals,
+      position: this.options.position,
+      coordinate: transformedLngLat,
       projected: [point.x, point.y],
-      formatted: {
-        lng: lng.toFixed(decimals),
-        lat: lat.toFixed(decimals),
-        x: point.x.toFixed(0),
-        y: point.y.toFixed(0)
-      }
+      formatted: this.formatCoordinate(transformedLngLat[0], transformedLngLat[1])
     };
     
     // 如果有回调函数，调用回调函数
@@ -259,5 +288,48 @@ export class CoordinateObject {
     this.callback = null;
     
     logger.debug('CoordinateObject已销毁');
+  }
+
+  /**
+   * 从经纬度获取像素坐标
+   * @param lnglat 经纬度数组 [lng, lat]
+   * @returns 像素坐标点 [x, y]
+   */
+  public lnglatToPoint(lnglat: [number, number]): [number, number] {
+    // 使用GcoordObject转换坐标到地图使用的坐标系
+    let transformedLngLat: [number, number] = lnglat;
+    if (this.gcoord) {
+      transformedLngLat = this.gcoord.transform(lnglat, CoordSystem.WGS84) as [number, number];
+    }
+    
+    const point = this.mapInstance.latLngToContainerPoint(L.latLng(transformedLngLat[1], transformedLngLat[0]));
+    return [point.x, point.y];
+  }
+
+  /**
+   * 从像素坐标获取经纬度
+   * @param point 像素坐标点 [x, y]
+   * @returns 经纬度数组 [lng, lat]
+   */
+  public pointToLnglat(point: [number, number]): [number, number] {
+    const latlng = this.mapInstance.containerPointToLatLng(L.point(point[0], point[1]));
+    
+    // 使用GcoordObject反向转换坐标从地图坐标系到WGS84
+    let result: [number, number] = [latlng.lng, latlng.lat];
+    if (this.gcoord) {
+      result = this.gcoord.transform([latlng.lng, latlng.lat], this.gcoord.getTargetSystem(), CoordSystem.WGS84) as [number, number];
+    }
+    
+    return result;
+  }
+
+  private formatCoordinate(lng: number, lat: number): { lng: string; lat: string; x?: string; y?: string } {
+    const decimals = this.options.decimals || 6;
+    return {
+      lng: lng.toFixed(decimals),
+      lat: lat.toFixed(decimals),
+      x: this.currentInfo.x?.toFixed(0),
+      y: this.currentInfo.y?.toFixed(0)
+    };
   }
 } 

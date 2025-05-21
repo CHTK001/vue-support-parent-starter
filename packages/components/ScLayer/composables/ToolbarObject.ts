@@ -417,19 +417,14 @@ export class ToolbarObject {
     logger.debug('图形绘制对象已初始化');
   }
 
-  /**
-   * 初始化轨迹对象
-   */
+  /**   * 初始化轨迹对象   */
   private initTrackObject(): void {
     const mapInstance = this.mapObj.getMapInstance();
     if (!mapInstance) {
-      logger.warn('地图实例不存在，无法初始化轨迹对象');
-      return;
+      logger.warn('地图实例不存在，无法初始化轨迹对象'); return;
     }
-    
-    // 创建轨迹对象
-    this.trackObj = new TrackObject(mapInstance);
-    
+    // 创建轨迹对象，传入地图对象而不是地图实例
+    this.trackObj = new TrackObject(this.mapObj);
     logger.debug('轨迹对象初始化成功');
   }
 
@@ -497,9 +492,7 @@ export class ToolbarObject {
     logger.debug('风场图对象已初始化');
   }
 
-  /**
-   * 初始化区划边界对象
-   */
+  /**   * 初始化区划边界对象   */
   private initBoundaryObject(): void {
     const mapInstance = this.mapObj.getMapInstance();
     if (!mapInstance) {
@@ -525,8 +518,8 @@ export class ToolbarObject {
       projection: projection
     };
     
-    // 创建区划边界对象
-    this.boundaryObj = new BoundaryObject(mapInstance, boundaryConfig as any); // 使用any绕过类型检查
+    // 创建区划边界对象，使用MapObject而不是直接使用map实例
+    this.boundaryObj = new BoundaryObject(this.mapObj, boundaryConfig as any); // 使用any绕过类型检查
 
     logger.debug('区划边界对象初始化成功');
   }
@@ -2826,15 +2819,32 @@ export class ToolbarObject {
       logger.warn('区划边界对象未初始化');
       return;
     }
-    // 只负责显示区划图层，不再加载本地数据
+    
+    // 显示区划图层
     this.boundaryObj.setVisible(true);
+    
+    // 启用区划点击事件
+    this.boundaryObj.enableClickEvent(true);
+    
+    // 设置钻取回调函数
+    this.boundaryObj.setDrillCallback((data, isBack) => {
+      // 触发区划钻取事件，传递当前区划数据和历史记录
+      this.triggerToolStateChange('boundary-drill', true, 'drill', {
+        currentBoundary: data,
+        historyBoundaries: this.boundaryObj?.getBoundaryHistory() || [],
+        isBack: isBack
+      });
+    });
+    
     // 触发工具状态变更事件
     this.triggerToolStateChange('boundary', true, 'toggle');
+    
     // 额外发送显示区划面板信号
     this.triggerToolStateChange('boundary-panel-visible', true, 'panel', {
       source: 'boundary-click',
       forced: true
     });
+    
     logger.debug('区划边界工具已激活');
   }
   
@@ -2846,6 +2856,9 @@ export class ToolbarObject {
       logger.warn('区划边界对象未初始化');
       return;
     }
+    
+    // 禁用区划点击事件
+    this.boundaryObj.enableClickEvent(false);
     
     // 设置图层不可见
     this.boundaryObj.setVisible(false);
@@ -2861,5 +2874,31 @@ export class ToolbarObject {
    */
   public getBoundaryObject(): BoundaryObject | null {
     return this.boundaryObj;
+  }
+  
+  /**
+   * 钻取到指定行政区划
+   * @param adcode 行政区划代码
+   */
+  public drillToBoundary(adcode: string): void {
+    if (!this.boundaryObj) {
+      logger.warn('区划边界对象未初始化');
+      return;
+    }
+    
+    this.boundaryObj.drillToBoundary(adcode);
+  }
+  
+  /**
+   * 返回上级行政区划
+   * @returns 是否成功返回上级
+   */
+  public drillUpBoundary(): boolean {
+    if (!this.boundaryObj) {
+      logger.warn('区划边界对象未初始化');
+      return false;
+    }
+    
+    return this.boundaryObj.drillUp();
   }
 }
