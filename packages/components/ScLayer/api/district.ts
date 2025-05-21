@@ -46,7 +46,7 @@ export async function fetchGaodeBoundary({
     key,
     url,
     keywords: adcode,
-    subdistrict: 0,
+    subdistrict: 1,
     extensions: 'all'
   });
   if (districts && districts[0]) {

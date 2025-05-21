@@ -9,6 +9,7 @@ import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Polygon } from 'ol/geom';
 import { Fill, Stroke, Style, Text } from 'ol/style';
+import Overlay from 'ol/Overlay';
 import { BoundaryData, BoundaryItem, BoundaryLevel, BoundaryOptions, BoundaryCoordinate } from '../types/boundary';
 import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
 import logger from './LogObject';
@@ -19,6 +20,7 @@ import { MapType } from '../types/map';
 import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coordUtils';
 import { MapObject } from './MapObject';
 import { GeoPoint } from './GcoordObject';
+import { indexedDBProxy } from '@repo/utils';
 
 // 扩展全局Window接口，添加高德地图声明
 declare global {
@@ -76,6 +78,9 @@ export class BoundaryObject {
     // 将图层添加到地图
     this.map.addLayer(this.boundaryLayer);
     
+    // 初始化点击事件
+    this.initClickEvent();
+    
     logger.debug('区划边界对象初始化完成');
   }
   
@@ -85,10 +90,8 @@ export class BoundaryObject {
    */
   public setOptions(options: Partial<BoundaryOptions>): void {
     this.options = {...this.options, ...options};
-    
-    // 更新所有已绘制的边界样式
+    // 实时刷新所有区划样式（包括标签）
     this.updateAllBoundariesStyle();
-    
     logger.debug('区划边界配置已更新:', this.options);
   }
   
@@ -157,6 +160,16 @@ export class BoundaryObject {
    * @returns 样式对象
    */
   private createBoundaryStyle(name: string, showLabel: boolean): Style {
+    // 根据名称生成随机但固定的颜色
+    const getColorByName = (name: string) => {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash % 360);
+      return `hsla(${hue}, 70%, 60%, 0.6)`;
+    };
+
     // 创建基础样式
     const baseStyle = {
       stroke: new Stroke({
@@ -170,7 +183,7 @@ export class BoundaryObject {
       }),
       fill: new Fill({
         color: this.options.fillBoundary 
-          ? `rgba(${this.hexToRgb(this.options.fillColor || '#1677ff')}, ${this.options.fillOpacity || 0.2})`
+          ? getColorByName(name)
           : 'transparent'
       })
     };
@@ -178,9 +191,13 @@ export class BoundaryObject {
     // 创建文本样式
     const textStyle = showLabel && this.options.showLabel ? new Text({
       text: name,
-      font: `${this.options.labelOptions?.fontWeight || 'normal'} ${this.options.labelOptions?.fontSize || 12}px ${this.options.labelOptions?.fontFamily || 'sans-serif'}`,
+      font: `${this.options.labelOptions?.fontWeight || 'normal'} ${this.options.labelOptions?.fontSize || 14}px ${this.options.labelOptions?.fontFamily || 'sans-serif'}`,
       fill: new Fill({
         color: this.options.labelOptions?.fontColor || '#333'
+      }),
+      stroke: new Stroke({
+        color: '#fff',
+        width: 3
       }),
       backgroundFill: this.options.labelOptions?.backgroundColor ? new Fill({
         color: `rgba(${this.hexToRgb(this.options.labelOptions.backgroundColor)}, ${this.options.labelOptions.backgroundOpacity || 0.8})`
@@ -190,44 +207,10 @@ export class BoundaryObject {
       offsetY: this.options.labelOptions?.offset?.[1] || 0,
       textAlign: this.options.labelOptions?.textAlign || 'center',
       textBaseline: this.options.labelOptions?.textBaseline || 'middle',
-      rotation: this.options.labelOptions?.rotation || 0,
-      scale: this.options.labelOptions?.scale || 1,
       overflow: true
     }) : undefined;
 
-    // 创建悬停样式
-    const hoverStyle = this.options.hoverStyle ? new Style({
-      stroke: new Stroke({
-        color: this.options.hoverStyle.strokeColor || '#1890ff',
-        width: this.options.hoverStyle.strokeWidth || 3,
-        lineDash: this.options.strokeStyle === 'dashed' ? [5, 5] : 
-                  this.options.strokeStyle === 'dotted' ? [1, 3] : 
-                  this.options.strokeDashArray || undefined,
-        lineCap: this.options.strokeLineCap || 'round',
-        lineJoin: this.options.strokeLineJoin || 'round'
-      }),
-      fill: new Fill({
-        color: `rgba(${this.hexToRgb(this.options.hoverStyle.fillColor || '#1890ff')}, ${this.options.hoverStyle.fillOpacity || 0.3})`
-      })
-    }) : undefined;
-
-    // 创建选中样式
-    const selectedStyle = this.options.selectedStyle ? new Style({
-      stroke: new Stroke({
-        color: this.options.selectedStyle.strokeColor || '#f5222d',
-        width: this.options.selectedStyle.strokeWidth || 3,
-        lineDash: this.options.strokeStyle === 'dashed' ? [5, 5] : 
-                  this.options.strokeStyle === 'dotted' ? [1, 3] : 
-                  this.options.strokeDashArray || undefined,
-        lineCap: this.options.strokeLineCap || 'round',
-        lineJoin: this.options.strokeLineJoin || 'round'
-      }),
-      fill: new Fill({
-        color: `rgba(${this.hexToRgb(this.options.selectedStyle.fillColor || '#f5222d')}, ${this.options.selectedStyle.fillOpacity || 0.3})`
-      })
-    }) : undefined;
-
-    // 返回样式数组
+    // 返回样式
     return new Style({
       ...baseStyle,
       text: textStyle,
@@ -377,12 +360,22 @@ export class BoundaryObject {
     }
 
     try {
-      // 调用fetchGaodeBoundary获取边界数据
-      const boundaryResponseData = await fetchGaodeBoundary({
-        key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '', // 从options获取key和provider
-        url: this.options.boundaryUrl, // 从options获取boundaryUrl
-        adcode: adcode // 传递adcode
-      });
+      // 1. 先查缓存
+      const cacheKey = `boundary-${adcode}`;
+      const db = indexedDBProxy();
+      let boundaryResponseData = await db.getItem(cacheKey) as any;
+      if (!boundaryResponseData) {
+        // 2. 缓存没有，请求接口
+        boundaryResponseData = await fetchGaodeBoundary({
+          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
+          url: this.options.boundaryUrl,
+          adcode: adcode
+        });
+        // 3. 写入缓存
+        if (boundaryResponseData) {
+          await db.setItem(cacheKey, boundaryResponseData);
+        }
+      }
 
       if (boundaryResponseData && boundaryResponseData.polyline) {
         // 如果获取到数据且包含polyline，则进行转换和添加
@@ -475,15 +468,14 @@ export class BoundaryObject {
           const lng = parseFloat(pointPairs[i]);
           const lat = parseFloat(pointPairs[i + 1]);
           if (!isNaN(lng) && !isNaN(lat)) {
-            // 坐标转换
-            const gcoord = this.mapObject.getGcoordObject();
-            const pt = gcoord.convertToMapCoord({ lng, lat }, CoordSystem.GCJ02);
-            coords.push([pt.lng, pt.lat]);
+            // 高德坐标(GCJ02)转换为Web墨卡托(EPSG:3857)
+            const mercatorCoord = fromLonLat([lng, lat], 'EPSG:3857');
+            coords.push(mercatorCoord);
           }
         }
       });
       if (coords.length > 2) {
-        // 闭合
+        // 闭合多边形
         const first = coords[0];
         const last = coords[coords.length - 1];
         if (first[0] !== last[0] || first[1] !== last[1]) {
@@ -492,12 +484,8 @@ export class BoundaryObject {
         rings.push(coords);
       }
       if (rings.length > 0) {
-        // 直接用Polygon
+        // 创建多边形要素
         const polygon = new Polygon(rings);
-        // 坐标投影转换
-        // if (dataProjection !== featureProjection) {
-          // polygon.transform(dataProjection, featureProjection);
-        // }
         const feature = new Feature({ geometry: polygon });
         features.push(feature);
       }
@@ -575,8 +563,8 @@ export class BoundaryObject {
       }
     }
 
-    // 清除当前显示的所有边界
-    this.clearBoundaries();
+    // 不再清除当前显示的所有边界
+    // this.clearBoundaries();
 
     try {
       // 加载新的边界
@@ -714,4 +702,67 @@ export class BoundaryObject {
 
   // 在类的其他位置声明clickListener属性
   private clickListener: any = null;
+
+  /**
+   * 初始化点击事件
+   */
+  private initClickEvent(): void {
+    if (!this.map) return;
+
+    // 创建一个Overlay用于显示popup
+    const container = document.createElement('div');
+    container.className = 'boundary-popup';
+    container.style.cssText = `
+      position: absolute;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+      min-width: 150px;
+      transform: translate(-50%, -100%);
+      margin-top: -10px;
+    `;
+
+    const overlay = new Overlay({
+      element: container,
+      positioning: 'bottom-center',
+      stopEvent: true,
+      offset: [0, -10]
+    });
+
+    this.map.addOverlay(overlay);
+
+    // 添加点击事件监听
+    this.map.on('click', (event) => {
+      const features = this.map!.getFeaturesAtPixel(event.pixel, {
+        layerFilter: (layer) => layer === this.boundaryLayer
+      });
+
+      if (features && features.length > 0) {
+        const feature = features[0];
+        const props = feature.getProperties();
+        const geometry = feature.getGeometry() as Polygon;
+        const coordinate = geometry.getInteriorPoint().getCoordinates();
+
+        // 更新popup内容
+        container.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 5px;">${props.name}</div>
+          <div style="color: #666;">行政级别: ${props.level}</div>
+          <div style="color: #666;">区划代码: ${props.code}</div>
+        `;
+
+        overlay.setPosition(coordinate);
+      } else {
+        overlay.setPosition(undefined);
+      }
+    });
+
+    // 添加鼠标移动事件，改变鼠标样式
+    this.map.on('pointermove', (event) => {
+      const hit = this.map!.hasFeatureAtPixel(event.pixel, {
+        layerFilter: (layer) => layer === this.boundaryLayer
+      });
+      this.map!.getTargetElement().style.cursor = hit ? 'pointer' : '';
+    });
+  }
 } 
