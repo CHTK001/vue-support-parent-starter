@@ -35,6 +35,7 @@ import {
   HIDE_MARKERS_LABEL_ICON,
   WIND_ICON,
   DIMENSION_SWITCH_ICON,
+  DIMENSION_SWITCH_ICON_EARTH,
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -289,6 +290,15 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       multi: true
     },
     {
+      id: 'boundary',
+      type: 'button',
+      icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M128 128h768v768H128z" fill="#e6f7ff"/><path d="M128 128h768v768H128z" fill="none" stroke="#1890ff" stroke-width="48"/><path d="M128 384h768" stroke="#1890ff" stroke-width="32"/><path d="M128 640h768" stroke="#1890ff" stroke-width="32"/><path d="M384 128v768" stroke="#1890ff" stroke-width="32"/><path d="M640 128v768" stroke="#1890ff" stroke-width="32"/></svg>',
+      title: '区划',
+      tooltip: '区划工具',
+      show: true,
+      multi: true
+    },
+    {
       id: 'wind-layer',
       type: 'toggle',
       icon: WIND_ICON,
@@ -300,6 +310,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       id: 'dimension-switch',
       type: 'toggle',
       icon: DIMENSION_SWITCH_ICON,
+      activeIcon: DIMENSION_SWITCH_ICON_EARTH,
       title: '2D/3D',
       tooltip: '二维/三维切换',
       multi: false

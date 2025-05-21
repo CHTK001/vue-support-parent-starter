@@ -6,6 +6,12 @@
     <div class="track-player-header">
       <div class="track-player-title">轨迹播放器</div>
       <div class="track-player-actions">
+        <!-- 开发环境下显示示例数据按钮 -->
+        <div v-if="isDevelopment" class="track-player-demo-btn" @click.stop="loadDemoTracks" title="加载示例数据">
+          <div class="demo-icon">
+            <span>🔍</span>
+          </div>
+        </div>
         <!-- 设置按钮 -->
         <div class="track-player-setting-btn" @click.stop="toggleSettings" title="播放设置">
           <div class="setting-icon">
@@ -218,7 +224,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect, getCurrentInstance } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, watchEffect, getCurrentInstance, defineExpose, nextTick } from 'vue';
 import { Track, TrackPlayer as TrackPlayerConfig } from '../types/track';
 import { DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 import { 
@@ -230,6 +236,9 @@ import {
   TRACK_DELETE_ICON, 
   TRACK_FOLLOW_CAMERA_ICON
 } from '../types/icon';
+
+// 环境变量判断
+const isDevelopment = ref(process.env.NODE_ENV === 'development');
 
 // 定义TrackPoint接口
 interface TrackPoint {
@@ -512,6 +521,34 @@ watch(showNodeDistance, (newValue) => {
   }
 });
 
+// 新增：监听节点名称显示
+watch(showNodePopover, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodePopoversVisible) {
+    props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 新增：监听节点时间显示
+watch(showNodeTime, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible) {
+    props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 新增：监听节点锚点显示
+watch(showNodeAnchors, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeAnchorsVisible) {
+    props.trackObj.setTrackNodeAnchorsVisible(activeTrackId.value, newValue);
+  }
+});
+
+// 新增：监听节点速度显示
+watch(showNodeSpeed, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeSpeedsVisible) {
+    props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, newValue);
+  }
+});
+
 // 组件销毁前清理
 onBeforeUnmount(() => {
   stopProgressTimer();
@@ -634,6 +671,20 @@ const fitToTrackView = (id: string) => {
   // 选中轨迹
   selectTrack(id);
   
+  // 添加双击视觉反馈
+  nextTick(() => {
+    const activeElement = document.querySelector(`.track-item.active`);
+    if (activeElement) {
+      // 添加双击强调类
+      activeElement.classList.add('track-highlight-double-click');
+      
+      // 几秒后移除特效
+      setTimeout(() => {
+        activeElement.classList.remove('track-highlight-double-click');
+      }, 3000);
+    }
+  });
+  
   // 调用fitTrackToView方法自适应显示轨迹
   props.trackObj.fitTrackToView(id, {
     gotoStart: false,
@@ -685,8 +736,8 @@ const getTrackNameWithLength = (track: Track, trackId: string) => {
       const distance = props.trackObj.getTrackTotalDistance(trackId);
       if (distance && distance > 0) {
         totalDistance = distance.toFixed(2);
-      }
-    } catch (error) {
+    }
+  } catch (error) {
       console.error('获取轨迹总长度失败:', error);
     }
   }
@@ -721,7 +772,7 @@ const getStaticPointsWithDistance = () => {
           if (calculatedDistance !== null) {
             distance = calculatedDistance;
           }
-  } catch (error) {
+        } catch (error) {
           console.error('计算节点距离时出错:', error);
         }
       } else {
@@ -831,17 +882,46 @@ const selectTrack = (id: string) => {
       props.trackObj.stop?.(activeTrackId.value);
     }
     
+    // 隐藏所有轨迹，确保只显示选中的轨迹
+    if (props.trackObj.getAllTracks) {
+      const allTracks = props.trackObj.getAllTracks();
+      allTracks.forEach((_, trackId) => {
+        if (trackId !== id) {
+          props.trackObj.hideTrack?.(trackId);
+        }
+      });
+    }
+    
+    // 确保选中的轨迹显示
+    props.trackObj.showTrack?.(id);
+    
     // 设置新的活动轨迹
     activeTrackId.value = id;
+    
+    // 强制DOM重新渲染以应用样式
+    nextTick(() => {
+      // 查找当前选中的轨迹元素并确保其可见
+      const activeElement = document.querySelector(`.track-item.active`);
+      if (activeElement) {
+        // 添加临时强调类，增强视觉反馈
+        activeElement.classList.add('track-highlight-flash');
+        activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        // 移除临时类
+      setTimeout(() => {
+          activeElement.classList.remove('track-highlight-flash');
+        }, 500);
+      }
+    });
     
     // 更新播放状态
     playState.value = 'stopped';
     
     // 应用当前的配置设置
     const playerConfig = {
-      loop: loopPlay.value,
-      withCamera: followCamera.value,
-      speedFactor: speedFactor.value
+            loop: loopPlay.value,
+            withCamera: followCamera.value,
+            speedFactor: speedFactor.value
     };
     props.trackObj.setTrackPlayer?.(id, playerConfig);
     
@@ -890,7 +970,7 @@ const togglePlay = () => {
       // 暂停播放
       if (props.trackObj.pause && props.trackObj.pause(activeTrackId.value)) {
         playState.value = 'paused';
-        stopProgressTimer();
+  stopProgressTimer();
       }
     } else {
       // 开始播放
@@ -938,10 +1018,10 @@ const handleProgressClick = (event: MouseEvent) => {
   progressPercentage.value = percentage * 100;
   
   // 如果轨迹已选择，更新当前时间
-  const track = tracks.value.get(activeTrackId.value);
+    const track = tracks.value.get(activeTrackId.value);
   if (track && track.points && track.points.length >= 2) {
-    const startTime = track.points[0].time;
-    const endTime = track.points[track.points.length - 1].time;
+      const startTime = track.points[0].time;
+      const endTime = track.points[track.points.length - 1].time;
     currentTime.value = startTime + (endTime - startTime) * percentage;
   }
 };
@@ -1066,6 +1146,68 @@ const startProgressTimer = () => {
     }
   }, updateFrequency.value);
 };
+
+// 加载示例轨迹数据
+const loadDemoTracks = () => {
+  if (!props.trackObj || !props.trackObj.addTrack) {
+    console.error('TrackObj或addTrack方法不可用，无法加载示例数据');
+    return;
+  }
+  
+  // 创建一个示例轨迹（北京路线示例）
+  const createDemoTrack = (id: number) => {
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    const center = { lat: 39.9 + Math.random() * 0.1, lng: 116.3 + Math.random() * 0.1 };
+    const pointCount = 50 + Math.floor(Math.random() * 50);
+    
+    // 生成轨迹点
+    for (let i = 0; i < pointCount; i++) {
+      const time = now + i * 60; // 每分钟一个点
+      const angle = (i / pointCount) * Math.PI * 2;
+      const radius = 0.01 + Math.random() * 0.01;
+      
+      const point: any = {
+        lat: center.lat + Math.sin(angle) * radius,
+        lng: center.lng + Math.cos(angle) * radius,
+        time: time,
+        title: `点位${i+1}`,
+        speed: 30 + Math.random() * 30 // 30-60 km/h
+      };
+      
+      // 添加一些静态点
+      if (i % 10 === 0 && i > 0) {
+        point.staticTitle = `站点${Math.floor(i/10)}`;
+      }
+      
+      points.push(point);
+    }
+    
+    return {
+      id: `demo-track-${id}`,
+      name: `示例轨迹 ${id}`,
+      points: points,
+      color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
+      icon: '🚗'
+    };
+  };
+  
+  // 添加3条示例轨迹
+  for (let i = 1; i <= 3; i++) {
+    const demoTrack = createDemoTrack(i);
+    try {
+      props.trackObj.addTrack(demoTrack as unknown as Track);
+      console.log(`示例轨迹${i}已添加`);
+    } catch (error) {
+      console.error(`添加示例轨迹${i}时出错:`, error);
+    }
+  }
+  
+  // 刷新轨迹列表
+  refreshTrackList();
+};
+
+defineExpose({ refreshTrackList });
 </script>
 
 <style scoped>
@@ -1201,6 +1343,35 @@ const startProgressTimer = () => {
   justify-content: center;
 }
 
+/* 示例数据按钮样式 */
+.track-player-demo-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.track-player-demo-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.demo-icon {
+  font-size: 16px;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .track-player-collapse-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -1271,7 +1442,9 @@ const startProgressTimer = () => {
   padding: 10px 14px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  border-left: 3px solid transparent;
 }
 
 .track-item:last-child {
@@ -1285,13 +1458,55 @@ const startProgressTimer = () => {
 .track-item.active {
   background-color: #e6f7ff;
   border-left: 3px solid #1890ff;
+  padding-left: 11px; /* 补偿左边框的宽度 */
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
+  position: relative;
+  animation: highlight-active 0.3s ease;
 }
-.track-camera.active {
+
+/* 临时强调闪光效果 */
+.track-highlight-flash {
+  animation: flash-highlight 0.5s ease !important;
+}
+
+@keyframes flash-highlight {
+  0% { 
+    background-color: rgba(24, 144, 255, 0.5);
+    box-shadow: 0 0 10px rgba(24, 144, 255, 0.8);
+  }
+  50% { 
+    background-color: rgba(24, 144, 255, 0.8);
+    box-shadow: 0 0 15px rgba(24, 144, 255, 1);
+  }
+  100% { 
   background-color: #e6f7ff;
-  border-left: 3px solid #1890ff;
+    box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
+  }
 }
-.track-camera path{
-  color: #000 !important;
+
+@keyframes highlight-active {
+  0% { 
+    background-color: rgba(24, 144, 255, 0.1);
+  }
+  50% { 
+    background-color: rgba(24, 144, 255, 0.2);
+  }
+  100% { 
+    background-color: #e6f7ff; 
+  }
+}
+
+.track-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(24, 144, 255, 0.3);
 }
 
 .track-item.disabled {
@@ -1797,6 +2012,41 @@ const startProgressTimer = () => {
   }
   100% {
     box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+  }
+}
+
+.track-camera.active {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
+}
+
+.track-camera path{
+  color: #000 !important;
+}
+
+/* 双击高亮效果 - 持续时间更长 */
+.track-highlight-double-click {
+  animation: double-click-highlight 3s ease !important;
+  border-left: 3px solid #ff6a00 !important;
+  box-shadow: 0 0 8px rgba(255, 106, 0, 0.6) !important;
+}
+
+@keyframes double-click-highlight {
+  0% { 
+    background-color: rgba(255, 106, 0, 0.3);
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.6);
+  }
+  10% { 
+    background-color: rgba(255, 106, 0, 0.5);
+    box-shadow: 0 0 15px rgba(255, 106, 0, 0.8);
+  }
+  30% { 
+    background-color: rgba(255, 106, 0, 0.3);
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.6);
+  }
+  100% { 
+    background-color: #e6f7ff;
+    box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
   }
 }
 </style> 

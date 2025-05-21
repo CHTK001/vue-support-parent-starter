@@ -18,6 +18,8 @@ export enum MapTile {
   NORMAL = 'normal',
   SATELLITE = 'satellite',
   HYBRID = 'hybrid',
+  AERIAL = 'aerial',
+  ROAD = 'road',
 }
 /**
  * 数据类型枚举

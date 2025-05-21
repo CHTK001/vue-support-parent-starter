@@ -95,6 +95,8 @@ export class ToolbarObject {
   // 区划边界对象
   private boundaryObj: BoundaryObject | null = null;
 
+  private boundaryLoaded: boolean = false; // 标记区划是否已加载
+
   /**
    * 构造函数
    * @param config 工具栏配置
@@ -727,6 +729,25 @@ export class ToolbarObject {
       return;
     }
     
+    // 区划边界工具的特殊处理 - 移到这里集中处理
+    if (toolId === 'boundary') {
+      // 切换激活状态
+      const currentActive = !!tool.active;
+      
+      if (currentActive) {
+        // 如果当前已激活，则停用
+        this.deactivateTool(toolId);
+        this.handleBoundaryDeactivate();
+        logger.debug('区划边界工具停用');
+      } else {
+        // 如果当前未激活，则激活
+        this.activateTool(toolId);
+        this.handleBoundaryActivate();
+        logger.debug('区划边界工具激活');
+      }
+      return;
+    }
+    
     // 针对不同类型工具进行处理
     if (tool.type === 'button') {
       // 对于按钮类型，如果有子菜单，则像菜单一样处理
@@ -812,17 +833,6 @@ export class ToolbarObject {
         // 如果当前是非激活状态，则激活
         logger.debug(`工具 ${toolId} 将被激活`);
         this.activateTool(toolId);
-      }
-    }
-    
-    // 区划边界工具
-    if (toolId === 'boundary') {
-      if (!tool.active) {
-        this.activateTool(toolId);
-        this.handleBoundaryActivate();
-      } else {
-        this.deactivateTool(toolId);
-        this.handleBoundaryDeactivate();
       }
     }
   }
@@ -2760,13 +2770,15 @@ export class ToolbarObject {
       logger.warn('区划边界对象未初始化');
       return;
     }
-    
-    // 设置图层可见
+    // 只负责显示区划图层，不再加载本地数据
     this.boundaryObj.setVisible(true);
-    
     // 触发工具状态变更事件
     this.triggerToolStateChange('boundary', true, 'toggle');
-    
+    // 额外发送显示区划面板信号
+    this.triggerToolStateChange('boundary-panel-visible', true, 'panel', {
+      source: 'boundary-click',
+      forced: true
+    });
     logger.debug('区划边界工具已激活');
   }
   

@@ -47,6 +47,17 @@
       ref="flightLinePanelRef"
     />
     
+    <!-- 添加区划边界选择器面板 -->
+    <BoundarySelector
+      v-if="showBoundarySelector && mapReady" 
+      :active="showBoundarySelector"
+      :boundary-obj="getBoundaryObject()"
+      @close="closeBoundarySelector"
+      @apply="handleBoundaryApply"
+      @clear="handleBoundaryClear"
+      @remove="handleBoundaryRemove"
+    />
+    
   </div>
 </template>
 
@@ -102,6 +113,7 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 // 导入CesiumObject和其他类型
 import { CesiumObject } from './composables/CesiumObject';
 import { Model3DOptions } from './composables/CesiumModelObject';
+import BoundarySelector from './components/BoundarySelector.vue'; // 导入区划选择器组件
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {
@@ -903,28 +915,7 @@ const handleToolDeactivated = (payload) => {
 // 设置工具栏状态变化监听器
 const setupToolbarStateChangeListener = () => {
   if (!toolbarObject) return;
-  
-  toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
-    // 更新激活的工具ID
-    updateActiveToolId(toolId, active);
-    
-    // 处理工具状态变化
-    handleToolStateByType(toolId, active, toolType, data);
-    
-    // 网格状态变化的特殊处理
-    if (toolId === 'grid-active' && data?.gridType) {
-      if (active) {
-        // 网格已启用
-        emit('grid-enabled', { gridType: data.gridType });
-      } else {
-        // 网格已禁用
-        emit('grid-disabled', { gridType: data.gridType });
-      }
-    }
-    
-    // 触发工具栏状态变化事件
-    emit('toolbar-state-change', { toolId, active, toolType, data });
-  });
+  toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
 };
 
 // 设置坐标面板状态监听
@@ -2511,17 +2502,23 @@ const getBoundaryObject = () => {
   return toolbarObject?.getBoundaryObject() || null;
 };
 
-// 处理工具栏状态变更
+/**
+ * 处理工具栏状态变化
+ * @param toolId 工具ID
+ * @param active 激活状态
+ * @param toolType 工具类型
+ * @param data 附加数据
+ */
 const handleToolbarStateChange = (toolId: string, active: boolean, toolType: string, data?: any) => {
-  // 发送事件
   emit('toolbar-state-change', { toolId, active, toolType, data });
-  
-  // 处理区划边界工具
-  if (toolId === 'boundary') {
+  if (toolId === 'boundary' || toolId === 'boundary-panel-visible') {
     showBoundarySelector.value = active;
+    logger.debug(`[区划面板] 状态变更: ${active}`);
+  } else if (toolId === 'coordinate-panel-visible') {
+    showCoordinatePanel.value = true;
+  } else if (toolId === 'layer-panel-visible') {
+    showLayerPanel.value = true;
   }
-  
-  // 可以在这里添加其他工具的处理逻辑
 };
 
 const mapContainerId = `map-container-${Date.now()}`; // 生成唯一ID
@@ -2554,6 +2551,27 @@ function set3DEnabled(enabled: boolean) {
     }
   }
 }
+
+// 添加区划边界相关的处理函数
+const handleBoundaryApply = () => {
+  logger.debug('应用区划样式设置');
+};
+
+const handleBoundaryClear = () => {
+  logger.debug('清除所有区划');
+  const boundaryObj = getBoundaryObject();
+  if (boundaryObj) {
+    boundaryObj.clearBoundaries();
+  }
+};
+
+const handleBoundaryRemove = (code: string) => {
+  logger.debug(`移除区划: ${code}`);
+  const boundaryObj = getBoundaryObject();
+  if (boundaryObj) {
+    boundaryObj.removeBoundary(code);
+  }
+};
 
 </script>
 
