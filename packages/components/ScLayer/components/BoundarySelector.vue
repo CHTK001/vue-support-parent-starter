@@ -4,9 +4,12 @@
     <div class="boundary-selector-header">
       <div class="title">区划边界</div>
       <div class="header-actions">
-        <button class="settings-btn" @click="showSettings = !showSettings">
-          <span>⚙</span>
-        </button>
+          <!-- 设置按钮 -->
+        <div class="boundary-player-setting-btn" @click.stop="showSettings = !showSettings" title="播放设置">
+          <div class="setting-icon">
+            <span>⚙</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="boundary-selector-content">
@@ -277,8 +280,8 @@ const handleClose = () => {
 .boundary-selector {
   position: absolute;
   width: 350px;
+  border-radius: 8px;
   background-color: #ffffff;
-  border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   opacity: 0;
@@ -318,7 +321,9 @@ const handleClose = () => {
     justify-content: space-between;
     align-items: center;
     padding: 12px 15px;
-    border-bottom: 1px solid #e8e8e8;
+    background: linear-gradient(135deg, #1890ff, #096dd9);
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     
     .title {
       font-weight: 600;
@@ -338,6 +343,25 @@ const handleClose = () => {
         }
       }
     }
+  }
+  
+  .boundary-player-setting-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-right: 8px;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+
+  .boundary-player-setting-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
   }
   
   &-content {
