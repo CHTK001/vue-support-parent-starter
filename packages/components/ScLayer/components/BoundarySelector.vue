@@ -4,7 +4,13 @@
     <div class="boundary-selector-header">
       <div class="title">区划边界</div>
       <div class="header-actions">
-          <!-- 设置按钮 -->
+        <!-- 定位按钮 -->
+        <div class="boundary-player-locate-btn" @click.stop="handleLocate" title="定位到区划">
+          <div class="locate-icon">
+            <span>📍</span>
+          </div>
+        </div>
+        <!-- 设置按钮 -->
         <div class="boundary-player-setting-btn" @click.stop="showSettings = !showSettings" title="播放设置">
           <div class="setting-icon">
             <span>⚙</span>
@@ -113,10 +119,11 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, watchEffect, onMounted, defineProps, defineEmits, computed } from 'vue';
+import { ref, reactive, watchEffect, onMounted, defineProps, defineEmits, computed, watch } from 'vue';
 import { fetchGaodeDistrictTree } from '../api/district'; // 保留 fetchGaodeDistrictTree 导入
 import { BoundaryLevel, BoundaryItem, BoundaryOptions, BoundaryData, BoundaryCoordinate } from '../types/boundary';
 import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
+import { MapType } from '../types/map';
 
 // 搜索关键词
 const searchText = ref('');
@@ -132,19 +139,10 @@ const props = defineProps<{
   active: boolean;
   boundaryObj: any;
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  defaultOptions?: {
-    url?: string;
-    provider?: string;
-    fillBoundary?: boolean;
-    strokeColor?: string;
-    strokeWidth?: number;
-    fillColor?: string;
-    fillOpacity?: number;
-    showLabel?: boolean;
-  };
+  defaultOptions?: Partial<BoundaryOptions>;
   mapKey?: Record<string, string>;
   url?: string;
-  provider?: string;
+  provider?: MapType;
   districtUrl?: string;
   boundaryUrl?: string;
 }>();
@@ -171,6 +169,16 @@ const boundaryOptions = reactive<BoundaryOptions>({
   ...DEFAULT_BOUNDARY_OPTIONS,
   ...(props.defaultOptions || {})
 });
+
+// 监听样式配置变化
+watch(() => ({ ...boundaryOptions }), (newOptions) => {
+  // 实时更新边界样式
+  if (props.boundaryObj) {
+    props.boundaryObj.setOptions(newOptions);
+    // 立即更新所有边界的样式
+    props.boundaryObj.updateAllBoundariesStyle();
+  }
+}, { deep: true });
 
 // 已选择的边界列表
 const selectedBoundaries = ref<BoundaryData[]>([]);
@@ -298,6 +306,31 @@ const handleClose = () => {
 const toggleNode = (node: any) => {
   (treeRef.value as any).toggleExpand(node);
 };
+
+// 定位到当前选中的区划
+const handleLocate = () => {
+  console.log('当前选中的边界列表:', selectedBoundaries.value);
+  
+  if (selectedBoundaries.value.length > 0) {
+    // 获取第一个选中的区划
+    const firstBoundary = selectedBoundaries.value[0];
+    console.log('准备定位到区划:', firstBoundary);
+    
+    // 调用 BoundaryObject 的 fitToBoundary 方法
+    if (props.boundaryObj && typeof props.boundaryObj.fitToBoundary === 'function') {
+      console.log('调用 fitToBoundary 方法，区划代码:', firstBoundary.code);
+      props.boundaryObj.fitToBoundary(firstBoundary.code);
+    } else {
+      console.error('boundaryObj 或 fitToBoundary 方法不存在');
+      console.log('boundaryObj:', props.boundaryObj);
+      if (props.boundaryObj) {
+        console.log('可用方法:', Object.keys(props.boundaryObj));
+      }
+    }
+  } else {
+    console.warn('没有选中的区划边界');
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -356,16 +389,34 @@ const toggleNode = (node: any) => {
     }
 
     .header-actions {
-      .settings-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        color: #666;
-        
-        &:hover {
-          color: #1890ff;
-        }
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .boundary-player-locate-btn,
+    .boundary-player-setting-btn {
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: all 0.3s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .locate-icon,
+      .setting-icon {
+        font-size: 16px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     }
   }
@@ -373,25 +424,6 @@ const toggleNode = (node: any) => {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-  }
-  
-  .boundary-player-setting-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 4px;
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin-right: 8px;
-    transition: background-color 0.2s, transform 0.2s;
-  }
-
-  .boundary-player-setting-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.05);
   }
   
   &-content {

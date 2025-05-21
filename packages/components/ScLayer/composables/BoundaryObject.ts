@@ -90,8 +90,6 @@ export class BoundaryObject {
    */
   public setOptions(options: Partial<BoundaryOptions>): void {
     this.options = {...this.options, ...options};
-    // 实时刷新所有区划样式（包括标签）
-    this.updateAllBoundariesStyle();
     logger.debug('区划边界配置已更新:', this.options);
   }
   
@@ -238,19 +236,21 @@ export class BoundaryObject {
   /**
    * 更新所有已添加边界的样式
    */
-  private updateAllBoundariesStyle(): void {
+  public updateAllBoundariesStyle(): void {
+    logger.debug('开始更新所有边界样式');
+    
     // 获取所有要素
     const features = this.boundarySource.getFeatures();
     
     // 更新每个要素的样式
     features.forEach(feature => {
-      const properties = feature.get('properties');
+      const properties = feature.getProperties();
       if (properties) {
         feature.setStyle(this.createBoundaryStyle(properties.name, properties.ringIndex === 0));
       }
     });
     
-    logger.debug('已更新所有边界样式');
+    logger.debug(`已更新 ${features.length} 个边界要素的样式`);
   }
   
   /**
@@ -391,43 +391,39 @@ export class BoundaryObject {
         const features = this.parseGaodePolylineToFeatures(boundaryResponseData.polyline, dataProjection, featureProjection);
 
         if (features && features.length > 0) {
-           // 为每个feature设置属性和样式，并添加到源
-           features.forEach(feature => {
-             // 添加原始区划属性
-             feature.setProperties({
-               code: boundaryResponseData.adcode,
-               name: boundaryResponseData.name,
-               level: boundaryResponseData.level,
-               // 可能需要其他属性，如中心点等
-             });
-
-             // 设置样式
-             // 这里简化处理，所有feature使用同样的样式，如果需要区分外环内环或多部分样式，需要调整 parseGaodePolylineToFeatures 返回的结构或在此处根据属性判断
-             feature.setStyle(this.createBoundaryStyle(boundaryResponseData.name, true)); // 默认显示标签
-
-             // 添加到源
-             this.boundarySource.addFeature(feature);
-             logger.debug(`成功添加边界 feature: ${boundaryResponseData.name}(${boundaryResponseData.adcode})`);
-           });
-
-           // 将区划数据添加到选中集合 (这里只保存一份原始数据，feature已添加到source)
-           const boundaryData: BoundaryData = {
+          // 为每个feature设置属性和样式，并添加到源
+          features.forEach((feature, index) => {
+            // 设置属性
+            feature.setProperties({
               code: boundaryResponseData.adcode,
               name: boundaryResponseData.name,
               level: boundaryResponseData.level,
-              // coordinates属性现在可能不再直接使用，或者需要从features重新提取
-              coordinates: [] // 暂时置空，或者根据需要从features提取
-           };
-           this.selectedBoundaries.set(adcode, boundaryData);
+              ringIndex: index
+            });
+
+            // 设置样式
+            feature.setStyle(this.createBoundaryStyle(boundaryResponseData.name, index === 0));
+
+            // 添加到源
+            this.boundarySource.addFeature(feature);
+            logger.debug(`成功添加边界 feature: ${boundaryResponseData.name}(${boundaryResponseData.adcode})`);
+          });
+
+          // 将区划数据添加到选中集合
+          const boundaryData: BoundaryData = {
+            code: boundaryResponseData.adcode,
+            name: boundaryResponseData.name,
+            level: boundaryResponseData.level,
+            coordinates: [] // 暂时置空，或者根据需要从features提取
+          };
+          this.selectedBoundaries.set(adcode, boundaryData);
 
         } else {
           logger.warn(`解析高德 polyline 未生成有效 features: ${adcode}`);
         }
-
       } else {
         logger.warn(`未获取到区划边界数据或缺少polyline: ${adcode}`);
       }
-
     } catch (error) {
       logger.error(`通过adcode添加边界失败: ${adcode}`, error);
     }
@@ -625,8 +621,10 @@ export class BoundaryObject {
    * @param code 行政区划代码
    */
   public fitToBoundary(code: string): void {
+    logger.debug(`开始定位到边界: ${code}`);
+    
     const features = this.boundarySource.getFeatures().filter(feature => {
-      const properties = feature.get('properties') || feature.getProperties();
+      const properties = feature.getProperties();
       return properties && properties.code === code;
     });
 
@@ -634,6 +632,8 @@ export class BoundaryObject {
       logger.warn(`找不到边界 ${code} 的要素`);
       return;
     }
+
+    logger.debug(`找到 ${features.length} 个边界要素`);
 
     // 计算所有要素的总范围
     const extent = features[0].getGeometry()!.getExtent();
@@ -658,11 +658,15 @@ export class BoundaryObject {
     extent[2] += width * buffer;
     extent[3] += height * buffer;
 
+    logger.debug(`计算的边界范围:`, extent);
+
     // 平移地图
     this.map.getView().fit(extent, {
       duration: 1000,  // 动画持续时间
       padding: [20, 20, 20, 20]  // 边距
     });
+    
+    logger.debug(`完成地图定位`);
   }
 
   /**
