@@ -3,14 +3,25 @@
  * @description 处理区划边界的显示和管理
  */
 import { Map as OlMap } from 'ol';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { Feature } from 'ol';
 import { Polygon } from 'ol/geom';
 import { Fill, Stroke, Style, Text } from 'ol/style';
-import { BoundaryData, BoundaryItem, BoundaryLevel, BoundaryOptions, DEFAULT_BOUNDARY_OPTIONS, BoundaryImplementation } from '../types/boundary';
+import { BoundaryData, BoundaryItem, BoundaryLevel, BoundaryOptions, BoundaryCoordinate } from '../types/boundary';
+import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
 import logger from './LogObject';
+import { fetchGaodeBoundary } from '../api/district';
+import { fetchGaodeDistrictTree } from '../api/district';
+import GeoJSON from 'ol/format/GeoJSON';
+
+// 扩展全局Window接口，添加高德地图声明
+declare global {
+  interface Window {
+    AMap: any;
+  }
+}
 
 export class BoundaryObject {
   private map: OlMap;
@@ -71,163 +82,8 @@ export class BoundaryObject {
   public getOptions(): BoundaryOptions {
     return this.options;
   }
-  
-  /**
-   * 加载区划数据
-   * @param code 区划代码
-   * @param level 区划级别
-   * @returns 区划数据Promise
-   */
-  public async loadBoundary(code: string, level: BoundaryLevel): Promise<BoundaryData | null> {
-    // 检查缓存
-    const cacheKey = `${level}-${code}`;
-    if (this.boundaryCache.has(cacheKey)) {
-      logger.debug(`使用缓存的区划数据: ${cacheKey}`);
-      return this.boundaryCache.get(cacheKey) || null;
-    }
-    
-    try {
-      // 根据实现方式选择不同的API请求方法
-      let boundaryData: BoundaryData;
-      
-      if (this.options.implementation === BoundaryImplementation.AMAP) {
-        boundaryData = await this.loadBoundaryFromAMap(code, level);
-      } else if (this.options.implementation === BoundaryImplementation.CUSTOM && this.options.url) {
-        boundaryData = await this.loadBoundaryFromCustomAPI(code, level);
-      } else {
-        throw new Error('未支持的区划实现方式或缺少自定义API URL');
-      }
-      
-      // 缓存数据
-      this.boundaryCache.set(cacheKey, boundaryData);
-      
-      return boundaryData;
-    } catch (error) {
-      logger.error('加载区划数据失败:', error);
-      return null;
-    }
-  }
-  
-  /**
-   * 从高德地图加载区划数据
-   * @param code 区划代码
-   * @param level 区划级别
-   * @returns 区划数据Promise
-   */
-  private async loadBoundaryFromAMap(code: string, level: BoundaryLevel): Promise<BoundaryData> {
-    // 构建API参数
-    const keywords = code === '100000' ? '中国' : code;
-    const subdistrict = level === BoundaryLevel.PROVINCE ? 0 : 
-                         level === BoundaryLevel.CITY ? 1 : 2;
-    
-    try {
-      // 动态加载高德地图API
-      await this.loadAMapScript();
-      
-      return new Promise((resolve, reject) => {
-        // @ts-ignore 高德地图API会在全局添加AMap对象
-        const districtSearch = new AMap.DistrictSearch({
-          subdistrict: subdistrict,
-          extensions: 'all',
-          level: level
-        });
-        
-        districtSearch.search(keywords, (status: string, result: any) => {
-          if (status === 'complete') {
-            if (result.districtList && result.districtList.length > 0) {
-              const district = result.districtList[0];
-              const boundaries = district.boundaries;
-              
-              if (!boundaries || boundaries.length === 0) {
-                reject(new Error('未找到区划边界数据'));
-                return;
-              }
-              
-              // 转换高德坐标系为WGS84坐标系
-              const coordinates: BoundaryCoordinate[][] = boundaries.map((boundary: any[]) => {
-                return boundary.map((point: any) => ({
-                  lng: point.lng,
-                  lat: point.lat
-                }));
-              });
-              
-              resolve({
-                code: district.adcode,
-                name: district.name,
-                level: level,
-                coordinates
-              });
-            } else {
-              reject(new Error('未找到区划信息'));
-            }
-          } else {
-            reject(new Error(`高德地图API请求失败: ${status}`));
-          }
-        });
-      });
-    } catch (error) {
-      logger.error('从高德地图加载区划数据失败:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * 从自定义API加载区划数据
-   * @param code 区划代码
-   * @param level 区划级别
-   * @returns 区划数据Promise
-   */
-  private async loadBoundaryFromCustomAPI(code: string, level: BoundaryLevel): Promise<BoundaryData> {
-    if (!this.options.url) {
-      throw new Error('缺少自定义API URL');
-    }
-    
-    try {
-      // 构建API URL
-      const url = `${this.options.url}?code=${code}&level=${level}`;
-      
-      // 发送请求
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // 转换响应数据格式
-      return {
-        code: data.code,
-        name: data.name,
-        level: level,
-        coordinates: data.coordinates
-      };
-    } catch (error) {
-      logger.error('从自定义API加载区划数据失败:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * 动态加载高德地图脚本
-   * @returns Promise
-   */
-  private loadAMapScript(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // 检查是否已加载
-      if (window.AMap) {
-        resolve();
-        return;
-      }
-      
-      // 加载高德地图API
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = 'https://webapi.amap.com/maps?v=2.0&key=e5e7e0972e8fad7aff2ca80331b29358';
-      script.onerror = reject;
-      script.onload = () => resolve();
-      document.head.appendChild(script);
-    });
-  }
+
+
   
   /**
    * 添加边界到地图
@@ -485,11 +341,190 @@ export class BoundaryObject {
     
     logger.debug('区划边界对象已销毁');
   }
-}
+  
+  /**
+   * 通过行政区划代码添加边界
+   * @param adcode 行政区划代码
+   */
+  public async addBoundaryByAdcode(adcode: string): Promise<void> {
+    // 检查是否已经添加过该边界
+    if (this.selectedBoundaries.has(adcode)) {
+      logger.debug(`边界已存在: ${adcode}`);
+      return;
+    }
 
-// 扩展全局Window接口，添加高德地图声明
-declare global {
-  interface Window {
-    AMap: any;
+    try {
+      // 调用fetchGaodeBoundary获取边界数据
+      const boundaryResponseData = await fetchGaodeBoundary({
+        key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '', // 从options获取key和provider
+        url: this.options.boundaryUrl, // 从options获取boundaryUrl
+        adcode: adcode // 传递adcode
+      });
+
+      if (boundaryResponseData && boundaryResponseData.polyline) {
+        // 如果获取到数据且包含polyline，则进行转换和添加
+
+        debugger
+        // 获取原始数据投影和目标地图投影
+        const dataProjection = this.options.projection || 'EPSG:4326'; // 高德API返回的经纬度是WGS84，对应EPSG:4326
+        const featureProjection = 'EPSG:3857'; // 目标投影从options获取，默认EPSG:3857
+
+        // 解析高德 polyline 并转换为 OpenLayers Features
+        const features = this.parseGaodePolylineToFeatures(boundaryResponseData.polyline, dataProjection, featureProjection);
+
+        if (features && features.length > 0) {
+           // 为每个feature设置属性和样式，并添加到源
+           features.forEach(feature => {
+             // 添加原始区划属性
+             feature.setProperties({
+               code: boundaryResponseData.adcode,
+               name: boundaryResponseData.name,
+               level: boundaryResponseData.level,
+               // 可能需要其他属性，如中心点等
+             });
+
+             // 设置样式
+             // 这里简化处理，所有feature使用同样的样式，如果需要区分外环内环或多部分样式，需要调整 parseGaodePolylineToFeatures 返回的结构或在此处根据属性判断
+             feature.setStyle(this.createBoundaryStyle(boundaryResponseData.name, true)); // 默认显示标签
+
+             // 添加到源
+             this.boundarySource.addFeature(feature);
+             logger.debug(`成功添加边界 feature: ${boundaryResponseData.name}(${boundaryResponseData.adcode})`);
+           });
+
+           // 将区划数据添加到选中集合 (这里只保存一份原始数据，feature已添加到source)
+           const boundaryData: BoundaryData = {
+              code: boundaryResponseData.adcode,
+              name: boundaryResponseData.name,
+              level: boundaryResponseData.level,
+              // coordinates属性现在可能不再直接使用，或者需要从features重新提取
+              coordinates: [] // 暂时置空，或者根据需要从features提取
+           };
+           this.selectedBoundaries.set(adcode, boundaryData);
+
+        } else {
+          logger.warn(`解析高德 polyline 未生成有效 features: ${adcode}`);
+        }
+
+      } else {
+        logger.warn(`未获取到区划边界数据或缺少polyline: ${adcode}`);
+      }
+
+    } catch (error) {
+      logger.error(`通过adcode添加边界失败: ${adcode}`, error);
+    }
+  }
+  
+  /**
+   * 解析高德 polyline 字符串为 OpenLayers Feature[]
+   * @param polyline 高德API返回的 polyline 字符串
+   * @param dataProjection 原始数据投影 (如 'EPSG:4326')
+   * @param featureProjection 目标特征投影 (如 'EPSG:3857')
+   * @returns OpenLayers Feature 数组
+   */
+  private parseGaodePolylineToFeatures(polyline: string, dataProjection: string, featureProjection: string): Feature[] {
+    const multiPolygonCoordinates: number[][][][] = [];
+
+    // 按 '|' 分隔不同的多边形部分
+    const parts = polyline.split('|');
+
+    parts.forEach(part => {
+      const polygonCoordinates: number[][][] = [];
+
+      // 按 ';' 分隔多边形的环 (外环和内环)
+      const rings = part.split(';');
+
+      rings.forEach(ringStr => {
+        const ringCoordinates: number[][] = [];
+
+        // 按 ',' 分隔经纬度点
+        const points = ringStr.split(',');
+
+        points.forEach(pointStr => {
+          const [lng, lat] = pointStr.split(',').map(parseFloat);
+          if (!isNaN(lng) && !isNaN(lat)) {
+            ringCoordinates.push([lng, lat]); // GeoJSON 格式是 [longitude, latitude]
+          }
+        });
+
+        if (ringCoordinates.length > 0) {
+          polygonCoordinates.push(ringCoordinates);
+        }
+      });
+
+      if (polygonCoordinates.length > 0) {
+         multiPolygonCoordinates.push(polygonCoordinates);
+      }
+    });
+
+    // 构建 GeoJSON 对象
+    const geoJson = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'MultiPolygon',
+            coordinates: multiPolygonCoordinates // GeoJSON MultiPolygon 格式是 [polygon1, polygon2, ...]
+          },
+          properties: {} // 可以添加属性
+        }
+      ]
+    };
+
+    try {
+      // 使用 OpenLayers GeoJSON 解析并转换投影
+      const geoJsonFormat = new GeoJSON({
+        dataProjection: dataProjection, // 原始数据投影
+        featureProjection: featureProjection // 目标投影
+      });
+
+      return geoJsonFormat.readFeatures(geoJson);
+    } catch (error) {
+      logger.error('解析 GeoJSON 数据失败:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * 加载行政区划树数据
+   * @returns 行政区划树数据Promise
+   */
+  public async loadDistrictTree(): Promise<any[]> {
+    try {
+      let districts;
+      if (this.options.districtUrl) {
+        // 如果配置了districtUrl，从URL获取数据
+        districts = await fetchGaodeDistrictTree({
+          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
+          url: this.options.districtUrl,
+          keywords: '',
+          subdistrict: 2,
+          extensions: 'base'
+        });
+      } else {
+        // 如果districtUrl为空，使用本地JSON数据
+        // 动态导入本地JSON，避免打包所有区划数据
+        const gaodeDistrictData = (await import('../data/districts.json')).default;
+        districts = gaodeDistrictData;
+      }
+
+      // 返回格式化后的数据
+      return districts;
+
+    } catch (error) {
+      logger.error('加载行政区划树失败:', error);
+      return [];
+    }
+  }
+
+  // 格式化区划节点数据，使其符合el-tree的要求
+  private formatDistrictNode(d: any) {
+    return {
+      adcode: d.adcode,
+      name: d.name,
+      level: d.level,
+      children: d.districts ? d.districts.map(this.formatDistrictNode) : [] // 递归格式化子节点
+    };
   }
 } 

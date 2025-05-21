@@ -13,26 +13,26 @@
       </div>
     </div>
     <div class="boundary-selector-content">
+      <!-- 搜索输入框 -->
+      <div class="boundary-search">
+        <el-input
+          v-model="searchText"
+          placeholder="搜索行政区划"
+          clearable
+        />
+      </div>
+
       <!-- 树形选择区域 -->
       <div class="boundary-tree">
         <el-tree
           ref="treeRef"
-          :data="treeData"
+          :data="filteredTreeData"
           :props="defaultProps"
           node-key="code"
           show-checkbox
           @check="handleCheck"
           :default-expanded-keys="['110000']"
         >
-          <template #default="{ node, data }">
-            <span class="custom-tree-node">
-              <span v-if="!node.isLeaf" class="tree-expand-icon" @click.stop="toggleNode(node)">
-                <span v-if="node.expanded">▼</span>
-                <span v-else>▶</span>
-              </span>
-              <span>{{ node.label }}</span>
-            </span>
-          </template>
         </el-tree>
       </div>
 
@@ -113,8 +113,19 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, watchEffect, onMounted, defineProps, defineEmits } from 'vue';
-import { BoundaryLevel, BoundaryItem, BoundaryOptions, DEFAULT_BOUNDARY_OPTIONS, BoundaryData } from '../types/boundary';
+import { ref, reactive, watchEffect, onMounted, defineProps, defineEmits, computed } from 'vue';
+import { fetchGaodeDistrictTree } from '../api/district'; // 保留 fetchGaodeDistrictTree 导入
+import { BoundaryLevel, BoundaryItem, BoundaryOptions, BoundaryData, BoundaryCoordinate } from '../types/boundary';
+import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
+
+// 搜索关键词
+const searchText = ref('');
+
+// 原始的行政区划树数据（从BoundaryObject加载后保存在这里）
+const rawTreeData = ref<any[]>([]);
+
+// 数据加载状态
+const isLoadingTreeData = ref(false);
 
 // 定义组件属性
 const props = defineProps<{
@@ -131,6 +142,11 @@ const props = defineProps<{
     fillOpacity?: number;
     showLabel?: boolean;
   };
+  mapKey?: Record<string, string>;
+  url?: string;
+  provider?: string;
+  districtUrl?: string;
+  boundaryUrl?: string;
 }>();
 
 // 设置默认位置
@@ -140,7 +156,7 @@ const position = props.position || 'top-right';
 const emit = defineEmits(['close', 'apply', 'clear', 'remove']);
 
 // 树形数据
-const treeData = ref<any[]>([]);
+// const treeData = ref<any[]>([]); // 不再需要单独的treeData ref
 const treeRef = ref();
 const defaultProps = {
   children: 'children',
@@ -162,7 +178,18 @@ const selectedBoundaries = ref<BoundaryData[]>([]);
 // 初始化
 onMounted(async () => {
   // 加载树形数据
-  await loadTreeData();
+  // 改为调用 BoundaryObject 的 loadDistrictTree 方法
+  isLoadingTreeData.value = true; // 开始加载，设置loading为true
+  try {
+    if (props.boundaryObj && typeof props.boundaryObj.loadDistrictTree === 'function') {
+      rawTreeData.value = await props.boundaryObj.loadDistrictTree(); // 将加载的数据保存在 rawTreeData
+    } else {
+      console.error('BoundaryObject 未提供 loadDistrictTree 方法或 boundaryObj 未初始化');
+      rawTreeData.value = [];
+    }
+  } finally {
+    isLoadingTreeData.value = false; // 加载完成（无论成功或失败），设置loading为false
+  }
   
   // 获取当前已选择的边界
   if (props.boundaryObj) {
@@ -174,45 +201,37 @@ onMounted(async () => {
   }
 });
 
-// 加载树形数据
-const loadTreeData = async () => {
-  try {
-    // 这里应该调用实际API获取数据
-    // 暂时使用模拟数据
-    treeData.value = [
-      {
-        code: '110000',
-        name: '北京市',
-        children: [
-          {
-            code: '110100',
-            name: '市辖区',
-            children: [
-              { code: '110101', name: '东城区' },
-              { code: '110102', name: '西城区' }
-            ]
-          }
-        ]
-      },
-      {
-        code: '120000',
-        name: '天津市',
-        children: [
-          {
-            code: '120100',
-            name: '市辖区',
-            children: [
-              { code: '120101', name: '和平区' },
-              { code: '120102', name: '河东区' }
-            ]
-          }
-        ]
-      }
-    ];
-  } catch (error) {
-    console.error('加载树形数据失败:', error);
+// 过滤后的树形数据计算属性
+const filteredTreeData = computed(() => {
+  if (!searchText.value) {
+    return rawTreeData.value; // 如果搜索关键词为空，返回原始数据
   }
-};
+
+  const lowerCaseSearchText = searchText.value.toLowerCase(); // 转换为小写进行不区分大小写的搜索
+
+  // 过滤逻辑
+  const filterNodes = (nodes: any[]) => {
+    // 创建节点的深拷贝，以免修改原始数据
+    return nodes.map(node => ({
+      ...node,
+      children: node.children ? filterNodes(node.children) : [] // 递归处理子节点
+    })).filter(node => {
+      // 检查当前节点是否匹配（中文名称或拼音）
+      const nameMatches = node.name.includes(searchText.value);
+      // 假设节点对象有pinyin字段，进行拼音匹配
+      const pinyinMatches = node.pinyin ? node.pinyin.toLowerCase().includes(lowerCaseSearchText) : false;
+
+      // 如果当前节点匹配（中文或拼音），或者其过滤后的子节点中有匹配的，则保留当前节点
+      return nameMatches || pinyinMatches || (node.children && node.children.length > 0);
+    });
+  };
+
+  // 从根节点开始过滤
+  return filterNodes(rawTreeData.value);
+});
+
+// 将el-tree的数据源绑定到过滤后的数据
+// treeData.value = rawTreeData.value; // 这一行将被移除，由el-tree直接使用filteredTreeData计算属性
 
 // 处理树节点选中
 const handleCheck = (data: any, checked: any) => {
@@ -222,27 +241,21 @@ const handleCheck = (data: any, checked: any) => {
 // 应用区划配置
 const handleApply = async () => {
   if (!props.boundaryObj) return;
-  
   try {
+    // 点击应用时先清空之前绘制的边界
+    props.boundaryObj.clearBoundaries();
+
     // 更新边界样式
     props.boundaryObj.setOptions(boundaryOptions);
-    
     // 获取选中的节点
     const checkedNodes = (treeRef.value as any).getCheckedNodes();
-    
-    // 添加选中的边界
+    // 调用 BoundaryObject 的方法添加选中的边界
     for (const node of checkedNodes) {
-      if (!props.boundaryObj.hasBoundary(node.code)) {
-        const boundaryData = await props.boundaryObj.loadBoundary(node.code, getBoundaryLevel(node));
-        if (boundaryData) {
-          props.boundaryObj.addBoundary(boundaryData);
-        }
-      }
+      // 直接调用 BoundaryObject 的 addBoundaryByAdcode 方法
+      await props.boundaryObj.addBoundaryByAdcode(node.adcode);
     }
-    
     // 更新已选边界列表
     selectedBoundaries.value = props.boundaryObj.getSelectedBoundaries();
-    
     // 发出应用事件
     emit('apply', {
       options: boundaryOptions
@@ -579,5 +592,9 @@ const toggleNode = (node: any) => {
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+
+.boundary-search {
+  margin-bottom: 15px; // 添加搜索框的下边距
 }
 </style> 

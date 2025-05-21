@@ -506,10 +506,28 @@ export class ToolbarObject {
       logger.warn('地图实例不存在，无法初始化区划边界对象');
       return;
     }
+
+    // 获取地图配置
+    const mapConfig = this.mapObj.getConfigObject().getConfig();
+    const currentMapType = mapConfig.mapType;
+    const currentMapTile = mapConfig.mapTile;
+
+    // 获取当前地图类型和瓦片对应的 MapUrlConfig
+    const mapUrlConfig = mapConfig.map[currentMapType]?.[currentMapTile];
+
+    // 提取投影信息，如果不存在则使用默认值 'EPSG:3857'
+    const projection = mapUrlConfig?.projection || 'EPSG:3857';
+    
+    const boundaryConfig = {
+      ...this.mapObj.getConfigObject().config.boundaryConfig,
+      mapKey: mapConfig.mapKey,
+      // 添加投影信息
+      projection: projection
+    };
     
     // 创建区划边界对象
-    this.boundaryObj = new BoundaryObject(mapInstance);
-    
+    this.boundaryObj = new BoundaryObject(mapInstance, boundaryConfig as any); // 使用any绕过类型检查
+
     logger.debug('区划边界对象初始化成功');
   }
 
