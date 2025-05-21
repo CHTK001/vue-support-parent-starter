@@ -708,7 +708,26 @@ export class MapObject {
     // 使用传入的mapConfig或从configObject中获取
     const config = mapConfig || this.configObject.getMapConfig();
     
-    const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
+    // 根据不同的图层类型选择对应的配置
+    let tileType = 'normal';
+    switch (mapTile) {
+      case MapTile.SATELLITE:
+        tileType = 'satellite';
+        break;
+      case MapTile.HYBRID:
+        tileType = 'hybrid';
+        break;
+      case MapTile.AERIAL:
+        tileType = 'aerial';
+        break;
+      case MapTile.ROAD:
+        tileType = 'road';
+        break;
+      case MapTile.NORMAL:
+      default:
+        tileType = 'normal';
+        break;
+    }
     
     // 检查配置是否存在
     if (!config[mapType] || !config[mapType][tileType]) {

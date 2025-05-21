@@ -144,7 +144,19 @@ const props = withDefaults(defineProps<Props>(), {
     direction: 'horizontal',
     itemsPerLine: 8,
     size: 36,
-    items: []
+    items: [
+      // 示例：其它工具按钮
+      // { id: 'ruler', type: 'button', icon: RULER_ICON, title: '测距', show: true },
+      // { id: 'polygon', type: 'button', icon: POLYGON_ICON, title: '测面', show: true },
+      // 区划按钮
+      {
+        id: 'boundary',
+        type: 'button',
+        icon: '<svg viewBox="0 0 1024 1024" width="20" height="20"><path d="M128 128h768v768H128z" fill="#e6f7ff"/><path d="M128 128h768v768H128z" fill="none" stroke="#1890ff" stroke-width="48"/><path d="M128 384h768" stroke="#1890ff" stroke-width="32"/><path d="M128 640h768" stroke="#1890ff" stroke-width="32"/><path d="M384 128v768" stroke="#1890ff" stroke-width="32"/><path d="M640 128v768" stroke="#1890ff" stroke-width="32"/></svg>',
+        title: '区划',
+        show: true
+      }
+    ]
   } as ToolbarConfig),
   toolbarObj: null
 });

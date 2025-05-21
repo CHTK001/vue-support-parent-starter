@@ -3455,8 +3455,8 @@ export class TrackObject {
         
         // 使用较低频率的渲染请求
         setTimeout(() => {
-          // 执行渲染
-          this.mapInstance.render();
+        // 执行渲染
+        this.mapInstance.render();
         }, 0); // 延迟为0可以将其排到当前JS执行队列结束时执行
       }
     });
@@ -3476,16 +3476,16 @@ export class TrackObject {
     
     // 添加will-change提示，告诉浏览器将有变换发生
     mapElement.style.willChange = 'transform';
-
+    
     // 检查并优化地图渲染选项
     try {
-      // 设置OpenLayers选项，减少不必要的渲染
+    // 设置OpenLayers选项，减少不必要的渲染
       // 尝试设置更高效的渲染选项
       const mapOptions = this.mapInstance.getProperties();
       // 限制渲染帧率
       if (!mapOptions.pixelRatio) {
         // 使用较低的设备像素比以提高性能
-        this.mapInstance.updateSize();
+    this.mapInstance.updateSize();
       }
       
       // 添加 CSS 类提示浏览器优化渲染

@@ -5,7 +5,8 @@
 export enum MapType {
   GAODE = 'GAODE',
   TIANDI = 'TIANDI',
-  OSM = 'OSM'
+  OSM = 'OSM',
+  BING = 'BING'
 }
 
 // 地图配置
@@ -87,6 +88,32 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '© OpenStreetMap contributors',
       name: '标准地图',
+      projection: 'EPSG:3857'
+    }
+  },
+  [MapType.BING]: {
+    normal: {
+      url: 'https://t{0-1}.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/{x}_{y}_{z}?mkt=zh-cn&it=G,L&og=1330&n=z',
+      attribution: '© 必应地图',
+      name: '街道地图',
+      projection: 'EPSG:3857'
+    },
+    satellite: {
+      url: 'https://t{0-1}.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/{x}_{y}_{z}?mkt=zh-cn&it=A&og=1330&n=z',
+      attribution: '© 必应地图',
+      name: '卫星地图',
+      projection: 'EPSG:3857'
+    },
+    aerial: {
+      url: 'https://t{0-1}.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/{x}_{y}_{z}?mkt=zh-cn&it=A,G,L&og=1330&n=z',
+      attribution: '© 必应地图',
+      name: '鸟瞰地图',
+      projection: 'EPSG:3857'
+    },
+    road: {
+      url: 'https://t{0-1}.ssl.ak.dynamic.tiles.virtualearth.net/comp/ch/{x}_{y}_{z}?mkt=zh-cn&it=G,L&og=1330&n=z',
+      attribution: '© 必应地图',
+      name: '街道地图',
       projection: 'EPSG:3857'
     }
   }

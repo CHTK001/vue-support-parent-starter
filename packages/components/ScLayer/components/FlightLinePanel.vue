@@ -40,7 +40,7 @@
         <button class="toolbar-btn toolbar-btn-primary" @click.stop="setOptimalView" title="调整到最佳视角">
           最佳视角
         </button>
-        <button class="toolbar-btn" @click.stop="addDemoFlightLines" title="添加演示数据">
+        <button class="toolbar-btn" v-if="isDevelopment" @click.stop="addDemoFlightLines" title="添加演示数据">
           添加演示数据
         </button>
         <button class="toolbar-btn" @click.stop="forceRefreshList" title="强制刷新列表">
@@ -82,6 +82,7 @@
             <p>flightLineObj存在: {{ !!props.flightLineObj }}</p>
             <p>面板激活状态: {{ props.active }}</p>
             <p>面板初始化状态: {{ panelInitialized }}</p>
+            <p>当前环境: {{ isDevelopment ? '开发环境' : '生产环境' }}</p>
           </div>
         </div>
         <div v-if="filteredFlightLines.length > 0 && !selectedId" class="initial-tip">
@@ -324,6 +325,9 @@ import { ref, computed, defineProps, defineEmits, watch, onMounted, onBeforeUnmo
 import type { FlightLineData } from '../types/flightline';
 import { DEFAULT_FLIGHTLINE_CONFIG } from '../types/flightline';
 import { ElButton, ElTooltip, ElSlider, ElPopover } from 'element-plus';
+
+// 环境变量判断
+const isDevelopment = ref(process.env.NODE_ENV === 'development');
 
 const props = defineProps<{
   flightLineObj: any;
