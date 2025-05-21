@@ -10,6 +10,8 @@ import { MapTile } from '../types';
 import logger from './LogObject';
 import { CoordinateObject } from './CoordinateObject';
 import { HeatmapObject } from './HeatmapObject';
+import { GcoordObject, CoordSystem } from './GcoordObject';
+import { getCoordSystemByMapType } from './MapUtils';
 
 // 地图事件回调类型
 export type MapEventCallback = (event: string, payload: any) => void;
@@ -23,6 +25,7 @@ export class MapObject {
   private eventCallback: MapEventCallback | null = null;
   private scaleControl: L.Control.Scale | null = null;
   private toolbarObj: any = null; // 使用any类型避免类型错误
+  private gcoord: GcoordObject | null = null; // 坐标转换对象
 
   /**
    * 构造函数
@@ -50,6 +53,17 @@ export class MapObject {
 
       // 获取渲染模式      
       const renderMode = this.configObject.getRenderMode();
+      
+      // 获取地图类型
+      const mapType = this.configObject.getMapType();
+      
+      // 初始化坐标转换对象
+      this.gcoord = new GcoordObject({
+        mapType: mapType,
+        sourceSystem: CoordSystem.WGS84,  // 默认使用WGS84作为源坐标系
+        targetSystem: getCoordSystemByMapType(mapType) // 根据地图类型设置目标坐标系
+      });
+      
       // 创建地图实例，根据渲染模式配置renderer选项     
       this.mapInstance = L.map(container, {
         center: this.configObject.getCenter(),
@@ -650,5 +664,28 @@ export class MapObject {
       showCode,
       autoAdjustLevel
     });
+  }
+
+  /**
+   * 获取坐标转换对象
+   * @returns 坐标转换对象
+   */
+  public getGcoordObject(): GcoordObject | null {
+    return this.gcoord;
+  }
+
+  /**
+   * 坐标转换：将原始坐标转换为当前地图使用的坐标系
+   * @param lnglat 原始坐标 [经度, 纬度]
+   * @param from 源坐标系
+   * @returns 转换后的坐标
+   */
+  public transformCoord(lnglat: [number, number], from: CoordSystem = CoordSystem.WGS84): [number, number] {
+    if (!this.gcoord) {
+      logger.warn('坐标转换对象未初始化');
+      return lnglat;
+    }
+    
+    return this.gcoord.transform(lnglat, from) as [number, number];
   }
 } 

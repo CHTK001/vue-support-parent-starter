@@ -53,4 +53,41 @@ export async function fetchGaodeBoundary({
     return districts[0]; // 包含 polyline 字段
   }
   throw new Error('未查询到边界数据');
+}
+
+/**
+ * 获取指定父级行政区的下级行政区
+ * @param options 请求参数 { key, keywords, subdistrict, extensions, url }
+ * @returns Promise<{ districts: Array<any> }>
+ */
+export async function fetchGaodeDistrictsByParentId({
+  key,
+  keywords, // adcode或名称
+  subdistrict = 1,
+  extensions = 'base',
+  url = 'https://restapi.amap.com/v3/config/district'
+}: {
+  key: string;
+  keywords: string;
+  subdistrict?: number; 
+  extensions?: 'base' | 'all';
+  url?: string;
+}) {
+  try {
+    const districts = await fetchGaodeDistrictTree({
+      key,
+      url,
+      keywords,
+      subdistrict,
+      extensions
+    });
+    
+    if (districts && districts.length > 0) {
+      return districts[0];
+    }
+    return null;
+  } catch (error) {
+    console.error('获取下级行政区划失败:', error);
+    throw error;
+  }
 } 

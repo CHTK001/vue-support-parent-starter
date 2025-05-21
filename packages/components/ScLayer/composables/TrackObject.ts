@@ -156,21 +156,24 @@ export class TrackObject {
   // 轨迹总距离缓存
   private trackTotalDistances = new Map<string, number>();
 
-  /**
-   * 构造函数
-   * @param mapInstance 地图实例
-   * @param config 轨迹配置
-   */
-  constructor(mapInstance: OlMap | null = null, config?: TrackConfig) {
-    if (mapInstance) {
-      this.setMapInstance(mapInstance);
-    }
-    
-    if (config) {
+  /** * 构造函数 * @param mapObjectOrInstance 地图对象或实例 * @param config 轨迹配置 */
+  constructor(mapObjectOrInstance: any | null = null, config?: TrackConfig) {
+    if (mapObjectOrInstance) {
+  // 检查是否是MapObject还是OlMap实例    
+      if (mapObjectOrInstance.getMapInstance && typeof mapObjectOrInstance.getMapInstance === 'function') {
+  // 如果是MapObject      
+        this.mapInstance = mapObjectOrInstance.getMapInstance();
+      } else {
+  // 如果是OlMap实例     
+        this.mapInstance = mapObjectOrInstance;
+      }
+  // 设置地图实例    
+      if (this.mapInstance) {
+        this.setMapInstance(this.mapInstance);
+      }
+    } if (config) {
       this.setConfig(config);
-    }
-    
-    this.log('debug', '轨迹对象已创建');
+    } this.log('debug', '轨迹对象已创建');
   }
 
   /**

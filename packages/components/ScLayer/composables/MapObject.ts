@@ -21,6 +21,7 @@ import { MapType } from '../types/map';
 import { ConfigObject } from './ConfigObject';
 import logger from './LogObject';
 import type { CoordinateInfo } from './CoordinateObject';
+import { GcoordObject } from './GcoordObject';
 import { da } from 'element-plus/es/locales.mjs';
 
 export interface MapEmitter {
@@ -65,12 +66,17 @@ export class MapObject {
   // 使用ConfigObject管理配置
   private configObject: ConfigObject;
 
+  // 坐标系统转换对象
+  private gcoordObject: GcoordObject;
+
   /**
    * 构造函数
    * @param configObject 配置对象
    */
   constructor(configObject: ConfigObject) {
     this.configObject = configObject;
+    // 初始化坐标系统转换对象，使用配置的地图类型
+    this.gcoordObject = new GcoordObject(configObject.getMapType());
     logger.debug('MapObject实例已创建，配置类型:', configObject.getMapType());
   }
 
@@ -146,6 +152,8 @@ export class MapObject {
         ])
       });
       
+      logger.info('地图实例创建成功');
+      logger.info('当前地图的投影:', this.mapInstance.getView().getProjection().getCode());
       // 根据配置设置比例尺显示状态
       this.toggleScaleLine(this.configObject.isScaleLineVisible());
       
@@ -381,6 +389,9 @@ export class MapObject {
     // 更新配置对象
     this.configObject.setMapType(mapType);
     this.configObject.setMapTile(mapTile);
+    
+    // 更新坐标系统转换对象的地图类型
+    this.gcoordObject.setMapType(mapType);
     
     const mapConfig = this.configObject.getMapConfig();
     const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
@@ -685,6 +696,11 @@ export class MapObject {
       data: null
     };
     
+    // 销毁坐标系统转换对象
+    if (this.gcoordObject) {
+      this.gcoordObject.destroy();
+    }
+    
     logger.info('地图实例已销毁');
   }
 
@@ -806,5 +822,13 @@ export class MapObject {
     
     // 调用createTileLayer方法创建图层
     return this.createTileLayer(mapType, mapTile);
+  }
+
+  /**
+   * 获取坐标系统转换对象
+   * @returns 坐标系统转换对象
+   */
+  public getGcoordObject(): GcoordObject {
+    return this.gcoordObject;
   }
 }

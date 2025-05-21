@@ -8,6 +8,7 @@ import logger from './LogObject';
 import type { MarkerOptions, MarkerConfig, ClusterOptions } from '../types/marker';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { CoordSystem } from './GcoordObject';
 
 // 异步导入 leaflet.markercluster 插件
 const loadClusterPlugin = async (): Promise<boolean> => {

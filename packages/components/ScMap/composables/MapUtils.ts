@@ -3,6 +3,8 @@
  * @description 提供地图坐标转换等工具函数
  */
 import { transform } from 'ol/proj';
+import { MapType } from '../types/map';
+import { CoordSystem } from './GcoordObject';
 
 /**
  * 经纬度转换为地图投影坐标
@@ -171,5 +173,44 @@ export function bufferExtent(extent: number[], buffer: number): number[] {
   } catch (error) {
     console.error('缓冲范围失败:', error);
     return extent;
+  }
+}
+
+/**
+ * 根据地图类型获取对应的坐标系统
+ * @param mapType 地图类型
+ * @returns 对应的坐标系统
+ */
+export function getCoordSystemByMapType(mapType: MapType): CoordSystem {
+  switch (mapType) {
+    case MapType.GAODE:
+      return CoordSystem.GCJ02;
+    case MapType.BAIDU:
+      return CoordSystem.BD09;
+    case MapType.TIANDITU:
+    case MapType.OSM:
+    default:
+      return CoordSystem.WGS84;
+  }
+}
+
+/**
+ * 将CoordSystem枚举转换为投影字符串
+ * @param coordSystem 坐标系统枚举
+ * @returns 投影字符串
+ */
+export function convertCoordSystemToProjection(coordSystem: CoordSystem): string {
+  switch (coordSystem) {
+    case CoordSystem.EPSG3857:
+      return 'EPSG:3857';
+    case CoordSystem.EPSG4326:
+    case CoordSystem.WGS84:
+      return 'EPSG:4326';
+    case CoordSystem.GCJ02:
+      return 'GCJ02';
+    case CoordSystem.BD09:
+      return 'BD09';
+    default:
+      return 'EPSG:4326';
   }
 }

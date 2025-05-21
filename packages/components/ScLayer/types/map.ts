@@ -8,7 +8,8 @@ import type { CoordinateOptions } from "../composables/CoordinateObject";
 // 直接在此处定义MapType，避免循环依赖
 export enum MapType {
   GAODE = 'GAODE',
-  TIANDI = 'TIANDI',
+  TIANDITU = 'TIANDITU',
+  BAIDU = 'BAIDU',
   OSM = 'OSM',
   BING = 'BING'
 }
@@ -67,24 +68,24 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       projection: 'EPSG:3857'
     }
   },
-  [MapType.TIANDI]: {
+  [MapType.TIANDITU]: {
     normal: {
       url: 'https://t{0-7}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk={key}',
       attribution: '© 天地图',
       name: '标准地图',
-      projection: 'EPSG:4326'
+      projection: 'EPSG:4490'
     },
     satellite: {
       url: 'https://t{0-7}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk={key}',
       attribution: '© 天地图',
       name: '卫星地图',
-      projection: 'EPSG:4326'
+      projection: 'EPSG:4490'
     },
     hybrid: {
       url: 'https://t{0-7}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk={key}',
       attribution: '© 天地图',
       name: '混合地图',
-      projection: 'EPSG:4326'
+      projection: 'EPSG:4490'
     }
   },
   [MapType.OSM]: {
@@ -93,6 +94,20 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       attribution: '© OpenStreetMap contributors',
       name: '标准地图',
       projection: 'EPSG:3857'
+    }
+  },
+  [MapType.BAIDU]: {
+    normal: {
+      url: 'https://online{0-3}.map.bdimg.com/tile/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&udt=20220221',
+      attribution: '© 百度地图',
+      name: '标准地图',
+      projection: 'BD09'
+    },
+    satellite: {
+      url: 'https://shangetu{0-3}.map.bdimg.com/it/u=x={x};y={y};z={z};v=009;type=sate&fm=46&udt=20220221',
+      attribution: '© 百度地图',
+      name: '卫星地图',
+      projection: 'BD09'
     }
   },
   [MapType.BING]: {
