@@ -26,6 +26,10 @@
         >
           <template #default="{ node, data }">
             <span class="custom-tree-node">
+              <span v-if="!node.isLeaf" class="tree-expand-icon" @click.stop="toggleNode(node)">
+                <span v-if="node.expanded">▼</span>
+                <span v-else>▶</span>
+              </span>
               <span>{{ node.label }}</span>
             </span>
           </template>
@@ -50,48 +54,51 @@
       </div>
     </div>
 
-    <!-- 设置面板 -->
-    <div class="settings-panel" v-if="showSettings">
-      <div class="settings-header">
-        <span>样式设置</span>
-        <button class="close-btn" @click="showSettings = false">×</button>
-      </div>
-      <div class="settings-content">
-        <div class="style-row">
-          <div class="style-label">填充区域:</div>
-          <div class="style-value">
-            <input type="checkbox" v-model="boundaryOptions.fillBoundary" />
-          </div>
+    <!-- 设置弹窗遮罩和弹窗 -->
+    <div v-if="showSettings">
+      <div class="settings-mask" @click="showSettings = false"></div>
+      <div class="settings-panel">
+        <div class="settings-header">
+          <span>样式设置</span>
+          <button class="close-btn" @click="showSettings = false">×</button>
         </div>
-        <div class="style-row">
-          <div class="style-label">边框颜色:</div>
-          <div class="style-value">
-            <input type="color" v-model="boundaryOptions.strokeColor" />
+        <div class="settings-content">
+          <div class="style-row">
+            <div class="style-label">填充区域:</div>
+            <div class="style-value">
+              <input type="checkbox" v-model="boundaryOptions.fillBoundary" />
+            </div>
           </div>
-        </div>
-        <div class="style-row">
-          <div class="style-label">边框宽度:</div>
-          <div class="style-value">
-            <input type="number" v-model.number="boundaryOptions.strokeWidth" min="1" max="10" />
+          <div class="style-row">
+            <div class="style-label">边框颜色:</div>
+            <div class="style-value">
+              <input type="color" v-model="boundaryOptions.strokeColor" />
+            </div>
           </div>
-        </div>
-        <div class="style-row" v-if="boundaryOptions.fillBoundary">
-          <div class="style-label">填充颜色:</div>
-          <div class="style-value">
-            <input type="color" v-model="boundaryOptions.fillColor" />
+          <div class="style-row">
+            <div class="style-label">边框宽度:</div>
+            <div class="style-value">
+              <input type="number" v-model.number="boundaryOptions.strokeWidth" min="1" max="10" />
+            </div>
           </div>
-        </div>
-        <div class="style-row" v-if="boundaryOptions.fillBoundary">
-          <div class="style-label">填充透明度:</div>
-          <div class="style-value">
-            <input type="range" v-model.number="boundaryOptions.fillOpacity" min="0" max="1" step="0.1" />
-            <span>{{ boundaryOptions.fillOpacity }}</span>
+          <div class="style-row" v-if="boundaryOptions.fillBoundary">
+            <div class="style-label">填充颜色:</div>
+            <div class="style-value">
+              <input type="color" v-model="boundaryOptions.fillColor" />
+            </div>
           </div>
-        </div>
-        <div class="style-row">
-          <div class="style-label">显示标签:</div>
-          <div class="style-value">
-            <input type="checkbox" v-model="boundaryOptions.showLabel" />
+          <div class="style-row" v-if="boundaryOptions.fillBoundary">
+            <div class="style-label">填充透明度:</div>
+            <div class="style-value">
+              <input type="range" v-model.number="boundaryOptions.fillOpacity" min="0" max="1" step="0.1" />
+              <span>{{ boundaryOptions.fillOpacity }}</span>
+            </div>
+          </div>
+          <div class="style-row">
+            <div class="style-label">显示标签:</div>
+            <div class="style-value">
+              <input type="checkbox" v-model="boundaryOptions.showLabel" />
+            </div>
           </div>
         </div>
       </div>
@@ -274,11 +281,16 @@ const handleRemoveBoundary = (code: string, index: number) => {
 const handleClose = () => {
   emit('close');
 };
+
+const toggleNode = (node: any) => {
+  (treeRef.value as any).toggleExpand(node);
+};
 </script>
 
 <style lang="scss" scoped>
 .boundary-selector {
   position: absolute;
+  min-height: 400px;
   width: 350px;
   border-radius: 8px;
   background-color: #ffffff;
@@ -344,6 +356,11 @@ const handleClose = () => {
       }
     }
   }
+  .custom-tree-node {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
   
   .boundary-player-setting-btn {
     background: rgba(255, 255, 255, 0.2);
@@ -368,6 +385,7 @@ const handleClose = () => {
     padding: 15px;
     max-height: 500px;
     overflow-y: auto;
+    padding-bottom: 56px;
   }
 
   .boundary-tree {
@@ -411,30 +429,36 @@ const handleClose = () => {
   }
   
   .boundary-action {
-    margin-top: 15px;
+    position: absolute;
+    left: 0;
+    bottom: 16px;
+    width: 100%;
     display: flex;
-    gap: 10px;
-    
+    gap: 8px;
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    padding: 8px 16px 8px 16px;
+    z-index: 1100;
+
     button {
       flex: 1;
-      padding: 8px 16px;
+      height: 32px;
+      font-size: 14px;
+      padding: 0 12px;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      
+      transition: background 0.2s;
       &.apply-btn {
         background-color: #1677ff;
         color: white;
-        
         &:hover {
           background-color: #0958d9;
         }
       }
-      
       &.clear-btn {
         background-color: #f5f5f5;
         color: #333;
-        
         &:hover {
           background-color: #e8e8e8;
         }
@@ -443,15 +467,27 @@ const handleClose = () => {
   }
 }
 
+.settings-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 1500;
+}
+
 .settings-panel {
   position: absolute;
-  top: 0;
-  right: -300px;
-  width: 280px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
+  top: 50px;
+  right: 10px;
+  width: 300px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  z-index: 2000;
+  padding: 18px 20px 20px 20px;
+  transition: all 0.2s;
   
   .settings-header {
     display: flex;
@@ -484,6 +520,8 @@ const handleClose = () => {
       
       .style-label {
         flex: 1;
+        display: flex;
+        align-items: center;
       }
       
       .style-value {
@@ -512,8 +550,34 @@ const handleClose = () => {
           border: 1px solid #d9d9d9;
           border-radius: 4px;
         }
+        
+        input[type="checkbox"] {
+          margin-right: 6px;
+          vertical-align: middle;
+        }
       }
     }
   }
+}
+
+.tree-expand-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #888;
+  user-select: none;
+  margin-right: 4px;
+}
+
+.tree-expand-icon span {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 </style> 
