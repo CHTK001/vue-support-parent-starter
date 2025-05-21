@@ -400,7 +400,9 @@ const initializeMapComponents = async () => {
     }
     
     // 设置工具栏状态变化监听器
-    setupToolbarStateChangeListener();
+    if (toolbarObject) {
+      toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
+    }
     
     // 设置坐标面板监听
     setupCoordinatePanelWatcher();
@@ -416,6 +418,11 @@ const initializeMapComponents = async () => {
     
     // 初始化后立即检查轨迹播放器状态，确保UI状态与工具状态一致
     checkTrackPlayerState();
+    
+    // 保证工具栏状态变化监听器始终注册
+    if (toolbarObject) {
+      toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
+    }
     
     logger.info('地图和工具栏初始化完成');
   } catch (error) {
