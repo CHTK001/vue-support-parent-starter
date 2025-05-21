@@ -287,13 +287,6 @@
           <div class="config-item">
             <div class="label">风场图操作</div>
             <div class="controls">
-              <!-- 风场图操作区域 - 添加功能分组 -->
-              <div class="feature-group-title">风场图控制</div>
-              <div class="control-row buttons-row">
-                <button @click="activateWindLayer">启用风场图</button>
-                <button @click="deactivateWindLayer">禁用风场图</button>
-              </div>
-              
               <div class="feature-group-title">风场参数</div>
               <div class="control-row">
                 <span>粒子数量:</span>
