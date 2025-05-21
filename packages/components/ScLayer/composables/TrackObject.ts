@@ -26,6 +26,7 @@ import logger from './LogObject';
 import Overlay from 'ol/Overlay';
 import { IconUtils } from '../utils/IconUtils';
 import { DEFAULT_TRACK_PLAYER_CONFIG, DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
+import * as easing from 'ol/easing';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
@@ -995,9 +996,10 @@ export class TrackObject {
    * 播放轨迹
    * @param id 轨迹ID
    * @param player 播放器配置
+   * @param pauseIfPlaying 如果轨迹已在播放，是否暂停而不是继续播放，默认false
    * @returns 是否操作成功
    */
-  public play(id: string, player?: Partial<ExtendedTrackPlayer>): boolean {
+  public play(id: string, player?: Partial<ExtendedTrackPlayer>, pauseIfPlaying: boolean = false): boolean {
     if (!this.tracks.has(id)) {
       this.log('warn', `播放轨迹失败: 轨迹 "${id}" 不存在`);
       return false;
@@ -1014,6 +1016,12 @@ export class TrackObject {
     
     // 获取当前播放状态
     const currentState = this.trackPlayStates.get(id);
+    
+    // 如果正在播放，且pauseIfPlaying为true，则暂停轨迹
+    if (currentState === TrackPlayState.PLAYING && pauseIfPlaying) {
+      this.log('debug', `轨迹 "${id}" 正在播放中，根据设置执行暂停操作`);
+      return this.pause(id);
+    }
     
     // 如果正在播放，不需要重新开始
     if (currentState === TrackPlayState.PLAYING) {
@@ -1053,11 +1061,11 @@ export class TrackObject {
       // 如果启用了相机跟踪，立即初始化相机位置
       if (currentPlayer.withCamera) {
         const progress = this.trackProgressValues.get(id) || 0;
-        const position = this.calculatePositionAtProgress(track, progress);
-        const newCenter = fromLonLat([position.lng, position.lat]);
-        
-        // 立即初始化相机动画
+        const position = this.calculatePositionAtProgress(track, progress); const newCenter = fromLonLat([position.lng, position.lat]);
+        // 立即初始化相机动画        
         this.updateCameraAnimation(id, newCenter);
+        // 主动触发一次相机动画，确保立即更新相机位置
+        this.animateCamera(id);
         this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，相机位置已立即更新`);
       }
       
@@ -1093,15 +1101,7 @@ export class TrackObject {
     
     // 如果开启了相机跟踪，立即初始化第一个位置
     if (currentPlayer.withCamera) {
-      const position = track.points[0];
-      const center = fromLonLat([position.lng, position.lat]);
-      this.updateCameraAnimation(id, center);
-      
-      // 为确保相机立即移动到起点，先确保视图已设置
-      if (this.mapInstance) {
-        this.mapInstance.render();
-        this.log('debug', `轨迹 "${id}" 播放开始，相机位置已立即设置到起点`);
-      }
+            const position = track.points[0];      const center = fromLonLat([position.lng, position.lat]);      this.updateCameraAnimation(id, center);            // 主动触发一次相机动画，确保立即更新相机位置      this.animateCamera(id);            // 为确保相机立即移动到起点，先确保视图已设置      if (this.mapInstance) {        this.mapInstance.render();        this.log('debug', `轨迹 "${id}" 播放开始，相机位置已立即设置到起点`);      }
     }
     
     this.log('debug', `轨迹 "${id}" 开始播放，配置:`, currentPlayer);
@@ -1395,12 +1395,7 @@ export class TrackObject {
       // 计算当前位置
       const position = this.calculatePositionAtProgress(track, progress);
       
-      // 使相机跟随移动 - 仅在播放状态下
-      if (currentState === TrackPlayState.PLAYING && player.withCamera) {
-        const newCenter = fromLonLat([position.lng, position.lat]);
-        // 启动或更新相机动画
-        this.updateCameraAnimation(id, newCenter);
-      }
+            // 使相机跟随移动 - 仅在播放状态下      if (currentState === TrackPlayState.PLAYING && player.withCamera) {        const newCenter = fromLonLat([position.lng, position.lat]);        // 启动或更新相机动画        this.updateCameraAnimation(id, newCenter);                // 主动触发相机动画，确保立即更新位置        this.animateCamera(id);      }
       
       // 绘制经过的线段和位置标记
       this.drawPassedLine(id, vectorContext, progress);
@@ -3394,7 +3389,8 @@ export class TrackObject {
       cameraAnimation = {
         targetCenter,
         lastFrameTime: performance.now(),
-        active: false
+        active: false,
+        hasMovedOnce: false // 初始化hasMovedOnce属性
       };
       this.trackCameraAnimations.set(id, cameraAnimation);
     }
@@ -4075,6 +4071,15 @@ export class TrackObject {
     clearOthers?: boolean; // 是否清除其他轨迹，默认为true
     autoPlay?: boolean;    // 是否自动播放，默认为false
   }): boolean {
+    // 检查是否有轨迹处于播放状态，如果有则禁用双击选中
+    const allTrackIds = [...this.tracks.keys()];
+    for (const trackId of allTrackIds) {
+      if (this.trackPlayStates.get(trackId) === TrackPlayState.PLAYING) {
+        this.log('debug', `当前有轨迹正在播放中，禁用双击选中功能`);
+        return false;
+      }
+    }
+
     if (!this.tracks.has(id)) {
       this.log('warn', `轨迹 "${id}" 不存在，无法选中`);
       return false;
@@ -4119,10 +4124,9 @@ export class TrackObject {
     
     // 如果需要自动播放
     if (mergedOptions.autoPlay) {
-      // 确保轨迹不在播放状态
-      if (this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
-        this.play(id);
-      }
+      // 检查轨迹当前状态，并传递pauseIfPlaying=true，使双击轨迹时自动暂停而不是继续播放
+      const currentState = this.trackPlayStates.get(id);
+      this.play(id, undefined, true);
     }
     
     this.log('debug', `轨迹 "${id}" 已选中，clearOthers=${mergedOptions.clearOthers}, autoPlay=${mergedOptions.autoPlay}`);

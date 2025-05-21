@@ -950,12 +950,33 @@ const handleToolDeactivated = (toolId) => {
   emit('toolbar-state-change', { toolId, active: false, toolType: 'toggle' });
 };
 
+
 // 设置工具栏状态变化监听器
 const setupToolbarStateChangeListener = () => {
   if (!toolbarObject) return;
-  toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
+  
+  toolbarObject.setToolStateChangeCallback((toolId, active, toolType, data) => {
+    // 更新激活的工具ID
+    updateActiveToolId(toolId, active);
+    
+    // 处理工具状态变化
+    handleToolStateByType(toolId, active, toolType, data);
+    
+    // 网格状态变化的特殊处理
+    if (toolId === 'grid-active' && data?.gridType) {
+      if (active) {
+        // 网格已启用
+        emit('grid-enabled', { gridType: data.gridType });
+      } else {
+        // 网格已禁用
+        emit('grid-disabled', { gridType: data.gridType });
+      }
+    }
+    
+    // 触发工具栏状态变化事件
+    emit('toolbar-state-change', { toolId, active, toolType, data });
+  });
 };
-
 // 设置坐标面板状态监听
 const setupCoordinatePanelWatcher = () => {
   if (!toolbarObject) return;
