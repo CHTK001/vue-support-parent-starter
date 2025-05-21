@@ -52,6 +52,8 @@
       v-if="showBoundarySelector && mapReady" 
       :active="showBoundarySelector"
       :boundary-obj="getBoundaryObject()"
+      :position="boundarySelectorPosition"
+      :default-options="props.boundaryConfig?.defaultOptions"
       @close="closeBoundarySelector"
       @apply="handleBoundaryApply"
       @clear="handleBoundaryClear"
@@ -133,7 +135,7 @@ const props = withDefaults(defineProps<MapConfig & {
   markerConfig?: MarkerConfig,
   // 添加聚合配置选项
   aggregationOptions?: AggregationOptions,
-  cesiumBaseUrl?: string
+  cesiumBaseUrl?: string,
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -189,7 +191,18 @@ const props = withDefaults(defineProps<MapConfig & {
       { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
     ]
   }), // 默认聚合配置
-  cesiumBaseUrl: DEFAULT_CESIUM_BASE_URL
+  cesiumBaseUrl: DEFAULT_CESIUM_BASE_URL,
+  boundaryConfig: () => ({
+    position: 'top-right',
+    defaultOptions: {
+      fillBoundary: true,
+      strokeColor: '#1890ff',
+      strokeWidth: 2,
+      fillColor: '#1890ff',
+      fillOpacity: 0.2,
+      showLabel: true
+    }
+  })
 });
 
 // 定义组件事件
@@ -2572,6 +2585,11 @@ const handleBoundaryRemove = (code: string) => {
     boundaryObj.removeBoundary(code);
   }
 };
+
+// 区划选择器位置
+const boundarySelectorPosition = computed(() => {
+  return props.boundaryConfig?.position || 'top-right';
+});
 
 </script>
 
