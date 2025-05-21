@@ -284,28 +284,81 @@ export class BoundaryObject {
    * @returns 样式对象
    */
   private createBoundaryStyle(name: string, showLabel: boolean): Style {
-    return new Style({
+    // 创建基础样式
+    const baseStyle = {
       stroke: new Stroke({
         color: this.options.strokeColor || '#1677ff',
-        width: this.options.strokeWidth || 2
+        width: this.options.strokeWidth || 2,
+        lineDash: this.options.strokeStyle === 'dashed' ? [5, 5] : 
+                  this.options.strokeStyle === 'dotted' ? [1, 3] : 
+                  this.options.strokeDashArray || undefined,
+        lineCap: this.options.strokeLineCap || 'round',
+        lineJoin: this.options.strokeLineJoin || 'round'
       }),
       fill: new Fill({
         color: this.options.fillBoundary 
           ? `rgba(${this.hexToRgb(this.options.fillColor || '#1677ff')}, ${this.options.fillOpacity || 0.2})`
           : 'transparent'
+      })
+    };
+
+    // 创建文本样式
+    const textStyle = showLabel && this.options.showLabel ? new Text({
+      text: name,
+      font: `${this.options.labelOptions?.fontWeight || 'normal'} ${this.options.labelOptions?.fontSize || 12}px ${this.options.labelOptions?.fontFamily || 'sans-serif'}`,
+      fill: new Fill({
+        color: this.options.labelOptions?.fontColor || '#333'
       }),
-      text: showLabel && this.options.showLabel ? new Text({
-        text: name,
-        font: `${this.options.labelOptions?.fontSize || 12}px sans-serif`,
-        fill: new Fill({
-          color: this.options.labelOptions?.fontColor || '#333'
-        }),
-        offsetX: this.options.labelOptions?.offset?.[0] || 0,
-        offsetY: this.options.labelOptions?.offset?.[1] || 0,
-        padding: [5, 5, 5, 5],
-        textAlign: 'center',
-        overflow: true
-      }) : undefined
+      backgroundFill: this.options.labelOptions?.backgroundColor ? new Fill({
+        color: `rgba(${this.hexToRgb(this.options.labelOptions.backgroundColor)}, ${this.options.labelOptions.backgroundOpacity || 0.8})`
+      }) : undefined,
+      padding: this.options.labelOptions?.padding || [5, 5, 5, 5],
+      offsetX: this.options.labelOptions?.offset?.[0] || 0,
+      offsetY: this.options.labelOptions?.offset?.[1] || 0,
+      textAlign: this.options.labelOptions?.textAlign || 'center',
+      textBaseline: this.options.labelOptions?.textBaseline || 'middle',
+      rotation: this.options.labelOptions?.rotation || 0,
+      scale: this.options.labelOptions?.scale || 1,
+      overflow: true
+    }) : undefined;
+
+    // 创建悬停样式
+    const hoverStyle = this.options.hoverStyle ? new Style({
+      stroke: new Stroke({
+        color: this.options.hoverStyle.strokeColor || '#1890ff',
+        width: this.options.hoverStyle.strokeWidth || 3,
+        lineDash: this.options.strokeStyle === 'dashed' ? [5, 5] : 
+                  this.options.strokeStyle === 'dotted' ? [1, 3] : 
+                  this.options.strokeDashArray || undefined,
+        lineCap: this.options.strokeLineCap || 'round',
+        lineJoin: this.options.strokeLineJoin || 'round'
+      }),
+      fill: new Fill({
+        color: `rgba(${this.hexToRgb(this.options.hoverStyle.fillColor || '#1890ff')}, ${this.options.hoverStyle.fillOpacity || 0.3})`
+      })
+    }) : undefined;
+
+    // 创建选中样式
+    const selectedStyle = this.options.selectedStyle ? new Style({
+      stroke: new Stroke({
+        color: this.options.selectedStyle.strokeColor || '#f5222d',
+        width: this.options.selectedStyle.strokeWidth || 3,
+        lineDash: this.options.strokeStyle === 'dashed' ? [5, 5] : 
+                  this.options.strokeStyle === 'dotted' ? [1, 3] : 
+                  this.options.strokeDashArray || undefined,
+        lineCap: this.options.strokeLineCap || 'round',
+        lineJoin: this.options.strokeLineJoin || 'round'
+      }),
+      fill: new Fill({
+        color: `rgba(${this.hexToRgb(this.options.selectedStyle.fillColor || '#f5222d')}, ${this.options.selectedStyle.fillOpacity || 0.3})`
+      })
+    }) : undefined;
+
+    // 返回样式数组
+    return new Style({
+      ...baseStyle,
+      text: textStyle,
+      zIndex: this.options.zIndex || 0
     });
   }
   

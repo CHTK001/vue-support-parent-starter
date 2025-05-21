@@ -141,6 +141,8 @@ export interface MapConfig {
   boundaryConfig: {
     position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
     defaultOptions?: {
+      url?: string;
+      provider?: string;
       fillBoundary?: boolean;
       strokeColor?: string;
       strokeWidth?: number;

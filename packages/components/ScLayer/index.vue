@@ -99,6 +99,7 @@ import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
 import { DEFAULT_CESIUM_BASE_URL } from './types/default';
+import { BoundaryImplementation } from './types/boundary';
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';
 // 导入聚合相关类型
@@ -136,6 +137,19 @@ const props = withDefaults(defineProps<MapConfig & {
   // 添加聚合配置选项
   aggregationOptions?: AggregationOptions,
   cesiumBaseUrl?: string,
+  boundaryConfig?: {
+    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    defaultOptions?: {
+      url?: string;
+      provider?: string;
+      fillBoundary?: boolean;
+      strokeColor?: string;
+      strokeWidth?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+      showLabel?: boolean;
+    };
+  };
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -827,17 +841,30 @@ watch(() => props.coordinateOptions, (newOptions) => {
 }, { deep: true });
 
 // 处理工具栏工具激活
-const handleToolActivated = (payload) => {
+const handleToolActivated = (toolId) => {
   if (!toolbarObject) return;
-  
-  const toolId = payload.toolId;
   logger.debug(`工具 ${toolId} 已被激活`);
   
   // 更新活动工具ID
   activeToolId.value = toolId;
-  
-  // 飞线工具激活处理
-  if (toolId === 'flightLine') {
+    // 处理特定工具的激活
+  if (toolId === 'coordinate') {
+    showCoordinatePanel.value = true;
+  } else if (toolId === 'overview') {
+    // 激活鹰眼工具
+    showOverviewMap.value = true;
+    // 隐藏overview按钮，因为已经激活了鹰眼工具
+    showOverviewButton.value = false;
+  } else if (toolId === 'layer-switch') {
+    showLayerPanel.value = true;
+    layerPanelPosition.value = determineLayerPanelPosition();
+  }  else if (toolId === 'track-player') {
+    // 激活轨迹播放器
+    logger.debug('[Track] 轨迹播放器按钮已激活，尝试初始化轨迹对象');
+    
+    // 显示轨迹播放器
+    showTrackPlayer.value = true;
+  } else if (toolId === 'flightLine') {
     // 显示飞线图面板
     showFlightLinePanel.value = true;
     flightLinePanelLocked.value = true;
@@ -874,10 +901,9 @@ const handleToolActivated = (payload) => {
 };
 
 // 处理工具栏工具停用
-const handleToolDeactivated = (payload) => {
+const handleToolDeactivated = (toolId) => {
   if (!toolbarObject) return;
   
-  const toolId = payload.toolId;
   logger.debug(`工具 ${toolId} 已被停用`);
   
   // 如果当前激活的工具是被停用的工具，则清除activeToolId
@@ -885,8 +911,7 @@ const handleToolDeactivated = (payload) => {
     activeToolId.value = undefined;
   }
   
-  // 处理特定工具的停用
-  if (toolId === 'coordinate') {
+ if (toolId === 'coordinate') {
     showCoordinatePanel.value = false;
   } else if (toolId === 'overview') {
     // 停用鹰眼工具时，隐藏鹰眼地图
