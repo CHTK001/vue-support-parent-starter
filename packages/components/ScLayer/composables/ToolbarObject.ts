@@ -1332,6 +1332,27 @@ export class ToolbarObject {
       case 'overview':
         this.handleOverviewMapDeactivate();
         break;
+      // 处理所有绘图工具
+      case 'Rectangle':
+      case 'Square':
+      case 'Circle':
+      case 'Polygon':
+      case 'LineString':
+      case 'Point':
+        // 确保彻底禁用绘图功能
+        if (this.shapeObj) {
+          logger.debug(`绘图工具 ${tool.id} 停用，确保绘图功能被完全禁用`);
+          // 使用修复后的disable方法彻底禁用绘图交互
+          this.shapeObj.disable();
+          
+          // 确保工具栏状态更新
+          if (this.toolStateChangeCallback) {
+            this.toolStateChangeCallback(tool.id, false, 'draw', {
+              message: `已退出${tool.id}绘制模式`
+            });
+          }
+        }
+        break;
       case 'clear-shapes':
         // 确保完全停用删除模式
         logger.debug('删除工具停用，确保删除功能被完全停用');
@@ -1380,7 +1401,22 @@ export class ToolbarObject {
         this.handleBoundaryDeactivate();
         break;
       default:
-        logger.debug(`工具 ${tool.id} 无特殊停用处理`);
+        // 检查工具ID是否包含绘图类型关键字
+        if (this.shapeObj && (
+          tool.id.includes('rectangle') || 
+          tool.id.includes('square') || 
+          tool.id.includes('circle') || 
+          tool.id.includes('polygon') || 
+          tool.id.includes('line') || 
+          tool.id.includes('point') ||
+          tool.id.includes('draw')
+        )) {
+          logger.debug(`绘图相关工具 ${tool.id} 停用，确保绘图功能被完全禁用`);
+          // 使用修复后的disable方法彻底禁用绘图交互
+          this.shapeObj.disable();
+        } else {
+          logger.debug(`工具 ${tool.id} 无特殊停用处理`);
+        }
     }
   }
 

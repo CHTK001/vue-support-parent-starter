@@ -379,15 +379,23 @@ export class ShapeObject {
    * 禁用绘图功能
    */
   public disable(): void {
-    if (!this.mapInstance || !this.enabled) {
+    if (!this.mapInstance) {
       return;
     }
 
-    this.removeInteraction();
+    // 使用cleanupAllModes彻底清理所有状态和交互
+    this.cleanupAllModes();
+    
+    // 确保状态重置
     this.currentType = null;
     this.enabled = false;
+    
+    // 恢复鼠标样式
+    if (this.mapInstance.getTargetElement()) {
+      this.mapInstance.getTargetElement().style.cursor = '';
+    }
 
-    this.log('info', '图形绘制功能已禁用');
+    this.log('info', '图形绘制功能已彻底禁用');
   }
 
   /**

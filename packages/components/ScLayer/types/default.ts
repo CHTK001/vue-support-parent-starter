@@ -8,7 +8,7 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   speedFactor: 1.0,     // 速度因子
   showNodes: true,     // 是否显示节点（静态点位）
   showNodeAnchors: false,// 是否显示节点锚点（当showNodes设置为true时有效）
-  showNodeNames: true, // 是否显示节点名称（静态点位名称）
+  showNodeNames: false, // 是否显示节点名称（静态点位名称）
   showPointNames: true, // 是否显示点位名称（移动点位名称）
   showSpeed: true,      // 是否显示移动速度
   showNodeSpeed: true,   // 是否显示节点速度

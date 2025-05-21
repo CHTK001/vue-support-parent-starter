@@ -128,6 +128,7 @@ export class TrackObject {
     targetCenter: number[];
     lastFrameTime: number;
     active: boolean;
+    hasMovedOnce?: boolean; // 是否已经执行过首次大距离移动
   }>();
 
   // 在类属性中添加性能优化相关的属性
@@ -1049,6 +1050,17 @@ export class TrackObject {
       // 重新设置动画
       this.setupTrackAnimation(id);
       
+      // 如果启用了相机跟踪，立即初始化相机位置
+      if (currentPlayer.withCamera) {
+        const progress = this.trackProgressValues.get(id) || 0;
+        const position = this.calculatePositionAtProgress(track, progress);
+        const newCenter = fromLonLat([position.lng, position.lat]);
+        
+        // 立即初始化相机动画
+        this.updateCameraAnimation(id, newCenter);
+        this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，相机位置已立即更新`);
+      }
+      
       this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，动画已重新设置`);
       return true;
     }
@@ -1077,6 +1089,19 @@ export class TrackObject {
     if (currentPlayer.withCamera && currentPlayer.stabilizeViewport) {
       // 在开始播放前保存初始视图状态
       this.saveOriginalViewState(id);
+    }
+    
+    // 如果开启了相机跟踪，立即初始化第一个位置
+    if (currentPlayer.withCamera) {
+      const position = track.points[0];
+      const center = fromLonLat([position.lng, position.lat]);
+      this.updateCameraAnimation(id, center);
+      
+      // 为确保相机立即移动到起点，先确保视图已设置
+      if (this.mapInstance) {
+        this.mapInstance.render();
+        this.log('debug', `轨迹 "${id}" 播放开始，相机位置已立即设置到起点`);
+      }
     }
     
     this.log('debug', `轨迹 "${id}" 开始播放，配置:`, currentPlayer);
@@ -2444,40 +2469,45 @@ export class TrackObject {
     };
     this.trackPlayers.set(id, updatedPlayer);
     
-    // 特殊处理相机跟随设置，可以立即生效
+    // 特殊处理相机跟随设置，必须立即生效
     if (player.withCamera !== undefined && player.withCamera !== previousWithCamera) {
       this.log('info', `轨迹 "${id}" 相机跟随状态从 ${previousWithCamera} 更改为 ${player.withCamera}`);
       
-      // 如果当前正在播放
-      if (playState === TrackPlayState.PLAYING) {
-        if (player.withCamera) {
-          // 如果开启了相机跟随，尝试立即更新相机位置
-          const track = this.tracks.get(id);
-          if (track && track.points && track.points.length > 0) {
-            const progress = this.trackProgressValues.get(id) || 0;
-            const position = this.calculatePositionAtProgress(track, progress);
-            const newCenter = fromLonLat([position.lng, position.lat]);
-            
-            // 启动或更新相机动画
-            this.updateCameraAnimation(id, newCenter);
-            this.log('debug', `轨迹 "${id}" 相机位置已立即更新`);
+      // 无论当前是否正在播放，都需要处理相机跟踪状态
+      if (player.withCamera) {
+        // 如果开启了相机跟随，尝试立即更新相机位置
+        const track = this.tracks.get(id);
+        if (track && track.points && track.points.length > 0) {
+          const progress = this.trackProgressValues.get(id) || 0;
+          const position = this.calculatePositionAtProgress(track, progress);
+          const newCenter = fromLonLat([position.lng, position.lat]);
+          
+          // 立即启动或更新相机动画
+          this.updateCameraAnimation(id, newCenter);
+          
+          // 如果当前不是播放状态，需要特殊处理确保动画立即启动
+          if (playState !== TrackPlayState.PLAYING) {
+            // 手动触发第一帧动画以立即移动相机
+            this.animateCamera(id);
           }
-        } else {
-          // 如果关闭了相机跟随，完全释放相机控制
-          // 1. 停止相机动画
-          const cameraAnimation = this.trackCameraAnimations.get(id);
-          if (cameraAnimation) {
-            cameraAnimation.active = false;
-            // 2. 从映射中移除相机动画对象，确保完全释放
-            this.trackCameraAnimations.delete(id);
-            this.log('debug', `轨迹 "${id}" 相机跟随已停止并完全释放控制`);
-          }
+          
+          this.log('debug', `轨迹 "${id}" 相机位置已立即更新`);
         }
-        
-        // 触发地图重绘
-        if (this.mapInstance) {
-          this.mapInstance.render();
+      } else {
+        // 如果关闭了相机跟随，完全释放相机控制
+        // 1. 停止相机动画
+        const cameraAnimation = this.trackCameraAnimations.get(id);
+        if (cameraAnimation) {
+          cameraAnimation.active = false;
+          // 2. 从映射中移除相机动画对象，确保完全释放
+          this.trackCameraAnimations.delete(id);
+          this.log('debug', `轨迹 "${id}" 相机跟随已停止并完全释放控制`);
         }
+      }
+      
+      // 触发地图重绘
+      if (this.mapInstance) {
+        this.mapInstance.render();
       }
     }
     
@@ -3380,89 +3410,78 @@ export class TrackObject {
     }
   }
 
-  /**
-   * 执行相机平滑动画
-   * @param id 轨迹ID
-   */
-  private animateCamera(id: string): void {
-    const cameraAnimation = this.trackCameraAnimations.get(id);
-    if (!cameraAnimation || !cameraAnimation.active) {
-      return;
-    }
-    
-    const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-    const view = this.mapInstance.getView();
-    const currentCenter = view.getCenter();
-    
-    if (!currentCenter) {
-      // 如果当前没有中心点，直接设置
+    /**   * 执行相机平滑动画   * @param id 轨迹ID   */  private animateCamera(id: string): void {
+    const cameraAnimation = this.trackCameraAnimations.get(id); if (!cameraAnimation || !cameraAnimation.active) { return; } const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER; const view = this.mapInstance.getView(); const currentCenter = view.getCenter(); if (!currentCenter) {
+  // 如果当前没有中心点，直接设置并立即更新      
       view.setCenter(cameraAnimation.targetCenter);
+      this.log('debug', `相机位置初始化: 轨迹 "${id}" 设置到 [${cameraAnimation.targetCenter}]`);
+      // 确保视图立即更新      
+        this.mapInstance.render();
       this.requestNextCameraFrame(id);
       return;
-    }
-    
-    // 如果启用了视口稳定，确保不改变分辨率（缩放级别）
-    if (player.stabilizeViewport && this.trackViewportStabilized.get(id)) {
-      if (this.originalViewResolution !== null) {
-        const currentResolution = view.getResolution();
-        
-        // 如果当前分辨率与原始分辨率不匹配，恢复到原始分辨率
-        if (Math.abs(currentResolution - this.originalViewResolution) > 0.0001) {
-          view.setResolution(this.originalViewResolution);
+      }
+      // 如果启用了视口稳定，确保不改变分辨率（缩放级别）    
+      if (player.stabilizeViewport && this.trackViewportStabilized.get(id)) {
+        if (this.originalViewResolution !== null) {
+          const currentResolution = view.getResolution();
+      // 如果当前分辨率与原始分辨率不匹配，恢复到原始分辨率        
+          if (Math.abs(currentResolution - this.originalViewResolution) > 0.0001) { view.setResolution(this.originalViewResolution); }
         }
       }
-    }
-    
-    // 获取播放器配置中的平滑度参数，范围0-1，值越小越平滑
-    // 使用配置的平滑度参数，默认为DEFAULT_CAMERA_SMOOTHNESS
-    const configuredSmoothness = player.cameraSmoothness !== undefined ? 
-      Math.max(0.03, Math.min(0.5, player.cameraSmoothness)) : // 限制平滑度范围，提高下限和降低上限
-      this.DEFAULT_CAMERA_SMOOTHNESS;
-    
-    // 计算当前时间和帧间隔
-    const now = performance.now();
-    const deltaTime = Math.min(now - cameraAnimation.lastFrameTime, 100); // 防止大间隔
-    cameraAnimation.lastFrameTime = now;
-    
-    // 使用动态平滑系数，基于距离和速度自适应调整
-    const distance = Math.sqrt(
-      Math.pow(cameraAnimation.targetCenter[0] - currentCenter[0], 2) +
-      Math.pow(cameraAnimation.targetCenter[1] - currentCenter[1], 2)
-    );
-    
-    // 基于距离和配置的平滑度动态调整平滑系数
-    const baseSmooth = configuredSmoothness;
-    const distanceFactor = Math.min(distance / 1000, 0.6); // 降低距离参考值，减少突变
-    const adaptiveSmooth = baseSmooth + distanceFactor * 0.2; // 降低距离对平滑系数的影响
-    
-    // 应用基于帧率的动态调整，并降低最大值，避免大幅度变化
-    const smoothFactor = Math.min(adaptiveSmooth * (deltaTime / this.FRAME_TIME), 0.5);
-    
-    // 计算新的中心点坐标 (平滑插值)
-    const dx = cameraAnimation.targetCenter[0] - currentCenter[0];
-    const dy = cameraAnimation.targetCenter[1] - currentCenter[1];
-    
-    // 优化：只在移动距离超过阈值时才更新视图，避免微小抖动
-    const moveDistance = Math.sqrt(dx * dx + dy * dy);
-    const minMoveThreshold = player.viewportUpdateThreshold || 1.5; // 提高最小移动阈值
-    
-    if (moveDistance > minMoveThreshold) {
-      // 使用Cubic Easing函数使平滑过渡更自然
-      // t' = t * t * (3 - 2 * t) 三次方过渡
-      const t = Math.min(1, smoothFactor * 2); // 调整范围
-      const easeValue = t * t * (3 - 2 * t);
-      
-      // 使用平滑插值计算新的中心点
-      const newX = currentCenter[0] + dx * easeValue;
-      const newY = currentCenter[1] + dy * easeValue;
-      
-      // 更新视图中心点，使用防抖动渲染请求，而不是直接更新
-      this.mapInstance.getView().animate({
-        center: [newX, newY],
-        duration: 50, // 使用短动画持续时间，减少抖动
-        easing: (t) => t // 线性缓动，因为我们已经应用了自定义easing
-      });
-    }
+      // 获取播放器配置中的平滑度参数，范围0-1，值越小越平滑    
+      // // 使用配置的平滑度参数，默认为DEFAULT_CAMERA_SMOOTHNESS    
+      const configuredSmoothness = player.cameraSmoothness !== undefined ? Math.max(0.03, Math.min(0.5, player.cameraSmoothness)) :
+      // 限制平滑度范围，提高下限和降低上限      
+        this.DEFAULT_CAMERA_SMOOTHNESS;
+      // 计算当前时间和帧间隔    
+      const now = performance.now(); const deltaTime = Math.min(now - cameraAnimation.lastFrameTime, 100);
+      // 防止大间隔   
+      cameraAnimation.lastFrameTime = now;
+      // 使用动态平滑系数，基于距离和速度自适应调整    
+      const distance = Math.sqrt(Math.pow(cameraAnimation.targetCenter[0] - currentCenter[0], 2) + Math.pow(cameraAnimation.targetCenter[1] - currentCenter[1], 2));
+      // 对于非常远的距离，使用更快的移动速度（减少平滑度）  
+      let baseSmooth; if (distance > 1000) {
+      // 对于远距离，使用较高的平滑度值以更快移动     
+        baseSmooth = Math.min(0.3, configuredSmoothness * 3);
+      } else { baseSmooth = configuredSmoothness; } const distanceFactor = Math.min(distance / 1000, 0.6);
+      // 降低距离参考值，减少突变   
+      const adaptiveSmooth = baseSmooth + distanceFactor * 0.2;
+      // 降低距离对平滑系数的影响        
+      // // 应用基于帧率的动态调整，并降低最大值，避免大幅度变化    
+      const smoothFactor = Math.min(adaptiveSmooth * (deltaTime / this.FRAME_TIME), 0.5);
+      // 计算新的中心点坐标 (平滑插值)    
+      const dx = cameraAnimation.targetCenter[0] - currentCenter[0]; const dy = cameraAnimation.targetCenter[1] - currentCenter[1];
+      // 优化：只在移动距离超过阈值时才更新视图，避免微小抖动    
+      const moveDistance = Math.sqrt(dx * dx + dy * dy); const minMoveThreshold = player.viewportUpdateThreshold || 1.5;
+      // 提高最小移动阈值        
+      // // 特殊处理首次移动：如果是初始大距离移动，使用更直接的方式    
+      const isFirstMove = !cameraAnimation.hasMovedOnce && moveDistance > 100; if (isFirstMove) {
+      // 对于首次大距离移动，使用更直接的方式，立即移动到目标点附近     
+       const directFactor = 0.8; // 移动到目标点80%的位置      
+        const newX = currentCenter[0] + dx * directFactor; const newY = currentCenter[1] + dy * directFactor; view.animate({
+          center: [newX, newY], duration: 200,
+        // 使用较短的动画时间        
+          easing: easing.easeOut
+          // 使用easeOut缓动函数     
+        });
+        // 标记已执行首次移动      
+        cameraAnimation.hasMovedOnce = true; this.log('debug', `相机首次大距离移动: 轨迹 "${id}" 移动距离=${moveDistance.toFixed(2)}`);
+      } else if (moveDistance > minMoveThreshold) {
+        // 使用Cubic Easing函数使平滑过渡更自然      
+        // t' = t * t * (3 - 2 * t) 三次方过渡     
+        const t = Math.min(1, smoothFactor * 2);
+        // 调整范围     
+        const easeValue = t * t * (3 - 2 * t);
+        // 使用平滑插值计算新的中心点      
+        const newX = currentCenter[0] + dx * easeValue;
+        const newY = currentCenter[1] + dy * easeValue;
+      // 更新视图中心点，使用防抖动渲染请求，而不是直接更新     
+        this.mapInstance.getView().animate({
+          center: [newX, newY], duration: 50,
+        // 使用短动画持续时间，减少抖动        
+          easing: (t) => t
+          // 线性缓动，因为我们已经应用了自定义easing      
+          });    }
     
     // 请求下一帧动画
     this.requestNextCameraFrame(id);
