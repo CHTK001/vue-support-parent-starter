@@ -1,6 +1,10 @@
 /**
  * 地图相关配置
  */
+
+import type { MapTile, ToolbarConfig } from ".";
+import type { CoordinateOptions } from "../composables/CoordinateObject";
+
 // 直接在此处定义MapType，避免循环依赖
 export enum MapType {
   GAODE = 'GAODE',
@@ -118,3 +122,31 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
     }
   }
 };
+
+export interface MapConfig {
+  height: number;
+  center: [number, number];
+  mapType: MapType;
+  mapTile: MapTile;
+  map: Record<string, any>;
+  mapKey: Record<string, string>;
+  zoom: number;
+  dragging: boolean;
+  scrollWheelZoom: boolean;
+  showToolbar: boolean;
+  toolbarConfig: ToolbarConfig;
+  coordinateOptions: CoordinateOptions;
+  showScaleLine: boolean;
+  // 添加区划配置
+  boundaryConfig: {
+    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    defaultOptions?: {
+      fillBoundary?: boolean;
+      strokeColor?: string;
+      strokeWidth?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+      showLabel?: boolean;
+    };
+  };
+}

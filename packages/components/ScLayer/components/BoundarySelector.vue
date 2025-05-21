@@ -1,9 +1,8 @@
 <!-- 区划边界选择组件 -->
 <template>
-  <div class="boundary-selector" :class="{ active }">
+  <div class="boundary-selector" :class="[`position-${position}`, { active }]">
     <div class="boundary-selector-header">
       <div class="title">区划边界</div>
-      <div class="close-btn" @click="handleClose">×</div>
     </div>
     <div class="boundary-selector-content">
       <div class="boundary-selector-row">
@@ -103,7 +102,19 @@ import { BoundaryLevel, BoundaryItem, BoundaryOptions, DEFAULT_BOUNDARY_OPTIONS,
 const props = defineProps<{
   active: boolean;
   boundaryObj: any; // BoundaryObject 实例
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  defaultOptions?: {
+    fillBoundary?: boolean;
+    strokeColor?: string;
+    strokeWidth?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    showLabel?: boolean;
+  };
 }>();
+
+// 设置默认位置
+const position = props.position || 'top-right';
 
 // 定义事件
 const emit = defineEmits(['close', 'apply', 'clear', 'remove']);
@@ -120,7 +131,8 @@ const districts = ref<BoundaryItem[]>([]);
 
 // 样式配置
 const boundaryOptions = reactive<BoundaryOptions>({
-  ...DEFAULT_BOUNDARY_OPTIONS
+  ...DEFAULT_BOUNDARY_OPTIONS,
+  ...(props.defaultOptions || {})
 });
 
 // 已选择的边界列表
@@ -306,8 +318,6 @@ const handleClose = () => {
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  top: 60px;
-  left: 10px;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-10px);
@@ -317,6 +327,27 @@ const handleClose = () => {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
+  }
+
+  // 按位置调整面板显示位置
+  &.position-top-left {
+    top: 60px;
+    left: 10px;
+  }
+  
+  &.position-top-right {
+    top: 60px;
+    right: 10px;
+  }
+  
+  &.position-bottom-left {
+    bottom: 60px;
+    left: 10px;
+  }
+  
+  &.position-bottom-right {
+    bottom: 60px;
+    right: 10px;
   }
   
   &-header {
@@ -329,16 +360,6 @@ const handleClose = () => {
     .title {
       font-weight: 600;
       font-size: 16px;
-    }
-    
-    .close-btn {
-      cursor: pointer;
-      font-size: 18px;
-      color: #999;
-      
-      &:hover {
-        color: #333;
-      }
     }
   }
   
