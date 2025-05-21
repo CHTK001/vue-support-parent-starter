@@ -1829,10 +1829,12 @@ export class ToolbarObject {
       }
       logger.debug('轨迹播放器工具已设置为非激活状态');
     }
-    
+    // 清空地图上的轨迹
+    if (this.trackObj) {
+      this.trackObj.clearAllTracks();
+    }
     // 触发工具状态变化事件
     this.triggerToolStateChange('track-player', false, 'track-player');
-    
     logger.debug('轨迹播放器已停用');
   }
 
