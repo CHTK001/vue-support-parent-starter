@@ -44,6 +44,10 @@ export class CesiumObject {
     
     if (olMap) {
       try {
+        // 配置Cesium，去除水印
+        Cesium.Ion.defaultAccessToken = ''; // 清空默认token
+        Cesium.Ion.defaultServer = ''; // 清空默认服务器
+        
         this.olCesium = new OLCesium({ 
           map: olMap,
           cesiumBaseUrl: this.cesiumBaseUrl

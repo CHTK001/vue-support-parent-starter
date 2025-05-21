@@ -14,6 +14,7 @@ import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import { defaults as defaultControls } from 'ol/control';
 import ScaleLine from 'ol/control/ScaleLine';
+import { ElLoading } from 'element-plus';
 
 import { DataType, MapTile } from '../types';
 import { MapType } from '../types/map';
@@ -398,6 +399,13 @@ export class MapObject {
           visible: layer.getVisible()
         };
       }));
+
+      // 创建loading实例
+      const loadingInstance = ElLoading.service({
+        lock: true,
+        text: '地图加载中...',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
       
       // 移除当前底图
       this.mapInstance.removeLayer(this.mainLayer);
@@ -408,8 +416,20 @@ export class MapObject {
       // 添加新底图并确保它位于底部
       this.mapInstance.getLayers().insertAt(0, this.mainLayer);
       
-      // 触发地图更新
-      this.triggerMapResize();
+      // 监听新图层的加载完成事件
+      const source = this.mainLayer.getSource();
+      if (source) {
+        source.on('tileloadend', () => {
+          // 关闭loading
+          loadingInstance.close();
+          // 触发地图更新
+          this.triggerMapResize();
+        });
+      } else {
+        // 如果没有source，直接关闭loading
+        loadingInstance.close();
+        this.triggerMapResize();
+      }
       
       logger.info('地图底图切换成功');
       return true;
