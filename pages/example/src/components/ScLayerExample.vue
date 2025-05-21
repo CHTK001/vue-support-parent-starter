@@ -4154,7 +4154,7 @@ const clearHeatmapPoints = () => {
   
   try {
     // 获取热力图对象
-    heatmapObj = layerRef.value.clearHeatmap();
+    layerRef.value.clearHeatmap();
     // 更新热力点列表
     heatmapPoints.value = [];
     selectedHeatmapPoint.value = null;
