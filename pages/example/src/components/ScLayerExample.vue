@@ -22,6 +22,7 @@
           <div class="config-item"></div>
             <div class="label">地图配置</div>
             <div class="controls">
+             
               <!-- 替换地图类型下拉框为按钮组 -->
               <div class="control-row">
                 <span>地图类型:</span>
@@ -139,6 +140,13 @@
           </div>
 
           <div class="config-item">
+            <div class="label">key操作</div>
+            <div class="controls">
+              <div class="control-row">
+                <span>高德</span>
+                <el-input v-model="gaodeKey" type="password" show-password/>
+              </div>
+            </div>
             <div class="label">标记点操作</div>
             <div class="controls">
               <!-- 标记点操作区域 - 添加功能分组 -->
@@ -530,7 +538,7 @@
 
 <script setup lang="ts">
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
 import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
 import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer';
@@ -622,7 +630,7 @@ const config = reactive({
   scrollWheelZoom: true,
   showToolbar: true,
   showScaleLine: true,
-  mapKey: {}
+  mapKey: {} as Record<string, string>
 });
 
 // 标记点数据
@@ -4197,6 +4205,12 @@ const removeModel = (id: string) => {
     addLog('3D', `删除模型失败: ${error.message || '未知错误'}`);
   }
 };
+
+const gaodeKey = ref('054b327a96515ec1ae59f94e080c1680');
+config.mapKey.GAODE = gaodeKey.value;
+watch(gaodeKey, (val) => {
+  config.mapKey.GAODE = val;
+});
 </script>
 
 <style scoped>

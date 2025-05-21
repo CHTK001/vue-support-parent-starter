@@ -1,3 +1,4 @@
+import type { BoundaryOptions } from './boundary';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
 
 // 默认轨迹播放器配置
@@ -15,7 +16,22 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   updateFrequency: 100,   // 更新频率(毫秒)，默认100毫秒，高频更新
   stabilizeViewport: false // 是否稳定视口，防止播放过程中缩放抖动
 };
-
+// 默认配置
+export const DEFAULT_BOUNDARY_OPTIONS: BoundaryOptions = {
+  position: 'top-right',
+  fillBoundary: true,
+  strokeColor: '#1677ff',
+  strokeWidth: 2,
+  fillColor: '#1677ff',
+  fillOpacity: 0.2,
+  zIndex: 10,
+  showLabel: true,
+  labelOptions: {
+    fontSize: 12,
+    fontColor: '#333',
+    offset: [0, 0]
+  }
+}; 
 export const DEFAULT_CESIUM_BASE_URL = 'https://unpkg.com/cesium@1.109.0/Build/Cesium/';
 //@ts-ignore
 window.CESIUM_BASE_URL = DEFAULT_CESIUM_BASE_URL;

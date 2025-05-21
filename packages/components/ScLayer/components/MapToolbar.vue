@@ -1545,9 +1545,6 @@ defineExpose({
 
 /* 修改全局active样式，避免影响子菜单项 */
 .active:not(.submenu-item):not(.color-override) {
-  path {
-    fill: #FFF;
-  }
 
   circle {
     fill: #FFF;

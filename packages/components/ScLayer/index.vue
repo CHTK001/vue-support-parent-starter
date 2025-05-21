@@ -53,7 +53,8 @@
       :active="showBoundarySelector"
       :boundary-obj="getBoundaryObject()"
       :position="boundarySelectorPosition"
-      :default-options="props.boundaryConfig?.defaultOptions"
+      :default-options="DEFAULT_BOUNDARY_OPTIONS"
+      :map-key="props.mapKey"
       @close="closeBoundarySelector"
       @apply="handleBoundaryApply"
       @clear="handleBoundaryClear"
@@ -98,8 +99,7 @@ import type { MarkerOptions, MarkerConfig } from './types/marker';
 import { ShapeObject, ShapeType } from './composables/ShapeObject';
 import { Shape, ShapeOption } from './types/shape';
 import { TrackObject } from './composables/TrackObject';
-import { DEFAULT_CESIUM_BASE_URL } from './types/default';
-import { BoundaryImplementation } from './types/boundary';
+import { DEFAULT_CESIUM_BASE_URL, DEFAULT_BOUNDARY_OPTIONS } from './types/default';
 // 导入热力图相关类型
 import type { HeatmapPoint, HeatmapConfig } from './types';
 // 导入聚合相关类型
@@ -137,19 +137,6 @@ const props = withDefaults(defineProps<MapConfig & {
   // 添加聚合配置选项
   aggregationOptions?: AggregationOptions,
   cesiumBaseUrl?: string,
-  boundaryConfig?: {
-    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-    defaultOptions?: {
-      url?: string;
-      provider?: string;
-      fillBoundary?: boolean;
-      strokeColor?: string;
-      strokeWidth?: number;
-      fillColor?: string;
-      fillOpacity?: number;
-      showLabel?: boolean;
-    };
-  };
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428], 
@@ -206,17 +193,7 @@ const props = withDefaults(defineProps<MapConfig & {
     ]
   }), // 默认聚合配置
   cesiumBaseUrl: DEFAULT_CESIUM_BASE_URL,
-  boundaryConfig: () => ({
-    position: 'top-right',
-    defaultOptions: {
-      fillBoundary: true,
-      strokeColor: '#1890ff',
-      strokeWidth: 2,
-      fillColor: '#1890ff',
-      fillOpacity: 0.2,
-      showLabel: true
-    }
-  })
+  boundaryConfig: () => DEFAULT_BOUNDARY_OPTIONS
 });
 
 // 定义组件事件
@@ -2641,7 +2618,7 @@ const handleBoundaryRemove = (code: string) => {
 
 // 区划选择器位置
 const boundarySelectorPosition = computed(() => {
-  return props.boundaryConfig?.position || 'top-right';
+  return props.boundaryConfig.position || 'top-right';
 });
 
 </script>

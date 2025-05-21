@@ -6,6 +6,7 @@ import { MapType } from "./map";
 import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
 import { OverviewMapConfig } from "../components/OverviewMap.vue";
+import type { BoundaryOptions } from "./boundary";
 export * from "./map";
 export * from "./toolbar";
 export * from "./marker";
@@ -67,6 +68,8 @@ export interface MapConfig {
   overviewMapConfig?: OverviewMapConfig;
   // 是否显示比例尺
   showScaleLine?: boolean;
+  // 区划配置
+  boundaryConfig?: BoundaryOptions;
 }
 
 // 事件类型
