@@ -205,6 +205,43 @@ export class CoordinateObject {
     this.callback = null;
     logger.debug('坐标对象已销毁');
   }
+
+  /**
+   * 通用：任意坐标系转为当前地图投影坐标
+   * @param lonLat 输入经纬度 [lng, lat]
+   * @param from 输入坐标系（如 'WGS84'、'GCJ02'、'EPSG:4326'、'EPSG:3857'）
+   * @returns 当前地图投影坐标 [x, y]
+   */
+  public toMapCoord(lonLat: [number, number], from: string = 'EPSG:4326'): [number, number] {
+    if (!this.mapInstance) return [0, 0];
+    const projection = this.mapInstance.getView().getProjection();
+    const to = projection.getCode();
+    // 统一用ol/proj.transform
+    // 兼容常用别名
+    let fromCode = from;
+    if (from === 'WGS84') fromCode = 'EPSG:4326';
+    if (from === 'GCJ02') fromCode = 'GCJ02';
+    if (from === 'BD09') fromCode = 'BD09';
+    return (window as any).ol.proj.transform(lonLat, fromCode, to);
+  }
+
+  /**
+   * 通用：当前地图投影坐标转为目标坐标系经纬度
+   * @param coord 当前地图投影坐标 [x, y]
+   * @param to 目标坐标系（如 'WGS84'、'GCJ02'、'EPSG:4326'、'EPSG:3857'）
+   * @returns 目标坐标系经纬度 [lng, lat]
+   */
+  public fromMapCoord(coord: [number, number], to: string = 'EPSG:4326'): [number, number] {
+    if (!this.mapInstance) return [0, 0];
+    const projection = this.mapInstance.getView().getProjection();
+    const from = projection.getCode();
+    // 兼容常用别名
+    let toCode = to;
+    if (to === 'WGS84') toCode = 'EPSG:4326';
+    if (to === 'GCJ02') toCode = 'GCJ02';
+    if (to === 'BD09') toCode = 'BD09';
+    return (window as any).ol.proj.transform(coord, from, toCode);
+  }
 }
 
 /**

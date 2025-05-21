@@ -25,7 +25,7 @@ export const DEFAULT_BOUNDARY_OPTIONS: BoundaryOptions = {
   fillColor: '#1677ff',
   fillOpacity: 0.2,
   zIndex: 10,
-  showLabel: true,
+  showLabel: false,
   labelOptions: {
     fontSize: 12,
     fontColor: '#333',

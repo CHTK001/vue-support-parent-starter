@@ -5,6 +5,12 @@
 import { transform } from 'ol/proj';
 import { MapType } from '../types/map';
 import { CoordSystem } from './GcoordObject';
+import proj4 from 'proj4';
+import { register } from 'ol/proj/proj4';
+
+// 注册 GCJ02 坐标系
+proj4.defs('GCJ02', '+proj=longlat +datum=GCJ02');
+register(proj4);
 
 /**
  * 经纬度转换为地图投影坐标
@@ -19,6 +25,12 @@ export function fromLonLat(lonLat: number[], projection = 'EPSG:3857'): number[]
   }
   
   try {
+    // 如果是 GCJ02 坐标系，需要先转换为 WGS84
+    if (projection === 'GCJ02') {
+      const wgs84Coord = transform(lonLat, 'GCJ02', 'EPSG:4326');
+      return transform(wgs84Coord, 'EPSG:4326', 'EPSG:3857');
+    }
+    // 其他情况直接转换
     return transform(lonLat, 'EPSG:4326', projection);
   } catch (error) {
     console.error('转换经纬度坐标失败:', error);
@@ -39,6 +51,12 @@ export function toLonLat(coord: number[], projection = 'EPSG:3857'): number[] {
   }
   
   try {
+    // 如果是 GCJ02 坐标系，需要先转换为 WGS84
+    if (projection === 'GCJ02') {
+      const wgs84Coord = transform(coord, 'EPSG:3857', 'EPSG:4326');
+      return transform(wgs84Coord, 'EPSG:4326', 'GCJ02');
+    }
+    // 其他情况直接转换
     return transform(coord, projection, 'EPSG:4326');
   } catch (error) {
     console.error('转换投影坐标失败:', error);
