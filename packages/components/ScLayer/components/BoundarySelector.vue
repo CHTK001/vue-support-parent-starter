@@ -3,34 +3,57 @@
   <div class="boundary-selector" :class="[`position-${position}`, { active }]">
     <div class="boundary-selector-header">
       <div class="title">区划边界</div>
+      <div class="header-actions">
+        <button class="settings-btn" @click="showSettings = !showSettings">
+          <span>⚙</span>
+        </button>
+      </div>
     </div>
     <div class="boundary-selector-content">
-      <div class="boundary-selector-row">
-        <div class="select-label">选择区域:</div>
-        <div class="select-container">
-          <select v-model="selectedProvince" @change="handleProvinceChange">
-            <option value="">请选择省份</option>
-            <option v-for="item in provinces" :key="item.code" :value="item.code">
-              {{ item.name }}
-            </option>
-          </select>
-          <select v-model="selectedCity" @change="handleCityChange" :disabled="!selectedProvince">
-            <option value="">请选择城市</option>
-            <option v-for="item in cities" :key="item.code" :value="item.code">
-              {{ item.name }}
-            </option>
-          </select>
-          <select v-model="selectedDistrict" @change="handleDistrictChange" :disabled="!selectedCity">
-            <option value="">请选择区县</option>
-            <option v-for="item in districts" :key="item.code" :value="item.code">
-              {{ item.name }}
-            </option>
-          </select>
+      <!-- 树形选择区域 -->
+      <div class="boundary-tree">
+        <el-tree
+          ref="treeRef"
+          :data="treeData"
+          :props="defaultProps"
+          node-key="code"
+          show-checkbox
+          @check="handleCheck"
+          :default-expanded-keys="['110000']"
+        >
+          <template #default="{ node, data }">
+            <span class="custom-tree-node">
+              <span>{{ node.label }}</span>
+            </span>
+          </template>
+        </el-tree>
+      </div>
+
+      <!-- 已选择的边界列表 -->
+      <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
+        <div class="select-title">已选区域:</div>
+        <div class="boundary-list">
+          <div v-for="(boundary, index) in selectedBoundaries" :key="boundary.code" class="boundary-item">
+            <span>{{ boundary.name }}</span>
+            <button @click="handleRemoveBoundary(boundary.code, index)" class="remove-btn">×</button>
+          </div>
         </div>
       </div>
 
-      <div class="boundary-style">
-        <div class="style-title">样式设置</div>
+      <!-- 操作按钮 -->
+      <div class="boundary-action">
+        <button @click="handleApply" class="apply-btn">应用</button>
+        <button @click="handleClear" class="clear-btn">清除</button>
+      </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="settings-panel" v-if="showSettings">
+      <div class="settings-header">
+        <span>样式设置</span>
+        <button class="close-btn" @click="showSettings = false">×</button>
+      </div>
+      <div class="settings-content">
         <div class="style-row">
           <div class="style-label">填充区域:</div>
           <div class="style-value">
@@ -69,21 +92,6 @@
           </div>
         </div>
       </div>
-
-      <div class="boundary-action">
-        <button @click="handleApply" class="apply-btn">应用</button>
-        <button @click="handleClear" class="clear-btn">清除</button>
-      </div>
-
-      <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
-        <div class="select-title">已选区域:</div>
-        <div class="boundary-list">
-          <div v-for="(boundary, index) in selectedBoundaries" :key="boundary.code" class="boundary-item">
-            <span>{{ boundary.name }}</span>
-            <button @click="handleRemoveBoundary(boundary.code, index)" class="remove-btn">×</button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -101,9 +109,11 @@ import { BoundaryLevel, BoundaryItem, BoundaryOptions, DEFAULT_BOUNDARY_OPTIONS,
 // 定义组件属性
 const props = defineProps<{
   active: boolean;
-  boundaryObj: any; // BoundaryObject 实例
+  boundaryObj: any;
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   defaultOptions?: {
+    url?: string;
+    provider?: string;
     fillBoundary?: boolean;
     strokeColor?: string;
     strokeWidth?: number;
@@ -119,15 +129,16 @@ const position = props.position || 'top-right';
 // 定义事件
 const emit = defineEmits(['close', 'apply', 'clear', 'remove']);
 
-// 区划选择状态
-const selectedProvince = ref('');
-const selectedCity = ref('');
-const selectedDistrict = ref('');
+// 树形数据
+const treeData = ref<any[]>([]);
+const treeRef = ref();
+const defaultProps = {
+  children: 'children',
+  label: 'name'
+};
 
-// 区划数据列表
-const provinces = ref<BoundaryItem[]>([]);
-const cities = ref<BoundaryItem[]>([]);
-const districts = ref<BoundaryItem[]>([]);
+// 设置面板显示状态
+const showSettings = ref(false);
 
 // 样式配置
 const boundaryOptions = reactive<BoundaryOptions>({
@@ -140,8 +151,8 @@ const selectedBoundaries = ref<BoundaryData[]>([]);
 
 // 初始化
 onMounted(async () => {
-  // 加载省份数据
-  await loadProvinces();
+  // 加载树形数据
+  await loadTreeData();
   
   // 获取当前已选择的边界
   if (props.boundaryObj) {
@@ -153,85 +164,49 @@ onMounted(async () => {
   }
 });
 
-// 监听区划选择变化
-watchEffect(() => {
-  if (!selectedProvince.value) {
-    selectedCity.value = '';
-    cities.value = [];
-  }
-  
-  if (!selectedCity.value) {
-    selectedDistrict.value = '';
-    districts.value = [];
-  }
-});
-
-// 加载省份数据
-const loadProvinces = async () => {
+// 加载树形数据
+const loadTreeData = async () => {
   try {
-    // 这里应该调用实际API获取省份列表
+    // 这里应该调用实际API获取数据
     // 暂时使用模拟数据
-    provinces.value = [
-      { id: '1', name: '北京市', level: BoundaryLevel.PROVINCE, code: '110000' },
-      { id: '2', name: '天津市', level: BoundaryLevel.PROVINCE, code: '120000' },
-      { id: '3', name: '河北省', level: BoundaryLevel.PROVINCE, code: '130000' },
-      { id: '4', name: '山西省', level: BoundaryLevel.PROVINCE, code: '140000' },
-      { id: '5', name: '内蒙古自治区', level: BoundaryLevel.PROVINCE, code: '150000' },
-      // 其他省份...
+    treeData.value = [
+      {
+        code: '110000',
+        name: '北京市',
+        children: [
+          {
+            code: '110100',
+            name: '市辖区',
+            children: [
+              { code: '110101', name: '东城区' },
+              { code: '110102', name: '西城区' }
+            ]
+          }
+        ]
+      },
+      {
+        code: '120000',
+        name: '天津市',
+        children: [
+          {
+            code: '120100',
+            name: '市辖区',
+            children: [
+              { code: '120101', name: '和平区' },
+              { code: '120102', name: '河东区' }
+            ]
+          }
+        ]
+      }
     ];
   } catch (error) {
-    console.error('加载省份数据失败:', error);
+    console.error('加载树形数据失败:', error);
   }
 };
 
-// 处理省份选择变化
-const handleProvinceChange = async () => {
-  if (!selectedProvince.value) return;
-  
-  try {
-    // 这里应该调用实际API获取城市列表
-    // 暂时使用模拟数据
-    cities.value = [
-      { id: '1', name: '石家庄市', level: BoundaryLevel.CITY, code: '130100', parentCode: '130000' },
-      { id: '2', name: '唐山市', level: BoundaryLevel.CITY, code: '130200', parentCode: '130000' },
-      { id: '3', name: '秦皇岛市', level: BoundaryLevel.CITY, code: '130300', parentCode: '130000' },
-      // 根据选择的省份显示不同城市...
-    ];
-    
-    // 如果选择的是直辖市，可以直接加载区县
-    if (['110000', '120000', '310000', '500000'].includes(selectedProvince.value)) {
-      districts.value = [
-        { id: '1', name: '东城区', level: BoundaryLevel.DISTRICT, code: '110101', parentCode: '110000' },
-        { id: '2', name: '西城区', level: BoundaryLevel.DISTRICT, code: '110102', parentCode: '110000' },
-        // 根据直辖市显示对应区县...
-      ];
-    }
-  } catch (error) {
-    console.error('加载城市数据失败:', error);
-  }
-};
-
-// 处理城市选择变化
-const handleCityChange = async () => {
-  if (!selectedCity.value) return;
-  
-  try {
-    // 这里应该调用实际API获取区县列表
-    // 暂时使用模拟数据
-    districts.value = [
-      { id: '1', name: '长安区', level: BoundaryLevel.DISTRICT, code: '130102', parentCode: '130100' },
-      { id: '2', name: '桥西区', level: BoundaryLevel.DISTRICT, code: '130104', parentCode: '130100' },
-      { id: '3', name: '新华区', level: BoundaryLevel.DISTRICT, code: '130105', parentCode: '130100' },
-      // 根据选择的城市显示不同区县...
-    ];
-  } catch (error) {
-    console.error('加载区县数据失败:', error);
-  }
-};
-
-// 处理区县选择变化
-const handleDistrictChange = () => {
-  // 可以在这里添加额外逻辑
+// 处理树节点选中
+const handleCheck = (data: any, checked: any) => {
+  console.log('选中节点:', data, checked);
 };
 
 // 应用区划配置
@@ -242,48 +217,36 @@ const handleApply = async () => {
     // 更新边界样式
     props.boundaryObj.setOptions(boundaryOptions);
     
-    // 确定要添加的边界级别和代码
-    let code = '';
-    let level = BoundaryLevel.PROVINCE;
+    // 获取选中的节点
+    const checkedNodes = (treeRef.value as any).getCheckedNodes();
     
-    if (selectedDistrict.value) {
-      code = selectedDistrict.value;
-      level = BoundaryLevel.DISTRICT;
-    } else if (selectedCity.value) {
-      code = selectedCity.value;
-      level = BoundaryLevel.CITY;
-    } else if (selectedProvince.value) {
-      code = selectedProvince.value;
-      level = BoundaryLevel.PROVINCE;
-    } else {
-      console.warn('未选择任何区域');
-      return;
+    // 添加选中的边界
+    for (const node of checkedNodes) {
+      if (!props.boundaryObj.hasBoundary(node.code)) {
+        const boundaryData = await props.boundaryObj.loadBoundary(node.code, getBoundaryLevel(node));
+        if (boundaryData) {
+          props.boundaryObj.addBoundary(boundaryData);
+        }
+      }
     }
     
-    // 检查是否已添加该边界
-    if (props.boundaryObj.hasBoundary(code)) {
-      console.warn('已添加该边界');
-      return;
-    }
+    // 更新已选边界列表
+    selectedBoundaries.value = props.boundaryObj.getSelectedBoundaries();
     
-    // 加载并添加边界
-    const boundaryData = await props.boundaryObj.loadBoundary(code, level);
-    if (boundaryData) {
-      props.boundaryObj.addBoundary(boundaryData);
-      
-      // 更新已选边界列表
-      selectedBoundaries.value = props.boundaryObj.getSelectedBoundaries();
-      
-      // 发出应用事件
-      emit('apply', {
-        code,
-        level,
-        options: boundaryOptions
-      });
-    }
+    // 发出应用事件
+    emit('apply', {
+      options: boundaryOptions
+    });
   } catch (error) {
     console.error('应用区划配置失败:', error);
   }
+};
+
+// 获取边界级别
+const getBoundaryLevel = (node: any): BoundaryLevel => {
+  if (node.code.endsWith('0000')) return BoundaryLevel.PROVINCE;
+  if (node.code.endsWith('00')) return BoundaryLevel.CITY;
+  return BoundaryLevel.DISTRICT;
 };
 
 // 清除所有边界
@@ -361,6 +324,20 @@ const handleClose = () => {
       font-weight: 600;
       font-size: 16px;
     }
+
+    .header-actions {
+      .settings-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        color: #666;
+        
+        &:hover {
+          color: #1890ff;
+        }
+      }
+    }
   }
   
   &-content {
@@ -368,42 +345,112 @@ const handleClose = () => {
     max-height: 500px;
     overflow-y: auto;
   }
-  
-  &-row {
+
+  .boundary-tree {
     margin-bottom: 15px;
+  }
+  
+  .selected-boundaries {
+    margin-top: 15px;
     
-    .select-label {
-      margin-bottom: 8px;
+    .select-title {
       font-weight: 500;
+      margin-bottom: 10px;
     }
     
-    .select-container {
+    .boundary-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
       
-      select {
-        padding: 6px 8px;
-        border: 1px solid #d9d9d9;
+      .boundary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background-color: #f5f5f5;
         border-radius: 4px;
         
-        &:disabled {
-          background-color: #f5f5f5;
-          cursor: not-allowed;
+        .remove-btn {
+          background: none;
+          border: none;
+          color: #999;
+          cursor: pointer;
+          font-size: 16px;
+          
+          &:hover {
+            color: #f5222d;
+          }
         }
       }
     }
   }
   
-  .boundary-style {
-    margin-top: 20px;
+  .boundary-action {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
     
-    .style-title {
-      font-weight: 500;
-      margin-bottom: 10px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid #f0f0f0;
+    button {
+      flex: 1;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      
+      &.apply-btn {
+        background-color: #1677ff;
+        color: white;
+        
+        &:hover {
+          background-color: #0958d9;
+        }
+      }
+      
+      &.clear-btn {
+        background-color: #f5f5f5;
+        color: #333;
+        
+        &:hover {
+          background-color: #e8e8e8;
+        }
+      }
     }
+  }
+}
+
+.settings-panel {
+  position: absolute;
+  top: 0;
+  right: -300px;
+  width: 280px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  
+  .settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e8e8e8;
+    
+    .close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: #999;
+      
+      &:hover {
+        color: #666;
+      }
+    }
+  }
+  
+  .settings-content {
+    padding: 15px;
     
     .style-row {
       display: flex;
@@ -440,74 +487,6 @@ const handleClose = () => {
           padding: 4px;
           border: 1px solid #d9d9d9;
           border-radius: 4px;
-        }
-      }
-    }
-  }
-  
-  .boundary-action {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-    
-    button {
-      flex: 1;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      
-      &.apply-btn {
-        background-color: #1677ff;
-        color: white;
-        
-        &:hover {
-          background-color: #0958d9;
-        }
-      }
-      
-      &.clear-btn {
-        background-color: #f5f5f5;
-        color: #333;
-        
-        &:hover {
-          background-color: #e8e8e8;
-        }
-      }
-    }
-  }
-  
-  .selected-boundaries {
-    margin-top: 20px;
-    
-    .select-title {
-      font-weight: 500;
-      margin-bottom: 10px;
-    }
-    
-    .boundary-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      
-      .boundary-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background-color: #f5f5f5;
-        border-radius: 4px;
-        
-        .remove-btn {
-          background: none;
-          border: none;
-          color: #999;
-          cursor: pointer;
-          font-size: 16px;
-          
-          &:hover {
-            color: #f5222d;
-          }
         }
       }
     }
