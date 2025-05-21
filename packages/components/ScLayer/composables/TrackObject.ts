@@ -994,7 +994,7 @@ export class TrackObject {
    * 播放轨迹
    * @param id 轨迹ID
    * @param player 播放器配置
-   * @returns 成功返回true，失败返回false
+   * @returns 是否操作成功
    */
   public play(id: string, player?: Partial<ExtendedTrackPlayer>): boolean {
     if (!this.tracks.has(id)) {
@@ -1038,10 +1038,18 @@ export class TrackObject {
     // 获取当前的播放器配置
     const currentPlayer = this.trackPlayers.get(id)!;
     
-    // 如果是从暂停状态恢复，简单地更新状态
+    // 如果是从暂停状态恢复，更新播放状态并重新设置动画
     if (currentState === TrackPlayState.PAUSED) {
+      // 设置为播放状态
       this.trackPlayStates.set(id, TrackPlayState.PLAYING);
-      this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放`);
+      
+      // 重置上次时间戳，确保立即开始移动
+      this.trackLastTimes.delete(id);
+      
+      // 重新设置动画
+      this.setupTrackAnimation(id);
+      
+      this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，动画已重新设置`);
       return true;
     }
     
@@ -1099,7 +1107,24 @@ export class TrackObject {
     // 更新状态为暂停
     this.trackPlayStates.set(id, TrackPlayState.PAUSED);
     
-    this.log('debug', `轨迹 "${id}" 已暂停`);
+    // 停止动画循环，但保留进度和位置
+    // 取消动画帧请求
+    if (this.trackAnimationFrames.has(id)) {
+      cancelAnimationFrame(this.trackAnimationFrames.get(id)!);
+      this.trackAnimationFrames.delete(id);
+    }
+    
+    // 暂停相机动画，但不删除状态 - 这样才能在恢复播放时继续跟随
+    if (this.trackCameraAnimations.has(id)) {
+      const cameraAnimation = this.trackCameraAnimations.get(id);
+      if (cameraAnimation) {
+        cameraAnimation.active = false;
+      }
+    }
+    
+    // 保存当前进度状态 - 由于我们不调用removeTrackAnimation，这使得恢复播放更容易
+    
+    this.log('debug', `轨迹 "${id}" 已暂停，动画停止但状态已保留`);
     return true;
   }
 
@@ -1390,10 +1415,15 @@ export class TrackObject {
       this.trackAnimationFrames.delete(id);
     }
     
-    // 停止相机动画
-    const cameraAnimation = this.trackCameraAnimations.get(id);
-    if (cameraAnimation) {
-      cameraAnimation.active = false;
+    // 完全清除相机动画状态
+    if (this.trackCameraAnimations.has(id)) {
+      const cameraAnimation = this.trackCameraAnimations.get(id);
+      if (cameraAnimation) {
+        cameraAnimation.active = false;
+      }
+      // 从映射中删除相机动画对象，确保完全释放相机控制
+      this.trackCameraAnimations.delete(id);
+      this.log('debug', `轨迹 "${id}" 相机动画已完全清除`);
     }
   }
 
@@ -2401,13 +2431,11 @@ export class TrackObject {
     // 获取播放状态
     const playState = this.trackPlayStates.get(id);
     
-    // 如果轨迹未在播放，使用普通的设置方法
-    if (playState !== TrackPlayState.PLAYING) {
-      return this.setTrackPlayer(id, player);
-    }
-    
     // 获取现有的播放器配置
     const currentPlayer = this.trackPlayers.get(id) || { ...DEFAULT_TRACK_PLAYER };
+    
+    // 记录初始相机跟踪状态用于对比
+    const previousWithCamera = currentPlayer.withCamera;
     
     // 更新配置
     const updatedPlayer = {
@@ -2417,14 +2445,48 @@ export class TrackObject {
     this.trackPlayers.set(id, updatedPlayer);
     
     // 特殊处理相机跟随设置，可以立即生效
-    if (player.withCamera !== undefined) {
-      // 不需要额外处理，setupTrackAnimation中会读取最新的配置
+    if (player.withCamera !== undefined && player.withCamera !== previousWithCamera) {
+      this.log('info', `轨迹 "${id}" 相机跟随状态从 ${previousWithCamera} 更改为 ${player.withCamera}`);
+      
+      // 如果当前正在播放
+      if (playState === TrackPlayState.PLAYING) {
+        if (player.withCamera) {
+          // 如果开启了相机跟随，尝试立即更新相机位置
+          const track = this.tracks.get(id);
+          if (track && track.points && track.points.length > 0) {
+            const progress = this.trackProgressValues.get(id) || 0;
+            const position = this.calculatePositionAtProgress(track, progress);
+            const newCenter = fromLonLat([position.lng, position.lat]);
+            
+            // 启动或更新相机动画
+            this.updateCameraAnimation(id, newCenter);
+            this.log('debug', `轨迹 "${id}" 相机位置已立即更新`);
+          }
+        } else {
+          // 如果关闭了相机跟随，完全释放相机控制
+          // 1. 停止相机动画
+          const cameraAnimation = this.trackCameraAnimations.get(id);
+          if (cameraAnimation) {
+            cameraAnimation.active = false;
+            // 2. 从映射中移除相机动画对象，确保完全释放
+            this.trackCameraAnimations.delete(id);
+            this.log('debug', `轨迹 "${id}" 相机跟随已停止并完全释放控制`);
+          }
+        }
+        
+        // 触发地图重绘
+        if (this.mapInstance) {
+          this.mapInstance.render();
+        }
+      }
     }
     
-    // 重新设置动画配置，使新的设置生效
-    this.setupTrackAnimation(id);
+    // 如果是播放状态，重新设置动画配置，使新的设置生效
+    if (playState === TrackPlayState.PLAYING) {
+      this.setupTrackAnimation(id);
+    }
     
-    console.debug(`轨迹 "${id}" 播放器配置已实时更新`);
+    this.log('debug', `轨迹 "${id}" 播放器配置已实时更新`);
     return true;
   }
 
@@ -3411,16 +3473,26 @@ export class TrackObject {
    * @param id 轨迹ID
    */
   private requestNextCameraFrame(id: string): void {
+    // 首先检查轨迹ID对应的相机动画对象是否存在
+    if (!this.trackCameraAnimations.has(id)) {
+      this.log('debug', `轨迹 "${id}" 的相机动画已被清除，不再请求新帧`);
+      return;
+    }
+    
     // 检查动画是否仍在激活状态
     const cameraAnimation = this.trackCameraAnimations.get(id);
     if (!cameraAnimation?.active) {
+      this.log('debug', `轨迹 "${id}" 的相机动画已停用，不再请求新帧`);
       return;
     }
     
     // 使用requestAnimationFrame请求下一帧动画，确保与浏览器渲染循环同步
     window.requestAnimationFrame(() => {
-      if (this.trackCameraAnimations.get(id)?.active) {
+      // 再次检查确保相机动画对象仍然存在且处于激活状态
+      if (this.trackCameraAnimations.has(id) && this.trackCameraAnimations.get(id)?.active) {
         this.animateCamera(id);
+      } else {
+        this.log('debug', `轨迹 "${id}" 的相机动画状态已变更，中止动画循环`);
       }
     });
   }
