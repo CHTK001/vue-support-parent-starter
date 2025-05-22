@@ -12,6 +12,9 @@
     transform: translate(-50%, -100%);
   }
 }
+.search-box {
+  position: absolute !important;
+}
 .thin-scrollbar,
 .pure-scrollbar {
   scrollbar-color: var(--el-color-primary) transparent;

@@ -1,4 +1,6 @@
+import { MapType } from '.';
 import type { BoundaryOptions } from './boundary';
+import type { SearchBoxConfig } from './search';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
 
 // 默认轨迹播放器配置
@@ -15,6 +17,17 @@ export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
   showNodeSpeed: true,   // 是否显示节点速度
   updateFrequency: 100,   // 更新频率(毫秒)，默认100毫秒，高频更新
   stabilizeViewport: false // 是否稳定视口，防止播放过程中缩放抖动
+};
+
+// 默认搜索框配置
+export const DEFAULT_SEARCH_BOX_CONFIG: SearchBoxConfig = {
+  type: 'input',
+  placeholder: '请输入搜索关键词',
+  debounceTime: 300,
+  position: 'top-right',
+  projection: 'EPSG:3857',
+  mapType: MapType.GAODE,
+  searchUrl: 'https://restapi.amap.com/v3/place/text'
 };
 // 默认配置
 export const DEFAULT_BOUNDARY_OPTIONS: BoundaryOptions = {

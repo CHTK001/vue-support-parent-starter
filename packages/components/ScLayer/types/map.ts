@@ -137,33 +137,3 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
     }
   }
 };
-
-export interface MapConfig {
-  height: number;
-  center: [number, number];
-  mapType: MapType;
-  mapTile: MapTile;
-  map: Record<string, any>;
-  mapKey: Record<string, string>;
-  zoom: number;
-  dragging: boolean;
-  scrollWheelZoom: boolean;
-  showToolbar: boolean;
-  toolbarConfig: ToolbarConfig;
-  coordinateOptions: CoordinateOptions;
-  showScaleLine: boolean;
-  // 添加区划配置
-  boundaryConfig: {
-    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-    defaultOptions?: {
-      url?: string;
-      provider?: string;
-      fillBoundary?: boolean;
-      strokeColor?: string;
-      strokeWidth?: number;
-      fillColor?: string;
-      fillOpacity?: number;
-      showLabel?: boolean;
-    };
-  };
-}
