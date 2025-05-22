@@ -150,7 +150,7 @@ const handleInput = () => {
   searchTimer = window.setTimeout(async () => {
     if (searchText.value.trim()) {
       try {
-        const searchResults = searchObject.searchLocationsearchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
+        const searchResults = await searchObject.searchLocationsearchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
         results.value = searchResults;
         showResults.value = true;
         emit('search', searchResults);
