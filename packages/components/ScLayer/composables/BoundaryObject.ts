@@ -21,6 +21,7 @@ import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, w
 import { MapObject } from './MapObject';
 import { GeoPoint } from './GcoordObject';
 import { indexedDBProxy } from '@repo/utils';
+import { BoundaryConverterFactory } from '../interfaces/converters';
 
 // 扩展全局Window接口，添加高德地图声明
 declare global {
@@ -352,80 +353,26 @@ export class BoundaryObject {
    * 通过行政区划代码添加边界
    * @param adcode 行政区划代码
    */
-  public async addBoundaryByAdcode(adcode: string): Promise<void> {
-    // 检查是否已经添加过该边界
-    if (this.selectedBoundaries.has(adcode)) {
-      logger.debug(`边界已存在: ${adcode}`);
-      return;
-    }
-
+  public async addBoundaryByAdcode(adcode: string, options: BoundaryOptions = {}): Promise<boolean> {
     try {
-      // 1. 先查缓存
-      const cacheKey = `boundary-${adcode}`;
-      const db = indexedDBProxy();
-      let boundaryResponseData = await db.getItem(cacheKey) as any;
-      if (!boundaryResponseData) {
-        // 2. 缓存没有，请求接口
-        boundaryResponseData = await fetchGaodeBoundary({
-          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
-          url: this.options.boundaryUrl,
-          adcode: adcode
-        });
-        // 3. 写入缓存
-        if (boundaryResponseData) {
-          await db.setItem(cacheKey, boundaryResponseData);
-        }
+      // 获取当前地图服务商
+      const provider = this.options.provider || 'gaode';
+      
+      // 获取区划数据
+      const data = await this.fetchBoundaryData(adcode, options);
+      if (!data) {
+        return false;
       }
 
-      if (boundaryResponseData && boundaryResponseData.polyline) {
-        // 如果获取到数据且包含polyline，则进行转换和添加
+      // 使用转换器将数据转换为高德格式
+      const converter = BoundaryConverterFactory.getConverter(provider);
+      const convertedData = converter.convertToGaode(data, options);
 
-        // 获取原始数据投影和目标地图投影
-        const mapType = (this.options.provider || MapType.GAODE) as MapType;
-        const sourceCoordSystem = getCoordSystemByMapType(mapType); // 根据地图类型获取源坐标系
-        // 将CoordSystem枚举转换为字符串形式的投影
-        const dataProjection = convertCoordSystemToProjection(sourceCoordSystem);
-        const featureProjection = this.options.projection || 'EPSG:3857'; // 目标投影从options获取
-
-        // 解析高德 polyline 并转换为 OpenLayers Features
-        const features = this.parseGaodePolylineToFeatures(boundaryResponseData.polyline, dataProjection, featureProjection);
-
-        if (features && features.length > 0) {
-          // 为每个feature设置属性和样式，并添加到源
-          features.forEach((feature, index) => {
-            // 设置属性
-            feature.setProperties({
-              code: boundaryResponseData.adcode,
-              name: boundaryResponseData.name,
-              level: boundaryResponseData.level,
-              ringIndex: index
-            });
-
-            // 设置样式
-            feature.setStyle(this.createBoundaryStyle(boundaryResponseData.name, index === 0));
-
-            // 添加到源
-            this.boundarySource.addFeature(feature);
-            logger.debug(`成功添加边界 feature: ${boundaryResponseData.name}(${boundaryResponseData.adcode})`);
-          });
-
-          // 将区划数据添加到选中集合
-          const boundaryData: BoundaryData = {
-            code: boundaryResponseData.adcode,
-            name: boundaryResponseData.name,
-            level: boundaryResponseData.level,
-            coordinates: [] // 暂时置空，或者根据需要从features提取
-          };
-          this.selectedBoundaries.set(adcode, boundaryData);
-
-        } else {
-          logger.warn(`解析高德 polyline 未生成有效 features: ${adcode}`);
-        }
-      } else {
-        logger.warn(`未获取到区划边界数据或缺少polyline: ${adcode}`);
-      }
+      // 使用转换后的数据创建区划
+      return this.createBoundary(convertedData, options);
     } catch (error) {
-      logger.error(`通过adcode添加边界失败: ${adcode}`, error);
+      console.error('添加区划失败:', error);
+      return false;
     }
   }
   
@@ -814,5 +761,106 @@ export class BoundaryObject {
       });
       this.map!.getTargetElement().style.cursor = hit ? 'pointer' : '';
     });
+  }
+
+  /**
+   * 获取区划数据
+   * @param adcode 行政区划代码
+   * @param options 区划配置选项
+   * @returns 区划数据
+   */
+  private async fetchBoundaryData(adcode: string, options: BoundaryOptions): Promise<any> {
+    // 检查是否已经添加过该边界
+    if (this.selectedBoundaries.has(adcode)) {
+      logger.debug(`边界已存在: ${adcode}`);
+      return null;
+    }
+
+    try {
+      // 1. 先查缓存
+      const cacheKey = `boundary-${adcode}`;
+      const db = indexedDBProxy();
+      let boundaryResponseData = await db.getItem(cacheKey) as any;
+      
+      if (!boundaryResponseData) {
+        // 2. 缓存没有，请求接口
+        boundaryResponseData = await fetchGaodeBoundary({
+          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
+          url: this.options.boundaryUrl,
+          adcode: adcode
+        });
+        
+        // 3. 写入缓存
+        if (boundaryResponseData) {
+          await db.setItem(cacheKey, boundaryResponseData);
+        }
+      }
+
+      return boundaryResponseData;
+    } catch (error) {
+      logger.error(`获取区划数据失败: ${adcode}`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 创建区划
+   * @param data 区划数据
+   * @param options 区划配置选项
+   * @returns 是否创建成功
+   */
+  private createBoundary(data: any, options: BoundaryOptions): boolean {
+    if (!data || !data.polyline) {
+      logger.warn(`未获取到区划边界数据或缺少polyline`);
+      return false;
+    }
+
+    try {
+      // 获取原始数据投影和目标地图投影
+      const mapType = (this.options.provider || MapType.GAODE) as MapType;
+      const sourceCoordSystem = getCoordSystemByMapType(mapType);
+      const dataProjection = convertCoordSystemToProjection(sourceCoordSystem);
+      const featureProjection = this.options.projection || 'EPSG:3857';
+
+      // 解析 polyline 并转换为 OpenLayers Features
+      const features = this.parseGaodePolylineToFeatures(data.polyline, dataProjection, featureProjection);
+
+      if (features && features.length > 0) {
+        // 为每个feature设置属性和样式，并添加到源
+        features.forEach((feature, index) => {
+          // 设置属性
+          feature.setProperties({
+            code: data.adcode,
+            name: data.name,
+            level: data.level,
+            ringIndex: index
+          });
+
+          // 设置样式
+          feature.setStyle(this.createBoundaryStyle(data.name, index === 0));
+
+          // 添加到源
+          this.boundarySource.addFeature(feature);
+          logger.debug(`成功添加边界 feature: ${data.name}(${data.adcode})`);
+        });
+
+        // 将区划数据添加到选中集合
+        const boundaryData: BoundaryData = {
+          code: data.adcode,
+          name: data.name,
+          level: data.level,
+          coordinates: [] // 暂时置空，或者根据需要从features提取
+        };
+        this.selectedBoundaries.set(data.adcode, boundaryData);
+
+        return true;
+      } else {
+        logger.warn(`解析 polyline 未生成有效 features`);
+        return false;
+      }
+    } catch (error) {
+      logger.error(`创建区划失败`, error);
+      return false;
+    }
   }
 } 

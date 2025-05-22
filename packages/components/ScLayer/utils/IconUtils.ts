@@ -627,15 +627,14 @@ export class IconUtils {
     }
     
     const {
-      icon,
       iconType = 'default',
       style = {},
       zIndex = 10000
-    } = options;
-    
-    // 默认样式
+    } = options as any;
+      // 默认样式
     const defaultStyle = {
       scale: 1,
+      size: [24, 24],
       anchor: [0.5, 1] as [number, number],
       offset: [0, 0] as [number, number],
       rotation: 0,
@@ -645,6 +644,28 @@ export class IconUtils {
       textFont: '14px Arial',
       textOffsetY: -20
     };
+    let icon = options.icon as any;
+    let size = options.size as [number, number];
+
+    if (icon && (typeof icon === 'object')) {
+      if(!size && icon.size) {
+        size = icon.size;
+      }
+      if(icon.anchor) {
+        defaultStyle.anchor = icon.anchor;
+      }
+
+      if(icon.offset) {
+        defaultStyle.offset = icon.offset;
+      }
+      if(icon.rotation) {
+        defaultStyle.rotation = icon.rotation;
+      }
+      
+      icon = icon.url || icon.src || icon.default;
+    }
+    defaultStyle.size = size;
+  
     
     // 合并样式
     const styleOptions = { ...defaultStyle, ...style };
@@ -688,6 +709,7 @@ export class IconUtils {
           // 创建Photo样式所需选项
           const photoOptions = {
             kind: options.data?.photoKind || 'circle',
+            size: styleOptions.size,
             stroke: options.data?.photoStroke !== undefined ? options.data?.photoStroke : 2,
             strokeColor: options.data?.photoStrokeColor || '#ffffff',
             shadow: options.data?.photoShadow !== false,
@@ -720,7 +742,8 @@ export class IconUtils {
             image: new Icon({
               src: iconUrl,
               scale: styleOptions.scale,
-              anchor: anchor,
+              anchor: styleOptions.anchor,
+               size: styleOptions.size,
               anchorXUnits: 'fraction',
               anchorYUnits: 'fraction',
               offset: styleOptions.offset,
@@ -758,8 +781,9 @@ export class IconUtils {
       image: new Icon({
         src: iconUrl,
         scale: styleOptions.scale,
-        anchor: anchor,
+        anchor: styleOptions.anchor,
         anchorXUnits: 'fraction',
+        size: styleOptions.size,
         anchorYUnits: 'fraction',
         offset: styleOptions.offset,
         rotation: styleOptions.rotation || 0

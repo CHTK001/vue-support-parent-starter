@@ -1,36 +1,25 @@
 <template>
-  <div class="search-box" :class="{ 'search-box--active': isActive }" :data-position="position">
+  <div class="search-box" :class="[position, { 'is-select': type === 'select' }]">
     <div class="search-input-wrapper">
-      <input
-        type="text"
-        v-model="keyword"
-        class="search-input"
-        :placeholder="placeholder"
-        @focus="handleFocus"
-        @blur="handleBlur"
-        @input="handleInput"
-      />
-      <button class="search-button" @click="handleSearch">
-        <i class="search-icon"></i>
-      </button>
-    </div>
-    
-    <!-- 搜索结果列表 -->
-    <div v-if="showResults" class="search-results">
-      <div
-        v-for="result in results"
-        :key="result.id"
-        class="search-result-item"
-        @click="handleResultClick(result)"
-      >
-        <div class="result-name">{{ result.name }}</div>
-        <div class="result-address">{{ result.address }}</div>
-        <div v-if="result.distance" class="result-distance">
-          {{ formatDistance(result.distance) }}
-        </div>
+      <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="placeholder"
+        @input="handleInput" class="search-input" />
+      <select v-else v-model="searchText" @change="handleInput" class="search-select">
+        <option value="">请选择</option>
+        <option v-for="option in options" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+      <div class="search-icon">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+          <path fill="currentColor"
+            d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
+        </svg>
       </div>
-      <div v-if="results.length === 0" class="no-results">
-        未找到相关结果
+    </div>
+    <div v-if="showResults && results.length > 0" class="search-results">
+      <div v-for="result in results" :key="result.id" class="search-result-item" @click="handleSelect(result)">
+        <div class="result-title">{{ result.name }}</div>
+        <div class="result-address">{{ result.address }}</div>
       </div>
     </div>
   </div>
@@ -63,6 +52,15 @@ const props = defineProps({
     type: Object as PropType<SearchBoxConfig>,
     default: () => ({...DEFAULT_SEARCH_BOX_CONFIG})
   },
+  type: {
+    type: String,
+    default: 'input',
+    validator: (value: string) => ['input', 'select'].includes(value)
+  },
+  options: {
+    type: Array as PropType<{ value: string; label: string }[]>,
+    default: () => []
+  },
 });
 
 // Emits 定义
@@ -72,9 +70,8 @@ const emit = defineEmits<{
 }>();
 
 // 响应式状态
-const keyword = ref('');
+const searchText = ref('');
 const results = ref<SearchResult[]>([]);
-const isActive = ref(false);
 const showResults = ref(false);
 let configObject = null;
 let searchTimer: number | null = null;
@@ -86,9 +83,9 @@ const handleInput = () => {
   }
   
   searchTimer = window.setTimeout(async () => {
-    if (keyword.value.trim()) {
+    if (searchText.value.trim()) {
       try {
-        const searchResults = await searchLocation(keyword.value, {}, props.searchBoxConfig, configObject);
+        const searchResults = await searchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
         results.value = searchResults;
         showResults.value = true;
         emit('search', searchResults);
@@ -109,26 +106,9 @@ const handleSearch = () => {
 };
 
 // 处理结果点击
-const handleResultClick = (result: SearchResult) => {
+const handleSelect = (result: SearchResult) => {
   emit('select', result);
   showResults.value = false;
-};
-
-// 处理输入框焦点
-const handleFocus = () => {
-  isActive.value = true;
-  if (results.value.length > 0) {
-    showResults.value = true;
-  }
-};
-
-// 处理输入框失焦
-const handleBlur = () => {
-  isActive.value = false;
-  // 延迟隐藏结果列表，以便能够点击结果
-  setTimeout(() => {
-    showResults.value = false;
-  }, 200);
 };
 
 // 格式化距离
@@ -147,145 +127,136 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-// 定义变量
-$primary-color: #1890ff;
-$border-color: #d9d9d9;
-$text-color: #333333;
-$hover-bg-color: rgba($primary-color, 0.1);
-$box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-$transition-duration: 0.3s;
-
 .search-box {
-  width: 100%;
-  max-width: 400px;
-  margin: 10px;
   position: absolute;
-  z-index: 4000;
-  
-  &[data-position="top-left"] {
-    top: 0;
-    left: 0;
-  }
-  
-  &[data-position="top-right"] {
-    top: 0;
-    right: 0;
-  }
-  
-  &[data-position="bottom-left"] {
-    bottom: 0;
-    left: 0;
-  }
-  
-  &[data-position="bottom-right"] {
-    bottom: 0;
-    right: 0;
-  }
-  
-  &--active {
-    .search-input {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
-    }
-  }
+  z-index: 1000;
+  width: 300px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-box:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .search-input-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  background: white;
-  border-radius: 4px;
-  box-shadow: $box-shadow;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.search-input {
-  flex: 1;
+.search-input,
+.search-select {
+  width: 100%;
   height: 36px;
-  padding: 0 12px;
-  border: 1px solid $border-color;
-  border-radius: 4px;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
   font-size: 14px;
-  outline: none;
-  transition: all $transition-duration;
-  
-  &:focus {
-    border-color: $primary-color;
-  }
+  color: #333;
+  background: #f8f8f8;
+  transition: all 0.3s ease;
 }
 
-.search-button {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    background-color: $hover-bg-color;
-  }
+.search-input:focus,
+.search-select:focus {
+  outline: none;
+  border-color: #1890ff;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
 }
 
 .search-icon {
-  width: 16px;
-  height: 16px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
-  background-size: contain;
-  background-repeat: no-repeat;
+  position: absolute;
+  right: 20px;
+  color: #999;
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.search-input:focus + .search-icon {
+  color: #1890ff;
 }
 
 .search-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  background: white;
-  border-radius: 4px;
-  box-shadow: $box-shadow;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  background: #fff;
+  border-radius: 0 0 8px 8px;
 }
 
 .search-result-item {
-  padding: 12px;
+  padding: 12px 16px;
   cursor: pointer;
-  transition: background-color $transition-duration;
-  
-  &:hover {
-    background-color: $hover-bg-color;
-  }
-  
-  &:not(:last-child) {
-    border-bottom: 1px solid $border-color;
-  }
+  transition: background-color 0.3s ease;
 }
 
-.result-name {
+.search-result-item:hover {
+  background-color: #f5f5f5;
+}
+
+.result-title {
   font-size: 14px;
-  font-weight: 500;
-  color: $text-color;
+  color: #333;
   margin-bottom: 4px;
 }
 
 .result-address {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.result-distance {
-  font-size: 12px;
-  color: $primary-color;
-}
-
-.no-results {
-  padding: 12px;
-  text-align: center;
   color: #999;
-  font-size: 14px;
+}
+
+/* 位置样式 */
+.top-left {
+  top: 20px;
+  left: 20px;
+}
+
+.top-right {
+  top: 20px;
+  right: 20px;
+}
+
+.bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+.bottom-right {
+  bottom: 20px;
+  right: 20px;
+}
+
+/* 滚动条美化 */
+.search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+/* 选择框特殊样式 */
+.search-box.is-select .search-input-wrapper {
+  padding: 0;
+}
+
+.search-box.is-select .search-select {
+  border: none;
+  background: transparent;
+  padding-right: 32px;
+}
+
+.search-box.is-select .search-select:focus {
+  box-shadow: none;
 }
 </style> 

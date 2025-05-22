@@ -77,7 +77,6 @@ export interface MapConfig {
   searchBoxConfig?: SearchBoxConfig;
   // 初始工具状态
   initialToolState?: {
-    search?: boolean;
     measure?: boolean;
     coordinate?: boolean;
     overview?: boolean;

@@ -73,6 +73,8 @@ export interface MarkerOptions {
   id?: string;
   /** 标记点位置，[lon, lat] */
   position: [number, number];
+  /** 标记点大小，[width, height] */
+  size?: [number, number];
   /** 标记点图标URL或Data URL */
   icon?: string;
   /** 图标类型: url, svg, base64, default, photo */
