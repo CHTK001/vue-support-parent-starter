@@ -239,37 +239,37 @@ export class MapObject {
     this.mapInstance.updateSize();
     
     // 延迟100ms后再更新一次
-    setTimeout(() => {
-      if (this.mapInstance) {
-        this.mapInstance.updateSize();
-        // 强制重绘地图
-        this.mapInstance.renderSync();
-        logger.info('地图尺寸更新(100ms)');
-      }
-    }, 100);
+    // setTimeout(() => {
+      // if (this.mapInstance) {
+      //   // this.mapInstance.updateSize();
+      //   // 强制重绘地图
+      //   this.mapInstance.renderSync();
+      //   logger.info('地图尺寸更新(100ms)');
+      // }
+    // }, 100);
     
     // 延迟300ms后再更新一次
-    setTimeout(() => {
-      if (this.mapInstance) {
-        this.mapInstance.updateSize();
-        // 强制重绘地图
-        this.mapInstance.renderSync();
-        logger.info('地图尺寸更新(300ms)');
-      }
-    }, 300);
+    // setTimeout(() => {
+    //   if (this.mapInstance) {
+    //     this.mapInstance.updateSize();
+    //     // 强制重绘地图
+    //     this.mapInstance.renderSync();
+    //     logger.info('地图尺寸更新(300ms)');
+    //   }
+    // }, 300);
     
-    // 延迟800ms后再更新一次，确保在各种环境下都能正确显示
-    setTimeout(() => {
-      if (this.mapInstance) {
-        this.mapInstance.updateSize();
-        // 强制重绘地图
-        this.mapInstance.renderSync();
-        logger.info('地图尺寸更新(800ms)');
+    // // 延迟800ms后再更新一次，确保在各种环境下都能正确显示
+    // setTimeout(() => {
+    //   if (this.mapInstance) {
+    //     this.mapInstance.updateSize();
+    //     // 强制重绘地图
+    //     this.mapInstance.renderSync();
+    //     logger.info('地图尺寸更新(800ms)');
         
-        // 检查地图状态
-        this.checkMapStatus();
-      }
-    }, 800);
+    //     // 检查地图状态
+    //     this.checkMapStatus();
+    //   }
+    // }, 800);
   }
 
   /**
@@ -430,12 +430,30 @@ export class MapObject {
       // 监听新图层的加载完成事件
       const source = this.mainLayer.getSource();
       if (source) {
-        source.on('tileloadend', () => {
-          // 关闭loading
+        let loadedTiles = 0;
+        const totalTiles = 4; // 初始加载的瓦片数量
+        
+        const handleTileLoad = () => {
+          loadedTiles++;
+          if (loadedTiles >= totalTiles) {
+            // 移除事件监听器
+            source.un('tileloadend', handleTileLoad);
+            // 关闭loading
+            loadingInstance.close();
+            // 触发一次地图更新
+            this.triggerMapResize();
+          }
+        };
+        
+        // 添加事件监听器
+        source.on('tileloadend', handleTileLoad);
+        
+        // 设置超时保护
+        setTimeout(() => {
+          source.un('tileloadend', handleTileLoad);
           loadingInstance.close();
-          // 触发地图更新
           this.triggerMapResize();
-        });
+        }, 5000); // 5秒超时
       } else {
         // 如果没有source，直接关闭loading
         loadingInstance.close();

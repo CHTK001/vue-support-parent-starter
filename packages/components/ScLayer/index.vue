@@ -289,9 +289,6 @@ const initMap = () => {
     logMapContainerInfo();
     // 初始化地图组件
     initializeMapComponents();
-    // 注册事件处理程序
-    registerEventHandlers();
-
     // 触发初始化完成事件
     emitMapInitializedEvent();
   } catch (error) {
@@ -372,13 +369,7 @@ const initializeMapComponents = async () => {
       gridManager = new GridManager(olMap, props.gridConfig);
     }
 
-    // 设置工具栏状态变化监听器
-    if (toolbarObject) {
-      toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
-    }
-
-    // 设置坐标面板监听
-    setupCoordinatePanelWatcher();
+    registerEventHandlers();
 
     // 标记地图初始化完成
     mapInitialized.value = true;
@@ -391,11 +382,6 @@ const initializeMapComponents = async () => {
 
     // 初始化后立即检查轨迹播放器状态，确保UI状态与工具状态一致
     checkTrackPlayerState();
-
-    // 保证工具栏状态变化监听器始终注册
-    if (toolbarObject) {
-      toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
-    }
 
     // 初始化搜索对象
     initSearchObject();

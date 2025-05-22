@@ -559,9 +559,6 @@ export class BoundaryObject {
       }
     }
 
-    // 不再清除当前显示的所有边界
-    // this.clearBoundaries();
-
     try {
       // 加载新的边界
       await this.addBoundaryByAdcode(adcode);
@@ -578,9 +575,6 @@ export class BoundaryObject {
         if (this.drillCallback) {
           this.drillCallback(boundaryData, isBack);
         }
-        
-        // 自动平移地图到边界中心
-        this.fitToBoundary(boundaryData.code);
       }
     } catch (error) {
       logger.error(`钻取到区划 ${adcode} 失败:`, error);
@@ -719,12 +713,15 @@ export class BoundaryObject {
     container.style.cssText = `
       position: absolute;
       background: white;
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-      min-width: 150px;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      min-width: 200px;
       transform: translate(-50%, -100%);
       margin-top: -10px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     `;
 
     const overlay = new Overlay({
@@ -748,16 +745,65 @@ export class BoundaryObject {
         const geometry = feature.getGeometry() as Polygon;
         const coordinate = geometry.getInteriorPoint().getCoordinates();
 
+        // 计算面积（平方公里）
+        const area = geometry.getArea() / 1000000; // 转换为平方公里
+        const formattedArea = area.toFixed(2);
+
         // 更新popup内容
         container.innerHTML = `
-          <div style="font-weight: bold; margin-bottom: 5px;">${props.name}</div>
-          <div style="color: #666;">行政级别: ${props.level}</div>
-          <div style="color: #666;">区划代码: ${props.code}</div>
+          <div style="
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+          ">
+            <div style="
+              font-size: 16px;
+              font-weight: 600;
+              color: #333;
+              margin-bottom: 4px;
+            ">${props.name}</div>
+            <div style="
+              font-size: 12px;
+              color: #666;
+              background: #f5f5f5;
+              padding: 2px 8px;
+              border-radius: 4px;
+              display: inline-block;
+            ">${props.level}</div>
+          </div>
+          <div style="
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+          ">
+            <div style="color: #999;">区划代码:</div>
+            <div>${props.code}</div>
+            <div style="color: #999;">面积:</div>
+            <div>
+              <span style="
+                color: #1677ff;
+                font-weight: 500;
+              ">${formattedArea}</span>
+              <span style="color: #999; margin-left: 4px;">平方公里</span>
+            </div>
+          </div>
         `;
 
         overlay.setPosition(coordinate);
+        // 显示动画
+        requestAnimationFrame(() => {
+          container.style.opacity = '1';
+          container.style.transform = 'translate(-50%, -100%) scale(1)';
+        });
       } else {
-        overlay.setPosition(undefined);
+        // 隐藏动画
+        container.style.opacity = '0';
+        container.style.transform = 'translate(-50%, -100%) scale(0.95)';
+        setTimeout(() => {
+          overlay.setPosition(undefined);
+        }, 300);
       }
     });
 
