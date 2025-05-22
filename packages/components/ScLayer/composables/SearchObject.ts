@@ -253,6 +253,7 @@ export class SearchObject {
     const markerId = this.markerObject.addMarker({
       position: [result.location.lng, result.location.lat],
       title: result.name,
+      id: result.id,
       icon: {
         src: DEFAULT_MARKER_ICON.default.url,
         size: DEFAULT_MARKER_ICON.default.size,
@@ -260,8 +261,8 @@ export class SearchObject {
         offset: DEFAULT_MARKER_ICON.default.offset
       },
       draggable: false,
-      zIndex: 1000
-    });
+      zIndex: 3000
+    } as any);
 
     if (markerId) {
       this.searchMarker = markerId;
