@@ -77,7 +77,7 @@ import { ToolbarObject } from './composables/ToolbarObject';
 import { TrackObject } from './composables/TrackObject';
 import type { MapEventType, Track, TrackPlayer } from './types';
 import { MapConfig, MapTile } from './types';
-import { DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_SEARCH_BOX_CONFIG } from './types/default';
+import { DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_ICON, DEFAULT_SEARCH_BOX_CONFIG } from './types/default';
 import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
 import type { MarkerConfig, MarkerOptions } from './types/marker';
 import { Shape, ShapeOption } from './types/shape';
@@ -101,6 +101,8 @@ import { Model3DOptions } from './composables/CesiumModelObject';
 import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
 import type { SearchResult } from './types/search';
+import { getCurrentPoint } from './utils/locationUtils';
+import { Coordinate } from './utils/coordUtils';
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {
@@ -461,6 +463,16 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       }
     },
 
+    'current-location': () => {
+      getCurrentPoint().then((coordinate: Coordinate) => {
+        toolbarObject.getMarkerObject().addMarker({
+            id: 'current-point',
+            position: [coordinate.lng, coordinate.lat],
+            icon: DEFAULT_ICON
+        } as MarkerOptions)
+        
+      })
+    },
     // 图层面板强制显示事件
     'layer-panel-visible': () => {
       if (toolType === 'panel' && active) {

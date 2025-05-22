@@ -92,6 +92,7 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
   }
 ] as IconSpeedGroup[];
 
+export const DEFAULT_ICON = marker;
 /**
  * 默认标记点图标配置
  */

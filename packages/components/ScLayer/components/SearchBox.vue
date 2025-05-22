@@ -86,57 +86,6 @@ let configObject = null;
 let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
-//获取当前位置并定位到改地址
-const currentPoint = async () => {
-  try {
-    // 获取当前位置
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      });
-    });
-
-    const { latitude, longitude } = position.coords;
-    
-    // 使用 SearchObject 添加标记并定位
-    if (searchObject) {
-      // 清除之前的搜索结果
-      searchObject.clearResults();
-      
-      // 添加当前位置标记
-      const markerId = searchObject.addSearchMarker({
-        location: {
-          lng: longitude,
-          lat: latitude
-        },
-        name: '当前位置',
-        address: '当前位置',
-        id: 'current-location',
-        type: 'location'
-      });
-
-      if (markerId) {
-        // 选择该标记点
-        searchObject.selectResult({
-          location: {
-            lng: longitude,
-            lat: latitude
-          },
-          name: '当前位置',
-          address: '当前位置',
-          id: 'current-location',
-          type: 'location'
-        });
-      }
-    }
-  } catch (error) {
-    console.error('获取当前位置失败:', error);
-    ElMessage.error('获取当前位置失败，请检查定位权限或重试');
-  }
-};
-
 // 处理输入
 const handleInput = () => {
   if (searchTimer) {
