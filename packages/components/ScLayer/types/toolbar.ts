@@ -140,6 +140,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
       tooltip: '显示/隐藏搜索框',
       multi: true
     },
+     {
+      id: 'current-location',
+      type: 'button',
+      icon: LOCATION_ICON,
+      title: '我的当前位置',
+      tooltip: '定位到当前位置',
+      multi: false
+    },
     {
       id: 'measure',
       type: 'toggle',
