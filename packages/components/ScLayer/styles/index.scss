@@ -12,6 +12,9 @@
     transform: translate(-50%, -100%);
   }
 }
+.toolbar-item.active .svg-icon path{
+  fill: #FFF;
+}
 .search-box {
   position: absolute !important;
 }

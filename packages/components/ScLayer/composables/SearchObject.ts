@@ -7,6 +7,7 @@ import { MarkerObject } from './MarkerObject';
 import { searchLocation, getNavigation } from '../api/search';
 import type { SearchResult, SearchOptions, SearchBoxConfig } from '../types/search';
 import type { ConfigObject } from './ConfigObject';
+import { fromLonLat } from 'ol/proj';
 
 // 缓存项接口
 interface CacheItem {
@@ -220,14 +221,18 @@ export class SearchObject {
     if (!this.mapInstance) return;
 
     try {
-      // 使用地图的panTo方法平滑移动到目标位置
-      this.mapInstance.panTo([location.lat, location.lng], {
-        animate: true,
-        duration: 1 // 动画持续时间，单位秒
+      // 将经纬度转换为地图投影坐标
+      const coordinate = fromLonLat([location.lng, location.lat]);
+      
+      // 获取地图视图
+      const view = this.mapInstance.getView();
+      
+      // 设置中心点和缩放级别
+      view.animate({
+        center: coordinate,
+        zoom: zoom,
+        duration: 1000 // 动画持续时间，单位毫秒
       });
-
-      // 设置缩放级别
-      this.mapInstance.setZoom(zoom);
     } catch (error) {
       console.error('地图定位失败:', error);
     }
