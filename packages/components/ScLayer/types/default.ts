@@ -88,3 +88,23 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
     iconType: 'photo'
   }
 ] as IconSpeedGroup[];
+
+/**
+ * 默认标记点图标配置
+ */
+export const DEFAULT_MARKER_ICON = {
+  // 默认图标
+  default: {
+    url: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTE2IDJDNi40NzcgMiAwIDguNDc3IDAgMTZjMCA5LjM5MyA4LjIxNyAxNi4xMTYgMTUuOTk5IDI5Ljk5NkMyMy43ODMgMzIuMTE2IDMyIDI1LjM5MyAzMiAxNmMwLTcuNTIzLTYuNDc3LTE0LTE2LTE0em0wIDRjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMHMtNC40NzcgMTAtMTAgMTAtMTAtNC40NzctMTAtMTAgNC40NzctMTAgMTAtMTB6Ii8+PC9zdmc+',
+    size: [32, 32],
+    anchor: [16, 32],
+    offset: [0, 0]
+  },
+  // 选中状态图标
+  selected: {
+    url: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggZmlsbD0iI2Y1MjUyNSIgZD0iTTE2IDJDNi40NzcgMiAwIDguNDc3IDAgMTZjMCA5LjM5MyA4LjIxNyAxNi4xMTYgMTUuOTk5IDI5Ljk5NkMyMy43ODMgMzIuMTE2IDMyIDI1LjM5MyAzMiAxNmMwLTcuNTIzLTYuNDc3LTE0LTE2LTE0em0wIDRjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMHMtNC40NzcgMTAtMTAgMTAtMTAtNC40NzctMTAtMTAgNC40NzctMTAgMTAtMTB6Ii8+PC9zdmc+',
+    size: [32, 32],
+    anchor: [16, 32],
+    offset: [0, 0]
+  }
+};

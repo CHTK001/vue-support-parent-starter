@@ -8,6 +8,7 @@ import { searchLocation, getNavigation } from '../api/search';
 import type { SearchResult, SearchOptions, SearchBoxConfig } from '../types/search';
 import type { ConfigObject } from './ConfigObject';
 import { fromLonLat } from 'ol/proj';
+import { DEFAULT_MARKER_ICON } from '../types/default';
 
 // 缓存项接口
 interface CacheItem {
@@ -248,15 +249,35 @@ export class SearchObject {
     // 清除之前的标记
     this.clearSearchMarker();
     
-    // 添加新标记
-    this.addSearchMarker(result);
-    
-    // 定位到选中位置
-    this.flyToLocation(result.location);
-    
-    // 触发选择回调
-    if (this.selectCallback) {
-      this.selectCallback(result);
+    // 使用默认图标创建标记
+    const markerId = this.markerObject.addMarker({
+      position: [result.location.lng, result.location.lat],
+      title: result.name,
+      icon: {
+        src: DEFAULT_MARKER_ICON.default.url,
+        size: DEFAULT_MARKER_ICON.default.size,
+        anchor: DEFAULT_MARKER_ICON.default.anchor,
+        offset: DEFAULT_MARKER_ICON.default.offset
+      },
+      draggable: false,
+      zIndex: 1000
+    });
+
+    if (markerId) {
+      this.searchMarker = markerId;
+      
+      // 将地图中心移动到标记位置
+      this.flyToLocation(result.location);
+
+      // 触发点击事件
+      this.markerObject.triggerMarkerClick(markerId, {
+        coordinates: [result.location.lng, result.location.lat],
+        data: {
+          id: markerId,
+          title: result.name,
+          position: [result.location.lng, result.location.lat]
+        }
+      });
     }
   }
 

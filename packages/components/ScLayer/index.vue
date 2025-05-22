@@ -798,6 +798,30 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
       showSearchBox.value = active;
       logger.debug(`[Search] 搜索框显示状态: ${showSearchBox.value}`);
     },
+
+    // 区划工具状态变化
+    'boundary': () => {
+      logger.debug(`[Boundary] 区划工具状态变化: ${active ? '激活' : '停用'}`);
+      showBoundarySelector.value = active;
+      
+      if (active) {
+        // 激活时显示区划选择器面板
+        showBoundarySelector.value = true;
+        logger.debug('[Boundary] 区划工具已激活，显示区划选择器面板');
+      } else {
+        // 停用时隐藏区划选择器面板
+        showBoundarySelector.value = false;
+        logger.debug('[Boundary] 区划工具已停用，隐藏区划选择器面板');
+      }
+    },
+
+    // 区划面板强制显示事件
+    'boundary-panel-visible': () => {
+      if (toolType === 'panel' && active) {
+        showBoundarySelector.value = true;
+        logger.debug('[Boundary] 收到区划面板强制显示事件');
+      }
+    },
   };
 
   // 执行对应的处理函数
@@ -1626,6 +1650,8 @@ onMounted(() => {
   setTimeout(() => {
     if (mapReady.value && toolbarObject) {
       checkFlightLineState();
+      // 检查区划工具状态
+      checkBoundaryState();
     }
   }, 2000);
 
@@ -2650,7 +2676,6 @@ const initToolState = () => {
   
   // 获取初始工具状态配置
   const initialToolState = props.initialToolState || {};
-  
   // 遍历并激活配置的工具
   Object.entries(initialToolState).forEach(([toolId, active]) => {
     if (active) {
@@ -2658,6 +2683,26 @@ const initToolState = () => {
       logger.debug(`[Tool] 初始化激活工具: ${toolId}`);
     }
   });
+  toolbarObject.activateTool(showSearchBox.value ? 'search' : '');
+};
+
+// 添加检查区划工具状态的方法
+const checkBoundaryState = () => {
+  if (!toolbarObject) return;
+
+  // 检查区划工具是否激活
+  const isBoundaryActive = toolbarObject.getActiveToolId() === 'boundary';
+
+  logger.debug(`[Boundary] 检查区划工具状态: 激活=${isBoundaryActive}, 面板显示=${showBoundarySelector.value}`);
+
+  // 确保UI状态与工具状态一致
+  if (isBoundaryActive && !showBoundarySelector.value) {
+    logger.debug('[Boundary] 发现区划工具已激活但面板未显示，显示区划选择器面板');
+    showBoundarySelector.value = true;
+  } else if (!isBoundaryActive && showBoundarySelector.value) {
+    logger.debug('[Boundary] 区划工具未激活但面板显示中，隐藏区划选择器面板');
+    showBoundarySelector.value = false;
+  }
 };
 
 </script>
