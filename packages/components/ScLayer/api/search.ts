@@ -191,7 +191,8 @@ export async function searchLocation(keyword: string, options: SearchOptions = {
     });
 
     if (response.status === '1') {
-      const results = response.pois.map(poi => ({
+      const results = response.pois.map(poi => {
+        const rs = {
         id: poi.id,
         name: poi.name,
         address: poi.address,
@@ -201,13 +202,15 @@ export async function searchLocation(keyword: string, options: SearchOptions = {
         },
         type: poi.type,
         distance: poi.distance ? parseInt(poi.distance) : undefined
-      }));
-      const coord = gcoordObject.convertFromMapCoord({
-        lat: results.location.lat,
-        lng: results.location.lng
-      }, searchBoxConfig.projection as any)
-      results.location.lng = coord.lng;
-      results.location.lng = coord.lng;
+        }
+        const coord = gcoordObject.convertFromMapCoord({
+          lat: rs.location.lat,
+          lng: rs.location.lng
+        }, searchBoxConfig.projection as any)
+        rs.location.lng = coord.lng;
+        rs.location.lng = coord.lng;
+        return rs;
+      });
       // 更新缓存
       await updateCache(keyword, options, results);
 
