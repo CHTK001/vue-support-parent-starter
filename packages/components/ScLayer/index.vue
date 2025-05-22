@@ -103,6 +103,8 @@ import { SearchObject } from './composables/SearchObject';
 import type { SearchResult } from './types/search';
 import { getCurrentPoint } from './utils/locationUtils';
 import { Coordinate } from './utils/coordUtils';
+import { ElMessage } from 'element-plus';
+import { message } from '@repo/utils';
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {
@@ -465,13 +467,20 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
     'current-location': () => {
       getCurrentPoint().then((coordinate: Coordinate) => {
+        // 添加标记点
         toolbarObject.getMarkerObject().addMarker({
             id: 'current-point',
             position: [coordinate.lng, coordinate.lat],
             icon: DEFAULT_ICON
-        } as MarkerOptions)
+        } as MarkerOptions);
         
-      })
+        // 移动到目标位置
+        if (mapObj) {
+          mapObj.setCenter(coordinate.lat, coordinate.lng);
+        }
+      }).catch(error => {
+        message("获取当前位置失败，请检查定位权限或重试", {type: 'error'})
+      });
     },
     // 图层面板强制显示事件
     'layer-panel-visible': () => {
