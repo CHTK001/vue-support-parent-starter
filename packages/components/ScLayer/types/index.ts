@@ -75,6 +75,28 @@ export interface MapConfig {
   showSearchBox?: boolean;
   // 搜索框配置
   searchBoxConfig?: SearchBoxConfig;
+  // 初始工具状态
+  initialToolState?: {
+    search?: boolean;
+    measure?: boolean;
+    coordinate?: boolean;
+    overview?: boolean;
+    'layer-switch'?: boolean;
+    'marker-toggle'?: boolean;
+    'label-toggle'?: boolean;
+    cluster?: boolean;
+    'draw-rectangle'?: boolean;
+    'draw-circle'?: boolean;
+    'draw-polygon'?: boolean;
+    'draw-line'?: boolean;
+    'draw-square'?: boolean;
+    'clear-shapes'?: boolean;
+    'edit-shape'?: boolean;
+    'flightLine'?: boolean;
+    'heatmap'?: boolean;
+    'track-player'?: boolean;
+    'boundary'?: boolean;
+  };
 }
 
 // 事件类型
