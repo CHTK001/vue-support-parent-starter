@@ -7,6 +7,7 @@ import type { ToolbarConfig, ToolItem } from "./toolbar";
 import type { CoordinateOptions } from "../composables/CoordinateObject";
 import { OverviewMapConfig } from "../components/OverviewMap.vue";
 import type { BoundaryOptions } from "./boundary";
+import type { SearchBoxConfig } from "./search";
 export * from "./map";
 export * from "./toolbar";
 export * from "./marker";
@@ -70,6 +71,10 @@ export interface MapConfig {
   showScaleLine?: boolean;
   // 区划配置
   boundaryConfig?: BoundaryOptions;
+  // 是否显示搜索框
+  showSearchBox?: boolean;
+  // 搜索框配置
+  searchBoxConfig?: SearchBoxConfig;
 }
 
 // 事件类型

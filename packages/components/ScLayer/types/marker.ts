@@ -57,6 +57,15 @@ export interface MarkerStyleOptions {
 }
 
 /**
+ * 标记点按钮
+ */
+export interface MarkerButton {
+  icon: string;
+  title: string;
+  onClick: () => void;
+}
+
+/**
  * 标记点选项配置
  */
 export interface MarkerOptions {
@@ -98,6 +107,8 @@ export interface MarkerOptions {
   template?: string;
   /** 数据类型 */
   dataType?: DataType;
+  /** 标记点按钮 */
+  buttons?: MarkerButton[];
 }
 
 /**
