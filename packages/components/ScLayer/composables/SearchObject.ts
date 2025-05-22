@@ -241,6 +241,9 @@ export class SearchObject {
     }
   }
 
+  public async  searchLocationsearchLocation(keyword: string, options: SearchOptions = {}, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject): Promise<SearchResult[]> {
+    return searchLocation(keyword, options, searchBoxConfig, configObject);
+  }
   /**
    * 选择搜索结果
    * @param result 搜索结果
