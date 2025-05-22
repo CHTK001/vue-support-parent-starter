@@ -41,7 +41,7 @@
       @apply="handleBoundaryApply" @clear="handleBoundaryClear" @remove="handleBoundaryRemove" />
 
     <!-- 添加搜索框组件 -->
-    <SearchBox v-if="props.showSearchBox" class="search-box" ref="searchBoxRef"
+    <SearchBox v-if="showSearchBox" class="search-box" ref="searchBoxRef"
       :placeholder="props.searchBoxConfig.placeholder" :debounce-time="props.searchBoxConfig.debounceTime"
       :position="props.searchBoxConfig.position" :search-box-config="props.searchBoxConfig" @search="handleSearch"
       @select="handleSearchSelect" />
@@ -370,6 +370,8 @@ const initializeMapComponents = async () => {
     }
 
     registerEventHandlers();
+    //初始化工具
+    initToolState();
 
     // 标记地图初始化完成
     mapInitialized.value = true;
@@ -791,6 +793,10 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         logger.debug(`[Shape] 接收到图形更新事件，ID: ${data.shapeId}, 类型: ${data.shapeType}`);
         emit('shape-update' as MapEventType, { id: data.shapeId, options: {} });
       }
+    },
+    'search': () => {
+      showSearchBox.value = active;
+      logger.debug(`[Search] 搜索框显示状态: ${showSearchBox.value}`);
     },
   };
 
@@ -2632,6 +2638,27 @@ const handleSearchSelect = (result: SearchResult) => {
   }
 };
 
+const showSearchBox = ref(props.showSearchBox);
+
+watch(() => props.showSearchBox, (val) => {
+  showSearchBox.value = val;
+});
+
+// 初始化工具状态
+const initToolState = () => {
+  if (!toolbarObject) return;
+  
+  // 获取初始工具状态配置
+  const initialToolState = props.initialToolState || {};
+  
+  // 遍历并激活配置的工具
+  Object.entries(initialToolState).forEach(([toolId, active]) => {
+    if (active) {
+      toolbarObject.activateTool(toolId);
+      logger.debug(`[Tool] 初始化激活工具: ${toolId}`);
+    }
+  });
+};
 
 </script>
 

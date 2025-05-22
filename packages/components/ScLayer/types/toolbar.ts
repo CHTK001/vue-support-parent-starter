@@ -36,6 +36,7 @@ import {
   WIND_ICON,
   DIMENSION_SWITCH_ICON,
   DIMENSION_SWITCH_ICON_EARTH,
+  SEARCH_ICON
 } from './icon';
 import type { TrackPlayerConfigOptions } from './track';
 
@@ -131,6 +132,14 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
   showCollapse: true,
   collapsed: false,
   items: [
+    {
+      id: 'search',
+      type: 'toggle',
+      icon: SEARCH_ICON,
+      title: '搜索',
+      tooltip: '显示/隐藏搜索框',
+      multi: true
+    },
     {
       id: 'measure',
       type: 'toggle',
