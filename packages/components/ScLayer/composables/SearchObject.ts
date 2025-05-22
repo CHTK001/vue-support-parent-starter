@@ -91,7 +91,7 @@ export class SearchObject {
       }
 
       // 执行搜索
-      const results = await searchLocation(keyword, options, this.searchBoxConfig, this.configObject);
+      const results = await searchLocation(keyword, options, this.searchBoxConfig, this.configObject, this.mapObj.getGcoordObject());
       
       // 更新缓存
       this.updateCache(keyword, options, results);
