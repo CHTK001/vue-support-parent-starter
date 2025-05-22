@@ -2,6 +2,8 @@ import { MapType } from '.';
 import type { BoundaryOptions } from './boundary';
 import type { SearchBoxConfig } from './search';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
+//@ts-ignore
+import marker from '@repo/assets/images/marker.png';
 
 // 默认轨迹播放器配置
 export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
@@ -95,8 +97,8 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
 export const DEFAULT_MARKER_ICON = {
   // 默认图标
   default: {
-    url: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTE2IDJDNi40NzcgMiAwIDguNDc3IDAgMTZjMCA5LjM5MyA4LjIxNyAxNi4xMTYgMTUuOTk5IDI5Ljk5NkMyMy43ODMgMzIuMTE2IDMyIDI1LjM5MyAzMiAxNmMwLTcuNTIzLTYuNDc3LTE0LTE2LTE0em0wIDRjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMHMtNC40NzcgMTAtMTAgMTAtMTAtNC40NzctMTAtMTAgNC40NzctMTAgMTAtMTB6Ii8+PC9zdmc+',
-    size: [32, 32],
+    url: marker,
+    size: [24, 24],
     anchor: [16, 32],
     offset: [0, 0]
   },
