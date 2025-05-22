@@ -1,4 +1,5 @@
 import { MapType } from '.';
+import { CoordSystem } from '../utils/coordUtils';
 import type { BoundaryOptions } from './boundary';
 import type { SearchBoxConfig } from './search';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
@@ -27,7 +28,7 @@ export const DEFAULT_SEARCH_BOX_CONFIG: SearchBoxConfig = {
   placeholder: '请输入搜索关键词',
   debounceTime: 300,
   position: 'top-right',
-  projection: 'EPSG:3857',
+  projection: CoordSystem.EPSG3857,
   mapType: MapType.GAODE,
   searchUrl: 'https://restapi.amap.com/v3/place/text'
 };
