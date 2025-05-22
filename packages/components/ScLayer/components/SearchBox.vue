@@ -14,6 +14,8 @@
           <path fill="currentColor"
             d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
         </svg>
+        <svg @click="currentPoint" t="1747922472762" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4605" width="16" height="16">
+          <path fill="currentColor" d="M512 54.857143C259.657143 54.857143 54.857143 259.657143 54.857143 512s204.8 457.142857 457.142857 457.142857 457.142857-204.8 457.142857-457.142857S764.342857 54.857143 512 54.857143z m36.571429 839.314286v-113.371429h-73.142858v113.371429C292.571429 877.714286 146.285714 731.428571 129.828571 548.571429h113.371429v-73.142858H129.828571C146.285714 292.571429 292.571429 146.285714 475.428571 129.828571v113.371429h73.142858V129.828571C731.428571 146.285714 877.714286 292.571429 894.171429 475.428571h-113.371429v73.142858h113.371429C877.714286 731.428571 731.428571 877.714286 548.571429 894.171429z" p-id="4606"></path><path d="M512 585.142857a73.142857 73.142857 0 1 0 0-146.285714 73.142857 73.142857 0 0 0 0 146.285714z" p-id="4607"></path></svg>
       </div>
     </div>
     <div v-if="showResults && results.length > 0" class="search-results">
@@ -88,6 +90,10 @@ let configObject = null;
 let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
+//获取当前位置并定位到改地址
+const currentPoint = () => {
+
+}
 // 处理输入
 const handleInput = () => {
   if (searchTimer) {
@@ -212,6 +218,7 @@ defineExpose({
   right: 20px;
   color: #999;
   pointer-events: none;
+  display: flex;
   transition: color 0.3s ease;
 }
 
