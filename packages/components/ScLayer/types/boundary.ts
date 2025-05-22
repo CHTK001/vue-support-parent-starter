@@ -1,3 +1,4 @@
+import type { CoordSystem } from "../utils/coordUtils";
 import type { MapType } from "./map";
 
 // 区划级别
@@ -40,7 +41,7 @@ export interface BoundaryOptions {
   mapKey?: Record<string, string>; // 添加 mapKey 属性
   boundaryUrl?: string; // 添加 boundaryUrl 属性
   districtUrl?: string; // 添加 districtUrl 属性
-  projection?: string; // 添加投影信息
+  projection?: CoordSystem; // 添加投影信息
   fillBoundary?: boolean; // 是否填充区划
   strokeColor?: string; // 边框颜色
   strokeWidth?: number; // 边框宽度

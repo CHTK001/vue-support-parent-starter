@@ -2643,7 +2643,7 @@ const boundarySelectorPosition = computed(() => {
 
 // 初始化搜索对象
 const initSearchObject = () => {
-  searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject);
+  searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj);
   nextTick(() => {
     if (searchBoxRef.value) {
       searchBoxRef.value.setConfigObject(configObject);

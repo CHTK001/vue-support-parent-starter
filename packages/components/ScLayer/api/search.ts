@@ -198,10 +198,17 @@ export async function searchLocation(keyword: string, options: SearchOptions = {
         type: poi.type,
         distance: poi.distance ? parseInt(poi.distance) : undefined
       }));
-
+      const gcoordObject = this.mapObject.getGcoordObject();
+      const coord = gcoordObject.convertFromMapCoord({
+        lat: results.location.lat,
+        lng: results.location.lng
+      }, searchBoxConfig.projection as any)
+      results.location.lng = coord.lng;
+      results.location.lng = coord.lng;
       // 更新缓存
       await updateCache(keyword, options, results);
 
+      
       return results;
     }
     throw new Error(response.info);
