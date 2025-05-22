@@ -168,8 +168,8 @@ export class MarkerObject {
     // 从地图元素上获取聚合配置
     let clusterDistance = 80; // 默认聚合距离改为与默认配置一致的80像素
     const mapElement = this.mapInstance.getTargetElement();
-    if (mapElement && mapElement['clusterConfig'] && 
-        typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
+    if (mapElement && mapElement['clusterConfig'] &&
+      typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
       clusterDistance = mapElement['clusterConfig'].maxClusterRadius;
       this.log('debug', `从配置获取聚合距离: ${clusterDistance} 像素`);
     }
@@ -470,7 +470,7 @@ export class MarkerObject {
       }
       
       // 添加呼吸效果（脉动效果），保持更微妙的缩放
-      const breathProgress = Math.sin(animationProgress * Math.PI * 2 * pulseFrequency); 
+      const breathProgress = Math.sin(animationProgress * Math.PI * 2 * pulseFrequency);
       const breathScale = 1 + Math.abs(breathProgress) * 0.08; // 减小呼吸效果的缩放范围
       
       // 创建呼吸效果的圆圈
@@ -593,8 +593,8 @@ export class MarkerObject {
       // 从地图元素获取聚合配置
       let clusterDistance = 80; // 默认值
       const mapElement = this.mapInstance?.getTargetElement();
-      if (mapElement && mapElement['clusterConfig'] && 
-          typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
+      if (mapElement && mapElement['clusterConfig'] &&
+        typeof mapElement['clusterConfig'].maxClusterRadius === 'number') {
         clusterDistance = mapElement['clusterConfig'].maxClusterRadius;
         this.log('debug', `切换聚合模式时应用配置的聚合距离: ${clusterDistance} 像素`);
       }
@@ -835,8 +835,8 @@ export class MarkerObject {
     this.markerOptions.set(id, { ...options });
     
     // 根据当前的聚合模式和标记点的聚合模式添加到相应图层
-    const shouldAddToCluster =  (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
-    const shouldAddToMarker =  options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
+    const shouldAddToCluster = (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+    const shouldAddToMarker = options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
     
     if (shouldAddToCluster) {
       // 在聚合模式下，添加到聚合图层
@@ -945,7 +945,7 @@ export class MarkerObject {
       
       // 如果启用了缩放功能，更新基准缩放级别为当前级别
       if (this.config.scaleWithZoom && this.mapInstance) {
-        const currentZoom = this.mapInstance.getView().getZoom()  || 10;
+        const currentZoom = this.mapInstance.getView().getZoom() || 10;
         // 更新基准缩放级别
         newOptions.data = newOptions.data || {};
         newOptions.data._baseZoom = currentZoom;
@@ -966,8 +966,8 @@ export class MarkerObject {
       clusterSource.getSource()!.removeFeature(marker);
       
       // 根据新的聚合模式添加到相应图层
-      const shouldAddToCluster =  (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
-      const shouldAddToMarker =  options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
+      const shouldAddToCluster = (options.clusterMode === MarkerClusterMode.CLUSTER || options.clusterMode === MarkerClusterMode.BOTH);
+      const shouldAddToMarker = options.clusterMode === MarkerClusterMode.NONE || options.clusterMode === MarkerClusterMode.BOTH;
       options.dataType = DataType.MARKER;
       if (shouldAddToCluster) {
         clusterSource.getSource()!.addFeature(marker);
@@ -1164,12 +1164,7 @@ export class MarkerObject {
    */
   public setClickHandler(handler: MarkerEventHandler | null): void {
     this.clickHandler = handler;
-    
-    if (handler) {
-      this.log('debug', '已设置标记点点击回调');
-    } else {
-      this.log('debug', '已移除标记点点击回调');
-    }
+    this.log('debug', '已设置点击回调');
   }
 
   /**
@@ -1669,7 +1664,7 @@ export class MarkerObject {
         if (!extent) {
           extent = featureExtent;
         } else {
-          extent = [ 
+          extent = [
             Math.min(extent[0], featureExtent[0]),
             Math.min(extent[1], featureExtent[1]),
             Math.max(extent[2], featureExtent[2]),
@@ -1998,7 +1993,7 @@ export class MarkerObject {
   } {
     return {
       zoomFactor: this.config.zoomFactor || 0.05,
-      minScale: this.config.minScale || 0.8, 
+      minScale: this.config.minScale || 0.8,
       maxScale: this.config.maxScale || 1.2,
       scaleWithZoom: this.config.scaleWithZoom || false
     };
@@ -2047,14 +2042,23 @@ export class MarkerObject {
     
     this.log('info', '已设置聚合配置');
   }
-}
 
-/**
- * 创建标记点对象的工厂函数
- */
-export function createMarkerObject(mapInstance?: OlMap): MarkerObject {
-  logger.debug('[Marker] 通过工厂函数创建标记点对象');
-  return new MarkerObject(mapInstance || null);
+  /**
+   * 触发标记点点击事件
+   * @param markerId 标记点ID
+   * @param eventData 事件数据
+   */
+  public triggerMarkerClick(markerId: string, eventData: any): void {
+    const marker = this.markers.get(markerId);
+    if (marker && this.clickHandler) {
+      const geometry = marker.getGeometry() as Point;
+      const coordinates = geometry ? geometry.getCoordinates() : [0, 0];
+      const markerOptions = this.markerOptions.get(markerId);
+      if (markerOptions) {
+        // 触发点击事件
+        //@ts-ignore
+        this.clickHandler(markerOptions, coordinates);
+      }
+    }
+  }
 }
-
-export default MarkerObject; 
