@@ -40,14 +40,16 @@ export class SearchObject {
 
   // 导航路线对象
   private navigationLine: any = null;
-
+  // 地图
+  private mapObj: MapObject = null;
   // 缓存配置
   private readonly CACHE_SIZE = 10; // 缓存大小
   private readonly CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 缓存过期时间（5分钟）
   private searchCache: CacheItem[] = [];
 
-  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject) {
+  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject) {
     this.mapInstance = mapInstance;
+    this.mapObj = mapObj;
     this.markerObject = markerObject;
     this.searchBoxConfig = searchBoxConfig;
     this.configObject = configObject;

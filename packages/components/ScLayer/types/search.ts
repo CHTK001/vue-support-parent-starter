@@ -1,4 +1,5 @@
 import type { MapType } from ".";
+import type { CoordSystem } from "../utils/coordUtils";
 
  /**
  * 搜索结果接口
@@ -58,7 +59,7 @@ export interface SearchBoxConfig {
   placeholder: string;
   debounceTime: number;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  projection: string;
+  projection: CoordSystem;
   mapType: MapType;
   searchUrl: string;
 }

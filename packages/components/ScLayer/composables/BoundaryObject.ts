@@ -383,12 +383,13 @@ export class BoundaryObject {
    * @param featureProjection 目标特征投影 (如 'EPSG:3857')
    * @returns OpenLayers Feature 数组
    */
-  private parseGaodePolylineToFeatures(polyline: string, dataProjection: string, featureProjection: string): Feature[] {
+  private parseGaodePolylineToFeatures(polyline: string, projection: CoordSystem): Feature[] {
     if (!polyline) {
       logger.warn('无效的polyline字符串');
       return [];
     }
-    
+    const gcoordObject = this.mapObject.getGcoordObject();
+
     const features: Feature[] = [];
     // 按 '|' 分隔不同的多边形部分
     const parts = polyline.split('|');
@@ -412,7 +413,11 @@ export class BoundaryObject {
           const lat = parseFloat(pointPairs[i + 1]);
           if (!isNaN(lng) && !isNaN(lat)) {
             // 高德坐标(GCJ02)转换为Web墨卡托(EPSG:3857)
-            const mercatorCoord = fromLonLat([lng, lat], 'EPSG:3857');
+            const coord = gcoordObject.convertFromMapCoord({
+              lat: lat,
+              lng: lng
+            }, projection)
+            const mercatorCoord = fromLonLat([coord.lng, coord.lat], 'EPSG:3857');
             coords.push(mercatorCoord);
           }
         }
@@ -816,14 +821,8 @@ export class BoundaryObject {
     }
 
     try {
-      // 获取原始数据投影和目标地图投影
-      const mapType = (this.options.provider || MapType.GAODE) as MapType;
-      const sourceCoordSystem = getCoordSystemByMapType(mapType);
-      const dataProjection = convertCoordSystemToProjection(sourceCoordSystem);
-      const featureProjection = this.options.projection || 'EPSG:3857';
-
       // 解析 polyline 并转换为 OpenLayers Features
-      const features = this.parseGaodePolylineToFeatures(data.polyline, dataProjection, featureProjection);
+      const features = this.parseGaodePolylineToFeatures(data.polyline, options.projection);
 
       if (features && features.length > 0) {
         // 为每个feature设置属性和样式，并添加到源
