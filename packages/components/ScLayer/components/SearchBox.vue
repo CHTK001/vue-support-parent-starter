@@ -16,10 +16,6 @@
         </svg>
         </div>
     </div>
-    <div @click="currentPoint" class="btn-text current-point">
-      <svg t="1747922472762" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4605" width="16" height="16">
-          <path fill="currentColor" d="M512 54.857143C259.657143 54.857143 54.857143 259.657143 54.857143 512s204.8 457.142857 457.142857 457.142857 457.142857-204.8 457.142857-457.142857S764.342857 54.857143 512 54.857143z m36.571429 839.314286v-113.371429h-73.142858v113.371429C292.571429 877.714286 146.285714 731.428571 129.828571 548.571429h113.371429v-73.142858H129.828571C146.285714 292.571429 292.571429 146.285714 475.428571 129.828571v113.371429h73.142858V129.828571C731.428571 146.285714 877.714286 292.571429 894.171429 475.428571h-113.371429v73.142858h113.371429C877.714286 731.428571 731.428571 877.714286 548.571429 894.171429z" p-id="4606"></path><path d="M512 585.142857a73.142857 73.142857 0 1 0 0-146.285714 73.142857 73.142857 0 0 0 0 146.285714z" p-id="4607"></path></svg>
-    </div>
     <div v-if="showResults && results.length > 0" class="search-results">
       <div v-for="result in results" :key="result.id" class="search-result-item" @click="handleSelect(result)">
         <div class="result-title">{{ result.name }}</div>
@@ -228,8 +224,6 @@ defineExpose({
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
 }
 
 .current-point {
