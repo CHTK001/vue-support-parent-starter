@@ -4,6 +4,7 @@
 import type { SearchResult, SearchOptions, SearchApiResponse, PlaceDetailApiResponse, NavigationApiResponse, SearchBoxConfig } from '../types/search';
 import type { ConfigObject } from '../composables/ConfigObject';
 import { indexedDBProxy } from '@repo/utils';
+import type { GcoordObject } from '../composables/GcoordObject';
 
 /**
  * 过滤无效参数
@@ -167,7 +168,10 @@ initCacheDB();
  * @param keyword 搜索关键词
  * @param options 搜索选项
  */
-export async function searchLocation(keyword: string, options: SearchOptions = {}, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject): Promise<SearchResult[]> {
+export async function searchLocation(keyword: string, options: SearchOptions = {}, searchBoxConfig: SearchBoxConfig,
+  configObject: ConfigObject,
+  gcoordObject: GcoordObject
+): Promise<SearchResult[]> {
   try {
     // 检查缓存
     const cachedResults = await getFromCache(keyword, options);
@@ -198,7 +202,6 @@ export async function searchLocation(keyword: string, options: SearchOptions = {
         type: poi.type,
         distance: poi.distance ? parseInt(poi.distance) : undefined
       }));
-      const gcoordObject = this.mapObject.getGcoordObject();
       const coord = gcoordObject.convertFromMapCoord({
         lat: results.location.lat,
         lng: results.location.lng
