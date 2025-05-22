@@ -286,8 +286,8 @@ export class SearchObject {
    * 添加搜索结果标记
    * @param result 搜索结果
    */
-  private addSearchMarker(result: SearchResult): void {
-    if (!this.mapInstance || !this.markerObject) return;
+  public addSearchMarker(result: SearchResult): string | null {
+    if (!this.mapInstance || !this.markerObject) return null;
     
     // 创建标记
     this.searchMarker = this.markerObject.addMarker({
@@ -311,6 +311,8 @@ export class SearchObject {
         this.selectResult(result);
       }
     });
+
+    return this.searchMarker;
   }
 
   /**
@@ -451,6 +453,63 @@ export class SearchObject {
    */
   public setConfigObject(configObject: ConfigObject): void {
     this.configObject = configObject;
+  }
+
+  /**
+   * 处理搜索结果点击
+   * @param result 搜索结果
+   */
+  private handleSearchResultClick(result: any): void {
+    if (!result || !result.location) return;
+
+    const markerId = this.addSearchMarker(result);
+    if (!markerId) return;
+
+    // 添加导航按钮
+    const markerOptions = this.markerObject.getMarker(markerId);
+    if (markerOptions) {
+      markerOptions.navigation = {
+        enabled: true,
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiMxODkwZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=',
+        color: '#1890ff',
+        lineStyle: {
+          color: '#1890ff',
+          width: 3,
+          dashArray: [10, 10]
+        }
+      };
+      this.markerObject.updateMarker(markerId, markerOptions);
+    }
+
+    // 触发点击事件
+    this.markerObject.triggerMarkerClick(markerId, result);
+  }
+
+  /**
+   * 创建导航轨迹
+   * @param fromMarkerId 起点标记点ID
+   * @param toMarkerId 终点标记点ID
+   */
+  public createNavigation(fromMarkerId: string, toMarkerId: string): void {
+    this.markerObject.createNavigation(fromMarkerId, toMarkerId);
+  }
+
+  /**
+   * 清除导航轨迹
+   * @param markerId 标记点ID
+   */
+  public clearNavigation(markerId: string): void {
+    this.markerObject.clearNavigation(markerId);
+  }
+
+  /**
+   * 获取地图中心点
+   * @returns 中心点坐标 [经度, 纬度]
+   */
+  public getMapCenter(): [number, number] | null {
+    if (!this.mapInstance) return null;
+    const center = this.mapInstance.getCenter();
+    return center ? [center[0], center[1]] : null;
   }
 }
 

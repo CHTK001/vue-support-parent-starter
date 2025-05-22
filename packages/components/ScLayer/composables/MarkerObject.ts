@@ -18,6 +18,7 @@ import logger from './LogObject';
 import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType, MarkerConfig } from '../types';
 // 导入IconUtils工具类，用于处理图标样式
 import IconUtils, { IconType } from '../utils/IconUtils';
+import { LineString } from 'ol/geom';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
@@ -2060,5 +2061,115 @@ export class MarkerObject {
         this.clickHandler(markerOptions, coordinates);
       }
     }
+  }
+
+  /**
+   * 创建导航轨迹
+   * @param fromMarkerId 起点标记点ID
+   * @param toMarkerId 终点标记点ID
+   * @returns 是否创建成功
+   */
+  public createNavigation(fromMarkerId: string, toMarkerId: string): boolean {
+    const fromMarker = this.markers.get(fromMarkerId);
+    const toMarker = this.markers.get(toMarkerId);
+    
+    if (!fromMarker || !toMarker) {
+      this.log('warn', '起点或终点标记点不存在');
+      return false;
+    }
+
+    const fromOptions = this.markerOptions.get(fromMarkerId);
+    const toOptions = this.markerOptions.get(toMarkerId);
+    
+    if (!fromOptions || !toOptions) {
+      this.log('warn', '起点或终点标记点配置不存在');
+      return false;
+    }
+
+    // 获取起点和终点坐标
+    const fromGeometry = fromMarker.getGeometry() as Point;
+    const toGeometry = toMarker.getGeometry() as Point;
+    
+    if (!fromGeometry || !toGeometry) {
+      this.log('warn', '起点或终点坐标不存在');
+      return false;
+    }
+
+    const fromCoord = fromGeometry.getCoordinates();
+    const toCoord = toGeometry.getCoordinates();
+
+    // 创建导航线要素
+    const lineString = new Feature({
+      geometry: new LineString([fromCoord, toCoord])
+    });
+
+    // 设置导航线样式
+    const lineStyle = new Style({
+      stroke: new Stroke({
+        color: fromOptions.navigation?.lineStyle?.color || '#1890ff',
+        width: fromOptions.navigation?.lineStyle?.width || 3,
+        lineDash: fromOptions.navigation?.lineStyle?.dashArray || [10, 10]
+      })
+    });
+
+    lineString.setStyle(lineStyle);
+
+    // 添加到图层
+    if (this.markerLayer) {
+      (this.markerLayer.getSource() as VectorSource).addFeature(lineString);
+    }
+
+    // 添加导航图标
+    const midPoint = [
+      (fromCoord[0] + toCoord[0]) / 2,
+      (fromCoord[1] + toCoord[1]) / 2
+    ];
+
+    const navigationMarker = new Feature({
+      geometry: new Point(midPoint)
+    });
+
+    // 设置导航图标样式
+    const iconStyle = new Style({
+      image: new Icon({
+        src: fromOptions.navigation?.icon || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiMxODkwZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=',
+        scale: 1,
+        anchor: [0.5, 0.5],
+        anchorXUnits: 'fraction',
+        anchorYUnits: 'fraction'
+      })
+    });
+
+    navigationMarker.setStyle(iconStyle);
+
+    // 添加到图层
+    if (this.markerLayer) {
+      (this.markerLayer.getSource() as VectorSource).addFeature(navigationMarker);
+    }
+
+    this.log('info', `已创建从 "${fromMarkerId}" 到 "${toMarkerId}" 的导航轨迹`);
+    return true;
+  }
+
+  /**
+   * 清除导航轨迹
+   * @param markerId 标记点ID
+   */
+  public clearNavigation(markerId: string): void {
+    if (!this.markerLayer) return;
+
+    const source = this.markerLayer.getSource() as VectorSource;
+    const features = source.getFeatures();
+
+    // 移除所有导航相关的要素
+    features.forEach(feature => {
+      const geometry = feature.getGeometry();
+      if (geometry instanceof LineString || 
+          (geometry instanceof Point && feature.get('isNavigation'))) {
+        source.removeFeature(feature);
+      }
+    });
+
+    this.log('info', `已清除标记点 "${markerId}" 的导航轨迹`);
   }
 }
