@@ -14,9 +14,11 @@
           <path fill="currentColor"
             d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
         </svg>
-        <svg @click="currentPoint" t="1747922472762" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4605" width="16" height="16">
+        </div>
+    </div>
+    <div @click="currentPoint" class="btn-text current-point">
+      <svg t="1747922472762" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4605" width="16" height="16">
           <path fill="currentColor" d="M512 54.857143C259.657143 54.857143 54.857143 259.657143 54.857143 512s204.8 457.142857 457.142857 457.142857 457.142857-204.8 457.142857-457.142857S764.342857 54.857143 512 54.857143z m36.571429 839.314286v-113.371429h-73.142858v113.371429C292.571429 877.714286 146.285714 731.428571 129.828571 548.571429h113.371429v-73.142858H129.828571C146.285714 292.571429 292.571429 146.285714 475.428571 129.828571v113.371429h73.142858V129.828571C731.428571 146.285714 877.714286 292.571429 894.171429 475.428571h-113.371429v73.142858h113.371429C877.714286 731.428571 731.428571 877.714286 548.571429 894.171429z" p-id="4606"></path><path d="M512 585.142857a73.142857 73.142857 0 1 0 0-146.285714 73.142857 73.142857 0 0 0 0 146.285714z" p-id="4607"></path></svg>
-      </div>
     </div>
     <div v-if="showResults && results.length > 0" class="search-results">
       <div v-for="result in results" :key="result.id" class="search-result-item" @click="handleSelect(result)">
@@ -37,10 +39,10 @@
 import { ref, defineExpose, defineProps , defineEmits} from 'vue';
 import type { PropType } from 'vue';
 import type { SearchBoxConfig, SearchResult } from '../types/search';
-import { searchLocation } from '../api/search';
 import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
 import { ConfigObject } from '../composables/ConfigObject';
 import { SearchObject } from '../composables/SearchObject';
+import { ElMessage } from 'element-plus';
 
 // Props 定义
 const props = defineProps({
@@ -70,11 +72,9 @@ const props = defineProps({
     type: Array as PropType<{ value: string; label: string }[]>,
     default: () => []
   },
-  searchObject: {
-    type: Object as () => SearchObject,
-    required: true
-  }
 });
+
+let searchObject: SearchObject = null;
 
 // Emits 定义
 const emit = defineEmits<{
@@ -91,9 +91,56 @@ let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
 //获取当前位置并定位到改地址
-const currentPoint = () => {
+const currentPoint = async () => {
+  try {
+    // 获取当前位置
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
+    });
 
-}
+    const { latitude, longitude } = position.coords;
+    
+    // 使用 SearchObject 添加标记并定位
+    if (searchObject) {
+      // 清除之前的搜索结果
+      searchObject.clearResults();
+      
+      // 添加当前位置标记
+      const markerId = searchObject.addSearchMarker({
+        location: {
+          lng: longitude,
+          lat: latitude
+        },
+        name: '当前位置',
+        address: '当前位置',
+        id: 'current-location',
+        type: 'location'
+      });
+
+      if (markerId) {
+        // 选择该标记点
+        searchObject.selectResult({
+          location: {
+            lng: longitude,
+            lat: latitude
+          },
+          name: '当前位置',
+          address: '当前位置',
+          id: 'current-location',
+          type: 'location'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('获取当前位置失败:', error);
+    ElMessage.error('获取当前位置失败，请检查定位权限或重试');
+  }
+};
+
 // 处理输入
 const handleInput = () => {
   if (searchTimer) {
@@ -103,7 +150,7 @@ const handleInput = () => {
   searchTimer = window.setTimeout(async () => {
     if (searchText.value.trim()) {
       try {
-        const searchResults = await searchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
+        const searchResults = await searchObject.searchLocationsearchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
         results.value = searchResults;
         showResults.value = true;
         emit('search', searchResults);
@@ -144,11 +191,11 @@ const handleNavigation = () => {
   const fromMarkerId = selectedMarker.value;
   
   // 获取地图中心点作为终点
-  const center = props.searchObject.getMapCenter();
+  const center = searchObject.getMapCenter();
   if (!center) return;
   
   // 创建终点标记点
-  const toMarkerId = props.searchObject.addSearchMarker({
+  const toMarkerId = searchObject.addSearchMarker({
     location: {
       lng: center[0],
       lat: center[1]
@@ -158,13 +205,16 @@ const handleNavigation = () => {
   
   if (toMarkerId) {
     // 创建导航轨迹
-    props.searchObject.createNavigation(fromMarkerId, toMarkerId);
+    searchObject.createNavigation(fromMarkerId, toMarkerId);
   }
 };
 
 defineExpose({
   setConfigObject: (_configObject: ConfigObject) => {
     configObject = _configObject;
+  },
+  setSearchObject: (_searchObject: SearchObject) => {
+    searchObject = _searchObject;
   }
 })
 </script>
@@ -178,6 +228,14 @@ defineExpose({
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.current-point {
+  height: 36px;
+  line-height: 36px;
+  padding-top: 8px;
 }
 
 .search-box:hover {

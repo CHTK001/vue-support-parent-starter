@@ -2647,6 +2647,7 @@ const initSearchObject = () => {
   nextTick(() => {
     if (searchBoxRef.value) {
       searchBoxRef.value.setConfigObject(configObject);
+      searchBoxRef.value.setSearchObject(searchObject);
     }
   })
 };
