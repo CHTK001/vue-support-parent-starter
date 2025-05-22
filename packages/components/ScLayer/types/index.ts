@@ -96,6 +96,7 @@ export interface MapConfig {
     'track-player'?: boolean;
     'boundary'?: boolean;
   };
+  markerIcon?: string;
 }
 
 // 事件类型
@@ -144,3 +145,4 @@ export type MapEventType =
   | 'shape-delete'
   | 'update:center'
   | 'update:zoom';
+

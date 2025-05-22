@@ -22,6 +22,12 @@
         <div class="result-address">{{ result.address }}</div>
       </div>
     </div>
+    <div v-if="selectedMarker" class="navigation-buttons">
+      <button @click="handleNavigation" class="nav-button">
+        <i class="nav-icon"></i>
+        导航
+      </button>
+    </div>
   </div>
 </template>
 
@@ -32,6 +38,7 @@ import type { SearchBoxConfig, SearchResult } from '../types/search';
 import { searchLocation } from '../api/search';
 import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
 import { ConfigObject } from '../composables/ConfigObject';
+import { SearchObject } from '../composables/SearchObject';
 
 // Props 定义
 const props = defineProps({
@@ -61,6 +68,10 @@ const props = defineProps({
     type: Array as PropType<{ value: string; label: string }[]>,
     default: () => []
   },
+  searchObject: {
+    type: Object as () => SearchObject,
+    required: true
+  }
 });
 
 // Emits 定义
@@ -75,6 +86,7 @@ const results = ref<SearchResult[]>([]);
 const showResults = ref(false);
 let configObject = null;
 let searchTimer: number | null = null;
+const selectedMarker = ref<string | null>(null);
 
 // 处理输入
 const handleInput = () => {
@@ -117,6 +129,31 @@ const formatDistance = (distance: number): string => {
     return `${distance}米`;
   }
   return `${(distance / 1000).toFixed(1)}公里`;
+};
+
+const handleNavigation = () => {
+  if (!selectedMarker.value) return;
+  
+  // 获取当前选中的标记点作为起点
+  const fromMarkerId = selectedMarker.value;
+  
+  // 获取地图中心点作为终点
+  const center = props.searchObject.getMapCenter();
+  if (!center) return;
+  
+  // 创建终点标记点
+  const toMarkerId = props.searchObject.addSearchMarker({
+    location: {
+      lng: center[0],
+      lat: center[1]
+    },
+    name: '目的地'
+  } as SearchResult);
+  
+  if (toMarkerId) {
+    // 创建导航轨迹
+    props.searchObject.createNavigation(fromMarkerId, toMarkerId);
+  }
 };
 
 defineExpose({
@@ -258,5 +295,41 @@ defineExpose({
 
 .search-box.is-select .search-select:focus {
   box-shadow: none;
+}
+
+.navigation-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  background: #fff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-button:hover {
+  background: #1890ff;
+  color: #fff;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiMxODkwZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.nav-button:hover .nav-icon {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=');
 }
 </style> 

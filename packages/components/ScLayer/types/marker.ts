@@ -111,6 +111,21 @@ export interface MarkerOptions {
   dataType?: DataType;
   /** 标记点按钮 */
   buttons?: MarkerButton[];
+  /** 导航配置 */
+  navigation?: NavigationOptions;
+  /** 标记点动画配置 */
+  animation?: MarkerAnimation;
+}
+
+export interface MarkerAnimation {
+  type: 'pulse' | 'drop' | 'bounce' | 'flash';
+  options?: {
+    duration?: number;
+    easing?: string;
+    scale?: number;
+    color?: string;
+    amplitude?: number;
+  };
 }
 
 /**
@@ -119,3 +134,15 @@ export interface MarkerOptions {
 export interface MarkerEventHandler {
   (coordinates: number[], data: MarkerOptions): void;
 } 
+
+// 导航配置
+export interface NavigationOptions {
+  enabled?: boolean;
+  icon?: string;
+  color?: string;
+  lineStyle?: {
+    color?: string;
+    width?: number;
+    dashArray?: number[];
+  };
+}
