@@ -102,9 +102,13 @@ import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
 import type { SearchResult } from './types/search';
 import { getCurrentPoint } from './utils/locationUtils';
+<<<<<<< HEAD
 import { Coordinate } from './utils/coordUtils';
 import { ElMessage } from 'element-plus';
 import { message } from '@repo/utils';
+=======
+import { Coordinate } from './utils/GcoordUtils';
+>>>>>>> c1f2826f82179a30a764e3fa8ad57d5b1e494658
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {

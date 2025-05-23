@@ -1,5 +1,5 @@
 import type { MapType } from ".";
-import type { CoordSystem } from "../utils/coordUtils";
+import type { CoordSystem } from "../utils/GcoordUtils";
 
  /**
  * 搜索结果接口

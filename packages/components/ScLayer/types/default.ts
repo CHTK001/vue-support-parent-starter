@@ -1,5 +1,5 @@
 import { MapType } from '.';
-import { CoordSystem } from '../utils/coordUtils';
+import { CoordSystem } from '../utils/GcoordUtils';
 import type { BoundaryOptions } from './boundary';
 import type { SearchBoxConfig } from './search';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';

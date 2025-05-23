@@ -1,13 +1,24 @@
 import type { BoundaryConverter } from '../BoundaryConverter';
 import type { BoundaryOptions } from '../../types/boundary';
+import { CoordType } from '../../types/coordinate';
 
 /**
  * 高德地图区划转换器
- * 由于高德地图本身就是目标格式，所以直接返回原始数据
+ * 将高德地图的GCJ02坐标系数据转换为EPSG:3857坐标系
  */
 export class GaodeConverter implements BoundaryConverter {
   convertToGaode(data: any, options: BoundaryOptions): any {
-    // 高德地图数据已经是目标格式，直接返回
-    return data;
+    // 对于高德地图数据，我们需要将其GCJ02坐标转换为EPSG:3857
+    if (!data) {
+      return data;
+    }
+    
+    // 高德地图数据的处理与其他地图提供商不同
+    // polyline字段不需要转换，因为它会在parseGaodePolylineToFeatures中处理
+    // 只需要添加一个sourceCoordType标记，表示这是GCJ02坐标系
+    return {
+      ...data,
+      sourceCoordType: CoordType.GCJ02
+    };
   }
 } 
