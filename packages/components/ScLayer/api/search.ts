@@ -5,6 +5,13 @@ import type { SearchResult, SearchOptions, SearchApiResponse, PlaceDetailApiResp
 import type { ConfigObject } from '../composables/ConfigObject';
 import { indexedDBProxy } from '@repo/utils';
 import type { GcoordObject } from '../composables/GcoordObject';
+import { GcoordUtils } from '../utils/GcoordUtils';
+
+// 高德地图接口配置
+const AMAP_CONFIG = {
+  baseUrl: 'https://restapi.amap.com/v3',
+  key: ''  // 应从配置中获取，暂时设为空
+};
 
 /**
  * 过滤无效参数
@@ -203,12 +210,14 @@ export async function searchLocation(keyword: string, options: SearchOptions = {
         type: poi.type,
         distance: poi.distance ? parseInt(poi.distance) : undefined
         }
-        const coord = gcoordObject.convertFromMapCoord({
+        const point = gcoordObject.fromMapCoord({
           lat: rs.location.lat,
           lng: rs.location.lng
-        }, searchBoxConfig.projection as any)
-        rs.location.lng = coord.lng;
-        rs.location.lng = coord.lng;
+        });
+        // 确保以对象形式访问坐标
+        const coordObj = GcoordUtils.toObject(point);
+        rs.location.lng = coordObj.lng;
+        rs.location.lat = coordObj.lat;
         return rs;
       });
       // 更新缓存

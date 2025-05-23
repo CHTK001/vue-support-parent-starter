@@ -102,7 +102,7 @@ import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
 import type { SearchResult } from './types/search';
 import { getCurrentPoint } from './utils/locationUtils';
-import { Coordinate } from './utils/coordUtils';
+import { Coordinate } from './utils/GcoordUtils';
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {

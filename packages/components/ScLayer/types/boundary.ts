@@ -1,4 +1,4 @@
-import type { CoordSystem } from "../utils/coordUtils";
+import type { CoordSystem } from "../utils/GcoordUtils";
 import type { MapType } from "./map";
 
 // 区划级别

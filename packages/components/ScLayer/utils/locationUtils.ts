@@ -1,4 +1,4 @@
-import type { Coordinate } from "./coordUtils";
+import type { Coordinate } from "./GcoordUtils";
 
 //获取当前位置 
 export const getCurrentPoint = async (): Promise<Coordinate> => {
