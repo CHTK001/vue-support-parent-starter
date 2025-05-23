@@ -15,14 +15,16 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 import { defaults as defaultControls } from 'ol/control';
 import ScaleLine from 'ol/control/ScaleLine';
 import { ElLoading } from 'element-plus';
+import type { Coordinate } from 'ol/coordinate';
 
 import { DataType, MapTile } from '../types';
 import { MapType } from '../types/map';
 import { ConfigObject } from './ConfigObject';
 import logger from './LogObject';
-import type { CoordinateInfo } from './CoordinateObject';
+import { CoordinateInfo } from '../types/coordinate'; 
 import { GcoordObject } from './GcoordObject';
-import { da } from 'element-plus/es/locales.mjs';
+import { GcoordUtils } from '../utils/GcoordUtils';
+import { CoordType, GeoPoint } from '../types/coordinate';
 
 export interface MapEmitter {
   'map-click': (event: any) => void;
@@ -115,10 +117,15 @@ export class MapObject {
       const mapConfig = this.configObject.getMapConfig();
       const tileType = mapTile === MapTile.NORMAL ? 'normal' : 'satellite';
       const urlConfig = mapConfig[mapType]?.[tileType];
-      const projection = urlConfig?.projection || 'EPSG:3857';
       
-      // 创建视图，考虑投影
-      const view = this.createMapView(center, this.configObject.getZoom(), projection);
+      // 所有地图统一使用EPSG:3857投影
+      const projection = 'EPSG:3857';
+      
+      // 将WGS84中心点转换为EPSG:3857
+      const transformedCenter = this.transformCenterToMap(center);
+      
+      // 创建视图，使用EPSG:3857投影
+      const view = this.createMapView(transformedCenter, this.configObject.getZoom(), projection);
 
       // 创建主图层（底图）
       this.mainLayer = this.createBaseLayer();
@@ -130,7 +137,6 @@ export class MapObject {
         bar: false, // 使用条形比例尺
         steps: 2, // 显示4个刻度
         text: false, // 显示文本
-       // minWidth: 140, // 最小宽度
         className: 'ol-scale-line custom-scale-line' // 自定义样式类名
       });
       
@@ -186,42 +192,99 @@ export class MapObject {
       this.bindClickEvents(
         // 地图点击事件处理
         (coordinates) => {
-          emitter('map-click', { coordinates });
+          // 将EPSG:3857坐标转换为WGS84坐标后发送
+          const wgs84Coords = this.transformMapCoordsToWGS84(coordinates);
+          emitter('map-click', { coordinates: wgs84Coords });
         },
         // 标记点击事件处理
         (coordinates, data) => {
-          emitter('marker-click', { coordinates, data });
+          // 将EPSG:3857坐标转换为WGS84坐标后发送
+          const wgs84Coords = this.transformMapCoordsToWGS84(coordinates);
+          emitter('marker-click', { coordinates: wgs84Coords, data });
         },
-        // 标记点击事件处理
+        // 图形点击事件处理
         (coordinates, data) => {
-          emitter('shape-click', { coordinates, data });
+          // 将EPSG:3857坐标转换为WGS84坐标后发送
+          const wgs84Coords = this.transformMapCoordsToWGS84(coordinates);
+          emitter('shape-click', { coordinates: wgs84Coords, data });
         }
       );
 
-      // 绑定视图变更事件
+      // 绑定视图变化事件
       this.bindViewChangeEvents(
-        // 中心点变更事件处理
+        // 中心点变化事件处理
         (center) => {
-          emitter('update:center', center);
-          // 更新配置对象中的中心点
-          this.configObject.setCenter(center);
+          // 将EPSG:3857坐标转换为WGS84坐标后发送
+          const wgs84Center = this.transformMapCenterToWGS84(center);
+          emitter('update:center', wgs84Center);
         },
-        // 缩放级别变更事件处理
+        // 缩放级别变化事件处理
         (zoom) => {
           emitter('update:zoom', zoom);
-          // 更新配置对象中的缩放级别
-          this.configObject.setZoom(zoom);
         }
       );
-      
-      // 强制多次触发地图重绘，确保图层正确渲染
-      this.triggerMapResize();
-      
+
       return true;
     } catch (error) {
       logger.error('地图初始化失败:', error);
       return false;
     }
+  }
+
+  /**
+   * 将WGS84中心点转换为EPSG:3857中心点（用于初始化地图）
+   */
+  private transformCenterToMap(center: [number, number]): [number, number] {
+    // 使用OpenLayers自带的fromLonLat方法从WGS84转换到EPSG:3857
+    const result = fromLonLat([center[1], center[0]], 'EPSG:3857') as Coordinate;
+    return [result[0], result[1]];
+  }
+
+  /**
+   * 将EPSG:3857坐标转换为WGS84坐标
+   */
+  private transformMapCoordsToWGS84(coordinates: number[]): number[] {
+    if (!coordinates || coordinates.length < 2) return coordinates;
+    
+    // 使用OpenLayers自带的toLonLat方法从EPSG:3857转换到WGS84
+    const lonLat = toLonLat([coordinates[0], coordinates[1]], 'EPSG:3857') as Coordinate;
+    return [lonLat[1], lonLat[0]]; // 转换为[lat, lon]格式
+  }
+
+  /**
+   * 将EPSG:3857中心点转换为WGS84中心点
+   */
+  private transformMapCenterToWGS84(center: [number, number]): [number, number] {
+    // 使用OpenLayers自带的toLonLat方法从EPSG:3857转换到WGS84
+    const lonLat = toLonLat(center, 'EPSG:3857') as Coordinate;
+    return [lonLat[1], lonLat[0]]; // 转换为[lat, lon]格式
+  }
+
+  /**
+   * 将WGS84坐标转换为当前地图使用的坐标系统
+   */
+  public wgs84ToMapCoord(point: GeoPoint): GeoPoint {
+    // 先转换为EPSG:3857坐标
+    const epsg3857Point = this.gcoordObject.fromWGS84(point);
+    // 再转换为地图坐标
+    return this.gcoordObject.toMapCoord(epsg3857Point);
+  }
+
+  /**
+   * 将当前地图使用的坐标系统转换为WGS84坐标
+   */
+  public mapCoordToWgs84(point: GeoPoint): GeoPoint {
+    // 先转换为EPSG:3857坐标
+    const epsg3857Point = this.gcoordObject.fromMapCoord(point);
+    // 再转换为WGS84坐标
+    return this.gcoordObject.toWGS84(epsg3857Point);
+  }
+
+  /**
+   * 获取坐标系转换对象
+   */
+  public getGcoordObject(): GcoordObject {
+    return this.gcoordObject;
   }
 
   /**
@@ -338,19 +401,58 @@ export class MapObject {
    * @param animate 是否使用动画
    */
   public setCenter(lat: number, lon: number, animate: boolean = true): void {
-    if (!this.mapInstance) return;
-    
-    logger.debug(`设置地图中心点: [${lat}, ${lon}], 动画=${animate}`);
-    // 更新配置对象
-    this.configObject.setCenter([lat, lon]);
-    
-    if (animate) {
-      this.mapInstance.getView().animate({
-        center: fromLonLat([lon, lat]),
-        duration: 500
-      });
-    } else {
-      this.mapInstance.getView().setCenter(fromLonLat([lon, lat]));
+    if (!this.mapInstance) {
+      logger.warn('地图实例不存在，无法设置中心点');
+      return;
+    }
+
+    try {
+      // 将WGS84坐标转换为EPSG:3857
+      const coordinates = fromLonLat([lon, lat], 'EPSG:3857');
+      
+      const view = this.mapInstance.getView();
+      if (animate) {
+        view.animate({
+          center: coordinates,
+          duration: 500
+        });
+      } else {
+        view.setCenter(coordinates);
+      }
+      logger.debug(`地图中心点已设置为: [${lat}, ${lon}]（WGS84）-> [${coordinates[0]}, ${coordinates[1]}]（EPSG:3857）`);
+    } catch (error) {
+      logger.error('设置地图中心点失败:', error);
+    }
+  }
+
+  /**
+   * 获取地图中心点
+   * @returns 中心点坐标 [lat, lon]，格式为WGS84
+   */
+  public getCenter(): [number, number] | null {
+    if (!this.mapInstance) {
+      logger.warn('地图实例不存在，无法获取中心点');
+      return null;
+    }
+
+    try {
+      const view = this.mapInstance.getView();
+      const center = view.getCenter();
+      
+      if (!center) {
+        logger.warn('无法获取地图中心点');
+        return null;
+      }
+      
+      // 将EPSG:3857坐标转换为WGS84
+      const lonLat = toLonLat(center, 'EPSG:3857');
+      const result: [number, number] = [lonLat[1], lonLat[0]]; // 转换为[lat, lon]格式
+      
+      logger.debug(`获取地图中心点: [${center[0]}, ${center[1]}]（EPSG:3857）-> [${result[0]}, ${result[1]}]（WGS84）`);
+      return result;
+    } catch (error) {
+      logger.error('获取地图中心点失败:', error);
+      return null;
     }
   }
 
@@ -466,20 +568,6 @@ export class MapObject {
     
     logger.warn(`无法切换底图，配置不存在: ${mapType}/${tileType}`);
     return false;
-  }
-
-  /**
-   * 获取地图中心点
-   * @returns 地图中心点 [纬度, 经度]
-   */
-  public getCenter(): [number, number] | null {
-    if (!this.mapInstance) return null;
-    
-    const center = this.mapInstance.getView().getCenter();
-    if (!center) return null;
-    
-    const [lon, lat] = toLonLat(center);
-    return [lat, lon];
   }
 
   /**
@@ -604,42 +692,36 @@ export class MapObject {
 
   /**
    * 处理鼠标移动事件
-   * @param event 鼠标移动事件
+   * @param event 鼠标事件
    */
   private handleMouseMove(event: any): void {
-    if (!this.mapInstance) return;
-    
+    if (!this.mapInstance || !event.coordinate) {
+      return;
+    }
+
     try {
-      const hit = this.mapInstance.hasFeatureAtPixel(event.pixel);
-      this.mapInstance.getTargetElement().style.cursor = hit ? 'pointer' : '';
-      // 从事件中获取坐标
-      const pixel = event.pixel;
-      const coord = this.mapInstance.getCoordinateFromPixel(pixel);
+      // 获取鼠标在地图上的坐标（EPSG:3857）
+      const mapCoord = event.coordinate;
       
-      if (!coord || coord.length < 2) return;
+      // 将EPSG:3857坐标转换为WGS84坐标
+      const lonLat = toLonLat(mapCoord, 'EPSG:3857');
       
-      // 获取当前地图投影
-      const mapProjection = this.mapInstance.getView().getProjection();
-      
-      // 转换为WGS84坐标(经纬度)
-      const wgs84Coord = toLonLat(coord, mapProjection);
-      
-      // 设置经纬度
-      this.coordinate.longitude = wgs84Coord[0];
-      this.coordinate.latitude = wgs84Coord[1];
-      
-      // 设置投影坐标
-      this.coordinate.projectedX = coord[0];
-      this.coordinate.projectedY = coord[1];
-      this.coordinate.projection = mapProjection.getCode();
-      this.coordinate.decimals = 8;
-      
-      // 调用自定义回调
+      // 更新坐标信息
+      this.coordinate = {
+        ...this.coordinate,
+        longitude: lonLat[0],
+        latitude: lonLat[1],
+        projectedX: mapCoord[0],
+        projectedY: mapCoord[1],
+        projection: 'EPSG:3857'
+      };
+
+      // 调用自定义监听器
       if (this.customPointerMoveListener) {
-        this.customPointerMoveListener(event, {...this.coordinate});
+        this.customPointerMoveListener(event, this.coordinate);
       }
     } catch (error) {
-      logger.error('处理鼠标坐标失败:', error);
+      logger.error('处理鼠标移动事件失败:', error);
     }
   }
 
@@ -840,13 +922,5 @@ export class MapObject {
     
     // 调用createTileLayer方法创建图层
     return this.createTileLayer(mapType, mapTile);
-  }
-
-  /**
-   * 获取坐标系统转换对象
-   * @returns 坐标系统转换对象
-   */
-  public getGcoordObject(): GcoordObject {
-    return this.gcoordObject;
   }
 }

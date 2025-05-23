@@ -13,13 +13,13 @@ import Overlay from 'ol/Overlay';
 import { BoundaryData, BoundaryItem, BoundaryLevel, BoundaryOptions, BoundaryCoordinate } from '../types/boundary';
 import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
 import logger from './LogObject';
-import { fetchGaodeBoundary } from '../api/district';
+import { fetchGaodeBoundary, fetchBaiduBoundary, fetchTiandituBoundary } from '../api/district';
 import { fetchGaodeDistrictTree } from '../api/district';
 import GeoJSON from 'ol/format/GeoJSON';
 import { MapType } from '../types/map';
-import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coordUtils';
+import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84, GcoordUtils } from '../utils/GcoordUtils';
 import { MapObject } from './MapObject';
-import { GeoPoint } from './GcoordObject';
+import { GeoPoint, CoordType } from '../types/coordinate';
 import { indexedDBProxy } from '@repo/utils';
 import { BoundaryConverterFactory } from '../interfaces/converters';
 
@@ -350,6 +350,69 @@ export class BoundaryObject {
   }
   
   /**
+   * 获取区划数据
+   * @param adcode 行政区划代码
+   * @param options 区划配置选项
+   * @returns 区划数据
+   */
+  private async fetchBoundaryData(adcode: string, options: BoundaryOptions): Promise<any> {
+    // 检查是否已经添加过该边界
+    if (this.selectedBoundaries.has(adcode)) {
+      logger.debug(`边界已存在: ${adcode}`);
+      return null;
+    }
+
+    try {
+      // 1. 先查缓存 - 使用包含地图提供商的缓存键以区分不同来源的数据
+      const provider = this.options.provider || 'gaode';
+      const cacheKey = `boundary-${provider}-${adcode}`;
+      const db = indexedDBProxy();
+      let boundaryResponseData = await db.getItem(cacheKey) as any;
+      
+      if (!boundaryResponseData) {
+        // 2. 缓存没有，根据不同的提供商请求接口
+        switch (provider.toLowerCase()) {
+          case 'gaode':
+          default:
+            // 默认使用高德地图API
+            boundaryResponseData = await fetchGaodeBoundary({
+              key: this.options.mapKey?.[provider] || '',
+              url: this.options.boundaryUrl,
+              adcode: adcode
+            });
+            break;
+          case 'baidu':
+            // 使用百度地图API获取区划数据
+            boundaryResponseData = await fetchBaiduBoundary({
+              key: this.options.mapKey?.[provider] || '',
+              url: this.options.boundaryUrl,
+              adcode: adcode
+            });
+            break;
+          case 'tianditu':
+            // 使用天地图API获取区划数据
+            boundaryResponseData = await fetchTiandituBoundary({
+              key: this.options.mapKey?.[provider] || '',
+              url: this.options.boundaryUrl,
+              adcode: adcode
+            });
+            break;
+        }
+        
+        // 3. 写入缓存
+        if (boundaryResponseData) {
+          await db.setItem(cacheKey, boundaryResponseData);
+        }
+      }
+
+      return boundaryResponseData;
+    } catch (error) {
+      logger.error(`获取区划数据失败: ${adcode}`, error);
+      return null;
+    }
+  }
+
+  /**
    * 通过行政区划代码添加边界
    * @param adcode 行政区划代码
    */
@@ -364,31 +427,63 @@ export class BoundaryObject {
         return false;
       }
 
-      // 使用转换器将数据转换为高德格式
+      // 使用转换器将数据转换为统一格式
       const converter = BoundaryConverterFactory.getConverter(provider);
       const convertedData = converter.convertToGaode(data, options);
-
-      // 使用转换后的数据创建区划
-      return this.createBoundary(convertedData, options);
+      
+      // 将转换后的数据创建区划，并确保坐标系统为EPSG:3857
+      return this.createBoundary(convertedData, {
+        ...options,
+        projection: CoordSystem.EPSG3857 // 强制使用EPSG:3857坐标系
+      });
     } catch (error) {
       console.error('添加区划失败:', error);
       return false;
     }
   }
-  
+
   /**
    * 解析高德 polyline 字符串为 OpenLayers Feature[]
    * @param polyline 高德API返回的 polyline 字符串
-   * @param dataProjection 原始数据投影 (如 'EPSG:4326')
-   * @param featureProjection 目标特征投影 (如 'EPSG:3857')
+   * @param projection 目标投影坐标系（统一使用EPSG:3857）
    * @returns OpenLayers Feature 数组
    */
-  private parseGaodePolylineToFeatures(polyline: string, projection: CoordSystem): Feature[] {
+  private parseGaodePolylineToFeatures(polyline: string, projection: CoordSystem, data?: any): Feature[] {
     if (!polyline) {
       logger.warn('无效的polyline字符串');
       return [];
     }
+    
+    // 获取坐标转换对象
+    const gcoordUtils = GcoordUtils;
     const gcoordObject = this.mapObject.getGcoordObject();
+    
+    // 确定源坐标系统类型 - 优先使用转换器提供的sourceCoordType
+    let sourceCoordType: CoordType;
+    if (data && data.sourceCoordType) {
+      // 如果转换器已经提供了源坐标系统类型，则直接使用
+      sourceCoordType = data.sourceCoordType;
+    } else {
+      // 否则根据地图类型推断
+      const mapType = this.options.provider?.toUpperCase() || 'GAODE';
+      switch (mapType) {
+        case 'BAIDU':
+          sourceCoordType = CoordType.BD09;
+          break;
+        case 'GAODE':
+        case 'AMAP':
+        case 'TENCENT':
+          sourceCoordType = CoordType.GCJ02;
+          break;
+        case 'TIANDITU':
+          sourceCoordType = CoordType.EPSG4490; // 天地图使用2000国家大地坐标系
+          break;
+        default:
+          sourceCoordType = CoordType.WGS84; // 默认使用WGS84
+      }
+    }
+    
+    logger.debug(`解析区划数据: 源坐标系统=${sourceCoordType}, 目标坐标系统=EPSG:3857`);
 
     const features: Feature[] = [];
     // 按 '|' 分隔不同的多边形部分
@@ -412,12 +507,44 @@ export class BoundaryObject {
           const lng = parseFloat(pointPairs[i]);
           const lat = parseFloat(pointPairs[i + 1]);
           if (!isNaN(lng) && !isNaN(lat)) {
-            // 高德坐标(GCJ02)转换为Web墨卡托(EPSG:3857)
-            const coord = gcoordObject.convertFromMapCoord({
-              lat: lat,
-              lng: lng
-            }, projection)
-            const mercatorCoord = fromLonLat([coord.lng, coord.lat], 'EPSG:3857');
+            // 将坐标点转换为EPSG:3857坐标系
+            // 1. 首先，根据地图服务商判断源坐标系统
+            // 2. 然后统一转换到EPSG:3857
+            let mercatorCoord;
+            try {
+              // 直接使用GcoordUtils进行坐标转换
+              const epsg3857Point = gcoordUtils.anyToEpsg3857({
+                lng: lng,
+                lat: lat
+              }, sourceCoordType);
+              
+              // 确保以对象形式访问坐标
+              const coordObj = GcoordUtils.toObject(epsg3857Point);
+              
+              // 使用OpenLayers的fromLonLat转换为EPSG:3857
+              mercatorCoord = fromLonLat([coordObj.lng, coordObj.lat], 'EPSG:3857');
+            } catch (error) {
+              // 转换失败时的回退方案
+              logger.warn('坐标转换失败，使用备用方法:', error);
+              // 根据源坐标系统选择适当的转换方法
+              let wgs84Point;
+              switch (sourceCoordType) {
+                case CoordType.GCJ02:
+                  wgs84Point = GcoordUtils.gcj02ToWgs84ByLngLat(lng, lat);
+                  break;
+                case CoordType.BD09:
+                  wgs84Point = GcoordUtils.bd09ToWgs84ByLngLat(lng, lat);
+                  break;
+                case CoordType.EPSG4490:
+                case CoordType.WGS84:
+                default:
+                  wgs84Point = [lng, lat]; // WGS84或近似WGS84的坐标系不需要转换
+                  break;
+              }
+              // 使用OpenLayers的fromLonLat将WGS84转换为EPSG:3857
+              mercatorCoord = fromLonLat(wgs84Point, 'EPSG:3857');
+            }
+            
             coords.push(mercatorCoord);
           }
         }
@@ -438,6 +565,8 @@ export class BoundaryObject {
         features.push(feature);
       }
     });
+    
+    logger.debug(`成功解析区划数据，生成 ${features.length} 个要素`);
     return features;
   }
   
@@ -769,46 +898,6 @@ export class BoundaryObject {
   }
 
   /**
-   * 获取区划数据
-   * @param adcode 行政区划代码
-   * @param options 区划配置选项
-   * @returns 区划数据
-   */
-  private async fetchBoundaryData(adcode: string, options: BoundaryOptions): Promise<any> {
-    // 检查是否已经添加过该边界
-    if (this.selectedBoundaries.has(adcode)) {
-      logger.debug(`边界已存在: ${adcode}`);
-      return null;
-    }
-
-    try {
-      // 1. 先查缓存
-      const cacheKey = `boundary-${adcode}`;
-      const db = indexedDBProxy();
-      let boundaryResponseData = await db.getItem(cacheKey) as any;
-      
-      if (!boundaryResponseData) {
-        // 2. 缓存没有，请求接口
-        boundaryResponseData = await fetchGaodeBoundary({
-          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
-          url: this.options.boundaryUrl,
-          adcode: adcode
-        });
-        
-        // 3. 写入缓存
-        if (boundaryResponseData) {
-          await db.setItem(cacheKey, boundaryResponseData);
-        }
-      }
-
-      return boundaryResponseData;
-    } catch (error) {
-      logger.error(`获取区划数据失败: ${adcode}`, error);
-      return null;
-    }
-  }
-
-  /**
    * 创建区划
    * @param data 区划数据
    * @param options 区划配置选项
@@ -821,8 +910,8 @@ export class BoundaryObject {
     }
 
     try {
-      // 解析 polyline 并转换为 OpenLayers Features
-      const features = this.parseGaodePolylineToFeatures(data.polyline, options.projection);
+      // 解析 polyline 并转换为 OpenLayers Features，确保使用EPSG:3857坐标系
+      const features = this.parseGaodePolylineToFeatures(data.polyline, CoordSystem.EPSG3857, data);
 
       if (features && features.length > 0) {
         // 为每个feature设置属性和样式，并添加到源
