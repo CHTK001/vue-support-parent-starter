@@ -315,6 +315,9 @@ catalogs:
     fingerprintjs2:
       specifier: 2.1.4
       version: 2.1.4
+    gcoord:
+      specifier: ^1.0.7
+      version: 1.0.7
     gradient-string:
       specifier: ^3.0.0
       version: 3.0.0
@@ -3901,6 +3904,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.13(typescript@5.8.2))
+      gcoord:
+        specifier: 'catalog:'
+        version: 1.0.7
       h3-js:
         specifier: 'catalog:'
         version: 4.2.1
@@ -13165,6 +13171,10 @@ packages:
     resolution: {integrity: sha512-f9m+BEN5jkg6a0fZjleidjN51VE1X+mPFQ2DJ0uv1V39oCLCbsGe6yjbBnp7eK7z/+GAon99a3nHuqbuuthyPg==}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
     deprecated: This package is no longer supported.
+
+  gcoord@1.0.7:
+    resolution: {integrity: sha512-UCN2iSm69jBOYz2ma2eg5I5imp65Cj70rcTTfMNSNMvZpR1U6oGjmVh080aCvC/6lN1ClkuOoBeaLuebw9AZJg==}
+    engines: {node: '>=16.11.0'}
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -26374,6 +26384,8 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wide-align: 1.1.5
+
+  gcoord@1.0.7: {}
 
   gensync@1.0.0-beta.2: {}
 

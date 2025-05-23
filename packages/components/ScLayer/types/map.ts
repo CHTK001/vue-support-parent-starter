@@ -9,6 +9,7 @@ import type { CoordinateOptions } from "../composables/CoordinateObject";
 export enum MapType {
   GAODE = 'GAODE',
   TIANDITU = 'TIANDITU',
+  GOOGLE = 'GOOGLE',
   BAIDU = 'BAIDU',
   OSM = 'OSM',
   BING = 'BING'

@@ -27,6 +27,7 @@
     "echarts-gl": "catalog:",
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
+    "gcoord": "catalog:",
     "h3-js": "catalog:",
     "mapv": "catalog:",
     "@turf/turf": "catalog:",

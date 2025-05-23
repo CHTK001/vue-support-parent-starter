@@ -303,7 +303,7 @@ export class SearchObject {
       icon: result.icon || 'default-marker.png',
       // 添加导航按钮
       buttons: [{
-        icon: 'navigation.png',
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiMxODkwZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=',
         title: '导航',
         onClick: () => this.showNavigation(result)
       }]
@@ -329,11 +329,14 @@ export class SearchObject {
 
     try {
       // 获取当前位置作为起点
-      const center = this.mapInstance.getCenter();
-      const start: [number, number] = [center[0], center[1]];
+      const center = this.getMapCenter();
+      if (!center) {
+        console.error('无法获取当前位置');
+        return;
+      }
 
       // 获取导航路线
-      const route = await getNavigation(start, [destination.location.lng, destination.location.lat]);
+      const route = await getNavigation(center, [destination.location.lng, destination.location.lat]);
 
       // 清除之前的导航路线
       this.clearNavigationLine();
@@ -394,7 +397,8 @@ export class SearchObject {
     }, [[coordinates[0][0], coordinates[0][1]], [coordinates[0][0], coordinates[0][1]]]);
 
     // 调整视图
-    this.mapInstance.fitBounds(bounds, {
+    const view = this.mapInstance.getView();
+    view.fit(bounds, {
       padding: [50, 50, 50, 50],
       duration: 1000
     });
