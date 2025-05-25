@@ -2662,13 +2662,34 @@ const boundarySelectorPosition = computed(() => {
 
 // 初始化搜索对象
 const initSearchObject = () => {
-  searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj);
-  nextTick(() => {
-    if (searchBoxRef.value) {
-      searchBoxRef.value.setConfigObject(configObject);
-      searchBoxRef.value.setSearchObject(searchObject);
+  try {
+    logger.debug('开始初始化搜索对象');
+    if (!mapObj || !mapObj.getMapInstance()) {
+      logger.error('地图实例未初始化，无法创建搜索对象');
+      return;
     }
-  })
+    
+    if (!markerObject) {
+      logger.error('标记点对象未初始化，无法创建搜索对象');
+      return;
+    }
+    
+    searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj);
+    logger.debug('搜索对象初始化成功');
+    
+    nextTick(() => {
+      if (searchBoxRef.value) {
+        logger.debug('设置搜索框配置对象和搜索对象');
+        searchBoxRef.value.setConfigObject(configObject);
+        searchBoxRef.value.setSearchObject(searchObject);
+        logger.debug('搜索框初始化完成');
+      } else {
+        logger.warn('搜索框引用不存在，无法设置搜索对象');
+      }
+    });
+  } catch (error) {
+    logger.error('初始化搜索对象失败:', error);
+  }
 };
 
 // 处理搜索
@@ -2724,6 +2745,25 @@ const checkBoundaryState = () => {
     showBoundarySelector.value = false;
   }
 };
+
+// 监听搜索框显示状态变化
+watch(() => showSearchBox.value, (isVisible) => {
+  logger.debug(`搜索框显示状态变化: ${isVisible}`);
+  if (isVisible && mapReady.value) {
+    // 确保地图已就绪且搜索框显示时，初始化搜索对象
+    nextTick(() => {
+      if (!searchObject) {
+        logger.debug('搜索框显示，但搜索对象未初始化，现在初始化');
+        initSearchObject();
+      } else if (searchBoxRef.value) {
+        // 如果搜索对象已存在但可能未设置到搜索框，则重新设置
+        logger.debug('搜索框显示，搜索对象已存在，确保设置到搜索框');
+        searchBoxRef.value.setConfigObject(configObject);
+        searchBoxRef.value.setSearchObject(searchObject);
+      }
+    });
+  }
+}, { immediate: true });
 
 </script>
 

@@ -118,11 +118,8 @@ export class MapObject {
       // 所有地图统一使用EPSG:3857投影
       const projection = 'EPSG:3857';
       
-      // 将WGS84中心点转换为EPSG:3857
-      const transformedCenter = this.transformCenterToMap(center);
-      
-      // 创建视图，使用EPSG:3857投影
-      const view = this.createMapView(transformedCenter, this.configObject.getZoom(), projection);
+      // 创建视图，使用EPSG:3857投影，在createMapView中会进行坐标转换
+      const view = this.createMapView(center, this.configObject.getZoom(), projection);
 
       // 创建主图层（底图）
       this.mainLayer = this.createBaseLayer();
@@ -226,15 +223,6 @@ export class MapObject {
       logger.error('地图初始化失败:', error);
       return false;
     }
-  }
-
-  /**
-   * 将WGS84中心点转换为EPSG:3857中心点（用于初始化地图）
-   */
-  private transformCenterToMap(center: [number, number]): [number, number] {
-    // 使用OpenLayers自带的fromLonLat方法从WGS84转换到EPSG:3857
-    const result = fromLonLat([center[1], center[0]], 'EPSG:3857') as Coordinate;
-    return [result[0], result[1]];
   }
 
   /**
@@ -809,7 +797,7 @@ export class MapObject {
    * @returns 地图视图
    */
   private createMapView(center: [number, number], zoom: number, projection: string): View {
-    logger.debug(`创建地图视图: 中心点=${center}, 缩放级别=${zoom}, 投影=${projection}`);
+    logger.debug(`创建地图视图: 中心点=[${center[0]}, ${center[1]}], 缩放级别=${zoom}, 投影=${projection}`);
     
     // 根据投影处理坐标转换
     let projectedCenter;
@@ -818,8 +806,9 @@ export class MapObject {
       projectedCenter = [center[1], center[0]];
       logger.debug('使用WGS84投影，坐标:', projectedCenter);
     } else {
-      // 默认使用Web墨卡托投影
-      projectedCenter = fromLonLat([center[1], center[0]]);
+      // 默认使用Web墨卡托投影，从WGS84转换
+      // 注意：center是[纬度, 经度]格式，而fromLonLat需要[经度, 纬度]
+      projectedCenter = fromLonLat([center[1], center[0]], projection);
       logger.debug('使用Web墨卡托投影，转换后坐标:', projectedCenter);
     }
     
@@ -891,13 +880,153 @@ export class MapObject {
     
     logger.debug(`创建图层 ${mapType}/${tileType}，URL: ${url}，投影: ${projection}`);
     
-    // 创建XYZ图层，确保设置正确的z-index
-    const tileLayer = new TileLayer({
-      source: new XYZ({
+    // 根据不同地图类型创建适当的图层源
+    let tileSource;
+    
+    // 处理特殊的URL模板
+    if (mapType === MapType.TIANDITU) {
+      // 天地图使用特殊的URL模板处理
+      tileSource = new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection,
+        tileUrlFunction: function(tileCoord) {
+          if (!tileCoord) return undefined;
+          
+          // 处理天地图的URL模板
+          const z = tileCoord[0];
+          const x = tileCoord[1];
+          const y = tileCoord[2];
+          
+          // 替换服务器编号 {0-7}
+          const serverNum = Math.floor(Math.random() * 8); // 0-7随机数
+          let finalUrl = url.replace(/{(\d+)-(\d+)}/g, serverNum.toString());
+          
+          // 替换坐标
+          finalUrl = finalUrl.replace('{z}', z.toString());
+          finalUrl = finalUrl.replace('{y}', y.toString());
+          finalUrl = finalUrl.replace('{x}', x.toString());
+          
+          return finalUrl;
+        }
+      });
+    } else if (mapType === MapType.BAIDU) {
+      // 百度地图使用特殊的URL模板和坐标转换
+      tileSource = new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection,
+        tileUrlFunction: function(tileCoord) {
+          if (!tileCoord) return undefined;
+          
+          // 处理百度地图的URL模板
+          const z = tileCoord[0];
+          const x = tileCoord[1];
+          const y = tileCoord[2];
+          
+          // 替换服务器编号 {0-3}
+          const serverNum = Math.floor(Math.random() * 4); // 0-3随机数
+          let finalUrl = url.replace(/{(\d+)-(\d+)}/g, serverNum.toString());
+          
+          // 替换坐标
+          finalUrl = finalUrl.replace('{z}', z.toString());
+          finalUrl = finalUrl.replace('{y}', (-y).toString());
+          finalUrl = finalUrl.replace('{x}', x.toString());
+          
+          return finalUrl;
+        }
+      });
+    } else if (mapType === MapType.GAODE) {
+      // 高德地图使用标准XYZ源，但需要处理URL模板
+      tileSource = new XYZ({
         url: url,
         attributions: [urlConfig.attribution],
         projection: projection
-      }),
+      });
+    } else if (mapType === MapType.GOOGLE) {
+      // Google地图使用特殊的URL模板处理
+      tileSource = new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection,
+        tileUrlFunction: function(tileCoord) {
+          if (!tileCoord) return undefined;
+          
+          // 处理Google地图的URL模板
+          const z = tileCoord[0];
+          const x = tileCoord[1];
+          const y = tileCoord[2];
+          
+          // 替换服务器编号 {0-3}
+          const serverNum = Math.floor(Math.random() * 4); // 0-3随机数
+          let finalUrl = url.replace(/{(\d+)-(\d+)}/g, serverNum.toString());
+          
+          // 替换坐标
+          finalUrl = finalUrl.replace('{z}', z.toString());
+          finalUrl = finalUrl.replace('{y}', y.toString());
+          finalUrl = finalUrl.replace('{x}', x.toString());
+          
+          return finalUrl;
+        }
+      });
+    } else if (mapType === MapType.BING) {
+      // Bing地图使用特殊的URL模板处理
+      tileSource = new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection,
+        tileUrlFunction: function(tileCoord) {
+          if (!tileCoord) return undefined;
+          
+          // 处理Bing地图的URL模板
+          const z = tileCoord[0];
+          const x = tileCoord[1];
+          const y = tileCoord[2];
+          
+          // 替换服务器编号 {0-1}
+          const serverNum = Math.floor(Math.random() * 2); // 0-1随机数
+          let finalUrl = url.replace(/{(\d+)-(\d+)}/g, serverNum.toString());
+          
+          // 计算quadkey
+          const quadkey = computeQuadKey(x, y, z);
+          
+          // 替换坐标
+          finalUrl = finalUrl.replace('{x}', quadkey);
+          finalUrl = finalUrl.replace('{y}', y.toString());
+          finalUrl = finalUrl.replace('{z}', z.toString());
+          
+          return finalUrl;
+        }
+      });
+      
+      // 计算Bing地图的quadkey
+      function computeQuadKey(x, y, z) {
+        let quadkey = '';
+        for (let i = z; i > 0; i--) {
+          let digit = 0;
+          const mask = 1 << (i - 1);
+          if ((x & mask) !== 0) {
+            digit += 1;
+          }
+          if ((y & mask) !== 0) {
+            digit += 2;
+          }
+          quadkey += digit;
+        }
+        return quadkey;
+      }
+    } else {
+      // 其他地图类型使用标准XYZ源
+      tileSource = new XYZ({
+        url: url,
+        attributions: [urlConfig.attribution],
+        projection: projection
+      });
+    }
+    
+    // 创建图层，确保设置正确的z-index
+    const tileLayer = new TileLayer({
+      source: tileSource,
       zIndex: 0, // 确保底图的z-index为0
       visible: true, // 显式设置为可见
       opacity: 1.0, // 确保不透明

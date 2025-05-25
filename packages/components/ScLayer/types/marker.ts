@@ -92,6 +92,8 @@ export interface MarkerOptions {
   visible?: boolean;
   /** 是否可点击 */
   clickable?: boolean;
+  /** 是否可拖动 */
+  draggable?: boolean;
   /** 标记点详细内容，支持HTML */
   content?: string;
   /** 标记点自定义数据 */
