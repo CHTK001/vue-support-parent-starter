@@ -3,17 +3,14 @@
  * 处理地图的初始化、底图切换等核心功能
  */
 import { Map, View } from 'ol';
-import TileLayer from 'ol/layer/Tile';
-import VectorLayer from 'ol/layer/Vector';
+import { defaults as defaultControls } from 'ol/control';
+import { defaults as defaultInteractions, DragPan, MouseWheelZoom } from 'ol/interaction';
+import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
+import { ScaleLine } from 'ol/control';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import OSM from 'ol/source/OSM';
-import VectorSource from 'ol/source/Vector';
 import XYZ from 'ol/source/XYZ';
-import DragPan from 'ol/interaction/DragPan';
-import MouseWheelZoom from 'ol/interaction/MouseWheelZoom';
-import { defaults as defaultInteractions } from 'ol/interaction';
-import { defaults as defaultControls } from 'ol/control';
-import ScaleLine from 'ol/control/ScaleLine';
 import { ElLoading } from 'element-plus';
 import type { Coordinate } from 'ol/coordinate';
 
@@ -665,6 +662,34 @@ export class MapObject {
    */
   public getMapInstance(): Map | null {
     return this.mapInstance;
+  }
+
+  /**
+   * 将地理坐标转换为屏幕坐标
+   * @param coordinates 地理坐标 [经度, 纬度]
+   * @returns 屏幕坐标 {x, y}，如果转换失败则返回null
+   */
+  public getScreenPositionFromCoordinates(coordinates: number[]): { x: number; y: number } | null {
+    if (!this.mapInstance || !coordinates || coordinates.length < 2) {
+      return null;
+    }
+
+    try {
+      // 将WGS84坐标转换为地图使用的投影坐标
+      const mapCoord = fromLonLat([coordinates[0], coordinates[1]]);
+      
+      // 使用OpenLayers的坐标转换方法将地图坐标转换为像素坐标
+      const pixel = this.mapInstance.getPixelFromCoordinate(mapCoord);
+      
+      if (pixel) {
+        return { x: pixel[0], y: pixel[1] };
+      }
+      
+      return null;
+    } catch (error) {
+      logger.error('坐标转换为屏幕位置失败:', error);
+      return null;
+    }
   }
 
   /**
