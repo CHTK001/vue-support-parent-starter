@@ -8,16 +8,7 @@ import logger from '../composables/LogObject';
 import { CoordSystem, MapType, type GeoPoint } from '../types';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import type { Coordinate as OlCoordinate } from 'ol/coordinate';
-
-// 只导出 CoordSystem 枚举，不再导出GeoPoint类型
-export { CoordSystem };
-
-/**
- * 由于gcoord库的TypeScript类型定义可能有问题，
- * 这里直接使用require导入，避免TS编译器报错
- */
-// @ts-ignore
-const gcoord = require('gcoord');
+import gcoord from 'gcoord';
 
 /**
  * 坐标系转换工具类

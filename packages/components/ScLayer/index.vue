@@ -61,20 +61,24 @@ import LayerPanel from './components/LayerPanel.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import OverviewMap, { OverviewMapConfig } from './components/OverviewMap.vue';
 import TrackPlayerMap from './components/TrackPlayer.vue';
-import { ConfigObject } from './composables/ConfigObject';
 import {
   CoordinateInfo,
   CoordinateOptions,
   CoordinatePosition
 } from './composables/CoordinateObject';
 import type { GridConfig } from './composables/GridManager';
-import { GridManager, GridType } from './composables/GridManager';
 import logger, { LogLevel } from './composables/LogObject';
+import { ConfigObject } from './composables/ConfigObject';
+import { GridManager, GridType } from './composables/GridManager';
 import { MapObject } from './composables/MapObject';
+import { ToolbarObject } from './composables/ToolbarObject';
 import { MarkerObject } from './composables/MarkerObject';
 import { ShapeObject } from './composables/ShapeObject';
-import { ToolbarObject } from './composables/ToolbarObject';
 import { TrackObject } from './composables/TrackObject';
+import { Model3DOptions } from './composables/CesiumModelObject';
+import { CesiumObject } from './composables/CesiumObject';
+import { SearchObject } from './composables/SearchObject';
+import { getCurrentPoint } from './utils/locationUtils';
 import {
   // 类型导入
   type MapConfig, type MapEventType, type Track, type TrackPlayer,
@@ -97,10 +101,6 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 // 导入CesiumObject和其他类型
 import BoundarySelector from './components/BoundarySelector.vue'; // 导入区划选择器组件
 import SearchBox from './components/SearchBox.vue';
-import { Model3DOptions } from './composables/CesiumModelObject';
-import { CesiumObject } from './composables/CesiumObject';
-import { SearchObject } from './composables/SearchObject';
-import { getCurrentPoint } from './utils/locationUtils';
 import { ElMessage } from 'element-plus';
 import { message } from '@repo/utils';
 

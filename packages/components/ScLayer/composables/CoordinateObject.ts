@@ -256,10 +256,6 @@ export function createCoordinateObject(mapInstance: OlMap, options?: CoordinateO
 
 // 添加默认导出
 export default {
-  CoordinateInfo,
-  CoordinatePosition,
-  CoordinateOptions,
-  CoordinateCallback,
   CoordinateObject,
   createCoordinateObject
 }; 
