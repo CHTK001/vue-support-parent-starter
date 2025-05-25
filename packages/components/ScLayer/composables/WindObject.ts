@@ -3,7 +3,8 @@
  * 用于管理风场图层和数据
  */
 import { Map as OlMap } from 'ol';
-import { WindData, WindConfig, DEFAULT_WIND_CONFIG } from '../types/wind';
+import type { WindData, WindConfig } from '../types/wind';
+import { DEFAULT_WIND_CONFIG } from '../types/wind';
 import logger from './LogObject';
 import { WindLayer } from 'ol-wind';
 
