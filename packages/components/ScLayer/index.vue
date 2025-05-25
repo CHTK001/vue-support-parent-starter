@@ -45,6 +45,22 @@
       :placeholder="props.searchBoxConfig.placeholder" :debounce-time="props.searchBoxConfig.debounceTime"
       :position="props.searchBoxConfig.position" :search-box-config="props.searchBoxConfig" @search="handleSearch"
       @select="handleSearchSelect" />
+      
+    <!-- 添加标记点详情组件 -->
+    <MarkerDetail 
+      v-if="showMarkerDetail"
+      v-model:visible="showMarkerDetail"
+      :marker="selectedMarker"
+      :title="markerDetailTitle"
+      :marker-position="markerScreenPosition"
+      @close="handleMarkerDetailClose">
+      <template v-if="$slots.markerDetail" #default="slotProps">
+        <slot name="markerDetail" :marker="slotProps.marker"></slot>
+      </template>
+      <template v-if="$slots.markerDetailFooter" #footer="slotProps">
+        <slot name="markerDetailFooter" :marker="slotProps.marker" :close="slotProps.close"></slot>
+      </template>
+    </MarkerDetail>
   </div>
 </template>
 
@@ -61,6 +77,7 @@ import LayerPanel from './components/LayerPanel.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import OverviewMap, { OverviewMapConfig } from './components/OverviewMap.vue';
 import TrackPlayerMap from './components/TrackPlayer.vue';
+import MarkerDetail from './components/MarkerDetail.vue';
 import {
   CoordinateInfo,
   CoordinateOptions,
@@ -240,6 +257,10 @@ const mapToolbarRef = ref(null);
 const trackPlayerRef = ref(null);
 const searchBoxRef = ref(null);
 const mapReady = ref(false);
+const showMarkerDetail = ref(false);
+const selectedMarker = ref<MarkerOptions | null>(null);
+const markerDetailTitle = ref('');
+const markerScreenPosition = ref<{ x: number; y: number } | null>(null);
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -352,6 +373,13 @@ const initializeMapComponents = async () => {
     if (markerObject && props.markerConfig) {
       markerObject.setConfig(props.markerConfig);
     }
+    
+    // 设置标记点点击处理函数
+    if (markerObject) {
+      markerObject.setClickHandler((coordinates, data) => {
+        handleMarkerClick({ coordinates, data });
+      });
+    }
 
     // 设置聚合配置
     if (props.aggregationOptions && toolbarObject) {
@@ -406,6 +434,9 @@ const registerEventHandlers = () => {
 
   // 坐标面板状态监听
   setupCoordinatePanelWatcher();
+  
+  // 监听地图点击事件，关闭标记点详情面板
+  setupMapClickListener();
 };
 
 // 设置鼠标移动监听
@@ -1685,6 +1716,12 @@ onMounted(() => {
     toolbarObject.setToolStateChangeCallback(handleToolbarStateChange);
   }
 
+  // 设置标记点点击处理函数
+  if (markerObject) {
+    markerObject.setClickHandler((coordinates, data) => {
+      handleMarkerClick({ coordinates, data });
+    });
+  }
 });
 
 // 配置日志级别
@@ -2764,6 +2801,73 @@ watch(() => showSearchBox.value, (isVisible) => {
     });
   }
 }, { immediate: true });
+
+// 处理标记点点击事件
+const handleMarkerClick = (payload: { coordinates: number[], data: MarkerOptions }) => {
+  // 保存被选中的标记点数据
+  selectedMarker.value = payload.data;
+  
+  // 设置标题
+  markerDetailTitle.value = payload.data.title || '标记点详情';
+  
+  // 获取标记点在屏幕上的位置
+  if (mapObj && payload.coordinates && payload.coordinates.length >= 2) {
+    // 使用地图对象将地理坐标转换为屏幕坐标
+    const screenPosition = mapObj.getScreenPositionFromCoordinates(payload.coordinates);
+    if (screenPosition) {
+      markerScreenPosition.value = screenPosition;
+    } else {
+      // 如果无法获取屏幕坐标，则使用默认位置（右上角）
+      markerScreenPosition.value = null;
+    }
+  } else {
+    markerScreenPosition.value = null;
+  }
+  
+  // 显示详情面板
+  showMarkerDetail.value = true;
+  
+  // 向父组件发送marker-click事件
+  emit('marker-click', payload);
+};
+
+// 处理标记点详情面板关闭
+const handleMarkerDetailClose = () => {
+  showMarkerDetail.value = false;
+  // 重置屏幕位置
+  markerScreenPosition.value = null;
+  // 可以选择是否在关闭时清空选中的标记点
+  // selectedMarker.value = null;
+};
+
+// 在初始化地图对象后设置点击处理函数
+watch(mapReady, (ready) => {
+  if (ready && markerObject) {
+    // 设置标记点点击处理函数
+    markerObject.setClickHandler((coordinates, data) => {
+      handleMarkerClick({ coordinates, data });
+    });
+  }
+});
+
+// 设置地图点击监听
+const setupMapClickListener = () => {
+  if (!mapObj) return;
+  
+  // 监听地图点击事件
+  mapObj.getMapInstance()?.on('click', (event) => {
+    // 检查是否点击了标记点
+    const feature = mapObj?.getMapInstance()?.forEachFeatureAtPixel(
+      event.pixel,
+      (feature) => feature
+    );
+    
+    // 如果没有点击标记点且详情面板正在显示，则关闭详情面板
+    if (!feature && showMarkerDetail.value) {
+      handleMarkerDetailClose();
+    }
+  });
+};
 
 </script>
 
