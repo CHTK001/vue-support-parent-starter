@@ -4,8 +4,8 @@
  * 所有点位将统一转换为EPSG:3857坐标系
  */
 import { MapType } from '../types/map';
-import { GcoordUtils } from '../utils/GcoordUtils';
 import { CoordSystem, GeoPoint } from '../types/coordinate';
+import { GcoordUtils } from '../utils/GcoordUtils';
 import logger from './LogObject';
 
 export class GcoordObject {

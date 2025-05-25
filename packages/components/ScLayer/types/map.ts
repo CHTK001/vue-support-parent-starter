@@ -8,6 +8,7 @@ export enum MapType {
   GAODE = 'GAODE',
   TIANDITU = 'TIANDITU',
   BAIDU = 'BAIDU',
+  GOOGLE = 'GOOGLE',
   OSM = 'OSM',
   BING = 'BING'
 }
@@ -106,6 +107,26 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       attribution: '© 百度地图',
       name: '卫星地图',
       projection: 'BD09'
+    }
+  },
+  [MapType.GOOGLE]: {
+    normal: {
+      url: 'https://mt{0-3}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      attribution: '© Google Maps',
+      name: '标准地图',
+      projection: 'EPSG:3857'
+    },
+    satellite: {
+      url: 'https://mt{0-3}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      attribution: '© Google Maps',
+      name: '卫星地图',
+      projection: 'EPSG:3857'
+    },
+    hybrid: {
+      url: 'https://mt{0-3}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+      attribution: '© Google Maps',
+      name: '混合地图',
+      projection: 'EPSG:3857'
     }
   },
   [MapType.BING]: {

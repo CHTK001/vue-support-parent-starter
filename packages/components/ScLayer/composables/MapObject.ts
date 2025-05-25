@@ -17,15 +17,12 @@ import ScaleLine from 'ol/control/ScaleLine';
 import { ElLoading } from 'element-plus';
 import type { Coordinate } from 'ol/coordinate';
 
-import { DataType, MapTile } from '../types';
-import { MapType } from '../types/map';
+import { DataType, MapTile, MapType } from '../types';
 import { ConfigObject } from './ConfigObject';
 import logger from './LogObject';
 import { CoordinateInfo } from '../types/coordinate'; 
 import { GcoordObject } from './GcoordObject';
-import { GcoordUtils } from '../utils/GcoordUtils';
-import { CoordSystem, GeoPoint } from '../types/coordinate';
-
+import { GeoPoint } from '../types/coordinate';
 export interface MapEmitter {
   'map-click': (event: any) => void;
   'marker-click': (event: any) => void;
