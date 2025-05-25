@@ -3,6 +3,7 @@
  */
 
 import type { DataType } from ".";
+import { CoordSystem } from "./coordinate";
 
 /**
  * 标记点聚合模式枚举
@@ -73,6 +74,8 @@ export interface MarkerOptions {
   id?: string;
   /** 标记点位置，[lon, lat] */
   position: [number, number];
+  /** 标记点坐标系统，默认为 WGS84 */
+  coordSystem?: CoordSystem;
   /** 标记点大小，[width, height] */
   size?: [number, number];
   /** 标记点图标URL或Data URL */
@@ -146,3 +149,8 @@ export interface NavigationOptions {
     dashArray?: number[];
   };
 }
+
+// 添加默认导出
+export default {
+  MarkerClusterMode
+};

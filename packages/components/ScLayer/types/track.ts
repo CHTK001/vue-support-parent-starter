@@ -1,4 +1,5 @@
 import { DEFAULT_TRACK_SPEED_GROUPS } from "./default";
+import { CoordSystem } from "./coordinate";
 
 // 轨迹点类型定义
 export interface TrackPoint {
@@ -8,6 +9,8 @@ export interface TrackPoint {
   lng: number;
   // 时间戳（Unix时间戳，单位：秒）- 必填字段
   time: number;
+  // 坐标系统，默认为 WGS84
+  coordSystem?: CoordSystem;
   // 方向（可选，0-360度，顺时针方向）
   dir?: number;
   // 是否正向（相对于第一个点）
@@ -117,4 +120,9 @@ export const DEFAULT_TRACK_CONFIG: TrackConfig = {
   },
   trackSpeedGroup: DEFAULT_TRACK_SPEED_GROUPS,
   autoRotate: true // 默认开启自动朝向
+};
+
+// 添加默认导出
+export default {
+  DEFAULT_TRACK_CONFIG
 };

@@ -10,6 +10,8 @@ import { unByKey } from 'ol/Observable';
 import { EventsKey } from 'ol/events';
 import logger from './LogObject';
 import { FlightLineConfig, FlightLineData, FlightLinePoint, FlightCoord, DEFAULT_FLIGHTLINE_CONFIG, type FlightLineStyle } from '../types/flightline';
+import { GcoordUtils } from '../utils/GcoordUtils';
+import { CoordSystem, GeoPoint } from '../types/coordinate';
 
 // 引入图标路径定义
 const iconPaths = {
@@ -738,14 +740,25 @@ export class FlightLineObject {
    * @param coord 经纬度坐标
    * @returns 是否有效
    */
-  private isValidCoordinate(coord: number[] | null | undefined): boolean {
-    if (!coord || !Array.isArray(coord) || coord.length < 2) {
+  private isValidCoordinate(coord: GeoPoint | null | undefined): boolean {
+    if (!coord) {
       return false;
     }
     
+    // 提取经纬度值
+    let lon: number, lat: number;
+    
+    if (Array.isArray(coord)) {
+      if (coord.length < 2) return false;
+      [lon, lat] = coord;
+    } else {
+      lon = coord.lng;
+      lat = coord.lat;
+    }
+    
     // 确保是数值类型
-    const lon = Number(coord[0]);
-    const lat = Number(coord[1]);
+    lon = Number(lon);
+    lat = Number(lat);
     
     if (isNaN(lon) || isNaN(lat)) {
       return false;
@@ -765,17 +778,20 @@ export class FlightLineObject {
   /**
    * 获取坐标的像素位置 - 这个方法在新的实现中可能不再需要
    * 保留备用，某些特殊场景可能需要
-   * @param coord 经纬度坐标 [经度, 纬度]
+   * @param coord 经纬度坐标 [经度, 纬度] 或 {lng, lat}
    * @returns 像素坐标 [x, y]
    */
-  private getPixelCoordinate(coord: number[]): number[] | null {
-    if (!this.mapInstance || !coord || coord.length < 2) {
+  private getPixelCoordinate(coord: GeoPoint): number[] | null {
+    if (!this.mapInstance || !coord) {
       return null;
     }
     
     try {
+      // 提取经纬度值
+      const [lon, lat] = Array.isArray(coord) ? coord : [coord.lng, coord.lat];
+      
       // 将经纬度转换为地图投影坐标
-      const projected = fromLonLat([coord[0], coord[1]]);
+      const projected = fromLonLat([lon, lat]);
       // 转换为像素坐标
       const pixel = this.mapInstance.getPixelFromCoordinate(projected);
       
@@ -795,28 +811,26 @@ export class FlightLineObject {
    * @param coord 输入坐标
    * @returns 经纬度坐标 [经度, 纬度]
    */
-  private ensureGeoCoordinate(coord: number[]): number[] {
-    if (!coord || coord.length < 2) {
+  private ensureGeoCoordinate(coord: any): number[] {
+    if (!this.isValidCoordinate(coord)) {
+      logger.warn('[FlightLine] 无效的坐标:', coord);
       return [0, 0];
     }
     
-    try {
-      // 检查坐标是否在合理的经纬度范围内
-      if (Math.abs(coord[0]) <= 180 && Math.abs(coord[1]) <= 90) {
-        return coord; // 已经是经纬度
+    // 提取经纬度值
+    const coords = Array.isArray(coord) ? coord : [coord.lng, coord.lat];
+    
+    if (Math.abs(coords[0]) <= 180 && Math.abs(coords[1]) <= 90) {
+      try {
+        // 使用新的方法直接获取 number[] 格式
+        return GcoordUtils.convertToOlCoordinate(coords as [number, number], CoordSystem.WGS84);
+      } catch (error) {
+        logger.warn('[FlightLine] 坐标转换失败:', error);
+        return coords;
       }
-      
-      // 尝试从投影坐标转换为经纬度
-      if (this.mapInstance) {
-        const lonLat = toLonLat(coord, this.mapInstance.getView().getProjection());
-        return lonLat;
-      }
-      
-      return coord;
-    } catch (error) {
-      logger.error('[FlightLine] 确保经纬度坐标时发生错误:', error);
-      return coord;
     }
+    
+    return coords;
   }
 
   /**
@@ -869,34 +883,40 @@ export class FlightLineObject {
   /**
    * 添加飞线点地理坐标
    * @param name 点名称
-   * @param coordinate 经纬度坐标 [经度, 纬度]
+   * @param coordinate 经纬度坐标 [经度, 纬度] 或 {lng, lat}
    */
-  public addCoordinate(name: string, coordinate: [number, number]): void {
-    this.geoCoordMap[name] = coordinate;
-    
-    // 如果已激活，则更新echarts选项
-    if (this.active && this.echartsLayer) {
-      this.updateEchartsOptions();
+  public addCoordinate(name: string, coordinate: GeoPoint, coordSystem: CoordSystem = CoordSystem.WGS84): void {
+    if (!name || !coordinate) {
+      logger.warn('[FlightLine] 添加坐标点失败：无效的参数');
+      return;
     }
     
-    logger.debug(`[FlightLine] 添加飞线点坐标: ${name} = [${coordinate}]`);
+    // 使用GcoordUtils转换坐标到EPSG:3857
+    try {
+      // 使用新的方法直接获取 number[] 格式
+      const coords = GcoordUtils.convertToOlCoordinate(coordinate, coordSystem);
+      this.geoCoordMap[name] = coords;
+      logger.debug(`[FlightLine] 添加坐标点: ${name} [${Array.isArray(coordinate) ? coordinate.join(',') : `${coordinate.lng},${coordinate.lat}`}]`);
+    } catch (error) {
+      logger.error(`[FlightLine] 添加坐标点失败: ${name}`, error);
+    }
   }
 
   /**
    * 批量添加飞线点地理坐标
-   * @param coordinates 点名称和坐标的映射 { 点名称: [经度, 纬度] }
+   * @param coordinates 点名称和坐标的映射 { 点名称: [经度, 纬度] 或 {lng, lat} }
    */
-  public addCoordinates(coordinates: Record<string, [number, number]>): void {
-    for (const [name, coord] of Object.entries(coordinates)) {
-      this.geoCoordMap[name] = coord;
+  public addCoordinates(coordinates: Record<string, GeoPoint>, coordSystem: CoordSystem = CoordSystem.WGS84): void {
+    if (!coordinates || typeof coordinates !== 'object') {
+      logger.warn('[FlightLine] 批量添加坐标点失败：无效的参数');
+      return;
     }
     
-    // 如果已激活，则更新echarts选项
-    if (this.active && this.echartsLayer) {
-      this.updateEchartsOptions();
-    }
+    Object.entries(coordinates).forEach(([name, coord]) => {
+      this.addCoordinate(name, coord, coordSystem);
+    });
     
-    logger.debug(`[FlightLine] 批量添加飞线点坐标: ${Object.keys(coordinates).length} 个点`);
+    logger.debug(`[FlightLine] 批量添加坐标点: ${Object.keys(coordinates).length}个`);
   }
 
   /**
@@ -905,98 +925,77 @@ export class FlightLineObject {
    * @returns 飞线ID
    */
   public addFlightLine(flightLine: FlightLineData): string {
-    // 生成唯一ID
-    const id = flightLine.id || `flight-line-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
-    // 检查是否为多组坐标的飞线
-    const isMultiCoords = flightLine.coords && 
-                         Array.isArray(flightLine.coords) && 
-                         flightLine.coords.length > 0 && 
-                         typeof flightLine.coords[0] === 'object' && 
-                         'from' in flightLine.coords[0] && 
-                         'to' in flightLine.coords[0];
-    
-    if (isMultiCoords) {
-      logger.debug(`[FlightLine] 添加多组坐标飞线，共 ${flightLine.coords.length} 组坐标`);
-      
-      // 为多组坐标飞线设置标记
-      flightLine.isMultiCoords = true;
-      
-      // 处理所有坐标组的地理坐标
-      const multiCoords = flightLine.coords as any[];
-      multiCoords.forEach((coordGroup, index) => {
-        if (coordGroup.from && coordGroup.to) {
-          // 添加坐标到geoCoordMap
-          const fromName = coordGroup.fromName || flightLine.fromName || `起点${index}`;
-          const toName = coordGroup.toName || flightLine.toName || `终点${index}`;
-          
-          if (!this.geoCoordMap[fromName] && coordGroup.from) {
-            this.geoCoordMap[fromName] = coordGroup.from;
-            logger.debug(`[FlightLine] 为多组坐标飞线起点 ${fromName} 添加地理坐标: [${coordGroup.from}]`);
-          }
-          
-          if (!this.geoCoordMap[toName] && coordGroup.to) {
-            this.geoCoordMap[toName] = coordGroup.to;
-            logger.debug(`[FlightLine] 为多组坐标飞线终点 ${toName} 添加地理坐标: [${coordGroup.to}]`);
-          }
-        }
-      });
-    } else {
-      // 处理传统单组坐标飞线
-      let coords = flightLine.coords;
-      
-      // 如果提供了from/to但没有coords，则转换成coords
-      if (!coords && flightLine.from && flightLine.to) {
-        coords = [flightLine.from, flightLine.to];
-      }
-      
-      // 检查坐标是否已经在地理坐标映射中
-      if (!this.geoCoordMap[flightLine.fromName] && coords && Array.isArray(coords) && coords.length >= 1) {
-        // 确保coords是number[][]类型
-        const firstCoord = coords[0] as number[];
-        if (Array.isArray(firstCoord) && firstCoord.length >= 2) {
-          this.geoCoordMap[flightLine.fromName] = firstCoord;
-          logger.debug(`[FlightLine] 为起点 ${flightLine.fromName} 添加地理坐标: [${firstCoord}]`);
-        }
-      }
-      
-      if (!this.geoCoordMap[flightLine.toName] && coords && Array.isArray(coords) && coords.length >= 2) {
-        // 确保coords是number[][]类型
-        const secondCoord = coords[1] as number[];
-        if (Array.isArray(secondCoord) && secondCoord.length >= 2) {
-          this.geoCoordMap[flightLine.toName] = secondCoord;
-          logger.debug(`[FlightLine] 为终点 ${flightLine.toName} 添加地理坐标: [${secondCoord}]`);
-        }
-      }
+    if (!flightLine) {
+      logger.warn('[FlightLine] 添加飞线失败：无效的飞线数据');
+      return '';
     }
-    
-    // 为飞线添加ID和createTime
-    const flightLineWithId: FlightLineData = {
-      ...flightLine,
-      id,
-      _createTime: flightLine._createTime || Date.now() // 如果没有提供_createTime，则添加当前时间
-    };
-    
-    // 标记飞线默认为不激活状态
-    flightLineWithId.isActive = false;
-    
-    // 保存飞线数据
-    this.flightLines.set(id, flightLineWithId);
-    
-    // 记录添加时间
-    logger.debug(`[FlightLine] 添加飞线 ${id}: ${flightLine.fromName} -> ${flightLine.toName}`);
-    
-    // 如果是第一条飞线，设置为活动飞线
-    if (this.flightLines.size === 1) {
+
+    try {
+      // 生成唯一ID
+      const id = flightLine.id || `flight-line-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+      flightLine.id = id;
+      flightLine._createTime = Date.now();
+      
+      // 处理坐标数据
+      if (Array.isArray(flightLine.coords)) {
+        // 如果是简单格式 [[起点经度,起点纬度],[终点经度,终点纬度]]
+        if (flightLine.coords.length === 2 && 
+            Array.isArray(flightLine.coords[0]) && 
+            Array.isArray(flightLine.coords[1]) && 
+            !('from' in flightLine.coords[0])) {
+          
+          // 添加起点和终点坐标
+          const fromCoord = flightLine.coords[0] as [number, number];
+          const toCoord = flightLine.coords[1] as [number, number];
+          
+          // 使用GcoordUtils转换坐标
+          const coordSystem = flightLine.coordSystem || CoordSystem.WGS84;
+          this.addCoordinate(flightLine.fromName, fromCoord, coordSystem);
+          this.addCoordinate(flightLine.toName, toCoord, coordSystem);
+        }
+        // 如果是复杂格式 FlightCoord数组
+        else if (flightLine.coords.length > 0 && 'from' in flightLine.coords[0]) {
+          const flightCoords = flightLine.coords as FlightCoord[];
+          flightCoords.forEach((coord, index) => {
+            const fromName = coord.fromName || `${flightLine.fromName}_${index}`;
+            const toName = coord.toName || `${flightLine.toName}_${index}`;
+            
+            // 使用GcoordUtils转换坐标
+            const coordSystem = coord.coordSystem || flightLine.coordSystem || CoordSystem.WGS84;
+            this.addCoordinate(fromName, coord.from as [number, number], coordSystem);
+            this.addCoordinate(toName, coord.to as [number, number], coordSystem);
+          });
+        }
+      }
+      // 如果使用from和to属性
+      else if (flightLine.from && flightLine.to) {
+        // 使用GcoordUtils转换坐标
+        const coordSystem = flightLine.coordSystem || CoordSystem.WGS84;
+        this.addCoordinate(flightLine.fromName, flightLine.from as [number, number], coordSystem);
+        this.addCoordinate(flightLine.toName, flightLine.to as [number, number], coordSystem);
+      }
+      
+      // 存储飞线数据
+      this.flightLines.set(id, flightLine);
+      
+      // 如果图层已激活，更新选项
+      if (this.active && this.echartsLayer) {
+        this.updateEchartsOptions();
+      }
+      
+      // 设置为活动飞线
       this.activeFlightLine = id;
-      flightLineWithId.isActive = true;
-      logger.debug(`[FlightLine] 设置第一条飞线 ${id} 为活动飞线`);
+      
+      logger.debug(`[FlightLine] 添加飞线: ${id}`, {
+        from: flightLine.fromName,
+        to: flightLine.toName
+      });
+      
+      return id;
+    } catch (error) {
+      logger.error('[FlightLine] 添加飞线失败:', error);
+      return '';
     }
-    
-    // 刷新图层
-    this.drawFlightLines();
-    
-    return id;
   }
 
   /**
@@ -1524,8 +1523,8 @@ export class FlightLineObject {
           else if (line.coords && Array.isArray(line.coords) && line.coords.length === 2) {
             // 确保传递的是数组类型
             if (Array.isArray(line.coords[0]) && Array.isArray(line.coords[1])) {
-              const fromCoord = this.ensureGeoCoordinate(line.coords[0] as number[]);
-              const toCoord = this.ensureGeoCoordinate(line.coords[1] as number[]);
+              const fromCoord = this.ensureGeoCoordinate(line.coords[0] as any);
+              const toCoord = this.ensureGeoCoordinate(line.coords[1] as any);
               
               if (fromCoord && toCoord) {
                 // 更新边界

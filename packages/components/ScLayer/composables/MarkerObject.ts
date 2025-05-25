@@ -19,6 +19,8 @@ import { MarkerClusterMode, MarkerOptions, MarkerEventHandler, DataType, MarkerC
 // 导入IconUtils工具类，用于处理图标样式
 import IconUtils, { IconType } from '../utils/IconUtils';
 import { LineString } from 'ol/geom';
+import { CoordSystem } from '../types/coordinate';
+import { GcoordUtils } from '../utils/GcoordUtils';
 
 // 标记点模块的日志前缀
 const LOG_MODULE = 'Marker';
@@ -809,8 +811,11 @@ export class MarkerObject {
       this.removeMarker(id);
     }
     
-    // 转换坐标
-    const coordinates = fromLonLat(options.position);
+    // 转换坐标 - 使用 GcoordUtils 进行坐标转换
+    const coordinates = GcoordUtils.convertToOlCoordinate(options.position, options.coordSystem);
+    if (options.coordSystem && options.coordSystem !== CoordSystem.EPSG3857) {
+      this.log('debug', `标记点 "${id}" 坐标从 ${options.coordSystem} 转换为 EPSG:3857`);
+    }
     
     // 创建标记点要素
     const marker = new Feature({
@@ -938,7 +943,14 @@ export class MarkerObject {
     
     // 如果位置变化，更新位置
     if (options.position) {
-      const coordinates = fromLonLat(options.position);
+      // 转换坐标 - 使用 GcoordUtils 进行坐标转换
+      const coordSystem = options.coordSystem || oldOptions.coordSystem;
+      const coordinates = GcoordUtils.convertToOlCoordinate(options.position, coordSystem);
+      
+      if (coordSystem && coordSystem !== CoordSystem.EPSG3857) {
+        this.log('debug', `标记点 "${id}" 坐标从 ${coordSystem} 转换为 EPSG:3857`);
+      }
+      
       const geometry = marker.getGeometry();
       if (geometry instanceof Point) {
         geometry.setCoordinates(coordinates);

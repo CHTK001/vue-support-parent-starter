@@ -114,6 +114,7 @@ const asyncComponentOptions = {
   timeout: 10000,
   // 加载失败时的回调
   onError: (error, retry, fail, attempts) => {
+    console.log(console.trace());
     if (attempts <= 3) {
       console.warn(`组件加载失败，正在重试 (${attempts}/3)...`, error);
       retry();

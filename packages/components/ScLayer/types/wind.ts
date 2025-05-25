@@ -114,4 +114,10 @@ export const DEFAULT_WIND_CONFIG: WindConfig = {
     easingFunction: 'linear'
   },
   zIndex: 95
+};
+
+// 添加默认导出
+export default {
+  WindConfig,
+  DEFAULT_WIND_CONFIG
 }; 

@@ -9,13 +9,14 @@
 export type GeoPoint = [number, number] | { lng: number; lat: number };
 
 /**
- * 坐标系类型枚举
+ * 坐标系统枚举
  */
-export enum CoordType {
+export enum CoordSystem {
   WGS84 = 'WGS84',        // 世界大地测量系统坐标(GPS坐标，谷歌国际)
   GCJ02 = 'GCJ02',        // 国测局坐标系(高德，腾讯，谷歌中国)
   BD09 = 'BD09',          // 百度坐标系
   EPSG3857 = 'EPSG3857',  // Web墨卡托投影坐标系
+  EPSG4326 = 'EPSG4326',  // WGS84的别名
   EPSG4490 = 'EPSG4490'   // 2000国家大地坐标系
 }
 
@@ -30,4 +31,9 @@ export interface CoordinateInfo {
   projection: string;      // 投影类型
   decimals: number;        // 小数位数
   position: string;        // 坐标显示位置
-} 
+}
+
+// 添加默认导出
+export default {
+  CoordSystem
+}; 

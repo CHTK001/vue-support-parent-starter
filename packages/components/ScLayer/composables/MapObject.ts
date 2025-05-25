@@ -24,7 +24,7 @@ import logger from './LogObject';
 import { CoordinateInfo } from '../types/coordinate'; 
 import { GcoordObject } from './GcoordObject';
 import { GcoordUtils } from '../utils/GcoordUtils';
-import { CoordType, GeoPoint } from '../types/coordinate';
+import { CoordSystem, GeoPoint } from '../types/coordinate';
 
 export interface MapEmitter {
   'map-click': (event: any) => void;

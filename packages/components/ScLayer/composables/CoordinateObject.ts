@@ -254,4 +254,12 @@ export function createCoordinateObject(mapInstance: OlMap, options?: CoordinateO
   return new CoordinateObject(mapInstance, options);
 }
 
-export default CoordinateObject; 
+// 添加默认导出
+export default {
+  CoordinateInfo,
+  CoordinatePosition,
+  CoordinateOptions,
+  CoordinateCallback,
+  CoordinateObject,
+  createCoordinateObject
+}; 

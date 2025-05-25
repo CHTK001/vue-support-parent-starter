@@ -1,21 +1,107 @@
 /**
- * 地图相关配置
+ * 类型定义索引文件
+ * 集中导出所有类型，组件只需从此文件导入
  */
-import type { MapUrlConfig } from "./map";
-import { MapType } from "./map";
-import type { ToolbarConfig, ToolItem } from "./toolbar";
-import type { CoordinateOptions } from "../composables/CoordinateObject";
-import { OverviewMapConfig } from "../components/OverviewMap.vue";
-import type { BoundaryOptions } from "./boundary";
-import type { SearchBoxConfig } from "./search";
-export * from "./map";
-export * from "./toolbar";
-export * from "./marker";
-export * from "./cluster";
-export * from "./shape";
-export * from "./track";
-export * from "./heatmap";
-//图层类型
+
+// 从 map.ts 导入地图相关类型
+import { MapType, DEFAULT_MAP_CONFIG } from './map';
+import type { MapTypeConfig, MapUrlConfig, MapKeyConfig } from './map';
+
+// 从 coordinate.ts 导入坐标相关类型
+import type { GeoPoint } from './coordinate';
+import { CoordSystem } from './coordinate';
+import type { CoordinateInfo, CoordinatePosition } from '../composables/CoordinateObject';
+
+// 从 marker.ts 导入标记点相关类型
+import { MarkerClusterMode as MarkerClusterModeFromMarker } from './marker';
+import type {
+  MarkerConfig,
+  MarkerStyleOptions,
+  MarkerButton,
+  MarkerOptions,
+  MarkerAnimation,
+  MarkerEventHandler,
+  NavigationOptions
+} from './marker';
+
+// 从 shape.ts 导入图形相关类型
+import { Shape, DEFAULT_SHAPE_STYLE } from './shape';
+import type { ShapeStyle, ShapePoint, ShapeOption } from './shape';
+
+// 从 toolbar.ts 导入工具栏相关类型
+import { ToolbarPosition, ToolbarDirection, DEFAULT_TOOLBAR_CONFIG } from './toolbar';
+import type { 
+  ToolType, 
+  ToolItem, 
+  CoordinateToolConfig, 
+  MeasureToolConfig, 
+  ToolbarConfig, 
+  AddToolOptions as ToolbarAddToolOptions 
+} from './toolbar';
+
+// 从 track.ts 导入轨迹相关类型
+import type { 
+  TrackPoint, 
+  IconSpeedGroup, 
+  TrackPlayer, 
+  TrackPlayerConfigOptions, 
+  Track, 
+  TrackConfig 
+} from './track';
+import { DEFAULT_TRACK_CONFIG } from './track';
+
+// 从 boundary.ts 导入区域边界相关类型
+import type {
+  BoundaryLevel,
+  BoundaryItem,
+  BoundaryCoordinate,
+  BoundaryData,
+  BoundaryOptions
+} from './boundary';
+
+// 从 search.ts 导入搜索相关类型
+import type {
+  SearchResult,
+  SearchOptions,
+  SearchApiResponse,
+  PlaceDetailApiResponse,
+  SearchBoxConfig,
+  NavigationApiResponse
+} from './search';
+
+// 从 heatmap.ts 导入热力图相关类型
+import type { HeatmapPoint, HeatmapConfig } from './heatmap';
+import { DEFAULT_HEATMAP_CONFIG } from './heatmap';
+
+// 从 flightline.ts 导入飞线图相关类型
+import type { 
+  FlightLinePoint, 
+  FlightLineStyle, 
+  FlightCoord, 
+  FlightLineData, 
+  FlightLineConfig 
+} from './flightline';
+import { DEFAULT_FLIGHTLINE_CONFIG } from './flightline';
+
+// 从 wind.ts 导入风场相关类型
+import type { WindData, WindConfig } from './wind';
+import { DEFAULT_WIND_CONFIG } from './wind';
+
+// 从 cluster.ts 导入聚合相关类型
+import type { AggregationOptions } from './cluster';
+
+// 从 default.ts 导入默认配置
+import {
+  DEFAULT_TRACK_PLAYER_CONFIG,
+  DEFAULT_SEARCH_BOX_CONFIG,
+  DEFAULT_BOUNDARY_OPTIONS,
+  DEFAULT_CESIUM_BASE_URL,
+  DEFAULT_TRACK_SPEED_GROUPS,
+  DEFAULT_ICON,
+  DEFAULT_MARKER_ICON
+} from './default';
+
+// 图层类型枚举
 export enum MapTile {
   NORMAL = 'normal',
   SATELLITE = 'satellite',
@@ -23,6 +109,7 @@ export enum MapTile {
   AERIAL = 'aerial',
   ROAD = 'road',
 }
+
 /**
  * 数据类型枚举
  */
@@ -40,7 +127,14 @@ export enum DataType {
   /** 网格 */
   GRID = 'grid'
 }
-// 地图类型配置
+
+// 解决命名冲突
+export const MarkerClusterMode = MarkerClusterModeFromMarker;
+
+// 统一添加工具选项接口 (与 toolbar.ts 中的 AddToolOptions 相同)
+export interface AddToolOptions extends ToolbarAddToolOptions { }
+
+// 地图配置接口
 export interface MapConfig {
   mapType: MapType;
   mapTile: MapTile;
@@ -64,9 +158,13 @@ export interface MapConfig {
   // 向下兼容 - 自定义工具列表
   toolbar?: ToolItem[];
   // 坐标面板配置
-  coordinateOptions?: CoordinateOptions;
+  coordinateOptions?: {
+    decimals: number;
+    position: string;
+    showProjected: boolean;
+  };
   // 鹰眼地图配置
-  overviewMapConfig?: OverviewMapConfig;
+  overviewMapConfig?: any;
   // 是否显示比例尺
   showScaleLine?: boolean;
   // 区划配置
@@ -100,7 +198,7 @@ export interface MapConfig {
 }
 
 // 事件类型
-export type MapEventType = 
+export type MapEventType =
   | 'init'
   | 'click'
   | 'dblclick'
@@ -145,4 +243,52 @@ export type MapEventType =
   | 'shape-delete'
   | 'update:center'
   | 'update:zoom';
+
+// 重新导出所有类型
+export {
+  // 地图相关类型
+  MapType, MapTypeConfig, MapUrlConfig, MapKeyConfig, DEFAULT_MAP_CONFIG,
+
+  // 坐标相关类型
+  GeoPoint, CoordSystem, CoordinateInfo, CoordinatePosition,
+
+  // 标记点相关类型
+  MarkerConfig, MarkerStyleOptions, MarkerButton, MarkerOptions,
+  MarkerAnimation, MarkerEventHandler, NavigationOptions,
+
+  // 图形相关类型
+  Shape, ShapeStyle, ShapePoint, ShapeOption, DEFAULT_SHAPE_STYLE,
+
+  // 工具栏相关类型
+  ToolbarPosition, ToolbarDirection, ToolType, ToolItem,
+  CoordinateToolConfig, MeasureToolConfig, ToolbarConfig, DEFAULT_TOOLBAR_CONFIG,
+
+  // 轨迹相关类型
+  TrackPoint, IconSpeedGroup, TrackPlayer, TrackPlayerConfigOptions,
+  Track, TrackConfig, DEFAULT_TRACK_CONFIG,
+
+  // 边界相关类型
+  BoundaryLevel, BoundaryItem, BoundaryCoordinate, BoundaryData, BoundaryOptions,
+
+  // 搜索相关类型
+  SearchResult, SearchOptions, SearchApiResponse, PlaceDetailApiResponse,
+  SearchBoxConfig, NavigationApiResponse,
+
+  // 热力图相关类型
+  HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG,
+
+  // 飞线图相关类型
+  FlightLinePoint, FlightLineStyle, FlightCoord, FlightLineData,
+  FlightLineConfig, DEFAULT_FLIGHTLINE_CONFIG,
+
+  // 风场相关类型
+  WindData, WindConfig, DEFAULT_WIND_CONFIG,
+
+  // 聚合相关类型
+  AggregationOptions,
+
+  // 默认配置
+  DEFAULT_TRACK_PLAYER_CONFIG, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_BOUNDARY_OPTIONS,
+  DEFAULT_CESIUM_BASE_URL, DEFAULT_TRACK_SPEED_GROUPS, DEFAULT_ICON, DEFAULT_MARKER_ICON
+};
 

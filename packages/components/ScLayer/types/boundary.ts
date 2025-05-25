@@ -1,4 +1,4 @@
-import type { CoordSystem } from "../utils/GcoordUtils";
+import type { CoordSystem } from "./coordinate";
 import type { MapType } from "./map";
 
 // 区划级别
@@ -82,3 +82,8 @@ export interface BoundaryOptions {
     fillOpacity?: number;
   };
 }
+
+// 添加默认导出
+export default {
+  BoundaryLevel
+};
