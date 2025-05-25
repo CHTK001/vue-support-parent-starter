@@ -648,6 +648,10 @@ export class IconUtils {
     let size = options.size as [number, number];
 
     if (icon && (typeof icon === 'object')) {
+      icon = icon.url || icon.src || icon.default;
+      if (icon && (typeof icon === 'object')) {
+        icon = icon.url || icon.src || icon.default;
+      }
       if(!size && icon.size) {
         size = icon.size;
       }

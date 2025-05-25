@@ -11,11 +11,22 @@ export interface SearchResult {
   location: {
     lng: number;
     lat: number;
+    epsg3857?: {
+      lng: number;
+      lat: number;
+    };
   };
+  province?: string;
+  city?: string;
+  district?: string;
   type: string;
   icon?: string;
+  tel?: string;
   distance?: number;
   score?: number;
+  photos?: string[];
+  provider?: string;
+  rawData?: any;
 }
 
 /**
@@ -28,6 +39,10 @@ export interface SearchOptions {
   page?: number;
   pageSize?: number;
   extensions?: 'base' | 'all';
+  key?: string;
+  url?: string;
+  cityLimit?: boolean;
+  pageIndex?: number;
 }
 
 /**
@@ -49,6 +64,7 @@ export interface PlaceDetailApiResponse {
   code: number;
   message: string;
   data: SearchResult;
+  [key: string]: any; // 允许其他字段
 }
 
 /**
@@ -62,15 +78,20 @@ export interface SearchBoxConfig {
   projection: CoordSystem;
   mapType: MapType;
   searchUrl: string;
+  detailUrl?: string;
+  navigationUrl?: string;
+  markerIcon?: any;
 }
 
 /**
  * 导航API响应接口
  */
 export interface NavigationApiResponse {
-  code: number;
-  message: string;
-  data: {
+  code?: number;
+  message?: string;
+  status?: string | number;
+  info?: string;
+  data?: {
     distance: number;
     duration: number;
     steps: Array<{
@@ -80,6 +101,9 @@ export interface NavigationApiResponse {
       path: Array<[number, number]>;
     }>;
   };
+  route?: any;
+  result?: any;
+  [key: string]: any; // 允许其他字段
 }
 
 // 添加默认导出，使用类型断言

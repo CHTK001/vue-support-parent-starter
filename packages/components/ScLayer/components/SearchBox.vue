@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, defineProps , defineEmits} from 'vue';
+import { ref, defineExpose, defineProps , defineEmits, onMounted } from 'vue';
 import type { PropType } from 'vue';
 import type { SearchBoxConfig, SearchResult } from '../types/search';
 import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
@@ -86,6 +86,16 @@ let configObject = null;
 let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
+// 组件挂载时检查初始化状态
+onMounted(() => {
+  console.log('SearchBox 组件已挂载，检查搜索对象状态');
+  if (!searchObject) {
+    console.warn('搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
+  } else {
+    console.log('搜索对象已就绪');
+  }
+});
+
 // 处理输入
 const handleInput = () => {
   if (searchTimer) {
@@ -95,12 +105,22 @@ const handleInput = () => {
   searchTimer = window.setTimeout(async () => {
     if (searchText.value.trim()) {
       try {
-        const searchResults = await searchObject.searchLocationsearchLocation(searchText.value, {}, props.searchBoxConfig, configObject);
+        // 检查 searchObject 是否已初始化
+        if (!searchObject) {
+          console.error('搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
+          ElMessage.error('搜索功能未准备好，请稍后再试');
+          return;
+        }
+        
+        console.log('开始搜索:', searchText.value);
+        const searchResults = await searchObject.search(searchText.value, {});
+        console.log('搜索结果:', searchResults);
         results.value = searchResults;
         showResults.value = true;
         emit('search', searchResults);
       } catch (error) {
         console.error('搜索失败:', error);
+        ElMessage.error('搜索失败: ' + (error.message || '未知错误'));
         results.value = [];
       }
     } else {
@@ -160,6 +180,10 @@ defineExpose({
   },
   setSearchObject: (_searchObject: SearchObject) => {
     searchObject = _searchObject;
+    console.log('搜索对象已初始化', searchObject);
+  },
+  isSearchReady: () => {
+    return !!searchObject;
   }
 })
 </script>
