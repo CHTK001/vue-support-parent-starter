@@ -804,4 +804,34 @@ export class GeoHashGridObject {
     ctx.fillRect(0, 0, size, size);
     
   }
+
+  /**
+   * 设置配置选项（别名方法，与 ScMap 版本兼容）
+   * @param config 配置选项
+   */
+  public setOptions(config: Partial<GeoHashGridConfig>): void {
+    this.setConfig(config);
+  }
+
+  /**
+   * 显示网格（别名方法，与 ScMap 版本兼容）
+   */
+  public show(): void {
+    this.enable();
+  }
+
+  /**
+   * 隐藏网格（别名方法，与 ScMap 版本兼容）
+   */
+  public hide(): void {
+    this.disable();
+  }
+
+  /**
+   * 获取显示状态（别名方法，与 ScMap 版本兼容）
+   * @returns 是否可见
+   */
+  public isVisible(): boolean {
+    return this.isEnabled();
+  }
 } 

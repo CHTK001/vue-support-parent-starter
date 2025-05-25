@@ -17,9 +17,10 @@ import { fetchGaodeBoundary, fetchBaiduBoundary, fetchTiandituBoundary } from '.
 import { fetchGaodeDistrictTree } from '../api/district';
 import GeoJSON from 'ol/format/GeoJSON';
 import { MapType } from '../types/map';
-import { CoordSystem, getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84, GcoordUtils } from '../utils/GcoordUtils';
+import { CoordSystem } from '../types/coordinate';
+import { getCoordSystemByMapType, convertCoordSystemToProjection, wgs84ToGcj02, gcj02ToWgs84, GcoordUtils } from '../utils/GcoordUtils';
 import { MapObject } from './MapObject';
-import { GeoPoint, CoordType } from '../types/coordinate';
+import { GeoPoint } from '../types/coordinate';
 import { indexedDBProxy } from '@repo/utils';
 import { BoundaryConverterFactory } from '../interfaces/converters';
 
@@ -459,7 +460,7 @@ export class BoundaryObject {
     const gcoordObject = this.mapObject.getGcoordObject();
     
     // 确定源坐标系统类型 - 优先使用转换器提供的sourceCoordType
-    let sourceCoordType: CoordType;
+    let sourceCoordType: CoordSystem;
     if (data && data.sourceCoordType) {
       // 如果转换器已经提供了源坐标系统类型，则直接使用
       sourceCoordType = data.sourceCoordType;
@@ -468,18 +469,18 @@ export class BoundaryObject {
       const mapType = this.options.provider?.toUpperCase() || 'GAODE';
       switch (mapType) {
         case 'BAIDU':
-          sourceCoordType = CoordType.BD09;
+          sourceCoordType = CoordSystem.BD09;
           break;
         case 'GAODE':
         case 'AMAP':
         case 'TENCENT':
-          sourceCoordType = CoordType.GCJ02;
+          sourceCoordType = CoordSystem.GCJ02;
           break;
         case 'TIANDITU':
-          sourceCoordType = CoordType.EPSG4490; // 天地图使用2000国家大地坐标系
+          sourceCoordType = CoordSystem.EPSG4490; // 天地图使用2000国家大地坐标系
           break;
         default:
-          sourceCoordType = CoordType.WGS84; // 默认使用WGS84
+          sourceCoordType = CoordSystem.WGS84; // 默认使用WGS84
       }
     }
     
@@ -529,14 +530,14 @@ export class BoundaryObject {
               // 根据源坐标系统选择适当的转换方法
               let wgs84Point;
               switch (sourceCoordType) {
-                case CoordType.GCJ02:
+                case CoordSystem.GCJ02:
                   wgs84Point = GcoordUtils.gcj02ToWgs84ByLngLat(lng, lat);
                   break;
-                case CoordType.BD09:
+                case CoordSystem.BD09:
                   wgs84Point = GcoordUtils.bd09ToWgs84ByLngLat(lng, lat);
                   break;
-                case CoordType.EPSG4490:
-                case CoordType.WGS84:
+                case CoordSystem.EPSG4490:
+                case CoordSystem.WGS84:
                 default:
                   wgs84Point = [lng, lat]; // WGS84或近似WGS84的坐标系不需要转换
                   break;

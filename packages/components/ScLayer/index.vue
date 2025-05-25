@@ -75,22 +75,22 @@ import { MarkerObject } from './composables/MarkerObject';
 import { ShapeObject } from './composables/ShapeObject';
 import { ToolbarObject } from './composables/ToolbarObject';
 import { TrackObject } from './composables/TrackObject';
-import type { MapEventType, Track, TrackPlayer } from './types';
-import { MapConfig, MapTile } from './types';
-import { DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_ICON, DEFAULT_SEARCH_BOX_CONFIG } from './types/default';
-import { DEFAULT_MAP_CONFIG, MapType } from './types/map';
-import type { MarkerConfig, MarkerOptions } from './types/marker';
-import { Shape, ShapeOption } from './types/shape';
-import { DEFAULT_TOOLBAR_CONFIG, ToolbarConfig } from './types/toolbar';
-import { TrackPlayerConfigOptions } from './types/track';
-// 导入热力图相关类型
-import type { HeatmapConfig, HeatmapPoint } from './types';
-// 导入聚合相关类型
-import type { AggregationOptions } from './types/cluster';
+import {
+  // 类型导入
+  type MapConfig, type MapEventType, type Track, type TrackPlayer,
+  type MarkerOptions, type MarkerConfig, type ShapeOption,
+  type HeatmapConfig, type HeatmapPoint,
+  type AggregationOptions, type TrackPlayerConfigOptions,
+  type SearchResult, type GeoPoint,
+  // 枚举导入
+  MapType, MapTile, 
+  // 默认配置导入
+  DEFAULT_MAP_CONFIG, DEFAULT_TOOLBAR_CONFIG, DEFAULT_TRACK_PLAYER_CONFIG,
+  DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_SEARCH_BOX_CONFIG
+} from './types';
 // 引入OpenLayers样式
 import 'ol/ol.css';
 import FlightLinePanel from './components/FlightLinePanel.vue';
-import { DEFAULT_TRACK_PLAYER_CONFIG } from './types/default';
 // 导入Cesium相关
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
@@ -100,15 +100,9 @@ import SearchBox from './components/SearchBox.vue';
 import { Model3DOptions } from './composables/CesiumModelObject';
 import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
-import type { SearchResult } from './types/search';
 import { getCurrentPoint } from './utils/locationUtils';
-<<<<<<< HEAD
-import { Coordinate } from './utils/coordUtils';
 import { ElMessage } from 'element-plus';
 import { message } from '@repo/utils';
-=======
-import { Coordinate } from './utils/GcoordUtils';
->>>>>>> c1f2826f82179a30a764e3fa8ad57d5b1e494658
 
 // 设置全局Cesium对象
 if (typeof window !== 'undefined') {
@@ -470,7 +464,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     },
 
     'current-location': () => {
-      getCurrentPoint().then((coordinate: Coordinate) => {
+      getCurrentPoint().then((coordinate: GeoPoint) => {
         // 添加标记点
         toolbarObject.getMarkerObject().addMarker({
             id: 'current-point',

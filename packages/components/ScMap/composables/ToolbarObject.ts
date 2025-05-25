@@ -12,7 +12,7 @@ import { MarkerObject } from './MarkerObject';
 import { ShapeObject } from './ShapeObject';
 import { LeafletTrackplayerObject } from './LeafletTrackplayerObject';
 import { HeatmapObject } from './HeatmapObject';
-import { GeohashGridObject } from './GeoHashGridObject';
+import { GeoHashGridObject } from './GeoHashGridObject';
 import { GridManager, GridType } from './GridManager';
 import { FlightLineObject } from './FlightLineObject';
 import { OverviewMapObject } from './OverviewMapObject';
@@ -62,7 +62,7 @@ export class ToolbarObject {
   private coordinateCallback: ((coordinate: CoordinateInfo) => void) | null = null;
   private gridObj: GridManager | null = null;
   private heatmapObj: HeatmapObject | null = null;
-  private geohashGridObj: GeohashGridObject | null = null;
+  private geohashGridObj: GeoHashGridObject | null = null;
   private clusterObj: any | null = null; // 使用 any 类型避免导入问题
   private flightLineObj: FlightLineObject | null = null;
   private toolStateChangeCallback: ToolbarCallback | null = null;
@@ -338,7 +338,7 @@ export class ToolbarObject {
     }
     
     // 创建Geohash网格对象
-    this.geohashGridObj = new GeohashGridObject(mapInstance);
+    this.geohashGridObj = new GeoHashGridObject(mapInstance);
     logger.debug('Geohash网格对象已初始化');
   }
 
@@ -2677,6 +2677,7 @@ export class ToolbarObject {
 
     if (this.geohashGridObj) {
       this.geohashGridObj.show();
+      logger.debug('[Geohash] Geohash网格已激活');
     }
 
     this.triggerToolStateChange('geohash-grid', true, 'layer');
@@ -2693,6 +2694,7 @@ export class ToolbarObject {
 
     if (this.geohashGridObj) {
       this.geohashGridObj.hide();
+      logger.debug('[Geohash] Geohash网格已停用');
     }
 
     this.triggerToolStateChange('geohash-grid', false, 'layer');
@@ -2702,7 +2704,7 @@ export class ToolbarObject {
    * 获取Geohash网格对象
    * @returns Geohash网格对象
    */
-  public getGeohashGridObject(): GeohashGridObject | null {
+  public getGeohashGridObject(): GeoHashGridObject | null {
     return this.geohashGridObj;
   }
 }

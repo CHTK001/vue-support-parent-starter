@@ -93,7 +93,7 @@ export const DEFAULT_GEOHASH_GRID_OPTIONS: GeohashGridOptions = {
 /**
  * Geohash网格对象类
  */
-export class GeohashGridObject {
+export class GeoHashGridObject {
   // 地图实例
   private mapInstance: L.Map | null = null;
   // 网格图层

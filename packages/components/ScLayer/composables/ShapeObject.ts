@@ -14,7 +14,7 @@ import { EventsKey } from 'ol/events';
 import { createBox, createRegularPolygon } from 'ol/interaction/Draw';
 import { fromLonLat, transformExtent, toLonLat } from 'ol/proj';
 import { getCenter } from 'ol/extent';
-import { ShapeStyle, Shape, ShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
+import { ShapeStyle, Shape, ShapeOption as ImportedShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
 import logger from './LogObject';
 import { DataType } from '../types';
 // 删除ol-ext导入
@@ -23,6 +23,8 @@ import { DataType } from '../types';
 // 添加额外需要的导入
 import Collection from 'ol/Collection';
 import { singleClick } from 'ol/events/condition';
+import { CoordSystem } from '../types/coordinate';
+import { GcoordUtils } from '../utils/GcoordUtils';
 
 // 图形模块日志前缀
 const LOG_MODULE = 'Shape';
@@ -36,6 +38,11 @@ export interface ShapeOptions {
   type: ShapeType;
   style?: ShapeStyle;
   data?: any;
+}
+
+// 扩展导入的ShapeOption接口
+export interface ShapeOption extends ImportedShapeOption {
+  coordSystem?: CoordSystem; // 添加坐标系统属性
 }
 
 /**
@@ -1623,38 +1630,43 @@ export class ShapeObject {
       switch (options.type) {
         case Shape.POINT:
           if (!options.coordinates || !Array.isArray(options.coordinates)) {
-            throw new Error('点必须提供coordinates属性');
+            this.log('error', '添加点形状失败: 缺少坐标');
+            return '';
           }
           feature = new Feature({
-            geometry: new Point(fromLonLat(options.coordinates as number[]))
+            geometry: new Point(GcoordUtils.convertToOlCoordinate(options.coordinates as [number, number], options.coordSystem))
           });
           break;
 
         case Shape.LINE:
-          if (!options.coordinates || !Array.isArray(options.coordinates[0])) {
-            throw new Error('线必须提供coordinates属性，格式为二维数组');
+          if (!options.coordinates || !Array.isArray(options.coordinates)) {
+            this.log('error', '添加线形状失败: 缺少坐标');
+            return '';
           }
           feature = new Feature({
-            geometry: new LineString((options.coordinates as number[][]).map(coord => fromLonLat(coord)))
+            geometry: new LineString(GcoordUtils.convertToOlCoordinate(options.coordinates as [number, number][], options.coordSystem))
           });
           break;
 
         case Shape.POLYGON:
-          if (!options.coordinates && !options.points) {
-            throw new Error('多边形必须提供coordinates或points属性');
+          if (!options.coordinates || !Array.isArray(options.coordinates)) {
+            this.log('error', '添加多边形形状失败: 缺少坐标');
+            return '';
           }
           
           let coords: number[][];
-          if (options.points) {
-            coords = options.points.map(point => fromLonLat([point.x, point.y]));
+          if (options.coordinates.length > 0 && !Array.isArray(options.coordinates[0])) {
+            this.log('error', '添加多边形形状失败: 坐标格式错误');
+            return '';
           } else {
-            coords = (options.coordinates as number[][]).map(coord => fromLonLat(coord));
+            coords = GcoordUtils.convertToOlCoordinate(options.coordinates as [number, number][], options.coordSystem);
           }
           
           // 确保多边形闭合
-          if (coords.length > 2 && (coords[0][0] !== coords[coords.length - 1][0] || 
-                                    coords[0][1] !== coords[coords.length - 1][1])) {
-            coords.push([coords[0][0], coords[0][1]]);
+          if (coords.length > 0 && 
+              (coords[0][0] !== coords[coords.length - 1][0] || 
+               coords[0][1] !== coords[coords.length - 1][1])) {
+            coords.push([...coords[0]]);
           }
           
           feature = new Feature({
@@ -1664,21 +1676,18 @@ export class ShapeObject {
 
         case Shape.CIRCLE:
           if (!options.center || !options.radius) {
-            throw new Error('圆形必须提供center和radius属性');
+            this.log('error', '添加圆形状失败: 缺少中心点或半径');
+            return '';
           }
           feature = new Feature({
-            geometry: new Circle(fromLonLat(options.center), options.radius)
+            geometry: new Circle(GcoordUtils.convertToOlCoordinate(options.center as [number, number], options.coordSystem), options.radius)
           });
           break;
 
         case Shape.RECTANGLE:
-          if (!options.coordinates && !(options.center && options.width && options.height)) {
-            throw new Error('矩形必须提供coordinates或center/width/height属性');
-          }
-          
           let rectangle: number[][];
           if (options.center && options.width && options.height) {
-            const center = fromLonLat(options.center);
+            const center = GcoordUtils.convertToOlCoordinate(options.center as [number, number], options.coordSystem);
             const halfWidth = options.width / 2;
             const halfHeight = options.height / 2;
             
@@ -1687,17 +1696,20 @@ export class ShapeObject {
               [center[0] + halfWidth, center[1] - halfHeight],
               [center[0] + halfWidth, center[1] + halfHeight],
               [center[0] - halfWidth, center[1] + halfHeight],
-              [center[0] - halfWidth, center[1] - halfHeight]  // 闭合多边形
+              [center[0] - halfWidth, center[1] - halfHeight] // 闭合多边形
+            ];
+          } else if (options.coordinates && Array.isArray(options.coordinates) && options.coordinates.length >= 2) {
+            const coords = options.coordinates as [number, number][];
+            rectangle = [
+              GcoordUtils.convertToOlCoordinate(coords[0], options.coordSystem),
+              GcoordUtils.convertToOlCoordinate([coords[1][0], coords[0][1]] as [number, number], options.coordSystem),
+              GcoordUtils.convertToOlCoordinate(coords[1], options.coordSystem),
+              GcoordUtils.convertToOlCoordinate([coords[0][0], coords[1][1]] as [number, number], options.coordSystem),
+              GcoordUtils.convertToOlCoordinate(coords[0], options.coordSystem)  // 闭合多边形
             ];
           } else {
-            const coords = options.coordinates as number[][];
-            rectangle = [
-              fromLonLat(coords[0]),
-              fromLonLat([coords[1][0], coords[0][1]]),
-              fromLonLat(coords[1]),
-              fromLonLat([coords[0][0], coords[1][1]]),
-              fromLonLat(coords[0])  // 闭合多边形
-            ];
+            this.log('error', '添加矩形形状失败: 参数无效');
+            return '';
           }
           
           feature = new Feature({
@@ -1706,11 +1718,12 @@ export class ShapeObject {
           break;
 
         case Shape.SQUARE:
-          if (!options.center && !options.width) {
-            throw new Error('正方形必须提供center和width属性');
+          if (!options.center || !options.width) {
+            this.log('error', '添加正方形形状失败: 缺少中心点或宽度');
+            return '';
           }
           
-          const center = fromLonLat(options.center as number[]);
+          const center = GcoordUtils.convertToOlCoordinate(options.center as [number, number], options.coordSystem);
           const halfSize = (options.width as number) / 2;
           
           const square = [
@@ -1718,7 +1731,7 @@ export class ShapeObject {
             [center[0] + halfSize, center[1] - halfSize],
             [center[0] + halfSize, center[1] + halfSize],
             [center[0] - halfSize, center[1] + halfSize],
-            [center[0] - halfSize, center[1] - halfSize]  // 闭合多边形
+            [center[0] - halfSize, center[1] - halfSize] // 闭合多边形
           ];
           
           feature = new Feature({

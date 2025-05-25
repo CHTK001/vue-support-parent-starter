@@ -13,6 +13,8 @@ import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
 import { EventsKey } from 'ol/events';
 import logger from './LogObject';
 import { HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG } from '../types/heatmap';
+import { GcoordUtils } from '../utils/GcoordUtils';
+import { CoordSystem } from '../types/coordinate';
 
 // 热力图数据点接口和配置接口已移至 ../types/heatmap 文件
 
@@ -221,19 +223,24 @@ export class HeatmapObject {
         }).catch(error => {
           logger.error('[Heatmap] 导入unByKey方法失败:', error);
           
-          // 备选方案：尝试使用dispose方法
-          this.eventListeners.forEach(key => {
-            try {
-              if (key && key.dispose && typeof key.dispose === 'function') {
-                key.dispose();
+          // 备选方案：尝试直接使用unByKey函数
+          try {
+            const { unByKey } = require('ol/Observable');
+            this.eventListeners.forEach(key => {
+              try {
+                if (key) {
+                  unByKey(key);
+                }
+              } catch (error) {
+                logger.error('[Heatmap] 移除事件监听器失败(备选方案):', error);
               }
-            } catch (error) {
-              logger.error('[Heatmap] 移除事件监听器失败(备选方案):', error);
-            }
-          });
-          
-          this.eventListeners = [];
-          logger.debug('[Heatmap] 已移除所有地图事件监听器(使用备选方案)');
+            });
+            
+            this.eventListeners = [];
+            logger.debug('[Heatmap] 已移除所有地图事件监听器(使用备选方案)');
+          } catch (fallbackError) {
+            logger.error('[Heatmap] 备选方案也失败:', fallbackError);
+          }
         });
       } catch (error) {
         logger.error('[Heatmap] 移除事件监听器失败:', error);
@@ -270,123 +277,137 @@ export class HeatmapObject {
   }
 
   /**
-   * 添加热力点
-   * @param point 热力点数据
+   * 添加热力图点
+   * @param point 热力图点数据
    * @returns 点ID
    */
   public addPoint(point: HeatmapPoint): string {
-    // 生成唯一ID
-    const id = point.id || `heatmap-point-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
-    // 标准化权重到0-1范围
-    const weight = point.weight !== undefined ? 
-      Math.max(this.config.minWeight, Math.min(this.config.maxWeight, point.weight)) : 
-      1.0;
-
-    // 保存点信息
-    this.points.set(id, {
-      ...point,
-      id,
-      weight
-    });
-
-    // 创建特征
-    const feature = new Feature({
-      geometry: new Point(fromLonLat([point.longitude, point.latitude])),
-      weight: weight,
-      properties: {
-        id,
-        name: point.name || '',
-        ...point.properties
-      }
-    });
-
-    feature.setId(id);
-
-    // 添加到数据源
-    if (this.source) {
-      this.source.addFeature(feature);
+    if (!this.source) {
+      logger.error('[Heatmap] 无法添加点：数据源不可用');
+      return '';
     }
 
-    logger.debug(`[Heatmap] 添加热力点 ${id} (${point.longitude}, ${point.latitude}, 权重=${weight})`);
-    return id;
+    if (point.longitude === undefined || point.latitude === undefined) {
+      logger.error('[Heatmap] 无法添加点：缺少经纬度信息', point);
+      return '';
+    }
+
+    // 生成唯一ID
+    const id = point.id || `heatmap-point-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+    point.id = id;
+
+    // 创建要素
+    try {
+      // 使用GcoordUtils转换坐标为OpenLayers兼容格式
+      const coordinates = GcoordUtils.convertToOlCoordinate([point.longitude, point.latitude], point.coordSystem || CoordSystem.WGS84);
+      
+      const feature = new Feature({
+        geometry: new Point(coordinates),
+        weight: point.weight || 1,
+        name: point.name || id,
+        properties: point.properties || {}
+      });
+
+      feature.setId(id);
+      this.source.addFeature(feature);
+      this.points.set(id, point);
+
+      logger.debug(`[Heatmap] 添加热力点: ${id}`, point);
+      return id;
+    } catch (error) {
+      logger.error('[Heatmap] 添加点失败:', error);
+      return '';
+    }
   }
 
   /**
-   * 批量添加热力点
-   * @param points 热力点数据数组
+   * 批量添加热力图点
+   * @param points 热力图点数据数组
    * @returns 点ID数组
    */
   public addPoints(points: HeatmapPoint[]): string[] {
-    if (!points || points.length === 0) {
+    if (!Array.isArray(points) || points.length === 0) {
+      logger.warn('[Heatmap] 添加点失败：无效的数据数组');
       return [];
     }
 
     const ids: string[] = [];
-    points.forEach(point => {
-      ids.push(this.addPoint(point));
-    });
+    for (const point of points) {
+      const id = this.addPoint(point);
+      if (id) {
+        ids.push(id);
+      }
+    }
 
-    logger.debug(`[Heatmap] 批量添加了 ${points.length} 个热力点`);
+    logger.debug(`[Heatmap] 批量添加热力点: ${ids.length}个`);
     return ids;
   }
 
   /**
-   * 更新热力点
+   * 更新热力图点
    * @param id 点ID
-   * @param point 热力点数据
-   * @returns 是否成功
+   * @param point 热力图点数据
+   * @returns 是否更新成功
    */
   public updatePoint(id: string, point: Partial<HeatmapPoint>): boolean {
-    // 验证点是否存在
-    if (!this.points.has(id)) {
-      logger.warn(`[Heatmap] 热力点 ${id} 不存在，无法更新`);
+    if (!this.source) {
+      logger.error('[Heatmap] 无法更新点：数据源不可用');
       return false;
     }
 
-    const existingPoint = this.points.get(id)!;
-    const updatedPoint = { ...existingPoint, ...point };
-
-    // 标准化权重
-    if (point.weight !== undefined) {
-      updatedPoint.weight = Math.max(this.config.minWeight, 
-        Math.min(this.config.maxWeight, point.weight));
+    const feature = this.source.getFeatureById(id);
+    if (!feature) {
+      logger.warn(`[Heatmap] 更新点失败：找不到ID为 ${id} 的点`);
+      return false;
     }
 
-    // 更新集合中的点
-    this.points.set(id, updatedPoint);
+    const existingPoint = this.points.get(id);
+    if (!existingPoint) {
+      logger.warn(`[Heatmap] 更新点失败：找不到ID为 ${id} 的点数据`);
+      return false;
+    }
 
-    // 从源中移除原特征
-    if (this.source) {
-      const feature = this.source.getFeatureById(id);
-      if (feature) {
-        this.source.removeFeature(feature);
-
-        // 创建新特征
-        const newFeature = new Feature({
-          geometry: new Point(fromLonLat([updatedPoint.longitude, updatedPoint.latitude])),
-          weight: updatedPoint.weight,
-          properties: {
-            id,
-            name: updatedPoint.name || '',
-            ...updatedPoint.properties
-          }
-        });
-
-        newFeature.setId(id);
-        this.source.addFeature(newFeature);
+    // 更新坐标
+    if (point.longitude !== undefined && point.latitude !== undefined) {
+      try {
+        // 使用GcoordUtils转换坐标为OpenLayers兼容格式
+        const coordSystem = point.coordSystem || existingPoint.coordSystem || CoordSystem.WGS84;
+        const coordinates = GcoordUtils.convertToOlCoordinate([point.longitude, point.latitude], coordSystem);
         
-        logger.debug(`[Heatmap] 更新热力点 ${id}`);
-        return true;
+        const geometry = feature.getGeometry();
+        if (geometry && geometry instanceof Point) {
+          geometry.setCoordinates(coordinates);
+        }
+      } catch (error) {
+        logger.error(`[Heatmap] 更新点坐标失败: ${id}`, error);
+        return false;
       }
     }
 
-    logger.warn(`[Heatmap] 热力点 ${id} 特征未找到，无法更新`);
-    return false;
+    // 更新权重
+    if (point.weight !== undefined) {
+      feature.set('weight', point.weight);
+    }
+
+    // 更新名称
+    if (point.name !== undefined) {
+      feature.set('name', point.name);
+    }
+
+    // 更新属性
+    if (point.properties !== undefined) {
+      feature.set('properties', { ...existingPoint.properties, ...point.properties });
+    }
+
+    // 更新点数据
+    this.points.set(id, { ...existingPoint, ...point });
+
+    logger.debug(`[Heatmap] 更新热力点: ${id}`, point);
+    return true;
   }
 
   /**
-   * 删除热力点
+   * 删除热力图点
    * @param id 点ID
    * @returns 是否成功
    */
@@ -412,7 +433,7 @@ export class HeatmapObject {
   }
 
   /**
-   * 清空所有热力点
+   * 清空所有热力图点
    */
   public clear(): void {
     this.points.clear();
@@ -423,7 +444,7 @@ export class HeatmapObject {
   }
 
   /**
-   * 获取热力点数量
+   * 获取热力图点数量
    * @returns 点数量
    */
   public getPointCount(): number {
@@ -431,8 +452,8 @@ export class HeatmapObject {
   }
 
   /**
-   * 获取所有热力点
-   * @returns 热力点数据对象
+   * 获取所有热力图点
+   * @returns 热力图点数据对象
    */
   public getAllPoints(): Map<string, HeatmapPoint> {
     return new Map(this.points);

@@ -1,6 +1,7 @@
 /**
  * 热力图类型定义
  */
+import { CoordSystem } from './coordinate';
 
 // 热力图数据点接口
 export interface HeatmapPoint {
@@ -10,6 +11,7 @@ export interface HeatmapPoint {
   weight?: number; // 权重 0-1
   name?: string;
   properties?: Record<string, any>;
+  coordSystem?: CoordSystem; // 坐标系统，默认为WGS84
 }
 
 // 热力图配置接口
@@ -46,4 +48,9 @@ export const DEFAULT_HEATMAP_CONFIG: HeatmapConfig = {
   zIndex: 90,
   hideOnMoving: false,
   hideOnZooming: false
+};
+
+// 添加默认导出
+export default {
+  DEFAULT_HEATMAP_CONFIG
 }; 

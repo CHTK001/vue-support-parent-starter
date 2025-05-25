@@ -1,9 +1,9 @@
-import type { MapType } from ".";
-import type { CoordSystem } from "../utils/GcoordUtils";
+import type { MapType } from "./map";
+import type { CoordSystem } from "./coordinate";
 
- /**
- * 搜索结果接口
- */
+/**
+* 搜索结果接口
+*/
 export interface SearchResult {
   id: string;
   name: string;
@@ -81,3 +81,13 @@ export interface NavigationApiResponse {
     }>;
   };
 }
+
+// 添加默认导出，使用类型断言
+export default {} as {
+  SearchResult: typeof SearchResult;
+  SearchOptions: typeof SearchOptions;
+  SearchApiResponse: typeof SearchApiResponse;
+  PlaceDetailApiResponse: typeof PlaceDetailApiResponse;
+  SearchBoxConfig: typeof SearchBoxConfig;
+  NavigationApiResponse: typeof NavigationApiResponse;
+};

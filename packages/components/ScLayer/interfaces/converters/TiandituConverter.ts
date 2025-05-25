@@ -1,7 +1,7 @@
-import type { BoundaryConverter } from '../BoundaryConverter';
+import { BoundaryConverter } from '../BoundaryConverter';
 import type { BoundaryOptions } from '../../types/boundary';
 import { GcoordUtils } from '../../utils/GcoordUtils';
-import { CoordType } from '../../types/coordinate';
+import { CoordSystem } from '../../types/coordinate';
 
 /**
  * 天地图区划转换器
@@ -39,8 +39,8 @@ export class TiandituConverter implements BoundaryConverter {
         // 天地图使用的是国家2000大地坐标系(EPSG:4490)
         const epsg3857Point = GcoordUtils.transform(
           { lng, lat },
-          CoordType.EPSG4490,
-          CoordType.EPSG3857
+          CoordSystem.EPSG4490,
+          CoordSystem.EPSG3857
         );
         
         // 返回转换后的坐标

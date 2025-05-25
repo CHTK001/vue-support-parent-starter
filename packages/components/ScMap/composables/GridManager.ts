@@ -26,13 +26,13 @@ export interface GridConfig {
   };
   // GeoHash网格配置
   geohash?: {
-    precision?: number;    // 精度级别（1-9）
+    level?: number;       // 精度级别（1-12）- 与 GeoHashGridObject 保持一致
     color?: string;        // 边框颜色
     weight?: number;       // 边框宽度
     opacity?: number;      // 不透明度
     fillColor?: string;    // 填充颜色
     fillOpacity?: number;  // 填充不透明度
-    showLabel?: boolean;   // 是否显示标签
+    showCode?: boolean;    // 是否显示标签 - 与 GeoHashGridObject 保持一致
   };
 }
 
@@ -53,13 +53,13 @@ export class GridManager {
       fillOpacity: 0.1
     },
     geohash: {
-      precision: 6,         // 默认6级精度
+      level: 6,             // 默认6级精度 - 与 GeoHashGridObject 保持一致
       color: '#ff3388',
       weight: 1,
       opacity: 0.8,
       fillColor: '#ff3388',
       fillOpacity: 0.1,
-      showLabel: true
+      showCode: true        // 与 GeoHashGridObject 保持一致
     }
   };
 
@@ -100,7 +100,7 @@ export class GridManager {
    * 设置网格配置
    * @param config 网格配置
    */
-  public setConfig(config: GridConfig): void {
+  public setOptions(config: GridConfig): void {
     // 更新配置
     if (config.hexagon && this.hexagonGrid) {
       this.config.hexagon = {
@@ -115,10 +115,18 @@ export class GridManager {
         ...this.config.geohash,
         ...config.geohash
       };
-      this.geohashGrid.setConfig(this.config.geohash);
+      this.geohashGrid.setOptions(this.config.geohash);
     }
     
     logger.debug('网格配置已更新', config);
+  }
+
+  /**
+   * 设置网格配置 (兼容旧API)
+   * @param config 网格配置
+   */
+  public setConfig(config: GridConfig): void {
+    this.setOptions(config);
   }
 
   /**
@@ -136,13 +144,15 @@ export class GridManager {
       this.hexagonVisible = result;
       return result;
     } else if (gridType === GridType.GEOHASH && this.geohashGrid) {
-      const result = this.geohashGrid.show();
-      if (result && this.gridEnabledCallback) {
+      this.geohashGrid.show();
+      // GeoHashGridObject 的 show 方法没有返回值，使用 isVisible 检查
+      const isVisible = this.geohashGrid.isVisible();
+      if (isVisible && this.gridEnabledCallback) {
         this.gridEnabledCallback(gridType);
       }
       // 设置可见性状态
-      this.geohashVisible = result;
-      return result;
+      this.geohashVisible = isVisible;
+      return isVisible;
     }
     
     return false;
@@ -171,13 +181,14 @@ export class GridManager {
       this.hexagonVisible = false;
       return result;
     } else if (gridType === GridType.GEOHASH && this.geohashGrid) {
-      const result = this.geohashGrid.hide();
-      if (result && this.gridDisabledCallback) {
+      this.geohashGrid.hide();
+      // GeoHashGridObject 的 hide 方法没有返回值，假设总是成功的
+      if (this.gridDisabledCallback) {
         this.gridDisabledCallback(gridType);
       }
       // 设置可见性状态
       this.geohashVisible = false;
-      return result;
+      return true;
     }
     
     return false;

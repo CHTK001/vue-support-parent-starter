@@ -2,14 +2,11 @@
  * 地图相关配置
  */
 
-import type { MapTile, ToolbarConfig } from ".";
-import type { CoordinateOptions } from "../composables/CoordinateObject";
 
 // 直接在此处定义MapType，避免循环依赖
 export enum MapType {
   GAODE = 'GAODE',
   TIANDITU = 'TIANDITU',
-  GOOGLE = 'GOOGLE',
   BAIDU = 'BAIDU',
   OSM = 'OSM',
   BING = 'BING'
@@ -137,4 +134,10 @@ export const DEFAULT_MAP_CONFIG: { [key in MapType]: { [key: string]: MapUrlConf
       projection: 'EPSG:3857'
     }
   }
+};
+
+// 添加默认导出
+export default {
+  MapType,
+  DEFAULT_MAP_CONFIG
 };

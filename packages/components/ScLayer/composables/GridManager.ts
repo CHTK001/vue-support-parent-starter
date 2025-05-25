@@ -237,6 +237,35 @@ export class GridManager {
   }
 
   /**
+   * 启用网格（别名方法，与 ScMap 版本兼容）
+   * @param gridType 网格类型
+   * @returns 是否启用成功
+   */
+  public enableGrid(gridType: GridType): boolean {
+    this.enable(gridType);
+    return this.isEnabled(gridType);
+  }
+
+  /**
+   * 禁用网格（别名方法，与 ScMap 版本兼容）
+   * @param gridType 网格类型
+   * @returns 是否禁用成功
+   */
+  public disableGrid(gridType: GridType): boolean {
+    this.disable(gridType);
+    return !this.isEnabled(gridType);
+  }
+
+  /**
+   * 检查指定类型的网格是否可见（别名方法，与 ScMap 版本兼容）
+   * @param gridType 网格类型
+   * @returns 是否可见
+   */
+  public isVisible(gridType: GridType): boolean {
+    return this.isEnabled(gridType);
+  }
+
+  /**
    * 获取当前活动的网格类型集合
    * @returns 活动的网格类型集合
    */

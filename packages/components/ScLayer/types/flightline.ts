@@ -1,11 +1,12 @@
 /**
  * 飞线图类型定义
  */
+import { CoordSystem, GeoPoint } from './coordinate';
 
 // 飞线点接口
 export interface FlightLinePoint {
   name: string;
-  value: number[];
+  value: GeoPoint;
 }
 
 // 飞线样式接口
@@ -21,12 +22,13 @@ export interface FlightLineStyle {
  * 用于定义一条飞线的起点和终点
  */
 export interface FlightCoord {
-  from: number[];    // 起点坐标 [经度, 纬度]
-  to: number[];      // 终点坐标 [经度, 纬度]
+  from: GeoPoint;    // 起点坐标 [经度, 纬度] 或 {lng, lat}
+  to: GeoPoint;      // 终点坐标 [经度, 纬度] 或 {lng, lat}
   fromName?: string; // 起点名称，可选
   toName?: string;   // 终点名称，可选
   style?: FlightLineStyle; // 该组坐标的专属样式，可选
   value?: number;    // 该组坐标的数值，可选
+  coordSystem?: CoordSystem; // 坐标系统，默认为WGS84
 }
 
 // 飞线数据接口
@@ -36,13 +38,13 @@ export interface FlightLineData {
   toName: string;        // 终点名称
   /**
    * 坐标数据，支持两种格式：
-   * 1. 简单格式：[[起点经度,起点纬度],[终点经度,终点纬度]]
+   * 1. 简单格式：[[起点经度,起点纬度],[终点经度,终点纬度]] 或 [{lng,lat},{lng,lat}]
    * 2. 复杂格式：FlightCoord数组，支持多组起点终点坐标
    */
-  coords: number[][] | FlightCoord[];
+  coords: GeoPoint[] | FlightCoord[];
   value?: number;        // 飞线值，可用于表示权重
-  from?: number[];       // 起点坐标，可选，优先使用coords
-  to?: number[];         // 终点坐标，可选，优先使用coords
+  from?: GeoPoint;       // 起点坐标，可选，优先使用coords
+  to?: GeoPoint;         // 终点坐标，可选，优先使用coords
   highlight?: boolean;   // 是否高亮显示，默认为false
   isActive?: boolean;    // 是否为当前激活的飞线
   style?: FlightLineStyle; // 线条样式
@@ -71,6 +73,10 @@ export interface FlightLineData {
    * 为true时将渲染多条飞线路径
    */
   isMultiCoords?: boolean;
+  /**
+   * 坐标系统，默认为WGS84
+   */
+  coordSystem?: CoordSystem;
 }
 
 // 飞线图配置接口
@@ -197,4 +203,9 @@ export const DEFAULT_FLIGHTLINE_CONFIG: FlightLineConfig = {
   useGLMode: false,
   throttle: 100,
   simplifyWhileInteracting: true
+};
+
+// 添加默认导出
+export default {
+  DEFAULT_FLIGHTLINE_CONFIG
 }; 

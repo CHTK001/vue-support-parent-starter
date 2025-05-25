@@ -5,7 +5,7 @@
  */
 import { MapType } from '../types/map';
 import { GcoordUtils } from '../utils/GcoordUtils';
-import { CoordType, GeoPoint } from '../types/coordinate';
+import { CoordSystem, GeoPoint } from '../types/coordinate';
 import logger from './LogObject';
 
 export class GcoordObject {
@@ -13,10 +13,10 @@ export class GcoordObject {
   private mapType: MapType;
   
   // 当前地图使用的坐标系统
-  private mapCoordType: CoordType;
+  private mapCoordSystem: CoordSystem;
   
   // 内部统一使用的坐标系 - 固定为EPSG:3857
-  private readonly internalCoordType: CoordType = CoordType.EPSG3857;
+  private readonly internalCoordSystem: CoordSystem = CoordSystem.EPSG3857;
   
   /**
    * 构造函数
@@ -24,8 +24,8 @@ export class GcoordObject {
    */
   constructor(mapType: MapType = MapType.GAODE) {
     this.mapType = mapType;
-    this.mapCoordType = this.getCoordTypeByMapType(mapType);
-    logger.debug(`坐标系统对象初始化完成，当前地图类型: ${mapType}，地图坐标系统: ${this.mapCoordType}，内部坐标系统: ${this.internalCoordType}`);
+    this.mapCoordSystem = this.getCoordSystemByMapType(mapType);
+    logger.debug(`坐标系统对象初始化完成，当前地图类型: ${mapType}，地图坐标系统: ${this.mapCoordSystem}，内部坐标系统: ${this.internalCoordSystem}`);
   }
   
   /**
@@ -34,8 +34,8 @@ export class GcoordObject {
    */
   public setMapType(mapType: MapType): void {
     this.mapType = mapType;
-    this.mapCoordType = this.getCoordTypeByMapType(mapType);
-    logger.debug(`坐标系统已更新，当前地图类型: ${mapType}，地图坐标系统: ${this.mapCoordType}，内部坐标系统: ${this.internalCoordType}`);
+    this.mapCoordSystem = this.getCoordSystemByMapType(mapType);
+    logger.debug(`坐标系统已更新，当前地图类型: ${mapType}，地图坐标系统: ${this.mapCoordSystem}，内部坐标系统: ${this.internalCoordSystem}`);
   }
   
   /**
@@ -50,16 +50,16 @@ export class GcoordObject {
    * 获取当前地图坐标系统
    * @returns 当前地图坐标系统
    */
-  public getMapCoordType(): CoordType {
-    return this.mapCoordType;
+  public getMapCoordSystem(): CoordSystem {
+    return this.mapCoordSystem;
   }
   
   /**
    * 获取内部使用的坐标系统（EPSG:3857）
    * @returns 内部坐标系统
    */
-  public getInternalCoordType(): CoordType {
-    return this.internalCoordType;
+  public getInternalCoordSystem(): CoordSystem {
+    return this.internalCoordSystem;
   }
   
   /**
@@ -67,19 +67,19 @@ export class GcoordObject {
    * @param mapType 地图类型
    * @returns 对应的坐标系统
    */
-  private getCoordTypeByMapType(mapType: MapType): CoordType {
+  private getCoordSystemByMapType(mapType: MapType): CoordSystem {
     switch (mapType) {
       case MapType.GAODE:
-        return CoordType.GCJ02;
+        return CoordSystem.GCJ02;
       case MapType.BAIDU:
-        return CoordType.BD09;
+        return CoordSystem.BD09;
       case MapType.TIANDITU:
-        return CoordType.EPSG4490;
+        return CoordSystem.EPSG4490;
       case MapType.OSM:
       case MapType.GOOGLE:
       case MapType.BING:
       default:
-        return CoordType.WGS84;
+        return CoordSystem.WGS84;
     }
   }
   
@@ -108,7 +108,7 @@ export class GcoordObject {
    */
   public fromMapCoord(point: GeoPoint): GeoPoint {
     // 先转为WGS84
-    const wgs84Point = GcoordUtils.transform(point, this.mapCoordType, CoordType.WGS84);
+    const wgs84Point = GcoordUtils.transform(point, this.mapCoordSystem, CoordSystem.WGS84);
     // 再转为EPSG:3857
     return this.fromWGS84(wgs84Point);
   }
@@ -122,55 +122,55 @@ export class GcoordObject {
     // 先转为WGS84
     const wgs84Point = this.toWGS84(point);
     // 再转为地图坐标
-    return GcoordUtils.transform(wgs84Point, CoordType.WGS84, this.mapCoordType);
+    return GcoordUtils.transform(wgs84Point, CoordSystem.WGS84, this.mapCoordSystem);
   }
   
   /**
    * 将指定坐标系统的坐标转换为内部坐标系统（EPSG:3857）
    * @param point 坐标点
-   * @param fromCoordType 源坐标系统
+   * @param fromCoordSystem 源坐标系统
    * @returns EPSG:3857坐标点
    */
-  public convertToInternalCoord(point: GeoPoint, fromCoordType: CoordType): GeoPoint {
-    if (fromCoordType === this.internalCoordType) {
+  public convertToInternalCoord(point: GeoPoint, fromCoordSystem: CoordSystem): GeoPoint {
+    if (fromCoordSystem === this.internalCoordSystem) {
       return point; // 相同坐标系统无需转换
     }
     
-    return GcoordUtils.toEpsg3857(point, fromCoordType);
+    return GcoordUtils.toEpsg3857(point, fromCoordSystem);
   }
   
   /**
    * 将内部坐标系统（EPSG:3857）的坐标转换为指定坐标系统
    * @param point EPSG:3857坐标点
-   * @param toCoordType 目标坐标系统
+   * @param toCoordSystem 目标坐标系统
    * @returns 转换后的坐标点
    */
-  public convertFromInternalCoord(point: GeoPoint, toCoordType: CoordType): GeoPoint {
-    if (toCoordType === this.internalCoordType) {
+  public convertFromInternalCoord(point: GeoPoint, toCoordSystem: CoordSystem): GeoPoint {
+    if (toCoordSystem === this.internalCoordSystem) {
       return point; // 相同坐标系统无需转换
     }
     
-    return GcoordUtils.fromEpsg3857(point, toCoordType);
+    return GcoordUtils.fromEpsg3857(point, toCoordSystem);
   }
   
   /**
    * 批量转换坐标点为内部坐标系统（EPSG:3857）
    * @param points 坐标点数组
-   * @param fromCoordType 源坐标系统
+   * @param fromCoordSystem 源坐标系统
    * @returns EPSG:3857坐标点数组
    */
-  public convertPointsToInternal(points: GeoPoint[], fromCoordType: CoordType): GeoPoint[] {
-    return points.map(point => this.convertToInternalCoord(point, fromCoordType));
+  public convertPointsToInternal(points: GeoPoint[], fromCoordSystem: CoordSystem): GeoPoint[] {
+    return points.map(point => this.convertToInternalCoord(point, fromCoordSystem));
   }
   
   /**
    * 批量将内部坐标系统（EPSG:3857）的点转换为指定坐标系统
    * @param points EPSG:3857坐标点数组
-   * @param toCoordType 目标坐标系统
+   * @param toCoordSystem 目标坐标系统
    * @returns 转换后的坐标点数组
    */
-  public convertPointsFromInternal(points: GeoPoint[], toCoordType: CoordType): GeoPoint[] {
-    return points.map(point => this.convertFromInternalCoord(point, toCoordType));
+  public convertPointsFromInternal(points: GeoPoint[], toCoordSystem: CoordSystem): GeoPoint[] {
+    return points.map(point => this.convertFromInternalCoord(point, toCoordSystem));
   }
 
   /**
@@ -192,7 +192,7 @@ export class GcoordObject {
     // 将EPSG:3857坐标先转为WGS84，因为距离计算在WGS84上更准确
     const wgs84Point1 = this.toWGS84(point1);
     const wgs84Point2 = this.toWGS84(point2);
-    return GcoordUtils.distance(wgs84Point1, wgs84Point2, CoordType.WGS84);
+    return GcoordUtils.distance(wgs84Point1, wgs84Point2, CoordSystem.WGS84);
   }
   
   /**

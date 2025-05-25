@@ -14,7 +14,7 @@ import { OverviewMapObject, OverviewMapOptions } from './OverviewMapObject';
 import { MarkerObject } from './MarkerObject';
 import { ShapeObject, ShapeType } from './ShapeObject';
 import { TrackObject } from './TrackObject';
-import { AggregationOptions } from '../types/cluster';
+import type { AggregationOptions } from '../types/cluster';
 import { DataType } from '../types';
 import { LineString, Polygon, Circle } from 'ol/geom';
 import { ShapeOption, Shape } from '../types/shape';

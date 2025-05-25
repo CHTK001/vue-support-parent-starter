@@ -360,3 +360,10 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
     showNodeSpeed: true   // 是否显示节点速度
   }
 };
+
+// 添加默认导出
+export default {
+  ToolbarPosition,
+  ToolbarDirection,
+  DEFAULT_TOOLBAR_CONFIG
+};

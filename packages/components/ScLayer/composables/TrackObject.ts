@@ -1,32 +1,35 @@
 /**
  * 轨迹对象
- * @description 管理地图上的轨迹
+ * @description 管理地图轨迹显示
  * 
- * 性能优化说明：
- * 1. 使用Overlay替代Text显示节点信息，减少每帧渲染的开销
- * 2. 使用requestAnimationFrame优化动画循环，确保平滑渲染
- * 3. 实现帧率控制，避免过度渲染
- * 4. 移除冗余条件判断，简化代码执行路径
- * 5. 使用GPU加速提升地图渲染性能
- * 6. 优化相机动画，实现平滑跟随效果
+ * 性能优化策略：
+ * 1. 使用Overlay代替文本，减少Canvas渲染压力
+ * 2. 使用requestAnimationFrame优化动画循环
+ * 3. 控制帧率，避免过度渲染
+ * 4. 使用节流和防抖减少事件处理频率
+ * 5. 视口稳定功能，减少不必要的视图更新
  */
 import { Map as OlMap } from 'ol';
 import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Style, Stroke, Icon, Fill, Circle as CircleStyle, Text } from 'ol/style';
-import { LineString, Point } from 'ol/geom';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { Style, Icon, Text, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
+import { fromLonLat } from 'ol/proj';
 import { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
-import { getVectorContext } from 'ol/render';
-import { TrackPoint, Track, TrackConfig, IconSpeedGroup, DEFAULT_TRACK_CONFIG } from '../types/track';
-import { DataType } from '../types';
-import logger from './LogObject';
-import Overlay from 'ol/Overlay';
-import { IconUtils } from '../utils/IconUtils';
+import { Overlay } from 'ol';
+import { LineString } from 'ol/geom';
 import { DEFAULT_TRACK_PLAYER_CONFIG, DEFAULT_TRACK_SPEED_GROUPS } from '../types/default';
 import * as easing from 'ol/easing';
+import { Track, TrackConfig, TrackPlayer, TrackPoint, DEFAULT_TRACK_CONFIG } from '../types/track';
+import { Collection } from 'ol';
+import { Modify, Select } from 'ol/interaction';
+import { CoordSystem } from '../types/coordinate';
+import { GcoordUtils } from '../utils/GcoordUtils';
+import logger from './LogObject';
+import { getVectorContext } from 'ol/render';
+import IconUtils, { IconType } from '../utils/IconUtils';
 
 // 轨迹模块的日志前缀
 const LOG_MODULE = 'Track';
@@ -389,7 +392,12 @@ export class TrackObject {
     this.trackNodeAnchorsVisible.set(track.id, true);
     
     // 创建轨迹线几何和特征，但不添加到图层
-    const coordinates = sortedPoints.map(p => fromLonLat([p.lng, p.lat]));
+    // 转换坐标点为 EPSG:3857
+    const coordinates = sortedPoints.map(p => {
+      // 使用 GcoordUtils.convertToOlCoordinate 统一处理坐标转换
+      return GcoordUtils.convertToOlCoordinate([p.lng, p.lat], p.coordSystem);
+    });
+    
     const lineString = new LineString(coordinates);
     const trackFeature = new Feature({
       geometry: lineString,
@@ -413,7 +421,10 @@ export class TrackObject {
     const pointFeatures: Feature[] = [];
     
     sortedPoints.forEach((point, index) => {
-      const pointGeometry = new Point(fromLonLat([point.lng, point.lat]));
+      // 使用 GcoordUtils.convertToOlCoordinate 统一处理坐标转换
+      const coordinates = GcoordUtils.convertToOlCoordinate([point.lng, point.lat], point.coordSystem);
+      
+      const pointGeometry = new Point(coordinates);
       const pointFeature = new Feature({
         geometry: pointGeometry,
         trackId: track.id,
@@ -640,7 +651,10 @@ export class TrackObject {
       }
       
       // 创建轨迹线特征
-      const coordinates = updatedTrack.points.map(p => fromLonLat([p.lng, p.lat]));
+      const coordinates = updatedTrack.points.map(p => {
+        // 使用 GcoordUtils.convertToOlCoordinate 统一处理坐标转换
+        return GcoordUtils.convertToOlCoordinate([p.lng, p.lat], p.coordSystem);
+      });
       const lineString = new LineString(coordinates);
       const trackFeature = new Feature({
         geometry: lineString,
@@ -671,8 +685,12 @@ export class TrackObject {
       const pointFeatures: Feature[] = [];
       for (let i = 0; i < updatedTrack.points.length; i++) {
         const point = updatedTrack.points[i];
+        
+        // 使用 GcoordUtils.convertToOlCoordinate 统一处理坐标转换
+        const coordinates = GcoordUtils.convertToOlCoordinate([point.lng, point.lat], point.coordSystem);
+        
         const pointFeature = new Feature({
-          geometry: new Point(fromLonLat([point.lng, point.lat])),
+          geometry: new Point(coordinates),
           trackId: id,
           pointIndex: i,
           time: point.time,

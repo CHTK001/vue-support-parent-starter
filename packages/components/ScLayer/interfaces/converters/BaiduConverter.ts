@@ -1,7 +1,7 @@
-import type { BoundaryConverter } from '../BoundaryConverter';
+import { BoundaryConverter } from '../BoundaryConverter';
 import type { BoundaryOptions } from '../../types/boundary';
 import { GcoordUtils } from '../../utils/GcoordUtils';
-import { CoordType } from '../../types/coordinate';
+import { CoordSystem } from '../../types/coordinate';
 
 /**
  * 百度地图区划转换器
@@ -38,8 +38,8 @@ export class BaiduConverter implements BoundaryConverter {
       try {
         const epsg3857Point = GcoordUtils.transform(
           { lng, lat },
-          CoordType.BD09,
-          CoordType.EPSG3857
+          CoordSystem.BD09,
+          CoordSystem.EPSG3857
         );
         
         // 返回转换后的坐标

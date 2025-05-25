@@ -1,10 +1,10 @@
-import type { Coordinate } from "./GcoordUtils";
+import type { GeoPoint } from "../types";
 
 //获取当前位置 
-export const getCurrentPoint = async (): Promise<Coordinate> => {
+export const getCurrentPoint = async (): Promise<GeoPoint> => {
   try {
     // 获取当前位置
-    return new Promise<Coordinate>((resolve, reject) => {
+    return new Promise<GeoPoint>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const latitude = position.coords.latitude;

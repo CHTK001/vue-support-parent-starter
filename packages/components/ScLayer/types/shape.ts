@@ -3,6 +3,7 @@
  */
 
 import type { DataType } from ".";
+import { CoordSystem } from "./coordinate";
 
 // 图形类型枚举
 export enum Shape {
@@ -60,6 +61,8 @@ export interface ShapeOption {
   type: Shape;
   visible?: boolean;
   dataType?: DataType;
+  /** 坐标系统，默认为 WGS84 */
+  coordSystem?: CoordSystem;
   coordinates?: number[] | number[][] | number[][][]; // 根据图形类型不同使用不同的坐标格式
   center?: number[]; // 圆形的中心点
   radius?: number; // 圆形的半径
@@ -102,4 +105,10 @@ export const DEFAULT_SHAPE_STYLE: ShapeStyle = {
     offsetY: -12,
     padding: [5, 5, 5, 5]
   }
+};
+
+// 添加默认导出
+export default {
+  Shape,
+  DEFAULT_SHAPE_STYLE
 }; 

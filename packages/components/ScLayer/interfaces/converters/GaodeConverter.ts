@@ -1,6 +1,6 @@
-import type { BoundaryConverter } from '../BoundaryConverter';
+import { BoundaryConverter } from '../BoundaryConverter';
 import type { BoundaryOptions } from '../../types/boundary';
-import { CoordType } from '../../types/coordinate';
+import { CoordSystem } from '../../types/coordinate';
 
 /**
  * 高德地图区划转换器
@@ -18,7 +18,7 @@ export class GaodeConverter implements BoundaryConverter {
     // 只需要添加一个sourceCoordType标记，表示这是GCJ02坐标系
     return {
       ...data,
-      sourceCoordType: CoordType.GCJ02
+      sourceCoordType: CoordSystem.GCJ02
     };
   }
 } 
