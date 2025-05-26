@@ -19,6 +19,7 @@ import logger from './LogObject';
 // 扩展搜索选项接口，添加坐标搜索需要的属性
 interface ExtendedSearchOptions extends SearchOptions {
   location?: number[];
+  mapType: MapType;
 }
 
 // 缓存项接口
@@ -61,13 +62,16 @@ export class SearchObject {
   
   // 当前搜索类型
   private currentSearchType: SearchType;
+  // 地图密钥
+  private mapKey: Record<string, string>;
 
-  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject) {
+  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject, mapKey: Record<string, string>) {
     this.mapInstance = mapInstance;
     this.mapObj = mapObj;
     this.markerObject = markerObject;
     this.searchBoxConfig = searchBoxConfig;
     this.configObject = configObject;
+    this.mapKey = mapKey;
     
     // 初始化当前搜索类型
     this.currentSearchType = searchBoxConfig.defaultSearchType || SearchType.KEYWORD;
@@ -129,10 +133,12 @@ export class SearchObject {
    * @param options 搜索选项
    * @param searchType 搜索类型（可选，默认使用当前搜索类型）
    */
-  public async search(keyword: string, options: ExtendedSearchOptions = {}, searchType?: SearchType): Promise<SearchResult[]> {
+  public async search(keyword: string, options: SearchBoxConfig, searchType?: SearchType): Promise<SearchResult[]> {
     // 使用指定的搜索类型，或当前搜索类型
     const type = searchType || this.currentSearchType;
-    
+    if(!options.key){
+      options.key = this.mapKey[options?.mapType];
+    }
     try {
       // 获取搜索类型配置
       const typeConfig = this.getSearchTypeConfig(type);
