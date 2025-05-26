@@ -2,113 +2,142 @@
 <template>
   <div class="boundary-selector" :class="{ active: active }" :style="positionStyle">
     <div class="boundary-selector-header">
-      <div class="title">区划选择器</div>
+      <div class="title">
+        <i class="boundary-icon"></i>
+        区划选择器
+      </div>
       <div class="actions">
-        <button class="btn btn-icon" @click="locateCurrent" title="定位到当前">
-          <i class="iconfont icon-location"></i>
+        <button class="btn-icon" @click="locateCurrent" title="定位到当前">
+          <i class="location-icon"></i>
         </button>
-        <button class="btn btn-icon" @click="toggleSettings" title="设置">
-          <i class="iconfont icon-setting"></i>
-        </button>
-        <button class="btn btn-icon" @click="$emit('close')" title="关闭">
-          <i class="iconfont icon-close"></i>
+        <button class="btn-icon" @click="toggleSettings" title="设置">
+          <i class="settings-icon"></i>
         </button>
       </div>
     </div>
     
     <div class="boundary-selector-content">
-      <div class="search-box">
-        <input type="text" v-model="searchText" placeholder="搜索行政区划..." />
+      <div class="search-container">
+        <input 
+          type="text" 
+          v-model="searchText" 
+          placeholder="搜索行政区划..." 
+          class="search-input"
+        />
+        <i class="search-icon"></i>
       </div>
       
       <div class="tree-container">
-        <a-tree
+        <el-tree
           v-if="treeData.length > 0"
-          :tree-data="treeData"
-          :expandedKeys="expandedKeys"
-          :selectedKeys="selectedKeys"
-          :replaceFields="{ children: 'children', title: 'title', key: 'key' }"
-          @select="onSelect"
-          @expand="onExpand"
+          :data="filteredTreeData"
+          :expand-on-click-node="false"
+          :default-expanded-keys="expandedKeys"
+          :node-key="'key'"
+          :highlight-current="true"
+          :current-node-key="selectedKeys[0]"
+          show-checkbox
+          @check="onCheck"
+          @check-change="onCheckChange"
+          @node-click="onNodeClick"
+          @node-expand="onExpand"
+          class="district-tree"
+          ref="treeRef"
         >
-          <template #title="{ title, selected }">
-            <span :class="{ 'selected-node': selected }">{{ title }}</span>
+          <template #default="{ node, data }">
+            <span :class="{ 'selected-node': node.isCurrent }">{{ node.label }}</span>
           </template>
-        </a-tree>
+        </el-tree>
         <div v-else class="loading-state">
-          <div v-if="isLoading">加载中...</div>
+          <div v-if="isLoading" class="loading-spinner">
+            <div class="spinner"></div>
+            <span>加载中...</span>
+          </div>
           <div v-else class="error-state">
+            <i class="error-icon"></i>
             <p>加载失败</p>
-            <button class="btn btn-sm" @click="loadDistrictTree">重试</button>
+            <button class="btn btn-primary" @click="loadDistrictTree">重试</button>
           </div>
         </div>
       </div>
       
-      <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
-        <div class="selected-header">
-          <span>已选区划</span>
-          <div class="actions">
-            <button class="btn btn-sm btn-primary" @click="applyBoundaries">应用</button>
-            <button class="btn btn-sm" @click="clearBoundaries">清空</button>
+      <div class="selected-section">
+        <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
+          <div class="selected-header">
+            <span class="selected-title">
+              <i class="check-icon"></i>
+              已选区划 ({{ selectedBoundaries.length }})
+            </span>
+            <div class="actions">
+              <button class="btn btn-primary" @click="applyBoundaries">应用</button>
+              <button class="btn" @click="clearBoundaries">清空</button>
+            </div>
           </div>
-        </div>
-        <div class="selected-list">
-          <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
-            <span>{{ item.name }}</span>
-            <button class="btn btn-icon btn-sm" @click="removeBoundary(item.code)" title="移除">
-              <i class="iconfont icon-delete"></i>
-            </button>
+          <div class="selected-list">
+            <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
+              <span class="item-name">{{ item.name }}</span>
+              <button class="btn-icon remove-btn" @click="removeBoundary(item.code)" title="移除">
+                <i class="delete-icon"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
     
     <div class="settings-panel" v-if="showSettings">
-      <h3>边界显示设置</h3>
-      
-      <div class="setting-item">
-        <label>填充区域</label>
-        <a-switch v-model:checked="options.fillBoundary" />
+      <div class="settings-header">
+        <h3>边界显示设置</h3>
+        <button class="btn-icon" @click="toggleSettings" title="关闭">
+          <i class="close-icon"></i>
+        </button>
       </div>
       
-      <div class="setting-item">
-        <label>边框颜色</label>
-        <a-color-picker v-model:value="options.strokeColor" />
+      <div class="settings-content">
+        <div class="setting-item">
+          <label>填充区域</label>
+          <el-switch v-model="options.fillBoundary" />
+        </div>
+        
+        <div class="setting-item">
+          <label>边框颜色</label>
+          <el-color-picker v-model="options.strokeColor" />
+        </div>
+        
+        <div class="setting-item">
+          <label>边框宽度</label>
+          <el-slider v-model="options.strokeWidth" :min="1" :max="5" :step="0.5" />
+        </div>
+        
+        <div class="setting-item">
+          <label>填充颜色</label>
+          <el-color-picker v-model="options.fillColor" />
+        </div>
+        
+        <div class="setting-item">
+          <label>填充透明度</label>
+          <el-slider v-model="options.fillOpacity" :min="0" :max="1" :step="0.05" />
+        </div>
+        
+        <div class="setting-item">
+          <label>显示标签</label>
+          <el-switch v-model="options.showLabel" />
+        </div>
+        
+        <div class="setting-item" v-if="options.showLabel">
+          <label>标签大小</label>
+          <el-slider v-model="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
+        </div>
+        
+        <div class="setting-item" v-if="options.showLabel">
+          <label>标签颜色</label>
+          <el-color-picker v-model="options.labelOptions.fontColor" />
+        </div>
       </div>
       
-      <div class="setting-item">
-        <label>边框宽度</label>
-        <a-slider v-model:value="options.strokeWidth" :min="1" :max="5" :step="0.5" />
-      </div>
-      
-      <div class="setting-item">
-        <label>填充颜色</label>
-        <a-color-picker v-model:value="options.fillColor" />
-      </div>
-      
-      <div class="setting-item">
-        <label>填充透明度</label>
-        <a-slider v-model:value="options.fillOpacity" :min="0" :max="1" :step="0.05" />
-      </div>
-      
-      <div class="setting-item">
-        <label>显示标签</label>
-        <a-switch v-model:checked="options.showLabel" />
-      </div>
-      
-      <div class="setting-item" v-if="options.showLabel">
-        <label>标签大小</label>
-        <a-slider v-model:value="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
-      </div>
-      
-      <div class="setting-item" v-if="options.showLabel">
-        <label>标签颜色</label>
-        <a-color-picker v-model:value="options.labelOptions.fontColor" />
-      </div>
-      
-      <div class="actions">
-        <button class="btn btn-sm btn-primary" @click="applySettings">应用</button>
-        <button class="btn btn-sm" @click="resetSettings">重置</button>
+      <div class="settings-footer">
+        <button class="btn btn-primary" @click="applySettings">应用</button>
+        <button class="btn" @click="resetSettings">重置</button>
       </div>
     </div>
   </div>
@@ -121,8 +150,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import type { TreeDataItem } from 'ant-design-vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { BoundaryLevel, BoundaryData, BoundaryOptions } from '../types/boundary';
 import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
 import { MapType } from '../types/map';
@@ -174,7 +202,7 @@ const emit = defineEmits(['close', 'apply', 'clear', 'remove']);
 
 // 组件状态
 const searchText = ref('');
-const treeData = ref<TreeDataItem[]>([]);
+const treeData = ref<any[]>([]);
 const rawTreeData = ref<any[]>([]);
 const expandedKeys = ref<string[]>([]);
 const selectedKeys = ref<string[]>([]);
@@ -182,6 +210,7 @@ const selectedBoundaries = ref<BoundaryData[]>([]);
 const showSettings = ref(false);
 const isLoading = ref(false);
 const options = ref<BoundaryOptions>({...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions});
+const treeRef = ref(null);
 
 // 位置样式
 const positionStyle = computed(() => {
@@ -201,35 +230,59 @@ const positionStyle = computed(() => {
 
 // 过滤后的树数据
 const filteredTreeData = computed(() => {
-  if (!searchText.value) return treeData.value;
+  if (!searchText.value.trim()) return treeData.value;
   
-  const filterTree = (nodes: TreeDataItem[]): TreeDataItem[] => {
+  const searchValue = searchText.value.toLowerCase();
+  
+  const filterTree = (nodes: any[]): any[] => {
     return nodes.filter(node => {
-      const titleMatch = (node.title as string).toLowerCase().includes(searchText.value.toLowerCase());
-      const childMatch = node.children ? filterTree(node.children as TreeDataItem[]).length > 0 : false;
+      // 匹配标签名称
+      const titleMatch = (node.label as string).toLowerCase().includes(searchValue);
+      // 匹配拼音字段（如果存在）
+      const pinyinMatch = node.pinyin ? node.pinyin.toLowerCase().includes(searchValue) : false;
+      let children = node.children ? filterTree(node.children as any[]) : [];
+      const childMatch = children.length > 0;
       
-      if (childMatch && node.children) {
-        node.children = filterTree(node.children as TreeDataItem[]);
+      if (childMatch) {
+        return {
+          ...node,
+          children
+        };
       }
       
-      return titleMatch || childMatch;
+      return titleMatch || pinyinMatch;
     });
   };
   
-  return filterTree([...treeData.value]);
+  return filterTree(JSON.parse(JSON.stringify(treeData.value)));
 });
 
 // 生命周期钩子
 onMounted(async () => {
-  try {
-    await loadDistrictTree();
-  } catch (error) {
-    logger.error('加载区划树失败:', error);
+  if (props.active) {
+    try {
+      await loadDistrictTree();
+    } catch (error) {
+      logger.error('加载区划树失败:', error);
+    }
+  }
+});
+
+// 监听active状态变化，当变为true时加载数据
+watch(() => props.active, async (newValue) => {
+  if (newValue && treeData.value.length === 0) {
+    try {
+      await loadDistrictTree();
+    } catch (error) {
+      logger.error('加载区划树失败:', error);
+    }
   }
 });
 
 // 加载区划树
 async function loadDistrictTree() {
+  if (isLoading.value) return;
+  
   isLoading.value = true;
   try {
     // 优先使用 apiUrls，然后是旧的 districtUrl 属性
@@ -237,77 +290,173 @@ async function loadDistrictTree() {
     
     // 获取区划树数据
     const districtTree = await props.boundaryObj.loadDistrictTree(props.mapKey, districtUrl);
+    
+    if (!districtTree || districtTree.length === 0) {
+      throw new Error('获取区划树数据为空');
+    }
+    
     rawTreeData.value = districtTree;
     
     // 转换为树形结构
     treeData.value = formatTreeData(districtTree);
     
-    // 默认展开第一级
-    if (treeData.value.length > 0) {
-      expandedKeys.value = [treeData.value[0].key as string];
-    }
+    // 默认展开所有一级节点
+    expandedKeys.value = treeData.value.map(item => item.key);
+    
+    // 已选边界回显
+    updateSelectedBoundaries();
   } catch (error) {
     logger.error('加载区划树失败:', error);
-    message.error('加载区划树失败，请检查网络连接或API密钥');
+    message('加载区划树失败，请检查网络连接或API密钥', {type: 'error'});
+    treeData.value = [];
   } finally {
     isLoading.value = false;
   }
 }
 
-// 格式化树形数据
-function formatTreeData(data: any[]): TreeDataItem[] {
-  return data.map(item => ({
-    title: item.name,
-    key: item.adcode,
-    children: item.districts && item.districts.length > 0 ? formatTreeData(item.districts) : undefined,
-    isLeaf: !item.districts || item.districts.length === 0
-  }));
-}
-
-// 选择节点
-async function onSelect(selectedKeys: string[], info: any) {
-  if (selectedKeys.length === 0) return;
-  
-  const key = selectedKeys[0];
-  const node = info.node;
-  
-  // 如果已经选择了该节点，则不重复添加
-  if (selectedBoundaries.value.some(item => item.code === key)) {
-    return;
-  }
-  
-  try {
-    // 优先使用 apiUrls，然后是旧的 boundaryUrl 属性
-    const boundaryUrl = props.apiUrls?.boundary || props.boundaryUrl || undefined;
-    
-    // 添加边界
-    const added = await props.boundaryObj.addBoundaryByAdcode(key, {
-      ...options.value,
-      mapKey: props.mapKey,
-      // 使用 apiUrls 对象传递 API URL
-      apiUrls: {
-        boundary: boundaryUrl
+// 更新已选边界
+function updateSelectedBoundaries() {
+  const boundaries = props.boundaryObj.getSelectedBoundaries();
+  if (boundaries && boundaries.length > 0) {
+    // 避免重复，使用Map来存储唯一的边界
+    const uniqueBoundaries = new Map();
+    boundaries.forEach(b => {
+      if (!uniqueBoundaries.has(b.code)) {
+        uniqueBoundaries.set(b.code, b);
       }
     });
     
-    if (added) {
-      // 获取添加的边界数据
-      const boundaries = props.boundaryObj.getSelectedBoundaries();
-      const boundary = boundaries.find(b => b.code === key);
-      
-      if (boundary) {
-        selectedBoundaries.value.push(boundary);
+    selectedBoundaries.value = Array.from(uniqueBoundaries.values());
+    selectedKeys.value = Array.from(uniqueBoundaries.keys());
+    
+    // 设置选中状态
+    nextTick(() => {
+      if (treeRef.value) {
+        selectedKeys.value.forEach(key => {
+          treeRef.value.setChecked(key, true, false);
+        });
       }
-    }
-  } catch (error) {
-    logger.error('添加边界失败:', error);
-    message.error('添加边界失败');
+    });
   }
 }
 
+// 格式化树形数据
+function formatTreeData(data: any[]): any[] {
+  return data.map(item => {
+    const children = item.children || item.districts || [];
+    return {
+      label: item.name,
+      key: item.adcode,
+      pinyin: item.pinyin, // 保留拼音字段
+      children: children.length > 0 ? formatTreeData(children) : undefined,
+      isLeaf: !children || children.length === 0
+    }
+  });
+}
+
+// 节点点击处理
+function onNodeClick(data: any) {
+  // 点击节点时不执行特殊操作，由复选框处理选择
+}
+
+// 复选框变化处理
+async function onCheckChange(data: any, checked: boolean) {
+  const key = data.key;
+  
+  if (checked) {
+    // 如果已经选择了该节点，则不重复添加
+    if (selectedBoundaries.value.some(item => item.code === key)) {
+      return;
+    }
+    
+    try {
+      await addBoundaryByKey(key);
+    } catch (error) {
+      logger.error('添加边界失败:', error);
+      message('添加边界失败', {type: 'error'});
+    }
+  } else {
+    // 移除边界
+    removeBoundary(key);
+  }
+}
+
+// 复选框选中处理
+function onCheck(data: any, checkInfo: any) {
+  // 处理批量选中/取消选中的情况
+  const { checkedKeys } = checkInfo;
+  const currentSelected = selectedBoundaries.value.map(b => b.code);
+  
+  // 找出新增的keys
+  const newKeys = checkedKeys.filter((key: string) => !currentSelected.includes(key));
+  
+  // 找出移除的keys
+  const removedKeys = currentSelected.filter(key => !checkedKeys.includes(key));
+  
+  // 批量添加新选中的边界（避免重复添加）
+  if (newKeys.length > 0) {
+    Promise.all(newKeys.map(key => {
+      // 避免重复添加已经存在的边界
+      if (!selectedBoundaries.value.some(b => b.code === key)) {
+        return addBoundaryByKey(key);
+      }
+      return Promise.resolve(true);
+    })).catch(error => {
+      logger.error('批量添加边界失败:', error);
+      message('部分边界添加失败', {type: 'warning'});
+    });
+  }
+  
+  // 批量移除取消选中的边界
+  removedKeys.forEach(key => {
+    removeBoundary(key);
+  });
+}
+
+// 通过key添加边界
+async function addBoundaryByKey(key: string) {
+  // 检查是否已经存在此边界
+  if (selectedBoundaries.value.some(b => b.code === key)) {
+    return true; // 已存在，直接返回成功
+  }
+  
+  // 优先使用 apiUrls，然后是旧的 boundaryUrl 属性
+  const boundaryUrl = props.apiUrls?.boundary || props.boundaryUrl || undefined;
+  
+  // 添加边界
+  const added = await props.boundaryObj.addBoundaryByAdcode(key, {
+    ...options.value,
+    mapKey: props.mapKey,
+    // 使用 apiUrls 对象传递 API URL
+    apiUrls: {
+      boundary: boundaryUrl
+    }
+  });
+  
+  if (added) {
+    // 获取添加的边界数据
+    const boundaries = props.boundaryObj.getSelectedBoundaries();
+    const boundary = boundaries.find(b => b.code === key);
+    
+    if (boundary) {
+      // 确保不重复添加
+      if (!selectedBoundaries.value.some(b => b.code === key)) {
+        selectedBoundaries.value.push(boundary);
+      }
+    }
+  }
+  
+  return added;
+}
+
 // 展开节点
-function onExpand(expandedKeys: string[]) {
-  expandedKeys.value = expandedKeys;
+function onExpand(data: any, node: any) {
+  const expanded = node.expanded;
+  if (expanded) {
+    expandedKeys.value.push(data.key);
+  } else {
+    expandedKeys.value = expandedKeys.value.filter(key => key !== data.key);
+  }
 }
 
 // 应用边界
@@ -319,6 +468,12 @@ function applyBoundaries() {
 function clearBoundaries() {
   selectedBoundaries.value = [];
   props.boundaryObj.clearBoundaries();
+  
+  // 清空树选中状态
+  if (treeRef.value) {
+    treeRef.value.setCheckedKeys([]);
+  }
+  
   emit('clear');
 }
 
@@ -326,13 +481,31 @@ function clearBoundaries() {
 function removeBoundary(code: string) {
   selectedBoundaries.value = selectedBoundaries.value.filter(item => item.code !== code);
   props.boundaryObj.removeBoundary(code);
+  
+  // 更新树选中状态
+  if (treeRef.value) {
+    treeRef.value.setChecked(code, false, false);
+  }
+  
   emit('remove', code);
 }
 
 // 定位到当前
 function locateCurrent() {
-  // 实现定位到当前位置的逻辑
-  // 此处代码略
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        props.boundaryObj.locateToPosition([longitude, latitude]);
+      },
+      (error) => {
+        logger.error('获取当前位置失败:', error);
+        message('获取当前位置失败', {type: 'error'});
+      }
+    );
+  } else {
+    message('您的浏览器不支持地理定位', {type: 'error'});
+  }
 }
 
 // 切换设置面板
@@ -359,186 +532,480 @@ watch(() => props.defaultOptions, (newOptions) => {
 
 // 监听搜索文本变化
 watch(() => searchText.value, () => {
-  // 实现搜索逻辑
+  // 根据搜索文本过滤树数据已通过计算属性实现
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// 变量定义
+$primary-color: #409EFF;
+$primary-hover: #66b1ff;
+$primary-active: #3a8ee6;
+$border-color: #DCDFE6;
+$border-hover: #C0C4CC;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-muted: #909399;
+$success-color: #67C23A;
+$error-color: #F56C6C;
+$warning-color: #E6A23C;
+$info-color: #909399;
+$background-color: #FFFFFF;
+$border-radius: 4px;
+$box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+$transition-time: 0.3s;
+
+// 图标样式
+@mixin icon($url) {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: $url no-repeat center center;
+  background-size: contain;
+}
+
 .boundary-selector {
   position: absolute;
-  width: 300px;
-  max-height: 500px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  width: 320px;
+  max-height: 80vh;
+  background-color: $background-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
   display: flex;
   flex-direction: column;
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity $transition-time ease, transform $transition-time ease;
+  transform: translateY(-10px);
   overflow: hidden;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  
+  &.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  
+  // 头部样式
+  .boundary-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid $border-color;
+    background-color: #f5f7fa;
+    
+    .title {
+      font-weight: 600;
+      color: $text-primary;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      
+      .boundary-icon {
+        @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23409EFF' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E"));
+        margin-right: 8px;
+      }
+    }
+    
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+  }
+  
+  // 内容区域
+  .boundary-selector-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: calc(80vh - 54px); // 减去header高度
+    
+    // 搜索框
+    .search-container {
+      position: relative;
+      flex-shrink: 0;
+      margin-bottom: 16px;
+      
+      .search-input {
+        width: 100%;
+        height: 36px;
+        padding: 0 36px 0 12px;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        font-size: 14px;
+        color: $text-primary;
+        transition: border-color $transition-time;
+        outline: none;
+        
+        &:hover {
+          border-color: $border-hover;
+        }
+        
+        &:focus {
+          border-color: $primary-color;
+        }
+        
+        &::placeholder {
+          color: $text-muted;
+        }
+      }
+      
+      .search-icon {
+        @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23909399' d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E"));
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.7;
+      }
+    }
+    
+    // 树容器
+    .tree-container {
+      flex: 1;
+      height: 240px;
+      min-height: 180px;
+      max-height: 35vh;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      padding: 12px;
+      background-color: #fafafa;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      
+      .district-tree {
+        width: 100%;
+        
+        :deep(.el-tree) {
+          background-color: transparent;
+        }
+        
+        :deep(.el-tree-node) {
+          margin-top: 2px;
+          
+          &:first-child {
+            margin-top: 0;
+          }
+        }
+        
+        :deep(.el-tree-node__content) {
+          height: 32px;
+          
+          &:hover {
+            background-color: #f5f7fa;
+          }
+        }
+        
+        :deep(.el-tree-node.is-current > .el-tree-node__content) {
+          background-color: #ecf5ff;
+        }
+        
+        :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+          background-color: $primary-color;
+          border-color: $primary-color;
+        }
+        
+        :deep(.el-tree-node__label) {
+          font-size: 14px;
+        }
+        
+        .selected-node {
+          color: $primary-color;
+          font-weight: 500;
+        }
+      }
+      
+      .loading-state,
+      .error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: $text-muted;
+        gap: 12px;
+        
+        .loading-spinner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          
+          .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba($primary-color, 0.3);
+            border-top-color: $primary-color;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        }
+        
+        .error-icon {
+          @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F56C6C' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E"));
+          width: 40px;
+          height: 40px;
+        }
+        
+        p {
+          margin: 0 0 8px;
+          font-size: 14px;
+        }
+      }
+    }
+    
+    // 已选区域
+    .selected-section {
+      flex-shrink: 0;
+      
+      .selected-boundaries {
+        border-top: 1px solid $border-color;
+        padding-top: 12px;
+        
+        .selected-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          
+          .selected-title {
+            font-weight: 500;
+            color: $text-primary;
+            display: flex;
+            align-items: center;
+            
+            .check-icon {
+              @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2367C23A' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E"));
+              margin-right: 6px;
+            }
+          }
+          
+          .actions {
+            display: flex;
+            gap: 8px;
+          }
+        }
+        
+        .selected-list {
+          max-height: 150px;
+          overflow-y: auto;
+          border: 1px solid $border-color;
+          border-radius: $border-radius;
+          
+          &::-webkit-scrollbar {
+            width: 6px;
+          }
+          
+          &::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+          }
+          
+          &::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+          }
+          
+          &::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+          }
+          
+          .selected-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba($border-color, 0.5);
+            transition: background-color $transition-time;
+            
+            &:last-child {
+              border-bottom: none;
+            }
+            
+            &:hover {
+              background-color: #f5f7fa;
+            }
+            
+            .item-name {
+              font-size: 14px;
+              color: $text-primary;
+            }
+            
+            .remove-btn {
+              opacity: 0.6;
+              
+              &:hover {
+                opacity: 1;
+              }
+              
+              .delete-icon {
+                @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F56C6C' d='M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'/%3E%3C/svg%3E"));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 设置面板
+  .settings-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: $background-color;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    transition: all $transition-time ease;
+    
+    .settings-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid $border-color;
+      background-color: #f5f7fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: $text-primary;
+      }
+      
+      .close-icon {
+        @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E"));
+      }
+    }
+    
+    .settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      
+      .setting-item {
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        label {
+          flex: 1;
+          color: $text-secondary;
+          font-size: 14px;
+        }
+        
+        :deep(.el-slider) {
+          width: 140px;
+        }
+      }
+    }
+    
+    .settings-footer {
+      padding: 12px 16px;
+      border-top: 1px solid $border-color;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+  }
 }
 
-.boundary-selector.active {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.boundary-selector-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.boundary-selector-header .title {
-  font-weight: bold;
-}
-
-.boundary-selector-header .actions {
-  display: flex;
-  gap: 5px;
-}
-
-.boundary-selector-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-}
-
-.tree-container {
-  flex: 1;
-  min-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  padding: 5px;
-}
-
-.selected-boundaries {
-  border-top: 1px solid #e8e8e8;
-  padding-top: 10px;
-}
-
-.selected-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
-}
-
-.selected-list {
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-.selected-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.settings-panel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: white;
-  z-index: 1001;
-  padding: 15px;
-  overflow-y: auto;
-}
-
-.settings-panel h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #e8e8e8;
-  padding-bottom: 10px;
-}
-
-.setting-item {
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.setting-item label {
-  flex: 1;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 15px;
-}
-
+// 按钮样式
 .btn {
-  padding: 4px 8px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
   background-color: white;
+  color: $text-secondary;
   cursor: pointer;
-}
-
-.btn-primary {
-  background-color: #1677ff;
-  color: white;
-  border-color: #1677ff;
+  font-size: 14px;
+  transition: all $transition-time;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+  
+  &:active {
+    background-color: rgba($primary-color, 0.1);
+  }
+  
+  &.btn-primary {
+    background-color: $primary-color;
+    color: white;
+    border-color: $primary-color;
+    
+    &:hover {
+      background-color: $primary-hover;
+      border-color: $primary-hover;
+    }
+    
+    &:active {
+      background-color: $primary-active;
+      border-color: $primary-active;
+    }
+  }
 }
 
 .btn-icon {
-  padding: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-}
-
-.btn-sm {
-  padding: 2px 6px;
-  font-size: 12px;
-}
-
-.loading-state,
-.error-state {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 200px;
-  color: #999;
-}
-
-.error-state p {
-  margin-bottom: 10px;
-}
-
-.selected-node {
-  color: #1677ff;
-  font-weight: bold;
+  border-radius: $border-radius;
+  transition: all $transition-time;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  i {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+  }
+  
+  .location-icon {
+    @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'/%3E%3C/svg%3E"));
+  }
+  
+  .settings-icon {
+    @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z'/%3E%3C/svg%3E"));
+  }
+  
+  .close-icon {
+    @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E"));
+  }
 }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
   .boundary-selector {
-    width: 100%;
-    max-width: 300px;
+    width: calc(100% - 20px);
+    max-width: 320px;
+    max-height: 70vh;
   }
 }
 </style> 

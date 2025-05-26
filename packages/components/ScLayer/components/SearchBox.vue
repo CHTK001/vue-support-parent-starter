@@ -1,64 +1,82 @@
 <template>
   <div class="search-box" :class="[position, { 'is-select': type === 'select' }]">
     <div class="search-container">
-      <!-- 搜索类型选择器 -->
       <div v-if="showTypeSelector" class="search-type-selector">
-        <select v-model="currentSearchType" @change="handleSearchTypeChange" class="type-select">
-          <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
-            {{ typeConfig.label }}
-          </option>
-        </select>
-        <!-- 自定义类型选择器插槽 -->
+        <div class="custom-select">
+          <select v-model="currentSearchType" @change="handleSearchTypeChange">
+            <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
+              {{ typeConfig.label }}
+            </option>
+          </select>
+          <div class="select-arrow"></div>
+        </div>
         <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange"></slot>
       </div>
       
-      <div class="search-input-wrapper">
-        <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
-          @input="handleInput" class="search-input" :class="{ 'coordinate-input': currentSearchType === 'coordinate' }" />
-        <select v-else v-model="searchText" @change="handleInput" class="search-select">
+      <div class="search-input-container">
+        <input v-if="type === 'input'" 
+               v-model="searchText" 
+               type="text" 
+               :placeholder="currentPlaceholder"
+               @input="handleInput" 
+               @keyup.enter="handleSearch" 
+               :class="{ 'coordinate-input': currentSearchType === 'coordinate' }" />
+        
+        <select v-else v-model="searchText" @change="handleInput">
           <option value="">请选择</option>
           <option v-for="option in options" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
         </select>
-        <div class="search-icon" @click="handleSearch">
-          <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-            <path fill="currentColor"
-              d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
+        
+        <button type="button" class="search-button" @click="handleSearch">
+          <svg viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
-        </div>
-        <!-- 坐标输入提示 -->
-        <div v-if="currentSearchType === 'coordinate' && searchText.trim()" 
-             class="coordinate-hint" 
-             :class="{ 'valid': isValidCoordinate }">
-          {{ isValidCoordinate ? '✓ 有效坐标' : '请输入有效的经纬度坐标，如：116.404,39.915' }}
-        </div>
+        </button>
       </div>
     </div>
     
     <!-- 自定义搜索框插槽 -->
     <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch"></slot>
     
-    <div v-if="showResults && results.length > 0" class="search-results">
-      <div v-for="result in results" :key="result.id" class="search-result-item" @click="handleSelect(result)">
-        <div class="result-title">{{ result.name }}</div>
-        <div class="result-address">{{ result.address }}</div>
-        <div v-if="result.distance" class="result-distance">{{ formatDistance(result.distance) }}</div>
+    <!-- 搜索结果列表 -->
+    <transition name="slide-fade">
+      <div v-if="showResults && results.length > 0" class="search-results">
+        <div v-for="result in results" :key="result.id" class="result-item" @click="handleSelect(result)">
+          <div class="result-content">
+            <div class="result-title">{{ result.name }}</div>
+            <div class="result-address">
+              <span class="location-icon"></span>
+              {{ result.address }}
+            </div>
+          </div>
+          <div v-if="result.distance" class="result-distance">
+            {{ formatDistance(result.distance) }}
+          </div>
+        </div>
+        
+        <!-- 自定义搜索结果插槽 -->
+        <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
       </div>
-      
-      <!-- 自定义搜索结果插槽 -->
-      <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
-    </div>
+    </transition>
     
     <!-- 添加暂无数据提示 -->
-    <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
-      <div class="no-data">暂无数据</div>
-    </div>
+    <transition name="slide-fade">
+      <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
+        <div class="empty-state">
+          <span class="empty-icon"></span>
+          <p>未找到结果</p>
+          <small>请尝试其他关键词或搜索方式</small>
+        </div>
+      </div>
+    </transition>
     
-    <div v-if="selectedMarker" class="navigation-buttons">
-      <button @click="handleNavigation" class="nav-button">
-        <i class="nav-icon"></i>
-        导航
+    <!-- 导航按钮 -->
+    <div v-if="selectedMarker" class="navigation-panel">
+      <button @click="handleNavigation" class="navigation-button">
+        <span class="navigation-icon"></span>
+        开始导航
       </button>
     </div>
   </div>
@@ -313,160 +331,307 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// 变量定义
+$primary-color: #3370ff;
+$primary-hover: #4c80ff;
+$primary-active: #1e58e4;
+$border-color: #dcdfe6;
+$border-hover: #c0c4cc;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-muted: #909399;
+$success-color: #52c41a;
+$error-color: #f5222d;
+$border-radius: 4px;
+$box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+$transition-time: 0.2s;
+
 .search-box {
   position: absolute;
   z-index: 1000;
-  width: 300px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  width: 340px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  background-color: #fff;
+  overflow: hidden;
   
   .search-container {
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid rgba($border-color, 0.6);
   }
   
   .search-type-selector {
-    width: 80px;
+    margin-right: 8px;
+    width: 85px;
     
-    .type-select {
-      width: 100%;
+    .custom-select {
+      position: relative;
       height: 36px;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
-      padding: 0 8px;
-      font-size: 14px;
-      color: #606266;
-      outline: none;
       
-      &:focus {
-        border-color: #409eff;
+      select {
+        appearance: none;
+        width: 100%;
+        height: 100%;
+        padding: 0 26px 0 10px;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        background-color: #fff;
+        font-size: 14px;
+        color: $text-primary;
+        cursor: pointer;
+        transition: all $transition-time;
+        
+        &:hover {
+          border-color: $border-hover;
+        }
+        
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+        }
+      }
+      
+      .select-arrow {
+        position: absolute;
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid $text-secondary;
+        pointer-events: none;
       }
     }
   }
   
-  .search-input-wrapper {
+  .search-input-container {
     position: relative;
     flex: 1;
-    display: flex;
-    align-items: center;
-  }
-  
-  .search-input, .search-select {
-    width: 100%;
     height: 36px;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    padding: 0 30px 0 10px;
-    font-size: 14px;
-    color: #606266;
-    outline: none;
     
-    &:focus {
-      border-color: #409eff;
+    input, select {
+      width: 100%;
+      height: 100%;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      padding: 0 40px 0 12px;
+      font-size: 14px;
+      color: $text-primary;
+      transition: all $transition-time;
+      
+      &::placeholder {
+        color: $text-muted;
+      }
+      
+      &:hover {
+        border-color: $border-hover;
+      }
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+      }
+      
+      &.coordinate-input {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
+      }
     }
     
-    &.coordinate-input {
-      font-family: monospace;
-      letter-spacing: 0.5px;
-    }
-  }
-  
-  .search-icon {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: #909399;
-    
-    &:hover {
-      color: #409eff;
+    .search-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $text-secondary;
+      border-radius: 0 $border-radius $border-radius 0;
+      transition: all $transition-time;
+      
+      &:hover {
+        color: $primary-color;
+        background-color: rgba($primary-color, 0.05);
+      }
+      
+      &:active {
+        color: $primary-active;
+      }
     }
   }
   
   .search-results {
     max-height: 300px;
     overflow-y: auto;
-    border-top: 1px solid #ebeef5;
+    background-color: #fff;
     
-    &.empty-results {
-      padding: 20px 0;
-      text-align: center;
+    &::-webkit-scrollbar {
+      width: 5px;
     }
     
-    .no-data {
-      color: #909399;
-      font-size: 14px;
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background: #aaa;
+    }
+    
+    &.empty-results {
+      padding: 30px 0;
     }
   }
   
-  .search-result-item {
-    padding: 10px;
+  .result-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid rgba($border-color, 0.4);
     cursor: pointer;
-    border-bottom: 1px solid #f2f6fc;
+    transition: background-color $transition-time;
     
     &:hover {
-      background-color: #f5f7fa;
+      background-color: rgba($primary-color, 0.03);
+    }
+    
+    &:active {
+      background-color: rgba($primary-color, 0.06);
+    }
+    
+    .result-content {
+      flex: 1;
+      min-width: 0;
+      margin-right: 10px;
     }
     
     .result-title {
       font-size: 14px;
-      font-weight: bold;
-      color: #303133;
+      font-weight: 500;
+      color: $text-primary;
       margin-bottom: 4px;
-    }
-    
-    .result-address {
-      font-size: 12px;
-      color: #909399;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     
+    .result-address {
+      font-size: 12px;
+      color: $text-secondary;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      
+      .location-icon {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23666666' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: contain;
+        opacity: 0.7;
+      }
+    }
+    
     .result-distance {
       font-size: 12px;
-      color: #67c23a;
-      margin-top: 4px;
+      color: $primary-color;
+      background-color: rgba($primary-color, 0.08);
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      align-self: center;
     }
   }
   
-  .navigation-buttons {
-    padding: 10px;
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    
+    .empty-icon {
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23dcdfe6' d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z M7 9h5v1H7z'/%3E%3C/svg%3E") no-repeat center center;
+      background-size: contain;
+    }
+    
+    p {
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: $text-primary;
+      font-weight: 500;
+    }
+    
+    small {
+      color: $text-muted;
+      font-size: 12px;
+    }
+  }
+  
+  .navigation-panel {
+    padding: 12px;
     display: flex;
     justify-content: center;
-    border-top: 1px solid #ebeef5;
+    border-top: 1px solid rgba($border-color, 0.6);
+  }
+  
+  .navigation-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all $transition-time;
     
-    .nav-button {
-      background-color: #409eff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      
-      &:hover {
-        background-color: #66b1ff;
-      }
-      
-      .nav-icon {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==');
-        background-size: contain;
-      }
+    &:hover {
+      background-color: $primary-hover;
+    }
+    
+    &:active {
+      background-color: $primary-active;
+      transform: translateY(1px);
+    }
+    
+    .navigation-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E") no-repeat center center;
+      background-size: contain;
     }
   }
 }
 
+// 位置相关样式
 .search-box.top-left {
   top: 10px;
   left: 10px;
@@ -487,17 +652,23 @@ defineExpose({
   right: 10px;
 }
 
-.coordinate-hint {
-  position: absolute;
-  bottom: -20px;
-  left: 0;
-  font-size: 12px;
-  color: #909399;
-  width: 100%;
-  text-align: left;
-  
-  &.valid {
-    color: #67c23a;
+// 动画效果
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+// 移动端适配
+@media screen and (max-width: 768px) {
+  .search-box {
+    width: calc(100% - 20px);
+    max-width: 340px;
   }
 }
 </style> 
