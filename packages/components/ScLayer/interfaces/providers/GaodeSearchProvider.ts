@@ -14,6 +14,8 @@ export class GaodeSearchProvider implements SearchDataProvider {
   private readonly SEARCH_URL = 'https://restapi.amap.com/v3/place/text';
   private readonly DETAIL_URL = 'https://restapi.amap.com/v3/place/detail';
   private readonly NAVIGATION_URL = 'https://restapi.amap.com/v3/direction/driving';
+  private readonly AROUND_URL = 'https://restapi.amap.com/v3/place/around';
+  private readonly DISTRICT_URL = 'https://restapi.amap.com/v3/config/district';
   
   /**
    * 搜索地点
@@ -267,5 +269,144 @@ export class GaodeSearchProvider implements SearchDataProvider {
     const gcj02Coords = GcoordUtils.toObject(gcj02Point);
     
     return [gcj02Coords.lng, gcj02Coords.lat];
+  }
+  
+  /**
+   * 附近搜索
+   * @param url 搜索 API URL
+   * @param keyword 关键词
+   * @param options 搜索选项，必须包含 location 和 radius
+   * @returns 搜索结果
+   */
+  async searchNearby(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]> {
+    try {
+      logger.debug(`[GaodeSearchProvider] 开始附近搜索: ${keyword}`);
+      
+      // 获取位置信息，使用类型断言访问 location 属性
+      const location = (options as any).location;
+      if (!location || !Array.isArray(location) || location.length < 2) {
+        throw new Error('附近搜索缺少有效的位置信息');
+      }
+      
+      // 确保坐标是GCJ02坐标系
+      const gcj02Coords = this.ensureGcj02Coordinates([location[0], location[1]]);
+      
+      const params = {
+        key: options.key,
+        keywords: keyword,
+        location: `${gcj02Coords[0]},${gcj02Coords[1]}`,
+        radius: options.radius || 5000,
+        extensions: 'all',
+        offset: options.pageSize || 20,
+        page: options.pageIndex || 1,
+        output: 'JSON'
+      };
+      
+      // 如果提供了自定义URL，则使用自定义URL
+      const requestUrl = url || this.AROUND_URL;
+      
+      const response = await axios.get(requestUrl, { params });
+      const data = response.data;
+      
+      if (data.status !== '1') {
+        throw new Error(`高德地图附近搜索API错误: ${data.info}`);
+      }
+      
+      logger.debug(`[GaodeSearchProvider] 附近搜索成功，找到 ${data.pois?.length || 0} 条结果`);
+      
+      // 转换为统一格式
+      return this.convertToSearchResults(data.pois || []);
+    } catch (error) {
+      logger.error(`[GaodeSearchProvider] 附近搜索失败: ${keyword}`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 行政区搜索
+   * @param url 搜索 API URL
+   * @param keyword 行政区名称
+   * @param options 搜索选项
+   * @returns 搜索结果
+   */
+  async searchDistrict(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]> {
+    try {
+      logger.debug(`[GaodeSearchProvider] 开始行政区搜索: ${keyword}`);
+      
+      const params = {
+        key: options.key,
+        keywords: keyword,
+        subdistrict: (options as any).subdistrict || 1, // 返回下一级行政区信息
+        extensions: (options as any).extensions || 'all', // 返回行政区边界坐标点
+        output: 'JSON'
+      };
+      
+      // 如果提供了自定义URL，则使用自定义URL
+      const requestUrl = url || this.DISTRICT_URL;
+      
+      const response = await axios.get(requestUrl, { params });
+      const data = response.data;
+      
+      if (data.status !== '1') {
+        throw new Error(`高德地图行政区搜索API错误: ${data.info}`);
+      }
+      
+      logger.debug(`[GaodeSearchProvider] 行政区搜索成功，找到 ${data.districts?.length || 0} 条结果`);
+      
+      // 转换行政区数据为搜索结果格式
+      return this.convertDistrictsToSearchResults(data.districts || []);
+    } catch (error) {
+      logger.error(`[GaodeSearchProvider] 行政区搜索失败: ${keyword}`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 将高德地图行政区数据转换为统一的搜索结果格式
+   * @param districts 高德地图行政区数据
+   * @returns 统一格式的搜索结果
+   */
+  private convertDistrictsToSearchResults(districts: any[]): SearchResult[] {
+    return districts.map(district => {
+      // 获取行政区中心点坐标
+      let lng = 0, lat = 0;
+      
+      if (district.center) {
+        const center = district.center.split(',');
+        lng = parseFloat(center[0]);
+        lat = parseFloat(center[1]);
+      }
+      
+      // 转换为EPSG:3857坐标系
+      const epsg3857Point = GcoordUtils.transform(
+        { lng, lat },
+        CoordSystem.GCJ02,
+        CoordSystem.EPSG3857
+      );
+      
+      // 从 GeoPoint 提取经纬度
+      const epsg3857Coords = GcoordUtils.toObject(epsg3857Point);
+      
+      return {
+        id: district.adcode,
+        name: district.name,
+        address: `${district.name}, ${district.level}级行政区`,
+        province: district.level === 'province' ? district.name : district.province || '',
+        city: district.level === 'city' ? district.name : district.city || '',
+        district: district.level === 'district' ? district.name : district.district || '',
+        location: {
+          lng: lng,
+          lat: lat,
+          epsg3857: {
+            lng: epsg3857Coords.lng,
+            lat: epsg3857Coords.lat
+          }
+        },
+        type: 'district',
+        level: district.level,
+        provider: 'gaode',
+        rawData: district
+      };
+    });
   }
 } 

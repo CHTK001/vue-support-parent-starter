@@ -11,6 +11,8 @@ import { fromLonLat } from 'ol/proj';
 import { DEFAULT_MARKER_ICON } from '../types/default';
 import { SearchDataProviderFactory } from '../interfaces/SearchDataProvider';
 import { registerAllSearchProviders } from '../interfaces/providers';
+import { SearchHandlerFactory } from '../interfaces/SearchHandler';
+import { registerAllSearchHandlers } from '../interfaces/handlers';
 import { MapType } from '../types/map';
 import { CoordSystem } from '../types/coordinate';
 import { GcoordUtils } from '../utils/GcoordUtils';
@@ -78,6 +80,9 @@ export class SearchObject {
     
     // 确保所有搜索提供者已注册
     registerAllSearchProviders();
+    
+    // 确保所有搜索处理器已注册
+    registerAllSearchHandlers();
   }
 
   /**
@@ -114,6 +119,13 @@ export class SearchObject {
    * @returns 缓存键
    */
   private generateCacheKey(keyword: string, options: SearchOptions, searchType: SearchType): string {
+    // 使用搜索处理器生成缓存键
+    const handler = SearchHandlerFactory.getHandler(searchType);
+    if (handler) {
+      return handler.getCacheKey(keyword, options);
+    }
+    
+    // 如果没有对应的处理器，使用默认方式生成缓存键
     // 提取关键选项
     const keyOptions = {
       city: options.city,
@@ -123,7 +135,7 @@ export class SearchObject {
       pageSize: options.pageSize
     };
     
-    // 生成缓存键
+    // 生成缓存键，包含类型和关键词
     return `${searchType}:${keyword}:${JSON.stringify(keyOptions)}`;
   }
 
@@ -143,6 +155,14 @@ export class SearchObject {
       // 获取搜索类型配置
       const typeConfig = this.getSearchTypeConfig(type);
       
+      // 获取搜索处理器
+      const handler = SearchHandlerFactory.getHandler(type);
+      
+      // 如果有处理器，尝试格式化输入
+      if (handler && handler.formatInput) {
+        keyword = handler.formatInput(keyword);
+      }
+      
       // 检查缓存
       const cachedResults = this.getFromCache(keyword, options, type);
       if (cachedResults) {
@@ -155,6 +175,62 @@ export class SearchObject {
         }
         
         return cachedResults;
+      }
+      
+      // 根据搜索类型设置选项
+      this.setOptionsBySearchType(type, keyword, options);
+      
+      // 如果有搜索处理器，使用处理器处理搜索
+      if (handler) {
+        logger.debug(`[SearchObject] 使用搜索处理器进行搜索，类型: ${type}`);
+        const results = await handler.handleSearch(keyword, options);
+        
+        // 更新缓存
+        this.updateCache(keyword, options, results, type);
+        
+        this.searchResults = results;
+        
+        // 清除之前的搜索结果标记
+        this.clearSearchMarker();
+        
+        // 如果有结果，添加标记并立即定位到该坐标
+        if (results.length > 0) {
+          this.addSearchMarker(results[0]);
+          this.flyToLocation(results[0].location);
+        }
+        
+        // 触发搜索回调
+        if (this.searchCallback) {
+          this.searchCallback(results);
+        }
+        
+        return results;
+      }
+      
+      // 特殊处理坐标搜索类型
+      if (type === SearchType.COORDINATE && (options as any).coordinateResult) {
+        const results = (options as any).coordinateResult;
+        
+        // 更新缓存
+        this.updateCache(keyword, options, results, type);
+        
+        this.searchResults = results;
+        
+        // 清除之前的搜索结果标记
+        this.clearSearchMarker();
+        
+        // 如果有结果，添加标记并立即定位到该坐标
+        if (results.length > 0) {
+          this.addSearchMarker(results[0]);
+          this.flyToLocation(results[0].location);
+        }
+        
+        // 触发搜索回调
+        if (this.searchCallback) {
+          this.searchCallback(results);
+        }
+        
+        return results;
       }
       
       // 如果有自定义处理函数，使用自定义处理函数
@@ -208,9 +284,6 @@ export class SearchObject {
         
         return results;
       }
-      
-      // 根据搜索类型设置选项
-      this.setOptionsBySearchType(type, keyword, options);
       
       // 获取地图类型
       const mapType = this.configObject.getMapType();
@@ -275,6 +348,41 @@ export class SearchObject {
     switch (type) {
       case SearchType.KEYWORD:
         // 关键词搜索不需要特殊处理
+        break;
+      case SearchType.COORDINATE:
+        // 坐标搜索处理
+        try {
+          // 尝试解析坐标字符串，支持多种格式：
+          // "116.404,39.915" 或 "116.404 39.915" 或 "116.404，39.915"
+          const coordStr = keyword.trim().replace(/，/g, ',').replace(/\s+/g, ',');
+          const coords = coordStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+          
+          if (coords.length >= 2) {
+            const lng = coords[0];
+            const lat = coords[1];
+            
+            // 验证坐标是否有效
+            if (lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+              // 创建一个包含单个结果的搜索结果数组
+              const result: SearchResult = {
+                id: `coord-${Date.now()}`,
+                name: `坐标 (${lng.toFixed(6)}, ${lat.toFixed(6)})`,
+                address: `经度: ${lng.toFixed(6)}, 纬度: ${lat.toFixed(6)}`,
+                location: {
+                  lng,
+                  lat
+                },
+                type: 'coordinate',
+                provider: 'coordinate'
+              };
+              
+              // 将结果存储在选项中，以便在search方法中使用
+              (options as any).coordinateResult = [result];
+            }
+          }
+        } catch (error) {
+          logger.error(`[SearchObject] 解析坐标失败: ${error.message}`);
+        }
         break;
       case SearchType.NEARBY:
         // 附近搜索需要设置位置信息

@@ -14,7 +14,7 @@
       
       <div class="search-input-wrapper">
         <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
-          @input="handleInput" class="search-input" />
+          @input="handleInput" class="search-input" :class="{ 'coordinate-input': currentSearchType === 'coordinate' }" />
         <select v-else v-model="searchText" @change="handleInput" class="search-select">
           <option value="">请选择</option>
           <option v-for="option in options" :key="option.value" :value="option.value">
@@ -26,6 +26,12 @@
             <path fill="currentColor"
               d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
           </svg>
+        </div>
+        <!-- 坐标输入提示 -->
+        <div v-if="currentSearchType === 'coordinate' && searchText.trim()" 
+             class="coordinate-hint" 
+             :class="{ 'valid': isValidCoordinate }">
+          {{ isValidCoordinate ? '✓ 有效坐标' : '请输入有效的经纬度坐标，如：116.404,39.915' }}
         </div>
       </div>
     </div>
@@ -42,6 +48,11 @@
       
       <!-- 自定义搜索结果插槽 -->
       <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
+    </div>
+    
+    <!-- 添加暂无数据提示 -->
+    <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
+      <div class="no-data">暂无数据</div>
     </div>
     
     <div v-if="selectedMarker" class="navigation-buttons">
@@ -61,6 +72,7 @@ import { SearchType } from '../types/search';
 import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
 import { ConfigObject } from '../composables/ConfigObject';
 import { SearchObject } from '../composables/SearchObject';
+import { SearchHandlerFactory } from '../interfaces/SearchHandler';
 import { ElMessage } from 'element-plus';
 
 // Props 定义
@@ -121,6 +133,38 @@ const currentPlaceholder = computed(() => {
   return typeConfig?.placeholder || props.placeholder;
 });
 
+// 验证坐标是否有效
+const isValidCoordinate = computed(() => {
+  if (currentSearchType.value !== SearchType.COORDINATE || !searchText.value.trim()) {
+    return false;
+  }
+  
+  // 使用搜索处理器验证输入
+  const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
+  if (handler && handler.validateInput) {
+    return handler.validateInput(searchText.value);
+  }
+  
+  // 如果没有处理器，使用默认验证逻辑
+  try {
+    // 尝试解析坐标字符串，支持多种格式
+    const coordStr = searchText.value.trim().replace(/，/g, ',').replace(/\s+/g, ',');
+    const coords = coordStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+    
+    if (coords.length >= 2) {
+      const lng = coords[0];
+      const lat = coords[1];
+      
+      // 验证坐标是否在有效范围内
+      return lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90;
+    }
+  } catch (error) {
+    return false;
+  }
+  
+  return false;
+});
+
 // 监听搜索类型变化
 watch(currentSearchType, (newType) => {
   if (searchObject) {
@@ -150,6 +194,9 @@ const handleSearchTypeChange = (event) => {
   currentSearchType.value = newType;
   // 清空搜索框
   searchText.value = '';
+  // 清空搜索结果，不触发搜索
+  results.value = [];
+  showResults.value = false;
 };
 
 // 处理输入
@@ -168,16 +215,24 @@ const handleInput = () => {
           return;
         }
         
+        // 使用搜索处理器验证输入
+        const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
+        if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
+          ElMessage.warning('请输入有效的搜索内容');
+          return;
+        }
+        
         console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
         const searchResults = await searchObject.search(searchText.value, props.searchBoxConfig as any, currentSearchType.value);
         console.log('搜索结果:', searchResults);
         results.value = searchResults;
-        showResults.value = true;
+        showResults.value = true; // 无论结果是否为空，都显示结果区域
         emit('search', searchResults);
       } catch (error) {
         console.error('搜索失败:', error);
         ElMessage.error('搜索失败: ' + (error.message || '未知错误'));
         results.value = [];
+        showResults.value = true; // 搜索失败时也显示空结果
       }
     } else {
       results.value = [];
@@ -312,6 +367,11 @@ defineExpose({
     &:focus {
       border-color: #409eff;
     }
+    
+    &.coordinate-input {
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
   }
   
   .search-icon {
@@ -331,6 +391,16 @@ defineExpose({
     max-height: 300px;
     overflow-y: auto;
     border-top: 1px solid #ebeef5;
+    
+    &.empty-results {
+      padding: 20px 0;
+      text-align: center;
+    }
+    
+    .no-data {
+      color: #909399;
+      font-size: 14px;
+    }
   }
   
   .search-result-item {
@@ -415,5 +485,19 @@ defineExpose({
 .search-box.bottom-right {
   bottom: 10px;
   right: 10px;
+}
+
+.coordinate-hint {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 12px;
+  color: #909399;
+  width: 100%;
+  text-align: left;
+  
+  &.valid {
+    color: #67c23a;
+  }
 }
 </style> 
