@@ -37,6 +37,7 @@
           :highlight-current="true"
           :current-node-key="selectedKeys[0]"
           show-checkbox
+          check-strictly
           @check="onCheck"
           @check-change="onCheckChange"
           @node-click="onNodeClick"
@@ -233,28 +234,94 @@ const filteredTreeData = computed(() => {
   if (!searchText.value.trim()) return treeData.value;
   
   const searchValue = searchText.value.toLowerCase();
+  logger.info('搜索关键词:', searchValue);
   
-  const filterTree = (nodes: any[]): any[] => {
-    return nodes.filter(node => {
-      // 匹配标签名称
-      const titleMatch = (node.label as string).toLowerCase().includes(searchValue);
-      // 匹配拼音字段（如果存在）
-      const pinyinMatch = node.pinyin ? node.pinyin.toLowerCase().includes(searchValue) : false;
-      let children = node.children ? filterTree(node.children as any[]) : [];
-      const childMatch = children.length > 0;
-      
-      if (childMatch) {
-        return {
-          ...node,
-          children
-        };
-      }
-      
-      return titleMatch || pinyinMatch;
-    });
+  // 特殊处理常见省份搜索
+  if (handleCommonProvinceSearch(searchValue)) {
+    return handleCommonProvinceSearch(searchValue);
+  }
+  
+  // 使用深拷贝创建原始数据的副本
+  const treeDataCopy = JSON.parse(JSON.stringify(treeData.value));
+  
+  // 如果直接匹配省名称（如浙江省），尝试直接查找
+  const directMatch = treeDataCopy.find(province => 
+    province.label.toLowerCase().includes(searchValue) || 
+    (province.fullname && province.fullname.toLowerCase().includes(searchValue))
+  );
+  
+  if (directMatch) {
+    logger.info(`直接匹配到省份: ${directMatch.label}`);
+    return [directMatch];
+  }
+  
+  // 定义一个函数检查节点是否匹配搜索条件
+  const isNodeMatch = (node: any): boolean => {
+    if (!node) return false;
+    
+    // 匹配标签名称
+    const titleMatch = node.label && node.label.toLowerCase().includes(searchValue);
+    // 匹配完整名称（如果存在）
+    const fullnameMatch = node.fullname && node.fullname.toLowerCase().includes(searchValue);
+    // 匹配拼音字段（如果存在）
+    const pinyinMatch = node.pinyin && node.pinyin.toLowerCase().includes(searchValue);
+    
+    return titleMatch || fullnameMatch || pinyinMatch;
   };
   
-  return filterTree(JSON.parse(JSON.stringify(treeData.value)));
+  // 遍历树并保留匹配节点及其父节点
+  const filterTreeNodes = (nodes: any[]): any[] => {
+    if (!nodes || nodes.length === 0) return [];
+    
+    const result: any[] = [];
+    
+    for (const node of nodes) {
+      // 检查节点本身是否匹配
+      const selfMatch = isNodeMatch(node);
+      
+      // 递归处理子节点
+      const filteredChildren = node.children ? filterTreeNodes(node.children) : [];
+      
+      // 如果节点自身匹配或有匹配的子节点，则保留
+      if (selfMatch || filteredChildren.length > 0) {
+        const clonedNode = { ...node };
+        
+        // 如果有匹配的子节点，替换子节点数组
+        if (filteredChildren.length > 0) {
+          clonedNode.children = filteredChildren;
+        }
+        
+        result.push(clonedNode);
+        
+        if (selfMatch) {
+          logger.info(`找到匹配: ${node.label}`);
+        }
+      }
+    }
+    
+    return result;
+  };
+  
+  const filteredResult = filterTreeNodes(treeDataCopy);
+  logger.info(`过滤后节点数量: ${filteredResult.length}`);
+  
+  // 如果没有找到匹配，尝试更宽松的搜索（部分匹配）
+  if (filteredResult.length === 0) {
+    logger.info('尝试宽松搜索...');
+    // 在原始数据中模糊搜索
+    const fuzzyMatches = treeDataCopy.filter(node => {
+      // 检查所有节点及其子节点是否有任何包含搜索词的文本
+      const hasMatch = JSON.stringify(node).toLowerCase().includes(searchValue);
+      if (hasMatch) {
+        logger.info(`模糊匹配到: ${node.label}`);
+      }
+      return hasMatch;
+    });
+    
+    return fuzzyMatches;
+  }
+  
+  return filteredResult;
 });
 
 // 生命周期钩子
@@ -296,6 +363,16 @@ async function loadDistrictTree() {
     }
     
     rawTreeData.value = districtTree;
+    
+    // 打印原始区划树数据的部分内容，帮助调试
+    logger.info('原始区划树数据示例:', JSON.stringify(districtTree.slice(0, 1)));
+    
+    // 检查数据中是否包含浙江省
+    const hasZhejiang = districtTree.some(
+      (item: any) => (item.name && item.name.includes('浙江')) || 
+                     (item.fullname && item.fullname.includes('浙江'))
+    );
+    logger.info('数据中包含浙江省:', hasZhejiang);
     
     // 转换为树形结构
     treeData.value = formatTreeData(districtTree);
@@ -342,16 +419,34 @@ function updateSelectedBoundaries() {
 
 // 格式化树形数据
 function formatTreeData(data: any[]): any[] {
+  if (!data || data.length === 0) return [];
+  
   return data.map(item => {
+    if (!item) return null;
+    
     const children = item.children || item.districts || [];
-    return {
-      label: item.name,
-      key: item.adcode,
-      pinyin: item.pinyin, // 保留拼音字段
-      children: children.length > 0 ? formatTreeData(children) : undefined,
-      isLeaf: !children || children.length === 0
+    const name = item.name || '';
+    
+    // 调试日志：检查浙江省数据
+    if (name.includes('浙江')) {
+      logger.info('找到浙江省数据:', JSON.stringify(item));
     }
-  });
+    
+    const node = {
+      label: name,
+      key: item.adcode || item.code || '',
+      pinyin: item.pinyin || '', // 保留拼音字段，确保不为undefined
+      fullname: item.fullname || name, // 保留完整名称字段
+      level: item.level, // 保留级别字段
+      center: item.center, // 保留中心点字段
+      children: children.length > 0 ? formatTreeData(children) : [],
+      isLeaf: !children || children.length === 0,
+      // 保留原始数据，以便调试
+      rawData: { ...item }
+    };
+    
+    return node;
+  }).filter(Boolean); // 过滤掉可能的null值
 }
 
 // 节点点击处理
@@ -531,9 +626,233 @@ watch(() => props.defaultOptions, (newOptions) => {
 }, { deep: true });
 
 // 监听搜索文本变化
-watch(() => searchText.value, () => {
-  // 根据搜索文本过滤树数据已通过计算属性实现
+watch(() => searchText.value, (newValue) => {
+  // 记录搜索内容
+  if (newValue) {
+    logger.info(`执行搜索: "${newValue}"`);
+    
+    // 添加浙江省的直接查找功能
+    if (newValue.toLowerCase().includes('浙江')) {
+      findProvinceInRawData('浙江');
+    }
+  }
+  
+  // 如果搜索内容不为空，自动展开所有节点
+  if (newValue.trim()) {
+    nextTick(() => {
+      if (treeRef.value) {
+        try {
+          // 尝试展开所有节点
+          treeRef.value.expandAll();
+        } catch (error) {
+          // 如果不支持expandAll方法，则使用默认展开逻辑
+          const allKeys = getAllKeys(treeData.value);
+          expandedKeys.value = allKeys;
+        }
+      }
+    });
+  } else {
+    // 搜索内容为空时，只展开一级节点
+    expandedKeys.value = treeData.value.map(item => item.key);
+  }
 });
+
+// 在原始数据中查找省份
+function findProvinceInRawData(provinceName: string) {
+  if (!rawTreeData.value || rawTreeData.value.length === 0) {
+    logger.info(`原始数据为空，无法查找${provinceName}`);
+    return;
+  }
+  
+  // 在原始数据中搜索
+  const findInData = (data: any[], name: string): any => {
+    if (!data || data.length === 0) return null;
+    
+    // 先在顶层查找
+    const found = data.find(item => 
+      (item.name && item.name.includes(name)) || 
+      (item.fullname && item.fullname.includes(name))
+    );
+    
+    if (found) {
+      return found;
+    }
+    
+    // 在子层级递归查找
+    for (const item of data) {
+      const children = item.children || item.districts || [];
+      if (children.length > 0) {
+        const foundInChildren = findInData(children, name);
+        if (foundInChildren) {
+          return foundInChildren;
+        }
+      }
+    }
+    
+    return null;
+  };
+  
+  const province = findInData(rawTreeData.value, provinceName);
+  
+  if (province) {
+    logger.info(`在原始数据中找到${provinceName}:`, JSON.stringify(province));
+    
+    // 找到后，确保对应的节点被选中和展开
+    nextTick(() => {
+      if (treeRef.value && province.adcode) {
+        try {
+          // 设置节点为当前选中节点
+          treeRef.value.setCurrentKey(province.adcode);
+          // 确保节点可见
+          expandedKeys.value = [...expandedKeys.value, province.adcode];
+        } catch (error) {
+          logger.error('设置当前节点失败:', error);
+        }
+      }
+    });
+  } else {
+    logger.info(`在原始数据中未找到${provinceName}`);
+    
+    // 进一步检查数据结构
+    logger.info('原始数据结构:', Object.keys(rawTreeData.value[0] || {}).join(', '));
+    logger.info('原始数据示例:', JSON.stringify(rawTreeData.value.slice(0, 1)));
+    
+    // 尝试查找包含该省份名称的任何字符串
+    const dataStr = JSON.stringify(rawTreeData.value);
+    const includesProvince = dataStr.includes(provinceName);
+    logger.info(`原始数据字符串中包含${provinceName}: ${includesProvince}`);
+    
+    if (includesProvince) {
+      // 查找包含该省份的原始数据项
+      const index = rawTreeData.value.findIndex(item => 
+        JSON.stringify(item).includes(provinceName)
+      );
+      
+      if (index >= 0) {
+        logger.info(`在第${index}项中找到包含${provinceName}的数据:`, 
+          JSON.stringify(rawTreeData.value[index]));
+      }
+    }
+  }
+}
+
+// 获取所有节点的key
+function getAllKeys(nodes: any[]): string[] {
+  if (!nodes || nodes.length === 0) return [];
+  
+  let keys: string[] = [];
+  
+  nodes.forEach(node => {
+    if (node.key) {
+      keys.push(node.key);
+    }
+    if (node.children && node.children.length > 0) {
+      keys = [...keys, ...getAllKeys(node.children)];
+    }
+  });
+  
+  return keys;
+}
+
+// 处理常见省份的特殊搜索
+function handleCommonProvinceSearch(searchValue: string): any[] | null {
+  // 省份名称映射，适配不同的搜索词
+  const provinceMap: Record<string, string[]> = {
+    '浙江': ['浙江', 'zhejiang', '浙'],
+    '北京': ['北京', 'beijing', '京'],
+    '上海': ['上海', 'shanghai', '沪'],
+    '广东': ['广东', 'guangdong', '粤'],
+    '江苏': ['江苏', 'jiangsu', '苏'],
+    '山东': ['山东', 'shandong', '鲁'],
+    '河南': ['河南', 'henan', '豫'],
+    '四川': ['四川', 'sichuan', '川'],
+    '河北': ['河北', 'hebei', '冀'],
+    '湖北': ['湖北', 'hubei', '鄂'],
+    '湖南': ['湖南', 'hunan', '湘'],
+    '福建': ['福建', 'fujian', '闽'],
+    '安徽': ['安徽', 'anhui', '皖'],
+    '陕西': ['陕西', 'shaanxi', '陕'],
+    '山西': ['山西', 'shanxi', '晋'],
+    '江西': ['江西', 'jiangxi', '赣'],
+    '广西': ['广西', 'guangxi', '桂'],
+    '重庆': ['重庆', 'chongqing', '渝'],
+    '辽宁': ['辽宁', 'liaoning', '辽'],
+    '吉林': ['吉林', 'jilin', '吉'],
+    '黑龙江': ['黑龙江', 'heilongjiang', '黑'],
+    '云南': ['云南', 'yunnan', '云'],
+    '贵州': ['贵州', 'guizhou', '贵'],
+    '甘肃': ['甘肃', 'gansu', '甘'],
+    '内蒙古': ['内蒙古', 'neimenggu', '蒙'],
+    '宁夏': ['宁夏', 'ningxia', '宁'],
+    '新疆': ['新疆', 'xinjiang', '新'],
+    '西藏': ['西藏', 'xizang', '藏'],
+    '海南': ['海南', 'hainan', '琼'],
+    '青海': ['青海', 'qinghai', '青'],
+    '香港': ['香港', 'hongkong', '港'],
+    '澳门': ['澳门', 'macao', '澳'],
+    '台湾': ['台湾', 'taiwan', '台']
+  };
+  
+  // 查找匹配的省份
+  let matchedProvince: string | null = null;
+  
+  // 遍历所有省份别名
+  for (const [province, aliases] of Object.entries(provinceMap)) {
+    if (aliases.some(alias => searchValue.includes(alias.toLowerCase()))) {
+      matchedProvince = province;
+      break;
+    }
+  }
+  
+  if (!matchedProvince) return null;
+  
+  logger.info(`特殊处理省份搜索: ${matchedProvince}`);
+  
+  // 在树数据中查找匹配的省份
+  const provincesInTree = treeData.value.filter(node => 
+    node.label.includes(matchedProvince!) || 
+    (node.fullname && node.fullname.includes(matchedProvince!))
+  );
+  
+  if (provincesInTree.length > 0) {
+    logger.info(`找到省份 ${matchedProvince}: ${provincesInTree.map(p => p.label).join(', ')}`);
+    return provincesInTree;
+  }
+  
+  // 如果在一级节点中没找到，尝试在所有节点中搜索
+  const allNodes = getAllNodes(treeData.value);
+  const matchedNodes = allNodes.filter(node => 
+    node.label.includes(matchedProvince!) || 
+    (node.fullname && node.fullname.includes(matchedProvince!))
+  );
+  
+  if (matchedNodes.length > 0) {
+    logger.info(`在所有节点中找到省份 ${matchedProvince}: ${matchedNodes.map(n => n.label).join(', ')}`);
+    
+    // 构建返回一个包含这些节点的树
+    // 这里我们简单地返回找到的节点列表，UI会自动展示
+    return matchedNodes;
+  }
+  
+  // 如果真的找不到，返回null让默认逻辑处理
+  return null;
+}
+
+// 获取树中的所有节点
+function getAllNodes(nodes: any[]): any[] {
+  if (!nodes || nodes.length === 0) return [];
+  
+  let result: any[] = [];
+  
+  for (const node of nodes) {
+    result.push(node);
+    if (node.children && node.children.length > 0) {
+      result = [...result, ...getAllNodes(node.children)];
+    }
+  }
+  
+  return result;
+}
 </script>
 
 <style lang="scss" scoped>
