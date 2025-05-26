@@ -9,18 +9,6 @@ export default [
     },
     children: [
       {
-        path: "/example/map",
-        name: "exampleMap",
-        component: () => import("@pages/map"),
-        meta: {
-          title: "地图示例",
-          icon: "ri:tools-fill",
-          category: "开发工具",
-          showLink: true,
-          showParent: true,
-        },
-      },
-      {
         path: "/example/index",
         name: "exampleIndex",
         component: () => import("@pages/example"),
