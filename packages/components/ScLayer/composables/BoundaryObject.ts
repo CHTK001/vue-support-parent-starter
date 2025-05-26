@@ -432,6 +432,7 @@ export class BoundaryObject {
    * @param adcode 行政区划代码
    */
   public async addBoundaryByAdcode(adcode: string, options: BoundaryOptions = {}): Promise<boolean> {
+    debugger
     try {
       // 获取区划数据（已转换为高德格式）
       const data = await this.fetchBoundaryData(adcode, options);
