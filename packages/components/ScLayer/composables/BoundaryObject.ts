@@ -62,7 +62,8 @@ export class BoundaryObject {
     this.mapObject = mapObject;
     this.map = mapObject.getMapInstance()!;
     this.options = {...DEFAULT_BOUNDARY_OPTIONS, ...options};
-    
+      // 确保所有提供者已注册
+    registerAllProviders();
     // 创建矢量图层源
     this.boundarySource = new VectorSource({
       features: []
@@ -375,8 +376,6 @@ export class BoundaryObject {
       if (!boundaryResponseData) {
         // 2. 缓存没有，使用区划数据提供者获取数据
         try {
-          // 确保所有提供者已注册
-          registerAllProviders();
           
           // 从工厂获取对应的区划数据提供者
           const dataProvider = BoundaryDataProviderFactory.getProvider(provider.toLowerCase());
@@ -432,7 +431,6 @@ export class BoundaryObject {
    * @param adcode 行政区划代码
    */
   public async addBoundaryByAdcode(adcode: string, options: BoundaryOptions = {}): Promise<boolean> {
-    debugger
     try {
       // 获取区划数据（已转换为高德格式）
       const data = await this.fetchBoundaryData(adcode, options);
