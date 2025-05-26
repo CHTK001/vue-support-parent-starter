@@ -102,6 +102,7 @@ export interface SearchBoxConfig {
   debounceTime: number;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   projection: CoordSystem;
+  key: string;
   mapType: MapType;
   apiUrls?: ApiUrls;
   /** @deprecated 使用 apiUrls.search 代替 */
