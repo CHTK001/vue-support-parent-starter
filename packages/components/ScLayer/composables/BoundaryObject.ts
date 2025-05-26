@@ -381,11 +381,14 @@ export class BoundaryObject {
           // 从工厂获取对应的区划数据提供者
           const dataProvider = BoundaryDataProviderFactory.getProvider(provider.toLowerCase());
           
+          // 优先使用 apiUrls.boundary，然后是旧的 boundaryUrl 属性
+          const boundaryUrl = options.apiUrls?.boundary || options.boundaryUrl || this.options.apiUrls?.boundary || this.options.boundaryUrl;
+          
           // 使用提供者获取区划数据
           boundaryResponseData = await dataProvider.fetchBoundaryData(
             adcode,
             this.options.mapKey?.[provider] || '',
-            this.options.boundaryUrl
+            boundaryUrl
           );
           
           logger.debug(`成功获取区划数据: ${adcode} (提供者: ${provider})`);
@@ -577,22 +580,30 @@ export class BoundaryObject {
   
   /**
    * 加载行政区划树数据
+   * @param mapKey 地图密钥（可选）
+   * @param districtUrl 自定义区划数据URL（可选）
    * @returns 行政区划树数据Promise
    */
-  public async loadDistrictTree(): Promise<any[]> {
+  public async loadDistrictTree(mapKey?: Record<string, string>, districtUrl?: string): Promise<any[]> {
     try {
       let districts;
-      if (this.options.districtUrl) {
-        // 如果配置了districtUrl，从URL获取数据
+      // 优先使用传入的 districtUrl，然后是 options 中的 apiUrls.district，最后是旧的 districtUrl 属性
+      const url = districtUrl || this.options.apiUrls?.district || this.options.districtUrl;
+      
+      if (url) {
+        // 如果配置了URL，从URL获取数据
+        // 优先使用传入的 mapKey，然后是 options 中的 mapKey
+        const key = (mapKey || this.options.mapKey)?.[this.options.provider || 'GAODE'] || '';
+        
         districts = await fetchGaodeDistrictTree({
-          key: this.options.mapKey?.[this.options.provider || 'GAODE'] || '',
-          url: this.options.districtUrl,
+          key: key,
+          url: url,
           keywords: '',
           subdistrict: 2,
           extensions: 'base'
         });
       } else {
-        // 如果districtUrl为空，使用本地JSON数据
+        // 如果URL为空，使用本地JSON数据
         // 动态导入本地JSON，避免打包所有区划数据
         const gaodeDistrictData = (await import('../data/districts.json')).default;
         districts = gaodeDistrictData;

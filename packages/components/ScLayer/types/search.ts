@@ -1,5 +1,6 @@
 import type { MapType } from "./map";
 import type { CoordSystem } from "./coordinate";
+import { ApiUrls } from './api';
 
 /**
 * 搜索结果接口
@@ -68,6 +69,31 @@ export interface PlaceDetailApiResponse {
 }
 
 /**
+ * 搜索类型枚举
+ */
+export enum SearchType {
+  KEYWORD = 'keyword',    // 关键词搜索
+  POI = 'poi',            // 兴趣点搜索
+  ADDRESS = 'address',    // 地址搜索
+  COORDINATE = 'coordinate', // 坐标搜索
+  NEARBY = 'nearby',      // 附近搜索
+  DISTRICT = 'district',  // 行政区划搜索
+  CUSTOM = 'custom'       // 自定义搜索
+}
+
+/**
+ * 搜索类型配置接口
+ */
+export interface SearchTypeConfig {
+  type: SearchType;     // 搜索类型
+  label: string;        // 显示标签
+  placeholder?: string; // 占位文本
+  icon?: string;        // 图标
+  apiUrl?: string;      // 该类型的API URL
+  handler?: (keyword: string, options: SearchOptions) => Promise<SearchResult[]>; // 自定义处理函数
+}
+
+/**
  * 搜索框配置接口
  */
 export interface SearchBoxConfig {
@@ -77,10 +103,20 @@ export interface SearchBoxConfig {
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   projection: CoordSystem;
   mapType: MapType;
-  searchUrl: string;
+  apiUrls?: ApiUrls;
+  /** @deprecated 使用 apiUrls.search 代替 */
+  searchUrl?: string;
+  /** @deprecated 使用 apiUrls.detail 代替 */
   detailUrl?: string;
+  /** @deprecated 使用 apiUrls.navigation 代替 */
   navigationUrl?: string;
   markerIcon?: any;
+  
+  // 新增字段
+  showTypeSelector?: boolean;                // 是否显示类型选择器
+  defaultSearchType?: SearchType;            // 默认搜索类型
+  searchTypes?: SearchTypeConfig[];          // 支持的搜索类型列表
+  customSearchHandler?: (type: SearchType, keyword: string, options: SearchOptions) => Promise<SearchResult[]>; // 自定义搜索处理函数
 }
 
 /**

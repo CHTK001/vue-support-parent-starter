@@ -11,8 +11,18 @@ export interface SearchDataProvider {
    * @param keyword 关键词
    * @param options 搜索选项
    * @returns 搜索结果
+   * @deprecated 使用 search 方法代替
    */
   searchPlaces(keyword: string, options: SearchOptions): Promise<SearchResult[]>;
+  
+  /**
+   * 使用指定 URL 搜索地点
+   * @param url 搜索 API URL
+   * @param keyword 关键词
+   * @param options 搜索选项
+   * @returns 搜索结果
+   */
+  search(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]>;
   
   /**
    * 获取地点详情
@@ -20,8 +30,17 @@ export interface SearchDataProvider {
    * @param apiKey API密钥
    * @param url 自定义API地址（可选）
    * @returns 地点详情
+   * @deprecated 使用新的 getPlaceDetail 方法代替
    */
   getPlaceDetail(id: string, apiKey: string, url?: string): Promise<PlaceDetailApiResponse>;
+  
+  /**
+   * 使用指定 URL 获取地点详情
+   * @param url 详情 API URL
+   * @param id 地点ID
+   * @returns 地点详情
+   */
+  getPlaceDetail(url: string, id: string): Promise<PlaceDetailApiResponse>;
   
   /**
    * 获取导航路径
@@ -30,8 +49,17 @@ export interface SearchDataProvider {
    * @param apiKey API密钥
    * @param url 自定义API地址（可选）
    * @returns 导航路径
+   * @deprecated 使用 createNavigation 方法代替
    */
   getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string): Promise<NavigationApiResponse>;
+  
+  /**
+   * 创建导航路线
+   * @param url 导航 API URL
+   * @param options 导航选项
+   * @returns 导航路径
+   */
+  createNavigation(url: string, options: { origin: [number, number], destination: [number, number] }): Promise<NavigationApiResponse>;
   
   /**
    * 获取提供者名称
@@ -44,6 +72,24 @@ export interface SearchDataProvider {
    * @returns 坐标系统
    */
   getCoordSystem(): CoordSystem;
+  
+  /**
+   * 获取默认搜索 URL
+   * @returns 默认搜索 URL
+   */
+  getDefaultSearchUrl(): string;
+  
+  /**
+   * 获取默认详情 URL
+   * @returns 默认详情 URL
+   */
+  getDefaultDetailUrl(): string;
+  
+  /**
+   * 获取默认导航 URL
+   * @returns 默认导航 URL
+   */
+  getDefaultNavigationUrl(): string;
 }
 
 /**

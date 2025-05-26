@@ -154,6 +154,53 @@ export class BaiduSearchProvider implements SearchDataProvider {
   }
   
   /**
+   * 使用指定 URL 搜索地点
+   * @param url 搜索 API URL
+   * @param keyword 关键词
+   * @param options 搜索选项
+   * @returns 搜索结果
+   */
+  async search(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]> {
+    // 复用现有的 searchPlaces 方法，但使用传入的 URL
+    return this.searchPlaces(keyword, { ...options, url });
+  }
+  
+  /**
+   * 创建导航路线
+   * @param url 导航 API URL
+   * @param options 导航选项
+   * @returns 导航路径
+   */
+  async createNavigation(url: string, options: { origin: [number, number], destination: [number, number] }): Promise<NavigationApiResponse> {
+    // 复用现有的 getNavigation 方法，但使用传入的 URL
+    return this.getNavigation(options.origin, options.destination, options['key'] || '', url);
+  }
+  
+  /**
+   * 获取默认搜索 URL
+   * @returns 默认搜索 URL
+   */
+  getDefaultSearchUrl(): string {
+    return this.SEARCH_URL;
+  }
+  
+  /**
+   * 获取默认详情 URL
+   * @returns 默认详情 URL
+   */
+  getDefaultDetailUrl(): string {
+    return this.DETAIL_URL;
+  }
+  
+  /**
+   * 获取默认导航 URL
+   * @returns 默认导航 URL
+   */
+  getDefaultNavigationUrl(): string {
+    return this.NAVIGATION_URL;
+  }
+  
+  /**
    * 将百度地图POI数据转换为统一的搜索结果格式
    * @param results 百度地图POI数据
    * @returns 统一格式的搜索结果

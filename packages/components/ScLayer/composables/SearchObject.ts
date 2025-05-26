@@ -4,7 +4,8 @@
  */
 import { MapObject } from './MapObject';
 import { MarkerObject } from './MarkerObject';
-import type { SearchResult, SearchOptions, SearchBoxConfig, PlaceDetailApiResponse, NavigationApiResponse } from '../types/search';
+import type { SearchResult, SearchOptions, SearchBoxConfig, PlaceDetailApiResponse, NavigationApiResponse, SearchTypeConfig } from '../types/search';
+import { SearchType } from '../types/search';
 import type { ConfigObject } from './ConfigObject';
 import { fromLonLat } from 'ol/proj';
 import { DEFAULT_MARKER_ICON } from '../types/default';
@@ -15,6 +16,11 @@ import { CoordSystem } from '../types/coordinate';
 import { GcoordUtils } from '../utils/GcoordUtils';
 import logger from './LogObject';
 
+// 扩展搜索选项接口，添加坐标搜索需要的属性
+interface ExtendedSearchOptions extends SearchOptions {
+  location?: number[];
+}
+
 // 缓存项接口
 interface CacheItem {
   keyword: string;
@@ -22,6 +28,7 @@ interface CacheItem {
   results: SearchResult[];
   timestamp: number;
   hash: string; // 用于快速比较的哈希值
+  searchType: SearchType; // 添加搜索类型
 }
 
 export class SearchObject {
@@ -51,6 +58,9 @@ export class SearchObject {
   private readonly CACHE_SIZE = 10; // 缓存大小
   private readonly CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 缓存过期时间（5分钟）
   private searchCache: CacheItem[] = [];
+  
+  // 当前搜索类型
+  private currentSearchType: SearchType;
 
   constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject) {
     this.mapInstance = mapInstance;
@@ -59,17 +69,47 @@ export class SearchObject {
     this.searchBoxConfig = searchBoxConfig;
     this.configObject = configObject;
     
+    // 初始化当前搜索类型
+    this.currentSearchType = searchBoxConfig.defaultSearchType || SearchType.KEYWORD;
+    
     // 确保所有搜索提供者已注册
     registerAllSearchProviders();
+  }
+
+  /**
+   * 设置当前搜索类型
+   * @param type 搜索类型
+   */
+  public setSearchType(type: SearchType): void {
+    this.currentSearchType = type;
+    logger.debug(`[SearchObject] 搜索类型已切换为: ${type}`);
+  }
+
+  /**
+   * 获取当前搜索类型
+   * @returns 当前搜索类型
+   */
+  public getCurrentSearchType(): SearchType {
+    return this.currentSearchType;
+  }
+
+  /**
+   * 获取搜索类型配置
+   * @param type 搜索类型
+   * @returns 搜索类型配置
+   */
+  public getSearchTypeConfig(type: SearchType): SearchTypeConfig | undefined {
+    return this.searchBoxConfig.searchTypes?.find(config => config.type === type);
   }
 
   /**
    * 生成缓存键
    * @param keyword 搜索关键词
    * @param options 搜索选项
+   * @param searchType 搜索类型
    * @returns 缓存键
    */
-  private generateCacheKey(keyword: string, options: SearchOptions): string {
+  private generateCacheKey(keyword: string, options: SearchOptions, searchType: SearchType): string {
     // 提取关键选项
     const keyOptions = {
       city: options.city,
@@ -80,20 +120,27 @@ export class SearchObject {
     };
     
     // 生成缓存键
-    return `${keyword}:${JSON.stringify(keyOptions)}`;
+    return `${searchType}:${keyword}:${JSON.stringify(keyOptions)}`;
   }
 
   /**
    * 执行搜索
    * @param keyword 搜索关键词
    * @param options 搜索选项
+   * @param searchType 搜索类型（可选，默认使用当前搜索类型）
    */
-  public async search(keyword: string, options: SearchOptions = {}): Promise<SearchResult[]> {
+  public async search(keyword: string, options: ExtendedSearchOptions = {}, searchType?: SearchType): Promise<SearchResult[]> {
+    // 使用指定的搜索类型，或当前搜索类型
+    const type = searchType || this.currentSearchType;
+    
     try {
+      // 获取搜索类型配置
+      const typeConfig = this.getSearchTypeConfig(type);
+      
       // 检查缓存
-      const cachedResults = this.getFromCache(keyword, options);
+      const cachedResults = this.getFromCache(keyword, options, type);
       if (cachedResults) {
-        logger.debug('使用缓存的搜索结果');
+        logger.debug(`[SearchObject] 使用缓存的搜索结果，类型: ${type}`);
         this.searchResults = cachedResults;
         
         // 触发搜索回调
@@ -103,30 +150,91 @@ export class SearchObject {
         
         return cachedResults;
       }
-
-      // 获取当前地图服务商
-      const provider = this.searchBoxConfig.mapType || MapType.GAODE;
       
-      // 从工厂获取对应的搜索数据提供者
-      const searchProvider = SearchDataProviderFactory.getProvider(provider.toLowerCase());
-      
-      // 设置API密钥
-      options.key = this.configObject.getConfig().mapKey[provider];
-      
-      // 设置自定义URL（如果有）
-      if (this.searchBoxConfig.searchUrl) {
-        options.url = this.searchBoxConfig.searchUrl;
+      // 如果有自定义处理函数，使用自定义处理函数
+      if (typeConfig?.handler) {
+        logger.debug(`[SearchObject] 使用自定义处理函数进行搜索，类型: ${type}`);
+        const results = await typeConfig.handler(keyword, options);
+        
+        // 更新缓存
+        this.updateCache(keyword, options, results, type);
+        
+        this.searchResults = results;
+        
+        // 清除之前的搜索结果标记
+        this.clearSearchMarker();
+        
+        // 如果有结果，添加标记
+        if (results.length > 0) {
+          this.addSearchMarker(results[0]);
+        }
+        
+        // 触发搜索回调
+        if (this.searchCallback) {
+          this.searchCallback(results);
+        }
+        
+        return results;
       }
       
-      logger.debug(`[SearchObject] 开始搜索: ${keyword} (提供者: ${provider})`);
+      // 如果有全局自定义搜索处理函数，使用全局处理函数
+      if (this.searchBoxConfig.customSearchHandler) {
+        logger.debug(`[SearchObject] 使用全局自定义搜索处理函数，类型: ${type}`);
+        const results = await this.searchBoxConfig.customSearchHandler(type, keyword, options);
+        
+        // 更新缓存
+        this.updateCache(keyword, options, results, type);
+        
+        this.searchResults = results;
+        
+        // 清除之前的搜索结果标记
+        this.clearSearchMarker();
+        
+        // 如果有结果，添加标记
+        if (results.length > 0) {
+          this.addSearchMarker(results[0]);
+        }
+        
+        // 触发搜索回调
+        if (this.searchCallback) {
+          this.searchCallback(results);
+        }
+        
+        return results;
+      }
+      
+      // 根据搜索类型设置选项
+      this.setOptionsBySearchType(type, keyword, options);
+      
+      // 获取地图类型
+      const mapType = this.configObject.getMapType();
+      
+      // 获取搜索提供者
+      const searchProvider = SearchDataProviderFactory.getProvider(mapType);
+      if (!searchProvider) {
+        throw new Error(`不支持的地图类型: ${mapType}`);
+      }
+      
+      // 获取搜索 URL
+      let searchUrl = '';
+      
+      // 优先使用 apiUrls 中的 search URL
+      if (this.searchBoxConfig.apiUrls?.search) {
+        searchUrl = this.searchBoxConfig.apiUrls.search;
+      } else if (this.searchBoxConfig.searchUrl) {
+        // 兼容旧版本
+        searchUrl = this.searchBoxConfig.searchUrl;
+      } else {
+        // 使用默认搜索 URL
+        searchUrl = searchProvider.getDefaultSearchUrl();
+      }
       
       // 执行搜索
-      const results = await searchProvider.searchPlaces(keyword, options);
-      
-      logger.debug(`[SearchObject] 搜索成功，找到 ${results.length} 条结果`);
+      logger.debug(`[SearchObject] 执行搜索，类型: ${type}, 关键词: ${keyword}, URL: ${searchUrl}`);
+      const results = await searchProvider.search(searchUrl, keyword, options);
       
       // 更新缓存
-      this.updateCache(keyword, options, results);
+      this.updateCache(keyword, options, results, type);
       
       this.searchResults = results;
       
@@ -145,8 +253,46 @@ export class SearchObject {
       
       return results;
     } catch (error) {
-      logger.error('搜索失败:', error);
-      return [];
+      logger.error(`[SearchObject] 搜索失败: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据搜索类型设置搜索选项
+   * @param type 搜索类型
+   * @param keyword 搜索关键词
+   * @param options 搜索选项
+   */
+  private setOptionsBySearchType(type: SearchType, keyword: string, options: ExtendedSearchOptions): void {
+    // 根据搜索类型设置不同的选项
+    switch (type) {
+      case SearchType.KEYWORD:
+        // 关键词搜索不需要特殊处理
+        break;
+      case SearchType.NEARBY:
+        // 附近搜索需要设置位置信息
+        if (!options.location) {
+          // 如果没有提供位置，使用地图中心点
+          const center = this.getMapCenter();
+          if (center) {
+            options.location = center;
+          }
+        }
+        // 设置默认搜索半径（如果没有提供）
+        if (!options.radius) {
+          options.radius = 5000; // 默认 5 公里
+        }
+        break;
+      case SearchType.DISTRICT:
+        // 行政区划搜索，可能需要特殊处理
+        break;
+      case SearchType.CUSTOM:
+        // 自定义搜索类型，由外部处理
+        break;
+      default:
+        // 默认行为
+        break;
     }
   }
 
@@ -154,11 +300,12 @@ export class SearchObject {
    * 从缓存中获取搜索结果
    * @param keyword 搜索关键词
    * @param options 搜索选项
+   * @param searchType 搜索类型
    * @returns 缓存的搜索结果或null
    */
-  private getFromCache(keyword: string, options: SearchOptions): SearchResult[] | null {
+  private getFromCache(keyword: string, options: SearchOptions, searchType: SearchType): SearchResult[] | null {
     const now = Date.now();
-    const cacheKey = this.generateCacheKey(keyword, options);
+    const cacheKey = this.generateCacheKey(keyword, options, searchType);
     
     // 清理过期缓存
     this.searchCache = this.searchCache.filter(item => 
@@ -166,10 +313,12 @@ export class SearchObject {
     );
 
     // 查找匹配的缓存项
-    const cacheItem = this.searchCache.find(item => item.hash === cacheKey);
+    const cacheItem = this.searchCache.find(item => 
+      item.hash === cacheKey && item.searchType === searchType
+    );
 
     if (cacheItem) {
-      logger.debug('使用缓存的搜索结果:', cacheKey);
+      logger.debug(`[SearchObject] 使用缓存的搜索结果: ${cacheKey}, 类型: ${searchType}`);
       // 更新缓存项的时间戳
       cacheItem.timestamp = now;
       // 将命中的缓存项移到最前面
@@ -187,10 +336,11 @@ export class SearchObject {
    * @param keyword 搜索关键词
    * @param options 搜索选项
    * @param results 搜索结果
+   * @param searchType 搜索类型
    */
-  private updateCache(keyword: string, options: SearchOptions, results: SearchResult[]): void {
+  private updateCache(keyword: string, options: SearchOptions, results: SearchResult[], searchType: SearchType): void {
     const now = Date.now();
-    const cacheKey = this.generateCacheKey(keyword, options);
+    const cacheKey = this.generateCacheKey(keyword, options, searchType);
     
     // 创建新的缓存项
     const newCacheItem: CacheItem = {
@@ -198,25 +348,22 @@ export class SearchObject {
       options,
       results,
       timestamp: now,
-      hash: cacheKey
+      hash: cacheKey,
+      searchType
     };
-
-    // 移除相同关键词的旧缓存
+    
+    // 移除旧的相同缓存项
     this.searchCache = this.searchCache.filter(item => item.hash !== cacheKey);
-
-    // 添加新缓存到开头
+    
+    // 添加新缓存项到开头
     this.searchCache.unshift(newCacheItem);
-
-    // 如果超出缓存大小限制，移除最旧的缓存
+    
+    // 限制缓存大小
     if (this.searchCache.length > this.CACHE_SIZE) {
-      this.searchCache = this.searchCache.slice(0, this.CACHE_SIZE);
+      this.searchCache.pop(); // 移除最旧的缓存项
     }
-
-    logger.debug('更新缓存:', {
-      key: cacheKey,
-      cacheSize: this.searchCache.length,
-      timestamp: new Date(now).toLocaleTimeString()
-    });
+    
+    logger.debug(`[SearchObject] 缓存已更新，当前缓存项数量: ${this.searchCache.length}`);
   }
 
   /**
@@ -369,8 +516,8 @@ export class SearchObject {
       // 获取API密钥
       const apiKey = this.configObject.getConfig().mapKey[provider];
       
-      // 设置自定义URL（如果有）
-      const url = this.searchBoxConfig.navigationUrl;
+      // 设置自定义URL（如果有）- 优先使用 apiUrls.navigation，然后是旧的 navigationUrl 属性
+      const url = this.searchBoxConfig.apiUrls?.navigation || this.searchBoxConfig.navigationUrl;
       
       logger.debug(`[SearchObject] 开始获取导航路径: ${center} -> [${destination.location.lng}, ${destination.location.lat}]`);
       
@@ -509,47 +656,104 @@ export class SearchObject {
    */
   public async getPlaceDetail(id: string): Promise<PlaceDetailApiResponse> {
     try {
-      // 获取当前地图服务商
-      const provider = this.searchBoxConfig.mapType || MapType.GAODE;
+      // 获取地图类型
+      const mapType = this.configObject.getMapType();
       
-      // 从工厂获取对应的搜索数据提供者
-      const searchProvider = SearchDataProviderFactory.getProvider(provider.toLowerCase());
+      // 获取搜索提供者
+      const searchProvider = SearchDataProviderFactory.getProvider(mapType);
+      if (!searchProvider) {
+        throw new Error(`不支持的地图类型: ${mapType}`);
+      }
       
-      // 获取API密钥
-      const apiKey = this.configObject.getConfig().mapKey[provider];
+      // 获取详情 URL
+      let detailUrl = '';
       
-      // 设置自定义URL（如果有）
-      const url = this.searchBoxConfig.detailUrl;
+      // 优先使用 apiUrls 中的 detail URL
+      if (this.searchBoxConfig.apiUrls?.detail) {
+        detailUrl = this.searchBoxConfig.apiUrls.detail;
+      } else if (this.searchBoxConfig.detailUrl) {
+        // 兼容旧版本
+        detailUrl = this.searchBoxConfig.detailUrl;
+      } else {
+        // 使用默认详情 URL
+        detailUrl = searchProvider.getDefaultDetailUrl();
+      }
       
-      logger.debug(`[SearchObject] 开始获取地点详情: ${id}`);
-      
-      // 获取地点详情
-      const response = await searchProvider.getPlaceDetail(id, apiKey, url);
-      
-      logger.debug(`[SearchObject] 获取地点详情成功: ${id}`);
-      
-      return response;
+      // 获取详情
+      return await searchProvider.getPlaceDetail(detailUrl, id);
     } catch (error) {
-      logger.error('获取地点详情失败:', error);
+      logger.error(`[SearchObject] 获取地点详情失败: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 创建两点间导航
+   * 创建导航路线
    * @param fromMarkerId 起点标记ID
    * @param toMarkerId 终点标记ID
    */
   public async createNavigation(fromMarkerId: string, toMarkerId: string): Promise<void> {
-    // 实现两点间导航逻辑
-    // 此处代码略
-  }
-
-  /**
-   * 清除导航
-   */
-  public clearNavigation(): void {
-    this.clearNavigationLine();
+    try {
+      // 获取地图类型
+      const mapType = this.configObject.getMapType();
+      
+      // 获取搜索提供者
+      const searchProvider = SearchDataProviderFactory.getProvider(mapType);
+      if (!searchProvider) {
+        throw new Error(`不支持的地图类型: ${mapType}`);
+      }
+      
+      // 获取导航 URL
+      let navigationUrl = '';
+      
+      // 优先使用 apiUrls 中的 navigation URL
+      if (this.searchBoxConfig.apiUrls?.navigation) {
+        navigationUrl = this.searchBoxConfig.apiUrls.navigation;
+      } else if (this.searchBoxConfig.navigationUrl) {
+        // 兼容旧版本
+        navigationUrl = this.searchBoxConfig.navigationUrl;
+      } else {
+        // 使用默认导航 URL
+        navigationUrl = searchProvider.getDefaultNavigationUrl();
+      }
+      
+      // 获取起点和终点标记
+      const fromMarker = this.markerObject.getMarker(fromMarkerId);
+      const toMarker = this.markerObject.getMarker(toMarkerId);
+      
+      if (!fromMarker || !toMarker) {
+        throw new Error('无法获取起点或终点标记');
+      }
+      
+      // 获取起点和终点坐标
+      const fromCoord = fromMarker.position;
+      const toCoord = toMarker.position;
+      
+      if (!fromCoord || !toCoord) {
+        throw new Error('无法获取标记坐标');
+      }
+      
+      // 创建导航路线
+      const response = await searchProvider.createNavigation(
+        navigationUrl,
+        {
+          origin: fromCoord,
+          destination: toCoord
+        }
+      );
+      
+      // 绘制导航路线
+      if (response.route && response.route.paths && response.route.paths.length > 0) {
+        const path = response.route.paths[0];
+        if (path.steps) {
+          this.drawNavigationLine(path.steps);
+          this.fitNavigationBounds(path.steps);
+        }
+      }
+    } catch (error) {
+      logger.error(`[SearchObject] 创建导航路线失败: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

@@ -1,8 +1,9 @@
 // 导出接口和类型
 export * from './types';
+export * from './types/api';
 
 // 导出组件
-export { default as ScLayer } from './components/ScLayer.vue';
+export { default as ScLayer } from './index.vue';
 
 // 导出工具函数
 export * from './utils/GcoordUtils';
