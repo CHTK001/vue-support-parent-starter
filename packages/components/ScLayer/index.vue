@@ -46,7 +46,7 @@
     <!-- 添加搜索框组件 -->
     <SearchBox v-if="showSearchBox" class="search-box" ref="searchBoxRef"
       :placeholder="props.searchBoxConfig.placeholder" :debounce-time="props.searchBoxConfig.debounceTime"
-      :position="props.searchBoxConfig.position" :search-box-config="searchBoxConfigWithUrl" @search="handleSearch"
+      :position="props.searchBoxConfig.position" :search-box-config="props.searchBoxConfig" @search="handleSearch"
       @select="handleSearchSelect" />
       
     <!-- 添加标记点详情组件 -->
@@ -113,7 +113,10 @@ import {
   DEFAULT_MAP_CONFIG, DEFAULT_TOOLBAR_CONFIG, DEFAULT_TRACK_PLAYER_CONFIG,
   DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_SEARCH_BOX_CONFIG,
   // API URL 相关
-  mergeApiUrls
+  mergeApiUrls,
+  DEFAULT_ICON,
+  ToolbarConfig,
+  Shape
 } from './types';
 import { ApiUrls } from './types/api';
 // 引入OpenLayers样式
@@ -152,7 +155,10 @@ const props = withDefaults(defineProps<MapConfig & {
     placeholder: string;
     debounceTime: number;
     position: string;
-  }
+  },
+  apiUrls?: Record<string, string>,
+  boundaryUrl?: string,
+  districtUrl?: string
 }>(), {
   height: 500,
   center: () => [39.90923, 116.397428],
@@ -211,7 +217,10 @@ const props = withDefaults(defineProps<MapConfig & {
   cesiumBaseUrl: DEFAULT_CESIUM_BASE_URL,
   boundaryConfig: () => DEFAULT_BOUNDARY_OPTIONS,
   showSearchBox: true,
-  searchBoxConfig: () => ({ ...DEFAULT_SEARCH_BOX_CONFIG })
+  searchBoxConfig: () => ({ ...DEFAULT_SEARCH_BOX_CONFIG }),
+  apiUrls: () => ({}),
+  boundaryUrl: () => '',
+  districtUrl: () => ''
 });
 
 // 定义组件事件
@@ -503,16 +512,22 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
     'current-location': () => {
       getCurrentPoint().then((coordinate: GeoPoint) => {
-        // 添加标记点
+        // 添加标记点 - 处理 GeoPoint 可能是数组或对象的情况
+        const position = Array.isArray(coordinate) ? coordinate : [coordinate.lng, coordinate.lat];
         toolbarObject.getMarkerObject().addMarker({
             id: 'current-point',
-            position: [coordinate.lng, coordinate.lat],
+            position: position,
             icon: DEFAULT_ICON
         } as MarkerOptions);
         
         // 移动到目标位置
         if (mapObj) {
-          mapObj.setCenter(coordinate.lat, coordinate.lng);
+          // 处理 GeoPoint 可能是数组或对象的情况
+          if (Array.isArray(coordinate)) {
+            mapObj.setCenter(coordinate[1], coordinate[0]); // 数组中 [0]是经度，[1]是纬度
+          } else {
+            mapObj.setCenter(coordinate.lat, coordinate.lng);
+          }
         }
       }).catch(error => {
         message("获取当前位置失败，请检查定位权限或重试", {type: 'error'})

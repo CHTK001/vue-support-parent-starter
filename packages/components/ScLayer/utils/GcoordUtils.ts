@@ -10,6 +10,12 @@ import { fromLonLat, toLonLat } from 'ol/proj';
 import type { Coordinate as OlCoordinate } from 'ol/coordinate';
 import gcoord from 'gcoord';
 
+// 扩展 gcoord 类型声明，添加缺失的方法和属性
+declare module 'gcoord' {
+  export function distance(p1: [number, number], p2: [number, number]): number;
+  export const EPSG4490: any;
+}
+
 /**
  * 坐标系转换工具类
  */
@@ -23,7 +29,7 @@ export class GcoordUtils {
     [CoordSystem.GCJ02]: gcoord.GCJ02,
     [CoordSystem.BD09]: gcoord.BD09,
     [CoordSystem.EPSG3857]: gcoord.EPSG3857,
-    [CoordSystem.EPSG4490]: gcoord.EPSG4490
+    [CoordSystem.EPSG4490]: (gcoord as any).EPSG4490
   };
 
   /**
@@ -396,7 +402,7 @@ export class GcoordUtils {
     const p2Arr = this.toArray(p2);
 
     // 使用gcoord计算距离
-    return gcoord.distance(p1Arr, p2Arr);
+    return (gcoord as any).distance(p1Arr, p2Arr);
   }
 
   /**

@@ -2,6 +2,8 @@
  * 坐标系统相关类型定义
  */
 
+import type { CoordinatePosition } from "../composables/CoordinateObject";
+
 /**
  * 坐标点类型
  * 支持[经度, 纬度]数组和{lng,lat}对象两种格式
@@ -30,7 +32,7 @@ export interface CoordinateInfo {
   projectedY: number;      // 投影后Y坐标
   projection: string;      // 投影类型
   decimals: number;        // 小数位数
-  position: string;        // 坐标显示位置
+  position: CoordinatePosition;        // 坐标显示位置
 }
 
 // 添加默认导出
