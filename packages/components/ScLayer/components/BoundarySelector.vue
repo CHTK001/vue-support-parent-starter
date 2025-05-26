@@ -1,112 +1,114 @@
 <!-- 区划边界选择组件 -->
 <template>
-  <div class="boundary-selector" :class="[`position-${position}`, { active }]">
+  <div class="boundary-selector" :class="{ active: active }" :style="positionStyle">
     <div class="boundary-selector-header">
-      <div class="title">区划边界</div>
-      <div class="header-actions">
-        <!-- 定位按钮 -->
-        <div class="boundary-player-locate-btn" @click.stop="handleLocate" title="定位到区划">
-          <div class="locate-icon">
-            <span>📍</span>
-          </div>
-        </div>
-        <!-- 设置按钮 -->
-        <div class="boundary-player-setting-btn" @click.stop="showSettings = !showSettings" title="播放设置">
-          <div class="setting-icon">
-            <span>⚙</span>
-          </div>
-        </div>
+      <div class="title">区划选择器</div>
+      <div class="actions">
+        <button class="btn btn-icon" @click="locateCurrent" title="定位到当前">
+          <i class="iconfont icon-location"></i>
+        </button>
+        <button class="btn btn-icon" @click="toggleSettings" title="设置">
+          <i class="iconfont icon-setting"></i>
+        </button>
+        <button class="btn btn-icon" @click="$emit('close')" title="关闭">
+          <i class="iconfont icon-close"></i>
+        </button>
       </div>
     </div>
+    
     <div class="boundary-selector-content">
-      <!-- 搜索输入框 -->
-      <div class="boundary-search">
-        <el-input
-          v-model="searchText"
-          placeholder="搜索行政区划"
-          clearable
-        />
+      <div class="search-box">
+        <input type="text" v-model="searchText" placeholder="搜索行政区划..." />
       </div>
-
-      <!-- 树形选择区域 -->
-      <div class="boundary-tree">
-        <el-tree
-          ref="treeRef"
-          :data="filteredTreeData"
-          :props="defaultProps"
-          node-key="code"
-          show-checkbox
-          @check="handleCheck"
-          :default-expanded-keys="['110000']"
+      
+      <div class="tree-container">
+        <a-tree
+          v-if="treeData.length > 0"
+          :tree-data="treeData"
+          :expandedKeys="expandedKeys"
+          :selectedKeys="selectedKeys"
+          :replaceFields="{ children: 'children', title: 'title', key: 'key' }"
+          @select="onSelect"
+          @expand="onExpand"
         >
-        </el-tree>
-      </div>
-
-      <!-- 已选择的边界列表 -->
-      <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
-        <div class="select-title">已选区域:</div>
-        <div class="boundary-list">
-          <div v-for="(boundary, index) in selectedBoundaries" :key="boundary.code" class="boundary-item">
-            <span>{{ boundary.name }}</span>
-            <button @click="handleRemoveBoundary(boundary.code, index)" class="remove-btn">×</button>
+          <template #title="{ title, selected }">
+            <span :class="{ 'selected-node': selected }">{{ title }}</span>
+          </template>
+        </a-tree>
+        <div v-else class="loading-state">
+          <div v-if="isLoading">加载中...</div>
+          <div v-else class="error-state">
+            <p>加载失败</p>
+            <button class="btn btn-sm" @click="loadDistrictTree">重试</button>
           </div>
         </div>
       </div>
-
-      <!-- 操作按钮 -->
-      <div class="boundary-action">
-        <button @click="handleApply" class="apply-btn">应用</button>
-        <button @click="handleClear" class="clear-btn">清除</button>
+      
+      <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
+        <div class="selected-header">
+          <span>已选区划</span>
+          <div class="actions">
+            <button class="btn btn-sm btn-primary" @click="applyBoundaries">应用</button>
+            <button class="btn btn-sm" @click="clearBoundaries">清空</button>
+          </div>
+        </div>
+        <div class="selected-list">
+          <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
+            <span>{{ item.name }}</span>
+            <button class="btn btn-icon btn-sm" @click="removeBoundary(item.code)" title="移除">
+              <i class="iconfont icon-delete"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- 设置弹窗遮罩和弹窗 -->
-    <div v-if="showSettings">
-      <div class="settings-mask" @click="showSettings = false"></div>
-      <div class="settings-panel">
-        <div class="settings-header">
-          <span>样式设置</span>
-          <button class="close-btn" @click="showSettings = false">×</button>
-        </div>
-        <div class="settings-content">
-          <div class="style-row">
-            <div class="style-label">填充区域:</div>
-            <div class="style-value">
-              <input type="checkbox" v-model="boundaryOptions.fillBoundary" />
-            </div>
-          </div>
-          <div class="style-row">
-            <div class="style-label">边框颜色:</div>
-            <div class="style-value">
-              <input type="color" v-model="boundaryOptions.strokeColor" />
-            </div>
-          </div>
-          <div class="style-row">
-            <div class="style-label">边框宽度:</div>
-            <div class="style-value">
-              <input type="number" v-model.number="boundaryOptions.strokeWidth" min="1" max="10" />
-            </div>
-          </div>
-          <div class="style-row" v-if="boundaryOptions.fillBoundary">
-            <div class="style-label">填充颜色:</div>
-            <div class="style-value">
-              <input type="color" v-model="boundaryOptions.fillColor" />
-            </div>
-          </div>
-          <div class="style-row" v-if="boundaryOptions.fillBoundary">
-            <div class="style-label">填充透明度:</div>
-            <div class="style-value">
-              <input type="range" v-model.number="boundaryOptions.fillOpacity" min="0" max="1" step="0.1" />
-              <span>{{ boundaryOptions.fillOpacity }}</span>
-            </div>
-          </div>
-          <div class="style-row">
-            <div class="style-label">显示标签:</div>
-            <div class="style-value">
-              <input type="checkbox" v-model="boundaryOptions.showLabel" />
-            </div>
-          </div>
-        </div>
+    
+    <div class="settings-panel" v-if="showSettings">
+      <h3>边界显示设置</h3>
+      
+      <div class="setting-item">
+        <label>填充区域</label>
+        <a-switch v-model:checked="options.fillBoundary" />
+      </div>
+      
+      <div class="setting-item">
+        <label>边框颜色</label>
+        <a-color-picker v-model:value="options.strokeColor" />
+      </div>
+      
+      <div class="setting-item">
+        <label>边框宽度</label>
+        <a-slider v-model:value="options.strokeWidth" :min="1" :max="5" :step="0.5" />
+      </div>
+      
+      <div class="setting-item">
+        <label>填充颜色</label>
+        <a-color-picker v-model:value="options.fillColor" />
+      </div>
+      
+      <div class="setting-item">
+        <label>填充透明度</label>
+        <a-slider v-model:value="options.fillOpacity" :min="0" :max="1" :step="0.05" />
+      </div>
+      
+      <div class="setting-item">
+        <label>显示标签</label>
+        <a-switch v-model:checked="options.showLabel" />
+      </div>
+      
+      <div class="setting-item" v-if="options.showLabel">
+        <label>标签大小</label>
+        <a-slider v-model:value="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
+      </div>
+      
+      <div class="setting-item" v-if="options.showLabel">
+        <label>标签颜色</label>
+        <a-color-picker v-model:value="options.labelOptions.fontColor" />
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-sm btn-primary" @click="applySettings">应用</button>
+        <button class="btn btn-sm" @click="resetSettings">重置</button>
       </div>
     </div>
   </div>
@@ -119,514 +121,424 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, reactive, watchEffect, onMounted, defineProps, defineEmits, computed, watch } from 'vue';
-import { fetchGaodeDistrictTree } from '../api/district'; // 保留 fetchGaodeDistrictTree 导入
-import { BoundaryLevel, BoundaryItem, BoundaryOptions, BoundaryData, BoundaryCoordinate } from '../types/boundary';
+import { ref, computed, onMounted, watch } from 'vue';
+import type { TreeDataItem } from 'ant-design-vue';
+import { BoundaryLevel, BoundaryData, BoundaryOptions } from '../types/boundary';
 import { DEFAULT_BOUNDARY_OPTIONS } from '../types/default';
 import { MapType } from '../types/map';
-
-// 搜索关键词
-const searchText = ref('');
-
-// 原始的行政区划树数据（从BoundaryObject加载后保存在这里）
-const rawTreeData = ref<any[]>([]);
-
-// 数据加载状态
-const isLoadingTreeData = ref(false);
+import { ApiUrls } from '../types/api';
+import logger from '../composables/LogObject';
+import { message } from '@repo/utils';
 
 // 定义组件属性
-const props = defineProps<{
-  active: boolean;
-  boundaryObj: any;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  defaultOptions?: Partial<BoundaryOptions>;
-  mapKey?: Record<string, string>;
-  url?: string;
-  provider?: MapType;
-  districtUrl?: string;
-  boundaryUrl?: string;
-}>();
+const props = defineProps({
+  active: {
+    type: Boolean,
+    default: false
+  },
+  position: {
+    type: String,
+    default: 'top-right',
+    validator: (value: string) => ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(value)
+  },
+  boundaryObj: {
+    type: Object,
+    required: true
+  },
+  defaultOptions: {
+    type: Object,
+    default: () => DEFAULT_BOUNDARY_OPTIONS
+  },
+  mapKey: {
+    type: Object,
+    default: () => ({})
+  },
+  // 添加 apiUrls 属性
+  apiUrls: {
+    type: Object as () => ApiUrls,
+    default: () => ({})
+  },
+  // 保留旧属性以保持向后兼容性
+  boundaryUrl: {
+    type: String,
+    default: ''
+  },
+  districtUrl: {
+    type: String,
+    default: ''
+  }
+});
 
-// 设置默认位置
-const position = props.position || 'top-right';
-
-// 定义事件
+// 定义组件事件
 const emit = defineEmits(['close', 'apply', 'clear', 'remove']);
 
-// 树形数据
-// const treeData = ref<any[]>([]); // 不再需要单独的treeData ref
-const treeRef = ref();
-const defaultProps = {
-  children: 'children',
-  label: 'name'
-};
-
-// 设置面板显示状态
-const showSettings = ref(false);
-
-// 样式配置
-const boundaryOptions = reactive<BoundaryOptions>({
-  ...DEFAULT_BOUNDARY_OPTIONS,
-  ...(props.defaultOptions || {})
-});
-
-// 监听样式配置变化
-watch(() => ({ ...boundaryOptions }), (newOptions) => {
-  // 实时更新边界样式
-  if (props.boundaryObj) {
-    props.boundaryObj.setOptions(newOptions);
-    // 立即更新所有边界的样式
-    props.boundaryObj.updateAllBoundariesStyle();
-  }
-}, { deep: true });
-
-// 已选择的边界列表
+// 组件状态
+const searchText = ref('');
+const treeData = ref<TreeDataItem[]>([]);
+const rawTreeData = ref<any[]>([]);
+const expandedKeys = ref<string[]>([]);
+const selectedKeys = ref<string[]>([]);
 const selectedBoundaries = ref<BoundaryData[]>([]);
+const showSettings = ref(false);
+const isLoading = ref(false);
+const options = ref<BoundaryOptions>({...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions});
 
-// 初始化
-onMounted(async () => {
-  // 加载树形数据
-  // 改为调用 BoundaryObject 的 loadDistrictTree 方法
-  isLoadingTreeData.value = true; // 开始加载，设置loading为true
-  try {
-    if (props.boundaryObj && typeof props.boundaryObj.loadDistrictTree === 'function') {
-      rawTreeData.value = await props.boundaryObj.loadDistrictTree(); // 将加载的数据保存在 rawTreeData
-    } else {
-      console.error('BoundaryObject 未提供 loadDistrictTree 方法或 boundaryObj 未初始化');
-      rawTreeData.value = [];
-    }
-  } finally {
-    isLoadingTreeData.value = false; // 加载完成（无论成功或失败），设置loading为false
-  }
-  
-  // 获取当前已选择的边界
-  if (props.boundaryObj) {
-    selectedBoundaries.value = props.boundaryObj.getSelectedBoundaries();
-    
-    // 获取当前样式配置
-    const currentOptions = props.boundaryObj.getOptions();
-    Object.assign(boundaryOptions, currentOptions);
+// 位置样式
+const positionStyle = computed(() => {
+  switch (props.position) {
+    case 'top-left':
+      return { top: '10px', left: '10px' };
+    case 'top-right':
+      return { top: '10px', right: '10px' };
+    case 'bottom-left':
+      return { bottom: '10px', left: '10px' };
+    case 'bottom-right':
+      return { bottom: '10px', right: '10px' };
+    default:
+      return { top: '10px', right: '10px' };
   }
 });
 
-// 过滤后的树形数据计算属性
+// 过滤后的树数据
 const filteredTreeData = computed(() => {
-  if (!searchText.value) {
-    return rawTreeData.value; // 如果搜索关键词为空，返回原始数据
-  }
-
-  const lowerCaseSearchText = searchText.value.toLowerCase(); // 转换为小写进行不区分大小写的搜索
-
-  // 过滤逻辑
-  const filterNodes = (nodes: any[]) => {
-    // 创建节点的深拷贝，以免修改原始数据
-    return nodes.map(node => ({
-      ...node,
-      children: node.children ? filterNodes(node.children) : [] // 递归处理子节点
-    })).filter(node => {
-      // 检查当前节点是否匹配（中文名称或拼音）
-      const nameMatches = node.name.includes(searchText.value);
-      // 假设节点对象有pinyin字段，进行拼音匹配
-      const pinyinMatches = node.pinyin ? node.pinyin.toLowerCase().includes(lowerCaseSearchText) : false;
-
-      // 如果当前节点匹配（中文或拼音），或者其过滤后的子节点中有匹配的，则保留当前节点
-      return nameMatches || pinyinMatches || (node.children && node.children.length > 0);
+  if (!searchText.value) return treeData.value;
+  
+  const filterTree = (nodes: TreeDataItem[]): TreeDataItem[] => {
+    return nodes.filter(node => {
+      const titleMatch = (node.title as string).toLowerCase().includes(searchText.value.toLowerCase());
+      const childMatch = node.children ? filterTree(node.children as TreeDataItem[]).length > 0 : false;
+      
+      if (childMatch && node.children) {
+        node.children = filterTree(node.children as TreeDataItem[]);
+      }
+      
+      return titleMatch || childMatch;
     });
   };
-
-  // 从根节点开始过滤
-  return filterNodes(rawTreeData.value);
+  
+  return filterTree([...treeData.value]);
 });
 
-// 将el-tree的数据源绑定到过滤后的数据
-// treeData.value = rawTreeData.value; // 这一行将被移除，由el-tree直接使用filteredTreeData计算属性
-
-// 处理树节点选中
-const handleCheck = (data: any, checked: any) => {
-  console.log('选中节点:', data, checked);
-};
-
-// 应用区划配置
-const handleApply = async () => {
-  if (!props.boundaryObj) return;
+// 生命周期钩子
+onMounted(async () => {
   try {
-    // 点击应用时先清空之前绘制的边界
-    props.boundaryObj.clearBoundaries();
-
-    // 更新边界样式
-    props.boundaryObj.setOptions(boundaryOptions);
-    // 获取选中的节点
-    const checkedNodes = (treeRef.value as any).getCheckedNodes();
-    // 调用 BoundaryObject 的方法添加选中的边界
-    for (const node of checkedNodes) {
-      // 直接调用 BoundaryObject 的 addBoundaryByAdcode 方法
-      await props.boundaryObj.addBoundaryByAdcode(node.adcode);
-    }
-    // 更新已选边界列表
-    selectedBoundaries.value = props.boundaryObj.getSelectedBoundaries();
-    // 发出应用事件
-    emit('apply', {
-      options: boundaryOptions
-    });
+    await loadDistrictTree();
   } catch (error) {
-    console.error('应用区划配置失败:', error);
+    logger.error('加载区划树失败:', error);
   }
-};
+});
 
-// 获取边界级别
-const getBoundaryLevel = (node: any): BoundaryLevel => {
-  if (node.code.endsWith('0000')) return BoundaryLevel.PROVINCE;
-  if (node.code.endsWith('00')) return BoundaryLevel.CITY;
-  return BoundaryLevel.DISTRICT;
-};
-
-// 清除所有边界
-const handleClear = () => {
-  if (props.boundaryObj) {
-    props.boundaryObj.clearBoundaries();
-    selectedBoundaries.value = [];
-    emit('clear');
-  }
-};
-
-// 移除指定边界
-const handleRemoveBoundary = (code: string, index: number) => {
-  if (props.boundaryObj) {
-    props.boundaryObj.removeBoundary(code);
-    selectedBoundaries.value.splice(index, 1);
-    emit('remove', code);
-  }
-};
-
-// 关闭面板
-const handleClose = () => {
-  emit('close');
-};
-
-const toggleNode = (node: any) => {
-  (treeRef.value as any).toggleExpand(node);
-};
-
-// 定位到当前选中的区划
-const handleLocate = () => {
-  console.log('当前选中的边界列表:', selectedBoundaries.value);
-  
-  if (selectedBoundaries.value.length > 0) {
-    // 获取第一个选中的区划
-    const firstBoundary = selectedBoundaries.value[0];
-    console.log('准备定位到区划:', firstBoundary);
+// 加载区划树
+async function loadDistrictTree() {
+  isLoading.value = true;
+  try {
+    // 优先使用 apiUrls，然后是旧的 districtUrl 属性
+    const districtUrl = props.apiUrls?.district || props.districtUrl || undefined;
     
-    // 调用 BoundaryObject 的 fitToBoundary 方法
-    if (props.boundaryObj && typeof props.boundaryObj.fitToBoundary === 'function') {
-      console.log('调用 fitToBoundary 方法，区划代码:', firstBoundary.code);
-      props.boundaryObj.fitToBoundary(firstBoundary.code);
-    } else {
-      console.error('boundaryObj 或 fitToBoundary 方法不存在');
-      console.log('boundaryObj:', props.boundaryObj);
-      if (props.boundaryObj) {
-        console.log('可用方法:', Object.keys(props.boundaryObj));
-      }
-    }
-  } else {
-    console.warn('没有选中的区划边界');
-  }
-};
-</script>
-
-<style lang="scss" scoped>
-.boundary-selector {
-  position: absolute;
-  min-height: 400px;
-  width: 350px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-10px);
-  transition: all 0.3s ease;
-  
-  &.active {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
-
-  // 按位置调整面板显示位置
-  &.position-top-left {
-    top: 60px;
-    left: 10px;
-  }
-  
-  &.position-top-right {
-    top: 60px;
-    right: 10px;
-  }
-  
-  &.position-bottom-left {
-    bottom: 60px;
-    left: 10px;
-  }
-  
-  &.position-bottom-right {
-    bottom: 60px;
-    right: 10px;
-  }
-  
-  &-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    background: linear-gradient(135deg, #1890ff, #096dd9);
-    color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    // 获取区划树数据
+    const districtTree = await props.boundaryObj.loadDistrictTree(props.mapKey, districtUrl);
+    rawTreeData.value = districtTree;
     
-    .title {
-      font-weight: 600;
-      font-size: 16px;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .boundary-player-locate-btn,
-    .boundary-player-setting-btn {
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      transition: all 0.3s;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      .locate-icon,
-      .setting-icon {
-        font-size: 16px;
-        color: #333;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    }
-  }
-  .custom-tree-node {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-  }
-  
-  &-content {
-    padding: 15px;
-    max-height: 500px;
-    overflow-y: auto;
-    padding-bottom: 56px;
-  }
-
-  .boundary-tree {
-    margin-bottom: 15px;
-  }
-  
-  .selected-boundaries {
-    margin-top: 15px;
+    // 转换为树形结构
+    treeData.value = formatTreeData(districtTree);
     
-    .select-title {
-      font-weight: 500;
-      margin-bottom: 10px;
+    // 默认展开第一级
+    if (treeData.value.length > 0) {
+      expandedKeys.value = [treeData.value[0].key as string];
     }
-    
-    .boundary-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      
-      .boundary-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background-color: #f5f5f5;
-        border-radius: 4px;
-        
-        .remove-btn {
-          background: none;
-          border: none;
-          color: #999;
-          cursor: pointer;
-          font-size: 16px;
-          
-          &:hover {
-            color: #f5222d;
-          }
-        }
-      }
-    }
-  }
-  
-  .boundary-action {
-    position: absolute;
-    left: 0;
-    bottom: 16px;
-    width: 100%;
-    display: flex;
-    gap: 8px;
-    background: rgba(255,255,255,0.95);
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
-    padding: 8px 16px 8px 16px;
-    z-index: 1100;
-
-    button {
-      flex: 1;
-      height: 32px;
-      font-size: 14px;
-      padding: 0 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-      &.apply-btn {
-        background-color: #1677ff;
-        color: white;
-        &:hover {
-          background-color: #0958d9;
-        }
-      }
-      &.clear-btn {
-        background-color: #f5f5f5;
-        color: #333;
-        &:hover {
-          background-color: #e8e8e8;
-        }
-      }
-    }
+  } catch (error) {
+    logger.error('加载区划树失败:', error);
+    message.error('加载区划树失败，请检查网络连接或API密钥');
+  } finally {
+    isLoading.value = false;
   }
 }
 
-.settings-mask {
+// 格式化树形数据
+function formatTreeData(data: any[]): TreeDataItem[] {
+  return data.map(item => ({
+    title: item.name,
+    key: item.adcode,
+    children: item.districts && item.districts.length > 0 ? formatTreeData(item.districts) : undefined,
+    isLeaf: !item.districts || item.districts.length === 0
+  }));
+}
+
+// 选择节点
+async function onSelect(selectedKeys: string[], info: any) {
+  if (selectedKeys.length === 0) return;
+  
+  const key = selectedKeys[0];
+  const node = info.node;
+  
+  // 如果已经选择了该节点，则不重复添加
+  if (selectedBoundaries.value.some(item => item.code === key)) {
+    return;
+  }
+  
+  try {
+    // 优先使用 apiUrls，然后是旧的 boundaryUrl 属性
+    const boundaryUrl = props.apiUrls?.boundary || props.boundaryUrl || undefined;
+    
+    // 添加边界
+    const added = await props.boundaryObj.addBoundaryByAdcode(key, {
+      ...options.value,
+      mapKey: props.mapKey,
+      // 使用 apiUrls 对象传递 API URL
+      apiUrls: {
+        boundary: boundaryUrl
+      }
+    });
+    
+    if (added) {
+      // 获取添加的边界数据
+      const boundaries = props.boundaryObj.getSelectedBoundaries();
+      const boundary = boundaries.find(b => b.code === key);
+      
+      if (boundary) {
+        selectedBoundaries.value.push(boundary);
+      }
+    }
+  } catch (error) {
+    logger.error('添加边界失败:', error);
+    message.error('添加边界失败');
+  }
+}
+
+// 展开节点
+function onExpand(expandedKeys: string[]) {
+  expandedKeys.value = expandedKeys;
+}
+
+// 应用边界
+function applyBoundaries() {
+  emit('apply', selectedBoundaries.value);
+}
+
+// 清空边界
+function clearBoundaries() {
+  selectedBoundaries.value = [];
+  props.boundaryObj.clearBoundaries();
+  emit('clear');
+}
+
+// 移除边界
+function removeBoundary(code: string) {
+  selectedBoundaries.value = selectedBoundaries.value.filter(item => item.code !== code);
+  props.boundaryObj.removeBoundary(code);
+  emit('remove', code);
+}
+
+// 定位到当前
+function locateCurrent() {
+  // 实现定位到当前位置的逻辑
+  // 此处代码略
+}
+
+// 切换设置面板
+function toggleSettings() {
+  showSettings.value = !showSettings.value;
+}
+
+// 应用设置
+function applySettings() {
+  props.boundaryObj.setOptions(options.value);
+  props.boundaryObj.updateAllBoundariesStyle();
+  showSettings.value = false;
+}
+
+// 重置设置
+function resetSettings() {
+  options.value = {...DEFAULT_BOUNDARY_OPTIONS, ...props.defaultOptions};
+}
+
+// 监听选项变化
+watch(() => props.defaultOptions, (newOptions) => {
+  options.value = {...DEFAULT_BOUNDARY_OPTIONS, ...newOptions};
+}, { deep: true });
+
+// 监听搜索文本变化
+watch(() => searchText.value, () => {
+  // 实现搜索逻辑
+});
+</script>
+
+<style scoped>
+.boundary-selector {
   position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.25);
-  z-index: 1500;
+  width: 300px;
+  max-height: 500px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  overflow: hidden;
+}
+
+.boundary-selector.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.boundary-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.boundary-selector-header .title {
+  font-weight: bold;
+}
+
+.boundary-selector-header .actions {
+  display: flex;
+  gap: 5px;
+}
+
+.boundary-selector-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+}
+
+.tree-container {
+  flex: 1;
+  min-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.selected-boundaries {
+  border-top: 1px solid #e8e8e8;
+  padding-top: 10px;
+}
+
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.selected-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.selected-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .settings-panel {
   position: absolute;
-  top: 50px;
-  right: 10px;
-  width: 300px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-  z-index: 2000;
-  padding: 18px 20px 20px 20px;
-  transition: all 0.2s;
-  
-  .settings-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    border-bottom: 1px solid #e8e8e8;
-    
-    .close-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      color: #999;
-      
-      &:hover {
-        color: #666;
-      }
-    }
-  }
-  
-  .settings-content {
-    padding: 15px;
-    
-    .style-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      
-      .style-label {
-        flex: 1;
-        display: flex;
-        align-items: center;
-      }
-      
-      .style-value {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        
-        input[type="color"] {
-          width: 30px;
-          height: 30px;
-          border: none;
-          border-radius: 4px;
-          padding: 0;
-          background: none;
-          cursor: pointer;
-        }
-        
-        input[type="range"] {
-          width: 100px;
-          margin-right: 8px;
-        }
-        
-        input[type="number"] {
-          width: 60px;
-          padding: 4px;
-          border: 1px solid #d9d9d9;
-          border-radius: 4px;
-        }
-        
-        input[type="checkbox"] {
-          margin-right: 6px;
-          vertical-align: middle;
-        }
-      }
-    }
-  }
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  z-index: 1001;
+  padding: 15px;
+  overflow-y: auto;
 }
 
-.tree-expand-icon {
-  width: 18px;
-  height: 18px;
+.settings-panel h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e8e8e8;
+  padding-bottom: 10px;
+}
+
+.setting-item {
+  margin-bottom: 15px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
+}
+
+.setting-item label {
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.btn {
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #1677ff;
+  color: white;
+  border-color: #1677ff;
+}
+
+.btn-icon {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.btn-sm {
+  padding: 2px 6px;
   font-size: 12px;
-  color: #888;
-  user-select: none;
-  margin-right: 4px;
 }
 
-.tree-expand-icon span {
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  height: 200px;
+  color: #999;
 }
 
-.boundary-search {
-  margin-bottom: 15px; // 添加搜索框的下边距
+.error-state p {
+  margin-bottom: 10px;
+}
+
+.selected-node {
+  color: #1677ff;
+  font-weight: bold;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .boundary-selector {
+    width: 100%;
+    max-width: 300px;
+  }
 }
 </style> 

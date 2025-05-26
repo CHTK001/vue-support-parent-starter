@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useSlots, onMounted } from 'vue';
+import { ref, computed, useSlots, onMounted, defineExpose } from 'vue';
 import type { MarkerOptions } from '../types';
 
 const props = defineProps<{
@@ -97,6 +97,11 @@ const handleClose = () => {
   emit('update:visible', false);
   emit('close');
 };
+
+// 暴露更新位置的方法，供父组件调用
+defineExpose({
+  // 可以添加其他需要暴露的方法
+});
 </script>
 
 <style scoped>

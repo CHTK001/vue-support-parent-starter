@@ -37,13 +37,16 @@
     <!-- 添加区划边界选择器面板 -->
     <BoundarySelector v-if="showBoundarySelector && mapReady" :active="showBoundarySelector"
       :boundary-obj="getBoundaryObject()" :position="boundarySelectorPosition"
-      :default-options="DEFAULT_BOUNDARY_OPTIONS" :map-key="props.mapKey" @close="closeBoundarySelector"
+      :default-options="DEFAULT_BOUNDARY_OPTIONS" :map-key="props.mapKey" 
+      :api-urls="props.apiUrls"
+      :boundary-url="props.boundaryUrl" :district-url="props.districtUrl"
+      @close="closeBoundarySelector"
       @apply="handleBoundaryApply" @clear="handleBoundaryClear" @remove="handleBoundaryRemove" />
 
     <!-- 添加搜索框组件 -->
     <SearchBox v-if="showSearchBox" class="search-box" ref="searchBoxRef"
       :placeholder="props.searchBoxConfig.placeholder" :debounce-time="props.searchBoxConfig.debounceTime"
-      :position="props.searchBoxConfig.position" :search-box-config="props.searchBoxConfig" @search="handleSearch"
+      :position="props.searchBoxConfig.position" :search-box-config="searchBoxConfigWithUrl" @search="handleSearch"
       @select="handleSearchSelect" />
       
     <!-- 添加标记点详情组件 -->
@@ -53,7 +56,8 @@
       :marker="selectedMarker"
       :title="markerDetailTitle"
       :marker-position="markerScreenPosition"
-      @close="handleMarkerDetailClose">
+      @close="handleMarkerDetailClose"
+      ref="markerDetailRef">
       <template v-if="$slots.markerDetail" #default="slotProps">
         <slot name="markerDetail" :marker="slotProps.marker"></slot>
       </template>
@@ -107,8 +111,11 @@ import {
   MapType, MapTile, 
   // 默认配置导入
   DEFAULT_MAP_CONFIG, DEFAULT_TOOLBAR_CONFIG, DEFAULT_TRACK_PLAYER_CONFIG,
-  DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_SEARCH_BOX_CONFIG
+  DEFAULT_BOUNDARY_OPTIONS, DEFAULT_CESIUM_BASE_URL, DEFAULT_SEARCH_BOX_CONFIG,
+  // API URL 相关
+  mergeApiUrls
 } from './types';
+import { ApiUrls } from './types/api';
 // 引入OpenLayers样式
 import 'ol/ol.css';
 import FlightLinePanel from './components/FlightLinePanel.vue';

@@ -101,6 +101,10 @@ import {
   DEFAULT_MARKER_ICON
 } from './default';
 
+// 导入 API URL 接口
+import { DEFAULT_API_URLS, mergeApiUrls } from './api';
+import type { ApiUrls } from './api';
+
 // 图层类型枚举
 export enum MapTile {
   NORMAL = 'normal',
@@ -246,49 +250,79 @@ export type MapEventType =
 
 // 重新导出所有类型
 export {
-  // 地图相关类型
-  MapType, MapTypeConfig, MapUrlConfig, MapKeyConfig, DEFAULT_MAP_CONFIG,
+  MapType,
+  DEFAULT_MAP_CONFIG,
+  CoordSystem,
+  Shape,
+  DEFAULT_SHAPE_STYLE,
+  ToolbarPosition,
+  ToolbarDirection,
+  DEFAULT_TOOLBAR_CONFIG,
+  DEFAULT_TRACK_CONFIG,
+  DEFAULT_HEATMAP_CONFIG,
+  DEFAULT_FLIGHTLINE_CONFIG,
+  DEFAULT_WIND_CONFIG,
+  DEFAULT_TRACK_PLAYER_CONFIG,
+  DEFAULT_SEARCH_BOX_CONFIG,
+  DEFAULT_BOUNDARY_OPTIONS,
+  DEFAULT_CESIUM_BASE_URL,
+  DEFAULT_TRACK_SPEED_GROUPS,
+  DEFAULT_ICON,
+  DEFAULT_MARKER_ICON,
+  // 添加 API URL 相关导出
+  ApiUrls,
+  DEFAULT_API_URLS,
+  mergeApiUrls
+};
 
-  // 坐标相关类型
-  GeoPoint, CoordSystem, CoordinateInfo, CoordinatePosition,
-
-  // 标记点相关类型
-  MarkerConfig, MarkerStyleOptions, MarkerButton, MarkerOptions,
-  MarkerAnimation, MarkerEventHandler, NavigationOptions,
-
-  // 图形相关类型
-  Shape, ShapeStyle, ShapePoint, ShapeOption, DEFAULT_SHAPE_STYLE,
-
-  // 工具栏相关类型
-  ToolbarPosition, ToolbarDirection, ToolType, ToolItem,
-  CoordinateToolConfig, MeasureToolConfig, ToolbarConfig, DEFAULT_TOOLBAR_CONFIG,
-
-  // 轨迹相关类型
-  TrackPoint, IconSpeedGroup, TrackPlayer, TrackPlayerConfigOptions,
-  Track, TrackConfig, DEFAULT_TRACK_CONFIG,
-
-  // 边界相关类型
-  BoundaryLevel, BoundaryItem, BoundaryCoordinate, BoundaryData, BoundaryOptions,
-
-  // 搜索相关类型
-  SearchResult, SearchOptions, SearchApiResponse, PlaceDetailApiResponse,
-  SearchBoxConfig, NavigationApiResponse,
-
-  // 热力图相关类型
-  HeatmapPoint, HeatmapConfig, DEFAULT_HEATMAP_CONFIG,
-
-  // 飞线图相关类型
-  FlightLinePoint, FlightLineStyle, FlightCoord, FlightLineData,
-  FlightLineConfig, DEFAULT_FLIGHTLINE_CONFIG,
-
-  // 风场相关类型
-  WindData, WindConfig, DEFAULT_WIND_CONFIG,
-
-  // 聚合相关类型
-  AggregationOptions,
-
-  // 默认配置
-  DEFAULT_TRACK_PLAYER_CONFIG, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_BOUNDARY_OPTIONS,
-  DEFAULT_CESIUM_BASE_URL, DEFAULT_TRACK_SPEED_GROUPS, DEFAULT_ICON, DEFAULT_MARKER_ICON
+export type {
+  MapTypeConfig,
+  MapUrlConfig,
+  MapKeyConfig,
+  GeoPoint,
+  CoordinateInfo,
+  CoordinatePosition,
+  MarkerConfig,
+  MarkerStyleOptions,
+  MarkerButton,
+  MarkerOptions,
+  MarkerAnimation,
+  MarkerEventHandler,
+  NavigationOptions,
+  ShapeStyle,
+  ShapePoint,
+  ShapeOption,
+  ToolType,
+  ToolItem,
+  CoordinateToolConfig,
+  MeasureToolConfig,
+  ToolbarConfig,
+  TrackPoint,
+  IconSpeedGroup,
+  TrackPlayer,
+  TrackPlayerConfigOptions,
+  Track,
+  TrackConfig,
+  BoundaryLevel,
+  BoundaryItem,
+  BoundaryCoordinate,
+  BoundaryData,
+  BoundaryOptions,
+  SearchResult,
+  SearchOptions,
+  SearchApiResponse,
+  PlaceDetailApiResponse,
+  SearchBoxConfig,
+  NavigationApiResponse,
+  HeatmapPoint,
+  HeatmapConfig,
+  FlightLinePoint,
+  FlightLineStyle,
+  FlightCoord,
+  FlightLineData,
+  FlightLineConfig,
+  WindData,
+  WindConfig,
+  AggregationOptions
 };
 

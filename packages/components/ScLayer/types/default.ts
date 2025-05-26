@@ -2,7 +2,9 @@ import { MapType } from './map';
 import { CoordSystem } from './coordinate';
 import type { BoundaryOptions } from './boundary';
 import type { SearchBoxConfig } from './search';
+import { SearchType } from './search';
 import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
+import { DEFAULT_API_URLS } from './api';
 //@ts-ignore
 import marker from '@repo/assets/images/marker.png';
 
@@ -28,13 +30,35 @@ export const DEFAULT_SEARCH_BOX_CONFIG: SearchBoxConfig = {
   placeholder: '请输入搜索关键词',
   debounceTime: 300,
   position: 'top-right',
-  projection: CoordSystem.EPSG3857,
+  projection: CoordSystem.WGS84,
   mapType: MapType.GAODE,
-  searchUrl: 'https://restapi.amap.com/v3/place/text'
+  apiUrls: DEFAULT_API_URLS[MapType.GAODE],
+  searchUrl: DEFAULT_API_URLS[MapType.GAODE].search,
+  markerIcon: null,
+  showTypeSelector: true,
+  defaultSearchType: SearchType.KEYWORD,
+  searchTypes: [
+    {
+      type: SearchType.KEYWORD,
+      label: '关键词',
+      placeholder: '请输入搜索关键词'
+    },
+    {
+      type: SearchType.NEARBY,
+      label: '附近',
+      placeholder: '请输入附近搜索关键词'
+    },
+    {
+      type: SearchType.DISTRICT,
+      label: '行政区',
+      placeholder: '请输入行政区名称'
+    }
+  ]
 };
 // 默认配置
 export const DEFAULT_BOUNDARY_OPTIONS: BoundaryOptions = {
   position: 'top-right',
+  apiUrls: DEFAULT_API_URLS[MapType.GAODE],
   fillBoundary: true,
   strokeColor: '#1677ff',
   strokeWidth: 2,

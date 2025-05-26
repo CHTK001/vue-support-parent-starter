@@ -1,27 +1,49 @@
 <template>
   <div class="search-box" :class="[position, { 'is-select': type === 'select' }]">
-    <div class="search-input-wrapper">
-      <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="placeholder"
-        @input="handleInput" class="search-input" />
-      <select v-else v-model="searchText" @change="handleInput" class="search-select">
-        <option value="">请选择</option>
-        <option v-for="option in options" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-      <div class="search-icon">
-        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-          <path fill="currentColor"
-            d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
-        </svg>
+    <div class="search-container">
+      <!-- 搜索类型选择器 -->
+      <div v-if="showTypeSelector" class="search-type-selector">
+        <select v-model="currentSearchType" @change="handleSearchTypeChange" class="type-select">
+          <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
+            {{ typeConfig.label }}
+          </option>
+        </select>
+        <!-- 自定义类型选择器插槽 -->
+        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange"></slot>
+      </div>
+      
+      <div class="search-input-wrapper">
+        <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
+          @input="handleInput" class="search-input" />
+        <select v-else v-model="searchText" @change="handleInput" class="search-select">
+          <option value="">请选择</option>
+          <option v-for="option in options" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <div class="search-icon" @click="handleSearch">
+          <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <path fill="currentColor"
+              d="M795.904 750.72l124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704z" />
+          </svg>
         </div>
+      </div>
     </div>
+    
+    <!-- 自定义搜索框插槽 -->
+    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch"></slot>
+    
     <div v-if="showResults && results.length > 0" class="search-results">
       <div v-for="result in results" :key="result.id" class="search-result-item" @click="handleSelect(result)">
         <div class="result-title">{{ result.name }}</div>
         <div class="result-address">{{ result.address }}</div>
+        <div v-if="result.distance" class="result-distance">{{ formatDistance(result.distance) }}</div>
       </div>
+      
+      <!-- 自定义搜索结果插槽 -->
+      <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
     </div>
+    
     <div v-if="selectedMarker" class="navigation-buttons">
       <button @click="handleNavigation" class="nav-button">
         <i class="nav-icon"></i>
@@ -32,9 +54,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, defineProps , defineEmits, onMounted } from 'vue';
+import { ref, defineExpose, defineProps, defineEmits, onMounted, computed, watch } from 'vue';
 import type { PropType } from 'vue';
-import type { SearchBoxConfig, SearchResult } from '../types/search';
+import type { SearchBoxConfig, SearchResult, SearchTypeConfig } from '../types/search';
+import { SearchType } from '../types/search';
 import { DEFAULT_SEARCH_BOX_CONFIG } from '../types/default';
 import { ConfigObject } from '../composables/ConfigObject';
 import { SearchObject } from '../composables/SearchObject';
@@ -76,6 +99,7 @@ let searchObject: SearchObject = null;
 const emit = defineEmits<{
   (e: 'search', results: SearchResult[]): void;
   (e: 'select', result: SearchResult): void;
+  (e: 'type-change', type: SearchType): void;
 }>();
 
 // 响应式状态
@@ -86,6 +110,28 @@ let configObject = null;
 let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
+// 搜索类型相关
+const currentSearchType = ref<SearchType>(props.searchBoxConfig.defaultSearchType || SearchType.KEYWORD);
+const showTypeSelector = computed(() => props.searchBoxConfig.showTypeSelector !== false);
+const searchTypes = computed(() => props.searchBoxConfig.searchTypes || []);
+
+// 根据当前搜索类型获取占位符
+const currentPlaceholder = computed(() => {
+  const typeConfig = searchTypes.value.find(config => config.type === currentSearchType.value);
+  return typeConfig?.placeholder || props.placeholder;
+});
+
+// 监听搜索类型变化
+watch(currentSearchType, (newType) => {
+  if (searchObject) {
+    searchObject.setSearchType(newType);
+    emit('type-change', newType);
+    // 清空搜索结果
+    results.value = [];
+    showResults.value = false;
+  }
+});
+
 // 组件挂载时检查初始化状态
 onMounted(() => {
   console.log('SearchBox 组件已挂载，检查搜索对象状态');
@@ -93,8 +139,18 @@ onMounted(() => {
     console.warn('搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
   } else {
     console.log('搜索对象已就绪');
+    // 设置初始搜索类型
+    searchObject.setSearchType(currentSearchType.value);
   }
 });
+
+// 处理搜索类型变更
+const handleSearchTypeChange = (event) => {
+  const newType = event.target ? event.target.value : event;
+  currentSearchType.value = newType;
+  // 清空搜索框
+  searchText.value = '';
+};
 
 // 处理输入
 const handleInput = () => {
@@ -112,8 +168,8 @@ const handleInput = () => {
           return;
         }
         
-        console.log('开始搜索:', searchText.value);
-        const searchResults = await searchObject.search(searchText.value, {});
+        console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
+        const searchResults = await searchObject.search(searchText.value, props.searchBoxConfig as any, currentSearchType.value);
         console.log('搜索结果:', searchResults);
         results.value = searchResults;
         showResults.value = true;
@@ -181,9 +237,22 @@ defineExpose({
   setSearchObject: (_searchObject: SearchObject) => {
     searchObject = _searchObject;
     console.log('搜索对象已初始化', searchObject);
+    
+    // 设置初始搜索类型
+    if (searchObject) {
+      searchObject.setSearchType(currentSearchType.value);
+    }
   },
   isSearchReady: () => {
     return !!searchObject;
+  },
+  setSearchType: (type: SearchType) => {
+    currentSearchType.value = type;
+  },
+  getCurrentSearchType: () => currentSearchType.value,
+  clearResults: () => {
+    results.value = [];
+    showResults.value = false;
   }
 })
 </script>
@@ -197,171 +266,154 @@ defineExpose({
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  
+  .search-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .search-type-selector {
+    width: 80px;
+    
+    .type-select {
+      width: 100%;
+      height: 36px;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 14px;
+      color: #606266;
+      outline: none;
+      
+      &:focus {
+        border-color: #409eff;
+      }
+    }
+  }
+  
+  .search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-input, .search-select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 0 30px 0 10px;
+    font-size: 14px;
+    color: #606266;
+    outline: none;
+    
+    &:focus {
+      border-color: #409eff;
+    }
+  }
+  
+  .search-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #909399;
+    
+    &:hover {
+      color: #409eff;
+    }
+  }
+  
+  .search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    border-top: 1px solid #ebeef5;
+  }
+  
+  .search-result-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f2f6fc;
+    
+    &:hover {
+      background-color: #f5f7fa;
+    }
+    
+    .result-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+    
+    .result-address {
+      font-size: 12px;
+      color: #909399;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .result-distance {
+      font-size: 12px;
+      color: #67c23a;
+      margin-top: 4px;
+    }
+  }
+  
+  .navigation-buttons {
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #ebeef5;
+    
+    .nav-button {
+      background-color: #409eff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      
+      &:hover {
+        background-color: #66b1ff;
+      }
+      
+      .nav-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==');
+        background-size: contain;
+      }
+    }
+  }
 }
 
-.current-point {
-  height: 36px;
-  line-height: 36px;
-  padding-top: 8px;
+.search-box.top-left {
+  top: 10px;
+  left: 10px;
 }
 
-.search-box:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+.search-box.top-right {
+  top: 10px;
+  right: 10px;
 }
 
-.search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+.search-box.bottom-left {
+  bottom: 10px;
+  left: 10px;
 }
 
-.search-input,
-.search-select {
-  width: 100%;
-  height: 36px;
-  padding: 8px 32px 8px 12px;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
-  background: #f8f8f8;
-  transition: all 0.3s ease;
-}
-
-.search-input:focus,
-.search-select:focus {
-  outline: none;
-  border-color: #1890ff;
-  background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
-}
-
-.search-icon {
-  position: absolute;
-  right: 20px;
-  color: #999;
-  pointer-events: none;
-  display: flex;
-  transition: color 0.3s ease;
-}
-
-.search-input:focus + .search-icon {
-  color: #1890ff;
-}
-
-.search-results {
-  max-height: 300px;
-  overflow-y: auto;
-  background: #fff;
-  border-radius: 0 0 8px 8px;
-}
-
-.search-result-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.search-result-item:hover {
-  background-color: #f5f5f5;
-}
-
-.result-title {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.result-address {
-  font-size: 12px;
-  color: #999;
-}
-
-/* 位置样式 */
-.top-left {
-  top: 20px;
-  left: 20px;
-}
-
-.top-right {
-  top: 20px;
-  right: 20px;
-}
-
-.bottom-left {
-  bottom: 20px;
-  left: 20px;
-}
-
-.bottom-right {
-  bottom: 20px;
-  right: 20px;
-}
-
-/* 滚动条美化 */
-.search-results::-webkit-scrollbar {
-  width: 6px;
-}
-
-.search-results::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.search-results::-webkit-scrollbar-track {
-  background: #f5f5f5;
-}
-
-/* 选择框特殊样式 */
-.search-box.is-select .search-input-wrapper {
-  padding: 0;
-}
-
-.search-box.is-select .search-select {
-  border: none;
-  background: transparent;
-  padding-right: 32px;
-}
-
-.search-box.is-select .search-select:focus {
-  box-shadow: none;
-}
-
-.navigation-buttons {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-
-.nav-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border: 1px solid #1890ff;
-  border-radius: 4px;
-  background: #fff;
-  color: #1890ff;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.nav-button:hover {
-  background: #1890ff;
-  color: #fff;
-}
-
-.nav-icon {
-  width: 16px;
-  height: 16px;
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiMxODkwZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=');
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-
-.nav-button:hover .nav-icon {
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0xMiA2djZoNnYtNnoiLz48L3N2Zz4=');
+.search-box.bottom-right {
+  bottom: 10px;
+  right: 10px;
 }
 </style> 

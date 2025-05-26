@@ -1,5 +1,6 @@
 import type { CoordSystem } from "./coordinate";
 import type { MapType } from "./map";
+import { ApiUrls } from './api';
 
 // 区划级别
 export enum BoundaryLevel {
@@ -36,11 +37,15 @@ export interface BoundaryData {
 // 区划边界配置选项
 export interface BoundaryOptions {
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; // 区划边界位置
-  url?: string; // 自定义API URL，如果使用自定义实现方式
+  apiUrls?: ApiUrls;
+  /** @deprecated 使用 apiUrls.boundary 代替 */
+  url?: string;
+  /** @deprecated 使用 apiUrls.boundary 代替 */
+  boundaryUrl?: string;
+  /** @deprecated 使用 apiUrls.district 代替 */
+  districtUrl?: string;
   provider?: MapType; // API提供商
   mapKey?: Record<string, string>; // 添加 mapKey 属性
-  boundaryUrl?: string; // 添加 boundaryUrl 属性
-  districtUrl?: string; // 添加 districtUrl 属性
   projection?: CoordSystem; // 添加投影信息
   fillBoundary?: boolean; // 是否填充区划
   strokeColor?: string; // 边框颜色
