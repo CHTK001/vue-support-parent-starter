@@ -606,7 +606,12 @@ export class BoundaryObject {
         // 如果URL为空，使用本地JSON数据
         // 动态导入本地JSON，避免打包所有区划数据
         const gaodeDistrictData = (await import('../data/districts.json')).default;
-        districts = gaodeDistrictData;
+        districts = [{
+          adcode: '100000',
+          name: '中国',
+          level: 'country',
+          districts: gaodeDistrictData
+        }];
       }
 
       // 返回格式化后的数据

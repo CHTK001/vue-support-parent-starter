@@ -18,7 +18,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, PropType, watch } from 'vue';
-import { BoundaryData } from '../types/boundary';
+import { BoundaryData, BoundaryLevel } from '../types/boundary';
 
 export default defineComponent({
   name: 'BoundaryBreadcrumb',
@@ -53,7 +53,7 @@ export default defineComponent({
           // 构建面包屑路径
           breadcrumbItems.value = [
             // 添加一个根级别的面包屑项目
-            { code: '100000', name: '中国', level: 'country', coordinates: [] },
+            { code: '100000', name: '中国', level: 'country' as BoundaryLevel, coordinates: [] },
             // 添加历史记录中的项目
             ...history,
             // 添加当前边界
@@ -62,7 +62,7 @@ export default defineComponent({
         } else {
           // 如果没有当前边界，只显示根级别
           breadcrumbItems.value = [
-            { code: '100000', name: '中国', level: 'country', coordinates: [] }
+            { code: '100000', name: '中国', level: 'country' as BoundaryLevel, coordinates: [] }
           ];
         }
       },

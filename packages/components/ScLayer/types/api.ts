@@ -28,7 +28,7 @@ export const DEFAULT_API_URLS: Record<MapType, ApiUrls> = {
     detail: 'https://restapi.amap.com/v3/place/detail',
     navigation: 'https://restapi.amap.com/v3/direction/driving',
     boundary: 'https://restapi.amap.com/v3/config/district',
-    district: 'https://restapi.amap.com/v3/config/district'
+    district: undefined
   },
   [MapType.BAIDU]: {
     search: 'https://api.map.baidu.com/place/v2/search',
