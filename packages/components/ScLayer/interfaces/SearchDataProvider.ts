@@ -25,6 +25,24 @@ export interface SearchDataProvider {
   search(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]>;
   
   /**
+   * 附近搜索
+   * @param url 搜索 API URL
+   * @param keyword 关键词
+   * @param options 搜索选项，必须包含 location 和 radius
+   * @returns 搜索结果
+   */
+  searchNearby?(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]>;
+  
+  /**
+   * 行政区搜索
+   * @param url 搜索 API URL
+   * @param keyword 行政区名称
+   * @param options 搜索选项
+   * @returns 搜索结果
+   */
+  searchDistrict?(url: string, keyword: string, options: SearchOptions): Promise<SearchResult[]>;
+  
+  /**
    * 获取地点详情
    * @param id 地点ID
    * @param apiKey API密钥

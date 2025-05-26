@@ -44,6 +44,11 @@ export const DEFAULT_SEARCH_BOX_CONFIG: SearchBoxConfig = {
       placeholder: '请输入搜索关键词'
     },
     {
+      type: SearchType.COORDINATE,
+      label: '坐标',
+      placeholder: '请输入经纬度坐标，如：116.404,39.915'
+    },
+    {
       type: SearchType.NEARBY,
       label: '附近',
       placeholder: '请输入附近搜索关键词'

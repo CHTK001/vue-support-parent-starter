@@ -102,7 +102,7 @@ export interface SearchBoxConfig {
   debounceTime: number;
   position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   projection: CoordSystem;
-  key: string;
+  key?: string;
   mapType: MapType;
   apiUrls?: ApiUrls;
   /** @deprecated 使用 apiUrls.search 代替 */
@@ -142,13 +142,3 @@ export interface NavigationApiResponse {
   result?: any;
   [key: string]: any; // 允许其他字段
 }
-
-// 添加默认导出，使用类型断言
-export default {} as {
-  SearchResult: typeof SearchResult;
-  SearchOptions: typeof SearchOptions;
-  SearchApiResponse: typeof SearchApiResponse;
-  PlaceDetailApiResponse: typeof PlaceDetailApiResponse;
-  SearchBoxConfig: typeof SearchBoxConfig;
-  NavigationApiResponse: typeof NavigationApiResponse;
-};
