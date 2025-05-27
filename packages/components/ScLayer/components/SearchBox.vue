@@ -122,12 +122,28 @@
 
     <!-- 导航路线详情面板 -->
     <transition name="slide-fade">
-      <div v-if="showRouteDetails && routeDetails.length > 0" class="route-details" :class="getRouteDetailsPanelPosition()">
+      <div v-if="showRouteDetails && routeDetails.length > 0" 
+           class="route-details" 
+           :class="[getRouteDetailsPanelPosition(), {'is-dragging': isDragging, 'is-closing': isClosing}]"
+           ref="routeDetailsPanel"
+           @touchstart="handleTouchStart"
+           @touchmove="handleTouchMove"
+           @touchend="handleTouchEnd">
+        <!-- 下拉提示条 -->
+        <div class="drag-handle">
+          <div class="drag-handle-line"></div>
+          <div class="drag-hint">下拉关闭</div>
+        </div>
 
         <div class="route-summary">
           <div class="route-info">
             <span class="route-distance">{{ formatDistance(routeTotalDistance) }}</span>
             <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
+          </div>
+          <div class="route-actions">
+            <button @click="closeRouteDetails" class="close-button" title="关闭导航详情">
+              <span class="close-icon">×</span>
+            </button>
           </div>
         </div>
 
@@ -306,6 +322,11 @@ const handleSearchTypeChange = (event) => {
   // 清空搜索结果，不触发搜索
   results.value = [];
   showResults.value = false;
+  
+  // 如果导航路线详情面板已打开，则关闭
+  if (showRouteDetails.value) {
+    closeRouteDetails();
+  }
 };
 
 // 处理输入
@@ -329,6 +350,11 @@ const handleInput = () => {
         if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
           ElMessage.warning('请输入有效的搜索内容');
           return;
+        }
+        
+        // 如果导航路线详情面板已打开，则关闭
+        if (showRouteDetails.value) {
+          closeRouteDetails();
         }
         
         console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
@@ -356,6 +382,11 @@ const handleSearch = async () => {
   
   try {
     if (searchObject) {
+      // 如果导航路线详情面板已打开，则关闭
+      if (showRouteDetails.value) {
+        closeRouteDetails();
+      }
+      
       // 开始搜索
       await searchObject.search(searchText.value, props.searchBoxConfig, currentSearchType.value);
     }
@@ -472,6 +503,14 @@ const showRouteDetailsList = ref(true); // 控制详情列表的显示/隐藏
 const routeDetails = ref<any[]>([]);
 const routeTotalDistance = ref(0);
 const routeTotalDuration = ref(0);
+
+// 下拉关闭相关
+const routeDetailsPanel = ref<HTMLElement | null>(null);
+const isDragging = ref(false);
+const isClosing = ref(false);
+const touchStartY = ref(0);
+const touchCurrentY = ref(0);
+const dragThreshold = 100; // 下拉多少像素触发关闭
 
 // 多条路线选择相关
 const alternativeRoutes = ref<any[]>([]); // 备选路线列表
@@ -591,9 +630,25 @@ const updateRouteDetails = (steps: any[]) => {
 // 关闭路线详情
 const closeRouteDetails = () => {
   console.log('关闭路线详情面板');
+  
+  // 重置面板样式
+  if (routeDetailsPanel.value) {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile) {
+      routeDetailsPanel.value.style.setProperty('--drag-y', '0px');
+      routeDetailsPanel.value.style.transform = 'translateX(-50%)';
+    } else {
+      routeDetailsPanel.value.style.transform = '';
+    }
+  }
+  
+  // 重置状态
   showRouteDetails.value = false;
   showRouteDetailsList.value = true; // 重置为默认展开状态
   routeDetails.value = [];
+  isDragging.value = false;
+  isClosing.value = false;
+  
   console.log('路线详情面板已关闭');
 };
 
@@ -891,6 +946,75 @@ defineExpose({
     showResults.value = false;
   }
 })
+
+// 处理触摸开始
+const handleTouchStart = (event: TouchEvent) => {
+  touchStartY.value = event.touches[0].clientY;
+  touchCurrentY.value = touchStartY.value;
+  isDragging.value = false;
+  isClosing.value = false;
+};
+
+// 处理触摸移动
+const handleTouchMove = (event: TouchEvent) => {
+  touchCurrentY.value = event.touches[0].clientY;
+  const deltaY = touchCurrentY.value - touchStartY.value;
+  
+  // 只处理向下拖动
+  if (deltaY > 0) {
+    isDragging.value = true;
+    
+    // 应用变换，但有阻尼效果
+    if (routeDetailsPanel.value) {
+      const transform = Math.min(deltaY * 0.5, 200);
+      
+      // 检查是否为移动设备（根据CSS媒体查询的结果）
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      
+      if (isMobile) {
+        // 在移动设备上，我们使用CSS变量来控制拖动
+        routeDetailsPanel.value.style.setProperty('--drag-y', `${transform}px`);
+        routeDetailsPanel.value.style.transform = `translateX(-50%) translateY(${transform}px)`;
+      } else {
+        // 在桌面设备上，我们直接使用transform
+        routeDetailsPanel.value.style.transform = `translateY(${transform}px)`;
+      }
+      
+      // 如果拖动超过阈值，显示关闭提示
+      if (deltaY > dragThreshold) {
+        isClosing.value = true;
+      } else {
+        isClosing.value = false;
+      }
+    }
+    
+    // 阻止默认行为（页面滚动）
+    event.preventDefault();
+  }
+};
+
+// 处理触摸结束
+const handleTouchEnd = () => {
+  const deltaY = touchCurrentY.value - touchStartY.value;
+  
+  if (deltaY > dragThreshold) {
+    // 如果拖动超过阈值，关闭面板
+    closeRouteDetails();
+  } else if (routeDetailsPanel.value) {
+    // 否则恢复原位
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    
+    if (isMobile) {
+      routeDetailsPanel.value.style.setProperty('--drag-y', '0px');
+      routeDetailsPanel.value.style.transform = 'translateX(-50%)';
+    } else {
+      routeDetailsPanel.value.style.transform = '';
+    }
+  }
+  
+  isDragging.value = false;
+  isClosing.value = false;
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1380,6 +1504,49 @@ $transition-time: 0.2s;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     height: 100%;
+    transition: transform 0.3s ease;
+    
+    // 拖动状态
+    &.is-dragging {
+      transition: none;
+    }
+    
+    // 关闭状态
+    &.is-closing {
+      .drag-hint {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      .drag-handle-line {
+        background-color: $primary-color;
+      }
+    }
+    
+    // 下拉手柄
+    .drag-handle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0 4px;
+      
+      .drag-handle-line {
+        width: 40px;
+        height: 4px;
+        background-color: $border-color;
+        border-radius: 2px;
+        transition: background-color 0.3s ease;
+      }
+      
+      .drag-hint {
+        font-size: 12px;
+        color: $primary-color;
+        margin-top: 4px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+      }
+    }
     
     // 根据搜索框位置调整路线详情面板位置
     &.panel-left {
@@ -1866,6 +2033,24 @@ $transition-time: 0.2s;
     max-height: 60vh;
     overflow-y: auto;
     
+    &.is-dragging {
+      overflow-y: hidden;
+    }
+    
+    .drag-handle {
+      padding: 12px 0 8px;
+      
+      .drag-handle-line {
+        width: 60px;
+        height: 5px;
+      }
+      
+      .drag-hint {
+        font-size: 13px;
+        margin-top: 6px;
+      }
+    }
+    
     &.panel-left,
     &.panel-right,
     &.panel-top-left,
@@ -1876,6 +2061,10 @@ $transition-time: 0.2s;
       top: auto;
       bottom: 10px;
       margin: 0;
+      
+      &.is-dragging {
+        transform: translateX(-50%) translateY(var(--drag-y, 0));
+      }
     }
     
     .route-options {
