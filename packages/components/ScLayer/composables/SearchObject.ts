@@ -1085,6 +1085,7 @@ export class SearchObject {
         coordSystem: CoordSystem.WGS84,
         icon: DEFAULT_START_ICON,
         title: '起点',
+        size: [16, 16],
         style: {
           anchor: [0.5, 1]
         },
