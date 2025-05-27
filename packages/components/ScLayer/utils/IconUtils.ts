@@ -634,7 +634,7 @@ export class IconUtils {
       // 默认样式
     const defaultStyle = {
       scale: 1,
-      size: [24, 24],
+      size: [24, 24] as [number, number],
       anchor: [0.5, 1] as [number, number],
       offset: [0, 0] as [number, number],
       rotation: 0,
@@ -668,8 +668,6 @@ export class IconUtils {
       
       icon = icon.url || icon.src || icon.default;
     }
-    defaultStyle.size = size;
-  
     
     // 合并样式
     const styleOptions = { ...defaultStyle, ...style };
@@ -684,6 +682,7 @@ export class IconUtils {
     }
     
     // 如果提供了缩放级别，计算缩放因子
+    let scaleFactor = 1;
     if (baseZoom !== undefined && currentZoom !== undefined) {
       // 计算当前zoom与基准zoom的差值
       const zoomChange = currentZoom - baseZoom;
@@ -694,10 +693,30 @@ export class IconUtils {
       const maxScale = 1.2;
       
       // 直接将zoom变化值乘以缩放系数获得缩放比例
-      const scaleFactor = 1 + (zoomChange * zoomFactor);
+      scaleFactor = 1 + (zoomChange * zoomFactor);
       
       // 限制在最小和最大缩放范围内
-      styleOptions.scale = Math.max(minScale, Math.min(maxScale, scaleFactor));
+      scaleFactor = Math.max(minScale, Math.min(maxScale, scaleFactor));
+    }
+    
+    // 计算最终的缩放比例
+    let finalScale = styleOptions.scale * scaleFactor;
+    
+    // 如果提供了size参数，将其转换为等比例缩放
+    if (size) {
+      // 使用size参数作为等比例缩放的参考，而不是裁剪
+      // 默认假设原始图标大小为24x24，计算缩放比例
+      const defaultSize = 24;
+      const scaleX = size[0] / defaultSize;
+      const scaleY = size[1] / defaultSize;
+      
+      // 使用较大的缩放比例，确保图标完全覆盖指定的size区域
+      const sizeScale = Math.max(scaleX, scaleY);
+      
+      // 将size缩放因子与其他缩放因子相乘
+      finalScale *= sizeScale;
+      
+      this.log('debug', `使用size参数计算等比例缩放: [${size[0]}, ${size[1]}] => scale=${sizeScale.toFixed(2)}`);
     }
     
     // 获取图标锚点 - 保持锚点始终为底部中心点，确保定位准确
@@ -708,12 +727,9 @@ export class IconUtils {
       case 'photo':
         // 使用Photo样式处理远程URL
         if (icon && (icon.startsWith('http') || icon.startsWith('https'))) {
-          const size: [number, number] = [32, 32]; // 默认大小
-          
           // 创建Photo样式所需选项
           const photoOptions = {
             kind: options.data?.photoKind || 'circle',
-            size: styleOptions.size,
             stroke: options.data?.photoStroke !== undefined ? options.data?.photoStroke : 2,
             strokeColor: options.data?.photoStrokeColor || '#ffffff',
             shadow: options.data?.photoShadow !== false,
@@ -725,29 +741,34 @@ export class IconUtils {
           
           this.log('debug', `使用Photo样式渲染URL图标: ${icon}`, { photoOptions });
           
-          // 使用IconUtils创建Photo样式
-          return this.createSafeIconStyle(
-            icon,
-            styleOptions.scale || 1,
-            size,
-            '#1890ff', // 默认回退颜色
-            photoOptions
-          );
+          // 计算Photo样式的半径，使用finalScale
+          const radius = 12 * finalScale; // 默认半径为12像素，应用缩放
+          
+          // 创建Photo样式
+          const photoStyle = new OLStylePhoto({
+            src: icon,
+            radius: radius,
+            ...photoOptions
+          });
+          
+          return new Style({
+            image: photoStyle,
+            zIndex: zIndex
+          });
         }
         break;
         
       case 'url':
         // 使用标准Icon样式处理URL
         if (icon && (icon.startsWith('http') || icon.startsWith('https'))) {
-          this.log('debug', `使用标准Icon样式渲染URL图标: ${icon}`);
+          this.log('debug', `使用标准Icon样式渲染URL图标: ${icon}, scale=${finalScale}`);
           
-          // 创建标准图标样式
+          // 创建标准图标样式，使用scale而不是size
           return new Style({
             image: new Icon({
               src: iconUrl,
-              scale: styleOptions.scale,
+              scale: finalScale,
               anchor: styleOptions.anchor,
-               size: styleOptions.size,
               anchorXUnits: 'fraction',
               anchorYUnits: 'fraction',
               offset: styleOptions.offset,
@@ -780,14 +801,13 @@ export class IconUtils {
         break;
     }
     
-    // 创建标准图标样式
+    // 创建标准图标样式，使用scale而不是size
     return new Style({
       image: new Icon({
         src: iconUrl,
-        scale: styleOptions.scale,
+        scale: finalScale,
         anchor: styleOptions.anchor,
         anchorXUnits: 'fraction',
-        size: styleOptions.size,
         anchorYUnits: 'fraction',
         offset: styleOptions.offset,
         rotation: styleOptions.rotation || 0

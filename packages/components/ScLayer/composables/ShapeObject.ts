@@ -17,9 +17,9 @@ import { getCenter } from 'ol/extent';
 import { ShapeStyle, Shape, ShapeOption as ImportedShapeOption, ShapePoint, DEFAULT_SHAPE_STYLE } from '../types/shape';
 import logger from './LogObject';
 import { DataType } from '../types';
-// 删除ol-ext导入
-// import 'ol-ext/dist/ol-ext.css';
-// import OLModifyFeature from 'ol-ext/interaction/ModifyFeature';
+// 导入ol-ext
+import 'ol-ext/dist/ol-ext.css';
+import FlowLine from 'ol-ext/style/FlowLine';
 // 添加额外需要的导入
 import Collection from 'ol/Collection';
 import { singleClick } from 'ol/events/condition';
@@ -645,8 +645,8 @@ export class ShapeObject {
 
   /**
    * 创建特征样式
-   * @param feature 特征
-   * @returns 样式对象
+   * @param feature 特征对象
+   * @returns 样式对象或数组
    */
   private createFeatureStyle(feature: Feature): Style | Style[] {
     const styles: Style[] = [];
@@ -657,6 +657,24 @@ export class ShapeObject {
     // 获取自定义样式或使用默认样式
     const customStyle = feature.get('style');
     const styleToUse = customStyle || this.style;
+    
+    // 检查是否使用流线效果
+    const useFlowLine = feature.get('flowLine') === true;
+    const shapeType = feature.get('shapeType') as ShapeType;
+    
+    // 如果是线段并且启用了流线效果
+    if (useFlowLine && shapeType === Shape.LINE && feature.getGeometry() instanceof LineString) {
+      // 创建FlowLine样式
+      const flowStyle = new FlowLine({
+        color: styleToUse.stroke?.color || 'rgba(24, 144, 255, 1)',
+        width: styleToUse.stroke?.width || 2,
+        arrow: true, // 显示箭头
+        animationDuration: 3000, // 动画持续时间（毫秒）
+      });
+      
+      // 应用FlowLine样式
+      return flowStyle;
+    }
     
     // 根据特征创建主样式
     const mainStyle = new Style({
@@ -1747,6 +1765,11 @@ export class ShapeObject {
       feature.setId(id);
       feature.set('shapeType', options.type);
       feature.set('createdAt', new Date().toISOString());
+      
+      // 设置flowLine属性
+      if (options.flowLine) {
+        feature.set('flowLine', true);
+      }
       
       if (options.data) {
         feature.set('data', options);

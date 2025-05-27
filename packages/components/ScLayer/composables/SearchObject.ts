@@ -1013,6 +1013,7 @@ export class SearchObject {
             
             // 使用ShapeObject的addLine方法添加线条
             const lineId = this.shapeObject.addLine(allPoints, {
+              flowLine: true,
               style: {
                 stroke: {
                   color: lineColor,

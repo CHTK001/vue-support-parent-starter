@@ -1388,11 +1388,12 @@ export class MarkerObject {
       // 没有模板，使用标题
       popoverElement.innerHTML = `<div class="marker-popover-content">${title}</div>`;
     }
+    
     // 创建Overlay对象
     const popover = new Overlay({
       element: popoverElement,
-      positioning: 'bottom-center', // 将定位改为bottom-center，使popover在标记点正上方
-      offset: [0, -25], // 调整偏移量，使popover紧贴标记点
+      positioning: 'top-center', // 修改为top-center，使popover在标记点正上方
+      offset: [0, -5], // 调整偏移量，使popover在标记点上方有一定距离
       position: position,
       stopEvent: true
     });
