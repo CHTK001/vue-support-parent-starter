@@ -929,7 +929,7 @@ export class SearchObject {
       
       // 如果没有找到特定交通方式的URL，则使用默认导航URL
       if (!navigationUrl) {
-        navigationUrl = searchProvider.getDefaultNavigationUrl();
+        navigationUrl = searchProvider.getDefaultNavigationUrl(transportType);
         console.log(`使用默认导航URL: ${navigationUrl} 进行 ${transportType} 导航`);
       } else {
         console.log(`使用 ${transportType} 专用导航URL: ${navigationUrl}`);
@@ -940,7 +940,8 @@ export class SearchObject {
         startPosition as [number, number],
         endPosition as [number, number],
         apiKey,
-        navigationUrl
+        navigationUrl,
+        transportType
       );
       
       // 保存导航信息以便后续使用

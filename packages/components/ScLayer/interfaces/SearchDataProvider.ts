@@ -66,10 +66,11 @@ export interface SearchDataProvider {
    * @param destination 终点坐标 [lng, lat]
    * @param apiKey API密钥
    * @param url 自定义API地址（可选）
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    * @deprecated 使用 createNavigation 方法代替
    */
-  getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string): Promise<NavigationApiResponse>;
+  getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType?: string): Promise<NavigationApiResponse>;
   
   /**
    * 创建导航路线
@@ -110,9 +111,10 @@ export interface SearchDataProvider {
   
   /**
    * 获取默认导航 URL
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 默认导航 URL
    */
-  getDefaultNavigationUrl(): string;
+  getDefaultNavigationUrl(transportType?: string): string;
 }
 
 /**

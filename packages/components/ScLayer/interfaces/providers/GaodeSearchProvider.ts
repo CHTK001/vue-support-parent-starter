@@ -101,28 +101,53 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @param destination 终点坐标 [lng, lat]
    * @param apiKey API密钥
    * @param url 自定义API地址（可选）
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    */
-  async getNavigation(origin: GeoPoint , destination: GeoPoint, apiKey: string, url?: string): Promise<NavigationApiResponse> {
+  async getNavigation(origin: GeoPoint, destination: GeoPoint, apiKey: string, url?: string, transportType: string = 'driving'): Promise<NavigationApiResponse> {
     try {
-      logger.debug(`[GaodeSearchProvider] 开始获取导航路径: ${origin} -> ${destination}`);
+      logger.debug(`[GaodeSearchProvider] 开始获取导航路径: ${origin} -> ${destination}, 交通方式: ${transportType}`);
       
       // 确保坐标是GCJ02坐标系
       const originGcj02 = this.ensureGcj02Coordinates(origin);
       const destinationGcj02 = this.ensureGcj02Coordinates(destination);
       
+      // 根据交通方式确定API URL
+      let apiUrl = url;
+      if (!apiUrl) {
+        // 如果没有提供自定义URL，则根据交通方式选择API
+        switch (transportType) {
+          case 'driving':
+            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+            break;
+          case 'walking':
+            apiUrl = 'https://restapi.amap.com/v5/direction/walking';
+            break;
+          case 'bicycling':
+            apiUrl = 'https://restapi.amap.com/v5/direction/bicycling';
+            break;
+          case 'ebike':
+            apiUrl = 'https://restapi.amap.com/v5/direction/ebike';
+            break;
+          case 'transit':
+            apiUrl = 'https://restapi.amap.com/v5/direction/transit/integrated';
+            break;
+          default:
+            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+        }
+      }
+      
       const params = {
         key: apiKey,
-        origin: `${originGcj02[0] },${originGcj02[1] }`,
-        destination: `${destinationGcj02[0] },${destinationGcj02[1] }`,
+        origin: `${originGcj02[0]},${originGcj02[1]}`,
+        destination: `${destinationGcj02[0]},${destinationGcj02[1]}`,
         extensions: 'all',
         output: 'JSON'
       };
       
-      // 如果提供了自定义URL，则使用自定义URL
-      const requestUrl = url || this.NAVIGATION_URL;
+      logger.debug(`[GaodeSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
       
-      const response = await axios.get(requestUrl, { params });
+      const response = await axios.get(apiUrl, { params });
       const data = response.data;
       
       if (data.status !== '1') {
@@ -237,10 +262,24 @@ export class GaodeSearchProvider implements SearchDataProvider {
   
   /**
    * 获取默认导航 URL
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 默认导航 URL
    */
-  getDefaultNavigationUrl(): string {
-    return this.NAVIGATION_URL;
+  getDefaultNavigationUrl(transportType: string = 'driving'): string {
+    switch (transportType) {
+      case 'driving':
+        return 'https://restapi.amap.com/v5/direction/driving';
+      case 'walking':
+        return 'https://restapi.amap.com/v5/direction/walking';
+      case 'bicycling':
+        return 'https://restapi.amap.com/v5/direction/bicycling';
+      case 'ebike':
+        return 'https://restapi.amap.com/v5/direction/ebike';
+      case 'transit':
+        return 'https://restapi.amap.com/v5/direction/transit/integrated';
+      default:
+        return 'https://restapi.amap.com/v5/direction/driving';
+    }
   }
   
   /**

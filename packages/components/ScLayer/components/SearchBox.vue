@@ -1254,7 +1254,7 @@ $transition-time: 0.2s;
     
     .navigation-input-group {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       margin-bottom: 8px;
       
       .nav-input {
@@ -1267,6 +1267,7 @@ $transition-time: 0.2s;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
         background-color: #fff;
+        margin-bottom: 8px;
         
         &:hover {
           border-color: $border-hover;
@@ -1334,7 +1335,7 @@ $transition-time: 0.2s;
       .nav-swap-btn {
         width: 24px;
         height: 24px;
-        margin: 0 8px;
+        margin: 0 auto 8px;
         border-radius: 50%;
         background-color: #f0f0f0;
         display: flex;
@@ -1342,6 +1343,7 @@ $transition-time: 0.2s;
         justify-content: center;
         cursor: pointer;
         color: $text-secondary;
+        transform: rotate(90deg);
         
         &:hover {
           background-color: #e0e0e0;
