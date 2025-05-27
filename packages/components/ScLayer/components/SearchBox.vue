@@ -33,7 +33,7 @@
               d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
           </svg>
         </button>
-      </div>
+        </div>
       
       <!-- 导航搜索专用双输入框 -->
       <div v-else class="navigation-input-container">
@@ -54,14 +54,6 @@
             <input v-model="navEndPoint" type="text" placeholder="请输入终点" 
               @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
-          </div>
-        </div>
-        
-        <div class="transport-mode-selector">
-          <div v-for="type in transportTypes" :key="type.value" class="transport-mode"
-            :class="{ 'active': currentTransportType === type.value }"
-            @click="selectTransportType(type.value)" :title="type.label">
-            <span :class="['transport-icon', type.value + '-icon']"></span>
           </div>
         </div>
         
@@ -161,8 +153,8 @@
         </button>
         <button @click="clearRoutePoints" class="clear-button">
           清除
-        </button>
-      </div>
+      </button>
+    </div>
     </div>
 
     <!-- 导航路线详情面板 -->
@@ -1253,8 +1245,8 @@ $transition-time: 0.2s;
     flex-direction: column;
     
     .navigation-input-group {
-      display: flex;
-      flex-direction: column;
+    display: flex;
+    align-items: center;
       margin-bottom: 8px;
       
       .nav-input {
@@ -1267,7 +1259,6 @@ $transition-time: 0.2s;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
         background-color: #fff;
-        margin-bottom: 8px;
         
         &:hover {
           border-color: $border-hover;
@@ -1297,7 +1288,7 @@ $transition-time: 0.2s;
         }
         
         input {
-          width: 100%;
+    width: 100%;
           height: 100%;
           border: none;
           outline: none;
@@ -1335,7 +1326,7 @@ $transition-time: 0.2s;
       .nav-swap-btn {
         width: 24px;
         height: 24px;
-        margin: 0 auto 8px;
+        margin: 0 8px;
         border-radius: 50%;
         background-color: #f0f0f0;
         display: flex;
@@ -1343,7 +1334,6 @@ $transition-time: 0.2s;
         justify-content: center;
         cursor: pointer;
         color: $text-secondary;
-        transform: rotate(90deg);
         
         &:hover {
           background-color: #e0e0e0;
@@ -1358,7 +1348,7 @@ $transition-time: 0.2s;
       
       .transport-mode {
         width: 36px;
-        height: 36px;
+    height: 36px;
         border-radius: $border-radius;
         margin-right: 8px;
         background-color: #f5f5f5;
@@ -1416,7 +1406,7 @@ $transition-time: 0.2s;
       border-radius: $border-radius;
       background-color: $primary-color;
       color: white;
-      font-size: 14px;
+    font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1561,14 +1551,14 @@ $transition-time: 0.2s;
     }
     
     .result-content {
-      cursor: pointer;
+    cursor: pointer;
       flex: 1;
       min-width: 0;
       margin-bottom: 8px;
       position: relative;
       padding-left: 15px;
-      
-      &:hover {
+    
+    &:hover {
         .result-title {
           color: $primary-color;
         }
@@ -1764,7 +1754,7 @@ $transition-time: 0.2s;
         padding: 8px;
         border-radius: 50%;
         background-color: #f5f5f5;
-        cursor: pointer;
+      cursor: pointer;
         transition: all 0.2s;
         width: 40px;
         height: 40px;
