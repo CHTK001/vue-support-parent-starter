@@ -38,7 +38,7 @@ export class CesiumObject {
    * @param olMap OpenLayers地图实例
    * @param cesiumBaseUrl Cesium资源基础URL
    */
-  constructor(olMap: OlMap | null, cesiumBaseUrl: string = 'https://unpkg.com/cesium@1.109.0/Build/Cesium/') {
+  constructor(olMap: OlMap | null, cesiumBaseUrl: string = '/node_modules/cesium/Build/Cesium/') {
     this.cesiumBaseUrl = cesiumBaseUrl;
     this.olMap = olMap;
     

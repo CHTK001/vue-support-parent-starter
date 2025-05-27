@@ -71,6 +71,8 @@ export interface ShapeOption {
   points?: ShapePoint[]; // 多边形的点
   style?: ShapeStyle;
   data?: any; // 附加数据
+  /** 是否使用流线效果，默认为false，如果设置为true则采用ol-ext中的FlowLine */
+  flowLine?: boolean;
 }
 
 // 默认样式

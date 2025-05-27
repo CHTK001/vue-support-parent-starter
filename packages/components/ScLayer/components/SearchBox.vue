@@ -1131,6 +1131,14 @@ $transition-time: 0.2s;
   .route-details {
     border-top: 1px solid rgba($border-color, 0.6);
     background-color: #fff;
+    position: absolute;
+    top: 0;
+    right: 100%;
+    margin-right: 10px;
+    width: 300px;
+    border-radius: $border-radius;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
     
     .route-summary {
       display: flex;
@@ -1138,6 +1146,8 @@ $transition-time: 0.2s;
       align-items: center;
       padding: 12px 15px;
       background-color: #f5f5f5;
+      border-top-left-radius: $border-radius;
+      border-top-right-radius: $border-radius;
       
       .route-info {
         display: flex;
@@ -1380,7 +1390,7 @@ $transition-time: 0.2s;
 
 .slide-fade-enter-from,
 .slide-fade-leave-to {
-  transform: translateY(-10px);
+  transform: translateX(10px);
   opacity: 0;
 }
 
@@ -1404,6 +1414,14 @@ $transition-time: 0.2s;
   .search-box {
     width: calc(100% - 20px);
     max-width: 340px;
+  }
+  
+  .route-details {
+    position: static;
+    margin-right: 0;
+    width: 100%;
+    margin-top: 10px;
+    border-top: 1px solid rgba($border-color, 0.6);
   }
 }
 </style> 
