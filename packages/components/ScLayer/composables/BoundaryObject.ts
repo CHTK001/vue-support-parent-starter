@@ -62,7 +62,11 @@ export class BoundaryObject {
     this.mapObject = mapObject;
     this.map = mapObject.getMapInstance()!;
     this.options = {...DEFAULT_BOUNDARY_OPTIONS, ...options};
+<<<<<<< HEAD
       // 确保所有提供者已注册
+=======
+    // 确保所有提供者已注册
+>>>>>>> e8a47548902242271238242dfac4524e7c48e99a
     registerAllProviders();
     // 创建矢量图层源
     this.boundarySource = new VectorSource({
@@ -113,7 +117,7 @@ export class BoundaryObject {
   public addBoundary(boundaryData: BoundaryData): void {
     // 先检查是否已经添加过该边界
     if (this.selectedBoundaries.has(boundaryData.code)) {
-      logger.debug(`边界已存在: ${boundaryData.name}(${boundaryData.code})`);
+      logger.debug(`边界已存在，不再重复添加: ${boundaryData.name}(${boundaryData.code})`);
       return;
     }
     
@@ -352,18 +356,42 @@ export class BoundaryObject {
   }
   
   /**
+   * 通过行政区划代码添加边界
+   * @param adcode 行政区划代码
+   */
+  public async addBoundaryByAdcode(adcode: string, options: BoundaryOptions = {}): Promise<boolean> {
+    try {
+      // 首先检查是否已经添加过该边界
+      if (this.selectedBoundaries.has(adcode)) {
+        logger.debug(`边界已存在，不再重复添加: ${adcode}`);
+        // 如果已经存在，直接返回成功
+        return true;
+      }
+
+      // 获取区划数据（已转换为高德格式）
+      const data = await this.fetchBoundaryData(adcode, options);
+      if (!data) {
+        return false;
+      }
+
+      // 将数据创建区划，并确保坐标系统为EPSG:3857
+      return this.createBoundary(data, {
+        ...options,
+        projection: CoordSystem.EPSG3857 // 强制使用EPSG:3857坐标系
+      });
+    } catch (error) {
+      console.error('添加区划失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 获取区划数据
    * @param adcode 行政区划代码
    * @param options 区划配置选项
    * @returns 区划数据（统一转换为高德格式）
    */
   private async fetchBoundaryData(adcode: string, options: BoundaryOptions): Promise<BoundaryDataFormat | null> {
-    // 检查是否已经添加过该边界
-    if (this.selectedBoundaries.has(adcode)) {
-      logger.debug(`边界已存在: ${adcode}`);
-      return null;
-    }
-
     try {
       // 获取当前地图服务商
       const provider = this.options.provider || MapType.GAODE;
@@ -427,6 +455,7 @@ export class BoundaryObject {
   }
 
   /**
+<<<<<<< HEAD
    * 通过行政区划代码添加边界
    * @param adcode 行政区划代码
    */
@@ -450,6 +479,8 @@ export class BoundaryObject {
   }
 
   /**
+=======
+>>>>>>> e8a47548902242271238242dfac4524e7c48e99a
    * 解析高德 polyline 字符串为 OpenLayers Feature[]
    * @param polyline 高德API返回的 polyline 字符串
    * @param projection 目标投影坐标系（统一使用EPSG:3857）
@@ -661,6 +692,9 @@ export class BoundaryObject {
     }
 
     try {
+      // 清除现有的所有边界，防止重复显示
+      this.clearBoundaries();
+      
       // 加载新的边界
       await this.addBoundaryByAdcode(adcode);
 
@@ -772,22 +806,43 @@ export class BoundaryObject {
     if (enable) {
       // 添加点击事件
       if (!this.clickListener) {
+        // 添加用于处理双击检测的变量
+        let lastClickTime = 0;
+        const doubleClickDelay = 300; // 300ms内的两次点击视为双击
+        
         this.clickListener = this.map.on('click', (event) => {
-          const feature = this.map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
-          if (!feature) return;
-
-          const layer = this.map.forEachFeatureAtPixel(event.pixel, 
-            (feature, layer) => layer);
-          
-          // 确保点击的是区划图层的要素
-          if (layer !== this.boundaryLayer) return;
-
-          const properties = feature.get('properties') || feature.getProperties();
-          if (properties && properties.code) {
-            // 如果是省级行政区，钻取到该区域
-            logger.debug(`点击了边界: ${properties.name}(${properties.code})`);
-            this.drillToBoundary(properties.code);
+          // 检查是否是双击 - 如果与上次点击时间间隔小于设定值，则跳过此次点击处理
+          const now = new Date().getTime();
+          if (now - lastClickTime < doubleClickDelay) {
+            // 更新点击时间但不处理此次点击
+            lastClickTime = now;
+            return;
           }
+          
+          // 更新最后点击时间
+          lastClickTime = now;
+          
+          // 延迟处理点击事件，以便能检测到双击
+          setTimeout(() => {
+            // 再次检查，如果间隔时间短于设定值，说明发生了双击，不处理此次点击
+            if (new Date().getTime() - lastClickTime >= doubleClickDelay) {
+              const feature = this.map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
+              if (!feature) return;
+
+              const layer = this.map.forEachFeatureAtPixel(event.pixel, 
+                (feature, layer) => layer);
+              
+              // 确保点击的是区划图层的要素
+              if (layer !== this.boundaryLayer) return;
+
+              const properties = feature.get('properties') || feature.getProperties();
+              if (properties && properties.code) {
+                // 如果是省级行政区，钻取到该区域
+                logger.debug(`点击了边界: ${properties.name}(${properties.code})`);
+                this.drillToBoundary(properties.code);
+              }
+            }
+          }, doubleClickDelay);
         });
       }
     } else {
@@ -833,6 +888,74 @@ export class BoundaryObject {
     });
 
     this.map.addOverlay(overlay);
+
+    // 添加双击事件监听
+    this.map.on('dblclick', (event) => {
+      const features = this.map!.getFeaturesAtPixel(event.pixel, {
+        layerFilter: (layer) => layer === this.boundaryLayer
+      });
+
+      if (features && features.length > 0) {
+        const feature = features[0];
+        const props = feature.getProperties();
+        
+        // 如果存在区划代码，则定位到该区划
+        if (props && props.code) {
+          logger.debug(`双击定位到边界: ${props.name}(${props.code})`);
+          
+          // 阻止事件传播，防止触发单击事件
+          event.stopPropagation();
+          event.preventDefault();
+          
+          // 定位到该区划
+          this.fitToBoundary(props.code);
+          
+          // 显示提示信息
+          const geometry = feature.getGeometry() as Polygon;
+          const coordinate = geometry.getInteriorPoint().getCoordinates();
+          
+          // 临时提示信息
+          const tempTip = document.createElement('div');
+          tempTip.className = 'boundary-location-tip';
+          tempTip.textContent = `已定位到: ${props.name}`;
+          tempTip.style.cssText = `
+            position: absolute;
+            background: rgba(24, 144, 255, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            pointer-events: none;
+            animation: fade-out 2s forwards;
+          `;
+          
+          document.body.appendChild(tempTip);
+          
+          // 设置提示信息位置
+          const mapElement = this.map!.getTargetElement();
+          const mapRect = mapElement.getBoundingClientRect();
+          const pixelPosition = this.map!.getPixelFromCoordinate(coordinate);
+          
+          if (pixelPosition) {
+            tempTip.style.left = `${mapRect.left + pixelPosition[0]}px`;
+            tempTip.style.top = `${mapRect.top + pixelPosition[1]}px`;
+          }
+          
+          // 2秒后移除提示信息
+          setTimeout(() => {
+            if (tempTip.parentNode) {
+              tempTip.parentNode.removeChild(tempTip);
+            }
+          }, 2000);
+          
+          return;
+        }
+      }
+    });
 
     // 添加点击事件监听
     this.map.on('click', (event) => {
@@ -889,6 +1012,9 @@ export class BoundaryObject {
               ">${formattedArea}</span>
               <span style="color: #999; margin-left: 4px;">平方公里</span>
             </div>
+            <div style="color: #999; grid-column: 1/-1; margin-top: 8px; font-style: italic; font-size: 12px;">
+              提示: 双击可定位到此区域
+            </div>
           </div>
         `;
 
@@ -927,6 +1053,12 @@ export class BoundaryObject {
     if (!data || !data.polyline) {
       logger.warn(`未获取到区划边界数据或缺少polyline`);
       return false;
+    }
+
+    // 再次检查是否已存在该边界，防止重复添加
+    if (this.selectedBoundaries.has(data.adcode)) {
+      logger.debug(`边界已存在，跳过重复创建: ${data.name}(${data.adcode})`);
+      return true; // 返回true，因为边界已经存在
     }
 
     try {

@@ -1644,7 +1644,7 @@ export class ShapeObject {
             return '';
           }
           feature = new Feature({
-            geometry: new LineString(GcoordUtils.convertToOlCoordinate(options.coordinates as [number, number][], options.coordSystem))
+            geometry: new LineString(GcoordUtils.convertToOlCoordinates(options.coordinates as Array<[number, number]>, options.coordSystem))
           });
           break;
 
@@ -1659,7 +1659,7 @@ export class ShapeObject {
             this.log('error', '添加多边形形状失败: 坐标格式错误');
             return '';
           } else {
-            coords = GcoordUtils.convertToOlCoordinate(options.coordinates as [number, number][], options.coordSystem);
+            coords = GcoordUtils.convertToOlCoordinates(options.coordinates as Array<[number, number]>, options.coordSystem);
           }
           
           // 确保多边形闭合

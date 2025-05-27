@@ -7,6 +7,10 @@ import type { IconSpeedGroup, TrackPlayerConfigOptions } from './track';
 import { DEFAULT_API_URLS } from './api';
 //@ts-ignore
 import marker from '@repo/assets/images/marker.png';
+//@ts-ignore
+import endMarker from '@repo/assets/images/end.png';
+//@ts-ignore
+import startMarker from '@repo/assets/images/start.png';
 
 // 默认轨迹播放器配置
 export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfigOptions = {
@@ -122,6 +126,8 @@ export const DEFAULT_TRACK_SPEED_GROUPS = [
 ] as IconSpeedGroup[];
 
 export const DEFAULT_ICON = marker;
+export const DEFAULT_END_ICON = endMarker;
+export const DEFAULT_START_ICON = startMarker;
 /**
  * 默认标记点图标配置
  */

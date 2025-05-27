@@ -2,7 +2,7 @@ import { SearchDataProvider } from '../SearchDataProvider';
 import { SearchOptions, SearchResult, PlaceDetailApiResponse, NavigationApiResponse } from '../../types/search';
 import { CoordSystem } from '../../types/coordinate';
 import logger from '../../composables/LogObject';
-import { GcoordUtils } from '../../utils/GcoordUtils';
+import { fromLonLat, toLonLat } from 'ol/proj';
 import axios from 'axios';
 
 /**
@@ -171,11 +171,51 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * 创建导航路线
    * @param url 导航 API URL
    * @param options 导航选项
-   * @returns 导航路径
+   * @returns 导航 API 响应
    */
-  async createNavigation(url: string, options: { origin: [number, number], destination: [number, number] }): Promise<NavigationApiResponse> {
-    // 复用现有的 getNavigation 方法，但使用传入的 URL
-    return this.getNavigation(options.origin, options.destination, options['key'] || '', url);
+  async createNavigation(url: string, options: { 
+    origin: [number, number], 
+    destination: [number, number],
+    key?: string,
+    transport_type?: string
+  }): Promise<NavigationApiResponse> {
+    try {
+      const { origin, destination, key, transport_type = 'driving' } = options;
+      
+      // 构建请求参数
+      const params = {
+        key: key || this.apiKey,
+        origin: `${origin[0]},${origin[1]}`,
+        destination: `${destination[0]},${destination[1]}`,
+        show_fields: 'cost,polyline',
+        alternative_routes: '3',  // 返回3条可选路线
+        extensions: 'all'
+      };
+      
+      // 发送请求
+      const response = await fetch(`${url}?${new URLSearchParams(params).toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // 检查响应状态
+      if (data.status !== '1' && data.status !== 1 && data.infocode !== '10000') {
+        throw new Error(`API错误: ${data.info || '未知错误'}`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('创建导航路线失败:', error);
+      throw error;
+    }
   }
   
   /**
@@ -213,17 +253,8 @@ export class GaodeSearchProvider implements SearchDataProvider {
       const location = poi.location.split(',');
       const lng = parseFloat(location[0]);
       const lat = parseFloat(location[1]);
-      
-      // 转换为EPSG:3857坐标系
-      const epsg3857Point = GcoordUtils.transform(
-        { lng, lat },
-        CoordSystem.GCJ02,
-        CoordSystem.EPSG3857
-      );
-      
-      // 从 GeoPoint 提取经纬度
-      const epsg3857Coords = GcoordUtils.toObject(epsg3857Point);
-      
+      const projCoords = fromLonLat([lng, lat]);
+      // 直接使用原始坐标，不进行转换
       return {
         id: poi.id,
         name: poi.name,
@@ -235,8 +266,12 @@ export class GaodeSearchProvider implements SearchDataProvider {
           lng: lng,
           lat: lat,
           epsg3857: {
-            lng: epsg3857Coords.lng,
-            lat: epsg3857Coords.lat
+            lng: projCoords[0],
+            lat: projCoords[1]
+          },
+          source: {
+            lng: lng,
+            lat: lat
           }
         },
         type: poi.type || '',
@@ -255,20 +290,8 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @returns GCJ02坐标系的[lng, lat]
    */
   private ensureGcj02Coordinates(coordinates: [number, number]): [number, number] {
-    // 这里假设输入的坐标是EPSG:3857，需要转换为GCJ02
-    const epsg3857Point = { lng: coordinates[0], lat: coordinates[1] };
-    
-    // 转换为GCJ02
-    const gcj02Point = GcoordUtils.transform(
-      epsg3857Point,
-      CoordSystem.EPSG3857,
-      CoordSystem.GCJ02
-    );
-    
-    // 从 GeoPoint 提取经纬度
-    const gcj02Coords = GcoordUtils.toObject(gcj02Point);
-    
-    return [gcj02Coords.lng, gcj02Coords.lat];
+    // 直接使用原始坐标，不进行转换
+    return coordinates;
   }
   
   /**
@@ -377,16 +400,8 @@ export class GaodeSearchProvider implements SearchDataProvider {
         lat = parseFloat(center[1]);
       }
       
-      // 转换为EPSG:3857坐标系
-      const epsg3857Point = GcoordUtils.transform(
-        { lng, lat },
-        CoordSystem.GCJ02,
-        CoordSystem.EPSG3857
-      );
-      
-      // 从 GeoPoint 提取经纬度
-      const epsg3857Coords = GcoordUtils.toObject(epsg3857Point);
-      
+      const projCoords = fromLonLat([lng, lat]);
+      // 直接使用原始坐标，不进行转换
       return {
         id: district.adcode,
         name: district.name,
@@ -398,8 +413,12 @@ export class GaodeSearchProvider implements SearchDataProvider {
           lng: lng,
           lat: lat,
           epsg3857: {
-            lng: epsg3857Coords.lng,
-            lat: epsg3857Coords.lat
+            lng: projCoords[0],
+            lat: projCoords[1]
+          },
+          source: {
+            lng: lng,
+            lat: lat
           }
         },
         type: 'district',
