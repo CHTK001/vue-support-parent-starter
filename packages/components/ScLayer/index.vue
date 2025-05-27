@@ -2733,7 +2733,7 @@ const initSearchObject = () => {
       return;
     }
     
-    searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj, props.mapKey);
+    searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj, props.mapKey, toolbarObject.getShapeObject());
     logger.debug('搜索对象初始化成功');
     
     nextTick(() => {

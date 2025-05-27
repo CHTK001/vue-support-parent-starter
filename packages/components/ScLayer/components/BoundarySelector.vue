@@ -5,7 +5,7 @@
       <div class="title">
         <i class="boundary-icon"></i>
         区划选择器
-      </div>
+          </div>
       <div class="actions">
         <button class="btn-icon" @click="locateCurrent" title="定位到当前">
           <i class="location-icon"></i>
@@ -13,20 +13,20 @@
         <button class="btn-icon" @click="toggleSettings" title="设置">
           <i class="settings-icon"></i>
         </button>
-      </div>
-    </div>
+        </div>
+          </div>
     
     <div class="boundary-selector-content">
       <div class="search-container">
         <input 
           type="text" 
-          v-model="searchText" 
+          v-model="searchText"
           placeholder="搜索行政区划..." 
           class="search-input"
         />
         <i class="search-icon"></i>
       </div>
-      
+
       <div class="tree-container">
         <el-tree
           v-if="treeData.length > 0"
@@ -53,7 +53,7 @@
           <div v-if="isLoading" class="loading-spinner">
             <div class="spinner"></div>
             <span>加载中...</span>
-          </div>
+      </div>
           <div v-else class="error-state">
             <i class="error-icon"></i>
             <p>加载失败</p>
@@ -61,7 +61,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="selected-section">
         <div class="selected-boundaries" v-if="selectedBoundaries.length > 0">
           <div class="selected-header">
@@ -72,19 +72,19 @@
             <div class="actions">
               <button class="btn btn-primary" @click="applyBoundaries">应用</button>
               <button class="btn" @click="clearBoundaries">清空</button>
-            </div>
-          </div>
+      </div>
+    </div>
           <div class="selected-list">
             <div v-for="item in selectedBoundaries" :key="item.code" class="selected-item">
               <span class="item-name">{{ item.name }}</span>
               <button class="btn-icon remove-btn" @click="removeBoundary(item.code)" title="移除">
                 <i class="delete-icon"></i>
               </button>
+        </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+            </div>
+          </div>
     
     <div class="settings-panel" v-if="showSettings">
       <div class="settings-header">
@@ -92,43 +92,43 @@
         <button class="btn-icon" @click="toggleSettings" title="关闭">
           <i class="close-icon"></i>
         </button>
-      </div>
+            </div>
       
       <div class="settings-content">
         <div class="setting-item">
           <label>填充区域</label>
           <el-switch v-model="options.fillBoundary" />
-        </div>
+          </div>
         
         <div class="setting-item">
           <label>边框颜色</label>
           <el-color-picker v-model="options.strokeColor" />
-        </div>
+            </div>
         
         <div class="setting-item">
           <label>边框宽度</label>
           <el-slider v-model="options.strokeWidth" :min="1" :max="5" :step="0.5" />
-        </div>
+          </div>
         
         <div class="setting-item">
           <label>填充颜色</label>
           <el-color-picker v-model="options.fillColor" />
-        </div>
+            </div>
         
         <div class="setting-item">
           <label>填充透明度</label>
           <el-slider v-model="options.fillOpacity" :min="0" :max="1" :step="0.05" />
-        </div>
+          </div>
         
         <div class="setting-item">
           <label>显示标签</label>
           <el-switch v-model="options.showLabel" />
-        </div>
+            </div>
         
         <div class="setting-item" v-if="options.showLabel">
           <label>标签大小</label>
           <el-slider v-model="options.labelOptions.fontSize" :min="10" :max="24" :step="1" />
-        </div>
+          </div>
         
         <div class="setting-item" v-if="options.showLabel">
           <label>标签颜色</label>
@@ -561,7 +561,7 @@ function applyBoundaries() {
 
 // 清空边界
 function clearBoundaries() {
-  selectedBoundaries.value = [];
+    selectedBoundaries.value = [];
   props.boundaryObj.clearBoundaries();
   
   // 清空树选中状态
@@ -569,21 +569,21 @@ function clearBoundaries() {
     treeRef.value.setCheckedKeys([]);
   }
   
-  emit('clear');
-}
+    emit('clear');
+  }
 
 // 移除边界
 function removeBoundary(code: string) {
   selectedBoundaries.value = selectedBoundaries.value.filter(item => item.code !== code);
-  props.boundaryObj.removeBoundary(code);
+    props.boundaryObj.removeBoundary(code);
   
   // 更新树选中状态
   if (treeRef.value) {
     treeRef.value.setChecked(code, false, false);
   }
   
-  emit('remove', code);
-}
+    emit('remove', code);
+  }
 
 // 定位到当前
 function locateCurrent() {
@@ -651,7 +651,7 @@ watch(() => searchText.value, (newValue) => {
         }
       }
     });
-  } else {
+    } else {
     // 搜索内容为空时，只展开一级节点
     expandedKeys.value = treeData.value.map(item => item.key);
   }
@@ -905,7 +905,7 @@ $transition-time: 0.3s;
     pointer-events: auto;
     transform: translateY(0);
   }
-  
+
   // 头部样式
   .boundary-selector-header {
     display: flex;
@@ -939,7 +939,7 @@ $transition-time: 0.3s;
     flex: 1;
     overflow-y: auto;
     padding: 16px;
-    display: flex;
+      display: flex;
     flex-direction: column;
     gap: 16px;
     max-height: calc(80vh - 54px); // 减去header高度
@@ -960,8 +960,8 @@ $transition-time: 0.3s;
         color: $text-primary;
         transition: border-color $transition-time;
         outline: none;
-        
-        &:hover {
+
+      &:hover {
           border-color: $border-hover;
         }
         
@@ -994,7 +994,7 @@ $transition-time: 0.3s;
       border-radius: $border-radius;
       padding: 12px;
       background-color: #fafafa;
-      overflow-y: auto;
+    overflow-y: auto;
       margin-bottom: 16px;
       
       .district-tree {
@@ -1035,14 +1035,14 @@ $transition-time: 0.3s;
         
         .selected-node {
           color: $primary-color;
-          font-weight: 500;
+      font-weight: 500;
         }
-      }
-      
+    }
+    
       .loading-state,
       .error-state {
-        display: flex;
-        flex-direction: column;
+      display: flex;
+      flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 200px;
@@ -1050,9 +1050,9 @@ $transition-time: 0.3s;
         gap: 12px;
         
         .loading-spinner {
-          display: flex;
+        display: flex;
           flex-direction: column;
-          align-items: center;
+        align-items: center;
           gap: 12px;
           
           .spinner {
@@ -1109,8 +1109,8 @@ $transition-time: 0.3s;
           }
           
           .actions {
-            display: flex;
-            gap: 8px;
+    display: flex;
+    gap: 8px;
           }
         }
         
@@ -1150,7 +1150,7 @@ $transition-time: 0.3s;
               border-bottom: none;
             }
             
-            &:hover {
+        &:hover {
               background-color: #f5f7fa;
             }
             
@@ -1162,7 +1162,7 @@ $transition-time: 0.3s;
             .remove-btn {
               opacity: 0.6;
               
-              &:hover {
+        &:hover {
                 opacity: 1;
               }
               
@@ -1177,8 +1177,8 @@ $transition-time: 0.3s;
   }
   
   // 设置面板
-  .settings-panel {
-    position: absolute;
+.settings-panel {
+  position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -1188,40 +1188,40 @@ $transition-time: 0.3s;
     display: flex;
     flex-direction: column;
     transition: all $transition-time ease;
-    
-    .settings-header {
+  
+  .settings-header {
       padding: 12px 16px;
       border-bottom: 1px solid $border-color;
       background-color: #f5f7fa;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
       
       h3 {
         margin: 0;
-        font-size: 16px;
+      font-size: 16px;
         font-weight: 600;
         color: $text-primary;
       }
       
       .close-icon {
         @include icon(url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23303133' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E"));
-      }
     }
-    
-    .settings-content {
+  }
+  
+  .settings-content {
       flex: 1;
       overflow-y: auto;
       padding: 16px;
-      
+    
       .setting-item {
         margin-bottom: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
         label {
-          flex: 1;
+        flex: 1;
           color: $text-secondary;
           font-size: 14px;
         }
@@ -1235,7 +1235,7 @@ $transition-time: 0.3s;
     .settings-footer {
       padding: 12px 16px;
       border-top: 1px solid $border-color;
-      display: flex;
+        display: flex;
       justify-content: flex-end;
       gap: 12px;
     }
@@ -1250,7 +1250,7 @@ $transition-time: 0.3s;
   border-radius: $border-radius;
   background-color: white;
   color: $text-secondary;
-  cursor: pointer;
+          cursor: pointer;
   font-size: 14px;
   transition: all $transition-time;
   display: inline-flex;
@@ -1301,8 +1301,8 @@ $transition-time: 0.3s;
   }
   
   i {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
     display: inline-block;
   }
   
