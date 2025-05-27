@@ -57,14 +57,14 @@
             </div>
             <div class="action-buttons">
               <button class="action-btn start-btn" :class="{ 'active': startPointId === result.id }"
-                @click.stop="setAsStartPoint(result)" title="设置为起点">
+                @click.stop="setAsStartPoint(result)" title="从这里出发">
                 <span class="start-icon"></span>
-                起点
+                从这出发
               </button>
               <button class="action-btn end-btn" :class="{ 'active': endPointId === result.id }"
-                @click.stop="setAsEndPoint(result)" title="设置为终点">
+                @click.stop="setAsEndPoint(result)" title="到这里去">
                 <span class="end-icon"></span>
-                终点
+                到这去
               </button>
             </div>
           </div>
@@ -88,13 +88,27 @@
 
     <!-- 导航按钮 -->
     <div v-if="startPointId && endPointId" class="navigation-panel">
+      <div class="route-endpoints">
+        <div class="endpoint start-point">
+          <span class="endpoint-icon start-icon"></span>
+          <span class="endpoint-text">起点：{{ getMarkerTitle(startPointMarkerId) }}</span>
+        </div>
+        <div class="endpoint-divider"></div>
+        <div class="endpoint end-point">
+          <span class="endpoint-icon end-icon"></span>
+          <span class="endpoint-text">终点：{{ getMarkerTitle(endPointMarkerId) }}</span>
+        </div>
+      </div>
+      
       <div class="transport-type-selector">
         <div v-for="type in transportTypes" :key="type.value" class="transport-type-option"
           :class="{ 'active': currentTransportType === type.value }" @click="selectTransportType(type.value)"
           :title="type.label">
           <span :class="['transport-icon', type.value + '-icon']"></span>
+          <span class="transport-label">{{ type.label }}</span>
         </div>
       </div>
+      
       <div class="navigation-buttons">
         <button @click="createRouteNavigation" class="navigation-button">
           <span class="navigation-icon"></span>
@@ -102,17 +116,38 @@
         </button>
         <button @click="clearRoutePoints" class="clear-button">
           清除
-      </button>
-    </div>
+        </button>
+      </div>
     </div>
 
     <!-- 导航路线详情面板 -->
     <transition name="slide-fade">
       <div v-if="showRouteDetails && routeDetails.length > 0" class="route-details" :class="getRouteDetailsPanelPosition()">
+
         <div class="route-summary">
           <div class="route-info">
             <span class="route-distance">{{ formatDistance(routeTotalDistance) }}</span>
             <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
+          </div>
+        </div>
+
+        <!-- 多条路线选择 -->
+        <div class="route-options" v-if="alternativeRoutes.length > 0">
+          <div class="route-option-title">备选路线</div>
+          <div class="route-options-list">
+            <div v-for="(route, index) in alternativeRoutes" :key="index" class="route-option"
+              :class="{ 'active': currentRouteIndex === index }" @click="selectRoute(index)">
+              <div class="route-option-info">
+                <div class="route-option-name">路线 {{ index + 1 }}</div>
+                <div class="route-option-stats">
+                  <span class="route-option-distance">{{ formatDistance(route.distance) }}</span>
+                  <span class="route-option-duration">{{ formatDuration(route.duration) }}</span>
+                </div>
+              </div>
+              <div class="route-option-traffic" :class="getTrafficClass(route.traffic)">
+                {{ getTrafficText(route.traffic) }}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -438,6 +473,121 @@ const routeDetails = ref<any[]>([]);
 const routeTotalDistance = ref(0);
 const routeTotalDuration = ref(0);
 
+// 多条路线选择相关
+const alternativeRoutes = ref<any[]>([]); // 备选路线列表
+const currentRouteIndex = ref(0); // 当前选中的路线索引
+
+// 修改 selectRoute 方法，使用更通用的方式处理路线切换
+const selectRoute = (index: number) => {
+  if (index === currentRouteIndex.value || !alternativeRoutes.value[index]) {
+    return;
+  }
+  
+  currentRouteIndex.value = index;
+  const selectedRoute = alternativeRoutes.value[index];
+  
+  // 更新路线详情
+  routeTotalDistance.value = selectedRoute.distance || 0;
+  routeTotalDuration.value = selectedRoute.duration || 0;
+  
+  // 更新路线步骤
+  if (selectedRoute.steps && selectedRoute.steps.length > 0) {
+    updateRouteDetails(selectedRoute.steps);
+  }
+  
+  // 通知 SearchObject 切换路线（如果有相应方法）
+  try {
+    if (searchObject) {
+      // 尝试使用通用方法调用，避免直接依赖特定方法名
+      const navigationResponse = searchObject.getNavigationInfo();
+      if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && 
+          navigationResponse.route.paths.length > index) {
+        // 重新创建导航，使用相同的起终点但选择不同的路线
+        searchObject.createNavigation(
+          startPointMarkerId.value, 
+          endPointMarkerId.value, 
+          currentTransportType.value
+        ).catch(err => console.error('切换路线失败:', err));
+        
+        // 由于无法直接选择路线，我们只能重新创建导航，然后在UI上显示不同路线的详情
+        console.log(`已切换到路线 ${index + 1}`);
+      }
+    }
+  } catch (error) {
+    console.error('切换路线时发生错误:', error);
+  }
+};
+
+// 获取交通状况类名
+const getTrafficClass = (traffic: number | string): string => {
+  if (typeof traffic === 'undefined' || traffic === null) {
+    return 'traffic-unknown';
+  }
+  
+  const trafficValue = typeof traffic === 'string' ? parseInt(traffic, 10) : traffic;
+  
+  if (trafficValue < 1.2) return 'traffic-smooth';
+  if (trafficValue < 1.5) return 'traffic-normal';
+  if (trafficValue < 2) return 'traffic-slow';
+  return 'traffic-congested';
+};
+
+// 获取交通状况文本
+const getTrafficText = (traffic: number | string): string => {
+  if (typeof traffic === 'undefined' || traffic === null) {
+    return '未知';
+  }
+  
+  const trafficValue = typeof traffic === 'string' ? parseInt(traffic, 10) : traffic;
+  
+  if (trafficValue < 1.2) return '畅通';
+  if (trafficValue < 1.5) return '正常';
+  if (trafficValue < 2) return '缓行';
+  return '拥堵';
+};
+
+// 更新路线详情
+const updateRouteDetails = (steps: any[]) => {
+  routeDetails.value = [];
+  
+  // 添加起点
+  routeDetails.value.push({
+    action: 'start',
+    instruction: '起点',
+    distance: 0,
+    duration: 0,
+    roadName: ''
+  });
+  
+  // 添加各个步骤
+  steps.forEach((step: any, index: number) => {
+    // 解析指令中的行动
+    const action = parseStepAction(step.instruction || '');
+    
+    // 处理不同API返回格式的兼容
+    const distance = step.distance || step.step_distance || 0;
+    const duration = step.duration || (step.cost?.duration || 0);
+    const roadName = step.road_name || step.road || '';
+    
+    routeDetails.value.push({
+      action,
+      instruction: step.instruction || `步骤 ${index + 1}`,
+      distance,
+      duration,
+      roadName
+    });
+  });
+  
+  // 添加终点
+  routeDetails.value.push({
+    action: 'end',
+    instruction: '终点',
+    distance: 0,
+    duration: 0,
+    roadName: ''
+  });
+};
+
 // 关闭路线详情
 const closeRouteDetails = () => {
   console.log('关闭路线详情面板');
@@ -513,51 +663,43 @@ const createRouteNavigation = async () => {
     const navigationResponse = searchObject.getNavigationInfo();
     console.log('获取到导航信息:', navigationResponse);
     
+    // 重置路线选择状态
+    alternativeRoutes.value = [];
+    currentRouteIndex.value = 0;
+    
     if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && navigationResponse.route.paths.length > 0) {
-      const path = navigationResponse.route.paths[0];
-      routeTotalDistance.value = path.distance || 0;
-      routeTotalDuration.value = path.duration || 0;
+      // 处理主路线
+      const mainPath = navigationResponse.route.paths[0];
+      routeTotalDistance.value = mainPath.distance || 0;
+      routeTotalDuration.value = mainPath.duration || 0;
       
       // 处理路线步骤
-      const steps = path.steps || [];
-      routeDetails.value = [];
+      const steps = mainPath.steps || [];
+      updateRouteDetails(steps);
       
-      // 添加起点
-      routeDetails.value.push({
-        action: 'start',
-        instruction: '起点',
-        distance: 0,
-        duration: 0,
-        roadName: ''
-      });
-      
-      // 添加各个步骤
-      steps.forEach((step: any, index: number) => {
-        // 解析指令中的行动
-        const action = parseStepAction(step.instruction || '');
-        
-        // 处理不同API返回格式的兼容
-        const distance = step.distance || step.step_distance || 0;
-        const duration = step.duration || (step.cost?.duration || 0);
-        const roadName = step.road_name || step.road || '';
-        
-        routeDetails.value.push({
-          action,
-          instruction: step.instruction || `步骤 ${index + 1}`,
-          distance,
-          duration,
-          roadName
+      // 处理备选路线
+      if (navigationResponse.route.paths.length > 1) {
+        // 添加主路线到备选路线列表
+        alternativeRoutes.value.push({
+          distance: mainPath.distance || 0,
+          duration: mainPath.duration || 0,
+          traffic: mainPath.traffic_condition || 1,
+          steps: mainPath.steps || [],
+          isMain: true
         });
-      });
-      
-      // 添加终点
-      routeDetails.value.push({
-        action: 'end',
-        instruction: '终点',
-        distance: 0,
-        duration: 0,
-        roadName: ''
-      });
+        
+        // 添加其他备选路线
+        for (let i = 1; i < navigationResponse.route.paths.length; i++) {
+          const path = navigationResponse.route.paths[i];
+          alternativeRoutes.value.push({
+            distance: path.distance || 0,
+            duration: path.duration || 0,
+            traffic: path.traffic_condition || 1,
+            steps: path.steps || [],
+            isMain: false
+          });
+        }
+      }
       
       console.log('路线详情准备完成，共', routeDetails.value.length, '个步骤');
       // 显示路线详情
@@ -702,6 +844,26 @@ const getRouteDetailsPanelPosition = () => {
     default:
       return 'panel-left';
   }
+};
+
+// 修改 getMarkerTitle 方法
+const getMarkerTitle = (markerId: string | null): string => {
+  if (!markerId || !searchObject) {
+    return '未设置';
+  }
+  
+  // 从搜索结果中查找对应的标记信息
+  const result = results.value.find(r => {
+    if (r.id === startPointId.value && markerId === startPointMarkerId.value) {
+      return true;
+    }
+    if (r.id === endPointId.value && markerId === endPointMarkerId.value) {
+      return true;
+    }
+    return false;
+  });
+  
+  return result?.name || '未知位置';
 };
 
 defineExpose({
@@ -1007,12 +1169,12 @@ $transition-time: 0.2s;
       }
       
       .start-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
         background-size: contain;
       }
       
       .end-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3Ccircle fill='currentColor' cx='12' cy='12' r='5'/%3E%3C/svg%3E") no-repeat center center;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
         background-size: contain;
       }
     }
@@ -1024,45 +1186,100 @@ $transition-time: 0.2s;
     justify-content: space-between;
     border-top: 1px solid rgba($border-color, 0.6);
     
-    .navigation-buttons {
+    .route-endpoints {
       display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 8px;
+      background-color: #f8f8f8;
+      border-radius: $border-radius;
+      
+      .endpoint {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+        
+        .endpoint-icon {
+          width: 20px;
+          height: 20px;
+          margin-right: 8px;
+          flex-shrink: 0;
+        }
+        
+        .start-icon {
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+          background-size: contain;
+        }
+        
+        .end-icon {
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+          background-size: contain;
+        }
+        
+        .endpoint-text {
+          font-size: 13px;
+          color: $text-primary;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      
+      .endpoint-divider {
+        width: 1px;
+        height: 20px;
+        background-color: $border-color;
+        margin: 0 10px;
+        flex-shrink: 0;
+      }
     }
+    
     .transport-type-selector {
       display: flex;
       gap: 8px;
-      padding: 5px 0;
-      justify-content: center;
+      padding: 8px 0;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba($border-color, 0.4);
+      margin-bottom: 10px;
       
       .transport-type-option {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 4px;
+        border-radius: 6px;
         background-color: #fff;
-        border: 1px solid rgba($border-color, 0.8);
-      cursor: pointer;
+        cursor: pointer;
         transition: all 0.2s;
-      display: flex;
-      align-items: center;
-        justify-content: center;
-      
-      &:hover {
-          border-color: $primary-color;
+        flex: 1;
+        
+        &:hover {
+          background-color: rgba($primary-color, 0.05);
         }
         
         &.active {
-          border-color: $primary-color;
-          background-color: #f0f5ff;
+          background-color: rgba($primary-color, 0.1);
+          
+          .transport-icon {
+            transform: scale(1.1);
+          }
+          
+          .transport-label {
+            color: $primary-color;
+            font-weight: 500;
+          }
         }
         
         .transport-icon {
           display: block;
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
+          margin-bottom: 4px;
           background-size: contain;
           background-repeat: no-repeat;
           background-position: center;
+          transition: transform 0.2s;
           
           &.driving-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
@@ -1080,7 +1297,19 @@ $transition-time: 0.2s;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
           }
         }
+        
+        .transport-label {
+          font-size: 12px;
+          color: $text-secondary;
+          transition: all 0.2s;
+        }
       }
+    }
+    
+    .navigation-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
     }
     
     .navigation-button {
@@ -1206,6 +1435,109 @@ $transition-time: 0.2s;
         
         .debug-value {
           flex: 1;
+        }
+      }
+    }
+    
+    // 路线选择样式
+    .route-options {
+      padding: 10px 15px;
+      border-bottom: 1px solid rgba($border-color, 0.6);
+      
+      .route-option-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: $text-primary;
+        margin-bottom: 8px;
+      }
+      
+      .route-options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        
+        .route-option {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-radius: 4px;
+          border: 1px solid rgba($border-color, 0.6);
+          cursor: pointer;
+          transition: all 0.2s;
+          
+          &:hover {
+            border-color: $primary-color;
+            background-color: rgba($primary-color, 0.03);
+          }
+          
+          &.active {
+            border-color: $primary-color;
+            background-color: rgba($primary-color, 0.08);
+            
+            .route-option-name {
+              color: $primary-color;
+              font-weight: 500;
+            }
+          }
+          
+          .route-option-info {
+            flex: 1;
+            min-width: 0;
+            
+            .route-option-name {
+              font-size: 14px;
+              color: $text-primary;
+              margin-bottom: 4px;
+            }
+            
+            .route-option-stats {
+              display: flex;
+              gap: 8px;
+              font-size: 12px;
+              color: $text-secondary;
+              
+              .route-option-distance {
+                color: $text-secondary;
+              }
+              
+              .route-option-duration {
+                color: $text-secondary;
+              }
+            }
+          }
+          
+          .route-option-traffic {
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-weight: 500;
+            
+            &.traffic-smooth {
+              background-color: rgba(#52c41a, 0.1);
+              color: #52c41a;
+            }
+            
+            &.traffic-normal {
+              background-color: rgba(#1890ff, 0.1);
+              color: #1890ff;
+            }
+            
+            &.traffic-slow {
+              background-color: rgba(#faad14, 0.1);
+              color: #faad14;
+            }
+            
+            &.traffic-congested {
+              background-color: rgba(#f5222d, 0.1);
+              color: #f5222d;
+            }
+            
+            &.traffic-unknown {
+              background-color: rgba($text-secondary, 0.1);
+              color: $text-secondary;
+            }
+          }
         }
       }
     }
@@ -1483,6 +1815,42 @@ $transition-time: 0.2s;
   .search-box {
     width: calc(100% - 20px);
     max-width: 340px;
+    
+    .action-buttons {
+      .action-btn {
+        padding: 3px 6px;
+        font-size: 11px;
+        
+        .start-icon, .end-icon {
+          width: 10px;
+          height: 10px;
+          margin-right: 2px;
+        }
+      }
+    }
+    
+    .navigation-panel {
+      .route-endpoints {
+        .endpoint-text {
+          font-size: 12px;
+        }
+      }
+      
+      .transport-type-selector {
+        .transport-type-option {
+          padding: 6px 2px;
+          
+          .transport-icon {
+            width: 20px;
+            height: 20px;
+          }
+          
+          .transport-label {
+            font-size: 11px;
+          }
+        }
+      }
+    }
   }
   
   .route-details {
@@ -1495,6 +1863,8 @@ $transition-time: 0.2s;
     width: calc(100% - 20px);
     max-width: 400px;
     border: 1px solid rgba($border-color, 0.6);
+    max-height: 60vh;
+    overflow-y: auto;
     
     &.panel-left,
     &.panel-right,
@@ -1506,6 +1876,48 @@ $transition-time: 0.2s;
       top: auto;
       bottom: 10px;
       margin: 0;
+    }
+    
+    .route-options {
+      .route-option {
+        padding: 6px 10px;
+        
+        .route-option-info {
+          .route-option-name {
+            font-size: 13px;
+          }
+          
+          .route-option-stats {
+            font-size: 11px;
+          }
+        }
+        
+        .route-option-traffic {
+          font-size: 11px;
+          padding: 1px 4px;
+        }
+      }
+    }
+    
+    .route-steps {
+      .route-step {
+        padding: 8px 12px;
+        
+        .step-icon {
+          width: 20px;
+          height: 20px;
+        }
+        
+        .step-content {
+          .step-instruction {
+            font-size: 13px;
+          }
+          
+          .step-info {
+            font-size: 11px;
+          }
+        }
+      }
     }
   }
 }
