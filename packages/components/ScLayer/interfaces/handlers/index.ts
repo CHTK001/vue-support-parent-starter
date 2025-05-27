@@ -6,6 +6,7 @@ import { KeywordSearchHandler } from './KeywordSearchHandler';
 import { CoordinateSearchHandler } from './CoordinateSearchHandler';
 import { NearbySearchHandler } from './NearbySearchHandler';
 import { DistrictSearchHandler } from './DistrictSearchHandler';
+import { NavigationSearchHandler } from './NavigationSearchHandler';
 
 /**
  * 注册所有搜索处理器
@@ -22,6 +23,9 @@ export function registerAllSearchHandlers(): void {
   
   // 注册行政区搜索处理器
   SearchHandlerFactory.registerHandler(new DistrictSearchHandler());
+  
+  // 注册导航搜索处理器
+  SearchHandlerFactory.registerHandler(new NavigationSearchHandler());
 }
 
 // 默认导出所有处理器
@@ -29,5 +33,6 @@ export default {
   KeywordSearchHandler,
   CoordinateSearchHandler,
   NearbySearchHandler,
-  DistrictSearchHandler
+  DistrictSearchHandler,
+  NavigationSearchHandler
 }; 

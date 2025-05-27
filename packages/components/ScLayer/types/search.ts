@@ -28,6 +28,11 @@ export interface SearchResult {
   photos?: string[];
   provider?: string;
   rawData?: any;
+  
+  // 导航相关属性
+  isOrigin?: boolean;
+  isDestination?: boolean;
+  navigationRole?: 'origin' | 'destination';
 }
 
 /**
@@ -78,6 +83,7 @@ export enum SearchType {
   COORDINATE = 'coordinate', // 坐标搜索
   NEARBY = 'nearby',      // 附近搜索
   DISTRICT = 'district',  // 行政区划搜索
+  NAVIGATION = 'navigation', // 导航搜索
   CUSTOM = 'custom'       // 自定义搜索
 }
 
