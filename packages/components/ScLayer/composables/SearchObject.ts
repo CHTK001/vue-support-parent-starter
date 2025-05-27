@@ -907,8 +907,33 @@ export class SearchObject {
       // 获取API密钥
       const apiKey = this.mapKey[mapType] || '';
       
-      // 获取导航URL
-      const navigationUrl = searchProvider.getDefaultNavigationUrl();
+      // 获取导航URL，根据交通方式选择不同的URL
+      let navigationUrl = '';
+      
+      // 首先检查配置中是否有特定交通方式的路由URL
+      if (this.searchBoxConfig && this.searchBoxConfig.apiUrls && this.searchBoxConfig.apiUrls.router) {
+        const routerUrls = this.searchBoxConfig.apiUrls.router;
+        // 根据交通方式获取对应的URL
+        if (transportType === 'driving' && routerUrls.driving) {
+          navigationUrl = routerUrls.driving;
+        } else if (transportType === 'walking' && routerUrls.walking) {
+          navigationUrl = routerUrls.walking;
+        } else if (transportType === 'bicycling' && routerUrls.bicycling) {
+          navigationUrl = routerUrls.bicycling;
+        } else if (transportType === 'ebike' && routerUrls.ebike) {
+          navigationUrl = routerUrls.ebike;
+        } else if (transportType === 'transit' && routerUrls.transit) {
+          navigationUrl = routerUrls.transit;
+        }
+      }
+      
+      // 如果没有找到特定交通方式的URL，则使用默认导航URL
+      if (!navigationUrl) {
+        navigationUrl = searchProvider.getDefaultNavigationUrl();
+        console.log(`使用默认导航URL: ${navigationUrl} 进行 ${transportType} 导航`);
+      } else {
+        console.log(`使用 ${transportType} 专用导航URL: ${navigationUrl}`);
+      }
       
       // 调用搜索提供者的导航方法
       const response = await searchProvider.getNavigation(
