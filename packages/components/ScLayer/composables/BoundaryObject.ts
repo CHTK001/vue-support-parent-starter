@@ -61,12 +61,8 @@ export class BoundaryObject {
   constructor(mapObject: MapObject, options?: Partial<BoundaryOptions>) {
     this.mapObject = mapObject;
     this.map = mapObject.getMapInstance()!;
-    this.options = {...DEFAULT_BOUNDARY_OPTIONS, ...options};
-<<<<<<< HEAD
-      // 确保所有提供者已注册
-=======
-    // 确保所有提供者已注册
->>>>>>> e8a47548902242271238242dfac4524e7c48e99a
+    this.options = { ...DEFAULT_BOUNDARY_OPTIONS, ...options };
+    // 注册所有提供者
     registerAllProviders();
     // 创建矢量图层源
     this.boundarySource = new VectorSource({
@@ -455,32 +451,6 @@ export class BoundaryObject {
   }
 
   /**
-<<<<<<< HEAD
-   * 通过行政区划代码添加边界
-   * @param adcode 行政区划代码
-   */
-  public async addBoundaryByAdcode(adcode: string, options: BoundaryOptions = {}): Promise<boolean> {
-    try {
-      // 获取区划数据（已转换为高德格式）
-      const data = await this.fetchBoundaryData(adcode, options);
-      if (!data) {
-        return false;
-      }
-
-      // 将数据创建区划，并确保坐标系统为EPSG:3857
-      return this.createBoundary(data, {
-        ...options,
-        projection: CoordSystem.EPSG3857 // 强制使用EPSG:3857坐标系
-      });
-    } catch (error) {
-      console.error('添加区划失败:', error);
-      return false;
-    }
-  }
-
-  /**
-=======
->>>>>>> e8a47548902242271238242dfac4524e7c48e99a
    * 解析高德 polyline 字符串为 OpenLayers Feature[]
    * @param polyline 高德API返回的 polyline 字符串
    * @param projection 目标投影坐标系（统一使用EPSG:3857）

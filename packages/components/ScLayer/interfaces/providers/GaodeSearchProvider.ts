@@ -1,6 +1,6 @@
 import { SearchDataProvider } from '../SearchDataProvider';
 import { SearchOptions, SearchResult, PlaceDetailApiResponse, NavigationApiResponse } from '../../types/search';
-import { CoordSystem } from '../../types/coordinate';
+import { CoordSystem, type GeoPoint } from '../../types/coordinate';
 import logger from '../../composables/LogObject';
 import { fromLonLat, toLonLat } from 'ol/proj';
 import axios from 'axios';
@@ -103,7 +103,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @param url 自定义API地址（可选）
    * @returns 导航路径
    */
-  async getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string): Promise<NavigationApiResponse> {
+  async getNavigation(origin: GeoPoint , destination: GeoPoint, apiKey: string, url?: string): Promise<NavigationApiResponse> {
     try {
       logger.debug(`[GaodeSearchProvider] 开始获取导航路径: ${origin} -> ${destination}`);
       
@@ -113,8 +113,8 @@ export class GaodeSearchProvider implements SearchDataProvider {
       
       const params = {
         key: apiKey,
-        origin: `${originGcj02[0]},${originGcj02[1]}`,
-        destination: `${destinationGcj02[0]},${destinationGcj02[1]}`,
+        origin: `${originGcj02[0] },${originGcj02[1] }`,
+        destination: `${destinationGcj02[0] },${destinationGcj02[1] }`,
         extensions: 'all',
         output: 'JSON'
       };
@@ -184,6 +184,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
       
       // 构建请求参数
       const params = {
+        //@ts-ignore
         key: key || this.apiKey,
         origin: `${origin[0]},${origin[1]}`,
         destination: `${destination[0]},${destination[1]}`,
@@ -289,9 +290,9 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @param coordinates [lng, lat]坐标
    * @returns GCJ02坐标系的[lng, lat]
    */
-  private ensureGcj02Coordinates(coordinates: [number, number]): [number, number] {
+  private ensureGcj02Coordinates(coordinates:  GeoPoint): [number, number] {
     // 直接使用原始坐标，不进行转换
-    return coordinates;
+    return Array.isArray(coordinates) ? coordinates : [coordinates.lng, coordinates.lat];
   }
   
   /**

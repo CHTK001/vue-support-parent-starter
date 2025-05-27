@@ -4,16 +4,16 @@
       <div v-if="showTypeSelector" class="search-type-selector">
         <div class="custom-select">
           <select v-model="currentSearchType" @change="handleSearchTypeChange">
-            <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
-              {{ typeConfig.label }}
-            </option>
-          </select>
+          <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
+            {{ typeConfig.label }}
+          </option>
+        </select>
           <div class="select-arrow"></div>
         </div>
         <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes"
           :on-change="handleSearchTypeChange"></slot>
       </div>
-
+      
       <div class="search-input-container">
         <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
           @input="handleInput" @keyup.enter="handleSearch"
@@ -34,18 +34,18 @@
         </button>
       </div>
     </div>
-
+    
     <!-- 自定义搜索框插槽 -->
     <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput"
       :on-search="handleSearch"></slot>
-
+    
     <!-- 搜索结果列表 -->
     <transition name="slide-fade">
-      <div v-if="showResults && results.length > 0" class="search-results">
+    <div v-if="showResults && results.length > 0" class="search-results">
         <div v-for="result in results" :key="result.id" class="result-item"
           :class="{ 'selected': selectedMarker === result.id }" @click="handleSelect(result)">
           <div class="result-content" @click="handleSelect(result)">
-            <div class="result-title">{{ result.name }}</div>
+        <div class="result-title">{{ result.name }}</div>
             <div class="result-address">
               <span class="location-icon"></span>
               {{ result.address }}
@@ -68,11 +68,11 @@
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- 自定义搜索结果插槽 -->
-        <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
       </div>
+      
+      <!-- 自定义搜索结果插槽 -->
+      <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
+    </div>
     </transition>
 
     <!-- 添加暂无数据提示 -->
@@ -102,8 +102,8 @@
         </button>
         <button @click="clearRoutePoints" class="clear-button">
           清除
-        </button>
-      </div>
+      </button>
+    </div>
     </div>
 
     <!-- 导航路线详情面板 -->
@@ -475,7 +475,7 @@ const formatDistance = (distance: number): string => {
   if (distance < 1000) {
     return `${distance}米`;
   } else {
-    return `${(distance / 1000).toFixed(1)}公里`;
+  return `${(distance / 1000).toFixed(1)}公里`;
   }
 };
 
@@ -768,7 +768,7 @@ $transition-time: 0.2s;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         background-color: #fff;
-        font-size: 14px;
+      font-size: 14px;
         color: $text-primary;
         cursor: pointer;
         transition: all $transition-time;
@@ -776,8 +776,8 @@ $transition-time: 0.2s;
         &:hover {
           border-color: $border-hover;
         }
-        
-        &:focus {
+      
+      &:focus {
           outline: none;
           border-color: $primary-color;
           box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
@@ -803,14 +803,14 @@ $transition-time: 0.2s;
     position: relative;
     flex: 1;
     height: 36px;
-    
+  
     input, select {
-      width: 100%;
+    width: 100%;
       height: 100%;
       border: 1px solid $border-color;
       border-radius: $border-radius;
       padding: 0 40px 0 12px;
-      font-size: 14px;
+    font-size: 14px;
       color: $text-primary;
       transition: all $transition-time;
       
@@ -821,8 +821,8 @@ $transition-time: 0.2s;
       &:hover {
         border-color: $border-hover;
       }
-      
-      &:focus {
+    
+    &:focus {
         outline: none;
         border-color: $primary-color;
         box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
@@ -835,22 +835,22 @@ $transition-time: 0.2s;
     }
     
     .search-button {
-      position: absolute;
+    position: absolute;
       top: 0;
       right: 0;
       width: 36px;
       height: 36px;
       border: none;
       background: none;
-      cursor: pointer;
+    cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       color: $text-secondary;
       border-radius: 0 $border-radius $border-radius 0;
       transition: all $transition-time;
-      
-      &:hover {
+    
+    &:hover {
         color: $primary-color;
         background-color: rgba($primary-color, 0.05);
       }
@@ -900,12 +900,12 @@ $transition-time: 0.2s;
     }
     
     .result-content {
-      cursor: pointer;
+    cursor: pointer;
       flex: 1;
       min-width: 0;
       margin-bottom: 8px;
-      
-      &:hover {
+    
+    &:hover {
         .result-title {
           color: $primary-color;
         }
@@ -966,9 +966,9 @@ $transition-time: 0.2s;
     }
     
     .action-btn {
-      display: flex;
+    display: flex;
       align-items: center;
-      justify-content: center;
+    justify-content: center;
       padding: 3px 8px;
       border-radius: 3px;
       border: 1px solid rgba($border-color, 0.8);
@@ -986,7 +986,7 @@ $transition-time: 0.2s;
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
-        color: white;
+      color: white;
       }
       
       .start-icon, .end-icon {
@@ -1031,13 +1031,13 @@ $transition-time: 0.2s;
         border-radius: 50%;
         background-color: #fff;
         border: 1px solid rgba($border-color, 0.8);
-        cursor: pointer;
+      cursor: pointer;
         transition: all 0.2s;
-        display: flex;
-        align-items: center;
+      display: flex;
+      align-items: center;
         justify-content: center;
-        
-        &:hover {
+      
+      &:hover {
           border-color: $primary-color;
         }
         
