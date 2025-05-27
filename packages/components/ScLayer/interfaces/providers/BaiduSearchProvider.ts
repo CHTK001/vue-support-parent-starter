@@ -169,11 +169,123 @@ export class BaiduSearchProvider implements SearchDataProvider {
    * 创建导航路线
    * @param url 导航 API URL
    * @param options 导航选项
-   * @returns 导航路径
+   * @returns 导航 API 响应
    */
-  async createNavigation(url: string, options: { origin: [number, number], destination: [number, number] }): Promise<NavigationApiResponse> {
-    // 复用现有的 getNavigation 方法，但使用传入的 URL
-    return this.getNavigation(options.origin, options.destination, options['key'] || '', url);
+  async createNavigation(url: string, options: { 
+    origin: [number, number], 
+    destination: [number, number],
+    key?: string,
+    transport_type?: string
+  }): Promise<NavigationApiResponse> {
+    try {
+      const { origin, destination, key, transport_type = 'driving' } = options;
+      
+      // 构建请求参数
+      const params: Record<string, string> = {
+        ak: key || '',
+        origin: `${origin[0]},${origin[1]}`,
+        destination: `${destination[0]},${destination[1]}`,
+        coord_type: 'bd09ll',
+        tactics: this.getBaiduTactics(transport_type).toString(),
+        alternatives: '1'  // 返回备选路线
+      };
+      
+      // 根据交通工具类型选择不同的 API
+      let apiUrl = url;
+      if (!apiUrl.includes('direction')) {
+        switch(transport_type) {
+          case 'walking':
+            apiUrl = 'https://api.map.baidu.com/direction/v2/walking';
+            break;
+          case 'bicycling':
+          case 'ebike':
+            apiUrl = 'https://api.map.baidu.com/direction/v2/riding';
+            break;
+          default:
+            apiUrl = 'https://api.map.baidu.com/direction/v2/driving';
+        }
+      }
+      
+      // 发送请求
+      const response = await fetch(`${apiUrl}?${new URLSearchParams(params).toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // 检查响应状态
+      if (data.status !== 0) {
+        throw new Error(`API错误: ${data.message || '未知错误'}`);
+      }
+      
+      // 转换为标准格式
+      return this.convertBaiduNavigationResponse(data);
+    } catch (error) {
+      console.error('创建导航路线失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 获取百度地图路线规划策略
+   * @param transportType 交通工具类型
+   * @returns 路线规划策略代码
+   */
+  private getBaiduTactics(transportType: string): number {
+    // 百度地图路线规划策略
+    // 驾车：0-最少时间，1-最短距离，2-避开高速，3-避开拥堵
+    // 步行：0-推荐路线，1-最短距离
+    // 骑行：0-推荐路线，1-最短距离
+    switch(transportType) {
+      case 'walking':
+        return 0; // 推荐路线
+      case 'bicycling':
+      case 'ebike':
+        return 0; // 推荐路线
+      default:
+        return 0; // 最少时间
+    }
+  }
+  
+  /**
+   * 转换百度地图导航响应为标准格式
+   * @param response 百度地图导航响应
+   * @returns 标准格式导航响应
+   */
+  private convertBaiduNavigationResponse(response: any): NavigationApiResponse {
+    if (!response || !response.result || !response.result.routes || response.result.routes.length === 0) {
+      return { route: { paths: [] } };
+    }
+    
+    const baiduRoute = response.result.routes[0];
+    const paths = [{
+      distance: baiduRoute.distance,
+      duration: baiduRoute.duration,
+      tolls: baiduRoute.toll || 0,
+      traffic_lights: baiduRoute.traffic_light_num || 0,
+      steps: baiduRoute.steps.map((step: any) => {
+        return {
+          instruction: step.instruction,
+          distance: step.distance,
+          duration: step.duration,
+          polyline: step.path
+        };
+      }),
+      polyline: baiduRoute.steps.map((step: any) => step.path).join(';')
+    }];
+    
+    return {
+      route: {
+        paths: paths
+      }
+    };
   }
   
   /**
