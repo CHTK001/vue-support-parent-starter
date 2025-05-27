@@ -108,20 +108,11 @@
 
     <!-- 导航路线详情面板 -->
     <transition name="slide-fade">
-      <div v-if="showRouteDetails && routeDetails.length > 0" class="route-details">
+      <div v-if="showRouteDetails && routeDetails.length > 0" class="route-details" :class="getRouteDetailsPanelPosition()">
         <div class="route-summary">
           <div class="route-info">
             <span class="route-distance">{{ formatDistance(routeTotalDistance) }}</span>
             <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
-          </div>
-          <div class="route-actions">
-            <button @click="showRouteDetailsList = !showRouteDetailsList" class="toggle-details-button">
-              {{ showRouteDetailsList ? '收起详情' : '查看详情' }}
-              <span :class="['arrow-icon', showRouteDetailsList ? 'up' : 'down']"></span>
-            </button>
-            <button @click="closeRouteDetails" class="close-button">
-              <span class="close-icon">×</span>
-            </button>
           </div>
         </div>
 
@@ -449,9 +440,11 @@ const routeTotalDuration = ref(0);
 
 // 关闭路线详情
 const closeRouteDetails = () => {
+  console.log('关闭路线详情面板');
   showRouteDetails.value = false;
   showRouteDetailsList.value = true; // 重置为默认展开状态
   routeDetails.value = [];
+  console.log('路线详情面板已关闭');
 };
 
 // 获取步骤图标类名
@@ -492,8 +485,20 @@ const formatDuration = (duration: number): string => {
   }
 };
 
+// 在 script setup 部分添加一个辅助函数
+const checkRouteDetailsVisibility = () => {
+  console.log('路线详情面板可见性状态:', {
+    showRouteDetails: showRouteDetails.value,
+    hasRouteDetails: routeDetails.value.length > 0,
+    position: props.position,
+    panelPosition: getRouteDetailsPanelPosition()
+  });
+};
+
 // 创建导航路线并显示详情
 const createRouteNavigation = async () => {
+  console.log('开始创建导航路线');
+  
   if (!startPointId.value || !endPointId.value) {
     ElMessage.warning('请先设置起点和终点');
     return;
@@ -502,9 +507,11 @@ const createRouteNavigation = async () => {
   try {
     // 调用导航方法
     await searchObject.createNavigation(startPointMarkerId.value, endPointMarkerId.value, currentTransportType.value);
+    console.log('导航路线创建成功，准备获取导航信息');
     
     // 获取导航路线信息
     const navigationResponse = searchObject.getNavigationInfo();
+    console.log('获取到导航信息:', navigationResponse);
     
     if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && navigationResponse.route.paths.length > 0) {
       const path = navigationResponse.route.paths[0];
@@ -552,8 +559,10 @@ const createRouteNavigation = async () => {
         roadName: ''
       });
       
+      console.log('路线详情准备完成，共', routeDetails.value.length, '个步骤');
       // 显示路线详情
       showRouteDetails.value = true;
+      console.log('设置 showRouteDetails =', showRouteDetails.value);
     } else {
       // 如果没有路线详情，尝试使用默认值显示简单的路线信息
       routeTotalDistance.value = 0;
@@ -588,6 +597,8 @@ const createRouteNavigation = async () => {
     }
     
     ElMessage.success('导航路线已生成');
+    // 检查路线详情面板可见性
+    setTimeout(checkRouteDetailsVisibility, 100);
   } catch (error) {
     console.error('创建导航路线失败:', error);
     ElMessage.error('创建导航路线失败');
@@ -744,7 +755,6 @@ $transition-time: 0.2s;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
   background-color: #fff;
-  overflow: hidden;
   
   .search-container {
     display: flex;
@@ -1129,7 +1139,8 @@ $transition-time: 0.2s;
   
   // 路线详情样式
   .route-details {
-    border-top: 1px solid rgba($border-color, 0.6);
+    border: 1px solid rgba($border-color, 0.6);
+    flex-direction: column;
     background-color: #fff;
     position: absolute;
     top: 0;
@@ -1139,6 +1150,65 @@ $transition-time: 0.2s;
     border-radius: $border-radius;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 1000;
+    height: 100%;
+    
+    // 根据搜索框位置调整路线详情面板位置
+    &.panel-left {
+      right: 100%;
+      left: auto;
+      margin-right: 10px;
+    }
+    
+    &.panel-right {
+      left: 100%;
+      right: auto;
+      margin-left: 10px;
+    }
+    
+    &.panel-top-left {
+      right: 0;
+      bottom: 100%;
+      top: auto;
+      margin-bottom: 10px;
+      margin-right: 0;
+    }
+    
+    &.panel-top-right {
+      left: 0;
+      bottom: 100%;
+      top: auto;
+      margin-bottom: 10px;
+      margin-left: 0;
+    }
+    
+    // 调试信息样式
+    .debug-info {
+      padding: 8px;
+      background-color: #f8f8f8;
+      border-bottom: 1px dashed #ccc;
+      font-size: 12px;
+      color: #666;
+      
+      .debug-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: #333;
+      }
+      
+      .debug-item {
+        display: flex;
+        margin-bottom: 2px;
+        
+        .debug-label {
+          width: 80px;
+          font-weight: 500;
+        }
+        
+        .debug-value {
+          flex: 1;
+        }
+      }
+    }
     
     .route-summary {
       display: flex;
@@ -1151,7 +1221,7 @@ $transition-time: 0.2s;
       
       .route-info {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
         
         .route-distance {
           font-size: 16px;
@@ -1226,7 +1296,6 @@ $transition-time: 0.2s;
     }
     
     .route-steps {
-      max-height: 300px;
       overflow-y: auto;
       padding: 0 0 10px;
       
@@ -1417,11 +1486,27 @@ $transition-time: 0.2s;
   }
   
   .route-details {
-    position: static;
-    margin-right: 0;
-    width: 100%;
-    margin-top: 10px;
-    border-top: 1px solid rgba($border-color, 0.6);
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: auto;
+    bottom: 10px;
+    margin: 0;
+    width: calc(100% - 20px);
+    max-width: 400px;
+    border: 1px solid rgba($border-color, 0.6);
+    
+    &.panel-left,
+    &.panel-right,
+    &.panel-top-left,
+    &.panel-top-right {
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      top: auto;
+      bottom: 10px;
+      margin: 0;
+    }
   }
 }
 </style> 
