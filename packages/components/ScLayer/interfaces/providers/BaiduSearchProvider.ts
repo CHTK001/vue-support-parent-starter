@@ -100,15 +100,39 @@ export class BaiduSearchProvider implements SearchDataProvider {
    * @param destination 终点坐标 [lng, lat]
    * @param apiKey API密钥
    * @param url 自定义API地址（可选）
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    */
-  async getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string): Promise<NavigationApiResponse> {
+  async getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType: string = 'driving'): Promise<NavigationApiResponse> {
     try {
-      logger.debug(`[BaiduSearchProvider] 开始获取导航路径: ${origin} -> ${destination}`);
+      logger.debug(`[BaiduSearchProvider] 开始获取导航路径: ${origin} -> ${destination}, 交通方式: ${transportType}`);
       
       // 确保坐标是BD09坐标系
       const originBd09 = this.ensureBd09Coordinates(origin);
       const destinationBd09 = this.ensureBd09Coordinates(destination);
+      
+      // 根据交通方式确定API URL
+      let apiUrl = url;
+      if (!apiUrl) {
+        // 如果没有提供自定义URL，则根据交通方式选择API
+        switch (transportType) {
+          case 'driving':
+            apiUrl = 'https://api.map.baidu.com/directionlite/v1/driving';
+            break;
+          case 'walking':
+            apiUrl = 'https://api.map.baidu.com/directionlite/v1/walking';
+            break;
+          case 'bicycling':
+          case 'ebike':
+            apiUrl = 'https://api.map.baidu.com/directionlite/v1/riding';
+            break;
+          case 'transit':
+            apiUrl = 'https://api.map.baidu.com/directionlite/v1/transit';
+            break;
+          default:
+            apiUrl = 'https://api.map.baidu.com/directionlite/v1/driving';
+        }
+      }
       
       const params = {
         ak: apiKey,
@@ -117,10 +141,9 @@ export class BaiduSearchProvider implements SearchDataProvider {
         output: 'json'
       };
       
-      // 如果提供了自定义URL，则使用自定义URL
-      const requestUrl = url || this.NAVIGATION_URL;
+      logger.debug(`[BaiduSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
       
-      const response = await axios.get(requestUrl, { params });
+      const response = await axios.get(apiUrl, { params });
       const data = response.data;
       
       if (data.status !== 0) {
@@ -306,10 +329,23 @@ export class BaiduSearchProvider implements SearchDataProvider {
   
   /**
    * 获取默认导航 URL
+   * @param transportType 交通方式（可选，默认为 driving）
    * @returns 默认导航 URL
    */
-  getDefaultNavigationUrl(): string {
-    return this.NAVIGATION_URL;
+  getDefaultNavigationUrl(transportType: string = 'driving'): string {
+    switch (transportType) {
+      case 'driving':
+        return 'https://api.map.baidu.com/directionlite/v1/driving';
+      case 'walking':
+        return 'https://api.map.baidu.com/directionlite/v1/walking';
+      case 'bicycling':
+      case 'ebike':
+        return 'https://api.map.baidu.com/directionlite/v1/riding';
+      case 'transit':
+        return 'https://api.map.baidu.com/directionlite/v1/transit';
+      default:
+        return 'https://api.map.baidu.com/directionlite/v1/driving';
+    }
   }
   
   /**
