@@ -61,6 +61,11 @@ export const DEFAULT_SEARCH_BOX_CONFIG: SearchBoxConfig = {
       type: SearchType.DISTRICT,
       label: '行政区',
       placeholder: '请输入行政区名称'
+    },
+    {
+      type: SearchType.NAVIGATION,
+      label: '导航',
+      placeholder: '输入起点-终点，如：北京-上海'
     }
   ]
 };

@@ -43,8 +43,17 @@
     <transition name="slide-fade">
     <div v-if="showResults && results.length > 0" class="search-results">
         <div v-for="result in results" :key="result.id" class="result-item"
-          :class="{ 'selected': selectedMarker === result.id }" @click="handleSelect(result)">
+          :class="{ 
+            'selected': selectedMarker === result.id,
+            'navigation-origin': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'origin',
+            'navigation-destination': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'destination'
+          }" @click="handleSelect(result)">
           <div class="result-content" @click="handleSelect(result)">
+        <!-- 导航搜索结果角标 -->
+        <div v-if="currentSearchType === SearchType.NAVIGATION" class="navigation-role-badge"
+          :class="result.navigationRole === 'origin' ? 'origin-badge' : 'destination-badge'">
+          {{ result.navigationRole === 'origin' ? '起' : '终' }}
+        </div>
         <div class="result-title">{{ result.name }}</div>
             <div class="result-address">
               <span class="location-icon"></span>
@@ -348,7 +357,12 @@ const handleInput = () => {
         // 使用搜索处理器验证输入
         const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
         if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
-          ElMessage.warning('请输入有效的搜索内容');
+          // 为导航搜索类型提供特殊提示
+          if (currentSearchType.value === SearchType.NAVIGATION) {
+            ElMessage.warning('请按照"起点-终点"的格式输入，例如：北京-上海');
+          } else {
+            ElMessage.warning('请输入有效的搜索内容');
+          }
           return;
         }
         
@@ -358,11 +372,25 @@ const handleInput = () => {
         }
         
         console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
+        
+        // 格式化输入（如果处理器支持）
+        if (handler && handler.formatInput) {
+          const formattedInput = handler.formatInput(searchText.value);
+          if (formattedInput !== searchText.value) {
+            searchText.value = formattedInput;
+          }
+        }
+        
         const searchResults = await searchObject.search(searchText.value, props.searchBoxConfig as any, currentSearchType.value);
         console.log('搜索结果:', searchResults);
         results.value = searchResults;
         showResults.value = true; // 无论结果是否为空，都显示结果区域
         emit('search', searchResults);
+        
+        // 如果是导航搜索，并且有结果，显示特殊提示
+        if (currentSearchType.value === SearchType.NAVIGATION && searchResults.length > 0) {
+          ElMessage.info('请选择起点和终点以创建导航路线');
+        }
       } catch (error) {
         console.error('搜索失败:', error);
         ElMessage.error('搜索失败: ' + (error.message || '未知错误'));
@@ -867,6 +895,15 @@ const handleSelect = (result) => {
     
     // 记录当前选中的标记
     selectedMarker.value = result.id;
+    
+    // 如果是导航搜索结果，自动设置起点和终点
+    if (currentSearchType.value === SearchType.NAVIGATION) {
+      if (result.navigationRole === 'origin') {
+        setAsStartPoint(result);
+      } else if (result.navigationRole === 'destination') {
+        setAsEndPoint(result);
+      }
+    }
   }
   
   // 触发 select 事件
@@ -1190,20 +1227,62 @@ $transition-time: 0.2s;
     padding: 12px;
     border-bottom: 1px solid rgba($border-color, 0.4);
     transition: background-color $transition-time;
+    position: relative;
     
     &:hover {
       background-color: rgba($primary-color, 0.03);
     }
     
+    &.navigation-origin {
+      background-color: rgba(#1aad19, 0.05);
+      
+      &:hover {
+        background-color: rgba(#1aad19, 0.1);
+      }
+    }
+    
+    &.navigation-destination {
+      background-color: rgba(#ff525d, 0.05);
+      
+      &:hover {
+        background-color: rgba(#ff525d, 0.1);
+      }
+    }
+    
     .result-content {
-    cursor: pointer;
+      cursor: pointer;
       flex: 1;
       min-width: 0;
       margin-bottom: 8px;
-    
-    &:hover {
+      position: relative;
+      padding-left: 15px;
+      
+      &:hover {
         .result-title {
           color: $primary-color;
+        }
+      }
+      
+      .navigation-role-badge {
+        position: absolute;
+        left: -5px;
+        top: 0;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        &.origin-badge {
+          background-color: #1aad19;
+        }
+        
+        &.destination-badge {
+          background-color: #ff525d;
         }
       }
     }
