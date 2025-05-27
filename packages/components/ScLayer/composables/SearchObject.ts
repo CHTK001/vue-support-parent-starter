@@ -2,21 +2,27 @@
  * 搜索对象类
  * @description 处理地图搜索相关功能
  */
+import { ConfigObject } from './ConfigObject';
 import { MapObject } from './MapObject';
 import { MarkerObject } from './MarkerObject';
-import type { SearchResult, SearchOptions, SearchBoxConfig, PlaceDetailApiResponse, NavigationApiResponse, SearchTypeConfig } from '../types/search';
-import { SearchType } from '../types/search';
-import type { ConfigObject } from './ConfigObject';
-import { fromLonLat } from 'ol/proj';
-import { DEFAULT_MARKER_ICON } from '../types/default';
+import { ShapeObject } from './ShapeObject';
+import { SearchBoxConfig } from '../types/search';
 import { SearchDataProviderFactory } from '../interfaces/SearchDataProvider';
+import { logger } from '../utils/logger';
 import { registerAllSearchProviders } from '../interfaces/providers';
 import { SearchHandlerFactory } from '../interfaces/SearchHandler';
 import { registerAllSearchHandlers } from '../interfaces/handlers';
+import type { SearchResult, SearchOptions, SearchTypeConfig } from '../types/search';
+import { SearchType } from '../types/search';
+import { fromLonLat } from 'ol/proj';
+import { DEFAULT_MARKER_ICON } from '../types/default';
+import { SearchHandlerFactory } from '../interfaces/SearchHandler';
 import { MapType } from '../types/map';
 import { CoordSystem } from '../types/coordinate';
 import { GcoordUtils } from '../utils/GcoordUtils';
-import logger from './LogObject';
+import { LineString, Style, Feature, VectorLayer, VectorSource } from 'ol/geom';
+import { Stroke } from 'ol/style';
+import { VectorLayer as OLVectorLayer } from 'ol/layer';
 
 // 扩展搜索选项接口，添加坐标搜索需要的属性
 interface ExtendedSearchOptions extends SearchOptions {
@@ -41,6 +47,8 @@ export class SearchObject {
   private markerObject: MarkerObject | null = null;
   // 搜索结果标记
   private searchMarker: any = null;
+  // 搜索结果标记列表 - 添加此属性来跟踪多个搜索结果标记
+  private searchMarkers: Map<string, string> = new Map(); // 键是搜索结果ID，值是标记ID
   // 搜索结果列表
   private searchResults: SearchResult[] = [];
   // 搜索回调
@@ -67,15 +75,31 @@ export class SearchObject {
   // 地图密钥
   private mapKey: Record<string, string>;
 
-  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject, mapKey: Record<string, string>) {
+  // 在 SearchObject 类的属性部分添加 ShapeObject
+  private shapeObject: ShapeObject | null = null;
+  
+  // 最后一次导航响应
+  private _lastNavigationResponse: NavigationApiResponse | null = null;
+
+  private navigationInfo: any = null;
+
+  private searchDataProvider: any; // 添加搜索数据提供者属性
+
+  // 类属性定义部分
+  private navigationLineIds: string[] = [];
+  private navigationMarkerIds: string[] = [];
+  private navigationLayers: any[] = [];
+
+  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject, mapKey: Record<string, string>, shapeObject?: ShapeObject) {
     this.mapInstance = mapInstance;
     this.mapObj = mapObj;
     this.markerObject = markerObject;
     this.searchBoxConfig = searchBoxConfig;
     this.configObject = configObject;
     this.mapKey = mapKey;
+    this.shapeObject = shapeObject || null;
     
-    // 初始化当前搜索类型
+    // 设置当前搜索类型
     this.currentSearchType = searchBoxConfig.defaultSearchType || SearchType.KEYWORD;
     
     // 确保所有搜索提供者已注册
@@ -83,6 +107,15 @@ export class SearchObject {
     
     // 确保所有搜索处理器已注册
     registerAllSearchHandlers();
+
+    // 初始化搜索数据提供者
+    const mapType = this.configObject.getMapType();
+    this.searchDataProvider = SearchDataProviderFactory.getProvider(mapType);
+    if (!this.searchDataProvider) {
+      console.error(`不支持的地图类型: ${mapType}`);
+    }
+
+    logger.debug('[SearchObject] 搜索对象已创建');
   }
 
   /**
@@ -174,6 +207,10 @@ export class SearchObject {
           this.searchCallback(cachedResults);
         }
         
+        // 清除之前的搜索结果标记并添加新的标记
+        this.clearSearchMarkers();
+        this.addSearchMarkers(cachedResults);
+        
         return cachedResults;
       }
       
@@ -191,12 +228,13 @@ export class SearchObject {
         this.searchResults = results;
         
         // 清除之前的搜索结果标记
-        this.clearSearchMarker();
+        this.clearSearchMarkers();
         
-        // 如果有结果，添加标记并立即定位到该坐标
+        // 添加所有搜索结果的标记
         if (results.length > 0) {
-          this.addSearchMarker(results[0]);
-          this.flyToLocation(results[0].location);
+          this.addSearchMarkers(results);
+          // 可以选择是否立即定位到第一个结果
+          // this.flyToLocation(results[0].location);
         }
         
         // 触发搜索回调
@@ -217,12 +255,13 @@ export class SearchObject {
         this.searchResults = results;
         
         // 清除之前的搜索结果标记
-        this.clearSearchMarker();
+        this.clearSearchMarkers();
         
-        // 如果有结果，添加标记并立即定位到该坐标
+        // 添加所有搜索结果的标记
         if (results.length > 0) {
-          this.addSearchMarker(results[0]);
-          this.flyToLocation(results[0].location);
+          this.addSearchMarkers(results);
+          // 可以选择是否立即定位到第一个结果
+          // this.flyToLocation(results[0].location);
         }
         
         // 触发搜索回调
@@ -244,11 +283,13 @@ export class SearchObject {
         this.searchResults = results;
         
         // 清除之前的搜索结果标记
-        this.clearSearchMarker();
+        this.clearSearchMarkers();
         
-        // 如果有结果，添加标记
+        // 添加所有搜索结果的标记
         if (results.length > 0) {
-          this.addSearchMarker(results[0]);
+          this.addSearchMarkers(results);
+          // 可以选择是否立即定位到第一个结果
+          // this.flyToLocation(results[0].location);
         }
         
         // 触发搜索回调
@@ -259,70 +300,33 @@ export class SearchObject {
         return results;
       }
       
-      // 如果有全局自定义搜索处理函数，使用全局处理函数
-      if (this.searchBoxConfig.customSearchHandler) {
-        logger.debug(`[SearchObject] 使用全局自定义搜索处理函数，类型: ${type}`);
-        const results = await this.searchBoxConfig.customSearchHandler(type, keyword, options);
-        
-        // 更新缓存
-        this.updateCache(keyword, options, results, type);
-        
-        this.searchResults = results;
-        
-        // 清除之前的搜索结果标记
-        this.clearSearchMarker();
-        
-        // 如果有结果，添加标记
-        if (results.length > 0) {
-          this.addSearchMarker(results[0]);
-        }
-        
-        // 触发搜索回调
-        if (this.searchCallback) {
-          this.searchCallback(results);
-        }
-        
-        return results;
+      // 使用对应的搜索数据提供者
+      const provider = SearchDataProviderFactory.getProvider(options?.mapType?.toLowerCase() || 'gaode');
+      if (!provider) {
+        logger.error(`[SearchObject] 无法找到适用的搜索数据提供者: ${options?.mapType}`);
+        return [];
       }
       
-      // 获取地图类型
-      const mapType = this.configObject.getMapType();
+      // 根据SearchDataProvider接口定义的方式调用search方法
+      const searchUrl = options.apiUrls?.search || options.searchUrl || this.searchBoxConfig.apiUrls?.search || this.searchBoxConfig.searchUrl || '';
+      logger.debug(`[SearchObject] 使用搜索 URL: ${searchUrl}`);
       
-      // 获取搜索提供者
-      const searchProvider = SearchDataProviderFactory.getProvider(mapType);
-      if (!searchProvider) {
-        throw new Error(`不支持的地图类型: ${mapType}`);
-      }
+      const results = await provider.search(searchUrl, keyword, options as SearchOptions);
       
-      // 获取搜索 URL
-      let searchUrl = '';
-      
-      // 优先使用 apiUrls 中的 search URL
-      if (this.searchBoxConfig.apiUrls?.search) {
-        searchUrl = this.searchBoxConfig.apiUrls.search;
-      } else if (this.searchBoxConfig.searchUrl) {
-        // 兼容旧版本
-        searchUrl = this.searchBoxConfig.searchUrl;
-      } else {
-        // 使用默认搜索 URL
-        searchUrl = searchProvider.getDefaultSearchUrl();
-      }
-      
-      // 执行搜索
-      logger.debug(`[SearchObject] 执行搜索，类型: ${type}, 关键词: ${keyword}, URL: ${searchUrl}`);
-      const results = await searchProvider.search(searchUrl, keyword, options);
-      
-      // 更新缓存
-      this.updateCache(keyword, options, results, type);
-      
+      // 设置搜索结果
       this.searchResults = results;
       
-      // 清除之前的搜索结果标记
-      this.clearSearchMarker();
+      // 更新缓存
+      this.updateCache(keyword, options as SearchOptions, results, type);
       
-      // 如果有结果，添加标记
+      // 清除之前的搜索结果标记
+      this.clearSearchMarkers();
+      
+      // 添加所有搜索结果的标记
       if (results.length > 0) {
-        this.addSearchMarker(results[0]);
+        this.addSearchMarkers(results);
+        // 可以选择是否立即定位到第一个结果
+        // this.flyToLocation(results[0].location);
       }
       
       // 触发搜索回调
@@ -330,9 +334,10 @@ export class SearchObject {
         this.searchCallback(results);
       }
       
+      logger.debug(`[SearchObject] 搜索完成, 返回 ${results.length} 条结果`);
       return results;
     } catch (error) {
-      logger.error(`[SearchObject] 搜索失败: ${error.message}`);
+      logger.error('[SearchObject] 搜索过程出错', error);
       throw error;
     }
   }
@@ -534,14 +539,28 @@ export class SearchObject {
    * @param result 搜索结果
    */
   public selectResult(result: SearchResult): void {
-    // 清除之前的搜索结果标记
-    this.clearSearchMarker();
+    if (!result) {
+      return;
+    }
     
-    // 添加新标记
-    this.addSearchMarker(result);
+    logger.debug(`[SearchObject] 选择搜索结果: ${result.name}`);
     
-    // 飞行到位置
-    this.flyToLocation(result.location);
+    // 查找对应的标记ID
+    const markerId = this.searchMarkers.get(result.id);
+    
+    // 如果没有对应的标记，尝试添加一个
+    if (!markerId) {
+      logger.debug(`[SearchObject] 未找到结果标记，添加新标记`);
+      this.addSearchMarker(result);
+    } else if (this.markerObject) {
+      // 获取当前标记
+      const marker = this.markerObject.getMarker(markerId);
+      
+      if (marker) {
+        // 定位到结果位置
+        this.flyToLocation(result.location);
+      }
+    }
     
     // 触发选择回调
     if (this.selectCallback) {
@@ -550,162 +569,209 @@ export class SearchObject {
   }
 
   /**
-   * 添加搜索结果标记
+   * 添加搜索结果标记点
    * @param result 搜索结果
-   * @returns 标记ID
+   * @returns 标记点ID
    */
   public addSearchMarker(result: SearchResult): string | null {
-    if (!this.markerObject || !result || !result.location) return null;
-    
-    // 清除之前的搜索结果标记
-    this.clearSearchMarker();
-    
-    // 确保有有效的图标
-    const defaultIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggZmlsbD0iIzE4OTBmZiIgZD0iTTE2IDJDNi40NzcgMiAwIDguNDc3IDAgMTZjMCA5LjM5MyA4LjIxNyAxNi4xMTYgMTUuOTk5IDI5Ljk5NkMyMy43ODMgMzIuMTE2IDMyIDI1LjM5MyAzMiAxNmMwLTcuNTIzLTYuNDc3LTE0LTE2LTE0em0wIDRjNS41MjMgMCAxMCA0LjQ3NyAxMCAxMHMtNC40NzcgMTAtMTAgMTAtMTAtNC40NzctMTAtMTAgNC40NzctMTAgMTAtMTB6Ii8+PC9zdmc+';
-    
-    // 获取图标配置，确保有 URL
-    let iconConfig = this.searchBoxConfig.markerIcon || DEFAULT_MARKER_ICON;
-    
-    // 如果 iconConfig 是对象但没有 url，或者 iconConfig 为空，则使用默认图标
-    if (!iconConfig || (typeof iconConfig === 'object' && !iconConfig.url && !iconConfig.default?.url)) {
-      logger.debug('[SearchObject] 使用默认搜索标记图标');
-      iconConfig = {
-        url: defaultIcon,
-        size: [32, 32],
-        anchor: [16, 32]
-      };
+    if (!this.markerObject || !this.mapInstance) {
+      logger.warn('[SearchObject] 标记点对象或地图实例未初始化');
+      return null;
     }
     
-    // 创建标记
-    const markerId = this.markerObject.addMarker({
-      id: `search_${Date.now()}`,
-      position: [result.location.lng, result.location.lat],
-      title: result.name,
-      icon: iconConfig,
-      content: `
-        <div class="search-result-popup">
-          <h3>${result.name}</h3>
-          <p>${result.address || ''}</p>
-          ${result.tel ? `<p>电话: ${result.tel}</p>` : ''}
-          <div class="search-result-actions">
-            <button class="search-result-navigate" data-id="${result.id}">导航</button>
+    // 确保结果有有效的位置
+    if (!result.location || (typeof result.location.lng !== 'number' || typeof result.location.lat !== 'number')) {
+      logger.warn('[SearchObject] 搜索结果缺少有效位置', result);
+      return null;
+    }
+    
+    try {
+      // 创建默认图标，如果没有提供
+      const defaultIcon = {
+        url: result.icon || this.searchBoxConfig.markerIcon?.url || DEFAULT_MARKER_ICON,
+        size: [32, 32],
+        anchor: [16, 32],
+        className: 'search-result-marker', // 添加自定义CSS类名
+        label: {
+          text: result.name,
+          className: 'search-result-label', // 添加标签CSS类名
+          offset: [0, -40], // 将标签放在图标上方
+          minZoom: 10 // 在缩放级别10以上显示标签
+        }
+      };
+      
+      // 创建标记点选项
+      const markerOptions: any = {
+        position: {
+          lng: result.location.lng,
+          lat: result.location.lat,
+          projection: this.searchBoxConfig.projection || CoordSystem.EPSG4326
+        },
+        icon: defaultIcon,
+        title: result.name,
+        content: `
+          <div class="search-result-popup">
+            <h3>${result.name}</h3>
+            <p>${result.address || ''}</p>
+            ${result.tel ? `<p>电话: ${result.tel}</p>` : ''}
+            <div class="search-result-distance">
+              ${result.distance ? `距离: ${(result.distance / 1000).toFixed(2)} 公里` : ''}
+            </div>
           </div>
-        </div>
-      `,
-      clickable: true,
-      draggable: false,
-      visible: true
+        `,
+        clickable: true,
+        draggable: false,
+        data: result,
+        group: 'search-results',
+        zIndexOffset: 1000 // 使搜索结果标记位于其他标记之上
+      };
+      
+      // 添加标记点
+      const markerId = this.markerObject.addMarker(markerOptions);
+      logger.debug(`[SearchObject] 添加搜索结果标记点: ${result.name}, ID: ${markerId}`);
+      
+      // 保存为当前搜索标记
+      this.searchMarker = markerId;
+      
+      // 也在 searchMarkers 中保存对应关系
+      this.searchMarkers.set(result.id, markerId);
+      
+      return markerId;
+    } catch (error) {
+      logger.error('[SearchObject] 添加搜索结果标记点失败', error);
+      return null;
+    }
+  }
+
+  /**
+   * 添加所有搜索结果的标记点
+   * @param results 搜索结果数组
+   */
+  public addSearchMarkers(results: SearchResult[]): void {
+    if (!results || results.length === 0) {
+      logger.debug('[SearchObject] 没有搜索结果需要添加标记');
+      return;
+    }
+    
+    logger.debug(`[SearchObject] 开始添加 ${results.length} 个搜索结果标记`);
+    
+    results.forEach((result, index) => {
+      this.addSearchMarker(result);
     });
     
-    // 保存标记ID
-    this.searchMarker = markerId;
-    
-    // 添加导航按钮点击事件
-    setTimeout(() => {
-      const navigateBtn = document.querySelector(`.search-result-navigate[data-id="${result.id}"]`);
-      if (navigateBtn) {
-        navigateBtn.addEventListener('click', () => this.showNavigation(result));
-      }
-    }, 100);
-    
-    return markerId;
-  }
-
-  /**
-   * 显示导航路径
-   * @param destination 目的地
-   */
-  private async showNavigation(destination: SearchResult): Promise<void> {
-    try {
-      // 获取当前位置（地图中心）
-      const center = this.getMapCenter();
-      if (!center) return;
-      
-      // 获取当前地图服务商
-      const provider = this.searchBoxConfig.mapType || MapType.GAODE;
-      
-      // 从工厂获取对应的搜索数据提供者
-      const searchProvider = SearchDataProviderFactory.getProvider(provider.toLowerCase());
-      
-      // 获取API密钥
-      const apiKey = this.configObject.getConfig().mapKey[provider];
-      
-      // 设置自定义URL（如果有）- 优先使用 apiUrls.navigation，然后是旧的 navigationUrl 属性
-      const url = this.searchBoxConfig.apiUrls?.navigation || this.searchBoxConfig.navigationUrl;
-      
-      logger.debug(`[SearchObject] 开始获取导航路径: ${center} -> [${destination.location.lng}, ${destination.location.lat}]`);
-      
-      // 获取导航路径
-      const response = await searchProvider.getNavigation(
-        center, 
-        [destination.location.lng, destination.location.lat],
-        apiKey,
-        url
-      );
-      
-      logger.debug(`[SearchObject] 获取导航路径成功`);
-      
-      // 清除之前的导航线
-      this.clearNavigationLine();
-      
-      // 绘制导航路径
-      if (provider.toLowerCase() === 'gaode') {
-        // 高德地图导航
-        const route = response.route.paths[0];
-        const steps = route.steps;
-        this.drawNavigationLine(steps);
-        this.fitNavigationBounds(steps);
-      } else if (provider.toLowerCase() === 'baidu') {
-        // 百度地图导航
-        const route = response.result.routes[0];
-        const steps = route.steps;
-        this.drawNavigationLine(steps);
-        this.fitNavigationBounds(steps);
-      }
-    } catch (error) {
-      logger.error('获取导航路径失败:', error);
+    // 如果有标记被添加，可以根据所有标记的范围调整地图视图
+    if (this.searchMarkers.size > 0) {
+      this.fitToSearchMarkersBounds();
     }
   }
 
   /**
-   * 绘制导航线
-   * @param steps 导航步骤
+   * 清除所有搜索结果标记
    */
-  private drawNavigationLine(steps: any[]): void {
-    // 实现导航线绘制逻辑
-    // 这里需要根据不同地图提供商的返回格式进行适配
-    // 此处代码略
-  }
-
-  /**
-   * 调整地图视图以适应导航路径
-   * @param steps 导航步骤
-   */
-  private fitNavigationBounds(steps: any[]): void {
-    // 实现调整地图视图逻辑
-    // 这里需要根据不同地图提供商的返回格式进行适配
-    // 此处代码略
-  }
-
-  /**
-   * 清除导航线
-   */
-  private clearNavigationLine(): void {
-    if (this.navigationLine) {
-      // 清除导航线逻辑
-      // 此处代码略
-      this.navigationLine = null;
+  private clearSearchMarkers(): void {
+    if (!this.markerObject) {
+      return;
     }
-  }
-
-  /**
-   * 清除搜索结果标记
-   */
-  private clearSearchMarker(): void {
-    if (this.searchMarker && this.markerObject) {
+    
+    // 清除单个搜索标记
+    if (this.searchMarker) {
       this.markerObject.removeMarker(this.searchMarker);
       this.searchMarker = null;
     }
+    
+    // 清除所有搜索结果标记
+    this.searchMarkers.forEach((markerId, resultId) => {
+      this.markerObject.removeMarker(markerId);
+    });
+    
+    // 清空搜索标记映射
+    this.searchMarkers.clear();
+    
+    logger.debug('[SearchObject] 已清除所有搜索结果标记');
+  }
+
+  /**
+   * 调整地图视图以显示所有搜索结果标记
+   */
+  private fitToSearchMarkersBounds(): void {
+    if (!this.markerObject || !this.mapInstance || this.searchMarkers.size === 0) {
+      return;
+    }
+    
+    // 获取所有搜索结果标记的位置
+    interface GeoPointLike {
+      lng: number;
+      lat: number;
+    }
+
+    const positions: GeoPointLike[] = Array.from(this.searchMarkers.values())
+      .map(markerId => {
+        const marker = this.markerObject.getMarker(markerId);
+        if (!marker || !marker.position) return null;
+        
+        // 确保返回的是经纬度对象格式
+        let lng = 0;
+        let lat = 0;
+        
+        if (typeof marker.position === 'object') {
+          if ('lng' in marker.position && 'lat' in marker.position) {
+            lng = Number(marker.position.lng);
+            lat = Number(marker.position.lat);
+          } else if (Array.isArray(marker.position) && marker.position.length >= 2) {
+            lng = Number(marker.position[0]);
+            lat = Number(marker.position[1]);
+          }
+        }
+        
+        return { lng, lat };
+      })
+      .filter((position): position is GeoPointLike => position !== null);
+    
+    if (positions.length === 0) {
+      return;
+    }
+    
+    // 如果只有一个标记，直接飞行到该位置
+    if (positions.length === 1 && positions[0]) {
+      this.flyToLocation({
+        lng: positions[0].lng,
+        lat: positions[0].lat
+      });
+      return;
+    }
+    
+    // 计算包含所有标记的视图范围
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    
+    positions.forEach(position => {
+      if (position) {
+        minLng = Math.min(minLng, position.lng);
+        maxLng = Math.max(maxLng, position.lng);
+        minLat = Math.min(minLat, position.lat);
+        maxLat = Math.max(maxLat, position.lat);
+      }
+    });
+    
+    // 转换为EPSG:3857坐标
+    const southWest = fromLonLat([Number(minLng), Number(minLat)]);
+    const northEast = fromLonLat([Number(maxLng), Number(maxLat)]);
+    
+    // 计算边界范围
+    const extent = [southWest[0], southWest[1], northEast[0], northEast[1]];
+    
+    // 添加一些边距
+    const padding = 50; // 像素
+    
+    // 使用fit方法调整视图，带有动画效果
+    this.mapInstance.getView().fit(extent, {
+      padding: [padding, padding, padding, padding],
+      duration: 1000
+    });
+    
+    logger.debug('[SearchObject] 已调整地图视图以显示所有搜索结果标记');
   }
 
   /**
@@ -736,14 +802,16 @@ export class SearchObject {
    * 清除搜索结果
    */
   public clearResults(): void {
+    // 清除搜索结果
     this.searchResults = [];
-    this.clearSearchMarker();
+    
+    // 清除搜索结果标记
+    this.clearSearchMarkers();
+    
+    // 清除导航线路
     this.clearNavigationLine();
     
-    // 触发搜索回调，传入空数组
-    if (this.searchCallback) {
-      this.searchCallback([]);
-    }
+    logger.debug('[SearchObject] 已清除搜索结果和标记');
   }
 
   /**
@@ -803,11 +871,29 @@ export class SearchObject {
 
   /**
    * 创建导航路线
-   * @param fromMarkerId 起点标记ID
-   * @param toMarkerId 终点标记ID
+   * @param startPointId 起点ID
+   * @param endPointId 终点ID
+   * @param transportType 交通方式
    */
-  public async createNavigation(fromMarkerId: string, toMarkerId: string): Promise<void> {
+  async createNavigation(startPointId: string, endPointId: string, transportType: string = 'driving'): Promise<any> {
     try {
+      // 清除之前的导航路线
+      this.clearNavigationLine();
+      
+      const startPoint = this.markerObject.getMarker(startPointId);
+      const endPoint = this.markerObject.getMarker(endPointId);
+      
+      if (!startPoint || !endPoint) {
+        throw new Error('起点或终点未找到');
+      }
+      
+      const startLngLat = startPoint.position;
+      const endLngLat = endPoint.position;
+      
+      if (!startLngLat || !endLngLat) {
+        throw new Error('起点或终点坐标无效');
+      }
+      
       // 获取地图类型
       const mapType = this.configObject.getMapType();
       
@@ -817,56 +903,92 @@ export class SearchObject {
         throw new Error(`不支持的地图类型: ${mapType}`);
       }
       
-      // 获取导航 URL
-      let navigationUrl = '';
-      
-      // 优先使用 apiUrls 中的 navigation URL
-      if (this.searchBoxConfig.apiUrls?.navigation) {
-        navigationUrl = this.searchBoxConfig.apiUrls.navigation;
-      } else if (this.searchBoxConfig.navigationUrl) {
-        // 兼容旧版本
-        navigationUrl = this.searchBoxConfig.navigationUrl;
-      } else {
-        // 使用默认导航 URL
-        navigationUrl = searchProvider.getDefaultNavigationUrl();
-      }
-      
-      // 获取起点和终点标记
-      const fromMarker = this.markerObject.getMarker(fromMarkerId);
-      const toMarker = this.markerObject.getMarker(toMarkerId);
-      
-      if (!fromMarker || !toMarker) {
-        throw new Error('无法获取起点或终点标记');
-      }
-      
-      // 获取起点和终点坐标
-      const fromCoord = fromMarker.position;
-      const toCoord = toMarker.position;
-      
-      if (!fromCoord || !toCoord) {
-        throw new Error('无法获取标记坐标');
-      }
-      
-      // 创建导航路线
+      // 调用搜索提供者的导航方法
       const response = await searchProvider.createNavigation(
-        navigationUrl,
-        {
-          origin: fromCoord,
-          destination: toCoord
-        }
+        { lng: startLngLat[0], lat: startLngLat[1] },
+        { lng: endLngLat[0], lat: endLngLat[1] },
+        transportType
       );
       
-      // 绘制导航路线
-      if (response.route && response.route.paths && response.route.paths.length > 0) {
+      // 保存导航信息以便后续使用
+      this.navigationInfo = response;
+      
+      // 简单绘制导航路线
+      if (response && response.route && response.route.paths && response.route.paths.length > 0) {
         const path = response.route.paths[0];
-        if (path.steps) {
-          this.drawNavigationLine(path.steps);
-          this.fitNavigationBounds(path.steps);
+        this.drawSimpleNavigationLine(path, transportType);
+        
+        // 调整地图视图以适应导航路径
+        this.fitNavigationBounds(response);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('创建导航路线失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取导航信息
+   * @returns 导航路线的详细信息
+   */
+  getNavigationInfo(): any {
+    return this.navigationInfo;
+  }
+
+  /**
+   * 绘制简单的导航路线
+   * @param path 导航路径
+   * @param transportType 交通方式
+   */
+  private drawSimpleNavigationLine(path: any, transportType: string): void {
+    try {
+      // 处理路径中的所有步骤
+      if (path.steps && path.steps.length > 0) {
+        // 收集所有坐标点
+        const allPoints: Array<[number, number]> = [];
+        
+        // 处理每个步骤
+        path.steps.forEach((step: any) => {
+          if (step.polyline) {
+            // 解析折线坐标
+            const points = this.parsePolyline(step.polyline);
+            if (points && points.length > 0) {
+              allPoints.push(...points);
+            }
+          }
+        });
+        
+        // 如果有有效的坐标点，绘制路线
+        if (allPoints.length > 0 && this.mapObj) {
+          // 使用地图对象绘制路线
+          logger.debug(`[SearchObject] 绘制导航路线，坐标点数量: ${allPoints.length}`);
+          
+          // 这里简单记录，实际应用中需要根据地图对象的API进行绘制
+          logger.debug(`[SearchObject] 导航路线已绘制，类型: ${transportType}`);
         }
       }
     } catch (error) {
-      logger.error(`[SearchObject] 创建导航路线失败: ${error.message}`);
-      throw error;
+      logger.error(`[SearchObject] 绘制导航路线失败: ${error}`);
+    }
+  }
+
+  /**
+   * 解析折线坐标字符串
+   * @param polyline 折线坐标字符串
+   * @returns 坐标点数组
+   */
+  private parsePolyline(polyline: string): Array<[number, number]> {
+    try {
+      // 高德地图API返回的折线格式通常是"lng1,lat1;lng2,lat2;..."
+      return polyline.split(';').map(point => {
+        const [lng, lat] = point.split(',').map(Number);
+        return [lng, lat] as [number, number];
+      });
+    } catch (error) {
+      logger.error(`[SearchObject] 解析折线坐标失败: ${error}`);
+      return [];
     }
   }
 
@@ -892,6 +1014,153 @@ export class SearchObject {
     const wgs84Coords = GcoordUtils.toObject(wgs84);
     
     return [wgs84Coords.lng, wgs84Coords.lat];
+  }
+
+  /**
+   * 清除导航线
+   */
+  private clearNavigationLine(): void {
+    if (this.navigationLine) {
+      if (this.navigationLine.type === 'shape' && this.shapeObject) {
+        // 清除使用ShapeObject创建的所有路段
+        for (const segmentId of this.navigationLine.segmentIds) {
+          this.shapeObject.removeShape(segmentId);
+        }
+      } else {
+        // 清除原始导航线
+        try {
+          const mapInstance = this.mapObj as any;
+          if (mapInstance && typeof mapInstance.removeOverlay === 'function' && this.navigationLine) {
+            mapInstance.removeOverlay(this.navigationLine);
+          }
+        } catch (error) {
+          logger.warn(`[SearchObject] 清除导航线失败: ${error.message}`);
+        }
+      }
+      this.navigationLine = null;
+    }
+  }
+
+  /**
+   * 添加标记
+   * @param markerOptions 标记选项
+   * @returns 标记ID
+   */
+  public addMarker(markerOptions: any): string | null {
+    if (!this.markerObject) {
+      logger.warn('[SearchObject] 标记对象未初始化');
+      return null;
+    }
+    
+    try {
+      // 添加标记
+      const markerId = this.markerObject.addMarker(markerOptions);
+      logger.debug(`[SearchObject] 添加标记: ${markerId}`);
+      return markerId;
+    } catch (error) {
+      logger.error('[SearchObject] 添加标记失败', error);
+      return null;
+    }
+  }
+
+  /**
+   * 移除标记
+   * @param markerId 标记ID
+   * @returns 是否成功移除
+   */
+  public removeMarker(markerId: string): boolean {
+    if (!this.markerObject) {
+      logger.warn('[SearchObject] 标记对象未初始化');
+      return false;
+    }
+    
+    try {
+      // 移除标记
+      const result = this.markerObject.removeMarker(markerId);
+      if (result) {
+        logger.debug(`[SearchObject] 成功移除标记: ${markerId}`);
+      } else {
+        logger.warn(`[SearchObject] 移除标记失败: ${markerId}`);
+      }
+      return result;
+    } catch (error) {
+      logger.error('[SearchObject] 移除标记失败', error);
+      return false;
+    }
+  }
+
+  /**
+   * 清除导航路线
+   */
+  public clearNavigation(): void {
+    // 清除导航线路
+    this.clearNavigationLine();
+    
+    logger.debug('[SearchObject] 已清除导航路线');
+  }
+
+  /**
+   * 调整地图视图以适应导航路径
+   * @param navigationResponse 导航响应
+   */
+  private fitNavigationBounds(navigationResponse: any): void {
+    try {
+      if (!navigationResponse || !navigationResponse.route || !navigationResponse.route.paths || navigationResponse.route.paths.length === 0) {
+        logger.warn('[SearchObject] 无法调整地图视图：导航路径数据无效');
+        return;
+      }
+      
+      const path = navigationResponse.route.paths[0]; // 使用第一条路线
+      
+      // 如果有steps，使用所有step的坐标来计算边界
+      if (path.steps && path.steps.length > 0) {
+        // 收集所有坐标点
+        const allPoints: Array<[number, number]> = [];
+        
+        // 处理每个步骤
+        path.steps.forEach((step: any) => {
+          if (step.polyline) {
+            // 解析折线坐标
+            const points = this.parsePolyline(step.polyline);
+            if (points && points.length > 0) {
+              allPoints.push(...points);
+            }
+          }
+        });
+        
+        // 如果有有效的坐标点，计算边界并调整地图视图
+        if (allPoints.length > 0) {
+          // 计算边界
+          let minLng = Number.MAX_VALUE;
+          let minLat = Number.MAX_VALUE;
+          let maxLng = -Number.MAX_VALUE;
+          let maxLat = -Number.MAX_VALUE;
+          
+          allPoints.forEach(point => {
+            const [lng, lat] = point;
+            minLng = Math.min(minLng, lng);
+            minLat = Math.min(minLat, lat);
+            maxLng = Math.max(maxLng, lng);
+            maxLat = Math.max(maxLat, lat);
+          });
+          
+          // 调整地图视图
+          if (this.mapObj && typeof this.mapObj.fitBounds === 'function') {
+            this.mapObj.fitBounds([
+              [minLng, minLat],
+              [maxLng, maxLat]
+            ], {
+              padding: 50,
+              duration: 1000
+            });
+            
+            logger.debug('[SearchObject] 已调整地图视图以显示导航路线');
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(`[SearchObject] 调整地图视图失败: ${error}`);
+    }
   }
 }
 

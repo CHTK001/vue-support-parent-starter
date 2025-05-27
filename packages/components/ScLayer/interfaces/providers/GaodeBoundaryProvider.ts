@@ -2,7 +2,7 @@ import { BoundaryDataProvider, BoundaryDataFormat, CoordinatePoint } from '../Bo
 import { fetchGaodeBoundary } from '../../api/district';
 import logger from '../../composables/LogObject';
 import { CoordSystem, type GeoPoint } from '../../types/coordinate';
-import { GcoordUtils } from '../../utils/GcoordUtils';
+import { fromLonLat } from 'ol/proj';
 
 /**
  * 高德地图区划数据提供者
@@ -72,7 +72,7 @@ export class GaodeBoundaryProvider implements BoundaryDataProvider {
    * @returns 转换后的数据
    */
   convertToGaodeFormat(data: any, options?: any): BoundaryDataFormat {
-    // 对于高德地图数据，我们需要将其GCJ02坐标转换为EPSG:3857
+    // 高德地图默认兼容 EPSG:3857 坐标系，无需转换
     if (!data) {
       return this.createEmptyBoundaryData();
     }
@@ -137,32 +137,13 @@ export class GaodeBoundaryProvider implements BoundaryDataProvider {
           const lat = parseFloat(pointPairs[i + 1]);
           
           if (!isNaN(lng) && !isNaN(lat)) {
-            // 将坐标转换为 EPSG:3857
-            try {
-              const geoPoint = GcoordUtils.transform(
-                { lng, lat },
-                sourceCoordType,
-                CoordSystem.EPSG3857
-              );
-              
-              // 从 GeoPoint 提取经纬度
-              const epsg3857Point = GcoordUtils.toObject(geoPoint);
-              
-              // 保存原始坐标和转换后的坐标
-              points.push({
-                lng: epsg3857Point.lng,
-                lat: epsg3857Point.lat,
-                original: { lng, lat }
-              });
-            } catch (error) {
-              logger.error(`坐标转换失败: ${lng},${lat}`, error);
-              // 如果转换失败，仍然添加原始坐标
-              points.push({
-                lng,
-                lat,
-                original: { lng, lat }
-              });
-            }
+            const projCoords = fromLonLat([lng, lat]);
+            // 直接使用原始坐标，不进行转换
+            points.push({
+              lng: projCoords[0],
+              lat: projCoords[1],
+              original: { lng, lat }
+            });
           }
         }
       });

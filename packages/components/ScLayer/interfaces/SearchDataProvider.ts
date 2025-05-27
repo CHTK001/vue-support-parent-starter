@@ -75,9 +75,14 @@ export interface SearchDataProvider {
    * 创建导航路线
    * @param url 导航 API URL
    * @param options 导航选项
-   * @returns 导航路径
+   * @returns 导航 API 响应
    */
-  createNavigation(url: string, options: { origin: [number, number], destination: [number, number] }): Promise<NavigationApiResponse>;
+  createNavigation(url: string, options: { 
+    origin: [number, number], 
+    destination: [number, number], 
+    key: string,
+    transport_type?: string 
+  }): Promise<NavigationApiResponse>;
   
   /**
    * 获取提供者名称

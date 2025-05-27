@@ -636,6 +636,33 @@ export class GcoordUtils {
     // 确保返回数组格式
     return Array.isArray(epsg3857Point) ? epsg3857Point : [epsg3857Point.lng, epsg3857Point.lat];
   }
+
+  /**
+   * 将 GeoPoint 数组转换为 OpenLayers 坐标数组
+   * @param points 坐标点数组
+   * @param coordSystem 坐标系统
+   * @returns OpenLayers 坐标数组 (number[][])
+   */
+  public static convertToOlCoordinates(points: Array<GeoPoint> | Array<[number, number]>, coordSystem: CoordSystem = CoordSystem.WGS84): number[][] {
+    if (!Array.isArray(points)) {
+      return [];
+    }
+    
+    // 遍历每个点并转换
+    return points.map(point => {
+      if (Array.isArray(point) && point.length === 2) {
+        // 如果已经是 [number, number] 格式
+        return this.convertToOlCoordinate(point as [number, number], coordSystem);
+      } else if (point && typeof point === 'object' && 'lng' in point && 'lat' in point) {
+        // 如果是 {lng, lat} 格式
+        return this.convertToOlCoordinate(point as { lng: number; lat: number }, coordSystem);
+      } else {
+        // 无效格式
+        console.warn('Invalid coordinate format:', point);
+        return [0, 0]; // 默认值
+      }
+    });
+  }
 } 
 
 // 为了向后兼容，导出一些旧的函数名称
