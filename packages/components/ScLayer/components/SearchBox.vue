@@ -14,10 +14,11 @@
           :on-change="handleSearchTypeChange"></slot>
       </div>
       
-      <div class="search-input-container">
+      <!-- 普通搜索输入框 -->
+      <div v-if="currentSearchType !== SearchType.NAVIGATION" class="search-input-container">
         <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
           @input="handleInput" @keyup.enter="handleSearch"
-          :class="{ 'coordinate-input': currentSearchType === 'coordinate' }" />
+          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }" />
 
         <select v-else v-model="searchText" @change="handleInput">
           <option value="">请选择</option>
@@ -31,6 +32,42 @@
             <path fill="currentColor"
               d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
           </svg>
+        </button>
+      </div>
+      
+      <!-- 导航搜索专用双输入框 -->
+      <div v-else class="navigation-input-container">
+        <div class="navigation-input-group">
+          <div class="nav-input start-input">
+            <span class="nav-point-icon start-point-icon"></span>
+            <input v-model="navStartPoint" type="text" placeholder="请输入起点" 
+              @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
+            <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">×</button>
+          </div>
+          <div class="nav-swap-btn" @click="swapNavPoints" title="交换起终点">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
+            </svg>
+          </div>
+          <div class="nav-input end-input">
+            <span class="nav-point-icon end-point-icon"></span>
+            <input v-model="navEndPoint" type="text" placeholder="请输入终点" 
+              @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
+            <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
+          </div>
+        </div>
+        
+        <div class="transport-mode-selector">
+          <div v-for="type in transportTypes" :key="type.value" class="transport-mode"
+            :class="{ 'active': currentTransportType === type.value }"
+            @click="selectTransportType(type.value)" :title="type.label">
+            <span :class="['transport-icon', type.value + '-icon']"></span>
+          </div>
+        </div>
+        
+        <button type="button" class="nav-search-button" @click="handleNavSearch">
+          <span class="nav-search-icon"></span>
+          <span>查询</span>
         </button>
       </div>
     </div>
@@ -256,6 +293,11 @@ let configObject = null;
 let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
+// 导航搜索相关状态
+const navStartPoint = ref('');
+const navEndPoint = ref('');
+let navSearchTimer: number | null = null;
+
 // 搜索类型相关
 const currentSearchType = ref<SearchType>(props.searchBoxConfig.defaultSearchType || SearchType.KEYWORD);
 const showTypeSelector = computed(() => props.searchBoxConfig.showTypeSelector !== false);
@@ -328,6 +370,9 @@ const handleSearchTypeChange = (event) => {
   currentSearchType.value = newType;
   // 清空搜索框
   searchText.value = '';
+  // 清空导航搜索框
+  navStartPoint.value = '';
+  navEndPoint.value = '';
   // 清空搜索结果，不触发搜索
   results.value = [];
   showResults.value = false;
@@ -1052,6 +1097,75 @@ const handleTouchEnd = () => {
   isDragging.value = false;
   isClosing.value = false;
 };
+
+// 处理导航输入变化
+const handleNavInputChange = () => {
+  if (navSearchTimer) {
+    clearTimeout(navSearchTimer);
+  }
+  
+  navSearchTimer = window.setTimeout(() => {
+    // 暂时不做自动搜索，只在点击查询按钮时搜索
+  }, props.debounceTime);
+};
+
+// 处理导航搜索
+const handleNavSearch = async () => {
+  if (!navStartPoint.value.trim() || !navEndPoint.value.trim()) {
+    ElMessage.warning('请输入起点和终点');
+    return;
+  }
+  
+  try {
+    if (!searchObject) {
+      console.error('搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
+      ElMessage.error('搜索功能未准备好，请稍后再试');
+      return;
+    }
+    
+    // 如果导航路线详情面板已打开，则关闭
+    if (showRouteDetails.value) {
+      closeRouteDetails();
+    }
+    
+    // 构建导航搜索关键词（起点-终点格式）
+    const keyword = `${navStartPoint.value} → ${navEndPoint.value}`;
+    searchText.value = keyword;
+    
+    console.log(`开始导航搜索: ${keyword}`);
+    const searchResults = await searchObject.search(keyword, props.searchBoxConfig as any, SearchType.NAVIGATION);
+    console.log('导航搜索结果:', searchResults);
+    results.value = searchResults;
+    showResults.value = true;
+    emit('search', searchResults);
+    
+    if (searchResults.length > 0) {
+      ElMessage.info('请选择起点和终点以创建导航路线');
+    }
+  } catch (error) {
+    console.error('导航搜索失败:', error);
+    ElMessage.error('导航搜索失败: ' + (error.message || '未知错误'));
+    results.value = [];
+    showResults.value = true;
+  }
+};
+
+// 清除导航起点
+const clearNavStartPoint = () => {
+  navStartPoint.value = '';
+};
+
+// 清除导航终点
+const clearNavEndPoint = () => {
+  navEndPoint.value = '';
+};
+
+// 交换起点和终点
+const swapNavPoints = () => {
+  const temp = navStartPoint.value;
+  navStartPoint.value = navEndPoint.value;
+  navEndPoint.value = temp;
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1128,6 +1242,197 @@ $transition-time: 0.2s;
         border-right: 5px solid transparent;
         border-top: 5px solid $text-secondary;
         pointer-events: none;
+      }
+    }
+  }
+  
+  // 导航搜索专用样式
+  .navigation-input-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    
+    .navigation-input-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      
+      .nav-input {
+        flex: 1;
+        position: relative;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        padding: 0 30px 0 30px;
+        background-color: #fff;
+        
+        &:hover {
+          border-color: $border-hover;
+        }
+        
+        &:focus-within {
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+        }
+        
+        .nav-point-icon {
+          position: absolute;
+          left: 8px;
+          width: 16px;
+          height: 16px;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
+        
+        .start-point-icon {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+        }
+        
+        .end-point-icon {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+        }
+        
+        input {
+          width: 100%;
+          height: 100%;
+          border: none;
+          outline: none;
+          font-size: 14px;
+          color: $text-primary;
+          
+          &::placeholder {
+            color: $text-muted;
+          }
+        }
+        
+        .nav-clear-btn {
+          position: absolute;
+          right: 8px;
+          width: 16px;
+          height: 16px;
+          border: none;
+          background: none;
+          color: $text-muted;
+          font-size: 16px;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          border-radius: 50%;
+          
+          &:hover {
+            color: $text-secondary;
+            background-color: #f0f0f0;
+          }
+        }
+      }
+      
+      .nav-swap-btn {
+        width: 24px;
+        height: 24px;
+        margin: 0 8px;
+        border-radius: 50%;
+        background-color: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: $text-secondary;
+        
+        &:hover {
+          background-color: #e0e0e0;
+          color: $primary-color;
+        }
+      }
+    }
+    
+    .transport-mode-selector {
+      display: flex;
+      margin-bottom: 8px;
+      
+      .transport-mode {
+        width: 36px;
+        height: 36px;
+        border-radius: $border-radius;
+        margin-right: 8px;
+        background-color: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        
+        &:hover {
+          background-color: #e8e8e8;
+        }
+        
+        &.active {
+          background-color: rgba($primary-color, 0.1);
+          
+          .transport-icon {
+            opacity: 1;
+          }
+        }
+        
+        .transport-icon {
+          width: 20px;
+          height: 20px;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+          opacity: 0.7;
+          
+          &.driving-icon {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+          }
+          
+          &.walking-icon {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
+          }
+          
+          &.bicycling-icon {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
+          }
+          
+          &.ebike-icon {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
+          }
+        }
+      }
+    }
+    
+    .nav-search-button {
+      height: 36px;
+      border: none;
+      border-radius: $border-radius;
+      background-color: $primary-color;
+      color: white;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: $primary-hover;
+      }
+      
+      &:active {
+        background-color: $primary-active;
+      }
+      
+      .nav-search-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E");
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
       }
     }
   }
@@ -2071,6 +2376,34 @@ $transition-time: 0.2s;
           width: 10px;
           height: 10px;
           margin-right: 2px;
+        }
+      }
+    }
+    
+    // 导航搜索适配
+    .navigation-input-container {
+      .navigation-input-group {
+        flex-direction: column;
+        
+        .nav-input {
+          margin-bottom: 8px;
+        }
+        
+        .nav-swap-btn {
+          transform: rotate(90deg);
+          margin: 0 auto 8px;
+        }
+      }
+      
+      .transport-mode-selector {
+        justify-content: space-between;
+        
+        .transport-mode {
+          margin-right: 4px;
+          
+          &:last-child {
+            margin-right: 0;
+          }
         }
       }
     }
