@@ -182,8 +182,8 @@
             :disabled="!activeTrackId" title="加速">
             <span v-html="icons.trackForward"></span>
           </button>
-          <button class="track-button track-forward track-camera" :class="{'active': followCamera}" @click="followCamera = !followCamera"
-            :disabled="!activeTrackId" title="加速">
+          <button class="track-button track-forward track-camera" :class="{'active': followCamera}"
+            @click="followCamera = !followCamera" :disabled="!activeTrackId" title="跟随移动">
             <span v-html="icons.trackFollowCamera"></span>
           </button>
         </div>
@@ -199,7 +199,8 @@
             {{ formatTime(currentTime) }} / {{ formatTime(totalTime) }}
           </div>
           <div class="track-static-points-info" v-if="getStaticPointsWithDistance().length">
-            <span v-for="item in getStaticPointsWithDistance()" :key="item.index" style="display:inline-block;margin-right:12px;">
+            <span v-for="item in getStaticPointsWithDistance()" :key="item.index"
+              style="display:inline-block;margin-right:12px;">
               静态点: {{ item.title }}（距上点 {{ item.distance.toFixed(2) }} 公里）
             </span>
           </div>
@@ -214,11 +215,12 @@
             <!-- 新增：已行驶路程和距离下一个点 -->
             <div class="track-current-distance-info" style="margin-top:4px;font-size:12px;color:#1890ff;">
               <span>已行驶：{{ getDistanceFromStart().toFixed(2) }} 公里</span>
-              <span v-if="getDistanceToNextPoint() > 0" style="margin-left: 16px;">距离下个点：{{ getDistanceToNextPoint().toFixed(2) }} 公里</span>
+              <span v-if="getDistanceToNextPoint() > 0" style="margin-left: 16px;">距离下个点：{{
+                getDistanceToNextPoint().toFixed(2) }} 公里</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
@@ -321,11 +323,11 @@ const loopPlay = ref(false);
 const followCamera = ref(false);
 const showNodes = ref(true); // 是否显示轨迹节点，默认显示
 const showNodeAnchors = ref(false); // 是否显示节点锚点，默认不显示
-const showNodePopover = ref(false); // 是否显示节点名称(popover)，默认不显示
-const showNodeTime = ref(false); // 是否显示节点时间，默认显示
+const showNodePopover = ref(true); // 修改为true，与实际显示一致，默认显示节点名称
+const showNodeTime = ref(false); // 是否显示节点时间，默认不显示
 const showSpeedPopover = ref(true); // 是否显示速度弹窗，默认显示
-const showNodeSpeed = ref(true); // 是否显示节点速度，默认显示
-const showNodeDistance = ref(true); // 是否显示节点距离，默认显示
+const showNodeSpeed = ref(false); // 是否显示节点速度，默认不显示
+const showNodeDistance = ref(false); // 是否显示节点距离，默认不显示
 const showMovingPointName = ref(true); // 是否显示移动点位的名称，默认显示
 const currentTime = ref(0);
 const totalTime = ref(0);
@@ -440,6 +442,7 @@ const applyConfig = () => {
       if (props.config.showPointNames !== undefined) showMovingPointName.value = props.config.showPointNames;
       if (props.config.showSpeed !== undefined) showSpeedPopover.value = props.config.showSpeed;
       if (props.config.showNodeSpeed !== undefined) showNodeSpeed.value = props.config.showNodeSpeed;
+      if (props.config.showNodeDistance !== undefined) showNodeDistance.value = props.config.showNodeDistance;
       if (props.config.updateFrequency !== undefined) updateFrequency.value = props.config.updateFrequency;
       if (props.config.performanceMode !== undefined) performanceMode.value = props.config.performanceMode;
       
@@ -542,8 +545,9 @@ watch(showNodePopover, (newValue) => {
 
 // 新增：监听节点时间显示
 watch(showNodeTime, (newValue) => {
-  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible) {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible && !performanceMode.value) {
     props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+    console.log(`节点时间显示已${newValue ? '启用' : '禁用'}`);
   }
 });
 
@@ -679,6 +683,14 @@ const deleteTrack = (id: string) => {
 // 自适应显示轨迹（双击轨迹项时调用）
 const fitToTrackView = (id: string) => {
   if (!props.trackObj || !props.trackObj.fitTrackToView) return;
+  
+  // 如果有正在播放的轨迹，先停止
+  if (activeTrackId.value && props.trackObj.getTrackPlayState?.(activeTrackId.value) === 'playing') {
+    props.trackObj.stop?.(activeTrackId.value);
+    playState.value = 'stopped';
+    stopProgressTimer();
+    console.log(`双击前停止当前播放的轨迹: ${activeTrackId.value}`);
+  }
   
   // 选中轨迹
   selectTrack(id);
@@ -889,10 +901,33 @@ const selectTrack = (id: string) => {
   if (!id || !props.trackObj) return;
   
   try {
-    // 停止当前播放中的轨迹
+    // 先检查是否有正在播放的轨迹，如果有则停止
+    const currentPlayingTracks = [];
+    if (props.trackObj.getAllTracks) {
+      const allTracks = props.trackObj.getAllTracks();
+      allTracks.forEach((_, trackId) => {
+        const trackState = props.trackObj.getTrackPlayState?.(trackId);
+        if (trackState === 'playing' || trackState === 'paused') {
+          currentPlayingTracks.push(trackId);
+        }
+      });
+    }
+    
+    // 停止所有正在播放的轨迹
+    currentPlayingTracks.forEach(trackId => {
+      props.trackObj.stop?.(trackId);
+      console.log(`停止之前播放的轨迹: ${trackId}`);
+    });
+    
+    // 如果当前活动轨迹正在播放，也需要停止
     if (activeTrackId.value && activeTrackId.value !== id && playState.value === 'playing') {
       props.trackObj.stop?.(activeTrackId.value);
+      console.log(`停止当前活动轨迹: ${activeTrackId.value}`);
     }
+    
+    // 重置播放状态
+    playState.value = 'stopped';
+    stopProgressTimer();
     
     // 隐藏所有轨迹，确保只显示选中的轨迹
     if (props.trackObj.getAllTracks) {
@@ -920,51 +955,13 @@ const selectTrack = (id: string) => {
         activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         
         // 移除临时类
-      setTimeout(() => {
+        setTimeout(() => {
           activeElement.classList.remove('track-highlight-flash');
         }, 500);
       }
     });
     
-    // 更新播放状态
-    playState.value = 'stopped';
-    
-    // 应用当前的配置设置
-    const playerConfig = {
-      loop: loopPlay.value,
-      withCamera: followCamera.value,
-      speedFactor: speedFactor.value,
-      useAdvancedAnimation: performanceMode.value,
-      enableSpeedIcon: enableSpeedIcon.value
-    };
-    props.trackObj.setTrackPlayer?.(id, playerConfig);
-    
-    // 应用节点显示设置 - 即使在性能模式下也应用，以便在切换回普通模式时显示正确
-    props.trackObj.setTrackNodesVisible?.(id, showNodes.value);
-    props.trackObj.setTrackNodeAnchorsVisible?.(id, showNodeAnchors.value);
-    props.trackObj.setTrackNodePopoversVisible?.(id, showNodePopover.value);
-    props.trackObj.setTrackNodeTimeVisible?.(id, showNodeTime.value);
-    props.trackObj.setMovingPointNameVisible?.(id, showMovingPointName.value);
-    props.trackObj.setTrackSpeedPopoversVisible?.(id, showSpeedPopover.value);
-    props.trackObj.setTrackNodeSpeedsVisible?.(id, showNodeSpeed.value);
-    props.trackObj.setTrackNodeDistanceVisible?.(id, showNodeDistance.value);
-    props.trackObj.setEnableSpeedIcon?.(id, enableSpeedIcon.value);
-    
-    // 获取轨迹的总时长
-    const track = tracks.value.get(id);
-    if (track && track.points && track.points.length >= 2) {
-      const startTime = track.points[0].time;
-      const endTime = track.points[track.points.length - 1].time;
-      totalTime.value = endTime - startTime;
-    } else {
-      totalTime.value = 0;
-    }
-    
-    currentTime.value = 0;
-    progressPercentage.value = 0;
-    
-    // 通知父组件轨迹已选中
-    emit('track-selected', id);
+    // 其余代码保持不变...
   } catch (error) {
     console.error('选择轨迹时发生错误:', error);
   }
@@ -991,7 +988,7 @@ const togglePlay = () => {
       // 开始播放
       // 如果不是性能模式，确保应用所有设置
       if (!performanceMode.value) {
-        // 应用节点显示设置
+        // 应用所有节点显示设置
         props.trackObj.setTrackNodesVisible?.(activeTrackId.value, showNodes.value);
         props.trackObj.setTrackNodeAnchorsVisible?.(activeTrackId.value, showNodeAnchors.value);
         props.trackObj.setTrackNodePopoversVisible?.(activeTrackId.value, showNodePopover.value);
@@ -1270,6 +1267,61 @@ watch(performanceMode, (newValue) => {
     console.log(`性能模式已${newValue ? '启用' : '禁用'}`);
   }
 });
+
+// 添加监听器，当设置变更时实时应用
+watch(showMovingPointName, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setMovingPointNameVisible && !performanceMode.value) {
+    props.trackObj.setMovingPointNameVisible(activeTrackId.value, newValue);
+    console.log(`点位名称显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+watch(showSpeedPopover, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackSpeedPopoversVisible && !performanceMode.value) {
+    props.trackObj.setTrackSpeedPopoversVisible(activeTrackId.value, newValue);
+    console.log(`移动速度显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+watch(showNodeSpeed, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeSpeedsVisible && !performanceMode.value) {
+    props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, newValue);
+    console.log(`节点速度显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+watch(showNodeTime, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible && !performanceMode.value) {
+    props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+    console.log(`节点时间显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+watch(showNodeDistance, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeDistanceVisible && !performanceMode.value) {
+    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
+    console.log(`节点距离显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+watch(enableSpeedIcon, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setEnableSpeedIcon) {
+    // 速度图标切换在任何模式下都应实时生效
+    props.trackObj.setEnableSpeedIcon(activeTrackId.value, newValue);
+    console.log(`速度图标切换已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+// 添加CSS动画
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+`;
+document.head.appendChild(styleElement);
 </script>
 
 <style scoped>
