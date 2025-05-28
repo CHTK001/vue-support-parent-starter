@@ -114,7 +114,7 @@ export class HeatmapObject {
         });
       },
       visible: false,
-      zIndex: this.config.zIndex + 1
+      zIndex: this.config.zIndex + 1000
     });
 
     // 添加图层到地图
