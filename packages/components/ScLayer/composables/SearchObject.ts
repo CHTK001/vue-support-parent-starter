@@ -70,7 +70,7 @@ export class SearchObject {
   private readonly CACHE_SIZE = 10; // 缓存大小
   private readonly CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 缓存过期时间（5分钟）
   private searchCache: CacheItem[] = [];
-  
+
   // 当前搜索类型
   private currentSearchType: SearchType;
   // 地图密钥
@@ -214,7 +214,7 @@ export class SearchObject {
         
         return cachedResults;
       }
-      
+
       // 根据搜索类型设置选项
       this.setOptionsBySearchType(type, keyword, options);
       
@@ -249,28 +249,28 @@ export class SearchObject {
       // 特殊处理坐标搜索类型
       if (type === SearchType.COORDINATE && (options as any).coordinateResult) {
         const results = (options as any).coordinateResult;
-        
-        // 更新缓存
+      
+      // 更新缓存
         this.updateCache(keyword, options, results, type);
-        
-        this.searchResults = results;
-        
-        // 清除之前的搜索结果标记
+      
+      this.searchResults = results;
+      
+      // 清除之前的搜索结果标记
         this.clearSearchMarkers();
-        
+      
         // 添加所有搜索结果的标记
-        if (results.length > 0) {
+      if (results.length > 0) {
           this.addSearchMarkers(results);
           // 可以选择是否立即定位到第一个结果
           // this.flyToLocation(results[0].location);
-        }
-        
-        // 触发搜索回调
-        if (this.searchCallback) {
-          this.searchCallback(results);
-        }
-        
-        return results;
+      }
+      
+      // 触发搜索回调
+      if (this.searchCallback) {
+        this.searchCallback(results);
+      }
+      
+      return results;
       }
       
       // 如果有自定义处理函数，使用自定义处理函数
@@ -305,7 +305,7 @@ export class SearchObject {
       const provider = SearchDataProviderFactory.getProvider(options?.mapType?.toLowerCase() || 'gaode');
       if (!provider) {
         logger.error(`[SearchObject] 无法找到适用的搜索数据提供者: ${options?.mapType}`);
-        return [];
+      return [];
       }
       
       // 根据SearchDataProvider接口定义的方式调用search方法
@@ -471,13 +471,13 @@ export class SearchObject {
       hash: cacheKey,
       searchType
     };
-    
+
     // 移除旧的相同缓存项
     this.searchCache = this.searchCache.filter(item => item.hash !== cacheKey);
-    
+
     // 添加新缓存项到开头
     this.searchCache.unshift(newCacheItem);
-    
+
     // 限制缓存大小
     if (this.searchCache.length > this.CACHE_SIZE) {
       this.searchCache.pop(); // 移除最旧的缓存项

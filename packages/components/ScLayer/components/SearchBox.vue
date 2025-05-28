@@ -21,19 +21,19 @@
           :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }" />
 
         <select v-else v-model="searchText" @change="handleInput">
-          <option value="">请选择</option>
-          <option v-for="option in options" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
+        <option value="">请选择</option>
+        <option v-for="option in options" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
 
         <button type="button" class="search-button" @click="handleSearch">
           <svg viewBox="0 0 24 24" width="18" height="18">
-            <path fill="currentColor"
+          <path fill="currentColor"
               d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-          </svg>
+        </svg>
         </button>
-      </div>
+        </div>
       
       <!-- 导航搜索专用双输入框 -->
       <div v-else class="navigation-input-container">
@@ -43,7 +43,7 @@
             <input v-model="navStartPoint" type="text" placeholder="请输入起点" 
               @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">×</button>
-          </div>
+    </div>
           <div class="nav-swap-btn" @click="swapNavPoints" title="交换起终点">
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
@@ -86,8 +86,8 @@
             <div class="result-address">
               <span class="location-icon"></span>
               {{ result.address }}
-            </div>
-          </div>
+      </div>
+    </div>
           <div class="result-actions">
             <div v-if="result.distance" class="result-distance">
               {{ formatDistance(result.distance) }}
@@ -102,8 +102,8 @@
                 @click.stop="setAsEndPoint(result)" title="到这里去">
                 <span class="end-icon"></span>
                 到这去
-              </button>
-            </div>
+      </button>
+    </div>
           </div>
       </div>
       
@@ -1224,7 +1224,7 @@ $transition-time: 0.2s;
     
     .custom-select {
       position: relative;
-      height: 36px;
+  height: 36px;
       
       select {
         appearance: none;
@@ -1278,10 +1278,10 @@ $transition-time: 0.2s;
       
       .nav-input {
         flex: 1;
-        position: relative;
+  position: relative;
         height: 36px;
-        display: flex;
-        align-items: center;
+  display: flex;
+  align-items: center;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
@@ -1316,7 +1316,7 @@ $transition-time: 0.2s;
         }
         
         input {
-          width: 100%;
+  width: 100%;
           height: 100%;
           border: none;
           outline: none;
@@ -1377,7 +1377,7 @@ $transition-time: 0.2s;
       
       .transport-mode {
         width: 36px;
-        height: 36px;
+  height: 36px;
         border-radius: $border-radius;
         margin-right: 8px;
         background-color: #f5f5f5;
@@ -1435,7 +1435,7 @@ $transition-time: 0.2s;
       border-radius: $border-radius;
       background-color: $primary-color;
       color: white;
-      font-size: 14px;
+  font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1486,7 +1486,7 @@ $transition-time: 0.2s;
       }
     
     &:focus {
-        outline: none;
+  outline: none;
         border-color: $primary-color;
         box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
       }
@@ -1498,7 +1498,7 @@ $transition-time: 0.2s;
     }
     
     .search-button {
-    position: absolute;
+  position: absolute;
       top: 0;
       right: 0;
       width: 36px;
@@ -1506,7 +1506,7 @@ $transition-time: 0.2s;
       border: none;
       background: none;
     cursor: pointer;
-      display: flex;
+  display: flex;
       align-items: center;
       justify-content: center;
       color: $text-secondary;
@@ -1522,11 +1522,11 @@ $transition-time: 0.2s;
         color: $primary-active;
       }
     }
-  }
-  
-  .search-results {
-    max-height: 300px;
-    overflow-y: auto;
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
     background-color: #fff;
     
     &::-webkit-scrollbar {
@@ -1580,7 +1580,7 @@ $transition-time: 0.2s;
     }
     
     .result-content {
-      cursor: pointer;
+  cursor: pointer;
       flex: 1;
       min-width: 0;
       margin-bottom: 8px;
@@ -1615,21 +1615,21 @@ $transition-time: 0.2s;
           background-color: #ff525d;
         }
       }
-    }
-    
-    .result-title {
-      font-size: 14px;
+}
+
+.result-title {
+  font-size: 14px;
       font-weight: 500;
       color: $text-primary;
-      margin-bottom: 4px;
+  margin-bottom: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       transition: color 0.2s;
-    }
-    
-    .result-address {
-      font-size: 12px;
+}
+
+.result-address {
+  font-size: 12px;
       color: $text-secondary;
       display: flex;
       align-items: center;
@@ -1839,17 +1839,17 @@ $transition-time: 0.2s;
           transition: all 0.2s;
         }
       }
-    }
-    
-    .navigation-buttons {
-      display: flex;
-      gap: 8px;
+}
+
+.navigation-buttons {
+  display: flex;
+  gap: 8px;
       margin-top: 10px;
-    }
-    
+}
+
     .navigation-button {
-      display: flex;
-      align-items: center;
+  display: flex;
+  align-items: center;
       justify-content: center;
       background-color: $primary-color;
       color: white;
@@ -1857,7 +1857,7 @@ $transition-time: 0.2s;
       border-radius: $border-radius;
       padding: 8px 16px;
       font-size: 14px;
-      cursor: pointer;
+  cursor: pointer;
       transition: all $transition-time;
       flex: 1;
       margin-right: 8px;
@@ -1873,11 +1873,11 @@ $transition-time: 0.2s;
       
       .navigation-icon {
         display: inline-block;
-        width: 16px;
-        height: 16px;
+  width: 16px;
+  height: 16px;
         margin-right: 6px;
         background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E") no-repeat center center;
-        background-size: contain;
+  background-size: contain;
       }
     }
     
@@ -2254,7 +2254,7 @@ $transition-time: 0.2s;
             position: relative;
             z-index: 2;
             background-position: center;
-            background-repeat: no-repeat;
+  background-repeat: no-repeat;
             background-size: 14px;
             
             &.icon-start {
