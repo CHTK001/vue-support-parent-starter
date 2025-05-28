@@ -1159,7 +1159,7 @@ const loadDemoTracks = () => {
     const now = Math.floor(Date.now() / 1000);
     const points = [];
     const center = { lat: 39.9 + Math.random() * 0.1, lng: 116.3 + Math.random() * 0.1 };
-    const pointCount = 50 + Math.floor(Math.random() * 50);
+    const pointCount = 12 + Math.floor(Math.random() * 50);
     
     // 生成轨迹点
     for (let i = 0; i < pointCount; i++) {
