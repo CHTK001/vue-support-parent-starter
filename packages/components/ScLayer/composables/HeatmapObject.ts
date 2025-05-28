@@ -92,7 +92,7 @@ export class HeatmapObject {
       radius: this.config.radius,
       opacity: this.config.opacity,
       gradient: this.config.gradient,
-      zIndex: this.config.zIndex,
+      zIndex: 100,
       visible: false
     });
 

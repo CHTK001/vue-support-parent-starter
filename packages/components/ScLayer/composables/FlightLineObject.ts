@@ -84,34 +84,15 @@ export class FlightLineObject {
    */
   private async initEchartsLayer(): Promise<void> {
     try {
-      if (!this.mapInstance) {
-        logger.error('[FlightLine] 无法初始化图层：地图实例不可用');
-        return;
-      }
-
-      // 设置正在初始化标志
+      // 标记正在初始化，防止并发初始化
       this.initializing = true;
 
-      // 检查地图尺寸
-      const mapSize = this.mapInstance.getSize();
-      if (!mapSize || !mapSize[0] || !mapSize[1]) {
-        logger.error('[FlightLine] 地图尺寸无效，无法初始化图层', mapSize);
-        // 尝试更新地图尺寸
-        this.mapInstance.updateSize();
-        // 再次检查尺寸
-        const newSize = this.mapInstance.getSize();
-        if (!newSize || !newSize[0] || !newSize[1]) {
-          logger.error('[FlightLine] 更新后地图尺寸仍然无效，延迟初始化', newSize);
-          // 延迟初始化
-          this.initializing = false;
-          setTimeout(() => {
-            this.initEchartsLayer();
-          }, 500);
-          return;
-        }
+      if (!this.mapInstance) {
+        logger.error('[FlightLine] 地图实例不存在，无法初始化图层');
+        this.initializing = false;
+        throw new Error('地图实例不存在');
       }
 
-      logger.debug('[FlightLine] 开始动态导入echarts库');
       try {
       // 动态导入ol-echarts和echarts库
         const olEchartsModule = await import('ol-echarts');
@@ -154,7 +135,7 @@ export class FlightLineObject {
         forcedPrecomposeRerender: true, // 强制重新渲染
           insertFirst: false,        // 确保在地图的最上层
           polyfillEvents: true,      // 支持事件
-          zIndex: 999,               // 设置更高的z-index
+          zIndex: 90,                // 设置较低的z-index，确保不会覆盖热力图
           className: 'flight-line-layer', // 添加自定义类名便于样式调整
         });
 
@@ -219,7 +200,7 @@ export class FlightLineObject {
         if (elements.length > 0) {
           elements.forEach((el: Element) => {
             if (el instanceof HTMLElement) {
-              el.style.zIndex = '999';
+              el.style.zIndex = '90';
               el.style.position = 'absolute';
               logger.debug(`[FlightLine] 设置元素z-index成功: ${selector}`);
             }
@@ -230,8 +211,8 @@ export class FlightLineObject {
       // 如果echartsLayer对象有设置z-index的方法，尝试调用
       if (this.echartsLayer) {
         if (typeof this.echartsLayer.setZIndex === 'function') {
-          this.echartsLayer.setZIndex(999);
-          logger.debug('[FlightLine] 通过方法设置图层z-index: 999');
+          this.echartsLayer.setZIndex(90);
+          logger.debug('[FlightLine] 通过方法设置图层z-index: 90');
         }
       }
     } catch (error) {
@@ -378,7 +359,7 @@ export class FlightLineObject {
           name: 'effectScatter',
           type: 'effectScatter',
           coordinateSystem: 'cartesian2d', // 使用笛卡尔坐标系
-          zlevel: this.config.zIndex || 90, // 使用配置中的zIndex
+          zlevel: 80, // 降低层级，确保热力图可以显示在上方
           symbol: 'circle',
           symbolSize: this.config.nodeSymbolSize || 12,
           showEffectOn: 'render',
@@ -395,60 +376,55 @@ export class FlightLineObject {
           },
           data: this.getNodeData()
         };
-        
+
+        // 添加飞线系列
         const linesSeries = {
           name: 'lines',
           type: 'lines',
           coordinateSystem: 'cartesian2d', // 使用笛卡尔坐标系
-          zlevel: (this.config.zIndex || 90) + 1, // 比节点层级高1
-          lineStyle: {
-            color: this.config.color || '#1677ff',
-            width: this.config.width || 1,
-            opacity: this.config.opacity || 0.8,
-            curveness: this.config.curveness || 0.2,
-            // 添加平滑曲线相关配置
-            smooth: this.config.smooth !== undefined ? this.config.smooth : true,
-            smoothConstraint: this.config.smoothConstraint !== undefined ? this.config.smoothConstraint : true,
-            smoothMonotone: this.config.smoothMonotone
-          },
+          zlevel: 80, // 降低层级，确保热力图可以显示在上方
           effect: {
             show: this.config.showEffect,
             period: this.config.effectPeriod || 3,
-            trailLength: this.config.effectTrailLength || 0.1,
+            trailLength: this.config.effectTrailLength || 0,
             symbol: this.getEffectSymbol(this.config.effectSymbol, this.config.effectSymbolPath),
             symbolSize: this.config.effectSymbolSize || 18,
-            color: this.config.trailColor || this.config.color || '#1677ff',
-            opacity: this.config.trailOpacity || 0.7,
+            constantSpeed: this.config.effectSpeed || 40,
+            loop: true
+          },
+          lineStyle: {
+            width: this.config.width || 1,
+            color: this.config.color || '#1677ff',
+            opacity: this.config.opacity || 0.8,
+            curveness: this.config.curveness || 0.4,
             shadowBlur: this.config.shadowBlur || 10,
             shadowColor: this.config.shadowColor || this.config.color || '#1677ff'
           },
-          silent: true,
           data: lines
         };
-        
-        // 只有在启用节点时添加节点系列
-        if (this.config.showNodes !== false) {
-          options.series.push(effectScatterSeries);
-          
-          // 只有在启用节点特效时才添加rippleEffect
-          if (this.config.nodeEffect === false) {
-            // @ts-ignore: 类型错误但运行时有效
-            effectScatterSeries.rippleEffect.scale = 0;
-            }
-        }
-        
-        // 添加线条系列
-        options.series.push(linesSeries);
-      }
-      
-      // 设置ECharts选项
-      this.echartsLayer.setChartOptions(options);
 
-      logger.debug('[FlightLine] Echarts选项已更新');
+        // 添加系列到配置中
+        options.series = [effectScatterSeries, linesSeries];
+      }
+
+      // 设置Echarts选项
+      if (this.echartsLayer && typeof this.echartsLayer.setChartOptions === 'function') {
+        this.echartsLayer.setChartOptions(options);
+        logger.debug('[FlightLine] 已更新Echarts选项');
+      } else {
+        logger.warn('[FlightLine] 无法设置Echarts选项：图层方法不可用');
+      }
+
+      // 强制重绘
+      if (this.echartsLayer && typeof this.echartsLayer.redraw === 'function') {
+        this.echartsLayer.redraw();
+        logger.debug('[FlightLine] 已重绘Echarts图层');
+      }
+
+      // 重置初始化标志
+      this.initializing = false;
     } catch (error) {
-      logger.error('[FlightLine] 更新Echarts选项失败:', error);
-    } finally {
-      // 清除初始化标志
+      logger.error('[FlightLine] 更新Echarts选项时出错:', error);
       this.initializing = false;
     }
   }
