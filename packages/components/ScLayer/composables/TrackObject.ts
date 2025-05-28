@@ -4758,6 +4758,32 @@ export class TrackObject {
       vectorContext.setStyle(animState.style!);
       vectorContext.drawGeometry(newPoint);
       
+      // 更新移动点位的Overlay
+      const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+      const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+      const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+      const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
+      
+      // 如果需要显示移动信息，并且有移动点位名称、速度或距离信息，使用Overlay
+      if (showMovingInfo && ((movingPointNameVisible && newPosition.title) || showSpeed || showNodeDistance)) {
+        try {
+          // 使用统一的方法创建移动点内容
+          const overlayContent = this.createMovingPointContent(id, newPosition);
+          
+          // 只有在有内容时才创建Overlay
+          if (overlayContent) {
+            // 创建或更新移动点位Overlay
+            this.createMovingOverlay(id, overlayContent, fromLonLat([newPosition.lng, newPosition.lat]));
+          }
+        } catch (error) {
+          this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+        }
+      } else if (this.trackMovingOverlay) {
+        // 如果不需要显示任何信息，但存在移动点位Overlay，则移除它
+        this.mapInstance!.removeOverlay(this.trackMovingOverlay);
+        this.trackMovingOverlay = null;
+      }
+      
       // 使相机跟随移动
       if (player.withCamera) {
         const newCenter = fromLonLat([newPosition.lng, newPosition.lat]);
@@ -4810,6 +4836,27 @@ export class TrackObject {
           if (this.mapInstance) {
             this.mapInstance.render();
           }
+          
+          // 更新移动点位的Overlay
+          const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+          const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+          const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+          const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false;
+          
+          if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
+            try {
+              // 使用统一的方法创建移动点内容
+              const overlayContent = this.createMovingPointContent(id, position);
+              
+              // 只有在有内容时才创建Overlay
+              if (overlayContent) {
+                // 创建或更新移动点位Overlay
+                this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+              }
+            } catch (error) {
+              this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+            }
+          }
         }
       }
       
@@ -4843,6 +4890,27 @@ export class TrackObject {
             // 请求地图重绘
             if (this.mapInstance) {
               this.mapInstance.render();
+            }
+            
+            // 更新移动点位的Overlay
+            const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+            const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+            const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+            const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false;
+            
+            if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
+              try {
+                // 使用统一的方法创建移动点内容
+                const overlayContent = this.createMovingPointContent(id, position);
+                
+                // 只有在有内容时才创建Overlay
+                if (overlayContent) {
+                  // 创建或更新移动点位Overlay
+                  this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+                }
+              } catch (error) {
+                this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+              }
             }
           }
         } catch (error) {
