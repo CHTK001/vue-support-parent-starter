@@ -1326,11 +1326,33 @@ watch(showNodeDistance, (newValue) => {
   }
 });
 
+// 速度图标切换
 watch(enableSpeedIcon, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setEnableSpeedIcon) {
-    // 速度图标切换在任何模式下都应实时生效
+    // 调用设置方法
     props.trackObj.setEnableSpeedIcon(activeTrackId.value, newValue);
-    console.log(`速度图标切换已${newValue ? '启用' : '禁用'}`);
+    
+    // 如果正在播放，确保立即更新
+    if (playState.value === 'playing' && props.trackObj.updateTrackPlayer) {
+      props.trackObj.updateTrackPlayer(activeTrackId.value, {
+        enableSpeedIcon: newValue
+      });
+    }
+    
+    // 强制刷新轨迹显示
+    if (props.trackObj.refreshTrack) {
+      props.trackObj.refreshTrack(activeTrackId.value);
+    } else {
+      // 如果没有刷新方法，尝试通过地图重绘刷新
+      if (props.trackObj.getMapInstance) {
+        const map = props.trackObj.getMapInstance();
+        if (map && map.render) {
+          map.render();
+        }
+      }
+    }
+    
+    console.log(`速度图标切换已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
@@ -1452,18 +1474,33 @@ const onNodeDistanceChange = () => {
   }
 };
 
+// 添加事件处理方法
 const onSpeedIconChange = () => {
-  if (activeTrackId.value && props.trackObj) {
-    props.trackObj.setEnableSpeedIcon?.(activeTrackId.value, enableSpeedIcon.value);
+  if (activeTrackId.value && props.trackObj && props.trackObj.setEnableSpeedIcon) {
+    // 调用设置方法
+    props.trackObj.setEnableSpeedIcon(activeTrackId.value, enableSpeedIcon.value);
     
-    // 如果正在播放，立即更新播放配置
-    if (playState.value === 'playing') {
-      props.trackObj.updateTrackPlayer?.(activeTrackId.value, {
+    // 如果正在播放，确保立即更新
+    if (playState.value === 'playing' && props.trackObj.updateTrackPlayer) {
+      props.trackObj.updateTrackPlayer(activeTrackId.value, {
         enableSpeedIcon: enableSpeedIcon.value
       });
     }
     
-    props.trackObj.refreshTrack?.(activeTrackId.value);
+    // 强制刷新轨迹显示
+    if (props.trackObj.refreshTrack) {
+      props.trackObj.refreshTrack(activeTrackId.value);
+    } else {
+      // 如果没有刷新方法，尝试通过地图重绘刷新
+      if (props.trackObj.getMapInstance) {
+        const map = props.trackObj.getMapInstance();
+        if (map && map.render) {
+          map.render();
+        }
+      }
+    }
+    
+    console.log(`速度图标切换已${enableSpeedIcon.value ? '启用' : '禁用'} (实时应用)`);
   }
 };
 

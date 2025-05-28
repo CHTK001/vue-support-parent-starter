@@ -4854,13 +4854,59 @@ export class TrackObject {
     
     this.trackEnableSpeedIcon.set(id, enabled);
     
-    // 如果轨迹正在播放，且处于性能模式，更新样式
+    // 如果轨迹正在播放，需要立即更新样式
     if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
       const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
-      if (useAdvancedAnimation && this.trackAnimationPositions.has(id)) {
-        const animState = this.trackAnimationPositions.get(id)!;
-        const position = this.calculatePositionAtProgress(this.tracks.get(id)!, animState.distance);
-        animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+      
+      if (useAdvancedAnimation) {
+        // 性能模式下更新动画样式
+        if (this.trackAnimationPositions.has(id)) {
+          const animState = this.trackAnimationPositions.get(id)!;
+          const progress = this.trackProgressValues.get(id) || 0;
+          const position = this.calculatePositionAtProgress(this.tracks.get(id)!, progress);
+          
+          // 重新创建样式
+          animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+          
+          // 请求地图重绘以应用新样式
+          if (this.mapInstance) {
+            this.mapInstance.render();
+          }
+        }
+      } else {
+        // 普通模式下更新位置标记
+        if (this.trackPositionFeatures.has(id)) {
+          const positionFeature = this.trackPositionFeatures.get(id)!;
+          const progress = this.trackProgressValues.get(id) || 0;
+          const position = this.calculatePositionAtProgress(this.tracks.get(id)!, progress);
+          
+          // 重新设置样式
+          try {
+            // 获取当前几何
+            const geometry = positionFeature.getGeometry();
+            if (geometry) {
+              // 创建新样式
+              let style;
+              if (enabled) {
+                // 根据速度选择图标
+                style = this.createPositionMarkerStyle(id, position);
+              } else {
+                // 使用默认样式
+                style = this.createDefaultMarkerStyle(this.tracks.get(id)!.color || 'rgba(24, 144, 255, 1)');
+              }
+              
+              // 应用样式
+              positionFeature.setStyle(style);
+              
+              // 请求地图重绘
+              if (this.mapInstance) {
+                this.mapInstance.render();
+              }
+            }
+          } catch (error) {
+            this.log('error', `更新位置标记样式失败: ${error.message || '未知错误'}`);
+          }
+        }
       }
     }
     
@@ -5062,5 +5108,106 @@ export class TrackObject {
       this.log('error', `释放相机锁定失败: ${error.message || '未知错误'}`);
       return false;
     }
+  }
+
+  /**
+   * 创建位置标记样式
+   * @param id 轨迹ID
+   * @param position 位置点
+   * @returns 样式对象
+   */
+  private createPositionMarkerStyle(id: string, position: TrackPoint): Style {
+    const track = this.tracks.get(id)!;
+    const enableSpeedIcon = this.trackEnableSpeedIcon.get(id) !== false;
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    const realSpeed = position.speed ? position.speed / speedFactor : 0;
+    
+    let iconUrl: string | undefined = undefined;
+    let iconSize: number[] = [24, 24]; // 默认图标大小
+    let iconType: string | undefined = undefined;
+    
+    // 只有启用速度图标切换时才进行图标选择
+    if (enableSpeedIcon) {
+      // 处理图标选择逻辑
+      // 1. 首先检查TrackSpeedGroup配置 - 根据速度选择图标
+      if (this.config.trackSpeedGroup && this.config.trackSpeedGroup.length > 0) {
+        const sortedGroups = [...this.config.trackSpeedGroup].sort((a, b) => b.speed - a.speed);
+        for (const group of sortedGroups) {
+          if (realSpeed > group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `根据速度 ${realSpeed} km/h 选择图标: ${iconUrl} (速度阈值: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 2. 如果通过速度配置没找到图标，检查轨迹点自身是否有图标URL
+      if (!iconUrl && position.iconUrl) {
+        iconUrl = position.iconUrl;
+        if (position.iconSize) {
+          iconSize = position.iconSize;
+        }
+        iconType = (position as any).iconType;
+        this.log('debug', `使用轨迹点自定义图标: ${iconUrl}`);
+      }
+      
+      // 3. 如果轨迹点没有图标，则检查轨迹自身的iconGroup配置
+      if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
+        for (const group of track.iconGroup) {
+          if (realSpeed >= group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 4. 如果仍然没有找到图标，使用轨迹的默认图标
+      if (!iconUrl && track.iconUrl) {
+        iconUrl = track.iconUrl;
+        iconType = (track as any).iconType;
+        this.log('debug', `使用轨迹默认图标: ${iconUrl}`);
+      }
+    }
+    
+    // 设置样式
+    let style: Style;
+    if (iconUrl) {
+      try {
+        let rotation = 0;
+        let scaleY = 1;
+        const autoRotate = this.config.autoRotate === true;
+        if (autoRotate && position.dir !== undefined) {
+          if (position.dir > 180) {
+            scaleY = -1;
+            rotation = ((position.dir - 180) * Math.PI) / 180;
+          } else {
+            scaleY = 1;
+            rotation = (position.dir * Math.PI) / 180;
+          }
+        }
+        
+        // 统一用IconUtils.createSafeIconStyle
+        const safeIconSize: [number, number] = [iconSize[0] || 24, iconSize[1] || 24];
+        style = IconUtils.createSafeIconStyle(iconUrl, 1, safeIconSize, track.color || 'rgba(24, 144, 255, 1)', undefined, iconType);
+        if (style && style.getImage && style.getImage()) {
+          style.getImage().setRotation(rotation);
+          style.getImage().setScale([1, scaleY]);
+        }
+        this.log('debug', `创建图标样式成功: ${iconUrl}`);
+      } catch (error) {
+        // 如果创建样式失败，使用默认样式
+        this.log('error', `创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
+        style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+      }
+    } else {
+      // 使用默认圆点样式
+      this.log('debug', `未找到适用的图标，使用默认圆点样式`);
+      style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+    }
+    
+    return style;
   }
 }
