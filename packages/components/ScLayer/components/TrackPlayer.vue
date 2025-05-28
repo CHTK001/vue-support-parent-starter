@@ -202,6 +202,22 @@
             <div class="track-progress-filled" :style="{ width: progressPercentage + '%' }"></div>
             <div class="track-progress-handle" :style="{ left: progressPercentage + '%' }"
               @mousedown="startProgressDrag" :class="{ 'active': isDraggingProgress }"></div>
+            <!-- 添加点位标记 -->
+            <div class="track-progress-points" v-if="trackPoints.length > 0">
+              <div 
+                v-for="(point, index) in trackPoints" 
+                :key="index" 
+                class="track-point-marker" 
+                :class="{ 
+                  'static-point': point.isStatic, 
+                  'passed-point': point.isPassed,
+                  'current-point': point.isCurrent
+                }"
+                :style="{ left: point.position + '%' }"
+                :title="point.title"
+                @click.stop="jumpToPoint(point.index)"
+              ></div>
+            </div>
           </div>
           <div class="track-progress-time">
             {{ formatTime(currentTime) }} / {{ formatTime(totalTime) }}
@@ -383,6 +399,15 @@ const trackPlayerStyle = computed(() => {
 
 // 轨迹数据
 const tracks = ref(new Map<string, Track>());
+// 进度条上的点位标记数据
+const trackPoints = ref<Array<{
+  index: number;       // 点位在轨迹中的索引
+  position: number;    // 在进度条上的位置百分比
+  title: string;       // 点位标题
+  isStatic: boolean;   // 是否是静态点位
+  isPassed: boolean;   // 是否已经过
+  isCurrent: boolean;  // 是否是当前点位
+}>>([]);
 
 // 图标
 const icons = {
@@ -1534,6 +1559,78 @@ watch(showMovingDistance, (newValue) => {
     console.log(`移动距离显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
+
+// 更新进度条上的点位标记
+const updateTrackPoints = () => {
+  if (!activeTrackId.value) {
+    trackPoints.value = [];
+    return;
+  }
+  
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length < 2) {
+    trackPoints.value = [];
+    return;
+  }
+  
+  const currentProgress = props.trackObj.getTrackProgress?.(activeTrackId.value) || 0;
+  const currentIndex = Math.floor(currentProgress * (track.points.length - 1));
+  
+  // 创建点位标记数据
+  const points = [];
+  for (let i = 0; i < track.points.length; i++) {
+    const point = track.points[i];
+    const position = (i / (track.points.length - 1)) * 100;
+    const isStatic = !!point.staticTitle || !!point.title;
+    const isPassed = i <= currentIndex;
+    const isCurrent = i === currentIndex;
+    
+    // 只显示有标题的点位或每隔一定数量的点位
+    // 对于大量点位的轨迹，可以通过这种方式减少标记数量
+    const showEveryN = Math.max(1, Math.floor(track.points.length / 50)); // 最多显示50个点
+    
+    if (isStatic || i % showEveryN === 0 || i === 0 || i === track.points.length - 1 || isCurrent) {
+      points.push({
+        index: i,
+        position,
+        title: point.staticTitle || point.title || `点位 ${i+1}`,
+        isStatic,
+        isPassed,
+        isCurrent
+      });
+    }
+  }
+  
+  trackPoints.value = points;
+};
+
+// 跳转到指定点位
+const jumpToPoint = (pointIndex: number) => {
+  if (!activeTrackId.value || !props.trackObj || !props.trackObj.setTrackProgress) return;
+  
+  const track = tracks.value.get(activeTrackId.value);
+  if (!track || !track.points || track.points.length < 2) return;
+  
+  // 计算点位对应的进度值
+  const totalPoints = track.points.length - 1; // 减1是因为进度是从0到1
+  const progress = pointIndex / totalPoints;
+  
+  // 设置轨迹播放进度
+  props.trackObj.setTrackProgress(activeTrackId.value, progress);
+  
+  // 更新界面进度显示
+  progressPercentage.value = progress * 100;
+  
+  // 更新当前时间
+  const startTime = track.points[0].time;
+  const endTime = track.points[track.points.length - 1].time;
+  currentTime.value = startTime + (endTime - startTime) * progress;
+  
+  // 更新点位标记状态
+  updateTrackPoints();
+  
+  console.log(`跳转到点位: ${pointIndex}, 进度: ${progress.toFixed(2)}`);
+};
 </script>
 
 <style scoped>
@@ -2403,5 +2500,52 @@ watch(showMovingDistance, (newValue) => {
 .performance-mode:hover .tooltip {
   visibility: visible;
   opacity: 1;
+}
+
+/* 点位标记样式 */
+.track-progress-points {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.track-point-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  background-color: #d9d9d9;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s ease;
+}
+
+.track-point-marker:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.track-point-marker.static-point {
+  background-color: #ff6b18;
+  width: 8px;
+  height: 8px;
+}
+
+.track-point-marker.passed-point {
+  background-color: #52c41a;
+}
+
+.track-point-marker.current-point {
+  background-color: #ff6b18;
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 3px rgba(255, 107, 24, 0.3);
+  z-index: 6;
 }
 </style> 
