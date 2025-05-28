@@ -536,6 +536,9 @@ onMounted(() => {
 watch(showNodeDistance, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeDistanceVisible) {
     props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点距离显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
@@ -1319,37 +1322,15 @@ watch(showNodeTime, (newValue) => {
   }
 });
 
-watch(showNodeDistance, (newValue) => {
-  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeDistanceVisible && !performanceMode.value) {
-    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
-    console.log(`节点距离显示已${newValue ? '启用' : '禁用'}`);
-  }
-});
-
 // 速度图标切换
 watch(enableSpeedIcon, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setEnableSpeedIcon) {
     // 调用设置方法
     props.trackObj.setEnableSpeedIcon(activeTrackId.value, newValue);
     
-    // 如果正在播放，确保立即更新
-    if (playState.value === 'playing' && props.trackObj.updateTrackPlayer) {
-      props.trackObj.updateTrackPlayer(activeTrackId.value, {
-        enableSpeedIcon: newValue
-      });
-    }
-    
     // 强制刷新轨迹显示
     if (props.trackObj.refreshTrack) {
       props.trackObj.refreshTrack(activeTrackId.value);
-    } else {
-      // 如果没有刷新方法，尝试通过地图重绘刷新
-      if (props.trackObj.getMapInstance) {
-        const map = props.trackObj.getMapInstance();
-        if (map && map.render) {
-          map.render();
-        }
-      }
     }
     
     console.log(`速度图标切换已${newValue ? '启用' : '禁用'} (实时应用)`);
@@ -1382,6 +1363,11 @@ watch(followCamera, (newValue) => {
     // 如果取消跟随，且轨迹正在播放，需要特殊处理解除相机锁定
     if (!newValue && playState.value === 'playing' && props.trackObj.releaseCameraLock) {
       props.trackObj.releaseCameraLock(activeTrackId.value);
+    }
+    
+    // 强制刷新轨迹显示
+    if (props.trackObj.refreshTrack) {
+      props.trackObj.refreshTrack(activeTrackId.value);
     }
     
     console.log(`跟随移动已${newValue ? '启用' : '禁用'} (实时应用)`);
@@ -1422,7 +1408,9 @@ watch(showNodeSpeed, (newValue) => {
 watch(showNodeDistance, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeDistanceVisible && !performanceMode.value) {
     props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
-    console.log(`节点距离显示已${newValue ? '启用' : '禁用'}`);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点距离显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
@@ -1480,24 +1468,9 @@ const onSpeedIconChange = () => {
     // 调用设置方法
     props.trackObj.setEnableSpeedIcon(activeTrackId.value, enableSpeedIcon.value);
     
-    // 如果正在播放，确保立即更新
-    if (playState.value === 'playing' && props.trackObj.updateTrackPlayer) {
-      props.trackObj.updateTrackPlayer(activeTrackId.value, {
-        enableSpeedIcon: enableSpeedIcon.value
-      });
-    }
-    
     // 强制刷新轨迹显示
     if (props.trackObj.refreshTrack) {
       props.trackObj.refreshTrack(activeTrackId.value);
-    } else {
-      // 如果没有刷新方法，尝试通过地图重绘刷新
-      if (props.trackObj.getMapInstance) {
-        const map = props.trackObj.getMapInstance();
-        if (map && map.render) {
-          map.render();
-        }
-      }
     }
     
     console.log(`速度图标切换已${enableSpeedIcon.value ? '启用' : '禁用'} (实时应用)`);
@@ -1514,6 +1487,11 @@ const onFollowCameraChange = () => {
     // 如果取消跟随，且轨迹正在播放，解除相机锁定
     if (!followCamera.value && playState.value === 'playing' && props.trackObj.releaseCameraLock) {
       props.trackObj.releaseCameraLock(activeTrackId.value);
+    }
+    
+    // 强制刷新轨迹显示
+    if (props.trackObj.refreshTrack) {
+      props.trackObj.refreshTrack(activeTrackId.value);
     }
     
     console.log(`跟随移动已${followCamera.value ? '启用' : '禁用'} (实时应用)`);
