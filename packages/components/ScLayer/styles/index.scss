@@ -570,55 +570,109 @@
 /* 添加标记点 Popover 样式 */
 .marker-popover {
   background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 10px 15px;
   max-width: 300px;
   font-size: 14px;
   color: #333;
   position: relative;
   z-index: 1000;
   pointer-events: auto;
+  margin-bottom: 12px; // 增加底部间距，为箭头留出更多空间
+  transform-origin: center bottom;
+  animation: popover-fade-in 0.3s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+  
+  // 关闭按钮
+  .marker-popover-close {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+    text-align: center;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      color: #333;
+    }
+  }
   
   // 箭头
   &:after {
     content: '';
     position: absolute;
-    bottom: -8px;
+    bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
     width: 0;
     height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 8px solid #fff;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #fff;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
   }
   
   // 标记点内容
   .marker-popover-content {
     font-weight: 500;
     text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+    padding: 2px 0;
+    
+    // 强调文本
+    strong, b {
+      color: var(--el-color-primary, #1890ff);
+    }
   }
   
   // 自定义模板样式
-  &.marker-popover-with-template {
+  &.marker-popover-with-content {
     // 允许模板内容自定义样式
-    padding: 0;
+    padding: 10px;
     overflow: hidden;
+    border-radius: 8px;
     
     // 重置箭头位置
     &:after {
       content: '';
       position: absolute;
-      bottom: -8px;
+      bottom: -10px;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-top: 8px solid #fff;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid #fff;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
     }
+  }
+}
+
+// 添加 popover 显示动画
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

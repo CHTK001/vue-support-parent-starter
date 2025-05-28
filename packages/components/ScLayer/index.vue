@@ -51,7 +51,7 @@
       
     <!-- 添加标记点详情组件 -->
     <MarkerDetail 
-      v-if="showMarkerDetail && selectedMarker && !selectedMarker.template"
+      v-if="showMarkerDetail && selectedMarker && !selectedMarker.content"
       v-model:visible="showMarkerDetail"
       :marker="selectedMarker"
       :title="markerDetailTitle"
@@ -2915,7 +2915,7 @@ const handleMarkerClick = (payload: { coordinates: number[], data: MarkerOptions
   selectedMarker.value = payload.data;
   
   // 如果标记点有自定义模板，则不显示详情面板，而是直接使用模板
-  if (payload.data.template) {
+  if (payload.data.content) {
     // 向父组件发送marker-click事件
     emit('marker-click', payload);
     return;

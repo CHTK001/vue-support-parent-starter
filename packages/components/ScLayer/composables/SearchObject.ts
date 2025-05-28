@@ -644,12 +644,10 @@ export class SearchObject {
       const defaultIcon = {
         url: result.icon || this.searchBoxConfig.markerIcon?.url || DEFAULT_MARKER_ICON,
         size: [32, 32],
-        anchor: [16, 32],
         className: 'search-result-marker', // 添加自定义CSS类名
         label: {
           text: result.name,
           className: 'search-result-label', // 添加标签CSS类名
-          offset: [0, -40], // 将标签放在图标上方
           minZoom: 10 // 在缩放级别10以上显示标签
         }
       };
@@ -663,7 +661,7 @@ export class SearchObject {
         },
         icon: defaultIcon,
       title: result.name,
-      content: `
+      template: `
         <div class="search-result-popup">
           <h3>${result.name}</h3>
           <p>${result.address || ''}</p>
@@ -673,13 +671,13 @@ export class SearchObject {
           </div>
         </div>
       `,
-      clickable: true,
-      draggable: false,
+        clickable: true,
+        draggable: false,
+        showPopover: true,
         data: result,
         group: 'search-results',
         zIndexOffset: 1000 // 使搜索结果标记位于其他标记之上
       };
-      
       // 添加标记点
       const markerId = this.markerObject.addMarker(markerOptions);
       logger.debug(`[SearchObject] 添加搜索结果标记点: ${result.name}, ID: ${markerId}`);
