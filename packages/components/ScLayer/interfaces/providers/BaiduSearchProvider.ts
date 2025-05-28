@@ -103,7 +103,10 @@ export class BaiduSearchProvider implements SearchDataProvider {
    * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    */
-  async getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType: string = 'driving'): Promise<NavigationApiResponse> {
+  async getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType: string = 'driving', options?: {
+    city?: string;
+    cityD?: string;
+  }): Promise<NavigationApiResponse> {
     try {
       logger.debug(`[BaiduSearchProvider] 开始获取导航路径: ${origin} -> ${destination}, 交通方式: ${transportType}`);
       
@@ -138,7 +141,9 @@ export class BaiduSearchProvider implements SearchDataProvider {
         ak: apiKey,
         origin: `${originBd09[1]},${originBd09[0]}`, // 百度API使用 lat,lng 顺序
         destination: `${destinationBd09[1]},${destinationBd09[0]}`, // 百度API使用 lat,lng 顺序
-        output: 'json'
+        output: 'json',
+        city: options?.city,
+        cityD: options?.cityD
       };
       
       logger.debug(`[BaiduSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
