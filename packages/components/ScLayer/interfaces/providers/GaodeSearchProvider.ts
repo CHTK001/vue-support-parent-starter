@@ -104,7 +104,10 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    */
-  async getNavigation(origin: GeoPoint, destination: GeoPoint, apiKey: string, url?: string, transportType: string = 'driving'): Promise<NavigationApiResponse> {
+  async getNavigation(origin: GeoPoint, destination: GeoPoint, apiKey: string, url?: string, transportType: string = 'driving', options?: {
+    city?: string;
+    cityD?: string;
+  }): Promise<NavigationApiResponse> {
     try {
       logger.debug(`[GaodeSearchProvider] 开始获取导航路径: ${origin} -> ${destination}, 交通方式: ${transportType}`);
       
@@ -143,7 +146,9 @@ export class GaodeSearchProvider implements SearchDataProvider {
         destination: `${destinationGcj02[0]},${destinationGcj02[1]}`,
         strategy: 11,
         extensions: 'all',
-        output: 'JSON'
+        output: 'JSON',
+        city: options?.city,
+        cityD: options?.cityD
       };
       
       logger.debug(`[GaodeSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);

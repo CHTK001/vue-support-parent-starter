@@ -883,9 +883,8 @@ export class SearchObject {
       // 清除之前的导航路线
       this.clearNavigationLine();
       
-      const startPoint = this.markerObject.getMarker(startPointId);
+      const startPoint = this.markerObject.getMarker(startPointId) ;
       const endPoint = this.markerObject.getMarker(endPointId);
-      
       if (!startPoint || !endPoint) {
         const errorMsg = `起点或终点未找到: startPoint=${!!startPoint}, endPoint=${!!endPoint}`;
         console.error('[SearchObject]', errorMsg);
@@ -942,7 +941,6 @@ export class SearchObject {
       } else {
         console.log(`[SearchObject] 使用 ${transportType} 专用导航URL: ${navigationUrl}`);
       }
-      
       // 调用搜索提供者的导航方法
       console.log('[SearchObject] 开始调用导航API');
       const response = await searchProvider.getNavigation(
@@ -950,7 +948,13 @@ export class SearchObject {
         endPosition as [number, number],
         apiKey,
         navigationUrl,
-        transportType
+        transportType,
+        {
+          //@ts-ignore
+          city: startPoint?.rawData?.adcode,
+          //@ts-ignore
+          cityD: endPoint?.rawData?.adcode,
+        }
       );
       
       console.log('[SearchObject] 导航API返回数据:', response);
