@@ -282,7 +282,16 @@ export class TrackObject {
    * @param track 轨迹数据
    * @returns 是否添加成功
    */
-  public addTrack(track: Track): boolean {
+  public addTrack(track: Track, config?: {
+  showNodes?: boolean;
+  showNodePopovers?: boolean;
+  showNodeTime?: boolean;
+  showSpeedPopovers?: boolean;
+  showNodeSpeeds?: boolean;
+  showNodeDistance?: boolean;
+  showMovingPointName?: boolean;
+  enableSpeedIcon?: boolean;
+}): boolean {
     if (!this.mapInstance || !this.trackLayer || !this.trackPointLayer) {
       console.warn('添加轨迹失败: 地图或图层未初始化');
       return false;
@@ -347,59 +356,39 @@ export class TrackObject {
     // 存储轨迹
     this.tracks.set(track.id, updatedTrack);
     
+   
+    // 应用配置值，使用传入的配置覆盖默认值
     // 尝试获取轨迹播放器元素，以获取当前配置
     let showNodes = true;
     let showNodePopovers = true;
-    let showNodeTime = true;
-    let showSpeedPopovers = false;
+    let showNodeTime = false;  // 默认不显示节点时间
+    let showSpeedPopovers = true;
     let showNodeSpeeds = false;
+    let showNodeDistance = false;
     let showMovingPointName = true;
+    let enableSpeedIcon = true;
     
-    try {
-      // 如果存在轨迹播放器元素，尝试获取其配置
-      const trackPlayerElement = document.querySelector('.track-player');
-      if (trackPlayerElement && trackPlayerElement['__vue__']) {
-        // 获取Vue实例
-        const playerInstance = trackPlayerElement['__vue__'];
-        
-        // 尝试获取配置
-        if (typeof playerInstance.getConfig === 'function') {
-          // 使用getConfig方法获取当前配置
-          const config = playerInstance.getConfig();
-          if (config) {
-            if (config.showNodes !== undefined) showNodes = config.showNodes;
-            if (config.showNodePopover !== undefined) showNodePopovers = config.showNodePopover;
-            if (config.showNodeTime !== undefined) showNodeTime = config.showNodeTime;
-            if (config.showSpeedPopover !== undefined) showSpeedPopovers = config.showSpeedPopover;
-            if (config.showNodeSpeed !== undefined) showNodeSpeeds = config.showNodeSpeed;
-            if (config.showMovingPointName !== undefined) showMovingPointName = config.showMovingPointName;
-            
-            this.log('debug', `从轨迹播放器获取节点显示配置: 节点显示=${showNodes}, 节点名称=${showNodePopovers}, 节点时间=${showNodeTime}`);
-          }
-        } else {
-          // 尝试直接从实例属性获取配置
-          if (playerInstance.showNodes !== undefined) showNodes = playerInstance.showNodes;
-          if (playerInstance.showNodePopover !== undefined) showNodePopovers = playerInstance.showNodePopover;
-          if (playerInstance.showNodeTime !== undefined) showNodeTime = playerInstance.showNodeTime;
-          if (playerInstance.showSpeedPopover !== undefined) showSpeedPopovers = playerInstance.showSpeedPopover;
-          if (playerInstance.showNodeSpeed !== undefined) showNodeSpeeds = playerInstance.showNodeSpeed;
-          if (playerInstance.showMovingPointName !== undefined) showMovingPointName = playerInstance.showMovingPointName;
-          
-          this.log('debug', `直接从轨迹播放器实例获取节点显示配置: 节点显示=${showNodes}, 节点名称=${showNodePopovers}, 节点时间=${showNodeTime}`);
-        }
-      }
-    } catch (error) {
-      this.log('warn', '尝试获取轨迹播放器配置时出错:', error);
+    // 如果提供了配置参数，使用配置参数覆盖默认值
+    if (config) {
+      if (config.showNodes !== undefined) showNodes = config.showNodes;
+      if (config.showNodePopovers !== undefined) showNodePopovers = config.showNodePopovers;
+      if (config.showNodeTime !== undefined) showNodeTime = config.showNodeTime;
+      if (config.showSpeedPopovers !== undefined) showSpeedPopovers = config.showSpeedPopovers;
+      if (config.showNodeSpeeds !== undefined) showNodeSpeeds = config.showNodeSpeeds;
+      if (config.showNodeDistance !== undefined) showNodeDistance = config.showNodeDistance;
+      if (config.showMovingPointName !== undefined) showMovingPointName = config.showMovingPointName;
+      if (config.enableSpeedIcon !== undefined) enableSpeedIcon = config.enableSpeedIcon;
     }
     
-    // 初始化节点显示设置，使用轨迹播放器的当前配置
+    // 设置轨迹显示属性
     this.trackNodesVisible.set(track.id, showNodes);
     this.trackNodePopoversVisible.set(track.id, showNodePopovers);
     this.trackNodeTimeVisible.set(track.id, showNodeTime);
     this.trackSpeedPopoversVisible.set(track.id, showSpeedPopovers);
     this.trackNodeSpeedsVisible.set(track.id, showNodeSpeeds);
+    this.trackNodeDistanceVisible.set(track.id, showNodeDistance);
     this.trackMovingPointNameVisible.set(track.id, showMovingPointName);
-    this.trackCurrentSpeeds.set(track.id, 0);
+    this.trackEnableSpeedIcon.set(track.id, enableSpeedIcon);
     // 确保节点锚点默认显示
     this.trackNodeAnchorsVisible.set(track.id, true);
     
@@ -4877,5 +4866,201 @@ export class TrackObject {
     
     this.log('debug', `轨迹 "${id}" 速度图标切换已${enabled ? '启用' : '禁用'}`);
     return true;
+  }
+  
+  /**
+   * 刷新轨迹显示
+   * 用于在设置变更后强制重新渲染轨迹
+   * @param id 轨迹ID
+   * @returns 是否成功
+   */
+  public refreshTrack(id: string): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `刷新轨迹失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    try {
+      // 获取当前轨迹
+      const track = this.tracks.get(id)!;
+      
+      // 刷新节点显示
+      if (this.trackNodesVisible.get(id)) {
+        // 重新绘制节点
+        this.clearNodeOverlays(id);
+        this.drawTrackNodes(id, null, track, this.trackProgressValues.get(id) || 0);
+      }
+      
+      // 刷新移动点显示
+      if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
+        // 如果正在播放，强制更新一次位置标记
+        const progress = this.trackProgressValues.get(id) || 0;
+        const position = this.calculatePositionAtProgress(track, progress);
+        
+        // 根据当前模式选择不同的刷新方法
+        const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
+        if (useAdvancedAnimation) {
+          // 性能模式：更新动画状态
+          if (this.trackAnimationPositions.has(id)) {
+            const animState = this.trackAnimationPositions.get(id)!;
+            animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+          }
+        } else {
+          // 普通模式：更新移动点
+          this.removePositionFeature(id);
+          this.createPositionFeature(id);
+          
+          // 更新移动点的覆盖物
+          if (this.trackMovingPointNameVisible.get(id) || this.trackSpeedPopoversVisible.get(id)) {
+            const content = this.createMovingPointContent(id, position);
+            if (content) {
+              this.createMovingOverlay(id, content, fromLonLat([position.lng, position.lat]));
+            }
+          }
+        }
+      } else if (this.trackPlayStates.get(id) === TrackPlayState.PAUSED || 
+                this.trackPlayStates.get(id) === TrackPlayState.STOPPED) {
+        // 如果已暂停或停止，仅更新显示状态
+        const progress = this.trackProgressValues.get(id) || 0;
+        if (progress > 0) {
+          // 更新已经过的线段
+          this.drawPassedLine(id, null, progress);
+          
+          // 更新节点状态
+          this.drawTrackNodes(id, null, track, progress);
+        }
+      }
+      
+      // 请求地图重绘
+      if (this.mapInstance) {
+        this.mapInstance.render();
+      }
+      
+      this.log('debug', `轨迹 "${id}" 已刷新显示`);
+      return true;
+    } catch (error) {
+      this.log('error', `刷新轨迹显示失败: ${error.message || '未知错误'}`);
+      return false;
+    }
+  }
+  
+  /**
+   * 创建移动点位内容
+   * @param id 轨迹ID
+   * @param position 位置点
+   * @returns HTML内容
+   */
+  private createMovingPointContent(id: string, position: TrackPoint): string {
+    const track = this.tracks.get(id)!;
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 获取实际速度和显示速度
+    const realSpeed = position.speed ? position.speed / speedFactor : 0;
+    const displaySpeed = position.speed || 0;
+    
+    // 获取显示设置
+    const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+    const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+    
+    // 准备HTML内容
+    let overlayContent = '';
+    
+    // 添加标题内容
+    if (movingPointNameVisible && position.title) {
+      overlayContent += `<div style="font-weight:bold;font-size:13px;color:#333;margin-bottom:4px;">${position.title}</div>`;
+      // 获取格式化的时间信息
+      const timeInfo = this.formatTimeDisplay(position.time);
+    
+      // 准备时间显示HTML
+      if (timeInfo.isToday && timeInfo.timeAgoText) {
+        // 今天的轨迹点显示时分秒和"多久之前"
+        overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+      } else {
+        // 过去的轨迹点显示完整日期时间
+        overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText}</div>`;
+      }
+      
+      // 如果经过了有名称的静态点位，显示提示信息
+      if (position.staticTitle && position.staticTitle !== position.title) {
+        overlayContent += `<div style="color:#666;font-style:italic;font-size:11px;margin-bottom:3px;">📍 经过: ${position.staticTitle}</div>`;
+      }
+    }
+    
+    // 添加速度信息
+    if (showSpeed && displaySpeed > 0) {
+      // 创建速度文本内容，区分真实速度和调整速度的显示
+      const trackColor = track.color || '#1890ff';
+      
+      if (speedFactor === 1.0) {
+        // 正常速度 - 只显示真实速度
+        overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+          🚄 速度: <span style="font-size:13px;">${realSpeed.toFixed(1)} km/h</span>
+        </div>`;
+      } else {
+        // 调整的速度 - 显示调整后速度和真实速度
+        overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+          🚄 速度: <span style="font-size:13px;">${displaySpeed.toFixed(1)} km/h</span>
+        </div>
+        <div style="color:#666;font-size:10px;margin-top:2px;">
+          实际速度: ${realSpeed.toFixed(1)} km/h
+        </div>`;
+      }
+      
+      // 计算当前位置对应的点索引
+      const exactIndex = this.trackProgressValues.get(id)! * (track.points.length - 1);
+      const pointIndex = Math.floor(exactIndex);
+      if (pointIndex >= 0) {
+        const distanceFromStart = this.getDistanceFromStart(id, pointIndex, position) / 1000; // 公里
+        let distanceToNext = 0;
+        if (pointIndex < track.points.length - 1) {
+          distanceToNext = this.getDistanceBetweenPoints(id, pointIndex, pointIndex + 1, position) / 1000;
+        }
+        overlayContent += `<div style='color:#1890ff;font-size:11px;margin-top:2px;'>
+          已行驶: ${distanceFromStart.toFixed(2)} 公里`;
+        if (distanceToNext > 0) {
+          overlayContent += `，距下个点: ${distanceToNext.toFixed(2)} 公里`;
+        }
+        overlayContent += `</div>`;
+      }
+    }
+    
+    return overlayContent;
+  }
+  
+  /**
+   * 释放相机锁定
+   * 当取消跟随移动时调用，确保相机不再跟随轨迹
+   * @param id 轨迹ID
+   * @returns 是否成功
+   */
+  public releaseCameraLock(id: string): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `释放相机锁定失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    try {
+      // 清除相机动画状态
+      if (this.trackCameraAnimations.has(id)) {
+        const cameraAnimation = this.trackCameraAnimations.get(id);
+        if (cameraAnimation) {
+          cameraAnimation.active = false;
+        }
+        this.trackCameraAnimations.delete(id);
+        this.log('debug', `轨迹 "${id}" 相机锁定已释放`);
+      }
+      
+      // 更新播放器配置，禁用相机跟随
+      if (this.trackPlayers.has(id)) {
+        const player = this.trackPlayers.get(id)!;
+        player.withCamera = false;
+        this.log('debug', `轨迹 "${id}" 播放器配置已更新: withCamera = false`);
+      }
+      
+      return true;
+    } catch (error) {
+      this.log('error', `释放相机锁定失败: ${error.message || '未知错误'}`);
+      return false;
+    }
   }
 }

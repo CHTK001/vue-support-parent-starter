@@ -286,13 +286,16 @@ interface Props {
     setConfig?: (config: any) => void;
     getActiveImplementation?: () => any;
     getTrackPlayState?: (id: string) => 'playing' | 'paused' | 'stopped' | null;
-    addTrack?: (track: Track) => boolean;
+    addTrack?: (track: Track, config?: any) => boolean;
     getTrackTotalDistance?: (id: string) => number | null;
     getDistanceBetweenPoints?: (id: string, point1Index: number, point2Index: number) => number | null;
     getDistanceFromStart?: (id: string, pointIndex: number) => number | null;
     // 添加缺失的方法声明
     setTrackNodeDistanceVisible?: (id: string, visible: boolean) => boolean;
     setEnableSpeedIcon?: (id: string, enabled: boolean) => boolean;
+    releaseCameraLock?: (id: string) => boolean;
+    refreshTrack?: (id: string) => boolean;
+    getTrackPlayer?: (id: string) => any;
   };
   config?: {
     loop?: boolean;         // 是否循环播放
@@ -323,7 +326,7 @@ const loopPlay = ref(false);
 const followCamera = ref(false);
 const showNodes = ref(true); // 是否显示轨迹节点，默认显示
 const showNodeAnchors = ref(false); // 是否显示节点锚点，默认不显示
-const showNodePopover = ref(true); // 修改为true，与实际显示一致，默认显示节点名称
+const showNodePopover = ref(true); // 修改为true，与TrackObject.ts默认行为一致
 const showNodeTime = ref(false); // 是否显示节点时间，默认不显示
 const showSpeedPopover = ref(true); // 是否显示速度弹窗，默认显示
 const showNodeSpeed = ref(false); // 是否显示节点速度，默认不显示
@@ -540,14 +543,19 @@ watch(showNodeDistance, (newValue) => {
 watch(showNodePopover, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodePopoversVisible) {
     props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点名称显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
 // 新增：监听节点时间显示
 watch(showNodeTime, (newValue) => {
-  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible && !performanceMode.value) {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible) {
     props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
-    console.log(`节点时间显示已${newValue ? '启用' : '禁用'}`);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点时间显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
@@ -562,6 +570,9 @@ watch(showNodeAnchors, (newValue) => {
 watch(showNodeSpeed, (newValue) => {
   if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeSpeedsVisible) {
     props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点速度显示已${newValue ? '启用' : '禁用'} (实时应用)`);
   }
 });
 
@@ -1183,7 +1194,18 @@ const loadDemoTracks = () => {
     console.error('TrackObj或addTrack方法不可用，无法加载示例数据');
     return;
   }
-  
+  // 创建当前配置对象，确保与UI设置一致
+  const currentConfig = {
+    showNodes: showNodes.value,
+    showNodePopovers: showNodePopover.value,
+    showNodeTime: showNodeTime.value,
+    showSpeedPopovers: showSpeedPopover.value,
+    showNodeSpeeds: showNodeSpeed.value,
+    showNodeDistance: showNodeDistance.value,
+    showMovingPointName: showMovingPointName.value,
+    enableSpeedIcon: enableSpeedIcon.value
+  };
+
   // 创建一个示例轨迹（北京路线示例）
   const createDemoTrack = (id: number) => {
     const now = Math.floor(Date.now() / 1000);
@@ -1226,7 +1248,7 @@ const loadDemoTracks = () => {
   for (let i = 1; i <= 3; i++) {
     const demoTrack = createDemoTrack(i);
     try {
-      props.trackObj.addTrack(demoTrack as unknown as Track);
+      props.trackObj.addTrack(demoTrack as unknown as Track, currentConfig as any);
       console.log(`示例轨迹${i}已添加`);
     } catch (error) {
       console.error(`添加示例轨迹${i}时出错:`, error);
@@ -1322,6 +1344,144 @@ styleElement.textContent = `
   }
 `;
 document.head.appendChild(styleElement);
+
+// 为所有设置添加实时监听，确保在任何播放状态下都能立即生效
+// 跟随移动设置
+watch(followCamera, (newValue) => {
+  if (activeTrackId.value && props.trackObj) {
+    // 立即更新播放器配置
+    const config = {
+      withCamera: newValue
+    };
+    
+    // 无论播放状态如何，都立即应用设置
+    props.trackObj.updateTrackPlayer?.(activeTrackId.value, config);
+    
+    // 如果取消跟随，且轨迹正在播放，需要特殊处理解除相机锁定
+    if (!newValue && playState.value === 'playing' && props.trackObj.releaseCameraLock) {
+      props.trackObj.releaseCameraLock(activeTrackId.value);
+    }
+    
+    console.log(`跟随移动已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
+
+// 节点名称显示
+watch(showNodePopover, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodePopoversVisible) {
+    props.trackObj.setTrackNodePopoversVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点名称显示已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
+
+// 节点时间显示
+watch(showNodeTime, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeTimeVisible) {
+    props.trackObj.setTrackNodeTimeVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点时间显示已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
+
+// 节点速度显示
+watch(showNodeSpeed, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeSpeedsVisible) {
+    props.trackObj.setTrackNodeSpeedsVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`节点速度显示已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
+
+// 节点距离显示
+watch(showNodeDistance, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setTrackNodeDistanceVisible && !performanceMode.value) {
+    props.trackObj.setTrackNodeDistanceVisible(activeTrackId.value, newValue);
+    console.log(`节点距离显示已${newValue ? '启用' : '禁用'}`);
+  }
+});
+
+// 应用所有设置到轨迹对象
+const applyAllSettings = (trackId: string) => {
+  if (!props.trackObj) return;
+  
+  // 应用节点显示设置
+  props.trackObj.setTrackNodesVisible?.(trackId, showNodes.value);
+  props.trackObj.setTrackNodeAnchorsVisible?.(trackId, showNodeAnchors.value);
+  props.trackObj.setTrackNodePopoversVisible?.(trackId, showNodePopover.value);
+  props.trackObj.setTrackNodeTimeVisible?.(trackId, showNodeTime.value);
+  props.trackObj.setMovingPointNameVisible?.(trackId, showMovingPointName.value);
+  props.trackObj.setTrackSpeedPopoversVisible?.(trackId, showSpeedPopover.value);
+  props.trackObj.setTrackNodeSpeedsVisible?.(trackId, showNodeSpeed.value);
+  props.trackObj.setTrackNodeDistanceVisible?.(trackId, showNodeDistance.value);
+  props.trackObj.setEnableSpeedIcon?.(trackId, enableSpeedIcon.value);
+  
+  // 设置播放器配置
+  const playerConfig = {
+    loop: loopPlay.value,
+    withCamera: followCamera.value,
+    speedFactor: speedFactor.value,
+    useAdvancedAnimation: performanceMode.value,
+    enableSpeedIcon: enableSpeedIcon.value
+  };
+  
+  // 设置播放器配置
+  props.trackObj.setTrackPlayer?.(trackId, playerConfig);
+  
+  // 强制刷新轨迹显示
+  props.trackObj.refreshTrack?.(trackId);
+  
+  console.log('已应用所有设置到轨迹:', trackId);
+};
+
+// 添加处理特定设置变更的事件处理器
+const onNodeSpeedChange = () => {
+  if (activeTrackId.value && props.trackObj && !performanceMode.value) {
+    props.trackObj.setTrackNodeSpeedsVisible?.(activeTrackId.value, showNodeSpeed.value);
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+  }
+};
+
+const onNodeDistanceChange = () => {
+  if (activeTrackId.value && props.trackObj && !performanceMode.value) {
+    props.trackObj.setTrackNodeDistanceVisible?.(activeTrackId.value, showNodeDistance.value);
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+  }
+};
+
+const onSpeedIconChange = () => {
+  if (activeTrackId.value && props.trackObj) {
+    props.trackObj.setEnableSpeedIcon?.(activeTrackId.value, enableSpeedIcon.value);
+    
+    // 如果正在播放，立即更新播放配置
+    if (playState.value === 'playing') {
+      props.trackObj.updateTrackPlayer?.(activeTrackId.value, {
+        enableSpeedIcon: enableSpeedIcon.value
+      });
+    }
+    
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+  }
+};
+
+const onFollowCameraChange = () => {
+  if (activeTrackId.value && props.trackObj) {
+    // 立即更新播放器配置
+    props.trackObj.updateTrackPlayer?.(activeTrackId.value, {
+      withCamera: followCamera.value
+    });
+    
+    // 如果取消跟随，且轨迹正在播放，解除相机锁定
+    if (!followCamera.value && playState.value === 'playing' && props.trackObj.releaseCameraLock) {
+      props.trackObj.releaseCameraLock(activeTrackId.value);
+    }
+    
+    console.log(`跟随移动已${followCamera.value ? '启用' : '禁用'} (实时应用)`);
+  }
+};
 </script>
 
 <style scoped>
