@@ -165,11 +165,6 @@
            @touchstart="handleTouchStart"
            @touchmove="handleTouchMove"
            @touchend="handleTouchEnd">
-        <!-- 下拉提示条 -->
-        <div class="drag-handle">
-          <div class="drag-handle-line"></div>
-          <div class="drag-hint">下拉关闭</div>
-        </div>
 
         <div class="route-summary">
           <div class="route-info">
@@ -2033,6 +2028,8 @@ $transition-time: 0.2s;
         display: flex;
         flex-direction: column;
         gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
         
         .route-option {
           display: flex;
