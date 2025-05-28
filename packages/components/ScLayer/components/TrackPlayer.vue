@@ -50,6 +50,12 @@
                 <input type="checkbox" v-model="followCamera">
                 <span>跟随移动</span>
               </label>
+              <!-- 添加性能模式选项 -->
+              <label class="settings-option performance-mode">
+                <input type="checkbox" v-model="performanceMode">
+                <span>性能模式</span>
+                <div class="tooltip">使用高性能动画模式，仅支持速度因子、相机跟随、速度图标切换</div>
+              </label>
             </div>
           </div>
 
@@ -284,6 +290,7 @@ interface Props {
     getDistanceFromStart?: (id: string, pointIndex: number) => number | null;
     // 添加缺失的方法声明
     setTrackNodeDistanceVisible?: (id: string, visible: boolean) => boolean;
+    setEnableSpeedIcon?: (id: string, enabled: boolean) => boolean;
   };
   config?: {
     loop?: boolean;         // 是否循环播放
@@ -299,6 +306,7 @@ interface Props {
     showNodeSpeed?: boolean;// 是否显示节点速度
     showNodeDistance?: boolean;// 是否显示节点距离
     updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
+    performanceMode?: boolean; // 是否使用性能模式
   }
 }
 
@@ -328,6 +336,7 @@ const currentSpeed = ref(0); // 当前轨迹点的速度
 const showSettings = ref(false);
 const enableSpeedIcon = ref(true);
 const updateFrequency = ref(100); // 默认100毫秒更新一次，高频模式
+const performanceMode = ref(false); // 是否启用性能模式，默认关闭
 
 // 计算属性：是否可以切换轨迹
 const canSwitchTrack = computed(() => {
@@ -432,6 +441,7 @@ const applyConfig = () => {
       if (props.config.showSpeed !== undefined) showSpeedPopover.value = props.config.showSpeed;
       if (props.config.showNodeSpeed !== undefined) showNodeSpeed.value = props.config.showNodeSpeed;
       if (props.config.updateFrequency !== undefined) updateFrequency.value = props.config.updateFrequency;
+      if (props.config.performanceMode !== undefined) performanceMode.value = props.config.performanceMode;
       
       console.log('轨迹播放器配置已应用:', JSON.stringify(props.config));
       
@@ -450,12 +460,14 @@ const applyConfig = () => {
           props.trackObj.setTrackSpeedPopoversVisible?.(activeTrackId.value, showSpeedPopover.value);
           props.trackObj.setTrackNodeSpeedsVisible?.(activeTrackId.value, showNodeSpeed.value);
           props.trackObj.setTrackNodeDistanceVisible?.(activeTrackId.value, showNodeDistance.value);
+          props.trackObj.setEnableSpeedIcon?.(activeTrackId.value, enableSpeedIcon.value);
           
           // 设置播放配置
           props.trackObj.setTrackPlayer?.(activeTrackId.value, {
             loop: loopPlay.value,
             withCamera: followCamera.value,
-            speedFactor: speedFactor.value
+            speedFactor: speedFactor.value,
+            useAdvancedAnimation: performanceMode.value
           });
         };
         
@@ -919,13 +931,15 @@ const selectTrack = (id: string) => {
     
     // 应用当前的配置设置
     const playerConfig = {
-            loop: loopPlay.value,
-            withCamera: followCamera.value,
-            speedFactor: speedFactor.value
+      loop: loopPlay.value,
+      withCamera: followCamera.value,
+      speedFactor: speedFactor.value,
+      useAdvancedAnimation: performanceMode.value,
+      enableSpeedIcon: enableSpeedIcon.value
     };
     props.trackObj.setTrackPlayer?.(id, playerConfig);
     
-    // 应用节点显示设置
+    // 应用节点显示设置 - 即使在性能模式下也应用，以便在切换回普通模式时显示正确
     props.trackObj.setTrackNodesVisible?.(id, showNodes.value);
     props.trackObj.setTrackNodeAnchorsVisible?.(id, showNodeAnchors.value);
     props.trackObj.setTrackNodePopoversVisible?.(id, showNodePopover.value);
@@ -934,6 +948,7 @@ const selectTrack = (id: string) => {
     props.trackObj.setTrackSpeedPopoversVisible?.(id, showSpeedPopover.value);
     props.trackObj.setTrackNodeSpeedsVisible?.(id, showNodeSpeed.value);
     props.trackObj.setTrackNodeDistanceVisible?.(id, showNodeDistance.value);
+    props.trackObj.setEnableSpeedIcon?.(id, enableSpeedIcon.value);
     
     // 获取轨迹的总时长
     const track = tracks.value.get(id);
@@ -970,14 +985,32 @@ const togglePlay = () => {
       // 暂停播放
       if (props.trackObj.pause && props.trackObj.pause(activeTrackId.value)) {
         playState.value = 'paused';
-  stopProgressTimer();
+        stopProgressTimer();
       }
     } else {
       // 开始播放
+      // 如果不是性能模式，确保应用所有设置
+      if (!performanceMode.value) {
+        // 应用节点显示设置
+        props.trackObj.setTrackNodesVisible?.(activeTrackId.value, showNodes.value);
+        props.trackObj.setTrackNodeAnchorsVisible?.(activeTrackId.value, showNodeAnchors.value);
+        props.trackObj.setTrackNodePopoversVisible?.(activeTrackId.value, showNodePopover.value);
+        props.trackObj.setTrackNodeTimeVisible?.(activeTrackId.value, showNodeTime.value);
+        props.trackObj.setMovingPointNameVisible?.(activeTrackId.value, showMovingPointName.value);
+        props.trackObj.setTrackSpeedPopoversVisible?.(activeTrackId.value, showSpeedPopover.value);
+        props.trackObj.setTrackNodeSpeedsVisible?.(activeTrackId.value, showNodeSpeed.value);
+        props.trackObj.setTrackNodeDistanceVisible?.(activeTrackId.value, showNodeDistance.value);
+      }
+      
+      // 无论是否为性能模式，都应用速度图标切换设置
+      props.trackObj.setEnableSpeedIcon?.(activeTrackId.value, enableSpeedIcon.value);
+      
       const config = {
         loop: loopPlay.value,
         withCamera: followCamera.value,
-        speedFactor: speedFactor.value
+        speedFactor: speedFactor.value,
+        useAdvancedAnimation: performanceMode.value,
+        enableSpeedIcon: enableSpeedIcon.value
       };
       
       // 根据播放状态决定是继续播放还是从头播放
@@ -1208,6 +1241,35 @@ const loadDemoTracks = () => {
 };
 
 defineExpose({ refreshTrackList });
+
+// 监听性能模式变化
+watch(performanceMode, (newValue) => {
+  // 如果正在播放，需要先停止
+  if (activeTrackId.value && playState.value === 'playing') {
+    // 停止当前播放
+    props.trackObj.stop?.(activeTrackId.value);
+    
+    // 更新配置
+    props.trackObj.setTrackPlayer?.(activeTrackId.value, {
+      useAdvancedAnimation: newValue
+    });
+    
+    console.log(`性能模式已${newValue ? '启用' : '禁用'}，重新配置轨迹播放器`);
+    
+    // 延迟一点重新开始播放，确保停止命令已执行
+    setTimeout(() => {
+      if (activeTrackId.value) {
+        togglePlay();
+      }
+    }, 100);
+  } else if (activeTrackId.value) {
+    // 如果没在播放，只更新配置
+    props.trackObj.setTrackPlayer?.(activeTrackId.value, {
+      useAdvancedAnimation: newValue
+    });
+    console.log(`性能模式已${newValue ? '启用' : '禁用'}`);
+  }
+});
 </script>
 
 <style scoped>
@@ -2048,5 +2110,34 @@ defineExpose({ refreshTrackList });
     background-color: #e6f7ff;
     box-shadow: 0 0 5px rgba(24, 144, 255, 0.3);
   }
+}
+
+/* 添加性能模式样式 */
+.performance-mode {
+  position: relative;
+}
+
+.tooltip {
+  visibility: hidden;
+  width: 200px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.performance-mode:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 </style> 
