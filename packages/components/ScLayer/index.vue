@@ -544,8 +544,8 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
     // 飞线图状态变化 - 修改键名以匹配工具ID
     'flightLine': () => {
-      logger.debug(`[FlightLine] 收到飞线图事件: active=${active}, data=${JSON.stringify(data)}`);
-
+      logger.debug(`[FlightLine] 收到飞线图事件: active=${active}`);
+      
       if (active) {
         // 激活时强制启用飞线图，并显示面板
         if (!showFlightLinePanel.value) {
@@ -583,7 +583,7 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
             }
           }
         }
-
+        
         // 延迟处理数据
         setTimeout(() => {
           // 如果有数据，则传递到飞线图对象中
@@ -612,6 +612,27 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           try {
             flightLineObj.disable();
             logger.debug('[FlightLine] 飞线图已禁用');
+            
+            // 检查热力图状态，如果热力图处于激活状态，确保它被重新启用
+            if (isHeatmapActive.value) {
+              const heatmapObj = toolbarObject?.getHeatmapObject();
+              if (heatmapObj) {
+                // 延迟一点执行，确保飞线图已完全禁用
+                setTimeout(() => {
+                  try {
+                    heatmapObj.enable();
+                    // 强制更新一次地图，确保热力图显示
+                    if (mapObj) {
+                      mapObj.getMapInstance()?.updateSize();
+                      mapObj.getMapInstance()?.render();
+                    }
+                    logger.debug('[FlightLine] 飞线图禁用后，重新启用热力图');
+                  } catch (error) {
+                    logger.error('[FlightLine] 重新启用热力图失败:', error);
+                  }
+                }, 100);
+              }
+            }
           } catch (error) {
             logger.error('[FlightLine] 禁用飞线图失败:', error);
           }
@@ -640,6 +661,13 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (heatmapObj) {
           try {
             heatmapObj.enable();
+            
+            // 强制更新一次地图，确保热力图显示
+            if (mapObj) {
+              mapObj.getMapInstance()?.updateSize();
+              mapObj.getMapInstance()?.render();
+            }
+            
             logger.debug('[Heatmap] 热力图已启用');
           } catch (error) {
             logger.error('[Heatmap] 启用热力图失败:', error);
