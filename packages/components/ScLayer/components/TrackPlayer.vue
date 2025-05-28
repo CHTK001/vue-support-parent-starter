@@ -62,7 +62,7 @@
 
           <!-- 节点设置组 -->
           <div class="settings-group">
-            <div class="settings-group-title">节点设置</div>
+            <div class="settings-group-title">静态节点设置</div>
             <div class="settings-options">
               <label class="settings-option">
                 <input type="checkbox" v-model="showNodes">
@@ -93,11 +93,11 @@
 
           <!-- 点位设置组 -->
           <div class="settings-group">
-            <div class="settings-group-title">点位设置</div>
+            <div class="settings-group-title">移动点位设置</div>
             <div class="settings-options">
               <label class="settings-option">
                 <input type="checkbox" v-model="showMovingPointName">
-                <span>点位名称</span>
+                <span>移动名称</span>
               </label>
               <label class="settings-option">
                 <input type="checkbox" v-model="showSpeedPopover">
@@ -105,7 +105,7 @@
               </label>
               <label class="settings-option">
                 <input type="checkbox" v-model="enableSpeedIcon">
-                <span>速度图标切换</span>
+                <span>移动图标</span>
               </label>
             </div>
           </div>
