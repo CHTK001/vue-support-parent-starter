@@ -171,6 +171,10 @@ export class TrackObject {
   private trackAnimationFeatures = new Map<string, Feature>();
   private trackEnableSpeedIcon = new Map<string, boolean>();
 
+  // 在类的属性部分添加新的Map
+  private trackMovingInfoVisible = new Map<string, boolean>();
+  private trackMovingDistanceVisible = new Map<string, boolean>();
+
   /** * 构造函数 * @param mapObjectOrInstance 地图对象或实例 * @param config 轨迹配置 */
   constructor(mapObjectOrInstance: any | null = null, config?: TrackConfig) {
     if (mapObjectOrInstance) {
@@ -283,15 +287,17 @@ export class TrackObject {
    * @returns 是否添加成功
    */
   public addTrack(track: Track, config?: {
-  showNodes?: boolean;
-  showNodePopovers?: boolean;
-  showNodeTime?: boolean;
-  showSpeedPopovers?: boolean;
-  showNodeSpeeds?: boolean;
-  showNodeDistance?: boolean;
-  showMovingPointName?: boolean;
-  enableSpeedIcon?: boolean;
-}): boolean {
+    showNodes?: boolean;
+    showNodePopovers?: boolean;
+    showNodeTime?: boolean;
+    showSpeedPopovers?: boolean;
+    showNodeSpeeds?: boolean;
+    showNodeDistance?: boolean;
+    showMovingPointName?: boolean;
+    enableSpeedIcon?: boolean;
+    showMovingInfo?: boolean;
+    showMovingDistance?: boolean;
+  }): boolean {
     if (!this.mapInstance || !this.trackLayer || !this.trackPointLayer) {
       console.warn('添加轨迹失败: 地图或图层未初始化');
       return false;
@@ -360,13 +366,16 @@ export class TrackObject {
     // 应用配置值，使用传入的配置覆盖默认值
     // 尝试获取轨迹播放器元素，以获取当前配置
     let showNodes = true;
+    let showNodeAnchors = true;
     let showNodePopovers = true;
-    let showNodeTime = false;  // 默认不显示节点时间
+    let showNodeTime = false;
     let showSpeedPopovers = true;
     let showNodeSpeeds = false;
     let showNodeDistance = false;
     let showMovingPointName = true;
     let enableSpeedIcon = true;
+    let showMovingInfo = true;
+    let showMovingDistance = false;
     
     // 如果提供了配置参数，使用配置参数覆盖默认值
     if (config) {
@@ -378,10 +387,13 @@ export class TrackObject {
       if (config.showNodeDistance !== undefined) showNodeDistance = config.showNodeDistance;
       if (config.showMovingPointName !== undefined) showMovingPointName = config.showMovingPointName;
       if (config.enableSpeedIcon !== undefined) enableSpeedIcon = config.enableSpeedIcon;
+      if (config.showMovingInfo !== undefined) showMovingInfo = config.showMovingInfo;
+      if (config.showMovingDistance !== undefined) showMovingDistance = config.showMovingDistance;
     }
     
     // 设置轨迹显示属性
     this.trackNodesVisible.set(track.id, showNodes);
+    this.trackNodeAnchorsVisible.set(track.id, showNodeAnchors);
     this.trackNodePopoversVisible.set(track.id, showNodePopovers);
     this.trackNodeTimeVisible.set(track.id, showNodeTime);
     this.trackSpeedPopoversVisible.set(track.id, showSpeedPopovers);
@@ -389,8 +401,8 @@ export class TrackObject {
     this.trackNodeDistanceVisible.set(track.id, showNodeDistance);
     this.trackMovingPointNameVisible.set(track.id, showMovingPointName);
     this.trackEnableSpeedIcon.set(track.id, enableSpeedIcon);
-    // 确保节点锚点默认显示
-    this.trackNodeAnchorsVisible.set(track.id, true);
+    this.trackMovingInfoVisible.set(track.id, showMovingInfo);
+    this.trackMovingDistanceVisible.set(track.id, showMovingDistance);
     
     // 创建轨迹线几何和特征，但不添加到图层
     // 转换坐标点为 EPSG:3857
@@ -550,6 +562,11 @@ export class TrackObject {
     this.trackNodeSpeedsVisible.delete(id);
     this.trackMovingPointNameVisible.delete(id);
     this.trackCurrentSpeeds.delete(id);
+    this.trackNodeDistanceVisible.delete(id);
+    this.trackNodeAnchorsVisible.delete(id);
+    this.trackEnableSpeedIcon.delete(id);
+    this.trackMovingInfoVisible.delete(id);
+    this.trackMovingDistanceVisible.delete(id);
     
     // 如果移除的是当前选中的轨迹，重置选中状态
     if (this.selectedTrackId === id) {
@@ -1619,9 +1636,10 @@ export class TrackObject {
     const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
     const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
     const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+    const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
     
-    // 如果需要显示移动点位名称、速度或距离信息，使用Overlay
-    if ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance) {
+    // 如果需要显示移动信息，并且有移动点位名称、速度或距离信息，使用Overlay
+    if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
       try {
         // 使用统一的方法创建移动点内容
         const overlayContent = this.createMovingPointContent(id, position);
@@ -4937,6 +4955,13 @@ export class TrackObject {
     const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
     const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
     const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+    const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
+    const showMovingDistance = this.trackMovingDistanceVisible.get(id) === true; // 默认为false
+    
+    // 如果移动信息被禁用，则不显示任何内容
+    if (!showMovingInfo) {
+      return '';
+    }
     
     // 准备HTML内容
     let overlayContent = '';
@@ -4983,8 +5008,8 @@ export class TrackObject {
       }
     }
       
-    // 添加距离信息 - 独立于速度信息，基于showNodeDistance设置
-    if (showNodeDistance) {
+    // 添加移动距离信息 - 独立于节点距离信息，基于showMovingDistance设置
+    if (showMovingDistance) {
       // 计算当前位置对应的点索引
       const exactIndex = this.trackProgressValues.get(id)! * (track.points.length - 1);
       const pointIndex = Math.floor(exactIndex);
@@ -4999,7 +5024,7 @@ export class TrackObject {
         const hasContent = (movingPointNameVisible && position.title) || (showSpeed && displaySpeed > 0);
         
         overlayContent += `<div style='color:#1890ff;font-size:11px;margin-top:${hasContent ? 5 : 0}px;'>
-          已行驶: ${distanceFromStart.toFixed(2)} 公里`;
+          <b>移动距离:</b> ${distanceFromStart.toFixed(2)} 公里`;
         if (distanceToNext > 0) {
           overlayContent += `，距下个点: ${distanceToNext.toFixed(2)} 公里`;
         }
@@ -5146,5 +5171,61 @@ export class TrackObject {
     }
     
     return style;
+  }
+
+  /**
+   * 设置移动点信息是否可见
+   * @param id 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setMovingInfoVisible(id: string, visible: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置移动点信息可见性失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 明确记录旧值和新值，帮助调试
+    const oldValue = this.trackMovingInfoVisible.get(id);
+    
+    // 更新移动点信息可见性设置
+    this.trackMovingInfoVisible.set(id, visible === true);
+    
+    this.log('debug', `轨迹 "${id}" 移动点信息可见性从 ${oldValue} 更改为 ${visible}`);
+    
+    // 如果轨迹正在播放，需要强制刷新
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING && this.mapInstance) {
+      this.mapInstance.render();
+    }
+    
+    return true;
+  }
+
+  /**
+   * 设置移动点距离信息是否可见
+   * @param id 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setMovingDistanceVisible(id: string, visible: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置移动点距离信息可见性失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 明确记录旧值和新值，帮助调试
+    const oldValue = this.trackMovingDistanceVisible.get(id);
+    
+    // 更新移动点距离可见性设置
+    this.trackMovingDistanceVisible.set(id, visible === true);
+    
+    this.log('debug', `轨迹 "${id}" 移动点距离信息可见性从 ${oldValue} 更改为 ${visible}`);
+    
+    // 如果轨迹正在播放，需要强制刷新
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING && this.mapInstance) {
+      this.mapInstance.render();
+    }
+    
+    return true;
   }
 }

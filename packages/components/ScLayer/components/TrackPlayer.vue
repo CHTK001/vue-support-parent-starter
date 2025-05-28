@@ -96,12 +96,20 @@
             <div class="settings-group-title">移动点位设置</div>
             <div class="settings-options">
               <label class="settings-option">
+                <input type="checkbox" v-model="showMovingInfo">
+                <span>移动信息</span>
+              </label>
+              <label class="settings-option">
                 <input type="checkbox" v-model="showMovingPointName">
                 <span>移动名称</span>
               </label>
               <label class="settings-option">
                 <input type="checkbox" v-model="showSpeedPopover">
                 <span>移动速度</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" v-model="showMovingDistance">
+                <span>移动距离</span>
               </label>
               <label class="settings-option">
                 <input type="checkbox" v-model="enableSpeedIcon">
@@ -296,6 +304,8 @@ interface Props {
     releaseCameraLock?: (id: string) => boolean;
     refreshTrack?: (id: string) => boolean;
     getTrackPlayer?: (id: string) => any;
+    setMovingInfoVisible?: (id: string, visible: boolean) => boolean;
+    setMovingDistanceVisible?: (id: string, visible: boolean) => boolean;
   };
   config?: {
     loop?: boolean;         // 是否循环播放
@@ -312,6 +322,8 @@ interface Props {
     showNodeDistance?: boolean;// 是否显示节点距离
     updateFrequency?: number; // 更新频率(毫秒)，控制进度更新的时间间隔
     performanceMode?: boolean; // 是否使用性能模式
+    showMovingInfo?: boolean; // 是否显示移动点信息
+    showMovingDistance?: boolean; // 是否显示移动点距离
   }
 }
 
@@ -332,6 +344,8 @@ const showSpeedPopover = ref(true); // 是否显示速度弹窗，默认显示
 const showNodeSpeed = ref(false); // 是否显示节点速度，默认不显示
 const showNodeDistance = ref(false); // 是否显示节点距离，默认不显示
 const showMovingPointName = ref(true); // 是否显示移动点位的名称，默认显示
+const showMovingInfo = ref(true); // 是否显示移动点信息，默认显示
+const showMovingDistance = ref(false); // 是否显示移动点距离，默认不显示
 const currentTime = ref(0);
 const totalTime = ref(0);
 const progressPercentage = ref(0);
@@ -448,6 +462,8 @@ const applyConfig = () => {
       if (props.config.showNodeDistance !== undefined) showNodeDistance.value = props.config.showNodeDistance;
       if (props.config.updateFrequency !== undefined) updateFrequency.value = props.config.updateFrequency;
       if (props.config.performanceMode !== undefined) performanceMode.value = props.config.performanceMode;
+      if (props.config.showMovingInfo !== undefined) showMovingInfo.value = props.config.showMovingInfo;
+      if (props.config.showMovingDistance !== undefined) showMovingDistance.value = props.config.showMovingDistance;
       
       console.log('轨迹播放器配置已应用:', JSON.stringify(props.config));
       
@@ -467,6 +483,8 @@ const applyConfig = () => {
           props.trackObj.setTrackNodeSpeedsVisible?.(activeTrackId.value, showNodeSpeed.value);
           props.trackObj.setTrackNodeDistanceVisible?.(activeTrackId.value, showNodeDistance.value);
           props.trackObj.setEnableSpeedIcon?.(activeTrackId.value, enableSpeedIcon.value);
+          props.trackObj.setMovingInfoVisible?.(activeTrackId.value, showMovingInfo.value);
+          props.trackObj.setMovingDistanceVisible?.(activeTrackId.value, showMovingDistance.value);
           
           // 设置播放配置
           props.trackObj.setTrackPlayer?.(activeTrackId.value, {
@@ -1497,6 +1515,25 @@ const onFollowCameraChange = () => {
     console.log(`跟随移动已${followCamera.value ? '启用' : '禁用'} (实时应用)`);
   }
 };
+
+// 添加新的watch监听器
+watch(showMovingInfo, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setMovingInfoVisible) {
+    props.trackObj.setMovingInfoVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`移动信息显示已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
+
+watch(showMovingDistance, (newValue) => {
+  if (activeTrackId.value && props.trackObj && props.trackObj.setMovingDistanceVisible) {
+    props.trackObj.setMovingDistanceVisible(activeTrackId.value, newValue);
+    // 强制刷新轨迹显示
+    props.trackObj.refreshTrack?.(activeTrackId.value);
+    console.log(`移动距离显示已${newValue ? '启用' : '禁用'} (实时应用)`);
+  }
+});
 </script>
 
 <style scoped>
