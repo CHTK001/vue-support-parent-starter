@@ -1081,7 +1081,7 @@ export class SearchObject {
           logger.debug(`[SearchObject] 使用ShapeObject绘制导航路线，坐标点数量: ${allPoints.length}`);
           
           // 确定路线颜色
-          let lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 选中深蓝色，未选中浅蓝色
+          let lineColor = isSelected ? '#3370ff' : '#33a9ff'; // 选中深蓝色，未选中浅蓝色
           let lineWidth = isSelected ? 5 : 3; // 选中线宽5，未选中线宽3
           
           // 根据交通方式调整路线样式
