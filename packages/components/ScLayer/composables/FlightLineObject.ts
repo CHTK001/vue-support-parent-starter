@@ -1364,11 +1364,52 @@ export class FlightLineObject {
     if (this.echartsLayer) {
       // 移除图层
       try {
+        // 先清空所有飞线数据
+        if (typeof this.echartsLayer.setChartOptions === 'function') {
+          this.echartsLayer.setChartOptions({
+            animation: false,
+            series: []
+          });
+        }
+        
+        // 强制重绘一次空数据，确保图层内容被清空
+        if (typeof this.echartsLayer.redraw === 'function') {
+          this.echartsLayer.redraw();
+        }
+        
+        // 移除图层
         this.echartsLayer.remove();
+        
+        // 额外清理：尝试从DOM中移除可能残留的echarts容器
+        if (this.mapInstance && this.mapInstance.getTargetElement()) {
+          const mapElement = this.mapInstance.getTargetElement();
+          const selectors = [
+            '.flight-line-layer',
+            '.ol-echarts',
+            '.ol-echarts-container'
+          ];
+          
+          for (const selector of selectors) {
+            const elements = mapElement.querySelectorAll(selector);
+            if (elements.length > 0) {
+              elements.forEach((el: Element) => {
+                if (el.parentNode) {
+                  el.parentNode.removeChild(el);
+                  logger.debug(`[FlightLine] 已从DOM中移除元素: ${selector}`);
+                }
+              });
+            }
+          }
+        }
+        
         logger.debug('[FlightLine] Echarts图层已从地图移除');
       } catch (error) {
         logger.error('[FlightLine] 移除Echarts图层失败:', error);
       }
+      
+      // 确保引用被清空
+      this.echartsLayer = null;
+      this.echartsInstance = null;
     }
 
     // 移除事件监听
@@ -1382,6 +1423,16 @@ export class FlightLineObject {
     this.eventListeners = [];
 
     this.active = false;
+    
+    // 重置激活的飞线
+    this.activeFlightLine = null;
+    
+    // 强制触发一次地图重绘，确保其他图层可以正确显示
+    if (this.mapInstance) {
+      this.mapInstance.updateSize();
+      this.mapInstance.render();
+    }
+    
     logger.debug('[FlightLine] 飞线图已禁用');
   }
 
@@ -1396,11 +1447,43 @@ export class FlightLineObject {
    * 销毁飞线图对象
    */
   public destroy(): void {
+    // 确保先禁用飞线图，这将清理图层和事件监听器
     this.disable();
+    
+    // 确保所有数据被清空
     this.flightLines.clear();
     this.geoCoordMap = {};
+    
+    // 确保所有引用被清空
     this.mapInstance = null;
     this.echartsInstance = null;
+    
+    // 额外检查：确保没有残留的DOM元素
+    try {
+      const mapElements = document.querySelectorAll('.ol-viewport');
+      mapElements.forEach((mapElement) => {
+        const selectors = [
+          '.flight-line-layer',
+          '.ol-echarts',
+          '.ol-echarts-container'
+        ];
+        
+        for (const selector of selectors) {
+          const elements = mapElement.querySelectorAll(selector);
+          if (elements.length > 0) {
+            elements.forEach((el: Element) => {
+              if (el.parentNode) {
+                el.parentNode.removeChild(el);
+                logger.debug(`[FlightLine] 销毁时移除残留元素: ${selector}`);
+              }
+            });
+          }
+        }
+      });
+    } catch (error) {
+      logger.warn('[FlightLine] 销毁时清理DOM元素失败:', error);
+    }
+    
     logger.debug('[FlightLine] 飞线图对象已销毁');
   }
 
