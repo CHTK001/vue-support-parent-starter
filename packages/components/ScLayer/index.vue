@@ -51,7 +51,7 @@
       
     <!-- 添加标记点详情组件 -->
     <MarkerDetail 
-      v-if="showMarkerDetail"
+      v-if="showMarkerDetail && selectedMarker && !selectedMarker.template"
       v-model:visible="showMarkerDetail"
       :marker="selectedMarker"
       :title="markerDetailTitle"
@@ -99,7 +99,7 @@ import { TrackObject } from './composables/TrackObject';
 import { Model3DOptions } from './composables/CesiumModelObject';
 import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
-import { getCurrentPoint } from './utils/locationUtils';
+import { getCurrentPoint, getLocationCityCode } from './utils/locationUtils';
 import {
   // 类型导入
   type MapConfig, type MapEventType, type Track, type TrackPlayer,
@@ -277,6 +277,14 @@ const showMarkerDetail = ref(false);
 const selectedMarker = ref<MarkerOptions | null>(null);
 const markerDetailTitle = ref('');
 const markerScreenPosition = ref<{ x: number; y: number } | null>(null);
+// 添加当前城市编码状态
+const currentLocationInfo = ref<{
+  cityCode: string;
+  adcode: string;
+  province: string;
+  city: string;
+  district: string;
+} | null>(null);
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -880,6 +888,26 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     'search': () => {
       showSearchBox.value = active;
       logger.debug(`[Search] 搜索框显示状态: ${showSearchBox.value}`);
+      
+      // 当搜索框激活时，获取当前位置和城市编码
+      if (active) {
+        getCurrentPoint().then((coordinate: GeoPoint) => {
+          // 不再需要地图密钥
+          getLocationCityCode(coordinate).then((locationInfo) => {
+            currentLocationInfo.value = locationInfo;
+            logger.debug(`[Search] 获取到当前位置的城市编码: ${locationInfo.cityCode}, 区划编码: ${locationInfo.adcode}`);
+            
+            // 如果搜索对象已存在，更新城市编码
+            if (searchObject) {
+              searchObject.setLocationInfo(locationInfo);
+            }
+          }).catch(error => {
+            logger.error('[Search] 获取城市编码失败:', error);
+          });
+        }).catch(error => {
+          logger.error('[Search] 获取当前位置失败:', error);
+        });
+      }
     },
 
     // 区划工具状态变化
@@ -2779,7 +2807,18 @@ const initSearchObject = () => {
       return;
     }
     
-    searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj, props.mapKey, toolbarObject.getShapeObject());
+    // 创建搜索对象时传入当前城市编码
+    searchObject = new SearchObject(
+      mapObj.getMapInstance(), 
+      markerObject, 
+      props.searchBoxConfig, 
+      configObject, 
+      mapObj, 
+      props.mapKey, 
+      toolbarObject.getShapeObject(),
+      currentLocationInfo.value // 传入当前位置信息
+    );
+    
     logger.debug('搜索对象初始化成功');
     
     nextTick(() => {
@@ -2874,6 +2913,13 @@ watch(() => showSearchBox.value, (isVisible) => {
 const handleMarkerClick = (payload: { coordinates: number[], data: MarkerOptions }) => {
   // 保存被选中的标记点数据
   selectedMarker.value = payload.data;
+  
+  // 如果标记点有自定义模板，则不显示详情面板，而是直接使用模板
+  if (payload.data.template) {
+    // 向父组件发送marker-click事件
+    emit('marker-click', payload);
+    return;
+  }
   
   // 设置标题
   markerDetailTitle.value = payload.data.title || '标记点详情';
