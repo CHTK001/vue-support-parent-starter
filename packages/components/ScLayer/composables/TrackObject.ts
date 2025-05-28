@@ -44,6 +44,7 @@ interface ExtendedTrackPlayer {
   cameraSmoothness?: number; // 相机平滑度参数(0-1)，越小越平滑
   stabilizeViewport?: boolean; // 是否启用视口稳定功能
   viewportUpdateThreshold?: number; // 视图更新阈值
+  useAdvancedAnimation?: boolean; // 是否使用高级动画（性能模式）
 }
 
 // 使用扩展后的接口
@@ -158,6 +159,17 @@ export class TrackObject {
   
   // 轨迹总距离缓存
   private trackTotalDistances = new Map<string, number>();
+  
+  // 性能模式相关属性
+  private trackAnimationPositions = new Map<string, {
+    position: Point;
+    lastTime: number;
+    distance: number;
+    style: Style | null;
+  }>();
+  private trackAnimationStyles = new Map<string, Style>();
+  private trackAnimationFeatures = new Map<string, Feature>();
+  private trackEnableSpeedIcon = new Map<string, boolean>();
 
   /** * 构造函数 * @param mapObjectOrInstance 地图对象或实例 * @param config 轨迹配置 */
   constructor(mapObjectOrInstance: any | null = null, config?: TrackConfig) {
@@ -1026,106 +1038,62 @@ export class TrackObject {
       return false;
     }
     
-    // 获取轨迹数据
-    const track = this.tracks.get(id)!;
-    
-    // 如果轨迹点数少于2，无法播放
-    if (!track.points || track.points.length < 2) {
-      this.log('warn', `播放轨迹失败: 轨迹 "${id}" 点数量不足`);
-      return false;
-    }
-    
-    // 获取当前播放状态
+    // 检查当前播放状态
     const currentState = this.trackPlayStates.get(id);
     
-    // 如果正在播放，且pauseIfPlaying为true，则暂停轨迹
+    // 如果已经在播放，且设置了暂停，则暂停
     if (currentState === TrackPlayState.PLAYING && pauseIfPlaying) {
-      this.log('debug', `轨迹 "${id}" 正在播放中，根据设置执行暂停操作`);
       return this.pause(id);
     }
     
-    // 如果正在播放，不需要重新开始
-    if (currentState === TrackPlayState.PLAYING) {
-      this.log('debug', `轨迹 "${id}" 已经在播放中`);
+    // 如果已经在播放，且未设置暂停，则不做任何操作
+    if (currentState === TrackPlayState.PLAYING && !pauseIfPlaying) {
+      this.log('info', `轨迹 "${id}" 已经在播放中`);
       return true;
     }
     
-    // 如果已经有播放器配置，合并新的配置
-    if (this.trackPlayers.has(id)) {
-      const existingPlayer = this.trackPlayers.get(id)!;
-      this.trackPlayers.set(id, {
-        ...existingPlayer,
-        ...player
-      });
-    } else {
-      // 否则，创建新的播放器配置
-      this.trackPlayers.set(id, {
-        ...DEFAULT_TRACK_PLAYER,
-        ...player
-      });
-    }
-    
-    // 获取当前的播放器配置
-    const currentPlayer = this.trackPlayers.get(id)!;
-    
-    // 如果是从暂停状态恢复，更新播放状态并重新设置动画
-    if (currentState === TrackPlayState.PAUSED) {
-      // 设置为播放状态
-      this.trackPlayStates.set(id, TrackPlayState.PLAYING);
+    // 更新播放器配置
+    if (player) {
+      // 获取当前配置
+      const currentPlayer = this.trackPlayers.get(id) || { ...DEFAULT_TRACK_PLAYER };
       
-      // 重置上次时间戳，确保立即开始移动
-      this.trackLastTimes.delete(id);
+      // 合并新配置
+      const newPlayer = { ...currentPlayer, ...player };
       
-      // 重新设置动画
-      this.setupTrackAnimation(id);
+      // 保存配置
+      this.trackPlayers.set(id, newPlayer);
       
-      // 如果启用了相机跟踪，立即初始化相机位置
-      if (currentPlayer.withCamera) {
-        const progress = this.trackProgressValues.get(id) || 0;
-        const position = this.calculatePositionAtProgress(track, progress); const newCenter = fromLonLat([position.lng, position.lat]);
-        // 立即初始化相机动画        
-        this.updateCameraAnimation(id, newCenter);
-        // 主动触发一次相机动画，确保立即更新相机位置
-        this.animateCamera(id);
-        this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，相机位置已立即更新`);
+      // 如果指定了速度因子，更新速度因子
+      if (player.speedFactor !== undefined) {
+        this.trackSpeedFactors.set(id, player.speedFactor);
       }
       
-      this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，动画已重新设置`);
-      return true;
+      // 保存是否启用速度图标切换
+      if (player.hasOwnProperty('enableSpeedIcon')) {
+        this.trackEnableSpeedIcon.set(id, (player as any).enableSpeedIcon !== false);
+      }
+      
+      this.log('debug', `已更新轨迹 "${id}" 的播放器配置:`, newPlayer);
     }
     
-    // 从初始状态或停止状态开始播放
-    
-    // 确保轨迹可见
-    if (!this.showTrack(id)) {
-      this.log('warn', `播放轨迹失败: 无法显示轨迹 "${id}"`);
-      return false;
-    }
-    
-    // 重置进度
-    this.trackProgressValues.set(id, 0);
-    
-    // 设置为播放状态
+    // 设置播放状态
     this.trackPlayStates.set(id, TrackPlayState.PLAYING);
     
-    // 创建位置标记特征
-    this.createPositionFeature(id);
+    // 确保轨迹可见
+    this.showTrack(id);
     
-    // 设置轨迹动画
-    this.setupTrackAnimation(id);
+    // 根据是否使用性能模式选择不同的动画设置方法
+    const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
     
-    // 如果需要跟随相机且启用了视口稳定，预先保存视图状态
-    if (currentPlayer.withCamera && currentPlayer.stabilizeViewport) {
-      // 在开始播放前保存初始视图状态
-      this.saveOriginalViewState(id);
+    if (useAdvancedAnimation) {
+      // 使用高级动画模式（性能模式）
+      this.setupAdvancedTrackAnimation(id);
+      this.log('info', `[性能模式] 轨迹 "${id}" 开始播放`);
+    } else {
+      // 使用传统动画模式
+      this.setupTrackAnimation(id);
+      this.log('info', `轨迹 "${id}" 开始播放`);
     }
-    
-    // 如果开启了相机跟踪，立即初始化第一个位置
-    if (currentPlayer.withCamera) {
-            const position = track.points[0];      const center = fromLonLat([position.lng, position.lat]);      this.updateCameraAnimation(id, center);            // 主动触发一次相机动画，确保立即更新相机位置      this.animateCamera(id);            // 为确保相机立即移动到起点，先确保视图已设置      if (this.mapInstance) {        this.mapInstance.render();        this.log('debug', `轨迹 "${id}" 播放开始，相机位置已立即设置到起点`);      }
-    }
-    
-    this.log('debug', `轨迹 "${id}" 开始播放，配置:`, currentPlayer);
     
     return true;
   }
@@ -4626,6 +4594,288 @@ export class TrackObject {
       }
     }
     
+    return true;
+  }
+
+  /**
+   * 创建用于动画的标记样式
+   * @param id 轨迹ID
+   * @param speed 当前速度
+   * @param position 当前位置点
+   * @returns 样式对象
+   */
+  private createMarkerStyleForAnimation(id: string, speed: number, position: TrackPoint): Style {
+    const track = this.tracks.get(id)!;
+    const enableSpeedIcon = this.trackEnableSpeedIcon.get(id) !== false;
+    
+    // 获取实际速度（考虑速度因子）
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    const realSpeed = speed ? speed / speedFactor : 0;
+    
+    // 保存当前速度
+    this.trackCurrentSpeeds.set(id, realSpeed);
+    
+    let iconUrl: string | undefined = undefined;
+    let iconSize: number[] = [24, 24]; // 默认图标大小
+    let iconType: string | undefined = undefined;
+    
+    // 只有启用速度图标切换时才进行图标选择
+    if (enableSpeedIcon) {
+      // 处理图标选择逻辑
+      // 1. 首先检查TrackSpeedGroup配置 - 根据速度选择图标
+      if (this.config.trackSpeedGroup && this.config.trackSpeedGroup.length > 0) {
+        const sortedGroups = [...this.config.trackSpeedGroup].sort((a, b) => b.speed - a.speed);
+        for (const group of sortedGroups) {
+          if (realSpeed > group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `[性能模式] 根据速度 ${realSpeed} km/h 选择图标: ${iconUrl} (速度阈值: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 2. 如果通过速度配置没找到图标，检查轨迹点自身是否有图标URL
+      if (!iconUrl && position.iconUrl) {
+        iconUrl = position.iconUrl;
+        if (position.iconSize) {
+          iconSize = position.iconSize;
+        }
+        iconType = (position as any).iconType;
+        this.log('debug', `[性能模式] 使用轨迹点自定义图标: ${iconUrl}`);
+      }
+      
+      // 3. 如果轨迹点没有图标，则检查轨迹自身的iconGroup配置
+      if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
+        for (const group of track.iconGroup) {
+          if (realSpeed >= group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `[性能模式] 使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 4. 如果仍然没有找到图标，使用轨迹的默认图标
+      if (!iconUrl && track.iconUrl) {
+        iconUrl = track.iconUrl;
+        iconType = (track as any).iconType;
+        this.log('debug', `[性能模式] 使用轨迹默认图标: ${iconUrl}`);
+      }
+    }
+    
+    // 设置样式
+    let style: Style;
+    if (iconUrl) {
+      try {
+        let rotation = 0;
+        let scaleY = 1;
+        const autoRotate = this.config.autoRotate === true;
+        if (autoRotate && position.dir !== undefined) {
+          if (position.dir > 180) {
+            scaleY = -1;
+            rotation = ((position.dir - 180) * Math.PI) / 180;
+          } else {
+            scaleY = 1;
+            rotation = (position.dir * Math.PI) / 180;
+          }
+        }
+        
+        // 统一用IconUtils.createSafeIconStyle
+        const safeIconSize: [number, number] = [iconSize[0] || 24, iconSize[1] || 24];
+        style = IconUtils.createSafeIconStyle(iconUrl, 1, safeIconSize, track.color || 'rgba(24, 144, 255, 1)', undefined, iconType);
+        if (style && style.getImage && style.getImage()) {
+          style.getImage().setRotation(rotation);
+          style.getImage().setScale([1, scaleY]);
+        }
+        this.log('debug', `[性能模式] 创建图标样式成功: ${iconUrl}`);
+      } catch (error) {
+        // 如果创建样式失败，使用默认样式
+        this.log('error', `[性能模式] 创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
+        style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+      }
+    } else {
+      // 使用默认圆点样式
+      this.log('debug', `[性能模式] 未找到适用的图标，使用默认圆点样式`);
+      style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+    }
+    
+    return style;
+  }
+  
+  /**
+   * 设置轨迹动画（性能模式）
+   * 参考OpenLayers Feature Move Animation示例实现
+   * @param id 轨迹ID
+   */
+  private setupAdvancedTrackAnimation(id: string): void {
+    // 移除现有的动画监听器
+    this.removeTrackAnimation(id);
+    
+    // 添加安全检查，确保轨迹存在
+    const track = this.tracks.get(id);
+    if (!track || !track.points || track.points.length < 2) {
+      this.log('warn', `[性能模式] 设置轨迹动画失败: 轨迹 "${id}" 不存在或点数量不足`);
+      return;
+    }
+    
+    // 获取播放配置
+    const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
+    
+    // 获取当前的速度因子（倍速）
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 初始化经过的线特征
+    this.initPassedLineFeature(id);
+    
+    // 保存当前进度
+    const currentProgress = this.trackProgressValues.get(id) || 0;
+    
+    // 计算当前位置
+    const position = this.calculatePositionAtProgress(track, currentProgress);
+    
+    // 创建初始点几何
+    const point = new Point(fromLonLat([position.lng, position.lat]));
+    
+    // 创建初始样式
+    const style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+    
+    // 初始化动画状态
+    this.trackAnimationPositions.set(id, {
+      position: point,
+      lastTime: Date.now(),
+      distance: currentProgress,
+      style: style
+    });
+    
+    // 缓存样式以便重用
+    this.trackAnimationStyles.set(id, style);
+    
+    // 隐藏原始点位特征
+    if (this.trackPositionFeatures.has(id)) {
+      const positionFeature = this.trackPositionFeatures.get(id)!;
+      positionFeature.setStyle(new Style({})); // 空样式，实际隐藏
+    }
+    
+    // 添加postrender事件监听器
+    this.trackAnimationListeners.set(id, this.trackLayer!.on('postrender', (event) => {
+      // 获取向量上下文和帧状态
+      const vectorContext = getVectorContext(event);
+      const frameState = event.frameState;
+      
+      if (!frameState) {
+        return;
+      }
+      
+      // 获取当前播放状态
+      const currentState = this.trackPlayStates.get(id);
+      
+      // 如果不是播放状态，只绘制当前位置
+      if (currentState !== TrackPlayState.PLAYING) {
+        // 获取当前动画状态
+        const animState = this.trackAnimationPositions.get(id);
+        if (animState && animState.style) {
+          // 绘制当前位置
+          vectorContext.setStyle(animState.style);
+          vectorContext.drawGeometry(animState.position);
+        }
+        return;
+      }
+      
+      // 获取当前动画状态
+      const animState = this.trackAnimationPositions.get(id);
+      if (!animState) return;
+      
+      // 计算经过的时间（毫秒）
+      const now = Date.now();
+      const elapsedTime = now - animState.lastTime;
+      
+      // 计算新的进度
+      const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
+      const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
+      let newDistance = animState.distance + progressChange;
+      
+      // 处理循环播放
+      if (newDistance > 1) {
+        if (player.loop) {
+          // 循环播放
+          newDistance = newDistance % 1;
+        } else {
+          // 非循环模式，播放结束
+          newDistance = 1;
+          this.trackPlayStates.set(id, TrackPlayState.STOPPED);
+        }
+      }
+      
+      // 更新进度
+      this.trackProgressValues.set(id, newDistance);
+      animState.distance = newDistance;
+      
+      // 计算当前位置
+      const newPosition = this.calculatePositionAtProgress(track, newDistance);
+      
+      // 更新点几何
+      const newPoint = new Point(fromLonLat([newPosition.lng, newPosition.lat]));
+      animState.position = newPoint;
+      
+      // 更新样式（如果需要根据速度变化）
+      if (this.trackEnableSpeedIcon.get(id) !== false) {
+        animState.style = this.createMarkerStyleForAnimation(id, newPosition.speed || 0, newPosition);
+      }
+      
+      // 绘制经过的线段
+      this.drawPassedLine(id, vectorContext, newDistance);
+      
+      // 绘制位置标记
+      vectorContext.setStyle(animState.style!);
+      vectorContext.drawGeometry(newPoint);
+      
+      // 使相机跟随移动
+      if (player.withCamera) {
+        const newCenter = fromLonLat([newPosition.lng, newPosition.lat]);
+        this.updateCameraAnimation(id, newCenter);
+        this.animateCamera(id);
+      }
+      
+      // 触发进度事件
+      this.dispatchTrackProgressEvent(id, newDistance, newPosition);
+      
+      // 更新上一次的时间戳
+      animState.lastTime = now;
+      
+      // 请求地图重绘，保持动画连续
+      this.mapInstance!.render();
+    }));
+    
+    this.log('debug', `[性能模式] 轨迹 "${id}" 动画已设置`);
+  }
+  
+  /**
+   * 设置是否启用速度图标切换
+   * @param id 轨迹ID
+   * @param enabled 是否启用
+   * @returns 是否成功
+   */
+  public setEnableSpeedIcon(id: string, enabled: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置速度图标切换失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    this.trackEnableSpeedIcon.set(id, enabled);
+    
+    // 如果轨迹正在播放，且处于性能模式，更新样式
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
+      const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
+      if (useAdvancedAnimation && this.trackAnimationPositions.has(id)) {
+        const animState = this.trackAnimationPositions.get(id)!;
+        const position = this.calculatePositionAtProgress(this.tracks.get(id)!, animState.distance);
+        animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+      }
+    }
+    
+    this.log('debug', `轨迹 "${id}" 速度图标切换已${enabled ? '启用' : '禁用'}`);
     return true;
   }
 }
