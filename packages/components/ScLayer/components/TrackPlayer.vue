@@ -1411,27 +1411,18 @@ watch(performanceMode, (newValue) => {
       showMovingDistance.value = false;
       // 保留移动图标设置不变
       
-      // 如果正在播放，需要先停止
-      if (playState.value === 'playing') {
-        // 停止当前播放
-        props.trackObj.stop?.(activeTrackId.value);
-        
-        // 应用所有设置
-        applyAllPerformanceSettings();
-        
-        console.log('性能模式已启用，已禁用除移动图标外的所有设置');
-        
-        // 延迟一点重新开始播放，确保停止命令已执行
-        setTimeout(() => {
-          if (activeTrackId.value) {
-            togglePlay();
-          }
-        }, 100);
-      } else {
-        // 如果没在播放，只更新配置
-        applyAllPerformanceSettings();
-        console.log('性能模式已启用，已禁用除移动图标外的所有设置');
+      // 无论是否正在播放，都停止当前轨迹
+      if (props.trackObj && props.trackObj.stop) {
+        props.trackObj.stop(activeTrackId.value);
+        playState.value = 'stopped';
+        stopProgressTimer();
       }
+      
+      // 应用所有设置
+      applyAllPerformanceSettings();
+      
+      console.log('性能模式已启用，已禁用除移动图标外的所有设置，播放已停止');
+      
     } else {
       // 关闭性能模式，恢复原始配置
       showNodes.value = originalConfig.value.showNodes;
@@ -1446,27 +1437,17 @@ watch(performanceMode, (newValue) => {
       showMovingDistance.value = originalConfig.value.showMovingDistance;
       enableSpeedIcon.value = originalConfig.value.enableSpeedIcon;
       
-      // 如果正在播放，需要先停止
-      if (playState.value === 'playing') {
-        // 停止当前播放
-        props.trackObj.stop?.(activeTrackId.value);
-        
-        // 应用所有设置
-        applyAllSettings(activeTrackId.value);
-        
-        console.log('性能模式已禁用，已恢复原始设置');
-        
-        // 延迟一点重新开始播放，确保停止命令已执行
-        setTimeout(() => {
-          if (activeTrackId.value) {
-            togglePlay();
-          }
-        }, 100);
-      } else {
-        // 如果没在播放，只更新配置
-        applyAllSettings(activeTrackId.value);
-        console.log('性能模式已禁用，已恢复原始设置');
+      // 无论是否正在播放，都停止当前轨迹
+      if (props.trackObj && props.trackObj.stop) {
+        props.trackObj.stop(activeTrackId.value);
+        playState.value = 'stopped';
+        stopProgressTimer();
       }
+      
+      // 应用所有设置
+      applyAllSettings(activeTrackId.value);
+      
+      console.log('性能模式已禁用，已恢复原始设置，播放已停止');
     }
   }
 });
