@@ -94,8 +94,6 @@ export interface MarkerOptions {
   clickable?: boolean;
   /** 是否可拖动 */
   draggable?: boolean;
-  /** 标记点详细内容，支持HTML */
-  content?: string;
   /** 标记点自定义数据 */
   data?: Record<string, any>;
   /** 标记点图层顺序 */
@@ -104,14 +102,12 @@ export interface MarkerOptions {
   group?: string;
   /** 标记点聚合模式 */
   clusterMode?: MarkerClusterMode;
-  /** 是否使用popover */
-  usePopover?: boolean;
-  /** 是否默认显示popover */
+  /** 是否显示popover (true: 显示, false: 不显示, undefined: 不使用popover功能) */
   showPopover?: boolean;
   /** 是否已经显示了popover (内部状态) */
   isPopoverOpen?: boolean;
   /** 自定义的渲染模板 */
-  template?: string;
+  content?: string;
   /** 数据类型 */
   dataType?: DataType;
   /** 标记点按钮 */
@@ -138,7 +134,7 @@ export interface MarkerAnimation {
  */
 export interface MarkerEventHandler {
   (coordinates: number[], data: MarkerOptions): void;
-} 
+}
 
 // 导航配置
 export interface NavigationOptions {
