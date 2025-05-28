@@ -118,22 +118,22 @@ export class GaodeSearchProvider implements SearchDataProvider {
         // 如果没有提供自定义URL，则根据交通方式选择API
         switch (transportType) {
           case 'driving':
-            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+            apiUrl = 'https://restapi.amap.com/v3/direction/driving';
             break;
           case 'walking':
-            apiUrl = 'https://restapi.amap.com/v5/direction/walking';
+            apiUrl = 'https://restapi.amap.com/v3/direction/walking';
             break;
           case 'bicycling':
-            apiUrl = 'https://restapi.amap.com/v5/direction/bicycling';
+            apiUrl = 'https://restapi.amap.com/v3/direction/bicycling';
             break;
           case 'ebike':
-            apiUrl = 'https://restapi.amap.com/v5/direction/ebike';
+            apiUrl = 'https://restapi.amap.com/v3/direction/ebike';
             break;
           case 'transit':
-            apiUrl = 'https://restapi.amap.com/v5/direction/transit/integrated';
+            apiUrl = 'https://restapi.amap.com/v3/direction/transit/integrated';
             break;
           default:
-            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+            apiUrl = 'https://restapi.amap.com/v3/direction/driving';
         }
       }
       
@@ -141,6 +141,7 @@ export class GaodeSearchProvider implements SearchDataProvider {
         key: apiKey,
         origin: `${originGcj02[0]},${originGcj02[1]}`,
         destination: `${destinationGcj02[0]},${destinationGcj02[1]}`,
+        strategy: 11,
         extensions: 'all',
         output: 'JSON'
       };
@@ -268,17 +269,17 @@ export class GaodeSearchProvider implements SearchDataProvider {
   getDefaultNavigationUrl(transportType: string = 'driving'): string {
     switch (transportType) {
       case 'driving':
-        return 'https://restapi.amap.com/v5/direction/driving';
+        return 'https://restapi.amap.com/v3/direction/driving';
       case 'walking':
-        return 'https://restapi.amap.com/v5/direction/walking';
+        return 'https://restapi.amap.com/v3/direction/walking';
       case 'bicycling':
-        return 'https://restapi.amap.com/v5/direction/bicycling';
+        return 'https://restapi.amap.com/v3/direction/bicycling';
       case 'ebike':
-        return 'https://restapi.amap.com/v5/direction/ebike';
+        return 'https://restapi.amap.com/v3/direction/ebike';
       case 'transit':
-        return 'https://restapi.amap.com/v5/direction/transit/integrated';
+        return 'https://restapi.amap.com/v3/direction/transit/integrated';
       default:
-        return 'https://restapi.amap.com/v5/direction/driving';
+        return 'https://restapi.amap.com/v3/direction/driving';
     }
   }
   

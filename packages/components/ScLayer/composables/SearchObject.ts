@@ -878,6 +878,8 @@ export class SearchObject {
    */
   async createNavigation(startPointId: string, endPointId: string, transportType: string = 'driving'): Promise<any> {
     try {
+      console.log('[SearchObject] 开始创建导航路线，参数:', { startPointId, endPointId, transportType });
+      
       // 清除之前的导航路线
       this.clearNavigationLine();
       
@@ -885,15 +887,21 @@ export class SearchObject {
       const endPoint = this.markerObject.getMarker(endPointId);
       
       if (!startPoint || !endPoint) {
-        throw new Error('起点或终点未找到');
+        const errorMsg = `起点或终点未找到: startPoint=${!!startPoint}, endPoint=${!!endPoint}`;
+        console.error('[SearchObject]', errorMsg);
+        throw new Error(errorMsg);
       }
       
       const startPosition = startPoint.position;
       const endPosition = endPoint.position;
       
       if (!startPosition || !endPosition) {
-        throw new Error('起点或终点坐标无效');
+        const errorMsg = `起点或终点坐标无效: startPosition=${!!startPosition}, endPosition=${!!endPosition}`;
+        console.error('[SearchObject]', errorMsg);
+        throw new Error(errorMsg);
       }
+      
+      console.log('[SearchObject] 起点坐标:', startPosition, '终点坐标:', endPosition);
       
       // 获取地图类型
       const mapType = this.configObject.getMapType();
@@ -930,12 +938,13 @@ export class SearchObject {
       // 如果没有找到特定交通方式的URL，则使用默认导航URL
       if (!navigationUrl) {
         navigationUrl = searchProvider.getDefaultNavigationUrl(transportType);
-        console.log(`使用默认导航URL: ${navigationUrl} 进行 ${transportType} 导航`);
+        console.log(`[SearchObject] 使用默认导航URL: ${navigationUrl} 进行 ${transportType} 导航`);
       } else {
-        console.log(`使用 ${transportType} 专用导航URL: ${navigationUrl}`);
+        console.log(`[SearchObject] 使用 ${transportType} 专用导航URL: ${navigationUrl}`);
       }
       
       // 调用搜索提供者的导航方法
+      console.log('[SearchObject] 开始调用导航API');
       const response = await searchProvider.getNavigation(
         startPosition as [number, number],
         endPosition as [number, number],
@@ -944,15 +953,39 @@ export class SearchObject {
         transportType
       );
       
+      console.log('[SearchObject] 导航API返回数据:', response);
+      
       // 保存导航信息以便后续使用
       this.navigationInfo = response;
+      this._lastNavigationResponse = response;
       
-      // 简单绘制导航路线
+      // 检查返回的数据是否有效
+      if (!response || !response.route || !response.route.paths || response.route.paths.length === 0) {
+        console.error('[SearchObject] 导航API返回的数据无效，无法绘制路线');
+        return response;
+      }
+      
+      // 重置导航线路ID数组
+      this.navigationLineIds = [];
+      
+      // 绘制所有导航路线
       if (response && response.route && response.route.paths && response.route.paths.length > 0) {
-        const path = response.route.paths[0];
-        this.drawSimpleNavigationLine(path, transportType);
+        console.log('[SearchObject] 开始绘制导航路线，共有', response.route.paths.length, '条路径');
+        
+        // 绘制主路线（选中状态）
+        const mainPath = response.route.paths[0];
+        console.log('[SearchObject] 绘制主路线，步骤数:', mainPath.steps?.length || 0);
+        this.drawSimpleNavigationLine(mainPath, transportType, true);
+        
+        // 绘制备选路线（非选中状态）
+        for (let i = 1; i < response.route.paths.length; i++) {
+          const alterPath = response.route.paths[i];
+          console.log('[SearchObject] 绘制备选路线', i, '，步骤数:', alterPath.steps?.length || 0);
+          this.drawSimpleNavigationLine(alterPath, transportType, false);
+        }
         
         // 调整地图视图以适应导航路径
+        console.log('[SearchObject] 调整地图视图以适应导航路径');
         this.fitNavigationBounds(response);
       }
       
@@ -975,71 +1008,114 @@ export class SearchObject {
    * 绘制简单的导航线路
    * @param path 导航路径
    * @param transportType 交通方式
+   * @param isSelected 是否为选中的路线
    */
-  private drawSimpleNavigationLine(path: any, transportType: string): void {
+  private drawSimpleNavigationLine(path: any, transportType: string, isSelected: boolean = true): void {
     try {
+      console.log('[SearchObject] 开始绘制导航线路，交通方式:', transportType, '是否选中:', isSelected);
+      console.log('[SearchObject] 路径数据:', path);
+      
+      // 收集所有坐标点
+      const allPoints: Array<[number, number]> = [];
+      
       // 处理路径中的所有步骤
       if (path.steps && path.steps.length > 0) {
-        // 收集所有坐标点
-        const allPoints: Array<[number, number]> = [];
+        console.log('[SearchObject] 处理路径步骤，步骤数量:', path.steps.length);
         
         // 处理每个步骤
-        path.steps.forEach((step: any) => {
+        path.steps.forEach((step: any, index: number) => {
+          // 检查步骤中是否有 polyline 数据
           if (step.polyline) {
             // 解析折线坐标
             const points = this.parsePolyline(step.polyline);
             if (points && points.length > 0) {
               allPoints.push(...points);
             }
+          } else if (step.path && typeof step.path === 'string') {
+            // 某些 API 可能使用 path 而不是 polyline
+            const points = this.parsePolyline(step.path);
+            if (points && points.length > 0) {
+              allPoints.push(...points);
+            }
+          } else if (step.coords && Array.isArray(step.coords)) {
+            // 某些 API 可能直接提供坐标数组
+            step.coords.forEach((coord: any) => {
+              if (Array.isArray(coord) && coord.length >= 2) {
+                allPoints.push([coord[0], coord[1]]);
+              } else if (coord.lng !== undefined && coord.lat !== undefined) {
+                allPoints.push([coord.lng, coord.lat]);
+              }
+            });
+          } else if (step.tmcs && Array.isArray(step.tmcs)) {
+            // 高德地图 API 可能使用 tmcs 数组
+            step.tmcs.forEach((tmc: any) => {
+              if (tmc.polyline) {
+                const points = this.parsePolyline(tmc.polyline);
+                if (points && points.length > 0) {
+                  allPoints.push(...points);
+                }
+              }
+            });
           }
         });
-        
-        // 如果有有效的坐标点，绘制路线
-        if (allPoints.length > 0 && this.mapObj) {
-          // 使用ShapeObject绘制路线
-          if (this.shapeObject) {
-            logger.debug(`[SearchObject] 使用ShapeObject绘制导航路线，坐标点数量: ${allPoints.length}`);
-            
-            // 清除之前的导航线
-            if (this.navigationLine && this.navigationLine.segmentIds) {
-              this.navigationLine.segmentIds.forEach((id: string) => {
-                this.shapeObject.removeShape(id);
-              });
-            }
-            
-            // 确定路线颜色
-            let lineColor = '#3388ff'; // 默认蓝色
-            let lineWidth = 5;
-            
-            // 根据交通方式调整路线样式
-            switch (transportType) {
-              case 'driving':
-                lineColor = '#3388ff'; // 蓝色
-                lineWidth = 5;
-                break;
-              case 'walking':
-                lineColor = '#33cc33'; // 绿色
-                lineWidth = 4;
-                break;
-              case 'bicycling':
-                lineColor = '#ff9900'; // 橙色
-                lineWidth = 4;
-                break;
-              case 'transit':
-                lineColor = '#9933cc'; // 紫色
-                lineWidth = 5;
-                break;
-              default:
-                lineColor = '#3388ff'; // 默认蓝色
-                lineWidth = 5;
-            }
-            
-            // 创建线段
-            const segmentIds: string[] = [];
-            
+      } else if (path.polyline) {
+        // 整个路径可能直接包含 polyline
+        const points = this.parsePolyline(path.polyline);
+        if (points && points.length > 0) {
+          allPoints.push(...points);
+        }
+      } else if (path.path && typeof path.path === 'string') {
+        // 整个路径可能直接包含 path
+        const points = this.parsePolyline(path.path);
+        if (points && points.length > 0) {
+          allPoints.push(...points);
+        }
+      }
+      
+      console.log('[SearchObject] 收集到的总坐标点数量:', allPoints.length);
+      
+      // 如果有有效的坐标点，绘制路线
+      if (allPoints.length > 0 && this.mapObj) {
+        // 使用ShapeObject绘制路线
+        if (this.shapeObject) {
+          logger.debug(`[SearchObject] 使用ShapeObject绘制导航路线，坐标点数量: ${allPoints.length}`);
+          
+          // 确定路线颜色
+          let lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 选中深蓝色，未选中浅蓝色
+          let lineWidth = isSelected ? 5 : 3; // 选中线宽5，未选中线宽3
+          
+          // 根据交通方式调整路线样式
+          switch (transportType) {
+            case 'driving':
+              lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 蓝色
+              lineWidth = isSelected ? 5 : 3;
+              break;
+            case 'walking':
+              lineColor = isSelected ? '#33cc33' : '#a8e6a8'; // 绿色
+              lineWidth = isSelected ? 4 : 3;
+              break;
+            case 'bicycling':
+              lineColor = isSelected ? '#ff9900' : '#ffcc80'; // 橙色
+              lineWidth = isSelected ? 4 : 3;
+              break;
+            case 'transit':
+              lineColor = isSelected ? '#9933cc' : '#cc99e6'; // 紫色
+              lineWidth = isSelected ? 5 : 3;
+              break;
+            default:
+              lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 默认蓝色
+              lineWidth = isSelected ? 5 : 3;
+          }
+          
+          // 创建线段
+          const segmentIds: string[] = [];
+          
+          try {
             // 使用ShapeObject的addLine方法添加线条
-            const lineId = this.shapeObject.addLine(allPoints, {
-              flowLine: true,
+            console.log('[SearchObject] 调用 shapeObject.addLine 方法绘制路线');
+            
+            const lineOptions = {
+              flowLine: isSelected, // 只有选中的路线才显示流动效果
               style: {
                 stroke: {
                   color: lineColor,
@@ -1053,33 +1129,146 @@ export class SearchObject {
                 type: 'navigation',
                 transportType: transportType,
                 distance: path.distance || 0,
-                duration: path.duration || 0
+                duration: path.duration || 0,
+                isSelected: isSelected
               }
-            });
+            };
+            
+            console.log('[SearchObject] 线路绘制选项:', lineOptions);
+            
+            const lineId = this.shapeObject.addLine(allPoints, lineOptions);
             
             if (lineId) {
               segmentIds.push(lineId);
-              logger.debug(`[SearchObject] 导航路线已绘制，ID: ${lineId}, 类型: ${transportType}`);
+              logger.debug(`[SearchObject] 导航路线已绘制，ID: ${lineId}, 类型: ${transportType}, 选中: ${isSelected}`);
+              console.log(`[SearchObject] 导航路线已绘制，ID: ${lineId}, 类型: ${transportType}, 选中: ${isSelected}`);
+            } else {
+              logger.error('[SearchObject] 添加线路失败，返回的 lineId 无效');
+              console.error('[SearchObject] 添加线路失败，返回的 lineId 无效');
             }
-            
-            // 保存导航线信息
+          } catch (err) {
+            logger.error('[SearchObject] 调用 shapeObject.addLine 方法出错:', err);
+            console.error('[SearchObject] 调用 shapeObject.addLine 方法出错:', err);
+          }
+          
+          // 保存导航线信息
+          if (isSelected) {
             this.navigationLine = {
               type: 'shape',
               segmentIds: segmentIds,
               transportType: transportType
             };
             
-            // 添加起点和终点标记
+            console.log('[SearchObject] 已保存选中的导航线信息:', this.navigationLine);
+            
+            // 只为选中的路线添加起点和终点标记
             if (allPoints.length > 1) {
               this.addNavigationMarkers(allPoints[0], allPoints[allPoints.length - 1], transportType);
             }
           } else {
-            logger.warn('[SearchObject] ShapeObject未初始化，无法绘制导航路线');
+            // 将非选中路线的ID也添加到navigationLineIds中，以便后续清除
+            this.navigationLineIds.push(...segmentIds);
+            console.log('[SearchObject] 已保存非选中的导航线ID:', this.navigationLineIds);
+          }
+        } else {
+          // ShapeObject未初始化，使用OpenLayers直接绘制
+          console.warn('[SearchObject] ShapeObject未初始化，尝试使用OpenLayers直接绘制导航路线');
+          
+          try {
+            // 确定路线颜色
+            let lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 选中深蓝色，未选中浅蓝色
+            let lineWidth = isSelected ? 5 : 3; // 选中线宽5，未选中线宽3
+            
+            // 根据交通方式调整路线样式
+            switch (transportType) {
+              case 'driving':
+                lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 蓝色
+                lineWidth = isSelected ? 5 : 3;
+                break;
+              case 'walking':
+                lineColor = isSelected ? '#33cc33' : '#a8e6a8'; // 绿色
+                lineWidth = isSelected ? 4 : 3;
+                break;
+              case 'bicycling':
+                lineColor = isSelected ? '#ff9900' : '#ffcc80'; // 橙色
+                lineWidth = isSelected ? 4 : 3;
+                break;
+              case 'transit':
+                lineColor = isSelected ? '#9933cc' : '#cc99e6'; // 紫色
+                lineWidth = isSelected ? 5 : 3;
+                break;
+              default:
+                lineColor = isSelected ? '#3370ff' : '#a8c4ff'; // 默认蓝色
+                lineWidth = isSelected ? 5 : 3;
+            }
+            
+            // 转换坐标为EPSG:3857
+            const transformedPoints = allPoints.map(point => {
+              return fromLonLat([point[0], point[1]]);
+            });
+            
+            // 创建线几何
+            const lineGeometry = new LineString(transformedPoints);
+            
+            // 创建要素
+            const lineFeature = new Feature({
+              geometry: lineGeometry,
+              properties: {
+                type: 'navigation',
+                transportType: transportType,
+                distance: path.distance || 0,
+                duration: path.duration || 0,
+                isSelected: isSelected
+              }
+            });
+            
+            // 创建样式
+            const lineStyle = new Style({
+              stroke: new Stroke({
+                color: lineColor,
+                width: lineWidth
+              })
+            });
+            
+            // 应用样式
+            lineFeature.setStyle(lineStyle);
+            
+            // 创建矢量源
+            const vectorSource = new VectorSource({
+              features: [lineFeature]
+            });
+            
+            // 创建矢量图层
+            const vectorLayer = new VectorLayer({
+              source: vectorSource,
+              zIndex: 100
+            });
+            
+            // 添加到地图
+            this.mapInstance.addLayer(vectorLayer);
+            
+            // 保存图层以便后续清除
+            if (!this.navigationLayers) {
+              this.navigationLayers = [];
+            }
+            this.navigationLayers.push(vectorLayer);
+            
+            console.log('[SearchObject] 使用OpenLayers直接绘制导航路线成功');
+            
+            // 如果是选中的路线，添加起点和终点标记
+            if (isSelected && allPoints.length > 1) {
+              this.addNavigationMarkers(allPoints[0], allPoints[allPoints.length - 1], transportType);
+            }
+          } catch (error) {
+            console.error('[SearchObject] 使用OpenLayers直接绘制导航路线失败:', error);
           }
         }
+      } else {
+        console.warn('[SearchObject] 没有有效的坐标点或 mapObj 未初始化，无法绘制导航路线');
       }
     } catch (error) {
       logger.error(`[SearchObject] 绘制导航路线失败: ${error}`);
+      console.error('[SearchObject] 绘制导航路线失败:', error);
     }
   }
   
@@ -1162,13 +1351,33 @@ export class SearchObject {
    */
   private parsePolyline(polyline: string): Array<[number, number]> {
     try {
+      // 检查输入是否有效
+      if (!polyline || typeof polyline !== 'string') {
+        console.error('[SearchObject] 无效的折线坐标字符串:', polyline);
+        return [];
+      }
+      
+      console.log('[SearchObject] 解析折线坐标字符串:', polyline.substring(0, 50) + (polyline.length > 50 ? '...' : ''));
+      
       // 高德地图API返回的折线格式通常是"lng1,lat1;lng2,lat2;..."
-      return polyline.split(';').map(point => {
+      const points = polyline.split(';').map(point => {
         const [lng, lat] = point.split(',').map(Number);
+        
+        // 检查坐标是否有效
+        if (isNaN(lng) || isNaN(lat)) {
+          console.warn('[SearchObject] 无效的坐标点:', point);
+          return null;
+        }
+        
         return [lng, lat] as [number, number];
-      });
+      }).filter(point => point !== null);
+      
+      console.log('[SearchObject] 解析出的坐标点数量:', points.length);
+      
+      return points;
     } catch (error) {
       logger.error(`[SearchObject] 解析折线坐标失败: ${error}`);
+      console.error('[SearchObject] 解析折线坐标失败:', error);
       return [];
     }
   }
@@ -1219,6 +1428,34 @@ export class SearchObject {
         }
       }
       this.navigationLine = null;
+    }
+    
+    // 清除所有备选路线
+    if (this.navigationLineIds.length > 0 && this.shapeObject) {
+      for (const lineId of this.navigationLineIds) {
+        this.shapeObject.removeShape(lineId);
+      }
+      this.navigationLineIds = [];
+    }
+    
+    // 清除使用 OpenLayers 直接绘制的图层
+    if (this.navigationLayers && this.navigationLayers.length > 0 && this.mapInstance) {
+      for (const layer of this.navigationLayers) {
+        try {
+          this.mapInstance.removeLayer(layer);
+        } catch (error) {
+          console.error('[SearchObject] 清除导航图层失败:', error);
+        }
+      }
+      this.navigationLayers = [];
+    }
+    
+    // 清除导航标记
+    if (this.navigationMarkerIds.length > 0 && this.markerObject) {
+      for (const markerId of this.navigationMarkerIds) {
+        this.markerObject.removeMarker(markerId);
+      }
+      this.navigationMarkerIds = [];
     }
   }
 
@@ -1310,59 +1547,110 @@ export class SearchObject {
         });
         
         // 如果有有效的坐标点，计算边界并调整地图视图
-        if (allPoints.length > 0) {
-          // 计算边界
-          let minLng = Number.MAX_VALUE;
-          let minLat = Number.MAX_VALUE;
-          let maxLng = -Number.MAX_VALUE;
-          let maxLat = -Number.MAX_VALUE;
+        if (allPoints.length > 0 && this.mapInstance) {
+          console.log('[SearchObject] 调整地图视图，路线点数量:', allPoints.length);
           
-          allPoints.forEach(point => {
-            const [lng, lat] = point;
-            minLng = Math.min(minLng, lng);
-            minLat = Math.min(minLat, lat);
-            maxLng = Math.max(maxLng, lng);
-            maxLat = Math.max(maxLat, lat);
+          // 转换坐标为EPSG:3857
+          const transformedPoints = allPoints.map(point => {
+            return fromLonLat([point[0], point[1]]);
           });
           
-          // 调整地图视图 - 使用MapObject中可用的方法
-          if (this.mapObj && this.mapInstance) {
-            // 计算中心点
-            const centerLng = (minLng + maxLng) / 2;
-            const centerLat = (minLat + maxLat) / 2;
-            
-            // 设置地图中心点
-            this.mapObj.setCenter(centerLat, centerLng, true);
-            
-            // 计算合适的缩放级别
-            // 这里使用简单的方法：根据边界大小估算缩放级别
-            const latDiff = Math.abs(maxLat - minLat);
-            const lngDiff = Math.abs(maxLng - minLng);
-            const maxDiff = Math.max(latDiff, lngDiff);
-            
-            // 根据边界大小估算缩放级别（值越小，缩放级别越大）
-            // 这是一个简单的估算，可能需要根据实际情况调整
-            let zoom = 14; // 默认缩放级别
-            
-            if (maxDiff > 0.5) zoom = 9;
-            else if (maxDiff > 0.2) zoom = 10;
-            else if (maxDiff > 0.1) zoom = 11;
-            else if (maxDiff > 0.05) zoom = 12;
-            else if (maxDiff > 0.01) zoom = 13;
-            else if (maxDiff > 0.005) zoom = 14;
-            else if (maxDiff > 0.001) zoom = 15;
-            else zoom = 16;
-            
-            // 设置缩放级别
-            this.mapObj.setZoom(zoom, true);
-            
-            logger.debug('[SearchObject] 已调整地图视图以显示导航路线，缩放级别:', zoom);
-          }
+          // 创建边界框
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+          
+          transformedPoints.forEach(point => {
+            minX = Math.min(minX, point[0]);
+            minY = Math.min(minY, point[1]);
+            maxX = Math.max(maxX, point[0]);
+            maxY = Math.max(maxY, point[1]);
+          });
+          
+          // 创建边界范围
+          const extent = [minX, minY, maxX, maxY];
+          
+          // 使用 OpenLayers 的 fit 方法调整视图
+          this.mapInstance.getView().fit(extent, {
+            padding: [50, 50, 50, 50], // 添加一些边距
+            duration: 1000, // 动画持续时间
+            maxZoom: 17 // 限制最大缩放级别
+          });
+          
+          console.log('[SearchObject] 已调整地图视图以显示导航路线');
+        } else {
+          console.warn('[SearchObject] 无法调整地图视图：没有有效的坐标点');
         }
       }
     } catch (error) {
       logger.error(`[SearchObject] 调整地图视图失败: ${error}`);
+      console.error('[SearchObject] 调整地图视图失败:', error);
     }
+  }
+
+  /**
+   * 切换选中的路线
+   * @param routeIndex 路线索引
+   * @param transportType 交通方式
+   * @returns 是否切换成功
+   */
+  public switchRoute(routeIndex: number, transportType: string = 'driving'): boolean {
+    try {
+      console.log('[SearchObject] 开始切换路线，索引:', routeIndex, '交通方式:', transportType);
+      
+      // 检查是否有导航响应数据
+      if (!this._lastNavigationResponse || !this._lastNavigationResponse.route || 
+          !this._lastNavigationResponse.route.paths || 
+          this._lastNavigationResponse.route.paths.length <= routeIndex) {
+        logger.warn(`[SearchObject] 无法切换到路线 ${routeIndex}：无效的路线索引`);
+        return false;
+      }
+      
+      // 清除当前所有路线
+      this.clearNavigationLine();
+      
+      // 重置导航线路ID数组
+      this.navigationLineIds = [];
+      
+      // 获取所有路径
+      const paths = this._lastNavigationResponse.route.paths;
+      
+      // 绘制所有路线，将指定索引的路线设为选中状态
+      for (let i = 0; i < paths.length; i++) {
+        const path = paths[i];
+        const isSelected = i === routeIndex;
+        console.log(`[SearchObject] 绘制路线 ${i}，是否选中:`, isSelected);
+        this.drawSimpleNavigationLine(path, transportType, isSelected);
+      }
+      
+      // 更新导航信息中的当前选中路线
+      if (this.navigationInfo && this.navigationInfo.route && this.navigationInfo.route.paths) {
+        // 如果有多条路线，将选中的路线移到第一位
+        if (routeIndex > 0 && this.navigationInfo.route.paths.length > routeIndex) {
+          const selectedPath = this.navigationInfo.route.paths[routeIndex];
+          this.navigationInfo.route.paths[routeIndex] = this.navigationInfo.route.paths[0];
+          this.navigationInfo.route.paths[0] = selectedPath;
+        }
+      }
+      
+      logger.debug(`[SearchObject] 已切换到路线 ${routeIndex}`);
+      return true;
+    } catch (error) {
+      logger.error(`[SearchObject] 切换路线失败: ${error}`);
+      console.error('[SearchObject] 切换路线失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 检查 ShapeObject 是否已初始化
+   * @returns 是否已初始化
+   */
+  public checkShapeObject(): boolean {
+    const isInitialized = !!this.shapeObject;
+    console.log('[SearchObject] ShapeObject 是否已初始化:', isInitialized);
+    return isInitialized;
   }
 }
 

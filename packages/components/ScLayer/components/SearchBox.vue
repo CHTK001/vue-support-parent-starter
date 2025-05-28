@@ -56,15 +56,6 @@
             <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
           </div>
         </div>
-        
-        <div class="transport-mode-selector">
-          <div v-for="type in transportTypes" :key="type.value" class="transport-mode"
-            :class="{ 'active': currentTransportType === type.value }"
-            @click="selectTransportType(type.value)" :title="type.label">
-            <span :class="['transport-icon', type.value + '-icon']"></span>
-          </div>
-        </div>
-        
         <button type="button" class="nav-search-button" @click="handleNavSearch">
           <span class="nav-search-icon"></span>
           <span>查询</span>
@@ -589,7 +580,7 @@ const dragThreshold = 100; // 下拉多少像素触发关闭
 const alternativeRoutes = ref<any[]>([]); // 备选路线列表
 const currentRouteIndex = ref(0); // 当前选中的路线索引
 
-// 修改 selectRoute 方法，使用更通用的方式处理路线切换
+// 修改 selectRoute 方法，使用 switchRoute 方法切换路线
 const selectRoute = (index: number) => {
   if (index === currentRouteIndex.value || !alternativeRoutes.value[index]) {
     return;
@@ -607,22 +598,14 @@ const selectRoute = (index: number) => {
     updateRouteDetails(selectedRoute.steps);
   }
   
-  // 通知 SearchObject 切换路线（如果有相应方法）
+  // 调用 SearchObject 的 switchRoute 方法切换路线
   try {
     if (searchObject) {
-      // 尝试使用通用方法调用，避免直接依赖特定方法名
-      const navigationResponse = searchObject.getNavigationInfo();
-      if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && 
-          navigationResponse.route.paths.length > index) {
-        // 重新创建导航，使用相同的起终点但选择不同的路线
-        searchObject.createNavigation(
-          startPointMarkerId.value, 
-          endPointMarkerId.value, 
-          currentTransportType.value
-        ).catch(err => console.error('切换路线失败:', err));
-        
-        // 由于无法直接选择路线，我们只能重新创建导航，然后在UI上显示不同路线的详情
+      const success = searchObject.switchRoute(index, currentTransportType.value);
+      if (success) {
         console.log(`已切换到路线 ${index + 1}`);
+      } else {
+        console.error(`切换到路线 ${index + 1} 失败`);
       }
     }
   } catch (error) {
@@ -783,13 +766,32 @@ const createRouteNavigation = async () => {
   }
   
   try {
+    // 检查 ShapeObject 是否已初始化
+    if (searchObject.checkShapeObject && !searchObject.checkShapeObject()) {
+      console.error('ShapeObject 未初始化，可能无法绘制路线');
+      ElMessage.warning('地图绘制组件未准备好，路线可能无法正确显示');
+    }
+    
     // 调用导航方法
+    console.log('调用 createNavigation 方法，参数:', {
+      startPointMarkerId: startPointMarkerId.value,
+      endPointMarkerId: endPointMarkerId.value,
+      transportType: currentTransportType.value
+    });
+    
     await searchObject.createNavigation(startPointMarkerId.value, endPointMarkerId.value, currentTransportType.value);
     console.log('导航路线创建成功，准备获取导航信息');
     
     // 获取导航路线信息
     const navigationResponse = searchObject.getNavigationInfo();
     console.log('获取到导航信息:', navigationResponse);
+    
+    // 检查是否有路径数据
+    if (!navigationResponse || !navigationResponse.route || !navigationResponse.route.paths || navigationResponse.route.paths.length === 0) {
+      console.error('导航响应中没有有效的路径数据');
+      ElMessage.error('未能获取到有效的导航路径');
+      return;
+    }
     
     // 重置路线选择状态
     alternativeRoutes.value = [];
@@ -800,6 +802,21 @@ const createRouteNavigation = async () => {
       const mainPath = navigationResponse.route.paths[0];
       routeTotalDistance.value = mainPath.distance || 0;
       routeTotalDuration.value = mainPath.duration || 0;
+      
+      console.log('主路线信息:', {
+        distance: mainPath.distance,
+        duration: mainPath.duration,
+        steps: mainPath.steps?.length || 0
+      });
+      
+      // 检查步骤中是否包含polyline数据
+      if (mainPath.steps && mainPath.steps.length > 0) {
+        const hasPolyline = mainPath.steps.some(step => step.polyline);
+        console.log('步骤中是否包含polyline数据:', hasPolyline);
+        if (!hasPolyline) {
+          console.warn('步骤中没有polyline数据，可能无法正确绘制路线');
+        }
+      }
       
       // 处理路线步骤
       const steps = mainPath.steps || [];
@@ -827,6 +844,8 @@ const createRouteNavigation = async () => {
             isMain: false
           });
         }
+        
+        console.log('共找到', alternativeRoutes.value.length, '条备选路线');
       }
       
       console.log('路线详情准备完成，共', routeDetails.value.length, '个步骤');
@@ -1254,7 +1273,7 @@ $transition-time: 0.2s;
     
     .navigation-input-group {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       margin-bottom: 8px;
       
       .nav-input {
@@ -1703,6 +1722,7 @@ $transition-time: 0.2s;
     .route-endpoints {
       display: flex;
       align-items: center;
+      flex-direction: row;
       margin-bottom: 10px;
       padding: 8px;
       background-color: #f8f8f8;
