@@ -132,7 +132,7 @@ export class FlightLineObject {
           stopEvent: false,          // 允许事件继续传播
           hideOnMoving: this.config.hideOnMoving,
           hideOnZooming: this.config.hideOnZooming,
-        forcedPrecomposeRerender: true, // 强制重新渲染
+          forcedPrecomposeRerender: true, // 强制重新渲染
           insertFirst: false,        // 确保在地图的最上层
           polyfillEvents: true,      // 支持事件
           zIndex: 90,                // 设置较低的z-index，确保不会覆盖热力图
