@@ -25,10 +25,12 @@ import VectorSource from 'ol/source/Vector';
 import { Style, Stroke } from 'ol/style';
 import { Vector as VectorLayer } from 'ol/layer';
 
-// 扩展搜索选项接口，添加坐标搜索需要的属性
+// 在接口定义部分添加位置信息接口
 interface ExtendedSearchOptions extends SearchOptions {
   location?: number[];
   mapType: MapType;
+  city?: string; // 添加城市参数
+  adcode?: string; // 添加区划编码参数
 }
 
 // 缓存项接口
@@ -91,7 +93,31 @@ export class SearchObject {
   private navigationMarkerIds: string[] = [];
   private navigationLayers: any[] = [];
 
-  constructor(mapInstance: any, markerObject: MarkerObject, searchBoxConfig: SearchBoxConfig, configObject: ConfigObject, mapObj: MapObject, mapKey: Record<string, string>, shapeObject?: ShapeObject) {
+  // 添加位置信息属性
+  private locationInfo: {
+    cityCode: string;
+    adcode: string;
+    province: string;
+    city: string;
+    district: string;
+  } | null = null;
+
+  constructor(
+    mapInstance: any, 
+    markerObject: MarkerObject, 
+    searchBoxConfig: SearchBoxConfig, 
+    configObject: ConfigObject, 
+    mapObj: MapObject, 
+    mapKey: Record<string, string>, 
+    shapeObject?: ShapeObject,
+    locationInfo?: {
+      cityCode: string;
+      adcode: string;
+      province: string;
+      city: string;
+      district: string;
+    } | null
+  ) {
     this.mapInstance = mapInstance;
     this.mapObj = mapObj;
     this.markerObject = markerObject;
@@ -99,6 +125,7 @@ export class SearchObject {
     this.configObject = configObject;
     this.mapKey = mapKey;
     this.shapeObject = shapeObject || null;
+    this.locationInfo = locationInfo || null;
     
     // 设置当前搜索类型
     this.currentSearchType = searchBoxConfig.defaultSearchType || SearchType.KEYWORD;
@@ -185,6 +212,17 @@ export class SearchObject {
     if(!options.key){
       options.key = this.mapKey[options?.mapType];
     }
+    
+    // 将 options 转换为 ExtendedSearchOptions 类型
+    const extendedOptions = options as unknown as ExtendedSearchOptions;
+    
+    // 如果有位置信息，添加到搜索选项中
+    if (this.locationInfo && !extendedOptions.city) {
+      extendedOptions.city = this.locationInfo.cityCode || this.locationInfo.adcode;
+      logger.debug(`[SearchObject] 添加城市参数到搜索选项: ${extendedOptions.city}`);
+    }
+    
+    this.updateOptions(options);
     try {
       // 获取搜索类型配置
       const typeConfig = this.getSearchTypeConfig(type);
@@ -216,7 +254,7 @@ export class SearchObject {
       }
 
       // 根据搜索类型设置选项
-      this.setOptionsBySearchType(type, keyword, options);
+      this.setOptionsBySearchType(type, keyword, extendedOptions);
       
       // 如果有搜索处理器，使用处理器处理搜索
       if (handler) {
@@ -344,12 +382,27 @@ export class SearchObject {
   }
 
   /**
+   * 更新搜索选项
+   * @param options 搜索选项
+   */
+  private updateOptions(options: SearchOptions): void {
+    if (this.locationInfo) {
+      options.city =  this.locationInfo.city || this.locationInfo.adcode;
+    }
+  }
+  /**
    * 根据搜索类型设置搜索选项
    * @param type 搜索类型
    * @param keyword 搜索关键词
    * @param options 搜索选项
    */
   private setOptionsBySearchType(type: SearchType, keyword: string, options: ExtendedSearchOptions): void {
+    // 如果有位置信息，添加到搜索选项中
+    if (this.locationInfo) {
+      options.city = options.city || this.locationInfo.cityCode || this.locationInfo.adcode;
+      options.adcode = options.adcode || this.locationInfo.adcode;
+    }
+
     // 根据搜索类型设置不同的选项
     switch (type) {
       case SearchType.KEYWORD:
@@ -1655,6 +1708,35 @@ export class SearchObject {
     const isInitialized = !!this.shapeObject;
     console.log('[SearchObject] ShapeObject 是否已初始化:', isInitialized);
     return isInitialized;
+  }
+
+  /**
+   * 设置位置信息
+   * @param locationInfo 位置信息，包含城市编码和区划编码
+   */
+  public setLocationInfo(locationInfo: {
+    cityCode: string;
+    adcode: string;
+    province: string;
+    city: string;
+    district: string;
+  } | null): void {
+    this.locationInfo = locationInfo;
+    logger.debug(`[SearchObject] 已设置位置信息: ${JSON.stringify(locationInfo)}`);
+  }
+
+  /**
+   * 获取位置信息
+   * @returns 位置信息
+   */
+  public getLocationInfo(): {
+    cityCode: string;
+    adcode: string;
+    province: string;
+    city: string;
+    district: string;
+  } | null {
+    return this.locationInfo;
   }
 }
 
