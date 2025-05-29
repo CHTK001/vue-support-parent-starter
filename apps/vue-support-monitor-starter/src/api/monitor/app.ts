@@ -1,6 +1,13 @@
 import { http, type ReturnResult } from "@repo/utils";
 
 /**
+ *  获取应用详情
+ */
+export const fetchAppDetail = (params: any) => {
+  return http.request<ReturnResult<any>>("get", `/v1/app/detail/${params.monitorId}`);
+};
+
+/**
  * 获取应用列表
  */
 export const fetchAppList = (params: any) => {
