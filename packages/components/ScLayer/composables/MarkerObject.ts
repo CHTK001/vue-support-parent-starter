@@ -61,14 +61,13 @@ export class MarkerObject {
   // 默认标记点样式
   private defaultStyle = {
     scale: 1, // 固定为1，不放大
-    anchor: [0.5, 1] as [number, number], // 使用中心点作为锚点
+    anchor: [0, 0] as [number, number], // 使用中心点作为锚点
     offset: [0, 0] as [number, number],
     rotation: 0,
     textColor: '#333',
     textOutlineColor: '#fff',
     textOutlineWidth: 2,
     textFont: '14px Arial',
-    textOffsetY: -20
   };
   // 默认图标URL
   private defaultIconUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAqFJREFUWEftljtMFFEUhv8zmrU0DBuMhTQ7M2hQGyGa0BLfdqKtFkb27sZOW5dWrQy7oBa2RK2MIGrsLHw2KlF2BgssDAQuoZTIHLPDghN2HvcOBY1T7j3n/N953LOXsM0fbbM+tgSw+65baCSwfM2eyZqINoBZna4AdBiGcQzMewNhol/w/bcAf5alrooOjDJA+3D9KBM9AOFQogDjCzFfWSw771RAlACCrMm4qRJww4b9IZVqpAI0+rxjJzwt8abx6h9YafORCmCOeONgPp0FAEQTsmidSfJNBFAo/VQzeHesCKEii/ZQ3HkyQM17BnBcBheksB83Aps1dwDAo2gRGpfCOpsRwJ0D0LHZ2QD1LAjrU/j3fM074oM/RgjNS2Hv0QbID884vuFPtzrytBTO/qiAZq3+HaCuFmDf6FooF+pRPrEtyI/O9Pi+/yHCaUoK+2A0gPsVQMs8GIbRuzBYiKpO/Co2q94+EM/GlG6j/+vniXPA1ClL1k+tCqAylTM7cr/jeheeg4T+B+5yfmUXKt0regBr0z0G4GL8PebmjLT2PeTzUgr7hPYQBter6h4H4UWmJdR0YtDVJWHdzwSwdsfr7wHqzQqxCi4sC+dHZoD2av0SEz3MBsB3pHCuJ/mm/hc0q/AKoH4dCAa8HFHfXNGa3zJA26h7jnw81QIgHlwqOvfSfJQqsFYFbwzghBsRlqJJKaxTaeKNc2WAthGvj5jfKAX1jf7FcuG1kq2K0b9t590COHGoALothXVDNa5yBUIrdwJAXHmfS2FrPV60Adqr9QNMNAmgc1OWs8R8crHkfFPNXmsGwkHNqnsehOAxsvExBmTJfqIjnhkguBXhl3LKs2vLeyAugDniBRtSFq3Lupmv22vPQFahOL//AH8B63PcITqKfDEAAAAASUVORK5CYII=';
@@ -308,7 +307,7 @@ export class MarkerObject {
     const options = this.markerOptions.get(markerId)!;
     
     // 只有在全局标签可见状态为true时，才处理popover显示/隐藏
-    if (this.labelsVisible && (options.title || options.template) && options.usePopover !== false) {
+    if (this.labelsVisible && (options.title || options.content) && options.showPopover !== false) {
       // 检查popover是否已经打开
       if (options.isPopoverOpen) {
         // 如果已经打开，则隐藏
@@ -774,7 +773,6 @@ export class MarkerObject {
       options.clusterMode = options.clusterMode || MarkerClusterMode.BOTH;
     }
     
-    options.usePopover = options.usePopover !== undefined ? options.usePopover : true;
     options.showPopover = options.showPopover !== undefined ? options.showPopover : false;
     options.isPopoverOpen = false; // 初始化时popover为关闭状态
     options.iconType = options.iconType || 'default';
@@ -862,7 +860,7 @@ export class MarkerObject {
     }
     
     // 如果设置了默认显示popover且有标题，且全局标签可见状态为true，且全局标记点可见状态为true，立即显示popover
-    if (this.labelsVisible && this.markersVisible && options.showPopover && options.usePopover && (options.title || options.template) && options.visible) {
+    if (this.labelsVisible && this.markersVisible && options.showPopover === true && (options.title || options.content) && options.visible) {
       this.showMarkerPopover(id);
     }
     
@@ -1010,10 +1008,10 @@ export class MarkerObject {
     
     // 处理popover显示状态，只有在全局标签可见状态为true时才显示
     if (options.showPopover !== undefined) {
-      if (this.labelsVisible && options.showPopover && newOptions.usePopover && (newOptions.title || newOptions.template) && newOptions.visible) {
+      if (this.labelsVisible && options.showPopover === true && (newOptions.title || newOptions.content) && newOptions.visible) {
         // 显示popover
         this.showMarkerPopover(id);
-      } else if (!options.showPopover && this.currentPopover === id) {
+      } else if (options.showPopover === false && this.currentPopover === id) {
         // 隐藏popover
         this.hideCurrentPopover();
       }
@@ -1101,7 +1099,7 @@ export class MarkerObject {
     this.markerOptions.set(id, options);
     
     // 如果标记点设置了默认显示popover，且全局标签可见状态为true，则显示popover
-    if (this.labelsVisible && options.showPopover && options.usePopover && options.title) {
+    if (this.labelsVisible && options.showPopover === true && options.title) {
       this.showMarkerPopover(id);
     }
     
@@ -1223,7 +1221,7 @@ export class MarkerObject {
     if (this.labelsVisible) {
       this.markers.forEach((marker, id) => {
         const options = this.markerOptions.get(id)!;
-        if (options.showPopover && options.usePopover && options.title) {
+        if (options.showPopover === true && options.title) {
           // 只显示第一个找到的需要显示popover的标记点
           if (this.currentPopover === null) {
             this.showMarkerPopover(id);
@@ -1286,8 +1284,8 @@ export class MarkerObject {
     this.markers.forEach((marker, id) => {
       const options = this.markerOptions.get(id)!;
       
-      // 处理可见且有标题或模板的标记点
-      if (options.visible && (options.title || options.template) && options.usePopover !== false) {
+      // 处理可见且有标题或内容的标记点，且showPopover不为false
+      if (options.visible && (options.title || options.content) && options.showPopover !== false) {
         // 显示标记点的popover
         this.showMarkerPopover(id);
         
@@ -1378,22 +1376,35 @@ export class MarkerObject {
     popoverElement.className = 'marker-popover';
     
     // 判断是否有模板，有则使用模板，没有则直接显示标题
-    if (markerOption.template) {
+    if (markerOption.content) {
       // 使用模板作为popover内容
-      popoverElement.innerHTML = markerOption.template;
+      popoverElement.innerHTML = markerOption.content;
       
       // 为模板内的样式和交互添加类名标识
-      popoverElement.classList.add('marker-popover-with-template');
+      popoverElement.classList.add('marker-popover-with-content');
     } else {
       // 没有模板，使用标题
-      popoverElement.innerHTML = `<div class="marker-popover-content">${title}</div>`;
+      popoverElement.innerHTML = `
+        <div class="marker-popover-content">${title}</div>
+        <div class="marker-popover-close">×</div>
+      `;
+      
+      // 添加关闭按钮点击事件
+      setTimeout(() => {
+        const closeButton = popoverElement.querySelector('.marker-popover-close');
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            this.hideCurrentPopover();
+          });
+        }
+      }, 0);
     }
     
     // 创建Overlay对象
     const popover = new Overlay({
       element: popoverElement,
       positioning: 'top-center', // 修改为top-center，使popover在标记点正上方
-      offset: [0, -5], // 调整偏移量，使popover在标记点上方有一定距离
+      offset: [10, -70], // 向上偏移50像素，确保与标记点有足够距离
       position: position,
       stopEvent: true
     });
@@ -1418,15 +1429,15 @@ export class MarkerObject {
     const markerOption = this.markerOptions.get(markerId);
     if (!markerOption) return;
     
-    // 检查是否有标题或模板，至少需要一个才能显示popover
-    if (!markerOption.title && !markerOption.template) {
-      this.log('debug', `标记点 "${markerId}" 没有标题和模板，无法显示popover`);
+    // 检查是否有标题或内容，至少需要一个才能显示popover
+    if (!markerOption.title && !markerOption.content) {
+      this.log('debug', `标记点 "${markerId}" 没有标题和自定义内容，无法显示popover`);
       return;
     }
     
-    // 如果明确设置了不使用popover，则不显示
-    if (markerOption.usePopover === false) {
-      this.log('debug', `标记点 "${markerId}" 设置了usePopover=false，不显示popover`);
+    // 如果明确设置了不显示popover，则不显示
+    if (markerOption.showPopover === false) {
+      this.log('debug', `标记点 "${markerId}" 设置了showPopover=false，不显示popover`);
       return;
     }
     
@@ -1458,7 +1469,7 @@ export class MarkerObject {
     markerOption.isPopoverOpen = true;
     this.markerOptions.set(markerId, markerOption);
     
-    this.log('debug', `显示标记点 "${markerId}" 的popover ${markerOption.template ? '(使用模板)' : ''}`);
+    this.log('debug', `显示标记点 "${markerId}" 的popover ${markerOption.content ? '(使用自定义内容)' : ''}`);
   }
   
   /**

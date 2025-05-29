@@ -29,11 +29,6 @@
                   <span class="status-dot"></span>
                   {{ item?.metadata?.applicationActive }}
                 </el-tag>
-
-                <el-tag v-if="hasEndpoint(item, 'loggers')" type="info" class="action-tag" @click="doOpenLog(item)">
-                  <IconifyIconOnline icon="ep:document" class="mr-1" />
-                  日志
-                </el-tag>
               </div>
 
               <!-- 应用名称 -->
@@ -184,27 +179,6 @@ const getActionButtons = (item) => {
       handler: () => doThread(item),
       show: hasEndpoint(item, 'thread')
     },
-    {
-      title: 'CPU监控',
-      icon: 'ep:cpu',
-      type: 'danger',
-      handler: () => doCpu(item),
-      show: hasEndpoint(item, 'metrics')
-    },
-    {
-      title: '内存监控',
-      icon: 'ep:data-line',
-      type: 'warning',
-      handler: () => doMem(item),
-      show: hasEndpoint(item, 'metrics')
-    },
-    {
-      title: '日志查询',
-      icon: 'ep:document-search',
-      type: 'info',
-      handler: () => doLogSearch(item),
-      show: hasEndpoint(item, 'logfile')
-    }
   ].filter(btn => btn.show);
 };
 const hasEndpoint = async (item, endpointsValue) => {
@@ -364,12 +338,39 @@ defineExpose({
 <style lang="scss" scoped>
 // 空状态样式
 .empty-state {
-  padding: 40px 0;
+  padding: 60px 0;
+  animation: float 6s ease-in-out infinite;
+  
+  :deep(.el-empty__image) {
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+    transition: transform 0.5s;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
 
   .empty-text {
     color: var(--el-text-color-secondary);
-    font-size: 16px;
-    margin-top: 16px;
+    font-size: 18px;
+    margin-top: 20px;
+    font-weight: 500;
+    background: linear-gradient(45deg, var(--el-text-color-secondary), var(--el-text-color-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding: 8px 0;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
   }
 }
 
@@ -378,6 +379,7 @@ defineExpose({
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  animation: fade-in 0.8s ease-out forwards;
 
   // 实例卡片样式
   .instance-card {
@@ -388,7 +390,8 @@ defineExpose({
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     border: 1px solid var(--el-border-color-lighter);
     overflow: hidden;
-
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    
     // 顶部彩条
     &::before {
       content: '';
@@ -397,18 +400,35 @@ defineExpose({
       left: 0;
       right: 0;
       height: 4px;
-      background: var(--el-color-primary);
+      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, height 0.3s;
+    }
+    
+    // 背景纹理
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(var(--el-color-primary-light-9) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.2;
+      z-index: 0;
+      pointer-events: none;
     }
 
     // 悬浮效果
     &:hover {
       transform: translateY(-6px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12),
+                  0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
 
       &::before {
         opacity: 1;
+        height: 6px;
       }
     }
 
@@ -455,6 +475,7 @@ defineExpose({
         align-items: center;
         gap: 12px;
         margin-bottom: 16px;
+        flex-wrap: wrap;
 
         .status-tag {
           font-size: 12px;
@@ -465,6 +486,8 @@ defineExpose({
           display: flex;
           align-items: center;
           gap: 6px;
+          transition: all 0.3s;
+          font-weight: 500;
 
           .status-dot {
             width: 8px;
@@ -518,40 +541,71 @@ defineExpose({
           display: flex;
           align-items: center;
           gap: 8px;
+          transition: all 0.3s;
+          border-left: 3px solid var(--el-color-primary-light-5);
+          
+          &:hover {
+            transform: translateX(4px);
+            background: var(--el-color-primary-light-9);
+            color: var(--el-color-primary-dark-2);
+            border-left-color: var(--el-color-primary);
+          }
 
           .address-icon {
             color: var(--el-color-primary);
             animation: bounce 2s infinite;
+            filter: drop-shadow(0 0 2px rgba(var(--el-color-primary-rgb), 0.3));
           }
         }
 
         // 操作按钮组
         .action-buttons {
-          margin-top: 8px;
-          padding: 12px;
+          margin-top: 16px;
+          padding: 16px;
           background: var(--el-fill-color-light);
           border-radius: 12px;
           transition: all 0.3s;
+          position: relative;
+          overflow: hidden;
+          
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.05) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s;
+          }
 
           &:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            
+            &::before {
+              opacity: 1;
+            }
           }
 
           .button-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
+            position: relative;
+            z-index: 1;
           }
 
           // 操作按钮
           .action-btn {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             padding: 0;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             overflow: hidden;
+            border: none;
 
             &::before {
               content: '';
@@ -560,11 +614,6 @@ defineExpose({
               left: 50%;
               width: 0;
               height: 0;
-              background: rgba(255, 255, 255, 0.2);
-              border-radius: 50%;
-              transform: translate(-50%, -50%);
-              transition: width 0.4s, height 0.4s;
-              z-index: 0;
             }
 
             &:hover {
@@ -643,32 +692,97 @@ defineExpose({
 // 列表项动画
 .instance-fade {
   &-enter-active {
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transition-delay: calc(var(--el-transition-duration) * 0.1 * var(--index));
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition-delay: calc(var(--el-transition-duration) * 0.1 * var(--index, 0));
   }
 
   &-leave-active {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: absolute;
   }
 
   &-enter-from,
   &-leave-to {
     opacity: 0;
     transform: translateY(30px) scale(0.9);
+    filter: blur(10px);
+  }
+}
+
+// 添加实例列表容器动画
+.instance-list {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  animation: fade-in 0.8s ease-out forwards;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 // 暗黑模式适配
 :root[data-theme='dark'] {
   .instance-card {
-    background: var(--el-bg-color-overlay);
+    background: rgba(30, 30, 30, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    
+    &::after {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    
+    &:hover {
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3),
+                  0 0 0 1px rgba(var(--el-color-primary-rgb), 0.2);
+    }
 
     .server-address {
       background: var(--el-fill-color-darker);
+      border-left-color: rgba(var(--el-color-primary-rgb), 0.3);
+      
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.15);
+        border-left-color: var(--el-color-primary);
+      }
     }
 
     .action-buttons {
-      background: var(--el-fill-color-darker);
+      background: rgba(30, 30, 30, 0.8);
+      
+      &::before {
+        background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.1) 0%, transparent 70%);
+      }
+    }
+    
+    .instance-name::after {
+      background: var(--el-color-primary);
+    }
+  }
+  
+  :deep(.modern-dialog) {
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    
+    .el-dialog__header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      
+      &:after {
+        background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.3) 50%, transparent);
+      }
+    }
+    
+    .el-dialog__footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background-color: rgba(30, 30, 30, 0.6);
     }
   }
 }

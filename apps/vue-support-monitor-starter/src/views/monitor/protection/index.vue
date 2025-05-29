@@ -52,7 +52,7 @@ const handleDelete = async row => {
  * 加载表格数据
  */
 const loadData = () => {
-  tableRef.value.reload(form);
+  tableRef.value?.reload(form);
 };
 
 /**

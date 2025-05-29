@@ -51,7 +51,7 @@
       
     <!-- 添加标记点详情组件 -->
     <MarkerDetail 
-      v-if="showMarkerDetail"
+      v-if="showMarkerDetail && selectedMarker && !selectedMarker.content"
       v-model:visible="showMarkerDetail"
       :marker="selectedMarker"
       :title="markerDetailTitle"
@@ -99,7 +99,7 @@ import { TrackObject } from './composables/TrackObject';
 import { Model3DOptions } from './composables/CesiumModelObject';
 import { CesiumObject } from './composables/CesiumObject';
 import { SearchObject } from './composables/SearchObject';
-import { getCurrentPoint } from './utils/locationUtils';
+import { getCurrentPoint, getLocationCityCode } from './utils/locationUtils';
 import {
   // 类型导入
   type MapConfig, type MapEventType, type Track, type TrackPlayer,
@@ -277,6 +277,14 @@ const showMarkerDetail = ref(false);
 const selectedMarker = ref<MarkerOptions | null>(null);
 const markerDetailTitle = ref('');
 const markerScreenPosition = ref<{ x: number; y: number } | null>(null);
+// 添加当前城市编码状态
+const currentLocationInfo = ref<{
+  cityCode: string;
+  adcode: string;
+  province: string;
+  city: string;
+  district: string;
+} | null>(null);
 
 // 坐标选项
 const coordinateOptions = computed<CoordinateOptions>(() => ({
@@ -544,62 +552,45 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
 
     // 飞线图状态变化 - 修改键名以匹配工具ID
     'flightLine': () => {
-      logger.debug(`[FlightLine] 收到飞线图事件: active=${active}, data=${JSON.stringify(data)}`);
-
+      logger.debug(`[FlightLine] 收到飞线图事件: active=${active}`);
+      
       if (active) {
-        // 激活时强制启用飞线图，并显示面板
-        if (!showFlightLinePanel.value) {
-          showFlightLinePanel.value = true;
-          // 锁定面板，防止意外关闭
-          flightLinePanelLocked.value = true;
-          logger.info('[FlightLine] 飞线图已激活，显示飞线列表面板');
-
-          // 尝试启用飞线图
-          const flightLineObj = toolbarObject?.getFlightLineObject();
-          if (flightLineObj) {
-            // 确保地图已就绪
-            if (mapReady.value) {
-              flightLineObj.enable().then(() => {
-                logger.debug('[FlightLine] 飞线图已启用并设置最佳视角');
-                flightLineObj.setOptimalView(5);
-              }).catch(err => {
-                logger.error('[FlightLine] 启用飞线图失败:', err);
-              });
-            } else {
-              // 地图未就绪，等待地图就绪后再启用
-              logger.debug('[FlightLine] 地图未就绪，等待地图就绪后再启用飞线图');
-
-              // 监听地图就绪事件
-              watch(mapReady, (ready) => {
-                if (ready && flightLineObj) {
-                  flightLineObj.enable().then(() => {
-                    logger.debug('[FlightLine] 地图就绪后启用飞线图成功');
-                    flightLineObj.setOptimalView(5);
-                  }).catch(err => {
-                    logger.error('[FlightLine] 地图就绪后启用飞线图失败:', err);
-                  });
-                }
-              }, { immediate: true, once: true });
+        // 检查热力图状态，如果热力图是活跃的，先禁用热力图
+        if (isHeatmapActive.value) {
+          logger.debug('[FlightLine] 检测到热力图处于激活状态，先禁用热力图');
+          const heatmapObj = toolbarObject?.getHeatmapObject();
+          if (heatmapObj && heatmapObj.isEnabled()) {
+            try {
+              heatmapObj.disable();
+              logger.debug('[FlightLine] 已临时禁用热力图，飞线图激活后热力图将被恢复');
+            } catch (error) {
+              logger.error('[FlightLine] 禁用热力图失败:', error);
             }
           }
         }
+        
+        // 显示飞线图面板
+        showFlightLinePanel.value = true;
+        flightLinePanelLocked.value = true;
 
-        // 延迟处理数据
-        setTimeout(() => {
-          // 如果有数据，则传递到飞线图对象中
-          if (data && Array.isArray(data)) {
-            const flightLineObj = toolbarObject?.getFlightLineObject();
-            if (flightLineObj) {
-              try {
-                // 添加飞线数据
-                flightLineObj.addFlightLines(data, true, 5); // 添加数据并自动设置最佳视角，缩放级别为5
-                logger.info(`[FlightLine] 已添加 ${data.length} 条飞线数据`);
-              } catch (error) {
-                logger.error('[FlightLine] 添加飞线数据失败:', error);
+        // 启用飞线图
+        const flightLineObj = toolbarObject?.getFlightLineObject();
+        if (flightLineObj) {
+          flightLineObj.enable().catch(err => {
+            logger.error('[FlightLine] 启用飞线图失败:', err);
+          });
+
+          // 确保刷新飞线列表
+          nextTick(() => {
+            setTimeout(() => {
+              if (flightLinePanelRef.value) {
+                flightLinePanelRef.value.refreshFlightLineList();
               }
-            }
-          }
-        }, 500);
+            }, 300);
+          });
+        }
+
+        logger.debug('[FlightLine] 飞线工具激活，显示面板');
       } else {
         // 工具栏停用飞线图时，无论面板是否锁定都应该关闭面板并解除锁定
         showFlightLinePanel.value = false;
@@ -612,6 +603,27 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
           try {
             flightLineObj.disable();
             logger.debug('[FlightLine] 飞线图已禁用');
+            
+            // 检查热力图状态，如果热力图处于激活状态，确保它被重新启用
+            if (isHeatmapActive.value) {
+              const heatmapObj = toolbarObject?.getHeatmapObject();
+              if (heatmapObj) {
+                // 延迟一点执行，确保飞线图已完全禁用
+                setTimeout(() => {
+                  try {
+                    heatmapObj.enable();
+                    // 强制更新一次地图，确保热力图显示
+                    if (mapObj) {
+                      mapObj.getMapInstance()?.updateSize();
+                      mapObj.getMapInstance()?.render();
+                    }
+                    logger.debug('[FlightLine] 飞线图禁用后，重新启用热力图');
+                  } catch (error) {
+                    logger.error('[FlightLine] 重新启用热力图失败:', error);
+                  }
+                }, 100);
+              }
+            }
           } catch (error) {
             logger.error('[FlightLine] 禁用飞线图失败:', error);
           }
@@ -640,6 +652,13 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
         if (heatmapObj) {
           try {
             heatmapObj.enable();
+            
+            // 强制更新一次地图，确保热力图显示
+            if (mapObj) {
+              mapObj.getMapInstance()?.updateSize();
+              mapObj.getMapInstance()?.render();
+            }
+            
             logger.debug('[Heatmap] 热力图已启用');
           } catch (error) {
             logger.error('[Heatmap] 启用热力图失败:', error);
@@ -869,6 +888,26 @@ const handleToolStateByType = (toolId: string, active: boolean, toolType: string
     'search': () => {
       showSearchBox.value = active;
       logger.debug(`[Search] 搜索框显示状态: ${showSearchBox.value}`);
+      
+      // 当搜索框激活时，获取当前位置和城市编码
+      if (active) {
+        getCurrentPoint().then((coordinate: GeoPoint) => {
+          // 不再需要地图密钥
+          getLocationCityCode(coordinate).then((locationInfo) => {
+            currentLocationInfo.value = locationInfo;
+            logger.debug(`[Search] 获取到当前位置的城市编码: ${locationInfo.cityCode}, 区划编码: ${locationInfo.adcode}`);
+            
+            // 如果搜索对象已存在，更新城市编码
+            if (searchObject) {
+              searchObject.setLocationInfo(locationInfo);
+            }
+          }).catch(error => {
+            logger.error('[Search] 获取城市编码失败:', error);
+          });
+        }).catch(error => {
+          logger.error('[Search] 获取当前位置失败:', error);
+        });
+      }
     },
 
     // 区划工具状态变化
@@ -935,6 +974,20 @@ const handleToolActivated = (toolId) => {
     // 显示轨迹播放器
     showTrackPlayer.value = true;
   } else if (toolId === 'flightLine') {
+    // 检查热力图状态，如果热力图是活跃的，先禁用热力图
+    if (isHeatmapActive.value) {
+      logger.debug('[FlightLine] 检测到热力图处于激活状态，先禁用热力图');
+      const heatmapObj = toolbarObject?.getHeatmapObject();
+      if (heatmapObj && heatmapObj.isEnabled()) {
+        try {
+          heatmapObj.disable();
+          logger.debug('[FlightLine] 已临时禁用热力图，飞线图激活后热力图将被恢复');
+        } catch (error) {
+          logger.error('[FlightLine] 禁用热力图失败:', error);
+        }
+      }
+    }
+    
     // 显示飞线图面板
     showFlightLinePanel.value = true;
     flightLinePanelLocked.value = true;
@@ -1007,6 +1060,27 @@ const handleToolDeactivated = (toolId) => {
     if (flightLineObj && flightLineObj.isEnabled()) {
       flightLineObj.disable();
       logger.debug('[FlightLine] 飞线图对象已禁用');
+      
+      // 检查热力图是否应该被激活
+    if (isHeatmapActive.value) {
+        logger.debug('[FlightLine] 飞线图已禁用，检测到热力图应该处于激活状态，重新启用热力图');
+        
+        // 延迟一段时间，确保飞线图完全禁用
+        setTimeout(() => {
+      const heatmapObj = toolbarObject?.getHeatmapObject();
+          if (heatmapObj) {
+            heatmapObj.enable();
+            
+            // 强制更新一次地图，确保热力图显示
+            if (mapObj) {
+              mapObj.getMapInstance()?.updateSize();
+              mapObj.getMapInstance()?.render();
+            }
+            
+            logger.debug('[Heatmap] 飞线图禁用后，热力图已重新启用');
+          }
+        }, 300);
+      }
     }
   }
 
@@ -1212,7 +1286,7 @@ const initTrackObject = () => {
     showTrackPlayer.value = isTrackPlayerActive;
 
     logger.info(`[Track] 轨迹对象初始化成功，显示状态: ${showTrackPlayer.value}`);
-  } catch (error) {
+        } catch (error) {
     logger.error('[Track] 轨迹对象初始化失败:', error);
   }
 };
@@ -1618,7 +1692,7 @@ const showFlightLineList = () => {
   flightLinePanelLocked.value = true;
 
   // 强制显示面板
-  showFlightLinePanel.value = true;
+    showFlightLinePanel.value = true;
   logger.debug('[FlightLine] 手动显示飞线面板并锁定');
 
   // 确保飞线图已启用
@@ -1683,7 +1757,7 @@ const checkFlightLineState = () => {
       logger.info('[FlightLine] 发现飞线图工具已激活但面板未显示，显示飞线列表面板');
       showFlightLinePanel.value = true;
       // 设置面板锁定状态，防止意外关闭
-      flightLinePanelLocked.value = true;
+    flightLinePanelLocked.value = true;
 
       // 刷新飞线列表数据
       nextTick(() => {
@@ -2733,7 +2807,18 @@ const initSearchObject = () => {
       return;
     }
     
-    searchObject = new SearchObject(mapObj.getMapInstance(), markerObject, props.searchBoxConfig, configObject, mapObj, props.mapKey, toolbarObject.getShapeObject());
+    // 创建搜索对象时传入当前城市编码
+    searchObject = new SearchObject(
+      mapObj.getMapInstance(), 
+      markerObject, 
+      props.searchBoxConfig, 
+      configObject, 
+      mapObj, 
+      props.mapKey, 
+      toolbarObject.getShapeObject(),
+      currentLocationInfo.value // 传入当前位置信息
+    );
+    
     logger.debug('搜索对象初始化成功');
     
     nextTick(() => {
@@ -2828,6 +2913,13 @@ watch(() => showSearchBox.value, (isVisible) => {
 const handleMarkerClick = (payload: { coordinates: number[], data: MarkerOptions }) => {
   // 保存被选中的标记点数据
   selectedMarker.value = payload.data;
+  
+  // 如果标记点有自定义模板，则不显示详情面板，而是直接使用模板
+  if (payload.data.content) {
+    // 向父组件发送marker-click事件
+    emit('marker-click', payload);
+    return;
+  }
   
   // 设置标题
   markerDetailTitle.value = payload.data.title || '标记点详情';

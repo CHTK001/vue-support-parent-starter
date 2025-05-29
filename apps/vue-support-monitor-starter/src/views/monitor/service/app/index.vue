@@ -52,7 +52,7 @@
                 <div class="card-header">
                   <span class="app-name">{{ row.monitorApplicationName }}</span>
                   <el-tag :type="getStatusType(row.status)" size="small" effect="light" class="status-tag">
-                    {{ getStatusText(row.status) }}
+                    {{ getStatusText(row.status) }} 
                   </el-tag>
                 </div>
 
@@ -104,6 +104,12 @@
                 <!-- 卡片底部操作区 - 改进布局和交互 -->
                 <div class="card-footer">
                   <div class="action-buttons">
+                    <el-tooltip content="文档" placement="top" :effect="isDark ? 'dark' : 'light'">
+                      <el-button circle size="small" class="action-btn edit-btn" @click.stop="doDocument(row, 'edit')">
+                        <IconifyIconOnline icon="ep:document" />
+                      </el-button>
+                    </el-tooltip>
+
                     <el-tooltip content="编辑" placement="top" :effect="isDark ? 'dark' : 'light'">
                       <el-button circle size="small" class="action-btn edit-btn" @click.stop="doEdit(row, 'edit')">
                         <IconifyIconOnline icon="ep:edit" />
@@ -145,6 +151,7 @@ import { fetchAppPageList, fetchAppDelete } from "@/api/monitor/app";
 import ScTable from "@repo/components/ScTable/index.vue"; // 修正导入组件
 import { reactive, ref, nextTick, onMounted, defineAsyncComponent, computed, shallowRef } from "vue";
 import { message } from "@repo/utils";
+import { useRouter } from "vue-router";
 
 // 异步加载弹窗组件以提高性能
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
@@ -158,6 +165,7 @@ const params = reactive({
 });
 
 // 引用和状态
+const router = useRouter();
 const dataRef = shallowRef();
 const loading = ref(false);
 const infoDialogStatus = ref(false);
@@ -281,6 +289,10 @@ const doEdit = async (item, mode) => {
   saveDialogRef.value.open(mode);
 };
 
+const doDocument = async (item, mode) => {
+  router.push(`/service/document/${item.monitorId}`);
+};
+
 /**
  * 删除应用
  * @param {Object} item - 要删除的应用数据
@@ -319,8 +331,9 @@ onMounted(() => {
 <style lang="scss" scoped>
 .app-container {
   padding: 20px;
-  height: 100%;
   background-color: var(--el-bg-color);
+  background-image: radial-gradient(var(--el-color-primary-light-9) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 /* 顶部操作区样式 */
@@ -332,6 +345,18 @@ onMounted(() => {
   height: auto !important;
   border-bottom: 1px solid var(--el-border-color-lighter);
   margin-bottom: 24px;
+  position: relative;
+  animation: page-fade-in 0.8s ease-out 0.2s both;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--el-color-primary-light-5) 50%, transparent);
+  }
 
   .left-section {
     display: flex;
@@ -381,10 +406,25 @@ onMounted(() => {
       transition: all 0.3s;
       border-radius: 20px;
       overflow: hidden;
+      
+      :deep(.el-input__wrapper) {
+        border-radius: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        padding-left: 12px;
+        transition: all 0.3s;
+      }
+      
+      :deep(.el-input__prefix) {
+        color: var(--el-color-primary);
+      }
 
       &:focus-within {
         width: 280px;
-        box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+        
+        :deep(.el-input__wrapper) {
+          box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2),
+                      0 4px 16px rgba(0, 0, 0, 0.1);
+        }
       }
     }
 
@@ -409,6 +449,30 @@ onMounted(() => {
 
   .empty-state {
     margin-top: 60px;
+    animation: float 6s ease-in-out infinite;
+    
+    :deep(.el-empty__image) {
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+    }
+    
+    :deep(.el-empty__description) {
+      margin-top: 20px;
+      font-size: 16px;
+      color: var(--el-text-color-secondary);
+    }
+    
+    :deep(.el-button) {
+      margin-top: 20px;
+      border-radius: 20px;
+      padding: 12px 24px;
+      font-weight: 500;
+      transition: all 0.3s;
+      
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 15px rgba(var(--el-color-primary-rgb), 0.3);
+      }
+    }
   }
 
   .card-list {
@@ -422,8 +486,10 @@ onMounted(() => {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   height: 100%;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
 
   /* 状态指示条 */
   .status-indicator {
@@ -433,30 +499,44 @@ onMounted(() => {
     right: 0;
     height: 4px;
     transition: all 0.3s;
+    &:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      filter: blur(2px);
+      opacity: 0.6;
+      background: inherit;
+    }
 
     &.success {
-      background-color: var(--el-color-success);
+      background: linear-gradient(90deg, var(--el-color-success-light-5), var(--el-color-success));
     }
 
     &.warning {
-      background-color: var(--el-color-warning);
+      background: linear-gradient(90deg, var(--el-color-warning-light-5), var(--el-color-warning));
     }
 
     &.danger {
-      background-color: var(--el-color-danger);
+      background: linear-gradient(90deg, var(--el-color-danger-light-5), var(--el-color-danger));
     }
 
     &.info {
-      background-color: var(--el-color-info);
+      background: linear-gradient(90deg, var(--el-color-info-light-5), var(--el-color-info));
     }
   }
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+      0 16px 32px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.05),
+      0 8px 20px -8px rgba(var(--el-color-primary-rgb), 0.25);
 
     .card-header {
-      background-color: var(--el-color-primary-light-9);
+      background: linear-gradient(45deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
     }
 
     .status-indicator {
@@ -504,9 +584,14 @@ onMounted(() => {
     .info-item {
       margin-bottom: 16px;
       transition: all 0.3s;
+      padding: 8px;
+      border-radius: 8px;
+      border-left: 3px solid transparent;
 
       &:hover {
         transform: translateX(4px);
+        background-color: var(--el-fill-color-light);
+        border-left-color: var(--el-color-primary);
       }
 
       .info-title {
@@ -519,7 +604,13 @@ onMounted(() => {
         .info-icon {
           margin-right: 8px;
           color: var(--el-color-primary);
+          filter: drop-shadow(0 0 2px rgba(var(--el-color-primary-rgb), 0.3));
+          transition: transform 0.3s;
         }
+      }
+
+      &:hover .info-icon {
+        transform: scale(1.2);
       }
 
       .info-value {
@@ -527,6 +618,12 @@ onMounted(() => {
         color: var(--el-text-color-primary);
         word-break: break-word;
         padding: 4px 0;
+        font-weight: 500;
+        transition: color 0.3s;
+      }
+      
+      &:hover .info-value {
+        color: var(--el-color-primary-dark-2);
       }
     }
   }
@@ -538,12 +635,32 @@ onMounted(() => {
     align-items: center;
     cursor: pointer;
     transition: all 0.3s;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 16px;
     height: 100%;
+    position: relative;
+    overflow: hidden;
+    
+    &:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, 
+        rgba(var(--el-color-primary-rgb), 0.03) 0%, 
+        transparent 70%);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
 
     &:hover {
       background-color: var(--el-fill-color-light);
+      
+      &:before {
+        opacity: 1;
+      }
 
       .view-details {
         opacity: 1;
@@ -552,11 +669,27 @@ onMounted(() => {
 
       .progress-circle {
         transform: scale(1.08);
+        filter: drop-shadow(0 0 8px rgba(var(--el-color-primary-rgb), 0.3));
       }
     }
 
     .progress-circle {
       transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      &:after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(var(--el-color-primary-rgb), 0.2) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        animation: pulse 2s infinite;
+        z-index: -1;
+        opacity: 0.7;
+      }
     }
 
     .percentage-value {
@@ -595,6 +728,21 @@ onMounted(() => {
   }
 }
 
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.7;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
+}
+
 /* 卡片底部样式 */
 .card-footer {
   border-top: 1px solid var(--el-border-color-lighter);
@@ -611,20 +759,52 @@ onMounted(() => {
     .action-btn {
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+      
+      // 添加涟漪效果
+      &:after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.7);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%, -50%);
+        transform-origin: 50% 50%;
+      }
+      
+      &:focus:not(:active)::after {
+        animation: ripple 0.6s ease-out;
+      }
 
       &:hover {
         transform: scale(1.15);
       }
 
       &.edit-btn:hover {
-        background-color: var(--el-color-primary);
+        background: linear-gradient(145deg, var(--el-color-primary), var(--el-color-primary-dark-2));
         color: white;
       }
 
       &.delete-btn:hover {
-        background-color: var(--el-color-danger);
+        background: linear-gradient(145deg, var(--el-color-danger), var(--el-color-danger-dark-2));
         color: white;
       }
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(0, 0) translate(-50%, -50%);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(20, 20) translate(-50%, -50%);
+      opacity: 0;
     }
   }
 
@@ -650,7 +830,7 @@ onMounted(() => {
   }
 }
 
-/* 卡片过渡动画 */
+/* 卡片过渡动画 - 增强版 */
 .card-fade-enter-active {
   transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   transition-delay: calc(var(--el-transition-duration) * 0.1 * v-bind("index"));
@@ -664,6 +844,23 @@ onMounted(() => {
 .card-fade-leave-to {
   opacity: 0;
   transform: translateY(40px) scale(0.9);
+  filter: blur(10px);
+}
+
+/* 添加页面初始加载动画 */
+@keyframes page-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-bar {
+  animation: page-fade-in 0.8s ease-out 0.2s both;
 }
 
 /* 响应式样式 */
@@ -713,30 +910,67 @@ onMounted(() => {
   }
 }
 
-/* 暗黑模式适配 */
+/* 暗黑模式适配 - 增强版 */
 :root[data-theme="dark"] {
+  .app-container {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  }
+  
   .app-card {
+    backdrop-filter: blur(10px);
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    
     .status-indicator {
       opacity: 0.8;
     }
 
     .card-header {
-      background-color: var(--el-bg-color-overlay);
+      background-color: rgba(30, 30, 30, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      
+      &:hover {
+        background: linear-gradient(45deg, 
+          rgba(var(--el-color-primary-rgb), 0.2), 
+          rgba(var(--el-color-primary-rgb), 0.1));
+      }
     }
 
     .card-footer {
-      background-color: var(--el-bg-color-overlay);
+      background-color: rgba(30, 30, 30, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .progress-area {
       &:hover {
-        background-color: var(--el-fill-color-darker);
+        background-color: rgba(255, 255, 255, 0.05);
       }
 
       .view-details {
-        background-color: var(--el-fill-color-darker);
+        background-color: rgba(var(--el-color-primary-rgb), 0.15);
       }
     }
   }
+  
+  .info-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .action-bar:after {
+    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.3) 50%, transparent);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 </style>
+

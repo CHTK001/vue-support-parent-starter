@@ -39,11 +39,11 @@ export const DEFAULT_API_URLS: Record<MapType, ApiUrls> = {
     detail: 'https://restapi.amap.com/v3/place/detail',
     navigation: 'https://restapi.amap.com/v3/direction/driving',
     router: {
-      driving: 'https://restapi.amap.com/v5/direction/driving',
-      walking: 'https://restapi.amap.com/v5/direction/walking',
-      bicycling: 'https://restapi.amap.com/v5/direction/bicycling',
-      ebike: 'https://restapi.amap.com/v5/direction/ebike',
-      transit: 'https://restapi.amap.com/v5/direction/transit/integrated'
+      driving: 'https://restapi.amap.com/v3/direction/driving',
+      walking: 'https://restapi.amap.com/v3/direction/walking',
+      bicycling: 'https://restapi.amap.com/v3/direction/bicycling',
+      ebike: 'https://restapi.amap.com/v3/direction/ebike',
+      transit: 'https://restapi.amap.com/v3/direction/transit/integrated'
     },
     boundary: 'https://restapi.amap.com/v3/config/district',
     district: undefined

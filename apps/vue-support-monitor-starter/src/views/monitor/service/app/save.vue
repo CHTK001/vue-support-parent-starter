@@ -1,18 +1,25 @@
 <template>
-  <el-dialog v-model="visible" :title="title" :width="700" destroy-on-close draggable :close-on-click-modal="false" @closed="$emit('closed')">
-    <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" label-position="left">
+  <el-dialog v-model="visible" :title="title" :width="700" destroy-on-close draggable :close-on-click-modal="false"
+    @closed="$emit('closed')">
+    <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
+      label-position="left">
       <el-form-item label="应用名称" prop="monitorApplicationName">
         <el-input v-model="form.monitorApplicationName" clearable placeholder="请输入应用名称" />
+      </el-form-item>
+
+      <el-form-item label="prometheus" prop="monitorPrometheusAddress">
+        <el-input v-model="form.monitorPrometheusAddress" clearable placeholder="prometheus地址" />
       </el-form-item>
 
       <el-form-item label="说明" prop="monitorName">
         <el-input v-model="form.monitorName" clearable placeholder="请输入说明" />
       </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="visible = false">取 消</el-button>
-      <el-button v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submit()">保 存</el-button>
-    </template>
+
+      </el-form>
+      <template #footer>
+        <el-button @click="visible = false">取 消</el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submit()">保 存</el-button>
+      </template>
   </el-dialog>
 </template>
 
@@ -33,7 +40,6 @@ export default defineComponent({
       //验证规则
       rules: {
         monitorApplicationName: [{ required: true, message: "请输入应用名称", trigger: "blur" }],
-        monitorName: [{ required: true, message: "请输入说明", trigger: "blur" }]
       }
     };
   },
