@@ -17,16 +17,10 @@
 
       <!-- 文档展示区域 -->
       <div v-else class="document-content">
-        <!-- 文档iframe展示 -->
-        <div class="document-frame-container">
-          <!-- iframe加载动画 -->
-          <div v-if="iframeLoading" class="iframe-loading">
-            <div class="loading-spinner" />
-            <p class="loading-text">文档加载中，请稍候...</p>
-          </div>
+        <!-- 根据文档类型展示不同组件 -->
+        <knife4j-document v-if="selectedType === 'knife4j'" :document-url="currentDocument.url" class="document-component" />
 
-          <iframe :src="currentDocument.url" class="document-frame" frameborder="0" allowfullscreen @load="handleIframeLoad" />
-        </div>
+        <hybrid-document v-else-if="selectedType === 'hybrid'" :services="convertedServices" class="document-component" />
       </div>
     </div>
 
@@ -58,8 +52,8 @@
           </el-checkbox-group>
         </div>
 
-        <!-- 文档标签页选择 -->
-        <div class="config-section">
+        <!-- 文档选择（只在Knife4j模式下显示） -->
+        <div v-if="selectedType === 'knife4j'" class="config-section">
           <h4 class="section-title">文档列表</h4>
           <el-radio-group v-model="selectedDocumentId" class="document-radio-group">
             <el-radio v-for="doc in filteredDocuments" :key="doc.id" :label="doc.id" :disabled="!selectedServices.includes(doc.serviceId)">
@@ -84,6 +78,8 @@ import { message } from "@repo/utils";
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { fetchAppDetail } from "@/api/monitor/app";
+import Knife4jDocument from "./Knife4jDocument.vue";
+import HybridDocument from "./HybridDocument.vue";
 
 // 路由
 const route = useRoute();
@@ -91,7 +87,6 @@ const router = useRouter();
 
 // 状态管理
 const loading = ref(true);
-const iframeLoading = ref(true);
 const appDetail = ref(null);
 const configVisible = ref(false);
 const selectedDocumentId = ref("");
@@ -125,13 +120,124 @@ const currentDocument = computed(() => {
 
 // 计算属性：是否有可用文档
 const hasDocuments = computed(() => {
-  return currentDocument.value !== null;
+  // 对于 Knife4j 模式，需要有选中的文档
+  if (selectedType.value === "knife4j") {
+    return currentDocument.value !== null;
+  }
+
+  // 对于混合模式，只要有选中的服务即可
+  if (selectedType.value === "hybrid") {
+    return selectedServices.value.length > 0;
+  }
+
+  return false;
 });
 
-// 方法：处理iframe加载完成
-const handleIframeLoad = () => {
-  iframeLoading.value = false;
-};
+// 计算属性：转换为混合模式所需的服务数据结构
+const convertedServices = computed(() => {
+  // 先根据服务ID分组文档
+  const serviceMap = {};
+
+  // 只处理被选中的服务
+  selectedServices.value.forEach(serviceId => {
+    const docs = documentList.value.filter(doc => doc.serviceId === serviceId);
+    if (docs.length) {
+      const serviceName = docs[0].name.split(" - ")[0]; // 从文档名提取服务名
+
+      // 转换为服务对象
+      serviceMap[serviceId] = {
+        id: serviceId,
+        name: serviceName,
+        description: `${serviceName} 服务API文档`,
+        apis: docs.map(doc => {
+          // 从URL生成更多信息
+          const url = new URL(doc.url);
+          const path = url.pathname;
+
+          // 生成模拟API数据
+          return {
+            id: doc.id,
+            name: doc.name,
+            path: path,
+            method: "GET", // 默认为GET
+            description: `${doc.name} API接口`,
+            serviceId: serviceId,
+            parameters: [
+              {
+                name: "pageSize",
+                type: "integer",
+                required: false,
+                description: "每页记录数"
+              },
+              {
+                name: "pageNum",
+                type: "integer",
+                required: false,
+                description: "页码，从1开始"
+              }
+            ],
+            responses: {
+              success: {
+                code: 200,
+                message: "success",
+                data: {
+                  total: 100,
+                  list: [
+                    { id: 1, name: "示例数据1" },
+                    { id: 2, name: "示例数据2" }
+                  ]
+                }
+              },
+              error: {
+                code: 500,
+                message: "error",
+                data: null
+              }
+            },
+            examples: {
+              java: `import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+
+RestTemplate restTemplate = new RestTemplate();
+String url = "${doc.url}";
+ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+System.out.println(response.getBody());`,
+              python: `import requests
+
+url = "${doc.url}"
+response = requests.get(url)
+print(response.json())`,
+              javascript: `fetch("${doc.url}")
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));`,
+              go: `package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+)
+
+func main() {
+	resp, err := http.Get("${doc.url}")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+}`
+            }
+          };
+        })
+      };
+    }
+  });
+
+  // 转换为数组
+  return Object.values(serviceMap);
+});
 
 // 方法：切换配置面板
 const toggleConfig = () => {
@@ -140,15 +246,19 @@ const toggleConfig = () => {
 
 // 方法：处理类型变更
 const handleTypeChange = () => {
-  // 当类型变更时，清空选中的文档ID，等待用户重新选择
+  // 清空选中的文档ID，等待用户重新选择
   selectedDocumentId.value = "";
 };
 
 // 方法：应用配置
 const applyConfig = () => {
-  if (!currentDocument.value && filteredDocuments.value.length > 0) {
-    selectedDocumentId.value = filteredDocuments.value[0].id;
+  if (selectedType.value === "knife4j") {
+    // Knife4j模式需要选择文档
+    if (!currentDocument.value && filteredDocuments.value.length > 0) {
+      selectedDocumentId.value = filteredDocuments.value[0].id;
+    }
   }
+
   configVisible.value = false;
   message("文档配置已更新", { type: "success" });
 };
@@ -257,20 +367,30 @@ watch(selectedServices, newVal => {
 
 // 监听过滤后的文档列表变化
 watch(filteredDocuments, newDocs => {
-  // 如果当前没有选中文档但有可用文档，则自动选择第一个
-  if (!selectedDocumentId.value && newDocs.length > 0) {
-    selectedDocumentId.value = newDocs[0].id;
-  }
+  // 只在 Knife4j 模式下自动选择文档
+  if (selectedType.value === "knife4j") {
+    // 如果当前没有选中文档但有可用文档，则自动选择第一个
+    if (!selectedDocumentId.value && newDocs.length > 0) {
+      selectedDocumentId.value = newDocs[0].id;
+    }
 
-  // 如果当前选中的文档不在过滤后的列表中，清空选择
-  if (selectedDocumentId.value && !newDocs.find(doc => doc.id === selectedDocumentId.value)) {
-    selectedDocumentId.value = "";
+    // 如果当前选中的文档不在过滤后的列表中，清空选择
+    if (selectedDocumentId.value && !newDocs.find(doc => doc.id === selectedDocumentId.value)) {
+      selectedDocumentId.value = "";
+    }
   }
 });
 
-// 监听文档变化，重置iframe加载状态
-watch(selectedDocumentId, () => {
-  iframeLoading.value = true;
+// 监听文档类型变化
+watch(selectedType, newType => {
+  // 如果切换到混合模式，不需要选择具体文档
+  if (newType === "hybrid") {
+    selectedDocumentId.value = "";
+  }
+  // 如果切换到 Knife4j 模式且有文档，选择第一个
+  else if (newType === "knife4j" && filteredDocuments.value.length > 0) {
+    selectedDocumentId.value = filteredDocuments.value[0].id;
+  }
 });
 </script>
 
@@ -280,6 +400,7 @@ watch(selectedDocumentId, () => {
   height: 100%;
   width: 100%;
   background-color: var(--el-bg-color);
+  padding: 20px;
 
   // 加载状态
   .document-loading {
@@ -325,10 +446,10 @@ watch(selectedDocumentId, () => {
       display: flex;
       flex-direction: column;
 
-      // iframe容器
-      .document-frame-container {
-        position: relative;
-        height: calc(100vh - 0px);
+      // 文档组件容器
+      .document-component {
+        flex: 1;
+        height: calc(100vh - 40px);
         border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -337,44 +458,6 @@ watch(selectedDocumentId, () => {
 
         &:hover {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
-
-        // iframe加载动画
-        .iframe-loading {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background-color: rgba(255, 255, 255, 0.9);
-          z-index: 10;
-          backdrop-filter: blur(4px);
-
-          .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--el-color-primary-light-8);
-            border-top: 4px solid var(--el-color-primary);
-            border-radius: 50%;
-            margin-bottom: 16px;
-            animation: spin 1.5s linear infinite;
-          }
-
-          .loading-text {
-            font-size: 16px;
-            color: var(--el-text-color-secondary);
-          }
-        }
-
-        // iframe
-        .document-frame {
-          width: 100%;
-          height: 100%;
-          border: none;
         }
       }
     }
@@ -562,30 +645,13 @@ watch(selectedDocumentId, () => {
   }
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 // 暗黑模式适配
 :root[data-theme="dark"] {
   .service-document {
     .document-content {
-      .document-frame-container {
+      .document-component {
         background-color: var(--el-bg-color-overlay);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
-        .iframe-loading {
-          background-color: rgba(0, 0, 0, 0.7);
-
-          .loading-text {
-            color: rgba(255, 255, 255, 0.8);
-          }
-        }
       }
     }
 
@@ -619,7 +685,7 @@ watch(selectedDocumentId, () => {
     }
 
     .document-content {
-      .document-frame-container {
+      .document-component {
         height: calc(100vh - 100px);
       }
     }
