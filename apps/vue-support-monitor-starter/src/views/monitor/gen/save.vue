@@ -1,6 +1,7 @@
 <template>
   <div class="gen-save">
-    <el-dialog v-model="visible" :title="mode == 'edit' ? '更新' + form.genName : '新增数据源'" width="600px" draggable destroy-on-close @close="onClose">
+    <el-dialog v-model="visible" :title="mode == 'edit' ? '更新' + form.genName : '新增数据源'" width="600px" draggable
+      destroy-on-close @close="onClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" class="gen-save__form">
         <!-- 数据源名称 -->
         <el-form-item label="名称" prop="genName">
@@ -13,7 +14,8 @@
 
         <!-- 数据源类型 -->
         <el-form-item label="类型" prop="genType">
-          <el-select v-model="form.genType" placeholder="请选择数据源类型" class="gen-save__select" @change="handleChangeGenType">
+          <el-select v-model="form.genType" placeholder="请选择数据源类型" class="gen-save__select"
+            @change="handleChangeGenType">
             <el-option value="JDBC">
               <div class="gen-save__option">
                 <IconifyIconOnline icon="ri:database-2-line" class="mr-2" />
@@ -26,6 +28,13 @@
                 <span>ZOOKEEPER</span>
               </div>
             </el-option>
+            <el-option value="Prometheus">
+              <div class="gen-save__option">
+                <IconifyIconOnline icon="devicon:prometheus" class="mr-2" />
+                <span>Prometheus</span>
+              </div>
+            </el-option>
+
             <el-option value="WEBRTC">
               <div class="gen-save__option">
                 <IconifyIconOnline icon="ri:video-chat-line" class="mr-2" />
@@ -92,7 +101,8 @@
 
         <!-- 数据库驱动选择 -->
         <el-form-item v-if="form.genType == 'JDBC'" label="驱动" prop="genDriver">
-          <el-select v-model="form.genDriver" placeholder="请选择驱动" clearable allow-create filterable class="gen-save__select">
+          <el-select v-model="form.genDriver" placeholder="请选择驱动" clearable allow-create filterable
+            class="gen-save__select">
             <el-option value="org.sqlite.JDBC" label="sqlite">
               <div class="gen-save__option">
                 <IconifyIconOnline icon="devicon:sqlite" class="mr-2" />
@@ -216,7 +226,8 @@
 
         <!-- 描述 -->
         <el-form-item label="描述" prop="genDesc">
-          <el-input v-model="form.genDesc" placeholder="请输入描述" type="textarea" maxlength="200" :show-word-limit="true" :rows="4" class="gen-save__textarea" />
+          <el-input v-model="form.genDesc" placeholder="请输入描述" type="textarea" maxlength="200" :show-word-limit="true"
+            :rows="4" class="gen-save__textarea" />
         </el-form-item>
       </el-form>
 

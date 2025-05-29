@@ -36,7 +36,7 @@ const props = defineProps({
   countDownText: { type: String, default: "刷新" },
   /**开启缓存后缓存页数 */
   cachePage: { type: Number, default: 3 },
-  height: { type: [String, Number], default: "auto" },
+  height: { type: [String, Number], default: "95%" },
   size: { type: String, default: "default" },
   border: { type: [Boolean, String], default: false },
   stripe: { type: [Boolean, String], default: false },
@@ -990,7 +990,7 @@ const onUpdateCurrentPage = (page) => {
 </script>
 
 <template>
-  <div class="sc-table w-full" ref="scTableMain">
+  <div class="sc-table w-full" ref="scTableMain" :style="{ height: tableHeight }">
 
     <!-- 表格布局区域 -->
     <div class="sc-table-main-content ">
