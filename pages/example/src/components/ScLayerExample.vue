@@ -35,8 +35,8 @@
                     :class="{ 'active-button': config.mapType === MapType.OSM }">
                     OpenStreetMap
                   </button>
-                  <button @click="changeMapType(MapType.TIANDI)"
-                    :class="{ 'active-button': config.mapType === MapType.TIANDI }">
+                  <button @click="changeMapType(MapType.TIANDITU)"
+                    :class="{ 'active-button': config.mapType === MapType.TIANDITU }">
                     天地图
                   </button>
                 </div>
@@ -773,7 +773,7 @@ function addCenterMarker() {
     clickable: true,
     usePopover: true,
     data: { type: 'center', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是地图中心点</p></div>',
+    content: '<div><h3>{{title}}</h3><p>这是地图中心点</p></div>',
     style: {
       scale: 1.2,
       textColor: '#f00',
@@ -1264,7 +1264,7 @@ function addPopoverMarker() {
     usePopover: true,
     showPopover: true,
     data: { type: 'pop', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是默认显示Popover的标记</p></div>',
+    content: '<div><h3>{{title}}</h3><p>这是默认显示Popover的标记</p></div>',
     style: {
       scale: 1.2,
       textColor: '#f00',
@@ -1295,7 +1295,7 @@ function addTemplateMarker() {
     clickable: true,
     usePopover: false,
     data: { type: 'template', importance: 'high' },
-    template: '<div><h3>{{title}}</h3><p>这是带模板的标记</p></div>',
+    content: '<div><h3>{{title}}</h3><p>这是带模板的标记</p></div>',
     style: {
       scale: 1.2,
       textColor: '#f00',

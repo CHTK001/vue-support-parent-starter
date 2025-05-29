@@ -70,7 +70,10 @@ export interface SearchDataProvider {
    * @returns 导航路径
    * @deprecated 使用 createNavigation 方法代替
    */
-  getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType?: string): Promise<NavigationApiResponse>;
+  getNavigation(origin: [number, number], destination: [number, number], apiKey: string, url?: string, transportType?: string, options?: {
+    city?: string;
+    cityD?: string;
+  }): Promise<NavigationApiResponse>;
   
   /**
    * 创建导航路线

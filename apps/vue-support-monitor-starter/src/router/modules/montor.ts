@@ -7,7 +7,7 @@ export default [
     meta: {
       icon: "ep:service",
       title: $t("buttons.monitor.service"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -18,9 +18,10 @@ export default [
           icon: "ri:navigation-fill",
           title: $t("buttons.monitor.service-list"),
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
+
       {
         path: "/online-service-list",
         name: "online-service-list",
@@ -29,8 +30,8 @@ export default [
           icon: "simple-icons:cloudflare",
           title: $t("buttons.monitor.online-service-list"),
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/online-monitor",
@@ -40,10 +41,10 @@ export default [
           icon: "simple-icons:cloudflare",
           title: $t("buttons.monitor.online-service-list"),
           showLink: false,
-          showParent: true
-        }
-      }
-    ]
+          showParent: true,
+        },
+      },
+    ],
   },
   {
     path: "/job",
@@ -51,7 +52,7 @@ export default [
     meta: {
       icon: "line-md:bell-twotone-loop",
       title: $t("buttons.monitor.job"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -62,8 +63,8 @@ export default [
           icon: "line-md:bell-twotone-loop",
           title: $t("buttons.monitor.job-list"),
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/job-log",
@@ -73,10 +74,10 @@ export default [
           icon: "simple-icons:logmein",
           title: $t("buttons.monitor.job-log"),
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
+          showParent: true,
+        },
+      },
+    ],
   },
   {
     path: "/maintenance",
@@ -84,7 +85,7 @@ export default [
     meta: {
       icon: "ri:tools-line",
       title: $t("buttons.monitor.maintenance"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -95,8 +96,8 @@ export default [
           icon: "ri:settings-4-line",
           title: $t("buttons.monitor.maintenance-group"),
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/maintenance/detail/:id",
@@ -105,8 +106,8 @@ export default [
         meta: {
           icon: "ri:file-list-line",
           title: $t("buttons.monitor.maintenance-detail"),
-          showLink: false
-        }
+          showLink: false,
+        },
       },
 
       {
@@ -117,10 +118,10 @@ export default [
           icon: "ri:terminal-box-line",
           title: $t("buttons.monitor.terminal"),
           showLink: false,
-          showParent: true
-        }
-      }
-    ]
+          showParent: true,
+        },
+      },
+    ],
   },
   {
     path: "/proxy",
@@ -128,7 +129,7 @@ export default [
     meta: {
       icon: "ri:product-hunt-fill",
       title: $t("buttons.monitor.proxy"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -139,10 +140,10 @@ export default [
           icon: "ri:settings-6-line",
           title: $t("buttons.monitor.proxy"),
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
+          showParent: true,
+        },
+      },
+    ],
   },
   {
     path: "/oss",
@@ -150,7 +151,7 @@ export default [
     meta: {
       icon: "simple-icons:observable",
       title: $t("buttons.monitor.oss"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -161,10 +162,10 @@ export default [
           icon: "simple-icons:minio",
           title: $t("buttons.monitor.oss"),
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
+          showParent: true,
+        },
+      },
+    ],
   },
   {
     path: "/database",
@@ -172,7 +173,7 @@ export default [
     meta: {
       icon: "simple-icons:databricks",
       title: $t("buttons.monitor.database"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -183,9 +184,9 @@ export default [
           icon: "ri:database-2-line",
           title: $t("buttons.monitor.database-tools"),
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+    ],
+  },
 ];

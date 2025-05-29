@@ -92,7 +92,7 @@ export class HeatmapObject {
       radius: this.config.radius,
       opacity: this.config.opacity,
       gradient: this.config.gradient,
-      zIndex: this.config.zIndex,
+      zIndex: 100,
       visible: false
     });
 
@@ -114,7 +114,7 @@ export class HeatmapObject {
         });
       },
       visible: false,
-      zIndex: this.config.zIndex + 1
+      zIndex: this.config.zIndex + 1000
     });
 
     // 添加图层到地图

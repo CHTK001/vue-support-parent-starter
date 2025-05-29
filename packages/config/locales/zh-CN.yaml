@@ -34,12 +34,14 @@ buttons:
     job-list: 任务列表
     job-log: 任务日志
     maintenance: 维护管理
-    maintenance-group: 维护组
     maintenance-detail: 维护组详情
+    maintenance-group: 维护组
     nginx: nginx管理
     online-service-list: 在线服务
     protection: 守护进程
     service: 服务管理
+    service-detail: 服务详情
+    service-document: 服务文档
     service-list: 服务列表
   'no': 否
   offline: 离线

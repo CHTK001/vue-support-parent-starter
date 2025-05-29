@@ -44,6 +44,7 @@ interface ExtendedTrackPlayer {
   cameraSmoothness?: number; // 相机平滑度参数(0-1)，越小越平滑
   stabilizeViewport?: boolean; // 是否启用视口稳定功能
   viewportUpdateThreshold?: number; // 视图更新阈值
+  useAdvancedAnimation?: boolean; // 是否使用高级动画（性能模式）
 }
 
 // 使用扩展后的接口
@@ -158,6 +159,21 @@ export class TrackObject {
   
   // 轨迹总距离缓存
   private trackTotalDistances = new Map<string, number>();
+  
+  // 性能模式相关属性
+  private trackAnimationPositions = new Map<string, {
+    position: Point;
+    lastTime: number;
+    distance: number;
+    style: Style | null;
+  }>();
+  private trackAnimationStyles = new Map<string, Style>();
+  private trackAnimationFeatures = new Map<string, Feature>();
+  private trackEnableSpeedIcon = new Map<string, boolean>();
+
+  // 在类的属性部分添加新的Map
+  private trackMovingInfoVisible = new Map<string, boolean>();
+  private trackMovingDistanceVisible = new Map<string, boolean>();
 
   /** * 构造函数 * @param mapObjectOrInstance 地图对象或实例 * @param config 轨迹配置 */
   constructor(mapObjectOrInstance: any | null = null, config?: TrackConfig) {
@@ -270,7 +286,18 @@ export class TrackObject {
    * @param track 轨迹数据
    * @returns 是否添加成功
    */
-  public addTrack(track: Track): boolean {
+  public addTrack(track: Track, config?: {
+    showNodes?: boolean;
+    showNodePopovers?: boolean;
+    showNodeTime?: boolean;
+    showSpeedPopovers?: boolean;
+    showNodeSpeeds?: boolean;
+    showNodeDistance?: boolean;
+    showMovingPointName?: boolean;
+    enableSpeedIcon?: boolean;
+    showMovingInfo?: boolean;
+    showMovingDistance?: boolean;
+  }): boolean {
     if (!this.mapInstance || !this.trackLayer || !this.trackPointLayer) {
       console.warn('添加轨迹失败: 地图或图层未初始化');
       return false;
@@ -335,61 +362,47 @@ export class TrackObject {
     // 存储轨迹
     this.tracks.set(track.id, updatedTrack);
     
+   
+    // 应用配置值，使用传入的配置覆盖默认值
     // 尝试获取轨迹播放器元素，以获取当前配置
     let showNodes = true;
+    let showNodeAnchors = true;
     let showNodePopovers = true;
-    let showNodeTime = true;
-    let showSpeedPopovers = false;
+    let showNodeTime = false;
+    let showSpeedPopovers = true;
     let showNodeSpeeds = false;
+    let showNodeDistance = false;
     let showMovingPointName = true;
+    let enableSpeedIcon = true;
+    let showMovingInfo = true;
+    let showMovingDistance = false;
     
-    try {
-      // 如果存在轨迹播放器元素，尝试获取其配置
-      const trackPlayerElement = document.querySelector('.track-player');
-      if (trackPlayerElement && trackPlayerElement['__vue__']) {
-        // 获取Vue实例
-        const playerInstance = trackPlayerElement['__vue__'];
-        
-        // 尝试获取配置
-        if (typeof playerInstance.getConfig === 'function') {
-          // 使用getConfig方法获取当前配置
-          const config = playerInstance.getConfig();
-          if (config) {
-            if (config.showNodes !== undefined) showNodes = config.showNodes;
-            if (config.showNodePopover !== undefined) showNodePopovers = config.showNodePopover;
-            if (config.showNodeTime !== undefined) showNodeTime = config.showNodeTime;
-            if (config.showSpeedPopover !== undefined) showSpeedPopovers = config.showSpeedPopover;
-            if (config.showNodeSpeed !== undefined) showNodeSpeeds = config.showNodeSpeed;
-            if (config.showMovingPointName !== undefined) showMovingPointName = config.showMovingPointName;
-            
-            this.log('debug', `从轨迹播放器获取节点显示配置: 节点显示=${showNodes}, 节点名称=${showNodePopovers}, 节点时间=${showNodeTime}`);
-          }
-        } else {
-          // 尝试直接从实例属性获取配置
-          if (playerInstance.showNodes !== undefined) showNodes = playerInstance.showNodes;
-          if (playerInstance.showNodePopover !== undefined) showNodePopovers = playerInstance.showNodePopover;
-          if (playerInstance.showNodeTime !== undefined) showNodeTime = playerInstance.showNodeTime;
-          if (playerInstance.showSpeedPopover !== undefined) showSpeedPopovers = playerInstance.showSpeedPopover;
-          if (playerInstance.showNodeSpeed !== undefined) showNodeSpeeds = playerInstance.showNodeSpeed;
-          if (playerInstance.showMovingPointName !== undefined) showMovingPointName = playerInstance.showMovingPointName;
-          
-          this.log('debug', `直接从轨迹播放器实例获取节点显示配置: 节点显示=${showNodes}, 节点名称=${showNodePopovers}, 节点时间=${showNodeTime}`);
-        }
-      }
-    } catch (error) {
-      this.log('warn', '尝试获取轨迹播放器配置时出错:', error);
+    // 如果提供了配置参数，使用配置参数覆盖默认值
+    if (config) {
+      if (config.showNodes !== undefined) showNodes = config.showNodes;
+      if (config.showNodePopovers !== undefined) showNodePopovers = config.showNodePopovers;
+      if (config.showNodeTime !== undefined) showNodeTime = config.showNodeTime;
+      if (config.showSpeedPopovers !== undefined) showSpeedPopovers = config.showSpeedPopovers;
+      if (config.showNodeSpeeds !== undefined) showNodeSpeeds = config.showNodeSpeeds;
+      if (config.showNodeDistance !== undefined) showNodeDistance = config.showNodeDistance;
+      if (config.showMovingPointName !== undefined) showMovingPointName = config.showMovingPointName;
+      if (config.enableSpeedIcon !== undefined) enableSpeedIcon = config.enableSpeedIcon;
+      if (config.showMovingInfo !== undefined) showMovingInfo = config.showMovingInfo;
+      if (config.showMovingDistance !== undefined) showMovingDistance = config.showMovingDistance;
     }
     
-    // 初始化节点显示设置，使用轨迹播放器的当前配置
+    // 设置轨迹显示属性
     this.trackNodesVisible.set(track.id, showNodes);
+    this.trackNodeAnchorsVisible.set(track.id, showNodeAnchors);
     this.trackNodePopoversVisible.set(track.id, showNodePopovers);
     this.trackNodeTimeVisible.set(track.id, showNodeTime);
     this.trackSpeedPopoversVisible.set(track.id, showSpeedPopovers);
     this.trackNodeSpeedsVisible.set(track.id, showNodeSpeeds);
+    this.trackNodeDistanceVisible.set(track.id, showNodeDistance);
     this.trackMovingPointNameVisible.set(track.id, showMovingPointName);
-    this.trackCurrentSpeeds.set(track.id, 0);
-    // 确保节点锚点默认显示
-    this.trackNodeAnchorsVisible.set(track.id, true);
+    this.trackEnableSpeedIcon.set(track.id, enableSpeedIcon);
+    this.trackMovingInfoVisible.set(track.id, showMovingInfo);
+    this.trackMovingDistanceVisible.set(track.id, showMovingDistance);
     
     // 创建轨迹线几何和特征，但不添加到图层
     // 转换坐标点为 EPSG:3857
@@ -549,6 +562,11 @@ export class TrackObject {
     this.trackNodeSpeedsVisible.delete(id);
     this.trackMovingPointNameVisible.delete(id);
     this.trackCurrentSpeeds.delete(id);
+    this.trackNodeDistanceVisible.delete(id);
+    this.trackNodeAnchorsVisible.delete(id);
+    this.trackEnableSpeedIcon.delete(id);
+    this.trackMovingInfoVisible.delete(id);
+    this.trackMovingDistanceVisible.delete(id);
     
     // 如果移除的是当前选中的轨迹，重置选中状态
     if (this.selectedTrackId === id) {
@@ -1026,106 +1044,62 @@ export class TrackObject {
       return false;
     }
     
-    // 获取轨迹数据
-    const track = this.tracks.get(id)!;
-    
-    // 如果轨迹点数少于2，无法播放
-    if (!track.points || track.points.length < 2) {
-      this.log('warn', `播放轨迹失败: 轨迹 "${id}" 点数量不足`);
-      return false;
-    }
-    
-    // 获取当前播放状态
+    // 检查当前播放状态
     const currentState = this.trackPlayStates.get(id);
     
-    // 如果正在播放，且pauseIfPlaying为true，则暂停轨迹
+    // 如果已经在播放，且设置了暂停，则暂停
     if (currentState === TrackPlayState.PLAYING && pauseIfPlaying) {
-      this.log('debug', `轨迹 "${id}" 正在播放中，根据设置执行暂停操作`);
       return this.pause(id);
     }
     
-    // 如果正在播放，不需要重新开始
-    if (currentState === TrackPlayState.PLAYING) {
-      this.log('debug', `轨迹 "${id}" 已经在播放中`);
+    // 如果已经在播放，且未设置暂停，则不做任何操作
+    if (currentState === TrackPlayState.PLAYING && !pauseIfPlaying) {
+      this.log('info', `轨迹 "${id}" 已经在播放中`);
       return true;
     }
     
-    // 如果已经有播放器配置，合并新的配置
-    if (this.trackPlayers.has(id)) {
-      const existingPlayer = this.trackPlayers.get(id)!;
-      this.trackPlayers.set(id, {
-        ...existingPlayer,
-        ...player
-      });
-    } else {
-      // 否则，创建新的播放器配置
-      this.trackPlayers.set(id, {
-        ...DEFAULT_TRACK_PLAYER,
-        ...player
-      });
-    }
-    
-    // 获取当前的播放器配置
-    const currentPlayer = this.trackPlayers.get(id)!;
-    
-    // 如果是从暂停状态恢复，更新播放状态并重新设置动画
-    if (currentState === TrackPlayState.PAUSED) {
-      // 设置为播放状态
-      this.trackPlayStates.set(id, TrackPlayState.PLAYING);
+    // 更新播放器配置
+    if (player) {
+      // 获取当前配置
+      const currentPlayer = this.trackPlayers.get(id) || { ...DEFAULT_TRACK_PLAYER };
       
-      // 重置上次时间戳，确保立即开始移动
-      this.trackLastTimes.delete(id);
+      // 合并新配置
+      const newPlayer = { ...currentPlayer, ...player };
       
-      // 重新设置动画
-      this.setupTrackAnimation(id);
+      // 保存配置
+      this.trackPlayers.set(id, newPlayer);
       
-      // 如果启用了相机跟踪，立即初始化相机位置
-      if (currentPlayer.withCamera) {
-        const progress = this.trackProgressValues.get(id) || 0;
-        const position = this.calculatePositionAtProgress(track, progress); const newCenter = fromLonLat([position.lng, position.lat]);
-        // 立即初始化相机动画        
-        this.updateCameraAnimation(id, newCenter);
-        // 主动触发一次相机动画，确保立即更新相机位置
-        this.animateCamera(id);
-        this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，相机位置已立即更新`);
+      // 如果指定了速度因子，更新速度因子
+      if (player.speedFactor !== undefined) {
+        this.trackSpeedFactors.set(id, player.speedFactor);
       }
       
-      this.log('debug', `轨迹 "${id}" 从暂停状态恢复播放，动画已重新设置`);
-      return true;
+      // 保存是否启用速度图标切换
+      if (player.hasOwnProperty('enableSpeedIcon')) {
+        this.trackEnableSpeedIcon.set(id, (player as any).enableSpeedIcon !== false);
+      }
+      
+      this.log('debug', `已更新轨迹 "${id}" 的播放器配置:`, newPlayer);
     }
     
-    // 从初始状态或停止状态开始播放
-    
-    // 确保轨迹可见
-    if (!this.showTrack(id)) {
-      this.log('warn', `播放轨迹失败: 无法显示轨迹 "${id}"`);
-      return false;
-    }
-    
-    // 重置进度
-    this.trackProgressValues.set(id, 0);
-    
-    // 设置为播放状态
+    // 设置播放状态
     this.trackPlayStates.set(id, TrackPlayState.PLAYING);
     
-    // 创建位置标记特征
-    this.createPositionFeature(id);
+    // 确保轨迹可见
+    this.showTrack(id);
     
-    // 设置轨迹动画
-    this.setupTrackAnimation(id);
+    // 根据是否使用性能模式选择不同的动画设置方法
+    const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
     
-    // 如果需要跟随相机且启用了视口稳定，预先保存视图状态
-    if (currentPlayer.withCamera && currentPlayer.stabilizeViewport) {
-      // 在开始播放前保存初始视图状态
-      this.saveOriginalViewState(id);
+    if (useAdvancedAnimation) {
+      // 使用高级动画模式（性能模式）
+      this.setupAdvancedTrackAnimation(id);
+      this.log('info', `[性能模式] 轨迹 "${id}" 开始播放`);
+    } else {
+      // 使用传统动画模式
+      this.setupTrackAnimation(id);
+      this.log('info', `轨迹 "${id}" 开始播放`);
     }
-    
-    // 如果开启了相机跟踪，立即初始化第一个位置
-    if (currentPlayer.withCamera) {
-            const position = track.points[0];      const center = fromLonLat([position.lng, position.lat]);      this.updateCameraAnimation(id, center);            // 主动触发一次相机动画，确保立即更新相机位置      this.animateCamera(id);            // 为确保相机立即移动到起点，先确保视图已设置      if (this.mapInstance) {        this.mapInstance.render();        this.log('debug', `轨迹 "${id}" 播放开始，相机位置已立即设置到起点`);      }
-    }
-    
-    this.log('debug', `轨迹 "${id}" 开始播放，配置:`, currentPlayer);
     
     return true;
   }
@@ -1659,85 +1633,27 @@ export class TrackObject {
     }
     
     // 获取显示设置
-    // 对于移动点位名称，默认为false，除非明确设置为true
     const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
-    const showSpeed = this.trackSpeedPopoversVisible.get(id) || false;
+    const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+    const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+    const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
     
-    // 如果需要显示移动点位名称或速度，使用Overlay代替Text
-    if ((movingPointNameVisible && position.title) || (showSpeed && displaySpeed > 0)) {
-      // 准备HTML内容
-      let overlayContent = '';
-      
-      // 添加标题内容
-      if (movingPointNameVisible && position.title) {
-        overlayContent += `<div style="font-weight:bold;font-size:13px;color:#333;margin-bottom:4px;">${position.title}</div>`;
-        // 获取格式化的时间信息
-        const timeInfo = this.formatTimeDisplay(position.time);
-      
-        // 准备时间显示HTML
-        if (timeInfo.isToday && timeInfo.timeAgoText) {
-          // 今天的轨迹点显示时分秒和"多久之前"
-          overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
-        } else {
-          // 过去的轨迹点显示完整日期时间
-          overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText}</div>`;
-        }
+    // 如果需要显示移动信息，并且有移动点位名称、速度或距离信息，使用Overlay
+    if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
+      try {
+        // 使用统一的方法创建移动点内容
+        const overlayContent = this.createMovingPointContent(id, position);
         
-        // 如果经过了有名称的静态点位，显示提示信息
-        if (position.staticTitle && position.staticTitle !== position.title) {
-          overlayContent += `<div style="color:#666;font-style:italic;font-size:11px;margin-bottom:3px;">📍 经过: ${position.staticTitle}</div>`;
-        }
-      }
-      
-      // 添加速度信息
-      if (showSpeed && displaySpeed > 0) {
-        // 创建速度文本内容，区分真实速度和调整速度的显示
-        const trackColor = track.color || '#1890ff';
-        
-        if (speedFactor === 1.0) {
-          // 正常速度 - 只显示真实速度
-          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
-            🚄 速度: <span style="font-size:13px;">${realSpeed.toFixed(1)} km/h</span>
-          </div>`;
-        } else {
-          // 调整的速度 - 显示调整后速度和真实速度
-          overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
-            🚄 速度: <span style="font-size:13px;">${displaySpeed.toFixed(1)} km/h</span>
-          </div>
-          <div style="color:#666;font-size:10px;margin-top:2px;">
-            实际速度: ${realSpeed.toFixed(1)} km/h
-          </div>`;
-        }
-        // 新增：已行驶路程和距离下一个点
-            // 计算当前位置对应的点索引
-        const exactIndex = progress * (track.points.length - 1);
-        const pointIndex = Math.floor(exactIndex);
-        if (pointIndex >= 0) {
-          const distanceFromStart = this.getDistanceFromStart(id, pointIndex, position) / 1000; // 公里
-          let distanceToNext = 0;
-          if (pointIndex < track.points.length - 1) {
-            distanceToNext = this.getDistanceBetweenPoints(id, pointIndex, pointIndex + 1, position) / 1000;
-          }
-          overlayContent += `<div style='color:#1890ff;font-size:11px;margin-top:2px;'>
-            已行驶: ${distanceFromStart.toFixed(2)} 公里`;
-          if (distanceToNext > 0) {
-            overlayContent += `，距下个点: ${distanceToNext.toFixed(2)} 公里`;
-          }
-          overlayContent += `</div>`;
-        }
-      }
-      
-      // 只有在有内容时才创建Overlay
-      if (overlayContent) {
-        try {
+        // 只有在有内容时才创建Overlay
+        if (overlayContent) {
           // 创建或更新移动点位Overlay
           this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
-        } catch (error) {
-          this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
         }
+      } catch (error) {
+        this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
       }
     } else if (this.trackMovingOverlay) {
-      // 如果不需要显示内容，且存在Overlay，则移除
+      // 如果不需要显示任何信息，但存在移动点位Overlay，则移除它
       this.mapInstance!.removeOverlay(this.trackMovingOverlay);
       this.trackMovingOverlay = null;
     }
@@ -2489,36 +2405,28 @@ export class TrackObject {
     if (player.withCamera !== undefined && player.withCamera !== previousWithCamera) {
       this.log('info', `轨迹 "${id}" 相机跟随状态从 ${previousWithCamera} 更改为 ${player.withCamera}`);
       
-      // 无论当前是否正在播放，都需要处理相机跟踪状态
       if (player.withCamera) {
-        // 如果开启了相机跟随，尝试立即更新相机位置
+        // 如果开启了相机跟随，无论轨迹状态如何，都强制更新相机位置
         const track = this.tracks.get(id);
         if (track && track.points && track.points.length > 0) {
           const progress = this.trackProgressValues.get(id) || 0;
           const position = this.calculatePositionAtProgress(track, progress);
           const newCenter = fromLonLat([position.lng, position.lat]);
           
-          // 立即启动或更新相机动画
-          this.updateCameraAnimation(id, newCenter);
-          
-          // 如果当前不是播放状态，需要特殊处理确保动画立即启动
-          if (playState !== TrackPlayState.PLAYING) {
-            // 手动触发第一帧动画以立即移动相机
-            this.animateCamera(id);
+          // 立即更新相机位置
+          if (this.mapInstance) {
+            this.mapInstance.getView().setCenter(newCenter);
           }
+          
+          // 启动相机动画
+          this.updateCameraAnimation(id, newCenter);
+          this.animateCamera(id);
           
           this.log('debug', `轨迹 "${id}" 相机位置已立即更新`);
         }
       } else {
         // 如果关闭了相机跟随，完全释放相机控制
-        // 1. 停止相机动画
-        const cameraAnimation = this.trackCameraAnimations.get(id);
-        if (cameraAnimation) {
-          cameraAnimation.active = false;
-          // 2. 从映射中移除相机动画对象，确保完全释放
-          this.trackCameraAnimations.delete(id);
-          this.log('debug', `轨迹 "${id}" 相机跟随已停止并完全释放控制`);
-        }
+        this.releaseCameraLock(id);
       }
       
       // 触发地图重绘
@@ -2529,7 +2437,13 @@ export class TrackObject {
     
     // 如果是播放状态，重新设置动画配置，使新的设置生效
     if (playState === TrackPlayState.PLAYING) {
-      this.setupTrackAnimation(id);
+      // 使用适当的动画设置方法
+      const useAdvancedAnimation = updatedPlayer.useAdvancedAnimation !== false;
+      if (useAdvancedAnimation) {
+        this.setupAdvancedTrackAnimation(id);
+      } else {
+        this.setupTrackAnimation(id);
+      }
     }
     
     this.log('debug', `轨迹 "${id}" 播放器配置已实时更新`);
@@ -2719,6 +2633,7 @@ export class TrackObject {
     const showNodePopovers = this.trackNodePopoversVisible.get(id) || false;
     const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
     const showNodeSpeeds = this.trackNodeSpeedsVisible.get(id) || false;
+    const showNodeDistance = this.trackNodeDistanceVisible.get(id) || false; // 获取节点距离显示设置
     // 获取节点锚点显示设置，默认为true，但必须节点也是可见的
     const showNodeAnchors = showNodes && (this.trackNodeAnchorsVisible.get(id) !== false);
     // 获取倍速因子
@@ -2855,117 +2770,6 @@ export class TrackObject {
         const existingOverlays = this.trackNodeOverlays.get(id);
         const overlayExists = existingOverlays && existingOverlays.has(i);
         
-        // 如果是当前节点，添加高亮效果并显示
-        // if (isCurrentNode) {
-        //   // 准备节点HTML内容
-        //   let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#ff6b18;">${point.title}</div>`;
-          
-        //   // 添加时间信息（如果启用）
-        //   if (showNodeTime && timeStr) {
-        //     nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
-        //   }
-          
-        //   // 计算和添加速度信息
-        //   if (showNodeSpeeds) {
-        //     let nodeSpeed: number;
-        //     let speedText: string;
-            
-        //     // 确定节点速度
-        //     if (i === 0) {
-        //       // 第一个点速度始终为0
-        //       nodeSpeed = 0;
-        //     } else if (point.speed && point.speed > 0) {
-        //       // 使用节点自身的速度
-        //       nodeSpeed = point.speed;
-        //     } else {
-        //       // 计算当前点与上一个点的速度
-        //       const prevPoint = track.points[i - 1];
-        //       const distance = this.calculateDistance(prevPoint, point);
-        //       const timeDiff = point.time - prevPoint.time;
-              
-        //       if (timeDiff > 0) {
-        //         // 速度 = 距离(m) / 时间(s) * 3.6 (转换为km/h)
-        //         nodeSpeed = (distance / timeDiff) * 3.6;
-        //       } else {
-        //         // 如果时间差为0，使用默认速度
-        //         const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
-        //         nodeSpeed = player.speed;
-        //       }
-        //     }
-            
-        //     // 根据播放状态决定是否显示实时速度
-        //     if (playState === TrackPlayState.PLAYING) {
-        //       // 播放中 - 显示当前速度（考虑速度因子）
-        //       if (speedFactor === 1.0) {
-        //         speedText = `${nodeSpeed.toFixed(1)} km/h`;
-        //       } else {
-        //         // 显示调整后的速度和真实速度
-        //         const adjustedSpeed = nodeSpeed * speedFactor;
-        //         speedText = `${adjustedSpeed.toFixed(1)} km/h (实际: ${nodeSpeed.toFixed(1)})`;
-        //       }
-        //     } else {
-        //       // 未播放 - 只显示节点原始速度
-        //       speedText = `${nodeSpeed.toFixed(1)} km/h`;
-        //     }
-            
-        //     // 添加速度信息到节点内容
-        //     nodeContent += `<div style="margin-top:5px;color:#ff6b18;font-size:11px;font-weight:bold;">🚄 速度: ${speedText}</div>`;
-        //   }
-          
-        //   // 创建或更新当前节点Overlay
-        //   if (this.trackCurrentNodeOverlay) {
-        //     // 检查是否为同一节点的Overlay，如果是不同的节点则移除当前的
-        //     const existingOverlayPointIndex = this.trackCurrentNodeOverlay.get('pointIndex');
-        //     if (existingOverlayPointIndex !== i) {
-        //       this.mapInstance!.removeOverlay(this.trackCurrentNodeOverlay);
-        //       this.trackCurrentNodeOverlay = null;
-        //     } else {
-        //       // 如果是相同的节点，只更新内容而不重新创建
-        //       const element = this.trackCurrentNodeOverlay.getElement();
-        //       if (element) {
-        //         element.innerHTML = nodeContent;
-                
-        //         // 添加箭头和边框样式 (确保样式不丢失)
-        //         const arrowBorder = document.createElement('div');
-        //         arrowBorder.style.position = 'absolute';
-        //         arrowBorder.style.bottom = '-10px';
-        //         arrowBorder.style.left = '50%';
-        //         arrowBorder.style.marginLeft = '-9px';
-        //         arrowBorder.style.width = '0';
-        //         arrowBorder.style.height = '0';
-        //         arrowBorder.style.borderLeft = '9px solid transparent';
-        //         arrowBorder.style.borderRight = '9px solid transparent';
-        //         arrowBorder.style.borderTop = '9px solid rgba(0,0,0,0.1)';
-        //         arrowBorder.style.zIndex = '-1';
-                
-        //         const arrow = document.createElement('div');
-        //         arrow.style.position = 'absolute';
-        //         arrow.style.bottom = '-9px';
-        //         arrow.style.left = '50%';
-        //         arrow.style.marginLeft = '-8px';
-        //         arrow.style.width = '0';
-        //         arrow.style.height = '0';
-        //         arrow.style.borderLeft = '8px solid transparent';
-        //         arrow.style.borderRight = '8px solid transparent';
-        //         arrow.style.borderTop = '8px solid white';
-                
-        //         element.appendChild(arrowBorder);
-        //         element.appendChild(arrow);
-                
-        //         // 更新位置
-        //         this.trackCurrentNodeOverlay.setPosition(coordinate);
-        //         return; // 已更新，无需创建新的
-        //       }
-        //     }
-        //   }
-          
-        //   // 创建当前节点的Overlay
-        //   this.trackCurrentNodeOverlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay current-node');
-        //   // 为当前节点Overlay添加点索引属性，方便后续判断
-        //   this.trackCurrentNodeOverlay.set('pointIndex', i);
-        // } 
-        // 已经过的点，使用"经过"样式
-        //else
           if (isPastNode && (!overlayExists || (overlayExists && existingOverlays.get(i)))) {
           // 已经过的点使用高亮效果标注，类似当前点但颜色不同
           let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title}</div>`;
@@ -3013,6 +2817,25 @@ export class TrackObject {
           
           // 显示经过速度（即使showNodeSpeeds为false，经过的点也要显示速度）
           nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
+
+          // 添加节点距离信息（如果启用）
+          if (showNodeDistance && i > 0) {
+            // 计算与上一个点的距离
+            const prevPoint = track.points[i - 1];
+            const distance = this.calculateDistance(prevPoint, point) / 1000; // 转换为公里
+            
+            // 计算从起点的总距离
+            let totalDistance = 0;
+            for (let j = 1; j <= i; j++) {
+              const prev = track.points[j - 1];
+              const curr = track.points[j];
+              totalDistance += this.calculateDistance(prev, curr) / 1000;
+            }
+            
+            // 显示距离信息
+            nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;">📏 距上点: ${distance.toFixed(2)} 公里</div>`;
+            nodeContent += `<div style="margin-top:2px;color:#1890ff;font-size:11px;">📏 总距离: ${totalDistance.toFixed(2)} 公里</div>`;
+          }
 
           // 如果已经有Overlay，更新它
           if (overlayExists) {
@@ -3075,63 +2898,28 @@ export class TrackObject {
             nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
           }
           
+          // 添加节点距离信息（如果启用）
+          if (showNodeDistance && i > 0) {
+            // 计算与上一个点的距离
+            const prevPoint = track.points[i - 1];
+            const distance = this.calculateDistance(prevPoint, point) / 1000; // 转换为公里
+            
+            // 计算从起点的总距离
+            let totalDistance = 0;
+            for (let j = 1; j <= i; j++) {
+              const prev = track.points[j - 1];
+              const curr = track.points[j];
+              totalDistance += this.calculateDistance(prev, curr) / 1000;
+            }
+            
+            // 显示距离信息
+            nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">📏 距上点: ${distance.toFixed(2)} 公里</div>`;
+            nodeContent += `<div style="margin-top:1px;color:#666;font-size:9px;">📏 总距离: ${totalDistance.toFixed(2)} 公里</div>`;
+          }
+          
           // 创建普通节点Overlay
           this.createNodeOverlay(id, i, nodeContent, coordinate);
         }
-        
-        // 额外处理第一个点，确保其标注始终显示
-        // if (i === 0 && !overlayExists && showNodePopovers) {
-        //   // 根据是否已经过决定样式
-        //   if (isPastNode) {
-        //     // 使用高亮样式
-        //     let nodeContent = `<div style="font-weight:bold;font-size:12px;color:#1890ff;">${point.title}</div>`;
-            
-        //     // 添加时间信息（如果启用）
-        //     if (showNodeTime && timeStr) {
-        //       nodeContent += `<div style="margin-top:3px;color:#666;font-size:10px;">⏱ ${timeStr}</div>`;
-        //     }
-            
-        //     // 添加经过时的速度信息 - 不受showNodeSpeeds设置影响
-        //     const nodeSpeed = 0; // 第一个点速度固定为0
-            
-        //     // 显示经过速度
-        //     nodeContent += `<div style="margin-top:3px;color:#1890ff;font-size:11px;font-weight:bold;">🚄 速度: ${nodeSpeed.toFixed(1)} km/h</div>`;
-            
-        //     // 创建高亮风格的Overlay
-        //     const overlay = this.createNodeOverlay(id, i, nodeContent, coordinate, 'track-node-overlay passed-node');
-            
-        //     // 手动更新样式
-        //     const element = overlay.getElement();
-        //     if (element) {
-        //       (element as HTMLElement).style.backgroundColor = '#e6f7ff';
-        //       (element as HTMLElement).style.borderColor = '#91d5ff';
-              
-        //       // 更新箭头样式
-        //       const arrows = element.querySelectorAll('div[style*="border-top"]');
-        //       if (arrows && arrows.length > 0) {
-        //         // 更新箭头边框
-        //         if (arrows[0]) {
-        //           (arrows[0] as HTMLElement).style.borderTop = '9px solid #91d5ff';
-        //         }
-        //         // 更新箭头
-        //         if (arrows[1]) {
-        //           (arrows[1] as HTMLElement).style.borderTop = '8px solid #e6f7ff';
-        //         }
-        //       }
-        //     }
-        //   } else {
-        //     // 使用普通样式
-        //     let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
-            
-        //     // 添加时间信息（如果启用）
-        //     if (showNodeTime && timeStr) {
-        //       nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
-        //     }
-            
-        //     // 创建普通节点Overlay
-        //     this.createNodeOverlay(id, i, nodeContent, coordinate);
-        //   }
-        // }
       }
     }
   }
@@ -4575,55 +4363,809 @@ export class TrackObject {
     
     this.log('debug', `轨迹 "${id}" 节点距离信息可见性从 ${oldValue} 更改为 ${visible}`);
     
-    // 如果轨迹播放状态是停止或暂停，需要重新创建节点Overlay
-    if (this.trackNodesVisible.get(id) && this.trackNodePopoversVisible.get(id) &&
-        this.trackPlayStates.get(id) !== TrackPlayState.PLAYING) {
-      // 获取轨迹
-      const track = this.tracks.get(id);
-      if (!track || !track.visible) return true;
-      
-      // 清除现有节点Overlay
-      this.clearNodeOverlays(id);
-      
-      // 重新创建所有节点的Overlay
-      const showNodeTime = this.trackNodeTimeVisible.get(id) || false;
-      const showNodeDistance = visible;
-      
-      // 为每个节点创建Overlay
-      for (let i = 0; i < track.points.length; i++) {
-        const point = track.points[i];
-        
-        // 只为有标题的点创建Overlay
-        if (point.title) {
-          // 格式化时间
-          let timeStr = '';
-          if (point.time && showNodeTime) {
-            const date = new Date(point.time * 1000);
-            timeStr = date.toLocaleTimeString();
+    // 获取轨迹
+    const track = this.tracks.get(id);
+    if (!track || !track.visible) return true;
+    
+    // 获取当前播放状态
+    const playState = this.trackPlayStates.get(id) || TrackPlayState.STOPPED;
+    
+    // 清除现有节点Overlay
+    this.clearNodeOverlays(id);
+    
+    // 重新创建所有节点的Overlay，无论轨迹状态如何
+    if (this.trackNodesVisible.get(id) && this.trackNodePopoversVisible.get(id)) {
+      const progress = this.trackProgressValues.get(id) || 0;
+      this.drawTrackNodes(id, null, track, progress);
+    }
+    
+    // 如果轨迹正在播放，需要特殊处理
+    if (playState === TrackPlayState.PLAYING) {
+      // 如果是性能模式，需要重新设置动画
+      const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
+      if (useAdvancedAnimation) {
+        this.setupAdvancedTrackAnimation(id);
+      } else {
+        this.setupTrackAnimation(id);
+      }
+    }
+    
+    // 强制刷新轨迹显示
+    if (this.mapInstance) {
+      this.mapInstance.render();
+    }
+    
+    return true;
+  }
+
+  /**
+   * 创建用于动画的标记样式
+   * @param id 轨迹ID
+   * @param speed 当前速度
+   * @param position 当前位置点
+   * @returns 样式对象
+   */
+  private createMarkerStyleForAnimation(id: string, speed: number, position: TrackPoint): Style {
+    const track = this.tracks.get(id)!;
+    const enableSpeedIcon = this.trackEnableSpeedIcon.get(id) !== false;
+    
+    // 获取实际速度（考虑速度因子）
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    const realSpeed = speed ? speed / speedFactor : 0;
+    
+    // 保存当前速度
+    this.trackCurrentSpeeds.set(id, realSpeed);
+    
+    let iconUrl: string | undefined = undefined;
+    let iconSize: number[] = [24, 24]; // 默认图标大小
+    let iconType: string | undefined = undefined;
+    
+    // 只有启用速度图标切换时才进行图标选择
+    if (enableSpeedIcon) {
+      // 处理图标选择逻辑
+      // 1. 首先检查TrackSpeedGroup配置 - 根据速度选择图标
+      if (this.config.trackSpeedGroup && this.config.trackSpeedGroup.length > 0) {
+        const sortedGroups = [...this.config.trackSpeedGroup].sort((a, b) => b.speed - a.speed);
+        for (const group of sortedGroups) {
+          if (realSpeed > group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `[性能模式] 根据速度 ${realSpeed} km/h 选择图标: ${iconUrl} (速度阈值: ${group.speed})`);
+            break;
           }
-          
-          // 准备节点HTML内容
-          let nodeContent = `<div style="color:#333;font-size:11px;font-weight:bold;">${point.title}</div>`;
-          
-          // 添加时间信息（如果启用）
-          if (showNodeTime && timeStr) {
-            nodeContent += `<div style="margin-top:2px;color:#666;font-size:9px;">⏱ ${timeStr}</div>`;
-          }
-          
-          // 添加距离信息（如果启用且不是第一个点）
-          if (showNodeDistance && i > 0) {
-            const distanceFromPrev = this.calculateDistance(track.points[i-1], point);
-            const distanceText = distanceFromPrev >= 1000 ? 
-              `${(distanceFromPrev / 1000).toFixed(2)}公里` : 
-              `${Math.round(distanceFromPrev)}米`;
-            nodeContent += `<div style="margin-top:2px;color:#1890ff;font-size:9px;">↔️ 距上一点: ${distanceText}</div>`;
-          }
-          
-          // 创建节点Overlay
-          const coordinate = fromLonLat([point.lng, point.lat]);
-          this.createNodeOverlay(id, i, nodeContent, coordinate);
         }
       }
+      
+      // 2. 如果通过速度配置没找到图标，检查轨迹点自身是否有图标URL
+      if (!iconUrl && position.iconUrl) {
+        iconUrl = position.iconUrl;
+        if (position.iconSize) {
+          iconSize = position.iconSize;
+        }
+        iconType = (position as any).iconType;
+        this.log('debug', `[性能模式] 使用轨迹点自定义图标: ${iconUrl}`);
+      }
+      
+      // 3. 如果轨迹点没有图标，则检查轨迹自身的iconGroup配置
+      if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
+        for (const group of track.iconGroup) {
+          if (realSpeed >= group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `[性能模式] 使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 4. 如果仍然没有找到图标，使用轨迹的默认图标
+      if (!iconUrl && track.iconUrl) {
+        iconUrl = track.iconUrl;
+        iconType = (track as any).iconType;
+        this.log('debug', `[性能模式] 使用轨迹默认图标: ${iconUrl}`);
+      }
+    }
+    
+    // 设置样式
+    let style: Style;
+    if (iconUrl) {
+      try {
+        let rotation = 0;
+        let scaleY = 1;
+        const autoRotate = this.config.autoRotate === true;
+        if (autoRotate && position.dir !== undefined) {
+          if (position.dir > 180) {
+            scaleY = -1;
+            rotation = ((position.dir - 180) * Math.PI) / 180;
+          } else {
+            scaleY = 1;
+            rotation = (position.dir * Math.PI) / 180;
+          }
+        }
+        
+        // 统一用IconUtils.createSafeIconStyle
+        const safeIconSize: [number, number] = [iconSize[0] || 24, iconSize[1] || 24];
+        style = IconUtils.createSafeIconStyle(iconUrl, 1, safeIconSize, track.color || 'rgba(24, 144, 255, 1)', undefined, iconType);
+        if (style && style.getImage && style.getImage()) {
+          style.getImage().setRotation(rotation);
+          style.getImage().setScale([1, scaleY]);
+        }
+        this.log('debug', `[性能模式] 创建图标样式成功: ${iconUrl}`);
+      } catch (error) {
+        // 如果创建样式失败，使用默认样式
+        this.log('error', `[性能模式] 创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
+        style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+      }
+    } else {
+      // 使用默认圆点样式
+      this.log('debug', `[性能模式] 未找到适用的图标，使用默认圆点样式`);
+      style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+    }
+    
+    return style;
+  }
+  
+  /**
+   * 设置轨迹动画（性能模式）
+   * 参考OpenLayers Feature Move Animation示例实现
+   * @param id 轨迹ID
+   */
+  private setupAdvancedTrackAnimation(id: string): void {
+    // 移除现有的动画监听器
+    this.removeTrackAnimation(id);
+    
+    // 添加安全检查，确保轨迹存在
+    const track = this.tracks.get(id);
+    if (!track || !track.points || track.points.length < 2) {
+      this.log('warn', `[性能模式] 设置轨迹动画失败: 轨迹 "${id}" 不存在或点数量不足`);
+      return;
+    }
+    
+    // 获取播放配置
+    const player = this.trackPlayers.get(id) || DEFAULT_TRACK_PLAYER;
+    
+    // 获取当前的速度因子（倍速）
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 初始化经过的线特征
+    this.initPassedLineFeature(id);
+    
+    // 保存当前进度
+    const currentProgress = this.trackProgressValues.get(id) || 0;
+    
+    // 计算当前位置
+    const position = this.calculatePositionAtProgress(track, currentProgress);
+    
+    // 创建初始点几何
+    const point = new Point(fromLonLat([position.lng, position.lat]));
+    
+    // 创建初始样式
+    const style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+    
+    // 初始化动画状态
+    this.trackAnimationPositions.set(id, {
+      position: point,
+      lastTime: Date.now(),
+      distance: currentProgress,
+      style: style
+    });
+    
+    // 缓存样式以便重用
+    this.trackAnimationStyles.set(id, style);
+    
+    // 隐藏原始点位特征
+    if (this.trackPositionFeatures.has(id)) {
+      const positionFeature = this.trackPositionFeatures.get(id)!;
+      positionFeature.setStyle(new Style({})); // 空样式，实际隐藏
+    }
+    
+    // 添加postrender事件监听器
+    this.trackAnimationListeners.set(id, this.trackLayer!.on('postrender', (event) => {
+      // 获取向量上下文和帧状态
+      const vectorContext = getVectorContext(event);
+      const frameState = event.frameState;
+      
+      if (!frameState) {
+        return;
+      }
+      
+      // 获取当前播放状态
+      const currentState = this.trackPlayStates.get(id);
+      
+      // 如果不是播放状态，只绘制当前位置
+      if (currentState !== TrackPlayState.PLAYING) {
+        // 获取当前动画状态
+        const animState = this.trackAnimationPositions.get(id);
+        if (animState && animState.style) {
+          // 绘制当前位置
+          vectorContext.setStyle(animState.style);
+          vectorContext.drawGeometry(animState.position);
+        }
+        return;
+      }
+      
+      // 获取当前动画状态
+      const animState = this.trackAnimationPositions.get(id);
+      if (!animState) return;
+      
+      // 计算经过的时间（毫秒）
+      const now = Date.now();
+      const elapsedTime = now - animState.lastTime;
+      
+      // 计算新的进度
+      const timeRange = track.points[track.points.length - 1].time - track.points[0].time;
+      const progressChange = (elapsedTime * speedFactor) / (timeRange * 1000);
+      let newDistance = animState.distance + progressChange;
+      
+      // 处理循环播放
+      if (newDistance > 1) {
+        if (player.loop) {
+          // 循环播放
+          newDistance = newDistance % 1;
+        } else {
+          // 非循环模式，播放结束
+          newDistance = 1;
+          this.trackPlayStates.set(id, TrackPlayState.STOPPED);
+        }
+      }
+      
+      // 更新进度
+      this.trackProgressValues.set(id, newDistance);
+      animState.distance = newDistance;
+      
+      // 计算当前位置
+      const newPosition = this.calculatePositionAtProgress(track, newDistance);
+      
+      // 更新点几何
+      const newPoint = new Point(fromLonLat([newPosition.lng, newPosition.lat]));
+      animState.position = newPoint;
+      
+      // 更新样式（如果需要根据速度变化）
+      if (this.trackEnableSpeedIcon.get(id) !== false) {
+        animState.style = this.createMarkerStyleForAnimation(id, newPosition.speed || 0, newPosition);
+      }
+      
+      // 绘制经过的线段
+      this.drawPassedLine(id, vectorContext, newDistance);
+      
+      // 绘制位置标记
+      vectorContext.setStyle(animState.style!);
+      vectorContext.drawGeometry(newPoint);
+      
+      // 更新移动点位的Overlay
+      const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+      const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+      const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+      const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
+      
+      // 如果需要显示移动信息，并且有移动点位名称、速度或距离信息，使用Overlay
+      if (showMovingInfo && ((movingPointNameVisible && newPosition.title) || showSpeed || showNodeDistance)) {
+        try {
+          // 使用统一的方法创建移动点内容
+          const overlayContent = this.createMovingPointContent(id, newPosition);
+          
+          // 只有在有内容时才创建Overlay
+          if (overlayContent) {
+            // 创建或更新移动点位Overlay
+            this.createMovingOverlay(id, overlayContent, fromLonLat([newPosition.lng, newPosition.lat]));
+          }
+        } catch (error) {
+          this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+        }
+      } else if (this.trackMovingOverlay) {
+        // 如果不需要显示任何信息，但存在移动点位Overlay，则移除它
+        this.mapInstance!.removeOverlay(this.trackMovingOverlay);
+        this.trackMovingOverlay = null;
+      }
+      
+      // 使相机跟随移动
+      if (player.withCamera) {
+        const newCenter = fromLonLat([newPosition.lng, newPosition.lat]);
+        this.updateCameraAnimation(id, newCenter);
+        this.animateCamera(id);
+      }
+      
+      // 触发进度事件
+      this.dispatchTrackProgressEvent(id, newDistance, newPosition);
+      
+      // 更新上一次的时间戳
+      animState.lastTime = now;
+      
+      // 请求地图重绘，保持动画连续
+      this.mapInstance!.render();
+    }));
+    
+    this.log('debug', `[性能模式] 轨迹 "${id}" 动画已设置`);
+  }
+  
+  /**
+   * 设置是否启用速度图标切换
+   * @param id 轨迹ID
+   * @param enabled 是否启用
+   * @returns 是否成功
+   */
+  public setEnableSpeedIcon(id: string, enabled: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置速度图标切换失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    this.trackEnableSpeedIcon.set(id, enabled);
+    
+    // 如果轨迹正在播放，需要立即更新样式
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
+      const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
+      
+      if (useAdvancedAnimation) {
+        // 性能模式下更新动画样式
+        if (this.trackAnimationPositions.has(id)) {
+          const animState = this.trackAnimationPositions.get(id)!;
+          const progress = this.trackProgressValues.get(id) || 0;
+          const position = this.calculatePositionAtProgress(this.tracks.get(id)!, progress);
+          
+          // 重新创建样式
+          animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+          
+          // 请求地图重绘以应用新样式
+          if (this.mapInstance) {
+            this.mapInstance.render();
+          }
+          
+          // 更新移动点位的Overlay
+          const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+          const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+          const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+          const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false;
+          
+          if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
+            try {
+              // 使用统一的方法创建移动点内容
+              const overlayContent = this.createMovingPointContent(id, position);
+              
+              // 只有在有内容时才创建Overlay
+              if (overlayContent) {
+                // 创建或更新移动点位Overlay
+                this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+              }
+            } catch (error) {
+              this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+            }
+          }
+        }
+      }
+      
+      // 重新设置动画，确保新的图标设置生效
+      this.setupAdvancedTrackAnimation(id);
+    } else {
+      // 普通模式下更新位置标记
+      if (this.trackPositionFeatures.has(id)) {
+        const positionFeature = this.trackPositionFeatures.get(id)!;
+        const progress = this.trackProgressValues.get(id) || 0;
+        const position = this.calculatePositionAtProgress(this.tracks.get(id)!, progress);
+        
+        // 重新设置样式
+        try {
+          // 获取当前几何
+          const geometry = positionFeature.getGeometry();
+          if (geometry) {
+            // 创建新样式
+            let style;
+            if (enabled) {
+              // 根据速度选择图标
+              style = this.createPositionMarkerStyle(id, position);
+            } else {
+              // 使用默认样式
+              style = this.createDefaultMarkerStyle(this.tracks.get(id)!.color || 'rgba(24, 144, 255, 1)');
+            }
+            
+            // 应用样式
+            positionFeature.setStyle(style);
+            
+            // 请求地图重绘
+            if (this.mapInstance) {
+              this.mapInstance.render();
+            }
+            
+            // 更新移动点位的Overlay
+            const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+            const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+            const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+            const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false;
+            
+            if (showMovingInfo && ((movingPointNameVisible && position.title) || showSpeed || showNodeDistance)) {
+              try {
+                // 使用统一的方法创建移动点内容
+                const overlayContent = this.createMovingPointContent(id, position);
+                
+                // 只有在有内容时才创建Overlay
+                if (overlayContent) {
+                  // 创建或更新移动点位Overlay
+                  this.createMovingOverlay(id, overlayContent, fromLonLat([position.lng, position.lat]));
+                }
+              } catch (error) {
+                this.log('error', `创建移动点位Overlay失败: ${error.message || '未知错误'}`);
+              }
+            }
+          }
+        } catch (error) {
+          this.log('error', `更新位置标记样式失败: ${error.message || '未知错误'}`);
+        }
+      }
+      
+      // 重新设置动画，确保新的图标设置生效
+      this.setupTrackAnimation(id);
+    }
+    
+    // 强制刷新轨迹显示
+    this.refreshTrack(id);
+    
+    this.log('debug', `轨迹 "${id}" 速度图标切换已${enabled ? '启用' : '禁用'}`);
+    return true;
+  }
+  
+  /**
+   * 刷新轨迹显示
+   * 用于在设置变更后强制重新渲染轨迹
+   * @param id 轨迹ID
+   * @returns 是否成功
+   */
+  public refreshTrack(id: string): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `刷新轨迹失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    try {
+      // 获取当前轨迹
+      const track = this.tracks.get(id)!;
+      
+      // 刷新节点显示
+      if (this.trackNodesVisible.get(id)) {
+        // 重新绘制节点
+        this.clearNodeOverlays(id);
+        this.drawTrackNodes(id, null, track, this.trackProgressValues.get(id) || 0);
+      }
+      
+      // 刷新移动点显示
+      if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING) {
+        // 如果正在播放，强制更新一次位置标记
+        const progress = this.trackProgressValues.get(id) || 0;
+        const position = this.calculatePositionAtProgress(track, progress);
+        
+        // 根据当前模式选择不同的刷新方法
+        const useAdvancedAnimation = this.trackPlayers.get(id)?.useAdvancedAnimation !== false;
+        if (useAdvancedAnimation) {
+          // 性能模式：更新动画状态
+          if (this.trackAnimationPositions.has(id)) {
+            const animState = this.trackAnimationPositions.get(id)!;
+            animState.style = this.createMarkerStyleForAnimation(id, position.speed || 0, position);
+          }
+        } else {
+          // 普通模式：更新移动点
+          this.removePositionFeature(id);
+          this.createPositionFeature(id);
+          
+          // 更新移动点的覆盖物
+          if (this.trackMovingPointNameVisible.get(id) || this.trackSpeedPopoversVisible.get(id)) {
+            const content = this.createMovingPointContent(id, position);
+            if (content) {
+              this.createMovingOverlay(id, content, fromLonLat([position.lng, position.lat]));
+            }
+          }
+        }
+      } else if (this.trackPlayStates.get(id) === TrackPlayState.PAUSED || 
+                this.trackPlayStates.get(id) === TrackPlayState.STOPPED) {
+        // 如果已暂停或停止，仅更新显示状态
+        const progress = this.trackProgressValues.get(id) || 0;
+        if (progress > 0) {
+          // 更新已经过的线段
+          this.drawPassedLine(id, null, progress);
+          
+          // 更新节点状态
+          this.drawTrackNodes(id, null, track, progress);
+        }
+      }
+      
+      // 请求地图重绘
+      if (this.mapInstance) {
+        this.mapInstance.render();
+      }
+      
+      this.log('debug', `轨迹 "${id}" 已刷新显示`);
+      return true;
+    } catch (error) {
+      this.log('error', `刷新轨迹显示失败: ${error.message || '未知错误'}`);
+      return false;
+    }
+  }
+  
+  /**
+   * 创建移动点位内容
+   * @param id 轨迹ID
+   * @param position 位置点
+   * @returns HTML内容
+   */
+  private createMovingPointContent(id: string, position: TrackPoint): string {
+    const track = this.tracks.get(id)!;
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    
+    // 获取实际速度和显示速度
+    const realSpeed = position.speed ? position.speed / speedFactor : 0;
+    const displaySpeed = position.speed || 0;
+    
+    // 获取显示设置
+    const movingPointNameVisible = this.trackMovingPointNameVisible.get(id) === true;
+    const showSpeed = this.trackSpeedPopoversVisible.get(id) === true;
+    const showNodeDistance = this.trackNodeDistanceVisible.get(id) === true;
+    const showMovingInfo = this.trackMovingInfoVisible.get(id) !== false; // 默认为true
+    const showMovingDistance = this.trackMovingDistanceVisible.get(id) === true; // 默认为false
+    
+    // 如果移动信息被禁用，则不显示任何内容
+    if (!showMovingInfo) {
+      return '';
+    }
+    
+    // 准备HTML内容
+    let overlayContent = '';
+    
+    // 添加标题内容
+    if (movingPointNameVisible && position.title) {
+      overlayContent += `<div style="font-weight:bold;font-size:13px;color:#333;margin-bottom:4px;">${position.title}</div>`;
+      // 获取格式化的时间信息
+      const timeInfo = this.formatTimeDisplay(position.time);
+    
+      // 准备时间显示HTML
+      if (timeInfo.isToday && timeInfo.timeAgoText) {
+        // 今天的轨迹点显示时分秒和"多久之前"
+        overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText} (${timeInfo.timeAgoText})</div>`;
+      } else {
+        // 过去的轨迹点显示完整日期时间
+        overlayContent += `<div style="color:#666;font-size:11px;margin-bottom:3px;">⏱ ${timeInfo.timeText}</div>`;
+      }
+      
+      // 如果经过了有名称的静态点位，显示提示信息
+      if (position.staticTitle && position.staticTitle !== position.title) {
+        overlayContent += `<div style="color:#666;font-style:italic;font-size:11px;margin-bottom:3px;">📍 经过: ${position.staticTitle}</div>`;
+      }
+    }
+    
+    // 添加速度信息
+    if (showSpeed && displaySpeed > 0) {
+      // 创建速度文本内容，区分真实速度和调整速度的显示
+      const trackColor = track.color || '#1890ff';
+      
+      if (speedFactor === 1.0) {
+        // 正常速度 - 只显示真实速度
+        overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+          🚄 速度: <span style="font-size:13px;">${realSpeed.toFixed(1)} km/h</span>
+        </div>`;
+      } else {
+        // 调整的速度 - 显示调整后速度和真实速度
+        overlayContent += `<div style="color:${trackColor};font-weight:bold;font-size:12px;margin-top:${movingPointNameVisible ? 5 : 0}px;">
+          🚄 速度: <span style="font-size:13px;">${displaySpeed.toFixed(1)} km/h</span>
+        </div>
+        <div style="color:#666;font-size:10px;margin-top:2px;">
+          实际速度: ${realSpeed.toFixed(1)} km/h
+        </div>`;
+      }
+    }
+      
+    // 添加移动距离信息 - 独立于节点距离信息，基于showMovingDistance设置
+    if (showMovingDistance) {
+      // 计算当前位置对应的点索引
+      const exactIndex = this.trackProgressValues.get(id)! * (track.points.length - 1);
+      const pointIndex = Math.floor(exactIndex);
+      if (pointIndex >= 0) {
+        const distanceFromStart = this.getDistanceFromStart(id, pointIndex, position) / 1000; // 公里
+        let distanceToNext = 0;
+        if (pointIndex < track.points.length - 1) {
+          distanceToNext = this.getDistanceBetweenPoints(id, pointIndex, pointIndex + 1, position) / 1000;
+        }
+        
+        // 设置合适的顶部边距
+        const hasContent = (movingPointNameVisible && position.title) || (showSpeed && displaySpeed > 0);
+        
+        overlayContent += `<div style='color:#1890ff;font-size:11px;margin-top:${hasContent ? 5 : 0}px;'>
+          <b>移动距离:</b> ${distanceFromStart.toFixed(2)} 公里`;
+        if (distanceToNext > 0) {
+          overlayContent += `，距下个点: ${distanceToNext.toFixed(2)} 公里`;
+        }
+        overlayContent += `</div>`;
+      }
+    }
+    
+    return overlayContent;
+  }
+  
+  /**
+   * 释放相机锁定
+   * 当取消跟随移动时调用，确保相机不再跟随轨迹
+   * @param id 轨迹ID
+   * @returns 是否成功
+   */
+  public releaseCameraLock(id: string): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `释放相机锁定失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    try {
+      // 清除相机动画状态
+      if (this.trackCameraAnimations.has(id)) {
+        const cameraAnimation = this.trackCameraAnimations.get(id);
+        if (cameraAnimation) {
+          cameraAnimation.active = false;
+        }
+        this.trackCameraAnimations.delete(id);
+        this.log('debug', `轨迹 "${id}" 相机锁定已释放`);
+      }
+      
+      // 更新播放器配置，禁用相机跟随
+      if (this.trackPlayers.has(id)) {
+        const player = this.trackPlayers.get(id)!;
+        player.withCamera = false;
+        this.log('debug', `轨迹 "${id}" 播放器配置已更新: withCamera = false`);
+      }
+      
+      return true;
+    } catch (error) {
+      this.log('error', `释放相机锁定失败: ${error.message || '未知错误'}`);
+      return false;
+    }
+  }
+
+  /**
+   * 创建位置标记样式
+   * @param id 轨迹ID
+   * @param position 位置点
+   * @returns 样式对象
+   */
+  private createPositionMarkerStyle(id: string, position: TrackPoint): Style {
+    const track = this.tracks.get(id)!;
+    const enableSpeedIcon = this.trackEnableSpeedIcon.get(id) !== false;
+    const speedFactor = this.trackSpeedFactors.get(id) || 1.0;
+    const realSpeed = position.speed ? position.speed / speedFactor : 0;
+    
+    let iconUrl: string | undefined = undefined;
+    let iconSize: number[] = [24, 24]; // 默认图标大小
+    let iconType: string | undefined = undefined;
+    
+    // 只有启用速度图标切换时才进行图标选择
+    if (enableSpeedIcon) {
+      // 处理图标选择逻辑
+      // 1. 首先检查TrackSpeedGroup配置 - 根据速度选择图标
+      if (this.config.trackSpeedGroup && this.config.trackSpeedGroup.length > 0) {
+        const sortedGroups = [...this.config.trackSpeedGroup].sort((a, b) => b.speed - a.speed);
+        for (const group of sortedGroups) {
+          if (realSpeed > group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `根据速度 ${realSpeed} km/h 选择图标: ${iconUrl} (速度阈值: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 2. 如果通过速度配置没找到图标，检查轨迹点自身是否有图标URL
+      if (!iconUrl && position.iconUrl) {
+        iconUrl = position.iconUrl;
+        if (position.iconSize) {
+          iconSize = position.iconSize;
+        }
+        iconType = (position as any).iconType;
+        this.log('debug', `使用轨迹点自定义图标: ${iconUrl}`);
+      }
+      
+      // 3. 如果轨迹点没有图标，则检查轨迹自身的iconGroup配置
+      if (!iconUrl && track.iconGroup && track.iconGroup.length > 0) {
+        for (const group of track.iconGroup) {
+          if (realSpeed >= group.speed) {
+            iconUrl = group.icon;
+            iconType = group.iconType;
+            this.log('debug', `使用轨迹iconGroup图标: ${iconUrl} (速度范围: ${group.speed})`);
+            break;
+          }
+        }
+      }
+      
+      // 4. 如果仍然没有找到图标，使用轨迹的默认图标
+      if (!iconUrl && track.iconUrl) {
+        iconUrl = track.iconUrl;
+        iconType = (track as any).iconType;
+        this.log('debug', `使用轨迹默认图标: ${iconUrl}`);
+      }
+    }
+    
+    // 设置样式
+    let style: Style;
+    if (iconUrl) {
+      try {
+        let rotation = 0;
+        let scaleY = 1;
+        const autoRotate = this.config.autoRotate === true;
+        if (autoRotate && position.dir !== undefined) {
+          if (position.dir > 180) {
+            scaleY = -1;
+            rotation = ((position.dir - 180) * Math.PI) / 180;
+          } else {
+            scaleY = 1;
+            rotation = (position.dir * Math.PI) / 180;
+          }
+        }
+        
+        // 统一用IconUtils.createSafeIconStyle
+        const safeIconSize: [number, number] = [iconSize[0] || 24, iconSize[1] || 24];
+        style = IconUtils.createSafeIconStyle(iconUrl, 1, safeIconSize, track.color || 'rgba(24, 144, 255, 1)', undefined, iconType);
+        if (style && style.getImage && style.getImage()) {
+          style.getImage().setRotation(rotation);
+          style.getImage().setScale([1, scaleY]);
+        }
+        this.log('debug', `创建图标样式成功: ${iconUrl}`);
+      } catch (error) {
+        // 如果创建样式失败，使用默认样式
+        this.log('error', `创建移动点图标样式失败: ${error.message || '未知错误'}, URL: ${iconUrl}`);
+        style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+      }
+    } else {
+      // 使用默认圆点样式
+      this.log('debug', `未找到适用的图标，使用默认圆点样式`);
+      style = this.createDefaultMarkerStyle(track.color || 'rgba(24, 144, 255, 1)');
+    }
+    
+    return style;
+  }
+
+  /**
+   * 设置移动点信息是否可见
+   * @param id 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setMovingInfoVisible(id: string, visible: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置移动点信息可见性失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 明确记录旧值和新值，帮助调试
+    const oldValue = this.trackMovingInfoVisible.get(id);
+    
+    // 更新移动点信息可见性设置
+    this.trackMovingInfoVisible.set(id, visible === true);
+    
+    this.log('debug', `轨迹 "${id}" 移动点信息可见性从 ${oldValue} 更改为 ${visible}`);
+    
+    // 如果轨迹正在播放，需要强制刷新
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING && this.mapInstance) {
+      this.mapInstance.render();
+    }
+    
+    return true;
+  }
+
+  /**
+   * 设置移动点距离信息是否可见
+   * @param id 轨迹ID
+   * @param visible 是否可见
+   * @returns 是否操作成功
+   */
+  public setMovingDistanceVisible(id: string, visible: boolean): boolean {
+    if (!this.tracks.has(id)) {
+      this.log('warn', `设置移动点距离信息可见性失败: 轨迹 "${id}" 不存在`);
+      return false;
+    }
+    
+    // 明确记录旧值和新值，帮助调试
+    const oldValue = this.trackMovingDistanceVisible.get(id);
+    
+    // 更新移动点距离可见性设置
+    this.trackMovingDistanceVisible.set(id, visible === true);
+    
+    this.log('debug', `轨迹 "${id}" 移动点距离信息可见性从 ${oldValue} 更改为 ${visible}`);
+    
+    // 如果轨迹正在播放，需要强制刷新
+    if (this.trackPlayStates.get(id) === TrackPlayState.PLAYING && this.mapInstance) {
+      this.mapInstance.render();
     }
     
     return true;

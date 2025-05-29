@@ -104,7 +104,10 @@ export class GaodeSearchProvider implements SearchDataProvider {
    * @param transportType 交通方式（可选，默认为 driving）
    * @returns 导航路径
    */
-  async getNavigation(origin: GeoPoint, destination: GeoPoint, apiKey: string, url?: string, transportType: string = 'driving'): Promise<NavigationApiResponse> {
+  async getNavigation(origin: GeoPoint, destination: GeoPoint, apiKey: string, url?: string, transportType: string = 'driving', options?: {
+    city?: string;
+    cityD?: string;
+  }): Promise<NavigationApiResponse> {
     try {
       logger.debug(`[GaodeSearchProvider] 开始获取导航路径: ${origin} -> ${destination}, 交通方式: ${transportType}`);
       
@@ -118,22 +121,22 @@ export class GaodeSearchProvider implements SearchDataProvider {
         // 如果没有提供自定义URL，则根据交通方式选择API
         switch (transportType) {
           case 'driving':
-            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+            apiUrl = 'https://restapi.amap.com/v3/direction/driving';
             break;
           case 'walking':
-            apiUrl = 'https://restapi.amap.com/v5/direction/walking';
+            apiUrl = 'https://restapi.amap.com/v3/direction/walking';
             break;
           case 'bicycling':
-            apiUrl = 'https://restapi.amap.com/v5/direction/bicycling';
+            apiUrl = 'https://restapi.amap.com/v3/direction/bicycling';
             break;
           case 'ebike':
-            apiUrl = 'https://restapi.amap.com/v5/direction/ebike';
+            apiUrl = 'https://restapi.amap.com/v3/direction/ebike';
             break;
           case 'transit':
-            apiUrl = 'https://restapi.amap.com/v5/direction/transit/integrated';
+            apiUrl = 'https://restapi.amap.com/v3/direction/transit/integrated';
             break;
           default:
-            apiUrl = 'https://restapi.amap.com/v5/direction/driving';
+            apiUrl = 'https://restapi.amap.com/v3/direction/driving';
         }
       }
       
@@ -141,8 +144,11 @@ export class GaodeSearchProvider implements SearchDataProvider {
         key: apiKey,
         origin: `${originGcj02[0]},${originGcj02[1]}`,
         destination: `${destinationGcj02[0]},${destinationGcj02[1]}`,
+        strategy: 11,
         extensions: 'all',
-        output: 'JSON'
+        output: 'JSON',
+        city: options?.city,
+        cityD: options?.cityD
       };
       
       logger.debug(`[GaodeSearchProvider] 使用API: ${apiUrl} 获取 ${transportType} 导航路径`);
@@ -156,11 +162,123 @@ export class GaodeSearchProvider implements SearchDataProvider {
       
       logger.debug(`[GaodeSearchProvider] 获取导航路径成功`);
       
+      // 如果是公交车导航，需要特殊处理数据格式
+      if (transportType === 'transit') {
+        return this.convertTransitResponse(data);
+      }
+      
       // 返回原始响应，由调用者处理
       return data;
     } catch (error) {
       logger.error(`[GaodeSearchProvider] 获取导航路径失败`, error);
       throw error;
+    }
+  }
+  
+  /**
+   * 转换公交车导航数据为统一格式
+   * @param response 高德地图公交车导航API响应
+   * @returns 统一格式的导航API响应
+   */
+  private convertTransitResponse(response: any): NavigationApiResponse {
+    try {
+      logger.debug(`[GaodeSearchProvider] 开始转换公交车导航数据`);
+      
+      // 检查响应数据是否有效
+      if (!response || !response.route || !response.route.transits || response.route.transits.length === 0) {
+        logger.warn(`[GaodeSearchProvider] 公交车导航数据无效或为空`);
+        return { route: { paths: [] } };
+      }
+      
+      // 获取公交车方案列表
+      const transits = response.route.transits;
+      
+      // 创建统一格式的路径数组
+      const paths = transits.map((transit: any) => {
+        // 计算总距离和时间
+        const distance = transit.distance || 0;
+        const duration = transit.duration || 0;
+        
+        // 收集所有路段
+        const steps: any[] = [];
+        
+        // 处理每个路段
+        if (transit.segments && transit.segments.length > 0) {
+          transit.segments.forEach((segment: any) => {
+            // 处理步行路段
+            if (segment.walking && segment.walking.steps && segment.walking.steps.length > 0) {
+              segment.walking.steps.forEach((walkStep: any) => {
+                steps.push({
+                  instruction: walkStep.instruction || '步行',
+                  distance: walkStep.distance || 0,
+                  duration: walkStep.duration || 0,
+                  polyline: walkStep.polyline || '',
+                  type: 'walking'
+                });
+              });
+            }
+            
+            // 处理公交路段
+            if (segment.bus && segment.bus.buslines && segment.bus.buslines.length > 0) {
+              segment.bus.buslines.forEach((busLine: any) => {
+                steps.push({
+                  instruction: `乘坐 ${busLine.name || '公交车'} (${busLine.departure_stop?.name || ''} -> ${busLine.arrival_stop?.name || ''})`,
+                  distance: busLine.distance || 0,
+                  duration: busLine.duration || 0,
+                  polyline: busLine.polyline || '',
+                  type: 'bus',
+                  busName: busLine.name,
+                  departureStop: busLine.departure_stop?.name,
+                  arrivalStop: busLine.arrival_stop?.name
+                });
+              });
+            }
+            
+            // 处理地铁路段
+            if (segment.railway && segment.railway.spaces && segment.railway.spaces.length > 0) {
+              segment.railway.spaces.forEach((railwaySpace: any) => {
+                steps.push({
+                  instruction: `乘坐 ${segment.railway.name || '地铁'} (${railwaySpace.departure_stop?.name || ''} -> ${railwaySpace.arrival_stop?.name || ''})`,
+                  distance: railwaySpace.distance || 0,
+                  duration: railwaySpace.duration || 0,
+                  polyline: railwaySpace.polyline || '',
+                  type: 'subway',
+                  subwayName: segment.railway.name,
+                  departureStop: railwaySpace.departure_stop?.name,
+                  arrivalStop: railwaySpace.arrival_stop?.name
+                });
+              });
+            }
+          });
+        }
+        
+        // 构建统一格式的路径对象
+        return {
+          distance: distance,
+          duration: duration,
+          steps: steps,
+          cost: transit.cost || 0,
+          // 提取所有步骤的折线数据，合并为一条完整的路径
+          polyline: steps.map(step => step.polyline).filter(Boolean).join(';')
+        };
+      });
+      
+      // 返回统一格式的导航响应
+      return {
+        status: response.status,
+        info: response.info,
+        infocode: response.infocode,
+        count: transits.length,
+        route: {
+          origin: response.route.origin,
+          destination: response.route.destination,
+          paths: paths
+        }
+      };
+    } catch (error) {
+      logger.error(`[GaodeSearchProvider] 转换公交车导航数据失败:`, error);
+      // 发生错误时返回空路径
+      return { route: { paths: [] } };
     }
   }
   
@@ -237,6 +355,11 @@ export class GaodeSearchProvider implements SearchDataProvider {
         throw new Error(`API错误: ${data.info || '未知错误'}`);
       }
       
+      // 如果是公交车导航，需要特殊处理数据格式
+      if (transport_type === 'transit') {
+        return this.convertTransitResponse(data);
+      }
+      
       return data;
     } catch (error) {
       console.error('创建导航路线失败:', error);
@@ -268,17 +391,17 @@ export class GaodeSearchProvider implements SearchDataProvider {
   getDefaultNavigationUrl(transportType: string = 'driving'): string {
     switch (transportType) {
       case 'driving':
-        return 'https://restapi.amap.com/v5/direction/driving';
+        return 'https://restapi.amap.com/v3/direction/driving';
       case 'walking':
-        return 'https://restapi.amap.com/v5/direction/walking';
+        return 'https://restapi.amap.com/v3/direction/walking';
       case 'bicycling':
-        return 'https://restapi.amap.com/v5/direction/bicycling';
+        return 'https://restapi.amap.com/v3/direction/bicycling';
       case 'ebike':
-        return 'https://restapi.amap.com/v5/direction/ebike';
+        return 'https://restapi.amap.com/v3/direction/ebike';
       case 'transit':
-        return 'https://restapi.amap.com/v5/direction/transit/integrated';
+        return 'https://restapi.amap.com/v3/direction/transit/integrated';
       default:
-        return 'https://restapi.amap.com/v5/direction/driving';
+        return 'https://restapi.amap.com/v3/direction/driving';
     }
   }
   
