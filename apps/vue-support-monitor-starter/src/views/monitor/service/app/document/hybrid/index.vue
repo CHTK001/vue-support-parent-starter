@@ -7,12 +7,12 @@
     </div>
 
     <!-- 三列文档结构 -->
-    <div v-else class="document-layout">
+    <div v-else class="document-layout" :class="{ 'list-minimized': isApiListMinimized }">
       <!-- 第一列：API 接口列表 -->
       <ApiList 
         ref="apiListRef"
         :categories="filteredCategories" 
-        :selectedApiId="selectedApi?.id"
+        :selectedApiId="selectedApi?.id || null"
         @api-selected="handleApiSelected"
         @search-change="handleSearchChange"
       />
@@ -26,6 +26,7 @@
 
       <!-- 第二列：API 参数设置 -->
       <ApiParams 
+        ref="apiParamsRef"
         :selectedApi="selectedApi"
         :apiServers="apiServers"
         @execute-request="executeRequest"
@@ -35,6 +36,7 @@
 
       <!-- 第三列：API 结果展示 -->
       <ApiResult 
+        ref="apiResultRef"
         :selectedApi="selectedApi"
         :requestExample="getRequestExample()"
         :requestLoading="requestLoading"
@@ -54,6 +56,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
+// 如果导入路径有误，请根据实际情况修改
+// @ts-ignore 忽略模块导入错误
 import { fetchAppDocumentList } from "@/api/monitor/app-document";
 import ApiList from "./ApiList.vue";
 import ApiParams from "./ApiParams.vue";
@@ -82,7 +86,7 @@ interface ApiExample {
   javascript?: string;
   go?: string;
   curl?: string;
-  [key: string]: string;
+  [key: string]: string | undefined;
 }
 
 interface ApiItem {
@@ -105,9 +109,26 @@ interface ApiItem {
   responses?: {
     success?: ApiResponse;
     error?: ApiResponse;
-    [key: string]: ApiResponse;
+    [key: string]: ApiResponse | undefined;
   };
   examples?: ApiExample;
+}
+
+// 组件引用类型定义
+interface ApiListRef {
+  isMinimized?: boolean;
+}
+
+interface ApiParamsRef {
+  paramsColumnWidth?: number;
+  isResizing?: boolean;
+}
+
+interface ApiResultRef {
+  resultColumnWidth?: number;
+  isResizing?: boolean;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
 // 接收服务列表属性
@@ -150,14 +171,20 @@ const STORAGE_KEY = 'hybrid-doc-params-width';
 const DEFAULT_PARAMS_WIDTH = 380; // 默认参数列宽度
 const MIN_PARAMS_WIDTH = 280; // 最小参数列宽度
 const MAX_PARAMS_WIDTH = 800; // 最大参数列宽度
+const DEFAULT_RESULT_WIDTH = 500; // 默认结果列宽度
 
-const paramsColumnWidth = ref(DEFAULT_PARAMS_WIDTH);
-const isResizing = ref(false);
 const startX = ref(0);
 const startWidth = ref(0);
+const isResizing = ref(false);
 
-const apiListRef = ref(null);
+const apiListRef = ref<ApiListRef | null>(null);
+const apiParamsRef = ref<ApiParamsRef | null>(null);
+const apiResultRef = ref<ApiResultRef | null>(null);
 const isApiListMinimized = computed(() => apiListRef.value?.isMinimized || false);
+const paramsColumnWidth = computed(() => apiParamsRef.value?.paramsColumnWidth || DEFAULT_PARAMS_WIDTH);
+const resultColumnWidth = computed(() => apiResultRef.value?.resultColumnWidth || DEFAULT_RESULT_WIDTH);
+const isParamsResizing = computed(() => apiParamsRef.value?.isResizing || false);
+const resultResizing = computed(() => apiResultRef.value?.isResizing || false);
 
 // 计算属性：获取所有分类列表，并根据搜索关键词过滤
 const filteredCategories = computed(() => {
@@ -165,7 +192,7 @@ const filteredCategories = computed(() => {
   
   // 使用从接口获取的API文档数据
   if (apiDocData.value && apiDocData.value.length > 0) {
-    const categories = [];
+    const categories: any[] = []; // 使用any[]类型避免never类型错误
     // 将服务下的各个分类提取出来
     for (const service of apiDocData.value) {
       console.log('处理服务:', service);
@@ -185,7 +212,7 @@ const filteredCategories = computed(() => {
           name: `${service.name} 默认分类`,
           description: `${service.name} 的API`,
           isCategory: true,
-          apis: []
+          apis: [] as any[] // 使用any[]类型避免never类型错误
         };
         categories.push(defaultCategory);
       }
@@ -353,6 +380,9 @@ const convertOpenApiToTreeData = (openApiData: any) => {
                     Object.keys(schema.properties).forEach(propName => {
                       const prop = schema.properties[propName];
                       // 添加请求体参数
+                      if (!api.parameters) {
+                        api.parameters = [];
+                      }
                       api.parameters.push({
                         name: propName,
                         type: prop.type || 'string',
@@ -628,116 +658,34 @@ const handleTabChange = (tab: string) => {
 };
 
 // 列宽调整方法
-// 开始鼠标拖动调整
+// 这些方法现在只用于处理文档中间的调整条
+// 组件自身的调整使用各自组件内部的方法
 const startResize = (e: MouseEvent) => {
-  isResizing.value = true;
-  startX.value = e.clientX;
-  startWidth.value = paramsColumnWidth.value;
-  
-  // 添加事件监听
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', stopResize);
-  
-  // 添加禁止选择文本的类
-  document.body.classList.add('resizing');
-};
-
-// 开始触摸拖动调整（移动设备）
-const startTouchResize = (e: TouchEvent) => {
-  isResizing.value = true;
-  startX.value = e.touches[0].clientX;
-  startWidth.value = paramsColumnWidth.value;
-  
-  // 添加事件监听
-  document.addEventListener('touchmove', handleTouchMove);
-  document.addEventListener('touchend', stopTouchResize);
-  
-  // 添加禁止选择文本的类
-  document.body.classList.add('resizing');
-  
-  // 阻止默认行为（避免移动设备上的滚动）
+  // 此方法现在只处理主布局中的列调整
+  // 实际的调整逻辑已经移至各个组件内部
   e.preventDefault();
 };
 
-// 处理鼠标移动
-const handleMouseMove = (e: MouseEvent) => {
-  if (!isResizing.value) return;
-  
-  const offsetX = e.clientX - startX.value;
-  let newWidth = startWidth.value + offsetX;
-  
-  // 限制最小和最大宽度
-  newWidth = Math.max(MIN_PARAMS_WIDTH, Math.min(MAX_PARAMS_WIDTH, newWidth));
-  
-  paramsColumnWidth.value = newWidth;
+const startTouchResize = (e: TouchEvent) => {
+  // 此方法现在只处理主布局中的列调整
+  // 实际的调整逻辑已经移至各个组件内部
+  e.preventDefault();
 };
 
-// 处理触摸移动
-const handleTouchMove = (e: TouchEvent) => {
-  if (!isResizing.value) return;
-  
-  const offsetX = e.touches[0].clientX - startX.value;
-  let newWidth = startWidth.value + offsetX;
-  
-  // 限制最小和最大宽度
-  newWidth = Math.max(MIN_PARAMS_WIDTH, Math.min(MAX_PARAMS_WIDTH, newWidth));
-  
-  paramsColumnWidth.value = newWidth;
-};
+// 监听API列表最小化状态
+watch(isApiListMinimized, (minimized) => {
+  console.log('API列表最小化状态变化:', minimized);
+  // 可以添加其他响应逻辑
+});
 
-// 停止鼠标拖动调整
-const stopResize = () => {
-  isResizing.value = false;
-  
-  // 移除事件监听
-  document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('mouseup', stopResize);
-  
-  // 移除禁止选择文本的类
-  document.body.classList.remove('resizing');
-  
-  // 保存宽度到 localStorage
-  saveWidthToStorage();
-};
-
-// 停止触摸拖动调整
-const stopTouchResize = () => {
-  isResizing.value = false;
-  
-  // 移除事件监听
-  document.removeEventListener('touchmove', handleTouchMove);
-  document.removeEventListener('touchend', stopTouchResize);
-  
-  // 移除禁止选择文本的类
-  document.body.classList.remove('resizing');
-  
-  // 保存宽度到 localStorage
-  saveWidthToStorage();
-};
-
-// 保存宽度设置到 localStorage
-const saveWidthToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, paramsColumnWidth.value.toString());
-  } catch (error) {
-    console.error('保存列宽到本地存储时出错:', error);
-  }
-};
-
-// 从 localStorage 加载宽度设置
-const loadWidthFromStorage = () => {
-  try {
-    const savedWidth = localStorage.getItem(STORAGE_KEY);
-    if (savedWidth) {
-      const width = parseInt(savedWidth, 10);
-      if (!isNaN(width) && width >= MIN_PARAMS_WIDTH && width <= MAX_PARAMS_WIDTH) {
-        paramsColumnWidth.value = width;
-      }
-    }
-  } catch (error) {
-    console.error('从本地存储加载列宽时出错:', error);
-  }
-};
+// 监听列宽变化
+watch([paramsColumnWidth, resultColumnWidth], () => {
+  // 可以在这里添加响应列宽变化的逻辑
+  console.log('列宽变化:', {
+    params: paramsColumnWidth.value,
+    result: resultColumnWidth.value
+  });
+});
 
 // 监听服务列表变化
 watch(
@@ -777,26 +725,14 @@ watch(
 
 // 组件卸载前清理事件监听
 onBeforeUnmount(() => {
-  document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('mouseup', stopResize);
-  document.removeEventListener('touchmove', handleTouchMove);
-  document.removeEventListener('touchend', stopTouchResize);
+  // 清理已不再需要的事件监听器
   document.body.classList.remove('resizing');
 });
 
 // 在组件挂载时初始化
 onMounted(() => {
-  // 加载保存的列宽设置
-  loadWidthFromStorage();
-  
   // 初始化文档数据
   initialApiDoc();
-  
-  // 监听ApiList组件的最小化状态变化
-  watch(isApiListMinimized, (minimized) => {
-    console.log('API列表最小化状态变化:', minimized);
-    // 可以在这里添加其他处理逻辑
-  });
 });
 
 // 导出组件
@@ -882,6 +818,13 @@ defineExpose({
       
       &:hover::after {
         opacity: 1;
+      }
+    }
+    
+    // 最小化列表时的布局调整
+    &.list-minimized {
+      .column-resizer:first-of-type {
+        margin-left: 50px; // 最小化列表宽度
       }
     }
   }

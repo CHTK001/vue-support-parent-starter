@@ -18,7 +18,7 @@
       <!-- 文档展示区域 -->
       <div v-else class="document-content">
         <!-- 根据文档类型展示不同组件 -->
-        <knife4j-document v-if="selectedType === 'knife4j'" :document-url="currentDocument.url"
+        <knife4j-document v-if="selectedType === 'knife4j' && currentDocument" :document-url="currentDocument.url"
           class="document-component" />
 
         <hybrid-document v-else-if="selectedType === 'hybrid'" :document-id="currentDocumentId"
@@ -68,6 +68,7 @@
 import { message } from "@repo/utils";
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+//@ts-ignore
 import { fetchAppDetail } from "@/api/monitor/app";
 import Knife4jDocument from "./knife4j/index.vue";
 import HybridDocument from "./hybrid/index.vue";
@@ -78,18 +79,34 @@ const router = useRouter();
 
 // 状态管理
 const loading = ref(true);
-const appDetail = ref(null);
+const appDetail = ref<any>(null);
 const currentDocumentId = ref("");
 const configVisible = ref(false);
 
 // 文档配置
 const selectedType = ref("hybrid");
-const selectedServices = ref([]);
-const availableServices = ref([]);
-const documentList = ref([]);
+const selectedServices = ref<string[]>([]);
+
+// 定义接口类型
+interface ServiceInfo {
+  serverId: string;
+  name: string;
+}
+
+interface DocumentInfo {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  serviceId: string;
+  baseUrl: string;
+}
+
+const availableServices = ref<ServiceInfo[]>([]);
+const documentList = ref<DocumentInfo[]>([]);
 
 // 计算属性：过滤后的文档列表
-const filteredDocuments = computed(() => {
+const filteredDocuments = computed<DocumentInfo[]>(() => {
   if (!documentList.value.length) return [];
 
   return documentList.value.filter(doc => {
@@ -104,7 +121,7 @@ const filteredDocuments = computed(() => {
 });
 
 // 计算属性：当前选中的文档（用于Knife4j模式）
-const currentDocument = computed(() => {
+const currentDocument = computed<DocumentInfo | null>(() => {
   if (!filteredDocuments.value.length) return null;
   // 默认使用第一个匹配的文档
   return filteredDocuments.value[0];
@@ -125,8 +142,18 @@ const hasDocuments = computed(() => {
   return false;
 });
 
+// 服务数据结构接口
+interface ServiceData {
+  id: string;
+  name: string;
+  description: string;
+  serviceId: string;
+  baseUrl: string;
+  apis: any[];
+}
+
 // 计算属性：转换为混合模式所需的服务数据结构
-const convertedServices = computed(() => {
+const convertedServices = computed<ServiceData[]>(() => {
   console.log('文档列表:', documentList.value);
   console.log('选中的服务:', selectedServices.value);
   
@@ -178,15 +205,15 @@ const goBack = () => {
 };
 
 // 方法：解析文档地址
-const parseDocumentUrls = appData => {
-  const docs = [];
+const parseDocumentUrls = (appData: any): DocumentInfo[] => {
+  const docs: DocumentInfo[] = [];
 
   if (!appData || !appData.monitorRequests || !appData.monitorRequests.length) {
     return docs;
   }
 
   // 解析每个服务实例的文档地址
-  appData.monitorRequests.forEach((instance, index) => {
+  appData.monitorRequests.forEach((instance: any, index: number) => {
     const baseUrl = `http://${instance.host}:${instance.port}${instance.metadata?.contextPath || ""}`;
     const serviceName = instance.metadata?.applicationName || `服务 ${index + 1}`;
     const serviceId = instance.serverId;

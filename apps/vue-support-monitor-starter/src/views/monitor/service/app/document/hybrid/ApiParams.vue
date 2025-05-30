@@ -107,6 +107,13 @@
         </div>
       </div>
     </template>
+    
+    <!-- 拖动调整条 -->
+    <div 
+      class="column-resizer"
+      @mousedown="startResize"
+      @touchstart="startTouchResize"
+    ></div>
   </div>
 </template>
 
@@ -288,11 +295,41 @@ const startResize = (e: MouseEvent) => {
   document.body.classList.add('resizing');
 };
 
+// 开始触摸拖动调整（移动设备）
+const startTouchResize = (e: TouchEvent) => {
+  isResizing.value = true;
+  startX.value = e.touches[0].clientX;
+  startWidth.value = paramsColumnWidth.value;
+  
+  // 添加事件监听
+  document.addEventListener('touchmove', handleTouchMove);
+  document.addEventListener('touchend', stopTouchResize);
+  
+  // 添加禁止选择文本的类
+  document.body.classList.add('resizing');
+  
+  // 阻止默认行为（避免移动设备上的滚动）
+  e.preventDefault();
+};
+
 // 处理鼠标移动
 const handleMouseMove = (e: MouseEvent) => {
   if (!isResizing.value) return;
   
   const offsetX = e.clientX - startX.value;
+  let newWidth = startWidth.value + offsetX;
+  
+  // 限制最小和最大宽度
+  newWidth = Math.max(MIN_PARAMS_WIDTH, Math.min(MAX_PARAMS_WIDTH, newWidth));
+  
+  paramsColumnWidth.value = newWidth;
+};
+
+// 处理触摸移动
+const handleTouchMove = (e: TouchEvent) => {
+  if (!isResizing.value) return;
+  
+  const offsetX = e.touches[0].clientX - startX.value;
   let newWidth = startWidth.value + offsetX;
   
   // 限制最小和最大宽度
@@ -308,6 +345,21 @@ const stopResize = () => {
   // 移除事件监听
   document.removeEventListener('mousemove', handleMouseMove);
   document.removeEventListener('mouseup', stopResize);
+  
+  // 移除禁止选择文本的类
+  document.body.classList.remove('resizing');
+  
+  // 保存宽度到 localStorage
+  saveWidthToStorage();
+};
+
+// 停止触摸拖动调整
+const stopTouchResize = () => {
+  isResizing.value = false;
+  
+  // 移除事件监听
+  document.removeEventListener('touchmove', handleTouchMove);
+  document.removeEventListener('touchend', stopTouchResize);
   
   // 移除禁止选择文本的类
   document.body.classList.remove('resizing');
@@ -367,6 +419,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousemove', handleMouseMove);
   document.removeEventListener('mouseup', stopResize);
+  document.removeEventListener('touchmove', handleTouchMove);
+  document.removeEventListener('touchend', stopTouchResize);
   document.body.classList.remove('resizing');
 });
 </script>
@@ -383,6 +437,40 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   border-right: 1px solid var(--el-border-color-light);
+  
+  // 拖动调整条
+  .column-resizer {
+    width: 5px;
+    height: 100%;
+    background-color: var(--el-border-color-light);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 10;
+    
+    &:hover, &:active {
+      background-color: var(--el-color-primary-light-5);
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1px;
+      height: 20px;
+      background-color: var(--el-color-primary-light-7);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    &:hover::after {
+      opacity: 1;
+    }
+  }
 
   .empty-state {
     display: flex;
