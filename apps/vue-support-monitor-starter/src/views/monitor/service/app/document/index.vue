@@ -10,7 +10,7 @@
       <!-- 空状态展示 -->
       <el-empty v-if="!hasDocuments" description="暂无可用文档" :image-size="200" class="empty-state">
         <template #description>
-          <p class="empty-text">未找到可用的文档地址或未选择文档</p>
+          <p class="empty-text">未找到可用的文档地址或未选择服务</p>
         </template>
         <el-button type="primary" @click="goBack">返回应用列表</el-button>
       </el-empty>
@@ -18,9 +18,11 @@
       <!-- 文档展示区域 -->
       <div v-else class="document-content">
         <!-- 根据文档类型展示不同组件 -->
-        <knife4j-document v-if="selectedType === 'knife4j'" :document-url="currentDocument.url" class="document-component" />
+        <knife4j-document v-if="selectedType === 'knife4j'" :document-url="currentDocument.url"
+          class="document-component" />
 
-        <hybrid-document v-else-if="selectedType === 'hybrid'" :services="convertedServices" class="document-component" />
+        <hybrid-document v-else-if="selectedType === 'hybrid'" :document-id="currentDocumentId"
+          :services="convertedServices" :selected-document-id="selectedServices" class="document-component" />
       </div>
     </div>
 
@@ -36,7 +38,7 @@
         <!-- 文档类型选择 -->
         <div class="config-section">
           <h4 class="section-title">文档类型</h4>
-          <el-radio-group v-model="selectedType" @change="handleTypeChange">
+          <el-radio-group v-model="selectedType">
             <el-radio label="knife4j">Knife4j</el-radio>
             <el-radio label="hybrid">混合模式</el-radio>
           </el-radio-group>
@@ -46,21 +48,10 @@
         <div class="config-section">
           <h4 class="section-title">可用服务</h4>
           <el-checkbox-group v-model="selectedServices">
-            <el-checkbox v-for="service in availableServices" :key="service.id" :label="service.id">
+            <el-checkbox v-for="service in availableServices" :key="service.serverId" :label="service.serverId" :value="service.serverId">
               {{ service.name }}
             </el-checkbox>
           </el-checkbox-group>
-        </div>
-
-        <!-- 文档选择（只在Knife4j模式下显示） -->
-        <div v-if="selectedType === 'knife4j'" class="config-section">
-          <h4 class="section-title">文档列表</h4>
-          <el-radio-group v-model="selectedDocumentId" class="document-radio-group">
-            <el-radio v-for="doc in filteredDocuments" :key="doc.id" :label="doc.id" :disabled="!selectedServices.includes(doc.serviceId)">
-              {{ doc.name }}
-            </el-radio>
-          </el-radio-group>
-          <div v-if="filteredDocuments.length === 0" class="no-docs-tip">没有符合条件的文档</div>
         </div>
 
         <!-- 确认按钮 -->
@@ -75,11 +66,11 @@
 
 <script setup lang="ts">
 import { message } from "@repo/utils";
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { fetchAppDetail } from "@/api/monitor/app";
-import Knife4jDocument from "./Knife4jDocument.vue";
-import HybridDocument from "./HybridDocument.vue";
+import Knife4jDocument from "./knife4j/index.vue";
+import HybridDocument from "./hybrid/index.vue";
 
 // 路由
 const route = useRoute();
@@ -88,11 +79,11 @@ const router = useRouter();
 // 状态管理
 const loading = ref(true);
 const appDetail = ref(null);
+const currentDocumentId = ref("");
 const configVisible = ref(false);
-const selectedDocumentId = ref("");
 
 // 文档配置
-const selectedType = ref("knife4j");
+const selectedType = ref("hybrid");
 const selectedServices = ref([]);
 const availableServices = ref([]);
 const documentList = ref([]);
@@ -112,15 +103,16 @@ const filteredDocuments = computed(() => {
   });
 });
 
-// 计算属性：当前选中的文档
+// 计算属性：当前选中的文档（用于Knife4j模式）
 const currentDocument = computed(() => {
-  if (!selectedDocumentId.value || !documentList.value.length) return null;
-  return documentList.value.find(doc => doc.id === selectedDocumentId.value) || null;
+  if (!filteredDocuments.value.length) return null;
+  // 默认使用第一个匹配的文档
+  return filteredDocuments.value[0];
 });
 
 // 计算属性：是否有可用文档
 const hasDocuments = computed(() => {
-  // 对于 Knife4j 模式，需要有选中的文档
+  // 对于 Knife4j 模式，需要有匹配的文档
   if (selectedType.value === "knife4j") {
     return currentDocument.value !== null;
   }
@@ -135,108 +127,26 @@ const hasDocuments = computed(() => {
 
 // 计算属性：转换为混合模式所需的服务数据结构
 const convertedServices = computed(() => {
-  // 先根据服务ID分组文档
-  const serviceMap = {};
-
-  // 只处理被选中的服务
-  selectedServices.value.forEach(serviceId => {
-    const docs = documentList.value.filter(doc => doc.serviceId === serviceId);
-    if (docs.length) {
-      const serviceName = docs[0].name.split(" - ")[0]; // 从文档名提取服务名
-
-      // 转换为服务对象
-      serviceMap[serviceId] = {
-        id: serviceId,
-        name: serviceName,
-        description: `${serviceName} 服务API文档`,
-        apis: docs.map(doc => {
-          // 从URL生成更多信息
-          const url = new URL(doc.url);
-          const path = url.pathname;
-
-          // 生成模拟API数据
-          return {
-            id: doc.id,
-            name: doc.name,
-            path: path,
-            method: "GET", // 默认为GET
-            description: `${doc.name} API接口`,
-            serviceId: serviceId,
-            parameters: [
-              {
-                name: "pageSize",
-                type: "integer",
-                required: false,
-                description: "每页记录数"
-              },
-              {
-                name: "pageNum",
-                type: "integer",
-                required: false,
-                description: "页码，从1开始"
-              }
-            ],
-            responses: {
-              success: {
-                code: 200,
-                message: "success",
-                data: {
-                  total: 100,
-                  list: [
-                    { id: 1, name: "示例数据1" },
-                    { id: 2, name: "示例数据2" }
-                  ]
-                }
-              },
-              error: {
-                code: 500,
-                message: "error",
-                data: null
-              }
-            },
-            examples: {
-              java: `import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-
-RestTemplate restTemplate = new RestTemplate();
-String url = "${doc.url}";
-ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-System.out.println(response.getBody());`,
-              python: `import requests
-
-url = "${doc.url}"
-response = requests.get(url)
-print(response.json())`,
-              javascript: `fetch("${doc.url}")
-  .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));`,
-              go: `package main
-
-import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-)
-
-func main() {
-	resp, err := http.Get("${doc.url}")
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
-}`
-            }
-          };
-        })
+  console.log('文档列表:', documentList.value);
+  console.log('选中的服务:', selectedServices.value);
+  
+  // 过滤选中的服务并转换为HybridDocument期望的格式
+  const services = documentList.value
+    .filter(doc => selectedServices.value.includes(doc.serviceId))
+    .map(doc => {
+      return {
+        id: doc.id,
+        name: doc.name,
+        description: doc.name,
+        serviceId: doc.serviceId,
+        baseUrl: doc.baseUrl,
+        // 确保为每个服务添加一个默认空的apis数组
+        apis: []
       };
-    }
-  });
-
-  // 转换为数组
-  return Object.values(serviceMap);
+    });
+    
+  console.log('转换后的服务列表:', services);
+  return services;
 });
 
 // 方法：切换配置面板
@@ -244,33 +154,19 @@ const toggleConfig = () => {
   configVisible.value = !configVisible.value;
 };
 
-// 方法：处理类型变更
-const handleTypeChange = () => {
-  // 清空选中的文档ID，等待用户重新选择
-  selectedDocumentId.value = "";
-};
-
 // 方法：应用配置
 const applyConfig = () => {
-  if (selectedType.value === "knife4j") {
-    // Knife4j模式需要选择文档
-    if (!currentDocument.value && filteredDocuments.value.length > 0) {
-      selectedDocumentId.value = filteredDocuments.value[0].id;
-    }
-  }
-
   configVisible.value = false;
   message("文档配置已更新", { type: "success" });
 };
 
 // 方法：重置配置
 const resetConfig = () => {
-  selectedType.value = "knife4j";
-  selectedServices.value = availableServices.value.map(service => service.id);
-
-  // 重置后自动选择第一个文档
-  if (filteredDocuments.value.length > 0) {
-    selectedDocumentId.value = filteredDocuments.value[0].id;
+  selectedType.value = "hybrid"; // 默认使用混合模式
+  
+  // 选择所有可用服务
+  if (availableServices.value.length > 0) {
+    selectedServices.value = availableServices.value.map(service => service.serverId);
   }
 
   message("配置已重置", { type: "success" });
@@ -293,11 +189,11 @@ const parseDocumentUrls = appData => {
   appData.monitorRequests.forEach((instance, index) => {
     const baseUrl = `http://${instance.host}:${instance.port}${instance.metadata?.contextPath || ""}`;
     const serviceName = instance.metadata?.applicationName || `服务 ${index + 1}`;
-    const serviceId = `service-${index}`;
+    const serviceId = instance.serverId;
 
     // 添加服务到可用服务列表
     availableServices.value.push({
-      id: serviceId,
+      serverId: serviceId,
       name: serviceName
     });
 
@@ -307,7 +203,8 @@ const parseDocumentUrls = appData => {
       name: `${serviceName} - Knife4j`,
       url: `${baseUrl}/doc.html`,
       type: "knife4j",
-      serviceId: serviceId
+      serviceId: serviceId,
+      baseUrl: baseUrl
     });
   });
 
@@ -320,10 +217,11 @@ onMounted(async () => {
   const { id } = route.params;
   if (!id) {
     message("未找到有效的应用ID", { type: "error" });
-    router.push("/service/app");
+    router.push("/service-list");
     return;
   }
 
+  currentDocumentId.value = id as string;
   try {
     // 获取应用详情
     const res = await fetchAppDetail({ monitorId: id });
@@ -335,12 +233,8 @@ onMounted(async () => {
       documentList.value = parseDocumentUrls(res.data);
 
       // 初始化选中的服务
-      selectedServices.value = availableServices.value.map(service => service.id);
+      selectedServices.value = availableServices.value.map(service => service.serverId);
 
-      // 设置默认文档
-      if (filteredDocuments.value.length > 0) {
-        selectedDocumentId.value = filteredDocuments.value[0].id;
-      }
     } else {
       message(res.msg || "获取应用详情失败", { type: "error" });
     }
@@ -356,40 +250,7 @@ onMounted(async () => {
 watch(selectedServices, newVal => {
   // 如果没有选中任何服务，自动选择第一个
   if (newVal.length === 0 && availableServices.value.length > 0) {
-    selectedServices.value = [availableServices.value[0].id];
-  }
-
-  // 如果当前选中的文档不在所选服务范围内，重置选中的文档
-  if (currentDocument.value && !newVal.includes(currentDocument.value.serviceId)) {
-    selectedDocumentId.value = "";
-  }
-});
-
-// 监听过滤后的文档列表变化
-watch(filteredDocuments, newDocs => {
-  // 只在 Knife4j 模式下自动选择文档
-  if (selectedType.value === "knife4j") {
-    // 如果当前没有选中文档但有可用文档，则自动选择第一个
-    if (!selectedDocumentId.value && newDocs.length > 0) {
-      selectedDocumentId.value = newDocs[0].id;
-    }
-
-    // 如果当前选中的文档不在过滤后的列表中，清空选择
-    if (selectedDocumentId.value && !newDocs.find(doc => doc.id === selectedDocumentId.value)) {
-      selectedDocumentId.value = "";
-    }
-  }
-});
-
-// 监听文档类型变化
-watch(selectedType, newType => {
-  // 如果切换到混合模式，不需要选择具体文档
-  if (newType === "hybrid") {
-    selectedDocumentId.value = "";
-  }
-  // 如果切换到 Knife4j 模式且有文档，选择第一个
-  else if (newType === "knife4j" && filteredDocuments.value.length > 0) {
-    selectedDocumentId.value = filteredDocuments.value[0].id;
+    selectedServices.value = [availableServices.value[0].serverId];
   }
 });
 </script>
@@ -400,7 +261,6 @@ watch(selectedType, newType => {
   height: 100%;
   width: 100%;
   background-color: var(--el-bg-color);
-  padding: 20px;
 
   // 加载状态
   .document-loading {

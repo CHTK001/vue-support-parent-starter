@@ -7,13 +7,7 @@
     </div>
 
     <!-- 文档iframe展示 -->
-    <iframe 
-      :src="documentUrl" 
-      class="document-frame" 
-      frameborder="0" 
-      allowfullscreen 
-      @load="handleIframeLoad" 
-    />
+    <iframe :src="documentUrl" class="document-frame" frameborder="0" allowfullscreen @load="handleIframeLoad" />
   </div>
 </template>
 
@@ -91,6 +85,7 @@ watch(() => props.documentUrl, () => {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -108,4 +103,4 @@ watch(() => props.documentUrl, () => {
     }
   }
 }
-</style> 
+</style>
