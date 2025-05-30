@@ -1,40 +1,40 @@
 <template>
-  <div class="api-result-column">
+  <div class="api-result-column" :style="{ width: `${resultColumnWidth}px` }">
     <div class="column-header">
       <h3 class="column-title">接口详情</h3>
       <div class="result-tabs">
         <div 
           class="result-tab" 
           :class="{ active: activeTab === 'doc' }"
-          @click="activeTab = 'doc'"
+          @click="setActiveTab('doc')"
         >
           接口文档
         </div>
         <div 
           class="result-tab" 
           :class="{ active: activeTab === 'debug' }"
-          @click="activeTab = 'debug'"
+          @click="setActiveTab('debug')"
         >
           调试结果
         </div>
         <div 
           class="result-tab" 
           :class="{ active: activeTab === 'sdk' }"
-          @click="activeTab = 'sdk'"
+          @click="setActiveTab('sdk')"
         >
           SDK示例
         </div>
         <div 
           class="result-tab" 
           :class="{ active: activeTab === 'history' }"
-          @click="activeTab = 'history'"
+          @click="setActiveTab('history')"
         >
           调用历史
         </div>
         <div 
           class="result-tab" 
           :class="{ active: activeTab === 'errorCodes' }"
-          @click="activeTab = 'errorCodes'"
+          @click="setActiveTab('errorCodes')"
         >
           错误码
         </div>
@@ -290,11 +290,18 @@
         </el-table>
       </div>
     </div>
+    
+    <!-- 拖动调整条 -->
+    <div 
+      class="column-resizer"
+      @mousedown="startResize"
+      @touchstart="startTouchResize"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { message } from "@repo/utils";
 
 const props = defineProps<{
@@ -316,6 +323,21 @@ const errorCodeSearch = ref("");
 const historyDetailVisible = ref(false);
 const selectedHistory = ref<any>(null);
 const callHistory = ref<any[]>([]);
+
+// 列宽调整相关变量
+const STORAGE_KEY = 'hybrid-doc-result-width';
+const DEFAULT_RESULT_WIDTH = 500; // 默认结果列宽度
+const MIN_RESULT_WIDTH = 350; // 最小结果列宽度
+const MAX_RESULT_WIDTH = 1200; // 最大结果列宽度
+
+const resultColumnWidth = ref(DEFAULT_RESULT_WIDTH);
+const isResizing = ref(false);
+const startX = ref(0);
+const startWidth = ref(0);
+
+// 本地存储API的最后选择
+const LAST_SELECTED_API_KEY = 'hybrid-doc-last-selected-api';
+const LAST_SELECTED_TAB_KEY = 'hybrid-doc-last-selected-tab';
 
 // 可用的代码语言
 const availableLanguages = [
@@ -426,21 +448,152 @@ watch(activeTab, (newTab) => {
   emit('tab-change', newTab);
 });
 
-// 在组件挂载时初始化
+// 生命周期钩子
 onMounted(() => {
-  // 初始化加载历史数据
-  loadCallHistory();
+  loadSettings();
+  loadCallHistory(); // 确保初始化加载历史数据
+  document.addEventListener("keydown", handleKeyDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", handleKeyDown);
+  // 清理拖动相关的事件监听器
+  document.removeEventListener("mousemove", handleMouseMove);
+  document.removeEventListener("mouseup", stopResize);
+  document.removeEventListener("touchmove", handleTouchMove);
+  document.removeEventListener("touchend", stopTouchResize);
+  document.body.classList.remove("resizing");
+});
+
+// 加载设置
+const loadSettings = () => {
+  try {
+    // 加载结果列宽度
+    const savedWidth = localStorage.getItem(STORAGE_KEY);
+    if (savedWidth) {
+      resultColumnWidth.value = parseInt(savedWidth);
+    }
+    
+    // 加载上次选择的API和标签页
+    const lastSelectedTab = localStorage.getItem(LAST_SELECTED_TAB_KEY);
+    if (lastSelectedTab) {
+      activeTab.value = lastSelectedTab;
+    }
+  } catch (e) {
+    console.error("Error loading settings:", e);
+  }
+};
+
+// 保存设置
+const saveSettings = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, resultColumnWidth.value.toString());
+  } catch (e) {
+    console.error("Error saving settings:", e);
+  }
+};
+
+// 设置活动标签页
+const setActiveTab = (tab: string) => {
+  activeTab.value = tab;
+  try {
+    localStorage.setItem(LAST_SELECTED_TAB_KEY, tab);
+  } catch (e) {
+    console.error("Error saving active tab:", e);
+  }
+  emit("tab-change", tab);
+};
+
+// 拖动调整大小
+const startResize = (e: MouseEvent) => {
+  e.preventDefault();
+  isResizing.value = true;
+  startX.value = e.clientX;
+  startWidth.value = resultColumnWidth.value;
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("mouseup", stopResize);
+  document.body.classList.add("resizing");
+};
+
+const handleMouseMove = (e: MouseEvent) => {
+  if (!isResizing.value) return;
+  const delta = startX.value - e.clientX;
+  const newWidth = Math.min(
+    Math.max(startWidth.value + delta, MIN_RESULT_WIDTH),
+    MAX_RESULT_WIDTH
+  );
+  resultColumnWidth.value = newWidth;
+};
+
+const stopResize = () => {
+  isResizing.value = false;
+  document.removeEventListener("mousemove", handleMouseMove);
+  document.removeEventListener("mouseup", stopResize);
+  document.body.classList.remove("resizing");
+  saveSettings();
+};
+
+// 触摸拖动调整大小
+const startTouchResize = (e: TouchEvent) => {
+  e.preventDefault();
+  if (e.touches.length !== 1) return;
+  
+  isResizing.value = true;
+  startX.value = e.touches[0].clientX;
+  startWidth.value = resultColumnWidth.value;
+  
+  document.addEventListener("touchmove", handleTouchMove, { passive: false });
+  document.addEventListener("touchend", stopTouchResize);
+  document.body.classList.add("resizing");
+};
+
+const handleTouchMove = (e: TouchEvent) => {
+  if (!isResizing.value || e.touches.length !== 1) return;
+  e.preventDefault(); // 防止移动端滚动
+  
+  const delta = startX.value - e.touches[0].clientX;
+  const newWidth = Math.min(
+    Math.max(startWidth.value + delta, MIN_RESULT_WIDTH),
+    MAX_RESULT_WIDTH
+  );
+  resultColumnWidth.value = newWidth;
+};
+
+const stopTouchResize = () => {
+  isResizing.value = false;
+  document.removeEventListener("touchmove", handleTouchMove);
+  document.removeEventListener("touchend", stopTouchResize);
+  document.body.classList.remove("resizing");
+  saveSettings();
+};
+
+// 处理键盘事件
+const handleKeyDown = (e: KeyboardEvent) => {
+  // 快捷键处理，例如ESC关闭历史详情
+  if (e.key === 'Escape' && historyDetailVisible.value) {
+    historyDetailVisible.value = false;
+  }
+};
+
+// 暴露属性给父组件
+defineExpose({
+  resultColumnWidth,
+  isResizing,
+  setActiveTab,
+  activeTab
 });
 </script>
 
 <style scoped lang="scss">
 .api-result-column {
-  flex: 1;
+  flex: 0 0 auto;
+  width: v-bind(resultColumnWidth + 'px');
   min-width: 350px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  max-width: 1200px;
   height: 100%;
+  position: relative;
+  border-left: 1px solid #e0e0e0;
+  transition: width 0.05s ease;
 
   .column-header {
     padding: 16px;
@@ -704,6 +857,29 @@ onMounted(() => {
       }
     }
   }
+}
+
+.column-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.column-resizer:hover,
+.column-resizer:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 当正在调整大小时应用于body的样式 */
+:global(body.resizing) {
+  cursor: col-resize;
+  user-select: none;
 }
 
 // 响应式适配

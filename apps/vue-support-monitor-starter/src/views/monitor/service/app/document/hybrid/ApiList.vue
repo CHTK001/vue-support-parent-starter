@@ -54,9 +54,9 @@
             <div class="api-item-content">
               <div class="api-item-header">
                 <span class="api-method" :class="api.method.toLowerCase()">{{ api.method }}</span>
-                <span class="api-name">{{ api.name }}</span>
+                <span class="api-name">{{ api.description }}</span>
               </div>
-              <div v-if="api.description && showApiDescription" class="api-description">{{ api.description }}</div>
+              <div v-if="api.description && showApiDescription" class="api-description">{{ api.name }}</div>
             </div>
           </div>
         </div>
