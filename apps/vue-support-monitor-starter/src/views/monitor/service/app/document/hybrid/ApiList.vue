@@ -16,8 +16,8 @@
           <el-switch v-model="singleExpand" @change="saveSettings" size="small" active-text="单展开" inactive-text=""
             style="margin-right: 16px;" />
         </el-tooltip>
-        <el-tooltip content="是否显示接口" placement="top">
-          <el-switch v-model="showApiDescription" @change="saveSettings" size="small" active-text="显示接口"
+        <el-tooltip content="是否显示接口描述" placement="top">
+          <el-switch v-model="showApiDescription" @change="saveSettings" size="small" active-text="显示描述"
             inactive-text="" />
         </el-tooltip>
       </div>
@@ -54,19 +54,24 @@
             <div class="api-item-content">
               <div class="api-item-header">
                 <span class="api-method" :class="api.method.toLowerCase()">{{ api.method }}</span>
-                <span class="api-name">{{ api.description }}</span>
+                <span class="api-name">{{ api.name }}</span>
               </div>
-              <div v-if="api.description && showApiDescription" class="api-description">{{ api.name }}</div>
+              <div v-if="api.description && showApiDescription" class="api-description">{{ api.description }}</div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    
+    <!-- 最小化状态下的提示 -->
+    <el-tooltip v-if="isMinimized" content="点击展开API列表" placement="right" :effect="isDark ? 'dark' : 'light'" :enterable="false">
+      <div class="minimized-overlay" @click="toggleMinimize"></div>
+    </el-tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps<{
   categories: any[];
@@ -81,6 +86,12 @@ const expandedCategories = ref<Record<string, boolean>>({});
 const singleExpand = ref(false);
 const showApiDescription = ref(true);
 const isMinimized = ref(false);
+const isDark = ref(false); // 是否暗黑模式
+
+// 检测暗黑模式
+const detectDarkMode = () => {
+  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark';
+};
 
 // 存储设置相关的键名
 const SETTINGS_KEY = 'hybrid-doc-settings';
@@ -205,6 +216,30 @@ onMounted(() => {
       expandedCategories.value[category.id] = category === props.categories[0];
     });
   }
+  
+  // 检测当前主题模式
+  detectDarkMode();
+  
+  // 监听主题变化
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.attributeName === 'data-theme') {
+        detectDarkMode();
+      }
+    });
+  });
+  
+  observer.observe(document.documentElement, { attributes: true });
+  
+  // 组件卸载时移除监听器
+  onBeforeUnmount(() => {
+    observer.disconnect();
+  });
+});
+
+// 暴露组件属性给父组件
+defineExpose({
+  isMinimized
 });
 
 // 监听分类变化，更新展开状态
@@ -231,6 +266,7 @@ watch(() => props.categories, (newCategories) => {
   overflow: hidden;
   border-right: 1px solid var(--el-border-color-light);
   transition: width 0.3s ease, min-width 0.3s ease;
+  position: relative;
   
   // 最小化状态
   &.minimized {
@@ -260,6 +296,22 @@ watch(() => props.categories, (newCategories) => {
     
     .api-list-container {
       display: none;
+    }
+    
+    // 最小化状态下的覆盖层
+    .minimized-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 5;
+      background-color: transparent;
+      
+      &:hover {
+        background-color: rgba(var(--el-color-primary-rgb), 0.1);
+      }
     }
   }
 
