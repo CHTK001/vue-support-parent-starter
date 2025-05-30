@@ -16,8 +16,8 @@
           <el-switch v-model="singleExpand" @change="saveSettings" size="small" active-text="单展开" inactive-text=""
             style="margin-right: 16px;" />
         </el-tooltip>
-        <el-tooltip content="是否显示接口描述" placement="top">
-          <el-switch v-model="showApiDescription" @change="saveSettings" size="small" active-text="显示描述"
+        <el-tooltip content="是否显示接口" placement="top">
+          <el-switch v-model="showApiDescription" @change="saveSettings" size="small" active-text="显示接口"
             inactive-text="" />
         </el-tooltip>
       </div>
