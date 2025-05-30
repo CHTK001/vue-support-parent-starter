@@ -156,6 +156,9 @@ const isResizing = ref(false);
 const startX = ref(0);
 const startWidth = ref(0);
 
+const apiListRef = ref(null);
+const isApiListMinimized = computed(() => apiListRef.value?.isMinimized || false);
+
 // 计算属性：获取所有分类列表，并根据搜索关键词过滤
 const filteredCategories = computed(() => {
   console.log('apiDocData数据:', apiDocData.value);
@@ -788,6 +791,12 @@ onMounted(() => {
   
   // 初始化文档数据
   initialApiDoc();
+  
+  // 监听ApiList组件的最小化状态变化
+  watch(isApiListMinimized, (minimized) => {
+    console.log('API列表最小化状态变化:', minimized);
+    // 可以在这里添加其他处理逻辑
+  });
 });
 
 // 导出组件
