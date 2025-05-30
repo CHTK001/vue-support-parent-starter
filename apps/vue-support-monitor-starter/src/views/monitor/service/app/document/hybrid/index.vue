@@ -10,6 +10,7 @@
     <div v-else class="document-layout">
       <!-- 第一列：API 接口列表 -->
       <ApiList 
+        ref="apiListRef"
         :categories="filteredCategories" 
         :selectedApiId="selectedApi?.id"
         @api-selected="handleApiSelected"

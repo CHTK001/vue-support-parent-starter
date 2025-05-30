@@ -1,35 +1,24 @@
 <template>
-  <div class="api-list-column">
+  <div class="api-list-column" :class="{ 'minimized': isMinimized }">
     <div class="column-header">
-      <h3 class="column-title">API 接口列表</h3>
+      <div class="header-top">
+        <h3 class="column-title">API 接口列表</h3>
+        <div class="minimize-button" @click="toggleMinimize" title="最小化/展开">
+          <IconifyIconOnline :icon="isMinimized ? 'mdi:chevron-right' : 'mdi:chevron-left'" />
+        </div>
+      </div>
       <div class="search-wrapper">
-        <el-input 
-          v-model="searchQuery" 
-          placeholder="搜索 API..." 
-          clearable
-          prefix-icon="Search"
-          @input="handleSearchChange"
-        />
+        <el-input v-model="searchQuery" placeholder="搜索 API..." clearable prefix-icon="Search"
+          @input="handleSearchChange" />
       </div>
       <div class="api-list-settings">
         <el-tooltip content="是否单展开分类" placement="top">
-          <el-switch
-            v-model="singleExpand"
-            @change="saveSettings"
-            size="small"
-            active-text="单展开"
-            inactive-text=""
-            style="margin-right: 16px;"
-          />
+          <el-switch v-model="singleExpand" @change="saveSettings" size="small" active-text="单展开" inactive-text=""
+            style="margin-right: 16px;" />
         </el-tooltip>
         <el-tooltip content="是否显示接口" placement="top">
-          <el-switch
-            v-model="showApiDescription"
-            @change="saveSettings"
-            size="small"
-            active-text="显示接口"
-            inactive-text=""
-          />
+          <el-switch v-model="showApiDescription" @change="saveSettings" size="small" active-text="显示接口"
+            inactive-text="" />
         </el-tooltip>
       </div>
     </div>
@@ -43,7 +32,7 @@
           </template>
         </el-empty>
       </div>
-      
+
       <!-- 显示分类标题 -->
       <div v-else v-for="category in filteredCategories" :key="category.id" class="api-category">
         <div class="category-header" @click="toggleCategory(category.id)">
@@ -57,16 +46,11 @@
             {{ category.apis?.length || 0 }}
           </el-tag>
         </div>
-        
+
         <!-- 显示分类下的API列表 -->
         <div v-if="expandedCategories[category.id]" class="api-items">
-          <div 
-            v-for="api in category.apis" 
-            :key="api.id" 
-            class="api-item"
-            :class="{ active: selectedApiId === api.id }"
-            @click="handleApiClick(api)"
-          >
+          <div v-for="api in category.apis" :key="api.id" class="api-item" :class="{ active: selectedApiId === api.id }"
+            @click="handleApiClick(api)">
             <div class="api-item-content">
               <div class="api-item-header">
                 <span class="api-method" :class="api.method.toLowerCase()">{{ api.method }}</span>
@@ -96,6 +80,7 @@ const searchQuery = ref('');
 const expandedCategories = ref<Record<string, boolean>>({});
 const singleExpand = ref(false);
 const showApiDescription = ref(true);
+const isMinimized = ref(false);
 
 // 存储设置相关的键名
 const SETTINGS_KEY = 'hybrid-doc-settings';
@@ -105,7 +90,8 @@ const saveSettings = () => {
   try {
     const settings = {
       singleExpand: singleExpand.value,
-      showApiDescription: showApiDescription.value
+      showApiDescription: showApiDescription.value,
+      isMinimized: isMinimized.value
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch (error) {
@@ -121,6 +107,7 @@ const loadSettings = () => {
       const settings = JSON.parse(savedSettings);
       singleExpand.value = settings.singleExpand !== undefined ? settings.singleExpand : false;
       showApiDescription.value = settings.showApiDescription !== undefined ? settings.showApiDescription : true;
+      isMinimized.value = settings.isMinimized !== undefined ? settings.isMinimized : false;
     }
   } catch (error) {
     console.error('从本地存储加载设置时出错:', error);
@@ -155,6 +142,12 @@ const handleApiClick = (api: any) => {
 // 方法：处理搜索变化
 const handleSearchChange = () => {
   emit('search-change', searchQuery.value);
+};
+
+// 方法：切换最小化/展开状态
+const toggleMinimize = () => {
+  isMinimized.value = !isMinimized.value;
+  saveSettings();
 };
 
 // 计算属性：过滤后的分类
@@ -237,6 +230,38 @@ watch(() => props.categories, (newCategories) => {
   height: 100%;
   overflow: hidden;
   border-right: 1px solid var(--el-border-color-light);
+  transition: width 0.3s ease, min-width 0.3s ease;
+  
+  // 最小化状态
+  &.minimized {
+    width: 42px;
+    min-width: 42px;
+    
+    .column-header {
+      padding: 8px;
+      
+      .header-top {
+        flex-direction: column;
+        
+        .column-title {
+          writing-mode: vertical-rl;
+          transform: rotate(180deg);
+          white-space: nowrap;
+          margin-bottom: 16px;
+          font-size: 14px;
+        }
+      }
+      
+      .search-wrapper,
+      .api-list-settings {
+        display: none;
+      }
+    }
+    
+    .api-list-container {
+      display: none;
+    }
+  }
 
   .column-header {
     padding: 16px;
@@ -244,11 +269,29 @@ watch(() => props.categories, (newCategories) => {
     background-color: var(--el-bg-color-overlay);
     z-index: 1;
 
-    .column-title {
-      margin: 0 0 10px;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .column-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .minimize-button {
+        cursor: pointer;
+        transition: transform 0.2s;
+        font-size: 18px;
+        line-height: 1;
+
+        &:hover {
+          transform: scale(1.2);
+        }
+      }
     }
     
     .search-wrapper {
