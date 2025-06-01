@@ -8,28 +8,37 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 export function triggerTokenList(data) {
   return axios({
-    url: '/system/trigger/list',
-    method: 'post',
-    data: data
-  })
+    url: "/system/trigger/list",
+    method: "post",
+    data: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function triggerTokenAllType(data) {
   return axios({
-    url: '/system/trigger/all-type',
-    method: 'get',
-    params: data
-  })
+    url: "/system/trigger/all-type",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function triggerTokenDelete(data) {
   return axios({
-    url: '/system/trigger/delete',
-    method: 'get',
-    params: data
-  })
+    url: "/system/trigger/delete",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }

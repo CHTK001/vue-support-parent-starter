@@ -17,6 +17,9 @@ export function getCommandList(params) {
     url: "/node/ssh_command/list",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -27,6 +30,7 @@ export function editCommand(params) {
     method: "post",
     headers: {
       "Content-Type": "application/json",
+      wrapper: false,
     },
     data: params,
   });
@@ -38,6 +42,9 @@ export function deleteCommand(id) {
     url: "/node/ssh_command/del",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -47,6 +54,9 @@ export function executeBatch(param) {
     url: "/node/ssh_command/batch",
     method: "post",
     data: param,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -56,6 +66,9 @@ export function getCommandLogList(params) {
     url: "/node/ssh_command_log/list",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -65,6 +78,9 @@ export function getCommandLogBarchList(params) {
     url: "/node/ssh_command_log/batch_list",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -74,6 +90,9 @@ export function deleteCommandLog(id) {
     url: "/node/ssh_command_log/del",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -85,6 +104,7 @@ export function getCommandLogInfo(params) {
     data: params,
     headers: {
       loading: "no",
+      wrapper: false,
     },
   });
 }
@@ -104,6 +124,9 @@ export function syncToWorkspace(params) {
     url: "/node/ssh_command/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -116,6 +139,9 @@ export function getTriggerUrl(data) {
     url: "/node/ssh_command/trigger-url",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 

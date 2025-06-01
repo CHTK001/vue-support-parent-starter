@@ -8,15 +8,18 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 // 日志搜索列表
 export function getLogReadList(params) {
   return axios({
-    url: '/log-read/list',
-    method: 'post',
-    data: params
-  })
+    url: "/log-read/list",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -30,24 +33,26 @@ export function getLogReadList(params) {
  */
 export function editLogRead(params) {
   return axios({
-    url: '/log-read/save.json',
-    method: 'post',
+    url: "/log-read/save.json",
+    method: "post",
     data: params,
     headers: {
-      'Content-Type': 'application/json'
-    }
-  })
+      "Content-Type": "application/json",
+      wrapper: false,
+    },
+  });
 }
 
 export function updateCache(params) {
   return axios({
-    url: '/log-read/update-cache.json',
-    method: 'post',
+    url: "/log-read/update-cache.json",
+    method: "post",
     data: params,
     headers: {
-      'Content-Type': 'application/json'
-    }
-  })
+      "Content-Type": "application/json",
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -56,8 +61,11 @@ export function updateCache(params) {
  */
 export function deleteLogRead(id) {
   return axios({
-    url: '/log-read/del.json',
-    method: 'post',
-    data: { id }
-  })
+    url: "/log-read/del.json",
+    method: "post",
+    data: { id },
+    headers: {
+      wrapper: false,
+    },
+  });
 }

@@ -8,8 +8,8 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
-import { loadRouterBase } from './config'
+import axios from "./config";
+import { loadRouterBase } from "./config";
 
 /**
  * 项目列表
@@ -20,21 +20,25 @@ import { loadRouterBase } from './config'
  */
 export function listBackup(params) {
   return axios({
-    url: '/node/manage/file/list-backup',
-    method: 'post',
-    data: params
-  })
+    url: "/node/manage/file/list-backup",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function backupFileList(params) {
   return axios({
-    url: '/node/manage/file/backup-item-files',
-    method: 'post',
+    url: "/node/manage/file/backup-item-files",
+    method: "post",
     headers: {
-      loading: 'no'
+      loading: "no",
+      wrapper: false,
     },
-    data: params
-  })
+    data: params,
+  });
 }
 
 /**
@@ -47,7 +51,7 @@ export function backupFileList(params) {
  * } params
  */
 export function backupDownloadProjectFile(params) {
-  return loadRouterBase('/node/manage/file/backup-download', params)
+  return loadRouterBase("/node/manage/file/backup-download", params);
 }
 
 /**
@@ -62,10 +66,13 @@ export function backupDownloadProjectFile(params) {
  */
 export function backupDeleteProjectFile(params) {
   return axios({
-    url: '/node/manage/file/backup-delete',
-    method: 'post',
-    data: params
-  })
+    url: "/node/manage/file/backup-delete",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -80,8 +87,11 @@ export function backupDeleteProjectFile(params) {
  */
 export function backupRecoverProjectFile(params) {
   return axios({
-    url: '/node/manage/file/backup-recover',
-    method: 'post',
-    data: params
-  })
+    url: "/node/manage/file/backup-recover",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }

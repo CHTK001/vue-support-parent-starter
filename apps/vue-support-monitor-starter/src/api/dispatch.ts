@@ -19,6 +19,7 @@ export function getDishPatchList(data, loading) {
     data: data,
     headers: {
       loading: loading === false ? "no" : "",
+      wrapper: false,
     },
   });
 }
@@ -28,6 +29,9 @@ export function getDishPatchListAll() {
   return axios({
     url: "/outgiving/dispatch-list-all",
     method: "get",
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -40,6 +44,7 @@ export function getDispatchProject(id, loading) {
     timeout: 0,
     headers: {
       loading: loading === false ? "no" : "",
+      wrapper: false,
     },
   });
 }
@@ -49,6 +54,9 @@ export function getReqId() {
   return axios({
     url: "/outgiving/get-reqId",
     method: "get",
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -68,6 +76,9 @@ export function editDispatch(params) {
     url: "/outgiving/save",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -93,6 +104,9 @@ export function editDispatchProject(params) {
     url: "/outgiving/save_project",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -111,6 +125,7 @@ export function uploadDispatchFile(formData) {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
+      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -126,6 +141,9 @@ export function uploadDispatchFileMerge(params) {
     data: params,
     // 0 表示无超时时间
     timeout: 0,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -144,6 +162,9 @@ export function remoteDownload(params) {
     url: "/outgiving/remote_download",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -152,6 +173,9 @@ export function useBuild(params) {
     url: "/outgiving/use-build",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -160,6 +184,9 @@ export function useuseFileStorage(params) {
     url: "/outgiving/use-file-storage",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -168,6 +195,9 @@ export function useuseStaticFileStorage(params) {
     url: "/outgiving/use-static-file-storage",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -180,6 +210,9 @@ export function releaseDelDisPatch(id) {
     url: "/outgiving/release_del.json",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -192,6 +225,9 @@ export function delDisPatchProject(data) {
     url: "/outgiving/delete_project",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -204,6 +240,9 @@ export function unbindOutgiving(id) {
     url: "/outgiving/unbind.json",
     method: "get",
     params: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -221,6 +260,9 @@ export function getDishPatchLogList(params) {
     url: "/outgiving/log_list_data.json",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -230,6 +272,9 @@ export function getDispatchWhiteList(params) {
     url: "/outgiving/white-list",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -242,6 +287,9 @@ export function editDispatchWhiteList(params) {
     url: "/outgiving/whitelistDirectory_submit",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -254,6 +302,9 @@ export function cancelOutgiving(data) {
     url: "/outgiving/cancel",
     method: "post",
     data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -262,6 +313,9 @@ export function removeProject(params) {
     url: "/outgiving/remove-project",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -272,6 +326,7 @@ export function saveDispatchProjectConfig(data) {
     data,
     headers: {
       "Content-Type": "application/json",
+      wrapper: false,
     },
   });
 }

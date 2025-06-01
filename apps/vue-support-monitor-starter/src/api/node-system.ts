@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 /**
  * white list data
@@ -16,10 +16,13 @@ import axios from './config'
  */
 export function getWhiteList(data) {
   return axios({
-    url: '/node/system/white-list',
-    method: 'post',
-    data: data
-  })
+    url: "/node/system/white-list",
+    method: "post",
+    data: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -33,8 +36,11 @@ export function getWhiteList(data) {
  */
 export function editWhiteList(params) {
   return axios({
-    url: '/node/system/whitelistDirectory_submit',
-    method: 'post',
-    data: params
-  })
+    url: "/node/system/whitelistDirectory_submit",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
