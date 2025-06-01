@@ -213,9 +213,9 @@ const defer = useDefer(props.item.children?.length);
             item.parentId === null,
         }"
       >
-        {{ transformI18n(onlyOneChild.meta.i18nKey || item.meta.title) }}
+        {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
       </ReText>
-      <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item.meta.extraIcon" />
+      <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
     <span v-for="(child, index) in item.children" :key="child.path">

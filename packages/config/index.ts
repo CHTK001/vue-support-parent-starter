@@ -8,3 +8,5 @@ export * from "./src/utils";
 export type * from "./src/i18n/type";
 export type * from "./src/utils";
 export type * from "./src/types/config";
+import { transformI18n as t } from "./src/i18n";
+export { t };

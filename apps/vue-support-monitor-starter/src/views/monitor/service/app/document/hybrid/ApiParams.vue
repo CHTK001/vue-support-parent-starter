@@ -1,5 +1,5 @@
 <template>
-  <div class="api-params-column" :style="{ width: `${paramsColumnWidth}px` }">
+  <div class="api-params-column">
     <div v-if="!selectedApi" class="empty-state">
       <el-empty description="请选择一个 API" :image-size="120">
         <template #description>
@@ -9,21 +9,20 @@
     </div>
     <template v-else>
       <div class="column-header">
-        <h3 class="column-title">{{ selectedApi.name }}</h3>
+        <h3 class="column-title">
+          <el-tag v-if="selectedApi.method.toLowerCase() === 'DELETE'" type="danger" class="method-badge"
+            :class="selectedApi.method.toLowerCase()">{{ selectedApi.method }}</el-tag>
+          <el-tag v-else type="primary" class="method-badge" :class="selectedApi.method.toLowerCase()">{{
+            selectedApi.method }}</el-tag>
+          {{ selectedApi.name }}
+        </h3>
         <div class="api-path">
-          <div class="api-server-select">
+          <div class="api-server-select flex justify-between">
+            <div class="text-sm w-[100px]">服务地址：</div>
             <el-select v-model="selectedServer" placeholder="选择接口地址" size="small">
-              <el-option
-                v-for="server in apiServers"
-                :key="server.url"
-                :label="server.description || server.url"
-                :value="server.url"
-              />
+              <el-option v-for="server in apiServers" :key="server.url" :label="server.description || server.url"
+                :value="server.url" />
             </el-select>
-          </div>
-          <div class="api-endpoint">
-            <span class="method-badge" :class="selectedApi.method.toLowerCase()">{{ selectedApi.method }}</span>
-            <span class="path-text">{{ selectedApi.path }}</span>
           </div>
         </div>
       </div>
@@ -38,19 +37,14 @@
             <p>{{ selectedApi.description || "暂无描述" }}</p>
           </div>
         </div>
-        
+
         <!-- 请求参数 -->
         <div class="param-section">
           <div class="section-header">
             <h4 class="section-title">请求参数</h4>
             <div class="section-actions">
-              <el-switch
-                v-model="showRequiredOnly"
-                active-text="仅显示必填"
-                inactive-text=""
-                size="small"
-                style="margin-right: 12px;"
-              />
+              <el-switch v-model="showRequiredOnly" active-text="仅显示必填" inactive-text="" size="small"
+                style="margin-right: 12px;" />
               <el-button type="primary" size="small" plain @click="resetParams">重置参数</el-button>
             </div>
           </div>
@@ -58,19 +52,25 @@
             <div v-if="filteredParameters.length > 0" class="params-form">
               <div v-for="param in filteredParameters" :key="param.name" class="param-item">
                 <div class="param-header">
-                  <span class="param-name">{{ param.name }}</span>
-                  <el-tag v-if="param.required" type="danger" size="small" effect="plain">必填</el-tag>
+                  <div class="param-name-container">
+                    <span class="param-name">{{ param.name }}</span>
+                    <span class="param-desc-inline">{{ param.description }}</span>
+                  </div>
+                  <div class="param-tags">
+                    <span class="param-type">{{ param.type }}</span>
+                    <el-tag v-if="param.required" type="danger" size="small" effect="plain">必填</el-tag>
+                  </div>
                 </div>
                 <div class="param-input">
-                  <el-input 
-                    v-model="requestParams[param.name]" 
-                    :placeholder="param.description || '请输入'"
-                    size="default"
-                  />
-                </div>
-                <div class="param-desc">
-                  <span class="param-type">类型: {{ param.type }}</span>
-                  <p>{{ param.description }}</p>
+                  <div class="input-with-example">
+                    <el-input v-model="requestParams[param.name]" :placeholder="param.description || '请输入'"
+                      size="default" />
+                    <el-tooltip v-if="getExampleValue(param.type)" content="填充示例值" placement="top" :show-after="300">
+                      <el-button class="example-btn" type="primary" link size="small" @click="fillExampleValue(param)">
+                        示例值
+                      </el-button>
+                    </el-tooltip>
+                  </div>
                 </div>
               </div>
             </div>
@@ -78,48 +78,39 @@
           </div>
         </div>
 
-        <!-- 请求示例 -->
+        <!-- 请求体 -->
         <div class="param-section">
           <div class="section-header">
-            <h4 class="section-title">请求示例</h4>
+            <h4 class="section-title">请求体</h4>
             <div class="section-actions">
-              <el-button 
-                type="primary" 
-                size="small" 
-                @click="executeRequest"
-                :loading="requestLoading"
-              >
-                发送请求
-              </el-button>
-              <el-button 
-                type="info" 
-                size="small"
-                plain
-                @click="copyRequestExample"
-              >
+              <el-button type="info" size="small" plain @click="copyRequestBody">
                 复制
               </el-button>
             </div>
           </div>
           <div class="section-content">
-            <pre class="code-block">{{ requestExample }}</pre>
+            <sc-code-editor v-model="requestBody" mode="json" :height="200" />
+          </div>
+        </div>
+        <!-- 发送请求按钮移至参数表单下方 -->
+        <div class="form-actions">
+          <el-button type="primary" @click="executeRequest" >
+            发送请求
+          </el-button>
+          <div v-if="showCallStatus" class="call-status" :class="callStatusType">
+            <i :class="callStatusIcon"></i>
+            <span>{{ callStatusText }}</span>
           </div>
         </div>
       </div>
     </template>
-    
-    <!-- 拖动调整条 -->
-    <div 
-      class="column-resizer"
-      @mousedown="startResize"
-      @touchstart="startTouchResize"
-    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { message } from "@repo/utils";
+import scCodeEditor from "@repo/components/scCodeEditor/index.vue";
 
 const props = defineProps<{
   selectedApi: any | null;
@@ -133,6 +124,13 @@ const selectedServer = ref("");
 const requestParams = ref<Record<string, any>>({});
 const showRequiredOnly = ref(false);
 const requestLoading = ref(false);
+const requestBody = ref(""); // 用户可编辑的请求体内容
+
+// 调用状态显示
+const showCallStatus = ref(false);
+const callStatusType = ref('');
+const callStatusText = ref('');
+const callStatusIcon = ref('');
 
 // 列宽调整相关变量
 const STORAGE_KEY = 'hybrid-doc-params-width';
@@ -157,74 +155,6 @@ const filteredParameters = computed(() => {
   
   return props.selectedApi.parameters;
 });
-
-// 计算属性：请求示例
-const requestExample = computed(() => {
-  return getRequestExample();
-});
-
-// 方法：获取请求示例
-const getRequestExample = () => {
-  if (!props.selectedApi) return "";
-  
-  // 使用选定的服务器URL，如果没有选择则使用示例URL
-  const baseUrl = selectedServer.value || "http://example.com/api";
-  let url = `${baseUrl}${props.selectedApi.path}`;
-  const method = props.selectedApi.method;
-  
-  // 区分不同类型的参数
-  const pathParams: Record<string, any> = {};
-  const queryParams: Record<string, any> = {};
-  const bodyParams: Record<string, any> = {};
-  
-  // 处理参数
-  if (props.selectedApi.parameters && props.selectedApi.parameters.length > 0) {
-    props.selectedApi.parameters.forEach(param => {
-      const value = requestParams.value[param.name];
-      
-      // 跳过没有值的参数
-      if (value === undefined || value === "") return;
-      
-      // 处理路径参数
-      if (url.includes(`{${param.name}}`)) {
-        pathParams[param.name] = value;
-        // 替换URL中的路径参数
-        url = url.replace(`{${param.name}}`, encodeURIComponent(String(value)));
-      } 
-      // 对于GET请求，非路径参数视为查询参数
-      else if (method === 'GET') {
-        queryParams[param.name] = value;
-      } 
-      // 对于其他请求，将参数放入请求体
-      else {
-        bodyParams[param.name] = value;
-      }
-    });
-  }
-  
-  // 构建查询字符串
-  const queryString = Object.entries(queryParams)
-    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-    .join('&');
-  
-  // 添加查询字符串到URL
-  if (queryString) {
-    url += `?${queryString}`;
-  }
-  
-  // 构建cURL命令
-  let curlCmd = `curl -X ${method} "${url}"`;
-  
-  // 添加请求头
-  curlCmd += ` \\\n  -H "Content-Type: application/json"`;
-  
-  // 添加请求体
-  if (method !== 'GET' && Object.keys(bodyParams).length > 0) {
-    curlCmd += ` \\\n  -d '${JSON.stringify(bodyParams, null, 2)}'`;
-  }
-  
-  return curlCmd;
-};
 
 // 方法：重置请求参数
 const resetParams = () => {
@@ -253,28 +183,85 @@ const resetParams = () => {
 const executeRequest = () => {
   if (!props.selectedApi) return;
   
-  requestLoading.value = true;
+  // 检查必填参数
+  const missingRequiredParams = [];
+  if (props.selectedApi.parameters) {
+    props.selectedApi.parameters.forEach(param => {
+      if (param.required && 
+         (requestParams.value[param.name] === undefined || 
+          requestParams.value[param.name] === '' ||
+          requestParams.value[param.name] === null)) {
+        missingRequiredParams.push(param.name);
+      }
+    });
+  }
   
-  // 将请求参数和API信息传给父组件处理
+  // 如果有缺失的必填参数，显示错误信息并中断请求
+  if (missingRequiredParams.length > 0) {
+    const errorMsg = `请填写必填参数: ${missingRequiredParams.join(', ')}`;
+    message(errorMsg, { type: "error" });
+    setCallStatus('error', errorMsg);
+    return;
+  }
+  
+  requestLoading.value = true;
+  showCallStatus.value = false;
+  
+  // 将请求参数、请求体和API信息传给父组件处理
   emit('execute-request', {
     api: props.selectedApi,
     params: requestParams.value,
+    body: requestBody.value,
     server: selectedServer.value
   });
-  
-  // 假设请求完成后会由父组件设置requestLoading为false
-  // 这里模拟一个短暂的加载状态
-  setTimeout(() => {
-    requestLoading.value = false;
-  }, 1500);
 };
 
-// 方法：复制请求示例
-const copyRequestExample = () => {
-  const example = getRequestExample();
-  navigator.clipboard.writeText(example)
+// 方法：设置调用状态
+const setCallStatus = (status: string, message: string) => {
+  showCallStatus.value = true;
+  callStatusType.value = status;
+  callStatusText.value = message;
+  callStatusIcon.value = status === 'success' ? 'el-icon-check' : 'el-icon-close';
+  
+  // 5秒后自动隐藏状态提示
+  setTimeout(() => {
+    showCallStatus.value = false;
+  }, 5000);
+};
+
+// 辅助方法：根据参数类型获取示例值
+const getExampleValue = (type: string): any => {
+  switch (type.toLowerCase()) {
+    case 'string':
+      return 'example';
+    case 'integer':
+    case 'number':
+      return 10;
+    case 'boolean':
+      return true;
+    case 'array':
+      return [1, 2, 3];
+    case 'object':
+      return { key: 'value' };
+    default:
+      return null;
+  }
+};
+
+// 方法：填充示例值
+const fillExampleValue = (param: any) => {
+  const exampleValue = getExampleValue(param.type);
+  if (exampleValue !== null) {
+    requestParams.value[param.name] = exampleValue;
+    message(`已为 ${param.name} 填充示例值`, { type: "success" });
+  }
+};
+
+// 方法：复制请求体
+const copyRequestBody = () => {
+  navigator.clipboard.writeText(requestBody.value)
     .then(() => {
-      message("请求示例已复制到剪贴板", { type: "success" });
+      message("请求体已复制到剪贴板", { type: "success" });
     })
     .catch(err => {
       message("复制失败，请手动复制", { type: "error" });
@@ -392,6 +379,17 @@ const loadWidthFromStorage = () => {
   }
 };
 
+// 获取参数对象的辅助函数
+const getParamsObject = () => {
+  const paramsObj: Record<string, any> = {};
+  requestParams.value.forEach(param => {
+    if (param.value !== undefined && param.value !== '') {
+      paramsObj[param.name] = param.value;
+    }
+  });
+  return paramsObj;
+};
+
 // 监听参数变化
 watch(requestParams, () => {
   emit('params-updated', requestParams.value);
@@ -400,7 +398,28 @@ watch(requestParams, () => {
 // 监听选中的API变化
 watch(() => props.selectedApi, (newApi) => {
   if (newApi) {
+    console.log(newApi);
     resetParams();
+    
+    // 初始化请求体
+    if (newApi.method !== 'GET') {
+      // 对于非GET请求，从参数中提取body参数作为初始JSON
+      const bodyParams = {};
+      if (newApi.parameters) {
+        newApi.parameters.forEach(param => {
+          // 跳过路径参数
+          if (!newApi.path.includes(`{${param.name}}`)) {
+            bodyParams[param.name] = '';
+          }
+        });
+      }
+      requestBody.value = Object.keys(bodyParams).length > 0 
+        ? JSON.stringify(bodyParams, null, 2) 
+        : '{\n  \n}';
+    } else {
+      // GET请求通常不需要请求体
+      requestBody.value = '';
+    }
   }
 });
 
@@ -423,255 +442,240 @@ onBeforeUnmount(() => {
   document.removeEventListener('touchend', stopTouchResize);
   document.body.classList.remove('resizing');
 });
+
+// 暴露方法给父组件
+defineExpose({
+  paramsColumnWidth,
+  isResizing,
+  updateParams: (params: Record<string, any>) => {
+    // 遍历参数并更新表单值
+    if (params && typeof params === 'object') {
+      Object.keys(params).forEach(key => {
+        // 查找匹配的参数字段
+        const index = requestParams.value.findIndex(param => param.name === key);
+        if (index !== -1) {
+          // 更新参数值
+          requestParams.value[index].value = params[key];
+        }
+      });
+      
+      // 触发表单更新
+      nextTick(() => {
+        emit('params-updated', getParamsObject());
+      });
+    }
+  },
+  setCallStatus
+});
 </script>
 
 <style scoped lang="scss">
+// API 参数样式
 .api-params-column {
-  min-width: 280px; // 最小宽度
-  max-width: 800px; // 最大宽度
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: none; // 取消过渡效果以便拖动更流畅
-  position: relative;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   height: 100%;
-  border-right: 1px solid var(--el-border-color-light);
-  
-  // 拖动调整条
-  .column-resizer {
-    width: 5px;
-    height: 100%;
-    background-color: var(--el-border-color-light);
-    cursor: col-resize;
-    transition: background-color 0.2s;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 10;
-    
-    &:hover, &:active {
-      background-color: var(--el-color-primary-light-5);
-    }
-    
-    &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 1px;
-      height: 20px;
-      background-color: var(--el-color-primary-light-7);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    
-    &:hover::after {
-      opacity: 1;
-    }
-  }
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0 16px;
+}
 
-  .empty-state {
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  color: var(--el-text-color-secondary);
+}
+
+.column-header {
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  background-color: var(--el-bg-color);
+  z-index: 10;
+  border-bottom: 1px solid var(--el-border-color-light);
+  margin-bottom: 16px;
+  
+  .column-title {
     display: flex;
     align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 20px;
-  }
-
-  .column-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--el-border-color-light);
-    background-color: var(--el-bg-color-overlay);
-    z-index: 1;
-
-    .column-title {
-      margin: 0 0 10px;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-    }
-  }
-
-  .api-path {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
     
-    .api-server-select {
-      width: 100%;
+    .method-badge {
+      margin-right: 8px;
+      font-weight: 600;
       
-      .el-select {
-        width: 100%;
+      &.get {
+        background-color: #67c23a;
+        border-color: #67c23a;
+      }
+      
+      &.post {
+        background-color: #409eff;
+        border-color: #409eff;
+      }
+      
+      &.put {
+        background-color: #e6a23c;
+        border-color: #e6a23c;
+      }
+      
+      &.delete {
+        background-color: #f56c6c;
+        border-color: #f56c6c;
       }
     }
+  }
+  
+  .api-path {
+    font-size: 13px;
+    word-break: break-all;
+    margin-top: 8px;
     
-    .api-endpoint {
+    .api-server-select {
+      margin-top: 8px;
+    }
+  }
+}
+
+.params-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 24px;
+}
+
+.param-section {
+  display: flex;
+  flex-direction: column;
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--el-text-color-primary);
+    }
+    
+    .section-actions {
       display: flex;
       align-items: center;
     }
-    
-    .method-badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-right: 10px;
-      
-      &.get {
-        background-color: #e1f5fe;
-        color: #0288d1;
-      }
-
-      &.post {
-        background-color: #e8f5e9;
-        color: #388e3c;
-      }
-
-      &.put {
-        background-color: #fff8e1;
-        color: #ffa000;
-      }
-
-      &.delete {
-        background-color: #ffebee;
-        color: #d32f2f;
-      }
-    }
-    
-    .path-text {
-      font-family: "Courier New", Courier, monospace;
-      color: var(--el-text-color-regular);
-      font-size: 14px;
-      word-break: break-all;
-    }
-  }
-
-  .params-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 16px 16px;
-    
-    // 参数区块
-    .param-section {
-      margin-bottom: 24px;
-      border: 1px solid var(--el-border-color-lighter);
-      border-radius: 8px;
-      overflow: hidden;
-      
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        background-color: var(--el-fill-color-light);
-        border-bottom: 1px solid var(--el-border-color-lighter);
-        
-        .section-title {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-        }
-        
-        .section-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-      }
-      
-      .section-content {
-        padding: 16px;
-        
-        &.description-content {
-          color: var(--el-text-color-regular);
-          font-size: 14px;
-          line-height: 1.6;
-        }
-        
-        .params-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          
-          .param-item {
-            .param-header {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 6px;
-              
-              .param-name {
-                font-weight: 500;
-                color: var(--el-text-color-primary);
-              }
-            }
-            
-            .param-input {
-              margin-bottom: 4px;
-            }
-            
-            .param-desc {
-              font-size: 12px;
-              color: var(--el-text-color-secondary);
-              
-              .param-type {
-                background-color: var(--el-fill-color-light);
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: "Courier New", Courier, monospace;
-                margin-right: 8px;
-              }
-              
-              p {
-                margin: 4px 0 0;
-                line-height: 1.5;
-              }
-            }
-          }
-        }
-      }
-    }
   }
   
-  .code-block {
-    margin: 0;
-    padding: 16px;
-    font-family: "Courier New", Courier, monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    background-color: var(--el-bg-color);
-    white-space: pre-wrap;
-    word-break: break-all;
+  .section-content {
+    background-color: var(--el-fill-color-light);
     border-radius: 4px;
-    border: 1px solid var(--el-border-color-lighter);
+    padding: 16px;
+    
+    &.description-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--el-text-color-regular);
+    }
   }
 }
 
-// 响应式适配
-@media (max-width: 1200px) {
-  .api-params-column {
-    width: 100% !important; // 覆盖内联样式
-    min-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--el-border-color-light);
-    max-height: 40vh;
-  }
-}
-
-@media (max-width: 768px) {
-  .api-params-column {
-    .params-container {
-      .param-section {
-        .section-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 8px;
+.params-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  .param-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      
+      .param-name-container {
+        display: flex;
+        flex-direction: column;
+        
+        .param-name {
+          font-size: 14px;
+          font-weight: 500;
+        }
+        
+        .param-desc-inline {
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          margin-top: 2px;
         }
       }
+      
+      .param-tags {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        
+        .param-type {
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          background: var(--el-fill-color);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+      }
+    }
+    
+    .param-input {
+      .input-with-example {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .el-input {
+          flex: 1;
+        }
+        
+        .example-btn {
+          flex-shrink: 0;
+        }
+      }
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-light);
+  
+  .call-status {
+    margin-left: 16px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    
+    i {
+      margin-right: 6px;
+    }
+    
+    &.success {
+      color: var(--el-color-success);
+    }
+    
+    &.error {
+      color: var(--el-color-danger);
     }
   }
 }

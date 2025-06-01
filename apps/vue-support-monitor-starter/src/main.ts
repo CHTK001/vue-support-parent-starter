@@ -31,6 +31,9 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 import { setupDirectives } from "./directives";
+// 导入 Ant Design Vue
+import Antd from "ant-design-vue";
+import "ant-design-vue/dist/reset.css";
 
 const app = createApp(App);
 
@@ -46,6 +49,8 @@ app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
 app.use(VueTippy);
+// 使用 Ant Design Vue
+app.use(Antd);
 
 // 注册指令
 setupDirectives(app);

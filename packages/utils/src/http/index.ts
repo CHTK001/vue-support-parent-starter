@@ -193,6 +193,9 @@ class PureHttp {
           PureHttp.initConfig.beforeResponseCallback(response);
           return result;
         }
+        if (response.config.headers["wrapper"] === false) {
+          return result.data;
+        }
         return result;
       },
       (error: PureHttpError) => {

@@ -96,11 +96,11 @@ function resolvePath(routePath: string) {
 <template>
   <SidebarLinkItem v-if="hasOneShowingChild(item.children, item) && (!onlyOneChild.children || onlyOneChild.noShowingChildren)" :to="item">
     <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }" :style="getNoDropdownStyle" v-bind="attrs">
-      <div v-if="toRaw(item.meta.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
-        <component :is="useRenderIcon(toRaw(onlyOneChild.meta.icon) || (item.meta && toRaw(item.meta.icon)))" />
+      <div v-if="toRaw(item?.meta?.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
+        <component :is="useRenderIcon(toRaw(onlyOneChild?.meta?.icon) || (item?.meta && toRaw(item?.meta?.icon)))" />
       </div>
-      <el-text v-if="(!item?.meta.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild.meta.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 !text-inherit">
-        {{ transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title) }}
+      <el-text v-if="(!item?.meta?.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild?.meta?.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 !text-inherit">
+        {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
       </el-text>
 
       <template #title>
@@ -112,9 +112,9 @@ function resolvePath(routePath: string) {
             }"
             class="!w-full !text-inherit"
           >
-            {{ transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title) }}
+            {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
           </ReText>
-          <SidebarExtraIcon :extraIcon="onlyOneChild.meta.extraIcon" />
+          <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
       </template>
     </el-menu-item>
@@ -136,9 +136,9 @@ function resolvePath(routePath: string) {
           '!pl-4': layout !== 'horizontal' && isCollapse && !toRaw(item.meta.icon) && item.parentId === null,
         }"
       >
-        {{ transformI18n(onlyOneChild.meta.i18nKey || item.meta.title) }}
+        {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
       </ReText>
-      <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item.meta.extraIcon" />
+      <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>
 
     <span v-for="(child, index) in item.children" :key="child.path">
