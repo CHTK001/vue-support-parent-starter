@@ -31,7 +31,9 @@ type AddEventListenerOptions = {
 export const registerRequestIdleCallback = (() => {
   const TIMEOUT_DELAY = 1; // 使用 setTimeout 的延迟时间（毫秒）
 
+  //@ts-ignore
   if (typeof window.requestIdleCallback === "function") {
+    //@ts-ignore
     return window.requestIdleCallback;
   }
 
@@ -55,15 +57,20 @@ export const registerRequestIdleCallback = (() => {
  * 注册事件
  */
 export const registerEventListener = (() => {
+  //@ts-ignore
   if (typeof window.addEventListener === "function") {
+    //@ts-ignore
     return window.addEventListener;
   }
 
+  //@ts-ignore
   if (typeof window.attachEvent === "function") {
+    //@ts-ignore
     return window.attachEvent;
   }
 
   return (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+    //@ts-ignore
     window.addEventListener(type, listener, options);
   };
 })();

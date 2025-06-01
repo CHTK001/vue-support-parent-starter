@@ -19,7 +19,15 @@ import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import { getConfig } from "@repo/config";
-
+import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
+import { localStorageProxy } from "@repo/utils";
+window.onload = () => {
+  registerRequestIdleCallback(() => {
+    createFingerprint((finger) => {
+      localStorageProxy().setItem("visitId", finger);
+    });
+  });
+};
 const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);

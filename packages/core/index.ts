@@ -42,5 +42,8 @@ export type * from "./src/api/common/user-log";
 export type * from "./src/api/common/sfc";
 export type * from "./types/router";
 import type { RouteConfigsTable } from "./types/router";
+import { registerRequestIdleCallback } from "./src/utils/compatibility";
+//@ts-ignore
+window.registerRequestIdleCallback = registerRequestIdleCallback;
 
 export { useAppStoreHook, type RouteConfigsTable };

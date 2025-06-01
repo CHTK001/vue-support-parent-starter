@@ -17,7 +17,15 @@ import LaySetting from "./components/lay-setting/index.vue";
 
 import { deviceDetection, useDark, useGlobal } from "@pureadmin/utils";
 import { computed, onBeforeMount, onMounted, reactive, ref, shallowRef, nextTick } from "vue";
-
+import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
+import { localStorageProxy } from "@repo/utils";
+window.onload = () => {
+  registerRequestIdleCallback(() => {
+    createFingerprint((finger) => {
+      localStorageProxy().setItem("visitId", finger);
+    });
+  });
+};
 const { t } = useI18n();
 const layMenuRef = shallowRef();
 const headerRef = shallowRef();

@@ -23,6 +23,19 @@ const siphonI18n = (function () {
       return [matched, yaml.load(value.default)];
     })
   );
+  // 仅初始化一次国际化配置
+  let cache2 = Object.fromEntries(
+    Object.entries(
+      //@ts-ignore
+      import.meta.glob(["../../locales/*.json"], {
+        eager: true,
+        query: "raw",
+      })
+    ).map(([key, value]: any) => {
+      const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
+      return [matched, JSON.parse(value.default)];
+    })
+  );
   let extCache = Object.fromEntries(
     Object.entries(
       //@ts-ignore
@@ -35,9 +48,23 @@ const siphonI18n = (function () {
       return [matched, yaml.load(value.default)];
     })
   );
-  const cache = mergeObjects(extCache, cache1);
+  let extCache2 = Object.fromEntries(
+    Object.entries(
+      //@ts-ignore
+      import.meta.glob("@/locales/*.json", {
+        eager: true,
+        query: "raw",
+      })
+    ).map(([key, value]: any) => {
+      const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
+      return [matched, JSON.parse(value.default)];
+    })
+  );
+  const _cache = mergeObjects(extCache, extCache2);
+  const _cache1 = mergeObjects(cache1, _cache);
+  const cache3 = mergeObjects(_cache1, cache2);
   return (prefix = "zh-CN") => {
-    return cache[prefix];
+    return cache3[prefix];
   };
 })();
 
@@ -103,7 +130,7 @@ export function transformI18n(message: any = "") {
     return message[locale?.value];
   }
 
-  const key = message.match(/(\S*)\./)?.input;
+  const key = message.match(/(\S*)\./)?.input ? message.match(/(\S*)\./)?.input : message;
 
   if (key && flatI18n("zh-CN").has(key)) {
     return i18n.global.t.call(i18n.global.locale, message);

@@ -1,0 +1,36 @@
+:root {
+  --increase-z-index: 1050;
+}
+
+.search-box {
+  margin-bottom: 0 !important;
+  box-sizing: border-box;
+  padding: 8px 0;
+}
+
+.text-overflow-hidden {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 国际化时表单换行
+.ant-form-item .ant-form-item-label > label {
+  white-space: normal;
+}
+
+.ant-notification,
+.ant-select-dropdown,
+.ant-dropdown,
+.ant-message,
+.ant-tooltip,
+.ant-popover,
+.ant-picker-dropdown,
+.ant-mentions-dropdown,
+.ant-dropdown-menu-submenu-popup {
+  z-index: var(--increase-z-index) !important;
+}
+
+.ant-progress-line {
+  margin-right: 0;
+}

@@ -17,37 +17,56 @@
         @search-change="handleSearchChange"
       />
 
-      <!-- 拖动调整条 -->
+      <!-- 第一个拖动调整条 -->
       <div 
-        class="column-resizer"
-        @mousedown="startResize"
-        @touchstart="startTouchResize"
+        class="column-resizer first-resizer"
+        @mousedown="startResizeFirstColumn"
+        @touchstart="startTouchResizeFirstColumn"
       ></div>
 
       <!-- 第二列：API 参数设置 -->
-      <ApiParams 
-        ref="apiParamsRef"
-        :selectedApi="selectedApi"
-        :apiServers="apiServers"
-        @execute-request="executeRequest"
-        @params-reset="handleParamsReset"
-        @params-updated="handleParamsUpdated"
-      />
+      <div class="params-column" :style="{ width: `${paramsColumnWidth}px` }">
+        <!-- 添加环境管理组件 -->
+        <EnvironmentManager 
+          ref="envManagerRef"
+          @headers-updated="handleGlobalHeadersUpdated"
+        />
+        
+        <ApiParams 
+          ref="apiParamsRef"
+          :selectedApi="selectedApi"
+          :apiServers="apiServers"
+          @execute-request="executeRequest"
+          @params-reset="handleParamsReset"
+          @params-updated="handleParamsUpdated"
+        />
+      </div>
+
+      <!-- 第二个拖动调整条 -->
+      <div 
+        class="column-resizer second-resizer"
+        @mousedown="startResizeSecondColumn"
+        @touchstart="startTouchResizeSecondColumn"
+      ></div>
 
       <!-- 第三列：API 结果展示 -->
       <ApiResult 
         ref="apiResultRef"
+        :style="{ width: `${resultColumnWidth}px`, minWidth: '300px' }"
         :selectedApi="selectedApi"
         :requestExample="getRequestExample()"
         :requestLoading="requestLoading"
         :customResponse="customResponse"
         :responseStatus="responseStatus"
         :responseTime="responseTime"
+        :responseHeaders="responseHeaders"
+        :responseContentType="responseContentType"
         @execute-request="executeRequest"
         @copy-request="copyRequestExample"
         @copy-response="copyCustomResponse"
         @copy-code="copyCode"
         @tab-change="handleTabChange"
+        @fill-params="handleFillParams"
       />
     </div>
   </div>
@@ -58,10 +77,11 @@ import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from "vue"
 import { message } from "@repo/utils";
 // 如果导入路径有误，请根据实际情况修改
 // @ts-ignore 忽略模块导入错误
-import { fetchAppDocumentList } from "@/api/monitor/app-document";
+import { fetchAppDocumentList, fetchForwardDocument } from "@/api/monitor/app-document";
 import ApiList from "./ApiList.vue";
 import ApiParams from "./ApiParams.vue";
 import ApiResult from "./ApiResult.vue";
+import EnvironmentManager from "./EnvironmentManager.vue";
 
 // 接口类型
 interface ApiParameter {
@@ -122,6 +142,8 @@ interface ApiListRef {
 interface ApiParamsRef {
   paramsColumnWidth?: number;
   isResizing?: boolean;
+  updateParams?: (params: Record<string, any>) => void;
+  setCallStatus?: (status: string, message: string) => void;
 }
 
 interface ApiResultRef {
@@ -129,6 +151,11 @@ interface ApiResultRef {
   isResizing?: boolean;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
+  recordApiCall?: (status: string, params: Record<string, any>, response: any) => void;
+}
+
+interface EnvironmentManagerRef {
+  getCurrentHeaders?: () => Record<string, string>;
 }
 
 // 接收服务列表属性
@@ -152,6 +179,10 @@ const requestLoading = ref(false);
 const customResponse = ref("");
 const responseStatus = ref(200);
 const responseTime = ref(0);
+const responseHeaders = ref<Record<string, string>>({});
+const responseContentType = ref("");
+// 全局 headers
+const globalHeaders = ref<Record<string, string>>({});
 
 // API文档数据（从接口获取）
 const apiDocData = ref<any[]>([]);
@@ -167,24 +198,33 @@ const apiServers = ref([
 const openApis = ref<any[]>([]);
 
 // 列宽调整相关变量
-const STORAGE_KEY = 'hybrid-doc-params-width';
-const DEFAULT_PARAMS_WIDTH = 380; // 默认参数列宽度
-const MIN_PARAMS_WIDTH = 280; // 最小参数列宽度
-const MAX_PARAMS_WIDTH = 800; // 最大参数列宽度
-const DEFAULT_RESULT_WIDTH = 500; // 默认结果列宽度
+const DEFAULT_API_LIST_WIDTH = 330;
+const DEFAULT_PARAMS_WIDTH = 450;
+const DEFAULT_RESULT_WIDTH = 450;
+const MIN_COLUMN_WIDTH = 200;
+const MAX_COLUMN_WIDTH = 800;
 
+const isResizing = ref(false);
+const currentResizingColumn = ref<'first' | 'second'>('first');
 const startX = ref(0);
 const startWidth = ref(0);
-const isResizing = ref(false);
+const apiListWidth = ref(DEFAULT_API_LIST_WIDTH);
+const paramsColumnWidth = ref(DEFAULT_PARAMS_WIDTH);
+const resultColumnWidth = ref(DEFAULT_RESULT_WIDTH);
+
+// 存储键
+const STORAGE_KEY_PARAMS = 'api-document-params-width';
+const STORAGE_KEY_RESULT = 'api-document-result-width';
 
 const apiListRef = ref<ApiListRef | null>(null);
 const apiParamsRef = ref<ApiParamsRef | null>(null);
 const apiResultRef = ref<ApiResultRef | null>(null);
 const isApiListMinimized = computed(() => apiListRef.value?.isMinimized || false);
-const paramsColumnWidth = computed(() => apiParamsRef.value?.paramsColumnWidth || DEFAULT_PARAMS_WIDTH);
-const resultColumnWidth = computed(() => apiResultRef.value?.resultColumnWidth || DEFAULT_RESULT_WIDTH);
 const isParamsResizing = computed(() => apiParamsRef.value?.isResizing || false);
 const resultResizing = computed(() => apiResultRef.value?.isResizing || false);
+
+// 添加环境管理器引用
+const envManagerRef = ref<EnvironmentManagerRef | null>(null);
 
 // 计算属性：获取所有分类列表，并根据搜索关键词过滤
 const filteredCategories = computed(() => {
@@ -439,39 +479,33 @@ const convertOpenApiToTreeData = (openApiData: any) => {
 
 // 方法：获取请求示例
 const getRequestExample = () => {
-  if (!selectedApi.value) return "";
+  if (!selectedApi.value) return '';
   
-  // 使用选定的服务器URL，如果没有选择则使用示例URL
-  const baseUrl = apiServers.value.length > 0 ? apiServers.value[0].url : "http://example.com/api";
-  let url = `${baseUrl}${selectedApi.value.path}`;
-  const method = selectedApi.value.method;
+  const api = selectedApi.value;
+  const method = api.method.toUpperCase();
+  const serverUrl = apiServers.value[0].url;
+  const url = serverUrl + api.path;
   
-  // 区分不同类型的参数
-  const pathParams: Record<string, any> = {};
+  // 获取当前环境的全局 headers
+  const currentGlobalHeaders = envManagerRef.value?.getCurrentHeaders?.() || {};
+  
+  // 构建参数
   const queryParams: Record<string, any> = {};
+  const pathParams: Record<string, any> = {};
   const bodyParams: Record<string, any> = {};
   
-  // 处理参数
-  if (selectedApi.value.parameters && selectedApi.value.parameters.length > 0) {
-    selectedApi.value.parameters.forEach(param => {
-      const value = requestParams.value[param.name];
+  if (api.parameters) {
+    api.parameters.forEach(param => {
+      const paramValue = requestParams.value[param.name];
       
-      // 跳过没有值的参数
-      if (value === undefined || value === "") return;
-      
-      // 处理路径参数
-      if (url.includes(`{${param.name}}`)) {
-        pathParams[param.name] = value;
-        // 替换URL中的路径参数
-        url = url.replace(`{${param.name}}`, encodeURIComponent(String(value)));
-      } 
-      // 对于GET请求，非路径参数视为查询参数
-      else if (method === 'GET') {
-        queryParams[param.name] = value;
-      } 
-      // 对于其他请求，将参数放入请求体
-      else {
-        bodyParams[param.name] = value;
+      if (paramValue !== undefined && paramValue !== '') {
+        if (param.in === 'query') {
+          queryParams[param.name] = paramValue;
+        } else if (param.in === 'path') {
+          pathParams[param.name] = paramValue;
+        } else if (param.in === 'body' || !param.in) {
+          bodyParams[param.name] = paramValue;
+        }
       }
     });
   }
@@ -482,15 +516,23 @@ const getRequestExample = () => {
     .join('&');
   
   // 添加查询字符串到URL
+  let fullUrl = url;
   if (queryString) {
-    url += `?${queryString}`;
+    fullUrl += `?${queryString}`;
   }
   
-  // 构建cURL命令
-  let curlCmd = `curl -X ${method} "${url}"`;
+  // 构建 cURL 命令
+  let curlCmd = `curl -X ${method} "${fullUrl}"`;
   
   // 添加请求头
   curlCmd += ` \\\n  -H "Content-Type: application/json"`;
+  
+  // 添加全局 headers
+  Object.entries(currentGlobalHeaders).forEach(([key, value]) => {
+    if (key && value) {
+      curlCmd += ` \\\n  -H "${key}: ${value}"`;
+    }
+  });
   
   // 添加请求体
   if (method !== 'GET' && Object.keys(bodyParams).length > 0) {
@@ -525,7 +567,7 @@ const resetParams = () => {
 };
 
 // 方法：执行请求
-const executeRequest = () => {
+const executeRequest = (requestData?: any) => {
   if (!selectedApi.value) return;
   
   requestLoading.value = true;
@@ -533,61 +575,132 @@ const executeRequest = () => {
   // 记录开始时间
   const startTime = Date.now();
   
-  // 模拟请求延迟
-  setTimeout(() => {
-    // 计算响应时间
-    responseTime.value = Date.now() - startTime;
+  // 获取请求数据
+  const apiInfo = selectedApi.value;
+  const method = apiInfo.method.toLowerCase();
+  const serverUrl = requestData?.server || apiServers.value[0].url;
+  const paramsData = requestData?.params || requestParams.value;
+  let body;
+  
+  try {
+    // 解析请求体，如果是JSON字符串
+    if (requestData?.body) {
+      body = typeof requestData.body === 'string' 
+        ? JSON.parse(requestData.body) 
+        : requestData.body;
+    }
+  } catch (error) {
+    console.error('解析请求体失败:', error);
+    message('请求体JSON格式错误', { type: 'error' });
+    requestLoading.value = false;
     
-    // 随机生成成功或失败响应
-    if (Math.random() > 0.2) {
-      // 成功响应
+    // 显示调用失败状态
+    if (apiParamsRef.value) {
+      apiParamsRef.value.setCallStatus?.('error', '请求体JSON格式错误');
+    }
+    return;
+  }
+  
+  // 获取当前环境的全局 headers
+  const currentGlobalHeaders = envManagerRef.value?.getCurrentHeaders?.() || {};
+  
+  // 构建请求参数
+  const reqParams = {
+    url: serverUrl + apiInfo.path,
+    method: method,
+    params: method === 'get' || method === 'delete' ? paramsData : undefined,
+    data: (method === 'post' || method === 'put' || method === 'patch') ? body : undefined,
+    headers: {
+      'Content-Type': 'application/json',
+      ...currentGlobalHeaders, // 合并全局 headers
+      ...(requestData?.headers || {}) // 合并请求特定的 headers
+    }
+  };
+  
+  // 确保结果标签页显示调试结果
+  if (apiResultRef.value?.setActiveTab) {
+    apiResultRef.value.setActiveTab('debug');
+  }
+  
+  // 发送请求
+  fetchForwardDocument(method as any, reqParams)
+    .then(response => {
+      // 计算响应时间
+      responseTime.value = Date.now() - startTime;
+      
+      // 设置响应状态码
       responseStatus.value = 200;
       
-      // 创建动态响应结果
-      const result = {
-        code: "00000",
-        message: "success",
-        data: {
-          requestId: `req-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          params: { ...requestParams.value },
-          result: [
-            {
-              id: Math.floor(Math.random() * 1000),
-              name: "示例数据" + Math.floor(Math.random() * 100),
-              status: "active",
-              createTime: new Date().toISOString()
-            }
-          ]
-        }
-      };
+      // 设置响应头信息
+      if (response.headers) {
+        responseHeaders.value = response.headers;
+        responseContentType.value = response.headers['content-type'] || '';
+      } else {
+        responseHeaders.value = {};
+        responseContentType.value = '';
+      }
       
-      customResponse.value = JSON.stringify(result, null, 2);
-    } else {
-      // 错误响应
-      responseStatus.value = Math.random() > 0.5 ? 400 : 500;
+      // 设置响应内容
+      customResponse.value = JSON.stringify(response, null, 2);
       
-      const errorTypes = [
-        { code: "A0001", message: "用户请求参数错误" },
-        { code: "B0001", message: "系统执行出错" },
-        { code: "C0001", message: "调用第三方服务出错" }
-      ];
+      // 记录到历史记录
+      if (apiResultRef.value?.recordApiCall) {
+        apiResultRef.value.recordApiCall('success', paramsData, response);
+      }
       
-      const randomError = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+      // 显示调用成功状态
+      if (apiParamsRef.value) {
+        apiParamsRef.value.setCallStatus?.('success', '调用成功');
+      }
+    })
+    .catch(error => {
+      // 计算响应时间
+      responseTime.value = Date.now() - startTime;
       
-      // 创建错误响应
-      const error = {
-        code: randomError.code,
-        message: randomError.message,
-        data: null,
-        requestId: `req-${Date.now()}`
-      };
+      // 设置错误状态码
+      responseStatus.value = error.status || 500;
       
-      customResponse.value = JSON.stringify(error, null, 2);
-    }
-    
-    requestLoading.value = false;
-  }, 1500);
+      // 设置响应头信息
+      if (error.headers) {
+        responseHeaders.value = error.headers;
+        responseContentType.value = error.headers['content-type'] || '';
+      } else {
+        responseHeaders.value = {};
+        responseContentType.value = '';
+      }
+      
+      // 设置错误响应
+      let errorResponse;
+      try {
+        errorResponse = error.data || {
+          code: 'ERROR',
+          message: error.message || '请求失败',
+          data: null
+        };
+      } catch (e) {
+        errorResponse = {
+          code: 'ERROR',
+          message: '请求失败',
+          data: null
+        };
+      }
+      
+      customResponse.value = JSON.stringify(errorResponse, null, 2);
+      
+      // 记录到历史记录
+      if (apiResultRef.value?.recordApiCall) {
+        apiResultRef.value.recordApiCall('error', paramsData, errorResponse);
+      }
+      
+      // 显示调用失败状态
+      if (apiParamsRef.value) {
+        apiParamsRef.value.setCallStatus?.('error', errorResponse.message || '调用失败');
+      }
+    })
+    .finally(() => {
+      // 确保在任何情况下都重置loading状态
+      requestLoading.value = false;
+    });
 };
 
 // 方法：复制请求示例
@@ -657,19 +770,234 @@ const handleTabChange = (tab: string) => {
   activeResultTab.value = tab;
 };
 
-// 列宽调整方法
-// 这些方法现在只用于处理文档中间的调整条
-// 组件自身的调整使用各自组件内部的方法
-const startResize = (e: MouseEvent) => {
-  // 此方法现在只处理主布局中的列调整
-  // 实际的调整逻辑已经移至各个组件内部
-  e.preventDefault();
+// 处理来自历史记录的参数填充请求
+const handleFillParams = (params: Record<string, any>) => {
+  if (!params) return;
+  
+  console.log('填充历史参数:', params);
+  
+  // 更新请求参数
+  requestParams.value = {
+    ...requestParams.value,
+    ...params
+  };
+  
+  // 通知参数组件参数已更新
+  if (apiParamsRef.value) {
+    apiParamsRef.value.updateParams?.(requestParams.value);
+  } else {
+    message("参数已更新，但无法自动填充到表单", { type: "warning" });
+  }
+  
+  // 如果当前不在调试标签页，切换到调试标签页
+  if (apiResultRef.value?.activeTab !== 'debug' && apiResultRef.value?.setActiveTab) {
+    apiResultRef.value.setActiveTab('debug');
+  }
 };
 
-const startTouchResize = (e: TouchEvent) => {
-  // 此方法现在只处理主布局中的列调整
-  // 实际的调整逻辑已经移至各个组件内部
+// 方法：处理全局 headers 更新
+const handleGlobalHeadersUpdated = (headers: Record<string, string>) => {
+  globalHeaders.value = headers;
+  console.log('全局 headers 已更新:', headers);
+};
+
+// 第一个拖动条事件处理
+const startResizeFirstColumn = (e: MouseEvent) => {
   e.preventDefault();
+  e.stopPropagation();
+  
+  isResizing.value = true;
+  currentResizingColumn.value = 'first';
+  startX.value = e.clientX;
+  startWidth.value = paramsColumnWidth.value;
+  
+  // 添加事件监听
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResize);
+  
+  // 添加调整时的样式
+  document.body.classList.add('resizing');
+};
+
+// 第二个拖动条事件处理
+const startResizeSecondColumn = (e: MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  isResizing.value = true;
+  currentResizingColumn.value = 'second';
+  startX.value = e.clientX;
+  startWidth.value = resultColumnWidth.value;
+  
+  // 添加事件监听
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResize);
+  
+  // 添加调整时的样式
+  document.body.classList.add('resizing');
+};
+
+// 鼠标移动事件处理
+const handleMouseMove = (e: MouseEvent) => {
+  if (!isResizing.value) return;
+  e.preventDefault();
+  
+  const movementX = e.clientX - startX.value;
+  let newWidth = 0;
+  
+  if (currentResizingColumn.value === 'first') {
+    // 第一个拖动条 - 调整参数列宽度
+    newWidth = startWidth.value + movementX;
+    
+    // 限制最小/最大宽度
+    if (newWidth < MIN_COLUMN_WIDTH) newWidth = MIN_COLUMN_WIDTH;
+    if (newWidth > MAX_COLUMN_WIDTH) newWidth = MAX_COLUMN_WIDTH;
+    
+    // 更新参数列宽度
+    paramsColumnWidth.value = newWidth;
+  } else {
+    // 第二个拖动条 - 调整结果列宽度
+    newWidth = startWidth.value - movementX; // 注意这里是减号，因为是从右向左拖动
+    
+    // 限制最小/最大宽度
+    if (newWidth < MIN_COLUMN_WIDTH) newWidth = MIN_COLUMN_WIDTH;
+    if (newWidth > MAX_COLUMN_WIDTH) newWidth = MAX_COLUMN_WIDTH;
+    
+    // 更新结果列宽度
+    resultColumnWidth.value = newWidth;
+  }
+};
+
+// 停止调整大小
+const stopResize = () => {
+  if (!isResizing.value) return;
+  
+  isResizing.value = false;
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResize);
+  
+  // 移除调整时的样式
+  document.body.classList.remove('resizing');
+  
+  // 保存列宽到本地存储
+  if (currentResizingColumn.value === 'first') {
+    localStorage.setItem(STORAGE_KEY_PARAMS, paramsColumnWidth.value.toString());
+  } else {
+    localStorage.setItem(STORAGE_KEY_RESULT, resultColumnWidth.value.toString());
+  }
+};
+
+// 触摸调整方法 - 第一列和第二列之间
+const startTouchResizeFirstColumn = (e: TouchEvent) => {
+  isResizing.value = true;
+  currentResizingColumn.value = 'first';
+  startX.value = e.touches[0].clientX;
+  startWidth.value = paramsColumnWidth.value;
+  
+  // 添加事件监听
+  document.addEventListener('touchmove', handleTouchMove);
+  document.addEventListener('touchend', stopTouchResize);
+  
+  // 添加禁止选择文本的类
+  document.body.classList.add('resizing');
+  
+  e.preventDefault();
+  e.stopPropagation();
+};
+
+// 触摸调整方法 - 第二列和第三列之间
+const startTouchResizeSecondColumn = (e: TouchEvent) => {
+  isResizing.value = true;
+  currentResizingColumn.value = 'second';
+  startX.value = e.touches[0].clientX;
+  startWidth.value = resultColumnWidth.value;
+  
+  // 添加事件监听
+  document.addEventListener('touchmove', handleTouchMove);
+  document.addEventListener('touchend', stopTouchResize);
+  
+  // 添加禁止选择文本的类
+  document.body.classList.add('resizing');
+  
+  e.preventDefault();
+  e.stopPropagation();
+};
+
+// 处理触摸移动
+const handleTouchMove = (e: TouchEvent) => {
+  if (!isResizing.value) return;
+  
+  const offsetX = e.touches[0].clientX - startX.value;
+  
+  if (currentResizingColumn.value === 'first') {
+    // 调整参数列宽度
+    let newWidth = startWidth.value + offsetX;
+    newWidth = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, newWidth));
+    paramsColumnWidth.value = newWidth;
+  } else {
+    // 调整结果列宽度
+    let newWidth = startWidth.value - offsetX;
+    newWidth = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, newWidth));
+    resultColumnWidth.value = newWidth;
+  }
+  
+  e.preventDefault();
+  e.stopPropagation();
+};
+
+// 停止触摸拖动调整
+const stopTouchResize = (e: TouchEvent) => {
+  if (!isResizing.value) return;
+  
+  isResizing.value = false;
+  
+  // 移除事件监听
+  document.removeEventListener('touchmove', handleTouchMove);
+  document.removeEventListener('touchend', stopTouchResize);
+  
+  // 移除禁止选择文本的类
+  document.body.classList.remove('resizing');
+  
+  // 保存宽度到 localStorage
+  saveWidthToStorage();
+  
+  e.preventDefault();
+  e.stopPropagation();
+};
+
+// 保存宽度设置到 localStorage
+const saveWidthToStorage = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY_PARAMS, paramsColumnWidth.value.toString());
+    localStorage.setItem(STORAGE_KEY_RESULT, resultColumnWidth.value.toString());
+  } catch (error) {
+    console.error('保存列宽到本地存储时出错:', error);
+  }
+};
+
+// 从 localStorage 加载宽度设置
+const loadWidthFromStorage = () => {
+  try {
+    // 加载参数列宽度
+    const savedParamsWidth = localStorage.getItem(STORAGE_KEY_PARAMS);
+    if (savedParamsWidth) {
+      const width = parseInt(savedParamsWidth, 10);
+      if (!isNaN(width) && width >= MIN_COLUMN_WIDTH && width <= MAX_COLUMN_WIDTH) {
+        paramsColumnWidth.value = width;
+      }
+    }
+    
+    // 加载结果列宽度
+    const savedResultWidth = localStorage.getItem(STORAGE_KEY_RESULT);
+    if (savedResultWidth) {
+      const width = parseInt(savedResultWidth, 10);
+      if (!isNaN(width) && width >= MIN_COLUMN_WIDTH && width <= MAX_COLUMN_WIDTH) {
+        resultColumnWidth.value = width;
+      }
+    }
+  } catch (error) {
+    console.error('从本地存储加载列宽时出错:', error);
+  }
 };
 
 // 监听API列表最小化状态
@@ -678,13 +1006,15 @@ watch(isApiListMinimized, (minimized) => {
   // 可以添加其他响应逻辑
 });
 
-// 监听列宽变化
+// 监听参数列和结果列宽度变化
 watch([paramsColumnWidth, resultColumnWidth], () => {
-  // 可以在这里添加响应列宽变化的逻辑
-  console.log('列宽变化:', {
-    params: paramsColumnWidth.value,
-    result: resultColumnWidth.value
-  });
+  // 在开发模式下，打印列宽
+  if (import.meta.env.DEV) {
+    console.log('Column widths:', {
+      params: paramsColumnWidth.value,
+      result: resultColumnWidth.value
+    });
+  }
 });
 
 // 监听服务列表变化
@@ -726,13 +1056,20 @@ watch(
 // 组件卸载前清理事件监听
 onBeforeUnmount(() => {
   // 清理已不再需要的事件监听器
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResize);
+  document.removeEventListener('touchmove', handleTouchMove);
+  document.removeEventListener('touchend', stopTouchResize);
   document.body.classList.remove('resizing');
 });
 
 // 在组件挂载时初始化
 onMounted(() => {
-  // 初始化文档数据
+  // 初始化
   initialApiDoc();
+  
+  // 加载保存的列宽设置
+  loadWidthFromStorage();
 });
 
 // 导出组件
@@ -791,13 +1128,14 @@ defineExpose({
     
     // 拖动调整条
     .column-resizer {
-      width: 5px;
+      width: 8px; // 增加宽度，使其更容易点击
       height: 100%;
       background-color: var(--el-border-color-light);
       cursor: col-resize;
       transition: background-color 0.2s;
-      z-index: 10;
+      z-index: 100; // 提高层级，确保可点击
       position: relative;
+      flex: 0 0 8px; // 固定宽度
       
       &:hover, &:active {
         background-color: var(--el-color-primary-light-5);
@@ -809,8 +1147,8 @@ defineExpose({
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 1px;
-        height: 20px;
+        width: 2px;
+        height: 30px;
         background-color: var(--el-color-primary-light-7);
         opacity: 0;
         transition: opacity 0.2s;
@@ -818,6 +1156,24 @@ defineExpose({
       
       &:hover::after {
         opacity: 1;
+      }
+      
+      // 添加更多样式以增强视觉反馈
+      &.first-resizer, &.second-resizer {
+        &:hover {
+          background-color: var(--el-color-primary-light-3);
+        }
+        
+        &:before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 2px;
+          height: 100px;
+          background-color: var(--el-color-primary-light-5);
+        }
       }
     }
     
@@ -841,7 +1197,21 @@ defineExpose({
 
 // 全局样式：禁止文本选择
 :global(.resizing) {
-  user-select: none;
+  user-select: none !important;
   cursor: col-resize !important;
+  * {
+    user-select: none !important;
+    cursor: col-resize !important;
+  }
+}
+
+// 参数列样式，包含环境管理器
+.params-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-right: 1px solid var(--el-border-color-light);
+  padding-top: 10px;
 }
 </style> 

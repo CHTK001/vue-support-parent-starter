@@ -142,12 +142,14 @@ export const useLayoutLayoutStore = defineStore({
         });
         this.modulesWithProps[item.sysSfcId] = item;
       });
-      for (let comp of allCompsList) {
-        const _item = this.component.find((item) => {
-          return item === comp.key;
-        });
-        if (_item) {
-          comp.disabled = true;
+      if (Array.isArray(this.component)) {
+        for (let comp of allCompsList) {
+          const _item = this.component.find((item) => {
+            return item === comp.key;
+          });
+          if (_item) {
+            comp.disabled = true;
+          }
         }
       }
       // await this.loadGridStack();
@@ -271,12 +273,12 @@ export const useLayoutLayoutStore = defineStore({
       });
     },
     hasSettingCompent() {
-      if (this.nowCompsList().length == 0) {
+      if (!Array.isArray(this.nowCompsList()) || this.nowCompsList().length == 0) {
         return false;
       }
 
       const _component = [];
-      this.nowCompsList().forEach((item) => {
+      this.nowCompsList()?.forEach((item) => {
         if (_.isArray(item)) {
           _component.push(...item);
           return;

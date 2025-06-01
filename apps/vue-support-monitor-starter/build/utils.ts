@@ -5,6 +5,20 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dependencies, devDependencies, engines, name, version } from "../package.json";
 
+/** ViteEnv环境变量类型 */
+interface ViteEnv {
+  VITE_PORT: number;
+  VITE_PUBLIC_PATH: string;
+  VITE_ROUTER_HISTORY: string;
+  VITE_CDN: boolean;
+  NODE_ENV: string;
+  VITE_HIDE_HOME: string;
+  VITE_COMPRESSION: string;
+  VITE_API_PREFIX: string;
+  VITE_API_URL: string;
+  [key: string]: any;
+}
+
 /** 启动`node`进程时所在工作目录的绝对路径 */
 const root: string = process.cwd();
 
@@ -48,9 +62,11 @@ const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 const alias: Record<string, string> = {
   "@": pathResolve("../src"),
   "@build": pathResolve(),
+  "@layout": pathResolve("../../../layout"),
+  "@layout/default": pathResolve("../../../layout/default"),
 };
 
-/** 平台的名称、版本、运行所需的`node`和`pnpm`版本、依赖、最后构建时间的类型提示 */
+/** 平台的名称、版本、运行所需的node和pnpm版本、依赖、最后构建时间的类型提示 */
 const __APP_INFO__ = {
   pkg: { name, version, engines, dependencies, devDependencies },
   lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),

@@ -132,13 +132,7 @@ const _createAutoRouter = () => {
 
 const _createNormalRouter = () => {
   //@ts-ignore
-  const modules: Record<string, any> = import.meta.glob([
-    "./modules/**/*.ts",
-    "!./modules/**/remaining*.ts",
-    "@/router/**/*.ts",
-    "@/router/*.ts",
-    "!@/router/**/remaining*.ts"
-  ], {
+  const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining*.ts", "@/router/**/*.ts", "@/router/*.ts", "!@/router/**/remaining*.ts"], {
     eager: true,
   });
 
@@ -172,7 +166,7 @@ export const remainingPaths = Object.keys(remainingRouter).map((v) => {
 export const router: Router = createRouter({
   //@ts-ignore
   history: getHistoryMode(import.meta.env.VITE_ROUTER_HISTORY),
-  routes: constantRoutes.concat(...(remainingRouter as any)),
+  routes: constantRoutes.concat(...remainingRouter),
   strict: true,
   scrollBehavior(to, from, savedPosition) {
     return new Promise((resolve) => {
