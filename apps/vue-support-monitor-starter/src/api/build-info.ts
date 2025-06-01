@@ -25,6 +25,7 @@ export function getBuildList(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
+      wrapper: false,
     },
   });
 }
@@ -40,6 +41,9 @@ export function getBuildGet(params) {
     url: "/build/get",
     method: "get",
     params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -54,6 +58,9 @@ export function getBuildEnvironment(params) {
     url: "/build/manage/environment",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -64,6 +71,9 @@ export function getBuildGroupAll() {
   return axios({
     url: "/build/list_group_all",
     method: "get",
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -79,7 +89,9 @@ export function getBranchList(params) {
     method: "post",
     timeout: 0,
     data: params,
-    headers: {},
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -123,6 +135,9 @@ export function editBuild(params) {
     url: "/build/edit",
     method: "post",
     data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -135,6 +150,9 @@ export function deleteBuild(id) {
     url: "/build/delete",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -143,6 +161,9 @@ export function deleteatchBuild(data) {
     url: "/build/batch-delete",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -155,6 +176,9 @@ export function getTriggerUrl(data) {
     url: "/build/trigger/url",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -179,6 +203,9 @@ export function clearBuid(id) {
     url: "/build/clean-source",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -198,6 +225,7 @@ export function loadBuildLog(params) {
     headers: {
       tip: "no",
       loading: "no",
+      wrapper: false,
     },
   });
 }
@@ -211,6 +239,9 @@ export function startBuild(data) {
     url: "/build/manage/start",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -223,6 +254,9 @@ export function stopBuild(id) {
     url: "/build/manage/cancel",
     method: "post",
     data: { id },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -238,6 +272,9 @@ export function geteBuildHistory(params) {
     url: "/build/history/history_list.json",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -282,6 +319,9 @@ export function rollback(logId) {
     url: "/build/manage/reRelease",
     method: "post",
     data: { logId },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -294,6 +334,9 @@ export function deleteBuildHistory(logId) {
     url: "/build/history/delete_log.json",
     method: "post",
     data: { logId },
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -302,6 +345,9 @@ export function sortItem(params) {
     url: "/build/sort-item",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 

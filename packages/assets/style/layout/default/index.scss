@@ -64,7 +64,15 @@ body {
 .html-weakness {
   filter: invert(80%);
 }
-
+.ant-modal-mask {
+  z-index: 1999 !important;
+  .ant-modal-wrap {
+    z-index: 2000 !important;
+  }
+}
+ .ant-modal-wrap {
+   z-index: 2000 !important;
+}
 .fullscreen {
   width: 100%;
   height: 100%;

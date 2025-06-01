@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 /**
  *
@@ -16,10 +16,13 @@ import axios from './config'
  */
 export function editWorkSpace(data) {
   return axios({
-    url: '/system/workspace/edit',
-    method: 'post',
-    data: data
-  })
+    url: "/system/workspace/edit",
+    method: "post",
+    data: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -29,10 +32,13 @@ export function editWorkSpace(data) {
  */
 export function getWorkSpaceList(params) {
   return axios({
-    url: '/system/workspace/list',
-    method: 'post',
-    data: params
-  })
+    url: "/system/workspace/list",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -42,10 +48,13 @@ export function getWorkSpaceList(params) {
  */
 export function getWorkSpaceGroupList(params) {
   return axios({
-    url: '/system/workspace/list-group-all',
-    method: 'get',
-    params: params
-  })
+    url: "/system/workspace/list-group-all",
+    method: "get",
+    params: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -55,10 +64,13 @@ export function getWorkSpaceGroupList(params) {
  */
 export function getWorkSpaceListAll() {
   return axios({
-    url: '/system/workspace/list_all',
-    method: 'get',
-    data: {}
-  })
+    url: "/system/workspace/list_all",
+    method: "get",
+    data: {},
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -68,10 +80,13 @@ export function getWorkSpaceListAll() {
  */
 export function deleteWorkspace(id) {
   return axios({
-    url: '/system/workspace/delete',
-    method: 'get',
-    params: { id: id }
-  })
+    url: "/system/workspace/delete",
+    method: "get",
+    params: { id: id },
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -81,10 +96,13 @@ export function deleteWorkspace(id) {
  */
 export function preDeleteWorkspace(id) {
   return axios({
-    url: '/system/workspace/pre-check-delete',
-    method: 'get',
-    params: { id: id }
-  })
+    url: "/system/workspace/pre-check-delete",
+    method: "get",
+    params: { id: id },
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -94,10 +112,13 @@ export function preDeleteWorkspace(id) {
  */
 export function getWorkspaceEnvList(params) {
   return axios({
-    url: '/system/workspace_env/list',
-    method: 'post',
-    data: params
-  })
+    url: "/system/workspace_env/list",
+    method: "post",
+    data: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 /*
  * 工作空间环境变量全部列表
@@ -106,10 +127,13 @@ export function getWorkspaceEnvList(params) {
  */
 export function getWorkspaceEnvAll(data) {
   return axios({
-    url: '/system/workspace_env/all',
-    method: 'post',
-    data
-  })
+    url: "/system/workspace_env/all",
+    method: "post",
+    data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -118,10 +142,13 @@ export function getWorkspaceEnvAll(data) {
  */
 export function editWorkspaceEnv(data) {
   return axios({
-    url: '/system/workspace_env/edit',
-    method: 'post',
-    data: data
-  })
+    url: "/system/workspace_env/edit",
+    method: "post",
+    data: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /*
@@ -131,18 +158,24 @@ export function editWorkspaceEnv(data) {
  */
 export function deleteWorkspaceEnv(params) {
   return axios({
-    url: '/system/workspace_env/delete',
-    method: 'get',
-    params: params
-  })
+    url: "/system/workspace_env/delete",
+    method: "get",
+    params: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function getTriggerUrlWorkspaceEnv(params) {
   return axios({
-    url: '/system/workspace_env/trigger-url',
-    method: 'post',
-    params: params
-  })
+    url: "/system/workspace_env/trigger-url",
+    method: "post",
+    params: params,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -150,10 +183,13 @@ export function getTriggerUrlWorkspaceEnv(params) {
  */
 export function getMenusConfig(data) {
   return axios({
-    url: '/system/workspace/get_menus_config',
-    method: 'post',
-    data
-  })
+    url: "/system/workspace/get_menus_config",
+    method: "post",
+    data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 /**
@@ -161,8 +197,11 @@ export function getMenusConfig(data) {
  */
 export function saveMenusConfig(data) {
   return axios({
-    url: '/system/workspace/save_menus_config.json',
-    method: 'post',
-    data: data
-  })
+    url: "/system/workspace/save_menus_config.json",
+    method: "post",
+    data: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }

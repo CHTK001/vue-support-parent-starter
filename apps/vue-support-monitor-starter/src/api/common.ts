@@ -8,15 +8,18 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 /**
  * 生成分片上传 id
  */
 export function generateShardingId() {
   return axios({
-    url: '/generate-sharding-id',
-    method: 'get',
-    data: {}
-  })
+    url: "/generate-sharding-id",
+    method: "get",
+    data: {},
+    headers: {
+      wrapper: false,
+    },
+  });
 }

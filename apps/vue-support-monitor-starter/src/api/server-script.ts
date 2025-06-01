@@ -19,6 +19,9 @@ export function getScriptList(params) {
     url: "/script/list",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -32,6 +35,9 @@ export function editScript(params) {
     url: "/script/save.json",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -46,6 +52,9 @@ export function deleteScript(params) {
     url: "/script/del.json",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -60,6 +69,9 @@ export function unbindScript(params) {
     url: "/script/unbind.json",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -69,6 +81,9 @@ export function getScriptLogList(params) {
     url: "/script_log/list",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -78,6 +93,9 @@ export function scriptDel(params) {
     url: "/script_log/del_log",
     method: "post",
     data: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -89,6 +107,7 @@ export function scriptLog(params) {
     data: params,
     headers: {
       tip: "no",
+      wrapper: false,
     },
   });
 }
@@ -98,6 +117,9 @@ export function syncToWorkspace(params) {
     url: "/script/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -106,6 +128,9 @@ export function getScriptItem(params) {
     url: "/script/get",
     method: "get",
     params: params,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 
@@ -118,6 +143,9 @@ export function getTriggerUrl(data) {
     url: "/script/trigger-url",
     method: "post",
     data: data,
+    headers: {
+      wrapper: false,
+    },
   });
 }
 

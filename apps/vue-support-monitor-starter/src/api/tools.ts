@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import axios from './config'
+import axios from "./config";
 
 /**
  *
@@ -16,32 +16,44 @@ import axios from './config'
  */
 export function cronTools(data) {
   return axios({
-    url: '/tools/cron',
-    method: 'get',
-    params: data
-  })
+    url: "/tools/cron",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function ipList(data) {
   return axios({
-    url: '/tools/ip-list',
-    method: 'get',
-    params: data
-  })
+    url: "/tools/ip-list",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function netPing(data) {
   return axios({
-    url: '/tools/net-ping',
-    method: 'get',
-    params: data
-  })
+    url: "/tools/net-ping",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
 
 export function netTelnet(data) {
   return axios({
-    url: '/tools/net-telnet',
-    method: 'get',
-    params: data
-  })
+    url: "/tools/net-telnet",
+    method: "get",
+    params: data,
+    headers: {
+      wrapper: false,
+    },
+  });
 }
