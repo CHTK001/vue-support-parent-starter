@@ -89,7 +89,7 @@ export default {
         '/socket/docker_log',
         `userId=${this.getLongTermToken()}&id=${this.id}&machineDockerId=${
           this.machineDockerId
-        }&type=dockerLog&nodeId=system&workspaceId=${this.getWorkspaceId()}`
+        }&type=dockerLog&nodeId=system`
       )
     }
   },

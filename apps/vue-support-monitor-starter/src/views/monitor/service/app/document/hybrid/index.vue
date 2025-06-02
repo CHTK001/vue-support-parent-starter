@@ -59,6 +59,7 @@
         :customResponse="customResponse"
         :responseStatus="responseStatus"
         :responseTime="responseTime"
+        :requestUrl="requestUrl"
         :responseHeaders="responseHeaders"
         :responseContentType="responseContentType"
         @execute-request="executeRequest"
@@ -181,6 +182,7 @@ const responseStatus = ref(200);
 const responseTime = ref(0);
 const responseHeaders = ref<Record<string, string>>({});
 const responseContentType = ref("");
+const requestUrl = ref("");
 // 全局 headers
 const globalHeaders = ref<Record<string, string>>({});
 
@@ -616,12 +618,12 @@ const executeRequest = (requestData?: any) => {
       ...(requestData?.headers || {}) // 合并请求特定的 headers
     }
   };
-  
   // 确保结果标签页显示调试结果
   if (apiResultRef.value?.setActiveTab) {
     apiResultRef.value.setActiveTab('debug');
   }
-  
+
+  requestUrl.value = serverUrl + apiInfo.path;
   // 发送请求
   fetchForwardDocument(method as any, reqParams)
     .then(response => {

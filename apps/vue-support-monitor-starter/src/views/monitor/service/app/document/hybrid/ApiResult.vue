@@ -178,7 +178,7 @@
                   v-model="formattedResponse"
                   :mode="getResponseMode()"
                   :readOnly="true"
-                  :height="250"
+                  :height="650"
                   :options="{
                     lineNumbers: true,
                     foldGutter: true,
@@ -446,6 +446,7 @@ const props = defineProps<{
   requestExample: string;
   requestLoading: boolean;
   customResponse: string;
+  requestUrl: string;
   responseStatus: number;
   responseTime: number;
   responseHeaders: Record<string, string>;
@@ -731,13 +732,17 @@ const fillHistoryParams = (historyItem: any) => {
   }
 };
 
+// 响应头
+const responseHeaders = ref<Record<string, string>>({});
+
 // 方法：格式化响应内容
 const formatResponse = () => {
   try {
     if (isJsonResponse.value) {
       // 尝试格式化JSON
       const parsedJson = JSON.parse(props.customResponse);
-      formattedResponse.value = JSON.stringify(parsedJson, null, 2);
+      formattedResponse.value = JSON.stringify(parsedJson.response.data, null, 2);
+      responseHeaders.value = parsedJson.response.headers;
     } else {
       // 非JSON内容，保持原样
       formattedResponse.value = props.customResponse;
@@ -848,7 +853,7 @@ const getImageDataUrl = () => {
       
       // 如果都不是，显示提示信息
       console.warn('图片数据格式无法识别，无法显示');
-      return '';
+      return props.requestUrl;
     }
   } catch (e) {
     console.error('解析图片数据失败:', e);

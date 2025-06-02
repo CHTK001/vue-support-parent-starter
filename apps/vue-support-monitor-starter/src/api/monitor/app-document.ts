@@ -10,15 +10,12 @@ export const fetchAppDocumentList = (params: any) => {
 /**
  * 获取应用文档
  */
-export const fetchForwardDocument = (method: RequestMethods, params: any) => {
-  params.remoteUrl = params.url;
-  if (method === "get" || method === "delete") {
-    return http.request<ReturnResult<any>>(method, `/v2/document/forward`, {
-      params,
-    });
-  } else {
-    return http.request<ReturnResult<any>>(method, `/v2/document/forward`, {
-      data: params,
-    });
-  }
+export const fetchForwardDocument = (method, params: any) => {
+  return http.request<ReturnResult<any>>("post", `/v2/document/forward`, {
+    params: {
+      remoteUrl: params.url,
+    },
+    data: params,
+    headers: params.headers,
+  });
 };

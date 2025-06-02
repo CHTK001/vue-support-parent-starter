@@ -38,7 +38,7 @@
   "i18n-ally.namespace": true,
   "i18n-ally.localesPaths": ["${cwd}/locales", "./src/locales", "./packages/config/locales", "locales"],
   "i18n-ally.translate.engines": ["baidu"],
-  "i18n-ally.enabledParsers": ["yaml", "js"],
+  "i18n-ally.enabledParsers": ["yaml", "js", "json"],
   // Baidu Translation APPID
   "i18n-ally.translate.baidu.appid": "20230901001801378",
   // Baidu Translation Secret
