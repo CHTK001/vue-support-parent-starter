@@ -192,7 +192,7 @@ export default {
         '/socket/console',
         `userId=${this.getLongTermToken()}&id=${this.id}&nodeId=${
           this.nodeId
-        }&type=console&workspaceId=${this.getWorkspaceId()}`
+        }&type=console`
       )
     }
   },

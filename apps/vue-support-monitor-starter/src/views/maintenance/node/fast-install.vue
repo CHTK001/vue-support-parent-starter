@@ -112,10 +112,6 @@
   </div>
 </template>
 <script>
-import { mapState } from 'pinia'
-
-
-
 import { confirmFastInstall, fastInstall, pullFastInstallResult } from '@/api/node'
 export default {
   data() {
@@ -155,7 +151,7 @@ export default {
 
           this.fastInstallInfo.host = `${location.protocol}//${location.host}${res.data.url}?token=${
             res.data.token
-          }\\&workspaceId=${this.getWorkspaceId()}`
+          }\\`
           let auth = ''
           if (res.data.auth) {
             auth = `+authorize ${res.data.auth}`

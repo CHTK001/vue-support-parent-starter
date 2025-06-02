@@ -1,0 +1,16 @@
+buttons:
+  monitor:
+    database: Database Management
+    database-tools: Management Tools
+    datav: Data Visualization
+    job: Task Management
+    job-list: Task List
+    job-log: Task Log
+    online-service-list: Online Services
+    oss: Object Storage
+    proxy: Proxy Management
+    service: Service Management
+    service-list: Service List
+    setting: System Configuration
+
+i18n_1974fe5349: Installation Successful

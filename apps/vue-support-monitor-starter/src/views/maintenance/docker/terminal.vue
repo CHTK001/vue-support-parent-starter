@@ -38,7 +38,7 @@ export default {
         '/socket/docker_cli',
         `userId=${this.getLongTermToken()}&id=${this.id}&machineDockerId=${
           this.machineDockerId
-        }&nodeId=system&type=docker&containerId=${this.containerId}&workspaceId=${this.getWorkspaceId()}`
+        }&nodeId=system&type=docker&containerId=${this.containerId}`
       )
     }
   },
