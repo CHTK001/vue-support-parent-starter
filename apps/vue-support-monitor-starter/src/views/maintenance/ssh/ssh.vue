@@ -268,7 +268,7 @@
       @ok="handleEditSshOk"
     >
       <a-form ref="editSshForm" :rules="rules" :model="temp" :label-col="{ span: 4 }" :wrapper-col="{ span: 18 }">
-        <template v-if="getUserInfo && getUserInfo.systemUser">
+        <template>
           <a-alert type="info" show-icon style="width: 100%; margin-bottom: 10px">
             <template #message>
               <ul>
@@ -407,7 +407,7 @@
 import { deleteSsh, editSsh, getSshList, syncToWorkspace, getSshGroupAll } from '@/api/ssh'
 import { statusMap } from '@/api/system/assets-ssh'
 import SshFile from '@/views/maintenance/ssh/ssh-file.vue'
-import Terminal1 from '@/views/maintenance/ssh/terminal'
+import Terminal1 from '@/views/maintenance/ssh/terminal.vue'
 import {
   CHANGE_PAGE,
   COMPUTED_PAGINATION,
@@ -555,8 +555,6 @@ export default {
     }
   },
   computed: {
-    ...mapState(useUserStore, ['getUserInfo']),
-    
     pagination() {
       return COMPUTED_PAGINATION(this.listQuery)
     },
@@ -574,10 +572,6 @@ export default {
     useSuggestions() {
       if (this.loading) {
         // 加载中不提示
-        return false
-      }
-      if (!this.getUserInfo || !this.getUserInfo.systemUser) {
-        // 没有登录或者不是超级管理员
         return false
       }
       if (this.listQuery.page !== 1 || this.listQuery.total > 0) {

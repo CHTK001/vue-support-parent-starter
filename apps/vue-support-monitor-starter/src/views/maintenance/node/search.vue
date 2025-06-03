@@ -652,6 +652,7 @@ import {
   exportData,
   importData
 } from '@/api/node-project'
+import { $confirm, $notification } from '@/d.ts/global/global'
 import File from '@/views/maintenance/node/node-layout/project/project-file.vue'
 import Console from '@/views/maintenance/node/node-layout/project/project-console.vue'
 import {
@@ -666,10 +667,10 @@ import FileRead from '@/views/maintenance/node/node-layout/project/project-file-
 import ProjectEdit from '@/views/maintenance/node/node-layout/project/project-edit.vue'
 import CustomTable from '@/components/customTable/index.vue'
 
-import { mapState } from 'pinia'
-
 import { getWorkSpaceListAll } from '@/api/workspace'
 import ProjectLog from '@/views/maintenance/node/node-layout/project/project-log.vue'
+import CustomModal from '@/components/customModal/index.vue'
+import CustomDrawer from '@/components/customDrawer/index.vue'
 export default {
   components: {
     File,
@@ -677,7 +678,9 @@ export default {
     FileRead,
     ProjectEdit,
     ProjectLog,
-    CustomTable
+    CustomTable,
+    CustomModal,
+    CustomDrawer,
   },
   props: {
     nodeId: {
@@ -829,7 +832,6 @@ export default {
     }
   },
   computed: {
-    ...mapState(useUserStore, ['getUserInfo']),
     filePath() {
       return (this.temp.whitelistDirectory || '') + (this.temp.lib || '')
     },
@@ -848,27 +850,7 @@ export default {
       }
     },
     useSuggestions() {
-      if (this.loading) {
-        // 加载中不提示
-        return false
-      }
-      if (!this.getUserInfo || !this.getUserInfo.systemUser) {
-        // 没有登录或者不是超级管理员
-        return false
-      }
-      if (Object.keys(this.nodeMap).length) {
-        return false
-      }
-      return true
-      // if (this.listQuery.page !== 1 || this.listQuery.total > 0) {
-      //   // 不是第一页 或者总记录数大于 0
-      //   return false;
-      // }
-      // // 判断是否存在搜索条件
-      // const nowKeys = Object.keys(this.listQuery);
-      // const defaultKeys = Object.keys(PAGE_DEFAULT_LIST_QUERY);
-      // const dictOrigin = nowKeys.filter((item) => !defaultKeys.includes(item));
-      // return dictOrigin.length === 0;
+      return false
     }
   },
   mounted() {

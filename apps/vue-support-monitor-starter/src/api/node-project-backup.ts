@@ -23,9 +23,6 @@ export function listBackup(params) {
     url: "/node/manage/file/list-backup",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -35,7 +32,6 @@ export function backupFileList(params) {
     method: "post",
     headers: {
       loading: "no",
-      wrapper: false,
     },
     data: params,
   });
@@ -69,9 +65,6 @@ export function backupDeleteProjectFile(params) {
     url: "/node/manage/file/backup-delete",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -90,8 +83,5 @@ export function backupRecoverProjectFile(params) {
     url: "/node/manage/file/backup-recover",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

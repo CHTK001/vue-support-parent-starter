@@ -1,0 +1,27 @@
+.ant-drawer {
+  z-index: 1999 !important;
+}
+
+.ant-drawer-content-wrapper,
+.ant-modal-mask {
+  z-index: 2000 !important;
+}
+.ant-modal-mask {
+  z-index: 1999 !important;
+
+  .ant-modal-wrap {
+    z-index: 2000 !important;
+  }
+}
+
+.ant-select-dropdown,
+.ant-modal-wrap {
+  z-index: 2000 !important;
+}
+.ant-card-head-title {
+  min-height: 32px;
+}
+.anticon {
+  position: relative;
+  top: -2px
+}

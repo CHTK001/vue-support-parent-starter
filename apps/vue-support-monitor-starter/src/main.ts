@@ -34,6 +34,19 @@ import { setupDirectives } from "./directives";
 // 导入 Ant Design Vue
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
+// 导入 Ant Design Vue 图标
+import * as AntIcons from "@ant-design/icons-vue";
+// 导入全局方法插件
+import IconPlugin from "./components/Icon";
+
+// 全局注册 components 文件夹下的所有组件
+const modules = import.meta.glob("./components/**/index.vue", { eager: true });
+const components: Record<string, any> = {};
+
+Object.keys(modules).forEach((key) => {
+  const componentName = key.split("/").slice(-2, -1)[0];
+  components[componentName] = (modules[key] as any).default;
+});
 
 const app = createApp(App);
 
@@ -48,9 +61,23 @@ app.component("FontIcon", FontIcon);
 app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
+// 全局注册 Ant Design Vue 的图标组件
+Object.keys(AntIcons).forEach((key) => {
+  app.component(key, AntIcons[key]);
+});
+
+// 全局注册 components 文件夹下的所有组件
+Object.keys(components).forEach((key) => {
+  // 组件名转换为驼峰式命名，首字母大写
+  const componentName = key.replace(/-(\w)/g, (_, c) => c.toUpperCase()).replace(/^\w/, (c) => c.toUpperCase());
+  app.component(componentName, components[key]);
+});
+
 app.use(VueTippy);
 // 使用 Ant Design Vue
 app.use(Antd);
+// 注册全局方法
+app.use(IconPlugin);
 
 // 注册指令
 setupDirectives(app);

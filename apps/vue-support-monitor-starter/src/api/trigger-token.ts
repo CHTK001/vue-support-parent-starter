@@ -15,9 +15,6 @@ export function triggerTokenList(data) {
     url: "/system/trigger/list",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -26,9 +23,6 @@ export function triggerTokenAllType(data) {
     url: "/system/trigger/all-type",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -37,8 +31,5 @@ export function triggerTokenDelete(data) {
     url: "/system/trigger/delete",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }

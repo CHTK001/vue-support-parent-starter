@@ -29,9 +29,6 @@ export function getRepositoryList(params) {
     url: "/build/repository/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -56,7 +53,6 @@ export function importData(formData) {
     url: "/build/repository/import-data",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -74,9 +70,6 @@ export function getRepositoryInfo(params) {
     url: "/build/repository/get",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -90,9 +83,6 @@ export function listRepositoryGroup(params) {
     url: "/build/repository/list-group",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -115,9 +105,6 @@ export function editRepository(params) {
     url: "/build/repository/edit",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -134,9 +121,6 @@ export function deleteRepository(params) {
     url: "/build/repository/delete",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 /**
@@ -149,9 +133,6 @@ export function restHideField(id) {
     url: "/build/repository/rest_hide_field",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -160,9 +141,6 @@ export function authorizeRepos(param) {
     url: "/build/repository/authorize_repos",
     method: "get",
     params: param,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -170,9 +148,6 @@ export function providerInfo() {
   return axios({
     url: "/build/repository/provider_info",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -181,8 +156,5 @@ export function sortItem(params) {
     url: "/build/repository/sort-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

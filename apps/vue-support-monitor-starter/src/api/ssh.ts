@@ -16,9 +16,6 @@ export function getSshList(params) {
     url: "/node/ssh/list_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -27,9 +24,6 @@ export function getSshGroupAll() {
   return axios({
     url: "/node/ssh/list-group-all",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -38,9 +32,6 @@ export function getSshListTree() {
   return axios({
     url: "/node/ssh/list-tree",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -50,9 +41,6 @@ export function getItem(params) {
     url: "/node/ssh/get-item.json",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -61,9 +49,6 @@ export function getSshListAll() {
   return axios({
     url: "/node/ssh/list_data_all.json",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -73,9 +58,6 @@ export function getSshOperationLogList(params) {
     url: "/node/ssh/log_list_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -89,9 +71,6 @@ export function editSsh(params) {
     url: "/node/ssh/save.json",
     method: "post",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -101,9 +80,6 @@ export function deleteSsh(id) {
     url: "/node/ssh/del.json",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -113,9 +89,6 @@ export function deleteForeSsh(id) {
     url: "/node/ssh/del-fore",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -124,8 +97,5 @@ export function syncToWorkspace(params) {
     url: "/node/ssh/sync-to-workspace",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

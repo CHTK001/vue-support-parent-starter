@@ -19,9 +19,6 @@ export function getWhiteList(data) {
     url: "/node/system/white-list",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -39,8 +36,5 @@ export function editWhiteList(params) {
     url: "/node/system/whitelistDirectory_submit",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

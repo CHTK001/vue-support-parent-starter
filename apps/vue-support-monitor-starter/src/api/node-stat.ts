@@ -26,7 +26,6 @@ export function machineInfo(params) {
     params: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -39,7 +38,6 @@ export function machineDiskInfo(params) {
     params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -52,7 +50,6 @@ export function machineHwDiskInfo(params) {
     params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -366,7 +363,6 @@ export function machineNetworkInterfaces(params) {
     params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }

@@ -18,9 +18,6 @@ export function listExtConf() {
   return axios({
     url: "/system/ext-conf/list",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -29,9 +26,6 @@ export function getItem(params) {
     url: "/system/ext-conf/get-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -40,9 +34,6 @@ export function getDefaultItem(params) {
     url: "/system/ext-conf/get-default-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -51,9 +42,6 @@ export function saveItem(params) {
     url: "/system/ext-conf/save-item",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -62,8 +50,5 @@ export function addItem(params) {
     url: "/system/ext-conf/add-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

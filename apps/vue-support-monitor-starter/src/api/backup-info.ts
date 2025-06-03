@@ -24,9 +24,6 @@ export function getBackupList(params) {
     url: "/system/backup/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -37,9 +34,6 @@ export function getTableNameList() {
   return axios({
     url: "/system/backup/table-name-list",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -56,7 +50,6 @@ export function createBackup(tableNameList) {
     method: "post",
     headers: {
       "Content-Type": "application/json",
-      wrapper: false,
     },
     data,
   });
@@ -71,9 +64,6 @@ export function deleteBackup(id) {
     url: "/system/backup/delete",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -88,9 +78,6 @@ export function restoreBackup(id) {
     method: "post",
     timeout: 0,
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -117,7 +104,6 @@ export function uploadBackupFile(formData) {
     url: "/system/backup/upload",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -131,9 +117,6 @@ export function getTriggerUrl(params) {
     url: "/system/backup/trigger-url",
     method: "post",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 

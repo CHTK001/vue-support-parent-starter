@@ -19,9 +19,6 @@ export function cronTools(data) {
     url: "/tools/cron",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -30,9 +27,6 @@ export function ipList(data) {
     url: "/tools/ip-list",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -41,9 +35,6 @@ export function netPing(data) {
     url: "/tools/net-ping",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -52,8 +43,5 @@ export function netTelnet(data) {
     url: "/tools/net-telnet",
     method: "get",
     params: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }

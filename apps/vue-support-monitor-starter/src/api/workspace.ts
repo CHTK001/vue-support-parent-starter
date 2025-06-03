@@ -19,9 +19,6 @@ export function editWorkSpace(data) {
     url: "/system/workspace/edit",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -35,9 +32,6 @@ export function getWorkSpaceList(params) {
     url: "/system/workspace/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -51,9 +45,6 @@ export function getWorkSpaceGroupList(params) {
     url: "/system/workspace/list-group-all",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -67,9 +58,6 @@ export function getWorkSpaceListAll() {
     url: "/system/workspace/list_all",
     method: "get",
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -83,9 +71,6 @@ export function deleteWorkspace(id) {
     url: "/system/workspace/delete",
     method: "get",
     params: { id: id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -99,9 +84,6 @@ export function preDeleteWorkspace(id) {
     url: "/system/workspace/pre-check-delete",
     method: "get",
     params: { id: id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -115,9 +97,6 @@ export function getWorkspaceEnvList(params) {
     url: "/system/workspace_env/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 /*
@@ -130,9 +109,6 @@ export function getWorkspaceEnvAll(data) {
     url: "/system/workspace_env/all",
     method: "post",
     data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -145,9 +121,6 @@ export function editWorkspaceEnv(data) {
     url: "/system/workspace_env/edit",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -161,9 +134,6 @@ export function deleteWorkspaceEnv(params) {
     url: "/system/workspace_env/delete",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -172,9 +142,6 @@ export function getTriggerUrlWorkspaceEnv(params) {
     url: "/system/workspace_env/trigger-url",
     method: "post",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -186,9 +153,6 @@ export function getMenusConfig(data) {
     url: "/system/workspace/get_menus_config",
     method: "post",
     data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -200,8 +164,5 @@ export function saveMenusConfig(data) {
     url: "/system/workspace/save_menus_config.json",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }

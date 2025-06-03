@@ -23,9 +23,6 @@ export function getLicense() {
   return axios({
     url: "/about/license",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -33,8 +30,5 @@ export function getThankDependency() {
   return axios({
     url: "/about/thank-dependency",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }

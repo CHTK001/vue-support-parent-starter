@@ -1615,6 +1615,9 @@ importers:
       luckyexcel:
         specifier: 'catalog:'
         version: 1.0.1
+      markdown-it:
+        specifier: 'catalog:'
+        version: 14.1.0
       mitt:
         specifier: 'catalog:'
         version: 3.0.1

@@ -17,9 +17,6 @@ export function getMonitorList(params) {
     url: "/monitor/getMonitorList",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -40,9 +37,6 @@ export function editMonitor(params) {
     url: "/monitor/updateMonitor",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -59,9 +53,6 @@ export function changeMonitorStatus(params) {
     url: "/monitor/changeStatus",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -74,9 +65,6 @@ export function deleteMonitor(id) {
     url: "/monitor/deleteMonitor",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -94,9 +82,6 @@ export function getMonitorLogList(params) {
     url: "/monitor/list_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -107,9 +92,6 @@ export function getMonitorOperateLogList() {
   return axios({
     url: "/monitor_user_opt/list_data",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -121,9 +103,6 @@ export function getMonitorOperateTypeList() {
   return axios({
     url: "/monitor_user_opt/type_data",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -144,9 +123,6 @@ export function editMonitorOperate(params) {
     url: "/monitor_user_opt/update",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -160,9 +136,6 @@ export function deleteMonitorOperate(id) {
     url: "/monitor_user_opt/delete",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 

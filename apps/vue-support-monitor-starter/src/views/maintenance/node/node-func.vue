@@ -41,16 +41,32 @@
   </CustomDrawer>
 </template>
 <script>
-import { mapState } from 'pinia'
-import { defineAsyncComponent } from 'vue'
-import ScriptList from '@/views/maintenance/node/script-list.vue'
+import CustomDrawer from '@/components/customDrawer/index.vue'
+import CustomModal from '@/components/customModal/index.vue'
 import ScriptLog from '@/views/maintenance/node/node-layout/other/script-log.vue'
-
+import ScriptList from '@/views/maintenance/node/script-list.vue'
+import {
+  CloudServerOutlined,
+  DesktopOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  SettingOutlined,
+  UserOutlined
+} from '@ant-design/icons-vue'
+import { defineAsyncComponent } from 'vue'
 export default {
   components: {
     ScriptList,
     ScriptLog,
-    projectSearch: defineAsyncComponent(() => import('@/views/maintenance/node/search.vue'))
+    projectSearch: defineAsyncComponent(() => import('@/views/maintenance/node/search.vue')),
+    CustomModal,
+    CustomDrawer,
+    FileOutlined,
+    SettingOutlined,
+    FileTextOutlined,
+    CloudServerOutlined,
+    UserOutlined,
+    DesktopOutlined,
   },
   props: {
     name: {
@@ -71,12 +87,13 @@ export default {
   emits: ['close'],
   data() {
     return {
+      getCollapsed: false,
       current: null
     }
   },
   created() {
     //
-    this.current = this.tabs[0]
+    this.current = this.tabs[0];
   },
   methods: {}
 }
