@@ -17,7 +17,6 @@ export function checkSystem() {
     method: "post",
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -34,9 +33,6 @@ export function initInstall(params) {
     url: "/install_submit.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -46,7 +42,6 @@ export function loadingLogo() {
     method: "get",
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }

@@ -84,7 +84,7 @@ class PureHttp {
       async (config: PureHttpRequestConfig): Promise<any> => {
         config.baseURL = getConfig().BaseUrl;
         config = uu2(config);
-        const an = config.headers["x-remote-animation"];
+        const an = config.headers["x-remote-animation"] || config.headers["loading"];
         config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
         if (an) {
           if (an == "true") {

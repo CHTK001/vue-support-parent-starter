@@ -20,9 +20,6 @@ export function dockerSwarmList(params) {
     url: "/docker/swarm/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -31,9 +28,6 @@ export function dockerSwarmListAll(params) {
     url: "/docker/swarm/list-all",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -42,9 +36,6 @@ export function editDockerSwarm(data) {
     url: "/docker/swarm/edit",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -59,9 +50,6 @@ export function delSwarm(params) {
     url: "/docker/swarm/del",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -76,7 +64,6 @@ export function dockerSwarmNodeList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -90,9 +77,6 @@ export function dockerSwarmNodeUpdate(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm/update",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -107,7 +91,6 @@ export function dockerSwarmServicesList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -123,7 +106,6 @@ export function dockerSwarmServicesTaskList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -137,9 +119,6 @@ export function dockerSwarmServicesDel(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm-service/del",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -154,7 +133,6 @@ export function dockerSwarmServicesEdit(urlPrefix, params) {
     data: params,
     headers: {
       "Content-Type": "application/json",
-      wrapper: false,
     },
   });
 }
@@ -168,9 +146,6 @@ export function dockerSwarmServicesStartLog(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm-service/start-log",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -185,7 +160,6 @@ export function dockerSwarmServicesPullLog(urlPrefix, params) {
     params: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }

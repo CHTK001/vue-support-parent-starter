@@ -18,8 +18,5 @@ export function generateShardingId() {
     url: "/generate-sharding-id",
     method: "get",
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }

@@ -16,9 +16,6 @@ export function getLogReadList(params) {
     url: "/log-read/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -38,7 +35,6 @@ export function editLogRead(params) {
     data: params,
     headers: {
       "Content-Type": "application/json",
-      wrapper: false,
     },
   });
 }
@@ -50,7 +46,6 @@ export function updateCache(params) {
     data: params,
     headers: {
       "Content-Type": "application/json",
-      wrapper: false,
     },
   });
 }
@@ -64,8 +59,5 @@ export function deleteLogRead(id) {
     url: "/log-read/del.json",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }

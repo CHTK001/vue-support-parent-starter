@@ -443,7 +443,6 @@
   </div>
 </template>
 <script>
-import CustomSelect from '@/components/customSelect/index.vue'
 import NodeFunc from '@/views/maintenance/node/node-func.vue'
 import codeEditor from '@/components/codeEditor/index.vue'
 import { randomStr } from '@/utils/const'
@@ -463,7 +462,6 @@ import { getProjectListAll } from '@/api/node'
 
 export default {
   components: {
-    CustomSelect,
     whiteList,
     codeEditor,
     NodeFunc

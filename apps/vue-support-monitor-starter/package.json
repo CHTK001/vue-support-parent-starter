@@ -78,6 +78,7 @@
     "mitt": "catalog:",
     "mqtt": "catalog:",
     "novnc": "catalog:",
+    "markdown-it": "catalog:",
     "nprogress": "catalog:",
     "path": "catalog:",
     "pinia": "catalog:",

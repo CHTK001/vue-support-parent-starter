@@ -611,7 +611,7 @@
       <fastInstall v-if="fastInstallNode"></fastInstall>
     </CustomModal>
     <!-- 同步到其他工作空间 -->
-    <customModal
+    <CustomModal
       v-if="syncToWorkspaceVisible"
       v-model:open="syncToWorkspaceVisible"
       destroy-on-close
@@ -653,9 +653,9 @@
           </a-select>
         </a-form-item>
       </a-form>
-    </customModal>
+    </CustomModal>
     <!-- 历史监控 -->
-    <customModal
+    <CustomModal
       v-if="monitorVisible"
       v-model:open="monitorVisible"
       destroy-on-close
@@ -665,44 +665,45 @@
       :mask-closable="false"
     >
       <node-top v-if="monitorVisible" :type="temp.type" :node-id="temp.id"></node-top>
-    </customModal>
+    </CustomModal>
   </div>
 </template>
 <script>
-import { mapState } from 'pinia'
-import { Empty } from 'ant-design-vue'
 import {
   deleteNode,
   editNode,
   getNodeGroupAll,
   getNodeList,
+  sortItem,
   syncProject,
   syncToWorkspace,
-  unbind,
-  sortItem
+  unbind
 } from '@/api/node'
-import { getSshListAll } from '@/api/ssh'
 import { syncScript } from '@/api/node-other'
-import NodeFunc from './node-func.vue'
-import Terminal1 from '@/views/maintenance/ssh/terminal.vue'
+import { getSshListAll } from '@/api/ssh'
+import { statusMap } from '@/api/system/assets-machine'
+import { getWorkSpaceListAll } from '@/api/workspace'
+import { $confirm, $notification } from '@/d.ts/global/global'
+import CustomModal from '@/components/customModal/index.vue'
+import CustomSelect from '@/components/customSelect/index.vue'
+import CustomTable from '@/components/customTable/index.vue'
 import {
   CHANGE_PAGE,
   COMPUTED_PAGINATION,
   PAGE_DEFAULT_LIST_QUERY,
   formatDuration,
-  renderSize,
   formatPercent2Number,
   parseTime
   // PAGE_DEFAULT_SHOW_TOTAL,
   // getCachePageLimit
+  ,
+  renderSize
 } from '@/utils/const'
-import { getWorkSpaceListAll } from '@/api/workspace'
-import CustomSelect from '@/components/customSelect/index.vue'
-import CustomModal from '@/components/customModal/index.vue'
-import CustomTable from '@/components/customTable/index.vue'
-import fastInstall from './fast-install.vue'
-import { statusMap } from '@/api/system/assets-machine'
 import NodeTop from '@/views/maintenance/node/node-layout/node-top.vue'
+import Terminal1 from '@/views/maintenance/ssh/terminal.vue'
+import { Empty } from 'ant-design-vue'
+import fastInstall from './fast-install.vue'
+import NodeFunc from './node-func.vue'
 export default {
   components: {
     NodeFunc,

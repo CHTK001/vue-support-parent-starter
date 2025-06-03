@@ -27,9 +27,6 @@ export function getProjectList(params) {
     url: "/node/manage/get_project_info",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -49,7 +46,6 @@ export function getRuningProjectInfo(params, noTip) {
     headers: {
       // loading: 'no',
       tip: noTip ? "no" : "",
-      wrapper: false,
     },
   });
 }
@@ -68,7 +64,6 @@ export function getProjectData(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
-      wrapper: false,
     },
   });
 }
@@ -82,9 +77,6 @@ export function getProjectAccessList(nodeId) {
     url: "/node/manage/project-access-list",
     method: "post",
     data: { nodeId },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -129,9 +121,6 @@ export function editProject(params) {
     url: "/node/manage/saveProject",
     method: "post",
     data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -148,9 +137,6 @@ export function deleteProject(params) {
     url: "/node/manage/deleteProject",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -159,9 +145,6 @@ export function migrateWorkspace(params) {
     url: "/node/manage/migrate-workspace",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -170,9 +153,6 @@ export function releaseOutgiving(params) {
     url: "/node/manage/release-outgiving",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -189,7 +169,6 @@ export function getFileList(params) {
     method: "post",
     headers: {
       loading: "no",
-      wrapper: false,
     },
     data: params,
   });
@@ -220,9 +199,6 @@ export function readFile(formData) {
     url: "/node/manage/file/read_file",
     method: "get",
     params: formData,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -232,9 +208,6 @@ export function remoteDownload(formData) {
     method: "get",
     timeout: 0,
     params: formData,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -243,9 +216,6 @@ export function updateFile(formData) {
     url: "/node/manage/file/update_config_file",
     method: "post",
     data: formData,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -266,7 +236,6 @@ export function uploadProjectFile(formData) {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -289,9 +258,7 @@ export function uploadProjectFile(formData) {
 export function shardingMerge(formData) {
   return axios({
     url: "/node/manage/file/sharding-merge",
-    headers: {
-      wrapper: false,
-    },
+
     method: "post",
     // 0 表示无超时时间
     timeout: 0,
@@ -314,9 +281,6 @@ export function deleteProjectFile(params) {
     url: "/node/manage/file/deleteFile",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -335,7 +299,6 @@ export function getProjectLogSize(params) {
     data: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -364,9 +327,6 @@ export function getLogBackList(params) {
     url: "/node/manage/log/log-back-list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -397,9 +357,6 @@ export function deleteProjectLogBackFile(params) {
     url: "/node/manage/log/logBack_delete",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -417,9 +374,6 @@ export function getInternalData(params) {
     method: "post",
     timeout: 0,
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -505,7 +459,6 @@ export function operateProject(params) {
     headers: {
       loading: "no",
       tip: "no",
-      wrapper: false,
     },
   });
 }
@@ -519,9 +472,6 @@ export function getProjectTriggerUrl(data) {
     url: "/node/project-trigger-url",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -535,9 +485,6 @@ export function newFileFolder(params) {
     url: "/node/manage/file/new_file_folder",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -551,9 +498,6 @@ export function renameFileFolder(params) {
     url: "/node/manage/file/rename_file_folder",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -567,9 +511,6 @@ export function copyFileFolder(params) {
     url: "/node/manage/file/copy",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -583,9 +524,6 @@ export function compressFileFolder(params) {
     url: "/node/manage/file/compress",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -596,9 +534,6 @@ export function getProjectGroupAll() {
   return axios({
     url: "/node/list-project-group-all",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -653,7 +588,6 @@ export function importData(formData) {
     url: "/node/manage/import-data",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间

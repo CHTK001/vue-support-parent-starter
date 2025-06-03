@@ -18,7 +18,6 @@ export function getNodeList(params) {
     data: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -29,9 +28,6 @@ export function getNodeListAll(params) {
     url: "/node/list_data_all.json",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -40,9 +36,6 @@ export function getNodeGroupAll() {
   return axios({
     url: "/node/list_group_all.json",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -52,9 +45,6 @@ export function getNodeListWithVersion(params) {
     url: "/node/list_data_with_version",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -75,7 +65,6 @@ export function getProjectList(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
-      wrapper: false,
     },
   });
 }
@@ -86,9 +75,6 @@ export function getProjectListAll(params) {
     url: "/node/project_list_all",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -98,9 +84,6 @@ export function syncProject(nodeId) {
     url: "/node/sync_project",
     method: "get",
     params: { nodeId: nodeId },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -109,9 +92,6 @@ export function syncToWorkspace(params) {
     url: "/node/sync-to-workspace",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -121,9 +101,6 @@ export function sortItem(params) {
     url: "/node/sort-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -133,9 +110,6 @@ export function sortItemProject(params) {
     url: "/node/project-sort-item",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -177,9 +151,6 @@ export function editNode(params) {
     url: "/node/save.json",
     method: "post",
     data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -189,9 +160,6 @@ export function deleteNode(id) {
     url: "/node/del.json",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -201,9 +169,6 @@ export function unbind(id) {
     url: "/node/unbind.json",
     method: "get",
     params: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -229,7 +194,6 @@ export function getProcessList(data) {
     headers: {
       loading: "no",
       tip: "no",
-      wrapper: false,
     },
   });
 }
@@ -260,7 +224,6 @@ export function nodeMonitorData(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
-      wrapper: false,
     },
   });
 }
@@ -278,7 +241,6 @@ export function uploadAgentFile(formData) {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -298,9 +260,6 @@ export function uploadAgentFileMerge(data) {
     data: data,
     // 0 表示无超时时间
     timeout: 0,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -313,9 +272,6 @@ export function checkVersion() {
     url: "/node/check_version.json",
     method: "get",
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -328,9 +284,6 @@ export function fastInstall() {
     url: "/node/fast_install.json",
     method: "get",
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -346,7 +299,6 @@ export function pullFastInstallResult(params) {
     params: params,
     headers: {
       loading: "no",
-      wrapper: false,
     },
   });
 }
@@ -361,9 +313,6 @@ export function confirmFastInstall(params) {
     url: "/node/confirm_fast_install.json",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -378,8 +327,5 @@ export function downloadRemote() {
     // 0 表示无超时时间
     timeout: 0,
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }

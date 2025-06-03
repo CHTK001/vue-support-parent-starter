@@ -21,9 +21,6 @@ export function getScriptListAll(params) {
     url: "/node/script/list_all",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -33,9 +30,6 @@ export function getScriptLogList(params) {
     url: "/node/script_log/list",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -45,9 +39,6 @@ export function scriptDel(params) {
     url: "/node/script_log/del",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -59,7 +50,6 @@ export function scriptLog(params) {
     data: params,
     headers: {
       tip: "no",
-      wrapper: false,
     },
   });
 }
@@ -78,9 +68,6 @@ export function editScript(params) {
     url: "/node/script/save.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -89,9 +76,6 @@ export function itemScript(params) {
     url: "/node/script/item.json",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -100,9 +84,6 @@ export function syncScript(params) {
     url: "/node/script/sync",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 export const triggerExecTypeMap = {
@@ -120,9 +101,6 @@ export function getTriggerUrl(data) {
     url: "/node/script/trigger-url",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -137,9 +115,6 @@ export function deleteScript(params) {
     url: "/node/script/del.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -154,8 +129,5 @@ export function unbindScript(params) {
     url: "/node/script/unbind.json",
     method: "get",
     params: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

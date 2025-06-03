@@ -16,8 +16,5 @@ export function getOperationLogList(params) {
     url: "/user/log/list_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }

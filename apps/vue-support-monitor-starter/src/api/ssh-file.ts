@@ -25,7 +25,6 @@ export function uploadFile(baseUrl, formData) {
     url: baseUrl + "upload",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -39,7 +38,6 @@ export function uploadShardingFile(baseUrl, formData) {
     url: baseUrl + "upload-sharding",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -57,9 +55,6 @@ export function getRootFileList(baseUrl, id) {
     url: baseUrl + "root_file_data.json",
     method: "post",
     data: { id },
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -72,9 +67,6 @@ export function getFileList(baseUrl, params) {
     url: baseUrl + "list_file_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -96,9 +88,6 @@ export function deleteFile(baseUrl, params) {
     url: baseUrl + "delete.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -111,9 +100,6 @@ export function readFile(baseUrl, params) {
     url: baseUrl + "read_file_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -126,9 +112,6 @@ export function updateFileData(baseUrl, params) {
     url: baseUrl + "update_file_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -142,9 +125,6 @@ export function newFileFolder(baseUrl, params) {
     url: baseUrl + "new_file_folder.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -158,9 +138,6 @@ export function renameFileFolder(baseUrl, params) {
     url: baseUrl + "rename.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -181,9 +158,6 @@ export function changeFilePermission(baseUrl, params) {
     url: baseUrl + "change_file_permission.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 

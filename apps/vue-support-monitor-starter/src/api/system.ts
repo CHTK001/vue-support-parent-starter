@@ -20,9 +20,6 @@ export function getLogList(params) {
     url: "/system/log_data.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -44,9 +41,6 @@ export function deleteLog(params) {
     url: "/system/log_del.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -57,9 +51,6 @@ export function getServerCache() {
   return axios({
     url: "/system/server-cache",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -72,9 +63,6 @@ export function getNodeCache(data) {
     url: "/system/node_cache.json",
     method: "post",
     data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -90,9 +78,6 @@ export function clearCache(params) {
     url: "/system/clearCache.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -100,9 +85,7 @@ export function asyncRefreshCache(params) {
   return axios({
     url: "/system/async-refresh-cache",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
+
     params,
   });
 }
@@ -115,9 +98,7 @@ export function clearErrorWorkspace(params) {
   return axios({
     url: "/system/clear-error-workspace",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
+
     params,
   });
 }
@@ -131,9 +112,6 @@ export function getConfigData(data) {
     url: "/system/config-data",
     method: "post",
     data: data,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -145,9 +123,6 @@ export function getIpConfigData() {
     url: "/system/ip-config-data",
     method: "post",
     data: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -163,9 +138,6 @@ export function editIpConfig(params) {
     url: "/system/save_ip_config.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -182,9 +154,6 @@ export function editConfig(params) {
     url: "/system/save_config.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -195,9 +164,6 @@ export function getMailConfigData() {
   return axios({
     url: "/system/mail-config-data",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -206,9 +172,6 @@ export function oauthConfigOauth2(params) {
     url: "/system/oauth-config/oauth2",
     method: "get",
     params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -217,9 +180,6 @@ export function oauthConfigOauth2Save(params) {
     url: "/system/oauth-config/oauth2-save",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -240,9 +200,6 @@ export function editMailConfig(params) {
     url: "/system/mailConfig_save.json",
     method: "post",
     data: params,
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -257,7 +214,6 @@ export function systemInfo(data) {
     headers: {
       tip: "no",
       loading: "no",
-      wrapper: false,
     },
     data,
   });
@@ -276,7 +232,6 @@ export function uploadUpgradeFile(formData) {
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
       loading: "no",
-      wrapper: false,
     },
     method: "post",
     // 0 表示无超时时间
@@ -293,9 +248,7 @@ export function uploadUpgradeFileMerge(data) {
   return axios({
     url: "/system/upload-jar-sharding-merge",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
+
     data: data,
     // 0 表示无超时时间
     timeout: 0,
@@ -310,9 +263,7 @@ export function changelog(data) {
   return axios({
     url: "/system/change_log",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
+
     data,
   });
 }
@@ -321,9 +272,7 @@ export function changBetaRelease(params) {
   return axios({
     url: "/system/change-beta-release",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
+
     params,
   });
 }
@@ -332,9 +281,7 @@ export function changeDownloadAuth(params) {
   return axios({
     url: "/system/change-download-auth",
     method: "get",
-    headers: {
-      wrapper: false,
-    },
+
     params,
   });
 }
@@ -347,9 +294,7 @@ export function checkVersion(data) {
   return axios({
     url: "/system/check_version.json",
     method: "post",
-    headers: {
-      wrapper: false,
-    },
+
     data,
   });
 }
@@ -363,9 +308,7 @@ export function remoteUpgrade(params) {
     url: "/system/remote_upgrade.json",
     method: "get",
     timeout: 0,
-    headers: {
-      wrapper: false,
-    },
+
     params,
   });
 }
@@ -378,9 +321,6 @@ export function getProxyConfig() {
     url: "/system/get_proxy_config",
     method: "get",
     params: {},
-    headers: {
-      wrapper: false,
-    },
   });
 }
 
@@ -393,7 +333,6 @@ export function saveProxyConfig(data) {
     method: "post",
     headers: {
       "Content-Type": "application/json",
-      wrapper: false,
     },
     data: data,
   });

@@ -30,8 +30,5 @@ export function executionRequest(url: any, param: any) {
     url: url,
     method: "get",
     params: param,
-    headers: {
-      wrapper: false,
-    },
   });
 }
