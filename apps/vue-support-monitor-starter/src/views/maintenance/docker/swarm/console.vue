@@ -37,10 +37,9 @@
   </CustomDrawer>
 </template>
 <script>
-import SwarmNode from './node'
-import SwarmService from './service'
-import SwarmTask from './task'
-import { mapState } from 'pinia'
+import SwarmNode from './node.vue'
+import SwarmService from './service.vue'
+import SwarmTask from './task.vue'
 
 export default {
   components: {

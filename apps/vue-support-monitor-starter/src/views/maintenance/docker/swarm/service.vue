@@ -597,8 +597,8 @@
 </template>
 <script>
 import { dockerSwarmServicesDel, dockerSwarmServicesEdit, dockerSwarmServicesList } from '@/api/docker-swarm'
-import SwarmTask from './task'
-import PullLog from './pull-log'
+import SwarmTask from './task.vue'
+import PullLog from './pull-log.vue'
 import { renderSize } from '@/utils/const'
 
 export default {

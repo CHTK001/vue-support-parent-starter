@@ -158,7 +158,7 @@
 <script>
 import { dockerSwarmServicesTaskList, TASK_STATE } from '@/api/docker-swarm'
 import { parseTime } from '@/utils/const'
-import PullLog from './pull-log'
+import PullLog from './pull-log.vue'
 
 export default {
   components: { PullLog },

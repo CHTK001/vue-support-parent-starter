@@ -37,7 +37,7 @@
   </div>
 </template>
 <script>
-import LogView from '@/components/logView'
+import LogView from '@/components/logView/index.vue'
 import {
   dockerSwarmServicesPullLog,
   dockerSwarmServicesStartLog,
