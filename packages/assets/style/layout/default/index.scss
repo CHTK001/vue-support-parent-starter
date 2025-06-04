@@ -10,6 +10,10 @@
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {
+  --zindex-base: 3;
+  --zindex-affix: calc(var(--zindex-base) + 1);
+  --zindex-modal: calc(var(--zindex-base) + 10);
+      /* 其他z-index变量... */
   --el-text-color-primary-2: #666;
   --navbar-height: 48px;
   /* 左侧菜单展开、收起动画时长 */

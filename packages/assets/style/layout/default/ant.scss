@@ -27,13 +27,14 @@
 //   display: flex;
 //   flex-direction: row;
 // }
+
 .ant-card-head-title {
   min-height: 32px;
 }
-// .anticon {
-//   position: relative !important;
-//   top: -2px
-// }
+.anticon {
+  position: relative !important;
+  top: -3px
+}
 .ant-table-cell {
   z-index: 0 !important;
 }
