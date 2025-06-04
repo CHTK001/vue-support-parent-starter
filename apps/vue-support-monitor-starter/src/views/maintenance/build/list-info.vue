@@ -706,8 +706,8 @@
   </div>
 </template>
 <script>
-import BuildLog from './log'
-import BuildItem from './item'
+import BuildLog from './log.vue'
+import BuildItem from './item.vue'
 import CustomSelect from '@/components/customSelect/index.vue'
 import { Empty } from 'ant-design-vue'
 import {

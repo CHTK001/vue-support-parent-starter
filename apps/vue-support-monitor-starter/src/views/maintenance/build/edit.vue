@@ -1372,7 +1372,7 @@
 import codeEditor from '@/components/codeEditor/index.vue'
 import repository from '@/views/maintenance/repository/list.vue'
 import scriptPage from '@/views/maintenance/script/script-list.vue'
-import DockerList from '@/views/maintenance/docker/list'
+import DockerList from '@/views/maintenance/docker/list.vue'
 import CustomSelect from '@/components/customSelect/index.vue'
 import { dockerSwarmListAll, dockerSwarmServicesList } from '@/api/docker-swarm'
 import {

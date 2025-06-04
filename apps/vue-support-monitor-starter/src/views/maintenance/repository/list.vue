@@ -10,8 +10,8 @@
   </repository>
 </template>
 <script>
+import { getWorkspaceId } from '@/api/workspace'
 import repository from './repository-list.vue'
-import { mapState } from 'pinia'
 
 export default {
   components: { repository },
@@ -26,8 +26,8 @@ export default {
     }
   },
   emits: ['confirm'],
-  computed: { ...mapState(useAppStore, ['getWorkspaceId']) },
   methods: {
+    getWorkspaceId,
     confirm(data) {
       this.$emit('confirm', data)
     },

@@ -284,9 +284,9 @@ import {
 // import { uploadFile, uploadFileMerge, hasFile } from "@/api/file-manager/file-storage";
 import { staticFileStorageList, delFile, triggerUrl, fileEdit, staticScanner } from '@/api/file-manager/static-storage'
 
-import releaseFile from '@/views/maintenance/file-manager/fileStorage/releaseFile'
+import releaseFile from '@/views/maintenance/file-manager/fileStorage/releaseFile.vue'
 import { addReleaseTask } from '@/api/file-manager/release-task-log'
-import whiteList from '@/views/maintenance/dispatch/white-list'
+import whiteList from '@/views/maintenance/dispatch/white-list.vue'
 export default {
   components: {
     releaseFile,

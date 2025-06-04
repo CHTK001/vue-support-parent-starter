@@ -15,7 +15,7 @@ export function getNodeList(params) {
   return axios({
     url: "/node/list_data.json",
     method: "post",
-    data: params,
+    params,
     headers: {
       loading: "no",
     },

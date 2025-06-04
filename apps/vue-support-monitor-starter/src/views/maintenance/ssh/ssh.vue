@@ -420,8 +420,7 @@ import {
 } from '@/utils/const'
 import { getWorkSpaceListAll } from '@/api/workspace'
 
-import { mapState } from 'pinia'
-
+import { getHashQuery } from "@/utils/utils";
 
 import OperationLog from '@/views/maintenance/system/assets/ssh/operation-log.vue'
 import CustomSelect from '@/components/customSelect/index.vue'
@@ -716,6 +715,10 @@ export default {
         }
       })
       window.open(newpage.href, '_blank')
+    },
+    getWorkspaceId(state){
+      const query = getHashQuery();
+      return query.wid || state?.workspaceId || "DEFAULT";
     },
     // 分页、排序、筛选变化时触发
     changePage(pagination, filters, sorter) {

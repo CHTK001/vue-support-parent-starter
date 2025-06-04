@@ -99,12 +99,12 @@
   </div>
 </template>
 <script>
-import Container from './container'
-import Images from './images'
-import Volumes from './volumes'
-import Info from './info'
-import Networks from './networks'
-import Prune from './prune'
+import Container from './container.vue'
+import Images from './images.vue'
+import Volumes from './volumes.vue'
+import Info from './info.vue'
+import Networks from './networks.vue'
+import Prune from './prune.vue'
 import { mapState } from 'pinia'
 
 export default {

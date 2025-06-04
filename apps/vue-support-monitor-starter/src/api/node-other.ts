@@ -101,6 +101,7 @@ export function getTriggerUrl(data) {
     url: "/node/script/trigger-url",
     method: "post",
     data: data,
+    params: data,
   });
 }
 

@@ -24,6 +24,14 @@ export default [
     },
   },
   {
+    path: "/ssh-tabs",
+    name: "ssh-tabs",
+    component: () => import("@/views/maintenance/ssh/ssh-tabs.vue"),
+    meta: {
+      title: "SSH 标签",
+    },
+  },
+  {
     path: "/AccountSettings",
     name: "AccountSettings",
     component: () => {

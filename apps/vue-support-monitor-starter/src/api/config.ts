@@ -23,7 +23,7 @@ const routerBase: string = jpomWindow_.routerBase === "<routerBase>" ? "" : jpom
 
 const pro: boolean = process.env.NODE_ENV === "production";
 
-const baseURL = import.meta.env.JPOM_BASE_API_URL;
+const baseURL = import.meta.env.JPOM_BASE_API_URL || "/monitor/api";
 
 // 续签状态
 let isRefreshing = false;
@@ -92,7 +92,7 @@ export function loadRouterBase(url: string, params: any) {
   Object.keys(paramsObj).forEach((key, i) => {
     queryStr += `${i === 0 ? "" : "&"}${key}=${paramsObj[key]}`;
   });
-  return `${((baseURL + routerBase || "") + url).replace(new RegExp("//", "gm"), "/")}?${queryStr}`;
+  return `${(baseURL + (routerBase || "") + url).replace(new RegExp("//", "gm"), "/")}?${queryStr}`;
 }
 
 /**
@@ -103,6 +103,6 @@ export function loadRouterBase(url: string, params: any) {
  */
 export function getWebSocketUrl(url: string, parameter: any) {
   const protocol: string = location.protocol === "https:" ? "wss://" : "ws://";
-  const fullUrl: string = (baseURL + routerBase + url).replace(new RegExp("//", "gm"), "/");
+  const fullUrl: string = ((baseURL || "") + (routerBase || "") + url).replace(new RegExp("//", "gm"), "/");
   return `${protocol}${location.host}${fullUrl}?${parameter}`;
 }

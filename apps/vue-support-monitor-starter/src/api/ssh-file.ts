@@ -54,7 +54,7 @@ export function getRootFileList(baseUrl, id) {
   return axios({
     url: baseUrl + "root_file_data.json",
     method: "post",
-    data: { id },
+    params: { id },
   });
 }
 
@@ -66,7 +66,7 @@ export function getFileList(baseUrl, params) {
   return axios({
     url: baseUrl + "list_file_data.json",
     method: "post",
-    data: params,
+    params,
   });
 }
 
@@ -76,6 +76,7 @@ export function getFileList(baseUrl, params) {
  * @param {id, path, name} params
  */
 export function downloadFile(baseUrl, params) {
+  debugger;
   return loadRouterBase(baseUrl + "download", params);
 }
 
@@ -124,7 +125,7 @@ export function newFileFolder(baseUrl, params) {
   return axios({
     url: baseUrl + "new_file_folder.json",
     method: "post",
-    data: params,
+    params,
   });
 }
 

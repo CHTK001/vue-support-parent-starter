@@ -139,7 +139,7 @@
 </template>
 <script>
 import { getScriptLogList, scriptDel, triggerExecTypeMap } from '@/api/server-script'
-import ScriptLogView from '@/views/maintenance/script/script-log-view'
+import ScriptLogView from '@/views/maintenance/script/script-log-view.vue'
 import { statusMap } from '@/api/command'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 

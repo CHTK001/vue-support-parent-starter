@@ -1,9 +1,18 @@
 <template>
-  <div>
-    <log-view1 :ref="`logView`" height="calc(100vh - 140px)">
+  <div class="file-read-container">
+    <log-view1 :ref="`logView`" height="calc(100vh - 140px)" class="file-content-viewer">
       <template #before>
-        <a-button type="primary" size="small" @click="goFile">{{ $t('i18n_8780e6b3d1') }}</a-button></template
-      >
+        <div class="file-read-header">
+          <div class="file-path-info">
+            <FileTextOutlined class="file-icon" />
+            <span class="file-path">{{ readFilePath || $t('i18n_5e4ca21783') }}</span>
+          </div>
+          <a-button type="primary" size="small" class="file-button" @click="goFile">
+            <template #icon><FolderOutlined /></template>
+            {{ $t('i18n_8780e6b3d1') }}
+          </a-button>
+        </div>
+      </template>
     </log-view1>
   </div>
 </template>
@@ -12,12 +21,14 @@
 import { getWebSocketUrl } from '@/api/config'
 import { mapState } from 'pinia'
 
-
 import LogView1 from '@/components/logView/index2.vue'
+import { FileTextOutlined, FolderOutlined } from '@ant-design/icons-vue'
 
 export default {
   components: {
-    LogView1
+    LogView1,
+    FileTextOutlined,
+    FolderOutlined
   },
   props: {
     nodeId: {
@@ -44,18 +55,15 @@ export default {
       optButtonLoading: true,
       loading: false,
       socket: null,
-
       heart: null
     }
   },
 
   computed: {
-    
-    
     socketUrl() {
       return getWebSocketUrl(
         '/socket/console',
-        `userId=${this.getLongTermToken()}&id=${this.id}&nodeId=${
+        `id=${this.id}&nodeId=${
           this.nodeId
         }&type=console`
       )
@@ -133,8 +141,90 @@ export default {
   }
 }
 </script>
-<style scoped>
-.filter {
-  margin: 0 0 10px;
+<style lang="less" scoped>
+.file-read-container {
+  background-color: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  height: calc(100vh - 80px);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.file-content-viewer {
+  background-color: #f0f7ff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.file-read-header {
+  padding: 12px 16px;
+  background-color: #f0f5ff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.file-path-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+  
+  .file-icon {
+    font-size: 16px;
+    color: #1677ff;
+    margin-right: 8px;
+  }
+  
+  .file-path {
+    color: rgba(0, 0, 0, 0.85);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+}
+
+.file-button {
+  border-radius: 4px;
+  padding: 0 12px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .file-read-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .file-button {
+    align-self: flex-end;
+  }
 }
 </style>

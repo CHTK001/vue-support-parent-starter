@@ -355,6 +355,7 @@ export default {
       this.$refs['editEnvForm'].validate().then(() => {
         this.envTemp.nodeIds = this.envTemp?.chooseNode?.join(',')
         this.confirmLoading = true
+        this.envTemp.workspaceId = this.workspaceId
         editWorkspaceEnv(this.envTemp)
           .then((res) => {
             if (res.code === 200) {

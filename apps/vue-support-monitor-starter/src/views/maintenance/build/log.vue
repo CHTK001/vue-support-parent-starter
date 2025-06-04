@@ -79,7 +79,7 @@
   </CustomModal>
 </template>
 <script>
-import LogView from '@/components/logView'
+import LogView from '@/components/logView/index.vue'
 
 import { loadBuildLog, downloadBuildLog, statusColor, statusMap } from '@/api/build-info'
 export default {

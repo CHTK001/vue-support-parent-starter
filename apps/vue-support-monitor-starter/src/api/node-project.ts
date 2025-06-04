@@ -62,6 +62,10 @@ export function getProjectData(params, loading) {
     url: "/node/manage/getProjectData.json",
     method: "post",
     data: params,
+    params: {
+      nodeId: params.nodeId,
+      id: params.id,
+    },
     headers: {
       loading: loading === false ? "no" : "",
     },

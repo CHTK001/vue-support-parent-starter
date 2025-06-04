@@ -16,8 +16,8 @@ import { GlobalWindow } from "@/interface/common";
 
 const _window = window as unknown as GlobalWindow;
 
-const uploadFileSliceSize = Number(_window.uploadFileSliceSize === "<uploadFileSliceSize>" ? 1 : _window.uploadFileSliceSize);
-const uploadFileConcurrent = Number(_window.uploadFileConcurrent === "<uploadFileConcurrent>" ? 1 : _window.uploadFileConcurrent);
+const uploadFileSliceSize = Number(_window.uploadFileSliceSize === "<uploadFileSliceSize>" ? 1 : _window.uploadFileSliceSize) || 1;
+const uploadFileConcurrent = Number(_window.uploadFileConcurrent === "<uploadFileConcurrent>" ? 1 : _window.uploadFileConcurrent) || 1;
 
 interface PiecesPar {
   file: File;

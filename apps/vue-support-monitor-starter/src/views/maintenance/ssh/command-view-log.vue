@@ -16,7 +16,7 @@
 </template>
 <script>
 import { getCommandLogBarchList, getCommandLogInfo } from '@/api/command'
-import LogView1 from '@/components/logView/index2'
+import LogView1 from '@/components/logView/index2.vue'
 export default {
   components: {
     LogView1

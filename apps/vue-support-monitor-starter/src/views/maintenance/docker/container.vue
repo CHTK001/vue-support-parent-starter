@@ -716,8 +716,8 @@ import {
   dockerContainerStop,
   dockerContainerListCompose
 } from '@/api/docker-api'
-import LogView2 from '@/views/maintenance/docker/log-view'
-import Terminal2 from '@/views/maintenance/docker/terminal'
+import LogView2 from '@/views/maintenance/docker/log-view.vue'
+import Terminal2 from '@/views/maintenance/docker/terminal.vue'
 import editContainer from './editContainer.vue'
 import BuildContainer from './buildContainer.vue'
 import { Empty } from 'ant-design-vue'

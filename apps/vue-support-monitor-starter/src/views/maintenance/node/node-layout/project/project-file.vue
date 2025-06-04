@@ -1297,14 +1297,15 @@ export default {
   border-bottom: 1px solid #eee;
 }
 .file-content {
-  height: calc(100vh - 100px);
+  height: calc(95vh - 100px);
   overflow-y: auto;
   margin: 10px 10px 0;
   padding: 10px;
   /* background-color: #fff; */
 }
 .tree-container {
-  overflow-x: auto;
+  overflow-x: hidden;
+  height: calc(95vh - 100px);
   :deep(.ant-tree-title) {
     word-break: keep-all;
     white-space: nowrap;

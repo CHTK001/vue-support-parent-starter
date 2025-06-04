@@ -12,10 +12,57 @@ import type { RouteConfigsTable } from "@repo/core";
 
 export default [
   {
-    path: "/management",
-    name: "management",
+    path: "/management/script",
+    name: "managementScript",
     component: () => import("@/views/maintenance/layout/index.vue"),
     meta: {
+      icon: "ri:tools-line",
+      title: "运维脚本",
+    },
+    children: [
+      {
+        path: "/node/script-all",
+        name: "node-script-list-all",
+        component: () => import("@/views/maintenance/node/script-list.vue"),
+        meta: {
+          icon: "ri:tools-line",
+          title: "节点脚本列表",
+        },
+      },
+      {
+        path: "/script/script-list",
+        name: "script-list-all",
+        component: () => import("@/views/maintenance/script/script-list.vue"),
+        meta: {
+          icon: "ri:tools-line",
+          title: "脚本列表",
+        },
+      },
+      {
+        path: "/script/script-log",
+        name: "script-log",
+        component: () => import("@/views/maintenance/script/script-log.vue"),
+        meta: {
+          icon: "ri:tools-line",
+          title: "脚本日志",
+        },
+      },
+      {
+        path: "/script/env-list",
+        name: "script-env-list",
+        component: () => import("@/views/maintenance/script/env.vue"),
+        meta: {
+          icon: "ri:tools-line",
+          title: "脚本环境列表",
+        },
+      },
+    ],
+  },
+  {
+    path: "/management",
+    name: "management",
+    meta: {
+      icon: "ri:eye-2-line",
       title: "运维监控",
     },
     children: [
@@ -25,6 +72,7 @@ export default [
         component: () => import("@/views/maintenance/layout/my-workspace.vue"),
         meta: {
           title: "我的工作空间",
+          showLink: false,
         },
       },
       {
@@ -32,23 +80,9 @@ export default [
         name: "node-list",
         component: () => import("@/views/maintenance/node/list.vue"),
         meta: {
+          icon: "ri:node-tree",
           title: "节点列表",
-        },
-      },
-      {
-        path: "/docker/list",
-        name: "docker-list",
-        component: () => import("@/views/maintenance/docker/list.vue"),
-        meta: {
-          title: "Docker 列表",
-        },
-      },
-      {
-        path: "/docker/swarm",
-        name: "docker-swarm",
-        component: () => import("@/views/maintenance/docker/swarm/list.vue"),
-        meta: {
-          title: "Docker Swarm 列表",
+          showParent: true,
         },
       },
 
@@ -57,64 +91,18 @@ export default [
         name: "node-search",
         component: () => import("@/views/maintenance/node/search.vue"),
         meta: {
-          title: "节点搜索",
-        },
-      },
-      {
-        path: "/node/script-all",
-        name: "node-script-list-all",
-        component: () => import("@/views/maintenance/node/script-list.vue"),
-        meta: {
-          title: "节点脚本列表",
-        },
-      },
-      {
-        path: "/script/script-list",
-        name: "script-list-all",
-        component: () => import("@/views/maintenance/script/script-list.vue"),
-        meta: {
-          title: "脚本列表",
-        },
-      },
-      {
-        path: "/script/script-log",
-        name: "script-log",
-        component: () => import("@/views/maintenance/script/script-log.vue"),
-        meta: {
-          title: "脚本日志",
+          icon: "ri:projector-line",
+          title: "项目管理",
         },
       },
 
-      {
-        path: "/ssh",
-        name: "node-ssh",
-        component: () => import("@/views/maintenance/ssh/ssh.vue"),
-        meta: {
-          title: "节点 SSH",
-        },
-      },
-      {
-        path: "/ssh/command",
-        name: "node-command",
-        component: () => import("@/views/maintenance/ssh/command.vue"),
-        meta: {
-          title: "节点命令",
-        },
-      },
-      {
-        path: "/ssh/command-log",
-        name: "node-command-log",
-        component: () => import("@/views/maintenance/ssh/command-log.vue"),
-        meta: {
-          title: "节点命令日志",
-        },
-      },
       {
         path: "/dispatch/list",
         name: "dispatch-list",
         component: () => import("@/views/maintenance/dispatch/list.vue"),
         meta: {
-          title: "调度列表",
+          icon: "bi:display",
+          title: "分发列表",
         },
       },
       {
@@ -122,15 +110,36 @@ export default [
         name: "dispatch-log",
         component: () => import("@/views/maintenance/dispatch/log.vue"),
         meta: {
-          title: "调度日志",
+          icon: "simple-icons:logstash",
+          title: "分发日志",
         },
       },
+
       {
         path: "/dispatch/log-read",
         name: "dispatch-log-read",
         component: () => import("@/views/maintenance/dispatch/logRead.vue"),
         meta: {
-          title: "调度日志读取",
+          icon: "ep:search",
+          title: "日志搜索",
+        },
+      },
+      {
+        path: "/docker/list",
+        name: "docker-list",
+        component: () => import("@/views/maintenance/docker/list.vue"),
+        meta: {
+          title: "Docker 列表",
+          showLink: false,
+        },
+      },
+      {
+        path: "/docker/swarm",
+        name: "docker-swarm",
+        component: () => import("@/views/maintenance/docker/swarm/list.vue"),
+        meta: {
+          title: "Docker Swarm 列表",
+          showLink: false,
         },
       },
 
@@ -140,6 +149,7 @@ export default [
         component: () => import("@/views/maintenance/monitor/list.vue"),
         meta: {
           title: "监控列表",
+          showLink: false,
         },
       },
       {
@@ -148,6 +158,7 @@ export default [
         component: () => import("@/views/maintenance/monitor/log.vue"),
         meta: {
           title: "监控日志",
+          showLink: false,
         },
       },
       {
@@ -156,6 +167,7 @@ export default [
         component: () => import("@/views/maintenance/monitor/operate-log.vue"),
         meta: {
           title: "监控操作日志",
+          showLink: false,
         },
       },
       {
@@ -164,6 +176,7 @@ export default [
         component: () => import("@/views/maintenance/repository/list.vue"),
         meta: {
           title: "仓库列表",
+          showLink: false,
         },
       },
       {
@@ -172,6 +185,7 @@ export default [
         component: () => import("@/views/maintenance/build/list-info.vue"),
         meta: {
           title: "构建列表信息",
+          showLink: false,
         },
       },
       {
@@ -180,6 +194,7 @@ export default [
         component: () => import("@/views/maintenance/build/history.vue"),
         meta: {
           title: "构建历史",
+          showLink: false,
         },
       },
       {
@@ -188,22 +203,17 @@ export default [
         component: () => import("@/views/maintenance/dispatch/white-list.vue"),
         meta: {
           title: "调度白名单",
+          showLink: false,
         },
       },
-      {
-        path: "/script/env-list",
-        name: "script-env-list",
-        component: () => import("@/views/maintenance/script/env.vue"),
-        meta: {
-          title: "脚本环境列表",
-        },
-      },
+
       {
         path: "/tools/cron",
         name: "cron-tools",
         component: () => import("@/views/maintenance/tools/cron.vue"),
         meta: {
           title: "Cron 工具",
+          showLink: false,
         },
       },
       {
@@ -212,6 +222,7 @@ export default [
         component: () => import("@/views/maintenance/tools/network.vue"),
         meta: {
           title: "网络工具",
+          showLink: false,
         },
       },
       {
@@ -220,6 +231,7 @@ export default [
         component: () => import("@/views/maintenance/file-manager/fileStorage/list.vue"),
         meta: {
           title: "文件存储",
+          showLink: false,
         },
       },
       {
@@ -228,6 +240,7 @@ export default [
         component: () => import("@/views/maintenance/file-manager/release-task/list.vue"),
         meta: {
           title: "发布任务",
+          showLink: false,
         },
       },
       {
@@ -236,6 +249,7 @@ export default [
         component: () => import("@/views/maintenance/file-manager/staticFileStorage/list.vue"),
         meta: {
           title: "静态文件存储",
+          showLink: false,
         },
       },
       {
@@ -244,6 +258,53 @@ export default [
         component: () => import("@/views/maintenance/certificate/list.vue"),
         meta: {
           title: "证书列表",
+          showLink: false,
+        },
+      },
+    ],
+  },
+  {
+    path: "/management/ssh",
+    name: "managementSsh",
+    meta: {
+      icon: "ri:shield-star-line",
+      title: "SSH管理",
+    },
+    children: [
+      {
+        path: "/system/assets/ssh-list",
+        name: "system-machine-ssh-list",
+        component: () => import("@/views/maintenance/system/assets/ssh/ssh-list.vue"),
+        meta: {
+          icon: "ri:file-list-3-line",
+          title: "SSH列表(系统)",
+        },
+      },
+      {
+        path: "/ssh",
+        name: "node-ssh",
+        component: () => import("@/views/maintenance/ssh/ssh.vue"),
+        meta: {
+          icon: "ri:file-list-3-line",
+          title: "SSH列表",
+        },
+      },
+      {
+        path: "/ssh/command",
+        name: "node-command",
+        component: () => import("@/views/maintenance/ssh/command.vue"),
+        meta: {
+          icon: "ri:command-line",
+          title: "命令管理",
+        },
+      },
+      {
+        path: "/ssh/command-log",
+        name: "node-command-log",
+        component: () => import("@/views/maintenance/ssh/command-log.vue"),
+        meta: {
+          icon: "simple-icons:logstash",
+          title: "命令日志",
         },
       },
     ],
@@ -266,15 +327,7 @@ export default [
       showLink: false,
     },
   },
-  {
-    path: "/ssh-tabs",
-    name: "ssh-tabs",
-    component: () => import("@/views/maintenance/ssh/ssh-tabs.vue"),
-    meta: {
-      title: "SSH 标签",
-      showLink: false,
-    },
-  },
+
   {
     path: "/404",
     name: "404",
@@ -320,15 +373,7 @@ export default [
           title: "节点列表",
         },
       },
-      {
-        path: "/system/assets/ssh-list",
-        name: "system-machine-ssh-list",
-        component: () => import("@/views/maintenance/system/assets/ssh/ssh-list.vue"),
-        meta: {
-          title: "节点 SSH 列表",
-          showLink: false,
-        },
-      },
+
       {
         path: "/system/assets/docker-list",
         name: "system-machine-docker-list",

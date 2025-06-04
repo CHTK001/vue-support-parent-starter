@@ -1,27 +1,39 @@
-.ant-drawer {
-  z-index: 1999 !important;
-}
+// .ant-drawer {
+//   z-index: 1999 !important;
+// }
 
-.ant-drawer-content-wrapper,
-.ant-modal-mask {
-  z-index: 2000 !important;
-}
-.ant-modal-mask {
-  z-index: 1999 !important;
+// .ant-drawer-content-wrapper,
+// .ant-modal-mask {
+//   z-index: 2000 !important;
+// }
+// .ant-modal-mask {
+//   z-index: 1999 !important;
 
-  .ant-modal-wrap {
-    z-index: 2000 !important;
-  }
-}
+//   .ant-modal-wrap {
+//     z-index: 2000 !important;
+//   }
+// }
+// .ant-tree-switcher.ant-tree-switcher_close {
+//   top: 8px;
+// }
+// .ant-notification,
+// .ant-select-dropdown,
+// .ant-dropdown,
+// .ant-modal-wrap {
+//   z-index: 2000 !important;
+// }
 
-.ant-select-dropdown,
-.ant-modal-wrap {
-  z-index: 2000 !important;
-}
+// .ant-notification-notice-with-icon {
+//   display: flex;
+//   flex-direction: row;
+// }
 .ant-card-head-title {
   min-height: 32px;
 }
-.anticon {
-  position: relative;
-  top: -2px
+// .anticon {
+//   position: relative !important;
+//   top: -2px
+// }
+.ant-table-cell {
+  z-index: 0 !important;
 }

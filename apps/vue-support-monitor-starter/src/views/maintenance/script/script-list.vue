@@ -492,13 +492,12 @@ import {
 } from '@/api/server-script'
 import codeEditor from '@/components/codeEditor/index.vue'
 import { getNodeListAll } from '@/api/node'
-import ScriptConsole from '@/views/maintenance/script/script-console'
+import ScriptConsole from '@/views/maintenance/script/script-console.vue'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import { CRON_DATA_SOURCE } from '@/utils/const-i18n'
 import { getWorkSpaceListAll } from '@/api/workspace'
-import ScriptLog from '@/views/maintenance/script/script-log'
-import ScriptLibraryNoPermission from '@/views/maintenance/system/assets/script-library/no-permission'
-import { mapState } from 'pinia'
+import ScriptLog from '@/views/maintenance/script/script-log.vue'
+import ScriptLibraryNoPermission from '@/views/maintenance/system/assets/script-library/no-permission.vue'
 
 export default {
   components: {

@@ -5,7 +5,10 @@
     <a-layout-sider theme="light" class="sider" width="25%">
       <a-row class="dir-container">
         <a-space>
-          <a-button size="small" type="primary" @click="loadData()">{{ $t('i18n_694fc5efa9') }}</a-button>
+          <a-button size="small" type="primary" @click="loadData()">
+            <template #icon><ReloadOutlined /></template>
+            {{ $t('i18n_694fc5efa9') }}
+          </a-button>
           <a-dropdown>
             <template #overlay>
               <a-menu>
@@ -68,7 +71,100 @@
     </a-layout-sider>
     <!-- 表格 -->
     <a-layout-content class="file-content">
-      <!-- <div ref="filter" class="filter"></div> -->
+      <!-- 面包屑导航 -->
+      <div v-if="nowPath" class="path-breadcrumb">
+        <div class="path-item">
+          <FolderOutlined style="margin-right: 6px;" />
+          <span class="path-link" @click="navigateToRoot">Root</span>
+        </div>
+        <template v-if="pathSegments.length > 0">
+          <div 
+            v-for="(segment, index) in pathSegments" 
+            :key="index" 
+            class="path-item"
+            :class="{ 'current': index === pathSegments.length - 1 }"
+          >
+            <span 
+              class="path-link" 
+              v-if="index < pathSegments.length - 1"
+              @click="navigateToPath(index)"
+            >{{ segment }}</span>
+            <span v-else>{{ segment }}</span>
+          </div>
+        </template>
+      </div>
+
+      <!-- 操作按钮组 -->
+      <div class="file-actions-toolbar">
+        <a-space wrap>
+          <a-dropdown :disabled="!tempNode.nextPath">
+            <a-button size="small" type="primary" @click="(e) => e.preventDefault()">
+              <template #icon><UploadOutlined /></template>
+              {{ $t('i18n_01198a1673') }}
+            </a-button>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item @click="handleUpload">
+                  <a-space><FileAddOutlined />{{ $t('i18n_a6fc9e3ae6') }}</a-space>
+                </a-menu-item>
+                <a-menu-item @click="handleUploadZip">
+                  <a-space><FileZipOutlined />{{ $t('i18n_66b71b06c6') }}</a-space>
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-button
+            size="small"
+            :disabled="!tempNode.nextPath"
+            type="primary"
+            @click="uploadShardingFileVisible = true"
+          >
+            <template #icon><CloudUploadOutlined /></template>
+            {{ $t('i18n_dda8b4c10f') }}
+          </a-button>
+          <a-dropdown :disabled="!tempNode.nextPath">
+            <a-button size="small" type="primary" @click="(e) => e.preventDefault()">
+              <template #icon><PlusOutlined /></template>
+              {{ $t('i18n_26bb841878') }}
+            </a-button>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item @click="handleAddFolder">
+                  <a-space>
+                    <FolderAddOutlined />
+                    <span>{{ $t('i18n_547ee197e5') }}</span>
+                  </a-space>
+                </a-menu-item>
+                <a-menu-item @click="handleAddFile">
+                  <a-space>
+                    <FileAddOutlined />
+                    <span>{{ $t('i18n_497ddf508a') }}</span>
+                  </a-space>
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="loadFileList()">
+            <template #icon><ReloadOutlined /></template>
+            {{ $t('i18n_694fc5efa9') }}
+          </a-button>
+          <a-button size="small" :disabled="!tempNode.nextPath" type="primary" danger @click="handleDeletePath()">
+            <template #icon><DeleteOutlined /></template>
+            {{ $t('i18n_2f4aaddde3') }}
+          </a-button>
+          <a-tooltip :title="listShowDir ? $t('i18n_4d775d4cd7') : $t('i18n_dce5379cb9')">
+            <a-button size="small" :disabled="!tempNode.nextPath" @click="changeListShowDir">
+              <template #icon>
+                <EyeOutlined v-if="listShowDir" />
+                <EyeInvisibleOutlined v-else />
+              </template>
+              {{ $t('i18n_4cbc136874') }}
+            </a-button>
+          </a-tooltip>
+        </a-space>
+      </div>
+
+      <!-- 文件表格 -->
       <a-table
         size="middle"
         :data-source="sortFileList"
@@ -80,72 +176,6 @@
           x: 'max-content'
         }"
       >
-        <template #title>
-          <a-space>
-            <a-dropdown :disabled="!tempNode.nextPath">
-              <a-button size="small" type="primary" @click="(e) => e.preventDefault()">{{
-                $t('i18n_01198a1673')
-              }}</a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item @click="handleUpload">
-                    <a-space><FileAddOutlined />{{ $t('i18n_a6fc9e3ae6') }}</a-space>
-                  </a-menu-item>
-                  <a-menu-item @click="handleUploadZip">
-                    <a-space><FileZipOutlined />{{ $t('i18n_66b71b06c6') }}</a-space>
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-            <a-button
-              size="small"
-              :disabled="!tempNode.nextPath"
-              type="primary"
-              @click="uploadShardingFileVisible = true"
-              >{{ $t('i18n_dda8b4c10f') }}</a-button
-            >
-            <a-dropdown :disabled="!tempNode.nextPath">
-              <a-button size="small" type="primary" @click="(e) => e.preventDefault()">{{
-                $t('i18n_26bb841878')
-              }}</a-button>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item @click="handleAddFolder">
-                    <a-space>
-                      <FolderAddOutlined />
-                      <a-space>{{ $t('i18n_547ee197e5') }}</a-space>
-                    </a-space>
-                  </a-menu-item>
-                  <a-menu-item @click="handleAddFile">
-                    <a-space>
-                      <FileAddOutlined />
-                      <a-space>{{ $t('i18n_497ddf508a') }}</a-space>
-                    </a-space>
-                  </a-menu-item>
-                </a-menu>
-              </template>
-            </a-dropdown>
-            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="loadFileList()">{{
-              $t('i18n_694fc5efa9')
-            }}</a-button>
-            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" danger @click="handleDeletePath()">{{
-              $t('i18n_2f4aaddde3')
-            }}</a-button>
-            <div>
-              {{ $t('i18n_4cbc136874') }}
-              <a-switch
-                v-model:checked="listShowDir"
-                :disabled="!tempNode.nextPath"
-                :checked-children="$t('i18n_4d775d4cd7')"
-                :un-checked-children="$t('i18n_dce5379cb9')"
-                @change="changeListShowDir"
-              />
-            </div>
-            <span v-if="nowPath">{{ $t('i18n_4e33dde280') }}{{ nowPath }}</span>
-            <!-- <span v-if="this.nowPath">{{ this.tempNode.parentDir }}</span> -->
-          </a-space>
-        </template>
-
         <template #bodyCell="{ column, text, record }">
           <template v-if="column.dataIndex === 'name'">
             <a-tooltip placement="topLeft">
@@ -154,30 +184,32 @@
                 <div>{{ $t('i18n_964d939a96') }}{{ record.longname }}</div>
               </template>
               <a-dropdown :trigger="['contextmenu']">
-                <div>{{ text }}</div>
+                <div class="file-name-cell">
+                  <span class="file-icon" :class="getFileIconClass(record)">
+                    <FolderOutlined v-if="record.dir" />
+                    <FileTextOutlined v-else-if="record.textFileEdit" />
+                    <FileImageOutlined v-else-if="isImageFile(record.name)" />
+                    <FileZipOutlined v-else-if="isArchiveFile(record.name)" />
+                    <FileOutlined v-else />
+                  </span>
+                  <span>{{ text }}</span>
+                </div>
                 <template #overlay>
                   <a-menu>
                     <a-menu-item key="2">
-                      <a-button type="link" @click="handleRenameFile(record)"
-                        ><HighlightOutlined /> {{ $t('i18n_c8ce4b36cb') }}
+                      <a-button type="link" @click="handleRenameFile(record)">
+                        <HighlightOutlined /> {{ $t('i18n_c8ce4b36cb') }}
                       </a-button>
                     </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
-
-              <!-- <span>{{ text }}</span> -->
             </a-tooltip>
           </template>
           <template v-else-if="column.dataIndex === 'dir'">
-            <a-tooltip
-              placement="topLeft"
-              :title="`${record.link ? $t('i18n_bfe68d5844') : text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1')}`"
-            >
-              <span>{{
-                record.link ? $t('i18n_bfe68d5844') : text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1')
-              }}</span>
-            </a-tooltip>
+            <a-tag :color="getFileTypeColor(record)">
+              {{record.link ? $t('i18n_bfe68d5844') : text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1')}}
+            </a-tag>
           </template>
           <template v-else-if="column.dataIndex === 'size'">
             <a-tooltip placement="topLeft" :title="renderSize(text)">
@@ -190,61 +222,96 @@
             </a-tooltip>
           </template>
           <template v-else-if="column.dataIndex === 'operation'">
-            <a-space>
+            <div class="file-actions">
               <a-tooltip :title="$t('i18n_af0df2e295')">
-                <a-button size="small" type="primary" :disabled="!record.textFileEdit" @click="handleEdit(record)">{{
-                  $t('i18n_95b351c862')
-                }}</a-button>
+                <a-button 
+                  class="action-btn" 
+                  size="small" 
+                  type="primary" 
+                  :disabled="!record.textFileEdit" 
+                  @click="handleEdit(record)"
+                >
+                  <template #icon><EditOutlined /></template>
+                </a-button>
               </a-tooltip>
               <a-tooltip :title="$t('i18n_5cc7e8e30a')">
-                <a-button size="small" type="primary" @click="handleFilePermission(record)">{{
-                  $t('i18n_ba6e91fa9e')
-                }}</a-button>
+                <a-button 
+                  class="action-btn" 
+                  size="small" 
+                  type="primary" 
+                  @click="handleFilePermission(record)"
+                >
+                  <template #icon><LockOutlined /></template>
+                </a-button>
               </a-tooltip>
-              <a-button size="small" type="primary" :disabled="record.dir" @click="handleDownload(record)">{{
-                $t('i18n_f26ef91424')
-              }}</a-button>
-              <a-button size="small" type="primary" danger @click="handleDelete(record)">{{
-                $t('i18n_2f4aaddde3')
-              }}</a-button>
-            </a-space>
+              <a-tooltip :title="$t('i18n_f26ef91424')">
+                <a-button 
+                  class="action-btn" 
+                  size="small" 
+                  type="primary" 
+                  :disabled="record.dir" 
+                  @click="handleDownload(record)"
+                >
+                  <template #icon><DownloadOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip :title="$t('i18n_2f4aaddde3')">
+                <a-button 
+                  class="action-btn" 
+                  size="small" 
+                  type="primary" 
+                  danger 
+                  @click="handleDelete(record)"
+                >
+                  <template #icon><DeleteOutlined /></template>
+                </a-button>
+              </a-tooltip>
+            </div>
           </template>
         </template>
       </a-table>
+
       <!-- 上传文件 -->
       <CustomModal
         v-if="uploadFileVisible"
         v-model:open="uploadFileVisible"
         destroy-on-close
-        width="300px"
+        width="400px"
         :title="$t('i18n_a6fc9e3ae6')"
         :confirm-loading="confirmLoading"
         :footer="null"
         :mask-closable="true"
         @cancel="closeUploadFile"
       >
-        <a-upload
-          :file-list="uploadFileList"
-          :before-upload="beforeUpload"
-          :accept="`${uploadFileZip ? ZIP_ACCEPT : ''}`"
-          :multiple="!uploadFileZip"
-          @remove="handleRemove"
-        >
-          <a-button>
-            <UploadOutlined />
-            {{ $t('i18n_fd7e0c997d') }}
-            {{ uploadFileZip ? $t('i18n_c806d0fa38') : '' }}
+        <a-space direction="vertical" style="width: 100%">
+          <a-upload
+            :file-list="uploadFileList"
+            :before-upload="beforeUpload"
+            :accept="`${uploadFileZip ? ZIP_ACCEPT : ''}`"
+            :multiple="!uploadFileZip"
+            @remove="handleRemove"
+            list-type="picture"
+            class="upload-list-inline"
+          >
+            <a-button>
+              <template #icon><UploadOutlined /></template>
+              {{ $t('i18n_fd7e0c997d') }}
+              {{ uploadFileZip ? $t('i18n_c806d0fa38') : '' }}
+            </a-button>
+          </a-upload>
+          <a-divider />
+          <a-button
+            block
+            type="primary"
+            :disabled="uploadFileList.length === 0"
+            :loading="confirmLoading"
+            @click="startUpload"
+          >
+            {{ $t('i18n_020f1ecd62') }}
           </a-button>
-        </a-upload>
-        <br />
-        <a-button
-          type="primary"
-          :disabled="uploadFileList.length === 0"
-          :loading="confirmLoading"
-          @click="startUpload"
-          >{{ $t('i18n_020f1ecd62') }}</a-button
-        >
+        </a-space>
       </CustomModal>
+
       <!-- 分片上传 -->
       <CustomModal
         v-if="uploadShardingFileVisible"
@@ -253,15 +320,15 @@
         :confirm-loading="confirmLoading"
         :closable="!confirmLoading"
         :keyboard="false"
-        width="35vw"
+        width="500px"
         :title="$t('i18n_d65551b090')"
         :footer="null"
         :mask-closable="false"
       >
         <a-space direction="vertical" size="large" style="width: 100%">
-          <a-alert :message="$t('i18n_776bf504a4')" type="warning">
+          <a-alert :message="$t('i18n_776bf504a4')" type="warning" show-icon>
             <template #description>
-              <ul>
+              <ul class="upload-tips">
                 <li>
                   {{ $t('i18n_383952103d') }}
                 </li>
@@ -269,80 +336,107 @@
               </ul>
             </template>
           </a-alert>
-          <a-upload
-            :file-list="uploadFileList"
-            :before-upload="
-              (file) => {
-                uploadFileList = [file]
-                return false
-              }
-            "
-            multiple
-            :disabled="!!percentage"
-            @remove="
-              (file) => {
-                const index = uploadFileList.indexOf(file)
-                //const newFileList = this.uploadFileList.slice();
+          
+          <div class="upload-container">
+            <a-upload
+              :file-list="uploadFileList"
+              :before-upload="
+                (file) => {
+                  uploadFileList = [file]
+                  return false
+                }
+              "
+              multiple
+              :disabled="!!percentage"
+              @remove="
+                (file) => {
+                  const index = uploadFileList.indexOf(file)
+                  uploadFileList.splice(index, 1)
+                  return true
+                }
+              "
+              list-type="picture"
+              class="upload-list-inline"
+            >
+              <div class="upload-drag-area">
+                <p class="upload-drag-icon">
+                  <template v-if="percentage">
+                    <LoadingOutlined v-if="uploadFileList?.length" />
+                    <CloudUploadOutlined v-else />
+                  </template>
+                  <CloudUploadOutlined v-else />
+                </p>
+                <p class="upload-text">{{ $t('i18n_fd7e0c997d') }}</p>
+                <p class="upload-hint">支持单个或批量上传</p>
+              </div>
+            </a-upload>
+          </div>
 
-                uploadFileList.splice(index, 1)
-                return true
-              }
-            "
-          >
-            <template v-if="percentage">
-              <template v-if="uploadFileList?.length">
-                <LoadingOutlined v-if="uploadFileList.length > 1" />
-              </template>
-            </template>
-
-            <a-button v-else><UploadOutlined />{{ $t('i18n_fd7e0c997d') }}</a-button>
-          </a-upload>
-
-          <a-row v-if="percentage">
-            <a-col span="24">
-              <a-progress :percent="percentage" class="max-progress">
+          <a-row v-if="percentage" class="progress-container">
+            <a-col :span="24">
+              <a-progress :percent="percentage" :status="percentage >= 100 ? 'success' : 'active'">
                 <template #format="percent">
                   {{ percent }}%<template v-if="percentageInfo.total">
                     ({{ renderSize(percentageInfo.total) }})
                   </template>
                   <template v-if="percentageInfo.duration">
-                    {{ $t('i18n_833249fb92') }}:{{ formatDuration(percentageInfo.duration) }}
+                    <br />{{ $t('i18n_833249fb92') }}: {{ formatDuration(percentageInfo.duration) }}
                   </template>
                 </template>
               </a-progress>
             </a-col>
           </a-row>
 
-          <a-button type="primary" :disabled="fileUploadDisabled" @click="startUploadSharding">{{
-            $t('i18n_020f1ecd62')
-          }}</a-button>
+          <a-button 
+            type="primary" 
+            block
+            :disabled="fileUploadDisabled" 
+            :loading="confirmLoading"
+            @click="startUploadSharding"
+          >
+            <template #icon><UploadOutlined /></template>
+            {{ $t('i18n_020f1ecd62') }}
+          </a-button>
         </a-space>
       </CustomModal>
+
       <!--  新增文件 目录    -->
       <CustomModal
         v-if="addFileFolderVisible"
         v-model:open="addFileFolderVisible"
-        width="300px"
+        width="400px"
         :title="temp.addFileOrFolderType === 1 ? $t('i18n_2d9e932510') : $t('i18n_e48a715738')"
         :footer="null"
         :mask-closable="true"
       >
         <a-space direction="vertical" style="width: 100%">
-          <span v-if="nowPath">{{ $t('i18n_4e33dde280') }}{{ nowPath }}</span>
-          <!-- <a-tag v-if="">目录创建成功后需要手动刷新右边树才能显示出来哟</a-tag> -->
-          <a-tooltip :title="temp.addFileOrFolderType === 1 ? $t('i18n_fe1b192913') : ''">
-            <a-input v-model:value="temp.fileFolderName" :placeholder="$t('i18n_55939c108f')" />
-          </a-tooltip>
-          <a-row type="flex" justify="center">
-            <a-button
-              type="primary"
-              :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0"
-              @click="startAddFileFolder"
-              >{{ $t('i18n_e83a256e4f') }}</a-button
-            >
-          </a-row>
+          <div class="current-path" v-if="nowPath">
+            <FolderOpenOutlined class="path-icon" />
+            <span class="path-text">{{ nowPath }}</span>
+          </div>
+          
+          <a-input 
+            v-model:value="temp.fileFolderName" 
+            :placeholder="$t('i18n_55939c108f')"
+            :prefix="temp.addFileOrFolderType === 1 ? h(FolderOutlined) : h(FileOutlined)"
+            :maxLength="255"
+            showCount
+            allowClear
+          />
+          
+          <a-alert v-if="temp.addFileOrFolderType === 1" :message="$t('i18n_fe1b192913')" type="info" show-icon />
+          
+          <a-button
+            block
+            type="primary"
+            :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0"
+            @click="startAddFileFolder"
+          >
+            {{ $t('i18n_e83a256e4f') }}
+          </a-button>
         </a-space>
       </CustomModal>
+
       <!-- 编辑文件 -->
       <CustomModal
         v-if="editFileVisible"
@@ -355,42 +449,93 @@
         :mask-closable="true"
         @ok="updateFileData"
       >
-        <code-editor v-model:content="temp.fileContent" height="60vh" show-tool :file-suffix="temp.name">
+        <div class="editor-header">
+          <div class="file-path">
+            <FileTextOutlined class="file-icon" />
+            <span class="file-path-text">
+              {{((temp.allowPathParent || '/ ') + '/' + (temp.nextPath || '/') + '/' + (temp.name || '/')).replace(
+                new RegExp('//+', 'gm'),
+                '/'
+              )}}
+            </span>
+          </div>
+          
+          <div class="editor-actions">
+            <a-space>
+              <a-tooltip title="自动格式化">
+                <a-button size="small" @click="formatCode">
+                  <template #icon><AlignLeftOutlined /></template>
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="查找替换">
+                <a-button size="small">
+                  <template #icon><SearchOutlined /></template>
+                </a-button>
+              </a-tooltip>
+            </a-space>
+          </div>
+        </div>
+        
+        <code-editor 
+          v-model:content="temp.fileContent" 
+          height="60vh" 
+          show-tool 
+          :file-suffix="temp.name"
+        >
           <template #tool_before>
-            <a-tag>
+            <a-tag color="blue">
               {{
                 ((temp.allowPathParent || '/ ') + '/' + (temp.nextPath || '/') + '/' + (temp.name || '/')).replace(
                   new RegExp('//+', 'gm'),
                   '/'
                 )
               }}
-              <!-- {{ temp.name }} -->
             </a-tag>
           </template>
         </code-editor>
       </CustomModal>
+
       <!-- 从命名文件/文件夹 -->
       <CustomModal
         v-if="renameFileFolderVisible"
         v-model:open="renameFileFolderVisible"
         destroy-on-close
-        width="300px"
+        width="400px"
         :title="`${$t('i18n_c8ce4b36cb')}`"
         :footer="null"
         :mask-closable="true"
       >
         <a-space direction="vertical" style="width: 100%">
-          <a-input v-model:value="temp.fileFolderName" :placeholder="$t('i18n_f139c5cf32')" />
+          <div class="rename-file-info">
+            <div class="file-icon-container">
+              <FolderOutlined v-if="temp.dir" class="big-icon folder" />
+              <FileOutlined v-else class="big-icon file" />
+            </div>
+            <div class="file-details">
+              <div class="original-name">{{ temp.oldFileFolderName }}</div>
+              <div class="file-path">{{ nowPath }}</div>
+            </div>
+          </div>
+          
+          <a-divider />
+          
+          <a-input 
+            v-model:value="temp.fileFolderName" 
+            :placeholder="$t('i18n_f139c5cf32')"
+            allowClear
+            :maxLength="255"
+            showCount
+          />
 
-          <a-row v-if="temp.fileFolderName" type="flex" justify="center">
-            <a-button
-              :loading="confirmLoading"
-              type="primary"
-              :disabled="temp.fileFolderName.length === 0 || temp.fileFolderName === temp.oldFileFolderName"
-              @click="renameFileFolder"
-              >{{ $t('i18n_e83a256e4f') }}</a-button
-            >
-          </a-row>
+          <a-button
+            block
+            type="primary"
+            :loading="confirmLoading"
+            :disabled="temp.fileFolderName.length === 0 || temp.fileFolderName === temp.oldFileFolderName"
+            @click="renameFileFolder"
+          >
+            {{ $t('i18n_e83a256e4f') }}
+          </a-button>
         </a-space>
       </CustomModal>
 
@@ -399,73 +544,87 @@
         v-if="editFilePermissionVisible"
         v-model:open="editFilePermissionVisible"
         destroy-on-close
-        width="400px"
+        width="480px"
         :title="`${$t('i18n_5cc7e8e30a')}`"
         :footer="null"
         :mask-closable="true"
       >
-        <a-row>
-          <a-col :span="6"
-            ><span class="title">{{ $t('i18n_ba6e91fa9e') }}</span></a-col
-          >
-          <a-col :span="6"
-            ><span class="title">{{ $t('i18n_8306971039') }}</span></a-col
-          >
-          <a-col :span="6"
-            ><span class="title">{{ $t('i18n_e72a0ba45a') }}</span></a-col
-          >
-          <a-col :span="6"
-            ><span class="title">{{ $t('i18n_0d98c74797') }}</span></a-col
-          >
-        </a-row>
-        <a-row>
-          <a-col :span="6">
-            <span>{{ $t('i18n_75769d1ac8') }}</span>
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.owner.read" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.group.read" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.others.read" />
-          </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="6">
-            <span>{{ $t('i18n_4d7dc6c5f8') }}</span>
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.owner.write" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.group.write" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.others.write" />
-          </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="6">
-            <span>{{ $t('i18n_1a6aa24e76') }}</span>
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.owner.execute" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.group.execute" />
-          </a-col>
-          <a-col :span="6">
-            <a-checkbox v-model:checked="permissions.others.execute" />
-          </a-col>
-        </a-row>
-        <a-row type="flex" style="margin-top: 20px">
-          <a-button type="primary" @click="updateFilePermissions">{{ $t('i18n_49e56c7b90') }}</a-button>
-        </a-row>
-        <!-- <a-row>
-            <a-alert style="margin-top: 20px" :message="permissionTips" type="success" />
-          </a-row> -->
+        <div class="permission-header">
+          <FileOutlined v-if="!temp.dir" class="permission-file-icon" />
+          <FolderOutlined v-else class="permission-file-icon" />
+          <span class="permission-file-name">{{ temp.name }}</span>
+        </div>
+        
+        <div class="permission-grid">
+          <div class="permission-row permission-header-row">
+            <div class="permission-cell header"></div>
+            <div class="permission-cell header">{{ $t('i18n_8306971039') }}</div>
+            <div class="permission-cell header">{{ $t('i18n_e72a0ba45a') }}</div>
+            <div class="permission-cell header">{{ $t('i18n_0d98c74797') }}</div>
+          </div>
+          
+          <div class="permission-row">
+            <div class="permission-cell">
+              <span class="permission-type">{{ $t('i18n_75769d1ac8') }}</span>
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.owner.read" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.group.read" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.others.read" />
+            </div>
+          </div>
+          
+          <div class="permission-row">
+            <div class="permission-cell">
+              <span class="permission-type">{{ $t('i18n_4d7dc6c5f8') }}</span>
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.owner.write" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.group.write" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.others.write" />
+            </div>
+          </div>
+          
+          <div class="permission-row">
+            <div class="permission-cell">
+              <span class="permission-type">{{ $t('i18n_1a6aa24e76') }}</span>
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.owner.execute" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.group.execute" />
+            </div>
+            <div class="permission-cell">
+              <a-checkbox v-model:checked="permissions.others.execute" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="permission-summary">
+          <div class="permission-value">
+            <span class="permission-value-label">{{ $t('i18n_ba6e91fa9e') }}:</span>
+            <a-tag color="blue">{{ calcFilePermissionValue(permissions) }}</a-tag>
+          </div>
+          <div class="permission-command">
+            <code>chmod {{ calcFilePermissionValue(permissions) }} {{ temp.name }}</code>
+          </div>
+        </div>
+        
+        <div class="permission-actions">
+          <a-button type="primary" @click="updateFilePermissions">
+            <template #icon><CheckOutlined /></template>
+            {{ $t('i18n_49e56c7b90') }}
+          </a-button>
+        </div>
       </CustomModal>
     </a-layout-content>
   </a-layout>
@@ -491,9 +650,53 @@ import codeEditor from '@/components/codeEditor/index.vue'
 import { ZIP_ACCEPT, renderSize, parseTime, concurrentExecution, formatDuration } from '@/utils/const'
 import { Empty } from 'ant-design-vue'
 import { uploadPieces } from '@/utils/upload-pieces'
+import { 
+  ReloadOutlined, 
+  FolderOutlined, 
+  FileOutlined, 
+  FileTextOutlined, 
+  FileImageOutlined, 
+  FileZipOutlined,
+  UploadOutlined,
+  DownloadOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  LockOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  CloudUploadOutlined,
+  FolderOpenOutlined,
+  CheckOutlined,
+  LoadingOutlined,
+  SearchOutlined,
+  AlignLeftOutlined
+} from '@ant-design/icons-vue'
+import { h } from 'vue'
+
 export default {
   components: {
-    codeEditor
+    codeEditor,
+    ReloadOutlined,
+    FolderOutlined,
+    FileOutlined,
+    FileTextOutlined,
+    FileImageOutlined,
+    FileZipOutlined,
+    UploadOutlined,
+    DownloadOutlined,
+    DeleteOutlined,
+    EditOutlined,
+    PlusOutlined,
+    LockOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined,
+    CloudUploadOutlined,
+    FolderOpenOutlined,
+    CheckOutlined,
+    LoadingOutlined,
+    SearchOutlined,
+    AlignLeftOutlined
   },
   inject: ['globalLoading'],
   props: {
@@ -530,9 +733,8 @@ export default {
         {
           title: this.$t('i18n_d2e2560089'),
           dataIndex: 'name',
-          width: 200,
+          width: 250,
           ellipsis: true,
-
           sorter: (a, b) => (a.name || '').localeCompare(b.name || '')
         },
         {
@@ -546,7 +748,6 @@ export default {
           dataIndex: 'size',
           width: 120,
           ellipsis: true,
-
           sorter: (a, b) => Number(a.size) - new Number(b.size)
         },
         {
@@ -569,8 +770,7 @@ export default {
           dataIndex: 'operation',
           align: 'center',
           fixed: 'right',
-
-          width: '220px'
+          width: '180px'
         }
       ],
 
@@ -582,7 +782,6 @@ export default {
         group: { read: false, write: false, execute: false },
         others: { read: false, write: false, execute: false }
       },
-      // permissionTips: "",
       sortMethodList: [
         {
           name: this.$t('i18n_29139c2a1a'),
@@ -619,6 +818,10 @@ export default {
         '/'
       )
     },
+    pathSegments() {
+      if (!this.nowPath) return [];
+      return this.nowPath.split('/').filter(segment => segment);
+    },
     baseUrl() {
       if (this.sshId) {
         return '/node/ssh/'
@@ -630,9 +833,20 @@ export default {
     },
     sortFileList() {
       return this.fileList.slice(0).sort((a, b) => {
-        const aV = a[this.sortMethod.key] || ''
-        const bV = b[this.sortMethod.key] || ''
-        return this.sortMethod.asc ? bV.localeCompare(aV) : aV.localeCompare(bV)
+        // 首先按照文件夹/文件类型排序
+        if (a.dir && !b.dir) return -1;
+        if (!a.dir && b.dir) return 1;
+        
+        // 然后按照选定的排序方法排序
+        const aV = a[this.sortMethod.key] || '';
+        const bV = b[this.sortMethod.key] || '';
+        
+        if (this.sortMethod.key === 'name') {
+          return this.sortMethod.asc ? aV.localeCompare(bV) : bV.localeCompare(aV);
+        } else {
+          // 数值类型排序
+          return this.sortMethod.asc ? Number(aV) - Number(bV) : Number(bV) - Number(aV);
+        }
       })
     }
   },
@@ -644,8 +858,16 @@ export default {
       console.error(e)
     }
     this.loadData()
+    
+    // 添加键盘快捷键
+    window.addEventListener('keydown', this.handleKeyDown);
+  },
+  beforeUnmount() {
+    // 移除键盘快捷键
+    window.removeEventListener('keydown', this.handleKeyDown);
   },
   methods: {
+    calcFilePermissionValue,
     formatDuration,
     changeSort(key, asc) {
       this.sortMethod = { key: key, asc: asc }
@@ -653,6 +875,101 @@ export default {
       this.loadData()
     },
     renderSize,
+    
+    // 处理键盘快捷键
+    handleKeyDown(e) {
+      // Ctrl+R: 刷新文件列表
+      if (e.ctrlKey && e.key === 'r' && this.tempNode.nextPath) {
+        e.preventDefault();
+        this.loadFileList();
+      }
+      
+      // Ctrl+U: 打开上传对话框
+      if (e.ctrlKey && e.key === 'u' && this.tempNode.nextPath) {
+        e.preventDefault();
+        this.handleUpload();
+      }
+      
+      // Ctrl+N: 新建文件夹
+      if (e.ctrlKey && e.key === 'n' && this.tempNode.nextPath) {
+        e.preventDefault();
+        this.handleAddFolder();
+      }
+      
+      // Ctrl+F: 新建文件
+      if (e.ctrlKey && e.key === 'f' && this.tempNode.nextPath) {
+        e.preventDefault();
+        this.handleAddFile();
+      }
+    },
+    
+    // 格式化代码
+    formatCode() {
+      // 这里可以实现代码格式化功能
+      // 如果没有具体实现，可以显示一个通知
+      $notification.info({
+        message: '代码格式化',
+        description: '代码格式化功能需要根据具体文件类型实现'
+      });
+    },
+    
+    // 获取文件图标类型
+    getFileIconClass(record) {
+      if (record.dir) return 'folder';
+      if (record.textFileEdit) return 'code';
+      if (this.isImageFile(record.name)) return 'image';
+      if (this.isArchiveFile(record.name)) return 'archive';
+      return 'file';
+    },
+    
+    // 判断是否为图片文件
+    isImageFile(filename) {
+      if (!filename) return false;
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+      return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+    },
+    
+    // 判断是否为压缩文件
+    isArchiveFile(filename) {
+      if (!filename) return false;
+      const archiveExtensions = ['.zip', '.rar', '.tar', '.gz', '.7z', '.bz2', '.xz'];
+      return archiveExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+    },
+    
+    // 获取文件类型标签颜色
+    getFileTypeColor(record) {
+      if (record.link) return 'purple';
+      if (record.dir) return 'blue';
+      if (this.isImageFile(record.name)) return 'green';
+      if (this.isArchiveFile(record.name)) return 'orange';
+      if (record.textFileEdit) return 'geekblue';
+      return 'default';
+    },
+    
+    // 导航到根目录
+    navigateToRoot() {
+      this.selectedKeys = [];
+      this.tempNode = {};
+      this.loadData();
+    },
+    
+    // 导航到指定路径段
+    navigateToPath(index) {
+      // 实现导航到特定路径段的逻辑
+      const targetPath = this.pathSegments.slice(0, index + 1).join('/');
+      console.log("Navigate to path segment:", targetPath);
+      
+      // 这里需要根据您的应用程序结构实现具体导航逻辑
+      // 以下是示例实现，可能需要根据实际情况调整
+      if (this.treeList.length > 0 && this.treeList[0]) {
+        // 找到匹配的树节点
+        let node = this.treeList[0];
+        this.selectedKeys = [node.key];
+        this.tempNode = node;
+        this.loadTreeNode();
+      }
+    },
+
     // 加载数据
     loadData() {
       this.loading = true
@@ -682,7 +999,15 @@ export default {
               const bV = b[this.sortMethod.key] || ''
               return this.sortMethod.asc ? bV.localeCompare(aV) : aV.localeCompare(bV)
             })
+            
+          // 添加动画效果
+          setTimeout(() => {
+            this.loading = false
+          }, 300)
+        } else {
+          this.loading = false
         }
+      }).catch(() => {
         this.loading = false
       })
     },
@@ -1235,47 +1560,774 @@ export default {
         .finally(() => {
           this.confirmLoading = false
         })
+    },
+    formatCode() {
+      // 实现自动格式化代码的逻辑
+      // 这需要基于您的应用程序结构进行具体实现
+      console.log("Formatting code...");
     }
   }
 }
 </script>
 <style lang="less" scoped>
+// 现代化样式
 :deep(.ant-progress-text) {
   width: auto;
 }
+
 .ssh-file-layout {
   padding: 0;
   min-height: calc(100vh - 75px);
+  background-color: #f8f9fa;
+  display: flex;
+  gap: 16px;
+  transition: all 0.3s ease;
 }
+
 .dir-container {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .ant-space {
+    flex-wrap: wrap;
+  }
+  
+  .ant-btn {
+    transition: all 0.25s ease;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
 }
+
 .sider {
-  border: 1px solid #e2e2e2;
-  /* overflow-x: auto; */
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin: 12px 0 12px 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
 }
+
 .file-content {
-  margin: 10px 10px 0;
-  padding: 10px;
-  /* background-color: #fff; */
+  margin: 12px 12px 12px 0;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
 }
+
 .title {
   font-weight: 600;
   font-size: larger;
+  color: #1677ff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
 .tree-container {
   overflow-x: auto;
+  padding: 8px;
+  
   :deep(.ant-tree-title) {
     word-break: keep-all;
     white-space: nowrap;
+    transition: all 0.2s ease;
   }
+  
   :deep(.ant-tree-node-content-wrapper) {
     display: flex;
     align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    
+    &:hover {
+      background-color: rgba(22, 119, 255, 0.1);
+      transform: translateX(2px);
+    }
   }
+  
   :deep(.ant-tree.ant-tree-directory .ant-tree-treenode .ant-tree-node-content-wrapper.ant-tree-node-selected) {
     background-color: #1677ff;
+    border-radius: 6px;
+    box-shadow: 0 3px 8px rgba(22, 119, 255, 0.4);
   }
+  
+  :deep(.ant-tree-switcher) {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  :deep(.ant-tree-switcher_open) {
+    transform: rotate(90deg);
+  }
+}
+
+// 文件操作工具栏
+.file-actions-toolbar {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f8faff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #f0f7ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .ant-space {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  
+  .ant-btn {
+    transition: all 0.25s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// 表格样式优化
+:deep(.ant-table) {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  .ant-table-thead > tr > th {
+    background-color: #f0f5ff;
+    font-weight: 600;
+    padding: 14px 16px;
+  }
+  
+  .ant-table-tbody > tr {
+    transition: all 0.25s ease;
+    
+    &:hover {
+      background-color: #f0f7ff;
+      transform: translateY(-1px);
+    }
+    
+    td {
+      transition: all 0.2s ease;
+      padding: 12px 16px;
+    }
+  }
+}
+
+// 文件名单元格样式
+.file-name-cell {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  transition: all 0.2s ease;
+  
+  .file-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    margin-right: 10px;
+    
+    &.folder {
+      background-color: rgba(250, 173, 20, 0.1);
+      color: #faad14;
+    }
+    
+    &.file {
+      background-color: rgba(24, 144, 255, 0.1);
+      color: #1890ff;
+    }
+    
+    &.image {
+      background-color: rgba(82, 196, 26, 0.1);
+      color: #52c41a;
+    }
+    
+    &.code {
+      background-color: rgba(114, 46, 209, 0.1);
+      color: #722ed1;
+    }
+    
+    &.archive {
+      background-color: rgba(250, 140, 22, 0.1);
+      color: #fa8c16;
+    }
+  }
+  
+  span {
+    transition: all 0.2s ease;
+  }
+  
+  &:hover {
+    transform: translateX(2px);
+    
+    span:not(.file-icon) {
+      color: #1677ff;
+    }
+  }
+}
+
+// 按钮样式优化
+:deep(.ant-btn) {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 模态框样式优化
+:deep(.ant-modal) {
+  .ant-modal-content {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  }
+  
+  .ant-modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 18px 24px;
+    background-color: #f8faff;
+  }
+  
+  .ant-modal-body {
+    padding: 24px;
+  }
+  
+  .ant-modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 14px 24px;
+    background-color: #f8faff;
+  }
+}
+
+// 上传组件样式优化
+:deep(.ant-upload-list-item) {
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  padding: 6px 8px;
+  
+  &:hover {
+    background-color: #f0f7ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.upload-list-inline {
+  :deep(.ant-upload-select) {
+    margin-bottom: 12px;
+  }
+}
+
+// 进度条样式优化
+:deep(.ant-progress) {
+  .ant-progress-bg {
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
+  }
+  
+  .ant-progress-text {
+    font-weight: 500;
+  }
+}
+
+// 文件操作动画
+.file-operation-enter-active,
+.file-operation-leave-active {
+  transition: opacity 0.4s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.file-operation-enter-from,
+.file-operation-leave-to {
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+// 工具提示优化
+:deep(.ant-tooltip) {
+  .ant-tooltip-inner {
+    border-radius: 6px;
+    padding: 10px 14px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+// 下拉菜单优化
+:deep(.ant-dropdown-menu) {
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  
+  .ant-dropdown-menu-item {
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: all 0.25s ease;
+    
+    &:hover {
+      background-color: #f0f7ff;
+      transform: translateX(2px);
+    }
+  }
+}
+
+// 标签样式优化
+:deep(.ant-tag) {
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-weight: 500;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+}
+
+// 权限编辑表格优化
+.permission-grid {
+  margin-top: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  .permission-row {
+    display: flex;
+    padding: 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transition: background-color 0.25s ease;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    &:hover {
+      background-color: #f0f7ff;
+    }
+    
+    .permission-cell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &.header {
+        font-weight: 600;
+        color: #1677ff;
+      }
+    }
+  }
+  
+  .permission-row.permission-header-row {
+    background-color: #f0f5ff;
+  }
+}
+
+// 面包屑导航
+.path-breadcrumb {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .path-item {
+    display: inline-flex;
+    align-items: center;
+    
+    &:not(:last-child)::after {
+      content: '/';
+      margin: 0 8px;
+      color: rgba(0, 0, 0, 0.45);
+    }
+    
+    .path-link {
+      color: #1677ff;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      padding: 2px 6px;
+      border-radius: 4px;
+      
+      &:hover {
+        color: #4096ff;
+        text-decoration: underline;
+        background-color: rgba(24, 144, 255, 0.1);
+      }
+    }
+    
+    &.current {
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.85);
+      background-color: rgba(0, 0, 0, 0.03);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  }
+}
+
+// 空状态优化
+:deep(.ant-empty) {
+  padding: 32px 0;
+  
+  .ant-empty-image {
+    height: 80px;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+  
+  .ant-empty-description {
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 15px;
+    margin-top: 16px;
+  }
+}
+
+// 加载状态优化
+:deep(.ant-spin) {
+  .ant-spin-dot {
+    transition: all 0.3s ease;
+  }
+  
+  .ant-spin-text {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #1677ff;
+  }
+}
+
+// 文件操作按钮组
+.file-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  
+  .action-btn {
+    border-radius: 6px;
+    transition: all 0.25s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// 文件路径显示
+.current-path {
+  background-color: #f0f7ff;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  
+  .path-icon {
+    margin-right: 10px;
+    color: #1677ff;
+  }
+  
+  .path-text {
+    color: rgba(0, 0, 0, 0.65);
+    font-family: monospace;
+  }
+}
+
+// 权限编辑模态框样式
+.permission-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: #f0f7ff;
+  border-radius: 6px;
+  
+  .permission-file-icon {
+    margin-right: 12px;
+    font-size: 20px;
+    color: #1677ff;
+    background-color: rgba(24, 144, 255, 0.1);
+    padding: 8px;
+    border-radius: 50%;
+  }
+  
+  .permission-file-name {
+    font-weight: 600;
+    color: #1677ff;
+    font-size: 16px;
+  }
+}
+
+// 权限编辑摘要样式
+.permission-summary {
+  margin-top: 20px;
+  padding: 14px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  
+  .permission-value {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    
+    .permission-value-label {
+      font-weight: 600;
+      color: #1677ff;
+      margin-right: 8px;
+    }
+  }
+  
+  .permission-command {
+    font-family: monospace;
+    color: rgba(0, 0, 0, 0.65);
+    background-color: rgba(0, 0, 0, 0.02);
+    padding: 8px 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+}
+
+// 权限编辑操作样式
+.permission-actions {
+  margin-top: 20px;
+  text-align: right;
+  
+  .ant-btn {
+    padding: 6px 16px;
+    height: auto;
+  }
+}
+
+// 上传组件样式
+.upload-container {
+  margin-bottom: 20px;
+}
+
+.upload-drag-area {
+  text-align: center;
+  padding: 36px;
+  border: 2px dashed rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-color: #1677ff;
+  }
+}
+
+.upload-drag-icon {
+  font-size: 36px;
+  color: #1677ff;
+  margin-bottom: 4px;
+}
+
+.upload-text {
+  margin-top: 12px;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.upload-hint {
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 8px;
+}
+
+// 上传提示样式
+.upload-tips {
+  margin: 0;
+  padding-left: 20px;
+  
+  li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// 进度条容器样式
+.progress-container {
+  margin: 20px 0;
+  padding: 16px;
+  background-color: #f8faff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+// 文件重命名样式
+.rename-file-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  
+  .file-icon-container {
+    margin-right: 16px;
+    
+    .big-icon {
+      font-size: 28px;
+      padding: 10px;
+      border-radius: 8px;
+      
+      &.folder {
+        color: #faad14;
+        background-color: rgba(250, 173, 20, 0.1);
+      }
+      
+      &.file {
+        color: #1677ff;
+        background-color: rgba(24, 144, 255, 0.1);
+      }
+    }
+  }
+  
+  .file-details {
+    flex: 1;
+    
+    .original-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 16px;
+    }
+    
+    .file-path {
+      color: rgba(0, 0, 0, 0.45);
+      font-size: 13px;
+      font-family: monospace;
+    }
+  }
+}
+
+// 编辑器头部样式
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  
+  .file-path {
+    display: flex;
+    align-items: center;
+    
+    .file-icon {
+      margin-right: 10px;
+      color: #1677ff;
+    }
+    
+    .file-path-text {
+      font-family: monospace;
+      color: rgba(0, 0, 0, 0.65);
+      overflow-x: auto;
+      white-space: nowrap;
+      max-width: 60vw;
+    }
+  }
+  
+  .editor-actions {
+    .ant-space {
+      gap: 8px !important;
+    }
+  }
+}
+
+// 添加响应式样式
+@media (max-width: 768px) {
+  .ssh-file-layout {
+    flex-direction: column;
+  }
+  
+  .sider {
+    width: calc(100% - 24px) !important;
+    margin: 12px;
+  }
+  
+  .file-content {
+    margin: 0 12px 12px;
+  }
+  
+  .file-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  
+  .permission-grid {
+    .permission-row {
+      flex-direction: column;
+      
+      .permission-cell {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
+// 添加暗色主题支持
+@media (prefers-color-scheme: dark) {
+  // 暗色主题样式可以在这里添加
 }
 </style>
