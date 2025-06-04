@@ -170,8 +170,7 @@ import { deleteLogRead, editLogRead, getLogReadList } from '@/api/log-read'
 import { getNodeListAll, getProjectListAll } from '@/api/node'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, itemGroupBy, parseTime } from '@/utils/const'
 
-import { mapState } from 'pinia'
-import logReadView from './logReadView'
+import logReadView from './logReadView.vue'
 
 export default {
   components: {

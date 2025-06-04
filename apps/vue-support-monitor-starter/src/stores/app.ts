@@ -55,7 +55,7 @@ export const useAppStore = defineStore("app", {
     getWorkspaceId: (state) => {
       return () => {
         const query = getHashQuery();
-        return query.wid || state.workspaceId;
+        return query.wid || state?.workspaceId || "DEFAULT";
       };
     },
     getCollapsed(state) {

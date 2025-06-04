@@ -208,10 +208,8 @@ import { getNodeListAll, getProjectListAll } from '@/api/node'
 import { getFileList } from '@/api/node-project'
 import { itemGroupBy } from '@/utils/const'
 import { getWebSocketUrl } from '@/api/config'
-import { mapState } from 'pinia'
 
-
-import viewPre from '@/components/logView/view-pre'
+import viewPre from '@/components/logView/view-pre.vue'
 import { updateCache } from '@/api/log-read'
 
 export default {
@@ -293,7 +291,7 @@ export default {
         })[0]
         const socketUrl = getWebSocketUrl(
           '/socket/console',
-          `userId=${this.getLongTermToken()}&id=${itemProjectData?.id}&nodeId=${
+          `id=${itemProjectData?.id}&nodeId=${
             item.nodeId
           }&type=console`
         )

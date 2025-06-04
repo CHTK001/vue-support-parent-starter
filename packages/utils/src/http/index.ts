@@ -41,7 +41,8 @@ const defaultConfig: AxiosRequestConfig = {
   baseURL: getConfig().BaseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
-    "Content-Type": "application/json",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    responseType: "json",
     "X-Requested-With": "XMLHttpRequest",
   },
   // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）

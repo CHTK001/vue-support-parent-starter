@@ -14,7 +14,7 @@
 </template>
 <script>
 import { scriptLog } from '@/api/server-script'
-import LogView from '@/components/logView'
+import LogView from '@/components/logView/index.vue'
 export default {
   components: {
     LogView

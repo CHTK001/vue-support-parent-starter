@@ -13,7 +13,7 @@
   </div>
 </template>
 <script>
-import LogView from '@/components/logView'
+import LogView from '@/components/logView/index.vue'
 import { dockerImagePullImageLog } from '@/api/docker-api'
 export default {
   components: {

@@ -293,9 +293,9 @@ import {
   formatDuration,
   dropApplyDrag
 } from '@/utils/const'
-import File from '@/views/maintenance/node/node-layout/project/project-file'
-import Console from '@/views/maintenance/node/node-layout/project/project-console'
-import FileRead from '@/views/maintenance/node/node-layout/project/project-file-read'
+import File from '@/views/maintenance/node/node-layout/project/project-file.vue'
+import Console from '@/views/maintenance/node/node-layout/project/project-console.vue'
+import FileRead from '@/views/maintenance/node/node-layout/project/project-file-read.vue'
 import { Container, Draggable } from 'vue3-smooth-dnd'
 export default {
   components: {

@@ -247,12 +247,14 @@
 </template>
 <script>
 import { deleteScript, getScriptListAll, getTriggerUrl, unbindScript, syncScript } from '@/api/node-other'
-
 import { getNodeListAll } from '@/api/node'
 import ScriptConsole from '@/views/maintenance/node/node-layout/other/script-console.vue'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import ScriptLog from '@/views/maintenance/node/node-layout/other/script-log.vue'
 import ScriptEdit from '@/views/maintenance/node/script-edit.vue'
+// 临时导入 $confirm 和 $notification，主程序全局注册后可移除此导入
+import { $confirm, $notification } from '@/components/AntdConfig'
+import { h } from 'vue'
 
 export default {
   components: {

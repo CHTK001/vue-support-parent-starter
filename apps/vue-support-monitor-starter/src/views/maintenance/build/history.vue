@@ -242,7 +242,7 @@
   </div>
 </template>
 <script>
-import BuildLog from './log'
+import BuildLog from './log.vue'
 import {
   deleteBuildHistory,
   downloadBuildFile,

@@ -47,7 +47,7 @@ import { getWebSocketUrl } from '@/api/config'
 import { dockerContainerDownloaLog } from '@/api/docker-api'
 
 
-import LogView2 from '@/components/logView'
+import LogView2 from '@/components/logView/index.vue'
 
 export default {
   components: {
@@ -87,7 +87,7 @@ export default {
     socketUrl() {
       return getWebSocketUrl(
         '/socket/docker_log',
-        `userId=${this.getLongTermToken()}&id=${this.id}&machineDockerId=${
+        `id=${this.id}&machineDockerId=${
           this.machineDockerId
         }&type=dockerLog&nodeId=system`
       )

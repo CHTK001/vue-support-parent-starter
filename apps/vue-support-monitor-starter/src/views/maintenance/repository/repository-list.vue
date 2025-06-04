@@ -551,6 +551,7 @@ import {
   importData,
   listRepositoryGroup
 } from '@/api/repository'
+import { defineAsyncComponent } from 'vue'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import { getWorkspaceEnvAll } from '@/api/workspace'
 import CustomSelect from '@/components/customSelect/index.vue'
@@ -558,7 +559,7 @@ export default {
   components: {
     CustomInput,
     CustomSelect,
-    buildListComponent: defineAsyncComponent(() => import('@/views/maintenance/build/list-info'))
+    buildListComponent: defineAsyncComponent(() => import('@/views/maintenance/build/list-info.vue'))
   },
   props: {
     choose: {

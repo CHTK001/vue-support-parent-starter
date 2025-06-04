@@ -393,7 +393,7 @@
             </a-form-item>
             <a-form-item :label="$t('i18n_649231bdee')" name="suffix">
               <template #help>
-                {{ $t('i18n_4f095befc0') }}<span style="color: red">{{ $t('i18n_6adcbc6663') }}</span>
+                {{ $t('i18n_4f095befc0') }}
               </template>
               <a-textarea
                 v-model:value="temp.allowEditSuffix"

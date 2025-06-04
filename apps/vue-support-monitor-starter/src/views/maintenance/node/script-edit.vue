@@ -174,6 +174,8 @@ import { editScript, itemScript } from '@/api/node-other'
 import { CRON_DATA_SOURCE } from '@/utils/const-i18n'
 import { getNodeListAll } from '@/api/node'
 import ScriptLibraryNoPermission from '@/views/maintenance/system/assets/script-library/no-permission.vue'
+import { $notification } from '@/components/AntdConfig'
+
 export default {
   components: {
     codeEditor,

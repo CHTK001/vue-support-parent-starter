@@ -469,8 +469,8 @@ import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } 
 import { CRON_DATA_SOURCE } from '@/utils/const-i18n'
 import { getSshListAll } from '@/api/ssh'
 import codeEditor from '@/components/codeEditor/index.vue'
-import CommandLog from './command-view-log'
-import ScriptLibraryNoPermission from '@/views/maintenance/system/assets/script-library/no-permission'
+import CommandLog from './command-view-log.vue'
+import ScriptLibraryNoPermission from '@/views/maintenance/system/assets/script-library/no-permission.vue'
 import { getWorkSpaceListAll } from '@/api/workspace'
 import { mapState } from 'pinia'
 

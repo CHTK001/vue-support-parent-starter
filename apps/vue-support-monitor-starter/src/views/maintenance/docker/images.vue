@@ -161,7 +161,7 @@ import {
   dockerImageSaveImage,
   dockerImageLoadImage
 } from '@/api/docker-api'
-import PullImageLog from '@/views/maintenance/docker/pull-image-log'
+import PullImageLog from '@/views/maintenance/docker/pull-image-log.vue'
 import BuildContainer from './buildContainer.vue'
 
 export default {

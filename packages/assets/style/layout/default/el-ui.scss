@@ -141,6 +141,7 @@ translate-x-50\%{
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
   overflow: hidden;
+  padding: 10px;
   transition: var(--el-transition-duration);
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);

@@ -111,6 +111,29 @@ export default {
     }
   },
   methods: {
+     // 计算弹窗全屏样式
+    getFullscreenViewLogStyle ()  {
+        // 非全屏
+        return {
+          // dialogStyle: {
+          //   maxWidth: '100vw',
+          //   top: false,
+          //   paddingBottom: 0
+          // },
+          bodyStyle: {
+            padding: '0 10px',
+            paddingTop: '10px',
+            marginRight: '10px',
+            height: '70vh'
+          },
+          width: '80vw',
+          style: {
+            maxWidth: '100vw',
+            top: false,
+            paddingBottom: 0
+          }
+        }
+    },
     appendLine(data) {
       this.$refs.viewPre?.appendLine(data)
     },

@@ -1,4 +1,6 @@
 import App from "./App.vue";
+// 最优先导入全局配置，确保在其他代码执行前就加载
+import "@/components/AntdConfig";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
 import { MotionPlugin } from "@vueuse/motion";
@@ -38,6 +40,8 @@ import "ant-design-vue/dist/reset.css";
 import * as AntIcons from "@ant-design/icons-vue";
 // 导入全局方法插件
 import IconPlugin from "./components/Icon";
+// 导入Ant Design Vue全局配置
+import setupAntdConfig from "./components/AntdConfig";
 
 // 全局注册 components 文件夹下的所有组件
 const modules = import.meta.glob("./components/**/index.vue", { eager: true });
@@ -78,6 +82,8 @@ app.use(VueTippy);
 app.use(Antd);
 // 注册全局方法
 app.use(IconPlugin);
+// 使用Ant Design Vue全局配置
+app.use(setupAntdConfig);
 
 // 注册指令
 setupDirectives(app);

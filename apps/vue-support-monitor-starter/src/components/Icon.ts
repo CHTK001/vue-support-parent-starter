@@ -84,6 +84,10 @@ export const $notification = {
     updateNotificationZIndex();
     return notification.warning(config);
   },
+  warn: (config: NotificationArgsProps) => {
+    updateNotificationZIndex();
+    return notification.warning(config);
+  },
   open: (config: NotificationArgsProps) => {
     updateNotificationZIndex();
     return notification.open(config);

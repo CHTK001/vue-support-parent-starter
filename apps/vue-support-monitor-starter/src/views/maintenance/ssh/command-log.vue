@@ -126,8 +126,7 @@
 <script>
 import { deleteCommandLog, downloadLog, getCommandLogList, statusMap, triggerExecTypeMap } from '@/api/command'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
-import CommandLog from './command-view-log'
-import { mapState } from 'pinia'
+import CommandLog from './command-view-log.vue'
 
 export default {
   components: {
@@ -225,7 +224,29 @@ export default {
       this.temp = row
       this.logVisible = true
     },
-
+ // 计算弹窗全屏样式
+    getFullscreenViewLogStyle()  {
+        // 非全屏
+        return {
+          // dialogStyle: {
+          //   maxWidth: '100vw',
+          //   top: false,
+          //   paddingBottom: 0
+          // },
+          bodyStyle: {
+            padding: '0 10px',
+            paddingTop: '10px',
+            marginRight: '10px',
+            height: '70vh'
+          },
+          width: '80vw',
+          style: {
+            maxWidth: '100vw',
+            top: false,
+            paddingBottom: 0
+          }
+      }
+    },
     // 获取命令数据
     getCommandLogData(pointerEvent) {
       this.listQuery.page = pointerEvent?.altKey || pointerEvent?.ctrlKey ? 1 : this.listQuery.page

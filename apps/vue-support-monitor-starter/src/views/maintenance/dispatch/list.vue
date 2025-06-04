@@ -1040,7 +1040,7 @@
   </div>
 </template>
 <script>
-import Status from './status'
+import Status from './status.vue'
 import codeEditor from '@/components/codeEditor/index.vue'
 import {
   afterOptList,
@@ -1066,10 +1066,10 @@ import {
   parseTime
 } from '@/utils/const'
 import { PROJECT_DSL_DEFATUL } from '@/utils/const-i18n'
-import scriptPage from '@/views/maintenance/script/script-list'
+import scriptPage from '@/views/maintenance/script/script-list.vue'
 import CustomSelect from '@/components/customSelect/index.vue'
-import whiteList from '@/views/maintenance/dispatch/white-list'
-import StartDispatch from './start'
+import whiteList from '@/views/maintenance/dispatch/white-list.vue'
+import StartDispatch from './start.vue'
 export default {
   components: {
     codeEditor,

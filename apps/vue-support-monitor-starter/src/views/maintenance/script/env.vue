@@ -5,8 +5,7 @@
 </template>
 <script>
 import workspaceEnv from '@/views/maintenance/system/workspace-env.vue'
-import { mapState } from 'pinia'
-
+import { getHashQuery } from '@/utils/utils'
 
 
 export default {
@@ -14,10 +13,14 @@ export default {
     workspaceEnv
   },
   data() {
-    return {}
+    return {
+    }
   },
-  computed: { ...mapState(useAppStore, ['getWorkspaceId']) },
   created() {},
-  methods: {}
+  methods: { 
+    getWorkspaceId() {
+      const query = getHashQuery()
+      return query.wid || 'DEFAULT'
+    },}
 }
 </script>

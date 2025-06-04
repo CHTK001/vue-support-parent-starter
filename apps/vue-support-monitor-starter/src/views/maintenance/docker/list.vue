@@ -222,9 +222,9 @@ import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } 
 
 
 
-import Console from './console'
-import { mapState } from 'pinia'
+import Console from './console.vue'
 import { getWorkSpaceListAll } from '@/api/workspace'
+import { getWorkspaceId } from '@/api/workspace'
 
 export default {
   components: {
@@ -330,8 +330,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useUserStore, ['getUserInfo']),
-    
+    getWorkspaceId,
     pagination() {
       return COMPUTED_PAGINATION(this.listQuery)
     },
@@ -349,10 +348,6 @@ export default {
     useSuggestions() {
       if (this.loading) {
         // 加载中不提示
-        return false
-      }
-      if (!this.getUserInfo || !this.getUserInfo.systemUser) {
-        // 没有登录或者不是超级管理员
         return false
       }
       if (this.listQuery.page !== 1 || this.listQuery.total > 0) {

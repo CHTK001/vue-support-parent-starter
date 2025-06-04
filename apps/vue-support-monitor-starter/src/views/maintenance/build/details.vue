@@ -222,7 +222,7 @@ import {
   formatDuration
 } from '@/utils/const'
 import { getRepositoryInfo } from '@/api/repository'
-import BuildLog from './log'
+import BuildLog from './log.vue'
 
 export default {
   components: {

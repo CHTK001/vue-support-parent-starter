@@ -65,11 +65,10 @@
   </div>
 </template>
 <script>
-import { mapState } from 'pinia'
-
-
 import { getWebSocketUrl } from '@/api/config'
 import LogView1 from '@/components/logView/index2.vue'
+// 导入全局方法
+import { $notification, $message } from '@/components/AntdConfig'
 
 export default {
   components: {
@@ -91,6 +90,7 @@ export default {
     return {
       project: {},
       socket: null,
+      heart: null,
       // script 状态 {0: 未运行, 1: 运行中}
       scriptStatus: 0,
       editArgs: false,
@@ -99,18 +99,16 @@ export default {
       },
       commandParams: [],
       // 日志内容
-      // logContext: "loading ...",
+      logContext: '',
       btnLoading: true,
-      confirmLoading: false
+      confirmLoading: false,
     }
   },
   computed: {
-    
-    
     socketUrl() {
       return getWebSocketUrl(
         '/socket/node/script_run',
-        `userId=${this.getLongTermToken()}&id=${this.id}&nodeId=${
+        `id=${this.id}&nodeId=${
           this.nodeId
         }&type=nodeScript`
       )

@@ -73,7 +73,7 @@
 </template>
 <script>
 import { getSshListTree } from '@/api/ssh'
-import terminal1 from './terminal'
+import terminal1 from './terminal.vue'
 import SshFile from '@/views/maintenance/ssh/ssh-file.vue'
 import { Empty } from 'ant-design-vue'
 export default {

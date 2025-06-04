@@ -64,7 +64,7 @@
   </div>
 </template>
 <script>
-import LogView1 from '@/components/logView/index2'
+import LogView1 from '@/components/logView/index2.vue'
 import { getWebSocketUrl } from '@/api/config'
 import { mapState } from 'pinia'
 
@@ -102,7 +102,7 @@ export default {
     socketUrl() {
       return getWebSocketUrl(
         '/socket/script_run',
-        `userId=${this.getLongTermToken()}&id=${this.id}&type=script&nodeId=system`
+        `id=${this.id}&type=script&nodeId=system`
       )
     }
   },
