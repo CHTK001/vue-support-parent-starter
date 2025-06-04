@@ -126,33 +126,6 @@ export default [
       },
 
       {
-        path: "/repository/list",
-        name: "repository-list",
-        component: () => import("@/views/maintenance/repository/list.vue"),
-        meta: {
-          title: "仓库列表",
-          showLink: false,
-        },
-      },
-      {
-        path: "/build/list-info",
-        name: "build-list-info",
-        component: () => import("@/views/maintenance/build/list-info.vue"),
-        meta: {
-          title: "构建列表信息",
-          showLink: false,
-        },
-      },
-      {
-        path: "/build/history",
-        name: "build-history",
-        component: () => import("@/views/maintenance/build/history.vue"),
-        meta: {
-          title: "构建历史",
-          showLink: false,
-        },
-      },
-      {
         path: "/dispatch/white-list",
         name: "dispatch-white-list",
         component: () => import("@/views/maintenance/dispatch/white-list.vue"),
@@ -188,6 +161,43 @@ export default [
         meta: {
           title: "证书列表",
           showLink: false,
+        },
+      },
+    ],
+  },
+  {
+    path: "/management/build",
+    name: "managementBuild",
+    meta: {
+      icon: "simple-icons:git",
+      title: "构建管理",
+    },
+    children: [
+      {
+        path: "/repository/list",
+        name: "repository-list",
+        component: () => import("@/views/maintenance/repository/list.vue"),
+        meta: {
+          icon: "simple-icons:git",
+          title: "仓库列表",
+        },
+      },
+      {
+        path: "/build/list-info",
+        name: "build-list-info",
+        component: () => import("@/views/maintenance/build/list-info.vue"),
+        meta: {
+          icon: "ri:git-branch-line",
+          title: "构建列表",
+        },
+      },
+      {
+        path: "/build/history",
+        name: "build-history",
+        component: () => import("@/views/maintenance/build/history.vue"),
+        meta: {
+          icon: "ri:history-line",
+          title: "构建历史",
         },
       },
     ],

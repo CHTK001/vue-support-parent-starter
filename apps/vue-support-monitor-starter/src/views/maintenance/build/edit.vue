@@ -1426,6 +1426,8 @@ export default {
       buildModeMap,
       // 当前仓库信息
       tempRepository: null,
+      getExtendPlugins: [],
+      extendPlugins: [],
       repositoryisible: false,
       chooseScriptVisible: 0,
       // 当前构建信息的 extraData 属性

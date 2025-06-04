@@ -676,7 +676,7 @@ export default {
                 fileSumMd5: md5
               }).then((res) => {
                 if (res.code === 200) {
-                  if (res.data) {
+                  if (res.data.data) {
                     //
                     $notification.warning({
                       message: `${this.$t('i18n_a17b5ab021')},${this.$t('i18n_b9c52d9a85')}${res.data.name} ,${this.$t(
