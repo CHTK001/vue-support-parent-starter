@@ -658,7 +658,7 @@ import {
 import { machineSshSearchData } from '@/api/system/assets-ssh'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import { getWorkSpaceListAll } from '@/api/workspace'
-import Console from '@/views/maintenance/docker/console'
+import Console from '@/views/maintenance/docker/console.vue'
 import SwarmConsole from '@/views/maintenance/docker/swarm/console.vue'
 
 import certificate from '@/views/maintenance/certificate/list.vue'

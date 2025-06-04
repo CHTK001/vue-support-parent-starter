@@ -151,7 +151,7 @@
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import { dockerSwarmList, editDockerSwarm, delSwarm } from '@/api/docker-swarm'
 import { mapState } from 'pinia'
-import Console from './console'
+import Console from './console.vue'
 
 
 export default {

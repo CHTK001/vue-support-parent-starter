@@ -41,7 +41,7 @@ const defaultConfig: AxiosRequestConfig = {
   baseURL: getConfig().BaseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Content-Type": "application/json; charset=UTF-8",
     responseType: "json",
     "X-Requested-With": "XMLHttpRequest",
   },

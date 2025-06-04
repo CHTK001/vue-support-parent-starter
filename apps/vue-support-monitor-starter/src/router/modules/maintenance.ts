@@ -125,25 +125,6 @@ export default [
         },
       },
       {
-        path: "/docker/list",
-        name: "docker-list",
-        component: () => import("@/views/maintenance/docker/list.vue"),
-        meta: {
-          title: "Docker 列表",
-          showLink: false,
-        },
-      },
-      {
-        path: "/docker/swarm",
-        name: "docker-swarm",
-        component: () => import("@/views/maintenance/docker/swarm/list.vue"),
-        meta: {
-          title: "Docker Swarm 列表",
-          showLink: false,
-        },
-      },
-
-      {
         path: "/monitor/list",
         name: "monitor-list",
         component: () => import("@/views/maintenance/monitor/list.vue"),
@@ -264,6 +245,42 @@ export default [
     ],
   },
   {
+    path: "/management/docker",
+    name: "managementDocker",
+    meta: {
+      icon: "simple-icons:docker",
+      title: "Docker 管理",
+    },
+    children: [
+      {
+        path: "/system/assets/docker-list",
+        name: "system-machine-docker-list",
+        component: () => import("@/views/maintenance/system/assets/docker/list.vue"),
+        meta: {
+          icon: "simple-icons:docker",
+          title: "Docker 列表(系统)",
+        },
+      },
+      {
+        path: "/docker/list",
+        name: "docker-list",
+        component: () => import("@/views/maintenance/docker/list.vue"),
+        meta: {
+          icon: "simple-icons:docker",
+          title: "Docker 列表",
+        },
+      },
+      {
+        path: "/docker/swarm",
+        name: "docker-swarm",
+        component: () => import("@/views/maintenance/docker/swarm/list.vue"),
+        meta: {
+          title: "Docker Swarm 列表",
+        },
+      },
+    ],
+  },
+  {
     path: "/management/ssh",
     name: "managementSsh",
     meta: {
@@ -374,15 +391,6 @@ export default [
         },
       },
 
-      {
-        path: "/system/assets/docker-list",
-        name: "system-machine-docker-list",
-        component: () => import("@/views/maintenance/system/assets/docker/list.vue"),
-        meta: {
-          title: "节点 Docker 列表",
-          showLink: false,
-        },
-      },
       {
         path: "/system/assets/repository-list",
         name: "system-global-repository",
