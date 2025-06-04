@@ -18,6 +18,9 @@ export function machineSshListData(params) {
     url: "/system/assets/ssh/list-data",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -27,6 +30,9 @@ export function machineSshSearchData(params) {
     url: "/system/assets/ssh/search",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -35,6 +41,9 @@ export function machineSshListGroup(params) {
     url: "/system/assets/ssh/list-group",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -44,6 +53,9 @@ export function machineSshEdit(params) {
     url: "/system/assets/ssh/edit",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -53,6 +65,9 @@ export function machineSshDelete(params) {
     url: "/system/assets/ssh/delete",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -62,6 +77,9 @@ export function machineSshDistribute(params) {
     url: "/system/assets/ssh/distribute",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -71,6 +89,9 @@ export function getMachineSshOperationLogList(params) {
     url: "/system/assets/ssh/log-list-data",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -80,6 +101,9 @@ export function machineListGroupWorkspaceSsh(params) {
     url: "/system/assets/ssh/list-workspace-ssh",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -88,6 +112,9 @@ export function machineSshSaveWorkspaceConfig(params) {
     url: "/system/assets/ssh/save-workspace-config",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -101,6 +128,9 @@ export function restHideField(id) {
     url: "/system/assets/ssh/rest-hide-field",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 /*

@@ -62,8 +62,8 @@ export default [
     path: "/management",
     name: "management",
     meta: {
-      icon: "ri:eye-2-line",
-      title: "运维监控",
+      icon: "ri:node-tree",
+      title: "节点管理",
     },
     children: [
       {
@@ -124,33 +124,7 @@ export default [
           title: "日志搜索",
         },
       },
-      {
-        path: "/monitor/list",
-        name: "monitor-list",
-        component: () => import("@/views/maintenance/monitor/list.vue"),
-        meta: {
-          title: "监控列表",
-          showLink: false,
-        },
-      },
-      {
-        path: "/monitor/log",
-        name: "monitor-log",
-        component: () => import("@/views/maintenance/monitor/log.vue"),
-        meta: {
-          title: "监控日志",
-          showLink: false,
-        },
-      },
-      {
-        path: "/monitor/operate-log",
-        name: "monitor-operate-log",
-        component: () => import("@/views/maintenance/monitor/operate-log.vue"),
-        meta: {
-          title: "监控操作日志",
-          showLink: false,
-        },
-      },
+
       {
         path: "/repository/list",
         name: "repository-list",
@@ -206,13 +180,33 @@ export default [
           showLink: false,
         },
       },
+
+      {
+        path: "/certificate/list",
+        name: "/certificate-list",
+        component: () => import("@/views/maintenance/certificate/list.vue"),
+        meta: {
+          title: "证书列表",
+          showLink: false,
+        },
+      },
+    ],
+  },
+  {
+    path: "/management/file",
+    name: "managementFile",
+    meta: {
+      icon: "simple-icons:files",
+      title: "文件管理",
+    },
+    children: [
       {
         path: "/file-manager/file-storage",
         name: "file-storage",
         component: () => import("@/views/maintenance/file-manager/fileStorage/list.vue"),
         meta: {
+          icon: "simple-icons:files",
           title: "文件存储",
-          showLink: false,
         },
       },
       {
@@ -221,7 +215,6 @@ export default [
         component: () => import("@/views/maintenance/file-manager/release-task/list.vue"),
         meta: {
           title: "发布任务",
-          showLink: false,
         },
       },
       {
@@ -230,16 +223,43 @@ export default [
         component: () => import("@/views/maintenance/file-manager/staticFileStorage/list.vue"),
         meta: {
           title: "静态文件存储",
-          showLink: false,
+        },
+      },
+    ],
+  },
+  {
+    path: "/management/monitor",
+    name: "managementMonitor",
+    meta: {
+      icon: "ri:eye-2-line",
+      title: "监控管理",
+    },
+    children: [
+      {
+        path: "/monitor/list",
+        name: "monitor-list",
+        component: () => import("@/views/maintenance/monitor/list.vue"),
+        meta: {
+          icon: "ri:eye-2-line",
+          title: "监控列表",
         },
       },
       {
-        path: "/certificate/list",
-        name: "/certificate-list",
-        component: () => import("@/views/maintenance/certificate/list.vue"),
+        path: "/monitor/log",
+        name: "monitor-log",
+        component: () => import("@/views/maintenance/monitor/log.vue"),
         meta: {
-          title: "证书列表",
-          showLink: false,
+          icon: "simple-icons:logstash",
+          title: "监控日志",
+        },
+      },
+      {
+        path: "/monitor/operate-log",
+        name: "monitor-operate-log",
+        component: () => import("@/views/maintenance/monitor/operate-log.vue"),
+        meta: {
+          icon: "ri:file-list-3-line",
+          title: "操作日志",
         },
       },
     ],
@@ -275,7 +295,8 @@ export default [
         name: "docker-swarm",
         component: () => import("@/views/maintenance/docker/swarm/list.vue"),
         meta: {
-          title: "Docker Swarm 列表",
+          icon: "simple-icons:docker",
+          title: "集群列表",
         },
       },
     ],

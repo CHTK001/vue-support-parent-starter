@@ -20,6 +20,9 @@ export function dockerList(params) {
     url: "/system/assets/docker/list-data",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -40,6 +43,9 @@ export function editDocker(data) {
     url: "/system/assets/docker/edit",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -54,6 +60,9 @@ export function tryLocalDocker(params) {
     url: "/system/assets/docker/try-local-docker",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -68,6 +77,9 @@ export function deleteDcoker(params) {
     url: "/system/assets/docker/del",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -76,6 +88,9 @@ export function dockerListGroup(params) {
     url: "/system/assets/docker/list-group",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -84,6 +99,9 @@ export function initDockerSwarm(data) {
     url: "/system/assets/docker/init",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -92,6 +110,9 @@ export function joinDockerSwarm(data) {
     url: "/system/assets/docker/join",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -100,6 +121,9 @@ export function dockerSwarmListAll(params) {
     url: "/system/assets/docker/swarm/list-all",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -114,6 +138,9 @@ export function dcokerSwarmLeaveForce(params) {
     url: "/system/assets/docker/leave-force",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -126,6 +153,9 @@ export function dockerSwarmNodeLeave(params) {
     url: "/system/assets/docker/leave-node",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -134,6 +164,9 @@ export function machineDockerDistribute(params) {
     url: "/system/assets/docker/distribute",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -142,6 +175,9 @@ export function dockerListWorkspace(params) {
     url: "/system/assets/docker/list-workspace-docker",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

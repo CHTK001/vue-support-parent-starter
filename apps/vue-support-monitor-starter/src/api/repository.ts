@@ -29,6 +29,9 @@ export function getRepositoryList(params) {
     url: "/build/repository/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -70,6 +73,9 @@ export function getRepositoryInfo(params) {
     url: "/build/repository/get",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -83,6 +89,9 @@ export function listRepositoryGroup(params) {
     url: "/build/repository/list-group",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -105,6 +114,9 @@ export function editRepository(params) {
     url: "/build/repository/edit",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -121,6 +133,9 @@ export function deleteRepository(params) {
     url: "/build/repository/delete",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 /**
@@ -133,6 +148,9 @@ export function restHideField(id) {
     url: "/build/repository/rest_hide_field",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -141,6 +159,9 @@ export function authorizeRepos(param) {
     url: "/build/repository/authorize_repos",
     method: "get",
     params: param,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -148,6 +169,9 @@ export function providerInfo() {
   return axios({
     url: "/build/repository/provider_info",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -156,5 +180,8 @@ export function sortItem(params) {
     url: "/build/repository/sort-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

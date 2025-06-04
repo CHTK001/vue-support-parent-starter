@@ -18,6 +18,7 @@ export function getNodeList(params) {
     params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -28,6 +29,9 @@ export function getNodeListAll(params) {
     url: "/node/list_data_all.json",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -36,6 +40,9 @@ export function getNodeGroupAll() {
   return axios({
     url: "/node/list_group_all.json",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -45,6 +52,9 @@ export function getNodeListWithVersion(params) {
     url: "/node/list_data_with_version",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -65,6 +75,7 @@ export function getProjectList(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -75,6 +86,9 @@ export function getProjectListAll(params) {
     url: "/node/project_list_all",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -84,6 +98,9 @@ export function syncProject(nodeId) {
     url: "/node/sync_project",
     method: "get",
     params: { nodeId: nodeId },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -92,6 +109,9 @@ export function syncToWorkspace(params) {
     url: "/node/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -101,6 +121,9 @@ export function sortItem(params) {
     url: "/node/sort-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -110,6 +133,9 @@ export function sortItemProject(params) {
     url: "/node/project-sort-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -151,6 +177,9 @@ export function editNode(params) {
     url: "/node/save.json",
     method: "post",
     data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -160,6 +189,9 @@ export function deleteNode(id) {
     url: "/node/del.json",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -169,6 +201,9 @@ export function unbind(id) {
     url: "/node/unbind.json",
     method: "get",
     params: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -194,6 +229,7 @@ export function getProcessList(data) {
     headers: {
       loading: "no",
       tip: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -207,6 +243,9 @@ export function killPid(params) {
     url: "/node/kill.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -224,6 +263,7 @@ export function nodeMonitorData(params, loading) {
     data: params,
     headers: {
       loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -260,6 +300,9 @@ export function uploadAgentFileMerge(data) {
     data: data,
     // 0 表示无超时时间
     timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -272,6 +315,9 @@ export function checkVersion() {
     url: "/node/check_version.json",
     method: "get",
     data: {},
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -284,6 +330,9 @@ export function fastInstall() {
     url: "/node/fast_install.json",
     method: "get",
     data: {},
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -299,6 +348,7 @@ export function pullFastInstallResult(params) {
     params: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -313,6 +363,9 @@ export function confirmFastInstall(params) {
     url: "/node/confirm_fast_install.json",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -327,5 +380,8 @@ export function downloadRemote() {
     // 0 表示无超时时间
     timeout: 0,
     data: {},
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

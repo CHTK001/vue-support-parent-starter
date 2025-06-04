@@ -37,6 +37,9 @@ export function editMonitor(params) {
     url: "/monitor/updateMonitor",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -53,6 +56,9 @@ export function changeMonitorStatus(params) {
     url: "/monitor/changeStatus",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -65,6 +71,9 @@ export function deleteMonitor(id) {
     url: "/monitor/deleteMonitor",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -82,6 +91,9 @@ export function getMonitorLogList(params) {
     url: "/monitor/list_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -92,6 +104,9 @@ export function getMonitorOperateLogList() {
   return axios({
     url: "/monitor_user_opt/list_data",
     method: "post",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -103,6 +118,9 @@ export function getMonitorOperateTypeList() {
   return axios({
     url: "/monitor_user_opt/type_data",
     method: "post",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -123,6 +141,9 @@ export function editMonitorOperate(params) {
     url: "/monitor_user_opt/update",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -136,6 +157,9 @@ export function deleteMonitorOperate(id) {
     url: "/monitor_user_opt/delete",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

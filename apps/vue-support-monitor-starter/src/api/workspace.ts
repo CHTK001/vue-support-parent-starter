@@ -22,6 +22,9 @@ export function editWorkSpace(data) {
     url: "/system/workspace/edit",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -35,6 +38,9 @@ export function getWorkSpaceList(params) {
     url: "/system/workspace/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -48,6 +54,9 @@ export function getWorkSpaceGroupList(params) {
     url: "/system/workspace/list-group-all",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -61,6 +70,9 @@ export function getWorkSpaceListAll() {
     url: "/system/workspace/list_all",
     method: "get",
     data: {},
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -74,6 +86,9 @@ export function deleteWorkspace(id) {
     url: "/system/workspace/delete",
     method: "get",
     params: { id: id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -87,6 +102,9 @@ export function preDeleteWorkspace(id) {
     url: "/system/workspace/pre-check-delete",
     method: "get",
     params: { id: id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -100,6 +118,9 @@ export function getWorkspaceEnvList(params) {
     url: "/system/workspace_env/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 /*
@@ -112,6 +133,9 @@ export function getWorkspaceEnvAll(data) {
     url: "/system/workspace_env/all",
     method: "post",
     data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -124,6 +148,9 @@ export function editWorkspaceEnv(data) {
     url: "/system/workspace_env/edit",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -137,6 +164,9 @@ export function deleteWorkspaceEnv(params) {
     url: "/system/workspace_env/delete",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -145,6 +175,9 @@ export function getTriggerUrlWorkspaceEnv(params) {
     url: "/system/workspace_env/trigger-url",
     method: "post",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -156,6 +189,9 @@ export function getMenusConfig(data) {
     url: "/system/workspace/get_menus_config",
     method: "post",
     data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -167,5 +203,8 @@ export function saveMenusConfig(data) {
     url: "/system/workspace/save_menus_config.json",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

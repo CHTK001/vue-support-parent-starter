@@ -17,6 +17,9 @@ export function fileStorageList(params) {
     url: "/file-storage/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -41,6 +44,9 @@ export function uploadFileMerge(params) {
     data: params,
     // 0 表示无超时时间
     timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -50,6 +56,9 @@ export function fileEdit(params) {
     url: "/file-storage/edit",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -59,6 +68,9 @@ export function remoteDownload(params) {
     url: "/file-storage/remote-download",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -68,6 +80,9 @@ export function hasFile(params) {
     url: "/file-storage/has-file",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -76,6 +91,9 @@ export function delFile(params) {
     url: "/file-storage/del",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -85,6 +103,9 @@ export function triggerUrl(params) {
     url: "/file-storage/trigger-url",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

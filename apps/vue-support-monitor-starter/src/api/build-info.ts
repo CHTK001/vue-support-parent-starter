@@ -24,7 +24,8 @@ export function getBuildList(params, loading) {
     method: "post",
     data: params,
     headers: {
-      loading: loading === false ? "no" : ""
+      loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -40,7 +41,9 @@ export function getBuildGet(params) {
     url: "/build/get",
     method: "get",
     params,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -55,7 +58,9 @@ export function getBuildEnvironment(params) {
     url: "/build/manage/environment",
     method: "post",
     data: params,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -66,7 +71,9 @@ export function getBuildGroupAll() {
   return axios({
     url: "/build/list_group_all",
     method: "get",
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -82,7 +89,9 @@ export function getBranchList(params) {
     method: "post",
     timeout: 0,
     data: params,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -126,7 +135,9 @@ export function editBuild(params) {
     url: "/build/edit",
     method: "post",
     data,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -139,7 +150,9 @@ export function deleteBuild(id) {
     url: "/build/delete",
     method: "post",
     data: { id },
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -148,7 +161,9 @@ export function deleteatchBuild(data) {
     url: "/build/batch-delete",
     method: "post",
     data: data,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -161,7 +176,9 @@ export function getTriggerUrl(data) {
     url: "/build/trigger/url",
     method: "post",
     data: data,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -186,7 +203,9 @@ export function clearBuid(id) {
     url: "/build/clean-source",
     method: "post",
     data: { id },
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -205,7 +224,8 @@ export function loadBuildLog(params) {
     data: params,
     headers: {
       tip: "no",
-      loading: "no"
+      loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -219,7 +239,9 @@ export function startBuild(data) {
     url: "/build/manage/start",
     method: "post",
     data: data,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -232,7 +254,9 @@ export function stopBuild(id) {
     url: "/build/manage/cancel",
     method: "post",
     data: { id },
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -248,7 +272,9 @@ export function geteBuildHistory(params) {
     url: "/build/history/history_list.json",
     method: "post",
     data: params,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -293,7 +319,9 @@ export function rollback(logId) {
     url: "/build/manage/reRelease",
     method: "post",
     data: { logId },
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -306,7 +334,9 @@ export function deleteBuildHistory(logId) {
     url: "/build/history/delete_log.json",
     method: "post",
     data: { logId },
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -315,7 +345,9 @@ export function sortItem(params) {
     url: "/build/sort-item",
     method: "get",
     params: params,
-    
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

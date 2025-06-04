@@ -28,10 +28,13 @@ export function certificateImportFile(formData) {
  */
 export function certList(params) {
   return axios({
-    url: '/certificate/list',
-    method: 'post',
-    data: params
-  })
+    url: "/certificate/list",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 /**
@@ -39,10 +42,13 @@ export function certList(params) {
  */
 export function certListAll(params) {
   return axios({
-    url: '/certificate/list-all',
-    method: 'post',
-    data: params
-  })
+    url: "/certificate/list-all",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 /**
@@ -53,10 +59,13 @@ export function certListAll(params) {
  */
 export function deleteCert(params) {
   return axios({
-    url: '/certificate/del',
-    method: 'get',
-    params: params
-  })
+    url: "/certificate/del",
+    method: "get",
+    params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 /**
@@ -72,17 +81,23 @@ export function downloadCert(params) {
 // 修改证书
 export function certificateEdit(params) {
   return axios({
-    url: '/certificate/edit',
-    method: 'post',
-    data: params
-  })
+    url: "/certificate/edit",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 // 部署证书
 export function certificateDeploy(params) {
   return axios({
-    url: '/certificate/deploy',
-    method: 'post',
-    data: params
-  })
+    url: "/certificate/deploy",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }

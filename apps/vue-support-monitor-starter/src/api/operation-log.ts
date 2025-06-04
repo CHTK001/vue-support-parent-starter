@@ -16,5 +16,8 @@ export function getOperationLogList(params) {
     url: "/user/log/list_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

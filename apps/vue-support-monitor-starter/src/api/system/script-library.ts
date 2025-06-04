@@ -12,32 +12,44 @@ import axios from '@/api/config'
 
 export function getScriptLibraryList(params: any) {
   return axios({
-    url: '/system/assets/script-library/list-data',
-    method: 'post',
-    data: params
-  })
+    url: "/system/assets/script-library/list-data",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 export function getScriptLibraryNoPermissionList(params: any) {
   return axios({
-    url: '/system/assets/script-library/list-data-no-permission',
-    method: 'post',
-    data: params
-  })
+    url: "/system/assets/script-library/list-data-no-permission",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 export function editScriptLibrary(params: any) {
   return axios({
-    url: '/system/assets/script-library/edit',
-    method: 'post',
-    data: params
-  })
+    url: "/system/assets/script-library/edit",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }
 
 export function delScriptLibrary(params: any) {
   return axios({
-    url: '/system/assets/script-library/del',
-    method: 'post',
-    data: params
-  })
+    url: "/system/assets/script-library/del",
+    method: "post",
+    data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+  });
 }

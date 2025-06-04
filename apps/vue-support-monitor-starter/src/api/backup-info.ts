@@ -24,6 +24,9 @@ export function getBackupList(params) {
     url: "/system/backup/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -34,6 +37,9 @@ export function getTableNameList() {
   return axios({
     url: "/system/backup/table-name-list",
     method: "post",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -64,6 +70,9 @@ export function deleteBackup(id) {
     url: "/system/backup/delete",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -78,6 +87,9 @@ export function restoreBackup(id) {
     method: "post",
     timeout: 0,
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -117,6 +129,9 @@ export function getTriggerUrl(params) {
     url: "/system/backup/trigger-url",
     method: "post",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

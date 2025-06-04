@@ -16,6 +16,9 @@ export function getLogReadList(params) {
     url: "/log-read/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -59,5 +62,8 @@ export function deleteLogRead(id) {
     url: "/log-read/del.json",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

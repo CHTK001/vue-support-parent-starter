@@ -55,6 +55,9 @@ export function getRootFileList(baseUrl, id) {
     url: baseUrl + "root_file_data.json",
     method: "post",
     params: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -67,6 +70,9 @@ export function getFileList(baseUrl, params) {
     url: baseUrl + "list_file_data.json",
     method: "post",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -76,7 +82,6 @@ export function getFileList(baseUrl, params) {
  * @param {id, path, name} params
  */
 export function downloadFile(baseUrl, params) {
-  debugger;
   return loadRouterBase(baseUrl + "download", params);
 }
 
@@ -89,6 +94,9 @@ export function deleteFile(baseUrl, params) {
     url: baseUrl + "delete.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -101,6 +109,9 @@ export function readFile(baseUrl, params) {
     url: baseUrl + "read_file_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -113,6 +124,9 @@ export function updateFileData(baseUrl, params) {
     url: baseUrl + "update_file_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -126,6 +140,9 @@ export function newFileFolder(baseUrl, params) {
     url: baseUrl + "new_file_folder.json",
     method: "post",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -139,6 +156,9 @@ export function renameFileFolder(baseUrl, params) {
     url: baseUrl + "rename.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -159,6 +179,9 @@ export function changeFilePermission(baseUrl, params) {
     url: baseUrl + "change_file_permission.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -171,16 +194,25 @@ export function parsePermissions(str) {
   const permissions = { owner: {}, group: {}, others: {} };
 
   const chars = str.split("");
+  //@ts-ignore
   permissions.owner.read = chars[1] === "r";
+  //@ts-ignore
   permissions.owner.write = chars[2] === "w";
+  //@ts-ignore
   permissions.owner.execute = chars[3] === "x";
 
+  //@ts-ignore
   permissions.group.read = chars[4] === "r";
+  //@ts-ignore
   permissions.group.write = chars[5] === "w";
+  //@ts-ignore
   permissions.group.execute = chars[6] === "x";
 
+  //@ts-ignore
   permissions.others.read = chars[7] === "r";
+  //@ts-ignore
   permissions.others.write = chars[8] === "w";
+  //@ts-ignore
   permissions.others.execute = chars[9] === "x";
 
   return permissions;
