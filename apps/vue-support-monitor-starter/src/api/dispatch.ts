@@ -19,6 +19,7 @@ export function getDishPatchList(data, loading) {
     data: data,
     headers: {
       loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -28,6 +29,9 @@ export function getDishPatchListAll() {
   return axios({
     url: "/outgiving/dispatch-list-all",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -40,6 +44,7 @@ export function getDispatchProject(id, loading) {
     timeout: 0,
     headers: {
       loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -49,6 +54,9 @@ export function getReqId() {
   return axios({
     url: "/outgiving/get-reqId",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -68,6 +76,9 @@ export function editDispatch(params) {
     url: "/outgiving/save",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -93,6 +104,9 @@ export function editDispatchProject(params) {
     url: "/outgiving/save_project",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -126,6 +140,9 @@ export function uploadDispatchFileMerge(params) {
     data: params,
     // 0 表示无超时时间
     timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -144,6 +161,9 @@ export function remoteDownload(params) {
     url: "/outgiving/remote_download",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -152,6 +172,9 @@ export function useBuild(params) {
     url: "/outgiving/use-build",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -160,6 +183,9 @@ export function useuseFileStorage(params) {
     url: "/outgiving/use-file-storage",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -168,6 +194,9 @@ export function useuseStaticFileStorage(params) {
     url: "/outgiving/use-static-file-storage",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -180,6 +209,9 @@ export function releaseDelDisPatch(id) {
     url: "/outgiving/release_del.json",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -192,6 +224,9 @@ export function delDisPatchProject(data) {
     url: "/outgiving/delete_project",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -204,6 +239,9 @@ export function unbindOutgiving(id) {
     url: "/outgiving/unbind.json",
     method: "get",
     params: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -221,6 +259,9 @@ export function getDishPatchLogList(params) {
     url: "/outgiving/log_list_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -230,6 +271,9 @@ export function getDispatchWhiteList(params) {
     url: "/outgiving/white-list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -242,6 +286,9 @@ export function editDispatchWhiteList(params) {
     url: "/outgiving/whitelistDirectory_submit",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -254,6 +301,9 @@ export function cancelOutgiving(data) {
     url: "/outgiving/cancel",
     method: "post",
     data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -262,6 +312,9 @@ export function removeProject(params) {
     url: "/outgiving/remove-project",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

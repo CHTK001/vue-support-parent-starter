@@ -150,7 +150,6 @@
 <script>
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
 import { dockerSwarmList, editDockerSwarm, delSwarm } from '@/api/docker-swarm'
-import { mapState } from 'pinia'
 import Console from './console.vue'
 
 
@@ -247,7 +246,6 @@ export default {
     }
   },
   computed: {
-    ...mapState(useUserStore, ['getUserInfo']),
     
     pagination() {
       return COMPUTED_PAGINATION(this.listQuery)
@@ -258,10 +256,6 @@ export default {
     useSuggestions() {
       if (this.loading) {
         // 加载中不提示
-        return false
-      }
-      if (!this.getUserInfo || !this.getUserInfo.systemUser) {
-        // 没有登录或者不是超级管理员
         return false
       }
       if (this.listQuery.page !== 1 || this.listQuery.total > 0) {

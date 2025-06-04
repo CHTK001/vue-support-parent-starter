@@ -15,6 +15,9 @@ export function triggerTokenList(data) {
     url: "/system/trigger/list",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -23,6 +26,9 @@ export function triggerTokenAllType(data) {
     url: "/system/trigger/all-type",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -31,5 +37,8 @@ export function triggerTokenDelete(data) {
     url: "/system/trigger/delete",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

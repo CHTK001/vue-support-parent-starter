@@ -20,6 +20,9 @@ export function dockerList(params) {
     url: "/docker/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -32,6 +35,9 @@ export function apiVersions() {
     url: "/docker/api-versions",
     method: "get",
     data: {},
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -40,6 +46,9 @@ export function editDocker(data) {
     url: "/docker/edit",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -54,6 +63,9 @@ export function deleteDcoker(params) {
     url: "/docker/del",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -68,6 +80,7 @@ export function dockerContainerList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -83,6 +96,7 @@ export function dockerContainerListCompose(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -96,6 +110,9 @@ export function dockerInfo(urlPrefix, params) {
     url: urlPrefix + "/container/info",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -109,6 +126,9 @@ export function dockerPrune(urlPrefix, params) {
     method: "post",
     data: params,
     timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -121,6 +141,9 @@ export function dockerContainerRemove(urlPrefix, params) {
     url: urlPrefix + "/container/remove",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -133,6 +156,9 @@ export function dockerContainerRestart(urlPrefix, params) {
     url: urlPrefix + "/container/restart",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -145,6 +171,9 @@ export function dockerContainerStart(urlPrefix, params) {
     url: urlPrefix + "/container/start",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -157,6 +186,9 @@ export function dockerContainerStop(urlPrefix, params) {
     url: urlPrefix + "/container/stop",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -172,6 +204,7 @@ export function dockerContainerStats(urlPrefix, params) {
     headers: {
       // tip: "no",
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -185,6 +218,9 @@ export function dockerInspectContainer(urlPrefix, params) {
     url: urlPrefix + "/container/inspect-container",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -219,6 +255,9 @@ export function dockerImagesList(urlPrefix, params) {
     url: urlPrefix + "/images/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -231,6 +270,9 @@ export function dockerImageRemove(urlPrefix, params) {
     url: urlPrefix + "/images/remove",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -243,6 +285,9 @@ export function dockerImageBatchRemove(urlPrefix, params) {
     url: urlPrefix + "/images/batchRemove",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -255,6 +300,9 @@ export function dockerImageInspect(urlPrefix, params) {
     url: urlPrefix + "/images/inspect",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -282,6 +330,9 @@ export function dockerImagePullImage(urlPrefix, params) {
     url: urlPrefix + "/images/pull-image",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -326,6 +377,7 @@ export function dockerImagePullImageLog(urlPrefix, params) {
     headers: {
       // tip: "no",
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -339,6 +391,9 @@ export function dockerVolumesList(urlPrefix, params) {
     url: urlPrefix + "/volumes/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -351,6 +406,9 @@ export function dockerVolumesRemove(urlPrefix, params) {
     url: urlPrefix + "/volumes/remove",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -363,6 +421,9 @@ export function dockerNetworksList(urlPrefix, params) {
     url: urlPrefix + "/networks/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -371,6 +432,9 @@ export function syncToWorkspace(params) {
     url: "/docker/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -379,6 +443,9 @@ export function dockerAllTag(params) {
     url: "/docker/all-tag",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

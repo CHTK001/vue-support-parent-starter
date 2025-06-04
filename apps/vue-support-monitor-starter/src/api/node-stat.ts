@@ -26,6 +26,7 @@ export function machineInfo(params) {
     params: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -38,6 +39,7 @@ export function machineDiskInfo(params) {
     params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -50,6 +52,7 @@ export function machineHwDiskInfo(params) {
     params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }

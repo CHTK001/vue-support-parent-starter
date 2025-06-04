@@ -29,6 +29,7 @@ export default [
     component: () => import("@/views/maintenance/ssh/ssh-tabs.vue"),
     meta: {
       title: "SSH 标签",
+      showLink: false,
     },
   },
   {

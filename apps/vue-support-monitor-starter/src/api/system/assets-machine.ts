@@ -17,6 +17,9 @@ export function machineListData(params) {
     url: "/system/assets/machine/list-data",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -25,6 +28,9 @@ export function machineListGroup(params) {
     url: "/system/assets/machine/list-group",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -34,6 +40,9 @@ export function machineEdit(params) {
     url: "/system/assets/machine/edit",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -43,6 +52,9 @@ export function machineDelete(params) {
     url: "/system/assets/machine/delete",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -52,6 +64,9 @@ export function machineDistribute(params) {
     url: "/system/assets/machine/distribute",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -69,6 +84,9 @@ export function machineListNode(params) {
     url: "/system/assets/machine/list-node",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -77,6 +95,9 @@ export function machineListTemplateNode(params) {
     url: "/system/assets/machine/list-template-node",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -88,6 +109,9 @@ export function saveWhitelist(data) {
     url: "/system/assets/machine/save-whitelist",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -99,6 +123,9 @@ export function saveNodeConfig(data) {
     url: "/system/assets/machine/save-node-config",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -107,6 +134,9 @@ export function machineLonelyData(data) {
     url: "/system/assets/machine/lonely-data",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -115,6 +145,9 @@ export function machineCorrectLonelyData(data) {
     url: "/system/assets/machine/correct-lonely-data",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -123,6 +156,9 @@ export function machineMonitorConfig(data) {
     url: "/system/assets/machine/monitor-config",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -131,5 +167,8 @@ export function machineSearch(data) {
     url: "/system/assets/machine/search",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

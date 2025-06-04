@@ -17,6 +17,9 @@ export function fileReleaseTaskLog(params) {
     url: "/file-storage/release-task/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -26,6 +29,9 @@ export function addReleaseTask(params) {
     url: "/file-storage/release-task/add-task",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -35,6 +41,9 @@ export function reReleaseTask(params) {
     url: "/file-storage/release-task/re-task",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -44,6 +53,9 @@ export function cancelReleaseTask(params) {
     url: "/file-storage/release-task/cancel-task",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -53,6 +65,9 @@ export function deleteReleaseTask(params) {
     url: "/file-storage/release-task/delete",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -61,6 +76,9 @@ export function getTaskTemplate(params) {
     url: "/file-storage/release-task/get-template",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -69,6 +87,9 @@ export function listTaskTemplate(params) {
     url: "/file-storage/release-task/list-template",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -77,6 +98,9 @@ export function deleteTaskTemplate(params) {
     url: "/file-storage/release-task/delete-template",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -86,6 +110,9 @@ export function taskDetails(params) {
     url: "/file-storage/release-task/details",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -96,6 +123,7 @@ export function taskLogInfoList(params) {
     params: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }

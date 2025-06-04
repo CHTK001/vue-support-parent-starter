@@ -80,50 +80,6 @@ export default [
     ],
   },
   {
-    path: "/maintenance",
-    name: "maintenance",
-    meta: {
-      icon: "ri:tools-line",
-      title: $t("buttons.monitor.maintenance"),
-      showLink: true,
-    },
-    children: [
-      {
-        path: "/maintenance/index",
-        name: "maintenanceIndex",
-        component: () => import("@/views/monitor/maintenance/index.vue"),
-        meta: {
-          icon: "ri:settings-4-line",
-          title: $t("buttons.monitor.maintenance-group"),
-          showLink: true,
-          showParent: true,
-        },
-      },
-      {
-        path: "/maintenance/detail/:id",
-        name: "maintenanceDetail",
-        component: () => import("@/views/monitor/maintenance/detail.vue"),
-        meta: {
-          icon: "ri:file-list-line",
-          title: $t("buttons.monitor.maintenance-detail"),
-          showLink: false,
-        },
-      },
-
-      {
-        path: "/maintenance/terminal/:hostId",
-        name: "maintenanceTerminal",
-        component: () => import("@/views/monitor/maintenance/terminal.vue"),
-        meta: {
-          icon: "ri:terminal-box-line",
-          title: $t("buttons.monitor.terminal"),
-          showLink: false,
-          showParent: true,
-        },
-      },
-    ],
-  },
-  {
     path: "/proxy",
     name: "proxy",
     meta: {

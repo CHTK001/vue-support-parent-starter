@@ -21,6 +21,9 @@ export function getScriptListAll(params) {
     url: "/node/script/list_all",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -30,6 +33,9 @@ export function getScriptLogList(params) {
     url: "/node/script_log/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -39,6 +45,9 @@ export function scriptDel(params) {
     url: "/node/script_log/del",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -50,6 +59,7 @@ export function scriptLog(params) {
     data: params,
     headers: {
       tip: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -68,6 +78,9 @@ export function editScript(params) {
     url: "/node/script/save.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -76,6 +89,9 @@ export function itemScript(params) {
     url: "/node/script/item.json",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -84,6 +100,9 @@ export function syncScript(params) {
     url: "/node/script/sync",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 export const triggerExecTypeMap = {
@@ -102,6 +121,9 @@ export function getTriggerUrl(data) {
     method: "post",
     data: data,
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -116,6 +138,9 @@ export function deleteScript(params) {
     url: "/node/script/del.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -130,5 +155,8 @@ export function unbindScript(params) {
     url: "/node/script/unbind.json",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

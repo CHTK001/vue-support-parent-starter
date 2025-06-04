@@ -19,6 +19,9 @@ export function cronTools(data) {
     url: "/tools/cron",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -27,6 +30,9 @@ export function ipList(data) {
     url: "/tools/ip-list",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -35,6 +41,9 @@ export function netPing(data) {
     url: "/tools/net-ping",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -43,5 +52,8 @@ export function netTelnet(data) {
     url: "/tools/net-telnet",
     method: "get",
     params: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

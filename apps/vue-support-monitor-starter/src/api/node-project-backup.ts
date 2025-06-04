@@ -23,6 +23,9 @@ export function listBackup(params) {
     url: "/node/manage/file/list-backup",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -32,6 +35,7 @@ export function backupFileList(params) {
     method: "post",
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
     data: params,
   });
@@ -65,6 +69,9 @@ export function backupDeleteProjectFile(params) {
     url: "/node/manage/file/backup-delete",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -83,5 +90,8 @@ export function backupRecoverProjectFile(params) {
     url: "/node/manage/file/backup-recover",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

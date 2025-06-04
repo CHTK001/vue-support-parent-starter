@@ -30,5 +30,8 @@ export function executionRequest(url: any, param: any) {
     url: url,
     method: "get",
     params: param,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

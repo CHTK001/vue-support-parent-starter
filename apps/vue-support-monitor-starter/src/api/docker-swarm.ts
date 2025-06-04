@@ -20,6 +20,9 @@ export function dockerSwarmList(params) {
     url: "/docker/swarm/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -28,6 +31,9 @@ export function dockerSwarmListAll(params) {
     url: "/docker/swarm/list-all",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -36,6 +42,9 @@ export function editDockerSwarm(data) {
     url: "/docker/swarm/edit",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -50,6 +59,9 @@ export function delSwarm(params) {
     url: "/docker/swarm/del",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -64,6 +76,7 @@ export function dockerSwarmNodeList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -77,6 +90,9 @@ export function dockerSwarmNodeUpdate(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm/update",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -91,6 +107,7 @@ export function dockerSwarmServicesList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -106,6 +123,7 @@ export function dockerSwarmServicesTaskList(urlPrefix, params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -119,6 +137,9 @@ export function dockerSwarmServicesDel(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm-service/del",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -146,6 +167,9 @@ export function dockerSwarmServicesStartLog(urlPrefix, params) {
     url: urlPrefix + "/docker/swarm-service/start-log",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -160,6 +184,7 @@ export function dockerSwarmServicesPullLog(urlPrefix, params) {
     params: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }

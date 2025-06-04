@@ -287,7 +287,6 @@ import { getUserListAll } from '@/api/user/user'
 import { getNodeListAll, getProjectListAll } from '@/api/node'
 import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, itemGroupBy, parseTime } from '@/utils/const'
 import { CRON_DATA_SOURCE } from '@/utils/const-i18n'
-import { supportLang } from '@repo/config'
 export default {
   data() {
     return {
@@ -377,7 +376,7 @@ export default {
         ]
       },
       confirmLoading: false,
-      supportLang
+      supportLang: []
     }
   },
   computed: {

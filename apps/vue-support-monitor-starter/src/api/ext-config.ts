@@ -18,6 +18,9 @@ export function listExtConf() {
   return axios({
     url: "/system/ext-conf/list",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -26,6 +29,9 @@ export function getItem(params) {
     url: "/system/ext-conf/get-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -34,6 +40,9 @@ export function getDefaultItem(params) {
     url: "/system/ext-conf/get-default-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -42,6 +51,9 @@ export function saveItem(params) {
     url: "/system/ext-conf/save-item",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -50,5 +62,8 @@ export function addItem(params) {
     url: "/system/ext-conf/add-item",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

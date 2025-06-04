@@ -17,6 +17,9 @@ export function getCommandList(params) {
     url: "/node/ssh_command/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -38,6 +41,9 @@ export function deleteCommand(id) {
     url: "/node/ssh_command/del",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -47,6 +53,9 @@ export function executeBatch(param) {
     url: "/node/ssh_command/batch",
     method: "post",
     data: param,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -56,6 +65,9 @@ export function getCommandLogList(params) {
     url: "/node/ssh_command_log/list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -65,6 +77,9 @@ export function getCommandLogBarchList(params) {
     url: "/node/ssh_command_log/batch_list",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -74,6 +89,9 @@ export function deleteCommandLog(id) {
     url: "/node/ssh_command_log/del",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -85,6 +103,7 @@ export function getCommandLogInfo(params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -104,6 +123,9 @@ export function syncToWorkspace(params) {
     url: "/node/ssh_command/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -116,6 +138,9 @@ export function getTriggerUrl(data) {
     url: "/node/ssh_command/trigger-url",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 

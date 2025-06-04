@@ -16,6 +16,9 @@ export function getSshList(params) {
     url: "/node/ssh/list_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -24,6 +27,9 @@ export function getSshGroupAll() {
   return axios({
     url: "/node/ssh/list-group-all",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -32,6 +38,9 @@ export function getSshListTree() {
   return axios({
     url: "/node/ssh/list-tree",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -41,6 +50,9 @@ export function getItem(params) {
     url: "/node/ssh/get-item.json",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -49,6 +61,9 @@ export function getSshListAll() {
   return axios({
     url: "/node/ssh/list_data_all.json",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -58,6 +73,9 @@ export function getSshOperationLogList(params) {
     url: "/node/ssh/log_list_data.json",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -71,6 +89,9 @@ export function editSsh(params) {
     url: "/node/ssh/save.json",
     method: "post",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -80,6 +101,9 @@ export function deleteSsh(id) {
     url: "/node/ssh/del.json",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -89,6 +113,9 @@ export function deleteForeSsh(id) {
     url: "/node/ssh/del-fore",
     method: "post",
     data: { id },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -97,5 +124,8 @@ export function syncToWorkspace(params) {
     url: "/node/ssh/sync-to-workspace",
     method: "get",
     params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }

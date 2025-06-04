@@ -27,6 +27,9 @@ export function getProjectList(params) {
     url: "/node/manage/get_project_info",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -46,6 +49,7 @@ export function getRuningProjectInfo(params, noTip) {
     headers: {
       // loading: 'no',
       tip: noTip ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -62,12 +66,9 @@ export function getProjectData(params, loading) {
     url: "/node/manage/getProjectData.json",
     method: "post",
     data: params,
-    params: {
-      nodeId: params.nodeId,
-      id: params.id,
-    },
     headers: {
       loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -81,6 +82,9 @@ export function getProjectAccessList(nodeId) {
     url: "/node/manage/project-access-list",
     method: "post",
     data: { nodeId },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -125,6 +129,9 @@ export function editProject(params) {
     url: "/node/manage/saveProject",
     method: "post",
     data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -141,6 +148,9 @@ export function deleteProject(params) {
     url: "/node/manage/deleteProject",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -149,6 +159,9 @@ export function migrateWorkspace(params) {
     url: "/node/manage/migrate-workspace",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -157,6 +170,9 @@ export function releaseOutgiving(params) {
     url: "/node/manage/release-outgiving",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -173,6 +189,7 @@ export function getFileList(params) {
     method: "post",
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
     data: params,
   });
@@ -203,6 +220,9 @@ export function readFile(formData) {
     url: "/node/manage/file/read_file",
     method: "get",
     params: formData,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -212,6 +232,9 @@ export function remoteDownload(formData) {
     method: "get",
     timeout: 0,
     params: formData,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -220,6 +243,9 @@ export function updateFile(formData) {
     url: "/node/manage/file/update_config_file",
     method: "post",
     data: formData,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -267,6 +293,9 @@ export function shardingMerge(formData) {
     // 0 表示无超时时间
     timeout: 0,
     data: formData,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -285,6 +314,9 @@ export function deleteProjectFile(params) {
     url: "/node/manage/file/deleteFile",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -303,6 +335,7 @@ export function getProjectLogSize(params) {
     data: params,
     headers: {
       loading: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -331,6 +364,9 @@ export function getLogBackList(params) {
     url: "/node/manage/log/log-back-list",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -361,6 +397,9 @@ export function deleteProjectLogBackFile(params) {
     url: "/node/manage/log/logBack_delete",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -378,6 +417,9 @@ export function getInternalData(params) {
     method: "post",
     timeout: 0,
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -463,6 +505,7 @@ export function operateProject(params) {
     headers: {
       loading: "no",
       tip: "no",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
   });
 }
@@ -476,6 +519,9 @@ export function getProjectTriggerUrl(data) {
     url: "/node/project-trigger-url",
     method: "post",
     data: data,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -489,6 +535,9 @@ export function newFileFolder(params) {
     url: "/node/manage/file/new_file_folder",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -502,6 +551,9 @@ export function renameFileFolder(params) {
     url: "/node/manage/file/rename_file_folder",
     method: "get",
     params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -515,6 +567,9 @@ export function copyFileFolder(params) {
     url: "/node/manage/file/copy",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -528,6 +583,9 @@ export function compressFileFolder(params) {
     url: "/node/manage/file/compress",
     method: "post",
     data: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
@@ -538,6 +596,9 @@ export function getProjectGroupAll() {
   return axios({
     url: "/node/list-project-group-all",
     method: "get",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
   });
 }
 
