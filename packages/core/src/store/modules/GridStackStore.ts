@@ -91,7 +91,7 @@ export const useGridStackStore = defineStore({
       this.customLayout();
     },
     async removeComp(item) {
-      this.component = this.component.filter((it) => it.id != item);
+      this.component = this.component ? this.component.filter((it) => it.id != item) : [];
       this.customLayout();
     },
     async resetLayout() {
@@ -328,7 +328,7 @@ export const useGridStackStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled && this.component.filter((i) => i.id === item.key).length === 0;
+        return !item.disabled && (this.component ? this.component.filter((i) => i.id === item.key).length === 0 : true);
       });
     },
     hasNowCompsList() {
