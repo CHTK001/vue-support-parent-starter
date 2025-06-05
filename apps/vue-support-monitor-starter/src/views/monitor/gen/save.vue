@@ -28,6 +28,12 @@
                 <span>ZOOKEEPER</span>
               </div>
             </el-option>
+            <el-option value="NACOS">
+              <div class="gen-save__option">
+                <IconifyIconOnline icon="devicon:nacos" class="mr-2" />
+                <span>Nacos</span>
+              </div>
+            </el-option>
             <el-option value="Prometheus">
               <div class="gen-save__option">
                 <IconifyIconOnline icon="devicon:prometheus" class="mr-2" />
@@ -312,6 +318,9 @@ const handleChangeGenType = () => {
   } else if (form.genType === "MONGODB") {
     form.genJdbcCustomType = "URL";
     form.genPort = 27017;
+  } else if (form.genType === "NACOS") {
+    form.genJdbcCustomType = "URL";
+    form.genPort = 8848;
   }
 };
 

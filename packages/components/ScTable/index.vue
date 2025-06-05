@@ -1081,7 +1081,7 @@ const onUpdateCurrentPage = (page) => {
 
 <style lang="scss" scoped>
 .sc-table-main-content {
-  height: 95%;
+  height: 96%;
 }
 .modern-table-container {
   display: flex;

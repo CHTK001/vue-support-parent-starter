@@ -97,53 +97,53 @@
       <!-- 操作按钮组 -->
       <div class="file-actions-toolbar">
         <a-space wrap>
-          <a-dropdown :disabled="!tempNode.nextPath">
+            <a-dropdown :disabled="!tempNode.nextPath">
             <a-button size="small" type="primary" @click="(e) => e.preventDefault()">
               <template #icon><UploadOutlined /></template>
               {{ $t('i18n_01198a1673') }}
             </a-button>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item @click="handleUpload">
-                  <a-space><FileAddOutlined />{{ $t('i18n_a6fc9e3ae6') }}</a-space>
-                </a-menu-item>
-                <a-menu-item @click="handleUploadZip">
-                  <a-space><FileZipOutlined />{{ $t('i18n_66b71b06c6') }}</a-space>
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
-          <a-button
-            size="small"
-            :disabled="!tempNode.nextPath"
-            type="primary"
-            @click="uploadShardingFileVisible = true"
-          >
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="handleUpload">
+                    <a-space><FileAddOutlined />{{ $t('i18n_a6fc9e3ae6') }}</a-space>
+                  </a-menu-item>
+                  <a-menu-item @click="handleUploadZip">
+                    <a-space><FileZipOutlined />{{ $t('i18n_66b71b06c6') }}</a-space>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+            <a-button
+              size="small"
+              :disabled="!tempNode.nextPath"
+              type="primary"
+              @click="uploadShardingFileVisible = true"
+            >
             <template #icon><CloudUploadOutlined /></template>
             {{ $t('i18n_dda8b4c10f') }}
           </a-button>
-          <a-dropdown :disabled="!tempNode.nextPath">
+            <a-dropdown :disabled="!tempNode.nextPath">
             <a-button size="small" type="primary" @click="(e) => e.preventDefault()">
               <template #icon><PlusOutlined /></template>
               {{ $t('i18n_26bb841878') }}
             </a-button>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item @click="handleAddFolder">
-                  <a-space>
-                    <FolderAddOutlined />
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="handleAddFolder">
+                    <a-space>
+                      <FolderAddOutlined />
                     <span>{{ $t('i18n_547ee197e5') }}</span>
-                  </a-space>
-                </a-menu-item>
-                <a-menu-item @click="handleAddFile">
-                  <a-space>
-                    <FileAddOutlined />
+                    </a-space>
+                  </a-menu-item>
+                  <a-menu-item @click="handleAddFile">
+                    <a-space>
+                      <FileAddOutlined />
                     <span>{{ $t('i18n_497ddf508a') }}</span>
-                  </a-space>
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
+                    </a-space>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
           <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="loadFileList()">
             <template #icon><ReloadOutlined /></template>
             {{ $t('i18n_694fc5efa9') }}
@@ -161,7 +161,7 @@
               {{ $t('i18n_4cbc136874') }}
             </a-button>
           </a-tooltip>
-        </a-space>
+          </a-space>
       </div>
 
       <!-- 文件表格 -->
@@ -284,29 +284,29 @@
         @cancel="closeUploadFile"
       >
         <a-space direction="vertical" style="width: 100%">
-          <a-upload
-            :file-list="uploadFileList"
-            :before-upload="beforeUpload"
-            :accept="`${uploadFileZip ? ZIP_ACCEPT : ''}`"
-            :multiple="!uploadFileZip"
-            @remove="handleRemove"
+        <a-upload
+          :file-list="uploadFileList"
+          :before-upload="beforeUpload"
+          :accept="`${uploadFileZip ? ZIP_ACCEPT : ''}`"
+          :multiple="!uploadFileZip"
+          @remove="handleRemove"
             list-type="picture"
             class="upload-list-inline"
-          >
-            <a-button>
+        >
+          <a-button>
               <template #icon><UploadOutlined /></template>
-              {{ $t('i18n_fd7e0c997d') }}
-              {{ uploadFileZip ? $t('i18n_c806d0fa38') : '' }}
-            </a-button>
-          </a-upload>
+            {{ $t('i18n_fd7e0c997d') }}
+            {{ uploadFileZip ? $t('i18n_c806d0fa38') : '' }}
+          </a-button>
+        </a-upload>
           <a-divider />
-          <a-button
+        <a-button
             block
-            type="primary"
-            :disabled="uploadFileList.length === 0"
-            :loading="confirmLoading"
-            @click="startUpload"
-          >
+          type="primary"
+          :disabled="uploadFileList.length === 0"
+          :loading="confirmLoading"
+          @click="startUpload"
+        >
             {{ $t('i18n_020f1ecd62') }}
           </a-button>
         </a-space>
@@ -338,38 +338,38 @@
           </a-alert>
           
           <div class="upload-container">
-            <a-upload
-              :file-list="uploadFileList"
-              :before-upload="
-                (file) => {
-                  uploadFileList = [file]
-                  return false
-                }
-              "
-              multiple
-              :disabled="!!percentage"
-              @remove="
-                (file) => {
-                  const index = uploadFileList.indexOf(file)
-                  uploadFileList.splice(index, 1)
-                  return true
-                }
-              "
+          <a-upload
+            :file-list="uploadFileList"
+            :before-upload="
+              (file) => {
+                uploadFileList = [file]
+                return false
+              }
+            "
+            multiple
+            :disabled="!!percentage"
+            @remove="
+              (file) => {
+                const index = uploadFileList.indexOf(file)
+                uploadFileList.splice(index, 1)
+                return true
+              }
+            "
               list-type="picture"
               class="upload-list-inline"
-            >
+          >
               <div class="upload-drag-area">
                 <p class="upload-drag-icon">
-                  <template v-if="percentage">
+            <template v-if="percentage">
                     <LoadingOutlined v-if="uploadFileList?.length" />
                     <CloudUploadOutlined v-else />
-                  </template>
+              </template>
                   <CloudUploadOutlined v-else />
                 </p>
                 <p class="upload-text">{{ $t('i18n_fd7e0c997d') }}</p>
                 <p class="upload-hint">支持单个或批量上传</p>
               </div>
-            </a-upload>
+          </a-upload>
           </div>
 
           <a-row v-if="percentage" class="progress-container">
@@ -426,12 +426,12 @@
           
           <a-alert v-if="temp.addFileOrFolderType === 1" :message="$t('i18n_fe1b192913')" type="info" show-icon />
           
-          <a-button
+            <a-button
             block
-            type="primary"
-            :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0"
-            @click="startAddFileFolder"
-          >
+              type="primary"
+              :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0"
+              @click="startAddFileFolder"
+            >
             {{ $t('i18n_e83a256e4f') }}
           </a-button>
         </a-space>
@@ -527,13 +527,13 @@
             showCount
           />
 
-          <a-button
+            <a-button
             block
-            type="primary"
+              type="primary"
             :loading="confirmLoading"
-            :disabled="temp.fileFolderName.length === 0 || temp.fileFolderName === temp.oldFileFolderName"
-            @click="renameFileFolder"
-          >
+              :disabled="temp.fileFolderName.length === 0 || temp.fileFolderName === temp.oldFileFolderName"
+              @click="renameFileFolder"
+            >
             {{ $t('i18n_e83a256e4f') }}
           </a-button>
         </a-space>
@@ -568,13 +568,13 @@
               <span class="permission-type">{{ $t('i18n_75769d1ac8') }}</span>
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.owner.read" />
+            <a-checkbox v-model:checked="permissions.owner.read" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.group.read" />
+            <a-checkbox v-model:checked="permissions.group.read" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.others.read" />
+            <a-checkbox v-model:checked="permissions.others.read" />
             </div>
           </div>
           
@@ -583,13 +583,13 @@
               <span class="permission-type">{{ $t('i18n_4d7dc6c5f8') }}</span>
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.owner.write" />
+            <a-checkbox v-model:checked="permissions.owner.write" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.group.write" />
+            <a-checkbox v-model:checked="permissions.group.write" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.others.write" />
+            <a-checkbox v-model:checked="permissions.others.write" />
             </div>
           </div>
           
@@ -598,13 +598,13 @@
               <span class="permission-type">{{ $t('i18n_1a6aa24e76') }}</span>
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.owner.execute" />
+            <a-checkbox v-model:checked="permissions.owner.execute" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.group.execute" />
+            <a-checkbox v-model:checked="permissions.group.execute" />
             </div>
             <div class="permission-cell">
-              <a-checkbox v-model:checked="permissions.others.execute" />
+            <a-checkbox v-model:checked="permissions.others.execute" />
             </div>
           </div>
         </div>

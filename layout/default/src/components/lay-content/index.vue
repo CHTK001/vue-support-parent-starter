@@ -114,7 +114,7 @@ const transitionMain = defineComponent({
 
 <template>
   <section :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']" :style="getSectionStyle">
-    <router-view>
+    <router-view :key="$route.fullPath" >
       <template #default="{ Component, route }">
         <LayFrame :currComp="Component" :currRoute="route">
           <template #default="{ Comp, fullPath, frameInfo }">

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="manage-container !overflow-hidden h-[100vh]"
+    :class="containerClasses"
     :style="{
       '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
       '--layoutBlur': ($storage?.configure.layoutBlur || 4) + 'px'
@@ -126,7 +126,8 @@ const layout = reactive({
   MONGODB: defineAsyncComponent(() => import("./layout/mongodb/index.vue")),
   SHELL: defineAsyncComponent(() => import("./layout/shell/index.vue")),
   MQTT: defineAsyncComponent(() => import("./layout/mqtt/index.vue")),
-  REDIS: defineAsyncComponent(() => import("./layout/redis/index.vue"))
+  REDIS: defineAsyncComponent(() => import("./layout/redis/index.vue")),
+  NACOS: defineAsyncComponent(() => import("./layout/nacos/index.vue"))
 });
 
 // 数据状态
@@ -143,10 +144,13 @@ const visible = reactive({
 
 /**
  * 计算是否使用分屏模式
- * SHELL、WEBRTC和VNC类型不使用分屏
+ * SHELL、WEBRTC、VNC和NACOS类型不使用分屏
  */
 const singleSplit = computed(() => {
-  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC";
+  return item.data.genType != "SHELL" && 
+         item.data.genType != "WEBRTC" && 
+         item.data.genType != "VNC" &&
+         item.data.genType != "NACOS";
 });
 
 /**
@@ -176,7 +180,8 @@ const getDataSourceIcon = () => {
     MONGODB: "devicon:mongodb",
     MQTT: "simple-icons:mqtt",
     SHELL: "devicon:powershell",
-    INFLUXDB: "devicon:influxdb"
+    INFLUXDB: "devicon:influxdb",
+    NACOS: "simple-icons:alibabacloud"
   };
 
   return iconMap[type] || "ri:database-2-line";
@@ -293,6 +298,16 @@ onMounted(async () => {
   // 打开管理界面
   open();
 });
+
+// 计算容器类名
+const containerClasses = computed(() => {
+  return {
+    'manage-container': true,
+    '!overflow-hidden': true,
+    'h-[100vh]': true,
+    [`${item.data.genType?.toLowerCase()}-type`]: !!item.data.genType
+  };
+});
 </script>
 
 <style lang="scss" scoped>
@@ -337,14 +352,17 @@ onMounted(async () => {
 .manage-main {
   height: calc(100vh - 60px);
   overflow: hidden;
+  position: relative;
 }
 
-.manage-split-pane {
+.manage-split-pane,
+.manage-full-content {
   width: 100%;
   height: 100%;
   border: 1px solid var(--el-border-color-light);
   border-radius: var(--el-border-radius-base);
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .manage-panel {
@@ -364,12 +382,6 @@ onMounted(async () => {
   }
 }
 
-.manage-full-content {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-border-radius-base);
-  overflow: hidden;
-}
-
 :deep(.splitter-pane-resizer.horizontal),
 :deep(.splitter-pane-resizer.vertical) {
   background-color: var(--el-border-color) !important;
@@ -384,5 +396,16 @@ onMounted(async () => {
 
 .bg-primary-light {
   background-color: var(--el-color-primary-light-8);
+}
+
+/* 为不同数据源类型应用不同的样式 */
+.manage-container.nacos-type {
+  .manage-main {
+    padding: 5px;
+  }
+  
+  .manage-full-content {
+    box-shadow: var(--el-box-shadow-light);
+  }
 }
 </style>

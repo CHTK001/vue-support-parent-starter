@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <router-view class="h-full">
+    <router-view class="h-full" :key="$route.fullPath" >
       <template #default="{ Component, route }">
         <component :is="Component" class="h-full"></component>
       </template>

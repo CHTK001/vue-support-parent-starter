@@ -24,6 +24,7 @@
     "cesium": "catalog:",
     "codemirror": "catalog:",
     "cropperjs": "catalog:",
+    "monaco-editor": "catalog:",
     "echarts": "catalog:",
     "echarts-gl": "catalog:",
     "el-table-infinite-scroll": "catalog:",
