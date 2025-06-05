@@ -87,6 +87,20 @@ export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
   });
 };
 
+/**
+ *
+ * 解释路径
+ * @param path 路径
+ */
+export const resolveAbsolutePath = (path: String) => {
+  const baseUrl = getConfig()["BaseUrl"] || "";
+
+  if (!path) {
+    return baseUrl;
+  }
+  return path.startsWith("/") ? baseUrl + path : baseUrl + "/" + path;
+};
+
 /** 本地响应式存储的命名空间 */
 const responsiveStorageNameSpace = () => getConfig().ResponsiveStorageNameSpace;
 

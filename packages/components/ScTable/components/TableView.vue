@@ -124,7 +124,7 @@ const containerStyle = computed(() => {
   return {
     position: 'relative',
     width: '100%',
-    height: props.height === 'auto' ? '100%' : (typeof props.height === 'number' ? `${props.height}px` : props.height)
+    height: '100%' 
   };
 });
 
@@ -132,7 +132,7 @@ const containerStyle = computed(() => {
 const scrollWrapperStyle = computed(() => {
   return {
     width: '100%',
-    height: _height.value,
+    height: '100%',
     maxWidth: '100%',
     overflow: 'auto'
   };
@@ -141,6 +141,7 @@ const scrollWrapperStyle = computed(() => {
 // 计算属性
 const _height = computed(() => {
   if (props.height === 'auto') {
+    debugger
     // 当设置为auto时，尝试获取父元素的可视高度
     if (tableContainer.value && tableContainer.value.parentElement) {
       const parentElement = tableContainer.value.parentElement;
@@ -311,10 +312,10 @@ const doLayout = () => {
   scTable.value?.doLayout();
   
   // 延迟执行以确保布局完成后再同步宽度和应用吸附样式
-  setTimeout(() => {
-    syncTableWidth();
-    applyHeaderSticky();
-  }, 50);
+  // setTimeout(() => {
+  //   syncTableWidth();
+  //   applyHeaderSticky();
+  // }, 50);
 };
 
 const sort = (prop, order) => {
@@ -401,10 +402,10 @@ onMounted(() => {
     doLayout();
 
     // 监听父元素滚动，保持表头固定
-    const parentScrollElement = findScrollParent(tableContainer.value);
-    if (parentScrollElement && parentScrollElement !== document) {
-      parentScrollElement.addEventListener('scroll', applyHeaderSticky);
-    }
+    // const parentScrollElement = findScrollParent(tableContainer.value);
+    // if (parentScrollElement && parentScrollElement !== document) {
+    //   parentScrollElement.addEventListener('scroll', applyHeaderSticky);
+    // }
   });
 
   // 添加窗口大小变化的监听，以便动态调整表格高度
@@ -415,23 +416,23 @@ onBeforeUnmount(() => {
   // 组件销毁前移除事件监听，避免内存泄漏
   window.removeEventListener('resize', handleResize);
 
-  // 移除滚动监听
-  const parentScrollElement = findScrollParent(tableContainer.value);
-  if (parentScrollElement && parentScrollElement !== document) {
-    parentScrollElement.removeEventListener('scroll', applyHeaderSticky);
-  }
+  // // 移除滚动监听
+  // const parentScrollElement = findScrollParent(tableContainer.value);
+  // if (parentScrollElement && parentScrollElement !== document) {
+  //   parentScrollElement.removeEventListener('scroll', applyHeaderSticky);
+  // }
   
-  // 移除表头和表体滚动同步监听
-  if (scTable.value) {
-    const tableEl = scTable.value.$el;
-    const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
-    const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
+  // // 移除表头和表体滚动同步监听
+  // if (scTable.value) {
+  //   const tableEl = scTable.value.$el;
+  //   const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
+  //   const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
     
-    if (headerWrapper && bodyWrapper) {
-      headerWrapper.removeEventListener('scroll', handleHeaderScroll);
-      bodyWrapper.removeEventListener('scroll', handleHeaderScroll);
-    }
-  }
+  //   if (headerWrapper && bodyWrapper) {
+  //     headerWrapper.removeEventListener('scroll', handleHeaderScroll);
+  //     bodyWrapper.removeEventListener('scroll', handleHeaderScroll);
+  //   }
+  // }
 });
 
 // 查找最近的可滚动父元素
@@ -465,7 +466,7 @@ defineExpose({
 });
 </script>
 
-<style lang="scss" scoped>
+<!-- <style lang="scss" scoped>
 .modern-table {
   :deep(.el-table__body-wrapper) {
     overflow: auto !important;
@@ -591,4 +592,4 @@ defineExpose({
     }
   }
 }
-</style>
+</style> -->

@@ -114,3 +114,28 @@ function stringSplitToArray(str: any, separator: string = ","): number[] {
   return str.split(separator);
 }
 export { capitalizeFirstLetter, kebabToCamelCase, toCamelCase, toLowerCaseFirstLetter, stringSplitToNumber, stringSplitToArray };
+/**
+ * 生成UUID
+ * @returns
+ */
+export const useUUID = () => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+/**
+ * 将字符串分割为数组
+ * @param str
+ * @returns
+ */
+export const splitToArray = (str: any, separator: string = ",") => {
+  if (!str) {
+    return [];
+  }
+  if (str instanceof Array) {
+    return str;
+  }
+  return str.split(separator);
+};

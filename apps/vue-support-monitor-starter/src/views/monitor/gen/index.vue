@@ -22,9 +22,10 @@
     <!-- 内容区域 -->
     <div class="gen-content">
       <!-- 列表模式 -->
-      <ScTable ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe highlight-current-row>
-        <el-table-column label="序号" type="index" width="80px" align="center" />
-        <el-table-column label="数据源信息" min-width="300px" align="left" show-overflow-tooltip>
+      <ScTable ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe
+        highlight-current-row :page-size="20">
+        <el-table-column label="序号" width="60px" type="index"  align="center" />
+        <el-table-column label="数据源信息"  align="left" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="flex items-center">
               <el-avatar :size="36" :class="getIconBgClass(row)" class="mr-3 flex-shrink-0">
@@ -39,29 +40,39 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100px" align="center">
+        <el-table-column label="状态" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" :effect="row.genStatus == 0 ? 'light' : 'dark'" class="gen-tag">
+            <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" :effect="row.genStatus == 0 ? 'light' : 'dark'"
+              class="gen-tag">
               {{ row.genStatus == 0 ? "停用" : "启用" }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="支持功能" min-width="200px">
+        <el-table-column label="支持功能" >
           <template #default="{ row }">
             <div class="flex flex-wrap gap-2">
-              <el-tag :type="row?.supportBackup != 0 ? 'success' : 'info'" :effect="row?.supportBackup != 0 ? 'light' : 'plain'" class="gen-tag">
+              <el-tag :type="row?.supportBackup != 0 ? 'success' : 'info'"
+                :effect="row?.supportBackup != 0 ? 'light' : 'plain'" class="gen-tag">
                 <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-                备份
+                增量备份
               </el-tag>
-              <el-tag :type="row?.supportDocument != 0 ? 'success' : 'info'" :effect="row?.supportDocument != 0 ? 'light' : 'plain'" class="gen-tag">
+              <el-tag :type="row?.supportAllBackup != 0 ? 'success' : 'info'"
+                :effect="row?.supportAllBackup != 0 ? 'light' : 'plain'" class="gen-tag">
+                <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+                全量备份
+              </el-tag>
+              <el-tag :type="row?.supportDocument != 0 ? 'success' : 'info'"
+                :effect="row?.supportDocument != 0 ? 'light' : 'plain'" class="gen-tag">
                 <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
                 文档
               </el-tag>
-              <el-tag :type="row?.supportDriver != 0 ? 'success' : 'info'" :effect="row?.supportDriver != 0 ? 'light' : 'plain'" class="gen-tag">
+              <el-tag :type="row?.supportDriver != 0 ? 'success' : 'info'"
+                :effect="row?.supportDriver != 0 ? 'light' : 'plain'" class="gen-tag">
                 <IconifyIconOnline icon="ri:code-box-line" class="mr-1" />
                 驱动
               </el-tag>
-              <el-tag v-if="row.isFileDriver" :effect="row?.isFileDriver != 0 ? 'light' : 'plain'" type="info" class="gen-tag">
+              <el-tag v-if="row.isFileDriver" :effect="row?.isFileDriver != 0 ? 'light' : 'plain'" type="info"
+                class="gen-tag">
                 <IconifyIconOnline icon="ri:file-line" class="mr-1" />
                 文件
               </el-tag>
@@ -69,7 +80,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" fixed="right" width="380px" align="center">
+        <el-table-column label="操作" align="center">
           <template #default="{ row }">
             <div class="flex justify-center gap-2">
               <el-tooltip content="管理" placement="top">
@@ -109,14 +120,19 @@
                   <IconifyIconOnline icon="humbleicons:documents" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启备份" placement="top">
+              <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启增量备份" placement="top">
                 <el-button type="success" link @click="handleOpenBackup(row)">
                   <IconifyIconOnline icon="ri:lock-unlock-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-else-if="row.supportBackup" content="停止备份" placement="top">
+              <el-tooltip v-else-if="row.supportBackup" content="停止增量备份" placement="top">
                 <el-button type="danger" link @click="handleCloseBackup(row)">
                   <IconifyIconOnline icon="ri:lock-2-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row.supportAllBackup" content="备份设置" placement="top">
+                <el-button type="success" link @click="handleOpenBackupSetting(row)">
+                  <IconifyIconOnline icon="ri:settings-2-line" />
                 </el-button>
               </el-tooltip>
             </div>
@@ -130,15 +146,17 @@
         <Document v-if="visible.documentVisible" ref="documentRef" />
         <Code v-if="visible.codeVisible" ref="codeRef" />
         <File ref="fileRef" @success="handlerSuccess" />
+        <Backup ref="backupRef" />
       </ScLazy>
     </div>
   </div>
 </template>
 
 <script setup>
-const Document = defineAsyncComponent(() => import("./model/document.vue"));
-const Code = defineAsyncComponent(() => import("./layout/jdbc/code/index.vue"));
-const ScLazy = defineAsyncComponent(() => import("@repo/components/ScLazy/index.vue"));
+import Document from "./model/document.vue";
+import Code from "./layout/jdbc/code/index.vue";
+import ScLazy from "@repo/components/ScLazy/index.vue";
+import Backup from "./backup.vue";
 
 import { fetchGenDatabaseDelete, fetchGenDatabasePage, fetchGenDatabasUninstall } from "@/api/monitor/gen/database";
 import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
@@ -148,11 +166,13 @@ import Save from "./save.vue";
 import { message } from "@repo/utils";
 import { router } from "@repo/core";
 import { Base64 } from "js-base64";
+import { ElMessageBox } from "element-plus";
 
 // 异步加载文件上传组件
 const File = defineAsyncComponent(() => import("./plugin/file.vue"));
 
 // 组件引用
+const backupRef = ref();
 const documentRef = ref();
 const codeRef = ref();
 const fileRef = ref(null);
@@ -245,7 +265,7 @@ const getIcon = useRenderIcon;
  */
 const handleClickDelete = async row => {
   try {
-    await ElMessageBox.confirm(`确定要删除数据源 "${row.genName}" 吗？`, "删除确认", {
+    ElMessageBox.confirm(`确定要删除数据源 "${row.genName}" 吗？`, "删除确认", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning"
@@ -347,10 +367,19 @@ const handleCloseBackup = async row => {
 };
 
 /**
+ * 打开备份设置
+ * @param {Object} row - 数据源行数据
+ */
+const handleOpenBackupSetting = async row => {
+  backupRef.value.setData(row).open();
+};
+
+
+/**
  * 管理数据源
  * @param {Object} row - 数据源行数据
  */
-const handleClickManage = async row => {
+const handleClickManage = row => {
   router.push({
     path: "/database/manage",
     query: {

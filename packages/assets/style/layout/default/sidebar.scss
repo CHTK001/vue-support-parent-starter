@@ -63,7 +63,7 @@
     position: fixed;
     top: 0;
     right: 0;
-    z-index: 2;
+    z-index: 1999;
     width: calc(100% - #{$sideBarWidth});
 
     /* fixed-header 属性左上角动画 */
@@ -88,7 +88,7 @@
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 2;
+    z-index: 2000;
     width: $sideBarWidth !important;
     height: 100%;
     overflow: visible;

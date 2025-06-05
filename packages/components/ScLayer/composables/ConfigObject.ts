@@ -2,27 +2,27 @@
  * 配置对象
  * @description 主要用于处理参数的默认值问题
  */
-import { MapTile, type MapConfig } from '../types';
-import { MapType, DEFAULT_MAP_CONFIG } from '../types/map';
-import { OverviewMapConfig } from '../components/OverviewMap.vue';
+import { MapTile, type MapConfig } from "../types";
+import { MapType, DEFAULT_MAP_CONFIG } from "../types/map";
+import type { OverviewMapConfig } from "../components/OverviewMap.vue";
 
 // 默认鹰眼地图配置
 const DEFAULT_OVERVIEW_CONFIG: OverviewMapConfig = {
   width: 200,
   height: 150,
   opacity: 1,
-  borderColor: 'rgba(24, 144, 255, 0.8)',
+  borderColor: "rgba(24, 144, 255, 0.8)",
   borderWidth: 2,
-  backgroundColor: '#f5f5f5',
-  boxColor: 'rgba(24, 144, 255, 0.15)',
+  backgroundColor: "#f5f5f5",
+  boxColor: "rgba(24, 144, 255, 0.15)",
   boxOpacity: 0.15,
-  boxBorderColor: 'rgba(24, 144, 255, 1)',
+  boxBorderColor: "rgba(24, 144, 255, 1)",
   boxBorderWidth: 3,
   zoomOffset: 4,
   collapsedSize: 30,
   buttonSize: 30,
-  buttonColor: '#fff',
-  buttonBgColor: 'rgba(24, 144, 255, 0.9)'
+  buttonColor: "#fff",
+  buttonBgColor: "rgba(24, 144, 255, 0.9)"
 };
 
 export class ConfigObject {
@@ -40,7 +40,7 @@ export class ConfigObject {
       map: DEFAULT_MAP_CONFIG,
       mapKey: {},
       height: 500,
-      center: [39.92, 116.40],
+      center: [39.92, 116.4],
       zoom: 12,
       dragging: true,
       scrollWheelZoom: true,
@@ -54,10 +54,10 @@ export class ConfigObject {
       ...defaultConfig,
       ...options
     };
-    if(Object.keys(this.config.map).length === 0) {
+    if (Object.keys(this.config.map).length === 0) {
       this.config.map = DEFAULT_MAP_CONFIG;
     }
-    
+
     // 合并鹰眼地图配置
     if (options.overviewMapConfig) {
       this.config.overviewMapConfig = {
@@ -84,7 +84,7 @@ export class ConfigObject {
       ...this.config,
       ...options
     };
-    if(Object.keys(this.config.map).length === 0) {
+    if (Object.keys(this.config.map).length === 0) {
       this.config.map = DEFAULT_MAP_CONFIG;
     }
   }
@@ -110,7 +110,7 @@ export class ConfigObject {
    * @returns 地图API密钥
    */
   public getMapKey(mapType: MapType): string {
-    return this.config.mapKey[mapType] || '';
+    return this.config.mapKey[mapType] || "";
   }
 
   /**
@@ -165,7 +165,7 @@ export class ConfigObject {
    * 获取地图配置
    * @returns 地图配置
    */
-  public getMapConfig(): MapConfig['map'] {
+  public getMapConfig(): MapConfig["map"] {
     return this.config.map || DEFAULT_MAP_CONFIG;
   }
 
