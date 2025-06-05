@@ -272,6 +272,15 @@ export default [
           title: "操作日志",
         },
       },
+      {
+        path: "/system/backup",
+        name: "system-backup",
+        component: () => import("@/views/maintenance/system/backup.vue"),
+        meta: {
+          icon: "ri:database-line",
+          title: "数据库备份",
+        },
+      },
     ],
   },
   {
@@ -558,15 +567,7 @@ export default [
         },
       },
       // 数据库备份
-      {
-        path: "/system/backup",
-        name: "system-backup",
-        component: () => import("@/views/maintenance/system/backup.vue"),
-        meta: {
-          title: "数据库备份",
-          showLink: false,
-        },
-      },
+
       {
         // Jpom 为开源软件，请基于开源协议用于商业用途
         // 二次修改不可删除或者修改版权，否则可能承担法律责任
