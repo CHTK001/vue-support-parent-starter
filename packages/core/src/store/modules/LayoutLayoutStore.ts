@@ -170,7 +170,7 @@ export const useLayoutLayoutStore = defineStore({
       this.component.push({ id: item.key });
     },
     async removeComp(key) {
-      this.component = this.component.filter((it) => it.id != key);
+      this.component = this.component ? this.component.filter((it) => it.id != key) : [];
       this.layout = this.layout.filter((it) => it.id != key);
     },
     async resetLayout() {
@@ -269,7 +269,7 @@ export const useLayoutLayoutStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled && this.component.filter((i) => i.id === item.key).length === 0;
+        return !item.disabled && (this.component ? this.component.filter((i) => i.id === item.key).length === 0 : true);
       });
     },
     hasSettingCompent() {
