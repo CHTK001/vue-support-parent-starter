@@ -4,11 +4,18 @@ import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
 import path from "path";
 
+// 声明压缩类型
+type ViteCompression = "none" | "gzip" | "brotli" | "both" | "gzip-clear" | "brotli-clear" | "both-clear";
+
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
+
+  // 确保 VITE_COMPRESSION 的类型正确
+  const compression = VITE_COMPRESSION as ViteCompression;
+
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -52,7 +59,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),
+    plugins: getPluginsList(VITE_CDN, compression),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,
