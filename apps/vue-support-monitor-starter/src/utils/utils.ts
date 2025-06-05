@@ -22,7 +22,7 @@ const root = document.documentElement;
 // 获取计算后的样式
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle
 const style = getComputedStyle(root);
-const zIndexStart = Number(style.getPropertyValue("--increase-z-index") || 3);
+const zIndexStart = Number(style.getPropertyValue("--increase-z-index") || 3000);
 let incCount = 0;
 
 export function increaseZIndex() {
