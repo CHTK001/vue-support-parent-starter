@@ -1264,6 +1264,7 @@ export default {
 
 .ssh-file-layout {
   height: 100%;
+  display: flex;
   background: var(--el-bg-color);
   border-radius: 8px;
   overflow: hidden;
@@ -1320,6 +1321,7 @@ export default {
 
   .file-content {
     padding: 16px;
+    flex: 1;
     background: var(--el-bg-color);
 
     .ant-table {
