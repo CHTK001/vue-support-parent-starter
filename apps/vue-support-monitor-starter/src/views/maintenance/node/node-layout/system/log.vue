@@ -3,21 +3,16 @@
     <!-- 侧边栏 文件树 -->
     <a-layout-sider theme="light" class="log-sider" width="20%">
       <a-empty v-if="list.length === 0" :image="Empty.PRESENTED_IMAGE_SIMPLE" />
-      <a-directory-tree :tree-data="list" :field-names="replaceFields" default-expand-all @select="select">
-      </a-directory-tree>
+      <a-directory-tree :tree-data="list" :field-names="replaceFields" default-expand-all @select="select" />
     </a-layout-sider>
     <!-- 单个文件内容 -->
     <a-layout-content class="log-content">
       <log-view2 :ref="`logView`" height="calc(100vh - 160px - 30px)">
         <template #before>
           <a-space>
-            <a-button type="primary" size="small" @click="loadData">{{ $t('i18n_694fc5efa9') }}</a-button>
-            <a-button type="primary" danger size="small" :disabled="!temp.path" @click="deleteLog">{{
-              $t('i18n_2f4aaddde3')
-            }}</a-button>
-            <a-button type="primary" size="small" :disabled="!temp.path" @click="downloadLog">{{
-              $t('i18n_f26ef91424')
-            }}</a-button>
+            <a-button type="primary" size="small" @click="loadData">{{ $t("i18n_694fc5efa9") }}</a-button>
+            <a-button type="primary" danger size="small" :disabled="!temp.path" @click="deleteLog">{{ $t("i18n_2f4aaddde3") }}</a-button>
+            <a-button type="primary" size="small" :disabled="!temp.path" @click="downloadLog">{{ $t("i18n_f26ef91424") }}</a-button>
           </a-space>
         </template>
       </log-view2>
@@ -33,12 +28,12 @@
   </a-layout>
 </template>
 <script>
-import { getLogList, downloadFile, deleteLog } from '@/api/system'
-import { mapState } from 'pinia'
+import { getLogList, downloadFile, deleteLog } from "@/api/system";
+import { mapState } from "pinia";
 
-import { getWebSocketUrl } from '@/api/config'
-import LogView2 from '@/components/logView/index2.vue'
-import { Empty } from 'ant-design-vue'
+import { getWebSocketUrl } from "@/api/config";
+import LogView2 from "@/components/logView/index2.vue";
+import { Empty } from "ant-design-vue";
 export default {
   components: {
     LogView2
@@ -46,7 +41,7 @@ export default {
   props: {
     machineId: {
       type: String,
-      default: ''
+      default: ""
     }
   },
   data() {
@@ -55,109 +50,105 @@ export default {
       list: [],
       socket: null,
       // 日志内容
-      logContext: 'choose file loading context...',
+      logContext: "choose file loading context...",
 
       replaceFields: {
-        children: 'children',
-        title: 'title',
-        key: 'path'
+        children: "children",
+        title: "title",
+        key: "path"
       },
       // visible: false,
       temp: {}
-    }
+    };
   },
   computed: {
-    
     socketUrl() {
-      return getWebSocketUrl(
-        '/socket/agent_log',
-        `machineId=${this.machineId}&nodeId=system&type=agentLog`
-      )
+      return getWebSocketUrl("/socket/agent_log", `machineId=${this.machineId}&nodeId=system&type=agentLog`);
     }
   },
   watch: {},
   created() {
-    this.loadData()
+    this.loadData();
     // 监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
     window.onbeforeunload = () => {
-      this.close()
-    }
+      this.close();
+    };
   },
   beforeUnmount() {
-    this.close()
+    this.close();
   },
   methods: {
     close() {
-      this.socket?.close()
+      this.socket?.close();
     },
     // 加载数据
     loadData() {
-      this.list = []
-      const params = { machineId: this.machineId }
-      getLogList(params).then((res) => {
+      this.list = [];
+      const params = { machineId: this.machineId };
+      getLogList(params).then(res => {
         if (res.code === 200) {
-          res.data.forEach((element) => {
+          res.data.forEach(element => {
             if (element.children) {
-              this.calcTreeNode(element.children)
+              this.calcTreeNode(element.children);
             }
             // 组装数据
             this.list.push({
               ...element,
               isLeaf: !element.children ? true : false
-            })
-          })
+            });
+          });
         }
-      })
+      });
     },
     // 递归处理节点
     calcTreeNode(list) {
-      list.forEach((element) => {
+      list.forEach(element => {
         if (element.children) {
-          this.calcTreeNode(element.children)
+          this.calcTreeNode(element.children);
         } else {
           // 叶子节点
-          element.isLeaf = true
+          element.isLeaf = true;
         }
-      })
+      });
     },
     // 选择节点
     select(selectedKeys, { node }) {
       if (this.temp?.path === node.dataRef?.path) {
-        return
+        return;
       }
       if (!node.dataRef.isLeaf) {
-        return
+        return;
       }
       const data = {
-        op: 'showlog',
+        op: "showlog",
         tomcatId: this.tomcatId,
         fileName: node.dataRef.path
-      }
-      this.temp = node.dataRef
-      this.$refs.logView.clearLogCache()
+      };
+      this.temp = node.dataRef;
+      this.$refs.logView.clearLogCache();
 
-      this.socket?.close()
+      this.socket?.close();
 
-      this.socket = new WebSocket(this.socketUrl)
+      this.socket = new WebSocket(this.socketUrl);
       // 连接成功后
       this.socket.onopen = () => {
-        this.socket.send(JSON.stringify(data))
-      }
-      this.socket.onmessage = (msg) => {
-        this.$refs.logView.appendLine(msg.data)
-      }
-      this.socket.onerror = (err) => {
-        console.error(err)
+        this.socket.send(JSON.stringify(data));
+      };
+      this.socket.onmessage = msg => {
+        this.$refs.logView.appendLine(msg.data);
+      };
+      this.socket.onerror = err => {
+        console.error(err);
         $notification.error({
-          message: `web socket ${this.$t('i18n_7030ff6470')},${this.$t('i18n_226a6f9cdd')}`
-        })
-      }
-      this.socket.onclose = (err) => {
+          message: `web socket ${this.$t("i18n_7030ff6470")},${this.$t("i18n_226a6f9cdd")}`
+        });
+      };
+      this.socket.onclose = err => {
         //当客户端收到服务端发送的关闭连接请求时，触发onclose事件
-        console.error(err)
-        $message.warning(this.$t('i18n_1b5bcdf115') + node.dataRef.path)
+        console.error(err);
+        $message.warning(this.$t("i18n_1b5bcdf115") + node.dataRef.path);
         // clearInterval(this.heart);
-      }
+      };
     },
     // // 右键点击
     // rightClick({ node }) {
@@ -171,36 +162,36 @@ export default {
       const params = {
         machineId: this.machineId,
         path: this.temp.path
-      }
+      };
       // 请求接口拿到 blob
-      window.open(downloadFile(params), '_blank')
+      window.open(downloadFile(params), "_blank");
     },
     // 删除文件
     deleteLog() {
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_3c9eeee356'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_3c9eeee356"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           return deleteLog({
             machineId: this.machineId,
             path: this.temp.path
-          }).then((res) => {
+          }).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.visible = false
-              this.loadData()
+              });
+              this.visible = false;
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     }
   }
-}
+};
 </script>
 <style scoped>
 .log-layout {

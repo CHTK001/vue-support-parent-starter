@@ -4,23 +4,22 @@
   </div>
 </template>
 <script>
-import workspaceEnv from '@/views/maintenance/system/workspace-env.vue'
-import { getHashQuery } from '@/utils/utils'
-
+import workspaceEnv from "@/views/maintenance/system/workspace-env.vue";
+import { getHashQuery } from "@/utils/utils";
 
 export default {
   components: {
     workspaceEnv
   },
   data() {
-    return {
-    }
+    return {};
   },
   created() {},
-  methods: { 
+  methods: {
     getWorkspaceId() {
-      const query = getHashQuery()
-      return query.wid || 'DEFAULT'
-    },}
-}
+      const query = getHashQuery();
+      return query.wid || "DEFAULT";
+    }
+  }
+};
 </script>

@@ -37,42 +37,32 @@
           listQuery = CHANGE_PAGE(listQuery, {
             pagination,
             sorter
-          })
-          loadData()
+          });
+          loadData();
         }
       "
       @refresh="loadData"
       @change-table-layout="
-        (layoutType) => {
-          tableSelections = []
+        layoutType => {
+          tableSelections = [];
           listQuery = CHANGE_PAGE(listQuery, {
             pagination: { limit: layoutType === 'card' ? 8 : 10 }
-          })
-          loadData()
+          });
+          loadData();
         }
       "
     >
       <template #title>
         <a-space wrap class="search-box">
-          <a-input
-            v-model:value="listQuery['%name%']"
-            allow-clear
-            class="search-input-item"
-            :placeholder="$t('i18n_50a299c847')"
-            @press-enter="loadData"
-          />
+          <a-input v-model:value="listQuery['%name%']" allow-clear class="search-input-item" :placeholder="$t('i18n_50a299c847')" @press-enter="loadData" />
           <a-select
             v-model:value="listQuery.status"
             show-search
             allow-clear
             :filter-option="
               (input, option) => {
-                const children = option.children && option.children()
-                return (
-                  children &&
-                  children[0].children &&
-                  children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                )
+                const children = option.children && option.children();
+                return children && children[0].children && children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
               }
             "
             :placeholder="$t('i18n_3fea7ca76c')"
@@ -85,12 +75,8 @@
             show-search
             :filter-option="
               (input, option) => {
-                const children = option.children && option.children()
-                return (
-                  children &&
-                  children[0].children &&
-                  children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                )
+                const children = option.children && option.children();
+                return children && children[0].children && children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
               }
             "
             allow-clear
@@ -104,12 +90,8 @@
             show-search
             :filter-option="
               (input, option) => {
-                const children = option.children && option.children()
-                return (
-                  children &&
-                  children[0].children &&
-                  children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                )
+                const children = option.children && option.children();
+                return children && children[0].children && children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
               }
             "
             allow-clear
@@ -118,33 +100,33 @@
           >
             <a-select-option v-for="item in groupList" :key="item">{{ item }}</a-select-option>
           </a-select>
-          <a-input
-            v-model:value="listQuery['%resultDirFile%']"
-            allow-clear
-            class="search-input-item"
-            :placeholder="$t('i18n_c972010694')"
-            @press-enter="loadData"
-          />
+          <a-input v-model:value="listQuery['%resultDirFile%']" allow-clear class="search-input-item" :placeholder="$t('i18n_c972010694')" @press-enter="loadData" />
           <a-tooltip :title="$t('i18n_4838a3bd20')">
-            <a-button type="primary" :loading="loading" @click="loadData">{{ $t('i18n_e5f71fc31e') }}</a-button>
+            <a-button type="primary" :loading="loading" @click="loadData">{{ $t("i18n_e5f71fc31e") }}</a-button>
           </a-tooltip>
-          <a-button type="primary" @click="handleAdd">{{ $t('i18n_66ab5e9f24') }}</a-button>
+          <a-button type="primary" @click="handleAdd">{{ $t("i18n_66ab5e9f24") }}</a-button>
           <template v-if="tableSelections && tableSelections.length">
             <a-dropdown>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="1" @click="batchBuild"> {{ $t('i18n_67e3d3e09c') }} </a-menu-item>
-                  <a-menu-item key="2" @click="batchCancel"> {{ $t('i18n_32112950da') }} </a-menu-item>
+                  <a-menu-item key="1" @click="batchBuild">{{ $t("i18n_67e3d3e09c") }}</a-menu-item>
+                  <a-menu-item key="2" @click="batchCancel">{{ $t("i18n_32112950da") }}</a-menu-item>
                   <a-menu-item key="3" @click="handleBatchDelete">
-                    {{ $t('i18n_7fb62b3011') }}
+                    {{ $t("i18n_7fb62b3011") }}
                   </a-menu-item>
                 </a-menu>
               </template>
-              <a-button type="primary"> {{ $t('i18n_7f7c624a84') }}<DownOutlined /> </a-button>
+              <a-button type="primary">
+                {{ $t("i18n_7f7c624a84") }}
+                <DownOutlined />
+              </a-button>
             </a-dropdown>
           </template>
           <a-tooltip v-else :title="$t('i18n_98357846a2')">
-            <a-button :disabled="true" type="primary"> {{ $t('i18n_7f7c624a84') }} <DownOutlined /> </a-button>
+            <a-button :disabled="true" type="primary">
+              {{ $t("i18n_7f7c624a84") }}
+              <DownOutlined />
+            </a-button>
           </a-tooltip>
 
           <!-- <a-button v-if="!layout" type="primary" @click="changeLayout">
@@ -171,18 +153,14 @@
             <a-row :gutter="[4, 0]">
               <a-col :span="17" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
                 <a-button type="link" style="padding: 0" size="small" @click="handleDetails(item)">
-                  <span> {{ item.name }}</span>
+                  <span>{{ item.name }}</span>
                 </a-button>
               </a-col>
               <a-col :span="7" style="text-align: right" class="text-overflow-hidden">
-                <a-tooltip
-                  :title="`${$t('i18n_e703c7367c')}${statusMap[item.status]} ${
-                    item.statusMsg ? $t('i18n_8d13037eb7') + item.statusMsg : ''
-                  }`"
-                >
+                <a-tooltip :title="`${$t('i18n_e703c7367c')}${statusMap[item.status]} ${item.statusMsg ? $t('i18n_8d13037eb7') + item.statusMsg : ''}`">
                   <a-tag :color="statusColor[item.status]" style="margin-right: 0">
-                    {{ statusMap[item.status] || $t('i18n_903b25f64e') }}</a-tag
-                  >
+                    {{ statusMap[item.status] || $t("i18n_903b25f64e") }}
+                  </a-tag>
                 </a-tooltip>
               </a-col>
             </a-row>
@@ -191,25 +169,23 @@
           <a-tooltip>
             <template #title>
               <div v-if="item.branchTagName">
-                <div>{{ $t('i18n_8086beecb3') }}{{ item.branchTagName }}</div>
-                <div>{{ $t('i18n_ca774ec5b4') }}{{ item.repositoryLastCommitId }}</div>
+                <div>{{ $t("i18n_8086beecb3") }}{{ item.branchTagName }}</div>
+                <div>{{ $t("i18n_ca774ec5b4") }}{{ item.repositoryLastCommitId }}</div>
               </div>
               <div v-else>
-                <div>{{ $t('i18n_f240f9d69c') }}{{ item.branchName }}</div>
-                <div>{{ $t('i18n_ca774ec5b4') }}{{ item.repositoryLastCommitId }}</div>
+                <div>{{ $t("i18n_f240f9d69c") }}{{ item.branchName }}</div>
+                <div>{{ $t("i18n_ca774ec5b4") }}{{ item.repositoryLastCommitId }}</div>
               </div>
             </template>
 
             <a-row class="item-info">
-              <a-col :span="6" class="title text-overflow-hidden">{{ $t('i18n_88ab27cfd0') }}</a-col>
-              <a-col :span="18" class="content text-overflow-hidden">
-                {{ item.branchName }} {{ item.branchTagName }}</a-col
-              >
+              <a-col :span="6" class="title text-overflow-hidden">{{ $t("i18n_88ab27cfd0") }}</a-col>
+              <a-col :span="18" class="content text-overflow-hidden">{{ item.branchName }} {{ item.branchTagName }}</a-col>
             </a-row>
           </a-tooltip>
           <a-tooltip :title="item.resultDirFile">
             <a-row class="item-info">
-              <a-col :span="6" class="title text-overflow-hidden">{{ $t('i18n_cc637e17a0') }}</a-col>
+              <a-col :span="6" class="title text-overflow-hidden">{{ $t("i18n_cc637e17a0") }}</a-col>
               <a-col :span="18" class="content text-overflow-hidden">
                 {{ item.resultDirFile }}
               </a-col>
@@ -217,7 +193,7 @@
           </a-tooltip>
 
           <a-row class="item-info">
-            <a-col :span="6" class="title text-overflow-hidden">{{ $t('i18n_b5d0091ae3') }}:</a-col>
+            <a-col :span="6" class="title text-overflow-hidden">{{ $t("i18n_b5d0091ae3") }}:</a-col>
             <a-col :span="18" class="content text-overflow-hidden">
               <a-tag v-if="item.buildId <= 0">-</a-tag>
               <a-tag v-else color="#108ee9" @click="handleBuildLog(item)">#{{ item.buildId }}</a-tag>
@@ -225,20 +201,20 @@
           </a-row>
 
           <a-row class="item-info">
-            <a-col :span="6" class="title text-overflow-hidden">{{ $t('i18n_c530a094f9') }}</a-col>
+            <a-col :span="6" class="title text-overflow-hidden">{{ $t("i18n_c530a094f9") }}</a-col>
             <a-col :span="18" class="content text-overflow-hidden">
               <template v-if="item.buildMode === 1">
                 <CloudOutlined />
-                {{ $t('i18n_685e5de706') }}
+                {{ $t("i18n_685e5de706") }}
               </template>
               <template v-else>
                 <CodeOutlined />
-                {{ $t('i18n_69c3b873c1') }}
+                {{ $t("i18n_69c3b873c1") }}
               </template>
             </a-col>
           </a-row>
           <a-row class="item-info">
-            <a-col :span="6" class="title text-overflow-hidden">{{ $t('i18n_65894da683') }}</a-col>
+            <a-col :span="6" class="title text-overflow-hidden">{{ $t("i18n_65894da683") }}</a-col>
             <a-col :span="18" class="content text-overflow-hidden">
               {{ releaseMethodMap[item.releaseMethod] }}
             </a-col>
@@ -246,68 +222,50 @@
 
           <a-row type="flex" align="middle" justify="center" style="margin-top: 10px">
             <a-button-group>
-              <a-button
-                v-if="item.status === 1 || item.status === 4 || item.status === 9"
-                size="small"
-                type="primary"
-                danger
-                @click="handleStopBuild(item)"
-                >{{ $t('i18n_095e938e2a') }}
-              </a-button>
+              <a-button v-if="item.status === 1 || item.status === 4 || item.status === 9" size="small" type="primary" danger @click="handleStopBuild(item)">{{ $t("i18n_095e938e2a") }}</a-button>
               <a-dropdown v-else>
                 <a-button size="small" type="primary" @click="handleConfirmStartBuild(item)">
-                  {{ $t('i18n_fcba60e773') }}
+                  {{ $t("i18n_fcba60e773") }}
                   <DownOutlined />
                 </a-button>
                 <template #overlay>
                   <a-menu>
                     <a-menu-item key="1">
-                      <a-button
-                        size="small"
-                        type="primary"
-                        @click="reqStartBuild({ id: item.id, buildEnvParameter: item.buildEnvParameter }, true)"
-                        >{{ $t('i18n_16b5e7b472') }}
-                      </a-button>
+                      <a-button size="small" type="primary" @click="reqStartBuild({ id: item.id, buildEnvParameter: item.buildEnvParameter }, true)">{{ $t("i18n_16b5e7b472") }}</a-button>
                     </a-menu-item>
                     <a-menu-item key="2">
-                      <a-button
-                        size="small"
-                        type="primary"
-                        @click="reqStartBuild({ id: item.id, buildEnvParameter: item.buildEnvParameter }, false)"
-                      >
-                        {{ $t('i18n_f1fdaffdf0') }}
+                      <a-button size="small" type="primary" @click="reqStartBuild({ id: item.id, buildEnvParameter: item.buildEnvParameter }, false)">
+                        {{ $t("i18n_f1fdaffdf0") }}
                       </a-button>
                     </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
               <a-dropdown>
-                <a-button size="small" type="primary" @click="handleEdit(item)">{{ $t('i18n_95b351c862') }}</a-button>
+                <a-button size="small" type="primary" @click="handleEdit(item)">{{ $t("i18n_95b351c862") }}</a-button>
                 <template #overlay>
                   <a-menu>
                     <a-menu-item @click="handleEdit(item, 0)">
-                      <a href="javascript:;">{{ $t('i18n_17a74824de') }}</a>
+                      <a href="javascript:;">{{ $t("i18n_17a74824de") }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleEdit(item, 1)">
-                      <a href="javascript:;">{{ $t('i18n_6ea1fe6baa') }}</a>
+                      <a href="javascript:;">{{ $t("i18n_6ea1fe6baa") }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleEdit(item, 2)">
-                      <a href="javascript:;">{{ $t('i18n_a2ae15f8a7') }}</a>
+                      <a href="javascript:;">{{ $t("i18n_a2ae15f8a7") }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleEdit(item, 3)">
-                      <a href="javascript:;">{{ $t('i18n_3c91490844') }}</a>
+                      <a href="javascript:;">{{ $t("i18n_3c91490844") }}</a>
                     </a-menu-item>
                     <a-menu-item @click="handleEdit(item, 4)">
-                      <a href="javascript:;">{{ $t('i18n_9ab433e930') }}</a>
+                      <a href="javascript:;">{{ $t("i18n_9ab433e930") }}</a>
                     </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
-              <a-button size="small" @click="handleDelete(item)">{{ $t('i18n_2f4aaddde3') }}</a-button>
+              <a-button size="small" @click="handleDelete(item)">{{ $t("i18n_2f4aaddde3") }}</a-button>
               <a-tooltip placement="leftBottom" :title="$t('i18n_19675b9d36')">
-                <a-button size="small" :disabled="!item.sourceDirExist" @click="handleClear(item)"
-                  >{{ $t('i18n_c37ac7f024') }}
-                </a-button>
+                <a-button size="small" :disabled="!item.sourceDirExist" @click="handleClear(item)">{{ $t("i18n_c37ac7f024") }}</a-button>
               </a-tooltip>
             </a-button-group>
           </a-row>
@@ -315,27 +273,29 @@
       </template>
       <template #tableBodyCell="{ column, text, record, index }">
         <template v-if="column.dataIndex === 'name'">
-          <a-tooltip
-            placement="topLeft"
-            :title="`${$t('i18n_d7ec2d3fea')}${text} ${$t('i18n_84632d372f')}`"
-            @click="handleDetails(record)"
-          >
-            <a-button type="link" style="padding: 0" size="small"> <FullscreenOutlined />{{ text }}</a-button>
+          <a-tooltip placement="topLeft" :title="`${$t('i18n_d7ec2d3fea')}${text} ${$t('i18n_84632d372f')}`" @click="handleDetails(record)">
+            <a-button type="link" style="padding: 0" size="small">
+              <FullscreenOutlined />
+              {{ text }}
+            </a-button>
           </a-tooltip>
         </template>
         <template v-else-if="column.dataIndex === 'branchName'">
           <a-tooltip placement="topLeft">
             <template #title>
               <div v-if="record.branchTagName">
-                <div>{{ $t('i18n_8086beecb3') }}{{ record.branchTagName }}</div>
-                <div>{{ $t('i18n_ca774ec5b4') }}{{ record.repositoryLastCommitId }}</div>
+                <div>{{ $t("i18n_8086beecb3") }}{{ record.branchTagName }}</div>
+                <div>{{ $t("i18n_ca774ec5b4") }}{{ record.repositoryLastCommitId }}</div>
               </div>
               <div v-else>
-                <div>{{ $t('i18n_f240f9d69c') }}{{ text }}</div>
-                <div>{{ $t('i18n_ca774ec5b4') }}{{ record.repositoryLastCommitId }}</div>
+                <div>{{ $t("i18n_f240f9d69c") }}{{ text }}</div>
+                <div>{{ $t("i18n_ca774ec5b4") }}{{ record.repositoryLastCommitId }}</div>
               </div>
             </template>
-            <span v-if="record.branchTagName"><TagOutlined />{{ record.branchTagName }}</span>
+            <span v-if="record.branchTagName">
+              <TagOutlined />
+              {{ record.branchTagName }}
+            </span>
             <span v-else>{{ text }}</span>
           </a-tooltip>
         </template>
@@ -350,9 +310,9 @@
           <a-tooltip>
             <template #title>
               <ul>
-                <li>{{ $t('i18n_65894da683') }}{{ releaseMethodMap[text] }}</li>
-                <li>{{ $t('i18n_113576ce91') }}{{ record.resultDirFile }}</li>
-                <li v-if="record.buildMode !== 1">{{ $t('i18n_1160ab56fd') }}{{ record.script }}</li>
+                <li>{{ $t("i18n_65894da683") }}{{ releaseMethodMap[text] }}</li>
+                <li>{{ $t("i18n_113576ce91") }}{{ record.resultDirFile }}</li>
+                <li v-if="record.buildMode !== 1">{{ $t("i18n_1160ab56fd") }}{{ record.script }}</li>
               </ul>
             </template>
             <span>{{ releaseMethodMap[text] }}</span>
@@ -360,149 +320,99 @@
         </template>
         <template v-else-if="column.dataIndex === 'status'">
           <a-tooltip :title="record.statusMsg || statusMap[text] || $t('i18n_1622dc9b6b')">
-            <a-tag
-              :color="statusColor[record.status]"
-              :title="record.statusMsg || statusMap[text] || $t('i18n_1622dc9b6b')"
-              >{{ statusMap[text] || $t('i18n_1622dc9b6b') }}</a-tag
-            >
+            <a-tag :color="statusColor[record.status]" :title="record.statusMsg || statusMap[text] || $t('i18n_1622dc9b6b')">{{ statusMap[text] || $t("i18n_1622dc9b6b") }}</a-tag>
           </a-tooltip>
         </template>
         <template v-else-if="column.dataIndex === 'buildId'">
           <a-tooltip placement="topLeft" :title="text + ` ( ${$t('i18n_aac62bc255')} ) `">
-            <span v-if="record.buildId <= 0"></span>
+            <span v-if="record.buildId <= 0" />
             <a-tag v-else color="#108ee9" @click="handleBuildLog(record)">#{{ text }}</a-tag>
           </a-tooltip>
         </template>
         <template v-else-if="column.tooltip">
           <a-tooltip placement="topLeft" :title="text">
-            <span>{{ text || '' }}</span>
+            <span>{{ text || "" }}</span>
           </a-tooltip>
         </template>
         <template v-else-if="column.dataIndex === 'operation'">
           <a-space>
-            <a-button
-              v-if="record.status === 1 || record.status === 4 || record.status === 9"
-              size="small"
-              type="primary"
-              danger
-              @click="handleStopBuild(record)"
-              >{{ $t('i18n_095e938e2a') }}
+            <a-button v-if="record.status === 1 || record.status === 4 || record.status === 9" size="small" type="primary" danger @click="handleStopBuild(record)">
+              {{ $t("i18n_095e938e2a") }}
             </a-button>
             <a-dropdown v-else>
-              <a-button size="small" type="primary" @click="handleConfirmStartBuild(record)"
-                >{{ $t('i18n_fcba60e773') }}<DownOutlined
-              /></a-button>
+              <a-button size="small" type="primary" @click="handleConfirmStartBuild(record)">
+                {{ $t("i18n_fcba60e773") }}
+                <DownOutlined />
+              </a-button>
               <template #overlay>
                 <a-menu>
                   <a-menu-item key="1">
-                    <a-button
-                      size="small"
-                      type="primary"
-                      @click="reqStartBuild({ id: record.id, buildEnvParameter: record.buildEnvParameter }, true)"
-                      >{{ $t('i18n_16b5e7b472') }}</a-button
-                    >
+                    <a-button size="small" type="primary" @click="reqStartBuild({ id: record.id, buildEnvParameter: record.buildEnvParameter }, true)">{{ $t("i18n_16b5e7b472") }}</a-button>
                   </a-menu-item>
                   <a-menu-item key="2">
-                    <a-button
-                      size="small"
-                      type="primary"
-                      @click="reqStartBuild({ id: record.id, buildEnvParameter: record.buildEnvParameter }, false)"
-                      >{{ $t('i18n_f1fdaffdf0') }}</a-button
-                    >
+                    <a-button size="small" type="primary" @click="reqStartBuild({ id: record.id, buildEnvParameter: record.buildEnvParameter }, false)">{{ $t("i18n_f1fdaffdf0") }}</a-button>
                   </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
             <a-dropdown>
-              <a-button size="small" type="primary" @click="handleEdit(record, 1)">{{
-                $t('i18n_95b351c862')
-              }}</a-button>
+              <a-button size="small" type="primary" @click="handleEdit(record, 1)">{{ $t("i18n_95b351c862") }}</a-button>
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="handleEdit(record, 0)">
-                    <a href="javascript:;">{{ $t('i18n_17a74824de') }}</a>
+                    <a href="javascript:;">{{ $t("i18n_17a74824de") }}</a>
                   </a-menu-item>
                   <a-menu-item @click="handleEdit(record, 1)">
-                    <a href="javascript:;">{{ $t('i18n_6ea1fe6baa') }}</a>
+                    <a href="javascript:;">{{ $t("i18n_6ea1fe6baa") }}</a>
                   </a-menu-item>
                   <a-menu-item @click="handleEdit(record, 2)">
-                    <a href="javascript:;">{{ $t('i18n_a2ae15f8a7') }}</a>
+                    <a href="javascript:;">{{ $t("i18n_a2ae15f8a7") }}</a>
                   </a-menu-item>
                   <a-menu-item @click="handleEdit(record, 3)">
-                    <a href="javascript:;">{{ $t('i18n_3c91490844') }}</a>
+                    <a href="javascript:;">{{ $t("i18n_3c91490844") }}</a>
                   </a-menu-item>
                   <a-menu-item @click="handleEdit(record, 4)">
-                    <a href="javascript:;">{{ $t('i18n_9ab433e930') }}</a>
+                    <a href="javascript:;">{{ $t("i18n_9ab433e930") }}</a>
                   </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
             <a-dropdown>
-              <a class="ant-dropdown-link" @click="(e) => e.preventDefault()">
-                {{ $t('i18n_0ec9eaf9c3') }}
+              <a class="ant-dropdown-link" @click="e => e.preventDefault()">
+                {{ $t("i18n_0ec9eaf9c3") }}
                 <DownOutlined />
               </a>
               <template #overlay>
                 <a-menu>
                   <a-menu-item>
-                    <a-button size="small" type="primary" @click="copyItem(record)">{{
-                      $t('i18n_79d3abe929')
-                    }}</a-button>
+                    <a-button size="small" type="primary" @click="copyItem(record)">{{ $t("i18n_79d3abe929") }}</a-button>
                   </a-menu-item>
                   <a-menu-item>
-                    <a-button
-                      size="small"
-                      :disabled="!record.resultHasFile"
-                      type="primary"
-                      @click="handleDownloadFile(record)"
-                      >{{ $t('i18n_635391aa5d') }}</a-button
-                    >
+                    <a-button size="small" :disabled="!record.resultHasFile" type="primary" @click="handleDownloadFile(record)">{{ $t("i18n_635391aa5d") }}</a-button>
                   </a-menu-item>
                   <a-menu-item>
-                    <a-button size="small" type="primary" danger @click="handleDelete(record)">{{
-                      $t('i18n_2f4aaddde3')
-                    }}</a-button>
+                    <a-button size="small" type="primary" danger @click="handleDelete(record)">{{ $t("i18n_2f4aaddde3") }}</a-button>
                   </a-menu-item>
 
                   <a-menu-item>
                     <a-tooltip placement="leftBottom" :title="$t('i18n_19675b9d36')">
-                      <a-button
-                        size="small"
-                        type="primary"
-                        danger
-                        :disabled="!record.sourceDirExist"
-                        @click="handleClear(record)"
-                        >{{ $t('i18n_c37ac7f024') }}
-                      </a-button>
+                      <a-button size="small" type="primary" danger :disabled="!record.sourceDirExist" @click="handleClear(record)">{{ $t("i18n_c37ac7f024") }}</a-button>
                     </a-tooltip>
                   </a-menu-item>
                   <a-menu-divider />
                   <a-menu-item>
-                    <a-button
-                      size="small"
-                      type="primary"
-                      :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) <= 1"
-                      @click="sortItemHander(record, index, 'top')"
-                      >{{ $t('i18n_3d43ff1199') }}</a-button
-                    >
+                    <a-button size="small" type="primary" :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) <= 1" @click="sortItemHander(record, index, 'top')">
+                      {{ $t("i18n_3d43ff1199") }}
+                    </a-button>
                   </a-menu-item>
                   <a-menu-item>
-                    <a-button
-                      size="small"
-                      type="primary"
-                      :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) <= 1"
-                      @click="sortItemHander(record, index, 'up')"
-                      >{{ $t('i18n_315eacd193') }}</a-button
-                    >
+                    <a-button size="small" type="primary" :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) <= 1" @click="sortItemHander(record, index, 'up')">
+                      {{ $t("i18n_315eacd193") }}
+                    </a-button>
                   </a-menu-item>
                   <a-menu-item>
-                    <a-button
-                      size="small"
-                      type="primary"
-                      :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) === listQuery.total"
-                      @click="sortItemHander(record, index, 'down')"
-                    >
-                      {{ $t('i18n_17acd250da') }}
+                    <a-button size="small" type="primary" :disabled="(listQuery.page - 1) * listQuery.limit + (index + 1) === listQuery.total" @click="sortItemHander(record, index, 'down')">
+                      {{ $t("i18n_17acd250da") }}
                     </a-button>
                   </a-menu-item>
                 </a-menu>
@@ -552,20 +462,20 @@
       :data="temp"
       @close="
         () => {
-          editBuildVisible = 0
+          editBuildVisible = 0;
         }
       "
       @build="
         (build, buildId, buildEnvParameter) => {
-          editBuildVisible = 0
-          loadData()
-          loadGroupList()
+          editBuildVisible = 0;
+          loadData();
+          loadGroupList();
           if (build) {
-            reqStartBuild({ id: buildId, buildEnvParameter: buildEnvParameter || temp.buildEnvParameter }, true)
+            reqStartBuild({ id: buildId, buildEnvParameter: buildEnvParameter || temp.buildEnvParameter }, true);
           }
         }
       "
-    ></build-item>
+    />
     <!-- 构建日志 -->
     <build-log
       v-if="buildLogVisible > 0"
@@ -573,7 +483,7 @@
       :visible="buildLogVisible != 0"
       @close="
         () => {
-          buildLogVisible = 0
+          buildLogVisible = 0;
         }
       "
     />
@@ -604,21 +514,17 @@
           >
             <template #inputTips>
               <div>
-                {{ $t('i18n_89f5ca6928') }}(AntPathMatcher)
+                {{ $t("i18n_89f5ca6928") }}(AntPathMatcher)
                 <ul>
-                  <li>? {{ $t('i18n_9973159a4d') }}</li>
-                  <li>* {{ $t('i18n_32f882ae24') }}</li>
-                  <li>** {{ $t('i18n_45b88fc569') }}</li>
+                  <li>? {{ $t("i18n_9973159a4d") }}</li>
+                  <li>* {{ $t("i18n_32f882ae24") }}</li>
+                  <li>** {{ $t("i18n_45b88fc569") }}</li>
                 </ul>
               </div>
             </template>
           </custom-select>
         </a-form-item>
-        <a-form-item
-          v-if="(branchTagList && branchTagList.length) || (temp.branchTagName && temp.branchTagName.length)"
-          :label="$t('i18n_977bfe8508')"
-          name="branchTagName"
-        >
+        <a-form-item v-if="(branchTagList && branchTagList.length) || (temp.branchTagName && temp.branchTagName.length)" :label="$t('i18n_977bfe8508')" name="branchTagName">
           <custom-select
             v-model:value="temp.branchTagName"
             :data="branchTagList"
@@ -629,11 +535,11 @@
           >
             <template #inputTips>
               <div>
-                {{ $t('i18n_89f5ca6928') }}(AntPathMatcher)
+                {{ $t("i18n_89f5ca6928") }}(AntPathMatcher)
                 <ul>
-                  <li>? {{ $t('i18n_9973159a4d') }}</li>
-                  <li>* {{ $t('i18n_32f882ae24') }}</li>
-                  <li>** {{ $t('i18n_45b88fc569') }}</li>
+                  <li>? {{ $t("i18n_9973159a4d") }}</li>
+                  <li>* {{ $t("i18n_32f882ae24") }}</li>
+                  <li>** {{ $t("i18n_45b88fc569") }}</li>
                 </ul>
               </div>
             </template>
@@ -644,59 +550,29 @@
         </a-form-item>
         <a-form-item name="checkRepositoryDiff" :label="$t('i18n_0b23d2f584')" help="">
           <a-space>
-            <a-switch
-              v-model:checked="temp.checkRepositoryDiff"
-              :checked-children="$t('i18n_0a60ac8f02')"
-              :un-checked-children="$t('i18n_c9744f45e7')"
-            />
+            <a-switch v-model:checked="temp.checkRepositoryDiff" :checked-children="$t('i18n_0a60ac8f02')" :un-checked-children="$t('i18n_c9744f45e7')" />
             <span>
               <a-tooltip>
-                <template #title> {{ $t('i18n_4cbc5505c7') }} </template>
+                <template #title>{{ $t("i18n_4cbc5505c7") }}</template>
                 <QuestionCircleOutlined />
               </a-tooltip>
-              {{ $t('i18n_1d263b7efb') }}
+              {{ $t("i18n_1d263b7efb") }}
             </span>
           </a-space>
         </a-form-item>
 
-        <a-form-item
-          v-if="temp.releaseMethod === 1 || temp.releaseMethod === 2"
-          name="projectSecondaryDirectory"
-          :label="$t('i18n_871cc8602a')"
-        >
+        <a-form-item v-if="temp.releaseMethod === 1 || temp.releaseMethod === 2" name="projectSecondaryDirectory" :label="$t('i18n_871cc8602a')">
           <a-input v-model:value="temp.projectSecondaryDirectory" :placeholder="$t('i18n_9c99e8bec9')" />
         </a-form-item>
         <a-form-item :label="$t('i18n_3867e350eb')" name="buildEnvParameter" :help="$t('i18n_220650a1f5')">
-          <a-textarea
-            v-model:value="temp.buildEnvParameter"
-            :placeholder="$t('i18n_b3913b9bb7')"
-            :auto-size="{ minRows: 3, maxRows: 5 }"
-          />
+          <a-textarea v-model:value="temp.buildEnvParameter" :placeholder="$t('i18n_b3913b9bb7')" :auto-size="{ minRows: 3, maxRows: 5 }" />
         </a-form-item>
         <a-form-item :label="$t('i18n_d1498d9dbf')" name="buildRemark" :help="$t('i18n_111e786daa')">
-          <a-textarea
-            v-model:value="temp.buildRemark"
-            :max-length="240"
-            :placeholder="$t('i18n_7777a83497')"
-            :auto-size="{ minRows: 2, maxRows: 5 }"
-          />
+          <a-textarea v-model:value="temp.buildRemark" :max-length="240" :placeholder="$t('i18n_7777a83497')" :auto-size="{ minRows: 2, maxRows: 5 }" />
         </a-form-item>
-        <a-form-item
-          v-if="dispatchProjectList && dispatchProjectList.length"
-          name="selectProject"
-          :label="$t('i18n_c4e0c6b6fe')"
-          :help="$t('i18n_25be899f66')"
-        >
-          <a-select
-            v-model:value="temp.dispatchSelectProjectArray"
-            mode="multiple"
-            :placeholder="$t('i18n_b29fd18c93')"
-          >
-            <a-select-option
-              v-for="item in dispatchProjectList"
-              :key="item.id"
-              :value="`${item.projectId}@${item.nodeId}`"
-            >
+        <a-form-item v-if="dispatchProjectList && dispatchProjectList.length" name="selectProject" :label="$t('i18n_c4e0c6b6fe')" :help="$t('i18n_25be899f66')">
+          <a-select v-model:value="temp.dispatchSelectProjectArray" mode="multiple" :placeholder="$t('i18n_b29fd18c93')">
+            <a-select-option v-for="item in dispatchProjectList" :key="item.id" :value="`${item.projectId}@${item.nodeId}`">
               {{ item.nodeName }}-{{ item.cacheProjectName || item.projectId }}
             </a-select-option>
           </a-select>
@@ -706,10 +582,10 @@
   </div>
 </template>
 <script>
-import BuildLog from './log.vue'
-import BuildItem from './item.vue'
-import CustomSelect from '@/components/customSelect/index.vue'
-import { Empty } from 'ant-design-vue'
+import BuildLog from "./log.vue";
+import BuildItem from "./item.vue";
+import CustomSelect from "@/components/customSelect/index.vue";
+import { Empty } from "ant-design-vue";
 import {
   clearBuid,
   deleteBuild,
@@ -724,8 +600,8 @@ import {
   sortItem,
   getBranchList,
   deleteatchBuild
-} from '@/api/build-info'
-import { getDispatchProject } from '@/api/dispatch'
+} from "@/api/build-info";
+import { getDispatchProject } from "@/api/dispatch";
 
 import {
   CHANGE_PAGE,
@@ -734,7 +610,7 @@ import {
   parseTime
   // PAGE_DEFAULT_SHOW_TOTAL,
   // getCachePageLimit
-} from '@/utils/const'
+} from "@/utils/const";
 
 export default {
   components: {
@@ -745,7 +621,7 @@ export default {
   props: {
     repositoryId: {
       type: String,
-      default: ''
+      default: ""
     },
     fullContent: {
       type: Boolean,
@@ -754,18 +630,18 @@ export default {
     choose: {
       // "radio"
       type: String,
-      default: ''
+      default: ""
     },
     layout: {
       type: String,
-      default: ''
+      default: ""
     }
   },
-  emits: ['cancel', 'confirm'],
+  emits: ["cancel", "confirm"],
   data() {
     return {
       Empty,
-      sizeOptions: ['8', '12', '16', '20', '24'],
+      sizeOptions: ["8", "12", "16", "20", "24"],
       releaseMethodMap,
       loading: false,
       listQuery: Object.assign({}, PAGE_DEFAULT_LIST_QUERY),
@@ -784,105 +660,105 @@ export default {
       buildConfirmVisible: false,
       columns: [
         {
-          title: this.$t('i18n_d7ec2d3fea'),
-          dataIndex: 'name',
+          title: this.$t("i18n_d7ec2d3fea"),
+          dataIndex: "name",
           sorter: true,
           width: 200,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_829abe5a8d'),
-          dataIndex: 'group',
+          title: this.$t("i18n_829abe5a8d"),
+          dataIndex: "group",
           width: 100,
           ellipsis: true,
           tooltip: true
         },
         {
-          title: this.$t('i18n_f4bbbaf882'),
-          dataIndex: 'branchName',
+          title: this.$t("i18n_f4bbbaf882"),
+          dataIndex: "branchName",
           ellipsis: true,
           width: 100
         },
 
         {
-          title: this.$t('i18n_7220e4d5f9'),
-          dataIndex: 'buildMode',
-          align: 'center',
-          width: '80px',
+          title: this.$t("i18n_7220e4d5f9"),
+          dataIndex: "buildMode",
+          align: "center",
+          width: "80px",
           sorter: true,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_3fea7ca76c'),
-          dataIndex: 'status',
-          align: 'center',
-          width: '100px',
+          title: this.$t("i18n_3fea7ca76c"),
+          dataIndex: "status",
+          align: "center",
+          width: "100px",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_b5d0091ae3'),
-          dataIndex: 'buildId',
-          width: '90px',
+          title: this.$t("i18n_b5d0091ae3"),
+          dataIndex: "buildId",
+          width: "90px",
           ellipsis: true,
-          align: 'center'
+          align: "center"
         },
 
         {
-          title: this.$t('i18n_f98994f7ec'),
-          dataIndex: 'releaseMethod',
-          width: '100px',
+          title: this.$t("i18n_f98994f7ec"),
+          dataIndex: "releaseMethod",
+          width: "100px",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_7dfcab648d'),
-          dataIndex: 'resultDirFile',
+          title: this.$t("i18n_7dfcab648d"),
+          dataIndex: "resultDirFile",
           width: 100,
           ellipsis: true,
           tooltip: true
         },
         {
-          title: this.$t('i18n_db9296212a'),
-          dataIndex: 'autoBuildCron',
+          title: this.$t("i18n_db9296212a"),
+          dataIndex: "autoBuildCron",
           width: 100,
           ellipsis: true,
           tooltip: true
         },
         {
-          title: this.$t('i18n_9baca0054e'),
-          dataIndex: 'modifyUser',
-          width: '130px',
+          title: this.$t("i18n_9baca0054e"),
+          dataIndex: "modifyUser",
+          width: "130px",
           ellipsis: true,
           sorter: true
         },
 
         {
-          title: this.$t('i18n_eca37cb072'),
-          dataIndex: 'createTimeMillis',
+          title: this.$t("i18n_eca37cb072"),
+          dataIndex: "createTimeMillis",
           sorter: true,
           ellipsis: true,
           customRender: ({ text }) => parseTime(text),
-          width: '160px'
+          width: "160px"
         },
         {
-          title: this.$t('i18n_1303e638b5'),
-          dataIndex: 'modifyTimeMillis',
+          title: this.$t("i18n_1303e638b5"),
+          dataIndex: "modifyTimeMillis",
           sorter: true,
           customRender: ({ text }) => parseTime(text),
-          width: '160px'
+          width: "160px"
         },
         {
-          title: this.$t('i18n_c35c1a1330'),
-          dataIndex: 'sortValue',
+          title: this.$t("i18n_c35c1a1330"),
+          dataIndex: "sortValue",
           sorter: true,
-          width: '80px'
+          width: "80px"
         },
         {
-          title: this.$t('i18n_2b6bc0f293'),
-          dataIndex: 'operation',
-          width: '200px',
+          title: this.$t("i18n_2b6bc0f293"),
+          dataIndex: "operation",
+          width: "200px",
 
-          align: 'center',
-          fixed: 'right'
+          align: "center",
+          fixed: "right"
         }
       ],
 
@@ -892,34 +768,34 @@ export default {
       dispatchProjectList: [],
       // layoutType: null,
       confirmLoading: false
-    }
+    };
   },
   computed: {
     pagination() {
-      return COMPUTED_PAGINATION(this.listQuery)
+      return COMPUTED_PAGINATION(this.listQuery);
     },
     activePage() {
-      return this.$attrs.routerUrl === this.$route.path
+      return this.$attrs.routerUrl === this.$route.path;
     },
     rowSelection() {
       return {
-        onChange: (selectedRowKeys) => {
-          this.tableSelections = selectedRowKeys
+        onChange: selectedRowKeys => {
+          this.tableSelections = selectedRowKeys;
         },
         selectedRowKeys: this.tableSelections,
-        type: this.choose || 'checkbox'
-      }
+        type: this.choose || "checkbox"
+      };
     }
   },
   watch: {},
   created() {
     // if (this.layout) {
     // this.layoutType = this.layout
-    this.loadData()
+    this.loadData();
     // } else {
     // this.changeLayout()
     // }
-    this.loadGroupList()
+    this.loadGroupList();
     //
     // this.countdownTime = Date.now() + this.refreshInterval * 1000
   },
@@ -930,29 +806,29 @@ export default {
     // getCachePageLimit,
     // 分组数据
     loadGroupList() {
-      getBuildGroupAll().then((res) => {
+      getBuildGroupAll().then(res => {
         if (res.data) {
-          this.groupList = res.data
+          this.groupList = res.data;
         }
-      })
+      });
     },
     // 加载数据
     loadData(pointerEvent) {
-      this.listQuery.page = pointerEvent?.altKey || pointerEvent?.ctrlKey ? 1 : this.listQuery.page
-      this.listQuery.repositoryId = this.repositoryId
-      this.loading = true
+      this.listQuery.page = pointerEvent?.altKey || pointerEvent?.ctrlKey ? 1 : this.listQuery.page;
+      this.listQuery.repositoryId = this.repositoryId;
+      this.loading = true;
       getBuildList(this.listQuery)
-        .then((res) => {
+        .then(res => {
           if (res.code === 200) {
-            this.list = res.data.result
-            this.listQuery.total = res.data.total
+            this.list = res.data.result;
+            this.listQuery.total = res.data.total;
             // 重新计算倒计时
             // this.countdownTime = Date.now() + this.refreshInterval * 1000
           }
         })
         .finally(() => {
-          this.loading = false
-        })
+          this.loading = false;
+        });
     },
     // silenceLoadData() {
     //   if (this.$attrs.routerUrl !== this.$route.path) {
@@ -977,150 +853,150 @@ export default {
 
     // 新增
     handleAdd() {
-      this.temp = {}
-      this.editBuildVisible = 2
-      this.editSteps = 0
+      this.temp = {};
+      this.editBuildVisible = 2;
+      this.editSteps = 0;
     },
     // 复制
     copyItem(record) {
-      const temp = Object.assign({}, record)
-      delete temp.id
-      delete temp.triggerToken
-      temp.name = temp.name + this.$t('i18n_0428b36ab1')
-      this.temp = temp
-      this.editBuildVisible = 2
-      this.editSteps = 1
+      const temp = Object.assign({}, record);
+      delete temp.id;
+      delete temp.triggerToken;
+      temp.name = temp.name + this.$t("i18n_0428b36ab1");
+      this.temp = temp;
+      this.editBuildVisible = 2;
+      this.editSteps = 1;
       // this.handleEdit(temp, 1)
     },
     handleEdit(record, steps) {
-      this.temp = { id: record.id, buildEnvParameter: record.buildEnvParameter }
-      this.editBuildVisible = 2
+      this.temp = { id: record.id, buildEnvParameter: record.buildEnvParameter };
+      this.editBuildVisible = 2;
 
-      this.editSteps = steps
+      this.editSteps = steps;
     },
     handleDetails(record) {
-      this.editBuildVisible = 1
-      this.editSteps = 2
-      this.temp = { id: record.id, buildEnvParameter: record.buildEnvParameter }
+      this.editBuildVisible = 1;
+      this.editSteps = 2;
+      this.temp = { id: record.id, buildEnvParameter: record.buildEnvParameter };
     },
     loadBranchListById(id) {
-      this.branchList = []
-      this.branchTagList = []
+      this.branchList = [];
+      this.branchTagList = [];
       const params = {
         repositoryId: id
-      }
-      getBranchList(params).then((res) => {
+      };
+      getBranchList(params).then(res => {
         if (res.code === 200) {
-          this.branchList = res.data?.branch || []
-          this.branchTagList = res.data?.tags || []
+          this.branchList = res.data?.branch || [];
+          this.branchTagList = res.data?.tags || [];
         }
-      })
+      });
     },
     // 删除
     handleDelete(record) {
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_48281fd3f0'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_48281fd3f0"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           // 删除
-          return deleteBuild(record.id).then((res) => {
+          return deleteBuild(record.id).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadData()
+              });
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 批量删除
     handleBatchDelete() {
       if (!this.tableSelections || this.tableSelections.length <= 0) {
         $notification.warning({
-          message: this.$t('i18n_5d817c403e')
-        })
-        return
+          message: this.$t("i18n_5d817c403e")
+        });
+        return;
       }
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_79076b6882'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_79076b6882"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           // 删除
-          return deleteatchBuild({ ids: this.tableSelections.join(',') }).then((res) => {
+          return deleteatchBuild({ ids: this.tableSelections.join(",") }).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadData()
+              });
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 清除构建
     handleClear(record) {
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_e15f22df2d'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_e15f22df2d"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
-          return clearBuid(record.id).then((res) => {
+          return clearBuid(record.id).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadData()
+              });
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 开始构建
     handleConfirmStartBuild(record) {
-      this.dispatchProjectList = []
+      this.dispatchProjectList = [];
       // 判断构建方式
       if (record.releaseMethod === 1) {
         // 节点分发
-        getDispatchProject(record.releaseMethodDataId, true).then((res) => {
+        getDispatchProject(record.releaseMethodDataId, true).then(res => {
           if (res.code === 200) {
-            this.dispatchProjectList = res.data?.projectList || []
+            this.dispatchProjectList = res.data?.projectList || [];
 
-            this.showBuildConfirm(record)
+            this.showBuildConfirm(record);
           }
-        })
+        });
       } else {
-        this.showBuildConfirm(record)
+        this.showBuildConfirm(record);
       }
       // console.log(record);
     },
     showBuildConfirm(record) {
-      this.temp = Object.assign({}, record)
-      this.buildConfirmVisible = true
-      this.branchList = []
-      this.branchTagList = []
+      this.temp = Object.assign({}, record);
+      this.buildConfirmVisible = true;
+      this.branchList = [];
+      this.branchTagList = [];
       //
       try {
-        const extraData = JSON.parse(record.extraData) || {}
+        const extraData = JSON.parse(record.extraData) || {};
         this.temp = {
           ...this.temp,
           checkRepositoryDiff: extraData.checkRepositoryDiff,
           projectSecondaryDirectory: extraData.projectSecondaryDirectory
-        }
+        };
       } catch (e) {
         //
       }
     },
     handleStartBuild() {
-      this.confirmLoading = true
+      this.confirmLoading = true;
       this.reqStartBuild(
         {
           id: this.temp.id,
@@ -1131,169 +1007,168 @@ export default {
           checkRepositoryDiff: this.temp.checkRepositoryDiff,
           projectSecondaryDirectory: this.temp.projectSecondaryDirectory,
           buildEnvParameter: this.temp.buildEnvParameter,
-          dispatchSelectProject:
-            (this.temp.dispatchSelectProjectArray && this.temp.dispatchSelectProjectArray.join(',')) || ''
+          dispatchSelectProject: (this.temp.dispatchSelectProjectArray && this.temp.dispatchSelectProjectArray.join(",")) || ""
         },
         true
       )
         .then(() => {
-          this.buildConfirmVisible = false
+          this.buildConfirmVisible = false;
         })
         .finally(() => {
-          this.confirmLoading = false
-        })
+          this.confirmLoading = false;
+        });
     },
     reqStartBuild(data, openLog) {
-      return new Promise((resolve) => {
-        startBuild(data).then((res) => {
+      return new Promise(resolve => {
+        startBuild(data).then(res => {
           if (res.code === 200) {
             $notification.success({
               message: res.msg
-            })
-            this.loadData()
+            });
+            this.loadData();
             if (openLog) {
               // 自动打开构建日志
               this.handleBuildLog({
                 id: data.id,
                 buildId: res.data
-              })
+              });
             }
-            resolve()
+            resolve();
           }
-        })
-      })
+        });
+      });
     },
     // 停止构建
     handleStopBuild(record) {
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
         // TODO 后续抽优化
-        content: this.$t('i18n_25f6a95de3') + record.name + this.$t('i18n_c16ab7c424'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_25f6a95de3") + record.name + this.$t("i18n_c16ab7c424"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
-          this.temp = Object.assign({}, record)
-          return stopBuild(this.temp.id).then((res) => {
+          this.temp = Object.assign({}, record);
+          return stopBuild(this.temp.id).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadData()
+              });
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 查看构建日志
     handleBuildLog(record) {
       this.temp = {
         id: record.id,
         buildId: record.buildId
-      }
-      this.buildLogVisible = new Date() * Math.random()
+      };
+      this.buildLogVisible = new Date() * Math.random();
     },
     // 关闭日志对话框
     closeBuildLogModel() {
-      this.loadData()
+      this.loadData();
     },
 
     // 排序
     sortItemHander(record, index, method) {
       const msgData = {
-        top: this.$t('i18n_0079d91f95'),
-        up: this.$t('i18n_b166a66d67'),
-        down: this.$t('i18n_7a7e25e9eb')
-      }
-      let msg = msgData[method] || this.$t('i18n_49574eee58')
+        top: this.$t("i18n_0079d91f95"),
+        up: this.$t("i18n_b166a66d67"),
+        down: this.$t("i18n_7a7e25e9eb")
+      };
+      let msg = msgData[method] || this.$t("i18n_49574eee58");
       if (!record.sortValue) {
-        msg += this.$t('i18n_461e675921')
+        msg += this.$t("i18n_461e675921");
       }
       // console.log(this.list, index, this.list[method === "top" ? index : method === "up" ? index - 1 : index + 1]);
-      const compareId = this.list[method === 'top' ? index : method === 'up' ? index - 1 : index + 1].id
+      const compareId = this.list[method === "top" ? index : method === "up" ? index - 1 : index + 1].id;
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
         content: msg,
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           return sortItem({
             id: record.id,
             method: method,
             compareId: compareId
-          }).then((res) => {
+          }).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
+              });
 
-              this.loadData()
+              this.loadData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 下载构建产物
     handleDownloadFile(record) {
-      window.open(downloadBuildFileByBuild(record.id, record.buildId), '_blank')
+      window.open(downloadBuildFileByBuild(record.id, record.buildId), "_blank");
     },
     // 批量构建
     batchBuild() {
       if (!this.tableSelections || this.tableSelections.length <= 0) {
         $notification.warning({
-          message: this.$t('i18n_5d817c403e')
-        })
-        return
+          message: this.$t("i18n_5d817c403e")
+        });
+        return;
       }
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_9341881037'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_9341881037"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
-          this.tableSelections.forEach((item) => {
+          this.tableSelections.forEach(item => {
             startBuild({
               id: item,
-              buildEnvParameter: this.list.find((item2) => item2.id === item)?.buildEnvParameter
-            }).then((res) => {
+              buildEnvParameter: this.list.find(item2 => item2.id === item)?.buildEnvParameter
+            }).then(res => {
               if (res.code === 200) {
                 //
               }
-            })
-          })
-          this.tableSelections = []
-          this.loadData()
+            });
+          });
+          this.tableSelections = [];
+          this.loadData();
         }
-      })
+      });
     },
     // 批量取消构建
     batchCancel() {
       if (!this.tableSelections || this.tableSelections.length <= 0) {
         $notification.warning({
-          message: this.$t('i18n_5d817c403e')
-        })
-        return
+          message: this.$t("i18n_5d817c403e")
+        });
+        return;
       }
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_2d3fd578ce'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_2d3fd578ce"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
-          this.tableSelections.forEach((item) => {
-            stopBuild(item).then((res) => {
+          this.tableSelections.forEach(item => {
+            stopBuild(item).then(res => {
               if (res.code === 200) {
                 //
               }
-            })
-          })
-          this.tableSelections = []
-          this.loadData()
+            });
+          });
+          this.tableSelections = [];
+          this.loadData();
         }
-      })
+      });
     },
     // // 切换视图
     // changeLayout() {
@@ -1315,23 +1190,23 @@ export default {
     handerConfirm() {
       if (!this.tableSelections.length) {
         $notification.warning({
-          message: this.$t('i18n_2b4cf3d74e')
-        })
-        return
+          message: this.$t("i18n_2b4cf3d74e")
+        });
+        return;
       }
-      const selectData = this.list.filter((item) => {
-        return this.tableSelections.indexOf(item.id) > -1
-      })
+      const selectData = this.list.filter(item => {
+        return this.tableSelections.indexOf(item.id) > -1;
+      });
       if (!selectData.length) {
         $notification.warning({
-          message: this.$t('i18n_2b4cf3d74e')
-        })
-        return
+          message: this.$t("i18n_2b4cf3d74e")
+        });
+        return;
       }
-      this.$emit('confirm', selectData)
+      this.$emit("confirm", selectData);
     }
   }
-}
+};
 </script>
 <style scoped>
 .item-info {

@@ -12,7 +12,7 @@
     :open="true"
     @close="
       () => {
-        $emit('close')
+        $emit('close');
       }
     "
   >
@@ -26,77 +26,62 @@
               margin: '0'
             }"
           >
-            <a-tab-pane v-if="tabs.includes('project')" key="project" :tab="$t('i18n_436367b066')"></a-tab-pane>
-            <a-tab-pane v-if="tabs.includes('scripct')" key="scripct" :tab="$t('i18n_a1fb7f1606')"></a-tab-pane>
-            <a-tab-pane v-if="tabs.includes('scripct-log')" key="scripct-log" :tab="$t('i18n_7370bdf0d2')"></a-tab-pane>
+            <a-tab-pane v-if="tabs.includes('project')" key="project" :tab="$t('i18n_436367b066')" />
+            <a-tab-pane v-if="tabs.includes('scripct')" key="scripct" :tab="$t('i18n_a1fb7f1606')" />
+            <a-tab-pane v-if="tabs.includes('scripct-log')" key="scripct-log" :tab="$t('i18n_7370bdf0d2')" />
           </a-tabs>
         </div>
       </a-space>
     </template>
     <div class="layout-content">
       <project-search v-if="current === 'project'" :node-id="id" />
-      <script-list v-else-if="current === 'scripct'" :node-id="id"></script-list>
-      <script-log v-else-if="current === 'scripct-log'" :node-id="id"></script-log>
+      <script-list v-else-if="current === 'scripct'" :node-id="id" />
+      <script-log v-else-if="current === 'scripct-log'" :node-id="id" />
     </div>
   </CustomDrawer>
 </template>
 <script>
-import CustomDrawer from '@/components/customDrawer/index.vue'
-import CustomModal from '@/components/customModal/index.vue'
-import ScriptLog from '@/views/maintenance/node/node-layout/other/script-log.vue'
-import ScriptList from '@/views/maintenance/node/script-list.vue'
-import {
-  CloudServerOutlined,
-  DesktopOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  UserOutlined
-} from '@ant-design/icons-vue'
-import { defineAsyncComponent } from 'vue'
+import CustomDrawer from "@/components/customDrawer/index.vue";
+import CustomModal from "@/components/customModal/index.vue";
+import ScriptLog from "@/views/maintenance/node/node-layout/other/script-log.vue";
+import ScriptList from "@/views/maintenance/node/script-list.vue";
+import { defineAsyncComponent } from "vue";
 export default {
   components: {
     ScriptList,
     ScriptLog,
-    projectSearch: defineAsyncComponent(() => import('@/views/maintenance/node/search.vue')),
-    CustomModal,
-    CustomDrawer,
-    FileOutlined,
-    SettingOutlined,
-    FileTextOutlined,
-    CloudServerOutlined,
-    UserOutlined,
-    DesktopOutlined,
+    projectSearch: defineAsyncComponent(() => import("@/views/maintenance/node/search.vue")),
+    CustomDrawer
   },
   props: {
     name: {
       type: String,
-      default: ''
+      default: ""
     },
     id: {
       type: String,
-      default: ''
+      default: ""
     },
     tabs: {
       type: Array,
       default: function () {
-        return ['project', 'scripct', 'scripct-log']
+        return ["project", "scripct", "scripct-log"];
       }
     }
   },
-  emits: ['close'],
+  emits: ["close"],
   data() {
     return {
       getCollapsed: false,
       current: null
-    }
+    };
   },
   created() {
     //
     this.current = this.tabs[0];
   },
   methods: {}
-}
+};
 </script>
 <style scoped>
 .layout-content {
