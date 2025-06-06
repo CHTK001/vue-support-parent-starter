@@ -1,6 +1,6 @@
 <template>
   <div class="bar-chart-container" :style="{ height: `${height}px` }">
-    <div ref="chartContainer" class="chart-container"></div>
+    <div ref="chartContainer" class="chart-container" />
     <div v-if="loading" class="chart-loading">
       <el-icon class="is-loading"><Loading /></el-icon>
     </div>
@@ -11,34 +11,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue';
-import { Loading } from '@element-plus/icons-vue';
-import * as echarts from 'echarts/core';
-import { BarChart as EChartsBarChart } from 'echarts/charts';
-import {
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  DatasetComponent,
-  TransformComponent,
-  LegendComponent
-} from 'echarts/components';
-import { LabelLayout, UniversalTransition } from 'echarts/features';
-import { CanvasRenderer } from 'echarts/renderers';
+import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from "vue";
+import * as echarts from "echarts/core";
+import { BarChart as EChartsBarChart } from "echarts/charts";
+import { TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent } from "echarts/components";
+import { LabelLayout, UniversalTransition } from "echarts/features";
+import { CanvasRenderer } from "echarts/renderers";
 
 // 注册必要的组件
-echarts.use([
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  DatasetComponent,
-  TransformComponent,
-  LegendComponent,
-  EChartsBarChart,
-  LabelLayout,
-  UniversalTransition,
-  CanvasRenderer
-]);
+echarts.use([TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent, EChartsBarChart, LabelLayout, UniversalTransition, CanvasRenderer]);
 
 const props = defineProps({
   chartData: {
@@ -63,22 +44,22 @@ const noData = computed(() => {
   if (!props.chartData || !props.chartData.datasets || props.chartData.datasets.length === 0) {
     return true;
   }
-  
+
   for (const dataset of props.chartData.datasets) {
     if (dataset.data && dataset.data.length > 0) {
       return false;
     }
   }
-  
+
   return true;
 });
 
 // 将Chart.js数据格式转换为ECharts数据格式
-const convertToEChartsOption = (chartData) => {
+const convertToEChartsOption = chartData => {
   if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
     return {
-      xAxis: { type: 'category', data: [] },
-      yAxis: { type: 'value' },
+      xAxis: { type: "category", data: [] },
+      yAxis: { type: "value" },
       series: []
     };
   }
@@ -89,44 +70,44 @@ const convertToEChartsOption = (chartData) => {
 
     return {
       name: dataset.label,
-      type: 'bar',
+      type: "bar",
       data: dataset.data,
       itemStyle: {
         color: color
       },
-      barWidth: '50%'
+      barWidth: "50%"
     };
   });
 
   return {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'shadow'
+        type: "shadow"
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '3%',
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      top: "3%",
       containLabel: true
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       data: chartData.labels || [],
       axisLine: {
         lineStyle: {
-          color: '#E0E0E0'
+          color: "#E0E0E0"
         }
       },
       axisLabel: {
-        color: '#909399',
+        color: "#909399",
         fontSize: 10
       }
     },
     yAxis: {
-      type: 'value',
+      type: "value",
       axisLine: {
         show: false
       },
@@ -135,12 +116,12 @@ const convertToEChartsOption = (chartData) => {
       },
       splitLine: {
         lineStyle: {
-          type: 'dashed',
-          color: '#E0E0E0'
+          type: "dashed",
+          color: "#E0E0E0"
         }
       },
       axisLabel: {
-        color: '#909399',
+        color: "#909399",
         fontSize: 10
       }
     },
@@ -151,15 +132,15 @@ const convertToEChartsOption = (chartData) => {
 // 初始化图表
 const initChart = () => {
   if (!chartContainer.value) return;
-  
+
   // 如果已经存在图表实例，先销毁
   if (chart) {
     chart.dispose();
   }
-  
+
   // 创建新的图表实例
   chart = echarts.init(chartContainer.value);
-  
+
   // 设置图表选项
   const option = convertToEChartsOption(props.chartData);
   chart.setOption(option);
@@ -171,7 +152,7 @@ const updateChart = () => {
     initChart();
     return;
   }
-  
+
   const option = convertToEChartsOption(props.chartData);
   chart.setOption(option);
 };
@@ -184,23 +165,30 @@ const handleResize = () => {
 };
 
 // 监听数据变化
-watch(() => props.chartData, () => {
-  updateChart();
-}, { deep: true });
+watch(
+  () => props.chartData,
+  () => {
+    updateChart();
+  },
+  { deep: true }
+);
 
 // 监听高度变化
-watch(() => props.height, () => {
-  nextTick(() => {
-    handleResize();
-  });
-});
+watch(
+  () => props.height,
+  () => {
+    nextTick(() => {
+      handleResize();
+    });
+  }
+);
 
 // 组件挂载时初始化图表
 onMounted(() => {
   initChart();
-  
+
   // 添加窗口大小变化监听
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 });
 
 // 组件卸载前销毁图表和事件监听
@@ -208,8 +196,8 @@ onBeforeUnmount(() => {
   if (chart) {
     chart.dispose();
   }
-  
-  window.removeEventListener('resize', handleResize);
+
+  window.removeEventListener("resize", handleResize);
 });
 </script>
 
@@ -217,12 +205,12 @@ onBeforeUnmount(() => {
 .bar-chart-container {
   position: relative;
   width: 100%;
-  
+
   .chart-container {
     width: 100%;
     height: 100%;
   }
-  
+
   .chart-loading {
     position: absolute;
     top: 0;
@@ -234,13 +222,13 @@ onBeforeUnmount(() => {
     align-items: center;
     background-color: rgba(255, 255, 255, 0.7);
     z-index: 1;
-    
+
     .el-icon {
       font-size: 24px;
       color: var(--el-color-primary);
     }
   }
-  
+
   .chart-no-data {
     position: absolute;
     top: 0;
@@ -253,4 +241,4 @@ onBeforeUnmount(() => {
     z-index: 1;
   }
 }
-</style> 
+</style>

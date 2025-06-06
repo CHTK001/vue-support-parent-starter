@@ -1,6 +1,20 @@
 <template>
   <div class="prometheus-layout h-full" ref="prometheusLayoutRef">
-    <div class="layout-header" v-if="layout.length > 0">
+    <div class="layout-header">
+      <div class="layout-actions-left" v-if="editable">
+        <el-button type="primary" @click="showAddComponentDrawer = true">
+          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+          新增组件
+        </el-button>
+        <el-button type="success" @click="showComponentSelector = true">
+          <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
+          选择已有组件
+        </el-button>
+        <el-button type="info" @click="loadSharedComponents">
+          <IconifyIconOnline icon="ri:share-line" class="mr-1" />
+          共享组件
+        </el-button>
+      </div>
       <div class="layout-actions">
         <el-tooltip content="浏览器全屏">
           <el-button type="primary" circle size="small" @click="toggleBrowserFullscreen">
@@ -88,9 +102,15 @@
             <el-input v-model="componentForm.title" placeholder="请输入组件标题" />
           </el-form-item>
           <el-form-item label="组件类型" prop="type">
-            <ScSelect v-model="componentForm.type" placeholder="选择组件类型">
-              <ScSelectOption v-for="item in componentTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </ScSelect>
+            <ScSelect 
+              v-model="componentForm.type" 
+              :options="componentTypeOptions" 
+              layout="card" 
+              :columns="3" 
+              :gap="8"
+              width="100px"
+              icon-position="center"
+            />
           </el-form-item>
           <el-form-item label="PromQL" prop="promQL">
             <el-input v-model="componentForm.promQL" type="textarea" :rows="4" placeholder="请输入Prometheus查询语句" />
@@ -115,6 +135,9 @@
             <el-input-number v-model="componentForm.refreshInterval" :min="10" :max="600" :step="10" />
             <span class="ml-2">秒</span>
           </el-form-item>
+          <el-form-item label="是否共享" prop="isShared">
+            <el-switch v-model="componentForm.isShared" active-text="开启共享" inactive-text="仅自己可见" />
+          </el-form-item>
         </el-form>
         <div class="drawer-footer">
           <el-button @click="showAddComponentDrawer = false">取消</el-button>
@@ -122,6 +145,82 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- 添加组件选择器对话框 -->
+    <el-dialog
+      v-model="showComponentSelector"
+      title="选择组件"
+      width="60%"
+      destroy-on-close
+    >
+      <div class="component-selector">
+        <el-tabs v-model="componentSelectorTab">
+          <el-tab-pane label="我的组件" name="my">
+            <div class="component-cards">
+              <el-empty v-if="myComponents.length === 0" description="暂无可用组件" />
+              <div v-else class="component-grid">
+                <div 
+                  v-for="item in myComponents" 
+                  :key="item.monitorSysGenPrometheusConfigId" 
+                  class="component-card"
+                  :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenPrometheusConfigId) }"
+                  @click="toggleComponentSelection(item)"
+                >
+                  <div class="component-card-header">
+                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigName }}</span>
+                    <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenPrometheusConfigChartType)">
+                      {{ getComponentTypeName(item.monitorSysGenPrometheusConfigChartType) }}
+                    </el-tag>
+                  </div>
+                  <div class="component-card-content">
+                    <IconifyIconOnline :icon="getComponentTypeIcon(item.monitorSysGenPrometheusConfigChartType)" class="component-card-icon" />
+                  </div>
+                  <div class="component-card-footer">
+                    <el-checkbox v-model="selectedComponents" :label="item.monitorSysGenPrometheusConfigId" @click.stop>
+                      选择
+                    </el-checkbox>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="共享组件" name="shared">
+            <div class="component-cards">
+              <el-empty v-if="sharedComponents.length === 0" description="暂无共享组件" />
+              <div v-else class="component-grid">
+                <div 
+                  v-for="item in sharedComponents" 
+                  :key="item.monitorSysGenPrometheusConfigId" 
+                  class="component-card"
+                  :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenPrometheusConfigId) }"
+                  @click="toggleComponentSelection(item)"
+                >
+                  <div class="component-card-header">
+                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigName }}</span>
+                    <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenPrometheusConfigChartType)">
+                      {{ getComponentTypeName(item.monitorSysGenPrometheusConfigChartType) }}
+                    </el-tag>
+                  </div>
+                  <div class="component-card-content">
+                    <IconifyIconOnline :icon="getComponentTypeIcon(item.monitorSysGenPrometheusConfigChartType)" class="component-card-icon" />
+                  </div>
+                  <div class="component-card-footer">
+                    <el-checkbox v-model="selectedComponents" :label="item.monitorSysGenPrometheusConfigId" @click.stop>
+                      选择
+                    </el-checkbox>
+                    <span class="component-card-author">{{ item.createName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+        <div class="dialog-footer">
+          <el-button @click="showComponentSelector = false">取消</el-button>
+          <el-button type="primary" @click="addSelectedComponents">添加所选组件</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -133,8 +232,9 @@ import { debounce } from 'lodash-es';
 import LineChart from './LineChart.vue';
 import BarChart from './BarChart.vue';
 import GaugeChart from './GaugeChart.vue';
-import { ScSelect, ScSelectOption } from '@/components/Select';
-import { fetchPrometheusSaveConfig, fetchPrometheusListConfig, fetchPrometheusUpdateConfig, fetchPrometheusDeleteConfig, MonitorSysGenPrometheusConfig } from '@/api/prometheus/config';
+import CardChart from './CardChart.vue';
+import { ScSelect } from '@repo/components/ScSelect';
+import { fetchPrometheusSaveConfig, fetchPrometheusListConfig, fetchPrometheusUpdateConfig, fetchPrometheusDeleteConfig, fetchPrometheusShareConfig } from '@/api/prometheus/config';
 import { fetchPrometheusQueryRangeGen, fetchPrometheusQueryGen } from '@/api/prometheus/index';
 
 const props = defineProps({
@@ -158,9 +258,10 @@ const isContainerFullscreen = ref(false);
 
 // 组件类型选项
 const componentTypeOptions = [
-  { label: '折线图', value: 'line' },
-  { label: '柱状图', value: 'bar' },
-  { label: '仪表盘', value: 'gauge' }
+  { label: '折线图', value: 'line', icon: 'ri:line-chart-line' },
+  { label: '柱状图', value: 'bar', icon: 'ri:bar-chart-horizontal-line' },
+  { label: '仪表盘', value: 'gauge', icon: 'ri:dashboard-3-line' },
+  { label: '卡片', value: 'card', icon: 'ri:layout-grid-line' }
 ];
 
 // 组件表单
@@ -173,13 +274,21 @@ const componentForm = reactive({
   promQL: '',
   width: 12,
   height: 9,
-  refreshInterval: 60
+  refreshInterval: 60,
+  isShared: false
 });
 const componentFormRules = {
   title: [{ required: true, message: '请输入组件标题', trigger: 'blur' }],
   type: [{ required: true, message: '请选择组件类型', trigger: 'change' }],
   promQL: [{ required: true, message: '请输入Prometheus查询语句', trigger: 'blur' }]
 };
+
+// 组件选择器相关
+const showComponentSelector = ref(false);
+const componentSelectorTab = ref('my');
+const myComponents = ref([]);
+const sharedComponents = ref([]);
+const selectedComponents = ref([]);
 
 // 组件数据
 const componentsData = ref({});
@@ -195,11 +304,11 @@ const getTimeRangeParams = () => {
 
 // 根据组件类型获取对应的组件
 const getComponentByType = (type) => {
-  // 目前只实现了折线图，其他类型可以后续添加
   if (type === 'line') return LineChart;
   if (type === 'bar') return BarChart;
   if (type === 'gauge') return GaugeChart;
-  return LineChart;
+  if (type === 'card') return CardChart;
+  return LineChart; // 默认返回折线图
 };
 
 // 获取组件数据
@@ -497,6 +606,7 @@ const editComponent = (item) => {
   componentForm.width = item.w || 12;
   componentForm.height = item.h || 9;
   componentForm.refreshInterval = item.refreshInterval || 60;
+  componentForm.isShared = item.isShared || false;
   
   showAddComponentDrawer.value = true;
 };
@@ -556,7 +666,7 @@ const saveComponentConfig = async (item) => {
       monitorSysGenPrometheusConfigName: item.title,
       monitorSysGenPrometheusConfigChartType: item.type,
       monitorSysGenPrometheusConfigEnable: true,
-      monitorSysGenPrometheusConfigShare: false,
+      monitorSysGenPrometheusConfigShare: item.isShared,
       monitorSysGenPrometheusConfigPostion: JSON.stringify({
         x: item.x,
         y: item.y,
@@ -606,6 +716,7 @@ const saveComponent = async () => {
         type: componentForm.type,
         promQL: componentForm.promQL,
         refreshInterval: componentForm.refreshInterval,
+        isShared: componentForm.isShared,
         color: editingComponent.value ? editingComponent.value.color : getRandomColor(),
         bgColor: editingComponent.value ? editingComponent.value.bgColor : getRandomColor(0.1),
         configId: editingComponent.value ? editingComponent.value.configId : null
@@ -653,6 +764,154 @@ const getRandomColor = (alpha = 1) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+// 获取组件类型标签颜色
+const getComponentTypeTag = (type) => {
+  const typeMap = {
+    'line': 'primary',
+    'bar': 'success',
+    'gauge': 'warning',
+    'card': 'info'
+  };
+  return typeMap[type] || 'info';
+};
+
+// 获取组件类型名称
+const getComponentTypeName = (type) => {
+  const typeMap = {
+    'line': '折线图',
+    'bar': '柱状图',
+    'gauge': '仪表盘',
+    'card': '卡片'
+  };
+  return typeMap[type] || '未知类型';
+};
+
+// 获取组件类型图标
+const getComponentTypeIcon = (type) => {
+  const iconMap = {
+    'line': 'ri:line-chart-line',
+    'bar': 'ri:bar-chart-horizontal-line',
+    'gauge': 'ri:dashboard-3-line',
+    'card': 'ri:layout-grid-line'
+  };
+  return iconMap[type] || 'ri:question-line';
+};
+
+// 加载我的组件
+const loadMyComponents = async () => {
+  if (!props.data.genId) return;
+  
+  try {
+    const res = await fetchPrometheusListConfig({ 
+      monitorSysGenId: props.data.genId, 
+      monitorSysGenPrometheusConfigType: 'component' 
+    });
+    
+    if (res.code === 200 && res.data) {
+      myComponents.value = res.data.filter(item => 
+        !layout.value.some(layoutItem => layoutItem.configId === item.monitorSysGenPrometheusConfigId)
+      );
+    }
+  } catch (error) {
+    console.error('加载我的组件失败:', error);
+    ElMessage.error('加载我的组件失败');
+  }
+};
+
+// 加载共享组件
+const loadSharedComponents = async () => {
+  if (!props.data.genId) return;
+  
+  try {
+    const res = await fetchPrometheusShareConfig({ 
+      monitorSysGenId: props.data.genId
+    });
+    
+    if (res.code === 200 && res.data) {
+      sharedComponents.value = res.data.filter(item => 
+        !layout.value.some(layoutItem => layoutItem.configId === item.monitorSysGenPrometheusConfigId)
+      );
+    }
+    
+    // 打开组件选择器并切换到共享标签
+    showComponentSelector.value = true;
+    componentSelectorTab.value = 'shared';
+  } catch (error) {
+    console.error('加载共享组件失败:', error);
+    ElMessage.error('加载共享组件失败');
+  }
+};
+
+// 切换组件选择
+const toggleComponentSelection = (item) => {
+  const id = item.monitorSysGenPrometheusConfigId;
+  const index = selectedComponents.value.indexOf(id);
+  
+  if (index > -1) {
+    selectedComponents.value.splice(index, 1);
+  } else {
+    selectedComponents.value.push(id);
+  }
+};
+
+// 添加选中的组件
+const addSelectedComponents = async () => {
+  if (selectedComponents.value.length === 0) {
+    ElMessage.warning('请至少选择一个组件');
+    return;
+  }
+  
+  try {
+    loading.value = true;
+    
+    // 获取所有选中的组件
+    const selectedItems = [
+      ...myComponents.value.filter(item => selectedComponents.value.includes(item.monitorSysGenPrometheusConfigId)),
+      ...sharedComponents.value.filter(item => selectedComponents.value.includes(item.monitorSysGenPrometheusConfigId))
+    ];
+    
+    // 添加组件到布局
+    for (const item of selectedItems) {
+      const componentItem = {
+        i: `component-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        x: 0,
+        y: layout.value.length,
+        w: 12,
+        h: 9,
+        title: item.monitorSysGenPrometheusConfigName,
+        type: item.monitorSysGenPrometheusConfigChartType,
+        promQL: item.monitorSysGenPrometheusConfigQl,
+        refreshInterval: 60,
+        color: getRandomColor(),
+        bgColor: getRandomColor(0.1),
+        configId: item.monitorSysGenPrometheusConfigId
+      };
+      
+      layout.value.push(componentItem);
+      
+      // 加载组件数据
+      await loadComponentData(componentItem);
+      
+      // 设置刷新定时器
+      setupComponentRefreshTimer(componentItem);
+    }
+    
+    // 保存布局配置
+    saveConfigToServer();
+    
+    // 关闭选择器
+    showComponentSelector.value = false;
+    selectedComponents.value = [];
+    
+    ElMessage.success(`成功添加 ${selectedItems.length} 个组件`);
+  } catch (error) {
+    console.error('添加组件失败:', error);
+    ElMessage.error('添加组件失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 监听数据源变化
 watch(() => props.data.genId, () => {
   if (props.data.genId) {
@@ -665,6 +924,7 @@ watch(() => props.data.genId, () => {
 onMounted(() => {
   if (props.data.genId) {
     loadConfig();
+    loadMyComponents(); // 加载我的组件
   }
   
   // 添加全屏变化事件监听
@@ -712,11 +972,16 @@ defineExpose({
   .layout-header {
     padding: 8px 16px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     background-color: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-light);
     z-index: 10;
+    
+    .layout-actions-left {
+      display: flex;
+      gap: 8px;
+    }
     
     .layout-actions {
       display: flex;
@@ -793,6 +1058,82 @@ defineExpose({
   
   .ml-2 {
     margin-left: 8px;
+  }
+
+  .component-selector {
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 16px 0;
+    }
+    
+    .component-card {
+      border: 1px solid var(--el-border-color);
+      border-radius: var(--el-border-radius-base);
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+      
+      &:hover {
+        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+      
+      &-selected {
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 1px var(--el-color-primary-light-5);
+      }
+      
+      &-header {
+        padding: 12px;
+        border-bottom: 1px solid var(--el-border-color-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      &-title {
+        font-weight: bold;
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 120px;
+      }
+      
+      &-content {
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px;
+      }
+      
+      &-icon {
+        font-size: 48px;
+        color: var(--el-color-primary);
+      }
+      
+      &-footer {
+        padding: 12px;
+        border-top: 1px solid var(--el-border-color-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      &-author {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+    
+    .dialog-footer {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
   }
 }
 
