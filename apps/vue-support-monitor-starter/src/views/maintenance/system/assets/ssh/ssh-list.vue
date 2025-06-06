@@ -228,10 +228,8 @@
                 <a-button size="small" type="primary" @click="syncToWorkspaceShow(record)">{{
                   $t('i18n_e39de3376e')
                 }}</a-button>
+                <a-button size="small" type="primary" @click="forwardToSoftwareMall(record)">软件商城</a-button>
                 <a-button size="small" type="primary" @click="handleFile(record)">{{ $t('i18n_2a0c4740f1') }}</a-button>
-                <a-button size="small" type="primary" @click="handleViewWorkspaceSsh(record)">{{
-                  $t('i18n_1c3cf7f5f0')
-                }}</a-button>
 
                 <a-dropdown>
                   <a @click="(e) => e.preventDefault()">
@@ -240,6 +238,11 @@
                   </a>
                   <template #overlay>
                     <a-menu>
+                      <a-menu-item>
+                        <a-button size="small" type="primary" @click="handleViewWorkspaceSsh(record)">{{
+                  $t('i18n_1c3cf7f5f0')
+                }}</a-button>
+                      </a-menu-item>
                       <a-menu-item>
                         <a-button size="small" type="primary" @click="handleEdit(record)">{{
                           $t('i18n_95b351c862')
@@ -1130,6 +1133,15 @@ export default {
     // 下载导入模板
     handlerImportTemplate() {
       window.open(importTemplate(), '_blank')
+    },
+
+    forwardToSoftwareMall(record) {
+      this.$router.push({
+        path: '/system/assets/software-mall',
+        query: {
+          id: record.id
+        }
+      })
     },
     handlerExportData() {
       window.open(exportData({ ...this.listQuery }), '_blank')
