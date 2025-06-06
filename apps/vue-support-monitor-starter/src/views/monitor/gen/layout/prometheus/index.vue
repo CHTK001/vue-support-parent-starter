@@ -236,7 +236,7 @@ const toggleEditMode = () => {
 // 检查Prometheus是否在线
 const checkOnlineStatus = async () => {
   try {
-    const res = await fetchPrometheusOnline({ id: props.data.genId });
+    const res = await fetchPrometheusOnline({ monitorSysGenId: props.data.genId });
     isOnline.value = res.data || false;
   } catch (error) {
     console.error('检查Prometheus状态失败:', error);

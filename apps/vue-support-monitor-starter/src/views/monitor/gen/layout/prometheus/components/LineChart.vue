@@ -12,7 +12,6 @@
 
 <script setup>
 import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue';
-import { Loading } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
 import { LineChart as EChartsLineChart } from 'echarts/charts';
 import {
@@ -25,6 +24,7 @@ import {
 } from 'echarts/components';
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
+import { Loading } from '@element-plus/icons-vue';
 
 // 注册必要的组件
 echarts.use([
