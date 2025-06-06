@@ -1,5 +1,74 @@
 # Prometheus监控页面
 
+## 最新更新
+
+### 组件优化与仪表盘支持 (2023-XX-XX)
+
+1. **仪表盘支持**：
+
+   - 添加了仪表盘组件类型支持
+   - 针对仪表盘组件调用`fetchPrometheusQueryGen`接口获取实时数据
+   - 优化了仪表盘数据的展示方式
+
+2. **UI组件升级**：
+   - 使用`ScSelect`组件替代原生下拉框，提升用户体验
+   - 组件类型选择更加直观和易用
+
+### UI优化与全屏功能 (2023-XX-XX)
+
+1. **全屏功能**：
+
+   - 添加了浏览器全屏按钮，可将整个页面全屏显示
+   - 添加了容器全屏按钮，可将监控面板在当前页面中全屏显示
+   - 全屏状态下自动调整布局以适应新的显示区域
+
+2. **空数据显示优化**：
+   - 使用Element Plus的`el-empty`组件优化了无数据时的显示效果
+   - 为空布局和空数据图表提供了更友好的视觉反馈
+
+### 参数类型调整 (2023-XX-XX)
+
+已根据修复后的`prometheus/config.ts`中的返回和请求参数类型，调整了页面相关代码：
+
+1. 使用`MonitorSysGenPrometheusConfig`接口定义替代原先的自定义参数
+2. 字段名称调整：
+   - `configType` → `monitorSysGenPrometheusConfigType`
+   - `configContent` → `monitorSysGenPrometheusConfigQl`
+   - 新增了多个必要字段，如`monitorSysGenPrometheusConfigName`、`monitorSysGenPrometheusConfigEnable`等
+3. 组件配置存储方式调整：
+   - 布局配置和组件配置分开存储
+   - 布局配置存储在`monitorSysGenPrometheusConfigType: 'layout'`
+   - 组件配置存储在`monitorSysGenPrometheusConfigType: 'component'`
+   - 组件位置信息存储在`monitorSysGenPrometheusConfigPostion`字段
+
+### 代码修改日志
+
+1. **PrometheusLayout.vue**:
+
+   - 添加了`MonitorSysGenPrometheusConfig`接口导入
+   - 添加了`configId`的定义，用于跟踪布局配置ID
+   - 修改了`saveConfigToServer`方法，使用新的字段名称
+   - 更新了`loadComponentConfigs`方法，支持加载组件配置
+   - 修改了`removeComponent`方法，支持删除组件配置并更新了`fetchPrometheusDeleteConfig`的调用参数
+   - 添加了`saveComponentConfig`方法，支持保存组件配置
+   - 更新了`saveComponent`方法，使其与新的类型定义兼容
+
+2. **README.md**:
+   - 添加了参数类型调整的说明
+   - 添加了代码修改日志
+   - 更新了功能特性和API接口说明
+
+### 总结
+
+此次更新确保了Prometheus监控页面与后端API接口的兼容性，通过以下方式实现：
+
+1. **类型安全**：使用`MonitorSysGenPrometheusConfig`接口定义替代原有的自定义参数类型，确保前后端数据格式一致
+2. **字段映射**：将原有字段名称映射到新的字段名称，确保数据正确传输
+3. **配置分离**：实现布局配置和组件配置的分离存储，提高了系统的灵活性和可维护性
+4. **错误处理**：为各种操作添加了适当的错误处理机制，提高系统稳定性
+
+这些修改不会影响用户体验，但会显著提高系统的稳定性和可维护性。
+
 ## 图表库迁移：从Chart.js到ECharts
 
 本项目最初使用Chart.js实现图表功能，现已迁移至ECharts。以下是主要变更：

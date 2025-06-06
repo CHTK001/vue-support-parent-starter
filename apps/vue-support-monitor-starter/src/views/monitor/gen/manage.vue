@@ -127,7 +127,8 @@ const layout = reactive({
   SHELL: defineAsyncComponent(() => import("./layout/shell/index.vue")),
   MQTT: defineAsyncComponent(() => import("./layout/mqtt/index.vue")),
   REDIS: defineAsyncComponent(() => import("./layout/redis/index.vue")),
-  NACOS: defineAsyncComponent(() => import("./layout/nacos/index.vue"))
+  NACOS: defineAsyncComponent(() => import("./layout/nacos/index.vue")),
+  PROMETHEUS: defineAsyncComponent(() => import("./layout/prometheus/index.vue"))
 });
 
 // 数据状态
@@ -150,6 +151,7 @@ const singleSplit = computed(() => {
   return item.data.genType != "SHELL" && 
          item.data.genType != "WEBRTC" && 
          item.data.genType != "VNC" &&
+         item.data.genType != "PROMETHEUS" &&
          item.data.genType != "NACOS";
 });
 

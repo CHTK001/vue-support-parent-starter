@@ -10,7 +10,13 @@ export const fetchPrometheusQueryRange = (data: PrometheusQueryRequest) => {
 /**
  * 获取prometheus系统信息
  */
-export const fetchPrometheusQueryRangeGen = (data: PrometheusGenQueryRequest) => {
+export const fetchPrometheusQueryGen = (data: PrometheusGenQueryRequest) => {
+  return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryGen", { data: data });
+};
+/**
+ * 获取prometheus系统信息
+ */
+export const fetchPrometheusQueryRangeGen = (data: PrometheusGenQueryRangeRequest) => {
   return http.request<ReturnResult<any>>("post", "/v2/prometheus/queryRangeGen", { data: data });
 };
 
@@ -26,9 +32,17 @@ export interface PrometheusQueryRequest {
 }
 
 /**
- * prometheus查询请求
+ * prometheus单点查询请求
  */
 export interface PrometheusGenQueryRequest {
+  monitorSysGenId: number;
+  promQL: string;
+}
+
+/**
+ * prometheus范围查询请求
+ */
+export interface PrometheusGenQueryRangeRequest {
   monitorSysGenId: number;
   promQL: string;
   start: number;

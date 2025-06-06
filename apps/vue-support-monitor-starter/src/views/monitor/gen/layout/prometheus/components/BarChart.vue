@@ -1,5 +1,5 @@
 <template>
-  <div class="line-chart-container" :style="{ height: `${height}px` }">
+  <div class="bar-chart-container" :style="{ height: `${height}px` }">
     <div ref="chartContainer" class="chart-container"></div>
     <div v-if="loading" class="chart-loading">
       <el-icon class="is-loading"><Loading /></el-icon>
@@ -12,8 +12,9 @@
 
 <script setup>
 import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import * as echarts from 'echarts/core';
-import { LineChart as EChartsLineChart } from 'echarts/charts';
+import { BarChart as EChartsBarChart } from 'echarts/charts';
 import {
   TitleComponent,
   TooltipComponent,
@@ -24,7 +25,6 @@ import {
 } from 'echarts/components';
 import { LabelLayout, UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
-import { Loading } from '@element-plus/icons-vue';
 
 // 注册必要的组件
 echarts.use([
@@ -34,7 +34,7 @@ echarts.use([
   DatasetComponent,
   TransformComponent,
   LegendComponent,
-  EChartsLineChart,
+  EChartsBarChart,
   LabelLayout,
   UniversalTransition,
   CanvasRenderer
@@ -86,23 +86,15 @@ const convertToEChartsOption = (chartData) => {
   const series = chartData.datasets.map(dataset => {
     // 提取颜色
     let color = dataset.borderColor;
-    let areaColor = dataset.backgroundColor;
 
     return {
       name: dataset.label,
-      type: 'line',
+      type: 'bar',
       data: dataset.data,
-      smooth: true,
-      showSymbol: false,
-      lineStyle: {
-        color: color
-      },
       itemStyle: {
         color: color
       },
-      areaStyle: dataset.fill ? {
-        color: areaColor
-      } : undefined
+      barWidth: '50%'
     };
   });
 
@@ -110,10 +102,7 @@ const convertToEChartsOption = (chartData) => {
     tooltip: {
       trigger: 'axis',
       axisPointer: {
-        type: 'cross',
-        label: {
-          backgroundColor: '#6a7985'
-        }
+        type: 'shadow'
       }
     },
     grid: {
@@ -125,7 +114,6 @@ const convertToEChartsOption = (chartData) => {
     },
     xAxis: {
       type: 'category',
-      boundaryGap: false,
       data: chartData.labels || [],
       axisLine: {
         lineStyle: {
@@ -226,7 +214,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.line-chart-container {
+.bar-chart-container {
   position: relative;
   width: 100%;
   
