@@ -34,7 +34,7 @@
                 <span>Nacos</span>
               </div>
             </el-option>
-            <el-option value="Prometheus">
+            <el-option value="PROMETHEUS">
               <div class="gen-save__option">
                 <IconifyIconOnline icon="devicon:prometheus" class="mr-2" />
                 <span>Prometheus</span>
@@ -321,6 +321,9 @@ const handleChangeGenType = () => {
   } else if (form.genType === "NACOS") {
     form.genJdbcCustomType = "URL";
     form.genPort = 8848;
+  } else if (form.genType === "PROMETHEUS") {
+    form.genJdbcCustomType = "URL";
+    form.genPort = 9090;
   }
 };
 
