@@ -8,42 +8,37 @@
       </a-form-item>
 
       <a-form-item :label="$t('i18n_649231bdee')" name="allowEditSuffix">
-        <a-textarea
-          v-model:value="temp.allowEditSuffix"
-          :rows="5"
-          style="resize: none"
-          :placeholder="$t('i18n_afa8980495')"
-        />
+        <a-textarea v-model:value="temp.allowEditSuffix" :rows="5" style="resize: none" :placeholder="$t('i18n_afa8980495')" />
       </a-form-item>
       <a-form-item :wrapper-col="{ span: 14, offset: 4 }">
-        <a-button type="primary" :disabled="submitAble" @click="onSubmit">{{ $t('i18n_939d5345ad') }}</a-button>
+        <a-button type="primary" :disabled="submitAble" @click="onSubmit">{{ $t("i18n_939d5345ad") }}</a-button>
       </a-form-item>
     </a-form>
   </div>
 </template>
 <script>
-import { editWhiteList, getWhiteList } from '@/api/node-system'
+import { editWhiteList, getWhiteList } from "@/api/node-system";
 
 export default {
   props: {
     machineId: {
       type: String,
-      default: ''
+      default: ""
     },
     nodeId: {
       type: String,
-      default: ''
+      default: ""
     }
   },
-  emits: ['cancel'],
+  emits: ["cancel"],
   data() {
     return {
       temp: {},
       submitAble: false
-    }
+    };
   },
   mounted() {
-    this.loadData()
+    this.loadData();
   },
   methods: {
     // load data
@@ -51,36 +46,36 @@ export default {
       getWhiteList({
         machineId: this.machineId,
         nodeId: this.nodeId
-      }).then((res) => {
+      }).then(res => {
         if (res.code === 200) {
-          this.temp = res.data
+          this.temp = res.data;
         }
-      })
+      });
     },
     // submit
     onSubmit() {
       // disabled submit button
-      this.submitAble = true
+      this.submitAble = true;
 
       editWhiteList({
         ...this.temp,
         machineId: this.machineId,
         nodeId: this.nodeId
       })
-        .then((res) => {
+        .then(res => {
           if (res.code === 200) {
             // 成功
             $notification.success({
               message: res.msg
-            })
-            this.$emit('cancel')
+            });
+            this.$emit("cancel");
           }
         })
         .finally(() => {
           // button recover
-          this.submitAble = false
-        })
+          this.submitAble = false;
+        });
     }
   }
-}
+};
 </script>

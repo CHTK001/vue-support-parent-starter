@@ -2,11 +2,10 @@
   <terminal2 :url="socketUrl" />
 </template>
 <script>
-import { mapState } from 'pinia'
+import { mapState } from "pinia";
 
-
-import { getWebSocketUrl } from '@/api/config'
-import terminal2 from '@/components/terminal/index.vue'
+import { getWebSocketUrl } from "@/api/config";
+import terminal2 from "@/components/terminal/index.vue";
 
 // https://blog.csdn.net/qq_41840688/article/details/108636267
 
@@ -17,30 +16,23 @@ export default {
   props: {
     sshId: {
       type: String,
-      default: ''
+      default: ""
     },
     machineSshId: {
       type: String,
-      default: ''
+      default: ""
     }
   },
   data() {
-    return {}
+    return {};
   },
   computed: {
-    
-    
     socketUrl() {
-      return getWebSocketUrl(
-        '/socket/ssh',
-        `id=${this.sshId}&machineSshId=${
-          this.machineSshId
-        }&nodeId=system&type=ssh`
-      )
+      return getWebSocketUrl("/socket/ssh", `id=${this.sshId}&machineSshId=${this.machineSshId}&nodeId=system&type=ssh`);
     }
   },
   mounted() {},
   beforeUnmount() {},
   methods: {}
-}
+};
 </script>

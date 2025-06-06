@@ -5,11 +5,11 @@
         <div class="file-read-header">
           <div class="file-path-info">
             <FileTextOutlined class="file-icon" />
-            <span class="file-path">{{ readFilePath || $t('i18n_5e4ca21783') }}</span>
+            <span class="file-path">{{ readFilePath || $t("i18n_5e4ca21783") }}</span>
           </div>
           <a-button type="primary" size="small" class="file-button" @click="goFile">
             <template #icon><FolderOutlined /></template>
-            {{ $t('i18n_8780e6b3d1') }}
+            {{ $t("i18n_8780e6b3d1") }}
           </a-button>
         </div>
       </template>
@@ -18,11 +18,11 @@
 </template>
 <script>
 // import { getProjectData, getProjectLogSize, downloadProjectLogFile, getLogBackList, downloadProjectLogBackFile, deleteProjectLogBackFile } from "@/api/node-project";
-import { getWebSocketUrl } from '@/api/config'
-import { mapState } from 'pinia'
+import { getWebSocketUrl } from "@/api/config";
+import { mapState } from "pinia";
 
-import LogView1 from '@/components/logView/index2.vue'
-import { FileTextOutlined, FolderOutlined } from '@ant-design/icons-vue'
+import LogView1 from "@/components/logView/index2.vue";
+import { FileTextOutlined, FolderOutlined } from "@ant-design/icons-vue";
 
 export default {
   components: {
@@ -33,22 +33,22 @@ export default {
   props: {
     nodeId: {
       type: String,
-      default: ''
+      default: ""
     },
     projectId: {
       type: String,
-      default: ''
+      default: ""
     },
     id: {
       type: String,
-      default: ''
+      default: ""
     },
     readFilePath: {
       type: String,
-      default: ''
+      default: ""
     }
   },
-  emits: ['goFile'],
+  emits: ["goFile"],
   data() {
     return {
       project: {},
@@ -56,73 +56,64 @@ export default {
       loading: false,
       socket: null,
       heart: null
-    }
+    };
   },
 
   computed: {
     socketUrl() {
-      return getWebSocketUrl(
-        '/socket/console',
-        `id=${this.id}&nodeId=${
-          this.nodeId
-        }&type=console`
-      )
+      return getWebSocketUrl("/socket/console", `id=${this.id}&nodeId=${this.nodeId}&type=console`);
     }
   },
   mounted() {
     // this.loadProject();
-    this.initWebSocket()
+    this.initWebSocket();
     // 监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
     window.onbeforeunload = () => {
-      this.close()
-    }
+      this.close();
+    };
   },
   beforeUnmount() {
-    this.close()
+    this.close();
   },
   methods: {
     close() {
-      this.socket?.close()
+      this.socket?.close();
 
-      clearInterval(this.heart)
+      clearInterval(this.heart);
     },
     // 初始化
     initWebSocket() {
       //this.logContext = "";
-      if (
-        !this.socket ||
-        this.socket.readyState !== this.socket.OPEN ||
-        this.socket.readyState !== this.socket.CONNECTING
-      ) {
-        this.socket = new WebSocket(this.socketUrl)
+      if (!this.socket || this.socket.readyState !== this.socket.OPEN || this.socket.readyState !== this.socket.CONNECTING) {
+        this.socket = new WebSocket(this.socketUrl);
       }
       // 连接成功后
       this.socket.onopen = () => {
-        this.sendMsg('showlog')
-      }
-      this.socket.onerror = (err) => {
-        console.error(err)
+        this.sendMsg("showlog");
+      };
+      this.socket.onerror = err => {
+        console.error(err);
         $notification.error({
-          message: `web socket ${this.$t('i18n_7030ff6470')},${this.$t('i18n_226a6f9cdd')}`
-        })
-        clearInterval(this.heart)
-      }
-      this.socket.onclose = (err) => {
+          message: `web socket ${this.$t("i18n_7030ff6470")},${this.$t("i18n_226a6f9cdd")}`
+        });
+        clearInterval(this.heart);
+      };
+      this.socket.onclose = err => {
         //当客户端收到服务端发送的关闭连接请求时，触发onclose事件
-        console.error(err)
-        clearInterval(this.heart)
-        $message.warning(this.$t('i18n_9255f9c68f'))
-      }
-      this.socket.onmessage = (msg) => {
-        this.$refs.logView?.appendLine(msg.data)
+        console.error(err);
+        clearInterval(this.heart);
+        $message.warning(this.$t("i18n_9255f9c68f"));
+      };
+      this.socket.onmessage = msg => {
+        this.$refs.logView?.appendLine(msg.data);
 
-        clearInterval(this.heart)
+        clearInterval(this.heart);
         // 创建心跳，防止掉线
         this.heart = setInterval(() => {
-          this.sendMsg('heart')
+          this.sendMsg("heart");
           // this.loadFileSize();
-        }, 5000)
-      }
+        }, 5000);
+      };
     },
 
     // 发送消息
@@ -131,15 +122,15 @@ export default {
         op: op,
         projectId: this.projectId,
         fileName: this.readFilePath
-      }
-      this.socket.send(JSON.stringify(data))
+      };
+      this.socket.send(JSON.stringify(data));
     },
 
     goFile() {
-      this.$emit('goFile')
+      this.$emit("goFile");
     }
   }
-}
+};
 </script>
 <style lang="less" scoped>
 .file-read-container {
@@ -149,7 +140,7 @@ export default {
   overflow: hidden;
   height: calc(100vh - 80px);
   transition: all 0.3s ease;
-  
+
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
@@ -176,13 +167,13 @@ export default {
   align-items: center;
   flex: 1;
   overflow: hidden;
-  
+
   .file-icon {
     font-size: 16px;
     color: #1677ff;
     margin-right: 8px;
   }
-  
+
   .file-path {
     color: rgba(0, 0, 0, 0.85);
     font-weight: 500;
@@ -204,12 +195,12 @@ export default {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
@@ -222,7 +213,7 @@ export default {
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   .file-button {
     align-self: flex-end;
   }

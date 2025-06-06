@@ -1,17 +1,9 @@
 <template>
-  <repository
-    ref="repository"
-    :workspace-id="getWorkspaceId()"
-    :global="true"
-    :choose="choose"
-    :choose-val="chooseVal"
-    @confirm="confirm"
-  >
-  </repository>
+  <repository ref="repository" :workspace-id="getWorkspaceId()" :global="true" :choose="choose" :choose-val="chooseVal" @confirm="confirm" />
 </template>
 <script>
-import { getWorkspaceId } from '@/api/workspace'
-import repository from './repository-list.vue'
+import { getWorkspaceId } from "@/api/workspace";
+import repository from "./repository-list.vue";
 
 export default {
   components: { repository },
@@ -22,18 +14,18 @@ export default {
     },
     chooseVal: {
       type: String,
-      default: ''
+      default: ""
     }
   },
-  emits: ['confirm'],
+  emits: ["confirm"],
   methods: {
     getWorkspaceId,
     confirm(data) {
-      this.$emit('confirm', data)
+      this.$emit("confirm", data);
     },
     handerConfirm() {
-      this.$refs.repository.handerConfirm()
+      this.$refs.repository.handerConfirm();
     }
   }
-}
+};
 </script>

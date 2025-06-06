@@ -6,15 +6,15 @@
       :visible="visible"
       @close="
         () => {
-          $emit('close')
+          $emit('close');
         }
       "
     />
   </div>
 </template>
 <script>
-import { scriptLog } from '@/api/node-other'
-import LogView1 from '@/components/logView/index.vue'
+import { scriptLog } from "@/api/node-other";
+import LogView1 from "@/components/logView/index.vue";
 export default {
   components: {
     LogView1
@@ -29,28 +29,28 @@ export default {
       default: false
     }
   },
-  emits: ['close'],
+  emits: ["close"],
   data() {
     return {
       logTimer: null,
       // logText: "loading...",
       line: 1
-    }
+    };
   },
   beforeUnmount() {
     if (this.logTimer) {
-      clearInterval(this.logTimer)
+      clearInterval(this.logTimer);
     }
   },
   mounted() {
-    this.init()
+    this.init();
   },
   methods: {
     init() {
-      this.loadData()
+      this.loadData();
       this.logTimer = setInterval(() => {
-        this.loadData()
-      }, 2000)
+        this.loadData();
+      }, 2000);
     },
     // 加载日志内容
     loadData() {
@@ -60,12 +60,12 @@ export default {
         id: this.temp.scriptId,
         nodeId: this.temp.nodeId,
         line: this.line
-      }
-      scriptLog(params).then((res) => {
+      };
+      scriptLog(params).then(res => {
         if (res.code === 200) {
           // 停止请求
           if (res.data.run === false) {
-            clearInterval(this.logTimer)
+            clearInterval(this.logTimer);
           }
           // 更新日志
           // if (this.logText === "loading...") {
@@ -75,11 +75,11 @@ export default {
           // lines.forEach((element) => {
           //   this.logText += `${element}\r\n`;
           // });
-          this.$refs.logView.appendLine(res.data.dataLines)
-          this.line = res.data.line
+          this.$refs.logView.appendLine(res.data.dataLines);
+          this.line = res.data.line;
         }
-      })
+      });
     }
   }
-}
+};
 </script>

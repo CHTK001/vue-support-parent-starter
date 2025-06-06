@@ -13,29 +13,15 @@
     >
       <template #title>
         <a-space wrap class="search-box">
-          <a-input
-            v-model:value="listQuery['%commandName%']"
-            :placeholder="$t('i18n_1f08329bc4')"
-            class="search-input-item"
-            @press-enter="getCommandLogData"
-          />
-          <a-input
-            v-model:value="listQuery['%sshName%']"
-            :placeholder="$t('i18n_d584e1493b')"
-            class="search-input-item"
-            @press-enter="getCommandLogData"
-          />
+          <a-input v-model:value="listQuery['%commandName%']" :placeholder="$t('i18n_1f08329bc4')" class="search-input-item" @press-enter="getCommandLogData" />
+          <a-input v-model:value="listQuery['%sshName%']" :placeholder="$t('i18n_d584e1493b')" class="search-input-item" @press-enter="getCommandLogData" />
           <a-select
             v-model:value="listQuery.status"
             show-search
             :filter-option="
               (input, option) => {
-                const children = option.children && option.children()
-                return (
-                  children &&
-                  children[0].children &&
-                  children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                )
+                const children = option.children && option.children();
+                return children && children[0].children && children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
               }
             "
             allow-clear
@@ -49,12 +35,8 @@
             show-search
             :filter-option="
               (input, option) => {
-                const children = option.children && option.children()
-                return (
-                  children &&
-                  children[0].children &&
-                  children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                )
+                const children = option.children && option.children();
+                return children && children[0].children && children[0].children.toLowerCase().indexOf(input.toLowerCase()) >= 0;
               }
             "
             allow-clear
@@ -64,9 +46,7 @@
             <a-select-option v-for="(val, key) in triggerExecTypeMap" :key="key">{{ val }}</a-select-option>
           </a-select>
           <a-tooltip :title="$t('i18n_4838a3bd20')">
-            <a-button type="primary" :loading="loading" @click="getCommandLogData">{{
-              $t('i18n_e5f71fc31e')
-            }}</a-button>
+            <a-button type="primary" :loading="loading" @click="getCommandLogData">{{ $t("i18n_e5f71fc31e") }}</a-button>
           </a-tooltip>
         </a-space>
       </template>
@@ -82,27 +62,24 @@
           </a-tooltip>
         </template>
         <template v-else-if="column.dataIndex === 'status'">
-          <span>{{ statusMap[text] || $t('i18n_1622dc9b6b') }}</span>
+          <span>{{ statusMap[text] || $t("i18n_1622dc9b6b") }}</span>
         </template>
         <template v-else-if="column.dataIndex === 'triggerExecType'">
-          <span>{{ triggerExecTypeMap[text] || $t('i18n_1622dc9b6b') }}</span>
+          <span>{{ triggerExecTypeMap[text] || $t("i18n_1622dc9b6b") }}</span>
         </template>
         <template v-else-if="column.dataIndex === 'exitCode'">
-          <a-tag v-if="text == 0" color="green">{{ $t('i18n_330363dfc5') }}</a-tag>
-          <a-tag v-else color="orange">{{ text || '-' }}</a-tag>
+          <a-tag v-if="text == 0" color="green">{{ $t("i18n_330363dfc5") }}</a-tag>
+          <a-tag v-else color="orange">{{ text || "-" }}</a-tag>
         </template>
 
         <template v-else-if="column.dataIndex === 'operation'">
           <a-space>
-            <a-button type="primary" size="small" :disabled="!record.hasLog" @click="handleView(record)">{{
-              $t('i18n_607e7a4f37')
-            }}</a-button>
-            <a-button type="primary" size="small" :disabled="!record.hasLog" @click="handleDownload(record)"
-              ><DownloadOutlined />{{ $t('i18n_456d29ef8b') }}</a-button
-            >
-            <a-button type="primary" danger size="small" @click="handleDelete(record)">{{
-              $t('i18n_2f4aaddde3')
-            }}</a-button>
+            <a-button type="primary" size="small" :disabled="!record.hasLog" @click="handleView(record)">{{ $t("i18n_607e7a4f37") }}</a-button>
+            <a-button type="primary" size="small" :disabled="!record.hasLog" @click="handleDownload(record)">
+              <DownloadOutlined />
+              {{ $t("i18n_456d29ef8b") }}
+            </a-button>
+            <a-button type="primary" danger size="small" @click="handleDelete(record)">{{ $t("i18n_2f4aaddde3") }}</a-button>
           </a-space>
         </template>
       </template>
@@ -124,9 +101,9 @@
   </div>
 </template>
 <script>
-import { deleteCommandLog, downloadLog, getCommandLogList, statusMap, triggerExecTypeMap } from '@/api/command'
-import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from '@/utils/const'
-import CommandLog from './command-view-log.vue'
+import { deleteCommandLog, downloadLog, getCommandLogList, statusMap, triggerExecTypeMap } from "@/api/command";
+import { CHANGE_PAGE, COMPUTED_PAGINATION, PAGE_DEFAULT_LIST_QUERY, parseTime } from "@/utils/const";
+import CommandLog from "./command-view-log.vue";
 
 export default {
   components: {
@@ -143,151 +120,150 @@ export default {
       logVisible: false,
       columns: [
         {
-          title: `ssh ${this.$t('i18n_d7ec2d3fea')}`,
-          dataIndex: 'sshName',
+          title: `ssh ${this.$t("i18n_d7ec2d3fea")}`,
+          dataIndex: "sshName",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_6496a5a043'),
-          dataIndex: 'commandName',
+          title: this.$t("i18n_6496a5a043"),
+          dataIndex: "commandName",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_3fea7ca76c'),
-          dataIndex: 'status',
+          title: this.$t("i18n_3fea7ca76c"),
+          dataIndex: "status",
           width: 100,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_3fb63afb4e'),
-          dataIndex: 'exitCode',
+          title: this.$t("i18n_3fb63afb4e"),
+          dataIndex: "exitCode",
           width: 100,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_ff9814bf6b'),
-          dataIndex: 'triggerExecType',
+          title: this.$t("i18n_ff9814bf6b"),
+          dataIndex: "triggerExecType",
           width: 100,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_70b3635aa3'),
-          dataIndex: 'createTimeMillis',
+          title: this.$t("i18n_70b3635aa3"),
+          dataIndex: "createTimeMillis",
           sorter: true,
           ellipsis: true,
           customRender: ({ text }) => {
-            return parseTime(text)
+            return parseTime(text);
           },
-          width: '170px'
+          width: "170px"
         },
         {
-          title: this.$t('i18n_f782779e8b'),
-          dataIndex: 'modifyTimeMillis',
+          title: this.$t("i18n_f782779e8b"),
+          dataIndex: "modifyTimeMillis",
           sorter: true,
           ellipsis: true,
           customRender: ({ text }) => {
-            return parseTime(text)
+            return parseTime(text);
           },
-          width: '170px'
+          width: "170px"
         },
         {
-          title: this.$t('i18n_a497562c8e'),
-          dataIndex: 'modifyUser',
+          title: this.$t("i18n_a497562c8e"),
+          dataIndex: "modifyUser",
           width: 120,
           ellipsis: true
         },
         {
-          title: this.$t('i18n_2b6bc0f293'),
-          dataIndex: 'operation',
-          align: 'center',
-          fixed: 'right',
-          width: '200px'
+          title: this.$t("i18n_2b6bc0f293"),
+          dataIndex: "operation",
+          align: "center",
+          fixed: "right",
+          width: "200px"
         }
       ]
-    }
+    };
   },
   computed: {
-    
     pagination() {
-      return COMPUTED_PAGINATION(this.listQuery)
+      return COMPUTED_PAGINATION(this.listQuery);
     },
     style() {
-      return this.getFullscreenViewLogStyle()
+      return this.getFullscreenViewLogStyle();
     }
   },
   created() {},
   mounted() {
-    this.getCommandLogData()
+    this.getCommandLogData();
   },
   methods: {
     handleView(row) {
-      this.temp = row
-      this.logVisible = true
+      this.temp = row;
+      this.logVisible = true;
     },
- // 计算弹窗全屏样式
-    getFullscreenViewLogStyle()  {
-        // 非全屏
-        return {
-          // dialogStyle: {
-          //   maxWidth: '100vw',
-          //   top: false,
-          //   paddingBottom: 0
-          // },
-          bodyStyle: {
-            padding: '0 10px',
-            paddingTop: '10px',
-            marginRight: '10px',
-            height: '70vh'
-          },
-          width: '80vw',
-          style: {
-            maxWidth: '100vw',
-            top: false,
-            paddingBottom: 0
-          }
-      }
+    // 计算弹窗全屏样式
+    getFullscreenViewLogStyle() {
+      // 非全屏
+      return {
+        // dialogStyle: {
+        //   maxWidth: '100vw',
+        //   top: false,
+        //   paddingBottom: 0
+        // },
+        bodyStyle: {
+          padding: "0 10px",
+          paddingTop: "10px",
+          marginRight: "10px",
+          height: "70vh"
+        },
+        width: "80vw",
+        style: {
+          maxWidth: "100vw",
+          top: false,
+          paddingBottom: 0
+        }
+      };
     },
     // 获取命令数据
     getCommandLogData(pointerEvent) {
-      this.listQuery.page = pointerEvent?.altKey || pointerEvent?.ctrlKey ? 1 : this.listQuery.page
-      this.loading = true
-      getCommandLogList(this.listQuery).then((res) => {
+      this.listQuery.page = pointerEvent?.altKey || pointerEvent?.ctrlKey ? 1 : this.listQuery.page;
+      this.loading = true;
+      getCommandLogList(this.listQuery).then(res => {
         if (200 === res.code) {
-          this.commandList = res.data.result
-          this.listQuery.total = res.data.total
+          this.commandList = res.data.result;
+          this.listQuery.total = res.data.total;
         }
-        this.loading = false
-      })
+        this.loading = false;
+      });
     },
     // 分页、排序、筛选变化时触发
     changePage(pagination, filters, sorter) {
-      this.listQuery = CHANGE_PAGE(this.listQuery, { pagination, sorter })
-      this.getCommandLogData()
+      this.listQuery = CHANGE_PAGE(this.listQuery, { pagination, sorter });
+      this.getCommandLogData();
     },
     //  删除命令
     handleDelete(row) {
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         zIndex: 1009,
-        content: this.$t('i18n_50fe3400c7'),
-        okText: this.$t('i18n_e83a256e4f'),
-        cancelText: this.$t('i18n_625fb26b4b'),
+        content: this.$t("i18n_50fe3400c7"),
+        okText: this.$t("i18n_e83a256e4f"),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
-          return deleteCommandLog(row.id).then((res) => {
+          return deleteCommandLog(row.id).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.getCommandLogData()
+              });
+              this.getCommandLogData();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 下载构建日志
     handleDownload(record) {
-      window.open(downloadLog(record.id), '_blank')
+      window.open(downloadLog(record.id), "_blank");
     }
   }
-}
+};
 </script>

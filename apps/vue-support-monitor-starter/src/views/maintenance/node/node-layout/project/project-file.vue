@@ -7,12 +7,12 @@
         <a-layout-sider theme="light" class="sider" width="25%">
           <div class="dir-container">
             <a-space>
-              <a-button size="small" type="primary" @click="loadData">{{ $t('i18n_90b5a467c1') }}</a-button>
+              <a-button size="small" type="primary" @click="loadData">{{ $t("i18n_90b5a467c1") }}</a-button>
               <a-button v-show="noFileModes.includes(runMode)" size="small" type="primary" @click="goConsole">
-                {{ $t('i18n_b5c3770699') }}
+                {{ $t("i18n_b5c3770699") }}
               </a-button>
               <a-button size="small" type="primary" @click="backupList">
-                {{ $t('i18n_9014d6d289') }}
+                {{ $t("i18n_9014d6d289") }}
               </a-button>
             </a-space>
           </div>
@@ -28,11 +28,11 @@
                 @expand="
                   (expandedKeys, { expanded, node }) => {
                     if (expanded) {
-                      nodeClick(expandedKeys, { node })
+                      nodeClick(expandedKeys, { node });
                     }
                   }
                 "
-              ></a-directory-tree>
+              />
             </div>
           </a-spin>
           <!--   :loadData="onTreeData" -->
@@ -54,36 +54,44 @@
               <!-- <a-tag color="#2db7f5">项目目录: {{ absPath }}</a-tag>-->
               <a-space>
                 <a-dropdown :disabled="!Object.keys(tempNode).length">
-                  <a-button size="small" type="primary" @click="(e) => e.preventDefault()"
-                    ><UploadOutlined />{{ $t('i18n_d5a73b0c7f') }}</a-button
-                  >
+                  <a-button size="small" type="primary" @click="e => e.preventDefault()">
+                    <UploadOutlined />
+                    {{ $t("i18n_d5a73b0c7f") }}
+                  </a-button>
                   <template #overlay>
                     <a-menu>
                       <a-menu-item @click="handleUpload">
-                        <a-space><FileOutlined />{{ $t('i18n_a6fc9e3ae6') }}</a-space>
+                        <a-space>
+                          <FileOutlined />
+                          {{ $t("i18n_a6fc9e3ae6") }}
+                        </a-space>
                       </a-menu-item>
                       <a-menu-item @click="handleZipUpload">
-                        <a-space><FileZipOutlined />{{ $t('i18n_37f031338a') }}</a-space>
+                        <a-space>
+                          <FileZipOutlined />
+                          {{ $t("i18n_37f031338a") }}
+                        </a-space>
                       </a-menu-item>
                     </a-menu>
                   </template>
                 </a-dropdown>
                 <a-dropdown :disabled="!Object.keys(tempNode).length">
-                  <a-button size="small" type="primary" @click="(e) => e.preventDefault()"
-                    ><PlusOutlined />{{ $t('i18n_26bb841878') }}</a-button
-                  >
+                  <a-button size="small" type="primary" @click="e => e.preventDefault()">
+                    <PlusOutlined />
+                    {{ $t("i18n_26bb841878") }}
+                  </a-button>
                   <template #overlay>
                     <a-menu>
                       <a-menu-item @click="handleAddFile(1)">
                         <a-space>
                           <FolderAddOutlined />
-                          <a-space>{{ $t('i18n_547ee197e5') }}</a-space>
+                          <a-space>{{ $t("i18n_547ee197e5") }}</a-space>
                         </a-space>
                       </a-menu-item>
                       <a-menu-item @click="handleAddFile(2)">
                         <a-space>
                           <FileAddOutlined />
-                          <a-space>{{ $t('i18n_497ddf508a') }}</a-space>
+                          <a-space>{{ $t("i18n_497ddf508a") }}</a-space>
                         </a-space>
                       </a-menu-item>
                     </a-menu>
@@ -99,8 +107,8 @@
                   <a-button size="small" type="primary" danger @click="clearFile"><DeleteOutlined /></a-button>
                 </a-tooltip>
 
-                <a-tag v-if="uploadPath" color="#2db7f5">{{ $t('i18n_2c8109fa0b') }}{{ uploadPath || '' }}</a-tag>
-                <div>{{ $t('i18n_9e98fa5c0d') }}</div>
+                <a-tag v-if="uploadPath" color="#2db7f5">{{ $t("i18n_2c8109fa0b") }}{{ uploadPath || "" }}</a-tag>
+                <div>{{ $t("i18n_9e98fa5c0d") }}</div>
               </a-space>
             </template>
 
@@ -113,36 +121,45 @@
                       <a-menu>
                         <a-menu-item key="1">
                           <a-button :disabled="!record.textFileEdit" type="link" @click="goReadFile(record)">
-                            <BarsOutlined /> {{ $t('i18n_5854370b86') }}
+                            <BarsOutlined />
+                            {{ $t("i18n_5854370b86") }}
                           </a-button>
                         </a-menu-item>
                         <a-menu-item key="2">
                           <a-button type="link" @click="handleRenameFile(record)">
-                            <HighlightOutlined />{{ $t('i18n_c8ce4b36cb') }}
+                            <HighlightOutlined />
+                            {{ $t("i18n_c8ce4b36cb") }}
                           </a-button>
                         </a-menu-item>
                         <a-menu-item key="3">
-                          <a-button type="link" @click="hannderCopy(record)"
-                            ><CopyOutlined />{{ $t('i18n_7a811cc1e5') }}</a-button
-                          >
+                          <a-button type="link" @click="hannderCopy(record)">
+                            <CopyOutlined />
+                            {{ $t("i18n_7a811cc1e5") }}
+                          </a-button>
                         </a-menu-item>
                         <a-sub-menu key="4" :disabled="!record.isDirectory">
                           <template #title>
-                            <a-button type="link"><CompressOutlined />{{ $t('i18n_072fa90836') }}</a-button>
+                            <a-button type="link">
+                              <CompressOutlined />
+                              {{ $t("i18n_072fa90836") }}
+                            </a-button>
                           </template>
                           <a-menu-item>
                             <a-button type="link" @click="hannderCompress(record, 'zip')">
-                              <FileZipOutlined />zip
+                              <FileZipOutlined />
+                              zip
                             </a-button>
                           </a-menu-item>
                           <a-menu-item>
                             <a-button type="link" @click="hannderCompress(record, 'tar')">
-                              <FileZipOutlined />tar
+                              <FileZipOutlined />
+                              tar
                             </a-button>
                           </a-menu-item>
                           <a-menu-item>
                             <a-button type="link" @click="hannderCompress(record, 'tar.gz')">
-                              <FileZipOutlined />tar.gz
+                              <FileZipOutlined />
+                              tar.gz
                             </a-button>
                           </a-menu-item>
                         </a-sub-menu>
@@ -152,7 +169,7 @@
                 </a-tooltip>
               </template>
               <template v-else-if="column.dataIndex === 'isDirectory'">
-                <span>{{ text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1') }}</span>
+                <span>{{ text ? $t("i18n_767fa455bb") : $t("i18n_2a0c4740f1") }}</span>
               </template>
               <template v-else-if="column.dataIndex === 'fileSizeLong'">
                 <a-tooltip placement="topLeft" :title="`${text ? renderSize(text) : record.fileSize}`">
@@ -168,30 +185,19 @@
                 <a-space>
                   <template v-if="record.isDirectory">
                     <a-tooltip :title="$t('i18n_c6f1c6e062')">
-                      <a-button size="small" type="primary" :disabled="true">{{ $t('i18n_95b351c862') }}</a-button>
+                      <a-button size="small" type="primary" :disabled="true">{{ $t("i18n_95b351c862") }}</a-button>
                     </a-tooltip>
                     <a-tooltip :title="$t('i18n_6c14188ba0')">
-                      <a-button size="small" type="primary" :disabled="true">{{ $t('i18n_f26ef91424') }}</a-button>
+                      <a-button size="small" type="primary" :disabled="true">{{ $t("i18n_f26ef91424") }}</a-button>
                     </a-tooltip>
                   </template>
                   <template v-else>
                     <a-tooltip :title="$t('i18n_17b5e684e5')">
-                      <a-button
-                        size="small"
-                        type="primary"
-                        :loading="editLoading"
-                        :disabled="!record.textFileEdit"
-                        @click="handleEditFile(record)"
-                        >{{ $t('i18n_95b351c862') }}</a-button
-                      >
+                      <a-button size="small" type="primary" :loading="editLoading" :disabled="!record.textFileEdit" @click="handleEditFile(record)">{{ $t("i18n_95b351c862") }}</a-button>
                     </a-tooltip>
-                    <a-button size="small" type="primary" @click="handleDownload(record)">{{
-                      $t('i18n_f26ef91424')
-                    }}</a-button>
+                    <a-button size="small" type="primary" @click="handleDownload(record)">{{ $t("i18n_f26ef91424") }}</a-button>
                   </template>
-                  <a-button size="small" type="primary" danger @click="handleDelete(record)">{{
-                    $t('i18n_2f4aaddde3')
-                  }}</a-button>
+                  <a-button size="small" type="primary" danger @click="handleDelete(record)">{{ $t("i18n_2f4aaddde3") }}</a-button>
                 </a-space>
               </template>
             </template>
@@ -212,20 +218,20 @@
               <a-upload
                 :file-list="uploadFileList"
                 :before-upload="
-                  (file) => {
-                    uploadFileList = [...uploadFileList, file]
-                    return false
+                  file => {
+                    uploadFileList = [...uploadFileList, file];
+                    return false;
                   }
                 "
                 multiple
                 :disabled="!!percentage"
                 @remove="
-                  (file) => {
-                    const index = uploadFileList.indexOf(file)
+                  file => {
+                    const index = uploadFileList.indexOf(file);
                     //const newFileList = this.uploadFileList.slice();
 
-                    uploadFileList.splice(index, 1)
-                    return true
+                    uploadFileList.splice(index, 1);
+                    return true;
                   }
                 "
               >
@@ -235,38 +241,33 @@
                   </template>
                 </template>
 
-                <a-button v-else><UploadOutlined />{{ $t('i18n_fd7e0c997d') }}</a-button>
+                <a-button v-else>
+                  <UploadOutlined />
+                  {{ $t("i18n_fd7e0c997d") }}
+                </a-button>
               </a-upload>
 
               <a-row v-if="percentage">
                 <a-col span="24">
                   <a-progress :percent="percentage" class="max-progress">
                     <template #format="percent">
-                      {{ percent }}%<template v-if="percentageInfo.total">
-                        ({{ renderSize(percentageInfo.total) }})
-                      </template>
-                      <template v-if="percentageInfo.duration">
-                        {{ $t('i18n_833249fb92') }}:{{ formatDuration(percentageInfo.duration) }}
-                      </template>
-                      <template v-if="uploadFileList.length">
-                        {{ $t('i18n_769d88e425') }} {{ successSize }} {{ $t('i18n_d047d84986')
-                        }}{{ uploadFileList.length }}{{ $t('i18n_930882bb0a') }}
-                      </template>
+                      {{ percent }}%
+                      <template v-if="percentageInfo.total">({{ renderSize(percentageInfo.total) }})</template>
+                      <template v-if="percentageInfo.duration">{{ $t("i18n_833249fb92") }}:{{ formatDuration(percentageInfo.duration) }}</template>
+                      <template v-if="uploadFileList.length">{{ $t("i18n_769d88e425") }} {{ successSize }} {{ $t("i18n_d047d84986") }}{{ uploadFileList.length }}{{ $t("i18n_930882bb0a") }}</template>
                     </template>
                   </a-progress>
                   <a-tag v-if="percentage >= 100">
                     {{
                       uploadFileList.find((fileItem, fileIndex) => {
-                        return (fileItem.status = 'uploading')
+                        return (fileItem.status = "uploading");
                       })?.name
-                    }}{{ $t('i18n_ade63665b2') }}</a-tag
-                  >
+                    }}{{ $t("i18n_ade63665b2") }}
+                  </a-tag>
                 </a-col>
               </a-row>
 
-              <a-button type="primary" :disabled="fileUploadDisabled" @click="startUpload">{{
-                $t('i18n_020f1ecd62')
-              }}</a-button>
+              <a-button type="primary" :disabled="fileUploadDisabled" @click="startUpload">{{ $t("i18n_020f1ecd62") }}</a-button>
             </a-space>
           </CustomModal>
           <!-- 上传压缩文件 -->
@@ -286,58 +287,43 @@
                 :file-list="uploadFileList"
                 :disabled="!!percentage"
                 :before-upload="
-                  (file) => {
-                    uploadFileList = [file]
-                    return false
+                  file => {
+                    uploadFileList = [file];
+                    return false;
                   }
                 "
                 :accept="ZIP_ACCEPT"
                 @remove="
                   () => {
-                    uploadFileList = []
-                    return true
+                    uploadFileList = [];
+                    return true;
                   }
                 "
               >
                 <LoadingOutlined v-if="percentage" />
-                <a-button v-else><UploadOutlined />{{ $t('i18n_a17450a5ff') }}</a-button>
+                <a-button v-else>
+                  <UploadOutlined />
+                  {{ $t("i18n_a17450a5ff") }}
+                </a-button>
               </a-upload>
               <a-row v-if="percentage">
                 <a-col span="24">
                   <a-progress :percent="percentage" class="max-progress">
                     <template #format="percent">
-                      {{ percent }}%<template v-if="percentageInfo.total">
-                        ({{ renderSize(percentageInfo.total) }})
-                      </template>
-                      <template v-if="percentageInfo.duration">
-                        {{ $t('i18n_833249fb92') }}:{{ formatDuration(percentageInfo.duration) }}
-                      </template>
-                      <template v-if="uploadFileList.length">
-                        {{ $t('i18n_769d88e425') }} {{ successSize }} {{ $t('i18n_d047d84986')
-                        }}{{ uploadFileList.length }}{{ $t('i18n_930882bb0a') }}
-                      </template>
+                      {{ percent }}%
+                      <template v-if="percentageInfo.total">({{ renderSize(percentageInfo.total) }})</template>
+                      <template v-if="percentageInfo.duration">{{ $t("i18n_833249fb92") }}:{{ formatDuration(percentageInfo.duration) }}</template>
+                      <template v-if="uploadFileList.length">{{ $t("i18n_769d88e425") }} {{ successSize }} {{ $t("i18n_d047d84986") }}{{ uploadFileList.length }}{{ $t("i18n_930882bb0a") }}</template>
                     </template>
                   </a-progress>
                 </a-col>
               </a-row>
 
-              <a-switch
-                v-model:checked="uploadData.checkBox"
-                :checked-children="$t('i18n_164cf07e1c')"
-                :un-checked-children="$t('i18n_fd7b461411')"
-                style="margin-bottom: 10px"
-              />
+              <a-switch v-model:checked="uploadData.checkBox" :checked-children="$t('i18n_164cf07e1c')" :un-checked-children="$t('i18n_fd7b461411')" style="margin-bottom: 10px" />
 
-              <a-input-number
-                v-model:value="uploadData.stripComponents"
-                style="width: 100%"
-                :min="0"
-                :placeholder="$t('i18n_3f8b64991f')"
-              />
+              <a-input-number v-model:value="uploadData.stripComponents" style="width: 100%" :min="0" :placeholder="$t('i18n_3f8b64991f')" />
 
-              <a-button type="primary" :disabled="fileUploadDisabled" @click="startZipUpload">{{
-                $t('i18n_020f1ecd62')
-              }}</a-button>
+              <a-button type="primary" :disabled="fileUploadDisabled" @click="startZipUpload">{{ $t("i18n_020f1ecd62") }}</a-button>
             </a-space>
           </CustomModal>
 
@@ -350,13 +336,7 @@
             :mask-closable="true"
             @cancel="handleCloseModal"
           >
-            <code-editor
-              v-if="editFileVisible"
-              v-model:content="fileContent"
-              height="60vh"
-              show-tool
-              :file-suffix="filename"
-            >
+            <code-editor v-if="editFileVisible" v-model:content="fileContent" height="60vh" show-tool :file-suffix="filename">
               <template #tool_before>
                 <a-tag>
                   {{ filename }}
@@ -367,21 +347,21 @@
 
             <template #footer>
               <a-button @click="handleCloseModal">
-                {{ $t('i18n_b15d91274e') }}
+                {{ $t("i18n_b15d91274e") }}
               </a-button>
               <a-button type="primary" @click="updateFileData">
-                {{ $t('i18n_be5fbbe34c') }}
+                {{ $t("i18n_be5fbbe34c") }}
               </a-button>
               <a-button
                 type="primary"
                 @click="
                   () => {
-                    updateFileData()
-                    handleCloseModal()
+                    updateFileData();
+                    handleCloseModal();
                   }
                 "
               >
-                {{ $t('i18n_280379cee4') }}
+                {{ $t("i18n_280379cee4") }}
               </a-button>
             </template>
           </CustomModal>
@@ -396,30 +376,15 @@
             @ok="handleRemoteUpload"
             @cancel="closeRemoteUpload"
           >
-            <a-form
-              ref="ruleForm"
-              :model="remoteDownloadData"
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-              :rules="rules"
-            >
+            <a-form ref="ruleForm" :model="remoteDownloadData" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" :rules="rules">
               <a-form-item :label="$t('i18n_a66fff7541')" name="url">
                 <a-input v-model:value="remoteDownloadData.url" :placeholder="$t('i18n_7457228a61')" />
               </a-form-item>
               <a-form-item :label="$t('i18n_50fefde769')">
-                <a-switch
-                  v-model:checked="remoteDownloadData.unzip"
-                  :checked-children="$t('i18n_0a60ac8f02')"
-                  :un-checked-children="$t('i18n_c9744f45e7')"
-                />
+                <a-switch v-model:checked="remoteDownloadData.unzip" :checked-children="$t('i18n_0a60ac8f02')" :un-checked-children="$t('i18n_c9744f45e7')" />
               </a-form-item>
               <a-form-item v-if="remoteDownloadData.unzip" :label="$t('i18n_5effe31353')">
-                <a-input-number
-                  v-model:value="remoteDownloadData.stripComponents"
-                  style="width: 100%"
-                  :min="0"
-                  :placeholder="$t('i18n_3f8b64991f')"
-                />
+                <a-input-number v-model:value="remoteDownloadData.stripComponents" style="width: 100%" :min="0" :placeholder="$t('i18n_3f8b64991f')" />
               </a-form-item>
             </a-form>
           </CustomModal>
@@ -434,34 +399,22 @@
             :mask-closable="true"
           >
             <a-space direction="vertical" style="width: 100%">
-              <span v-if="uploadPath">{{ $t('i18n_4e33dde280') }}{{ uploadPath }}</span>
+              <span v-if="uploadPath">{{ $t("i18n_4e33dde280") }}{{ uploadPath }}</span>
               <!-- <a-tag v-if="">目录创建成功后需要手动刷新右边树才能显示出来哟</a-tag> -->
 
               <a-input v-model:value="fileFolderName" :placeholder="$t('i18n_55939c108f')" />
               <a-row type="flex" justify="center">
-                <a-button type="primary" :disabled="fileFolderName.length === 0" @click="startAddFileFolder">{{
-                  $t('i18n_e83a256e4f')
-                }}</a-button>
+                <a-button type="primary" :disabled="fileFolderName.length === 0" @click="startAddFileFolder">{{ $t("i18n_e83a256e4f") }}</a-button>
               </a-row>
             </a-space>
           </CustomModal>
           <!-- 从命名文件/文件夹 -->
-          <CustomModal
-            v-if="renameFileFolderVisible"
-            v-model:open="renameFileFolderVisible"
-            destroy-on-close
-            width="300px"
-            :title="`${$t('i18n_c8ce4b36cb')}`"
-            :footer="null"
-            :mask-closable="true"
-          >
+          <CustomModal v-if="renameFileFolderVisible" v-model:open="renameFileFolderVisible" destroy-on-close width="300px" :title="`${$t('i18n_c8ce4b36cb')}`" :footer="null" :mask-closable="true">
             <a-space direction="vertical" style="width: 100%">
               <a-input v-model:value="fileFolderName" :placeholder="$t('i18n_f139c5cf32')" />
 
               <a-row type="flex" justify="center">
-                <a-button type="primary" :disabled="fileFolderName.length === 0" @click="renameFileFolder">{{
-                  $t('i18n_e83a256e4f')
-                }}</a-button>
+                <a-button type="primary" :disabled="fileFolderName.length === 0" @click="renameFileFolder">{{ $t("i18n_e83a256e4f") }}</a-button>
               </a-row>
             </a-space>
           </CustomModal>
@@ -480,11 +433,11 @@
       :mask-closable="true"
       @cancel="
         () => {
-          loadData()
+          loadData();
         }
       "
     >
-      <projectFileBackup v-if="backupListVisible" :node-id="nodeId" :project-id="projectId"></projectFileBackup>
+      <projectFileBackup v-if="backupListVisible" :node-id="nodeId" :project-id="projectId" />
     </CustomModal>
   </div>
 </template>
@@ -503,37 +456,37 @@ import {
   shardingMerge,
   copyFileFolder,
   compressFileFolder
-} from '@/api/node-project'
-import { ZIP_ACCEPT, renderSize, formatDuration, concurrentExecution, parseTime } from '@/utils/const'
-import codeEditor from '@/components/codeEditor/index.vue'
-import projectFileBackup from './project-file-backup.vue'
-import { uploadPieces } from '@/utils/upload-pieces'
+} from "@/api/node-project";
+import { ZIP_ACCEPT, renderSize, formatDuration, concurrentExecution, parseTime } from "@/utils/const";
+import codeEditor from "@/components/codeEditor/index.vue";
+import projectFileBackup from "./project-file-backup.vue";
+import { uploadPieces } from "@/utils/upload-pieces";
 
 export default {
   components: {
     codeEditor,
     projectFileBackup
   },
-  inject: ['globalLoading'],
+  inject: ["globalLoading"],
   props: {
     nodeId: {
       type: String,
-      default: ''
+      default: ""
     },
     projectId: {
       type: String,
-      default: ''
+      default: ""
     },
     runMode: {
       type: String,
-      default: ''
+      default: ""
     },
     absPath: {
       type: String,
-      default: ''
+      default: ""
     }
   },
-  emits: ['goReadFile', 'goConsole'],
+  emits: ["goReadFile", "goConsole"],
   data() {
     return {
       ZIP_ACCEPT,
@@ -544,17 +497,17 @@ export default {
       uploadFileList: [],
       tempNode: {},
       temp: {},
-      filename: '',
+      filename: "",
       uploadFileVisible: false,
       uploadZipFileVisible: false,
       uploadRemoteFileVisible: false,
       editFileVisible: false,
       backupListVisible: false,
       successSize: 0,
-      fileContent: '',
+      fileContent: "",
       treeReplaceFields: {
-        title: 'filename',
-        isLeaf: 'isDirectory'
+        title: "filename",
+        isLeaf: "isDirectory"
       },
 
       // 是否是上传状态
@@ -567,48 +520,48 @@ export default {
 
       // tableHeight: "80vh",
       defaultProps: {
-        children: 'children',
-        label: 'filename'
+        children: "children",
+        label: "filename"
       },
       remoteDownloadData: {
-        id: '',
-        url: '',
+        id: "",
+        url: "",
         unzip: false
       },
       columns: [
         {
-          title: this.$t('i18n_d2e2560089'),
-          dataIndex: 'filename',
+          title: this.$t("i18n_d2e2560089"),
+          dataIndex: "filename",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_28b988ce6a'),
-          dataIndex: 'isDirectory',
-          width: '100px',
+          title: this.$t("i18n_28b988ce6a"),
+          dataIndex: "isDirectory",
+          width: "100px",
           ellipsis: true
         },
         {
-          title: this.$t('i18n_396b7d3f91'),
-          dataIndex: 'fileSizeLong',
+          title: this.$t("i18n_396b7d3f91"),
+          dataIndex: "fileSizeLong",
           width: 120,
           ellipsis: true,
 
           sorter: (a, b) => a.fileSizeLong - b.fileSizeLong
         },
         {
-          title: this.$t('i18n_1303e638b5'),
-          dataIndex: 'modifyTimeLong',
-          width: '180px',
+          title: this.$t("i18n_1303e638b5"),
+          dataIndex: "modifyTimeLong",
+          width: "180px",
           ellipsis: true,
 
           sorter: (a, b) => a.modifyTimeLong - b.modifyTimeLong
         },
         {
-          title: this.$t('i18n_2b6bc0f293'),
-          dataIndex: 'operation',
-          width: '180px',
-          align: 'center',
-          fixed: 'right'
+          title: this.$t("i18n_2b6bc0f293"),
+          dataIndex: "operation",
+          width: "180px",
+          align: "center",
+          fixed: "right"
         }
       ],
 
@@ -616,40 +569,40 @@ export default {
         url: [
           {
             required: true,
-            message: this.$t('i18n_0221d43e46'),
-            trigger: 'change'
+            message: this.$t("i18n_0221d43e46"),
+            trigger: "change"
           }
         ]
       },
       addFileFolderVisible: false,
       // 目录1 文件2 标识
       addFileOrFolderType: 1,
-      fileFolderName: '',
-      oldFileFolderName: '',
+      fileFolderName: "",
+      oldFileFolderName: "",
       renameFileFolderVisible: false,
       editLoading: false,
       confirmLoading: false,
       selectedKeys: [],
       expandedKeys: []
-    }
+    };
   },
   computed: {
     fileUploadDisabled() {
-      return this.uploadFileList.length === 0 || this.uploading
+      return this.uploadFileList.length === 0 || this.uploading;
     },
     uploadPath() {
       if (!Object.keys(this.tempNode).length) {
-        return ''
+        return "";
       }
       if (this.tempNode.level === 1) {
-        return ''
+        return "";
       } else {
-        return (this.tempNode.levelName || '') + '/' + this.tempNode.filename
+        return (this.tempNode.levelName || "") + "/" + this.tempNode.filename;
       }
     }
   },
   mounted() {
-    this.loadData()
+    this.loadData();
   },
   methods: {
     renderSize,
@@ -658,19 +611,19 @@ export default {
     parseTime,
     // 加载数据
     loadData() {
-      const key = 'root-' + new Date().getTime()
+      const key = "root-" + new Date().getTime();
       this.tempNode = {
-        filename: this.$t('i18n_cfeff30d2c') + (this.absPath || ''),
+        filename: this.$t("i18n_cfeff30d2c") + (this.absPath || ""),
         level: 1,
         isDirectory: true,
         key: key,
         isLeaf: false,
         activeKey: [0]
-      }
-      this.treeList = [this.tempNode]
-      this.selectedKeys = [key]
-      this.expandedKeys = [key]
-      this.loadFileList()
+      };
+      this.treeList = [this.tempNode];
+      this.selectedKeys = [key];
+      this.expandedKeys = [key];
+      this.loadFileList();
       // // 设置默认展开第一个
       // setTimeout(() => {
       //   const node = this.treeList[0]
@@ -685,26 +638,26 @@ export default {
         id: this.projectId,
         filePath: this.uploadPath,
         filename: record.filename
-      }
-      this.editLoading = true
+      };
+      this.editLoading = true;
       // 读取文件数据
       readFile(params)
-        .then((res) => {
+        .then(res => {
           if (res.code === 200) {
-            this.editFileVisible = true
-            this.filename = record.filename
+            this.editFileVisible = true;
+            this.filename = record.filename;
 
-            this.fileContent = res.data
+            this.fileContent = res.data;
           }
         })
         .finally(() => {
-          this.editLoading = false
-        })
+          this.editLoading = false;
+        });
     },
     // 关闭编辑器弹窗
     handleCloseModal() {
-      this.fileContent = ''
-      this.editFileVisible = false
+      this.fileContent = "";
+      this.editFileVisible = false;
     },
 
     updateFileData() {
@@ -714,83 +667,83 @@ export default {
         filePath: this.uploadPath,
         filename: this.filename,
         fileText: this.fileContent
-      }
+      };
 
-      updateFile(params).then((res) => {
+      updateFile(params).then(res => {
         if (res.code === 200) {
           $notification.success({
             message: res.msg
-          })
+          });
         }
-      })
+      });
     },
 
     // 点击树节点
     nodeClick(selectedKeys, { node }) {
       if (node.dataRef.isDirectory) {
         if (node.dataRef.key === this.tempNode.key) {
-          return
+          return;
         }
-        this.tempNode = node.dataRef
-        this.expandedKeys = [this.tempNode.key]
-        this.loadFileList()
+        this.tempNode = node.dataRef;
+        this.expandedKeys = [this.tempNode.key];
+        this.loadFileList();
       }
     },
     // 上传文件
     handleUpload() {
       if (Object.keys(this.tempNode).length === 0) {
         $notification.error({
-          message: this.$t('i18n_bcaf69a038')
-        })
-        return
+          message: this.$t("i18n_bcaf69a038")
+        });
+        return;
       }
       //初始化成功数
-      this.successSize = 0
-      this.uploadFileList = []
-      this.uploading = false
-      this.percentage = 0
-      this.percentageInfo = {}
-      this.uploadFileVisible = true
+      this.successSize = 0;
+      this.uploadFileList = [];
+      this.uploading = false;
+      this.percentage = 0;
+      this.percentageInfo = {};
+      this.uploadFileVisible = true;
     },
     // handleRemove(file) {},
 
     // 开始上传文件
     startUpload() {
       // 设置上传状态
-      this.uploading = true
-      this.successSize = 0
+      this.uploading = true;
+      this.successSize = 0;
       // 遍历上传文件
       concurrentExecution(
         this.uploadFileList.map((item, index) => {
           // console.log(item);
-          return index
+          return index;
         }),
         1,
-        (curItem) => {
-          const file = this.uploadFileList[curItem]
+        curItem => {
+          const file = this.uploadFileList[curItem];
           this.uploadFileList = this.uploadFileList.map((fileItem, fileIndex) => {
             if (fileIndex === curItem) {
-              fileItem.status = 'uploading'
+              fileItem.status = "uploading";
             }
-            return fileItem
-          })
-          this.percentage = 0
-          this.percentageInfo = {}
+            return fileItem;
+          });
+          this.percentage = 0;
+          this.percentageInfo = {};
           return new Promise((resolve, reject) => {
             uploadPieces({
               file,
-              resolveFileProcess: (msg) => {
+              resolveFileProcess: msg => {
                 this.globalLoading({
                   spinning: true,
                   tip: msg
-                })
+                });
               },
               resolveFileEnd: () => {
-                this.globalLoading(false)
+                this.globalLoading(false);
               },
               process: (process, end, total, duration) => {
-                this.percentage = Math.max(this.percentage, process)
-                this.percentageInfo = { end, total, duration }
+                this.percentage = Math.max(this.percentage, process);
+                this.percentageInfo = { end, total, duration };
               },
               success: (uploadData, name) => {
                 // 准备合并
@@ -799,119 +752,119 @@ export default {
                   nodeId: this.nodeId,
                   id: this.projectId,
                   levelName: this.uploadPath
-                }).then((res) => {
+                }).then(res => {
                   if (res.code === 200) {
-                    this.successSize++
+                    this.successSize++;
                     $notification.success({
-                      message: name + ' ' + res.msg
-                    })
+                      message: name + " " + res.msg
+                    });
                     this.uploadFileList = this.uploadFileList.map((fileItem, fileIndex) => {
                       if (fileIndex === curItem) {
-                        fileItem.status = 'done'
+                        fileItem.status = "done";
                       }
-                      return fileItem
-                    })
+                      return fileItem;
+                    });
 
-                    resolve()
+                    resolve();
                   } else {
                     this.uploadFileList = this.uploadFileList.map((fileItem, fileIndex) => {
                       if (fileIndex === curItem) {
-                        fileItem.status = 'error'
+                        fileItem.status = "error";
                       }
-                      return fileItem
-                    })
-                    reject()
+                      return fileItem;
+                    });
+                    reject();
                   }
-                })
+                });
               },
-              error: (msg) => {
+              error: msg => {
                 this.uploadFileList = this.uploadFileList.map((fileItem, fileIndex) => {
                   if (fileIndex === curItem) {
-                    fileItem.status = 'error'
+                    fileItem.status = "error";
                   }
-                  return fileItem
-                })
+                  return fileItem;
+                });
                 $notification.error({
                   message: msg
-                })
-                reject()
+                });
+                reject();
               },
-              uploadCallback: (formData) => {
+              uploadCallback: formData => {
                 return new Promise((resolve, reject) => {
-                  formData.append('nodeId', this.nodeId)
-                  formData.append('id', this.projectId)
+                  formData.append("nodeId", this.nodeId);
+                  formData.append("id", this.projectId);
                   // 计算属性 uploadPath
-                  formData.append('levelName', this.uploadPath)
+                  formData.append("levelName", this.uploadPath);
 
                   // 上传文件
                   uploadProjectFile(formData)
-                    .then((res) => {
+                    .then(res => {
                       if (res.code === 200) {
-                        resolve()
+                        resolve();
                       } else {
-                        reject()
+                        reject();
                       }
                     })
                     .catch(() => {
-                      reject()
-                    })
-                })
+                      reject();
+                    });
+                });
               }
-            })
-          })
+            });
+          });
         }
       ).then(() => {
-        this.uploading = this.successSize !== this.uploadFileList.length
+        this.uploading = this.successSize !== this.uploadFileList.length;
         // // 判断是否全部上传完成
         if (!this.uploading) {
-          this.uploadFileList = []
+          this.uploadFileList = [];
           setTimeout(() => {
-            this.percentage = 0
-            this.percentageInfo = {}
-            this.loadFileList()
-            this.uploadFileVisible = false
-          }, 2000)
+            this.percentage = 0;
+            this.percentageInfo = {};
+            this.loadFileList();
+            this.uploadFileVisible = false;
+          }, 2000);
         }
-      })
+      });
     },
     // 上传压缩文件
     handleZipUpload() {
       if (Object.keys(this.tempNode).length === 0) {
         $notification.error({
-          message: this.$t('i18n_bcaf69a038')
-        })
-        return
+          message: this.$t("i18n_bcaf69a038")
+        });
+        return;
       }
-      this.uploadData = {}
-      this.successSize = 0
-      this.uploadFileList = []
-      this.uploading = false
-      this.percentage = 0
-      this.percentageInfo = {}
-      this.uploadZipFileVisible = true
+      this.uploadData = {};
+      this.successSize = 0;
+      this.uploadFileList = [];
+      this.uploading = false;
+      this.percentage = 0;
+      this.percentageInfo = {};
+      this.uploadZipFileVisible = true;
     },
 
     // 开始上传压缩文件
     startZipUpload() {
       // 设置上传状态
-      this.uploading = true
-      this.percentage = 0
-      this.percentageInfo = {}
-      const file = this.uploadFileList[0]
+      this.uploading = true;
+      this.percentage = 0;
+      this.percentageInfo = {};
+      const file = this.uploadFileList[0];
       uploadPieces({
         file,
-        resolveFileProcess: (msg) => {
+        resolveFileProcess: msg => {
           this.globalLoading({
             spinning: true,
             tip: msg
-          })
+          });
         },
         resolveFileEnd: () => {
-          this.globalLoading(false)
+          this.globalLoading(false);
         },
         process: (process, end, total, duration) => {
-          this.percentage = Math.max(this.percentage, process)
-          this.percentageInfo = { end, total, duration }
+          this.percentage = Math.max(this.percentage, process);
+          this.percentageInfo = { end, total, duration };
         },
         success: (uploadData, name) => {
           // 准备合并
@@ -923,59 +876,59 @@ export default {
             nodeId: this.nodeId,
             id: this.projectId,
             levelName: this.uploadPath,
-            type: 'unzip',
+            type: "unzip",
             stripComponents: this.uploadData.stripComponents || 0,
-            clearType: this.uploadData.checkBox ? 'clear' : 'noClear'
-          }).then((res) => {
+            clearType: this.uploadData.checkBox ? "clear" : "noClear"
+          }).then(res => {
             if (res.code === 200) {
-              this.successSize++
+              this.successSize++;
               $notification.success({
-                message: name + ' ' + res.msg
-              })
-              this.uploading = this.successSize !== this.uploadFileList.length
+                message: name + " " + res.msg
+              });
+              this.uploading = this.successSize !== this.uploadFileList.length;
               // // 判断是否全部上传完成
               if (!this.uploading) {
-                this.uploadFileList = []
+                this.uploadFileList = [];
                 setTimeout(() => {
-                  this.percentage = 0
-                  this.percentageInfo = {}
-                  this.loadFileList()
-                  this.uploadZipFileVisible = false
-                }, 2000)
+                  this.percentage = 0;
+                  this.percentageInfo = {};
+                  this.loadFileList();
+                  this.uploadZipFileVisible = false;
+                }, 2000);
               }
             }
-          })
+          });
         },
-        error: (msg) => {
+        error: msg => {
           $notification.error({
             message: msg
-          })
+          });
         },
-        uploadCallback: (formData) => {
+        uploadCallback: formData => {
           return new Promise((resolve, reject) => {
-            formData.append('nodeId', this.nodeId)
-            formData.append('id', this.projectId)
+            formData.append("nodeId", this.nodeId);
+            formData.append("id", this.projectId);
             // 计算属性 uploadPath
-            formData.append('levelName', this.uploadPath)
-            formData.append('type', 'unzip')
-            formData.append('stripComponents', this.uploadData.stripComponents || 0)
-            formData.append('clearType', this.uploadData.checkBox ? 'clear' : 'noClear')
+            formData.append("levelName", this.uploadPath);
+            formData.append("type", "unzip");
+            formData.append("stripComponents", this.uploadData.stripComponents || 0);
+            formData.append("clearType", this.uploadData.checkBox ? "clear" : "noClear");
 
             // 上传文件
             uploadProjectFile(formData)
-              .then((res) => {
+              .then(res => {
                 if (res.code === 200) {
-                  resolve()
+                  resolve();
                 } else {
-                  reject()
+                  reject();
                 }
               })
               .catch(() => {
-                reject()
-              })
-          })
+                reject();
+              });
+          });
         }
-      })
+      });
 
       // // 上传文件
       // const file = this.uploadFileList[0];
@@ -1004,12 +957,12 @@ export default {
     //打开远程上传
     openRemoteUpload() {
       // this.$refs.ruleForm.resetFields();
-      this.uploadRemoteFileVisible = true
+      this.uploadRemoteFileVisible = true;
     },
     //关闭远程上传
     closeRemoteUpload() {
       //   this.$refs.ruleForm.resetFields();
-      this.uploadRemoteFileVisible = false
+      this.uploadRemoteFileVisible = false;
     },
     //处理上传文件
     handleRemoteUpload() {
@@ -1021,23 +974,23 @@ export default {
           levelName: this.uploadPath,
           unzip: this.remoteDownloadData.unzip,
           stripComponents: this.remoteDownloadData.stripComponents || 0
-        }
-        this.confirmLoading = true
+        };
+        this.confirmLoading = true;
         remoteDownload(params)
-          .then((res) => {
+          .then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.remoteDownloadData = {}
-              this.uploadRemoteFileVisible = false
-              this.loadFileList()
+              });
+              this.remoteDownloadData = {};
+              this.uploadRemoteFileVisible = false;
+              this.loadFileList();
             }
           })
           .finally(() => {
-            this.confirmLoading = false
-          })
-      })
+            this.confirmLoading = false;
+          });
+      });
     },
     /**
      * 根据key获取树节点
@@ -1045,16 +998,16 @@ export default {
      * @returns {*}
      */
     getTreeNode(keys) {
-      let node = this.treeList.find((node) => node.activeKey[0] == keys.slice(0, 1)[0])
-      const nodeKeys = keys.slice(1)
+      let node = this.treeList.find(node => node.activeKey[0] == keys.slice(0, 1)[0]);
+      const nodeKeys = keys.slice(1);
       for (let [index, key] of nodeKeys.entries()) {
         if (key >= 0 && key < node.children.length) {
-          node = node.children.find((node) => node.activeKey.slice(index + 1, index + 2) == key)
+          node = node.children.find(node => node.activeKey.slice(index + 1, index + 2) == key);
         } else {
-          throw new Error('Invalid key: ' + key)
+          throw new Error("Invalid key: " + key);
         }
       }
-      return node
+      return node;
     },
     /**
      * 更新树节点的方法抽离封装
@@ -1062,141 +1015,137 @@ export default {
      * @param value
      */
     updateTreeChildren(keys, value) {
-      const node = this.getTreeNode(keys)
-      node.children = value
+      const node = this.getTreeNode(keys);
+      node.children = value;
     },
     /**
      * 文件列表转树结构
      * @param data
      */
     fileList2TreeData(data) {
-      const node = this.tempNode
+      const node = this.tempNode;
       const children = data
-        .filter((ele) => {
-          return ele.isDirectory
+        .filter(ele => {
+          return ele.isDirectory;
         })
         .map((ele, index) => {
-          ele.isLeaf = !ele.isDirectory
-          ele.key = ele.filename + '-' + new Date().getTime()
-          ele.activeKey = node.activeKey.concat([index])
-          return ele
-        })
-      this.updateTreeChildren(node.activeKey, children)
+          ele.isLeaf = !ele.isDirectory;
+          ele.key = ele.filename + "-" + new Date().getTime();
+          ele.activeKey = node.activeKey.concat([index]);
+          return ele;
+        });
+      this.updateTreeChildren(node.activeKey, children);
     },
     // 加载文件列表
     loadFileList() {
       if (Object.keys(this.tempNode).length === 0) {
         $notification.warn({
-          message: this.$t('i18n_bcaf69a038')
-        })
-        return false
+          message: this.$t("i18n_bcaf69a038")
+        });
+        return false;
       }
       // 请求参数
       const params = {
         nodeId: this.nodeId,
         id: this.projectId,
         path: this.uploadPath
-      }
-      this.loading = true
-      this.fileList = []
+      };
+      this.loading = true;
+      this.fileList = [];
       // 加载文件
-      getFileList(params).then((res) => {
+      getFileList(params).then(res => {
         if (res.code === 200) {
           // 区分目录和文件
-          res.data.forEach((element) => {
+          res.data.forEach(element => {
             // if (!element.isDirectory) {
             // 设置文件表格
             this.fileList.push({
               ...element
-            })
+            });
             // }
-          })
-          this.fileList2TreeData(res.data)
+          });
+          this.fileList2TreeData(res.data);
         }
-        this.loading = false
-      })
+        this.loading = false;
+      });
     },
     // 清空文件
     clearFile() {
-      const msg = this.uploadPath
-        ? this.$t('i18n_c840c88b7c') + this.uploadPath + this.$t('i18n_3f553922ae')
-        : this.$t('i18n_26bd746dc3')
+      const msg = this.uploadPath ? this.$t("i18n_c840c88b7c") + this.uploadPath + this.$t("i18n_3f553922ae") : this.$t("i18n_26bd746dc3");
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         content: msg,
-        okText: this.$t('i18n_e83a256e4f'),
+        okText: this.$t("i18n_e83a256e4f"),
         zIndex: 1009,
-        cancelText: this.$t('i18n_625fb26b4b'),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           return deleteProjectFile({
             nodeId: this.nodeId,
             id: this.projectId,
-            type: 'clear',
+            type: "clear",
             levelName: this.uploadPath
-          }).then((res) => {
+          }).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadFileList()
+              });
+              this.loadFileList();
             }
-          })
+          });
         }
-      })
+      });
     },
     // 下载
     handleDownload(record) {
       $notification.info({
-        message: this.$t('i18n_e4bf491a0d')
-      })
+        message: this.$t("i18n_e4bf491a0d")
+      });
       // 请求参数
       const params = {
         nodeId: this.nodeId,
         id: this.projectId,
         levelName: record.levelName,
         filename: record.filename
-      }
-      window.open(downloadProjectFile(params), '_blank')
+      };
+      window.open(downloadProjectFile(params), "_blank");
     },
     // 删除
     handleDelete(record) {
-      const msg = record.isDirectory
-        ? this.$t('i18n_3cc09369ad') + record.filename + this.$t('i18n_52a8df6678')
-        : this.$t('i18n_3cc09369ad') + record.filename + this.$t('i18n_48e79b3340')
+      const msg = record.isDirectory ? this.$t("i18n_3cc09369ad") + record.filename + this.$t("i18n_52a8df6678") : this.$t("i18n_3cc09369ad") + record.filename + this.$t("i18n_48e79b3340");
       $confirm({
-        title: this.$t('i18n_c4535759ee'),
+        title: this.$t("i18n_c4535759ee"),
         content: msg,
-        okText: this.$t('i18n_e83a256e4f'),
+        okText: this.$t("i18n_e83a256e4f"),
         zIndex: 1009,
-        cancelText: this.$t('i18n_625fb26b4b'),
+        cancelText: this.$t("i18n_625fb26b4b"),
         onOk: () => {
           return deleteProjectFile({
             nodeId: this.nodeId,
             id: this.projectId,
             levelName: record.levelName,
             filename: record.filename
-          }).then((res) => {
+          }).then(res => {
             if (res.code === 200) {
               $notification.success({
                 message: res.msg
-              })
-              this.loadFileList()
+              });
+              this.loadFileList();
             }
-          })
+          });
         }
-      })
+      });
     },
     goConsole() {
-      this.$emit('goConsole')
+      this.$emit("goConsole");
     },
     goReadFile(record) {
       // const filePath = this.uploadPath + record.filename;
-      this.$emit('goReadFile', this.uploadPath, record.filename)
+      this.$emit("goReadFile", this.uploadPath, record.filename);
     },
     handleAddFile(type) {
-      this.addFileFolderVisible = true
-      this.addFileOrFolderType = type
-      this.fileFolderName = ''
+      this.addFileFolderVisible = true;
+      this.addFileOrFolderType = type;
+      this.fileFolderName = "";
     },
     // 确认新增文件  目录
     startAddFileFolder() {
@@ -1206,21 +1155,21 @@ export default {
         levelName: this.uploadPath,
         filename: this.fileFolderName,
         unFolder: this.addFileOrFolderType === 1 ? false : true
-      }
-      newFileFolder(params).then((res) => {
+      };
+      newFileFolder(params).then(res => {
         if (res.code === 200) {
           $notification.success({
             message: res.msg
-          })
-          this.addFileFolderVisible = false
-          this.loadFileList()
+          });
+          this.addFileFolderVisible = false;
+          this.loadFileList();
         }
-      })
+      });
     },
     handleRenameFile(record) {
-      this.renameFileFolderVisible = true
-      this.fileFolderName = record.filename
-      this.oldFileFolderName = record.filename
+      this.renameFileFolderVisible = true;
+      this.fileFolderName = record.filename;
+      this.oldFileFolderName = record.filename;
     },
     // 确认修改文件 目录名称
     renameFileFolder() {
@@ -1230,20 +1179,20 @@ export default {
         levelName: this.uploadPath,
         newname: this.fileFolderName,
         filename: this.oldFileFolderName
-      }
-      renameFileFolder(params).then((res) => {
+      };
+      renameFileFolder(params).then(res => {
         if (res.code === 200) {
           $notification.success({
             message: res.msg
-          })
-          this.renameFileFolderVisible = false
-          this.loadFileList()
+          });
+          this.renameFileFolderVisible = false;
+          this.loadFileList();
         }
-      })
+      });
     },
     // 查看备份列表
     backupList() {
-      this.backupListVisible = true
+      this.backupListVisible = true;
     },
     // 复制文件
     hannderCopy(record) {
@@ -1252,15 +1201,15 @@ export default {
         id: this.projectId,
         filePath: this.uploadPath,
         filename: record.filename
-      }
-      copyFileFolder(params).then((res) => {
+      };
+      copyFileFolder(params).then(res => {
         if (res.code === 200) {
           $notification.success({
             message: res.msg
-          })
-          this.loadFileList()
+          });
+          this.loadFileList();
         }
-      })
+      });
     },
     // 压缩文件
     hannderCompress(record, type) {
@@ -1270,18 +1219,18 @@ export default {
         filePath: this.uploadPath,
         filename: record.filename,
         type: type
-      }
-      compressFileFolder(params).then((res) => {
+      };
+      compressFileFolder(params).then(res => {
         if (res.code === 200) {
           $notification.success({
             message: res.msg
-          })
-          this.loadFileList()
+          });
+          this.loadFileList();
         }
-      })
+      });
     }
   }
-}
+};
 </script>
 <style lang="less" scoped>
 :deep(.ant-progress-text) {
