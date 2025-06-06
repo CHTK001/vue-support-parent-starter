@@ -5,20 +5,23 @@
       <div class="dir-container">
         <a-space>
           <a-button type="primary" size="small" @click="loadData()">
-            <template #icon><ReloadOutlined /></template>
-            {{ $t("i18n_694fc5efa9") }}
+            <template #icon>
+              <ReloadOutlined />
+            </template>
+            {{ $t('i18n_694fc5efa9') }}
           </a-button>
           <a-dropdown>
             <template #overlay>
               <a-menu>
-                <a-menu-item v-for="item in sortMethodList" :key="item.key" @click="() => changeSort(item.key, sortMethod.asc)">
+                <a-menu-item v-for="item in sortMethodList" :key="item.key"
+                  @click="() => changeSort(item.key, sortMethod.asc)">
                   {{ item.name }}
                 </a-menu-item>
               </a-menu>
             </template>
             <a-button type="primary" size="small">
-              {{ sortMethodList.find(item => item.key === sortMethod.key)?.name }}
-              {{ $t("i18n_c360e994db") }}
+              {{sortMethodList.find(item => item.key === sortMethod.key)?.name}}
+              {{ $t('i18n_c360e994db') }}
               <template #icon>
                 <component :is="sortMethod.asc ? 'SortAscendingOutlined' : 'SortDescendingOutlined'" />
               </template>
@@ -30,20 +33,14 @@
       <a-empty v-if="treeList.length === 0" :image="Empty.PRESENTED_IMAGE_SIMPLE" />
       <a-spin v-else :tip="$t('i18n_f013ea9dcb')" :spinning="loading">
         <div class="tree-container">
-          <a-directory-tree
-            v-model:selectedKeys="selectedKeys"
-            v-model:expandedKeys="expandedKeys"
-            :tree-data="treeList"
-            :field-names="replaceFields"
-            @select="onSelect"
-            @expand="
+          <a-directory-tree v-model:selectedKeys="selectedKeys" v-model:expandedKeys="expandedKeys"
+            :tree-data="treeList" :field-names="replaceFields" @select="onSelect" @expand="
               (expandedKeys, { expanded, node }) => {
                 if (expanded) {
                   onSelect(expandedKeys, { node });
                 }
               }
-            "
-          />
+            " />
         </div>
       </a-spin>
     </a-layout-sider>
@@ -51,21 +48,15 @@
     <!-- 文件内容区域 -->
     <a-layout-content class="file-content">
       <!-- <div ref="filter" class="filter"></div> -->
-      <a-table
-        size="middle"
-        :data-source="sortFileList"
-        :loading="loading"
-        :columns="columns"
-        :pagination="false"
-        bordered
-        :scroll="{
+      <a-table size="middle" :data-source="sortFileList" :loading="loading" :columns="columns" :pagination="false"
+        bordered :scroll="{
           x: 'max-content'
-        }"
-      >
+        }">
         <template #title>
           <a-space>
             <a-dropdown :disabled="!tempNode.nextPath">
-              <a-button size="small" type="primary" @click="e => e.preventDefault()">{{ $t("i18n_01198a1673") }}</a-button>
+              <a-button size="small" type="primary" @click="e => e.preventDefault()">{{ $t("i18n_01198a1673")
+                }}</a-button>
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="handleUpload">
@@ -83,9 +74,12 @@
                 </a-menu>
               </template>
             </a-dropdown>
-            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="uploadShardingFileVisible = true">{{ $t("i18n_dda8b4c10f") }}</a-button>
+            <a-button size="small" :disabled="!tempNode.nextPath" type="primary"
+              @click="uploadShardingFileVisible = true">{{
+                $t("i18n_dda8b4c10f") }}</a-button>
             <a-dropdown :disabled="!tempNode.nextPath">
-              <a-button size="small" type="primary" @click="e => e.preventDefault()">{{ $t("i18n_26bb841878") }}</a-button>
+              <a-button size="small" type="primary" @click="e => e.preventDefault()">{{ $t("i18n_26bb841878")
+                }}</a-button>
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="handleAddFolder">
@@ -103,17 +97,15 @@
                 </a-menu>
               </template>
             </a-dropdown>
-            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="loadFileList()">{{ $t("i18n_694fc5efa9") }}</a-button>
-            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" danger @click="handleDeletePath()">{{ $t("i18n_2f4aaddde3") }}</a-button>
+            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" @click="loadFileList()">{{
+              $t("i18n_694fc5efa9") }}</a-button>
+            <a-button size="small" :disabled="!tempNode.nextPath" type="primary" danger @click="handleDeletePath()">{{
+              $t("i18n_2f4aaddde3") }}</a-button>
             <div>
               {{ $t("i18n_4cbc136874") }}
-              <a-switch
-                v-model:checked="listShowDir"
-                :disabled="!tempNode.nextPath"
-                :checked-children="$t('i18n_4d775d4cd7')"
-                :un-checked-children="$t('i18n_dce5379cb9')"
-                @change="changeListShowDir"
-              />
+              <a-switch v-model:checked="listShowDir" :disabled="!tempNode.nextPath"
+                :checked-children="$t('i18n_4d775d4cd7')" :un-checked-children="$t('i18n_dce5379cb9')"
+                @change="changeListShowDir" />
             </div>
             <span v-if="nowPath">{{ $t("i18n_4e33dde280") }}{{ nowPath }}</span>
             <!-- <span v-if="this.nowPath">{{ this.tempNode.parentDir }}</span> -->
@@ -145,8 +137,10 @@
             </a-tooltip>
           </template>
           <template v-else-if="column.dataIndex === 'dir'">
-            <a-tooltip placement="topLeft" :title="`${record.link ? $t('i18n_bfe68d5844') : text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1')}`">
-              <span>{{ record.link ? $t("i18n_bfe68d5844") : text ? $t("i18n_767fa455bb") : $t("i18n_2a0c4740f1") }}</span>
+            <a-tooltip placement="topLeft"
+              :title="`${record.link ? $t('i18n_bfe68d5844') : text ? $t('i18n_767fa455bb') : $t('i18n_2a0c4740f1')}`">
+              <span>{{ record.link ? $t("i18n_bfe68d5844") : text ? $t("i18n_767fa455bb") : $t("i18n_2a0c4740f1")
+                }}</span>
             </a-tooltip>
           </template>
           <template v-else-if="column.dataIndex === 'size'">
@@ -162,126 +156,99 @@
           <template v-else-if="column.dataIndex === 'operation'">
             <a-space>
               <a-tooltip :title="$t('i18n_af0df2e295')">
-                <a-button size="small" type="primary" :disabled="!record.textFileEdit" @click="handleEdit(record)">{{ $t("i18n_95b351c862") }}</a-button>
+                <a-button size="small" type="primary" :disabled="!record.textFileEdit" @click="handleEdit(record)">{{
+                  $t("i18n_95b351c862") }}</a-button>
               </a-tooltip>
               <a-tooltip :title="$t('i18n_5cc7e8e30a')">
-                <a-button size="small" type="primary" @click="handleFilePermission(record)">{{ $t("i18n_ba6e91fa9e") }}</a-button>
+                <a-button size="small" type="primary" @click="handleFilePermission(record)">{{ $t("i18n_ba6e91fa9e")
+                  }}</a-button>
               </a-tooltip>
-              <a-button size="small" type="primary" :disabled="record.dir" @click="handleDownload(record)">{{ $t("i18n_f26ef91424") }}</a-button>
-              <a-button size="small" type="primary" danger @click="handleDelete(record)">{{ $t("i18n_2f4aaddde3") }}</a-button>
+              <a-button size="small" type="primary" :disabled="record.dir" @click="handleDownload(record)">{{
+                $t("i18n_f26ef91424") }}</a-button>
+              <a-button size="small" type="primary" danger @click="handleDelete(record)">{{ $t("i18n_2f4aaddde3")
+                }}</a-button>
             </a-space>
           </template>
         </template>
       </a-table>
       <!-- 上传文件 -->
-      <CustomModal
-        v-if="uploadFileVisible"
-        v-model:open="uploadFileVisible"
-        destroy-on-close
-        width="400px"
-        :title="$t('i18n_a6fc9e3ae6')"
-        :confirm-loading="confirmLoading"
-        :footer="null"
-        :mask-closable="true"
-        class="upload-file-modal"
-        @cancel="closeUploadFile"
-      >
-        <div class="upload-container">
-          <a-upload :file-list="uploadFileList" :before-upload="beforeUpload" :accept="uploadFileZip ? ZIP_ACCEPT : ''" :multiple="!uploadFileZip" @remove="handleRemove">
-            <a-button>
-              <template #icon><UploadOutlined /></template>
-              {{ $t("i18n_fd7e0c997d") }}
-              {{ uploadFileZip ? $t("i18n_c806d0fa38") : "" }}
-            </a-button>
-          </a-upload>
-
-          <div class="upload-action">
-            <a-button type="primary" :disabled="uploadFileList.length === 0" :loading="confirmLoading" @click="startUpload">
-              <template #icon><CloudUploadOutlined /></template>
-              {{ $t("i18n_020f1ecd62") }}
-            </a-button>
-          </div>
-        </div>
+      <CustomModal v-if="uploadFileVisible" v-model:open="uploadFileVisible" destroy-on-close width="300px"
+        :title="$t('i18n_a6fc9e3ae6')" :confirm-loading="confirmLoading" :footer="null" :mask-closable="true"
+        @cancel="closeUploadFile">
+        <a-upload :file-list="uploadFileList" :before-upload="beforeUpload"
+          :accept="`${uploadFileZip ? ZIP_ACCEPT : ''}`" :multiple="!uploadFileZip" @remove="handleRemove">
+          <a-button>
+            <UploadOutlined />
+            {{ $t("i18n_fd7e0c997d") }}
+            {{ uploadFileZip ? $t("i18n_c806d0fa38") : "" }}
+          </a-button>
+        </a-upload>
+        <br />
+        <a-button type="primary" :disabled="uploadFileList.length === 0" :loading="confirmLoading"
+          @click="startUpload">{{
+            $t("i18n_020f1ecd62") }}</a-button>
       </CustomModal>
       <!-- 分片上传 -->
-      <CustomModal
-        v-if="uploadShardingFileVisible"
-        v-model:open="uploadShardingFileVisible"
-        destroyOnClose
-        width="500px"
-        :title="$t('i18n_d65551b090')"
-        :footer="null"
-        :closable="!confirmLoading"
-        :keyboard="false"
-        :maskClosable="false"
-        class="sharding-upload-modal"
-      >
-        <div class="upload-container">
-          <a-alert :message="$t('i18n_776bf504a4')" type="warning" show-icon>
+      <CustomModal v-if="uploadShardingFileVisible" v-model:open="uploadShardingFileVisible" destroy-on-close
+        :confirm-loading="confirmLoading" :closable="!confirmLoading" :keyboard="false" width="35vw"
+        :title="$t('i18n_d65551b090')" :footer="null" :mask-closable="false">
+        <a-space direction="vertical" size="large" style="width: 100%">
+          <a-alert :message="$t('i18n_776bf504a4')" type="warning">
             <template #description>
               <ul>
-                <li>{{ $t("i18n_383952103d") }}</li>
+                <li>
+                  {{ $t("i18n_383952103d") }}
+                </li>
                 <li>{{ $t("i18n_d85279c536") }}</li>
               </ul>
             </template>
           </a-alert>
-
-          <a-upload
-            :file-list="uploadFileList"
-            :before-upload="
-              file => {
-                uploadFileList = [file];
-                return false;
-              }
-            "
-            :disabled="!!percentage"
-            @remove="
+          <a-upload :file-list="uploadFileList" :before-upload="file => {
+              uploadFileList = [file];
+              return false;
+            }
+            " multiple :disabled="!!percentage" @remove="
               file => {
                 const index = uploadFileList.indexOf(file);
+                //const newFileList = this.uploadFileList.slice();
+
                 uploadFileList.splice(index, 1);
                 return true;
               }
-            "
-          >
-            <a-button v-if="!percentage" type="primary">
-              <template #icon><UploadOutlined /></template>
+            ">
+            <template v-if="percentage">
+              <template v-if="uploadFileList?.length">
+                <LoadingOutlined v-if="uploadFileList.length > 1" />
+              </template>
+            </template>
+
+            <a-button v-else>
+              <UploadOutlined />
               {{ $t("i18n_fd7e0c997d") }}
             </a-button>
-            <template v-else>
-              <LoadingOutlined v-if="uploadFileList?.length > 1" />
-            </template>
           </a-upload>
 
-          <div v-if="percentage" class="upload-progress">
-            <a-progress
-              :percent="percentage"
-              :format="
-                percent => {
-                  return `${percent}%${percentageInfo.total ? `(${renderSize(percentageInfo.total)})` : ''}${
-                    percentageInfo.duration ? ` ${$t('i18n_833249fb92')}: ${formatDuration(percentageInfo.duration)}` : ''
-                  }`;
-                }
-              "
-            />
-          </div>
+          <a-row v-if="percentage">
+            <a-col span="24">
+              <a-progress :percent="percentage" class="max-progress">
+                <template #format="percent">
+                  {{ percent }}%
+                  <template v-if="percentageInfo.total">({{ renderSize(percentageInfo.total) }})</template>
+                  <template v-if="percentageInfo.duration">{{ $t("i18n_833249fb92") }}:{{
+                    formatDuration(percentageInfo.duration) }}</template>
+                </template>
+              </a-progress>
+            </a-col>
+          </a-row>
 
-          <div class="action-bar">
-            <a-button type="primary" :disabled="fileUploadDisabled" @click="startUploadSharding">
-              <template #icon><CloudUploadOutlined /></template>
-              {{ $t("i18n_020f1ecd62") }}
-            </a-button>
-          </div>
-        </div>
+          <a-button type="primary" :disabled="fileUploadDisabled" @click="startUploadSharding">{{ $t("i18n_020f1ecd62")
+            }}</a-button>
+        </a-space>
       </CustomModal>
       <!--  新增文件 目录    -->
-      <CustomModal
-        v-if="addFileFolderVisible"
-        v-model:open="addFileFolderVisible"
-        width="300px"
-        :title="temp.addFileOrFolderType === 1 ? $t('i18n_2d9e932510') : $t('i18n_e48a715738')"
-        :footer="null"
-        :mask-closable="true"
-      >
+      <CustomModal v-if="addFileFolderVisible" v-model:open="addFileFolderVisible" width="300px"
+        :title="temp.addFileOrFolderType === 1 ? $t('i18n_2d9e932510') : $t('i18n_e48a715738')" :footer="null"
+        :mask-closable="true">
         <a-space direction="vertical" style="width: 100%">
           <span v-if="nowPath">{{ $t("i18n_4e33dde280") }}{{ nowPath }}</span>
           <!-- <a-tag v-if="">目录创建成功后需要手动刷新右边树才能显示出来哟</a-tag> -->
@@ -289,137 +256,106 @@
             <a-input v-model:value="temp.fileFolderName" :placeholder="$t('i18n_55939c108f')" />
           </a-tooltip>
           <a-row type="flex" justify="center">
-            <a-button type="primary" :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0" @click="startAddFileFolder">{{ $t("i18n_e83a256e4f") }}</a-button>
+            <a-button type="primary" :disabled="!temp.fileFolderName || temp.fileFolderName.length === 0"
+              @click="startAddFileFolder">{{ $t("i18n_e83a256e4f") }}</a-button>
           </a-row>
         </a-space>
       </CustomModal>
       <!-- 编辑文件 -->
-      <CustomModal
-        v-if="editFileVisible"
-        v-model:open="editFileVisible"
-        destroy-on-close
-        :confirm-loading="confirmLoading"
-        width="80vw"
-        :title="$t('i18n_47ff744ef6')"
-        :cancel-text="$t('i18n_b15d91274e')"
-        :mask-closable="true"
-        @ok="updateFileData"
-      >
+      <CustomModal v-if="editFileVisible" v-model:open="editFileVisible" destroy-on-close
+        :confirm-loading="confirmLoading" width="80vw" :title="$t('i18n_47ff744ef6')"
+        :cancel-text="$t('i18n_b15d91274e')" :mask-closable="true" @ok="updateFileData">
         <code-editor v-model:content="temp.fileContent" height="60vh" show-tool :file-suffix="temp.name">
           <template #tool_before>
             <a-tag>
-              {{ ((temp.allowPathParent || "/ ") + "/" + (temp.nextPath || "/") + "/" + (temp.name || "/")).replace(new RegExp("//+", "gm"), "/") }}
+              {{ ((temp.allowPathParent || "/ ") + "/" + (temp.nextPath || "/") + "/" + (temp.name || "/")).replace(new
+                RegExp("//+", "gm"), "/") }}
               <!-- {{ temp.name }} -->
             </a-tag>
           </template>
         </code-editor>
       </CustomModal>
-      <!-- 文件重命名对话框 -->
-      <CustomModal
-        v-if="renameFileFolderVisible"
-        v-model:open="renameFileFolderVisible"
-        destroyOnClose
-        width="400px"
-        :title="$t('i18n_c8ce4b36cb')"
-        :footer="null"
-        :maskClosable="true"
-        class="rename-modal"
-      >
-        <div class="rename-container">
-          <div class="current-path">
-            <FileOutlined v-if="!temp.dir" />
-            <FolderOutlined v-else />
-            <span class="path-text">{{ nowPath }}</span>
-          </div>
+      <!-- 从命名文件/文件夹 -->
+      <CustomModal v-if="renameFileFolderVisible" v-model:open="renameFileFolderVisible" destroy-on-close width="300px"
+        :title="`${$t('i18n_c8ce4b36cb')}`" :footer="null" :mask-closable="true">
+        <a-space direction="vertical" style="width: 100%">
+          <a-input v-model:value="temp.fileFolderName" :placeholder="$t('i18n_f139c5cf32')" />
 
-          <a-input v-model:value="temp.fileFolderName" :placeholder="$t('i18n_f139c5cf32')" class="rename-input" />
-
-          <div class="action-bar">
-            <a-button
-              v-if="temp.fileFolderName"
-              type="primary"
-              :loading="confirmLoading"
+          <a-row v-if="temp.fileFolderName" type="flex" justify="center">
+            <a-button :loading="confirmLoading" type="primary"
               :disabled="temp.fileFolderName.length === 0 || temp.fileFolderName === temp.oldFileFolderName"
-              @click="renameFileFolder"
-            >
-              <template #icon><CheckOutlined /></template>
+              @click="renameFileFolder">
               {{ $t("i18n_e83a256e4f") }}
             </a-button>
-          </div>
-        </div>
+          </a-row>
+        </a-space>
       </CustomModal>
 
       <!-- 修改文件权限 -->
-      <CustomModal
-        v-if="editFilePermissionVisible"
-        v-model:open="editFilePermissionVisible"
-        destroy-on-close
-        width="400px"
-        :title="$t('i18n_5cc7e8e30a')"
-        :footer="null"
-        :mask-closable="true"
-        class="file-permission-modal"
-      >
-        <div class="permission-grid">
-          <div class="header">
+      <CustomModal v-if="editFilePermissionVisible" v-model:open="editFilePermissionVisible" destroy-on-close
+        width="400px" :title="`${$t('i18n_5cc7e8e30a')}`" :footer="null" :mask-closable="true">
+        <a-row>
+          <a-col :span="6">
             <span class="title">{{ $t("i18n_ba6e91fa9e") }}</span>
-          </div>
-          <div class="header">
+          </a-col>
+          <a-col :span="6">
             <span class="title">{{ $t("i18n_8306971039") }}</span>
-          </div>
-          <div class="header">
+          </a-col>
+          <a-col :span="6">
             <span class="title">{{ $t("i18n_e72a0ba45a") }}</span>
-          </div>
-          <div class="header">
+          </a-col>
+          <a-col :span="6">
             <span class="title">{{ $t("i18n_0d98c74797") }}</span>
-          </div>
-
-          <div class="permission-row">
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="6">
             <span>{{ $t("i18n_75769d1ac8") }}</span>
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.owner.read" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.group.read" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.others.read" />
-          </div>
-
-          <div class="permission-row">
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="6">
             <span>{{ $t("i18n_4d7dc6c5f8") }}</span>
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.owner.write" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.group.write" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.others.write" />
-          </div>
-
-          <div class="permission-row">
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="6">
             <span>{{ $t("i18n_1a6aa24e76") }}</span>
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.owner.execute" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.group.execute" />
-          </div>
-          <div class="permission-cell">
+          </a-col>
+          <a-col :span="6">
             <a-checkbox v-model:checked="permissions.others.execute" />
-          </div>
-        </div>
-
-        <div class="action-bar">
-          <a-button type="primary" @click="updateFilePermissions">
-            <template #icon><CheckOutlined /></template>
-            {{ $t("i18n_49e56c7b90") }}
-          </a-button>
-        </div>
+          </a-col>
+        </a-row>
+        <a-row type="flex" style="margin-top: 20px">
+          <a-button type="primary" @click="updateFilePermissions">{{ $t("i18n_49e56c7b90") }}</a-button>
+        </a-row>
+        <!-- <a-row>
+            <a-alert style="margin-top: 20px" :message="permissionTips" type="success" />
+          </a-row> -->
       </CustomModal>
     </a-layout-content>
   </div>
@@ -1312,6 +1248,11 @@ export default {
         .finally(() => {
           this.confirmLoading = false;
         });
+    },
+    formatCode() {
+      // 实现自动格式化代码的逻辑
+      // 这需要基于您的应用程序结构进行具体实现
+      console.log("Formatting code...");
     }
   }
 };
@@ -1391,8 +1332,9 @@ export default {
         border-bottom: 1px solid var(--el-border-color-lighter);
       }
 
-      .ant-table-thead > tr > th {
+      .ant-table-thead>tr>th {
         background: var(--el-bg-color-page);
+
         &::before {
           display: none;
         }
@@ -1404,118 +1346,6 @@ export default {
         &:hover {
           background: var(--el-color-primary-light-9) !important;
         }
-      }
-    }
-  }
-
-  .upload-file-modal {
-    .upload-container {
-      padding: 24px;
-
-      .ant-upload-list {
-        margin-top: 16px;
-      }
-
-      .upload-action {
-        margin-top: 24px;
-        text-align: center;
-      }
-    }
-  }
-
-  .file-permission-modal {
-    .permission-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-      padding: 16px;
-      background: var(--el-bg-color-page);
-      border-radius: 8px;
-
-      .header {
-        font-weight: 500;
-        color: var(--el-text-color-regular);
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--el-border-color-lighter);
-      }
-
-      .permission-row {
-        display: flex;
-        align-items: center;
-        color: var(--el-text-color-primary);
-      }
-
-      .permission-cell {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    }
-
-    .action-bar {
-      display: flex;
-      justify-content: center;
-      margin-top: 24px;
-    }
-  }
-
-  .sharding-upload-modal {
-    .ant-alert {
-      margin-bottom: 24px;
-      border-radius: 4px;
-    }
-
-    .upload-progress {
-      margin: 24px 0;
-
-      .ant-progress-outer {
-        margin-right: 0;
-        padding-right: 0;
-      }
-
-      .ant-progress-text {
-        margin: 0 8px;
-        color: var(--el-text-color-primary);
-      }
-
-      .ant-progress-bg {
-        height: 8px !important;
-        border-radius: 4px;
-      }
-    }
-  }
-
-  .rename-modal {
-    .rename-container {
-      padding: 24px;
-
-      .current-path {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 16px;
-        padding: 8px 12px;
-        background: var(--el-color-primary-light-9);
-        border-radius: 4px;
-
-        .anticon {
-          color: var(--el-text-color-secondary);
-        }
-
-        .path-text {
-          color: var(--el-text-color-regular);
-          font-size: 14px;
-        }
-      }
-
-      .rename-input {
-        margin-bottom: 24px;
-      }
-
-      .action-bar {
-        display: flex;
-        justify-content: center;
       }
     }
   }
@@ -1587,34 +1417,15 @@ export default {
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 24px;
-    padding: 16px;
-    background: var(--el-bg-color-page);
-    border-radius: 8px;
 
-    .header {
+    .title {
       font-weight: 500;
-      color: var(--el-text-color-regular);
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
-    }
-
-    .permission-row {
-      display: flex;
-      align-items: center;
       color: var(--el-text-color-primary);
     }
 
-    .permission-cell {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .ant-checkbox-wrapper {
+      margin-left: 0;
     }
-  }
-
-  .action-bar {
-    display: flex;
-    justify-content: center;
-    margin-top: 24px;
   }
 }
 </style>
