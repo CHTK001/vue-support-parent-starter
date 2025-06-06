@@ -2,7 +2,7 @@
   <div class="gauge-chart-container">
     <div class="gauge-chart" :class="{ 'is-loading': loading }">
       <div v-if="loading" class="loading-overlay">
-        <el-icon class="loading-icon"><IconifyIconOnline icon="ep:loading" /></el-icon>
+        <IconifyIconOnline icon="ep:loading" class="loading-icon is-spinning" />
       </div>
       <div v-else class="gauge-content">
         <div class="gauge-header">
@@ -11,9 +11,7 @@
         </div>
 
         <div class="gauge-body">
-          <div ref="gaugeCanvasRef" class="gauge-canvas-container">
-            <canvas ref="gaugeCanvas" />
-          </div>
+          <div ref="gaugeChartRef" class="gauge-chart-container" />
 
           <div class="gauge-info">
             <div class="gauge-value">
@@ -45,7 +43,13 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import Chart from "chart.js/auto";
+import * as echarts from "echarts/core";
+import { GaugeChart } from "echarts/charts";
+import { CanvasRenderer } from "echarts/renderers";
+import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
+
+// 注册必要的组件
+echarts.use([GaugeChart, CanvasRenderer, TitleComponent, TooltipComponent, LegendComponent]);
 
 const props = defineProps({
   chartData: {
@@ -63,8 +67,7 @@ const props = defineProps({
 });
 
 // 引用
-const gaugeCanvasRef = ref(null);
-const gaugeCanvas = ref(null);
+const gaugeChartRef = ref(null);
 let gaugeChart = null;
 
 // 格式化数值
@@ -171,70 +174,125 @@ const getGaugeColor = value => {
   return thresholds[0].color;
 };
 
-// 初始化仪表盘
-const initGaugeChart = () => {
-  if (!gaugeCanvas.value) return;
-
-  // 销毁已有图表
-  if (gaugeChart) {
-    gaugeChart.destroy();
-  }
-
-  const ctx = gaugeCanvas.value.getContext("2d");
-
-  gaugeChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      datasets: [
-        {
-          data: [value.value, 100 - value.value],
-          backgroundColor: [getGaugeColor(value.value), "#E4E7ED"],
-          borderWidth: 0,
-          circumference: 180,
-          rotation: 270
-        }
-      ]
+// 获取渐变色配置
+const getGaugeColorStops = () => {
+  return [
+    {
+      offset: 0,
+      color: thresholds[0].color
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "75%",
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          enabled: false
-        }
-      },
-      animation: {
-        duration: 1000,
-        easing: "easeOutCubic"
-      }
+    {
+      offset: thresholds[1].value / 100,
+      color: thresholds[1].color
+    },
+    {
+      offset: thresholds[2].value / 100,
+      color: thresholds[2].color
     }
-  });
+  ];
 };
 
-// 更新仪表盘
+// 初始化 ECharts 仪表盘
+const initGaugeChart = () => {
+  if (!gaugeChartRef.value) return;
+
+  // 初始化 ECharts 实例
+  gaugeChart = echarts.init(gaugeChartRef.value);
+
+  // 设置仪表盘配置项
+  const option = {
+    series: [
+      {
+        type: "gauge",
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 100,
+        radius: "100%",
+        splitNumber: 10,
+        axisLine: {
+          lineStyle: {
+            width: 20,
+            color: [...getGaugeColorStops()]
+          }
+        },
+        pointer: {
+          icon: "path://M12.8,0.7l12,40.1H0.7L12.8,0.7z",
+          length: "60%",
+          width: 6,
+          offsetCenter: [0, "0%"],
+          itemStyle: {
+            color: "auto"
+          }
+        },
+        axisTick: {
+          length: 12,
+          lineStyle: {
+            color: "auto",
+            width: 1
+          }
+        },
+        splitLine: {
+          length: 20,
+          lineStyle: {
+            color: "auto",
+            width: 2
+          }
+        },
+        axisLabel: {
+          color: "#909399",
+          fontSize: 12,
+          distance: -40,
+          formatter: function (value) {
+            if (value === 0 || value === 100) {
+              return value;
+            }
+            return "";
+          }
+        },
+        detail: {
+          show: false
+        },
+        data: [
+          {
+            value: value.value,
+            name: "当前值"
+          }
+        ],
+        title: {
+          show: false
+        },
+        animation: true,
+        animationDuration: 1000,
+        animationEasing: "cubicOut"
+      }
+    ]
+  };
+
+  // 设置配置项并渲染图表
+  gaugeChart.setOption(option);
+};
+
+// 更新仪表盘数据
 const updateGaugeChart = () => {
   if (!gaugeChart) return;
 
-  gaugeChart.data.datasets[0].data = [value.value, 100 - value.value];
-  gaugeChart.data.datasets[0].backgroundColor[0] = getGaugeColor(value.value);
-  gaugeChart.update();
+  gaugeChart.setOption({
+    series: [
+      {
+        data: [
+          {
+            value: value.value,
+            name: "当前值"
+          }
+        ]
+      }
+    ]
+  });
 };
 
-// 调整画布大小
-const resizeCanvas = () => {
-  if (!gaugeCanvasRef.value || !gaugeCanvas.value) return;
-
-  const container = gaugeCanvasRef.value;
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-
-  gaugeCanvas.value.width = width;
-  gaugeCanvas.value.height = height;
-
+// 调整图表大小
+const resizeChart = () => {
   if (gaugeChart) {
     gaugeChart.resize();
   }
@@ -242,7 +300,7 @@ const resizeCanvas = () => {
 
 // 监听窗口大小变化
 const handleResize = () => {
-  resizeCanvas();
+  resizeChart();
 };
 
 // 监听数据变化
@@ -265,7 +323,6 @@ onMounted(() => {
   window.addEventListener("resize", handleResize);
 
   nextTick(() => {
-    resizeCanvas();
     initGaugeChart();
   });
 });
@@ -275,7 +332,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", handleResize);
 
   if (gaugeChart) {
-    gaugeChart.destroy();
+    gaugeChart.dispose();
     gaugeChart = null;
   }
 });
@@ -315,7 +372,10 @@ onBeforeUnmount(() => {
       .loading-icon {
         font-size: 24px;
         color: var(--el-color-primary);
-        animation: rotate 1s linear infinite;
+
+        &.is-spinning {
+          animation: rotate 1s linear infinite;
+        }
       }
     }
   }
@@ -347,7 +407,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   position: relative;
 
-  .gauge-canvas-container {
+  .gauge-chart-container {
     width: 100%;
     height: 70%;
     position: relative;
