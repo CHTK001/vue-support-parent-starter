@@ -3,6 +3,7 @@ buttons:
     database: Database Management
     database-tools: Management Tools
     datav: Data Visualization
+    fullscreen: Fullscreen Management
     job: Task Management
     job-list: Task List
     job-log: Task Log

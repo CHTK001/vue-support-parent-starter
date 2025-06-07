@@ -43,6 +43,7 @@ export interface MonitorSysGenPrometheusConfig {
   updateBy: number;
   monitorSysGenPrometheusConfigId: number;
   monitorSysGenPrometheusConfigName: string;
+  monitorSysGenPrometheusConfigTitle: string;
   monitorSysGenPrometheusConfigPostion: string;
   monitorSysGenPrometheusConfigQl: string;
   monitorSysGenPrometheusConfigChartType: string;

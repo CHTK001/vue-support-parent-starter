@@ -21,11 +21,10 @@
             <IconifyIconOnline :icon="isBrowserFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="容器全屏">
-          <el-button type="primary" circle size="small" @click="toggleContainerFullscreen">
-            <IconifyIconOnline :icon="isContainerFullscreen ? 'ri:contract-left-right-line' : 'ri:expand-left-right-line'" />
-          </el-button>
-        </el-tooltip>
+        <el-button v-if="editable && layoutChanged" type="success" @click="saveConfigToServer">
+          <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+          保存布局
+        </el-button>
       </div>
     </div>
 
@@ -70,14 +69,14 @@
     <div v-else class="empty-layout">
       <el-empty description="暂无监控组件" :image-size="100">
         <template #image>
-          <IconifyIconOnline icon="ri:dashboard-line" style="font-size: 80px; color: #909399" />
+          <IconifyIconOnline icon="ri:dashboard-line" style="font-size: 80px; color: #4db6ac" />
         </template>
         <el-button v-if="editable" type="primary" @click="showAddComponentDrawer = true">添加组件</el-button>
       </el-empty>
     </div>
 
     <!-- 添加/编辑组件抽屉 -->
-    <el-drawer v-model="showAddComponentDrawer" :title="editingComponent ? '编辑监控组件' : '添加监控组件'" size="40%" destroy-on-close>
+    <el-drawer v-model="showAddComponentDrawer" class="component-drawer-parent" :title="editingComponent ? '编辑监控组件' : '添加监控组件'" size="40%" destroy-on-close>
       <div class="component-drawer">
         <el-form ref="componentFormRef" :model="componentForm" :rules="componentFormRules" label-width="100px">
           <el-form-item label="组件标题" prop="title">
@@ -87,7 +86,13 @@
             <ScSelect v-model="componentForm.type" :options="componentTypeOptions" layout="card" :columns="3" :gap="8" width="100px" icon-position="center" />
           </el-form-item>
           <el-form-item label="PromQL" prop="promQL">
-            <el-input v-model="componentForm.promQL" type="textarea" :rows="4" placeholder="请输入Prometheus查询语句" />
+            <div class="promql-input-group">
+              <el-input v-model="componentForm.promQL" type="textarea" :rows="4" placeholder="请输入Prometheus查询语句" />
+              <el-button type="primary" @click="showPromQLExamples">
+                <IconifyIconOnline icon="ri:code-line" class="mr-1" />
+                查询示例
+              </el-button>
+            </div>
           </el-form-item>
           <el-form-item label="组件宽度" prop="width">
             <el-slider
@@ -148,7 +153,7 @@
                   @click="toggleComponentSelection(item)"
                 >
                   <div class="component-card-header">
-                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigName }}</span>
+                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigTitle || item.monitorSysGenPrometheusConfigName }}</span>
                     <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenPrometheusConfigChartType)">
                       {{ getComponentTypeName(item.monitorSysGenPrometheusConfigChartType) }}
                     </el-tag>
@@ -157,7 +162,7 @@
                     <IconifyIconOnline :icon="getComponentTypeIcon(item.monitorSysGenPrometheusConfigChartType)" class="component-card-icon" />
                   </div>
                   <div class="component-card-footer">
-                    <el-checkbox v-model="selectedComponents" :label="item.monitorSysGenPrometheusConfigId" @click.stop>选择</el-checkbox>
+                    <el-checkbox :model-value="selectedComponents.includes(item.monitorSysGenPrometheusConfigId)" @change="() => toggleComponentSelection(item)" @click.stop>选择</el-checkbox>
                   </div>
                 </div>
               </div>
@@ -175,7 +180,7 @@
                   @click="toggleComponentSelection(item)"
                 >
                   <div class="component-card-header">
-                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigName }}</span>
+                    <span class="component-card-title">{{ item.monitorSysGenPrometheusConfigTitle || item.monitorSysGenPrometheusConfigName }}</span>
                     <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenPrometheusConfigChartType)">
                       {{ getComponentTypeName(item.monitorSysGenPrometheusConfigChartType) }}
                     </el-tag>
@@ -184,7 +189,7 @@
                     <IconifyIconOnline :icon="getComponentTypeIcon(item.monitorSysGenPrometheusConfigChartType)" class="component-card-icon" />
                   </div>
                   <div class="component-card-footer">
-                    <el-checkbox v-model="selectedComponents" :label="item.monitorSysGenPrometheusConfigId" @click.stop>选择</el-checkbox>
+                    <el-checkbox :model-value="selectedComponents.includes(item.monitorSysGenPrometheusConfigId)" @change="() => toggleComponentSelection(item)" @click.stop>选择</el-checkbox>
                     <span class="component-card-author">{{ item.createName }}</span>
                   </div>
                 </div>
@@ -198,27 +203,81 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- PromQL 示例对话框 -->
+    <el-dialog v-model="showPromQLExamplesDialog" title="PromQL 查询示例" width="60%" destroy-on-close>
+      <div class="promql-examples">
+        <el-tabs>
+          <el-tab-pane label="系统监控">
+            <el-descriptions title="系统监控示例" :column="1" border>
+              <el-descriptions-item v-for="(example, index) in systemExamples" :key="index" :label="example.name">
+                <div class="example-content">
+                  <div class="example-query">{{ example.query }}</div>
+                  <div class="example-actions">
+                    <el-button type="primary" size="small" @click="applyPromQLExample(example.query)">使用</el-button>
+                  </div>
+                </div>
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-tab-pane>
+          <el-tab-pane label="Java 应用">
+            <el-descriptions title="Java 应用监控示例" :column="1" border>
+              <el-descriptions-item v-for="(example, index) in javaExamples" :key="index" :label="example.name">
+                <div class="example-content">
+                  <div class="example-query">{{ example.query }}</div>
+                  <div class="example-actions">
+                    <el-button type="primary" size="small" @click="applyPromQLExample(example.query)">使用</el-button>
+                  </div>
+                </div>
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-tab-pane>
+          <el-tab-pane label="Spring Boot">
+            <el-descriptions title="Spring Boot 监控示例" :column="1" border>
+              <el-descriptions-item v-for="(example, index) in springBootExamples" :key="index" :label="example.name">
+                <div class="example-content">
+                  <div class="example-query">{{ example.query }}</div>
+                  <div class="example-actions">
+                    <el-button type="primary" size="small" @click="applyPromQLExample(example.query)">使用</el-button>
+                  </div>
+                </div>
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { GridLayout, GridItem } from "grid-layout-plus";
-import { debounce } from "lodash-es";
-import LineChart from "./LineChart.vue";
-import BarChart from "./BarChart.vue";
-import GaugeChart from "./GaugeChart.vue";
-import CardChart from "./CardChart.vue";
+<script setup lang="ts">
+import {
+  fetchPrometheusDeleteConfig,
+  fetchPrometheusListConfig,
+  fetchPrometheusSaveConfig,
+  fetchPrometheusShareConfig,
+  fetchPrometheusUpdateConfig,
+  MonitorSysGenPrometheusConfig
+} from "@/api/prometheus/config";
+import { fetchPrometheusQueryGen, fetchPrometheusQueryRangeGen, PrometheusGenQueryRangeRequest } from "@/api/prometheus/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { fetchPrometheusSaveConfig, fetchPrometheusListConfig, fetchPrometheusUpdateConfig, fetchPrometheusDeleteConfig, fetchPrometheusShareConfig } from "@/api/prometheus/config";
-import { fetchPrometheusQueryRangeGen, fetchPrometheusQueryGen } from "@/api/prometheus/index";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { GridItem, GridLayout } from "grid-layout-plus";
+import { defineExpose, defineProps, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import BarChart from "./BarChart.vue";
+import CardChart from "./CardChart.vue";
+import GaugeChart from "./GaugeChart.vue";
+import LineChart from "./LineChart.vue";
 
 const props = defineProps({
   data: Object,
   editable: {
     type: Boolean,
     default: false
+  },
+  timeParams: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -231,7 +290,6 @@ const configId = ref(null);
 // 全屏相关
 const prometheusLayoutRef = ref(null);
 const isBrowserFullscreen = ref(false);
-const isContainerFullscreen = ref(false);
 
 // 组件类型选项
 const componentTypeOptions = [
@@ -265,7 +323,35 @@ const showComponentSelector = ref(false);
 const componentSelectorTab = ref("my");
 const myComponents = ref([]);
 const sharedComponents = ref([]);
-const selectedComponents = ref([]);
+const selectedComponents = ref<string[]>([]);
+
+// PromQL 示例相关
+const showPromQLExamplesDialog = ref(false);
+const systemExamples = [
+  { name: "主机存活检测", query: 'up{job="node-exporter"}' },
+  { name: "CPU 使用率", query: '100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
+  { name: "内存使用率", query: "100 * (1 - ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes))" },
+  { name: "磁盘使用率", query: '100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"})' },
+  { name: "网络流入流量", query: 'irate(node_network_receive_bytes_total{device!="lo"}[5m])' },
+  { name: "网络流出流量", query: 'irate(node_network_transmit_bytes_total{device!="lo"}[5m])' }
+];
+
+const javaExamples = [
+  { name: "JVM 堆内存使用", query: 'sum(jvm_memory_used_bytes{area="heap"}) by (instance)' },
+  { name: "JVM 非堆内存使用", query: 'sum(jvm_memory_used_bytes{area="nonheap"}) by (instance)' },
+  { name: "GC 暂停时间", query: "sum(increase(jvm_gc_pause_seconds_sum[1m])) by (instance)" },
+  { name: "线程数", query: "jvm_threads_live_threads" },
+  { name: "类加载数", query: "jvm_classes_loaded_classes" }
+];
+
+const springBootExamples = [
+  { name: "HTTP 请求总数", query: "sum(http_server_requests_seconds_count) by (instance)" },
+  { name: "HTTP 请求延迟", query: "sum(rate(http_server_requests_seconds_sum[5m])) by (instance) / sum(rate(http_server_requests_seconds_count[5m])) by (instance)" },
+  { name: "HTTP 错误率", query: 'sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (instance) / sum(rate(http_server_requests_seconds_count[5m])) by (instance)' },
+  { name: "数据库连接数", query: "hikaricp_connections_active" },
+  { name: "系统负载", query: "system_load_average_1m" },
+  { name: "Tomcat 活跃会话数", query: "tomcat_sessions_active_current_sessions" }
+];
 
 // 组件数据
 const componentsData = ref({});
@@ -273,6 +359,12 @@ let refreshTimers = {};
 
 // 获取时间范围参数
 const getTimeRangeParams = () => {
+  // 如果父组件传入了时间范围参数，则使用它
+  if (props.timeParams && props.timeParams.start && props.timeParams.end) {
+    return props.timeParams;
+  }
+
+  // 否则使用默认值
   const end = Math.floor(Date.now() / 1000);
   const start = end - 60 * 60; // 默认1小时
   const step = 60; // 默认步长60秒
@@ -337,23 +429,15 @@ const toggleBrowserFullscreen = () => {
   }
 };
 
-// 容器全屏切换
-const toggleContainerFullscreen = () => {
-  isContainerFullscreen.value = !isContainerFullscreen.value;
+// 显示 PromQL 示例对话框
+const showPromQLExamples = () => {
+  showPromQLExamplesDialog.value = true;
+};
 
-  // 添加或移除全屏样式类
-  if (prometheusLayoutRef.value) {
-    if (isContainerFullscreen.value) {
-      prometheusLayoutRef.value.classList.add("prometheus-layout-fullscreen");
-    } else {
-      prometheusLayoutRef.value.classList.remove("prometheus-layout-fullscreen");
-    }
-  }
-
-  // 触发布局重新计算
-  setTimeout(() => {
-    window.dispatchEvent(new Event("resize"));
-  }, 100);
+// 应用 PromQL 示例
+const applyPromQLExample = query => {
+  componentForm.promQL = query;
+  showPromQLExamplesDialog.value = false;
 };
 
 // 监听全屏变化事件
@@ -366,32 +450,63 @@ const loadComponentData = async item => {
   if (!props.data.genId || !item.promQL) return;
 
   try {
-    // 根据组件类型选择不同的API
-    if (item.type === "gauge") {
-      // 仪表盘使用fetchPrometheusQueryGen接口
+    // 对于卡片和仪表盘类型，只需要最新的一条记录
+    if (item.type === "card" || item.type === "gauge") {
+      // 使用即时查询接口获取最新值
       const res = await fetchPrometheusQueryGen({
         monitorSysGenId: props.data.genId,
         promQL: item.promQL
       });
 
-      if (res.code === 200 && res.data && res.data.result && res.data.result.length > 0) {
-        const result = res.data.result[0];
-        const value = result.value ? result.value[1] : 0;
+      if (res.code === "00000" && res.data) {
+        // 处理 Prometheus 格式的数据
+        const prometheusData = res.data;
 
-        const chartData = {
-          labels: [item.title || "数据"],
-          datasets: [
-            {
-              label: item.title || "数据",
-              data: [parseFloat(value).toFixed(2)],
-              borderColor: item.color || "#409EFF",
-              backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-              fill: true
-            }
-          ]
-        };
+        // 检查是否有结果数据
+        if (prometheusData.status === "success" && prometheusData.data && prometheusData.data.result && prometheusData.data.result.length > 0) {
+          const result = prometheusData.data.result[0];
 
-        componentsData.value[item.i] = chartData;
+          // 获取值，Prometheus 即时查询返回的格式是 [timestamp, value]
+          const value = result.value ? parseFloat(result.value[1]) : 0;
+
+          // 格式化时间戳为可读时间
+          const timestamp = result.value ? result.value[0] : Math.floor(Date.now() / 1000);
+          const formattedTime = new Date(timestamp * 1000).toLocaleString();
+
+          const chartData = {
+            title: item.title,
+            labels: [formattedTime], // 使用格式化后的时间作为标签
+            updateTime: formattedTime, // 添加更新时间字段
+            datasets: [
+              {
+                label: result.metric ? formatMetricName(result.metric) : item.title || "数据",
+                data: [value.toFixed(2)],
+                borderColor: item.color || "#409EFF",
+                backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+                fill: true
+              }
+            ]
+          };
+
+          componentsData.value[item.i] = chartData;
+        } else {
+          // 如果没有数据，设置空数据
+          const currentTime = new Date().toLocaleString();
+          componentsData.value[item.i] = {
+            title: item.title,
+            labels: [currentTime],
+            updateTime: currentTime,
+            datasets: [
+              {
+                label: item.title || "数据",
+                data: [0],
+                borderColor: item.color || "#409EFF",
+                backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+                fill: true
+              }
+            ]
+          };
+        }
       }
     } else {
       // 其他图表类型使用fetchPrometheusQueryRangeGen接口
@@ -400,31 +515,114 @@ const loadComponentData = async item => {
         monitorSysGenId: props.data.genId,
         promQL: item.promQL,
         ...timeParams
-      });
+      } as PrometheusGenQueryRangeRequest);
 
-      if (res.code === 200 && res.data && res.data.result && res.data.result.length > 0) {
-        const result = res.data.result[0];
-        const values = result.values || [];
+      if (res.code === "00000" && res.data) {
+        // 处理 Prometheus 格式的数据
+        const prometheusData = res.data;
 
-        const chartData = {
-          labels: values.map(item => new Date(item[0] * 1000).toLocaleTimeString()),
-          datasets: [
-            {
-              label: item.title || "数据",
-              data: values.map(item => parseFloat(item[1]).toFixed(2)),
-              borderColor: item.color || "#409EFF",
-              backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+        // 检查是否有结果数据
+        if (prometheusData.status === "success" && prometheusData.data && prometheusData.data.result && prometheusData.data.result.length > 0) {
+          // 处理多个时间序列的情况
+          const datasets = prometheusData.data.result.map((result, index) => {
+            const values = result.values || [];
+            const metricName = result.metric ? formatMetricName(result.metric) : item.title || `数据 ${index + 1}`;
+
+            // 为不同的时间序列生成不同的颜色
+            const color = index === 0 ? item.color || "#409EFF" : getRandomColor();
+            const bgColor = index === 0 ? item.bgColor || "rgba(64, 158, 255, 0.1)" : getRandomColor(0.1);
+
+            return {
+              label: metricName,
+              data: values.map(point => parseFloat(point[1]).toFixed(2)),
+              borderColor: color,
+              backgroundColor: bgColor,
               fill: true
-            }
-          ]
-        };
+            };
+          });
 
-        componentsData.value[item.i] = chartData;
+          // 所有时间序列应该共享相同的时间标签
+          const timeLabels = prometheusData.data.result[0].values.map(point => {
+            const date = new Date(point[0] * 1000);
+            return date.toLocaleTimeString();
+          });
+
+          // 获取最新时间
+          let updateTime = "暂无数据";
+          if (prometheusData.data.result[0].values && prometheusData.data.result[0].values.length > 0) {
+            const lastPoint = prometheusData.data.result[0].values[prometheusData.data.result[0].values.length - 1];
+            updateTime = new Date(lastPoint[0] * 1000).toLocaleString();
+          }
+
+          const chartData = {
+            title: item.title,
+            labels: timeLabels,
+            updateTime: updateTime, // 添加更新时间字段
+            datasets: datasets
+          };
+
+          componentsData.value[item.i] = chartData;
+        } else {
+          // 如果没有数据，设置空数据
+          const currentTime = new Date().toLocaleString();
+          componentsData.value[item.i] = {
+            title: item.title,
+            labels: [],
+            updateTime: currentTime,
+            datasets: [
+              {
+                label: item.title || "数据",
+                data: [],
+                borderColor: item.color || "#409EFF",
+                backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+                fill: true
+              }
+            ]
+          };
+        }
       }
     }
   } catch (error) {
     console.error(`加载组件 ${item.title} 数据失败:`, error);
+    // 设置错误状态的空数据
+    const currentTime = new Date().toLocaleString();
+    componentsData.value[item.i] = {
+      title: item.title,
+      labels: [],
+      updateTime: currentTime,
+      datasets: [
+        {
+          label: `${item.title || "数据"} (加载失败)`,
+          data: [],
+          borderColor: "#ff4d4f",
+          backgroundColor: "rgba(255, 77, 79, 0.1)",
+          fill: true
+        }
+      ]
+    };
   }
+};
+
+// 格式化指标名称，从 metric 对象中提取有用信息
+const formatMetricName = metric => {
+  if (!metric) return "未知指标";
+
+  // 尝试从常见的 Prometheus 标签中获取有意义的名称
+  const nameFromLabels = metric.__name__ || metric.name || metric.job || metric.instance;
+
+  if (nameFromLabels) {
+    // 如果有其他重要标签，可以添加到名称中
+    const instance = metric.instance ? ` (${metric.instance})` : "";
+    return `${nameFromLabels}${instance}`;
+  }
+
+  // 如果没有常见标签，则将所有标签组合成一个字符串
+  const labels = Object.entries(metric)
+    .filter(([key]) => key !== "__name__")
+    .map(([key, value]) => `${key}="${value}"`)
+    .join(", ");
+
+  return labels ? `{${labels}}` : "未知指标";
 };
 
 // 设置组件刷新定时器
@@ -445,6 +643,7 @@ const setupComponentRefreshTimer = item => {
 // 清除所有定时器
 const clearAllRefreshTimers = () => {
   Object.values(refreshTimers).forEach(timer => {
+    //@ts-ignore
     clearInterval(timer);
   });
   refreshTimers = {};
@@ -454,20 +653,7 @@ const clearAllRefreshTimers = () => {
 const handleLayoutUpdated = newLayout => {
   layout.value = newLayout;
   layoutChanged.value = true;
-
-  // 延迟保存，避免频繁保存
-  if (props.editable) {
-    debounceUpdateConfig();
-  }
 };
-
-// 防抖保存配置
-const debounceUpdateConfig = debounce(() => {
-  if (layoutChanged.value) {
-    saveConfigToServer();
-    layoutChanged.value = false;
-  }
-}, 1000);
 
 // 保存配置到服务器
 const saveConfigToServer = async () => {
@@ -481,10 +667,11 @@ const saveConfigToServer = async () => {
         layout: layout.value
       }),
       monitorSysGenPrometheusConfigName: "布局配置",
+      monitorSysGenPrometheusConfigTitle: "布局配置",
       monitorSysGenPrometheusConfigEnable: true,
       monitorSysGenPrometheusConfigChartType: "layout",
       monitorSysGenPrometheusConfigShare: false
-    };
+    } as MonitorSysGenPrometheusConfig;
 
     // 如果是更新已有配置
     if (configId.value) {
@@ -493,12 +680,14 @@ const saveConfigToServer = async () => {
     } else {
       // 如果是新建配置
       const res = await fetchPrometheusSaveConfig(config);
-      if (res.code === 200 && res.data) {
+      if (res.code === "00000" && res.data) {
         // 保存配置ID，用于后续更新
+        //@ts-ignore
         configId.value = res.data.monitorSysGenPrometheusConfigId;
       }
     }
 
+    layoutChanged.value = false;
     ElMessage.success("布局已保存");
   } catch (error) {
     console.error("保存布局失败:", error);
@@ -512,11 +701,11 @@ const loadComponentConfigs = async () => {
 
   try {
     const res = await fetchPrometheusListConfig({
-      monitorSysGenId: props.data.genId,
+      genId: props.data.genId,
       monitorSysGenPrometheusConfigType: "component"
     });
 
-    if (res.code === 200 && res.data && res.data.length > 0) {
+    if (res.code === "00000" && res.data && res.data.length > 0) {
       // 将组件配置与布局项关联
       for (const config of res.data) {
         try {
@@ -544,11 +733,11 @@ const loadConfig = async () => {
   try {
     loading.value = true;
     const res = await fetchPrometheusListConfig({
-      monitorSysGenId: props.data.genId,
+      genId: props.data.genId,
       monitorSysGenPrometheusConfigType: "layout"
     });
 
-    if (res.code === 200 && res.data && res.data.length > 0) {
+    if (res.code === "00000" && res.data && res.data.length > 0) {
       const config = res.data[0];
       configId.value = config.monitorSysGenPrometheusConfigId;
 
@@ -622,10 +811,11 @@ const removeComponent = item => {
             monitorSysGenId: props.data.genId,
             monitorSysGenPrometheusConfigType: "component",
             monitorSysGenPrometheusConfigName: item.title || "",
+            monitorSysGenPrometheusConfigTitle: item.title || "",
             monitorSysGenPrometheusConfigEnable: true,
             monitorSysGenPrometheusConfigChartType: item.type || "line",
             monitorSysGenPrometheusConfigShare: false
-          });
+          } as MonitorSysGenPrometheusConfig);
         } catch (error) {
           console.error("删除组件配置失败:", error);
         }
@@ -649,6 +839,7 @@ const saveComponentConfig = async item => {
       monitorSysGenPrometheusConfigType: "component",
       monitorSysGenPrometheusConfigQl: item.promQL,
       monitorSysGenPrometheusConfigName: item.title,
+      monitorSysGenPrometheusConfigTitle: item.title,
       monitorSysGenPrometheusConfigChartType: item.type,
       monitorSysGenPrometheusConfigEnable: true,
       monitorSysGenPrometheusConfigShare: item.isShared,
@@ -662,7 +853,7 @@ const saveComponentConfig = async item => {
         color: item.color,
         bgColor: item.bgColor
       })
-    };
+    } as MonitorSysGenPrometheusConfig;
 
     // 如果组件已有配置ID
     if (item.configId) {
@@ -671,8 +862,9 @@ const saveComponentConfig = async item => {
     } else {
       // 如果是新建组件配置
       const res = await fetchPrometheusSaveConfig(config);
-      if (res.code === 200 && res.data) {
+      if (res.code === "00000" && res.data) {
         // 保存组件配置ID
+        //@ts-ignore
         item.configId = res.data.monitorSysGenPrometheusConfigId;
       }
     }
@@ -788,11 +980,11 @@ const loadMyComponents = async () => {
 
   try {
     const res = await fetchPrometheusListConfig({
-      monitorSysGenId: props.data.genId,
+      genId: props.data.genId,
       monitorSysGenPrometheusConfigType: "component"
     });
 
-    if (res.code === 200 && res.data) {
+    if (res.code === "00000" && res.data) {
       myComponents.value = res.data.filter(item => !layout.value.some(layoutItem => layoutItem.configId === item.monitorSysGenPrometheusConfigId));
     }
   } catch (error) {
@@ -810,7 +1002,7 @@ const loadSharedComponents = async () => {
       monitorSysGenId: props.data.genId
     });
 
-    if (res.code === 200 && res.data) {
+    if (res.code === "00000" && res.data) {
       sharedComponents.value = res.data.filter(item => !layout.value.some(layoutItem => layoutItem.configId === item.monitorSysGenPrometheusConfigId));
     }
 
@@ -859,7 +1051,7 @@ const addSelectedComponents = async () => {
         y: layout.value.length,
         w: 12,
         h: 9,
-        title: item.monitorSysGenPrometheusConfigName,
+        title: item.monitorSysGenPrometheusConfigTitle || item.monitorSysGenPrometheusConfigName,
         type: item.monitorSysGenPrometheusConfigChartType,
         promQL: item.monitorSysGenPrometheusConfigQl,
         refreshInterval: 60,
@@ -947,6 +1139,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   position: relative;
+  background-color: #1e1e2e;
 
   &:deep(.vue-grid-layout) {
     flex: 1;
@@ -958,9 +1151,10 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color-light);
+    background-color: #1e1e2e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 10;
+    color: #e0e0e0;
 
     .layout-actions-left {
       display: flex;
@@ -976,12 +1170,14 @@ defineExpose({
   .grid-item-content {
     height: 100%;
     width: 100%;
-    background-color: var(--el-bg-color);
-    border-radius: var(--el-border-radius-base);
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    background-color: #292a3e;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.3);
     position: relative;
-    padding: 10px;
     overflow: hidden;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: #e0e0e0;
   }
 
   .grid-item-overlay {
@@ -990,7 +1186,7 @@ defineExpose({
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(30, 30, 46, 0.8);
     z-index: 10;
     display: flex;
     flex-direction: column;
@@ -1013,7 +1209,7 @@ defineExpose({
   .grid-item-drag-handle {
     cursor: move;
     font-size: 24px;
-    color: var(--el-color-primary);
+    color: #4db6ac;
   }
 
   .empty-layout {
@@ -1021,10 +1217,51 @@ defineExpose({
     display: flex;
     justify-content: center;
     align-items: center;
+    color: #e0e0e0;
+  }
+
+  :deep(.el-switch__label),
+  :deep(.el-drawer__header) {
+    color: #e0e0e0;
+  }
+  :deep(.el-input__wrapper) {
+    background-color: #292a3e !important;
+  }
+  :deep(.el-drawer),
+  :deep(.el-input__wrapper),
+  .component-drawer-parent {
+    background-color: #1e1e2e !important;
   }
 
   .component-drawer {
     padding: 16px;
+    background-color: #1e1e2e;
+    color: #e0e0e0;
+
+    :deep(.el-form) {
+      .el-form-item__label {
+        color: #e0e0e0;
+      }
+
+      .el-input__inner,
+      .el-textarea__inner {
+        background-color: #292a3e;
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+      }
+
+      .el-slider__runway {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .el-slider__bar {
+        background-color: #4db6ac;
+      }
+
+      .el-slider__button {
+        border-color: #4db6ac;
+      }
+    }
 
     .drawer-footer {
       position: absolute;
@@ -1032,8 +1269,8 @@ defineExpose({
       left: 0;
       right: 0;
       padding: 16px;
-      background-color: var(--el-bg-color);
-      border-top: 1px solid var(--el-border-color-light);
+      background-color: #1e1e2e;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
@@ -1053,25 +1290,27 @@ defineExpose({
     }
 
     .component-card {
-      border: 1px solid var(--el-border-color);
-      border-radius: var(--el-border-radius-base);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
       overflow: hidden;
       transition: all 0.3s;
       cursor: pointer;
+      background-color: #292a3e;
+      color: #e0e0e0;
 
       &:hover {
-        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.3);
         transform: translateY(-2px);
       }
 
       &-selected {
-        border-color: var(--el-color-primary);
-        box-shadow: 0 0 0 1px var(--el-color-primary-light-5);
+        border-color: #4db6ac;
+        box-shadow: 0 0 0 1px rgba(77, 182, 172, 0.3);
       }
 
       &-header {
         padding: 12px;
-        border-bottom: 1px solid var(--el-border-color-light);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1096,12 +1335,12 @@ defineExpose({
 
       &-icon {
         font-size: 48px;
-        color: var(--el-color-primary);
+        color: #4db6ac;
       }
 
       &-footer {
         padding: 12px;
-        border-top: 1px solid var(--el-border-color-light);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1109,7 +1348,7 @@ defineExpose({
 
       &-author {
         font-size: 12px;
-        color: var(--el-text-color-secondary);
+        color: #a0a0a0;
       }
     }
 
@@ -1121,7 +1360,40 @@ defineExpose({
   }
 }
 
-// 容器全屏样式
+.promql-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .el-button {
+    align-self: flex-end;
+  }
+}
+
+.promql-examples {
+  .example-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .example-query {
+    font-family: monospace;
+    background-color: #292a3e;
+    padding: 8px;
+    border-radius: 4px;
+    color: #e0e0e0;
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .example-actions {
+    flex-shrink: 0;
+  }
+}
+
 :deep(.prometheus-layout-fullscreen) {
   position: fixed !important;
   top: 0;
@@ -1131,6 +1403,6 @@ defineExpose({
   width: 100vw !important;
   height: 100vh !important;
   z-index: 9999;
-  background-color: var(--el-bg-color);
+  background-color: #1e1e2e;
 }
 </style>

@@ -148,11 +148,7 @@ const visible = reactive({
  * SHELL、WEBRTC、VNC和NACOS类型不使用分屏
  */
 const singleSplit = computed(() => {
-  return item.data.genType != "SHELL" && 
-         item.data.genType != "WEBRTC" && 
-         item.data.genType != "VNC" &&
-         item.data.genType != "PROMETHEUS" &&
-         item.data.genType != "NACOS";
+  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC" && item.data.genType != "PROMETHEUS" && item.data.genType != "NACOS";
 });
 
 /**
@@ -178,6 +174,7 @@ const getDataSourceIcon = () => {
     ZOOKEEPER: "devicon:electron",
     WEBRTC: "ri:video-chat-line",
     VNC: "simple-icons:victronenergy",
+    PROMETHEUS: "devicon:prometheus",
     REDIS: "devicon:redis",
     MONGODB: "devicon:mongodb",
     MQTT: "simple-icons:mqtt",
@@ -304,9 +301,9 @@ onMounted(async () => {
 // 计算容器类名
 const containerClasses = computed(() => {
   return {
-    'manage-container': true,
-    '!overflow-hidden': true,
-    'h-[100vh]': true,
+    "manage-container": true,
+    "!overflow-hidden": true,
+    "h-[100vh]": true,
     [`${item.data.genType?.toLowerCase()}-type`]: !!item.data.genType
   };
 });
@@ -405,7 +402,7 @@ const containerClasses = computed(() => {
   .manage-main {
     padding: 5px;
   }
-  
+
   .manage-full-content {
     box-shadow: var(--el-box-shadow-light);
   }

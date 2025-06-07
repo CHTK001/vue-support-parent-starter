@@ -83,6 +83,11 @@
                     <IconifyIconOnline icon="ep:management" />
                   </el-button>
                 </el-tooltip>
+                <el-tooltip content="全屏管理" placement="top">
+                  <el-button type="success" link @click="handleClickFullscreen(row)">
+                    <IconifyIconOnline icon="ep:full-screen" />
+                  </el-button>
+                </el-tooltip>
                 <el-tooltip content="编辑" placement="top">
                   <el-button type="primary" link @click="handleClickEdit(row)">
                     <IconifyIconOnline icon="ep:edit" />
@@ -195,6 +200,7 @@ const getIconName = row => {
   if (row.genJdbcType == "UCANACCESS") return "simple-icons:apachecassandra";
   if (row.genJdbcType == "VNC") return "simple-icons:victronenergy";
   if (row.genJdbcType == "CALCITE") return "ri:database-2-line";
+  if (row.genJdbcType == "PROMETHEUS") return "devicon:prometheus";
   if (row.genType == "INFLUXDB") return "devicon:influxdb";
   if (row.genType == "ZOOKEEPER") return "devicon:electron";
   if (row.genType == "SHELL") return "devicon:powershell";
@@ -397,6 +403,19 @@ const onSave = async (row, mode) => {
   visible.saveVisible = true;
   nextTick(() => {
     saveRef.value.setData(row).open(mode);
+  });
+};
+
+/**
+ * 处理点击全屏管理按钮
+ * @param {Object} row - 数据源行数据
+ */
+const handleClickFullscreen = row => {
+  router.push({
+    path: "/database/fullscreen",
+    query: {
+      data: Base64.encode(JSON.stringify(row))
+    }
   });
 };
 </script>

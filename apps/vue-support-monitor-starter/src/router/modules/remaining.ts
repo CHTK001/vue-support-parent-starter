@@ -10,8 +10,8 @@ export default [
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
-      rank: 101,
-    },
+      rank: 101
+    }
   },
   {
     path: "/service/document/:id",
@@ -20,8 +20,8 @@ export default [
     meta: {
       icon: "ri:file-list-line",
       title: $t("buttons.monitor.service-document"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/ssh-tabs",
@@ -29,8 +29,8 @@ export default [
     component: () => import("@/views/maintenance/ssh/ssh-tabs.vue"),
     meta: {
       title: "SSH 标签",
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/AccountSettings",
@@ -40,8 +40,8 @@ export default [
     },
     meta: {
       title: $t("buttons.accountSetting"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/ossdetail",
@@ -49,8 +49,8 @@ export default [
     component: () => import("@/views/monitor/oss/detail.vue"),
     meta: {
       title: $t("buttons.oss.detail"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/datav",
@@ -59,8 +59,8 @@ export default [
     meta: {
       icon: "ep:setting",
       title: $t("buttons.monitor.datav"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/database/manage",
@@ -69,8 +69,18 @@ export default [
     meta: {
       icon: "ri:database-2-line",
       title: $t("buttons.monitor.database"),
-      showLink: false,
-    },
+      showLink: false
+    }
+  },
+  {
+    path: "/database/fullscreen",
+    name: "fullscreenIndex",
+    component: () => import("@/views/monitor/gen/fullscreen.vue"),
+    meta: {
+      icon: "ep:full-screen",
+      title: $t("buttons.monitor.fullscreen"),
+      showLink: false
+    }
   },
   {
     path: "/service/app/monitor",
@@ -79,7 +89,7 @@ export default [
     meta: {
       icon: "ep:setting",
       title: $t("buttons.monitor.datav"),
-      showLink: false,
-    },
-  },
+      showLink: false
+    }
+  }
 ] satisfies Array<RouteConfigsTable>;

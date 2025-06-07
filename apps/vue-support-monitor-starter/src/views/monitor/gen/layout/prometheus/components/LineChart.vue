@@ -83,20 +83,30 @@ const convertToEChartsOption = chartData => {
       },
       areaStyle: dataset.fill
         ? {
-            color: areaColor
+            color: areaColor,
+            opacity: 0.3
           }
         : undefined
     };
   });
 
   return {
+    backgroundColor: "transparent",
+    textStyle: {
+      color: "#e0e0e0"
+    },
     tooltip: {
       trigger: "axis",
       axisPointer: {
         type: "cross",
         label: {
-          backgroundColor: "#6a7985"
+          backgroundColor: "#4db6ac"
         }
+      },
+      backgroundColor: "rgba(30, 30, 46, 0.9)",
+      borderColor: "rgba(255, 255, 255, 0.1)",
+      textStyle: {
+        color: "#e0e0e0"
       }
     },
     grid: {
@@ -112,11 +122,11 @@ const convertToEChartsOption = chartData => {
       data: chartData.labels || [],
       axisLine: {
         lineStyle: {
-          color: "#E0E0E0"
+          color: "rgba(255, 255, 255, 0.2)"
         }
       },
       axisLabel: {
-        color: "#909399",
+        color: "#a0a0a0",
         fontSize: 10
       }
     },
@@ -131,11 +141,11 @@ const convertToEChartsOption = chartData => {
       splitLine: {
         lineStyle: {
           type: "dashed",
-          color: "#E0E0E0"
+          color: "rgba(255, 255, 255, 0.1)"
         }
       },
       axisLabel: {
-        color: "#909399",
+        color: "#a0a0a0",
         fontSize: 10
       }
     },
@@ -234,12 +244,12 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(30, 30, 46, 0.7);
     z-index: 1;
 
     .el-icon {
       font-size: 24px;
-      color: var(--el-color-primary);
+      color: #4db6ac;
     }
   }
 
@@ -252,7 +262,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1;
+    color: #a0a0a0;
   }
 }
 </style>

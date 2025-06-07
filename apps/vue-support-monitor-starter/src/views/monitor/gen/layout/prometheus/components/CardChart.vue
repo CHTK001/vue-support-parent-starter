@@ -124,6 +124,12 @@ const trendClass = computed(() => {
 
 // 最后更新时间
 const lastUpdateTime = computed(() => {
+  // 优先使用 updateTime 字段
+  if (props.chartData && props.chartData.updateTime) {
+    return props.chartData.updateTime;
+  }
+  
+  // 如果没有 updateTime，则尝试从标签中获取
   if (!props.chartData || !props.chartData.labels || !props.chartData.labels.length) {
     return "暂无数据";
   }
@@ -136,13 +142,11 @@ const lastUpdateTime = computed(() => {
 .card-chart-container {
   width: 100%;
   height: 100%;
-  padding: 8px;
 }
 
 .card-chart {
   width: 100%;
   height: 100%;
-  background-color: var(--el-bg-color);
   border-radius: var(--el-border-radius-base);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   position: relative;
@@ -185,7 +189,7 @@ const lastUpdateTime = computed(() => {
   .card-title {
     font-size: 16px;
     font-weight: bold;
-    color: var(--el-text-color-primary);
+    color: var(--el-color-primary-light-9);
   }
 }
 
@@ -199,12 +203,12 @@ const lastUpdateTime = computed(() => {
   .card-value {
     font-size: 36px;
     font-weight: bold;
-    color: var(--el-color-primary);
+    color: var(--el-color-primary-light-9);
   }
 
   .card-unit {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--el-color-primary-light-9);
     margin-top: 4px;
   }
 }
