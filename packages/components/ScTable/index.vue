@@ -987,184 +987,153 @@ const onPrevPage = () => {
 const onUpdateCurrentPage = (page) => {
   currentPage.value = page;
 };
+
+// 添加组件映射对象
+const componentMap = {
+  table: TableView,
+  card: CardView,
+  list: ListView,
+  virtual: VirtualTableView,
+  canvas: CanvasTableView
+};
 </script>
 
 <template>
-  <div class="sc-table w-full" ref="scTableMain" :style="{ height: tableHeight }">
+  <div class="sc-table-container" ref="scTableMain">
+    <div class="sc-table-wrapper">
+      <!-- 表格内容区域 -->
+      <div class="sc-table-content-wrapper">
+        <component
+          :is="componentMap[layout]"
+          ref="scTable"
+          :key="toggleIndex"
+          v-loading="loading"
+          v-bind="$attrs"
+          :table-data="tableData"
+          :user-column="userColumn"
+          :config="configState"
+          :pagination-type="paginationType"
+          :contextmenu="contextmenu"
+          :contextmenu-class="contextmenuClass"
+          :row-key="rowKey"
+          :height="'100%'"
+          :column-in-template="columnInTemplate"
+          :remote-filter="remoteFilter"
+          :remote-summary="remoteSummary"
+          :summary-method="summaryMethod"
+          :toggle-index="toggleIndex"
+          :empty-text="emptyText"
+          :col-size="colSize"
+          :row-size="rowSize"
+          @row-click="onRowClick"
+          @selection-change="selectionChange"
+          @sort-change="sortChange"
+          @filter-change="filterChange"
+        >
+          <slot />
+        </component>
+      </div>
 
-    <!-- 表格布局区域 -->
-    <div class="sc-table-main-content ">
-      <!-- 表格视图 -->
-      <TableView v-if="layout === 'table'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="{
-          ...configState, 
-          contextmenuClass: props.contextmenuClass
-        }" 
-        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
-        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
-        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType"
-        :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
-        @filter-change="filterChange" v-loading="loading" element-loading-background="rgba(255, 255, 255, 0.8)">
-        <template #default>
-          <slot></slot>
-        </template>
-      </TableView>
-
-      <!-- Canvas表格视图 -->
-      <CanvasTableView v-else-if="layout === 'canvas'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="{
-          ...configState, 
-          contextmenuClass: props.contextmenuClass
-        }" 
-        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
-        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
-        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType" 
-        :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
-        @filter-change="filterChange">
-        <template #table-header>
-          <slot name="table-header"></slot>
-        </template>
-      </CanvasTableView>
-
-      <!-- 卡片视图 -->
-      <CardView v-else-if="layout === 'card'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="{
-          ...configState, 
-          contextmenuClass: props.contextmenuClass
-        }" 
-        :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex" :pagination-type="paginationType"
-        :loading="loading" :empty-text="emptyText" :current-page="currentPage" :total="total" 
-        @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
-        @row-click="onRowClick">
-        <template v-for="slot in Object.keys($slots)" #[slot]="data">
-          <slot :name="slot" v-bind="data"></slot>
-        </template>
-      </CardView>
-
-      <!-- 列表视图 -->
-      <ListView v-else-if="layout === 'list'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="{
-          ...configState, 
-          contextmenuClass: props.contextmenuClass
-        }" 
-        :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading" :pagination-type="paginationType"
-        :current-page="currentPage" :total="total" @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
-        :empty-text="emptyText" @row-click="onRowClick">
-        <template v-for="slot in Object.keys($slots)" #[slot]="data">
-          <slot :name="slot" v-bind="data"></slot>
-        </template>
-      </ListView>
-
-      <!-- 虚拟表格视图 -->
-      <VirtualTableView v-else-if="layout === 'virtual'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="{
-          ...configState, 
-          contextmenuClass: props.contextmenuClass
-        }" 
-        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
-        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
-        :summary-method="doSummary" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
-        @row-click="onRowClick" @sort-change="sortChange">
-      </VirtualTableView>
+      <!-- 分页区域 -->
+      <div class="sc-table-pagination-wrapper" v-if="!hidePagination">
+        <Pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="scPageSize"
+          :page-sizes="scPageSizes"
+          :total="total"
+          :layout="paginationLayout"
+          :pagination-type="paginationType"
+          :loading="loading"
+          :hide-pagination="hidePagination"
+          :hide-refresh="hideRefresh"
+          :hide-setting="hideSetting"
+          :columns="userColumn"
+          :table-config="configState"
+          :table-layout="layout"
+          v-model:row-size="rowSize"
+          v-model:col-size="colSize"
+          @current-change="currentChange"
+          @size-change="sizeChange"
+          @load-more="loadMore"
+          @refresh="getData(false)"
+          @column-setting="openColumnSetting"
+          @save-config="saveConfig"
+          @get-table-config="getTableConfig"
+        />
+      </div>
     </div>
 
-    <!-- 分页组件 -->
-    <Pagination v-if="!hidePagination && paginationType !== 'scroll'" :current-page="currentPage" :page-size="scPageSize" :total="total"
-      :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType" :columns="userColumn"
-      :table-config="configState" @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore"
-      @refresh="onRefresh" @save-config="handleSaveConfig" @get-columns="getColumns" @get-table-config="getTableConfig"
-      :show-column-setting="true" :table-layout="layout" :row-size="rowSize" :col-size="colSize" 
-      @update:row-size="(val) => rowSize.value = val" @update:col-size="(val) => colSize.value = val" />
-
+    <!-- 列设置弹窗 -->
+    <columnSetting
+      ref="columnSettingRef"
+      :column="userColumn"
+      :table-name="tableName"
+      @save="columnSave"
+      @reset="columnReset"
+    />
   </div>
 </template>
 
 <style lang="scss" scoped>
-.sc-table-main-content {
-  height: 96%;
-}
-.modern-table-container {
+.sc-table-container {
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex: 1;
-  max-height: 100%;
   flex-direction: column;
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
   overflow: hidden;
 }
 
 .sc-table-wrapper {
-  flex: 1;
-  overflow: auto;
-}
-
-.sc-table-content {
-  max-height: 100%;
-  overflow: auto;
-}
-
-.table-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.scTable-pagination {
-  flex: 1;
-}
-
-.scTable-do {
-  display: flex;
-  align-items: center;
-}
-
-.scroll-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sc-table-content-wrapper {
+  flex: 1;
+  min-height: 0; /* 关键属性：防止内容溢出 */
+  overflow: hidden;
   position: relative;
-  padding: 10px 0;
-}
-
-.scroll-pagination-auto {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-
-  .is-loading {
-    margin-right: 5px;
-    animation: rotating 2s linear infinite;
-  }
+  flex-direction: column;
 }
 
-.scroll-pagination-info {
-  margin-left: 12px;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-}
-
-.scroll-pagination-trigger {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+.sc-table-pagination-wrapper {
+  flex-shrink: 0; /* 防止分页区域被压缩 */
+  padding: 10px 0;
   width: 100%;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
-@keyframes rotating {
-  0% {
-    transform: rotate(0deg);
-  }
+/* 确保表格内容区域不会被分页挤压 */
+:deep(.el-table__body-wrapper) {
+  overflow: auto !important;
+  height: auto !important;
+  flex: 1;
+}
 
-  100% {
-    transform: rotate(360deg);
-  }
+:deep(.el-table) {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-table__inner-wrapper) {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-table__header-wrapper) {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* 表头固定样式 */
+:deep(.headerSticky .el-table__header-wrapper) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 </style>
