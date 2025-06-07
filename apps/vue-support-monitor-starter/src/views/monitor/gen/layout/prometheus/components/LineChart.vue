@@ -2,11 +2,14 @@
   <div class="line-chart-container" :style="{ height: `${height}px` }">
     <div ref="chartContainer" class="chart-container" />
     <div v-if="loading" class="chart-loading">
-      <el-icon class="is-loading"><Loading /></el-icon>
+      <IconifyIconOnline icon="ep:loading" class="is-loading" />
     </div>
     <div v-if="!loading && noData" class="chart-no-data">
       <el-empty description="暂无数据" :image-size="50" />
     </div>
+    <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="300" class="chart-tip">
+      <IconifyIconOnline icon="ep:info-filled" />
+    </el-tooltip>
   </div>
 </template>
 
@@ -17,6 +20,7 @@ import { LineChart as EChartsLineChart } from "echarts/charts";
 import { TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent } from "echarts/components";
 import { LabelLayout, UniversalTransition } from "echarts/features";
 import { CanvasRenderer } from "echarts/renderers";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 注册必要的组件
 echarts.use([TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent, EChartsLineChart, LabelLayout, UniversalTransition, CanvasRenderer]);
@@ -33,6 +37,14 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  chartConfig: {
+    type: Object,
+    default: () => ({})
+  },
+  tip: {
+    type: String,
+    default: ""
   }
 });
 
@@ -64,29 +76,53 @@ const convertToEChartsOption = chartData => {
     };
   }
 
-  const series = chartData.datasets.map(dataset => {
-    // 提取颜色
-    let color = dataset.borderColor;
-    let areaColor = dataset.backgroundColor;
+  // 获取配置
+  const config = props.chartConfig || {};
+  
+  // 设置单位
+  const unit = config.unit || '';
+  
+  // 设置颜色
+  const mainColor = config.mainColor || "#409EFF";
+  const bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
+  
+  // 是否显示图例
+  const showLegend = config.showLegend !== false;
+  
+  // 是否堆叠显示
+  const stacked = config.stacked || false;
+  
+  // 是否填充区域
+  const fill = config.fill !== false;
+  
+  // 是否平滑曲线
+  const smooth = config.smooth || false;
+
+  const series = chartData.datasets.map((dataset, index) => {
+    // 提取颜色，优先使用数据集自身的颜色，其次使用配置的主色调，最后使用默认颜色
+    let color = dataset.borderColor || (index === 0 ? mainColor : getRandomColor());
+    let areaColor = dataset.backgroundColor || (index === 0 ? bgColor : getRandomColor(0.1));
 
     return {
       name: dataset.label,
       type: "line",
       data: dataset.data,
-      smooth: true,
-      showSymbol: false,
+      smooth: smooth,
+      stack: stacked ? 'total' : undefined,
+      areaStyle: fill ? {
+        color: areaColor,
+        opacity: 0.3
+      } : undefined,
       lineStyle: {
-        color: color
+        color: color,
+        width: 2
       },
       itemStyle: {
         color: color
       },
-      areaStyle: dataset.fill
-        ? {
-            color: areaColor,
-            opacity: 0.3
-          }
-        : undefined
+      emphasis: {
+        focus: 'series'
+      }
     };
   });
 
@@ -95,25 +131,49 @@ const convertToEChartsOption = chartData => {
     textStyle: {
       color: "#e0e0e0"
     },
+    title: chartData.title ? {
+      text: chartData.title,
+      left: 'center',
+      textStyle: {
+        color: '#e0e0e0'
+      }
+    } : undefined,
     tooltip: {
       trigger: "axis",
       axisPointer: {
         type: "cross",
         label: {
-          backgroundColor: "#4db6ac"
+          backgroundColor: mainColor
         }
       },
       backgroundColor: "rgba(30, 30, 46, 0.9)",
       borderColor: "rgba(255, 255, 255, 0.1)",
       textStyle: {
         color: "#e0e0e0"
+      },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>';
+        params.forEach(param => {
+          // 使用自定义颜色
+          const color = param.color;
+          result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
+          result += `${param.seriesName}: ${param.value}${unit}<br/>`;
+        });
+        return result;
       }
     },
+    legend: showLegend ? {
+      show: true,
+      top: 'top',
+      textStyle: {
+        color: '#e0e0e0'
+      }
+    } : { show: false },
     grid: {
       left: "3%",
       right: "4%",
       bottom: "3%",
-      top: "3%",
+      top: showLegend ? "15%" : "3%",
       containLabel: true
     },
     xAxis: {
@@ -132,6 +192,8 @@ const convertToEChartsOption = chartData => {
     },
     yAxis: {
       type: "value",
+      min: config.yAxisMin !== null && config.yAxisMin !== undefined ? config.yAxisMin : undefined,
+      max: config.yAxisMax !== null && config.yAxisMax !== undefined ? config.yAxisMax : undefined,
       axisLine: {
         show: false
       },
@@ -146,11 +208,22 @@ const convertToEChartsOption = chartData => {
       },
       axisLabel: {
         color: "#a0a0a0",
-        fontSize: 10
+        fontSize: 10,
+        formatter: value => {
+          return value + unit;
+        }
       }
     },
     series: series
   };
+};
+
+// 生成随机颜色
+const getRandomColor = (alpha = 1) => {
+  const r = Math.floor(Math.random() * 255);
+  const g = Math.floor(Math.random() * 255);
+  const b = Math.floor(Math.random() * 255);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 // 初始化图表
@@ -192,12 +265,25 @@ const handleResize = () => {
 watch(
   () => props.chartData,
   () => {
-    updateChart();
+    nextTick(() => {
+      updateChart();
+    });
   },
   { deep: true }
 );
 
-// 监听高度变化
+// 监听配置变化
+watch(
+  () => props.chartConfig,
+  () => {
+    nextTick(() => {
+      updateChart();
+    });
+  },
+  { deep: true }
+);
+
+// 监听容器大小变化
 watch(
   () => props.height,
   () => {
@@ -207,21 +293,19 @@ watch(
   }
 );
 
-// 组件挂载时初始化图表
+// 组件挂载
 onMounted(() => {
   initChart();
-
-  // 添加窗口大小变化监听
   window.addEventListener("resize", handleResize);
 });
 
-// 组件卸载前销毁图表和事件监听
+// 组件卸载
 onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleResize);
   if (chart) {
     chart.dispose();
+    chart = null;
   }
-
-  window.removeEventListener("resize", handleResize);
 });
 </script>
 
@@ -263,6 +347,16 @@ onBeforeUnmount(() => {
     justify-content: center;
     align-items: center;
     color: #a0a0a0;
+  }
+
+  .chart-tip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 16px;
+    color: #409EFF;
+    cursor: pointer;
+    z-index: 10;
   }
 }
 </style>

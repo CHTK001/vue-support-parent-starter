@@ -1,7 +1,7 @@
 <template>
   <div class="prometheus-container h-full">
     <!-- 空状态展示 -->
-    <el-empty v-if="!data.genId" class="h-full" description="请选择数据源" />
+    <el-empty v-if="!localData.genId" class="h-full" description="请选择数据源" />
 
     <!-- 主内容区域 -->
     <div v-else class="prometheus-content h-full">
@@ -10,7 +10,7 @@
         <!-- 数据源信息 -->
         <div class="prometheus-header__info">
           <IconifyIconOnline icon="logos:prometheus" class="prometheus-header__icon" />
-          <span class="prometheus-header__name" :title="data.genName">{{ data.genName }}</span>
+          <span class="prometheus-header__name" :title="localData.genName">{{ localData.genName }}</span>
         </div>
 
         <!-- 状态信息 -->
@@ -32,6 +32,19 @@
 
         <!-- 时间范围选择器 -->
         <div class="prometheus-header__actions ml-auto">
+          <!-- 添加Prometheus数据源选择框 -->
+          <el-select v-model="selectedDataSource" placeholder="选择数据源" filterable clearable class="data-source-select" @change="handleDataSourceChange">
+            <el-option v-for="item in dataSources" :key="item.genId" :label="item.genName" :value="item.genId">
+              <div class="data-source-option">
+                <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
+                <span>{{ item.genName }}</span>
+              </div>
+            </el-option>
+            <template #prefix>
+              <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
+            </template>
+          </el-select>
+
           <el-date-picker
             v-model="timeRangeValue"
             type="datetimerange"
@@ -43,7 +56,9 @@
             :shortcuts="dateShortcuts"
             class="!w-[400px]"
           />
-          <el-button type="primary" :loading="loading" @click="handleQuery">查询</el-button>
+          <el-button type="primary" :loading="loading" @click="handleQuery">
+            <IconifyIconOnline icon="ep:search" />
+          </el-button>
           <el-dropdown trigger="click" @command="handleAutoRefreshChange">
             <el-button class="btn-text" :type="autoRefreshInterval > 0 ? 'success' : 'info'" size="small">
               <IconifyIconOnline icon="ri:time-line" />
@@ -75,7 +90,7 @@
         <el-scrollbar class="prometheus-scrollbar">
           <div class="prometheus-content-wrapper">
             <!-- 自定义布局视图 -->
-            <PrometheusLayout ref="prometheusLayoutRef" :data="data" :editable="editMode" :time-params="getTimeRangeParams()" class="custom-layout" />
+            <PrometheusLayout ref="prometheusLayoutRef" :data="localData" :editable="editMode" :time-params="getTimeRangeParams()" class="custom-layout" />
           </div>
         </el-scrollbar>
       </div>
@@ -84,17 +99,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, defineProps, defineExpose, watch } from "vue";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, defineProps, defineExpose, defineEmits, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { fetchPrometheusQueryRangeGen } from "@/api/prometheus/index";
 import { fetchPrometheusOnline, fetchPrometheusReload } from "@/api/prometheus/system";
+import { fetchGenDatabasePage } from "@/api/monitor/gen/database";
 import LineChart from "./components/LineChart.vue";
 import PrometheusLayout from "./components/PrometheusLayout.vue";
 
-// 组件属性
+// 组件属性和事件
 const props = defineProps({
   data: Object
 });
+const emit = defineEmits(["update:data"]);
+
+// 本地数据源状态
+const localData = ref({ ...props.data });
 
 // 状态变量
 const loading = ref(false);
@@ -113,6 +133,10 @@ const autoRefreshOptions = [
   { label: "1分钟", value: 60 },
   { label: "5分钟", value: 300 }
 ];
+
+// 数据源相关
+const dataSources = ref([]);
+const selectedDataSource = ref(null);
 
 // 时间范围选择
 const timeRangeValue = ref([
@@ -181,16 +205,103 @@ const dateShortcuts = [
 let refreshTimer = null;
 const refreshTimers = {};
 
+// 加载Prometheus数据源
+const loadDataSources = async () => {
+  try {
+    const res = await fetchGenDatabasePage({
+      databaseType: "PROMETHEUS"
+    });
+    if (res.code === "00000" && res.data && res.data.data) {
+      dataSources.value = res.data.data;
+    }
+  } catch (error) {
+    console.error("加载Prometheus数据源失败:", error);
+    ElMessage.error("加载Prometheus数据源失败");
+  }
+};
+
+// 处理数据源变更
+const handleDataSourceChange = genId => {
+  if (!genId) return;
+
+  // 查找选中的数据源
+  const selectedSource = dataSources.value.find(item => item.genId === genId);
+  if (selectedSource) {
+    // 更新本地数据源
+    localData.value = {
+      ...localData.value,
+      genId: selectedSource.genId,
+      genName: selectedSource.genName
+    };
+
+    // 通知父组件更新数据源
+    emit("update:data", localData.value);
+
+    // 刷新数据
+    handleRefresh();
+  }
+};
+
+// 获取数据源状态类型
+const getDataSourceStatusType = item => {
+  // 这里可以根据实际情况判断数据源状态
+  // 暂时简单返回
+  return item.genStatus === 1 ? "success" : "danger";
+};
+
+// 获取数据源状态文本
+const getDataSourceStatusText = item => {
+  return item.genStatus === 1 ? "在线" : "离线";
+};
+
 // 切换编辑模式
 const toggleEditMode = () => {
   editMode.value = !editMode.value;
 };
 
+// 切换全屏
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement
+      .requestFullscreen()
+      .then(() => {
+        isFullscreen.value = true;
+      })
+      .catch(err => {
+        ElMessage.error(`全屏错误: ${err.message}`);
+      });
+  } else {
+    if (document.exitFullscreen) {
+      document
+        .exitFullscreen()
+        .then(() => {
+          isFullscreen.value = false;
+        })
+        .catch(err => {
+          ElMessage.error(`退出全屏错误: ${err.message}`);
+        });
+    }
+  }
+};
+
+// 监听全屏变化事件
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement;
+};
+
 // 检查Prometheus是否在线
 const checkOnlineStatus = async () => {
   try {
-    const res = await fetchPrometheusOnline({ monitorSysGenId: props.data.genId });
+    const res = await fetchPrometheusOnline({ monitorSysGenId: localData.value.genId });
     isOnline.value = res.data || false;
+
+    // 更新数据源状态
+    if (dataSources.value.length > 0) {
+      const index = dataSources.value.findIndex(item => item.genId === localData.value.genId);
+      if (index !== -1) {
+        dataSources.value[index].genStatus = isOnline.value ? 1 : 0;
+      }
+    }
   } catch (error) {
     console.error("检查Prometheus状态失败:", error);
     isOnline.value = false;
@@ -246,7 +357,7 @@ const getTimeRangeParams = () => {
 
 // 刷新数据
 const handleRefresh = async () => {
-  if (!props.data.genId) return;
+  if (!localData.value.genId) return;
 
   loading.value = true;
 
@@ -368,6 +479,12 @@ const clearRefreshTimer = () => {
 
 // 组件挂载
 onMounted(() => {
+  // 初始化本地数据
+  localData.value = { ...props.data };
+
+  // 加载Prometheus数据源
+  loadDataSources();
+
   // 设置默认时间范围为最近1小时
   const now = Math.floor(Date.now() / 1000);
   timeRangeValue.value = [now - 60 * 60, now];
@@ -386,7 +503,10 @@ onMounted(() => {
   // 添加全屏变化事件监听
   document.addEventListener("fullscreenchange", handleFullscreenChange);
 
-  if (props.data.genId) {
+  if (localData.value.genId) {
+    // 设置当前选中的数据源
+    selectedDataSource.value = localData.value.genId;
+
     handleRefresh();
     // 如果设置了自动刷新，则启动定时器
     if (autoRefreshInterval.value > 0) {
@@ -411,9 +531,20 @@ watch(timeRangeValue, newVal => {
   }
 });
 
-// 监听数据源变化
+// 监听 props.data 变化
 watch(
-  () => props.data.genId,
+  () => props.data,
+  newVal => {
+    if (newVal) {
+      localData.value = { ...newVal };
+    }
+  },
+  { deep: true }
+);
+
+// 监听本地数据源变化
+watch(
+  () => localData.value.genId,
   newVal => {
     if (newVal) {
       handleRefresh();
@@ -591,5 +722,15 @@ defineExpose({
   height: 16px;
   line-height: 16px;
   text-align: center;
+}
+
+.data-source-select {
+  width: 200px;
+}
+
+.data-source-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 </style>
