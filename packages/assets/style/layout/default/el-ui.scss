@@ -457,6 +457,9 @@ section.panel-padding > aside {
     }
   }
 }
+.vgl-item__resizer {
+  z-index: 1000 !important;
+}
 .bg-layout {
   height: 100%;
 }

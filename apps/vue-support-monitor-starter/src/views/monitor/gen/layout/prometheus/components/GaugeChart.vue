@@ -157,6 +157,12 @@ const description = computed(() => {
 
 // 最后更新时间
 const lastUpdateTime = computed(() => {
+  // 优先使用 updateTime 字段
+  if (props.chartData && props.chartData.updateTime) {
+    return props.chartData.updateTime;
+  }
+
+  // 如果没有 updateTime，则尝试从标签中获取
   if (!props.chartData || !props.chartData.labels || !props.chartData.labels.length) {
     return "暂无数据";
   }
@@ -342,7 +348,6 @@ onBeforeUnmount(() => {
 .gauge-chart-container {
   width: 100%;
   height: 100%;
-  padding: 8px;
 }
 
 .gauge-chart {

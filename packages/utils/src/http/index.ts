@@ -13,9 +13,13 @@ import { localStorageProxy } from "@repo/utils";
 const AutoErrorMessage = getConfig().AutoErrorMessage;
 /** 响应结果 */
 export interface ReturnResult<E> {
+  // 状态码; 成功 00000
   code: string | number;
+  // 消息
   msg: string;
+  // 数据
   data: E;
+  // 响应头
   headers?: any;
 }
 const isNoAuth = (code) => {

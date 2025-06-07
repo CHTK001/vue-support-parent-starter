@@ -3,7 +3,7 @@
     <div class="scroll-wrapper" ref="scrollWrapper" :style="scrollWrapperStyle">
       <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full headerSticky" ref="scTable"
         :data="tableData" :row-key="rowKey" :size="config.size" :border="config.border"
-        :stripe="config.stripe" :height="tableHeight" :max-height="undefined"
+        :stripe="config.stripe" :height="undefined" :max-height="undefined"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" 
         @row-click="onRowClick"
         @selection-change="selectionChange" 
