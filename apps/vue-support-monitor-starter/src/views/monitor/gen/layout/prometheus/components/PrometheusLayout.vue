@@ -63,7 +63,14 @@
             :height="getComponentHeight(item)"
             :loading="loading"
             :chart-config="getChartConfig(item)"
+            :item="item"
+            :editable="editable"
+            :query-time="getComponentUpdateTime(item)"
             @click="handleChartClick(item)"
+            @editComponent="editComponent"
+            @removeComponent="removeComponent"
+            @editChartConfig="editChartConfig"
+            @fetchData="loadComponentData"
           />
         </div>
       </GridItem>
@@ -128,6 +135,18 @@
           <el-form-item label="刷新间隔" prop="refreshInterval">
             <el-input-number v-model="componentForm.refreshInterval" :min="10" :max="600" :step="10" />
             <span class="ml-2">秒</span>
+          </el-form-item>
+          <el-form-item label="数据单位" prop="monitorSysGenPrometheusConfigValueUnit">
+            <el-select v-model="componentForm.monitorSysGenPrometheusConfigValueUnit" placeholder="请选择数据单位">
+              <el-option label="默认" value="" />
+              <el-option label="百分比 (%)" value="percent" />
+              <el-option label="字节 (B/KB/MB)" value="bytes" />
+              <el-option label="数值 (K/M/B)" value="number" />
+              <el-option label="时间 (秒/分/时)" value="time" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="提示信息" prop="tip">
+            <el-input v-model="componentForm.tip" type="textarea" :rows="2" placeholder="可选：添加图表提示信息" />
           </el-form-item>
           <el-form-item label="是否共享" prop="isShared">
             <el-switch v-model="componentForm.isShared" active-text="开启共享" inactive-text="仅自己可见" />
@@ -339,6 +358,7 @@ import CardChart from "./CardChart.vue";
 import GaugeChart from "./GaugeChart.vue";
 import LineChart from "./LineChart.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import PrometheusComponent from "./PrometheusComponent.vue";
 
 const props = defineProps({
   data: Object,
@@ -404,9 +424,10 @@ const componentForm = reactive({
   width: 12,
   height: 9,
   refreshInterval: 60,
-  isShared: false,
-  chartConfig: null // 添加图表配置
-});
+  valueUnit: "",
+  tip: "",
+  isShared: false
+} as any);
 const componentFormRules = {
   title: [{ required: true, message: "请输入组件标题", trigger: "blur" }],
   type: [{ required: true, message: "请选择组件类型", trigger: "change" }],
@@ -473,11 +494,8 @@ const getTimeRangeParams = () => {
 
 // 根据组件类型获取对应的组件
 const getComponentByType = type => {
-  if (type === "line") return LineChart;
-  if (type === "bar") return BarChart;
-  if (type === "gauge") return GaugeChart;
-  if (type === "card") return CardChart;
-  return LineChart; // 默认返回折线图
+  // 始终返回 PrometheusComponent
+  return PrometheusComponent;
 };
 
 // 获取组件数据
@@ -501,7 +519,7 @@ const getComponentData = item => {
 
 // 获取组件高度
 const getComponentHeight = item => {
-  return item.h * 10;
+  return "100%";
 };
 
 // 浏览器全屏切换
@@ -586,6 +604,7 @@ const loadComponentData = async item => {
 
           const chartData = {
             title: item.title,
+            valueUnit: item.valueUnit,
             labels: [formattedTime], // 使用格式化后的时间作为标签
             updateTime: formattedTime, // 添加更新时间字段
             datasets: [
@@ -608,6 +627,7 @@ const loadComponentData = async item => {
             title: item.title,
             labels: [currentTime],
             updateTime: currentTime,
+            valueUnit: item.valueUnit,
             datasets: [
               {
                 label: item.title || "数据",
@@ -861,7 +881,6 @@ const loadConfig = async () => {
 
       try {
         const content = JSON.parse(config.monitorSysGenPrometheusConfigQl || "{}");
-
         if (content.layout && Array.isArray(content.layout)) {
           layout.value = content.layout;
 
@@ -890,13 +909,15 @@ const loadConfig = async () => {
 const editComponent = item => {
   editingComponent.value = item;
 
-  componentForm.title = item.title || "";
-  componentForm.type = item.type || "line";
-  componentForm.promQL = item.promQL || "";
-  componentForm.width = item.w || 12;
-  componentForm.height = item.h || 9;
-  componentForm.refreshInterval = item.refreshInterval || 60;
-  componentForm.isShared = item.isShared || false;
+  componentForm.title = item.title || item.monitorSysGenPrometheusConfigTitle || item.monitorSysGenPrometheusConfigName || "";
+  componentForm.type = item.type || item.monitorSysGenPrometheusConfigChartType || "line";
+  componentForm.promQL = item.promQL || item.monitorSysGenPrometheusConfigQl || "";
+  componentForm.width = item.w || item.monitorSysGenPrometheusConfigWidth || 12;
+  componentForm.height = item.h || item.monitorSysGenPrometheusConfigHeight || 9;
+  componentForm.refreshInterval = item.refreshInterval || item.monitorSysGenPrometheusConfigRefreshInterval || 60;
+  componentForm.valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+  componentForm.tip = item.tip || item.monitorSysGenPrometheusConfigTip || "";
+  componentForm.isShared = item.isShared || item.monitorSysGenPrometheusConfigShare === true || item.monitorSysGenPrometheusConfigIsShared === 1;
 
   showAddComponentDrawer.value = true;
 };
@@ -1072,6 +1093,8 @@ const saveComponentConfig = async item => {
       monitorSysGenPrometheusConfigName: item.title,
       monitorSysGenPrometheusConfigTitle: item.title,
       monitorSysGenPrometheusConfigChartType: item.type,
+      monitorSysGenPrometheusConfigValueUnit: item.valueUnit,
+      monitorSysGenPrometheusConfigTip: item.tip,
       monitorSysGenPrometheusConfigEnable: true,
       monitorSysGenPrometheusConfigShare: item.isShared,
       monitorSysGenPrometheusConfigChartConfig: chartConfig,
@@ -1085,7 +1108,7 @@ const saveComponentConfig = async item => {
         color: item.color,
         bgColor: item.bgColor
       })
-    } as MonitorSysGenPrometheusConfig;
+    } as any;
 
     // 如果组件已有配置ID
     if (item.configId) {
@@ -1106,11 +1129,27 @@ const saveComponentConfig = async item => {
 };
 
 // 保存组件
-const saveComponent = async () => {
-  if (!componentFormRef.value) return;
+const saveComponent = () => {
+  componentFormRef.value.validate(async valid => {
+    if (!valid) return;
 
-  await componentFormRef.value.validate(async valid => {
-    if (valid) {
+    try {
+      loading.value = true;
+
+      // 构建组件配置
+      const component = {
+        monitorSysGenPrometheusConfigName: componentForm.title,
+        monitorSysGenPrometheusConfigTitle: componentForm.title,
+        monitorSysGenPrometheusConfigPromql: componentForm.promQL,
+        monitorSysGenPrometheusConfigChartType: componentForm.type,
+        monitorSysGenPrometheusConfigWidth: componentForm.width,
+        monitorSysGenPrometheusConfigHeight: componentForm.height,
+        monitorSysGenPrometheusConfigRefreshInterval: componentForm.refreshInterval,
+        monitorSysGenPrometheusConfigValueUnit: componentForm.valueUnit,
+        monitorSysGenPrometheusConfigTip: componentForm.tip,
+        monitorSysGenPrometheusConfigIsShared: componentForm.isShared ? 1 : 0
+      };
+
       // 生成唯一ID
       const componentId = editingComponent.value ? editingComponent.value.i : `component-${Date.now()}`;
 
@@ -1125,6 +1164,8 @@ const saveComponent = async () => {
         type: componentForm.type,
         promQL: componentForm.promQL,
         refreshInterval: componentForm.refreshInterval,
+        valueUnit: componentForm.valueUnit,
+        tip: componentForm.tip,
         isShared: componentForm.isShared,
         color: editingComponent.value ? editingComponent.value.color : getRandomColor(),
         bgColor: editingComponent.value ? editingComponent.value.bgColor : getRandomColor(0.1),
@@ -1162,6 +1203,11 @@ const saveComponent = async () => {
       editingComponent.value = null;
 
       ElMessage.success(editingComponent.value ? "组件更新成功" : "组件添加成功");
+    } catch (error) {
+      console.error("保存组件失败:", error);
+      ElMessage.error("保存组件失败");
+    } finally {
+      loading.value = false;
     }
   });
 };
@@ -1318,6 +1364,14 @@ const addSelectedComponents = async () => {
   }
 };
 
+// 获取组件更新时间
+const getComponentUpdateTime = item => {
+  if (!componentsData.value[item.i]) {
+    return new Date().toLocaleString();
+  }
+  return componentsData.value[item.i].updateTime || new Date().toLocaleString();
+};
+
 // 监听数据源变化
 watch(
   () => props.data.genId,
@@ -1456,6 +1510,8 @@ defineExpose({
   :deep(.el-tabs__item),
   :deep(.el-dialog__title),
   :deep(.el-switch__label),
+  :deep(.el-descriptions__title),
+  :deep(.el-descriptions__label),
   :deep(.el-drawer__header) {
     color: #e0e0e0;
   }
@@ -1464,6 +1520,7 @@ defineExpose({
   }
   :deep(.el-dialog),
   :deep(.el-drawer),
+  :deep(.el-descriptions__cell),
   :deep(.el-input__wrapper),
   .component-drawer-parent {
     background-color: #1e1e2e !important;
@@ -1602,10 +1659,11 @@ defineExpose({
   gap: 8px;
 
   .promql-input {
-    width: 90%;
+    width: 480px;
   }
   .el-button {
     align-self: flex-end;
+    height: 100%;
   }
 }
 

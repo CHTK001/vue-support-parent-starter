@@ -66,6 +66,41 @@ const noData = computed(() => {
   return true;
 });
 
+// 格式化字节
+const formatBytes = bytes => {
+  if (bytes === 0) return "0 B";
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+// 格式化数字
+const formatNumber = num => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(2) + " B";
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(2) + " M";
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(2) + " K";
+  }
+  return num.toFixed(2);
+};
+
+// 格式化时间
+const formatTime = seconds => {
+  if (seconds < 60) {
+    return seconds.toFixed(2) + " 秒";
+  } else if (seconds < 3600) {
+    return (seconds / 60).toFixed(2) + " 分";
+  } else if (seconds < 86400) {
+    return (seconds / 3600).toFixed(2) + " 时";
+  }
+  return (seconds / 86400).toFixed(2) + " 天";
+};
+
 // 将Chart.js数据格式转换为ECharts数据格式
 const convertToEChartsOption = chartData => {
   if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
@@ -76,23 +111,35 @@ const convertToEChartsOption = chartData => {
 
   // 获取配置
   const config = props.chartConfig || {};
-  
+
   // 设置单位
-  const unit = config.unit || '';
-  
+  let unit = config.unit || "";
+  const valueUnit = chartData.valueUnit || "";
+
+  // 根据 valueUnit 设置单位
+  if (valueUnit === "percent") {
+    unit = "%";
+  } else if (valueUnit === "bytes") {
+    unit = "字节";
+  } else if (valueUnit === "number") {
+    unit = "";
+  } else if (valueUnit === "time") {
+    unit = "秒";
+  }
+
   // 设置颜色
   const mainColor = config.mainColor || "#409EFF";
-  
+
   // 设置阈值
   const thresholds = config.thresholds || [
-    { value: 0, color: '#67C23A' },
-    { value: 60, color: '#E6A23C' },
-    { value: 80, color: '#F56C6C' }
+    { value: 0, color: "#67C23A" },
+    { value: 60, color: "#E6A23C" },
+    { value: 80, color: "#F56C6C" }
   ];
-  
+
   // 确保阈值按值排序
   thresholds.sort((a, b) => a.value - b.value);
-  
+
   // 获取最后一个数据点的值
   let value = 0;
   if (chartData.datasets[0] && chartData.datasets[0].data && chartData.datasets[0].data.length > 0) {
@@ -101,7 +148,7 @@ const convertToEChartsOption = chartData => {
 
   // 确定最大值
   const max = config.max || 100;
-  
+
   // 创建轴线配置
   const axisLine = {
     lineStyle: {
@@ -109,110 +156,124 @@ const convertToEChartsOption = chartData => {
       color: []
     }
   };
-  
+
   // 根据阈值设置颜色区间
   for (let i = 0; i < thresholds.length; i++) {
     const threshold = thresholds[i];
     const nextThreshold = thresholds[i + 1] || { value: max };
-    
-    axisLine.lineStyle.color.push([
-      threshold.value / max,
-      threshold.color
-    ]);
-    
+
+    axisLine.lineStyle.color.push([threshold.value / max, threshold.color]);
+
     if (i === thresholds.length - 1 && nextThreshold.value < max) {
-      axisLine.lineStyle.color.push([
-        1,
-        threshold.color
-      ]);
+      axisLine.lineStyle.color.push([1, threshold.color]);
     }
   }
+
+  // 格式化函数
+  const formatValue = value => {
+    if (valueUnit === "percent") {
+      return value.toFixed(2) + "%";
+    } else if (valueUnit === "bytes") {
+      return formatBytes(value);
+    } else if (valueUnit === "number") {
+      return formatNumber(value);
+    } else if (valueUnit === "time") {
+      return formatTime(value);
+    }
+    return value + unit;
+  };
 
   return {
     backgroundColor: "transparent",
     textStyle: {
       color: "#e0e0e0"
     },
-    title: chartData.title ? {
-      text: chartData.title,
-      left: 'center',
-      top: '10%',
-      textStyle: {
-        color: '#e0e0e0',
-        fontSize: 14
-      }
-    } : undefined,
+    title: chartData.title
+      ? {
+          text: chartData.title,
+          left: "center",
+          top: "10%",
+          textStyle: {
+            color: "#e0e0e0",
+            fontSize: 14
+          }
+        }
+      : undefined,
     tooltip: {
-      formatter: `{a} <br/>{b} : {c}${unit}`,
+      formatter: `{a} <br/>{b} : ${formatValue(value)}`,
       backgroundColor: "rgba(30, 30, 46, 0.9)",
       borderColor: "rgba(255, 255, 255, 0.1)",
       textStyle: {
         color: "#e0e0e0"
       }
     },
-    series: [{
-      name: chartData.datasets[0]?.label || '',
-      type: 'gauge',
-      radius: '85%',
-      center: ['50%', '60%'],
-      startAngle: 225,
-      endAngle: -45,
-      min: 0,
-      max: max,
-      progress: {
-        show: true,
-        width: 30
-      },
-      axisLine: axisLine,
-      pointer: {
-        show: true,
-        length: '60%',
-        width: 6,
-        itemStyle: {
-          color: mainColor
-        }
-      },
-      axisTick: {
-        show: false
-      },
-      splitLine: {
-        show: true,
-        length: 10,
-        lineStyle: {
-          width: 2,
-          color: '#999'
-        }
-      },
-      axisLabel: {
-        distance: -30,
-        color: '#a0a0a0',
-        fontSize: 12,
-        formatter: function(value) {
-          return value + unit;
-        }
-      },
-      anchor: {
-        show: true,
-        showAbove: true,
-        size: 18,
-        itemStyle: {
-          borderWidth: 3
-        }
-      },
-      detail: {
-        valueAnimation: true,
-        fontSize: 24,
-        offsetCenter: [0, '30%'],
-        formatter: function(value) {
-          return value.toFixed(2) + unit;
+    series: [
+      {
+        name: chartData.datasets[0]?.label || "",
+        type: "gauge",
+        radius: "85%",
+        center: ["50%", "60%"],
+        startAngle: 225,
+        endAngle: -45,
+        min: 0,
+        max: max,
+        progress: {
+          show: true,
+          width: 30
         },
-        color: '#e0e0e0'
-      },
-      data: [{
-        value: value,
-        name: chartData.datasets[0]?.label || ''
-      }]
-    }]
+        axisLine: axisLine,
+        pointer: {
+          show: true,
+          length: "60%",
+          width: 6,
+          itemStyle: {
+            color: mainColor
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        splitLine: {
+          show: true,
+          length: 10,
+          lineStyle: {
+            width: 2,
+            color: "#999"
+          }
+        },
+        axisLabel: {
+          distance: -30,
+          color: "#a0a0a0",
+          fontSize: 12,
+          formatter: function (value) {
+            return formatValue(value);
+          }
+        },
+        anchor: {
+          show: true,
+          showAbove: true,
+          size: 18,
+          itemStyle: {
+            borderWidth: 3
+          }
+        },
+        detail: {
+          valueAnimation: true,
+          fontSize: 24,
+          offsetCenter: [0, "30%"],
+          formatter: function (value) {
+            return formatValue(value);
+          },
+          color: "#e0e0e0"
+        },
+        data: [
+          {
+            value: value,
+            name: chartData.datasets[0]?.label || ""
+          }
+        ]
+      }
+    ]
   };
 };
 
@@ -338,7 +399,7 @@ onBeforeUnmount(() => {
   top: 10px;
   right: 10px;
   font-size: 16px;
-  color: #409EFF;
+  color: #409eff;
   cursor: pointer;
   z-index: 10;
 }
