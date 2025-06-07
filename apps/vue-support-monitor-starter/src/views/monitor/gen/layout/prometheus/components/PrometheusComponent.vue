@@ -18,12 +18,6 @@
             <IconifyIconOnline icon="ep:edit" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="全屏" placement="top" :show-after="300">
-          <el-button link @click="toggleFullscreen">
-            <IconifyIconOnline v-if="!isFullscreen" icon="ep:full-screen" />
-            <IconifyIconOnline v-else icon="ep:aim" />
-          </el-button>
-        </el-tooltip>
         <el-tooltip v-if="editable" content="移除" placement="top" :show-after="300">
           <el-button link @click="$emit('removeComponent', item)">
             <IconifyIconOnline icon="ep:delete" />
@@ -55,13 +49,10 @@
     </div>
     <div v-if="showFooter" class="component-footer">
       <div class="query-info">
-        <el-tooltip :content="item.monitorSysGenPrometheusConfigPromql" placement="top" :show-after="300">
-          <el-link type="info" :underline="false">
-            <IconifyIconOnline icon="ep:histogram" />
-            PromQL
-          </el-link>
-        </el-tooltip>
         <span class="query-time">{{ queryTime }}</span>
+        <span v-if="valueUnit" class="value-unit">
+          <el-tag size="small" type="info">{{ getValueUnitLabel(valueUnit) }}</el-tag>
+        </span>
       </div>
       <div v-if="refreshInterval > 0" class="refresh-info">
         <IconifyIconOnline icon="ep:timer" />
@@ -87,6 +78,10 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
+  chartData: {
+    type: Object,
+    default: () => ({})
+  },
   loading: {
     type: Boolean,
     default: false
@@ -106,6 +101,14 @@ const props = defineProps({
   queryTime: {
     type: String,
     default: ""
+  },
+  height: {
+    type: [Number, String],
+    default: 250
+  },
+  chartConfig: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -118,7 +121,7 @@ const title = computed(() => {
 
 // 图表类型
 const chartType = computed(() => {
-  return props.item.monitorSysGenPrometheusConfigChartType || "line";
+  return props.item.type || props.item.monitorSysGenPrometheusConfigChartType || "line";
 });
 
 // 提示信息
@@ -126,83 +129,21 @@ const tip = computed(() => {
   return props.item.monitorSysGenPrometheusConfigTip || "";
 });
 
-// 图表配置
-const chartConfig = computed(() => {
-  try {
-    if (props.item.monitorSysGenPrometheusConfigChartConfig) {
-      if (typeof props.item.monitorSysGenPrometheusConfigChartConfig === "string") {
-        return JSON.parse(props.item.monitorSysGenPrometheusConfigChartConfig);
-      }
-      return props.item.monitorSysGenPrometheusConfigChartConfig;
-    }
-    return {};
-  } catch (e) {
-    console.error("解析图表配置失败:", e);
-    return {};
-  }
+// 数据单位
+const valueUnit = computed(() => {
+  return props.item.valueUnit || props.item.monitorSysGenPrometheusConfigValueUnit || "";
 });
 
-// 图表数据
-const chartData = computed(() => {
-  if (!props.prometheusData || !props.prometheusData.result) {
-    return {
-      labels: [],
-      datasets: []
-    };
-  }
-
-  const result = props.prometheusData.result || [];
-  const datasets = [];
-
-  result.forEach((series, index) => {
-    const metric = series.metric || {};
-    const values = series.values || [];
-
-    // 构建标签
-    let label = "";
-    if (metric.__name__) {
-      label = metric.__name__;
-    }
-    if (metric.instance) {
-      label += ` (${metric.instance})`;
-    }
-    if (metric.job) {
-      label += ` [${metric.job}]`;
-    }
-
-    // 如果没有标签，使用索引
-    if (!label) {
-      label = `Series ${index + 1}`;
-    }
-
-    // 提取数据点
-    const data = values.map(point => parseFloat(point[1]));
-
-    // 提取时间点
-    const timePoints = values.map(point => {
-      const date = new Date(point[0] * 1000);
-      return date.toLocaleTimeString();
-    });
-
-    // 添加到数据集
-    datasets.push({
-      label,
-      data,
-      borderColor: getRandomColor(),
-      backgroundColor: getRandomColor(0.2),
-      timePoints
-    });
-  });
-
-  // 使用第一个数据集的时间点作为标签
-  const labels = datasets.length > 0 ? datasets[0].timePoints : [];
-
-  return {
-    labels,
-    datasets,
-    title: title.value
+// 获取数据单位标签
+const getValueUnitLabel = unit => {
+  const unitMap = {
+    percent: "百分比 (%)",
+    bytes: "字节 (B/KB/MB)",
+    number: "数值 (K/M/B)",
+    time: "时间 (秒/分/时)"
   };
-});
+  return unitMap[unit] || unit;
+};
 
 // 表格数据
 const tableData = computed(() => {
@@ -263,8 +204,8 @@ const chartHeight = computed(() => {
     return window.innerHeight - 100;
   }
 
-  // 默认高度
-  return 250;
+  // 使用传入的高度或默认高度
+  return props.height || 250;
 });
 
 // 表格高度
@@ -274,8 +215,15 @@ const tableHeight = computed(() => {
     return window.innerHeight - 100;
   }
 
-  // 默认高度
-  return 250;
+  if (props.height) {
+    if (props.height instanceof String) {
+      return props.height;
+    }
+
+    return props.height + "px";
+  }
+  // 使用传入的高度或默认高度
+  return "250px";
 });
 
 // 是否显示底部
@@ -377,7 +325,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #252536;
+  background-color: #292a3e;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -399,16 +347,17 @@ onBeforeUnmount(() => {
 .component-content {
   flex: 1;
   padding: 8px;
+  background-color: #292a3e;
   overflow: hidden;
   position: relative;
 }
 
 .component-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: end;
   align-items: center;
   padding: 4px 16px;
-  background-color: #252536;
+  background-color: #292a3e;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 12px;
   color: #a0a0a0;
@@ -420,6 +369,10 @@ onBeforeUnmount(() => {
 }
 
 .query-time {
+  margin-left: 8px;
+}
+
+.value-unit {
   margin-left: 8px;
 }
 

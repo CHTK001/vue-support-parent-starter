@@ -1,11 +1,10 @@
 <template>
-  <div class="card-chart-container" :style="{ height: `${height}px` }">
+  <div class="card-chart-container" :style="{ height: `${height}` }">
     <div class="card-content" :class="{ 'has-trend': showTrend }">
       <div v-if="loading" class="chart-loading">
         <IconifyIconOnline icon="ep:loading" class="is-loading" />
       </div>
       <template v-else-if="!noData">
-        <div class="card-title">{{ chartData.title || "" }}</div>
         <div class="card-value" :style="valueStyle">
           {{ formattedValue }}
           <span class="card-unit">{{ unit }}</span>
@@ -20,7 +19,6 @@
         <el-empty description="暂无数据" :image-size="50" />
       </div>
     </div>
-    <div class="card-update-time">{{ queryTime }}</div>
     <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="300" class="chart-tip">
       <IconifyIconOnline icon="ep:info-filled" />
     </el-tooltip>
@@ -86,7 +84,19 @@ const currentValue = computed(() => {
 // 格式化显示值
 const formattedValue = computed(() => {
   const value = currentValue.value;
+  const valueUnit = props.chartData.valueUnit || "";
+  // 根据不同的单位进行格式化
+  if (valueUnit === "percent") {
+    return value.toFixed(2);
+  } else if (valueUnit === "bytes") {
+    return formatBytes(value);
+  } else if (valueUnit === "number") {
+    return formatNumber(value);
+  } else if (valueUnit === "time") {
+    return formatTime(value);
+  }
 
+  // 默认格式化
   // 如果值大于1000，使用K作为单位
   if (value >= 1000) {
     return (value / 1000).toFixed(2);
@@ -104,13 +114,86 @@ const formattedValue = computed(() => {
   return value;
 });
 
+// 格式化字节
+const formatBytes = bytes => {
+  if (bytes === 0) return "0";
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
+
+  // 确保i不超出sizes数组的范围
+  const index = Math.min(i, sizes.length - 1);
+  return parseFloat((bytes / Math.pow(k, index)).toFixed(2));
+};
+
+// 格式化数字
+const formatNumber = num => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(2);
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(2);
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(2);
+  }
+  return num.toFixed(2);
+};
+
+// 格式化时间
+const formatTime = seconds => {
+  if (seconds < 60) {
+    return seconds.toFixed(2);
+  } else if (seconds < 3600) {
+    return (seconds / 60).toFixed(2);
+  } else if (seconds < 86400) {
+    return (seconds / 3600).toFixed(2);
+  }
+  return (seconds / 86400).toFixed(2);
+};
+
 // 获取单位
 const unit = computed(() => {
   const config = props.chartConfig || {};
+  const valueUnit = props.chartData.datasets?.[0]?.valueUnit || props.chartData.valueUnit || "";
 
   // 如果有配置的单位，优先使用
   if (config.unit) {
     return config.unit;
+  }
+
+  // 根据不同的单位返回对应的显示
+  if (valueUnit === "percent") {
+    return "%";
+  } else if (valueUnit === "bytes") {
+    const bytes = currentValue.value;
+    if (bytes === 0) return "B";
+
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+    const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
+
+    // 确保i不超出sizes数组的范围
+    return sizes[Math.min(i, sizes.length - 1)];
+  } else if (valueUnit === "number") {
+    const num = currentValue.value;
+    if (num >= 1000000000) {
+      return "B";
+    } else if (num >= 1000000) {
+      return "M";
+    } else if (num >= 1000) {
+      return "K";
+    }
+    return "";
+  } else if (valueUnit === "time") {
+    const seconds = currentValue.value;
+    if (seconds < 60) {
+      return "秒";
+    } else if (seconds < 3600) {
+      return "分";
+    } else if (seconds < 86400) {
+      return "时";
+    }
+    return "天";
   }
 
   // 如果值大于1000，使用K作为单位

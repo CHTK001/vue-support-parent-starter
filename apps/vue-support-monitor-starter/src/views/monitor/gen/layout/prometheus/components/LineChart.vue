@@ -66,6 +66,41 @@ const noData = computed(() => {
   return true;
 });
 
+// 格式化字节
+const formatBytes = bytes => {
+  if (bytes === 0) return "0 B";
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+// 格式化数字
+const formatNumber = num => {
+  if (num >= 1000000000) {
+    return (num / 1000000000).toFixed(2) + " B";
+  } else if (num >= 1000000) {
+    return (num / 1000000).toFixed(2) + " M";
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(2) + " K";
+  }
+  return num.toFixed(2);
+};
+
+// 格式化时间
+const formatTime = seconds => {
+  if (seconds < 60) {
+    return seconds.toFixed(2) + " 秒";
+  } else if (seconds < 3600) {
+    return (seconds / 60).toFixed(2) + " 分";
+  } else if (seconds < 86400) {
+    return (seconds / 3600).toFixed(2) + " 时";
+  }
+  return (seconds / 86400).toFixed(2) + " 天";
+};
+
 // 将Chart.js数据格式转换为ECharts数据格式
 const convertToEChartsOption = chartData => {
   if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
@@ -78,23 +113,35 @@ const convertToEChartsOption = chartData => {
 
   // 获取配置
   const config = props.chartConfig || {};
-  
+
   // 设置单位
-  const unit = config.unit || '';
-  
+  let unit = config.unit || "";
+  const valueUnit = chartData.valueUnit || "";
+
+  // 根据 valueUnit 设置单位
+  if (valueUnit === "percent") {
+    unit = "%";
+  } else if (valueUnit === "bytes") {
+    unit = "字节";
+  } else if (valueUnit === "number") {
+    unit = "";
+  } else if (valueUnit === "time") {
+    unit = "秒";
+  }
+
   // 设置颜色
   const mainColor = config.mainColor || "#409EFF";
   const bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
-  
+
   // 是否显示图例
   const showLegend = config.showLegend !== false;
-  
+
   // 是否堆叠显示
   const stacked = config.stacked || false;
-  
+
   // 是否填充区域
   const fill = config.fill !== false;
-  
+
   // 是否平滑曲线
   const smooth = config.smooth || false;
 
@@ -108,11 +155,13 @@ const convertToEChartsOption = chartData => {
       type: "line",
       data: dataset.data,
       smooth: smooth,
-      stack: stacked ? 'total' : undefined,
-      areaStyle: fill ? {
-        color: areaColor,
-        opacity: 0.3
-      } : undefined,
+      stack: stacked ? "total" : undefined,
+      areaStyle: fill
+        ? {
+            color: areaColor,
+            opacity: 0.3
+          }
+        : undefined,
       lineStyle: {
         color: color,
         width: 2
@@ -121,23 +170,39 @@ const convertToEChartsOption = chartData => {
         color: color
       },
       emphasis: {
-        focus: 'series'
+        focus: "series"
       }
     };
   });
+
+  // 格式化函数
+  const formatValue = value => {
+    if (valueUnit === "percent") {
+      return value.toFixed(2) + "%";
+    } else if (valueUnit === "bytes") {
+      return formatBytes(value);
+    } else if (valueUnit === "number") {
+      return formatNumber(value);
+    } else if (valueUnit === "time") {
+      return formatTime(value);
+    }
+    return value + unit;
+  };
 
   return {
     backgroundColor: "transparent",
     textStyle: {
       color: "#e0e0e0"
     },
-    title: chartData.title ? {
-      text: chartData.title,
-      left: 'center',
-      textStyle: {
-        color: '#e0e0e0'
-      }
-    } : undefined,
+    title: chartData.title
+      ? {
+          text: chartData.title,
+          left: "center",
+          textStyle: {
+            color: "#e0e0e0"
+          }
+        }
+      : undefined,
     tooltip: {
       trigger: "axis",
       axisPointer: {
@@ -151,24 +216,26 @@ const convertToEChartsOption = chartData => {
       textStyle: {
         color: "#e0e0e0"
       },
-      formatter: function(params) {
-        let result = params[0].axisValue + '<br/>';
+      formatter: function (params) {
+        let result = params[0].axisValue + "<br/>";
         params.forEach(param => {
           // 使用自定义颜色
           const color = param.color;
           result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-          result += `${param.seriesName}: ${param.value}${unit}<br/>`;
+          result += `${param.seriesName}: ${formatValue(param.value)}<br/>`;
         });
         return result;
       }
     },
-    legend: showLegend ? {
-      show: true,
-      top: 'top',
-      textStyle: {
-        color: '#e0e0e0'
-      }
-    } : { show: false },
+    legend: showLegend
+      ? {
+          show: true,
+          top: "top",
+          textStyle: {
+            color: "#e0e0e0"
+          }
+        }
+      : { show: false },
     grid: {
       left: "3%",
       right: "4%",
@@ -210,7 +277,7 @@ const convertToEChartsOption = chartData => {
         color: "#a0a0a0",
         fontSize: 10,
         formatter: value => {
-          return value + unit;
+          return formatValue(value);
         }
       }
     },
@@ -354,7 +421,7 @@ onBeforeUnmount(() => {
     top: 10px;
     right: 10px;
     font-size: 16px;
-    color: #409EFF;
+    color: #409eff;
     cursor: pointer;
     z-index: 10;
   }
