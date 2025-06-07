@@ -47,6 +47,8 @@ export interface MonitorSysGenPrometheusConfig {
   monitorSysGenPrometheusConfigPostion: string;
   monitorSysGenPrometheusConfigQl: string;
   monitorSysGenPrometheusConfigChartType: string;
+  monitorSysGenPrometheusConfigChartConfig: string | Record<string, any>;
+  monitorSysGenPrometheusConfigTip: string;
   monitorSysGenPrometheusConfigEnable: boolean;
   monitorSysGenPrometheusConfigType: string;
   monitorSysGenId: number;

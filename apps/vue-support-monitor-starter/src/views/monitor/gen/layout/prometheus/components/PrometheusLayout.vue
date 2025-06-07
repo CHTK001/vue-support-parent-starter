@@ -4,26 +4,17 @@
       <div v-if="editable" class="layout-actions-left">
         <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          新增组件
         </el-button>
-        <el-button type="success" @click="showComponentSelector = true">
+        <el-button type="primary" @click="showComponentSelector = true">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
-          选择已有组件
         </el-button>
-        <el-button type="info" @click="loadSharedComponents">
+        <el-button type="primary" @click="loadSharedComponents">
           <IconifyIconOnline icon="ri:share-line" class="mr-1" />
-          共享组件
         </el-button>
       </div>
-      <div class="layout-actions">
-        <el-tooltip content="浏览器全屏">
-          <el-button type="primary" circle size="small" @click="toggleBrowserFullscreen">
-            <IconifyIconOnline :icon="isBrowserFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
-          </el-button>
-        </el-tooltip>
-        <el-button v-if="editable && layoutChanged" type="success" @click="saveConfigToServer">
+      <div v-if="editable && layoutChanged" class="layout-actions">
+        <el-button type="primary" @click="saveConfigToServer">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-          保存布局
         </el-button>
       </div>
     </div>
@@ -50,6 +41,11 @@
                   <IconifyIconOnline icon="ri:edit-line" />
                 </el-button>
               </el-tooltip>
+              <el-tooltip content="图表配置">
+                <el-button type="warning" circle size="small" @click="editChartConfig(item)">
+                  <IconifyIconOnline icon="ri:settings-3-line" />
+                </el-button>
+              </el-tooltip>
               <el-tooltip content="删除组件">
                 <el-button type="danger" circle size="small" @click="removeComponent(item)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
@@ -61,7 +57,14 @@
             </div>
           </div>
 
-          <component :is="getComponentByType(item.type)" :chart-data="getComponentData(item)" :height="getComponentHeight(item)" :loading="loading" />
+          <component
+            :is="getComponentByType(item.type)"
+            :chart-data="getComponentData(item)"
+            :height="getComponentHeight(item)"
+            :loading="loading"
+            :chart-config="getChartConfig(item)"
+            @click="handleChartClick(item)"
+          />
         </div>
       </GridItem>
     </GridLayout>
@@ -87,7 +90,7 @@
           </el-form-item>
           <el-form-item label="PromQL" prop="promQL">
             <div class="promql-input-group">
-              <el-input v-model="componentForm.promQL" type="textarea" :rows="4" placeholder="请输入Prometheus查询语句" />
+              <el-input v-model="componentForm.promQL" class="promql-input" type="textarea" :rows="4" placeholder="请输入Prometheus查询语句" />
               <el-button type="primary" @click="showPromQLExamples">
                 <IconifyIconOnline icon="ri:code-line" class="mr-1" />
                 查询示例
@@ -247,6 +250,73 @@
         </el-tabs>
       </div>
     </el-dialog>
+
+    <!-- 图表配置对话框 -->
+    <el-dialog v-model="showChartConfigDialog" title="图表配置" width="50%" destroy-on-close>
+      <div class="chart-config-dialog">
+        <el-form ref="chartConfigFormRef" :model="chartConfigForm" label-width="120px">
+          <el-form-item label="图表标题">
+            <el-input v-model="chartConfigForm.title" placeholder="请输入图表标题" />
+          </el-form-item>
+
+          <el-form-item label="Y轴最小值">
+            <el-input-number v-model="chartConfigForm.yAxisMin" :min="-1000" :max="1000" :step="10" placeholder="不设置则自动" />
+            <span class="ml-2">不设置则自动</span>
+          </el-form-item>
+
+          <el-form-item label="Y轴最大值">
+            <el-input-number v-model="chartConfigForm.yAxisMax" :min="-1000" :max="10000" :step="10" placeholder="不设置则自动" />
+            <span class="ml-2">不设置则自动</span>
+          </el-form-item>
+
+          <el-form-item label="单位">
+            <el-input v-model="chartConfigForm.unit" placeholder="例如: %, MB, 次/秒" />
+          </el-form-item>
+
+          <el-form-item label="主色调">
+            <el-color-picker v-model="chartConfigForm.mainColor" />
+          </el-form-item>
+
+          <el-form-item label="背景色">
+            <el-color-picker v-model="chartConfigForm.bgColor" show-alpha />
+          </el-form-item>
+
+          <el-form-item v-if="['line', 'bar'].includes(chartConfigForm.type)" label="显示图例">
+            <el-switch v-model="chartConfigForm.showLegend" />
+          </el-form-item>
+
+          <el-form-item v-if="['line', 'bar'].includes(chartConfigForm.type)" label="堆叠显示">
+            <el-switch v-model="chartConfigForm.stacked" />
+          </el-form-item>
+
+          <el-form-item v-if="chartConfigForm.type === 'line'" label="区域填充">
+            <el-switch v-model="chartConfigForm.fill" />
+          </el-form-item>
+
+          <el-form-item v-if="chartConfigForm.type === 'line'" label="平滑曲线">
+            <el-switch v-model="chartConfigForm.smooth" />
+          </el-form-item>
+
+          <el-form-item v-if="['gauge', 'card'].includes(chartConfigForm.type)" label="阈值设置">
+            <div class="thresholds-config">
+              <div v-for="(threshold, index) in chartConfigForm.thresholds" :key="index" class="threshold-item">
+                <el-input-number v-model="threshold.value" :min="0" :max="100" :step="5" />
+                <el-color-picker v-model="threshold.color" />
+                <el-input v-model="threshold.label" placeholder="标签" style="width: 80px" />
+                <el-button v-if="index > 0" type="danger" circle size="small" @click="chartConfigForm.thresholds.splice(index, 1)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </el-button>
+              </div>
+              <el-button v-if="chartConfigForm.thresholds.length < 5" type="primary" size="small" @click="addThreshold">添加阈值</el-button>
+            </div>
+          </el-form-item>
+        </el-form>
+        <div class="dialog-footer">
+          <el-button @click="showChartConfigDialog = false">取消</el-button>
+          <el-button type="primary" @click="saveChartConfig">保存</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -268,6 +338,7 @@ import BarChart from "./BarChart.vue";
 import CardChart from "./CardChart.vue";
 import GaugeChart from "./GaugeChart.vue";
 import LineChart from "./LineChart.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps({
   data: Object,
@@ -291,6 +362,29 @@ const configId = ref(null);
 const prometheusLayoutRef = ref(null);
 const isBrowserFullscreen = ref(false);
 
+// 图表配置相关
+const showChartConfigDialog = ref(false);
+const chartConfigFormRef = ref(null);
+const configEditingComponent = ref(null);
+const chartConfigForm = reactive({
+  title: "",
+  type: "line",
+  yAxisMin: null,
+  yAxisMax: null,
+  unit: "",
+  mainColor: "#409EFF",
+  bgColor: "rgba(64, 158, 255, 0.1)",
+  showLegend: true,
+  stacked: false,
+  fill: true,
+  smooth: false,
+  thresholds: [
+    { value: 0, color: "#67C23A", label: "正常" },
+    { value: 60, color: "#E6A23C", label: "警告" },
+    { value: 80, color: "#F56C6C", label: "危险" }
+  ]
+});
+
 // 组件类型选项
 const componentTypeOptions = [
   { label: "折线图", value: "line", icon: "ri:line-chart-line" },
@@ -310,7 +404,8 @@ const componentForm = reactive({
   width: 12,
   height: 9,
   refreshInterval: 60,
-  isShared: false
+  isShared: false,
+  chartConfig: null // 添加图表配置
 });
 const componentFormRules = {
   title: [{ required: true, message: "请输入组件标题", trigger: "blur" }],
@@ -350,7 +445,12 @@ const springBootExamples = [
   { name: "HTTP 错误率", query: 'sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (instance) / sum(rate(http_server_requests_seconds_count[5m])) by (instance)' },
   { name: "数据库连接数", query: "hikaricp_connections_active" },
   { name: "系统负载", query: "system_load_average_1m" },
-  { name: "Tomcat 活跃会话数", query: "tomcat_sessions_active_current_sessions" }
+  { name: "Tomcat 活跃会话数", query: "tomcat_sessions_active_current_sessions" },
+  { name: "QPS (每秒查询数)", query: "sum(rate(http_server_requests_seconds_count[1m])) by (instance)" },
+  { name: "HTTP 请求耗时分布", query: "sum(rate(http_server_requests_seconds_bucket[5m])) by (le)" },
+  { name: "HTTP 请求状态码分布", query: "sum(rate(http_server_requests_seconds_count[5m])) by (status)" },
+  { name: "HTTP 请求方法分布", query: "sum(rate(http_server_requests_seconds_count[5m])) by (method)" },
+  { name: "HTTP 端点访问排行", query: "topk(10, sum(rate(http_server_requests_seconds_count[5m])) by (uri))" }
 ];
 
 // 组件数据
@@ -473,6 +573,17 @@ const loadComponentData = async item => {
           const timestamp = result.value ? result.value[0] : Math.floor(Date.now() / 1000);
           const formattedTime = new Date(timestamp * 1000).toLocaleString();
 
+          // 特殊处理 up 指标
+          let displayValue = value.toFixed(2);
+          let color = item.color || "#409EFF";
+          let bgColor = item.bgColor || "rgba(64, 158, 255, 0.1)";
+
+          if (result.metric && result.metric.__name__ === "up") {
+            displayValue = value === 1 ? "在线" : "离线";
+            color = value === 1 ? "#67C23A" : "#F56C6C";
+            bgColor = value === 1 ? "rgba(103, 194, 58, 0.1)" : "rgba(245, 108, 108, 0.1)";
+          }
+
           const chartData = {
             title: item.title,
             labels: [formattedTime], // 使用格式化后的时间作为标签
@@ -480,10 +591,11 @@ const loadComponentData = async item => {
             datasets: [
               {
                 label: result.metric ? formatMetricName(result.metric) : item.title || "数据",
-                data: [value.toFixed(2)],
-                borderColor: item.color || "#409EFF",
-                backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-                fill: true
+                data: [displayValue],
+                borderColor: color,
+                backgroundColor: bgColor,
+                fill: true,
+                isUpMetric: result.metric && result.metric.__name__ === "up"
               }
             ]
           };
@@ -606,6 +718,12 @@ const loadComponentData = async item => {
 // 格式化指标名称，从 metric 对象中提取有用信息
 const formatMetricName = metric => {
   if (!metric) return "未知指标";
+
+  // 特殊处理 up 指标，将 1 转换为 "在线"，0 转换为 "离线"
+  if (metric.__name__ === "up" && metric.value) {
+    const value = parseFloat(metric.value[1]);
+    return value === 1 ? "在线" : "离线";
+  }
 
   // 尝试从常见的 Prometheus 标签中获取有意义的名称
   const nameFromLabels = metric.__name__ || metric.name || metric.job || metric.instance;
@@ -829,11 +947,124 @@ const removeComponent = item => {
     .catch(() => {});
 };
 
+// 获取组件图表配置
+const getChartConfig = item => {
+  // 如果组件有配置，则使用组件配置
+  if (item.chartConfig) {
+    return item.chartConfig;
+  }
+
+  // 默认配置
+  return {
+    yAxisMin: null,
+    yAxisMax: null,
+    unit: "",
+    mainColor: item.color || "#409EFF",
+    bgColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+    showLegend: true,
+    stacked: false,
+    fill: true,
+    smooth: false,
+    thresholds: [
+      { value: 0, color: "#67C23A", label: "正常" },
+      { value: 60, color: "#E6A23C", label: "警告" },
+      { value: 80, color: "#F56C6C", label: "危险" }
+    ]
+  };
+};
+
+// 处理图表点击事件
+const handleChartClick = item => {
+  if (props.editable) {
+    editChartConfig(item);
+  }
+};
+
+// 编辑图表配置
+const editChartConfig = item => {
+  configEditingComponent.value = item;
+
+  // 初始化表单
+  const config = getChartConfig(item);
+  chartConfigForm.title = item.title || "";
+  chartConfigForm.type = item.type || "line";
+  chartConfigForm.yAxisMin = config.yAxisMin;
+  chartConfigForm.yAxisMax = config.yAxisMax;
+  chartConfigForm.unit = config.unit || "";
+  chartConfigForm.mainColor = config.mainColor || "#409EFF";
+  chartConfigForm.bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
+  chartConfigForm.showLegend = config.showLegend !== false;
+  chartConfigForm.stacked = config.stacked || false;
+  chartConfigForm.fill = config.fill !== false;
+  chartConfigForm.smooth = config.smooth || false;
+  chartConfigForm.thresholds = config.thresholds || [
+    { value: 0, color: "#67C23A", label: "正常" },
+    { value: 60, color: "#E6A23C", label: "警告" },
+    { value: 80, color: "#F56C6C", label: "危险" }
+  ];
+
+  showChartConfigDialog.value = true;
+};
+
+// 添加阈值
+const addThreshold = () => {
+  if (chartConfigForm.thresholds.length < 5) {
+    chartConfigForm.thresholds.push({
+      value: chartConfigForm.thresholds[chartConfigForm.thresholds.length - 1].value + 10,
+      color: "#F56C6C",
+      label: "阈值" + (chartConfigForm.thresholds.length + 1)
+    });
+  }
+};
+
+// 保存图表配置
+const saveChartConfig = () => {
+  if (!configEditingComponent.value) return;
+
+  // 保存配置到组件
+  configEditingComponent.value.chartConfig = {
+    yAxisMin: chartConfigForm.yAxisMin,
+    yAxisMax: chartConfigForm.yAxisMax,
+    unit: chartConfigForm.unit,
+    mainColor: chartConfigForm.mainColor,
+    bgColor: chartConfigForm.bgColor,
+    showLegend: chartConfigForm.showLegend,
+    stacked: chartConfigForm.stacked,
+    fill: chartConfigForm.fill,
+    smooth: chartConfigForm.smooth,
+    thresholds: chartConfigForm.thresholds
+  };
+
+  // 更新组件标题
+  if (chartConfigForm.title && chartConfigForm.title !== configEditingComponent.value.title) {
+    configEditingComponent.value.title = chartConfigForm.title;
+  }
+
+  // 更新组件颜色
+  configEditingComponent.value.color = chartConfigForm.mainColor;
+  configEditingComponent.value.bgColor = chartConfigForm.bgColor;
+
+  // 刷新组件数据
+  loadComponentData(configEditingComponent.value);
+
+  // 保存组件配置
+  saveComponentConfig(configEditingComponent.value);
+
+  // 关闭对话框
+  showChartConfigDialog.value = false;
+  configEditingComponent.value = null;
+
+  ElMessage.success("图表配置已保存");
+};
+
 // 保存组件配置到服务器
 const saveComponentConfig = async item => {
   if (!props.data.genId) return;
 
   try {
+    // 准备图表配置
+    const chartConfig = item.chartConfig ? JSON.stringify(item.chartConfig) : "";
+
     const config = {
       monitorSysGenId: props.data.genId,
       monitorSysGenPrometheusConfigType: "component",
@@ -843,6 +1074,7 @@ const saveComponentConfig = async item => {
       monitorSysGenPrometheusConfigChartType: item.type,
       monitorSysGenPrometheusConfigEnable: true,
       monitorSysGenPrometheusConfigShare: item.isShared,
+      monitorSysGenPrometheusConfigChartConfig: chartConfig,
       monitorSysGenPrometheusConfigPostion: JSON.stringify({
         x: item.x,
         y: item.y,
@@ -896,7 +1128,8 @@ const saveComponent = async () => {
         isShared: componentForm.isShared,
         color: editingComponent.value ? editingComponent.value.color : getRandomColor(),
         bgColor: editingComponent.value ? editingComponent.value.bgColor : getRandomColor(0.1),
-        configId: editingComponent.value ? editingComponent.value.configId : null
+        configId: editingComponent.value ? editingComponent.value.configId : null,
+        chartConfig: editingComponent.value ? editingComponent.value.chartConfig : null
       };
 
       if (editingComponent.value) {
@@ -1220,6 +1453,8 @@ defineExpose({
     color: #e0e0e0;
   }
 
+  :deep(.el-tabs__item),
+  :deep(.el-dialog__title),
   :deep(.el-switch__label),
   :deep(.el-drawer__header) {
     color: #e0e0e0;
@@ -1227,6 +1462,7 @@ defineExpose({
   :deep(.el-input__wrapper) {
     background-color: #292a3e !important;
   }
+  :deep(.el-dialog),
   :deep(.el-drawer),
   :deep(.el-input__wrapper),
   .component-drawer-parent {
@@ -1362,9 +1598,12 @@ defineExpose({
 
 .promql-input-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
 
+  .promql-input {
+    width: 90%;
+  }
   .el-button {
     align-self: flex-end;
   }
@@ -1391,6 +1630,20 @@ defineExpose({
 
   .example-actions {
     flex-shrink: 0;
+  }
+}
+
+.chart-config-dialog {
+  .thresholds-config {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .threshold-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   }
 }
 

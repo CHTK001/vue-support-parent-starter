@@ -1,277 +1,278 @@
 <template>
-  <div class="card-chart-container">
-    <div class="card-chart" :class="{ 'is-loading': loading }">
-      <div v-if="loading" class="loading-overlay">
-        <el-icon class="loading-icon"><IconifyIconOnline icon="ep:loading" /></el-icon>
+  <div class="card-chart-container" :style="{ height: `${height}px` }">
+    <div class="card-content" :class="{ 'has-trend': showTrend }">
+      <div v-if="loading" class="chart-loading">
+        <IconifyIconOnline icon="ep:loading" class="is-loading" />
       </div>
-      <div v-else class="card-content">
-        <div class="card-header">
-          <span class="card-title">{{ chartData?.title || "监控指标" }}</span>
+      <template v-else-if="!noData">
+        <div class="card-title">{{ chartData.title || "" }}</div>
+        <div class="card-value" :style="valueStyle">
+          {{ formattedValue }}
+          <span class="card-unit">{{ unit }}</span>
         </div>
-        <div class="card-value-container">
-          <span class="card-value">{{ formattedValue }}</span>
-          <span class="card-unit">{{ chartData?.unit || "" }}</span>
+        <div v-if="showTrend" class="card-trend" :class="trendClass">
+          <IconifyIconOnline v-if="trend > 0" icon="ep:arrow-up" />
+          <IconifyIconOnline v-else-if="trend < 0" icon="ep:arrow-down" />
+          <span>{{ Math.abs(trend).toFixed(2) }}%</span>
         </div>
-        <div class="card-footer">
-          <div class="trend-indicator" :class="trendClass">
-            <IconifyIconOnline :icon="trendIcon" class="trend-icon" />
-            <span class="trend-value">{{ formattedTrend }}</span>
-          </div>
-          <div class="last-update">
-            <IconifyIconOnline icon="ep:time" class="time-icon" />
-            <span>{{ lastUpdateTime }}</span>
-          </div>
-        </div>
+      </template>
+      <div v-else class="chart-no-data">
+        <el-empty description="暂无数据" :image-size="50" />
       </div>
     </div>
+    <div class="card-update-time">{{ queryTime }}</div>
+    <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="300" class="chart-tip">
+      <IconifyIconOnline icon="ep:info-filled" />
+    </el-tooltip>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => ({})
+    required: true
   },
   height: {
     type: Number,
-    default: 200
+    default: 120
   },
   loading: {
     type: Boolean,
     default: false
+  },
+  chartConfig: {
+    type: Object,
+    default: () => ({})
+  },
+  tip: {
+    type: String,
+    default: ""
+  },
+  queryTime: {
+    type: String,
+    default: ""
   }
 });
 
-// 格式化数值
+// 计算是否有数据
+const noData = computed(() => {
+  if (!props.chartData || !props.chartData.datasets || props.chartData.datasets.length === 0) {
+    return true;
+  }
+
+  for (const dataset of props.chartData.datasets) {
+    if (dataset.data && dataset.data.length > 0) {
+      return false;
+    }
+  }
+
+  return true;
+});
+
+// 获取最新值
+const currentValue = computed(() => {
+  if (noData.value) return 0;
+
+  const dataset = props.chartData.datasets[0];
+  if (!dataset || !dataset.data || dataset.data.length === 0) return 0;
+
+  return dataset.data[dataset.data.length - 1];
+});
+
+// 格式化显示值
 const formattedValue = computed(() => {
-  if (!props.chartData || !props.chartData.datasets || !props.chartData.datasets[0]) {
-    return "0";
+  const value = currentValue.value;
+
+  // 如果值大于1000，使用K作为单位
+  if (value >= 1000) {
+    return (value / 1000).toFixed(2);
   }
 
-  const data = props.chartData.datasets[0].data;
-  if (!data || data.length === 0) {
-    return "0";
+  // 如果是整数，不显示小数点
+  if (Number.isInteger(value)) {
+    return value.toString();
   }
 
-  // 获取最新值
-  const latestValue = parseFloat(data[data.length - 1]);
-
-  // 根据数值大小格式化
-  if (latestValue >= 1000000) {
-    return (latestValue / 1000000).toFixed(2) + "M";
-  } else if (latestValue >= 1000) {
-    return (latestValue / 1000).toFixed(2) + "K";
-  } else {
-    return latestValue.toFixed(2);
+  if (value instanceof Number) {
+    return value.toFixed(2);
   }
+
+  return value;
 });
 
-// 计算趋势
+// 获取单位
+const unit = computed(() => {
+  const config = props.chartConfig || {};
+
+  // 如果有配置的单位，优先使用
+  if (config.unit) {
+    return config.unit;
+  }
+
+  // 如果值大于1000，使用K作为单位
+  if (currentValue.value >= 1000) {
+    return "K";
+  }
+
+  return "";
+});
+
+// 计算趋势变化
 const trend = computed(() => {
-  if (!props.chartData || !props.chartData.datasets || !props.chartData.datasets[0]) {
-    return 0;
-  }
+  if (noData.value) return 0;
 
-  const data = props.chartData.datasets[0].data;
-  if (!data || data.length < 2) {
-    return 0;
-  }
+  const dataset = props.chartData.datasets[0];
+  if (!dataset || !dataset.data || dataset.data.length < 2) return 0;
 
-  // 计算最新值与前一个值的差异
-  const latest = parseFloat(data[data.length - 1]);
-  const previous = parseFloat(data[data.length - 2]);
+  const current = dataset.data[dataset.data.length - 1];
+  const previous = dataset.data[dataset.data.length - 2];
 
-  if (previous === 0) {
-    return 0;
-  }
+  if (previous === 0) return 0;
 
-  return ((latest - previous) / previous) * 100;
+  return ((current - previous) / previous) * 100;
 });
 
-// 格式化趋势
-const formattedTrend = computed(() => {
-  if (trend.value === 0) {
-    return "0%";
-  }
-
-  return (trend.value > 0 ? "+" : "") + trend.value.toFixed(2) + "%";
-});
-
-// 趋势图标
-const trendIcon = computed(() => {
-  if (trend.value > 0) {
-    return "ep:arrow-up-bold";
-  } else if (trend.value < 0) {
-    return "ep:arrow-down-bold";
-  } else {
-    return "ep:minus";
-  }
+// 是否显示趋势
+const showTrend = computed(() => {
+  const config = props.chartConfig || {};
+  return config.showTrend !== false && trend.value !== 0;
 });
 
 // 趋势样式类
 const trendClass = computed(() => {
-  if (trend.value > 0) {
-    return "trend-up";
-  } else if (trend.value < 0) {
-    return "trend-down";
-  } else {
-    return "trend-stable";
-  }
+  if (trend.value > 0) return "trend-up";
+  if (trend.value < 0) return "trend-down";
+  return "";
 });
 
-// 最后更新时间
-const lastUpdateTime = computed(() => {
-  // 优先使用 updateTime 字段
-  if (props.chartData && props.chartData.updateTime) {
-    return props.chartData.updateTime;
-  }
-  
-  // 如果没有 updateTime，则尝试从标签中获取
-  if (!props.chartData || !props.chartData.labels || !props.chartData.labels.length) {
-    return "暂无数据";
-  }
+// 计算值的样式
+const valueStyle = computed(() => {
+  const config = props.chartConfig || {};
+  const value = currentValue.value;
 
-  return props.chartData.labels[props.chartData.labels.length - 1] || "暂无数据";
-});
-</script>
+  // 默认颜色
+  let color = config.mainColor || "#409EFF";
 
-<style lang="scss" scoped>
-.card-chart-container {
-  width: 100%;
-  height: 100%;
-}
+  // 如果设置了阈值，根据阈值设置颜色
+  if (config.thresholds && Array.isArray(config.thresholds)) {
+    // 确保阈值按值排序
+    const sortedThresholds = [...config.thresholds].sort((a, b) => a.value - b.value);
 
-.card-chart {
-  width: 100%;
-  height: 100%;
-  border-radius: var(--el-border-radius-base);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  &.is-loading {
-    .loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(255, 255, 255, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-
-      .loading-icon {
-        font-size: 24px;
-        color: var(--el-color-primary);
-        animation: rotate 1s linear infinite;
+    // 查找适用的阈值
+    for (let i = sortedThresholds.length - 1; i >= 0; i--) {
+      if (value >= sortedThresholds[i].value) {
+        color = sortedThresholds[i].color;
+        break;
       }
     }
   }
-}
 
-.card-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 16px;
-}
+  return { color };
+});
+</script>
 
-.card-header {
-  margin-bottom: 16px;
-
-  .card-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--el-color-primary-light-9);
-  }
-}
-
-.card-value-container {
-  flex: 1;
+<style scoped>
+.card-chart-container {
+  width: 100%;
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
-  .card-value {
-    font-size: 36px;
-    font-weight: bold;
-    color: var(--el-color-primary-light-9);
-  }
-
-  .card-unit {
-    font-size: 14px;
-    color: var(--el-color-primary-light-9);
-    margin-top: 4px;
-  }
+  padding: 10px;
+  box-sizing: border-box;
 }
 
-.card-footer {
-  margin-top: 16px;
+.card-content {
+  width: 100%;
+  height: calc(100% - 20px);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-
-  .trend-indicator {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-
-    .trend-icon {
-      margin-right: 4px;
-    }
-
-    &.trend-up {
-      color: var(--el-color-danger);
-
-      .trend-icon {
-        color: var(--el-color-danger);
-      }
-    }
-
-    &.trend-down {
-      color: var(--el-color-success);
-
-      .trend-icon {
-        color: var(--el-color-success);
-      }
-    }
-
-    &.trend-stable {
-      color: var(--el-text-color-secondary);
-
-      .trend-icon {
-        color: var(--el-text-color-secondary);
-      }
-    }
-  }
-
-  .last-update {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-
-    .time-icon {
-      margin-right: 4px;
-      font-size: 14px;
-    }
-  }
+  position: relative;
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.card-content.has-trend {
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 14px;
+  color: #a0a0a0;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.card-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #409eff;
+  text-align: center;
+}
+
+.card-unit {
+  font-size: 14px;
+  margin-left: 2px;
+}
+
+.card-trend {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.card-update-time {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  font-size: 10px;
+  color: #a0a0a0;
+}
+
+.trend-up {
+  color: #f56c6c;
+}
+
+.trend-down {
+  color: #67c23a;
+}
+
+.chart-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.chart-no-data {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart-tip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 16px;
+  color: #409eff;
+  cursor: pointer;
+  z-index: 10;
 }
 </style>
