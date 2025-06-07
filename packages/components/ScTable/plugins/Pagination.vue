@@ -313,17 +313,60 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .pagination-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  width: 100%;
+  min-height: 40px;
+  flex-shrink: 0; /* 防止被压缩 */
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 确保分页控件不会撑大父元素 */
+:deep(.el-pagination) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+  box-sizing: border-box;
+  width: auto;
+}
+
+/* 在小屏幕上优化显示 */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .pagination-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .table-actions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .settings-title {
@@ -356,29 +399,9 @@ onMounted(() => {
   text-align: right;
 }
 
-/* 针对不同布局的样式调整 */
-.pagination-container :deep(.el-pagination) {
-  flex-wrap: wrap;
-}
-
 /* 暗黑模式适配 */
 html.dark .table-settings-container,
 html.dark .column-setting-container {
   background-color: var(--el-bg-color);
-}
-
-/* 针对不同窗口大小的适配 */
-@media (max-width: 768px) {
-  .pagination-container {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .table-actions {
-    margin-top: 10px;
-    width: 100%;
-    justify-content: flex-end;
-  }
 }
 </style> 

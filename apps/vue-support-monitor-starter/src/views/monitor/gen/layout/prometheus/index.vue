@@ -50,77 +50,6 @@
       <div class="prometheus-body">
         <el-scrollbar class="prometheus-scrollbar">
           <div class="prometheus-content-wrapper">
-            <!-- 默认视图模式 -->
-            <div v-if="!editMode" class="default-view">
-              <!-- 系统监控卡片 -->
-              <el-row :gutter="16">
-                <el-col :span="6">
-                  <el-card class="metric-card">
-                    <template #header>
-                      <div class="card-header">
-                        <span>CPU使用率</span>
-                        <el-tooltip content="系统CPU使用百分比">
-                          <IconifyIconOnline icon="ri:information-line" />
-                        </el-tooltip>
-                      </div>
-                    </template>
-                    <div class="metric-value">{{ cpuUsage }}%</div>
-                    <div class="chart-container">
-                      <LineChart :chart-data="cpuChartData" :height="100" />
-                    </div>
-                  </el-card>
-                </el-col>
-                <el-col :span="6">
-                  <el-card class="metric-card">
-                    <template #header>
-                      <div class="card-header">
-                        <span>内存使用率</span>
-                        <el-tooltip content="系统内存使用百分比">
-                          <IconifyIconOnline icon="ri:information-line" />
-                        </el-tooltip>
-                      </div>
-                    </template>
-                    <div class="metric-value">{{ memoryUsage }}%</div>
-                    <div class="chart-container">
-                      <LineChart :chart-data="memoryChartData" :height="100" />
-                    </div>
-                  </el-card>
-                </el-col>
-                <el-col :span="6">
-                  <el-card class="metric-card">
-                    <template #header>
-                      <div class="card-header">
-                        <span>磁盘使用率</span>
-                        <el-tooltip content="系统磁盘使用百分比">
-                          <IconifyIconOnline icon="ri:information-line" />
-                        </el-tooltip>
-                      </div>
-                    </template>
-                    <div class="metric-value">{{ diskUsage }}%</div>
-                    <div class="chart-container">
-                      <LineChart :chart-data="diskChartData" :height="100" />
-                    </div>
-                  </el-card>
-                </el-col>
-                <el-col :span="6">
-                  <el-card class="metric-card">
-                    <template #header>
-                      <div class="card-header">
-                        <span>网络流量</span>
-                        <el-tooltip content="系统网络流量(KB/s)">
-                          <IconifyIconOnline icon="ri:information-line" />
-                        </el-tooltip>
-                      </div>
-                    </template>
-                    <div class="metric-value">{{ networkTraffic }} KB/s</div>
-                    <div class="chart-container">
-                      <LineChart :chart-data="networkChartData" :height="100" />
-                    </div>
-                  </el-card>
-                </el-col>
-              </el-row>
-            </div>
-
             <!-- 自定义布局视图 -->
             <PrometheusLayout ref="prometheusLayoutRef" :data="data" :editable="editMode" class="custom-layout" />
           </div>
@@ -131,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, defineProps, defineExpose } from "vue";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, defineProps, defineExpose, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { fetchPrometheusQueryRangeGen } from "@/api/prometheus/index";
 import { fetchPrometheusOnline, fetchPrometheusReload } from "@/api/prometheus/system";
@@ -160,65 +89,6 @@ const timeRangeOptions = [
   { label: "最近12小时", value: "12h" },
   { label: "最近24小时", value: "24h" }
 ];
-
-// 指标数据
-const cpuUsage = ref("0");
-const memoryUsage = ref("0");
-const diskUsage = ref("0");
-const networkTraffic = ref("0");
-
-// 图表数据
-const cpuChartData = reactive({
-  labels: [],
-  datasets: [
-    {
-      label: "CPU使用率",
-      data: [],
-      borderColor: "#409EFF",
-      backgroundColor: "rgba(64, 158, 255, 0.1)",
-      fill: true
-    }
-  ]
-});
-
-const memoryChartData = reactive({
-  labels: [],
-  datasets: [
-    {
-      label: "内存使用率",
-      data: [],
-      borderColor: "#67C23A",
-      backgroundColor: "rgba(103, 194, 58, 0.1)",
-      fill: true
-    }
-  ]
-});
-
-const diskChartData = reactive({
-  labels: [],
-  datasets: [
-    {
-      label: "磁盘使用率",
-      data: [],
-      borderColor: "#E6A23C",
-      backgroundColor: "rgba(230, 162, 60, 0.1)",
-      fill: true
-    }
-  ]
-});
-
-const networkChartData = reactive({
-  labels: [],
-  datasets: [
-    {
-      label: "网络流量",
-      data: [],
-      borderColor: "#F56C6C",
-      backgroundColor: "rgba(245, 108, 108, 0.1)",
-      fill: true
-    }
-  ]
-});
 
 // 定时器
 let refreshTimer = null;
@@ -275,16 +145,16 @@ const getTimeRangeParams = () => {
   return { start, end, step };
 };
 
-// 加载系统指标数据
-const loadMetricsData = async () => {
+// 刷新数据
+const handleRefresh = async () => {
   if (!props.data.genId) return;
 
   loading.value = true;
-  const timeParams = getTimeRangeParams();
 
   try {
     // 检查在线状态
     await checkOnlineStatus();
+
     if (!isOnline.value) {
       ElMessage.warning("Prometheus服务离线，无法获取监控数据");
       loading.value = false;
@@ -292,86 +162,6 @@ const loadMetricsData = async () => {
     }
 
     const startTime = Date.now();
-
-    // CPU使用率查询
-    const cpuRes = await fetchPrometheusQueryRangeGen({
-      monitorSysGenId: props.data.genId,
-      promQL: '100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
-      ...timeParams
-    });
-
-    if (cpuRes.code === 200 && cpuRes.data && cpuRes.data.result && cpuRes.data.result.length > 0) {
-      const result = cpuRes.data.result[0];
-      const values = result.values || [];
-
-      cpuChartData.labels = values.map(item => new Date(item[0] * 1000).toLocaleTimeString());
-      cpuChartData.datasets[0].data = values.map(item => parseFloat(item[1]).toFixed(2));
-
-      // 最新的CPU使用率
-      if (values.length > 0) {
-        cpuUsage.value = parseFloat(values[values.length - 1][1]).toFixed(2);
-      }
-    }
-
-    // 内存使用率查询
-    const memoryRes = await fetchPrometheusQueryRangeGen({
-      monitorSysGenId: props.data.genId,
-      promQL: "100 * (1 - ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes))",
-      ...timeParams
-    });
-
-    if (memoryRes.code === 200 && memoryRes.data && memoryRes.data.result && memoryRes.data.result.length > 0) {
-      const result = memoryRes.data.result[0];
-      const values = result.values || [];
-
-      memoryChartData.labels = values.map(item => new Date(item[0] * 1000).toLocaleTimeString());
-      memoryChartData.datasets[0].data = values.map(item => parseFloat(item[1]).toFixed(2));
-
-      // 最新的内存使用率
-      if (values.length > 0) {
-        memoryUsage.value = parseFloat(values[values.length - 1][1]).toFixed(2);
-      }
-    }
-
-    // 磁盘使用率查询
-    const diskRes = await fetchPrometheusQueryRangeGen({
-      monitorSysGenId: props.data.genId,
-      promQL: '100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"})',
-      ...timeParams
-    });
-
-    if (diskRes.code === 200 && diskRes.data && diskRes.data.result && diskRes.data.result.length > 0) {
-      const result = diskRes.data.result[0];
-      const values = result.values || [];
-
-      diskChartData.labels = values.map(item => new Date(item[0] * 1000).toLocaleTimeString());
-      diskChartData.datasets[0].data = values.map(item => parseFloat(item[1]).toFixed(2));
-
-      // 最新的磁盘使用率
-      if (values.length > 0) {
-        diskUsage.value = parseFloat(values[values.length - 1][1]).toFixed(2);
-      }
-    }
-
-    // 网络流量查询
-    const networkRes = await fetchPrometheusQueryRangeGen({
-      monitorSysGenId: props.data.genId,
-      promQL: "sum(rate(node_network_receive_bytes_total[5m])) / 1024",
-      ...timeParams
-    });
-
-    if (networkRes.code === 200 && networkRes.data && networkRes.data.result && networkRes.data.result.length > 0) {
-      const result = networkRes.data.result[0];
-      const values = result.values || [];
-
-      networkChartData.labels = values.map(item => new Date(item[0] * 1000).toLocaleTimeString());
-      networkChartData.datasets[0].data = values.map(item => parseFloat(item[1]).toFixed(2));
-
-      // 最新的网络流量
-      if (values.length > 0) {
-        networkTraffic.value = parseFloat(values[values.length - 1][1]).toFixed(2);
-      }
-    }
 
     // 刷新自定义布局组件
     if (prometheusLayoutRef.value) {
@@ -381,8 +171,8 @@ const loadMetricsData = async () => {
     // 计算查询时间
     queryTime.value = Date.now() - startTime;
   } catch (error) {
-    console.error("加载指标数据失败:", error);
-    ElMessage.error("加载指标数据失败");
+    console.error("刷新数据失败:", error);
+    ElMessage.error("刷新数据失败");
   } finally {
     loading.value = false;
   }
@@ -390,38 +180,54 @@ const loadMetricsData = async () => {
 
 // 处理时间范围变更
 const handleTimeRangeChange = () => {
-  loadMetricsData();
-};
-
-// 处理刷新
-const handleRefresh = () => {
-  loadMetricsData();
+  handleRefresh();
 };
 
 // 设置定时刷新
 const setupRefreshTimer = () => {
-  clearInterval(refreshTimer);
+  clearRefreshTimer();
   refreshTimer = setInterval(() => {
-    loadMetricsData();
-  }, 60000); // 默认每分钟刷新一次
+    handleRefresh();
+  }, 60000); // 默认1分钟刷新一次
 };
 
-// 组件挂载时
+// 清除定时刷新
+const clearRefreshTimer = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+};
+
+// 组件挂载
 onMounted(() => {
   if (props.data.genId) {
-    loadMetricsData();
+    handleRefresh();
     setupRefreshTimer();
   }
 });
 
-// 组件卸载前
+// 组件卸载
 onBeforeUnmount(() => {
-  clearInterval(refreshTimer);
+  clearRefreshTimer();
 });
+
+// 监听数据源变化
+watch(
+  () => props.data.genId,
+  newVal => {
+    if (newVal) {
+      handleRefresh();
+      setupRefreshTimer();
+    } else {
+      clearRefreshTimer();
+    }
+  }
+);
 
 // 暴露方法给父组件
 defineExpose({
-  refresh: loadMetricsData
+  refresh: handleRefresh
 });
 </script>
 

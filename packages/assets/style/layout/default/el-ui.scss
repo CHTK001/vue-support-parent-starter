@@ -362,6 +362,9 @@ section.panel-padding > aside {
 .el-header .right-panel > * + * {
   margin-left: 10px;
 }
+.el-scrollbar__view {
+  height: 100%;
+}
 .el-main {
   flex-basis: 100%;
   height: 100%;
@@ -453,6 +456,9 @@ section.panel-padding > aside {
       margin-left: 0 !important;
     }
   }
+}
+.bg-layout {
+  height: 100%;
 }
 .bg-layout .layout {
   background-color: #fff !important;

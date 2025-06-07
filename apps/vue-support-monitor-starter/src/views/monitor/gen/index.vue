@@ -1,154 +1,147 @@
 <template>
   <div class="gen-container p-2">
-    <!-- 顶部操作栏 -->
-    <div class="gen-header w-full flex items-center justify-between mb-4">
-      <div class="gen-header__title text-xl font-medium text-text_color_primary">
-        <IconifyIconOnline icon="ri:database-2-line" class="mr-2" />
-        数据源管理
-      </div>
-      <div class="gen-header__actions flex items-center gap-3">
-        <el-input v-model="searchParams.searchValue" class="!w-[300px]" placeholder="搜索数据源名称" clearable>
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
-        <el-button type="primary" class="gen-btn__add" @click="onSave({}, 'add')">
-          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          新增数据源
-        </el-button>
-      </div>
-    </div>
-
-    <!-- 内容区域 -->
-    <div class="gen-content">
-      <!-- 列表模式 -->
-      <ScTable ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe
-        highlight-current-row :page-size="20">
-        <el-table-column label="序号" width="60px" type="index"  align="center" />
-        <el-table-column label="数据源信息"  align="left" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div class="flex items-center">
-              <el-avatar :size="36" :class="getIconBgClass(row)" class="mr-3 flex-shrink-0">
-                <IconifyIconOnline :icon="getIconName(row)" :color="getIconColor(row)" />
-              </el-avatar>
-              <div class="flex flex-col">
-                <span class="font-medium text-text_color_primary">{{ row.genName }}</span>
-                <span class="text-xs text-text_color_secondary mt-1">
-                  {{ getConnectionInfo(row) }}
-                </span>
+    <el-container>
+      <el-header>
+        <!-- 顶部操作栏 -->
+        <div class="gen-header w-full flex items-center justify-between mb-4">
+          <div class="gen-header__title text-xl font-medium text-text_color_primary">
+            <IconifyIconOnline icon="ri:database-2-line" class="mr-2" />
+            数据源管理
+          </div>
+          <div class="gen-header__actions flex items-center gap-3">
+            <el-input v-model="searchParams.searchValue" class="!w-[300px]" placeholder="搜索数据源名称" clearable>
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
+            <el-button type="primary" class="gen-btn__add" @click="onSave({}, 'add')">
+              <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+              新增数据源
+            </el-button>
+          </div>
+        </div>
+      </el-header>
+      <el-main>
+        <!-- 内容区域 -->
+        <!-- 列表模式 -->
+        <ScTable ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe highlight-current-row :page-size="20">
+          <el-table-column label="序号" width="60px" type="index" align="center" />
+          <el-table-column label="数据源信息" align="left" show-overflow-tooltip>
+            <template #default="{ row }">
+              <div class="flex items-center">
+                <el-avatar :size="36" :class="getIconBgClass(row)" class="mr-3 flex-shrink-0">
+                  <IconifyIconOnline :icon="getIconName(row)" :color="getIconColor(row)" />
+                </el-avatar>
+                <div class="flex flex-col">
+                  <span class="font-medium text-text_color_primary">{{ row.genName }}</span>
+                  <span class="text-xs text-text_color_secondary mt-1">
+                    {{ getConnectionInfo(row) }}
+                  </span>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" :effect="row.genStatus == 0 ? 'light' : 'dark'"
-              class="gen-tag">
-              {{ row.genStatus == 0 ? "停用" : "启用" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="支持功能" >
-          <template #default="{ row }">
-            <div class="flex flex-wrap gap-2">
-              <el-tag :type="row?.supportBackup != 0 ? 'success' : 'info'"
-                :effect="row?.supportBackup != 0 ? 'light' : 'plain'" class="gen-tag">
-                <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-                增量备份
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" :effect="row.genStatus == 0 ? 'light' : 'dark'" class="gen-tag">
+                {{ row.genStatus == 0 ? "停用" : "启用" }}
               </el-tag>
-              <el-tag :type="row?.supportAllBackup != 0 ? 'success' : 'info'"
-                :effect="row?.supportAllBackup != 0 ? 'light' : 'plain'" class="gen-tag">
-                <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-                全量备份
-              </el-tag>
-              <el-tag :type="row?.supportDocument != 0 ? 'success' : 'info'"
-                :effect="row?.supportDocument != 0 ? 'light' : 'plain'" class="gen-tag">
-                <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
-                文档
-              </el-tag>
-              <el-tag :type="row?.supportDriver != 0 ? 'success' : 'info'"
-                :effect="row?.supportDriver != 0 ? 'light' : 'plain'" class="gen-tag">
-                <IconifyIconOnline icon="ri:code-box-line" class="mr-1" />
-                驱动
-              </el-tag>
-              <el-tag v-if="row.isFileDriver" :effect="row?.isFileDriver != 0 ? 'light' : 'plain'" type="info"
-                class="gen-tag">
-                <IconifyIconOnline icon="ri:file-line" class="mr-1" />
-                文件
-              </el-tag>
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
+          <el-table-column label="支持功能">
+            <template #default="{ row }">
+              <div class="flex flex-wrap gap-2">
+                <el-tag :type="row?.supportBackup != 0 ? 'success' : 'info'" :effect="row?.supportBackup != 0 ? 'light' : 'plain'" class="gen-tag">
+                  <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+                  增量备份
+                </el-tag>
+                <el-tag :type="row?.supportAllBackup != 0 ? 'success' : 'info'" :effect="row?.supportAllBackup != 0 ? 'light' : 'plain'" class="gen-tag">
+                  <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+                  全量备份
+                </el-tag>
+                <el-tag :type="row?.supportDocument != 0 ? 'success' : 'info'" :effect="row?.supportDocument != 0 ? 'light' : 'plain'" class="gen-tag">
+                  <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
+                  文档
+                </el-tag>
+                <el-tag :type="row?.supportDriver != 0 ? 'success' : 'info'" :effect="row?.supportDriver != 0 ? 'light' : 'plain'" class="gen-tag">
+                  <IconifyIconOnline icon="ri:code-box-line" class="mr-1" />
+                  驱动
+                </el-tag>
+                <el-tag v-if="row.isFileDriver" :effect="row?.isFileDriver != 0 ? 'light' : 'plain'" type="info" class="gen-tag">
+                  <IconifyIconOnline icon="ri:file-line" class="mr-1" />
+                  文件
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="操作" align="center">
-          <template #default="{ row }">
-            <div class="flex justify-center gap-2">
-              <el-tooltip content="管理" placement="top">
-                <el-button type="primary" link @click="handleClickManage(row)">
-                  <IconifyIconOnline icon="ep:management" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="编辑" placement="top">
-                <el-button type="primary" link @click="handleClickEdit(row)">
-                  <IconifyIconOnline icon="ep:edit" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top">
-                <el-button type="danger" link @click="handleClickDelete(row)">
-                  <IconifyIconOnline icon="ep:delete" />
-                </el-button>
-              </el-tooltip>
+          <el-table-column label="操作" align="center">
+            <template #default="{ row }">
+              <div class="flex justify-center gap-2">
+                <el-tooltip content="管理" placement="top">
+                  <el-button type="primary" link @click="handleClickManage(row)">
+                    <IconifyIconOnline icon="ep:management" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="编辑" placement="top">
+                  <el-button type="primary" link @click="handleClickEdit(row)">
+                    <IconifyIconOnline icon="ep:edit" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button type="danger" link @click="handleClickDelete(row)">
+                    <IconifyIconOnline icon="ep:delete" />
+                  </el-button>
+                </el-tooltip>
 
-              <!-- 从卡片模式合并的功能按钮 -->
-              <el-tooltip v-if="row.isFileDriver" content="上传数据文件" placement="top">
-                <el-button type="primary" link @click="handleUploadDataFile(row)">
-                  <IconifyIconOnline icon="ri:upload-2-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="row.isFileDriver && row.genDatabaseFile" content="清除数据文件" placement="top">
-                <el-button type="warning" link @click="handleClearDataFile(row)">
-                  <IconifyIconOnline icon="ri:close-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="row.genJdbcCustomType == 'JDBC'" content="查看代码" placement="top">
-                <el-button type="primary" link @click="handleOpenCode(row)">
-                  <IconifyIconOnline icon="humbleicons:code" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="row.supportDocument" content="查看文档" placement="top">
-                <el-button type="primary" link @click="handleOpenDocument(row)">
-                  <IconifyIconOnline icon="humbleicons:documents" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启增量备份" placement="top">
-                <el-button type="success" link @click="handleOpenBackup(row)">
-                  <IconifyIconOnline icon="ri:lock-unlock-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-else-if="row.supportBackup" content="停止增量备份" placement="top">
-                <el-button type="danger" link @click="handleCloseBackup(row)">
-                  <IconifyIconOnline icon="ri:lock-2-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="row.supportAllBackup" content="备份设置" placement="top">
-                <el-button type="success" link @click="handleOpenBackupSetting(row)">
-                  <IconifyIconOnline icon="ri:settings-2-line" />
-                </el-button>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-      </ScTable>
-
-      <!-- 懒加载组件 -->
-      <ScLazy :time="300">
-        <save v-if="visible.saveVisible" ref="saveRef" @success="handlerSuccess" />
-        <Document v-if="visible.documentVisible" ref="documentRef" />
-        <Code v-if="visible.codeVisible" ref="codeRef" />
-        <File ref="fileRef" @success="handlerSuccess" />
-        <Backup ref="backupRef" />
-      </ScLazy>
-    </div>
+                <!-- 从卡片模式合并的功能按钮 -->
+                <el-tooltip v-if="row.isFileDriver" content="上传数据文件" placement="top">
+                  <el-button type="primary" link @click="handleUploadDataFile(row)">
+                    <IconifyIconOnline icon="ri:upload-2-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.isFileDriver && row.genDatabaseFile" content="清除数据文件" placement="top">
+                  <el-button type="warning" link @click="handleClearDataFile(row)">
+                    <IconifyIconOnline icon="ri:close-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.genJdbcCustomType == 'JDBC'" content="查看代码" placement="top">
+                  <el-button type="primary" link @click="handleOpenCode(row)">
+                    <IconifyIconOnline icon="humbleicons:code" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.supportDocument" content="查看文档" placement="top">
+                  <el-button type="primary" link @click="handleOpenDocument(row)">
+                    <IconifyIconOnline icon="humbleicons:documents" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启增量备份" placement="top">
+                  <el-button type="success" link @click="handleOpenBackup(row)">
+                    <IconifyIconOnline icon="ri:lock-unlock-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-else-if="row.supportBackup" content="停止增量备份" placement="top">
+                  <el-button type="danger" link @click="handleCloseBackup(row)">
+                    <IconifyIconOnline icon="ri:lock-2-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip v-if="row.supportAllBackup" content="备份设置" placement="top">
+                  <el-button type="success" link @click="handleOpenBackupSetting(row)">
+                    <IconifyIconOnline icon="ri:settings-2-line" />
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+        </ScTable>
+      </el-main>
+    </el-container>
+    <!-- 懒加载组件 -->
+    <save v-if="visible.saveVisible" ref="saveRef" @success="handlerSuccess" />
+    <Document v-if="visible.documentVisible" ref="documentRef" />
+    <Code v-if="visible.codeVisible" ref="codeRef" />
+    <File ref="fileRef" @success="handlerSuccess" />
+    <Backup ref="backupRef" />
   </div>
 </template>
 
@@ -374,7 +367,6 @@ const handleOpenBackupSetting = async row => {
   backupRef.value.setData(row).open();
 };
 
-
 /**
  * 管理数据源
  * @param {Object} row - 数据源行数据
@@ -411,7 +403,6 @@ const onSave = async (row, mode) => {
 
 <style scoped lang="scss">
 .gen-container {
-  height: 100%;
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
