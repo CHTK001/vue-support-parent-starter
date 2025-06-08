@@ -10,6 +10,9 @@
     <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="300" class="chart-tip">
       <IconifyIconOnline icon="ep:info-filled" />
     </el-tooltip>
+    <el-tooltip content="按住鼠标左键拖拽可以进行区域缩放" placement="top" :show-after="300" class="zoom-tip">
+      <IconifyIconOnline icon="mdi:gesture-swipe" />
+    </el-tooltip>
   </div>
 </template>
 
@@ -17,13 +20,13 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import * as echarts from "echarts/core";
 import { BarChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from "echarts/components";
+import { TitleComponent, TooltipComponent, GridComponent, LegendComponent, DataZoomComponent, ToolboxComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { formatValue, getValueUnit } from "../utils/format";
 
 // 注册必要的组件
-echarts.use([TitleComponent, TooltipComponent, GridComponent, LegendComponent, BarChart, CanvasRenderer]);
+echarts.use([TitleComponent, TooltipComponent, GridComponent, LegendComponent, DataZoomComponent, ToolboxComponent, BarChart, CanvasRenderer]);
 
 const props = defineProps({
   chartData: {
@@ -152,7 +155,9 @@ const convertToEChartsOption = chartData => {
     legend: showLegend
       ? {
           show: true,
-          top: "left",
+          right: "10px",
+          top: "10px",
+          orient: "vertical",
           textStyle: {
             color: "#e0e0e0"
           }
@@ -160,11 +165,62 @@ const convertToEChartsOption = chartData => {
       : { show: false },
     grid: {
       left: "3%",
-      right: "4%",
+      right: showLegend ? "15%" : "4%",
       bottom: "3%",
-      top: showLegend ? "15%" : "3%",
+      top: "3%",
       containLabel: true
     },
+    toolbox: {
+      feature: {
+        restore: {
+          title: "重置缩放",
+          icon: "path://M3.8,33.4 M47,18.9h9.8V8.7 M56.3,20.1 C52.1,9,40.5,0.6,26.8,2.1C12.6,3.7,1.6,16.2,2.1,30.6 M13,41.1H3.1v10.2 M3.7,39.9c4.2,11.1,15.8,19.5,29.5,18 c14.2-1.6,25.2-14.1,24.7-28.5",
+          emphasis: {
+            iconStyle: {
+              color: "#4db6ac"
+            }
+          }
+        }
+      },
+      right: "10px",
+      top: "10px",
+      iconStyle: {
+        borderColor: "#e0e0e0",
+        color: "#e0e0e0"
+      }
+    },
+    dataZoom: [
+      {
+        type: "inside",
+        start: 0,
+        end: 100,
+        xAxisIndex: [0],
+        zoomLock: false,
+        filterMode: "filter",
+        throttle: 100,
+        rangeMode: ["value", "value"],
+        moveOnMouseMove: false,
+        preventDefaultMouseMove: false,
+        disabled: false,
+        zoomOnMouseWheel: true,
+        moveOnMouseWheel: false
+      },
+      {
+        type: "inside",
+        start: 0,
+        end: 100,
+        yAxisIndex: [0],
+        zoomLock: false,
+        filterMode: "filter",
+        throttle: 100,
+        rangeMode: ["value", "value"],
+        moveOnMouseMove: false,
+        preventDefaultMouseMove: false,
+        disabled: false,
+        zoomOnMouseWheel: true,
+        moveOnMouseWheel: false
+      }
+    ],
     xAxis: {
       type: "category",
       data: chartData.labels || [],
@@ -225,6 +281,21 @@ const initChart = () => {
 
   // 创建新的图表实例
   chart = echarts.init(chartContainer.value);
+
+  // 设置鼠标操作
+  chart.getZr().on("mousedown", function () {
+    chartContainer.value.style.cursor = "crosshair";
+  });
+
+  chart.getZr().on("mouseup", function () {
+    chartContainer.value.style.cursor = "default";
+  });
+
+  chart.getZr().on("mousemove", function () {
+    if (chartContainer.value.style.cursor !== "crosshair") {
+      chartContainer.value.style.cursor = "pointer";
+    }
+  });
 
   // 设置图表选项
   const option = convertToEChartsOption(props.chartData);
@@ -336,6 +407,16 @@ onBeforeUnmount(() => {
   right: 10px;
   font-size: 16px;
   color: #409eff;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.zoom-tip {
+  position: absolute;
+  top: 10px;
+  right: 40px;
+  font-size: 16px;
+  color: #4db6ac;
   cursor: pointer;
   z-index: 10;
 }
