@@ -123,8 +123,8 @@ const convertToEChartsOption = chartData => {
 
   // 格式化函数
   const formatValueWithUnit = value => {
-    const formattedValue = formatValue(value, valueUnit);
-    return formattedValue + unit;
+    const formattedValue = formatValue(value, valueUnit, config.unit);
+    return formattedValue + getValueUnit(value, valueUnit, config.unit);
   };
 
   return {
@@ -318,6 +318,7 @@ onBeforeUnmount(() => {
 .line-chart-container {
   position: relative;
   width: 100%;
+  height: 100%;
 
   .chart-container {
     width: 100%;

@@ -136,8 +136,8 @@
             <el-input-number v-model="componentForm.refreshInterval" :min="10" :max="600" :step="10" />
             <span class="ml-2">秒</span>
           </el-form-item>
-          <el-form-item label="数据单位" prop="monitorSysGenPrometheusConfigValueUnit">
-            <el-select v-model="componentForm.monitorSysGenPrometheusConfigValueUnit" placeholder="请选择数据单位">
+          <el-form-item label="数据单位" prop="valueUnit">
+            <el-select v-model="componentForm.valueUnit" placeholder="请选择数据单位">
               <el-option label="默认" value="" />
               <el-option label="百分比 (%)" value="percent" />
               <el-option label="字节 (B/KB/MB)" value="bytes" />
@@ -614,7 +614,8 @@ const loadComponentData = async item => {
                 borderColor: color,
                 backgroundColor: bgColor,
                 fill: true,
-                isUpMetric: result.metric && result.metric.__name__ === "up"
+                isUpMetric: result.metric && result.metric.__name__ === "up",
+                valueUnit: item.valueUnit // 确保数据集也包含 valueUnit
               }
             ]
           };
@@ -634,7 +635,8 @@ const loadComponentData = async item => {
                 data: [0],
                 borderColor: item.color || "#409EFF",
                 backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-                fill: true
+                fill: true,
+                valueUnit: item.valueUnit
               }
             ]
           };
@@ -669,7 +671,8 @@ const loadComponentData = async item => {
               data: values.map(point => parseFloat(point[1]).toFixed(2)),
               borderColor: color,
               backgroundColor: bgColor,
-              fill: true
+              fill: true,
+              valueUnit: item.valueUnit // 确保数据集也包含 valueUnit
             };
           });
 
@@ -690,6 +693,7 @@ const loadComponentData = async item => {
             title: item.title,
             labels: timeLabels,
             updateTime: updateTime, // 添加更新时间字段
+            valueUnit: item.valueUnit, // 添加 valueUnit
             datasets: datasets
           };
 
@@ -701,13 +705,15 @@ const loadComponentData = async item => {
             title: item.title,
             labels: [],
             updateTime: currentTime,
+            valueUnit: item.valueUnit,
             datasets: [
               {
                 label: item.title || "数据",
                 data: [],
                 borderColor: item.color || "#409EFF",
                 backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-                fill: true
+                fill: true,
+                valueUnit: item.valueUnit
               }
             ]
           };
@@ -722,13 +728,15 @@ const loadComponentData = async item => {
       title: item.title,
       labels: [],
       updateTime: currentTime,
+      valueUnit: item.valueUnit,
       datasets: [
         {
           label: `${item.title || "数据"} (加载失败)`,
           data: [],
           borderColor: "#ff4d4f",
           backgroundColor: "rgba(255, 77, 79, 0.1)",
-          fill: true
+          fill: true,
+          valueUnit: item.valueUnit
         }
       ]
     };
@@ -916,6 +924,7 @@ const editComponent = item => {
   componentForm.height = item.h || item.monitorSysGenPrometheusConfigHeight || 9;
   componentForm.refreshInterval = item.refreshInterval || item.monitorSysGenPrometheusConfigRefreshInterval || 60;
   componentForm.valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+  componentForm.monitorSysGenPrometheusConfigValueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
   componentForm.tip = item.tip || item.monitorSysGenPrometheusConfigTip || "";
   componentForm.isShared = item.isShared || item.monitorSysGenPrometheusConfigShare === true || item.monitorSysGenPrometheusConfigIsShared === 1;
 
@@ -1093,11 +1102,10 @@ const saveComponentConfig = async item => {
       monitorSysGenPrometheusConfigName: item.title,
       monitorSysGenPrometheusConfigTitle: item.title,
       monitorSysGenPrometheusConfigChartType: item.type,
-      monitorSysGenPrometheusConfigValueUnit: item.valueUnit,
-      monitorSysGenPrometheusConfigTip: item.tip,
       monitorSysGenPrometheusConfigEnable: true,
       monitorSysGenPrometheusConfigShare: item.isShared,
       monitorSysGenPrometheusConfigChartConfig: chartConfig,
+      monitorSysGenPrometheusConfigValueUnit: item.valueUnit,
       monitorSysGenPrometheusConfigPostion: JSON.stringify({
         x: item.x,
         y: item.y,
