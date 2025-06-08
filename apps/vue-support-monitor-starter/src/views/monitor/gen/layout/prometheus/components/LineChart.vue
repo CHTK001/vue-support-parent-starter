@@ -1,12 +1,12 @@
 <template>
   <div class="line-chart-container" :style="{ height: `${height}px` }">
-    <div ref="chartContainer" class="chart-container" />
     <div v-if="loading" class="chart-loading">
       <IconifyIconOnline icon="ep:loading" class="is-loading" />
     </div>
-    <div v-if="!loading && noData" class="chart-no-data">
+    <div v-else-if="noData" class="chart-no-data">
       <el-empty description="暂无数据" :image-size="50" />
     </div>
+    <div v-else ref="chartContainer" class="chart-container" :style="{ height: '100%' }" />
     <el-tooltip v-if="tip" :content="tip" placement="top" :show-after="300" class="chart-tip">
       <IconifyIconOnline icon="ep:info-filled" />
     </el-tooltip>
@@ -14,16 +14,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import * as echarts from "echarts/core";
-import { LineChart as EChartsLineChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent } from "echarts/components";
-import { LabelLayout, UniversalTransition } from "echarts/features";
+import { LineChart } from "echarts/charts";
+import { TitleComponent, TooltipComponent, GridComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { formatValue, getValueUnit } from "../utils/format";
 
 // 注册必要的组件
-echarts.use([TitleComponent, TooltipComponent, GridComponent, DatasetComponent, TransformComponent, LegendComponent, EChartsLineChart, LabelLayout, UniversalTransition, CanvasRenderer]);
+echarts.use([TitleComponent, TooltipComponent, GridComponent, LegendComponent, LineChart, CanvasRenderer]);
 
 const props = defineProps({
   chartData: {
@@ -32,7 +32,7 @@ const props = defineProps({
   },
   height: {
     type: Number,
-    default: 200
+    default: 300
   },
   loading: {
     type: Boolean,
@@ -66,127 +66,65 @@ const noData = computed(() => {
   return true;
 });
 
-// 格式化字节
-const formatBytes = bytes => {
-  if (bytes === 0) return "0 B";
-
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
-// 格式化数字
-const formatNumber = num => {
-  if (num >= 1000000000) {
-    return (num / 1000000000).toFixed(2) + " B";
-  } else if (num >= 1000000) {
-    return (num / 1000000).toFixed(2) + " M";
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(2) + " K";
-  }
-  return num.toFixed(2);
-};
-
-// 格式化时间
-const formatTime = seconds => {
-  if (seconds < 60) {
-    return seconds.toFixed(2) + " 秒";
-  } else if (seconds < 3600) {
-    return (seconds / 60).toFixed(2) + " 分";
-  } else if (seconds < 86400) {
-    return (seconds / 3600).toFixed(2) + " 时";
-  }
-  return (seconds / 86400).toFixed(2) + " 天";
-};
-
-// 将Chart.js数据格式转换为ECharts数据格式
+// 将数据转换为ECharts选项
 const convertToEChartsOption = chartData => {
   if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
-    return {
-      xAxis: { type: "category", data: [] },
-      yAxis: { type: "value" },
-      series: []
-    };
+    return {};
   }
 
   // 获取配置
   const config = props.chartConfig || {};
 
-  // 设置单位
-  let unit = config.unit || "";
+  // 获取单位
   const valueUnit = chartData.valueUnit || "";
-
-  // 根据 valueUnit 设置单位
-  if (valueUnit === "percent") {
-    unit = "%";
-  } else if (valueUnit === "bytes") {
-    unit = "字节";
-  } else if (valueUnit === "number") {
-    unit = "";
-  } else if (valueUnit === "time") {
-    unit = "秒";
-  }
+  const unit = config.unit || getValueUnit(0, valueUnit, config);
 
   // 设置颜色
   const mainColor = config.mainColor || "#409EFF";
   const bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
 
-  // 是否显示图例
+  // 设置是否显示图例
   const showLegend = config.showLegend !== false;
 
-  // 是否堆叠显示
+  // 是否堆叠
   const stacked = config.stacked || false;
 
-  // 是否填充区域
+  // 是否填充
   const fill = config.fill !== false;
 
   // 是否平滑曲线
   const smooth = config.smooth || false;
 
+  // 创建系列数据
   const series = chartData.datasets.map((dataset, index) => {
-    // 提取颜色，优先使用数据集自身的颜色，其次使用配置的主色调，最后使用默认颜色
-    let color = dataset.borderColor || (index === 0 ? mainColor : getRandomColor());
-    let areaColor = dataset.backgroundColor || (index === 0 ? bgColor : getRandomColor(0.1));
+    const color = dataset.borderColor || (index === 0 ? mainColor : getRandomColor());
+    const backgroundColor = dataset.backgroundColor || (index === 0 ? bgColor : getRandomColor(0.1));
 
     return {
-      name: dataset.label,
+      name: dataset.label || `数据 ${index + 1}`,
       type: "line",
-      data: dataset.data,
+      stack: stacked ? "总量" : undefined,
       smooth: smooth,
-      stack: stacked ? "total" : undefined,
-      areaStyle: fill
-        ? {
-            color: areaColor,
-            opacity: 0.3
-          }
-        : undefined,
       lineStyle: {
-        color: color,
-        width: 2
-      },
-      itemStyle: {
+        width: 2,
         color: color
       },
+      areaStyle: fill
+        ? {
+            color: backgroundColor
+          }
+        : undefined,
       emphasis: {
         focus: "series"
-      }
+      },
+      data: dataset.data || []
     };
   });
 
   // 格式化函数
-  const formatValue = value => {
-    if (valueUnit === "percent") {
-      return value.toFixed(2) + "%";
-    } else if (valueUnit === "bytes") {
-      return formatBytes(value);
-    } else if (valueUnit === "number") {
-      return formatNumber(value);
-    } else if (valueUnit === "time") {
-      return formatTime(value);
-    }
-    return value + unit;
+  const formatValueWithUnit = value => {
+    const formattedValue = formatValue(value, valueUnit);
+    return formattedValue + unit;
   };
 
   return {
@@ -222,7 +160,7 @@ const convertToEChartsOption = chartData => {
           // 使用自定义颜色
           const color = param.color;
           result += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>`;
-          result += `${param.seriesName}: ${formatValue(param.value)}<br/>`;
+          result += `${param.seriesName}: ${formatValueWithUnit(param.value)}<br/>`;
         });
         return result;
       }
@@ -230,7 +168,7 @@ const convertToEChartsOption = chartData => {
     legend: showLegend
       ? {
           show: true,
-          top: "top",
+          top: "left",
           textStyle: {
             color: "#e0e0e0"
           }
@@ -277,7 +215,7 @@ const convertToEChartsOption = chartData => {
         color: "#a0a0a0",
         fontSize: 10,
         formatter: value => {
-          return formatValue(value);
+          return formatValueWithUnit(value);
         }
       }
     },
