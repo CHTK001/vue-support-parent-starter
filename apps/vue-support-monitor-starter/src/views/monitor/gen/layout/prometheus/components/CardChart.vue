@@ -86,8 +86,9 @@ const currentValue = computed(() => {
 const formattedValue = computed(() => {
   const value = currentValue.value;
   const valueUnit = props.chartData.valueUnit || "";
+  const config = props.chartConfig || {};
 
-  return formatValue(value, valueUnit);
+  return formatValue(value, valueUnit, config.unit);
 });
 
 // 获取单位

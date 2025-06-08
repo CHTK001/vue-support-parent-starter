@@ -114,7 +114,7 @@ const convertToEChartsOption = chartData => {
 
   // 格式化函数
   const formatValueWithUnit = value => {
-    const formattedValue = formatValue(value, valueUnit);
+    const formattedValue = formatValue(value, valueUnit, config.unit);
     return formattedValue + unit;
   };
 
