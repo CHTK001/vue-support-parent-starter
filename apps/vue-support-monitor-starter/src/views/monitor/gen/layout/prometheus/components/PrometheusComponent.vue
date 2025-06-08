@@ -30,7 +30,7 @@
         <el-alert :title="error" type="error" show-icon :closable="false" />
       </div>
       <div v-else-if="chartType === 'line'" class="chart-wrapper">
-        <line-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
+        <line-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" :defaultTimeRange="30" @timeRangeChange="handleTimeRangeChange" />
       </div>
       <div v-else-if="chartType === 'gauge'" class="chart-wrapper">
         <gauge-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
@@ -112,7 +112,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(["fetchData", "editComponent", "removeComponent", "editChartConfig"]);
+const emit = defineEmits(["fetchData", "editComponent", "removeComponent", "editChartConfig", "timeRangeChange"]);
 
 // 组件标题
 const title = computed(() => {
@@ -296,6 +296,11 @@ onBeforeUnmount(() => {
     clearInterval(countdownTimer);
   }
 });
+
+// 添加handleTimeRangeChange方法
+const handleTimeRangeChange = (range) => {
+  emit('timeRangeChange', { ...range, componentId: props.item.i });
+};
 </script>
 
 <style scoped>
