@@ -28,6 +28,8 @@ import { formatValue, getValueUnit } from "../utils/format";
 // 注册必要的组件
 echarts.use([TitleComponent, TooltipComponent, GridComponent, LegendComponent, DataZoomComponent, ToolboxComponent, LineChart, CanvasRenderer]);
 
+const emit = defineEmits(["timeRangeChange"]);
+
 const props = defineProps({
   chartData: {
     type: Object,
@@ -48,11 +50,16 @@ const props = defineProps({
   tip: {
     type: String,
     default: ""
+  },
+  defaultTimeRange: {
+    type: Number,
+    default: 30 // 默认查询最近30分钟数据
   }
 });
 
 const chartContainer = ref(null);
 let chart = null;
+const initialDataFetched = ref(false);
 
 // 计算是否有数据
 const noData = computed(() => {
@@ -354,6 +361,18 @@ watch(
 onMounted(() => {
   initChart();
   window.addEventListener("resize", handleResize);
+
+  // 发送默认时间范围查询事件
+  if (props.defaultTimeRange > 0 && !initialDataFetched.value) {
+    const now = new Date();
+    const startTime = new Date(now.getTime() - props.defaultTimeRange * 60 * 1000);
+    emit("timeRangeChange", {
+      startTime: startTime.toISOString(),
+      endTime: now.toISOString(),
+      isDefault: true
+    });
+    initialDataFetched.value = true;
+  }
 });
 
 // 组件卸载
