@@ -327,6 +327,7 @@ import { GridItem, GridLayout } from "grid-layout-plus";
 import { defineExpose, defineProps, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { formatValue, getValueUnit, formatStatus, getStatusUnit } from "../utils/format";
 import PrometheusComponent from "./PrometheusComponent.vue";
+import BatteryChart from "./BatteryChart.vue";
 
 const props = defineProps({
   data: Object,
@@ -379,6 +380,7 @@ const componentTypeOptions = [
   { label: "柱状图", value: "bar", icon: "ri:bar-chart-horizontal-line" },
   { label: "仪表盘", value: "gauge", icon: "ri:dashboard-3-line" },
   { label: "卡片", value: "card", icon: "ri:layout-grid-line" },
+  { label: "电池图", value: "battery", icon: "ri:battery-charge-line" },
 ];
 
 // 组件表单
@@ -469,7 +471,11 @@ const getTimeRangeParams = (customTimeRange = null) => {
 
 // 根据组件类型获取对应的组件
 const getComponentByType = (type) => {
-  // 始终返回 PrometheusComponent
+  // 如果是电池图，则返回BatteryChart组件
+  if (type === "battery") {
+    return BatteryChart;
+  }
+  // 其他类型返回PrometheusComponent
   return PrometheusComponent;
 };
 
@@ -543,8 +549,8 @@ const loadComponentData = async (item, timeRange = null) => {
   if (!props.data.genId || !item.promQL) return;
 
   try {
-    // 对于卡片和仪表盘类型，只需要最新的一条记录
-    if (item.type === "card" || item.type === "gauge") {
+    // 对于卡片、仪表盘和电池图类型，只需要最新的一条记录
+    if (item.type === "card" || item.type === "gauge" || item.type === "battery") {
       // 使用即时查询接口获取最新值
       const res = await fetchPrometheusQueryGen({
         monitorSysGenId: item.monitorSysGenPrometheusConfigOrigin || props.data.genId,
@@ -606,7 +612,7 @@ const loadComponentData = async (item, timeRange = null) => {
                 fill: true,
               }]
             };
-          } else if (item.type === "gauge") {
+          } else if (item.type === "gauge" || item.type === "battery") {
             // 使用formatValue函数格式化值
             const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
             
@@ -628,6 +634,7 @@ const loadComponentData = async (item, timeRange = null) => {
               metric: result.metric,
               metricName: formatMetricName(result.metric),
               formattedValue: formattedValue,
+              title: item.title, // 添加标题，用于电池图显示
               datasets: [{
                 label: item.title || "数据",
                 data: [value],
@@ -1271,6 +1278,7 @@ const getComponentTypeTag = (type) => {
     bar: "success",
     gauge: "warning",
     card: "info",
+    battery: "danger",
   };
   return typeMap[type] || "info";
 };
@@ -1282,6 +1290,7 @@ const getComponentTypeName = (type) => {
     bar: "柱状图",
     gauge: "仪表盘",
     card: "卡片",
+    battery: "电池图",
   };
   return typeMap[type] || "未知类型";
 };
@@ -1293,6 +1302,7 @@ const getComponentTypeIcon = (type) => {
     bar: "ri:bar-chart-horizontal-line",
     gauge: "ri:dashboard-3-line",
     card: "ri:layout-grid-line",
+    battery: "ri:battery-charge-line",
   };
   return iconMap[type] || "ri:question-line";
 };
