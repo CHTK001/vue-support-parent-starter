@@ -21,6 +21,7 @@ const iconClass = computed(() => {
   return ["ml-4", "mb-1", "w-[16px]", "h-[16px]", "inline-block", "align-middle", "cursor-pointer", "duration-[100ms]"];
 });
 
+//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeColor = computed(() => $storage.layout?.themeColor);
 

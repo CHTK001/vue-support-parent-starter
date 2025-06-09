@@ -46,6 +46,10 @@ watch(
     if (route.path.includes("/redirect")) return;
     getSubMenuData();
     menuSelect(route.path);
+  },
+  {
+    deep: true,
+    immediate: true,
   }
 );
 

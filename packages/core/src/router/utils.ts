@@ -319,6 +319,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       //   v.component = () => import(name);
     } else {
       // 对后端传component组件路径和不传做兼容（如果后端传component组件路径，那么path可以随便写，如果不传，component组件路径会跟path保持一致）
+      //@ts-ignore
       const index = v?.component ? modulesRoutesKeys.findIndex((ev) => include(ev, v?.component as string)) : modulesRoutesKeys.findIndex((ev) => includes(ev, v.path as string));
       v.component = modulesRoutes[modulesRoutesKeys[index]];
     }

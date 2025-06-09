@@ -493,7 +493,10 @@ onMounted(() => {
 
   // 根据当前路由初始化操作标签页的禁用状态
   showMenuModel(route.fullPath);
-
+ // 解绑`tagViewsChange`、`tagViewsShowModel`、`changLayoutRoute`公共事件，防止多次触发
+  emitter.off("tagViewsChange");
+  emitter.off("tagViewsShowModel");
+  emitter.off("changLayoutRoute");
   // 触发隐藏标签页
   emitter.on("tagViewsChange", (key: any) => {
     if (unref(showTags as any) === key) return;
@@ -518,10 +521,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  // 解绑`tagViewsChange`、`tagViewsShowModel`、`changLayoutRoute`公共事件，防止多次触发
-  emitter.off("tagViewsChange");
-  emitter.off("tagViewsShowModel");
-  emitter.off("changLayoutRoute");
+ 
 });
 const defer = useDefer(multiTags?.length);
 const deferTag = useDefer(tagsViews?.length);
