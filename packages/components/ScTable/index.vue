@@ -1030,7 +1030,9 @@ const componentMap = {
           @sort-change="sortChange"
           @filter-change="filterChange"
         >
-          <slot />
+          <template #default="{ row, index }">
+            <slot :row="row" :index="index" :default="row" />
+          </template>
         </component>
       </div>
 

@@ -60,23 +60,31 @@ const fixedTags = [...routerArrays, ...usePermissionStoreHook().flatteningRoutes
 
 const dynamicTagView = async () => {
   await nextTick();
-  const index = multiTags.value.findIndex((item) => {
-    if (!isAllEmpty(route.query)) {
-      return isEqual(route.query, item.query);
-    } else if (!isAllEmpty(route.params)) {
-      return isEqual(route.params, item.params);
+  let index = multiTags.value.findIndex((item) => {
+    if (!isAllEmpty(route.query) && Object.keys(route.query).length > 0) {
+      return isEqual(route.query, item.query) && route.path === item.path;
+    } else if (!isAllEmpty(route.params) && Object.keys(route.params).length > 0) {
+      return isEqual(route.params, item.params) && route.path === item.path;
     } else {
       return route.path === item.path;
     }
   });
+  
+  // 如果找不到匹配的标签，默认使用最后一个标签
+  if (index === -1 && multiTags.value.length > 0) {
+    index = multiTags.value.length - 1;
+  }
+  
   moveToView(index);
 };
 
 const moveToView = async (index: number): Promise<void> => {
   await nextTick();
   const tabNavPadding = 10;
-  if (!instance.refs["dynamic" + index]) return;
+  if (!instance.refs["dynamic" + index] || index < 0) return;
   const tabItemEl = instance.refs["dynamic" + index][0];
+  if (!tabItemEl) return; // 确保元素存在
+  
   const tabItemElOffsetLeft = (tabItemEl as HTMLElement)?.offsetLeft;
   const tabItemOffsetWidth = (tabItemEl as HTMLElement)?.offsetWidth;
   // 标签页导航栏可视长度（不包含溢出部分）
@@ -161,6 +169,11 @@ function dynamicRouteTag(value: string): void {
             path: value,
             meta: arrItem.meta,
             name: arrItem.name,
+            query: route.query,
+            params: route.params,
+          });
+          nextTick(() => {
+            dynamicTagView();
           });
         } else {
           if (arrItem.children && arrItem.children.length > 0) {

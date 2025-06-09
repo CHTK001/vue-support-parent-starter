@@ -24,7 +24,7 @@
       <el-col v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" :xs="computedPageSize" :sm="computedPageSize"
         :md="computedPageSize" :lg="computedPageSize" :xl="computedPageSize" class="card-col">
         <div @contextmenu="handleContextMenu($event, row)">
-          <slot :row="row" :index="index"></slot>
+           <slot :row="row" :index="index" />
         </div>
       </el-col>
     </el-row>
@@ -499,6 +499,7 @@ const handleMenuAction = (action) => {
 .card-view-container {
   .card-col {
     margin-bottom: 16px;
+    min-height: 100px;
   }
 
   .card-item {

@@ -14,7 +14,7 @@
     <div class="proxy-content">
       <ScTable ref="tableRef" layout="card" :data-loaded="handleDataLoaded" :url="fetchProxyPage" :params="form" class="proxy-card" :appendable="false">
         <template #default="{ row }">
-          <div class="proxy-item" :class="{ 'proxy-active': row.proxyStatus == 1 }">
+          <div class="proxy-item" :class="{ 'proxy-active': row?.proxyStatus == 1 }">
             <div class="proxy-item-header">
               <div class="proxy-icon">
                 <el-icon>
