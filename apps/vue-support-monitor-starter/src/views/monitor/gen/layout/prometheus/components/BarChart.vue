@@ -1,5 +1,5 @@
 <template>
-  <div class="bar-chart-container" :style="{ height: `${height}px` }">
+  <div class="bar-chart-container" :style="{ height: `${height}` }">
     <div v-if="loading" class="chart-loading">
       <IconifyIconOnline icon="ep:loading" class="is-loading" />
     </div>
@@ -36,7 +36,7 @@ const props = defineProps({
     required: true
   },
   height: {
-    type: Number,
+    type: [Number, String],
     default: 300
   },
   loading: {
@@ -91,7 +91,6 @@ const convertToEChartsOption = chartData => {
 
   // 设置颜色
   const mainColor = config.mainColor || "#409EFF";
-  const bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
 
   // 设置是否显示图例
   const showLegend = config.showLegend !== false;

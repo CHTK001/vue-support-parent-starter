@@ -1,5 +1,5 @@
 <template>
-  <div class="gauge-chart-container" :style="{ height: `${height}px` }">
+  <div class="gauge-chart-container" :style="{ height: `${height}` }">
     <div v-if="loading" class="chart-loading">
       <IconifyIconOnline icon="ep:loading" class="is-loading" />
     </div>
@@ -31,7 +31,7 @@ const props = defineProps({
     required: true
   },
   height: {
-    type: Number,
+     type: [Number, String],
     default: 300
   },
   loading: {
