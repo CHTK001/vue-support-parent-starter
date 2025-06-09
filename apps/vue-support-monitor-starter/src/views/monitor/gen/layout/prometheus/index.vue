@@ -99,12 +99,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, defineProps, defineExpose, defineEmits, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { fetchPrometheusQueryRangeGen } from "@/api/prometheus/index";
-import { fetchPrometheusOnline, fetchPrometheusReload } from "@/api/prometheus/system";
 import { fetchGenDatabasePage } from "@/api/monitor/gen/database";
-import LineChart from "./components/LineChart.vue";
+import { fetchPrometheusOnline } from "@/api/prometheus/system";
+import { ElMessage } from "element-plus";
+import { defineEmits, defineExpose, defineProps, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import PrometheusLayout from "./components/PrometheusLayout.vue";
 
 // 组件属性和事件
