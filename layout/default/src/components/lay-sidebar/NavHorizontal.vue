@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import { useNav } from "../../hooks/useNav";
-import { usePermissionStoreHook } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
-import { computed, nextTick, ref } from "vue";
+import { usePermissionStoreHook } from "@repo/core";
+import { computed, nextTick, ref, watch } from "vue";
+import { useNav } from "../../hooks/useNav";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LaySidebarItem from "./components/SidebarItem.vue";
 //@ts-ignore
-import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
-import { useDefer } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { useDefer } from "@repo/utils";
 import LayTool from "../lay-tool/index.vue";
 
 const menuRef = ref();
 
 const { t, route, locale, translationCh, translationEn } = useTranslationLang(menuRef);
 
-const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, getLogo, backTopMenu, resolvePath, getDivStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, getLogo, backTopMenu, resolvePath, getDivStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, menuSelect } = useNav();
 
 const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
 
@@ -23,6 +22,7 @@ const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
 nextTick(() => {
   menuRef.value?.handleResize();
 });
+
 </script>
 
 <template>

@@ -1,19 +1,17 @@
 <script setup lang="ts">
-import { getConfig, resolvePath as configResolvePath } from "@repo/config";
-import type { MenuType } from "@repo/core";
-import { ReText } from "@repo/components/ReText";
-import { useNav } from "../../../hooks/useNav";
-import { transformI18n } from "@repo/config";
-import SidebarLinkItem from "./SidebarLinkItem.vue";
-import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { type PropType, type CSSProperties, ref, toRaw, computed, useAttrs } from "vue";
+import { ReText } from "@repo/components/ReText";
+import { resolvePath as configResolvePath, getConfig, transformI18n } from "@repo/config";
+import type { MenuType } from "@repo/core";
+import { computed, type CSSProperties, type PropType, ref, toRaw, useAttrs } from "vue";
+import { useNav } from "../../../hooks/useNav";
+import SidebarExtraIcon from "./SidebarExtraIcon.vue";
+import SidebarLinkItem from "./SidebarLinkItem.vue";
 
-import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
 import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
-import { useDefer } from "@repo/utils";
+import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
