@@ -41,7 +41,7 @@
               </el-tooltip>
 
               <el-tooltip content="退出全屏" placement="top">
-                <el-button type="warning" circle class="control-panel-btn" @click="router.push('/database')">
+                <el-button type="warning" circle class="control-panel-btn" @click="router.push('/database/index')">
                   <IconifyIconOnline icon="ep:back" />
                 </el-button>
               </el-tooltip>
