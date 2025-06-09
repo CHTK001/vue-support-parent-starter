@@ -132,6 +132,7 @@
               <el-option label="字节 (B/KB/MB)" value="bytes" />
               <el-option label="数值 (K/M/B)" value="number" />
               <el-option label="时间 (秒/分/时)" value="time" />
+              <el-option label="状态 (在线/离线)" value="status" />
             </el-select>
           </el-form-item>
           <el-form-item label="提示信息" prop="tip">
@@ -324,7 +325,7 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
 import { defineExpose, defineProps, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { formatValue, getValueUnit } from "../utils/format";
+import { formatValue, getValueUnit, formatStatus, getStatusUnit } from "../utils/format";
 import PrometheusComponent from "./PrometheusComponent.vue";
 
 const props = defineProps({
@@ -578,34 +579,64 @@ const loadComponentData = async (item, timeRange = null) => {
             // 使用formatValue函数格式化值
             const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
             
-            componentsData.value[item.i].unitValue = valueUnit;
-            componentsData.value[item.i].rawValue = value; // 保存原始值用于比较
-            componentsData.value[item.i].metric = result.metric;
-            componentsData.value[item.i].datasets = [{
-              label: item.title || "数据",
-              data: [value],
-              borderColor: item.color || "#409EFF",
-              unitValue: valueUnit,
-              backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-              fill: true,
-            }];
-            componentsData.value[item.i].metricName = formatMetricName(result.metric);
+            // 特殊处理"status"类型，或者检测到up指标
+            const isStatusType = valueUnit === "status" || 
+                               (result.metric && result.metric.__name__ === "up");
+            
+            // 如果是状态类型但没有明确设置valueUnit，则自动设置
+            const effectiveValueUnit = isStatusType && !valueUnit ? "status" : valueUnit;
+            
+            const formattedValue = formatValue(value, effectiveValueUnit, item.chartConfig?.unit);
+            const unitDisplay = getValueUnit(value, effectiveValueUnit, item.chartConfig);
+            
+            // 保留原有数据结构，只更新需要的字段
+            componentsData.value[item.i] = {
+              ...componentsData.value[item.i],
+              unitValue: effectiveValueUnit,
+              rawValue: value, // 保存原始值用于比较
+              metric: result.metric,
+              metricName: formatMetricName(result.metric),
+              formattedValue: formattedValue,
+              datasets: [{
+                label: item.title || "数据",
+                data: [value],
+                borderColor: isStatusType ? (value === 1 ? "#67C23A" : "#F56C6C") : (item.color || "#409EFF"),
+                unitValue: effectiveValueUnit,
+                backgroundColor: isStatusType ? (value === 1 ? "rgba(103, 194, 58, 0.1)" : "rgba(245, 108, 108, 0.1)") : (item.bgColor || "rgba(64, 158, 255, 0.1)"),
+                fill: true,
+              }]
+            };
           } else if (item.type === "gauge") {
             // 使用formatValue函数格式化值
             const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
             
-            componentsData.value[item.i].valueUnit = valueUnit;
-            componentsData.value[item.i].rawValue = value; // 保存原始值用于比较
-            componentsData.value[item.i].metric = result.metric;
-            componentsData.value[item.i].datasets = [{
-              label: item.title || "数据",
-              data: [value],
-              borderColor: item.color || "#409EFF",
-              unitValue: valueUnit,
-              backgroundColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
-              fill: true,
-            }];
-            componentsData.value[item.i].metricName = formatMetricName(result.metric);
+            // 特殊处理"status"类型，或者检测到up指标
+            const isStatusType = valueUnit === "status" || 
+                               (result.metric && result.metric.__name__ === "up");
+            
+            // 如果是状态类型但没有明确设置valueUnit，则自动设置
+            const effectiveValueUnit = isStatusType && !valueUnit ? "status" : valueUnit;
+            
+            const formattedValue = formatValue(value, effectiveValueUnit, item.chartConfig?.unit);
+            const unitDisplay = getValueUnit(value, effectiveValueUnit, item.chartConfig);
+            
+            // 保留原有数据结构，只更新需要的字段
+            componentsData.value[item.i] = {
+              ...componentsData.value[item.i],
+              valueUnit: effectiveValueUnit,
+              rawValue: value, // 保存原始值用于比较
+              metric: result.metric,
+              metricName: formatMetricName(result.metric),
+              formattedValue: formattedValue,
+              datasets: [{
+                label: item.title || "数据",
+                data: [value],
+                borderColor: isStatusType ? (value === 1 ? "#67C23A" : "#F56C6C") : (item.color || "#409EFF"),
+                unitValue: effectiveValueUnit,
+                backgroundColor: isStatusType ? (value === 1 ? "rgba(103, 194, 58, 0.1)" : "rgba(245, 108, 108, 0.1)") : (item.bgColor || "rgba(64, 158, 255, 0.1)"),
+                fill: true,
+              }]
+            };
           }
           
         }
@@ -656,28 +687,42 @@ const loadComponentData = async (item, timeRange = null) => {
             
             // 获取值单位
             const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+            
+            // 特殊处理"status"类型，或者检测到up指标
+            const isStatusType = valueUnit === "status" || 
+                               (series.metric && series.metric.__name__ === "up");
+            
+            // 如果是状态类型但没有明确设置valueUnit，则自动设置
+            const effectiveValueUnit = isStatusType && !valueUnit ? "status" : valueUnit;
+            
             // 格式化数据点
             const data = series.values.map(point => {
               const rawValue = parseFloat(point[1]);
+              // 对于图表数据，我们保留原始数值以便正确显示图表
               return rawValue;
             });
-
+            
             // 创建数据集
             datasets.push({
               label: metricName,
               data: data,
-              borderColor: item.color || getRandomColor(),
-              backgroundColor: item.bgColor || getRandomColor(0.1),
+              symbol: 'none', // 去除折线图上的点
+              borderColor: isStatusType ? "#67C23A" : (item.color || getRandomColor()),
+              backgroundColor: isStatusType ? "rgba(103, 194, 58, 0.1)" : (item.bgColor || getRandomColor(0.1)),
               fill: item.chartConfig?.fill !== false,
               tension: item.chartConfig?.smooth ? 0.4 : 0,
-              valueUnit: valueUnit, // 保存值单位以便在图表提示中使用
-              chartConfig: item.chartConfig // 保存图表配置以便在图表提示中使用
+              valueUnit: effectiveValueUnit, // 保存值单位以便在图表提示中使用
+              chartConfig: item.chartConfig, // 保存图表配置以便在图表提示中使用
+              isStatusType: isStatusType // 标记是否为状态类型
             });
           });
           
-          // 更新组件数据
-          componentsData.value[item.i].labels = labels;
-          componentsData.value[item.i].datasets = datasets;
+          // 更新组件数据，保留原有结构
+          componentsData.value[item.i] = {
+            ...componentsData.value[item.i],
+            labels: labels,
+            datasets: datasets
+          };
         }
       }
     }
@@ -923,17 +968,31 @@ const removeComponent = (item) => {
 
 // 获取组件图表配置
 const getChartConfig = (item) => {
+  // 获取值单位
+  const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+  
+  // 检查是否为状态类型
+  const isStatusType = valueUnit === "status";
+  
   // 如果组件有配置，则使用组件配置
   if (item.chartConfig) {
     return {
       ...item.chartConfig,
-      valueUnit: item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "",
+      valueUnit: valueUnit,
+      isStatusType: isStatusType,
+      symbol: item.type === 'line' ? 'none' : undefined, // 折线图不显示数据点
       formatValue: (value) => {
-        const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+        // 如果是状态类型，使用formatStatus函数
+        if (isStatusType) {
+          return formatStatus(value);
+        }
         return formatValue(value, valueUnit, item.chartConfig.unit);
       },
       getValueUnit: (value) => {
-        const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+        // 如果是状态类型，使用getStatusUnit函数
+        if (isStatusType) {
+          return getStatusUnit();
+        }
         return getValueUnit(value, valueUnit, item.chartConfig);
       }
     };
@@ -944,24 +1003,35 @@ const getChartConfig = (item) => {
     yAxisMin: null,
     yAxisMax: null,
     unit: "",
-    mainColor: item.color || "#409EFF",
-    bgColor: item.bgColor || "rgba(64, 158, 255, 0.1)",
+    mainColor: isStatusType ? "#67C23A" : (item.color || "#409EFF"),
+    bgColor: isStatusType ? "rgba(103, 194, 58, 0.1)" : (item.bgColor || "rgba(64, 158, 255, 0.1)"),
     showLegend: true,
     stacked: false,
     fill: true,
     smooth: false,
-    thresholds: [
+    symbol: item.type === 'line' ? 'none' : undefined, // 折线图不显示数据点
+    thresholds: isStatusType ? [
+      { value: 0, color: "#F56C6C", label: "离线" },
+      { value: 1, color: "#67C23A", label: "在线" }
+    ] : [
       { value: 0, color: "#67C23A", label: "正常" },
       { value: 60, color: "#E6A23C", label: "警告" },
       { value: 80, color: "#F56C6C", label: "危险" },
     ],
-    valueUnit: item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "",
+    valueUnit: valueUnit,
+    isStatusType: isStatusType,
     formatValue: (value) => {
-      const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+      // 如果是状态类型，使用formatStatus函数
+      if (isStatusType) {
+        return formatStatus(value);
+      }
       return formatValue(value, valueUnit);
     },
     getValueUnit: (value) => {
-      const valueUnit = item.valueUnit || item.monitorSysGenPrometheusConfigValueUnit || "";
+      // 如果是状态类型，使用getStatusUnit函数
+      if (isStatusType) {
+        return getStatusUnit();
+      }
       return getValueUnit(value, valueUnit);
     }
   };
