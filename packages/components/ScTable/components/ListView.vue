@@ -30,7 +30,7 @@
 
         <!-- 自定义内容插槽 -->
         <div class="list-item-content">
-          <slot :row="row" :index="index"></slot>
+          <slot :row="row" :index="index"  :default="row"></slot>
         </div>
       </div>
     </div>
