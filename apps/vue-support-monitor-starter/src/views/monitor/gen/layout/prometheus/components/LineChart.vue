@@ -1,5 +1,5 @@
 <template>
-  <div class="line-chart-container" :style="{ height: `${height}px` }">
+  <div class="line-chart-container" :style="{ height: `${height}` }">
     <div v-if="loading" class="chart-loading">
       <IconifyIconOnline icon="ep:loading" class="is-loading" />
     </div>
@@ -36,7 +36,7 @@ const props = defineProps({
     required: true
   },
   height: {
-    type: Number,
+    type: [Number, String],
     default: 300
   },
   loading: {
@@ -81,12 +81,11 @@ const convertToEChartsOption = chartData => {
   if (!chartData || !chartData.datasets || chartData.datasets.length === 0) {
     return {};
   }
-
   // 获取配置
   const config = props.chartConfig || {};
 
   // 获取单位
-  const valueUnit = chartData.valueUnit || "";
+  const valueUnit = config.valueUnit || "";
   const unit = config.unit || getValueUnit(0, valueUnit, config);
 
   // 设置颜色

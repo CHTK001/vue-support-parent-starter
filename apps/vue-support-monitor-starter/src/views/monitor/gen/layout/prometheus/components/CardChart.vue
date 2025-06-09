@@ -36,7 +36,7 @@ const props = defineProps({
     required: true
   },
   height: {
-    type: Number,
+     type: [Number, String],
     default: 120
   },
   loading: {
@@ -85,7 +85,7 @@ const currentValue = computed(() => {
 // 格式化显示值
 const formattedValue = computed(() => {
   const value = currentValue.value;
-  const valueUnit = props.chartData.valueUnit || "";
+  const valueUnit = props.chartConfig.valueUnit || "";
   const config = props.chartConfig || {};
 
   return formatValue(value, valueUnit, config.unit);
@@ -94,7 +94,7 @@ const formattedValue = computed(() => {
 // 获取单位
 const unit = computed(() => {
   const config = props.chartConfig || {};
-  const valueUnit = props.chartData.datasets?.[0]?.valueUnit || props.chartData.valueUnit || "";
+  const valueUnit = props.chartConfig.valueUnit || "";
 
   return getValueUnit(currentValue.value, valueUnit, config);
 });
