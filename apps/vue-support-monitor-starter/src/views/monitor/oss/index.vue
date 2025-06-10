@@ -13,8 +13,7 @@
           <el-table-column label="应用名称" prop="fileStorageProtocolDesc">
             <template #default="{ row }">
               <span v-if="row.fileStorageProtocolStatus != 1">{{ row.fileStorageProtocolDesc }}</span>
-              <span v-else style="color: blue; cursor: pointer" @click="doDetail(row)">{{ row.fileStorageProtocolDesc
-                }}</span>
+              <span v-else style="color: blue; cursor: pointer" @click="doDetail(row)">{{ row.fileStorageProtocolDesc }}</span>
             </template>
           </el-table-column>
           <el-table-column label="协议" prop="fileStorageProtocolName" />
@@ -24,8 +23,15 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolPlugins }}</div>
               <div>
-                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolPluginOpen"
-                  :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerPlugin(row)" />
+                <el-switch
+                  v-if="row.fileStorageProtocolStatus != 1"
+                  v-model="row.fileStorageProtocolPluginOpen"
+                  :active-value="1"
+                  :inactive-value="0"
+                  type="primary"
+                  size="small"
+                  @click="doTriggerPlugin(row)"
+                />
               </div>
             </template>
           </el-table-column>
@@ -33,8 +39,15 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolSetting }}</div>
               <div>
-                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolSettingOpen"
-                  :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerSetting(row)" />
+                <el-switch
+                  v-if="row.fileStorageProtocolStatus != 1"
+                  v-model="row.fileStorageProtocolSettingOpen"
+                  :active-value="1"
+                  :inactive-value="0"
+                  type="primary"
+                  size="small"
+                  @click="doTriggerSetting(row)"
+                />
               </div>
             </template>
           </el-table-column>
@@ -42,8 +55,15 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolUa }}</div>
               <div>
-                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolUaOpen"
-                  :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)" />
+                <el-switch
+                  v-if="row.fileStorageProtocolStatus != 1"
+                  v-model="row.fileStorageProtocolUaOpen"
+                  :active-value="1"
+                  :inactive-value="0"
+                  type="primary"
+                  size="small"
+                  @click="doTriggerUa(row)"
+                />
               </div>
             </template>
           </el-table-column>
@@ -51,8 +71,15 @@
           <el-table-column label="分段下载" prop="fileStorageProtocolRangeOpen" show-overflow-tooltip>
             <template #default="{ row }">
               <div>
-                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolRangeOpen"
-                  :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)" />
+                <el-switch
+                  v-if="row.fileStorageProtocolStatus != 1"
+                  v-model="row.fileStorageProtocolRangeOpen"
+                  :active-value="1"
+                  :inactive-value="0"
+                  type="primary"
+                  size="small"
+                  @click="doTriggerUa(row)"
+                />
               </div>
             </template>
           </el-table-column>
@@ -66,20 +93,16 @@
           </el-table-column>
           <el-table-column label="操作" fixed="right" align="right" width="260">
             <template #default="scope">
-              <el-button class="btn-text mr-1" :icon="useRenderIcon('ri:settings-2-line')"
-                @click="doDetail(scope.row)" />
-              <el-button v-if="scope.row.fileStorageProtocolStatus != 1" type="primary" class="btn-text"
-                :icon="useRenderIcon('ri:play-circle-line')" @click="start(scope.row)" />
-              <el-button v-else type="danger" class="btn-text mr-1" :icon="useRenderIcon('ri:stop-circle-line')"
-                @click="stop(scope.row)" />
-              <el-button type="primary" class="btn-text mr-1" :icon="useRenderIcon('ri:edit-box-line')"
-                @click="save(scope.row, 'edit')" />
+              <el-button class="btn-text mr-1" :icon="useRenderIcon('ri:settings-2-line')" @click="doDetail(scope.row)" />
+              <el-button v-if="scope.row.fileStorageProtocolStatus != 1" type="primary" class="btn-text" :icon="useRenderIcon('ri:play-circle-line')" @click="start(scope.row)" />
+              <el-button v-else type="danger" class="btn-text mr-1" :icon="useRenderIcon('ri:stop-circle-line')" @click="stop(scope.row)" />
+              <el-button type="primary" class="btn-text mr-1" :icon="useRenderIcon('ri:edit-box-line')" @click="save(scope.row, 'edit')" />
               <el-button class="btn-text" :icon="useRenderIcon('ep:copy-document')">
                 <span
-                  v-copy:click="scope.row.fileStorageProtocolName.toLowerCase() + '://' + scope.row.fileStorageProtocolHost.replace('0.0.0.0', '127.0.0.1') + ':' + scope.row.fileStorageProtocolPort" />
+                  v-copy:click="scope.row.fileStorageProtocolName.toLowerCase() + '://' + scope.row.fileStorageProtocolHost.replace('0.0.0.0', '127.0.0.1') + ':' + scope.row.fileStorageProtocolPort"
+                />
               </el-button>
-              <el-popconfirm v-if="scope.row.fileStorageProtocolStatus != 1" class="mr-1"
-                :title="$t('message.confimDelete')" @confirm="doDelete(scope.row, scope.$index)">
+              <el-popconfirm v-if="scope.row.fileStorageProtocolStatus != 1" class="mr-1" :title="$t('message.confimDelete')" @confirm="doDelete(scope.row, scope.$index)">
                 <template #reference>
                   <el-button type="danger" class="btn-text" :icon="useRenderIcon('ri:delete-bin-2-line')" />
                 </template>
@@ -101,7 +124,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { Base64 } from "js-base64";
 export default {
   components: {
-    SaveDialog: defineAsyncComponent(() => import("./save.vue")),
+    SaveDialog: defineAsyncComponent(() => import("./save.vue"))
   },
   data() {
     return {
@@ -114,7 +137,7 @@ export default {
       broadcastChannel: null,
       detailBroadcastChannel: null,
       messageEvent: new Set(),
-      currentRow: {},
+      currentRow: {}
     };
   },
   mounted() {
@@ -130,7 +153,7 @@ export default {
     useRenderIcon,
     fetchOssProtocolPage,
     channelMessage(messageEvent) {
-      if (messageEvent.data.action == 'save') {
+      if (messageEvent.data.action == "save") {
         this.messageEvent.add(messageEvent.data.uid);
         this.broadcastChannel.postMessage(JSON.stringify(this.currentRow));
         return;
@@ -138,7 +161,7 @@ export default {
       this.messageEvent.delete(messageEvent.data.uid);
     },
     doTriggerWatermark(row) {
-      fetchOssProtocolUpdate(row).then((res) => {
+      fetchOssProtocolUpdate(row).then(res => {
         if (res.code == "00000") {
           this.$message.success("水印修改成功");
           return;
@@ -147,7 +170,7 @@ export default {
       });
     },
     doTriggerUa(row) {
-      fetchOssProtocolUpdate(row).then((res) => {
+      fetchOssProtocolUpdate(row).then(res => {
         if (res.code == "00000") {
           this.$message.success("UA修改成功");
           return;
@@ -156,7 +179,7 @@ export default {
       });
     },
     doTriggerSetting(row) {
-      fetchOssProtocolUpdate(row).then((res) => {
+      fetchOssProtocolUpdate(row).then(res => {
         if (res.code == "00000") {
           this.$message.success("Setting 修改成功");
           return;
@@ -165,7 +188,7 @@ export default {
       });
     },
     doTriggerPlugin(row) {
-      fetchOssProtocolUpdate(row).then((res) => {
+      fetchOssProtocolUpdate(row).then(res => {
         if (res.code == "00000") {
           this.$message.success("Plugin 修改成功");
           return;
@@ -181,7 +204,7 @@ export default {
       this.broadcastChannel.postMessage(JSON.stringify(row));
     },
     doDelete(row) {
-      fetchOssProtocolDelete({ id: row.fileStorageProtocolId }).then((res) => {
+      fetchOssProtocolDelete({ id: row.fileStorageProtocolId }).then(res => {
         if (res.code == "00000") {
           this.$message.success("删除成功");
           this.afterPrepertiesSet();
@@ -191,7 +214,7 @@ export default {
       });
     },
     start(row) {
-      fetchOssProtocolStart({ id: row.fileStorageProtocolId }).then((res) => {
+      fetchOssProtocolStart({ id: row.fileStorageProtocolId }).then(res => {
         if (res.code == "00000") {
           row.fileStorageProtocolStatus = 1;
           this.$message.success("启动成功");
@@ -201,7 +224,7 @@ export default {
       });
     },
     stop(row) {
-      fetchOssProtocolStop({ id: row.fileStorageProtocolId }).then((res) => {
+      fetchOssProtocolStop({ id: row.fileStorageProtocolId }).then(res => {
         if (res.code == "00000") {
           row.fileStorageProtocolStatus = 0;
           this.$message.success("停止成功");
@@ -218,7 +241,7 @@ export default {
     },
     async afterPrepertiesSet() {
       this.$refs.table.reload(this.searchParams);
-    },
-  },
+    }
+  }
 };
 </script>

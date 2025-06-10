@@ -10,42 +10,9 @@
       :close-on-press-escape="false"
       draggable
       width="85%"
-      :show-close="false"
       class="modern-dialog animate__animated animate__fadeIn"
       @close="close"
     >
-      <!-- 自定义标题栏 -->
-      <template #header>
-        <div class="dialog-header">
-          <div class="file-info">
-            <div class="file-icon-wrapper">
-              <IconifyIconOnline :icon="getFileIcon()" class="file-icon" />
-            </div>
-            <div class="file-details">
-              <h3 class="file-name">{{ title }}</h3>
-              <span v-if="row" class="file-meta">{{ getFileMeta() }}</span>
-            </div>
-          </div>
-          <div class="dialog-actions">
-            <el-tooltip content="下载文件" placement="bottom">
-              <el-button circle size="default" type="success" class="action-button" @click="downloadFile">
-                <IconifyIconOnline icon="ep:download" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="在新窗口打开" placement="bottom">
-              <el-button circle size="default" type="primary" class="action-button" @click="openInNewWindow">
-                <IconifyIconOnline icon="ep:link" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="关闭预览" placement="bottom">
-              <el-button circle size="default" type="danger" class="action-button" @click="close">
-                <IconifyIconOnline icon="ep:close" />
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
-      </template>
-
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-container animate__animated animate__fadeIn">
         <el-skeleton :loading="loading" animated :rows="10" />
@@ -226,25 +193,25 @@ export default {
       if (!this.row) return;
       this.$emit("download", this.row.absolutePath, this.row);
     },
-    
+
     // 在新窗口打开
     openInNewWindow() {
       if (!this.row) return;
-      
+
       if (this.row.mediaType?.image) {
         window.open(this.getImageUrl(this.row));
         return;
       }
-      
+
       let url = this.form.fileStorageProtocolName === "HTTP" ? "http://" : "https://";
       url += this.form.fileStorageProtocolHost + ":" + this.form.fileStorageProtocolPort;
       url += "/" + (this.menu.fileStorageBucket.startsWith("/") ? this.menu.fileStorageBucket.substring(1) : this.menu.fileStorageBucket);
       url += this.row.absolutePath.startsWith("/") ? this.row.absolutePath : "/" + this.row.absolutePath;
       url += "?preview";
-      
+
       window.open(url);
     },
-    
+
     // 获取图片URL
     getImageUrl(row) {
       let url = this.form.fileStorageProtocolName === "HTTP" ? "http://" : "https://";
@@ -281,29 +248,29 @@ export default {
 
       return iconMap[suffix] || "ep:document";
     },
-    
+
     // 获取文件元数据
     getFileMeta() {
       if (!this.row) return "";
-      
+
       const parts = [];
-      
+
       // 添加文件类型
       if (this.row.suffix) {
         parts.push(this.row.suffix.toUpperCase());
       }
-      
+
       // 添加文件大小
       if (this.row.fileSize) {
         parts.push(this.row.fileSize);
       }
-      
+
       // 添加最后修改时间
       if (this.row.userMetadata?.lastModified) {
         const date = new Date(this.row.userMetadata.lastModified * 1);
         parts.push(date.toLocaleDateString());
       }
-      
+
       return parts.join(" · ");
     }
   }
@@ -311,42 +278,36 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import 'animate.css';
+@import "animate.css";
 
+:deep(.el-dialog) {
+  height: 90vh !important;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+
+  .el-dialog__body {
+    padding: 0;
+    height: calc(90vh - 80px);
+  }
+}
+:deep(.preview-container),
+.preview-container {
+  height: calc(70vh - 80px) !important;
+  iframe {
+    height: 100% !important;
+  }
+}
 .view-layout-container {
-  .modern-dialog {
-    :deep(.el-dialog) {
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
-      
-      .el-dialog__header {
-        margin: 0;
-        padding: 0;
-      }
-      
-      .el-dialog__body {
-        padding: 0;
-        height: calc(90vh - 80px);
-      }
-    }
-  }
-  
-  .dialog-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
-    border-bottom: 1px solid var(--el-border-color-light);
-  }
-  
   .file-info {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
   }
-  
+
   .file-icon-wrapper {
     width: 48px;
     height: 48px;
@@ -355,53 +316,63 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    
+    flex-shrink: 0;
+
     .file-icon {
       font-size: 24px;
       color: var(--el-color-primary);
     }
   }
-  
+
   .file-details {
     display: flex;
     flex-direction: column;
-    
+    min-width: 0;
+    overflow: hidden;
+
     .file-name {
       margin: 0;
       font-size: 18px;
       font-weight: 600;
       color: var(--el-text-color-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    
+
     .file-meta {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
-  
+
   .dialog-actions {
     display: flex;
     gap: 12px;
-    
+    flex-shrink: 0;
+
     .action-button {
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      
+
       &:hover {
         transform: translateY(-3px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
     }
   }
-  
+
   .loading-container {
     padding: 24px;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    
+
     .loading-text {
       display: flex;
       align-items: center;
@@ -410,7 +381,7 @@ export default {
       margin-top: 16px;
       color: var(--el-text-color-secondary);
       font-size: 16px;
-      
+
       .loading-icon {
         font-size: 24px;
         color: var(--el-color-primary);
@@ -418,24 +389,24 @@ export default {
       }
     }
   }
-  
+
   .preview-container {
     height: 100%;
     width: 100%;
     position: relative;
     background-color: var(--el-fill-color-lighter);
-    
+
     &.is-loading {
       display: none;
     }
   }
-  
+
   .preview-iframe {
     width: 100%;
     height: 100%;
     border: none;
   }
-  
+
   .preview-component {
     width: 100%;
     height: 100%;
@@ -459,37 +430,22 @@ export default {
       :deep(.el-dialog) {
         width: 95% !important;
         margin: 10px auto;
-        
+
         .el-dialog__body {
           height: calc(90vh - 100px);
         }
       }
     }
-    
-    .dialog-header {
-      padding: 12px;
-      flex-direction: column;
-      gap: 12px;
-      
-      .file-info {
-        width: 100%;
-      }
-      
-      .dialog-actions {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-    
+
     .file-icon-wrapper {
       width: 40px;
       height: 40px;
-      
+
       .file-icon {
         font-size: 20px;
       }
     }
-    
+
     .file-details {
       .file-name {
         font-size: 16px;

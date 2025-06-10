@@ -10,7 +10,7 @@
         :md="8"
         :lg="6"
         :xl="4"
-        class="media-item-wrapper animate__animated animate__zoomIn"
+        class="media-item-wrapper animate__animated animate__fadeInLeft"
         :style="{ animationDelay: index * 0.03 + 's' }"
       >
         <!-- 媒体卡片 -->
@@ -29,12 +29,7 @@
               <!-- 图片预览 -->
               <template v-else-if="row.mediaType?.image">
                 <div class="image-preview-container">
-                  <img 
-                    class="image-preview animate__animated animate__fadeIn" 
-                    :src="getImageUrl(row)" 
-                    :alt="row.filename" 
-                    loading="lazy" 
-                  />
+                  <img class="image-preview animate__animated animate__fadeIn" :src="getImageUrl(row)" :alt="row.filename" loading="lazy" />
                 </div>
               </template>
 
@@ -266,35 +261,35 @@ export default {
     getIcon(name) {
       return getAssetsImages(!name ? "folder" : name);
     },
-    
+
     /**
      * 获取标签类型
      * @param {Object} row - 文件行数据
      * @returns {string} 标签类型
      */
     getTagType(row) {
-      if (row.directory) return 'primary';
-      
+      if (row.directory) return "primary";
+
       // 根据文件类型返回不同的标签类型
       const fileTypeMap = {
-        'pdf': 'danger',
-        'doc': 'danger',
-        'docx': 'danger',
-        'xls': 'success',
-        'xlsx': 'success',
-        'ppt': 'warning',
-        'pptx': 'warning',
-        'jpg': 'info',
-        'jpeg': 'info',
-        'png': 'info',
-        'gif': 'info',
-        'mp4': 'warning',
-        'mp3': 'warning',
-        'zip': 'info',
-        'rar': 'info'
+        pdf: "danger",
+        doc: "danger",
+        docx: "danger",
+        xls: "success",
+        xlsx: "success",
+        ppt: "warning",
+        pptx: "warning",
+        jpg: "info",
+        jpeg: "info",
+        png: "info",
+        gif: "info",
+        mp4: "warning",
+        mp3: "warning",
+        zip: "info",
+        rar: "info"
       };
-      
-      return fileTypeMap[row.suffix] || 'info';
+
+      return fileTypeMap[row.suffix] || "info";
     }
   }
 };
@@ -302,14 +297,14 @@ export default {
 
 <style lang="scss" scoped>
 /* 引入animate.css动画库 */
-@import 'animate.css';
+@import "animate.css";
 
 /* 模式布局容器 */
 .mode-layout-container {
   padding: 16px;
   height: calc(100vh - 250px);
   overflow-y: auto;
-  
+
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
     width: 6px;
@@ -349,26 +344,27 @@ export default {
   border-top-width: 3px;
   height: 100%;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     border-color: var(--el-color-primary-light-5);
-    
+
     .file-info-overlay {
       opacity: 1;
       transform: translateY(0);
     }
-    
+
     .action-buttons {
       opacity: 1;
       transform: translateY(0);
     }
-    
-    .folder-preview, .file-preview {
+
+    .folder-preview,
+    .file-preview {
       transform: scale(1.05);
     }
-    
+
     .image-preview {
       transform: scale(1.05);
     }
@@ -400,7 +396,7 @@ export default {
   justify-content: center;
   background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
   transition: all 0.3s ease;
-  
+
   .folder-icon {
     width: 80px;
     height: 80px;
@@ -432,7 +428,7 @@ export default {
   justify-content: center;
   background: linear-gradient(135deg, var(--el-fill-color), var(--el-fill-color-lighter));
   transition: all 0.3s ease;
-  
+
   .file-icon {
     width: 80px;
     height: 80px;
@@ -460,7 +456,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  
+
   .filename-text {
     font-size: 16px;
     font-weight: 600;
@@ -470,7 +466,7 @@ export default {
     max-width: 70%;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
-  
+
   .file-size {
     font-size: 12px;
     opacity: 0.8;
@@ -481,7 +477,7 @@ export default {
 /* 文件类型标签 */
 .file-type-tag {
   margin-bottom: 8px;
-  
+
   .el-tag {
     border-radius: 12px;
     font-weight: 500;
@@ -498,7 +494,7 @@ export default {
   gap: 6px;
   font-size: 12px;
   opacity: 0.8;
-  
+
   .icon {
     font-size: 14px;
   }
@@ -527,7 +523,7 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -549,7 +545,7 @@ export default {
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: scale(1.1) rotate(10deg);
   }
@@ -561,42 +557,44 @@ export default {
     padding: 12px;
     height: calc(100vh - 280px);
   }
-  
+
   .media-item-wrapper {
     margin-bottom: 16px;
   }
-  
+
   .media-preview {
     height: 180px;
   }
-  
-  .folder-preview, .file-preview {
-    .folder-icon, .file-icon {
+
+  .folder-preview,
+  .file-preview {
+    .folder-icon,
+    .file-icon {
       width: 60px;
       height: 60px;
     }
   }
-  
+
   .file-info-overlay {
     padding: 12px;
   }
-  
+
   .filename-tag {
     .filename-text {
       font-size: 14px;
     }
   }
-  
+
   .action-buttons {
     top: 8px;
     right: 8px;
   }
-  
+
   .action-button {
     width: 32px;
     height: 32px;
   }
-  
+
   .folder-badge {
     width: 32px;
     height: 32px;

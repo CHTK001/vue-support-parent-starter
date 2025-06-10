@@ -23,7 +23,7 @@
           </div>
         </div>
       </template>
-      
+
       <div class="download-content">
         <el-skeleton animated :loading="loading" :rows="3">
           <template #default>
@@ -46,12 +46,12 @@
           </template>
         </el-skeleton>
       </div>
-      
+
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="close" plain>关闭</el-button>
-          <el-button type="primary" @click="download" :disabled="downloaded">
-            {{ downloaded ? '已下载' : '下载' }}
+          <el-button plain @click="close">关闭</el-button>
+          <el-button type="primary" :disabled="downloaded" @click="download">
+            {{ downloaded ? "已下载" : "下载" }}
           </el-button>
         </div>
       </template>
@@ -77,7 +77,9 @@ export default {
       data: null,
       downloadProgress: 0,
       downloadStatus: "",
-      downloadStatusText: "准备下载"
+      downloadStatusText: "准备下载",
+      form: null,
+      ua: null
     };
   },
   unmounted() {
@@ -92,6 +94,7 @@ export default {
       this.menu = menu;
       this.name = row.filename;
       this.row = row;
+      this.ua = form.fileStorageProtocolUa;
       //fileStorageBucket
       this.title = "下载 - " + row.filename;
       const type = Object.keys(row.mediaType).filter(i => row.mediaType[i]);
@@ -133,11 +136,11 @@ export default {
     },
     download() {
       if (this.downloaded) return;
-      
+
       this.downloaded = true;
       this.downloadStatus = "warning";
       this.downloadStatusText = "下载中";
-      
+
       // 模拟进度
       const progressInterval = setInterval(() => {
         if (this.downloadProgress < 90) {
@@ -151,11 +154,11 @@ export default {
           {},
           {
             headers: {
-              "X-User-Agent": this.ua,
+              "X-User-Agent": this.ua || this.form.fileStorageProtocolUa,
               "X-Download-User-Agent": this.form.fileStorageProtocolDownloadUa
             },
             responseType: "blob",
-            onDownloadProgress: (progressEvent) => {
+            onDownloadProgress: progressEvent => {
               if (progressEvent.lengthComputable) {
                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                 this.downloadProgress = percentCompleted;
@@ -168,7 +171,7 @@ export default {
           this.downloadProgress = 100;
           this.downloadStatus = "success";
           this.downloadStatusText = "下载完成";
-          
+
           this.data = URL.createObjectURL(res);
           const box = document.createElement("a");
           box.download = this.name;
@@ -180,9 +183,10 @@ export default {
           this.downloadStatus = "exception";
           this.downloadStatusText = "下载失败";
           this.downloadProgress = 0;
+          console.error("下载失败:", error);
         });
     },
-    
+
     // 获取文件图标
     getFileIcon() {
       if (!this.row) return "ep:document";
@@ -210,23 +214,23 @@ export default {
 
       return iconMap[suffix] || "ep:document";
     },
-    
+
     // 获取文件元数据
     getFileMeta() {
       if (!this.row) return "";
-      
+
       const parts = [];
-      
+
       // 添加文件类型
       if (this.row.suffix) {
         parts.push(this.row.suffix.toUpperCase());
       }
-      
+
       // 添加文件大小
       if (this.row.fileSize) {
         parts.push(this.row.fileSize);
       }
-      
+
       return parts.join(" · ");
     }
   }
@@ -234,7 +238,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import 'animate.css';
+@import "animate.css";
 
 .download-layout-container {
   .download-dialog {
@@ -242,16 +246,16 @@ export default {
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
-      
+
       .el-dialog__header {
         margin: 0;
         padding: 0;
       }
-      
+
       .el-dialog__body {
         padding: 0;
       }
-      
+
       .el-dialog__footer {
         padding: 16px 24px;
         border-top: 1px solid var(--el-border-color-light);
@@ -259,19 +263,19 @@ export default {
       }
     }
   }
-  
+
   .dialog-header {
     padding: 16px 24px;
     background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
     border-bottom: 1px solid var(--el-border-color-light);
   }
-  
+
   .file-info {
     display: flex;
     align-items: center;
     gap: 16px;
   }
-  
+
   .file-icon-wrapper {
     width: 48px;
     height: 48px;
@@ -280,17 +284,17 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    
+
     .file-icon {
       font-size: 24px;
       color: var(--el-color-primary);
     }
   }
-  
+
   .file-details {
     display: flex;
     flex-direction: column;
-    
+
     .file-name {
       margin: 0;
       font-size: 18px;
@@ -301,14 +305,14 @@ export default {
       text-overflow: ellipsis;
       max-width: 250px;
     }
-    
+
     .file-meta {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       margin-top: 4px;
     }
   }
-  
+
   .download-content {
     padding: 32px 24px;
     min-height: 200px;
@@ -317,7 +321,7 @@ export default {
     justify-content: center;
     align-items: center;
   }
-  
+
   .download-status {
     width: 100%;
     display: flex;
@@ -325,13 +329,13 @@ export default {
     align-items: center;
     justify-content: center;
   }
-  
+
   .download-ready {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    
+
     .download-icon-wrapper {
       width: 80px;
       height: 80px;
@@ -343,25 +347,25 @@ export default {
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.2);
-      
+
       &:hover {
         transform: translateY(-5px) scale(1.05);
         box-shadow: 0 12px 24px rgba(var(--el-color-primary-rgb), 0.3);
       }
-      
+
       .download-icon {
         font-size: 32px;
         color: white;
       }
     }
-    
+
     .download-text {
       font-size: 16px;
       color: var(--el-text-color-secondary);
       margin-top: 8px;
     }
   }
-  
+
   .downloading {
     :deep(.el-progress) {
       .el-progress__text {
@@ -369,13 +373,13 @@ export default {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        
+
         .progress-text {
           font-size: 24px;
           font-weight: bold;
           color: var(--el-color-primary);
         }
-        
+
         .progress-label {
           font-size: 12px;
           color: var(--el-text-color-secondary);
@@ -384,7 +388,7 @@ export default {
       }
     }
   }
-  
+
   .dialog-footer {
     display: flex;
     justify-content: flex-end;
@@ -401,36 +405,36 @@ export default {
         margin: 10px auto;
       }
     }
-    
+
     .dialog-header {
       padding: 12px;
     }
-    
+
     .file-icon-wrapper {
       width: 40px;
       height: 40px;
-      
+
       .file-icon {
         font-size: 20px;
       }
     }
-    
+
     .file-details {
       .file-name {
         font-size: 16px;
         max-width: 180px;
       }
     }
-    
+
     .download-content {
       padding: 24px 16px;
     }
-    
+
     .download-ready {
       .download-icon-wrapper {
         width: 64px;
         height: 64px;
-        
+
         .download-icon {
           font-size: 28px;
         }

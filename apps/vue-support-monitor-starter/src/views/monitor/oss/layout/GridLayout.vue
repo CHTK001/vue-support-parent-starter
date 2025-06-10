@@ -12,7 +12,7 @@
           :md="6"
           :lg="4"
           :xl="3"
-          class="file-card-wrapper animate__animated animate__fadeInUp"
+          class="file-card-wrapper animate__animated animate__fadeInLeft"
           :style="{ animationDelay: index * 0.03 + 's' }"
         >
           <!-- 文件/文件夹卡片 -->
@@ -231,7 +231,7 @@ export default {
 
 /* 网格布局容器 */
 .grid-layout-container {
-  height: calc(100vh - 220px);
+  height: 100%;
   padding: 0;
   transition: all 0.3s ease;
 }
