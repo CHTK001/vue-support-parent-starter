@@ -698,6 +698,7 @@ defineExpose({
 .oss-content-wrapper {
   background-color: var(--el-bg-color);
   border-radius: 12px;
+  height: 100%;
   box-shadow: var(--el-box-shadow-light);
   transition: all 0.3s;
   min-height: 300px;

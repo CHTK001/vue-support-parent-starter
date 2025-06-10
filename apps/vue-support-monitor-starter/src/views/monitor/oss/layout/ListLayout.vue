@@ -6,7 +6,7 @@
           :data="data"
           :border="false"
           stripe
-          class="modern-table animate__animated animate__fadeInUp"
+          class="modern-table animate__animated animate__fadeInLeft"
           :row-class-name="tableRowClassName"
           :header-cell-style="{
             background: 'var(--el-color-primary-light-9)',

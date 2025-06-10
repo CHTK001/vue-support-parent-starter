@@ -37,7 +37,9 @@
               >
                 <IconifyIconOnline v-if="index === 0" icon="ep:home-filled" class="home-icon" />
                 {{ index === 0 ? "根目录" : item }}
-                <IconifyIconOnline v-if="index !== router.length - 1" icon="ep:arrow-right" class="arrow-icon" />
+                <template v-if="index !== router.length - 1">
+                  <IconifyIconOnline icon="ep:arrow-right" class="arrow-icon" />
+                </template>
               </el-tag>
 
               <!-- 当前标记 -->
@@ -85,7 +87,7 @@
               :menu="menu"
               :data="metadata"
               :parentPath="path"
-              class="layout-component animate__animated animate__fadeIn"
+              class="layout-component animate__animated animate__fadeInLeft"
               @copy="doCopy"
               @download="doDownload"
               @search="doSearch"
@@ -100,7 +102,7 @@
               :canDownload="canDownload"
               :data="metadata"
               :parentPath="path"
-              class="layout-component animate__animated animate__fadeIn"
+              class="layout-component animate__animated animate__fadeInLeft"
               @copy="doCopy"
               @download="doDownload"
               @search="doSearch"
@@ -116,7 +118,7 @@
               :canDownload="canDownload"
               :data="metadata"
               :parentPath="path"
-              class="layout-component animate__animated animate__fadeIn full-content"
+              class="layout-component animate__animated animate__fadeInLeft full-content"
               @copy="doCopy"
               @download="doDownload"
               @search="doSearch"
@@ -140,7 +142,7 @@
           :page-size="limit"
           layout="->, next"
           :total="total"
-          class="oss-pagination animate__animated animate__fadeInUp"
+          class="oss-pagination animate__animated animate__fadeIn"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
@@ -399,7 +401,10 @@ onMounted(() => {
   justify-content: center;
 }
 :deep(.arrow-icon) {
-  display: none;
+  display: inline-flex !important;
+  margin-left: 4px;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
 }
 
 /* 确保容器内的元素也撑满高度 */
@@ -480,6 +485,7 @@ onMounted(() => {
     padding: 0 12px;
     overflow-x: auto;
     flex-wrap: nowrap;
+    height: 100%;
 
     .breadcrumb-tag {
       cursor: pointer;
@@ -492,6 +498,9 @@ onMounted(() => {
       align-items: center;
       white-space: nowrap;
       margin-right: 0;
+      margin-bottom: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      border: 1px solid transparent;
 
       &:hover {
         transform: translateY(-2px);
@@ -564,6 +573,8 @@ onMounted(() => {
   padding: 2px 10px;
   font-weight: 500;
   margin-left: 8px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   &:hover {
     transform: translateY(-2px);
