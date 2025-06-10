@@ -35,26 +35,14 @@ interface MessageParams {
 /**
  * `Message` 消息提示函数
  */
-const message = (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler => {
+const messageFunction = (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler => {
   if (!params) {
     return ElMessage({
       message,
-      customClass: "pure-message"
+      customClass: "pure-message",
     });
   } else {
-    const {
-      icon,
-      type = "info",
-      dangerouslyUseHTMLString = false,
-      customClass = "antd",
-      duration = 2000,
-      showClose = false,
-      center = false,
-      offset = 20,
-      appendTo = document.body,
-      grouping = false,
-      onClose
-    } = params;
+    const { icon, type = "info", dangerouslyUseHTMLString = false, customClass = "antd", duration = 2000, showClose = false, center = false, offset = 20, appendTo = document.body, grouping = false, onClose } = params;
 
     return ElMessage({
       message,
@@ -69,7 +57,7 @@ const message = (message: string | VNode | (() => VNode), params?: MessageParams
       grouping,
       // 全局搜 pure-message 即可知道该类的样式位置
       customClass: customClass === "antd" ? "pure-message" : "",
-      onClose: () => (isFunction(onClose) ? onClose() : null)
+      onClose: () => (isFunction(onClose) ? onClose() : null),
     });
   }
 };
@@ -78,5 +66,25 @@ const message = (message: string | VNode | (() => VNode), params?: MessageParams
  * 关闭所有 `Message` 消息提示函数
  */
 const closeAllMessage = (): void => ElMessage.closeAll();
+
+// 创建包含便捷方法的消息对象
+interface MessageFunction {
+  (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler;
+  info: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  success: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  warning: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  error: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  closeAll: () => void;
+}
+
+// 构建增强版message对象
+const message = messageFunction as MessageFunction;
+
+// 添加便捷方法
+message.info = (msg, params = {}) => messageFunction(msg, { ...params, type: "info" });
+message.success = (msg, params = {}) => messageFunction(msg, { ...params, type: "success" });
+message.warning = (msg, params = {}) => messageFunction(msg, { ...params, type: "warning" });
+message.error = (msg, params = {}) => messageFunction(msg, { ...params, type: "error" });
+message.closeAll = closeAllMessage;
 
 export { message, closeAllMessage };
