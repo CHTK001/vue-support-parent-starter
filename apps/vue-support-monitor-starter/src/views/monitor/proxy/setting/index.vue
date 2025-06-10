@@ -22,11 +22,11 @@
                 <h3 class="app-title">{{ config.desc }}</h3>
                 
                 <!-- 服务发现配置 -->
-                <template v-if="config.proxyConfigName === 'serviceDiscovery'">
+                <template v-if="config.proxyConfigName === 'serviceDiscovery'" title="服务停止之后才可以切换!!">
                   <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
                     <el-option v-for="item in serviceDiscoveryList" :key="item.name" :label="item.describe || item.name" :value="item.name">
                       <div class="option-content">
-                        <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'" class="mr-1" />
+                        <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'"  />
                         <span>{{ item.describe || item.name }}</span>
                       </div>
                     </el-option>
@@ -39,7 +39,7 @@
                   <el-select v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
                     <el-option v-for="item in robinList" :key="item.name" :label="item.describe || item.name" :value="item.name">
                       <div class="option-content">
-                        <IconifyIconOnline icon="ep:data-analysis" class="mr-1" />
+                        <IconifyIconOnline icon="ep:data-analysis"  />
                         <span>{{ item.describe || item.name }}</span>
                       </div>
                     </el-option>
@@ -60,11 +60,11 @@
                 <div class="app-footer">
                   <div class="app-actions">
                     <el-button type="primary" class="action-btn" @click.stop="saveConfigItem(config)">
-                      <IconifyIconOnline icon="ep:check" class="mr-1" />保存配置
+                      <IconifyIconOnline icon="ep:check"  />
                     </el-button>
 
                     <el-button v-if="config.proxyConfigValue === 'STATISTIC'" type="info" class="action-btn" @click.stop="openServiceDiscovery()">
-                      <IconifyIconOnline icon="ep:setting" class="mr-1" />静态代理配置
+                      <IconifyIconOnline icon="ep:setting"  />
                     </el-button>
                   </div>
                 </div>
@@ -78,13 +78,7 @@
 
   <!-- 静态代理配置组件 -->
   <div>
-    <Suspense v-if="statisticLayoutVisible1">
-      <template #default>
-        <div>
-          <statistic-layout v-if="statisticLayoutVisible" ref="statisticLayoutRef" />
-        </div>
-      </template>
-    </Suspense>
+      <statistic-layout v-if="statisticLayoutVisible" ref="statisticLayoutRef" />
   </div>
 </template>
 
@@ -93,10 +87,7 @@ import { fetchProxyConfigList, fetchProxyConfigUpdate, fetchProxyConfigSave } fr
 import { fetchOptionGet, fetchOptionObjectsList } from "@/api/spi";
 import { defineAsyncComponent, ref, reactive, onMounted, nextTick } from "vue";
 import { ElMessage, ElLoading } from "element-plus";
-
-// 组件和属性定义
-const StatisticLayout = defineAsyncComponent(() => import("../statistic/index.vue"));
-
+import StatisticLayout from "../statistic/index.vue";
 // 接收属性
 const props = defineProps({
   // 代理表单数据

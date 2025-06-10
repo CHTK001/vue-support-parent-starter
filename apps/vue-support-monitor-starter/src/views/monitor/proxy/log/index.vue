@@ -38,7 +38,7 @@
                   {{ row.monitorProxyLogType || 'unknown' }}
                 </el-tag>
                 <el-tag type="info" effect="plain" class="log-time">
-                  {{ dateFormat(row.monitorProxyLogDate * 1000) }}
+                  {{ dateFormat(row.monitorProxyLogDate * 1000, 'yyyy-MM-dd') }}
                 </el-tag>
               </div>
               <div class="log-actions">
@@ -57,14 +57,14 @@
                   }}</span>
               </div>
 
-              <div class="log-client">
+              <div class="log-client flex">
                 <span class="log-label">客户端:</span>
-                <span class="log-value clickable" @click="doCharts(row.monitorProxyLogAddress)">
-                  {{ row.monitorProxyLogAddress }}
+                <span class="log-value flex clickable" @click="doCharts(row.monitorProxyLogAddress)">
+                  <IconifyIconOnline icon="ep:data-analysis" class="chart-icon" />
+                  <span>{{ row.monitorProxyLogAddress }}</span>
                   <span v-if="row.monitorProxyLogAddressGeo" class="log-geo">
                     ({{ row.monitorProxyLogAddressGeo }})
                   </span>
-                  <IconifyIconOnline icon="ep:data-analysis" class="chart-icon" />
                 </span>
               </div>
 

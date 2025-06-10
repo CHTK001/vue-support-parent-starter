@@ -22,27 +22,22 @@
     <!-- 内容区域 -->
     <div class="sc-dialog__body">
       <!-- 关闭按钮 -->
-      <button v-if="showClose" class="sc-dialog__close-btn" @click="onClose" type="button">
+      <button v-if="showClose" class="sc-dialog__close-btn" type="button" @click="onClose">
         <IconifyIconOnline icon="ri:close-line" />
       </button>
-      <slot></slot>
+      <slot />
     </div>
 
     <!-- 底部按钮区域 -->
-    <template #footer v-if="$slots.footer || showFooter">
+    <template v-if="$slots.footer || showFooter" #footer>
       <div class="sc-dialog__footer">
         <slot name="footer">
-          <el-button @click="onCancel" v-if="showCancelButton">
-            <IconifyIconOnline :icon="cancelIcon" v-if="cancelIcon" />
+          <el-button v-if="showCancelButton" @click="onCancel">
+            <IconifyIconOnline v-if="cancelIcon" :icon="cancelIcon" />
             {{ cancelText }}
           </el-button>
-          <el-button 
-            :type="confirmButtonType" 
-            @click="onConfirm" 
-            v-if="showConfirmButton"
-            :loading="loading"
-          >
-            <IconifyIconOnline :icon="confirmIcon" v-if="confirmIcon && !loading" />
+          <el-button v-if="showConfirmButton" :type="confirmButtonType" :loading="loading" @click="onConfirm">
+            <IconifyIconOnline v-if="confirmIcon && !loading" :icon="confirmIcon" />
             {{ confirmText }}
           </el-button>
         </slot>
@@ -52,9 +47,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { ElDialog, ElButton } from 'element-plus';
-import { PropType } from 'vue';
+import { ref, watch } from "vue";
+import { ElDialog, ElButton } from "element-plus";
+import { PropType } from "vue";
 
 const props = defineProps({
   modelValue: {
@@ -63,15 +58,15 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: ''
+    default: ""
   },
   width: {
     type: String,
-    default: '500px'
+    default: "500px"
   },
   top: {
     type: String,
-    default: '15vh'
+    default: "15vh"
   },
   modal: {
     type: Boolean,
@@ -112,11 +107,11 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  
+
   // 扩展属性
   type: {
     type: String,
-    default: 'default'
+    default: "default"
   },
   showIcon: {
     type: Boolean,
@@ -124,13 +119,13 @@ const props = defineProps({
   },
   icon: {
     type: String,
-    default: ''
+    default: ""
   },
   isForm: {
     type: Boolean,
     default: false
   },
-  
+
   // 底部按钮属性
   showFooter: {
     type: Boolean,
@@ -146,23 +141,23 @@ const props = defineProps({
   },
   cancelText: {
     type: String,
-    default: '取消'
+    default: "取消"
   },
   confirmText: {
     type: String,
-    default: '确定'
+    default: "确定"
   },
   cancelIcon: {
     type: String,
-    default: ''
+    default: ""
   },
   confirmIcon: {
     type: String,
-    default: ''
+    default: ""
   },
   confirmButtonType: {
-    type: String as PropType<'primary' | 'success' | 'warning' | 'danger' | 'info'>,
-    default: 'primary'
+    type: String as PropType<"primary" | "success" | "warning" | "danger" | "info">,
+    default: "primary"
   },
   loading: {
     type: Boolean,
@@ -170,7 +165,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'open', 'opened', 'close', 'closed', 'cancel', 'confirm']);
+const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "cancel", "confirm"]);
 
 /**
  * 对话框可见状态
@@ -180,16 +175,22 @@ const dialogVisible = ref(props.modelValue);
 /**
  * 监听modelValue变化，同步到dialogVisible
  */
-watch(() => props.modelValue, (val) => {
-  dialogVisible.value = val;
-});
+watch(
+  () => props.modelValue,
+  val => {
+    dialogVisible.value = val;
+  }
+);
 
 /**
  * 监听dialogVisible变化，同步到modelValue
  */
-watch(() => dialogVisible.value, (val) => {
-  emit('update:modelValue', val);
-});
+watch(
+  () => dialogVisible.value,
+  val => {
+    emit("update:modelValue", val);
+  }
+);
 
 /**
  * 处理对话框关闭前的回调
@@ -214,14 +215,14 @@ const onClose = () => {
  * 处理取消按钮点击事件
  */
 const onCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 /**
  * 处理确认按钮点击事件
  */
 const onConfirm = () => {
-  emit('confirm');
+  emit("confirm");
 };
 </script>
 
@@ -229,20 +230,20 @@ const onConfirm = () => {
 .sc-dialog--headless {
   // 无头部模式样式
   border-radius: 8px;
-  
+
   .el-dialog__header {
     display: none; // 完全隐藏头部
   }
-  
+
   .el-dialog__body {
     padding: 0; // 移除内部边距，由内容自己控制
   }
-  
+
   .sc-dialog__body {
     position: relative;
     padding: 24px;
   }
-  
+
   .sc-dialog__close-btn {
     position: absolute;
     top: -15px;
@@ -260,22 +261,22 @@ const onConfirm = () => {
     color: var(--el-text-color-secondary);
     font-size: 18px;
     transition: all 0.3s;
-    
+
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
       color: var(--el-color-primary);
       transform: rotate(90deg);
     }
-    
+
     &:focus {
       outline: none;
     }
   }
-  
+
   .sc-dialog__footer {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
   }
 }
-</style> 
+</style>

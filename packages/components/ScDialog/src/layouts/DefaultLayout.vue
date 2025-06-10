@@ -14,12 +14,7 @@
     :draggable="draggable"
     :center="center"
     :destroy-on-close="destroyOnClose"
-    :class="[
-      'sc-dialog',
-      'sc-dialog--default',
-      `sc-dialog--${type}`,
-      { 'sc-dialog--with-icon': showIcon }
-    ]"
+    :class="['sc-dialog', 'sc-dialog--default', `sc-dialog--${type}`, { 'sc-dialog--with-icon': showIcon }]"
     @open="$emit('open')"
     @opened="$emit('opened')"
     @close="$emit('close')"
@@ -31,30 +26,25 @@
     </div>
 
     <!-- 自定义标题插槽 -->
-    <template #header v-if="$slots.header">
-      <slot name="header"></slot>
+    <template v-if="$slots.header" #header>
+      <slot name="header" />
     </template>
 
     <!-- 内容区域 -->
     <div class="sc-dialog__body" :class="{ 'sc-dialog__body--with-form': isForm }">
-      <slot></slot>
+      <slot />
     </div>
 
     <!-- 底部按钮区域 -->
-    <template #footer v-if="$slots.footer || showFooter">
+    <template v-if="$slots.footer || showFooter" #footer>
       <div class="sc-dialog__footer">
         <slot name="footer">
-          <el-button @click="onCancel" v-if="showCancelButton">
-            <IconifyIconOnline :icon="cancelIcon" v-if="cancelIcon" />
+          <el-button v-if="showCancelButton" @click="onCancel">
+            <IconifyIconOnline v-if="cancelIcon" :icon="cancelIcon" />
             {{ cancelText }}
           </el-button>
-          <el-button 
-            :type="confirmButtonType" 
-            @click="onConfirm" 
-            v-if="showConfirmButton"
-            :loading="loading"
-          >
-            <IconifyIconOnline :icon="confirmIcon" v-if="confirmIcon && !loading" />
+          <el-button v-if="showConfirmButton" :type="confirmButtonType" :loading="loading" @click="onConfirm">
+            <IconifyIconOnline v-if="confirmIcon && !loading" :icon="confirmIcon" />
             {{ confirmText }}
           </el-button>
         </slot>
@@ -64,9 +54,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { ElDialog, ElButton } from 'element-plus';
-import { PropType } from 'vue';
+import { ref, watch } from "vue";
+import { ElDialog, ElButton } from "element-plus";
+import { PropType } from "vue";
 
 const props = defineProps({
   modelValue: {
@@ -75,15 +65,15 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: ''
+    default: ""
   },
   width: {
     type: String,
-    default: '500px'
+    default: "500px"
   },
   top: {
     type: String,
-    default: '15vh'
+    default: "15vh"
   },
   modal: {
     type: Boolean,
@@ -124,15 +114,15 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  
+
   // 扩展属性
   type: {
     type: String,
-    default: 'default'
+    default: "default"
   },
   icon: {
     type: String,
-    default: 'ep:info-filled'
+    default: "ep:info-filled"
   },
   showIcon: {
     type: Boolean,
@@ -142,7 +132,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  
+
   // 底部按钮属性
   showFooter: {
     type: Boolean,
@@ -158,23 +148,23 @@ const props = defineProps({
   },
   cancelText: {
     type: String,
-    default: '取消'
+    default: "取消"
   },
   confirmText: {
     type: String,
-    default: '确定'
+    default: "确定"
   },
   cancelIcon: {
     type: String,
-    default: 'ep:close'
+    default: "ep:close"
   },
   confirmIcon: {
     type: String,
-    default: 'ep:check'
+    default: "ep:check"
   },
   confirmButtonType: {
-    type: String as PropType<'primary' | 'success' | 'warning' | 'danger' | 'info'>,
-    default: 'primary'
+    type: String as PropType<"primary" | "success" | "warning" | "danger" | "info">,
+    default: "primary"
   },
   loading: {
     type: Boolean,
@@ -182,7 +172,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'open', 'opened', 'close', 'closed', 'cancel', 'confirm']);
+const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "cancel", "confirm"]);
 
 /**
  * 对话框可见状态
@@ -192,16 +182,22 @@ const dialogVisible = ref(props.modelValue);
 /**
  * 监听modelValue变化，同步到dialogVisible
  */
-watch(() => props.modelValue, (val) => {
-  dialogVisible.value = val;
-});
+watch(
+  () => props.modelValue,
+  val => {
+    dialogVisible.value = val;
+  }
+);
 
 /**
  * 监听dialogVisible变化，同步到modelValue
  */
-watch(() => dialogVisible.value, (val) => {
-  emit('update:modelValue', val);
-});
+watch(
+  () => dialogVisible.value,
+  val => {
+    emit("update:modelValue", val);
+  }
+);
 
 /**
  * 处理对话框关闭前的回调
@@ -219,14 +215,14 @@ const handleBeforeClose = (done: () => void) => {
  * 处理取消按钮点击事件
  */
 const onCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 /**
  * 处理确认按钮点击事件
  */
 const onConfirm = () => {
-  emit('confirm');
+  emit("confirm");
 };
 </script>
 
@@ -253,26 +249,26 @@ const onConfirm = () => {
     padding: 30px 20px 20px;
     max-height: 70vh;
     overflow-y: auto;
-    
+
     &::-webkit-scrollbar {
       width: 2px;
       height: 2px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background-color: rgba(50, 50, 50, 0.2);
       border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-thumb:hover {
       background-color: rgba(50, 50, 50, 0.4);
     }
-    
+
     &::-webkit-scrollbar-track {
       background-color: rgba(50, 50, 50, 0.05);
       border-radius: 4px;
     }
-    
+
     &::-webkit-scrollbar-track:hover {
       background-color: rgba(50, 50, 50, 0.1);
     }
@@ -349,7 +345,7 @@ const onConfirm = () => {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     z-index: 10;
     animation: sc-dialog-bounce 1s ease-out;
-    
+
     svg {
       font-size: 24px;
       color: white;
@@ -364,12 +360,24 @@ const onConfirm = () => {
         transition: all 0.3s;
         animation: sc-dialog-slide-in 0.4s ease-out both;
 
-        &:nth-child(1) { animation-delay: 0.1s; }
-        &:nth-child(2) { animation-delay: 0.2s; }
-        &:nth-child(3) { animation-delay: 0.3s; }
-        &:nth-child(4) { animation-delay: 0.4s; }
-        &:nth-child(5) { animation-delay: 0.5s; }
-        &:nth-child(6) { animation-delay: 0.6s; }
+        &:nth-child(1) {
+          animation-delay: 0.1s;
+        }
+        &:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        &:nth-child(3) {
+          animation-delay: 0.3s;
+        }
+        &:nth-child(4) {
+          animation-delay: 0.4s;
+        }
+        &:nth-child(5) {
+          animation-delay: 0.5s;
+        }
+        &:nth-child(6) {
+          animation-delay: 0.6s;
+        }
 
         &:hover {
           transform: translateY(-2px);
@@ -383,7 +391,7 @@ const onConfirm = () => {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    
+
     .el-button {
       display: flex;
       align-items: center;
@@ -394,7 +402,11 @@ const onConfirm = () => {
 
 /* 动画效果 */
 @keyframes sc-dialog-bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateX(-50%) translateY(0);
   }
   40% {
@@ -426,4 +438,4 @@ const onConfirm = () => {
     transform: translateY(0);
   }
 }
-</style> 
+</style>

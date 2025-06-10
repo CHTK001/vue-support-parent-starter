@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, defineProps, defineEmits } from "vue";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
@@ -39,6 +39,10 @@ const props = defineProps({
 const emit = defineEmits([
   "update:currentPage",
   "current-change",
+  "update:total",
+  "total-change",
+  "sizeChange",
+  "currentChange",
   "update:pageSize",
   "size-change",
   "load-more",
