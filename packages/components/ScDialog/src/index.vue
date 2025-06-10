@@ -1,7 +1,18 @@
 <template>
   <div class="sc-dialog-container">
     <!-- 根据布局类型选择不同的组件 -->
-    <component :is="layoutComponent" v-bind="dialogProps" v-model="dialogVisible" @open="onOpen" @opened="onOpened" @close="onClose" @closed="onClosed" @cancel="handleCancel" @confirm="handleConfirm">
+    <component
+      :is="layoutComponent"
+      v-bind="dialogProps"
+      v-model="dialogVisible"
+      :showConfirmButton="showConfirmButton"
+      @open="onOpen"
+      @opened="onOpened"
+      @close="onClose"
+      @closed="onClosed"
+      @cancel="handleCancel"
+      @confirm="handleConfirm"
+    >
       <!-- 传递插槽内容 -->
       <template v-if="$slots.default" #default>
         <slot />

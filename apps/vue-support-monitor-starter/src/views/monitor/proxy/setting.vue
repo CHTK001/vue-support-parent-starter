@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ScDialog v-model="visible" top="10px" draggable width="80%" :destroy-on-close="true" :close-on-click-modal="false" @closed="$emit('closed')">
+    <ScDialog :showConfirmButton="false" v-model="visible" top="10px" draggable width="80%" :destroy-on-close="true" :close-on-click-modal="false" @closed="$emit('closed')">
       <template #header>
         <div class="dialog-header">
           <IconifyIconOnline icon="ep:setting" class="mr-2" />
