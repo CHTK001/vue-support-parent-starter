@@ -51,12 +51,8 @@
 
 <script>
 import { fetchProxyListUpdate, fetchProxyListSave } from "@/api/monitor/proxy";
-import IpInput from "@repo/components/ScInput/IpInput.vue";
 
 export default {
-  components: {
-    IpInput
-  },
   emits: ["success", "closed"],
   data() {
     return {

@@ -41,7 +41,7 @@
 
         <!-- 状态列 -->
         <el-table-column
-          label="状态"
+          label="是否禁用"
           prop="proxyConfigListDisabled"
           width="120"
           align="center"

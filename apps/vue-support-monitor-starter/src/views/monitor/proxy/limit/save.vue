@@ -30,7 +30,7 @@
         <!-- IP限流表单项 -->
         <template v-else>
           <el-form-item label="限流IP地址" prop="proxyConfigLimitPathOrIp">
-            <ip-input v-model="form.proxyConfigLimitPathOrIp" class="ip-input" />
+            <ip-input type="ip" v-model="form.proxyConfigLimitPathOrIp" class="ip-input" />
             <div class="form-tip">支持单个IP地址或CIDR格式的IP段，如: 192.168.1.1 或 192.168.1.0/24</div>
           </el-form-item>
         </template>
@@ -73,13 +73,12 @@
 
 <script>
 import { fetchProxyLimitSave, fetchProxyLimitUpdate } from "@/api/monitor/proxy";
-import IpInput from "@repo/components/ScInput/IpInput.vue";
-
+import IpInput from "@repo/components/ScInput/index.vue";
 export default {
+  emits: ["success", "closed"],
   components: {
     IpInput
   },
-  emits: ["success", "closed"],
   data() {
     return {
       // 表单数据

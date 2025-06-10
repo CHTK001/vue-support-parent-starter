@@ -75,6 +75,9 @@ export default {
   },
   methods: {
     dataslice(array, page, limit) {
+      if(array instanceof Object) {
+        return [];
+      }
       const offset = (page - 1) * limit;
       const newdata = offset + limit >= array.length ? array.slice(offset, array.length) : array.slice(offset, offset + limit);
       return newdata;

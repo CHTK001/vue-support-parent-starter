@@ -181,12 +181,6 @@ const canViewServiceLogs = computed(() => {
 const currentDevice = computed(() => {
   return deviceList.value.find(d => d.id === activeDevice.value) || null
 })
-
-// 监听 devices 变化
-watch(() => props.devices, (newDevices) => {
-  setupDeviceList(newDevices)
-}, { immediate: true })
-
 // 设置设备列表
 const setupDeviceList = (deviceIds: string[]) => {
   deviceList.value = deviceIds.map(id => ({
@@ -199,6 +193,12 @@ const setupDeviceList = (deviceIds: string[]) => {
     activeDevice.value = deviceList.value[0].id
   }
 }
+// 监听 devices 变化
+watch(() => props.devices, (newDevices) => {
+  setupDeviceList(newDevices)
+}, { immediate: true })
+
+
 
 // 连接 WebSocket
 const connectWebSocket = async () => {

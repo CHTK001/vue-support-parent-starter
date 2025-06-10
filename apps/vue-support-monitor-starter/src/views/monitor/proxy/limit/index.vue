@@ -48,7 +48,7 @@
         </el-table-column>
 
         <!-- 状态列 -->
-        <el-table-column label="状态" prop="proxyConfigLimitDisabled" width="120" align="center" :filters="statusFilters"
+        <el-table-column label="是否禁用" prop="proxyConfigLimitDisabled" width="120" align="center" :filters="statusFilters"
           :filter-method="filterHandler">
           <template #default="{ row }">
             <div class="limit-status-cell">

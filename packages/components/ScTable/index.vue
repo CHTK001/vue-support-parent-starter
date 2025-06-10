@@ -23,7 +23,7 @@ const props = defineProps({
   contextmenuClass: { type: String, default: "" },
   params: { type: Object, default: () => ({}) },
   layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas 五种布局
-  cardLayout: { type: String, default: "card" }, // 卡片布局类型，可选值：card, default
+  cardLayout: { type: String, default: "default" }, // 卡片布局类型，可选值：card, default
   filter: {
     type: Object,
     default: () => {

@@ -31,36 +31,36 @@
         <slot name="suffix" />
       </template>
       <template v-if="$slots.prepend" #prepend>
-      <slot name="prepend" />
+        <slot name="prepend" />
       </template>
       <template v-if="$slots.append" #append>
-      <slot name="append" />
+        <slot name="append" />
       </template>
     </component>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, defineAsyncComponent, ref, onMounted, watch, nextTick } from 'vue';
-import { InputType } from './types';
-import { getDefaultIcon } from './defaultIcons';
+import { computed, markRaw, defineAsyncComponent, ref, onMounted, watch, nextTick } from "vue";
+import { InputType } from "./types";
+import { getDefaultIcon } from "./defaultIcons";
 
 // 使用异步组件导入各种类型的输入组件
-const TextInput = defineAsyncComponent(() => import('./components/TextInput.vue'));
-const TextareaInput = defineAsyncComponent(() => import('./components/TextareaInput.vue'));
-const NumberInput = defineAsyncComponent(() => import('./components/NumberInput.vue'));
-const PasswordInput = defineAsyncComponent(() => import('./components/PasswordInput.vue'));
-const SearchInput = defineAsyncComponent(() => import('./components/SearchInput.vue'));
-const EmailInput = defineAsyncComponent(() => import('./components/EmailInput.vue'));
-const ColorInput = defineAsyncComponent(() => import('./components/ColorInput.vue'));
-const BooleanInput = defineAsyncComponent(() => import('./components/BooleanInput.vue'));
-const DictInput = defineAsyncComponent(() => import('./components/DictInput.vue'));
-const IpInput = defineAsyncComponent(() => import('./components/IpInput.vue'));
-const CaptchaInput = defineAsyncComponent(() => import('./components/CaptchaInput.vue'));
-const SelectInput = defineAsyncComponent(() => import('./components/SelectInput.vue'));
-const TotpInput = defineAsyncComponent(() => import('./components/TotpInput.vue'));
-const DateTimeInput = defineAsyncComponent(() => import('./components/DateTimeInput.vue'));
-const CardInput = defineAsyncComponent(() => import('./components/CardInput.vue'));
+const TextInput = defineAsyncComponent(() => import("./components/TextInput.vue"));
+const TextareaInput = defineAsyncComponent(() => import("./components/TextareaInput.vue"));
+const NumberInput = defineAsyncComponent(() => import("./components/NumberInput.vue"));
+const PasswordInput = defineAsyncComponent(() => import("./components/PasswordInput.vue"));
+const SearchInput = defineAsyncComponent(() => import("./components/SearchInput.vue"));
+const EmailInput = defineAsyncComponent(() => import("./components/EmailInput.vue"));
+const ColorInput = defineAsyncComponent(() => import("./components/ColorInput.vue"));
+const BooleanInput = defineAsyncComponent(() => import("./components/BooleanInput.vue"));
+const DictInput = defineAsyncComponent(() => import("./components/DictInput.vue"));
+const IpInput = defineAsyncComponent(() => import("./components/IpInput.vue"));
+const CaptchaInput = defineAsyncComponent(() => import("./components/CaptchaInput.vue"));
+const SelectInput = defineAsyncComponent(() => import("./components/SelectInput.vue"));
+const TotpInput = defineAsyncComponent(() => import("./components/TotpInput.vue"));
+const DateTimeInput = defineAsyncComponent(() => import("./components/DateTimeInput.vue"));
+const CardInput = defineAsyncComponent(() => import("./components/CardInput.vue"));
 
 // 标记为原始类型以提高性能
 const Components = {
@@ -161,8 +161,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   type: InputType.TEXT,
-  modelValue: '',
-  prefixIcon: '',
+  modelValue: "",
+  prefixIcon: "",
   showPrefix: true,
   rules: () => ({}),
   showValidationMsg: true,
@@ -174,7 +174,7 @@ const props = withDefaults(defineProps<Props>(), {
   params: () => ({})
 });
 
-const emit = defineEmits(['update:modelValue', 'change', 'input', 'focus', 'blur', 'clear', 'options-loaded']);
+const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "options-loaded"]);
 
 // 加载状态
 const loading = ref(false);
@@ -221,17 +221,17 @@ const defaultIcon = computed(() => getDefaultIcon(props.type));
  * 加载数据
  */
 const loadData = async () => {
-  if (typeof props.url !== 'function') {
+  if (typeof props.url !== "function") {
     optionsData.value = props.options || [];
     return;
   }
-  
+
   try {
     loading.value = true;
     // 通过url获取数据，直接调用URL作为函数
     const response = await props.url(props.params);
     let result = response;
-    
+
     if (props.dataParser) {
       // 使用自定义解析器
       optionsData.value = props.dataParser(result);
@@ -243,14 +243,14 @@ const loadData = async () => {
           label: item.label || item.name || String(item),
           value: item.value || item.id || item
         }));
-      } else if (result && typeof result === 'object') {
+      } else if (result && typeof result === "object") {
         // 处理返回对象的情况，通常是接口返回的标准格式
         if (Array.isArray(result.data)) {
           optionsData.value = result.data.map(item => ({
             label: item.label || item.name || String(item),
             value: item.value || item.id || item
           }));
-        } else if (result.data && typeof result.data === 'object') {
+        } else if (result.data && typeof result.data === "object") {
           optionsData.value = Object.entries(result.data).map(([key, value]) => ({
             label: String(value),
             value: key
@@ -258,10 +258,10 @@ const loadData = async () => {
         }
       }
     }
-    
-    emit('options-loaded', optionsData.value);
+
+    emit("options-loaded", optionsData.value);
   } catch (error) {
-    console.error('Failed to fetch options:', error);
+    console.error("Failed to fetch options:", error);
     optionsData.value = props.options || [];
   } finally {
     loading.value = false;
@@ -269,35 +269,50 @@ const loadData = async () => {
 };
 
 // 监听选项变化
-watch(() => props.options, (newVal) => {
-  if (!props.url || !optionsData.value.length) {
-    optionsData.value = newVal || [];
-  }
-}, { deep: true });
+watch(
+  () => props.options,
+  newVal => {
+    if (!props.url || !optionsData.value.length) {
+      optionsData.value = newVal || [];
+    }
+  },
+  { deep: true }
+);
 
 // 监听fetchParams变化
-watch(() => props.fetchParams, () => {
-  if (props.autoLoad && typeof props.url === 'function') {
-    loadData();
-  }
-}, { deep: true });
+watch(
+  () => props.fetchParams,
+  () => {
+    if (props.autoLoad && typeof props.url === "function") {
+      loadData();
+    }
+  },
+  { deep: true }
+);
 
 // 监听params变化
-watch(() => props.params, () => {
-  if (props.autoLoad && typeof props.url === 'function') {
-    loadData();
-  }
-}, { deep: true });
+watch(
+  () => props.params,
+  () => {
+    if (props.autoLoad && typeof props.url === "function") {
+      loadData();
+    }
+  },
+  { deep: true }
+);
 
 // 监听url变化
-watch(() => props.url, () => {
-  if (props.autoLoad && typeof props.url === 'function') {
-    loadData();
+watch(
+  () => props.url,
+  () => {
+    if (props.autoLoad && typeof props.url === "function") {
+      loadData();
+    }
   }
-});
+);
 
 onMounted(() => {
-  if (props.autoLoad && typeof props.url === 'function') {
+  if (props.autoLoad && typeof props.url === "function") {
     loadData();
   } else {
     optionsData.value = props.options || [];
@@ -308,42 +323,42 @@ onMounted(() => {
  * 处理值更新事件
  */
 const handleUpdate = (value: string | number) => {
-  emit('update:modelValue', value);
+  emit("update:modelValue", value);
 };
 
 /**
  * 处理change事件
  */
 const handleChange = (value: string | number) => {
-  emit('change', value);
+  emit("change", value);
 };
 
 /**
  * 处理input事件
  */
 const handleInput = (value: string | number) => {
-  emit('input', value);
+  emit("input", value);
 };
 
 /**
  * 处理focus事件
  */
 const handleFocus = (event: FocusEvent) => {
-  emit('focus', event);
+  emit("focus", event);
 };
 
 /**
  * 处理blur事件
  */
 const handleBlur = (event: FocusEvent) => {
-  emit('blur', event);
+  emit("blur", event);
 };
 
 /**
  * 处理clear事件
  */
 const handleClear = () => {
-  emit('clear');
+  emit("clear");
 };
 
 // 对外暴露方法

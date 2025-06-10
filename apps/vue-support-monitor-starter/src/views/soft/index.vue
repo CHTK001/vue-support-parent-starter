@@ -538,7 +538,6 @@ const goBack = () => {
   height: 100%;
   
   .current-category {
-    margin-bottom: 24px;
     background-color: var(--el-bg-color);
     padding: 20px;
     border-radius: 8px;

@@ -1,5 +1,5 @@
 <template>
-  <div 
+  <div
     class="sc-card-default"
     :class="{
       'is-hoverable': hoverable,
@@ -8,34 +8,34 @@
       [`border-position--${borderPosition}`]: true
     }"
   >
-    <div class="sc-card-default__header" v-if="$slots.header || title">
+    <div v-if="$slots.header || title" class="sc-card-default__header">
       <slot name="header">
         <div class="sc-card-default__title">{{ title }}</div>
       </slot>
     </div>
-    
+
     <div class="sc-card-default__body">
-      <slot></slot>
+      <slot />
     </div>
-    
-    <div class="sc-card-default__footer" v-if="$slots.footer">
-      <slot name="footer"></slot>
+
+    <div v-if="$slots.footer" class="sc-card-default__footer">
+      <slot name="footer" />
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent } from "vue";
 
 export default defineComponent({
-  name: 'DefaultLayout',
+  name: "DefaultLayout",
   props: {
     /**
      * 卡片标题
      */
     title: {
       type: String,
-      default: ''
+      default: ""
     },
     /**
      * 是否可悬停
@@ -49,16 +49,16 @@ export default defineComponent({
      */
     shadow: {
       type: String,
-      default: 'hover',
-      validator: (val: string) => ['always', 'hover', 'never'].includes(val)
+      default: "hover",
+      validator: (val: string) => ["always", "hover", "never"].includes(val)
     },
     /**
      * 边框加粗显示位置
      */
     borderPosition: {
       type: String,
-      default: 'top',
-      validator: (val: string) => ['top', 'right', 'bottom', 'left', 'none'].includes(val)
+      default: "top",
+      validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val)
     }
   }
 });
@@ -73,14 +73,14 @@ export default defineComponent({
   color: var(--el-text-color-primary);
   transition: all 0.3s ease;
   position: relative;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     background-color: var(--el-color-primary);
     transition: all 0.3s ease;
   }
-  
+
   // 边框位置样式
   &.border-position--top::before {
     top: 0;
@@ -89,7 +89,7 @@ export default defineComponent({
     height: 4px;
     width: 100%;
   }
-  
+
   &.border-position--right::before {
     top: 0;
     right: 0;
@@ -97,7 +97,7 @@ export default defineComponent({
     width: 4px;
     height: 100%;
   }
-  
+
   &.border-position--bottom::before {
     bottom: 0;
     left: 0;
@@ -105,7 +105,7 @@ export default defineComponent({
     height: 4px;
     width: 100%;
   }
-  
+
   &.border-position--left::before {
     top: 0;
     left: 0;
@@ -113,54 +113,54 @@ export default defineComponent({
     width: 4px;
     height: 100%;
   }
-  
+
   &.border-position--none::before {
     display: none;
   }
-  
+
   &__header {
     padding: 18px 20px;
     border-bottom: 1px solid var(--el-border-color-light);
   }
-  
+
   &__title {
     font-size: 16px;
     font-weight: 500;
     line-height: 1.5;
   }
-  
+
   &__body {
     padding: 20px;
   }
-  
+
   &__footer {
     padding: 10px 20px;
     border-top: 1px solid var(--el-border-color-light);
   }
-  
+
   &.is-hoverable {
     cursor: pointer;
-    
+
     &:hover {
       transform: translateY(-5px);
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
       border-color: var(--el-color-primary);
     }
   }
-  
+
   &.is-shadow {
     &:hover {
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
       border-color: var(--el-color-primary);
     }
   }
-  
+
   &.is-shadow-always {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    
+
     &:hover {
       border-color: var(--el-color-primary);
     }
   }
 }
-</style> 
+</style>

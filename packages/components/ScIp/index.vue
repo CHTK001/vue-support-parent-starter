@@ -4,14 +4,12 @@
       <span class="flex flex-col justify-start">
         <span class="sc-ip-empty">{{ displayAddress }}</span>
         <template v-if="showOriginal">
-          <span class="sc-ip-address" v-if="!openSearchOriginal">{{ ip }}</span>
-          <span class="text-blue-400 cursor-pointer" v-else @click="handleOpenIpAddress()">{{
-      ip
-      || "-" }}</span>
+          <span v-if="!openSearchOriginal" class="sc-ip-address">{{ ip }}</span>
+          <span v-else class="text-blue-400 cursor-pointer" @click="handleOpenIpAddress()">{{ ip || "-" }}</span>
         </template>
       </span>
       <el-tooltip v-if="showIpOnHover && ip" effect="dark" :content="ip" placement="top">
-        <i class="sc-ip-icon el-icon-info"></i>
+        <i class="sc-ip-icon el-icon-info" />
       </el-tooltip>
     </template>
     <template v-else-if="loading">
@@ -19,7 +17,7 @@
     </template>
     <template v-else>
       <span class="flex flex-col">
-        <span class="sc-ip-address" v-if="showOriginal">{{ ip }}</span>
+        <span v-if="showOriginal" class="sc-ip-address">{{ ip }}</span>
         <span class="sc-ip-empty">{{ emptyText }}</span>
       </span>
     </template>
@@ -27,25 +25,25 @@
 </template>
 
 <script>
-import { defineComponent, ref, watch, onMounted, computed } from 'vue';
-import { getPhysicalAddressByIp } from '@repo/utils';
+import { defineComponent, ref, watch, onMounted, computed } from "vue";
+import { getPhysicalAddressByIp } from "@repo/utils";
 
 export default defineComponent({
-  name: 'ScIp',
+  name: "ScIp",
   props: {
     /**
      * IP地址
      */
     ip: {
       type: String,
-      default: ''
+      default: ""
     },
     /**
      * 物理地址
      */
     physicalAddress: {
       type: String,
-      default: ''
+      default: ""
     },
     /**
      * 是否显示原始IP地址
@@ -74,26 +72,26 @@ export default defineComponent({
      */
     emptyText: {
       type: String,
-      default: '未知位置'
+      default: "未知位置"
     }
   },
   setup(props, { emit }) {
     const loading = ref(false);
-    const displayAddress = ref('');
+    const displayAddress = ref("");
 
     // 获取物理地址
     const fetchPhysicalAddress = async () => {
       if (!props.ip) {
-        displayAddress.value = '';
+        displayAddress.value = "";
         return;
       }
 
       // 提取纯IP地址（去除端口号）
       const pureIp = () => {
-        if (!props.ip) return '';
+        if (!props.ip) return "";
 
         // 如果包含端口号（格式如 192.168.1.1:8080），则只取IP部分
-        const ipParts = props.ip.split(':');
+        const ipParts = props.ip.split(":");
         return ipParts[0];
       };
 
@@ -101,11 +99,11 @@ export default defineComponent({
       try {
         const address = await getPhysicalAddressByIp(pureIp());
         displayAddress.value = address || props.emptyText;
-        emit('address-loaded', address);
+        emit("address-loaded", address);
       } catch (error) {
-        console.error('获取物理地址失败:', error);
+        console.error("获取物理地址失败:", error);
         displayAddress.value = props.emptyText;
-        emit('address-error', error);
+        emit("address-error", error);
       } finally {
         loading.value = false;
       }
@@ -118,7 +116,7 @@ export default defineComponent({
       } else if (props.ip) {
         fetchPhysicalAddress();
       } else {
-        displayAddress.value = '';
+        displayAddress.value = "";
       }
     };
 
@@ -137,7 +135,7 @@ export default defineComponent({
   methods: {
     async handleOpenIpAddress() {
       window.open(`https://www.baidu.com/s?wd=${this.ip}&from=t-io`, "_blank");
-    },
+    }
   }
 });
 </script>
