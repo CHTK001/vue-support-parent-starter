@@ -482,7 +482,7 @@ defineExpose({
     border-radius: 4px;
     transition: all 0.3s;
     background-color: var(--el-bg-color);
-    padding: 12px 16px;
+    // padding: 12px 16px;
 
     &:hover {
       transform: translateY(-2px);

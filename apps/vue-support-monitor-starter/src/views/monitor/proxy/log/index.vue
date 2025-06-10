@@ -53,7 +53,7 @@
             <div class="log-item-content">
               <div class="log-url">
                 <span class="log-label">访问地址:</span>
-                <span class="log-value truncate w-[200px]" :title="row.monitorProxyLogUrl">{{ row.monitorProxyLogUrl
+                <span class="log-value truncate w-[500px]" :title="row.monitorProxyLogUrl">{{ row.monitorProxyLogUrl
                   }}</span>
               </div>
 
@@ -61,10 +61,10 @@
                 <span class="log-label">客户端:</span>
                 <span class="log-value flex clickable" @click="doCharts(row.monitorProxyLogAddress)">
                   <IconifyIconOnline icon="ep:data-analysis" class="chart-icon" />
-                  <span>{{ row.monitorProxyLogAddress }}</span>
-                  <span v-if="row.monitorProxyLogAddressGeo" class="log-geo">
-                    ({{ row.monitorProxyLogAddressGeo }})
-                  </span>
+                  <span>  
+                    <ScIp :key="row.monitorProxyLogAddress" :ip="row.monitorProxyLogAddress"
+                      :physical-address="row.monitorProxyLogAddressGeo">
+                  </ScIp></span>
                 </span>
               </div>
 
@@ -137,11 +137,14 @@ import { fetchProxyLogPage, fetchProxyLogDelete } from "@/api/monitor/proxy";
 import AddressCharts from "./addressCharts.vue";
 import { dateFormat } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { defineAsyncComponent } from "vue";
+const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
 
 export default {
   name: "ProxyLogList",
   components: {
-    AddressCharts
+    AddressCharts,
+    ScIp
   },
   data() {
     return {
@@ -495,7 +498,6 @@ export default {
 .log-item {
   padding: 15px;
   border-radius: 8px;
-  margin-bottom: 15px;
   background-color: var(--el-bg-color);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
