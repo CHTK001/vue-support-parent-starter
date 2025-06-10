@@ -57,6 +57,9 @@
   color: gray;
   font-size: 14px
 }
+.el-dialog.is-fullscreen {
+  border-radius: 0 !important;
+}
 .filter-bolin {
   filter: url(#noise);
   -webkit-filter: url(#noise);
@@ -248,9 +251,9 @@ translate-x-50\%{
   background-color: yellow;
   font-weight: bold;
 }
-.el-loading-parent--relative {
-  position: fixed !important;
-}
+// .el-loading-parent--relative {
+//   position: fixed !important;
+// }
 
 /* 滚动条样式 */
 .content-box::-webkit-scrollbar {

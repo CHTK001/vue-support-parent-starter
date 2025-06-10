@@ -18,22 +18,20 @@
       </div>
     </el-card>
 
-    <el-card class="example-content">
-      <ScTable layout="card" ref="tableRef" class="h-[600px]" height="600px" :data="componentList" :params="{}" :col-size="3" :row-size="10">
-        <template #default="{ row }">
-          <div class="component-card" @click="openComponentExample(row)">
-            <div class="component-tag">组件</div>
-            <div class="component-icon">
-              <IconifyIconOnline :icon="row.icon" />
-            </div>
-            <div class="component-info">
-              <h3 class="component-name">{{ row.name }}</h3>
-              <p class="component-desc">{{ row.description }}</p>
-            </div>
+    <ScTable layout="card" ref="tableRef" class="h-[600px]" height="600px" :data="componentList" :params="{}" :col-size="3" :row-size="10">
+      <template #default="{ row }">
+        <div class="component-card" @click="openComponentExample(row)">
+          <div class="component-tag">组件</div>
+          <div class="component-icon">
+            <IconifyIconOnline :icon="row.icon" />
           </div>
-        </template>
-      </ScTable>
-    </el-card>
+          <div class="component-info">
+            <h3 class="component-name">{{ row.name }}</h3>
+            <p class="component-desc">{{ row.description }}</p>
+          </div>
+        </div>
+      </template>
+    </ScTable>
 
     <el-dialog v-model="dialogVisible" :title="currentComponent?.name + ' 组件示例'" width="80%" destroy-on-close fullscreen>
       <component :is="currentComponent?.component" v-if="currentComponent"></component>
@@ -154,6 +152,12 @@ const components = [
     component: resolveComponent("./components/ScSwitchExample.vue"),
   },
   {
+    name: "ScCard",
+    icon: "ri:card-line",
+    description: "卡片组件，支持多种布局样式，包括默认、卡片和滑块等布局",
+    component: resolveComponent("./components/ScCardExample.vue"),
+  },
+  {
     name: "ScInput",
     icon: "carbon:text-input",
     description: "输入组件，支持多种输入类型，如文本、文本域、数字、密码、颜色等",
@@ -257,10 +261,11 @@ const componentList = computed(() => {
 .example-description {
   color: #666;
   margin-bottom: 8px;
+  padding: 10px;
 }
 
 .component-card {
-  height: 100%;
+  height: 180px;
   padding: 20px;
   border-radius: 12px;
   background-color: var(--el-bg-color);
@@ -273,17 +278,6 @@ const componentList = computed(() => {
   position: relative;
   overflow: hidden;
   border: 1px solid transparent;
-}
-
-.component-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
-  border-color: var(--el-color-primary-light-7);
-}
-
-.component-card:active {
-  transform: translateY(-2px);
-  transition: all 0.1s ease;
 }
 
 .component-icon {

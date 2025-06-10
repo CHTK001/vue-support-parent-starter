@@ -1,16 +1,16 @@
 <template>
-  <div class="canvas-table-container" ref="tableContainer" :style="containerStyle">
+  <div ref="tableContainer" class="canvas-table-container" :style="containerStyle">
     <div class="controls-container">
-      <slot name="table-header"></slot>
+      <slot name="table-header" />
     </div>
-    <div class="canvas-wrapper" ref="canvasWrapper" :style="canvasWrapperStyle">
-      <canvas ref="headerCanvas" class="header-canvas"></canvas>
-      <div class="body-container thin-scrollbar" ref="bodyContainer" @scroll="handleScroll">
-        <canvas ref="bodyCanvas" class="body-canvas"></canvas>
+    <div ref="canvasWrapper" class="canvas-wrapper" :style="canvasWrapperStyle">
+      <canvas ref="headerCanvas" class="header-canvas" />
+      <div ref="bodyContainer" class="body-container thin-scrollbar" @scroll="handleScroll">
+        <canvas ref="bodyCanvas" class="body-canvas" />
       </div>
     </div>
-    <div class="loading-overlay" v-if="loading">
-      <div class="loading-spinner"></div>
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner" />
     </div>
     <!-- 右键菜单组件 -->
     <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
@@ -18,9 +18,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted, onBeforeUnmount } from 'vue';
-import { debounce } from 'lodash-es';
-import ContextMenu from '../plugins/ContextMenu.vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, onBeforeUnmount } from "vue";
+import { debounce } from "lodash-es";
+import ContextMenu from "../plugins/ContextMenu.vue";
 
 // 定义props
 const props = defineProps({
@@ -38,12 +38,12 @@ const props = defineProps({
     default: () => ({
       border: false,
       stripe: false,
-      size: 'default'
+      size: "default"
     })
   },
   paginationType: {
     type: String,
-    default: 'default'
+    default: "default"
   },
   contextmenu: Function,
   rowKey: String,
@@ -61,7 +61,7 @@ const props = defineProps({
 });
 
 // 定义emit
-const emit = defineEmits(['row-click', 'selection-change', 'sort-change', 'filter-change']);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change"]);
 
 // refs
 const tableContainer = ref(null);
@@ -75,23 +75,23 @@ const loading = ref(false);
 const visibleStartRow = ref(0);
 const visibleEndRow = ref(0);
 const scrollLeft = ref(0);
-const sortState = ref({ prop: '', order: '' });
+const sortState = ref({ prop: "", order: "" });
 const selectedRows = ref([]);
 const headerHeight = ref(40);
 const rowHeight = ref(40);
 const columnWidths = ref([]);
 const devicePixelRatio = ref(window.devicePixelRatio || 1);
 const theme = ref({
-  headerBgColor: '#f5f7fa',
-  headerTextColor: '#606266',
-  rowBgColor: '#ffffff',
-  rowAltBgColor: '#fafafa',
-  rowHoverBgColor: '#f5f7fa',
-  rowSelectedBgColor: '#ecf5ff',
-  borderColor: '#ebeef5',
-  textColor: '#606266',
+  headerBgColor: "#f5f7fa",
+  headerTextColor: "#606266",
+  rowBgColor: "#ffffff",
+  rowAltBgColor: "#fafafa",
+  rowHoverBgColor: "#f5f7fa",
+  rowSelectedBgColor: "#ecf5ff",
+  borderColor: "#ebeef5",
+  textColor: "#606266",
   fontSize: 14,
-  fontFamily: 'Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif'
+  fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
 });
 
 // 右键菜单相关状态
@@ -102,30 +102,30 @@ const currentRowData = ref({});
 // 计算容器样式
 const containerStyle = computed(() => {
   return {
-    position: 'relative',
-    width: '100%',
-    height: props.height === 'auto' ? '100%' : (typeof props.height === 'number' ? `${props.height}px` : props.height)
+    position: "relative",
+    width: "100%",
+    height: props.height === "auto" ? "100%" : typeof props.height === "number" ? `${props.height}px` : props.height
   };
 });
 
 // 计算Canvas包装器样式
 const canvasWrapperStyle = computed(() => {
   return {
-    width: '100%',
+    width: "100%",
     height: _height.value,
-    maxWidth: '100%',
-    overflow: 'hidden',
-    position: 'relative'
+    maxWidth: "100%",
+    overflow: "hidden",
+    position: "relative"
   };
 });
 
 // 计算高度
 const _height = computed(() => {
-  if (props.height === 'auto') {
+  if (props.height === "auto") {
     // 当设置为auto时，尝试获取父元素的可视高度
-    return '100%';
+    return "100%";
   }
-  return typeof props.height === 'number' ? `${props.height}px` : props.height;
+  return typeof props.height === "number" ? `${props.height}px` : props.height;
 });
 
 // 计算有效列（排除隐藏的列）
@@ -238,14 +238,14 @@ const initCanvases = () => {
   const containerHeight = container.clientHeight;
 
   // 设置Canvas尺寸
-  const headerCtx = headerCanvas.value.getContext('2d');
+  const headerCtx = headerCanvas.value.getContext("2d");
   headerCanvas.value.width = containerWidth * devicePixelRatio.value;
   headerCanvas.value.height = headerHeight.value * devicePixelRatio.value;
   headerCanvas.value.style.width = `${containerWidth}px`;
   headerCanvas.value.style.height = `${headerHeight.value}px`;
   headerCtx.scale(devicePixelRatio.value, devicePixelRatio.value);
 
-  const bodyCtx = bodyCanvas.value.getContext('2d');
+  const bodyCtx = bodyCanvas.value.getContext("2d");
   const bodyHeight = Math.max(props.tableData.length * rowHeight.value, containerHeight - headerHeight.value);
   bodyCanvas.value.width = Math.max(tableWidth.value, containerWidth) * devicePixelRatio.value;
   bodyCanvas.value.height = bodyHeight * devicePixelRatio.value;
@@ -258,7 +258,7 @@ const initCanvases = () => {
 const renderHeaderCanvas = () => {
   if (!headerCanvas.value) return;
 
-  const ctx = headerCanvas.value.getContext('2d');
+  const ctx = headerCanvas.value.getContext("2d");
   const { width, height } = headerCanvas.value;
 
   // 清空画布
@@ -270,7 +270,7 @@ const renderHeaderCanvas = () => {
 
   // 绘制表头
   ctx.font = `${theme.value.fontSize}px ${theme.value.fontFamily}`;
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = "middle";
   ctx.fillStyle = theme.value.headerTextColor;
 
   let xOffset = -scrollLeft.value;
@@ -292,9 +292,8 @@ const renderHeaderCanvas = () => {
 
     // 绘制列文本
     ctx.fillStyle = theme.value.headerTextColor;
-    ctx.textAlign = column.align === 'right' ? 'right' : (column.align === 'center' ? 'center' : 'left');
-    const textX = column.align === 'right' ? xOffset + columnWidth - 10 :
-      (column.align === 'center' ? xOffset + columnWidth / 2 : xOffset + 10);
+    ctx.textAlign = column.align === "right" ? "right" : column.align === "center" ? "center" : "left";
+    const textX = column.align === "right" ? xOffset + columnWidth - 10 : column.align === "center" ? xOffset + columnWidth / 2 : xOffset + 10;
     ctx.fillText(column.label, textX, headerHeight.value / 2);
 
     // 绘制排序图标（如果有）
@@ -302,11 +301,11 @@ const renderHeaderCanvas = () => {
       const isSorted = sortState.value.prop === column.prop;
       if (isSorted) {
         // 绘制排序图标
-        const iconX = column.align === 'right' ? xOffset + 10 : xOffset + columnWidth - 20;
+        const iconX = column.align === "right" ? xOffset + 10 : xOffset + columnWidth - 20;
         const iconY = headerHeight.value / 2;
 
         ctx.beginPath();
-        if (sortState.value.order === 'ascending') {
+        if (sortState.value.order === "ascending") {
           // 绘制升序图标
           ctx.moveTo(iconX - 4, iconY + 2);
           ctx.lineTo(iconX, iconY - 2);
@@ -352,21 +351,16 @@ const renderHeaderCanvas = () => {
 const renderBodyCanvas = () => {
   if (!bodyCanvas.value) return;
 
-  const ctx = bodyCanvas.value.getContext('2d');
+  const ctx = bodyCanvas.value.getContext("2d");
   const { width } = bodyCanvas.value;
   const visibleHeight = bodyContainer.value.clientHeight;
 
   // 清空可视区域
-  ctx.clearRect(
-    0,
-    visibleStartRow.value * rowHeight.value,
-    width / devicePixelRatio.value,
-    (visibleEndRow.value - visibleStartRow.value) * rowHeight.value
-  );
+  ctx.clearRect(0, visibleStartRow.value * rowHeight.value, width / devicePixelRatio.value, (visibleEndRow.value - visibleStartRow.value) * rowHeight.value);
 
   // 设置样式
   ctx.font = `${theme.value.fontSize}px ${theme.value.fontFamily}`;
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = "middle";
 
   const columns = visibleColumns.value;
   const tableData = props.tableData;
@@ -377,9 +371,7 @@ const renderBodyCanvas = () => {
 
     const row = tableData[rowIndex];
     const y = rowIndex * rowHeight.value;
-    const isSelected = selectedRows.value.some(selectedRow =>
-      selectedRow[props.rowKey] === row[props.rowKey]
-    );
+    const isSelected = selectedRows.value.some(selectedRow => selectedRow[props.rowKey] === row[props.rowKey]);
 
     // 绘制行背景
     if (isSelected) {
@@ -410,14 +402,13 @@ const renderBodyCanvas = () => {
         cellContent = column.formatter(row);
       }
       if (cellContent === undefined || cellContent === null) {
-        cellContent = column.defaultValue || '-';
+        cellContent = column.defaultValue || "-";
       }
 
       // 绘制单元格文本
       ctx.fillStyle = theme.value.textColor;
-      ctx.textAlign = column.align === 'right' ? 'right' : (column.align === 'center' ? 'center' : 'left');
-      const textX = column.align === 'right' ? xOffset + columnWidth - 10 :
-        (column.align === 'center' ? xOffset + columnWidth / 2 : xOffset + 10);
+      ctx.textAlign = column.align === "right" ? "right" : column.align === "center" ? "center" : "left";
+      const textX = column.align === "right" ? xOffset + columnWidth - 10 : column.align === "center" ? xOffset + columnWidth / 2 : xOffset + 10;
 
       // 文本溢出处理
       const maxTextWidth = columnWidth - 20;
@@ -427,11 +418,11 @@ const renderBodyCanvas = () => {
       const textWidth = ctx.measureText(text).width;
       if (textWidth > maxTextWidth) {
         // 文本溢出显示省略号
-        let truncated = '';
+        let truncated = "";
         for (let i = 0; i < text.length; i++) {
           const part = text.substring(0, i + 1);
-          if (ctx.measureText(part + '...').width > maxTextWidth) {
-            truncated = text.substring(0, i) + '...';
+          if (ctx.measureText(part + "...").width > maxTextWidth) {
+            truncated = text.substring(0, i) + "...";
             break;
           }
         }
@@ -466,7 +457,7 @@ const renderBodyCanvas = () => {
 };
 
 // 处理行点击事件
-const handleRowClick = (event) => {
+const handleRowClick = event => {
   if (!bodyCanvas.value || !bodyContainer.value) return;
 
   const rect = bodyCanvas.value.getBoundingClientRect();
@@ -478,7 +469,7 @@ const handleRowClick = (event) => {
 
   if (rowIndex >= 0 && rowIndex < props.tableData.length) {
     const row = props.tableData[rowIndex];
-    emit('row-click', row, rowIndex);
+    emit("row-click", row, rowIndex);
 
     // 处理行选择
     toggleRowSelection(row);
@@ -486,7 +477,7 @@ const handleRowClick = (event) => {
 };
 
 // 处理单元格点击事件（用于排序等）
-const handleCellClick = (event) => {
+const handleCellClick = event => {
   if (!headerCanvas.value) return;
 
   const rect = headerCanvas.value.getBoundingClientRect();
@@ -510,14 +501,14 @@ const handleCellClick = (event) => {
     // 处理排序
     if (column.sortable) {
       const prop = column.prop;
-      let order = 'ascending';
+      let order = "ascending";
 
       if (sortState.value.prop === prop) {
-        order = sortState.value.order === 'ascending' ? 'descending' : 'ascending';
+        order = sortState.value.order === "ascending" ? "descending" : "ascending";
       }
 
       sortState.value = { prop, order };
-      emit('sort-change', { prop, order });
+      emit("sort-change", { prop, order });
 
       // 重新渲染表头以显示排序图标
       renderHeaderCanvas();
@@ -526,7 +517,7 @@ const handleCellClick = (event) => {
 };
 
 // 切换行选择状态
-const toggleRowSelection = (row) => {
+const toggleRowSelection = row => {
   const rowKey = props.rowKey;
   if (!rowKey) return;
 
@@ -539,14 +530,14 @@ const toggleRowSelection = (row) => {
   }
 
   // 发出选择变更事件
-  emit('selection-change', selectedRows.value);
+  emit("selection-change", selectedRows.value);
 
   // 重新渲染表格以更新选中状态
   renderBodyCanvas();
 };
 
 // 设置行选择
-const setSelection = (rows) => {
+const setSelection = rows => {
   if (!props.rowKey) return;
 
   selectedRows.value = rows;
@@ -565,63 +556,78 @@ const handleResize = debounce(() => {
 }, 100);
 
 // 监听行数据变化，确保数据更新时重新渲染
-watch(() => props.tableData, (newData) => {
-  if (newData && newData.length > 0) {
-    nextTick(() => {
-      initCanvases();
+watch(
+  () => props.tableData,
+  newData => {
+    if (newData && newData.length > 0) {
+      nextTick(() => {
+        initCanvases();
 
-      // 确保计算可见行并立即渲染
-      if (bodyContainer.value) {
-        calculateVisibleRows();
-      } else {
-        renderBodyCanvas();
-      }
-    });
-  }
-}, { immediate: true, deep: true });
+        // 确保计算可见行并立即渲染
+        if (bodyContainer.value) {
+          calculateVisibleRows();
+        } else {
+          renderBodyCanvas();
+        }
+      });
+    }
+  },
+  { immediate: true, deep: true }
+);
 
 // 监听列配置变化
-watch(() => props.userColumn, () => {
-  nextTick(() => {
-    initColumnWidths();
-    rerenderTable();
-  });
-}, { deep: true });
+watch(
+  () => props.userColumn,
+  () => {
+    nextTick(() => {
+      initColumnWidths();
+      rerenderTable();
+    });
+  },
+  { deep: true }
+);
 
 // 监听toggleIndex变化
-watch(() => props.toggleIndex, () => {
-  rerenderTable();
-});
+watch(
+  () => props.toggleIndex,
+  () => {
+    rerenderTable();
+  }
+);
 
 // 监听config变化
-watch(() => props.config, () => {
-  rerenderTable();
-}, { deep: true });
+watch(
+  () => props.config,
+  () => {
+    rerenderTable();
+  },
+  { deep: true }
+);
 
 // 处理右键菜单
-const handleCanvasContextMenu = (e) => {
+const handleCanvasContextMenu = e => {
   if (!props.contextmenu) return;
-  
+
   const rect = bodyCanvas.value.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  
+
   // 计算点击的行索引
   const rowIndex = Math.floor(y / rowHeight.value);
-  
+
   // 确认行索引有效
   if (rowIndex >= 0 && rowIndex < props.tableData.length) {
     // 阻止默认右键菜单
     e.preventDefault();
-    
+
     const row = props.tableData[rowIndex];
-    
+
     // 保存当前行数据
     currentRowData.value = row;
-    
+
     // 调用外部传入的contextmenu函数获取菜单项
     const items = props.contextmenu(row, null, e);
-    
+
     if (items && items.length > 0) {
       menuItems.value = items;
       // 显示右键菜单
@@ -631,17 +637,17 @@ const handleCanvasContextMenu = (e) => {
 };
 
 // 处理菜单动作
-const handleMenuAction = (action) => {
+const handleMenuAction = action => {
   // 如果需要，可以在这里处理菜单动作
-  console.log('菜单动作:', action);
+  console.log("菜单动作:", action);
 };
 
 // 生命周期钩子
 onMounted(() => {
   // 设置事件监听
-  window.addEventListener('resize', handleResize);
-  headerCanvas.value?.addEventListener('click', handleCellClick);
-  bodyCanvas.value?.addEventListener('click', handleRowClick);
+  window.addEventListener("resize", handleResize);
+  headerCanvas.value?.addEventListener("click", handleCellClick);
+  bodyCanvas.value?.addEventListener("click", handleRowClick);
 
   // 初始化表格，确保立即渲染
   nextTick(() => {
@@ -658,7 +664,7 @@ onMounted(() => {
   });
 
   // 设置鼠标滚轮事件，支持水平滚动
-  bodyContainer.value?.addEventListener('wheel', (e) => {
+  bodyContainer.value?.addEventListener("wheel", e => {
     if (e.shiftKey) {
       e.preventDefault();
       bodyContainer.value.scrollLeft += e.deltaY;
@@ -666,18 +672,18 @@ onMounted(() => {
   });
 
   // 添加右键菜单事件监听
-  bodyCanvas.value?.addEventListener('contextmenu', handleCanvasContextMenu);
+  bodyCanvas.value?.addEventListener("contextmenu", handleCanvasContextMenu);
 });
 
 onBeforeUnmount(() => {
   // 移除事件监听
-  window.removeEventListener('resize', handleResize);
-  headerCanvas.value?.removeEventListener('click', handleCellClick);
-  bodyCanvas.value?.removeEventListener('click', handleRowClick);
-  bodyContainer.value?.removeEventListener('wheel', () => { });
+  window.removeEventListener("resize", handleResize);
+  headerCanvas.value?.removeEventListener("click", handleCellClick);
+  bodyCanvas.value?.removeEventListener("click", handleRowClick);
+  bodyContainer.value?.removeEventListener("wheel", () => {});
 
   // 移除右键菜单事件监听
-  bodyCanvas.value?.removeEventListener('contextmenu', handleCanvasContextMenu);
+  bodyCanvas.value?.removeEventListener("contextmenu", handleCanvasContextMenu);
 });
 
 // 暴露方法给父组件
@@ -689,7 +695,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-
 .canvas-table-container {
   position: relative;
   width: 100%;
@@ -775,7 +780,7 @@ defineExpose({
 
   /* 滚动条滑块 */
   ::-webkit-scrollbar-thumb {
-    background-color: var(--el-color-primary-light-1);;
+    background-color: var(--el-color-primary-light-1);
     border-radius: 4px;
   }
 

@@ -275,7 +275,7 @@ const transitionMain = defineComponent({
 
 :deep(.el-card__body) {
   height: calc(100% - 0px);
-  padding: 16px;
+  padding: 0;
 }
 
 .bg-layout {
