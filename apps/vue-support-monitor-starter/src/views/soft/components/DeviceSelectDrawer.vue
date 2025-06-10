@@ -5,6 +5,7 @@
     size="40%" 
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="handleClose"
   >
     <div class="device-selection">
       <div class="selected-software">
@@ -215,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, defineProps, defineEmits, watch, onMounted } from 'vue'
+import { ref, defineExpose, computed, defineProps, defineEmits, watch, onMounted } from 'vue'
 import { message } from "@repo/utils"
 import { machineSshListData } from "@/api/system/assets-ssh"
 import type { PartialSoftService } from '@/api/soft'
@@ -363,6 +364,11 @@ const handleCancel = () => {
   emit('cancel')
 }
 
+const handleClose = () => {
+  handleCancel();
+  installing.value = false;
+}
+
 // 查看安装记录
 const handleViewInstallLog = (device: any) => {
   currentDevice.value = device
@@ -474,6 +480,11 @@ onMounted(() => {
   if (drawerVisible.value) {
     loadDeviceList()
   }
+})
+
+
+defineExpose({
+  handleCancel
 })
 </script>
 

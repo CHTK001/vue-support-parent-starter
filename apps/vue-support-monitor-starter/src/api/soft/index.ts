@@ -21,6 +21,7 @@ export interface SoftService {
   softServiceVersion: string;
   softServiceDownloadUrl: string;
   softServiceTags: string;
+  softServiceOs: string;
   sshId: string;
   isInstalled: boolean;
 }

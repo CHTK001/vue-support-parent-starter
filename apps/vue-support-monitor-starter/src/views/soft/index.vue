@@ -140,6 +140,7 @@
 
     <!-- 安装设备选择抽屉 -->
     <DeviceSelectDrawer 
+      ref="deviceSelectDrawerRef"
       v-model="deviceDrawerVisible" 
       :software="currentSoftware" 
       @install="handleDeviceSelect"
@@ -177,6 +178,7 @@ import SoftDetailDialog from "./components/SoftDetailDialog.vue";
 
 // 表格引用
 const tableRef = ref<InstanceType<typeof ScTable>>();
+const deviceSelectDrawerRef = ref<InstanceType<typeof DeviceSelectDrawer>>();
 
 interface TableData {
   list: SoftService[];
@@ -388,12 +390,13 @@ const proceedInstall = async () => {
     console.error("安装失败:", error);
     message.error(error instanceof Error ? error.message : "安装启动失败");
     installDrawerVisible.value = false;
+    deviceSelectDrawerRef.value?.handleCancel();
   }
 };
 
 const handleInstallFinish = () => {
   installDrawerVisible.value = false;
-  selectedDevices.value = [];
+  installDevices.value = [];
   refreshTable();
 };
 
