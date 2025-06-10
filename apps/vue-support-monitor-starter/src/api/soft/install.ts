@@ -35,9 +35,7 @@ export function fetchSoftServiceInstall(data: InstallRequest) {
     params: {
       softServiceId: data.softServiceId,
     },
-    data: {
-      sshIds: data.sshIds,
-    },
+    data: data.sshIds,
   });
 }
 
@@ -103,5 +101,3 @@ export const fetchSoftMonitorLogStart = (params: ServiceRequest) => {
 export const fetchSoftMonitorLogStop = (params: ServiceRequest) => {
   return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/log/monitor/stop/${params.installId}`);
 };
-
-

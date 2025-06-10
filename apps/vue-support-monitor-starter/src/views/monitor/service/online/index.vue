@@ -3,12 +3,14 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar-container">
       <div class="toolbar-title">
-        <IconifyIconOnline icon="ep:monitor" class="title-icon" />
-        <span>在线服务监控</span>
+        <div class="current-category">
+          <h2 class="category-title"><IconifyIconOnline icon="ep:monitor" class="mr-2" />在线服务列表</h2>
+          <p class="category-desc">查看和管理当前在线的所有服务实例及其状态</p>
+        </div>
       </div>
 
       <div class="refresh-control">
-        <el-select v-model="countDownTime" class="refresh-select" size="large" placeholder="刷新间隔">
+        <el-select v-model="countDownTime" class="refresh-select" size="default" placeholder="刷新间隔">
           <el-option :value="5" label="5秒" />
           <el-option :value="10" label="10秒" />
           <el-option :value="20" label="20秒" />
@@ -28,68 +30,55 @@
 
     <!-- 服务卡片列表 -->
     <div class="service-list-container">
-      <transition-group name="service-fade" tag="div" class="service-grid">
-        <div v-for="(row, index) in data.tableData" :key="index" class="service-card">
-          <!-- 服务卡片头部 -->
-          <div class="service-card-header" :class="getStatusClass(row.metadata?.applicationActive)">
-            <div class="service-title">
-              <span class="service-name">{{ row.metadata?.applicationName }}</span>
-              <el-tooltip :content="row.metadata?.applicationActiveInclude" placement="top" effect="dark">
-                <IconifyIconOnline icon="ep:info-filled" class="info-icon" />
-              </el-tooltip>
-            </div>
-            <div class="service-status">
-              <el-tag :type="row.metadata?.applicationActive === 'UP' ? 'success' : 'warning'" effect="light" size="small" class="status-tag">
-                <span class="status-dot" />
-                {{ row.metadata?.applicationActive }}
-              </el-tag>
+      <!-- 服务列表 -->
+      <ScTable ref="tableRef" :data="data.tableData" layout="card" :loading="loading" :col-size="3" empty-text="暂无在线服务" @refresh="refresh">
+        <template #default="{ row }">
+          <div class="app-wrapper" :class="getStatusClass(row.metadata?.applicationActive)">
+            <div class="media-content">
+              <div class="app-logo">
+                <IconifyIconOnline :icon="getStatusIcon(row.metadata?.applicationActive)" />
+              </div>
+
+              <div class="app-content">
+                <h3 class="app-title">{{ row.metadata?.applicationName }}</h3>
+                <div class="app-tags">
+                  <el-tag :type="row.metadata?.applicationActive === 'UP' ? 'success' : 'warning'" effect="light" size="small" class="status-tag">
+                    {{ row.metadata?.applicationActive }}
+                  </el-tag>
+                  <el-tag v-if="row.metadata?.applicationActiveInclude" size="small" type="info" effect="plain" class="ml-2">
+                    {{ row.metadata?.applicationActiveInclude }}
+                  </el-tag>
+                </div>
+
+                <div class="app-meta">
+                  <div class="meta-item">
+                    <IconifyIconOnline icon="ep:connection" class="mr-1" />
+                    <span>{{ row.metadata?.applicationHost }}:{{ row.metadata?.applicationPort }}</span>
+                  </div>
+                  <div class="meta-item" v-if="row.metadata?.applicationProfile">
+                    <IconifyIconOnline icon="ep:setting" class="mr-1" />
+                    <span>{{ row.metadata?.applicationProfile }}</span>
+                  </div>
+                </div>
+
+                <div class="app-desc">
+                  {{ row.metadata?.applicationDesc || `${row.metadata?.applicationName} 服务实例` }}
+                </div>
+
+                <div class="app-footer">
+                  <div class="app-actions">
+                    <el-button size="small" type="primary" @click="doDatav(row)" class="action-btn"> <IconifyIconOnline icon="ep:data-board"  /></el-button>
+
+                    <el-button size="small" type="success" @click="onLog(row)" class="action-btn"> <IconifyIconOnline icon="ep:document" /> </el-button>
+
+                    <el-button size="small" type="warning" @click="onTrace(row)" class="action-btn"> <IconifyIconOnline icon="ep:share"  /> </el-button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <!-- 服务卡片内容 -->
-          <div class="service-card-content">
-            <div class="service-info-item">
-              <span class="info-label">应用名称:</span>
-              <span class="info-value">{{ row.metadata?.applicationName }}</span>
-            </div>
-            <div class="service-info-item">
-              <span class="info-label">服务地址:</span>
-              <span class="info-value address-value">
-                <IconifyIconOnline icon="ep:connection" class="address-icon" />
-                {{ row.metadata?.applicationHost }}:{{ row.metadata?.applicationPort }}
-              </span>
-            </div>
-            <div class="service-info-item">
-              <span class="info-label">运行环境:</span>
-              <span class="info-value">{{ row.metadata?.applicationActive }}</span>
-            </div>
-          </div>
-
-          <!-- 服务卡片操作区 -->
-          <div class="service-card-actions">
-            <el-tooltip content="数据大屏" placement="top">
-              <el-button type="primary" circle class="action-button" @click="doDatav(row)">
-                <IconifyIconOnline icon="ep:data-board" />
-              </el-button>
-            </el-tooltip>
-
-            <el-tooltip content="实时日志" placement="top">
-              <el-button type="success" circle class="action-button" @click="onLog(row)">
-                <IconifyIconOnline icon="ep:document" />
-              </el-button>
-            </el-tooltip>
-
-            <el-tooltip content="链路追踪" placement="top">
-              <el-button type="warning" circle class="action-button" @click="onTrace(row)">
-                <IconifyIconOnline icon="ep:share" />
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
-      </transition-group>
-
-      <!-- 空状态展示 -->
-      <el-empty v-if="data.tableData.length === 0" description="暂无在线服务" :image-size="200" class="empty-state" />
+        </template>
+      </ScTable>
     </div>
 
     <!-- 弹窗组件 -->
@@ -101,6 +90,7 @@
 <script setup>
 import { fetchServiceList } from "@/api/monitor/service";
 import ScCountDown from "@repo/components/ScCountDown/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { router } from "@repo/core";
 import { Base64 } from "js-base64";
 import { defineAsyncComponent, markRaw, nextTick, onMounted, reactive, ref } from "vue";
@@ -111,11 +101,13 @@ const trace = defineAsyncComponent(() => import("../dashboard/portlet/urldetail.
 
 // 当前选中的行数据
 const currentRow = ref({});
+const tableRef = ref(null);
+const loading = ref(false);
 
 // 日志弹窗控制
 const detailVisible = ref(false);
 const detailRef = ref();
-const onLog = async row => {
+const onLog = async (row) => {
   currentRow.value = row;
   detailVisible.value = true;
   await nextTick();
@@ -125,23 +117,21 @@ const onLog = async row => {
 // 链路追踪弹窗控制
 const detailVisible1 = ref(false);
 const detailRef1 = ref();
-const onTrace = async row => {
+const onTrace = async (row) => {
   currentRow.value = row;
   detailVisible1.value = true;
   await nextTick();
   detailRef1.value?.open();
 };
 
-// 分页参数
+// 参数
 const params = reactive({
-  page: 1,
-  pageSize: 10,
-  uriSpec: "monitor"
+  uriSpec: "monitor",
 });
 
 // 表格数据
 const data = reactive({
-  tableData: markRaw([])
+  tableData: markRaw([]),
 });
 
 // 倒计时刷新控制
@@ -149,36 +139,52 @@ const countDownTime = ref(10);
 
 // 获取服务列表数据
 const getData = () => {
-  fetchServiceList(params).then(res => {
-    data.tableData = res.data;
-  });
+  loading.value = true;
+  fetchServiceList(params)
+    .then((res) => {
+      data.tableData = res.data;
+      loading.value = false;
+    })
+    .catch(() => {
+      loading.value = false;
+    });
 };
 
 // 刷新数据
 const refresh = () => {
-  fetchServiceList(params).then(res => {
-    data.tableData = res.data;
-  });
+  loading.value = true;
+  fetchServiceList(params)
+    .then((res) => {
+      data.tableData = res.data;
+      loading.value = false;
+    })
+    .catch(() => {
+      loading.value = false;
+    });
 };
 
 // 跳转到数据大屏
-const doDatav = item => {
+const doDatav = (item) => {
   router.push({
     path: "/datav",
     query: {
       data: Base64.encode(JSON.stringify(item)),
-      appName: item.metadata.applicationName
-    }
+      appName: item.metadata.applicationName,
+    },
   });
 };
 
 // 根据服务状态获取样式类名
-const getStatusClass = status => {
+const getStatusClass = (status) => {
   return {
-    "status-up": status === "UP",
-    "status-down": status === "DOWN",
-    "status-unknown": !status || (status !== "UP" && status !== "DOWN")
+    "app-wrapper-active": status === "UP",
+    "app-wrapper-warning": status === "DOWN",
   };
+};
+
+// 根据状态获取图标
+const getStatusIcon = (status) => {
+  return status === "UP" ? "ep:connection" : "ep:warning";
 };
 
 // 组件挂载时获取数据
@@ -193,6 +199,7 @@ onMounted(async () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--el-bg-color);
+  padding: 20px;
 }
 
 // 顶部工具栏样式
@@ -200,22 +207,14 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 20px;
 
   .toolbar-title {
     display: flex;
     align-items: center;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-
-    .title-icon {
-      margin-right: 8px;
-      font-size: 24px;
-      color: var(--el-color-primary);
-    }
   }
 
   .refresh-control {
@@ -238,7 +237,6 @@ onMounted(async () => {
 
         .countdown-icon {
           color: var(--el-color-primary);
-          transition: transform 0.3s ease;
 
           &.rotating {
             animation: rotate 1s linear infinite;
@@ -252,168 +250,182 @@ onMounted(async () => {
 // 服务列表容器
 .service-list-container {
   flex: 1;
-  padding: 24px;
   overflow: auto;
+}
 
-  .service-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+.current-category {
+  margin-bottom: 20px;
+
+  .category-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--el-text-color-primary);
+    display: flex;
+    align-items: center;
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background-color: var(--el-color-primary);
+      margin-right: 12px;
+      border-radius: 2px;
+    }
   }
 
-  // 服务卡片样式
-  .service-card {
-    background: var(--el-bg-color-overlay);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  .category-desc {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    margin: 0 0 0 16px;
+    line-height: 1.6;
+  }
+}
+
+// 应用卡片样式
+.app-wrapper {
+  height: 200px;
+  border-radius: 8px;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  overflow: hidden;
+  transition: all 0.3s;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary);
+
+    &::before {
+      height: 4px;
+    }
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background-color: var(--el-color-primary);
+    transition: height 0.3s ease;
+    z-index: 1;
+  }
+
+  &.app-wrapper-active {
+    &::before {
+      background-color: var(--el-color-success);
+    }
+  }
+
+  &.app-wrapper-warning {
+    &::before {
+      background-color: var(--el-color-warning);
+    }
+  }
+
+  .media-content {
+    display: flex;
+    height: 100%;
+  }
+
+  .app-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 1px solid var(--el-border-color-lighter);
+    margin: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--el-fill-color-light);
+    font-size: 40px;
+    color: var(--el-color-primary);
+  }
 
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-    }
+  .app-content {
+    flex: 1;
+    padding: 20px 20px 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
 
-    // 卡片头部
-    .service-card-header {
+  .app-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+
+    .meta-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 16px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      padding: 4px 10px;
+      background-color: var(--el-fill-color-light);
+      border-radius: 12px;
 
-      &.status-up {
-        background: linear-gradient(to right, rgba(var(--el-color-success-rgb), 0.1), rgba(var(--el-color-success-rgb), 0.05));
-      }
-
-      &.status-down {
-        background: linear-gradient(to right, rgba(var(--el-color-danger-rgb), 0.1), rgba(var(--el-color-danger-rgb), 0.05));
-      }
-
-      &.status-unknown {
-        background: linear-gradient(to right, rgba(var(--el-color-info-rgb), 0.1), rgba(var(--el-color-info-rgb), 0.05));
-      }
-
-      .service-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .service-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-        }
-
-        .info-icon {
-          color: var(--el-color-info);
-          cursor: pointer;
-          transition: color 0.3s;
-
-          &:hover {
-            color: var(--el-color-primary);
-          }
-        }
-      }
-
-      .service-status {
-        .status-tag {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-
-          .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: currentColor;
-            display: inline-block;
-            animation: pulse 2s infinite;
-          }
-        }
+      &:hover {
+        background-color: var(--el-fill-color);
+        color: var(--el-color-primary);
       }
     }
+  }
 
-    // 卡片内容
-    .service-card-content {
-      padding: 16px;
+  .app-desc {
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--el-text-color-secondary);
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 
-      .service-info-item {
-        display: flex;
-        margin-bottom: 12px;
+  .app-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
 
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        .info-label {
-          width: 80px;
-          color: var(--el-text-color-secondary);
-          flex-shrink: 0;
-        }
-
-        .info-value {
-          color: var(--el-text-color-primary);
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-
-          &.address-value {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-
-            .address-icon {
-              color: var(--el-color-primary);
-            }
-          }
-        }
-      }
-    }
-
-    // 卡片操作区
-    .service-card-actions {
+    .app-actions {
       display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--el-border-color-lighter);
-      background: var(--el-fill-color-light);
+      gap: 8px;
+      flex-wrap: wrap;
 
-      .action-button {
+      .el-button {
+        border-radius: 6px;
+      }
+
+      .action-btn {
         transition: all 0.3s;
 
         &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
       }
     }
-  }
-
-  // 空状态样式
-  .empty-state {
-    margin-top: 60px;
   }
 }
 
 // 动画效果
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-success-rgb), 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 6px rgba(var(--el-color-success-rgb), 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-success-rgb), 0);
-  }
-}
-
 @keyframes rotate {
   from {
     transform: rotate(0deg);
@@ -424,41 +436,19 @@ onMounted(async () => {
   }
 }
 
-// 列表项动画
-.service-fade {
-  &-enter-active {
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transition-delay: calc(0.1s * var(--el-transition-duration) * var(--index, 0));
-  }
+// 响应式调整
+@media (max-width: 768px) {
+  .toolbar-container {
+    flex-direction: column;
+    align-items: flex-start;
 
-  &-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  &-enter-from,
-  &-leave-to {
-    opacity: 0;
-    transform: translateY(30px) scale(0.9);
-  }
-}
-
-// 暗黑模式适配
-:root[data-theme="dark"] {
-  .service-card {
-    background: var(--el-bg-color-overlay);
-
-    .service-card-header {
-      &.status-up {
-        background: linear-gradient(to right, rgba(var(--el-color-success-rgb), 0.2), rgba(var(--el-color-success-rgb), 0.1));
-      }
-
-      &.status-down {
-        background: linear-gradient(to right, rgba(var(--el-color-danger-rgb), 0.2), rgba(var(--el-color-danger-rgb), 0.1));
-      }
+    .toolbar-title {
+      margin-bottom: 16px;
     }
 
-    .service-card-actions {
-      background: var(--el-fill-color-darker);
+    .refresh-control {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 }

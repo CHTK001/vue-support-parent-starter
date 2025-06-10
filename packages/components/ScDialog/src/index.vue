@@ -1,39 +1,29 @@
 <template>
   <div class="sc-dialog-container">
     <!-- 根据布局类型选择不同的组件 -->
-    <component
-      :is="layoutComponent"
-      v-bind="dialogProps"
-      v-model="dialogVisible"
-      @open="onOpen"
-      @opened="onOpened"
-      @close="onClose"
-      @closed="onClosed"
-      @cancel="handleCancel"
-      @confirm="handleConfirm"
-    >
+    <component :is="layoutComponent" v-bind="dialogProps" v-model="dialogVisible" @open="onOpen" @opened="onOpened" @close="onClose" @closed="onClosed" @cancel="handleCancel" @confirm="handleConfirm">
       <!-- 传递插槽内容 -->
       <template v-if="$slots.default" #default>
-        <slot></slot>
+        <slot />
       </template>
-      
+
       <template v-if="$slots.header" #header>
-        <slot name="header"></slot>
+        <slot name="header" />
       </template>
-      
+
       <template v-if="$slots.footer" #footer>
-        <slot name="footer"></slot>
+        <slot name="footer" />
       </template>
     </component>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, useSlots } from 'vue';
-import { ScDialogProps, ScDialogEmits } from './types';
-import DefaultLayout from './layouts/DefaultLayout.vue';
-import SimpleLayout from './layouts/SimpleLayout.vue';
-import HeadlessLayout from './layouts/HeadlessLayout.vue';
+import { ref, computed, watch, useSlots } from "vue";
+import { ScDialogProps, ScDialogEmits } from "./types";
+import DefaultLayout from "./layouts/DefaultLayout.vue";
+import SimpleLayout from "./layouts/SimpleLayout.vue";
+import HeadlessLayout from "./layouts/HeadlessLayout.vue";
 
 /**
  * 定义组件属性
@@ -41,9 +31,9 @@ import HeadlessLayout from './layouts/HeadlessLayout.vue';
 const props = withDefaults(defineProps<ScDialogProps>(), {
   // 对话框基本属性
   modelValue: false,
-  title: '',
-  width: '500px',
-  top: '15vh',
+  title: "",
+  width: "500px",
+  top: "15vh",
   modal: true,
   appendToBody: false,
   lockScroll: true,
@@ -53,25 +43,25 @@ const props = withDefaults(defineProps<ScDialogProps>(), {
   draggable: true,
   center: false,
   destroyOnClose: false,
-  
+
   // 布局模式
-  layout: 'default',
-  
+  layout: "default",
+
   // 扩展属性
-  type: 'default',
-  icon: 'ep:info-filled',
+  type: "default",
+  icon: "ep:info-filled",
   showIcon: true,
   isForm: false,
-  
+
   // 底部按钮属性
   showFooter: true,
   showCancelButton: true,
   showConfirmButton: true,
-  cancelText: '取消',
-  confirmText: '确定',
-  cancelIcon: 'ep:close',
-  confirmIcon: 'ep:check',
-  confirmButtonType: 'primary',
+  cancelText: "取消",
+  confirmText: "确定",
+  cancelIcon: "ep:close",
+  confirmIcon: "ep:check",
+  confirmButtonType: "primary",
   loading: false
 });
 
@@ -95,11 +85,11 @@ const dialogVisible = ref(props.modelValue);
  */
 const layoutComponent = computed(() => {
   switch (props.layout) {
-    case 'simple':
+    case "simple":
       return SimpleLayout;
-    case 'headless':
+    case "headless":
       return HeadlessLayout;
-    case 'default':
+    case "default":
     default:
       return DefaultLayout;
   }
@@ -120,22 +110,28 @@ const dialogProps = computed(() => {
 /**
  * 监听modelValue变化，同步到dialogVisible
  */
-watch(() => props.modelValue, (val) => {
-  dialogVisible.value = val;
-});
+watch(
+  () => props.modelValue,
+  val => {
+    dialogVisible.value = val;
+  }
+);
 
 /**
  * 监听dialogVisible变化，同步到modelValue
  */
-watch(() => dialogVisible.value, (val) => {
-  emit('update:modelValue', val);
-});
+watch(
+  () => dialogVisible.value,
+  val => {
+    emit("update:modelValue", val);
+  }
+);
 
 /**
  * 处理取消按钮点击事件
  */
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
   dialogVisible.value = false;
 };
 
@@ -143,35 +139,35 @@ const handleCancel = () => {
  * 处理确认按钮点击事件
  */
 const handleConfirm = () => {
-  emit('confirm');
+  emit("confirm");
 };
 
 /**
  * 对话框打开事件
  */
 const onOpen = () => {
-  emit('open');
+  emit("open");
 };
 
 /**
  * 对话框打开动画结束事件
  */
 const onOpened = () => {
-  emit('opened');
+  emit("opened");
 };
 
 /**
  * 对话框关闭事件
  */
 const onClose = () => {
-  emit('close');
+  emit("close");
 };
 
 /**
  * 对话框关闭动画结束事件
  */
 const onClosed = () => {
-  emit('closed');
+  emit("closed");
 };
 
 /**
@@ -201,4 +197,4 @@ defineExpose({
 .sc-dialog-container {
   // 对话框容器样式
 }
-</style> 
+</style>

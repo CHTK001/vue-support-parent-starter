@@ -2,70 +2,77 @@
   <div class="proxy-setting-container">
     <!-- 页面标题 -->
     <div class="setting-header">
-      <IconifyIconOnline icon="ep:setting" class="header-icon" />
-      <span class="header-title">代理服务配置</span>
+      <div class="current-category">
+        <h2 class="category-title"><IconifyIconOnline icon="ep:setting" class="mr-2" />代理服务配置</h2>
+        <p class="category-desc">管理代理服务的各项配置，包括服务发现、负载均衡和实时日志</p>
+      </div>
     </div>
 
     <!-- 配置卡片区域 -->
     <div class="setting-cards">
-      <el-card v-for="(config, index) in configs" :key="config.proxyConfigName" class="setting-card" :class="{ active: activeCard === index }" :style="{ animationDelay: `${index * 0.1}s` }" @click="activeCard = index">
-        <template #header>
-          <div class="card-header">
-            <IconifyIconOnline :icon="getConfigIcon(config.proxyConfigName)" class="config-icon" />
-            <span class="config-title">{{ config.desc }}</span>
-          </div>
-        </template>
+      <el-row :gutter="24">
+        <el-col v-for="(config, index) in configs" :key="config.proxyConfigName" :xs="24" :sm="12" :md="8">
+          <div class="app-wrapper" :class="{ 'app-wrapper-active': activeCard === index }" @click="activeCard = index">
+            <div class="media-content">
+              <div class="app-logo">
+                <IconifyIconOnline :icon="getConfigIcon(config.proxyConfigName)" />
+              </div>
+              
+              <div class="app-content">
+                <h3 class="app-title">{{ config.desc }}</h3>
+                
+                <!-- 服务发现配置 -->
+                <template v-if="config.proxyConfigName === 'serviceDiscovery'">
+                  <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
+                    <el-option v-for="item in serviceDiscoveryList" :key="item.name" :label="item.describe || item.name" :value="item.name">
+                      <div class="option-content">
+                        <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'" class="mr-1" />
+                        <span>{{ item.describe || item.name }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                  <el-input v-else v-model="config.proxyConfigValue" readonly disabled class="config-input" />
+                </template>
 
-        <div class="card-content">
-          <!-- 服务发现配置 -->
-          <template v-if="config.proxyConfigName === 'serviceDiscovery'">
-            <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
-              <el-option v-for="item in serviceDiscoveryList" :key="item.name" :label="item.describe || item.name" :value="item.name">
-                <div class="option-content">
-                  <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'" class="option-icon" />
-                  <span>{{ item.describe || item.name }}</span>
+                <!-- 负载均衡配置 -->
+                <template v-else-if="config.proxyConfigName === 'balance'">
+                  <el-select v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
+                    <el-option v-for="item in robinList" :key="item.name" :label="item.describe || item.name" :value="item.name">
+                      <div class="option-content">
+                        <IconifyIconOnline icon="ep:data-analysis" class="mr-1" />
+                        <span>{{ item.describe || item.name }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </template>
+
+                <!-- 实时日志配置 -->
+                <template v-else-if="config.proxyConfigName === 'open-log'">
+                  <div class="switch-container">
+                    <el-switch v-model="config.proxyConfigValue" active-value="true" inactive-value="false" active-text="开启" inactive-text="关闭" class="config-switch" />
+                    <span class="switch-status">
+                      {{ config.proxyConfigValue === "true" ? "已开启实时日志" : "已关闭实时日志" }}
+                    </span>
+                  </div>
+                </template>
+                
+                <!-- 操作按钮 -->
+                <div class="app-footer">
+                  <div class="app-actions">
+                    <el-button type="primary" class="action-btn" @click.stop="saveConfigItem(config)">
+                      <IconifyIconOnline icon="ep:check" class="mr-1" />保存配置
+                    </el-button>
+
+                    <el-button v-if="config.proxyConfigValue === 'STATISTIC'" type="info" class="action-btn" @click.stop="openServiceDiscovery()">
+                      <IconifyIconOnline icon="ep:setting" class="mr-1" />静态代理配置
+                    </el-button>
+                  </div>
                 </div>
-              </el-option>
-            </el-select>
-            <el-input v-else v-model="config.proxyConfigValue" readonly disabled class="config-input" />
-          </template>
-
-          <!-- 负载均衡配置 -->
-          <template v-else-if="config.proxyConfigName === 'balance'">
-            <el-select v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
-              <el-option v-for="item in robinList" :key="item.name" :label="item.describe || item.name" :value="item.name">
-                <div class="option-content">
-                  <IconifyIconOnline icon="ep:data-analysis" class="option-icon" />
-                  <span>{{ item.describe || item.name }}</span>
-                </div>
-              </el-option>
-            </el-select>
-          </template>
-
-          <!-- 实时日志配置 -->
-          <template v-else-if="config.proxyConfigName === 'open-log'">
-            <div class="switch-container">
-              <el-switch v-model="config.proxyConfigValue" active-value="true" inactive-value="false" active-text="开启" inactive-text="关闭" :active-color="'var(--el-color-success)'" :inactive-color="'var(--el-color-danger)'" class="config-switch" />
-              <span class="switch-status">
-                {{ config.proxyConfigValue === "true" ? "已开启实时日志" : "已关闭实时日志" }}
-              </span>
+              </div>
             </div>
-          </template>
-
-          <!-- 操作按钮 -->
-          <div class="card-actions">
-            <el-button type="primary" class="action-btn save-btn" @click.stop="saveConfigItem(config)">
-              <IconifyIconOnline icon="ep:check" />
-              <span>保存配置</span>
-            </el-button>
-
-            <el-button v-if="config.proxyConfigValue === 'STATISTIC'" type="info" class="action-btn setting-btn" @click.stop="openServiceDiscovery()">
-              <IconifyIconOnline icon="ep:setting" />
-              <span>静态代理配置</span>
-            </el-button>
           </div>
-        </div>
-      </el-card>
+        </el-col>
+      </el-row>
     </div>
   </div>
 
@@ -81,185 +88,176 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { fetchProxyConfigList, fetchProxyConfigUpdate, fetchProxyConfigSave } from "@/api/monitor/proxy";
 import { fetchOptionGet, fetchOptionObjectsList } from "@/api/spi";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, ref, reactive, onMounted, nextTick } from "vue";
+import { ElMessage, ElLoading } from "element-plus";
 
-export default {
-  components: {
-    StatisticLayout: defineAsyncComponent(() => import("../statistic/index.vue")),
+// 组件和属性定义
+const StatisticLayout = defineAsyncComponent(() => import("../statistic/index.vue"));
+
+// 接收属性
+const props = defineProps({
+  // 代理表单数据
+  form: {
+    type: Object,
+    default: () => ({}),
   },
-  props: {
-    // 代理表单数据
-    form: {
-      type: Object,
-      default: () => ({}),
-    },
-    // 插件ID
-    pluginId: {
-      type: String,
-      default: "",
-    },
+  // 插件ID
+  pluginId: {
+    type: String,
+    default: "",
   },
-  data() {
-    return {
-      // 当前激活的卡片索引
-      activeCard: 0,
+});
 
-      // 静态代理配置组件控制
-      statisticLayoutVisible: false,
-      statisticLayoutVisible1: false,
+// 组件引用
+const statisticLayoutRef = ref(null);
 
-      // 负载均衡策略列表
-      robinList: [],
+// 状态管理
+const activeCard = ref(0);
+const statisticLayoutVisible = ref(false);
+const statisticLayoutVisible1 = ref(false);
+const robinList = ref([]);
+const serviceDiscoveryList = ref([]);
 
-      // 服务发现列表
-      serviceDiscoveryList: [],
-
-      // 配置项列表
-      configs: [
-        {
-          proxyConfigName: "serviceDiscovery",
-          desc: "服务发现策略",
-          proxyConfigValue: "",
-          proxyId: this.form.proxyId,
-        },
-        {
-          proxyConfigName: "balance",
-          desc: "负载均衡策略",
-          proxyConfigValue: "",
-          proxyId: this.form.proxyId,
-        },
-        {
-          proxyConfigName: "open-log",
-          desc: "实时日志记录",
-          proxyConfigValue: "false",
-          proxyId: this.form.proxyId,
-        },
-      ],
-    };
+// 配置项列表
+const configs = reactive([
+  {
+    proxyConfigName: "serviceDiscovery",
+    desc: "服务发现策略",
+    proxyConfigValue: "",
+    proxyId: props.form.proxyId,
   },
-  async mounted() {
-    // 延迟加载静态代理组件
-    setTimeout(() => {
-      this.statisticLayoutVisible1 = true;
-    }, 100);
-
-    // 加载服务发现列表
-    this.serviceDiscoveryList = (await fetchOptionObjectsList({ type: "serviceDiscovery" }))?.data || [];
-    this.serviceDiscoveryList.push({
-      name: "STATISTIC",
-      describe: "静态代理服务",
-    });
-
-    // 加载负载均衡策略列表
-    this.robinList = (await fetchOptionGet({ type: "robin" }))?.data || [];
-
-    // 加载当前代理配置
-    this.loadProxyConfig();
+  {
+    proxyConfigName: "balance",
+    desc: "负载均衡策略",
+    proxyConfigValue: "",
+    proxyId: props.form.proxyId,
   },
-  methods: {
-    useRenderIcon,
-
-    /**
-     * 根据配置类型获取对应图标
-     * @param {String} configName - 配置名称
-     * @returns {String} - 图标名称
-     */
-    getConfigIcon(configName) {
-      const iconMap = {
-        serviceDiscovery: "ep:discover",
-        balance: "ep:data-line",
-        "open-log": "ep:document",
-      };
-
-      return iconMap[configName] || "ep:setting";
-    },
-
-    /**
-     * 加载代理配置
-     */
-    loadProxyConfig() {
-      fetchProxyConfigList(this.form)
-        .then((res) => {
-          if (res.code === "00000") {
-            // 遍历配置项，设置值和ID
-            this.configs.forEach((it) => {
-              const matchConfig = res.data.find((it1) => it1.proxyConfigName === it.proxyConfigName);
-              if (matchConfig) {
-                it.proxyConfigValue = matchConfig.proxyConfigValue;
-                it.proxyConfigId = matchConfig.proxyConfigId;
-                it.proxyPluginId = matchConfig.proxyPluginId;
-              }
-            });
-          } else {
-            this.$message.error(res.msg || "加载配置失败");
-          }
-        })
-        .catch((err) => {
-          console.error("加载代理配置失败:", err);
-          this.$message.error("加载配置失败，请稍后重试");
-        });
-    },
-
-    /**
-     * 保存配置项
-     * @param {Object} config - 配置项
-     */
-    saveConfigItem(config) {
-      // 设置默认插件ID
-      if (config.proxyPluginId == null) {
-        config.proxyPluginId = "0";
-      }
-
-      // 显示加载提示
-      const loading = this.$loading({
-        lock: true,
-        text: "保存中...",
-        spinner: "el-icon-loading",
-        background: "rgba(255, 255, 255, 0.7)",
-      });
-
-      // 根据是否有ID决定是更新还是新增
-      const request = config.proxyConfigId ? fetchProxyConfigUpdate(config) : fetchProxyConfigSave(config);
-
-      request
-        .then((res) => {
-          if (res.code === "00000") {
-            this.$message.success("配置保存成功");
-            // 更新配置ID
-            if (!config.proxyConfigId && res.data) {
-              config.proxyConfigId = res.data.proxyConfigId;
-            }
-          } else {
-            this.$message.error(res.msg || "保存失败");
-          }
-        })
-        .catch((err) => {
-          console.error("保存配置失败:", err);
-          this.$message.error("保存失败，请稍后重试");
-        })
-        .finally(() => {
-          loading.close();
-        });
-    },
-
-    /**
-     * 打开静态代理配置
-     */
-    openServiceDiscovery() {
-      this.statisticLayoutVisible = true;
-
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.statisticLayoutRef.setData(this.form).open();
-        }, 300);
-      });
-    },
+  {
+    proxyConfigName: "open-log",
+    desc: "实时日志记录",
+    proxyConfigValue: "false",
+    proxyId: props.form.proxyId,
   },
+]);
+
+/**
+ * 根据配置类型获取对应图标
+ * @param {String} configName - 配置名称
+ * @returns {String} - 图标名称
+ */
+const getConfigIcon = (configName) => {
+  const iconMap = {
+    serviceDiscovery: "ep:discover",
+    balance: "ep:data-line",
+    "open-log": "ep:document",
+  };
+
+  return iconMap[configName] || "ep:setting";
 };
+
+/**
+ * 加载代理配置
+ */
+const loadProxyConfig = () => {
+  fetchProxyConfigList(props.form)
+    .then((res) => {
+      if (res.code === "00000") {
+        // 遍历配置项，设置值和ID
+        configs.forEach((it) => {
+          const matchConfig = res.data.find((it1) => it1.proxyConfigName === it.proxyConfigName);
+          if (matchConfig) {
+            it.proxyConfigValue = matchConfig.proxyConfigValue;
+            it.proxyConfigId = matchConfig.proxyConfigId;
+            it.proxyPluginId = matchConfig.proxyPluginId;
+          }
+        });
+      } else {
+        ElMessage.error(res.msg || "加载配置失败");
+      }
+    })
+    .catch((err) => {
+      console.error("加载代理配置失败:", err);
+      ElMessage.error("加载配置失败，请稍后重试");
+    });
+};
+
+/**
+ * 保存配置项
+ * @param {Object} config - 配置项
+ */
+const saveConfigItem = (config) => {
+  // 设置默认插件ID
+  if (config.proxyPluginId == null) {
+    config.proxyPluginId = "0";
+  }
+
+  // 显示加载提示
+  const loading = ElLoading.service({
+    lock: true,
+    text: "保存中...",
+    background: "rgba(255, 255, 255, 0.7)",
+  });
+
+  // 根据是否有ID决定是更新还是新增
+  const request = config.proxyConfigId ? fetchProxyConfigUpdate(config) : fetchProxyConfigSave(config);
+
+  request
+    .then((res) => {
+      if (res.code === "00000") {
+        ElMessage.success("配置保存成功");
+        // 更新配置ID
+        if (!config.proxyConfigId && res.data) {
+          config.proxyConfigId = res.data.proxyConfigId;
+        }
+      } else {
+        ElMessage.error(res.msg || "保存失败");
+      }
+    })
+    .catch((err) => {
+      console.error("保存配置失败:", err);
+      ElMessage.error("保存失败，请稍后重试");
+    })
+    .finally(() => {
+      loading.close();
+    });
+};
+
+/**
+ * 打开静态代理配置
+ */
+const openServiceDiscovery = () => {
+  statisticLayoutVisible.value = true;
+
+  nextTick(() => {
+    setTimeout(() => {
+      statisticLayoutRef.value.setData(props.form).open();
+    }, 300);
+  });
+};
+
+// 生命周期钩子
+onMounted(async () => {
+  // 延迟加载静态代理组件
+  setTimeout(() => {
+    statisticLayoutVisible1.value = true;
+  }, 100);
+
+  // 加载服务发现列表
+  serviceDiscoveryList.value = (await fetchOptionObjectsList({ type: "serviceDiscovery" }))?.data || [];
+  serviceDiscoveryList.value.push({
+    name: "STATISTIC",
+    describe: "静态代理服务",
+  });
+
+  // 加载负载均衡策略列表
+  robinList.value = (await fetchOptionGet({ type: "robin" }))?.data || [];
+
+  // 加载当前代理配置
+  loadProxyConfig();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -267,273 +265,169 @@ export default {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-
-  .setting-header {
-    flex-shrink: 0;
-    margin-bottom: 20px;
-  }
-
-  .setting-cards {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 20px;
-
-    // 使用grid布局，确保卡片排列整齐
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 25px;
-    align-content: start;
-  }
+  padding: 20px;
+  background-color: var(--el-bg-color);
 }
 
 .setting-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 24px;
+}
 
-  .header-icon {
-    font-size: 28px;
-    color: var(--el-color-primary);
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .header-title {
+.current-category {
+  .category-title {
     font-size: 22px;
     font-weight: 600;
+    margin: 0 0 12px;
     color: var(--el-text-color-primary);
-    position: relative;
-
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: -5px;
-      left: 0;
-      width: 40px;
-      height: 3px;
-      background: var(--el-color-primary);
-      border-radius: 3px;
+    display: flex;
+    align-items: center;
+    
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background-color: var(--el-color-primary);
+      margin-right: 12px;
+      border-radius: 2px;
     }
+  }
+  
+  .category-desc {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    margin: 0 0 0 16px;
+    line-height: 1.6;
   }
 }
 
 .setting-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 25px;
+  margin-bottom: 24px;
 }
 
-.setting-card {
+.app-wrapper {
+  height: 240px;
+  border-radius: 8px;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  overflow: hidden;
+  transition: all 0.3s;
   position: relative;
-  overflow: visible;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: slideUp 0.5s ease-out both;
+  margin-bottom: 20px;
   cursor: pointer;
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-
-  &::after {
-    content: "";
-    @apply absolute inset-0 -z-10 rounded-xl;
-    background: var(--el-color-primary-light-9);
-    transform: translateY(8px);
-    filter: blur(12px);
-    opacity: 0.3;
-    transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-color-primary);
+    
+    &::before {
+      height: 4px;
+    }
   }
-
-  &:hover::after {
-    opacity: 0.5;
-    transform: translateY(12px);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background-color: var(--el-color-primary);
+    transition: height 0.3s ease;
+    z-index: 1;
   }
-
-  &.active {
+  
+  &.app-wrapper-active {
     border-color: var(--el-color-primary);
     box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+    
+    &::before {
+      height: 4px;
+    }
   }
-
-  :deep(.el-card__header) {
-    padding: 18px 20px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
-    border-bottom: 1px solid var(--el-border-color-light);
+  
+  .media-content {
+    display: flex;
+    height: 100%;
+    padding: 16px;
   }
-
-  :deep(.el-card__body) {
-    padding: 25px;
-  }
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  .config-icon {
-    font-size: 24px;
+  
+  .app-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--el-fill-color-light);
+    font-size: 32px;
     color: var(--el-color-primary);
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
-
-  .config-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
+  
+  .app-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
-}
-
-.card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  
+  .app-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .app-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: auto;
+    
+    .app-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      justify-content: space-between;
+      
+      .action-btn {
+        flex: 1;
+        transition: all 0.3s;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+      }
+    }
+  }
 }
 
 .config-select,
 .config-input {
   width: 100%;
-
-  :deep(.el-input__wrapper) {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-
-    &:hover,
-    &:focus-within {
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
-    }
-  }
+  margin-bottom: 16px;
 }
 
 .option-content {
-  position: relative;
-  padding-left: 2.5rem;
-
-  &::before {
-    content: "";
-    @apply absolute left-0 w-6 h-6 rounded-full;
-    background: var(--el-color-primary-light-3);
-    opacity: 0.2;
-  }
-
-  .option-icon {
-    @apply absolute left-0;
-    filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.1));
-  }
+  display: flex;
+  align-items: center;
 }
 
 .switch-container {
   display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 10px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: var(--el-fill-color);
-  }
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
 
   .switch-status {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--el-text-color-secondary);
-    font-weight: 500;
-  }
-
-  :deep(.el-switch) {
-    --switch-height: 26px;
-
-    .el-switch__core {
-      border-radius: 15px;
-      &::after {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    &.is-checked .el-switch__core {
-      background: var(--el-color-primary);
-    }
-  }
-}
-
-.card-actions {
-  display: flex;
-  gap: 15px;
-  margin-top: 20px;
-
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border-radius: 8px;
-    padding: 12px 0;
-    font-weight: 500;
-
-    &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    }
-  }
-
-  .save-btn {
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    border-color: transparent;
-    animation: pulse 2s infinite;
-  }
-
-  .setting-btn {
-    background-color: var(--el-fill-color);
-    color: var(--el-text-color-primary);
-    border-color: transparent;
-
-    &:hover {
-      background-color: var(--el-fill-color-darker);
-    }
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 8px rgba(var(--el-color-primary-rgb), 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
   }
 }
 </style>

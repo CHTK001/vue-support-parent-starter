@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="title" :width="700" destroy-on-close draggable :close-on-click-modal="false"
+  <ScDialog v-model="visible" :title="title" :width="700" destroy-on-close draggable :close-on-click-modal="false"
     @closed="$emit('closed')">
     <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
       label-position="left">
@@ -20,14 +20,18 @@
         <el-button @click="visible = false">取 消</el-button>
         <el-button v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submit()">保 存</el-button>
       </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script>
 import { fetchAppUpdate, fetchAppSave } from "@/api/monitor/app";
 import { defineComponent } from "vue";
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
 export default defineComponent({
   emits: ["success", "closed"],
+  components: {
+    ScDialog
+  },
   data() {
     return {
       visible: false,
