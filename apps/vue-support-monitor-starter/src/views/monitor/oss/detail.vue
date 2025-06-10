@@ -9,17 +9,25 @@
         <el-container v-else class="oss-menu-container">
           <!-- 搜索框 -->
           <el-header class="oss-menu-header">
-            <el-input v-model="menuFilterText" placeholder="输入关键字进行过滤" clearable class="oss-search-input"
-              prefix-icon="ep:search">
-            </el-input>
+            <el-input v-model="menuFilterText" placeholder="输入关键字进行过滤" clearable class="oss-search-input" prefix-icon="ep:search" />
           </el-header>
 
           <!-- 文件树 -->
           <el-main class="oss-menu-main">
             <el-scrollbar>
-              <el-tree ref="menuRef" class="oss-file-tree" node-key="id" :data="menuList" :props="menuProps" draggable
-                highlight-current :expand-on-click-node="false" check-strictly :filter-node-method="filterNode"
-                @node-click="menuClick">
+              <el-tree
+                ref="menuRef"
+                class="oss-file-tree"
+                node-key="id"
+                :data="menuList"
+                :props="menuProps"
+                draggable
+                highlight-current
+                :expand-on-click-node="false"
+                check-strictly
+                :filter-node-method="filterNode"
+                @node-click="menuClick"
+              >
                 <template #default="{ data }">
                   <div class="oss-tree-node animate__animated animate__fadeIn">
                     <div class="oss-node-content">
@@ -28,26 +36,19 @@
                       </div>
                       <span class="oss-node-label">{{ data.fileStorageName }}</span>
                       <!-- 文件树节点中的状态标签 -->
-                      <el-tag v-if="data.fileStorageStatus == 1" size="small" type="success" effect="light"
-                        class="oss-status-tag">
-                        启用
-                      </el-tag>
-                      <el-tag v-else size="small" type="info" effect="light" class="oss-status-tag">
-                        未启用
-                      </el-tag>
+                      <el-tag v-if="data.fileStorageStatus == 1" size="small" type="success" effect="light" class="oss-status-tag">启用</el-tag>
+                      <el-tag v-else size="small" type="info" effect="light" class="oss-status-tag">未启用</el-tag>
                     </div>
 
                     <div class="oss-node-actions">
                       <el-tooltip v-if="data.fileStorageStatus == 1" content="查看文件" placement="top" :show-after="300">
-                        <el-button type="primary" plain circle size="small" class="oss-action-btn"
-                          @click.stop="doView(data)">
+                        <el-button type="primary" plain circle size="small" class="oss-action-btn" @click.stop="doView(data)">
                           <IconifyIconOnline icon="ep:view" />
                         </el-button>
                       </el-tooltip>
 
                       <el-tooltip content="删除" placement="top" :show-after="300">
-                        <el-button type="danger" plain circle size="small" class="oss-action-btn"
-                          @click.stop="doDelete(data)">
+                        <el-button type="danger" plain circle size="small" class="oss-action-btn" @click.stop="doDelete(data)">
                           <IconifyIconOnline icon="ep:delete" />
                         </el-button>
                       </el-tooltip>
@@ -73,8 +74,7 @@
         <el-main ref="mainRef" class="oss-content-main">
           <div class="oss-content-wrapper">
             <!-- 保存对话框组件 -->
-            <save-dialog v-if="saveDialogVisible" ref="saveRef" :form="form" :menu="clickNode"
-              class="oss-dialog-component" @success="afterPropertiesSet" />
+            <save-dialog v-if="saveDialogVisible" ref="saveRef" :form="form" :menu="clickNode" class="oss-dialog-component" @success="afterPropertiesSet" />
 
             <!-- OSS对话框组件 -->
             <oss-dialog v-else ref="saveRef" :form="form" :menu="clickNode" class="oss-dialog-component" />
@@ -87,8 +87,8 @@
 
 <script setup>
 import { fetchOssDelete, fetchOssPage } from "@/api/monitor/oss";
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { message, uuid } from "@repo/utils";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
@@ -117,23 +117,23 @@ let detailBroadcastChannel = null;
 let uid = uuid();
 // 菜单属性配置
 const menuProps = {
-  label: 'fileStorageName',
-  children: 'children'
+  label: "fileStorageName",
+  children: "children"
 };
 
 // 监听菜单过滤文本变化，实时过滤树节点
-watch(menuFilterText, (val) => {
+watch(menuFilterText, val => {
   menuRef.value?.filter(val);
 });
-const handleBeforeUnload = (event) => {
+const handleBeforeUnload = event => {
   detailBroadcastChannel.postMessage({
     uid: uid,
-    action: 'delete'
+    action: "delete"
   });
 };
 
 const handleUnload = () => {
-  handleBeforeUnload()
+  handleBeforeUnload();
 };
 // 生命周期钩子
 onMounted(() => {
@@ -142,32 +142,30 @@ onMounted(() => {
   if (data) {
     try {
       setData(JSON.parse(Base64.decode(data)));
-    } catch (error) {
-
-    }
+    } catch (error) {}
     open();
   }
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  window.addEventListener('unload', handleUnload);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("unload", handleUnload);
   broadcastChannel = new BroadcastChannel("oss-detail");
   detailBroadcastChannel = new BroadcastChannel("oss-detail-response");
   broadcastChannel.onmessage = channelMessage;
   detailBroadcastChannel.postMessage({
     uid: uid,
-    action: 'save'
+    action: "save"
   });
 });
 
 onUnmounted(() => {
   handleBeforeUnload();
-  window.removeEventListener('beforeunload', handleBeforeUnload);
-  window.removeEventListener('unload', handleUnload);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("unload", handleUnload);
   broadcastChannel?.close();
   detailBroadcastChannel?.close();
 });
 
 // 方法
-const channelMessage = (messageEvent) => {
+const channelMessage = messageEvent => {
   setData(JSON.parse(messageEvent.data));
   open();
 };
@@ -187,17 +185,17 @@ const filterNode = (value, data) => {
  * 菜单节点点击处理
  * @param {Object} item - 点击的节点数据
  */
-const menuClick = (item) => {
+const menuClick = item => {
   saveDialogVisible.value = true;
   clickNode.value = item;
 
   // 添加动画效果
   nextTick(() => {
-    const contentEl = document.querySelector('.oss-content-wrapper');
+    const contentEl = document.querySelector(".oss-content-wrapper");
     if (contentEl) {
-      contentEl.classList.add('animate__animated', 'animate__fadeIn');
+      contentEl.classList.add("animate__animated", "animate__fadeIn");
       setTimeout(() => {
-        contentEl.classList.remove('animate__animated', 'animate__fadeIn');
+        contentEl.classList.remove("animate__animated", "animate__fadeIn");
       }, 500);
     }
   });
@@ -207,53 +205,55 @@ const menuClick = (item) => {
  * 删除文件处理
  * @param {Object} row - 要删除的行数据
  */
-const doDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该文件吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    menuloading.value = true;
-    fetchOssDelete({
-      id: row.fileStorageId
-    })
-      .then(res => {
-        if (res.code === "00000") {
-          message(res.msg || '删除成功', { type: 'success' });
-          // 从列表中移除已删除项
-          menuList.value = menuList.value.filter(item => item.id !== row.id);
-          // 如果删除的是当前选中项，清空选中状态
-          if (clickNode.value.id === row.id) {
-            clickNode.value = {};
-            saveDialogVisible.value = true;
-          }
-        } else {
-          message(res.msg || '删除失败', { type: 'error' });
-        }
+const doDelete = row => {
+  ElMessageBox.confirm("确定要删除该文件吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      menuloading.value = true;
+      fetchOssDelete({
+        id: row.fileStorageId
       })
-      .finally(() => {
-        menuloading.value = false;
-      });
-  }).catch(() => {
-    // 取消删除操作
-  });
+        .then(res => {
+          if (res.code === "00000") {
+            message(res.msg || "删除成功", { type: "success" });
+            // 从列表中移除已删除项
+            menuList.value = menuList.value.filter(item => item.id !== row.id);
+            // 如果删除的是当前选中项，清空选中状态
+            if (clickNode.value.id === row.id) {
+              clickNode.value = {};
+              saveDialogVisible.value = true;
+            }
+          } else {
+            message(res.msg || "删除失败", { type: "error" });
+          }
+        })
+        .finally(() => {
+          menuloading.value = false;
+        });
+    })
+    .catch(() => {
+      // 取消删除操作
+    });
 };
 
 /**
  * 查看文件处理
  * @param {Object} row - 要查看的行数据
  */
-const doView = (row) => {
+const doView = row => {
   saveDialogVisible.value = false;
   clickNode.value = row;
 
   // 添加动画效果
   nextTick(() => {
-    const contentEl = document.querySelector('.oss-content-wrapper');
+    const contentEl = document.querySelector(".oss-content-wrapper");
     if (contentEl) {
-      contentEl.classList.add('animate__animated', 'animate__fadeIn');
+      contentEl.classList.add("animate__animated", "animate__fadeIn");
       setTimeout(() => {
-        contentEl.classList.remove('animate__animated', 'animate__fadeIn');
+        contentEl.classList.remove("animate__animated", "animate__fadeIn");
       }, 500);
     }
   });
@@ -268,11 +268,11 @@ const doAdd = () => {
 
   // 添加动画效果
   nextTick(() => {
-    const contentEl = document.querySelector('.oss-content-wrapper');
+    const contentEl = document.querySelector(".oss-content-wrapper");
     if (contentEl) {
-      contentEl.classList.add('animate__animated', 'animate__fadeIn');
+      contentEl.classList.add("animate__animated", "animate__fadeIn");
       setTimeout(() => {
-        contentEl.classList.remove('animate__animated', 'animate__fadeIn');
+        contentEl.classList.remove("animate__animated", "animate__fadeIn");
       }, 500);
     }
   });
@@ -286,7 +286,7 @@ const close = () => {
     delete form[key];
   });
   visible.value = false;
-  emit('close');
+  emit("close");
 };
 
 /**
@@ -294,7 +294,7 @@ const close = () => {
  * @param {Object} row - 行数据
  * @returns {Object} - 当前实例，用于链式调用
  */
-const setData = (row) => {
+const setData = row => {
   Object.assign(form, row);
   return {
     open
@@ -316,7 +316,7 @@ const afterPropertiesSet = () => {
       if (res.code === "00000") {
         menuList.value = res.data.data;
       } else {
-        ElMessage.error(res.msg || '获取数据失败');
+        ElMessage.error(res.msg || "获取数据失败");
       }
     })
     .finally(() => {
@@ -347,7 +347,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 /* 引入animate.css动画库 */
-@import 'animate.css';
+@import "animate.css";
 
 /* 抽屉组件样式 */
 .oss-detail-drawer {
@@ -393,7 +393,7 @@ defineExpose({
   }
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -5px;
     left: 0;
@@ -414,16 +414,13 @@ defineExpose({
   position: relative;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: all 0.5s;
   }
 
@@ -496,14 +493,14 @@ defineExpose({
     margin: 5px 0;
 
     &.is-current {
-      >.el-tree-node__content {
+      > .el-tree-node__content {
         background-color: var(--el-color-primary-light-9);
         border-radius: 6px;
         box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
         transform: translateX(5px);
 
         &::before {
-          content: '';
+          content: "";
           position: absolute;
           left: 0;
           top: 0;
@@ -515,7 +512,7 @@ defineExpose({
       }
     }
 
-    &:not(.is-current)>.el-tree-node__content:hover {
+    &:not(.is-current) > .el-tree-node__content:hover {
       background-color: var(--el-fill-color-light);
       border-radius: 6px;
       transform: translateX(3px);
@@ -637,16 +634,13 @@ defineExpose({
   position: relative;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: all 0.5s;
   }
 
@@ -711,7 +705,7 @@ defineExpose({
   position: relative;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;

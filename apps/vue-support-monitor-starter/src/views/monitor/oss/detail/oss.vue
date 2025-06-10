@@ -4,124 +4,136 @@
     <el-container class="full-height">
       <!-- 顶部工具栏 -->
       <el-header class="oss-browser-header">
-        <div class="left-panel">
-          <!-- 视图切换按钮组 -->
-          <el-radio-group v-model="showType" size="small" class="view-switcher animate__animated animate__fadeInLeft">
-            <el-radio-button label="list">
-              <IconifyIconOnline icon="ep:list" class="view-icon" />
-              <span>列表</span>
-            </el-radio-button>
-            <el-radio-button label="grid">
-              <IconifyIconOnline icon="ep:grid" class="view-icon" />
-              <span>卡片</span>
-            </el-radio-button>
-            <el-radio-button label="mode">
-              <IconifyIconOnline icon="ep:picture" class="view-icon" />
-              <span>大图</span>
-            </el-radio-button>
-          </el-radio-group>
-        </div>
-        <div class="right-panel animate__animated animate__fadeInRight">
-          <!-- 每页显示数量选择器 -->
-          <el-select v-model="limit" class="limit-selector" placeholder="每页显示">
-            <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="`${item}条`" :value="item" />
-          </el-select>
-          <!-- 刷新按钮 -->
-          <el-button circle class="refresh-btn" type="primary" plain @click="afterPropertiesSet()">
-            <IconifyIconOnline icon="ep:refresh" />
-          </el-button>
+        <div class="header-content">
+          <!-- 左侧区域：视图切换按钮组 -->
+          <div class="left-panel">
+            <el-radio-group v-model="showType" size="small" class="view-switcher animate__animated animate__fadeInLeft">
+              <el-radio-button label="list">
+                <IconifyIconOnline icon="ep:list" class="view-icon" />
+                <span>列表</span>
+              </el-radio-button>
+              <el-radio-button label="grid">
+                <IconifyIconOnline icon="ep:grid" class="view-icon" />
+                <span>卡片</span>
+              </el-radio-button>
+              <el-radio-button label="mode">
+                <IconifyIconOnline icon="ep:picture" class="view-icon" />
+                <span>大图</span>
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <!-- 中间区域：面包屑导航 -->
+          <div class="center-panel">
+            <div class="breadcrumb-container animate__animated animate__fadeIn">
+              <el-tag
+                v-for="(item, index) in router"
+                :key="index"
+                :type="index === router.length - 1 ? 'primary' : 'info'"
+                effect="light"
+                class="breadcrumb-tag animate__animated animate__fadeIn"
+                :style="{ animationDelay: index * 0.03 + 's' }"
+                @click.stop="navigateTo(index)"
+              >
+                <IconifyIconOnline v-if="index === 0" icon="ep:home-filled" class="home-icon" />
+                {{ index === 0 ? "根目录" : item }}
+                <IconifyIconOnline v-if="index !== router.length - 1" icon="ep:arrow-right" class="arrow-icon" />
+              </el-tag>
+
+              <!-- 当前标记 -->
+              <el-tag v-if="marker" type="warning" effect="light" class="marker-tag animate__animated animate__fadeIn">
+                {{ marker }}
+              </el-tag>
+            </div>
+          </div>
+
+          <!-- 右侧区域：操作按钮 -->
+          <div class="right-panel animate__animated animate__fadeInRight">
+            <!-- 每页显示数量选择器 -->
+            <el-select v-model="limit" class="limit-selector" placeholder="每页显示">
+              <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="`${item}条`" :value="item" />
+            </el-select>
+            <!-- 刷新按钮 -->
+            <el-button circle class="refresh-btn" type="primary" plain @click="afterPropertiesSet()">
+              <IconifyIconOnline icon="ep:refresh" />
+            </el-button>
+          </div>
         </div>
       </el-header>
 
       <!-- 主内容区域 -->
-      <el-main class="oss-browser-main overflow-auto">
-        <!-- 页面头部导航 -->
-        <el-page-header class="oss-page-header" @back="onBack">
-          <template #breadcrumb>
-            <!-- 面包屑导航 -->
-            <el-breadcrumb separator="/">
-              <el-breadcrumb-item v-for="(item, index) in router" :key="index" class="breadcrumb-item animate__animated animate__fadeIn" :style="{ animationDelay: index * 0.05 + 's' }">
-                {{ item }}
-              </el-breadcrumb-item>
-            </el-breadcrumb>
-          </template>
-          <template #content>
-            <div class="flex items-center">
-              <!-- 当前标记 -->
-              <el-tag v-if="marker" type="info" effect="light" class="marker-tag animate__animated animate__fadeIn">
-                {{ marker }}
-              </el-tag>
-            </div>
-          </template>
+      <el-main class="oss-browser-main">
+        <!-- 加载骨架屏 -->
+        <el-skeleton :rows="3" :loading="loading" animated class="oss-skeleton" />
 
-          <!-- 加载骨架屏 -->
-          <el-skeleton :rows="1" :loading="loading" animated class="oss-skeleton" />
-
-          <!-- 内容区域 -->
-          <div v-if="!loading" class="oss-content animate__animated animate__fadeIn">
-            <!-- 空数据提示 -->
-            <el-empty v-if="metadata.length === 0" description="暂无数据" class="empty-data animate__animated animate__fadeIn" />
-
-            <!-- 文件列表视图 -->
-            <template v-else>
-              <!-- 列表布局 -->
-              <list-layout
-                v-if="showType === 'list'"
-                :canPreview="canPreview"
-                :canDownload="canDownload"
-                :menu="menu"
-                :data="metadata"
-                :parentPath="path"
-                class="layout-component animate__animated animate__fadeIn"
-                @copy="doCopy"
-                @download="doDownload"
-                @search="doSearch"
-                @preview="doPreview"
-              />
-
-              <!-- 网格布局 -->
-              <grid-layout
-                v-else-if="showType === 'grid'"
-                :menu="menu"
-                :canPreview="canPreview"
-                :canDownload="canDownload"
-                :data="metadata"
-                :parentPath="path"
-                class="layout-component animate__animated animate__fadeIn"
-                @copy="doCopy"
-                @download="doDownload"
-                @search="doSearch"
-                @preview="doPreview"
-              />
-
-              <!-- 大图布局 -->
-              <mode-layout
-                v-else-if="showType === 'mode'"
-                :menu="menu"
-                :form="form"
-                :canPreview="canPreview"
-                :canDownload="canDownload"
-                :data="metadata"
-                :parentPath="path"
-                class="layout-component animate__animated animate__fadeIn full-content"
-                @copy="doCopy"
-                @download="doDownload"
-                @search="doSearch"
-                @preview="doPreview"
-              />
-
-              <!-- 预览组件 -->
-              <view-layout v-if="viewLayoutStatus && canPreview" ref="viewLayoutRef" :menu="menu" class="modal-component" />
-
-              <!-- 下载组件 -->
-              <download-layout v-if="downloadLayoutStatus && canDownload" ref="downloadLayoutRef" :menu="menu" class="modal-component" />
+        <!-- 内容区域 -->
+        <div v-if="!loading" class="oss-content animate__animated animate__fadeIn">
+          <!-- 空数据提示 -->
+          <el-empty v-if="metadata.length === 0" description="暂无数据" class="empty-data animate__animated animate__fadeIn" :image-size="200">
+            <template #image>
+              <IconifyIconOnline icon="ep:folder-delete" class="empty-icon" />
             </template>
-          </div>
-        </el-page-header>
+          </el-empty>
+
+          <!-- 文件列表视图 -->
+          <template v-else>
+            <!-- 列表布局 -->
+            <list-layout
+              v-if="showType === 'list'"
+              :canPreview="canPreview"
+              :canDownload="canDownload"
+              :menu="menu"
+              :data="metadata"
+              :parentPath="path"
+              class="layout-component animate__animated animate__fadeIn"
+              @copy="doCopy"
+              @download="doDownload"
+              @search="doSearch"
+              @preview="doPreview"
+            />
+
+            <!-- 网格布局 -->
+            <grid-layout
+              v-else-if="showType === 'grid'"
+              :menu="menu"
+              :canPreview="canPreview"
+              :canDownload="canDownload"
+              :data="metadata"
+              :parentPath="path"
+              class="layout-component animate__animated animate__fadeIn"
+              @copy="doCopy"
+              @download="doDownload"
+              @search="doSearch"
+              @preview="doPreview"
+            />
+
+            <!-- 大图布局 -->
+            <mode-layout
+              v-else-if="showType === 'mode'"
+              :menu="menu"
+              :form="form"
+              :canPreview="canPreview"
+              :canDownload="canDownload"
+              :data="metadata"
+              :parentPath="path"
+              class="layout-component animate__animated animate__fadeIn full-content"
+              @copy="doCopy"
+              @download="doDownload"
+              @search="doSearch"
+              @preview="doPreview"
+            />
+
+            <!-- 预览组件 -->
+            <view-layout v-if="viewLayoutStatus && canPreview" ref="viewLayoutRef" :menu="menu" class="modal-component" />
+
+            <!-- 下载组件 -->
+            <download-layout v-if="downloadLayoutStatus && canDownload" ref="downloadLayoutRef" :menu="menu" class="modal-component" />
+          </template>
+        </div>
       </el-main>
 
       <!-- 底部分页区域 -->
-      <el-footer v-if="!loading && metadata.length > 0" class="oss-browser-footer z-[-1]">
+      <el-footer v-if="!loading && metadata.length > 0" class="oss-browser-footer">
         <el-pagination
           v-model:current-page="currentPage"
           next-text="下一页"
@@ -214,6 +226,23 @@ const onBack = () => {
     return;
   }
   path.value = router.value.join("/");
+  afterPropertiesSet();
+};
+
+/**
+ * 导航到特定路径
+ * @param {Number} index - 路径索引
+ */
+const navigateTo = index => {
+  if (index === 0) {
+    // 如果点击的是根路径
+    router.value = ["/"];
+    path.value = "/";
+  } else {
+    // 截取到指定索引的路径
+    router.value = router.value.slice(0, index + 1);
+    path.value = router.value.join("/");
+  }
   afterPropertiesSet();
 };
 
@@ -354,20 +383,23 @@ onMounted(() => {
 /* 引入animate.css动画库 */
 @import "animate.css";
 
-:deep(.el-page-header__main) {
-  overflow: auto;
-}
-
 /* OSS浏览器容器 */
 .oss-browser-container {
-  height: 95vh;
-  /* 使用视口高度 */
+  height: 99vh;
   width: 100%;
-  background-color: var(--el-bg-color-page);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+:deep(.el-tag__content) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:deep(.arrow-icon) {
+  display: none;
 }
 
 /* 确保容器内的元素也撑满高度 */
@@ -379,36 +411,124 @@ onMounted(() => {
 
 /* 头部工具栏 */
 .oss-browser-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background-color: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-light);
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   transition: all 0.3s;
   flex-shrink: 0;
-  /* 防止头部被压缩 */
-  border-radius: 20px;
+  padding: 8px 16px;
+  height: auto;
+  border-radius: 8px 8px 0 0;
 
-  .left-panel,
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .left-panel {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .center-panel {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+
+    &::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+  }
+
   .right-panel {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
   }
 
   .view-switcher {
     .view-icon {
       margin-right: 4px;
+      font-size: 16px;
+    }
+
+    :deep(.el-radio-button__inner) {
+      border-radius: 4px;
+      padding: 6px 12px;
+      transition: all 0.3s;
+    }
+
+    :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+
+  .breadcrumb-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 12px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+
+    .breadcrumb-tag {
+      cursor: pointer;
+      padding: 0 8px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 14px;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      margin-right: 0;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .home-icon {
+        margin-right: 4px;
+        font-size: 14px;
+      }
+
+      .arrow-icon {
+        margin-left: 4px;
+        font-size: 14px;
+        color: var(--el-text-color-secondary);
+      }
     }
   }
 
   .limit-selector {
     width: 100px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 16px;
+      padding: 0 8px;
+    }
   }
 
   .refresh-btn {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.3s;
+    box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.15);
 
     &:hover {
       transform: rotate(180deg);
@@ -420,64 +540,40 @@ onMounted(() => {
 .oss-browser-main {
   background-color: var(--el-bg-color-page);
   flex: 1;
-  /* 让主内容区域占据剩余空间 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
-
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
 }
 
 /* 底部分页区域 */
 .oss-browser-footer {
-  border-radius: 20px;
   background-color: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-light);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
   flex-shrink: 0;
   height: auto;
-}
-
-/* 页面头部 */
-.oss-page-header {
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: var(--el-box-shadow-light);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  :deep(.el-page-header__header) {
-    margin-bottom: 16px;
-  }
-}
-
-/* 面包屑导航 */
-.breadcrumb-item {
-  transition: all 0.3s;
-
-  &:hover {
-    color: var(--el-color-primary);
-  }
+  padding: 8px 16px;
+  border-radius: 0 0 8px 8px;
 }
 
 /* 标记标签 */
 .marker-tag {
-  margin-left: 8px;
   transition: all 0.3s;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-weight: 500;
+  margin-left: 8px;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
 /* 内容区域 */
 .oss-content {
-  margin-top: 16px;
+  margin: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -490,55 +586,103 @@ onMounted(() => {
   padding: 40px 0;
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+
+  .empty-icon {
+    font-size: 64px;
+    color: var(--el-color-info-light-5);
+    margin-bottom: 16px;
+  }
+
+  :deep(.el-empty__description) {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+  }
 }
 
 /* 布局组件 */
 .layout-component {
-  margin-bottom: 0;
+  margin: 0;
   transition: all 0.3s;
   flex: 1;
   min-height: 0;
   overflow: auto;
+  border-radius: 4px;
 }
 
 /* 大图模式特别样式 */
 .full-content {
   height: auto;
-  max-height: calc(100% - 16px);
+  max-height: 100%;
   overflow: auto;
 }
 
 /* 分页控件 */
 .oss-pagination {
-  padding: 8px 0;
+  padding: 0;
   display: flex;
   justify-content: flex-end;
+
+  :deep(.el-pagination__next) {
+    border-radius: 16px;
+    padding: 0 12px;
+    height: 28px;
+    line-height: 28px;
+    background-color: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    font-weight: 500;
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-7);
+      transform: translateX(2px);
+    }
+
+    .el-icon {
+      font-weight: bold;
+    }
+  }
 }
 
 /* 骨架屏 */
 .oss-skeleton {
-  margin: 16px 0;
+  margin: 8px 0;
   flex: 1;
+
+  :deep(.el-skeleton__item) {
+    border-radius: 4px;
+  }
 }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
   .oss-browser-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
 
+    .left-panel,
+    .center-panel,
     .right-panel {
       width: 100%;
+      justify-content: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .right-panel {
       justify-content: space-between;
+    }
+
+    .breadcrumb-container {
+      padding: 0;
     }
   }
 
   .full-content {
-    height: calc(100vh - 300px);
-    /* 移动设备上调整高度 */
+    height: calc(100vh - 200px);
   }
 }
 </style>
