@@ -141,7 +141,7 @@ export interface SoftServiceInstall {
   softServiceId: number;
   installStatus: number;
   installPath: string;
-  installLog: string;
+  installLogPath: string;
   installVersion: string;
   installTime: number;
   installLastStartTime: number;
@@ -149,4 +149,21 @@ export interface SoftServiceInstall {
   installRunStatus: number;
   installConfigPath: string;
   installLastCheckTime: number;
+  sshHost: string;
+  sshPort: number;
+  sshName: string;
+  softServiceName: string;
+  softServiceInstallCommand: string;
+  softServiceInstallCommandType: number;
+  softServiceUninstallCommand: string;
+  softServiceUninstallCommandType: number;
+  softServiceStartCommand: string;
+  softServiceStartCommandType: number;
+  softServiceStopCommand: string;
+  softServiceStopCommandType: number;
+  softServiceRestartCommand: string;
+  softServiceRestartCommandType: number;
+  softServiceStatusCheckCommand: string;
+  softServiceStatusCheckCommandType: number;
+  softServiceStatusCheckSuccessFlag: string;
 }
