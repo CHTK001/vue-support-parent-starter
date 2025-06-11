@@ -14,7 +14,7 @@
           ref="formRef" 
           :model="form" 
           :rules="rules" 
-          label-width="100px"
+          label-width="150px"
           label-position="right"
         >
           <el-form-item label="软件名称" prop="softServiceName">
@@ -51,6 +51,11 @@
           
           <el-form-item label="下载地址">
             <el-input v-model="form.softServiceDownloadUrl" placeholder="请输入软件下载地址" />
+          </el-form-item>
+          
+          <el-form-item label="状态检查成功标识" prop="softServiceStatusCheckSuccessFlag">
+            <el-input v-model="form.softServiceStatusCheckSuccessFlag" placeholder="请输入服务状态检查成功标识" />
+            <div class="form-hint">判断服务正常运行的关键字，如"running"或"active"</div>
           </el-form-item>
           
           <el-form-item label="软件描述">
@@ -139,6 +144,22 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录，<code>$PORT</code> 表示端口号</p>
+            </div>
+          </el-tab-pane>
+          
+          <el-tab-pane label="状态命令" name="status">
+            <div class="code-editor-container">
+              <ScCodeEditor 
+                ref="statusEditorRef"
+                v-model="form.abstractChannelSession" 
+                height="300" 
+                mode="shell" 
+                :options="codeEditorOptions" 
+              />
+            </div>
+            <div class="command-tips">
+              <p>提示: 用于检查服务运行状态的命令，可以使用 <code>$DIR</code> 表示安装目录</p>
+              <p>状态检查成功标识: <el-input v-model="form.softServiceStatusCheckSuccessFlag" placeholder="例如: running 或 active" style="width: 250px;" /></p>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -261,17 +282,20 @@ const addCustomHighlighting = (editor) => {
 
 const form = reactive<PartialSoftService>({
   softServiceName: '',
-  softServiceVersion: '',
-  softServiceDownloadUrl: '',
   softServiceCategory: '',
+  softServiceVersion: '',
   softServiceLogo: '',
+  softServiceRemark: '',
+  softServiceOs: '',
+  softServiceDownloadUrl: '',
   softServiceInstallCommand: '',
   softServiceUninstallCommand: '',
   softServiceStartCommand: '',
   softServiceStopCommand: '',
   softServiceRestartCommand: '',
-  softServiceRemark: '',
-  softServiceOs: '',
+  softServiceInstalledCommand: '',
+  abstractChannelSession: '',
+  softServiceStatusCheckSuccessFlag: '',
   ...(props.software || {})
 })
 
@@ -290,19 +314,17 @@ watch(() => props.software, (newVal) => {
 // 表单验证规则
 const rules = {
   softServiceName: [
-    { required: true, message: '请输入软件名称', trigger: 'blur' }
+    { required: true, message: '请输入软件名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
   softServiceCategory: [
     { required: true, message: '请选择软件分类', trigger: 'change' }
   ],
-  softServiceVersion: [
-    { required: true, message: '请输入软件版本', trigger: 'blur' }
-  ],
-  softServiceInstallCommand: [
-    { required: true, message: '请输入安装命令', trigger: 'blur' }
-  ],
   softServiceOs: [
     { required: true, message: '请选择适用操作系统', trigger: 'change' }
+  ],
+  softServiceVersion: [
+    { required: true, message: '请输入软件版本', trigger: 'blur' }
   ]
 }
 
@@ -356,6 +378,7 @@ const uninstallEditorRef = ref(null)
 const startEditorRef = ref(null)
 const stopEditorRef = ref(null)
 const restartEditorRef = ref(null)
+const statusEditorRef = ref(null)
 
 // 初始化
 onMounted(() => {
@@ -366,7 +389,8 @@ onMounted(() => {
       uninstallEditorRef.value,
       startEditorRef.value,
       stopEditorRef.value,
-      restartEditorRef.value
+      restartEditorRef.value,
+      statusEditorRef.value
     ]
     
     editorRefs.forEach(editorRef => {
@@ -386,6 +410,12 @@ onMounted(() => {
   .form-left {
     flex: 1;
     min-width: 300px;
+    
+    .form-hint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-top: 4px;
+    }
   }
   
   .form-right {

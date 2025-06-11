@@ -17,6 +17,17 @@ export interface InstalledServer {
   osName: string;
 }
 
+// 软件版本接口
+export interface SoftServiceVersion {
+  softServiceId: number;
+  version: string;
+  downloadUrl: string;
+  releaseTime: Date;
+  versionDesc: string;
+  isCurrent: boolean;
+  isInstallable?: boolean; // 是否可安装
+}
+
 export interface SoftService {
   createName: string;
   createBy: number;
@@ -44,6 +55,9 @@ export interface SoftService {
   installedServers?: InstalledServer[]; // 安装这个服务的设备列表
   installCount: number;
   favoriteCount: number;
+  versions?: SoftServiceVersion[]; // 软件版本列表
+  abstractChannelSession?: string; // 状态命令
+  softServiceStatusCheckSuccessFlag?: string; // 服务状态检查成功标识
 }
 
 // 定义部分软件服务类型，所有字段都是可选的
@@ -54,13 +68,24 @@ export interface PartialSoftService {
   softServiceCategory?: string;
   softServiceLogo?: string;
   softServiceRemark?: string;
+  softServiceOs?: string;
+  softServiceDownloadUrl?: string;
+  softServiceInstallCommand?: string;
+  softServiceUninstallCommand?: string;
+  softServiceStartCommand?: string;
+  softServiceStopCommand?: string;
+  softServiceRestartCommand?: string;
+  softServiceInstalledCommand?: string;
+  softServiceTags?: string;
   installCount?: number;
   favoriteCount?: number;
   requirements?: string;
   installPath?: string;
   port?: string | number;
   installedServers?: any[];
-  // ... 其他可选属性
+  versions?: SoftServiceVersion[];
+  abstractChannelSession?: string; // 状态命令
+  softServiceStatusCheckSuccessFlag?: string; // 服务状态检查成功标识
 }
 
 /**
