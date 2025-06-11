@@ -1,8 +1,8 @@
 <template>
   <el-drawer
     v-model="drawerVisible"
-    title="软件安装进度"
-    size="60%"
+    title="软件详情"
+    size="90%"
     :close-on-click-modal="false"
     @close="handleClose"
     class="install-progress-drawer"
@@ -17,6 +17,26 @@
           <div>
             <div class="text-lg font-medium">{{ software.softServiceName }}</div>
             <div class="text-sm text-gray-500">版本: {{ software.softServiceVersion }}</div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">{{ software.installCount || 0 }}</div>
+              <div class="stat-label">
+                <IconifyIconOnline icon="ep:download" class="mr-1" />
+                安装次数
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ software.favoriteCount || 0 }}</div>
+              <div class="stat-label">
+                <IconifyIconOnline icon="ep:star" class="mr-1" />
+                收藏数
+              </div>
+            </div>
+          </div>
+          <div>
+             <h4 class="detail-subtitle">软件描述</h4>
+              <p class="detail-text">{{ software.softServiceRemark || '暂无描述' }}</p>
           </div>
         </div>
         <div class="action-buttons flex gap-2">
@@ -55,16 +75,47 @@
     </template>
     
     <el-container class="install-content h-full">
-      <!-- 左侧设备列表 -->
-      <el-aside width="250px" class="border-r">
-        <div class="device-list p-4">
+      <!-- 左侧设备列表和软件详情 -->
+      <el-aside width="300px" class="border-r">
+        <!-- 软件详情部分 -->
+        <div class="software-detail-section p-4">
+          <div class="section-title mb-4">
+            <IconifyIconOnline icon="ep:info-filled" class="mr-2" />
+            软件信息
+          </div>
+          
+          <el-scrollbar height="200px">
+            <div class="detail-content px-2">
+              <h4 class="detail-subtitle">安装信息</h4>
+              <div class="detail-info-item">
+                <IconifyIconOnline icon="ep:folder" class="mr-2" />
+                <span class="detail-info-label">安装路径:</span>
+                <span class="detail-info-value">{{ software.installPath || "默认路径" }}</span>
+              </div>
+              <div class="detail-info-item">
+                <IconifyIconOnline icon="ep:connection" class="mr-2" />
+                <span class="detail-info-label">端口:</span>
+                <span class="detail-info-value">{{ software.port || "自动分配" }}</span>
+              </div>
+
+              <h4 class="detail-subtitle">系统要求</h4>
+              <div class="requirements-card">
+                <p>{{ software.requirements || "无特殊要求" }}</p>
+              </div>
+              
+            </div>
+          </el-scrollbar>
+        </div>
+        
+        <!-- 设备列表部分 -->
+        <div class="device-list p-4 border-t">
           <div class="section-title mb-4">
             <IconifyIconOnline icon="ep:monitor" class="mr-2" />
             安装设备
             <span class="device-count">{{ deviceList.length }}</span>
           </div>
           
-          <el-scrollbar height="calc(100vh - 230px)">
+          <el-scrollbar height="calc(100vh - 550px)">
             <el-menu
               :default-active="activeDevice"
               @select="handleSelectDevice"
@@ -73,7 +124,7 @@
               <el-menu-item v-for="device in deviceList" :key="device.id" :index="device.id">
                 <div class="flex items-center justify-between w-full">
                   <div class="flex items-center">
-                    <el-badge :type="getStatusType(device.status)" :value="getStatusText(device.status)" class="mr-2" />
+                    <el-badge :type="getStatusType(device.status)"  :value="getStatusText(device.status)" class="mr-2" />
                     {{ device.name }}
                   </div>
                   <div v-if="device.progress !== undefined && device.status === 'running'" class="device-progress">
@@ -168,13 +219,16 @@ import { ref, reactive, computed, defineProps, defineEmits, watch, nextTick, onM
 import { message, useUUID, splitToArray } from "@repo/utils"
 import { socket } from "@repo/core"
 import { getConfig } from "@repo/config"
+import { http, type ReturnResult } from "@repo/utils"
 import type { PartialSoftService } from '@/api/soft'
 import { 
   fetchSoftServiceStartService, 
   fetchSoftServiceStopService,
   fetchSoftServiceRestartService,
-  fetchSoftServiceUninstall
+  fetchSoftServiceUninstall,
+  fetchSoftServiceLog
 } from '@/api/soft/install'
+import { fetchSoftServiceInstallLog } from '@/api/soft/log'
 
 const props = defineProps({
   modelValue: {
@@ -207,16 +261,23 @@ const activeLogType = ref<string>('install')
 const installStatus = ref<string>('pending') // pending, running, success, error
 const deviceList = ref<any[]>([])
 const installId = ref<string>('')
+const isViewMode = ref(false) // 是否为查看模式
 
 // 计算属性
 const canViewServiceLogs = computed(() => {
   return installStatus.value === 'success'
 })
 
+// 判断是否有已安装的服务器
+const hasInstalledServers = computed(() => {
+  return props.software.installedServers && props.software.installedServers.length > 0
+})
+
 // 当前设备对象
 const currentDevice = computed(() => {
   return deviceList.value.find(d => d.id === activeDevice.value) || null
 })
+
 // 设置设备列表
 const setupDeviceList = (deviceIds: string[]) => {
   deviceList.value = deviceIds.map(id => ({
@@ -230,12 +291,172 @@ const setupDeviceList = (deviceIds: string[]) => {
     activeDevice.value = deviceList.value[0].id
   }
 }
+
+// 获取安装记录状态
+const getInstallRecordStatus = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'success':
+      return 'success'
+    case 'failed':
+    case 'failure':
+      return 'error'
+    case 'running':
+      return 'running'
+    default:
+      return 'pending'
+  }
+}
+
+// 加载安装历史记录
+const loadInstallHistory = async () => {
+  try {
+    // 显示加载中状态
+    deviceList.value = [{
+      id: 'loading',
+      name: '加载中...',
+      status: 'pending',
+      progress: 0
+    }]
+    
+    // 查询该软件的所有安装记录
+    const res = await fetchSoftwareInstallHistory(props.software.softServiceId!)
+    
+    if (res.code === "00000" && res.data) {
+      // 处理返回的安装记录数据
+      let records: any[] = []
+      
+      if (Array.isArray(res.data)) {
+        records = res.data
+      } else if (res.data) {
+        records = [res.data]
+      }
+      
+      if (records.length > 0) {
+        // 转换为设备列表格式
+        deviceList.value = []
+        for (const record of records) {
+          deviceList.value.push({
+            id: record.sshId || record.installId,
+            name: record.sshName || `设备 ${record.sshId?.substring(0, 8) || '未知'}`,
+            status: getInstallRecordStatus(record.status),
+            installTime: record.createTime,
+            installPath: record.installPath,
+            port: record.port,
+            softServiceVersion: record.softServiceVersion
+          })
+        }
+        
+        // 选择第一个设备
+        if (deviceList.value.length > 0 && !activeDevice.value) {
+          activeDevice.value = deviceList.value[0].id
+          // 加载该设备的安装日志
+          loadDeviceInstallLog(activeDevice.value)
+        }
+      } else {
+        // 没有安装记录
+        deviceList.value = [{
+          id: 'no-records',
+          name: '暂无安装记录',
+          status: 'pending',
+          progress: 0
+        }]
+        addLog('info', '该软件暂无安装记录')
+      }
+    } else {
+      // 加载失败
+      deviceList.value = [{
+        id: 'error',
+        name: '加载失败',
+        status: 'error',
+        progress: 0
+      }]
+      addLog('error', res.msg || '加载安装记录失败')
+    }
+  } catch (error) {
+    console.error('加载安装记录失败:', error)
+    deviceList.value = [{
+      id: 'error',
+      name: '加载失败',
+      status: 'error',
+      progress: 0
+    }]
+    addLog('error', '加载安装记录失败')
+  }
+}
+
+// 加载设备安装日志
+const loadDeviceInstallLog = async (deviceId: string) => {
+  try {
+    // 清空日志
+    logs.value = []
+    addLog('info', '正在加载安装日志...')
+    
+    // 查询设备安装日志
+    const res = await fetchSoftServiceLog({ installId: deviceId })
+    
+    if (res.code === "00000" && res.data) {
+      // 处理返回的日志数据
+      const logData = res.data
+      
+      if (typeof logData === 'string') {
+        // 如果是字符串，按行分割
+        const logLines = logData.split('\n')
+        logLines.forEach((line, index) => {
+          if (line.trim()) {
+            logs.value.push({
+              id: index,
+              msg: line,
+              type: line.toLowerCase().includes('error') ? 'error' : 
+                   line.toLowerCase().includes('warn') ? 'warning' : 
+                   line.toLowerCase().includes('success') ? 'success' : 'info',
+              timestamp: new Date()
+            })
+          }
+        })
+      } else if (Array.isArray(logData)) {
+        // 如果是数组，直接使用
+        //@ts-ignore
+        logs.value = logData.map((log: any, index: number) => ({
+          id: index,
+          msg: log.msg || log.content || JSON.stringify(log),
+          type: log.type || 'info',
+          timestamp: log.timestamp ? new Date(log.timestamp) : new Date(),
+          step: log.step,
+          total: log.total
+        }))
+      }
+      
+      // 如果没有日志
+      if (logs.value.length === 0) {
+        addLog('info', '暂无安装日志')
+      }
+      
+      // 自动滚动到底部
+      nextTick(() => {
+        scrollToBottom()
+      })
+    } else {
+      addLog('error', res.msg || '加载安装日志失败')
+    }
+  } catch (error) {
+    console.error('加载安装日志失败:', error)
+    addLog('error', '加载安装日志失败')
+  }
+}
+
 // 监听 devices 变化
 watch(() => props.devices, (newDevices) => {
-  setupDeviceList(newDevices)
+  // 如果devices数组为空，则为查看历史安装记录模式
+  isViewMode.value = newDevices.length === 0
+  
+  if (isViewMode.value) {
+    // 查询该软件的所有安装记录
+    loadInstallHistory()
+  } else {
+    // 正常安装模式
+    setupDeviceList(newDevices)
+  }
 }, { immediate: true })
-
-
 
 // 连接 WebSocket
 const connectWebSocket = async () => {
@@ -392,6 +613,16 @@ const getStatusType = (status: string) => {
   }
 }
 
+// 获取运行状态类型
+const getRunStatusType = (status: number) => {
+  switch (status) {
+    case 0: return 'info'    // 未运行
+    case 1: return 'success' // 运行中
+    case 2: return 'danger'  // 已停止
+    default: return 'info'
+  }
+}
+
 // 获取状态文本
 const getStatusText = (status: string) => {
   switch (status) {
@@ -485,8 +716,13 @@ const scrollToBottom = () => {
 const handleSelectDevice = (deviceId: string) => {
   activeDevice.value = deviceId
   
-  // 重新订阅日志
-  subscribeToLogs()
+  if (isViewMode.value) {
+    // 查看模式下，加载设备安装日志
+    loadDeviceInstallLog(deviceId)
+  } else {
+    // 安装模式下，订阅日志
+    subscribeToLogs()
+  }
 }
 
 // 处理日志类型变更
@@ -606,26 +842,39 @@ const handleStart = async () => {
   }
 }
 
-// 关闭抽屉
+// 初始化
+onMounted(() => {
+  // 只有在安装模式下才连接WebSocket
+  if (!isViewMode.value) {
+    connectWebSocket()
+  }
+})
+
+// 组件销毁前断开WebSocket连接
+onBeforeUnmount(() => {
+  disconnectWebSocket()
+})
+
+// 处理关闭
 const handleClose = () => {
-  // 断开 WebSocket 连接
+  // 断开WebSocket连接
   disconnectWebSocket()
   
-  // 清空日志
-  logs.value = []
+  // 关闭抽屉
+  drawerVisible.value = false
   
-  // 通知父组件
+  // 发送完成事件
   emit('finish')
 }
 
 // 断开WebSocket连接
 const disconnectWebSocket = () => {
-  // 先取消订阅
-  unsubscribeFromLogs()
-  
-  // 断开连接
   if (stompClient.value) {
     try {
+      // 取消所有订阅
+      unsubscribeFromLogs()
+      
+      // 断开连接
       if (stompClient.value.connected) {
         stompClient.value.disconnect()
       }
@@ -636,28 +885,6 @@ const disconnectWebSocket = () => {
   }
 }
 
-// 组件挂载时连接 WebSocket
-onMounted(() => {
-  if (drawerVisible.value) {
-    connectWebSocket()
-  }
-})
-
-// 监听抽屉可见性变化
-watch(() => drawerVisible.value, (newValue) => {
-  if (newValue) {
-    connectWebSocket()
-  } else {
-    // 抽屉关闭时断开WebSocket连接
-    disconnectWebSocket()
-  }
-})
-
-// 组件销毁前断开 WebSocket 连接
-onBeforeUnmount(() => {
-  disconnectWebSocket()
-})
-
 // 获取状态图标
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -666,6 +893,39 @@ const getStatusIcon = (status: string) => {
     case 'success': return 'ep:check'
     case 'error': return 'ep:close'
     default: return 'ep:info-filled'
+  }
+}
+
+// 查询软件安装历史记录
+const fetchSoftwareInstallHistory = (softServiceId: number) => {
+  return http.request<ReturnResult<any[]>>("get", `/v1/soft/service/install/history/${softServiceId}`)
+}
+
+// 获取分类名称
+const getCategoryName = (category: string) => {
+  if (!category) return "未分类"
+  
+  const categories = [
+    { label: "全部", value: "all" },
+    { label: "数据库", value: "database" },
+    { label: "Web服务器", value: "web_server" },
+    { label: "开发工具", value: "development" },
+    { label: "监控工具", value: "monitoring" },
+    { label: "容器", value: "container" },
+    { label: "其他", value: "other" }
+  ]
+  
+  const found = categories.find((item) => item.value === category)
+  return found ? found.label : "未知"
+}
+
+// 查看服务器详情
+const viewServerDetail = (server: any) => {
+  // 设置当前设备
+  if (server && server.sshId) {
+    activeDevice.value = server.sshId
+    // 加载该设备的安装日志
+    loadDeviceInstallLog(server.sshId)
   }
 }
 </script>
@@ -716,6 +976,130 @@ const getStatusIcon = (status: string) => {
 
 .install-content {
   height: 100%;
+}
+
+// 软件详情样式
+.software-detail-section {
+  border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.detail-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 16px 0 8px 0;
+  position: relative;
+  padding-left: 10px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    height: 14px;
+    width: 3px;
+    background-color: var(--el-color-primary);
+    border-radius: 2px;
+  }
+  
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.detail-text {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.detail-info-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  
+  .detail-info-label {
+    margin-right: 8px;
+    color: var(--el-text-color-secondary);
+    font-weight: 500;
+  }
+  
+  .detail-info-value {
+    color: var(--el-text-color-primary);
+  }
+}
+
+.requirements-card {
+  background-color: var(--el-fill-color-light);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  
+  p {
+    margin: 0;
+    color: var(--el-text-color-regular);
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  
+  .stat-card {
+    background-color: var(--el-fill-color-light);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.3s;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-color-primary);
+      margin-bottom: 6px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+
+.installed-servers {
+  margin-bottom: 12px;
+  
+  :deep(.el-table) {
+    --el-table-header-bg-color: var(--el-fill-color-light);
+    --el-table-border-color: var(--el-border-color-lighter);
+    --el-table-header-text-color: var(--el-text-color-primary);
+    
+    .el-table__header th {
+      font-weight: 600;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+    
+    .el-table__row td {
+      padding: 6px 0;
+      font-size: 12px;
+    }
+  }
 }
 
 .device-menu {

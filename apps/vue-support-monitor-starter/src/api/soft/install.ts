@@ -40,6 +40,33 @@ export function fetchSoftServiceInstall(data: InstallRequest) {
 }
 
 /**
+ * 添加安装服务
+ */
+export const fetchSoftServiceInstallAdd = (data: any) => {
+  return http.request<ReturnResult<any>>("post", `v1/soft/service/install/add`, {
+    data,
+  });
+};
+/**
+ * 更新安装服务
+ */
+export const fetchSoftServiceInstallUpdate = (data: any) => {
+  return http.request<ReturnResult<any>>("put", `v1/soft/service/install/update`, {
+    data,
+  });
+};
+
+export const fetchSoftServiceInstallByServiceId = (data: any) => {
+  return http.request<ReturnResult<any>>("get", `v1/soft/service/install/service/${data.softServiceId}`);
+};
+
+/**
+ * 删除安装服务
+ */
+export const fetchSoftServiceInstallDelete = (data: any) => {
+  return http.request<ReturnResult<any>>("delete", `v1/soft/service/install/delete/${data.installId}`);
+};
+/**
  * 停止安装服务
  */
 export const fetchSoftServiceStopInstall = (params: StopInstallRequest) => {

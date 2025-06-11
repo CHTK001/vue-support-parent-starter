@@ -38,8 +38,8 @@
                 
                 <div class="app-desc">
                   {{ row.proxyDesc || "暂无描述" }}
-                </div>
-                
+            </div>
+
                 <div class="app-footer">
                   <div class="app-actions">
                     <el-button size="small" type="primary" @click="doSetting(row)" class="action-btn">
@@ -53,24 +53,24 @@
                     <el-button size="small" type="warning" @click="doTail(row)" class="action-btn">
                       <IconifyIconOnline icon="ep:monitor"  />
                     </el-button>
-                    
+
                     <el-button v-if="row.proxyStatus != 1" size="small" @click="doEdit(row)" class="action-btn">
                       <IconifyIconOnline icon="ep:edit"  />
                     </el-button>
-                    
-                    <el-popconfirm v-if="row.proxyStatus != 1" :title="$t('message.confimDelete')" confirm-button-type="danger" cancel-button-type="info" @confirm="doDelete(row)">
-                      <template #reference>
+
+              <el-popconfirm v-if="row.proxyStatus != 1" :title="$t('message.confimDelete')" confirm-button-type="danger" cancel-button-type="info" @confirm="doDelete(row)">
+                <template #reference>
                         <el-button size="small" type="danger" class="action-btn">
                           <IconifyIconOnline icon="ep:delete"  />
                         </el-button>
-                      </template>
-                    </el-popconfirm>
-                    
-                    <el-button
+                </template>
+              </el-popconfirm>
+
+                <el-button
                       size="small"
                       :type="row.proxyStatus != 1 ? 'success' : 'danger'"
                       class="action-btn"
-                      @click="row.proxyStatus != 1 ? doStart(row) : doStop(row)"
+                  @click="row.proxyStatus != 1 ? doStart(row) : doStop(row)"
                     >
                       <IconifyIconOnline :icon="row.proxyStatus != 1 ? 'ep:video-play' : 'ep:video-pause'"  />
                     </el-button>
@@ -85,19 +85,19 @@
         <template #empty>
           <div class="proxy-empty">
             <IconifyIconOnline icon="ep:connection" class="empty-icon" />
-            <p>暂无代理服务</p>
-            <el-button type="primary" @click="doSave">
+        <p>暂无代理服务</p>
+        <el-button type="primary" @click="doSave">
               <IconifyIconOnline icon="ep:plus"  />
-              添加代理
-            </el-button>
-          </div>
+          添加代理
+        </el-button>
+      </div>
         </template>
       </ScTable>
 
-      <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
-      <ProxyLog ref="proxyLogRef" />
-      <LogDialog ref="proxyTailRef" />
-      <setting-dialog ref="settingDialog" />
+    <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
+    <ProxyLog ref="proxyLogRef" />
+    <LogDialog ref="proxyTailRef" />
+    <setting-dialog ref="settingDialog" />
     </div>
   </div>
 </template>
@@ -134,22 +134,22 @@ const settingDialog = ref(null);
 
 // 表单参数
 const form = reactive({
-  pageSize: 20,
-  page: 1
+        pageSize: 20,
+        page: 1
 });
 
-// 获取代理图标
+    // 获取代理图标
 const getProxyIcon = (protocol) => {
-  switch (protocol) {
-    case "websockify":
+      switch (protocol) {
+        case "websockify":
       return "ep:connection";
-    case "http-proxy":
+        case "http-proxy":
       return "ep:link";
-    case "tcp-proxy":
+        case "tcp-proxy":
       return "ep:data-line";
-    default:
+        default:
       return "ep:connection";
-  }
+      }
 };
 
 // 处理数据加载
@@ -158,112 +158,112 @@ const handleDataLoaded = (loadedData, totalCount) => {
   total.value = totalCount;
 };
 
-// 打开URL
+    // 打开URL
 const doOpenUrl = (row) => {
-  window.open(`http://${row.proxyHost}:${row.proxyPort}`);
+      window.open(`http://${row.proxyHost}:${row.proxyPort}`);
 };
 
-// 刷新数据
+    // 刷新数据
 const afterPropertiesSet = () => {
   tableRef.value?.reload(form);
 };
 
-// 打开应用
+    // 打开应用
 const doOpenApps = (item) => {
   infoDialogStatus.value = true;
   nextTick(() => {
     saveDialog.value.open("view").setData(item);
-  });
+      });
 };
 
-// 新增代理
+    // 新增代理
 const doSave = () => {
   saveDialogStatus.value = true;
   nextTick(() => {
     saveDialog.value.setData({}).open("add");
-  });
+      });
 };
 
-// 编辑代理
+    // 编辑代理
 const doEdit = (item) => {
   saveDialogStatus.value = true;
   nextTick(() => {
     saveDialog.value.setData(item).open("edit");
-  });
+      });
 };
 
-// 设置代理
+    // 设置代理
 const doSetting = (item) => {
   settingDialogStatus.value = true;
   nextTick(() => {
     settingDialog.value.setData(item).open("edit");
-  });
+      });
 };
 
-// 查看日志
+    // 查看日志
 const doLog = (item) => {
   logDialogVisible.value = true;
-  setTimeout(() => {
+      setTimeout(() => {
     nextTick(() => {
       proxyLogRef.value.setData(item).open("edit");
-    });
-  }, 200);
+        });
+      }, 200);
 };
 
-// 查看实时日志
+    // 查看实时日志
 const doTail = (item) => {
   tailDialogVisible.value = true;
-  setTimeout(() => {
+      setTimeout(() => {
     nextTick(() => {
       proxyTailRef.value.setData(item).open("edit");
-    });
-  }, 200);
+        });
+      }, 200);
 };
 
-// 启动代理
+    // 启动代理
 const doStart = (row) => {
   startDialogStatus.value = true;
-  fetchProxyStart({ id: row.proxyId })
-    .then(res => {
-      if (res.code != "00000") {
+      fetchProxyStart({ id: row.proxyId })
+        .then(res => {
+          if (res.code != "00000") {
         ElMessage.error(res.msg);
-        row.proxyStatus = 1;
-        return;
-      }
+            row.proxyStatus = 1;
+            return;
+          }
       ElMessage.success("代理服务启动成功");
       afterPropertiesSet();
-    })
+        })
     .finally(() => (startDialogStatus.value = false));
 };
 
-// 停止代理
+    // 停止代理
 const doStop = (row) => {
   startDialogStatus.value = true;
-  fetchProxyStop({ id: row.proxyId })
-    .then(res => {
-      if (res.code != "00000") {
+      fetchProxyStop({ id: row.proxyId })
+        .then(res => {
+          if (res.code != "00000") {
         ElMessage.error(res.msg);
-        row.proxyStatus = 0;
-        return;
-      }
+            row.proxyStatus = 0;
+            return;
+          }
       ElMessage.success("代理服务已停止");
       afterPropertiesSet();
-    })
+        })
     .finally(() => (startDialogStatus.value = false));
 };
 
-// 删除代理
+    // 删除代理
 const doDelete = (row) => {
   deleteStatus.value = true;
-  fetchProxyDelete({ id: row.proxyId })
-    .then(res => {
-      if (res.code != "00000") {
+      fetchProxyDelete({ id: row.proxyId })
+        .then(res => {
+          if (res.code != "00000") {
         ElMessage.error(res.msg);
-        return;
-      }
+            return;
+          }
       ElMessage.success("代理服务已删除");
       afterPropertiesSet();
-    })
+        })
     .finally(() => (deleteStatus.value = false));
 };
 
@@ -297,12 +297,12 @@ onMounted(() => {
 
 .current-category {
   .category-title {
-    font-size: 22px;
-    font-weight: 600;
+  font-size: 22px;
+  font-weight: 600;
     margin: 0 0 12px;
-    color: var(--el-text-color-primary);
-    display: flex;
-    align-items: center;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
     
     &::before {
       content: '';
@@ -370,8 +370,8 @@ onMounted(() => {
     background-color: var(--el-color-primary);
     transition: height 0.3s ease;
     z-index: 1;
-  }
-  
+}
+
   &.app-wrapper-active {
     &::before {
       background-color: var(--el-color-success);
@@ -379,7 +379,7 @@ onMounted(() => {
   }
   
   .media-content {
-    display: flex;
+  display: flex;
     height: 100%;
     padding: 16px;
   }
@@ -391,36 +391,36 @@ onMounted(() => {
     overflow: hidden;
     margin-right: 16px;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
     background-color: var(--el-fill-color-light);
     font-size: 32px;
-    color: var(--el-color-primary);
-  }
-  
+  color: var(--el-color-primary);
+}
+
   .app-content {
-    flex: 1;
+  flex: 1;
     display: flex;
     flex-direction: column;
-  }
-  
+}
+
   .app-title {
     font-size: 16px;
     font-weight: 500;
-    margin-bottom: 8px;
+  margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    
-    .open-icon {
-      opacity: 0.5;
-      transition: opacity 0.3s;
-    }
-    
+  display: flex;
+  align-items: center;
+
+.open-icon {
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
     &:hover .open-icon {
       opacity: 1;
     }
@@ -428,25 +428,25 @@ onMounted(() => {
   
   .app-desc {
     margin: 12px 0;
-    font-size: 14px;
+  font-size: 14px;
     line-height: 1.6;
-    color: var(--el-text-color-secondary);
+  color: var(--el-text-color-secondary);
     flex: 1;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
-  }
-  
+}
+
   .app-footer {
-    display: flex;
+  display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
     
     .app-actions {
-      display: flex;
-      gap: 8px;
+  display: flex;
+  gap: 8px;
       flex-wrap: wrap;
       
       .action-btn {

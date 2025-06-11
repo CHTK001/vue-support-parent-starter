@@ -1,5 +1,22 @@
 import { http, type ReturnResult } from "@repo/utils";
 
+// 定义安装服务器信息接口
+export interface InstalledServer {
+  sshId: string;
+  installId: number;
+  installStatus: number;
+  installStatusDesc: string;
+  runStatus: number;
+  runStatusDesc: string;
+  installTime: number;
+  installPath: string;
+  installVersion: string;
+  serverName: string;
+  serverHost: string;
+  hostName: string;
+  osName: string;
+}
+
 export interface SoftService {
   createName: string;
   createBy: number;
@@ -24,14 +41,28 @@ export interface SoftService {
   softServiceOs: string;
   sshId: string;
   isInstalled: boolean;
+  installedServers?: InstalledServer[]; // 安装这个服务的设备列表
+  installCount: number;
+  favoriteCount: number;
 }
 
 // 定义部分软件服务类型，所有字段都是可选的
-export type PartialSoftService = Partial<SoftService> & {
-  installPath?: string;
-  port?: string;
+export interface PartialSoftService {
+  softServiceId?: number;
+  softServiceName?: string;
+  softServiceVersion?: string;
+  softServiceCategory?: string;
+  softServiceLogo?: string;
+  softServiceRemark?: string;
+  installCount?: number;
+  favoriteCount?: number;
   requirements?: string;
-};
+  installPath?: string;
+  port?: string | number;
+  installedServers?: any[];
+  // ... 其他可选属性
+}
+
 /**
  * 收藏
  */
