@@ -128,3 +128,25 @@ export const fetchSoftMonitorLogStart = (params: ServiceRequest) => {
 export const fetchSoftMonitorLogStop = (params: ServiceRequest) => {
   return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/log/monitor/stop/${params.installId}`);
 };
+
+export interface SoftServiceInstall {
+  createName: string;
+  createBy: number;
+  createTime: string;
+  updateTime: string;
+  updateName: string;
+  updateBy: number;
+  installId: number;
+  sshId: string;
+  softServiceId: number;
+  installStatus: number;
+  installPath: string;
+  installLog: string;
+  installVersion: string;
+  installTime: number;
+  installLastStartTime: number;
+  installLastStopTime: number;
+  installRunStatus: number;
+  installConfigPath: string;
+  installLastCheckTime: number;
+}

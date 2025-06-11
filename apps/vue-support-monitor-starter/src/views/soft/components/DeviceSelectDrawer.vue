@@ -25,6 +25,33 @@
             </div>
           </div>
         </div>
+
+        <!-- 版本选择 -->
+        <div class="version-select" v-if="software.versions && software.versions.length > 0">
+          <h4 class="text-sm font-medium mb-2">选择版本</h4>
+          <el-select v-model="selectedVersionId" class="w-full" placeholder="请选择版本">
+            <el-option
+              v-for="version in software.versions"
+              :key="version.softServiceId"
+              :label="`${version.version}${version.isCurrent ? ' (当前)' : ''}${version.isInstallable === false ? ' (不可安装)' : ''}`"
+              :value="version.softServiceId"
+              :disabled="version.isInstallable === false"
+            >
+              <div class="flex justify-between items-center">
+                <span>{{ version.version }}</span>
+                <div class="flex items-center">
+                  <el-tag v-if="version.isInstallable === false" size="small" type="danger" class="mr-1">不可安装</el-tag>
+                  <el-tag v-if="version.isCurrent" size="small" type="success">当前</el-tag>
+                </div>
+              </div>
+            </el-option>
+          </el-select>
+          <div class="version-info mt-2" v-if="selectedVersion">
+            <p v-if="selectedVersion.releaseTime">发布时间: {{ formatDateDate(selectedVersion.releaseTime) }}</p>
+            <p v-if="selectedVersion.isInstallable === false" class="text-red-500">此版本不支持安装</p>
+            <p v-if="selectedVersion.versionDesc">{{ selectedVersion.versionDesc }}</p>
+          </div>
+        </div>
       </div>
 
       <el-divider />
@@ -76,7 +103,7 @@
                     class="device-card" 
                     :class="{ selected: selectedDevices.includes(device.id) }"
                     hoverable
-                    shadow="hover"
+                    shadow="always"
                     borderPosition="left"
                     padding="16px"
                     @click="handleViewInstallLog(device)"
@@ -85,8 +112,7 @@
                       <div class="flex items-center">
                         <el-checkbox :label="device.id" class="mr-3" @click.stop />
                         <div class="ml-4">
-                          <div class="device-name">{{ device.name }}</div>
-                          <div class="device-ip text-gray-500 text-sm">{{ device.host }}</div>
+                          <div class="device-ip text-gray-500 text-sm">{{ device.host }}(<span class="device-name">{{ device.name }}</span>)</div>
                         </div>
                       </div>
                       <div class="device-status flex items-center">
@@ -119,6 +145,7 @@
         <el-button 
           type="primary" 
           :disabled="!canProceedInstall" 
+          v-if="isCurrentVersionInstallable"
           @click="handleInstall" 
           class="install-btn"
           :loading="installing"
@@ -126,6 +153,11 @@
           <IconifyIconOnline v-if="!installing" icon="ep:download" class="mr-1" />
           {{ installing ? '安装中...' : '开始安装' }}
         </el-button>
+        <el-tooltip v-else content="当前版本不支持安装" placement="top">
+          <el-button type="info" disabled>
+            <IconifyIconOnline icon="ep:info-filled" class="mr-1" />不可安装
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
   </el-drawer>
@@ -268,9 +300,32 @@ const logLoading = ref(false)
 const installLogs = ref<InstallLog[]>([])
 const currentDevice = ref<any>(null)
 
+// 版本相关
+const selectedVersionId = ref<number | null>(null)
+
 // 计算属性
 const canProceedInstall = computed(() => {
   return selectedDevices.value.length > 0
+})
+
+// 判断当前版本是否可安装
+const isCurrentVersionInstallable = computed(() => {
+  // 如果没有版本信息，默认可安装
+  if (!props.software.versions || props.software.versions.length === 0) {
+    return true;
+  }
+  
+  // 查找当前版本
+  const currentVersion = props.software.versions.find(v => v.isCurrent);
+  
+  // 如果找不到当前版本，或者当前版本没有明确设置isInstallable为false，则认为可安装
+  return !currentVersion || currentVersion.isInstallable !== false;
+})
+
+// 获取当前选中的版本信息
+const selectedVersion = computed(() => {
+  if (!props.software.versions || !selectedVersionId.value) return null
+  return props.software.versions.find(v => v.softServiceId === selectedVersionId.value)
 })
 
 // 获取分类名称
@@ -355,12 +410,22 @@ const checkInstallRecords = async () => {
 
 // 处理安装
 const handleInstall = () => {
-  if (!canProceedInstall.value) {
-    message.warning('请选择要安装的设备')
+  if (selectedDevices.value.length === 0) {
+    message.warning('请至少选择一个设备')
+    return
+  }
+  
+  // 使用选中的版本ID
+  const actualSoftServiceId = selectedVersionId.value || props.software.softServiceId
+  
+  if (!actualSoftServiceId) {
+    message.error('未找到有效的软件ID')
     return
   }
   
   installing.value = true
+  
+  // 发送安装请求，确保ID是字符串类型
   emit('install', selectedDevices.value)
 }
 
@@ -430,6 +495,12 @@ const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 }
 
+// 格式化日期
+const formatDateDate = (date: Date) => {
+  if (!date) return ''
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
 // 获取日志类型
 const getLogType = (status: string) => {
   switch (status) {
@@ -481,6 +552,31 @@ watch(() => drawerVisible.value, (newValue) => {
     installing.value = false
   }
 })
+
+// 监听软件信息变化，初始化版本选择
+watch(() => props.software, (newSoftware) => {
+  if (newSoftware.versions && newSoftware.versions.length > 0) {
+    // 查找当前版本
+    const currentVersion = newSoftware.versions.find(v => v.isCurrent)
+    
+    if (currentVersion && currentVersion.isInstallable !== false) {
+      // 如果有当前版本，默认选择当前版本
+      selectedVersionId.value = currentVersion.softServiceId
+    } else {
+      // 如果当前版本不可安装或不存在，查找第一个可安装的版本
+      const installableVersion = newSoftware.versions.find(v => v.isInstallable !== false)
+      if (installableVersion) {
+        selectedVersionId.value = installableVersion.softServiceId
+      } else {
+        // 如果没有可安装的版本，选择第一个版本（即使不可安装）
+        selectedVersionId.value = newSoftware.versions[0].softServiceId
+      }
+    }
+  } else {
+    // 如果没有版本信息，使用软件本身的ID
+    selectedVersionId.value = newSoftware.softServiceId || null
+  }
+}, { immediate: true })
 
 // 组件挂载时加载设备列表
 onMounted(() => {
@@ -678,5 +774,20 @@ defineExpose({
     gap: 12px;
     margin-top: 12px;
   }
+}
+
+.version-select {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--el-border-color-light);
+}
+
+.version-info {
+  padding: 8px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 </style> 

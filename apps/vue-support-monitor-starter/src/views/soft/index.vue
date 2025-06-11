@@ -86,10 +86,45 @@
                 </div>
                   
                   <div class="app-content">
-                    <h3 class="app-title">{{ row.softServiceName }}</h3>
+                    <div class="app-header">
+                      <h3 class="app-title">{{ row.softServiceName }}</h3>
+                      <div class="app-servers">
+                        <template v-if="row.installedServers && row.installedServers.length > 0">
+                          <el-dropdown trigger="hover" @command="(device) => handleDeviceCommand(device, row)">
+                            <div class="server-count flex items-center">
+                              <IconifyIconOnline icon="ep:monitor" />
+                              <span>{{ row.installedServers.length }}</span>
+                              <IconifyIconOnline icon="ep:arrow-down" class="ml-1" />
+                            </div>
+                            <template #dropdown>
+                              <el-dropdown-menu>
+                                <el-dropdown-item v-for="device in row.installedServers" :key="device.installId" :command="device">
+                                  <div class="device-item">
+                                    <span class="device-name">{{ device.sshName || device.serverName || '未命名设备' }}</span>
+                                    <el-tag size="small" :type="getDeviceStatusType(device.installStatus)">
+                                      {{ getDeviceStatusText(device.installStatus) }}
+                                    </el-tag>
+                                  </div>
+                                </el-dropdown-item>
+                              </el-dropdown-menu>
+                            </template>
+                          </el-dropdown>
+                        </template>
+                        <el-button 
+                          type="primary" 
+                          link 
+                          class="ml-2" 
+                          @click="openDeviceManagement(row)"
+                          title="设备管理"
+                        >
+                          <IconifyIconOnline icon="ep:setting" />
+                        </el-button>
+                      </div>
+                    </div>
                     <div class="app-tags">
                       <el-tag size="small" type="success">v{{ row.softServiceVersion }}</el-tag>
                       <el-tag size="small" type="primary" class="ml-2">{{ getCategoryName(row.softServiceCategory) }}</el-tag>
+                      <el-tag size="small" type="info" class="ml-2">{{ row.softServiceOs || '通用' }}</el-tag>
                     </div>
                     
                     <div class="app-desc">{{ row.softServiceRemark || '无' }}</div>
@@ -106,7 +141,12 @@
                         </span>
                       </div>
                       <div class="app-actions">
-                        <el-button size="small" type="primary" class="install-btn" @click="handleInstall(row)">
+                        <el-button 
+                          size="small" 
+                          type="primary" 
+                          class="install-btn" 
+                          @click="handleInstall(row)"
+                        >
                           <IconifyIconOnline icon="ep:download" class="mr-1" />安装
                         </el-button>
                         <el-dropdown trigger="click" @command="(command) => handleCommand(command, row)">
@@ -148,10 +188,35 @@
     />
 
     <!-- 安装进度抽屉 -->
-    <install-progress-drawer v-if="installDrawerVisible" v-model="installDrawerVisible" :software="currentSoftware" :devices="installDevices" @finish="handleInstallFinish" />
+    <install-progress-drawer 
+      v-if="installDrawerVisible" 
+      v-model="installDrawerVisible" 
+      :software="currentSoftware" 
+      @finish="handleInstallFinish" 
+    />
 
     <!-- 软件表单对话框 -->
     <SoftForm v-model="formVisible" :is-edit="isEdit" :software="currentSoftware" @submit="handleSubmit" @cancel="formVisible = false" />
+    
+    <!-- 设备管理抽屉 -->
+    <el-drawer
+      v-model="deviceManageDrawerVisible"
+      :title="`${currentSoftware?.softServiceName || '软件'} - 设备管理`"
+      size="80%"
+      direction="rtl"
+    >
+      <div class="p-4">
+        <DeviceCardList
+          :device-list="deviceList"
+          :soft-service-id="currentSoftware?.softServiceId || 0"
+          :loading="deviceListLoading"
+          @refresh="loadDeviceList"
+          @add="handleDeviceAdded"
+          @edit="handleDeviceEdited"
+          @delete="handleDeviceDeleted"
+        />
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -166,6 +231,8 @@ import { fetchSoftServiceInstall } from "@/api/soft/install";
 import InstallProgressDrawer from "./components/InstallProgressDrawer.vue";
 import SoftForm from "./components/SoftForm.vue";
 import DeviceSelectDrawer from "./components/DeviceSelectDrawer.vue";
+import DeviceCardList from "./components/DeviceCardList.vue";
+import { fetchSoftServiceInstallByServiceId } from "@/api/soft/install";
 
 // 表格引用
 const tableRef = ref<InstanceType<typeof ScTable>>();
@@ -207,6 +274,13 @@ const installDrawerVisible = ref(false);
 
 // 软件详情
 const detailDialogVisible = ref(false);
+
+// 设备管理抽屉可见性
+const deviceManageDrawerVisible = ref(false);
+
+// 设备列表
+const deviceList = ref<any[]>([]);
+const deviceListLoading = ref(false);
 
 // 软件分类
 const categories = [
@@ -380,6 +454,35 @@ const showInstallDetail = (soft: SoftService) => {
   installDrawerVisible.value = true;
 };
 
+const handleDeviceSelect = (devices: string[]) => {
+  deviceDrawerVisible.value = false;
+  installDevices.value = devices;
+  
+  // 将选择的设备信息添加到currentSoftware中
+  // 这样InstallProgressDrawer组件可以从software.installedServers获取设备信息
+  if (!currentSoftware.value.installedServers) {
+    currentSoftware.value.installedServers = [];
+  }
+  
+  // 清空原有的installedServers，添加新选择的设备
+  currentSoftware.value.installedServers = devices.map(deviceId => ({
+    sshId: deviceId,
+    installId: 0,
+    installStatus: 0,
+    serverName: `设备 ${deviceId.substring(0, 8)}`,
+    installPath: currentSoftware.value.installPath || '',
+    port: currentSoftware.value.port || ''
+  }));
+  
+  installDrawerVisible.value = true;
+  
+  // 获取当前选中的版本ID
+  const actualSoftServiceId = currentSoftware.value.softServiceId;
+  
+  // 开始安装
+  proceedInstall();
+};
+
 const proceedInstall = async () => {
   try {
     // 开始安装
@@ -413,15 +516,6 @@ const getCategoryName = (category: string) => {
   return found ? found.label : "未知";
 };
 
-const handleDeviceSelect = (devices: string[]) => {
-  deviceDrawerVisible.value = false;
-  installDevices.value = devices;
-  installDrawerVisible.value = true;
-  
-  // 开始安装
-  proceedInstall();
-};
-
 // 监听路由参数
 const route = useRoute();
 const sshId = ref(route.query.sshId as string);
@@ -442,6 +536,103 @@ const viewServerDetail = (server: any) => {
   // 打开安装进度抽屉
   installDrawerVisible.value = true
 }
+
+// 处理设备下拉菜单命令
+const handleDeviceCommand = (device: any, software: PartialSoftService) => {
+  // 打开特定设备的安装进度抽屉
+  currentSoftware.value = software;
+  // 设置当前选中的设备ID，以便在抽屉中自动选中该设备
+  currentSoftware.value.selectedDeviceId = device.installId || device.sshId;
+  installDrawerVisible.value = true;
+};
+
+// 打开设备管理
+const openDeviceManagement = (software: PartialSoftService) => {
+  currentSoftware.value = software;
+  deviceListLoading.value = true;
+  loadDeviceList(software.softServiceId);
+  deviceManageDrawerVisible.value = true;
+};
+
+// 获取设备状态类型
+const getDeviceStatusType = (status: number | string | undefined) => {
+  if (status === undefined) return 'info';
+  
+  // 转换为数字
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+  
+  switch (statusNum) {
+    case 0: return 'info';     // 未安装
+    case 1: return 'warning';  // 安装中
+    case 2: return 'success';  // 已安装
+    case 3: return 'danger';   // 安装失败
+    default: return 'info';
+  }
+};
+
+// 获取设备状态文本
+const getDeviceStatusText = (status: number | string | undefined) => {
+  if (status === undefined) return '未安装';
+  
+  // 转换为数字
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+  
+  switch (statusNum) {
+    case 0: return '未安装';
+    case 1: return '安装中';
+    case 2: return '已安装';
+    case 3: return '安装失败';
+    default: return '未知';
+  }
+};
+
+// 加载设备列表
+const loadDeviceList = async (softServiceId?: number) => {
+  if (!softServiceId && !currentSoftware.value.softServiceId) return;
+  
+  deviceListLoading.value = true;
+  try {
+    const res = await fetchSoftServiceInstallByServiceId({ 
+      softServiceId: softServiceId || currentSoftware.value.softServiceId 
+    });
+    
+    if (res.code === "00000" && res.data) {
+      deviceList.value = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+    } else {
+      deviceList.value = [];
+    }
+  } catch (error) {
+    console.error('加载设备列表失败:', error);
+    deviceList.value = [];
+    message.error('加载设备列表失败');
+  } finally {
+    deviceListLoading.value = false;
+  }
+};
+
+// 处理设备添加
+const handleDeviceAdded = (device: any) => {
+  // 刷新设备列表
+  loadDeviceList();
+  // 刷新软件列表
+  tableRef.value?.refresh();
+};
+
+// 处理设备编辑
+const handleDeviceEdited = (device: any) => {
+  // 刷新设备列表
+  loadDeviceList();
+  // 刷新软件列表
+  tableRef.value?.refresh();
+};
+
+// 处理设备删除
+const handleDeviceDeleted = (device: any) => {
+  // 刷新设备列表
+  loadDeviceList();
+  // 刷新软件列表
+  tableRef.value?.refresh();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -664,13 +855,55 @@ const viewServerDetail = (server: any) => {
     flex-direction: column;
   }
   
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  
+  .app-servers {
+    display: flex;
+    align-items: center;
+    
+    .server-count {
+      display: flex;
+      align-items: center;
+      padding: 2px 6px;
+      background-color: #f5f7fa;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      
+      &:hover {
+        background-color: #e4e7ed;
+      }
+    }
+  }
+
+  .device-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    
+    .device-name {
+      margin-right: 8px;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   .app-title {
     font-size: 16px;
-    font-weight: 500;
-    margin-bottom: 8px;
-    white-space: nowrap;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .app-desc {
@@ -678,7 +911,7 @@ const viewServerDetail = (server: any) => {
     font-size: 14px;
     line-height: 1.6;
     color: var(--el-text-color-secondary);
-    flex: 1;
+      flex: 1;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -710,10 +943,10 @@ const viewServerDetail = (server: any) => {
           color: var(--el-color-primary);
         }
       }
-    }
-    
+      }
+
     .app-actions {
-      display: flex;
+        display: flex;
       gap: 8px;
       
       .el-button {
@@ -983,7 +1216,7 @@ const viewServerDetail = (server: any) => {
 :deep(.el-drawer__header) {
   margin-bottom: 0;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 :deep(.el-drawer__body) {
