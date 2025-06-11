@@ -2,8 +2,8 @@
   <component :is="renderComponent" v-bind="componentProps" @click="handleClick">
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData || {}" />
-    </template>
-  </component>
+      </template>
+    </component>
 </template>
 
 <script lang="ts">
@@ -27,12 +27,12 @@ export default defineComponent({
     Panel3D
   },
   props: {
-    /**
-     * 卡片布局类型
-     */
-    layout: {
+  /**
+   * 卡片布局类型
+   */
+  layout: {
       type: String as PropType<LayoutType>,
-      default: "default",
+    default: "default",
       validator: (val: string) => ["default", "media", "header-content", "panel-3d", "custom"].includes(val)
     },
     /**
@@ -42,26 +42,26 @@ export default defineComponent({
       type: String as PropType<"el-card" | "div">,
       default: "div",
       validator: (val: string) => ["el-card", "div"].includes(val)
-    },
-    /**
+  },
+  /**
      * 卡片标题
-     */
-    title: {
-      type: String,
-      default: ""
-    },
-    /**
+   */
+  title: {
+    type: String,
+    default: ""
+  },
+  /**
      * 是否可悬停
-     */
-    hoverable: {
-      type: Boolean,
+   */
+  hoverable: {
+    type: Boolean,
       default: false
-    },
-    /**
-     * 阴影显示时机
-     */
-    shadow: {
-      type: String,
+  },
+  /**
+   * 阴影显示时机
+   */
+  shadow: {
+    type: String,
       default: "always",
       validator: (val: string) => ["always", "hover", "never"].includes(val)
     },
@@ -171,24 +171,24 @@ export default defineComponent({
     borderColor: {
       type: String,
       default: ""
-    },
-    /**
+  },
+  /**
      * 激活时边框颜色（仅在 layout="panel-3d" 时有效）
-     */
+   */
     activeBorderColor: {
-      type: String,
+    type: String,
       default: ""
-    },
-    /**
+  },
+  /**
      * 内边距
-     */
-    padding: {
-      type: String,
-      default: "20px"
-    },
-    /**
+   */
+  padding: {
+    type: String,
+    default: "20px"
+  },
+  /**
      * 自定义组件（仅在 layout="custom" 时有效）
-     */
+   */
     customComponent: {
       type: Object,
       default: null
@@ -214,11 +214,11 @@ export default defineComponent({
         default:
           return DefaultLayout;
       }
-    });
+});
 
     // 根据不同的组件类型，传递不同的属性
     const componentProps = computed(() => {
-      const baseProps = {
+  const baseProps = {
         title: props.title,
         hoverable: props.hoverable,
         shadow: props.shadow,
@@ -263,12 +263,12 @@ export default defineComponent({
             padding: props.padding
           };
         case "custom":
-          return {
-            ...baseProps,
+    return {
+      ...baseProps,
             ...props
-          };
+    };
         default:
-          return baseProps;
+  return baseProps;
       }
     });
 
@@ -290,8 +290,8 @@ export default defineComponent({
 // 全局样式，确保组件在不同场景下的一致性
 .sc-card-wrapper {
   display: block;
-  width: 100%;
-  height: 100%;
+          width: 100%;
+          height: 100%;
 
   // 支持Element Plus变量
   --el-color-primary: var(--el-color-primary);
