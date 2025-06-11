@@ -56,13 +56,13 @@
                 <el-option label="默认排序" value="default" />
                 <el-option label="最新" value="newest" />
                 <el-option label="最热" value="popular" />
-              </el-select>
-            </div>
+          </el-select>
+        </div>
             <el-button type="primary" class="add-button" @click="handleAdd">
               <IconifyIconOnline icon="ep:plus" />新增软件
-            </el-button>
+        </el-button>
           </div>
-        </el-header>
+      </el-header>
 
         <!-- 主内容区 -->
         <el-main class="content-main nopadding">
@@ -77,13 +77,13 @@
                 <div class="media-content">
                   <div class="app-logo">
                     <el-image :src="row.softServiceLogo" fit="contain" :alt="row.softServiceName">
-                      <template #error>
+                    <template #error>
                         <div class="app-logo-fallback">
                           <IconifyIconOnline icon="ep:picture" />
-                        </div>
-                      </template>
-                    </el-image>
-                  </div>
+                      </div>
+                    </template>
+                  </el-image>
+                </div>
                   
                   <div class="app-content">
                     <h3 class="app-title">{{ row.softServiceName }}</h3>
@@ -128,13 +128,13 @@
                           </template>
                         </el-dropdown>
                       </div>
-                    </div>
+                  </div>
                   </div>
                 </div>
               </div>
             </template>
-          </ScTable>
-        </el-main>
+        </ScTable>
+      </el-main>
       </el-container>
     </el-container>
 
@@ -451,14 +451,14 @@ const goBack = () => {
   transition: all 0.3s ease;
   
   .sidebar-title {
-    padding: 20px;
+  padding: 20px;
     font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 0;
     border-bottom: 1px solid var(--el-border-color-light);
-  }
-  
+}
+
   .category-menu {
     border-right: none;
     
@@ -563,8 +563,8 @@ const goBack = () => {
         margin-right: 12px;
         border-radius: 2px;
       }
-    }
-    
+}
+
     .category-desc {
       font-size: 14px;
       color: var(--el-text-color-secondary);
@@ -576,7 +576,7 @@ const goBack = () => {
 
 .soft-table {
   margin-top: 20px;
-  
+
   :deep(.el-card) {
     border-radius: 8px;
     overflow: hidden;
@@ -716,7 +716,7 @@ const goBack = () => {
           box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
         }
       }
-      
+
       .more-btn {
         padding: 8px;
         transition: all 0.3s;
@@ -764,10 +764,10 @@ const goBack = () => {
   }
 }
 
-.device-list {
-  margin-top: 20px;
+  .device-list {
+    margin-top: 20px;
   flex: 1;
-  overflow-y: auto;
+    overflow-y: auto;
 }
 
 .device-card {
@@ -796,8 +796,8 @@ const goBack = () => {
     font-weight: 500;
     font-size: 15px;
     transition: color 0.3s;
-  }
-  
+    }
+
   .device-ip {
     margin-top: 4px;
   }
@@ -806,15 +806,15 @@ const goBack = () => {
     .el-tag {
       padding: 0 8px;
     }
+    }
   }
-}
 
-.drawer-footer {
+  .drawer-footer {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  justify-content: flex-end;
+    display: flex;
+    justify-content: flex-end;
   gap: 12px;
   
   .install-btn {

@@ -42,6 +42,25 @@
           <div class="form-tip">每秒允许通过的最大请求数量，超过限制的请求将被拒绝</div>
         </el-form-item>
 
+        <!-- QPS限流设置，仅在路径限流时显示 -->
+        <el-form-item v-if="limitType === 'PATH'" label="QPS限流" prop="proxyConfigLimitQps">
+          <el-input-number v-model="form.proxyConfigLimitQps" :min="0" :max="10000" :step="1"
+            controls-position="right" placeholder="请输入每秒查询次数限制" class="rate-input" />
+          <div class="form-tip">每秒查询请求(Query Per Second)限制，设置为0表示不限制</div>
+          <el-alert
+            type="info"
+            :closable="false"
+            show-icon
+            class="mt-2"
+          >
+            <div class="qps-info">
+              <p><strong>QPS限流与普通限流的区别：</strong></p>
+              <p>- 普通限流：针对所有请求类型，控制总体流量</p>
+              <p>- QPS限流：仅针对查询(GET)请求，适用于保护数据查询接口</p>
+            </div>
+          </el-alert>
+        </el-form-item>
+
         <!-- 启用状态设置 -->
         <el-form-item label="启用状态" prop="proxyConfigLimitDisabled">
           <div class="status-switch">
@@ -83,7 +102,8 @@ export default {
     return {
       // 表单数据
       form: {
-        proxyConfigLimitDisabled: 0
+        proxyConfigLimitDisabled: 0,
+        proxyConfigLimitQps: 0 // 默认QPS限流为0，表示不限制
       },
 
       // 限流类型：PATH 或 IP
@@ -106,6 +126,9 @@ export default {
         proxyConfigLimitPerSeconds: [
           { required: true, message: "请输入限流频率", trigger: "blur" },
           { type: 'number', min: 1, message: "频率必须大于0", trigger: "blur" }
+        ],
+        proxyConfigLimitQps: [
+          { type: 'number', min: 0, message: "QPS必须大于等于0", trigger: "blur" }
         ]
       }
     };
@@ -163,7 +186,8 @@ export default {
     close() {
       this.visible = false;
       this.form = {
-        proxyConfigLimitDisabled: 0
+        proxyConfigLimitDisabled: 0,
+        proxyConfigLimitQps: 0 // 默认QPS限流为0，表示不限制
       };
       this.limitType = null;
       this.mode = "add";
@@ -372,6 +396,15 @@ export default {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+.qps-info {
+  font-size: 12px;
+  line-height: 1.5;
+  
+  p {
+    margin: 2px 0;
   }
 }
 </style>

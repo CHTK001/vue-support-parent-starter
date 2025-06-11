@@ -29,7 +29,9 @@
 
     <!-- 卡片为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
-      <el-empty :description="emptyText" :image-size="100" />
+      <slot name="empty">
+        <el-empty :description="emptyText" :image-size="100" />
+      </slot>
     </template>
 
     <!-- 卡片网格布局 -->
