@@ -80,22 +80,25 @@
             </div>
           </div>
         </template>
+        
+        <!-- 使用empty插槽自定义无数据展示 -->
+        <template #empty>
+          <div class="proxy-empty">
+            <IconifyIconOnline icon="ep:connection" class="empty-icon" />
+            <p>暂无代理服务</p>
+            <el-button type="primary" @click="doSave">
+              <IconifyIconOnline icon="ep:plus"  />
+              添加代理
+            </el-button>
+          </div>
+        </template>
       </ScTable>
 
-      <div v-if="isEmpty" class="proxy-empty">
-        <IconifyIconOnline icon="ep:connection" class="empty-icon" />
-        <p>暂无代理服务</p>
-        <el-button type="primary" @click="doSave">
-          <IconifyIconOnline icon="ep:plus"  />
-          添加代理
-        </el-button>
-      </div>
+      <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
+      <ProxyLog ref="proxyLogRef" />
+      <LogDialog ref="proxyTailRef" />
+      <setting-dialog ref="settingDialog" />
     </div>
-
-    <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
-    <ProxyLog ref="proxyLogRef" />
-    <LogDialog ref="proxyTailRef" />
-    <setting-dialog ref="settingDialog" />
   </div>
 </template>
 
@@ -123,7 +126,6 @@ const settingDialogStatus = ref(false);
 const infoDialogStatus = ref(false);
 const deleteStatus = ref(false);
 const startDialogStatus = ref(false);
-const isEmpty = ref(false);
 const tableRef = ref(null);
 const saveDialog = ref(null);
 const proxyLogRef = ref(null);
@@ -150,18 +152,10 @@ const getProxyIcon = (protocol) => {
   }
 };
 
-// 检查是否为空
-const checkIfEmpty = () => {
-  setTimeout(() => {
-    isEmpty.value = data.value.length === 0;
-  }, 500);
-};
-
 // 处理数据加载
 const handleDataLoaded = (loadedData, totalCount) => {
   data.value = loadedData;
   total.value = totalCount;
-  isEmpty.value = data.value.length === 0;
 };
 
 // 打开URL
@@ -172,7 +166,6 @@ const doOpenUrl = (row) => {
 // 刷新数据
 const afterPropertiesSet = () => {
   tableRef.value?.reload(form);
-  checkIfEmpty();
 };
 
 // 打开应用
@@ -282,7 +275,6 @@ onMounted(() => {
     infoDialogStatus.value = true;
     tailDialogStatus.value = true;
     settingDialogStatus.value = true;
-    checkIfEmpty();
   }, 50);
 });
 </script>

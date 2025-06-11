@@ -311,6 +311,11 @@ const loadDeviceList = async () => {
       
       // 加载完设备列表后，批量检查安装记录
       checkInstallRecords()
+      
+      // 如果只有一个设备，默认勾选
+      if (deviceList.value.length === 1) {
+        selectedDevices.value = [deviceList.value[0].id]
+      }
     } else {
       message.error(res.msg || '加载设备列表失败')
     }
@@ -332,7 +337,7 @@ const checkInstallRecords = async () => {
   for (const device of devicesToCheck) {
     try {
       const res = await fetchSoftServiceInstallLog({ installId: device.id })
-      if (res.code === 200 && res.data) {
+      if (res.code === "00000" && res.data) {
         // 确保数据是数组
         const logData = Array.isArray(res.data) ? res.data : [res.data]
         
@@ -382,7 +387,7 @@ const fetchInstallLog = async (sshId: string) => {
   try {
     logLoading.value = true
     const res = await fetchSoftServiceInstallLog({ installId: sshId })
-    if (res.code === 200 && res.data) {
+    if (res.code === "00000" && res.data) {
       // 确保数据是数组
       const logData = Array.isArray(res.data) ? res.data : [res.data]
       installLogs.value = logData as InstallLog[]
@@ -553,6 +558,11 @@ defineExpose({
       color: var(--el-color-primary);
       font-weight: 600;
     }
+  }
+  
+  &:hover {
+    transform: none; /* 移除可能导致向上偏移的transform效果 */
+    border-color: var(--el-color-primary-light-5);
   }
   
   .device-name {

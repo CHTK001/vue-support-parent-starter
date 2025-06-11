@@ -47,6 +47,18 @@
           </template>
         </el-table-column>
 
+        <!-- QPS限流列，仅在PATH限流时显示 -->
+        <el-table-column v-if="plugin.proxyPluginSpi !== 'ip-limit'" label="QPS限流" prop="proxyConfigLimitQps" min-width="150" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.proxyConfigLimitQps > 0" type="warning" effect="plain" class="limit-rate-tag">
+              {{ row.proxyConfigLimitQps }} 查询/秒
+            </el-tag>
+            <el-tag v-else type="info" effect="plain" class="limit-rate-tag">
+              不限制
+            </el-tag>
+          </template>
+        </el-table-column>
+
         <!-- 状态列 -->
         <el-table-column label="是否禁用" prop="proxyConfigLimitDisabled" width="120" align="center" :filters="statusFilters"
           :filter-method="filterHandler">

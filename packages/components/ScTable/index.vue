@@ -1086,6 +1086,12 @@ const componentMap = {
           <template #default="{ row, index }">
             <slot :row="row" :index="index" :default="row" />
           </template>
+          <!-- 添加empty插槽，用于自定义无数据展示 -->
+          <template #empty>
+            <slot name="empty">
+              <el-empty :description="emptyText" :image-size="100" />
+            </slot>
+          </template>
         </component>
       </div>
 

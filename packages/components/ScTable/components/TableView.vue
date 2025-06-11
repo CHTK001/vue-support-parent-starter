@@ -43,7 +43,9 @@
         </template>
         <slot />
         <template #empty>
-          <el-empty :description="emptyText" :image-size="100" />
+          <slot name="empty">
+            <el-empty :description="emptyText" :image-size="100" />
+          </slot>
         </template>
       </el-table>
     </div>
