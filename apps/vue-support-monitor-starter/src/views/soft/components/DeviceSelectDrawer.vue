@@ -361,12 +361,13 @@ const handleInstall = () => {
 
 // 处理取消
 const handleCancel = () => {
+  installing.value = false;
   emit('cancel')
 }
 
 const handleClose = () => {
-  handleCancel();
   installing.value = false;
+  handleCancel();
 }
 
 // 查看安装记录
@@ -471,6 +472,8 @@ watch(() => drawerVisible.value, (newValue) => {
   if (newValue) {
     loadDeviceList()
     selectedDevices.value = []
+  } else {
+    installing.value = false
   }
 })
 

@@ -24,7 +24,6 @@
 
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { http } from "@repo/utils";
 export default {
   data() {
     return {
@@ -36,14 +35,8 @@ export default {
       mediaType: null,
       visible: false,
       title: "预览",
-      name: null,
-      data: null
+      name: null
     };
-  },
-  unmounted() {
-    try {
-      URL.revokeObjectURL(this.data);
-    } catch (error) {}
   },
   methods: {
     useRenderIcon,
@@ -87,30 +80,28 @@ export default {
     },
     download() {
       this.downloaded = true;
-      http
-        .get(
-          this.path + "?download",
-          {},
-          {
-            headers: {
-              "X-User-Agent": this.ua,
-              "X-Download-User-Agent": this.form.fileStorageProtocolDownloadUa
-            },
-            responseType: "blob"
-          }
-        )
-        .then(res => {
-          this.loading = false;
-          this.data = URL.createObjectURL(res);
-          const box = document.createElement("a");
-          box.download = this.name;
-          box.href = this.data;
-          box.click();
-        })
-        .finally(() => {
-          this.loading = false;
+      try {
+        // 直接创建a标签下载文件
+        const downloadUrl = this.path + "?download";
+        const box = document.createElement("a");
+        box.download = this.name;
+        box.href = downloadUrl;
+        box.target = "_blank";
+        
+        // 如果需要添加下载用户代理头信息，可以考虑使用其他下载方式
+        // 但直接使用a标签无法设置自定义请求头
+        
+        box.click();
+        
+        // 短暂延迟后关闭下载对话框
+        setTimeout(() => {
           this.downloaded = false;
-        });
+          this.close();
+        }, 1000);
+      } catch (error) {
+        console.error("下载失败:", error);
+        this.downloaded = false;
+      }
     }
   }
 };

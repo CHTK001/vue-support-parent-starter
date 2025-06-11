@@ -21,7 +21,7 @@
               <scEcharts key="cpu" height="280px" width="100%" :option="cpuOptions" />
             </div>
           </div>
-        </el-col>
+      </el-col>
         <el-col :span="8" class="chart-col">
           <div class="chart-card">
             <div class="chart-card-header">
@@ -34,7 +34,7 @@
               <scEcharts key="mem" height="280px" width="100%" :option="memOptions" />
             </div>
           </div>
-        </el-col>
+      </el-col>
         <el-col :span="8" class="chart-col">
           <div class="chart-card">
             <div class="chart-card-header">
@@ -47,8 +47,8 @@
               <scEcharts key="disk" height="280px" width="100%" :option="diskOptions" />
             </div>
           </div>
-        </el-col>
-      </el-row>
+      </el-col>
+    </el-row>
     </div>
   </div>
 </template>
@@ -75,111 +75,111 @@ export default {
     const useConfig = ref({});
 
     const condition = reactive({
-      fromTimestamp: new Date().getTime() - 86400000 * 7,
-      toTimestamp: new Date().getTime(),
-      count: 10,
-      interval: 60
+        fromTimestamp: new Date().getTime() - 86400000 * 7,
+        toTimestamp: new Date().getTime(),
+        count: 10,
+        interval: 60
     });
 
     // 内存图表配置
     const memOptions = reactive({
-      legend: {
-        show: true,
-        data: ["服务器内存"],
-        top: 5,
-        right: 15
-      },
-      xAxis: {
-        type: "category",
-        boundaryGap: false
-      },
-      yAxis: {
-        type: "value",
-        boundaryGap: [0, "30%"],
-        max: 100
-      },
-      grid: {
-        left: "5%",
-        right: "5%",
-        bottom: "5%",
-        top: "20%",
-        containLabel: true
-      },
-      type: "line",
-      barWidth: 15,
-      label: {
-        show: false,
-        position: "insideRight"
-      },
-      itemStyle: {
+        legend: {
+          show: true,
+          data: ["服务器内存"],
+          top: 5,
+          right: 15
+        },
+        xAxis: {
+          type: "category",
+          boundaryGap: false
+        },
+        yAxis: {
+          type: "value",
+          boundaryGap: [0, "30%"],
+          max: 100
+        },
+        grid: {
+          left: "5%",
+          right: "5%",
+          bottom: "5%",
+          top: "20%",
+          containLabel: true
+        },
+        type: "line",
+        barWidth: 15,
+        label: {
+          show: false,
+          position: "insideRight"
+        },
+        itemStyle: {
         color: color,
-        borderRadius: 5
-      },
+          borderRadius: 5
+        },
       smooth: true,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(
-          0,
-          0,
-          0,
-          1,
-          [
-            {
-              offset: 0,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0,
+            0,
+            0,
+            1,
+            [
+              {
+                offset: 0,
               color: color
-            },
-            {
-              offset: 0.8,
+              },
+              {
+                offset: 0.8,
               color: "rgba(64, 158, 255, 0.1)"
-            }
-          ],
-          false
-        ),
+              }
+            ],
+            false
+          ),
         shadowcolor: color,
-        shadowBlur: 10
-      },
-      series: [
-        {
-          name: "服务器内存",
-          type: "line",
-          smooth: true,
-          symbol: "none",
-          markPoint: {
-            data: [
-              { type: "max", name: "Max" },
-              { type: "min", name: "Min" }
-            ]
-          },
-          markLine: {
-            data: [{ type: "average", name: "Avg" }]
-          },
-          markLine: {
-            symbol: ["none", "none"],
-            label: { show: false },
-            data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
-          },
-          areaStyle: {},
-          data: []
-        }
-      ]
+          shadowBlur: 10
+        },
+        series: [
+          {
+            name: "服务器内存",
+            type: "line",
+            smooth: true,
+            symbol: "none",
+            markPoint: {
+              data: [
+                { type: "max", name: "Max" },
+                { type: "min", name: "Min" }
+              ]
+            },
+            markLine: {
+              data: [{ type: "average", name: "Avg" }]
+            },
+            markLine: {
+              symbol: ["none", "none"],
+              label: { show: false },
+              data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
+            },
+            areaStyle: {},
+            data: []
+          }
+        ]
     });
 
     // CPU图表配置
     const cpuOptions = reactive({
-      legend: {
-        show: true,
-        data: ["服务器CPU"],
-        top: 5,
-        right: 15
-      },
-      xAxis: {
-        type: "category",
-        boundaryGap: false
-      },
-      yAxis: {
-        type: "value",
-        boundaryGap: [0, "30%"],
-        max: 100
-      },
+        legend: {
+          show: true,
+          data: ["服务器CPU"],
+          top: 5,
+          right: 15
+        },
+        xAxis: {
+          type: "category",
+          boundaryGap: false
+        },
+        yAxis: {
+          type: "value",
+          boundaryGap: [0, "30%"],
+          max: 100
+        },
       grid: {
         left: "5%",
         right: "5%",
@@ -187,166 +187,166 @@ export default {
         top: "20%",
         containLabel: true
       },
-      type: "line",
-      barWidth: 15,
-      label: {
-        show: false,
-        position: "insideRight"
-      },
-      itemStyle: {
+        type: "line",
+        barWidth: 15,
+        label: {
+          show: false,
+          position: "insideRight"
+        },
+        itemStyle: {
         color: "#67C23A",
-        borderRadius: 5
-      },
+          borderRadius: 5
+        },
       smooth: true,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(
-          0,
-          0,
-          0,
-          1,
-          [
-            {
-              offset: 0,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(
+            0,
+            0,
+            0,
+            1,
+            [
+              {
+                offset: 0,
               color: "#67C23A"
-            },
-            {
-              offset: 0.8,
+              },
+              {
+                offset: 0.8,
               color: "rgba(103, 194, 58, 0.1)"
-            }
-          ],
-          false
-        ),
+              }
+            ],
+            false
+          ),
         shadowcolor: "#67C23A",
-        shadowBlur: 10
-      },
-      series: [
-        {
-          name: "服务器CPU",
-          type: "line",
-          smooth: true,
-          symbol: "none",
-          markPoint: {
-            data: [
-              { type: "max", name: "Max" },
-              { type: "min", name: "Min" }
-            ]
-          },
-          markLine: {
-            data: [{ type: "average", name: "Avg" }]
-          },
-          markLine: {
-            symbol: ["none", "none"],
-            label: { show: false },
-            data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
-          },
-          areaStyle: {},
-          data: []
-        }
-      ]
+          shadowBlur: 10
+        },
+        series: [
+          {
+            name: "服务器CPU",
+            type: "line",
+            smooth: true,
+            symbol: "none",
+            markPoint: {
+              data: [
+                { type: "max", name: "Max" },
+                { type: "min", name: "Min" }
+              ]
+            },
+            markLine: {
+              data: [{ type: "average", name: "Avg" }]
+            },
+            markLine: {
+              symbol: ["none", "none"],
+              label: { show: false },
+              data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
+            },
+            areaStyle: {},
+            data: []
+          }
+        ]
     });
 
     // 磁盘图表配置
     const diskOptions = reactive({
-      update: false,
-      title: {
-        show: false,
-        textStyle: {
+        update: false,
+        title: {
+          show: false,
+          textStyle: {
           color: color,
-          fontSize: 16,
-          fontWeight: "normal"
-        }
-      },
-      grid: {
-        top: "10%",
-        left: "8%",
-        right: "12%",
-        bottom: "5%"
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "shadow"
+            fontSize: 16,
+            fontWeight: "normal"
+          }
         },
-        formatter: params => {
-          return "剩余: " + (100 - params[0].data).toFixed(2) + "%";
-        }
-      },
-      xAxis: {
-        type: "value",
-        min: 0,
-        max: 100,
-        axisLine: { show: false },
-        splitLine: { show: false },
-        axisLabel: { show: false },
-        axisTick: { show: false }
-      },
-      dataZoom: {
-        yAxisIndex: 0,
-        show: false,
-        type: "slider",
-        startValue: 0,
-        endValue: 5
-      },
-      yAxis: {
-        type: "category",
-        inverse: true,
-        splitLine: { show: false },
-        axisLine: { show: false },
-        axisLabel: {
-          show: true,
-          interval: 0,
-          margin: 10,
-          fontSize: 12,
-          width: 50,
-          lineHeight: 14,
-          overflow: "breakAll",
-          fontWeight: "normal"
+        grid: {
+          top: "10%",
+          left: "8%",
+          right: "12%",
+          bottom: "5%"
         },
-        axisTick: { show: false },
-        data: []
-      },
-      series: [
-        {
-          type: "bar",
-          barWidth: "40%",
-          animationDuration: 2000,
-          itemStyle: {
-            borderWidth: 0,
-            borderRadius: 10,
-            color: {
-              type: "linear",
-              x: 0,
-              y: 0,
-              x2: 1,
-              y2: 0,
-              colorStops: [
-                { offset: 0, color: "#E6A23C" },
-                { offset: 1, color: "#F56C6C" }
-              ]
-            }
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow"
           },
-          label: { show: false },
-          data: [],
-          z: 0
+          formatter: params => {
+            return "剩余: " + (100 - params[0].data).toFixed(2) + "%";
+          }
         },
-        {
-          type: "bar",
-          barWidth: "40%",
-          barGap: "-100%",
-          animation: false,
-          itemStyle: {
-            borderWidth: 0,
-            borderRadius: 5,
-            color: "rgba(0,202,255,0.2)"
-          },
-          label: {
+        xAxis: {
+          type: "value",
+          min: 0,
+          max: 100,
+          axisLine: { show: false },
+          splitLine: { show: false },
+          axisLabel: { show: false },
+          axisTick: { show: false }
+        },
+        dataZoom: {
+          yAxisIndex: 0,
+          show: false,
+          type: "slider",
+          startValue: 0,
+          endValue: 5
+        },
+        yAxis: {
+          type: "category",
+          inverse: true,
+          splitLine: { show: false },
+          axisLine: { show: false },
+          axisLabel: {
             show: true,
-            position: ["101%", "20%"],
-            fontSize: 14,
+            interval: 0,
+            margin: 10,
+            fontSize: 12,
+            width: 50,
+            lineHeight: 14,
+            overflow: "breakAll",
             fontWeight: "normal"
           },
-          data: [],
-          z: 0
+          axisTick: { show: false },
+          data: []
+        },
+        series: [
+          {
+            type: "bar",
+            barWidth: "40%",
+            animationDuration: 2000,
+            itemStyle: {
+              borderWidth: 0,
+              borderRadius: 10,
+              color: {
+                type: "linear",
+                x: 0,
+                y: 0,
+                x2: 1,
+                y2: 0,
+                colorStops: [
+                { offset: 0, color: "#E6A23C" },
+                { offset: 1, color: "#F56C6C" }
+                ]
+              }
+            },
+            label: { show: false },
+            data: [],
+            z: 0
+          },
+          {
+            type: "bar",
+            barWidth: "40%",
+            barGap: "-100%",
+            animation: false,
+            itemStyle: {
+              borderWidth: 0,
+              borderRadius: 5,
+              color: "rgba(0,202,255,0.2)"
+            },
+            label: {
+              show: true,
+              position: ["101%", "20%"],
+              fontSize: 14,
+              fontWeight: "normal"
+            },
+            data: [],
+            z: 0
         }
       ]
     });
