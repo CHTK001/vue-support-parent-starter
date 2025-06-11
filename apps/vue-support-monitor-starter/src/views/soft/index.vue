@@ -98,11 +98,11 @@
                       <div class="app-stats">
                         <span class="app-stat-item">
                           <IconifyIconOnline icon="ep:download" class="mr-1" />
-                          <span>{{ row.installCount }}</span>
+                          <span>{{ row.installCount || 0 }}</span>
                         </span>
                         <span class="app-stat-item" @click="handleFavorite(row)">
                           <IconifyIconOnline icon="ep:star" class="mr-1" />
-                          <span>{{ row.favoriteCount }}</span>
+                          <span>{{ row.favoriteCount || 0 }}</span>
                         </span>
                       </div>
                       <div class="app-actions">
@@ -150,14 +150,6 @@
     <!-- 安装进度抽屉 -->
     <install-progress-drawer v-if="installDrawerVisible" v-model="installDrawerVisible" :software="currentSoftware" :devices="installDevices" @finish="handleInstallFinish" />
 
-    <!-- 软件详情对话框 -->
-    <SoftDetailDialog
-      v-model="detailDialogVisible"
-      :software="currentSoftware"
-      @install="handleInstall"
-      @close="detailDialogVisible = false"
-    />
-
     <!-- 软件表单对话框 -->
     <SoftForm v-model="formVisible" :is-edit="isEdit" :software="currentSoftware" @submit="handleSubmit" @cancel="formVisible = false" />
   </div>
@@ -174,7 +166,6 @@ import { fetchSoftServiceInstall } from "@/api/soft/install";
 import InstallProgressDrawer from "./components/InstallProgressDrawer.vue";
 import SoftForm from "./components/SoftForm.vue";
 import DeviceSelectDrawer from "./components/DeviceSelectDrawer.vue";
-import SoftDetailDialog from "./components/SoftDetailDialog.vue";
 
 // 表格引用
 const tableRef = ref<InstanceType<typeof ScTable>>();
@@ -325,6 +316,7 @@ const handleDelete = async (soft: SoftService) => {
 const handleCommand = (command: string, soft: SoftService) => {
   switch (command) {
     case "detail":
+    case "install_detail":
       showDetail(soft);
       break;
     case "edit":
@@ -376,7 +368,16 @@ const handleInstall = (soft: SoftService) => {
 
 const showDetail = (soft: SoftService) => {
   currentSoftware.value = soft as PartialSoftService;
-  detailDialogVisible.value = true;
+  // 打开安装进度抽屉，但不传递设备ID，只查看历史安装记录
+  installDevices.value = [];
+  installDrawerVisible.value = true;
+};
+
+const showInstallDetail = (soft: SoftService) => {
+  currentSoftware.value = soft as PartialSoftService;
+  // 打开安装进度抽屉，但不传递设备ID，只查看历史安装记录
+  installDevices.value = [];
+  installDrawerVisible.value = true;
 };
 
 const proceedInstall = async () => {
@@ -429,6 +430,18 @@ const sshId = ref(route.query.sshId as string);
 const goBack = () => {
   window.history.back();
 };
+
+// 查看服务器详情
+const viewServerDetail = (server: any) => {
+  // 设置当前软件
+  currentSoftware.value = { ...currentSoftware.value }
+  
+  // 设置要查看的设备ID
+  installDevices.value = [server.sshId]
+  
+  // 打开安装进度抽屉
+  installDrawerVisible.value = true
+}
 </script>
 
 <style lang="scss" scoped>
