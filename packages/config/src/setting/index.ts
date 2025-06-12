@@ -1,6 +1,7 @@
 import type { PlatformConfigs } from "../types/config";
 export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
+  opsRoles: ["ADMIN", "SUPER_ADMIN", "OPS"], // 运维角色列表
   StorageEncode: true, //缓存是否加密
   remoteAnimation: true, //开启远程动画
   OpenSetting: true, //开启动态配置

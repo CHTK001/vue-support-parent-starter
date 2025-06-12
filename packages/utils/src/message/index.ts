@@ -1,6 +1,7 @@
 import type { VNode } from "vue";
 import { isFunction } from "@pureadmin/utils";
 import { type MessageHandler, ElMessage } from "element-plus";
+import { ElLoading } from "element-plus";
 
 type messageStyle = "el" | "antd";
 type messageTypes = "info" | "success" | "warning" | "error";
@@ -67,6 +68,9 @@ const messageFunction = (message: string | VNode | (() => VNode), params?: Messa
  */
 const closeAllMessage = (): void => ElMessage.closeAll();
 
+// Loading实例存储映射
+const loadingInstances: Record<string, ReturnType<typeof ElLoading.service>> = {};
+
 // 创建包含便捷方法的消息对象
 interface MessageFunction {
   (message: string | VNode | (() => VNode), params?: MessageParams): MessageHandler;
@@ -74,6 +78,18 @@ interface MessageFunction {
   success: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
   warning: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
   error: (message: string | VNode | (() => VNode), params?: Omit<MessageParams, "type">) => MessageHandler;
+  loading: (
+    text?: string,
+    options?: {
+      target?: string | HTMLElement;
+      background?: string;
+      fullscreen?: boolean;
+      name?: string;
+      duration?: number;
+    }
+  ) => void;
+  closeLoading: (name?: string) => void;
+  closeAllLoading: () => void;
   closeAll: () => void;
 }
 
@@ -85,6 +101,58 @@ message.info = (msg, params = {}) => messageFunction(msg, { ...params, type: "in
 message.success = (msg, params = {}) => messageFunction(msg, { ...params, type: "success" });
 message.warning = (msg, params = {}) => messageFunction(msg, { ...params, type: "warning" });
 message.error = (msg, params = {}) => messageFunction(msg, { ...params, type: "error" });
+
+// 加载中方法 - 使用Element Plus的ElLoading服务
+message.loading = (text = "加载中...", options = {}) => {
+  // 获取loading名称，默认为'default'
+  const name = options.name || "default";
+
+  // 如果已经有相同名称的loading实例，先关闭它
+  if (loadingInstances[name]) {
+    loadingInstances[name].close();
+  }
+
+  // 创建新的loading实例并存储到映射中
+  loadingInstances[name] = ElLoading.service({
+    lock: true,
+    text,
+    background: options.background || "rgba(255, 255, 255, 0.7)",
+    target: options.target || "body",
+    fullscreen: options.fullscreen !== false,
+  });
+
+  // 设置自动关闭定时器
+  const duration = options.duration ?? 3000; // 默认3秒自动关闭
+  if (duration > 0) {
+    setTimeout(() => {
+      // 检查实例是否还存在，避免已手动关闭的情况
+      if (loadingInstances[name]) {
+        loadingInstances[name].close();
+        delete loadingInstances[name];
+      }
+    }, duration);
+  }
+};
+
+// 关闭指定名称的loading方法，默认关闭'default'
+message.closeLoading = (name = "default") => {
+  if (loadingInstances[name]) {
+    loadingInstances[name].close();
+    delete loadingInstances[name];
+  }
+};
+
+// 关闭所有loading实例
+message.closeAllLoading = () => {
+  Object.keys(loadingInstances).forEach((name) => {
+    loadingInstances[name].close();
+  });
+  // 清空实例映射
+  Object.keys(loadingInstances).forEach((key) => {
+    delete loadingInstances[key];
+  });
+};
+
 message.closeAll = closeAllMessage;
 
 export { message, closeAllMessage };

@@ -2,142 +2,158 @@
   <el-drawer 
     v-model="drawerVisible" 
     title="选择安装设备" 
-    size="40%" 
+    size="60%" 
     destroy-on-close
     :close-on-click-modal="false"
     :before-close="handleClose"
   >
     <div class="device-selection">
       <div class="selected-software">
-        <div class="flex items-center gap-4">
-          <el-image :src="software.softServiceLogo" fit="contain" style="width: 60px; height: 60px" class="software-logo">
-            <template #error>
-              <div class="app-logo-fallback" style="width: 60px; height: 60px">
-                <IconifyIconOnline icon="ep:picture" />
+        <ScCard 
+          hoverable 
+          shadow="always" 
+          borderPosition="left" 
+          padding="16px"
+          class="mb-4"
+        >
+          <div class="flex items-center gap-4">
+            <el-image :src="software.softServiceLogo" fit="contain" style="width: 60px; height: 60px" class="software-logo">
+              <template #error>
+                <div class="app-logo-fallback" style="width: 60px; height: 60px">
+                  <IconifyIconOnline icon="ep:picture" />
+                </div>
+              </template>
+            </el-image>
+            <div class="flex-1">
+              <h3 class="text-lg font-medium mb-2">{{ software.softServiceName }}</h3>
+              <div class="flex items-center gap-2">
+                <el-tag size="small" type="success">v{{ software.softServiceVersion }}</el-tag>
+                <el-tag size="small" type="primary">{{ getCategoryName(software.softServiceCategory) }}</el-tag>
               </div>
-            </template>
-          </el-image>
-          <div class="flex-1">
-            <h3 class="text-lg font-medium mb-2">{{ software.softServiceName }}</h3>
-            <div class="flex items-center gap-2">
-              <el-tag size="small" type="success">v{{ software.softServiceVersion }}</el-tag>
-              <el-tag size="small" type="primary">{{ getCategoryName(software.softServiceCategory) }}</el-tag>
             </div>
           </div>
-        </div>
 
-        <!-- 版本选择 -->
-        <div class="version-select" v-if="software.versions && software.versions.length > 0">
-          <h4 class="text-sm font-medium mb-2">选择版本</h4>
-          <el-select v-model="selectedVersionId" class="w-full" placeholder="请选择版本">
-            <el-option
-              v-for="version in software.versions"
-              :key="version.softServiceId"
-              :label="`${version.version}${version.isCurrent ? ' (当前)' : ''}${version.isInstallable === false ? ' (不可安装)' : ''}`"
-              :value="version.softServiceId"
-              :disabled="version.isInstallable === false"
-            >
-              <div class="flex justify-between items-center">
-                <span>{{ version.version }}</span>
-                <div class="flex items-center">
-                  <el-tag v-if="version.isInstallable === false" size="small" type="danger" class="mr-1">不可安装</el-tag>
-                  <el-tag v-if="version.isCurrent" size="small" type="success">当前</el-tag>
+          <!-- 版本选择 -->
+          <div class="version-select mt-4" v-if="software.versions && software.versions.length > 0">
+            <h4 class="text-sm font-medium mb-2">选择版本</h4>
+            <el-select v-model="selectedVersionId" class="w-full" placeholder="请选择版本">
+              <el-option
+                v-for="version in software.versions"
+                :key="version.softServiceId"
+                :label="`${version.version}${version.isCurrent ? ' (当前)' : ''}${version.isInstallable === false ? ' (不可安装)' : ''}`"
+                :value="version.softServiceId"
+                :disabled="version.isInstallable === false"
+              >
+                <div class="flex justify-between items-center">
+                  <span>{{ version.version }}</span>
+                  <div class="flex items-center">
+                    <el-tag v-if="version.isInstallable === false" size="small" type="danger" class="mr-1">不可安装</el-tag>
+                    <el-tag v-if="version.isCurrent" size="small" type="success">当前</el-tag>
+                  </div>
                 </div>
-              </div>
-            </el-option>
-          </el-select>
-          <div class="version-info mt-2" v-if="selectedVersion">
-            <p v-if="selectedVersion.releaseTime">发布时间: {{ formatDateDate(selectedVersion.releaseTime) }}</p>
-            <p v-if="selectedVersion.isInstallable === false" class="text-red-500">此版本不支持安装</p>
-            <p v-if="selectedVersion.versionDesc">{{ selectedVersion.versionDesc }}</p>
+              </el-option>
+            </el-select>
+            <div class="version-info mt-2" v-if="selectedVersion">
+              <p v-if="selectedVersion.releaseTime">发布时间: {{ formatDateDate(selectedVersion.releaseTime) }}</p>
+              <p v-if="selectedVersion.isInstallable === false" class="text-red-500">此版本不支持安装</p>
+              <p v-if="selectedVersion.versionDesc">{{ selectedVersion.versionDesc }}</p>
+            </div>
           </div>
-        </div>
+        </ScCard>
       </div>
 
-      <el-divider />
-
       <div class="device-selection-content">
-        <h4 class="device-section-title">
-          <IconifyIconOnline icon="ep:monitor" class="mr-2" />
-          选择安装目标
-        </h4>
-        
-        <div v-if="loading" class="loading-container">
-          <el-skeleton :rows="3" animated />
-        </div>
-        
-        <template v-else>
-          <el-alert 
-            v-if="deviceList.length === 0" 
-            title="未找到可用设备" 
-            type="warning" 
-            :closable="false" 
-            show-icon 
-            class="mb-4" 
-          />
+        <ScCard 
+          hoverable 
+          shadow="always" 
+          borderPosition="top" 
+          padding="16px"
+          class="mb-4"
+        >
+          <template #header>
+            <div class="flex items-center">
+              <IconifyIconOnline icon="ep:monitor" class="mr-2" />
+              <h4 class="device-section-title">选择安装目标</h4>
+            </div>
+          </template>
+          
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="3" animated />
+          </div>
           
           <template v-else>
             <el-alert 
-              v-if="selectedDevices.length === 0" 
-              title="请选择要安装软件的设备" 
-              type="info" 
+              v-if="deviceList.length === 0" 
+              title="未找到可用设备" 
+              type="warning" 
               :closable="false" 
               show-icon 
               class="mb-4" 
             />
-            <el-alert 
-              v-else 
-              :title="`已选择 ${selectedDevices.length} 台设备进行安装`" 
-              type="success" 
-              :closable="false" 
-              show-icon 
-              class="mb-4" 
-            />
+            
+            <template v-else>
+              <el-alert 
+                v-if="selectedDevices.length === 0" 
+                title="请选择要安装软件的设备" 
+                type="info" 
+                :closable="false" 
+                show-icon 
+                class="mb-4" 
+              />
+              <el-alert 
+                v-else 
+                :title="`已选择 ${selectedDevices.length} 台设备进行安装`" 
+                type="success" 
+                :closable="false" 
+                show-icon 
+                class="mb-4" 
+              />
 
-            <div class="device-list">
-              <el-checkbox-group v-model="selectedDevices">
-                <div class="grid grid-cols-1 gap-4">
-                  <ScCard 
-                    v-for="device in deviceList" 
-                    :key="device.id" 
-                    class="device-card" 
-                    :class="{ selected: selectedDevices.includes(device.id) }"
-                    hoverable
-                    shadow="always"
-                    borderPosition="left"
-                    padding="16px"
-                    @click="handleViewInstallLog(device)"
-                  >
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center">
-                        <el-checkbox :label="device.id" class="mr-3" @click.stop />
-                        <div class="ml-4">
-                          <div class="device-ip text-gray-500 text-sm">{{ device.host }}(<span class="device-name">{{ device.name }}</span>)</div>
+              <div class="device-list">
+                <el-checkbox-group v-model="selectedDevices">
+                  <div class="grid grid-cols-1 gap-4">
+                    <ScCard 
+                      v-for="device in deviceList" 
+                      :key="device.id" 
+                      class="device-card" 
+                      :class="{ selected: selectedDevices.includes(device.id) }"
+                      hoverable
+                      shadow="always"
+                      borderPosition="left"
+                      padding="16px"
+                      @click="handleViewInstallLog(device)"
+                    >
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                          <el-checkbox :label="device.id" class="mr-3" @click.stop />
+                          <div class="ml-4">
+                            <div class="device-ip text-gray-500 text-sm">{{ device.host }}(<span class="device-name">{{ device.name }}</span>)</div>
+                          </div>
+                        </div>
+                        <div class="device-status flex items-center">
+                          <el-tag size="small" :type="device.status === 1 ? 'success' : 'danger'">
+                            {{ device.status === 1 ? '在线' : '离线' }}
+                          </el-tag>
+                          <el-button 
+                            v-if="device.hasInstallRecord" 
+                            type="primary" 
+                            link 
+                            size="small" 
+                            class="ml-2"
+                            @click.stop="handleViewInstallLog(device)"
+                          >
+                            <IconifyIconOnline icon="ep:document" class="mr-1" />
+                            安装记录
+                          </el-button>
                         </div>
                       </div>
-                      <div class="device-status flex items-center">
-                        <el-tag size="small" :type="device.status === 1 ? 'success' : 'danger'">
-                          {{ device.status === 1 ? '在线' : '离线' }}
-                        </el-tag>
-                        <el-button 
-                          v-if="device.hasInstallRecord" 
-                          type="primary" 
-                          link 
-                          size="small" 
-                          class="ml-2"
-                          @click.stop="handleViewInstallLog(device)"
-                        >
-                          <IconifyIconOnline icon="ep:document" class="mr-1" />
-                          安装记录
-                        </el-button>
-                      </div>
-                    </div>
-                  </ScCard>
-                </div>
-              </el-checkbox-group>
-            </div>
+                    </ScCard>
+                  </div>
+                </el-checkbox-group>
+              </div>
+            </template>
           </template>
-        </template>
+        </ScCard>
       </div>
 
       <div class="drawer-footer">
@@ -166,7 +182,7 @@
   <el-drawer
     v-model="logDrawerVisible"
     title="安装记录"
-    size="40%"
+    size="60%"
     direction="rtl"
     :destroy-on-close="true"
     :before-close="handleCloseLogDrawer"
@@ -178,71 +194,79 @@
       <el-empty description="暂无安装记录" />
     </div>
     <div v-else class="install-log-container">
-      <div class="install-log-header mb-4">
-        <div class="flex items-center justify-between">
-          <div class="device-info">
-            <h3 class="text-lg font-medium">{{ currentDevice?.name }}</h3>
-            <p class="text-gray-500">{{ currentDevice?.host }}</p>
-          </div>
-          <el-button type="primary" link @click="refreshInstallLog">
-            <IconifyIconOnline icon="ep:refresh" class="mr-1" />刷新
-          </el-button>
-        </div>
-      </div>
-      
-      <el-timeline>
-        <el-timeline-item
-          v-for="(log, index) in installLogs"
-          :key="index"
-          :timestamp="formatDate(log.createTime)"
-          :type="getLogType(log.status)"
-          :hollow="log.status !== 'success'"
-        >
-          <div class="log-item">
-            <h4 class="log-title">
-              {{ log.softServiceName }} 
-              <el-tag size="small" class="ml-2">v{{ log.softServiceVersion }}</el-tag>
-            </h4>
-            <p class="log-status">
-              状态: 
-              <el-tag :type="getLogTagType(log.status)" size="small">
-                {{ getStatusText(log.status) }}
-              </el-tag>
-            </p>
-            <p v-if="log.installPath" class="log-path">
-              安装路径: <code>{{ log.installPath }}</code>
-            </p>
-            <p v-if="log.port" class="log-port">
-              端口: <code>{{ log.port }}</code>
-            </p>
-            <div class="log-actions mt-2">
-              <el-button 
-                v-if="log.status === 'success'" 
-                type="success" 
-                size="small" 
-                link
-              >
-                <IconifyIconOnline icon="ep:video-play" class="mr-1" />启动
-              </el-button>
-              <el-button 
-                v-if="log.status === 'success'" 
-                type="danger" 
-                size="small" 
-                link
-              >
-                <IconifyIconOnline icon="ep:delete" class="mr-1" />卸载
-              </el-button>
-              <el-button 
-                type="primary" 
-                size="small" 
-                link
-              >
-                <IconifyIconOnline icon="ep:document" class="mr-1" />详情
-              </el-button>
+      <ScCard 
+        hoverable 
+        shadow="always" 
+        borderPosition="left" 
+        padding="16px"
+        class="mb-4"
+      >
+        <div class="install-log-header mb-4">
+          <div class="flex items-center justify-between">
+            <div class="device-info">
+              <h3 class="text-lg font-medium">{{ currentDevice?.name }}</h3>
+              <p class="text-gray-500">{{ currentDevice?.host }}</p>
             </div>
+            <el-button type="primary" link @click="refreshInstallLog">
+              <IconifyIconOnline icon="ep:refresh" class="mr-1" />刷新
+            </el-button>
           </div>
-        </el-timeline-item>
-      </el-timeline>
+        </div>
+        
+        <el-timeline>
+          <el-timeline-item
+            v-for="(log, index) in installLogs"
+            :key="index"
+            :timestamp="formatDate(log.createTime)"
+            :type="getLogType(log.status)"
+            :hollow="log.status !== 'success'"
+          >
+            <div class="log-item">
+              <h4 class="log-title">
+                {{ log.softServiceName }} 
+                <el-tag size="small" class="ml-2">v{{ log.softServiceVersion }}</el-tag>
+              </h4>
+              <p class="log-status">
+                状态: 
+                <el-tag :type="getLogTagType(log.status)" size="small">
+                  {{ getStatusText(log.status) }}
+                </el-tag>
+              </p>
+              <p v-if="log.installPath" class="log-path">
+                安装路径: <code>{{ log.installPath }}</code>
+              </p>
+              <p v-if="log.port" class="log-port">
+                端口: <code>{{ log.port }}</code>
+              </p>
+              <div class="log-actions mt-2">
+                <el-button 
+                  v-if="log.status === 'success'" 
+                  type="success" 
+                  size="small" 
+                  link
+                >
+                  <IconifyIconOnline icon="ep:video-play" class="mr-1" />启动
+                </el-button>
+                <el-button 
+                  v-if="log.status === 'success'" 
+                  type="danger" 
+                  size="small" 
+                  link
+                >
+                  <IconifyIconOnline icon="ep:delete" class="mr-1" />卸载
+                </el-button>
+                <el-button 
+                  type="primary" 
+                  size="small" 
+                  link
+                >
+                  <IconifyIconOnline icon="ep:document" class="mr-1" />详情
+                </el-button>
+              </div>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+      </ScCard>
     </div>
   </el-drawer>
 </template>
@@ -598,19 +622,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  
-  .selected-software {
-    background-color: var(--el-fill-color-light);
-    border-radius: 12px;
-    padding: 20px;
-    
-    .software-logo {
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-      border: 1px solid var(--el-border-color-light);
-    }
-  }
+  gap: 20px;
 }
 
 .device-selection-content {
@@ -622,10 +634,8 @@ defineExpose({
 .device-section-title {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin: 0;
   color: var(--el-text-color-primary);
-  display: flex;
-  align-items: center;
 }
 
 .loading-container {
@@ -665,11 +675,12 @@ defineExpose({
     font-weight: 500;
     font-size: 15px;
     transition: color 0.3s;
-    margin-bottom: 4px;
   }
   
   .device-ip {
-    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .device-status {
@@ -681,7 +692,7 @@ defineExpose({
 
 .drawer-footer {
   margin-top: auto;
-  padding-top: 16px;
+  padding: 16px 0;
   border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   justify-content: flex-end;

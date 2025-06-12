@@ -84,6 +84,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录，<code>$PORT</code> 表示端口号</p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>安装成功标识:</p>
+                    <el-input v-model="form.softServiceInstallSuccessFlag" placeholder="例如: installed successfully" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>安装失败标识:</p>
+                    <el-input v-model="form.softServiceInstallFailureFlag" placeholder="例如: installation failed" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
           
@@ -99,6 +111,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录</p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>卸载成功标识:</p>
+                    <el-input v-model="form.softServiceUninstallSuccessFlag" placeholder="例如: uninstalled successfully" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>卸载失败标识:</p>
+                    <el-input v-model="form.softServiceUninstallFailureFlag" placeholder="例如: uninstall failed" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
           
@@ -114,6 +138,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录，<code>$PORT</code> 表示端口号</p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>启动成功标识:</p>
+                    <el-input v-model="form.softServiceStartSuccessFlag" placeholder="例如: started successfully" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>启动失败标识:</p>
+                    <el-input v-model="form.softServiceStartFailureFlag" placeholder="例如: start failed" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
           
@@ -129,6 +165,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录</p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>停止成功标识:</p>
+                    <el-input v-model="form.softServiceStopSuccessFlag" placeholder="例如: stopped successfully" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>停止失败标识:</p>
+                    <el-input v-model="form.softServiceStopFailureFlag" placeholder="例如: stop failed" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
           
@@ -144,6 +192,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录，<code>$PORT</code> 表示端口号</p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>重启成功标识:</p>
+                    <el-input v-model="form.softServiceRestartSuccessFlag" placeholder="例如: restarted successfully" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>重启失败标识:</p>
+                    <el-input v-model="form.softServiceRestartFailureFlag" placeholder="例如: restart failed" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
           
@@ -159,7 +219,18 @@
             </div>
             <div class="command-tips">
               <p>提示: 用于检查服务运行状态的命令，可以使用 <code>$DIR</code> 表示安装目录</p>
-              <p>状态检查成功标识: <el-input v-model="form.softServiceStatusCheckSuccessFlag" placeholder="例如: running 或 active" style="width: 250px;" /></p>
+              <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <p>状态检查成功标识:</p>
+                    <el-input v-model="form.softServiceStatusCheckSuccessFlag" placeholder="例如: running 或 active" />
+                  </el-col>
+                  <el-col :span="12">
+                    <p>状态检查失败标识:</p>
+                    <el-input v-model="form.softServiceStatusCheckFailureFlag" placeholder="例如: stopped 或 inactive" />
+                  </el-col>
+                </el-row>
+              </div>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -296,6 +367,17 @@ const form = reactive<PartialSoftService>({
   softServiceInstalledCommand: '',
   abstractChannelSession: '',
   softServiceStatusCheckSuccessFlag: '',
+  softServiceStatusCheckFailureFlag: '',
+  softServiceInstallSuccessFlag: '',
+  softServiceInstallFailureFlag: '',
+  softServiceUninstallSuccessFlag: '',
+  softServiceUninstallFailureFlag: '',
+  softServiceStartSuccessFlag: '',
+  softServiceStartFailureFlag: '',
+  softServiceStopSuccessFlag: '',
+  softServiceStopFailureFlag: '',
+  softServiceRestartSuccessFlag: '',
+  softServiceRestartFailureFlag: '',
   ...(props.software || {})
 })
 
@@ -441,6 +523,28 @@ onMounted(() => {
         border-radius: 3px;
         color: var(--el-color-primary);
         font-family: monospace;
+      }
+
+      .command-flags {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: var(--el-bg-color);
+        border-radius: 4px;
+        border: 1px dashed var(--el-border-color);
+
+        p {
+          margin-bottom: 5px;
+          font-weight: 500;
+          color: var(--el-text-color-primary);
+        }
+
+        .el-input {
+          margin-bottom: 10px;
+        }
+
+        .el-col:first-child {
+          border-right: 1px dashed var(--el-border-color-lighter);
+        }
       }
     }
   }

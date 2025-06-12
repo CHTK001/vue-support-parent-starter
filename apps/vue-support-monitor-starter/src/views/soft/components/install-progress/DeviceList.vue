@@ -22,15 +22,15 @@
             <div class="device-info">
               <div class="device-name">
                 <IconifyIconOnline icon="ep:monitor" class="device-icon" />
-                <span>{{ device.name }}</span>
+                <span>{{ device.sshName }}</span>
               </div>
               <div class="device-meta">
                 <el-tag 
                   size="small" 
-                  :type="getStatusType(device.status)"
+                  :type="getStatusType(device.installStatus)"
                   effect="light"
                 >
-                  {{ getStatusText(device.status) }}
+                  {{ getStatusText(device.installStatus) }}
                 </el-tag>
               </div>
             </div>
@@ -78,23 +78,23 @@ const handleSelect = (deviceId: string, installId: string) => {
 }
 
 // 获取状态类型
-const getStatusType = (status: string) => {
+const getStatusType = (status: number) => {
   switch (status) {
-    case 'pending': return 'info'
-    case 'running': return 'warning'
-    case 'success': return 'success'
-    case 'error': return 'danger'
+    case 0: return 'info'
+    case 1: return 'warning'
+    case 2: return 'success'
+    case 3: return 'danger'
     default: return 'info'
   }
 }
 
 // 获取状态文本
-const getStatusText = (status: string) => {
+const getStatusText = (status: number) => {
   switch (status) {
-    case 'pending': return '待安装'
-    case 'running': return '安装中'
-    case 'success': return '已安装'
-    case 'error': return '安装失败'
+    case 0: return '待安装'
+    case 1: return '安装中'
+    case 2: return '已安装'
+    case 3: return '安装失败'
     default: return '未知'
   }
 }
