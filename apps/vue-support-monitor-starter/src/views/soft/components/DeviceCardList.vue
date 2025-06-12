@@ -34,7 +34,7 @@
         :class="{ 'selected-device': selectedDeviceId === (device.installId || device.id) }"
         @click="handleSelectDevice(device)"
       >
-        <template #title>
+        <template #header>
           <div class="card-header flex justify-between items-center">
             <div class="device-name flex items-center">
               <IconifyIconOnline icon="ep:monitor" class="mr-2" />
@@ -105,6 +105,19 @@
             </div>
           </div>
         </template>
+        
+        <template #footer>
+          <div class="card-actions flex justify-end gap-2 pt-2 border-t border-gray-100">
+            <el-button type="primary" link size="small" @click.stop="handleEditDevice(device)">
+              <IconifyIconOnline icon="ep:edit" class="mr-1" />
+              编辑
+            </el-button>
+            <el-button type="danger" link size="small" @click.stop="handleDeleteDevice(device)">
+              <IconifyIconOnline icon="ep:delete" class="mr-1" />
+              删除
+            </el-button>
+          </div>
+        </template>
       </ScCard>
     </div>
 
@@ -112,7 +125,7 @@
     <el-dialog
       v-model="deviceFormVisible"
       :title="isEdit ? '编辑设备' : '绑定设备'"
-      width="500px"
+      width="550px"
       destroy-on-close
     >
       <el-form 
@@ -120,44 +133,84 @@
         :model="deviceForm" 
         label-width="100px"
         :rules="deviceFormRules"
+        class="device-form"
       >
-        <el-form-item label="设备名称" prop="sshName">
-          <el-input v-model="deviceForm.sshName" placeholder="请输入设备名称" />
-        </el-form-item>
-        <el-form-item label="设备地址" prop="sshHost">
-          <el-input v-model="deviceForm.sshHost" placeholder="请输入设备地址" />
-        </el-form-item>
-        <el-form-item label="设备端口" prop="sshPort">
-          <el-input v-model="deviceForm.sshPort" placeholder="请输入设备端口" />
-        </el-form-item>
-        <el-form-item label="安装路径" prop="installPath">
-          <el-input v-model="deviceForm.installPath" placeholder="请输入安装路径" />
-        </el-form-item>
-        <el-form-item label="版本" prop="installVersion">
-          <el-input v-model="deviceForm.installVersion" placeholder="请输入版本" />
-        </el-form-item>
-        <el-form-item label="配置路径" prop="installConfigPath">
-          <el-input v-model="deviceForm.installConfigPath" placeholder="请输入配置路径" />
-        </el-form-item>
-        <el-form-item label="安装状态" prop="installStatus">
-          <el-select v-model="deviceForm.installStatus" placeholder="请选择安装状态">
-            <el-option :value="0" label="未安装" />
-            <el-option :value="1" label="安装中" />
-            <el-option :value="2" label="已安装" />
-            <el-option :value="3" label="安装失败" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="运行状态" prop="installRunStatus">
-          <el-select v-model="deviceForm.installRunStatus" placeholder="请选择运行状态">
-            <el-option :value="0" label="未运行" />
-            <el-option :value="1" label="运行中" />
-          </el-select>
-        </el-form-item>
+        <el-tabs v-model="activeTab">
+          <el-tab-pane label="基本信息" name="basic">
+            <el-form-item label="设备名称" prop="sshName">
+              <el-input v-model="deviceForm.sshName" placeholder="请输入设备名称" />
+            </el-form-item>
+            <el-form-item label="设备地址" prop="sshHost">
+              <el-input v-model="deviceForm.sshHost" placeholder="请输入设备地址" />
+            </el-form-item>
+            <el-form-item label="设备端口" prop="sshPort">
+              <el-input v-model="deviceForm.sshPort" placeholder="请输入设备端口" />
+            </el-form-item>
+            <el-form-item label="安装路径" prop="installPath">
+              <el-input v-model="deviceForm.installPath" placeholder="请输入安装路径" />
+            </el-form-item>
+            <el-form-item label="配置路径" prop="installConfigPath">
+              <el-input v-model="deviceForm.installConfigPath" placeholder="请输入配置路径" />
+            </el-form-item>
+            <el-form-item label="日志路径" prop="installLogPath">
+              <el-input v-model="deviceForm.installLogPath" placeholder="请输入日志路径" />
+            </el-form-item>
+          </el-tab-pane>
+          <el-tab-pane label="状态信息" name="status">
+            <el-form-item label="版本" prop="installVersion">
+              <el-input v-model="deviceForm.installVersion" placeholder="请输入版本" />
+            </el-form-item>
+            <el-form-item label="安装状态" prop="installStatus">
+              <el-select v-model="deviceForm.installStatus" placeholder="请选择安装状态" class="w-full">
+                <el-option :value="0" label="未安装" />
+                <el-option :value="1" label="安装中" />
+                <el-option :value="2" label="已安装" />
+                <el-option :value="3" label="安装失败" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="运行状态" prop="installRunStatus">
+              <el-select v-model="deviceForm.installRunStatus" placeholder="请选择运行状态" class="w-full">
+                <el-option :value="0" label="未运行" />
+                <el-option :value="1" label="运行中" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="安装时间">
+              <el-date-picker 
+                v-model="deviceForm.installTime" 
+                type="datetime" 
+                placeholder="选择安装时间"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                class="w-full"
+              />
+            </el-form-item>
+            <el-form-item label="最后启动时间">
+              <el-date-picker 
+                v-model="deviceForm.installLastStartTime" 
+                type="datetime" 
+                placeholder="选择最后启动时间"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                class="w-full"
+              />
+            </el-form-item>
+            <el-form-item label="最后停止时间">
+              <el-date-picker 
+                v-model="deviceForm.installLastStopTime" 
+                type="datetime" 
+                placeholder="选择最后停止时间"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                class="w-full"
+              />
+            </el-form-item>
+          </el-tab-pane>
+        </el-tabs>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="deviceFormVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitDeviceForm">确定</el-button>
+          <el-button type="primary" @click="submitDeviceForm" :loading="submitting">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -169,6 +222,7 @@ import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
 import { message } from "@repo/utils"
 import { ElMessageBox } from 'element-plus'
 import ScCard from "@repo/components/ScCard/index.vue"
+import type { PropType } from 'vue'
 import { 
   fetchSoftServiceInstallAdd,
   fetchSoftServiceInstallUpdate,
@@ -200,18 +254,28 @@ const emit = defineEmits(['select-device', 'refresh', 'add', 'edit', 'delete'])
 // 设备表单相关
 const deviceFormVisible = ref(false)
 const isEdit = ref(false)
-const deviceForm = reactive({
-  installId: undefined as string | number | undefined,
+const activeTab = ref('basic')
+const submitting = ref(false)
+
+// 根据SoftServiceInstall接口定义表单数据
+const deviceForm = reactive<Partial<SoftServiceInstall>>({
+  installId: undefined,
   sshId: '',
   softServiceId: 0,
   sshName: '',
   sshHost: '',
-  sshPort: '',
+  sshPort: undefined,
   installPath: '',
   installVersion: '',
   installStatus: 0,
   installRunStatus: 0,
-  installConfigPath: ''
+  installConfigPath: '',
+  installLogPath: '',
+  installTime: undefined,
+  installLastStartTime: undefined,
+  installLastStopTime: undefined,
+  installLastCheckTime: undefined,
+  softServiceName: ''
 })
 
 // 表单验证规则
@@ -308,28 +372,60 @@ const handleCommand = (command: string, device: any) => {
 // 添加设备
 const handleAddDevice = () => {
   isEdit.value = false
+  activeTab.value = 'basic'
+  
   // 重置表单
   deviceForm.installId = undefined
   deviceForm.sshId = ''
   deviceForm.softServiceId = props.softServiceId
   deviceForm.sshName = ''
   deviceForm.sshHost = ''
-  deviceForm.sshPort = ''
+  deviceForm.sshPort = undefined
   deviceForm.installPath = ''
   deviceForm.installVersion = ''
   deviceForm.installStatus = 0
   deviceForm.installRunStatus = 0
   deviceForm.installConfigPath = ''
+  deviceForm.installLogPath = ''
+  deviceForm.installTime = undefined
+  deviceForm.installLastStartTime = undefined
+  deviceForm.installLastStopTime = undefined
+  deviceForm.installLastCheckTime = undefined
+  deviceForm.softServiceName = ''
+  
+  // 设置默认值
+  deviceForm.sshId = ''
+  
   deviceFormVisible.value = true
 }
 
 // 编辑设备
 const handleEditDevice = (device: any) => {
   isEdit.value = true
+  activeTab.value = 'basic'
+  
+  // 先重置表单
+  deviceForm.installId = undefined
+  deviceForm.sshId = ''
+  deviceForm.softServiceId = props.softServiceId
+  deviceForm.sshName = ''
+  deviceForm.sshHost = ''
+  deviceForm.sshPort = undefined
+  deviceForm.installPath = ''
+  deviceForm.installVersion = ''
+  deviceForm.installStatus = 0
+  deviceForm.installRunStatus = 0
+  deviceForm.installConfigPath = ''
+  deviceForm.installLogPath = ''
+  deviceForm.installTime = undefined
+  deviceForm.installLastStartTime = undefined
+  deviceForm.installLastStopTime = undefined
+  deviceForm.installLastCheckTime = undefined
+  deviceForm.softServiceName = ''
+  
   // 填充表单数据
   deviceForm.installId = device.installId
   deviceForm.sshId = device.sshId || ''
-  deviceForm.softServiceId = device.softServiceId || props.softServiceId
   deviceForm.sshName = device.sshName || device.name || ''
   deviceForm.sshHost = device.sshHost || device.host || ''
   deviceForm.sshPort = device.sshPort || device.port || ''
@@ -340,6 +436,13 @@ const handleEditDevice = (device: any) => {
     : (device.installStatus || 0)
   deviceForm.installRunStatus = device.installRunStatus || 0
   deviceForm.installConfigPath = device.installConfigPath || ''
+  deviceForm.installLogPath = device.installLogPath || ''
+  deviceForm.installTime = device.installTime
+  deviceForm.installLastStartTime = device.installLastStartTime
+  deviceForm.installLastStopTime = device.installLastStopTime
+  deviceForm.installLastCheckTime = device.installLastCheckTime
+  deviceForm.softServiceName = device.softServiceName || ''
+  
   deviceFormVisible.value = true
 }
 
@@ -386,14 +489,16 @@ const submitDeviceForm = async () => {
   
   try {
     await deviceFormRef.value.validate()
+    submitting.value = true
     
-    // 准备提交的数据
+    // 准备提交的数据，确保类型正确
     const submitData = {
       ...deviceForm,
       // 确保数值类型字段为数字
       installStatus: Number(deviceForm.installStatus),
       installRunStatus: Number(deviceForm.installRunStatus),
-      softServiceId: Number(deviceForm.softServiceId)
+      softServiceId: Number(deviceForm.softServiceId),
+      sshPort: Number(deviceForm.sshPort)
     }
     
     let res
@@ -413,6 +518,9 @@ const submitDeviceForm = async () => {
     }
   } catch (error) {
     console.error('提交设备表单失败:', error)
+    message.error('表单验证失败，请检查输入')
+  } finally {
+    submitting.value = false
   }
 }
 </script>
@@ -442,8 +550,16 @@ const submitDeviceForm = async () => {
       box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
     }
     
-    :deep(.sc-card-title) {
-      padding: 12px 0;
+    :deep(.sc-card-default__header) {
+      padding: 12px 16px;
+    }
+    
+    :deep(.sc-card-default__body) {
+      padding: 16px;
+    }
+    
+    :deep(.sc-card-default__footer) {
+      padding: 12px 16px;
     }
   }
 
@@ -491,6 +607,20 @@ const submitDeviceForm = async () => {
   
   .loading-container {
     min-height: 300px;
+  }
+  
+  .card-actions {
+    margin-top: 0;
+  }
+}
+
+.device-form {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+  
+  :deep(.el-tabs__content) {
+    padding: 16px 0;
   }
 }
 </style> 

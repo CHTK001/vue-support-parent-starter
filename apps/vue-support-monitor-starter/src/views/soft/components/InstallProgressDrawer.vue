@@ -116,6 +116,7 @@ import {
 } from './install-progress'
 
 // 扩展SoftServiceInstall接口，添加UI需要的额外字段
+//@ts-ignore
 interface ExtendedSoftServiceInstall extends Partial<SoftServiceInstall> {
   sshName?: string;
   sshHost?: string;
