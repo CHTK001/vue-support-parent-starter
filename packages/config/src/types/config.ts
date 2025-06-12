@@ -1,5 +1,6 @@
 export interface PlatformConfigs {
   adminRoles?: string[];
+  opsRoles?: string[];
   cardBody?: boolean;
   OpenAuth?: boolean;
   OpenSetting?: boolean;

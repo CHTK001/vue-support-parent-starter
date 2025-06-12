@@ -29,7 +29,7 @@
           
           <!-- 设备列表部分 -->
           <DeviceList 
-            :device-list="deviceList" 
+            :device-list="deviceServices" 
             :active-device="activeDevice"
             @select-device="handleSelectDevice"
           />
@@ -53,9 +53,20 @@
                   </div>
                 </div>
               </div>
-              <el-tag :type="getStatusTagType(installStatus)" effect="dark" size="large">
-                {{ getInstallStatusText() }}
-              </el-tag>
+              <div class="flex items-center gap-2">
+                <el-tag :type="getStatusTagType(installStatus)" effect="dark" size="large">
+                  {{ getInstallStatusText() }}
+                </el-tag>
+                <el-tag 
+                  class="flex items-center justify-center cursor-pointer"
+                  type="danger" 
+                  @click="handleUninstall"
+                  :loading="uninstalling"
+                >
+                  <span><IconifyIconOnline icon="ep:delete" class="mr-1" /></span>
+                  <span>卸载</span>
+                </el-tag>
+              </div>
             </div>
           </div>
           <LogSection
@@ -121,6 +132,9 @@ interface ExtendedSoftServiceInstall extends Partial<SoftServiceInstall> {
   sshName?: string;
   sshHost?: string;
   sshPort?: string | number;
+  progress?: number; // 添加进度属性
+  sshId?: string; // 确保sshId为字符串类型
+  installId?: string; // 确保installId为字符串类型
 }
 
 const props = defineProps({
@@ -148,12 +162,9 @@ const logSectionRef = ref<any>(null)
 const activeInstallId = ref<any>(null)
 const activeDevice = ref<string>('')
 const installStatus = ref<string>('pending') // pending, running, success, error
-const deviceList = ref<any[]>([])
+const deviceServices = ref<ExtendedSoftServiceInstall[]>([])
 const installId = ref<string>('')
 const isViewMode = ref(false) // 是否为查看模式
-
-// 设备服务相关
-const deviceServices = ref<ExtendedSoftServiceInstall[]>([])
 const serviceFormVisible = ref(false)
 const serviceForm = reactive<ExtendedSoftServiceInstall>({
   installId: undefined,
@@ -178,7 +189,7 @@ const canViewServiceLogs = computed(() => {
 
 // 当前选中的设备
 const currentDevice = computed(() => {
-  return deviceList.value.find(d => d.id === activeDevice.value)
+  return deviceServices.value.find(d => d.sshId === activeDevice.value || d.installId === activeDevice.value)
 })
 
 // 拖动分隔符相关
@@ -354,25 +365,28 @@ watch(() => props.software.installedServers, (newInstalledServers) => {
   isViewMode.value = true
   
   if (newInstalledServers && newInstalledServers.length > 0) {
-    // 如果有已安装的服务器信息，转换为设备列表
-    deviceList.value = newInstalledServers.map(server => ({
-      id: server.sshId || server.installId,
-      name: server.serverName || `设备 ${server.sshId?.substring(0, 8) || '未知'}`,
-      status: getInstallRecordStatus(server.installStatus),
-      installTime: server.installTime,
+    // 如果有已安装的服务器信息，转换为设备服务列表
+    deviceServices.value = newInstalledServers.map(server => ({
+      installId: String(server.installId || ''),
+      sshId: String(server.sshId || ''),
+      softServiceId: props.software.softServiceId,
+      installStatus: server.installStatus,
       installPath: server.installPath,
-      port: server.port,
-      softServiceVersion: server.installVersion,
-      installId: server.installId
-    }))
+      installVersion: server.installVersion,
+      installRunStatus: server.installRunStatus,
+      sshName: server.serverName || `设备 ${server.sshId?.substring(0, 8) || '未知'}`,
+      sshHost: server.host,
+      sshPort: server.port,
+      createTime: server.installTime
+    }));
     
     // 如果有指定的设备ID，则选中该设备
     if ((props.software as any).selectedDeviceId) {
       activeDevice.value = (props.software as any).selectedDeviceId
     } 
     // 否则选择第一个设备
-    else if (deviceList.value.length > 0 && !activeDevice.value) {
-      activeDevice.value = deviceList.value[0].id
+    else if (deviceServices.value.length > 0 && !activeDevice.value) {
+      activeDevice.value = deviceServices.value[0].sshId || deviceServices.value[0].installId || '';
     }
   } else {
     // 如果没有已安装服务器，查询历史安装记录
@@ -592,17 +606,20 @@ const checkInstallStatus = (log: any) => {
 
 // 更新设备状态
 const updateDeviceStatus = (deviceId: string, status: string) => {
-  const device = deviceList.value.find(d => d.id === deviceId)
+  const device = deviceServices.value.find(d => d.sshId === deviceId || d.installId === deviceId)
   if (device) {
-    device.status = status
+    device.installStatus = status === 'running' ? 1 : 
+                          status === 'success' ? 2 : 
+                          status === 'error' ? 3 : 0;
   }
 }
 
 // 更新安装进度
 const updateInstallProgress = (deviceId: string, progress: number) => {
-  const device = deviceList.value.find(d => d.id === deviceId)
+  const device = deviceServices.value.find(d => d.sshId === deviceId || d.installId === deviceId)
   if (device) {
-    device.progress = progress
+    // 添加进度属性
+    (device as any).progress = progress
   }
 }
 
@@ -657,55 +674,46 @@ const exportLogs = () => {
 // 加载安装历史记录
 const loadInstallHistory = async () => {
   try {
-    deviceList.value = [{
-      id: 'loading',
-      name: '正在加载...',
-      status: 'pending',
+    deviceServices.value = [{
+      sshId: 'loading',
+      sshName: '正在加载...',
+      installStatus: 0,
+      softServiceId: props.software.softServiceId,
       progress: 0
-    }]
+    } as ExtendedSoftServiceInstall]
     
     // 加载设备服务
     await loadDeviceServices()
     
-    if (deviceServices.value.length > 0) {
-      // 如果有设备服务，转换为设备列表
-      deviceList.value = deviceServices.value.map(service => ({
-        id: service.installId || service.sshId,
-        name: service.sshName || `设备 ${service.sshId?.substring(0, 8) || '未知'}`,
-        status: getInstallRecordStatus(service.installStatus),
-        installTime: service.createTime,
-        installPath: service.installPath,
-        port: service.sshPort,
-        softServiceVersion: service.installVersion,
-        installId: service.installId
-      }))
-      
+    if (deviceServices.value.length > 0 && deviceServices.value[0].sshId !== 'loading') {
       // 选择第一个设备
-      if (deviceList.value.length > 0) {
-        activeDevice.value = deviceList.value[0].id
+      if (deviceServices.value.length > 0) {
+        activeDevice.value = deviceServices.value[0].sshId || deviceServices.value[0].installId || '';
         
         // 加载该设备的安装日志
         if (typeof activeDevice.value === 'string') {
-          const device = deviceList.value[0]
-          loadDeviceInstallLog(device.installId || device.id)
+          const device = deviceServices.value[0]
+          loadDeviceInstallLog(device.installId || device.sshId || '')
         }
       }
     } else {
-      deviceList.value = [{
-        id: 'no-records',
-        name: '暂无安装记录',
-        status: 'pending',
+      deviceServices.value = [{
+        sshId: 'no-records',
+        sshName: '暂无安装记录',
+        installStatus: 0,
+        softServiceId: props.software.softServiceId,
         progress: 0
-      }]
+      } as ExtendedSoftServiceInstall]
     }
   } catch (error) {
     console.error('加载安装历史记录失败:', error)
-    deviceList.value = [{
-      id: 'error',
-      name: '加载失败',
-      status: 'error',
+    deviceServices.value = [{
+      sshId: 'error',
+      sshName: '加载失败',
+      installStatus: 3,
+      softServiceId: props.software.softServiceId,
       progress: 0
-    }]
+    } as ExtendedSoftServiceInstall]
     addLog('error', '加载安装记录失败')
   }
 }
@@ -764,7 +772,7 @@ const handleDeleteService = async (service: any) => {
 // 添加服务
 const handleAddService = () => {
   isEditService.value = false
-  serviceForm.installId = Number(activeDevice.value)
+  serviceForm.installId = activeDevice.value
   serviceForm.softServiceId = props.software.softServiceId || 0
   serviceForm.sshName = ''
   serviceForm.sshHost = ''
@@ -868,20 +876,20 @@ const getStatusIcon = (status: string) => {
 const getCurrentDeviceName = () => {
   if (!activeDevice.value) return '未选择设备';
   
-  const device = deviceList.value.find(d => d.id === activeDevice.value);
-  return device ? device.name : '未知设备';
+  const device = deviceServices.value.find(d => d.sshId === activeDevice.value || d.installId === activeDevice.value);
+  return device ? device.sshName : '未知设备';
 }
 
 // 获取当前设备信息
 const getCurrentDeviceInfo = () => {
   if (!activeDevice.value) return '';
   
-  const device = deviceList.value.find(d => d.id === activeDevice.value);
+  const device = deviceServices.value.find(d => d.sshId === activeDevice.value || d.installId === activeDevice.value);
   if (!device) return '';
   
   const parts = [];
-  if (device.port) parts.push(`端口: ${device.port}`);
-  if (device.softServiceVersion) parts.push(`版本: ${device.softServiceVersion}`);
+  if (device.sshPort) parts.push(`端口: ${device.sshPort}`);
+  if (device.installVersion) parts.push(`版本: ${device.installVersion}`);
   if (device.installPath) parts.push(`路径: ${device.installPath}`);
   
   return parts.join(' | ');
@@ -906,6 +914,63 @@ const getInstallStatusText = () => {
     case 'success': return '安装成功';
     case 'error': return '安装失败';
     default: return '未知状态';
+  }
+}
+
+// 添加卸载相关状态
+const uninstalling = ref(false)
+
+// 处理卸载
+const handleUninstall = async () => {
+  try {
+    // 获取当前选中的设备
+    const currentDevice = deviceServices.value.find(d => d.sshId === activeDevice.value || d.installId === activeDevice.value)
+    if (!currentDevice) {
+      message.error('未找到设备信息')
+      return
+    }
+    
+    // 显示确认对话框
+    await ElMessageBox.confirm(
+      `确定要卸载 ${props.software.softServiceName} 吗？此操作不可逆。`,
+      '卸载确认',
+      {
+        confirmButtonText: '确认卸载',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 开始卸载
+    uninstalling.value = true
+    
+    // 添加卸载开始日志
+    addLog('info', `开始卸载 ${props.software.softServiceName}...`)
+    
+    // 执行卸载操作
+    const installId = currentDevice.installId || ''
+    const res = await fetchSoftServiceUninstall({ installId: installId })
+    
+    if (res.code === "00000") {
+      message.success('卸载命令已发送')
+      
+      // 订阅卸载日志
+      if (logSectionRef.value) {
+        logSectionRef.value.activeLogType = 'uninstall'
+        handleLogTypeChange()
+      }
+    } else {
+      message.error(res.msg || '卸载失败')
+      addLog('error', `卸载失败: ${res.msg || '未知错误'}`)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('卸载失败:', error)
+      message.error('卸载失败')
+      addLog('error', `卸载失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    }
+  } finally {
+    uninstalling.value = false
   }
 }
 </script>
@@ -1061,3 +1126,4 @@ const getInstallStatusText = () => {
   }
 }
 </style>
+ 

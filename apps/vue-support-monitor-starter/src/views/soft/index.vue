@@ -56,13 +56,11 @@
                 <el-option label="默认排序" value="default" />
                 <el-option label="最新" value="newest" />
                 <el-option label="最热" value="popular" />
-          </el-select>
-        </div>
-            <el-button type="primary" class="add-button" @click="handleAdd">
-              <IconifyIconOnline icon="ep:plus" />新增软件
-        </el-button>
+              </el-select>
+            </div>
+            <el-button type="primary" class="add-button" @click="handleAdd"> <IconifyIconOnline icon="ep:plus" />新增软件 </el-button>
           </div>
-      </el-header>
+        </el-header>
 
         <!-- 主内容区 -->
         <el-main class="content-main nopadding">
@@ -77,14 +75,14 @@
                 <div class="media-content">
                   <div class="app-logo">
                     <el-image :src="row.softServiceLogo" fit="contain" :alt="row.softServiceName">
-                    <template #error>
+                      <template #error>
                         <div class="app-logo-fallback">
                           <IconifyIconOnline icon="ep:picture" />
-                      </div>
-                    </template>
-                  </el-image>
-                </div>
-                  
+                        </div>
+                      </template>
+                    </el-image>
+                  </div>
+
                   <div class="app-content">
                     <div class="app-header">
                       <h3 class="app-title">{{ row.softServiceName }}</h3>
@@ -100,7 +98,7 @@
                               <el-dropdown-menu>
                                 <el-dropdown-item v-for="device in row.installedServers" :key="device.installId" :command="device">
                                   <div class="device-item">
-                                    <span class="device-name">{{ device.sshName || device.serverName || '未命名设备' }}</span>
+                                    <span class="device-name">{{ device.sshName || device.serverName || "未命名设备" }}</span>
                                     <el-tag size="small" :type="getDeviceStatusType(device.installStatus)">
                                       {{ getDeviceStatusText(device.installStatus) }}
                                     </el-tag>
@@ -110,13 +108,7 @@
                             </template>
                           </el-dropdown>
                         </template>
-                        <el-button 
-                          type="primary" 
-                          link 
-                          class="ml-2" 
-                          @click="openDeviceManagement(row)"
-                          title="设备管理"
-                        >
+                        <el-button type="primary" link class="ml-2" @click="openDeviceManagement(row)" title="设备管理">
                           <IconifyIconOnline icon="ep:setting" />
                         </el-button>
                       </div>
@@ -124,11 +116,11 @@
                     <div class="app-tags">
                       <el-tag size="small" type="success">v{{ row.softServiceVersion }}</el-tag>
                       <el-tag size="small" type="primary" class="ml-2">{{ getCategoryName(row.softServiceCategory) }}</el-tag>
-                      <el-tag size="small" type="info" class="ml-2">{{ row.softServiceOs || '通用' }}</el-tag>
+                      <el-tag size="small" type="info" class="ml-2">{{ row.softServiceOs || "通用" }}</el-tag>
                     </div>
-                    
-                    <div class="app-desc">{{ row.softServiceRemark || '无' }}</div>
-                    
+
+                    <div class="app-desc">{{ row.softServiceRemark || "无" }}</div>
+
                     <div class="app-footer">
                       <div class="app-stats">
                         <span class="app-stat-item">
@@ -141,80 +133,43 @@
                         </span>
                       </div>
                       <div class="app-actions">
-                        <el-button 
-                          size="small" 
-                          type="primary" 
-                          class="install-btn" 
-                          @click="handleInstall(row)"
-                        >
-                          <IconifyIconOnline icon="ep:download" class="mr-1" />安装
-                        </el-button>
+                        <el-button size="small" type="primary" class="install-btn" @click="handleInstall(row)"> <IconifyIconOnline icon="ep:download" class="mr-1" />安装 </el-button>
                         <el-dropdown trigger="click" @command="(command) => handleCommand(command, row)">
                           <el-button size="small" class="more-btn">
                             <IconifyIconOnline icon="ep:more-filled" />
                           </el-button>
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item command="detail">
-                                <IconifyIconOnline icon="ri:info-card-line" class="mr-1" />详情
-                              </el-dropdown-item>
-                              <el-dropdown-item command="edit">
-                                <IconifyIconOnline icon="ep:edit" class="mr-1" />编辑
-                              </el-dropdown-item>
-                              <el-dropdown-item command="delete" divided>
-                                <IconifyIconOnline icon="ep:delete" class="mr-1" />删除
-                              </el-dropdown-item>
+                              <el-dropdown-item command="detail"> <IconifyIconOnline icon="ri:info-card-line" class="mr-1" />详情 </el-dropdown-item>
+                              <el-dropdown-item command="edit"> <IconifyIconOnline icon="ep:edit" class="mr-1" />编辑 </el-dropdown-item>
+                              <el-dropdown-item command="delete" divided> <IconifyIconOnline icon="ep:delete" class="mr-1" />删除 </el-dropdown-item>
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
                       </div>
-                  </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </template>
-        </ScTable>
-      </el-main>
+          </ScTable>
+        </el-main>
       </el-container>
     </el-container>
 
     <!-- 安装设备选择抽屉 -->
-    <DeviceSelectDrawer 
-      ref="deviceSelectDrawerRef"
-      v-model="deviceDrawerVisible" 
-      :software="currentSoftware" 
-      @install="handleDeviceSelect"
-      @cancel="deviceDrawerVisible = false"
-    />
+    <DeviceSelectDrawer ref="deviceSelectDrawerRef" v-model="deviceDrawerVisible" :software="currentSoftware" @install="handleDeviceSelect" @cancel="deviceDrawerVisible = false" />
 
     <!-- 安装进度抽屉 -->
-    <install-progress-drawer 
-      v-if="installDrawerVisible" 
-      v-model="installDrawerVisible" 
-      :software="currentSoftware" 
-      @finish="handleInstallFinish" 
-    />
+    <install-progress-drawer v-if="installDrawerVisible" v-model="installDrawerVisible" :software="currentSoftware" @finish="handleInstallFinish" />
 
     <!-- 软件表单对话框 -->
     <SoftForm v-model="formVisible" :is-edit="isEdit" :software="currentSoftware" @submit="handleSubmit" @cancel="formVisible = false" />
-    
+
     <!-- 设备管理抽屉 -->
-    <el-drawer
-      v-model="deviceManageDrawerVisible"
-      :title="`${currentSoftware?.softServiceName || '软件'} - 设备管理`"
-      size="80%"
-      direction="rtl"
-    >
+    <el-drawer v-model="deviceManageDrawerVisible" :title="`${currentSoftware?.softServiceName || '软件'} - 设备管理`" size="80%" direction="rtl">
       <div class="p-4">
-        <DeviceCardList
-          :device-list="deviceList"
-          :soft-service-id="currentSoftware?.softServiceId || 0"
-          :loading="deviceListLoading"
-          @refresh="loadDeviceList"
-          @add="handleDeviceAdded"
-          @edit="handleDeviceEdited"
-          @delete="handleDeviceDeleted"
-        />
+        <DeviceCardList :device-list="deviceList" :soft-service-id="currentSoftware?.softServiceId || 0" :loading="deviceListLoading" @refresh="loadDeviceList" @add="handleDeviceAdded" @edit="handleDeviceEdited" @delete="handleDeviceDeleted" />
       </div>
     </el-drawer>
   </div>
@@ -233,6 +188,7 @@ import SoftForm from "./components/SoftForm.vue";
 import DeviceSelectDrawer from "./components/DeviceSelectDrawer.vue";
 import DeviceCardList from "./components/DeviceCardList.vue";
 import { fetchSoftServiceInstallByServiceId } from "@/api/soft/install";
+import { fetchSoftServiceGet } from "@/api/soft";
 
 // 表格引用
 const tableRef = ref<InstanceType<typeof ScTable>>();
@@ -363,10 +319,36 @@ const handleAdd = () => {
   formVisible.value = true;
 };
 
-const handleEdit = (soft: SoftService) => {
-  isEdit.value = true;
-  currentSoftware.value = { ...soft };
-  formVisible.value = true;
+const handleEdit = async (soft: SoftService) => {
+  try {
+    isEdit.value = true;
+
+    // 先显示加载中的提示
+    message.loading("加载软件详情中...");
+    
+    // 使用fetchSoftServiceGet获取最新的软件详情
+    const res = await fetchSoftServiceGet({ softServiceId: soft.softServiceId });
+    message.closeLoading();
+    if (res.code === "00000" && res.data) {
+      // 使用API返回的最新数据
+      currentSoftware.value = { ...res.data };
+      message.success("数据加载成功");
+    } else {
+      // 如果API调用失败，回退使用列表中的数据
+      message.warning("获取详情失败，使用现有数据");
+      currentSoftware.value = { ...soft };
+    }
+
+    // 显示表单
+    formVisible.value = true;
+  } catch (error) {
+    console.error("获取软件详情失败:", error);
+    message.error("获取软件详情失败，使用现有数据");
+    // 出错时使用列表中的数据
+    currentSoftware.value = { ...soft };
+    formVisible.value = true;
+    message.closeLoading();
+  }
 };
 
 const handleDelete = async (soft: SoftService) => {
@@ -419,7 +401,7 @@ const handleSubmit = async (formData: PartialSoftService) => {
       ...formData,
       softServiceId: isEdit.value ? currentSoftware.value.softServiceId : undefined,
     };
-    
+
     if (isEdit.value) {
       await fetchSoftServiceUpdate(dataToSubmit);
       message.success("更新成功");
@@ -457,28 +439,28 @@ const showInstallDetail = (soft: SoftService) => {
 const handleDeviceSelect = (devices: string[]) => {
   deviceDrawerVisible.value = false;
   installDevices.value = devices;
-  
+
   // 将选择的设备信息添加到currentSoftware中
   // 这样InstallProgressDrawer组件可以从software.installedServers获取设备信息
   if (!currentSoftware.value.installedServers) {
     currentSoftware.value.installedServers = [];
   }
-  
+
   // 清空原有的installedServers，添加新选择的设备
-  currentSoftware.value.installedServers = devices.map(deviceId => ({
+  currentSoftware.value.installedServers = devices.map((deviceId) => ({
     sshId: deviceId,
     installId: 0,
     installStatus: 0,
     serverName: `设备 ${deviceId.substring(0, 8)}`,
-    installPath: currentSoftware.value.installPath || '',
-    port: currentSoftware.value.port || ''
+    installPath: currentSoftware.value.installPath || "",
+    port: currentSoftware.value.port || "",
   }));
-  
+
   installDrawerVisible.value = true;
-  
+
   // 获取当前选中的版本ID
   const actualSoftServiceId = currentSoftware.value.softServiceId;
-  
+
   // 开始安装
   proceedInstall();
 };
@@ -505,10 +487,10 @@ const handleInstallFinish = () => {
 };
 
 const handleFavorite = (row: any) => {
-  fetchSoftServiceFavorite(row).then(res => {
-    message.success("收藏成功")
-  })
-}
+  fetchSoftServiceFavorite(row).then((res) => {
+    message.success("收藏成功");
+  });
+};
 
 const getCategoryName = (category: string) => {
   if (!category) return "未分类";
@@ -528,14 +510,14 @@ const goBack = () => {
 // 查看服务器详情
 const viewServerDetail = (server: any) => {
   // 设置当前软件
-  currentSoftware.value = { ...currentSoftware.value }
-  
+  currentSoftware.value = { ...currentSoftware.value };
+
   // 设置要查看的设备ID
-  installDevices.value = [server.sshId]
-  
+  installDevices.value = [server.sshId];
+
   // 打开安装进度抽屉
-  installDrawerVisible.value = true
-}
+  installDrawerVisible.value = true;
+};
 
 // 处理设备下拉菜单命令
 const handleDeviceCommand = (device: any, software: PartialSoftService) => {
@@ -556,55 +538,65 @@ const openDeviceManagement = (software: PartialSoftService) => {
 
 // 获取设备状态类型
 const getDeviceStatusType = (status: number | string | undefined) => {
-  if (status === undefined) return 'info';
-  
+  if (status === undefined) return "info";
+
   // 转换为数字
-  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
-  
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : status;
+
   switch (statusNum) {
-    case 0: return 'info';     // 未安装
-    case 1: return 'warning';  // 安装中
-    case 2: return 'success';  // 已安装
-    case 3: return 'danger';   // 安装失败
-    default: return 'info';
+    case 0:
+      return "info"; // 未安装
+    case 1:
+      return "warning"; // 安装中
+    case 2:
+      return "success"; // 已安装
+    case 3:
+      return "danger"; // 安装失败
+    default:
+      return "info";
   }
 };
 
 // 获取设备状态文本
 const getDeviceStatusText = (status: number | string | undefined) => {
-  if (status === undefined) return '未安装';
-  
+  if (status === undefined) return "未安装";
+
   // 转换为数字
-  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
-  
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : status;
+
   switch (statusNum) {
-    case 0: return '未安装';
-    case 1: return '安装中';
-    case 2: return '已安装';
-    case 3: return '安装失败';
-    default: return '未知';
+    case 0:
+      return "未安装";
+    case 1:
+      return "安装中";
+    case 2:
+      return "已安装";
+    case 3:
+      return "安装失败";
+    default:
+      return "未知";
   }
 };
 
 // 加载设备列表
 const loadDeviceList = async (softServiceId?: number) => {
   if (!softServiceId && !currentSoftware.value.softServiceId) return;
-  
+
   deviceListLoading.value = true;
   try {
-    const res = await fetchSoftServiceInstallByServiceId({ 
-      softServiceId: softServiceId || currentSoftware.value.softServiceId 
+    const res = await fetchSoftServiceInstallByServiceId({
+      softServiceId: softServiceId || currentSoftware.value.softServiceId,
     });
-    
+
     if (res.code === "00000" && res.data) {
-      deviceList.value = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+      deviceList.value = Array.isArray(res.data) ? res.data : res.data ? [res.data] : [];
     } else {
       deviceList.value = [];
     }
   } catch (error) {
-    console.error('加载设备列表失败:', error);
+    console.error("加载设备列表失败:", error);
     deviceList.value = [];
-    message.error('加载设备列表失败');
+    message.error("加载设备列表失败");
   } finally {
     deviceListLoading.value = false;
   }
@@ -638,7 +630,7 @@ const handleDeviceDeleted = (device: any) => {
 <style lang="scss" scoped>
 .software-mall-container {
   height: 100%;
-  
+
   .el-container {
     height: 100%;
   }
@@ -653,30 +645,30 @@ const handleDeviceDeleted = (device: any) => {
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  
+
   .sidebar-title {
-  padding: 20px;
+    padding: 20px;
     font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 0;
     border-bottom: 1px solid var(--el-border-color-light);
-}
+  }
 
   .category-menu {
     border-right: none;
-    
+
     .el-menu-item {
       height: 50px;
       line-height: 50px;
-      
+
       &.is-active {
         background-color: var(--el-color-primary-light-9);
         color: var(--el-color-primary);
         font-weight: 500;
-        
+
         &::before {
-          content: '';
+          content: "";
           position: absolute;
           left: 0;
           top: 0;
@@ -685,7 +677,7 @@ const handleDeviceDeleted = (device: any) => {
           background-color: var(--el-color-primary);
         }
       }
-      
+
       &:hover:not(.is-active) {
         background-color: var(--el-fill-color-light);
       }
@@ -706,32 +698,34 @@ const handleDeviceDeleted = (device: any) => {
   background-color: var(--el-bg-color);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   z-index: 1;
-  
+
   .search-input {
     :deep(.el-input__wrapper) {
       padding-left: 12px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       transition: all 0.3s;
-      
-      &:hover, &:focus, &.is-focus {
+
+      &:hover,
+      &:focus,
+      &.is-focus {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
     }
-    
+
     .search-icon {
       color: var(--el-text-color-secondary);
       font-size: 18px;
       margin-right: 6px;
     }
   }
-  
+
   .add-button {
     border-radius: 8px;
     padding: 10px 20px;
     font-weight: 500;
     transition: all 0.3s;
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
@@ -743,13 +737,13 @@ const handleDeviceDeleted = (device: any) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  
+
   .current-category {
     background-color: var(--el-bg-color);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    
+
     .category-title {
       font-size: 22px;
       font-weight: 600;
@@ -757,9 +751,9 @@ const handleDeviceDeleted = (device: any) => {
       color: var(--el-text-color-primary);
       display: flex;
       align-items: center;
-      
+
       &::before {
-        content: '';
+        content: "";
         display: inline-block;
         width: 4px;
         height: 20px;
@@ -767,7 +761,7 @@ const handleDeviceDeleted = (device: any) => {
         margin-right: 12px;
         border-radius: 2px;
       }
-}
+    }
 
     .category-desc {
       font-size: 14px;
@@ -787,7 +781,7 @@ const handleDeviceDeleted = (device: any) => {
     transition: all 0.3s;
     border: none;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    
+
     &:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
@@ -803,19 +797,19 @@ const handleDeviceDeleted = (device: any) => {
   overflow: hidden;
   transition: all 0.3s;
   position: relative;
-  
+
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     border-color: var(--el-color-primary);
-    
+
     &::before {
       height: 4px;
     }
   }
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -825,12 +819,12 @@ const handleDeviceDeleted = (device: any) => {
     transition: height 0.3s ease;
     z-index: 1;
   }
-  
+
   .media-content {
     display: flex;
     height: 100%;
   }
-  
+
   .app-logo {
     width: 120px;
     height: 120px;
@@ -839,7 +833,7 @@ const handleDeviceDeleted = (device: any) => {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin: 20px;
     flex-shrink: 0;
-    
+
     .el-image {
       width: 100%;
       height: 100%;
@@ -847,25 +841,25 @@ const handleDeviceDeleted = (device: any) => {
       overflow: hidden;
     }
   }
-  
+
   .app-content {
     flex: 1;
     padding: 20px 20px 20px 0;
     display: flex;
     flex-direction: column;
   }
-  
+
   .app-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 8px;
   }
-  
+
   .app-servers {
     display: flex;
     align-items: center;
-    
+
     .server-count {
       display: flex;
       align-items: center;
@@ -874,7 +868,7 @@ const handleDeviceDeleted = (device: any) => {
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
-      
+
       &:hover {
         background-color: #e4e7ed;
       }
@@ -886,7 +880,7 @@ const handleDeviceDeleted = (device: any) => {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    
+
     .device-name {
       margin-right: 8px;
       max-width: 150px;
@@ -905,29 +899,29 @@ const handleDeviceDeleted = (device: any) => {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  
+
   .app-desc {
     margin: 12px 0;
     font-size: 14px;
     line-height: 1.6;
     color: var(--el-text-color-secondary);
-      flex: 1;
+    flex: 1;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
   }
-  
+
   .app-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    
+
     .app-stats {
       display: flex;
       gap: 16px;
-      
+
       .app-stat-item {
         display: flex;
         align-items: center;
@@ -937,26 +931,26 @@ const handleDeviceDeleted = (device: any) => {
         padding: 4px 8px;
         border-radius: 4px;
         transition: all 0.2s;
-        
+
         &:hover {
           background-color: var(--el-fill-color-light);
           color: var(--el-color-primary);
         }
       }
-      }
+    }
 
     .app-actions {
-        display: flex;
+      display: flex;
       gap: 8px;
-      
+
       .el-button {
         border-radius: 6px;
       }
-      
+
       .install-btn {
         padding: 8px 16px;
         transition: all 0.3s;
-        
+
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
@@ -966,7 +960,7 @@ const handleDeviceDeleted = (device: any) => {
       .more-btn {
         padding: 8px;
         transition: all 0.3s;
-        
+
         &:hover {
           background-color: var(--el-fill-color);
           color: var(--el-color-primary);
@@ -985,7 +979,7 @@ const handleDeviceDeleted = (device: any) => {
   background-color: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   border-radius: 8px;
-  
+
   .iconify {
     font-size: 24px;
   }
@@ -996,12 +990,12 @@ const handleDeviceDeleted = (device: any) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  
+
   .selected-software {
     background-color: var(--el-fill-color-light);
     border-radius: 8px;
     padding: 16px;
-    
+
     .software-logo {
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1010,10 +1004,10 @@ const handleDeviceDeleted = (device: any) => {
   }
 }
 
-  .device-list {
-    margin-top: 20px;
+.device-list {
+  margin-top: 20px;
   flex: 1;
-    overflow-y: auto;
+  overflow-y: auto;
 }
 
 .device-card {
@@ -1022,52 +1016,52 @@ const handleDeviceDeleted = (device: any) => {
   border-radius: 8px;
   margin-bottom: 12px;
   border: 1px solid transparent;
-  
+
   &.selected {
     border-color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
-    
+
     .device-name {
       color: var(--el-color-primary);
     }
   }
-  
+
   &:hover {
     border-color: var(--el-color-primary-light-3);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
-  
+
   .device-name {
     font-weight: 500;
     font-size: 15px;
     transition: color 0.3s;
-    }
+  }
 
   .device-ip {
     margin-top: 4px;
   }
-  
+
   .device-status {
     .el-tag {
       padding: 0 8px;
     }
-    }
   }
+}
 
-  .drawer-footer {
+.drawer-footer {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  justify-content: flex-end;
   gap: 12px;
-  
+
   .install-btn {
     padding: 10px 20px;
     font-weight: 500;
     border-radius: 6px;
-    
+
     &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
@@ -1112,7 +1106,7 @@ const handleDeviceDeleted = (device: any) => {
 
   .detail-content {
     padding: 20px 0;
-    
+
     h3 {
       margin: 24px 0 12px 0;
       font-size: 16px;
@@ -1120,9 +1114,9 @@ const handleDeviceDeleted = (device: any) => {
       color: var(--el-text-color-primary);
       position: relative;
       padding-left: 12px;
-      
+
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         left: 0;
         top: 4px;
@@ -1139,68 +1133,68 @@ const handleDeviceDeleted = (device: any) => {
       line-height: 1.8;
       font-size: 14px;
     }
-    
+
     .detail-info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
       margin-top: 12px;
-      
+
       .detail-info-item {
         display: flex;
         align-items: center;
         padding: 12px;
         background-color: var(--el-fill-color-light);
         border-radius: 6px;
-        
+
         .detail-info-label {
           margin-right: 8px;
           color: var(--el-text-color-secondary);
           font-weight: 500;
         }
-        
+
         .detail-info-value {
           color: var(--el-text-color-primary);
         }
       }
     }
-    
+
     .requirements-card {
       background-color: var(--el-fill-color-light);
       border-radius: 6px;
       padding: 16px;
       margin-top: 12px;
-      
+
       p {
         margin: 0;
       }
     }
-    
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-top: 12px;
-      
+
       .stat-card {
         background-color: var(--el-fill-color-light);
         border-radius: 6px;
         padding: 16px;
         text-align: center;
         transition: all 0.3s;
-        
+
         &:hover {
           transform: translateY(-4px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
-        
+
         .stat-value {
           font-size: 24px;
           font-weight: 600;
           color: var(--el-color-primary);
           margin-bottom: 8px;
         }
-        
+
         .stat-label {
           font-size: 14px;
           color: var(--el-text-color-secondary);
@@ -1241,16 +1235,16 @@ const handleDeviceDeleted = (device: any) => {
 :deep(.el-pagination) {
   margin-top: 24px;
   justify-content: center;
-  
+
   .el-pagination__total,
   .el-pagination__jump {
     font-size: 14px;
   }
-  
+
   .el-pager li {
     border-radius: 4px;
     transition: all 0.2s;
-    
+
     &.is-active {
       font-weight: 600;
     }
@@ -1267,12 +1261,12 @@ const handleDeviceDeleted = (device: any) => {
   border-radius: 8px;
   padding: 6px 0;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  
+
   .el-dropdown-menu__item {
     padding: 8px 16px;
     font-size: 14px;
     line-height: 1.5;
-    
+
     &:hover {
       background-color: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
