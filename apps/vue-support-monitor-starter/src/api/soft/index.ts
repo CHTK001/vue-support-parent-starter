@@ -195,5 +195,5 @@ export const fetchSoftServiceDelete = (params: any) => {
  * @returns 返回一个 Promise，解析后得到软服务详情数据
  */
 export const fetchSoftServiceGet = (params: { softServiceId: number }) => {
-  return http.request("get", "/v1/soft/service/get", { params });
+  return http.request<ReturnResult<SoftService>>("get", "/v1/soft/service/get", { params });
 };
