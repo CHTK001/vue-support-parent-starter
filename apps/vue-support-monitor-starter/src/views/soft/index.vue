@@ -84,6 +84,7 @@
         <DeviceCardList 
           :device-list="deviceList" 
           :soft-service-id="currentSoftware?.softServiceId || 0" 
+          :soft-service-name="currentSoftware?.softServiceName || ''" 
           :loading="deviceListLoading" 
           @refresh="loadDeviceList" 
           @add="handleDeviceAdded" 
@@ -296,7 +297,7 @@ const handleSubmit = async (data: PartialSoftService) => {
       res = await fetchSoftServiceUpdate(data);
     } else {
       res = await fetchSoftServiceSave(data);
-    }
+  }
 
     if (res.code === "00000") {
       message.success(isEdit.value ? "更新成功" : "添加成功");
@@ -382,7 +383,7 @@ const handleInstallProgressInstall = async (deviceIds: string[]) => {
   } catch (error) {
     console.error("安装失败:", error);
     message.error("安装失败");
-  }
+      }
 };
 
 // 组件挂载时初始化
@@ -396,7 +397,7 @@ onMounted(() => {
   // 从路由参数中获取关键词
   if (route.query.keyword) {
     searchParams.keyword = route.query.keyword as string;
-  }
+    }
 });
 </script>
 
@@ -404,18 +405,18 @@ onMounted(() => {
 .software-mall-container {
   height: 100%;
   background-color: var(--el-bg-color-page);
-}
+    }
 
 .content-container {
-  flex-direction: column;
+    flex-direction: column;
   height: 100%;
-  overflow: hidden;
+      overflow: hidden;
 }
 
 
 :deep(.el-table) {
   border-radius: 8px;
-  overflow: hidden;
+      overflow: hidden;
   background-color: transparent !important;
 }
 

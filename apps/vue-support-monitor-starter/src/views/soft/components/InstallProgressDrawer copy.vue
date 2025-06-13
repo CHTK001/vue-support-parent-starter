@@ -27,7 +27,7 @@
           <div class="install-progress-header" v-if="activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'">
             <div class="flex items-center justify-between">
               <div class="flex items-center">
-                <el-avatar :size="36" class="mr-3 cursor-pointer" @click="refreshDeviceStatus">
+                <el-avatar :size="36" class="mr-3">
                   <IconifyIconOnline icon="ep:monitor" />
                 </el-avatar>
                 <div>
@@ -38,9 +38,6 @@
                     </el-tag>
                     <el-tag v-if="installStatus === 2" :type="isServiceRunning ? 'success' : 'info'" effect="light" size="small" class="ml-1">
                       {{ getRunStatusText(serviceRunStatus) }}
-                    </el-tag>
-                    <el-tag v-if="currentDevice?.installConfigPath && activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records' && hasServiceLogPath" type="info" effect="light" size="small" class="cursor-pointer ml-1" @click="handleOpenConfig">
-                      日志路径已配置    
                     </el-tag>
                   </h3>
                   <div class="text-sm text-gray-500">
@@ -56,9 +53,9 @@
                   size="small"
                   :icon="useRenderIcon('ep:download')" 
                   @click="handleInstall"
-                  :loading="installing == 2"
+                  :loading="installing"
                 >
-                  {{ installing == 2 ? '安装中...' : '安装' }}
+                  {{ installing ? '安装中...' : '安装' }}
                 </el-button>
 
                 <!-- 服务控制按钮组 - 仅在安装成功时显示 -->
@@ -80,6 +77,15 @@
                   </template>
                 </div>
                 
+                <!-- 配置按钮 - 仅在设备有配置路径时显示 -->
+                <el-tooltip v-if="currentDevice?.installConfigPath && activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'" content="查看/修改配置" placement="top">
+                  <el-button type="info" :icon="useRenderIcon('ep:setting')" circle size="small" @click="handleOpenConfig" />
+                </el-tooltip>
+                
+                <el-tooltip v-if="activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'" content="刷新设备状态" placement="top">
+                  <el-button type="primary" :icon="useRenderIcon('ep:refresh')" circle size="small" class="ml-2" :loading="refreshing" @click="refreshDeviceStatus" />
+                </el-tooltip>
+                
                 <el-tag  v-if="activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records' && installStatus != 0 && installStatus != 3" class="flex items-center justify-center cursor-pointer" type="danger" @click="handleUninstall" :loading="uninstalling">
                   <span><IconifyIconOnline icon="ep:delete" class="mr-1" /></span>
                   <span>卸载</span>
@@ -87,21 +93,7 @@
               </div>
             </div>
           </div>
-          <LogSection 
-            :logs="logs" 
-            :logs-height="logsHeight" 
-            :install-status="getInstallRecordStatus(installStatus)" 
-            :can-view-service-logs="canViewServiceLogs" 
-            :install-progress="currentInstallProgress" 
-            :has-service-log-path="hasServiceLogPath"
-            :is-monitoring-logs="isMonitoringLogs"
-            :monitor-loading="serviceActionLoading.monitor"
-            ref="logSectionRef" 
-            @log-type-change="handleLogTypeChange" 
-            @toggle-monitor="handleToggleLogMonitor"
-            @clear="clearLogs" 
-            @export="exportLogs" 
-          />
+          <LogSection :logs="logs" :logs-height="logsHeight" :install-status="getInstallRecordStatus(installStatus)" :can-view-service-logs="canViewServiceLogs" :install-progress="currentInstallProgress" ref="logSectionRef" @log-type-change="handleLogTypeChange" @clear="clearLogs" @export="exportLogs" />
         </el-main>
       </el-container>
     </el-container>
@@ -131,8 +123,6 @@ import {
   fetchSoftServiceInstallAdd,
   fetchSoftServiceInstallUpdate,
   fetchSoftServiceInstallDelete,
-  fetchSoftMonitorLogStart,
-  fetchSoftMonitorLogStop,
   type SoftServiceInstall,
 } from "@/api/soft/install";
 import { fetchSoftServicePage } from "@/api/soft";
@@ -209,21 +199,11 @@ const serviceActionLoading = reactive({
   start: false,
   stop: false,
   restart: false,
-  monitor: false,
 });
-
-// 服务日志监控状态
-const isMonitoringLogs = ref(false);
 
 // 计算属性: 是否可以查看服务日志
 const canViewServiceLogs = computed(() => {
   return activeInstallId.value && deviceServices.value.length > 0;
-});
-
-// 计算属性: 当前设备是否配置了serviceLogPath
-const hasServiceLogPath = computed(() => {
-  const device = currentDevice.value;
-  return device && device.serviceLogPath && device.serviceLogPath.trim() !== '';
 });
 
 // 当前选中的设备
@@ -283,7 +263,6 @@ const handleResize = (height: number) => {
 
 // 添加日志
 const addLog = (type: string, content: string) => {
-  // 添加到日志数组
   logs.value.push({
     id: logs.value.length + 1,
     type,
@@ -299,8 +278,9 @@ const addLog = (type: string, content: string) => {
 
 // 滚动到日志底部
 const scrollToBottom = () => {
-  if (logSectionRef.value?.terminal) {
-    logSectionRef.value.terminal.scrollToBottom();
+  if (logSectionRef.value?.logScrollRef) {
+    const scrollbar = logSectionRef.value.logScrollRef;
+    scrollbar.setScrollTop(scrollbar.wrapRef.scrollHeight);
   }
 };
 
@@ -687,90 +667,46 @@ const updateInstallProgress = (installId: string, progress: number) => {
   }
 };
 
-// 处理日志类型切换
-const handleLogTypeChange = async (type: string) => {
-  // 如果切换到监控日志类型，确保开启了监控
-  if (type === 'monitor' && hasServiceLogPath.value && !isMonitoringLogs.value) {
-    // 自动开启日志监控
-    await handleToggleLogMonitor();
-  }
-  
-  // 如果从监控日志切换到其他类型，并且正在监控中，关闭监控
-  if (type !== 'monitor' && isMonitoringLogs.value) {
-    await handleToggleLogMonitor();
-  }
-  
-  // 清空日志
-  logs.value = [];
-  
-  // 根据日志类型加载相应的日志
-  if (type === 'install') {
-    // 加载安装日志
-    loadDeviceInstallLog(activeInstallId.value);
-  } else if (type === 'monitor' && hasServiceLogPath.value) {
-    // 监控日志使用WebSocket实时获取，不需要在这里加载
-    addLog('info', '正在加载服务日志...');
-  } else {
-    // 其他类型的日志暂不处理
-    addLog('info', `正在加载${type}日志...`);
-  }
+// 处理日志类型变更
+const handleLogTypeChange = () => {
+  // 重新订阅日志
+  subscribeToLogs();
 };
 
 // 清空日志
 const clearLogs = () => {
   logs.value = [];
-  // 只有当不是通过终端组件的清空按钮触发时，才调用终端的清空方法
-  // 防止循环调用
-  if (logSectionRef.value?.clearTerminal && !logSectionRef.value._isClearing) {
-    // 设置标记，防止循环调用
-    logSectionRef.value._isClearing = true;
-    logSectionRef.value.clearTerminal();
-    // 清除标记
-    setTimeout(() => {
-      if (logSectionRef.value) {
-        logSectionRef.value._isClearing = false;
-      }
-    }, 100);
-  } else {
-    addLog("info", `日志已清空，继续监听${getLogTypeText()}...`);
-  }
+  addLog("info", `日志已清空，继续监听${getLogTypeText()}...`);
 };
 
 // 导出日志
 const exportLogs = () => {
   try {
-    if (logSectionRef.value?.exportTerminalLogs) {
-      // 使用终端组件的导出功能
-      logSectionRef.value.exportTerminalLogs();
-      message.success("日志导出成功");
-    } else {
-      // 备用导出方法
-      // 格式化日志内容
-      const logContent = logs.value
-        .map((log) => {
-          const time = formatTime(log.timestamp || new Date());
-          const content = log.msg || "";
-          return `[${time}] ${content}`;
-        })
-        .join("\n");
-      
-      // 创建 Blob 对象
-      const blob = new Blob([logContent], { type: "text/plain" });
-      
-      // 创建下载链接
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `${props.software.softServiceName}-${logSectionRef.value?.activeLogType || "install"}-logs-${new Date().toISOString().slice(0, 10)}.txt`;
-      
-      // 触发点击事件
-      document.body.appendChild(link);
-      link.click();
-      
-      // 清理
-      document.body.removeChild(link);
-      
-      message.success("日志导出成功");
-    }
+    // 格式化日志内容
+    const logContent = logs.value
+      .map((log) => {
+        const time = formatTime(log.timestamp || new Date());
+        const content = log.msg || "";
+        return `[${time}] ${content}`;
+      })
+      .join("\n");
+    
+    // 创建 Blob 对象
+    const blob = new Blob([logContent], { type: "text/plain" });
+    
+    // 创建下载链接
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${props.software.softServiceName}-${logSectionRef.value?.activeLogType || "install"}-logs-${new Date().toISOString().slice(0, 10)}.txt`;
+    
+    // 触发点击事件
+    document.body.appendChild(link);
+    link.click();
+    
+    // 清理
+    document.body.removeChild(link);
+    
+    message.success("日志导出成功");
   } catch (error) {
     console.error("导出日志失败:", error);
     message.error("导出日志失败");
@@ -842,58 +778,61 @@ const loadInstallHistory = async () => {
 };
 
 // 处理选择设备
-const handleSelectDevice = async (sshId: string, installId: string) => {
-  // 处理特殊状态，例如"loading"、"error"等
-  if (installId === "loading" || installId === "error" || installId === "no-records") {
-    activeInstallId.value = installId;
+const handleSelectDevice = async (deviceId: string, installId?: string) => {
+  // 使用提供的installId或deviceId作为活动ID
+  const activeId = installId || deviceId;
+  
+  // 检查ID是否有效
+  if (!activeId || activeId === "loading" || activeId === "error" || activeId === "load-error" || activeId === "no-records") {
+    message.warning("无效的设备ID，无法加载信息");
     return;
   }
+
+  activeInstallId.value = activeId;
+
+  // 查找对应的设备
+  const device = deviceServices.value.find((d) => d.installId === activeId || d.sshId === activeId);
+  if (device) {
+    installStatus.value = device.installStatus || 0;
+  }
+
+  // 订阅日志
+  subscribeToLogs();
   
+  // 加载该设备的安装日志
+  //loadDeviceInstallLog(activeId);
+
+  // 重新加载设备服务信息，确保获取最新的运行状态
   try {
-    // 更新当前活动设备ID
-    activeInstallId.value = installId;
-    
-    // 重置日志监控状态
-    isMonitoringLogs.value = false;
-    
-    // 加载设备安装日志
-    await loadDeviceInstallLog(installId);
-    
-    // 检查设备安装状态
-    if (deviceServices.value.length > 0) {
-      const device = deviceServices.value.find((d) => d.installId === installId);
-      if (device) {
-        // 更新安装状态
-        installStatus.value = device.installStatus || 0;
-        
-        // 更新当前进度
-        currentInstallProgress.value = device.progress || 0;
-        
-        // 设置日志类型
-        if (logSectionRef.value) {
-          logSectionRef.value.activeLogType = 'install';
-        }
-      }
-    } else {
-      // 加载设备服务信息
-      await loadDeviceServices();
-      
-      // 如果找到了设备，更新状态
-      if (deviceServices.value.length > 0) {
-        const device = deviceServices.value[0];
-        if (device) {
-          // 更新安装状态
-          installStatus.value = device.installStatus || 0;
-          
-          // 更新当前进度
-          currentInstallProgress.value = device.progress || 0;
+    const res = await fetchSoftServiceInstallByServiceId({
+      softServiceId: props.software.softServiceId!,
+      installId: activeId,
+    });
+
+    if (res.code === "00000" && res.data) {
+      // 更新当前设备的信息
+      const updatedDevice = Array.isArray(res.data) ? res.data.find((service: any) => service.installId === activeId || service.sshId === activeId) : res.data;
+
+      if (updatedDevice) {
+        // 更新设备信息，包括运行状态
+        const index = deviceServices.value.findIndex((d) => d.installId === activeId || d.sshId === activeId);
+        if (index !== -1) {
+          deviceServices.value[index] = {
+            ...deviceServices.value[index],
+            ...updatedDevice,
+            installRunStatus: updatedDevice.installRunStatus || 0,
+          };
         }
       }
     }
-    
   } catch (error) {
-    console.error("选择设备失败:", error);
-    message.error("选择设备失败");
+    console.error("更新设备服务状态失败:", error);
+    addLog("error", "更新设备服务状态失败");
+  }
+
+  // 当选择设备并且有服务数据时自动显示服务区域
+  if (deviceServices.value.length > 0) {
+    servicesVisible.value = true;
   }
 };
 
@@ -1040,23 +979,8 @@ onBeforeUnmount(() => {
 });
 
 // 处理关闭
-const handleClose = async () => {
-  // 如果正在监控日志，先停止监控
-  if (isMonitoringLogs.value) {
-    try {
-      const res = await fetchSoftMonitorLogStop({
-        installId: activeInstallId.value,
-      });
-      
-      if (res.code === "00000") {
-        isMonitoringLogs.value = false;
-      }
-    } catch (error) {
-      console.error("停止日志监控失败:", error);
-    }
-  }
-  
-  // 断开websocket连接
+const handleClose = () => {
+  // 断开WebSocket连接
   disconnectWebSocket();
   
   // 关闭抽屉
@@ -1102,7 +1026,7 @@ const getCurrentDeviceInfo = () => {
   if (device.installVersion) parts.push(`版本: ${device.installVersion}`);
   if (device.installPath) parts.push(`路径: ${device.installPath}`);
   if (device.installConfigPath) parts.push(`配置: ${device.installConfigPath}`);
-  // if (device.installRunStatus !== undefined) parts.push(`运行状态: ${getRunStatusText(device.installRunStatus)}`);
+  if (device.installRunStatus !== undefined) parts.push(`运行状态: ${getRunStatusText(device.installRunStatus)}`);
 
   return parts.join(" | ");
 };
@@ -1179,7 +1103,7 @@ const handleUninstall = async () => {
     // 切换到卸载日志
     if (logSectionRef.value) {
       logSectionRef.value.activeLogType = "uninstall";
-      handleLogTypeChange('uninstall');
+      handleLogTypeChange();
     }
     
     // 添加卸载开始日志
@@ -1227,7 +1151,7 @@ const handleStartService = async () => {
     // 切换到启动日志
       if (logSectionRef.value) {
       logSectionRef.value.activeLogType = "start";
-      handleLogTypeChange('start');
+      handleLogTypeChange();
     }
 
     // 添加日志
@@ -1279,7 +1203,7 @@ const handleStopService = async () => {
     // 切换到停止日志
     if (logSectionRef.value) {
       logSectionRef.value.activeLogType = "stop";
-      handleLogTypeChange('stop');
+      handleLogTypeChange();
     }
 
     // 添加日志
@@ -1333,7 +1257,7 @@ const handleRestartService = async () => {
     // 切换到重启日志
     if (logSectionRef.value) {
       logSectionRef.value.activeLogType = "restart";
-      handleLogTypeChange('restart');
+      handleLogTypeChange();
     }
 
     // 添加日志
@@ -1519,61 +1443,6 @@ const handleInstall = () => {
 
   // 发送安装请求
   emit('install', [device.sshId]);
-};
-
-// 处理服务日志监控开关
-const handleToggleLogMonitor = async () => {
-  if (!activeInstallId.value || activeInstallId.value === "loading" || activeInstallId.value === "error" || activeInstallId.value === "no-records") {
-    message.error("无效的设备ID");
-    return;
-  }
-
-  try {
-    serviceActionLoading.monitor = true;
-    
-    if (isMonitoringLogs.value) {
-      // 停止监控
-      const res = await fetchSoftMonitorLogStop({
-        installId: activeInstallId.value,
-      });
-      
-      if (res.code === "00000") {
-        message.success("服务日志监控已停止");
-        isMonitoringLogs.value = false;
-        
-        // 如果当前是监控日志类型，切换回安装日志
-        if (logSectionRef.value?.activeLogType === 'monitor') {
-          logSectionRef.value.activeLogType = 'install';
-          handleLogTypeChange('install');
-        }
-      } else {
-        message.error(res.msg || "停止服务日志监控失败");
-      }
-    } else {
-      // 开启监控
-      const res = await fetchSoftMonitorLogStart({
-        installId: activeInstallId.value,
-      });
-      
-      if (res.code === "00000") {
-        message.success("服务日志监控已开启");
-        isMonitoringLogs.value = true;
-        
-        // 自动切换到监控日志类型
-        if (logSectionRef.value) {
-          logSectionRef.value.activeLogType = 'monitor';
-          handleLogTypeChange('monitor');
-        }
-      } else {
-        message.error(res.msg || "开启服务日志监控失败");
-      }
-    }
-  } catch (error) {
-    console.error("操作服务日志监控失败:", error);
-    message.error("操作服务日志监控失败");
-  } finally {
-    serviceActionLoading.monitor = false;
-  }
 };
 </script>
 

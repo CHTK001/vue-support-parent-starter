@@ -16,17 +16,17 @@
 // .ant-tree-switcher.ant-tree-switcher_close {
 //   top: 8px;
 // }
-// .ant-notification,
-// .ant-select-dropdown,
-// .ant-dropdown,
-// .ant-modal-wrap {
-//   z-index: 2000 !important;
-// }
+.ant-notification,
+.ant-select-dropdown,
+.ant-dropdown{
+  z-index: 3000 !important;
+}
 
 // .ant-notification-notice-with-icon {
 //   display: flex;
 //   flex-direction: row;
 // }
+
 
 .ant-card-head-title {
   min-height: 32px;

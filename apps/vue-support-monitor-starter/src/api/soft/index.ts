@@ -110,6 +110,9 @@ export interface PartialSoftService {
   favoriteCount?: number;
   requirements?: string;
   installPath?: string;
+  installPathCustom?: string; // 软件默认安装路径
+  installPort?: number; // 软件默认安装端口
+  installDefaultPort?: number; // 软件默认端口配置
   port?: string | number;
   installedServers?: any[];
   versions?: SoftServiceVersion[];

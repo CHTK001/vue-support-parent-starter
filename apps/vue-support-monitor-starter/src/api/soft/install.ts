@@ -119,14 +119,14 @@ export function fetchSoftServiceInstallStatus(params: ServiceRequest) {
  * 启动服务日志
  */
 export const fetchSoftMonitorLogStart = (params: ServiceRequest) => {
-  return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/log/monitor/start/${params.installId}`);
+  return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/install/log/monitor/start/${params.installId}`);
 };
 
 /**
  * 停止服务日志
  */
 export const fetchSoftMonitorLogStop = (params: ServiceRequest) => {
-  return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/log/monitor/stop/${params.installId}`);
+  return http.request<ReturnResult<boolean>>("post", `/v1/soft/service/install/log/monitor/stop/${params.installId}`);
 };
 
 export interface SoftServiceInstall {
@@ -142,6 +142,7 @@ export interface SoftServiceInstall {
   installStatus: number;
   installPath: string;
   installLogPath: string;
+  serviceLogPath: string;
   installVersion: string;
   installTime: number;
   installLastStartTime: number;
@@ -152,8 +153,6 @@ export interface SoftServiceInstall {
   sshHost: string;
   sshPort: number;
   sshName: string;
-  sshUsername?: string;
-  sshPassword?: string;
   softServiceName: string;
   softServiceInstallCommand: string;
   softServiceInstallCommandType: number;
@@ -168,5 +167,19 @@ export interface SoftServiceInstall {
   softServiceStatusCheckCommand: string;
   softServiceStatusCheckCommandType: number;
   softServiceStatusCheckSuccessFlag: string;
-  remark?: string;
+  softServiceStatusCheckFailureFlag: string;
+  softServiceInstallSuccessFlag: string;
+  softServiceInstallFailureFlag: string;
+  softServiceUninstallSuccessFlag: string;
+  softServiceUninstallFailureFlag: string;
+  softServiceStartSuccessFlag: string;
+  softServiceStartFailureFlag: string;
+  softServiceStopSuccessFlag: string;
+  softServiceStopFailureFlag: string;
+  softServiceRestartSuccessFlag: string;
+  softServiceRestartFailureFlag: string;
+  serviceConfig: string;
+  installPathCustom: string;
+  installPort: string;
+  installDefaultPort: string;
 }
