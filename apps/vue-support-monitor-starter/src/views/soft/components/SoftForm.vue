@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑软件' : '新增软件'"
+    :title="isEdit ? '编辑软件'  : '新增软件'"
     width="90%"
     draggable
     top="10px"
@@ -44,6 +44,11 @@
           <el-form-item label="软件版本" prop="softServiceVersion">
             <el-input v-model="form.softServiceVersion" placeholder="请输入软件版本" />
           </el-form-item>
+
+          <el-form-item label="默认端口配置" rop="installDefaultPort">
+            <el-input-number v-model="form.installDefaultPort" :min="0" :max="65535" placeholder="例如: 3306" style="width: 100%" />
+            <div class="path-hint">如果安装端口未设置，将使用此默认端口配置</div>
+          </el-form-item>
           
           <el-form-item label="软件图标">
             <el-input v-model="form.softServiceLogo" placeholder="请输入图标URL地址" />
@@ -52,7 +57,7 @@
           <el-form-item label="下载地址">
             <el-input v-model="form.softServiceDownloadUrl" placeholder="请输入软件下载地址" />
           </el-form-item>
-       
+          
           
           <el-form-item label="日志路径" prop="softServiceLogPath">
             <el-input v-model="form.softServiceLogPath" placeholder="请输入服务日志文件路径" />
@@ -86,6 +91,21 @@
             <div class="command-tips">
               <p>提示: 可以使用 <code>$DIR</code> 表示安装目录，<code>$PORT</code> 表示端口号</p>
               <div class="command-flags">
+                <el-row :gutter="20">
+                  <el-col :span="24">
+                    <p>默认安装路径:</p>
+                    <el-input v-model="form.installPathCustom" placeholder="例如: /opt/software 或 C:\Program Files\Software" />
+                    <div class="path-hint">安装时将使用此路径作为默认安装目录，可在安装时修改</div>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="24">
+                    <p>安装端口:</p>
+                    <el-input-number v-model="form.installPort" :min="1" :max="65535" placeholder="例如: 8080" style="width: 100%" />
+                    <div class="path-hint">安装时将使用此端口，可在安装时修改</div>
+                  </el-col>
+                </el-row>
+                <el-divider content-position="center">安装标识</el-divider>
                 <el-row :gutter="20">
                   <el-col :span="12">
                     <p>安装成功标识:</p>
@@ -250,9 +270,11 @@ import { ref, reactive, computed, onMounted, defineAsyncComponent, watch } from 
 import type { FormInstance } from 'element-plus'
 import { message } from '@repo/utils'
 import { type PartialSoftService } from '@/api/soft'
+import { fetchSoftServiceGet } from '@/api/soft'
 import "codemirror/mode/shell/shell.js"
 import ScSelect from "@repo/components/ScSelect/index.vue"
-
+import { useRoute } from 'vue-router'
+const route = useRoute()
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor/index.vue"))
 
 const props = defineProps<{
@@ -367,6 +389,9 @@ const form = reactive<PartialSoftService>({
   softServiceRestartCommand: '',
   softServiceInstalledCommand: '',
   softServiceLogPath: '',
+  installPathCustom: '',
+  installPort: 8080,
+  installDefaultPort: 0,
   abstractChannelSession: '',
   softServiceStatusCheckSuccessFlag: '',
   softServiceStatusCheckFailureFlag: '',
@@ -387,11 +412,8 @@ const form = reactive<PartialSoftService>({
 watch(() => props.software, (newVal) => {
   if (newVal) {
     // 更新表单数据
-    Object.keys(newVal).forEach(key => {
-      if (key in form) {
-        form[key] = newVal[key];
-      }
-    });
+    // 获取软件详情
+    fetchSoftDetail(newVal.softServiceId.toString());
   }
 }, { deep: true })
 
@@ -438,6 +460,12 @@ const handleSubmit = async () => {
 
     try {
       loading.value = true
+      
+      // 如果installPort没有值且installDefaultPort有值，则使用installDefaultPort
+      if ((!form.installPort || form.installPort === 0) && form.installDefaultPort && form.installDefaultPort > 0) {
+        form.installPort = form.installDefaultPort;
+      }
+      
       // 直接触发提交事件，让父组件处理保存逻辑
       emit('submit', form)
       dialogVisible.value = false
@@ -463,9 +491,38 @@ const startEditorRef = ref(null)
 const stopEditorRef = ref(null)
 const restartEditorRef = ref(null)
 const statusEditorRef = ref(null)
-
+// 获取软件详情
+const fetchSoftDetail = async (id: string | string[]) => {
+  try {
+    loading.value = true
+    const res = await fetchSoftServiceGet({ softServiceId: Number(id) })
+    
+    if (res && res.code === '00000' && res.data) {
+      // 填充表单数据
+      // 直接将res.data中的所有属性赋值到form对象
+      if (res.data) {
+        Object.assign(form, res.data);
+      }
+      message.success('获取软件信息成功')
+    } else {
+      message.error(res && res.msg ? res.msg : '获取软件信息失败')
+    }
+  } catch (error) {
+    console.error('获取软件详情失败:', error)
+    message.error('获取软件详情失败')
+  } finally {
+    loading.value = false
+  }
+}
 // 初始化
 onMounted(() => {
+    // 如果URL中有ID参数，则为编辑模式
+  const softId = route.query.id
+  if (softId) {
+    // 获取软件详情
+    fetchSoftDetail(softId)
+  }
+  
   // 延迟应用高亮，确保编辑器已完全加载
   setTimeout(() => {
     const editorRefs = [
@@ -499,6 +556,14 @@ onMounted(() => {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       margin-top: 4px;
+    }
+    
+    .path-hint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-top: 4px;
+      margin-bottom: 10px;
+      font-style: italic;
     }
   }
   
