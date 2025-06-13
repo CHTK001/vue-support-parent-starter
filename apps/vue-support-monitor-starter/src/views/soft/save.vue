@@ -329,7 +329,7 @@ onMounted(() => {
   if (softId) {
     isEdit.value = true
     // 这里可以添加获取软件详情的逻辑
-    // fetchSoftDetail(softId)
+    fetchSoftDetail(softId)
   }
   
   // 延迟应用高亮，确保编辑器已完全加载

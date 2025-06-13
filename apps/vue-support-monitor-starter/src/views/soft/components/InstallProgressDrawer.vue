@@ -5,7 +5,6 @@
         <div class="flex items-center justify-between">
           <IconifyIconOnline icon="ep:connection" class="mr-2 text-primary text-xl" />
           <span class="text-lg font-medium">软件安装进度 - {{ props.software.softServiceName }}</span>
-          <el-tag> {{ isViewMode ? "查看模式" : "安装模式" }}</el-tag>
         </div>
       </div>
     </template>
@@ -75,7 +74,7 @@
                   <el-button type="primary" :icon="useRenderIcon('ep:refresh')" circle size="small" class="ml-2" :loading="refreshing" @click="refreshDeviceStatus" />
                 </el-tooltip>
                 
-                <el-tag v-if="activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'" class="flex items-center justify-center cursor-pointer" type="danger" @click="handleUninstall" :loading="uninstalling">
+                <el-tag  v-if="activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records' && installStatus != 0" class="flex items-center justify-center cursor-pointer" type="danger" @click="handleUninstall" :loading="uninstalling">
                   <span><IconifyIconOnline icon="ep:delete" class="mr-1" /></span>
                   <span>卸载</span>
                 </el-tag>
@@ -767,7 +766,7 @@ const handleSelectDevice = async (deviceId: string, installId?: string) => {
   subscribeToLogs();
 
   // 加载该设备的安装日志
-  loadDeviceInstallLog(activeId);
+  //loadDeviceInstallLog(activeId);
 
   // 重新加载设备服务信息，确保获取最新的运行状态
   try {
