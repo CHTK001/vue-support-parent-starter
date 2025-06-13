@@ -10,7 +10,6 @@
     <div class="device-selection">
       <div class="selected-software">
         <ScCard 
-          hoverable 
           shadow="always" 
           borderPosition="left" 
           padding="16px"
@@ -64,7 +63,6 @@
 
       <div class="device-selection-content">
         <ScCard 
-          hoverable 
           shadow="always" 
           borderPosition="top" 
           padding="16px"
@@ -117,7 +115,6 @@
                       :key="device.id" 
                       class="device-card" 
                       :class="{ selected: selectedDevices.includes(device.id) }"
-                      hoverable
                       shadow="always"
                       borderPosition="left"
                       padding="16px"
@@ -128,11 +125,24 @@
                           <el-checkbox :label="device.id" class="mr-3" @click.stop />
                           <div class="ml-4">
                             <div class="device-ip text-gray-500 text-sm">{{ device.host }}(<span class="device-name">{{ device.name }}</span>)</div>
+                            <div v-if="device.isInstalled" class="device-install-info text-xs text-gray-500 mt-1">
+                              <span v-if="device.installPath">安装路径: {{ device.installPath }}</span>
+                              <span v-if="device.installVersion" class="ml-2">版本: {{ device.installVersion }}</span>
+                            </div>
                           </div>
                         </div>
                         <div class="device-status flex items-center">
                           <el-tag size="small" :type="device.status === 1 ? 'success' : 'danger'">
                             {{ device.status === 1 ? '在线' : '离线' }}
+                          </el-tag>
+                          <el-tag 
+                            v-if="device.installStatus == 2" 
+                            type="success" 
+                            effect="dark"
+                            size="small" 
+                            class="ml-2"
+                          >
+                            已安装
                           </el-tag>
                           <el-button 
                             v-if="device.hasInstallRecord" 
@@ -163,8 +173,8 @@
           :disabled="!canProceedInstall" 
           v-if="isCurrentVersionInstallable"
           @click="handleInstall" 
-          class="install-btn"
           :loading="installing"
+          class="install-btn"
         >
           <IconifyIconOnline v-if="!installing" icon="ep:download" class="mr-1" />
           {{ installing ? '安装中...' : '开始安装' }}
@@ -278,6 +288,7 @@ import { machineSshListData } from "@/api/system/assets-ssh"
 import type { PartialSoftService } from '@/api/soft'
 import ScCard from '@repo/components/ScCard/index.vue'
 import { fetchSoftServiceInstallLog } from '@/api/soft/log'
+import { fetchSoftServiceInstallByServiceId } from '@/api/soft/install'
 import dayjs from 'dayjs'
 
 // 接口定义
@@ -292,6 +303,16 @@ interface InstallLog {
   updateTime: string;
   installPath?: string;
   port?: string;
+}
+
+// 设备安装状态接口
+interface DeviceInstallStatus {
+  installId: string;
+  sshId: string;
+  softServiceId: number;
+  installStatus: number;
+  installPath?: string;
+  installVersion?: string;
 }
 
 const props = defineProps({
@@ -317,6 +338,9 @@ const selectedDevices = ref<string[]>([])
 const deviceList = ref<any[]>([])
 const loading = ref(false)
 const installing = ref(false)
+
+// 设备安装状态
+const deviceInstallStatus = ref<Record<string, DeviceInstallStatus>>({})
 
 // 安装记录相关
 const logDrawerVisible = ref(false)
@@ -385,7 +409,12 @@ const loadDeviceList = async () => {
         name: item.name,
         host: item.host,
         status: item.status,
-        hasInstallRecord: false // 初始化安装记录状态
+        hasInstallRecord: false, // 初始化安装记录状态
+        isInstalled: false, // 初始化是否已安装标志
+        installStatus: null, // 安装状态
+        installPath: null, // 安装路径
+        installVersion: null, // 安装版本
+        installId: null // 安装ID
       }))
       
       // 加载完设备列表后，批量检查安装记录
@@ -429,6 +458,52 @@ const checkInstallRecords = async () => {
     } catch (error) {
       console.error(`检查设备 ${device.id} 安装记录失败:`, error)
     }
+  }
+  
+  // 检查软件的安装状态
+  await checkSoftwareInstallStatus()
+}
+
+// 检查哪些设备已安装当前软件
+const checkSoftwareInstallStatus = async () => {
+  try {
+    if (!props.software.softServiceId) {
+      console.warn('软件ID不存在，无法检查安装状态')
+      return
+    }
+    
+    const res = await fetchSoftServiceInstallByServiceId({ 
+      softServiceId: props.software.softServiceId 
+    })
+    
+    if (res.code === "00000" && res.data) {
+      // 清空现有状态
+      deviceInstallStatus.value = {}
+      
+      // 确保数据是数组
+      const installRecords = Array.isArray(res.data) ? res.data : [res.data]
+      
+      // 更新设备安装状态
+      installRecords.forEach((record: DeviceInstallStatus) => {
+        if (record.sshId) {
+          // 保存安装状态
+          deviceInstallStatus.value[record.sshId] = record
+          
+          // 更新设备列表中的安装状态
+          const deviceIndex = deviceList.value.findIndex(d => d.id === record.sshId)
+          if (deviceIndex > -1) {
+            // 添加已安装标记和安装信息
+            deviceList.value[deviceIndex].isInstalled = true
+            deviceList.value[deviceIndex].installStatus = record.installStatus
+            deviceList.value[deviceIndex].installPath = record.installPath
+            deviceList.value[deviceIndex].installVersion = record.installVersion
+            deviceList.value[deviceIndex].installId = record.installId
+          }
+        }
+      })
+    }
+  } catch (error) {
+    console.error('检查软件安装状态失败:', error)
   }
 }
 
@@ -568,51 +643,71 @@ const getStatusText = (status: string) => {
 }
 
 // 监听抽屉可见性变化
-watch(() => drawerVisible.value, (newValue) => {
-  if (newValue) {
-    loadDeviceList()
-    selectedDevices.value = []
-  } else {
-    installing.value = false
+watch(
+  () => drawerVisible.value,
+  (visible) => {
+    if (visible) {
+      // 当抽屉打开时，立即加载设备列表
+      loadDeviceList();
+      
+      // 如果软件有版本信息，默认选择当前版本
+      if (props.software.versions && props.software.versions.length > 0) {
+        const currentVersion = props.software.versions.find(v => v.isCurrent);
+        if (currentVersion) {
+          selectedVersionId.value = currentVersion.softServiceId;
+        } else {
+          selectedVersionId.value = props.software.versions[0].softServiceId;
+        }
+      } else {
+        selectedVersionId.value = props.software.softServiceId || null;
+      }
+    } else {
+      // 当抽屉关闭时，清空选择
+      selectedDevices.value = [];
+    }
   }
-})
+);
 
 // 监听软件信息变化，初始化版本选择
 watch(() => props.software, (newSoftware) => {
   if (newSoftware.versions && newSoftware.versions.length > 0) {
     // 查找当前版本
-    const currentVersion = newSoftware.versions.find(v => v.isCurrent)
+    const currentVersion = newSoftware.versions.find(v => v.isCurrent);
     
     if (currentVersion && currentVersion.isInstallable !== false) {
-      // 如果有当前版本，默认选择当前版本
-      selectedVersionId.value = currentVersion.softServiceId
+      // 如果有当前版本且可安装，默认选择当前版本
+      selectedVersionId.value = currentVersion.softServiceId;
     } else {
       // 如果当前版本不可安装或不存在，查找第一个可安装的版本
-      const installableVersion = newSoftware.versions.find(v => v.isInstallable !== false)
+      const installableVersion = newSoftware.versions.find(v => v.isInstallable !== false);
       if (installableVersion) {
-        selectedVersionId.value = installableVersion.softServiceId
+        selectedVersionId.value = installableVersion.softServiceId;
       } else {
         // 如果没有可安装的版本，选择第一个版本（即使不可安装）
-        selectedVersionId.value = newSoftware.versions[0].softServiceId
+        selectedVersionId.value = newSoftware.versions[0].softServiceId;
       }
     }
   } else {
     // 如果没有版本信息，使用软件本身的ID
-    selectedVersionId.value = newSoftware.softServiceId || null
+    selectedVersionId.value = newSoftware.softServiceId || null;
   }
-}, { immediate: true })
+}, { immediate: true });
 
-// 组件挂载时加载设备列表
+// 组件挂载时初始化
 onMounted(() => {
-  installing.value = false
+  // 重置安装状态
+  installing.value = false;
+  
+  // 如果抽屉已经是打开状态，立即加载设备列表
   if (drawerVisible.value) {
-    loadDeviceList()
+    loadDeviceList();
   }
-})
+});
 
 
 defineExpose({
-  handleCancel
+  handleCancel,
+  deviceList
 })
 </script>
 
@@ -681,6 +776,19 @@ defineExpose({
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  
+  .device-install-info {
+    margin-top: 4px;
+    line-height: 1.4;
+    
+    span {
+      display: inline-block;
+      
+      &:not(:last-child) {
+        margin-right: 10px;
+      }
+    }
   }
   
   .device-status {

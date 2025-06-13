@@ -48,6 +48,11 @@
               <el-input v-model="formData.softServiceDownloadUrl" placeholder="请输入软件下载地址" />
             </el-form-item>
             
+            <el-form-item label="软件日志路径">
+              <el-input v-model="formData.softServiceLogPath" placeholder="请输入软件日志路径" />
+              <div class="form-hint">服务运行日志的文件路径，如"/var/log/service.log"</div>
+            </el-form-item>
+            
             <el-form-item label="软件描述">
               <el-input 
                 v-model="formData.softServiceRemark" 
@@ -242,6 +247,7 @@ const formData = reactive<Partial<SoftService>>({
   softServiceVersion: '',
   softServiceLogo: '',
   softServiceDownloadUrl: '',
+  softServiceLogPath: '',
   softServiceInstallCommand: '',
   softServiceUninstallCommand: '',
   softServiceStartCommand: '',
@@ -367,6 +373,12 @@ onMounted(() => {
   .form-left {
     flex: 1;
     min-width: 300px;
+    
+    .form-hint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      margin-top: 4px;
+    }
   }
   
   .form-right {

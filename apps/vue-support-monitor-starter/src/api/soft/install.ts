@@ -152,6 +152,8 @@ export interface SoftServiceInstall {
   sshHost: string;
   sshPort: number;
   sshName: string;
+  sshUsername?: string;
+  sshPassword?: string;
   softServiceName: string;
   softServiceInstallCommand: string;
   softServiceInstallCommandType: number;
@@ -166,4 +168,5 @@ export interface SoftServiceInstall {
   softServiceStatusCheckCommand: string;
   softServiceStatusCheckCommandType: number;
   softServiceStatusCheckSuccessFlag: string;
+  remark?: string;
 }
