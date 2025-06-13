@@ -226,6 +226,7 @@ const handleCommand = async (command: string, software: SoftService) => {
   switch (command) {
     case "detail":
       // 查看详情
+      showDetail(software);
       break;
     case "edit":
       // 编辑软件
@@ -239,7 +240,11 @@ const handleCommand = async (command: string, software: SoftService) => {
       break;
   }
 };
-
+const showDetail = (soft: SoftService) => {
+  currentSoftware.value = soft as PartialSoftService;
+  // 打开安装进度抽屉，但不传递设备ID，只查看历史安装记录
+  installDrawerVisible.value = true;
+};
 // 处理删除
 const handleDelete = async (software: SoftService) => {
   try {
