@@ -153,7 +153,7 @@ import { ref, reactive, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from '@repo/utils'
 import type { FormInstance } from 'element-plus'
-import { fetchSoftServiceSave, fetchSoftServiceUpdate, type SoftService } from '@/api/soft'
+import { fetchSoftServiceSave, fetchSoftServiceUpdate, fetchSoftServiceGet, type SoftService } from '@/api/soft'
 import "codemirror/mode/shell/shell.js"
 
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor/index.vue"))
@@ -322,13 +322,38 @@ const startEditorRef = ref(null)
 const stopEditorRef = ref(null)
 const restartEditorRef = ref(null)
 
+// 获取软件详情
+const fetchSoftDetail = async (id: string | string[]) => {
+  try {
+    loading.value = true
+    const res = await fetchSoftServiceGet({ softServiceId: Number(id) })
+    
+    if (res && res.code === '00000' && res.data) {
+      // 填充表单数据
+      Object.keys(formData).forEach(key => {
+        if (res.data && res.data[key] !== undefined) {
+          formData[key] = res.data[key]
+        }
+      })
+      message.success('获取软件信息成功')
+    } else {
+      message.error(res && res.msg ? res.msg : '获取软件信息失败')
+    }
+  } catch (error) {
+    console.error('获取软件详情失败:', error)
+    message.error('获取软件详情失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 初始化
 onMounted(() => {
   // 如果URL中有ID参数，则为编辑模式
   const softId = route.query.id
   if (softId) {
     isEdit.value = true
-    // 这里可以添加获取软件详情的逻辑
+    // 获取软件详情
     fetchSoftDetail(softId)
   }
   

@@ -46,6 +46,18 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
+                <!-- 安装按钮 - 仅在未安装时显示 -->
+                <el-button 
+                  v-if="installStatus === 0 && activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'" 
+                  type="primary" 
+                  size="small"
+                  :icon="useRenderIcon('ep:download')" 
+                  @click="handleInstall"
+                  :loading="installing"
+                >
+                  {{ installing ? '安装中...' : '安装' }}
+                </el-button>
+
                 <!-- 服务控制按钮组 - 仅在安装成功时显示 -->
                 <div v-if="installStatus === 2 && activeInstallId && activeInstallId !== 'loading' && activeInstallId !== 'error' && activeInstallId !== 'no-records'" class="service-control-buttons">
                   <!-- 服务未运行时显示启动按钮 -->
@@ -145,7 +157,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update:modelValue", "finish"]);
+const emit = defineEmits(["update:modelValue", "finish", "install"]);
 
 const drawerVisible = computed({
   get: () => props.modelValue,
@@ -442,7 +454,7 @@ watch(
       }
     } else {
       // 如果没有已安装服务器，查询历史安装记录
-      loadInstallHistory();
+     ///loadInstallHistory();
     }
   },
   { immediate: true }
@@ -1337,6 +1349,79 @@ const currentInstallProgress = computed(() => {
   
   return device.progress || 0;
 });
+
+// 添加安装相关状态
+const installing = ref(false);
+
+// 添加版本相关状态
+const selectedVersionId = ref<number | null>(null);
+
+// 判断当前版本是否可安装
+const isCurrentVersionInstallable = computed(() => {
+  // 如果没有版本信息，默认可安装
+  if (!props.software.versions || props.software.versions.length === 0) {
+    return true;
+  }
+  
+  // 查找当前版本
+  const currentVersion = props.software.versions.find(v => v.isCurrent);
+  
+  // 如果找不到当前版本，或者当前版本没有明确设置isInstallable为false，则认为可安装
+  return !currentVersion || currentVersion.isInstallable !== false;
+});
+
+// 获取当前选中的版本信息
+const selectedVersion = computed(() => {
+  if (!props.software.versions || !selectedVersionId.value) return null;
+  return props.software.versions.find(v => v.softServiceId === selectedVersionId.value);
+});
+
+// 监听软件信息变化，初始化版本选择
+watch(() => props.software, (newSoftware) => {
+  if (newSoftware.versions && newSoftware.versions.length > 0) {
+    // 查找当前版本
+    const currentVersion = newSoftware.versions.find(v => v.isCurrent);
+    
+    if (currentVersion && currentVersion.isInstallable !== false) {
+      // 如果有当前版本且可安装，默认选择当前版本
+      selectedVersionId.value = currentVersion.softServiceId;
+    } else {
+      // 如果当前版本不可安装或不存在，查找第一个可安装的版本
+      const installableVersion = newSoftware.versions.find(v => v.isInstallable !== false);
+      if (installableVersion) {
+        selectedVersionId.value = installableVersion.softServiceId;
+      } else {
+        // 如果没有可安装的版本，选择第一个版本（即使不可安装）
+        selectedVersionId.value = newSoftware.versions[0].softServiceId;
+      }
+    }
+  } else {
+    // 如果没有版本信息，使用软件本身的ID
+    selectedVersionId.value = newSoftware.softServiceId || null;
+  }
+}, { immediate: true });
+
+// 处理安装
+const handleInstall = () => {
+  // 获取当前选中的设备
+  const device = deviceServices.value.find((d) => d.installId === activeInstallId.value);
+  if (!device) {
+    message.error("未找到设备信息");
+    return;
+  }
+
+  // 使用选中的版本ID
+  const actualSoftServiceId = selectedVersionId.value || props.software.softServiceId;
+  if (!actualSoftServiceId) {
+    message.error("未找到有效的软件ID");
+    return;
+  }
+
+  installing.value = true;
+
+  // 发送安装请求
+  emit('install', [device.sshId]);
+};
 </script>
 
 <style lang="scss" scoped>
