@@ -2,9 +2,24 @@
   <div class="log-section">
     <div class="logs-header pb-2 mb-3">
       <div class="section-title flex items-center justify-between">
-        <div class="flex items-center">
-          <IconifyIconOnline icon="ep:document" class="mr-2 text-primary text-xl" />
-          安装日志
+        <div class="flex items-center flex-wrap">
+          <div class="flex items-center">
+            <IconifyIconOnline icon="ep:document" class="mr-2 text-primary text-xl" />
+            安装日志
+            <span v-if="activeLogType === 'install' && getInstallProgress() > 0" class="ml-2 text-sm text-primary font-medium">
+              ({{ getInstallProgress() }}%)
+            </span>
+          </div>
+          <div v-if="activeLogType === 'install' && getInstallProgress() > 0" class="install-progress-bar ml-3 flex-1 min-w-[100px] max-w-[200px]">
+            <el-progress 
+              :percentage="getInstallProgress()" 
+              :status="getInstallProgress() === 100 ? 'success' : ''" 
+              :stroke-width="8" 
+              :show-text="true"
+              :format="() => `${getInstallProgress()}%`"
+              :color="progressBarColor"
+            />
+          </div>
         </div>
         <div class="log-tabs">
           <el-radio-group v-model="activeLogType" size="small" class="log-type-tabs" @change="$emit('log-type-change', activeLogType)">
@@ -30,20 +45,12 @@
         </div>
         <div v-for="log in logs" :key="log.id" :class="['log-item py-2 px-3 mb-1 rounded', log.type]">
           <span class="log-time text-gray-500 mr-2 font-semibold">{{ formatTime(log.timestamp || new Date()) }}</span>
-          <span :class="getLogClass(log.type)">{{ log.msg }}</span>
-          <div v-if="log.step !== undefined && log.total !== undefined && log.total > 0" class="log-progress mt-1">
-            <el-progress 
-              :percentage="Math.round((log.step / log.total) * 100)" 
-              :status="getProgressStatus(log.type)"
-              :stroke-width="8"
-              :show-text="false"
-              size="small"
-            >
-              <template #default>
-                <span class="text-xs font-medium">{{ log.step }}/{{ log.total }}</span>
-              </template>
-            </el-progress>
-          </div>
+          <span :class="getLogClass(log.type)">
+            {{ log.msg }}
+            <span v-if="log.step !== undefined && log.total !== undefined && log.total > 0" class="ml-2 text-gray-500 font-medium">
+              ({{ Math.round((log.step / log.total) * 100) }}% - {{ log.step }}/{{ log.total }})
+            </span>
+          </span>
         </div>
       </div>
     </el-scrollbar>
@@ -70,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, defineProps, defineEmits, computed } from 'vue'
 
 const props = defineProps({
   logs: {
@@ -88,6 +95,10 @@ const props = defineProps({
   canViewServiceLogs: {
     type: Boolean,
     default: false
+  },
+  installProgress: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -95,6 +106,14 @@ const emit = defineEmits(['log-type-change', 'clear', 'export', 'scroll-to-botto
 
 const activeLogType = ref('install')
 const logScrollRef = ref(null)
+
+// 记录最高进度值
+const highestProgress = ref(0);
+
+// 添加渐变颜色的计算属性
+const progressBarColor = computed(() => {
+  return getInstallProgress() === 100 ? '#67c23a' : '#409eff'
+})
 
 // 格式化时间
 const formatTime = (date: Date) => {
@@ -141,16 +160,6 @@ const getInstallStatusText = () => {
   }
 }
 
-// 获取进度条状态
-const getProgressStatus = (type: string) => {
-  switch (type) {
-    case 'success': return 'success'
-    case 'error': return 'exception'
-    case 'warning': return 'warning'
-    default: return ''
-  }
-}
-
 // 获取状态图标
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -159,6 +168,28 @@ const getStatusIcon = (status: string) => {
     case 'success': return 'ep:check'
     case 'error': return 'ep:close'
     default: return 'ep:info'
+  }
+}
+
+// 获取安装进度
+const getInstallProgress = () => {
+  // 更新最高进度值
+  if (props.installProgress > highestProgress.value) {
+    highestProgress.value = props.installProgress;
+  }
+  
+  // 始终返回最高进度值，防止进度回退
+  return highestProgress.value;
+}
+
+// 获取进度条状态
+const getProgressStatus = (progress: number) => {
+  if (progress < 100) {
+    return ''  // 默认状态
+  } else if (progress === 100) {
+    return 'success'
+  } else {
+    return 'exception'
   }
 }
 
@@ -173,6 +204,29 @@ defineExpose({
   border-bottom: 1px solid var(--el-border-color-light);
   padding-bottom: 12px;
   margin-bottom: 16px;
+}
+
+.install-progress-bar {
+  margin-left: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  :deep(.el-progress-bar__outer) {
+    border-radius: 4px;
+    background-color: var(--el-fill-color-lighter);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  :deep(.el-progress-bar__inner) {
+    transition: all 0.5s ease-out;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  
+  :deep(.el-progress__text) {
+    font-weight: bold;
+    color: var(--el-text-color-primary);
+  }
 }
 
 .log-type-tabs {
@@ -250,10 +304,5 @@ defineExpose({
   align-items: center;
   font-weight: 500;
   padding: 6px 12px;
-}
-
-.log-progress {
-  margin: 8px 0 4px 0;
-  padding: 0 4px;
 }
 </style>

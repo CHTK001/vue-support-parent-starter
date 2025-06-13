@@ -50,6 +50,7 @@ export interface SoftService {
   softServiceDownloadUrl: string;
   softServiceTags: string;
   softServiceOs: string;
+  softServiceLogPath?: string; // 日志文件路径
   sshId: string;
   isInstalled: boolean;
   installedServers?: InstalledServer[]; // 安装这个服务的设备列表
@@ -102,6 +103,7 @@ export interface PartialSoftService {
   softServiceStopCommand?: string;
   softServiceRestartCommand?: string;
   softServiceInstalledCommand?: string;
+  softServiceLogPath?: string; // 日志文件路径
   softServiceTags?: string;
   installCount?: number;
   favoriteCount?: number;
@@ -112,6 +114,17 @@ export interface PartialSoftService {
   versions?: SoftServiceVersion[];
   abstractChannelSession?: string; // 状态命令
   softServiceStatusCheckSuccessFlag?: string; // 服务状态检查成功标识
+  softServiceStatusCheckFailureFlag?: string; // 服务状态检查失败标识
+  softServiceInstallSuccessFlag?: string; // 安装成功标识
+  softServiceInstallFailureFlag?: string; // 安装失败标识
+  softServiceUninstallSuccessFlag?: string; // 卸载成功标识
+  softServiceUninstallFailureFlag?: string; // 卸载失败标识
+  softServiceStartSuccessFlag?: string; // 启动成功标识
+  softServiceStartFailureFlag?: string; // 启动失败标识
+  softServiceStopSuccessFlag?: string; // 停止成功标识
+  softServiceStopFailureFlag?: string; // 停止失败标识
+  softServiceRestartSuccessFlag?: string; // 重启成功标识
+  softServiceRestartFailureFlag?: string; // 重启失败标识
 }
 
 /**

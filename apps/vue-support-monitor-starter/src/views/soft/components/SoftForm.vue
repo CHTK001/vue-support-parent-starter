@@ -52,10 +52,11 @@
           <el-form-item label="下载地址">
             <el-input v-model="form.softServiceDownloadUrl" placeholder="请输入软件下载地址" />
           </el-form-item>
+       
           
-          <el-form-item label="状态检查成功标识" prop="softServiceStatusCheckSuccessFlag">
-            <el-input v-model="form.softServiceStatusCheckSuccessFlag" placeholder="请输入服务状态检查成功标识" />
-            <div class="form-hint">判断服务正常运行的关键字，如"running"或"active"</div>
+          <el-form-item label="日志路径" prop="softServiceLogPath">
+            <el-input v-model="form.softServiceLogPath" placeholder="请输入服务日志文件路径" />
+            <div class="form-hint">服务运行日志的文件路径，如"/var/log/service.log"</div>
           </el-form-item>
           
           <el-form-item label="软件描述">
@@ -365,6 +366,7 @@ const form = reactive<PartialSoftService>({
   softServiceStopCommand: '',
   softServiceRestartCommand: '',
   softServiceInstalledCommand: '',
+  softServiceLogPath: '',
   abstractChannelSession: '',
   softServiceStatusCheckSuccessFlag: '',
   softServiceStatusCheckFailureFlag: '',
