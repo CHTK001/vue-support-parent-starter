@@ -57,11 +57,11 @@
     />
 
     <!-- 安装进度抽屉 -->
-    <install-progress-drawer 
-      v-if="installDrawerVisible" 
-      v-model="installDrawerVisible" 
-      :software="currentSoftware" 
-      @finish="handleInstallFinish" 
+    <InstallProgressDrawer
+      v-model="installDrawerVisible"
+      :software="currentSoftware"
+      @finish="handleInstallFinish"
+      @install="handleInstallProgressInstall"
     />
 
     <!-- 软件表单对话框 -->
@@ -359,6 +359,30 @@ const handleDeviceEdited = () => {
 const handleDeviceDeleted = () => {
   loadDeviceList();
   message.success("设备删除成功");
+};
+
+// 处理安装进度抽屉的安装事件
+const handleInstallProgressInstall = async (deviceIds: string[]) => {
+  try {
+    if (!currentSoftware.value.softServiceId) {
+      message.error("软件ID不存在");
+      return;
+    }
+
+    const res = await fetchSoftServiceInstall({
+      softServiceId: currentSoftware.value.softServiceId,
+      sshIds: deviceIds,
+    });
+
+    if (res.code === "00000") {
+      message.success("安装命令已发送");
+    } else {
+      message.error(res.msg || "安装失败");
+    }
+  } catch (error) {
+    console.error("安装失败:", error);
+    message.error("安装失败");
+  }
 };
 
 // 组件挂载时初始化

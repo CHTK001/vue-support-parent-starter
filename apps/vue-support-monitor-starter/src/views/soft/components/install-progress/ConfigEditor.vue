@@ -10,7 +10,7 @@
       <div class="config-editor-content">
         <el-form v-if="!isJsonMode" label-position="top">
           <template v-for="(value, key) in parsedConfig" :key="key">
-            <el-form-item :label="key">
+            <el-form-item>
               <el-input v-if="typeof value === 'string'" v-model="parsedConfig[key]" />
               <el-input-number v-else-if="typeof value === 'number'" v-model="parsedConfig[key]" :controls="false" />
               <el-switch v-else-if="typeof value === 'boolean'" v-model="parsedConfig[key]" />
@@ -42,7 +42,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="visible = false">取消</el-button>
-          <el-button type="primary" @click="handleSave" :loading="saving" :disabled="jsonError">
+          <el-button type="primary" @click="handleSave" :loading="saving" :disabled="!!jsonError">
             保存
           </el-button>
         </div>

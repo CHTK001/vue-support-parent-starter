@@ -14,6 +14,7 @@ export interface InstalledServer {
   serverName: string;
   serverHost: string;
   hostName: string;
+  sshName: string;
   osName: string;
 }
 
