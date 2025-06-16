@@ -287,7 +287,7 @@ const addLog = (type: string, content: string) => {
   logs.value.push({
     id: logs.value.length + 1,
     type,
-    msg: content,
+    msg: content + "\n",
     timestamp: new Date(),
   });
   
@@ -323,53 +323,6 @@ const loadSoftServiceList = async () => {
   }
 };
 
-// 加载设备安装日志
-const loadDeviceInstallLog = async (deviceId: string) => {
-  try {
-    // 清空日志
-    logs.value = [];
-    addLog("info", "正在加载安装日志...");
-    
-    // 检查deviceId是否有效
-    if (!deviceId || typeof deviceId !== "string" || deviceId === "loading" || deviceId === "error" || deviceId === "load-error" || deviceId === "no-records") {
-      addLog("error", "无效的设备ID，无法加载日志");
-      return;
-    }
-    
-    // 查询设备安装日志
-    const res = await fetchSoftServiceLog({ 
-      installId: deviceId
-    });
-    
-    if (res.code === "00000" && res.data) {
-      // 处理返回的日志数据
-      const logData = res.data;
-      
-      if (Array.isArray(logData) && logData.length > 0) {
-        // 转换日志格式
-        logs.value = logData.map((log, index) => ({
-          id: index + 1,
-          type: log.level?.toLowerCase() || "info",
-          msg: log.message || "",
-          timestamp: log.createTime ? new Date(log.createTime) : new Date(),
-          module: log.module,
-        }));
-      } else {
-        addLog("info", "暂无安装日志记录");
-      }
-      
-      // 自动滚动到底部
-      nextTick(() => {
-        scrollToBottom();
-      });
-    } else {
-      addLog("error", res.msg || "加载安装日志失败");
-    }
-  } catch (error) {
-    console.error("加载安装日志失败:", error);
-    addLog("error", "加载安装日志失败");
-  }
-};
 
 // 加载设备服务
 const loadDeviceServices = async () => {
@@ -700,19 +653,41 @@ const handleLogTypeChange = async (type: string) => {
     await handleToggleLogMonitor();
   }
   
-  // 清空日志
-  logs.value = [];
-  
-  // 根据日志类型加载相应的日志
-  if (type === 'install') {
-    // 加载安装日志
-    loadDeviceInstallLog(activeInstallId.value);
-  } else if (type === 'monitor' && hasServiceLogPath.value) {
-    // 监控日志使用WebSocket实时获取，不需要在这里加载
-    addLog('info', '正在加载服务日志...');
-  } else {
-    // 其他类型的日志暂不处理
-    addLog('info', `正在加载${type}日志...`);
+  try {
+    // 清空日志
+    logs.value = [];
+    
+    // 根据日志类型加载不同的日志
+    switch (type) {
+      case 'install':
+        addLog("info", "正在加载安装日志...\n");
+        break;
+      case 'start':
+        addLog("info", "正在加载启动日志...\n");
+        // 加载启动日志
+        break;
+      case 'stop':
+        addLog("info", "正在加载停止日志...\n");
+        // 加载停止日志
+        break;
+      case 'restart':
+        addLog("info", "正在加载重启日志...\n");
+        // 加载重启日志
+        break;
+      case 'uninstall':
+        addLog("info", "正在加载卸载日志...\n");
+        // 加载卸载日志
+        break;
+      case 'monitor':
+        addLog("info", "正在连接服务日志监控...\n");
+        if (!hasServiceLogPath.value) {
+          addLog("error", "当前设备未配置服务日志路径，无法监控服务日志\n");
+        }
+        break;
+    }
+  } catch (error) {
+    console.error(`切换到${type}日志失败:`, error);
+    addLog("error", `切换到${type}日志失败\n`);
   }
 };
 
@@ -801,9 +776,6 @@ const loadInstallHistory = async () => {
       if (firstValidDevice && firstValidDevice.installId) {
         activeInstallId.value = firstValidDevice.installId;
         
-        // 加载该设备的安装日志
-        loadDeviceInstallLog(firstValidDevice.installId);
-
         // 更新设备状态
         const _device = deviceServices.value.find((d) => d.installId === firstValidDevice.installId);
         if (_device) {
@@ -855,9 +827,6 @@ const handleSelectDevice = async (sshId: string, installId: string) => {
     
     // 重置日志监控状态
     isMonitoringLogs.value = false;
-    
-    // 加载设备安装日志
-    await loadDeviceInstallLog(installId);
     
     // 检查设备安装状态
     if (deviceServices.value.length > 0) {
@@ -986,26 +955,48 @@ const submitServiceForm = async (data: any) => {
 
 // 断开WebSocket连接
 const disconnectWebSocket = () => {
-  if (stompClient.value) {
-    unsubscribeFromLogs();
-    stompClient.value.close();
-    stompClient.value = null;
+  try {
+    // 先取消所有订阅
+    if (stompClient.value) {
+      // 取消已知的所有主题订阅
+      unsubscribeFromLogs();
+      
+      // 额外取消可能的其他主题订阅
+      const softTopic = `/topic/install/soft`;
+      stompClient.value.off(softTopic);
+      
+      // 取消可能存在的监控日志订阅
+      const monitorTopic = `/topic/install/soft/monitor/${activeInstallId.value}`;
+      stompClient.value.off(monitorTopic);
+      
+      // 取消特定设备的日志订阅
+      if (activeInstallId.value) {
+        const deviceTopic = `/topic/install/soft/${activeInstallId.value}`;
+        stompClient.value.off(deviceTopic);
+      }
+      
+      // 断开连接并关闭
+      if (stompClient.value.connected) {
+        stompClient.value.disconnect();
+      }
+      
+      stompClient.value.close();
+      stompClient.value = null;
+      
+      console.log("WebSocket连接已完全断开");
+    }
+  } catch (error) {
+    console.error("断开WebSocket连接时出错:", error);
   }
 };
 
 // 组件挂载时加载软件服务列表
 onMounted(() => {
-  // 无论是安装模式还是查看模式，都连接WebSocket获取日志
-  connectWebSocket();
-  
   // 加载软件服务列表
   loadSoftServiceList();
-  
-  // 加载设备服务
-  loadDeviceServices();
 });
 
-// 监听抽屉可见性变化，当打开时自动选择第一个设备
+// 监听抽屉可见性变化
 watch(
   () => drawerVisible.value,
   async (visible) => {
@@ -1029,6 +1020,12 @@ watch(
           handleSelectDevice("", firstDevice.installId);
         }
       }
+      
+      // 连接WebSocket
+      connectWebSocket();
+    } else {
+      // 抽屉关闭时，调用handleClose处理清理工作
+      handleClose();
     }
   },
   { immediate: true }
@@ -1041,29 +1038,56 @@ onBeforeUnmount(() => {
 
 // 处理关闭
 const handleClose = async () => {
-  // 如果正在监控日志，先停止监控
-  if (isMonitoringLogs.value) {
-    try {
-      const res = await fetchSoftMonitorLogStop({
-        installId: activeInstallId.value,
-      });
-      
-      if (res.code === "00000") {
-        isMonitoringLogs.value = false;
+  try {
+    // 如果正在监控日志，先停止监控
+    if (isMonitoringLogs.value) {
+      try {
+        const res = await fetchSoftMonitorLogStop({
+          installId: activeInstallId.value,
+        });
+        
+        if (res.code === "00000") {
+          isMonitoringLogs.value = false;
+        }
+      } catch (error) {
+        console.error("停止日志监控失败:", error);
       }
-    } catch (error) {
-      console.error("停止日志监控失败:", error);
     }
+    
+    // 断开websocket连接
+    disconnectWebSocket();
+    
+    // 重置所有状态
+    activeInstallId.value = "";
+    installStatus.value = 0;
+    deviceServices.value = [];
+    logs.value = [];
+    
+    // 重置监控状态
+    isMonitoringLogs.value = false;
+    
+    // 重置加载状态
+    installing.value = false;
+    uninstalling.value = false;
+    Object.keys(serviceActionLoading).forEach(key => {
+      serviceActionLoading[key] = false;
+    });
+    
+    // 关闭当前打开的对话框
+    configEditorVisible.value = false;
+    serviceFormVisible.value = false;
+    
+    // 关闭抽屉
+    drawerVisible.value = false;
+    
+    // 发送完成事件
+    emit("finish");
+  } catch (error) {
+    console.error("关闭抽屉时发生错误:", error);
+    // 确保即使出错也能关闭抽屉
+    drawerVisible.value = false;
+    emit("finish");
   }
-  
-  // 断开websocket连接
-  disconnectWebSocket();
-  
-  // 关闭抽屉
-  drawerVisible.value = false;
-  
-  // 发送完成事件
-  emit("finish");
 };
 
 // 获取状态图标

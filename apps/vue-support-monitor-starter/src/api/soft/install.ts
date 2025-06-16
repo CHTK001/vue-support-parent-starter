@@ -25,6 +25,7 @@ export interface UninstallRequest {
 export interface ServiceRequest {
   installId: string;
   lines?: number;
+  type?: string; // 增加日志类型参数：install, start, stop, restart, uninstall
 }
 
 /**
@@ -105,7 +106,17 @@ export function fetchSoftServiceRestartService(data: ServiceRequest) {
  * 获取服务日志
  */
 export const fetchSoftServiceLog = (params: ServiceRequest) => {
-  return http.request<ReturnResult<string>>("get", `/v1/soft/service/install/log/${params.installId}`);
+  let url = `/v1/soft/service/install/log/${params.installId}`;
+  // 如果指定了日志类型，添加到URL中
+  if (params.type) {
+    url += `/${params.type}`;
+  }
+  // 如果指定了行数，添加到URL中
+  if (params.lines) {
+    url += `?lines=${params.lines}`;
+  }
+
+  return http.request<ReturnResult<string>>("get", url);
 };
 
 /**

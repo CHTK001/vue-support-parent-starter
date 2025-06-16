@@ -392,6 +392,9 @@ const handleLogTypeChange = (type: string) => {
     writeToTerminal('\x1b[2;90m--------------------------------------\x1b[0m\r\n\r\n')
   }
   
+  // 修改activeLogType
+  activeLogType.value = type
+  
   // 触发日志类型变更事件
   emit('log-type-change', type)
 }
