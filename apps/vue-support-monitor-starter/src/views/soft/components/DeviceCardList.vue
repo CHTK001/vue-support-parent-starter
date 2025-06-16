@@ -17,9 +17,9 @@
       </div>
     </div>
 
-    <div v-if="loading" class="loading-container flex justify-center items-center py-8">
-      <el-skeleton :rows="3" animated />
-    </div>
+      <div v-if="loading" class="loading-container flex justify-center items-center py-8">
+        <el-skeleton :rows="3" animated />
+      </div>
     <el-empty v-else-if="deviceList.length === 0" description="暂无设备" :image-size="100" class="empty-container" />
     <div v-else class="device-grid">
       <ScCard
@@ -131,14 +131,14 @@
       <div class="form-container flex">
         <!-- 左侧基本信息 -->
         <div class="form-left flex-1 pr-4">
-          <el-form 
-            ref="deviceFormRef" 
-            :model="deviceForm" 
-            :rules="deviceFormRules"
+      <el-form 
+        ref="deviceFormRef" 
+        :model="deviceForm" 
+        :rules="deviceFormRules"
             label-width="120px"
             label-position="right"
-            class="device-form"
-          >
+        class="device-form"
+      >
             <h3 class="text-lg font-medium mb-4">基本信息</h3>
             
             <el-form-item label="SSH设备" prop="sshId">
@@ -470,8 +470,8 @@
                   :options="codeEditorOptions" 
                 />
               </div>
-            </el-tab-pane>
-          </el-tabs>
+          </el-tab-pane>
+        </el-tabs>
         </div>
       </div>
       <template #footer>
