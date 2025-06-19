@@ -72,10 +72,10 @@
                 <span>MQTT</span>
               </div>
             </el-option>
-            <el-option value="SHELL" label="终端">
+            <el-option value="SERIAL" label="串口">
               <div class="gen-save__option">
-                <IconifyIconOnline icon="devicon:powershell" class="mr-2" />
-                <span>终端</span>
+                <IconifyIconOnline icon="mdi:serial-port" class="mr-2" />
+                <span>串口</span>
               </div>
             </el-option>
             <el-option value="INFLUXDB" label="INFLUXDB ver2+">
@@ -161,7 +161,7 @@
         </el-form-item>
 
         <!-- 远程地址和端口 -->
-        <el-form-item v-if="form.genJdbcCustomType == 'URL'" label="地址" prop="genHost">
+        <el-form-item v-if="form.genJdbcCustomType == 'URL' && form.genType !== 'SERIAL'" label="地址" prop="genHost">
           <div class="gen-save__host-group">
             <el-input v-model="form.genHost" placeholder="请输入地址" class="gen-save__host">
               <template #prefix>
@@ -177,7 +177,7 @@
         </el-form-item>
 
         <!-- 账号 -->
-        <el-form-item label="账号" prop="genUser">
+        <el-form-item v-if="form.genType !== 'SERIAL'" label="账号" prop="genUser">
           <el-input v-model="form.genUser" placeholder="请输入账号" clearable>
             <template #prefix>
               <IconifyIconOnline icon="ri:user-3-line" />
@@ -186,7 +186,7 @@
         </el-form-item>
 
         <!-- 密码 -->
-        <el-form-item label="密码" prop="genPassword">
+        <el-form-item v-if="form.genType !== 'SERIAL'" label="密码" prop="genPassword">
           <el-input v-model="form.genPassword" placeholder="请输入密码" show-password type="password">
             <template #prefix>
               <IconifyIconOnline icon="ri:lock-password-line" />
@@ -195,7 +195,7 @@
         </el-form-item>
 
         <!-- 备份时间 -->
-        <el-form-item v-if="form.genJdbcCustomType != 'FILE'" label="备份时间" prop="genBackupPeriod">
+        <el-form-item v-if="form.genJdbcCustomType != 'FILE' && form.genType !== 'SERIAL'" label="备份时间" prop="genBackupPeriod">
           <el-input v-model="form.genBackupPeriod" clearable placeholder="请输入数据库备份时间(分钟)" type="number">
             <template #prefix>
               <IconifyIconOnline icon="ri:time-line" />
@@ -207,7 +207,7 @@
         </el-form-item>
 
         <!-- 备份事件 -->
-        <el-form-item v-if="form.genJdbcCustomType != 'FILE'" label="备份事件" prop="genBackupEvent">
+        <el-form-item v-if="form.genJdbcCustomType != 'FILE' && form.genType !== 'SERIAL'" label="备份事件" prop="genBackupEvent">
           <el-select v-model="form.genBackupEvent" placeholder="请选择数据库备份事件" multiple class="gen-save__select">
             <el-option label="更新" value="UPDATE">
               <div class="gen-save__option">
@@ -234,6 +234,11 @@
         <el-form-item label="描述" prop="genDesc">
           <el-input v-model="form.genDesc" placeholder="请输入描述" type="textarea" maxlength="200" :show-word-limit="true"
             :rows="4" class="gen-save__textarea" />
+        </el-form-item>
+        
+        <!-- 分屏模式 -->
+        <el-form-item label="分屏模式" prop="genSplit">
+          <el-switch v-model="form.genSplit" active-text="启用" inactive-text="禁用" />
         </el-form-item>
       </el-form>
 
@@ -280,7 +285,8 @@ const form = reactive({
   genPassword: "",
   genBackupPeriod: "",
   genBackupEvent: [],
-  genDesc: ""
+  genDesc: "",
+  genSplit: false
 });
 
 // 表单验证规则
@@ -290,9 +296,42 @@ const rules = reactive({
     { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
   ],
   genType: [{ required: true, message: "请选择数据源类型", trigger: "change" }],
-  genJdbcCustomType: [{ required: true, message: "请选择JDBC类型", trigger: "change" }],
-  genHost: [{ required: true, message: "请输入地址", trigger: "blur" }],
-  genPort: [{ required: true, message: "请输入端口", trigger: "blur" }]
+  genJdbcCustomType: [{ 
+    required: true, 
+    message: "请选择JDBC类型", 
+    trigger: "change",
+    validator: (rule, value, callback) => {
+      if (form.genType === 'SERIAL' || value) {
+        callback();
+      } else {
+        callback(new Error("请选择JDBC类型"));
+      }
+    }
+  }],
+  genHost: [{ 
+    required: true, 
+    message: "请输入地址", 
+    trigger: "blur",
+    validator: (rule, value, callback) => {
+      if (form.genType === 'SERIAL' || value) {
+        callback();
+      } else {
+        callback(new Error("请输入地址"));
+      }
+    }
+  }],
+  genPort: [{ 
+    required: true, 
+    message: "请输入端口", 
+    trigger: "blur",
+    validator: (rule, value, callback) => {
+      if (form.genType === 'SERIAL' || value) {
+        callback();
+      } else {
+        callback(new Error("请输入端口"));
+      }
+    }
+  }]
 });
 
 /**
@@ -303,27 +342,46 @@ const handleChangeGenType = () => {
   if (form.genType === "ZOOKEEPER") {
     form.genJdbcCustomType = "URL";
     form.genPort = 2181;
-  } else if (form.genType === "SHELL") {
-    form.genJdbcCustomType = "URL";
-    form.genPort = 22;
+    form.genSplit = true;
+  } else if (form.genType === "SERIAL") {
+    form.genJdbcCustomType = "";
+    form.genPort = "";
+    form.genHost = "";
+    form.genUser = "";
+    form.genPassword = "";
+    form.genBackupPeriod = "";
+    form.genBackupEvent = [];
+    form.genSplit = false;
   } else if (form.genType === "REDIS") {
     form.genJdbcCustomType = "URL";
     form.genPort = 6379;
+    form.genSplit = true;
   } else if (form.genType === "MQTT") {
     form.genJdbcCustomType = "URL";
     form.genPort = 8084;
+    form.genSplit = true;
   } else if (form.genType === "VNC") {
     form.genJdbcCustomType = "URL";
     form.genPort = 5900;
+    form.genSplit = false;
   } else if (form.genType === "MONGODB") {
     form.genJdbcCustomType = "URL";
     form.genPort = 27017;
+    form.genSplit = true;
   } else if (form.genType === "NACOS") {
     form.genJdbcCustomType = "URL";
     form.genPort = 8848;
+    form.genSplit = false;
   } else if (form.genType === "PROMETHEUS") {
     form.genJdbcCustomType = "URL";
     form.genPort = 9090;
+    form.genSplit = false;
+  } else if (form.genType === "JDBC") {
+    form.genSplit = true;
+  } else if (form.genType === "WEBRTC") {
+    form.genSplit = false;
+  } else if (form.genType === "INFLUXDB") {
+    form.genSplit = true;
   }
 };
 
@@ -344,9 +402,14 @@ const onClose = () => {
   confirmLoading.value = false;
   // 重置表单
   Object.keys(form).forEach(key => {
-    form[key] = "";
+    if (key === 'genSplit') {
+      form[key] = false;
+    } else if (key === 'genBackupEvent') {
+      form[key] = [];
+    } else {
+      form[key] = "";
+    }
   });
-  form.genBackupEvent = [];
   // 重置表单验证
   formRef.value?.resetFields();
 };
@@ -367,8 +430,11 @@ const setData = data => {
   // 处理备份事件数组
   form.genBackupEvent = !form.genBackupEvent ? [] : typeof form.genBackupEvent === "string" ? form.genBackupEvent.split(",") : form.genBackupEvent;
 
+  // 处理genSplit字段，确保它是布尔值
+  form.genSplit = form.genSplit === true || form.genSplit === "true";
+
   // 设置特定类型的默认值
-  if (["VNC", "ZOOKEEPER", "SHELL", "MQTT", "REDIS", "MONGODB"].includes(form.genType)) {
+  if (["VNC", "ZOOKEEPER", "MQTT", "REDIS", "MONGODB"].includes(form.genType)) {
     form.genJdbcCustomType = "URL";
   }
 
@@ -388,7 +454,7 @@ const onSubmit = () => {
         const submitForm = { ...form };
 
         // 设置远程URL
-        if (submitForm.genHost && submitForm.genPort) {
+        if (submitForm.genHost && submitForm.genPort && submitForm.genType !== 'SERIAL') {
           submitForm.genDriverRemoteUrl = `${submitForm.genHost}:${submitForm.genPort}`;
         }
 
@@ -396,6 +462,9 @@ const onSubmit = () => {
         if (Array.isArray(submitForm.genBackupEvent)) {
           submitForm.genBackupEvent = submitForm.genBackupEvent.join(",");
         }
+
+        // 确保genSplit是布尔值
+        submitForm.genSplit = submitForm.genSplit === true;
 
         // 根据模式选择API
         let res;
