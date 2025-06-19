@@ -128,7 +128,8 @@ const layout = reactive({
   MQTT: defineAsyncComponent(() => import("./layout/mqtt/index.vue")),
   REDIS: defineAsyncComponent(() => import("./layout/redis/index.vue")),
   NACOS: defineAsyncComponent(() => import("./layout/nacos/index.vue")),
-  PROMETHEUS: defineAsyncComponent(() => import("./layout/prometheus/index.vue"))
+  PROMETHEUS: defineAsyncComponent(() => import("./layout/prometheus/index.vue")),
+  SERIAL: defineAsyncComponent(() => import("./layout/serial/index.vue"))
 });
 
 // 数据状态
@@ -145,10 +146,16 @@ const visible = reactive({
 
 /**
  * 计算是否使用分屏模式
- * SHELL、WEBRTC、VNC和NACOS类型不使用分屏
+ * 优先使用数据源的genSplit配置，如果没有配置则根据类型判断
+ * SHELL、WEBRTC、VNC、PROMETHEUS、NACOS和SERIAL类型默认不使用分屏
  */
 const singleSplit = computed(() => {
-  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC" && item.data.genType != "PROMETHEUS" && item.data.genType != "NACOS";
+  // 如果明确设置了genSplit，则使用该值
+  if (item.data.genSplit !== undefined && item.data.genSplit !== null) {
+    return item.data.genSplit;
+  }
+  // 否则根据类型判断
+  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC" && item.data.genType != "PROMETHEUS" && item.data.genType != "NACOS" && item.data.genType != "SERIAL";
 });
 
 /**
@@ -179,6 +186,7 @@ const getDataSourceIcon = () => {
     MONGODB: "devicon:mongodb",
     MQTT: "simple-icons:mqtt",
     SHELL: "devicon:powershell",
+    SERIAL: "mdi:serial-port",
     INFLUXDB: "devicon:influxdb",
     NACOS: "simple-icons:alibabacloud"
   };
