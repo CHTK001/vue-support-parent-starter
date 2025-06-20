@@ -779,3 +779,99 @@ body[layout="mix"] {
     }
   }
 }
+
+body[layout="hover"] {
+  $sideBarWidth: 200px;
+
+  @include merge-style($sideBarWidth);
+
+  .sidebar-hover-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1001;
+    width: $sideBarWidth;
+    height: 100vh;
+    transition: all var(--pure-transition-duration) ease;
+  }
+
+  .fixed-header {
+    width: calc(100% - #{$sideBarWidth});
+    margin-left: $sideBarWidth;
+    transition: all var(--pure-transition-duration);
+  }
+
+  .main-container {
+    margin-left: $sideBarWidth;
+    transition: margin-left var(--pure-transition-duration);
+  }
+
+  /* 子菜单弹出层样式 */
+  .sub-menu-popup {
+    z-index: 9999 !important;
+
+    .sub-menu-container {
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+
+      .dark & {
+        background: rgba(30, 30, 40, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow:
+          0 20px 40px rgba(0, 0, 0, 0.3),
+          0 8px 16px rgba(0, 0, 0, 0.2),
+          0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  /* 移动端适配 */
+  .mobile {
+    .sidebar-hover-container {
+      transform: translateX(-100%);
+      transition: transform var(--pure-transition-duration);
+    }
+
+    &.openSidebar {
+      .sidebar-hover-container {
+        transform: translateX(0);
+      }
+    }
+
+    .fixed-header {
+      width: 100% !important;
+      margin-left: 0 !important;
+    }
+
+    .main-container {
+      margin-left: 0 !important;
+    }
+  }
+
+  /* 悬停导航特有的动画效果 */
+  .first-level-menu-item {
+    &:hover {
+      .menu-content {
+        .menu-icon {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+
+  /* 全屏模式下的样式调整 */
+  .fullscreen-icon,
+  .dropdown-badge,
+  .el-dropdown-link,
+  .set-icon {
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+}

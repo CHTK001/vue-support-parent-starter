@@ -145,4 +145,37 @@ export default [
       },
     ],
   },
+  {
+    path: "/server",
+    name: "server",
+    meta: {
+      icon: "ri:server-line",
+      title: $t("buttons.monitor.server"),
+      showLink: true,
+    },
+    children: [
+      {
+        path: "/server/demo",
+        name: "serverDemo",
+        component: () => import("@/views/demo/ServerManagementDemo.vue"),
+        meta: {
+          icon: "ri:eye-line",
+          title: "服务器管理演示",
+          showLink: true,
+          showParent: true,
+        },
+      },
+      {
+        path: "/server/index",
+        name: "serverIndex",
+        component: () => import("@/views/server/index.vue"),
+        meta: {
+          icon: "ri:server-line",
+          title: $t("buttons.monitor.server-management"),
+          showLink: true,
+          showParent: true,
+        },
+      },
+    ],
+  },
 ];

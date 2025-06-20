@@ -28,6 +28,7 @@ const { $storage } = useGlobal<GlobalPropertiesApi>();
 const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
+const hoverRef = ref();
 
 const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThemeChange, setLayoutThemeColor } = useDataThemeChange();
 
@@ -268,18 +269,19 @@ watch($storage, ({ layout }) => {
   switch (layout["layout"]) {
     case "vertical":
       toggleClass(true, "is-select", unref(verticalRef));
-      debounce(setFalse([horizontalRef]), 50);
-      debounce(setFalse([mixRef]), 50);
+      debounce(setFalse([horizontalRef, mixRef, hoverRef]), 50);
       break;
     case "horizontal":
       toggleClass(true, "is-select", unref(horizontalRef));
-      debounce(setFalse([verticalRef]), 50);
-      debounce(setFalse([mixRef]), 50);
+      debounce(setFalse([verticalRef, mixRef, hoverRef]), 50);
       break;
     case "mix":
       toggleClass(true, "is-select", unref(mixRef));
-      debounce(setFalse([verticalRef]), 50);
-      debounce(setFalse([horizontalRef]), 50);
+      debounce(setFalse([verticalRef, horizontalRef, hoverRef]), 50);
+      break;
+    case "hover":
+      toggleClass(true, "is-select", unref(hoverRef));
+      debounce(setFalse([verticalRef, horizontalRef, mixRef]), 50);
       break;
   }
 });
@@ -397,6 +399,45 @@ onUnmounted(() => removeMatchMedia);
         >
           <div />
           <div />
+        </li>
+        <li
+          v-if="device !== 'mobile'"
+          ref="hoverRef"
+          v-tippy="{
+            content: '悬停导航：只显示一级菜单，鼠标悬停显示子菜单',
+            zIndex: 41000,
+          }"
+          :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
+          @click="setLayoutModel('hover')"
+        >
+          <div />
+          <div />
+          <div />
+        </li>
+        <!-- 占位符，保持网格布局完整 -->
+        <li
+          v-if="device !== 'mobile'"
+          class="placeholder-layout"
+          v-tippy="{
+            content: '敬请期待更多布局模式',
+            zIndex: 41000,
+          }"
+        >
+          <div class="coming-soon">
+            <span>敬请期待</span>
+          </div>
+        </li>
+        <li
+          v-if="device !== 'mobile'"
+          class="placeholder-layout"
+          v-tippy="{
+            content: '敬请期待更多布局模式',
+            zIndex: 41000,
+          }"
+        >
+          <div class="coming-soon">
+            <span>敬请期待</span>
+          </div>
         </li>
       </ul>
 
@@ -658,18 +699,21 @@ onUnmounted(() => removeMatchMedia);
 }
 
 .pure-theme {
-  display: flex;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 12px;
   margin-top: 12px;
+  max-width: 280px;
 
   li {
     position: relative;
-    width: 80px;
-    height: 60px;
+    width: 85px;
+    height: 65px;
     overflow: hidden;
     cursor: pointer;
     background: var(--el-bg-color-page);
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid transparent;
@@ -869,6 +913,128 @@ onUnmounted(() => removeMatchMedia);
           border-radius: 3px;
           background: var(--el-fill-color-light);
         }
+      }
+    }
+
+    &:nth-child(4) {
+      &::after {
+        content: "悬停导航";
+      }
+
+      div {
+        &:nth-child(1) {
+          width: 25%;
+          height: 100%;
+          background: var(--el-color-primary);
+          opacity: 0.8;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 2px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 4px 0 rgba(255, 255, 255, 0.7), 0 8px 0 rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        &:nth-child(2) {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 75%;
+          height: 30%;
+          background: var(--el-bg-color);
+          box-shadow: 0 0 1px #888;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            width: 35px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--el-fill-color-light);
+          }
+        }
+
+        &:nth-child(3) {
+          position: absolute;
+          top: 10px;
+          left: 25px;
+          width: 40px;
+          height: 35px;
+          background: var(--el-color-primary-light-5);
+          border-radius: 4px;
+          opacity: 0.8;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 24px;
+            height: 2px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 0 rgba(255, 255, 255, 0.9), 0 8px 0 rgba(255, 255, 255, 0.9), 0 12px 0 rgba(255, 255, 255, 0.9);
+          }
+        }
+      }
+    }
+
+    /* 占位符样式 */
+    &.placeholder-layout {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: linear-gradient(135deg, var(--el-fill-color-light), var(--el-fill-color));
+
+      &:hover {
+        transform: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      .coming-soon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+
+        span {
+          font-size: 11px;
+          color: var(--el-text-color-secondary);
+          font-weight: 500;
+          text-align: center;
+          line-height: 1.2;
+        }
+      }
+
+      &::after {
+        content: "更多布局";
+        font-size: 10px;
+        color: var(--el-text-color-placeholder);
       }
     }
   }
