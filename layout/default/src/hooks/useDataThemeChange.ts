@@ -70,35 +70,81 @@ export function useDataThemeChange() {
     document.documentElement.style.setProperty(`--el-color-primary-${mode}-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
   }
 
-  /** 设置 `element-plus` 主题色 */
+  /** 设置 `element-plus` 主题色 - 优化性能 */
   const setEpThemeColor = (color: string) => {
     useEpThemeStoreHook().setEpThemeColor(color);
-    document.documentElement.style.setProperty("--el-color-primary", color);
+
+    // 使用 DocumentFragment 或批量操作来减少重绘
+    const style = document.documentElement.style;
+
+    // 预计算所有颜色值
+    const cssProperties = new Map();
+    cssProperties.set("--el-color-primary", color);
+
+    // 预计算dark和light变体
     for (let i = 1; i <= 2; i++) {
-      setPropertyPrimary("dark", i, color);
+      cssProperties.set(`--el-color-primary-dark-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
     }
     for (let i = 1; i <= 9; i++) {
-      setPropertyPrimary("light", i, color);
+      cssProperties.set(`--el-color-primary-light-${i}`, dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10));
     }
+
+    // 批量设置所有CSS变量，减少DOM操作
+    requestAnimationFrame(() => {
+      cssProperties.forEach((value, property) => {
+        style.setProperty(property, value);
+      });
+    });
   };
 
-  /** 浅色、深色整体风格切换 */
+  /** 浅色、深色整体风格切换 - 优化性能 */
   function dataThemeChange(overall?: string) {
-    overallStyle.value = overall;
-    if (useEpThemeStoreHook().epTheme === "light" && dataTheme.value) {
-      setLayoutThemeColor("default", false);
-    } else {
-      setLayoutThemeColor(useEpThemeStoreHook().epTheme, false);
-    }
+    const htmlElement = document.documentElement;
 
-    if (dataTheme.value) {
-      document.documentElement.classList.add("dark");
-    } else {
-      if ($storage.layout.themeColor === "light") {
-        setLayoutThemeColor("light", false);
+    // 临时禁用所有transition，确保主题切换无延迟
+    htmlElement.classList.add("theme-switching");
+
+    // 批量更新所有主题相关的属性
+    const updates = () => {
+      // 更新响应式值
+      overallStyle.value = overall;
+
+      // 更新 dark 类
+      if (dataTheme.value) {
+        htmlElement.classList.add("dark");
+      } else {
+        htmlElement.classList.remove("dark");
       }
-      document.documentElement.classList.remove("dark");
-    }
+
+      // 更新 data-theme 属性
+      const targetTheme = (() => {
+        if (useEpThemeStoreHook().epTheme === "light" && dataTheme.value) {
+          return "default";
+        } else if (!dataTheme.value && $storage.layout.themeColor === "light") {
+          return "light";
+        } else {
+          return useEpThemeStoreHook().epTheme;
+        }
+      })();
+
+      // 同步更新主题色
+      setLayoutThemeColor(targetTheme, false);
+    };
+
+    // 使用 requestAnimationFrame 确保同步更新
+    requestAnimationFrame(() => {
+      updates();
+
+      // 强制重绘以确保样式立即生效
+      htmlElement.offsetHeight;
+
+      // 短暂延迟后重新启用transition
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          htmlElement.classList.remove("theme-switching");
+        }, 30); // 减少延迟时间
+      });
+    });
   }
 
   /** 清空缓存并返回登录页 */

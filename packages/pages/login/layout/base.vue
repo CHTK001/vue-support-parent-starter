@@ -18,8 +18,6 @@ import Motion from "../utils/motion";
 import { loginRules } from "../utils/rule";
 import { avatar } from "../utils/static";
 
-import Lock from "@iconify-icons/ri/lock-fill";
-import User from "@iconify-icons/ri/user-3-fill";
 import { gsap } from "gsap";
 import Vcode from "vue3-puzzle-vcode";
 
@@ -377,7 +375,7 @@ onBeforeUnmount(() => {
                     v-model="ruleForm.tenantId"
                     clearable
                     :placeholder="t('login.pureTenant')"
-                    :prefix-icon="useRenderIcon(Lock)"
+                    :prefix-icon="useRenderIcon('ri:lock-fill')"
                     class="modern-input"
                   />
                 </el-form-item>
@@ -403,7 +401,7 @@ onBeforeUnmount(() => {
                     v-model="ruleForm.username"
                     clearable
                     :placeholder="t('login.pureUsername')"
-                    :prefix-icon="useRenderIcon(User)"
+                    :prefix-icon="useRenderIcon('ri:user-3-fill')"
                     class="modern-input"
                   />
                 </el-form-item>
@@ -420,7 +418,7 @@ onBeforeUnmount(() => {
                     clearable
                     show-password
                     :placeholder="t('login.purePassword')"
-                    :prefix-icon="useRenderIcon(Lock)"
+                    :prefix-icon="useRenderIcon('ri:lock-fill')"
                     class="modern-input"
                   />
                 </el-form-item>
@@ -437,7 +435,7 @@ onBeforeUnmount(() => {
                       v-model="ruleForm.verifyCode"
                       clearable
                       :placeholder="t('login.verifyCode')"
-                      :prefix-icon="useRenderIcon(Lock)"
+                      :prefix-icon="useRenderIcon('ri:lock-fill')"
                       class="modern-input"
                     />
                   </el-form-item>
@@ -940,24 +938,34 @@ onBeforeUnmount(() => {
     .modern-form {
       .form-field-wrapper {
         margin-bottom: 18px; // 从24px减少到18px
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
 
         .field-label {
           display: block;
           font-size: 14px;
           font-weight: 600;
           color: var(--el-text-color-primary);
-          margin-bottom: 8px;
+          margin-bottom: 0;
           text-align: left;
           writing-mode: horizontal-tb;
+          min-width: 80px;
+          flex-shrink: 0;
         }
 
         .modern-form-item {
           margin-bottom: 0;
+          flex: 1;
 
           :deep(.el-form-item__error) {
             font-size: 12px;
             color: var(--el-color-danger);
             margin-top: 4px;
+            position: absolute;
+            left: 92px;
+            top: 100%;
           }
         }
 
@@ -966,7 +974,6 @@ onBeforeUnmount(() => {
             background: var(--el-fill-color-extra-light);
             border: 2px solid var(--el-border-color-lighter);
             border-radius: 12px;
-            padding: 12px 16px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: none;
 
@@ -1015,6 +1022,7 @@ onBeforeUnmount(() => {
     display: flex;
     gap: 12px;
     align-items: flex-start;
+    flex: 1;
 
     .verify-code-input {
       flex: 1;
@@ -1315,6 +1323,35 @@ onBeforeUnmount(() => {
 
 // 响应式设计 - 优化后的尺寸
 @media (max-width: 768px) {
+  .modern-login-form {
+    .form-section {
+      .modern-form {
+        .form-field-wrapper {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+
+          .field-label {
+            min-width: auto;
+          }
+
+          .modern-form-item {
+            width: 100%;
+
+            :deep(.el-form-item__error) {
+              left: 0;
+              position: relative;
+              margin-top: 4px;
+            }
+          }
+
+          .verify-code-wrapper {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
   .enhanced-header-section {
     margin-bottom: 20px; // 从32px减少到20px
     padding: 16px 0; // 从24px减少到16px

@@ -180,10 +180,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
+import { type ServerDisplayData } from "@/api/monitor/gen/server";
 
 // Props
 const props = defineProps<{
-  server: any;
+  server: ServerDisplayData;
 }>();
 
 // Emits
