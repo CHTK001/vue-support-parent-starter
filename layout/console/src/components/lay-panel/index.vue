@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
   right: 0;
   z-index: 40000;
   width: 100%;
-  max-width: 280px;
+  max-width: 420px;
   box-shadow: 0 0 15px 0 rgb(0 0 0 / 5%);
   transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
   transform: translate(100%);

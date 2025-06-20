@@ -256,144 +256,1239 @@ onBeforeUnmount(() => {
         </filter>
       </defs>
     </svg>
-    <el-dialog v-model="openVcode" width="420px" draggable title="校验" @close="vcodeClose">
-      <el-row v-if="props.defaultSetting.openVcode" :gutter="12">
-        <el-col>
-          <Motion :delay="150">
-            <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
-              <Vcode ref="vcodeRef" :show="props.defaultSetting.openVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
+    <!-- 滑动验证码对话框 -->
+    <el-dialog
+      v-model="openVcode"
+      width="420px"
+      draggable
+      title="安全验证"
+      @close="vcodeClose"
+      class="modern-dialog"
+    >
+      <div v-if="props.defaultSetting.openVcode" class="vcode-container">
+        <Motion :delay="150">
+          <div class="vcode-wrapper">
+            <Vcode
+              ref="vcodeRef"
+              :show="props.defaultSetting.openVcode"
+              type="inside"
+              :puzzleScale="0.8"
+              @fail="onFail"
+              @success="onSuccess"
+            />
+          </div>
+        </Motion>
+      </div>
+    </el-dialog>
+
+    <!-- TOTP验证码对话框 -->
+    <el-dialog
+      v-model="openToptcode"
+      width="380px"
+      :close-on-click-modal="false"
+      draggable
+      title="动态验证码"
+      @close="vcodeToptClose"
+      class="modern-dialog"
+    >
+      <div class="totp-container">
+        <Motion :delay="150">
+          <div class="totp-wrapper">
+            <ScCode
+              ref="scCodeRef"
+              @onComplete="handleTotpComplete"
+              @onChange="handleTotpChange"
+            />
+          </div>
+        </Motion>
+      </div>
+    </el-dialog>
+    <div class="modern-login-form-container">
+      <div class="modern-login-form">
+        <!-- 头像和标题区域 - 增强版 -->
+        <div class="enhanced-header-section">
+          <!-- 装饰性背景 -->
+          <div class="header-background">
+            <div class="bg-decoration bg-decoration-1"></div>
+            <div class="bg-decoration bg-decoration-2"></div>
+            <div class="bg-decoration bg-decoration-3"></div>
+          </div>
+
+          <!-- 头像容器 -->
+          <Motion>
+            <div class="enhanced-avatar-container">
+              <div class="avatar-glow-ring"></div>
+              <div class="avatar-outer-ring"></div>
+              <div class="avatar-inner-wrapper">
+                <avatar class="enhanced-avatar filter-bolin" @mouseover="handleTimeline" />
+                <div class="avatar-status-indicator"></div>
+              </div>
+              <div class="avatar-floating-particles">
+                <span class="particle particle-1"></span>
+                <span class="particle particle-2"></span>
+                <span class="particle particle-3"></span>
+                <span class="particle particle-4"></span>
+              </div>
             </div>
           </Motion>
-        </el-col>
-      </el-row>
-    </el-dialog>
-    <el-dialog style="border-radius: 12px !important" v-model="openToptcode" width="380px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
-      <Motion :delay="150">
-        <div></div>
-        <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
-      </Motion>
-    </el-dialog>
-    <div>
-      <div class="login-form">
-        <avatar class="avatar filter-bolin" @mouseover="handleTimeline" />
-        <Motion>
-          <h2 class="outline-none"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></h2>
-        </Motion>
 
-        <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large">
-          <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && defaultSetting.OpenTenantLoginRequire && props.accountType == 2">
-            <el-form-item
-              prop="tenantId"
-              :rules="[
-                {
-                  required: true,
-                  message: transformI18n($t('login.pureTenantReg')),
-                  trigger: 'blur',
-                },
-              ]"
-            >
-              <el-input v-model="ruleForm.tenantId" clearable :placeholder="t('login.pureTenant')" :prefix-icon="useRenderIcon(Lock)" />
-            </el-form-item>
-          </Motion>
+          <!-- 标题容器 -->
           <Motion :delay="100">
-            <el-form-item
-              :rules="[
-                {
-                  required: true,
-                  message: transformI18n($t('login.pureUsernameReg')),
-                  trigger: 'blur',
-                },
-              ]"
-              prop="username"
-            >
-              <el-input v-model="ruleForm.username" clearable :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon(User)" />
-            </el-form-item>
+            <div class="enhanced-title-container">
+              <div class="title-wrapper">
+                <h2 class="enhanced-login-title">
+                  <span class="title-gradient">
+                    <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+                  </span>
+                </h2>
+                <div class="title-underline"></div>
+              </div>
+              <p class="enhanced-login-subtitle">
+                <span class="subtitle-icon">✨</span>
+                欢迎回来，请登录您的账户
+                <span class="subtitle-icon">✨</span>
+              </p>
+              <div class="welcome-badge">
+                <span class="badge-text">安全登录</span>
+              </div>
+            </div>
           </Motion>
-          <Motion :delay="150">
-            <el-form-item prop="password">
-              <el-input v-model="ruleForm.password" clearable show-password :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon(Lock)" />
-            </el-form-item>
-          </Motion>
+        </div>
 
-          <el-row v-if="props.defaultSetting.openVerifyCode" :gutter="12">
-            <el-col :span="16">
-              <Motion :delay="150">
-                <el-form-item prop="verifyCode">
-                  <el-input v-model="ruleForm.verifyCode" clearable show-password :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon(Lock)" />
+        <!-- 表单区域 -->
+        <div class="form-section">
+          <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
+            <!-- 租户ID字段 -->
+            <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && defaultSetting.OpenTenantLoginRequire && props.accountType == 2">
+              <div class="form-field-wrapper">
+                <label class="field-label">租户标识</label>
+                <el-form-item
+                  prop="tenantId"
+                  :rules="[
+                    {
+                      required: true,
+                      message: transformI18n($t('login.pureTenantReg')),
+                      trigger: 'blur',
+                    },
+                  ]"
+                  class="modern-form-item"
+                >
+                  <el-input
+                    v-model="ruleForm.tenantId"
+                    clearable
+                    :placeholder="t('login.pureTenant')"
+                    :prefix-icon="useRenderIcon(Lock)"
+                    class="modern-input"
+                  />
                 </el-form-item>
-              </Motion>
-            </el-col>
-            <el-col :span="8">
-              <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" @click="getVerifyCode" />
-            </el-col>
-          </el-row>
+              </div>
+            </Motion>
 
-          <Motion v-if="props.defaultSetting.openVerifyCode" :delay="250">
-            <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-              {{ t("login.pureLogin") }}
-            </el-button>
-          </Motion>
-          <Motion v-else-if="props.defaultSetting.openVcode" :delay="250">
-            <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
-              {{ t("login.pureLogin") }}
-            </el-button>
-          </Motion>
-          <Motion v-else-if="props.defaultSetting.checkTotpOpen" :delay="250">
-            <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
-              {{ t("login.pureLogin") }}
-            </el-button>
-          </Motion>
-          <Motion v-else :delay="250">
-            <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-              {{ t("login.pureLogin") }}
-            </el-button>
-          </Motion>
-        </el-form>
+            <!-- 用户名字段 -->
+            <Motion :delay="100">
+              <div class="form-field-wrapper">
+                <label class="field-label">用户名</label>
+                <el-form-item
+                  :rules="[
+                    {
+                      required: true,
+                      message: transformI18n($t('login.pureUsernameReg')),
+                      trigger: 'blur',
+                    },
+                  ]"
+                  prop="username"
+                  class="modern-form-item"
+                >
+                  <el-input
+                    v-model="ruleForm.username"
+                    clearable
+                    :placeholder="t('login.pureUsername')"
+                    :prefix-icon="useRenderIcon(User)"
+                    class="modern-input"
+                  />
+                </el-form-item>
+              </div>
+            </Motion>
 
+            <!-- 密码字段 -->
+            <Motion :delay="150">
+              <div class="form-field-wrapper">
+                <label class="field-label">密码</label>
+                <el-form-item prop="password" class="modern-form-item">
+                  <el-input
+                    v-model="ruleForm.password"
+                    clearable
+                    show-password
+                    :placeholder="t('login.purePassword')"
+                    :prefix-icon="useRenderIcon(Lock)"
+                    class="modern-input"
+                  />
+                </el-form-item>
+              </div>
+            </Motion>
+
+            <!-- 验证码字段 -->
+            <Motion v-if="props.defaultSetting.openVerifyCode" :delay="200">
+              <div class="form-field-wrapper">
+                <label class="field-label">验证码</label>
+                <div class="verify-code-wrapper">
+                  <el-form-item prop="verifyCode" class="modern-form-item verify-code-input">
+                    <el-input
+                      v-model="ruleForm.verifyCode"
+                      clearable
+                      :placeholder="t('login.verifyCode')"
+                      :prefix-icon="useRenderIcon(Lock)"
+                      class="modern-input"
+                    />
+                  </el-form-item>
+                  <div class="verify-code-image" @click="getVerifyCode">
+                    <el-image
+                      :src="defaultVerifyCode.verifyCodeBase64"
+                      fit="fill"
+                      :lazy="true"
+                      class="code-image"
+                    />
+                    <div class="refresh-hint">点击刷新</div>
+                  </div>
+                </div>
+              </div>
+            </Motion>
+
+            <!-- 登录按钮 -->
+            <Motion :delay="250">
+              <div class="login-button-wrapper">
+                <el-button
+                  v-if="props.defaultSetting.openVerifyCode"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="onLogin(ruleFormRef)"
+                >
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>登录中...</span>
+                </el-button>
+                <el-button
+                  v-else-if="props.defaultSetting.openVcode"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="onLoginCode(ruleFormRef)"
+                >
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>验证中...</span>
+                </el-button>
+                <el-button
+                  v-else-if="props.defaultSetting.checkTotpOpen"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="onLoginToptCode(ruleFormRef)"
+                >
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>验证中...</span>
+                </el-button>
+                <el-button
+                  v-else
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="onLogin(ruleFormRef)"
+                >
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>登录中...</span>
+                </el-button>
+              </div>
+            </Motion>
+          </el-form>
+        </div>
+
+        <!-- 第三方登录 -->
         <Motion v-if="isShowThirdPartyValue" :delay="300">
-          <ThirdPartyLayout :data="props.ssoSetting" />
+          <div class="third-party-section">
+            <div class="divider">
+              <span class="divider-text">或</span>
+            </div>
+            <ThirdPartyLayout :data="props.ssoSetting" class="third-party-component" />
+          </div>
         </Motion>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-@import url("@repo/assets/style/layout/default/login.css");
-</style>
-
 <style lang="scss" scoped>
-.flex-c {
-  display: flex;
+// 现代化登录表单 - 完全适配 Element Plus 主题系统
+.modern-login-form-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
 }
 
-.absolute {
-  position: absolute;
-}
+.modern-login-form {
+  width: 100%;
 
-.right-5 {
-  right: 5em;
-}
-.top-3 {
-  top: 3px;
-}
-:deep(.el-input-group__append, .el-input-group__prepend) {
-  padding: 0;
-}
+  // 增强版头部区域 - 优化尺寸和间距
+  .enhanced-header-section {
+    position: relative;
+    text-align: center;
+    margin-bottom: 24px; // 从48px减少到24px
+    padding: 16px 0; // 从32px减少到16px
+    overflow: hidden;
 
-.translation {
-  ::v-deep(.el-dropdown-menu__item) {
-    padding: 5px 40px;
+    // 装饰性背景
+    .header-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 0;
+
+      .bg-decoration {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.1;
+        animation: float 8s ease-in-out infinite;
+
+        &.bg-decoration-1 {
+          width: 80px; // 从120px减少到80px
+          height: 80px;
+          background: var(--el-color-primary);
+          top: -15px; // 从-20px调整到-15px
+          right: 15px; // 从20px调整到15px
+          animation-delay: 0s;
+        }
+
+        &.bg-decoration-2 {
+          width: 60px; // 从80px减少到60px
+          height: 60px;
+          background: var(--el-color-success);
+          bottom: 8px; // 从10px调整到8px
+          left: 20px; // 从30px调整到20px
+          animation-delay: 2s;
+        }
+
+        &.bg-decoration-3 {
+          width: 40px; // 从60px减少到40px
+          height: 40px;
+          background: var(--el-color-warning);
+          top: 50%;
+          left: -8px; // 从-10px调整到-8px
+          animation-delay: 4s;
+        }
+      }
+    }
+
+    // 增强版头像容器 - 优化尺寸
+    .enhanced-avatar-container {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 20px; // 从32px减少到20px
+      z-index: 2;
+
+      // 外层光晕环 - 调整尺寸
+      .avatar-glow-ring {
+        position: absolute;
+        top: -15px; // 从-20px调整到-15px
+        left: -15px;
+        right: -15px;
+        bottom: -15px;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 0deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3),
+          var(--el-color-primary),
+          var(--el-color-primary-light-5),
+          var(--el-color-primary)
+        );
+        opacity: 0.3;
+        animation: rotate 8s linear infinite;
+        z-index: 1;
+      }
+
+      // 外环装饰 - 调整尺寸
+      .avatar-outer-ring {
+        position: absolute;
+        top: -8px; // 从-12px调整到-8px
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+        border-radius: 50%;
+        border: 2px solid var(--el-color-primary-light-8); // 从3px减少到2px
+        background: var(--el-fill-color-extra-light);
+        backdrop-filter: blur(10px);
+        z-index: 2;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      // 头像内层包装
+      .avatar-inner-wrapper {
+        position: relative;
+        z-index: 3;
+
+        .enhanced-avatar {
+          width: 100px; // 从140px减少到100px
+          height: 100px;
+          border-radius: 50%;
+          box-shadow:
+            0 6px 24px rgba(0, 0, 0, 0.08), // 调整阴影尺寸
+            0 3px 12px var(--el-color-primary-light-8),
+            inset 0 1px 3px rgba(255, 255, 255, 0.3);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          cursor: pointer;
+          border: 3px solid var(--el-bg-color); // 从4px减少到3px
+          position: relative;
+          overflow: hidden;
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+              135deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.1) 50%,
+              transparent 100%
+            );
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          &:hover {
+            transform: scale(1.05) translateY(-3px); // 减少缩放和位移
+            box-shadow:
+              0 12px 36px rgba(0, 0, 0, 0.12), // 调整阴影尺寸
+              0 6px 18px var(--el-color-primary-light-7),
+              inset 0 1px 3px rgba(255, 255, 255, 0.4);
+
+            &::before {
+              opacity: 1;
+            }
+          }
+        }
+
+        // 状态指示器 - 调整尺寸
+        .avatar-status-indicator {
+          position: absolute;
+          bottom: 6px; // 从8px调整到6px
+          right: 6px;
+          width: 18px; // 从24px减少到18px
+          height: 18px;
+          background: var(--el-color-success);
+          border-radius: 50%;
+          border: 2px solid var(--el-bg-color); // 从3px减少到2px
+          box-shadow: var(--el-box-shadow-light);
+          z-index: 4;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px; // 从8px减少到6px
+            height: 6px;
+            background: var(--el-bg-color);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+          }
+        }
+      }
+
+      // 浮动粒子
+      .avatar-floating-particles {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 1;
+
+        .particle {
+          position: absolute;
+          width: 4px; // 从6px减少到4px
+          height: 4px;
+          background: var(--el-color-primary);
+          border-radius: 50%;
+          opacity: 0.6;
+
+          &.particle-1 {
+            top: 20%;
+            left: 10%;
+            animation: float 3s ease-in-out infinite;
+          }
+
+          &.particle-2 {
+            top: 30%;
+            right: 15%;
+            animation: float 4s ease-in-out infinite reverse;
+          }
+
+          &.particle-3 {
+            bottom: 25%;
+            left: 20%;
+            animation: float 5s ease-in-out infinite;
+          }
+
+          &.particle-4 {
+            bottom: 35%;
+            right: 10%;
+            animation: float 3.5s ease-in-out infinite reverse;
+          }
+        }
+      }
+
+      &:hover {
+        .avatar-outer-ring {
+          border-color: var(--el-color-primary-light-5);
+          transform: scale(1.05);
+          box-shadow: var(--el-box-shadow-light);
+        }
+
+        .avatar-glow-ring {
+          opacity: 0.5;
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    // 增强版标题容器
+    .enhanced-title-container {
+      position: relative;
+      z-index: 2;
+
+      .title-wrapper {
+        position: relative;
+        margin-bottom: 12px; // 从16px减少到12px
+
+        .enhanced-login-title {
+          font-size: 24px; // 从32px减少到24px
+          font-weight: 700; // 从800减少到700
+          margin: 0 0 8px 0; // 从12px减少到8px
+          text-align: center;
+          writing-mode: horizontal-tb;
+          letter-spacing: -0.5px; // 从-1px调整到-0.5px
+          line-height: 1.2;
+          position: relative;
+
+          .title-gradient {
+            background: linear-gradient(
+              135deg,
+              var(--el-text-color-primary) 0%,
+              var(--el-color-primary) 50%,
+              var(--el-text-color-primary) 100%
+            );
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease-in-out infinite;
+            display: inline-block;
+            position: relative;
+
+            &::after {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: linear-gradient(
+                135deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 100%
+              );
+              background-clip: text;
+              -webkit-background-clip: text;
+              opacity: 0;
+              transition: opacity 0.3s ease;
+            }
+
+            &:hover::after {
+              opacity: 1;
+            }
+          }
+        }
+
+        .title-underline {
+          width: 40px; // 从60px减少到40px
+          height: 3px; // 从4px减少到3px
+          background: linear-gradient(
+            90deg,
+            var(--el-color-primary),
+            var(--el-color-primary-light-3),
+            var(--el-color-primary)
+          );
+          border-radius: 2px;
+          margin: 0 auto;
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.6),
+              transparent
+            );
+            animation: shimmer 2s ease-in-out infinite;
+          }
+        }
+      }
+
+      .enhanced-login-subtitle {
+        font-size: 15px; // 从18px减少到15px
+        color: var(--el-text-color-regular);
+        margin: 0 0 16px 0; // 从20px减少到16px
+        text-align: center;
+        writing-mode: horizontal-tb;
+        line-height: 1.4; // 从1.5调整到1.4
+        font-weight: 500;
+        position: relative;
+
+        .subtitle-icon {
+          display: inline-block;
+          margin: 0 6px; // 从8px减少到6px
+          font-size: 14px; // 从16px减少到14px
+          animation: sparkle 2s ease-in-out infinite;
+
+          &:first-child {
+            animation-delay: 0s;
+          }
+
+          &:last-child {
+            animation-delay: 1s;
+          }
+        }
+      }
+
+      .welcome-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 16px; // 从8px 20px减少到6px 16px
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-9),
+          var(--el-color-primary-light-8)
+        );
+        border: 1px solid var(--el-color-primary-light-7);
+        border-radius: 16px; // 从20px减少到16px
+        box-shadow: var(--el-box-shadow-lighter);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
+          transition: left 0.6s ease;
+        }
+
+        &:hover {
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: var(--el-box-shadow-light);
+          border-color: var(--el-color-primary-light-5);
+
+          &::before {
+            left: 100%;
+          }
+        }
+
+        .badge-text {
+          font-size: 13px; // 从14px减少到13px
+          font-weight: 600;
+          color: var(--el-color-primary);
+          text-align: center;
+          writing-mode: horizontal-tb;
+          position: relative;
+          z-index: 1;
+        }
+      }
+    }
   }
 
-  .check-zh {
-    position: absolute;
-    left: 20px;
+  // 表单区域
+  .form-section {
+    .modern-form {
+      .form-field-wrapper {
+        margin-bottom: 18px; // 从24px减少到18px
+
+        .field-label {
+          display: block;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          margin-bottom: 8px;
+          text-align: left;
+          writing-mode: horizontal-tb;
+        }
+
+        .modern-form-item {
+          margin-bottom: 0;
+
+          :deep(.el-form-item__error) {
+            font-size: 12px;
+            color: var(--el-color-danger);
+            margin-top: 4px;
+          }
+        }
+
+        .modern-input {
+          :deep(.el-input__wrapper) {
+            background: var(--el-fill-color-extra-light);
+            border: 2px solid var(--el-border-color-lighter);
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: none;
+
+            &:hover {
+              border-color: var(--el-color-primary-light-7);
+              background: var(--el-fill-color-light);
+            }
+
+            &.is-focus {
+              border-color: var(--el-color-primary);
+              background: var(--el-bg-color);
+              box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
+            }
+          }
+
+          :deep(.el-input__inner) {
+            font-size: 16px;
+            color: var(--el-text-color-primary);
+            background: transparent;
+            border: none;
+
+            &::placeholder {
+              color: var(--el-text-color-placeholder);
+              font-size: 14px;
+            }
+          }
+
+          :deep(.el-input__prefix) {
+            color: var(--el-text-color-regular);
+
+            .el-icon {
+              font-size: 18px;
+            }
+          }
+
+          :deep(.el-input__suffix) {
+            color: var(--el-text-color-regular);
+          }
+        }
+      }
+    }
   }
 
-  .check-en {
-    position: absolute;
-    left: 20px;
+  // 验证码区域
+  .verify-code-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+
+    .verify-code-input {
+      flex: 1;
+    }
+
+    .verify-code-image {
+      width: 120px;
+      height: 48px;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      border: 2px solid var(--el-border-color-lighter);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: var(--el-color-primary-light-7);
+        transform: scale(1.02);
+
+        .refresh-hint {
+          opacity: 1;
+        }
+      }
+
+      .code-image {
+        width: 100%;
+        height: 100%;
+
+        :deep(.el-image__inner) {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      .refresh-hint {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        font-size: 10px;
+        text-align: center;
+        padding: 2px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+    }
+  }
+
+  // 登录按钮
+  .login-button-wrapper {
+    margin-top: 24px; // 从32px减少到24px
+
+    .modern-login-button {
+      width: 100%;
+      height: 48px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      border: none;
+      box-shadow: var(--el-box-shadow-light);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      writing-mode: horizontal-tb;
+
+      &:hover {
+        background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+        box-shadow: var(--el-box-shadow);
+        transform: translateY(-2px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      &.is-loading {
+        background: var(--el-color-primary-light-5);
+        cursor: not-allowed;
+
+        &:hover {
+          transform: none;
+        }
+      }
+
+      span {
+        color: var(--el-bg-color);
+        font-weight: 600;
+      }
+    }
+  }
+
+  // 第三方登录区域
+  .third-party-section {
+    margin-top: 24px; // 从32px减少到24px
+
+    .divider {
+      position: relative;
+      text-align: center;
+      margin: 18px 0; // 从24px减少到18px
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--el-border-color-light);
+      }
+
+      .divider-text {
+        background: var(--el-bg-color);
+        padding: 0 16px;
+        color: var(--el-text-color-placeholder);
+        font-size: 14px;
+        position: relative;
+        z-index: 1;
+      }
+    }
+
+    .third-party-component {
+      :deep(.third-party-container) {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+
+        .third-party-item {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          background: var(--el-fill-color-extra-light);
+          border: 2px solid var(--el-border-color-lighter);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+          &:hover {
+            background: var(--el-color-primary-light-9);
+            border-color: var(--el-color-primary-light-7);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: var(--el-box-shadow-light);
+          }
+
+          .third-party-icon {
+            font-size: 24px;
+            color: var(--el-text-color-regular);
+            transition: color 0.3s ease;
+          }
+
+          &:hover .third-party-icon {
+            color: var(--el-color-primary);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 现代化对话框样式
+:deep(.modern-dialog) {
+  .el-dialog {
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px;
+    box-shadow: var(--el-box-shadow-dark);
+    backdrop-filter: blur(20px);
+  }
+
+  .el-dialog__header {
+    background: var(--el-fill-color-extra-light);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 24px;
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .el-dialog__headerbtn {
+      top: 20px;
+      right: 24px;
+
+      .el-dialog__close {
+        color: var(--el-text-color-regular);
+        font-size: 18px;
+
+        &:hover {
+          color: var(--el-color-danger);
+        }
+      }
+    }
+  }
+
+  .el-dialog__body {
+    padding: 24px;
+  }
+}
+
+// 验证码容器样式
+.vcode-container {
+  .vcode-wrapper {
+    background: var(--el-fill-color-extra-light);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--el-border-color-lighter);
+  }
+}
+
+.totp-container {
+  .totp-wrapper {
+    background: var(--el-fill-color-extra-light);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--el-border-color-lighter);
+    text-align: center;
+
+    :deep(.sc-code-container) {
+      .sc-code-input {
+        background: var(--el-bg-color);
+        border: 2px solid var(--el-border-color-lighter);
+        border-radius: 8px;
+        color: var(--el-text-color-primary);
+
+        &:focus {
+          border-color: var(--el-color-primary);
+          box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
+        }
+      }
+    }
+  }
+}
+
+// 动画关键帧
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+// 响应式设计 - 优化后的尺寸
+@media (max-width: 768px) {
+  .enhanced-header-section {
+    margin-bottom: 20px; // 从32px减少到20px
+    padding: 16px 0; // 从24px减少到16px
+
+    .enhanced-avatar-container {
+      margin-bottom: 16px; // 从24px减少到16px
+
+      .avatar-glow-ring {
+        top: -12px; // 从-15px调整到-12px
+        left: -12px;
+        right: -12px;
+        bottom: -12px;
+      }
+
+      .avatar-outer-ring {
+        top: -6px; // 从-8px调整到-6px
+        left: -6px;
+        right: -6px;
+        bottom: -6px;
+        border-width: 2px;
+      }
+
+      .avatar-inner-wrapper {
+        .enhanced-avatar {
+          width: 80px; // 从100px减少到80px
+          height: 80px;
+          border-width: 2px; // 从3px减少到2px
+        }
+
+        .avatar-status-indicator {
+          width: 16px; // 从20px减少到16px
+          height: 16px;
+          bottom: 4px; // 从6px调整到4px
+          right: 4px;
+          border-width: 2px;
+
+          &::after {
+            width: 5px; // 从6px减少到5px
+            height: 5px;
+          }
+        }
+      }
+    }
+
+    .enhanced-title-container {
+      .title-wrapper {
+        .enhanced-login-title {
+          font-size: 20px; // 从24px减少到20px
+          font-weight: 600; // 从700减少到600
+        }
+
+        .title-underline {
+          width: 32px; // 从40px减少到32px
+          height: 2px; // 从3px减少到2px
+        }
+      }
+
+      .enhanced-login-subtitle {
+        font-size: 14px; // 从16px减少到14px
+        margin-bottom: 12px; // 从16px减少到12px
+
+        .subtitle-icon {
+          font-size: 12px; // 从14px减少到12px
+          margin: 0 4px; // 从6px减少到4px
+        }
+      }
+
+      .welcome-badge {
+        padding: 4px 12px; // 从6px 16px减少到4px 12px
+
+        .badge-text {
+          font-size: 12px; // 从13px减少到12px
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .enhanced-header-section {
+    margin-bottom: 16px; // 从24px减少到16px
+    padding: 12px 0; // 从16px减少到12px
+
+    .enhanced-avatar-container {
+      margin-bottom: 12px; // 从20px减少到12px
+
+      .avatar-glow-ring {
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+      }
+
+      .avatar-outer-ring {
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-width: 1px;
+      }
+
+      .avatar-inner-wrapper {
+        .enhanced-avatar {
+          width: 70px; // 从80px减少到70px
+          height: 70px;
+          border-width: 2px;
+        }
+
+        .avatar-status-indicator {
+          width: 14px; // 从16px减少到14px
+          height: 14px;
+          bottom: 3px; // 从4px调整到3px
+          right: 3px;
+          border-width: 1px;
+
+          &::after {
+            width: 4px;
+            height: 4px;
+          }
+        }
+      }
+
+      .avatar-floating-particles {
+        .particle {
+          width: 3px; // 从4px减少到3px
+          height: 3px;
+        }
+      }
+    }
+
+    .enhanced-title-container {
+      .title-wrapper {
+        .enhanced-login-title {
+          font-size: 18px; // 从20px减少到18px
+        }
+
+        .title-underline {
+          width: 24px; // 从30px减少到24px
+          height: 2px;
+        }
+      }
+
+      .enhanced-login-subtitle {
+        font-size: 13px; // 从14px减少到13px
+        margin-bottom: 10px; // 从12px减少到10px
+      }
+
+      .welcome-badge {
+        padding: 3px 10px; // 从4px 12px减少到3px 10px
+
+        .badge-text {
+          font-size: 11px; // 从12px减少到11px
+        }
+      }
+    }
+
+    .header-background {
+      .bg-decoration {
+        &.bg-decoration-1 {
+          width: 80px;
+          height: 80px;
+        }
+
+        &.bg-decoration-2 {
+          width: 60px;
+          height: 60px;
+        }
+
+        &.bg-decoration-3 {
+          width: 40px;
+          height: 40px;
+        }
+      }
+    }
   }
 }
 </style>

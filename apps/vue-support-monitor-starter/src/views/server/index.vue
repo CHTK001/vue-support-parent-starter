@@ -84,8 +84,6 @@
       </div>
     </div>
 
-    </div>
-
     <!-- 主体内容区域 -->
     <div class="main-content">
       <!-- 左侧服务器列表 -->
