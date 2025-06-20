@@ -110,17 +110,13 @@ const getGridColumns = (itemCount: number) => {
   return Math.min(totalColumns, 4);
 };
 
-// 判断是否只有一列菜单
+// 判断是否只有一列菜单（需要直接导航而不显示浮动框）
 const isSingleColumn = computed(() => {
   if (!hoveredMenu.value || !hoveredMenu.value.children) return false;
 
-  // 如果是收藏菜单，根据收藏数量判断
-  if (hoveredMenu.value.path === '/favorites') {
-    return favoriteMenus.value.length <= 4; // 4个或以下收藏项认为是单列
-  }
-
-  const columns = getGridColumns(totalMenuItems.value);
-  return columns === 1;
+  // 暂时完全禁用单列直接导航功能，确保所有菜单都能正常显示浮动框
+  // 后续可以根据需要重新启用特定场景的直接导航
+  return false;
 });
 
 // 获取第一个可导航的菜单路径
@@ -129,7 +125,15 @@ const getFirstNavigablePath = (menu: any): string | null => {
     return menu.path;
   }
 
-  // 查找第一个可导航的子菜单
+  // 优先查找直接的二级菜单项
+  for (const child of menu.children) {
+    if (!child.children || child.children.length === 0) {
+      // 直接的二级菜单项
+      return child.path;
+    }
+  }
+
+  // 如果没有直接的二级菜单项，查找第一个三级菜单项
   for (const child of menu.children) {
     if (child.children && child.children.length > 0) {
       // 如果子菜单还有子项，取第一个子项
@@ -137,9 +141,6 @@ const getFirstNavigablePath = (menu: any): string | null => {
       if (firstGrandChild) {
         return firstGrandChild.path;
       }
-    } else {
-      // 直接的二级菜单项
-      return child.path;
     }
   }
 
