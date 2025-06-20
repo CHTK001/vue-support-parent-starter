@@ -16,6 +16,8 @@ buttons:
     serial-manage: 串口管理
     service: 服务管理
     service-list: 服务列表
+    server: 服务器管理
+    server-management: 服务器管理
     setting: 系统配置
 
 i18n_1974fe5349: 安装成功

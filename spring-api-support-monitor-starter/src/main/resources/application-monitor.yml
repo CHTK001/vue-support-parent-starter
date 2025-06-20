@@ -1,0 +1,218 @@
+# 监控系统配置
+monitor:
+  # 设备监控配置
+  device:
+    # 指标数据配置
+    metrics:
+      # 启用指标数据模拟
+      simulation:
+        enabled: true
+      # 数据保留配置
+      retention:
+        # 默认保留天数
+        days: 30
+        # 自动清理
+        auto-cleanup: true
+        # 清理任务执行时间 (cron表达式)
+        cleanup-cron: "0 0 2 * * ?"
+      # 数据收集配置
+      collection:
+        # 收集间隔(秒)
+        interval: 30
+        # 批量大小
+        batch-size: 100
+        # 超时时间(秒)
+        timeout: 10
+    
+    # 告警配置
+    alert:
+      # 启用告警
+      enabled: true
+      # 默认告警规则
+      default-rules:
+        - name: "CPU使用率过高"
+          metric: "cpu_usage"
+          operator: "gt"
+          threshold: 80
+          severity: "warning"
+          duration: 300
+        - name: "内存使用率严重"
+          metric: "memory_usage"
+          operator: "gt"
+          threshold: 90
+          severity: "critical"
+          duration: 60
+        - name: "磁盘空间不足"
+          metric: "disk_usage"
+          operator: "gt"
+          threshold: 85
+          severity: "warning"
+          duration: 600
+      # 通知配置
+      notification:
+        # 启用通知
+        enabled: true
+        # 通知方式
+        methods:
+          - email
+          - webhook
+        # 邮件配置
+        email:
+          smtp-host: "smtp.example.com"
+          smtp-port: 587
+          username: "monitor@example.com"
+          password: "password"
+          from: "monitor@example.com"
+          to: "admin@example.com"
+        # Webhook配置
+        webhook:
+          url: "http://localhost:8080/webhook/alert"
+          method: "POST"
+          timeout: 5000
+
+  # WebSocket配置
+  websocket:
+    # 启用WebSocket
+    enabled: true
+    # 端口
+    port: 9092
+    # 路径
+    path: "/socket.io"
+    # 跨域配置
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+    # 连接配置
+    connection:
+      # 最大连接数
+      max-connections: 1000
+      # 连接超时(秒)
+      timeout: 60
+      # 心跳间隔(秒)
+      ping-interval: 25
+      # 心跳超时(秒)
+      ping-timeout: 60
+
+  # 数据库配置
+  database:
+    # 启用数据库
+    enabled: true
+    # 表前缀
+    table-prefix: "monitor_"
+    # 自动建表
+    auto-create-table: true
+    # 数据源配置
+    datasource:
+      # 连接池配置
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+  # 安全配置
+  security:
+    # 启用安全认证
+    enabled: false
+    # JWT配置
+    jwt:
+      secret: "monitor-secret-key"
+      expiration: 86400
+    # API密钥配置
+    api-key:
+      enabled: false
+      keys:
+        - "monitor-api-key-1"
+        - "monitor-api-key-2"
+
+  # 性能配置
+  performance:
+    # 启用缓存
+    cache:
+      enabled: true
+      # 缓存类型 (redis, memory)
+      type: "memory"
+      # 缓存过期时间(秒)
+      ttl: 300
+    # 异步处理
+    async:
+      # 启用异步处理
+      enabled: true
+      # 线程池配置
+      thread-pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 100
+        keep-alive: 60
+
+  # 日志配置
+  logging:
+    # 启用操作日志
+    enabled: true
+    # 日志级别
+    level: "INFO"
+    # 日志保留天数
+    retention-days: 90
+    # 日志文件配置
+    file:
+      # 启用文件日志
+      enabled: true
+      # 日志文件路径
+      path: "./logs/monitor"
+      # 单个文件最大大小
+      max-size: "100MB"
+      # 最大文件数
+      max-files: 10
+
+  # 导出配置
+  export:
+    # 启用数据导出
+    enabled: true
+    # 支持的格式
+    formats:
+      - "csv"
+      - "excel"
+      - "json"
+    # 导出文件路径
+    path: "./exports"
+    # 单次导出最大记录数
+    max-records: 100000
+    # 导出任务超时时间(秒)
+    timeout: 300
+
+# Spring Boot配置
+spring:
+  # 任务调度配置
+  task:
+    scheduling:
+      pool:
+        size: 10
+    execution:
+      pool:
+        core-size: 5
+        max-size: 20
+        queue-capacity: 100
+
+# 日志配置
+logging:
+  level:
+    com.chua.starter.monitor: DEBUG
+    com.chua.socketio: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
