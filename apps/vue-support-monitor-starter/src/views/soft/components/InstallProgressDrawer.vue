@@ -836,6 +836,7 @@ const handleSelectDevice = async (sshId: string, installId: string) => {
         installStatus.value = device.installStatus || 0;
         
         // 更新当前进度
+        //@ts-ignore
         currentInstallProgress.value = device.progress || 0;
         
         // 设置日志类型
@@ -855,6 +856,7 @@ const handleSelectDevice = async (sshId: string, installId: string) => {
           installStatus.value = device.installStatus || 0;
           
           // 更新当前进度
+          //@ts-ignore
           currentInstallProgress.value = device.progress || 0;
         }
       }

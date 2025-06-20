@@ -105,7 +105,6 @@ const deferLang = useDefer(2);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
   height: 48px;
   background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
   backdrop-filter: blur(10px);
