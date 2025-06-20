@@ -111,9 +111,9 @@
             class="server-card"
             :class="{
               'selected': selectedServerId === server.id,
-              'online': server.onlineStatus === 1,
-              'offline': server.onlineStatus === 0,
-              'error': server.status === 3
+              'online': server.onlineStatus === 1 || server.onlineStatus === '1',
+              'offline': server.onlineStatus === 0 || server.onlineStatus === '0',
+              'error': server.status === 3 || server.status === '3'
             }"
             @click="selectServer(server)"
           >
@@ -346,11 +346,11 @@ const filteredServers = computed(() => {
     result = result.filter(server => {
       switch (filterStatus.value) {
         case "online":
-          return server.onlineStatus === 1;
+          return server.onlineStatus === 1 || server.onlineStatus === '1';
         case "offline":
-          return server.onlineStatus === 0;
+          return server.onlineStatus === 0 || server.onlineStatus === '0';
         case "error":
-          return server.status === 3;
+          return server.status === 3 || server.status === '3';
         default:
           return true;
       }
@@ -418,7 +418,7 @@ const loadServers = async () => {
       pageSize: 1000, // 加载所有服务器
     });
 
-    if (res.code === "00000") {
+    if (res.code == "00000") {
       servers.value = res.data?.records || [];
       totalCount.value = res.data?.total || 0;
 
@@ -518,7 +518,7 @@ const handleServerAction = async (command: string, server: any) => {
 const testConnection = async (server: any) => {
   try {
     const res = await testServerConnection(server.id);
-    if (res.code === "00000") {
+    if (res.code == "00000") {
       message.success("连接测试成功");
     } else {
       message.error(res.msg || "连接测试失败");
@@ -545,7 +545,7 @@ const deleteServerConfirm = async (server: any) => {
     );
 
     const res = await deleteServer(server.id);
-    if (res.code === "00000") {
+    if (res.code == "00000") {
       message.success("删除成功");
       await loadServers();
       if (selectedServerId.value === server.id) {

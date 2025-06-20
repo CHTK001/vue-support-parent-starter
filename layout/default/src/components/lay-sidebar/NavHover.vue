@@ -50,6 +50,55 @@ const currentSubMenus = computed(() => {
   return hoveredMenu.value?.children || [];
 });
 
+// 计算菜单项总数，用于动态调整容器宽度
+const totalMenuItems = computed(() => {
+  if (hoveredMenu.value?.path === '/favorites') {
+    return favoriteMenus.value.length;
+  }
+
+  let count = 0;
+  currentSubMenus.value.forEach(subMenu => {
+    if (subMenu.children && subMenu.children.length > 0) {
+      count += subMenu.children.length;
+    } else {
+      count += 1;
+    }
+  });
+  return count;
+});
+
+// 计算直接二级菜单数量
+const directMenuCount = computed(() => {
+  return currentSubMenus.value.filter(menu => !menu.children || menu.children.length === 0).length;
+});
+
+// 动态计算容器宽度 - 根据菜单项数量智能调整
+const dynamicContainerWidth = computed(() => {
+  const itemCount = totalMenuItems.value;
+  if (itemCount === 0) return '320px';
+
+  // 根据菜单项数量计算最优宽度
+  const columnsNeeded = Math.min(itemCount, 3); // 最多3列
+  const baseWidth = 240; // 每列基础宽度
+  const padding = 32; // 容器内边距
+  const gap = 12; // 列间距
+
+  const calculatedWidth = columnsNeeded * baseWidth + (columnsNeeded - 1) * gap + padding;
+  return `${Math.max(320, calculatedWidth)}px`;
+});
+
+// 计算网格列数 - 根据菜单项数量动态调整，纵向排布
+const getGridColumns = (itemCount: number) => {
+  if (itemCount <= 6) return Math.min(itemCount, 3); // 6个以内，最多3列
+  return 3; // 超过6个，固定3列，纵向排布
+};
+
+// 计算每列的菜单项数量
+const getItemsPerColumn = (itemCount: number) => {
+  const columns = getGridColumns(itemCount);
+  return Math.ceil(itemCount / columns);
+};
+
 const loading = computed(() => firstLevelMenus.value.length === 0);
 
 const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
@@ -286,7 +335,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         @mouseenter="handleSubMenuHover"
         @mouseleave="handleSubMenuLeave"
       >
-        <div class="sub-menu-container">
+        <div class="sub-menu-container" :style="{ width: dynamicContainerWidth }">
           <!-- 去掉标题头部 -->
           <div class="sub-menu-content">
             <!-- 我的收藏特殊处理 -->
@@ -296,7 +345,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <p>暂无收藏菜单</p>
                 <span>鼠标悬停在菜单项上点击星标即可收藏</span>
               </div>
-              <div v-else class="favorite-items three-column-grid">
+              <div v-else class="favorite-items dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)` }">
                 <div
                   v-for="favorite in favoriteMenus"
                   :key="favorite.path"
@@ -326,86 +375,76 @@ const defer = useDefer(firstLevelMenus.value.length);
               </div>
             </div>
 
-            <!-- 普通菜单内容 - 简洁列表布局 -->
-            <div v-else class="simple-menu-container">
-              <!-- 按分组显示菜单 -->
-              <div class="menu-columns">
-                <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                  <!-- 如果有三级菜单，显示为一个分组列 -->
-                  <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-column">
-                    <div class="column-header">
-                      <h4 class="column-title">{{ subMenu.meta?.title }}</h4>
-                    </div>
-                    <div class="column-content">
-                      <div
-                        v-for="thirdMenu in subMenu.children"
-                        :key="thirdMenu.path"
-                        class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(thirdMenu)"
-                        @mouseleave="handleMenuItemLeave"
+            <!-- 普通菜单内容 - 智能三列布局 -->
+            <div v-else class="menu-grid-container">
+              <!-- 有分组的菜单 -->
+              <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
+                <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-group-section">
+                  <div class="group-title">{{ subMenu.meta?.title }}</div>
+                  <div class="third-level-menus dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(subMenu.children.length)}, 1fr)` }">
+                    <div
+                      v-for="thirdMenu in subMenu.children"
+                      :key="thirdMenu.path"
+                      class="menu-item-wrapper"
+                      @mouseenter="handleMenuItemHover(thirdMenu)"
+                      @mouseleave="handleMenuItemLeave"
+                    >
+                      <router-link
+                        :to="thirdMenu.path"
+                        class="third-level-menu-item"
+                        :class="{ 'is-active': defaultActive === thirdMenu.path }"
+                        @click="hideSubMenu"
                       >
-                        <router-link
-                          :to="thirdMenu.path"
-                          class="simple-menu-item"
-                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
-                          @click="hideSubMenu"
-                        >
-                          {{ thirdMenu.meta?.title }}
-                        </router-link>
-                        <!-- 收藏按钮 -->
-                        <button
-                          v-if="hoveredMenuItem?.path === thirdMenu.path"
-                          class="simple-favorite-btn"
-                          :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
-                          @click="toggleFavorite(thirdMenu, $event)"
-                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'"
-                        >
-                          <IconifyIconOnline
-                            :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'"
-                          />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-
-                <!-- 如果有直接的二级菜单项，单独成列 -->
-                <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)" class="menu-column">
-                  <div class="column-header">
-                    <h4 class="column-title">快速访问</h4>
-                  </div>
-                  <div class="column-content">
-                    <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                      <div
-                        v-if="!subMenu.children || subMenu.children.length === 0"
-                        class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(subMenu)"
-                        @mouseleave="handleMenuItemLeave"
+                        {{ thirdMenu.meta?.title }}
+                      </router-link>
+                      <!-- 收藏按钮 -->
+                      <button
+                        v-if="hoveredMenuItem?.path === thirdMenu.path"
+                        class="favorite-btn"
+                        :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
+                        @click="toggleFavorite(thirdMenu, $event)"
+                        :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'"
                       >
-                        <router-link
-                          :to="subMenu.path"
-                          class="simple-menu-item"
-                          :class="{ 'is-active': defaultActive === subMenu.path }"
-                          @click="hideSubMenu"
-                        >
-                          {{ subMenu.meta?.title }}
-                        </router-link>
-                        <!-- 收藏按钮 -->
-                        <button
-                          v-if="hoveredMenuItem?.path === subMenu.path"
-                          class="simple-favorite-btn"
-                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
-                          @click="toggleFavorite(subMenu, $event)"
-                          :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'"
-                        >
-                          <IconifyIconOnline
-                            :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'"
-                          />
-                        </button>
-                      </div>
-                    </template>
+                        <IconifyIconOnline
+                          :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'"
+                        />
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </template>
+
+              <!-- 直接的二级菜单项 - 三列布局 -->
+              <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)" class="direct-menus dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(directMenuCount)}, 1fr)` }">
+                <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
+                  <div
+                    v-if="!subMenu.children || subMenu.children.length === 0"
+                    class="menu-item-wrapper"
+                    @mouseenter="handleMenuItemHover(subMenu)"
+                    @mouseleave="handleMenuItemLeave"
+                  >
+                    <router-link
+                      :to="subMenu.path"
+                      class="direct-sub-menu-item"
+                      :class="{ 'is-active': defaultActive === subMenu.path }"
+                      @click="hideSubMenu"
+                    >
+                      {{ subMenu.meta?.title }}
+                    </router-link>
+                    <!-- 收藏按钮 -->
+                    <button
+                      v-if="hoveredMenuItem?.path === subMenu.path"
+                      class="favorite-btn"
+                      :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
+                      @click="toggleFavorite(subMenu, $event)"
+                      :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'"
+                    >
+                      <IconifyIconOnline
+                        :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'"
+                      />
+                    </button>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -527,8 +566,9 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 .sub-menu-container {
-  min-width: 800px;
-  max-width: 1000px;
+  min-width: 320px;
+  max-width: 900px;
+  width: fit-content;
   max-height: 85vh;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
   border-radius: 16px;
@@ -589,95 +629,121 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 }
 
-/* 简洁菜单容器 */
-.simple-menu-container {
-  width: 100%;
-}
-
-/* 菜单列布局 */
-.menu-columns {
-  display: flex;
-  gap: 40px;
-  width: 100%;
-}
-
-/* 菜单列 */
-.menu-column {
-  flex: 1;
-  min-width: 200px;
-}
-
-/* 列标题 */
-.column-header {
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--el-border-color-light);
-}
-
-.column-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* 列内容 */
-.column-content {
+/* 智能菜单网格容器 */
+.menu-grid-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 16px;
+  width: 100%;
 }
 
-/* 简洁菜单项包装器 */
+/* 菜单分组区域 */
+.menu-group-section {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* 分组标题 */
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  opacity: 0.8;
+}
+
+/* 动态网格布局 - 纵向排布，最多3列 */
+.dynamic-grid {
+  display: grid;
+  gap: 8px 12px;
+  width: 100%;
+  grid-auto-flow: column; /* 纵向排布：先填满第一列，再填第二列 */
+
+  /* 网格列数和行数通过内联样式动态设置 */
+  /* 最多3列，菜单项纵向排列 */
+}
+
+/* 保留三列网格布局类以兼容现有代码 */
+.three-column-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 12px;
+  width: 100%;
+}
+
+/* 菜单项包装器 */
 .menu-item-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 
   &:hover {
-    .simple-favorite-btn {
+    .favorite-btn {
       opacity: 1;
-      transform: scale(1);
+      transform: translateY(-50%) scale(1);
+    }
+
+    .third-level-menu-item,
+    .direct-sub-menu-item {
+      padding-right: 35px; // 为收藏按钮留出空间
     }
   }
 }
 
-/* 简洁菜单项 */
-.simple-menu-item {
+/* 三级菜单项和直接二级菜单项 */
+.third-level-menu-item,
+.direct-sub-menu-item {
   display: block;
-  padding: 8px 12px;
+  padding: 10px 12px;
   text-decoration: none;
   color: var(--el-text-color-regular);
-  font-size: 14px;
-  line-height: 1.5;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--el-bg-color), rgba(var(--el-color-primary-rgb), 0.02));
 
   &:hover {
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
     color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    transform: translateY(-2px);
+    border-color: var(--el-color-primary-light-7);
+    box-shadow:
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+      0 2px 6px rgba(var(--el-color-primary-rgb), 0.1);
   }
 
   &.is-active {
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-8);
+    background: var(--el-color-primary);
+    color: white;
     font-weight: 500;
+    box-shadow:
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+      0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
   }
 }
 
-/* 简洁收藏按钮 */
-.simple-favorite-btn {
+/* 收藏按钮 */
+.favorite-btn {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%) scale(0.8);
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border: none;
-  background: transparent;
+  background: rgba(var(--el-color-primary-rgb), 0.1);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -687,19 +753,28 @@ const defer = useDefer(firstLevelMenus.value.length);
   opacity: 0;
   z-index: 10;
 
+  /* 确保按钮完全垂直居中 */
+  margin-top: -1px;
+
   &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.1);
+    background: rgba(var(--el-color-primary-rgb), 0.2);
     transform: translateY(-50%) scale(1.1);
   }
 
   &.is-favorited {
+    background: rgba(var(--el-color-warning-rgb), 0.1);
+
     svg {
       color: var(--el-color-warning);
+    }
+
+    &:hover {
+      background: rgba(var(--el-color-warning-rgb), 0.2);
     }
   }
 
   svg {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--el-text-color-placeholder);
     transition: all 0.2s ease;
   }
