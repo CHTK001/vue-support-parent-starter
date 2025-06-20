@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { useNav } from "../../hooks/useNav";
 import type { StorageConfigs } from "@repo/config";
@@ -13,6 +13,7 @@ import { localStorageProxy, useDefer, indexedDBProxy } from "@repo/utils";
 
 
 const route = useRoute();
+const router = useRouter();
 const isShow = ref(false);
 const showLogo = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showLogo ?? true);
 const hoveredMenu = ref(null);
@@ -109,6 +110,42 @@ const getGridColumns = (itemCount: number) => {
   return Math.min(totalColumns, 4);
 };
 
+// 判断是否只有一列菜单
+const isSingleColumn = computed(() => {
+  if (!hoveredMenu.value || !hoveredMenu.value.children) return false;
+
+  // 如果是收藏菜单，根据收藏数量判断
+  if (hoveredMenu.value.path === '/favorites') {
+    return favoriteMenus.value.length <= 4; // 4个或以下收藏项认为是单列
+  }
+
+  const columns = getGridColumns(totalMenuItems.value);
+  return columns === 1;
+});
+
+// 获取第一个可导航的菜单路径
+const getFirstNavigablePath = (menu: any): string | null => {
+  if (!menu.children || menu.children.length === 0) {
+    return menu.path;
+  }
+
+  // 查找第一个可导航的子菜单
+  for (const child of menu.children) {
+    if (child.children && child.children.length > 0) {
+      // 如果子菜单还有子项，取第一个子项
+      const firstGrandChild = child.children[0];
+      if (firstGrandChild) {
+        return firstGrandChild.path;
+      }
+    } else {
+      // 直接的二级菜单项
+      return child.path;
+    }
+  }
+
+  return null;
+};
+
 // 计算每列的菜单项数量 - 确保纵向优先填充
 const getItemsPerColumn = (itemCount: number) => {
   const columns = getGridColumns(itemCount);
@@ -141,6 +178,12 @@ function handleMenuHover(menu: any, event: MouseEvent) {
   }
 
   hoveredMenu.value = menu;
+
+  // 检查是否只有一列，如果是则不显示浮动框
+  if (isSingleColumn.value) {
+    hideSubMenuDelayed();
+    return;
+  }
 
   // 计算子菜单位置
   const target = event.currentTarget as HTMLElement;
@@ -280,6 +323,32 @@ function formatAddTime(timeStr: string): string {
   return date.toLocaleDateString();
 }
 
+// 处理菜单点击
+function handleMenuClick(menu: any) {
+  // 如果没有子菜单，直接导航
+  if (!menu.children || menu.children.length === 0) {
+    router.push(menu.path);
+    return;
+  }
+
+  // 如果是收藏菜单且为空，不做任何操作
+  if (menu.path === '/favorites' && favoriteMenus.value.length === 0) {
+    return;
+  }
+
+  // 设置悬停菜单以便计算列数
+  hoveredMenu.value = menu;
+
+  // 如果只有一列，直接导航到第一个可用路径
+  if (isSingleColumn.value) {
+    const firstPath = getFirstNavigablePath(menu);
+    if (firstPath) {
+      router.push(firstPath);
+    }
+  }
+  // 如果有多列，则通过悬停显示浮动框（已在 handleMenuHover 中处理）
+}
+
 watch(
   () => [route.path, usePermissionStoreHook().wholeMenus],
   () => {
@@ -328,7 +397,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           :class="{ 'is-active': isMenuActive(menu) }"
           @mouseenter="handleMenuHover(menu, $event)"
           @mouseleave="handleMenuLeave"
-          @click="menu.children && menu.children.length > 0 ? null : $router.push(menu.path)"
+          @click="handleMenuClick(menu)"
         >
           <div class="menu-content">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" class="menu-icon" />
