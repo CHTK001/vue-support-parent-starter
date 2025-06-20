@@ -10,7 +10,6 @@ import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
 import { bg, illustration } from "./utils/static";
 
-import Check from "@iconify-icons/ep/check";
 import darkIcon from "@repo/assets/svg/dark.svg?component";
 import dayIcon from "@repo/assets/svg/day.svg?component";
 import globalization from "@repo/assets/svg/globalization.svg?component";
@@ -146,7 +145,7 @@ const handleChangeLoginType = async (_val) => {
                 @click="translationCh"
                 class="dropdown-item"
               >
-                <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" :icon="Check" />
+                <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" icon="@iconify-icons/ep/check" />
                 <span>简体中文</span>
               </el-dropdown-item>
               <el-dropdown-item
@@ -155,7 +154,7 @@ const handleChangeLoginType = async (_val) => {
                 @click="translationEn"
                 class="dropdown-item"
               >
-                <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" :icon="Check" />
+                <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" icon="@iconify-icons/ep/check" />
                 <span>English</span>
               </el-dropdown-item>
             </el-dropdown-menu>

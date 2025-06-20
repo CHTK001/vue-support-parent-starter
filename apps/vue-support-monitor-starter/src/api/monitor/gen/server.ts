@@ -544,6 +544,30 @@ export const WS_MESSAGE_TYPE = {
 export type WSMessageType = typeof WS_MESSAGE_TYPE[keyof typeof WS_MESSAGE_TYPE];
 
 /**
+ * 前端显示用的服务器数据接口（简化字段名）
+ */
+export interface ServerDisplayData {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  protocol: ProtocolType;
+  status: ServerStatus;
+  onlineStatus: OnlineStatus;
+  connectionStatus: ConnectionStatus;
+  metricsSupport: boolean;
+  username?: string;
+  group?: string;
+  description?: string;
+  tags?: string;
+  lastOnlineTime?: string;
+  lastOfflineTime?: string;
+  createTime: string;
+  updateTime: string;
+  metrics?: ServerMetrics;
+}
+
+/**
  * 服务器实时数据接口
  */
 export interface ServerRealtimeData {
@@ -597,4 +621,86 @@ export interface WebSocketMessage<T = any> {
   data: T;
   timestamp: number;
   serverId?: string;
+}
+
+// ==================== 字段映射转换函数 ====================
+
+/**
+ * 将后台返回的ServerInfo转换为前端显示用的ServerDisplayData
+ * @param serverInfo 后台返回的服务器信息
+ * @returns 前端显示用的服务器数据
+ */
+export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDisplayData {
+  return {
+    id: serverInfo.id,
+    name: serverInfo.monitorSysGenServerName,
+    host: serverInfo.monitorSysGenServerHost,
+    port: serverInfo.monitorSysGenServerPort,
+    protocol: serverInfo.monitorSysGenServerProtocol as ProtocolType,
+    status: serverInfo.monitorSysGenServerStatus as ServerStatus,
+    onlineStatus: serverInfo.monitorSysGenServerOnlineStatus as OnlineStatus,
+    connectionStatus: serverInfo.monitorSysGenServerConnectionStatus as ConnectionStatus,
+    metricsSupport: serverInfo.monitorSysGenServerMetricsSupport,
+    username: serverInfo.monitorSysGenServerUsername,
+    group: serverInfo.monitorSysGenServerGroup,
+    description: serverInfo.monitorSysGenServerDescription,
+    tags: serverInfo.monitorSysGenServerTags,
+    lastOnlineTime: serverInfo.monitorSysGenServerLastOnlineTime,
+    lastOfflineTime: serverInfo.monitorSysGenServerLastOfflineTime,
+    createTime: serverInfo.monitorSysGenServerCreateTime,
+    updateTime: serverInfo.monitorSysGenServerUpdateTime,
+  };
+}
+
+/**
+ * 将ServerRealtimeData转换为前端显示用的ServerDisplayData
+ * @param realtimeData 实时数据
+ * @returns 前端显示用的服务器数据
+ */
+export function mapRealtimeDataToDisplayData(realtimeData: ServerRealtimeData): ServerDisplayData {
+  return {
+    id: realtimeData.id,
+    name: realtimeData.monitorSysGenServerName,
+    host: realtimeData.monitorSysGenServerHost,
+    port: realtimeData.monitorSysGenServerPort,
+    protocol: realtimeData.monitorSysGenServerProtocol,
+    status: realtimeData.monitorSysGenServerStatus,
+    onlineStatus: realtimeData.monitorSysGenServerOnlineStatus,
+    connectionStatus: 0, // 实时数据中没有连接状态，默认为0
+    metricsSupport: realtimeData.monitorSysGenServerMetricsSupport,
+    lastOnlineTime: realtimeData.monitorSysGenServerLastOnlineTime,
+    lastOfflineTime: realtimeData.monitorSysGenServerLastOfflineTime,
+    createTime: '',
+    updateTime: realtimeData.monitorSysGenServerUpdateTime,
+    metrics: realtimeData.metrics,
+  };
+}
+
+/**
+ * 批量转换服务器列表
+ * @param serverList 后台返回的服务器列表
+ * @returns 前端显示用的服务器列表
+ */
+export function mapServerListToDisplayData(serverList: ServerInfo[]): ServerDisplayData[] {
+  return serverList.map(mapServerInfoToDisplayData);
+}
+
+/**
+ * 将前端显示数据转换为保存参数
+ * @param displayData 前端显示数据
+ * @returns 保存参数
+ */
+export function mapDisplayDataToSaveParams(displayData: Partial<ServerDisplayData>): ServerSaveParams {
+  return {
+    id: displayData.id,
+    monitorSysGenServerName: displayData.name || '',
+    monitorSysGenServerHost: displayData.host || '',
+    monitorSysGenServerPort: displayData.port || 22,
+    monitorSysGenServerProtocol: displayData.protocol || 'SSH',
+    monitorSysGenServerUsername: displayData.username,
+    monitorSysGenServerGroup: displayData.group,
+    monitorSysGenServerDescription: displayData.description,
+    monitorSysGenServerMetricsSupport: displayData.metricsSupport,
+    monitorSysGenServerTags: displayData.tags,
+  };
 }

@@ -109,9 +109,9 @@
             class="server-card"
             :class="{
               'selected': selectedServerId === server.id,
-              'online': server.onlineStatus === 1 || server.onlineStatus === '1',
-              'offline': server.onlineStatus === 0 || server.onlineStatus === '0',
-              'error': server.status === 3 || server.status === '3'
+              'online': server.onlineStatus === ONLINE_STATUS.ONLINE,
+              'offline': server.onlineStatus === ONLINE_STATUS.OFFLINE,
+              'error': server.status === SERVER_STATUS.ERROR
             }"
             @click="selectServer(server)"
           >
@@ -268,6 +268,10 @@ import {
   type ServerRealtimeData,
   type ServerMetrics,
   type WebSocketMessage,
+  type ServerDisplayData,
+  type ServerInfo,
+  mapServerListToDisplayData,
+  mapRealtimeDataToDisplayData,
 } from "@/api/monitor/gen/server";
 
 // 异步组件
@@ -302,7 +306,7 @@ const selectedServerId = ref("");
 const currentComponent = ref("");
 
 // 服务器数据
-const servers = ref<any[]>([]);
+const servers = ref<ServerDisplayData[]>([]);
 const serverGroups = ref<string[]>([]);
 const selectedServer = computed(() =>
   servers.value.find(s => s.id === selectedServerId.value)
@@ -345,11 +349,11 @@ const filteredServers = computed(() => {
     result = result.filter(server => {
       switch (filterStatus.value) {
         case "online":
-          return server.onlineStatus === 1 || server.onlineStatus === '1';
+          return server.onlineStatus === ONLINE_STATUS.ONLINE;
         case "offline":
-          return server.onlineStatus === 0 || server.onlineStatus === '0';
+          return server.onlineStatus === ONLINE_STATUS.OFFLINE;
         case "error":
-          return server.status === 3 || server.status === '3';
+          return server.status === SERVER_STATUS.ERROR;
         default:
           return true;
       }
@@ -415,10 +419,12 @@ const loadServers = async () => {
     const res = await getServerPageList({
       page: 1,
       pageSize: 1000, // 加载所有服务器
-    });
+    }) as any;
 
     if (res.code == "00000") {
-      servers.value = res.data?.records || [];
+      // 使用字段映射转换后台数据为前端显示数据
+      const serverList = res.data?.data || [];
+      servers.value = mapServerListToDisplayData(serverList);
       totalCount.value = res.data?.total || 0;
 
       // 提取分组信息
@@ -794,10 +800,12 @@ const handleServerOfflineUpdate = (data: { serverId: string; offlineTime: string
  */
 const handleServerDataUpdate = (data: ServerRealtimeData) => {
   const index = servers.value.findIndex(s => s.id === data.id);
+  const displayData = mapRealtimeDataToDisplayData(data);
+
   if (index !== -1) {
-    servers.value[index] = { ...servers.value[index], ...data };
+    servers.value[index] = { ...servers.value[index], ...displayData };
   } else {
-    servers.value.push(data);
+    servers.value.push(displayData);
   }
 };
 
@@ -822,7 +830,8 @@ const handleServerDelete = (data: { serverId: string }) => {
  * 处理服务器添加
  */
 const handleServerAdd = (data: ServerRealtimeData) => {
-  servers.value.push(data);
+  const displayData = mapRealtimeDataToDisplayData(data);
+  servers.value.push(displayData);
 };
 
 /**

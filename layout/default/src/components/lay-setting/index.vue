@@ -161,6 +161,7 @@ function cardBodyChange() {
 
 /** 动画效果强度设置 */
 const animationIntensityChange = (value: string): void => {
+  settings.animationIntensity = value;
   storageConfigureChange("animationIntensity", value);
   const root = document.documentElement;
 
@@ -169,24 +170,29 @@ const animationIntensityChange = (value: string): void => {
     case "off":
       root.style.setProperty("--animation-duration", "0s");
       root.style.setProperty("--animation-scale", "1");
+      root.style.setProperty("--animation-timing", "linear");
       break;
     case "light":
       root.style.setProperty("--animation-duration", "0.15s");
       root.style.setProperty("--animation-scale", "1.02");
+      root.style.setProperty("--animation-timing", "ease-out");
       break;
     case "normal":
       root.style.setProperty("--animation-duration", "0.3s");
       root.style.setProperty("--animation-scale", "1.05");
+      root.style.setProperty("--animation-timing", "cubic-bezier(0.4, 0, 0.2, 1)");
       break;
     case "strong":
       root.style.setProperty("--animation-duration", "0.5s");
       root.style.setProperty("--animation-scale", "1.1");
+      root.style.setProperty("--animation-timing", "cubic-bezier(0.68, -0.55, 0.265, 1.55)");
       break;
   }
 };
 
 /** 界面密度设置 */
 const interfaceDensityChange = (value: string): void => {
+  settings.interfaceDensity = value;
   storageConfigureChange("interfaceDensity", value);
   const root = document.documentElement;
 
@@ -196,38 +202,51 @@ const interfaceDensityChange = (value: string): void => {
       root.style.setProperty("--interface-padding", "8px");
       root.style.setProperty("--interface-margin", "4px");
       root.style.setProperty("--interface-gap", "8px");
+      root.style.setProperty("--el-component-size", "small");
       break;
     case "standard":
       root.style.setProperty("--interface-padding", "16px");
       root.style.setProperty("--interface-margin", "8px");
       root.style.setProperty("--interface-gap", "12px");
+      root.style.setProperty("--el-component-size", "default");
       break;
     case "loose":
       root.style.setProperty("--interface-padding", "24px");
       root.style.setProperty("--interface-margin", "16px");
       root.style.setProperty("--interface-gap", "20px");
+      root.style.setProperty("--el-component-size", "large");
       break;
   }
 };
 
 /** 字体大小设置 */
 const fontSizeChange = (value: string): void => {
+  settings.fontSize = value;
   storageConfigureChange("fontSize", value);
   const root = document.documentElement;
 
   // 根据字体大小设置CSS变量
   switch (value) {
     case "small":
-      root.style.setProperty("--font-size-base", "13px");
+      root.style.setProperty("--el-font-size-base", "12px");
+      root.style.setProperty("--el-font-size-small", "11px");
+      root.style.setProperty("--el-font-size-large", "14px");
+      root.style.setProperty("--font-size-base", "12px");
       root.style.setProperty("--font-size-small", "11px");
-      root.style.setProperty("--font-size-large", "15px");
+      root.style.setProperty("--font-size-large", "14px");
       break;
     case "medium":
+      root.style.setProperty("--el-font-size-base", "14px");
+      root.style.setProperty("--el-font-size-small", "12px");
+      root.style.setProperty("--el-font-size-large", "16px");
       root.style.setProperty("--font-size-base", "14px");
       root.style.setProperty("--font-size-small", "12px");
       root.style.setProperty("--font-size-large", "16px");
       break;
     case "large":
+      root.style.setProperty("--el-font-size-base", "16px");
+      root.style.setProperty("--el-font-size-small", "14px");
+      root.style.setProperty("--el-font-size-large", "18px");
       root.style.setProperty("--font-size-base", "16px");
       root.style.setProperty("--font-size-small", "14px");
       root.style.setProperty("--font-size-large", "18px");
@@ -237,27 +256,40 @@ const fontSizeChange = (value: string): void => {
 
 /** 圆角风格设置 */
 const borderRadiusChange = (value: string): void => {
+  settings.borderRadius = value;
   storageConfigureChange("borderRadius", value);
   const root = document.documentElement;
 
   // 根据圆角风格设置CSS变量
   switch (value) {
     case "none":
+      root.style.setProperty("--el-border-radius-base", "0px");
+      root.style.setProperty("--el-border-radius-small", "0px");
+      root.style.setProperty("--el-border-radius-large", "0px");
       root.style.setProperty("--border-radius-small", "0px");
       root.style.setProperty("--border-radius-base", "0px");
       root.style.setProperty("--border-radius-large", "0px");
       break;
     case "small":
+      root.style.setProperty("--el-border-radius-base", "4px");
+      root.style.setProperty("--el-border-radius-small", "2px");
+      root.style.setProperty("--el-border-radius-large", "6px");
       root.style.setProperty("--border-radius-small", "2px");
       root.style.setProperty("--border-radius-base", "4px");
       root.style.setProperty("--border-radius-large", "6px");
       break;
     case "medium":
+      root.style.setProperty("--el-border-radius-base", "8px");
+      root.style.setProperty("--el-border-radius-small", "4px");
+      root.style.setProperty("--el-border-radius-large", "12px");
       root.style.setProperty("--border-radius-small", "4px");
       root.style.setProperty("--border-radius-base", "8px");
       root.style.setProperty("--border-radius-large", "12px");
       break;
     case "large":
+      root.style.setProperty("--el-border-radius-base", "16px");
+      root.style.setProperty("--el-border-radius-small", "8px");
+      root.style.setProperty("--el-border-radius-large", "24px");
       root.style.setProperty("--border-radius-small", "8px");
       root.style.setProperty("--border-radius-base", "16px");
       root.style.setProperty("--border-radius-large", "24px");
@@ -608,20 +640,30 @@ const overallStyleValue = computed({
   }
 });
 
-// 处理整体风格变化
+// 处理整体风格变化 - 优化响应速度
 const handleOverallStyleChange = (value: number) => {
   const theme = themeOptions.value.find(option => option.value === value);
   if (theme) {
+    // 立即更新UI状态，提供即时反馈
+    const htmlElement = document.documentElement;
+    htmlElement.classList.add("theme-switching");
+
+    // 同步更新所有相关状态
     if (value === 1) {
       dataTheme.value = true;
     } else {
       dataTheme.value = false;
     }
-    overallStyle.value = theme.theme;
-    dataThemeChange(theme.theme);
-    if (value === 2) {
-      watchSystemThemeChange();
-    }
+
+    // 使用 nextTick 确保响应式更新完成后再进行主题切换
+    nextTick(() => {
+      overallStyle.value = theme.theme;
+      dataThemeChange(theme.theme);
+
+      if (value === 2) {
+        watchSystemThemeChange();
+      }
+    });
   }
 };
 </script>
@@ -819,11 +861,11 @@ const handleOverallStyleChange = (value: number) => {
                     v-model.number="settings.contentMargin"
                     @input="handleInput($event, 'contentMargin')"
                     @keydown="handleKeydown($event, 'contentMargin')"
-                    :min="0"
-                    :max="100"
+                :min="0"
+                :max="100"
                     class="number-input"
                     placeholder="0"
-                  />
+              />
                   <span class="number-unit">px</span>
                 </div>
                 <button
@@ -852,11 +894,11 @@ const handleOverallStyleChange = (value: number) => {
                     v-model.number="settings.layoutRadius"
                     @input="handleInput($event, 'layoutRadius')"
                     @keydown="handleKeydown($event, 'layoutRadius')"
-                    :min="0"
-                    :max="100"
+                :min="0"
+                :max="100"
                     class="number-input"
                     placeholder="0"
-                  />
+              />
                   <span class="number-unit">px</span>
                 </div>
                 <button
@@ -885,11 +927,11 @@ const handleOverallStyleChange = (value: number) => {
                     v-model.number="settings.layoutBlur"
                     @input="handleInput($event, 'layoutBlur')"
                     @keydown="handleKeydown($event, 'layoutBlur')"
-                    :min="0"
-                    :max="100"
+                :min="0"
+                :max="100"
                     class="number-input"
                     placeholder="0"
-                  />
+              />
                   <span class="number-unit">px</span>
                 </div>
                 <button
@@ -1058,7 +1100,8 @@ const handleOverallStyleChange = (value: number) => {
   max-width: 100%;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除 transition: all，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   // 现代化背景装饰 - 与导航栏风格一致
   &::before {
@@ -1119,7 +1162,9 @@ const handleOverallStyleChange = (value: number) => {
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--el-border-color-extra-light);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，只对变形和阴影生效，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   backdrop-filter: blur(8px);
 
@@ -1257,11 +1302,15 @@ const handleOverallStyleChange = (value: number) => {
   padding: 4px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--el-border-color-extra-light);
-  transition: all 0.3s ease;
+  // 移除 transition: all，避免主题切换延迟
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 
   .layui-segmented-item {
     border-radius: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    // 优化 transition，只对变形和阴影生效
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.15s ease;
     font-weight: 500;
     color: var(--el-text-color-regular);
     padding: 8px 14px;
@@ -1344,7 +1393,9 @@ const handleOverallStyleChange = (value: number) => {
   border-radius: 8px;
   margin-bottom: 6px;
   background: var(--el-fill-color-extra-light);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 
@@ -1410,7 +1461,9 @@ const handleOverallStyleChange = (value: number) => {
   padding: 14px 18px;
   background: var(--el-fill-color-extra-light);
   border-radius: 10px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--el-border-color-extra-light);
   position: relative;
   overflow: hidden;
@@ -1476,7 +1529,9 @@ const handleOverallStyleChange = (value: number) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 16px;
   position: relative;
   overflow: hidden;
@@ -1600,7 +1655,9 @@ const handleOverallStyleChange = (value: number) => {
   border: none;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
@@ -1664,7 +1721,9 @@ const handleOverallStyleChange = (value: number) => {
     height: 24px;
     border-radius: 24px;
     border: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    // 优化 transition，加快背景色切换
+    transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     position: relative;
     background: var(--el-switch-off-color);
@@ -1705,7 +1764,10 @@ const handleOverallStyleChange = (value: number) => {
       left: initial !important;
       background: linear-gradient(135deg, #ffffff, #f8f9fa);
       border-radius: 50%;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      // 优化 transition，加快位置和背景色切换
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                  background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
       position: relative;
       display: flex;
@@ -2032,10 +2094,10 @@ const handleOverallStyleChange = (value: number) => {
     }
 
     .number-unit {
-      font-size: 12px;
-      color: var(--el-text-color-placeholder);
+    font-size: 12px;
+    color: var(--el-text-color-placeholder);
       margin-left: 4px;
-      font-weight: 500;
+    font-weight: 500;
     }
   }
 
@@ -2069,7 +2131,7 @@ const handleOverallStyleChange = (value: number) => {
   box-shadow: var(--el-box-shadow-lighter);
   transition: all 0.3s ease;
 
-  &:hover {
+    &:hover {
     border-color: var(--el-border-color-hover);
     box-shadow: var(--el-box-shadow-light);
     transform: translateY(-1px);
@@ -2146,7 +2208,9 @@ const handleOverallStyleChange = (value: number) => {
   border-radius: 6px;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 优化 transition，避免主题切换延迟
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1.5px solid var(--el-border-color-extra-light);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 
@@ -2948,5 +3012,82 @@ p.mt-5 {
     background: var(--el-color-primary);
     border-radius: var(--border-radius-small, 2px);
   }
+}
+</style>
+
+<style lang="scss">
+// 全局样式：主题切换优化
+:root {
+  // 主题切换速度控制
+  --theme-transition-duration: 0.15s;
+  --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 主题切换时禁用所有transition，避免延迟
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+  animation: none !important;
+}
+
+// 优化Element Plus组件的主题切换性能
+.el-button,
+.el-input,
+.el-select,
+.el-card,
+.el-dialog,
+.el-drawer,
+.el-menu,
+.el-table,
+.el-form-item {
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
+              border-color var(--theme-transition-duration) var(--theme-transition-timing),
+              color var(--theme-transition-duration) var(--theme-transition-timing) !important;
+}
+
+// 确保所有使用CSS变量的元素都能快速响应主题变化
+[style*="--el-"],
+[class*="el-"] {
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
+              border-color var(--theme-transition-duration) var(--theme-transition-timing),
+              color var(--theme-transition-duration) var(--theme-transition-timing);
+}
+
+// 应用动画效果强度设置到全局元素
+* {
+  transition-duration: var(--animation-duration, 0.3s) !important;
+  transition-timing-function: var(--animation-timing, cubic-bezier(0.4, 0, 0.2, 1)) !important;
+}
+
+// 应用界面密度设置到全局元素
+.el-button,
+.el-input,
+.el-select,
+.el-card,
+.setting-section,
+.param-item {
+  padding: var(--interface-padding, 16px) !important;
+  margin: var(--interface-margin, 8px) !important;
+  gap: var(--interface-gap, 12px) !important;
+}
+
+// 应用字体大小设置到全局元素
+body,
+.el-button,
+.el-input,
+.el-select,
+.setting-section,
+.param-label {
+  font-size: var(--el-font-size-base, 14px) !important;
+}
+
+// 应用圆角风格设置到全局元素
+.el-button,
+.el-input,
+.el-card,
+.setting-section,
+.param-item,
+.modern-input-number .el-input__wrapper {
+  border-radius: var(--el-border-radius-base, 8px) !important;
 }
 </style>
