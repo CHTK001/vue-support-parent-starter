@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeMount, onUnmounted, reactive, ref, unref, watch } from "vue";
+import { computed, nextTick, onBeforeMount, onMounted, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import LayPanel from "../lay-panel/index.vue";
 import { useNav } from "../../hooks/useNav";
-import { toggleTheme } from "@pureadmin/theme/dist/browser-utils";
+
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";  
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
@@ -29,6 +29,9 @@ const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
 const hoverRef = ref();
+
+// 存储 tippy 实例的数组，用于组件销毁时清理
+const tippyInstances = ref([]);
 
 const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThemeChange, setLayoutThemeColor } = useDataThemeChange();
 
@@ -68,14 +71,14 @@ const settings = reactive({
 });
 
 const getThemeColorStyle = computed(() => {
-  return (color) => {
+  return (color: string) => {
     return { background: color };
   };
 });
 
 /** 当网页整体为暗色风格时不显示亮白色主题配色切换选项 */
 const showThemeColors = computed(() => {
-  return (themeColor) => {
+  return (themeColor: string) => {
     return themeColor === "light" && isDark.value ? false : true;
   };
 });
@@ -87,36 +90,36 @@ function storageConfigureChange<T>(key: string, val: T): void {
 }
 
 /** 设置内容宽度 */
-const contentMarginChange = (value): void => {
+const contentMarginChange = (value: number): void => {
   storageConfigureChange("contentMargin", value);
   document.body.style.setProperty("--contentMargin", value + "px");
 };
 
 /** 设置内容radius */
-const layoutRadiusChange = (value): void => {
+const layoutRadiusChange = (value: number): void => {
   storageConfigureChange("layoutRadius", value);
   document.body.style.setProperty("--layoutRadius", value + "px");
 };
 /** 设置内容blur */
-const layoutBlurChange = (value): void => {
+const layoutBlurChange = (value: number): void => {
   storageConfigureChange("layoutBlur", value);
   document.body.style.setProperty("--layoutBlur", value + "px");
 };
 
 /** 切换菜单动画设置 */
-const menuTransitionChange = (value): void => {
+const menuTransitionChange = (value: boolean): void => {
   storageConfigureChange("menuTransition", value);
 };
 
 /** 灰色模式设置 */
-const greyChange = (value): void => {
+const greyChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.greyVal, "html-grey", htmlEl);
   storageConfigureChange("grey", value);
 };
 
 /** 色弱模式设置 */
-const weekChange = (value): void => {
+const weekChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.weakVal, "html-weakness", htmlEl);
   storageConfigureChange("weak", value);
@@ -142,7 +145,7 @@ const multiTagsCacheChange = () => {
   useMultiTagsStoreHook().multiTagsCacheChange(multiTagsCache);
 };
 
-function onChange({ option }) {
+function onChange({ option }: { option: OptionsType }) {
   const { value } = option;
   markValue.value = value;
   storageConfigureChange("showModel", value);
@@ -194,29 +197,7 @@ const animationIntensityChange = (value: string): void => {
 const interfaceDensityChange = (value: string): void => {
   settings.interfaceDensity = value;
   storageConfigureChange("interfaceDensity", value);
-  const root = document.documentElement;
-
-  // 根据界面密度设置CSS变量
-  switch (value) {
-    case "compact":
-      root.style.setProperty("--interface-padding", "8px");
-      root.style.setProperty("--interface-margin", "4px");
-      root.style.setProperty("--interface-gap", "8px");
-      root.style.setProperty("--el-component-size", "small");
-      break;
-    case "standard":
-      root.style.setProperty("--interface-padding", "16px");
-      root.style.setProperty("--interface-margin", "8px");
-      root.style.setProperty("--interface-gap", "12px");
-      root.style.setProperty("--el-component-size", "default");
-      break;
-    case "loose":
-      root.style.setProperty("--interface-padding", "24px");
-      root.style.setProperty("--interface-margin", "16px");
-      root.style.setProperty("--interface-gap", "20px");
-      root.style.setProperty("--el-component-size", "large");
-      break;
-  }
+  // 界面密度设置已简化，不再设置CSS变量
 };
 
 /** 字体大小设置 */
@@ -380,19 +361,19 @@ const stretchTypeOptions = computed<Array<OptionsType>>(() => {
   ];
 });
 
-const setStretch = (value) => {
+const setStretch = (value: number | boolean) => {
   settings.stretch = value;
   storageConfigureChange("stretch", value);
 };
 
-const stretchTypeChange = ({ option }) => {
+const stretchTypeChange = ({ option }: { option: OptionsType }) => {
   const { value } = option;
   value === "custom" ? setStretch(1440) : setStretch(false);
 };
 
 /** 主题色 激活选择项 */
 const getThemeColor = computed(() => {
-  return (current) => {
+  return (current: string) => {
     if (current === layoutTheme.value.theme && layoutTheme.value.theme !== "light") {
       return "#fff";
     } else if (current === layoutTheme.value.theme && layoutTheme.value.theme === "light") {
@@ -487,11 +468,6 @@ const animationIntensityOptions = computed<Array<OptionsType>>(() => {
 /** 界面密度选项 */
 const interfaceDensityOptions = computed<Array<OptionsType>>(() => {
   return [
-    {
-      label: "紧凑",
-      tip: "紧凑的界面布局",
-      value: "compact",
-    },
     {
       label: "标准",
       tip: "标准的界面布局",
@@ -630,42 +606,76 @@ onBeforeMount(() => {
   });
 });
 
-onUnmounted(() => removeMatchMedia);
+// 收集 tippy 实例的函数
+const collectTippyInstances = () => {
+  nextTick(() => {
+    const elementsWithTippy = [
+      verticalRef.value,
+      horizontalRef.value,
+      mixRef.value,
+      hoverRef.value
+    ].filter(Boolean);
 
-// 整体风格的响应式值
-const overallStyleValue = computed({
-  get: () => overallStyle.value === 'system' ? 2 : dataTheme.value ? 1 : 0,
-  set: (value) => {
-    // 这里会通过 handleOverallStyleChange 处理
-  }
-});
-
-// 处理整体风格变化 - 优化响应速度
-const handleOverallStyleChange = (value: number) => {
-  const theme = themeOptions.value.find(option => option.value === value);
-  if (theme) {
-    // 立即更新UI状态，提供即时反馈
-    const htmlElement = document.documentElement;
-    htmlElement.classList.add("theme-switching");
-
-    // 同步更新所有相关状态
-    if (value === 1) {
-      dataTheme.value = true;
-    } else {
-      dataTheme.value = false;
-    }
-
-    // 使用 nextTick 确保响应式更新完成后再进行主题切换
-    nextTick(() => {
-      overallStyle.value = theme.theme;
-      dataThemeChange(theme.theme);
-
-      if (value === 2) {
-        watchSystemThemeChange();
+    elementsWithTippy.forEach(element => {
+      if (element && element._tippy) {
+        tippyInstances.value.push(element._tippy);
       }
     });
-  }
+  });
 };
+
+onMounted(() => {
+  collectTippyInstances();
+
+  // 监听面板关闭事件
+  emitter.on("settingPanelClosed", () => {
+    destroyAllTippyInstances();
+  });
+});
+
+// 销毁所有 tippy 实例的函数
+const destroyAllTippyInstances = () => {
+  // 销毁通过 v-tippy 指令创建的实例
+  const elementsWithTippy = [
+    verticalRef.value,
+    horizontalRef.value,
+    mixRef.value,
+    hoverRef.value
+  ].filter(Boolean);
+
+  elementsWithTippy.forEach(element => {
+    if (element && element._tippy) {
+      element._tippy.destroy();
+    }
+  });
+
+  // 销毁存储在数组中的实例
+  tippyInstances.value.forEach(instance => {
+    if (instance && typeof instance.destroy === 'function') {
+      instance.destroy();
+    }
+  });
+
+  // 清空数组
+  tippyInstances.value = [];
+
+  // 清理可能残留的 tippy DOM 元素
+  const tippyElements = document.querySelectorAll('[data-tippy-root]');
+  tippyElements.forEach(element => {
+    if (element.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  });
+};
+
+onUnmounted(() => {
+  removeMatchMedia();
+  destroyAllTippyInstances();
+  // 移除事件监听器
+  emitter.off("settingPanelClosed");
+});
+
+
 </script>
 
 <template>
@@ -2501,9 +2511,9 @@ const handleOverallStyleChange = (value: number) => {
 .pure-theme {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: var(--interface-gap, 20px);
-  margin-top: var(--interface-gap, 20px);
-  padding: var(--interface-gap, 8px);
+  gap: 20px;
+  margin-top: 20px;
+  padding: 8px;
 
   li {
     position: relative;
@@ -2927,10 +2937,10 @@ const handleOverallStyleChange = (value: number) => {
 }
 // 通用设置样式 - 完全适配 Element Plus 主题系统
 .setting {
-  margin-top: var(--interface-gap, 12px);
+  margin-top: 12px;
   background: var(--el-bg-color-page);
   border-radius: var(--border-radius-base, 12px);
-  padding: var(--interface-gap, 8px) var(--interface-padding, 16px);
+  padding: 8px 16px;
   box-shadow: var(--el-box-shadow-lighter);
   transition: all var(--animation-duration, 0.3s) ease;
 
@@ -2938,7 +2948,7 @@ const handleOverallStyleChange = (value: number) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--interface-gap, 12px) 0;
+    padding: 12px 0;
     font-size: var(--font-size-base, 14px);
     border-bottom: 1px solid var(--el-border-color-lighter);
     transition: all var(--animation-duration, 0.3s) ease;
@@ -2951,7 +2961,7 @@ const handleOverallStyleChange = (value: number) => {
 
     &:hover {
       background: var(--el-fill-color-light);
-      padding-left: var(--interface-gap, 8px);
+      padding-left: 8px;
       border-radius: var(--border-radius-small, 6px);
     }
 
@@ -2993,10 +3003,10 @@ const handleOverallStyleChange = (value: number) => {
 
 // 标题样式
 p.mt-5 {
-  margin-top: var(--interface-gap, 24px) !important;
+  margin-top: 24px !important;
   font-size: var(--font-size-base, 15px);
   position: relative;
-  padding-left: var(--interface-gap, 12px);
+  padding-left: 12px;
   color: var(--el-text-color-primary);
   text-align: left;
   writing-mode: horizontal-tb;
@@ -3059,17 +3069,7 @@ p.mt-5 {
   transition-timing-function: var(--animation-timing, cubic-bezier(0.4, 0, 0.2, 1)) !important;
 }
 
-// 应用界面密度设置到全局元素
-.el-button,
-.el-input,
-.el-select,
-.el-card,
-.setting-section,
-.param-item {
-  padding: var(--interface-padding, 16px) !important;
-  margin: var(--interface-margin, 8px) !important;
-  gap: var(--interface-gap, 12px) !important;
-}
+
 
 // 应用字体大小设置到全局元素
 body,

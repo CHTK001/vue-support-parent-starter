@@ -356,7 +356,6 @@
             type="success"
             :loading="testLoading"
             @click="handleTest"
-            size="large"
             plain
           >
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
@@ -366,7 +365,6 @@
         <div class="footer-right">
           <el-button
             @click="visible = false"
-            size="large"
           >
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             取消
@@ -375,7 +373,6 @@
             type="primary"
             :loading="loading"
             @click="handleSubmit"
-            size="large"
           >
             <IconifyIconOnline
               :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
@@ -394,6 +391,7 @@ import { ref, reactive, nextTick } from "vue";
 import { message } from "@repo/utils";
 import {
   saveServer,
+  updateServer,
   testServerConnection,
   type ServerDisplayData,
   mapDisplayDataToSaveParams
@@ -596,7 +594,7 @@ const handleSubmit = async () => {
     await formRef.value?.validate();
 
     loading.value = true;
-    const res = await saveServer(formData);
+    const res = mode.value === "add" ? await saveServer(formData) : await updateServer(formData);
 
     if (res.code === "00000") {
       message.success(mode.value === "add" ? "新增成功" : "保存成功");

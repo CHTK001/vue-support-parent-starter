@@ -877,7 +877,6 @@ onUnmounted(() => {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--el-bg-color-page) 0%, var(--el-fill-color-extra-light) 100%);
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }

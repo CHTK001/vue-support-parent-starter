@@ -451,6 +451,7 @@ const formRef = ref();
 
 // 表单数据
 const formData = reactive<Partial<MonitorSysGenSerial>>({
+  monitorSysGenSerialId: undefined, // 添加主键字段
   monitorSysGenSerialName: '',
   monitorSysGenSerialPort: '',
   monitorSysGenSerialBaudRate: 9600,
@@ -460,6 +461,7 @@ const formData = reactive<Partial<MonitorSysGenSerial>>({
   monitorSysGenSerialFlowControl: 'none',
   monitorSysGenSerialTimeout: 5000,
   monitorSysGenSerialDesc: '',
+  monitorSysGenSerialStatus: 0, // 添加状态字段
   genId: 0
 });
 
@@ -593,6 +595,11 @@ const handleSerialAction = async (command: string) => {
         break;
       case 'edit':
         editingSerial.value = { ...serial };
+        // 确保表单数据包含主键ID
+        Object.assign(formData, {
+          ...serial,
+          monitorSysGenSerialId: serial.monitorSysGenSerialId
+        });
         showEditDialog.value = true;
         break;
       case 'delete':
@@ -726,7 +733,8 @@ const handleDeleteSerial = async (serial: MonitorSysGenSerial) => {
       }
     );
 
-    const response = await fetchSerialDelete(serial.monitorSysGenSerialId);
+    // 将数字ID转换为字符串，因为后台API期望字符串类型
+    const response = await fetchSerialDelete(String(serial.monitorSysGenSerialId));
 
     if ((response as any).code === '00000') {
       message.success('删除成功');
@@ -1238,6 +1246,7 @@ const upgradeHits = (hits: any) => {
 // 重置表单
 const resetForm = () => {
   Object.assign(formData, {
+    monitorSysGenSerialId: undefined, // 新增时清空主键
     monitorSysGenSerialName: '',
     monitorSysGenSerialPort: '',
     monitorSysGenSerialBaudRate: 9600,
@@ -1247,6 +1256,7 @@ const resetForm = () => {
     monitorSysGenSerialFlowControl: 'none',
     monitorSysGenSerialTimeout: 5000,
     monitorSysGenSerialDesc: '',
+    monitorSysGenSerialStatus: 0,
     genId: props.data?.genId || 0
   });
   formRef.value?.clearValidate();
@@ -1258,10 +1268,18 @@ const handleSaveSerial = async () => {
     await formRef.value?.validate();
     loading.value = true;
 
-    const response = await fetchSerialSave({
+    // 新增时确保不传递主键ID
+    const saveData = {
       ...formData,
       genId: props.data?.genId || 0
-    } as MonitorSysGenSerial);
+    };
+
+    // 新增时删除主键字段
+    if (!saveData.monitorSysGenSerialId) {
+      delete saveData.monitorSysGenSerialId;
+    }
+
+    const response = await fetchSerialSave(saveData as MonitorSysGenSerial);
 
     if ((response as any).code === '00000') {
       message.success('保存成功');
@@ -1285,7 +1303,19 @@ const handleUpdateSerial = async () => {
     await formRef.value?.validate();
     loading.value = true;
 
-    const response = await fetchSerialUpdate(formData as MonitorSysGenSerial);
+    // 更新时确保包含主键ID
+    const updateData = {
+      ...formData,
+      genId: props.data?.genId || 0
+    };
+
+    // 验证主键是否存在
+    if (!updateData.monitorSysGenSerialId) {
+      message.error('更新失败：缺少主键ID');
+      return;
+    }
+
+    const response = await fetchSerialUpdate(updateData as MonitorSysGenSerial);
 
     if ((response as any).code === '00000') {
       message.success('更新成功');

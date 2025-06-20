@@ -41,11 +41,11 @@ export const fetchSerialUpdate = (data: MonitorSysGenSerial) => {
 };
 /**
  * 删除串口数据
- * @param id 主键
+ * @param id 主键（字符串类型，支持批量删除）
  * @returns
  */
-export const fetchSerialDelete = (id: number) => {
-  return http.request("delete", `${PREFIX}/delete`, { params: { id: id } });
+export const fetchSerialDelete = (id: string | number) => {
+  return http.request("delete", `${PREFIX}/delete`, { params: { id: String(id) } });
 };
 
 /**
