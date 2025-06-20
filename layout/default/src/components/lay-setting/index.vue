@@ -63,11 +63,7 @@ const settings = reactive({
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache,
   stretch: $storage.configure.stretch,
-  // 新增配置项
-  animationIntensity: $storage.configure.animationIntensity ?? "normal", // 动画效果强度：off/light/normal/strong
-  interfaceDensity: $storage.configure.interfaceDensity ?? "standard", // 界面密度：compact/standard/loose
-  fontSize: $storage.configure.fontSize ?? "medium", // 字体大小：small/medium/large
-  borderRadius: $storage.configure.borderRadius ?? "medium", // 圆角风格：none/small/medium/large
+
 });
 
 const getThemeColorStyle = computed(() => {
@@ -162,121 +158,7 @@ function cardBodyChange() {
   unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
 }
 
-/** 动画效果强度设置 */
-const animationIntensityChange = (value: string): void => {
-  settings.animationIntensity = value;
-  storageConfigureChange("animationIntensity", value);
-  const root = document.documentElement;
 
-  // 根据动画强度设置CSS变量
-  switch (value) {
-    case "off":
-      root.style.setProperty("--animation-duration", "0s");
-      root.style.setProperty("--animation-scale", "1");
-      root.style.setProperty("--animation-timing", "linear");
-      break;
-    case "light":
-      root.style.setProperty("--animation-duration", "0.15s");
-      root.style.setProperty("--animation-scale", "1.02");
-      root.style.setProperty("--animation-timing", "ease-out");
-      break;
-    case "normal":
-      root.style.setProperty("--animation-duration", "0.3s");
-      root.style.setProperty("--animation-scale", "1.05");
-      root.style.setProperty("--animation-timing", "cubic-bezier(0.4, 0, 0.2, 1)");
-      break;
-    case "strong":
-      root.style.setProperty("--animation-duration", "0.5s");
-      root.style.setProperty("--animation-scale", "1.1");
-      root.style.setProperty("--animation-timing", "cubic-bezier(0.68, -0.55, 0.265, 1.55)");
-      break;
-  }
-};
-
-/** 界面密度设置 */
-const interfaceDensityChange = (value: string): void => {
-  settings.interfaceDensity = value;
-  storageConfigureChange("interfaceDensity", value);
-  // 界面密度设置已简化，不再设置CSS变量
-};
-
-/** 字体大小设置 */
-const fontSizeChange = (value: string): void => {
-  settings.fontSize = value;
-  storageConfigureChange("fontSize", value);
-  const root = document.documentElement;
-
-  // 根据字体大小设置CSS变量
-  switch (value) {
-    case "small":
-      root.style.setProperty("--el-font-size-base", "12px");
-      root.style.setProperty("--el-font-size-small", "11px");
-      root.style.setProperty("--el-font-size-large", "14px");
-      root.style.setProperty("--font-size-base", "12px");
-      root.style.setProperty("--font-size-small", "11px");
-      root.style.setProperty("--font-size-large", "14px");
-      break;
-    case "medium":
-      root.style.setProperty("--el-font-size-base", "14px");
-      root.style.setProperty("--el-font-size-small", "12px");
-      root.style.setProperty("--el-font-size-large", "16px");
-      root.style.setProperty("--font-size-base", "14px");
-      root.style.setProperty("--font-size-small", "12px");
-      root.style.setProperty("--font-size-large", "16px");
-      break;
-    case "large":
-      root.style.setProperty("--el-font-size-base", "16px");
-      root.style.setProperty("--el-font-size-small", "14px");
-      root.style.setProperty("--el-font-size-large", "18px");
-      root.style.setProperty("--font-size-base", "16px");
-      root.style.setProperty("--font-size-small", "14px");
-      root.style.setProperty("--font-size-large", "18px");
-      break;
-  }
-};
-
-/** 圆角风格设置 */
-const borderRadiusChange = (value: string): void => {
-  settings.borderRadius = value;
-  storageConfigureChange("borderRadius", value);
-  const root = document.documentElement;
-
-  // 根据圆角风格设置CSS变量
-  switch (value) {
-    case "none":
-      root.style.setProperty("--el-border-radius-base", "0px");
-      root.style.setProperty("--el-border-radius-small", "0px");
-      root.style.setProperty("--el-border-radius-large", "0px");
-      root.style.setProperty("--border-radius-small", "0px");
-      root.style.setProperty("--border-radius-base", "0px");
-      root.style.setProperty("--border-radius-large", "0px");
-      break;
-    case "small":
-      root.style.setProperty("--el-border-radius-base", "4px");
-      root.style.setProperty("--el-border-radius-small", "2px");
-      root.style.setProperty("--el-border-radius-large", "6px");
-      root.style.setProperty("--border-radius-small", "2px");
-      root.style.setProperty("--border-radius-base", "4px");
-      root.style.setProperty("--border-radius-large", "6px");
-      break;
-    case "medium":
-      root.style.setProperty("--el-border-radius-base", "8px");
-      root.style.setProperty("--el-border-radius-small", "4px");
-      root.style.setProperty("--el-border-radius-large", "12px");
-      root.style.setProperty("--border-radius-small", "4px");
-      root.style.setProperty("--border-radius-base", "8px");
-      root.style.setProperty("--border-radius-large", "12px");
-      break;
-    case "large":
-      root.style.setProperty("--el-border-radius-base", "16px");
-      root.style.setProperty("--el-border-radius-small", "8px");
-      root.style.setProperty("--el-border-radius-large", "24px");
-      root.style.setProperty("--border-radius-small", "8px");
-      root.style.setProperty("--border-radius-base", "16px");
-      root.style.setProperty("--border-radius-large", "24px");
-      break;
-  }
-};
 
 /** 数字输入框调整值函数 */
 const adjustValue = (key: string, delta: number): void => {
@@ -439,94 +321,7 @@ const markOptions = computed<Array<OptionsType>>(() => {
   ];
 });
 
-/** 动画效果强度选项 */
-const animationIntensityOptions = computed<Array<OptionsType>>(() => {
-  return [
-    {
-      label: "关闭",
-      tip: "禁用所有动画效果",
-      value: "off",
-    },
-    {
-      label: "轻微",
-      tip: "轻微的动画效果",
-      value: "light",
-    },
-    {
-      label: "正常",
-      tip: "标准的动画效果",
-      value: "normal",
-    },
-    {
-      label: "强烈",
-      tip: "丰富的动画效果",
-      value: "strong",
-    },
-  ];
-});
 
-/** 界面密度选项 */
-const interfaceDensityOptions = computed<Array<OptionsType>>(() => {
-  return [
-    {
-      label: "标准",
-      tip: "标准的界面布局",
-      value: "standard",
-    },
-    {
-      label: "宽松",
-      tip: "宽松的界面布局",
-      value: "loose",
-    },
-  ];
-});
-
-/** 字体大小选项 */
-const fontSizeOptions = computed<Array<OptionsType>>(() => {
-  return [
-    {
-      label: "小",
-      tip: "较小的字体大小",
-      value: "small",
-    },
-    {
-      label: "中",
-      tip: "标准的字体大小",
-      value: "medium",
-    },
-    {
-      label: "大",
-      tip: "较大的字体大小",
-      value: "large",
-    },
-  ];
-});
-
-/** 圆角风格选项 */
-const borderRadiusOptions = computed<Array<OptionsType>>(() => {
-  return [
-    {
-      label: "直角",
-      tip: "无圆角效果",
-      value: "none",
-    },
-    {
-      label: "小圆角",
-      tip: "轻微的圆角效果",
-      value: "small",
-    },
-    {
-      label: "中圆角",
-      tip: "标准的圆角效果",
-      value: "medium",
-    },
-    {
-      label: "大圆角",
-      tip: "明显的圆角效果",
-      value: "large",
-    },
-  ];
-});
 
 /** 设置导航模式 */
 function setLayoutModel(layout: string) {
@@ -598,11 +393,7 @@ onBeforeMount(() => {
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
 
-    // 初始化新增配置项
-    animationIntensityChange(settings.animationIntensity);
-    interfaceDensityChange(settings.interfaceDensity);
-    fontSizeChange(settings.fontSize);
-    borderRadiusChange(settings.borderRadius);
+
   });
 });
 
@@ -982,73 +773,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 动画效果强度设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:flashlight-line'" class="section-icon" />
-          <h3 class="section-title">动画效果强度</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="animationIntensityOptions.findIndex(item => item.value === settings.animationIntensity)"
-            :options="animationIntensityOptions"
-            @change="(option) => { settings.animationIntensity = option.option.value; animationIntensityChange(option.option.value); }"
-          />
-        </div>
-      </div>
 
-      <!-- 界面密度设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:layout-grid-line'" class="section-icon" />
-          <h3 class="section-title">界面密度</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="interfaceDensityOptions.findIndex(item => item.value === settings.interfaceDensity)"
-            :options="interfaceDensityOptions"
-            @change="(option) => { settings.interfaceDensity = option.option.value; interfaceDensityChange(option.option.value); }"
-          />
-        </div>
-      </div>
-
-      <!-- 字体大小设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:font-size-2'" class="section-icon" />
-          <h3 class="section-title">字体大小</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="fontSizeOptions.findIndex(item => item.value === settings.fontSize)"
-            :options="fontSizeOptions"
-            @change="(option) => { settings.fontSize = option.option.value; fontSizeChange(option.option.value); }"
-          />
-        </div>
-      </div>
-
-      <!-- 圆角风格设置区域 -->
-      <div class="setting-section">
-        <div class="section-header">
-          <IconifyIconOffline :icon="'ri:rounded-corner'" class="section-icon" />
-          <h3 class="section-title">圆角风格</h3>
-        </div>
-        <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="borderRadiusOptions.findIndex(item => item.value === settings.borderRadius)"
-            :options="borderRadiusOptions"
-            @change="(option) => { settings.borderRadius = option.option.value; borderRadiusChange(option.option.value); }"
-          />
-        </div>
-      </div>
 
       <!-- 界面显示设置区域 -->
       <div class="setting-section">
@@ -3063,30 +2788,7 @@ p.mt-5 {
               color var(--theme-transition-duration) var(--theme-transition-timing);
 }
 
-// 应用动画效果强度设置到全局元素
-* {
-  transition-duration: var(--animation-duration, 0.3s) !important;
-  transition-timing-function: var(--animation-timing, cubic-bezier(0.4, 0, 0.2, 1)) !important;
-}
 
-
-
-// 应用字体大小设置到全局元素
-body,
-.el-button,
-.el-input,
-.el-select,
-.setting-section,
-.param-label {
-  font-size: var(--el-font-size-base, 14px) !important;
-}
-
-// 应用圆角风格设置到全局元素
-.el-button,
-.el-input,
-.el-card,
-.setting-section,
-.param-item,
 .modern-input-number .el-input__wrapper {
   border-radius: var(--el-border-radius-base, 8px) !important;
 }
