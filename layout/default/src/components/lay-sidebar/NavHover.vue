@@ -345,7 +345,10 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <p>暂无收藏菜单</p>
                 <span>鼠标悬停在菜单项上点击星标即可收藏</span>
               </div>
-              <div v-else class="favorite-items dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)` }">
+              <div v-else class="favorite-items dynamic-grid" :style="{
+                gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
+                gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`
+              }">
                 <div
                   v-for="favorite in favoriteMenus"
                   :key="favorite.path"
@@ -381,7 +384,10 @@ const defer = useDefer(firstLevelMenus.value.length);
               <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                 <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-group-section">
                   <div class="group-title">{{ subMenu.meta?.title }}</div>
-                  <div class="third-level-menus dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(subMenu.children.length)}, 1fr)` }">
+                  <div class="third-level-menus dynamic-grid" :style="{
+                    gridTemplateColumns: `repeat(${getGridColumns(subMenu.children.length)}, 1fr)`,
+                    gridTemplateRows: `repeat(${getItemsPerColumn(subMenu.children.length)}, auto)`
+                  }">
                     <div
                       v-for="thirdMenu in subMenu.children"
                       :key="thirdMenu.path"
@@ -415,7 +421,10 @@ const defer = useDefer(firstLevelMenus.value.length);
               </template>
 
               <!-- 直接的二级菜单项 - 三列布局 -->
-              <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)" class="direct-menus dynamic-grid" :style="{ gridTemplateColumns: `repeat(${getGridColumns(directMenuCount)}, 1fr)` }">
+              <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)" class="direct-menus dynamic-grid" :style="{
+                gridTemplateColumns: `repeat(${getGridColumns(directMenuCount)}, 1fr)`,
+                gridTemplateRows: `repeat(${getItemsPerColumn(directMenuCount)}, auto)`
+              }">
                 <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                   <div
                     v-if="!subMenu.children || subMenu.children.length === 0"
