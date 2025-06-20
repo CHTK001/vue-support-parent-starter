@@ -8,88 +8,217 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
+import { http, type ReturnResult } from "@repo/utils";
 import axios from "../../config";
+
+// ==================== 类型定义 ====================
+
+/**
+ * 服务器基本信息接口
+ */
+export interface ServerInfo {
+  id: string;
+  monitorSysGenServerName: string;
+  monitorSysGenServerHost: string;
+  monitorSysGenServerPort: number;
+  monitorSysGenServerProtocol: string;
+  monitorSysGenServerUsername?: string;
+  monitorSysGenServerPassword?: string;
+  monitorSysGenServerPrivateKey?: string;
+  monitorSysGenServerGroup?: string;
+  monitorSysGenServerDescription?: string;
+  monitorSysGenServerStatus: number;
+  monitorSysGenServerOnlineStatus: number;
+  monitorSysGenServerConnectionStatus: number;
+  monitorSysGenServerMetricsSupport: boolean;
+  monitorSysGenServerLastOnlineTime?: string;
+  monitorSysGenServerLastOfflineTime?: string;
+  monitorSysGenServerCreateTime: string;
+  monitorSysGenServerUpdateTime: string;
+  monitorSysGenServerTags?: string;
+}
+
+/**
+ * 服务器分页查询参数
+ */
+export interface ServerPageParams {
+  page?: number;
+  pageSize?: number;
+  monitorSysGenServerName?: string;
+  monitorSysGenServerHost?: string;
+  monitorSysGenServerProtocol?: string;
+  monitorSysGenServerGroup?: string;
+  monitorSysGenServerStatus?: number;
+  monitorSysGenServerOnlineStatus?: number;
+  monitorSysGenServerTags?: string;
+}
+
+/**
+ * 服务器保存参数
+ */
+export interface ServerSaveParams {
+  id?: string;
+  monitorSysGenServerName: string;
+  monitorSysGenServerHost: string;
+  monitorSysGenServerPort: number;
+  monitorSysGenServerProtocol: string;
+  monitorSysGenServerUsername?: string;
+  monitorSysGenServerPassword?: string;
+  monitorSysGenServerPrivateKey?: string;
+  monitorSysGenServerGroup?: string;
+  monitorSysGenServerDescription?: string;
+  monitorSysGenServerMetricsSupport?: boolean;
+  monitorSysGenServerTags?: string;
+}
+
+/**
+ * 服务器连接测试结果
+ */
+export interface ServerConnectionTestResult {
+  success: boolean;
+  message: string;
+  responseTime?: number;
+}
+
+/**
+ * 服务器统计信息
+ */
+export interface ServerStatistics {
+  totalServers: number;
+  onlineServers: number;
+  offlineServers: number;
+  errorServers: number;
+  protocolStats: Record<string, number>;
+  groupStats: Record<string, number>;
+}
+
+/**
+ * 批量操作参数
+ */
+export interface BatchOperationParams {
+  ids: string[];
+  action: 'start' | 'stop' | 'restart' | 'delete' | 'enable' | 'disable';
+}
+
+// ==================== API 函数 ====================
 
 /**
  * 服务器管理 API
  */
 
-// 分页查询服务器列表
-export function getServerPageList(params: any) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/page",
-    method: "get",
-    params,
-  });
+/**
+ * 分页查询服务器列表
+ * @param params 查询参数
+ * @returns 服务器分页数据
+ */
+export function getServerPageList(params: ServerPageParams) {
+  return http.request<ReturnResult<{ records: ServerInfo[]; total: number }>>(
+    "get",
+    "v1/gen/server/page",
+    { params }
+  );
 }
 
-// 获取服务器详情
+/**
+ * 获取服务器详情
+ * @param id 服务器ID
+ * @returns 服务器详细信息
+ */
 export function getServerDetail(id: string) {
-  return axios({
-    url: `/monitor/api/v1/gen/server/detail`,
-    method: "get",
-    params: { id },
-  });
+  return http.request<ReturnResult<ServerInfo>>(
+    "get",
+    "v1/gen/server/detail",
+    { params: { id } }
+  );
 }
 
-// 保存服务器配置
-export function saveServer(data: any) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/save",
-    method: "post",
-    data,
-  });
+/**
+ * 保存服务器配置
+ * @param data 服务器配置数据
+ * @returns 保存结果
+ */
+export function saveServer(data: ServerSaveParams) {
+  return http.request<ReturnResult<ServerInfo>>(
+    "post",
+    "v1/gen/server/save",
+    { data }
+  );
 }
 
-// 删除服务器
+/**
+ * 删除服务器
+ * @param id 服务器ID
+ * @returns 删除结果
+ */
 export function deleteServer(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/delete",
-    method: "delete",
-    params: { id },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server/delete",
+    { params: { id } }
+  );
 }
 
-// 测试服务器连接
+/**
+ * 测试服务器连接
+ * @param id 服务器ID
+ * @returns 连接测试结果
+ */
 export function testServerConnection(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/test",
-    method: "get",
-    params: { id },
-  });
+  return http.request<ReturnResult<ServerConnectionTestResult>>(
+    "get",
+    "v1/gen/server/test",
+    { params: { id } }
+  );
 }
 
-// 连接服务器
+/**
+ * 连接服务器
+ * @param id 服务器ID
+ * @returns 连接结果
+ */
 export function connectServer(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/connect",
-    method: "post",
-    data: { id },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/connect",
+    { data: { id } }
+  );
 }
 
-// 断开服务器连接
+/**
+ * 断开服务器连接
+ * @param id 服务器ID
+ * @returns 断开连接结果
+ */
 export function disconnectServer(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/disconnect",
-    method: "post",
-    data: { id },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/disconnect",
+    { data: { id } }
+  );
 }
 
-// 获取服务器连接状态
+/**
+ * 获取服务器连接状态
+ * @param id 服务器ID
+ * @returns 服务器状态信息
+ */
 export function getServerStatus(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/status",
-    method: "get",
-    params: { id },
-  });
+  return http.request<ReturnResult<{ status: number; message: string }>>(
+    "get",
+    "v1/gen/server/status",
+    { params: { id } }
+  );
 }
 
-// 执行服务器命令
+/**
+ * 执行服务器命令
+ * @param id 服务器ID
+ * @param command 要执行的命令
+ * @returns 命令执行结果
+ */
 export function executeServerCommand(id: string, command: string) {
   return axios({
-    url: "/monitor/api/v1/gen/server/execute",
+    url: "v1/gen/server/execute",
     method: "post",
     data: command,
     params: { id },
@@ -99,19 +228,28 @@ export function executeServerCommand(id: string, command: string) {
   });
 }
 
-// 获取服务器信息
+/**
+ * 获取服务器信息
+ * @param id 服务器ID
+ * @returns 服务器信息
+ */
 export function getServerInfo(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/info",
-    method: "get",
-    params: { id },
-  });
+  return http.request<ReturnResult<ServerInfo>>(
+    "get",
+    "v1/gen/server/info",
+    { params: { id } }
+  );
 }
 
-// 发送数据到服务器
+/**
+ * 发送数据到服务器
+ * @param id 服务器ID
+ * @param data 要发送的数据
+ * @returns 发送结果
+ */
 export function sendServerData(id: string, data: string) {
   return axios({
-    url: "/monitor/api/v1/gen/server/send",
+    url: "v1/gen/server/send",
     method: "post",
     data,
     params: { id },
@@ -121,30 +259,47 @@ export function sendServerData(id: string, data: string) {
   });
 }
 
-// 调整终端大小
+/**
+ * 调整终端大小
+ * @param id 服务器ID
+ * @param width 终端宽度
+ * @param height 终端高度
+ * @returns 调整结果
+ */
 export function resizeServerTerminal(id: string, width: number, height: number) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/resize",
-    method: "post",
-    params: { id, width, height },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/resize",
+    { params: { id, width, height } }
+  );
 }
 
-// 获取文件列表
+/**
+ * 获取文件列表
+ * @param id 服务器ID
+ * @param path 文件路径
+ * @returns 文件列表
+ */
 export function getServerFiles(id: string, path: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/files",
-    method: "get",
-    params: { id, path },
-  });
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    "v1/gen/server/files",
+    { params: { id, path } }
+  );
 }
 
-// 上传文件
+/**
+ * 上传文件
+ * @param id 服务器ID
+ * @param path 上传路径
+ * @param file 文件对象
+ * @returns 上传结果
+ */
 export function uploadServerFile(id: string, path: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
   return axios({
-    url: "/monitor/api/v1/gen/server/upload",
+    url: "v1/gen/server/upload",
     method: "post",
     data: formData,
     params: { id, path },
@@ -154,84 +309,121 @@ export function uploadServerFile(id: string, path: string, file: File) {
   });
 }
 
-// 下载文件
+/**
+ * 下载文件
+ * @param id 服务器ID
+ * @param path 文件路径
+ * @returns 文件数据
+ */
 export function downloadServerFile(id: string, path: string) {
   return axios({
-    url: "/monitor/api/v1/gen/server/download",
+    url: "v1/gen/server/download",
     method: "get",
     params: { id, path },
     responseType: "blob",
   });
 }
 
-// 删除文件
+/**
+ * 删除文件
+ * @param id 服务器ID
+ * @param path 文件路径
+ * @returns 删除结果
+ */
 export function deleteServerFile(id: string, path: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/delete-file",
-    method: "delete",
-    params: { id, path },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server/delete-file",
+    { params: { id, path } }
+  );
 }
 
-// 创建目录
+/**
+ * 创建目录
+ * @param id 服务器ID
+ * @param path 目录路径
+ * @returns 创建结果
+ */
 export function createServerDirectory(id: string, path: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/mkdir",
-    method: "post",
-    params: { id, path },
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/mkdir",
+    { params: { id, path } }
+  );
 }
 
-// 手动收集服务器指标
+/**
+ * 手动收集服务器指标
+ * @param id 服务器ID
+ * @returns 收集结果
+ */
 export function collectServerMetrics(id: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/collect-metrics",
-    method: "post",
-    params: { id },
-  });
+  return http.request<ReturnResult<ServerMetrics>>(
+    "post",
+    "v1/gen/server/collect-metrics",
+    { params: { id } }
+  );
 }
 
-// 获取服务器列表（按标签分组）
+/**
+ * 获取服务器列表（按标签分组）
+ * @returns 按标签分组的服务器列表
+ */
 export function getServersByTags() {
-  return axios({
-    url: "/monitor/api/v1/gen/server/by-tags",
-    method: "get",
-  });
+  return http.request<ReturnResult<Record<string, ServerInfo[]>>>(
+    "get",
+    "v1/gen/server/by-tags"
+  );
 }
 
-// 批量操作服务器
-export function batchOperateServers(ids: string[], action: string) {
-  return axios({
-    url: "/monitor/api/v1/gen/server/batch",
-    method: "post",
-    data: { ids, action },
-  });
+/**
+ * 批量操作服务器
+ * @param params 批量操作参数
+ * @returns 操作结果
+ */
+export function batchOperateServers(params: BatchOperationParams) {
+  return http.request<ReturnResult<{ success: number; failed: number }>>(
+    "post",
+    "v1/gen/server/batch",
+    { data: params }
+  );
 }
 
-// 获取服务器统计信息
+/**
+ * 获取服务器统计信息
+ * @returns 服务器统计数据
+ */
 export function getServerStatistics() {
-  return axios({
-    url: "/monitor/api/v1/gen/server/statistics",
-    method: "get",
-  });
+  return http.request<ReturnResult<ServerStatistics>>(
+    "get",
+    "v1/gen/server/statistics"
+  );
 }
 
-// 导出服务器配置
+/**
+ * 导出服务器配置
+ * @param ids 服务器ID列表
+ * @returns 配置文件
+ */
 export function exportServerConfig(ids: string[]) {
   return axios({
-    url: "/monitor/api/v1/gen/server/export",
+    url: "v1/gen/server/export",
     method: "post",
     data: { ids },
     responseType: "blob",
   });
 }
 
-// 导入服务器配置
+/**
+ * 导入服务器配置
+ * @param file 配置文件
+ * @returns 导入结果
+ */
 export function importServerConfig(file: File) {
   const formData = new FormData();
   formData.append("file", file);
   return axios({
-    url: "/monitor/api/v1/gen/server/import",
+    url: "v1/gen/server/import",
     method: "post",
     data: formData,
     headers: {
@@ -240,65 +432,105 @@ export function importServerConfig(file: File) {
   });
 }
 
-// 协议类型枚举
+// ==================== 常量和枚举 ====================
+
+/**
+ * 协议类型枚举
+ */
 export const PROTOCOL_TYPES = {
   SSH: "SSH",
   RDP: "RDP",
   VNC: "VNC",
 } as const;
 
-// 服务器状态枚举
+export type ProtocolType = typeof PROTOCOL_TYPES[keyof typeof PROTOCOL_TYPES];
+
+/**
+ * 服务器状态枚举
+ */
 export const SERVER_STATUS = {
-  DISABLED: 0,
-  ENABLED: 1,
-  MAINTENANCE: 2,
-  ERROR: 3,
+  DISABLED: 0,    // 已禁用
+  ENABLED: 1,     // 已启用
+  MAINTENANCE: 2, // 维护中
+  ERROR: 3,       // 异常
 } as const;
 
-// 连接状态枚举
+export type ServerStatus = typeof SERVER_STATUS[keyof typeof SERVER_STATUS];
+
+/**
+ * 连接状态枚举
+ */
 export const CONNECTION_STATUS = {
-  DISCONNECTED: 0,
-  CONNECTED: 1,
-  CONNECTING: 2,
-  ERROR: 3,
+  DISCONNECTED: 0, // 未连接
+  CONNECTED: 1,    // 已连接
+  CONNECTING: 2,   // 连接中
+  ERROR: 3,        // 连接失败
 } as const;
 
-// 在线状态枚举
+export type ConnectionStatus = typeof CONNECTION_STATUS[keyof typeof CONNECTION_STATUS];
+
+/**
+ * 在线状态枚举
+ */
 export const ONLINE_STATUS = {
-  OFFLINE: 0,
-  ONLINE: 1,
-  UNKNOWN: 2,
+  OFFLINE: 0,  // 离线
+  ONLINE: 1,   // 在线
+  UNKNOWN: 2,  // 未知
 } as const;
 
-// 状态映射
-export const statusMap = {
+export type OnlineStatus = typeof ONLINE_STATUS[keyof typeof ONLINE_STATUS];
+
+/**
+ * 状态映射配置
+ */
+export interface StatusMapItem {
+  color: "success" | "warning" | "danger" | "info";
+  text: string;
+}
+
+/**
+ * 服务器状态映射
+ */
+export const statusMap: Record<ServerStatus, StatusMapItem> = {
   [SERVER_STATUS.DISABLED]: { color: "info", text: "已禁用" },
   [SERVER_STATUS.ENABLED]: { color: "success", text: "已启用" },
   [SERVER_STATUS.MAINTENANCE]: { color: "warning", text: "维护中" },
   [SERVER_STATUS.ERROR]: { color: "danger", text: "异常" },
 };
 
-export const connectionStatusMap = {
+/**
+ * 连接状态映射
+ */
+export const connectionStatusMap: Record<ConnectionStatus, StatusMapItem> = {
   [CONNECTION_STATUS.DISCONNECTED]: { color: "info", text: "未连接" },
   [CONNECTION_STATUS.CONNECTED]: { color: "success", text: "已连接" },
   [CONNECTION_STATUS.CONNECTING]: { color: "warning", text: "连接中" },
   [CONNECTION_STATUS.ERROR]: { color: "danger", text: "连接失败" },
 };
 
-export const onlineStatusMap = {
+/**
+ * 在线状态映射
+ */
+export const onlineStatusMap: Record<OnlineStatus, StatusMapItem> = {
   [ONLINE_STATUS.OFFLINE]: { color: "danger", text: "离线" },
   [ONLINE_STATUS.ONLINE]: { color: "success", text: "在线" },
   [ONLINE_STATUS.UNKNOWN]: { color: "warning", text: "未知" },
 };
 
-// 协议图标映射
-export const protocolIconMap = {
+/**
+ * 协议图标映射
+ */
+export const protocolIconMap: Record<ProtocolType, string> = {
   SSH: "ri:terminal-line",
   RDP: "ri:computer-line",
   VNC: "ri:remote-control-line",
 };
 
-// WebSocket消息类型
+// ==================== WebSocket 相关 ====================
+
+/**
+ * WebSocket消息类型枚举
+ */
 export const WS_MESSAGE_TYPE = {
   SERVER_STATUS: "server_status",
   SERVER_METRICS: "server_metrics",
@@ -309,15 +541,19 @@ export const WS_MESSAGE_TYPE = {
   SERVER_ADD: "server_add",
 } as const;
 
-// 服务器实时数据接口
+export type WSMessageType = typeof WS_MESSAGE_TYPE[keyof typeof WS_MESSAGE_TYPE];
+
+/**
+ * 服务器实时数据接口
+ */
 export interface ServerRealtimeData {
   id: string;
   monitorSysGenServerName: string;
   monitorSysGenServerHost: string;
   monitorSysGenServerPort: number;
-  monitorSysGenServerProtocol: string;
-  monitorSysGenServerStatus: number;
-  monitorSysGenServerOnlineStatus: number;
+  monitorSysGenServerProtocol: ProtocolType;
+  monitorSysGenServerStatus: ServerStatus;
+  monitorSysGenServerOnlineStatus: OnlineStatus;
   monitorSysGenServerMetricsSupport: boolean;
   monitorSysGenServerLastOnlineTime?: string;
   monitorSysGenServerLastOfflineTime?: string;
@@ -325,21 +561,40 @@ export interface ServerRealtimeData {
   metrics?: ServerMetrics;
 }
 
-// 服务器指标数据接口
+/**
+ * 服务器指标数据接口
+ */
 export interface ServerMetrics {
+  /** CPU使用率 (%) */
   cpuUsage: number;
+  /** 内存使用率 (%) */
   memoryUsage: number;
+  /** 磁盘使用率 (%) */
   diskUsage: number;
+  /** 网络入流量 (bytes/s) */
   networkIn: number;
+  /** 网络出流量 (bytes/s) */
   networkOut: number;
+  /** 系统负载平均值 */
   loadAverage: string;
+  /** 系统运行时间 (秒) */
   uptime: number;
+  /** 数据收集时间 */
   collectTime: string;
+  /** CPU温度 (摄氏度) */
+  temperature?: number;
+  /** 进程数量 */
+  processCount?: number;
+  /** 线程数量 */
+  threadCount?: number;
 }
 
-// WebSocket消息接口
-export interface WebSocketMessage {
-  type: string;
-  data: any;
+/**
+ * WebSocket消息接口
+ */
+export interface WebSocketMessage<T = any> {
+  type: WSMessageType;
+  data: T;
   timestamp: number;
+  serverId?: string;
 }

@@ -854,19 +854,20 @@ onUnmounted(() => removeMatchMedia);
 </template>
 
 <style lang="scss" scoped>
-// 现代化设置容器 - 完全适配 Element Plus 主题系统
+// 现代化设置容器 - 完全适配 Element Plus 主题系统（无动画版本）
 .modern-setting-container {
-  padding: var(--interface-padding, 24px);
+  padding: 24px;
   background: var(--el-bg-color-page);
-  border-radius: var(--border-radius-large, 20px);
+  border-radius: 20px;
   min-height: 100vh;
   width: 440px;
   max-width: 100%;
   position: relative;
   overflow: hidden;
-  transition: all var(--animation-duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除所有过渡动画
+  transition: none;
 
-  // 添加背景装饰 - 使用 Element Plus 主题色
+  // 添加背景装饰 - 使用 Element Plus 主题色（静态版本）
   &::before {
     content: "";
     position: absolute;
@@ -877,7 +878,8 @@ onUnmounted(() => removeMatchMedia);
     background: radial-gradient(circle, var(--el-color-primary-light-9) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
-    transition: all var(--animation-duration, 0.3s) ease;
+    // 移除过渡动画
+    transition: none;
   }
 
   // 确保内容在装饰之上
@@ -887,18 +889,19 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 设置区域 - 完全适配 Element Plus 主题系统
+// 设置区域 - 完全适配 Element Plus 主题系统（无动画版本）
 .setting-section {
-  margin-bottom: var(--interface-margin, 24px);
+  margin-bottom: 24px;
   background: var(--el-bg-color);
-  border-radius: var(--border-radius-base, 16px);
-  padding: var(--interface-padding, 24px);
+  border-radius: 16px;
+  padding: 24px;
   box-shadow: var(--el-box-shadow-light);
   border: 1px solid var(--el-border-color-lighter);
-  transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除所有过渡动画和悬停效果
+  transition: none;
   position: relative;
 
-  // 添加微妙的顶部装饰线
+  // 添加微妙的顶部装饰线（静态版本）
   &::before {
     content: "";
     position: absolute;
@@ -907,17 +910,20 @@ onUnmounted(() => removeMatchMedia);
     right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--el-color-primary-light-8), transparent);
-    border-radius: var(--border-radius-base, 16px) var(--border-radius-base, 16px) 0 0;
-    transition: all var(--animation-duration, 0.3s) ease;
+    border-radius: 16px 16px 0 0;
+    // 移除过渡动画
+    transition: none;
   }
 
+  // 移除所有悬停效果
   &:hover {
-    box-shadow: var(--el-box-shadow);
-    border-color: var(--el-color-primary-light-7);
-    transform: translateY(calc(-1 * var(--animation-scale, 1.02) * 2px)) scale(var(--animation-scale, 1.02));
+    // 保持静态样式，不添加任何动画或变换
+    box-shadow: var(--el-box-shadow-light);
+    border-color: var(--el-border-color-lighter);
+    transform: none;
 
     &::before {
-      background: linear-gradient(90deg, transparent, var(--el-color-primary-light-5), transparent);
+      background: linear-gradient(90deg, transparent, var(--el-color-primary-light-8), transparent);
     }
   }
 
@@ -926,16 +932,16 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 区域标题 - 完全适配 Element Plus 主题系统
+// 区域标题 - 完全适配 Element Plus 主题系统（无动画版本）
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: var(--interface-gap, 20px);
-  padding-bottom: var(--interface-gap, 16px);
+  margin-bottom: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
   position: relative;
 
-  // 添加装饰性渐变线
+  // 添加装饰性渐变线（静态版本）
   &::after {
     content: "";
     position: absolute;
@@ -945,37 +951,41 @@ onUnmounted(() => removeMatchMedia);
     height: 2px;
     background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
     border-radius: 1px;
-    transition: width var(--animation-duration, 0.3s) ease;
+    // 移除过渡动画
+    transition: none;
   }
 
+  // 移除悬停效果
   &:hover::after {
-    width: 120px;
+    width: 60px; // 保持静态宽度
   }
 
   .section-icon {
-    font-size: var(--font-size-large, 20px);
+    font-size: 20px;
     color: var(--el-color-primary);
-    margin-right: var(--interface-gap, 12px);
+    margin-right: 12px;
     background: var(--el-color-primary-light-9);
     padding: 8px;
-    border-radius: var(--border-radius-small, 10px);
+    border-radius: 10px;
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: var(--el-box-shadow-lighter);
-    transition: all var(--animation-duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+    // 移除所有过渡动画
+    transition: none;
 
+    // 移除所有悬停效果
     &:hover {
-      transform: scale(var(--animation-scale, 1.1)) rotate(5deg);
-      box-shadow: var(--el-box-shadow-light);
-      background: var(--el-color-primary-light-8);
+      transform: none; // 移除缩放和旋转
+      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
+      background: var(--el-color-primary-light-9); // 保持静态背景
     }
   }
 
   .section-title {
-    font-size: var(--font-size-large, 17px);
+    font-size: 17px;
     font-weight: 700;
     color: var(--el-text-color-primary);
     margin: 0;
@@ -986,63 +996,61 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 设置内容区域 - 完全适配 Element Plus 主题系统
+// 设置内容区域 - 完全适配 Element Plus 主题系统（无动画版本）
 .setting-content {
   .modern-segmented {
     width: 100%;
-    border-radius: var(--border-radius-base, 12px);
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--el-box-shadow-lighter);
-    transition: all var(--animation-duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+    // 移除所有过渡动画
+    transition: none;
 
+    // 移除悬停效果
     &:hover {
-      box-shadow: var(--el-box-shadow-light);
-      transform: translateY(calc(-1px * var(--animation-scale, 1)));
+      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
+      transform: none; // 移除位移效果
     }
   }
 }
 
-// 美化 Segmented 组件 - 完全适配 Element Plus 主题系统
+// 美化 Segmented 组件 - 完全适配 Element Plus 主题系统（无动画版本）
 :deep(.layui-segmented) {
   background: var(--el-fill-color-lighter);
-  border-radius: var(--border-radius-base, 12px);
+  border-radius: 12px;
   padding: 6px;
   box-shadow: var(--el-box-shadow-lighter);
   border: 1px solid var(--el-border-color-light);
-  transition: all var(--animation-duration, 0.3s) ease;
+  // 移除过渡动画
+  transition: none;
 
   .layui-segmented-item {
-    border-radius: var(--border-radius-small, 8px);
-    transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    // 移除过渡动画
+    transition: none;
     font-weight: 500;
     color: var(--el-text-color-regular);
     padding: 10px 16px;
     position: relative;
     overflow: hidden;
-    font-size: var(--font-size-base, 14px);
+    font-size: 14px;
     text-align: center;
     writing-mode: horizontal-tb;
 
-    // 添加微妙的悬停效果
+    // 移除悬停动画效果
     &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, var(--el-color-primary-light-9), transparent);
-      transition: left var(--animation-duration, 0.5s) ease;
+      display: none; // 完全移除动画元素
     }
 
+    // 移除悬停效果
     &:hover {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
-      transform: translateY(calc(-1px * var(--animation-scale, 1)));
+      transform: none; // 移除位移效果
       box-shadow: var(--el-box-shadow-lighter);
 
       &::before {
-        left: 100%;
+        display: none; // 确保动画元素不显示
       }
     }
 
@@ -1051,27 +1059,28 @@ onUnmounted(() => removeMatchMedia);
       color: var(--el-color-primary);
       box-shadow: var(--el-box-shadow-light);
       font-weight: 600;
-      transform: translateY(calc(-1px * var(--animation-scale, 1)));
+      transform: none; // 移除位移效果
       border: 1px solid var(--el-color-primary-light-7);
     }
   }
 }
 
-// 设置项 - 完全适配 Element Plus 主题系统
+// 设置项 - 完全适配 Element Plus 主题系统（无动画版本）
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--interface-padding, 16px) var(--interface-padding, 20px);
+  padding: 16px 20px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
-  border-radius: var(--border-radius-small, 8px);
-  margin-bottom: var(--interface-gap, 8px);
+  border-radius: 8px;
+  margin-bottom: 8px;
   background: var(--el-fill-color-extra-light);
-  transition: all var(--animation-duration, 0.3s) cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除过渡动画
+  transition: none;
   position: relative;
   overflow: hidden;
 
-  // 添加微妙的左侧装饰条
+  // 移除左侧装饰条动画
   &::before {
     content: "";
     position: absolute;
@@ -1080,17 +1089,19 @@ onUnmounted(() => removeMatchMedia);
     bottom: 0;
     width: 3px;
     background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
-    transform: scaleY(0);
-    transition: transform var(--animation-duration, 0.3s) ease;
+    transform: scaleY(0); // 保持隐藏状态
+    // 移除过渡动画
+    transition: none;
   }
 
+  // 移除悬停效果
   &:hover {
     background: var(--el-color-primary-light-9);
-    transform: translateX(calc(4px * var(--animation-scale, 1)));
+    transform: none; // 移除位移效果
     box-shadow: var(--el-box-shadow-lighter);
 
     &::before {
-      transform: scaleY(1);
+      transform: scaleY(0); // 保持装饰条隐藏
     }
   }
 
@@ -1104,7 +1115,7 @@ onUnmounted(() => removeMatchMedia);
   }
 
   .setting-label {
-    font-size: var(--font-size-base, 15px);
+    font-size: 15px;
     color: var(--el-text-color-regular);
     font-weight: 600;
     margin: 0;
@@ -1115,10 +1126,10 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 开关网格布局 - 完全适配 Element Plus 主题系统
+// 开关网格布局 - 完全适配 Element Plus 主题系统（无动画版本）
 .switch-grid {
   display: grid;
-  gap: var(--interface-gap, 12px);
+  gap: 12px;
   grid-template-columns: 1fr;
 }
 
@@ -1126,39 +1137,34 @@ onUnmounted(() => removeMatchMedia);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--interface-padding, 16px) var(--interface-padding, 20px);
+  padding: 16px 20px;
   background: var(--el-fill-color-extra-light);
-  border-radius: var(--border-radius-base, 12px);
-  transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  // 移除过渡动画
+  transition: none;
   border: 1px solid var(--el-border-color-light);
   position: relative;
   overflow: hidden;
 
-  // 添加微妙的背景动画
+  // 移除背景动画
   &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, var(--el-color-primary-light-9), transparent);
-    transition: left var(--animation-duration, 0.6s) ease;
+    display: none; // 完全移除动画元素
   }
 
+  // 移除悬停效果
   &:hover {
     background: var(--el-color-primary-light-9);
-    transform: translateY(calc(-2px * var(--animation-scale, 1))) scale(var(--animation-scale, 1.02));
+    transform: none; // 移除位移和缩放效果
     box-shadow: var(--el-box-shadow-light);
     border-color: var(--el-color-primary-light-7);
 
     &::before {
-      left: 100%;
+      display: none; // 确保动画元素不显示
     }
   }
 
   .switch-label {
-    font-size: var(--font-size-base, 15px);
+    font-size: 15px;
     color: var(--el-text-color-regular);
     font-weight: 600;
     margin: 0;
@@ -1169,10 +1175,10 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 拉伸按钮样式
+// 拉伸按钮样式 - 完全适配暗黑模式
 .stretch-button {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 250, 0.8));
-  border: 2px solid rgba(var(--el-border-color-rgb, 220, 223, 230), 0.6);
+  background: var(--el-bg-color);
+  border: 2px solid var(--el-border-color);
   border-radius: 12px;
   width: 100%;
   height: 88px;
@@ -1180,43 +1186,37 @@ onUnmounted(() => removeMatchMedia);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
   margin-top: 16px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--el-box-shadow-lighter);
 
-  // 添加背景动画效果
   &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.05), transparent);
-    transition: left 0.6s ease;
+    display: none;
   }
 
   &:hover {
     border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, rgba(236, 245, 255, 0.9), rgba(255, 255, 255, 0.9));
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(64, 158, 255, 0.15);
+    background: var(--el-fill-color-extra-light);
+    transform: none;
+    box-shadow: var(--el-box-shadow-light);
 
     &::before {
-      left: 100%;
+      display: none;
     }
   }
 
   &:active {
-    transform: translateY(0) scale(0.98);
+    transform: none;
   }
 
   .stretch-indicator {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    // 移除过渡动画
+    transition: none;
     color: var(--el-color-primary);
     position: relative;
     z-index: 1;
@@ -1232,26 +1232,18 @@ onUnmounted(() => removeMatchMedia);
       border-radius: 1px;
       position: relative;
 
+      // 移除闪烁动画
       &::after {
-        content: "";
-        position: absolute;
-        top: -1px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.3), transparent);
-        animation: shimmer 2s infinite;
+        display: none; // 完全移除动画元素
       }
     }
   }
 }
 
-@keyframes shimmer {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-}
+// 移除 shimmer 动画关键帧
+// @keyframes shimmer 已被移除
 
-// 重置按钮
+// 重置按钮（无动画版本）
 .reset-button {
   width: 100%;
   margin-top: 20px;
@@ -1262,17 +1254,20 @@ onUnmounted(() => removeMatchMedia);
   border: none;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(245, 108, 108, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除过渡动画
+  transition: none;
   letter-spacing: 0.5px;
 
+  // 移除悬停效果
   &:hover {
     background: linear-gradient(135deg, #f78989, #f56c6c);
     box-shadow: 0 6px 20px rgba(245, 108, 108, 0.3);
-    transform: translateY(-2px);
+    transform: none; // 移除位移效果
   }
 
+  // 移除点击效果
   &:active {
-    transform: translateY(0);
+    transform: none; // 移除位移效果
     box-shadow: 0 2px 8px rgba(245, 108, 108, 0.2);
   }
 }
@@ -1282,7 +1277,7 @@ onUnmounted(() => removeMatchMedia);
   font-weight: 700;
 }
 
-// Element Plus 开关组件 - 完全适配主题系统
+// Element Plus 开关组件 - 完全适配主题系统（无动画版本）
 :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-primary);
   --el-switch-off-color: var(--el-fill-color);
@@ -1292,7 +1287,8 @@ onUnmounted(() => removeMatchMedia);
     height: 26px;
     border-radius: 26px;
     border: none;
-    transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
+    // 移除过渡动画
+    transition: none;
     box-shadow: var(--el-box-shadow-lighter);
     position: relative;
     background: var(--el-switch-off-color);
@@ -1307,7 +1303,7 @@ onUnmounted(() => removeMatchMedia);
       align-items: center;
       justify-content: center;
       color: var(--el-text-color-primary);
-      font-size: var(--font-size-small, 11px);
+      font-size: 11px;
       font-weight: 600;
     }
 
@@ -1317,7 +1313,8 @@ onUnmounted(() => removeMatchMedia);
       left: initial !important;
       background: var(--el-bg-color);
       border-radius: 50%;
-      transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
+      // 移除过渡动画
+      transition: none;
       box-shadow: var(--el-box-shadow-light);
       position: relative;
       display: flex;
@@ -1325,7 +1322,7 @@ onUnmounted(() => removeMatchMedia);
       justify-content: center;
       border: 1px solid var(--el-border-color-lighter);
 
-      // 添加微妙的内阴影
+      // 保留内阴影但移除动画
       &::after {
         content: "";
         position: absolute;
@@ -1352,7 +1349,7 @@ onUnmounted(() => removeMatchMedia);
 
         &::before {
           content: "✓";
-          font-size: var(--font-size-small, 12px);
+          font-size: 12px;
           font-weight: bold;
           color: var(--el-color-primary);
         }
@@ -1369,7 +1366,7 @@ onUnmounted(() => removeMatchMedia);
 
         &::before {
           content: "×";
-          font-size: var(--font-size-small, 12px);
+          font-size: 12px;
           font-weight: bold;
           color: var(--el-text-color-placeholder);
         }
@@ -1377,18 +1374,19 @@ onUnmounted(() => removeMatchMedia);
     }
   }
 
+  // 移除所有悬停效果
   &:hover {
     .el-switch__core {
-      box-shadow: var(--el-box-shadow);
-      transform: scale(var(--animation-scale, 1.05)) translateY(calc(-1px * var(--animation-scale, 1)));
+      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
+      transform: none; // 移除缩放和位移效果
     }
 
     &.is-checked .el-switch__core {
-      box-shadow: var(--el-box-shadow-dark);
+      box-shadow: var(--el-box-shadow-light); // 保持静态阴影
     }
 
     .el-switch__action {
-      transform: translateX(2px) scale(var(--animation-scale, 1.1));
+      transform: translateX(2px); // 保持静态位置，移除缩放
 
       &::after {
         opacity: 1;
@@ -1396,39 +1394,43 @@ onUnmounted(() => removeMatchMedia);
     }
 
     &.is-checked .el-switch__action {
-      transform: translateX(26px) scale(var(--animation-scale, 1.1));
+      transform: translateX(26px); // 保持静态位置，移除缩放
     }
   }
 
+  // 移除所有点击效果
   &:active {
     .el-switch__core {
-      transform: scale(0.95);
+      transform: none; // 移除缩放效果
     }
 
     .el-switch__action {
-      transform: translateX(2px) scale(0.9);
+      transform: translateX(2px); // 保持静态位置，移除缩放
     }
 
     &.is-checked .el-switch__action {
-      transform: translateX(26px) scale(0.9);
+      transform: translateX(26px); // 保持静态位置，移除缩放
     }
   }
 }
 
-// 美化其他按钮样式
+// 美化其他按钮样式（无动画版本）
 :deep(.el-button) {
   border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // 移除过渡动画
+  transition: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   font-weight: 500;
 
+  // 移除悬停效果
   &:hover {
-    transform: translateY(-2px);
+    transform: none; // 移除位移效果
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   }
 
+  // 移除点击效果
   &:active {
-    transform: translateY(0);
+    transform: none; // 移除位移效果
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
@@ -1463,74 +1465,75 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 美化输入框样式
+// 美化输入框样式 - 完全适配暗黑模式
 :deep(.el-input-number) {
   width: 100%;
   margin-top: 12px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 250, 0.8));
+  // 移除硬编码背景，使用Element Plus变量
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  box-shadow: var(--el-box-shadow-lighter);
+  transition: none;
 
   &:hover {
-    box-shadow:
-      0 6px 20px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    transform: translateY(-2px) scale(1.01);
+    border-color: var(--el-border-color-hover);
+    box-shadow: var(--el-box-shadow-light);
+    transform: none;
   }
 
   &:focus-within {
+    border-color: var(--el-color-primary);
     box-shadow:
-      0 6px 24px rgba(64, 158, 255, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    transform: translateY(-2px) scale(1.01);
+      var(--el-box-shadow-light),
+      0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    transform: none;
   }
 
   .el-input-number__decrease,
   .el-input-number__increase {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: none;
     border: none;
     border-radius: 8px;
     margin: 2px;
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
 
     &:hover {
-      background: linear-gradient(135deg, #ecf5ff, #d9ecff);
-      color: #409eff;
-      transform: scale(1.1);
-      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+      transform: none;
+      box-shadow: var(--el-box-shadow-lighter);
     }
 
     &:active {
-      background: linear-gradient(135deg, #d9ecff, #c6e2ff);
-      transform: scale(0.95);
+      background: var(--el-color-primary-light-8);
+      transform: none;
     }
   }
 
   .el-input__wrapper {
     box-shadow: none !important;
-    border: 2px solid rgba(220, 223, 230, 0.6);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid var(--el-border-color);
+    transition: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 251, 252, 0.8));
+    background: var(--el-bg-color);
 
     &:hover {
-      border-color: rgba(192, 196, 204, 0.8);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(236, 245, 255, 0.8));
+      border-color: var(--el-border-color-hover);
+      background: var(--el-fill-color-extra-light);
     }
 
     &.is-focus {
-      border-color: #409eff;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(236, 245, 255, 0.9));
-      box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+      border-color: var(--el-color-primary);
+      background: var(--el-bg-color);
+      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
     }
 
     .el-input__inner {
       font-weight: 500;
-      color: #303133;
+      color: var(--el-text-color-primary);
       text-align: center;
     }
   }
@@ -1641,61 +1644,20 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-@keyframes checkmark {
-  0% { transform: scale(0) rotate(0deg); }
-  50% { transform: scale(1.2) rotate(180deg); }
-  100% { transform: scale(1) rotate(360deg); }
-}
+// 移除 checkmark 动画
+// @keyframes checkmark - 已移除
 
-// 动画关键帧 - 使用 Element Plus 主题变量
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 var(--el-color-primary-light-7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px transparent;
-  }
-}
+// 移除 pulse 动画
+// @keyframes pulse - 已移除
 
-@keyframes selectPulse {
-  0%, 100% {
-    box-shadow:
-      0 0 0 4px var(--el-color-primary-light-8),
-      var(--el-box-shadow);
-  }
-  50% {
-    box-shadow:
-      0 0 0 6px var(--el-color-primary-light-7),
-      var(--el-box-shadow-dark);
-  }
-}
+// 移除 selectPulse 动画
+// @keyframes selectPulse - 已移除
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+// 移除 fadeInUp 动画
+// @keyframes fadeInUp - 已移除
 
-// 为设置区域添加进入动画
-.setting-section {
-  animation: fadeInUp var(--animation-duration, 0.6s) ease-out;
-
-  &:nth-child(1) { animation-delay: calc(var(--animation-duration, 0.1s) * 1); }
-  &:nth-child(2) { animation-delay: calc(var(--animation-duration, 0.1s) * 2); }
-  &:nth-child(3) { animation-delay: calc(var(--animation-duration, 0.1s) * 3); }
-  &:nth-child(4) { animation-delay: calc(var(--animation-duration, 0.1s) * 4); }
-  &:nth-child(5) { animation-delay: calc(var(--animation-duration, 0.1s) * 5); }
-  &:nth-child(6) { animation-delay: calc(var(--animation-duration, 0.1s) * 6); }
-  &:nth-child(7) { animation-delay: calc(var(--animation-duration, 0.1s) * 7); }
-  &:nth-child(8) { animation-delay: calc(var(--animation-duration, 0.1s) * 8); }
-  &:nth-child(9) { animation-delay: calc(var(--animation-duration, 0.1s) * 9); }
-  &:nth-child(10) { animation-delay: calc(var(--animation-duration, 0.1s) * 10); }
-}
+// 移除设置区域的进入动画
+// .setting-section animation - 已移除
 
 // 布局模式选择器 - 完全适配 Element Plus 主题系统
 .pure-theme {

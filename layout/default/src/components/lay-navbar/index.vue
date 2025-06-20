@@ -178,17 +178,8 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     align-items: center;
     padding: 0 16px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 0, 0, 0.04);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.8);
-      border-color: rgba(64, 158, 255, 0.2);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
 
     .dark & {
       background: rgba(255, 255, 255, 0.1);

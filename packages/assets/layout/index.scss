@@ -226,27 +226,36 @@
   align-items: center;
   justify-content: center;
   width: 40px;
-  height: 34px;
-  color: var(--el-text-color-primary);
+  height: 36px;
+  margin: 0 4px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-extra-light);
+  border: 1px solid var(--el-border-color-extra-light);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-7);
+    color: var(--el-color-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--el-box-shadow-lighter);
   }
 }
 
 .arrow-left {
-  box-shadow: 5px 0 5px -6px #ccc;
-
   &:hover {
     cursor: w-resize;
   }
 }
 
 .arrow-right {
-  border-right: 0.5px solid #ccc;
-  box-shadow: -5px 0 5px -6px #ccc;
-
   &:hover {
     cursor: e-resize;
   }

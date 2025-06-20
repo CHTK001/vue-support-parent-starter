@@ -242,9 +242,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, defineAsyncComponent } from "vue";
-import { message } from "@repo/utils";
+import { message, splitToArray } from "@repo/utils";
+import { socket } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { ElMessageBox } from "element-plus";
-import { getWebSocketUrl } from "@/api/config";
 import {
   getServerPageList,
   deleteServer,
@@ -308,7 +309,7 @@ const selectedServer = computed(() =>
 );
 
 // WebSocket相关状态
-const websocket = ref<WebSocket | null>(null);
+const stompClient = ref<any>(null);
 const wsConnected = ref(false);
 const serverMetrics = ref<Map<string, any>>(new Map());
 
@@ -654,43 +655,67 @@ const handleSuccess = () => {
 /**
  * 初始化WebSocket连接
  */
-const initWebSocket = () => {
-  try {
-    const wsUrl = getWebSocketUrl("/gen/server", "");
-    websocket.value = new WebSocket(wsUrl);
-
-    websocket.value.onopen = () => {
-      wsConnected.value = true;
-      console.log("服务器管理WebSocket连接成功");
-    };
-
-    websocket.value.onmessage = (event) => {
-      try {
-        const message: WebSocketMessage = JSON.parse(event.data);
-        handleWebSocketMessage(message);
-      } catch (error) {
-        console.error("解析WebSocket消息失败:", error);
-      }
-    };
-
-    websocket.value.onclose = () => {
-      wsConnected.value = false;
-      console.log("服务器管理WebSocket连接关闭");
-      // 5秒后重连
-      setTimeout(() => {
-        if (!wsConnected.value) {
-          initWebSocket();
-        }
-      }, 5000);
-    };
-
-    websocket.value.onerror = (error) => {
-      console.error("服务器管理WebSocket连接错误:", error);
-      wsConnected.value = false;
-    };
-  } catch (error) {
-    console.error("初始化WebSocket失败:", error);
+const initWebSocket = async () => {
+  if (stompClient.value && stompClient.value.connected) {
+    return;
   }
+
+  try {
+    const config = getConfig();
+    stompClient.value = socket(splitToArray(config.SocketUrl), undefined, {});
+
+    // 连接成功
+    wsConnected.value = true;
+    console.log("服务器管理WebSocket连接成功");
+
+    // 订阅服务器相关主题
+    subscribeToServerTopics();
+  } catch (error) {
+    console.error("WebSocket连接异常:", error);
+    wsConnected.value = false;
+
+    // 5秒后重连
+    setTimeout(() => {
+      if (!wsConnected.value) {
+        initWebSocket();
+      }
+    }, 5000);
+  }
+};
+
+/**
+ * 订阅服务器相关主题
+ */
+const subscribeToServerTopics = () => {
+  if (!stompClient.value) return;
+
+  // 先取消之前的订阅
+  unsubscribeFromServerTopics();
+
+  // 订阅服务器主题
+  const serverTopic = `/topic/gen/server`;
+
+  stompClient.value.on(serverTopic, (message: any) => {
+    try {
+      const output = JSON.parse(message.data);
+      handleWebSocketMessage(output);
+    } catch (error) {
+      console.error("解析WebSocket消息失败:", error);
+    }
+  });
+
+  console.log("已订阅服务器主题:", serverTopic);
+};
+
+/**
+ * 取消订阅服务器主题
+ */
+const unsubscribeFromServerTopics = () => {
+  if (!stompClient.value) return;
+
+  // 取消服务器主题订阅
+  const serverTopic = `/topic/gen/server`;
+  stompClient.value.off(serverTopic);
 };
 
 /**
@@ -804,9 +829,24 @@ const handleServerAdd = (data: ServerRealtimeData) => {
  * 关闭WebSocket连接
  */
 const closeWebSocket = () => {
-  if (websocket.value) {
-    websocket.value.close();
-    websocket.value = null;
+  try {
+    // 先取消所有订阅
+    if (stompClient.value) {
+      unsubscribeFromServerTopics();
+
+      // 断开连接并关闭
+      if (stompClient.value.connected) {
+        stompClient.value.disconnect();
+      }
+
+      stompClient.value.close();
+      stompClient.value = null;
+
+      console.log("服务器管理WebSocket连接已完全断开");
+    }
+    wsConnected.value = false;
+  } catch (error) {
+    console.error("断开WebSocket连接时出错:", error);
     wsConnected.value = false;
   }
 };
@@ -825,6 +865,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .server-container {
   height: 100vh;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color-page);
