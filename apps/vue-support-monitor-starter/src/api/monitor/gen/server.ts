@@ -17,7 +17,7 @@ import axios from "../../config";
  * 服务器基本信息接口
  */
 export interface ServerInfo {
-  id: string;
+  monitorSysGenServerId: number;
   monitorSysGenServerName: string;
   monitorSysGenServerHost: string;
   monitorSysGenServerPort: number;
@@ -141,6 +141,14 @@ export function saveServer(data: ServerSaveParams) {
   return http.request<ReturnResult<ServerInfo>>(
     "post",
     "v1/gen/server/save",
+    { data }
+  );
+}
+
+export const updateServer = (data: ServerSaveParams) => {
+  return http.request<ReturnResult<ServerInfo>>(
+    "put",
+    "v1/gen/server/update",
     { data }
   );
 }
@@ -632,7 +640,7 @@ export interface WebSocketMessage<T = any> {
  */
 export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDisplayData {
   return {
-    id: serverInfo.id,
+    id: String(serverInfo.monitorSysGenServerId),
     name: serverInfo.monitorSysGenServerName,
     host: serverInfo.monitorSysGenServerHost,
     port: serverInfo.monitorSysGenServerPort,

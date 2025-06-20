@@ -19,6 +19,8 @@ const { onReset } = useDataThemeChange();
 onClickOutside(target, (event: any) => {
   if (event.clientX > target.value.offsetLeft) return;
   show.value = false;
+  // 发射面板关闭事件
+  emitter.emit("settingPanelClosed");
 });
 onMounted(() => {
   emitter.on("openPanel", () => {
@@ -48,7 +50,7 @@ onBeforeUnmount(() => {
           }"
           :class="iconClass"
         >
-          <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="show = !show" />
+          <IconifyIconOffline class="dark:text-white" width="18px" height="18px" :icon="CloseIcon" @click="() => { show = !show; emitter.emit('settingPanelClosed'); }" />
         </span>
       </div>
       <el-scrollbar>
