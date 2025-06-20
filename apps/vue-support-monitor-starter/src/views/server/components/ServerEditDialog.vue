@@ -2,283 +2,457 @@
   <el-dialog
     v-model="visible"
     :title="mode === 'add' ? '新增服务器' : '编辑服务器'"
-    width="600px"
+    width="800px"
     :close-on-click-modal="false"
     destroy-on-close
+    class="server-edit-dialog"
+    align-center
   >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="rules"
-      label-width="100px"
-      label-position="left"
-    >
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="服务器名称" prop="monitorSysGenServerName">
-            <el-input
-              v-model="formData.monitorSysGenServerName"
-              placeholder="请输入服务器名称"
-              clearable
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="协议类型" prop="monitorSysGenServerProtocol">
-            <el-select
-              v-model="formData.monitorSysGenServerProtocol"
-              placeholder="选择协议类型"
-              style="width: 100%"
-              @change="handleProtocolChange"
-            >
-              <el-option label="SSH" value="SSH" />
-              <el-option label="RDP" value="RDP" />
-              <el-option label="VNC" value="VNC" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
+    <!-- 自定义头部 -->
+    <template #header="{ close, titleId, titleClass }">
+      <div class="dialog-header">
+        <div class="header-left">
+          <IconifyIconOnline
+            :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'"
+            class="header-icon"
+          />
+          <span :id="titleId" :class="titleClass" class="dialog-title">
+            {{ mode === 'add' ? '新增服务器' : '编辑服务器' }}
+          </span>
+        </div>
+        <el-button
+          type="text"
+          @click="close"
+          class="close-btn"
+          size="large"
+        >
+          <IconifyIconOnline icon="ri:close-line" />
+        </el-button>
+      </div>
+    </template>
 
-      <el-row :gutter="16">
-        <el-col :span="16">
-          <el-form-item label="服务器地址" prop="monitorSysGenServerHost">
-            <el-input
-              v-model="formData.monitorSysGenServerHost"
-              placeholder="请输入IP地址或域名"
-              clearable
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="端口" prop="monitorSysGenServerPort">
-            <el-input-number
-              v-model="formData.monitorSysGenServerPort"
-              :min="1"
-              :max="65535"
-              placeholder="端口号"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="用户名" prop="monitorSysGenServerUsername">
-            <el-input
-              v-model="formData.monitorSysGenServerUsername"
-              placeholder="请输入用户名"
-              clearable
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="认证方式" prop="monitorSysGenServerAuthType">
-            <el-select
-              v-model="formData.monitorSysGenServerAuthType"
-              placeholder="选择认证方式"
-              style="width: 100%"
-            >
-              <el-option label="密码认证" value="password" />
-              <el-option label="密钥认证" value="key" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerAuthType === 'password'"
-        label="密码"
-        prop="monitorSysGenServerPassword"
+    <div class="dialog-content">
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="120px"
+        label-position="left"
+        class="server-form"
       >
-        <el-input
-          v-model="formData.monitorSysGenServerPassword"
-          type="password"
-          placeholder="请输入密码"
-          show-password
-          clearable
-        />
-      </el-form-item>
+        <!-- 基本信息分组 -->
+        <div class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:information-line" class="section-icon" />
+            <span class="section-title">基本信息</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="服务器名称" prop="monitorSysGenServerName">
+                  <el-input
+                    v-model="formData.monitorSysGenServerName"
+                    placeholder="请输入服务器名称"
+                    clearable
+                    size="large"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:server-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="协议类型" prop="monitorSysGenServerProtocol">
+                  <el-select
+                    v-model="formData.monitorSysGenServerProtocol"
+                    placeholder="选择协议类型"
+                    style="width: 100%"
+                    size="large"
+                    @change="handleProtocolChange"
+                  >
+                    <el-option label="SSH" value="SSH">
+                      <div class="protocol-option">
+                        <IconifyIconOnline icon="ri:terminal-line" />
+                        <span>SSH</span>
+                      </div>
+                    </el-option>
+                    <el-option label="RDP" value="RDP">
+                      <div class="protocol-option">
+                        <IconifyIconOnline icon="ri:computer-line" />
+                        <span>RDP</span>
+                      </div>
+                    </el-option>
+                    <el-option label="VNC" value="VNC">
+                      <div class="protocol-option">
+                        <IconifyIconOnline icon="ri:remote-control-line" />
+                        <span>VNC</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerAuthType === 'key'"
-        label="私钥"
-        prop="monitorSysGenServerPrivateKey"
-      >
-        <el-input
-          v-model="formData.monitorSysGenServerPrivateKey"
-          type="textarea"
-          :rows="4"
-          placeholder="请输入SSH私钥内容"
-        />
-      </el-form-item>
+            <el-row :gutter="20">
+              <el-col :span="16">
+                <el-form-item label="服务器地址" prop="monitorSysGenServerHost">
+                  <el-input
+                    v-model="formData.monitorSysGenServerHost"
+                    placeholder="请输入IP地址或域名"
+                    clearable
+                    size="large"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:global-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="端口" prop="monitorSysGenServerPort">
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerPort"
+                    :min="1"
+                    :max="65535"
+                    placeholder="端口号"
+                    style="width: 100%"
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
 
-      <el-row :gutter="16">
-        <el-col :span="8">
-          <el-form-item label="状态">
-            <el-switch
-              v-model="formData.monitorSysGenServerStatus"
-              :active-value="1"
-              :inactive-value="0"
-              active-text="启用"
-              inactive-text="禁用"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="启用监控">
-            <el-switch
-              v-model="formData.monitorSysGenServerMonitorEnabled"
-              :active-value="1"
-              :inactive-value="0"
-              active-text="开启"
-              inactive-text="关闭"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="指标支持">
-            <el-switch
-              v-model="formData.monitorSysGenServerMetricsSupport"
-              :active-value="true"
-              :inactive-value="false"
-              active-text="支持"
-              inactive-text="不支持"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <!-- 认证信息分组 -->
+        <div class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:shield-user-line" class="section-icon" />
+            <span class="section-title">认证信息</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="用户名" prop="monitorSysGenServerUsername">
+                  <el-input
+                    v-model="formData.monitorSysGenServerUsername"
+                    placeholder="请输入用户名"
+                    clearable
+                    size="large"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:user-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="认证方式" prop="monitorSysGenServerAuthType">
+                  <el-select
+                    v-model="formData.monitorSysGenServerAuthType"
+                    placeholder="选择认证方式"
+                    style="width: 100%"
+                    size="large"
+                  >
+                    <el-option label="密码认证" value="password">
+                      <div class="auth-option">
+                        <IconifyIconOnline icon="ri:lock-password-line" />
+                        <span>密码认证</span>
+                      </div>
+                    </el-option>
+                    <el-option label="密钥认证" value="key">
+                      <div class="auth-option">
+                        <IconifyIconOnline icon="ri:key-line" />
+                        <span>密钥认证</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
 
-      <el-form-item label="标签" prop="monitorSysGenServerTags">
-        <el-input
-          v-model="formData.monitorSysGenServerTags"
-          placeholder="请输入标签，多个标签用逗号分隔"
-          clearable
-        />
-      </el-form-item>
-
-      <el-form-item label="描述">
-        <el-input
-          v-model="formData.monitorSysGenServerDescription"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入服务器描述信息"
-        />
-      </el-form-item>
-
-      <!-- SSH特有配置 -->
-      <template v-if="formData.monitorSysGenServerProtocol === 'SSH'">
-        <el-divider content-position="left">SSH 配置</el-divider>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="字符编码">
-              <el-select
-                v-model="formData.monitorSysGenServerCharset"
-                placeholder="选择字符编码"
-                style="width: 100%"
-              >
-                <el-option label="UTF-8" value="UTF-8" />
-                <el-option label="GBK" value="GBK" />
-                <el-option label="GB2312" value="GB2312" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="连接超时">
-              <el-input-number
-                v-model="formData.monitorSysGenServerTimeout"
-                :min="1000"
-                :max="60000"
-                :step="1000"
-                placeholder="毫秒"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
-
-      <!-- RDP特有配置 -->
-      <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
-        <el-divider content-position="left">RDP 配置</el-divider>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="屏幕宽度">
-              <el-input-number
-                v-model="formData.monitorSysGenServerWidth"
-                :min="800"
-                :max="1920"
-                placeholder="像素"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="屏幕高度">
-              <el-input-number
-                v-model="formData.monitorSysGenServerHeight"
-                :min="600"
-                :max="1080"
-                placeholder="像素"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="颜色深度">
-              <el-select
-                v-model="formData.monitorSysGenServerColorDepth"
-                placeholder="选择颜色深度"
-                style="width: 100%"
-              >
-                <el-option label="16位" value="16" />
-                <el-option label="24位" value="24" />
-                <el-option label="32位" value="32" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
-
-      <!-- VNC特有配置 -->
-      <template v-if="formData.monitorSysGenServerProtocol === 'VNC'">
-        <el-divider content-position="left">VNC 配置</el-divider>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="VNC密码">
+            <el-form-item
+              v-if="formData.monitorSysGenServerAuthType === 'password'"
+              label="密码"
+              prop="monitorSysGenServerPassword"
+            >
               <el-input
-                v-model="formData.monitorSysGenServerVncPassword"
+                v-model="formData.monitorSysGenServerPassword"
                 type="password"
-                placeholder="请输入VNC密码"
+                placeholder="请输入密码"
                 show-password
                 clearable
+                size="large"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ri:lock-line" />
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item
+              v-if="formData.monitorSysGenServerAuthType === 'key'"
+              label="私钥"
+              prop="monitorSysGenServerPrivateKey"
+            >
+              <el-input
+                v-model="formData.monitorSysGenServerPrivateKey"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入SSH私钥内容"
+                size="large"
               />
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="只读模式">
-              <el-switch
-                v-model="formData.monitorSysGenServerReadOnly"
-                :active-value="1"
-                :inactive-value="0"
-                active-text="是"
-                inactive-text="否"
+          </div>
+        </div>
+
+        <!-- 配置选项分组 -->
+        <div class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:settings-3-line" class="section-icon" />
+            <span class="section-title">配置选项</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="状态">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="formData.monitorSysGenServerStatus"
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="启用"
+                      inactive-text="禁用"
+                      size="large"
+                    />
+                  </div>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="启用监控">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="formData.monitorSysGenServerMonitorEnabled"
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="开启"
+                      inactive-text="关闭"
+                      size="large"
+                    />
+                  </div>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="指标支持">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="formData.monitorSysGenServerMetricsSupport"
+                      :active-value="true"
+                      :inactive-value="false"
+                      active-text="支持"
+                      inactive-text="不支持"
+                      size="large"
+                    />
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-form-item label="标签" prop="monitorSysGenServerTags">
+              <el-input
+                v-model="formData.monitorSysGenServerTags"
+                placeholder="请输入标签，多个标签用逗号分隔"
+                clearable
+                size="large"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ri:price-tag-3-line" />
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item label="描述">
+              <el-input
+                v-model="formData.monitorSysGenServerDescription"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入服务器描述信息"
+                size="large"
               />
             </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
-    </el-form>
+          </div>
+        </div>
+
+        <!-- SSH特有配置 -->
+        <div v-if="formData.monitorSysGenServerProtocol === 'SSH'" class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:terminal-line" class="section-icon" />
+            <span class="section-title">SSH 配置</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="字符编码">
+                  <el-select
+                    v-model="formData.monitorSysGenServerCharset"
+                    placeholder="选择字符编码"
+                    style="width: 100%"
+                    size="large"
+                  >
+                    <el-option label="UTF-8" value="UTF-8" />
+                    <el-option label="GBK" value="GBK" />
+                    <el-option label="GB2312" value="GB2312" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="连接超时">
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerTimeout"
+                    :min="1000"
+                    :max="60000"
+                    :step="1000"
+                    placeholder="毫秒"
+                    style="width: 100%"
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- RDP特有配置 -->
+        <div v-if="formData.monitorSysGenServerProtocol === 'RDP'" class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:computer-line" class="section-icon" />
+            <span class="section-title">RDP 配置</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="屏幕宽度">
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerWidth"
+                    :min="800"
+                    :max="1920"
+                    placeholder="像素"
+                    style="width: 100%"
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="屏幕高度">
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerHeight"
+                    :min="600"
+                    :max="1080"
+                    placeholder="像素"
+                    style="width: 100%"
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="颜色深度">
+                  <el-select
+                    v-model="formData.monitorSysGenServerColorDepth"
+                    placeholder="选择颜色深度"
+                    style="width: 100%"
+                    size="large"
+                  >
+                    <el-option label="16位" value="16" />
+                    <el-option label="24位" value="24" />
+                    <el-option label="32位" value="32" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- VNC特有配置 -->
+        <div v-if="formData.monitorSysGenServerProtocol === 'VNC'" class="form-section">
+          <div class="section-header">
+            <IconifyIconOnline icon="ri:remote-control-line" class="section-icon" />
+            <span class="section-title">VNC 配置</span>
+          </div>
+          <div class="section-content">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="VNC密码">
+                  <el-input
+                    v-model="formData.monitorSysGenServerVncPassword"
+                    type="password"
+                    placeholder="请输入VNC密码"
+                    show-password
+                    clearable
+                    size="large"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:lock-line" />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="只读模式">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="formData.monitorSysGenServerReadOnly"
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="是"
+                      inactive-text="否"
+                      size="large"
+                    />
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+      </el-form>
+    </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
-          {{ mode === 'add' ? '新增' : '保存' }}
-        </el-button>
-        <el-button v-if="mode === 'edit'" type="success" :loading="testLoading" @click="handleTest">
-          测试连接
-        </el-button>
+        <div class="footer-left">
+          <el-button
+            v-if="mode === 'edit'"
+            type="success"
+            :loading="testLoading"
+            @click="handleTest"
+            size="large"
+            plain
+          >
+            <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
+            测试连接
+          </el-button>
+        </div>
+        <div class="footer-right">
+          <el-button
+            @click="visible = false"
+            size="large"
+          >
+            <IconifyIconOnline icon="ri:close-line" class="mr-1" />
+            取消
+          </el-button>
+          <el-button
+            type="primary"
+            :loading="loading"
+            @click="handleSubmit"
+            size="large"
+          >
+            <IconifyIconOnline
+              :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
+              class="mr-1"
+            />
+            {{ mode === 'add' ? '新增' : '保存' }}
+          </el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
@@ -523,18 +697,285 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// 对话框整体样式
+.server-edit-dialog {
+  :deep(.el-dialog) {
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 20px 24px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background-color: var(--el-fill-color-extra-light);
+  }
+}
+
+// 自定义头部样式
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .header-icon {
+      font-size: 24px;
+      color: var(--el-color-primary);
+    }
+
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin: 0;
+    }
+  }
+
+  .close-btn {
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: var(--el-color-danger-light-9);
+      color: var(--el-color-danger);
+    }
+  }
+}
+
+// 对话框内容区域
+.dialog-content {
+  padding: 24px;
+}
+
+// 表单样式
+.server-form {
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-color-primary-light-7);
+    }
+  }
+
+  :deep(.el-select .el-input__wrapper) {
+    &:hover {
+      box-shadow: 0 0 0 1px var(--el-color-primary-light-7);
+    }
+  }
+
+  :deep(.el-textarea__inner) {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-7);
+    }
+  }
+
+  :deep(.el-input-number) {
+    width: 100%;
+
+    .el-input__wrapper {
+      border-radius: 8px;
+    }
+  }
+}
+
+// 表单分组样式
+.form-section {
+  margin-bottom: 32px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--el-border-color-lighter);
+
+    .section-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .section-content {
+    padding-left: 28px;
+  }
+}
+
+// 协议选项样式
+.protocol-option,
+.auth-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .iconify {
+    font-size: 16px;
+    color: var(--el-color-primary);
+  }
+}
+
+// 开关包装器
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+
+// 底部按钮区域
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+
+  .footer-left {
+    flex: 1;
+  }
+
+  .footer-right {
+    display: flex;
+    gap: 12px;
+  }
+
+  .el-button {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &.el-button--primary {
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+      border: none;
+
+      &:hover {
+        background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+      }
+    }
+
+    &.el-button--success {
+      &.is-plain {
+        &:hover {
+          background-color: var(--el-color-success);
+          border-color: var(--el-color-success);
+          color: white;
+        }
+      }
+    }
+  }
 }
 
-:deep(.el-form-item__label) {
-  font-weight: 500;
+// 响应式设计
+@media (max-width: 768px) {
+  .server-edit-dialog {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 5vh auto;
+    }
+
+    :deep(.el-dialog__body) {
+      max-height: 60vh;
+    }
+  }
+
+  .dialog-content {
+    padding: 16px;
+  }
+
+  .form-section .section-content {
+    padding-left: 0;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+
+    .footer-left,
+    .footer-right {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .footer-right {
+      flex-direction: row-reverse;
+    }
+  }
 }
 
-:deep(.el-divider__text) {
-  font-weight: 500;
-  color: var(--el-color-primary);
+// 动画效果
+.server-edit-dialog {
+  :deep(.el-dialog) {
+    animation: dialogSlideIn 0.3s ease-out;
+  }
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// 表单项动画
+.form-section {
+  animation: sectionFadeIn 0.4s ease-out;
+}
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

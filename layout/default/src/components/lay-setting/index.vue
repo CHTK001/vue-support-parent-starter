@@ -6,7 +6,7 @@ import LayPanel from "../lay-panel/index.vue";
 import { useNav } from "../../hooks/useNav";
 import { toggleTheme } from "@pureadmin/theme/dist/browser-utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";  
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 
 import Check from "@iconify-icons/ep/check";
@@ -371,6 +371,8 @@ const getThemeColor = computed(() => {
   };
 });
 
+
+
 const pClass = computed(() => {
   return ["mb-[12px]", "font-medium", "text-sm", "dark:text-white"];
 });
@@ -379,6 +381,7 @@ const themeOptions = computed<Array<OptionsType>>(() => {
   return [
     {
       label: t("panel.pureOverallStyleLight"),
+      value: 0,
       icon: DayIcon,
       theme: "light",
       tip: t("panel.pureOverallStyleLightTip"),
@@ -386,6 +389,7 @@ const themeOptions = computed<Array<OptionsType>>(() => {
     },
     {
       label: t("panel.pureOverallStyleDark"),
+      value: 1,
       icon: DarkIcon,
       theme: "dark",
       tip: t("panel.pureOverallStyleDarkTip"),
@@ -393,6 +397,7 @@ const themeOptions = computed<Array<OptionsType>>(() => {
     },
     {
       label: t("panel.pureOverallStyleSystem"),
+      value: 2,
       icon: SystemIcon,
       theme: "system",
       tip: t("panel.pureOverallStyleSystemTip"),
@@ -594,6 +599,31 @@ onBeforeMount(() => {
 });
 
 onUnmounted(() => removeMatchMedia);
+
+// 整体风格的响应式值
+const overallStyleValue = computed({
+  get: () => overallStyle.value === 'system' ? 2 : dataTheme.value ? 1 : 0,
+  set: (value) => {
+    // 这里会通过 handleOverallStyleChange 处理
+  }
+});
+
+// 处理整体风格变化
+const handleOverallStyleChange = (value: number) => {
+  const theme = themeOptions.value.find(option => option.value === value);
+  if (theme) {
+    if (value === 1) {
+      dataTheme.value = true;
+    } else {
+      dataTheme.value = false;
+    }
+    overallStyle.value = theme.theme;
+    dataThemeChange(theme.theme);
+    if (value === 2) {
+      watchSystemThemeChange();
+    }
+  }
+};
 </script>
 
 <template>
@@ -630,13 +660,29 @@ onUnmounted(() => removeMatchMedia);
           <h3 class="section-title">{{ t("panel.pureThemeColor") }}</h3>
         </div>
         <div class="setting-content">
-          <ul class="theme-color">
-            <li v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
-              <el-icon style="margin: 0.1em 0.1em 0 0" :size="17" :color="getThemeColor(item.themeColor)">
-                <IconifyIconOffline :icon="Check" />
-              </el-icon>
-            </li>
-          </ul>
+          <div class="theme-color-grid">
+            <div
+              v-for="(item, index) in themeColors"
+              v-show="showThemeColors(item.themeColor)"
+              :key="index"
+              class="theme-color-item"
+              :class="{ 'is-selected': item.themeColor === layoutTheme.theme }"
+              :style="getThemeColorStyle(item.color)"
+              @click="setLayoutThemeColor(item.themeColor)"
+            >
+              <!-- 选中状态指示器 -->
+              <div class="selection-indicator">
+                <div class="check-ring">
+                  <IconifyIconOffline :icon="Check" class="check-icon" />
+                </div>
+              </div>
+
+
+
+              <!-- 光泽效果层 -->
+              <div class="shine-effect"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2084,107 +2130,290 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 主题色选择器 - 完全适配 Element Plus 主题系统
-.theme-color {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--interface-gap, 16px);
-  margin-top: var(--interface-gap, 20px);
-  padding: var(--interface-gap, 8px);
+// 现代化主题色选择器 - 更紧凑设计
+.theme-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0;
+}
 
-  li {
-    height: 44px;
-    width: 44px;
-    cursor: pointer;
-    border-radius: var(--border-radius-base, 14px);
-    transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--el-box-shadow-light);
-    position: relative;
-    border: 3px solid transparent;
-    overflow: hidden;
+.theme-color-item {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid var(--el-border-color-extra-light);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 
-    // 添加微妙的内光效果
-    &::before {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      right: 2px;
-      bottom: 2px;
-      border-radius: var(--border-radius-small, 10px);
-      background: linear-gradient(135deg, var(--el-bg-color-overlay), transparent);
-      pointer-events: none;
+  // 基础光泽效果
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  // 悬停效果
+  &:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: var(--el-color-primary-light-6);
+
+    .shine-effect {
+      opacity: 1;
+      transform: translateX(100%);
     }
 
-    // 添加悬停时的光晕效果
+    .selection-indicator {
+      transform: scale(1.05);
+    }
+  }
+
+  // 点击效果
+  &:active {
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  // 选中状态
+  &.is-selected {
+    border-color: var(--el-color-primary);
+    box-shadow:
+      0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2),
+      0 4px 16px rgba(var(--el-color-primary-rgb), 0.25);
+    transform: translateY(-1px);
+
+    .selection-indicator {
+      opacity: 1;
+      transform: scale(1);
+
+      .check-ring {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: var(--el-color-primary);
+        transform: scale(1);
+
+        .check-icon {
+          opacity: 1;
+          transform: scale(1);
+          color: var(--el-color-primary);
+        }
+      }
+    }
+
+
+
+    // 选中状态的脉冲动画
     &::after {
       content: "";
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, var(--el-bg-color-overlay) 0%, transparent 70%);
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 8px;
+      border: 1px solid var(--el-color-primary);
       opacity: 0;
-      transition: opacity var(--animation-duration, 0.3s) ease;
+      animation: pulse-ring 2s infinite;
       pointer-events: none;
+      z-index: 10;
     }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    border-color: var(--el-border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 
     &:hover {
-      transform: scale(var(--animation-scale, 1.15)) translateY(calc(-3px * var(--animation-scale, 1))) rotate(5deg);
-      box-shadow: var(--el-box-shadow-dark);
-
-      &::after {
-        opacity: 1;
-      }
+      border-color: var(--el-color-primary-light-4);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
     }
 
-    &:active {
-      transform: scale(1.05) translateY(-1px);
-    }
-
-    &:nth-child(1) {
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
-      border-color: var(--el-color-primary-light-7);
-    }
-
-    &:nth-child(2) {
-      background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3), var(--el-color-success));
-      border-color: var(--el-color-success-light-7);
-    }
-
-    &:nth-child(3) {
-      background: linear-gradient(135deg, var(--el-color-warning), var(--el-color-warning-light-3), var(--el-color-warning));
-      border-color: var(--el-color-warning-light-7);
-    }
-
-    &:nth-child(4) {
-      background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-light-3), var(--el-color-danger));
-      border-color: var(--el-color-danger-light-7);
-    }
-
-    &:nth-child(5) {
-      background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-light-3), var(--el-color-info));
-      border-color: var(--el-color-info-light-7);
-    }
-
-    // 选中状态的环形指示器
-    &:has(.el-icon) {
-      border-color: var(--el-color-primary);
-      animation: pulse 2s infinite;
+    &.is-selected {
       box-shadow:
-        0 0 0 4px var(--el-color-primary-light-8),
-        var(--el-box-shadow-dark);
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.3),
+        0 8px 25px rgba(var(--el-color-primary-rgb), 0.4);
+    }
+  }
+}
 
-      .el-icon {
-        color: var(--el-bg-color) !important;
-        font-weight: bold;
-        font-size: var(--font-size-large, 18px);
-        animation: checkmark var(--animation-duration, 0.3s) ease;
+// 选中状态指示器
+.selection-indicator {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 5;
+
+  .check-ring {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+
+    .check-icon {
+      font-size: 7px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+
+
+// 光泽效果
+.shine-effect {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: all 0.6s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+// 脉冲动画
+@keyframes pulse-ring {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+// 现代化 el-segmented 样式 - 图标在上文字在下
+.modern-el-segmented {
+  width: 100%;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color-extra-light);
+
+  :deep(.el-segmented-item) {
+    border-radius: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 12px 8px;
+    min-height: 60px;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    }
+
+    &.is-selected {
+      background: var(--el-bg-color);
+      color: var(--el-color-primary);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
+      border: 1px solid var(--el-color-primary-light-8);
+      transform: translateY(-1px);
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    :deep(.el-segmented-item) {
+      &:hover {
+        background: var(--el-color-primary-light-8);
       }
+
+      &.is-selected {
+        background: var(--el-bg-color-overlay);
+        border-color: var(--el-color-primary-light-6);
+      }
+    }
+  }
+}
+
+// 垂直布局的分段项
+.segmented-item-vertical {
+  .item-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+
+    .item-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .item-label {
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+      line-height: 1.2;
+      transition: all 0.3s ease;
+    }
+  }
+
+  &:hover .item-content {
+    .item-icon {
+      transform: scale(1.1);
+    }
+
+    .item-label {
+      font-weight: 600;
+    }
+  }
+
+  &.is-selected .item-content {
+    .item-icon {
+      transform: scale(1.1);
+      color: var(--el-color-primary);
+    }
+
+    .item-label {
+      font-weight: 600;
+      color: var(--el-color-primary);
     }
   }
 }
