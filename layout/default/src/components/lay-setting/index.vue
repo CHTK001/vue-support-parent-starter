@@ -265,6 +265,67 @@ const borderRadiusChange = (value: string): void => {
   }
 };
 
+/** 数字输入框调整值函数 */
+const adjustValue = (key: string, delta: number): void => {
+  const currentValue = settings[key] as number;
+  const newValue = Math.max(0, Math.min(100, currentValue + delta));
+
+  if (newValue !== currentValue) {
+    settings[key] = newValue;
+
+    // 根据不同的参数调用对应的变更函数
+    switch (key) {
+      case 'contentMargin':
+        contentMarginChange(newValue);
+        break;
+      case 'layoutRadius':
+        layoutRadiusChange(newValue);
+        break;
+      case 'layoutBlur':
+        layoutBlurChange(newValue);
+        break;
+    }
+  }
+};
+
+/** 处理数字输入框的键盘事件 */
+const handleKeydown = (event: KeyboardEvent, key: string): void => {
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    adjustValue(key, 1);
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    adjustValue(key, -1);
+  }
+};
+
+/** 处理数字输入框的输入验证 */
+const handleInput = (event: Event, key: string): void => {
+  const target = event.target as HTMLInputElement;
+  let value = parseInt(target.value) || 0;
+
+  // 限制范围
+  value = Math.max(0, Math.min(100, value));
+
+  if (value !== settings[key]) {
+    settings[key] = value;
+    target.value = value.toString();
+
+    // 调用对应的变更函数
+    switch (key) {
+      case 'contentMargin':
+        contentMarginChange(value);
+        break;
+      case 'layoutRadius':
+        layoutRadiusChange(value);
+        break;
+      case 'layoutBlur':
+        layoutBlurChange(value);
+        break;
+    }
+  }
+};
+
 function setFalse(Doms): any {
   Doms.forEach((v) => {
     toggleClass(false, "is-select", unref(v));
@@ -694,19 +755,106 @@ onUnmounted(() => removeMatchMedia);
           <h3 class="section-title">{{ t("panel.pureLayoutParams") || "布局参数" }}</h3>
         </div>
         <div class="setting-content">
-          <div class="setting-item">
-            <label class="setting-label">{{ t("panel.pureStretchMargin") }}</label>
-            <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="(value: number) => contentMarginChange(value)" />
-          </div>
+          <!-- 现代化数字输入框 - 横向布局 -->
+          <div class="layout-params-grid">
+            <div class="param-item">
+              <label class="param-label">{{ t("panel.pureStretchMargin") || "内容边距" }}</label>
+              <div class="custom-number-input">
+                <button
+                  class="number-btn decrease"
+                  @click="adjustValue('contentMargin', -1)"
+                  :disabled="settings.contentMargin <= 0"
+                >
+                  <IconifyIconOffline :icon="'ri:subtract-line'" />
+                </button>
+                <div class="number-display">
+                  <input
+                    type="number"
+                    v-model.number="settings.contentMargin"
+                    @input="handleInput($event, 'contentMargin')"
+                    @keydown="handleKeydown($event, 'contentMargin')"
+                    :min="0"
+                    :max="100"
+                    class="number-input"
+                    placeholder="0"
+                  />
+                  <span class="number-unit">px</span>
+                </div>
+                <button
+                  class="number-btn increase"
+                  @click="adjustValue('contentMargin', 1)"
+                  :disabled="settings.contentMargin >= 100"
+                >
+                  <IconifyIconOffline :icon="'ri:add-line'" />
+                </button>
+              </div>
+            </div>
 
-          <div class="setting-item">
-            <label class="setting-label">{{ t("panel.pureLayoutRadius") }}</label>
-            <el-input-number v-model="settings.layoutRadius as number" :min="0" :max="100" controls-position="right" @change="(value: number) => layoutRadiusChange(value)" />
-          </div>
+            <div class="param-item">
+              <label class="param-label">{{ t("panel.pureLayoutRadius") || "圆角大小" }}</label>
+              <div class="custom-number-input">
+                <button
+                  class="number-btn decrease"
+                  @click="adjustValue('layoutRadius', -1)"
+                  :disabled="settings.layoutRadius <= 0"
+                >
+                  <IconifyIconOffline :icon="'ri:subtract-line'" />
+                </button>
+                <div class="number-display">
+                  <input
+                    type="number"
+                    v-model.number="settings.layoutRadius"
+                    @input="handleInput($event, 'layoutRadius')"
+                    @keydown="handleKeydown($event, 'layoutRadius')"
+                    :min="0"
+                    :max="100"
+                    class="number-input"
+                    placeholder="0"
+                  />
+                  <span class="number-unit">px</span>
+                </div>
+                <button
+                  class="number-btn increase"
+                  @click="adjustValue('layoutRadius', 1)"
+                  :disabled="settings.layoutRadius >= 100"
+                >
+                  <IconifyIconOffline :icon="'ri:add-line'" />
+                </button>
+              </div>
+            </div>
 
-          <div class="setting-item">
-            <label class="setting-label">{{ t("panel.pureLayoutBlur") }}</label>
-            <el-input-number v-model="settings.layoutBlur as number" :min="0" :max="100" controls-position="right" @change="(value: number) => layoutBlurChange(value)" />
+            <div class="param-item">
+              <label class="param-label">{{ t("panel.pureLayoutBlur") || "模糊效果" }}</label>
+              <div class="custom-number-input">
+                <button
+                  class="number-btn decrease"
+                  @click="adjustValue('layoutBlur', -1)"
+                  :disabled="settings.layoutBlur <= 0"
+                >
+                  <IconifyIconOffline :icon="'ri:subtract-line'" />
+                </button>
+                <div class="number-display">
+                  <input
+                    type="number"
+                    v-model.number="settings.layoutBlur"
+                    @input="handleInput($event, 'layoutBlur')"
+                    @keydown="handleKeydown($event, 'layoutBlur')"
+                    :min="0"
+                    :max="100"
+                    class="number-input"
+                    placeholder="0"
+                  />
+                  <span class="number-unit">px</span>
+                </div>
+                <button
+                  class="number-btn increase"
+                  @click="adjustValue('layoutBlur', 1)"
+                  :disabled="settings.layoutBlur >= 100"
+                >
+                  <IconifyIconOffline :icon="'ri:add-line'" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -854,32 +1002,47 @@ onUnmounted(() => removeMatchMedia);
 </template>
 
 <style lang="scss" scoped>
-// 现代化设置容器 - 完全适配 Element Plus 主题系统（无动画版本）
+// 现代化设置容器 - 统一设计风格
 .modern-setting-container {
-  padding: 24px;
+  padding: 20px;
   background: var(--el-bg-color-page);
-  border-radius: 20px;
+  border-radius: 16px;
   min-height: 100vh;
-  width: 440px;
+  width: 420px;
   max-width: 100%;
   position: relative;
   overflow: hidden;
-  // 移除所有过渡动画
-  transition: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  // 添加背景装饰 - 使用 Element Plus 主题色（静态版本）
+  // 现代化背景装饰 - 与导航栏风格一致
   &::before {
     content: "";
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, var(--el-color-primary-light-9) 0%, transparent 70%);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+      rgba(var(--el-color-primary-rgb), 0.1) 0%,
+      rgba(var(--el-color-primary-rgb), 0.3) 50%,
+      rgba(var(--el-color-primary-rgb), 0.1) 100%
+    );
+    z-index: 0;
+  }
+
+  // 添加微妙的背景纹理
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, var(--el-color-primary-light-9) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, var(--el-color-primary-light-9) 0%, transparent 50%);
+    opacity: 0.3;
     pointer-events: none;
     z-index: 0;
-    // 移除过渡动画
-    transition: none;
   }
 
   // 确保内容在装饰之上
@@ -887,21 +1050,34 @@ onUnmounted(() => removeMatchMedia);
     position: relative;
     z-index: 1;
   }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-bg-color-page);
+
+    &::before {
+      background: linear-gradient(90deg,
+        rgba(var(--el-color-primary-rgb), 0.15) 0%,
+        rgba(var(--el-color-primary-rgb), 0.4) 50%,
+        rgba(var(--el-color-primary-rgb), 0.15) 100%
+      );
+    }
+  }
 }
 
-// 设置区域 - 完全适配 Element Plus 主题系统（无动画版本）
+// 设置区域 - 现代化卡片设计
 .setting-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   background: var(--el-bg-color);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: var(--el-box-shadow-light);
-  border: 1px solid var(--el-border-color-lighter);
-  // 移除所有过渡动画和悬停效果
-  transition: none;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--el-border-color-extra-light);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  backdrop-filter: blur(8px);
 
-  // 添加微妙的顶部装饰线（静态版本）
+  // 现代化装饰线 - 与导航栏风格一致
   &::before {
     content: "";
     position: absolute;
@@ -909,178 +1085,224 @@ onUnmounted(() => removeMatchMedia);
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--el-color-primary-light-8), transparent);
-    border-radius: 16px 16px 0 0;
-    // 移除过渡动画
-    transition: none;
+    background: linear-gradient(90deg,
+      transparent,
+      var(--el-color-primary-light-7),
+      transparent
+    );
+    border-radius: 12px 12px 0 0;
   }
 
-  // 移除所有悬停效果
+  // 微交互效果
   &:hover {
-    // 保持静态样式，不添加任何动画或变换
-    box-shadow: var(--el-box-shadow-light);
-    border-color: var(--el-border-color-lighter);
-    transform: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-color: var(--el-color-primary-light-8);
+    transform: translateY(-1px);
 
     &::before {
-      background: linear-gradient(90deg, transparent, var(--el-color-primary-light-8), transparent);
+      background: linear-gradient(90deg,
+        transparent,
+        var(--el-color-primary-light-5),
+        transparent
+      );
     }
   }
 
   &:last-child {
     margin-bottom: 0;
   }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-bg-color);
+    border-color: var(--el-border-color-light);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      border-color: var(--el-color-primary-light-6);
+    }
+  }
 }
 
-// 区域标题 - 完全适配 Element Plus 主题系统（无动画版本）
+// 区域标题 - 现代化设计
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
   position: relative;
 
-  // 添加装饰性渐变线（静态版本）
+  // 装饰性渐变线
   &::after {
     content: "";
     position: absolute;
     bottom: -1px;
     left: 0;
-    width: 60px;
+    width: 40px;
     height: 2px;
-    background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    background: linear-gradient(90deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
     border-radius: 1px;
-    // 移除过渡动画
-    transition: none;
+    transition: width 0.3s ease;
   }
 
-  // 移除悬停效果
   &:hover::after {
-    width: 60px; // 保持静态宽度
+    width: 80px;
   }
 
   .section-icon {
-    font-size: 20px;
+    font-size: 18px;
     color: var(--el-color-primary);
     margin-right: 12px;
     background: var(--el-color-primary-light-9);
     padding: 8px;
-    border-radius: 10px;
-    width: 36px;
-    height: 36px;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--el-box-shadow-lighter);
-    // 移除所有过渡动画
-    transition: none;
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    // 移除所有悬停效果
     &:hover {
-      transform: none; // 移除缩放和旋转
-      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
-      background: var(--el-color-primary-light-9); // 保持静态背景
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+      background: var(--el-color-primary-light-8);
     }
   }
 
   .section-title {
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 0;
     flex: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     text-align: left;
     writing-mode: horizontal-tb;
   }
 }
 
-// 设置内容区域 - 完全适配 Element Plus 主题系统（无动画版本）
+// 设置内容区域 - 现代化设计
 .setting-content {
   .modern-segmented {
     width: 100%;
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: var(--el-box-shadow-lighter);
-    // 移除所有过渡动画
-    transition: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
 
-    // 移除悬停效果
     &:hover {
-      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
-      transform: none; // 移除位移效果
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
     }
   }
 }
 
-// 美化 Segmented 组件 - 完全适配 Element Plus 主题系统（无动画版本）
+// 美化 Segmented 组件 - 现代化设计
 :deep(.layui-segmented) {
-  background: var(--el-fill-color-lighter);
-  border-radius: 12px;
-  padding: 6px;
-  box-shadow: var(--el-box-shadow-lighter);
-  border: 1px solid var(--el-border-color-light);
-  // 移除过渡动画
-  transition: none;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color-extra-light);
+  transition: all 0.3s ease;
 
   .layui-segmented-item {
-    border-radius: 8px;
-    // 移除过渡动画
-    transition: none;
+    border-radius: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: 500;
     color: var(--el-text-color-regular);
-    padding: 10px 16px;
+    padding: 8px 14px;
     position: relative;
     overflow: hidden;
-    font-size: 14px;
+    font-size: 13px;
     text-align: center;
     writing-mode: horizontal-tb;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    // 移除悬停动画效果
+    // 微交互效果
     &::before {
-      display: none; // 完全移除动画元素
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg,
+        transparent,
+        rgba(var(--el-color-primary-rgb), 0.1),
+        transparent
+      );
+      transition: left 0.5s ease;
     }
 
-    // 移除悬停效果
     &:hover {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
-      transform: none; // 移除位移效果
-      box-shadow: var(--el-box-shadow-lighter);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
 
       &::before {
-        display: none; // 确保动画元素不显示
+        left: 100%;
       }
     }
 
     &.layui-segmented-checked {
       background: var(--el-bg-color);
       color: var(--el-color-primary);
-      box-shadow: var(--el-box-shadow-light);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
       font-weight: 600;
-      transform: none; // 移除位移效果
-      border: 1px solid var(--el-color-primary-light-7);
+      border: 1px solid var(--el-color-primary-light-8);
+      transform: translateY(-1px);
+
+      &::before {
+        display: none;
+      }
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    .layui-segmented-item {
+      &:hover {
+        background: var(--el-color-primary-light-8);
+      }
+
+      &.layui-segmented-checked {
+        background: var(--el-bg-color-overlay);
+        border-color: var(--el-color-primary-light-6);
+      }
     }
   }
 }
 
-// 设置项 - 完全适配 Element Plus 主题系统（无动画版本）
+// 设置项 - 现代化设计
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
   border-radius: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: var(--el-fill-color-extra-light);
-  // 移除过渡动画
-  transition: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 
-  // 移除左侧装饰条动画
+  // 左侧装饰条
   &::before {
     content: "";
     position: absolute;
@@ -1088,20 +1310,22 @@ onUnmounted(() => removeMatchMedia);
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
-    transform: scaleY(0); // 保持隐藏状态
-    // 移除过渡动画
-    transition: none;
+    background: linear-gradient(180deg,
+      var(--el-color-primary),
+      var(--el-color-primary-light-3)
+    );
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.3s ease;
   }
 
-  // 移除悬停效果
   &:hover {
     background: var(--el-color-primary-light-9);
-    transform: none; // 移除位移效果
-    box-shadow: var(--el-box-shadow-lighter);
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
 
     &::before {
-      transform: scaleY(0); // 保持装饰条隐藏
+      transform: scaleY(1);
     }
   }
 
@@ -1115,21 +1339,21 @@ onUnmounted(() => removeMatchMedia);
   }
 
   .setting-label {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--el-text-color-regular);
-    font-weight: 600;
+    font-weight: 500;
     margin: 0;
     flex: 1;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     text-align: left;
     writing-mode: horizontal-tb;
   }
 }
 
-// 开关网格布局 - 完全适配 Element Plus 主题系统（无动画版本）
+// 开关网格布局 - 现代化设计
 .switch-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: 1fr;
 }
 
@@ -1137,105 +1361,178 @@ onUnmounted(() => removeMatchMedia);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 18px;
   background: var(--el-fill-color-extra-light);
-  border-radius: 12px;
-  // 移除过渡动画
-  transition: none;
-  border: 1px solid var(--el-border-color-light);
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--el-border-color-extra-light);
   position: relative;
   overflow: hidden;
 
-  // 移除背景动画
+  // 背景动画效果
   &::before {
-    display: none; // 完全移除动画元素
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.05),
+      transparent
+    );
+    transition: left 0.5s ease;
   }
 
-  // 移除悬停效果
   &:hover {
     background: var(--el-color-primary-light-9);
-    transform: none; // 移除位移和缩放效果
-    box-shadow: var(--el-box-shadow-light);
-    border-color: var(--el-color-primary-light-7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+    border-color: var(--el-color-primary-light-8);
 
     &::before {
-      display: none; // 确保动画元素不显示
+      left: 100%;
     }
   }
 
   .switch-label {
-    font-size: 15px;
+    font-size: 14px;
     color: var(--el-text-color-regular);
-    font-weight: 600;
+    font-weight: 500;
     margin: 0;
     flex: 1;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     text-align: left;
     writing-mode: horizontal-tb;
   }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-fill-color-dark);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      background: var(--el-color-primary-light-8);
+      border-color: var(--el-color-primary-light-6);
+    }
+  }
 }
 
-// 拉伸按钮样式 - 完全适配暗黑模式
+// 拉伸按钮样式 - 现代化设计
 .stretch-button {
   background: var(--el-bg-color);
-  border: 2px solid var(--el-border-color);
+  border: 2px solid var(--el-border-color-extra-light);
   border-radius: 12px;
   width: 100%;
-  height: 88px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 16px;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--el-box-shadow-lighter);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
+  // 背景装饰
   &::before {
-    display: none;
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(var(--el-color-primary-rgb), 0.05),
+      transparent
+    );
+    transition: left 0.6s ease;
   }
 
   &:hover {
-    border-color: var(--el-color-primary);
-    background: var(--el-fill-color-extra-light);
-    transform: none;
-    box-shadow: var(--el-box-shadow-light);
+    border-color: var(--el-color-primary-light-7);
+    background: var(--el-color-primary-light-9);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.1);
 
     &::before {
-      display: none;
+      left: 100%;
+    }
+
+    .stretch-line {
+      background: linear-gradient(90deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3),
+        var(--el-color-primary)
+      );
     }
   }
 
   &:active {
-    transform: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
   }
 
   .stretch-indicator {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    // 移除过渡动画
-    transition: none;
+    transition: all 0.3s ease;
     color: var(--el-color-primary);
     position: relative;
     z-index: 1;
+    width: 80%;
 
     .stretch-line {
       flex: 1;
       height: 2px;
-      background: linear-gradient(90deg, var(--el-color-primary), #66b1ff, var(--el-color-primary));
-      border-style: dashed;
-      border-width: 1px 0 0 0;
-      border-color: var(--el-color-primary);
-      margin: 0 12px;
+      background: linear-gradient(90deg,
+        var(--el-color-primary-light-5),
+        var(--el-color-primary),
+        var(--el-color-primary-light-5)
+      );
       border-radius: 1px;
+      margin: 0 12px;
       position: relative;
+      transition: all 0.3s ease;
 
-      // 移除闪烁动画
+      // 动态光效
       &::after {
-        display: none; // 完全移除动画元素
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: -2px;
+        right: -2px;
+        bottom: -1px;
+        background: linear-gradient(90deg,
+          transparent,
+          rgba(var(--el-color-primary-rgb), 0.3),
+          transparent
+        );
+        border-radius: 2px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
       }
+    }
+
+    &:hover .stretch-line::after {
+      opacity: 1;
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      background: var(--el-color-primary-light-8);
+      border-color: var(--el-color-primary-light-6);
+      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.2);
     }
   }
 }
@@ -1243,32 +1540,66 @@ onUnmounted(() => removeMatchMedia);
 // 移除 shimmer 动画关键帧
 // @keyframes shimmer 已被移除
 
-// 重置按钮（无动画版本）
+// 重置按钮 - 现代化设计
 .reset-button {
   width: 100%;
   margin-top: 20px;
   border-radius: 12px;
   height: 48px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #f56c6c, #f78989);
+  font-weight: 600;
+  background: linear-gradient(135deg,
+    var(--el-color-danger),
+    var(--el-color-danger-light-3)
+  );
   border: none;
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(245, 108, 108, 0.2);
-  // 移除过渡动画
-  transition: none;
-  letter-spacing: 0.5px;
+  box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
 
-  // 移除悬停效果
-  &:hover {
-    background: linear-gradient(135deg, #f78989, #f56c6c);
-    box-shadow: 0 6px 20px rgba(245, 108, 108, 0.3);
-    transform: none; // 移除位移效果
+  // 光泽效果
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.6s ease;
   }
 
-  // 移除点击效果
+  &:hover {
+    background: linear-gradient(135deg,
+      var(--el-color-danger-light-3),
+      var(--el-color-danger)
+    );
+    box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.35);
+    transform: translateY(-2px);
+
+    &::before {
+      left: 100%;
+    }
+  }
+
   &:active {
-    transform: none; // 移除位移效果
-    box-shadow: 0 2px 8px rgba(245, 108, 108, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-danger-rgb), 0.3);
+  }
+
+  // 暗色主题适配
+  .dark & {
+    box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.3);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.4);
+    }
   }
 }
 
@@ -1277,52 +1608,66 @@ onUnmounted(() => removeMatchMedia);
   font-weight: 700;
 }
 
-// Element Plus 开关组件 - 完全适配主题系统（无动画版本）
+// Element Plus 开关组件 - 现代化设计
 :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-primary);
   --el-switch-off-color: var(--el-fill-color);
 
   .el-switch__core {
-    min-width: 52px;
-    height: 26px;
-    border-radius: 26px;
+    min-width: 48px;
+    height: 24px;
+    border-radius: 24px;
     border: none;
-    // 移除过渡动画
-    transition: none;
-    box-shadow: var(--el-box-shadow-lighter);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     position: relative;
     background: var(--el-switch-off-color);
 
+    // 添加内部光泽效果
+    &::before {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      border-radius: 23px;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.2),
+        rgba(255, 255, 255, 0.05)
+      );
+      pointer-events: none;
+    }
+
     .el-switch__inner {
       position: absolute;
-      left: 28px;
-      right: 8px;
+      left: 26px;
+      right: 6px;
       top: 0;
       bottom: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--el-text-color-primary);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
     }
 
     .el-switch__action {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       left: initial !important;
-      background: var(--el-bg-color);
+      background: linear-gradient(135deg, #ffffff, #f8f9fa);
       border-radius: 50%;
-      // 移除过渡动画
-      transition: none;
-      box-shadow: var(--el-box-shadow-light);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid var(--el-border-color-lighter);
+      border: 1px solid rgba(255, 255, 255, 0.8);
 
-      // 保留内阴影但移除动画
+      // 内部光泽效果
       &::after {
         content: "";
         position: absolute;
@@ -1331,7 +1676,10 @@ onUnmounted(() => removeMatchMedia);
         right: 1px;
         bottom: 1px;
         border-radius: 50%;
-        background: linear-gradient(135deg, var(--el-bg-color-overlay), transparent);
+        background: linear-gradient(135deg,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
         pointer-events: none;
       }
     }
@@ -1339,19 +1687,24 @@ onUnmounted(() => removeMatchMedia);
 
   &.is-checked {
     .el-switch__core {
-      background: var(--el-switch-on-color);
-      box-shadow: var(--el-box-shadow-light);
+      background: linear-gradient(135deg,
+        var(--el-switch-on-color),
+        var(--el-color-primary-light-3)
+      );
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
       .el-switch__action {
-        transform: translateX(26px);
-        box-shadow: var(--el-box-shadow);
-        background: var(--el-bg-color);
+        transform: translateX(24px);
+        box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
+        background: linear-gradient(135deg, #ffffff, #f8f9fa);
 
         &::before {
           content: "✓";
-          font-size: 12px;
+          font-size: 11px;
           font-weight: bold;
           color: var(--el-color-primary);
+          position: absolute;
+          z-index: 1;
         }
       }
     }
@@ -1359,34 +1712,40 @@ onUnmounted(() => removeMatchMedia);
 
   &:not(.is-checked) {
     .el-switch__core {
-      background: var(--el-switch-off-color);
+      background: linear-gradient(135deg,
+        var(--el-switch-off-color),
+        var(--el-fill-color-light)
+      );
 
       .el-switch__action {
         transform: translateX(2px);
 
         &::before {
           content: "×";
-          font-size: 12px;
+          font-size: 11px;
           font-weight: bold;
           color: var(--el-text-color-placeholder);
+          position: absolute;
+          z-index: 1;
         }
       }
     }
   }
 
-  // 移除所有悬停效果
+  // 悬停效果
   &:hover {
     .el-switch__core {
-      box-shadow: var(--el-box-shadow-lighter); // 保持静态阴影
-      transform: none; // 移除缩放和位移效果
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: scale(1.02);
     }
 
     &.is-checked .el-switch__core {
-      box-shadow: var(--el-box-shadow-light); // 保持静态阴影
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
     }
 
     .el-switch__action {
-      transform: translateX(2px); // 保持静态位置，移除缩放
+      transform: translateX(2px) scale(1.05);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 
       &::after {
         opacity: 1;
@@ -1394,22 +1753,53 @@ onUnmounted(() => removeMatchMedia);
     }
 
     &.is-checked .el-switch__action {
-      transform: translateX(26px); // 保持静态位置，移除缩放
+      transform: translateX(24px) scale(1.05);
+      box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.3);
     }
   }
 
-  // 移除所有点击效果
+  // 点击效果
   &:active {
     .el-switch__core {
-      transform: none; // 移除缩放效果
+      transform: scale(0.98);
     }
 
     .el-switch__action {
-      transform: translateX(2px); // 保持静态位置，移除缩放
+      transform: translateX(2px) scale(0.95);
     }
 
     &.is-checked .el-switch__action {
-      transform: translateX(26px); // 保持静态位置，移除缩放
+      transform: translateX(24px) scale(0.95);
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    .el-switch__core {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+
+      &::before {
+        background: linear-gradient(135deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.02)
+        );
+      }
+    }
+
+    .el-switch__action {
+      background: linear-gradient(135deg,
+        var(--el-bg-color),
+        var(--el-bg-color-overlay)
+      );
+      border-color: var(--el-border-color);
+    }
+
+    &:hover .el-switch__core {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    &.is-checked:hover .el-switch__core {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.5);
     }
   }
 }
@@ -1465,22 +1855,178 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 
-// 美化输入框样式 - 完全适配暗黑模式
+// 现代化数字输入框样式
+.layout-params-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-extra-light);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary-light-8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  .param-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-regular);
+    margin: 0;
+    flex: 1;
+    text-align: left;
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+  }
+}
+
+.custom-number-input {
+  display: flex;
+  align-items: center;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-7);
+    box-shadow: 0 4px 8px rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  &:focus-within {
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+
+  .number-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--el-fill-color-light);
+    color: var(--el-text-color-regular);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+
+    &:hover:not(:disabled) {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--el-color-primary-light-8);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: var(--el-fill-color-lighter);
+    }
+
+    &.decrease {
+      border-radius: 0;
+    }
+
+    &.increase {
+      border-radius: 0;
+    }
+  }
+
+  .number-display {
+    display: flex;
+    align-items: center;
+    background: var(--el-bg-color);
+    padding: 0 8px;
+    min-width: 80px;
+    justify-content: center;
+    position: relative;
+
+    .number-input {
+      border: none;
+      background: transparent;
+      color: var(--el-text-color-primary);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      width: 40px;
+      outline: none;
+      padding: 0;
+
+      // 隐藏数字输入框的默认箭头
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      &[type="number"] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+
+      &:focus {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .number-unit {
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+      margin-left: 4px;
+      font-weight: 500;
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+
+    .number-btn {
+      background: var(--el-fill-color-dark);
+
+      &:hover:not(:disabled) {
+        background: var(--el-color-primary-light-8);
+      }
+    }
+
+    .number-display {
+      background: var(--el-bg-color-overlay);
+    }
+  }
+}
+
+// 美化原有输入框样式（保留兼容性）
 :deep(.el-input-number) {
   width: 100%;
   margin-top: 12px;
   border-radius: 12px;
   overflow: hidden;
-  // 移除硬编码背景，使用Element Plus变量
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
   box-shadow: var(--el-box-shadow-lighter);
-  transition: none;
+  transition: all 0.3s ease;
 
   &:hover {
     border-color: var(--el-border-color-hover);
     box-shadow: var(--el-box-shadow-light);
-    transform: none;
+    transform: translateY(-1px);
   }
 
   &:focus-within {
@@ -1488,12 +2034,11 @@ onUnmounted(() => removeMatchMedia);
     box-shadow:
       var(--el-box-shadow-light),
       0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
-    transform: none;
   }
 
   .el-input-number__decrease,
   .el-input-number__increase {
-    transition: none;
+    transition: all 0.3s ease;
     border: none;
     border-radius: 8px;
     margin: 2px;
@@ -1503,20 +2048,20 @@ onUnmounted(() => removeMatchMedia);
     &:hover {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
-      transform: none;
+      transform: scale(1.1);
       box-shadow: var(--el-box-shadow-lighter);
     }
 
     &:active {
       background: var(--el-color-primary-light-8);
-      transform: none;
+      transform: scale(0.95);
     }
   }
 
   .el-input__wrapper {
     box-shadow: none !important;
     border: 2px solid var(--el-border-color);
-    transition: none;
+    transition: all 0.3s ease;
     border-radius: 10px;
     background: var(--el-bg-color);
 

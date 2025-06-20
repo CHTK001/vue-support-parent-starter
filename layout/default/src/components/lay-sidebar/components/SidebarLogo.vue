@@ -52,7 +52,7 @@ const { title, getLogo } = useNav();
       font-size: 18px;
       font-weight: 600;
       line-height: 32px;
-      color: var(--pure-theme-sub-menu-active-text);
+      color: var(--el-text-color-primary);
       text-overflow: ellipsis;
       white-space: nowrap;
     }
