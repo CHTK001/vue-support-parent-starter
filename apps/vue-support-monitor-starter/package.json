@@ -119,7 +119,8 @@
     "xterm": "catalog:",
     "xterm-addon-attach": "catalog:",
     "xterm-addon-fit": "catalog:",
-    "xterm-addon-web-links": "catalog:"
+    "xterm-addon-web-links": "catalog:",
+    "xterm-addon-unicode11": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

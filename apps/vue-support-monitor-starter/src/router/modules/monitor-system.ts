@@ -103,10 +103,43 @@ export default [
           {
             path: "/server/index",
             name: "serverIndex",
-            component: () => import("@/views/server/index.vue"),
+            component: () => import("@/views/server/modules/server-management/index.vue"),
             meta: {
               icon: "ri:server-line",
               title: $t("buttons.monitor.server-management"),
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/server/management",
+            name: "serverManagement",
+            component: () => import("@/views/server/modules/server-management/management.vue"),
+            meta: {
+              icon: "ri:dashboard-line",
+              title: "服务器管理中心",
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/server/detail/:id",
+            name: "serverDetail",
+            component: () => import("@/views/server/modules/server-management/detail.vue"),
+            meta: {
+              icon: "ri:dashboard-3-line",
+              title: "服务器详情页",
+              showLink: false,
+              showParent: true
+            }
+          },
+          {
+            path: "/server/file-upload",
+            name: "serverFileUpload",
+            component: () => import("@/views/server/file-upload/index.vue"),
+            meta: {
+              icon: "ri:upload-cloud-line",
+              title: "文件上传管理",
               showLink: true,
               showParent: true
             }

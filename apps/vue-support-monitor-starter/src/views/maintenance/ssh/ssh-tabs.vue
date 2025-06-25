@@ -9,17 +9,33 @@
         overflowX: 'scroll'
       }"
     >
-      <a-directory-tree
-        v-if="treeList.length"
-        v-model:expandedKeys="expandedKeys"
-        v-model:selectedKeys="selectedKeys"
-        multiple
-        default-expand-all
-        :tree-data="treeList"
-        :field-names="replaceFields"
-        @select="select"
-      />
-      <a-empty v-else :image="Empty.PRESENTED_IMAGE_SIMPLE" />
+      <!-- 搜索框 -->
+      <div style="padding: 8px; border-bottom: 1px solid #e8e8e8">
+        <a-input
+          v-model:value="searchKeyword"
+          placeholder="搜索SSH服务器"
+          allow-clear
+          @input="onSearchInput"
+        >
+          <template #prefix>
+            <SearchOutlined />
+          </template>
+        </a-input>
+      </div>
+
+      <div style="height: calc(100% - 50px); overflow-y: auto">
+        <a-directory-tree
+          v-if="filteredTreeList.length"
+          v-model:expandedKeys="expandedKeys"
+          v-model:selectedKeys="selectedKeys"
+          multiple
+          default-expand-all
+          :tree-data="filteredTreeList"
+          :field-names="replaceFields"
+          @select="select"
+        />
+        <a-empty v-else :image="Empty.PRESENTED_IMAGE_SIMPLE" />
+      </div>
     </a-layout-sider>
     <a-layout-content :style="{ padding: '0 5px', height: `calc(100vh - 10px)` }">
       <a-tabs v-if="selectPanes.length" v-model:activeKey="activeKey" type="editable-card" hide-add @edit="onEdit" @change="change">
@@ -62,10 +78,12 @@ import { getSshListTree } from "@/api/ssh";
 import terminal1 from "./terminal.vue";
 import SshFile from "@/views/maintenance/ssh/ssh-file.vue";
 import { Empty } from "ant-design-vue";
+import { SearchOutlined } from "@ant-design/icons-vue";
 export default {
   components: {
     terminal1,
-    SshFile
+    SshFile,
+    SearchOutlined
   },
   data() {
     return {
@@ -73,6 +91,8 @@ export default {
       activeKey: "",
       selectPanes: [],
       treeList: [],
+      searchKeyword: "",
+      filteredTreeList: [],
       replaceFields: {
         children: "children",
         title: "name",
@@ -109,6 +129,7 @@ export default {
       getSshListTree().then(res => {
         if (res.code == 200 && res.data) {
           this.treeList = res.data.children || [];
+          this.filteredTreeList = [...this.treeList];
           try {
             const cache = JSON.parse(localStorage.getItem("ssh-tabs-cache") || "{}");
             const cacheIds = (cache.selectPanes || []).map(item => item.id);
@@ -192,6 +213,44 @@ export default {
         }
         return item;
       });
+    },
+    // 搜索输入处理
+    onSearchInput() {
+      this.filterTreeData();
+    },
+    // 过滤树数据
+    filterTreeData() {
+      if (!this.searchKeyword.trim()) {
+        this.filteredTreeList = [...this.treeList];
+        return;
+      }
+
+      const keyword = this.searchKeyword.toLowerCase();
+      this.filteredTreeList = this.filterTreeNodes(this.treeList, keyword);
+    },
+    // 递归过滤树节点
+    filterTreeNodes(nodes, keyword) {
+      const filtered = [];
+
+      for (const node of nodes) {
+        const nodeMatches = node.name && node.name.toLowerCase().includes(keyword);
+        let filteredChildren = [];
+
+        if (node.children && node.children.length > 0) {
+          filteredChildren = this.filterTreeNodes(node.children, keyword);
+        }
+
+        // 如果节点本身匹配或有匹配的子节点，则包含此节点
+        if (nodeMatches || filteredChildren.length > 0) {
+          const filteredNode = { ...node };
+          if (filteredChildren.length > 0) {
+            filteredNode.children = filteredChildren;
+          }
+          filtered.push(filteredNode);
+        }
+      }
+
+      return filtered;
     }
   }
 };

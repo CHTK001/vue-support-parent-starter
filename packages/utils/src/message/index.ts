@@ -1,6 +1,6 @@
 import type { VNode } from "vue";
 import { isFunction } from "@pureadmin/utils";
-import { type MessageHandler, ElMessage } from "element-plus";
+import { type MessageHandler, ElMessage, ElMessageBox } from "element-plus";
 import { ElLoading } from "element-plus";
 
 type messageStyle = "el" | "antd";
@@ -154,5 +154,8 @@ message.closeAllLoading = () => {
 };
 
 message.closeAll = closeAllMessage;
+
+// 导出 MessageBox 作为 messageBox
+export const messageBox = ElMessageBox;
 
 export { message, closeAllMessage };

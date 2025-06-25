@@ -24,7 +24,7 @@ export default [
           {
             path: "/tools/index",
             name: "toolsIndex",
-            component: () => import("@pages/tools"),
+            component: () => import("@/views/maintenance/tools/network.vue"),
             meta: {
               title: "开发工具箱",
               icon: "ri:tools-fill",
@@ -36,10 +36,10 @@ export default [
           {
             path: "/example/index",
             name: "exampleIndex",
-            component: () => import("@pages/example"),
+            component: () => import("@/views/server/management.vue"),
             meta: {
-              title: "组件实例",
-              icon: "ri:code-box-line",
+              title: "服务器管理示例",
+              icon: "ri:server-line",
               category: "开发工具",
               showLink: true,
               showParent: true
@@ -84,11 +84,11 @@ export default [
           {
             path: "/setting-index",
             name: "settingIndex",
-            component: () => import("@pages/setting"),
+            component: () => import("@/views/monitor/proxy/setting/index.vue"),
             meta: {
               icon: "ep:setting",
               rank: 10299,
-              title: $t("buttons.monitor.setting"),
+              title: "系统设置",
               showLink: true,
               showParent: true
             }
