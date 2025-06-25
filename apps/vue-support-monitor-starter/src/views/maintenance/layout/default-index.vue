@@ -57,7 +57,7 @@
         :style="{
           width: collapsed ? 'calc(100vw - 80px - 4px)' : 'calc(100vw - 200px - 4px)',
           overflowY: 'auto',
-          backgroundColor: theme === 'light' ? '#fff' : ''
+          backgroundColor: theme === 'light' ? '#fff' : '#141414'
         }"
         class="layout-content"
       >
