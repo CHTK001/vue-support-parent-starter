@@ -1,22 +1,11 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="mode === 'add' ? '新增服务器' : '编辑服务器'"
-    width="90%"
-    :close-on-click-modal="false"
-    destroy-on-close
-    class="server-edit-dialog"
-    align-center
-    top="5vh"
-  >
+  <el-dialog v-model="visible" :title="mode === 'add' ? '新增服务器' : '编辑服务器'" width="90%" :close-on-click-modal="false"
+    destroy-on-close class="server-edit-dialog" align-center top="5vh">
     <!-- 自定义头部 -->
     <template #header="{ close, titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
-          <IconifyIconOnline
-            :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'"
-            class="header-icon"
-          />
+          <IconifyIconOnline :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'" class="header-icon" />
           <span :id="titleId" :class="titleClass" class="dialog-title">
             {{ mode === 'add' ? '新增服务器' : '编辑服务器' }}
           </span>
@@ -25,14 +14,8 @@
     </template>
 
     <div class="dialog-content">
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="rules"
-        label-width="100px"
-        label-position="left"
-        class="server-form"
-      >
+      <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="left"
+        class="server-form">
         <!-- 使用三列布局来节省空间 -->
         <el-row :gutter="24" class="form-row">
           <!-- 左列：基本信息 -->
@@ -44,11 +27,7 @@
               </div>
               <div class="section-content">
                 <el-form-item label="服务器名称" prop="monitorSysGenServerName">
-                  <el-input
-                    v-model="formData.monitorSysGenServerName"
-                    placeholder="请输入服务器名称"
-                    clearable
-                  >
+                  <el-input v-model="formData.monitorSysGenServerName" placeholder="请输入服务器名称" clearable>
                     <template #prefix>
                       <IconifyIconOnline icon="ri:server-line" />
                     </template>
@@ -78,14 +57,8 @@
                     <div class="os-item">
                       <span class="os-label">本机IP:</span>
                       <div class="ip-list">
-                        <el-tag
-                          v-for="ip in osInfo.ipAddresses"
-                          :key="ip"
-                          size="small"
-                          type="info"
-                          effect="plain"
-                          class="ip-tag"
-                        >
+                        <el-tag v-for="ip in osInfo.ipAddresses" :key="ip" size="small" type="info" effect="plain"
+                          class="ip-tag">
                           {{ ip }}
                         </el-tag>
                       </div>
@@ -94,12 +67,8 @@
                 </div>
 
                 <el-form-item label="协议类型" prop="monitorSysGenServerProtocol">
-                  <el-select
-                    v-model="formData.monitorSysGenServerProtocol"
-                    placeholder="选择协议类型"
-                    style="width: 100%"
-                    @change="handleProtocolChange"
-                  >
+                  <el-select v-model="formData.monitorSysGenServerProtocol" placeholder="选择协议类型" style="width: 100%"
+                    @change="handleProtocolChange">
                     <el-option label="SSH" value="SSH">
                       <div class="protocol-option">
                         <IconifyIconOnline icon="ri:terminal-line" />
@@ -122,23 +91,14 @@
                 </el-form-item>
 
                 <el-form-item label="服务器地址" prop="monitorSysGenServerHost">
-                  <el-input
-                    v-model="formData.monitorSysGenServerHost"
-                    placeholder="请输入IP地址或域名"
-                    clearable
-                    @blur="detectServerInfo"
-                  >
+                  <el-input v-model="formData.monitorSysGenServerHost" placeholder="请输入IP地址或域名" clearable
+                    @blur="detectServerInfo">
                     <template #prefix>
                       <IconifyIconOnline icon="ri:global-line" />
                     </template>
                     <template #suffix>
                       <el-tooltip content="自动检测操作系统信息" placement="top">
-                        <el-button
-                          type="text"
-                          size="small"
-                          @click="detectServerInfo"
-                          :loading="detectLoading"
-                        >
+                        <el-button type="text" size="small" @click="detectServerInfo" :loading="detectLoading">
                           <IconifyIconOnline icon="ri:refresh-line" />
                         </el-button>
                       </el-tooltip>
@@ -147,21 +107,12 @@
                 </el-form-item>
 
                 <el-form-item label="端口" prop="monitorSysGenServerPort">
-                  <el-input-number
-                    v-model="formData.monitorSysGenServerPort"
-                    :min="1"
-                    :max="65535"
-                    placeholder="端口号"
-                    style="width: 100%"
-                  />
+                  <el-input-number v-model="formData.monitorSysGenServerPort" :min="1" :max="65535" placeholder="端口号"
+                    style="width: 100%" />
                 </el-form-item>
 
                 <el-form-item label="标签" prop="monitorSysGenServerTags">
-                  <el-input
-                    v-model="formData.monitorSysGenServerTags"
-                    placeholder="多个标签用逗号分隔"
-                    clearable
-                  >
+                  <el-input v-model="formData.monitorSysGenServerTags" placeholder="多个标签用逗号分隔" clearable>
                     <template #prefix>
                       <IconifyIconOnline icon="ri:price-tag-3-line" />
                     </template>
@@ -171,15 +122,11 @@
                 <!-- 服务器类型和操作系统信息 -->
                 <el-form-item label="服务器类型">
                   <div class="server-type-container">
-                    <el-tag
-                      :type="formData.monitorSysGenServerIsLocal === 1 ? 'success' : 'info'"
-                      size="small"
-                      effect="light"
-                    >
+                    <el-tag :type="formData.monitorSysGenServerIsLocal === 1 ? 'success' : 'info'" size="small"
+                      effect="light">
                       <IconifyIconOnline
                         :icon="formData.monitorSysGenServerIsLocal === 1 ? 'ri:home-line' : 'ri:cloud-line'"
-                        class="mr-1"
-                      />
+                        class="mr-1" />
                       {{ formData.monitorSysGenServerIsLocal === 1 ? '本地服务器' : '远程服务器' }}
                     </el-tag>
                     <el-text size="small" type="info" class="ml-2">
@@ -193,14 +140,9 @@
                   <div class="os-selection-container">
                     <!-- 操作系统类型选择 -->
                     <div class="os-type-selection">
-                      <el-select
-                        v-model="formData.monitorSysGenServerOsType"
-                        placeholder="选择操作系统类型"
-                        style="width: 100%"
+                      <el-select v-model="formData.monitorSysGenServerOsType" placeholder="选择操作系统类型" style="width: 100%"
                         @change="handleOsTypeChange"
-                        :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osType"
-                        filterable
-                      >
+                        :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osType" filterable>
                         <el-option-group label="Windows 系列">
                           <el-option label="Windows Server 2022" value="Windows Server 2022">
                             <div class="os-option">
@@ -349,72 +291,11 @@
 
                     <!-- 自定义操作系统输入 -->
                     <div v-if="formData.monitorSysGenServerOsType === 'Custom'" class="custom-os-input">
-                      <el-input
-                        v-model="formData.monitorSysGenServerOsCustom"
-                        placeholder="请输入自定义操作系统名称"
-                        clearable
-                      >
+                      <el-input v-model="formData.monitorSysGenServerOsCustom" placeholder="请输入自定义操作系统名称" clearable>
                         <template #prefix>
                           <IconifyIconOnline icon="ri:edit-line" />
                         </template>
                       </el-input>
-                    </div>
-
-                    <!-- 操作系统详细信息 -->
-                    <div class="os-details-container">
-                      <el-row :gutter="12">
-                        <el-col :span="12">
-                          <el-form-item label="系统版本" size="small">
-                            <el-input
-                              v-model="formData.monitorSysGenServerOsVersion"
-                              placeholder="如: 22.04.3 LTS"
-                              size="small"
-                              clearable
-                              :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osVersion"
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline icon="ri:information-line" />
-                              </template>
-                            </el-input>
-                          </el-form-item>
-                        </el-col>
-                        <el-col :span="12">
-                          <el-form-item label="系统架构" size="small">
-                            <el-select
-                              v-model="formData.monitorSysGenServerOsArch"
-                              placeholder="选择架构"
-                              size="small"
-                              style="width: 100%"
-                              :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osArch"
-                            >
-                              <el-option label="x86_64 (64位)" value="x86_64">
-                                <div class="arch-option">
-                                  <IconifyIconOnline icon="ri:cpu-line" />
-                                  <span>x86_64 (64位)</span>
-                                </div>
-                              </el-option>
-                              <el-option label="aarch64 (ARM64)" value="aarch64">
-                                <div class="arch-option">
-                                  <IconifyIconOnline icon="ri:cpu-line" />
-                                  <span>aarch64 (ARM64)</span>
-                                </div>
-                              </el-option>
-                              <el-option label="i386 (32位)" value="i386">
-                                <div class="arch-option">
-                                  <IconifyIconOnline icon="ri:cpu-line" />
-                                  <span>i386 (32位)</span>
-                                </div>
-                              </el-option>
-                              <el-option label="armv7l (ARM32)" value="armv7l">
-                                <div class="arch-option">
-                                  <IconifyIconOnline icon="ri:cpu-line" />
-                                  <span>armv7l (ARM32)</span>
-                                </div>
-                              </el-option>
-                            </el-select>
-                          </el-form-item>
-                        </el-col>
-                      </el-row>
                     </div>
 
                     <!-- 当前检测到的操作系统信息显示 -->
@@ -452,27 +333,14 @@
 
                     <!-- 操作提示 -->
                     <div class="os-tips">
-                      <el-alert
-                        v-if="formData.monitorSysGenServerIsLocal === 0"
-                        title="远程服务器操作系统信息"
-                        type="info"
-                        effect="light"
-                        :closable="false"
-                        show-icon
-                      >
+                      <el-alert v-if="formData.monitorSysGenServerIsLocal === 0" title="远程服务器操作系统信息" type="info"
+                        effect="light" :closable="false" show-icon>
                         <template #default>
                           请手动选择远程服务器的操作系统类型，这将影响监控指标的收集方式
                         </template>
                       </el-alert>
 
-                      <el-alert
-                        v-else
-                        title="本地服务器操作系统信息"
-                        type="success"
-                        effect="light"
-                        :closable="false"
-                        show-icon
-                      >
+                      <el-alert v-else title="本地服务器操作系统信息" type="success" effect="light" :closable="false" show-icon>
                         <template #default>
                           本地服务器操作系统信息已自动检测，您也可以手动调整
                         </template>
@@ -480,42 +348,53 @@
                     </div>
                   </div>
                 </el-form-item>
+                <!-- 操作系统详细信息 -->
+                <el-form-item label="系统架构">
+                  <el-select v-model="formData.monitorSysGenServerOsArch" placeholder="选择架构" style="width: 100%"
+                    :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osArch">
+                    <el-option label="x86_64 (64位)" value="x86_64">
+                      <div class="arch-option">
+                        <IconifyIconOnline icon="ri:cpu-line" />
+                        <span>x86_64 (64位)</span>
+                      </div>
+                    </el-option>
+                    <el-option label="aarch64 (ARM64)" value="aarch64">
+                      <div class="arch-option">
+                        <IconifyIconOnline icon="ri:cpu-line" />
+                        <span>aarch64 (ARM64)</span>
+                      </div>
+                    </el-option>
+                    <el-option label="i386 (32位)" value="i386">
+                      <div class="arch-option">
+                        <IconifyIconOnline icon="ri:cpu-line" />
+                        <span>i386 (32位)</span>
+                      </div>
+                    </el-option>
+                    <el-option label="armv7l (ARM32)" value="armv7l">
+                      <div class="arch-option">
+                        <IconifyIconOnline icon="ri:cpu-line" />
+                        <span>armv7l (ARM32)</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
 
                 <!-- 额外IP地址配置 -->
                 <el-form-item label="额外IP地址">
                   <div class="extra-ips-container">
-                    <div
-                      v-for="(ip, index) in formData.monitorSysGenServerIpAddresses"
-                      :key="index"
-                      class="extra-ip-item"
-                    >
-                      <el-input
-                        v-model="formData.monitorSysGenServerIpAddresses[index]"
-                        placeholder="请输入IP地址"
-                        clearable
-                        size="small"
-                      >
+                    <div v-for="(ip, index) in formData.monitorSysGenServerIpAddresses" :key="index"
+                      class="extra-ip-item">
+                      <el-input v-model="formData.monitorSysGenServerIpAddresses[index]" placeholder="请输入IP地址" clearable>
                         <template #prefix>
                           <IconifyIconOnline icon="ri:global-line" />
                         </template>
                       </el-input>
-                      <el-button
-                        type="danger"
-                        size="small"
-                        text
-                        @click="removeExtraIp(index)"
-                        :disabled="formData.monitorSysGenServerIpAddresses.length <= 1"
-                      >
+                      <el-button type="danger" size="small" text @click="removeExtraIp(index)"
+                        :disabled="formData.monitorSysGenServerIpAddresses.length <= 1">
                         <IconifyIconOnline icon="ri:delete-bin-line" />
                       </el-button>
                     </div>
-                    <el-button
-                      type="primary"
-                      size="small"
-                      text
-                      @click="addExtraIp"
-                      class="add-ip-btn"
-                    >
+                    <el-button type="primary" size="small" text @click="addExtraIp" class="add-ip-btn">
                       <IconifyIconOnline icon="ri:add-line" class="mr-1" />
                       添加IP
                     </el-button>
@@ -534,11 +413,7 @@
               </div>
               <div class="section-content">
                 <el-form-item label="用户名" prop="monitorSysGenServerUsername">
-                  <el-input
-                    v-model="formData.monitorSysGenServerUsername"
-                    placeholder="请输入用户名"
-                    clearable
-                  >
+                  <el-input v-model="formData.monitorSysGenServerUsername" placeholder="请输入用户名" clearable>
                     <template #prefix>
                       <IconifyIconOnline icon="ri:user-line" />
                     </template>
@@ -546,11 +421,7 @@
                 </el-form-item>
 
                 <el-form-item label="认证方式" prop="monitorSysGenServerAuthType">
-                  <el-select
-                    v-model="formData.monitorSysGenServerAuthType"
-                    placeholder="选择认证方式"
-                    style="width: 100%"
-                  >
+                  <el-select v-model="formData.monitorSysGenServerAuthType" placeholder="选择认证方式" style="width: 100%">
                     <el-option label="密码认证" value="password">
                       <div class="auth-option">
                         <IconifyIconOnline icon="ri:lock-password-line" />
@@ -566,45 +437,26 @@
                   </el-select>
                 </el-form-item>
 
-                <el-form-item
-                  v-if="formData.monitorSysGenServerAuthType === 'password'"
-                  label="密码"
-                  prop="monitorSysGenServerPassword"
-                >
-                  <el-input
-                    v-model="formData.monitorSysGenServerPassword"
-                    type="password"
-                    placeholder="请输入密码"
-                    show-password
-                    clearable
-                  >
+                <el-form-item v-if="formData.monitorSysGenServerAuthType === 'password'" label="密码"
+                  prop="monitorSysGenServerPassword">
+                  <el-input v-model="formData.monitorSysGenServerPassword" type="password" placeholder="请输入密码"
+                    show-password clearable>
                     <template #prefix>
                       <IconifyIconOnline icon="ri:lock-line" />
                     </template>
                   </el-input>
                 </el-form-item>
 
-                <el-form-item
-                  v-if="formData.monitorSysGenServerAuthType === 'key'"
-                  label="私钥"
-                  prop="monitorSysGenServerPrivateKey"
-                >
-                  <el-input
-                    v-model="formData.monitorSysGenServerPrivateKey"
-                    type="textarea"
-                    :rows="3"
-                    placeholder="请输入SSH私钥内容"
-                  />
+                <el-form-item v-if="formData.monitorSysGenServerAuthType === 'key'" label="私钥"
+                  prop="monitorSysGenServerPrivateKey">
+                  <el-input v-model="formData.monitorSysGenServerPrivateKey" type="textarea" :rows="3"
+                    placeholder="请输入SSH私钥内容" />
                 </el-form-item>
 
                 <!-- 协议特定配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'SSH'">
                   <el-form-item label="字符编码">
-                    <el-select
-                      v-model="formData.monitorSysGenServerCharset"
-                      placeholder="选择字符编码"
-                      style="width: 100%"
-                    >
+                    <el-select v-model="formData.monitorSysGenServerCharset" placeholder="选择字符编码" style="width: 100%">
                       <el-option label="UTF-8" value="UTF-8" />
                       <el-option label="GBK" value="GBK" />
                       <el-option label="GB2312" value="GB2312" />
@@ -612,26 +464,15 @@
                   </el-form-item>
 
                   <el-form-item label="连接超时">
-                    <el-input-number
-                      v-model="formData.monitorSysGenServerTimeout"
-                      :min="1000"
-                      :max="60000"
-                      :step="1000"
-                      placeholder="毫秒"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="formData.monitorSysGenServerTimeout" :min="1000" :max="60000" :step="1000"
+                      placeholder="毫秒" style="width: 100%" />
                   </el-form-item>
                 </template>
 
                 <template v-if="formData.monitorSysGenServerProtocol === 'VNC'">
                   <el-form-item label="VNC密码">
-                    <el-input
-                      v-model="formData.monitorSysGenServerVncPassword"
-                      type="password"
-                      placeholder="请输入VNC密码"
-                      show-password
-                      clearable
-                    >
+                    <el-input v-model="formData.monitorSysGenServerVncPassword" type="password" placeholder="请输入VNC密码"
+                      show-password clearable>
                       <template #prefix>
                         <IconifyIconOnline icon="ri:lock-line" />
                       </template>
@@ -652,49 +493,29 @@
               <div class="section-content">
                 <el-form-item label="状态">
                   <div class="switch-wrapper">
-                    <el-switch
-                      v-model="formData.monitorSysGenServerStatus"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="启用"
-                      inactive-text="禁用"
-                    />
+                    <el-switch v-model="formData.monitorSysGenServerStatus" :active-value="1" :inactive-value="0"
+                      active-text="启用" inactive-text="禁用" />
                   </div>
                 </el-form-item>
 
                 <el-form-item label="启用监控">
                   <div class="switch-wrapper">
-                    <el-switch
-                      v-model="formData.monitorSysGenServerMonitorEnabled"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="开启"
-                      inactive-text="关闭"
-                    />
+                    <el-switch v-model="formData.monitorSysGenServerMonitorEnabled" :active-value="1"
+                      :inactive-value="0" active-text="开启" inactive-text="关闭" />
                   </div>
                 </el-form-item>
 
                 <el-form-item label="指标支持">
                   <div class="switch-wrapper">
-                    <el-switch
-                      v-model="formData.monitorSysGenServerMetricsSupport"
-                      :active-value="true"
-                      :inactive-value="false"
-                      active-text="支持"
-                      inactive-text="不支持"
-                    />
+                    <el-switch v-model="formData.monitorSysGenServerMetricsSupport" :active-value="true"
+                      :inactive-value="false" active-text="支持" inactive-text="不支持" />
                   </div>
                 </el-form-item>
 
                 <el-form-item label="数据上报">
                   <div class="switch-wrapper">
-                    <el-switch
-                      v-model="formData.monitorSysGenServerReportEnabled"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="启用"
-                      inactive-text="禁用"
-                    />
+                    <el-switch v-model="formData.monitorSysGenServerReportEnabled" :active-value="1" :inactive-value="0"
+                      active-text="启用" inactive-text="禁用" />
                     <el-tooltip content="是否需要上报服务器数据" placement="top">
                       <IconifyIconOnline icon="ri:question-line" class="ml-2 text-gray-400" />
                     </el-tooltip>
@@ -702,29 +523,17 @@
                 </el-form-item>
 
                 <el-form-item label="上报方式" v-if="formData.monitorSysGenServerReportEnabled">
-                  <el-select
-                    v-model="formData.monitorSysGenServerDataReportMethod"
-                    placeholder="选择数据上报方式"
-                    style="width: 100%"
-                    @change="handleReportMethodChange"
-                  >
+                  <el-select v-model="formData.monitorSysGenServerDataReportMethod" placeholder="选择数据上报方式"
+                    style="width: 100%" @change="handleReportMethodChange">
                     <el-option label="不支持上报" value="NONE" />
                     <!-- 本机服务器显示本地上报，远程服务器显示接口上报 -->
-                    <el-option
-                      v-if="osInfo && osInfo.isLocal"
-                      label="本地上报"
-                      value="LOCAL"
-                    >
+                    <el-option v-if="formData.monitorSysGenServerIsLocal === 1" label="本地上报" value="LOCAL">
                       <div class="option-content">
                         <span>本地上报</span>
                         <el-tag type="success" size="small" effect="light" class="ml-2">推荐</el-tag>
                       </div>
                     </el-option>
-                    <el-option
-                      v-if="!osInfo || !osInfo.isLocal"
-                      label="接口上报"
-                      value="API"
-                    />
+                    <el-option v-if="formData.monitorSysGenServerIsLocal !== 1 " label="接口上报" value="API" />
                     <el-option label="Prometheus" value="PROMETHEUS" />
                   </el-select>
                 </el-form-item>
@@ -732,11 +541,8 @@
                 <!-- Prometheus配置 -->
                 <template v-if="formData.monitorSysGenServerDataReportMethod === 'PROMETHEUS'">
                   <el-form-item label="Prometheus地址" prop="monitorSysGenServerPrometheusHost">
-                    <el-input
-                      v-model="formData.monitorSysGenServerPrometheusHost"
-                      placeholder="请输入Prometheus服务器地址"
-                      clearable
-                    >
+                    <el-input v-model="formData.monitorSysGenServerPrometheusHost" placeholder="请输入Prometheus服务器地址"
+                      clearable>
                       <template #prefix>
                         <IconifyIconOnline icon="ri:server-line" />
                       </template>
@@ -744,54 +550,30 @@
                   </el-form-item>
 
                   <el-form-item label="Prometheus端口" prop="monitorSysGenServerPrometheusPort">
-                    <el-input-number
-                      v-model="formData.monitorSysGenServerPrometheusPort"
-                      :min="1"
-                      :max="65535"
-                      placeholder="端口号"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="formData.monitorSysGenServerPrometheusPort" :min="1" :max="65535"
+                      placeholder="端口号" style="width: 100%" />
                   </el-form-item>
                 </template>
 
                 <el-form-item label="代理配置">
                   <div class="proxy-selection-container">
-                    <el-select
-                      v-model="formData.monitorSysGenServerProxyId"
-                      placeholder="选择代理配置"
-                      style="width: 100%"
-                      clearable
-                      filterable
-                      @change="handleProxyChange"
-                      :loading="proxyListLoading"
-                    >
+                    <el-select v-model="formData.monitorSysGenServerProxyId" placeholder="选择代理配置" style="width: 100%"
+                      clearable filterable @change="handleProxyChange" :loading="proxyListLoading">
                       <el-option label="无代理" :value="null">
                         <div class="proxy-option">
                           <IconifyIconOnline icon="ri:close-line" class="proxy-option-icon" />
                           <span>无代理</span>
                         </div>
                       </el-option>
-                      <el-option-group
-                        v-for="group in groupedProxyList"
-                        :key="group.type"
-                        :label="group.label"
-                      >
-                        <el-option
-                          v-for="proxy in group.proxies"
-                          :key="proxy.proxyId"
-                          :label="proxy.proxyName"
-                          :value="proxy.proxyId"
-                        >
+                      <el-option-group v-for="group in groupedProxyList" :key="group.type" :label="group.label">
+                        <el-option v-for="proxy in group.proxies" :key="proxy.proxyId" :label="proxy.proxyName"
+                          :value="proxy.proxyId">
                           <div class="proxy-option">
                             <IconifyIconOnline :icon="getProxyTypeIcon(proxy.proxyType)" class="proxy-option-icon" />
                             <span class="proxy-name">{{ proxy.proxyName }}</span>
                             <span class="proxy-address">{{ proxy.proxyHost }}:{{ proxy.proxyPort }}</span>
-                            <el-tag
-                              :type="proxy.proxyStatus === 1 ? 'success' : 'danger'"
-                              size="small"
-                              effect="light"
-                              v-if="proxy.proxyStatus !== undefined"
-                            >
+                            <el-tag :type="proxy.proxyStatus === 1 ? 'success' : 'danger'" size="small" effect="light"
+                              v-if="proxy.proxyStatus !== undefined">
                               {{ proxy.proxyStatus === 1 ? '正常' : '异常' }}
                             </el-tag>
                           </div>
@@ -802,21 +584,12 @@
                     <!-- 代理管理按钮 -->
                     <div class="proxy-actions">
                       <el-tooltip content="刷新代理列表" placement="top">
-                        <el-button
-                          size="small"
-                          text
-                          @click="loadProxyList"
-                          :loading="proxyListLoading"
-                        >
+                        <el-button size="small" text @click="loadProxyList" :loading="proxyListLoading">
                           <IconifyIconOnline icon="ri:refresh-line" />
                         </el-button>
                       </el-tooltip>
                       <el-tooltip content="代理管理" placement="top">
-                        <el-button
-                          size="small"
-                          text
-                          @click="openProxyManagement"
-                        >
+                        <el-button size="small" text @click="openProxyManagement">
                           <IconifyIconOnline icon="ri:settings-line" />
                         </el-button>
                       </el-tooltip>
@@ -826,13 +599,8 @@
 
                 <!-- 选中代理的详细信息显示 -->
                 <div v-if="selectedProxy" class="selected-proxy-info">
-                  <el-alert
-                    :title="`已选择代理: ${selectedProxy.proxyName}`"
-                    type="info"
-                    effect="light"
-                    :closable="false"
-                    show-icon
-                  >
+                  <el-alert :title="`已选择代理: ${selectedProxy.proxyName}`" type="info" effect="light" :closable="false"
+                    show-icon>
                     <template #default>
                       <div class="proxy-info-details">
                         <div class="proxy-info-item">
@@ -849,11 +617,8 @@
                         </div>
                         <div class="proxy-info-item" v-if="selectedProxy.proxyStatus !== undefined">
                           <span class="label">状态:</span>
-                          <el-tag
-                            :type="selectedProxy.proxyStatus === 1 ? 'success' : 'danger'"
-                            size="small"
-                            effect="light"
-                          >
+                          <el-tag :type="selectedProxy.proxyStatus === 1 ? 'success' : 'danger'" size="small"
+                            effect="light">
                             {{ selectedProxy.proxyStatus === 1 ? '连接正常' : '连接异常' }}
                           </el-tag>
                         </div>
@@ -865,31 +630,18 @@
                 <!-- RDP特有配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
                   <el-form-item label="屏幕宽度">
-                    <el-input-number
-                      v-model="formData.monitorSysGenServerWidth"
-                      :min="800"
-                      :max="1920"
-                      placeholder="像素"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="formData.monitorSysGenServerWidth" :min="800" :max="1920" placeholder="像素"
+                      style="width: 100%" />
                   </el-form-item>
 
                   <el-form-item label="屏幕高度">
-                    <el-input-number
-                      v-model="formData.monitorSysGenServerHeight"
-                      :min="600"
-                      :max="1080"
-                      placeholder="像素"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="formData.monitorSysGenServerHeight" :min="600" :max="1080"
+                      placeholder="像素" style="width: 100%" />
                   </el-form-item>
 
                   <el-form-item label="颜色深度">
-                    <el-select
-                      v-model="formData.monitorSysGenServerColorDepth"
-                      placeholder="选择颜色深度"
-                      style="width: 100%"
-                    >
+                    <el-select v-model="formData.monitorSysGenServerColorDepth" placeholder="选择颜色深度"
+                      style="width: 100%">
                       <el-option label="16位" value="16" />
                       <el-option label="24位" value="24" />
                       <el-option label="32位" value="32" />
@@ -901,13 +653,8 @@
                 <template v-if="formData.monitorSysGenServerProtocol === 'VNC'">
                   <el-form-item label="只读模式">
                     <div class="switch-wrapper">
-                      <el-switch
-                        v-model="formData.monitorSysGenServerReadOnly"
-                        :active-value="1"
-                        :inactive-value="0"
-                        active-text="是"
-                        inactive-text="否"
-                      />
+                      <el-switch v-model="formData.monitorSysGenServerReadOnly" :active-value="1" :inactive-value="0"
+                        active-text="是" inactive-text="否" />
                     </div>
                   </el-form-item>
                 </template>
@@ -915,13 +662,8 @@
                 <!-- Docker配置 -->
                 <el-form-item label="Docker支持">
                   <div class="switch-wrapper">
-                    <el-switch
-                      v-model="formData.monitorSysGenServerDockerEnabled"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="支持"
-                      inactive-text="不支持"
-                    />
+                    <el-switch v-model="formData.monitorSysGenServerDockerEnabled" :active-value="1" :inactive-value="0"
+                      active-text="支持" inactive-text="不支持" />
                     <el-tooltip content="是否支持Docker容器管理" placement="top">
                       <IconifyIconOnline icon="ri:question-line" class="ml-2 text-gray-400" />
                     </el-tooltip>
@@ -929,15 +671,9 @@
                 </el-form-item>
 
                 <!-- Docker连接方式 -->
-                <el-form-item
-                  label="Docker连接方式"
-                  v-if="formData.monitorSysGenServerDockerEnabled"
-                >
-                  <el-select
-                    v-model="formData.monitorSysGenServerDockerConnectionType"
-                    placeholder="选择Docker连接方式"
-                    style="width: 100%"
-                  >
+                <el-form-item label="Docker连接方式" v-if="formData.monitorSysGenServerDockerEnabled">
+                  <el-select v-model="formData.monitorSysGenServerDockerConnectionType" placeholder="选择Docker连接方式"
+                    style="width: 100%">
                     <el-option label="Shell命令" value="SHELL">
                       <div class="docker-option">
                         <IconifyIconOnline icon="ri:terminal-line" />
@@ -954,13 +690,10 @@
                 </el-form-item>
 
                 <!-- Docker TCP配置 -->
-                <template v-if="formData.monitorSysGenServerDockerEnabled && formData.monitorSysGenServerDockerConnectionType === 'TCP'">
+                <template
+                  v-if="formData.monitorSysGenServerDockerEnabled && formData.monitorSysGenServerDockerConnectionType === 'TCP'">
                   <el-form-item label="Docker主机" prop="monitorSysGenServerDockerHost">
-                    <el-input
-                      v-model="formData.monitorSysGenServerDockerHost"
-                      placeholder="请输入Docker主机地址"
-                      clearable
-                    >
+                    <el-input v-model="formData.monitorSysGenServerDockerHost" placeholder="请输入Docker主机地址" clearable>
                       <template #prefix>
                         <IconifyIconOnline icon="ri:server-line" />
                       </template>
@@ -968,23 +701,14 @@
                   </el-form-item>
 
                   <el-form-item label="Docker端口" prop="monitorSysGenServerDockerPort">
-                    <el-input-number
-                      v-model="formData.monitorSysGenServerDockerPort"
-                      :min="1"
-                      :max="65535"
-                      placeholder="端口号"
-                      style="width: 100%"
-                    />
+                    <el-input-number v-model="formData.monitorSysGenServerDockerPort" :min="1" :max="65535"
+                      placeholder="端口号" style="width: 100%" />
                   </el-form-item>
                 </template>
 
                 <el-form-item label="描述">
-                  <el-input
-                    v-model="formData.monitorSysGenServerDescription"
-                    type="textarea"
-                    :rows="4"
-                    placeholder="请输入服务器描述信息"
-                  />
+                  <el-input v-model="formData.monitorSysGenServerDescription" type="textarea" :rows="4"
+                    placeholder="请输入服务器描述信息" />
                 </el-form-item>
               </div>
             </div>
@@ -998,33 +722,18 @@
     <template #footer>
       <div class="dialog-footer">
         <div class="footer-left">
-          <el-button
-            v-if="mode === 'edit'"
-            type="success"
-            :loading="testLoading"
-            @click="handleTest"
-            plain
-          >
+          <el-button v-if="mode === 'edit'" type="success" :loading="testLoading" @click="handleTest" plain>
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
             测试连接
           </el-button>
         </div>
         <div class="footer-right">
-          <el-button
-            @click="visible = false"
-          >
+          <el-button @click="visible = false">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             取消
           </el-button>
-          <el-button
-            type="primary"
-            :loading="loading"
-            @click="handleSubmit"
-          >
-            <IconifyIconOnline
-              :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
-              class="mr-1"
-            />
+          <el-button type="primary" :loading="loading" @click="handleSubmit">
+            <IconifyIconOnline :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'" class="mr-1" />
             {{ mode === 'add' ? '新增' : '保存' }}
           </el-button>
         </div>
@@ -1034,20 +743,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, computed, onMounted } from "vue";
-import { message } from "@repo/utils";
-import {
-  saveServer,
-  updateServer,
-  testServerConnection,
-  testLocalIpDetection,
-  type ServerDisplayData,
-  mapDisplayDataToSaveParams
-} from "@/api/server";
-import {
-  PROXY_TYPES
-} from "@/api/monitor/gen/proxy";
 import { type MonitorProxy, getProxyPageList } from "@/api/monitor/gen/proxy";
+import {
+  type ServerDisplayData,
+  saveServer,
+  testLocalIpDetection,
+  testServerConnection,
+  updateServer
+} from "@/api/server";
+import { message } from "@repo/utils";
+import { computed, nextTick, reactive, ref } from "vue";
 
 // 定义事件
 const emit = defineEmits<{
@@ -1144,26 +849,29 @@ const groupedProxyList = computed(() => {
 // 表单验证规则
 const rules = {
   monitorSysGenServerName: [
-    { required: true, message: "请输入服务器名称", trigger: "blur" },
-    { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" },
+    { required: true, message: "服务器名称不能为空", trigger: "blur" },
+    { min: 2, max: 255, message: "服务器名称最大长度要小于 255", trigger: "blur" },
   ],
   monitorSysGenServerHost: [
-    { required: true, message: "请输入服务器地址", trigger: "blur" },
+    { required: true, message: "服务器地址不能为空", trigger: "blur" },
     {
       pattern: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/,
       message: "请输入有效的IP地址或域名",
       trigger: "blur",
     },
+    { max: 255, message: "服务器主机地址最大长度要小于 255", trigger: "blur" },
   ],
   monitorSysGenServerPort: [
-    { required: true, message: "请输入端口号", trigger: "blur" },
+    { required: true, message: "端口号不能为空", trigger: "blur" },
     { type: "number", min: 1, max: 65535, message: "端口号范围 1-65535", trigger: "blur" },
   ],
   monitorSysGenServerProtocol: [
-    { required: true, message: "请选择协议类型", trigger: "change" },
+    { required: true, message: "连接协议不能为空", trigger: "change" },
+    { max: 50, message: "连接协议最大长度要小于 50", trigger: "blur" },
   ],
   monitorSysGenServerUsername: [
-    { required: true, message: "请输入用户名", trigger: "blur" },
+    { required: true, message: "用户名不能为空", trigger: "blur" },
+    { max: 255, message: "用户名最大长度要小于 255", trigger: "blur" },
   ],
   monitorSysGenServerAuthType: [
     { required: true, message: "请选择认证方式", trigger: "change" },
@@ -1373,9 +1081,9 @@ const handleOsTypeChange = () => {
     if (osType.toLowerCase().includes('windows')) {
       formData.monitorSysGenServerOsArch = 'x86_64';
     } else if (osType.toLowerCase().includes('ubuntu') ||
-               osType.toLowerCase().includes('debian') ||
-               osType.toLowerCase().includes('centos') ||
-               osType.toLowerCase().includes('rhel')) {
+      osType.toLowerCase().includes('debian') ||
+      osType.toLowerCase().includes('centos') ||
+      osType.toLowerCase().includes('rhel')) {
       formData.monitorSysGenServerOsArch = 'x86_64';
     } else if (osType.toLowerCase().includes('macos')) {
       formData.monitorSysGenServerOsArch = 'aarch64'; // 新的Mac通常是ARM架构
@@ -1614,7 +1322,23 @@ const openProxyManagement = () => {
  */
 const handleSubmit = async () => {
   try {
-    await formRef.value?.validate();
+    // 表单验证
+    const isValid = await formRef.value?.validate().catch((error) => {
+      console.log("表单验证失败:", error);
+      // 显示第一个验证错误
+      if (error && typeof error === 'object') {
+        const firstErrorField = Object.keys(error)[0];
+        const firstError = error[firstErrorField];
+        if (firstError && firstError.length > 0) {
+          message.error(firstError[0].message);
+        }
+      }
+      return false;
+    });
+
+    if (!isValid) {
+      return;
+    }
 
     loading.value = true;
 
@@ -1652,12 +1376,19 @@ const handleSubmit = async () => {
       visible.value = false;
       emit("success");
     } else {
-      message.error(res.msg || "操作失败");
+      // 显示具体的验证错误信息
+      const errorMessage = res.msg || "操作失败";
+      message.error(errorMessage);
     }
   } catch (error) {
     console.error("保存服务器配置出错:", error);
     if (error !== false) { // 表单验证失败时不显示错误消息
-      message.error("操作异常，请稍后重试");
+      // 检查是否是网络错误或其他API错误
+      if (error && error.response && error.response.data && error.response.data.msg) {
+        message.error(error.response.data.msg);
+      } else {
+        message.error("操作异常，请稍后重试");
+      }
     }
   } finally {
     loading.value = false;
@@ -1805,6 +1536,23 @@ defineExpose({
     &:last-child {
       margin-bottom: 0;
     }
+
+    // 错误状态样式
+    &.is-error {
+      .el-form-item__label {
+        color: var(--el-color-danger);
+      }
+
+      .el-input__wrapper {
+        border-color: var(--el-color-danger);
+        box-shadow: 0 0 0 1px var(--el-color-danger-light-7);
+      }
+
+      .el-select .el-input__wrapper {
+        border-color: var(--el-color-danger);
+        box-shadow: 0 0 0 1px var(--el-color-danger-light-7);
+      }
+    }
   }
 
   :deep(.el-form-item__label) {
@@ -1813,6 +1561,14 @@ defineExpose({
     font-size: 13px;
     line-height: 1.4;
     padding-bottom: 4px;
+  }
+
+  // 错误消息样式
+  :deep(.el-form-item__error) {
+    font-size: 12px;
+    color: var(--el-color-danger);
+    padding-top: 4px;
+    line-height: 1.4;
   }
 
   :deep(.el-input__wrapper) {
@@ -2305,6 +2061,7 @@ defineExpose({
     opacity: 0;
     transform: translateY(-20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -2321,6 +2078,7 @@ defineExpose({
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -254,4 +254,264 @@ html.dark {
     }
   }
 
+  /* 布局背景色修复 */
+  .bg-layout .layout,
+  .layout-content,
+  .ant-layout-content {
+    background-color: #141414 !important;
+  }
+
+  /* Ant Design 布局组件暗黑模式适配 */
+  .ant-layout {
+    background-color: #141414;
+  }
+
+  .ant-layout-sider {
+    background-color: #001529;
+  }
+
+  /* Element Plus 布局组件暗黑模式适配 */
+  .el-main {
+    background-color: #141414;
+  }
+
+  /* 确保内容区域背景色正确 */
+  .manage-container,
+  .manage-layout,
+  .manage-main {
+    background-color: #141414;
+  }
+
+  /* 表格暗黑模式适配 */
+  .el-table {
+    background-color: var(--el-bg-color-overlay);
+
+    th,
+    td {
+      background-color: var(--el-bg-color-overlay);
+      border-color: var(--el-border-color);
+    }
+  }
+
+  /* 输入框暗黑模式适配 */
+  .el-input__wrapper {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 对话框暗黑模式适配 */
+  .el-dialog {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 抽屉暗黑模式适配 */
+  .el-drawer {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 菜单暗黑模式适配 */
+  .el-menu {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 下拉菜单暗黑模式适配 */
+  .el-dropdown-menu {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 工具提示暗黑模式适配 */
+  .el-tooltip__popper {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 分页器暗黑模式适配 */
+  .el-pagination {
+    background-color: transparent;
+  }
+
+  /* 标签页暗黑模式适配 */
+  .el-tabs__header {
+    background-color: transparent;
+  }
+
+  /* 面包屑暗黑模式适配 */
+  .el-breadcrumb {
+    background-color: transparent;
+  }
+
+  /* 步骤条暗黑模式适配 */
+  .el-steps {
+    background-color: transparent;
+  }
+
+  /* 时间线暗黑模式适配 */
+  .el-timeline {
+    background-color: transparent;
+  }
+
+  /* 树形控件暗黑模式适配 */
+  .el-tree {
+    background-color: transparent;
+  }
+
+  /* 穿梭框暗黑模式适配 */
+  .el-transfer {
+    background-color: transparent;
+  }
+
+  /* 日历暗黑模式适配 */
+  .el-calendar {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 描述列表暗黑模式适配 */
+  .el-descriptions {
+    background-color: transparent;
+  }
+
+  /* 结果页暗黑模式适配 */
+  .el-result {
+    background-color: transparent;
+  }
+
+  /* 空状态暗黑模式适配 */
+  .el-empty {
+    background-color: transparent;
+  }
+
+  /* 骨架屏暗黑模式适配 */
+  .el-skeleton {
+    background-color: transparent;
+  }
+
+  /* 回到顶部暗黑模式适配 */
+  .el-backtop {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 页面头部暗黑模式适配 */
+  .el-page-header {
+    background-color: transparent;
+  }
+
+  /* 统计数值暗黑模式适配 */
+  .el-statistic {
+    background-color: transparent;
+  }
+
+  /* 头像暗黑模式适配 */
+  .el-avatar {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 徽章暗黑模式适配 */
+  .el-badge {
+    background-color: transparent;
+  }
+
+  /* 标签暗黑模式适配 */
+  .el-tag {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 进度条暗黑模式适配 */
+  .el-progress {
+    background-color: transparent;
+  }
+
+  /* 滑块暗黑模式适配 */
+  .el-slider {
+    background-color: transparent;
+  }
+
+  /* 评分暗黑模式适配 */
+  .el-rate {
+    background-color: transparent;
+  }
+
+  /* 颜色选择器暗黑模式适配 */
+  .el-color-picker {
+    background-color: transparent;
+  }
+
+  /* 上传组件暗黑模式适配 */
+  .el-upload {
+    background-color: transparent;
+  }
+
+  /* 图片预览暗黑模式适配 */
+  .el-image-viewer__wrapper {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+
+  /* 加载中暗黑模式适配 */
+  .el-loading-mask {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  /* 消息提示暗黑模式适配 */
+  .el-message {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 通知暗黑模式适配 */
+  .el-notification {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 确认框暗黑模式适配 */
+  .el-message-box {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 抽屉暗黑模式适配 */
+  .el-drawer__body {
+    background-color: var(--el-bg-color-overlay);
+  }
+
+  /* 气泡确认框暗黑模式适配 */
+  .el-popconfirm {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+
+  /* 气泡卡片暗黑模式适配 */
+  .el-popover {
+    background-color: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+  }
+}
+
+/* 深色主题下的滚动条样式 */
+html.dark {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
+  /* 确保暗黑模式下的文本颜色正确 */
+  color: var(--el-text-color-primary);
 }
