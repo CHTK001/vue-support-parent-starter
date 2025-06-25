@@ -8,7 +8,7 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { t } from "@/i18n";
+import { t } from "@repo/config";
 import { GlobalWindow } from "@/interface/common";
 import { IResponse } from "@/interface/request";
 import { base64Encode } from "@/utils/check-type";

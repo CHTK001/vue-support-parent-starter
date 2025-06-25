@@ -168,7 +168,7 @@ export default [
       {
         path: "/server/index",
         name: "serverIndex",
-        component: () => import("@/views/server/index.vue"),
+        component: () => import("@/views/server/modules/server-management/index.vue"),
         meta: {
           icon: "ri:server-line",
           title: $t("buttons.monitor.server-management"),

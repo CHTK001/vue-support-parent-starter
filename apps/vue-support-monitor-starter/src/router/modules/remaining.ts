@@ -91,5 +91,15 @@ export default [
       title: $t("buttons.monitor.datav"),
       showLink: false
     }
+  },
+  {
+    path: "/full-terminal",
+    name: "fullTerminal",
+    component: () => import("@/views/maintenance/ssh/full-terminal.vue"),
+    meta: {
+      icon: "ep:full-screen",
+      title: "SSH 全屏终端",
+      showLink: false
+    }
   }
 ] satisfies Array<RouteConfigsTable>;

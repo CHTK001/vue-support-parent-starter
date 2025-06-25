@@ -14,6 +14,7 @@ import 'xterm/lib/xterm.js'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { AttachAddon } from 'xterm-addon-attach'
+import { Unicode11Addon } from 'xterm-addon-unicode11'
 
 // https://blog.csdn.net/qq_41840688/article/details/108636267
 
@@ -120,10 +121,13 @@ export default {
       // const attachAddon = new AttachAddon(this.socket, { bidirectional: false });
       const attachAddon = new AttachAddon(this.socket)
       const fitAddon = new FitAddon()
-      attachAddon.activate(this.terminal)
-      fitAddon.activate(this.terminal)
-      // this.terminal.loadAddon(attachAddon)
-      // this.terminal.loadAddon(fitAddon)
+      const unicode11Addon = new Unicode11Addon()
+
+      // 在xterm 5.x中使用loadAddon方法
+      this.terminal.loadAddon(attachAddon)
+      this.terminal.loadAddon(fitAddon)
+      this.terminal.loadAddon(unicode11Addon)
+
       this.terminal.open(document.getElementById(this.domId))
       this.terminal.focus()
       // fitAddon.fit();

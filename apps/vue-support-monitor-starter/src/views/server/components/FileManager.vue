@@ -178,7 +178,7 @@ import { ElMessageBox } from "element-plus";
 
 // Props
 const props = defineProps<{
-  server: any;
+  server?: any;
 }>();
 
 // Emits

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.monitor.starter.mapper.MonitorSysGenServerProxyMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.chua.starter.monitor.starter.entity.MonitorSysGenServerProxy">
+        <id column="monitor_sys_gen_server_proxy_id" property="monitorSysGenServerProxyId" />
+        <result column="monitor_sys_gen_server_proxy_name" property="monitorSysGenServerProxyName" />
+        <result column="monitor_sys_gen_server_proxy_type" property="monitorSysGenServerProxyType" />
+        <result column="monitor_sys_gen_server_proxy_host" property="monitorSysGenServerProxyHost" />
+        <result column="monitor_sys_gen_server_proxy_port" property="monitorSysGenServerProxyPort" />
+        <result column="monitor_sys_gen_server_proxy_username" property="monitorSysGenServerProxyUsername" />
+        <result column="monitor_sys_gen_server_proxy_password" property="monitorSysGenServerProxyPassword" />
+        <result column="monitor_sys_gen_server_proxy_status" property="monitorSysGenServerProxyStatus" />
+        <result column="monitor_sys_gen_server_proxy_description" property="monitorSysGenServerProxyDescription" />
+        <result column="monitor_sys_gen_server_proxy_timeout" property="monitorSysGenServerProxyTimeout" />
+        <result column="monitor_sys_gen_server_proxy_auth_required" property="monitorSysGenServerProxyAuthRequired" />
+        <result column="monitor_sys_gen_server_proxy_tags" property="monitorSysGenServerProxyTags" />
+        <result column="monitor_sys_gen_server_proxy_last_test_time" property="monitorSysGenServerProxyLastTestTime" />
+        <result column="monitor_sys_gen_server_proxy_test_result" property="monitorSysGenServerProxyTestResult" />
+        <result column="monitor_sys_gen_server_proxy_test_latency" property="monitorSysGenServerProxyTestLatency" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        monitor_sys_gen_server_proxy_id,
+        monitor_sys_gen_server_proxy_name,
+        monitor_sys_gen_server_proxy_type,
+        monitor_sys_gen_server_proxy_host,
+        monitor_sys_gen_server_proxy_port,
+        monitor_sys_gen_server_proxy_username,
+        monitor_sys_gen_server_proxy_password,
+        monitor_sys_gen_server_proxy_status,
+        monitor_sys_gen_server_proxy_description,
+        monitor_sys_gen_server_proxy_timeout,
+        monitor_sys_gen_server_proxy_auth_required,
+        monitor_sys_gen_server_proxy_tags,
+        monitor_sys_gen_server_proxy_last_test_time,
+        monitor_sys_gen_server_proxy_test_result,
+        monitor_sys_gen_server_proxy_test_latency,
+        create_time,
+        update_time,
+        create_by,
+        update_by
+    </sql>
+
+    <!-- 获取启用的代理列表 -->
+    <select id="getEnabledProxyList" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM monitor_sys_gen_server_proxy
+        WHERE monitor_sys_gen_server_proxy_status = 1
+        ORDER BY monitor_sys_gen_server_proxy_name ASC
+    </select>
+
+    <!-- 根据代理类型获取代理列表 -->
+    <select id="getProxyListByType" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM monitor_sys_gen_server_proxy
+        WHERE monitor_sys_gen_server_proxy_status = 1
+        <if test="proxyType != null and proxyType != ''">
+            AND monitor_sys_gen_server_proxy_type = #{proxyType}
+        </if>
+        ORDER BY monitor_sys_gen_server_proxy_name ASC
+    </select>
+
+    <!-- 更新代理测试结果 -->
+    <update id="updateProxyTestResult">
+        UPDATE monitor_sys_gen_server_proxy
+        SET monitor_sys_gen_server_proxy_test_result = #{testResult},
+            monitor_sys_gen_server_proxy_test_latency = #{testLatency},
+            monitor_sys_gen_server_proxy_last_test_time = #{testTime},
+            update_time = NOW()
+        WHERE monitor_sys_gen_server_proxy_id = #{proxyId}
+    </update>
+
+    <!-- 获取代理统计信息 -->
+    <select id="getProxyStatistics" resultType="map">
+        SELECT 
+            COUNT(*) as totalCount,
+            SUM(CASE WHEN monitor_sys_gen_server_proxy_status = 1 THEN 1 ELSE 0 END) as enabledCount,
+            SUM(CASE WHEN monitor_sys_gen_server_proxy_status = 0 THEN 1 ELSE 0 END) as disabledCount,
+            SUM(CASE WHEN monitor_sys_gen_server_proxy_test_result = 1 THEN 1 ELSE 0 END) as successCount,
+            SUM(CASE WHEN monitor_sys_gen_server_proxy_test_result = 0 THEN 1 ELSE 0 END) as failedCount,
+            COUNT(DISTINCT monitor_sys_gen_server_proxy_type) as typeCount
+        FROM monitor_sys_gen_server_proxy
+    </select>
+
+    <!-- 根据标签获取代理列表 -->
+    <select id="getProxyListByTags" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM monitor_sys_gen_server_proxy
+        WHERE monitor_sys_gen_server_proxy_status = 1
+        <if test="tags != null and tags != ''">
+            AND (monitor_sys_gen_server_proxy_tags LIKE CONCAT('%', #{tags}, '%')
+                 OR monitor_sys_gen_server_proxy_tags IS NULL)
+        </if>
+        ORDER BY monitor_sys_gen_server_proxy_name ASC
+    </select>
+
+    <!-- 批量更新代理状态 -->
+    <update id="batchUpdateProxyStatus">
+        UPDATE monitor_sys_gen_server_proxy
+        SET monitor_sys_gen_server_proxy_status = #{status},
+            update_time = NOW()
+        WHERE monitor_sys_gen_server_proxy_id IN
+        <foreach collection="proxyIds" item="proxyId" open="(" separator="," close=")">
+            #{proxyId}
+        </foreach>
+    </update>
+
+</mapper>

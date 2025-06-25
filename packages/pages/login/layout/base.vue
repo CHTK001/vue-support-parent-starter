@@ -125,6 +125,9 @@ const handleTotpChange = async (data) => {
 };
 
 const handleTotpComplete = () => {
+  if (loading.value) {
+    return; // 如果正在登录中，不允许重复提交
+  }
   onLogin(currentFormEl.value);
   vcodeToptClose();
 };
@@ -135,10 +138,11 @@ const vcodeToptClose = () => {
 };
 const onLogin = async (formEl) => {
   vcodeClose();
-  if (!formEl) {
+  if (!formEl || loading.value) {
     return;
   }
 
+  // 验证码检查
   if (props.defaultSetting.openVerifyCode) {
     if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
@@ -146,9 +150,12 @@ const onLogin = async (formEl) => {
       return;
     }
   }
+
   await formEl.validate((valid, fields) => {
     if (valid) {
+      // 设置加载状态
       loading.value = true;
+
       useUserStoreHook()
         .loginByUsername({
           username: ruleForm.username,
@@ -160,7 +167,7 @@ const onLogin = async (formEl) => {
           accountType: props.accountType == 2 ? "tenant" : null,
         })
         .then((res) => {
-          // 获取后端路由
+          // 登录成功，获取后端路由
           return initRouter()
             .then(() => {
               router.push(getTopMenu(true).path).then(() => {
@@ -168,14 +175,30 @@ const onLogin = async (formEl) => {
               });
             })
             .catch((error) => {
+              // 路由初始化失败
+              message("路由初始化失败，请重试", { type: "error" });
               useUserStoreHook().logOut();
             });
         })
+        .catch((error) => {
+          // 登录失败
+          console.error("登录失败:", error);
+          message(error.message || "登录失败，请检查用户名和密码", { type: "error" });
+
+          // 刷新验证码
+          if (props.defaultSetting.openVerifyCode) {
+            getVerifyCode();
+          }
+        })
         .finally(() => {
+          // 无论成功还是失败，都要重置加载状态
           loading.value = false;
-          ruleForm.verifyCode = null;
+          ruleForm.verifyCode = "";
           vcodeRef.value?.reset();
         });
+    } else {
+      // 表单验证失败
+      console.log("表单验证失败:", fields);
     }
   });
 };
@@ -195,16 +218,64 @@ const vcodeClose = () => {
   vcodeRef.value?.reset();
 };
 function onSuccess() {
-  vcodeState.value = !0;
-  onLogin(currentFormEl.value);
-  currentFormEl.value = null;
-  vcodeRef.value?.reset();
-  vcodeClose();
+  vcodeState.value = true;
+
+  // 检查是否已经在登录中
+  if (loading.value) {
+    return;
+  }
+
+  // 添加成功反馈效果
+  const vcodeContainer = document.querySelector('.vcode-component-wrapper');
+  if (vcodeContainer) {
+    vcodeContainer.classList.add('vcode-success');
+
+    // 显示成功消息
+    message("验证成功！", { type: "success" });
+
+    // 延迟执行登录，让用户看到成功效果
+    setTimeout(() => {
+      if (!loading.value) { // 再次检查loading状态
+        onLogin(currentFormEl.value);
+        currentFormEl.value = null;
+        vcodeRef.value?.reset();
+        vcodeClose();
+
+        // 清除成功状态
+        vcodeContainer.classList.remove('vcode-success');
+      }
+    }, 1000);
+  } else {
+    // 如果找不到容器，直接执行登录
+    if (!loading.value) {
+      onLogin(currentFormEl.value);
+      currentFormEl.value = null;
+      vcodeRef.value?.reset();
+      vcodeClose();
+    }
+  }
 }
 
 function onFail() {
-  vcodeState.value = !1;
-  vcodeRef.value?.reset();
+  vcodeState.value = false;
+
+  // 添加失败反馈效果
+  const vcodeContainer = document.querySelector('.vcode-component-wrapper');
+  if (vcodeContainer) {
+    vcodeContainer.classList.add('vcode-error');
+
+    // 显示失败消息
+    message("验证失败，请重试", { type: "error" });
+
+    // 延迟重置，让用户看到失败效果
+    setTimeout(() => {
+      vcodeRef.value?.reset();
+      vcodeContainer.classList.remove('vcode-error');
+    }, 1500);
+  } else {
+    // 如果找不到容器，直接重置
+    vcodeRef.value?.reset();
+  }
 }
 
 onMounted(() => {
@@ -257,23 +328,83 @@ onBeforeUnmount(() => {
     <!-- 滑动验证码对话框 -->
     <el-dialog
       v-model="openVcode"
-      width="420px"
+      width="480px"
       draggable
-      title="安全验证"
+      title="滑动验证"
       @close="vcodeClose"
-      class="modern-dialog"
+      class="modern-dialog vcode-dialog"
+      append-to-body
     >
       <div v-if="props.defaultSetting.openVcode" class="vcode-container">
         <Motion :delay="150">
           <div class="vcode-wrapper">
-            <Vcode
-              ref="vcodeRef"
-              :show="props.defaultSetting.openVcode"
-              type="inside"
-              :puzzleScale="0.8"
-              @fail="onFail"
-              @success="onSuccess"
-            />
+            <!-- 验证说明 -->
+            <div class="verification-notice">
+              <div class="notice-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="notice-content">
+                <h4 class="notice-title">请完成安全验证</h4>
+                <p class="notice-desc">拖动滑块完成拼图验证</p>
+              </div>
+            </div>
+
+            <!-- 滑动验证组件 -->
+            <div class="vcode-component-wrapper">
+              <div class="vcode-header">
+                <div class="vcode-title">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>拼图验证</span>
+                </div>
+                <div class="vcode-subtitle">请拖动滑块完成拼图</div>
+              </div>
+
+              <div class="vcode-puzzle-area">
+                <Vcode
+                  ref="vcodeRef"
+                  :show="props.defaultSetting.openVcode"
+                  type="inside"
+                  :puzzleScale="0.8"
+                  @fail="onFail"
+                  @success="onSuccess"
+                />
+              </div>
+
+              <!-- 操作提示 -->
+              <div class="vcode-tips">
+                <div class="tip-item">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>拖动滑块到正确位置</span>
+                </div>
+                <div class="tip-item">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>仔细观察拼图缺口</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 验证状态提示 -->
+            <div class="verification-status">
+              <div class="status-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>安全验证保护您的账户</span>
+              </div>
+            </div>
           </div>
         </Motion>
       </div>
@@ -282,21 +413,55 @@ onBeforeUnmount(() => {
     <!-- TOTP验证码对话框 -->
     <el-dialog
       v-model="openToptcode"
-      width="380px"
+      width="480px"
       :close-on-click-modal="false"
       draggable
-      title="动态验证码"
+      title="动态验证码验证"
       @close="vcodeToptClose"
-      class="modern-dialog"
+      class="modern-dialog totp-dialog"
+      append-to-body
     >
       <div class="totp-container">
         <Motion :delay="150">
           <div class="totp-wrapper">
+            <!-- 安全提示 -->
+            <div class="security-notice">
+              <div class="notice-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="notice-text">为了您的账户安全，请输入动态验证码</p>
+            </div>
+
+            <!-- 验证码输入组件 -->
             <ScCode
               ref="scCodeRef"
+              :disabled="loading"
               @onComplete="handleTotpComplete"
               @onChange="handleTotpChange"
             />
+
+            <!-- 帮助信息 -->
+            <div class="help-info">
+              <div class="help-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>验证码每30秒更新一次</span>
+              </div>
+              <div class="help-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>支持粘贴验证码</span>
+              </div>
+            </div>
           </div>
         </Motion>
       </div>
@@ -374,6 +539,7 @@ onBeforeUnmount(() => {
                   <el-input
                     v-model="ruleForm.tenantId"
                     clearable
+                    :disabled="loading"
                     :placeholder="t('login.pureTenant')"
                     :prefix-icon="useRenderIcon('ri:lock-fill')"
                     class="modern-input"
@@ -400,6 +566,7 @@ onBeforeUnmount(() => {
                   <el-input
                     v-model="ruleForm.username"
                     clearable
+                    :disabled="loading"
                     :placeholder="t('login.pureUsername')"
                     :prefix-icon="useRenderIcon('ri:user-3-fill')"
                     class="modern-input"
@@ -417,6 +584,7 @@ onBeforeUnmount(() => {
                     v-model="ruleForm.password"
                     clearable
                     show-password
+                    :disabled="loading"
                     :placeholder="t('login.purePassword')"
                     :prefix-icon="useRenderIcon('ri:lock-fill')"
                     class="modern-input"
@@ -434,19 +602,24 @@ onBeforeUnmount(() => {
                     <el-input
                       v-model="ruleForm.verifyCode"
                       clearable
+                      :disabled="loading"
                       :placeholder="t('login.verifyCode')"
                       :prefix-icon="useRenderIcon('ri:lock-fill')"
                       class="modern-input"
                     />
                   </el-form-item>
-                  <div class="verify-code-image" @click="getVerifyCode">
+                  <div
+                    class="verify-code-image"
+                    :class="{ 'disabled': loading }"
+                    @click="!loading && getVerifyCode()"
+                  >
                     <el-image
                       :src="defaultVerifyCode.verifyCodeBase64"
                       fit="fill"
                       :lazy="true"
                       class="code-image"
                     />
-                    <div class="refresh-hint">点击刷新</div>
+                    <div class="refresh-hint">{{ loading ? '登录中...' : '点击刷新' }}</div>
                   </div>
                 </div>
               </div>
@@ -1038,12 +1211,28 @@ onBeforeUnmount(() => {
       border: 2px solid var(--el-border-color-lighter);
       transition: all 0.3s ease;
 
-      &:hover {
+      &:hover:not(.disabled) {
         border-color: var(--el-color-primary-light-7);
         transform: scale(1.02);
 
         .refresh-hint {
           opacity: 1;
+        }
+      }
+
+      &.disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        filter: grayscale(50%);
+
+        .code-image {
+          pointer-events: none;
+        }
+
+        .refresh-hint {
+          background: rgba(0, 0, 0, 0.8);
+          opacity: 1;
+          color: var(--el-color-warning);
         }
       }
 
@@ -1070,6 +1259,8 @@ onBeforeUnmount(() => {
         padding: 2px;
         opacity: 0;
         transition: opacity 0.3s ease;
+        text-align: center;
+        writing-mode: horizontal-tb;
       }
     }
   }
@@ -1228,34 +1419,641 @@ onBeforeUnmount(() => {
   }
 }
 
+// 现代化对话框样式
+:deep(.modern-dialog) {
+  .el-dialog {
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px;
+    box-shadow: var(--el-box-shadow-dark);
+    backdrop-filter: blur(20px);
+
+    .el-dialog__header {
+      background: var(--el-fill-color-extra-light);
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      border-radius: 16px 16px 0 0;
+      padding: 20px 24px;
+
+      .el-dialog__title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .el-dialog__headerbtn {
+        top: 20px;
+        right: 20px;
+
+        .el-dialog__close {
+          color: var(--el-text-color-regular);
+          font-size: 18px;
+
+          &:hover {
+            color: var(--el-color-primary);
+          }
+        }
+      }
+    }
+
+    .el-dialog__body {
+      padding: 24px;
+    }
+  }
+
+  .el-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+}
+
+// 滑动验证码对话框样式
+:deep(.vcode-dialog) {
+  .el-dialog {
+    .el-dialog__header {
+      .el-dialog__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &::before {
+          content: '';
+          width: 20px;
+          height: 20px;
+          background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+          border-radius: 50%;
+          display: inline-block;
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+          }
+        }
+      }
+    }
+  }
+}
+
 // 验证码容器样式
 .vcode-container {
   .vcode-wrapper {
-    background: var(--el-fill-color-extra-light);
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid var(--el-border-color-lighter);
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: none;
+
+    // 验证说明样式
+    .verification-notice {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: var(--el-color-primary-light-9);
+      border: 1px solid var(--el-color-primary-light-7);
+      border-radius: 12px;
+      margin-bottom: 24px;
+
+      .notice-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: var(--el-color-primary);
+        border-radius: 50%;
+        color: white;
+        flex-shrink: 0;
+
+        svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .notice-content {
+        flex: 1;
+
+        .notice-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-color-primary-dark-2);
+          margin: 0 0 4px 0;
+          text-align: left;
+          writing-mode: horizontal-tb;
+        }
+
+        .notice-desc {
+          font-size: 14px;
+          color: var(--el-color-primary);
+          margin: 0;
+          text-align: left;
+          writing-mode: horizontal-tb;
+        }
+      }
+    }
+
+    // 验证组件包装器
+    .vcode-component-wrapper {
+      background: var(--el-fill-color-extra-light);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--el-border-color-lighter);
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+
+      // 添加装饰性背景
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-9) 0%,
+          transparent 50%,
+          var(--el-color-success-light-9) 100%
+        );
+        opacity: 0.3;
+        z-index: 0;
+      }
+
+      > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      &:hover {
+        box-shadow: var(--el-box-shadow);
+        transform: translateY(-2px);
+      }
+
+      // 成功状态
+      &.vcode-success {
+        background: var(--el-color-success-light-9);
+        border-color: var(--el-color-success-light-5);
+        animation: bounceIn 0.6s ease-out;
+
+        &::before {
+          background: linear-gradient(
+            135deg,
+            var(--el-color-success-light-8) 0%,
+            transparent 50%,
+            var(--el-color-success-light-7) 100%
+          );
+        }
+
+        .vcode-header .vcode-title {
+          color: var(--el-color-success);
+
+          svg {
+            color: var(--el-color-success);
+            animation: glow 1s ease-in-out infinite;
+          }
+        }
+
+        .vcode-puzzle-area {
+          border-color: var(--el-color-success-light-5);
+          background: var(--el-color-success-light-9);
+        }
+      }
+
+      // 失败状态
+      &.vcode-error {
+        background: var(--el-color-error-light-9);
+        border-color: var(--el-color-error-light-5);
+        animation: shake 0.5s ease-in-out;
+
+        &::before {
+          background: linear-gradient(
+            135deg,
+            var(--el-color-error-light-8) 0%,
+            transparent 50%,
+            var(--el-color-error-light-7) 100%
+          );
+        }
+
+        .vcode-header .vcode-title {
+          color: var(--el-color-error);
+
+          svg {
+            color: var(--el-color-error);
+          }
+        }
+
+        .vcode-puzzle-area {
+          border-color: var(--el-color-error-light-5);
+          background: var(--el-color-error-light-9);
+        }
+      }
+
+      // 验证码头部
+      .vcode-header {
+        text-align: center;
+        margin-bottom: 20px;
+
+        .vcode-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          margin-bottom: 6px;
+          text-align: center;
+          writing-mode: horizontal-tb;
+
+          svg {
+            width: 20px;
+            height: 20px;
+            color: var(--el-color-primary);
+          }
+        }
+
+        .vcode-subtitle {
+          font-size: 13px;
+          color: var(--el-text-color-regular);
+          text-align: center;
+          writing-mode: horizontal-tb;
+        }
+      }
+
+      // 拼图区域
+      .vcode-puzzle-area {
+        background: var(--el-bg-color);
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid var(--el-border-color-lighter);
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 16px;
+      }
+
+      // 操作提示
+      .vcode-tips {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+
+        .tip-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          color: var(--el-text-color-placeholder);
+          flex: 1;
+          text-align: left;
+          writing-mode: horizontal-tb;
+
+          svg {
+            width: 14px;
+            height: 14px;
+            color: var(--el-color-info);
+            flex-shrink: 0;
+          }
+
+          span {
+            flex: 1;
+          }
+        }
+      }
+
+      // 深度样式覆盖验证码组件
+      :deep(.vcode-container) {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        overflow: hidden;
+
+        // 拼图图片面板
+        .vcode-img-panel {
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border: 2px solid var(--el-border-color-extra-light);
+          transition: all 0.3s ease;
+
+          &:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
+          }
+
+          img {
+            border-radius: 6px;
+          }
+        }
+
+        // 滑块容器
+        .vcode-slider-container {
+          margin-top: 20px;
+          position: relative;
+
+          // 滑块轨道
+          .vcode-slider-track {
+            background: linear-gradient(
+              90deg,
+              var(--el-fill-color-light) 0%,
+              var(--el-fill-color-extra-light) 50%,
+              var(--el-fill-color-light) 100%
+            );
+            border: 2px solid var(--el-border-color-lighter);
+            border-radius: 24px;
+            height: 48px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+
+            // 添加轨道装饰
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(var(--el-color-primary-rgb), 0.1) 50%,
+                transparent 100%
+              );
+              animation: shimmer 2s ease-in-out infinite;
+            }
+
+            // 滑块轨道文字
+            .vcode-slider-text {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              font-size: 14px;
+              color: var(--el-text-color-placeholder);
+              font-weight: 500;
+              pointer-events: none;
+              z-index: 1;
+              text-align: center;
+              writing-mode: horizontal-tb;
+            }
+          }
+
+          // 滑块按钮
+          .vcode-slider-btn {
+            background: linear-gradient(
+              135deg,
+              var(--el-color-primary) 0%,
+              var(--el-color-primary-light-3) 100%
+            );
+            border: 3px solid var(--el-bg-color);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            box-shadow:
+              0 4px 12px rgba(var(--el-color-primary-rgb), 0.3),
+              0 2px 6px rgba(0, 0, 0, 0.1);
+            cursor: grab;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 2;
+
+            // 添加滑块图标
+            &::before {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 16px;
+              height: 16px;
+              background: white;
+              border-radius: 2px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            }
+
+            &::after {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 8px;
+              height: 8px;
+              background: var(--el-color-primary);
+              border-radius: 1px;
+            }
+
+            &:hover {
+              background: linear-gradient(
+                135deg,
+                var(--el-color-primary-dark-2) 0%,
+                var(--el-color-primary) 100%
+              );
+              transform: scale(1.1);
+              box-shadow:
+                0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
+                0 3px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            &:active {
+              cursor: grabbing;
+              transform: scale(1.05);
+            }
+          }
+
+          // 成功状态
+          &.vcode-success {
+            .vcode-slider-track {
+              background: linear-gradient(
+                90deg,
+                var(--el-color-success-light-8) 0%,
+                var(--el-color-success-light-9) 100%
+              );
+              border-color: var(--el-color-success-light-5);
+            }
+
+            .vcode-slider-btn {
+              background: linear-gradient(
+                135deg,
+                var(--el-color-success) 0%,
+                var(--el-color-success-light-3) 100%
+              );
+
+              &::after {
+                background: var(--el-color-success);
+              }
+            }
+          }
+
+          // 失败状态
+          &.vcode-error {
+            .vcode-slider-track {
+              background: linear-gradient(
+                90deg,
+                var(--el-color-error-light-8) 0%,
+                var(--el-color-error-light-9) 100%
+              );
+              border-color: var(--el-color-error-light-5);
+              animation: shake 0.5s ease-in-out;
+            }
+
+            .vcode-slider-btn {
+              background: linear-gradient(
+                135deg,
+                var(--el-color-error) 0%,
+                var(--el-color-error-light-3) 100%
+              );
+
+              &::after {
+                background: var(--el-color-error);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 验证状态提示
+    .verification-status {
+      .status-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+        text-align: center;
+        writing-mode: horizontal-tb;
+
+        svg {
+          width: 16px;
+          height: 16px;
+          color: var(--el-color-success);
+        }
+      }
+    }
+  }
+}
+
+// TOTP验证码对话框样式
+:deep(.totp-dialog) {
+  .el-dialog {
+    .el-dialog__header {
+      .el-dialog__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        &::before {
+          content: '';
+          width: 20px;
+          height: 20px;
+          background: var(--el-color-primary);
+          border-radius: 50%;
+          display: inline-block;
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+          }
+        }
+      }
+    }
   }
 }
 
 .totp-container {
   .totp-wrapper {
-    background: var(--el-fill-color-extra-light);
-    border-radius: 12px;
-    padding: 24px;
-    border: 1px solid var(--el-border-color-lighter);
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: none;
     text-align: center;
 
-    :deep(.sc-code-container) {
-      .sc-code-input {
-        background: var(--el-bg-color);
-        border: 2px solid var(--el-border-color-lighter);
-        border-radius: 8px;
-        color: var(--el-text-color-primary);
+    // 安全提示样式
+    .security-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--el-color-warning-light-9);
+      border: 1px solid var(--el-color-warning-light-7);
+      border-radius: 12px;
+      margin-bottom: 24px;
 
-        &:focus {
-          border-color: var(--el-color-primary);
-          box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
+      .notice-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: var(--el-color-warning);
+        flex-shrink: 0;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .notice-text {
+        font-size: 14px;
+        color: var(--el-color-warning-dark-2);
+        margin: 0;
+        font-weight: 500;
+        text-align: left;
+        writing-mode: horizontal-tb;
+      }
+    }
+
+    // 帮助信息样式
+    .help-info {
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--el-fill-color-extra-light);
+      border-radius: 12px;
+      border: 1px solid var(--el-border-color-lighter);
+
+      .help-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+        margin-bottom: 8px;
+        text-align: left;
+        writing-mode: horizontal-tb;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        svg {
+          width: 16px;
+          height: 16px;
+          color: var(--el-color-primary);
+          flex-shrink: 0;
+        }
+
+        span {
+          flex: 1;
         }
       }
     }
@@ -1303,10 +2101,52 @@ onBeforeUnmount(() => {
 
 @keyframes shimmer {
   0% {
-    left: -100%;
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
   }
   100% {
-    left: 100%;
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(var(--el-color-primary-rgb), 0.8);
   }
 }
 
@@ -1347,6 +2187,77 @@ onBeforeUnmount(() => {
 
           .verify-code-wrapper {
             width: 100%;
+          }
+        }
+      }
+    }
+  }
+
+  // 滑块验证码平板端优化
+  .vcode-container {
+    .vcode-wrapper {
+      .vcode-component-wrapper {
+        padding: 20px 16px;
+
+        .vcode-header {
+          .vcode-title {
+            font-size: 15px;
+
+            svg {
+              width: 18px;
+              height: 18px;
+            }
+          }
+
+          .vcode-subtitle {
+            font-size: 12px;
+          }
+        }
+
+        .vcode-tips {
+          flex-direction: column;
+          gap: 8px;
+
+          .tip-item {
+            justify-content: center;
+            text-align: center;
+
+            svg {
+              width: 12px;
+              height: 12px;
+            }
+
+            span {
+              font-size: 11px;
+            }
+          }
+        }
+
+        :deep(.vcode-container) {
+          .vcode-slider-container {
+            .vcode-slider-track {
+              height: 44px;
+              border-radius: 22px;
+
+              .vcode-slider-text {
+                font-size: 13px;
+              }
+            }
+
+            .vcode-slider-btn {
+              width: 40px;
+              height: 40px;
+
+              &::before {
+                width: 14px;
+                height: 14px;
+              }
+
+              &::after {
+                width: 7px;
+                height: 7px;
+              }
+            }
           }
         }
       }
@@ -1431,6 +2342,89 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
+  // 滑块验证码移动端优化
+  .vcode-container {
+    .vcode-wrapper {
+      .vcode-component-wrapper {
+        padding: 16px 12px;
+        border-radius: 12px;
+
+        .vcode-header {
+          margin-bottom: 16px;
+
+          .vcode-title {
+            font-size: 14px;
+            gap: 6px;
+
+            svg {
+              width: 16px;
+              height: 16px;
+            }
+          }
+
+          .vcode-subtitle {
+            font-size: 11px;
+          }
+        }
+
+        .vcode-puzzle-area {
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+        }
+
+        .vcode-tips {
+          .tip-item {
+            font-size: 10px;
+            gap: 4px;
+
+            svg {
+              width: 10px;
+              height: 10px;
+            }
+          }
+        }
+
+        :deep(.vcode-container) {
+          .vcode-img-panel {
+            border-radius: 6px;
+            border-width: 1px;
+          }
+
+          .vcode-slider-container {
+            margin-top: 16px;
+
+            .vcode-slider-track {
+              height: 40px;
+              border-radius: 20px;
+              border-width: 1px;
+
+              .vcode-slider-text {
+                font-size: 12px;
+              }
+            }
+
+            .vcode-slider-btn {
+              width: 36px;
+              height: 36px;
+              border-width: 2px;
+
+              &::before {
+                width: 12px;
+                height: 12px;
+              }
+
+              &::after {
+                width: 6px;
+                height: 6px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   .enhanced-header-section {
     margin-bottom: 16px; // 从24px减少到16px
     padding: 12px 0; // 从16px减少到12px

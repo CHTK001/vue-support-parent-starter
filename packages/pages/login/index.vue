@@ -446,7 +446,7 @@ const handleChangeLoginType = async (_val) => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 24px;
   box-shadow: var(--el-box-shadow-dark);
-  backdrop-filter: blur(20px);
+  //backdrop-filter: blur(20px);
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
