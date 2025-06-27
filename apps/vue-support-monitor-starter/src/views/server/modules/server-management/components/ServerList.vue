@@ -126,18 +126,18 @@
           />
         </template>
       </el-table-column>
-      
-      <el-table-column label="监控状态" width="100" align="center">
+
+      <el-table-column label="监控设置" width="120" align="center">
         <template #default="{ row }">
-          <el-switch
-            v-model="row.monitorSysGenServerMonitorEnabled"
-            :active-value="1"
-            :inactive-value="0"
-            @change="handleMonitorChange(row)"
+          <ServerQuickSetting
+            :server-id="row.monitorSysGenServerId"
+            :server-name="row.monitorSysGenServerName"
+            @open-full-setting="handleOpenFullSetting"
+            @setting-changed="handleSettingChanged"
           />
         </template>
       </el-table-column>
-      
+
       <el-table-column label="最后连接时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerLastConnectTime">
@@ -177,6 +177,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="setting">服务器设置</el-dropdown-item>
                   <el-dropdown-item command="test">测试连接</el-dropdown-item>
                   <el-dropdown-item command="logs">查看日志</el-dropdown-item>
                   <el-dropdown-item command="clone">克隆配置</el-dropdown-item>
@@ -208,14 +209,13 @@
 import { ref, reactive, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
+import ServerQuickSetting from "./ServerQuickSetting.vue";
 import {
   getServerPageList,
   updateServer,
   deleteServer,
   testServerConnection,
   batchOperateServers,
-  enableServerMonitoring,
-  disableServerMonitoring,
   cloneServer,
   type ServerInfo,
 } from "@/api/server";
@@ -228,6 +228,7 @@ import {
 // 定义事件
 const emit = defineEmits<{
   edit: [server: ServerInfo];
+  setting: [server: ServerInfo];
   delete: [server: ServerInfo];
   connect: [server: ServerInfo];
   monitor: [server: ServerInfo];
@@ -374,24 +375,7 @@ const handleStatusChange = async (server: ServerInfo) => {
   }
 };
 
-/**
- * 处理监控变化
- */
-const handleMonitorChange = async (server: ServerInfo) => {
-  try {
-    if (server.monitorSysGenServerMonitorEnabled === 1) {
-      await enableServerMonitoring(server.monitorSysGenServerId.toString());
-    } else {
-      await disableServerMonitoring(server.monitorSysGenServerId.toString());
-    }
-    message.success("监控状态更新成功");
-  } catch (error) {
-    console.error("监控状态更新失败:", error);
-    message.error("监控状态更新失败");
-    // 回滚状态
-    server.monitorSysGenServerMonitorEnabled = server.monitorSysGenServerMonitorEnabled === 1 ? 0 : 1;
-  }
-};
+
 
 /**
  * 处理操作
@@ -400,6 +384,9 @@ const handleAction = async (command: string, server: ServerInfo) => {
   switch (command) {
     case "edit":
       emit("edit", server);
+      break;
+    case "setting":
+      emit("setting", server);
       break;
     case "test":
       await handleTestConnection(server);
@@ -561,6 +548,24 @@ const handleCurrentChange = (page: number) => {
  */
 const refresh = () => {
   loadServerList();
+};
+
+/**
+ * 处理打开完整设置
+ */
+const handleOpenFullSetting = (serverId: number) => {
+  const server = serverList.value.find(s => s.monitorSysGenServerId === serverId);
+  if (server) {
+    emit("setting", server);
+  }
+};
+
+/**
+ * 处理设置变化
+ */
+const handleSettingChanged = (serverId: number) => {
+  // 可以在这里刷新服务器列表或更新特定服务器的状态
+  console.log('服务器设置已更新:', serverId);
 };
 
 // 暴露方法

@@ -246,7 +246,7 @@
                     effect="light"
                   >
                     {{ getOnlineStatusTextSafe(server.onlineStatus) }}
-                  </el-tag>
+                  </el-tag> 
                 </el-tooltip>
                 <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
                   <IconifyIconOnline
@@ -394,28 +394,21 @@
               <SSHTerminal
                 v-if="currentComponent === 'SSHTerminal'"
                 :server="selectedServer"
-                :key="selectedServerId + '-ssh'"
+                :key="`ssh-${selectedServerId}-${componentKey}`"
                 @close="closeRightPanel"
               />
-              <!-- RDP桌面组件 -->
-              <RDPDesktop
-                v-else-if="currentComponent === 'RDPDesktop'"
+              <!-- 远程桌面组件 (统一处理RDP和VNC) -->
+              <RemoteDesktop
+                v-else-if="currentComponent === 'RemoteDesktop'"
                 :server="selectedServer"
-                :key="selectedServerId + '-rdp'"
-                @close="closeRightPanel"
-              />
-              <!-- VNC桌面组件 -->
-              <VNCDesktop
-                v-else-if="currentComponent === 'VNCDesktop'"
-                :server="selectedServer"
-                :key="selectedServerId + '-vnc'"
+                :key="`remote-${selectedServerId}-${componentKey}`"
                 @close="closeRightPanel"
               />
               <!-- 服务器监控组件 -->
               <ServerMonitor
                 v-else-if="currentComponent === 'ServerMonitor'"
                 :server="selectedServer"
-                :key="selectedServerId + '-monitor'"
+                :key="`monitor-${selectedServerId}-${componentKey}`"
                 @close="closeRightPanel"
               />
               <!-- 文件管理组件 -->
@@ -497,8 +490,7 @@ const ServerTerminalDialog = defineAsyncComponent(() => import("./modules/server
 
 // 远程连接组件
 const SSHTerminal = defineAsyncComponent(() => import("./modules/server-management/components/remote/SSHTerminal.vue"));
-const RDPDesktop = defineAsyncComponent(() => import("./modules/server-management/components/remote/RDPDesktop.vue"));
-const VNCDesktop = defineAsyncComponent(() => import("./modules/server-management/components/remote/VNCDesktop.vue"));
+const RemoteDesktop = defineAsyncComponent(() => import("./modules/server-management/components/remote/RemoteDesktop.vue"));
 const ServerMonitor = defineAsyncComponent(() => import("./modules/server-management/components/ServerMonitor.vue"));
 const FileManager = defineAsyncComponent(() => import("./components/FileManager.vue"));
 
@@ -520,6 +512,7 @@ const leftPanelMinimized = ref(false);
 const leftPanelOriginalWidth = ref(400);
 const selectedServerId = ref("");
 const currentComponent = ref("");
+const componentKey = ref(0); // 用于强制重新渲染组件
 
 // 服务器数据
 const servers = ref<ServerDisplayData[]>([]);
@@ -725,8 +718,14 @@ const loadServers = async () => {
  * 选择服务器
  */
 const selectServer = (server: any) => {
+  // 如果选择的是同一个服务器，不做任何操作
+  if (selectedServerId.value === server.id) {
+    return;
+  }
+
   selectedServerId.value = server.id;
   currentComponent.value = "ServerMonitor"; // 默认显示监控组件
+  componentKey.value++; // 强制重新渲染组件
 };
 
 /**
@@ -739,42 +738,56 @@ const connectServer = async (server: any) => {
     // 显示加载状态
     message.info("正在连接服务器...");
 
-    // 选择服务器
+    // 如果当前已选中同一个服务器且组件类型匹配，不重复连接
+    const targetComponent = getTargetComponent(server.protocol);
+    if (selectedServerId.value === server.id && currentComponent.value === targetComponent) {
+      message.info("服务器已连接");
+      return;
+    }
+
+    // 先选择服务器，但不设置组件（避免触发ServerMonitor）
     selectedServerId.value = server.id;
+    componentKey.value++; // 强制重新渲染
 
     // 调用后台API建立连接
     const connectResult = await connectServerApi(server.id);
     console.log("连接API响应:", connectResult);
 
     if (connectResult.code === "00000") {
-      // 注意：不在这里显示连接成功消息，等待SSH组件的确认消息
-      // message.success("服务器连接成功");
-
-      // 根据协议选择对应的远程组件
-      switch (server.protocol) {
-        case "SSH":
-          currentComponent.value = "SSHTerminal";
-          break;
-        case "RDP":
-          currentComponent.value = "RDPDesktop";
-          break;
-        case "VNC":
-          currentComponent.value = "VNCDesktop";
-          break;
-        default:
-          currentComponent.value = "SSHTerminal";
-      }
-
-      // WebSocket 连接由 composable 自动管理
+      // 连接成功后再设置对应的远程组件
+      currentComponent.value = targetComponent;
+      message.success("服务器连接成功");
+      console.log("设置组件为:", currentComponent.value);
 
     } else {
       message.error(connectResult.msg || "连接失败");
       console.error("连接失败:", connectResult);
+      // 连接失败时清除选中状态
+      selectedServerId.value = "";
+      currentComponent.value = "";
     }
 
   } catch (error) {
     message.error("连接异常，请稍后重试");
     console.error("连接服务器出错:", error);
+    // 异常时清除选中状态
+    selectedServerId.value = "";
+    currentComponent.value = "";
+  }
+};
+
+/**
+ * 根据协议获取目标组件
+ */
+const getTargetComponent = (protocol: string) => {
+  switch (protocol) {
+    case "SSH":
+      return "SSHTerminal";
+    case "RDP":
+    case "VNC":
+      return "RemoteDesktop";
+    default:
+      return "SSHTerminal";
   }
 };
 
@@ -962,6 +975,7 @@ const handleGroupChange = () => {
 const closeRightPanel = () => {
   selectedServerId.value = "";
   currentComponent.value = "";
+  componentKey.value++; // 强制重新渲染
 };
 
 /**

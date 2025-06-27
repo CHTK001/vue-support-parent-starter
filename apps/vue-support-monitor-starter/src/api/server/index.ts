@@ -33,18 +33,12 @@ export interface ServerInfo {
   monitorSysGenServerPassword?: string;
   /** 私钥文件路径 (SSH协议使用) */
   monitorSysGenServerPrivateKey?: string;
-  /** 指标存储时间(天) */
-  monitorSysGenServerMetricsRetentionDays?: number;
-  /** 监控间隔(秒) */
-  monitorSysGenServerMonitorInterval?: number;
   /** 连接超时时间(毫秒) */
   monitorSysGenServerTimeout?: number;
   /** 服务器描述 */
   monitorSysGenServerDesc?: string;
   /** 服务器状态 0:停用 1:启用 */
   monitorSysGenServerStatus: number;
-  /** 是否启用监控 0:否 1:是 */
-  monitorSysGenServerMonitorEnabled?: number;
   /** 服务器标签 (用于分组) */
   monitorSysGenServerTags?: string;
   /** 连接状态 0:离线 1:在线 2:连接中 3:连接失败 */
@@ -57,20 +51,8 @@ export interface ServerInfo {
   createTime?: string;
   /** 更新时间 (继承自SysBase) */
   updateTime?: string;
-  /** 是否需要上报 0:否 1:是 (默认上报) */
-  monitorSysGenServerReportEnabled?: number;
   /** 代理配置ID (关联代理配置表) */
   monitorSysGenServerProxyId?: number;
-  /** 数据上报方式 (NONE:不支持上报, API:接口上报, PROMETHEUS:prometheus) */
-  monitorSysGenServerDataReportMethod?: string;
-  /** Prometheus服务器地址 */
-  monitorSysGenServerPrometheusHost?: string;
-  /** Prometheus服务器端口 */
-  monitorSysGenServerPrometheusPort?: number;
-  /** 代理服务器地址 */
-  monitorSysGenServerProxyHost?: string;
-  /** 代理服务器端口 */
-  monitorSysGenServerProxyPort?: number;
   /** 服务器IP地址列表 (JSON格式，支持多个IP) */
   monitorSysGenServerIpAddresses?: string;
   /** 是否本地服务器 0:否 1:是 (自动检测，不允许修改) */
@@ -1031,14 +1013,12 @@ export interface ServerDisplayData {
   createTime: string;
   updateTime: string;
   metrics?: ServerMetricsDisplay;
-  // 新增字段
-  monitorSysGenServerReportEnabled?: number;
+  // 延迟相关字段
+  latency?: number;
+  latencyStatus?: LatencyStatus;
+  latencyText?: string;
+  // 保留的字段
   monitorSysGenServerProxyId?: number;
-  monitorSysGenServerDataReportMethod?: string;
-  monitorSysGenServerPrometheusHost?: string;
-  monitorSysGenServerPrometheusPort?: number;
-  monitorSysGenServerProxyHost?: string;
-  monitorSysGenServerProxyPort?: number;
   // 多IP和Docker相关字段
   monitorSysGenServerIpAddresses?: string;
   isLocal?: boolean; // 是否本地服务器（简化字段名）
@@ -1144,6 +1124,8 @@ export const SERVER_WS_MESSAGE_TYPE = {
   SERVER_DELETE: 'server_delete',
   SERVER_ADD: 'server_add',
   SERVER_METRICS: 'server_metrics',
+  SERVER_LATENCY: 'server_latency',
+  BATCH_SERVER_LATENCY: 'batch_server_latency',
   CONNECTION_TEST_RESULT: 'connection_test_result',
   SSH_DATA: 'ssh_data',
   SSH_INPUT: 'ssh_input',
@@ -1151,11 +1133,163 @@ export const SERVER_WS_MESSAGE_TYPE = {
   SSH_DISCONNECT: 'ssh_disconnect',
   SSH_RESIZE: 'ssh_resize',
   SSH_ERROR: 'ssh_error',
+  SHELL_OUTPUT: 'shell_output',
   VNC_DATA: 'vnc_data',
   VNC_INPUT: 'vnc_input',
   RDP_DATA: 'rdp_data',
   RDP_INPUT: 'rdp_input'
 } as const;
+
+/**
+ * 延迟状态类型
+ */
+export interface LatencyStatus {
+  status: 'normal' | 'high' | 'abnormal';
+  level: 'success' | 'warning' | 'danger';
+  text: string;
+}
+
+/**
+ * 服务器延迟数据
+ */
+export interface ServerLatencyData {
+  serverId: number;
+  serverName: string;
+  latency: number;
+  timestamp: number;
+  status: string;
+}
+
+/**
+ * 延迟统计数据
+ */
+export interface LatencyStatistics {
+  totalServers: number;
+  normalCount: number;
+  highCount: number;
+  abnormalCount: number;
+  timestamp: number;
+}
+
+/**
+ * 获取服务器当前延迟
+ */
+export const getServerLatency = (serverId: number) => {
+  return http.get<number>(`server/latency/${serverId}`);
+};
+
+/**
+ * 批量获取服务器延迟
+ */
+export const getBatchServerLatency = (serverIds: number[]) => {
+  return http.request<ReturnResult<any>('post', 'server/latency/batch', serverIds);
+};
+
+/**
+ * 获取服务器延迟历史数据
+ */
+export const getServerLatencyHistory = (serverId: number, startTime: string, endTime: string) => {
+  return http.get<Array<{ timestamp: number; latency: number; serverId: number }>>(`server/latency/${serverId}/history`, {
+    params: { startTime, endTime }
+  });
+};
+
+/**
+ * 获取延迟统计信息
+ */
+export const getLatencyStatistics = () => {
+  return http.get<LatencyStatistics>('server/latency/statistics');
+};
+
+/**
+ * 获取延迟状态分布
+ */
+export const getLatencyStatusDistribution = () => {
+  return http.get<{
+    normal: number;
+    high: number;
+    abnormal: number;
+    total: number;
+    timestamp: number;
+  }>('server/latency/status-distribution');
+};
+
+/**
+ * 检查延迟告警
+ */
+export const checkLatencyAlerts = () => {
+  return http.get<Array<{
+    serverId: number;
+    serverName: string;
+    latency: number;
+    level: string;
+    message: string;
+    timestamp: number;
+  }>>('server/latency/alerts');
+};
+
+/**
+ * 手动保存延迟数据到数据库
+ */
+export const saveLatencyToDatabase = () => {
+  return http.post<number>('server/latency/save');
+};
+
+/**
+ * 清理过期延迟数据
+ */
+export const cleanupExpiredLatencyData = (expireDays: number = 30) => {
+  return http.delete<number>('server/latency/cleanup', {
+    params: { expireDays }
+  });
+};
+
+/**
+ * 手动更新服务器延迟
+ */
+export const updateServerLatency = (serverId: number, latency: number) => {
+  return http.put<boolean>(`server/latency/${serverId}`, null, {
+    params: { latency }
+  });
+};
+
+/**
+ * 获取延迟状态信息
+ */
+export const getLatencyStatus = (latency: number): LatencyStatus => {
+  if (latency < 100) {
+    return {
+      status: 'normal',
+      level: 'success',
+      text: '正常'
+    };
+  } else if (latency < 500) {
+    return {
+      status: 'high',
+      level: 'warning',
+      text: '较高'
+    };
+  } else {
+    return {
+      status: 'abnormal',
+      level: 'danger',
+      text: '异常'
+    };
+  }
+};
+
+/**
+ * 格式化延迟显示文本
+ */
+export const formatLatencyText = (latency: number | null | undefined): string => {
+  if (latency === null || latency === undefined) {
+    return '未检测';
+  }
+  if (latency < 0) {
+    return '检测失败';
+  }
+  return `${latency}ms`;
+};
 
 
 
@@ -1198,7 +1332,7 @@ export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDispla
     status: serverInfo.monitorSysGenServerStatus as ServerStatus,
     onlineStatus: serverInfo.monitorSysGenServerConnectionStatus === 1 ? ONLINE_STATUS.ONLINE : ONLINE_STATUS.OFFLINE,
     connectionStatus: serverInfo.monitorSysGenServerConnectionStatus as ConnectionStatus,
-    metricsSupport: serverInfo.monitorSysGenServerMonitorEnabled === 1,
+    metricsSupport: true, // 默认支持指标收集
     username: serverInfo.monitorSysGenServerUsername,
     group: '', // 后台实体类中没有group字段，使用空字符串
     description: serverInfo.monitorSysGenServerDesc,
@@ -1207,10 +1341,8 @@ export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDispla
     lastOfflineTime: '', // 后台实体类中没有lastOfflineTime字段，使用空字符串
     createTime: serverInfo.createTime || '',
     updateTime: serverInfo.updateTime || '',
-    // 新增字段映射
-    monitorSysGenServerReportEnabled: serverInfo.monitorSysGenServerReportEnabled,
+    // 保留的字段映射
     monitorSysGenServerProxyId: serverInfo.monitorSysGenServerProxyId,
-    monitorSysGenServerDataReportMethod: serverInfo.monitorSysGenServerDataReportMethod,
     monitorSysGenServerPrometheusHost: serverInfo.monitorSysGenServerPrometheusHost,
     monitorSysGenServerPrometheusPort: serverInfo.monitorSysGenServerPrometheusPort,
     monitorSysGenServerProxyHost: serverInfo.monitorSysGenServerProxyHost,
@@ -1227,6 +1359,7 @@ export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDispla
     monitorSysGenServerOsType: serverInfo.monitorSysGenServerOsType,
     monitorSysGenServerOsVersion: serverInfo.monitorSysGenServerOsVersion,
     monitorSysGenServerOsArch: serverInfo.monitorSysGenServerOsArch,
+    ...serverInfo
   };
 }
 
@@ -1277,16 +1410,9 @@ export function mapDisplayDataToSaveParams(displayData: Partial<ServerDisplayDat
     monitorSysGenServerProtocol: displayData.protocol || 'SSH',
     monitorSysGenServerUsername: displayData.username,
     monitorSysGenServerDesc: displayData.description,
-    monitorSysGenServerMonitorEnabled: displayData.metricsSupport ? 1 : 0,
     monitorSysGenServerTags: displayData.tags,
-    // 新增字段映射
-    monitorSysGenServerReportEnabled: displayData.monitorSysGenServerReportEnabled,
+    // 保留的字段映射
     monitorSysGenServerProxyId: displayData.monitorSysGenServerProxyId,
-    monitorSysGenServerDataReportMethod: displayData.monitorSysGenServerDataReportMethod,
-    monitorSysGenServerPrometheusHost: displayData.monitorSysGenServerPrometheusHost,
-    monitorSysGenServerPrometheusPort: displayData.monitorSysGenServerPrometheusPort,
-    monitorSysGenServerProxyHost: displayData.monitorSysGenServerProxyHost,
-    monitorSysGenServerProxyPort: displayData.monitorSysGenServerProxyPort,
     // 多IP和Docker相关字段
     monitorSysGenServerIpAddresses: displayData.monitorSysGenServerIpAddresses,
     monitorSysGenServerIsLocal: displayData.monitorSysGenServerIsLocal, // 注意：这个字段由后端自动检测设置

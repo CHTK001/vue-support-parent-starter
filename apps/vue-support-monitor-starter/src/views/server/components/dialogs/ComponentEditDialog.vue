@@ -207,7 +207,7 @@ import {
   saveServerDetailComponent,
   validateComponentExpression,
   type ServerDetailComponent
-} from "@/api/monitor/gen/server";
+} from "@/api/server";
 
 // 导入子组件
 import ExpressionHelpDialog from "./ExpressionHelpDialog.vue";

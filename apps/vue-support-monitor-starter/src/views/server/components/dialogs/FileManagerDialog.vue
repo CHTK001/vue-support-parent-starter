@@ -656,14 +656,6 @@ const handleUploadError = (error: any, file: File) => {
 };
 
 /**
- * 处理上传失败
- */
-const handleUploadError = (error: any, file: File) => {
-  console.error("上传失败:", error);
-  message.error(`文件 ${file.name} 上传失败`);
-};
-
-/**
  * 处理下载选中文件
  */
 const handleDownloadSelected = () => {

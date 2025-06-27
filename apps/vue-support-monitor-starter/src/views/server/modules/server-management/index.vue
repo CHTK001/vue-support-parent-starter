@@ -11,25 +11,29 @@
               共 <span class="count-num">{{ totalCount }}</span> 台
             </el-tag>
           </el-tooltip>
-          <el-tooltip content="WebSocket连接状态: 已连接" placement="bottom" :show-after="500">
+          <el-tooltip
+            :content="`实时监控状态: ${getSocketStatusText()}`"
+            placement="bottom"
+            :show-after="500"
+          >
             <el-tag
-              type="success"
+              :type="getSocketStatusType()"
               effect="light"
               size="small"
               class="ml-2"
             >
-              已连接
+              <IconifyIconOnline
+                :icon="getSocketStatusIcon()"
+                class="mr-1"
+                :class="{ 'animate-spin': metricsStore.socketState.connecting }"
+              />
+              {{ getSocketStatusText() }}
             </el-tag>
           </el-tooltip>
         </h2>
       </div>
       <div class="toolbar-right">
-        <el-tooltip content="测试本机IP检测功能" placement="bottom" :show-after="500">
-          <el-button type="primary" size="small" @click="testLocalIp">
-            <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
-            调试IP检测
-          </el-button>
-        </el-tooltip>
+
       </div>
 
       <div class="toolbar-right">
@@ -79,6 +83,23 @@
               <IconifyIconOnline icon="ep:search" />
             </template>
           </el-input>
+        </el-tooltip>
+
+        <!-- 实时监控开关 -->
+        <el-tooltip
+          :content="realTimeMetricsEnabled ? '关闭实时监控' : '开启实时监控'"
+          placement="bottom"
+          :show-after="500"
+        >
+          <el-switch
+            v-model="realTimeMetricsEnabled"
+            size="small"
+            inline-prompt
+            active-text="实时"
+            inactive-text="静态"
+            @change="toggleRealTimeMetrics"
+            class="metrics-switch"
+          />
         </el-tooltip>
 
         <!-- 操作按钮 -->
@@ -221,7 +242,7 @@
               <el-tooltip
                 v-for="server in filteredServers"
                 :key="server.id"
-                :content="`${server.name} (${server.host}:${server.port}) - ${getOnlineStatusText(server.onlineStatus)}`"
+                :content="`${server.name} (${server.host}:${server.port}) - ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`"
                 placement="right"
                 :show-after="800"
                 :disabled="selectedServerId === server.id"
@@ -244,7 +265,7 @@
                 </el-tooltip>
                 <el-tooltip :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`" placement="top" :show-after="300">
                   <div class="server-address">
-                    {{ server.host }}:{{ server.port }}
+                    <span>{{ server.host }}:{{ server.port }}</span>
                     <el-tag v-if="server.isLocal" type="success" size="small" effect="light" class="ml-1">本机</el-tag>
                     <el-tag v-else type="info" size="small" effect="light" class="ml-1">远程</el-tag>
                   </div>
@@ -267,13 +288,13 @@
                     本地
                   </el-tag>
                 </el-tooltip>
-                <el-tooltip :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus)}`" placement="top" :show-after="300">
+                <el-tooltip :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`" placement="top" :show-after="300">
                   <el-tag
-                    :type="getOnlineStatusType(server.onlineStatus)"
+                    :type="getOnlineStatusType(server.onlineStatus, server.isLocal)"
                     size="small"
                     effect="light"
                   >
-                    {{ getOnlineStatusText(server.onlineStatus) }}
+                    {{ getOnlineStatusText(server.onlineStatus, server.isLocal) }}
                   </el-tag>
                 </el-tooltip>
                 <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
@@ -281,6 +302,33 @@
                     :icon="getProtocolIcon(server.protocol)"
                     class="protocol-icon"
                   />
+                </el-tooltip>
+                <!-- 延迟显示 -->
+                <ServerLatencyDisplay
+                  :latency="server.latency"
+                  size="small"
+                  mode="full"
+                  class="server-latency"
+                />
+                <!-- 健康状态指示器 -->
+                <el-tooltip
+                  v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'"
+                  :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`"
+                  placement="top"
+                  :show-after="300"
+                >
+                  <el-tag
+                    :type="getHealthStatusType(getServerHealthStatus(server.id))"
+                    size="small"
+                    effect="light"
+                    class="health-status"
+                  >
+                    <IconifyIconOnline
+                      :icon="getHealthStatusIcon(getServerHealthStatus(server.id))"
+                      class="mr-1"
+                    />
+                    {{ getHealthStatusText(getServerHealthStatus(server.id)) }}
+                  </el-tag>
                 </el-tooltip>
               </div>
             </div>
@@ -425,18 +473,11 @@
                 :key="selectedServerId + '-ssh'"
                 @close="closeRightPanel"
               />
-              <!-- RDP桌面组件 -->
-              <RDPDesktop
-                v-else-if="currentComponent === 'RDPDesktop'"
+              <!-- 远程桌面组件 (统一处理RDP和VNC) -->
+              <RemoteDesktop
+                v-else-if="currentComponent === 'RemoteDesktop'"
                 :server="selectedServer"
-                :key="selectedServerId + '-rdp'"
-                @close="closeRightPanel"
-              />
-              <!-- VNC桌面组件 -->
-              <VNCDesktop
-                v-else-if="currentComponent === 'VNCDesktop'"
-                :server="selectedServer"
-                :key="selectedServerId + '-vnc'"
+                :key="selectedServerId + '-remote'"
                 @close="closeRightPanel"
               />
               <!-- 服务器监控组件 -->
@@ -473,16 +514,22 @@
     </div>
 
     <!-- 对话框组件 -->
-    <ServerEditDialog ref="editDialogRef" @success="handleSuccess" />
+    <ServerEditDialog ref="editDialogRef" @success="handleSuccess" @openConfig="handleOpenConfig" />
+    <ServerConfigDialog ref="configDialogRef" @success="handleSuccess" />
     <BatchOperationDialog ref="batchDialogRef" @success="handleSuccess" />
     <ScriptExecutorDialog ref="scriptDialogRef" />
     <AlertConfigDialog ref="alertDialogRef" />
     <OperationLogDialog ref="logDialogRef" />
+
+    <!-- 本地调试对话框 -->
+    <el-dialog v-model="localDebugVisible" title="本地服务器调试" width="80%" :close-on-click-modal="false">
+      <LocalServerDebug />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, defineAsyncComponent, Suspense } from "vue";
+import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import {
@@ -499,20 +546,24 @@ import {
   type ServerMetricsDisplay,
   mapServerListToDisplayData,
 } from "@/api/server";
+import { useServerMetricsStore } from "@/stores/serverMetrics";
+import { useGlobalServerLatency } from "@/composables/useServerLatency";
 
 // 异步组件
 const ServerEditDialog = defineAsyncComponent(() => import("./components/ServerEditDialog.vue"));
+const ServerConfigDialog = defineAsyncComponent(() => import("./components/ServerConfigDialog.vue"));
 const BatchOperationDialog = defineAsyncComponent(() => import("../../components/dialogs/BatchOperationDialog.vue"));
 const ScriptExecutorDialog = defineAsyncComponent(() => import("../../components/dialogs/ScriptExecutorDialog.vue"));
 const AlertConfigDialog = defineAsyncComponent(() => import("../../components/dialogs/AlertConfigDialog.vue"));
 const OperationLogDialog = defineAsyncComponent(() => import("../../components/dialogs/OperationLogDialog.vue"));
+const LocalServerDebug = defineAsyncComponent(() => import("./components/LocalServerDebug.vue"));
 
 // 远程连接组件
 const SSHTerminal = defineAsyncComponent(() => import("./components/remote/SSHTerminal.vue"));
-const RDPDesktop = defineAsyncComponent(() => import("./components/remote/RDPDesktop.vue"));
-const VNCDesktop = defineAsyncComponent(() => import("./components/remote/VNCDesktop.vue"));
+const RemoteDesktop = defineAsyncComponent(() => import("./components/remote/RemoteDesktop.vue"));
 const ServerMonitor = defineAsyncComponent(() => import("./components/ServerMonitor.vue"));
 const FileManager = defineAsyncComponent(() => import("../../components/dialogs/FileManagerDialog.vue"));
+const ServerLatencyDisplay = defineAsyncComponent(() => import("../../components/ServerLatencyDisplay.vue"));
 
 // 响应式状态
 const loading = ref(false);
@@ -543,12 +594,24 @@ const selectedServer = computed(() =>
 // 服务器指标数据
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 
+// 服务器指标监听
+const metricsStore = useServerMetricsStore();
+const realTimeMetricsEnabled = ref(true);
+const metricsUpdateInterval = ref(30); // 秒
+
+// 延迟管理
+const latencyManager = useGlobalServerLatency();
+
 // 对话框引用
 const editDialogRef = ref();
+const configDialogRef = ref();
 const batchDialogRef = ref();
 const scriptDialogRef = ref();
 const alertDialogRef = ref();
 const logDialogRef = ref();
+
+// 本地调试
+const localDebugVisible = ref(false);
 
 // 本地状态映射（作为备用方案）
 const localOnlineStatusMap = {
@@ -618,13 +681,35 @@ const filteredServers = computed(() => {
  * 获取服务器指标数据
  */
 const getServerMetrics = (serverId: string) => {
+  // 优先使用实时指标数据
+  if (realTimeMetricsEnabled.value && metricsStore.initialized) {
+    const metrics = metricsStore.getServerMetrics(parseInt(serverId));
+    if (metrics) {
+      return {
+        cpuUsage: metrics.cpu.usage,
+        memoryUsage: metrics.memory.usage,
+        diskUsage: metrics.disk.usage,
+        networkIn: metrics.network.in,
+        networkOut: metrics.network.out,
+        status: metrics.status,
+        responseTime: metrics.responseTime,
+        uptime: metrics.uptime,
+        processCount: metrics.processCount
+      };
+    }
+  }
+
+  // 回退到缓存的指标数据
   return serverMetrics.value.get(serverId);
 };
 
 /**
  * 获取在线状态类型
  */
-const getOnlineStatusType = (status: number) => {
+const getOnlineStatusType = (status: number, isLocal: boolean) => {
+  if(isLocal) {
+    return "success";
+  }
   // 添加类型检查和错误处理
   if (typeof status !== 'number') {
     console.warn('getOnlineStatusType: status is not a number:', status);
@@ -638,7 +723,10 @@ const getOnlineStatusType = (status: number) => {
 /**
  * 获取在线状态文本
  */
-const getOnlineStatusText = (status: number) => {
+const getOnlineStatusText = (status: number, isLocal: boolean) => {
+  if(isLocal) {
+    return "在线";
+  }
   // 添加类型检查和错误处理
   if (typeof status !== 'number') {
     console.warn('getOnlineStatusText: status is not a number:', status);
@@ -667,9 +755,10 @@ const getProtocolIcon = (protocol: string) => {
  * 获取进度条颜色
  */
 const getProgressColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
+  if (percentage >= 90) return '#f56c6c';
+  if (percentage >= 70) return '#e6a23c';
+  if (percentage >= 50) return '#409eff';
+  return '#67c23a';
 };
 
 /**
@@ -697,6 +786,9 @@ const loadServers = async () => {
         }
       });
       serverGroups.value = Array.from(groups);
+
+      // 加载服务器延迟数据
+      await loadServerLatency();
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
@@ -704,6 +796,29 @@ const loadServers = async () => {
     loading.value = false;
   }
 };
+
+/**
+ * 加载服务器延迟数据
+ */
+const loadServerLatency = async () => {
+  try {
+    if (servers.value.length === 0) return;
+
+    // 获取所有服务器ID
+    const serverIds = servers.value.map(server => Number(server.id));
+    
+    // 批量获取延迟数据
+    await latencyManager.fetchBatchLatency(serverIds);
+
+    // 更新服务器列表的延迟信息
+    latencyManager.updateServerListLatency(servers.value);
+
+  } catch (error) {
+    console.error("加载服务器延迟数据失败:", error);
+  }
+};
+
+
 
 /**
  * 选择服务器
@@ -740,10 +855,8 @@ const connectServer = async (server: any) => {
           currentComponent.value = "SSHTerminal";
           break;
         case "RDP":
-          currentComponent.value = "RDPDesktop";
-          break;
         case "VNC":
-          currentComponent.value = "VNCDesktop";
+          currentComponent.value = "RemoteDesktop";
           break;
         default:
           currentComponent.value = "SSHTerminal";
@@ -901,68 +1014,6 @@ const showAddDialog = () => {
   editDialogRef.value?.setData({});
 };
 
-/**
- * 测试本机IP检测功能
- */
-const testLocalIp = async () => {
-  try {
-    console.log("=== 开始测试本机IP检测功能 ===");
-
-    // 首先检查当前服务器列表中的本机标识
-    console.log("当前服务器列表中的本机标识:");
-    servers.value.forEach(server => {
-      console.log(`服务器: ${server.name} (${server.host}:${server.port}) -> isLocal: ${server.isLocal}, monitorSysGenServerIsLocal: ${server.monitorSysGenServerIsLocal}`);
-    });
-
-    // 测试不同的IP地址
-    const testIps = [
-      '', // 空值，使用默认本机IP
-      '127.0.0.1',
-      'localhost',
-      '172.16.2.226', // 当前机器的IP
-      '192.168.1.100', // 假设的远程IP
-      '8.8.8.8', // 公网IP
-    ];
-
-    console.log("\n=== 开始测试各种IP地址 ===");
-    for (const ip of testIps) {
-      console.log(`\n测试IP: ${ip || '(默认本机IP)'}`);
-      try {
-        const res = await testLocalIpDetection(ip);
-        console.log(`API响应:`, res);
-
-        if (res.code === "00000") {
-          const result = res.data;
-          const isLocal = result.detectionResult?.isLocal;
-          console.log(`✓ IP: ${result.testHost} -> 本地服务器: ${isLocal === 1 ? '是' : '否'}`);
-
-          if (result.detectionResult?.ipAddresses) {
-            try {
-              const ipList = JSON.parse(result.detectionResult.ipAddresses);
-              console.log(`  检测到的本机IP列表:`, ipList);
-            } catch (e) {
-              console.log(`  IP列表解析失败:`, result.detectionResult.ipAddresses);
-            }
-          }
-
-          if (result.detectionResult?.osType) {
-            console.log(`  操作系统: ${result.detectionResult.osType} ${result.detectionResult.osVersion || ''}`);
-          }
-        } else {
-          console.log(`✗ 检测失败: ${res.msg}`);
-        }
-      } catch (error) {
-        console.error(`✗ IP ${ip} 检测出错:`, error);
-      }
-    }
-
-    console.log("\n=== 本机IP检测测试完成 ===");
-    message.success("本机IP检测测试完成，请查看控制台输出");
-  } catch (error) {
-    console.error("测试本机IP检测失败:", error);
-    message.error("测试失败，请查看控制台错误信息");
-  }
-};
 
 /**
  * 处理工具栏操作
@@ -1057,6 +1108,151 @@ const handleSuccess = () => {
   loadServers();
 };
 
+/**
+ * 处理打开服务器配置页面
+ */
+const handleOpenConfig = (serverId: number) => {
+  // 打开服务器配置对话框
+  console.log('打开服务器配置页面，服务器ID:', serverId);
+  configDialogRef.value?.open(serverId);
+};
+
+/**
+ * 获取Socket连接状态文本
+ */
+const getSocketStatusText = () => {
+  if (metricsStore.socketState.connecting) {
+    return '连接中...';
+  }
+  if (metricsStore.socketState.connected) {
+    return '已连接';
+  }
+  if (metricsStore.socketState.error) {
+    return '连接失败';
+  }
+  return '未连接';
+};
+
+/**
+ * 获取Socket连接状态类型
+ */
+const getSocketStatusType = () => {
+  if (metricsStore.socketState.connecting) {
+    return 'warning';
+  }
+  if (metricsStore.socketState.connected) {
+    return 'success';
+  }
+  if (metricsStore.socketState.error) {
+    return 'danger';
+  }
+  return 'info';
+};
+
+/**
+ * 获取Socket连接状态图标
+ */
+const getSocketStatusIcon = () => {
+  if (metricsStore.socketState.connecting) {
+    return 'ri:loader-4-line';
+  }
+  if (metricsStore.socketState.connected) {
+    return 'ri:wifi-line';
+  }
+  if (metricsStore.socketState.error) {
+    return 'ri:wifi-off-line';
+  }
+  return 'ri:signal-wifi-off-line';
+};
+
+/**
+ * 切换实时监控
+ */
+const toggleRealTimeMetrics = async () => {
+  realTimeMetricsEnabled.value = !realTimeMetricsEnabled.value;
+
+  if (realTimeMetricsEnabled.value) {
+    try {
+      await metricsStore.initialize();
+      message.success('实时监控已启用');
+    } catch (error) {
+      console.error('启用实时监控失败:', error);
+      message.error('启用实时监控失败');
+      realTimeMetricsEnabled.value = false;
+    }
+  } else {
+    metricsStore.destroy();
+    message.info('实时监控已禁用');
+  }
+};
+
+
+
+/**
+ * 获取服务器健康状态
+ */
+const getServerHealthStatus = (serverId: string) => {
+  if (!realTimeMetricsEnabled.value || !metricsStore.initialized) {
+    return 'unknown';
+  }
+
+  return metricsStore.getServerHealthStatus(parseInt(serverId));
+};
+
+/**
+ * 获取健康状态文本
+ */
+const getHealthStatusText = (status: string) => {
+  switch (status) {
+    case 'healthy':
+      return '健康';
+    case 'warning':
+      return '警告';
+    case 'critical':
+      return '严重';
+    case 'offline':
+      return '离线';
+    default:
+      return '未知';
+  }
+};
+
+/**
+ * 获取健康状态类型
+ */
+const getHealthStatusType = (status: string) => {
+  switch (status) {
+    case 'healthy':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'critical':
+      return 'danger';
+    case 'offline':
+      return 'info';
+    default:
+      return 'info';
+  }
+};
+
+/**
+ * 获取健康状态图标
+ */
+const getHealthStatusIcon = (status: string) => {
+  switch (status) {
+    case 'healthy':
+      return 'ri:heart-pulse-line';
+    case 'warning':
+      return 'ri:error-warning-line';
+    case 'critical':
+      return 'ri:alarm-warning-line';
+    case 'offline':
+      return 'ri:heart-line';
+    default:
+      return 'ri:question-line';
+  }
+};
+
 
 
 
@@ -1080,8 +1276,31 @@ const handleSuccess = () => {
 
 
 // 生命周期钩子
-onMounted(() => {
-  loadServers();
+onMounted(async () => {
+  // 加载服务器列表
+  await loadServers();
+
+  // 初始化服务器指标监听
+  if (realTimeMetricsEnabled.value) {
+    try {
+      await metricsStore.initialize();
+      console.log('服务器指标监听初始化成功');
+    } catch (error) {
+      console.error('服务器指标监听初始化失败:', error);
+      message.error('实时监控连接失败，请检查网络连接');
+    }
+  }
+
+  loadServerLatency();
+});
+
+onUnmounted(() => {
+  // 销毁服务器指标监听
+  if (metricsStore.initialized) {
+    metricsStore.destroy();
+    console.log('服务器指标监听已销毁');
+  }
+
 });
 </script>
 
@@ -1532,6 +1751,7 @@ onMounted(() => {
           }
 
           .server-address {
+            display: flex;
             font-size: 13px;
             color: var(--el-text-color-secondary);
             font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -1974,6 +2194,11 @@ onMounted(() => {
             font-size: 18px;
             padding: 4px;
           }
+
+          .server-latency {
+            margin-left: 8px;
+            flex-shrink: 0;
+          }
         }
       }
 
@@ -2042,7 +2267,74 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
+/* 实时监控相关样式 */
+.metrics-switch {
+  margin-left: 12px;
+}
 
+.health-status {
+  margin-left: 8px;
 
+  .iconify {
+    font-size: 12px;
+  }
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* WebSocket连接状态样式 */
+.el-tag .iconify.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 实时指标显示优化 */
+.metrics-display {
+  .el-progress {
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .el-progress__text {
+    font-size: 12px !important;
+    font-weight: 500;
+  }
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .metrics-switch {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .health-status {
+    margin-left: 0;
+    margin-top: 4px;
+  }
+}
 
 </style>
