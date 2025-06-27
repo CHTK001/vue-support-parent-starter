@@ -133,17 +133,7 @@ export default [
               showParent: true
             }
           },
-          {
-            path: "/server/proxy",
-            name: "serverProxy",
-            component: () => import("@/views/server/modules/proxy-management/index.vue"),
-            meta: {
-              icon: "ri:router-line",
-              title: "代理管理",
-              showLink: true,
-              showParent: true
-            }
-          },
+
           {
             path: "/server/file-upload",
             name: "serverFileUpload",

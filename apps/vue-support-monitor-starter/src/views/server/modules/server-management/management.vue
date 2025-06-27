@@ -135,11 +135,7 @@
           />
         </el-tab-pane>
 
-        <el-tab-pane label="代理管理" name="proxy">
-          <ProxyManagement
-            ref="proxyManagementRef"
-          />
-        </el-tab-pane>
+
       </el-tabs>
     </div>
 
@@ -189,7 +185,6 @@ import ServerConnectionStatusList from "./components/ServerConnectionStatusList.
 import FileUploadTasks from "./components/FileUploadTasks.vue";
 import ServerScripts from "./components/ServerScripts.vue";
 import ServerLogs from "./components/ServerLogs.vue";
-import ProxyManagement from "./components/ProxyManagement.vue";
 
 // 导入对话框组件
 import ServerEditDialog from "./components/ServerEditDialog.vue";
@@ -206,7 +201,6 @@ const connectionStatusRef = ref();
 const fileUploadRef = ref();
 const serverScriptsRef = ref();
 const serverLogsRef = ref();
-const proxyManagementRef = ref();
 
 // 对话框引用
 const serverEditDialogRef = ref();

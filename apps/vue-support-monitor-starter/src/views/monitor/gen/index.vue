@@ -14,6 +14,10 @@
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
             </el-input>
+            <el-button type="info" plain @click="openMonitorConfig">
+              <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
+              监控配置
+            </el-button>
             <el-button type="primary" class="gen-btn__add" @click="onSave({}, 'add')">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               新增数据源
@@ -416,6 +420,15 @@ const handleClickFullscreen = row => {
     query: {
       data: Base64.encode(JSON.stringify(row))
     }
+  });
+};
+
+/**
+ * 打开监控配置页面
+ */
+const openMonitorConfig = () => {
+  router.push({
+    path: "/monitor/config"
   });
 };
 </script>
