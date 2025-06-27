@@ -118,7 +118,19 @@
                     style="width: 100%" />
                 </el-form-item>
 
-                <!-- 标签字段已移至服务器配置页面 -->
+                <el-form-item label="服务器标签" prop="monitorSysGenServerTags">
+                  <el-input v-model="formData.monitorSysGenServerTags" placeholder="请输入标签，多个标签用逗号分隔" clearable>
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:price-tag-3-line" />
+                    </template>
+                  </el-input>
+                  <div class="form-tip">用于服务器分组和筛选，例如：生产环境,数据库服务器</div>
+                </el-form-item>
+
+                <el-form-item label="服务器描述" prop="monitorSysGenServerDesc">
+                  <el-input v-model="formData.monitorSysGenServerDesc" type="textarea" :rows="3"
+                    placeholder="请输入服务器描述信息" maxlength="500" show-word-limit />
+                </el-form-item>
 
                 <!-- 服务器类型和操作系统信息 -->
                 <el-form-item label="服务器类型">
@@ -484,69 +496,25 @@
             </div>
           </el-col>
 
-          <!-- 右列：基本配置 -->
+          <!-- 右列：连接配置 -->
           <el-col :span="8" class="form-column">
             <div class="form-section">
               <div class="section-header">
-                <IconifyIconOnline icon="ri:settings-3-line" class="section-icon" />
-                <span class="section-title">基本配置</span>
+                <IconifyIconOnline icon="ri:links-line" class="section-icon" />
+                <span class="section-title">连接配置</span>
               </div>
               <div class="section-content">
-                <el-form-item label="状态">
+                <el-form-item label="服务器状态">
                   <div class="switch-wrapper">
                     <el-switch v-model="formData.monitorSysGenServerStatus" :active-value="1" :inactive-value="0"
                       active-text="启用" inactive-text="禁用" />
+                    <el-tooltip content="启用后服务器将参与监控和管理" placement="top">
+                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                    </el-tooltip>
                   </div>
                 </el-form-item>
 
-                <el-form-item label="指标支持">
-                  <div class="switch-wrapper">
-                    <el-switch v-model="formData.monitorSysGenServerMetricsSupport" :active-value="true"
-                      :inactive-value="false" active-text="支持" inactive-text="不支持" />
-                  </div>
-                </el-form-item>
-
-                <el-form-item label="代理配置">
-                  <div class="proxy-selection-container">
-                    <el-select v-model="formData.monitorSysGenServerProxyId" placeholder="选择代理配置" style="width: 100%"
-                      clearable filterable @change="handleProxyChange" :loading="proxyListLoading">
-                      <el-option label="无代理" :value="null">
-                        <div class="proxy-option">
-                          <IconifyIconOnline icon="ri:close-line" class="proxy-option-icon" />
-                          <span>无代理</span>
-                        </div>
-                      </el-option>
-                      <el-option-group v-for="group in groupedProxyList" :key="group.type" :label="group.label">
-                        <el-option v-for="proxy in group.proxies" :key="proxy.monitorSysGenServerProxyId" :label="`${proxy.monitorSysGenServerProxyType} 代理`"
-                          :value="proxy.monitorSysGenServerProxyId">
-                          <div class="proxy-option">
-                            <IconifyIconOnline :icon="getProxyTypeIcon(proxy.monitorSysGenServerProxyType)" class="proxy-option-icon" />
-                            <span class="proxy-name">{{ proxy.monitorSysGenServerProxyType + ' 代理' }}</span>
-                            <span class="proxy-address">{{ proxy.monitorSysGenServerProxyHost && proxy.monitorSysGenServerProxyPort ? `${proxy.monitorSysGenServerProxyHost}:${proxy.monitorSysGenServerProxyPort}` : '未配置地址' }}</span>
-                            <el-tag :type="proxy.monitorSysGenServerProxyEnabled === 1 ? 'success' : 'danger'" size="small" effect="light"
-                              v-if="proxy.monitorSysGenServerProxyEnabled !== undefined">
-                              {{ proxy.monitorSysGenServerProxyEnabled === 1 ? '启用' : '禁用' }}
-                            </el-tag>
-                          </div>
-                        </el-option>
-                      </el-option-group>
-                    </el-select>
-
-                    <!-- 代理管理按钮 -->
-                    <div class="proxy-actions">
-                      <el-tooltip content="刷新代理列表" placement="top">
-                        <el-button size="small" text @click="loadProxyList" :loading="proxyListLoading">
-                          <IconifyIconOnline icon="ri:refresh-line" />
-                        </el-button>
-                      </el-tooltip>
-                      <el-tooltip content="代理管理" placement="top">
-                        <el-button size="small" text @click="openProxyManagement">
-                          <IconifyIconOnline icon="ri:settings-line" />
-                        </el-button>
-                      </el-tooltip>
-                    </div>
-                  </div>
-                </el-form-item>
+                <!-- 代理配置已移至服务器配置管理页面 -->
 
                 <!-- RDP特有配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
@@ -579,10 +547,6 @@
                     </div>
                   </el-form-item>
                 </template>
-
-
-
-                <!-- 描述字段已移至服务器配置页面 -->
               </div>
             </div>
           </el-col>
@@ -2544,5 +2508,29 @@ defineExpose({
       }
     }
   }
+}
+
+// 新增样式
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.help-icon {
+  margin-left: 8px;
+  color: #909399;
+  cursor: help;
+
+  &:hover {
+    color: #409eff;
+  }
+}
+
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

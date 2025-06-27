@@ -177,6 +177,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="config">配置管理</el-dropdown-item>
                   <el-dropdown-item command="setting">服务器设置</el-dropdown-item>
                   <el-dropdown-item command="test">测试连接</el-dropdown-item>
                   <el-dropdown-item command="logs">查看日志</el-dropdown-item>
@@ -228,6 +229,7 @@ import {
 // 定义事件
 const emit = defineEmits<{
   edit: [server: ServerInfo];
+  config: [server: ServerInfo];
   setting: [server: ServerInfo];
   delete: [server: ServerInfo];
   connect: [server: ServerInfo];
@@ -384,6 +386,9 @@ const handleAction = async (command: string, server: ServerInfo) => {
   switch (command) {
     case "edit":
       emit("edit", server);
+      break;
+    case "config":
+      emit("config", server);
       break;
     case "setting":
       emit("setting", server);
