@@ -202,19 +202,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { MonitorWebSocket } from "@/utils/websocket";
+import { ref, reactive, computed, watch } from "vue";
 import MetricsChart from "@/components/charts/MetricsChart.vue";
 import type { ServerMetrics } from "@/api/server";
 
 // 定义属性
 interface Props {
   serverId: string | number;
+  metrics?: ServerMetrics | null; // 从外层传入的指标数据
   autoStart?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   autoStart: true,
+  metrics: null,
 });
 
 // 响应式状态
@@ -239,9 +240,6 @@ const currentMetrics = reactive({
 // 历史指标
 const metricsHistory = ref<ServerMetrics[]>([]);
 const previousMetrics = ref<ServerMetrics | null>(null);
-
-// WebSocket连接
-let monitorWebSocket: MonitorWebSocket | null = null;
 
 // 图表引用
 const cpuMemoryChartRef = ref();
@@ -274,46 +272,14 @@ const networkData = computed(() => {
   }));
 });
 
-/**
- * 连接监控WebSocket
- */
-const connectMonitor = () => {
-  monitorWebSocket = new MonitorWebSocket(props.serverId, {
-    onOpen: () => {
-      console.log('监控连接已建立');
-      // 订阅所有指标
-      monitorWebSocket?.subscribeMetrics(['cpu', 'memory', 'disk', 'network', 'system']);
-    },
-    onMessage: (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'metrics') {
-          updateMetrics(data.metrics);
-        }
-      } catch (error) {
-        console.error('解析监控数据失败:', error);
-      }
-    },
-    onClose: () => {
-      console.log('监控连接已断开');
-    },
-    onError: (error) => {
-      console.error('监控连接错误:', error);
-    },
-  });
-  
-  monitorWebSocket.connect();
-};
+// 移除WebSocket连接相关代码，改为监听props变化
 
-/**
- * 断开监控连接
- */
-const disconnectMonitor = () => {
-  if (monitorWebSocket) {
-    monitorWebSocket.disconnect();
-    monitorWebSocket = null;
+// 监听props中的metrics变化
+watch(() => props.metrics, (newMetrics) => {
+  if (newMetrics) {
+    updateMetrics(newMetrics);
   }
-};
+}, { immediate: true });
 
 /**
  * 更新指标数据
@@ -385,12 +351,10 @@ const setTimeRange = (range: string) => {
  * 处理实时模式切换
  */
 const handleRealTimeToggle = (enabled: boolean) => {
-  if (enabled) {
-    connectMonitor();
-  } else {
-    disconnectMonitor();
+  if (!enabled) {
     loadHistoryData();
   }
+  // 实时模式下数据由外层组件提供，无需额外处理
 };
 
 /**
@@ -492,20 +456,7 @@ const formatUptime = (seconds: number) => {
   }
 };
 
-// 生命周期
-onMounted(() => {
-  if (props.autoStart) {
-    if (realTime.value) {
-      connectMonitor();
-    } else {
-      loadHistoryData();
-    }
-  }
-});
-
-onUnmounted(() => {
-  disconnectMonitor();
-});
+// 移除生命周期钩子，数据由外层组件提供
 </script>
 
 <style scoped lang="scss">

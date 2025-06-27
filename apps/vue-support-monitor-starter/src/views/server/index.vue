@@ -452,6 +452,7 @@ import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { ElMessageBox, ElMessage } from "element-plus";
 import { useServerWebSocket } from "@/composables/useServerWebSocket";
+import { useServerMetricsStore } from "@/stores/serverMetrics";
 import {
   getServerPageList,
   deleteServer,
@@ -523,8 +524,18 @@ const selectedServer = computed(() =>
 
 // WebSocket相关状态
 const { state: wsState, onMessage, MESSAGE_TYPE } = useServerWebSocket();
-const wsConnected = computed(() => wsState.value.connected);
+const wsConnected = computed(() => wsState.value?.connected || false);
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
+
+// ServerMetrics Store
+const serverMetricsStore = useServerMetricsStore();
+
+/**
+ * 获取指定服务器的指标数据
+ */
+const getServerMetricsData = (serverId: string | number) => {
+  return serverMetricsStore.getServerMetrics(Number(serverId));
+};
 
 // 对话框引用
 const editDialogRef = ref();
@@ -1051,6 +1062,12 @@ const initWebSocketHandlers = () => {
   onMessage(MESSAGE_TYPE.SERVER_ADD, handleServerAdd);
   onMessage(MESSAGE_TYPE.SERVER_METRICS, handleServerMetrics);
   onMessage(MESSAGE_TYPE.CONNECTION_TEST_RESULT, handleConnectionTestResult);
+
+  // 注册serverMetrics相关消息处理器
+  onMessage('server_metrics', handleServerMetricsData);
+  onMessage('server_status_summary', handleServerStatusSummary);
+  onMessage('performance_trends', handlePerformanceTrends);
+  onMessage('server_alerts', handleServerAlerts);
 };
 
 /**
@@ -1214,11 +1231,68 @@ const handleConnectionTestResult = (message: ServerWebSocketMessage) => {
   }
 };
 
+/**
+ * 处理服务器指标数据 - 更新到store
+ */
+const handleServerMetricsData = (message: any) => {
+  if (!message.serverId || !message.data) return;
 
+  try {
+    // 更新到serverMetrics store
+    serverMetricsStore.updateServerMetrics(message.serverId, message.data);
 
+    // 同时保持原有的本地缓存逻辑
+    const metrics = message.data;
+    const displayMetrics = mapServerMetricsToDisplay(metrics);
+    serverMetrics.value.set(String(message.serverId), displayMetrics);
 
+    console.log(`已更新服务器 ${message.serverId} 的指标数据到store`);
+  } catch (error) {
+    console.error('处理服务器指标数据失败:', error);
+  }
+};
 
+/**
+ * 处理服务器状态汇总
+ */
+const handleServerStatusSummary = (message: any) => {
+  if (!message.data) return;
 
+  try {
+    serverMetricsStore.updateStatusSummary(message.data);
+    console.log('已更新服务器状态汇总到store');
+  } catch (error) {
+    console.error('处理服务器状态汇总失败:', error);
+  }
+};
+
+/**
+ * 处理性能趋势数据
+ */
+const handlePerformanceTrends = (message: any) => {
+  if (!message.serverId || !message.data) return;
+
+  try {
+    serverMetricsStore.updatePerformanceTrends(message.serverId, message.data);
+    console.log(`已更新服务器 ${message.serverId} 的性能趋势数据到store`);
+  } catch (error) {
+    console.error('处理性能趋势数据失败:', error);
+  }
+};
+
+/**
+ * 处理服务器告警信息
+ */
+const handleServerAlerts = (message: any) => {
+  if (!message.serverId || !message.data) return;
+
+  try {
+    serverMetricsStore.updateServerAlerts(message.serverId, message.data);
+    console.log(`已更新服务器 ${message.serverId} 的告警信息到store`);
+  } catch (error) {
+    console.error('处理服务器告警信息失败:', error);
+  }
+};
 
 // 生命周期钩子
 onMounted(() => {
