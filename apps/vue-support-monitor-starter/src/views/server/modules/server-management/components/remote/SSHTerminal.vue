@@ -338,12 +338,6 @@ const initSSHMessageHandlers = () => {
         bytesReceived.value += outputData.length;
       } catch (error) {
         console.error('写入终端数据时出错:', error);
-        try {
-          terminal.value.write(cleanData);
-          bytesReceived.value += cleanData.length;
-        } catch (retryError) {
-          console.error('重试写入终端数据失败:', retryError);
-        }
       }
     }
   });
