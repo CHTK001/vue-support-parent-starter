@@ -20,7 +20,7 @@
               :type="getSocketStatusType"
               effect="light"
               size="small"
-              class="ml-2"
+              class="ml-2 tag-container"
             >
               <IconifyIconOnline
                 :icon="getSocketStatusIcon()"
@@ -38,7 +38,7 @@
             v-if="Object.keys(messageStats).length > 0"
           >
             <template #reference>
-              <el-tag type="info" effect="plain" size="small" class="ml-2">
+              <el-tag type="info" effect="plain" size="small" class="ml-2 tag-container">
                 <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
                 调试 ({{ Object.values(messageStats).reduce((a, b) => a + b, 0) }})
               </el-tag>
@@ -532,10 +532,6 @@
     <AlertConfigDialog ref="alertDialogRef" />
     <OperationLogDialog ref="logDialogRef" />
 
-    <!-- 本地调试对话框 -->
-    <el-dialog v-model="localDebugVisible" title="本地服务器调试" width="80%" :close-on-click-modal="false">
-      <LocalServerDebug />
-    </el-dialog>
   </div>
 </template>
 
@@ -568,7 +564,6 @@ const BatchOperationDialog = defineAsyncComponent(() => import("../../components
 const ScriptExecutorDialog = defineAsyncComponent(() => import("../../components/dialogs/ScriptExecutorDialog.vue"));
 const AlertConfigDialog = defineAsyncComponent(() => import("../../components/dialogs/AlertConfigDialog.vue"));
 const OperationLogDialog = defineAsyncComponent(() => import("../../components/dialogs/OperationLogDialog.vue"));
-const LocalServerDebug = defineAsyncComponent(() => import("./components/LocalServerDebug.vue"));
 
 // 远程连接组件
 const SSHTerminal = defineAsyncComponent(() => import("./components/remote/SSHTerminal.vue"));
@@ -2574,6 +2569,11 @@ onUnmounted(() => {
     margin-left: 0;
     margin-top: 4px;
   }
+}
+:deep(.tag-container > span){ 
+  display: flex;
+  align-items: center;
+  flex-direction: column;
 }
 
 </style>

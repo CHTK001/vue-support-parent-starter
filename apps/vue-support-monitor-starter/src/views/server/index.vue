@@ -520,7 +520,7 @@ const servers = ref<ServerDisplayData[]>([]);
 const serverGroups = ref<string[]>([]);
 const selectedServer = computed(() =>
   servers.value.find(s => s.id === selectedServerId.value)
-);
+) as any;
 
 // WebSocket相关状态
 const { state: wsState, onMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
@@ -603,7 +603,7 @@ const filteredServers = computed(() => {
   }
 
   return result;
-});
+}) as any;
 
 /**
  * 获取在线状态类型
