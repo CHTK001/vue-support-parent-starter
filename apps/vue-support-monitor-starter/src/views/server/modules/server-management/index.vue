@@ -12,12 +12,12 @@
             </el-tag>
           </el-tooltip>
           <el-tooltip
-            :content="`实时监控状态: ${getSocketStatusText()}`"
+            :content="`实时监控状态: ${getSocketStatusText}`"
             placement="bottom"
             :show-after="500"
           >
             <el-tag
-              :type="getSocketStatusType()"
+              :type="getSocketStatusType"
               effect="light"
               size="small"
               class="ml-2"
@@ -25,9 +25,8 @@
               <IconifyIconOnline
                 :icon="getSocketStatusIcon()"
                 class="mr-1"
-                :class="{ 'animate-spin': metricsStore.socketState.connecting }"
               />
-              {{ getSocketStatusText() }}
+              {{ getSocketStatusText }}
             </el-tag>
           </el-tooltip>
         </h2>
@@ -37,15 +36,6 @@
       </div>
 
       <div class="toolbar-right">
-        <!-- 视图切换 -->
-        <el-tooltip content="切换显示模式" placement="bottom" :show-after="500">
-          <el-radio-group v-model="viewMode" size="small" class="view-toggle">
-            <el-radio-button label="card">卡片视图</el-radio-button>
-            <el-radio-button label="list">列表视图</el-radio-button>
-            <el-radio-button label="topology">拓扑视图</el-radio-button>
-          </el-radio-group>
-        </el-tooltip>
-
         <!-- 筛选器 -->
         <el-tooltip content="按分组筛选" placement="bottom" :show-after="500">
           <el-select v-model="filterGroup" placeholder="分组" clearable size="small" class="filter-select">
@@ -85,22 +75,6 @@
           </el-input>
         </el-tooltip>
 
-        <!-- 实时监控开关 -->
-        <el-tooltip
-          :content="realTimeMetricsEnabled ? '关闭实时监控' : '开启实时监控'"
-          placement="bottom"
-          :show-after="500"
-        >
-          <el-switch
-            v-model="realTimeMetricsEnabled"
-            size="small"
-            inline-prompt
-            active-text="实时"
-            inactive-text="静态"
-            @change="toggleRealTimeMetrics"
-            class="metrics-switch"
-          />
-        </el-tooltip>
 
         <!-- 操作按钮 -->
         <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
@@ -413,7 +387,6 @@
                         <el-dropdown-item
                           command="detail"
                           title="查看服务器详情页面"
-                          v-if="server.monitorSysGenServerReportEnabled === 1"
                         >
                           <IconifyIconOnline icon="ri:dashboard-3-line" class="mr-2" />
                           详情页面
@@ -484,8 +457,11 @@
               <ServerMonitor
                 v-else-if="currentComponent === 'ServerMonitor'"
                 :server="selectedServer"
+                :metrics-data="getServerMonitorMetrics(selectedServerId)"
+                :metrics-loading="loading"
                 :key="selectedServerId + '-monitor'"
                 @close="closeRightPanel"
+                @refresh-metrics="handleRefreshMetrics"
               />
               <!-- 文件管理组件 -->
               <FileManager
@@ -498,8 +474,11 @@
               <ServerMonitor
                 v-else
                 :server="selectedServer"
+                :metrics-data="getServerMonitorMetrics(selectedServerId)"
+                :metrics-loading="loading"
                 :key="selectedServerId + '-default'"
                 @close="closeRightPanel"
+                @refresh-metrics="handleRefreshMetrics"
               />
             </template>
             <template #fallback>
@@ -529,7 +508,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense } from "vue";
+import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense, nextTick } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import {
@@ -548,6 +527,7 @@ import {
 } from "@/api/server";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
+import { useServerWebSocket } from "@/composables/useServerWebSocket";
 
 // 异步组件
 const ServerEditDialog = defineAsyncComponent(() => import("./components/ServerEditDialog.vue"));
@@ -593,6 +573,10 @@ const selectedServer = computed(() =>
 
 // 服务器指标数据
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
+
+// WebSocket连接状态
+const { state: wsState, onMessage, MESSAGE_TYPE } = useServerWebSocket();
+const wsConnected = computed(() => wsState.value?.connected || false);
 
 // 服务器指标监听
 const metricsStore = useServerMetricsStore();
@@ -681,26 +665,98 @@ const filteredServers = computed(() => {
  * 获取服务器指标数据
  */
 const getServerMetrics = (serverId: string) => {
-  // 优先使用实时指标数据
-  if (realTimeMetricsEnabled.value && metricsStore.initialized) {
-    const metrics = metricsStore.getServerMetrics(parseInt(serverId));
-    if (metrics) {
-      return {
-        cpuUsage: metrics.cpu.usage,
-        memoryUsage: metrics.memory.usage,
-        diskUsage: metrics.disk.usage,
-        networkIn: metrics.network.in,
-        networkOut: metrics.network.out,
-        status: metrics.status,
-        responseTime: metrics.responseTime,
-        uptime: metrics.uptime,
-        processCount: metrics.processCount
-      };
-    }
+  // 优先使用store中的实时指标数据
+  const metrics = metricsStore.getServerMetrics(parseInt(serverId));
+  if (metrics) {
+    return {
+      cpuUsage: metrics.cpuUsage,
+      memoryUsage: metrics.memoryUsage,
+      diskUsage: metrics.diskUsage,
+      networkIn: metrics.networkIn,
+      networkOut: metrics.networkOut,
+      status: metrics.status,
+      uptime: metrics.uptime,
+      processCount: metrics.processCount,
+      loadAverage: metrics.loadAverage,
+      temperature: metrics.temperature
+    };
   }
 
   // 回退到缓存的指标数据
   return serverMetrics.value.get(serverId);
+};
+
+/**
+ * 获取服务器监控组件所需的指标数据
+ */
+const getServerMonitorMetrics = (serverId: string | null) => {
+  if (!serverId) return null;
+
+  const metrics = metricsStore.getServerMetrics(parseInt(serverId));
+  if (!metrics) return null;
+
+  // 转换为ServerMonitor组件期望的数据格式
+  // 注意：metricsStore中的数据结构比较简单，需要适配到ServerMonitor期望的复杂结构
+  return {
+    serverId: parseInt(serverId),
+    collectTime: metrics.collectTime || new Date().toISOString(),
+    status: metrics.status === 'online' ? 1 : 0,
+    responseTime: 0, // metricsStore中没有这个字段
+    cpu: {
+      usage: metrics.cpuUsage || 0,
+      cores: 1, // metricsStore中没有这个字段，使用默认值
+      load1m: 0, // metricsStore中没有这个字段，使用默认值
+      load5m: 0, // metricsStore中没有这个字段，使用默认值
+      load15m: 0, // metricsStore中没有这个字段，使用默认值
+    },
+    memory: {
+      total: 0, // metricsStore中没有这个字段，使用默认值
+      used: 0, // metricsStore中没有这个字段，使用默认值
+      free: 0, // metricsStore中没有这个字段，使用默认值
+      usage: metrics.memoryUsage || 0,
+    },
+    disk: {
+      total: 0, // metricsStore中没有这个字段，使用默认值
+      used: 0, // metricsStore中没有这个字段，使用默认值
+      free: 0, // metricsStore中没有这个字段，使用默认值
+      usage: metrics.diskUsage || 0,
+    },
+    network: {
+      in: metrics.networkIn || 0,
+      out: metrics.networkOut || 0,
+    },
+    osInfo: undefined, // metricsStore中没有这个字段
+    osName: undefined, // metricsStore中没有这个字段
+    osVersion: undefined, // metricsStore中没有这个字段
+    hostname: undefined, // metricsStore中没有这个字段
+    uptime: metrics.uptime || 0,
+    processCount: metrics.processCount || 0,
+    loadAverage: metrics.loadAverage,
+    temperature: metrics.temperature,
+    networkInPackets: undefined, // metricsStore中没有这个字段
+    networkOutPackets: undefined, // metricsStore中没有这个字段
+    extraInfo: undefined, // metricsStore中没有这个字段
+  };
+};
+
+/**
+ * 处理刷新指标数据请求
+ */
+const handleRefreshMetrics = async (serverId: string) => {
+  try {
+    console.log('收到刷新指标数据请求:', serverId);
+
+    // 这里可以触发指标数据的刷新
+    // 由于数据是通过WebSocket实时推送的，这里主要是记录日志
+    // 如果需要主动拉取数据，可以调用相关API
+
+    // 可以触发一次数据更新检查
+    await nextTick();
+
+    console.log('指标数据刷新完成');
+  } catch (error) {
+    console.error('刷新指标数据失败:', error);
+  }
 };
 
 /**
@@ -1120,83 +1176,91 @@ const handleOpenConfig = (serverId: number) => {
 /**
  * 获取Socket连接状态文本
  */
-const getSocketStatusText = () => {
-  if (metricsStore.socketState.connecting) {
-    return '连接中...';
+const getSocketStatusText = computed(() => {
+  // 基于实际的WebSocket连接状态
+  if (wsState.value?.connecting) {
+    return '连接中';
+  } else if (wsState.value?.connected) {
+    // 连接成功后，再检查数据更新时间
+    const lastUpdate = metricsStore.getLastUpdateTime;
+    const now = Date.now();
+    const timeDiff = now - lastUpdate;
+
+    if (timeDiff < 60000) { // 1分钟内有更新
+      return '已连接';
+    } else if (timeDiff < 300000) { // 5分钟内有更新
+      return '连接延迟';
+    } else {
+      return '数据延迟';
+    }
+  } else if (wsState.value?.error) {
+    return '连接错误';
+  } else {
+    return '未连接';
   }
-  if (metricsStore.socketState.connected) {
-    return '已连接';
-  }
-  if (metricsStore.socketState.error) {
-    return '连接失败';
-  }
-  return '未连接';
-};
+});
 
 /**
  * 获取Socket连接状态类型
  */
-const getSocketStatusType = () => {
-  if (metricsStore.socketState.connecting) {
+const getSocketStatusType = computed(() => {
+  // 基于实际的WebSocket连接状态
+  if (wsState.value?.connecting) {
     return 'warning';
-  }
-  if (metricsStore.socketState.connected) {
-    return 'success';
-  }
-  if (metricsStore.socketState.error) {
+  } else if (wsState.value?.connected) {
+    // 连接成功后，再检查数据更新时间
+    const lastUpdate = metricsStore.getLastUpdateTime;
+    const now = Date.now();
+    const timeDiff = now - lastUpdate;
+
+    if (timeDiff < 60000) { // 1分钟内有更新
+      return 'success';
+    } else if (timeDiff < 300000) { // 5分钟内有更新
+      return 'warning';
+    } else {
+      return 'warning';
+    }
+  } else {
     return 'danger';
   }
-  return 'info';
-};
+});
 
 /**
  * 获取Socket连接状态图标
  */
 const getSocketStatusIcon = () => {
-  if (metricsStore.socketState.connecting) {
-    return 'ri:loader-4-line';
-  }
-  if (metricsStore.socketState.connected) {
-    return 'ri:wifi-line';
-  }
-  if (metricsStore.socketState.error) {
-    return 'ri:wifi-off-line';
-  }
-  return 'ri:signal-wifi-off-line';
-};
+  // 基于实际的WebSocket连接状态
+  if (wsState.value?.connecting) {
+    return 'ri:loader-line';
+  } else if (wsState.value?.connected) {
+    // 连接成功后，再检查数据更新时间
+    const lastUpdate = metricsStore.getLastUpdateTime;
+    const now = Date.now();
+    const timeDiff = now - lastUpdate;
 
-/**
- * 切换实时监控
- */
-const toggleRealTimeMetrics = async () => {
-  realTimeMetricsEnabled.value = !realTimeMetricsEnabled.value;
-
-  if (realTimeMetricsEnabled.value) {
-    try {
-      await metricsStore.initialize();
-      message.success('实时监控已启用');
-    } catch (error) {
-      console.error('启用实时监控失败:', error);
-      message.error('启用实时监控失败');
-      realTimeMetricsEnabled.value = false;
+    if (timeDiff < 60000) { // 1分钟内有更新
+      return 'ri:wifi-line';
+    } else if (timeDiff < 300000) { // 5分钟内有更新
+      return 'ri:signal-wifi-1-line';
+    } else {
+      return 'ri:signal-wifi-error-line';
     }
   } else {
-    metricsStore.destroy();
-    message.info('实时监控已禁用');
+    return 'ri:wifi-off-line';
   }
 };
-
-
 
 /**
  * 获取服务器健康状态
  */
 const getServerHealthStatus = (serverId: string) => {
-  if (!realTimeMetricsEnabled.value || !metricsStore.initialized) {
+  if (!realTimeMetricsEnabled.value) {
     return 'unknown';
   }
 
-  return metricsStore.getServerHealthStatus(parseInt(serverId));
+  // 使用store中的isServerInWarning方法判断健康状态
+  const isWarning = metricsStore.isServerInWarning(parseInt(serverId));
+  return isWarning ? 'warning' : 'healthy';
 };
 
 /**
@@ -1275,30 +1339,72 @@ const getHealthStatusIcon = (status: string) => {
 
 
 
+// 监听WebSocket消息
+const setupWebSocketListeners = () => {
+  // 监听服务器指标数据
+  onMessage('server_metrics', (message) => {
+    if (message.serverId && message.data) {
+      // 更新store中的指标数据
+      metricsStore.updateServerMetrics(message.serverId, {
+        serverId: message.serverId,
+        serverName: message.serverName,
+        cpuUsage: message.data.cpuUsage || 0,
+        memoryUsage: message.data.memoryUsage || 0,
+        diskUsage: message.data.diskUsage || 0,
+        networkIn: message.data.networkIn || 0,
+        networkOut: message.data.networkOut || 0,
+        uptime: message.data.uptime || 0,
+        processCount: message.data.processCount || 0,
+        loadAverage: message.data.loadAverage,
+        temperature: message.data.temperature,
+        status: message.data.status === 1 ? 'online' : 'offline',
+        collectTime: message.data.collectTime || new Date().toISOString(),
+      });
+
+      console.log(`更新服务器 ${message.serverId} 指标数据:`, message.data);
+    }
+  });
+
+  // 监听服务器状态变化
+  onMessage('server_status_change', (message) => {
+    if (message.serverId) {
+      console.log(`服务器 ${message.serverId} 状态变化:`, message);
+      // 可以在这里更新服务器列表中的状态
+      loadServers();
+    }
+  });
+
+  // 监听连接状态变化
+  onMessage('connection_status_change', (message) => {
+    if (message.serverId) {
+      console.log(`服务器 ${message.serverId} 连接状态变化:`, message);
+      // 可以在这里更新服务器列表中的连接状态
+      loadServers();
+    }
+  });
+};
+
 // 生命周期钩子
 onMounted(async () => {
   // 加载服务器列表
   await loadServers();
 
-  // 初始化服务器指标监听
+  // 设置WebSocket消息监听
+  setupWebSocketListeners();
+
+  // 启动延迟监控
+  latencyManager.startMonitoring();
+
+  // 由于重构了store，这里简化处理
   if (realTimeMetricsEnabled.value) {
-    try {
-      await metricsStore.initialize();
-      console.log('服务器指标监听初始化成功');
-    } catch (error) {
-      console.error('服务器指标监听初始化失败:', error);
-      message.error('实时监控连接失败，请检查网络连接');
-    }
+    console.log('实时监控已启用');
   }
 });
 
 onUnmounted(() => {
-  // 销毁服务器指标监听
-  if (metricsStore.initialized) {
-    metricsStore.destroy();
-    console.log('服务器指标监听已销毁');
-  }
-
+  // 清理缓存数据
+  metricsStore.clearCache();
+  console.log('服务器指标缓存已清理');
 });
 </script>
 

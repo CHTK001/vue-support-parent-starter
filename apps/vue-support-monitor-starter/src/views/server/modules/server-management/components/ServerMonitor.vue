@@ -181,57 +181,87 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { message } from "@repo/utils";
 import { type ServerDisplayData } from "@/api/server";
-import { useServerMetricsSocket, type ServerMetricsData } from "@/composables/useServerMetricsSocket";
+
+/**
+ * 服务器指标数据类型（简化版本，与useServerMetricsSocket保持兼容）
+ */
+export interface ServerMetricsData {
+  serverId: number;
+  collectTime: string;
+  status: number;
+  responseTime: number;
+  cpu: {
+    usage: number;
+    cores: number;
+    load1m: number;
+    load5m: number;
+    load15m: number;
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    usage: number;
+  };
+  disk: {
+    total: number;
+    used: number;
+    free: number;
+    usage: number;
+  };
+  network: {
+    in: number;
+    out: number;
+  };
+  osInfo?: string;
+  osName?: string;
+  osVersion?: string;
+  hostname?: string;
+  uptime: number;
+  processCount: number;
+  loadAverage?: string;
+  temperature?: number;
+  networkInPackets?: number;
+  networkOutPackets?: number;
+  extraInfo?: string;
+}
 
 // Props
 const props = defineProps<{
   server?: ServerDisplayData;
+  /** 服务器指标数据，由父组件传入 */
+  metricsData?: ServerMetricsData | null;
+  /** 是否正在加载指标数据 */
+  metricsLoading?: boolean;
 }>();
 
 // Emits
 const emit = defineEmits<{
   close: [];
+  /** 请求刷新指标数据 */
+  refreshMetrics: [serverId: string];
 }>();
 
 // 状态
 const loading = ref(false);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
 
-// 使用服务器指标Socket
-const metricsSocket = useServerMetricsSocket();
-
-// 指标数据
-const metrics = ref<ServerMetricsData | null>(null);
+// 指标数据（从props获取）
+const metrics = computed(() => props.metricsData);
 
 // 计算属性
 const serverId = computed(() => props.server?.id);
 
-// 从Socket更新指标数据
-const updateMetricsFromSocket = () => {
-  if (serverId.value && metricsSocket.latestMetrics.value.has(serverId.value)) {
-    const socketMetrics = metricsSocket.latestMetrics.value.get(serverId.value);
-    if (socketMetrics) {
-      metrics.value = socketMetrics;
-      console.log('ServerMonitor更新指标数据:', socketMetrics);
-    }
+// 监听指标数据变化
+watch(() => props.metricsData, (newMetrics) => {
+  if (newMetrics) {
+    console.log('ServerMonitor接收到指标数据:', newMetrics);
   }
-};
-
-// 监听服务器ID变化
-watch(serverId, (newServerId) => {
-  if (newServerId) {
-    updateMetricsFromSocket();
-  }
-}, { immediate: true });
-
-// 监听Socket中的指标数据变化
-watch(() => metricsSocket.latestMetrics.value, () => {
-  updateMetricsFromSocket();
 }, { deep: true });
 
 // 方法
-const getOnlineStatusType = (status: number) => {
-  const statusMap: Record<number, string> = {
+const getOnlineStatusType = (status: number): "success" | "warning" | "info" | "primary" | "danger" => {
+  const statusMap: Record<number, "success" | "warning" | "info" | "primary" | "danger"> = {
     1: "success",
     0: "danger",
     2: "warning"
@@ -272,10 +302,7 @@ const formatNumber = (num: number | undefined) => {
   return num.toLocaleString();
 };
 
-const formatFrequency = (freq: number | undefined) => {
-  if (!freq) return "N/A";
-  return (freq / 1000000).toFixed(2) + " GHz";
-};
+
 
 const formatUptime = (uptime: number | undefined) => {
   if (!uptime) return "N/A";
@@ -295,16 +322,10 @@ const refreshMetrics = async () => {
   try {
     loading.value = true;
 
-    // 从Socket缓存中获取最新数据
-    updateMetricsFromSocket();
+    // 通知父组件刷新指标数据
+    emit('refreshMetrics', serverId.value);
 
-    // 如果Socket未连接，尝试连接
-    if (!metricsSocket.state.connected) {
-      console.log('Socket未连接，尝试连接...');
-      await metricsSocket.connect();
-    }
-
-    message.success("指标数据已刷新");
+    message.success("指标数据刷新请求已发送");
   } catch (error) {
     message.error("刷新失败");
     console.error("刷新指标数据失败:", error);
@@ -315,7 +336,10 @@ const refreshMetrics = async () => {
 
 const startAutoRefresh = () => {
   updateTimer.value = setInterval(() => {
-    refreshMetrics();
+    if (serverId.value) {
+      // 通知父组件自动刷新指标数据
+      emit('refreshMetrics', serverId.value);
+    }
   }, 30000); // 30秒自动刷新
 };
 
@@ -327,17 +351,14 @@ const stopAutoRefresh = () => {
 };
 
 // 生命周期
-onMounted(async () => {
-  // 确保Socket连接
-  if (!metricsSocket.state.connected) {
-    console.log('ServerMonitor: 初始化Socket连接...');
-    await metricsSocket.connect();
-  }
-
-  // 获取初始数据
-  updateMetricsFromSocket();
-  refreshMetrics();
+onMounted(() => {
+  // 启动自动刷新
   startAutoRefresh();
+
+  // 如果有服务器ID，立即请求一次数据
+  if (serverId.value) {
+    emit('refreshMetrics', serverId.value);
+  }
 });
 
 onUnmounted(() => {
