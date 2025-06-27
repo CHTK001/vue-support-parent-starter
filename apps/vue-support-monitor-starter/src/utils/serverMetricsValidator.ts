@@ -2,7 +2,7 @@
  * 服务器指标数据验证和转换工具
  */
 
-import type { ServerMetricsData } from '@/composables/useServerMetricsSocket';
+import type { ServerMetricsData } from '@/stores/serverMetrics';
 
 /**
  * 验证服务器指标数据结构

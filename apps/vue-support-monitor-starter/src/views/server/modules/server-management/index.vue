@@ -29,6 +29,38 @@
               {{ getSocketStatusText }}
             </el-tag>
           </el-tooltip>
+
+          <!-- 调试信息 -->
+          <el-popover
+            placement="bottom"
+            :width="400"
+            trigger="hover"
+            v-if="Object.keys(messageStats).length > 0"
+          >
+            <template #reference>
+              <el-tag type="info" effect="plain" size="small" class="ml-2">
+                <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
+                调试 ({{ Object.values(messageStats).reduce((a, b) => a + b, 0) }})
+              </el-tag>
+            </template>
+            <div class="debug-info">
+              <h4 style="margin: 0 0 10px 0; font-size: 14px;">WebSocket 消息统计</h4>
+              <div class="message-stats">
+                <div v-for="(count, type) in messageStats" :key="type" class="stat-item" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span class="stat-type" style="font-weight: 500;">{{ type }}:</span>
+                  <span class="stat-count" style="color: #409eff;">{{ count }}次</span>
+                </div>
+              </div>
+              <div class="last-message-time" v-if="lastMessageTime > 0" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                <small style="color: #909399;">最后消息: {{ new Date(lastMessageTime).toLocaleTimeString() }}</small>
+              </div>
+              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                <small style="color: #909399;">
+                  💡 如果没有收到 server_metrics 消息，请检查是否已配置服务器
+                </small>
+              </div>
+            </div>
+          </el-popover>
         </h2>
       </div>
       <div class="toolbar-right">
@@ -575,8 +607,12 @@ const selectedServer = computed(() =>
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 
 // WebSocket连接状态
-const { state: wsState, onMessage, MESSAGE_TYPE } = useServerWebSocket();
+const { state: wsState, onMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
 const wsConnected = computed(() => wsState.value?.connected || false);
+
+// 消息统计（用于调试）
+const messageStats = ref<Record<string, number>>({});
+const lastMessageTime = ref<number>(0);
 
 // 服务器指标监听
 const metricsStore = useServerMetricsStore();
@@ -1356,10 +1392,21 @@ const getHealthStatusIcon = (status: string) => {
 
 
 
+// 消息统计函数
+const updateMessageStats = (messageType: string) => {
+  messageStats.value[messageType] = (messageStats.value[messageType] || 0) + 1;
+  lastMessageTime.value = Date.now();
+  console.log(`📊 消息统计: ${messageType} (${messageStats.value[messageType]}次)`);
+};
+
 // 监听WebSocket消息
 const setupWebSocketListeners = () => {
+  console.log('设置WebSocket消息监听器...');
+
   // 监听服务器指标数据
   onMessage('server_metrics', (message) => {
+    updateMessageStats('server_metrics');
+    console.log('收到server_metrics消息:', message);
     if (message.serverId && message.data) {
       // 更新store中的指标数据
       metricsStore.updateServerMetrics(message.serverId, {
@@ -1382,29 +1429,99 @@ const setupWebSocketListeners = () => {
     }
   });
 
-  // 监听服务器状态变化
-  onMessage('server_status_change', (message) => {
-    if (message.serverId) {
-      console.log(`服务器 ${message.serverId} 状态变化:`, message);
-      // 可以在这里更新服务器列表中的状态
-      loadServers();
+  // 监听服务器趋势数据
+  onMessage('server_trends', (message) => {
+    updateMessageStats('server_trends');
+    console.log('收到server_trends消息:', message);
+    if (message.serverId && message.data) {
+      // 处理趋势数据，可以用于图表显示
+      console.log(`服务器 ${message.serverId} 趋势数据:`, message.data);
+    }
+  });
+
+  // 监听服务器状态汇总
+  onMessage('server_status_summary', (message) => {
+    updateMessageStats('server_status_summary');
+    console.log('收到server_status_summary消息:', message);
+    if (message.data) {
+      // 处理状态汇总数据
+      console.log('服务器状态汇总:', message.data);
+
+      // 更新store中的汇总数据
+      const summary = message.data;
+      console.log('服务器状态统计:', {
+        总服务器数: summary.totalServers,
+        在线服务器: summary.onlineServers,
+        离线服务器: summary.offlineServers,
+        警告服务器: summary.warningServers,
+        严重服务器: summary.criticalServers
+      });
+
+      // 可以更新全局状态统计
+      // 这里可以触发服务器列表的状态更新
+      if (summary.totalServers === 0) {
+        console.warn('⚠️ 没有配置任何服务器，这可能是为什么没有收到server_metrics消息的原因');
+      }
+    }
+  });
+
+  // 监听连接状态统计
+  onMessage('connection_statistics', (message) => {
+    updateMessageStats('connection_statistics');
+    console.log('收到connection_statistics消息:', message);
+    if (message.data) {
+      // 处理连接统计数据
+      console.log('连接状态统计:', message.data);
+    }
+  });
+
+  // 监听健康状态报告
+  onMessage('health_status', (message) => {
+    updateMessageStats('health_status');
+    console.log('收到health_status消息:', message);
+    if (message.data) {
+      // 处理健康状态数据
+      console.log('健康状态报告:', message.data);
     }
   });
 
   // 监听连接状态变化
   onMessage('connection_status_change', (message) => {
+    updateMessageStats('connection_status_change');
+    console.log('收到connection_status_change消息:', message);
     if (message.serverId) {
       console.log(`服务器 ${message.serverId} 连接状态变化:`, message);
       // 可以在这里更新服务器列表中的连接状态
       loadServers();
     }
   });
+
+  // 监听服务器告警
+  onMessage('server_alerts', (message) => {
+    updateMessageStats('server_alerts');
+    console.log('收到server_alerts消息:', message);
+    if (message.serverId && message.data) {
+      console.log(`服务器 ${message.serverId} 告警信息:`, message.data);
+      // 可以显示告警通知
+    }
+  });
+
+  // 添加调试日志
+  console.log('WebSocket消息监听器设置完成');
 };
 
 // 生命周期钩子
 onMounted(async () => {
   // 加载服务器列表
   await loadServers();
+
+  // 手动连接 WebSocket
+  try {
+    await connect();
+    console.log('WebSocket 连接成功');
+  } catch (error) {
+    console.error('WebSocket 连接失败:', error);
+  }
 
   // 设置WebSocket消息监听
   setupWebSocketListeners();
@@ -1416,6 +1533,10 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  // 断开 WebSocket 连接
+  disconnect();
+  console.log('WebSocket 连接已断开');
+
   // 清理缓存数据
   metricsStore.clearCache();
   console.log('服务器指标缓存已清理');

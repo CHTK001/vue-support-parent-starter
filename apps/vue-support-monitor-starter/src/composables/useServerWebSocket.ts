@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref } from "vue";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
@@ -211,15 +211,7 @@ export function useServerWebSocket() {
     return await connect();
   };
 
-  // 组件挂载时自动连接
-  onMounted(() => {
-    connect();
-  });
 
-  // 组件卸载时断开连接
-  onUnmounted(() => {
-    disconnect();
-  });
 
   /**
    * 获取未处理的消息类型统计
