@@ -1175,20 +1175,22 @@ export interface LatencyStatistics {
  * 获取服务器当前延迟
  */
 export const getServerLatency = (serverId: number) => {
-  return http.get<number>(`server/latency/${serverId}`);
+  return http.request<ReturnResult<number>>('get', `server/latency/${serverId}`);
 };
 
 /**
  * 批量获取服务器延迟
  */
 export const getBatchServerLatency = (serverIds: number[]) => {
-  return http.request<ReturnResult<any>('post', 'server/latency/batch', serverIds);
+  //@ts-ignore
+  return http.request<ReturnResult<any>>('post', 'server/latency/batch', {data: serverIds});
 };
 
 /**
  * 获取服务器延迟历史数据
  */
 export const getServerLatencyHistory = (serverId: number, startTime: string, endTime: string) => {
+  //@ts-ignore
   return http.get<Array<{ timestamp: number; latency: number; serverId: number }>>(`server/latency/${serverId}/history`, {
     params: { startTime, endTime }
   });
@@ -1198,47 +1200,50 @@ export const getServerLatencyHistory = (serverId: number, startTime: string, end
  * 获取延迟统计信息
  */
 export const getLatencyStatistics = () => {
-  return http.get<LatencyStatistics>('server/latency/statistics');
+  //@ts-ignore
+  return http.request<ReturnResult<LatencyStatistics>>('get','server/latency/statistics');
 };
 
 /**
  * 获取延迟状态分布
  */
 export const getLatencyStatusDistribution = () => {
-  return http.get<{
+  return http.request<ReturnResult<{
     normal: number;
     high: number;
     abnormal: number;
     total: number;
     timestamp: number;
-  }>('server/latency/status-distribution');
+  }>>('get', 'server/latency/status-distribution');
 };
 
 /**
  * 检查延迟告警
  */
 export const checkLatencyAlerts = () => {
-  return http.get<Array<{
+  //@ts-ignore
+  return http.request<ReturnResult<Array<{
     serverId: number;
     serverName: string;
     latency: number;
     level: string;
     message: string;
     timestamp: number;
-  }>>('server/latency/alerts');
+  }>>>('get','server/latency/alerts');
 };
 
 /**
  * 手动保存延迟数据到数据库
  */
 export const saveLatencyToDatabase = () => {
-  return http.post<number>('server/latency/save');
+  return http.request<ReturnResult<number>>('post', 'server/latency/save');
 };
 
 /**
  * 清理过期延迟数据
  */
 export const cleanupExpiredLatencyData = (expireDays: number = 30) => {
+  //@ts-ignore
   return http.delete<number>('server/latency/cleanup', {
     params: { expireDays }
   });
@@ -1248,7 +1253,7 @@ export const cleanupExpiredLatencyData = (expireDays: number = 30) => {
  * 手动更新服务器延迟
  */
 export const updateServerLatency = (serverId: number, latency: number) => {
-  return http.put<boolean>(`server/latency/${serverId}`, null, {
+  return http.request<ReturnResult<boolean>>('put', `server/latency/${serverId}`, null, {
     params: { latency }
   });
 };
@@ -1343,10 +1348,6 @@ export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDispla
     updateTime: serverInfo.updateTime || '',
     // 保留的字段映射
     monitorSysGenServerProxyId: serverInfo.monitorSysGenServerProxyId,
-    monitorSysGenServerPrometheusHost: serverInfo.monitorSysGenServerPrometheusHost,
-    monitorSysGenServerPrometheusPort: serverInfo.monitorSysGenServerPrometheusPort,
-    monitorSysGenServerProxyHost: serverInfo.monitorSysGenServerProxyHost,
-    monitorSysGenServerProxyPort: serverInfo.monitorSysGenServerProxyPort,
     // 多IP和Docker相关字段
     monitorSysGenServerIpAddresses: serverInfo.monitorSysGenServerIpAddresses,
     isLocal: serverInfo.monitorSysGenServerIsLocal === 1, // 转换为布尔值

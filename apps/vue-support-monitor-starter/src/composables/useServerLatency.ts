@@ -73,14 +73,18 @@ export function useServerLatency() {
    * 批量获取服务器延迟
    */
   const fetchBatchLatency = async (serverIds: number[]) => {
+    if(!serverIds.length) {
+      return [];
+    }
     try {
+      
       loading.value = true;
       const result = await getBatchServerLatency(serverIds);
       
       if (result.code === '00000' && result.data) {
         // 更新延迟存储
         Object.entries(result.data).forEach(([serverId, latency]) => {
-          updateLatencyData(Number(serverId), latency);
+          updateLatencyData(Number(serverId), latency as any);
         });
       }
       
