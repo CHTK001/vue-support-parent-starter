@@ -249,11 +249,20 @@ const initSSHMessageHandlers = () => {
 
         // 调试信息：显示接收到的数据（仅在开发模式下）
         if (process.env.NODE_ENV === 'development') {
+          // 显示原始数据的十六进制表示
+          const hexData = Array.from(outputData).map(char =>
+            '\\x' + char.charCodeAt(0).toString(16).padStart(2, '0')
+          ).join('');
+          console.log('SSH原始数据 (hex):', hexData);
+          console.log('SSH原始数据 (string):', JSON.stringify(outputData));
+
           // 显示ANSI转义序列的调试信息
           const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
           const ansiMatches = outputData.match(ansiRegex);
           if (ansiMatches && ansiMatches.length > 0) {
             console.log('检测到ANSI转义序列:', ansiMatches);
+          } else {
+            console.log('未检测到ANSI转义序列');
           }
         }
       } catch (error) {
@@ -284,7 +293,7 @@ const initSSHMessageHandlers = () => {
           terminal.value.clear();
           terminal.value.write('\x1b[32m✓ SSH 连接成功\x1b[0m\r\n');
           terminal.value.write('服务器: ' + (props.server?.name || 'Unknown') + '\r\n');
-          terminal.value.write('准备就绪\r\n\r\n');
+          terminal.value.write('\x1B[31m准备就绪\x1B[0m\r\n\r\n');
 
           // 连接成功后重新调整终端大小
           setTimeout(() => {
@@ -339,11 +348,10 @@ const initTerminal = async () => {
 
     // 创建并加载插件
     const fitAddon = new FitAddon();
-    terminal.value.setOption('rendererType', 'canvas');
     terminal.value.loadAddon(fitAddon);
-    terminal.value.loadAddon(new Unicode11Addon());
+    // terminal.value.loadAddon(new Unicode11Addon());
     terminal.value.loadAddon(new WebLinksAddon());
-    terminal.value.unicode.activeVersion = '11';
+    // terminal.value.unicode.activeVersion = '11';
 
     // 挂载到DOM
     if (terminalOutput.value) {

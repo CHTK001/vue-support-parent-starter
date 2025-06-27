@@ -1290,8 +1290,6 @@ onMounted(async () => {
       message.error('实时监控连接失败，请检查网络连接');
     }
   }
-
-  loadServerLatency();
 });
 
 onUnmounted(() => {
