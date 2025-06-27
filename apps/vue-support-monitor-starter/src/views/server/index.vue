@@ -350,7 +350,7 @@
                           <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
                           操作日志
                         </el-dropdown-item>
-                        <el-dropdown-item command="delete" divided title="删除此服务器配置">
+                        <el-dropdown-item command="delete" divided title="删除此服务器配置" class="delete-item">
                           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-2" />
                           删除服务器
                         </el-dropdown-item>
@@ -446,7 +446,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, defineAsyncComponent, Suspense } from "vue";
+import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense } from "vue";
 import { message, splitToArray } from "@repo/utils";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
@@ -523,7 +523,7 @@ const selectedServer = computed(() =>
 );
 
 // WebSocket相关状态
-const { state: wsState, onMessage, MESSAGE_TYPE } = useServerWebSocket();
+const { state: wsState, onMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
 const wsConnected = computed(() => wsState.value?.connected || false);
 const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 
@@ -1295,13 +1295,27 @@ const handleServerAlerts = (message: any) => {
 };
 
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
   // 确保映射对象已正确导入
   console.log('onlineStatusMap in onMounted:', onlineStatusMap);
   console.log('ONLINE_STATUS in onMounted:', ONLINE_STATUS);
 
   loadServers();
   initWebSocketHandlers();
+
+  // 手动连接 WebSocket
+  try {
+    await connect();
+    console.log('WebSocket 连接成功');
+  } catch (error) {
+    console.error('WebSocket 连接失败:', error);
+  }
+});
+
+// 组件卸载时断开连接
+onUnmounted(() => {
+  disconnect();
+  console.log('WebSocket 连接已断开');
 });
 </script>
 
@@ -2262,7 +2276,92 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
+/* 下拉菜单项图标和文字居中对齐 */
+:deep(.el-dropdown-menu) {
+  .el-dropdown-menu__item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
 
+    .iconify {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
 
+/* 工具栏下拉菜单样式优化 */
+.toolbar {
+  :deep(.el-dropdown-menu) {
+    .el-dropdown-menu__item {
+      transition: all 0.3s ease;
+      border-radius: 6px;
+      margin: 2px 4px;
 
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+        transform: translateX(2px);
+      }
+
+      .iconify {
+        color: var(--el-text-color-secondary);
+        transition: color 0.3s ease;
+      }
+
+      &:hover .iconify {
+        color: var(--el-color-primary);
+      }
+    }
+  }
+}
+
+/* 服务器卡片下拉菜单样式优化 */
+.server-card {
+  :deep(.el-dropdown-menu) {
+    .el-dropdown-menu__item {
+      transition: all 0.3s ease;
+      border-radius: 6px;
+      margin: 2px 4px;
+
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+        transform: translateX(2px);
+      }
+
+      &.is-divided {
+        border-top: 1px solid var(--el-border-color-lighter);
+        margin-top: 6px;
+        padding-top: 6px;
+      }
+
+      .iconify {
+        color: var(--el-text-color-secondary);
+        transition: color 0.3s ease;
+      }
+
+      &:hover .iconify {
+        color: var(--el-color-primary);
+      }
+
+      /* 删除按钮特殊样式 */
+      &.delete-item {
+        &:hover {
+          background: var(--el-color-danger-light-9);
+          color: var(--el-color-danger);
+
+          .iconify {
+            color: var(--el-color-danger);
+          }
+        }
+      }
+    }
+  }
+}
 </style>
