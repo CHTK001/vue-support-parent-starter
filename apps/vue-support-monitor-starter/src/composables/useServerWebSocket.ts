@@ -268,7 +268,7 @@ export function useServerMetrics(serverId?: number) {
  * SSH WebSocket 处理 Composable
  */
 export function useSSHWebSocket(serverId: number) {
-  const { onMessage, sendMessage, MESSAGE_TYPE } = useServerWebSocket();
+  const { onMessage, sendMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
 
   // 存储取消订阅函数，防止重复监听
   const unsubscribeFunctions = new Set<() => void>();
@@ -277,6 +277,10 @@ export function useSSHWebSocket(serverId: number) {
    * 发送 SSH 连接请求
    */
   const connectSSH = (serverHost: string, serverPort: number) => {
+    disconnect();
+    if (!connect()) {
+      return false;
+    }
     return sendMessage({
       messageType: MESSAGE_TYPE.SSH_CONNECT,
       serverId,
@@ -300,11 +304,13 @@ export function useSSHWebSocket(serverId: number) {
    * 断开 SSH 连接
    */
   const disconnectSSH = (reason?: string) => {
-    return sendMessage({
+    let result = sendMessage({
       messageType: MESSAGE_TYPE.SSH_DISCONNECT,
       serverId,
       errorMessage: reason,
     });
+    disconnect();
+    return result;
   };
 
   /**
