@@ -2,7 +2,19 @@
   <div class="server-setting-form">
     <!-- 监控配置 -->
     <div v-if="section === 'monitor'" class="setting-section">
-      <el-form-item label="启用监控" prop="monitorSysGenServerSettingMonitorEnabled">
+      <el-form-item prop="monitorSysGenServerSettingMonitorEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>启用监控</span>
+            <el-tooltip
+              content="开启后将定期收集服务器的CPU、内存、磁盘、网络等性能指标数据，用于监控服务器运行状态"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-switch
           v-model="formData.monitorSysGenServerSettingMonitorEnabled"
           :active-value="1"
@@ -11,10 +23,56 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-        <span class="form-tip">开启后将收集服务器性能指标</span>
       </el-form-item>
 
-      <el-form-item label="数据收集频率" prop="monitorSysGenServerSettingDataCollectionFrequency">
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingMonitorEnabled"
+        prop="monitorSysGenServerSettingDataReportMethod"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>数据上报方式</span>
+            <el-tooltip
+              content="选择服务器指标数据的上报方式：本地上报(直接收集)、API上报(客户端推送)、Prometheus(第三方采集)"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-select
+          v-model="formData.monitorSysGenServerSettingDataReportMethod"
+          placeholder="请选择数据上报方式"
+          style="width: 200px"
+          @change="handleDataReportMethodChange"
+        >
+          <el-option
+            v-if="isLocalServer"
+            label="本地上报"
+            value="LOCAL"
+          />
+          <el-option label="API上报" value="API" />
+          <el-option label="Prometheus" value="PROMETHEUS" />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingMonitorEnabled && showDataCollectionFrequency"
+        prop="monitorSysGenServerSettingDataCollectionFrequency"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>数据收集频率</span>
+            <el-tooltip
+              content="服务器指标数据的收集间隔时间，频率越高数据越实时但会增加系统负载，建议30-60秒"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input-number
           v-model="formData.monitorSysGenServerSettingDataCollectionFrequency"
           :min="10"
@@ -24,10 +82,78 @@
           style="width: 200px"
           @change="handleChange"
         />
-        <span class="form-tip">秒，建议值：30</span>
+        <span class="form-tip">秒，建议值：30-60</span>
       </el-form-item>
 
-      <el-form-item label="CPU阈值" prop="monitorSysGenServerSettingCpuAlertThreshold">
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingMonitorEnabled && showMonitorInterval"
+        prop="monitorSysGenServerSettingMonitorInterval"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>监控间隔</span>
+            <el-tooltip
+              content="监控检查的间隔时间，用于定期检查服务器状态和触发告警检测，建议60-300秒"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingMonitorInterval"
+          :min="30"
+          :max="3600"
+          :step="30"
+          placeholder="监控间隔(秒)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">秒，建议值：60-300</span>
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingMonitorEnabled && showMetricsRetentionDays"
+        prop="monitorSysGenServerSettingMetricsRetentionDays"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>数据保留天数</span>
+            <el-tooltip
+              content="监控数据在系统中的保留时间，超过此时间的历史数据将被自动清理，建议7-90天"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
+          :min="1"
+          :max="365"
+          :step="1"
+          placeholder="数据保留天数"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">天，建议值：7-90</span>
+      </el-form-item>
+
+      <el-form-item prop="monitorSysGenServerSettingCpuAlertThreshold">
+        <template #label>
+          <div class="form-label">
+            <span>CPU告警阈值</span>
+            <el-tooltip
+              content="CPU使用率超过此百分比时触发告警通知，建议设置为70-85%，过低会产生过多告警"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input-number
           v-model="formData.monitorSysGenServerSettingCpuAlertThreshold"
           :min="1"
@@ -37,10 +163,22 @@
           style="width: 200px"
           @change="handleChange"
         />
-        <span class="form-tip">%，超过此值将触发告警</span>
+        <span class="form-tip">%，建议值：70-85</span>
       </el-form-item>
 
-      <el-form-item label="内存阈值" prop="monitorSysGenServerSettingMemoryAlertThreshold">
+      <el-form-item prop="monitorSysGenServerSettingMemoryAlertThreshold">
+        <template #label>
+          <div class="form-label">
+            <span>内存告警阈值</span>
+            <el-tooltip
+              content="内存使用率超过此百分比时触发告警通知，建议设置为75-90%，需考虑系统缓存占用"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input-number
           v-model="formData.monitorSysGenServerSettingMemoryAlertThreshold"
           :min="1"
@@ -50,10 +188,22 @@
           style="width: 200px"
           @change="handleChange"
         />
-        <span class="form-tip">%，超过此值将触发告警</span>
+        <span class="form-tip">%，建议值：75-90</span>
       </el-form-item>
 
-      <el-form-item label="磁盘阈值" prop="monitorSysGenServerSettingDiskAlertThreshold">
+      <el-form-item prop="monitorSysGenServerSettingDiskAlertThreshold">
+        <template #label>
+          <div class="form-label">
+            <span>磁盘告警阈值</span>
+            <el-tooltip
+              content="磁盘使用率超过此百分比时触发告警通知，建议设置为80-95%，需预留足够空间避免系统异常"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input-number
           v-model="formData.monitorSysGenServerSettingDiskAlertThreshold"
           :min="1"
@@ -63,13 +213,25 @@
           style="width: 200px"
           @change="handleChange"
         />
-        <span class="form-tip">%，超过此值将触发告警</span>
+        <span class="form-tip">%，建议值：80-95</span>
       </el-form-item>
     </div>
 
     <!-- 告警配置 -->
     <div v-if="section === 'alert'" class="setting-section">
-      <el-form-item label="启用告警" prop="monitorSysGenServerSettingAlertEnabled">
+      <el-form-item prop="monitorSysGenServerSettingAlertEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>启用告警</span>
+            <el-tooltip
+              content="开启后当监控指标超过设定阈值时将自动发送告警通知，支持多种通知方式"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-switch
           v-model="formData.monitorSysGenServerSettingAlertEnabled"
           :active-value="1"
@@ -78,10 +240,24 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-        <span class="form-tip">开启后将发送告警通知</span>
       </el-form-item>
 
-      <el-form-item label="告警方式" prop="monitorSysGenServerSettingAlertNotificationMethod">
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingAlertEnabled"
+        prop="monitorSysGenServerSettingAlertNotificationMethod"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>告警方式</span>
+            <el-tooltip
+              content="选择告警通知的发送方式，支持邮件、短信、钉钉、企业微信和自定义Webhook"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-select
           v-model="formData.monitorSysGenServerSettingAlertNotificationMethod"
           placeholder="请选择告警方式"
@@ -96,28 +272,104 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item 
+      <el-form-item
         v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'EMAIL'"
-        label="邮件地址" 
         prop="monitorSysGenServerSettingAlertEmailAddresses"
       >
+        <template #label>
+          <div class="form-label">
+            <span>邮件地址</span>
+            <el-tooltip
+              content="接收告警邮件的邮箱地址，多个地址用逗号分隔，如：admin@example.com,ops@example.com"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input
           v-model="formData.monitorSysGenServerSettingAlertEmailAddresses"
-          placeholder="请输入邮件地址"
+          placeholder="请输入邮件地址，多个用逗号分隔"
           maxlength="200"
           @change="handleChange"
         />
       </el-form-item>
 
-      <el-form-item 
+      <el-form-item
         v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'WEBHOOK'"
-        label="Webhook URL" 
         prop="monitorSysGenServerSettingAlertWebhookUrl"
       >
+        <template #label>
+          <div class="form-label">
+            <span>Webhook URL</span>
+            <el-tooltip
+              content="自定义Webhook接收地址，告警信息将以POST请求发送到此URL，支持集成第三方系统"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input
           v-model="formData.monitorSysGenServerSettingAlertWebhookUrl"
           placeholder="请输入Webhook URL"
           maxlength="500"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingAlertEnabled"
+        prop="monitorSysGenServerSettingAlertSilenceDuration"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>告警静默时间</span>
+            <el-tooltip
+              content="同一类型告警在此时间内不会重复发送，避免告警轰炸，建议15-60分钟"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingAlertSilenceDuration"
+          :min="5"
+          :max="1440"
+          :step="5"
+          placeholder="静默时间(分钟)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">分钟，建议值：15-60</span>
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingAlertEnabled"
+        prop="monitorSysGenServerSettingAutoRecoveryNotificationEnabled"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>自动恢复通知</span>
+            <el-tooltip
+              content="当告警状态恢复正常时是否发送恢复通知，帮助及时了解问题解决情况"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-switch
+          v-model="formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled"
+          :active-value="1"
+          :inactive-value="0"
+          active-text="开启"
+          inactive-text="关闭"
           @change="handleChange"
         />
       </el-form-item>

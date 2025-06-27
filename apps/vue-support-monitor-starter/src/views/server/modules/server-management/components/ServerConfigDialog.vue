@@ -27,9 +27,10 @@
             class="config-menu"
             @select="handleSectionChange"
           >
+
             <el-menu-item index="proxy">
               <IconifyIconOnline icon="ri:global-line" />
-              <span>代理配置</span>
+              <span>代理设置</span>
             </el-menu-item>
             <el-menu-item index="metrics">
               <IconifyIconOnline icon="ri:bar-chart-line" />
@@ -74,26 +75,43 @@
             </template>
 
             <!-- 配置表单 -->
-            <el-form
-              ref="formRef"
-              :model="formData"
-              :rules="rules"
-              label-width="140px"
-              size="default"
-              class="config-form"
-            >
+            <div v-loading="loadingSettings" element-loading-text="加载配置中..." class="form-container">
+              <el-form
+                ref="formRef"
+                :model="settingData"
+                label-width="140px"
+                size="default"
+                class="config-form"
+                :disabled="loadingSettings"
+              >
+
+
               <!-- 代理配置 -->
               <div v-show="activeSection === 'proxy'" class="config-section">
-                <el-form-item label="启用代理">
-                  <el-switch
-                    v-model="settingData.monitorSysGenServerSettingProxyEnabled"
-                    :active-value="1"
-                    :inactive-value="0"
-                    active-text="启用"
-                    inactive-text="禁用"
-                    @change="handleSettingChange"
+                <div class="section-description">
+                  <el-alert
+                    title="代理配置"
+                    description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型。"
+                    type="info"
+                    :closable="false"
+                    class="mb-4"
                   />
-                  <span class="form-tip">启用后将通过代理服务器进行连接</span>
+                </div>
+
+                <el-form-item label="启用代理">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="settingData.monitorSysGenServerSettingProxyEnabled"
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="启用"
+                      inactive-text="禁用"
+                      @change="handleSettingChange"
+                    />
+                    <el-tooltip content="启用后将通过代理服务器进行连接" placement="top">
+                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                    </el-tooltip>
+                  </div>
                 </el-form-item>
 
                 <template v-if="settingData.monitorSysGenServerSettingProxyEnabled === 1">
@@ -107,6 +125,7 @@
                       <el-option label="HTTP代理" value="HTTP" />
                       <el-option label="SOCKS5代理" value="SOCKS5" />
                       <el-option label="SSH隧道" value="SSH_TUNNEL" />
+                      <el-option label="Guacamole代理" value="GUACAMOLE" />
                     </el-select>
                   </el-form-item>
 
@@ -149,24 +168,48 @@
                       @change="handleSettingChange"
                     />
                   </el-form-item>
+
+                  <!-- GUACAMOLE特殊配置说明 -->
+                  <template v-if="settingData.monitorSysGenServerSettingProxyType === 'GUACAMOLE'">
+                    <el-alert
+                      title="Guacamole代理配置"
+                      description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置。"
+                      type="info"
+                      :closable="false"
+                      class="mt-4"
+                    />
+                  </template>
                 </template>
               </div>
 
               <!-- 指标管理 -->
               <div v-show="activeSection === 'metrics'" class="config-section">
-                <el-form-item label="指标收集">
-                  <el-switch
-                    v-model="settingData.monitorSysGenServerSettingMetricsEnabled"
-                    :active-value="1"
-                    :inactive-value="0"
-                    active-text="启用"
-                    inactive-text="禁用"
-                    @change="handleSettingChange"
+                <div class="section-description">
+                  <el-alert
+                    title="指标管理"
+                    description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式。"
+                    type="info"
+                    :closable="false"
+                    class="mb-4"
                   />
-                  <span class="form-tip">启用后将收集服务器性能指标</span>
+                </div>
+
+                <el-form-item label="指标收集">
+                  <div class="switch-wrapper">
+                    <el-switch
+                      v-model="settingData.monitorSysGenServerSettingMonitorEnabled"
+                      :active-value="1"
+                      :inactive-value="0"
+                      active-text="启用"
+                      inactive-text="禁用"
+                    />
+                    <el-tooltip content="启用后将收集服务器性能指标" placement="top">
+                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                    </el-tooltip>
+                  </div>
                 </el-form-item>
 
-                <template v-if="settingData.monitorSysGenServerSettingMetricsEnabled === 1">
+                <template v-if="settingData.monitorSysGenServerSettingMonitorEnabled === 1">
                   <el-form-item label="数据上报方式">
                     <el-select
                       v-model="settingData.monitorSysGenServerSettingDataReportMethod"
@@ -205,6 +248,27 @@
                     />
                     <span class="form-tip">天，建议值：30</span>
                   </el-form-item>
+
+                  <el-form-item label="监控间隔">
+                    <el-input-number
+                      v-model="settingData.monitorSysGenServerSettingMonitorInterval"
+                      :min="30"
+                      :max="3600"
+                      :step="30"
+                      placeholder="监控间隔(秒)"
+                      style="width: 200px"
+                      @change="handleSettingChange"
+                    />
+                    <span class="form-tip">秒，建议值：60</span>
+                  </el-form-item>
+
+                  <el-alert
+                    title="阈值配置已迁移"
+                    description="指标阈值设置已迁移到监控配置管理页面，请在数据源管理页面点击'监控配置'按钮进行配置。"
+                    type="info"
+                    :closable="false"
+                    class="mb-4"
+                  />
                 </template>
               </div>
 
@@ -212,11 +276,12 @@
               <div v-show="!['proxy', 'metrics'].includes(activeSection)" class="config-section">
                 <ServerSettingForm
                   v-model="settingData"
-                  :section="activeSection"
+                  :section="activeSection as 'monitor' | 'alert' | 'docker' | 'advanced'"
                   @change="handleSettingChange"
                 />
               </div>
             </el-form>
+            </div>
           </el-card>
         </div>
       </div>
@@ -239,9 +304,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
-import { getServerInfo, updateServer, type ServerInfo } from "@/api/server";
+import { getServerInfo, type ServerInfo } from "@/api/server";
 import { getServerSettingByServerId, saveOrUpdateServerSetting, type ServerSetting } from "@/api/server/setting";
 
 // 异步组件
@@ -256,6 +321,7 @@ const emit = defineEmits<{
 const visible = ref(false);
 const loading = ref(false);
 const saving = ref(false);
+const loadingSettings = ref(false);
 const activeSection = ref("proxy");
 const formRef = ref();
 
@@ -268,12 +334,38 @@ const currentServer = ref<ServerInfo | null>(null);
 // 服务器设置数据
 const settingData = ref<Partial<ServerSetting>>({});
 
+// 表单验证规则
+const validationRules = {
+  proxy: {
+    monitorSysGenServerSettingProxyHost: [
+      { required: true, message: "请输入代理服务器地址", trigger: "blur" },
+      { pattern: /^[a-zA-Z0-9.-]+$/, message: "请输入有效的主机地址", trigger: "blur" }
+    ],
+    monitorSysGenServerSettingProxyPort: [
+      { required: true, message: "请输入代理端口", trigger: "blur" },
+      { type: "number", min: 1, max: 65535, message: "端口范围为1-65535", trigger: "blur" }
+    ]
+  },
+  metrics: {
+    monitorSysGenServerSettingDataCollectionFrequency: [
+      { required: true, message: "请设置收集频率", trigger: "blur" },
+      { type: "number", min: 10, max: 3600, message: "收集频率范围为10-3600秒", trigger: "blur" }
+    ],
+    monitorSysGenServerSettingMetricsRetentionDays: [
+      { required: true, message: "请设置数据保留天数", trigger: "blur" },
+      { type: "number", min: 1, max: 365, message: "保留天数范围为1-365天", trigger: "blur" }
+    ]
+  }
+};
+
+
+
 /**
  * 获取当前节的标题
  */
 const getSectionTitle = () => {
   const titles = {
-    proxy: "代理配置",
+    proxy: "代理设置",
     metrics: "指标管理",
     monitor: "监控配置",
     alert: "告警配置",
@@ -293,9 +385,12 @@ const handleSectionChange = (section: string) => {
 /**
  * 处理设置数据变化
  */
-const handleSettingChange = (data: Partial<ServerSetting>) => {
-  settingData.value = { ...settingData.value, ...data };
+const handleSettingChange = () => {
+  // 当表单数据变化时触发，settingData已经通过v-model自动更新
+  console.log('设置数据变化:', settingData.value);
 };
+
+
 
 /**
  * 重置表单
@@ -305,45 +400,69 @@ const handleReset = () => {
 };
 
 /**
+ * 验证当前配置节的数据
+ */
+const validateCurrentSection = () => {
+  const currentRules = validationRules[activeSection.value as keyof typeof validationRules];
+  if (!currentRules) return true;
+
+  for (const [field, rules] of Object.entries(currentRules)) {
+    const value = settingData.value[field as keyof ServerSetting];
+
+    for (const rule of rules as any[]) {
+      if (rule.required && (!value && value !== 0)) {
+        message.error(rule.message);
+        return false;
+      }
+
+      if (rule.type === "number" && value !== undefined) {
+        if (rule.min !== undefined && value < rule.min) {
+          message.error(rule.message);
+          return false;
+        }
+        if (rule.max !== undefined && value > rule.max) {
+          message.error(rule.message);
+          return false;
+        }
+      }
+
+      if (rule.pattern && value && !rule.pattern.test(String(value))) {
+        message.error(rule.message);
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
+/**
  * 保存配置
  */
 const handleSave = async () => {
   try {
-    // 表单验证
-    const isValid = await formRef.value?.validate().catch(() => false);
-    if (!isValid) return;
+    // 验证当前配置节
+    if (!validateCurrentSection()) {
+      return;
+    }
 
     saving.value = true;
 
-    // 保存基础配置
-    if (activeSection.value === "basic") {
-      const result = await updateServer(formData);
-      if (result.code === "00000") {
-        message.success("基础配置保存成功");
-        // 重新加载服务器信息
-        await loadServerInfo();
-        emit("success");
-      } else {
-        message.error(result.msg || "基础配置保存失败");
-        return;
-      }
-    } else {
-      // 保存服务器设置
-      const submitData = {
-        ...settingData.value,
-        monitorSysGenServerId: serverId.value,
-      };
+    // 保存服务器设置
+    const submitData = {
+      ...settingData.value,
+      monitorSysGenServerId: serverId.value,
+    };
 
-      const result = await saveOrUpdateServerSetting(submitData);
-      if (result.code === "00000") {
-        message.success("配置保存成功");
-        // 重新加载设置数据
-        await loadServerSetting();
-        emit("success");
-      } else {
-        message.error(result.msg || "配置保存失败");
-        return;
-      }
+    const result = await saveOrUpdateServerSetting(submitData);
+    if (result.code === "00000") {
+      message.success("配置保存成功");
+      // 重新加载设置数据
+      await loadServerSetting();
+      emit("success");
+    } else {
+      message.error(result.msg || "配置保存失败");
+      return;
     }
   } catch (error) {
     console.error("保存配置失败:", error);
@@ -363,16 +482,6 @@ const loadServerInfo = async () => {
     const result = await getServerInfo(String(serverId.value));
     if (result.code === "00000" && result.data) {
       currentServer.value = result.data;
-      
-      // 填充基础配置表单
-      Object.assign(formData, {
-        monitorSysGenServerId: result.data.monitorSysGenServerId,
-        monitorSysGenServerName: result.data.monitorSysGenServerName || "",
-        monitorSysGenServerDesc: result.data.monitorSysGenServerDesc || "",
-        monitorSysGenServerTags: result.data.monitorSysGenServerTags || "",
-        monitorSysGenServerTimeout: result.data.monitorSysGenServerTimeout || 30000,
-        monitorSysGenServerStatus: result.data.monitorSysGenServerStatus ?? 1,
-      });
     }
   } catch (error) {
     console.error("加载服务器信息失败:", error);
@@ -387,14 +496,33 @@ const loadServerSetting = async () => {
   if (!serverId.value) return;
 
   try {
+    loadingSettings.value = true;
     const result = await getServerSettingByServerId(serverId.value);
     if (result.code === "00000" && result.data) {
       settingData.value = result.data;
+    } else {
+      // 如果没有设置数据，初始化默认值
+      settingData.value = {
+        monitorSysGenServerId: serverId.value,
+        monitorSysGenServerSettingProxyEnabled: 0,
+        monitorSysGenServerSettingMonitorEnabled: 1,
+        monitorSysGenServerSettingDataCollectionFrequency: 60,
+        monitorSysGenServerSettingMetricsRetentionDays: 30,
+      };
     }
   } catch (error) {
     console.error("加载服务器设置失败:", error);
+    message.error("加载服务器设置失败");
     // 设置默认值
-    settingData.value = {};
+    settingData.value = {
+      monitorSysGenServerId: serverId.value,
+      monitorSysGenServerSettingProxyEnabled: 0,
+      monitorSysGenServerSettingMonitorEnabled: 1,
+      monitorSysGenServerSettingDataCollectionFrequency: 60,
+      monitorSysGenServerSettingMetricsRetentionDays: 30,
+    };
+  } finally {
+    loadingSettings.value = false;
   }
 };
 
@@ -526,14 +654,57 @@ defineExpose({
   color: #303133;
 }
 
+.form-container {
+  position: relative;
+  min-height: 200px;
+  height: calc(100% - 60px);
+}
+
 .config-form {
   padding: 20px;
-  height: calc(100% - 60px);
+  height: 100%;
   overflow: auto;
 }
 
 .config-section {
   max-width: 600px;
+
+  .section-description {
+    margin-bottom: 20px;
+
+    .el-alert {
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+
+      :deep(.el-alert__title) {
+        font-weight: 600;
+        color: #0369a1;
+      }
+
+      :deep(.el-alert__description) {
+        color: #0284c7;
+        line-height: 1.5;
+      }
+    }
+  }
+
+  .switch-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .help-icon {
+      font-size: 14px;
+      color: #909399;
+      cursor: help;
+      transition: color 0.3s;
+
+      &:hover {
+        color: #409eff;
+      }
+    }
+  }
 }
 
 .form-tip {
@@ -543,13 +714,25 @@ defineExpose({
 }
 
 :deep(.el-menu-item) {
-  border-radius: 0;
-  margin: 0;
+  border-radius: 8px;
+  margin: 4px 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #f5f7fa;
+    transform: translateX(4px);
+  }
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #337ecc 0%, #529b2e 100%);
+    transform: translateX(4px);
+  }
 }
 
 :deep(.el-card__body) {
@@ -562,5 +745,100 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding: 16px 24px;
+  background: #fafafa;
+  border-top: 1px solid #e4e7ed;
+}
+
+/* 表单元素美化 */
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #303133;
+}
+
+:deep(.el-input) {
+  .el-input__wrapper {
+    border-radius: 6px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px #409eff inset;
+    }
+  }
+}
+
+:deep(.el-select) {
+  .el-input__wrapper {
+    border-radius: 6px;
+  }
+}
+
+:deep(.el-input-number) {
+  .el-input__wrapper {
+    border-radius: 6px;
+  }
+}
+
+:deep(.el-switch) {
+  .el-switch__core {
+    border-radius: 12px;
+  }
+}
+
+.config-section {
+  :deep(.el-row) {
+    .el-col {
+      .form-tip {
+        font-size: 11px;
+        color: #909399;
+        margin-top: 4px;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.config-card {
+  :deep(.el-card__body) {
+    animation: fadeInUp 0.3s ease-out;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-menu {
+  :deep(.el-menu-item) {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin: 4px 8px;
+
+    &:hover {
+      background-color: #f0f9ff;
+      transform: translateX(4px);
+    }
+
+    &.is-active {
+      background: linear-gradient(135deg, #ecf5ff 0%, #e1f3d8 100%);
+      color: #409eff;
+      font-weight: 600;
+
+      .iconify {
+        color: #409eff;
+      }
+    }
+  }
 }
 </style>

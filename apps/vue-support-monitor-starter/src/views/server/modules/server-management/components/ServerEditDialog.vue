@@ -1,6 +1,6 @@
 <template>
-  <el-dialog v-model="visible" :title="mode === 'add' ? '新增服务器' : '编辑服务器'" width="95%" :close-on-click-modal="false"
-    destroy-on-close class="server-edit-dialog" align-center top="1vh" :show-close="true"
+  <el-dialog v-model="visible" :title="mode === 'add' ? '新增服务器' : '编辑服务器'" width="80%" :close-on-click-modal="false"
+    destroy-on-close class="server-edit-dialog" align-center top="5vh" :show-close="true"
     :lock-scroll="true" :modal="true" :append-to-body="true">
     <!-- 自定义头部 -->
     <template #header="{ titleId, titleClass }">
@@ -15,12 +15,12 @@
     </template>
 
     <div class="dialog-content no-scrollbar">
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="80px" label-position="left"
-        class="server-form" size="small">
-        <!-- 使用紧凑的三列布局 -->
-        <el-row :gutter="12" class="form-row">
+      <el-form ref="formRef" :model="formData" :rules="rules" label-width="160px" label-position="left"
+        class="server-form" >
+        <!-- 使用优雅的两列布局 -->
+        <el-row :gutter="24" class="form-row">
           <!-- 左列：基本信息 -->
-          <el-col :span="8" class="form-column">
+          <el-col :span="12" class="form-column">
             <div class="form-section">
               <div class="section-header">
                 <IconifyIconOnline icon="ri:information-line" class="section-icon" />
@@ -35,7 +35,7 @@
                   </el-input>
                 </el-form-item>
 
-                <!-- 操作系统信息展示 - 紧凑版 -->
+                <!-- 操作系统信息展示 - 简化版 -->
                 <div v-if="osInfo && osInfo.isLocal" class="os-info-section compact">
                   <div class="os-info-header">
                     <IconifyIconOnline icon="ri:computer-line" class="os-icon" />
@@ -43,32 +43,11 @@
                     <el-tag type="success" size="small" effect="light">自动检测</el-tag>
                   </div>
                   <div class="os-info-content">
-                    <div class="os-grid">
-                      <div class="os-item">
-                        <span class="os-label">类型:</span>
-                        <span class="os-value">{{ osInfo.osType || '未知' }}</span>
-                      </div>
-                      <div class="os-item">
-                        <span class="os-label">版本:</span>
-                        <span class="os-value">{{ osInfo.osVersion || '未知' }}</span>
-                      </div>
-                      <div class="os-item">
-                        <span class="os-label">架构:</span>
-                        <span class="os-value">{{ osInfo.osArch || '未知' }}</span>
-                      </div>
-                    </div>
-                    <div class="os-item ip-section">
-                      <span class="os-label">本机IP:</span>
-                      <div class="ip-list">
-                        <el-tag v-for="ip in osInfo.ipAddresses.slice(0, 3)" :key="ip" size="small" type="info" effect="plain"
-                          class="ip-tag">
-                          {{ ip }}
-                        </el-tag>
-                        <el-tag v-if="osInfo.ipAddresses.length > 3" size="small" type="info" effect="plain"
-                          class="ip-tag">
-                          +{{ osInfo.ipAddresses.length - 3 }}
-                        </el-tag>
-                      </div>
+                    <div class="os-summary">
+                      <span class="os-text">{{ osInfo.osType || '未知' }} {{ osInfo.osVersion || '' }}</span>
+                      <el-tag size="small" type="info" effect="plain" class="arch-tag">
+                        {{ osInfo.osArch || 'x86_64' }}
+                      </el-tag>
                     </div>
                   </div>
                 </div>
@@ -148,281 +127,89 @@
                   </div>
                 </el-form-item>
 
-                <!-- 操作系统信息 -->
+                <!-- 操作系统信息 - 简化版 -->
                 <el-form-item label="操作系统" prop="monitorSysGenServerOsType">
-                  <div class="os-selection-container">
-                    <!-- 操作系统类型选择 -->
-                    <div class="os-type-selection">
-                      <el-select v-model="formData.monitorSysGenServerOsType" placeholder="选择操作系统类型" style="width: 100%"
-                        @change="handleOsTypeChange"
-                        :disabled="formData.monitorSysGenServerIsLocal === 1 && !!osInfo?.osType" filterable>
-                        <el-option-group label="Windows 系列">
-                          <el-option label="Windows Server 2022" value="Windows Server 2022">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
-                              <span>Windows Server 2022</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Windows Server 2019" value="Windows Server 2019">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
-                              <span>Windows Server 2019</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Windows Server 2016" value="Windows Server 2016">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
-                              <span>Windows Server 2016</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Windows 11" value="Windows 11">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
-                              <span>Windows 11</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Windows 10" value="Windows 10">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
-                              <span>Windows 10</span>
-                            </div>
-                          </el-option>
-                        </el-option-group>
-
-                        <el-option-group label="Linux 发行版">
-                          <el-option label="Ubuntu 22.04 LTS" value="Ubuntu 22.04 LTS">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:ubuntu-line" class="os-option-icon" />
-                              <span>Ubuntu 22.04 LTS</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Ubuntu 20.04 LTS" value="Ubuntu 20.04 LTS">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:ubuntu-line" class="os-option-icon" />
-                              <span>Ubuntu 20.04 LTS</span>
-                            </div>
-                          </el-option>
-                          <el-option label="CentOS 8" value="CentOS 8">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:centos-line" class="os-option-icon" />
-                              <span>CentOS 8</span>
-                            </div>
-                          </el-option>
-                          <el-option label="CentOS 7" value="CentOS 7">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:centos-line" class="os-option-icon" />
-                              <span>CentOS 7</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Red Hat Enterprise Linux 9" value="RHEL 9">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:redhat-line" class="os-option-icon" />
-                              <span>Red Hat Enterprise Linux 9</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Red Hat Enterprise Linux 8" value="RHEL 8">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:redhat-line" class="os-option-icon" />
-                              <span>Red Hat Enterprise Linux 8</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Debian 12" value="Debian 12">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:debian-line" class="os-option-icon" />
-                              <span>Debian 12</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Debian 11" value="Debian 11">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:debian-line" class="os-option-icon" />
-                              <span>Debian 11</span>
-                            </div>
-                          </el-option>
-                          <el-option label="SUSE Linux Enterprise Server 15" value="SLES 15">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:suse-line" class="os-option-icon" />
-                              <span>SUSE Linux Enterprise Server 15</span>
-                            </div>
-                          </el-option>
-                          <el-option label="openSUSE Leap 15" value="openSUSE Leap 15">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:opensuse-line" class="os-option-icon" />
-                              <span>openSUSE Leap 15</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Alpine Linux" value="Alpine Linux">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:mountain-line" class="os-option-icon" />
-                              <span>Alpine Linux</span>
-                            </div>
-                          </el-option>
-                          <el-option label="Arch Linux" value="Arch Linux">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:archlinux-line" class="os-option-icon" />
-                              <span>Arch Linux</span>
-                            </div>
-                          </el-option>
-                        </el-option-group>
-
-                        <el-option-group label="Unix 系列">
-                          <el-option label="macOS Sonoma" value="macOS Sonoma">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:apple-line" class="os-option-icon" />
-                              <span>macOS Sonoma</span>
-                            </div>
-                          </el-option>
-                          <el-option label="macOS Ventura" value="macOS Ventura">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:apple-line" class="os-option-icon" />
-                              <span>macOS Ventura</span>
-                            </div>
-                          </el-option>
-                          <el-option label="FreeBSD 14" value="FreeBSD 14">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:freebsd-line" class="os-option-icon" />
-                              <span>FreeBSD 14</span>
-                            </div>
-                          </el-option>
-                          <el-option label="FreeBSD 13" value="FreeBSD 13">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:freebsd-line" class="os-option-icon" />
-                              <span>FreeBSD 13</span>
-                            </div>
-                          </el-option>
-                        </el-option-group>
-
-                        <el-option-group label="其他">
-                          <el-option label="自定义" value="Custom">
-                            <div class="os-option">
-                              <IconifyIconOnline icon="ri:settings-line" class="os-option-icon" />
-                              <span>自定义</span>
-                            </div>
-                          </el-option>
-                        </el-option-group>
-                      </el-select>
-                    </div>
-
-                    <!-- 自定义操作系统输入 -->
-                    <div v-if="formData.monitorSysGenServerOsType === 'Custom'" class="custom-os-input">
-                      <el-input v-model="formData.monitorSysGenServerOsCustom" placeholder="请输入自定义操作系统名称" clearable>
-                        <template #prefix>
-                          <IconifyIconOnline icon="ri:edit-line" />
-                        </template>
-                      </el-input>
-                    </div>
-
-                    <!-- 当前检测到的操作系统信息显示 -->
-                    <div v-if="formData.monitorSysGenServerIsLocal === 1 && osInfo" class="detected-os-info">
-                      <div class="detected-os-header">
-                        <IconifyIconOnline icon="ri:eye-line" class="detected-icon" />
-                        <span class="detected-title">自动检测信息</span>
-                        <el-tag type="success" size="small" effect="light">已检测</el-tag>
-                      </div>
-                      <div class="detected-os-content">
-                        <div class="detected-item">
-                          <span class="detected-label">检测到的系统:</span>
-                          <el-tag type="primary" size="small" effect="light">
-                            <IconifyIconOnline :icon="getOsIcon(osInfo.osType)" class="mr-1" />
-                            {{ osInfo.osType || '未知' }}
-                          </el-tag>
+                  <el-select v-model="formData.monitorSysGenServerOsType" placeholder="选择操作系统类型" style="width: 100%"
+                    @change="handleOsTypeChange"
+                    :disabled="formData.monitorSysGenServerIsLocal === 1 && !!osInfo?.osType" filterable>
+                    <el-option-group label="Windows 系列">
+                      <el-option label="Windows Server" value="Windows Server">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
+                          <span>Windows Server</span>
                         </div>
-                        <div class="detected-item" v-if="osInfo.osVersion">
-                          <span class="detected-label">检测到的版本:</span>
-                          <el-tag type="info" size="small" effect="light">
-                            {{ osInfo.osVersion }}
-                          </el-tag>
+                      </el-option>
+                      <el-option label="Windows" value="Windows">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:windows-line" class="os-option-icon" />
+                          <span>Windows</span>
                         </div>
-                        <div class="detected-item" v-if="osInfo.osArch">
-                          <span class="detected-label">检测到的架构:</span>
-                          <el-tag type="warning" size="small" effect="light">
-                            {{ osInfo.osArch }}
-                          </el-tag>
+                      </el-option>
+                    </el-option-group>
+                    <el-option-group label="Linux 发行版">
+                      <el-option label="Ubuntu" value="Ubuntu">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:ubuntu-line" class="os-option-icon" />
+                          <span>Ubuntu</span>
                         </div>
-                      </div>
-                      <el-text size="small" type="info" class="detected-tip">
-                        本地服务器信息已自动检测，如需修改请手动选择
-                      </el-text>
-                    </div>
-
-                    <!-- 操作提示 -->
-                    <div class="os-tips">
-                      <el-alert v-if="formData.monitorSysGenServerIsLocal === 0" title="远程服务器操作系统信息" type="info"
-                        effect="light" :closable="false" show-icon>
-                        <template #default>
-                          请手动选择远程服务器的操作系统类型，这将影响监控指标的收集方式
-                        </template>
-                      </el-alert>
-
-                      <el-alert v-else title="本地服务器操作系统信息" type="success" effect="light" :closable="false" show-icon>
-                        <template #default>
-                          本地服务器操作系统信息已自动检测，您也可以手动调整
-                        </template>
-                      </el-alert>
-                    </div>
-                  </div>
-                </el-form-item>
-                <!-- 操作系统详细信息 -->
-                <el-form-item label="系统架构">
-                  <el-select v-model="formData.monitorSysGenServerOsArch" placeholder="选择架构" style="width: 100%"
-                    :disabled="formData.monitorSysGenServerIsLocal === 1 && !!osInfo?.osArch">
-                    <el-option label="x86_64 (64位)" value="x86_64">
-                      <div class="arch-option">
-                        <IconifyIconOnline icon="ri:cpu-line" />
-                        <span>x86_64 (64位)</span>
-                      </div>
-                    </el-option>
-                    <el-option label="aarch64 (ARM64)" value="aarch64">
-                      <div class="arch-option">
-                        <IconifyIconOnline icon="ri:cpu-line" />
-                        <span>aarch64 (ARM64)</span>
-                      </div>
-                    </el-option>
-                    <el-option label="i386 (32位)" value="i386">
-                      <div class="arch-option">
-                        <IconifyIconOnline icon="ri:cpu-line" />
-                        <span>i386 (32位)</span>
-                      </div>
-                    </el-option>
-                    <el-option label="armv7l (ARM32)" value="armv7l">
-                      <div class="arch-option">
-                        <IconifyIconOnline icon="ri:cpu-line" />
-                        <span>armv7l (ARM32)</span>
-                      </div>
-                    </el-option>
+                      </el-option>
+                      <el-option label="CentOS" value="CentOS">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:centos-line" class="os-option-icon" />
+                          <span>CentOS</span>
+                        </div>
+                      </el-option>
+                      <el-option label="Debian" value="Debian">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:debian-line" class="os-option-icon" />
+                          <span>Debian</span>
+                        </div>
+                      </el-option>
+                      <el-option label="Red Hat" value="Red Hat">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:redhat-line" class="os-option-icon" />
+                          <span>Red Hat</span>
+                        </div>
+                      </el-option>
+                    </el-option-group>
+                    <el-option-group label="其他">
+                      <el-option label="macOS" value="macOS">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:apple-line" class="os-option-icon" />
+                          <span>macOS</span>
+                        </div>
+                      </el-option>
+                      <el-option label="自定义" value="Custom">
+                        <div class="os-option">
+                          <IconifyIconOnline icon="ri:settings-line" class="os-option-icon" />
+                          <span>自定义</span>
+                        </div>
+                      </el-option>
+                    </el-option-group>
                   </el-select>
+
+                  <!-- 自定义操作系统输入 -->
+                  <el-input v-if="formData.monitorSysGenServerOsType === 'Custom'"
+                    v-model="formData.monitorSysGenServerOsCustom"
+                    placeholder="请输入自定义操作系统名称"
+                    clearable
+                    class="mt-2">
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:edit-line" />
+                    </template>
+                  </el-input>
                 </el-form-item>
 
-                <!-- 额外IP地址配置 -->
-                <el-form-item label="额外IP地址">
-                  <div class="extra-ips-container">
-                    <div v-for="(_ip, index) in formData.monitorSysGenServerIpAddresses" :key="index"
-                      class="extra-ip-item">
-                      <el-input v-model="formData.monitorSysGenServerIpAddresses[index]" placeholder="请输入IP地址" clearable>
-                        <template #prefix>
-                          <IconifyIconOnline icon="ri:global-line" />
-                        </template>
-                      </el-input>
-                      <el-button type="danger" size="small" text @click="removeExtraIp(index)"
-                        :disabled="formData.monitorSysGenServerIpAddresses.length <= 1">
-                        <IconifyIconOnline icon="ri:delete-bin-line" />
-                      </el-button>
-                    </div>
-                    <el-button type="primary" size="small" text @click="addExtraIp" class="add-ip-btn">
-                      <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-                      添加IP
-                    </el-button>
-                  </div>
-                </el-form-item>
               </div>
             </div>
           </el-col>
 
-          <!-- 中列：认证信息 -->
-          <el-col :span="8" class="form-column">
+          <!-- 右列：认证与连接信息 -->
+          <el-col :span="12" class="form-column">
             <div class="form-section">
               <div class="section-header">
                 <IconifyIconOnline icon="ri:shield-user-line" class="section-icon" />
-                <span class="section-title">认证信息</span>
+                <span class="section-title">认证与连接</span>
               </div>
               <div class="section-content">
                 <el-form-item label="用户名" prop="monitorSysGenServerUsername">
@@ -462,8 +249,18 @@
 
                 <el-form-item v-if="formData.monitorSysGenServerAuthType === 'key'" label="私钥"
                   prop="monitorSysGenServerPrivateKey">
-                  <el-input v-model="formData.monitorSysGenServerPrivateKey" type="textarea" :rows="3"
+                  <el-input v-model="formData.monitorSysGenServerPrivateKey" type="textarea" :rows="4"
                     placeholder="请输入SSH私钥内容" />
+                </el-form-item>
+
+                <el-form-item label="服务器状态">
+                  <div class="switch-wrapper">
+                    <el-switch v-model="formData.monitorSysGenServerStatus" :active-value="1" :inactive-value="0"
+                      active-text="启用" inactive-text="禁用" />
+                    <el-tooltip content="启用后服务器将参与监控和管理" placement="top">
+                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                    </el-tooltip>
+                  </div>
                 </el-form-item>
 
                 <!-- 协议特定配置 -->
@@ -482,50 +279,18 @@
                   </el-form-item>
                 </template>
 
-                <template v-if="formData.monitorSysGenServerProtocol === 'VNC'">
-                  <el-form-item label="VNC密码">
-                    <el-input v-model="formData.monitorSysGenServerVncPassword" type="password" placeholder="请输入VNC密码"
-                      show-password clearable>
-                      <template #prefix>
-                        <IconifyIconOnline icon="ri:lock-line" />
-                      </template>
-                    </el-input>
-                  </el-form-item>
-                </template>
-              </div>
-            </div>
-          </el-col>
-
-          <!-- 右列：连接配置 -->
-          <el-col :span="8" class="form-column">
-            <div class="form-section">
-              <div class="section-header">
-                <IconifyIconOnline icon="ri:links-line" class="section-icon" />
-                <span class="section-title">连接配置</span>
-              </div>
-              <div class="section-content">
-                <el-form-item label="服务器状态">
-                  <div class="switch-wrapper">
-                    <el-switch v-model="formData.monitorSysGenServerStatus" :active-value="1" :inactive-value="0"
-                      active-text="启用" inactive-text="禁用" />
-                    <el-tooltip content="启用后服务器将参与监控和管理" placement="top">
-                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-                    </el-tooltip>
-                  </div>
-                </el-form-item>
-
-                <!-- 代理配置已移至服务器配置管理页面 -->
-
-                <!-- RDP特有配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
-                  <el-form-item label="屏幕宽度">
-                    <el-input-number v-model="formData.monitorSysGenServerWidth" :min="800" :max="1920" placeholder="像素"
-                      style="width: 100%" />
-                  </el-form-item>
-
-                  <el-form-item label="屏幕高度">
-                    <el-input-number v-model="formData.monitorSysGenServerHeight" :min="600" :max="1080"
-                      placeholder="像素" style="width: 100%" />
+                  <el-form-item label="屏幕分辨率">
+                    <el-row :gutter="8">
+                      <el-col :span="12">
+                        <el-input-number v-model="formData.monitorSysGenServerWidth" :min="800" :max="1920"
+                          placeholder="宽度" style="width: 100%"  class="min-w-[150px]"/>
+                      </el-col>
+                      <el-col :span="12">
+                        <el-input-number v-model="formData.monitorSysGenServerHeight" :min="600" :max="1080"
+                          placeholder="高度" style="width: 100%" class="min-w-[150px]"/>
+                      </el-col>
+                    </el-row>
                   </el-form-item>
 
                   <el-form-item label="颜色深度">
@@ -538,8 +303,16 @@
                   </el-form-item>
                 </template>
 
-                <!-- VNC特有配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'VNC'">
+                  <el-form-item label="VNC密码">
+                    <el-input v-model="formData.monitorSysGenServerVncPassword" type="password" placeholder="请输入VNC密码"
+                      show-password clearable>
+                      <template #prefix>
+                        <IconifyIconOnline icon="ri:lock-line" />
+                      </template>
+                    </el-input>
+                  </el-form-item>
+
                   <el-form-item label="只读模式">
                     <div class="switch-wrapper">
                       <el-switch v-model="formData.monitorSysGenServerReadOnly" :active-value="1" :inactive-value="0"
@@ -564,10 +337,6 @@
           <el-button v-if="mode === 'edit'" type="success" :loading="testLoading" @click="handleTest" plain>
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
             测试连接
-          </el-button>
-          <el-button v-if="mode === 'edit' && formData.monitorSysGenServerId" type="info" @click="handleOpenServerConfig" plain>
-            <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
-            配置管理
           </el-button>
         </div>
         <div class="footer-right">
@@ -645,13 +414,8 @@ const formData = reactive({
   monitorSysGenServerColorDepth: "24",
   monitorSysGenServerVncPassword: "",
   monitorSysGenServerReadOnly: 0,
-  // 代理ID字段保留
-  monitorSysGenServerProxyId: null as number | null,
-  // 额外IP地址
-  monitorSysGenServerIpAddresses: [""] as string[],
   // 是否本地服务器（自动检测，不允许修改）
   monitorSysGenServerIsLocal: 0,
-  // Docker相关配置已移至专门的服务器配置页面
   // 操作系统信息（自动检测）
   monitorSysGenServerOsType: "",
   monitorSysGenServerOsVersion: "",
@@ -795,10 +559,6 @@ const setData = async (data: ServerDisplayData | any) => {
         monitorSysGenServerTags: data.tags,
         monitorSysGenServerStatus: data.status,
         ...data,
-         // 额外IP地址
-        monitorSysGenServerIpAddresses: data.monitorSysGenServerIpAddresses ?
-          (typeof data.monitorSysGenServerIpAddresses === 'string' ?
-            JSON.parse(data.monitorSysGenServerIpAddresses) : data.monitorSysGenServerIpAddresses) : [""],
       });
     } else {
       // 直接赋值（兼容原有的后台数据格式）
@@ -838,15 +598,13 @@ const resetForm = () => {
     monitorSysGenServerColorDepth: "24",
     monitorSysGenServerVncPassword: "",
     monitorSysGenServerReadOnly: 0,
-    // 代理ID字段保留
-    monitorSysGenServerProxyId: null,
-    // 额外IP地址
-    monitorSysGenServerIpAddresses: [""],
-    // Docker相关配置
-    monitorSysGenServerDockerEnabled: 0,
-    monitorSysGenServerDockerConnectionType: "SHELL",
-    monitorSysGenServerDockerHost: "",
-    monitorSysGenServerDockerPort: 2376,
+    // 操作系统信息
+    monitorSysGenServerOsType: "",
+    monitorSysGenServerOsVersion: "",
+    monitorSysGenServerOsArch: "",
+    monitorSysGenServerOsCustom: "",
+    // 是否本地服务器
+    monitorSysGenServerIsLocal: 0,
   });
 
   // 服务器设置已移至专门的配置页面
@@ -860,17 +618,7 @@ const resetForm = () => {
 
 // 服务器设置相关函数已移至专门的服务器配置页面
 
-/**
- * 打开服务器配置页面
- */
-const handleOpenServerConfig = () => {
-  if (formData.monitorSysGenServerId) {
-    // 跳转到服务器配置页面，传递服务器ID
-    emit("openConfig", formData.monitorSysGenServerId);
-    // 关闭当前编辑对话框
-    visible.value = false;
-  }
-};
+
 
 // handleServerSettingSuccess函数已移除，配置功能在专门的服务器配置页面中
 
@@ -988,21 +736,7 @@ const detectServerInfo = async () => {
   }
 };
 
-/**
- * 添加额外IP地址
- */
-const addExtraIp = () => {
-  formData.monitorSysGenServerIpAddresses.push("");
-};
 
-/**
- * 移除额外IP地址
- */
-const removeExtraIp = (index: number) => {
-  if (formData.monitorSysGenServerIpAddresses.length > 1) {
-    formData.monitorSysGenServerIpAddresses.splice(index, 1);
-  }
-};
 
 /**
  * 获取操作系统图标
@@ -1195,29 +929,23 @@ const handleSubmit = async () => {
 
     loading.value = true;
 
-    // 准备提交数据，将IP地址数组转换为JSON字符串，确保数字类型正确
+    // 准备提交数据，确保数字类型正确
     const submitData = {
       ...formData,
-      monitorSysGenServerIpAddresses: JSON.stringify(formData.monitorSysGenServerIpAddresses.filter(ip => ip.trim() !== "")),
       // 确保数字类型字段正确
       monitorSysGenServerPort: Number(formData.monitorSysGenServerPort),
-      monitorSysGenServerDockerEnabled: Number(formData.monitorSysGenServerDockerEnabled),
-      monitorSysGenServerDockerPort: formData.monitorSysGenServerDockerPort ? Number(formData.monitorSysGenServerDockerPort) : null,
       monitorSysGenServerIsLocal: Number(formData.monitorSysGenServerIsLocal),
       monitorSysGenServerStatus: Number(formData.monitorSysGenServerStatus || 1),
     };
 
     // 调试信息：打印提交的数据
     console.log("提交的服务器数据:", submitData);
-    console.log("多IP地址:", submitData.monitorSysGenServerIpAddresses);
     console.log("本地服务器标识:", submitData.monitorSysGenServerIsLocal);
-    console.log("Docker配置:", {
-      enabled: submitData.monitorSysGenServerDockerEnabled,
-      enabledType: typeof submitData.monitorSysGenServerDockerEnabled,
-      connectionType: submitData.monitorSysGenServerDockerConnectionType,
-      host: submitData.monitorSysGenServerDockerHost,
-      port: submitData.monitorSysGenServerDockerPort,
-      portType: typeof submitData.monitorSysGenServerDockerPort
+    console.log("操作系统信息:", {
+      osType: submitData.monitorSysGenServerOsType,
+      osVersion: submitData.monitorSysGenServerOsVersion,
+      osArch: submitData.monitorSysGenServerOsArch,
+      osCustom: submitData.monitorSysGenServerOsCustom
     });
 
     const res = mode.value === "add" ? await saveServer(submitData) : await updateServer(submitData);
@@ -1781,52 +1509,7 @@ defineExpose({
   }
 }
 
-// 额外IP地址容器样式
-.extra-ips-container {
-  .extra-ip-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
 
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .el-input {
-      flex: 1;
-    }
-
-    .el-button {
-      flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      padding: 0;
-      border-radius: 6px;
-
-      &:hover {
-        background-color: var(--el-color-danger-light-9);
-        color: var(--el-color-danger);
-      }
-    }
-  }
-
-  .add-ip-btn {
-    width: 100%;
-    margin-top: 8px;
-    border: 1px dashed var(--el-color-primary-light-5);
-    background: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-    border-radius: 8px;
-    padding: 8px 16px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: var(--el-color-primary);
-      background: var(--el-color-primary-light-8);
-    }
-  }
-}
 
 // 开关包装器
 .switch-wrapper {
@@ -2353,7 +2036,7 @@ defineExpose({
   }
 }
 
-// 操作系统信息样式 - 紧凑版本
+// 操作系统信息样式 - 简化版本
 .os-info-section {
   margin-top: 12px;
   padding: 12px;
@@ -2386,51 +2069,21 @@ defineExpose({
   }
 
   .os-info-content {
-    .os-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .os-item {
+    .os-summary {
       display: flex;
       align-items: center;
-      margin-bottom: 6px;
+      gap: 8px;
 
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      &.ip-section {
-        grid-column: 1 / -1;
-        margin-bottom: 0;
-      }
-
-      .os-label {
-        font-size: 11px;
-        color: var(--el-text-color-regular);
-        width: 40px;
-        flex-shrink: 0;
-      }
-
-      .os-value {
-        font-size: 11px;
+      .os-text {
+        font-size: 13px;
         color: var(--el-text-color-primary);
         font-weight: 500;
       }
 
-      .ip-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px;
-
-        .ip-tag {
-          font-size: 10px;
-          padding: 1px 4px;
-          height: 18px;
-          line-height: 16px;
-        }
+      .arch-tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 6px;
       }
     }
   }

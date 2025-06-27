@@ -392,9 +392,14 @@
                     <IconifyIconOnline icon="ri:information-line" />
                   </el-button>
                 </el-tooltip>
-                <el-tooltip content="编辑配置" placement="top" :show-after="500">
+                <el-tooltip content="编辑服务器" placement="top" :show-after="500">
                   <el-button size="small" @click.stop.prevent="editServer(server)">
                     <IconifyIconOnline icon="ri:edit-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="配置管理" placement="top" :show-after="500">
+                  <el-button size="small" type="primary" plain @click.stop.prevent="openServerConfig(server)">
+                    <IconifyIconOnline icon="ri:settings-3-line" />
                   </el-button>
                 </el-tooltip>
                 <el-tooltip content="更多操作" placement="top" :show-after="500">
@@ -1025,6 +1030,13 @@ const showServerInfo = (server: any) => {
 const editServer = (server: any) => {
   editDialogRef.value?.open("edit");
   editDialogRef.value?.setData(server);
+};
+
+/**
+ * 打开服务器配置管理
+ */
+const openServerConfig = (server: any) => {
+  configDialogRef.value?.open(parseInt(server.id));
 };
 
 /**
