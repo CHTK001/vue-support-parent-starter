@@ -565,10 +565,6 @@ const setData = async (data: ServerDisplayData | any) => {
       Object.assign(formData, data);
     }
 
-    // 加载服务器设置
-    if (formData.monitorSysGenServerId) {
-      await loadServerSetting(formData.monitorSysGenServerId);
-    }
   } else {
     resetForm();
   }
