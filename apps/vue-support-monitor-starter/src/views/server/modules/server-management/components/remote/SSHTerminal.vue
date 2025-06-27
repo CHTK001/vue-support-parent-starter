@@ -91,7 +91,7 @@ import { Terminal } from 'xterm'
 import { Unicode11Addon } from 'xterm-addon-unicode11'
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { FitAddon } from 'xterm-addon-fit'
-import { useSSHWebSocket } from "@/composables/useServerWebSocket";
+import { useSSHWebSocket, useServerWebSocket } from "@/composables/useServerWebSocket";
 
 
 // Props
@@ -122,6 +122,9 @@ const terminal = ref<any>(null); // xterm.js实例
 const isInitialized = ref(false); // 防止重复初始化
 const isSSHListenersInitialized = ref(false); // SSH监听器初始化状态
 const { connectSSH, sendSSHInput, disconnectSSH, onSSHData, onSSHStatus, cleanupSubscriptions } = useSSHWebSocket(props.server?.id || 0);
+
+// 底层 WebSocket 连接控制
+const { connect: connectWebSocket, disconnect: disconnectWebSocket } = useServerWebSocket();
 
 // 计算属性
 const connectionStatusText = computed(() => {
@@ -239,6 +242,17 @@ const reconnect = async () => {
   setTimeout(async () => {
     try {
       console.log('检查WebSocket连接状态...');
+
+      // 确保底层 WebSocket 连接正常
+      try {
+        await connectWebSocket();
+        console.log('底层 WebSocket 重连成功');
+      } catch (wsError) {
+        console.error('底层 WebSocket 重连失败:', wsError);
+        message.error('WebSocket 重连失败');
+        return;
+      }
+
       // 确保WebSocket监听器已设置
       if (!isSSHListenersInitialized.value) {
         console.log('重新初始化SSH监听器...');
@@ -524,15 +538,31 @@ watch(() => props.server?.id, (newId, oldId) => {
 }, { immediate: false });
 
 // 生命周期
-onMounted(() => {
-  // 初始化 SSH 消息处理
-  initSSHMessageHandlers();
-  // 自动连接
-  connect();
+onMounted(async () => {
+  try {
+    // 首先连接底层 WebSocket
+    await connectWebSocket();
+    console.log('底层 WebSocket 连接成功');
+
+    // 初始化 SSH 消息处理
+    initSSHMessageHandlers();
+
+    // 自动连接 SSH
+    connect();
+  } catch (error) {
+    console.error('WebSocket 连接失败:', error);
+    message.error('WebSocket 连接失败');
+  }
 });
 
 onUnmounted(() => {
+  // 断开 SSH 连接
   disconnect();
+
+  // 断开底层 WebSocket 连接
+  disconnectWebSocket();
+  console.log('WebSocket 连接已断开');
+
   // // 额外的清理，确保所有xterm相关元素都被移除
   // setTimeout(() => {
   //   cleanupXtermHelpers();

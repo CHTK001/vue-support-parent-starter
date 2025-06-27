@@ -238,7 +238,7 @@ export function useServerLatency() {
   };
 
   // 监听 WebSocket 消息
-  onMessage(handleLatencyMessage);
+  onMessage(SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY, handleLatencyMessage);
 
   // 定期清理过期数据
   let cleanupTimer: NodeJS.Timeout;
