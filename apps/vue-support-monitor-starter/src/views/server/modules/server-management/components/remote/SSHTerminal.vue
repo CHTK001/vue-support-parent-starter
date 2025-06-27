@@ -120,6 +120,7 @@ const terminalOutput = ref<HTMLElement>();
 // WebSocket连接
 const terminal = ref<any>(null); // xterm.js实例
 const isInitialized = ref(false); // 防止重复初始化
+const isSSHListenersInitialized = ref(false); // SSH监听器初始化状态
 const { connectSSH, sendSSHInput, disconnectSSH, onSSHData, onSSHStatus, cleanupSubscriptions } = useSSHWebSocket(props.server?.id || 0);
 
 // 计算属性
@@ -180,6 +181,7 @@ const disconnect = (skipWebSocketCleanup = false) => {
     // 只在完全关闭时清理WebSocket订阅，重连时保留
     if (!skipWebSocketCleanup) {
       cleanupSubscriptions();
+      isSSHListenersInitialized.value = false;
     }
 
     if (terminal.value) {
@@ -236,6 +238,13 @@ const reconnect = async () => {
   // 等待更长时间确保后端连接完全清理
   setTimeout(async () => {
     try {
+      console.log('检查WebSocket连接状态...');
+      // 确保WebSocket监听器已设置
+      if (!isSSHListenersInitialized.value) {
+        console.log('重新初始化SSH监听器...');
+        initSSHMessageHandlers();
+      }
+
       console.log('开始重新连接...');
       await connect();
     } catch (error) {
@@ -258,6 +267,12 @@ const clearTerminal = () => {
  * 初始化 SSH 消息监听
  */
 const initSSHMessageHandlers = () => {
+  if (isSSHListenersInitialized.value) {
+    console.log('SSH监听器已初始化，跳过重复初始化');
+    return;
+  }
+
+  console.log('初始化SSH消息监听器...');
   // 监听 SSH 数据
   onSSHData((data: string) => {
     if (terminal.value) {
@@ -352,6 +367,10 @@ const initSSHMessageHandlers = () => {
         break;
     }
   });
+
+  // 标记SSH监听器已初始化
+  isSSHListenersInitialized.value = true;
+  console.log('SSH消息监听器初始化完成');
 };
 
 

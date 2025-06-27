@@ -319,8 +319,8 @@ export function useSSHWebSocket(serverId: number) {
    * 监听 SSH 数据
    */
   const onSSHData = (handler: (data: string) => void) => {
-    // 清理之前的监听器
-    cleanupSubscriptions();
+    // 不自动清理之前的监听器，让调用者决定何时清理
+    // cleanupSubscriptions();
 
     // 监听 SSH_DATA 消息类型
     const unsubscribeSSHData = onMessage(MESSAGE_TYPE.SSH_DATA, (message) => {
