@@ -328,7 +328,7 @@ const initSSHMessageHandlers = () => {
       if (typeof outputData !== 'string') {
         outputData = String(outputData);
       }
-      
+
       // 不过滤任何字符，让xterm.js完全处理ANSI转义序列
       // xterm.js内置了完整的ANSI/VT100支持，包括颜色、光标控制等
 
@@ -336,29 +336,8 @@ const initSSHMessageHandlers = () => {
         // 直接写入终端，xterm.js 会自动处理 ANSI 转义序列
         terminal.value.write(outputData);
         bytesReceived.value += outputData.length;
-
-        // 调试信息：显示接收到的数据（仅在开发模式下）
-        if (process.env.NODE_ENV === 'development') {
-          // 显示原始数据的十六进制表示
-          const hexData = Array.from(outputData).map(char =>
-            '\\x' + char.charCodeAt(0).toString(16).padStart(2, '0')
-          ).join('');
-          console.log('SSH原始数据 (hex):', hexData);
-          console.log('SSH原始数据 (string):', JSON.stringify(outputData));
-
-          // 显示ANSI转义序列的调试信息
-          const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
-          const ansiMatches = outputData.match(ansiRegex);
-          if (ansiMatches && ansiMatches.length > 0) {
-            console.log('检测到ANSI转义序列:', ansiMatches);
-          } else {
-            console.log('未检测到ANSI转义序列');
-          }
-        }
       } catch (error) {
         console.error('写入终端数据时出错:', error);
-        // 如果写入失败，尝试清理数据后重试
-        const cleanData = outputData.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
         try {
           terminal.value.write(cleanData);
           bytesReceived.value += cleanData.length;
