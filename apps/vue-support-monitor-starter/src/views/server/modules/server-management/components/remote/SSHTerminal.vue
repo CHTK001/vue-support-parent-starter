@@ -135,41 +135,52 @@ const connectionStatusText = computed(() => {
 
 // 方法
 const connect = async () => {
-  if (connecting.value || connectionStatus.value === 'connected') return;
+  if (connecting.value || connectionStatus.value === 'connected') {
+    console.log('跳过连接请求 - connecting:', connecting.value, 'status:', connectionStatus.value);
+    return;
+  }
 
   try {
+    console.log('开始SSH连接...');
     connecting.value = true;
     connectionStatus.value = 'connecting';
 
-    // 初始化终端（只初始化一次）
-    if (!isInitialized.value) {
+    // 初始化终端（每次连接都重新初始化以确保状态正确）
+    if (!isInitialized.value || !terminal.value) {
+      console.log('初始化终端...');
       await initTerminal();
       isInitialized.value = true;
     }
 
     // 发送 SSH 连接请求
+    console.log('发送SSH连接请求到:', props.server?.host, ':', props.server?.port);
     const success = connectSSH(props.server?.host || '', props.server?.port || 22);
     if (!success) {
       throw new Error('发送连接请求失败');
     }
 
+    console.log('SSH连接请求已发送，等待后端确认...');
     // 注意：不在这里设置连接状态，等待后端的ssh_connect消息确认
   } catch (error) {
-    connectionStatus.value = 'error';
-    message.error('SSH连接失败');
     console.error('SSH连接失败:', error);
+    connectionStatus.value = 'error';
+    message.error('SSH连接失败: ' + error.message);
   } finally {
     connecting.value = false;
   }
 };
 
-const disconnect = () => {
+const disconnect = (skipWebSocketCleanup = false) => {
   try {
+    console.log('断开SSH连接, skipWebSocketCleanup:', skipWebSocketCleanup);
+
     // 发送断开连接消息
     disconnectSSH('用户主动断开');
 
-    // 清理WebSocket订阅
-    cleanupSubscriptions();
+    // 只在完全关闭时清理WebSocket订阅，重连时保留
+    if (!skipWebSocketCleanup) {
+      cleanupSubscriptions();
+    }
 
     if (terminal.value) {
       try {
@@ -209,12 +220,29 @@ const disconnect = () => {
 
 
 const reconnect = async () => {
-  disconnect();
+  if (connecting.value) {
+    console.log('正在连接中，跳过重连请求');
+    return;
+  }
+
+  console.log('开始重连SSH...');
+
+  // 先断开连接，但保留WebSocket订阅
+  disconnect(true);
+
+  // 等待DOM更新和清理完成
   await nextTick();
-  // 等待一小段时间确保清理完成
+
+  // 等待更长时间确保后端连接完全清理
   setTimeout(async () => {
-    await connect();
-  }, 100);
+    try {
+      console.log('开始重新连接...');
+      await connect();
+    } catch (error) {
+      console.error('重连失败:', error);
+      message.error('重连失败: ' + error.message);
+    }
+  }, 500); // 增加等待时间到500ms
 };
 
 const clearTerminal = () => {
@@ -238,7 +266,7 @@ const initSSHMessageHandlers = () => {
       if (typeof outputData !== 'string') {
         outputData = String(outputData);
       }
-
+      
       // 不过滤任何字符，让xterm.js完全处理ANSI转义序列
       // xterm.js内置了完整的ANSI/VT100支持，包括颜色、光标控制等
 
@@ -281,13 +309,17 @@ const initSSHMessageHandlers = () => {
 
   // 监听 SSH 连接状态
   onSSHStatus((status: 'connected' | 'disconnected' | 'error', msg?: string) => {
+    
     switch (status) {
       case 'connected':
+        if(connectionStatus.value == 'connected') {
+          break;
+        }
         console.log('SSH连接成功');
         connectionStatus.value = 'connected';
         connectionStartTime.value = Date.now();
         startDurationTimer();
-
+        
         // 清除终端内容并显示简单欢迎信息
         if (terminal.value) {
           terminal.value.clear();
@@ -343,6 +375,7 @@ const initTerminal = async () => {
         cursor: '#ffffff'
       },
       convertEol: true,
+      windowsMode: true,
       scrollback: 1000
     });
 
