@@ -377,7 +377,45 @@
 
     <!-- Docker配置 -->
     <div v-if="section === 'docker'" class="setting-section">
-      <el-form-item label="启用Docker监控" prop="monitorSysGenServerSettingDockerMonitorEnabled">
+      <el-form-item prop="monitorSysGenServerSettingDockerEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>支持Docker</span>
+            <el-tooltip
+              content="标识服务器是否安装了Docker，开启后可以监控Docker容器和镜像信息"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-switch
+          v-model="formData.monitorSysGenServerSettingDockerEnabled"
+          :active-value="1"
+          :inactive-value="0"
+          active-text="支持"
+          inactive-text="不支持"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingDockerEnabled"
+        prop="monitorSysGenServerSettingDockerMonitorEnabled"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>启用Docker监控</span>
+            <el-tooltip
+              content="开启后将监控Docker容器的运行状态、资源使用情况和容器日志"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-switch
           v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled"
           :active-value="1"
@@ -386,31 +424,105 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-        <span class="form-tip">开启后将监控Docker容器</span>
       </el-form-item>
 
-      <el-form-item 
-        v-if="formData.monitorSysGenServerSettingDockerMonitorEnabled"
-        label="Docker API地址" 
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingDockerEnabled"
+        prop="monitorSysGenServerSettingDockerConnectionType"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>连接方式</span>
+            <el-tooltip
+              content="选择连接Docker的方式：Shell命令行方式或Docker API方式"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-select
+          v-model="formData.monitorSysGenServerSettingDockerConnectionType"
+          placeholder="请选择连接方式"
+          style="width: 200px"
+          @change="handleChange"
+        >
+          <el-option label="Shell命令" value="SHELL" />
+          <el-option label="Docker API" value="API" />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
         prop="monitorSysGenServerSettingDockerApiUrl"
       >
+        <template #label>
+          <div class="form-label">
+            <span>Docker API地址</span>
+            <el-tooltip
+              content="Docker API的访问地址，如：unix:///var/run/docker.sock 或 tcp://localhost:2376"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input
           v-model="formData.monitorSysGenServerSettingDockerApiUrl"
-          placeholder="请输入Docker API地址"
+          placeholder="如：unix:///var/run/docker.sock"
           maxlength="200"
           @change="handleChange"
         />
       </el-form-item>
 
-      <el-form-item 
-        v-if="formData.monitorSysGenServerSettingDockerMonitorEnabled"
-        label="API版本" 
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
         prop="monitorSysGenServerSettingDockerApiVersion"
       >
+        <template #label>
+          <div class="form-label">
+            <span>API版本</span>
+            <el-tooltip
+              content="Docker API的版本号，如：1.40、1.41等，可通过 docker version 命令查看"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input
           v-model="formData.monitorSysGenServerSettingDockerApiVersion"
-          placeholder="请输入API版本"
+          placeholder="如：1.40"
           maxlength="50"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
+        prop="monitorSysGenServerSettingDockerTlsEnabled"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>启用TLS</span>
+            <el-tooltip
+              content="是否启用TLS加密连接Docker API，提高连接安全性"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-switch
+          v-model="formData.monitorSysGenServerSettingDockerTlsEnabled"
+          :active-value="1"
+          :inactive-value="0"
+          active-text="开启"
+          inactive-text="关闭"
           @change="handleChange"
         />
       </el-form-item>
@@ -418,7 +530,19 @@
 
     <!-- 代理配置 -->
     <div v-if="section === 'proxy'" class="setting-section">
-      <el-form-item label="启用代理" prop="monitorSysGenServerSettingProxyEnabled">
+      <el-form-item prop="monitorSysGenServerSettingProxyEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>启用代理</span>
+            <el-tooltip
+              content="通过代理服务器连接目标服务器，适用于网络隔离或需要跳板机的环境"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-switch
           v-model="formData.monitorSysGenServerSettingProxyEnabled"
           :active-value="1"
@@ -427,14 +551,24 @@
           inactive-text="关闭"
           @change="handleChange"
         />
-        <span class="form-tip">通过代理服务器连接</span>
       </el-form-item>
 
-      <el-form-item 
-        v-if="formData.monitorSysGenServerSettingProxyEnabled"
-        label="代理类型" 
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyType"
       >
+        <template #label>
+          <div class="form-label">
+            <span>代理类型</span>
+            <el-tooltip
+              content="选择代理协议类型：HTTP代理适用于Web流量，SOCKS5代理支持更多协议，Guacamole用于远程桌面"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-select
           v-model="formData.monitorSysGenServerSettingProxyType"
           placeholder="请选择代理类型"
@@ -443,14 +577,26 @@
         >
           <el-option label="HTTP代理" value="HTTP" />
           <el-option label="SOCKS5代理" value="SOCKS5" />
+          <el-option label="Guacamole代理" value="GUACAMOLE" />
         </el-select>
       </el-form-item>
 
-      <el-form-item 
-        v-if="formData.monitorSysGenServerSettingProxyEnabled"
-        label="代理主机" 
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyHost"
       >
+        <template #label>
+          <div class="form-label">
+            <span>代理主机</span>
+            <el-tooltip
+              content="代理服务器的IP地址或域名，如：192.168.1.100 或 proxy.example.com"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input
           v-model="formData.monitorSysGenServerSettingProxyHost"
           placeholder="请输入代理主机地址"
@@ -459,17 +605,78 @@
         />
       </el-form-item>
 
-      <el-form-item 
-        v-if="formData.monitorSysGenServerSettingProxyEnabled"
-        label="代理端口" 
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingProxyEnabled"
         prop="monitorSysGenServerSettingProxyPort"
       >
+        <template #label>
+          <div class="form-label">
+            <span>代理端口</span>
+            <el-tooltip
+              content="代理服务器的端口号，HTTP代理通常使用8080，SOCKS5代理通常使用1080"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
         <el-input-number
           v-model="formData.monitorSysGenServerSettingProxyPort"
           :min="1"
           :max="65535"
           placeholder="代理端口"
           style="width: 200px"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'"
+        prop="monitorSysGenServerSettingProxyUsername"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>代理用户名</span>
+            <el-tooltip
+              content="代理服务器的认证用户名，如果代理不需要认证可留空"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input
+          v-model="formData.monitorSysGenServerSettingProxyUsername"
+          placeholder="代理用户名(可选)"
+          maxlength="100"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'"
+        prop="monitorSysGenServerSettingProxyPassword"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>代理密码</span>
+            <el-tooltip
+              content="代理服务器的认证密码，如果代理不需要认证可留空"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input
+          v-model="formData.monitorSysGenServerSettingProxyPassword"
+          type="password"
+          placeholder="代理密码(可选)"
+          maxlength="100"
+          show-password
           @change="handleChange"
         />
       </el-form-item>

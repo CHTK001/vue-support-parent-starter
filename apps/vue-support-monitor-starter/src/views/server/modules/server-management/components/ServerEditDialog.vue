@@ -333,12 +333,6 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <div class="footer-left">
-          <el-button v-if="mode === 'edit'" type="success" :loading="testLoading" @click="handleTest" plain>
-            <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
-            测试连接
-          </el-button>
-        </div>
         <div class="footer-right">
           <el-button @click="visible = false">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
@@ -970,35 +964,6 @@ const handleSubmit = async () => {
   }
 };
 
-/**
- * 测试连接
- */
-const handleTest = async () => {
-  try {
-    await formRef.value?.validate();
-
-    if (!formData.monitorSysGenServerId) {
-      message.warning("请先保存服务器配置后再测试连接");
-      return;
-    }
-
-    testLoading.value = true;
-    const res = await testServerConnection(String(formData.monitorSysGenServerId));
-
-    if (res.code === "00000") {
-      message.success(res.data ? "连接测试成功" : "连接测试失败");
-    } else {
-      message.error(res.msg || "测试失败");
-    }
-  } catch (error) {
-    console.error("测试连接出错:", error);
-    if (error !== false) {
-      message.error("测试异常，请稍后重试");
-    }
-  } finally {
-    testLoading.value = false;
-  }
-};
 
 // 暴露方法
 defineExpose({
