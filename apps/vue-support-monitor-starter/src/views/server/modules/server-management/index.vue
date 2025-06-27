@@ -449,7 +449,7 @@
               <!-- 远程桌面组件 (统一处理RDP和VNC) -->
               <RemoteDesktop
                 v-else-if="currentComponent === 'RemoteDesktop'"
-                :server="selectedServer"
+                :server="convertServerForRemoteDesktop(selectedServer)"
                 :key="selectedServerId + '-remote'"
                 @close="closeRightPanel"
               />
@@ -757,6 +757,23 @@ const handleRefreshMetrics = async (serverId: string) => {
   } catch (error) {
     console.error('刷新指标数据失败:', error);
   }
+};
+
+/**
+ * 转换服务器数据为远程桌面组件所需的格式
+ */
+const convertServerForRemoteDesktop = (server: ServerDisplayData | null) => {
+  if (!server) return undefined;
+
+  return {
+    monitorSysGenServerId: parseInt(server.id),
+    monitorSysGenServerName: server.name,
+    monitorSysGenServerHost: server.host,
+    monitorSysGenServerPort: server.port,
+    monitorSysGenServerProtocol: server.protocol,
+    monitorSysGenServerUsername: server.username,
+    monitorSysGenServerPassword: undefined, // ServerDisplayData中没有password字段
+  };
 };
 
 /**
@@ -1391,9 +1408,6 @@ onMounted(async () => {
 
   // 设置WebSocket消息监听
   setupWebSocketListeners();
-
-  // 启动延迟监控
-  latencyManager.startMonitoring();
 
   // 由于重构了store，这里简化处理
   if (realTimeMetricsEnabled.value) {
