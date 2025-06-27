@@ -153,7 +153,6 @@ const connect = async () => {
       await initTerminal();
       isInitialized.value = true;
     }
-
     // 发送 SSH 连接请求
     console.log('发送SSH连接请求到:', props.server?.host, ':', props.server?.port);
     const success = connectSSH(props.server?.host || '', props.server?.port || 22);
@@ -172,7 +171,7 @@ const connect = async () => {
   }
 };
 
-const disconnect = (skipWebSocketCleanup = false) => {
+const disconnect = async (skipWebSocketCleanup = false) => {
   try {
     console.log('断开SSH连接, skipWebSocketCleanup:', skipWebSocketCleanup);
 
@@ -187,6 +186,7 @@ const disconnect = (skipWebSocketCleanup = false) => {
 
     if (terminal.value) {
       try {
+        await terminal.value.loadAddonReady; 
         // 清理事件监听器
         if (terminal.value._resizeHandler) {
           window.removeEventListener('resize', terminal.value._resizeHandler);
@@ -232,7 +232,7 @@ const reconnect = async () => {
 
   // 先断开连接，但保留WebSocket订阅
   disconnect(true);
-
+  isSSHListenersInitialized.value = false;
   // 等待DOM更新和清理完成
   await nextTick();
 
@@ -274,6 +274,52 @@ const initSSHMessageHandlers = () => {
   }
 
   console.log('初始化SSH消息监听器...');
+
+  // 监听 SSH 连接状态
+  onSSHStatus((status: 'connected' | 'disconnected' | 'error', msg?: string) => {
+    
+    switch (status) {
+      case 'connected':
+        if(connectionStatus.value == 'connected') {
+          break;
+        }
+        console.log('SSH连接成功');
+        connectionStatus.value = 'connected';
+        connectionStartTime.value = Date.now();
+        startDurationTimer();
+        
+        // 清除终端内容并显示简单欢迎信息
+        if (terminal.value) {
+          terminal.value.clear();
+          terminal.value.write('\x1b[32m✓ SSH 连接成功\x1b[0m\r\n');
+          terminal.value.write('服务器: ' + (props.server?.name || 'Unknown') + '\r\n');
+          terminal.value.write('\x1B[31m准备就绪\x1B[0m\r\n\r\n');
+
+          // 连接成功后重新调整终端大小
+          setTimeout(() => {
+            try {
+              // 触发窗口大小变化事件来重新调整终端
+              window.dispatchEvent(new Event('resize'));
+            } catch (error) {
+              console.warn('连接后调整终端大小失败:', error);
+            }
+          }, 100);
+        }
+
+        // 显示连接成功消息
+        message.success('SSH连接成功');
+        break;
+      case 'disconnected':
+        console.log('SSH连接断开:', msg);
+        connectionStatus.value = 'disconnected';
+        break;
+      case 'error':
+        console.error('SSH错误:', msg);
+        connectionStatus.value = 'error';
+        message.error(msg || 'SSH连接错误');
+        break;
+    }
+  });
   // 监听 SSH 数据
   onSSHData((data: string) => {
     if (terminal.value) {
@@ -322,53 +368,6 @@ const initSSHMessageHandlers = () => {
       }
     }
   });
-
-  // 监听 SSH 连接状态
-  onSSHStatus((status: 'connected' | 'disconnected' | 'error', msg?: string) => {
-    
-    switch (status) {
-      case 'connected':
-        if(connectionStatus.value == 'connected') {
-          break;
-        }
-        console.log('SSH连接成功');
-        connectionStatus.value = 'connected';
-        connectionStartTime.value = Date.now();
-        startDurationTimer();
-        
-        // 清除终端内容并显示简单欢迎信息
-        if (terminal.value) {
-          terminal.value.clear();
-          terminal.value.write('\x1b[32m✓ SSH 连接成功\x1b[0m\r\n');
-          terminal.value.write('服务器: ' + (props.server?.name || 'Unknown') + '\r\n');
-          terminal.value.write('\x1B[31m准备就绪\x1B[0m\r\n\r\n');
-
-          // 连接成功后重新调整终端大小
-          setTimeout(() => {
-            try {
-              // 触发窗口大小变化事件来重新调整终端
-              window.dispatchEvent(new Event('resize'));
-            } catch (error) {
-              console.warn('连接后调整终端大小失败:', error);
-            }
-          }, 100);
-        }
-
-        // 显示连接成功消息
-        message.success('SSH连接成功');
-        break;
-      case 'disconnected':
-        console.log('SSH连接断开:', msg);
-        connectionStatus.value = 'disconnected';
-        break;
-      case 'error':
-        console.error('SSH错误:', msg);
-        connectionStatus.value = 'error';
-        message.error(msg || 'SSH连接错误');
-        break;
-    }
-  });
-
   // 标记SSH监听器已初始化
   isSSHListenersInitialized.value = true;
   console.log('SSH消息监听器初始化完成');

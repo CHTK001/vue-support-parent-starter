@@ -177,6 +177,9 @@ export function useServerWebSocket() {
     }
   };
 
+  const isConnected = () => {
+    return state.value.connected && stompClient.value;
+  };
   /**
    * 断开连接
    */
@@ -223,7 +226,7 @@ export function useServerWebSocket() {
   return {
     // 状态
     state,
-
+    isConnected,
     // 方法
     connect,
     disconnect,
@@ -268,7 +271,7 @@ export function useServerMetrics(serverId?: number) {
  * SSH WebSocket 处理 Composable
  */
 export function useSSHWebSocket(serverId: number) {
-  const { onMessage, sendMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
+  const { onMessage, sendMessage, MESSAGE_TYPE, connect, disconnect, isConnected } = useServerWebSocket();
 
   // 存储取消订阅函数，防止重复监听
   const unsubscribeFunctions = new Set<() => void>();
@@ -277,10 +280,11 @@ export function useSSHWebSocket(serverId: number) {
    * 发送 SSH 连接请求
    */
   const connectSSH = (serverHost: string, serverPort: number) => {
-    disconnect();
-    if (!connect()) {
-      return false;
+    if (isConnected()) {
+      disconnect();
     }
+    connect();
+    
     return sendMessage({
       messageType: MESSAGE_TYPE.SSH_CONNECT,
       serverId,
