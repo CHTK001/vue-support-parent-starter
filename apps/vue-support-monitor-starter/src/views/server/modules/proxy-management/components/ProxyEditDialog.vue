@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="mode === 'add' ? '新增代理' : '编辑代理'"
-    width="600px"
+    width="800px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     destroy-on-close
@@ -47,6 +47,12 @@
                 <div class="proxy-type-option">
                   <IconifyIconOnline icon="ri:shield-check-line" />
                   <span>SOCKS5</span>
+                </div>
+              </el-option>
+              <el-option label="GUACAMOLE" value="GUACAMOLE">
+                <div class="proxy-type-option">
+                  <IconifyIconOnline icon="ri:remote-control-line" />
+                  <span>GUACAMOLE</span>
                 </div>
               </el-option>
             </el-select>
@@ -101,7 +107,7 @@
       </el-row>
 
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item label="连接超时">
             <el-input-number
               v-model="formData.monitorSysGenServerProxyTimeout"
@@ -114,14 +120,25 @@
             <div class="form-tip">连接超时时间（毫秒）</div>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="状态">
+        <el-col :span="8">
+          <el-form-item label="是否启用">
             <el-switch
-              v-model="formData.monitorSysGenServerProxyStatus"
+              v-model="formData.monitorSysGenServerProxyEnabled"
               :active-value="1"
               :inactive-value="0"
               active-text="启用"
               inactive-text="禁用"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-form-item label="需要认证">
+            <el-switch
+              v-model="formData.monitorSysGenServerProxyAuthRequired"
+              :active-value="1"
+              :inactive-value="0"
+              active-text="是"
+              inactive-text="否"
             />
           </el-form-item>
         </el-col>
@@ -151,10 +168,6 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" @click="handleTest" :loading="testLoading">
-          <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
-          测试连接
-        </el-button>
         <el-button type="primary" @click="handleSubmit" :loading="loading">
           {{ mode === 'add' ? '新增' : '保存' }}
         </el-button>
@@ -164,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import {
   saveProxy,
@@ -172,6 +185,11 @@ import {
   testProxyConnection,
   type ServerProxy
 } from "@/api/monitor/gen/server-proxy";
+
+// 定义属性
+const props = defineProps<{
+  serverList?: Array<{ id: number; name: string }>;
+}>();
 
 // 定义事件
 const emit = defineEmits<{
@@ -186,7 +204,7 @@ const mode = ref<"add" | "edit">("add");
 const formRef = ref();
 
 // 表单数据
-const formData = reactive({
+const formData = reactive<any>({
   monitorSysGenServerProxyId: null as number | null,
   monitorSysGenServerProxyName: "",
   monitorSysGenServerProxyType: "HTTP",
@@ -199,7 +217,7 @@ const formData = reactive({
   monitorSysGenServerProxyTimeout: 30000,
   monitorSysGenServerProxyAuthRequired: 0,
   monitorSysGenServerProxyTags: ""
-});
+} );
 
 // 表单验证规则
 const rules = {
@@ -222,7 +240,9 @@ const rules = {
     { required: true, message: "请输入端口号", trigger: "blur" },
     { type: "number", min: 1, max: 65535, message: "端口号范围 1-65535", trigger: "blur" }
   ]
-};
+} as any;
+
+
 
 /**
  * 重置表单
@@ -232,15 +252,22 @@ const resetForm = () => {
     monitorSysGenServerProxyId: null,
     monitorSysGenServerProxyName: "",
     monitorSysGenServerProxyType: "HTTP",
+    monitorSysGenServerProxyConfig: "",
     monitorSysGenServerProxyHost: "",
     monitorSysGenServerProxyPort: 8080,
     monitorSysGenServerProxyUsername: "",
     monitorSysGenServerProxyPassword: "",
+    monitorSysGenServerProxyEnabled: 1,
     monitorSysGenServerProxyStatus: 1,
     monitorSysGenServerProxyDescription: "",
     monitorSysGenServerProxyTimeout: 30000,
     monitorSysGenServerProxyAuthRequired: 0,
-    monitorSysGenServerProxyTags: ""
+    monitorSysGenServerProxyTags: "",
+    monitorSysGenServerProxyLastTestTime: null,
+    monitorSysGenServerProxyTestResult: null,
+    monitorSysGenServerProxyTestLatency: null,
+    monitorSysGenServerProxyLastConnectTime: null,
+    monitorSysGenServerProxyConnectionError: ""
   });
   formRef.value?.clearValidate();
 };
@@ -271,20 +298,13 @@ const handleTest = async () => {
     // 如果是新增模式，需要先保存再测试
     if (mode.value === "add") {
       const result = await saveProxy(formData);
-      if (result.success) {
+      if (result.code === '00000') {
         formData.monitorSysGenServerProxyId = result.data.monitorSysGenServerProxyId;
         mode.value = "edit"; // 切换到编辑模式
       } else {
         message.error(result.msg || '保存失败');
         return;
       }
-    }
-    
-    const testResult = await testProxyConnection(formData.monitorSysGenServerProxyId!);
-    if (testResult.success) {
-      message.success(testResult.data.message);
-    } else {
-      message.error(testResult.msg || '测试失败');
     }
   } catch (error) {
     console.error('测试连接失败:', error);
@@ -300,21 +320,21 @@ const handleTest = async () => {
 const handleSubmit = async () => {
   try {
     await formRef.value?.validate();
-    
+
     loading.value = true;
-    
+
     // 设置认证要求
-    formData.monitorSysGenServerProxyAuthRequired = 
+    formData.monitorSysGenServerProxyAuthRequired =
       formData.monitorSysGenServerProxyUsername ? 1 : 0;
-    
-    let result;
+
+    let result: any;
     if (mode.value === "add") {
       result = await saveProxy(formData);
     } else {
       result = await updateProxy(formData);
     }
-    
-    if (result.success) {
+
+    if (result.code === '00000') {
       message.success(mode.value === "add" ? "新增成功" : "保存成功");
       visible.value = false;
       emit("success");
@@ -330,10 +350,11 @@ const handleSubmit = async () => {
 };
 
 /**
- * 取消
+ * 取消操作
  */
 const handleCancel = () => {
   visible.value = false;
+  resetForm();
 };
 
 // 暴露方法

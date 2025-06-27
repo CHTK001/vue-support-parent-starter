@@ -204,6 +204,7 @@ catalog:
   grid-layout-plus: ^1.0.6
   gridstack: ^11.1.0
   gradient-string: ^3.0.0
+  guacamole-common-js: ^1.5.0
   gsap: ^3.12.7
   globals: ^15.12.0
   h3: ^1.13.0

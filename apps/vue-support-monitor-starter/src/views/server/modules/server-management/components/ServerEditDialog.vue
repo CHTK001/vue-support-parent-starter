@@ -1,8 +1,9 @@
 <template>
-  <el-dialog v-model="visible" :title="mode === 'add' ? '新增服务器' : '编辑服务器'" width="90%" :close-on-click-modal="false"
-    destroy-on-close class="server-edit-dialog" align-center top="5vh">
+  <el-dialog v-model="visible" :title="mode === 'add' ? '新增服务器' : '编辑服务器'" width="95%" :close-on-click-modal="false"
+    destroy-on-close class="server-edit-dialog" align-center top="1vh" :show-close="true"
+    :lock-scroll="true" :modal="true" :append-to-body="true">
     <!-- 自定义头部 -->
-    <template #header="{ close, titleId, titleClass }">
+    <template #header="{ titleId, titleClass }">
       <div class="dialog-header">
         <div class="header-left">
           <IconifyIconOnline :icon="mode === 'add' ? 'ri:add-circle-line' : 'ri:edit-line'" class="header-icon" />
@@ -13,11 +14,11 @@
       </div>
     </template>
 
-    <div class="dialog-content">
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="left"
-        class="server-form">
-        <!-- 使用三列布局来节省空间 -->
-        <el-row :gutter="24" class="form-row">
+    <div class="dialog-content no-scrollbar">
+      <el-form ref="formRef" :model="formData" :rules="rules" label-width="80px" label-position="left"
+        class="server-form" size="small">
+        <!-- 使用紧凑的三列布局 -->
+        <el-row :gutter="12" class="form-row">
           <!-- 左列：基本信息 -->
           <el-col :span="8" class="form-column">
             <div class="form-section">
@@ -34,32 +35,38 @@
                   </el-input>
                 </el-form-item>
 
-                <!-- 操作系统信息展示 -->
-                <div v-if="osInfo && osInfo.isLocal" class="os-info-section">
+                <!-- 操作系统信息展示 - 紧凑版 -->
+                <div v-if="osInfo && osInfo.isLocal" class="os-info-section compact">
                   <div class="os-info-header">
                     <IconifyIconOnline icon="ri:computer-line" class="os-icon" />
-                    <span class="os-title">操作系统信息</span>
+                    <span class="os-title">系统信息</span>
                     <el-tag type="success" size="small" effect="light">自动检测</el-tag>
                   </div>
                   <div class="os-info-content">
-                    <div class="os-item">
-                      <span class="os-label">系统类型:</span>
-                      <span class="os-value">{{ osInfo.osType || '未知' }}</span>
+                    <div class="os-grid">
+                      <div class="os-item">
+                        <span class="os-label">类型:</span>
+                        <span class="os-value">{{ osInfo.osType || '未知' }}</span>
+                      </div>
+                      <div class="os-item">
+                        <span class="os-label">版本:</span>
+                        <span class="os-value">{{ osInfo.osVersion || '未知' }}</span>
+                      </div>
+                      <div class="os-item">
+                        <span class="os-label">架构:</span>
+                        <span class="os-value">{{ osInfo.osArch || '未知' }}</span>
+                      </div>
                     </div>
-                    <div class="os-item">
-                      <span class="os-label">系统版本:</span>
-                      <span class="os-value">{{ osInfo.osVersion || '未知' }}</span>
-                    </div>
-                    <div class="os-item">
-                      <span class="os-label">系统架构:</span>
-                      <span class="os-value">{{ osInfo.osArch || '未知' }}</span>
-                    </div>
-                    <div class="os-item">
+                    <div class="os-item ip-section">
                       <span class="os-label">本机IP:</span>
                       <div class="ip-list">
-                        <el-tag v-for="ip in osInfo.ipAddresses" :key="ip" size="small" type="info" effect="plain"
+                        <el-tag v-for="ip in osInfo.ipAddresses.slice(0, 3)" :key="ip" size="small" type="info" effect="plain"
                           class="ip-tag">
                           {{ ip }}
+                        </el-tag>
+                        <el-tag v-if="osInfo.ipAddresses.length > 3" size="small" type="info" effect="plain"
+                          class="ip-tag">
+                          +{{ osInfo.ipAddresses.length - 3 }}
                         </el-tag>
                       </div>
                     </div>
@@ -111,13 +118,7 @@
                     style="width: 100%" />
                 </el-form-item>
 
-                <el-form-item label="标签" prop="monitorSysGenServerTags">
-                  <el-input v-model="formData.monitorSysGenServerTags" placeholder="多个标签用逗号分隔" clearable>
-                    <template #prefix>
-                      <IconifyIconOnline icon="ri:price-tag-3-line" />
-                    </template>
-                  </el-input>
-                </el-form-item>
+                <!-- 标签字段已移至服务器配置页面 -->
 
                 <!-- 服务器类型和操作系统信息 -->
                 <el-form-item label="服务器类型">
@@ -142,7 +143,7 @@
                     <div class="os-type-selection">
                       <el-select v-model="formData.monitorSysGenServerOsType" placeholder="选择操作系统类型" style="width: 100%"
                         @change="handleOsTypeChange"
-                        :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osType" filterable>
+                        :disabled="formData.monitorSysGenServerIsLocal === 1 && !!osInfo?.osType" filterable>
                         <el-option-group label="Windows 系列">
                           <el-option label="Windows Server 2022" value="Windows Server 2022">
                             <div class="os-option">
@@ -351,7 +352,7 @@
                 <!-- 操作系统详细信息 -->
                 <el-form-item label="系统架构">
                   <el-select v-model="formData.monitorSysGenServerOsArch" placeholder="选择架构" style="width: 100%"
-                    :disabled="formData.monitorSysGenServerIsLocal === 1 && osInfo?.osArch">
+                    :disabled="formData.monitorSysGenServerIsLocal === 1 && !!osInfo?.osArch">
                     <el-option label="x86_64 (64位)" value="x86_64">
                       <div class="arch-option">
                         <IconifyIconOnline icon="ri:cpu-line" />
@@ -382,7 +383,7 @@
                 <!-- 额外IP地址配置 -->
                 <el-form-item label="额外IP地址">
                   <div class="extra-ips-container">
-                    <div v-for="(ip, index) in formData.monitorSysGenServerIpAddresses" :key="index"
+                    <div v-for="(_ip, index) in formData.monitorSysGenServerIpAddresses" :key="index"
                       class="extra-ip-item">
                       <el-input v-model="formData.monitorSysGenServerIpAddresses[index]" placeholder="请输入IP地址" clearable>
                         <template #prefix>
@@ -483,12 +484,12 @@
             </div>
           </el-col>
 
-          <!-- 右列：配置选项 -->
+          <!-- 右列：基本配置 -->
           <el-col :span="8" class="form-column">
             <div class="form-section">
               <div class="section-header">
                 <IconifyIconOnline icon="ri:settings-3-line" class="section-icon" />
-                <span class="section-title">配置选项</span>
+                <span class="section-title">基本配置</span>
               </div>
               <div class="section-content">
                 <el-form-item label="状态">
@@ -498,62 +499,12 @@
                   </div>
                 </el-form-item>
 
-                <el-form-item label="启用监控">
-                  <div class="switch-wrapper">
-                    <el-switch v-model="formData.monitorSysGenServerMonitorEnabled" :active-value="1"
-                      :inactive-value="0" active-text="开启" inactive-text="关闭" />
-                  </div>
-                </el-form-item>
-
                 <el-form-item label="指标支持">
                   <div class="switch-wrapper">
                     <el-switch v-model="formData.monitorSysGenServerMetricsSupport" :active-value="true"
                       :inactive-value="false" active-text="支持" inactive-text="不支持" />
                   </div>
                 </el-form-item>
-
-                <el-form-item label="数据上报">
-                  <div class="switch-wrapper">
-                    <el-switch v-model="formData.monitorSysGenServerReportEnabled" :active-value="1" :inactive-value="0"
-                      active-text="启用" inactive-text="禁用" />
-                    <el-tooltip content="是否需要上报服务器数据" placement="top">
-                      <IconifyIconOnline icon="ri:question-line" class="ml-2 text-gray-400" />
-                    </el-tooltip>
-                  </div>
-                </el-form-item>
-
-                <el-form-item label="上报方式" v-if="formData.monitorSysGenServerReportEnabled">
-                  <el-select v-model="formData.monitorSysGenServerDataReportMethod" placeholder="选择数据上报方式"
-                    style="width: 100%" @change="handleReportMethodChange">
-                    <el-option label="不支持上报" value="NONE" />
-                    <!-- 本机服务器显示本地上报，远程服务器显示接口上报 -->
-                    <el-option v-if="formData.monitorSysGenServerIsLocal === 1" label="本地上报" value="LOCAL">
-                      <div class="option-content">
-                        <span>本地上报</span>
-                        <el-tag type="success" size="small" effect="light" class="ml-2">推荐</el-tag>
-                      </div>
-                    </el-option>
-                    <el-option v-if="formData.monitorSysGenServerIsLocal !== 1 " label="接口上报" value="API" />
-                    <el-option label="Prometheus" value="PROMETHEUS" />
-                  </el-select>
-                </el-form-item>
-
-                <!-- Prometheus配置 -->
-                <template v-if="formData.monitorSysGenServerDataReportMethod === 'PROMETHEUS'">
-                  <el-form-item label="Prometheus地址" prop="monitorSysGenServerPrometheusHost">
-                    <el-input v-model="formData.monitorSysGenServerPrometheusHost" placeholder="请输入Prometheus服务器地址"
-                      clearable>
-                      <template #prefix>
-                        <IconifyIconOnline icon="ri:server-line" />
-                      </template>
-                    </el-input>
-                  </el-form-item>
-
-                  <el-form-item label="Prometheus端口" prop="monitorSysGenServerPrometheusPort">
-                    <el-input-number v-model="formData.monitorSysGenServerPrometheusPort" :min="1" :max="65535"
-                      placeholder="端口号" style="width: 100%" />
-                  </el-form-item>
-                </template>
 
                 <el-form-item label="代理配置">
                   <div class="proxy-selection-container">
@@ -566,15 +517,15 @@
                         </div>
                       </el-option>
                       <el-option-group v-for="group in groupedProxyList" :key="group.type" :label="group.label">
-                        <el-option v-for="proxy in group.proxies" :key="proxy.proxyId" :label="proxy.proxyName"
-                          :value="proxy.proxyId">
+                        <el-option v-for="proxy in group.proxies" :key="proxy.monitorSysGenServerProxyId" :label="`${proxy.monitorSysGenServerProxyType} 代理`"
+                          :value="proxy.monitorSysGenServerProxyId">
                           <div class="proxy-option">
-                            <IconifyIconOnline :icon="getProxyTypeIcon(proxy.proxyType)" class="proxy-option-icon" />
-                            <span class="proxy-name">{{ proxy.proxyName }}</span>
-                            <span class="proxy-address">{{ proxy.proxyHost }}:{{ proxy.proxyPort }}</span>
-                            <el-tag :type="proxy.proxyStatus === 1 ? 'success' : 'danger'" size="small" effect="light"
-                              v-if="proxy.proxyStatus !== undefined">
-                              {{ proxy.proxyStatus === 1 ? '正常' : '异常' }}
+                            <IconifyIconOnline :icon="getProxyTypeIcon(proxy.monitorSysGenServerProxyType)" class="proxy-option-icon" />
+                            <span class="proxy-name">{{ proxy.monitorSysGenServerProxyType + ' 代理' }}</span>
+                            <span class="proxy-address">{{ proxy.monitorSysGenServerProxyHost && proxy.monitorSysGenServerProxyPort ? `${proxy.monitorSysGenServerProxyHost}:${proxy.monitorSysGenServerProxyPort}` : '未配置地址' }}</span>
+                            <el-tag :type="proxy.monitorSysGenServerProxyEnabled === 1 ? 'success' : 'danger'" size="small" effect="light"
+                              v-if="proxy.monitorSysGenServerProxyEnabled !== undefined">
+                              {{ proxy.monitorSysGenServerProxyEnabled === 1 ? '启用' : '禁用' }}
                             </el-tag>
                           </div>
                         </el-option>
@@ -596,36 +547,6 @@
                     </div>
                   </div>
                 </el-form-item>
-
-                <!-- 选中代理的详细信息显示 -->
-                <div v-if="selectedProxy" class="selected-proxy-info">
-                  <el-alert :title="`已选择代理: ${selectedProxy.proxyName}`" type="info" effect="light" :closable="false"
-                    show-icon>
-                    <template #default>
-                      <div class="proxy-info-details">
-                        <div class="proxy-info-item">
-                          <span class="label">类型:</span>
-                          <el-tag size="small" effect="light">{{ selectedProxy.proxyType }}</el-tag>
-                        </div>
-                        <div class="proxy-info-item">
-                          <span class="label">地址:</span>
-                          <span>{{ selectedProxy.proxyHost }}:{{ selectedProxy.proxyPort }}</span>
-                        </div>
-                        <div class="proxy-info-item" v-if="selectedProxy.proxyDesc">
-                          <span class="label">描述:</span>
-                          <span>{{ selectedProxy.proxyDesc }}</span>
-                        </div>
-                        <div class="proxy-info-item" v-if="selectedProxy.proxyStatus !== undefined">
-                          <span class="label">状态:</span>
-                          <el-tag :type="selectedProxy.proxyStatus === 1 ? 'success' : 'danger'" size="small"
-                            effect="light">
-                            {{ selectedProxy.proxyStatus === 1 ? '连接正常' : '连接异常' }}
-                          </el-tag>
-                        </div>
-                      </div>
-                    </template>
-                  </el-alert>
-                </div>
 
                 <!-- RDP特有配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'RDP'">
@@ -659,57 +580,9 @@
                   </el-form-item>
                 </template>
 
-                <!-- Docker配置 -->
-                <el-form-item label="Docker支持">
-                  <div class="switch-wrapper">
-                    <el-switch v-model="formData.monitorSysGenServerDockerEnabled" :active-value="1" :inactive-value="0"
-                      active-text="支持" inactive-text="不支持" />
-                    <el-tooltip content="是否支持Docker容器管理" placement="top">
-                      <IconifyIconOnline icon="ri:question-line" class="ml-2 text-gray-400" />
-                    </el-tooltip>
-                  </div>
-                </el-form-item>
 
-                <!-- Docker连接方式 -->
-                <el-form-item label="Docker连接方式" v-if="formData.monitorSysGenServerDockerEnabled">
-                  <el-select v-model="formData.monitorSysGenServerDockerConnectionType" placeholder="选择Docker连接方式"
-                    style="width: 100%">
-                    <el-option label="Shell命令" value="SHELL">
-                      <div class="docker-option">
-                        <IconifyIconOnline icon="ri:terminal-line" />
-                        <span>Shell命令</span>
-                      </div>
-                    </el-option>
-                    <el-option label="TCP连接" value="TCP">
-                      <div class="docker-option">
-                        <IconifyIconOnline icon="ri:wifi-line" />
-                        <span>TCP连接</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
 
-                <!-- Docker TCP配置 -->
-                <template
-                  v-if="formData.monitorSysGenServerDockerEnabled && formData.monitorSysGenServerDockerConnectionType === 'TCP'">
-                  <el-form-item label="Docker主机" prop="monitorSysGenServerDockerHost">
-                    <el-input v-model="formData.monitorSysGenServerDockerHost" placeholder="请输入Docker主机地址" clearable>
-                      <template #prefix>
-                        <IconifyIconOnline icon="ri:server-line" />
-                      </template>
-                    </el-input>
-                  </el-form-item>
-
-                  <el-form-item label="Docker端口" prop="monitorSysGenServerDockerPort">
-                    <el-input-number v-model="formData.monitorSysGenServerDockerPort" :min="1" :max="65535"
-                      placeholder="端口号" style="width: 100%" />
-                  </el-form-item>
-                </template>
-
-                <el-form-item label="描述">
-                  <el-input v-model="formData.monitorSysGenServerDescription" type="textarea" :rows="4"
-                    placeholder="请输入服务器描述信息" />
-                </el-form-item>
+                <!-- 描述字段已移至服务器配置页面 -->
               </div>
             </div>
           </el-col>
@@ -719,12 +592,18 @@
       </el-form>
     </div>
 
+    <!-- 服务器设置对话框已移除，配置功能在专门的服务器配置页面中 -->
+
     <template #footer>
       <div class="dialog-footer">
         <div class="footer-left">
           <el-button v-if="mode === 'edit'" type="success" :loading="testLoading" @click="handleTest" plain>
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
             测试连接
+          </el-button>
+          <el-button v-if="mode === 'edit' && formData.monitorSysGenServerId" type="info" @click="handleOpenServerConfig" plain>
+            <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
+            配置管理
           </el-button>
         </div>
         <div class="footer-right">
@@ -743,7 +622,8 @@
 </template>
 
 <script setup lang="ts">
-import { type MonitorProxy, getProxyPageList } from "@/api/monitor/gen/proxy";
+import { type ServerProxy } from "@/api/monitor/gen/server-proxy";
+import { getServerProxyPageList } from "@/api/server/proxy";
 import {
   type ServerDisplayData,
   saveServer,
@@ -751,12 +631,15 @@ import {
   testServerConnection,
   updateServer
 } from "@/api/server";
+// 服务器设置相关导入已移除，配置功能在专门的服务器配置页面中
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref } from "vue";
+// ServerSettingDialog已移除，配置功能在专门的服务器配置页面中
 
 // 定义事件
 const emit = defineEmits<{
   success: [];
+  openConfig: [serverId: number];
 }>();
 
 // 响应式状态
@@ -766,6 +649,7 @@ const testLoading = ref(false);
 const detectLoading = ref(false);
 const mode = ref<"add" | "edit">("add");
 const formRef = ref();
+// serverSettingDialogRef已移除，配置功能在专门的服务器配置页面中
 
 // 操作系统信息
 const osInfo = ref<{
@@ -788,10 +672,8 @@ const formData = reactive({
   monitorSysGenServerPrivateKey: "",
   monitorSysGenServerAuthType: "password",
   monitorSysGenServerStatus: 1,
-  monitorSysGenServerMonitorEnabled: 1,
-  monitorSysGenServerMetricsSupport: true,
   monitorSysGenServerTags: "",
-  monitorSysGenServerDescription: "",
+  monitorSysGenServerDesc: "",
   monitorSysGenServerCharset: "UTF-8",
   monitorSysGenServerTimeout: 30000,
   monitorSysGenServerWidth: 1024,
@@ -799,23 +681,13 @@ const formData = reactive({
   monitorSysGenServerColorDepth: "24",
   monitorSysGenServerVncPassword: "",
   monitorSysGenServerReadOnly: 0,
-  // 新增字段
-  monitorSysGenServerReportEnabled: 1,
+  // 代理ID字段保留
   monitorSysGenServerProxyId: null as number | null,
-  monitorSysGenServerDataReportMethod: "NONE",
-  monitorSysGenServerPrometheusHost: "",
-  monitorSysGenServerPrometheusPort: 4822,
-  monitorSysGenServerProxyHost: "",
-  monitorSysGenServerProxyPort: 4822,
   // 额外IP地址
   monitorSysGenServerIpAddresses: [""] as string[],
   // 是否本地服务器（自动检测，不允许修改）
   monitorSysGenServerIsLocal: 0,
-  // Docker相关配置
-  monitorSysGenServerDockerEnabled: 0,
-  monitorSysGenServerDockerConnectionType: "SHELL",
-  monitorSysGenServerDockerHost: "",
-  monitorSysGenServerDockerPort: 2376,
+  // Docker相关配置已移至专门的服务器配置页面
   // 操作系统信息（自动检测）
   monitorSysGenServerOsType: "",
   monitorSysGenServerOsVersion: "",
@@ -824,20 +696,23 @@ const formData = reactive({
 });
 
 // 代理相关数据
-const proxyList = ref<MonitorProxy[]>([]);
+const proxyList = ref<ServerProxy[]>([]);
 const proxyListLoading = ref(false);
-const selectedProxy = ref<MonitorProxy | null>(null);
+const selectedProxy = ref<ServerProxy | null>(null);
+
+// 服务器设置数据已移至专门的服务器配置页面
 
 // 分组的代理列表
 const groupedProxyList = computed(() => {
   const groups = [
-    { type: 'HTTP', label: 'HTTP 代理', proxies: [] as MonitorProxy[] },
-    { type: 'SOCKS4', label: 'SOCKS4 代理', proxies: [] as MonitorProxy[] },
-    { type: 'SOCKS5', label: 'SOCKS5 代理', proxies: [] as MonitorProxy[] }
+    { type: 'HTTP', label: 'HTTP 代理', proxies: [] as ServerProxy[] },
+    { type: 'SOCKS4', label: 'SOCKS4 代理', proxies: [] as ServerProxy[] },
+    { type: 'SOCKS5', label: 'SOCKS5 代理', proxies: [] as ServerProxy[] },
+    { type: 'GUACAMOLE', label: 'Guacamole 代理', proxies: [] as ServerProxy[] }
   ];
 
   proxyList.value.forEach(proxy => {
-    const group = groups.find(g => g.type === proxy.proxyType);
+    const group = groups.find(g => g.type === proxy.monitorSysGenServerProxyType);
     if (group) {
       group.proxies.push(proxy);
     }
@@ -863,7 +738,7 @@ const rules = {
   ],
   monitorSysGenServerPort: [
     { required: true, message: "端口号不能为空", trigger: "blur" },
-    { type: "number", min: 1, max: 65535, message: "端口号范围 1-65535", trigger: "blur" },
+    { type: "number" as const, min: 1, max: 65535, message: "端口号范围 1-65535", trigger: "blur" },
   ],
   monitorSysGenServerProtocol: [
     { required: true, message: "连接协议不能为空", trigger: "change" },
@@ -878,7 +753,7 @@ const rules = {
   ],
   monitorSysGenServerPassword: [
     {
-      validator: (rule: any, value: string, callback: Function) => {
+      validator: (_rule: any, value: string, callback: Function) => {
         // 密码设置为非必填，只在有值时进行基本验证
         if (value && value.length < 1) {
           callback(new Error("密码长度不能为空"));
@@ -891,7 +766,7 @@ const rules = {
   ],
   monitorSysGenServerPrivateKey: [
     {
-      validator: (rule: any, value: string, callback: Function) => {
+      validator: (_rule: any, value: string, callback: Function) => {
         if (formData.monitorSysGenServerAuthType === "key" && !value) {
           callback(new Error("请输入私钥"));
         } else {
@@ -906,7 +781,7 @@ const rules = {
   ],
   monitorSysGenServerOsCustom: [
     {
-      validator: (rule: any, value: string, callback: Function) => {
+      validator: (_rule: any, value: string, callback: Function) => {
         if (formData.monitorSysGenServerOsType === "Custom" && !value) {
           callback(new Error("请输入自定义操作系统名称"));
         } else {
@@ -928,6 +803,9 @@ const open = (editMode: "add" | "edit" = "add") => {
   // 根据协议设置默认端口
   if (editMode === "add") {
     setDefaultPort();
+    // 新增模式下默认设置为在线状态
+    formData.monitorSysGenServerStatus = 1;
+    // 服务器设置已移至专门的配置页面
   }
 
   // 加载代理列表
@@ -937,7 +815,7 @@ const open = (editMode: "add" | "edit" = "add") => {
 /**
  * 设置数据
  */
-const setData = (data: ServerDisplayData | any) => {
+const setData = async (data: ServerDisplayData | any) => {
   if (data && Object.keys(data).length > 0) {
     // 如果是ServerDisplayData类型，需要映射到表单字段
     if ('name' in data && 'host' in data) {
@@ -949,34 +827,23 @@ const setData = (data: ServerDisplayData | any) => {
         monitorSysGenServerPort: data.port,
         monitorSysGenServerProtocol: data.protocol,
         monitorSysGenServerUsername: data.username,
-        monitorSysGenServerDescription: data.description,
-        monitorSysGenServerMetricsSupport: data.metricsSupport,
+        monitorSysGenServerDesc: data.description,
         monitorSysGenServerTags: data.tags,
         monitorSysGenServerStatus: data.status,
-        monitorSysGenServerMonitorEnabled: data.metricsSupport ? 1 : 0,
-        // 新增字段映射
-        monitorSysGenServerReportEnabled: data.monitorSysGenServerReportEnabled || 1,
-        monitorSysGenServerProxyId: data.monitorSysGenServerProxyId || null,
-        monitorSysGenServerDataReportMethod: data.monitorSysGenServerDataReportMethod || "NONE",
-        monitorSysGenServerPrometheusHost: data.monitorSysGenServerPrometheusHost || "",
-        monitorSysGenServerPrometheusPort: data.monitorSysGenServerPrometheusPort || 9090,
-        monitorSysGenServerProxyHost: data.monitorSysGenServerProxyHost || "",
-        monitorSysGenServerProxyPort: data.monitorSysGenServerProxyPort || 8080,
-        // 额外IP地址
+        ...data,
+         // 额外IP地址
         monitorSysGenServerIpAddresses: data.monitorSysGenServerIpAddresses ?
           (typeof data.monitorSysGenServerIpAddresses === 'string' ?
             JSON.parse(data.monitorSysGenServerIpAddresses) : data.monitorSysGenServerIpAddresses) : [""],
-        // 是否本地服务器
-        monitorSysGenServerIsLocal: data.monitorSysGenServerIsLocal || 0,
-        // Docker相关配置
-        monitorSysGenServerDockerEnabled: data.monitorSysGenServerDockerEnabled || 0,
-        monitorSysGenServerDockerConnectionType: data.monitorSysGenServerDockerConnectionType || "SHELL",
-        monitorSysGenServerDockerHost: data.monitorSysGenServerDockerHost || "",
-        monitorSysGenServerDockerPort: data.monitorSysGenServerDockerPort || 2376,
       });
     } else {
       // 直接赋值（兼容原有的后台数据格式）
       Object.assign(formData, data);
+    }
+
+    // 加载服务器设置
+    if (formData.monitorSysGenServerId) {
+      await loadServerSetting(formData.monitorSysGenServerId);
     }
   } else {
     resetForm();
@@ -998,10 +865,8 @@ const resetForm = () => {
     monitorSysGenServerPrivateKey: "",
     monitorSysGenServerAuthType: "password",
     monitorSysGenServerStatus: 1,
-    monitorSysGenServerMonitorEnabled: 1,
-    monitorSysGenServerMetricsSupport: true,
     monitorSysGenServerTags: "",
-    monitorSysGenServerDescription: "",
+    monitorSysGenServerDesc: "",
     monitorSysGenServerCharset: "UTF-8",
     monitorSysGenServerTimeout: 30000,
     monitorSysGenServerWidth: 1024,
@@ -1009,14 +874,8 @@ const resetForm = () => {
     monitorSysGenServerColorDepth: "24",
     monitorSysGenServerVncPassword: "",
     monitorSysGenServerReadOnly: 0,
-    // 新增字段
-    monitorSysGenServerReportEnabled: 1,
+    // 代理ID字段保留
     monitorSysGenServerProxyId: null,
-    monitorSysGenServerDataReportMethod: "NONE",
-    monitorSysGenServerPrometheusHost: "",
-    monitorSysGenServerPrometheusPort: 9090,
-    monitorSysGenServerProxyHost: "",
-    monitorSysGenServerProxyPort: 8080,
     // 额外IP地址
     monitorSysGenServerIpAddresses: [""],
     // Docker相关配置
@@ -1026,10 +885,30 @@ const resetForm = () => {
     monitorSysGenServerDockerPort: 2376,
   });
 
+  // 服务器设置已移至专门的配置页面
+
   nextTick(() => {
     formRef.value?.clearValidate();
   });
 };
+
+// resetServerSetting函数已移除，服务器设置功能在专门的配置页面中
+
+// 服务器设置相关函数已移至专门的服务器配置页面
+
+/**
+ * 打开服务器配置页面
+ */
+const handleOpenServerConfig = () => {
+  if (formData.monitorSysGenServerId) {
+    // 跳转到服务器配置页面，传递服务器ID
+    emit("openConfig", formData.monitorSysGenServerId);
+    // 关闭当前编辑对话框
+    visible.value = false;
+  }
+};
+
+// handleServerSettingSuccess函数已移除，配置功能在专门的服务器配置页面中
 
 /**
  * 根据协议设置默认端口
@@ -1053,22 +932,7 @@ const handleProtocolChange = () => {
   setDefaultPort();
 };
 
-/**
- * 处理上报方式变化
- */
-const handleReportMethodChange = () => {
-  // 当选择Prometheus时，设置默认端口
-  if (formData.monitorSysGenServerDataReportMethod === 'PROMETHEUS') {
-    if (!formData.monitorSysGenServerPrometheusPort) {
-      formData.monitorSysGenServerPrometheusPort = 9090;
-    }
-  }
-  // 当选择其他方式时，清空Prometheus配置
-  else if (formData.monitorSysGenServerDataReportMethod !== 'PROMETHEUS') {
-    formData.monitorSysGenServerPrometheusHost = "";
-    formData.monitorSysGenServerPrometheusPort = 9090;
-  }
-};
+// handleReportMethodChange函数已移除，上报方式配置在专门的服务器配置页面中
 
 /**
  * 处理操作系统类型变化
@@ -1139,15 +1003,13 @@ const detectServerInfo = async () => {
         ipAddresses: detectionResult?.ipAddresses ? JSON.parse(detectionResult.ipAddresses) : []
       };
 
-      // 如果是本机服务器且当前上报方式是API，自动切换为LOCAL
-      if (osInfo.value.isLocal && formData.monitorSysGenServerDataReportMethod === 'API') {
-        formData.monitorSysGenServerDataReportMethod = 'LOCAL';
-        message.success("检测到本机服务器，已自动切换为本地上报方式");
-      }
-      // 如果是远程服务器且当前上报方式是LOCAL，自动切换为API
-      else if (!osInfo.value.isLocal && formData.monitorSysGenServerDataReportMethod === 'LOCAL') {
-        formData.monitorSysGenServerDataReportMethod = 'API';
-        message.info("检测到远程服务器，已自动切换为接口上报方式");
+      // 如果是本机服务器，设置默认配置
+      if (osInfo.value.isLocal) {
+        // 设置本地服务器默认在线
+        if (formData.monitorSysGenServerStatus !== 1) {
+          formData.monitorSysGenServerStatus = 1;
+          message.success("本地服务器已设置为在线状态");
+        }
       }
     } else {
       message.warning("服务器信息检测失败: " + res.msg);
@@ -1268,8 +1130,32 @@ const getProxyTypeIcon = (proxyType: string) => {
       return 'ri:shield-line';
     case 'SOCKS5':
       return 'ri:shield-check-line';
+    case 'GUACAMOLE':
+      return 'ri:remote-control-line';
+    case 'VNC':
+      return 'ri:computer-line';
+    case 'RDP':
+      return 'ri:windows-line';
     default:
       return 'ri:server-line';
+  }
+};
+
+/**
+ * 获取代理状态文本
+ */
+const getProxyStatusText = (status: number) => {
+  switch (status) {
+    case 0:
+      return '离线';
+    case 1:
+      return '在线';
+    case 2:
+      return '连接中';
+    case 3:
+      return '连接失败';
+    default:
+      return '未知';
   }
 };
 
@@ -1279,13 +1165,16 @@ const getProxyTypeIcon = (proxyType: string) => {
 const loadProxyList = async () => {
   try {
     proxyListLoading.value = true;
-    const result = await getProxyPageList({
+    // 加载所有可用的代理列表供用户选择
+    const result = await getServerProxyPageList({
       page: 1,
-      pageSize: 1000, // 获取所有代理
-      proxyStatus: 1 // 只获取启用的代理
+      pageSize: 1000, // 获取足够多的代理
+      params: {
+        status: 1 // 只获取启用的代理
+      }
     });
     if (result.code === "00000") {
-      proxyList.value = result.data?.records || [];
+      proxyList.value = result.data?.data || [];
     } else {
       message.error(result.msg || '获取代理列表失败');
     }
@@ -1302,7 +1191,7 @@ const loadProxyList = async () => {
  */
 const handleProxyChange = (proxyId: number | null) => {
   if (proxyId) {
-    selectedProxy.value = proxyList.value.find(proxy => proxy.proxyId === proxyId) || null;
+    selectedProxy.value = proxyList.value.find(proxy => proxy.monitorSysGenServerProxyId === proxyId) || null;
   } else {
     selectedProxy.value = null;
   }
@@ -1323,7 +1212,7 @@ const openProxyManagement = () => {
 const handleSubmit = async () => {
   try {
     // 表单验证
-    const isValid = await formRef.value?.validate().catch((error) => {
+    const isValid = await formRef.value?.validate().catch((error: any) => {
       console.log("表单验证失败:", error);
       // 显示第一个验证错误
       if (error && typeof error === 'object') {
@@ -1351,8 +1240,6 @@ const handleSubmit = async () => {
       monitorSysGenServerDockerEnabled: Number(formData.monitorSysGenServerDockerEnabled),
       monitorSysGenServerDockerPort: formData.monitorSysGenServerDockerPort ? Number(formData.monitorSysGenServerDockerPort) : null,
       monitorSysGenServerIsLocal: Number(formData.monitorSysGenServerIsLocal),
-      monitorSysGenServerReportEnabled: Number(formData.monitorSysGenServerReportEnabled || 1),
-      monitorSysGenServerMonitorEnabled: Number(formData.monitorSysGenServerMonitorEnabled || 1),
       monitorSysGenServerStatus: Number(formData.monitorSysGenServerStatus || 1),
     };
 
@@ -1433,31 +1320,60 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-// 对话框整体样式
+// 隐藏滚动条的通用样式
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+// 对话框整体样式 - 优化无滚动条版本
 .server-edit-dialog {
   :deep(.el-dialog) {
     border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    max-height: 90vh;
+    max-height: 98vh;
+    height: 98vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    margin: 0 !important;
   }
 
   :deep(.el-dialog__header) {
     padding: 0;
     margin: 0;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+    backdrop-filter: blur(12px);
+    height: 60px;
+    display: flex;
+    align-items: center;
   }
 
   :deep(.el-dialog__body) {
     padding: 0;
-    height: calc(90vh - 140px); // 减去头部和底部的高度
-    overflow: hidden; // 不显示滚动条
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   }
 
   :deep(.el-dialog__footer) {
-    padding: 16px 24px;
-    border-top: 1px solid var(--el-border-color-lighter);
-    background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-bg-color) 100%);
+    padding: 20px 24px;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
   }
 }
 
@@ -1501,37 +1417,77 @@ defineExpose({
 
 // 对话框内容区域
 .dialog-content {
-  padding: 20px 24px;
-  height: 100%;
+  padding: 16px 20px;
+  flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+}
+
+// 表单样式 - 优化无滚动条版本
+.server-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
+  .form-row {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+
+    .form-column {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 12px;
+
+    .el-form-item__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      line-height: 1.4;
+    }
+
+    .el-form-item__content {
+      line-height: 1.4;
+    }
+  }
 }
 
 // 表单行布局
 .form-row {
-  height: 100%;
+  flex: 1;
   margin: 0 !important;
+  display: flex;
+  min-height: 0;
+  gap: 12px;
 }
 
 // 表单列布局
 .form-column {
-  height: 100%;
-  padding: 0 12px !important;
-
-  &:first-child {
-    padding-left: 0 !important;
-  }
-
-  &:last-child {
-    padding-right: 0 !important;
-  }
+  flex: 1;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-// 表单样式
+// 表单项样式 - 紧凑版本
 .server-form {
-  height: 100%;
-
   :deep(.el-form-item) {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:last-child {
       margin-bottom: 0;
@@ -1541,16 +1497,29 @@ defineExpose({
     &.is-error {
       .el-form-item__label {
         color: var(--el-color-danger);
+        font-weight: 600;
       }
 
       .el-input__wrapper {
         border-color: var(--el-color-danger);
-        box-shadow: 0 0 0 1px var(--el-color-danger-light-7);
+        box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+        background-color: rgba(254, 226, 226, 0.5);
+        animation: shake 0.5s ease-in-out;
       }
 
       .el-select .el-input__wrapper {
         border-color: var(--el-color-danger);
-        box-shadow: 0 0 0 1px var(--el-color-danger-light-7);
+        box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+        background-color: rgba(254, 226, 226, 0.5);
+      }
+    }
+
+    // 聚焦状态样式
+    &.is-focus {
+      .el-form-item__label {
+        color: var(--el-color-primary);
+        transform: translateY(-1px);
+        font-weight: 600;
       }
     }
   }
@@ -1560,7 +1529,20 @@ defineExpose({
     color: var(--el-text-color-primary);
     font-size: 13px;
     line-height: 1.4;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
+    transition: all 0.3s ease;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--el-color-primary);
+      transition: width 0.3s ease;
+    }
   }
 
   // 错误消息样式
@@ -1569,99 +1551,163 @@ defineExpose({
     color: var(--el-color-danger);
     padding-top: 4px;
     line-height: 1.4;
+    font-weight: 500;
+    animation: shake 0.3s ease-in-out;
   }
 
+  // 输入框样式 - 紧凑版本
   :deep(.el-input__wrapper) {
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%);
+    backdrop-filter: blur(8px);
+    padding: 0 10px;
+    min-height: 32px;
 
     &:hover {
-      box-shadow: 0 0 0 1px var(--el-color-primary-light-7);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+    }
+
+    &.is-focus {
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.98);
     }
   }
 
-  :deep(.el-select .el-input__wrapper) {
-    &:hover {
-      box-shadow: 0 0 0 1px var(--el-color-primary-light-7);
+  // 输入框内部文本样式
+  :deep(.el-input__inner) {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  // 选择器样式
+  :deep(.el-select) {
+    .el-input__wrapper {
+      &:hover {
+        border-color: var(--el-color-primary-light-5);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+      }
+    }
+
+    .el-input__suffix {
+      transition: transform 0.3s ease;
+    }
+
+    &.is-focus .el-input__suffix {
+      transform: rotate(180deg);
     }
   }
 
+  // 文本域样式
   :deep(.el-textarea__inner) {
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid var(--el-border-color-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background: var(--el-bg-color);
 
     &:hover {
-      border-color: var(--el-color-primary-light-7);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &:focus {
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
     }
   }
 
+  // 数字输入框样式
   :deep(.el-input-number) {
     width: 100%;
 
     .el-input__wrapper {
-      border-radius: 8px;
+      border-radius: 10px;
+    }
+
+    .el-input-number__decrease,
+    .el-input-number__increase {
+      border-radius: 6px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+      }
     }
   }
 }
 
+// 动画效果
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 // 表单分组样式
 .form-section {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.9) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  padding: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+  min-height: 0;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+  }
 
   .section-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
     flex-shrink: 0;
 
     .section-icon {
-      font-size: 18px;
+      font-size: 16px;
       color: var(--el-color-primary);
-      padding: 4px;
-      background: var(--el-color-primary-light-9);
-      border-radius: 6px;
+      padding: 6px;
+      background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .section-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--el-text-color-primary);
+      letter-spacing: 0.5px;
     }
   }
 
   .section-content {
     flex: 1;
-    overflow-y: auto;
-    padding-right: 4px;
-
-    /* 自定义滚动条 */
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--el-fill-color-extra-light);
-      border-radius: 2px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color-dark);
-      border-radius: 2px;
-
-      &:hover {
-        background: var(--el-color-primary-light-5);
-      }
-    }
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
   }
 }
 
@@ -1676,6 +1722,98 @@ defineExpose({
   .iconify {
     font-size: 16px;
     color: var(--el-color-primary);
+  }
+}
+
+// Switch 组件美化样式
+.switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  :deep(.el-switch) {
+    --el-switch-on-color: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+    --el-switch-off-color: #dcdfe6;
+    --el-switch-border-color: transparent;
+
+    .el-switch__core {
+      border-radius: 20px;
+      height: 24px;
+      min-width: 48px;
+      border: 2px solid transparent;
+      background: var(--el-switch-off-color);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+      }
+
+      .el-switch__action {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+          opacity: 0;
+          transition: all 0.3s ease;
+        }
+      }
+    }
+
+    &.is-checked {
+      .el-switch__core {
+        background: var(--el-switch-on-color);
+        border-color: transparent;
+
+        .el-switch__action {
+          background: #ffffff;
+
+          &::before {
+            opacity: 0.2;
+            background: #67c23a;
+          }
+        }
+      }
+    }
+
+    .el-switch__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-regular);
+      transition: color 0.3s ease;
+
+      &.is-active {
+        color: var(--el-color-success);
+        font-weight: 600;
+      }
+    }
+
+    // 禁用状态
+    &.is-disabled {
+      .el-switch__core {
+        opacity: 0.6;
+        cursor: not-allowed;
+
+        &:hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          transform: none;
+        }
+      }
+    }
   }
 }
 
@@ -1733,13 +1871,13 @@ defineExpose({
   height: 40px;
 }
 
-// 底部按钮区域
+// 底部按钮区域 - 紧凑版本
 .dialog-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px !important;
+  gap: 12px;
+  padding: 12px 20px !important;
 
   .footer-left {
     flex: 1;
@@ -1783,47 +1921,81 @@ defineExpose({
 }
 
 // 响应式设计
+@media (max-width: 1600px) {
+  .server-edit-dialog {
+    :deep(.el-dialog) {
+      width: 96% !important;
+      height: 98vh !important;
+    }
+  }
+}
+
 @media (max-width: 1400px) {
   .server-edit-dialog {
     :deep(.el-dialog) {
-      width: 95% !important;
+      width: 98% !important;
+      height: 98vh !important;
+    }
+  }
+
+  .dialog-content {
+    padding: 12px 16px;
+  }
+
+  .form-section {
+    padding: 8px;
+
+    .section-header {
+      margin-bottom: 8px;
+
+      .section-title {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .server-form {
+    :deep(.el-form-item) {
+      margin-bottom: 8px;
     }
   }
 }
 
 @media (max-width: 1200px) {
+  .server-edit-dialog {
+    :deep(.el-dialog) {
+      width: 98% !important;
+      max-height: 90vh;
+      top: 2vh !important;
+    }
+  }
+
   .form-row {
     flex-direction: column;
-    height: auto;
+    gap: 12px;
   }
 
   .form-column {
-    height: auto;
-    margin-bottom: 16px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .server-edit-dialog {
-    :deep(.el-dialog__body) {
-      height: auto;
-      max-height: 70vh;
-      overflow-y: auto;
-    }
+    flex: none;
+    margin-bottom: 0;
+    min-height: auto;
   }
 
   .dialog-content {
-    height: auto;
-    overflow: visible;
+    padding: 12px 16px;
   }
 
   .form-section {
-    height: auto;
+    min-height: auto;
+    flex: none;
 
     .section-content {
       overflow: visible;
+      flex: none;
+
+      &::after {
+        display: none;
+      }
     }
   }
 }
@@ -1831,27 +2003,128 @@ defineExpose({
 @media (max-width: 768px) {
   .server-edit-dialog {
     :deep(.el-dialog) {
-      width: 95% !important;
-      margin: 2vh auto;
-      top: 2vh !important;
-    }
-
-    :deep(.el-dialog__body) {
-      height: auto;
-      max-height: 75vh;
-      overflow-y: auto;
+      width: 100% !important;
+      height: 100vh !important;
+      margin: 0;
+      top: 0 !important;
+      border-radius: 0;
     }
   }
 
   .dialog-content {
-    padding: 16px;
-    height: auto;
+    padding: 8px 10px;
+  }
+
+  .form-section {
+    padding: 6px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+
+    .section-header {
+      margin-bottom: 6px;
+      padding-bottom: 3px;
+
+      .section-icon {
+        font-size: 12px;
+        padding: 3px;
+      }
+
+      .section-title {
+        font-size: 11px;
+        font-weight: 600;
+      }
+    }
+
+    .section-content {
+      gap: 6px;
+    }
+  }
+
+  .server-form {
+    :deep(.el-form-item) {
+      margin-bottom: 10px;
+    }
+
+    :deep(.el-form-item__label) {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    :deep(.el-input__wrapper) {
+      min-height: 32px;
+      border-radius: 8px;
+    }
+
+    :deep(.el-input__inner) {
+      font-size: 12px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .server-edit-dialog {
+    :deep(.el-dialog) {
+      width: 100% !important;
+      margin: 0;
+      top: 0 !important;
+      max-height: 100vh;
+      border-radius: 0;
+    }
+
+    :deep(.el-dialog__footer) {
+      padding: 12px 16px;
+    }
+  }
+
+  .dialog-content {
+    padding: 8px 10px;
+  }
+
+  .form-section {
+    padding: 6px;
+    margin-bottom: 6px;
+
+    .section-header {
+      margin-bottom: 6px;
+
+      .section-title {
+        font-size: 11px;
+      }
+
+      .section-icon {
+        font-size: 12px;
+        padding: 3px;
+      }
+    }
+  }
+
+  .server-form {
+    :deep(.el-form-item) {
+      margin-bottom: 8px;
+    }
+
+    :deep(.el-form-item__label) {
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    :deep(.el-input__wrapper) {
+      min-height: 28px;
+      padding: 0 8px;
+    }
+
+    :deep(.el-input__inner) {
+      font-size: 11px;
+    }
+  }
+  .dialog-content {
+    padding: 12px;
   }
 
   .dialog-footer {
     flex-direction: column;
     gap: 12px;
-    padding: 16px !important;
+    padding: 12px !important;
 
     .footer-left,
     .footer-right {
@@ -1863,38 +2136,6 @@ defineExpose({
     .footer-right {
       flex-direction: row-reverse;
     }
-  }
-
-  .form-section {
-    .section-header {
-      .section-title {
-        font-size: 13px;
-      }
-    }
-  }
-
-  .server-form {
-    :deep(.el-form-item__label) {
-      font-size: 12px;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .server-edit-dialog {
-    :deep(.el-dialog) {
-      width: 98% !important;
-      margin: 1vh auto;
-      top: 1vh !important;
-    }
-  }
-
-  .dialog-content {
-    padding: 12px;
-  }
-
-  .dialog-footer {
-    padding: 12px !important;
 
     .el-button {
       padding: 8px 16px;
@@ -2049,17 +2290,85 @@ defineExpose({
   }
 }
 
-// 动画效果
+// 动画效果 - 增强版本
 .server-edit-dialog {
   :deep(.el-dialog) {
-    animation: dialogSlideIn 0.3s ease-out;
+    animation: dialogSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  // 添加背景动画
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg,
+      rgba(64, 158, 255, 0.1) 0%,
+      rgba(103, 194, 58, 0.1) 25%,
+      rgba(245, 108, 108, 0.1) 50%,
+      rgba(230, 162, 60, 0.1) 75%,
+      rgba(64, 158, 255, 0.1) 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    pointer-events: none;
+    z-index: -1;
   }
 }
 
 @keyframes dialogSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-30px) scale(0.9);
+    filter: blur(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+// 表单项动画 - 增强版本
+.form-section {
+  animation: sectionFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // 添加微交互效果
+  &:hover {
+    .section-header .section-icon {
+      transform: scale(1.1) rotate(5deg);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+}
+
+// 输入框聚焦动画
+.server-form {
+  :deep(.el-input__wrapper) {
+    &.is-focus {
+      animation: inputFocus 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+}
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
   }
 
   to {
@@ -2068,68 +2377,81 @@ defineExpose({
   }
 }
 
-// 表单项动画
-.form-section {
-  animation: sectionFadeIn 0.4s ease-out;
-}
-
-@keyframes sectionFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@keyframes inputFocus {
+  0% {
+    transform: scale(1);
   }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
-// 操作系统信息样式
+// 操作系统信息样式 - 紧凑版本
 .os-info-section {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 12px;
+  padding: 12px;
   background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-fill-color-extra-light) 100%);
   border: 1px solid var(--el-color-success-light-7);
   border-radius: 8px;
 
+  &.compact {
+    padding: 10px;
+    margin-top: 8px;
+  }
+
   .os-info-header {
     display: flex;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 
     .os-icon {
-      font-size: 16px;
+      font-size: 14px;
       color: var(--el-color-success);
-      margin-right: 8px;
+      margin-right: 6px;
     }
 
     .os-title {
       font-weight: 600;
       color: var(--el-text-color-primary);
-      margin-right: 8px;
+      margin-right: 6px;
+      font-size: 12px;
     }
   }
 
   .os-info-content {
+    .os-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
     .os-item {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
 
       &:last-child {
         margin-bottom: 0;
       }
 
+      &.ip-section {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+      }
+
       .os-label {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--el-text-color-regular);
-        width: 70px;
+        width: 40px;
         flex-shrink: 0;
       }
 
       .os-value {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--el-text-color-primary);
         font-weight: 500;
       }
@@ -2137,11 +2459,13 @@ defineExpose({
       .ip-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
+        gap: 3px;
 
         .ip-tag {
-          font-size: 11px;
-          padding: 2px 6px;
+          font-size: 10px;
+          padding: 1px 4px;
+          height: 18px;
+          line-height: 16px;
         }
       }
     }

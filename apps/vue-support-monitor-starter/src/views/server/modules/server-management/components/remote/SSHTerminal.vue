@@ -14,14 +14,11 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           重连
         </el-button>
-        <el-button size="small" @click="testAnsiColors" :disabled="connectionStatus !== 'connected'">
-          <IconifyIconOnline icon="ri:palette-line" class="mr-1" />
-          测试颜色
-        </el-button>
         <el-button size="small" @click="clearTerminal">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清屏
         </el-button>
+
         <el-button size="small" @click="emit('close')">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
@@ -75,11 +72,9 @@
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="fontSize">字体大小</el-dropdown-item>
-              <el-dropdown-item command="theme">主题设置</el-dropdown-item>
-              <el-dropdown-item command="encoding">编码设置</el-dropdown-item>
-              <el-dropdown-item command="copy" divided>复制选中</el-dropdown-item>
+              <el-dropdown-item command="copy">复制选中</el-dropdown-item>
               <el-dropdown-item command="paste">粘贴</el-dropdown-item>
+              <el-dropdown-item command="cleanup" divided>清屏</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -89,9 +84,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
+import 'xterm/css/xterm.css'
+import { Terminal } from 'xterm'
+import { Unicode11Addon } from 'xterm-addon-unicode11'
+import { WebLinksAddon } from 'xterm-addon-web-links';
+import { FitAddon } from 'xterm-addon-fit'
 import { useSSHWebSocket } from "@/composables/useServerWebSocket";
+
 
 // Props
 const props = defineProps<{
@@ -118,7 +119,8 @@ const terminalOutput = ref<HTMLElement>();
 
 // WebSocket连接
 const terminal = ref<any>(null); // xterm.js实例
-const { connectSSH, sendSSHInput, disconnectSSH, onSSHData, onSSHStatus } = useSSHWebSocket(props.server?.id || 0);
+const isInitialized = ref(false); // 防止重复初始化
+const { connectSSH, sendSSHInput, disconnectSSH, onSSHData, onSSHStatus, cleanupSubscriptions } = useSSHWebSocket(props.server?.id || 0);
 
 // 计算属性
 const connectionStatusText = computed(() => {
@@ -133,14 +135,17 @@ const connectionStatusText = computed(() => {
 
 // 方法
 const connect = async () => {
-  if (connecting.value) return;
+  if (connecting.value || connectionStatus.value === 'connected') return;
 
   try {
     connecting.value = true;
     connectionStatus.value = 'connecting';
 
-    // 初始化终端
-    await initTerminal();
+    // 初始化终端（只初始化一次）
+    if (!isInitialized.value) {
+      await initTerminal();
+      isInitialized.value = true;
+    }
 
     // 发送 SSH 连接请求
     const success = connectSSH(props.server?.host || '', props.server?.port || 22);
@@ -163,6 +168,9 @@ const disconnect = () => {
     // 发送断开连接消息
     disconnectSSH('用户主动断开');
 
+    // 清理WebSocket订阅
+    cleanupSubscriptions();
+
     if (terminal.value) {
       try {
         // 清理事件监听器
@@ -170,7 +178,7 @@ const disconnect = () => {
           window.removeEventListener('resize', terminal.value._resizeHandler);
         }
 
-        // 安全地销毁终端实例
+        // 销毁终端实例 - 这会自动清理所有相关的DOM元素
         terminal.value.dispose();
       } catch (error) {
         console.warn('终端销毁时出现警告:', error);
@@ -178,7 +186,19 @@ const disconnect = () => {
       terminal.value = null;
     }
 
+    // 手动清理可能残留的 xterm-helpers 元素
+    setTimeout(() => {
+      const helpers = document.querySelectorAll('.xterm-helpers');
+      helpers.forEach(helper => {
+        // 检查是否为孤立元素（没有关联的终端容器）
+        if (!helper.closest('.terminal-output')) {
+          helper.remove();
+        }
+      });
+    }, 100);
+
     connectionStatus.value = 'disconnected';
+    isInitialized.value = false;
     stopDurationTimer();
     resetStats();
   } catch (error) {
@@ -186,10 +206,15 @@ const disconnect = () => {
   }
 };
 
+
+
 const reconnect = async () => {
   disconnect();
   await nextTick();
-  await connect();
+  // 等待一小段时间确保清理完成
+  setTimeout(async () => {
+    await connect();
+  }, 100);
 };
 
 const clearTerminal = () => {
@@ -198,43 +223,8 @@ const clearTerminal = () => {
   }
 };
 
-/**
- * 测试 ANSI 颜色和格式
- */
-const testAnsiColors = () => {
-  if (!terminal.value) return;
 
-  // 测试各种 ANSI 转义序列
-  const testData = [
-    '\r\n=== ANSI 颜色测试 ===\r\n',
-    '\x1b[31m红色文本\x1b[0m\r\n',
-    '\x1b[32m绿色文本\x1b[0m\r\n',
-    '\x1b[33m黄色文本\x1b[0m\r\n',
-    '\x1b[34m蓝色文本\x1b[0m\r\n',
-    '\x1b[35m紫色文本\x1b[0m\r\n',
-    '\x1b[36m青色文本\x1b[0m\r\n',
-    '\x1b[37m白色文本\x1b[0m\r\n',
-    '\x1b[1m粗体文本\x1b[0m\r\n',
-    '\x1b[4m下划线文本\x1b[0m\r\n',
-    '\x1b[7m反色文本\x1b[0m\r\n',
-    '\x1b[41m红色背景\x1b[0m\r\n',
-    '\x1b[42m绿色背景\x1b[0m\r\n',
-    '\x1b[43m黄色背景\x1b[0m\r\n',
-    '\x1b[44m蓝色背景\x1b[0m\r\n',
-    '\x1b[1;31m粗体红色\x1b[0m\r\n',
-    '\x1b[1;32m粗体绿色\x1b[0m\r\n',
-    '\x1b[1;33m粗体黄色\x1b[0m\r\n',
-    '\x1b[1;34m粗体蓝色\x1b[0m\r\n',
-    '=== 测试完成 ===\r\n\r\n'
-  ];
 
-  // 逐行输出测试数据
-  testData.forEach((line, index) => {
-    setTimeout(() => {
-      terminal.value.write(line);
-    }, index * 100);
-  });
-};
 
 /**
  * 初始化 SSH 消息监听
@@ -249,21 +239,39 @@ const initSSHMessageHandlers = () => {
         outputData = String(outputData);
       }
 
-      // 调试：打印原始数据以检查 ANSI 转义序列
-      if (outputData.includes('\x1b[') || outputData.includes('\x1b[')) {
-        console.log('检测到 ANSI 转义序列:', outputData.replace(/\x1b/g, '\\x1b'));
+      // 不过滤任何字符，让xterm.js完全处理ANSI转义序列
+      // xterm.js内置了完整的ANSI/VT100支持，包括颜色、光标控制等
+
+      try {
+        // 直接写入终端，xterm.js 会自动处理 ANSI 转义序列
+        terminal.value.write(outputData);
+        bytesReceived.value += outputData.length;
+
+        // 调试信息：显示接收到的数据（仅在开发模式下）
+        if (process.env.NODE_ENV === 'development') {
+          // 显示ANSI转义序列的调试信息
+          const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
+          const ansiMatches = outputData.match(ansiRegex);
+          if (ansiMatches && ansiMatches.length > 0) {
+            console.log('检测到ANSI转义序列:', ansiMatches);
+          }
+        }
+      } catch (error) {
+        console.error('写入终端数据时出错:', error);
+        // 如果写入失败，尝试清理数据后重试
+        const cleanData = outputData.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        try {
+          terminal.value.write(cleanData);
+          bytesReceived.value += cleanData.length;
+        } catch (retryError) {
+          console.error('重试写入终端数据失败:', retryError);
+        }
       }
-
-      // 直接写入终端，xterm.js 会自动处理 ANSI 转义序列
-      terminal.value.write(outputData);
-      bytesReceived.value += outputData.length;
-
-      console.log('SSH数据:', outputData.length, '字节');
     }
   });
 
   // 监听 SSH 连接状态
-  onSSHStatus((status: 'connected' | 'disconnected' | 'error', message?: string) => {
+  onSSHStatus((status: 'connected' | 'disconnected' | 'error', msg?: string) => {
     switch (status) {
       case 'connected':
         console.log('SSH连接成功');
@@ -271,14 +279,12 @@ const initSSHMessageHandlers = () => {
         connectionStartTime.value = Date.now();
         startDurationTimer();
 
-        // 先清除终端内容
+        // 清除终端内容并显示简单欢迎信息
         if (terminal.value) {
           terminal.value.clear();
-
-          // 发送欢迎消息测试 ANSI 转义序列
-          const welcomeMessage = '\r\n\x1b[32m✓ SSH 连接成功\x1b[0m\r\n\x1b[36m服务器: ' +
-            (props.server?.name || 'Unknown') + '\x1b[0m\r\n\x1b[33m准备就绪，请输入命令...\x1b[0m\r\n\r\n';
-          terminal.value.write(welcomeMessage);
+          terminal.value.write('\x1b[32m✓ SSH 连接成功\x1b[0m\r\n');
+          terminal.value.write('服务器: ' + (props.server?.name || 'Unknown') + '\r\n');
+          terminal.value.write('准备就绪\r\n\r\n');
 
           // 连接成功后重新调整终端大小
           setTimeout(() => {
@@ -295,13 +301,13 @@ const initSSHMessageHandlers = () => {
         message.success('SSH连接成功');
         break;
       case 'disconnected':
-        console.log('SSH连接断开:', message);
+        console.log('SSH连接断开:', msg);
         connectionStatus.value = 'disconnected';
         break;
       case 'error':
-        console.error('SSH错误:', message);
+        console.error('SSH错误:', msg);
         connectionStatus.value = 'error';
-        message.error(message || 'SSH连接错误');
+        message.error(msg || 'SSH连接错误');
         break;
     }
   });
@@ -311,22 +317,13 @@ const initSSHMessageHandlers = () => {
 
 const initTerminal = async () => {
   try {
-    // 如果终端已存在，先清理
+    // 清理旧终端实例
     if (terminal.value) {
-      try {
-        terminal.value.dispose();
-      } catch (error) {
-        console.warn('清理旧终端时出现警告:', error);
-      }
+      terminal.value.dispose();
       terminal.value = null;
     }
 
-    // 动态导入xterm.js和相关插件
-    const { Terminal } = await import('xterm');
-    const { FitAddon } = await import('xterm-addon-fit');
-    const { WebLinksAddon } = await import('xterm-addon-web-links');
-
-    // 创建终端实例
+    // 创建终端实例 - 最简配置
     terminal.value = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -334,69 +331,30 @@ const initTerminal = async () => {
       theme: {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
-        cursor: '#ffffff',
-        selectionBackground: '#264f78',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#e5e5e5'
+        cursor: '#ffffff'
       },
-      allowTransparency: true,
       convertEol: true,
-      scrollback: 1000,
-      tabStopWidth: 8,
-      allowProposedApi: true,
-      // 确保 ANSI 转义序列被正确处理
-      windowsMode: false,
-      macOptionIsMeta: false,
-      rightClickSelectsWord: true,
-      // 确保支持所有 ANSI 功能
-      disableStdin: false
+      scrollback: 1000
     });
 
-    // 创建插件实例
+    // 创建并加载插件
     const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
-
-    // 安全地加载插件
-    try {
-      terminal.value.loadAddon(fitAddon);
-      terminal.value.loadAddon(webLinksAddon);
-    } catch (error) {
-      console.warn('加载终端插件时出现警告:', error);
-    }
+    terminal.value.setOption('rendererType', 'canvas');
+    terminal.value.loadAddon(fitAddon);
+    terminal.value.loadAddon(new Unicode11Addon());
+    terminal.value.loadAddon(new WebLinksAddon());
+    terminal.value.unicode.activeVersion = '11';
 
     // 挂载到DOM
     if (terminalOutput.value) {
       terminal.value.open(terminalOutput.value);
-
-      // 等待DOM更新后再调整大小
       await nextTick();
-      try {
-        fitAddon.fit();
-        // 强制刷新终端布局
-        terminal.value.refresh(0, terminal.value.rows - 1);
-      } catch (error) {
-        console.warn('调整终端大小时出现警告:', error);
-      }
+      fitAddon.fit();
     }
 
     // 监听用户输入
     terminal.value.onData((data: string) => {
       if (connectionStatus.value === 'connected') {
-        // 发送SSH输入数据
         const success = sendSSHInput(data);
         if (success) {
           bytesSent.value += data.length;
@@ -406,20 +364,11 @@ const initTerminal = async () => {
 
     // 监听窗口大小变化
     const resizeHandler = () => {
-      try {
-        if (terminal.value && fitAddon) {
-          fitAddon.fit();
-          // 强制刷新终端布局
-          terminal.value.refresh(0, terminal.value.rows - 1);
-        }
-      } catch (error) {
-        console.warn('窗口大小变化时调整终端大小出现警告:', error);
+      if (terminal.value && fitAddon) {
+        fitAddon.fit();
       }
     };
-
     window.addEventListener('resize', resizeHandler);
-
-    // 保存清理函数
     terminal.value._resizeHandler = resizeHandler;
 
   } catch (error) {
@@ -469,14 +418,11 @@ const formatBytes = (bytes: number) => {
 
 const handleSettingCommand = (command: string) => {
   switch (command) {
-    case 'fontSize':
-      // TODO: 实现字体大小设置
-      break;
-    case 'theme':
-      // TODO: 实现主题设置
-      break;
-    case 'encoding':
-      // TODO: 实现编码设置
+    case 'cleanup':
+      if (terminal.value) {
+        terminal.value.clear();
+        message.success('终端已清屏');
+      }
       break;
     case 'copy':
       if (terminal.value) {
@@ -484,22 +430,38 @@ const handleSettingCommand = (command: string) => {
         if (selection) {
           navigator.clipboard.writeText(selection);
           message.success('已复制到剪贴板');
+        } else {
+          message.warning('请先选择要复制的文本');
         }
       }
       break;
     case 'paste':
       navigator.clipboard.readText().then(text => {
         if (terminal.value && connectionStatus.value === 'connected') {
-          // 发送SSH输入数据
           const success = sendSSHInput(text);
           if (success) {
             bytesSent.value += text.length;
           }
         }
+      }).catch(() => {
+        message.error('粘贴失败，请检查剪贴板权限');
       });
       break;
   }
 };
+
+
+
+
+
+// 监听服务器变化
+watch(() => props.server?.id, (newId, oldId) => {
+  if (newId !== oldId && oldId !== undefined) {
+    // 服务器变化时重置状态
+    disconnect();
+    isInitialized.value = false;
+  }
+}, { immediate: false });
 
 // 生命周期
 onMounted(() => {
@@ -511,6 +473,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   disconnect();
+  // // 额外的清理，确保所有xterm相关元素都被移除
+  // setTimeout(() => {
+  //   cleanupXtermHelpers();
+  // }, 100);
 });
 </script>
 

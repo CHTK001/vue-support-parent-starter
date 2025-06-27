@@ -134,7 +134,7 @@ export function createServerFileUploadTask(file: File, request: ServerFileUpload
   });
 
   return axios({
-    url: "/api/monitor/server/file-upload/upload",
+    url: "server/file-upload/upload",
     method: "post",
     data: formData,
     headers: {
@@ -151,7 +151,7 @@ export function createServerFileUploadTask(file: File, request: ServerFileUpload
 export function getServerFileUploadTaskPage(params: ServerFileUploadTaskPageParams) {
   return http.request<ReturnResult<{ records: ServerFileUploadTask[]; total: number }>>(
     "get",
-    "/api/monitor/server/file-upload/page",
+    "server/file-upload/page",
     { params }
   );
 }
@@ -164,7 +164,7 @@ export function getServerFileUploadTaskPage(params: ServerFileUploadTaskPagePara
 export function getServerFileUploadTaskById(taskId: number) {
   return http.request<ReturnResult<ServerFileUploadTask>>(
     "get",
-    `/api/monitor/server/file-upload/${taskId}`
+    `server/file-upload/${taskId}`
   );
 }
 
@@ -176,7 +176,7 @@ export function getServerFileUploadTaskById(taskId: number) {
 export function getActiveTaskByServerId(serverId: number) {
   return http.request<ReturnResult<ServerFileUploadTask | null>>(
     "get",
-    `/api/monitor/server/file-upload/active/${serverId}`
+    `server/file-upload/active/${serverId}`
   );
 }
 
@@ -188,7 +188,7 @@ export function getActiveTaskByServerId(serverId: number) {
 export function startServerFileUploadTask(taskId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/server/file-upload/${taskId}/start`
+    `server/file-upload/${taskId}/start`
   );
 }
 
@@ -200,7 +200,7 @@ export function startServerFileUploadTask(taskId: number) {
 export function cancelServerFileUploadTask(taskId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/server/file-upload/${taskId}/cancel`
+    `server/file-upload/${taskId}/cancel`
   );
 }
 
@@ -212,7 +212,7 @@ export function cancelServerFileUploadTask(taskId: number) {
 export function retryServerFileUploadTask(taskId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/server/file-upload/${taskId}/retry`
+    `server/file-upload/${taskId}/retry`
   );
 }
 
@@ -224,7 +224,7 @@ export function retryServerFileUploadTask(taskId: number) {
 export function deleteServerFileUploadTask(taskId: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/api/monitor/server/file-upload/${taskId}`
+    `server/file-upload/${taskId}`
   );
 }
 
@@ -235,7 +235,7 @@ export function deleteServerFileUploadTask(taskId: number) {
 export function getServerFileUploadTaskStatistics() {
   return http.request<ReturnResult<any>>(
     "get",
-    "/api/monitor/server/file-upload/statistics"
+    "server/file-upload/statistics"
   );
 }
 
@@ -247,7 +247,7 @@ export function getServerFileUploadTaskStatistics() {
 export function validateServerForUpload(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "get",
-    `/api/monitor/server/file-upload/server/${serverId}/validate`
+    `server/file-upload/server/${serverId}/validate`
   );
 }
 
@@ -258,7 +258,7 @@ export function validateServerForUpload(serverId: number) {
 export function getTaskQueueStatus() {
   return http.request<ReturnResult<any>>(
     "get",
-    "/api/monitor/server/file-upload/queue/status"
+    "server/file-upload/queue/status"
   );
 }
 
@@ -269,7 +269,7 @@ export function getTaskQueueStatus() {
 export function optimizeTaskQueue() {
   return http.request<ReturnResult<any>>(
     "post",
-    "/api/monitor/server/file-upload/queue/optimize"
+    "server/file-upload/queue/optimize"
   );
 }
 
@@ -281,7 +281,7 @@ export function optimizeTaskQueue() {
 export function batchCancelTasks(taskIds: number[]) {
   return http.request<ReturnResult<any>>(
     "post",
-    "/api/monitor/server/file-upload/batch/cancel",
+    "server/file-upload/batch/cancel",
     { data: { taskIds } }
   );
 }
@@ -294,7 +294,7 @@ export function batchCancelTasks(taskIds: number[]) {
 export function batchRetryTasks(taskIds: number[]) {
   return http.request<ReturnResult<any>>(
     "post",
-    "/api/monitor/server/file-upload/batch/retry",
+    "server/file-upload/batch/retry",
     { data: { taskIds } }
   );
 }

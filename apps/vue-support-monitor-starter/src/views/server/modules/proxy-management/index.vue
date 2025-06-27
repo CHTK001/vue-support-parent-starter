@@ -34,7 +34,7 @@
         </el-col>
         <el-col :span="4">
           <el-select
-            v-model="searchForm.type"
+            v-model="searchForm.monitorSysGenServerProxyType"
             placeholder="代理类型"
             clearable
             @change="handleSearch"
@@ -42,11 +42,12 @@
             <el-option label="HTTP" value="HTTP" />
             <el-option label="SOCKS4" value="SOCKS4" />
             <el-option label="SOCKS5" value="SOCKS5" />
+            <el-option label="GUACAMOLE" value="GUACAMOLE" />
           </el-select>
         </el-col>
         <el-col :span="4">
           <el-select
-            v-model="searchForm.status"
+            v-model="searchForm.monitorSysGenServerProxyStatus"
             placeholder="状态"
             clearable
             @change="handleSearch"
@@ -64,75 +65,68 @@
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             重置
           </el-button>
-          <el-button 
-            type="success" 
-            @click="handleBatchTest"
-            :disabled="selectedRows.length === 0"
-            :loading="batchTestLoading"
-          >
-            <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
-            批量测试
-          </el-button>
         </el-col>
       </el-row>
     </div>
 
     <!-- 数据表格 -->
     <div class="table-section">
-      <el-table
-        v-loading="loading"
-        :data="tableData"
-        @selection-change="handleSelectionChange"
+      <ScTable
+        ref="tableRef"
+        :url="getServerProxyPageList"
+        :params="searchForm"
+        v-model:page="pagination"
         stripe
         border
         height="calc(100vh - 320px)"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        
-        <el-table-column prop="monitorSysGenServerProxyName" label="代理名称" min-width="150">
+
+        <el-table-column prop="monitorSysGenServerProxyType" label="代理类型" width="120">
           <template #default="{ row }">
-            <div class="proxy-name-cell">
+            <div class="proxy-type-cell">
+             
               <IconifyIconOnline :icon="getProxyTypeIcon(row.monitorSysGenServerProxyType)" class="proxy-icon" />
-              <span class="proxy-name">{{ row.monitorSysGenServerProxyName }}</span>
+              <el-tag :type="getProxyTypeTagType(row.monitorSysGenServerProxyType)" size="small">
+                {{ row.monitorSysGenServerProxyType }}
+              </el-tag>
+               {{row.monitorSysGenServerProxyName}}
             </div>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="monitorSysGenServerProxyType" label="类型" width="100">
+
+
+        <el-table-column prop="monitorSysGenServerProxyConfig" label="代理地址" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag :type="getProxyTypeTagType(row.monitorSysGenServerProxyType)" size="small">
-              {{ row.monitorSysGenServerProxyType }}
-            </el-tag>
+            <div class="config-cell">
+              <span class="config-text">{{ row.monitorSysGenServerProxyHost || '-' }}</span>
+              <span class="config-text">:{{ row.monitorSysGenServerProxyPort || '-' }}</span>
+            </div>
           </template>
         </el-table-column>
-        
-        <el-table-column label="地址" min-width="200">
-          <template #default="{ row }">
-            <span>{{ row.monitorSysGenServerProxyHost }}:{{ row.monitorSysGenServerProxyPort }}</span>
-          </template>
-        </el-table-column>
-        
-        <el-table-column prop="monitorSysGenServerProxyStatus" label="状态" width="100">
+
+        <el-table-column prop="monitorSysGenServerProxyEnabled" label="启用状态" width="100">
           <template #default="{ row }">
             <el-switch
-              v-model="row.monitorSysGenServerProxyStatus"
+              v-model="row.monitorSysGenServerProxyEnabled"
               :active-value="1"
               :inactive-value="0"
               @change="handleStatusChange(row)"
             />
           </template>
         </el-table-column>
-        
-        <el-table-column label="连接状态" width="120">
+
+        <el-table-column label="测试结果" width="120">
           <template #default="{ row }">
-            <div class="connection-status">
+            <div class="test-result">
               <el-tag
                 v-if="row.monitorSysGenServerProxyTestResult !== undefined"
                 :type="row.monitorSysGenServerProxyTestResult === 1 ? 'success' : 'danger'"
                 size="small"
                 effect="light"
               >
-                {{ row.monitorSysGenServerProxyTestResult === 1 ? '正常' : '异常' }}
+                {{ row.monitorSysGenServerProxyTestResult === 1 ? '成功' : '失败' }}
               </el-tag>
               <span v-else class="no-test">未测试</span>
               <div v-if="row.monitorSysGenServerProxyTestLatency" class="latency">
@@ -141,21 +135,17 @@
             </div>
           </template>
         </el-table-column>
-        
+
         <el-table-column prop="monitorSysGenServerProxyDescription" label="描述" min-width="150" show-overflow-tooltip />
-        
-        <el-table-column prop="updateTime" label="更新时间" width="160">
+
+        <el-table-column prop="monitorSysGenServerProxyUpdateTime" label="更新时间" width="160">
           <template #default="{ row }">
-            {{ formatTime(row.updateTime) }}
+            {{ formatTime(row.monitorSysGenServerProxyUpdateTime) }}
           </template>
         </el-table-column>
-        
+
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" text @click="handleTest(row)">
-              <IconifyIconOnline icon="ri:test-tube-line" class="mr-1" />
-              测试
-            </el-button>
             <el-button size="small" text @click="handleEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
               编辑
@@ -170,20 +160,7 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <div class="pagination-section">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      </ScTable>
     </div>
 
     <!-- 代理编辑对话框 -->
@@ -192,37 +169,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { message, messageBox } from "@repo/utils";
 import {
-  getProxyPageList,
-  updateProxyStatus,
-  deleteProxy,
+  getServerProxyPageList,
+  deleteServerProxy,
   testProxyConnection,
-  batchTestProxyConnection,
-  copyProxy,
-  type MonitorProxy,
-  type ProxyPageParams
-} from "@/api/monitor/gen/proxy";
+  enableServerProxy,
+  disableServerProxy,
+  type ServerProxyPageParams,
+  type ServerProxy
+} from "@/api/monitor/gen/server-proxy";
+import { message, messageBox } from "@repo/utils";
+import { reactive, ref } from "vue";
 import ProxyEditDialog from "./components/ProxyEditDialog.vue";
 
 // 响应式数据
-const loading = ref(false);
-const batchTestLoading = ref(false);
-const tableData = ref<MonitorProxy[]>([]);
-const selectedRows = ref<MonitorProxy[]>([]);
+const tableRef = ref();
+const selectedRows = ref<ServerProxy[]>([]);
 const editDialogRef = ref();
 
 // 搜索表单
 const searchForm = reactive({
   keyword: "",
-  type: "",
-  status: undefined as number | undefined
+  monitorSysGenServerProxyType: "",
+  monitorSysGenServerProxyStatus: undefined as number | undefined
 });
 
 // 分页数据
 const pagination = reactive({
-  page: 1,
+  pageNum: 1,
   pageSize: 20,
   total: 0
 });
@@ -238,6 +212,8 @@ const getProxyTypeIcon = (type: string) => {
       return 'ri:shield-line';
     case 'SOCKS5':
       return 'ri:shield-check-line';
+    case 'GUACAMOLE':
+      return 'ri:remote-control-line';
     default:
       return 'ri:server-line';
   }
@@ -254,10 +230,14 @@ const getProxyTypeTagType = (type: string) => {
       return 'warning';
     case 'SOCKS5':
       return 'success';
+    case 'GUACAMOLE':
+      return 'danger';
     default:
       return 'info';
   }
 };
+
+
 
 /**
  * 格式化时间
@@ -268,43 +248,11 @@ const formatTime = (time: string) => {
 };
 
 /**
- * 加载数据
- */
-const loadData = async () => {
-  try {
-    loading.value = true;
-    
-    const params: ProxyPageParams = {
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      keyword: searchForm.keyword,
-      params: {
-        status: searchForm.status,
-        type: searchForm.type
-      }
-    };
-    
-    const result = await getProxyPageList(params);
-    if (result.success) {
-      tableData.value = result.data.data || [];
-      pagination.total = result.data.total || 0;
-    } else {
-      message.error(result.msg || '获取数据失败');
-    }
-  } catch (error) {
-    console.error('加载数据失败:', error);
-    message.error('加载数据失败');
-  } finally {
-    loading.value = false;
-  }
-};
-
-/**
  * 搜索
  */
 const handleSearch = () => {
-  pagination.page = 1;
-  loadData();
+  pagination.pageNum = 1;
+  tableRef.value?.refresh();
 };
 
 /**
@@ -312,10 +260,10 @@ const handleSearch = () => {
  */
 const handleReset = () => {
   searchForm.keyword = "";
-  searchForm.type = "";
-  searchForm.status = undefined;
-  pagination.page = 1;
-  loadData();
+  searchForm.monitorSysGenServerProxyType = "";
+  searchForm.monitorSysGenServerProxyStatus = undefined;
+  pagination.pageNum = 1;
+  tableRef.value?.refresh();
 };
 
 /**
@@ -328,42 +276,47 @@ const showAddDialog = () => {
 /**
  * 处理选择变化
  */
-const handleSelectionChange = (selection: MonitorProxy[]) => {
+const handleSelectionChange = (selection: ServerProxy[]) => {
   selectedRows.value = selection;
 };
 
 /**
  * 处理状态变化
  */
-const handleStatusChange = async (row: MonitorProxy) => {
+const handleStatusChange = async (row: ServerProxy) => {
   try {
-    const result = await updateProxyStatus(row.proxyId!, row.proxyStatus);
-    if (result.success) {
+    let result: any;
+    if (row.monitorSysGenServerProxyEnabled === 1) {
+      result = await enableServerProxy(row.monitorSysGenServerProxyId!);
+    } else {
+      result = await disableServerProxy(row.monitorSysGenServerProxyId!);
+    }
+
+    if (result.code === '00000') {
       message.success('状态更新成功');
+      tableRef.value?.refresh();
     } else {
       message.error(result.msg || '状态更新失败');
       // 恢复原状态
-      row.proxyStatus = row.proxyStatus === 1 ? 0 : 1;
+      row.monitorSysGenServerProxyEnabled = row.monitorSysGenServerProxyEnabled === 1 ? 0 : 1;
     }
   } catch (error) {
     console.error('状态更新失败:', error);
     message.error('状态更新失败');
     // 恢复原状态
-    row.proxyStatus = row.proxyStatus === 1 ? 0 : 1;
+    row.monitorSysGenServerProxyEnabled = row.monitorSysGenServerProxyEnabled === 1 ? 0 : 1;
   }
 };
 
 /**
  * 测试连接
  */
-const handleTest = async (row: MonitorProxy) => {
+const handleTest = async (row: ServerProxy) => {
   try {
-    const result = await testProxyConnection(row.proxyId!);
-    if (result.success) {
-      // 注意：这些字段可能需要扩展 MonitorProxy 接口
-      (row as any).testResult = result.data.success;
-      (row as any).testLatency = result.data.latency;
-      message.success(result.data.message);
+    const result = await testProxyConnection(row.monitorSysGenServerProxyId!);
+    if (result.code === '00000') {
+      message.success('连接测试成功');
+      tableRef.value?.refresh();
     } else {
       message.error(result.msg || '测试失败');
     }
@@ -374,55 +327,26 @@ const handleTest = async (row: MonitorProxy) => {
 };
 
 /**
- * 批量测试
- */
-const handleBatchTest = async () => {
-  try {
-    batchTestLoading.value = true;
-    const proxyIds = selectedRows.value.map(row => row.proxyId!);
-    const result = await batchTestProxyConnection(proxyIds);
-
-    if (result.success) {
-      // 更新测试结果
-      result.data.forEach(testResult => {
-        const row = tableData.value.find(r => r.proxyId === testResult.proxyId);
-        if (row) {
-          (row as any).testResult = testResult.success;
-          (row as any).testLatency = testResult.latency;
-        }
-      });
-      message.success('批量测试完成');
-    } else {
-      message.error(result.msg || '批量测试失败');
-    }
-  } catch (error) {
-    console.error('批量测试失败:', error);
-    message.error('批量测试失败');
-  } finally {
-    batchTestLoading.value = false;
-  }
-};
-
-/**
  * 编辑
  */
-const handleEdit = (row: MonitorProxy) => {
+const handleEdit = (row: ServerProxy) => {
   editDialogRef.value?.open("edit", row);
 };
 
 /**
  * 复制
  */
-const handleCopy = async (row: MonitorProxy) => {
+const handleCopy = async (row: ServerProxy) => {
   try {
-    const newName = `${row.proxyName}_副本`;
-    const result = await copyProxy(row.proxyId!, newName);
-    if (result.success) {
-      message.success('复制成功');
-      loadData();
-    } else {
-      message.error(result.msg || '复制失败');
-    }
+    // 创建一个副本数据
+    const copyData = {
+      ...row,
+      monitorSysGenServerProxyId: undefined,
+      monitorSysGenServerProxyRemark: `${row.monitorSysGenServerProxyRemark || ''}_副本`
+    };
+
+    message.info('复制功能待实现');
+    // TODO: 实现复制功能
   } catch (error) {
     console.error('复制失败:', error);
     message.error('复制失败');
@@ -432,16 +356,16 @@ const handleCopy = async (row: MonitorProxy) => {
 /**
  * 删除
  */
-const handleDelete = async (row: MonitorProxy) => {
+const handleDelete = async (row: ServerProxy) => {
   try {
-    await messageBox.confirm(`确定要删除代理 "${row.proxyName}" 吗？`, '确认删除', {
+    await messageBox.confirm(`确定要删除这个代理配置吗？`, '确认删除', {
       type: 'warning'
     });
 
-    const result = await deleteProxy(row.proxyId!);
-    if (result.success) {
+    const result = await deleteServerProxy(row.monitorSysGenServerProxyId!);
+    if (result.code === '00000') {
       message.success('删除成功');
-      loadData();
+      tableRef.value?.refresh();
     } else {
       message.error(result.msg || '删除失败');
     }
@@ -454,33 +378,11 @@ const handleDelete = async (row: MonitorProxy) => {
 };
 
 /**
- * 处理页面大小变化
- */
-const handleSizeChange = (size: number) => {
-  pagination.pageSize = size;
-  pagination.page = 1;
-  loadData();
-};
-
-/**
- * 处理当前页变化
- */
-const handleCurrentChange = (page: number) => {
-  pagination.page = page;
-  loadData();
-};
-
-/**
  * 处理成功回调
  */
 const handleSuccess = () => {
-  loadData();
+  tableRef.value?.refresh();
 };
-
-// 组件挂载时加载数据
-onMounted(() => {
-  loadData();
-});
 </script>
 
 <style scoped lang="scss">
@@ -547,7 +449,25 @@ onMounted(() => {
     }
   }
 
-  .connection-status {
+  .proxy-type-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .proxy-icon {
+      color: var(--el-color-primary);
+    }
+  }
+
+  .config-cell {
+    .config-text {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--el-text-color-regular);
+    }
+  }
+
+  .test-result {
     .latency {
       font-size: 11px;
       color: var(--el-text-color-placeholder);
@@ -559,11 +479,5 @@ onMounted(() => {
       color: var(--el-text-color-placeholder);
     }
   }
-}
-
-.pagination-section {
-  margin-top: 16px;
-  display: flex;
-  justify-content: center;
 }
 </style>

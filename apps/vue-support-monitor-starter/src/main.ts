@@ -43,6 +43,7 @@ import IconPlugin from "./components/Icon";
 // 导入Ant Design Vue全局配置
 import setupAntdConfig from "./components/AntdConfig";
 
+
 // 全局注册 components 文件夹下的所有组件
 const modules = import.meta.glob("./components/**/index.vue", { eager: true });
 const components: Record<string, any> = {};
@@ -97,6 +98,9 @@ techUILite(app).then(() => {
     app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
     // .use(PureDescriptions)
     // .use(useEcharts);
+
+
+
     app.mount("#app");
   });
 });

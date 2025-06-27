@@ -134,6 +134,17 @@ export default [
             }
           },
           {
+            path: "/server/proxy",
+            name: "serverProxy",
+            component: () => import("@/views/server/modules/proxy-management/index.vue"),
+            meta: {
+              icon: "ri:router-line",
+              title: "代理管理",
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
             path: "/server/file-upload",
             name: "serverFileUpload",
             component: () => import("@/views/server/file-upload/index.vue"),

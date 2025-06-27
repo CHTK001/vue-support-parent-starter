@@ -34,16 +34,16 @@
         </div>
         <div class="metric-content">
           <div class="metric-value">
-            {{ Math.round(metrics?.cpuUsage || 0) }}%
+            {{ Math.round(metrics?.cpu?.usage || 0) }}%
           </div>
-          <el-progress 
-            :percentage="Math.round(metrics?.cpuUsage || 0)"
-            :color="getProgressColor(metrics?.cpuUsage || 0)"
+          <el-progress
+            :percentage="Math.round(metrics?.cpu?.usage || 0)"
+            :color="getProgressColor(metrics?.cpu?.usage || 0)"
             :show-text="false"
           />
           <div class="metric-details">
-            <span>核心数: {{ metrics?.cpuCores || 'N/A' }}</span>
-            <span>频率: {{ formatFrequency(metrics?.cpuFrequency) }}</span>
+            <span>核心数: {{ metrics?.cpu?.cores || 'N/A' }}</span>
+            <span>负载: {{ (metrics?.cpu?.load1m || 0).toFixed(2) }}</span>
           </div>
         </div>
       </div>
@@ -56,16 +56,16 @@
         </div>
         <div class="metric-content">
           <div class="metric-value">
-            {{ Math.round(metrics?.memoryUsage || 0) }}%
+            {{ Math.round(metrics?.memory?.usage || 0) }}%
           </div>
-          <el-progress 
-            :percentage="Math.round(metrics?.memoryUsage || 0)"
-            :color="getProgressColor(metrics?.memoryUsage || 0)"
+          <el-progress
+            :percentage="Math.round(metrics?.memory?.usage || 0)"
+            :color="getProgressColor(metrics?.memory?.usage || 0)"
             :show-text="false"
           />
           <div class="metric-details">
-            <span>已用: {{ formatBytes(metrics?.usedMemory) }}</span>
-            <span>总计: {{ formatBytes(metrics?.totalMemory) }}</span>
+            <span>已用: {{ formatBytes(metrics?.memory?.used) }}</span>
+            <span>总计: {{ formatBytes(metrics?.memory?.total) }}</span>
           </div>
         </div>
       </div>
@@ -78,16 +78,16 @@
         </div>
         <div class="metric-content">
           <div class="metric-value">
-            {{ Math.round(metrics?.diskUsage || 0) }}%
+            {{ Math.round(metrics?.disk?.usage || 0) }}%
           </div>
-          <el-progress 
-            :percentage="Math.round(metrics?.diskUsage || 0)"
-            :color="getProgressColor(metrics?.diskUsage || 0)"
+          <el-progress
+            :percentage="Math.round(metrics?.disk?.usage || 0)"
+            :color="getProgressColor(metrics?.disk?.usage || 0)"
             :show-text="false"
           />
           <div class="metric-details">
-            <span>已用: {{ formatBytes(metrics?.usedDisk) }}</span>
-            <span>总计: {{ formatBytes(metrics?.totalDisk) }}</span>
+            <span>已用: {{ formatBytes(metrics?.disk?.used) }}</span>
+            <span>总计: {{ formatBytes(metrics?.disk?.total) }}</span>
           </div>
         </div>
       </div>
@@ -102,11 +102,11 @@
           <div class="network-stats">
             <div class="network-item">
               <span class="network-label">入站:</span>
-              <span class="network-value">{{ formatBytes(metrics?.networkInBytes) }}/s</span>
+              <span class="network-value">{{ formatBytes(metrics?.network?.in) }}/s</span>
             </div>
             <div class="network-item">
               <span class="network-label">出站:</span>
-              <span class="network-value">{{ formatBytes(metrics?.networkOutBytes) }}/s</span>
+              <span class="network-value">{{ formatBytes(metrics?.network?.out) }}/s</span>
             </div>
           </div>
           <div class="metric-details">
@@ -178,9 +178,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { message } from "@repo/utils";
 import { type ServerDisplayData } from "@/api/server";
+import { useServerMetricsSocket, type ServerMetricsData } from "@/composables/useServerMetricsSocket";
 
 // Props
 const props = defineProps<{
@@ -194,11 +195,39 @@ const emit = defineEmits<{
 
 // 状态
 const loading = ref(false);
-const metrics = ref<any>(null);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
+
+// 使用服务器指标Socket
+const metricsSocket = useServerMetricsSocket();
+
+// 指标数据
+const metrics = ref<ServerMetricsData | null>(null);
 
 // 计算属性
 const serverId = computed(() => props.server?.id);
+
+// 从Socket更新指标数据
+const updateMetricsFromSocket = () => {
+  if (serverId.value && metricsSocket.latestMetrics.value.has(serverId.value)) {
+    const socketMetrics = metricsSocket.latestMetrics.value.get(serverId.value);
+    if (socketMetrics) {
+      metrics.value = socketMetrics;
+      console.log('ServerMonitor更新指标数据:', socketMetrics);
+    }
+  }
+};
+
+// 监听服务器ID变化
+watch(serverId, (newServerId) => {
+  if (newServerId) {
+    updateMetricsFromSocket();
+  }
+}, { immediate: true });
+
+// 监听Socket中的指标数据变化
+watch(() => metricsSocket.latestMetrics.value, () => {
+  updateMetricsFromSocket();
+}, { deep: true });
 
 // 方法
 const getOnlineStatusType = (status: number) => {
@@ -262,12 +291,19 @@ const formatTime = (time: string | Date) => {
 
 const refreshMetrics = async () => {
   if (!serverId.value) return;
-  
+
   try {
     loading.value = true;
-    // TODO: 调用API获取最新指标数据
-    // const res = await getServerMetrics(serverId.value);
-    // metrics.value = res.data;
+
+    // 从Socket缓存中获取最新数据
+    updateMetricsFromSocket();
+
+    // 如果Socket未连接，尝试连接
+    if (!metricsSocket.state.connected) {
+      console.log('Socket未连接，尝试连接...');
+      await metricsSocket.connect();
+    }
+
     message.success("指标数据已刷新");
   } catch (error) {
     message.error("刷新失败");
@@ -291,7 +327,15 @@ const stopAutoRefresh = () => {
 };
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 确保Socket连接
+  if (!metricsSocket.state.connected) {
+    console.log('ServerMonitor: 初始化Socket连接...');
+    await metricsSocket.connect();
+  }
+
+  // 获取初始数据
+  updateMetricsFromSocket();
   refreshMetrics();
   startAutoRefresh();
 });

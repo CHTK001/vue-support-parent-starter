@@ -87,6 +87,7 @@
           <ServerList
             ref="serverListRef"
             @edit="handleEditServer"
+            @setting="handleServerSetting"
             @delete="handleDeleteServer"
             @connect="handleConnectServer"
             @monitor="handleMonitorServer"
@@ -147,7 +148,12 @@
       ref="serverEditDialogRef"
       @success="handleServerSaved"
     />
-    
+
+    <ServerSettingDialog
+      ref="serverSettingDialogRef"
+      @success="handleServerSaved"
+    />
+
     <ServerTerminalDialog
       ref="serverTerminalDialogRef"
     />
@@ -187,6 +193,7 @@ import ProxyManagement from "./components/ProxyManagement.vue";
 
 // 导入对话框组件
 import ServerEditDialog from "./components/ServerEditDialog.vue";
+import ServerSettingDialog from "./components/ServerSettingDialog.vue";
 import ServerTerminalDialog from "./components/ServerTerminalDialog.vue";
 import ServerMonitorDialog from "./components/ServerMonitorDialog.vue";
 import FileManagerDialog from "./components/FileManagerDialog.vue";
@@ -203,6 +210,7 @@ const proxyManagementRef = ref();
 
 // 对话框引用
 const serverEditDialogRef = ref();
+const serverSettingDialogRef = ref();
 const serverTerminalDialogRef = ref();
 const serverMonitorDialogRef = ref();
 const fileManagerDialogRef = ref();
@@ -245,6 +253,13 @@ const handleAddServer = () => {
 const handleEditServer = (server: any) => {
   serverEditDialogRef.value?.open("edit");
   serverEditDialogRef.value?.setData(server);
+};
+
+/**
+ * 处理服务器设置
+ */
+const handleServerSetting = (server: any) => {
+  serverSettingDialogRef.value?.open(server.monitorSysGenServerId);
 };
 
 /**
