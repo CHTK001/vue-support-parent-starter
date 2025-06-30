@@ -5,6 +5,7 @@
     width="90%"
     :close-on-click-modal="false"
     destroy-on-close
+    top="10px"
     class="server-config-dialog"
   >
     <div class="dialog-content" v-loading="loading">
@@ -119,7 +120,7 @@
                     <el-select
                       v-model="settingData.monitorSysGenServerSettingProxyType"
                       placeholder="选择代理类型"
-                      style="width: 200px"
+                      style="width: 200px !important"
                       @change="handleSettingChange"
                     >
                       <el-option label="HTTP代理" value="HTTP" />
@@ -214,10 +215,15 @@
                     <el-select
                       v-model="settingData.monitorSysGenServerSettingDataReportMethod"
                       placeholder="选择上报方式"
-                      style="width: 200px"
+                      style="width: 200px !important"
                       @change="handleSettingChange"
                     >
                       <el-option label="无上报" value="NONE" />
+                      <el-option
+                        v-if="currentServer?.monitorSysGenServerIsLocal === 1"
+                        label="本地上报"
+                        value="LOCAL"
+                      />
                       <el-option label="API上报" value="API" />
                       <el-option label="Prometheus" value="PROMETHEUS" />
                     </el-select>
@@ -277,6 +283,7 @@
                 <ServerSettingForm
                   v-model="settingData"
                   :section="activeSection as 'monitor' | 'alert' | 'docker' | 'advanced'"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
                   @change="handleSettingChange"
                 />
               </div>
@@ -405,6 +412,15 @@ const handleReset = () => {
 const validateCurrentSection = () => {
   const currentRules = validationRules[activeSection.value as keyof typeof validationRules];
   if (!currentRules) return true;
+
+  // 特殊处理代理配置节 - 只有在启用代理时才进行校验
+  if (activeSection.value === 'proxy') {
+    const proxyEnabled = settingData.value.monitorSysGenServerSettingProxyEnabled;
+    if (!proxyEnabled || proxyEnabled === 0) {
+      // 代理未启用，跳过代理参数校验
+      return true;
+    }
+  }
 
   for (const [field, rules] of Object.entries(currentRules)) {
     const value = settingData.value[field as keyof ServerSetting];

@@ -424,12 +424,10 @@ const handleClickFullscreen = row => {
 };
 
 /**
- * 打开监控配置页面
+ * 打开监控配置页面 - 已迁移到服务器配置管理
  */
 const openMonitorConfig = () => {
-  router.push({
-    path: "/monitor/config"
-  });
+  message.info("监控配置功能已迁移到服务器配置管理中");
 };
 </script>
 

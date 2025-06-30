@@ -50,18 +50,32 @@
         <canvas
           ref="rdpCanvasRef"
           class="rdp-canvas"
-          @mousedown="handleMouseDown"
-          @mouseup="handleMouseUp"
-          @mousemove="handleMouseMove"
-          @keydown="handleKeyDown"
-          @keyup="handleKeyUp"
           tabindex="0"
         ></canvas>
-        <div class="rdp-status">
-          <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
-            {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
-          </el-tag>
-          <span class="ml-2">分辨率: {{ rdpConfig.width }}x{{ rdpConfig.height }}</span>
+        <div class="rdp-controls">
+          <div class="rdp-status">
+            <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
+              {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
+            </el-tag>
+            <span class="ml-2">分辨率: {{ rdpConfig.width }}x{{ rdpConfig.height }}</span>
+          </div>
+          <div class="rdp-actions">
+            <el-button size="small" @click="handleClipboard('rdp')" :disabled="!isConnected">
+              <el-icon><DocumentCopy /></el-icon>
+              剪贴板
+            </el-button>
+            <el-button size="small" @click="handleScreenshot('rdp')" :disabled="!isConnected">
+              <el-icon><Camera /></el-icon>
+              截图
+            </el-button>
+            <el-button size="small" @click="handleScreenResize(1024, 768, 'rdp')" :disabled="!isConnected">
+              <el-icon><FullScreen /></el-icon>
+              调整尺寸
+            </el-button>
+            <el-button size="small" type="danger" @click="handleDisconnect('rdp')" :disabled="!isConnected">
+              断开连接
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -73,18 +87,32 @@
         <canvas
           ref="vncCanvasRef"
           class="vnc-canvas"
-          @mousedown="handleMouseDown"
-          @mouseup="handleMouseUp"
-          @mousemove="handleMouseMove"
-          @keydown="handleKeyDown"
-          @keyup="handleKeyUp"
           tabindex="0"
         ></canvas>
-        <div class="vnc-status">
-          <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
-            {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
-          </el-tag>
-          <span class="ml-2">只读模式: {{ vncConfig.readOnly ? '是' : '否' }}</span>
+        <div class="vnc-controls">
+          <div class="vnc-status">
+            <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
+              {{ connectionStatus === 'connected' ? '已连接' : '未连接' }}
+            </el-tag>
+            <span class="ml-2">只读模式: {{ vncConfig.readOnly ? '是' : '否' }}</span>
+          </div>
+          <div class="vnc-actions">
+            <el-button size="small" @click="handleClipboard('vnc')" :disabled="!isConnected || vncConfig.readOnly">
+              <el-icon><DocumentCopy /></el-icon>
+              剪贴板
+            </el-button>
+            <el-button size="small" @click="handleScreenshot('vnc')" :disabled="!isConnected">
+              <el-icon><Camera /></el-icon>
+              截图
+            </el-button>
+            <el-button size="small" @click="handleScreenResize(1024, 768, 'vnc')" :disabled="!isConnected">
+              <el-icon><FullScreen /></el-icon>
+              调整尺寸
+            </el-button>
+            <el-button size="small" type="danger" @click="handleDisconnect('vnc')" :disabled="!isConnected">
+              断开连接
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -129,6 +157,13 @@ import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
 import "xterm/css/xterm.css";
 import {
+  DocumentCopy,
+  Camera,
+  FullScreen,
+  Loading,
+  Warning
+} from "@element-plus/icons-vue";
+import {
   connectServer,
   disconnectServer,
   sendServerData,
@@ -136,6 +171,14 @@ import {
   protocolIconMap,
 } from "@/api/server";
 import { getWebSocketUrl } from "@/api/config";
+import {
+  GuacamoleClientManager,
+  GuacamoleState,
+  getStateDescription,
+  createWebSocketUrl,
+  defaultGuacamoleConfig,
+  setupFileDrop
+} from "@/utils/guacamole";
 
 // 响应式状态
 const visible = ref(false);
@@ -153,7 +196,13 @@ const rdpCanvasRef = ref();
 const vncCanvasRef = ref();
 let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
-let websocket: WebSocket | null = null;
+
+// SSH WebSocket 连接
+let sshWebSocket: WebSocket | null = null;
+
+// Guacamole 客户端管理器
+let rdpClient: GuacamoleClientManager | null = null;
+let vncClient: GuacamoleClientManager | null = null;
 
 // RDP 配置
 const rdpConfig = reactive({
@@ -204,6 +253,16 @@ const setData = (data: any) => {
  * 初始化终端
  */
 const initTerminal = () => {
+  // 清理现有 Guacamole 客户端
+  if (rdpClient) {
+    rdpClient.disconnect();
+    rdpClient = null;
+  }
+  if (vncClient) {
+    vncClient.disconnect();
+    vncClient = null;
+  }
+
   if (serverData.monitorSysGenServerProtocol === "SSH") {
     initSSHTerminal();
   } else if (serverData.monitorSysGenServerProtocol === "RDP") {
@@ -242,13 +301,13 @@ const initSSHTerminal = () => {
   terminal.open(terminalRef.value);
   fitAddon.fit();
 
-  // 连接 WebSocket
-  connectWebSocket();
+  // 连接 SSH WebSocket
+  connectSSHWebSocket();
 
   // 监听终端输入
   terminal.onData((data) => {
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      websocket.send(JSON.stringify({
+    if (sshWebSocket && sshWebSocket.readyState === WebSocket.OPEN) {
+      sshWebSocket.send(JSON.stringify({
         type: "input",
         data: data,
       }));
@@ -273,6 +332,15 @@ const initRDPTerminal = () => {
   canvas.width = rdpConfig.width;
   canvas.height = rdpConfig.height;
 
+  // 创建 Guacamole 客户端管理器
+  rdpClient = new GuacamoleClientManager(canvas);
+
+  // 设置事件回调
+  setupGuacamoleEventHandlers(rdpClient, 'rdp');
+
+  // 设置文件拖放
+  setupFileDrop(canvas, rdpClient);
+
   // 连接 RDP WebSocket
   connectRDPWebSocket();
 };
@@ -284,7 +352,18 @@ const initVNCTerminal = () => {
   if (!vncCanvasRef.value) return;
 
   const canvas = vncCanvasRef.value;
-  
+  canvas.width = rdpConfig.width; // 初始尺寸，会根据服务器调整
+  canvas.height = rdpConfig.height;
+
+  // 创建 Guacamole 客户端管理器
+  vncClient = new GuacamoleClientManager(canvas);
+
+  // 设置事件回调
+  setupGuacamoleEventHandlers(vncClient, 'vnc');
+
+  // 设置文件拖放
+  setupFileDrop(canvas, vncClient);
+
   // 连接 VNC WebSocket
   connectVNCWebSocket();
 };
@@ -292,21 +371,21 @@ const initVNCTerminal = () => {
 /**
  * 连接 SSH WebSocket
  */
-const connectWebSocket = () => {
+const connectSSHWebSocket = () => {
   const wsUrl = getWebSocketUrl(
     "/socket/ssh",
     `id=${serverData.monitorSysGenServerId}&type=ssh`
   );
 
-  websocket = new WebSocket(wsUrl);
+  sshWebSocket = new WebSocket(wsUrl);
 
-  websocket.onopen = () => {
+  sshWebSocket.onopen = () => {
     isConnected.value = true;
     connectionStatus.value = "connected";
-    message.success("终端连接成功");
+    message.success("SSH 终端连接成功");
   };
 
-  websocket.onmessage = (event) => {
+  sshWebSocket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
       if (data.type === "output" && terminal) {
@@ -320,17 +399,17 @@ const connectWebSocket = () => {
     }
   };
 
-  websocket.onclose = () => {
+  sshWebSocket.onclose = () => {
     isConnected.value = false;
     connectionStatus.value = "disconnected";
-    message.warning("终端连接已断开");
+    message.warning("SSH 终端连接已断开");
   };
 
-  websocket.onerror = (error) => {
+  sshWebSocket.onerror = (error) => {
     isConnected.value = false;
     connectionStatus.value = "error";
-    message.error("终端连接出错");
-    console.error("WebSocket error:", error);
+    message.error("SSH 终端连接出错");
+    console.error("SSH WebSocket error:", error);
   };
 };
 
@@ -338,195 +417,223 @@ const connectWebSocket = () => {
  * 连接 RDP WebSocket
  */
 const connectRDPWebSocket = () => {
-  const wsUrl = getWebSocketUrl(
-    "/websocket/rdp",
-    `id=${serverData.monitorSysGenServerId}`
-  );
+  if (!rdpClient) {
+    message.error("RDP 客户端未初始化");
+    return;
+  }
 
-  websocket = new WebSocket(wsUrl);
-  websocket.binaryType = "arraybuffer";
+  // 防止重复连接
+  if (rdpClient.isConnected()) {
+    console.warn("RDP 客户端已连接，跳过重复连接");
+    return;
+  }
 
-  websocket.onopen = () => {
-    isConnected.value = true;
-    connectionStatus.value = "connected";
-    message.success("RDP 连接成功");
-  };
+  try {
+    const wsUrl = createWebSocketUrl(
+      "/websocket/rdp",
+      "rdp",
+      serverData.monitorSysGenServerId
+    );
 
-  websocket.onmessage = (event) => {
-    // 处理 RDP 图像数据
-    if (event.data instanceof ArrayBuffer) {
-      renderRDPFrame(event.data);
-    }
-  };
+    // 使用 Guacamole 客户端连接
+    rdpClient.connect(wsUrl, {
+      width: rdpConfig.width,
+      height: rdpConfig.height,
+      dpi: 96
+    });
 
-  websocket.onclose = () => {
-    isConnected.value = false;
-    connectionStatus.value = "disconnected";
-    message.warning("RDP 连接已断开");
-  };
+    message.success("RDP 连接已启动");
 
-  websocket.onerror = (error) => {
-    isConnected.value = false;
-    connectionStatus.value = "error";
-    message.error("RDP 连接出错");
-    console.error("RDP WebSocket error:", error);
-  };
+  } catch (error) {
+    console.error("RDP 连接失败:", error);
+    message.error("RDP 连接失败");
+  }
 };
 
 /**
  * 连接 VNC WebSocket
  */
 const connectVNCWebSocket = () => {
-  const wsUrl = getWebSocketUrl(
-    "/websocket/vnc",
-    `id=${serverData.monitorSysGenServerId}`
-  );
+  if (!vncClient) {
+    message.error("VNC 客户端未初始化");
+    return;
+  }
 
-  websocket = new WebSocket(wsUrl);
-  websocket.binaryType = "arraybuffer";
+  // 防止重复连接
+  if (vncClient.isConnected()) {
+    console.warn("VNC 客户端已连接，跳过重复连接");
+    return;
+  }
 
-  websocket.onopen = () => {
-    isConnected.value = true;
-    connectionStatus.value = "connected";
-    message.success("VNC 连接成功");
-  };
+  try {
+    const wsUrl = createWebSocketUrl(
+      "/websocket/vnc",
+      "vnc",
+      serverData.monitorSysGenServerId
+    );
 
-  websocket.onmessage = (event) => {
-    // 处理 VNC 图像数据
-    if (event.data instanceof ArrayBuffer) {
-      renderVNCFrame(event.data);
+    // 使用 Guacamole 客户端连接
+    vncClient.connect(wsUrl, {
+      width: rdpConfig.width,
+      height: rdpConfig.height,
+      dpi: 96
+    });
+
+    message.success("VNC 连接已启动");
+
+  } catch (error) {
+    console.error("VNC 连接失败:", error);
+    message.error("VNC 连接失败");
+  }
+};
+
+/**
+ * 设置 Guacamole 事件处理器
+ */
+const setupGuacamoleEventHandlers = (client: GuacamoleClientManager, protocol: 'rdp' | 'vnc') => {
+  // 状态变化事件
+  client.setOnStateChange((state: number) => {
+    const stateDesc = getStateDescription(state);
+    console.log(`${protocol.toUpperCase()} 状态变化:`, stateDesc);
+
+    switch (state) {
+      case GuacamoleState.CONNECTING:
+        connectionStatus.value = "connecting";
+        message.info(`${protocol.toUpperCase()} 连接中...`);
+        break;
+      case GuacamoleState.CONNECTED:
+        isConnected.value = true;
+        connectionStatus.value = "connected";
+        message.success(`${protocol.toUpperCase()} 连接成功`);
+        break;
+      case GuacamoleState.DISCONNECTED:
+        isConnected.value = false;
+        connectionStatus.value = "disconnected";
+        message.warning(`${protocol.toUpperCase()} 连接已断开`);
+        break;
+      case GuacamoleState.DISCONNECTING:
+        connectionStatus.value = "disconnecting";
+        break;
     }
-  };
+  });
 
-  websocket.onclose = () => {
-    isConnected.value = false;
-    connectionStatus.value = "disconnected";
-    message.warning("VNC 连接已断开");
-  };
-
-  websocket.onerror = (error) => {
+  // 错误事件
+  client.setOnError((error: any) => {
+    console.error(`${protocol.toUpperCase()} 错误:`, error);
     isConnected.value = false;
     connectionStatus.value = "error";
-    message.error("VNC 连接出错");
-    console.error("VNC WebSocket error:", error);
-  };
+    message.error(`${protocol.toUpperCase()} 连接错误: ${error.message || '未知错误'}`);
+  });
+
+  // 剪贴板事件
+  client.setOnClipboard((data: string) => {
+    console.log(`${protocol.toUpperCase()} 剪贴板数据:`, data);
+    // 将远程剪贴板数据写入本地剪贴板
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(data).then(() => {
+        message.success("剪贴板数据已同步到本地");
+      }).catch((error) => {
+        console.error("写入本地剪贴板失败:", error);
+      });
+    }
+  });
 };
 
 /**
- * 渲染 RDP 帧
+ * 调整屏幕尺寸
  */
-const renderRDPFrame = (data: ArrayBuffer) => {
-  if (!rdpCanvasRef.value) return;
+const handleScreenResize = (width: number, height: number, protocol: 'rdp' | 'vnc') => {
+  const client = protocol === 'rdp' ? rdpClient : vncClient;
+  if (!client || !client.isConnected()) {
+    message.warning(`${protocol.toUpperCase()} 未连接`);
+    return;
+  }
 
-  const canvas = rdpCanvasRef.value;
-  const ctx = canvas.getContext("2d");
+  try {
+    client.resize(width, height);
 
-  // 这里应该解析 RDP 协议的图像数据
-  // 实际实现需要根据后端返回的数据格式进行解析
-  console.log("Received RDP frame data:", data.byteLength);
+    // 更新配置
+    if (protocol === 'rdp') {
+      rdpConfig.width = width;
+      rdpConfig.height = height;
+    }
+
+    message.success(`${protocol.toUpperCase()} 屏幕尺寸已调整为 ${width}x${height}`);
+  } catch (error) {
+    console.error("调整屏幕尺寸失败:", error);
+    message.error("调整屏幕尺寸失败");
+  }
 };
 
 /**
- * 渲染 VNC 帧
+ * 处理剪贴板
  */
-const renderVNCFrame = (data: ArrayBuffer) => {
-  if (!vncCanvasRef.value) return;
+const handleClipboard = async (protocol: 'rdp' | 'vnc') => {
+  const client = protocol === 'rdp' ? rdpClient : vncClient;
+  if (!client || !client.isConnected()) {
+    message.warning(`${protocol.toUpperCase()} 未连接`);
+    return;
+  }
 
-  const canvas = vncCanvasRef.value;
-  const ctx = canvas.getContext("2d");
+  try {
+    // 读取本地剪贴板内容
+    const text = await navigator.clipboard.readText();
 
-  // 这里应该解析 VNC 协议的图像数据
-  // 实际实现需要根据后端返回的数据格式进行解析
-  console.log("Received VNC frame data:", data.byteLength);
+    // 发送到远程
+    client.sendClipboard(text);
+
+    message.success("剪贴板内容已发送到远程");
+  } catch (error) {
+    message.error("读取剪贴板失败，请检查浏览器权限");
+    console.error("剪贴板操作失败:", error);
+  }
 };
 
 /**
- * 处理鼠标事件
+ * 截图功能
  */
-const handleMouseDown = (event: MouseEvent) => {
-  if (!isConnected.value || !websocket) return;
+const handleScreenshot = (protocol: 'rdp' | 'vnc') => {
+  const client = protocol === 'rdp' ? rdpClient : vncClient;
+  if (!client || !client.isConnected()) {
+    message.warning(`${protocol.toUpperCase()} 未连接`);
+    return;
+  }
 
-  const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
+  try {
+    const dataUrl = client.takeScreenshot();
+    if (dataUrl) {
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.download = `${protocol}-screenshot-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
 
-  websocket.send(JSON.stringify({
-    type: "mouse",
-    action: "down",
-    button: event.button,
-    x: Math.floor(x),
-    y: Math.floor(y),
-  }));
-};
-
-const handleMouseUp = (event: MouseEvent) => {
-  if (!isConnected.value || !websocket) return;
-
-  const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  websocket.send(JSON.stringify({
-    type: "mouse",
-    action: "up",
-    button: event.button,
-    x: Math.floor(x),
-    y: Math.floor(y),
-  }));
-};
-
-const handleMouseMove = (event: MouseEvent) => {
-  if (!isConnected.value || !websocket) return;
-
-  const rect = (event.target as HTMLCanvasElement).getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  websocket.send(JSON.stringify({
-    type: "mouse",
-    action: "move",
-    x: Math.floor(x),
-    y: Math.floor(y),
-  }));
+      message.success("截图已保存");
+    } else {
+      message.error("截图失败");
+    }
+  } catch (error) {
+    console.error("截图失败:", error);
+    message.error("截图失败");
+  }
 };
 
 /**
- * 处理键盘事件
+ * 断开连接
  */
-const handleKeyDown = (event: KeyboardEvent) => {
-  if (!isConnected.value || !websocket) return;
+const handleDisconnect = (protocol: 'rdp' | 'vnc') => {
+  const client = protocol === 'rdp' ? rdpClient : vncClient;
+  if (!client) return;
 
-  event.preventDefault();
-
-  websocket.send(JSON.stringify({
-    type: "key",
-    action: "down",
-    key: event.key,
-    code: event.code,
-    keyCode: event.keyCode,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey,
-    shiftKey: event.shiftKey,
-    metaKey: event.metaKey,
-  }));
-};
-
-const handleKeyUp = (event: KeyboardEvent) => {
-  if (!isConnected.value || !websocket) return;
-
-  event.preventDefault();
-
-  websocket.send(JSON.stringify({
-    type: "key",
-    action: "up",
-    key: event.key,
-    code: event.code,
-    keyCode: event.keyCode,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey,
-    shiftKey: event.shiftKey,
-    metaKey: event.metaKey,
-  }));
+  try {
+    client.disconnect();
+    isConnected.value = false;
+    connectionStatus.value = "disconnected";
+    message.success(`${protocol.toUpperCase()} 连接已断开`);
+  } catch (error) {
+    console.error("断开连接失败:", error);
+    message.error("断开连接失败");
+  }
 };
 
 /**
@@ -535,6 +642,15 @@ const handleKeyUp = (event: KeyboardEvent) => {
 const handleClear = () => {
   if (terminal) {
     terminal.clear();
+  }
+
+  // 重新连接 RDP/VNC 以清空显示
+  if (serverData.monitorSysGenServerProtocol === "RDP" && rdpClient) {
+    rdpClient.disconnect();
+    setTimeout(() => connectRDPWebSocket(), 1000);
+  } else if (serverData.monitorSysGenServerProtocol === "VNC" && vncClient) {
+    vncClient.disconnect();
+    setTimeout(() => connectVNCWebSocket(), 1000);
   }
 };
 
@@ -546,8 +662,14 @@ const handleReconnect = async () => {
     connecting.value = true;
 
     // 断开现有连接
-    if (websocket) {
-      websocket.close();
+    if (sshWebSocket) {
+      sshWebSocket.close();
+    }
+    if (rdpClient) {
+      rdpClient.disconnect();
+    }
+    if (vncClient) {
+      vncClient.disconnect();
     }
 
     // 重新连接服务器
@@ -592,14 +714,27 @@ const toggleFullscreen = () => {
  * 清理资源
  */
 const cleanup = () => {
-  if (websocket) {
-    websocket.close();
-    websocket = null;
+  // 清理 SSH WebSocket
+  if (sshWebSocket) {
+    sshWebSocket.close();
+    sshWebSocket = null;
   }
 
+  // 清理终端
   if (terminal) {
     terminal.dispose();
     terminal = null;
+  }
+
+  // 清理 Guacamole 客户端
+  if (rdpClient) {
+    rdpClient.disconnect();
+    rdpClient = null;
+  }
+
+  if (vncClient) {
+    vncClient.disconnect();
+    vncClient = null;
   }
 
   fitAddon = null;
@@ -720,15 +855,36 @@ defineExpose({
         }
       }
 
-      .rdp-status,
-      .vnc-status {
+      .rdp-controls,
+      .vnc-controls {
         padding: 8px 16px;
         background-color: var(--el-bg-color);
         border-top: 1px solid var(--el-border-color-lighter);
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
+
+        .rdp-status,
+        .vnc-status {
+          display: flex;
+          align-items: center;
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+        }
+
+        .rdp-actions,
+        .vnc-actions {
+          display: flex;
+          gap: 8px;
+
+          .el-button {
+            padding: 4px 8px;
+
+            .el-icon {
+              margin-right: 4px;
+            }
+          }
+        }
       }
     }
   }

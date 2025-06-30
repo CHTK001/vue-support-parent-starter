@@ -1,68 +1,45 @@
 /**
- * Guacamole 客户端工具类
- * 直接使用 guacamole-common-js 原生功能，无需自定义逻辑
+ * 简化的 Guacamole 客户端
+ * 直接使用 guacamole-common-js 原生功能，无需复杂封装
  */
 
 import { getConfig } from '@repo/config';
 import Guacamole from 'guacamole-common-js';
 
-export interface GuacamoleConfig {
-  /** 服务器ID */
+export interface SimpleGuacamoleConfig {
   serverId: number;
-  /** 连接协议 */
   protocol: 'rdp' | 'vnc' | 'ssh';
-  /** 服务器主机 */
   host: string;
-  /** 服务器端口 */
   port: number;
-  /** 用户名 */
   username?: string;
-  /** 密码 */
   password?: string;
-  /** 分辨率 */
   resolution?: string;
-  /** 颜色深度 */
   colorDepth?: number;
-  /** 启用音频 */
   enableAudio?: boolean;
-  /** 启用剪贴板 */
   enableClipboard?: boolean;
-  /** 启用光标 */
-  enableCursor?: boolean;
-  /** 视图模式 */
-  viewMode?: string;
-  /** 颜色质量 */
-  colorQuality?: string;
 }
 
-export interface GuacamoleEvents {
-  /** 连接状态变化 */
+export interface SimpleGuacamoleEvents {
   onStateChange?: (state: number) => void;
-  /** 错误事件 */
   onError?: (error: any) => void;
-  /** 名称变化 */
   onName?: (name: string) => void;
-  /** 剪贴板事件 */
   onClipboard?: (stream: any, mimetype: string) => void;
-  /** 文件接收 */
-  onFile?: (stream: any, mimetype: string, filename: string) => void;
-  /** 管道事件 */
-  onPipe?: (stream: any, mimetype: string, name: string) => void;
-  /** 同步事件 */
-  onSync?: (timestamp: number) => void;
 }
 
-export class GuacamoleClient {
-  private client: any;
-  private tunnel: any;
-  private display: any;
-  private mouse: any;
-  private keyboard: any;
-  private config: GuacamoleConfig;
-  private events: GuacamoleEvents;
-  private canvas: HTMLCanvasElement | null = null;
+/**
+ * 简化的 Guacamole 客户端
+ * 直接使用 guacamole-common-js，无需自定义逻辑
+ */
+export class SimpleGuacamoleClient {
+  private client: any = null;
+  private tunnel: any = null;
+  private display: any = null;
+  private mouse: any = null;
+  private keyboard: any = null;
+  private config: SimpleGuacamoleConfig;
+  private events: SimpleGuacamoleEvents;
 
-  constructor(config: GuacamoleConfig, events: GuacamoleEvents = {}) {
+  constructor(config: SimpleGuacamoleConfig, events: SimpleGuacamoleEvents = {}) {
     this.config = config;
     this.events = events;
   }
@@ -70,31 +47,62 @@ export class GuacamoleClient {
   /**
    * 连接到服务器
    */
-  connect(): Promise<void> {
+  async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         // 构建 WebSocket URL
         const wsUrl = this.buildWebSocketUrl();
-
+        
         // 创建 Guacamole WebSocket 隧道
         this.tunnel = new Guacamole.WebSocketTunnel(wsUrl);
-
+        
         // 创建 Guacamole 客户端
         this.client = new Guacamole.Client(this.tunnel);
-
+        
         // 获取显示对象
         this.display = this.client.getDisplay();
-
-        // 创建鼠标和键盘处理器
-        this.mouse = new Guacamole.Mouse(this.display.getElement());
-        this.keyboard = new Guacamole.Keyboard(document);
-
+        
         // 设置事件监听器
-        this.setupEventHandlers(resolve, reject);
+        this.client.onstatechange = (state: number) => {
+          console.log('Guacamole 状态变化:', state);
+          
+          if (this.events.onStateChange) {
+            this.events.onStateChange(state);
+          }
+          
+          // 连接成功时设置输入处理器
+          if (state === Guacamole.Client.CONNECTED) {
+            this.setupInputHandlers();
+            resolve();
+          }
+        };
 
+        this.client.onerror = (error: any) => {
+          console.error('Guacamole 客户端错误:', error);
+          
+          if (this.events.onError) {
+            this.events.onError(error);
+          }
+          
+          reject(error);
+        };
+
+        this.client.onname = (name: string) => {
+          console.log('Guacamole 名称变化:', name);
+          if (this.events.onName) {
+            this.events.onName(name);
+          }
+        };
+
+        this.client.onclipboard = (stream: any, mimetype: string) => {
+          if (this.events.onClipboard) {
+            this.events.onClipboard(stream, mimetype);
+          }
+        };
+        
         // 开始连接
         this.client.connect();
-
+        
       } catch (error) {
         console.error('Guacamole 连接失败:', error);
         reject(error);
@@ -109,7 +117,7 @@ export class GuacamoleClient {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const path = getConfig().BaseUrl + `/websocket/${this.config.protocol}`;
-
+    
     // 构建连接参数
     const params = new URLSearchParams({
       serverId: this.config.serverId.toString(),
@@ -117,86 +125,15 @@ export class GuacamoleClient {
       port: this.config.port.toString(),
       protocol: this.config.protocol
     });
-
+    
     if (this.config.username) params.set('username', this.config.username);
     if (this.config.password) params.set('password', this.config.password);
     if (this.config.resolution) params.set('resolution', this.config.resolution);
     if (this.config.colorDepth) params.set('colorDepth', this.config.colorDepth.toString());
     if (this.config.enableAudio !== undefined) params.set('enableAudio', this.config.enableAudio.toString());
     if (this.config.enableClipboard !== undefined) params.set('enableClipboard', this.config.enableClipboard.toString());
-    if (this.config.enableCursor !== undefined) params.set('enableCursor', this.config.enableCursor.toString());
-    if (this.config.viewMode) params.set('viewMode', this.config.viewMode);
-    if (this.config.colorQuality) params.set('colorQuality', this.config.colorQuality);
 
     return `${protocol}//${host}${path}?${params.toString()}`;
-  }
-
-  /**
-   * 设置事件监听器
-   */
-  private setupEventHandlers(resolve: () => void, reject: (error: any) => void) {
-    // 客户端状态变化
-    this.client.onstatechange = (state: number) => {
-      console.log('Guacamole 状态变化:', state);
-
-      if (this.events.onStateChange) {
-        this.events.onStateChange(state);
-      }
-
-      // 连接成功
-      if (state === Guacamole.Client.CONNECTED) {
-        resolve();
-      }
-    };
-
-    // 错误处理
-    this.client.onerror = (error: any) => {
-      console.error('Guacamole 客户端错误:', error);
-
-      if (this.events.onError) {
-        this.events.onError(error);
-      }
-
-      reject(error);
-    };
-
-    // 名称变化
-    this.client.onname = (name: string) => {
-      console.log('Guacamole 名称变化:', name);
-      if (this.events.onName) {
-        this.events.onName(name);
-      }
-    };
-
-    // 剪贴板事件
-    this.client.onclipboard = (stream: any, mimetype: string) => {
-      if (this.events.onClipboard) {
-        this.events.onClipboard(stream, mimetype);
-      }
-    };
-
-    // 文件接收
-    this.client.onfile = (stream: any, mimetype: string, filename: string) => {
-      if (this.events.onFile) {
-        this.events.onFile(stream, mimetype, filename);
-      }
-    };
-
-    // 管道事件
-    this.client.onpipe = (stream: any, mimetype: string, name: string) => {
-      if (this.events.onPipe) {
-        this.events.onPipe(stream, mimetype, name);
-      }
-    };
-
-    // 同步事件
-    this.client.onsync = (timestamp: number) => {
-      if (this.events.onSync) {
-        this.events.onSync(timestamp);
-      }
-    };
-
-    this.setupInputHandlers();
   }
 
   /**
@@ -204,10 +141,14 @@ export class GuacamoleClient {
    */
   private setupInputHandlers() {
     if (!this.display) return;
-
+    
+    // 创建鼠标和键盘处理器
+    this.mouse = new Guacamole.Mouse(this.display.getElement());
+    this.keyboard = new Guacamole.Keyboard(document);
+    
     // 鼠标事件处理
-    this.mouse.onmousedown =
-    this.mouse.onmouseup =
+    this.mouse.onmousedown = 
+    this.mouse.onmouseup = 
     this.mouse.onmousemove = (mouseState: any) => {
       if (this.client) {
         this.client.sendMouseState(mouseState);
@@ -232,14 +173,13 @@ export class GuacamoleClient {
    * 绑定到 Canvas 元素
    */
   attachTo(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
     if (this.display && canvas) {
       // 清空 canvas 内容
       canvas.innerHTML = '';
-
+      
       // 将 Guacamole 显示元素添加到 canvas
       canvas.appendChild(this.display.getElement());
-
+      
       // 设置样式
       const displayElement = this.display.getElement();
       displayElement.style.width = '100%';
@@ -253,11 +193,11 @@ export class GuacamoleClient {
    */
   disconnect(): void {
     console.log('断开 Guacamole 连接');
-
+    
     if (this.client) {
       this.client.disconnect();
     }
-
+    
     if (this.tunnel) {
       this.tunnel.disconnect();
     }
@@ -271,13 +211,6 @@ export class GuacamoleClient {
   }
 
   /**
-   * 获取连接中状态
-   */
-  isConnecting(): boolean {
-    return this.client && this.client.currentState === Guacamole.Client.CONNECTING;
-  }
-
-  /**
    * 发送剪贴板数据
    */
   sendClipboard(data: string, mimetype = 'text/plain') {
@@ -286,48 +219,6 @@ export class GuacamoleClient {
       const writer = new Guacamole.StringWriter(stream);
       writer.sendText(data);
       writer.sendEnd();
-    }
-  }
-
-  /**
-   * 发送文件
-   */
-  sendFile(file: File) {
-    if (this.client && this.isConnected()) {
-      const stream = this.client.createFileStream(file.type, file.name);
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const arrayBuffer = reader.result as ArrayBuffer;
-        const writer = new Guacamole.ArrayBufferWriter(stream);
-        writer.sendData(arrayBuffer);
-        writer.sendEnd();
-      };
-
-      reader.readAsArrayBuffer(file);
-    }
-  }
-
-  /**
-   * 获取显示分辨率
-   */
-  getResolution(): { width: number; height: number } | null {
-    if (this.display) {
-      const element = this.display.getElement();
-      return {
-        width: element.width || 0,
-        height: element.height || 0
-      };
-    }
-    return null;
-  }
-
-  /**
-   * 设置显示缩放
-   */
-  setScale(scale: number) {
-    if (this.display) {
-      this.display.scale(scale);
     }
   }
 
@@ -347,24 +238,23 @@ export class GuacamoleClient {
    */
   destroy() {
     this.disconnect();
-
+    
     if (this.mouse) {
       this.mouse.onmousedown = null;
       this.mouse.onmouseup = null;
       this.mouse.onmousemove = null;
     }
-
+    
     if (this.keyboard) {
       this.keyboard.onkeydown = null;
       this.keyboard.onkeyup = null;
     }
-
+    
     this.client = null;
     this.tunnel = null;
     this.display = null;
     this.mouse = null;
     this.keyboard = null;
-    this.canvas = null;
   }
 }
 
@@ -378,4 +268,4 @@ export const GuacamoleStates = {
   DISCONNECTED: Guacamole.Client.DISCONNECTED
 };
 
-export default GuacamoleClient;
+export default SimpleGuacamoleClient;

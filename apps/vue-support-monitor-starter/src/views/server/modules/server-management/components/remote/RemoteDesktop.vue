@@ -91,7 +91,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Monitor, ArrowLeft } from '@element-plus/icons-vue';
 import RDPDesktopNew from './RDPDesktopNew.vue';
 import VNCDesktopNew from './VNCDesktopNew.vue';
 

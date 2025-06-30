@@ -9,13 +9,14 @@
           </div>
           <div class="header-right">
             <el-tooltip content="刷新统计数据" placement="top">
-              <el-button 
-                size="small" 
-                :icon="Refresh" 
-                circle 
+              <el-button
+                size="small"
+                circle
                 @click="refreshStatistics"
                 :loading="loading"
-              />
+              >
+                <IconifyIconOnline icon="ep:refresh" />
+              </el-button>
             </el-tooltip>
           </div>
         </div>
@@ -113,7 +114,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue';
-import { Refresh } from '@element-plus/icons-vue';
+// 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
 import { useGlobalServerLatency } from '@/composables/useServerLatency';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
