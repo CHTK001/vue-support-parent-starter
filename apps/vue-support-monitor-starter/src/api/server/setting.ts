@@ -28,10 +28,8 @@ export interface ServerSetting {
   monitorSysGenServerSettingMemoryAlertThreshold?: number;
   /** 磁盘使用率告警阈值 */
   monitorSysGenServerSettingDiskAlertThreshold?: number;
-  /** 网络使用率告警阈值(Mbps) */
-  monitorSysGenServerSettingNetworkAlertThreshold?: number;
-  /** 响应时间告警阈值(毫秒) */
-  monitorSysGenServerSettingResponseTimeAlertThreshold?: number;
+  /** 网络延迟告警阈值(毫秒) */
+  monitorSysGenServerSettingNetworkLatencyThreshold?: number;
   /** 告警通知方式 */
   monitorSysGenServerSettingAlertNotificationMethod?: string;
   /** 告警邮件地址 */
@@ -195,7 +193,7 @@ export function updateServerSetting(data: Partial<ServerSetting>) {
 export function saveOrUpdateServerSetting(data: Partial<ServerSetting>) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    "v1/gen/server/setting/save-or-update",
+    "v1/gen/server/setting/save",
     { data }
   );
 }

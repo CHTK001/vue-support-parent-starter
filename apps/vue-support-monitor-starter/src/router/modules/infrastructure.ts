@@ -66,17 +66,7 @@ export default [
               showParent: true
             }
           },
-          {
-            path: "/monitor/config",
-            name: "monitorConfig",
-            component: () => import("@/views/monitor/config/index.vue"),
-            meta: {
-              icon: "ri:settings-3-line",
-              title: "监控配置",
-              showLink: false,
-              showParent: true
-            }
-          },
+
           {
             path: "/oss/index",
             name: "ossIndex",

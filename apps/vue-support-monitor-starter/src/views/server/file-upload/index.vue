@@ -9,11 +9,11 @@
       
       <div class="header-actions">
         <el-button type="primary" @click="handleCreateTask">
-          <el-icon><Plus /></el-icon>
+          <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建上传任务
         </el-button>
         <el-button @click="handleRefreshStats">
-          <el-icon><Refresh /></el-icon>
+          <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新统计
         </el-button>
       </div>
@@ -26,7 +26,7 @@
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon pending">
-                <el-icon><Clock /></el-icon>
+                <IconifyIconOnline icon="ep:clock" />
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.pendingCount || 0 }}</div>
@@ -40,7 +40,7 @@
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon processing">
-                <el-icon><Loading /></el-icon>
+                <IconifyIconOnline icon="ep:loading" />
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.processingCount || 0 }}</div>
@@ -54,7 +54,7 @@
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon completed">
-                <el-icon><Check /></el-icon>
+                <IconifyIconOnline icon="ep:check" />
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.completedCount || 0 }}</div>
@@ -68,7 +68,7 @@
           <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon failed">
-                <el-icon><Close /></el-icon>
+                <IconifyIconOnline icon="ep:close" />
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ statistics.failedCount || 0 }}</div>
@@ -126,7 +126,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Plus, Refresh, Clock, Loading, Check, Close } from '@element-plus/icons-vue';
+// 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
 import {
   getServerFileUploadTaskStatistics,
   getTaskQueueStatus,

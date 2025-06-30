@@ -3,7 +3,7 @@
     <!-- 头部工具栏 -->
     <div class="desktop-header">
       <div class="desktop-info">
-        <el-icon><Monitor /></el-icon>
+        <IconifyIconOnline icon="ep:monitor" />
         <span class="desktop-title">VNC 远程桌面 - {{ server?.monitorSysGenServerName }}</span>
         <el-tag 
           :type="connectionState?.connected ? 'success' : connectionState?.connecting ? 'warning' : 'danger'" 
@@ -14,26 +14,26 @@
         </el-tag>
       </div>
       <div class="desktop-actions">
-        <el-button 
-          size="small" 
-          @click="toggleFullscreen" 
+        <el-button
+          size="small"
+          @click="toggleFullscreen"
           v-if="connectionState?.connected"
-          :icon="isFullscreen ? FullScreen : FullScreen"
         >
+          <IconifyIconOnline :icon="isFullscreen ? 'ep:full-screen' : 'ep:full-screen'" class="mr-1" />
           {{ isFullscreen ? '退出全屏' : '全屏' }}
         </el-button>
-        <el-button 
-          size="small" 
-          @click="reconnect" 
+        <el-button
+          size="small"
+          @click="reconnect"
           :disabled="connectionState?.connecting"
-          :icon="Refresh"
         >
+          <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           重连
         </el-button>
         <el-dropdown @command="handleToolCommand" v-if="connectionState?.connected">
           <el-button size="small">
             工具
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            <IconifyIconOnline icon="ep:arrow-down" class="el-icon--right" />
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -45,7 +45,8 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-button size="small" @click="$emit('close')" :icon="Close">
+        <el-button size="small" @click="$emit('close')">
+          <IconifyIconOnline icon="ep:close" class="mr-1" />
           关闭
         </el-button>
       </div>
@@ -59,7 +60,7 @@
           <el-card shadow="hover" class="connection-card">
             <template #header>
               <div class="card-header">
-                <el-icon><Monitor /></el-icon>
+                <IconifyIconOnline icon="ep:monitor" />
                 <span>VNC 连接配置</span>
               </div>
             </template>
@@ -137,7 +138,7 @@
                 :disabled="!server"
                 size="large"
               >
-                <el-icon><Connection /></el-icon>
+                <IconifyIconOnline icon="ep:connection" class="mr-1" />
                 {{ connectionState?.connecting ? '连接中...' : '连接' }}
               </el-button>
             </div>
@@ -165,27 +166,27 @@
     <div class="desktop-footer" v-if="connectionState?.connected">
       <div class="status-info">
         <span class="status-item">
-          <el-icon><Timer /></el-icon>
+          <IconifyIconOnline icon="ep:timer" />
           连接时间: {{ formatDuration(connectionState.duration) }}
         </span>
         <span class="status-item" v-if="connectionStats">
-          <el-icon><DataLine /></el-icon>
+          <IconifyIconOnline icon="ep:data-line" />
           延迟: {{ connectionStats.latency }}ms
         </span>
         <span class="status-item" v-if="displayInfo">
-          <el-icon><Monitor /></el-icon>
+          <IconifyIconOnline icon="ep:monitor" />
           分辨率: {{ displayInfo.width }}x{{ displayInfo.height }}
         </span>
         <span class="status-item" v-if="connectionStats">
-          <el-icon><Upload /></el-icon>
+          <IconifyIconOnline icon="ep:upload" />
           上传: {{ formatBytes(connectionStats.bytesSent) }}
         </span>
         <span class="status-item" v-if="connectionStats">
-          <el-icon><Download /></el-icon>
+          <IconifyIconOnline icon="ep:download" />
           下载: {{ formatBytes(connectionStats.bytesReceived) }}
         </span>
         <span class="status-item" v-if="connectionStats">
-          <el-icon><Odometer /></el-icon>
+          <IconifyIconOnline icon="ep:odometer" />
           帧率: {{ connectionStats.frameRate }}fps
         </span>
       </div>
@@ -238,7 +239,7 @@
         drag
         multiple
       >
-        <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+        <IconifyIconOnline icon="ep:upload-filled" class="el-icon--upload" />
         <div class="el-upload__text">
           将文件拖到此处，或<em>点击上传</em>
         </div>
@@ -259,10 +260,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { 
-  Monitor, Connection, FullScreen, Refresh, ArrowDown, Close, Timer, 
-  DataLine, Upload, Download, UploadFilled, Odometer 
-} from '@element-plus/icons-vue';
+// 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
 import { guacamoleConnectionManager } from '@/utils/guacamole/connection-manager';
 import type { 
   VNCConnectionConfig, 
