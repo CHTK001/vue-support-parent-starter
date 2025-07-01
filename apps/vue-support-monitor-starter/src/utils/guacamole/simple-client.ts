@@ -41,6 +41,7 @@ export class SimpleGuacamoleClient {
   private maxReconnectAttempts: number = 3;
   private reconnectDelay: number = 2000; // 2秒
   private isDestroyed: boolean = false;
+  private isConnecting: boolean = false;
 
   constructor(config: SimpleGuacamoleConfig, events: SimpleGuacamoleEvents = {}) {
     this.config = config;
@@ -58,6 +59,20 @@ export class SimpleGuacamoleClient {
           reject(new Error('客户端已销毁'));
           return;
         }
+
+        // 防止重复连接
+        if (this.isConnecting) {
+          reject(new Error('正在连接中，请勿重复连接'));
+          return;
+        }
+
+        // 如果已经连接，直接返回成功
+        if (this.client && this.client.currentState === Guacamole.Client.CONNECTED) {
+          resolve();
+          return;
+        }
+
+        this.isConnecting = true;
 
         // 构建 WebSocket URL
         const wsUrl = this.buildWebSocketUrl();
@@ -105,26 +120,30 @@ export class SimpleGuacamoleClient {
           if (state === Guacamole.Client.CONNECTED) {
             console.log('Guacamole 连接成功，设置输入处理器');
             this.setupInputHandlers();
+            this.isConnecting = false;
             resolve();
           } else if (state === Guacamole.Client.DISCONNECTED) {
             console.log('Guacamole 连接断开');
+            this.isConnecting = false;
             // 只有在非销毁状态下才视为错误
             if (!this.isDestroyed) {
               reject(new Error('连接断开'));
             }
           } else if (state < 0) {
             console.error('Guacamole 客户端错误状态:', state);
+            this.isConnecting = false;
             reject(new Error(`客户端错误: ${state}`));
           }
         };
 
         this.client.onerror = (error: any) => {
           console.error('Guacamole 客户端错误:', error);
-          
+          this.isConnecting = false;
+
           if (this.events.onError) {
             this.events.onError(error);
           }
-          
+
           reject(error);
         };
 
@@ -168,11 +187,13 @@ export class SimpleGuacamoleClient {
         const originalReject = reject;
         reject = (error: any) => {
           clearTimeout(connectionTimeout);
+          this.isConnecting = false;
           originalReject(error);
         };
 
       } catch (error) {
         console.error('Guacamole 连接失败:', error);
+        this.isConnecting = false;
         reject(error);
       }
     });
@@ -271,11 +292,12 @@ export class SimpleGuacamoleClient {
    */
   disconnect(): void {
     console.log('断开 Guacamole 连接');
-    
+    this.isConnecting = false;
+
     if (this.client) {
       this.client.disconnect();
     }
-    
+
     if (this.tunnel) {
       this.tunnel.disconnect();
     }
@@ -369,12 +391,12 @@ export class SimpleGuacamoleClient {
 
 // 导出 Guacamole 常量
 export const GuacamoleStates = {
-  IDLE: Guacamole.Client.IDLE,
-  CONNECTING: Guacamole.Client.CONNECTING,
-  WAITING: Guacamole.Client.WAITING,
-  CONNECTED: Guacamole.Client.CONNECTED,
-  DISCONNECTING: Guacamole.Client.DISCONNECTING,
-  DISCONNECTED: Guacamole.Client.DISCONNECTED
+  IDLE: Guacamole.Client.IDLE || 0,
+  CONNECTING: Guacamole.Client.CONNECTING || 1,
+  WAITING: Guacamole.Client.WAITING || 2,
+  CONNECTED: Guacamole.Client.CONNECTED || 4,
+  DISCONNECTING: Guacamole.Client.DISCONNECTING || 8,
+  DISCONNECTED: Guacamole.Client.DISCONNECTED || 16
 };
 
 export default SimpleGuacamoleClient;

@@ -157,9 +157,9 @@ const disconnect = () => {
   if (guacamoleClient.value) {
     guacamoleClient.value.disconnect();
     guacamoleClient.value = null;
-    currentState.value = GuacamoleStates.DISCONNECTED;
-    ElMessage.success('已断开 VNC 连接');
   }
+  currentState.value = GuacamoleStates.DISCONNECTED;
+  ElMessage.success('已断开 VNC 连接');
 };
 
 const takeScreenshot = () => {
@@ -181,7 +181,7 @@ const takeScreenshot = () => {
 // 生命周期
 onMounted(() => {
   console.log('SimpleVNCDesktop 组件已挂载');
-  connect();
+  // 移除自动连接，改为手动点击连接按钮
 });
 
 onUnmounted(() => {
