@@ -101,6 +101,56 @@
         />
         <span class="form-tip">%，建议值：80-95</span>
       </el-form-item>
+
+      <el-form-item prop="monitorSysGenServerSettingNetworkAlertThreshold">
+        <template #label>
+          <div class="form-label">
+            <span>网络告警阈值</span>
+            <el-tooltip
+              content="网络流量超过此速率时触发告警通知，单位Mbps，建议根据网络带宽设置"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingNetworkAlertThreshold"
+          :min="1"
+          :max="10000"
+          :step="10"
+          placeholder="网络流量阈值(Mbps)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">Mbps，建议值：100-1000</span>
+      </el-form-item>
+
+      <el-form-item prop="monitorSysGenServerSettingResponseTimeAlertThreshold">
+        <template #label>
+          <div class="form-label">
+            <span>响应时间告警阈值</span>
+            <el-tooltip
+              content="服务器响应时间超过此值时触发告警通知，单位毫秒，建议3000-10000ms"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingResponseTimeAlertThreshold"
+          :min="100"
+          :max="60000"
+          :step="100"
+          placeholder="响应时间阈值(ms)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">毫秒，建议值：3000-10000</span>
+      </el-form-item>
     </div>
 
     <!-- 告警配置 -->
@@ -160,14 +210,15 @@
       </el-form-item>
 
       <el-form-item
-        v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'EMAIL'"
-        prop="monitorSysGenServerSettingAlertEmailAddresses"
+        v-show="formData.monitorSysGenServerSettingAlertEnabled &&
+                formData.monitorSysGenServerSettingAlertNotificationMethod"
+        prop="monitorSysGenServerSettingAlertNotificationAddress"
       >
         <template #label>
           <div class="form-label">
-            <span>邮件地址</span>
+            <span>{{ getNotificationAddressLabel() }}</span>
             <el-tooltip
-              content="接收告警邮件的邮箱地址，多个地址用逗号分隔，如：admin@example.com,ops@example.com"
+              :content="getNotificationAddressTooltip()"
               placement="top"
               effect="dark"
             >
@@ -176,32 +227,8 @@
           </div>
         </template>
         <el-input
-          v-model="formData.monitorSysGenServerSettingAlertEmailAddresses"
-          placeholder="请输入邮件地址，多个用逗号分隔"
-          maxlength="200"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'WEBHOOK'"
-        prop="monitorSysGenServerSettingAlertWebhookUrl"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>Webhook URL</span>
-            <el-tooltip
-              content="自定义Webhook接收地址，告警信息将以POST请求发送到此URL，支持集成第三方系统"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingAlertWebhookUrl"
-          placeholder="请输入Webhook URL"
+          v-model="formData.monitorSysGenServerSettingAlertNotificationAddress"
+          :placeholder="getNotificationAddressPlaceholder()"
           maxlength="500"
           @change="handleChange"
         />
@@ -771,10 +798,13 @@ const formData = reactive<Partial<ServerSetting & any>>({
   monitorSysGenServerSettingCpuAlertThreshold: 80,
   monitorSysGenServerSettingMemoryAlertThreshold: 80,
   monitorSysGenServerSettingDiskAlertThreshold: 90,
+  monitorSysGenServerSettingNetworkAlertThreshold: 100,
+  monitorSysGenServerSettingResponseTimeAlertThreshold: 5000,
 
   // 告警配置默认值
   monitorSysGenServerSettingAlertEnabled: 0,
   monitorSysGenServerSettingAlertNotificationMethod: "EMAIL",
+  monitorSysGenServerSettingAlertNotificationAddress: "",
   monitorSysGenServerSettingAlertSilenceDuration: 30,
   monitorSysGenServerSettingAutoRecoveryNotificationEnabled: 1,
 
@@ -808,6 +838,69 @@ const isLocalServer = computed(() => {
 const handleChange = () => {
   emit("update:modelValue", formData);
   emit("change", formData);
+};
+
+/**
+ * 获取通知地址标签
+ */
+const getNotificationAddressLabel = () => {
+  const method = formData.value.monitorSysGenServerSettingAlertNotificationMethod;
+  switch (method) {
+    case "EMAIL":
+      return "邮件地址";
+    case "SMS":
+      return "手机号码";
+    case "DINGTALK":
+      return "钉钉Webhook";
+    case "WECHAT":
+      return "企业微信Webhook";
+    case "WEBHOOK":
+      return "Webhook URL";
+    default:
+      return "通知地址";
+  }
+};
+
+/**
+ * 获取通知地址提示
+ */
+const getNotificationAddressTooltip = () => {
+  const method = formData.value.monitorSysGenServerSettingAlertNotificationMethod;
+  switch (method) {
+    case "EMAIL":
+      return "接收告警邮件的邮箱地址，多个地址用逗号分隔，如：admin@example.com,ops@example.com";
+    case "SMS":
+      return "接收告警短信的手机号码，多个号码用逗号分隔，如：13800138000,13900139000";
+    case "DINGTALK":
+      return "钉钉群机器人的Webhook地址，可在钉钉群设置中获取";
+    case "WECHAT":
+      return "企业微信群机器人的Webhook地址，可在企业微信群设置中获取";
+    case "WEBHOOK":
+      return "自定义Webhook接收地址，告警信息将以POST请求发送到此URL，支持集成第三方系统";
+    default:
+      return "请输入通知接收地址";
+  }
+};
+
+/**
+ * 获取通知地址占位符
+ */
+const getNotificationAddressPlaceholder = () => {
+  const method = formData.value.monitorSysGenServerSettingAlertNotificationMethod;
+  switch (method) {
+    case "EMAIL":
+      return "请输入邮件地址，多个用逗号分隔";
+    case "SMS":
+      return "请输入手机号码，多个用逗号分隔";
+    case "DINGTALK":
+      return "请输入钉钉Webhook地址";
+    case "WECHAT":
+      return "请输入企业微信Webhook地址";
+    case "WEBHOOK":
+      return "请输入Webhook URL";
+    default:
+      return "请输入通知地址";
+  }
 };
 
 // 监听外部数据变化

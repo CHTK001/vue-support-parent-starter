@@ -23,18 +23,14 @@
                 />
               </el-form-item>
 
-              <el-form-item label="监控间隔" prop="monitorSysGenServerSettingMonitorInterval">
-                <el-input-number
-                  v-model="formData.monitorSysGenServerSettingMonitorInterval"
-                  :min="10"
-                  :max="3600"
-                  :step="10"
-                  controls-position="right"
-                />
-                <span class="unit">秒</span>
-              </el-form-item>
 
-              <el-form-item label="数据收集频率" prop="monitorSysGenServerSettingDataCollectionFrequency">
+
+              <!-- 数据收集频率：仅在非API上报方式时显示 -->
+              <el-form-item
+                v-if="formData.monitorSysGenServerSettingDataReportMethod !== 'API'"
+                label="数据收集频率"
+                prop="monitorSysGenServerSettingDataCollectionFrequency"
+              >
                 <el-input-number
                   v-model="formData.monitorSysGenServerSettingDataCollectionFrequency"
                   :min="10"
@@ -43,6 +39,9 @@
                   controls-position="right"
                 />
                 <span class="unit">秒</span>
+                <el-tooltip content="API上报方式由客户端控制推送频率，无需设置收集频率" placement="top">
+                  <el-icon class="info-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
               </el-form-item>
 
               <el-form-item label="数据保留时间" prop="monitorSysGenServerSettingMetricsRetentionDays">
@@ -71,10 +70,20 @@
                 />
               </el-form-item>
 
+            
               <el-form-item label="上报方式" prop="monitorSysGenServerSettingDataReportMethod">
                 <el-select v-model="formData.monitorSysGenServerSettingDataReportMethod" placeholder="选择上报方式">
                   <el-option label="不上报" value="NONE" />
-                  <el-option label="API接口" value="API" />
+                  <el-option
+                    v-if="currentServer?.monitorSysGenServerIsLocal === 1"
+                    label="本机上报"
+                    value="LOCAL"
+                  />
+                  <el-option
+                    v-if="currentServer?.monitorSysGenServerIsLocal !== 1"
+                    label="API接口"
+                    value="API"
+                  />
                   <el-option label="Prometheus" value="PROMETHEUS" />
                 </el-select>
               </el-form-item>
@@ -278,13 +287,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, nextTick } from "vue";
+import { reactive, ref, computed } from "vue";
 import { message } from "@repo/utils";
 import {
   type ServerSetting,
   getOrCreateServerSetting,
   saveOrUpdateServerSetting
 } from "@/api/server/setting";
+import { getServerInfo, type ServerInfo } from "@/api/server";
 
 // 定义事件
 const emit = defineEmits<{
@@ -297,13 +307,13 @@ const loading = ref(false);
 const activeTab = ref("basic");
 const formRef = ref();
 const serverId = ref<number | null>(null);
+const currentServer = ref<ServerInfo | null>(null);
 
 // 表单数据
 const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingMonitorEnabled: 1,
   monitorSysGenServerSettingReportEnabled: 1,
   monitorSysGenServerSettingDataReportMethod: "API",
-  monitorSysGenServerSettingMonitorInterval: 60,
   monitorSysGenServerSettingDataCollectionFrequency: 30,
   monitorSysGenServerSettingMetricsRetentionDays: 30,
   monitorSysGenServerSettingAlertEnabled: 0,
@@ -326,21 +336,25 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingStatus: 1,
 });
 
-// 表单验证规则
-const rules = {
-  monitorSysGenServerSettingMonitorInterval: [
-    { required: true, message: "监控间隔不能为空", trigger: "blur" },
-    { type: "number", min: 10, max: 3600, message: "监控间隔范围 10-3600 秒", trigger: "blur" },
-  ],
-  monitorSysGenServerSettingDataCollectionFrequency: [
-    { required: true, message: "数据收集频率不能为空", trigger: "blur" },
-    { type: "number", min: 10, max: 3600, message: "数据收集频率范围 10-3600 秒", trigger: "blur" },
-  ],
-  monitorSysGenServerSettingMetricsRetentionDays: [
-    { required: true, message: "数据保留时间不能为空", trigger: "blur" },
-    { type: "number", min: 1, max: 365, message: "数据保留时间范围 1-365 天", trigger: "blur" },
-  ],
-};
+// 表单验证规则 - 动态规则
+const rules = computed(() => {
+  const baseRules: any = {
+    monitorSysGenServerSettingMetricsRetentionDays: [
+      { required: true, message: "数据保留时间不能为空", trigger: "blur" },
+      { type: "number", min: 1, max: 365, message: "数据保留时间范围 1-365 天", trigger: "blur" },
+    ],
+  };
+
+  // 仅在非API上报方式时添加数据收集频率验证
+  if (formData.monitorSysGenServerSettingDataReportMethod !== 'API') {
+    baseRules.monitorSysGenServerSettingDataCollectionFrequency = [
+      { required: true, message: "数据收集频率不能为空", trigger: "blur" },
+      { type: "number", min: 10, max: 3600, message: "数据收集频率范围 10-3600 秒", trigger: "blur" },
+    ];
+  }
+
+  return baseRules;
+});
 
 /**
  * 打开对话框
@@ -349,9 +363,30 @@ const open = async (serverIdParam: number) => {
   serverId.value = serverIdParam;
   visible.value = true;
   activeTab.value = "basic";
-  
-  // 加载服务器设置
-  await loadServerSetting();
+debugger
+  // 同时加载服务器信息和设置
+  await Promise.all([
+    loadServerInfo(),
+    loadServerSetting()
+  ]);
+};
+
+/**
+ * 加载服务器信息
+ */
+const loadServerInfo = async () => {
+  if (!serverId.value) return;
+
+  try {
+    const result = await getServerInfo(String(serverId.value));
+    debugger
+    if (result.code === "00000" && result.data) {
+      currentServer.value = result.data;
+    }
+  } catch (error) {
+    console.error("加载服务器信息失败:", error);
+    message.error("加载服务器信息失败");
+  }
 };
 
 /**
@@ -359,7 +394,7 @@ const open = async (serverIdParam: number) => {
  */
 const loadServerSetting = async () => {
   if (!serverId.value) return;
-  
+
   try {
     loading.value = true;
     const result = await getOrCreateServerSetting(serverId.value);
