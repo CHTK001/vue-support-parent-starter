@@ -31,36 +31,7 @@
           </el-tooltip>
 
           <!-- 调试信息 -->
-          <el-popover
-            placement="bottom"
-            :width="400"
-            trigger="hover"
-            v-if="Object.keys(messageStats).length > 0"
-          >
-            <template #reference>
-              <el-tag type="info" effect="plain" size="small" class="ml-2 tag-container">
-                <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
-                调试 ({{ Object.values(messageStats).reduce((a, b) => a + b, 0) }})
-              </el-tag>
-            </template>
-            <div class="debug-info">
-              <h4 style="margin: 0 0 10px 0; font-size: 14px;">WebSocket 消息统计</h4>
-              <div class="message-stats">
-                <div v-for="(count, type) in messageStats" :key="type" class="stat-item" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span class="stat-type" style="font-weight: 500;">{{ type }}:</span>
-                  <span class="stat-count" style="color: #409eff;">{{ count }}次</span>
-                </div>
-              </div>
-              <div class="last-message-time" v-if="lastMessageTime > 0" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                <small style="color: #909399;">最后消息: {{ new Date(lastMessageTime).toLocaleTimeString() }}</small>
-              </div>
-              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
-                <small style="color: #909399;">
-                  💡 如果没有收到 server_metrics 消息，请检查是否已配置服务器
-                </small>
-              </div>
-            </div>
-          </el-popover>
+          <!-- 调试信息已移除，避免响应式更新导致的无限递归 -->
         </h2>
       </div>
       <div class="toolbar-right">
@@ -109,6 +80,13 @@
 
 
         <!-- 操作按钮 -->
+        <el-tooltip content="刷新服务器列表" placement="bottom" :show-after="500">
+          <el-button size="small" @click="handleRefreshServerList">
+            <IconifyIconOnline icon="ep:refresh" class="mr-1" />
+            刷新
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
           <el-button type="primary" size="small" @click="showAddDialog">
             <IconifyIconOnline icon="ep:plus" class="mr-1" />
@@ -594,9 +572,7 @@ const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
 const { state: wsState, onMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
 const wsConnected = computed(() => wsState.value?.connected || false);
 
-// 消息统计（用于调试）
-const messageStats = ref<Record<string, number>>({});
-const lastMessageTime = ref<number>(0);
+// 消息统计已移至非响应式对象，避免无限递归
 
 // 服务器指标监听
 const metricsStore = useServerMetricsStore();
@@ -914,11 +890,13 @@ const loadServerLatency = async () => {
 
 
 /**
- * 选择服务器
+ * 选择服务器 - 点击服务器卡片时直接显示监控信息
  */
 const selectServer = (server: any) => {
   selectedServerId.value = server.id;
-  currentComponent.value = "ServerMonitor"; // 默认显示监控组件
+  // 点击服务器卡片直接显示服务器监控信息
+  currentComponent.value = "ServerMonitor";
+  console.log(`选择服务器 ${server.name}，显示监控信息`);
 };
 
 /**
@@ -931,7 +909,7 @@ const connectServer = async (server: any) => {
     // 显示加载状态
     message.info("正在连接服务器...");
 
-    // 选择服务器
+    // 选择服务器，但不设置组件（避免触发ServerMonitor）
     selectedServerId.value = server.id;
 
     // 调用后台API建立连接
@@ -939,10 +917,8 @@ const connectServer = async (server: any) => {
     console.log("连接API响应:", connectResult);
 
     if (connectResult.code === "00000") {
-      // 注意：不在这里显示连接成功消息，等待SSH组件的确认消息
-      // message.success("服务器连接成功");
-
-      // 根据协议选择对应的远程组件
+      // 连接成功，直接根据协议选择对应的远程组件
+      // 不触发服务器指标组件，不查询数据
       switch (server.protocol) {
         case "SSH":
           currentComponent.value = "SSHTerminal";
@@ -955,7 +931,8 @@ const connectServer = async (server: any) => {
           currentComponent.value = "SSHTerminal";
       }
 
-      // WebSocket 连接由 composable 自动管理
+      message.success("服务器连接成功");
+      console.log("设置组件为:", currentComponent.value);
 
     } else {
       message.error(connectResult.msg || "连接失败");
@@ -1209,6 +1186,81 @@ const handleSuccess = () => {
 };
 
 /**
+ * 处理刷新服务器列表
+ */
+const handleRefreshServerList = async () => {
+  try {
+    message.info("正在刷新服务器列表...");
+    await loadServers();
+    message.success("服务器列表刷新完成");
+  } catch (error) {
+    console.error("刷新服务器列表失败:", error);
+    message.error("刷新服务器列表失败");
+  }
+};
+
+/**
+ * 更新特定服务器的连接状态
+ */
+const updateServerConnectionStatus = async (serverId: string, statusData: any) => {
+  try {
+    // 使用nextTick避免立即的响应式更新导致无限递归
+    await nextTick();
+
+    const serverIndex = servers.value.findIndex(server => server.id === serverId);
+    if (serverIndex !== -1) {
+      // 创建新的服务器对象，避免直接修改原对象
+      const updatedServer = { ...servers.value[serverIndex] };
+
+      // 更新服务器的连接状态
+      if (statusData && typeof statusData.connectionStatus !== 'undefined') {
+        updatedServer.connectionStatus = statusData.connectionStatus;
+      }
+      if (statusData && typeof statusData.onlineStatus !== 'undefined') {
+        updatedServer.onlineStatus = statusData.onlineStatus;
+      }
+
+      // 替换整个服务器对象
+      servers.value[serverIndex] = updatedServer;
+      console.log(`已更新服务器 ${serverId} 的连接状态:`, statusData);
+    }
+  } catch (error) {
+    console.error('更新服务器连接状态失败:', error);
+  }
+};
+
+// 防抖更新服务器状态的Map，用于存储待更新的状态
+const pendingStatusUpdates = new Map<string, any>();
+let statusUpdateTimer: NodeJS.Timeout | null = null;
+
+/**
+ * 防抖更新服务器状态
+ */
+const debounceUpdateServerStatus = (serverId: string, statusData: any) => {
+  // 存储待更新的状态
+  pendingStatusUpdates.set(serverId, statusData);
+
+  // 清除之前的定时器
+  if (statusUpdateTimer) {
+    clearTimeout(statusUpdateTimer);
+  }
+
+  // 设置新的定时器，300ms后批量更新
+  statusUpdateTimer = setTimeout(async () => {
+    try {
+      // 批量更新所有待更新的服务器状态
+      for (const [id, data] of pendingStatusUpdates.entries()) {
+        await updateServerConnectionStatus(id, data);
+      }
+      // 清空待更新列表
+      pendingStatusUpdates.clear();
+    } catch (error) {
+      console.error('批量更新服务器状态失败:', error);
+    }
+  }, 300);
+};
+
+/**
  * 处理打开服务器配置页面
  */
 const handleOpenConfig = (serverId: number) => {
@@ -1383,12 +1435,7 @@ const getHealthStatusIcon = (status: string) => {
 
 
 
-// 消息统计函数
-const updateMessageStats = (messageType: string) => {
-  messageStats.value[messageType] = (messageStats.value[messageType] || 0) + 1;
-  lastMessageTime.value = Date.now();
-  console.log(`📊 消息统计: ${messageType} (${messageStats.value[messageType]}次)`);
-};
+// 消息统计已禁用，避免无限递归问题
 
 // 监听WebSocket消息
 const setupWebSocketListeners = () => {
@@ -1396,7 +1443,8 @@ const setupWebSocketListeners = () => {
 
   // 监听服务器指标数据
   onMessage('server_metrics', (message) => {
-    updateMessageStats('server_metrics');
+    // 暂时禁用消息统计，避免无限递归
+    // updateMessageStats('server_metrics');
     console.log('收到server_metrics消息:', message);
     if (message.serverId && message.data) {
       // 更新store中的指标数据
@@ -1422,7 +1470,7 @@ const setupWebSocketListeners = () => {
 
   // 监听服务器趋势数据
   onMessage('server_trends', (message) => {
-    updateMessageStats('server_trends');
+    // updateMessageStats('server_trends');
     console.log('收到server_trends消息:', message);
     if (message.serverId && message.data) {
       // 处理趋势数据，可以用于图表显示
@@ -1432,7 +1480,7 @@ const setupWebSocketListeners = () => {
 
   // 监听服务器状态汇总
   onMessage('server_status_summary', (message) => {
-    updateMessageStats('server_status_summary');
+    // updateMessageStats('server_status_summary');
     console.log('收到server_status_summary消息:', message);
     if (message.data) {
       // 处理状态汇总数据
@@ -1458,7 +1506,7 @@ const setupWebSocketListeners = () => {
 
   // 监听连接状态统计
   onMessage('connection_statistics', (message) => {
-    updateMessageStats('connection_statistics');
+    // updateMessageStats('connection_statistics');
     console.log('收到connection_statistics消息:', message);
     if (message.data) {
       // 处理连接统计数据
@@ -1468,7 +1516,7 @@ const setupWebSocketListeners = () => {
 
   // 监听健康状态报告
   onMessage('health_status', (message) => {
-    updateMessageStats('health_status');
+    // updateMessageStats('health_status');
     console.log('收到health_status消息:', message);
     if (message.data) {
       // 处理健康状态数据
@@ -1478,18 +1526,16 @@ const setupWebSocketListeners = () => {
 
   // 监听连接状态变化
   onMessage('connection_status_change', (message) => {
-    updateMessageStats('connection_status_change');
+    // updateMessageStats('connection_status_change');
     console.log('收到connection_status_change消息:', message);
-    if (message.serverId) {
-      console.log(`服务器 ${message.serverId} 连接状态变化:`, message);
-      // 可以在这里更新服务器列表中的连接状态
-      loadServers();
-    }
+    // 暂时禁用自动更新服务器状态，避免无限递归
+    // TODO: 后续优化状态更新逻辑
+    console.log(`服务器 ${message.serverId} 连接状态变化，暂时跳过自动更新`);
   });
 
   // 监听服务器告警
   onMessage('server_alerts', (message) => {
-    updateMessageStats('server_alerts');
+    // updateMessageStats('server_alerts');
     console.log('收到server_alerts消息:', message);
     if (message.serverId && message.data) {
       console.log(`服务器 ${message.serverId} 告警信息:`, message.data);
@@ -2566,10 +2612,52 @@ onUnmounted(() => {
     margin-top: 4px;
   }
 }
-:deep(.tag-container > span){ 
+:deep(.tag-container > span){
   display: flex;
   align-items: center;
   flex-direction: column;
+}
+
+/* 空状态组件样式 */
+.empty-component-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
+  border: 1px dashed var(--el-border-color-light);
+
+  .empty-content {
+    text-align: center;
+    padding: 40px;
+
+    .empty-icon {
+      font-size: 64px;
+      color: var(--el-text-color-placeholder);
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--el-text-color-primary);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0 0 24px 0;
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+  }
 }
 
 </style>
