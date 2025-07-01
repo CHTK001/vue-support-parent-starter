@@ -38,7 +38,7 @@
           </div>
           <el-progress
             :percentage="Math.round(metrics?.cpu?.usage || 0)"
-            :color="getProgressColor(metrics?.cpu?.usage || 0)"
+            :color="getProgressColor(metrics?.cpu?.usage || 0, 'cpu')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -60,7 +60,7 @@
           </div>
           <el-progress
             :percentage="Math.round(metrics?.memory?.usage || 0)"
-            :color="getProgressColor(metrics?.memory?.usage || 0)"
+            :color="getProgressColor(metrics?.memory?.usage || 0, 'memory')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -82,7 +82,7 @@
           </div>
           <el-progress
             :percentage="Math.round(metrics?.disk?.usage || 0)"
-            :color="getProgressColor(metrics?.disk?.usage || 0)"
+            :color="getProgressColor(metrics?.disk?.usage || 0, 'disk')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -160,9 +160,9 @@
           <div class="metric-value">
             {{ Math.round(metrics?.temperature || 0) }}°C
           </div>
-          <el-progress 
+          <el-progress
             :percentage="Math.min(Math.round((metrics?.temperature || 0) / 100 * 100), 100)"
-            :color="getTempColor(metrics?.temperature || 0)"
+            :color="getProgressColor(metrics?.temperature || 0, 'temperature')"
             :show-text="false"
           />
         </div>
@@ -181,6 +181,14 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { message } from "@repo/utils";
 import { type ServerDisplayData } from "@/api/server";
+import {
+  useMetricsThreshold,
+  formatBytes,
+  formatNetworkSpeed,
+  formatNumber,
+  formatUptime,
+  formatTime
+} from "@/composables/useMetricsThreshold";
 
 /**
  * 服务器指标数据类型（简化版本，与useServerMetricsSocket保持兼容）
@@ -278,16 +286,49 @@ const getOnlineStatusText = (status: number) => {
   return statusMap[status] || "未知";
 };
 
-const getProgressColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
+/**
+ * 阈值配置
+ */
+const thresholds = {
+  cpu: { normal: 50, warning: 80, critical: 90 },
+  memory: { normal: 60, warning: 80, critical: 90 },
+  disk: { normal: 70, warning: 85, critical: 95 },
+  temperature: { normal: 50, warning: 70, critical: 85 },
+  network: { normal: 60, warning: 80, critical: 90 }
 };
 
+/**
+ * 根据指标类型和值获取颜色
+ */
+const getMetricColor = (metricType: string, value: number) => {
+  const threshold = thresholds[metricType as keyof typeof thresholds];
+  if (!threshold) return "#67c23a";
+
+  if (value >= threshold.critical) return "#f56c6c"; // 红色
+  if (value >= threshold.warning) return "#e6a23c";  // 黄色
+  return "#67c23a"; // 绿色
+};
+
+/**
+ * 获取进度条颜色（支持渐变）
+ */
+const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+  const threshold = thresholds[metricType as keyof typeof thresholds];
+  if (!threshold) return "#67c23a";
+
+  // 返回渐变色配置
+  return [
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
+  ];
+};
+
+/**
+ * 获取温度颜色
+ */
 const getTempColor = (temp: number) => {
-  if (temp < 50) return "#67c23a";
-  if (temp < 70) return "#e6a23c";
-  return "#f56c6c";
+  return getMetricColor('temperature', temp);
 };
 
 const formatBytes = (bytes: number | undefined) => {
