@@ -221,10 +221,14 @@
                       <el-option label="无上报" value="NONE" />
                       <el-option
                         v-if="currentServer?.monitorSysGenServerIsLocal === 1"
-                        label="本地上报"
+                        label="本机上报"
                         value="LOCAL"
                       />
-                      <el-option label="API上报" value="API" />
+                      <el-option
+                        v-if="currentServer?.monitorSysGenServerIsLocal !== 1"
+                        label="API上报"
+                        value="API"
+                      />
                       <el-option label="Prometheus" value="PROMETHEUS" />
                     </el-select>
                     <span class="form-tip">选择指标数据的上报方式</span>
