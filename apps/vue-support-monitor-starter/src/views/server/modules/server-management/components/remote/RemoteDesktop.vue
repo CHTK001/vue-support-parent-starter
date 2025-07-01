@@ -62,26 +62,24 @@
     </div>
 
     <!-- RDP 桌面组件 -->
-    <RDPDesktopNew 
-      v-if="selectedProtocol === 'rdp'" 
+    <SimpleRDPDesktop
+      v-if="selectedProtocol === 'rdp'"
       :server="server"
-      @close="handleClose"
     />
 
     <!-- VNC 桌面组件 -->
-    <VNCDesktopNew 
-      v-if="selectedProtocol === 'vnc'" 
+    <SimpleVNCDesktop
+      v-if="selectedProtocol === 'vnc'"
       :server="server"
-      @close="handleClose"
     />
 
     <!-- 返回按钮 -->
     <div v-if="selectedProtocol" class="back-button">
-      <el-button 
-        size="small" 
+      <el-button
+        size="small"
         @click="goBack"
-        :icon="ArrowLeft"
       >
+        <IconifyIconOnline icon="ep:arrow-left" class="mr-1" />
         返回协议选择
       </el-button>
     </div>
@@ -91,8 +89,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import RDPDesktopNew from './RDPDesktopNew.vue';
-import VNCDesktopNew from './VNCDesktopNew.vue';
+import SimpleRDPDesktop from './SimpleRDPDesktop.vue';
+import SimpleVNCDesktop from './SimpleVNCDesktop.vue';
 
 interface Props {
   /** 服务器信息 */
@@ -146,10 +144,6 @@ const selectProtocol = (protocol: 'rdp' | 'vnc') => {
 
 const goBack = () => {
   selectedProtocol.value = null;
-};
-
-const handleClose = () => {
-  emit('close');
 };
 
 // 初始化
