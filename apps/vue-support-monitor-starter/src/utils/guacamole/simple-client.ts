@@ -3,7 +3,6 @@
  * 直接使用 guacamole-common-js 原生功能，无需复杂封装
  */
 
-import { getConfig } from '@repo/config';
 import Guacamole from 'guacamole-common-js';
 
 export interface SimpleGuacamoleConfig {
@@ -38,6 +37,10 @@ export class SimpleGuacamoleClient {
   private keyboard: any = null;
   private config: SimpleGuacamoleConfig;
   private events: SimpleGuacamoleEvents;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 3;
+  private reconnectDelay: number = 2000; // 2秒
+  private isDestroyed: boolean = false;
 
   constructor(config: SimpleGuacamoleConfig, events: SimpleGuacamoleEvents = {}) {
     this.config = config;
@@ -50,30 +53,68 @@ export class SimpleGuacamoleClient {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // 如果已经销毁，不允许连接
+        if (this.isDestroyed) {
+          reject(new Error('客户端已销毁'));
+          return;
+        }
+
         // 构建 WebSocket URL
         const wsUrl = this.buildWebSocketUrl();
-        
+        console.log('开始连接 Guacamole WebSocket:', wsUrl);
+
         // 创建 Guacamole WebSocket 隧道
         this.tunnel = new Guacamole.WebSocketTunnel(wsUrl);
-        
+
+        // 添加隧道事件监听
+        this.tunnel.onerror = (error: any) => {
+          console.error('WebSocket 隧道错误:', error);
+          // 不立即处理错误，等待状态变化
+        };
+
+        this.tunnel.onstatechange = (state: number) => {
+          console.log('WebSocket 隧道状态变化:', state);
+
+          // 隧道连接成功时重置重连计数
+          if (state === 1) { // OPEN 状态
+            this.reconnectAttempts = 0;
+            console.log('WebSocket 隧道连接成功');
+          } else if (state === 3) { // CLOSED 状态
+            console.log('WebSocket 隧道连接关闭');
+            if (!this.isDestroyed) {
+              this.handleConnectionError(new Error('隧道连接关闭'), resolve, reject);
+            }
+          }
+        };
+
         // 创建 Guacamole 客户端
         this.client = new Guacamole.Client(this.tunnel);
-        
+
         // 获取显示对象
         this.display = this.client.getDisplay();
-        
+
         // 设置事件监听器
         this.client.onstatechange = (state: number) => {
-          console.log('Guacamole 状态变化:', state);
-          
+          console.log('Guacamole 客户端状态变化:', state, this.getStateText(state));
+
           if (this.events.onStateChange) {
             this.events.onStateChange(state);
           }
-          
+
           // 连接成功时设置输入处理器
           if (state === Guacamole.Client.CONNECTED) {
+            console.log('Guacamole 连接成功，设置输入处理器');
             this.setupInputHandlers();
             resolve();
+          } else if (state === Guacamole.Client.DISCONNECTED) {
+            console.log('Guacamole 连接断开');
+            // 只有在非销毁状态下才视为错误
+            if (!this.isDestroyed) {
+              reject(new Error('连接断开'));
+            }
+          } else if (state < 0) {
+            console.error('Guacamole 客户端错误状态:', state);
+            reject(new Error(`客户端错误: ${state}`));
           }
         };
 
@@ -99,10 +140,37 @@ export class SimpleGuacamoleClient {
             this.events.onClipboard(stream, mimetype);
           }
         };
-        
+         // 后端只需要serverId参数，其他参数通过服务器配置获取
+        const params = new URLSearchParams({
+          serverId: this.config.serverId.toString()
+        });
+
+        // 设置连接超时
+        const connectionTimeout = setTimeout(() => {
+          if (!this.isDestroyed && this.client && this.client.currentState !== Guacamole.Client.CONNECTED) {
+            console.error('Guacamole 连接超时');
+            this.disconnect();
+            reject(new Error('连接超时'));
+          }
+        }, 30000); // 30秒超时
+
         // 开始连接
-        this.client.connect();
-        
+        this.client.connect(params.toString());
+
+        // 连接成功后清除超时
+        const originalResolve = resolve;
+        resolve = () => {
+          clearTimeout(connectionTimeout);
+          originalResolve();
+        };
+
+        // 连接失败后清除超时
+        const originalReject = reject;
+        reject = (error: any) => {
+          clearTimeout(connectionTimeout);
+          originalReject(error);
+        };
+
       } catch (error) {
         console.error('Guacamole 连接失败:', error);
         reject(error);
@@ -116,24 +184,14 @@ export class SimpleGuacamoleClient {
   private buildWebSocketUrl(): string {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const path = getConfig().BaseUrl + `/websocket/${this.config.protocol}`;
-    
-    // 构建连接参数
-    const params = new URLSearchParams({
-      serverId: this.config.serverId.toString(),
-      host: this.config.host,
-      port: this.config.port.toString(),
-      protocol: this.config.protocol
-    });
-    
-    if (this.config.username) params.set('username', this.config.username);
-    if (this.config.password) params.set('password', this.config.password);
-    if (this.config.resolution) params.set('resolution', this.config.resolution);
-    if (this.config.colorDepth) params.set('colorDepth', this.config.colorDepth.toString());
-    if (this.config.enableAudio !== undefined) params.set('enableAudio', this.config.enableAudio.toString());
-    if (this.config.enableClipboard !== undefined) params.set('enableClipboard', this.config.enableClipboard.toString());
 
-    return `${protocol}//${host}${path}?${params.toString()}`;
+    // 使用环境变量中的API基础路径
+    const baseUrl = import.meta.env.VITE_APP_API_BASE_URL || '/monitor/api';
+    const path = baseUrl + `/websocket/${this.config.protocol}`;
+
+    const url = `${protocol}//${host}${path}`;
+    console.log('构建WebSocket URL:', url);
+    return url;
   }
 
   /**
@@ -170,21 +228,41 @@ export class SimpleGuacamoleClient {
   }
 
   /**
-   * 绑定到 Canvas 元素
+   * 获取状态文本
    */
-  attachTo(canvas: HTMLCanvasElement) {
-    if (this.display && canvas) {
-      // 清空 canvas 内容
-      canvas.innerHTML = '';
-      
-      // 将 Guacamole 显示元素添加到 canvas
-      canvas.appendChild(this.display.getElement());
-      
+  private getStateText(state: number): string {
+    switch (state) {
+      case Guacamole.Client.IDLE: return 'IDLE';
+      case Guacamole.Client.CONNECTING: return 'CONNECTING';
+      case Guacamole.Client.WAITING: return 'WAITING';
+      case Guacamole.Client.CONNECTED: return 'CONNECTED';
+      case Guacamole.Client.DISCONNECTING: return 'DISCONNECTING';
+      case Guacamole.Client.DISCONNECTED: return 'DISCONNECTED';
+      default: return `UNKNOWN(${state})`;
+    }
+  }
+
+  /**
+   * 绑定到容器元素
+   */
+  attachTo(container: HTMLElement) {
+    if (this.display && container) {
+      // 清空容器内容
+      container.innerHTML = '';
+
+      // 将 Guacamole 显示元素添加到容器
+      container.appendChild(this.display.getElement());
+
       // 设置样式
       const displayElement = this.display.getElement();
       displayElement.style.width = '100%';
       displayElement.style.height = '100%';
       displayElement.style.objectFit = 'contain';
+
+      // 设置容器样式
+      container.style.width = '100%';
+      container.style.height = '100%';
+      container.style.overflow = 'hidden';
     }
   }
 
@@ -234,22 +312,53 @@ export class SimpleGuacamoleClient {
   }
 
   /**
+   * 处理连接错误
+   */
+  private handleConnectionError(error: any, resolve: (value: void) => void, reject: (reason: any) => void) {
+    console.error('WebSocket 连接错误:', error);
+
+    if (this.isDestroyed) {
+      reject(error);
+      return;
+    }
+
+    // 如果还有重连机会
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(`尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+
+      setTimeout(() => {
+        if (!this.isDestroyed) {
+          this.connect().then(resolve).catch(reject);
+        }
+      }, this.reconnectDelay);
+    } else {
+      // 重连次数用完，触发错误回调
+      if (this.events.onError) {
+        this.events.onError(error);
+      }
+      reject(error);
+    }
+  }
+
+  /**
    * 销毁客户端
    */
   destroy() {
+    this.isDestroyed = true;
     this.disconnect();
-    
+
     if (this.mouse) {
       this.mouse.onmousedown = null;
       this.mouse.onmouseup = null;
       this.mouse.onmousemove = null;
     }
-    
+
     if (this.keyboard) {
       this.keyboard.onkeydown = null;
       this.keyboard.onkeyup = null;
     }
-    
+
     this.client = null;
     this.tunnel = null;
     this.display = null;

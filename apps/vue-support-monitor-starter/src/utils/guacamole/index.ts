@@ -18,7 +18,7 @@ export interface GuacamoleConfig {
   /** 用户名 */
   username?: string;
   /** 密码 */
-  password?: string;
+  security?: string;
   /** 分辨率 */
   resolution?: string;
   /** 颜色深度 */
@@ -91,9 +91,25 @@ export class GuacamoleClient {
 
         // 设置事件监听器
         this.setupEventHandlers(resolve, reject);
+    // 构建连接参数
+        const params = new URLSearchParams({
+          serverId: this.config.serverId.toString(),
+          host: this.config.host,
+          port: this.config.port.toString(),
+          protocol: this.config.protocol
+        });
+
+        if (this.config.security) params.set('security', this.config.security);
+        if (this.config.resolution) params.set('resolution', this.config.resolution);
+        if (this.config.colorDepth) params.set('colorDepth', this.config.colorDepth.toString());
+        if (this.config.enableAudio !== undefined) params.set('enableAudio', this.config.enableAudio.toString());
+        if (this.config.enableClipboard !== undefined) params.set('enableClipboard', this.config.enableClipboard.toString());
+        if (this.config.enableCursor !== undefined) params.set('enableCursor', this.config.enableCursor.toString());
+        if (this.config.viewMode) params.set('viewMode', this.config.viewMode);
+        if (this.config.colorQuality) params.set('colorQuality', this.config.colorQuality);
 
         // 开始连接
-        this.client.connect();
+        this.client.connect(params.toString());
 
       } catch (error) {
         console.error('Guacamole 连接失败:', error);
@@ -110,25 +126,7 @@ export class GuacamoleClient {
     const host = window.location.host;
     const path = getConfig().BaseUrl + `/websocket/${this.config.protocol}`;
 
-    // 构建连接参数
-    const params = new URLSearchParams({
-      serverId: this.config.serverId.toString(),
-      host: this.config.host,
-      port: this.config.port.toString(),
-      protocol: this.config.protocol
-    });
-
-    if (this.config.username) params.set('username', this.config.username);
-    if (this.config.password) params.set('password', this.config.password);
-    if (this.config.resolution) params.set('resolution', this.config.resolution);
-    if (this.config.colorDepth) params.set('colorDepth', this.config.colorDepth.toString());
-    if (this.config.enableAudio !== undefined) params.set('enableAudio', this.config.enableAudio.toString());
-    if (this.config.enableClipboard !== undefined) params.set('enableClipboard', this.config.enableClipboard.toString());
-    if (this.config.enableCursor !== undefined) params.set('enableCursor', this.config.enableCursor.toString());
-    if (this.config.viewMode) params.set('viewMode', this.config.viewMode);
-    if (this.config.colorQuality) params.set('colorQuality', this.config.colorQuality);
-
-    return `${protocol}//${host}${path}?${params.toString()}`;
+    return `${protocol}//${host}${path}`;
   }
 
   /**
@@ -229,22 +227,26 @@ export class GuacamoleClient {
   }
 
   /**
-   * 绑定到 Canvas 元素
+   * 绑定到容器元素
    */
-  attachTo(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    if (this.display && canvas) {
-      // 清空 canvas 内容
-      canvas.innerHTML = '';
+  attachTo(container: HTMLElement) {
+    if (this.display && container) {
+      // 清空容器内容
+      container.innerHTML = '';
 
-      // 将 Guacamole 显示元素添加到 canvas
-      canvas.appendChild(this.display.getElement());
+      // 将 Guacamole 显示元素添加到容器
+      container.appendChild(this.display.getElement());
 
       // 设置样式
       const displayElement = this.display.getElement();
       displayElement.style.width = '100%';
       displayElement.style.height = '100%';
       displayElement.style.objectFit = 'contain';
+
+      // 设置容器样式
+      container.style.width = '100%';
+      container.style.height = '100%';
+      container.style.overflow = 'hidden';
     }
   }
 

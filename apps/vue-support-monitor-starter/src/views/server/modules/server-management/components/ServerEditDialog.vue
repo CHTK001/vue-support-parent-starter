@@ -1482,7 +1482,7 @@ defineExpose({
 // 底部按钮区域 - 紧凑版本
 .dialog-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: right;
   align-items: center;
   gap: 12px;
   padding: 12px 20px !important;

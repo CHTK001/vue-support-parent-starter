@@ -22,7 +22,7 @@ export class GuacamoleClientManager {
   private display: any = null;
   private mouse: any = null;
   private keyboard: any = null;
-  private canvas: HTMLCanvasElement;
+  private container: HTMLElement;
   private tunnel: any = null;
 
   // 事件回调
@@ -30,8 +30,8 @@ export class GuacamoleClientManager {
   private onError?: (error: any) => void;
   private onClipboard?: (data: string) => void;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
+  constructor(container: HTMLElement) {
+    this.container = container;
   }
 
   /**
@@ -48,13 +48,19 @@ export class GuacamoleClientManager {
       // 获取显示对象
       this.display = this.client.getDisplay();
 
-      // 将显示附加到 Canvas
-      this.canvas.appendChild(this.display.getElement());
+      // 清空容器并将显示附加到容器
+      this.container.innerHTML = '';
+      this.container.appendChild(this.display.getElement());
 
       // 设置显示尺寸
       if (config.width && config.height) {
         this.display.resize(config.width, config.height);
       }
+
+      // 设置容器样式
+      this.container.style.width = '100%';
+      this.container.style.height = '100%';
+      this.container.style.overflow = 'hidden';
 
       // 创建鼠标和键盘处理器
       this.setupInputHandlers();

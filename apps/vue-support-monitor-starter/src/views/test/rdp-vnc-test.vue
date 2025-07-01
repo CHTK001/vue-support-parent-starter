@@ -10,17 +10,17 @@
       <div class="test-display">
         <div class="display-section">
           <h3>RDP 显示测试</h3>
-          <canvas ref="rdpCanvasRef" width="800" height="600" class="test-canvas"></canvas>
+          <div ref="rdpDisplayRef" class="test-display" style="width: 800px; height: 600px;"></div>
           <div class="canvas-info">
-            <span>RDP Canvas - 800x600</span>
+            <span>RDP Display - 800x600</span>
           </div>
         </div>
 
         <div class="display-section">
           <h3>VNC 显示测试</h3>
-          <canvas ref="vncCanvasRef" width="800" height="600" class="test-canvas"></canvas>
+          <div ref="vncDisplayRef" class="test-display" style="width: 800px; height: 600px;"></div>
           <div class="canvas-info">
-            <span>VNC Canvas - 800x600</span>
+            <span>VNC Display - 800x600</span>
           </div>
         </div>
       </div>
@@ -78,8 +78,8 @@ import {
 } from '@/utils/guacamole';
 
 // 响应式数据
-const rdpCanvasRef = ref<HTMLCanvasElement>();
-const vncCanvasRef = ref<HTMLCanvasElement>();
+const rdpDisplayRef = ref<HTMLElement>();
+const vncDisplayRef = ref<HTMLElement>();
 const testInstruction = ref('');
 const testLogs = ref<Array<{ time: string; message: string }>>([]);
 
@@ -101,13 +101,13 @@ const clearLogs = () => {
 
 // 初始化显示
 const initDisplays = () => {
-  if (rdpCanvasRef.value) {
-    rdpClient = new GuacamoleClientManager(rdpCanvasRef.value);
+  if (rdpDisplayRef.value) {
+    rdpClient = new GuacamoleClientManager(rdpDisplayRef.value);
     addLog('RDP 客户端管理器初始化完成');
   }
 
-  if (vncCanvasRef.value) {
-    vncClient = new GuacamoleClientManager(vncCanvasRef.value);
+  if (vncDisplayRef.value) {
+    vncClient = new GuacamoleClientManager(vncDisplayRef.value);
     addLog('VNC 客户端管理器初始化完成');
   }
 };
@@ -202,17 +202,25 @@ onUnmounted(() => {
         color: var(--el-text-color-primary);
       }
       
-      .test-canvas {
+      .test-display {
         border: 2px solid var(--el-border-color-light);
         border-radius: 4px;
         background-color: #000;
         cursor: crosshair;
-        
+        overflow: hidden;
+
         &:hover {
           border-color: var(--el-color-primary);
         }
+
+        :deep(canvas) {
+          width: 100%;
+          height: 100%;
+          border: none;
+          outline: none;
+        }
       }
-      
+
       .canvas-info {
         margin-top: 8px;
         font-size: 12px;

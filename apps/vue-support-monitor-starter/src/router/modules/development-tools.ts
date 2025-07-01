@@ -44,6 +44,18 @@ export default [
               showLink: true,
               showParent: true
             }
+          },
+          {
+            path: "/websocket-test",
+            name: "websocketTest",
+            component: () => import("@/views/test/WebSocketTest.vue"),
+            meta: {
+              title: "WebSocket 连接测试",
+              icon: "ri:wifi-line",
+              category: "开发工具",
+              showLink: true,
+              showParent: true
+            }
           }
         ]
       },

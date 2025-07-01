@@ -39,16 +39,17 @@
     </div>
 
     <div class="desktop-container">
-      <canvas 
-        ref="desktopCanvas" 
-        class="desktop-canvas"
+      <!-- Guacamole 显示容器 -->
+      <div
+        ref="desktopDisplay"
+        class="desktop-display"
         :class="{ 'connected': isConnected }"
-      ></canvas>
-      
+      ></div>
+
       <div v-if="!isConnected && !isConnecting" class="connection-placeholder">
         <el-empty description="点击连接按钮开始 VNC 会话" />
       </div>
-      
+
       <div v-if="isConnecting" class="connecting-overlay">
         <el-loading-spinner />
         <p>正在连接到 {{ props.server?.monitorSysGenServerHost }}:{{ props.server?.monitorSysGenServerPort }}</p>
@@ -61,16 +62,21 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import SimpleGuacamoleClient, { GuacamoleStates } from '@/utils/guacamole/simple-client';
-import type { MonitorSysGenServer } from '@/types/server';
-
 interface Props {
-  server: MonitorSysGenServer | null;
+  server: {
+    monitorSysGenServerId: number;
+    monitorSysGenServerName: string;
+    monitorSysGenServerHost: string;
+    monitorSysGenServerPort: number;
+    monitorSysGenServerUsername?: string;
+    monitorSysGenServerPassword?: string;
+  } | null;
 }
 
 const props = defineProps<Props>();
 
 // 响应式数据
-const desktopCanvas = ref<HTMLCanvasElement>();
+const desktopDisplay = ref<HTMLElement>();
 const guacamoleClient = ref<SimpleGuacamoleClient | null>(null);
 const currentState = ref(GuacamoleStates.IDLE);
 const isConnecting = ref(false);
@@ -81,20 +87,20 @@ const isConnected = computed(() => currentState.value === GuacamoleStates.CONNEC
 const connectionStatus = computed(() => {
   switch (currentState.value) {
     case GuacamoleStates.CONNECTED:
-      return { type: 'success', text: '已连接' };
+      return { type: 'success' as const, text: '已连接' };
     case GuacamoleStates.CONNECTING:
-      return { type: 'warning', text: '连接中' };
+      return { type: 'warning' as const, text: '连接中' };
     case GuacamoleStates.DISCONNECTED:
-      return { type: 'info', text: '未连接' };
+      return { type: 'info' as const, text: '未连接' };
     default:
-      return { type: 'info', text: '空闲' };
+      return { type: 'info' as const, text: '空闲' };
   }
 });
 
 // 方法
 const connect = async () => {
-  if (!props.server || !desktopCanvas.value) {
-    ElMessage.error('服务器信息不完整或画布未准备好');
+  if (!props.server || !desktopDisplay.value) {
+    ElMessage.error('服务器信息不完整或显示容器未准备好');
     return;
   }
 
@@ -126,16 +132,16 @@ const connect = async () => {
       onName: (name: string) => {
         console.log('VNC 会话名称:', name);
       },
-      onClipboard: (stream: any, mimetype: string) => {
+      onClipboard: (_stream: any, mimetype: string) => {
         console.log('收到剪贴板数据:', mimetype);
       }
     });
 
     // 连接到服务器
     await guacamoleClient.value.connect();
-    
-    // 绑定到画布
-    guacamoleClient.value.attachTo(desktopCanvas.value);
+
+    // 绑定到显示容器
+    guacamoleClient.value.attachTo(desktopDisplay.value);
     
     ElMessage.success('VNC 连接成功');
     
@@ -175,6 +181,7 @@ const takeScreenshot = () => {
 // 生命周期
 onMounted(() => {
   console.log('SimpleVNCDesktop 组件已挂载');
+  connect();
 });
 
 onUnmounted(() => {
@@ -223,15 +230,22 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.desktop-canvas {
+.desktop-display {
   width: 100%;
   height: 100%;
   background: #000;
   cursor: crosshair;
 }
 
-.desktop-canvas.connected {
+.desktop-display.connected {
   cursor: default;
+}
+
+.desktop-display :deep(canvas) {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
 }
 
 .connection-placeholder {

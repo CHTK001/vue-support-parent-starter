@@ -33,6 +33,20 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           target: "http://localhost:19170",
           ws: true,
           changeOrigin: true,
+          timeout: 60000, // 60秒超时
+          proxyTimeout: 60000, // 代理超时
+          // WebSocket 特殊配置
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('WebSocket 代理错误:', err);
+            });
+            proxy.on('proxyReq', (_proxyReq, req, _res) => {
+              console.log('WebSocket 代理请求:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              console.log('WebSocket 代理响应:', proxyRes.statusCode, req.url);
+            });
+          },
         },
       },
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布

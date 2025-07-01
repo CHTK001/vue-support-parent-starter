@@ -47,11 +47,11 @@
         v-else-if="serverData.monitorSysGenServerProtocol === 'RDP'"
         class="terminal-wrapper rdp-terminal"
       >
-        <canvas
-          ref="rdpCanvasRef"
-          class="rdp-canvas"
+        <div
+          ref="rdpDisplayRef"
+          class="rdp-display"
           tabindex="0"
-        ></canvas>
+        ></div>
         <div class="rdp-controls">
           <div class="rdp-status">
             <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
@@ -84,11 +84,11 @@
         v-else-if="serverData.monitorSysGenServerProtocol === 'VNC'"
         class="terminal-wrapper vnc-terminal"
       >
-        <canvas
-          ref="vncCanvasRef"
-          class="vnc-canvas"
+        <div
+          ref="vncDisplayRef"
+          class="vnc-display"
           tabindex="0"
-        ></canvas>
+        ></div>
         <div class="vnc-controls">
           <div class="vnc-status">
             <el-tag :type="connectionStatus === 'connected' ? 'success' : 'info'">
@@ -192,8 +192,8 @@ const serverData = reactive<any>({});
 
 // 终端相关
 const terminalRef = ref();
-const rdpCanvasRef = ref();
-const vncCanvasRef = ref();
+const rdpDisplayRef = ref();
+const vncDisplayRef = ref();
 let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 
@@ -326,20 +326,22 @@ const initSSHTerminal = () => {
  * 初始化 RDP 终端
  */
 const initRDPTerminal = () => {
-  if (!rdpCanvasRef.value) return;
+  if (!rdpDisplayRef.value) return;
 
-  const canvas = rdpCanvasRef.value;
-  canvas.width = rdpConfig.width;
-  canvas.height = rdpConfig.height;
+  const display = rdpDisplayRef.value;
+
+  // 设置显示容器尺寸
+  display.style.width = `${rdpConfig.width}px`;
+  display.style.height = `${rdpConfig.height}px`;
 
   // 创建 Guacamole 客户端管理器
-  rdpClient = new GuacamoleClientManager(canvas);
+  rdpClient = new GuacamoleClientManager(display);
 
   // 设置事件回调
   setupGuacamoleEventHandlers(rdpClient, 'rdp');
 
   // 设置文件拖放
-  setupFileDrop(canvas, rdpClient);
+  setupFileDrop(display, rdpClient);
 
   // 连接 RDP WebSocket
   connectRDPWebSocket();
@@ -349,20 +351,22 @@ const initRDPTerminal = () => {
  * 初始化 VNC 终端
  */
 const initVNCTerminal = () => {
-  if (!vncCanvasRef.value) return;
+  if (!vncDisplayRef.value) return;
 
-  const canvas = vncCanvasRef.value;
-  canvas.width = rdpConfig.width; // 初始尺寸，会根据服务器调整
-  canvas.height = rdpConfig.height;
+  const display = vncDisplayRef.value;
+
+  // 设置显示容器尺寸（初始尺寸，会根据服务器调整）
+  display.style.width = `${rdpConfig.width}px`;
+  display.style.height = `${rdpConfig.height}px`;
 
   // 创建 Guacamole 客户端管理器
-  vncClient = new GuacamoleClientManager(canvas);
+  vncClient = new GuacamoleClientManager(display);
 
   // 设置事件回调
   setupGuacamoleEventHandlers(vncClient, 'vnc');
 
   // 设置文件拖放
-  setupFileDrop(canvas, vncClient);
+  setupFileDrop(display, vncClient);
 
   // 连接 VNC WebSocket
   connectVNCWebSocket();
@@ -843,15 +847,23 @@ defineExpose({
       flex-direction: column;
       background-color: #f5f5f5;
 
-      .rdp-canvas,
-      .vnc-canvas {
+      .rdp-display,
+      .vnc-display {
         flex: 1;
         background-color: white;
         cursor: crosshair;
+        overflow: hidden;
 
         &:focus {
           outline: 2px solid var(--el-color-primary);
           outline-offset: -2px;
+        }
+
+        :deep(canvas) {
+          width: 100%;
+          height: 100%;
+          border: none;
+          outline: none;
         }
       }
 

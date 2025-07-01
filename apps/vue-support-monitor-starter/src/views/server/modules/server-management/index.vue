@@ -278,22 +278,6 @@
                 </el-tooltip>
               </div>
               <div class="server-status">
-                <!-- 本地服务器标识 -->
-                <el-tooltip
-                  v-if="server.isLocal"
-                  content="本地服务器 (自动检测)"
-                  placement="top"
-                  :show-after="300"
-                >
-                  <el-tag
-                    type="success"
-                    size="small"
-                    effect="light"
-                  >
-                    <IconifyIconOnline icon="ri:home-line" class="mr-1" />
-                    本地
-                  </el-tag>
-                </el-tooltip>
                 <el-tooltip :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`" placement="top" :show-after="300">
                   <el-tag
                     :type="getOnlineStatusType(server.onlineStatus, server.isLocal)"
