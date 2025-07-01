@@ -25,7 +25,9 @@
             </ul>
             <el-button type="primary" size="large">选择 RDP</el-button>
           </div>
-          
+
+
+
           <div class="protocol-option" @click="selectProtocol('vnc')">
             <div class="protocol-icon">
               <el-icon size="48"><Monitor /></el-icon>
@@ -67,6 +69,8 @@
       :server="server"
     />
 
+
+
     <!-- VNC 桌面组件 -->
     <SimpleVNCDesktop
       v-if="selectedProtocol === 'vnc'"
@@ -104,14 +108,14 @@ interface Props {
     monitorSysGenServerPassword?: string;
   };
   /** 默认协议 */
-  defaultProtocol?: 'rdp' | 'vnc';
+  defaultProtocol?: 'rdp' | 'vnc' ;
   /** 是否自动选择协议 */
   autoSelectProtocol?: boolean;
 }
 
 interface Emits {
   (e: 'close'): void;
-  (e: 'protocol-change', protocol: 'rdp' | 'vnc'): void;
+  (e: 'protocol-change', protocol: 'rdp' | 'vnc' ): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -121,7 +125,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 // 状态
-const selectedProtocol = ref<'rdp' | 'vnc' | null>(null);
+const selectedProtocol = ref<'rdp' | 'vnc'  | null>(null);
 
 // 计算属性
 const serverProtocol = computed(() => {
@@ -135,10 +139,10 @@ const serverProtocol = computed(() => {
 });
 
 // 方法
-const selectProtocol = (protocol: 'rdp' | 'vnc') => {
+const selectProtocol = (protocol: 'rdp' | 'vnc' ) => {
   selectedProtocol.value = protocol;
   emit('protocol-change', protocol);
-  
+
   ElMessage.success(`已选择 ${protocol.toUpperCase()} 协议`);
 };
 
@@ -219,8 +223,8 @@ initializeProtocol();
 
   .protocol-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
     margin: 24px 0;
 
     .protocol-option {
@@ -241,6 +245,21 @@ initializeProtocol();
       .protocol-icon {
         margin-bottom: 16px;
         color: #409eff;
+        position: relative;
+
+        .protocol-tag {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 10px;
+          background: #67c23a;
+          color: white;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          z-index: 1;
+        }
       }
 
       h3 {

@@ -74,6 +74,13 @@
         </el-tooltip>
 
         <!-- 操作按钮 -->
+        <el-tooltip content="刷新服务器列表" placement="bottom" :show-after="500">
+          <el-button size="small" @click="handleRefreshServerList">
+            <IconifyIconOnline icon="ep:refresh" class="mr-1" />
+            刷新
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
           <el-button type="primary" size="small" @click="showAddDialog">
             <IconifyIconOnline icon="ep:plus" class="mr-1" />
@@ -726,7 +733,7 @@ const loadServers = async () => {
 };
 
 /**
- * 选择服务器
+ * 选择服务器 - 点击服务器卡片时直接显示监控信息
  */
 const selectServer = (server: any) => {
   // 如果选择的是同一个服务器，不做任何操作
@@ -735,8 +742,10 @@ const selectServer = (server: any) => {
   }
 
   selectedServerId.value = server.id;
-  currentComponent.value = "ServerMonitor"; // 默认显示监控组件
+  // 点击服务器卡片直接显示服务器监控信息
+  currentComponent.value = "ServerMonitor";
   componentKey.value++; // 强制重新渲染组件
+  console.log(`选择服务器 ${server.name}，显示监控信息`);
 };
 
 /**
@@ -839,7 +848,9 @@ const disconnectServer = async (server: any) => {
  */
 const showServerInfo = (server: any) => {
   selectedServerId.value = server.id;
+  // 显示服务器信息时，直接显示监控组件
   currentComponent.value = "ServerMonitor";
+  console.log(`查看服务器 ${server.name} 详情，显示监控信息`);
 };
 
 /**
@@ -1039,6 +1050,20 @@ const startResize = (e: MouseEvent) => {
  */
 const handleSuccess = () => {
   loadServers();
+};
+
+/**
+ * 处理刷新服务器列表
+ */
+const handleRefreshServerList = async () => {
+  try {
+    message.info("正在刷新服务器列表...");
+    await loadServers();
+    message.success("服务器列表刷新完成");
+  } catch (error) {
+    console.error("刷新服务器列表失败:", error);
+    message.error("刷新服务器列表失败");
+  }
 };
 
 
@@ -2361,6 +2386,48 @@ onUnmounted(() => {
           }
         }
       }
+    }
+  }
+}
+
+/* 空状态组件样式 */
+.empty-component-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
+  border: 1px dashed var(--el-border-color-light);
+
+  .empty-content {
+    text-align: center;
+    padding: 40px;
+
+    .empty-icon {
+      font-size: 64px;
+      color: var(--el-text-color-placeholder);
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--el-text-color-primary);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0 0 24px 0;
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
     }
   }
 }
