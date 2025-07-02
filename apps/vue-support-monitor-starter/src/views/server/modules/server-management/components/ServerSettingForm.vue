@@ -25,6 +25,127 @@
         />
       </el-form-item>
 
+      <!-- 数据上报方式 -->
+      <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
+        <template #label>
+          <div class="form-label">
+            <span>数据上报方式</span>
+            <el-tooltip
+              content="选择服务器指标数据的上报方式：API推送、本地收集或Prometheus集成"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-select
+          v-model="formData.monitorSysGenServerSettingDataReportMethod"
+          placeholder="请选择数据上报方式"
+          style="width: 200px"
+          @change="handleChange"
+        >
+          <el-option
+            v-if="!isLocalServer"
+            label="API推送"
+            value="API"
+          />
+          <el-option
+            v-if="isLocalServer"
+            label="本地收集"
+            value="LOCAL"
+          />
+          <el-option
+            label="Prometheus"
+            value="PROMETHEUS"
+          />
+          <el-option
+            label="无上报"
+            value="NONE"
+          />
+        </el-select>
+      </el-form-item>
+
+      <!-- 数据收集频率：仅在非API上报方式时显示 -->
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingDataReportMethod !== 'API'"
+        prop="monitorSysGenServerSettingDataCollectionFrequency"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>数据收集频率</span>
+            <el-tooltip
+              content="服务器指标数据的收集间隔时间，频率越高数据越实时但会增加系统负载"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingDataCollectionFrequency"
+          :min="10"
+          :max="3600"
+          :step="10"
+          placeholder="数据收集频率(秒)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">秒，建议值：30-60</span>
+      </el-form-item>
+
+      <!-- 监控间隔：从指标管理迁移过来 -->
+      <el-form-item prop="monitorSysGenServerSettingMonitorInterval">
+        <template #label>
+          <div class="form-label">
+            <span>监控间隔</span>
+            <el-tooltip
+              content="后台定时任务检查服务器状态的间隔时间，影响告警检测和状态更新的及时性"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingMonitorInterval"
+          :min="30"
+          :max="3600"
+          :step="30"
+          placeholder="监控间隔(秒)"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">秒，建议值：60-300</span>
+      </el-form-item>
+
+      <!-- 指标保留天数 -->
+      <el-form-item prop="monitorSysGenServerSettingMetricsRetentionDays">
+        <template #label>
+          <div class="form-label">
+            <span>指标保留天数</span>
+            <el-tooltip
+              content="历史监控数据的保留时间，超过此时间的数据将被自动清理"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
+          :min="1"
+          :max="365"
+          :step="1"
+          placeholder="保留天数"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="form-tip">天，建议值：30-90</span>
+      </el-form-item>
 
 
       <el-form-item prop="monitorSysGenServerSettingCpuAlertThreshold">
