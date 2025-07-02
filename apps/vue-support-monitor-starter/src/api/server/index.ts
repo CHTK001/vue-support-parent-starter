@@ -440,6 +440,19 @@ export function getServerInfo(id: string) {
 }
 
 /**
+ * 获取服务器详情页指标数据
+ * 当指标数据为空时自动触发指标推送
+ * @param serverId 服务器ID
+ * @returns 指标数据
+ */
+export function getServerDetailMetrics(serverId: number) {
+  return http.request<ReturnResult<any>>(
+    "get",
+    `v1/gen/server/detail/${serverId}/metrics`
+  );
+}
+
+/**
  * 发送数据到服务器
  * @param id 服务器ID
  * @param data 要发送的数据

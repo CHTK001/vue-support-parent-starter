@@ -259,34 +259,59 @@
                     <span class="form-tip">天，建议值：30</span>
                   </el-form-item>
 
-                  <el-form-item label="监控间隔">
-                    <el-input-number
-                      v-model="settingData.monitorSysGenServerSettingMonitorInterval"
-                      :min="30"
-                      :max="3600"
-                      :step="30"
-                      placeholder="监控间隔(秒)"
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                    <span class="form-tip">秒，建议值：60</span>
-                  </el-form-item>
+                  <el-alert
+                    title="监控配置已迁移"
+                    description="监控间隔、数据收集频率等配置已迁移到监控配置页面，请在左侧菜单选择'监控配置'进行设置。指标阈值设置已迁移到告警配置页面。"
+                    type="info"
+                    :closable="false"
+                    class="mb-4"
+                  />
 
                   <el-alert
-                    title="阈值配置已迁移"
-                    description="指标阈值设置已迁移到监控配置管理页面，请在数据源管理页面点击'监控配置'按钮进行配置。"
-                    type="info"
+                    title="指标管理说明"
+                    description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面。"
+                    type="success"
                     :closable="false"
                     class="mb-4"
                   />
                 </template>
               </div>
 
-              <!-- 其他配置节 -->
-              <div v-show="!['proxy', 'metrics'].includes(activeSection)" class="config-section">
+              <!-- 监控配置节 -->
+              <div v-show="activeSection === 'monitor'" class="config-section">
                 <ServerSettingForm
                   v-model="settingData"
-                  :section="activeSection as 'monitor' | 'alert' | 'docker' | 'advanced'"
+                  section="monitor"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 告警配置节 -->
+              <div v-show="activeSection === 'alert'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="alert"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- Docker配置节 -->
+              <div v-show="activeSection === 'docker'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="docker"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 高级配置节 -->
+              <div v-show="activeSection === 'advanced'" class="config-section">
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="advanced"
                   :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
                   @change="handleSettingChange"
                 />
