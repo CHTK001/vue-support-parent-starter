@@ -21,7 +21,7 @@
             <div class="metric-progress">
               <el-progress
                 :percentage="currentMetrics.cpuUsage"
-                :color="getProgressColor(currentMetrics.cpuUsage)"
+                :color="getProgressColor(currentMetrics.cpuUsage, 'cpu')"
                 :show-text="false"
                 :stroke-width="4"
               />
@@ -47,7 +47,7 @@
             <div class="metric-progress">
               <el-progress
                 :percentage="currentMetrics.memoryUsage"
-                :color="getProgressColor(currentMetrics.memoryUsage)"
+                :color="getProgressColor(currentMetrics.memoryUsage, 'memory')"
                 :show-text="false"
                 :stroke-width="4"
               />
@@ -205,6 +205,7 @@
 import { ref, reactive, computed, watch } from "vue";
 import MetricsChart from "@/components/charts/MetricsChart.vue";
 import type { ServerMetrics } from "@/api/server";
+import { getMetricColor, getMetricProgressColor, getMetricColorClass } from "@/utils/metricsThreshold";
 
 // 定义属性
 interface Props {
@@ -418,12 +419,10 @@ const getTrendText = (metric: string) => {
 };
 
 /**
- * 获取进度条颜色
+ * 获取进度条颜色（根据指标类型）
  */
-const getProgressColor = (percentage: number) => {
-  if (percentage < 50) return '#67c23a';
-  if (percentage < 80) return '#e6a23c';
-  return '#f56c6c';
+const getProgressColor = (percentage: number, metricType: 'cpu' | 'memory' | 'disk' = 'cpu') => {
+  return getMetricColor(metricType, percentage);
 };
 
 /**

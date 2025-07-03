@@ -103,21 +103,10 @@ export default [
           {
             path: "/server/index",
             name: "serverIndex",
-            component: () => import("@/views/server/modules/server-management/index.vue"),
+            component: () => import("@/views/server/index.vue"),
             meta: {
               icon: "ri:server-line",
               title: $t("buttons.monitor.server-management"),
-              showLink: true,
-              showParent: true
-            }
-          },
-          {
-            path: "/server/management",
-            name: "serverManagement",
-            component: () => import("@/views/server/modules/server-management/management.vue"),
-            meta: {
-              icon: "ri:dashboard-line",
-              title: "服务器管理中心",
               showLink: true,
               showParent: true
             }

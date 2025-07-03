@@ -2,6 +2,19 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 /**
+ * 磁盘分区信息
+ */
+export interface DiskPartition {
+  name: string;
+  mount: string;
+  type: string;
+  totalSpace: number;
+  freeSpace: number;
+  usedSpace: number;
+  usagePercent: number;
+}
+
+/**
  * 服务器指标数据类型
  */
 export interface ServerMetricsData {
@@ -10,8 +23,11 @@ export interface ServerMetricsData {
   cpuUsage: number;
   memoryUsage: number;
   diskUsage: number;
+  diskPartitions?: DiskPartition[];
   networkIn: number;
   networkOut: number;
+  networkInSpeed?: number;
+  networkOutSpeed?: number;
   loadAverage?: string;
   uptime?: number;
   processCount?: number;

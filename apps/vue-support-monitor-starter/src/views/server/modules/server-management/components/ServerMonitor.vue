@@ -33,12 +33,12 @@
           <span class="metric-title">CPU使用率</span>
         </div>
         <div class="metric-content">
-          <div class="metric-value">
-            {{ Math.round(metrics?.cpu?.usage || 0) }}%
+          <div class="metric-value" :class="{ 'animating': cpuAnimation.isAnimating.value }">
+            {{ cpuAnimation.formattedValue.value }}
           </div>
           <el-progress
-            :percentage="Math.round(metrics?.cpu?.usage || 0)"
-            :color="getProgressColor(metrics?.cpu?.usage || 0, 'cpu')"
+            :percentage="cpuAnimation.displayValue.value"
+            :color="getProgressColor(cpuAnimation.displayValue.value, 'cpu')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -55,12 +55,12 @@
           <span class="metric-title">内存使用率</span>
         </div>
         <div class="metric-content">
-          <div class="metric-value">
-            {{ Math.round(metrics?.memory?.usage || 0) }}%
+          <div class="metric-value" :class="{ 'animating': memoryAnimation.isAnimating.value }">
+            {{ memoryAnimation.formattedValue.value }}
           </div>
           <el-progress
-            :percentage="Math.round(metrics?.memory?.usage || 0)"
-            :color="getProgressColor(metrics?.memory?.usage || 0, 'memory')"
+            :percentage="memoryAnimation.displayValue.value"
+            :color="getProgressColor(memoryAnimation.displayValue.value, 'memory')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -77,12 +77,12 @@
           <span class="metric-title">磁盘使用率</span>
         </div>
         <div class="metric-content">
-          <div class="metric-value">
-            {{ Math.round(metrics?.disk?.usage || 0) }}%
+          <div class="metric-value" :class="{ 'animating': diskAnimation.isAnimating.value }">
+            {{ diskAnimation.formattedValue.value }}
           </div>
           <el-progress
-            :percentage="Math.round(metrics?.disk?.usage || 0)"
-            :color="getProgressColor(metrics?.disk?.usage || 0, 'disk')"
+            :percentage="diskAnimation.displayValue.value"
+            :color="getProgressColor(diskAnimation.displayValue.value, 'disk')"
             :show-text="false"
           />
           <div class="metric-details">
@@ -189,6 +189,25 @@ import {
   formatUptime,
   formatTime
 } from "@/composables/useMetricsThreshold";
+import {
+  usePercentageAnimation,
+  useBytesAnimation,
+  useIntegerAnimation,
+  useNetworkSpeedAnimation
+} from "@/composables/useNumberAnimation";
+
+/**
+ * 磁盘分区信息
+ */
+export interface DiskPartition {
+  name: string;
+  mount: string;
+  type: string;
+  totalSpace: number;
+  freeSpace: number;
+  usedSpace: number;
+  usagePercent: number;
+}
 
 /**
  * 服务器指标数据类型（简化版本，与useServerMetricsSocket保持兼容）
@@ -216,10 +235,15 @@ export interface ServerMetricsData {
     used: number;
     free: number;
     usage: number;
+    partitions?: DiskPartition[];
   };
   network: {
     in: number;
     out: number;
+    totalInBytes?: number;
+    totalOutBytes?: number;
+    inPacketRate?: number;
+    outPacketRate?: number;
   };
   osInfo?: string;
   osName?: string;
@@ -254,6 +278,16 @@ const emit = defineEmits<{
 const loading = ref(false);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
 
+// 动画实例
+const cpuAnimation = usePercentageAnimation(0, { duration: 1000 });
+const memoryAnimation = usePercentageAnimation(0, { duration: 1000 });
+const diskAnimation = usePercentageAnimation(0, { duration: 1000 });
+const networkInAnimation = useNetworkSpeedAnimation(0, { duration: 800 });
+const networkOutAnimation = useNetworkSpeedAnimation(0, { duration: 800 });
+const uptimeAnimation = useIntegerAnimation(0, { duration: 1200 });
+const processCountAnimation = useIntegerAnimation(0, { duration: 800 });
+const temperatureAnimation = useIntegerAnimation(0, { duration: 1000 });
+
 // 指标数据（从props获取）
 const metrics = computed(() => props.metricsData);
 
@@ -264,6 +298,19 @@ const serverId = computed(() => props.server?.id);
 watch(() => props.metricsData, (newMetrics) => {
   if (newMetrics) {
     console.log('ServerMonitor接收到指标数据:', newMetrics);
+
+    // 更新动画值
+    cpuAnimation.setValue(newMetrics.cpu?.usage || 0);
+    memoryAnimation.setValue(newMetrics.memory?.usage || 0);
+    diskAnimation.setValue(newMetrics.disk?.usage || 0);
+    networkInAnimation.setValue(newMetrics.network?.in || 0);
+    networkOutAnimation.setValue(newMetrics.network?.out || 0);
+    uptimeAnimation.setValue(newMetrics.uptime || 0);
+    processCountAnimation.setValue(newMetrics.processCount || 0);
+
+    if (newMetrics.temperature) {
+      temperatureAnimation.setValue(newMetrics.temperature);
+    }
   }
 }, { deep: true });
 
@@ -919,5 +966,43 @@ onUnmounted(() => {
 .metric-card:focus-visible {
   outline: 2px solid var(--el-color-primary);
   outline-offset: 2px;
+}
+
+/* 数值动画效果 */
+.metric-value {
+  transition: all 0.3s ease;
+
+  &.animating {
+    color: var(--el-color-primary);
+    transform: scale(1.05);
+  }
+}
+
+/* 进度条动画 */
+.el-progress {
+  :deep(.el-progress-bar__outer) {
+    transition: all 0.3s ease;
+  }
+
+  :deep(.el-progress-bar__inner) {
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* 数值变化时的微妙高亮效果 */
+@keyframes valueChange {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(64, 158, 255, 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.metric-value.animating {
+  animation: valueChange 0.6s ease-in-out;
 }
 </style>

@@ -176,6 +176,7 @@ import LineChartComponent from "./components/charts/LineChartComponent.vue";
 import BarChartComponent from "./components/charts/BarChartComponent.vue";
 import PieChartComponent from "./components/charts/PieChartComponent.vue";
 import TableComponent from "./components/charts/TableComponent.vue";
+import DiskPartitionsComponent from "./components/charts/DiskPartitionsComponent.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -205,6 +206,7 @@ const componentTypeMap = {
   bar: BarChartComponent,
   pie: PieChartComponent,
   table: TableComponent,
+  diskPartitions: DiskPartitionsComponent,
 };
 
 /**

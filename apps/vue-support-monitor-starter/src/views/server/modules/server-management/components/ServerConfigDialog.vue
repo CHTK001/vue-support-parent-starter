@@ -49,9 +49,25 @@
               <IconifyIconOnline icon="simple-icons:docker" />
               <span>Docker配置</span>
             </el-menu-item>
+            <el-menu-item index="prometheus">
+              <IconifyIconOnline icon="ri:bar-chart-line" />
+              <span>Prometheus配置</span>
+            </el-menu-item>
             <el-menu-item index="advanced">
               <IconifyIconOnline icon="ri:tools-line" />
               <span>高级配置</span>
+            </el-menu-item>
+            <el-menu-item index="tasks">
+              <IconifyIconOnline icon="ri:timer-line" />
+              <span>任务配置</span>
+            </el-menu-item>
+            <el-menu-item index="cleanup">
+              <IconifyIconOnline icon="ri:delete-bin-line" />
+              <span>清理配置</span>
+            </el-menu-item>
+            <el-menu-item index="history">
+              <IconifyIconOnline icon="ri:history-line" />
+              <span>配置历史</span>
             </el-menu-item>
           </el-menu>
         </div>
@@ -62,7 +78,7 @@
             <template #header>
               <div class="card-header">
                 <span class="card-title">{{ getSectionTitle() }}</span>
-                <div class="card-actions">
+                <div class="card-actions" v-if="activeSection !== 'history'">
                   <el-button @click="handleReset" plain size="small">
                     <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                     重置
@@ -211,29 +227,6 @@
                 </el-form-item>
 
                 <template v-if="settingData.monitorSysGenServerSettingMonitorEnabled === 1">
-                  <el-form-item label="数据上报方式">
-                    <el-select
-                      v-model="settingData.monitorSysGenServerSettingDataReportMethod"
-                      placeholder="选择上报方式"
-                      style="width: 200px !important"
-                      @change="handleSettingChange"
-                    >
-                      <el-option label="无上报" value="NONE" />
-                      <el-option
-                        v-if="currentServer?.monitorSysGenServerIsLocal === 1"
-                        label="本机上报"
-                        value="LOCAL"
-                      />
-                      <el-option
-                        v-if="currentServer?.monitorSysGenServerIsLocal !== 1"
-                        label="API上报"
-                        value="API"
-                      />
-                      <el-option label="Prometheus" value="PROMETHEUS" />
-                    </el-select>
-                    <span class="form-tip">选择指标数据的上报方式</span>
-                  </el-form-item>
-
                   <el-form-item label="收集频率">
                     <el-input-number
                       v-model="settingData.monitorSysGenServerSettingDataCollectionFrequency"
@@ -258,14 +251,6 @@
                     />
                     <span class="form-tip">天，建议值：30</span>
                   </el-form-item>
-
-                  <el-alert
-                    title="监控配置已迁移"
-                    description="监控间隔、数据收集频率等配置已迁移到监控配置页面，请在左侧菜单选择'监控配置'进行设置。指标阈值设置已迁移到告警配置页面。"
-                    type="info"
-                    :closable="false"
-                    class="mb-4"
-                  />
 
                   <el-alert
                     title="指标管理说明"
@@ -307,6 +292,26 @@
                 />
               </div>
 
+              <!-- Prometheus配置节 -->
+              <div v-show="activeSection === 'prometheus'" class="config-section">
+                <div class="section-description">
+                  <el-alert
+                    title="Prometheus配置"
+                    description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径。"
+                    type="info"
+                    show-icon
+                    :closable="false"
+                    class="mb-4"
+                  />
+                </div>
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="prometheus"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
               <!-- 高级配置节 -->
               <div v-show="activeSection === 'advanced'" class="config-section">
                 <ServerSettingForm
@@ -314,6 +319,56 @@
                   section="advanced"
                   :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
                   @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 任务配置节 -->
+              <div v-show="activeSection === 'tasks'" class="config-section">
+                <div class="section-description">
+                  <el-alert
+                    title="任务配置"
+                    description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能。"
+                    type="info"
+                    show-icon
+                    :closable="false"
+                    class="mb-4"
+                  />
+                </div>
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="tasks"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 清理配置节 -->
+              <div v-show="activeSection === 'cleanup'" class="config-section">
+                <div class="section-description">
+                  <el-alert
+                    title="清理配置"
+                    description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能。"
+                    type="info"
+                    show-icon
+                    :closable="false"
+                    class="mb-4"
+                  />
+                </div>
+                <ServerSettingForm
+                  v-model="settingData"
+                  section="cleanup"
+                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                  @change="handleSettingChange"
+                />
+              </div>
+
+              <!-- 配置历史节 -->
+              <div v-show="activeSection === 'history'" class="config-section">
+                <ServerSettingHistory
+                  v-if="serverId && activeSection === 'history'"
+                  :server-id="serverId"
+                  :server-info="currentServer"
+                  @restored="handleHistoryRestored"
                 />
               </div>
             </el-form>
@@ -326,14 +381,16 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
-        <el-button @click="handleReset" plain>
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          重置
-        </el-button>
-        <el-button @click="handleSave" type="primary" :loading="saving">
-          <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-          保存配置
-        </el-button>
+        <template v-if="activeSection !== 'history'">
+          <el-button @click="handleReset" plain>
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            重置
+          </el-button>
+          <el-button @click="handleSave" type="primary" :loading="saving">
+            <IconifyIconOnline icon="ri:save-line" class="mr-1" />
+            保存配置
+          </el-button>
+        </template>
       </div>
     </template>
   </el-dialog>
@@ -347,6 +404,7 @@ import { getServerSettingByServerId, saveOrUpdateServerSetting, type ServerSetti
 
 // 异步组件
 const ServerSettingForm = defineAsyncComponent(() => import("./ServerSettingForm.vue"));
+const ServerSettingHistory = defineAsyncComponent(() => import("./ServerSettingHistory.vue"));
 
 // 定义事件
 const emit = defineEmits<{
@@ -406,7 +464,11 @@ const getSectionTitle = () => {
     monitor: "监控配置",
     alert: "告警配置",
     docker: "Docker配置",
-    advanced: "高级配置"
+    prometheus: "Prometheus配置",
+    advanced: "高级配置",
+    tasks: "任务配置",
+    cleanup: "清理配置",
+    history: "配置历史"
   };
   return titles[activeSection.value] || "配置";
 };
@@ -416,6 +478,17 @@ const getSectionTitle = () => {
  */
 const handleSectionChange = (section: string) => {
   activeSection.value = section;
+};
+
+/**
+ * 处理历史配置恢复
+ */
+const handleHistoryRestored = (historyId: number) => {
+  message.success("配置已从历史记录恢复");
+  // 重新加载当前配置
+  loadServerSetting();
+  // 切换到相应的配置节以查看恢复的配置
+  activeSection.value = "proxy";
 };
 
 /**
