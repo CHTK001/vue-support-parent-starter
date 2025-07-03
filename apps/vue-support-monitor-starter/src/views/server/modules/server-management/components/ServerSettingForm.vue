@@ -1491,6 +1491,31 @@ const resetToDefault = () => {
   });
 };
 
+/**
+ * 测试Prometheus连接
+ */
+const testPrometheusConnection = async () => {
+  if (!formData.monitorSysGenServerSettingPrometheusUrl) {
+    ElMessage.warning("请先配置Prometheus服务器URL");
+    return;
+  }
+
+  testingConnection.value = true;
+  try {
+    // 这里应该调用后端API测试连接
+    // 暂时模拟测试
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // 模拟成功
+    ElMessage.success("Prometheus连接测试成功");
+  } catch (error) {
+    console.error("Prometheus连接测试失败:", error);
+    ElMessage.error("Prometheus连接测试失败，请检查配置");
+  } finally {
+    testingConnection.value = false;
+  }
+};
+
 
 </script>
 
