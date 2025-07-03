@@ -213,6 +213,22 @@ const deleteServerConfirm = async (server: any) => {
 };
 
 /**
+ * 安全提取值 - 如果新值无效且旧值存在，则保持旧值
+ */
+const safeExtractValue = (newValue: any, oldValue: any): number => {
+  // 如果新值有效，使用新值
+  if (newValue !== undefined && newValue !== null && !isNaN(Number(newValue))) {
+    return Number(newValue);
+  }
+  // 如果新值无效但旧值有效，保持旧值
+  if (oldValue !== undefined && oldValue !== null && !isNaN(Number(oldValue))) {
+    return Number(oldValue);
+  }
+  // 如果都无效，返回0
+  return 0;
+};
+
+/**
  * 初始化WebSocket消息处理
  */
 const initWebSocketHandlers = () => {
@@ -225,22 +241,20 @@ const initWebSocketHandlers = () => {
       // 处理嵌套数据格式，兼容新旧格式
       const data = message.data;
 
-      // 提取CPU数据
-      const cpuUsage = data.cpu?.usage ?? data.cpuUsage ?? 0;
+      // 获取当前存储的指标数据
+      const currentMetrics = serverMetrics.value.get(message.serverId);
 
-      // 提取内存数据
-      const memoryUsage = data.memory?.usage ?? data.memoryUsage ?? 0;
-
-      // 提取磁盘数据
-      const diskUsage = data.disk?.usage ?? data.diskUsage ?? 0;
-
-      // 提取网络数据
-      const networkIn = data.network?.in ?? data.networkIn ?? 0;
-      const networkOut = data.network?.out ?? data.networkOut ?? 0;
+      // 安全提取数据 - 如果新值无效且旧值存在，则保持旧值
+      const cpuUsage = safeExtractValue(data.cpu?.usage ?? data.cpuUsage, currentMetrics?.cpuUsage);
+      const memoryUsage = safeExtractValue(data.memory?.usage ?? data.memoryUsage, currentMetrics?.memoryUsage);
+      const diskUsage = safeExtractValue(data.disk?.usage ?? data.diskUsage, currentMetrics?.diskUsage);
+      const networkIn = safeExtractValue(data.network?.in ?? data.networkIn, currentMetrics?.networkIn);
+      const networkOut = safeExtractValue(data.network?.out ?? data.networkOut, currentMetrics?.networkOut);
 
       // 提取负载平均值
       const loadAverage = data.loadAverage ??
-        (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined);
+        (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ??
+        currentMetrics?.loadAverage;
 
       // 更新store中的指标数据
       serverMetricsStore.updateServerMetrics(message.serverId, {
