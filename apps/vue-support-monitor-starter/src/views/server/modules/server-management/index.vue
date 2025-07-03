@@ -184,21 +184,6 @@
                   <IconifyIconOnline icon="ri:server-line" />
                 </div>
               </el-tooltip>
-              <el-tooltip :content="`网络速度 - 上行: ${formatNetworkSpeed(getServerMetrics(server.id)?.networkOut || 0)}/s, 下行: ${formatNetworkSpeed(getServerMetrics(server.id)?.networkIn || 0)}/s`" placement="top" :show-after="300">
-                <div class="metric-item network-speed">
-                  <span class="metric-label">网络</span>
-                  <div class="network-speeds">
-                    <div class="speed-item">
-                      <span class="speed-direction">↑</span>
-                      <span class="speed-value">{{ formatNetworkSpeed(getServerMetrics(server.id)?.networkOut || 0) }}/s</span>
-                    </div>
-                    <div class="speed-item">
-                      <span class="speed-direction">↓</span>
-                      <span class="speed-value">{{ formatNetworkSpeed(getServerMetrics(server.id)?.networkIn || 0) }}/s</span>
-                    </div>
-                  </div>
-                </div>
-              </el-tooltip>
             </div>
             <!-- 最小化状态下的服务器列表 -->
             <el-tooltip

@@ -145,7 +145,7 @@
           <el-descriptions-item label="CPU使用率">
             <el-progress
               :percentage="Math.round(systemInfo.cpuUsage || 0)"
-              :color="getProgressColor(systemInfo.cpuUsage)"
+              :color="getProgressColor(systemInfo.cpuUsage, 'cpu')"
               :show-text="true"
               :stroke-width="8"
             />
@@ -153,7 +153,7 @@
           <el-descriptions-item label="内存使用率">
             <el-progress
               :percentage="Math.round(systemInfo.memoryUsage || 0)"
-              :color="getProgressColor(systemInfo.memoryUsage)"
+              :color="getProgressColor(systemInfo.memoryUsage, 'memory')"
               :show-text="true"
               :stroke-width="8"
             />
@@ -161,7 +161,7 @@
           <el-descriptions-item label="磁盘使用率">
             <el-progress
               :percentage="Math.round(systemInfo.diskUsage || 0)"
-              :color="getProgressColor(systemInfo.diskUsage)"
+              :color="getProgressColor(systemInfo.diskUsage, 'disk')"
               :show-text="true"
               :stroke-width="8"
             />
@@ -194,7 +194,7 @@
             <template #default="{ row }">
               <el-progress
                 :percentage="Math.round(row.cpuUsage || 0)"
-                :color="getProgressColor(row.cpuUsage)"
+                :color="getProgressColor(row.cpuUsage, 'cpu')"
                 :show-text="true"
                 :stroke-width="6"
                 text-inside
@@ -205,7 +205,7 @@
             <template #default="{ row }">
               <el-progress
                 :percentage="Math.round(row.memoryUsage || 0)"
-                :color="getProgressColor(row.memoryUsage)"
+                :color="getProgressColor(row.memoryUsage, 'memory')"
                 :show-text="true"
                 :stroke-width="6"
                 text-inside
@@ -216,7 +216,7 @@
             <template #default="{ row }">
               <el-progress
                 :percentage="Math.round(row.diskUsage || 0)"
-                :color="getProgressColor(row.diskUsage)"
+                :color="getProgressColor(row.diskUsage, 'disk')"
                 :show-text="true"
                 :stroke-width="6"
                 text-inside
@@ -374,12 +374,25 @@ const getProtocolIcon = (protocol: string) => {
 };
 
 /**
- * 获取进度条颜色
+ * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
+const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+  // 定义不同指标的阈值
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 90 },
+    memory: { normal: 60, warning: 80, critical: 90 },
+    disk: { normal: 70, warning: 85, critical: 95 },
+    network: { normal: 60, warning: 80, critical: 90 }
+  };
+
+  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+
+  // 返回渐变色配置
+  return [
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
+  ];
 };
 
 /**

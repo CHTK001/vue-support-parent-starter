@@ -30,6 +30,17 @@
         <span class="value">{{ displayValue }}</span>
         <span class="unit" v-if="unit">{{ unit }}</span>
       </div>
+
+      <!-- 进度条显示（仅对百分比类型的指标显示） -->
+      <div v-if="showProgressBar" class="metric-progress">
+        <el-progress
+          :percentage="progressPercentage"
+          :color="getProgressColor(progressPercentage, metricType)"
+          :show-text="false"
+          :stroke-width="6"
+        />
+      </div>
+
       <div class="metric-description" v-if="componentData.monitorSysGenServerDetailComponentDesc">
         {{ componentData.monitorSysGenServerDetailComponentDesc }}
       </div>
@@ -101,6 +112,47 @@ const unit = computed(() => {
   }
 });
 
+// 判断是否显示进度条
+const showProgressBar = computed(() => {
+  try {
+    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
+    return config.showProgress === true || isPercentageMetric.value;
+  } catch {
+    return isPercentageMetric.value;
+  }
+});
+
+// 判断是否为百分比类型的指标
+const isPercentageMetric = computed(() => {
+  const title = props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() || "";
+  return title.includes("使用率") || title.includes("cpu") || title.includes("memory") || title.includes("内存") || title.includes("磁盘");
+});
+
+// 获取指标类型
+const metricType = computed(() => {
+  const title = props.componentData.monitorSysGenServerDetailComponentTitle?.toLowerCase() || "";
+  if (title.includes("cpu")) return "cpu";
+  if (title.includes("memory") || title.includes("内存")) return "memory";
+  if (title.includes("磁盘") || title.includes("disk")) return "disk";
+  if (title.includes("网络") || title.includes("network")) return "network";
+  return "cpu"; // 默认
+});
+
+// 进度条百分比
+const progressPercentage = computed(() => {
+  if (data.value === null || data.value === undefined) return 0;
+
+  const numValue = typeof data.value === "number" ? data.value : parseFloat(String(data.value));
+  if (isNaN(numValue)) return 0;
+
+  // 如果值大于100，可能是原始值需要转换为百分比
+  if (numValue > 100) {
+    return Math.min(numValue / 100, 100);
+  }
+
+  return Math.min(Math.max(numValue, 0), 100);
+});
+
 /**
  * 获取图标
  */
@@ -111,6 +163,28 @@ const getIcon = () => {
   } catch {
     return "ri:dashboard-line";
   }
+};
+
+/**
+ * 获取进度条颜色（支持渐变和不同指标类型）
+ */
+const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+  // 定义不同指标的阈值
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 90 },
+    memory: { normal: 60, warning: 80, critical: 90 },
+    disk: { normal: 70, warning: 85, critical: 95 },
+    network: { normal: 60, warning: 80, critical: 90 }
+  };
+
+  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+
+  // 返回渐变色配置
+  return [
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
+  ];
 };
 
 /**
@@ -289,6 +363,22 @@ onUnmounted(() => {
       font-size: 16px;
       color: var(--el-text-color-regular);
       font-weight: 500;
+    }
+  }
+
+  .metric-progress {
+    width: 100%;
+    margin: 12px 0;
+
+    :deep(.el-progress-bar__outer) {
+      border-radius: 8px;
+      background-color: var(--el-fill-color-light);
+      height: 8px;
+    }
+
+    :deep(.el-progress-bar__inner) {
+      border-radius: 8px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
   }
 
