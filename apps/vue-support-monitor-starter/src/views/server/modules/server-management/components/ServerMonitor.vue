@@ -70,81 +70,41 @@
         </div>
       </div>
 
-      <!-- 磁盘使用率 -->
+      <!-- 磁盘使用情况 -->
       <div class="metric-card disk-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
-          <span class="metric-title">磁盘使用率</span>
-          <el-tooltip content="点击查看详细分区信息" placement="top">
-            <el-button
-              type="text"
-              size="small"
-              @click="showDiskDetails = !showDiskDetails"
-              class="toggle-btn"
-            >
-              <IconifyIconOnline
-                :icon="showDiskDetails ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
-              />
-            </el-button>
-          </el-tooltip>
-        </div>
-        <div class="metric-content">
-          <div class="metric-value" :class="{ 'animating': diskAnimation.isAnimating.value }">
-            {{ diskAnimation.formattedValue.value }}
-          </div>
-          <el-progress
-            :percentage="diskAnimation.displayValue.value"
-            :color="getProgressColor(diskAnimation.displayValue.value, 'disk')"
-            :show-text="false"
-          />
-          <div class="metric-details">
-            <span>已用: {{ formatBytes(metrics?.disk?.used) }}</span>
-            <span>总计: {{ formatBytes(metrics?.disk?.total) }}</span>
-          </div>
+          <span class="metric-title">磁盘使用情况</span>
         </div>
 
-        <!-- 磁盘分区详情 -->
-        <el-collapse-transition>
-          <div v-show="showDiskDetails" class="disk-partitions">
-            <div class="partitions-header">
-              <span class="partitions-title">磁盘分区详情</span>
-              <span class="partitions-count">{{ diskPartitions.length }} 个分区</span>
-            </div>
-            <div class="partitions-list">
-              <div
-                v-for="(partition, index) in diskPartitions"
-                :key="index"
-                class="partition-item"
-              >
-                <div class="partition-header">
-                  <div class="partition-info">
-                    <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
-                    <span class="partition-name">{{ partition.name || partition.mount }}</span>
-                    <el-tag size="small" type="info" class="partition-type">
-                      {{ partition.type }}
-                    </el-tag>
-                  </div>
-                  <div class="partition-usage" :class="getPartitionUsageClass(partition.usagePercent)">
-                    {{ Math.round(partition.usagePercent || 0) }}%
-                  </div>
+        <!-- 磁盘分区列表 -->
+        <div class="disk-partitions">
+          <div class="partitions-header">
+            <span class="partitions-count">{{ diskPartitions.length }} 个分区</span>
+          </div>
+          <div class="partitions-list">
+            <div
+              v-for="(partition, index) in diskPartitions"
+              :key="index"
+              class="partition-item"
+            >
+              <div class="partition-header">
+                <div class="partition-info">
+                  <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
+                  <span class="partition-name">{{ partition.name || partition.mount }}</span>
+                  <el-tag size="small" type="info" class="partition-type">
+                    {{ partition.type }}
+                  </el-tag>
                 </div>
-                <div class="partition-progress">
-                  <el-progress
-                    :percentage="Math.round(partition.usagePercent || 0)"
-                    :color="getPartitionProgressColor(partition.usagePercent || 0)"
-                    :show-text="false"
-                    :stroke-width="4"
-                  />
-                </div>
-                <div class="partition-details">
-                  <span>已用: {{ formatBytes(partition.usedSpace) }}</span>
-                  <span>可用: {{ formatBytes(partition.freeSpace) }}</span>
-                  <span>总计: {{ formatBytes(partition.totalSpace) }}</span>
-                </div>
+              </div>
+              <div class="partition-details">
+                <span>已用: {{ formatBytes(partition.usedSpace) }}</span>
+                <span>可用: {{ formatBytes(partition.freeSpace) }}</span>
+                <span>总计: {{ formatBytes(partition.totalSpace) }}</span>
               </div>
             </div>
           </div>
-        </el-collapse-transition>
+        </div>
       </div>
 
       <!-- 网络流量 -->
@@ -332,7 +292,6 @@ const emit = defineEmits<{
 // 状态
 const loading = ref(false);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
-const showDiskDetails = ref(false);
 
 // 动画实例
 const cpuAnimation = usePercentageAnimation(0, { duration: 1000 });
@@ -430,9 +389,9 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', percentage: threshold.normal },
-    { color: '#e6a23c', percentage: threshold.warning },
-    { color: '#f56c6c', percentage: 100 }
+    { color: '#67c23a', "percentage": threshold.normal },
+    { color: '#e6a23c',  "percentage": threshold.warning },
+    { color: '#f56c6c',  "percentage": 100 }
   ];
 };
 
@@ -443,23 +402,7 @@ const getTempColor = (temp: number) => {
   return getMetricColor('temperature', temp);
 };
 
-/**
- * 获取磁盘分区使用率颜色类名
- */
-const getPartitionUsageClass = (percentage: number) => {
-  if (percentage >= 95) return 'usage-critical';
-  if (percentage >= 85) return 'usage-warning';
-  return 'usage-normal';
-};
 
-/**
- * 获取磁盘分区进度条颜色
- */
-const getPartitionProgressColor = (percentage: number) => {
-  if (percentage >= 95) return '#f56c6c'; // 红色
-  if (percentage >= 85) return '#e6a23c'; // 黄色
-  return '#67c23a'; // 绿色
-};
 
 /**
  * 安全更新动画值 - 如果新值为空且旧值存在，则保持旧值
@@ -1112,9 +1055,7 @@ onUnmounted(() => {
 
 /* 磁盘分区样式 */
 .disk-partitions {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  margin-top: 8px;
 
   .partitions-header {
     display: flex;
@@ -1182,26 +1123,6 @@ onUnmounted(() => {
         }
       }
 
-      .partition-usage {
-        font-size: 13px;
-        font-weight: 600;
-
-        &.usage-normal {
-          color: var(--el-color-success);
-        }
-
-        &.usage-warning {
-          color: var(--el-color-warning);
-        }
-
-        &.usage-critical {
-          color: var(--el-color-danger);
-        }
-      }
-    }
-
-    .partition-progress {
-      margin-bottom: 8px;
     }
 
     .partition-details {

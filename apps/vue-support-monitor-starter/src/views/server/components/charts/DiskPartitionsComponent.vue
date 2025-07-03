@@ -44,18 +44,6 @@
                 {{ partition.type }}
               </el-tag>
             </div>
-            <div class="partition-usage" :class="getUsageColorClass(partition.usagePercent)">
-              {{ Math.round(partition.usagePercent || 0) }}%
-            </div>
-          </div>
-          
-          <div class="partition-progress">
-            <el-progress
-              :percentage="Math.round(partition.usagePercent || 0)"
-              :color="getProgressColor(partition.usagePercent || 0)"
-              :show-text="false"
-              :stroke-width="6"
-            />
           </div>
           
           <div class="partition-details">
@@ -99,7 +87,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
 import type { ServerDetailComponent } from "@/api/server";
-import { getMetricColor, getMetricColorClass } from "@/utils/metricsThreshold";
 
 // 定义属性
 interface Props {
@@ -153,19 +140,7 @@ const updatePartitionsData = (metrics: any) => {
   }
 };
 
-/**
- * 获取使用率颜色类名
- */
-const getUsageColorClass = (percentage: number) => {
-  return getMetricColorClass('disk', percentage);
-};
 
-/**
- * 获取进度条颜色
- */
-const getProgressColor = (percentage: number) => {
-  return getMetricColor('disk', percentage);
-};
 
 /**
  * 格式化字节
@@ -291,15 +266,6 @@ const handleRefresh = async () => {
             }
           }
 
-          .partition-usage {
-            font-weight: 600;
-            font-size: 16px;
-            // 颜色由阈值工具类动态设置
-          }
-        }
-
-        .partition-progress {
-          margin-bottom: 12px;
         }
 
         .partition-details {

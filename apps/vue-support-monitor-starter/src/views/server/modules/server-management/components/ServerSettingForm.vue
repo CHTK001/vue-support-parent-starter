@@ -84,53 +84,7 @@
       </el-form-item>
 
 
-      <el-alert
-        title="告警阈值配置已移至统一告警配置管理"
-        type="info"
-        :closable="false"
-        show-icon
-        style="margin-bottom: 20px"
-      >
-        <template #default>
-          <p>为了更好地管理告警配置，所有告警阈值设置已移至统一的告警配置管理页面。</p>
-          <p>您可以在告警配置页面创建和管理不同的告警配置模板，并应用到多个服务器。</p>
-          <div style="margin-top: 10px">
-            <el-button type="primary" size="small" @click="openAlertConfig">
-              <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
-              打开告警配置
-            </el-button>
-            <el-button type="default" size="small" @click="viewCurrentAlertConfig">
-              <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
-              查看当前配置
-            </el-button>
-          </div>
-        </template>
-      </el-alert>
 
-      <el-form-item>
-        <template #label>
-          <div class="form-label">
-            <span>当前使用的告警配置</span>
-            <el-tooltip
-              content="显示当前服务器使用的告警配置模板"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
-          </div>
-        </template>
-        <div class="current-alert-config">
-          <el-tag type="success" size="large">
-            <IconifyIconOnline icon="ri:shield-check-line" class="mr-1" />
-            {{ currentAlertConfigName || '默认告警配置' }}
-          </el-tag>
-          <el-button type="text" size="small" @click="changeAlertConfig" style="margin-left: 10px">
-            <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
-            更换配置
-          </el-button>
-        </div>
-      </el-form-item>
     </div>
 
     <!-- 告警配置 -->

@@ -730,6 +730,7 @@ const getServerMonitorMetrics = (serverId: string | null) => {
       used: 0, // metricsStore中没有这个字段，使用默认值
       free: 0, // metricsStore中没有这个字段，使用默认值
       usage: metrics.diskUsage || 0,
+      partitions: metrics.diskPartitions || [], // 添加磁盘分区信息
     },
     network: {
       in: metrics.networkIn || 0,

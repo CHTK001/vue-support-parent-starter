@@ -242,7 +242,7 @@ const initWebSocketHandlers = () => {
       const data = message.data;
 
       // 获取当前存储的指标数据
-      const currentMetrics = serverMetrics.value.get(message.serverId);
+      const currentMetrics = serverMetrics.value.get(message.serverId as any);
 
       // 安全提取数据 - 如果新值无效且旧值存在，则保持旧值
       const cpuUsage = safeExtractValue(data.cpu?.usage ?? data.cpuUsage, currentMetrics?.cpuUsage);
@@ -263,8 +263,11 @@ const initWebSocketHandlers = () => {
         cpuUsage,
         memoryUsage,
         diskUsage,
+        diskPartitions: data.disk?.partitions || [], // 添加磁盘分区信息
         networkIn,
         networkOut,
+        networkInSpeed: data.network?.inSpeed || 0,
+        networkOutSpeed: data.network?.outSpeed || 0,
         uptime: data.uptime || 0,
         processCount: data.processCount || 0,
         loadAverage,
