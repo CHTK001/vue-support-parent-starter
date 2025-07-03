@@ -82,25 +82,27 @@
           <div class="partitions-header">
             <span class="partitions-count">{{ diskPartitions.length }} 个分区</span>
           </div>
-          <div class="partitions-list">
-            <div
-              v-for="(partition, index) in diskPartitions"
-              :key="index"
-              class="partition-item"
-            >
-              <div class="partition-header">
-                <div class="partition-info">
-                  <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
-                  <span class="partition-name">{{ partition.name || partition.mount }}</span>
-                  <el-tag size="small" type="info" class="partition-type">
-                    {{ partition.type }}
-                  </el-tag>
+          <div class="partitions-list-container">
+            <div class="partitions-list">
+              <div
+                v-for="(partition, index) in diskPartitions"
+                :key="index"
+                class="partition-item"
+              >
+                <div class="partition-header">
+                  <div class="partition-info">
+                    <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
+                    <span class="partition-name">{{ partition.name || partition.mount }}</span>
+                    <el-tag size="small" type="info" class="partition-type">
+                      {{ partition.type }}
+                    </el-tag>
+                  </div>
                 </div>
-              </div>
-              <div class="partition-details">
-                <span>已用: {{ formatBytes(partition.usedSpace) }}</span>
-                <span>可用: {{ formatBytes(partition.freeSpace) }}</span>
-                <span>总计: {{ formatBytes(partition.totalSpace) }}</span>
+                <div class="partition-details">
+                  <span>已用: {{ formatBytes(partition.usedSpace) }}</span>
+                  <span>可用: {{ formatBytes(partition.freeSpace) }}</span>
+                  <span>总计: {{ formatBytes(partition.totalSpace) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -140,15 +142,19 @@
         <div class="metric-content">
           <div class="info-item">
             <span class="info-label">操作系统:</span>
-            <span class="info-value">{{ metrics?.osName || 'N/A' }}</span>
+            <span class="info-value">{{ getOsName() }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">系统版本:</span>
-            <span class="info-value">{{ metrics?.osVersion || 'N/A' }}</span>
+            <span class="info-value">{{ getOsVersion() }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">主机名:</span>
-            <span class="info-value">{{ metrics?.hostname || 'N/A' }}</span>
+            <span class="info-value">{{ getHostname() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">系统架构:</span>
+            <span class="info-value">{{ getSystemArch() }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">运行时间:</span>
@@ -161,6 +167,10 @@
           <div class="info-item">
             <span class="info-label">进程数:</span>
             <span class="info-value">{{ metrics?.processCount || 'N/A' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">CPU核心数:</span>
+            <span class="info-value">{{ metrics?.cpu?.cores || 'N/A' }}</span>
           </div>
         </div>
       </div>
@@ -432,6 +442,118 @@ const formatBytes = (bytes: number | undefined) => {
 const formatNumber = (num: number | undefined) => {
   if (!num) return "0";
   return num.toLocaleString();
+};
+
+/**
+ * 智能获取操作系统名称
+ */
+const getOsName = () => {
+  // 优先使用 osName 字段
+  if (metrics.value?.osName) {
+    return metrics.value.osName;
+  }
+
+  // 从 osInfo 中解析
+  if (metrics.value?.osInfo) {
+    const osInfo = metrics.value.osInfo;
+    // 匹配常见的操作系统名称
+    if (osInfo.includes('Ubuntu')) return 'Ubuntu';
+    if (osInfo.includes('CentOS')) return 'CentOS';
+    if (osInfo.includes('Red Hat')) return 'Red Hat';
+    if (osInfo.includes('Debian')) return 'Debian';
+    if (osInfo.includes('Windows')) return 'Windows';
+    if (osInfo.includes('macOS') || osInfo.includes('Darwin')) return 'macOS';
+    if (osInfo.includes('Linux')) return 'Linux';
+
+    // 如果包含 "OS:" 标记，提取其后的内容
+    const osMatch = osInfo.match(/OS:\s*([^;]+)/);
+    if (osMatch) {
+      return osMatch[1].trim();
+    }
+
+    // 返回第一部分作为操作系统名称
+    return osInfo.split(' ')[0] || osInfo;
+  }
+
+  return 'N/A';
+};
+
+/**
+ * 智能获取操作系统版本
+ */
+const getOsVersion = () => {
+  // 优先使用 osVersion 字段
+  if (metrics.value?.osVersion) {
+    return metrics.value.osVersion;
+  }
+
+  // 从 osInfo 中解析版本信息
+  if (metrics.value?.osInfo) {
+    const osInfo = metrics.value.osInfo;
+
+    // 匹配版本号模式
+    const versionMatch = osInfo.match(/(\d+\.\d+(?:\.\d+)?)/);
+    if (versionMatch) {
+      return versionMatch[1];
+    }
+
+    // 匹配 Ubuntu 版本
+    const ubuntuMatch = osInfo.match(/Ubuntu\s+(\d+\.\d+)/);
+    if (ubuntuMatch) {
+      return ubuntuMatch[1];
+    }
+
+    // 匹配 CentOS 版本
+    const centosMatch = osInfo.match(/CentOS\s+(\d+)/);
+    if (centosMatch) {
+      return centosMatch[1];
+    }
+  }
+
+  return 'N/A';
+};
+
+/**
+ * 智能获取主机名
+ */
+const getHostname = () => {
+  // 优先使用 hostname 字段
+  if (metrics.value?.hostname) {
+    return metrics.value.hostname;
+  }
+
+  // 从 extraInfo 中解析
+  if (metrics.value?.extraInfo) {
+    const hostnameMatch = metrics.value.extraInfo.match(/hostname:([^,]+)/);
+    if (hostnameMatch) {
+      return hostnameMatch[1].trim();
+    }
+  }
+
+  return 'N/A';
+};
+
+/**
+ * 智能获取系统架构
+ */
+const getSystemArch = () => {
+  if (metrics.value?.osInfo) {
+    const osInfo = metrics.value.osInfo;
+
+    // 匹配架构信息
+    if (osInfo.includes('x86_64') || osInfo.includes('amd64')) return 'x86_64';
+    if (osInfo.includes('i386') || osInfo.includes('i686')) return 'i386';
+    if (osInfo.includes('aarch64') || osInfo.includes('arm64')) return 'ARM64';
+    if (osInfo.includes('armv7') || osInfo.includes('armhf')) return 'ARM';
+
+    // 匹配 "Arch:" 标记
+    const archMatch = osInfo.match(/Arch:\s*([^;]+)/);
+    if (archMatch) {
+      return archMatch[1].trim();
+    }
+  }
+
+  return 'N/A';
 };
 
 
@@ -1075,6 +1197,31 @@ onUnmounted(() => {
       background-color: var(--el-fill-color-light);
       padding: 2px 8px;
       border-radius: 10px;
+    }
+  }
+
+  .partitions-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+
+    /* 自定义滚动条样式 */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--el-fill-color-lighter);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color-darker);
+      border-radius: 3px;
+
+      &:hover {
+        background: var(--el-color-primary-light-5);
+      }
     }
   }
 
