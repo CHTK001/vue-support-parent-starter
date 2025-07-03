@@ -356,21 +356,25 @@ const diskPartitions = computed(() => {
 });
 
 // 监听指标数据变化
-watch(() => props.metricsData, (newMetrics) => {
+watch(() => props.metricsData, (newMetrics, oldMetrics) => {
   if (newMetrics) {
     console.log('ServerMonitor接收到指标数据:', newMetrics);
 
-    // 更新动画值
-    cpuAnimation.setValue(newMetrics.cpu?.usage || 0);
-    memoryAnimation.setValue(newMetrics.memory?.usage || 0);
-    diskAnimation.setValue(newMetrics.disk?.usage || 0);
-    networkInAnimation.setValue(newMetrics.network?.in || 0);
-    networkOutAnimation.setValue(newMetrics.network?.out || 0);
-    uptimeAnimation.setValue(newMetrics.uptime || 0);
-    processCountAnimation.setValue(newMetrics.processCount || 0);
+    // 更新动画值 - 如果新值为空且旧值存在，则保持旧值
+    updateAnimationValueSafely(cpuAnimation, newMetrics.cpu?.usage, oldMetrics?.cpu?.usage);
+    updateAnimationValueSafely(memoryAnimation, newMetrics.memory?.usage, oldMetrics?.memory?.usage);
+    updateAnimationValueSafely(diskAnimation, newMetrics.disk?.usage, oldMetrics?.disk?.usage);
+    updateAnimationValueSafely(networkInAnimation, newMetrics.network?.in, oldMetrics?.network?.in);
+    updateAnimationValueSafely(networkOutAnimation, newMetrics.network?.out, oldMetrics?.network?.out);
+    updateAnimationValueSafely(uptimeAnimation, newMetrics.uptime, oldMetrics?.uptime);
+    updateAnimationValueSafely(processCountAnimation, newMetrics.processCount, oldMetrics?.processCount);
 
-    if (newMetrics.temperature) {
+    // 温度数据特殊处理
+    if (newMetrics.temperature !== undefined && newMetrics.temperature !== null) {
       temperatureAnimation.setValue(newMetrics.temperature);
+    } else if (oldMetrics?.temperature !== undefined && oldMetrics?.temperature !== null) {
+      // 如果新数据没有温度但旧数据有，保持旧值
+      temperatureAnimation.setValue(oldMetrics.temperature);
     }
   }
 }, { deep: true });
@@ -455,6 +459,24 @@ const getPartitionProgressColor = (percentage: number) => {
   if (percentage >= 95) return '#f56c6c'; // 红色
   if (percentage >= 85) return '#e6a23c'; // 黄色
   return '#67c23a'; // 绿色
+};
+
+/**
+ * 安全更新动画值 - 如果新值为空且旧值存在，则保持旧值
+ */
+const updateAnimationValueSafely = (animation: any, newValue: any, oldValue: any) => {
+  // 如果新值有效，使用新值
+  if (newValue !== undefined && newValue !== null && !isNaN(Number(newValue))) {
+    animation.setValue(Number(newValue));
+  }
+  // 如果新值无效但旧值有效，保持旧值
+  else if (oldValue !== undefined && oldValue !== null && !isNaN(Number(oldValue))) {
+    animation.setValue(Number(oldValue));
+  }
+  // 如果都无效，设为0
+  else {
+    animation.setValue(0);
+  }
 };
 
 const formatBytes = (bytes: number | undefined) => {
