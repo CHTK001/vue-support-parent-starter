@@ -332,6 +332,7 @@ const emit = defineEmits<{
 // 状态
 const loading = ref(false);
 const updateTimer = ref<NodeJS.Timeout | null>(null);
+const showDiskDetails = ref(false);
 
 // 动画实例
 const cpuAnimation = usePercentageAnimation(0, { duration: 1000 });
@@ -348,6 +349,11 @@ const metrics = computed(() => props.metricsData);
 
 // 计算属性
 const serverId = computed(() => props.server?.id);
+
+// 磁盘分区数据
+const diskPartitions = computed(() => {
+  return props.metricsData?.disk?.partitions || [];
+});
 
 // 监听指标数据变化
 watch(() => props.metricsData, (newMetrics) => {
@@ -431,6 +437,24 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
  */
 const getTempColor = (temp: number) => {
   return getMetricColor('temperature', temp);
+};
+
+/**
+ * 获取磁盘分区使用率颜色类名
+ */
+const getPartitionUsageClass = (percentage: number) => {
+  if (percentage >= 95) return 'usage-critical';
+  if (percentage >= 85) return 'usage-warning';
+  return 'usage-normal';
+};
+
+/**
+ * 获取磁盘分区进度条颜色
+ */
+const getPartitionProgressColor = (percentage: number) => {
+  if (percentage >= 95) return '#f56c6c'; // 红色
+  if (percentage >= 85) return '#e6a23c'; // 黄色
+  return '#67c23a'; // 绿色
 };
 
 const formatBytes = (bytes: number | undefined) => {
@@ -1041,6 +1065,138 @@ onUnmounted(() => {
 
   :deep(.el-progress-bar__inner) {
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* 磁盘卡片样式 */
+.disk-card {
+  .metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .toggle-btn {
+      padding: 4px;
+      color: var(--el-text-color-regular);
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+      }
+    }
+  }
+}
+
+/* 磁盘分区样式 */
+.disk-partitions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  .partitions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .partitions-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .partitions-count {
+      font-size: 12px;
+      color: var(--el-text-color-regular);
+      background-color: var(--el-fill-color-light);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+  }
+
+  .partitions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .partition-item {
+    padding: 12px;
+    background-color: var(--el-fill-color-extra-light);
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--el-color-primary-light-7);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .partition-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+
+      .partition-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .partition-icon {
+          color: var(--el-color-primary);
+          font-size: 14px;
+        }
+
+        .partition-name {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--el-text-color-primary);
+        }
+
+        .partition-type {
+          font-size: 11px;
+        }
+      }
+
+      .partition-usage {
+        font-size: 13px;
+        font-weight: 600;
+
+        &.usage-normal {
+          color: var(--el-color-success);
+        }
+
+        &.usage-warning {
+          color: var(--el-color-warning);
+        }
+
+        &.usage-critical {
+          color: var(--el-color-danger);
+        }
+      }
+    }
+
+    .partition-progress {
+      margin-bottom: 8px;
+    }
+
+    .partition-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--el-text-color-regular);
+
+      span {
+        flex: 1;
+        text-align: center;
+
+        &:not(:last-child) {
+          border-right: 1px solid var(--el-border-color-lighter);
+        }
+      }
+    }
   }
 }
 
