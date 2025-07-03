@@ -70,6 +70,31 @@ export interface ServerSetting {
   monitorSysGenServerSettingConnectionTimeout?: number;
   /** 读取超时时间(秒) */
   monitorSysGenServerSettingReadTimeout?: number;
+
+  // ==================== 统一定时任务配置 ====================
+  /** 端口检测间隔时间(秒) */
+  monitorSysGenServerSettingPortCheckInterval?: number;
+  /** 是否启用在线状态检测 0:否 1:是 */
+  monitorSysGenServerSettingOnlineCheckEnabled?: number;
+  /** 在线状态检测间隔时间(秒) */
+  monitorSysGenServerSettingOnlineCheckInterval?: number;
+  /** 是否启用延迟检测 0:否 1:是 */
+  monitorSysGenServerSettingLatencyCheckEnabled?: number;
+  /** 延迟检测间隔时间(秒) */
+  monitorSysGenServerSettingLatencyCheckInterval?: number;
+  /** 是否启用日志清理 0:否 1:是 */
+  monitorSysGenServerSettingLogCleanupEnabled?: number;
+  /** 日志保留天数 */
+  monitorSysGenServerSettingLogRetentionDays?: number;
+  /** 是否启用临时文件清理 0:否 1:是 */
+  monitorSysGenServerSettingTempFileCleanupEnabled?: number;
+  /** 临时文件保留小时数 */
+  monitorSysGenServerSettingTempFileRetentionHours?: number;
+  /** 是否启用WebSocket会话清理 0:否 1:是 */
+  monitorSysGenServerSettingWebSocketCleanupEnabled?: number;
+  /** WebSocket会话清理间隔时间(分钟) */
+  monitorSysGenServerSettingWebSocketCleanupInterval?: number;
+
   /** 创建时间 */
   createTime?: string;
   /** 更新时间 */
@@ -370,5 +395,19 @@ export function getSettingsStatistics() {
   return http.request<ReturnResult<any>>(
     "get",
     "v1/gen/server/setting/statistics"
+  );
+}
+
+/**
+ * 获取服务器配置变更历史
+ * @param serverId 服务器ID
+ * @param limit 限制数量
+ * @returns 变更历史
+ */
+export function getServerSettingHistory(serverId: number, limit: number = 10) {
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    `v1/gen/server/setting/server/${serverId}/history`,
+    { params: { limit } }
   );
 }

@@ -73,6 +73,282 @@
           </div>
         </el-tab-pane>
 
+        <!-- 阈值设置 -->
+        <el-tab-pane label="阈值设置" name="thresholds">
+          <div class="thresholds-panel">
+            <el-alert
+              title="阈值配置说明"
+              description="设置各项监控指标的告警阈值，当指标值超过设定阈值时将触发相应级别的告警。"
+              type="info"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 20px"
+            />
+
+            <el-form :model="thresholdConfig" label-width="120px">
+              <!-- CPU阈值设置 -->
+              <el-card class="threshold-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <IconifyIconOnline icon="ri:cpu-line" class="metric-icon" />
+                    <span>CPU使用率阈值</span>
+                  </div>
+                </template>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.cpu.normal"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.cpu.warning"
+                        :min="thresholdConfig.cpu.normal"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.cpu.critical"
+                        :min="thresholdConfig.cpu.warning"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+
+              <!-- 内存阈值设置 -->
+              <el-card class="threshold-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <IconifyIconOnline icon="ri:database-line" class="metric-icon" />
+                    <span>内存使用率阈值</span>
+                  </div>
+                </template>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.memory.normal"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.memory.warning"
+                        :min="thresholdConfig.memory.normal"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.memory.critical"
+                        :min="thresholdConfig.memory.warning"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+
+              <!-- 磁盘阈值设置 -->
+              <el-card class="threshold-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
+                    <span>磁盘使用率阈值</span>
+                  </div>
+                </template>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.disk.normal"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.disk.warning"
+                        :min="thresholdConfig.disk.normal"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.disk.critical"
+                        :min="thresholdConfig.disk.warning"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+
+              <!-- 温度阈值设置 -->
+              <el-card class="threshold-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <IconifyIconOnline icon="ri:temp-hot-line" class="metric-icon" />
+                    <span>温度阈值</span>
+                  </div>
+                </template>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.temperature.normal"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">°C</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.temperature.warning"
+                        :min="thresholdConfig.temperature.normal"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">°C</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.temperature.critical"
+                        :min="thresholdConfig.temperature.warning"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">°C</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+
+              <!-- 网络阈值设置 -->
+              <el-card class="threshold-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <IconifyIconOnline icon="ri:wifi-line" class="metric-icon" />
+                    <span>网络使用率阈值</span>
+                  </div>
+                </template>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.network.normal"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.network.warning"
+                        :min="thresholdConfig.network.normal"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
+                        v-model="thresholdConfig.network.critical"
+                        :min="thresholdConfig.network.warning"
+                        :max="100"
+                        :step="5"
+                        :precision="1"
+                        style="width: 100%"
+                      />
+                      <span class="unit">%</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+
+              <div class="threshold-actions">
+                <el-button @click="resetThresholds">重置为默认值</el-button>
+                <el-button type="primary" @click="saveThresholds">保存阈值配置</el-button>
+              </div>
+            </el-form>
+          </div>
+        </el-tab-pane>
+
         <!-- 通知设置 -->
         <el-tab-pane label="通知设置" name="notifications">
           <div class="notifications-panel">
@@ -271,6 +547,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
+import { DEFAULT_THRESHOLDS, type MetricsThresholdConfig } from "@/utils/metricsThreshold";
 
 // 状态
 const visible = ref(false);
@@ -312,6 +589,15 @@ const currentRule = reactive({
   duration: 300,
   description: '',
   enabled: true
+});
+
+// 阈值配置
+const thresholdConfig = reactive<MetricsThresholdConfig>({
+  cpu: { ...DEFAULT_THRESHOLDS.cpu },
+  memory: { ...DEFAULT_THRESHOLDS.memory },
+  disk: { ...DEFAULT_THRESHOLDS.disk },
+  temperature: { ...DEFAULT_THRESHOLDS.temperature },
+  network: { ...DEFAULT_THRESHOLDS.network }
 });
 
 // 通知配置
@@ -469,6 +755,31 @@ const saveConfig = () => {
   message.success('配置保存成功');
 };
 
+/**
+ * 重置阈值为默认值
+ */
+const resetThresholds = () => {
+  Object.assign(thresholdConfig.cpu, DEFAULT_THRESHOLDS.cpu);
+  Object.assign(thresholdConfig.memory, DEFAULT_THRESHOLDS.memory);
+  Object.assign(thresholdConfig.disk, DEFAULT_THRESHOLDS.disk);
+  Object.assign(thresholdConfig.temperature, DEFAULT_THRESHOLDS.temperature);
+  Object.assign(thresholdConfig.network, DEFAULT_THRESHOLDS.network);
+  message.success('阈值已重置为默认值');
+};
+
+/**
+ * 保存阈值配置
+ */
+const saveThresholds = async () => {
+  try {
+    // TODO: 调用API保存阈值配置
+    // await saveThresholdConfig(thresholdConfig);
+    message.success('阈值配置保存成功');
+  } catch (error) {
+    message.error('阈值配置保存失败');
+  }
+};
+
 const getSeverityType = (severity: string) => {
   const typeMap = {
     critical: 'danger',
@@ -546,6 +857,51 @@ defineExpose({
 
 <style lang="scss" scoped>
 .alert-config {
+  .thresholds-panel {
+    .threshold-card {
+      margin-bottom: 20px;
+
+      :deep(.el-card__header) {
+        padding: 16px 20px;
+        background-color: var(--el-fill-color-lighter);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .metric-icon {
+          font-size: 18px;
+          color: var(--el-color-primary);
+        }
+      }
+
+      :deep(.el-form-item) {
+        margin-bottom: 16px;
+
+        .el-form-item__label {
+          font-weight: 500;
+        }
+      }
+
+      .unit {
+        margin-left: 8px;
+        color: var(--el-text-color-regular);
+        font-size: 14px;
+      }
+    }
+
+    .threshold-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--el-border-color-light);
+    }
+  }
+
   .rules-panel {
     .rules-header {
       display: flex;

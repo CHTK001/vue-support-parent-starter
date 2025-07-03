@@ -1,0 +1,301 @@
+/**
+ * 阈值相关样式
+ * 用于定义CPU、内存、磁盘等指标的颜色样式
+ */
+
+// 导入 Sass color 模块
+@use "sass:color";
+
+// 阈值颜色变量
+$threshold-normal-color: #67c23a;   // 绿色 - 正常状态
+$threshold-warning-color: #e6a23c;  // 黄色 - 警告状态
+$threshold-critical-color: #f56c6c; // 红色 - 危险状态
+
+// 阈值背景色（浅色版本）
+$threshold-normal-bg: rgba(103, 194, 58, 0.1);
+$threshold-warning-bg: rgba(230, 162, 60, 0.1);
+$threshold-critical-bg: rgba(245, 108, 108, 0.1);
+
+// 阈值边框色
+$threshold-normal-border: rgba(103, 194, 58, 0.3);
+$threshold-warning-border: rgba(230, 162, 60, 0.3);
+$threshold-critical-border: rgba(245, 108, 108, 0.3);
+
+// 基础阈值类
+.threshold-normal {
+  color: $threshold-normal-color !important;
+  
+  &.threshold-bg {
+    background-color: $threshold-normal-bg;
+    border-color: $threshold-normal-border;
+  }
+  
+  &.threshold-border {
+    border-color: $threshold-normal-color;
+  }
+}
+
+.threshold-warning {
+  color: $threshold-warning-color !important;
+  
+  &.threshold-bg {
+    background-color: $threshold-warning-bg;
+    border-color: $threshold-warning-border;
+  }
+  
+  &.threshold-border {
+    border-color: $threshold-warning-color;
+  }
+}
+
+.threshold-critical {
+  color: $threshold-critical-color !important;
+  
+  &.threshold-bg {
+    background-color: $threshold-critical-bg;
+    border-color: $threshold-critical-border;
+  }
+  
+  &.threshold-border {
+    border-color: $threshold-critical-color;
+  }
+}
+
+// 阈值标签样式
+.threshold-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  
+  &.threshold-normal {
+    background-color: $threshold-normal-bg;
+    color: $threshold-normal-color;
+    border: 1px solid $threshold-normal-border;
+  }
+  
+  &.threshold-warning {
+    background-color: $threshold-warning-bg;
+    color: $threshold-warning-color;
+    border: 1px solid $threshold-warning-border;
+  }
+  
+  &.threshold-critical {
+    background-color: $threshold-critical-bg;
+    color: $threshold-critical-color;
+    border: 1px solid $threshold-critical-border;
+  }
+}
+
+// 阈值进度条样式
+.threshold-progress {
+  .el-progress-bar__outer {
+    background-color: #f5f7fa;
+  }
+  
+  &.threshold-normal .el-progress-bar__inner {
+    background-color: $threshold-normal-color;
+  }
+  
+  &.threshold-warning .el-progress-bar__inner {
+    background-color: $threshold-warning-color;
+  }
+  
+  &.threshold-critical .el-progress-bar__inner {
+    background-color: $threshold-critical-color;
+  }
+}
+
+// 阈值图标样式
+.threshold-icon {
+  &.threshold-normal {
+    color: $threshold-normal-color;
+  }
+  
+  &.threshold-warning {
+    color: $threshold-warning-color;
+  }
+  
+  &.threshold-critical {
+    color: $threshold-critical-color;
+  }
+}
+
+// 阈值卡片样式
+.threshold-card {
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  
+  &.threshold-normal {
+    background-color: $threshold-normal-bg;
+    border-left: 4px solid $threshold-normal-color;
+    
+    &:hover {
+      background-color: rgba(103, 194, 58, 0.15);
+    }
+  }
+  
+  &.threshold-warning {
+    background-color: $threshold-warning-bg;
+    border-left: 4px solid $threshold-warning-color;
+    
+    &:hover {
+      background-color: rgba(230, 162, 60, 0.15);
+    }
+  }
+  
+  &.threshold-critical {
+    background-color: $threshold-critical-bg;
+    border-left: 4px solid $threshold-critical-color;
+    
+    &:hover {
+      background-color: rgba(245, 108, 108, 0.15);
+    }
+  }
+}
+
+// 阈值表格行样式
+.threshold-table-row {
+  &.threshold-normal {
+    background-color: $threshold-normal-bg;
+  }
+  
+  &.threshold-warning {
+    background-color: $threshold-warning-bg;
+  }
+  
+  &.threshold-critical {
+    background-color: $threshold-critical-bg;
+  }
+}
+
+// 阈值按钮样式
+.threshold-button {
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &.threshold-normal {
+    background-color: $threshold-normal-color;
+    color: white;
+    border: 1px solid $threshold-normal-color;
+    
+    &:hover {
+      background-color: color.adjust($threshold-normal-color, $lightness: -10%);
+      border-color: color.adjust($threshold-normal-color, $lightness: -10%);
+    }
+  }
+  
+  &.threshold-warning {
+    background-color: $threshold-warning-color;
+    color: white;
+    border: 1px solid $threshold-warning-color;
+    
+    &:hover {
+      background-color: color.adjust($threshold-warning-color, $lightness: -10%);
+      border-color: color.adjust($threshold-warning-color, $lightness: -10%);
+    }
+  }
+  
+  &.threshold-critical {
+    background-color: $threshold-critical-color;
+    color: white;
+    border: 1px solid $threshold-critical-color;
+    
+    &:hover {
+      background-color: color.adjust($threshold-critical-color, $lightness: -10%);
+      border-color: color.adjust($threshold-critical-color, $lightness: -10%);
+    }
+  }
+}
+
+// 阈值文本样式
+.threshold-text {
+  font-weight: 500;
+  
+  &.threshold-normal {
+    color: $threshold-normal-color;
+  }
+  
+  &.threshold-warning {
+    color: $threshold-warning-color;
+  }
+  
+  &.threshold-critical {
+    color: $threshold-critical-color;
+  }
+}
+
+// 阈值状态点样式
+.threshold-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  
+  &.threshold-normal {
+    background-color: $threshold-normal-color;
+  }
+  
+  &.threshold-warning {
+    background-color: $threshold-warning-color;
+  }
+  
+  &.threshold-critical {
+    background-color: $threshold-critical-color;
+  }
+}
+
+// 阈值徽章样式
+.threshold-badge {
+  position: relative;
+  display: inline-block;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+  
+  &.threshold-normal::after {
+    background-color: $threshold-normal-color;
+  }
+  
+  &.threshold-warning::after {
+    background-color: $threshold-warning-color;
+  }
+  
+  &.threshold-critical::after {
+    background-color: $threshold-critical-color;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .threshold-card {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .threshold-tag {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+  
+  .threshold-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}

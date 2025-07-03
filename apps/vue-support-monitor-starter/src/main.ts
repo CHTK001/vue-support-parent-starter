@@ -20,6 +20,8 @@ import "@repo/assets/iconfont/iconfont.js";
 import "@repo/assets/iconfont/iconfont.css";
 // 导入公共样式
 import "@repo/assets/style/layout/default/index.scss";
+// 导入阈值样式
+import "@/styles/threshold.scss";
 // 自定义指令
 //@ts-ignore
 import * as directives from "@repo/core/directives";

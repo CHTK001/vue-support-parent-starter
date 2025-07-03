@@ -1065,6 +1065,19 @@ export interface ServerRealtimeData {
 }
 
 /**
+ * 磁盘分区信息
+ */
+export interface DiskPartition {
+  name: string;
+  mount: string;
+  type: string;
+  totalSpace: number;
+  freeSpace: number;
+  usedSpace: number;
+  usagePercent: number;
+}
+
+/**
  * 前端显示用的服务器指标数据接口（简化字段名）
  */
 export interface ServerMetricsDisplay {
@@ -1074,10 +1087,16 @@ export interface ServerMetricsDisplay {
   memoryUsage: number;
   /** 磁盘使用率 (%) */
   diskUsage: number;
+  /** 磁盘分区信息 */
+  diskPartitions?: DiskPartition[];
   /** 网络入流量 (KB/s) */
   networkIn: number;
   /** 网络出流量 (KB/s) */
   networkOut: number;
+  /** 网络入流量速度 (KB/s) */
+  networkInSpeed?: number;
+  /** 网络出流量速度 (KB/s) */
+  networkOutSpeed?: number;
   /** 系统负载平均值 */
   loadAverage: string;
   /** 系统运行时间 (秒) */
@@ -1136,6 +1155,9 @@ export const SERVER_WS_MESSAGE_TYPE = {
   SERVER_UPDATE: 'server_update',
   SERVER_DELETE: 'server_delete',
   SERVER_ADD: 'server_add',
+  SERVER_CREATED: 'server_created',
+  SERVER_UPDATED: 'server_updated',
+  SERVER_HEALTH: 'server_health',
   SERVER_METRICS: 'server_metrics',
   SERVER_LATENCY: 'server_latency',
   BATCH_SERVER_LATENCY: 'batch_server_latency',
@@ -1315,23 +1337,42 @@ export const formatLatencyText = (latency: number | null | undefined): string =>
 
 /**
  * 将后台ServerMetrics转换为前端显示用的ServerMetricsDisplay
- * @param metrics 后台指标数据
+ * @param metrics 后台指标数据（支持嵌套格式和扁平格式）
  * @returns 前端显示用的指标数据
  */
-export function mapServerMetricsToDisplay(metrics: ServerMetrics): ServerMetricsDisplay {
+export function mapServerMetricsToDisplay(metrics: any): ServerMetricsDisplay {
+  // 兼容嵌套格式和扁平格式
+  const cpuUsage = metrics.cpu?.usage ?? metrics.monitorSysGenServerMetricsCpuUsage ?? metrics.cpuUsage ?? 0;
+  const memoryUsage = metrics.memory?.usage ?? metrics.monitorSysGenServerMetricsMemoryUsage ?? metrics.memoryUsage ?? 0;
+  const diskUsage = metrics.disk?.usage ?? metrics.monitorSysGenServerMetricsDiskUsage ?? metrics.diskUsage ?? 0;
+  const networkIn = metrics.network?.in ?? metrics.monitorSysGenServerMetricsNetworkIn ?? metrics.networkIn ?? 0;
+  const networkOut = metrics.network?.out ?? metrics.monitorSysGenServerMetricsNetworkOut ?? metrics.networkOut ?? 0;
+
+  // 处理负载平均值
+  let loadAverage = metrics.loadAverage;
+  if (!loadAverage && metrics.cpu) {
+    const load1m = metrics.cpu.load1m ?? 0;
+    const load5m = metrics.cpu.load5m ?? 0;
+    const load15m = metrics.cpu.load15m ?? 0;
+    loadAverage = `${load1m} ${load5m} ${load15m}`;
+  }
+  if (!loadAverage) {
+    loadAverage = `${metrics.monitorSysGenServerMetricsCpuLoad1m || 0}`;
+  }
+
   return {
-    cpuUsage: Number(metrics.monitorSysGenServerMetricsCpuUsage),
-    memoryUsage: Number(metrics.monitorSysGenServerMetricsMemoryUsage),
-    diskUsage: Number(metrics.monitorSysGenServerMetricsDiskUsage),
-    networkIn: Number(metrics.monitorSysGenServerMetricsNetworkIn),
-    networkOut: Number(metrics.monitorSysGenServerMetricsNetworkOut),
-    loadAverage: `${metrics.monitorSysGenServerMetricsCpuLoad1m || 0}`,
-    uptime: Number(metrics.monitorSysGenServerMetricsUptime),
-    collectTime: metrics.monitorSysGenServerMetricsCollectTime,
-    cpuCores: metrics.monitorSysGenServerMetricsCpuCores,
-    processCount: metrics.monitorSysGenServerMetricsProcessCount,
-    responseTime: metrics.monitorSysGenServerMetricsResponseTime,
-    osInfo: metrics.monitorSysGenServerMetricsOsInfo,
+    cpuUsage: Number(cpuUsage),
+    memoryUsage: Number(memoryUsage),
+    diskUsage: Number(diskUsage),
+    networkIn: Number(networkIn),
+    networkOut: Number(networkOut),
+    loadAverage: String(loadAverage),
+    uptime: Number(metrics.uptime ?? metrics.monitorSysGenServerMetricsUptime ?? 0),
+    collectTime: metrics.collectTime ?? metrics.monitorSysGenServerMetricsCollectTime ?? new Date().toISOString(),
+    cpuCores: metrics.cpu?.cores ?? metrics.monitorSysGenServerMetricsCpuCores ?? metrics.cpuCores ?? 1,
+    processCount: metrics.processCount ?? metrics.monitorSysGenServerMetricsProcessCount ?? 0,
+    responseTime: metrics.responseTime ?? metrics.monitorSysGenServerMetricsResponseTime ?? 0,
+    osInfo: metrics.osInfo ?? metrics.monitorSysGenServerMetricsOsInfo ?? '',
   };
 }
 

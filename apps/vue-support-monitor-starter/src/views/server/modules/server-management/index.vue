@@ -184,6 +184,21 @@
                   <IconifyIconOnline icon="ri:server-line" />
                 </div>
               </el-tooltip>
+              <el-tooltip :content="`网络速度 - 上行: ${formatNetworkSpeed(getServerMetrics(server.id)?.networkOut || 0)}/s, 下行: ${formatNetworkSpeed(getServerMetrics(server.id)?.networkIn || 0)}/s`" placement="top" :show-after="300">
+                <div class="metric-item network-speed">
+                  <span class="metric-label">网络</span>
+                  <div class="network-speeds">
+                    <div class="speed-item">
+                      <span class="speed-direction">↑</span>
+                      <span class="speed-value">{{ formatNetworkSpeed(getServerMetrics(server.id)?.networkOut || 0) }}/s</span>
+                    </div>
+                    <div class="speed-item">
+                      <span class="speed-direction">↓</span>
+                      <span class="speed-value">{{ formatNetworkSpeed(getServerMetrics(server.id)?.networkIn || 0) }}/s</span>
+                    </div>
+                  </div>
+                </div>
+              </el-tooltip>
             </div>
             <!-- 最小化状态下的服务器列表 -->
             <el-tooltip
@@ -248,7 +263,13 @@
                   <div class="server-name">{{ server.name }}</div>
                 </el-tooltip>
                 <el-tooltip :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`" placement="top" :show-after="300">
-                  <div class="server-address">
+                  <div class="server-address flex flex-row justify-center items-center">
+                     <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
+                      <IconifyIconOnline
+                        :icon="getProtocolIcon(server.protocol)"
+                        class="protocol-icon"
+                      />
+                    </el-tooltip> 
                     <span>{{ server.host }}:{{ server.port }}</span>
                     <el-tag v-if="server.isLocal" type="success" size="small" effect="light" class="ml-1">本机</el-tag>
                     <el-tag v-else type="info" size="small" effect="light" class="ml-1">远程</el-tag>
@@ -264,12 +285,6 @@
                   >
                     {{ getOnlineStatusText(server.onlineStatus, server.isLocal) }}
                   </el-tag>
-                </el-tooltip>
-                <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
-                  <IconifyIconOnline
-                    :icon="getProtocolIcon(server.protocol)"
-                    class="protocol-icon"
-                  />
                 </el-tooltip>
                 <!-- 延迟显示 -->
                 <ServerLatencyDisplay
@@ -327,18 +342,7 @@
                   <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.memoryUsage || 0) }}%</span>
                 </div>
               </el-tooltip>
-              <el-tooltip :content="`磁盘使用率: ${Math.round(getServerMetrics(server.id)?.diskUsage || 0)}%`" placement="top" :show-after="300">
-                <div class="metric-item">
-                  <span class="metric-label">磁盘</span>
-                  <el-progress
-                    :percentage="Math.round(getServerMetrics(server.id)?.diskUsage || 0)"
-                    :color="getProgressColor(getServerMetrics(server.id)?.diskUsage || 0)"
-                    :show-text="false"
-                    :stroke-width="4"
-                  />
-                  <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.diskUsage || 0) }}%</span>
-                </div>
-              </el-tooltip>
+
             </div>
 
             <!-- 操作按钮 -->
@@ -506,12 +510,30 @@
 import { ref, onMounted, onUnmounted, computed, defineAsyncComponent, Suspense, nextTick } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
+
+// 定义 props 接收来自父组件的数据
+interface Props {
+  servers?: any[];
+  serverMetrics?: Map<string, any>;
+  wsConnected?: boolean;
+  totalCount?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  servers: () => [],
+  serverMetrics: () => new Map(),
+  wsConnected: false,
+  totalCount: 0
+});
+
+// 定义 emits 向父组件发送事件
+const emit = defineEmits<{
+  'refresh-servers': [],
+  'server-action': [action: string, server: any],
+  'select-server': [server: any]
+}>();
 import {
   getServerPageList,
-  deleteServer,
-  testServerConnection,
-  connectServer as connectServerApi,
-  disconnectServer as disconnectServerApi,
   testLocalIpDetection,
   SERVER_STATUS,
   ONLINE_STATUS,
@@ -522,7 +544,7 @@ import {
 } from "@/api/server";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
-import { useServerWebSocket } from "@/composables/useServerWebSocket";
+// 移除 WebSocket 导入，改为通过 props 接收数据
 
 // 异步组件
 const ServerEditDialog = defineAsyncComponent(() => import("./components/ServerEditDialog.vue"));
@@ -541,7 +563,6 @@ const ServerLatencyDisplay = defineAsyncComponent(() => import("../../components
 
 // 响应式状态
 const loading = ref(false);
-const totalCount = ref(0);
 const viewMode = ref("card");
 
 // 筛选和搜索
@@ -550,6 +571,7 @@ const filterGroup = ref("");
 const filterProtocol = ref("");
 const filterStatus = ref("");
 const activeGroup = ref("all");
+// totalCount 现在从 props 获取
 
 // 左右面板
 const leftPanelWidth = ref(400);
@@ -558,19 +580,26 @@ const leftPanelOriginalWidth = ref(400);
 const selectedServerId = ref("");
 const currentComponent = ref("");
 
-// 服务器数据
-const servers = ref<ServerDisplayData[]>([]);
-const serverGroups = ref<string[]>([]);
+// 服务器数据 - 从 props 获取
+const servers = computed(() => props.servers || []);
+const serverGroups = computed(() => {
+  const groups = new Set<string>();
+  servers.value.forEach(server => {
+    if (server.group) {
+      groups.add(server.group);
+    }
+  });
+  return Array.from(groups);
+});
 const selectedServer = computed(() =>
   servers.value.find(s => s.id === selectedServerId.value)
 );
 
-// 服务器指标数据
-const serverMetrics = ref<Map<string, ServerMetricsDisplay>>(new Map());
+// 服务器指标数据 - 从 props 获取
+const serverMetrics = computed(() => props.serverMetrics || new Map());
 
-// WebSocket连接状态
-const { state: wsState, onMessage, MESSAGE_TYPE, connect, disconnect } = useServerWebSocket();
-const wsConnected = computed(() => wsState.value?.connected || false);
+// WebSocket连接状态 - 从 props 获取
+const wsConnected = computed(() => props.wsConnected || false);
 
 // 消息统计已移至非响应式对象，避免无限递归
 
@@ -831,39 +860,22 @@ const getProgressColor = (percentage: number) => {
 };
 
 /**
- * 加载服务器列表
+ * 格式化网络速度
+ */
+const formatNetworkSpeed = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+/**
+ * 刷新服务器列表 - 通知父组件
  */
 const loadServers = async () => {
-  try {
-    loading.value = true;
-    const res = await getServerPageList({
-      page: 1,
-      pageSize: 1000, // 加载所有服务器
-    }) as any;
-
-    if (res.code == "00000") {
-      // 使用字段映射转换后台数据为前端显示数据
-      const serverList = res.data?.data || [];
-      servers.value = mapServerListToDisplayData(serverList);
-      totalCount.value = res.data?.total || 0;
-
-      // 提取分组信息
-      const groups = new Set<string>();
-      servers.value.forEach(server => {
-        if (server.group) {
-          groups.add(server.group);
-        }
-      });
-      serverGroups.value = Array.from(groups);
-
-      // 加载服务器延迟数据
-      await loadServerLatency();
-    }
-  } catch (error) {
-    console.error("加载服务器列表失败:", error);
-  } finally {
-    loading.value = false;
-  }
+  console.log('server-management: 通知父组件刷新服务器列表');
+  emit('refresh-servers');
 };
 
 /**
@@ -890,91 +902,49 @@ const loadServerLatency = async () => {
 
 
 /**
- * 选择服务器 - 点击服务器卡片时直接显示监控信息
+ * 选择服务器 - 通知父组件
  */
 const selectServer = (server: any) => {
   selectedServerId.value = server.id;
-  // 点击服务器卡片直接显示服务器监控信息
   currentComponent.value = "ServerMonitor";
+  emit('select-server', server);
   console.log(`选择服务器 ${server.name}，显示监控信息`);
 };
 
 /**
- * 连接服务器
+ * 连接服务器 - 通知父组件
  */
 const connectServer = async (server: any) => {
-  try {
-    console.log("开始连接服务器:", server);
+  console.log("server-management: 通知父组件连接服务器", server);
+  selectedServerId.value = server.id;
 
-    // 显示加载状态
-    message.info("正在连接服务器...");
-
-    // 选择服务器，但不设置组件（避免触发ServerMonitor）
-    selectedServerId.value = server.id;
-
-    // 调用后台API建立连接
-    const connectResult = await connectServerApi(server.id);
-    console.log("连接API响应:", connectResult);
-
-    if (connectResult.code === "00000") {
-      // 连接成功，直接根据协议选择对应的远程组件
-      // 不触发服务器指标组件，不查询数据
-      switch (server.protocol) {
-        case "SSH":
-          currentComponent.value = "SSHTerminal";
-          break;
-        case "RDP":
-        case "VNC":
-          currentComponent.value = "RemoteDesktop";
-          break;
-        default:
-          currentComponent.value = "SSHTerminal";
-      }
-
-      message.success("服务器连接成功");
-      console.log("设置组件为:", currentComponent.value);
-
-    } else {
-      message.error(connectResult.msg || "连接失败");
-      console.error("连接失败:", connectResult);
-    }
-
-  } catch (error) {
-    message.error("连接异常，请稍后重试");
-    console.error("连接服务器出错:", error);
+  // 根据协议选择对应的远程组件
+  switch (server.protocol) {
+    case "SSH":
+      currentComponent.value = "SSHTerminal";
+      break;
+    case "RDP":
+    case "VNC":
+      currentComponent.value = "RemoteDesktop";
+      break;
+    default:
+      currentComponent.value = "SSHTerminal";
   }
+
+  emit('server-action', 'connect', server);
 };
 
 /**
- * 断开服务器连接
+ * 断开服务器连接 - 通知父组件
  */
 const disconnectServer = async (server: any) => {
-  try {
-    console.log("断开服务器连接:", server);
+  console.log("server-management: 通知父组件断开服务器连接", server);
 
-    // 显示加载状态
-    message.info("正在断开连接...");
+  // 清除选中状态和组件
+  selectedServerId.value = "";
+  currentComponent.value = "";
 
-    // 调用后台API断开连接
-    const disconnectResult = await disconnectServerApi(server.id);
-    console.log("断开连接API响应:", disconnectResult);
-
-    if (disconnectResult.code === "00000") {
-      message.success("服务器连接已断开");
-
-      // 清除选中状态和组件
-      selectedServerId.value = "";
-      currentComponent.value = "";
-
-    } else {
-      message.error(disconnectResult.msg || "断开连接失败");
-      console.error("断开连接失败:", disconnectResult);
-    }
-
-  } catch (error) {
-    message.error("断开连接异常，请稍后重试");
-    console.error("断开服务器连接出错:", error);
-  }
+  emit('server-action', 'disconnect', server);
 };
 
 /**
@@ -1033,24 +1003,15 @@ const handleServerAction = async (command: string, server: any) => {
 };
 
 /**
- * 测试连接
+ * 测试连接 - 通知父组件
  */
 const testConnection = async (server: any) => {
-  try {
-    const res = await testServerConnection(server.id);
-    if (res.code == "00000") {
-      message.success("连接测试成功");
-    } else {
-      message.error(res.msg || "连接测试失败");
-    }
-  } catch (error) {
-    message.error("连接测试异常");
-    console.error("测试连接失败:", error);
-  }
+  console.log("server-management: 通知父组件测试连接", server);
+  emit('server-action', 'test', server);
 };
 
 /**
- * 删除服务器确认
+ * 删除服务器确认 - 通知父组件
  */
 const deleteServerConfirm = async (server: any) => {
   try {
@@ -1064,21 +1025,17 @@ const deleteServerConfirm = async (server: any) => {
       }
     );
 
-    const res = await deleteServer(server.id);
-    if (res.code == "00000") {
-      message.success("删除成功");
-      await loadServers();
-      if (selectedServerId.value === server.id) {
-        selectedServerId.value = "";
-        currentComponent.value = "";
-      }
-    } else {
-      message.error(res.msg || "删除失败");
+    console.log("server-management: 通知父组件删除服务器", server);
+
+    if (selectedServerId.value === server.id) {
+      selectedServerId.value = "";
+      currentComponent.value = "";
     }
+
+    emit('server-action', 'delete', server);
   } catch (error) {
     if (error !== "cancel") {
-      message.error("删除异常");
-      console.error("删除服务器失败:", error);
+      console.error("删除服务器确认失败:", error);
     }
   }
 };
@@ -1273,15 +1230,14 @@ const handleOpenConfig = (serverId: number) => {
  * 获取Socket连接状态文本
  */
 const getSocketStatusText = computed(() => {
-  // 基于实际的WebSocket连接状态
-  if (wsState.value?.connecting) {
-    return '连接中';
-  } else if (wsState.value?.connected) {
+  // 基于从 props 传入的连接状态
+  if (wsConnected.value) {
     // 连接成功后，再检查数据更新时间
     const lastUpdate = metricsStore.getLastUpdateTime;
     const now = Date.now();
     const timeDiff = now - lastUpdate;
 
+    console.info('数据更新时间差:', timeDiff);
     if (timeDiff < 60000) { // 1分钟内有更新
       return '已连接';
     } else if (timeDiff < 300000) { // 5分钟内有更新
@@ -1289,8 +1245,6 @@ const getSocketStatusText = computed(() => {
     } else {
       return '数据延迟';
     }
-  } else if (wsState.value?.error) {
-    return '连接错误';
   } else {
     return '未连接';
   }
@@ -1300,10 +1254,8 @@ const getSocketStatusText = computed(() => {
  * 获取Socket连接状态类型
  */
 const getSocketStatusType = computed(() => {
-  // 基于实际的WebSocket连接状态
-  if (wsState.value?.connecting) {
-    return 'warning';
-  } else if (wsState.value?.connected) {
+  // 基于从 props 传入的连接状态
+  if (wsConnected.value) {
     // 连接成功后，再检查数据更新时间
     const lastUpdate = metricsStore.getLastUpdateTime;
     const now = Date.now();
@@ -1325,10 +1277,8 @@ const getSocketStatusType = computed(() => {
  * 获取Socket连接状态图标
  */
 const getSocketStatusIcon = () => {
-  // 基于实际的WebSocket连接状态
-  if (wsState.value?.connecting) {
-    return 'ri:loader-line';
-  } else if (wsState.value?.connected) {
+  // 基于从 props 传入的连接状态
+  if (wsConnected.value) {
     // 连接成功后，再检查数据更新时间
     const lastUpdate = metricsStore.getLastUpdateTime;
     const now = Date.now();
@@ -1437,146 +1387,17 @@ const getHealthStatusIcon = (status: string) => {
 
 // 消息统计已禁用，避免无限递归问题
 
-// 监听WebSocket消息
-const setupWebSocketListeners = () => {
-  console.log('设置WebSocket消息监听器...');
-
-  // 监听服务器指标数据
-  onMessage('server_metrics', (message) => {
-    // 暂时禁用消息统计，避免无限递归
-    // updateMessageStats('server_metrics');
-    console.log('收到server_metrics消息:', message);
-    if (message.serverId && message.data) {
-      // 更新store中的指标数据
-      metricsStore.updateServerMetrics(message.serverId, {
-        serverId: message.serverId,
-        serverName: message.serverName,
-        cpuUsage: message.data.cpuUsage || 0,
-        memoryUsage: message.data.memoryUsage || 0,
-        diskUsage: message.data.diskUsage || 0,
-        networkIn: message.data.networkIn || 0,
-        networkOut: message.data.networkOut || 0,
-        uptime: message.data.uptime || 0,
-        processCount: message.data.processCount || 0,
-        loadAverage: message.data.loadAverage,
-        temperature: message.data.temperature,
-        status: message.data.status === 1 ? 'online' : 'offline',
-        collectTime: message.data.collectTime || new Date().toISOString(),
-      });
-
-      console.log(`更新服务器 ${message.serverId} 指标数据:`, message.data);
-    }
-  });
-
-  // 监听服务器趋势数据
-  onMessage('server_trends', (message) => {
-    // updateMessageStats('server_trends');
-    console.log('收到server_trends消息:', message);
-    if (message.serverId && message.data) {
-      // 处理趋势数据，可以用于图表显示
-      console.log(`服务器 ${message.serverId} 趋势数据:`, message.data);
-    }
-  });
-
-  // 监听服务器状态汇总
-  onMessage('server_status_summary', (message) => {
-    // updateMessageStats('server_status_summary');
-    console.log('收到server_status_summary消息:', message);
-    if (message.data) {
-      // 处理状态汇总数据
-      console.log('服务器状态汇总:', message.data);
-
-      // 更新store中的汇总数据
-      const summary = message.data;
-      console.log('服务器状态统计:', {
-        总服务器数: summary.totalServers,
-        在线服务器: summary.onlineServers,
-        离线服务器: summary.offlineServers,
-        警告服务器: summary.warningServers,
-        严重服务器: summary.criticalServers
-      });
-
-      // 可以更新全局状态统计
-      // 这里可以触发服务器列表的状态更新
-      if (summary.totalServers === 0) {
-        console.warn('⚠️ 没有配置任何服务器，这可能是为什么没有收到server_metrics消息的原因');
-      }
-    }
-  });
-
-  // 监听连接状态统计
-  onMessage('connection_statistics', (message) => {
-    // updateMessageStats('connection_statistics');
-    console.log('收到connection_statistics消息:', message);
-    if (message.data) {
-      // 处理连接统计数据
-      console.log('连接状态统计:', message.data);
-    }
-  });
-
-  // 监听健康状态报告
-  onMessage('health_status', (message) => {
-    // updateMessageStats('health_status');
-    console.log('收到health_status消息:', message);
-    if (message.data) {
-      // 处理健康状态数据
-      console.log('健康状态报告:', message.data);
-    }
-  });
-
-  // 监听连接状态变化
-  onMessage('connection_status_change', (message) => {
-    // updateMessageStats('connection_status_change');
-    console.log('收到connection_status_change消息:', message);
-    // 暂时禁用自动更新服务器状态，避免无限递归
-    // TODO: 后续优化状态更新逻辑
-    console.log(`服务器 ${message.serverId} 连接状态变化，暂时跳过自动更新`);
-  });
-
-  // 监听服务器告警
-  onMessage('server_alerts', (message) => {
-    // updateMessageStats('server_alerts');
-    console.log('收到server_alerts消息:', message);
-    if (message.serverId && message.data) {
-      console.log(`服务器 ${message.serverId} 告警信息:`, message.data);
-      // 可以显示告警通知
-    }
-  });
-
-  // 添加调试日志
-  console.log('WebSocket消息监听器设置完成');
-};
+// WebSocket 消息监听已移除，所有数据通过 props 从父组件获取
 
 // 生命周期钩子
 onMounted(async () => {
-  // 加载服务器列表
-  await loadServers();
-
-  // 手动连接 WebSocket
-  try {
-    await connect();
-    console.log('WebSocket 连接成功');
-  } catch (error) {
-    console.error('WebSocket 连接失败:', error);
-  }
-
-  // 设置WebSocket消息监听
-  setupWebSocketListeners();
-
-  // 由于重构了store，这里简化处理
-  if (realTimeMetricsEnabled.value) {
-    console.log('实时监控已启用');
-  }
+  // 不再直接加载服务器列表，数据由父组件提供
+  console.log('server-management 组件已挂载，等待父组件数据');
 });
 
 onUnmounted(() => {
-  // 断开 WebSocket 连接
-  disconnect();
-  console.log('WebSocket 连接已断开');
-
-  // 清理缓存数据
-  metricsStore.clearCache();
-  console.log('服务器指标缓存已清理');
+  // 不再管理 WebSocket 连接，由父组件统一管理
+  console.log('server-management 组件已卸载');
 });
 </script>
 
@@ -2132,6 +1953,35 @@ onUnmounted(() => {
             color: var(--el-text-color-primary);
             flex-shrink: 0;
             font-size: 11px;
+          }
+
+          &.network-speed {
+            .network-speeds {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              flex: 1;
+
+              .speed-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 10px;
+
+                .speed-direction {
+                  color: var(--el-color-primary);
+                  font-weight: bold;
+                  width: 12px;
+                  text-align: center;
+                }
+
+                .speed-value {
+                  color: var(--el-text-color-primary);
+                  font-weight: 600;
+                  font-size: 10px;
+                }
+              }
+            }
           }
         }
       }
