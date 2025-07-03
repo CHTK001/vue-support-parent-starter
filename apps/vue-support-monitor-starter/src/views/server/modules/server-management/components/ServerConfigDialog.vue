@@ -83,10 +83,6 @@
                     <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                     重置
                   </el-button>
-                  <el-button @click="handleSave" type="primary" size="small" :loading="saving">
-                    <IconifyIconOnline icon="ri:save-line" class="mr-1" />
-                    保存配置
-                  </el-button>
                 </div>
               </div>
             </template>
@@ -382,10 +378,6 @@
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
         <template v-if="activeSection !== 'history'">
-          <el-button @click="handleReset" plain>
-            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-            重置
-          </el-button>
           <el-button @click="handleSave" type="primary" :loading="saving">
             <IconifyIconOnline icon="ri:save-line" class="mr-1" />
             保存配置
