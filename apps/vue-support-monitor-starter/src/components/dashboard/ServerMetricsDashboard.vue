@@ -28,7 +28,7 @@
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="metric-card memory">
             <div class="metric-content">
@@ -54,7 +54,7 @@
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="metric-card disk">
             <div class="metric-content">
@@ -73,7 +73,7 @@
             <div class="metric-progress">
               <el-progress
                 :percentage="currentMetrics.diskUsage"
-                :color="getProgressColor(currentMetrics.diskUsage)"
+                :color="getProgressColor(currentMetrics.diskUsage, 'disk')"
                 :show-text="false"
                 :stroke-width="4"
               />
@@ -205,7 +205,6 @@
 import { ref, reactive, computed, watch } from "vue";
 import MetricsChart from "@/components/charts/MetricsChart.vue";
 import type { ServerMetrics } from "@/api/server";
-import { getMetricColor, getMetricProgressColor, getMetricColorClass } from "@/utils/metricsThreshold";
 
 // 定义属性
 interface Props {
@@ -419,10 +418,24 @@ const getTrendText = (metric: string) => {
 };
 
 /**
- * 获取进度条颜色（根据指标类型）
+ * 获取进度条颜色（支持渐变和不同指标类型）
  */
 const getProgressColor = (percentage: number, metricType: 'cpu' | 'memory' | 'disk' = 'cpu') => {
-  return getMetricColor(metricType, percentage);
+  // 定义不同指标的阈值
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 90 },
+    memory: { normal: 60, warning: 80, critical: 90 },
+    disk: { normal: 70, warning: 85, critical: 95 }
+  };
+
+  const threshold = thresholds[metricType];
+
+  // 返回渐变色配置
+  return [
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
+  ];
 };
 
 /**

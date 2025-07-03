@@ -69,13 +69,13 @@
               </div>
               <el-progress
                 :percentage="currentMetrics.cpuUsage"
-                :color="getProgressColor(currentMetrics.cpuUsage)"
+                :color="getProgressColor(currentMetrics.cpuUsage, 'cpu')"
                 :show-text="false"
                 :stroke-width="4"
               />
             </el-card>
           </el-col>
-          
+
           <el-col :span="6">
             <el-card class="metric-card">
               <div class="metric-content">
@@ -89,13 +89,13 @@
               </div>
               <el-progress
                 :percentage="currentMetrics.memoryUsage"
-                :color="getProgressColor(currentMetrics.memoryUsage)"
+                :color="getProgressColor(currentMetrics.memoryUsage, 'memory')"
                 :show-text="false"
                 :stroke-width="4"
               />
             </el-card>
           </el-col>
-          
+
           <el-col :span="6">
             <el-card class="metric-card">
               <div class="metric-content">
@@ -109,7 +109,7 @@
               </div>
               <el-progress
                 :percentage="currentMetrics.diskUsage"
-                :color="getProgressColor(currentMetrics.diskUsage)"
+                :color="getProgressColor(currentMetrics.diskUsage, 'disk')"
                 :show-text="false"
                 :stroke-width="4"
               />
@@ -252,12 +252,25 @@ const getConnectionStatusText = (status?: number) => {
 };
 
 /**
- * 获取进度条颜色
+ * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
+const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+  // 定义不同指标的阈值
+  const thresholds = {
+    cpu: { normal: 50, warning: 80, critical: 90 },
+    memory: { normal: 60, warning: 80, critical: 90 },
+    disk: { normal: 70, warning: 85, critical: 95 },
+    network: { normal: 60, warning: 80, critical: 90 }
+  };
+
+  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+
+  // 返回渐变色配置
+  return [
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
+  ];
 };
 
 /**
