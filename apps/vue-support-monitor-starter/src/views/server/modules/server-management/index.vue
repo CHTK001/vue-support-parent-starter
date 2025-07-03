@@ -263,7 +263,7 @@
                   <div class="server-name">{{ server.name }}</div>
                 </el-tooltip>
                 <el-tooltip :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`" placement="top" :show-after="300">
-                  <div class="server-address flex flex-row justify-center items-center">
+                  <div class="server-address !flex !flex-col justify-center !items-start">
                      <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
                       <IconifyIconOnline
                         :icon="getProtocolIcon(server.protocol)"
@@ -272,7 +272,7 @@
                     </el-tooltip> 
                     <span>{{ server.host }}:{{ server.port }}</span>
                     <el-tag v-if="server.isLocal" type="success" size="small" effect="light" class="ml-1">本机</el-tag>
-                    <el-tag v-else type="info" size="small" effect="light" class="ml-1">远程</el-tag>
+                    <el-tag v-else type="primary" size="small" effect="light" class="ml-1">远程</el-tag>
                   </div>
                 </el-tooltip>
               </div>
