@@ -274,6 +274,12 @@ const initWebSocketHandlers = () => {
         temperature: data.temperature,
         status: data.status === 1 ? 'online' : 'offline',
         collectTime: data.collectTime || new Date().toISOString(),
+        // 添加系统信息字段
+        osInfo: data.osInfo,
+        osName: data.osName,
+        osVersion: data.osVersion,
+        hostname: data.hostname,
+        extraInfo: data.extraInfo,
       });
 
       // 同时更新本地缓存，传递完整的数据对象

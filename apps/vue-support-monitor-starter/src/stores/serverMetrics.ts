@@ -34,6 +34,12 @@ export interface ServerMetricsData {
   temperature?: number;
   status?: 'online' | 'offline' | 'error';
   collectTime?: string;
+  // 系统信息字段
+  osInfo?: string;
+  osName?: string;
+  osVersion?: string;
+  hostname?: string;
+  extraInfo?: string;
 }
 
 /**

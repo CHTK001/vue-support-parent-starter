@@ -736,10 +736,10 @@ const getServerMonitorMetrics = (serverId: string | null) => {
       in: metrics.networkIn || 0,
       out: metrics.networkOut || 0,
     },
-    osInfo: undefined, // metricsStore中没有这个字段
-    osName: undefined, // metricsStore中没有这个字段
-    osVersion: undefined, // metricsStore中没有这个字段
-    hostname: undefined, // metricsStore中没有这个字段
+    osInfo: metrics.osInfo,
+    osName: metrics.osName,
+    osVersion: metrics.osVersion,
+    hostname: metrics.hostname,
     uptime: metrics.uptime || 0,
     processCount: metrics.processCount || 0,
     loadAverage: metrics.loadAverage,
