@@ -71,10 +71,22 @@
       </div>
 
       <!-- 磁盘使用率 -->
-      <div class="metric-card">
+      <div class="metric-card disk-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
           <span class="metric-title">磁盘使用率</span>
+          <el-tooltip content="点击查看详细分区信息" placement="top">
+            <el-button
+              type="text"
+              size="small"
+              @click="showDiskDetails = !showDiskDetails"
+              class="toggle-btn"
+            >
+              <IconifyIconOnline
+                :icon="showDiskDetails ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
+              />
+            </el-button>
+          </el-tooltip>
         </div>
         <div class="metric-content">
           <div class="metric-value" :class="{ 'animating': diskAnimation.isAnimating.value }">
@@ -90,6 +102,49 @@
             <span>总计: {{ formatBytes(metrics?.disk?.total) }}</span>
           </div>
         </div>
+
+        <!-- 磁盘分区详情 -->
+        <el-collapse-transition>
+          <div v-show="showDiskDetails" class="disk-partitions">
+            <div class="partitions-header">
+              <span class="partitions-title">磁盘分区详情</span>
+              <span class="partitions-count">{{ diskPartitions.length }} 个分区</span>
+            </div>
+            <div class="partitions-list">
+              <div
+                v-for="(partition, index) in diskPartitions"
+                :key="index"
+                class="partition-item"
+              >
+                <div class="partition-header">
+                  <div class="partition-info">
+                    <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
+                    <span class="partition-name">{{ partition.name || partition.mount }}</span>
+                    <el-tag size="small" type="info" class="partition-type">
+                      {{ partition.type }}
+                    </el-tag>
+                  </div>
+                  <div class="partition-usage" :class="getPartitionUsageClass(partition.usagePercent)">
+                    {{ Math.round(partition.usagePercent || 0) }}%
+                  </div>
+                </div>
+                <div class="partition-progress">
+                  <el-progress
+                    :percentage="Math.round(partition.usagePercent || 0)"
+                    :color="getPartitionProgressColor(partition.usagePercent || 0)"
+                    :show-text="false"
+                    :stroke-width="4"
+                  />
+                </div>
+                <div class="partition-details">
+                  <span>已用: {{ formatBytes(partition.usedSpace) }}</span>
+                  <span>可用: {{ formatBytes(partition.freeSpace) }}</span>
+                  <span>总计: {{ formatBytes(partition.totalSpace) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-collapse-transition>
       </div>
 
       <!-- 网络流量 -->
