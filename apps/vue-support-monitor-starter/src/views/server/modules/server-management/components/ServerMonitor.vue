@@ -74,14 +74,11 @@
       <div class="metric-card disk-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
-          <span class="metric-title">磁盘使用情况</span>
+          <span class="metric-title">磁盘使用情况 <span class="partitions-count">{{ diskPartitions.length }} 个分区</span></span>
         </div>
 
         <!-- 磁盘分区列表 -->
         <div class="disk-partitions">
-          <div class="partitions-header">
-            <span class="partitions-count">{{ diskPartitions.length }} 个分区</span>
-          </div>
           <div class="partitions-list-container">
             <div class="partitions-list">
               <div
@@ -96,6 +93,9 @@
                     <el-tag size="small" type="info" class="partition-type">
                       {{ partition.type }}
                     </el-tag>
+                  </div>
+                  <div class="partition-usage" :class="getPartitionUsageClass(partition.usagePercent || 0)">
+                    {{ Math.round(partition.usagePercent || 0) }}%
                   </div>
                 </div>
                 <div class="partition-details">
@@ -142,19 +142,19 @@
         <div class="metric-content">
           <div class="info-item">
             <span class="info-label">操作系统:</span>
-            <span class="info-value">{{ getOsName() }}</span>
+            <span class="info-value">{{ getOsName }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">系统版本:</span>
-            <span class="info-value">{{ getOsVersion() }}</span>
+            <span class="info-value">{{ getOsVersion }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">主机名:</span>
-            <span class="info-value">{{ getHostname() }}</span>
+            <span class="info-value">{{ getHostname }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">系统架构:</span>
-            <span class="info-value">{{ getSystemArch() }}</span>
+            <span class="info-value">{{ getSystemArch }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">运行时间:</span>
@@ -447,7 +447,7 @@ const formatNumber = (num: number | undefined) => {
 /**
  * 智能获取操作系统名称
  */
-const getOsName = () => {
+const getOsName = computed(() => {
   // 优先使用 osName 字段
   if (metrics.value?.osName) {
     return metrics.value.osName;
@@ -476,12 +476,12 @@ const getOsName = () => {
   }
 
   return 'N/A';
-};
+});
 
 /**
  * 智能获取操作系统版本
  */
-const getOsVersion = () => {
+const getOsVersion = computed(() => {
   // 优先使用 osVersion 字段
   if (metrics.value?.osVersion) {
     return metrics.value.osVersion;
@@ -511,12 +511,12 @@ const getOsVersion = () => {
   }
 
   return 'N/A';
-};
+});
 
 /**
  * 智能获取主机名
  */
-const getHostname = () => {
+const getHostname = computed(() => {
   // 优先使用 hostname 字段
   if (metrics.value?.hostname) {
     return metrics.value.hostname;
@@ -531,12 +531,12 @@ const getHostname = () => {
   }
 
   return 'N/A';
-};
+});
 
 /**
  * 智能获取系统架构
  */
-const getSystemArch = () => {
+const getSystemArch = computed(() => {
   if (metrics.value?.osInfo) {
     const osInfo = metrics.value.osInfo;
 
@@ -554,9 +554,16 @@ const getSystemArch = () => {
   }
 
   return 'N/A';
+});
+
+/**
+ * 获取磁盘分区使用率颜色类名
+ */
+const getPartitionUsageClass = (percentage: number) => {
+  if (percentage >= 90) return 'usage-critical';
+  if (percentage >= 75) return 'usage-warning';
+  return 'usage-normal';
 };
-
-
 
 const formatUptime = (uptime: number | undefined) => {
   if (!uptime) return "N/A";
@@ -1201,7 +1208,7 @@ onUnmounted(() => {
   }
 
   .partitions-list-container {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     padding-right: 4px;
 
@@ -1270,6 +1277,27 @@ onUnmounted(() => {
         }
       }
 
+      .partition-usage {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+
+        &.usage-normal {
+          color: var(--el-color-success);
+          background-color: var(--el-color-success-light-9);
+        }
+
+        &.usage-warning {
+          color: var(--el-color-warning);
+          background-color: var(--el-color-warning-light-9);
+        }
+
+        &.usage-critical {
+          color: var(--el-color-danger);
+          background-color: var(--el-color-danger-light-9);
+        }
+      }
     }
 
     .partition-details {

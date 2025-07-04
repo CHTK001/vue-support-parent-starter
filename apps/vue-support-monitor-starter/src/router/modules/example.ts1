@@ -19,6 +19,18 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/example/chart-config",
+        name: "chartConfigDemo",
+        component: () => import("@/views/monitor/gen/layout/prometheus/demo/ChartConfigDemo.vue"),
+        meta: {
+          title: "图表配置演示",
+          icon: "ri:bar-chart-line",
+          category: "开发工具",
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   }

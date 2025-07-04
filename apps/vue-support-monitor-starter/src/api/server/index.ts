@@ -302,11 +302,11 @@ export function getServerPageList(params: ServerPageParams) {
 
 /**
  * 获取服务器列表（简化版本，用于兼容）
- * @param params 查询参数
+ * @param params 查询参数（可选）
  * @returns 服务器分页数据
  */
-export function getServerList(params: ServerPageParams) {
-  return getServerPageList(params);
+export function getServerList(params?: ServerPageParams) {
+  return getServerPageList(params || { page: 1, size: 1000 });
 }
 
 /**
@@ -1562,6 +1562,223 @@ export function updateReportConfig(id: string, config: ReportConfigParams) {
   );
 }
 
+// ==================== 服务器组件管理 API ====================
+
+/**
+ * 根据服务器ID获取组件列表
+ * @param serverId 服务器ID
+ * @returns 组件列表
+ */
+export function getComponentsByServerId(serverId: number) {
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    `v1/gen/server/component/list/${serverId}`
+  );
+}
+
+/**
+ * 根据组件ID获取组件信息
+ * @param componentId 组件ID
+ * @returns 组件信息
+ */
+export function getComponentById(componentId: number) {
+  return http.request<ReturnResult<any>>(
+    "get",
+    `v1/gen/server/component/${componentId}`
+  );
+}
+
+/**
+ * 创建服务器组件
+ * @param component 组件信息
+ * @returns 创建结果
+ */
+export function createServerComponent(component: any) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/component/create",
+    { data: component }
+  );
+}
+
+/**
+ * 更新服务器组件
+ * @param componentId 组件ID
+ * @param component 组件信息
+ * @returns 更新结果
+ */
+export function updateServerComponent(componentId: number, component: any) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    `v1/gen/server/component/${componentId}`,
+    { data: component }
+  );
+}
+
+/**
+ * 删除服务器组件
+ * @param componentId 组件ID
+ * @returns 删除结果
+ */
+export function deleteServerComponent(componentId: number) {
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    `v1/gen/server/component/${componentId}`
+  );
+}
+
+/**
+ * 初始化服务器默认组件
+ * @param serverId 服务器ID
+ * @returns 初始化结果
+ */
+export function initDefaultComponentsForServer(serverId: number) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `v1/gen/server/component/init/${serverId}`
+  );
+}
+
+/**
+ * 切换组件启用状态
+ * @param componentId 组件ID
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function toggleComponentEnabled(componentId: number, enabled: boolean) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    `v1/gen/server/component/${componentId}/toggle`,
+    { params: { enabled } }
+  );
+}
+
+/**
+ * 执行组件查询
+ * @param componentId 组件ID
+ * @param timeRange 时间范围参数
+ * @returns 查询结果
+ */
+export function executeComponentQuery(componentId: number, timeRange: any) {
+  return http.request<ReturnResult<any>>(
+    "post",
+    `v1/gen/server/component/query/${componentId}`,
+    { data: timeRange }
+  );
+}
+
+/**
+ * 验证组件表达式
+ * @param serverId 服务器ID
+ * @param expressionType 表达式类型
+ * @param expression 表达式内容
+ * @returns 验证结果
+ */
+export function validateComponentExpression(serverId: number, expressionType: string, expression: string) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `v1/gen/server/component/validate/${serverId}`,
+    { params: { expressionType, expression } }
+  );
+}
+
+/**
+ * 克隆组件
+ * @param sourceComponentId 源组件ID
+ * @param targetServerId 目标服务器ID
+ * @returns 克隆结果
+ */
+export function cloneComponent(sourceComponentId: number, targetServerId: number) {
+  return http.request<ReturnResult<any>>(
+    "post",
+    `v1/gen/server/component/clone/${sourceComponentId}/to/${targetServerId}`
+  );
+}
+
+/**
+ * 批量更新组件启用状态
+ * @param componentIds 组件ID列表
+ * @param enabled 是否启用
+ * @returns 操作结果
+ */
+export function batchUpdateComponentsEnabled(componentIds: number[], enabled: boolean) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/component/batch/enabled",
+    { data: { componentIds, enabled } }
+  );
+}
+
+/**
+ * 批量更新组件排序
+ * @param componentIds 组件ID列表
+ * @param sortOrders 排序序号列表
+ * @returns 操作结果
+ */
+export function batchUpdateComponentsSortOrder(componentIds: number[], sortOrders: number[]) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/component/batch/sort",
+    { data: { componentIds, sortOrders } }
+  );
+}
+
+/**
+ * 批量更新组件刷新间隔
+ * @param componentIds 组件ID列表
+ * @param refreshInterval 刷新间隔
+ * @returns 操作结果
+ */
+export function batchUpdateComponentsRefreshInterval(componentIds: number[], refreshInterval: number) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/component/batch/refresh",
+    { data: { componentIds, refreshInterval } }
+  );
+}
+
+/**
+ * 批量更新组件配置
+ * @param componentIds 组件ID列表
+ * @param configContent 配置内容
+ * @param updateType 更新类型 (replace/merge)
+ * @returns 操作结果
+ */
+export function batchUpdateComponentsConfig(componentIds: number[], configContent: string, updateType: string) {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "v1/gen/server/component/batch/config",
+    { data: { componentIds, configContent, updateType } }
+  );
+}
+
+/**
+ * 批量克隆组件
+ * @param componentIds 组件ID列表
+ * @param targetServerIds 目标服务器ID列表
+ * @returns 操作结果
+ */
+export function batchCloneComponents(componentIds: number[], targetServerIds: string[]) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/component/batch/clone",
+    { data: { componentIds, targetServerIds } }
+  );
+}
+
+/**
+ * 批量删除组件
+ * @param componentIds 组件ID列表
+ * @returns 操作结果
+ */
+export function batchDeleteComponents(componentIds: number[]) {
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "v1/gen/server/component/batch/delete",
+    { data: { componentIds } }
+  );
+}
+
 /**
  * 获取服务器数据上报配置
  * @param id 服务器ID
@@ -1604,6 +1821,32 @@ export function getEnabledServerDetailComponents(serverId: number) {
 }
 
 /**
+ * 创建服务器详情组件
+ * @param data 组件数据
+ * @returns 创建结果
+ */
+export function createServerDetailComponent(data: ServerDetailComponent) {
+  return http.request<ReturnResult<ServerDetailComponent>>(
+    "post",
+    "v1/gen/server/detail/component/create",
+    { data }
+  );
+}
+
+/**
+ * 更新服务器详情组件
+ * @param data 组件数据
+ * @returns 更新结果
+ */
+export function updateServerDetailComponent(data: ServerDetailComponent) {
+  return http.request<ReturnResult<ServerDetailComponent>>(
+    "put",
+    "v1/gen/server/detail/component/update",
+    { data }
+  );
+}
+
+/**
  * 保存或更新组件
  * @param component 组件信息
  * @returns 操作结果
@@ -1621,9 +1864,9 @@ export function saveServerDetailComponent(component: ServerDetailComponent) {
  * @param components 组件列表
  * @returns 操作结果
  */
-export function batchUpdateComponentPosition(components: ServerDetailComponent[]) {
+export function batchUpdateComponentPosition(components: any[]) {
   return http.request<ReturnResult<boolean>>(
-    "post",
+    "put",
     "v1/gen/server/detail/component/batch/position",
     { data: components }
   );
@@ -1637,8 +1880,7 @@ export function batchUpdateComponentPosition(components: ServerDetailComponent[]
 export function deleteServerDetailComponent(componentId: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    "v1/gen/server/detail/component/delete",
-    { params: { componentId } }
+    `v1/gen/server/detail/component/${componentId}`
   );
 }
 
@@ -1654,11 +1896,11 @@ export function getServerDetailComponentTemplates() {
 }
 
 /**
- * 为服务器初始化默认组件
+ * 为服务器初始化默认组件（详情页面）
  * @param serverId 服务器ID
  * @returns 操作结果
  */
-export function initDefaultComponentsForServer(serverId: number) {
+export function initDefaultComponentsForServerDetail(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/detail/component/init",
@@ -1667,12 +1909,12 @@ export function initDefaultComponentsForServer(serverId: number) {
 }
 
 /**
- * 执行组件查询
+ * 执行组件查询（详情页面）
  * @param componentId 组件ID
  * @param timeRange 时间范围参数
  * @returns 查询结果
  */
-export function executeComponentQuery(componentId: number, timeRange: any) {
+export function executeComponentQueryDetail(componentId: number, timeRange: any) {
   return http.request<ReturnResult<any>>(
     "post",
     "v1/gen/server/detail/component/query",
@@ -1684,13 +1926,13 @@ export function executeComponentQuery(componentId: number, timeRange: any) {
 }
 
 /**
- * 验证组件表达式
+ * 验证组件表达式（详情页面）
  * @param expressionType 表达式类型
  * @param expression 表达式内容
  * @param serverId 服务器ID
  * @returns 验证结果
  */
-export function validateComponentExpression(expressionType: string, expression: string, serverId: number) {
+export function validateComponentExpressionDetail(expressionType: string, expression: string, serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/detail/component/validate",
@@ -1699,16 +1941,16 @@ export function validateComponentExpression(expressionType: string, expression: 
 }
 
 /**
- * 启用/禁用组件
+ * 启用/禁用组件（详情页面）
  * @param componentId 组件ID
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export function toggleComponentEnabled(componentId: number, enabled: boolean) {
+export function toggleComponentEnabledDetail(componentId: number, enabled: boolean) {
   return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/detail/component/toggle",
-    { params: { componentId, enabled } }
+    "put",
+    `v1/gen/server/detail/component/${componentId}/toggle`,
+    { params: { enabled } }
   );
 }
 

@@ -250,6 +250,7 @@ const initWebSocketHandlers = () => {
       const diskUsage = safeExtractValue(data.disk?.usage ?? data.diskUsage, currentMetrics?.diskUsage);
       const networkIn = safeExtractValue(data.network?.in ?? data.networkIn, currentMetrics?.networkIn);
       const networkOut = safeExtractValue(data.network?.out ?? data.networkOut, currentMetrics?.networkOut);
+      const osInfo = data.osInfo ? JSON.parse(data.osInfo) : {};
 
       // 提取负载平均值
       const loadAverage = data.loadAverage ??
@@ -275,10 +276,10 @@ const initWebSocketHandlers = () => {
         status: data.status === 1 ? 'online' : 'offline',
         collectTime: data.collectTime || new Date().toISOString(),
         // 添加系统信息字段
-        osInfo: data.osInfo,
-        osName: data.osName,
-        osVersion: data.osVersion,
-        hostname: data.hostname,
+        osInfo: osInfo.osInfo,
+        osName: osInfo.osName,
+        osVersion: osInfo.osVersion,
+        hostname: osInfo.hostname  || "未知",
         extraInfo: data.extraInfo,
       });
 
@@ -396,5 +397,11 @@ onUnmounted(() => {
 .server-wrapper {
   height: 100vh;
   width: 100%;
+}
+.offline {
+  background-color: red;
+}
+.online {
+  background-color: green;
 }
 </style>

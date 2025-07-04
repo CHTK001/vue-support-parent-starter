@@ -338,7 +338,7 @@
                     <IconifyIconOnline icon="ri:play-line" />
                   </el-button>
                 </el-tooltip>
-                <el-tooltip content="查看详情" placement="top" :show-after="500">
+                <el-tooltip content="查看监控" placement="top" :show-after="500">
                   <el-button size="small" @click.stop.prevent="showServerInfo(server)">
                     <IconifyIconOnline icon="ri:information-line" />
                   </el-button>
@@ -458,6 +458,12 @@
                 :key="selectedServerId + '-files'"
                 @close="closeRightPanel"
               />
+              <!-- 服务器详情组件 -->
+              <ServerDetailComponents
+                v-else-if="currentComponent === 'ServerDetailComponents'"
+                :server-id="Number(selectedServerId)"
+                :key="selectedServerId + '-detail'"
+              />
               <!-- 默认显示监控组件 -->
               <ServerMonitor
                 v-else
@@ -545,6 +551,7 @@ const RemoteDesktop = defineAsyncComponent(() => import("./components/remote/Rem
 const ServerMonitor = defineAsyncComponent(() => import("./components/ServerMonitor.vue"));
 const FileManager = defineAsyncComponent(() => import("../../components/dialogs/FileManagerDialog.vue"));
 const ServerLatencyDisplay = defineAsyncComponent(() => import("../../components/ServerLatencyDisplay.vue"));
+const ServerDetailComponents = defineAsyncComponent(() => import("../server-detail-components/index.vue"));
 
 // 响应式状态
 const loading = ref(false);
@@ -900,13 +907,13 @@ const loadServerLatency = async () => {
 
 
 /**
- * 选择服务器 - 通知父组件
+ * 选择服务器 - 显示详情组件
  */
 const selectServer = (server: any) => {
   selectedServerId.value = server.id;
-  currentComponent.value = "ServerMonitor";
+  currentComponent.value = "ServerDetailComponents";
   emit('select-server', server);
-  console.log(`选择服务器 ${server.name}，显示监控信息`);
+  console.log(`选择服务器 ${server.name}，显示详情组件`);
 };
 
 /**
@@ -946,7 +953,7 @@ const disconnectServer = async (server: any) => {
 };
 
 /**
- * 显示服务器信息
+ * 显示服务器监控信息
  */
 const showServerInfo = (server: any) => {
   selectedServerId.value = server.id;
