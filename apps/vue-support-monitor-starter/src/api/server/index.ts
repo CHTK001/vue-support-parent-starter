@@ -315,10 +315,9 @@ export function getServerList(params?: ServerPageParams) {
  * @returns 服务器详细信息
  */
 export function getServerDetail(id: string) {
-  return http.request<ReturnResult<ServerInfo>>(
+  return http.request<ReturnResult<any>>(
     "get",
-    "v1/gen/server/page",
-    { params: { monitorSysGenServerId: id } }
+    `v1/gen/server/detail/${id}`
   );
 }
 
@@ -614,41 +613,43 @@ export function renameServerFile(id: string, oldPath: string, newPath: string) {
 }
 
 /**
- * 获取组件模板列表
- * @param category 模板分类
+ * 获取组件模板列表（使用共享组件作为模板）
+ * @param category 模板分类（暂未使用）
  * @returns 模板列表
  */
 export function getComponentTemplates(category?: string) {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    "v1/gen/server/component-templates",
-    { params: { category } }
-  );
+  // TODO: 后端支持分类过滤时可以使用 category 参数
+  return getSharedComponents();
 }
 
 /**
- * 保存组件模板
+ * 保存组件模板（设置为共享组件）
  * @param template 模板数据
  * @returns 保存结果
  */
-export function saveComponentTemplate(template: any) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/component-template",
-    { data: template }
-  );
+export async function saveComponentTemplate(template: any) {
+  // 先创建组件
+  const createRes = await createServerComponent(template);
+  if (createRes.code !== "00000") {
+    return createRes;
+  }
+
+  // 然后设置为共享
+  const componentId = createRes.data?.monitorSysGenServerComponentId;
+  if (componentId) {
+    return shareComponent(componentId);
+  }
+
+  return createRes;
 }
 
 /**
- * 删除组件模板
+ * 删除组件模板（删除共享组件）
  * @param templateId 模板ID
  * @returns 删除结果
  */
 export function deleteComponentTemplate(templateId: string) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `v1/gen/server/component-template/${templateId}`
-  );
+  return deleteServerComponent(Number(templateId));
 }
 
 /**
@@ -730,31 +731,25 @@ export function getServerLayout(serverId: number) {
 }
 
 /**
- * 验证组件配置
+ * 验证组件配置（使用组件表达式验证接口）
  * @param config 组件配置
  * @returns 验证结果
  */
 export function validateComponentConfig(config: any) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/validate-component",
-    { data: config }
-  );
+  const { serverId, expressionType, expression } = config;
+  return validateComponentExpression(serverId, expressionType, expression);
 }
 
 /**
- * 预览组件数据
+ * 预览组件数据（使用组件表达式验证接口）
  * @param serverId 服务器ID
  * @param expression 数据表达式
  * @param expressionType 表达式类型
  * @returns 预览数据
  */
 export function previewComponentData(serverId: number, expression: string, expressionType: string) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/preview-component-data",
-    { data: { serverId, expression, expressionType } }
-  );
+  // 使用验证接口来预览数据
+  return validateComponentExpression(serverId, expressionType, expression);
 }
 
 /**
@@ -1514,15 +1509,46 @@ export function testProxyConnection(id: string) {
 }
 
 /**
- * 获取服务器支持的数据上报方式
- * @param id 服务器ID
+ * 获取服务器支持的数据上报方式（固定数据）
  * @returns 支持的上报方式列表
  */
-export function getSupportedReportMethods(id: string) {
-  return http.request<ReturnResult<string[]>>(
-    "get",
-    "v1/gen/server/report/methods",
-    { params: { id } }
+export function getSupportedReportMethods() {
+  // 固定的数据上报方式，不从服务器获取
+  const reportMethods = [
+    { value: 'none', label: '不上报', description: '不进行数据上报' },
+    { value: 'api', label: 'API上报', description: '通过API接口上报数据' },
+    { value: 'prometheus', label: 'Prometheus', description: '通过Prometheus进行数据采集' },
+    { value: 'url', label: 'URL请求上报', description: '上报URL请求访问数据' }
+  ];
+
+  return Promise.resolve({
+    code: "00000",
+    msg: "获取成功",
+    data: reportMethods
+  });
+}
+
+/**
+ * URL请求数据上报
+ * @param data URL请求数据
+ * @returns 上报结果
+ */
+export function reportUrlRequest(data: {
+  method: string;
+  url: string;
+  clientIp: string;
+  serverIp: string;
+  serverPort: number;
+  timestamp: number;
+  responseTime?: number;
+  statusCode?: number;
+  userAgent?: string;
+  referer?: string;
+}) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/report/url",
+    { data }
   );
 }
 
@@ -1594,9 +1620,9 @@ export function getComponentById(componentId: number) {
  * @returns 创建结果
  */
 export function createServerComponent(component: any) {
-  return http.request<ReturnResult<boolean>>(
+  return http.request<ReturnResult<ServerComponent>>(
     "post",
-    "v1/gen/server/component/create",
+    "v1/gen/server/component",
     { data: component }
   );
 }
@@ -1640,31 +1666,69 @@ export function initDefaultComponentsForServer(serverId: number) {
 }
 
 /**
- * 切换组件启用状态
+ * 切换组件启用状态（通过更新组件实现）
  * @param componentId 组件ID
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export function toggleComponentEnabled(componentId: number, enabled: boolean) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/component/${componentId}/toggle`,
-    { params: { enabled } }
-  );
+export async function toggleComponentEnabled(componentId: number, enabled: boolean) {
+  // 先获取组件信息
+  const componentRes = await getComponentById(componentId);
+  if (componentRes.code !== "00000") {
+    return componentRes;
+  }
+
+  // 更新组件状态
+  const component = componentRes.data;
+  component.monitorSysGenServerComponentStatus = enabled ? 1 : 0;
+
+  return updateServerComponent(componentId, component);
 }
 
 /**
- * 执行组件查询
+ * 执行组件查询（使用组件数据接口）
  * @param componentId 组件ID
  * @param timeRange 时间范围参数
  * @returns 查询结果
  */
 export function executeComponentQuery(componentId: number, timeRange: any) {
+  const { startTime, endTime, step } = timeRange;
+  return getComponentData(componentId, startTime, endTime, step);
+}
+
+/**
+ * 查询组件数据（支持时间范围）
+ * @param componentId 组件ID
+ * @param startTime 开始时间（时间戳，秒）
+ * @param endTime 结束时间（时间戳，秒）
+ * @param step 步长（秒）
+ * @returns 组件数据
+ */
+export function getComponentData(componentId: number, startTime?: number, endTime?: number, step?: number) {
   return http.request<ReturnResult<any>>(
-    "post",
-    `v1/gen/server/component/query/${componentId}`,
-    { data: timeRange }
+    "get",
+    `v1/gen/server/component/${componentId}/data`,
+    {
+      params: {
+        startTime,
+        endTime,
+        step: step || 60
+      }
+    }
   );
+}
+
+/**
+ * 获取组件实时数据
+ * @param componentId 组件ID
+ * @returns 实时数据
+ */
+export function getComponentRealtimeData(componentId: number) {
+  // 获取最近1分钟的数据
+  const now = Math.floor(Date.now() / 1000);
+  const oneMinuteAgo = now - 60;
+
+  return getComponentData(componentId, oneMinuteAgo, now, 15);
 }
 
 /**
@@ -1696,86 +1760,99 @@ export function cloneComponent(sourceComponentId: number, targetServerId: number
 }
 
 /**
- * 批量更新组件启用状态
+ * 批量更新组件启用状态（前端实现）
  * @param componentIds 组件ID列表
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export function batchUpdateComponentsEnabled(componentIds: number[], enabled: boolean) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/gen/server/component/batch/enabled",
-    { data: { componentIds, enabled } }
+export async function batchUpdateComponentsEnabled(componentIds: number[], enabled: boolean) {
+  const results = await Promise.all(
+    componentIds.map(id => toggleComponentEnabled(id, enabled))
+  );
+
+  const success = results.every(result => result.code === "00000");
+  return {
+    code: success ? "00000" : "50000",
+    msg: success ? "批量更新成功" : "部分更新失败",
+    data: success
+  };
+}
+
+/**
+ * 批量删除组件（前端实现）
+ * @param componentIds 组件ID列表
+ * @returns 操作结果
+ */
+export async function batchDeleteComponents(componentIds: number[]) {
+  const results = await Promise.all(
+    componentIds.map(id => deleteServerComponent(id))
+  );
+
+  const success = results.every(result => result.code === "00000");
+  return {
+    code: success ? "00000" : "50000",
+    msg: success ? "批量删除成功" : "部分删除失败",
+    data: success
+  };
+}
+
+/**
+ * 获取共享组件列表
+ * @returns 共享组件列表
+ */
+export function getSharedComponents() {
+  return http.request<ReturnResult<ServerComponent[]>>(
+    "get",
+    "v1/gen/server/component/shared"
   );
 }
 
 /**
- * 批量更新组件排序
- * @param componentIds 组件ID列表
- * @param sortOrders 排序序号列表
+ * 设置组件为共享
+ * @param componentId 组件ID
  * @returns 操作结果
  */
-export function batchUpdateComponentsSortOrder(componentIds: number[], sortOrders: number[]) {
+export function shareComponent(componentId: number) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    "v1/gen/server/component/batch/sort",
-    { data: { componentIds, sortOrders } }
+    `v1/gen/server/component/share/${componentId}`
   );
 }
 
 /**
- * 批量更新组件刷新间隔
- * @param componentIds 组件ID列表
- * @param refreshInterval 刷新间隔
+ * 复制共享组件到服务器
+ * @param serverId 目标服务器ID
+ * @param sourceComponentId 源组件ID
  * @returns 操作结果
  */
-export function batchUpdateComponentsRefreshInterval(componentIds: number[], refreshInterval: number) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/gen/server/component/batch/refresh",
-    { data: { componentIds, refreshInterval } }
-  );
-}
-
-/**
- * 批量更新组件配置
- * @param componentIds 组件ID列表
- * @param configContent 配置内容
- * @param updateType 更新类型 (replace/merge)
- * @returns 操作结果
- */
-export function batchUpdateComponentsConfig(componentIds: number[], configContent: string, updateType: string) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/gen/server/component/batch/config",
-    { data: { componentIds, configContent, updateType } }
-  );
-}
-
-/**
- * 批量克隆组件
- * @param componentIds 组件ID列表
- * @param targetServerIds 目标服务器ID列表
- * @returns 操作结果
- */
-export function batchCloneComponents(componentIds: number[], targetServerIds: string[]) {
-  return http.request<ReturnResult<boolean>>(
+export function copySharedComponent(serverId: number, sourceComponentId: number) {
+  return http.request<ReturnResult<ServerComponent>>(
     "post",
-    "v1/gen/server/component/batch/clone",
-    { data: { componentIds, targetServerIds } }
+    `v1/gen/server/component/copy/${serverId}/${sourceComponentId}`
   );
 }
 
 /**
- * 批量删除组件
- * @param componentIds 组件ID列表
- * @returns 操作结果
+ * 根据组件类型获取组件列表
+ * @param componentType 组件类型
+ * @returns 组件列表
  */
-export function batchDeleteComponents(componentIds: number[]) {
+export function getComponentsByType(componentType: string) {
+  return http.request<ReturnResult<ServerComponent[]>>(
+    "get",
+    `v1/gen/server/component/type/${componentType}`
+  );
+}
+
+/**
+ * 检查组件是否可以删除
+ * @param componentId 组件ID
+ * @returns 检查结果
+ */
+export function canDeleteComponent(componentId: number) {
   return http.request<ReturnResult<boolean>>(
-    "delete",
-    "v1/gen/server/component/batch/delete",
-    { data: { componentIds } }
+    "get",
+    `v1/gen/server/component/can-delete/${componentId}`
   );
 }
 
@@ -1792,69 +1869,129 @@ export function getReportConfig(id: string) {
   );
 }
 
+/**
+ * 获取服务器指标历史数据
+ * @param serverId 服务器ID
+ * @param startTime 开始时间
+ * @param endTime 结束时间
+ * @param interval 数据间隔（分钟，默认5分钟）
+ * @returns 历史指标数据
+ */
+export function getServerMetricsHistory(serverId: number, startTime: string, endTime: string, interval: number = 5) {
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    "v1/gen/server/metrics/history",
+    { params: { serverId, startTime, endTime, interval } }
+  );
+}
+
+/**
+ * 测试Prometheus连接
+ * @param serverId 服务器ID
+ * @returns 测试结果
+ */
+export function testPrometheusConnection(serverId: number) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/prometheus/test",
+    { params: { serverId } }
+  );
+}
+
+/**
+ * 手动检测服务器信息
+ * @param id 服务器ID
+ * @returns 检测结果
+ */
+export function detectServerInfo(id: string) {
+  return http.request<ReturnResult<any>>(
+    "post",
+    "v1/gen/server/detect-info",
+    { params: { id } }
+  );
+}
+
+/**
+ * 批量检测服务器信息
+ * @returns 检测结果
+ */
+export function batchDetectServerInfo() {
+  return http.request<ReturnResult<any>>(
+    "post",
+    "v1/gen/server/batch-detect-info"
+  );
+}
+
+/**
+ * 测试本地IP检测功能
+ * @param host 主机地址
+ * @returns 检测结果
+ */
+export function testLocalIpDetection(host: string) {
+  return http.request<ReturnResult<any>>(
+    "get",
+    "v1/gen/server/test-local-ip",
+    { params: { host } }
+  );
+}
+
 // ==================== 服务器详情页组件API ====================
 
 /**
- * 获取服务器组件列表
+ * 获取服务器组件列表（详情页使用通用接口）
  * @param serverId 服务器ID
  * @returns 组件列表
  */
 export function getServerDetailComponents(serverId: number) {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    `v1/gen/server/component/list/${serverId}`
-  );
+  return getComponentsByServerId(serverId);
 }
 
 /**
- * 获取启用的服务器组件列表
+ * 获取启用的服务器组件列表（前端过滤）
  * @param serverId 服务器ID
  * @returns 启用的组件列表
  */
-export function getEnabledServerDetailComponents(serverId: number) {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    `v1/gen/server/component/list/${serverId}`
-  );
+export async function getEnabledServerDetailComponents(serverId: number) {
+  const res = await getComponentsByServerId(serverId);
+  if (res.code === "00000" && res.data) {
+    // 前端过滤启用的组件
+    const enabledComponents = res.data.filter(component =>
+      component.monitorSysGenServerComponentStatus === 1
+    );
+    return {
+      ...res,
+      data: enabledComponents
+    };
+  }
+  return res;
 }
 
 /**
- * 创建服务器详情组件
+ * 创建服务器详情组件（使用通用接口）
  * @param data 组件数据
  * @returns 创建结果
  */
 export function createServerDetailComponent(data: ServerComponent) {
-  return http.request<ReturnResult<ServerComponent>>(
-    "post",
-    "v1/gen/server/component",
-    { data }
-  );
+  return createServerComponent(data);
 }
 
 /**
- * 更新服务器详情组件
+ * 更新服务器详情组件（使用通用接口）
+ * @param componentId 组件ID
  * @param data 组件数据
  * @returns 更新结果
  */
 export function updateServerDetailComponent(componentId: number, data: ServerComponent) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/component/${componentId}`,
-    { data }
-  );
+  return updateServerComponent(componentId, data);
 }
 
 /**
- * 保存或更新组件
+ * 保存或更新组件（使用通用接口）
  * @param component 组件信息
  * @returns 操作结果
  */
 export function saveServerDetailComponent(component: ServerComponent) {
-  return http.request<ReturnResult<ServerComponent>>(
-    "post",
-    "v1/gen/server/component",
-    { data: component }
-  );
+  return createServerComponent(component);
 }
 
 /**
@@ -1872,95 +2009,60 @@ export function batchUpdateComponentPosition(serverId: number, components: Serve
 }
 
 /**
- * 删除组件
+ * 删除组件（使用通用接口）
  * @param componentId 组件ID
  * @returns 操作结果
  */
 export function deleteServerDetailComponent(componentId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `v1/gen/server/component/${componentId}`
-  );
+  return deleteServerComponent(componentId);
 }
 
 /**
- * 获取服务器详情页面组件模板列表
+ * 获取服务器详情页面组件模板列表（使用共享组件接口）
  * @returns 模板列表
  */
 export function getServerDetailComponentTemplates() {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    "v1/gen/server/component/shared"
-  );
+  return getSharedComponents();
 }
 
 /**
- * 为服务器初始化默认组件（详情页面）
+ * 为服务器初始化默认组件（详情页面，使用通用接口）
  * @param serverId 服务器ID
  * @returns 操作结果
  */
 export function initDefaultComponentsForServerDetail(serverId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/gen/server/component/init/${serverId}`
-  );
+  return initDefaultComponentsForServer(serverId);
 }
 
 /**
- * 执行组件查询（详情页面）
+ * 执行组件查询（详情页面，使用通用接口）
  * @param componentId 组件ID
  * @param timeRange 时间范围参数
  * @returns 查询结果
  */
 export function executeComponentQueryDetail(componentId: number, timeRange: any) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/detail/component/query",
-    {
-      params: { componentId },
-      data: timeRange
-    }
-  );
+  return executeComponentQuery(componentId, timeRange);
 }
 
 /**
- * 验证组件表达式（详情页面）
+ * 验证组件表达式（详情页面，使用通用接口）
  * @param expressionType 表达式类型
  * @param expression 表达式内容
  * @param serverId 服务器ID
  * @returns 验证结果
  */
 export function validateComponentExpressionDetail(expressionType: string, expression: string, serverId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/detail/component/validate",
-    { params: { expressionType, expression, serverId } }
-  );
+  return validateComponentExpression(serverId, expressionType, expression);
 }
 
 /**
- * 启用/禁用组件（详情页面）
+ * 启用/禁用组件（详情页面，使用通用接口）
  * @param componentId 组件ID
  * @param enabled 是否启用
  * @returns 操作结果
  */
 export function toggleComponentEnabledDetail(componentId: number, enabled: boolean) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/detail/component/${componentId}/toggle`,
-    { params: { enabled } }
-  );
+  return toggleComponentEnabled(componentId, enabled);
 }
 
-/**
- * 测试本地IP检测功能
- * @param host 要测试的主机地址
- * @returns 检测结果
- */
-export function testLocalIpDetection(host?: string) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    "v1/gen/server/test-local-ip",
-    { params: { host } }
-  );
-}
+

@@ -70,7 +70,7 @@
                 />
               </el-form-item>
 
-            
+
               <el-form-item label="上报方式" prop="monitorSysGenServerSettingDataReportMethod">
                 <el-select v-model="formData.monitorSysGenServerSettingDataReportMethod" placeholder="选择上报方式">
                   <el-option label="不上报" value="NONE" />
@@ -87,6 +87,116 @@
                   <el-option label="Prometheus" value="PROMETHEUS" />
                 </el-select>
               </el-form-item>
+
+              <!-- Prometheus配置 -->
+              <template v-if="formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'">
+                <el-form-item label="Prometheus地址" prop="monitorSysGenServerSettingPrometheusHost">
+                  <el-input
+                    v-model="formData.monitorSysGenServerSettingPrometheusHost"
+                    placeholder="Prometheus服务器地址"
+                    clearable
+                  />
+                </el-form-item>
+
+                <el-form-item label="Prometheus端口" prop="monitorSysGenServerSettingPrometheusPort">
+                  <el-input-number
+                    v-model="formData.monitorSysGenServerSettingPrometheusPort"
+                    :min="1"
+                    :max="65535"
+                    controls-position="right"
+                  />
+                </el-form-item>
+              </template>
+
+              <!-- API上报配置 -->
+              <template v-if="formData.monitorSysGenServerSettingDataReportMethod === 'API'">
+                <el-form-item label="API地址" prop="monitorSysGenServerSettingApiUrl">
+                  <el-input
+                    v-model="formData.monitorSysGenServerSettingApiUrl"
+                    placeholder="API接口地址"
+                    clearable
+                  />
+                </el-form-item>
+
+                <el-form-item label="API密钥" prop="monitorSysGenServerSettingApiKey">
+                  <el-input
+                    v-model="formData.monitorSysGenServerSettingApiKey"
+                    placeholder="API访问密钥"
+                    type="password"
+                    show-password
+                    clearable
+                  />
+                </el-form-item>
+              </template>
+            </div>
+          </el-tab-pane>
+
+          <!-- 指标管理 -->
+          <el-tab-pane label="指标管理" name="metrics">
+            <div class="tab-content">
+              <el-form-item label="指标收集" prop="monitorSysGenServerSettingMetricsEnabled">
+                <el-switch
+                  v-model="formData.monitorSysGenServerSettingMetricsEnabled"
+                  :active-value="1"
+                  :inactive-value="0"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+                <el-tooltip content="开启后将收集服务器的CPU、内存、磁盘、网络等指标数据" placement="top">
+                  <el-icon class="info-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </el-form-item>
+
+              <template v-if="formData.monitorSysGenServerSettingMetricsEnabled">
+                <el-form-item label="收集指标类型">
+                  <el-checkbox-group v-model="selectedMetricsTypes">
+                    <el-checkbox label="cpu">CPU使用率</el-checkbox>
+                    <el-checkbox label="memory">内存使用率</el-checkbox>
+                    <el-checkbox label="disk">磁盘使用率</el-checkbox>
+                    <el-checkbox label="network">网络流量</el-checkbox>
+                    <el-checkbox label="process">进程信息</el-checkbox>
+                    <el-checkbox label="system">系统负载</el-checkbox>
+                  </el-checkbox-group>
+                </el-form-item>
+
+                <el-form-item label="指标精度" prop="monitorSysGenServerSettingMetricsPrecision">
+                  <el-select v-model="formData.monitorSysGenServerSettingMetricsPrecision" placeholder="选择指标精度">
+                    <el-option label="低精度（1分钟）" :value="60" />
+                    <el-option label="中精度（30秒）" :value="30" />
+                    <el-option label="高精度（15秒）" :value="15" />
+                    <el-option label="实时（5秒）" :value="5" />
+                  </el-select>
+                  <el-tooltip content="精度越高，数据越详细，但会占用更多存储空间" placement="top">
+                    <el-icon class="info-icon"><InfoFilled /></el-icon>
+                  </el-tooltip>
+                </el-form-item>
+
+                <el-form-item label="数据聚合" prop="monitorSysGenServerSettingDataAggregation">
+                  <el-switch
+                    v-model="formData.monitorSysGenServerSettingDataAggregation"
+                    :active-value="1"
+                    :inactive-value="0"
+                    active-text="开启"
+                    inactive-text="关闭"
+                  />
+                  <el-tooltip content="开启后将对历史数据进行聚合处理，减少存储空间占用" placement="top">
+                    <el-icon class="info-icon"><InfoFilled /></el-icon>
+                  </el-tooltip>
+                </el-form-item>
+
+                <el-form-item label="自动清理" prop="monitorSysGenServerSettingAutoCleanup">
+                  <el-switch
+                    v-model="formData.monitorSysGenServerSettingAutoCleanup"
+                    :active-value="1"
+                    :inactive-value="0"
+                    active-text="开启"
+                    inactive-text="关闭"
+                  />
+                  <el-tooltip content="开启后将根据数据保留时间自动清理过期数据" placement="top">
+                    <el-icon class="info-icon"><InfoFilled /></el-icon>
+                  </el-tooltip>
+                </el-form-item>
+              </template>
             </div>
           </el-tab-pane>
 
@@ -309,6 +419,9 @@ const formRef = ref();
 const serverId = ref<number | null>(null);
 const currentServer = ref<ServerInfo | null>(null);
 
+// 指标管理相关状态
+const selectedMetricsTypes = ref<string[]>(['cpu', 'memory', 'disk', 'network']);
+
 // 表单数据
 const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingMonitorEnabled: 1,
@@ -334,6 +447,16 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingCustomTags: "",
   monitorSysGenServerSettingDescription: "",
   monitorSysGenServerSettingStatus: 1,
+  // 指标管理相关字段
+  monitorSysGenServerSettingMetricsEnabled: 1,
+  monitorSysGenServerSettingMetricsPrecision: 30,
+  monitorSysGenServerSettingDataAggregation: 1,
+  monitorSysGenServerSettingAutoCleanup: 1,
+  // 数据上报扩展字段
+  monitorSysGenServerSettingPrometheusHost: "",
+  monitorSysGenServerSettingPrometheusPort: 9090,
+  monitorSysGenServerSettingApiUrl: "",
+  monitorSysGenServerSettingApiKey: "",
 });
 
 // 表单验证规则 - 动态规则

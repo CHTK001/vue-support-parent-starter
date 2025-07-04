@@ -92,7 +92,7 @@
               <el-form
                 ref="formRef"
                 :model="settingData"
-                label-width="140px"
+                label-width="160px"
                 size="default"
                 class="config-form"
                 :disabled="loadingSettings"
