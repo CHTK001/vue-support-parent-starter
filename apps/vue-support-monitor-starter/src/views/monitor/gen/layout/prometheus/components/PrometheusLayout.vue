@@ -249,83 +249,25 @@
     </el-dialog>
 
     <!-- 图表配置对话框 -->
-    <el-dialog v-model="showChartConfigDialog" title="图表配置" width="50%" destroy-on-close>
-      <div class="chart-config-dialog">
-        <el-form ref="chartConfigFormRef" :model="chartConfigForm" label-width="120px">
-          <el-form-item label="图表标题">
-            <el-input v-model="chartConfigForm.title" placeholder="请输入图表标题" />
-          </el-form-item>
-
-          <el-form-item label="Y轴最小值">
-            <el-input-number v-model="chartConfigForm.yAxisMin" :min="-1000" :max="1000" :step="10" placeholder="不设置则自动" />
-            <span class="ml-2">不设置则自动</span>
-          </el-form-item>
-
-          <el-form-item label="Y轴最大值">
-            <el-input-number v-model="chartConfigForm.yAxisMax" :min="-1000" :max="10000" :step="10" placeholder="不设置则自动" />
-            <span class="ml-2">不设置则自动</span>
-          </el-form-item>
-
-          <el-form-item label="单位">
-            <el-input v-model="chartConfigForm.unit" placeholder="例如: %, MB, 次/秒" />
-          </el-form-item>
-
-          <el-form-item label="主色调">
-            <el-color-picker v-model="chartConfigForm.mainColor" />
-          </el-form-item>
-
-          <el-form-item label="背景色">
-            <el-color-picker v-model="chartConfigForm.bgColor" show-alpha />
-          </el-form-item>
-
-          <el-form-item v-if="['line', 'bar'].includes(chartConfigForm.type)" label="显示图例">
-            <el-switch v-model="chartConfigForm.showLegend" />
-          </el-form-item>
-
-          <el-form-item v-if="['line', 'bar'].includes(chartConfigForm.type)" label="堆叠显示">
-            <el-switch v-model="chartConfigForm.stacked" />
-          </el-form-item>
-
-          <el-form-item v-if="chartConfigForm.type === 'line'" label="区域填充">
-            <el-switch v-model="chartConfigForm.fill" />
-          </el-form-item>
-
-          <el-form-item v-if="chartConfigForm.type === 'line'" label="平滑曲线">
-            <el-switch v-model="chartConfigForm.smooth" />
-          </el-form-item>
-
-          <el-form-item v-if="['gauge', 'card'].includes(chartConfigForm.type)" label="阈值设置">
-            <div class="thresholds-config">
-              <div v-for="(threshold, index) in chartConfigForm.thresholds" :key="index" class="threshold-item">
-                <el-input-number v-model="threshold.value" :min="0" :max="100" :step="5" />
-                <el-color-picker v-model="threshold.color" />
-                <el-input v-model="threshold.label" placeholder="标签" style="width: 80px" />
-                <el-button v-if="index > 0" type="danger" circle size="small" @click="chartConfigForm.thresholds.splice(index, 1)">
-                  <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </div>
-              <el-button v-if="chartConfigForm.thresholds.length < 5" type="primary" size="small" @click="addThreshold">添加阈值</el-button>
-            </div>
-          </el-form-item>
-        </el-form>
-        <div class="dialog-footer">
-          <el-button @click="showChartConfigDialog = false">取消</el-button>
-          <el-button type="primary" @click="saveChartConfig">保存</el-button>
-        </div>
-      </div>
-    </el-dialog>
+    <ChartConfigDialog
+      ref="chartConfigDialogRef"
+      @confirm="handleChartConfigConfirm"
+      @cancel="handleChartConfigCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { fetchPrometheusDeleteConfig, fetchPrometheusListConfig, fetchPrometheusSaveConfig, fetchPrometheusShareConfig, fetchPrometheusUpdateConfig, MonitorSysGenPrometheusConfig } from "@/api/prometheus/config";
 import { fetchPrometheusQueryGen, fetchPrometheusQueryRangeGen } from "@/api/prometheus/index";
+// import { saveComponentChartConfig } from "@/api/server/layout";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
 import { defineExpose, defineProps, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { formatValue, getValueUnit, formatStatus, getStatusUnit } from "../utils/format";
+import ChartConfigDialog from "./ChartConfigDialog.vue";
 import PrometheusComponent from "./PrometheusComponent.vue";
 import BatteryChart from "./BatteryChart.vue";
 
@@ -352,27 +294,8 @@ const prometheusLayoutRef = ref(null);
 const isBrowserFullscreen = ref(false);
 
 // 图表配置相关
-const showChartConfigDialog = ref(false);
-const chartConfigFormRef = ref(null);
+const chartConfigDialogRef = ref(null);
 const configEditingComponent = ref(null);
-const chartConfigForm = reactive({
-  title: "",
-  type: "line",
-  yAxisMin: null,
-  yAxisMax: null,
-  unit: "",
-  mainColor: "#409EFF",
-  bgColor: "rgba(64, 158, 255, 0.1)",
-  showLegend: true,
-  stacked: false,
-  fill: true,
-  smooth: false,
-  thresholds: [
-    { value: 0, color: "#67C23A", label: "正常" },
-    { value: 60, color: "#E6A23C", label: "警告" },
-    { value: 80, color: "#F56C6C", label: "危险" },
-  ],
-});
 
 // 组件类型选项
 const componentTypeOptions = [
@@ -1055,77 +978,91 @@ const handleChartClick = (item) => {
 const editChartConfig = (item) => {
   configEditingComponent.value = item;
 
-  // 初始化表单
+  // 初始化表单数据
   const config = getChartConfig(item);
-  chartConfigForm.title = item.title || "";
-  chartConfigForm.type = item.type || "line";
-  chartConfigForm.yAxisMin = config.yAxisMin;
-  chartConfigForm.yAxisMax = config.yAxisMax;
-  chartConfigForm.unit = config.unit || "";
-  chartConfigForm.mainColor = config.mainColor || "#409EFF";
-  chartConfigForm.bgColor = config.bgColor || "rgba(64, 158, 255, 0.1)";
-  chartConfigForm.showLegend = config.showLegend !== false;
-  chartConfigForm.stacked = config.stacked || false;
-  chartConfigForm.fill = config.fill !== false;
-  chartConfigForm.smooth = config.smooth || false;
-  chartConfigForm.thresholds = config.thresholds || [
-    { value: 0, color: "#67C23A", label: "正常" },
-    { value: 60, color: "#E6A23C", label: "警告" },
-    { value: 80, color: "#F56C6C", label: "危险" },
-  ];
-
-  showChartConfigDialog.value = true;
-};
-
-// 添加阈值
-const addThreshold = () => {
-  if (chartConfigForm.thresholds.length < 5) {
-    chartConfigForm.thresholds.push({
-      value: chartConfigForm.thresholds[chartConfigForm.thresholds.length - 1].value + 10,
-      color: "#F56C6C",
-      label: "阈值" + (chartConfigForm.thresholds.length + 1),
-    });
-  }
-};
-
-// 保存图表配置
-const saveChartConfig = () => {
-  if (!configEditingComponent.value) return;
-
-  // 保存配置到组件
-  configEditingComponent.value.chartConfig = {
-    yAxisMin: chartConfigForm.yAxisMin,
-    yAxisMax: chartConfigForm.yAxisMax,
-    unit: chartConfigForm.unit,
-    mainColor: chartConfigForm.mainColor,
-    bgColor: chartConfigForm.bgColor,
-    showLegend: chartConfigForm.showLegend,
-    stacked: chartConfigForm.stacked,
-    fill: chartConfigForm.fill,
-    smooth: chartConfigForm.smooth,
-    thresholds: chartConfigForm.thresholds,
+  const chartConfig = {
+    title: item.title || "",
+    type: item.type || "line",
+    yAxisMin: config.yAxisMin,
+    yAxisMax: config.yAxisMax,
+    unit: config.unit || "",
+    mainColor: config.mainColor || "#409EFF",
+    bgColor: config.bgColor || "rgba(64, 158, 255, 0.1)",
+    showLegend: config.showLegend !== false,
+    stacked: config.stacked || false,
+    fill: config.fill !== false,
+    smooth: config.smooth || false,
+    showGrid: config.showGrid !== false,
+    showLabel: config.showLabel !== false,
+    thresholds: config.thresholds || [
+      { value: 0, color: "#67C23A", label: "正常" },
+      { value: 60, color: "#E6A23C", label: "警告" },
+      { value: 80, color: "#F56C6C", label: "危险" },
+    ],
+    animation: config.animation !== false,
+    animationDuration: config.animationDuration || 1000,
+    animationDelay: config.animationDelay || 0,
   };
 
-  // 更新组件标题
-  if (chartConfigForm.title && chartConfigForm.title !== configEditingComponent.value.title) {
-    configEditingComponent.value.title = chartConfigForm.title;
+  // 打开配置对话框
+  chartConfigDialogRef.value?.open(chartConfig);
+};
+
+// 处理图表配置确认
+const handleChartConfigConfirm = async (config) => {
+  if (!configEditingComponent.value) return;
+
+  try {
+    // 保存配置到组件
+    configEditingComponent.value.chartConfig = {
+      yAxisMin: config.yAxisMin,
+      yAxisMax: config.yAxisMax,
+      unit: config.unit,
+      mainColor: config.mainColor,
+      bgColor: config.bgColor,
+      showLegend: config.showLegend,
+      stacked: config.stacked,
+      fill: config.fill,
+      smooth: config.smooth,
+      showGrid: config.showGrid,
+      showLabel: config.showLabel,
+      thresholds: config.thresholds,
+      animation: config.animation,
+      animationDuration: config.animationDuration,
+      animationDelay: config.animationDelay,
+    };
+
+    // 更新组件标题
+    if (config.title && config.title !== configEditingComponent.value.title) {
+      configEditingComponent.value.title = config.title;
+    }
+
+    // 更新组件类型
+    if (config.type && config.type !== configEditingComponent.value.type) {
+      configEditingComponent.value.type = config.type;
+    }
+
+    // 更新组件颜色
+    configEditingComponent.value.color = config.mainColor;
+    configEditingComponent.value.bgColor = config.bgColor;
+
+    // 刷新组件数据
+    loadComponentData(configEditingComponent.value);
+
+    // 保存组件配置到服务器
+    await saveComponentConfig(configEditingComponent.value);
+
+    configEditingComponent.value = null;
+    ElMessage.success("图表配置已保存");
+  } catch (error) {
+    console.error("保存图表配置失败:", error);
+    ElMessage.error("保存图表配置失败");
   }
+};
 
-  // 更新组件颜色
-  configEditingComponent.value.color = chartConfigForm.mainColor;
-  configEditingComponent.value.bgColor = chartConfigForm.bgColor;
-
-  // 刷新组件数据
-  loadComponentData(configEditingComponent.value);
-
-  // 保存组件配置
-  saveComponentConfig(configEditingComponent.value);
-
-  // 关闭对话框
-  showChartConfigDialog.value = false;
+// 处理图表配置取消
+const handleChartConfigCancel = () => {
   configEditingComponent.value = null;
-
-  ElMessage.success("图表配置已保存");
 };
 
 // 保存组件配置到服务器

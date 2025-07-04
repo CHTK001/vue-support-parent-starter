@@ -157,7 +157,7 @@ import {
   getServerInfo,
   getEnabledServerDetailComponents,
   batchUpdateComponentPosition,
-  initDefaultComponentsForServer,
+  initDefaultComponentsForServerDetail,
   deleteServerDetailComponent,
   type ServerDetailComponent,
   type ServerDisplayData
@@ -331,7 +331,7 @@ const toggleEditMode = () => {
 const handleInitDefaultComponents = async () => {
   try {
     loading.value = true;
-    const res = await initDefaultComponentsForServer(serverId.value);
+    const res = await initDefaultComponentsForServerDetail(serverId.value);
     if (res.code === "00000") {
       message.success("初始化默认组件成功");
       await loadComponents();

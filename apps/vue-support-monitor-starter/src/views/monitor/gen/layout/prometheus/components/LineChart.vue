@@ -104,6 +104,17 @@ const convertToEChartsOption = chartData => {
   // 是否平滑曲线
   const smooth = config.smooth || false;
 
+  // 是否显示网格
+  const showGrid = config.showGrid !== false;
+
+  // 是否显示标签
+  const showLabel = config.showLabel !== false;
+
+  // 动画配置
+  const animation = config.animation !== false;
+  const animationDuration = config.animationDuration || 1000;
+  const animationDelay = config.animationDelay || 0;
+
   // 创建系列数据
   const series = chartData.datasets.map((dataset, index) => {
     const color = dataset.borderColor || (index === 0 ? mainColor : getRandomColor());
@@ -126,6 +137,17 @@ const convertToEChartsOption = chartData => {
       emphasis: {
         focus: "series"
       },
+      label: showLabel ? {
+        show: true,
+        position: 'top',
+        formatter: function(params) {
+          return formatValueWithUnit(params.value);
+        },
+        color: '#e0e0e0',
+        fontSize: 10
+      } : {
+        show: false
+      },
       data: dataset.data || []
     };
   });
@@ -141,6 +163,9 @@ const convertToEChartsOption = chartData => {
     textStyle: {
       color: "#e0e0e0"
     },
+    animation: animation,
+    animationDuration: animationDuration,
+    animationDelay: animationDelay,
     title: chartData.title
       ? {
           text: chartData.title,
@@ -190,7 +215,9 @@ const convertToEChartsOption = chartData => {
       right: showLegend ? "0%" : "4%",
       bottom: "3%",
       top: "3%",
-      containLabel: true
+      containLabel: true,
+      show: showGrid,
+      borderColor: showGrid ? "rgba(255, 255, 255, 0.1)" : "transparent"
     },
     dataZoom: [
       {

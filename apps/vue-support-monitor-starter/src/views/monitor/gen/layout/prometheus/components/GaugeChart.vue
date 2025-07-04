@@ -108,6 +108,11 @@ const convertToEChartsOption = chartData => {
   // 获取主色
   const mainColor = config.mainColor || chartData.datasets[0].borderColor || "#409EFF";
 
+  // 动画配置
+  const animation = config.animation !== false;
+  const animationDuration = config.animationDuration || 1000;
+  const animationDelay = config.animationDelay || 0;
+
   // 获取单位
   const valueUnit = chartData.valueUnit || "";
   const unit = getValueUnit(value, valueUnit, config);
@@ -123,6 +128,9 @@ const convertToEChartsOption = chartData => {
     textStyle: {
       color: "#e0e0e0"
     },
+    animation: animation,
+    animationDuration: animationDuration,
+    animationDelay: animationDelay,
     title: chartData.title
       ? {
           text: chartData.title,

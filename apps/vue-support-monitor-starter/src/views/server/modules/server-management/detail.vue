@@ -92,11 +92,6 @@
 
     <!-- 组件网格布局 -->
     <div class="components-container" v-loading="loading">
-      <!-- TODO: 实现GridLayoutEditor组件 -->
-      <div class="grid-layout-placeholder">
-        <el-empty description="网格布局编辑器开发中..." />
-      </div>
-      <!--
       <GridLayoutEditor
         ref="gridLayoutEditorRef"
         :server-id="serverId"
@@ -104,7 +99,6 @@
         @layout-change="handleLayoutUpdated"
         @save="handleSaveLayout"
       />
-      -->
     </div>
 
     <!-- 编辑模式工具栏 -->
@@ -163,7 +157,7 @@ import {
   getServerInfo,
   getEnabledServerDetailComponents,
   batchUpdateComponentPosition,
-  initDefaultComponentsForServer,
+  initDefaultComponentsForServerDetail,
   deleteServerDetailComponent,
   type ServerDetailComponent,
   type ServerDisplayData
@@ -175,13 +169,14 @@ import ComponentManageDialog from "../../components/dialogs/ComponentManageDialo
 import FileManagerDialog from "../../components/dialogs/FileManagerDialog.vue";
 import ComponentConfigDialog from "../../components/dialogs/ComponentConfigDialog.vue";
 import LayoutConfigDialog from "../../components/dialogs/LayoutConfigDialog.vue";
-// import GridLayoutEditor from "../../components/layout/GridLayoutEditor.vue"; // TODO: 创建GridLayoutEditor组件
+import GridLayoutEditor from "../../components/layout/GridLayoutEditor.vue";
 import CardComponent from "../../components/charts/CardComponent.vue";
 import GaugeComponent from "../../components/charts/GaugeComponent.vue";
 import LineChartComponent from "../../components/charts/LineChartComponent.vue";
 import BarChartComponent from "../../components/charts/BarChartComponent.vue";
 import PieChartComponent from "../../components/charts/PieChartComponent.vue";
 import TableComponent from "../../components/charts/TableComponent.vue";
+import DiskPartitionsComponent from "./components/charts/DiskPartitionsComponent.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -201,7 +196,7 @@ const componentManageDialogRef = ref();
 const fileManagerDialogRef = ref();
 const componentConfigDialogRef = ref();
 const layoutConfigDialogRef = ref();
-// const gridLayoutEditorRef = ref(); // TODO: 启用GridLayoutEditor组件后取消注释
+const gridLayoutEditorRef = ref();
 
 // 组件类型映射
 const componentTypeMap = {
@@ -211,6 +206,7 @@ const componentTypeMap = {
   bar: BarChartComponent,
   pie: PieChartComponent,
   table: TableComponent,
+  diskPartitions: DiskPartitionsComponent,
 };
 
 /**
@@ -324,10 +320,9 @@ const handleLayoutConfig = () => {
  */
 const toggleEditMode = () => {
   editMode.value = !editMode.value;
-  // TODO: 启用GridLayoutEditor组件后取消注释
-  // if (gridLayoutEditorRef.value) {
-  //   gridLayoutEditorRef.value.setEditMode(editMode.value ? 'edit' : 'view');
-  // }
+  if (gridLayoutEditorRef.value) {
+    gridLayoutEditorRef.value.setEditMode(editMode.value ? 'edit' : 'view');
+  }
 };
 
 /**
@@ -336,7 +331,7 @@ const toggleEditMode = () => {
 const handleInitDefaultComponents = async () => {
   try {
     loading.value = true;
-    const res = await initDefaultComponentsForServer(serverId.value);
+    const res = await initDefaultComponentsForServerDetail(serverId.value);
     if (res.code === "00000") {
       message.success("初始化默认组件成功");
       await loadComponents();
@@ -461,13 +456,10 @@ const handleComponentConfigSuccess = () => {
  * 应用布局模板
  */
 const handleApplyLayoutTemplate = (template: any) => {
-  // TODO: 启用GridLayoutEditor组件后取消注释
-  // if (gridLayoutEditorRef.value) {
-  //   gridLayoutEditorRef.value.setLayout(template.config.layout);
-  //   message.success('布局模板已应用');
-  // }
-  console.log('应用布局模板:', template);
-  message.info('GridLayoutEditor组件开发中...');
+  if (gridLayoutEditorRef.value) {
+    gridLayoutEditorRef.value.setLayout(template.config.layout);
+    message.success('布局模板已应用');
+  }
 };
 
 /**
