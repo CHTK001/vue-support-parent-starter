@@ -23,7 +23,7 @@ import java.io.Serializable;
 @ApiModel(description = "服务器组件配置")
 @Schema(description = "服务器组件配置")
 @Data
-@TableName(value = "monitor_sys_gen_server_component")
+@TableName(value = "monitor_sys_gen_server_detail_component")
 public class MonitorSysGenServerComponent extends SysBase implements Serializable {
 
     private static final long serialVersionUID = 1L;

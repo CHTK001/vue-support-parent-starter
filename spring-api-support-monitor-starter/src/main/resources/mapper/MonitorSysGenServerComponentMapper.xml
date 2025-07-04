@@ -47,7 +47,7 @@
     <!-- 根据服务器ID获取组件列表 -->
     <select id="selectByServerId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_id = #{serverId}
           AND monitor_sys_gen_server_component_status = 1
         ORDER BY monitor_sys_gen_server_component_sort ASC, monitor_sys_gen_server_component_id ASC
@@ -56,7 +56,7 @@
     <!-- 根据组件类型获取组件列表 -->
     <select id="selectByComponentType" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_component_type = #{componentType}
           AND monitor_sys_gen_server_component_status = 1
         ORDER BY monitor_sys_gen_server_component_sort ASC, monitor_sys_gen_server_component_id ASC
@@ -65,7 +65,7 @@
     <!-- 获取共享组件列表 -->
     <select id="selectSharedComponents" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_component_shared = 1
           AND monitor_sys_gen_server_component_status = 1
         ORDER BY monitor_sys_gen_server_component_sort ASC, monitor_sys_gen_server_component_id ASC
@@ -74,7 +74,7 @@
     <!-- 根据服务器ID获取固定组件列表 -->
     <select id="selectFixedComponentsByServerId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_id = #{serverId}
           AND monitor_sys_gen_server_component_fixed = 1
           AND monitor_sys_gen_server_component_status = 1
@@ -84,7 +84,7 @@
     <!-- 根据服务器ID和组件类型获取组件 -->
     <select id="selectByServerIdAndType" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_id = #{serverId}
           AND monitor_sys_gen_server_component_type = #{componentType}
           AND monitor_sys_gen_server_component_status = 1
@@ -94,7 +94,7 @@
     <!-- 根据来源服务器ID获取共享组件列表 -->
     <select id="selectBySourceServerId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
-        FROM monitor_sys_gen_server_component
+        FROM monitor_sys_gen_server_detail_component
         WHERE monitor_sys_gen_server_component_source_server_id = #{sourceServerId}
           AND monitor_sys_gen_server_component_status = 1
         ORDER BY monitor_sys_gen_server_component_sort ASC, monitor_sys_gen_server_component_id ASC
@@ -103,7 +103,7 @@
     <!-- 批量更新组件位置信息 -->
     <update id="batchUpdatePosition">
         <foreach collection="components" item="component" separator=";">
-            UPDATE monitor_sys_gen_server_component
+            UPDATE monitor_sys_gen_server_detail_component
             SET monitor_sys_gen_server_component_position = #{component.monitorSysGenServerComponentPosition},
                 update_time = NOW()
             WHERE monitor_sys_gen_server_component_id = #{component.monitorSysGenServerComponentId}

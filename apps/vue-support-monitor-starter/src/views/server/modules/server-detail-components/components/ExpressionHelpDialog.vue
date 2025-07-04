@@ -2,175 +2,279 @@
   <el-dialog
     v-model="visible"
     title="表达式帮助"
-    width="800px"
+    width="1000px"
     :close-on-click-modal="false"
     destroy-on-close
+    class="expression-help-dialog"
+    align-center
+    top="5vh"
   >
-    <div class="expression-help">
-      <el-tabs v-model="activeTab" type="border-card">
-        <el-tab-pane label="Prometheus PromQL" name="prometheus">
-          <div class="help-content">
-            <h3>Prometheus PromQL 语法</h3>
-            <div class="syntax-section">
-              <h4>基本查询</h4>
-              <div class="code-example">
-                <code>cpu_usage_percent</code>
-                <span class="description">查询指标名为 cpu_usage_percent 的所有时间序列</span>
+    <!-- 自定义头部 -->
+    <template #header="{ titleId, titleClass }">
+      <div class="dialog-header">
+        <div class="header-left">
+          <IconifyIconOnline icon="ri:question-line" class="header-icon" />
+          <span :id="titleId" :class="titleClass" class="dialog-title">
+            {{ serverReportType === 'prometheus' ? 'PromQL 表达式帮助' : '组件选择帮助' }}
+          </span>
+        </div>
+        <div class="header-right">
+          <el-tag v-if="serverReportType === 'prometheus'" type="success" size="small">
+            <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
+            Prometheus
+          </el-tag>
+          <el-tag v-else-if="serverReportType === 'api'" type="primary" size="small">
+            <IconifyIconOnline icon="ri:api-line" class="mr-1" />
+            API 上报
+          </el-tag>
+          <el-tag v-else type="info" size="small">
+            <IconifyIconOnline icon="ri:server-line" class="mr-1" />
+            本地收集
+          </el-tag>
+        </div>
+      </div>
+    </template>
+
+    <div class="help-content">
+      <!-- Prometheus 表达式帮助 -->
+      <div v-if="serverReportType === 'prometheus'" class="prometheus-help">
+        <div class="help-section">
+          <h3>
+            <IconifyIconOnline icon="logos:prometheus" class="mr-2" />
+            Prometheus PromQL 语法
+          </h3>
+          <p>Prometheus 查询语言 (PromQL) 用于查询时间序列数据。</p>
+          
+          <h4>基本语法</h4>
+          <div class="code-block">
+            <pre><code># 查询指标
+cpu_usage_percent
+
+# 带标签过滤
+cpu_usage_percent{instance="localhost:9100"}
+
+# 范围查询
+cpu_usage_percent[5m]
+
+# 聚合函数
+avg(cpu_usage_percent)
+sum(rate(http_requests_total[5m]))</code></pre>
+          </div>
+
+          <h4>常用函数</h4>
+          <div class="function-list">
+            <div class="function-item">
+              <strong>rate()</strong> - 计算每秒平均增长率
+            </div>
+            <div class="function-item">
+              <strong>irate()</strong> - 计算瞬时增长率
+            </div>
+            <div class="function-item">
+              <strong>avg()</strong> - 平均值
+            </div>
+            <div class="function-item">
+              <strong>sum()</strong> - 求和
+            </div>
+            <div class="function-item">
+              <strong>max()</strong> - 最大值
+            </div>
+            <div class="function-item">
+              <strong>min()</strong> - 最小值
+            </div>
+          </div>
+
+          <h4>示例表达式</h4>
+          <div class="examples">
+            <div class="example-item" @click="selectExpression('100 - (avg(irate(node_cpu_seconds_total{mode=&quot;idle&quot;}[5m])) * 100)')">
+              <div class="example-header">
+                <strong>CPU使用率</strong>
+                <el-button type="primary" text size="small">
+                  <IconifyIconOnline icon="ri:add-line" />
+                  选择
+                </el-button>
               </div>
-              <div class="code-example">
-                <code>cpu_usage_percent{instance="localhost:9090"}</code>
-                <span class="description">查询特定实例的 CPU 使用率</span>
+              <code>100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</code>
+            </div>
+            <div class="example-item" @click="selectExpression('(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')">
+              <div class="example-header">
+                <strong>内存使用率</strong>
+                <el-button type="primary" text size="small">
+                  <IconifyIconOnline icon="ri:add-line" />
+                  选择
+                </el-button>
+              </div>
+              <code>(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100</code>
+            </div>
+            <div class="example-item" @click="selectExpression('(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100')">
+              <div class="example-header">
+                <strong>磁盘使用率</strong>
+                <el-button type="primary" text size="small">
+                  <IconifyIconOnline icon="ri:add-line" />
+                  选择
+                </el-button>
+              </div>
+              <code>(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100</code>
+            </div>
+            <div class="example-item" @click="selectExpression('rate(node_network_receive_bytes_total[5m])')">
+              <div class="example-header">
+                <strong>网络接收流量</strong>
+                <el-button type="primary" text size="small">
+                  <IconifyIconOnline icon="ri:add-line" />
+                  选择
+                </el-button>
+              </div>
+              <code>rate(node_network_receive_bytes_total[5m])</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 非 Prometheus 组件选择帮助 -->
+      <div v-else class="component-help">
+        <div class="help-section">
+          <h3>
+            <IconifyIconOnline icon="ri:dashboard-line" class="mr-2" />
+            可用组件类型
+          </h3>
+          <p>选择要监控的系统组件，系统将自动收集相应的监控数据。</p>
+          
+          <div class="component-grid">
+            <div class="component-category">
+              <h4>
+                <IconifyIconOnline icon="ri:cpu-line" class="mr-1" />
+                系统资源
+              </h4>
+              <div class="component-list">
+                <div class="component-item" @click="selectComponent('cpu_usage')">
+                  <div class="component-info">
+                    <strong>CPU使用率</strong>
+                    <span>监控CPU使用百分比</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('memory_usage')">
+                  <div class="component-info">
+                    <strong>内存使用率</strong>
+                    <span>监控内存使用百分比</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('load_average')">
+                  <div class="component-info">
+                    <strong>系统负载</strong>
+                    <span>监控系统平均负载</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
               </div>
             </div>
 
-            <div class="syntax-section">
-              <h4>聚合函数</h4>
-              <div class="code-example">
-                <code>avg(cpu_usage_percent)</code>
-                <span class="description">计算所有实例的平均 CPU 使用率</span>
-              </div>
-              <div class="code-example">
-                <code>sum(memory_usage_bytes) by (instance)</code>
-                <span class="description">按实例分组计算内存使用总量</span>
-              </div>
-              <div class="code-example">
-                <code>max(disk_usage_percent)</code>
-                <span class="description">获取最大磁盘使用率</span>
+            <div class="component-category">
+              <h4>
+                <IconifyIconOnline icon="ri:hard-drive-line" class="mr-1" />
+                存储监控
+              </h4>
+              <div class="component-list">
+                <div class="component-item" @click="selectComponent('disk_usage')">
+                  <div class="component-info">
+                    <strong>磁盘使用率</strong>
+                    <span>监控磁盘空间使用情况</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('disk_list')">
+                  <div class="component-info">
+                    <strong>磁盘列表</strong>
+                    <span>显示所有磁盘信息</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('disk_io')">
+                  <div class="component-info">
+                    <strong>磁盘IO统计</strong>
+                    <span>监控磁盘读写性能</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
               </div>
             </div>
 
-            <div class="syntax-section">
-              <h4>时间范围查询</h4>
-              <div class="code-example">
-                <code>rate(cpu_usage_total[5m])</code>
-                <span class="description">计算过去 5 分钟的 CPU 使用率变化率</span>
-              </div>
-              <div class="code-example">
-                <code>avg_over_time(memory_usage_percent[1h])</code>
-                <span class="description">计算过去 1 小时的平均内存使用率</span>
+            <div class="component-category">
+              <h4>
+                <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
+                网络监控
+              </h4>
+              <div class="component-list">
+                <div class="component-item" @click="selectComponent('network_io')">
+                  <div class="component-info">
+                    <strong>网络IO</strong>
+                    <span>监控网络流量统计</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
               </div>
             </div>
 
-            <div class="syntax-section">
-              <h4>数学运算</h4>
-              <div class="code-example">
-                <code>cpu_usage_percent * 100</code>
-                <span class="description">将 CPU 使用率转换为百分比</span>
+            <div class="component-category">
+              <h4>
+                <IconifyIconOnline icon="ri:terminal-line" class="mr-1" />
+                进程监控
+              </h4>
+              <div class="component-list">
+                <div class="component-item" @click="selectComponent('process_list')">
+                  <div class="component-info">
+                    <strong>进程列表</strong>
+                    <span>显示系统进程信息</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('process_count')">
+                  <div class="component-info">
+                    <strong>进程数量统计</strong>
+                    <span>统计系统进程数量</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('top_processes')">
+                  <div class="component-info">
+                    <strong>资源占用TOP进程</strong>
+                    <span>显示资源占用最高的进程</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
               </div>
-              <div class="code-example">
-                <code>(memory_used_bytes / memory_total_bytes) * 100</code>
-                <span class="description">计算内存使用百分比</span>
+            </div>
+
+            <div class="component-category">
+              <h4>
+                <IconifyIconOnline icon="ri:information-line" class="mr-1" />
+                系统信息
+              </h4>
+              <div class="component-list">
+                <div class="component-item" @click="selectComponent('system_info')">
+                  <div class="component-info">
+                    <strong>系统基本信息</strong>
+                    <span>显示系统基本配置信息</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
+                <div class="component-item" @click="selectComponent('uptime')">
+                  <div class="component-info">
+                    <strong>系统运行时间</strong>
+                    <span>显示系统启动时间和运行时长</span>
+                  </div>
+                  <el-button type="primary" text size="small">选择</el-button>
+                </div>
               </div>
             </div>
           </div>
-        </el-tab-pane>
-
-        <el-tab-pane label="SQL 查询" name="sql">
-          <div class="help-content">
-            <h3>SQL 查询语法</h3>
-            <div class="syntax-section">
-              <h4>基本查询</h4>
-              <div class="code-example">
-                <code>SELECT cpu_percent FROM system_metrics WHERE timestamp > NOW() - INTERVAL 5 MINUTE</code>
-                <span class="description">查询最近 5 分钟的 CPU 使用率</span>
-              </div>
-            </div>
-
-            <div class="syntax-section">
-              <h4>聚合查询</h4>
-              <div class="code-example">
-                <code>SELECT AVG(cpu_percent) as avg_cpu FROM system_metrics WHERE timestamp > NOW() - INTERVAL 1 HOUR</code>
-                <span class="description">计算过去 1 小时的平均 CPU 使用率</span>
-              </div>
-              <div class="code-example">
-                <code>SELECT MAX(memory_percent) as max_memory FROM system_metrics WHERE timestamp > NOW() - INTERVAL 1 DAY</code>
-                <span class="description">获取过去 24 小时的最大内存使用率</span>
-              </div>
-            </div>
-
-            <div class="syntax-section">
-              <h4>分组查询</h4>
-              <div class="code-example">
-                <code>SELECT server_id, AVG(cpu_percent) FROM system_metrics GROUP BY server_id</code>
-                <span class="description">按服务器分组计算平均 CPU 使用率</span>
-              </div>
-            </div>
-
-            <div class="syntax-section">
-              <h4>时间窗口查询</h4>
-              <div class="code-example">
-                <code>SELECT DATE_FORMAT(timestamp, '%H:%i') as time, AVG(cpu_percent) FROM system_metrics WHERE timestamp > NOW() - INTERVAL 1 HOUR GROUP BY DATE_FORMAT(timestamp, '%H:%i')</code>
-                <span class="description">按分钟分组查询过去 1 小时的 CPU 使用率趋势</span>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane label="常用示例" name="examples">
-          <div class="help-content">
-            <h3>常用监控指标示例</h3>
-            
-            <div class="example-section">
-              <h4>系统资源监控</h4>
-              <el-collapse>
-                <el-collapse-item title="CPU 使用率" name="cpu">
-                  <div class="example-item">
-                    <strong>Prometheus:</strong>
-                    <code>100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</code>
-                  </div>
-                  <div class="example-item">
-                    <strong>SQL:</strong>
-                    <code>SELECT AVG(cpu_percent) FROM system_metrics WHERE timestamp > NOW() - INTERVAL 5 MINUTE</code>
-                  </div>
-                </el-collapse-item>
-
-                <el-collapse-item title="内存使用率" name="memory">
-                  <div class="example-item">
-                    <strong>Prometheus:</strong>
-                    <code>(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100</code>
-                  </div>
-                  <div class="example-item">
-                    <strong>SQL:</strong>
-                    <code>SELECT (used_memory / total_memory) * 100 as memory_percent FROM system_metrics ORDER BY timestamp DESC LIMIT 1</code>
-                  </div>
-                </el-collapse-item>
-
-                <el-collapse-item title="磁盘使用率" name="disk">
-                  <div class="example-item">
-                    <strong>Prometheus:</strong>
-                    <code>(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100</code>
-                  </div>
-                  <div class="example-item">
-                    <strong>SQL:</strong>
-                    <code>SELECT (used_space / total_space) * 100 as disk_percent FROM disk_metrics ORDER BY timestamp DESC LIMIT 1</code>
-                  </div>
-                </el-collapse-item>
-              </el-collapse>
-            </div>
-
-            <div class="example-section">
-              <h4>网络监控</h4>
-              <el-collapse>
-                <el-collapse-item title="网络流量" name="network">
-                  <div class="example-item">
-                    <strong>Prometheus:</strong>
-                    <code>rate(node_network_receive_bytes_total[5m]) + rate(node_network_transmit_bytes_total[5m])</code>
-                  </div>
-                  <div class="example-item">
-                    <strong>SQL:</strong>
-                    <code>SELECT SUM(bytes_in + bytes_out) as total_traffic FROM network_metrics WHERE timestamp > NOW() - INTERVAL 5 MINUTE</code>
-                  </div>
-                </el-collapse-item>
-              </el-collapse>
-            </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+      </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">关闭</el-button>
+        <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
   </el-dialog>
@@ -178,97 +282,254 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+
+// 定义属性
+const props = defineProps<{
+  serverId: number;
+}>();
+
+// 定义事件
+const emit = defineEmits<{
+  expressionSelected: [expression: string];
+}>();
 
 // 响应式状态
 const visible = ref(false);
-const activeTab = ref("prometheus");
+const expressionType = ref<string>("PROMETHEUS");
+const serverReportType = ref<string>("prometheus");
 
 /**
  * 打开对话框
  */
-const open = (expressionType?: string) => {
+const open = (type: string = "PROMETHEUS", reportType: string = "prometheus") => {
+  expressionType.value = type;
+  serverReportType.value = reportType;
   visible.value = true;
-  if (expressionType === "SQL") {
-    activeTab.value = "sql";
-  } else {
-    activeTab.value = "prometheus";
-  }
 };
 
 /**
- * 关闭对话框
+ * 选择表达式
  */
-const handleClose = () => {
+const selectExpression = (expression: string) => {
+  emit("expressionSelected", expression);
+  visible.value = false;
+};
+
+/**
+ * 选择组件
+ */
+const selectComponent = (component: string) => {
+  emit("expressionSelected", component);
   visible.value = false;
 };
 
 // 暴露方法
 defineExpose({
-  open
+  open,
 });
 </script>
 
 <style lang="scss" scoped>
-.expression-help {
-  .help-content {
-    h3 {
-      margin-bottom: 20px;
+.expression-help-dialog {
+  :deep(.el-dialog) {
+    border-radius: 12px;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .header-icon {
+      font-size: 20px;
+      color: var(--el-color-primary);
+    }
+
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 600;
       color: var(--el-text-color-primary);
-      border-bottom: 2px solid var(--el-color-primary);
-      padding-bottom: 8px;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.help-content {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 20px 0;
+
+  .help-section {
+    h3 {
+      display: flex;
+      align-items: center;
+      color: var(--el-color-primary);
+      margin-bottom: 16px;
+      font-size: 18px;
+      font-weight: 600;
     }
 
     h4 {
-      margin: 16px 0 12px 0;
-      color: var(--el-text-color-regular);
+      display: flex;
+      align-items: center;
+      color: var(--el-text-color-primary);
+      margin: 20px 0 12px;
       font-size: 16px;
+      font-weight: 500;
     }
 
-    .syntax-section {
-      margin-bottom: 24px;
+    p {
+      color: var(--el-text-color-regular);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
 
-      .code-example {
-        margin-bottom: 12px;
+    .code-block {
+      background: var(--el-fill-color-extra-light);
+      border: 1px solid var(--el-border-color-light);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+
+      pre {
+        margin: 0;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--el-text-color-primary);
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+    }
+
+    .function-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+
+      .function-item {
         padding: 12px;
-        background: var(--el-bg-color-page);
+        background: var(--el-fill-color-light);
         border-radius: 6px;
         border-left: 4px solid var(--el-color-primary);
 
-        code {
-          display: block;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-          font-size: 14px;
+        strong {
           color: var(--el-color-primary);
-          margin-bottom: 4px;
-          word-break: break-all;
-        }
-
-        .description {
-          font-size: 12px;
-          color: var(--el-text-color-regular);
+          font-weight: 600;
         }
       }
     }
 
-    .example-section {
-      margin-bottom: 24px;
-
+    .examples {
       .example-item {
-        margin-bottom: 12px;
-        padding: 8px 12px;
-        background: var(--el-bg-color-page);
-        border-radius: 4px;
+        margin-bottom: 16px;
+        padding: 16px;
+        background: var(--el-fill-color-light);
+        border-radius: 8px;
+        border: 1px solid var(--el-border-color-light);
+        cursor: pointer;
+        transition: all 0.3s ease;
 
-        strong {
-          color: var(--el-text-color-primary);
-          margin-right: 8px;
+        &:hover {
+          border-color: var(--el-color-primary);
+          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+        }
+
+        .example-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+
+          strong {
+            color: var(--el-text-color-primary);
+            font-weight: 600;
+          }
         }
 
         code {
+          display: block;
+          background: var(--el-fill-color-extra-light);
+          padding: 8px 12px;
+          border-radius: 4px;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
           font-size: 12px;
-          color: var(--el-color-success);
+          color: var(--el-color-primary);
           word-break: break-all;
+          white-space: pre-wrap;
+        }
+      }
+    }
+  }
+
+  .component-help {
+    .component-grid {
+      display: grid;
+      gap: 24px;
+
+      .component-category {
+        h4 {
+          display: flex;
+          align-items: center;
+          color: var(--el-text-color-primary);
+          margin-bottom: 16px;
+          font-size: 16px;
+          font-weight: 600;
+          padding-bottom: 8px;
+          border-bottom: 2px solid var(--el-border-color-light);
+        }
+
+        .component-list {
+          display: grid;
+          gap: 12px;
+
+          .component-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--el-fill-color-light);
+            border-radius: 8px;
+            border: 1px solid var(--el-border-color-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+
+            &:hover {
+              border-color: var(--el-color-primary);
+              box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+              transform: translateY(-2px);
+            }
+
+            .component-info {
+              flex: 1;
+
+              strong {
+                display: block;
+                color: var(--el-text-color-primary);
+                font-weight: 600;
+                margin-bottom: 4px;
+              }
+
+              span {
+                color: var(--el-text-color-regular);
+                font-size: 13px;
+              }
+            }
+          }
         }
       }
     }
@@ -278,5 +539,74 @@ defineExpose({
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--el-border-color-light);
 }
-</style>
+
+// 响应式设计
+@media (max-width: 768px) {
+  .help-content {
+    .help-section {
+      .function-list {
+        grid-template-columns: 1fr;
+      }
+
+      .examples {
+        .example-item {
+          padding: 12px;
+
+          code {
+            font-size: 11px;
+            padding: 6px 8px;
+          }
+        }
+      }
+    }
+
+    .component-help {
+      .component-grid {
+        .component-category {
+          .component-list {
+            .component-item {
+              padding: 12px;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 8px;
+
+              .component-info {
+                strong {
+                  font-size: 14px;
+                }
+
+                span {
+                  font-size: 12px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// 滚动条样式
+.help-content {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--el-fill-color-light);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-border-color);
+    border-radius: 3px;
+
+    &:hover {
+      background: var(--el-border-color-dark);
+    }
+  }
+}

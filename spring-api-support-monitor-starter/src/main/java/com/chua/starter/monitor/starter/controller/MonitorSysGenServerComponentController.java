@@ -54,14 +54,14 @@ public class MonitorSysGenServerComponentController {
     }
 
     /**
-     * 保存组件配置
+     * 创建组件配置
      *
      * @param component 组件配置
      * @return 操作结果
      */
-    @PostMapping("/save")
-    @Operation(summary = "保存组件配置")
-    public ReturnResult<MonitorSysGenServerComponent> saveComponent(
+    @PostMapping
+    @Operation(summary = "创建组件配置")
+    public ReturnResult<MonitorSysGenServerComponent> createComponent(
             @RequestBody MonitorSysGenServerComponent component) {
         return componentService.saveComponent(component);
     }
@@ -69,13 +69,16 @@ public class MonitorSysGenServerComponentController {
     /**
      * 更新组件配置
      *
+     * @param componentId 组件ID
      * @param component 组件配置
      * @return 操作结果
      */
-    @PutMapping("/update")
+    @PutMapping("/{componentId}")
     @Operation(summary = "更新组件配置")
     public ReturnResult<Boolean> updateComponent(
+            @Parameter(description = "组件ID") @PathVariable Integer componentId,
             @RequestBody MonitorSysGenServerComponent component) {
+        component.setMonitorSysGenServerComponentId(componentId);
         return componentService.updateComponent(component);
     }
 
@@ -85,7 +88,7 @@ public class MonitorSysGenServerComponentController {
      * @param componentId 组件ID
      * @return 操作结果
      */
-    @DeleteMapping("/delete/{componentId}")
+    @DeleteMapping("/{componentId}")
     @Operation(summary = "删除组件配置")
     public ReturnResult<Boolean> deleteComponent(
             @Parameter(description = "组件ID") @PathVariable Integer componentId) {
@@ -98,7 +101,7 @@ public class MonitorSysGenServerComponentController {
      * @param componentId 组件ID
      * @return 组件详情
      */
-    @GetMapping("/detail/{componentId}")
+    @GetMapping("/{componentId}")
     @Operation(summary = "获取组件详情")
     public ReturnResult<MonitorSysGenServerComponent> getComponentById(
             @Parameter(description = "组件ID") @PathVariable Integer componentId) {

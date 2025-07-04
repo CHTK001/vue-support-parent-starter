@@ -987,6 +987,165 @@
         <span class="unit">分钟</span>
       </el-form-item>
 
+      <!-- 文件上传队列处理 -->
+      <el-form-item prop="monitorSysGenServerSettingFileUploadEnabled">
+        <template #label>
+          <div class="form-label">
+            <span>文件上传队列处理</span>
+            <el-tooltip
+              content="启用文件上传队列的自动处理功能"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-switch
+          v-model="formData.monitorSysGenServerSettingFileUploadEnabled"
+          :active-value="1"
+          :inactive-value="0"
+          active-text="开启"
+          inactive-text="关闭"
+          @change="handleChange"
+        />
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
+        prop="monitorSysGenServerSettingFileUploadInterval"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>队列处理间隔</span>
+            <el-tooltip
+              content="文件上传队列处理的时间间隔，单位：秒"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingFileUploadInterval"
+          :min="5"
+          :max="300"
+          :step="5"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="unit">秒</span>
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
+        prop="monitorSysGenServerSettingFileUploadStatusCheckInterval"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>状态检查间隔</span>
+            <el-tooltip
+              content="文件上传任务状态检查的时间间隔，单位：秒"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingFileUploadStatusCheckInterval"
+          :min="10"
+          :max="600"
+          :step="10"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="unit">秒</span>
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
+        prop="monitorSysGenServerSettingFileUploadCleanupInterval"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>临时文件清理间隔</span>
+            <el-tooltip
+              content="文件上传临时文件清理的时间间隔，单位：小时"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingFileUploadCleanupInterval"
+          :min="1"
+          :max="24"
+          :step="1"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="unit">小时</span>
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
+        prop="monitorSysGenServerSettingFileUploadTimeout"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>上传超时时间</span>
+            <el-tooltip
+              content="文件上传任务的超时时间，单位：分钟"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingFileUploadTimeout"
+          :min="5"
+          :max="120"
+          :step="5"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="unit">分钟</span>
+      </el-form-item>
+
+      <el-form-item
+        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
+        prop="monitorSysGenServerSettingFileUploadMaxRetries"
+      >
+        <template #label>
+          <div class="form-label">
+            <span>最大重试次数</span>
+            <el-tooltip
+              content="文件上传失败时的最大重试次数"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-input-number
+          v-model="formData.monitorSysGenServerSettingFileUploadMaxRetries"
+          :min="0"
+          :max="10"
+          :step="1"
+          style="width: 200px"
+          @change="handleChange"
+        />
+        <span class="unit">次</span>
+      </el-form-item>
+
       <!-- 清除配置按钮 -->
       <el-form-item>
         <el-button type="danger" @click="clearAllSettings">
@@ -1243,6 +1402,14 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingConnectionTimeout: 30,
   monitorSysGenServerSettingReadTimeout: 60,
   monitorSysGenServerSettingPerformanceSuggestionEnabled: 1,
+
+  // 文件上传配置默认值
+  monitorSysGenServerSettingFileUploadEnabled: 1,
+  monitorSysGenServerSettingFileUploadInterval: 10,
+  monitorSysGenServerSettingFileUploadStatusCheckInterval: 30,
+  monitorSysGenServerSettingFileUploadCleanupInterval: 1,
+  monitorSysGenServerSettingFileUploadTimeout: 30,
+  monitorSysGenServerSettingFileUploadMaxRetries: 3,
 
   // 任务配置默认值
   monitorSysGenServerSettingPortCheckInterval: 60,

@@ -462,6 +462,7 @@
               <ServerDetailComponents
                 v-else-if="currentComponent === 'ServerDetailComponents'"
                 :server-id="Number(selectedServerId)"
+                :data="selectedServer"
                 :key="selectedServerId + '-detail'"
               />
               <!-- 默认显示监控组件 -->
@@ -551,7 +552,7 @@ const RemoteDesktop = defineAsyncComponent(() => import("./components/remote/Rem
 const ServerMonitor = defineAsyncComponent(() => import("./components/ServerMonitor.vue"));
 const FileManager = defineAsyncComponent(() => import("../../components/dialogs/FileManagerDialog.vue"));
 const ServerLatencyDisplay = defineAsyncComponent(() => import("../../components/ServerLatencyDisplay.vue"));
-const ServerDetailComponents = defineAsyncComponent(() => import("../server-detail-components/index.vue"));
+const ServerDetailComponents = defineAsyncComponent(() => import("../server-detail-components/layout/index.vue"));
 
 // 响应式状态
 const loading = ref(false);

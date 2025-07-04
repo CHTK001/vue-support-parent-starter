@@ -159,7 +159,7 @@ import {
   batchUpdateComponentPosition,
   initDefaultComponentsForServerDetail,
   deleteServerDetailComponent,
-  type ServerDetailComponent,
+  type ServerComponent,
   type ServerDisplayData
 } from "@/api/server";
 
@@ -187,7 +187,7 @@ const refreshLoading = ref(false);
 const editMode = ref(false);
 const serverId = ref<number>(Number(route.params.id));
 const serverInfo = ref<ServerDisplayData>();
-const components = ref<ServerDetailComponent[]>([]);
+const components = ref<ServerComponent[]>([]);
 const layout = ref<any[]>([]);
 
 // 组件引用
@@ -367,7 +367,7 @@ const handleDeleteComponent = async (componentId: number) => {
 /**
  * 编辑组件
  */
-const handleEditComponent = (component: ServerDetailComponent) => {
+const handleEditComponent = (component: ServerComponent) => {
   componentEditDialogRef.value?.open("edit", component);
 };
 
@@ -402,11 +402,11 @@ const handleSaveLayout = async () => {
   try {
     // 将布局信息映射回组件数据
     const updatedComponents = components.value.map(component => {
-      const layoutItem = layout.value.find(item => item.i === String(component.monitorSysGenServerDetailComponentId));
+      const layoutItem = layout.value.find(item => item.i === String(component.monitorSysGenServerComponentId));
       if (layoutItem) {
         return {
           ...component,
-          monitorSysGenServerDetailComponentPosition: JSON.stringify({
+          monitorSysGenServerComponentPosition: JSON.stringify({
             x: layoutItem.x,
             y: layoutItem.y,
             w: layoutItem.w,
@@ -489,20 +489,20 @@ const loadComponents = async () => {
       layout.value = components.value.map(component => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
-          if (component.monitorSysGenServerDetailComponentPosition) {
-            position = JSON.parse(component.monitorSysGenServerDetailComponentPosition);
+          if (component.monitorSysGenServerComponentPosition) {
+            position = JSON.parse(component.monitorSysGenServerComponentPosition);
           }
         } catch (e) {
           console.warn("解析组件位置失败:", e);
         }
-        
+
         return {
-          i: String(component.monitorSysGenServerDetailComponentId),
+          i: String(component.monitorSysGenServerComponentId),
           x: position.x,
           y: position.y,
           w: position.w,
           h: position.h,
-          componentType: component.monitorSysGenServerDetailComponentType,
+          componentType: component.monitorSysGenServerComponentType,
           ...component
         };
       });

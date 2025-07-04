@@ -213,6 +213,7 @@ import {
   formatNumber,
   formatUptime,
   formatTime
+  //@ts-ignore
 } from "@/composables/useMetricsThreshold";
 import {
   usePercentageAnimation,

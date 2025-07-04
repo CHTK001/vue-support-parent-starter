@@ -261,24 +261,24 @@ export interface ReportConfigParams {
 }
 
 /**
- * 服务器详情页组件配置
+ * 服务器组件配置
  */
-export interface ServerDetailComponent {
-  monitorSysGenServerDetailComponentId?: number;
+export interface ServerComponent {
+  monitorSysGenServerComponentId?: number;
   monitorSysGenServerId: number;
-  monitorSysGenServerDetailComponentName: string;
-  monitorSysGenServerDetailComponentTitle: string;
-  monitorSysGenServerDetailComponentType: string;
-  monitorSysGenServerDetailComponentExpressionType: string;
-  monitorSysGenServerDetailComponentExpression: string;
-  monitorSysGenServerDetailComponentPosition?: string;
-  monitorSysGenServerDetailComponentChartConfig?: string;
-  monitorSysGenServerDetailComponentRefreshInterval?: number;
-  monitorSysGenServerDetailComponentEnabled?: number;
-  monitorSysGenServerDetailComponentSortOrder?: number;
-  monitorSysGenServerDetailComponentDesc?: string;
-  monitorSysGenServerDetailComponentCreateTime?: string;
-  monitorSysGenServerDetailComponentUpdateTime?: string;
+  monitorSysGenServerComponentName: string;
+  monitorSysGenServerComponentType: string;
+  monitorSysGenServerComponentConfig?: string;
+  monitorSysGenServerComponentPosition?: string;
+  monitorSysGenServerComponentShared?: number;
+  monitorSysGenServerComponentSourceServerId?: number;
+  monitorSysGenServerComponentRefreshInterval?: number;
+  monitorSysGenServerComponentStatus?: number;
+  monitorSysGenServerComponentDescription?: string;
+  monitorSysGenServerComponentFixed?: number;
+  monitorSysGenServerComponentSort?: number;
+  createTime?: string;
+  updateTime?: string;
 }
 
 // ==================== API 函数 ====================
@@ -306,7 +306,7 @@ export function getServerPageList(params: ServerPageParams) {
  * @returns 服务器分页数据
  */
 export function getServerList(params?: ServerPageParams) {
-  return getServerPageList(params || { page: 1, size: 1000 });
+  return getServerPageList(params || { page: 1, pageSize: 1000 });
 }
 
 /**
@@ -1800,10 +1800,9 @@ export function getReportConfig(id: string) {
  * @returns 组件列表
  */
 export function getServerDetailComponents(serverId: number) {
-  return http.request<ReturnResult<ServerDetailComponent[]>>(
+  return http.request<ReturnResult<ServerComponent[]>>(
     "get",
-    "v1/gen/server/detail/component/list",
-    { params: { serverId } }
+    `v1/gen/server/component/list/${serverId}`
   );
 }
 
@@ -1813,10 +1812,9 @@ export function getServerDetailComponents(serverId: number) {
  * @returns 启用的组件列表
  */
 export function getEnabledServerDetailComponents(serverId: number) {
-  return http.request<ReturnResult<ServerDetailComponent[]>>(
+  return http.request<ReturnResult<ServerComponent[]>>(
     "get",
-    "v1/gen/server/detail/component/list/enabled",
-    { params: { serverId } }
+    `v1/gen/server/component/list/${serverId}`
   );
 }
 
@@ -1825,10 +1823,10 @@ export function getEnabledServerDetailComponents(serverId: number) {
  * @param data 组件数据
  * @returns 创建结果
  */
-export function createServerDetailComponent(data: ServerDetailComponent) {
-  return http.request<ReturnResult<ServerDetailComponent>>(
+export function createServerDetailComponent(data: ServerComponent) {
+  return http.request<ReturnResult<ServerComponent>>(
     "post",
-    "v1/gen/server/detail/component/create",
+    "v1/gen/server/component",
     { data }
   );
 }
@@ -1838,10 +1836,10 @@ export function createServerDetailComponent(data: ServerDetailComponent) {
  * @param data 组件数据
  * @returns 更新结果
  */
-export function updateServerDetailComponent(data: ServerDetailComponent) {
-  return http.request<ReturnResult<ServerDetailComponent>>(
+export function updateServerDetailComponent(componentId: number, data: ServerComponent) {
+  return http.request<ReturnResult<boolean>>(
     "put",
-    "v1/gen/server/detail/component/update",
+    `v1/gen/server/component/${componentId}`,
     { data }
   );
 }
@@ -1851,23 +1849,24 @@ export function updateServerDetailComponent(data: ServerDetailComponent) {
  * @param component 组件信息
  * @returns 操作结果
  */
-export function saveServerDetailComponent(component: ServerDetailComponent) {
-  return http.request<ReturnResult<ServerDetailComponent>>(
+export function saveServerDetailComponent(component: ServerComponent) {
+  return http.request<ReturnResult<ServerComponent>>(
     "post",
-    "v1/gen/server/detail/component/save",
+    "v1/gen/server/component",
     { data: component }
   );
 }
 
 /**
  * 批量更新组件位置
+ * @param serverId 服务器ID
  * @param components 组件列表
  * @returns 操作结果
  */
-export function batchUpdateComponentPosition(components: any[]) {
+export function batchUpdateComponentPosition(serverId: number, components: ServerComponent[]) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    "v1/gen/server/detail/component/batch/position",
+    `v1/gen/server/component/positions/${serverId}`,
     { data: components }
   );
 }
@@ -1880,7 +1879,7 @@ export function batchUpdateComponentPosition(components: any[]) {
 export function deleteServerDetailComponent(componentId: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `v1/gen/server/detail/component/${componentId}`
+    `v1/gen/server/component/${componentId}`
   );
 }
 
@@ -1889,9 +1888,9 @@ export function deleteServerDetailComponent(componentId: number) {
  * @returns 模板列表
  */
 export function getServerDetailComponentTemplates() {
-  return http.request<ReturnResult<ServerDetailComponent[]>>(
+  return http.request<ReturnResult<ServerComponent[]>>(
     "get",
-    "v1/gen/server/detail/component/templates"
+    "v1/gen/server/component/shared"
   );
 }
 
@@ -1903,8 +1902,7 @@ export function getServerDetailComponentTemplates() {
 export function initDefaultComponentsForServerDetail(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    "v1/gen/server/detail/component/init",
-    { params: { serverId } }
+    `v1/gen/server/component/init/${serverId}`
   );
 }
 
