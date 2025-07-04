@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * 服务器组件配置服务实现类
@@ -568,5 +569,78 @@ public class MonitorSysGenServerComponentServiceImpl
             log.error("保存服务器布局配置失败: serverId={}", serverId, e);
             return ReturnResult.error("保存布局配置失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    public ReturnResult<Object> getComponentData(Integer componentId, Long startTime, Long endTime, Integer step) {
+        log.debug("开始查询组件数据, componentId: {}, startTime: {}, endTime: {}, step: {}",
+            componentId, startTime, endTime, step);
+
+        if (componentId == null) {
+            log.warn("查询组件数据失败, 组件ID为空");
+            return ReturnResult.error("组件ID不能为空");
+        }
+
+        try {
+            MonitorSysGenServerComponent component = getById(componentId);
+            if (component == null) {
+                log.warn("查询组件数据失败, 组件不存在, componentId: {}", componentId);
+                return ReturnResult.error("组件不存在");
+            }
+
+            // 设置默认时间范围（最近30分钟）
+            if (startTime == null || endTime == null) {
+                long now = System.currentTimeMillis() / 1000;
+                endTime = endTime != null ? endTime : now;
+                startTime = startTime != null ? startTime : (now - 30 * 60);
+            }
+
+            // 根据组件的表达式类型调用不同的查询服务
+            String expressionType = component.getMonitorSysGenServerComponentExpressionType();
+            String expression = component.getMonitorSysGenServerComponentExpression();
+
+            Map<String, Object> timeRange = Map.of(
+                "startTime", startTime,
+                "endTime", endTime,
+                "step", step != null ? step : 60
+            );
+
+            if ("PROMETHEUS".equalsIgnoreCase(expressionType)) {
+                return executePrometheusQuery(component.getMonitorSysGenServerId(), expression, timeRange);
+            } else if ("SQL".equalsIgnoreCase(expressionType)) {
+                return executeSqlQuery(component.getMonitorSysGenServerId(), expression, timeRange);
+            } else {
+                // 组件选择类型，返回模拟数据
+                log.debug("查询组件数据成功, componentId: {}, 类型: 组件选择", componentId);
+                return ReturnResult.ok(Map.of(
+                    "type", "component",
+                    "componentId", componentId,
+                    "data", generateMockData(startTime, endTime, step != null ? step : 60),
+                    "timeRange", timeRange
+                ));
+            }
+        } catch (Exception e) {
+            log.error("查询组件数据失败, componentId: {}", componentId, e);
+            return ReturnResult.error("查询组件数据失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 生成模拟数据
+     */
+    private Object generateMockData(Long startTime, Long endTime, Integer step) {
+        List<Map<String, Object>> data = new ArrayList<>();
+        long current = startTime;
+        Random random = new Random();
+
+        while (current <= endTime) {
+            Map<String, Object> point = new HashMap<>();
+            point.put("timestamp", current);
+            point.put("value", 50 + random.nextDouble() * 50); // 50-100之间的随机值
+            data.add(point);
+            current += step;
+        }
+
+        return data;
     }
 }

@@ -131,6 +131,32 @@ const localData = computed(() => {
   };
 });
 
+/**
+ * 更新指标
+ */
+const updateMetrics = () => {
+  const startTime = Date.now();
+
+  // 模拟查询时间
+  setTimeout(() => {
+    queryTime.value = Date.now() - startTime;
+    lastUpdateTime.value = new Date().toLocaleTimeString();
+  }, Math.random() * 100 + 50);
+
+  // 更新组件数量（这里应该从实际数据获取）
+  componentCount.value = 0; // TODO: 从布局组件获取实际数量
+};
+
+/**
+ * 数据变化处理
+ */
+const handleDataChange = () => {
+  if (serverLayoutRef.value) {
+    serverLayoutRef.value.loadComponents();
+  }
+  updateMetrics();
+};
+
 // 监听数据变化
 watch(() => [props.data, props.serverId], ([newData, newServerId]) => {
   const serverId = newServerId || newData?.serverId;
@@ -186,32 +212,6 @@ const getTimeRangeParams = () => {
     end: now,
     step: 60 // 1分钟步长
   };
-};
-
-/**
- * 数据变化处理
- */
-const handleDataChange = () => {
-  if (serverLayoutRef.value) {
-    serverLayoutRef.value.loadComponents();
-  }
-  updateMetrics();
-};
-
-/**
- * 更新指标
- */
-const updateMetrics = () => {
-  const startTime = Date.now();
-  
-  // 模拟查询时间
-  setTimeout(() => {
-    queryTime.value = Date.now() - startTime;
-    lastUpdateTime.value = new Date().toLocaleTimeString();
-  }, Math.random() * 100 + 50);
-  
-  // 更新组件数量（这里应该从实际数据获取）
-  componentCount.value = 0; // TODO: 从布局组件获取实际数量
 };
 
 /**

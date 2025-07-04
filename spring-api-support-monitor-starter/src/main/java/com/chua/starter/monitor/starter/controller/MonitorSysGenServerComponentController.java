@@ -215,4 +215,33 @@ public class MonitorSysGenServerComponentController {
             @RequestBody String layoutConfig) {
         return componentService.saveServerLayout(serverId, layoutConfig);
     }
+
+    /**
+     * 查询组件数据（支持时间范围）
+     *
+     * @param componentId 组件ID
+     * @param startTime 开始时间（时间戳，秒）
+     * @param endTime 结束时间（时间戳，秒）
+     * @param step 步长（秒）
+     * @return 组件数据
+     */
+    @GetMapping("/{componentId}/data")
+    @Operation(summary = "查询组件数据", description = "根据时间范围查询组件的监控数据")
+    public ReturnResult<Object> getComponentData(
+            @Parameter(description = "组件ID") @PathVariable Integer componentId,
+            @Parameter(description = "开始时间（时间戳，秒）") @RequestParam(required = false) Long startTime,
+            @Parameter(description = "结束时间（时间戳，秒）") @RequestParam(required = false) Long endTime,
+            @Parameter(description = "步长（秒）") @RequestParam(defaultValue = "60") Integer step) {
+        log.info("开始查询组件数据, componentId: {}, startTime: {}, endTime: {}, step: {}",
+            componentId, startTime, endTime, step);
+        try {
+            ReturnResult<Object> result = componentService.getComponentData(componentId, startTime, endTime, step);
+            log.info("查询组件数据成功, componentId: {}, 查询结果: {}", componentId, result.isSuccess());
+            return result;
+        } catch (Exception e) {
+            log.error("查询组件数据失败, componentId: {}, startTime: {}, endTime: {}, step: {}",
+                componentId, startTime, endTime, step, e);
+            throw e;
+        }
+    }
 }

@@ -127,4 +127,15 @@ public interface MonitorSysGenServerComponentService extends IService<MonitorSys
      * @return 操作结果
      */
     ReturnResult<Boolean> saveServerLayout(Integer serverId, String layoutConfig);
+
+    /**
+     * 查询组件数据（支持时间范围）
+     *
+     * @param componentId 组件ID
+     * @param startTime 开始时间（时间戳，秒）
+     * @param endTime 结束时间（时间戳，秒）
+     * @param step 步长（秒）
+     * @return 组件数据
+     */
+    ReturnResult<Object> getComponentData(Integer componentId, Long startTime, Long endTime, Integer step);
 }
