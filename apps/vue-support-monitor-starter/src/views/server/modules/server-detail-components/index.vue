@@ -120,7 +120,7 @@ import {
   batchUpdateComponentPosition,
   initDefaultComponentsForServerDetail,
   deleteServerDetailComponent,
-  type ServerDetailComponent,
+  type ServerComponent,
   type ServerDisplayData
 } from "@/api/server";
 
@@ -145,7 +145,7 @@ const loading = ref(false);
 const refreshLoading = ref(false);
 const editMode = ref(false);
 const serverInfo = ref<ServerDisplayData & any>();
-const components = ref<ServerDetailComponent[]>([]);
+const components = ref<ServerComponent[]>([]);
 const layout = ref<any[]>([]);
 
 // 引用
@@ -187,7 +187,7 @@ const getProtocolIcon = (protocol?: string) => {
 /**
  * 获取状态类型
  */
-const getStatusType = (status?: string) => {
+const getStatusType = (status?: string):any => {
   const typeMap: Record<string, string> = {
     ONLINE: "success",
     OFFLINE: "danger",
@@ -235,20 +235,20 @@ const loadComponents = async () => {
       layout.value = components.value.map(component => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
-          if (component.monitorSysGenServerDetailComponentPosition) {
-            position = JSON.parse(component.monitorSysGenServerDetailComponentPosition);
+          if (component.monitorSysGenServerComponentPosition) {
+            position = JSON.parse(component.monitorSysGenServerComponentPosition);
           }
         } catch (e) {
           console.warn("解析组件位置失败:", e);
         }
-        
+
         return {
-          i: String(component.monitorSysGenServerDetailComponentId),
+          i: String(component.monitorSysGenServerComponentId),
           x: position.x,
           y: position.y,
           w: position.w,
           h: position.h,
-          componentType: component.monitorSysGenServerDetailComponentType,
+          componentType: component.monitorSysGenServerComponentType,
           ...component
         };
       });
@@ -355,7 +355,7 @@ const handleLayoutUpdated = (newLayout: any[]) => {
 /**
  * 编辑组件
  */
-const handleComponentEdit = (component: ServerDetailComponent) => {
+const handleComponentEdit = (component: ServerComponent) => {
   componentEditDialogRef.value?.open("edit", component);
 };
 

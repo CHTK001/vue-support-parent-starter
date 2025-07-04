@@ -111,17 +111,6 @@ export default [
               showParent: true
             }
           },
-          {
-            path: "/server/detail/:id",
-            name: "serverDetail",
-            component: () => import("@/views/server/modules/server-management/detail.vue"),
-            meta: {
-              icon: "ri:dashboard-3-line",
-              title: "服务器详情页",
-              showLink: false,
-              showParent: true
-            }
-          },
 
           {
             path: "/server/file-upload",

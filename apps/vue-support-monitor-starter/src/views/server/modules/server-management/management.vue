@@ -177,7 +177,7 @@
 import { ref, onMounted, reactive } from "vue";
 import { message } from "@repo/utils";
 import { getServerStatistics } from "@/api/server";
-import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/monitor/gen/file-upload";
+// import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/server";
 
 // 导入组件
 import ServerList from "./components/ServerList.vue";
