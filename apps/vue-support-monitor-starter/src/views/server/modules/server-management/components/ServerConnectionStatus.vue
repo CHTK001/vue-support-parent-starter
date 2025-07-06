@@ -2,66 +2,34 @@
   <div class="connection-status-container">
     <!-- 连接状态指示器 -->
     <div class="status-indicator">
-      <el-tag
-        :type="getStatusType(connectionStatus)"
-        :effect="isConnecting ? 'plain' : 'light'"
-        size="small"
-        class="status-tag"
-      >
-        <el-icon v-if="isConnecting" class="is-loading">
-          <Loading />
-        </el-icon>
-        <el-icon v-else>
-          <component :is="getStatusIcon(connectionStatus)" />
-        </el-icon>
+      <el-tag :type="getStatusType(connectionStatus)" :effect="isConnecting ? 'plain' : 'light'" size="small" class="status-tag">
+        <IconifyIconOnline v-if="isConnecting" icon="ep:loading" class="is-loading" />
+        <IconifyIconOnline v-else :icon="getStatusIcon(connectionStatus)" />
         {{ getStatusText(connectionStatus) }}
       </el-tag>
-      
+
       <!-- 最后连接时间 -->
-      <span v-if="lastConnectTime" class="last-connect-time">
-        最后连接: {{ formatTime(lastConnectTime) }}
-      </span>
+      <span v-if="lastConnectTime" class="last-connect-time">最后连接: {{ formatTime(lastConnectTime) }}</span>
     </div>
 
     <!-- 连接操作按钮 -->
     <div class="connection-actions">
-      <el-button
-        size="small"
-        type="primary"
-        :loading="isConnecting"
-        @click="testConnection"
-        :disabled="!serverId"
-      >
-        <el-icon><Connection /></el-icon>
-        {{ isConnecting ? '测试中...' : '测试连接' }}
+      <el-button size="small" type="primary" :loading="isConnecting" @click="testConnection" :disabled="!serverId">
+        <IconifyIconOnline icon="ep:connection" />
+        {{ isConnecting ? "测试中..." : "测试连接" }}
       </el-button>
 
-      <el-button
-        v-if="connectionStatus === CONNECTION_STATUS.FAILED"
-        size="small"
-        type="warning"
-        @click="showErrorDetails"
-      >
-        <el-icon><Warning /></el-icon>
+      <el-button v-if="connectionStatus === CONNECTION_STATUS.FAILED" size="small" type="warning" @click="showErrorDetails">
+        <IconifyIconOnline icon="ep:warning" />
         查看错误
       </el-button>
     </div>
 
     <!-- 错误详情对话框 -->
-    <el-dialog
-      v-model="showErrorDialog"
-      title="连接错误详情"
-      width="500px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showErrorDialog" title="连接错误详情" width="500px" :close-on-click-modal="false">
       <div class="error-details">
-        <el-alert
-          :title="errorMessage || '连接失败'"
-          type="error"
-          :closable="false"
-          show-icon
-        />
-        
+        <el-alert :title="errorMessage || '连接失败'" type="error" :closable="false" show-icon />
+
         <div class="error-info" v-if="errorMessage">
           <h4>错误信息:</h4>
           <pre class="error-message">{{ errorMessage }}</pre>
@@ -88,12 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Loading, Connection, Warning, CircleCheck, CircleClose, Clock } from '@element-plus/icons-vue';
-import { testServerConnection } from '@/api/server';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ElMessage } from "element-plus";
+import { testServerConnection } from "@/api/server";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 // 连接状态常量
 const CONNECTION_STATUS = {
@@ -135,23 +102,26 @@ const autoRefreshTimer = ref<NodeJS.Timeout | null>(null);
 const currentStatus = computed(() => props.connectionStatus);
 
 // 监听状态变化
-watch(() => props.connectionStatus, (newStatus, oldStatus) => {
-  if (newStatus !== oldStatus) {
-    console.log(`服务器 ${props.serverName} 连接状态变化: ${oldStatus} -> ${newStatus}`);
+watch(
+  () => props.connectionStatus,
+  (newStatus, oldStatus) => {
+    if (newStatus !== oldStatus) {
+      console.log(`服务器 ${props.serverName} 连接状态变化: ${oldStatus} -> ${newStatus}`);
+    }
   }
-});
+);
 
 // 获取状态类型
 const getStatusType = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
-      return 'success';
+      return "success";
     case CONNECTION_STATUS.CONNECTING:
-      return 'warning';
+      return "warning";
     case CONNECTION_STATUS.FAILED:
-      return 'danger';
+      return "danger";
     default:
-      return 'info';
+      return "info";
   }
 };
 
@@ -159,13 +129,13 @@ const getStatusType = (status: number) => {
 const getStatusIcon = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
-      return CircleCheck;
+      return "ep:circle-check";
     case CONNECTION_STATUS.CONNECTING:
-      return Clock;
+      return "ep:clock";
     case CONNECTION_STATUS.FAILED:
-      return CircleClose;
+      return "ep:circle-close";
     default:
-      return CircleClose;
+      return "ep:circle-close";
   }
 };
 
@@ -173,54 +143,54 @@ const getStatusIcon = (status: number) => {
 const getStatusText = (status: number) => {
   switch (status) {
     case CONNECTION_STATUS.ONLINE:
-      return '在线';
+      return "在线";
     case CONNECTION_STATUS.CONNECTING:
-      return '连接中';
+      return "连接中";
     case CONNECTION_STATUS.FAILED:
-      return '连接失败';
+      return "连接失败";
     default:
-      return '离线';
+      return "离线";
   }
 };
 
 // 格式化时间
 const formatTime = (time: string | Date) => {
-  if (!time) return '';
-  const date = typeof time === 'string' ? new Date(time) : time;
-  return formatDistanceToNow(date, { 
-    addSuffix: true, 
-    locale: zhCN 
+  if (!time) return "";
+  const date = typeof time === "string" ? new Date(time) : time;
+  return formatDistanceToNow(date, {
+    addSuffix: true,
+    locale: zhCN
   });
 };
 
 // 测试连接
 const testConnection = async () => {
   if (!props.serverId) {
-    ElMessage.warning('服务器ID不能为空');
+    ElMessage.warning("服务器ID不能为空");
     return;
   }
 
   try {
     isConnecting.value = true;
-    emit('statusChange', CONNECTION_STATUS.CONNECTING);
+    emit("statusChange", CONNECTION_STATUS.CONNECTING);
 
     const result = await testServerConnection(props.serverId.toString());
-    
+
     if (result.data) {
-      ElMessage.success('连接测试成功');
-      emit('statusChange', CONNECTION_STATUS.ONLINE);
-      emit('testComplete', true);
+      ElMessage.success("连接测试成功");
+      emit("statusChange", CONNECTION_STATUS.ONLINE);
+      emit("testComplete", true);
     } else {
-      const errorMsg = result.msg || '连接测试失败';
+      const errorMsg = result.msg || "连接测试失败";
       ElMessage.error(errorMsg);
-      emit('statusChange', CONNECTION_STATUS.FAILED, errorMsg);
-      emit('testComplete', false, errorMsg);
+      emit("statusChange", CONNECTION_STATUS.FAILED, errorMsg);
+      emit("testComplete", false, errorMsg);
     }
   } catch (error: any) {
-    const errorMsg = error.message || '连接测试异常';
+    const errorMsg = error.message || "连接测试异常";
     ElMessage.error(errorMsg);
-    emit('statusChange', CONNECTION_STATUS.FAILED, errorMsg);
-    emit('testComplete', false, errorMsg);
+    emit("statusChange", CONNECTION_STATUS.FAILED, errorMsg);
+    emit("testComplete", false, errorMsg);
   } finally {
     isConnecting.value = false;
   }

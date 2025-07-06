@@ -8,8 +8,10 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { useServerWebSocket } from './useServerWebSocket';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { socket } from "@repo/core";
+import { getConfig } from "@repo/config";
+import { splitToArray } from "@repo/utils";
 
 // 任务进度接口
 interface TaskProgress {
@@ -28,6 +30,7 @@ interface TaskProgress {
 interface QueueStatus {
   totalTasks: number;
   pendingTasks: number;
+  throughput: number;
   processingTasks: number;
   completedTasks: number;
   failedTasks: number;
@@ -52,24 +55,26 @@ interface Statistics {
  * 服务器文件上传组合式函数
  */
 export function useServerFileUpload() {
-  // WebSocket连接状态
+  // Socket.IO连接状态
   const isConnected = ref(false);
-  const connectionStatus = ref('disconnected');
-  
+  const connectionStatus = ref("DISCONNECTED");
+  const socketClient = ref<any>(null);
+
   // 任务进度数据
   const taskProgresses = ref<Map<number, TaskProgress>>(new Map());
-  
+
   // 队列状态
   const queueStatus = reactive<QueueStatus>({
     totalTasks: 0,
+    throughput: 0,
     pendingTasks: 0,
     processingTasks: 0,
     completedTasks: 0,
     failedTasks: 0,
     maxConcurrent: 5,
-    currentConcurrent: 0,
+    currentConcurrent: 0
   });
-  
+
   // 统计信息
   const statistics = reactive<Statistics>({
     totalCount: 0,
@@ -80,65 +85,55 @@ export function useServerFileUpload() {
     cancelledCount: 0,
     successRate: 0,
     avgUploadTime: 0,
-    totalFileSize: 0,
+    totalFileSize: 0
   });
-
-  // 使用服务器WebSocket
-  const { 
-    connect: wsConnect, 
-    disconnect: wsDisconnect, 
-    isConnected: wsIsConnected,
-    subscribe,
-    unsubscribe
-  } = useServerWebSocket();
 
   // 计算属性
   const activeTaskCount = computed(() => {
-    return Array.from(taskProgresses.value.values()).filter(
-      task => task.status === 'PROCESSING' || task.status === 'UPLOADING'
-    ).length;
+    return Array.from(taskProgresses.value.values()).filter(task => task.status === "PROCESSING" || task.status === "UPLOADING").length;
   });
 
   const totalProgress = computed(() => {
     const tasks = Array.from(taskProgresses.value.values());
     if (tasks.length === 0) return 0;
-    
+
     const totalProgress = tasks.reduce((sum, task) => sum + task.progress, 0);
     return Math.round(totalProgress / tasks.length);
   });
 
   const totalSpeed = computed(() => {
-    return Array.from(taskProgresses.value.values()).reduce(
-      (sum, task) => sum + (task.speed || 0), 0
-    );
+    return Array.from(taskProgresses.value.values()).reduce((sum, task) => sum + (task.speed || 0), 0);
   });
 
-  // WebSocket消息处理
-  const handleWebSocketMessage = (message: any) => {
+  // Socket.IO消息处理
+  const handleSocketMessage = (message: any) => {
     try {
-      const data = typeof message === 'string' ? JSON.parse(message) : message;
-      
+      const data = typeof message === "string" ? JSON.parse(message) : message;
+
       switch (data.type) {
-        case 'UPLOAD_PROGRESS':
+        case "UPLOAD_PROGRESS":
           handleUploadProgress(data.payload);
           break;
-        case 'UPLOAD_STATUS_CHANGE':
+        case "UPLOAD_STATUS_CHANGE":
           handleStatusChange(data.payload);
           break;
-        case 'QUEUE_STATUS':
+        case "QUEUE_STATUS":
           handleQueueStatus(data.payload);
           break;
-        case 'UPLOAD_COMPLETED':
+        case "UPLOAD_COMPLETED":
           handleUploadCompleted(data.payload);
           break;
-        case 'UPLOAD_FAILED':
+        case "UPLOAD_FAILED":
           handleUploadFailed(data.payload);
           break;
+        case "UPLOAD_STATISTICS":
+          handleUploadStatistics(data.payload);
+          break;
         default:
-          console.log('未知的WebSocket消息类型:', data.type);
+          console.log("未知的Socket.IO消息类型:", data.type);
       }
     } catch (error) {
-      console.error('处理WebSocket消息失败:', error);
+      console.error("处理Socket.IO消息失败:", error);
     }
   };
 
@@ -153,9 +148,9 @@ export function useServerFileUpload() {
       totalBytes: payload.totalBytes,
       status: payload.status,
       startTime: payload.startTime,
-      estimatedTime: payload.estimatedTime,
+      estimatedTime: payload.estimatedTime
     };
-    
+
     taskProgresses.value.set(payload.taskId, progress);
   };
 
@@ -177,7 +172,7 @@ export function useServerFileUpload() {
   const handleUploadCompleted = (payload: any) => {
     const existingProgress = taskProgresses.value.get(payload.taskId);
     if (existingProgress) {
-      existingProgress.status = 'COMPLETED';
+      existingProgress.status = "COMPLETED";
       existingProgress.progress = 100;
       taskProgresses.value.set(payload.taskId, existingProgress);
     }
@@ -187,49 +182,85 @@ export function useServerFileUpload() {
   const handleUploadFailed = (payload: any) => {
     const existingProgress = taskProgresses.value.get(payload.taskId);
     if (existingProgress) {
-      existingProgress.status = 'FAILED';
+      existingProgress.status = "FAILED";
       taskProgresses.value.set(payload.taskId, existingProgress);
     }
   };
 
-  // 连接WebSocket
-  const connect = () => {
-    wsConnect();
-    isConnected.value = wsIsConnected.value;
-    connectionStatus.value = wsIsConnected.value ? 'connected' : 'connecting';
-    
-    // 订阅文件上传相关的消息
-    subscribe('server.file-upload.progress', handleWebSocketMessage);
-    subscribe('server.file-upload.status', handleWebSocketMessage);
-    subscribe('server.file-upload.queue', handleWebSocketMessage);
+  // 处理上传统计信息
+  const handleUploadStatistics = (payload: any) => {
+    Object.assign(statistics, payload);
   };
 
-  // 断开WebSocket
+  // 连接Socket.IO
+  const connect = () => {
+    try {
+      connectionStatus.value = "CONNECTING";
+
+      const config = getConfig();
+      socketClient.value = socket(splitToArray(config.SocketUrl), "/socket.io", {});
+
+      // 监听连接事件
+      socketClient.value.on("connect", () => {
+        isConnected.value = true;
+        connectionStatus.value = "CONNECTED";
+        console.log("文件上传Socket.IO连接成功");
+      });
+
+      socketClient.value.on("disconnect", () => {
+        isConnected.value = false;
+        connectionStatus.value = "DISCONNECTED";
+        console.log("文件上传Socket.IO连接断开");
+      });
+
+      socketClient.value.on("connect_error", (error: any) => {
+        isConnected.value = false;
+        connectionStatus.value = "ERROR";
+        console.error("文件上传Socket.IO连接错误:", error);
+      });
+
+      // 订阅文件上传相关的消息
+      socketClient.value.on("server_file_upload_progress", handleSocketMessage);
+      socketClient.value.on("server_file_upload_status", handleSocketMessage);
+      socketClient.value.on("server_file_upload_queue", handleSocketMessage);
+      socketClient.value.on("server_file_upload_statistics", handleSocketMessage);
+    } catch (error) {
+      console.error("Socket.IO连接失败:", error);
+      connectionStatus.value = "ERROR";
+    }
+  };
+
+  // 断开Socket.IO
   const disconnect = () => {
-    // 取消订阅
-    unsubscribe('server.file-upload.progress');
-    unsubscribe('server.file-upload.status');
-    unsubscribe('server.file-upload.queue');
-    
-    wsDisconnect();
+    if (socketClient.value) {
+      // 取消订阅
+      socketClient.value.off("server_file_upload_progress");
+      socketClient.value.off("server_file_upload_status");
+      socketClient.value.off("server_file_upload_queue");
+      socketClient.value.off("server_file_upload_statistics");
+
+      socketClient.value.close();
+      socketClient.value = null;
+    }
+
     isConnected.value = false;
-    connectionStatus.value = 'disconnected';
+    connectionStatus.value = "DISCONNECTED";
   };
 
   // 格式化文件大小
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    
+    if (bytes === 0) return "0 B";
+
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   // 格式化速度
   const formatSpeed = (bytesPerSecond: number): string => {
-    return formatFileSize(bytesPerSecond) + '/s';
+    return formatFileSize(bytesPerSecond) + "/s";
   };
 
   // 格式化持续时间
@@ -275,12 +306,13 @@ export function useServerFileUpload() {
     taskProgresses,
     queueStatus,
     statistics,
-    
+    socketClient,
+
     // 计算属性
     activeTaskCount,
     totalProgress,
     totalSpeed,
-    
+
     // 方法
     connect,
     disconnect,
@@ -288,6 +320,6 @@ export function useServerFileUpload() {
     clearAllTaskProgress,
     formatFileSize,
     formatSpeed,
-    formatDuration,
+    formatDuration
   };
 }
