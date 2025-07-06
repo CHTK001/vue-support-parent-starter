@@ -264,6 +264,7 @@ import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";
 import type { ComponentRealtimeMessage } from "@/api/server";
+import { useServerMetrics } from "@/composables/useServerWebSocket";
 
 const props = defineProps({
   serverId: {
@@ -292,6 +293,10 @@ const componentTimers = ref({});
 const queryTimeRange = ref([]);
 
 const globalRefreshTimer = ref(null);
+
+// Socket.IO实时数据相关
+const serverMetrics = useServerMetrics(props.serverId);
+const realtimeUnsubscribeFunctions = ref(new Map());
 
 // 添加组件相关
 const showAddComponentDrawer = ref(false);
@@ -383,6 +388,18 @@ watch(
   { deep: true }
 );
 
+// 监听timeParams变化，更新查询时间范围
+watch(
+  () => props.timeParams,
+  newTimeParams => {
+    if (newTimeParams && newTimeParams.start && newTimeParams.end) {
+      queryTimeRange.value = [new Date(newTimeParams.start), new Date(newTimeParams.end)];
+      console.log("时间参数更新:", newTimeParams, "转换后的时间范围:", queryTimeRange.value);
+    }
+  },
+  { deep: true, immediate: true }
+);
+
 // 生命周期
 onMounted(() => {
   // 初始化默认时间范围（最近1小时）
@@ -403,6 +420,12 @@ onBeforeUnmount(() => {
   Object.values(componentTimers.value).forEach((timer: any) => {
     if (timer) clearInterval(timer);
   });
+
+  // 清理所有实时数据订阅
+  realtimeUnsubscribeFunctions.value.forEach(unsubscribe => {
+    if (unsubscribe) unsubscribe();
+  });
+  realtimeUnsubscribeFunctions.value.clear();
 });
 
 /**
@@ -728,26 +751,34 @@ const handleComponentSaved = () => {
 };
 
 /**
- * 加载组件数据
+ * 统一查询函数 - 支持手动查询和定时查询
  */
-const loadComponentData = async (item: any) => {
-  if (!item.expression || !item.monitorSysGenServerComponentLayoutComponentId) return;
+const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
+  if (!item.expression || !item.componentId) return;
 
   try {
-    const componentId = item.monitorSysGenServerComponentLayoutComponentId;
+    const componentId = item.componentId;
     const expressionType = item.expressionType || "COMPONENT";
 
-    console.log(`开始加载组件数据: ${item.expression}`, {
+    // 使用传入的时间范围或默认时间范围
+    const currentTimeRange = timeRangeOverride || queryTimeRange.value;
+
+    if (!currentTimeRange || currentTimeRange.length !== 2) {
+      console.warn("时间范围无效，跳过查询");
+      return;
+    }
+
+    console.log(`开始统一查询组件数据: ${item.expression}`, {
       componentId,
       expressionType,
-      timeRange: queryTimeRange.value,
+      timeRange: currentTimeRange,
       serverId: props.serverId
     });
 
     // 构建时间范围参数
     const timeRange = {
-      startTime: Math.floor(queryTimeRange.value[0].getTime() / 1000),
-      endTime: Math.floor(queryTimeRange.value[1].getTime() / 1000),
+      startTime: Math.floor(currentTimeRange[0].getTime() / 1000),
+      endTime: Math.floor(currentTimeRange[1].getTime() / 1000),
       step: 60
     };
 
@@ -755,6 +786,11 @@ const loadComponentData = async (item: any) => {
 
     // 根据表达式类型选择不同的数据查询方式
     switch (expressionType.toUpperCase()) {
+      case "REALTIME":
+        // 使用现有Socket.IO推送机制获取实时数据
+        result = await handleRealtimeQuery(item, componentId);
+        break;
+
       case "PROMETHEUS":
         // 使用Prometheus查询
         result = await executeComponentQuery(componentId, timeRange);
@@ -781,23 +817,129 @@ const loadComponentData = async (item: any) => {
         updateTime: new Date().toLocaleTimeString(),
         expressionType: expressionType
       };
-      console.log(`组件数据加载成功: ${item.expression}`, result.data);
+      console.log(`组件数据查询成功: ${item.expression}`, result.data);
     } else {
-      console.warn(`组件数据加载失败: ${item.expression}`, result?.msg);
+      console.warn(`组件数据查询失败: ${item.expression}`, result?.msg);
       componentsData.value[item.i] = {
-        error: result?.msg || "数据加载失败",
+        error: result?.msg || "数据查询失败",
         updateTime: new Date().toLocaleTimeString(),
         expressionType: expressionType
       };
     }
   } catch (error) {
-    console.error("加载组件数据失败:", error);
+    console.error("统一查询失败:", error);
     componentsData.value[item.i] = {
-      error: error.message || "数据加载异常",
+      error: error.message || "数据查询异常",
       updateTime: new Date().toLocaleTimeString(),
       expressionType: item.expressionType || "COMPONENT"
     };
   }
+};
+
+/**
+ * 处理实时数据查询 - 复用现有Socket.IO机制
+ */
+const handleRealtimeQuery = async (item: any, componentId: number) => {
+  try {
+    // 先取消之前的订阅
+    const existingUnsubscribe = realtimeUnsubscribeFunctions.value.get(item.i);
+    if (existingUnsubscribe) {
+      existingUnsubscribe();
+      realtimeUnsubscribeFunctions.value.delete(item.i);
+    }
+
+    // 订阅服务器指标数据
+    const unsubscribe = serverMetrics.onServerMetrics((metrics: any, message: any) => {
+      // 根据组件表达式从服务器指标中提取相应数据
+      const extractedData = extractDataFromServerMetrics(metrics, item.expression);
+
+      // 构建实时消息格式
+      const realtimeMessage: ComponentRealtimeMessage = {
+        componentId: componentId,
+        componentName: item.title,
+        data: extractedData,
+        type: "realtime",
+        timestamp: message.timestamp || Date.now()
+      };
+
+      // 更新组件数据
+      componentsData.value[item.i] = {
+        data: extractedData,
+        updateTime: new Date().toLocaleTimeString(),
+        expressionType: "REALTIME",
+        realtimeMessage: realtimeMessage
+      };
+
+      console.log(`实时数据更新: ${item.title}`, extractedData);
+    });
+
+    // 保存取消订阅函数
+    realtimeUnsubscribeFunctions.value.set(item.i, unsubscribe);
+
+    // 返回成功结果
+    return {
+      code: "00000",
+      data: {
+        message: "实时数据订阅已启动，数据将通过Socket.IO推送更新",
+        subscribed: true
+      }
+    };
+  } catch (error) {
+    console.error("实时数据查询失败:", error);
+    return {
+      code: "50000",
+      msg: error.message || "实时数据订阅失败"
+    };
+  }
+};
+
+/**
+ * 从服务器指标中提取组件数据
+ */
+const extractDataFromServerMetrics = (metrics: any, expression: string) => {
+  // 根据表达式从服务器指标中提取数据
+  // 这里可以根据expression的内容来决定提取哪些指标
+  if (!metrics) return {};
+
+  // 示例：根据表达式关键词提取相应数据
+  const data: any = {};
+
+  if (expression.includes("cpu") || expression.includes("CPU")) {
+    data.cpuUsage = metrics.cpuUsage || 0;
+  }
+
+  if (expression.includes("memory") || expression.includes("内存")) {
+    data.memoryUsage = metrics.memoryUsage || 0;
+  }
+
+  if (expression.includes("disk") || expression.includes("磁盘")) {
+    data.diskUsage = metrics.diskUsage || 0;
+  }
+
+  if (expression.includes("network") || expression.includes("网络")) {
+    data.networkIn = metrics.networkIn || 0;
+    data.networkOut = metrics.networkOut || 0;
+  }
+
+  // 如果没有匹配的关键词，返回所有可用指标
+  if (Object.keys(data).length === 0) {
+    return {
+      cpuUsage: metrics.cpuUsage || 0,
+      memoryUsage: metrics.memoryUsage || 0,
+      diskUsage: metrics.diskUsage || 0,
+      networkIn: metrics.networkIn || 0,
+      networkOut: metrics.networkOut || 0
+    };
+  }
+
+  return data;
+};
+
+/**
+ * 加载组件数据 - 兼容原有接口
+ */
+const loadComponentData = async (item: any) => {
+  return executeUnifiedQuery(item);
 };
 
 /**
@@ -869,11 +1011,32 @@ const handleChartClick = (_item: any) => {
 };
 
 /**
+ * 手动查询所有组件数据 - 供父组件调用
+ */
+const handleManualQuery = async () => {
+  console.log("执行手动查询，当前时间范围:", queryTimeRange.value);
+
+  if (!queryTimeRange.value || queryTimeRange.value.length !== 2) {
+    console.warn("时间范围无效，无法执行查询");
+    return;
+  }
+
+  // 遍历所有布局组件，执行统一查询
+  for (const item of layout.value) {
+    await executeUnifiedQuery(item, queryTimeRange.value);
+  }
+};
+
+/**
  * 时间范围变化处理
  */
-const handleTimeRangeChange = (item: any, _timeRange: any) => {
-  // TODO: 实现时间范围变化逻辑
-  loadComponentData(item);
+const handleTimeRangeChange = (item: any, timeRange: any) => {
+  // 当单个组件的时间范围变化时，使用新的时间范围查询该组件
+  if (timeRange && timeRange.length === 2) {
+    executeUnifiedQuery(item, timeRange);
+  } else {
+    executeUnifiedQuery(item);
+  }
 };
 
 /**
@@ -1054,7 +1217,9 @@ watch(
 // 暴露方法
 defineExpose({
   loadComponents,
-  saveConfigToServer
+  saveConfigToServer,
+  handleManualQuery,
+  executeUnifiedQuery
 });
 </script>
 
