@@ -66,6 +66,7 @@
             :chart-data="getComponentData(item)"
             :height="getComponentHeight(item)"
             :loading="loading"
+            :error="getComponentError(item)"
             :chart-config="getChartConfig(item)"
             :item="item"
             :editable="editable"
@@ -954,6 +955,14 @@ const getComponentByType = (_type: string) => {
  */
 const getComponentData = (item: any) => {
   return componentsData.value[item.i] || {};
+};
+
+/**
+ * 获取组件错误信息
+ */
+const getComponentError = (item: any) => {
+  const data = componentsData.value[item.i];
+  return data?.error || "";
 };
 
 /**
