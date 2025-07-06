@@ -1070,13 +1070,7 @@ export const WebSocketMessageType = {
   RDP_INPUT: "rdp_input",
   RDP_CONNECT: "rdp_connect",
   RDP_DISCONNECT: "rdp_disconnect",
-  RDP_ERROR: "rdp_error",
-
-  // 组件实时数据相关
-  COMPONENT_REALTIME_DATA: "component_realtime_data",
-  COMPONENT_SUBSCRIBE: "component_subscribe",
-  COMPONENT_UNSUBSCRIBE: "component_unsubscribe",
-  COMPONENT_DATA_UPDATE: "component_data_update"
+  RDP_ERROR: "rdp_error"
 } as const;
 
 /**
@@ -1640,42 +1634,6 @@ export function getComponentData(componentId: number, startTime?: number, endTim
  */
 export function getComponentRealtimeData(componentId: number) {
   return http.request<ReturnResult<any>>("get", `v1/gen/server/component/${componentId}/data/realtime`);
-}
-
-/**
- * 订阅组件实时数据
- * @param componentId 组件ID
- * @param sessionId WebSocket会话ID
- * @returns 订阅结果
- */
-export function subscribeComponentRealtimeData(componentId: number, sessionId: string) {
-  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/subscribe`, {
-    params: { sessionId }
-  });
-}
-
-/**
- * 取消订阅组件实时数据
- * @param componentId 组件ID
- * @param sessionId WebSocket会话ID
- * @returns 取消订阅结果
- */
-export function unsubscribeComponentRealtimeData(componentId: number, sessionId: string) {
-  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/unsubscribe`, {
-    params: { sessionId }
-  });
-}
-
-/**
- * 推送实时数据到组件
- * @param componentId 组件ID
- * @param data 实时数据
- * @returns 推送结果
- */
-export function pushComponentRealtimeData(componentId: number, data: any) {
-  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/push`, {
-    data
-  });
 }
 
 /**
