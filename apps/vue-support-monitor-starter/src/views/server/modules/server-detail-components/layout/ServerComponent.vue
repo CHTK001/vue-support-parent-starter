@@ -154,6 +154,7 @@ const valueUnit = computed(() => {
 // 是否有数据
 const hasData = computed(() => {
   if (props.loading) return true; // 加载中时认为有数据
+  if (props.error) return false; // 有错误时认为无数据
 
   if (chartType.value === "table") {
     return props.tableData && props.tableData.length > 0;
@@ -166,13 +167,20 @@ const hasData = computed(() => {
   // 对于其他图表类型，检查 chartData 是否有有效数据
   if (!props.chartData) return false;
 
+  // 如果 chartData 是对象且包含 error 属性，认为无数据
+  if (typeof props.chartData === "object" && props.chartData.error) {
+    return false;
+  }
+
   if (Array.isArray(props.chartData)) {
     return props.chartData.length > 0;
   }
 
   if (typeof props.chartData === "object") {
-    // 检查对象是否有有效的数据属性
-    return Object.keys(props.chartData).length > 0;
+    // 检查对象是否有有效的数据属性（排除只有 error、updateTime、expressionType 等元数据的情况）
+    const keys = Object.keys(props.chartData);
+    const dataKeys = keys.filter(key => !["error", "updateTime", "expressionType"].includes(key));
+    return dataKeys.length > 0;
   }
 
   return true;
