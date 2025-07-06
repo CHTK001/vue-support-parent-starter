@@ -14,17 +14,12 @@
                 <div class="metric-label">CPU使用率</div>
                 <div class="metric-trend" :class="getTrendClass('cpu')">
                   <IconifyIconOnline :icon="getTrendIcon('cpu')" />
-                  {{ getTrendText('cpu') }}
+                  {{ getTrendText("cpu") }}
                 </div>
               </div>
             </div>
             <div class="metric-progress">
-              <el-progress
-                :percentage="currentMetrics.cpuUsage"
-                :color="getProgressColor(currentMetrics.cpuUsage, 'cpu')"
-                :show-text="false"
-                :stroke-width="4"
-              />
+              <el-progress :percentage="currentMetrics.cpuUsage" :color="getProgressColor(currentMetrics.cpuUsage, 'cpu')" :show-text="false" :stroke-width="4" />
             </div>
           </el-card>
         </el-col>
@@ -40,17 +35,12 @@
                 <div class="metric-label">内存使用率</div>
                 <div class="metric-trend" :class="getTrendClass('memory')">
                   <IconifyIconOnline :icon="getTrendIcon('memory')" />
-                  {{ getTrendText('memory') }}
+                  {{ getTrendText("memory") }}
                 </div>
               </div>
             </div>
             <div class="metric-progress">
-              <el-progress
-                :percentage="currentMetrics.memoryUsage"
-                :color="getProgressColor(currentMetrics.memoryUsage, 'memory')"
-                :show-text="false"
-                :stroke-width="4"
-              />
+              <el-progress :percentage="currentMetrics.memoryUsage" :color="getProgressColor(currentMetrics.memoryUsage, 'memory')" :show-text="false" :stroke-width="4" />
             </div>
           </el-card>
         </el-col>
@@ -66,21 +56,16 @@
                 <div class="metric-label">磁盘使用率</div>
                 <div class="metric-trend" :class="getTrendClass('disk')">
                   <IconifyIconOnline :icon="getTrendIcon('disk')" />
-                  {{ getTrendText('disk') }}
+                  {{ getTrendText("disk") }}
                 </div>
               </div>
             </div>
             <div class="metric-progress">
-              <el-progress
-                :percentage="currentMetrics.diskUsage"
-                :color="getProgressColor(currentMetrics.diskUsage, 'disk')"
-                :show-text="false"
-                :stroke-width="4"
-              />
+              <el-progress :percentage="currentMetrics.diskUsage" :color="getProgressColor(currentMetrics.diskUsage, 'disk')" :show-text="false" :stroke-width="4" />
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="metric-card network">
             <div class="metric-content">
@@ -90,10 +75,7 @@
               <div class="metric-info">
                 <div class="metric-value">{{ formatBytes(currentMetrics.networkTotal) }}/s</div>
                 <div class="metric-label">网络流量</div>
-                <div class="metric-detail">
-                  ↑{{ formatBytes(currentMetrics.networkOut) }}/s
-                  ↓{{ formatBytes(currentMetrics.networkIn) }}/s
-                </div>
+                <div class="metric-detail">↑{{ formatBytes(currentMetrics.networkOut) }}/s ↓{{ formatBytes(currentMetrics.networkIn) }}/s</div>
               </div>
             </div>
           </el-card>
@@ -116,35 +98,20 @@
                 </el-button-group>
               </div>
             </template>
-            <MetricsChart
-              ref="cpuMemoryChartRef"
-              :data="cpuMemoryData"
-              type="line"
-              :height="300"
-              :color="['#409eff', '#67c23a']"
-              :loading="loading"
-              :real-time="realTime"
-              :smooth="true"
-            />
+            <MetricsChart ref="cpuMemoryChartRef" :data="cpuMemoryData" type="line" :height="300" :color="['#409eff', '#67c23a']" :loading="loading" :real-time="realTime" :smooth="true" />
           </el-card>
         </el-col>
-        
+
         <el-col :span="12">
           <el-card>
             <template #header>
               <span>磁盘使用情况</span>
             </template>
-            <MetricsChart
-              ref="diskChartRef"
-              :data="diskData"
-              type="pie"
-              :height="300"
-              :loading="loading"
-            />
+            <MetricsChart ref="diskChartRef" :data="diskData" type="pie" :height="300" :loading="loading" />
           </el-card>
         </el-col>
       </el-row>
-      
+
       <el-row :gutter="16" style="margin-top: 16px">
         <el-col :span="24">
           <el-card>
@@ -152,25 +119,11 @@
               <div class="chart-header">
                 <span>网络流量</span>
                 <div class="chart-controls">
-                  <el-switch
-                    v-model="realTime"
-                    active-text="实时"
-                    inactive-text="历史"
-                    @change="handleRealTimeToggle"
-                  />
+                  <el-switch v-model="realTime" active-text="实时" inactive-text="历史" @change="handleRealTimeToggle" />
                 </div>
               </div>
             </template>
-            <MetricsChart
-              ref="networkChartRef"
-              :data="networkData"
-              type="line"
-              :height="250"
-              :color="['#e6a23c', '#f56c6c']"
-              :loading="loading"
-              :real-time="realTime"
-              :area="true"
-            />
+            <MetricsChart ref="networkChartRef" :data="networkData" type="line" :height="250" :color="['#e6a23c', '#f56c6c']" :loading="loading" :real-time="realTime" :area="true" />
           </el-card>
         </el-col>
       </el-row>
@@ -184,16 +137,16 @@
         </template>
         <el-descriptions :column="4" border>
           <el-descriptions-item label="系统负载">
-            {{ currentMetrics.loadAverage || '-' }}
+            {{ currentMetrics.loadAverage || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="运行时间">
             {{ formatUptime(currentMetrics.uptime) }}
           </el-descriptions-item>
           <el-descriptions-item label="进程数">
-            {{ currentMetrics.processCount || '-' }}
+            {{ currentMetrics.processCount || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="CPU温度">
-            {{ currentMetrics.temperature ? currentMetrics.temperature + '°C' : '-' }}
+            {{ currentMetrics.temperature ? currentMetrics.temperature + "°C" : "-" }}
           </el-descriptions-item>
         </el-descriptions>
       </el-card>
@@ -215,13 +168,13 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   autoStart: true,
-  metrics: null,
+  metrics: null
 });
 
 // 响应式状态
 const loading = ref(false);
 const realTime = ref(true);
-const timeRange = ref('1h');
+const timeRange = ref("1h");
 
 // 当前指标
 const currentMetrics = reactive({
@@ -231,10 +184,10 @@ const currentMetrics = reactive({
   networkIn: 0,
   networkOut: 0,
   networkTotal: 0,
-  loadAverage: '',
+  loadAverage: "",
   uptime: 0,
   processCount: 0,
-  temperature: 0,
+  temperature: 0
 });
 
 // 历史指标
@@ -251,7 +204,7 @@ const cpuMemoryData = computed(() => {
   return metricsHistory.value.map(item => ({
     time: new Date(item.collectTime).toLocaleTimeString(),
     cpu: item.cpuUsage,
-    memory: item.memoryUsage,
+    memory: item.memoryUsage
   }));
 });
 
@@ -259,8 +212,8 @@ const diskData = computed(() => {
   const used = currentMetrics.diskUsage;
   const free = 100 - used;
   return [
-    { name: '已使用', value: used },
-    { name: '可用', value: free },
+    { name: "已使用", value: used },
+    { name: "可用", value: free }
   ];
 });
 
@@ -268,18 +221,22 @@ const networkData = computed(() => {
   return metricsHistory.value.map(item => ({
     time: new Date(item.collectTime).toLocaleTimeString(),
     in: item.networkIn,
-    out: item.networkOut,
+    out: item.networkOut
   }));
 });
 
 // 移除WebSocket连接相关代码，改为监听props变化
 
 // 监听props中的metrics变化
-watch(() => props.metrics, (newMetrics) => {
-  if (newMetrics) {
-    updateMetrics(newMetrics);
-  }
-}, { immediate: true });
+watch(
+  () => props.metrics,
+  newMetrics => {
+    if (newMetrics) {
+      updateMetrics(newMetrics);
+    }
+  },
+  { immediate: true }
+);
 
 /**
  * 更新指标数据
@@ -289,7 +246,7 @@ const updateMetrics = (metrics: ServerMetrics) => {
   if (currentMetrics.cpuUsage > 0) {
     previousMetrics.value = { ...currentMetrics } as ServerMetrics;
   }
-  
+
   // 更新当前指标
   Object.assign(currentMetrics, {
     cpuUsage: metrics.cpuUsage,
@@ -301,18 +258,18 @@ const updateMetrics = (metrics: ServerMetrics) => {
     loadAverage: metrics.loadAverage,
     uptime: metrics.uptime,
     processCount: metrics.processCount,
-    temperature: metrics.temperature,
+    temperature: metrics.temperature
   });
-  
+
   // 添加到历史记录
   metricsHistory.value.push(metrics);
-  
+
   // 限制历史记录数量
   const maxPoints = getMaxDataPoints();
   if (metricsHistory.value.length > maxPoints) {
     metricsHistory.value.shift();
   }
-  
+
   // 实时模式下更新图表
   if (realTime.value) {
     updateCharts();
@@ -324,10 +281,14 @@ const updateMetrics = (metrics: ServerMetrics) => {
  */
 const getMaxDataPoints = () => {
   switch (timeRange.value) {
-    case '1h': return 60;   // 1分钟一个点
-    case '6h': return 72;   // 5分钟一个点
-    case '24h': return 144; // 10分钟一个点
-    default: return 60;
+    case "1h":
+      return 60; // 1分钟一个点
+    case "6h":
+      return 72; // 5分钟一个点
+    case "24h":
+      return 144; // 10分钟一个点
+    default:
+      return 60;
   }
 };
 
@@ -362,14 +323,14 @@ const handleRealTimeToggle = (enabled: boolean) => {
  */
 const loadHistoryData = async () => {
   if (realTime.value) return;
-  
+
   try {
     loading.value = true;
     // 这里应该调用API加载历史数据
     // const res = await getServerMetricsHistory(props.serverId, timeRange.value);
     // metricsHistory.value = res.data;
   } catch (error) {
-    console.error('加载历史数据失败:', error);
+    console.error("加载历史数据失败:", error);
   } finally {
     loading.value = false;
   }
@@ -379,14 +340,14 @@ const loadHistoryData = async () => {
  * 获取趋势类名
  */
 const getTrendClass = (metric: string) => {
-  if (!previousMetrics.value) return '';
-  
+  if (!previousMetrics.value) return "";
+
   const current = currentMetrics[metric as keyof typeof currentMetrics] as number;
   const previous = previousMetrics.value[metric as keyof ServerMetrics] as number;
-  
-  if (current > previous) return 'trend-up';
-  if (current < previous) return 'trend-down';
-  return 'trend-stable';
+
+  if (current > previous) return "trend-up";
+  if (current < previous) return "trend-down";
+  return "trend-stable";
 };
 
 /**
@@ -395,9 +356,12 @@ const getTrendClass = (metric: string) => {
 const getTrendIcon = (metric: string) => {
   const trendClass = getTrendClass(metric);
   switch (trendClass) {
-    case 'trend-up': return 'ri:arrow-up-line';
-    case 'trend-down': return 'ri:arrow-down-line';
-    default: return 'ri:subtract-line';
+    case "trend-up":
+      return "ri:arrow-up-line";
+    case "trend-down":
+      return "ri:arrow-down-line";
+    default:
+      return "ri:subtract-line";
   }
 };
 
@@ -405,22 +369,22 @@ const getTrendIcon = (metric: string) => {
  * 获取趋势文本
  */
 const getTrendText = (metric: string) => {
-  if (!previousMetrics.value) return '';
-  
+  if (!previousMetrics.value) return "";
+
   const current = currentMetrics[metric as keyof typeof currentMetrics] as number;
   const previous = previousMetrics.value[metric as keyof ServerMetrics] as number;
   const diff = Math.abs(current - previous);
-  
-  if (diff < 1) return '';
-  
-  const direction = current > previous ? '+' : '-';
+
+  if (diff < 1) return "";
+
+  const direction = current > previous ? "+" : "-";
   return `${direction}${diff.toFixed(1)}%`;
 };
 
 /**
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number, metricType: 'cpu' | 'memory' | 'disk' = 'cpu') => {
+const getProgressColor = (percentage: number, metricType: "cpu" | "memory" | "disk" = "cpu") => {
   // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
@@ -432,9 +396,9 @@ const getProgressColor = (percentage: number, metricType: 'cpu' | 'memory' | 'di
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', percentage: threshold.normal },
-    { color: '#e6a23c', percentage: threshold.warning },
-    { color: '#f56c6c', percentage: 100 }
+    { color: "#67c23a", percentage: threshold.normal },
+    { color: "#e6a23c", percentage: threshold.warning },
+    { color: "#f56c6c", percentage: 100 }
   ];
 };
 
@@ -442,23 +406,23 @@ const getProgressColor = (percentage: number, metricType: 'cpu' | 'memory' | 'di
  * 格式化字节
  */
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
 /**
  * 格式化运行时间
  */
 const formatUptime = (seconds: number) => {
-  if (!seconds) return '-';
-  
+  if (!seconds) return "-";
+
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (days > 0) {
     return `${days}天 ${hours}小时`;
   } else if (hours > 0) {

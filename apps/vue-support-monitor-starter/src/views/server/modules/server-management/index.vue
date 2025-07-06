@@ -8,24 +8,14 @@
           服务器管理
           <el-tooltip :content="`当前共有 ${totalCount} 台服务器`" placement="bottom" :show-after="500">
             <el-tag type="info" effect="plain" class="server-count">
-              共 <span class="count-num">{{ totalCount }}</span> 台
+              共
+              <span class="count-num">{{ totalCount }}</span>
+              台
             </el-tag>
           </el-tooltip>
-          <el-tooltip
-            :content="`实时监控状态: ${getSocketStatusText}`"
-            placement="bottom"
-            :show-after="500"
-          >
-            <el-tag
-              :type="getSocketStatusType"
-              effect="light"
-              size="small"
-              class="ml-2 tag-container"
-            >
-              <IconifyIconOnline
-                :icon="getSocketStatusIcon()"
-                class="mr-1"
-              />
+          <el-tooltip :content="`实时监控状态: ${getSocketStatusText}`" placement="bottom" :show-after="500">
+            <el-tag :type="getSocketStatusType" effect="light" size="small" class="ml-2 tag-container">
+              <IconifyIconOnline :icon="getSocketStatusIcon()" class="mr-1" />
               {{ getSocketStatusText }}
             </el-tag>
           </el-tooltip>
@@ -34,9 +24,7 @@
           <!-- 调试信息已移除，避免响应式更新导致的无限递归 -->
         </h2>
       </div>
-      <div class="toolbar-right">
-
-      </div>
+      <div class="toolbar-right"></div>
 
       <div class="toolbar-right">
         <!-- 筛选器 -->
@@ -65,19 +53,12 @@
 
         <!-- 搜索 -->
         <el-tooltip content="搜索服务器名称、地址或描述" placement="bottom" :show-after="500">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索服务器..."
-            size="small"
-            class="search-input"
-            clearable
-          >
+          <el-input v-model="searchKeyword" placeholder="搜索服务器..." size="small" class="search-input" clearable>
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
           </el-input>
         </el-tooltip>
-
 
         <!-- 操作按钮 -->
         <el-tooltip content="刷新服务器列表" placement="bottom" :show-after="500">
@@ -102,7 +83,7 @@
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="import" title="从文件导入服务器配置">
+                <!-- <el-dropdown-item command="import" title="从文件导入服务器配置">
                   <IconifyIconOnline icon="ri:upload-line" class="mr-2" />
                   导入配置
                 </el-dropdown-item>
@@ -125,7 +106,7 @@
                 <el-dropdown-item command="log" title="查看系统操作日志">
                   <IconifyIconOnline icon="ri:history-line" class="mr-2" />
                   操作日志
-                </el-dropdown-item>
+                </el-dropdown-item> -->
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -136,7 +117,7 @@
     <!-- 主体内容区域 -->
     <div class="main-content">
       <!-- 左侧服务器列表 -->
-      <div class="left-panel" :class="{ 'minimized': leftPanelMinimized }" :style="{ width: leftPanelMinimized ? '60px' : leftPanelWidth + 'px' }">
+      <div class="left-panel" :class="{ minimized: leftPanelMinimized }" :style="{ width: leftPanelMinimized ? '60px' : leftPanelWidth + 'px' }">
         <!-- 面板头部控制栏 -->
         <div class="panel-header">
           <div class="panel-title" v-if="!leftPanelMinimized">
@@ -146,12 +127,7 @@
           </div>
           <div class="panel-controls">
             <el-tooltip :content="leftPanelMinimized ? '展开面板' : '最小化面板'" placement="right" :show-after="300">
-              <el-button
-                size="small"
-                text
-                @click="toggleLeftPanel"
-                class="minimize-btn"
-              >
+              <el-button size="small" text @click="toggleLeftPanel" class="minimize-btn">
                 <IconifyIconOnline :icon="leftPanelMinimized ? 'ri:arrow-right-s-line' : 'ri:arrow-left-s-line'" />
               </el-button>
             </el-tooltip>
@@ -163,12 +139,7 @@
           <el-tooltip content="按分组查看服务器" placement="bottom" :show-after="500">
             <el-tabs v-model="activeGroup" @tab-click="handleGroupChange">
               <el-tab-pane label="全部" name="all" />
-              <el-tab-pane
-                v-for="group in serverGroups"
-                :key="group"
-                :label="group"
-                :name="group"
-              />
+              <el-tab-pane v-for="group in serverGroups" :key="group" :label="group" :name="group" />
             </el-tabs>
           </el-tooltip>
         </div>
@@ -196,17 +167,14 @@
               <div
                 class="server-mini-card"
                 :class="{
-                  'selected': selectedServerId === server.id,
-                  'online': server.onlineStatus === ONLINE_STATUS.ONLINE,
-                  'offline': server.onlineStatus === ONLINE_STATUS.OFFLINE,
-                  'error': server.status === SERVER_STATUS.ERROR
+                  selected: selectedServerId === server.id,
+                  online: server.onlineStatus === ONLINE_STATUS.ONLINE,
+                  offline: server.onlineStatus === ONLINE_STATUS.OFFLINE,
+                  error: server.status === SERVER_STATUS.ERROR
                 }"
                 @click="selectServer(server)"
               >
-                <IconifyIconOnline
-                  icon="ri:server-line"
-                  class="server-mini-icon"
-                />
+                <IconifyIconOnline icon="ri:server-line" class="server-mini-icon" />
                 <div class="server-mini-status" :class="server.onlineStatus === ONLINE_STATUS.ONLINE ? 'online' : 'offline'"></div>
               </div>
             </el-tooltip>
@@ -231,174 +199,150 @@
                 :show-after="800"
                 :disabled="selectedServerId === server.id"
               >
-            <div
-              class="server-card"
-              :class="{
-                'selected': selectedServerId === server.id,
-                'online': server.onlineStatus === ONLINE_STATUS.ONLINE,
-                'offline': server.onlineStatus === ONLINE_STATUS.OFFLINE,
-                'error': server.status === SERVER_STATUS.ERROR
-              }"
-              @click="selectServer(server)"
-            >
-            <!-- 服务器卡片头部 -->
-            <div class="card-header">
-              <div class="server-info">
-                <el-tooltip :content="`服务器名称: ${server.name}`" placement="top" :show-after="300">
-                  <div class="server-name">{{ server.name }}</div>
-                </el-tooltip>
-                <el-tooltip :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`" placement="top" :show-after="300">
-                  <div class="server-address !flex !flex-col justify-center !items-start">
-                     <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
-                      <IconifyIconOnline
-                        :icon="getProtocolIcon(server.protocol)"
-                        class="protocol-icon"
-                      />
-                    </el-tooltip> 
-                    <span>{{ server.host }}:{{ server.port }}</span>
-                    <el-tag v-if="server.isLocal" type="success" size="small" effect="light" class="ml-1">本机</el-tag>
-                    <el-tag v-else type="primary" size="small" effect="light" class="ml-1">远程</el-tag>
-                  </div>
-                </el-tooltip>
-              </div>
-              <div class="server-status">
-                <el-tooltip :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`" placement="top" :show-after="300">
-                  <el-tag
-                    :type="getOnlineStatusType(server.onlineStatus, server.isLocal)"
-                    size="small"
-                    effect="light"
-                  >
-                    {{ getOnlineStatusText(server.onlineStatus, server.isLocal) }}
-                  </el-tag>
-                </el-tooltip>
-                <!-- 延迟显示 -->
-                <ServerLatencyDisplay
-                  :latency="server.latency"
-                  size="small"
-                  mode="full"
-                  class="server-latency"
-                />
-                <!-- 健康状态指示器 -->
-                <el-tooltip
-                  v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'"
-                  :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`"
-                  placement="top"
-                  :show-after="300"
+                <div
+                  class="server-card"
+                  :class="{
+                    selected: selectedServerId === server.id,
+                    online: server.onlineStatus === ONLINE_STATUS.ONLINE,
+                    offline: server.onlineStatus === ONLINE_STATUS.OFFLINE,
+                    error: server.status === SERVER_STATUS.ERROR
+                  }"
+                  @click="selectServer(server)"
                 >
-                  <el-tag
-                    :type="getHealthStatusType(getServerHealthStatus(server.id))"
-                    size="small"
-                    effect="light"
-                    class="health-status"
-                  >
-                    <IconifyIconOnline
-                      :icon="getHealthStatusIcon(getServerHealthStatus(server.id))"
-                      class="mr-1"
-                    />
-                    {{ getHealthStatusText(getServerHealthStatus(server.id)) }}
-                  </el-tag>
-                </el-tooltip>
-              </div>
-            </div>
+                  <!-- 服务器卡片头部 -->
+                  <div class="card-header">
+                    <div class="server-info">
+                      <el-tooltip :content="`服务器名称: ${server.name}`" placement="top" :show-after="300">
+                        <div class="server-name">{{ server.name }}</div>
+                      </el-tooltip>
+                      <el-tooltip :content="`服务器地址: ${server.host}:${server.port} ${server.isLocal ? '(本机服务器)' : '(远程服务器)'}`" placement="top" :show-after="300">
+                        <div class="server-address !flex !flex-col justify-center !items-start">
+                          <el-tooltip :content="`连接协议: ${server.protocol}`" placement="top" :show-after="300">
+                            <IconifyIconOnline :icon="getProtocolIcon(server.protocol)" class="protocol-icon" />
+                          </el-tooltip>
+                          <span>{{ server.host }}:{{ server.port }}</span>
+                          <el-tag v-if="server.isLocal" type="success" size="small" effect="light" class="ml-1">本机</el-tag>
+                          <el-tag v-else type="primary" size="small" effect="light" class="ml-1">远程</el-tag>
+                        </div>
+                      </el-tooltip>
+                    </div>
+                    <div class="server-status">
+                      <el-tooltip :content="`服务器状态: ${getOnlineStatusText(server.onlineStatus, server.isLocal)}`" placement="top" :show-after="300">
+                        <el-tag :type="getOnlineStatusType(server.onlineStatus, server.isLocal)" size="small" effect="light">
+                          {{ getOnlineStatusText(server.onlineStatus, server.isLocal) }}
+                        </el-tag>
+                      </el-tooltip>
+                      <!-- 延迟显示 -->
+                      <ServerLatencyDisplay :latency="server.latency" size="small" mode="full" class="server-latency" />
+                      <!-- 健康状态指示器 -->
+                      <el-tooltip
+                        v-if="realTimeMetricsEnabled && getServerHealthStatus(server.id) !== 'unknown'"
+                        :content="`健康状态: ${getHealthStatusText(getServerHealthStatus(server.id))}`"
+                        placement="top"
+                        :show-after="300"
+                      >
+                        <el-tag :type="getHealthStatusType(getServerHealthStatus(server.id))" size="small" effect="light" class="health-status">
+                          <IconifyIconOnline :icon="getHealthStatusIcon(getServerHealthStatus(server.id))" class="mr-1" />
+                          {{ getHealthStatusText(getServerHealthStatus(server.id)) }}
+                        </el-tag>
+                      </el-tooltip>
+                    </div>
+                  </div>
 
-            <!-- 实时指标显示 -->
-            <div v-if="server.metricsSupport && getServerMetrics(server.id)" class="metrics-display">
-              <el-tooltip :content="`CPU使用率: ${Math.round(getServerMetrics(server.id)?.cpuUsage || 0)}%`" placement="top" :show-after="300">
-                <div class="metric-item">
-                  <span class="metric-label">CPU</span>
-                  <el-progress
-                    :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)"
-                    :color="getProgressColor(getServerMetrics(server.id)?.cpuUsage || 0, 'cpu')"
-                    :show-text="false"
-                    :stroke-width="4"
-                  />
-                  <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.cpuUsage || 0) }}%</span>
+                  <!-- 实时指标显示 -->
+                  <div v-if="server.metricsSupport && getServerMetrics(server.id)" class="metrics-display">
+                    <el-tooltip :content="`CPU使用率: ${Math.round(getServerMetrics(server.id)?.cpuUsage || 0)}%`" placement="top" :show-after="300">
+                      <div class="metric-item">
+                        <span class="metric-label">CPU</span>
+                        <el-progress
+                          :percentage="Math.round(getServerMetrics(server.id)?.cpuUsage || 0)"
+                          :color="getProgressColor(getServerMetrics(server.id)?.cpuUsage || 0, 'cpu')"
+                          :show-text="false"
+                          :stroke-width="4"
+                        />
+                        <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.cpuUsage || 0) }}%</span>
+                      </div>
+                    </el-tooltip>
+                    <el-tooltip :content="`内存使用率: ${Math.round(getServerMetrics(server.id)?.memoryUsage || 0)}%`" placement="top" :show-after="300">
+                      <div class="metric-item">
+                        <span class="metric-label">内存</span>
+                        <el-progress
+                          :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)"
+                          :color="getProgressColor(getServerMetrics(server.id)?.memoryUsage || 0, 'memory')"
+                          :show-text="false"
+                          :stroke-width="4"
+                        />
+                        <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.memoryUsage || 0) }}%</span>
+                      </div>
+                    </el-tooltip>
+                  </div>
+
+                  <!-- 操作按钮 -->
+                  <div class="card-actions" @click.stop>
+                    <el-button-group>
+                      <el-tooltip content="连接服务器" placement="top" :show-after="500">
+                        <el-button size="small" type="primary" @click.stop.prevent="connectServer(server)">
+                          <IconifyIconOnline icon="ri:play-line" />
+                        </el-button>
+                      </el-tooltip>
+                      <el-tooltip content="查看监控" placement="top" :show-after="500">
+                        <el-button size="small" @click.stop.prevent="showServerInfo(server)">
+                          <IconifyIconOnline icon="ri:information-line" />
+                        </el-button>
+                      </el-tooltip>
+                      <el-tooltip content="编辑服务器" placement="top" :show-after="500">
+                        <el-button size="small" @click.stop.prevent="editServer(server)">
+                          <IconifyIconOnline icon="ri:edit-line" />
+                        </el-button>
+                      </el-tooltip>
+                      <el-tooltip content="配置管理" placement="top" :show-after="500">
+                        <el-button size="small" type="primary" plain @click.stop.prevent="openServerConfig(server)">
+                          <IconifyIconOnline icon="ri:settings-3-line" />
+                        </el-button>
+                      </el-tooltip>
+                      <el-tooltip content="更多操作" placement="top" :show-after="500">
+                        <el-dropdown @command="cmd => handleServerAction(cmd, server)" @click.stop.prevent>
+                          <el-button size="small">
+                            <IconifyIconOnline icon="ri:more-line" />
+                          </el-button>
+                          <template #dropdown>
+                            <el-dropdown-menu>
+                              <el-dropdown-item command="test" title="测试服务器连接状态">
+                                <IconifyIconOnline icon="ri:wifi-line" class="mr-2" />
+                                测试连接
+                              </el-dropdown-item>
+                              <el-dropdown-item command="files" title="打开文件管理器">
+                                <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
+                                文件管理
+                              </el-dropdown-item>
+                              <el-dropdown-item command="monitor" title="查看性能监控详情">
+                                <IconifyIconOnline icon="ri:dashboard-line" class="mr-2" />
+                                性能监控
+                              </el-dropdown-item>
+                              <el-dropdown-item command="detail" title="查看服务器详情页面">
+                                <IconifyIconOnline icon="ri:dashboard-3-line" class="mr-2" />
+                                详情页面
+                              </el-dropdown-item>
+                              <el-dropdown-item command="script" title="在服务器上执行脚本">
+                                <IconifyIconOnline icon="ri:terminal-line" class="mr-2" />
+                                执行脚本
+                              </el-dropdown-item>
+                              <el-dropdown-item command="log" title="查看服务器操作日志">
+                                <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
+                                操作日志
+                              </el-dropdown-item>
+                              <el-dropdown-item command="delete" divided title="删除此服务器配置">
+                                <IconifyIconOnline icon="ri:delete-bin-line" class="mr-2" />
+                                删除服务器
+                              </el-dropdown-item>
+                            </el-dropdown-menu>
+                          </template>
+                        </el-dropdown>
+                      </el-tooltip>
+                    </el-button-group>
+                  </div>
                 </div>
               </el-tooltip>
-              <el-tooltip :content="`内存使用率: ${Math.round(getServerMetrics(server.id)?.memoryUsage || 0)}%`" placement="top" :show-after="300">
-                <div class="metric-item">
-                  <span class="metric-label">内存</span>
-                  <el-progress
-                    :percentage="Math.round(getServerMetrics(server.id)?.memoryUsage || 0)"
-                    :color="getProgressColor(getServerMetrics(server.id)?.memoryUsage || 0, 'memory')"
-                    :show-text="false"
-                    :stroke-width="4"
-                  />
-                  <span class="metric-value">{{ Math.round(getServerMetrics(server.id)?.memoryUsage || 0) }}%</span>
-                </div>
-              </el-tooltip>
-
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="card-actions" @click.stop>
-              <el-button-group>
-                <el-tooltip content="连接服务器" placement="top" :show-after="500">
-                  <el-button size="small" type="primary" @click.stop.prevent="connectServer(server)">
-                    <IconifyIconOnline icon="ri:play-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="查看监控" placement="top" :show-after="500">
-                  <el-button size="small" @click.stop.prevent="showServerInfo(server)">
-                    <IconifyIconOnline icon="ri:information-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="编辑服务器" placement="top" :show-after="500">
-                  <el-button size="small" @click.stop.prevent="editServer(server)">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="配置管理" placement="top" :show-after="500">
-                  <el-button size="small" type="primary" plain @click.stop.prevent="openServerConfig(server)">
-                    <IconifyIconOnline icon="ri:settings-3-line" />
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="更多操作" placement="top" :show-after="500">
-                  <el-dropdown @command="(cmd) => handleServerAction(cmd, server)" @click.stop.prevent>
-                    <el-button size="small">
-                      <IconifyIconOnline icon="ri:more-line" />
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="test" title="测试服务器连接状态">
-                          <IconifyIconOnline icon="ri:wifi-line" class="mr-2" />
-                          测试连接
-                        </el-dropdown-item>
-                        <el-dropdown-item command="files" title="打开文件管理器">
-                          <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
-                          文件管理
-                        </el-dropdown-item>
-                        <el-dropdown-item command="monitor" title="查看性能监控详情">
-                          <IconifyIconOnline icon="ri:dashboard-line" class="mr-2" />
-                          性能监控
-                        </el-dropdown-item>
-                        <el-dropdown-item
-                          command="detail"
-                          title="查看服务器详情页面"
-                        >
-                          <IconifyIconOnline icon="ri:dashboard-3-line" class="mr-2" />
-                          详情页面
-                        </el-dropdown-item>
-                        <el-dropdown-item command="script" title="在服务器上执行脚本">
-                          <IconifyIconOnline icon="ri:terminal-line" class="mr-2" />
-                          执行脚本
-                        </el-dropdown-item>
-                        <el-dropdown-item command="log" title="查看服务器操作日志">
-                          <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
-                          操作日志
-                        </el-dropdown-item>
-                        <el-dropdown-item command="delete" divided title="删除此服务器配置">
-                          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-2" />
-                          删除服务器
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </el-tooltip>
-              </el-button-group>
-            </div>
-            </div>
-          </el-tooltip>
             </template>
           </template>
         </div>
@@ -406,10 +350,7 @@
 
       <!-- 拖拽分割线 -->
       <el-tooltip content="拖拽调整面板宽度" placement="right" :show-after="500" v-if="!leftPanelMinimized">
-        <div
-          class="resize-handle"
-          @mousedown="startResize"
-        ></div>
+        <div class="resize-handle" @mousedown="startResize"></div>
       </el-tooltip>
 
       <!-- 右侧内容区域 -->
@@ -428,19 +369,9 @@
           <Suspense>
             <template #default>
               <!-- SSH终端组件 -->
-              <SSHTerminal
-                v-if="currentComponent === 'SSHTerminal'"
-                :server="selectedServer"
-                :key="selectedServerId + '-ssh'"
-                @close="closeRightPanel"
-              />
+              <SSHTerminal v-if="currentComponent === 'SSHTerminal'" :server="selectedServer" :key="selectedServerId + '-ssh'" @close="closeRightPanel" />
               <!-- 远程桌面组件 (统一处理RDP和VNC) -->
-              <RemoteDesktop
-                v-else-if="currentComponent === 'RemoteDesktop'"
-                :server="convertServerForRemoteDesktop(selectedServer)"
-                :key="selectedServerId + '-remote'"
-                @close="closeRightPanel"
-              />
+              <RemoteDesktop v-else-if="currentComponent === 'RemoteDesktop'" :server="convertServerForRemoteDesktop(selectedServer)" :key="selectedServerId + '-remote'" @close="closeRightPanel" />
               <!-- 服务器监控组件 -->
               <ServerMonitor
                 v-else-if="currentComponent === 'ServerMonitor'"
@@ -452,19 +383,9 @@
                 @refresh-metrics="handleRefreshMetrics"
               />
               <!-- 文件管理组件 -->
-              <FileManager
-                v-else-if="currentComponent === 'FileManager'"
-                :server="selectedServer"
-                :key="selectedServerId + '-files'"
-                @close="closeRightPanel"
-              />
+              <FileManager v-else-if="currentComponent === 'FileManager'" :server="selectedServer" :key="selectedServerId + '-files'" @close="closeRightPanel" />
               <!-- 服务器详情组件 -->
-              <ServerDetailComponents
-                v-else-if="currentComponent === 'ServerDetailComponents'"
-                :server-id="Number(selectedServerId)"
-                :data="selectedServer"
-                :key="selectedServerId + '-detail'"
-              />
+              <ServerDetailComponents v-else-if="currentComponent === 'ServerDetailComponents'" :server-id="Number(selectedServerId)" :data="selectedServer" :key="selectedServerId + '-detail'" />
               <!-- 默认显示监控组件 -->
               <ServerMonitor
                 v-else
@@ -494,7 +415,6 @@
     <ScriptExecutorDialog ref="scriptDialogRef" />
     <AlertConfigDialog ref="alertDialogRef" />
     <OperationLogDialog ref="logDialogRef" />
-
   </div>
 </template>
 
@@ -520,20 +440,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 定义 emits 向父组件发送事件
 const emit = defineEmits<{
-  'refresh-servers': [],
-  'server-action': [action: string, server: any],
-  'select-server': [server: any]
+  "refresh-servers": [];
+  "server-action": [action: string, server: any];
+  "select-server": [server: any];
 }>();
-import {
-  getServerPageList,
-  testLocalIpDetection,
-  SERVER_STATUS,
-  ONLINE_STATUS,
-  type ServerDisplayData,
-  type ServerInfo,
-  type ServerMetricsDisplay,
-  mapServerListToDisplayData,
-} from "@/api/server";
+import { getServerPageList, testLocalIpDetection, SERVER_STATUS, ONLINE_STATUS, type ServerDisplayData, type ServerInfo, type ServerMetricsDisplay, mapServerListToDisplayData } from "@/api/server";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
 // 移除 WebSocket 导入，改为通过 props 接收数据
@@ -584,9 +495,7 @@ const serverGroups = computed(() => {
   });
   return Array.from(groups);
 });
-const selectedServer = computed(() =>
-  servers.value.find(s => s.id === selectedServerId.value)
-);
+const selectedServer = computed(() => servers.value.find(s => s.id === selectedServerId.value));
 
 // 服务器指标数据 - 从 props 获取
 const serverMetrics = computed(() => props.serverMetrics || new Map());
@@ -619,16 +528,14 @@ const localDebugVisible = ref(false);
 const localOnlineStatusMap = {
   0: { color: "danger", text: "离线" },
   1: { color: "success", text: "在线" },
-  2: { color: "warning", text: "未知" },
+  2: { color: "warning", text: "未知" }
 } as const;
 
 const localProtocolIconMap = {
   SSH: "ri:terminal-line",
   RDP: "ri:computer-line",
-  VNC: "ri:remote-control-line",
+  VNC: "ri:remote-control-line"
 } as const;
-
-
 
 // 计算属性
 const filteredServers = computed(() => {
@@ -636,16 +543,12 @@ const filteredServers = computed(() => {
 
   // 按分组筛选
   if (activeGroup.value !== "all") {
-    result = result.filter(server =>
-      server.group === activeGroup.value
-    );
+    result = result.filter(server => server.group === activeGroup.value);
   }
 
   // 按协议筛选
   if (filterProtocol.value) {
-    result = result.filter(server =>
-      server.protocol === filterProtocol.value
-    );
+    result = result.filter(server => server.protocol === filterProtocol.value);
   }
 
   // 按状态筛选
@@ -667,17 +570,13 @@ const filteredServers = computed(() => {
   // 按关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(server =>
-      server.name.toLowerCase().includes(keyword) ||
-      server.host.toLowerCase().includes(keyword) ||
-      (server.description && server.description.toLowerCase().includes(keyword))
+    result = result.filter(
+      server => server.name.toLowerCase().includes(keyword) || server.host.toLowerCase().includes(keyword) || (server.description && server.description.toLowerCase().includes(keyword))
     );
   }
 
   return result;
 });
-
-
 
 /**
  * 获取服务器指标数据
@@ -718,31 +617,31 @@ const getServerMonitorMetrics = (serverId: string | null) => {
   return {
     serverId: parseInt(serverId),
     collectTime: metrics.collectTime || new Date().toISOString(),
-    status: metrics.status === 'online' ? 1 : 0,
+    status: metrics.status === "online" ? 1 : 0,
     responseTime: 0, // metricsStore中没有这个字段
     cpu: {
       usage: metrics.cpuUsage || 0,
       cores: 1, // metricsStore中没有这个字段，使用默认值
       load1m: 0, // metricsStore中没有这个字段，使用默认值
       load5m: 0, // metricsStore中没有这个字段，使用默认值
-      load15m: 0, // metricsStore中没有这个字段，使用默认值
+      load15m: 0 // metricsStore中没有这个字段，使用默认值
     },
     memory: {
       total: 0, // metricsStore中没有这个字段，使用默认值
       used: 0, // metricsStore中没有这个字段，使用默认值
       free: 0, // metricsStore中没有这个字段，使用默认值
-      usage: metrics.memoryUsage || 0,
+      usage: metrics.memoryUsage || 0
     },
     disk: {
       total: 0, // metricsStore中没有这个字段，使用默认值
       used: 0, // metricsStore中没有这个字段，使用默认值
       free: 0, // metricsStore中没有这个字段，使用默认值
       usage: metrics.diskUsage || 0,
-      partitions: metrics.diskPartitions || [], // 添加磁盘分区信息
+      partitions: metrics.diskPartitions || [] // 添加磁盘分区信息
     },
     network: {
       in: metrics.networkIn || 0,
-      out: metrics.networkOut || 0,
+      out: metrics.networkOut || 0
     },
     osInfo: metrics.osInfo,
     osName: metrics.osName,
@@ -754,7 +653,7 @@ const getServerMonitorMetrics = (serverId: string | null) => {
     temperature: metrics.temperature,
     networkInPackets: undefined, // metricsStore中没有这个字段
     networkOutPackets: undefined, // metricsStore中没有这个字段
-    extraInfo: undefined, // metricsStore中没有这个字段
+    extraInfo: undefined // metricsStore中没有这个字段
   };
 };
 
@@ -763,7 +662,7 @@ const getServerMonitorMetrics = (serverId: string | null) => {
  */
 const handleRefreshMetrics = async (serverId: string) => {
   try {
-    console.log('收到刷新指标数据请求:', serverId);
+    console.log("收到刷新指标数据请求:", serverId);
 
     // 这里可以触发指标数据的刷新
     // 由于数据是通过WebSocket实时推送的，这里主要是记录日志
@@ -772,9 +671,9 @@ const handleRefreshMetrics = async (serverId: string) => {
     // 可以触发一次数据更新检查
     await nextTick();
 
-    console.log('指标数据刷新完成');
+    console.log("指标数据刷新完成");
   } catch (error) {
-    console.error('刷新指标数据失败:', error);
+    console.error("刷新指标数据失败:", error);
   }
 };
 
@@ -791,7 +690,7 @@ const convertServerForRemoteDesktop = (server: ServerDisplayData | null) => {
     monitorSysGenServerPort: server.port,
     monitorSysGenServerProtocol: server.protocol,
     monitorSysGenServerUsername: server.username,
-    monitorSysGenServerPassword: undefined, // ServerDisplayData中没有password字段
+    monitorSysGenServerPassword: undefined // ServerDisplayData中没有password字段
   };
 };
 
@@ -799,12 +698,12 @@ const convertServerForRemoteDesktop = (server: ServerDisplayData | null) => {
  * 获取在线状态类型
  */
 const getOnlineStatusType = (status: number, isLocal: boolean) => {
-  if(isLocal) {
+  if (isLocal) {
     return "success";
   }
   // 添加类型检查和错误处理
-  if (typeof status !== 'number') {
-    console.warn('getOnlineStatusType: status is not a number:', status);
+  if (typeof status !== "number") {
+    console.warn("getOnlineStatusType: status is not a number:", status);
     return "info";
   }
 
@@ -816,12 +715,12 @@ const getOnlineStatusType = (status: number, isLocal: boolean) => {
  * 获取在线状态文本
  */
 const getOnlineStatusText = (status: number, isLocal: boolean) => {
-  if(isLocal) {
+  if (isLocal) {
     return "在线";
   }
   // 添加类型检查和错误处理
-  if (typeof status !== 'number') {
-    console.warn('getOnlineStatusText: status is not a number:', status);
+  if (typeof status !== "number") {
+    console.warn("getOnlineStatusText: status is not a number:", status);
     return "未知状态";
   }
 
@@ -834,8 +733,8 @@ const getOnlineStatusText = (status: number, isLocal: boolean) => {
  */
 const getProtocolIcon = (protocol: string) => {
   // 添加类型检查和错误处理
-  if (typeof protocol !== 'string') {
-    console.warn('getProtocolIcon: protocol is not a string:', protocol);
+  if (typeof protocol !== "string") {
+    console.warn("getProtocolIcon: protocol is not a string:", protocol);
     return "ri:server-line";
   }
 
@@ -846,7 +745,7 @@ const getProtocolIcon = (protocol: string) => {
 /**
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
@@ -859,9 +758,9 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', percentage: threshold.normal },
-    { color: '#e6a23c', percentage: threshold.warning },
-    { color: '#f56c6c', percentage: 100 }
+    { color: "#67c23a", percentage: threshold.normal },
+    { color: "#e6a23c", percentage: threshold.warning },
+    { color: "#f56c6c", percentage: 100 }
   ];
 };
 
@@ -869,19 +768,19 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
  * 格式化网络速度
  */
 const formatNetworkSpeed = (bytes: number) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
 /**
  * 刷新服务器列表 - 通知父组件
  */
 const loadServers = async () => {
-  console.log('server-management: 通知父组件刷新服务器列表');
-  emit('refresh-servers');
+  console.log("server-management: 通知父组件刷新服务器列表");
+  emit("refresh-servers");
 };
 
 /**
@@ -893,19 +792,16 @@ const loadServerLatency = async () => {
 
     // 获取所有服务器ID
     const serverIds = servers.value.map(server => Number(server.id));
-    
+
     // 批量获取延迟数据
     await latencyManager.fetchBatchLatency(serverIds);
 
     // 更新服务器列表的延迟信息
     latencyManager.updateServerListLatency(servers.value);
-
   } catch (error) {
     console.error("加载服务器延迟数据失败:", error);
   }
 };
-
-
 
 /**
  * 选择服务器 - 显示详情组件
@@ -913,7 +809,7 @@ const loadServerLatency = async () => {
 const selectServer = (server: any) => {
   selectedServerId.value = server.id;
   currentComponent.value = "ServerDetailComponents";
-  emit('select-server', server);
+  emit("select-server", server);
   console.log(`选择服务器 ${server.name}，显示详情组件`);
 };
 
@@ -937,7 +833,7 @@ const connectServer = async (server: any) => {
       currentComponent.value = "SSHTerminal";
   }
 
-  emit('server-action', 'connect', server);
+  emit("server-action", "connect", server);
 };
 
 /**
@@ -950,7 +846,7 @@ const disconnectServer = async (server: any) => {
   selectedServerId.value = "";
   currentComponent.value = "";
 
-  emit('server-action', 'disconnect', server);
+  emit("server-action", "disconnect", server);
 };
 
 /**
@@ -994,7 +890,7 @@ const handleServerAction = async (command: string, server: any) => {
       break;
     case "detail":
       // 跳转到服务器详情页
-      window.open(`/server/detail/${server.id}`, '_blank');
+      window.open(`/server/detail/${server.id}`, "_blank");
       break;
     case "script":
       scriptDialogRef.value?.open(server);
@@ -1013,7 +909,7 @@ const handleServerAction = async (command: string, server: any) => {
  */
 const testConnection = async (server: any) => {
   console.log("server-management: 通知父组件测试连接", server);
-  emit('server-action', 'test', server);
+  emit("server-action", "test", server);
 };
 
 /**
@@ -1021,15 +917,11 @@ const testConnection = async (server: any) => {
  */
 const deleteServerConfirm = async (server: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除服务器 "${server.name}" 吗？`,
-      "删除确认",
-      {
-        type: "warning",
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-      }
-    );
+    await ElMessageBox.confirm(`确定要删除服务器 "${server.name}" 吗？`, "删除确认", {
+      type: "warning",
+      confirmButtonText: "确定",
+      cancelButtonText: "取消"
+    });
 
     console.log("server-management: 通知父组件删除服务器", server);
 
@@ -1038,7 +930,7 @@ const deleteServerConfirm = async (server: any) => {
       currentComponent.value = "";
     }
 
-    emit('server-action', 'delete', server);
+    emit("server-action", "delete", server);
   } catch (error) {
     if (error !== "cancel") {
       console.error("删除服务器确认失败:", error);
@@ -1053,7 +945,6 @@ const showAddDialog = () => {
   editDialogRef.value?.open("add");
   editDialogRef.value?.setData({});
 };
-
 
 /**
  * 处理工具栏操作
@@ -1176,10 +1067,10 @@ const updateServerConnectionStatus = async (serverId: string, statusData: any) =
       const updatedServer = { ...servers.value[serverIndex] };
 
       // 更新服务器的连接状态
-      if (statusData && typeof statusData.connectionStatus !== 'undefined') {
+      if (statusData && typeof statusData.connectionStatus !== "undefined") {
         updatedServer.connectionStatus = statusData.connectionStatus;
       }
-      if (statusData && typeof statusData.onlineStatus !== 'undefined') {
+      if (statusData && typeof statusData.onlineStatus !== "undefined") {
         updatedServer.onlineStatus = statusData.onlineStatus;
       }
 
@@ -1188,7 +1079,7 @@ const updateServerConnectionStatus = async (serverId: string, statusData: any) =
       console.log(`已更新服务器 ${serverId} 的连接状态:`, statusData);
     }
   } catch (error) {
-    console.error('更新服务器连接状态失败:', error);
+    console.error("更新服务器连接状态失败:", error);
   }
 };
 
@@ -1218,7 +1109,7 @@ const debounceUpdateServerStatus = (serverId: string, statusData: any) => {
       // 清空待更新列表
       pendingStatusUpdates.clear();
     } catch (error) {
-      console.error('批量更新服务器状态失败:', error);
+      console.error("批量更新服务器状态失败:", error);
     }
   }, 300);
 };
@@ -1228,7 +1119,7 @@ const debounceUpdateServerStatus = (serverId: string, statusData: any) => {
  */
 const handleOpenConfig = (serverId: number) => {
   // 打开服务器配置对话框
-  console.log('打开服务器配置页面，服务器ID:', serverId);
+  console.log("打开服务器配置页面，服务器ID:", serverId);
   configDialogRef.value?.open(serverId);
 };
 
@@ -1243,16 +1134,18 @@ const getSocketStatusText = computed(() => {
     const now = Date.now();
     const timeDiff = now - lastUpdate;
 
-    console.info('数据更新时间差:', timeDiff);
-    if (timeDiff < 60000) { // 1分钟内有更新
-      return '已连接';
-    } else if (timeDiff < 300000) { // 5分钟内有更新
-      return '连接延迟';
+    console.info("数据更新时间差:", timeDiff);
+    if (timeDiff < 60000) {
+      // 1分钟内有更新
+      return "已连接";
+    } else if (timeDiff < 300000) {
+      // 5分钟内有更新
+      return "连接延迟";
     } else {
-      return '数据延迟';
+      return "数据延迟";
     }
   } else {
-    return '未连接';
+    return "未连接";
   }
 });
 
@@ -1267,15 +1160,17 @@ const getSocketStatusType = computed(() => {
     const now = Date.now();
     const timeDiff = now - lastUpdate;
 
-    if (timeDiff < 60000) { // 1分钟内有更新
-      return 'success';
-    } else if (timeDiff < 300000) { // 5分钟内有更新
-      return 'warning';
+    if (timeDiff < 60000) {
+      // 1分钟内有更新
+      return "success";
+    } else if (timeDiff < 300000) {
+      // 5分钟内有更新
+      return "warning";
     } else {
-      return 'warning';
+      return "warning";
     }
   } else {
-    return 'danger';
+    return "danger";
   }
 });
 
@@ -1290,15 +1185,17 @@ const getSocketStatusIcon = () => {
     const now = Date.now();
     const timeDiff = now - lastUpdate;
 
-    if (timeDiff < 60000) { // 1分钟内有更新
-      return 'ri:wifi-line';
-    } else if (timeDiff < 300000) { // 5分钟内有更新
-      return 'ri:signal-wifi-1-line';
+    if (timeDiff < 60000) {
+      // 1分钟内有更新
+      return "ri:wifi-line";
+    } else if (timeDiff < 300000) {
+      // 5分钟内有更新
+      return "ri:signal-wifi-1-line";
     } else {
-      return 'ri:signal-wifi-error-line';
+      return "ri:signal-wifi-error-line";
     }
   } else {
-    return 'ri:wifi-off-line';
+    return "ri:wifi-off-line";
   }
 };
 
@@ -1307,12 +1204,12 @@ const getSocketStatusIcon = () => {
  */
 const getServerHealthStatus = (serverId: string) => {
   if (!realTimeMetricsEnabled.value) {
-    return 'unknown';
+    return "unknown";
   }
 
   // 使用store中的isServerInWarning方法判断健康状态
   const isWarning = metricsStore.isServerInWarning(parseInt(serverId));
-  return isWarning ? 'warning' : 'healthy';
+  return isWarning ? "warning" : "healthy";
 };
 
 /**
@@ -1320,16 +1217,16 @@ const getServerHealthStatus = (serverId: string) => {
  */
 const getHealthStatusText = (status: string) => {
   switch (status) {
-    case 'healthy':
-      return '健康';
-    case 'warning':
-      return '警告';
-    case 'critical':
-      return '严重';
-    case 'offline':
-      return '离线';
+    case "healthy":
+      return "健康";
+    case "warning":
+      return "警告";
+    case "critical":
+      return "严重";
+    case "offline":
+      return "离线";
     default:
-      return '未知';
+      return "未知";
   }
 };
 
@@ -1338,16 +1235,16 @@ const getHealthStatusText = (status: string) => {
  */
 const getHealthStatusType = (status: string) => {
   switch (status) {
-    case 'healthy':
-      return 'success';
-    case 'warning':
-      return 'warning';
-    case 'critical':
-      return 'danger';
-    case 'offline':
-      return 'info';
+    case "healthy":
+      return "success";
+    case "warning":
+      return "warning";
+    case "critical":
+      return "danger";
+    case "offline":
+      return "info";
     default:
-      return 'info';
+      return "info";
   }
 };
 
@@ -1356,40 +1253,18 @@ const getHealthStatusType = (status: string) => {
  */
 const getHealthStatusIcon = (status: string) => {
   switch (status) {
-    case 'healthy':
-      return 'ri:heart-pulse-line';
-    case 'warning':
-      return 'ri:error-warning-line';
-    case 'critical':
-      return 'ri:alarm-warning-line';
-    case 'offline':
-      return 'ri:heart-line';
+    case "healthy":
+      return "ri:heart-pulse-line";
+    case "warning":
+      return "ri:error-warning-line";
+    case "critical":
+      return "ri:alarm-warning-line";
+    case "offline":
+      return "ri:heart-line";
     default:
-      return 'ri:question-line';
+      return "ri:question-line";
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // 消息统计已禁用，避免无限递归问题
 
@@ -1398,12 +1273,12 @@ const getHealthStatusIcon = (status: string) => {
 // 生命周期钩子
 onMounted(async () => {
   // 不再直接加载服务器列表，数据由父组件提供
-  console.log('server-management 组件已挂载，等待父组件数据');
+  console.log("server-management 组件已挂载，等待父组件数据");
 });
 
 onUnmounted(() => {
   // 不再管理 WebSocket 连接，由父组件统一管理
-  console.log('server-management 组件已卸载');
+  console.log("server-management 组件已卸载");
 });
 </script>
 
@@ -1778,7 +1653,7 @@ onUnmounted(() => {
 
       /* 状态指示器 */
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: 0;
@@ -1857,7 +1732,7 @@ onUnmounted(() => {
             display: flex;
             font-size: 13px;
             color: var(--el-text-color-secondary);
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
             background: var(--el-fill-color-light);
             padding: 4px 8px;
             border-radius: 6px;
@@ -2042,7 +1917,7 @@ onUnmounted(() => {
   position: relative;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -2172,7 +2047,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2188,11 +2064,21 @@ onUnmounted(() => {
   animation: slideInLeft 0.4s ease-out;
   animation-fill-mode: both;
 
-  &:nth-child(1) { animation-delay: 0.1s; }
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.3s; }
-  &:nth-child(4) { animation-delay: 0.4s; }
-  &:nth-child(5) { animation-delay: 0.5s; }
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.5s;
+  }
 }
 
 /* 响应式设计 */
@@ -2414,7 +2300,8 @@ onUnmounted(() => {
 
 /* 动画效果 */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -2468,7 +2355,7 @@ onUnmounted(() => {
     margin-top: 4px;
   }
 }
-:deep(.tag-container > span){
+:deep(.tag-container > span) {
   display: flex;
   align-items: center;
   flex-direction: column;
@@ -2515,5 +2402,4 @@ onUnmounted(() => {
     }
   }
 }
-
 </style>
