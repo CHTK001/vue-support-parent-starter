@@ -1,6 +1,6 @@
 <template>
   <div class="server-component" :class="{ 'is-fullscreen': isFullscreen }">
-    <div class="component-header">
+    <div v-if="showTitle" class="component-header">
       <div class="component-title">{{ title }}</div>
       <div class="component-actions">
         <el-tooltip content="刷新" placement="top" :show-after="300">
@@ -29,6 +29,18 @@
       <div v-if="error" class="component-error">
         <el-alert :title="error" type="error" show-icon :closable="false" />
       </div>
+      <div v-else-if="loading" class="component-loading">
+        <div class="loading-content">
+          <IconifyIconOnline icon="ep:loading" class="loading-icon" />
+          <span class="loading-text">加载中...</span>
+        </div>
+      </div>
+      <div v-else-if="!hasData" class="component-empty">
+        <div class="empty-content">
+          <IconifyIconOnline icon="ep:document" class="empty-icon" />
+          <span class="empty-text">暂无数据</span>
+        </div>
+      </div>
       <div v-else-if="chartType === 'line'" class="chart-wrapper">
         <line-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" :defaultTimeRange="30" @timeRangeChange="handleTimeRangeChange" />
       </div>
@@ -45,10 +57,7 @@
         <pie-chart :chart-data="chartData" :height="chartHeight" :loading="loading" :chart-config="chartConfig" :tip="tip" />
       </div>
       <div v-else-if="chartType === 'table'" class="table-wrapper">
-        <div v-if="loading" class="loading-mask">
-          <IconifyIconOnline icon="ep:loading" class="is-loading" />
-        </div>
-        <el-table v-else :data="tableData" stripe style="width: 100%" :max-height="tableHeight" size="small">
+        <el-table :data="tableData" stripe style="width: 100%" :max-height="tableHeight" size="small">
           <el-table-column v-for="(column, index) in tableColumns" :key="index" :prop="column.prop" :label="column.label" :width="column.width" />
         </el-table>
       </div>
@@ -113,6 +122,10 @@ const props = defineProps({
   chartConfig: {
     type: Object,
     default: () => ({})
+  },
+  showTitle: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -138,9 +151,36 @@ const valueUnit = computed(() => {
   return props.item.valueUnit || props.item.monitorSysGenServerDetailComponentValueUnit || "";
 });
 
+// 是否有数据
+const hasData = computed(() => {
+  if (props.loading) return true; // 加载中时认为有数据
+
+  if (chartType.value === "table") {
+    return props.tableData && props.tableData.length > 0;
+  }
+
+  if (chartType.value === "card") {
+    return props.chartData !== null && props.chartData !== undefined && props.chartData !== "";
+  }
+
+  // 对于其他图表类型，检查 chartData 是否有有效数据
+  if (!props.chartData) return false;
+
+  if (Array.isArray(props.chartData)) {
+    return props.chartData.length > 0;
+  }
+
+  if (typeof props.chartData === "object") {
+    // 检查对象是否有有效的数据属性
+    return Object.keys(props.chartData).length > 0;
+  }
+
+  return true;
+});
+
 // 图表高度
 const chartHeight = computed(() => {
-  return typeof props.height === 'number' ? props.height : parseInt(props.height) || 250;
+  return typeof props.height === "number" ? props.height : parseInt(props.height) || 250;
 });
 
 // 表格高度
@@ -171,47 +211,51 @@ const refreshCountdown = ref(0);
 const refreshTimer = ref(null);
 
 // 监听刷新间隔变化
-watch(() => props.refreshInterval, (newInterval) => {
-  if (refreshTimer.value) {
-    clearInterval(refreshTimer.value);
-    refreshTimer.value = null;
-  }
-  
-  if (newInterval > 0) {
-    refreshCountdown.value = newInterval;
-    refreshTimer.value = setInterval(() => {
-      refreshCountdown.value--;
-      if (refreshCountdown.value <= 0) {
-        refreshCountdown.value = newInterval;
-        fetchData();
-      }
-    }, 1000);
-  }
-}, { immediate: true });
+watch(
+  () => props.refreshInterval,
+  newInterval => {
+    if (refreshTimer.value) {
+      clearInterval(refreshTimer.value);
+      refreshTimer.value = null;
+    }
+
+    if (newInterval > 0) {
+      refreshCountdown.value = newInterval;
+      refreshTimer.value = setInterval(() => {
+        refreshCountdown.value--;
+        if (refreshCountdown.value <= 0) {
+          refreshCountdown.value = newInterval;
+          fetchData();
+        }
+      }, 1000);
+    }
+  },
+  { immediate: true }
+);
 
 // 生命周期
 onMounted(() => {
   // 监听全屏变化
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
 });
 
 onBeforeUnmount(() => {
   if (refreshTimer.value) {
     clearInterval(refreshTimer.value);
   }
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  document.removeEventListener("fullscreenchange", handleFullscreenChange);
 });
 
 /**
  * 获取数值单位标签
  */
-const getValueUnitLabel = (unit) => {
+const getValueUnitLabel = unit => {
   const unitMap = {
-    percent: '%',
-    bytes: 'B',
-    status: '状态',
-    count: '个',
-    time: 's'
+    percent: "%",
+    bytes: "B",
+    status: "状态",
+    count: "个",
+    time: "s"
   };
   return unitMap[unit] || unit;
 };
@@ -220,14 +264,14 @@ const getValueUnitLabel = (unit) => {
  * 刷新数据
  */
 const fetchData = () => {
-  emit('fetchData', props.item);
+  emit("fetchData", props.item);
 };
 
 /**
  * 时间范围变化处理
  */
-const handleTimeRangeChange = (timeRange) => {
-  emit('timeRangeChange', props.item, timeRange);
+const handleTimeRangeChange = timeRange => {
+  emit("timeRangeChange", props.item, timeRange);
 };
 
 /**
@@ -285,7 +329,7 @@ const handleFullscreenChange = () => {
 
       .el-button {
         color: #e0e0e0;
-        
+
         &:hover {
           color: var(--el-color-primary);
         }
@@ -309,6 +353,47 @@ const handleFullscreenChange = () => {
     .chart-wrapper {
       height: 100%;
       padding: 8px;
+    }
+
+    .component-loading,
+    .component-empty {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .loading-content,
+      .empty-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        color: #909399;
+
+        .loading-icon,
+        .empty-icon {
+          font-size: 32px;
+        }
+
+        .loading-text,
+        .empty-text {
+          font-size: 14px;
+        }
+      }
+
+      .loading-icon {
+        color: var(--el-color-primary);
+        animation: rotate 2s linear infinite;
+      }
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .table-wrapper {
@@ -350,7 +435,8 @@ const handleFullscreenChange = () => {
           }
         }
 
-        th, td {
+        th,
+        td {
           border-color: rgba(255, 255, 255, 0.1);
           color: #e0e0e0;
         }

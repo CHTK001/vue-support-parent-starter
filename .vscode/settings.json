@@ -1,13 +1,53 @@
 {
   "editor.formatOnType": true,
   "editor.formatOnSave": true,
-  "[vue]": {
-    "editor.formatOnSave": false, // 关闭Vue文件的保存时格式化（Volar会自行处理）
-    "editor.defaultFormatter": "esbenp.prettier-vscode" // 确保默认格式化程序是Volar
-  },
-  "volar.format.enable": true, // 明确启用Volar的格式化（默认已启用）
-  "editor.tabSize": 2,
   "editor.formatOnPaste": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+
+  // Vue文件格式化配置
+  "[vue]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "Vue.volar"
+  },
+
+  // TypeScript文件格式化配置
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // JavaScript文件格式化配置
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // JSON文件格式化配置
+  "[json]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // SCSS/CSS文件格式化配置
+  "[scss]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[css]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // HTML文件格式化配置
+  "[html]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "volar.format.enable": true,
   "editor.guides.bracketPairs": "active",
   "files.autoSave": "afterDelay",
   "git.confirmSync": false,
@@ -23,11 +63,10 @@
   "files.associations": {
     "editor.snippetSuggestions": "top"
   },
-  "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.removeUnusedImports": "explicit"
   },
   "typescript.inlayHints.enumMemberValues.enabled": true,
   "typescript.preferences.preferTypeOnlyAutoImports": true,

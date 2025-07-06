@@ -20,7 +20,7 @@
             查询
           </el-button>
         </div>
-        
+
         <div class="query-options">
           <el-select v-model="selectedComponentId" placeholder="选择组件" style="width: 200px" @change="handleComponentChange">
             <el-option
@@ -30,7 +30,7 @@
               :value="component.monitorSysGenServerComponentId"
             />
           </el-select>
-          
+
           <el-select v-model="stepValue" placeholder="步长" style="width: 120px">
             <el-option label="15秒" :value="15" />
             <el-option label="30秒" :value="30" />
@@ -40,17 +40,11 @@
           </el-select>
         </div>
       </div>
-      
+
       <div class="query-stats" v-if="queryResult">
-        <el-tag type="success" size="small">
-          查询时间: {{ queryTime }}ms
-        </el-tag>
-        <el-tag type="info" size="small">
-          数据点: {{ dataPointCount }}
-        </el-tag>
-        <el-tag type="warning" size="small">
-          更新时间: {{ lastUpdateTime }}
-        </el-tag>
+        <el-tag type="success" size="small">查询时间: {{ queryTime }}ms</el-tag>
+        <el-tag type="info" size="small">数据点: {{ dataPointCount }}</el-tag>
+        <el-tag type="warning" size="small">更新时间: {{ lastUpdateTime }}</el-tag>
       </div>
     </div>
 
@@ -58,12 +52,10 @@
     <div class="query-content" v-loading="loading">
       <div v-if="!queryResult" class="empty-state">
         <el-empty description="请选择组件并设置时间范围进行查询">
-          <el-button type="primary" @click="handleQuickQuery">
-            快速查询（最近1小时）
-          </el-button>
+          <el-button type="primary" @click="handleQuickQuery">快速查询（最近1小时）</el-button>
         </el-empty>
       </div>
-      
+
       <div v-else class="data-display">
         <!-- 组件信息 -->
         <div class="component-info">
@@ -77,22 +69,22 @@
             </el-tag>
           </div>
         </div>
-        
+
         <!-- 数据内容 -->
         <div class="data-content">
           <el-tabs v-model="activeTab" type="card">
             <el-tab-pane label="图表视图" name="chart">
               <div class="chart-container">
-                <div ref="chartRef" class="chart" style="height: 400px;"></div>
+                <div ref="chartRef" class="chart" style="height: 400px"></div>
               </div>
             </el-tab-pane>
-            
+
             <el-tab-pane label="原始数据" name="raw">
               <div class="raw-data">
                 <pre>{{ JSON.stringify(queryResult, null, 2) }}</pre>
               </div>
             </el-tab-pane>
-            
+
             <el-tab-pane label="表格视图" name="table">
               <div class="table-view">
                 <el-table :data="tableData" style="width: 100%" max-height="400">
@@ -117,11 +109,7 @@
 import { ref, computed, onMounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import * as echarts from "echarts";
-import { 
-  getComponentsByServerId, 
-  getComponentData,
-  type ServerComponent 
-} from "@/api/server";
+import { getComponentsByServerId, getComponentData, getComponentRealtimeData, type ServerComponent } from "@/api/server";
 
 // 定义属性
 const props = defineProps<{
@@ -143,15 +131,12 @@ const chartRef = ref<HTMLElement>();
 let chart: echarts.ECharts | null = null;
 
 // 默认时间
-const defaultTime = [
-  new Date(2000, 1, 1, 0, 0, 0),
-  new Date(2000, 1, 1, 23, 59, 59)
-];
+const defaultTime = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)];
 
 // 时间快捷选项
 const dateShortcuts = [
   {
-    text: '最近15分钟',
+    text: "最近15分钟",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -160,7 +145,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: '最近1小时',
+    text: "最近1小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -169,7 +154,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: '最近6小时',
+    text: "最近6小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -178,7 +163,7 @@ const dateShortcuts = [
     }
   },
   {
-    text: '最近24小时',
+    text: "最近24小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -195,21 +180,23 @@ const selectedComponent = computed(() => {
 
 const tableData = computed(() => {
   if (!queryResult.value || !queryResult.value.data) return [];
-  
+
   // 根据数据格式转换为表格数据
   if (Array.isArray(queryResult.value.data)) {
     return queryResult.value.data.map((item: any, index: number) => ({
-      timestamp: item.timestamp || Date.now() - (index * 60 * 1000),
+      timestamp: item.timestamp || Date.now() - index * 60 * 1000,
       value: item.value || item,
-      metric: item.metric || selectedComponent.value?.monitorSysGenServerComponentName || '未知'
+      metric: item.metric || selectedComponent.value?.monitorSysGenServerComponentName || "未知"
     }));
   }
-  
-  return [{
-    timestamp: Date.now(),
-    value: queryResult.value.data,
-    metric: selectedComponent.value?.monitorSysGenServerComponentName || '未知'
-  }];
+
+  return [
+    {
+      timestamp: Date.now(),
+      value: queryResult.value.data,
+      metric: selectedComponent.value?.monitorSysGenServerComponentName || "未知"
+    }
+  ];
 });
 
 /**
@@ -238,7 +225,7 @@ const handleQuery = async () => {
     ElMessage.warning("请选择要查询的组件");
     return;
   }
-  
+
   if (!timeRangeValue.value || timeRangeValue.value.length !== 2) {
     ElMessage.warning("请选择有效的时间范围");
     return;
@@ -248,26 +235,39 @@ const handleQuery = async () => {
     loading.value = true;
     const startTime = parseInt(timeRangeValue.value[0]);
     const endTime = parseInt(timeRangeValue.value[1]);
-    
+
+    // 获取选中组件的信息
+    const selectedComponent = components.value.find(c => c.monitorSysGenServerComponentId === selectedComponentId.value);
+
     const start = Date.now();
-    const res = await getComponentData(selectedComponentId.value, startTime, endTime, stepValue.value);
+    let res;
+
+    // 根据组件的表达式类型选择查询方式
+    if (selectedComponent?.monitorSysGenServerComponentExpressionType === "REALTIME") {
+      // 实时数据查询
+      res = await getComponentRealtimeData(selectedComponentId.value);
+    } else {
+      // 其他类型使用统一的数据查询接口
+      res = await getComponentData(selectedComponentId.value, startTime, endTime, stepValue.value);
+    }
+
     queryTime.value = Date.now() - start;
-    
+
     if (res.code === "00000") {
       queryResult.value = res.data;
       lastUpdateTime.value = new Date().toLocaleTimeString();
-      
+
       // 计算数据点数量
       if (Array.isArray(res.data?.data)) {
         dataPointCount.value = res.data.data.length;
       } else {
         dataPointCount.value = 1;
       }
-      
+
       // 更新图表
       await nextTick();
       updateChart();
-      
+
       ElMessage.success("查询成功");
     } else {
       ElMessage.error(res.msg || "查询失败");
@@ -287,12 +287,9 @@ const handleQuickQuery = () => {
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 60 * 60 * 1000); // 最近1小时
-  
-  timeRangeValue.value = [
-    Math.floor(start.getTime() / 1000).toString(),
-    Math.floor(end.getTime() / 1000).toString()
-  ];
-  
+
+  timeRangeValue.value = [Math.floor(start.getTime() / 1000).toString(), Math.floor(end.getTime() / 1000).toString()];
+
   handleQuery();
 };
 
@@ -308,33 +305,35 @@ const handleComponentChange = () => {
  */
 const updateChart = () => {
   if (!chartRef.value || !queryResult.value) return;
-  
+
   if (!chart) {
     chart = echarts.init(chartRef.value);
   }
-  
+
   // 根据数据格式生成图表配置
   const option = {
     title: {
-      text: selectedComponent.value?.monitorSysGenServerComponentName || '组件数据',
-      left: 'center'
+      text: selectedComponent.value?.monitorSysGenServerComponentName || "组件数据",
+      left: "center"
     },
     tooltip: {
-      trigger: 'axis'
+      trigger: "axis"
     },
     xAxis: {
-      type: 'time'
+      type: "time"
     },
     yAxis: {
-      type: 'value'
+      type: "value"
     },
-    series: [{
-      name: '数值',
-      type: 'line',
-      data: generateChartData()
-    }]
+    series: [
+      {
+        name: "数值",
+        type: "line",
+        data: generateChartData()
+      }
+    ]
   };
-  
+
   chart.setOption(option);
 };
 
@@ -343,14 +342,11 @@ const updateChart = () => {
  */
 const generateChartData = () => {
   if (!queryResult.value?.data) return [];
-  
+
   if (Array.isArray(queryResult.value.data)) {
-    return queryResult.value.data.map((item: any, index: number) => [
-      item.timestamp ? new Date(item.timestamp * 1000) : new Date(Date.now() - (index * 60 * 1000)),
-      item.value || item
-    ]);
+    return queryResult.value.data.map((item: any, index: number) => [item.timestamp ? new Date(item.timestamp * 1000) : new Date(Date.now() - index * 60 * 1000), item.value || item]);
   }
-  
+
   return [[new Date(), queryResult.value.data]];
 };
 
@@ -366,13 +362,13 @@ const formatTimestamp = (timestamp: number) => {
  */
 const getComponentTypeColor = (type: string) => {
   const colorMap: Record<string, string> = {
-    'card': 'primary',
-    'gauge': 'success',
-    'line': 'info',
-    'bar': 'warning',
-    'pie': 'danger'
+    card: "primary",
+    gauge: "success",
+    line: "info",
+    bar: "warning",
+    pie: "danger"
   };
-  return colorMap[type] || 'info';
+  return colorMap[type] || "info";
 };
 
 /**
@@ -380,13 +376,13 @@ const getComponentTypeColor = (type: string) => {
  */
 const getComponentTypeName = (type: string) => {
   const nameMap: Record<string, string> = {
-    'card': '卡片',
-    'gauge': '仪表盘',
-    'line': '折线图',
-    'bar': '柱状图',
-    'pie': '饼图'
+    card: "卡片",
+    gauge: "仪表盘",
+    line: "折线图",
+    bar: "柱状图",
+    pie: "饼图"
   };
-  return nameMap[type] || '未知';
+  return nameMap[type] || "未知";
 };
 
 /**
@@ -394,11 +390,12 @@ const getComponentTypeName = (type: string) => {
  */
 const getExpressionTypeName = (type?: string) => {
   const typeMap: Record<string, string> = {
-    'PROMETHEUS': 'Prometheus PromQL',
-    'SQL': 'SQL查询',
-    'COMPONENT': '组件选择'
+    PROMETHEUS: "Prometheus PromQL",
+    SQL: "SQL查询",
+    COMPONENT: "组件选择",
+    REALTIME: "实时数据"
   };
-  return typeMap[type || 'COMPONENT'] || '未知';
+  return typeMap[type || "COMPONENT"] || "未知";
 };
 
 // 生命周期
@@ -451,7 +448,7 @@ onMounted(() => {
 
 .component-info {
   margin-bottom: 20px;
-  
+
   h3 {
     margin: 0 0 8px 0;
     font-size: 18px;
@@ -470,7 +467,7 @@ onMounted(() => {
   border-radius: 4px;
   max-height: 400px;
   overflow: auto;
-  
+
   pre {
     margin: 0;
     font-size: 12px;

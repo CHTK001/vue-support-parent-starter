@@ -1,8 +1,8 @@
 <template>
   <div ref="serverLayoutRef" class="server-component-layout h-full">
-    <div class="layout-header">
+    <div class="layout-header" v-if="editable">
       <!-- 左侧编辑操作区 -->
-      <div v-if="editable" class="layout-actions-left">
+      <div class="layout-actions-left">
         <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加组件
@@ -17,57 +17,6 @@
         </el-button>
       </div>
 
-      <!-- 中间数据查询控制区 -->
-      <div class="layout-query-controls">
-        <!-- 时间范围选择 -->
-        <div class="query-item">
-          <label class="query-label">时间范围:</label>
-          <el-date-picker
-            v-model="queryTimeRange"
-            type="datetimerange"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            format="YYYY-MM-DD HH:mm:ss"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            :shortcuts="timeRangeShortcuts"
-            size="small"
-            style="width: 350px"
-          />
-        </div>
-
-        <!-- 自动刷新设置 -->
-        <div class="query-item">
-          <label class="query-label">自动刷新:</label>
-          <el-select
-            v-model="autoRefreshInterval"
-            placeholder="选择刷新间隔"
-            size="small"
-            style="width: 120px"
-            @change="handleRefreshIntervalChange"
-          >
-            <el-option label="不刷新" :value="0" />
-            <el-option label="30秒" :value="30" />
-            <el-option label="1分钟" :value="60" />
-            <el-option label="5分钟" :value="300" />
-            <el-option label="10分钟" :value="600" />
-          </el-select>
-        </div>
-
-        <!-- 查询按钮 -->
-        <div class="query-item">
-          <el-button type="primary" @click="handleManualQuery" :loading="loading" size="small">
-            <IconifyIconOnline icon="ri:search-line" class="mr-1" />
-            查询
-          </el-button>
-        </div>
-
-        <!-- 刷新倒计时显示 -->
-        <div v-if="autoRefreshInterval > 0" class="query-item refresh-countdown">
-          <span class="countdown-text">下次刷新: {{ refreshCountdown }}s</span>
-        </div>
-      </div>
-
       <!-- 右侧保存操作区 -->
       <div v-if="editable && layoutChanged" class="layout-actions-right">
         <el-button type="primary" @click="saveConfigToServer">
@@ -77,17 +26,17 @@
       </div>
     </div>
 
-    <GridLayout 
-      v-if="layout.length > 0" 
-      class="h-full" 
-      :layout="layout" 
-      :col-num="24" 
-      :row-height="30" 
-      :is-draggable="editable" 
-      :is-resizable="editable" 
-      :vertical-compact="true" 
-      :use-css-transforms="true" 
-      :margin="[10, 10]" 
+    <GridLayout
+      v-if="layout.length > 0"
+      class="h-full"
+      :layout="layout"
+      :col-num="24"
+      :row-height="30"
+      :is-draggable="editable"
+      :is-resizable="editable"
+      :vertical-compact="true"
+      :use-css-transforms="true"
+      :margin="[10, 10]"
       @layout-updated="handleLayoutUpdated"
     >
       <GridItem v-for="item in layout" :key="item.i" :x="item.x" :y="item.y" :w="item.w" :h="item.h" :i="item.i">
@@ -120,6 +69,7 @@
             :chart-config="getChartConfig(item)"
             :item="item"
             :editable="editable"
+            :show-title="item.showTitle !== false"
             :query-time="getComponentUpdateTime(item)"
             @click="handleChartClick(item)"
             @editComponent="editComponent"
@@ -149,56 +99,27 @@
           <el-form-item label="组件名称" prop="title">
             <el-input v-model="addForm.title" placeholder="请输入组件名称" />
           </el-form-item>
-          
+
           <el-form-item label="组件类型" prop="type">
-            <el-select
-              v-model="addForm.type"
-              placeholder="请选择组件类型"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="option in componentTypeOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
+            <el-select v-model="addForm.type" placeholder="请选择组件类型" style="width: 100%">
+              <el-option v-for="option in componentTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
           </el-form-item>
 
           <el-form-item label="表达式类型" prop="expressionType">
-            <el-select
-              v-model="addForm.expressionType"
-              placeholder="请选择表达式类型"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="option in expressionTypeOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
+            <el-select v-model="addForm.expressionType" placeholder="请选择表达式类型" style="width: 100%">
+              <el-option v-for="option in expressionTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
           </el-form-item>
 
           <el-form-item :label="addForm.expressionType === 'PROMETHEUS' ? 'PromQL表达式' : '组件选择'" prop="expression">
             <!-- Prometheus 表达式输入 -->
             <template v-if="addForm.expressionType === 'PROMETHEUS'">
-              <el-input
-                v-model="addForm.expression"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入PromQL查询表达式"
-              />
+              <el-input v-model="addForm.expression" type="textarea" :rows="4" placeholder="请输入PromQL查询表达式" />
               <div class="expression-examples">
                 <div class="examples-header">常用表达式示例：</div>
                 <div class="examples-list">
-                  <el-tag
-                    v-for="example in prometheusExamples"
-                    :key="example.value"
-                    size="small"
-                    class="example-tag"
-                    @click="addForm.expression = example.value"
-                  >
+                  <el-tag v-for="example in prometheusExamples" :key="example.value" size="small" class="example-tag" @click="addForm.expression = example.value">
                     {{ example.label }}
                   </el-tag>
                 </div>
@@ -207,30 +128,10 @@
 
             <!-- 固定组件选择 -->
             <template v-else>
-              <el-select
-                v-model="addForm.expression"
-                placeholder="请选择监控组件"
-                style="width: 100%"
-                filterable
-              >
-                <el-option
-                  v-for="option in componentOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
+              <el-select v-model="addForm.expression" placeholder="请选择监控组件" style="width: 100%" filterable>
+                <el-option v-for="option in componentOptions" :key="option.value" :label="option.label" :value="option.value" />
               </el-select>
             </template>
-          </el-form-item>
-
-          <el-form-item label="刷新间隔" prop="refreshInterval">
-            <el-input-number
-              v-model="addForm.refreshInterval"
-              :min="5"
-              :max="3600"
-              style="width: 100%"
-            />
-            <span class="form-help">秒</span>
           </el-form-item>
 
           <el-form-item label="组件大小">
@@ -245,19 +146,13 @@
           </el-form-item>
 
           <el-form-item label="数值单位" prop="valueUnit">
-            <el-select
-              v-model="addForm.valueUnit"
-              placeholder="请选择数值单位"
-              style="width: 100%"
-              clearable
-            >
-              <el-option
-                v-for="option in valueUnitOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
+            <el-select v-model="addForm.valueUnit" placeholder="请选择数值单位" style="width: 100%" clearable>
+              <el-option v-for="option in valueUnitOptions" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
+          </el-form-item>
+
+          <el-form-item label="显示标题">
+            <el-switch v-model="addForm.showTitle" active-text="显示" inactive-text="隐藏" />
           </el-form-item>
         </el-form>
 
@@ -299,7 +194,7 @@
               </div>
             </div>
           </el-tab-pane>
-          
+
           <el-tab-pane label="共享组件" name="shared">
             <div class="component-cards">
               <el-empty v-if="sharedComponents.length === 0" description="暂无共享组件" />
@@ -327,9 +222,7 @@
         </el-tabs>
 
         <div class="selector-footer">
-          <div class="selected-info">
-            已选择 {{ selectedComponents.length }} 个组件
-          </div>
+          <div class="selected-info">已选择 {{ selectedComponents.length }} 个组件</div>
           <div class="selector-actions">
             <el-button @click="showComponentSelector = false">取消</el-button>
             <el-button type="primary" @click="addSelectedComponents" :disabled="selectedComponents.length === 0">
@@ -342,17 +235,10 @@
     </el-dialog>
 
     <!-- 图表配置对话框 -->
-    <ChartConfigDialog
-      ref="chartConfigDialogRef"
-      @save="handleChartConfigSave"
-    />
+    <ChartConfigDialog ref="chartConfigDialogRef" @save="handleChartConfigSave" />
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog
-      ref="componentEditDialogRef"
-      :server-id="serverId"
-      @saved="handleComponentSaved"
-    />
+    <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
   </div>
 </template>
 
@@ -366,6 +252,8 @@ import {
   getComponentsByServerId,
   createServerDetailComponent,
   updateServerDetailComponent,
+  executeComponentQuery,
+  getComponentRealtimeData,
   type ServerComponentLayout
 } from "@/api/server";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
@@ -375,6 +263,8 @@ import { defineExpose, defineProps, nextTick, onBeforeUnmount, onMounted, reacti
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";
+import { getComponentWebSocketManager } from "@/utils/websocket/ComponentWebSocketManager";
+import type { ComponentRealtimeMessage } from "@/api/server";
 
 const props = defineProps({
   serverId: {
@@ -383,12 +273,12 @@ const props = defineProps({
   },
   editable: {
     type: Boolean,
-    default: false,
+    default: false
   },
   timeParams: {
     type: Object,
-    default: () => ({}),
-  },
+    default: () => ({})
+  }
 });
 
 // 响应式状态
@@ -401,58 +291,8 @@ const componentTimers = ref({});
 
 // 查询控制相关
 const queryTimeRange = ref([]);
-const autoRefreshInterval = ref(0); // 默认不自动刷新
-const refreshCountdown = ref(0);
-const globalRefreshTimer = ref(null);
 
-// 时间范围快捷选项
-const timeRangeShortcuts = [
-  {
-    text: '最近1小时',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000);
-      return [start, end];
-    }
-  },
-  {
-    text: '最近6小时',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 6);
-      return [start, end];
-    }
-  },
-  {
-    text: '最近12小时',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 12);
-      return [start, end];
-    }
-  },
-  {
-    text: '最近24小时',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24);
-      return [start, end];
-    }
-  },
-  {
-    text: '最近7天',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-      return [start, end];
-    }
-  }
-];
+const globalRefreshTimer = ref(null);
 
 // 添加组件相关
 const showAddComponentDrawer = ref(false);
@@ -463,10 +303,10 @@ const addForm = reactive({
   type: "card",
   expressionType: "COMPONENT",
   expression: "",
-  refreshInterval: 30,
   w: 6,
   h: 6,
-  valueUnit: ""
+  valueUnit: "",
+  showTitle: true
 });
 
 // 组件选择器相关
@@ -510,7 +350,7 @@ const componentOptions = [
 
 // Prometheus 示例表达式
 const prometheusExamples = [
-  { label: "CPU使用率", value: "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)" },
+  { label: "CPU使用率", value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
   { label: "内存使用率", value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
   { label: "磁盘使用率", value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
   { label: "网络接收", value: "irate(node_network_receive_bytes_total[5m])" },
@@ -536,9 +376,13 @@ const addFormRules = {
 };
 
 // 监听布局变化
-watch(() => layout.value, () => {
-  layoutChanged.value = true;
-}, { deep: true });
+watch(
+  () => layout.value,
+  () => {
+    layoutChanged.value = true;
+  },
+  { deep: true }
+);
 
 // 生命周期
 onMounted(() => {
@@ -559,6 +403,14 @@ onBeforeUnmount(() => {
 
   Object.values(componentTimers.value).forEach((timer: any) => {
     if (timer) clearInterval(timer);
+  });
+
+  // 清理WebSocket订阅
+  const wsManager = getComponentWebSocketManager();
+  layout.value.forEach(item => {
+    if (item.monitorSysGenServerComponentLayoutComponentId && item.expressionType === "REALTIME") {
+      wsManager.unsubscribeComponent(item.monitorSysGenServerComponentLayoutComponentId);
+    }
   });
 });
 
@@ -587,44 +439,45 @@ const loadComponents = async () => {
       }
 
       // 3. 合并布局配置和组件定义
-      layout.value = layoutRes.data.map(layoutConfig => {
-        const component = componentsMap.get(layoutConfig.monitorSysGenServerComponentId);
+      layout.value = layoutRes.data
+        .map(layoutConfig => {
+          const component = componentsMap.get(layoutConfig.monitorSysGenServerComponentId);
 
-        if (!component) {
-          console.warn("找不到组件定义:", layoutConfig.monitorSysGenServerComponentId);
-          return null;
-        }
+          if (!component) {
+            console.warn("找不到组件定义:", layoutConfig.monitorSysGenServerComponentId);
+            return null;
+          }
 
-        return {
-          i: `layout-${layoutConfig.monitorSysGenServerComponentLayoutId}`,
-          x: layoutConfig.monitorSysGenServerComponentLayoutX || 0,
-          y: layoutConfig.monitorSysGenServerComponentLayoutY || 0,
-          w: layoutConfig.monitorSysGenServerComponentLayoutW || 6,
-          h: layoutConfig.monitorSysGenServerComponentLayoutH || 6,
-          // 布局相关字段
-          layoutId: layoutConfig.monitorSysGenServerComponentLayoutId,
-          componentId: layoutConfig.monitorSysGenServerComponentId,
-          zIndex: layoutConfig.monitorSysGenServerComponentLayoutZIndex || 1,
-          movable: layoutConfig.monitorSysGenServerComponentLayoutMovable !== false,
-          resizable: layoutConfig.monitorSysGenServerComponentLayoutResizable !== false,
-          // 组件定义字段
-          title: component.monitorSysGenServerComponentName,
-          type: component.monitorSysGenServerComponentType,
-          expressionType: component.monitorSysGenServerComponentExpressionType,
-          expression: component.monitorSysGenServerComponentExpression,
-          refreshInterval: component.monitorSysGenServerComponentRefreshInterval || 30,
-          valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
-          chartConfig: component.monitorSysGenServerComponentChartConfig,
-          enabled: component.monitorSysGenServerComponentEnabled
-        };
-      }).filter(item => item !== null);
+          return {
+            i: `layout-${layoutConfig.monitorSysGenServerComponentLayoutId}`,
+            x: layoutConfig.monitorSysGenServerComponentLayoutX || 0,
+            y: layoutConfig.monitorSysGenServerComponentLayoutY || 0,
+            w: layoutConfig.monitorSysGenServerComponentLayoutW || 6,
+            h: layoutConfig.monitorSysGenServerComponentLayoutH || 6,
+            // 布局相关字段
+            layoutId: layoutConfig.monitorSysGenServerComponentLayoutId,
+            componentId: layoutConfig.monitorSysGenServerComponentId,
+            zIndex: layoutConfig.monitorSysGenServerComponentLayoutZIndex || 1,
+            movable: layoutConfig.monitorSysGenServerComponentLayoutMovable !== false,
+            resizable: layoutConfig.monitorSysGenServerComponentLayoutResizable !== false,
+            // 组件定义字段
+            title: component.monitorSysGenServerComponentName,
+            type: component.monitorSysGenServerComponentType,
+            expressionType: component.monitorSysGenServerComponentExpressionType,
+            expression: component.monitorSysGenServerComponentExpression,
+            showTitle: component.monitorSysGenServerComponentShowTitle !== false,
+            valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
+            chartConfig: component.monitorSysGenServerComponentChartConfig,
+            enabled: component.monitorSysGenServerComponentEnabled
+          };
+        })
+        .filter(item => item !== null);
 
       console.log("加载的布局配置:", layout.value);
 
       // 4. 加载组件数据
       for (const item of layout.value) {
         await loadComponentData(item);
-        setupComponentRefreshTimer(item);
       }
     } else {
       console.log("没有找到布局配置，显示空布局");
@@ -640,7 +493,7 @@ const loadComponents = async () => {
     nextTick(() => {
       setTimeout(() => {
         // 触发窗口resize事件，让所有图表重新调整尺寸
-        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event("resize"));
       }, 200);
     });
   }
@@ -662,19 +515,22 @@ const saveConfigToServer = async () => {
     loading.value = true;
 
     // 构建布局更新数据
-    const layoutUpdates = layout.value.map(item => ({
-      monitorSysGenServerComponentLayoutId: item.layoutId,
-      monitorSysGenServerId: props.serverId,
-      monitorSysGenServerComponentId: item.componentId,
-      monitorSysGenServerComponentLayoutX: item.x,
-      monitorSysGenServerComponentLayoutY: item.y,
-      monitorSysGenServerComponentLayoutW: item.w,
-      monitorSysGenServerComponentLayoutH: item.h,
-      monitorSysGenServerComponentLayoutZIndex: item.zIndex || 1,
-      monitorSysGenServerComponentLayoutMovable: item.movable !== false,
-      monitorSysGenServerComponentLayoutResizable: item.resizable !== false,
-      monitorSysGenServerComponentLayoutStatus: 1
-    } as ServerComponentLayout));
+    const layoutUpdates = layout.value.map(
+      item =>
+        ({
+          monitorSysGenServerComponentLayoutId: item.layoutId,
+          monitorSysGenServerId: props.serverId,
+          monitorSysGenServerComponentId: item.componentId,
+          monitorSysGenServerComponentLayoutX: item.x,
+          monitorSysGenServerComponentLayoutY: item.y,
+          monitorSysGenServerComponentLayoutW: item.w,
+          monitorSysGenServerComponentLayoutH: item.h,
+          monitorSysGenServerComponentLayoutZIndex: item.zIndex || 1,
+          monitorSysGenServerComponentLayoutMovable: item.movable !== false,
+          monitorSysGenServerComponentLayoutResizable: item.resizable !== false,
+          monitorSysGenServerComponentLayoutStatus: 1
+        }) as ServerComponentLayout
+    );
 
     // 使用新的批量更新布局位置API
     const res = await batchUpdateLayoutPositions(layoutUpdates);
@@ -708,7 +564,7 @@ const addComponent = async () => {
       monitorSysGenServerComponentType: addForm.type,
       monitorSysGenServerComponentExpressionType: addForm.expressionType,
       monitorSysGenServerComponentExpression: addForm.expression,
-      monitorSysGenServerComponentRefreshInterval: addForm.refreshInterval,
+      monitorSysGenServerComponentShowTitle: addForm.showTitle !== false,
       monitorSysGenServerComponentValueUnit: addForm.valueUnit,
       monitorSysGenServerComponentEnabled: 1,
       monitorSysGenServerComponentSortOrder: layout.value.length,
@@ -756,7 +612,7 @@ const resetAddForm = () => {
     type: "card",
     expressionType: "COMPONENT",
     expression: "",
-    refreshInterval: 30,
+    showTitle: true,
     w: 6,
     h: 6,
     valueUnit: ""
@@ -776,7 +632,7 @@ const editComponent = (item: any) => {
     monitorSysGenServerComponentType: item.type,
     monitorSysGenServerComponentExpressionType: item.expressionType,
     monitorSysGenServerComponentExpression: item.expression,
-    monitorSysGenServerComponentRefreshInterval: item.refreshInterval,
+    monitorSysGenServerComponentShowTitle: item.showTitle !== false,
     monitorSysGenServerComponentEnabled: item.enabled,
     monitorSysGenServerComponentChartConfig: item.chartConfig,
     monitorSysGenServerComponentPosition: JSON.stringify({
@@ -794,15 +650,11 @@ const editComponent = (item: any) => {
  */
 const removeComponent = async (item: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`,
-      "移除确认",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
+    await ElMessageBox.confirm(`确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`, "移除确认", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+    });
 
     // 删除布局配置，而不是删除组件定义
     const res = await deleteServerComponentLayout(item.layoutId);
@@ -852,11 +704,11 @@ const handleChartConfigSave = async (item: any, config: any) => {
     const res = await updateServerDetailComponent({
       monitorSysGenServerComponentId: item.componentId,
       monitorSysGenServerId: props.serverId,
-      monitorSysGenServerComponentName: item.title || '',
-      monitorSysGenServerComponentTitle: item.title || '',
-      monitorSysGenServerComponentType: item.type || 'card',
-      monitorSysGenServerComponentExpressionType: item.expressionType || 'COMPONENT',
-      monitorSysGenServerComponentExpression: item.expression || '',
+      monitorSysGenServerComponentName: item.title || "",
+      monitorSysGenServerComponentTitle: item.title || "",
+      monitorSysGenServerComponentType: item.type || "card",
+      monitorSysGenServerComponentExpressionType: item.expressionType || "COMPONENT",
+      monitorSysGenServerComponentExpression: item.expression || "",
       monitorSysGenServerComponentEnabled: item.enabled || 1,
       monitorSysGenServerComponentChartConfig: JSON.stringify(config)
     } as any);
@@ -888,95 +740,114 @@ const handleComponentSaved = () => {
  * 加载组件数据
  */
 const loadComponentData = async (item: any) => {
-  if (!item.expression) return;
+  if (!item.expression || !item.monitorSysGenServerComponentLayoutComponentId) return;
 
   try {
-    // 根据表达式类型加载不同的数据
-    if (item.expressionType === "PROMETHEUS") {
-      // TODO: 实现 Prometheus 数据查询
-      componentsData.value[item.i] = generateMockData(item.type);
+    const componentId = item.monitorSysGenServerComponentLayoutComponentId;
+    const expressionType = item.expressionType || "COMPONENT";
+
+    console.log(`开始加载组件数据: ${item.expression}`, {
+      componentId,
+      expressionType,
+      timeRange: queryTimeRange.value,
+      serverId: props.serverId
+    });
+
+    // 构建时间范围参数
+    const timeRange = {
+      startTime: Math.floor(queryTimeRange.value[0].getTime() / 1000),
+      endTime: Math.floor(queryTimeRange.value[1].getTime() / 1000),
+      step: 60
+    };
+
+    let result: any;
+
+    // 根据表达式类型选择不同的数据查询方式
+    switch (expressionType.toUpperCase()) {
+      case "PROMETHEUS":
+        // 使用Prometheus查询
+        result = await executeComponentQuery(componentId, timeRange);
+        break;
+
+      case "COMPONENT":
+        // 使用组件时序数据查询
+        result = await executeComponentQuery(componentId, timeRange);
+        break;
+
+      case "REALTIME":
+        // 获取实时数据
+        result = await getComponentRealtimeData(componentId);
+        // 对于实时数据，还需要订阅WebSocket推送
+        await subscribeRealtimeData(componentId);
+        break;
+
+      case "SQL":
+        // 使用SQL查询
+        result = await executeComponentQuery(componentId, timeRange);
+        break;
+
+      default:
+        console.warn(`不支持的表达式类型: ${expressionType}`);
+        result = await executeComponentQuery(componentId, timeRange);
+    }
+
+    if (result && result.code === "00000") {
+      componentsData.value[item.i] = {
+        ...result.data,
+        updateTime: new Date().toLocaleTimeString(),
+        expressionType: expressionType
+      };
+      console.log(`组件数据加载成功: ${item.expression}`, result.data);
     } else {
-      // TODO: 实现固定组件数据查询
-      componentsData.value[item.i] = generateMockData(item.type);
+      console.warn(`组件数据加载失败: ${item.expression}`, result?.msg);
+      componentsData.value[item.i] = {
+        error: result?.msg || "数据加载失败",
+        updateTime: new Date().toLocaleTimeString(),
+        expressionType: expressionType
+      };
     }
   } catch (error) {
     console.error("加载组件数据失败:", error);
+    componentsData.value[item.i] = {
+      error: error.message || "数据加载异常",
+      updateTime: new Date().toLocaleTimeString(),
+      expressionType: item.expressionType || "COMPONENT"
+    };
   }
 };
 
 /**
- * 设置组件刷新定时器
+ * 订阅实时数据
  */
-const setupComponentRefreshTimer = (item: any) => {
-  if (item.refreshInterval && item.refreshInterval > 0) {
-    const timer = setInterval(() => {
-      loadComponentData(item);
-    }, item.refreshInterval * 1000);
+const subscribeRealtimeData = async (componentId: number) => {
+  try {
+    const wsManager = getComponentWebSocketManager();
 
-    componentTimers.value[item.i] = timer;
-  }
-};
+    // 确保WebSocket连接已建立
+    if (!wsManager.isConnected()) {
+      await wsManager.connect();
+    }
 
-/**
- * 生成模拟数据
- */
-const generateMockData = (type: string) => {
-  const now = Date.now();
+    // 订阅组件实时数据
+    wsManager.subscribeComponent(componentId, (message: ComponentRealtimeMessage) => {
+      // 找到对应的布局项
+      const layoutItem = layout.value.find(item => item.monitorSysGenServerComponentLayoutComponentId === componentId);
 
-  switch (type) {
-    case 'card':
-      return {
-        value: Math.floor(Math.random() * 100),
-        unit: '%',
-        updateTime: new Date().toLocaleString()
-      };
+      if (layoutItem) {
+        // 更新组件数据
+        componentsData.value[layoutItem.i] = {
+          ...message.data,
+          updateTime: new Date(message.timestamp).toLocaleTimeString(),
+          expressionType: "REALTIME"
+        };
 
-    case 'gauge':
-      return {
-        value: Math.floor(Math.random() * 100),
-        max: 100,
-        unit: '%'
-      };
+        console.log(`收到实时数据更新: componentId=${componentId}`, message.data);
+      }
+    });
 
-    case 'line':
-    case 'bar':
-      return {
-        labels: Array.from({ length: 10 }, (_, i) =>
-          new Date(now - (9 - i) * 60000).toLocaleTimeString()
-        ),
-        datasets: [{
-          label: '示例数据',
-          data: Array.from({ length: 10 }, () => Math.floor(Math.random() * 100)),
-          borderColor: '#409EFF',
-          backgroundColor: 'rgba(64, 158, 255, 0.1)'
-        }]
-      };
-
-    case 'pie':
-      return {
-        labels: ['已使用', '空闲'],
-        datasets: [{
-          data: [65, 35],
-          backgroundColor: ['#409EFF', '#E6F7FF']
-        }]
-      };
-
-    case 'table':
-      return {
-        columns: [
-          { prop: 'name', label: '名称' },
-          { prop: 'value', label: '值' },
-          { prop: 'status', label: '状态' }
-        ],
-        data: [
-          { name: 'CPU', value: '45%', status: '正常' },
-          { name: '内存', value: '67%', status: '正常' },
-          { name: '磁盘', value: '23%', status: '正常' }
-        ]
-      };
-
-    default:
-      return null;
+    console.log(`订阅实时数据成功: componentId=${componentId}`);
+  } catch (error) {
+    console.error("订阅实时数据异常:", error);
   }
 };
 
@@ -985,53 +856,6 @@ const generateMockData = (type: string) => {
  */
 const getComponentByType = (_type: string) => {
   return ServerComponent;
-};
-
-/**
- * 手动查询数据
- */
-const handleManualQuery = async () => {
-  console.log("手动查询数据，时间范围:", queryTimeRange.value);
-
-  // 重新加载所有组件数据
-  for (const item of layout.value) {
-    await loadComponentData(item);
-  }
-
-  ElMessage.success("数据查询完成");
-};
-
-/**
- * 处理刷新间隔变化
- */
-const handleRefreshIntervalChange = (interval: number) => {
-  console.log("刷新间隔变化:", interval);
-
-  // 清除现有的全局定时器
-  if (globalRefreshTimer.value) {
-    clearInterval(globalRefreshTimer.value);
-    globalRefreshTimer.value = null;
-  }
-
-  // 清除所有组件级定时器
-  Object.values(componentTimers.value).forEach((timer: any) => {
-    clearInterval(timer);
-  });
-  componentTimers.value = {};
-
-  // 设置新的全局定时器
-  if (interval > 0) {
-    refreshCountdown.value = interval;
-    globalRefreshTimer.value = setInterval(() => {
-      refreshCountdown.value--;
-      if (refreshCountdown.value <= 0) {
-        refreshCountdown.value = interval;
-        handleManualQuery();
-      }
-    }, 1000);
-  } else {
-    refreshCountdown.value = 0;
-  }
 };
 
 /**
@@ -1055,10 +879,10 @@ const getComponentHeight = (item: any) => {
   const serverComponentBorder = 1; // ServerComponent边框
 
   // 根据组件类型调整内部图表高度
-  const componentType = item.type || 'card';
+  const componentType = item.type || "card";
   let chartPadding = 0;
 
-  if (componentType === 'card') {
+  if (componentType === "card") {
     // Card组件有内边距 16px * 2 = 32px
     chartPadding = 32;
   }
@@ -1118,9 +942,7 @@ const loadMyComponents = async () => {
       console.log("获取到组件定义:", res.data.length, "个组件");
 
       // 过滤掉已经在布局中的组件
-      const availableComponents = res.data.filter((component: any) =>
-        !layout.value.some(layoutItem => layoutItem.componentId === component.monitorSysGenServerComponentId)
-      );
+      const availableComponents = res.data.filter((component: any) => !layout.value.some(layoutItem => layoutItem.componentId === component.monitorSysGenServerComponentId));
 
       myComponents.value = availableComponents;
       console.log("可选组件定义:", availableComponents.length, "个");
@@ -1181,9 +1003,7 @@ const addSelectedComponents = async () => {
     loading.value = true;
 
     const allComponents = [...myComponents.value, ...sharedComponents.value];
-    const selectedItems = allComponents.filter(component =>
-      selectedComponents.value.includes(component.monitorSysGenServerComponentId)
-    );
+    const selectedItems = allComponents.filter(component => selectedComponents.value.includes(component.monitorSysGenServerComponentId));
 
     // 为每个选中的组件创建布局配置
     for (const component of selectedItems) {
@@ -1193,11 +1013,7 @@ const addSelectedComponents = async () => {
       const h = 6;
 
       // 调用后端API创建布局配置
-      const layoutRes = await createServerComponentLayout(
-        props.serverId,
-        component.monitorSysGenServerComponentId,
-        x, y, w, h
-      );
+      const layoutRes = await createServerComponentLayout(props.serverId, component.monitorSysGenServerComponentId, x, y, w, h);
 
       if (layoutRes.code === "00000" && layoutRes.data) {
         // 创建成功后，添加到前端布局中
@@ -1218,7 +1034,7 @@ const addSelectedComponents = async () => {
           type: component.monitorSysGenServerComponentType,
           expressionType: component.monitorSysGenServerComponentExpressionType,
           expression: component.monitorSysGenServerComponentExpression,
-          refreshInterval: component.monitorSysGenServerComponentRefreshInterval || 30,
+          showTitle: component.monitorSysGenServerComponentShowTitle !== false,
           valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
           chartConfig: component.monitorSysGenServerComponentChartConfig,
           enabled: component.monitorSysGenServerComponentEnabled
@@ -1226,7 +1042,6 @@ const addSelectedComponents = async () => {
 
         layout.value.push(componentItem);
         await loadComponentData(componentItem);
-        setupComponentRefreshTimer(componentItem);
       } else {
         console.error("创建布局配置失败:", layoutRes);
         ElMessage.error(`创建组件 ${component.monitorSysGenServerComponentName} 的布局配置失败`);
@@ -1252,14 +1067,14 @@ const addSelectedComponents = async () => {
  */
 const getComponentTypeTag = (type: string): "success" | "warning" | "info" | "primary" | "danger" => {
   const typeMap: Record<string, "success" | "warning" | "info" | "primary" | "danger"> = {
-    card: 'primary',
-    gauge: 'success',
-    line: 'info',
-    bar: 'warning',
-    pie: 'danger',
-    table: 'primary'
+    card: "primary",
+    gauge: "success",
+    line: "info",
+    bar: "warning",
+    pie: "danger",
+    table: "primary"
   };
-  return typeMap[type] || 'primary';
+  return typeMap[type] || "primary";
 };
 
 /**
@@ -1267,22 +1082,25 @@ const getComponentTypeTag = (type: string): "success" | "warning" | "info" | "pr
  */
 const getComponentTypeName = (type: string) => {
   const typeMap: Record<string, string> = {
-    card: '卡片',
-    gauge: '仪表盘',
-    line: '折线图',
-    bar: '柱状图',
-    pie: '饼图',
-    table: '表格'
+    card: "卡片",
+    gauge: "仪表盘",
+    line: "折线图",
+    bar: "柱状图",
+    pie: "饼图",
+    table: "表格"
   };
-  return typeMap[type] || '未知';
+  return typeMap[type] || "未知";
 };
 
 // 监听组件选择器显示状态
-watch(() => showComponentSelector.value, (show) => {
-  if (show) {
-    loadMyComponents();
+watch(
+  () => showComponentSelector.value,
+  show => {
+    if (show) {
+      loadMyComponents();
+    }
   }
-});
+);
 
 // 暴露方法
 defineExpose({
@@ -1306,7 +1124,7 @@ defineExpose({
   }
 
   .layout-header {
-    padding: 8px 16px;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1314,10 +1132,12 @@ defineExpose({
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 10;
     color: #e0e0e0;
+    min-height: 60px;
 
     .layout-actions-left {
       display: flex;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .layout-actions {
@@ -1486,5 +1306,98 @@ defineExpose({
 
 .mr-1 {
   margin-right: 4px;
+}
+
+/* 新增的查询控制样式 */
+.layout-query-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  padding: 0 20px;
+
+  .query-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .query-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .query-label {
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .last-update-time {
+      font-size: 14px;
+      color: var(--el-color-success);
+      font-weight: 500;
+      padding: 2px 8px;
+      background: var(--el-color-success-light-9);
+      border-radius: 4px;
+      border: 1px solid var(--el-color-success-light-7);
+    }
+  }
+
+  .refresh-countdown {
+    .countdown-text {
+      font-size: 12px;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--el-color-primary-light-7);
+      font-weight: 500;
+    }
+  }
+}
+
+.layout-actions-right {
+  display: flex;
+  gap: 12px;
+}
+
+/* 新增的查询控制样式 */
+.layout-query-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: center;
+
+  .query-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .query-label {
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+      white-space: nowrap;
+    }
+  }
+
+  .refresh-countdown {
+    .countdown-text {
+      font-size: 12px;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--el-color-primary-light-7);
+    }
+  }
+}
+
+.layout-actions-right {
+  display: flex;
+  gap: 12px;
 }
 </style>

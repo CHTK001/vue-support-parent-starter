@@ -1031,6 +1031,71 @@ export interface ServerWebSocketMessage {
 }
 
 /**
+ * WebSocket消息类型常量
+ */
+export const WebSocketMessageType = {
+  // 服务器相关
+  CONNECTION_STATUS_CHANGE: "connection_status_change",
+  SERVER_ONLINE: "server_online",
+  SERVER_OFFLINE: "server_offline",
+  SERVER_UPDATE: "server_update",
+  SERVER_DELETE: "server_delete",
+  SERVER_ADD: "server_add",
+  SERVER_CREATED: "server_created",
+  SERVER_UPDATED: "server_updated",
+  SERVER_HEALTH: "server_health",
+  SERVER_LATENCY: "server_latency",
+  BATCH_SERVER_LATENCY: "batch_server_latency",
+  SERVER_METRICS: "server_metrics",
+  CONNECTION_TEST_RESULT: "connection_test_result",
+
+  // SSH相关
+  SSH_DATA: "ssh_data",
+  SSH_INPUT: "ssh_input",
+  SSH_CONNECT: "ssh_connect",
+  SSH_DISCONNECT: "ssh_disconnect",
+  SSH_RESIZE: "ssh_resize",
+  SSH_ERROR: "ssh_error",
+  SHELL_OUTPUT: "shell_output",
+
+  // VNC相关
+  VNC_DATA: "vnc_data",
+  VNC_INPUT: "vnc_input",
+  VNC_CONNECT: "vnc_connect",
+  VNC_DISCONNECT: "vnc_disconnect",
+  VNC_ERROR: "vnc_error",
+
+  // RDP相关
+  RDP_DATA: "rdp_data",
+  RDP_INPUT: "rdp_input",
+  RDP_CONNECT: "rdp_connect",
+  RDP_DISCONNECT: "rdp_disconnect",
+  RDP_ERROR: "rdp_error",
+
+  // 组件实时数据相关
+  COMPONENT_REALTIME_DATA: "component_realtime_data",
+  COMPONENT_SUBSCRIBE: "component_subscribe",
+  COMPONENT_UNSUBSCRIBE: "component_unsubscribe",
+  COMPONENT_DATA_UPDATE: "component_data_update"
+} as const;
+
+/**
+ * 组件实时数据消息接口
+ */
+export interface ComponentRealtimeMessage {
+  /** 组件ID */
+  componentId: number;
+  /** 组件名称 */
+  componentName?: string;
+  /** 实时数据 */
+  data: any;
+  /** 数据类型 */
+  type: "realtime" | "update";
+  /** 时间戳 */
+  timestamp: number;
+}
+
+/**
  * WebSocket消息类型常量（对应后台 MessageType）
  */
 export const SERVER_WS_MESSAGE_TYPE = {
@@ -1574,11 +1639,43 @@ export function getComponentData(componentId: number, startTime?: number, endTim
  * @returns 实时数据
  */
 export function getComponentRealtimeData(componentId: number) {
-  // 获取最近1分钟的数据
-  const now = Math.floor(Date.now() / 1000);
-  const oneMinuteAgo = now - 60;
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/component/${componentId}/data/realtime`);
+}
 
-  return getComponentData(componentId, oneMinuteAgo, now, 15);
+/**
+ * 订阅组件实时数据
+ * @param componentId 组件ID
+ * @param sessionId WebSocket会话ID
+ * @returns 订阅结果
+ */
+export function subscribeComponentRealtimeData(componentId: number, sessionId: string) {
+  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/subscribe`, {
+    params: { sessionId }
+  });
+}
+
+/**
+ * 取消订阅组件实时数据
+ * @param componentId 组件ID
+ * @param sessionId WebSocket会话ID
+ * @returns 取消订阅结果
+ */
+export function unsubscribeComponentRealtimeData(componentId: number, sessionId: string) {
+  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/unsubscribe`, {
+    params: { sessionId }
+  });
+}
+
+/**
+ * 推送实时数据到组件
+ * @param componentId 组件ID
+ * @param data 实时数据
+ * @returns 推送结果
+ */
+export function pushComponentRealtimeData(componentId: number, data: any) {
+  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/${componentId}/realtime/push`, {
+    data
+  });
 }
 
 /**
