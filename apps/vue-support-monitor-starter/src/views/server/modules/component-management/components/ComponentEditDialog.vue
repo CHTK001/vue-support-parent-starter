@@ -92,11 +92,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { 
-  createServerComponent, 
-  updateServerComponent, 
-  type ServerComponent 
+import {
+  createServerComponent,
+  updateServerComponent,
+  type ServerComponent
 } from "@/api/server";
+import {
+  convertFormDataToApiData,
+  convertApiDataToFormData,
+  validateComponentData,
+  type ComponentFormData
+} from "@/utils/component-field-mapping";
 
 // 定义属性
 const props = defineProps<{
@@ -117,7 +123,8 @@ const loading = ref(false);
 const formRef = ref<FormInstance>();
 
 // 表单数据
-const formData = ref<Partial<ServerComponent>>({
+const formData = ref<ComponentFormData>({
+  monitorSysGenServerId: 0,
   monitorSysGenServerComponentName: '',
   monitorSysGenServerComponentType: 'card',
   monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
@@ -163,22 +170,22 @@ watch(dialogVisible, (val) => {
  */
 const initForm = () => {
   if (props.component) {
-    // 编辑模式，填充现有数据
-    formData.value = { ...props.component };
+    // 编辑模式，使用工具函数转换数据
+    formData.value = convertApiDataToFormData(props.component);
   } else {
     // 新增模式，重置表单
     formData.value = {
+      monitorSysGenServerId: props.serverId || 0,
       monitorSysGenServerComponentName: '',
       monitorSysGenServerComponentType: 'card',
       monitorSysGenServerComponentExpressionType: 'PROMETHEUS',
       monitorSysGenServerComponentExpression: '',
       monitorSysGenServerComponentUnit: '',
       monitorSysGenServerComponentDescription: '',
-      monitorSysGenServerComponentEnabled: true,
-      monitorSysGenServerId: props.serverId
+      monitorSysGenServerComponentEnabled: true
     };
   }
-  
+
   // 清除验证状态
   formRef.value?.clearValidate();
 };
@@ -188,20 +195,33 @@ const initForm = () => {
  */
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   try {
     const valid = await formRef.value.validate();
     if (!valid) return;
-    
+
+    // 确保服务器ID正确设置
+    formData.value.monitorSysGenServerId = props.serverId || formData.value.monitorSysGenServerId;
+
+    // 使用工具函数验证数据
+    const validation = validateComponentData(formData.value);
+    if (!validation.isValid) {
+      ElMessage.error(validation.errors.join(', '));
+      return;
+    }
+
     loading.value = true;
-    
+
+    // 使用工具函数转换数据
+    const submitData = convertFormDataToApiData(formData.value);
+
     if (isEdit.value) {
       // 更新组件
       const res = await updateServerComponent(
         formData.value.monitorSysGenServerComponentId!,
-        formData.value as ServerComponent
+        submitData
       );
-      
+
       if (res.code === "00000") {
         ElMessage.success("更新成功");
         emit("success");
@@ -211,8 +231,8 @@ const handleSubmit = async () => {
       }
     } else {
       // 创建组件
-      const res = await createServerComponent(formData.value as ServerComponent);
-      
+      const res = await createServerComponent(submitData);
+
       if (res.code === "00000") {
         ElMessage.success("创建成功");
         emit("success");

@@ -1,5 +1,5 @@
 <template>
-  <div class="line-chart" :style="{ height: height + 'px' }">
+  <div class="line-chart" :style="{ height: (height - 10) + 'px' }">
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="3" animated />
     </div>
@@ -54,6 +54,13 @@ watch(() => props.loading, (loading) => {
   }
 });
 
+// 监听高度变化
+watch(() => props.height, () => {
+  nextTick(() => {
+    handleResize();
+  });
+});
+
 // 生命周期
 onMounted(() => {
   if (!props.loading) {
@@ -74,9 +81,18 @@ onBeforeUnmount(() => {
  */
 const initChart = () => {
   if (!chartRef.value) return;
-  
+
   chart.value = echarts.init(chartRef.value, 'dark');
   updateChart();
+
+  // 延迟调整图表尺寸，确保容器已完全渲染
+  nextTick(() => {
+    setTimeout(() => {
+      if (chart.value) {
+        chart.value.resize();
+      }
+    }, 100);
+  });
 };
 
 /**

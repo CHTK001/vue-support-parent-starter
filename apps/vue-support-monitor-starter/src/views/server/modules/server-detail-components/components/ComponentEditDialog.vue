@@ -51,9 +51,9 @@
             <div class="group-content">
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="组件名称" prop="monitorSysGenServerDetailComponentName">
+                  <el-form-item label="组件名称" prop="monitorSysGenServerComponentName">
                     <el-input
-                      v-model="formData.monitorSysGenServerDetailComponentName"
+                      v-model="formData.monitorSysGenServerComponentName"
                       placeholder="请输入组件名称"
                       clearable
                     >
@@ -64,10 +64,10 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="组件标题" prop="monitorSysGenServerDetailComponentTitle">
+                  <el-form-item label="组件描述" prop="monitorSysGenServerComponentDescription">
                     <el-input
-                      v-model="formData.monitorSysGenServerDetailComponentTitle"
-                      placeholder="请输入组件标题"
+                      v-model="formData.monitorSysGenServerComponentDescription"
+                      placeholder="请输入组件描述"
                       clearable
                     >
                       <template #prefix>
@@ -80,9 +80,9 @@
 
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="组件类型" prop="monitorSysGenServerDetailComponentType">
+                  <el-form-item label="组件类型" prop="monitorSysGenServerComponentType">
                     <el-select
-                      v-model="formData.monitorSysGenServerDetailComponentType"
+                      v-model="formData.monitorSysGenServerComponentType"
                       placeholder="请选择组件类型"
                       style="width: 100%"
                     >
@@ -101,9 +101,9 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="表达式类型" prop="monitorSysGenServerDetailComponentExpressionType">
+                  <el-form-item label="表达式类型" prop="monitorSysGenServerComponentExpressionType">
                     <el-select
-                      v-model="formData.monitorSysGenServerDetailComponentExpressionType"
+                      v-model="formData.monitorSysGenServerComponentExpressionType"
                       placeholder="请选择表达式类型"
                       style="width: 100%"
                       :disabled="serverReportType !== 'prometheus'"
@@ -128,12 +128,12 @@
               <span class="group-title">{{ serverReportType === 'prometheus' ? '查询表达式' : '组件选择' }}</span>
             </div>
             <div class="group-content">
-              <el-form-item prop="monitorSysGenServerDetailComponentExpression">
+              <el-form-item prop="monitorSysGenServerComponentExpression">
                 <!-- Prometheus 表达式输入 -->
                 <template v-if="serverReportType === 'prometheus'">
                   <div class="expression-editor">
                     <el-input
-                      v-model="formData.monitorSysGenServerDetailComponentExpression"
+                      v-model="formData.monitorSysGenServerComponentExpression"
                       type="textarea"
                       :rows="6"
                       placeholder="请输入 PromQL 查询表达式，例如：up{job=&quot;node&quot;}"
@@ -161,7 +161,7 @@
                 <!-- 固定组件选择 -->
                 <template v-else>
                   <el-select
-                    v-model="formData.monitorSysGenServerDetailComponentExpression"
+                    v-model="formData.monitorSysGenServerComponentExpression"
                     placeholder="请选择监控组件"
                     style="width: 100%"
                     filterable
@@ -207,9 +207,9 @@
             <div class="group-content">
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="刷新间隔(秒)" prop="monitorSysGenServerDetailComponentRefreshInterval">
+                  <el-form-item label="刷新间隔(秒)" prop="monitorSysGenServerComponentRefreshInterval">
                     <el-input-number
-                      v-model="formData.monitorSysGenServerDetailComponentRefreshInterval"
+                      v-model="formData.monitorSysGenServerComponentRefreshInterval"
                       :min="5"
                       :max="3600"
                       style="width: 100%"
@@ -217,9 +217,9 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="排序序号" prop="monitorSysGenServerDetailComponentSortOrder">
+                  <el-form-item label="排序序号" prop="monitorSysGenServerComponentSort">
                     <el-input-number
-                      v-model="formData.monitorSysGenServerDetailComponentSortOrder"
+                      v-model="formData.monitorSysGenServerComponentSort"
                       :min="0"
                       style="width: 100%"
                     />
@@ -227,18 +227,11 @@
                 </el-col>
               </el-row>
 
-              <el-form-item label="组件描述">
-                <el-input
-                  v-model="formData.monitorSysGenServerDetailComponentDesc"
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入组件描述（可选）"
-                />
-              </el-form-item>
+              <!-- 组件描述已在上面处理，这里移除重复 -->
 
               <el-form-item label="图表配置">
                 <el-input
-                  v-model="formData.monitorSysGenServerDetailComponentChartConfig"
+                  v-model="formData.monitorSysGenServerComponentConfig"
                   type="textarea"
                   :rows="4"
                   placeholder="请输入图表配置JSON（可选）"
@@ -264,7 +257,7 @@
         <div class="preview-content" v-loading="previewLoading">
           <div class="preview-wrapper">
             <component
-              :is="getPreviewComponent(formData.monitorSysGenServerDetailComponentType)"
+              :is="getPreviewComponent(formData.monitorSysGenServerComponentType)"
               :component-data="formData"
               :server-id="serverId"
               :preview-mode="true"
@@ -281,15 +274,15 @@
             <el-collapse-item title="组件信息" name="info">
               <div class="info-item">
                 <span class="info-label">组件类型：</span>
-                <span class="info-value">{{ getComponentTypeName(formData.monitorSysGenServerDetailComponentType) }}</span>
+                <span class="info-value">{{ getComponentTypeName(formData.monitorSysGenServerComponentType) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">表达式类型：</span>
-                <span class="info-value">{{ formData.monitorSysGenServerDetailComponentExpressionType }}</span>
+                <span class="info-value">{{ formData.monitorSysGenServerComponentExpressionType }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">刷新间隔：</span>
-                <span class="info-value">{{ formData.monitorSysGenServerDetailComponentRefreshInterval }}秒</span>
+                <span class="info-value">{{ formData.monitorSysGenServerComponentRefreshInterval }}秒</span>
               </div>
             </el-collapse-item>
           </el-collapse>
@@ -413,34 +406,33 @@ const componentPreviewDialogRef = ref();
 // 表单数据
 const formData = reactive<Partial<ServerDetailComponent>>({
   monitorSysGenServerId: props.serverId,
-  monitorSysGenServerDetailComponentName: "",
-  monitorSysGenServerDetailComponentTitle: "",
-  monitorSysGenServerDetailComponentType: "card",
-  monitorSysGenServerDetailComponentExpressionType: "PROMETHEUS",
-  monitorSysGenServerDetailComponentExpression: "",
-  monitorSysGenServerDetailComponentRefreshInterval: 30,
-  monitorSysGenServerDetailComponentSortOrder: 0,
-  monitorSysGenServerDetailComponentEnabled: 1,
-  monitorSysGenServerDetailComponentDesc: "",
-  monitorSysGenServerDetailComponentChartConfig: "",
-  monitorSysGenServerDetailComponentPosition: JSON.stringify({ x: 0, y: 0, w: 6, h: 6 })
+  monitorSysGenServerComponentName: "",
+  monitorSysGenServerComponentType: "card",
+  monitorSysGenServerComponentExpressionType: "PROMETHEUS",
+  monitorSysGenServerComponentExpression: "",
+  monitorSysGenServerComponentRefreshInterval: 30,
+  monitorSysGenServerComponentSort: 0,
+  monitorSysGenServerComponentStatus: 1,
+  monitorSysGenServerComponentDescription: "",
+  monitorSysGenServerComponentConfig: "",
+  monitorSysGenServerComponentPosition: JSON.stringify({ x: 0, y: 0, w: 6, h: 6 })
 });
 
 // 表单验证规则
 const rules = {
-  monitorSysGenServerDetailComponentName: [
+  monitorSysGenServerComponentName: [
     { required: true, message: "请输入组件名称", trigger: "blur" }
   ],
-  monitorSysGenServerDetailComponentTitle: [
-    { required: true, message: "请输入组件标题", trigger: "blur" }
+  monitorSysGenServerComponentDescription: [
+    { required: false, message: "请输入组件描述", trigger: "blur" }
   ],
-  monitorSysGenServerDetailComponentType: [
+  monitorSysGenServerComponentType: [
     { required: true, message: "请选择组件类型", trigger: "change" }
   ],
-  monitorSysGenServerDetailComponentExpressionType: [
+  monitorSysGenServerComponentExpressionType: [
     { required: true, message: "请选择表达式类型", trigger: "change" }
   ],
-  monitorSysGenServerDetailComponentExpression: [
+  monitorSysGenServerComponentExpression: [
     { required: true, message: "请输入查询表达式", trigger: "blur" }
   ]
 };
@@ -483,17 +475,17 @@ const loadServerInfo = async () => {
           serverData.dataReportMethod === "prometheus" ||
           serverData.monitorSysGenServerSettingDataReportMethod === "prometheus") {
         serverReportType.value = "prometheus";
-        formData.monitorSysGenServerDetailComponentExpressionType = "PROMETHEUS";
+        formData.monitorSysGenServerComponentExpressionType = "PROMETHEUS";
       } else {
         serverReportType.value = "local"; // 或其他类型
-        formData.monitorSysGenServerDetailComponentExpressionType = "COMPONENT";
+        formData.monitorSysGenServerComponentExpressionType = "COMPONENT";
       }
     }
   } catch (error) {
     console.error("加载服务器信息失败:", error);
     // 默认为非prometheus类型
     serverReportType.value = "local";
-    formData.monitorSysGenServerDetailComponentExpressionType = "COMPONENT";
+    formData.monitorSysGenServerComponentExpressionType = "COMPONENT";
   }
 };
 
@@ -503,17 +495,16 @@ const loadServerInfo = async () => {
 const resetForm = () => {
   Object.assign(formData, {
     monitorSysGenServerId: props.serverId,
-    monitorSysGenServerDetailComponentName: "",
-    monitorSysGenServerDetailComponentTitle: "",
-    monitorSysGenServerDetailComponentType: "card",
-    monitorSysGenServerDetailComponentExpressionType: serverReportType.value === "prometheus" ? "PROMETHEUS" : "COMPONENT",
-    monitorSysGenServerDetailComponentExpression: "",
-    monitorSysGenServerDetailComponentRefreshInterval: 30,
-    monitorSysGenServerDetailComponentSortOrder: 0,
-    monitorSysGenServerDetailComponentEnabled: 1,
-    monitorSysGenServerDetailComponentDesc: "",
-    monitorSysGenServerDetailComponentChartConfig: "",
-    monitorSysGenServerDetailComponentPosition: JSON.stringify({ x: 0, y: 0, w: 6, h: 6 })
+    monitorSysGenServerComponentName: "",
+    monitorSysGenServerComponentType: "card",
+    monitorSysGenServerComponentExpressionType: serverReportType.value === "prometheus" ? "PROMETHEUS" : "COMPONENT",
+    monitorSysGenServerComponentExpression: "",
+    monitorSysGenServerComponentRefreshInterval: 30,
+    monitorSysGenServerComponentSort: 0,
+    monitorSysGenServerComponentStatus: 1,
+    monitorSysGenServerComponentDescription: "",
+    monitorSysGenServerComponentConfig: "",
+    monitorSysGenServerComponentPosition: JSON.stringify({ x: 0, y: 0, w: 6, h: 6 })
   });
 };
 
@@ -571,7 +562,7 @@ const handlePreview = async () => {
  */
 const handleExpressionHelp = () => {
   expressionHelpDialogRef.value?.open(
-    formData.monitorSysGenServerDetailComponentExpressionType,
+    formData.monitorSysGenServerComponentExpressionType,
     serverReportType.value
   );
 };
@@ -580,7 +571,7 @@ const handleExpressionHelp = () => {
  * 验证表达式
  */
 const handleValidateExpression = async () => {
-  if (!formData.monitorSysGenServerDetailComponentExpression) {
+  if (!formData.monitorSysGenServerComponentExpression) {
     message.warning("请先输入表达式");
     return;
   }
@@ -588,8 +579,8 @@ const handleValidateExpression = async () => {
   try {
     loading.value = true;
     const res = await validateComponentExpressionDetail(
-      formData.monitorSysGenServerDetailComponentExpressionType!,
-      formData.monitorSysGenServerDetailComponentExpression,
+      formData.monitorSysGenServerComponentExpressionType!,
+      formData.monitorSysGenServerComponentExpression,
       props.serverId
     );
 
@@ -610,7 +601,7 @@ const handleValidateExpression = async () => {
  * 表达式选择
  */
 const handleExpressionSelected = (expression: string) => {
-  formData.monitorSysGenServerDetailComponentExpression = expression;
+  formData.monitorSysGenServerComponentExpression = expression;
 };
 
 /**
@@ -669,7 +660,7 @@ const getComponentTypeName = (type?: string) => {
  * 示例点击处理
  */
 const handleExampleClick = (value: string) => {
-  formData.monitorSysGenServerDetailComponentExpression = value;
+  formData.monitorSysGenServerComponentExpression = value;
 };
 
 /**
@@ -696,7 +687,7 @@ const handleRefreshPreview = () => {
  * 生成模拟预览数据
  */
 const generateMockPreviewData = () => {
-  const type = formData.monitorSysGenServerDetailComponentType;
+  const type = formData.monitorSysGenServerComponentType;
   switch (type) {
     case 'card':
       return { value: Math.floor(Math.random() * 100), unit: '%' };
