@@ -263,7 +263,6 @@ import { defineExpose, defineProps, nextTick, onBeforeUnmount, onMounted, reacti
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";
-import { getComponentWebSocketManager } from "@/utils/websocket/ComponentWebSocketManager";
 import type { ComponentRealtimeMessage } from "@/api/server";
 
 const props = defineProps({
@@ -403,14 +402,6 @@ onBeforeUnmount(() => {
 
   Object.values(componentTimers.value).forEach((timer: any) => {
     if (timer) clearInterval(timer);
-  });
-
-  // 清理WebSocket订阅
-  const wsManager = getComponentWebSocketManager();
-  layout.value.forEach(item => {
-    if (item.monitorSysGenServerComponentLayoutComponentId && item.expressionType === "REALTIME") {
-      wsManager.unsubscribeComponent(item.monitorSysGenServerComponentLayoutComponentId);
-    }
   });
 });
 
@@ -774,13 +765,6 @@ const loadComponentData = async (item: any) => {
         result = await executeComponentQuery(componentId, timeRange);
         break;
 
-      case "REALTIME":
-        // 获取实时数据
-        result = await getComponentRealtimeData(componentId);
-        // 对于实时数据，还需要订阅WebSocket推送
-        await subscribeRealtimeData(componentId);
-        break;
-
       case "SQL":
         // 使用SQL查询
         result = await executeComponentQuery(componentId, timeRange);
@@ -813,41 +797,6 @@ const loadComponentData = async (item: any) => {
       updateTime: new Date().toLocaleTimeString(),
       expressionType: item.expressionType || "COMPONENT"
     };
-  }
-};
-
-/**
- * 订阅实时数据
- */
-const subscribeRealtimeData = async (componentId: number) => {
-  try {
-    const wsManager = getComponentWebSocketManager();
-
-    // 确保WebSocket连接已建立
-    if (!wsManager.isConnected()) {
-      await wsManager.connect();
-    }
-
-    // 订阅组件实时数据
-    wsManager.subscribeComponent(componentId, (message: ComponentRealtimeMessage) => {
-      // 找到对应的布局项
-      const layoutItem = layout.value.find(item => item.monitorSysGenServerComponentLayoutComponentId === componentId);
-
-      if (layoutItem) {
-        // 更新组件数据
-        componentsData.value[layoutItem.i] = {
-          ...message.data,
-          updateTime: new Date(message.timestamp).toLocaleTimeString(),
-          expressionType: "REALTIME"
-        };
-
-        console.log(`收到实时数据更新: componentId=${componentId}`, message.data);
-      }
-    });
-
-    console.log(`订阅实时数据成功: componentId=${componentId}`);
-  } catch (error) {
-    console.error("订阅实时数据异常:", error);
   }
 };
 
