@@ -66,7 +66,7 @@
           </div>
           <div class="status-item">
             <span class="status-label">更新:</span>
-            <span class="status-value">{{ lastUpdateTime || '未更新' }}</span>
+            <span class="status-value">{{ lastUpdateTime || "未更新" }}</span>
           </div>
         </div>
 
@@ -151,7 +151,7 @@ const globalRefreshTimer = ref(null);
 // 时间范围快捷选项
 const timeRangeShortcuts = [
   {
-    text: '最近1小时',
+    text: "最近1小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -160,7 +160,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: '最近6小时',
+    text: "最近6小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -169,7 +169,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: '最近12小时',
+    text: "最近12小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -178,7 +178,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: '最近24小时',
+    text: "最近24小时",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -187,7 +187,7 @@ const timeRangeShortcuts = [
     }
   },
   {
-    text: '最近7天',
+    text: "最近7天",
     value: () => {
       const end = new Date();
       const start = new Date();
@@ -245,8 +245,7 @@ const handleDataChange = () => {
 watch(
   () => [props.data, props.serverId],
   ([newData, newServerId]) => {
-    const serverId = (typeof newServerId === 'number' ? newServerId : 0) ||
-                    (typeof newData === 'object' && newData ? newData.serverId : 0);
+    const serverId = (typeof newServerId === "number" ? newServerId : 0) || (typeof newData === "object" && newData ? newData.serverId : 0);
     if (serverId) {
       handleDataChange();
     }
@@ -302,9 +301,18 @@ const getStatusText = (status: number) => {
  * 获取时间范围参数
  */
 const getTimeRangeParams = () => {
+  if (queryTimeRange.value && queryTimeRange.value.length === 2) {
+    return {
+      start: new Date(queryTimeRange.value[0]).getTime(),
+      end: new Date(queryTimeRange.value[1]).getTime(),
+      step: 60 // 1分钟步长
+    };
+  }
+
+  // 默认返回最近1小时
   const now = Date.now();
   return {
-    start: now - 30 * 60 * 1000, // 30分钟前
+    start: now - 60 * 60 * 1000, // 1小时前
     end: now,
     step: 60 // 1分钟步长
   };
