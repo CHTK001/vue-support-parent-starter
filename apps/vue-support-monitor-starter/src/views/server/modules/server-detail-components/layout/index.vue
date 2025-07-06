@@ -382,21 +382,6 @@ defineExpose({
     align-items: center;
     gap: 8px;
     margin-left: auto;
-
-    .el-button {
-      color: #fff;
-      border-color: rgba(255, 255, 255, 0.2);
-
-      &:hover {
-        color: var(--el-color-primary);
-        border-color: var(--el-color-primary);
-      }
-
-      &.el-button--success {
-        color: var(--el-color-success);
-        border-color: var(--el-color-success);
-      }
-    }
   }
 }
 

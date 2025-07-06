@@ -98,11 +98,11 @@
             <div class="card-title">
               <h4>{{ component.monitorSysGenServerComponentName }}</h4>
               <div class="card-meta">
-                <el-tag :type="getComponentTypeColor(component.monitorSysGenServerComponentType)" size="small">
-                  {{ getComponentTypeName(component.monitorSysGenServerComponentType) }}
+                <el-tag :type="getComponentTypeTagColor(component.monitorSysGenServerComponentType)" size="small">
+                  {{ getComponentTypeDisplayName(component.monitorSysGenServerComponentType) }}
                 </el-tag>
                 <el-tag type="info" size="small">
-                  {{ getExpressionTypeName(component.monitorSysGenServerComponentExpressionType) }}
+                  {{ getExpressionTypeDisplayName(component.monitorSysGenServerComponentExpressionType) }}
                 </el-tag>
               </div>
             </div>
@@ -136,8 +136,8 @@
               </div>
               <div class="info-item">
                 <span class="info-label">状态:</span>
-                <el-tag :type="component.monitorSysGenServerComponentEnabled ? 'success' : 'danger'" size="small">
-                  {{ component.monitorSysGenServerComponentEnabled ? '启用' : '禁用' }}
+                <el-tag :type="getComponentStatusTagType(component.monitorSysGenServerComponentStatus)" size="small">
+                  {{ getComponentStatusText(component.monitorSysGenServerComponentStatus) }}
                 </el-tag>
               </div>
             </div>
@@ -155,7 +155,7 @@
           <div class="card-footer">
             <div class="footer-left">
               <el-text size="small" type="info">
-                创建时间: {{ formatDate(component.monitorSysGenServerComponentCreateTime) }}
+                创建时间: {{ formatDate(component.createTime || component.monitorSysGenServerComponentCreateTime) }}
               </el-text>
             </div>
             <div class="footer-right">
@@ -204,6 +204,13 @@ import {
   type Server,
   type ServerComponent
 } from "@/api/server";
+import {
+  getComponentStatusText,
+  getComponentStatusTagType,
+  getComponentTypeDisplayName,
+  getComponentTypeTagColor,
+  getExpressionTypeDisplayName
+} from "@/utils/component-field-mapping";
 import ComponentDataDialog from "./components/ComponentDataDialog.vue";
 import ComponentEditDialog from "./components/ComponentEditDialog.vue";
 
@@ -541,45 +548,7 @@ const handleDeleteComponent = async (component: ServerComponent) => {
   }
 };
 
-/**
- * 获取组件类型颜色
- */
-const getComponentTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
-    'card': 'primary',
-    'gauge': 'success',
-    'line': 'info',
-    'bar': 'warning',
-    'pie': 'danger'
-  };
-  return colorMap[type] || 'info';
-};
 
-/**
- * 获取组件类型名称
- */
-const getComponentTypeName = (type: string) => {
-  const nameMap: Record<string, string> = {
-    'card': '卡片',
-    'gauge': '仪表盘',
-    'line': '折线图',
-    'bar': '柱状图',
-    'pie': '饼图'
-  };
-  return nameMap[type] || '未知';
-};
-
-/**
- * 获取表达式类型名称
- */
-const getExpressionTypeName = (type?: string) => {
-  const typeMap: Record<string, string> = {
-    'PROMETHEUS': 'PromQL',
-    'SQL': 'SQL',
-    'COMPONENT': '组件'
-  };
-  return typeMap[type || 'COMPONENT'] || '未知';
-};
 
 /**
  * 格式化日期

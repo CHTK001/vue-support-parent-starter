@@ -1,5 +1,5 @@
 <template>
-  <div class="pie-chart" :style="{ height: height + 'px' }">
+  <div class="pie-chart" :style="{ height: (height - 10) + 'px' }">
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="2" animated />
     </div>
