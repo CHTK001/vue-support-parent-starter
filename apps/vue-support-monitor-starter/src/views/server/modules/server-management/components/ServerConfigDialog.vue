@@ -52,10 +52,10 @@
               <IconifyIconOnline icon="simple-icons:docker" />
               <span>Docker配置</span>
             </el-menu-item>
-            <el-menu-item index="prometheus">
+            <!-- <el-menu-item index="prometheus">
               <IconifyIconOnline icon="ri:bar-chart-line" />
               <span>Prometheus配置</span>
-            </el-menu-item>
+            </el-menu-item> -->
             <el-menu-item index="advanced">
               <IconifyIconOnline icon="ri:tools-line" />
               <span>高级配置</span>
@@ -1289,7 +1289,7 @@ defineExpose({
 }
 
 .config-section {
-  max-width: 600px;
+  max-width: 1000px;
 
   .section-description {
     margin-bottom: 20px;
