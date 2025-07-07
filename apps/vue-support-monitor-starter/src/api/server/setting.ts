@@ -40,20 +40,24 @@ export interface ServerSetting {
   monitorSysGenServerSettingMetricsRetentionDays?: number;
   /** 是否启用告警 0:否 1:是 */
   monitorSysGenServerSettingAlertEnabled?: number;
-  /** CPU使用率告警阈值 */
+  /** CPU使用率告警阈值 (百分比) */
   monitorSysGenServerSettingCpuAlertThreshold?: number;
-  /** 内存使用率告警阈值 */
+  /** 内存使用率告警阈值 (百分比) */
   monitorSysGenServerSettingMemoryAlertThreshold?: number;
-  /** 磁盘使用率告警阈值 */
+  /** 磁盘使用率告警阈值 (百分比) */
   monitorSysGenServerSettingDiskAlertThreshold?: number;
-  /** 网络延迟告警阈值(毫秒) */
-  monitorSysGenServerSettingNetworkLatencyThreshold?: number;
+  /** 网络流量告警阈值 (Mbps) */
+  monitorSysGenServerSettingNetworkAlertThreshold?: number;
+  /** 响应时间告警阈值 (毫秒) */
+  monitorSysGenServerSettingResponseTimeAlertThreshold?: number;
   /** 告警通知方式 */
   monitorSysGenServerSettingAlertNotificationMethod?: string;
-  /** 告警邮件地址 */
-  monitorSysGenServerSettingAlertEmailAddresses?: string;
-  /** 告警Webhook地址 */
-  monitorSysGenServerSettingAlertWebhookUrl?: string;
+  /** 告警通知地址 */
+  monitorSysGenServerSettingAlertNotificationAddress?: string;
+  /** 告警静默时间 (分钟) */
+  monitorSysGenServerSettingAlertSilenceDuration?: number;
+  /** 是否启用自动恢复通知 0:否 1:是 */
+  monitorSysGenServerSettingAutoRecoveryNotificationEnabled?: number;
   /** 是否启用Docker监控 0:否 1:是 */
   monitorSysGenServerSettingDockerMonitorEnabled?: number;
   /** Docker API地址 */

@@ -25,12 +25,6 @@
         />
       </el-form-item>
 
-
-
-
-
-
-
       <!-- 监控间隔：从指标管理迁移过来 -->
       <el-form-item prop="monitorSysGenServerSettingMonitorInterval">
         <template #label>
@@ -82,9 +76,6 @@
         />
         <span class="form-tip">天，建议值：30-90</span>
       </el-form-item>
-
-
-
     </div>
 
     <!-- 告警配置 -->
@@ -144,8 +135,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingAlertEnabled &&
-                formData.monitorSysGenServerSettingAlertNotificationMethod"
+        v-show="
+          formData.monitorSysGenServerSettingAlertEnabled &&
+          formData.monitorSysGenServerSettingAlertNotificationMethod
+        "
         prop="monitorSysGenServerSettingAlertNotificationAddress"
       >
         <template #label>
@@ -167,6 +160,178 @@
           @change="handleChange"
         />
       </el-form-item>
+
+      <!-- 告警阈值配置 -->
+      <template v-if="formData.monitorSysGenServerSettingAlertEnabled">
+        <el-divider content-position="left">
+          <span class="divider-text">告警阈值配置</span>
+        </el-divider>
+
+        <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item prop="monitorSysGenServerSettingCpuAlertThreshold">
+              <template #label>
+                <div class="form-label">
+                  <span>CPU使用率阈值</span>
+                  <el-tooltip
+                    content="当CPU使用率超过此阈值时触发告警，建议设置为70-85%"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input-number
+                v-model="formData.monitorSysGenServerSettingCpuAlertThreshold"
+                :min="1"
+                :max="100"
+                :precision="1"
+                :step="5"
+                placeholder="CPU阈值"
+                style="width: 100%"
+                @change="handleChange"
+              />
+              <span class="form-tip">%，建议值：80</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item prop="monitorSysGenServerSettingMemoryAlertThreshold">
+              <template #label>
+                <div class="form-label">
+                  <span>内存使用率阈值</span>
+                  <el-tooltip
+                    content="当内存使用率超过此阈值时触发告警，建议设置为75-90%"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input-number
+                v-model="
+                  formData.monitorSysGenServerSettingMemoryAlertThreshold
+                "
+                :min="1"
+                :max="100"
+                :precision="1"
+                :step="5"
+                placeholder="内存阈值"
+                style="width: 100%"
+                @change="handleChange"
+              />
+              <span class="form-tip">%，建议值：85</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16">
+          <el-col :span="24">
+            <el-form-item prop="monitorSysGenServerSettingDiskAlertThreshold">
+              <template #label>
+                <div class="form-label">
+                  <span>磁盘使用率阈值</span>
+                  <el-tooltip
+                    content="当磁盘使用率超过此阈值时触发告警，建议设置为80-95%"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input-number
+                v-model="formData.monitorSysGenServerSettingDiskAlertThreshold"
+                :min="1"
+                :max="100"
+                :precision="1"
+                :step="5"
+                placeholder="磁盘阈值"
+                style="width: 100%"
+                @change="handleChange"
+              />
+              <span class="form-tip">%，建议值：90</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item
+              prop="monitorSysGenServerSettingNetworkAlertThreshold"
+            >
+              <template #label>
+                <div class="form-label">
+                  <span>网络流量阈值</span>
+                  <el-tooltip
+                    content="当网络流量超过此阈值时触发告警，单位为Mbps"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input-number
+                v-model="
+                  formData.monitorSysGenServerSettingNetworkAlertThreshold
+                "
+                :min="1"
+                :max="10000"
+                :precision="1"
+                :step="10"
+                placeholder="网络阈值"
+                style="width: 100%"
+                @change="handleChange"
+              />
+              <span class="form-tip">Mbps，建议值：100</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item
+          prop="monitorSysGenServerSettingResponseTimeAlertThreshold"
+        >
+          <template #label>
+            <div class="form-label">
+              <span>响应时间阈值</span>
+              <el-tooltip
+                content="当服务器响应时间超过此阈值时触发告警，单位为毫秒"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input-number
+            v-model="
+              formData.monitorSysGenServerSettingResponseTimeAlertThreshold
+            "
+            :min="100"
+            :max="60000"
+            :step="100"
+            placeholder="响应时间阈值"
+            style="width: 200px"
+            @change="handleChange"
+          />
+          <span class="form-tip">毫秒，建议值：5000</span>
+        </el-form-item>
+
+        <el-divider content-position="left">
+          <span class="divider-text">通知配置</span>
+        </el-divider>
+      </template>
 
       <el-form-item
         v-show="formData.monitorSysGenServerSettingAlertEnabled"
@@ -213,7 +378,9 @@
           </div>
         </template>
         <el-switch
-          v-model="formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled"
+          v-model="
+            formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled
+          "
           :active-value="1"
           :inactive-value="0"
           active-text="开启"
@@ -302,7 +469,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
+        v-show="
+          formData.monitorSysGenServerSettingDockerEnabled &&
+          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
+        "
         prop="monitorSysGenServerSettingDockerApiUrl"
       >
         <template #label>
@@ -326,7 +496,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
+        v-show="
+          formData.monitorSysGenServerSettingDockerEnabled &&
+          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
+        "
         prop="monitorSysGenServerSettingDockerApiVersion"
       >
         <template #label>
@@ -350,7 +523,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'"
+        v-show="
+          formData.monitorSysGenServerSettingDockerEnabled &&
+          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
+        "
         prop="monitorSysGenServerSettingDockerTlsEnabled"
       >
         <template #label>
@@ -480,7 +656,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'"
+        v-show="
+          formData.monitorSysGenServerSettingProxyEnabled &&
+          formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
+        "
         prop="monitorSysGenServerSettingProxyUsername"
       >
         <template #label>
@@ -504,7 +683,10 @@
       </el-form-item>
 
       <el-form-item
-        v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'"
+        v-show="
+          formData.monitorSysGenServerSettingProxyEnabled &&
+          formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
+        "
         prop="monitorSysGenServerSettingProxyPassword"
       >
         <template #label>
@@ -678,7 +860,9 @@
         <span class="form-tip">秒，建议值：30-120</span>
       </el-form-item>
 
-      <el-form-item prop="monitorSysGenServerSettingPerformanceSuggestionEnabled">
+      <el-form-item
+        prop="monitorSysGenServerSettingPerformanceSuggestionEnabled"
+      >
         <template #label>
           <div class="form-label">
             <span>性能优化建议</span>
@@ -692,7 +876,9 @@
           </div>
         </template>
         <el-switch
-          v-model="formData.monitorSysGenServerSettingPerformanceSuggestionEnabled"
+          v-model="
+            formData.monitorSysGenServerSettingPerformanceSuggestionEnabled
+          "
           :active-value="1"
           :inactive-value="0"
           active-text="开启"
@@ -1055,7 +1241,9 @@
           </div>
         </template>
         <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadStatusCheckInterval"
+          v-model="
+            formData.monitorSysGenServerSettingFileUploadStatusCheckInterval
+          "
           :min="10"
           :max="600"
           :step="10"
@@ -1308,7 +1496,7 @@
           <div class="form-label">
             <span>标签过滤器</span>
             <el-tooltip
-              content="用于过滤Prometheus指标的标签，格式：key1=&quot;value1&quot;,key2=&quot;value2&quot;"
+              content='用于过滤Prometheus指标的标签，格式：key1="value1",key2="value2"'
               placement="top"
               effect="dark"
             >
@@ -1327,7 +1515,11 @@
 
       <!-- 测试连接 -->
       <el-form-item>
-        <el-button type="primary" @click="testPrometheusConnection" :loading="testingConnection">
+        <el-button
+          type="primary"
+          @click="testPrometheusConnection"
+          :loading="testingConnection"
+        >
           <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
           测试连接
         </el-button>
@@ -1345,7 +1537,15 @@ import type { ServerSetting } from "@/api/server/setting";
 // 定义属性
 const props = defineProps<{
   modelValue: Partial<ServerSetting>;
-  section: "monitor" | "alert" | "docker" | "proxy" | "prometheus" | "advanced" | "tasks" | "cleanup";
+  section:
+    | "monitor"
+    | "alert"
+    | "docker"
+    | "proxy"
+    | "prometheus"
+    | "advanced"
+    | "tasks"
+    | "cleanup";
   isLocalServer?: boolean;
 }>();
 
@@ -1363,10 +1563,10 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingDataCollectionFrequency: 30,
   monitorSysGenServerSettingMonitorInterval: 60,
   monitorSysGenServerSettingMetricsRetentionDays: 30,
-  monitorSysGenServerSettingCpuAlertThreshold: 80,
-  monitorSysGenServerSettingMemoryAlertThreshold: 80,
-  monitorSysGenServerSettingDiskAlertThreshold: 90,
-  monitorSysGenServerSettingNetworkAlertThreshold: 100,
+  monitorSysGenServerSettingCpuAlertThreshold: 80.0,
+  monitorSysGenServerSettingMemoryAlertThreshold: 85.0,
+  monitorSysGenServerSettingDiskAlertThreshold: 90.0,
+  monitorSysGenServerSettingNetworkAlertThreshold: 100.0,
   monitorSysGenServerSettingResponseTimeAlertThreshold: 5000,
 
   // 告警配置默认值
@@ -1432,8 +1632,6 @@ const formData = reactive<Partial<ServerSetting & any>>({ ...DEFAULT_VALUES });
 
 // 测试连接状态
 const testingConnection = ref(false);
-
-
 
 /**
  * 处理数据变化
@@ -1507,14 +1705,14 @@ const getNotificationAddressPlaceholder = () => {
 };
 
 // 告警配置相关
-const currentAlertConfigName = ref('默认告警配置');
+const currentAlertConfigName = ref("默认告警配置");
 
 /**
  * 打开告警配置页面
  */
 const openAlertConfig = () => {
   // 这里可以打开告警配置对话框或跳转到告警配置页面
-  console.log('打开告警配置页面');
+  console.log("打开告警配置页面");
   // 可以通过路由跳转或者打开对话框
   // router.push('/alert/config');
 };
@@ -1524,7 +1722,7 @@ const openAlertConfig = () => {
  */
 const viewCurrentAlertConfig = () => {
   // 显示当前告警配置的详细信息
-  console.log('查看当前告警配置');
+  console.log("查看当前告警配置");
   // 可以打开一个对话框显示当前配置的详细信息
 };
 
@@ -1533,7 +1731,7 @@ const viewCurrentAlertConfig = () => {
  */
 const changeAlertConfig = () => {
   // 打开配置选择对话框
-  console.log('更换告警配置');
+  console.log("更换告警配置");
   // 可以打开一个选择器让用户选择不同的告警配置
 };
 
@@ -1561,55 +1759,56 @@ watch(
  * 清除所有配置
  */
 const clearAllSettings = () => {
-  ElMessageBox.confirm(
-    '确定要清除所有配置吗？此操作不可恢复。',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
-    // 清除所有配置，设置为空值或禁用状态
-    Object.keys(formData).forEach(key => {
-      if (key.includes('Enabled')) {
-        formData[key] = 0;
-      } else if (key.includes('Interval') || key.includes('Timeout') || key.includes('Days') || key.includes('Hours')) {
-        formData[key] = 0;
-      } else if (typeof formData[key] === 'string') {
-        formData[key] = '';
-      } else if (typeof formData[key] === 'number') {
-        formData[key] = 0;
-      }
-    });
+  ElMessageBox.confirm("确定要清除所有配置吗？此操作不可恢复。", "警告", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      // 清除所有配置，设置为空值或禁用状态
+      Object.keys(formData).forEach((key) => {
+        if (key.includes("Enabled")) {
+          formData[key] = 0;
+        } else if (
+          key.includes("Interval") ||
+          key.includes("Timeout") ||
+          key.includes("Days") ||
+          key.includes("Hours")
+        ) {
+          formData[key] = 0;
+        } else if (typeof formData[key] === "string") {
+          formData[key] = "";
+        } else if (typeof formData[key] === "number") {
+          formData[key] = 0;
+        }
+      });
 
-    handleChange();
-    ElMessage.success('配置已清除');
-  }).catch(() => {
-    ElMessage.info('已取消清除操作');
-  });
+      handleChange();
+      ElMessage.success("配置已清除");
+    })
+    .catch(() => {
+      ElMessage.info("已取消清除操作");
+    });
 };
 
 /**
  * 重置为默认值
  */
 const resetToDefault = () => {
-  ElMessageBox.confirm(
-    '确定要重置为默认配置吗？当前配置将被覆盖。',
-    '确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info',
-    }
-  ).then(() => {
-    // 重置为默认值
-    Object.assign(formData, DEFAULT_VALUES);
-    handleChange();
-    ElMessage.success('配置已重置为默认值');
-  }).catch(() => {
-    ElMessage.info('已取消重置操作');
-  });
+  ElMessageBox.confirm("确定要重置为默认配置吗？当前配置将被覆盖。", "确认", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "info",
+  })
+    .then(() => {
+      // 重置为默认值
+      Object.assign(formData, DEFAULT_VALUES);
+      handleChange();
+      ElMessage.success("配置已重置为默认值");
+    })
+    .catch(() => {
+      ElMessage.info("已取消重置操作");
+    });
 };
 
 /**
@@ -1625,7 +1824,7 @@ const testPrometheusConnection = async () => {
   try {
     // 这里应该调用后端API测试连接
     // 暂时模拟测试
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // 模拟成功
     ElMessage.success("Prometheus连接测试成功");
@@ -1636,8 +1835,6 @@ const testPrometheusConnection = async () => {
     testingConnection.value = false;
   }
 };
-
-
 </script>
 
 <style scoped>
