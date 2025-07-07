@@ -117,10 +117,72 @@ export interface ServerSetting {
   /** WebSocket会话清理间隔时间(分钟) */
   monitorSysGenServerSettingWebSocketCleanupInterval?: number;
 
+  // ==================== 文件管理配置 ====================
+  /** 是否启用文件管理 0:否 1:是 */
+  monitorSysGenServerSettingFileManagementEnabled?: number;
+  /** 文件管理方式 (NONE:不启用, SSH:SSH模式, NODE:NODE模式, API:API模式) */
+  monitorSysGenServerSettingFileManagementMode?: string;
+  /** 文件管理API配置 (JSON格式，仅在API模式下使用) */
+  monitorSysGenServerSettingFileManagementApiConfig?: string;
+  /** 文件管理操作超时时间 (秒) */
+  monitorSysGenServerSettingFileManagementTimeout?: number;
+  /** 文件管理最大重试次数 */
+  monitorSysGenServerSettingFileManagementMaxRetries?: number;
+  /** 客户端健康状态检查间隔 (秒) */
+  monitorSysGenServerSettingClientHealthCheckInterval?: number;
+  /** 客户端健康状态超时时间 (秒) */
+  monitorSysGenServerSettingClientHealthTimeout?: number;
+
   /** 创建时间 */
   createTime?: string;
   /** 更新时间 */
   updateTime?: string;
+}
+
+/**
+ * 文件管理器API配置接口
+ */
+export interface FileManagementApiConfig {
+  /** API主机地址 */
+  apiHost?: string;
+  /** API端口号 */
+  apiPort?: number;
+  /** API基础路径 */
+  basePath?: string;
+  /** 是否使用HTTPS */
+  useHttps?: boolean;
+  /** 认证类型 (NONE, BASIC, TOKEN, API_KEY) */
+  authType?: string;
+  /** 用户名（Basic认证） */
+  username?: string;
+  /** 密码（Basic认证） */
+  password?: string;
+  /** Token（Token认证） */
+  token?: string;
+  /** API密钥（API Key认证） */
+  apiKey?: string;
+  /** API密钥请求头名称 */
+  apiKeyHeader?: string;
+  /** 连接超时时间（秒） */
+  connectionTimeout?: number;
+  /** 读取超时时间（秒） */
+  readTimeout?: number;
+  /** 写入超时时间（秒） */
+  writeTimeout?: number;
+  /** 最大重试次数 */
+  maxRetries?: number;
+  /** 重试间隔时间（毫秒） */
+  retryInterval?: number;
+  /** 自定义请求头（JSON格式） */
+  customHeaders?: string;
+  /** 是否启用压缩 */
+  compressionEnabled?: boolean;
+  /** 是否验证SSL证书 */
+  sslVerificationEnabled?: boolean;
+  /** 是否使用客户端地址自动检测 */
+  useClientAddress?: boolean;
+  /** 是否使用客户端端口自动检测 */
+  useClientPort?: boolean;
 }
 
 /**
@@ -432,5 +494,43 @@ export function getServerSettingHistory(serverId: number, limit: number = 10) {
     "get",
     `v1/gen/server/setting/server/${serverId}/history`,
     { params: { limit } }
+  );
+}
+
+/**
+ * 测试文件管理器连接
+ * @param serverId 服务器ID
+ * @returns 测试结果
+ */
+export function testFileManagementConnection(serverId: number) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `v1/gen/server/setting/test-file-management/${serverId}`
+  );
+}
+
+/**
+ * 获取文件管理器配置模板
+ * @param mode 文件管理模式 (SSH, API, NODE)
+ * @returns 配置模板
+ */
+export function getFileManagementConfigTemplate(mode: string) {
+  return http.request<ReturnResult<FileManagementApiConfig>>(
+    "get",
+    "v1/gen/server/setting/file-management/template",
+    { params: { mode } }
+  );
+}
+
+/**
+ * 验证文件管理器配置
+ * @param config 配置数据
+ * @returns 验证结果
+ */
+export function validateFileManagementConfig(config: FileManagementApiConfig) {
+  return http.request<ReturnResult<{ valid: boolean; message?: string }>>(
+    "post",
+    "v1/gen/server/setting/file-management/validate",
+    { data: config }
   );
 }

@@ -8,12 +8,21 @@
     class="server-setting-dialog"
   >
     <div class="dialog-content">
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px" size="small">
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="120px"
+        size="small"
+      >
         <el-tabs v-model="activeTab" type="border-card">
           <!-- 基础监控配置 -->
           <el-tab-pane label="基础监控" name="basic">
             <div class="tab-content">
-              <el-form-item label="启用监控" prop="monitorSysGenServerSettingMonitorEnabled">
+              <el-form-item
+                label="启用监控"
+                prop="monitorSysGenServerSettingMonitorEnabled"
+              >
                 <el-switch
                   v-model="formData.monitorSysGenServerSettingMonitorEnabled"
                   :active-value="1"
@@ -23,30 +32,40 @@
                 />
               </el-form-item>
 
-
-
               <!-- 数据收集频率：仅在非API上报方式时显示 -->
               <el-form-item
-                v-if="formData.monitorSysGenServerSettingDataReportMethod !== 'API'"
+                v-if="
+                  formData.monitorSysGenServerSettingDataReportMethod !== 'API'
+                "
                 label="数据收集频率"
                 prop="monitorSysGenServerSettingDataCollectionFrequency"
               >
                 <el-input-number
-                  v-model="formData.monitorSysGenServerSettingDataCollectionFrequency"
+                  v-model="
+                    formData.monitorSysGenServerSettingDataCollectionFrequency
+                  "
                   :min="10"
                   :max="3600"
                   :step="10"
                   controls-position="right"
                 />
                 <span class="unit">秒</span>
-                <el-tooltip content="API上报方式由客户端控制推送频率，无需设置收集频率" placement="top">
+                <el-tooltip
+                  content="API上报方式由客户端控制推送频率，无需设置收集频率"
+                  placement="top"
+                >
                   <el-icon class="info-icon"><InfoFilled /></el-icon>
                 </el-tooltip>
               </el-form-item>
 
-              <el-form-item label="数据保留时间" prop="monitorSysGenServerSettingMetricsRetentionDays">
+              <el-form-item
+                label="数据保留时间"
+                prop="monitorSysGenServerSettingMetricsRetentionDays"
+              >
                 <el-input-number
-                  v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
+                  v-model="
+                    formData.monitorSysGenServerSettingMetricsRetentionDays
+                  "
                   :min="1"
                   :max="365"
                   :step="1"
@@ -60,7 +79,10 @@
           <!-- 数据上报配置 -->
           <el-tab-pane label="数据上报" name="report">
             <div class="tab-content">
-              <el-form-item label="启用上报" prop="monitorSysGenServerSettingReportEnabled">
+              <el-form-item
+                label="启用上报"
+                prop="monitorSysGenServerSettingReportEnabled"
+              >
                 <el-switch
                   v-model="formData.monitorSysGenServerSettingReportEnabled"
                   :active-value="1"
@@ -70,9 +92,14 @@
                 />
               </el-form-item>
 
-
-              <el-form-item label="上报方式" prop="monitorSysGenServerSettingDataReportMethod">
-                <el-select v-model="formData.monitorSysGenServerSettingDataReportMethod" placeholder="选择上报方式">
+              <el-form-item
+                label="上报方式"
+                prop="monitorSysGenServerSettingDataReportMethod"
+              >
+                <el-select
+                  v-model="formData.monitorSysGenServerSettingDataReportMethod"
+                  placeholder="选择上报方式"
+                >
                   <el-option label="不上报" value="NONE" />
                   <el-option
                     v-if="currentServer?.monitorSysGenServerIsLocal === 1"
@@ -89,8 +116,16 @@
               </el-form-item>
 
               <!-- Prometheus配置 -->
-              <template v-if="formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'">
-                <el-form-item label="Prometheus地址" prop="monitorSysGenServerSettingPrometheusHost">
+              <template
+                v-if="
+                  formData.monitorSysGenServerSettingDataReportMethod ===
+                  'PROMETHEUS'
+                "
+              >
+                <el-form-item
+                  label="Prometheus地址"
+                  prop="monitorSysGenServerSettingPrometheusHost"
+                >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingPrometheusHost"
                     placeholder="Prometheus服务器地址"
@@ -98,7 +133,10 @@
                   />
                 </el-form-item>
 
-                <el-form-item label="Prometheus端口" prop="monitorSysGenServerSettingPrometheusPort">
+                <el-form-item
+                  label="Prometheus端口"
+                  prop="monitorSysGenServerSettingPrometheusPort"
+                >
                   <el-input-number
                     v-model="formData.monitorSysGenServerSettingPrometheusPort"
                     :min="1"
@@ -109,24 +147,20 @@
               </template>
 
               <!-- API上报配置 -->
-              <template v-if="formData.monitorSysGenServerSettingDataReportMethod === 'API'">
-                <el-form-item label="API地址" prop="monitorSysGenServerSettingApiUrl">
-                  <el-input
-                    v-model="formData.monitorSysGenServerSettingApiUrl"
-                    placeholder="API接口地址"
-                    clearable
-                  />
-                </el-form-item>
-
-                <el-form-item label="API密钥" prop="monitorSysGenServerSettingApiKey">
-                  <el-input
-                    v-model="formData.monitorSysGenServerSettingApiKey"
-                    placeholder="API访问密钥"
-                    type="password"
-                    show-password
-                    clearable
-                  />
-                </el-form-item>
+              <template
+                v-if="
+                  formData.monitorSysGenServerSettingDataReportMethod === 'API'
+                "
+              >
+                <el-alert
+                  title="API上报配置"
+                  type="info"
+                  :closable="false"
+                  show-icon
+                  style="margin-bottom: 16px"
+                >
+                  API上报方式将通过客户端自动推送数据到服务器，无需额外配置。
+                </el-alert>
               </template>
             </div>
           </el-tab-pane>
@@ -134,76 +168,45 @@
           <!-- 指标管理 -->
           <el-tab-pane label="指标管理" name="metrics">
             <div class="tab-content">
-              <el-form-item label="指标收集" prop="monitorSysGenServerSettingMetricsEnabled">
-                <el-switch
-                  v-model="formData.monitorSysGenServerSettingMetricsEnabled"
-                  :active-value="1"
-                  :inactive-value="0"
-                  active-text="开启"
-                  inactive-text="关闭"
+              <el-form-item
+                label="监控间隔"
+                prop="monitorSysGenServerSettingMonitorInterval"
+              >
+                <el-input-number
+                  v-model="formData.monitorSysGenServerSettingMonitorInterval"
+                  :min="30"
+                  :max="3600"
+                  :step="30"
+                  controls-position="right"
                 />
-                <el-tooltip content="开启后将收集服务器的CPU、内存、磁盘、网络等指标数据" placement="top">
-                  <el-icon class="info-icon"><InfoFilled /></el-icon>
-                </el-tooltip>
+                <span class="unit">秒</span>
               </el-form-item>
 
-              <template v-if="formData.monitorSysGenServerSettingMetricsEnabled">
-                <el-form-item label="收集指标类型">
-                  <el-checkbox-group v-model="selectedMetricsTypes">
-                    <el-checkbox label="cpu">CPU使用率</el-checkbox>
-                    <el-checkbox label="memory">内存使用率</el-checkbox>
-                    <el-checkbox label="disk">磁盘使用率</el-checkbox>
-                    <el-checkbox label="network">网络流量</el-checkbox>
-                    <el-checkbox label="process">进程信息</el-checkbox>
-                    <el-checkbox label="system">系统负载</el-checkbox>
-                  </el-checkbox-group>
-                </el-form-item>
-
-                <el-form-item label="指标精度" prop="monitorSysGenServerSettingMetricsPrecision">
-                  <el-select v-model="formData.monitorSysGenServerSettingMetricsPrecision" placeholder="选择指标精度">
-                    <el-option label="低精度（1分钟）" :value="60" />
-                    <el-option label="中精度（30秒）" :value="30" />
-                    <el-option label="高精度（15秒）" :value="15" />
-                    <el-option label="实时（5秒）" :value="5" />
-                  </el-select>
-                  <el-tooltip content="精度越高，数据越详细，但会占用更多存储空间" placement="top">
-                    <el-icon class="info-icon"><InfoFilled /></el-icon>
-                  </el-tooltip>
-                </el-form-item>
-
-                <el-form-item label="数据聚合" prop="monitorSysGenServerSettingDataAggregation">
-                  <el-switch
-                    v-model="formData.monitorSysGenServerSettingDataAggregation"
-                    :active-value="1"
-                    :inactive-value="0"
-                    active-text="开启"
-                    inactive-text="关闭"
-                  />
-                  <el-tooltip content="开启后将对历史数据进行聚合处理，减少存储空间占用" placement="top">
-                    <el-icon class="info-icon"><InfoFilled /></el-icon>
-                  </el-tooltip>
-                </el-form-item>
-
-                <el-form-item label="自动清理" prop="monitorSysGenServerSettingAutoCleanup">
-                  <el-switch
-                    v-model="formData.monitorSysGenServerSettingAutoCleanup"
-                    :active-value="1"
-                    :inactive-value="0"
-                    active-text="开启"
-                    inactive-text="关闭"
-                  />
-                  <el-tooltip content="开启后将根据数据保留时间自动清理过期数据" placement="top">
-                    <el-icon class="info-icon"><InfoFilled /></el-icon>
-                  </el-tooltip>
-                </el-form-item>
-              </template>
+              <el-form-item
+                label="数据保留时间"
+                prop="monitorSysGenServerSettingMetricsRetentionDays"
+              >
+                <el-input-number
+                  v-model="
+                    formData.monitorSysGenServerSettingMetricsRetentionDays
+                  "
+                  :min="1"
+                  :max="365"
+                  :step="1"
+                  controls-position="right"
+                />
+                <span class="unit">天</span>
+              </el-form-item>
             </div>
           </el-tab-pane>
 
           <!-- 告警配置 -->
           <el-tab-pane label="告警配置" name="alert">
             <div class="tab-content">
-              <el-form-item label="启用告警" prop="monitorSysGenServerSettingAlertEnabled">
+              <el-form-item
+                label="启用告警"
+                prop="monitorSysGenServerSettingAlertEnabled"
+              >
                 <el-switch
                   v-model="formData.monitorSysGenServerSettingAlertEnabled"
                   :active-value="1"
@@ -214,9 +217,14 @@
               </el-form-item>
 
               <template v-if="formData.monitorSysGenServerSettingAlertEnabled">
-                <el-form-item label="CPU阈值" prop="monitorSysGenServerSettingCpuAlertThreshold">
+                <el-form-item
+                  label="CPU阈值"
+                  prop="monitorSysGenServerSettingCpuAlertThreshold"
+                >
                   <el-input-number
-                    v-model="formData.monitorSysGenServerSettingCpuAlertThreshold"
+                    v-model="
+                      formData.monitorSysGenServerSettingCpuAlertThreshold
+                    "
                     :min="1"
                     :max="100"
                     :precision="1"
@@ -225,9 +233,14 @@
                   <span class="unit">%</span>
                 </el-form-item>
 
-                <el-form-item label="内存阈值" prop="monitorSysGenServerSettingMemoryAlertThreshold">
+                <el-form-item
+                  label="内存阈值"
+                  prop="monitorSysGenServerSettingMemoryAlertThreshold"
+                >
                   <el-input-number
-                    v-model="formData.monitorSysGenServerSettingMemoryAlertThreshold"
+                    v-model="
+                      formData.monitorSysGenServerSettingMemoryAlertThreshold
+                    "
                     :min="1"
                     :max="100"
                     :precision="1"
@@ -236,9 +249,14 @@
                   <span class="unit">%</span>
                 </el-form-item>
 
-                <el-form-item label="磁盘阈值" prop="monitorSysGenServerSettingDiskAlertThreshold">
+                <el-form-item
+                  label="磁盘阈值"
+                  prop="monitorSysGenServerSettingDiskAlertThreshold"
+                >
                   <el-input-number
-                    v-model="formData.monitorSysGenServerSettingDiskAlertThreshold"
+                    v-model="
+                      formData.monitorSysGenServerSettingDiskAlertThreshold
+                    "
                     :min="1"
                     :max="100"
                     :precision="1"
@@ -247,8 +265,16 @@
                   <span class="unit">%</span>
                 </el-form-item>
 
-                <el-form-item label="通知方式" prop="monitorSysGenServerSettingAlertNotificationMethod">
-                  <el-select v-model="formData.monitorSysGenServerSettingAlertNotificationMethod" placeholder="选择通知方式">
+                <el-form-item
+                  label="通知方式"
+                  prop="monitorSysGenServerSettingAlertNotificationMethod"
+                >
+                  <el-select
+                    v-model="
+                      formData.monitorSysGenServerSettingAlertNotificationMethod
+                    "
+                    placeholder="选择通知方式"
+                  >
                     <el-option label="邮件" value="EMAIL" />
                     <el-option label="短信" value="SMS" />
                     <el-option label="Webhook" value="WEBHOOK" />
@@ -256,36 +282,50 @@
                 </el-form-item>
 
                 <el-form-item
-                  v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'EMAIL'"
-                  label="邮箱地址"
-                  prop="monitorSysGenServerSettingAlertEmailAddresses"
+                  v-if="
+                    formData.monitorSysGenServerSettingAlertNotificationMethod &&
+                    formData.monitorSysGenServerSettingAlertNotificationMethod !==
+                      'NONE'
+                  "
+                  label="通知地址"
+                  prop="monitorSysGenServerSettingAlertNotificationAddress"
                 >
                   <el-input
-                    v-model="formData.monitorSysGenServerSettingAlertEmailAddresses"
-                    placeholder="邮箱地址，多个用逗号分隔"
+                    v-model="
+                      formData.monitorSysGenServerSettingAlertNotificationAddress
+                    "
+                    :placeholder="getNotificationAddressPlaceholder()"
                     clearable
                   />
-                </el-form-item>
-
-                <el-form-item
-                  v-if="formData.monitorSysGenServerSettingAlertNotificationMethod === 'WEBHOOK'"
-                  label="Webhook地址"
-                  prop="monitorSysGenServerSettingAlertWebhookUrl"
-                >
-                  <el-input
-                    v-model="formData.monitorSysGenServerSettingAlertWebhookUrl"
-                    placeholder="Webhook URL地址"
-                    clearable
-                  />
+                  <span class="form-tip">{{
+                    getNotificationAddressTip()
+                  }}</span>
                 </el-form-item>
               </template>
+            </div>
+          </el-tab-pane>
+
+          <!-- 文件管理配置 -->
+          <el-tab-pane label="文件管理" name="filemanagement">
+            <div class="tab-content">
+              <ServerSettingForm
+                v-model="formData"
+                section="filemanagement"
+                :is-local-server="
+                  currentServer?.monitorSysGenServerIsLocal === 1
+                "
+                @change="handleFormChange"
+              />
             </div>
           </el-tab-pane>
 
           <!-- 高级配置 -->
           <el-tab-pane label="高级配置" name="advanced">
             <div class="tab-content">
-              <el-form-item label="连接超时" prop="monitorSysGenServerSettingConnectionTimeout">
+              <el-form-item
+                label="连接超时"
+                prop="monitorSysGenServerSettingConnectionTimeout"
+              >
                 <el-input-number
                   v-model="formData.monitorSysGenServerSettingConnectionTimeout"
                   :min="5"
@@ -296,7 +336,10 @@
                 <span class="unit">秒</span>
               </el-form-item>
 
-              <el-form-item label="读取超时" prop="monitorSysGenServerSettingReadTimeout">
+              <el-form-item
+                label="读取超时"
+                prop="monitorSysGenServerSettingReadTimeout"
+              >
                 <el-input-number
                   v-model="formData.monitorSysGenServerSettingReadTimeout"
                   :min="5"
@@ -307,9 +350,14 @@
                 <span class="unit">秒</span>
               </el-form-item>
 
-              <el-form-item label="启用Docker监控" prop="monitorSysGenServerSettingDockerMonitorEnabled">
+              <el-form-item
+                label="启用Docker监控"
+                prop="monitorSysGenServerSettingDockerMonitorEnabled"
+              >
                 <el-switch
-                  v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled"
+                  v-model="
+                    formData.monitorSysGenServerSettingDockerMonitorEnabled
+                  "
                   :active-value="1"
                   :inactive-value="0"
                   active-text="开启"
@@ -317,8 +365,13 @@
                 />
               </el-form-item>
 
-              <template v-if="formData.monitorSysGenServerSettingDockerMonitorEnabled">
-                <el-form-item label="Docker API地址" prop="monitorSysGenServerSettingDockerApiUrl">
+              <template
+                v-if="formData.monitorSysGenServerSettingDockerMonitorEnabled"
+              >
+                <el-form-item
+                  label="Docker API地址"
+                  prop="monitorSysGenServerSettingDockerApiUrl"
+                >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingDockerApiUrl"
                     placeholder="Docker API地址，如：tcp://localhost:2376"
@@ -326,16 +379,24 @@
                   />
                 </el-form-item>
 
-                <el-form-item label="Docker API版本" prop="monitorSysGenServerSettingDockerApiVersion">
+                <el-form-item
+                  label="Docker API版本"
+                  prop="monitorSysGenServerSettingDockerApiVersion"
+                >
                   <el-input
-                    v-model="formData.monitorSysGenServerSettingDockerApiVersion"
+                    v-model="
+                      formData.monitorSysGenServerSettingDockerApiVersion
+                    "
                     placeholder="Docker API版本，如：1.40"
                     clearable
                   />
                 </el-form-item>
               </template>
 
-              <el-form-item label="启用日志监控" prop="monitorSysGenServerSettingLogMonitorEnabled">
+              <el-form-item
+                label="启用日志监控"
+                prop="monitorSysGenServerSettingLogMonitorEnabled"
+              >
                 <el-switch
                   v-model="formData.monitorSysGenServerSettingLogMonitorEnabled"
                   :active-value="1"
@@ -345,8 +406,13 @@
                 />
               </el-form-item>
 
-              <template v-if="formData.monitorSysGenServerSettingLogMonitorEnabled">
-                <el-form-item label="日志文件路径" prop="monitorSysGenServerSettingLogFilePaths">
+              <template
+                v-if="formData.monitorSysGenServerSettingLogMonitorEnabled"
+              >
+                <el-form-item
+                  label="日志文件路径"
+                  prop="monitorSysGenServerSettingLogFilePaths"
+                >
                   <el-input
                     v-model="formData.monitorSysGenServerSettingLogFilePaths"
                     type="textarea"
@@ -356,7 +422,10 @@
                 </el-form-item>
               </template>
 
-              <el-form-item label="监控端口" prop="monitorSysGenServerSettingMonitorPorts">
+              <el-form-item
+                label="监控端口"
+                prop="monitorSysGenServerSettingMonitorPorts"
+              >
                 <el-input
                   v-model="formData.monitorSysGenServerSettingMonitorPorts"
                   placeholder="监控的端口列表，用逗号分隔，如：80,443,3306"
@@ -364,7 +433,10 @@
                 />
               </el-form-item>
 
-              <el-form-item label="自定义标签" prop="monitorSysGenServerSettingCustomTags">
+              <el-form-item
+                label="自定义标签"
+                prop="monitorSysGenServerSettingCustomTags"
+              >
                 <el-input
                   v-model="formData.monitorSysGenServerSettingCustomTags"
                   type="textarea"
@@ -373,7 +445,10 @@
                 />
               </el-form-item>
 
-              <el-form-item label="配置描述" prop="monitorSysGenServerSettingDescription">
+              <el-form-item
+                label="配置描述"
+                prop="monitorSysGenServerSettingDescription"
+              >
                 <el-input
                   v-model="formData.monitorSysGenServerSettingDescription"
                   type="textarea"
@@ -390,7 +465,9 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">保存</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSubmit"
+          >保存</el-button
+        >
       </div>
     </template>
   </el-dialog>
@@ -402,9 +479,10 @@ import { message } from "@repo/utils";
 import {
   type ServerSetting,
   getOrCreateServerSetting,
-  saveOrUpdateServerSetting
+  saveOrUpdateServerSetting,
 } from "@/api/server/setting";
 import { getServerInfo, type ServerInfo } from "@/api/server";
+import ServerSettingForm from "./ServerSettingForm.vue";
 
 // 定义事件
 const emit = defineEmits<{
@@ -419,8 +497,7 @@ const formRef = ref();
 const serverId = ref<number | null>(null);
 const currentServer = ref<ServerInfo | null>(null);
 
-// 指标管理相关状态
-const selectedMetricsTypes = ref<string[]>(['cpu', 'memory', 'disk', 'network']);
+// 指标管理相关状态已简化，不再需要单独的选择状态
 
 // 表单数据
 const formData = reactive<Partial<ServerSetting>>({
@@ -434,8 +511,7 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingMemoryAlertThreshold: 80,
   monitorSysGenServerSettingDiskAlertThreshold: 80,
   monitorSysGenServerSettingAlertNotificationMethod: "EMAIL",
-  monitorSysGenServerSettingAlertEmailAddresses: "",
-  monitorSysGenServerSettingAlertWebhookUrl: "",
+  monitorSysGenServerSettingAlertNotificationAddress: "",
   monitorSysGenServerSettingConnectionTimeout: 30,
   monitorSysGenServerSettingReadTimeout: 30,
   monitorSysGenServerSettingDockerMonitorEnabled: 0,
@@ -447,16 +523,18 @@ const formData = reactive<Partial<ServerSetting>>({
   monitorSysGenServerSettingCustomTags: "",
   monitorSysGenServerSettingDescription: "",
   monitorSysGenServerSettingStatus: 1,
-  // 指标管理相关字段
-  monitorSysGenServerSettingMetricsEnabled: 1,
-  monitorSysGenServerSettingMetricsPrecision: 30,
-  monitorSysGenServerSettingDataAggregation: 1,
-  monitorSysGenServerSettingAutoCleanup: 1,
+
+  // 文件管理配置默认值
+  monitorSysGenServerSettingFileManagementEnabled: 0,
+  monitorSysGenServerSettingFileManagementMode: "NONE",
+  monitorSysGenServerSettingFileManagementApiConfig: "",
+  monitorSysGenServerSettingFileManagementTimeout: 60,
+  monitorSysGenServerSettingFileManagementMaxRetries: 3,
+  monitorSysGenServerSettingClientHealthCheckInterval: 30,
+  monitorSysGenServerSettingClientHealthTimeout: 10,
   // 数据上报扩展字段
   monitorSysGenServerSettingPrometheusHost: "",
   monitorSysGenServerSettingPrometheusPort: 9090,
-  monitorSysGenServerSettingApiUrl: "",
-  monitorSysGenServerSettingApiKey: "",
 });
 
 // 表单验证规则 - 动态规则
@@ -464,15 +542,27 @@ const rules = computed(() => {
   const baseRules: any = {
     monitorSysGenServerSettingMetricsRetentionDays: [
       { required: true, message: "数据保留时间不能为空", trigger: "blur" },
-      { type: "number", min: 1, max: 365, message: "数据保留时间范围 1-365 天", trigger: "blur" },
+      {
+        type: "number",
+        min: 1,
+        max: 365,
+        message: "数据保留时间范围 1-365 天",
+        trigger: "blur",
+      },
     ],
   };
 
   // 仅在非API上报方式时添加数据收集频率验证
-  if (formData.monitorSysGenServerSettingDataReportMethod !== 'API') {
+  if (formData.monitorSysGenServerSettingDataReportMethod !== "API") {
     baseRules.monitorSysGenServerSettingDataCollectionFrequency = [
       { required: true, message: "数据收集频率不能为空", trigger: "blur" },
-      { type: "number", min: 10, max: 3600, message: "数据收集频率范围 10-3600 秒", trigger: "blur" },
+      {
+        type: "number",
+        min: 10,
+        max: 3600,
+        message: "数据收集频率范围 10-3600 秒",
+        trigger: "blur",
+      },
     ];
   }
 
@@ -486,12 +576,9 @@ const open = async (serverIdParam: number) => {
   serverId.value = serverIdParam;
   visible.value = true;
   activeTab.value = "basic";
-debugger
+  debugger;
   // 同时加载服务器信息和设置
-  await Promise.all([
-    loadServerInfo(),
-    loadServerSetting()
-  ]);
+  await Promise.all([loadServerInfo(), loadServerSetting()]);
 };
 
 /**
@@ -502,7 +589,7 @@ const loadServerInfo = async () => {
 
   try {
     const result = await getServerInfo(String(serverId.value));
-    debugger
+    debugger;
     if (result.code === "00000" && result.data) {
       currentServer.value = result.data;
     }
@@ -525,10 +612,49 @@ const loadServerSetting = async () => {
       Object.assign(formData, result.data);
     }
   } catch (error) {
-    console.error('加载服务器设置失败:', error);
-    message.error('加载服务器设置失败');
+    console.error("加载服务器设置失败:", error);
+    message.error("加载服务器设置失败");
   } finally {
     loading.value = false;
+  }
+};
+
+/**
+ * 处理表单变化
+ */
+const handleFormChange = (data: Partial<ServerSetting>) => {
+  Object.assign(formData, data);
+};
+
+/**
+ * 获取通知地址占位符
+ */
+const getNotificationAddressPlaceholder = () => {
+  switch (formData.monitorSysGenServerSettingAlertNotificationMethod) {
+    case "EMAIL":
+      return "邮箱地址，多个用逗号分隔";
+    case "WEBHOOK":
+      return "Webhook URL地址";
+    case "SMS":
+      return "手机号码，多个用逗号分隔";
+    default:
+      return "通知地址";
+  }
+};
+
+/**
+ * 获取通知地址提示
+ */
+const getNotificationAddressTip = () => {
+  switch (formData.monitorSysGenServerSettingAlertNotificationMethod) {
+    case "EMAIL":
+      return "支持多个邮箱地址，用逗号分隔，如：admin@example.com,user@example.com";
+    case "WEBHOOK":
+      return "Webhook URL地址，用于接收告警通知的HTTP接口";
+    case "SMS":
+      return "支持多个手机号码，用逗号分隔，如：13800138000,13900139000";
+    default:
+      return "";
   }
 };
 
