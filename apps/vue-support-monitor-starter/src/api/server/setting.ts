@@ -14,6 +14,24 @@ export interface ServerSetting {
   monitorSysGenServerSettingReportEnabled?: number;
   /** 数据上报方式 */
   monitorSysGenServerSettingDataReportMethod?: string;
+  /** Prometheus服务器地址 */
+  monitorSysGenServerSettingPrometheusHost?: string;
+  /** Prometheus服务器端口 */
+  monitorSysGenServerSettingPrometheusPort?: number;
+  /** Prometheus服务器URL */
+  monitorSysGenServerSettingPrometheusUrl?: string;
+  /** Prometheus查询路径 */
+  monitorSysGenServerSettingPrometheusQueryPath?: string;
+  /** 是否启用Prometheus认证 0:否 1:是 */
+  monitorSysGenServerSettingPrometheusAuthEnabled?: number;
+  /** Prometheus用户名 */
+  monitorSysGenServerSettingPrometheusUsername?: string;
+  /** Prometheus密码 */
+  monitorSysGenServerSettingPrometheusPassword?: string;
+  /** Prometheus连接超时时间(秒) */
+  monitorSysGenServerSettingPrometheusTimeout?: number;
+  /** Prometheus标签(JSON格式) */
+  monitorSysGenServerSettingPrometheusLabels?: string;
   /** 监控间隔(秒) */
   monitorSysGenServerSettingMonitorInterval?: number;
   /** 数据收集频率(秒) */
@@ -141,11 +159,9 @@ export interface BatchSettingOperationParams {
  * @returns 服务器设置分页数据
  */
 export function getServerSettingPageList(params: ServerSettingPageParams) {
-  return http.request<ReturnResult<{ records: ServerSetting[]; total: number }>>(
-    "get",
-    "v1/gen/server/setting/page",
-    { params }
-  );
+  return http.request<
+    ReturnResult<{ records: ServerSetting[]; total: number }>
+  >("get", "v1/gen/server/setting/page", { params });
 }
 
 /**
@@ -366,7 +382,10 @@ export function getSettingTemplate(templateType: string) {
  * @param serverIds 服务器ID列表
  * @returns 应用结果
  */
-export function applyTemplateToServers(templateType: string, serverIds: number[]) {
+export function applyTemplateToServers(
+  templateType: string,
+  serverIds: number[]
+) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/setting/apply-template",
