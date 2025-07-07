@@ -52,6 +52,10 @@
               <IconifyIconOnline icon="simple-icons:docker" />
               <span>Docker配置</span>
             </el-menu-item>
+            <el-menu-item index="filemanagement">
+              <IconifyIconOnline icon="ri:folder-line" />
+              <span>文件管理</span>
+            </el-menu-item>
             <!-- <el-menu-item index="prometheus">
               <IconifyIconOnline icon="ri:bar-chart-line" />
               <span>Prometheus配置</span>
@@ -633,6 +637,31 @@
                   />
                 </div>
 
+                <!-- 文件管理配置节 -->
+                <div
+                  v-show="activeSection === 'filemanagement'"
+                  class="config-section"
+                >
+                  <div class="section-description">
+                    <el-alert
+                      title="文件管理配置"
+                      description="配置服务器文件管理功能，支持SSH连接、NODE客户端代理和API连接等多种方式，提供完整的文件系统访问和管理能力。"
+                      type="info"
+                      show-icon
+                      :closable="false"
+                      class="mb-4"
+                    />
+                  </div>
+                  <ServerSettingForm
+                    v-model="settingData"
+                    section="filemanagement"
+                    :is-local-server="
+                      currentServer?.monitorSysGenServerIsLocal === 1
+                    "
+                    @change="handleSettingChange"
+                  />
+                </div>
+
                 <!-- 高级配置节 -->
                 <div
                   v-show="activeSection === 'advanced'"
@@ -824,6 +853,7 @@ const getSectionTitle = () => {
     monitor: "监控配置",
     alert: "告警配置",
     docker: "Docker配置",
+    filemanagement: "文件管理配置",
     prometheus: "Prometheus配置",
     advanced: "高级配置",
     tasks: "任务配置",

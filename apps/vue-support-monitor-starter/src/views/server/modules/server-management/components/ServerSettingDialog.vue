@@ -308,14 +308,180 @@
           <!-- 文件管理配置 -->
           <el-tab-pane label="文件管理" name="filemanagement">
             <div class="tab-content">
-              <ServerSettingForm
-                v-model="formData"
-                section="filemanagement"
-                :is-local-server="
-                  currentServer?.monitorSysGenServerIsLocal === 1
-                "
-                @change="handleFormChange"
-              />
+              <el-form-item
+                label="启用文件管理"
+                prop="monitorSysGenServerSettingFileManagementEnabled"
+              >
+                <el-switch
+                  v-model="
+                    formData.monitorSysGenServerSettingFileManagementEnabled
+                  "
+                  :active-value="1"
+                  :inactive-value="0"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+              </el-form-item>
+
+              <template
+                v-if="formData.monitorSysGenServerSettingFileManagementEnabled"
+              >
+                <el-form-item
+                  label="连接方式"
+                  prop="monitorSysGenServerSettingFileManagementMode"
+                >
+                  <el-select
+                    v-model="
+                      formData.monitorSysGenServerSettingFileManagementMode
+                    "
+                    placeholder="请选择连接方式"
+                    style="width: 200px"
+                    @change="handleFileManagementModeChange"
+                  >
+                    <el-option label="不启用" value="NONE" />
+                    <el-option label="SSH连接" value="SSH" />
+                    <el-option label="NODE客户端" value="NODE" />
+                    <el-option label="API连接" value="API" />
+                  </el-select>
+                </el-form-item>
+
+                <!-- API连接配置 -->
+                <template
+                  v-if="
+                    formData.monitorSysGenServerSettingFileManagementMode ===
+                    'API'
+                  "
+                >
+                  <el-divider content-position="left">API连接配置</el-divider>
+
+                  <el-form-item label="API主机地址">
+                    <el-input
+                      v-model="apiConfig.apiHost"
+                      placeholder="请输入API主机地址"
+                      maxlength="100"
+                      @change="handleApiConfigChange"
+                    />
+                  </el-form-item>
+
+                  <el-form-item label="API端口">
+                    <el-input-number
+                      v-model="apiConfig.apiPort"
+                      :min="1"
+                      :max="65535"
+                      placeholder="API端口"
+                      style="width: 200px"
+                      @change="handleApiConfigChange"
+                    />
+                  </el-form-item>
+
+                  <el-form-item label="认证方式">
+                    <el-select
+                      v-model="apiConfig.authType"
+                      placeholder="请选择认证方式"
+                      style="width: 200px"
+                      @change="handleApiConfigChange"
+                    >
+                      <el-option label="无认证" value="NONE" />
+                      <el-option label="Basic认证" value="BASIC" />
+                      <el-option label="Token认证" value="TOKEN" />
+                      <el-option label="API Key认证" value="API_KEY" />
+                    </el-select>
+                  </el-form-item>
+
+                  <!-- Basic认证配置 -->
+                  <template v-if="apiConfig.authType === 'BASIC'">
+                    <el-form-item label="用户名">
+                      <el-input
+                        v-model="apiConfig.username"
+                        placeholder="请输入用户名"
+                        maxlength="100"
+                        @change="handleApiConfigChange"
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="密码">
+                      <el-input
+                        v-model="apiConfig.password"
+                        type="password"
+                        placeholder="请输入密码"
+                        maxlength="100"
+                        show-password
+                        @change="handleApiConfigChange"
+                      />
+                    </el-form-item>
+                  </template>
+
+                  <!-- Token认证配置 -->
+                  <template v-if="apiConfig.authType === 'TOKEN'">
+                    <el-form-item label="Token">
+                      <el-input
+                        v-model="apiConfig.token"
+                        type="password"
+                        placeholder="请输入Token"
+                        maxlength="500"
+                        show-password
+                        @change="handleApiConfigChange"
+                      />
+                    </el-form-item>
+                  </template>
+
+                  <!-- API Key认证配置 -->
+                  <template v-if="apiConfig.authType === 'API_KEY'">
+                    <el-form-item label="API密钥">
+                      <el-input
+                        v-model="apiConfig.apiKey"
+                        type="password"
+                        placeholder="请输入API密钥"
+                        maxlength="500"
+                        show-password
+                        @change="handleApiConfigChange"
+                      />
+                    </el-form-item>
+                  </template>
+                </template>
+
+                <!-- 通用配置 -->
+                <template
+                  v-if="
+                    formData.monitorSysGenServerSettingFileManagementMode !==
+                    'NONE'
+                  "
+                >
+                  <el-divider content-position="left">通用配置</el-divider>
+
+                  <el-form-item
+                    label="操作超时时间"
+                    prop="monitorSysGenServerSettingFileManagementTimeout"
+                  >
+                    <el-input-number
+                      v-model="
+                        formData.monitorSysGenServerSettingFileManagementTimeout
+                      "
+                      :min="30"
+                      :max="600"
+                      :step="30"
+                      style="width: 200px"
+                    />
+                    <span class="unit">秒</span>
+                  </el-form-item>
+
+                  <el-form-item
+                    label="最大重试次数"
+                    prop="monitorSysGenServerSettingFileManagementMaxRetries"
+                  >
+                    <el-input-number
+                      v-model="
+                        formData.monitorSysGenServerSettingFileManagementMaxRetries
+                      "
+                      :min="0"
+                      :max="10"
+                      :step="1"
+                      style="width: 200px"
+                    />
+                    <span class="unit">次</span>
+                  </el-form-item>
+                </template>
+              </template>
             </div>
           </el-tab-pane>
 
@@ -478,11 +644,11 @@ import { reactive, ref, computed } from "vue";
 import { message } from "@repo/utils";
 import {
   type ServerSetting,
+  type FileManagementApiConfig,
   getOrCreateServerSetting,
   saveOrUpdateServerSetting,
 } from "@/api/server/setting";
 import { getServerInfo, type ServerInfo } from "@/api/server";
-import ServerSettingForm from "./ServerSettingForm.vue";
 
 // 定义事件
 const emit = defineEmits<{
@@ -497,7 +663,29 @@ const formRef = ref();
 const serverId = ref<number | null>(null);
 const currentServer = ref<ServerInfo | null>(null);
 
-// 指标管理相关状态已简化，不再需要单独的选择状态
+// 文件管理器API配置
+const apiConfig = reactive<FileManagementApiConfig>({
+  apiHost: "localhost",
+  apiPort: 8080,
+  basePath: "/api/file",
+  useHttps: false,
+  authType: "NONE",
+  username: "",
+  password: "",
+  token: "",
+  apiKey: "",
+  apiKeyHeader: "X-API-Key",
+  connectionTimeout: 30,
+  readTimeout: 60,
+  writeTimeout: 60,
+  maxRetries: 3,
+  retryInterval: 1000,
+  customHeaders: "",
+  compressionEnabled: true,
+  sslVerificationEnabled: true,
+  useClientAddress: true,
+  useClientPort: true,
+});
 
 // 表单数据
 const formData = reactive<Partial<ServerSetting>>({
@@ -619,12 +807,7 @@ const loadServerSetting = async () => {
   }
 };
 
-/**
- * 处理表单变化
- */
-const handleFormChange = (data: Partial<ServerSetting>) => {
-  Object.assign(formData, data);
-};
+// 表单变化处理已集成到各个配置项中
 
 /**
  * 获取通知地址占位符
@@ -655,6 +838,57 @@ const getNotificationAddressTip = () => {
       return "支持多个手机号码，用逗号分隔，如：13800138000,13900139000";
     default:
       return "";
+  }
+};
+
+/**
+ * 处理文件管理模式变化
+ */
+const handleFileManagementModeChange = () => {
+  // 当模式变化时，重置API配置
+  if (formData.monitorSysGenServerSettingFileManagementMode === "API") {
+    // 如果切换到API模式，初始化API配置
+    if (!formData.monitorSysGenServerSettingFileManagementApiConfig) {
+      Object.assign(apiConfig, {
+        apiHost: "localhost",
+        apiPort: 8080,
+        basePath: "/api/file",
+        useHttps: false,
+        authType: "NONE",
+        connectionTimeout: 30,
+        readTimeout: 60,
+        maxRetries: 3,
+        sslVerificationEnabled: true,
+      });
+      handleApiConfigChange();
+    } else {
+      // 如果已有配置，解析并加载
+      try {
+        const config = JSON.parse(
+          formData.monitorSysGenServerSettingFileManagementApiConfig
+        );
+        Object.assign(apiConfig, config);
+      } catch (error) {
+        console.warn("解析API配置失败，使用默认配置:", error);
+      }
+    }
+  } else {
+    // 如果切换到其他模式，清空API配置
+    formData.monitorSysGenServerSettingFileManagementApiConfig = "";
+  }
+};
+
+/**
+ * 处理API配置变化
+ */
+const handleApiConfigChange = () => {
+  // 将API配置对象序列化为JSON字符串
+  try {
+    formData.monitorSysGenServerSettingFileManagementApiConfig =
+      JSON.stringify(apiConfig);
+  } catch (error) {
+    console.error("序列化API配置失败:", error);
+    formData.monitorSysGenServerSettingFileManagementApiConfig = "";
   }
 };
 
