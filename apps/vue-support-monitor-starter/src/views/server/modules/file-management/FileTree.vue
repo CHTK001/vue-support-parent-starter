@@ -17,9 +17,14 @@
             <IconifyIconOnline icon="ri:add-box-line" />
           </el-button>
         </el-tooltip>
-        <el-tooltip content="折叠所有" placement="top">
+        <!-- <el-tooltip content="折叠所有" placement="top">
           <el-button size="small" text @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-box-line" />
+          </el-button>
+        </el-tooltip> -->
+        <el-tooltip content="关闭" placement="top">
+          <el-button size="small" text @click="$emit('close')">
+            <IconifyIconOnline icon="ep:close" />
           </el-button>
         </el-tooltip>
       </div>
@@ -465,10 +470,12 @@ const refreshNode = async (node: any, data: FileInfo) => {
 /**
  * 设置当前选中的路径
  */
-const setCurrentPath = (path: string) => {
-  nextTick(() => {
-    treeRef.value?.setCurrentKey(path);
-  });
+const setCurrentPath = async (path: string) => {
+  await nextTick();
+  if (treeRef.value) {
+    treeRef.value.setCurrentKey(path);
+    console.log("FileTree: Current path set to:", path);
+  }
 };
 
 /**
@@ -585,8 +592,11 @@ defineExpose({
 
 .tree-content {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
+  min-height: 0; /* 确保flex子元素可以收缩 */
+  max-height: 100%; /* 确保不会超出父容器 */
 }
 
 .tree-node {
@@ -673,5 +683,41 @@ defineExpose({
 
 .node-actions {
   will-change: opacity;
+}
+
+/* 自定义滚动条样式 */
+.tree-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tree-content::-webkit-scrollbar-track {
+  background: var(--el-fill-color-lighter);
+  border-radius: 3px;
+}
+
+.tree-content::-webkit-scrollbar-thumb {
+  background: var(--el-border-color-darker);
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+.tree-content::-webkit-scrollbar-thumb:hover {
+  background: var(--el-color-primary-light-5);
+}
+
+/* 确保树形结构在小高度下也能正常滚动 */
+:deep(.el-tree) {
+  min-height: fit-content;
+}
+
+:deep(.el-tree-node) {
+  min-height: 32px;
+}
+
+/* 响应式设计 - 移动端滚动条 */
+@media (max-width: 768px) {
+  .tree-content::-webkit-scrollbar {
+    width: 4px;
+  }
 }
 </style>
