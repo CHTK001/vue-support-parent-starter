@@ -8,7 +8,7 @@ export default [
       icon: "ep:monitor",
       title: "监控系统",
       showLink: true,
-      rank: 1
+      rank: 1,
     },
     children: [
       {
@@ -18,7 +18,7 @@ export default [
           icon: "ep:service",
           title: "服务监控",
           showLink: true,
-          showParent: true
+          showParent: true,
         },
         children: [
           {
@@ -29,8 +29,8 @@ export default [
               icon: "ri:navigation-fill",
               title: $t("buttons.monitor.service-list"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
           {
             path: "/online-service-list",
@@ -40,8 +40,8 @@ export default [
               icon: "simple-icons:cloudflare",
               title: $t("buttons.monitor.online-service-list"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
           {
             path: "/online-monitor",
@@ -51,10 +51,10 @@ export default [
               icon: "simple-icons:cloudflare",
               title: "在线监控详情",
               showLink: false,
-              showParent: true
-            }
-          }
-        ]
+              showParent: true,
+            },
+          },
+        ],
       },
       {
         path: "/job-monitor",
@@ -63,7 +63,7 @@ export default [
           icon: "line-md:bell-twotone-loop",
           title: "任务监控",
           showLink: true,
-          showParent: true
+          showParent: true,
         },
         children: [
           {
@@ -74,8 +74,8 @@ export default [
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.job-list"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
           {
             path: "/job-log",
@@ -85,10 +85,10 @@ export default [
               icon: "simple-icons:logmein",
               title: $t("buttons.monitor.job-log"),
               showLink: true,
-              showParent: true
-            }
-          }
-        ]
+              showParent: true,
+            },
+          },
+        ],
       },
       {
         path: "/server-monitor",
@@ -97,7 +97,7 @@ export default [
           icon: "ri:server-line",
           title: "服务器监控",
           showLink: true,
-          showParent: true
+          showParent: true,
         },
         children: [
           {
@@ -108,8 +108,8 @@ export default [
               icon: "ri:server-line",
               title: $t("buttons.monitor.server-management"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
 
           {
@@ -120,11 +120,23 @@ export default [
               icon: "ri:upload-cloud-line",
               title: "文件上传管理",
               showLink: true,
-              showParent: true
-            }
-          }
-        ]
-      }
-    ]
-  }
+              showParent: true,
+            },
+          },
+          {
+            path: "/server/nodes",
+            name: "serverNodes",
+            component: () =>
+              import("@/views/server/modules/node-management/index.vue"),
+            meta: {
+              icon: "ri:node-tree",
+              title: "在线节点管理",
+              showLink: true,
+              showParent: true,
+            },
+          },
+        ],
+      },
+    ],
+  },
 ];

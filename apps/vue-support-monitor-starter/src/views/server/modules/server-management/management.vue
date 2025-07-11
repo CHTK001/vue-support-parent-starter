@@ -155,7 +155,20 @@
 
     <ServerMonitorDialog ref="serverMonitorDialogRef" />
 
-    <FileManagerDialog ref="fileManagerDialogRef" />
+    <!-- 文件管理对话框 -->
+    <el-dialog
+      v-model="fileManagerVisible"
+      title="文件管理"
+      width="90%"
+      :before-close="handleFileManagerClose"
+      append-to-body
+      destroy-on-close
+    >
+      <FileManager
+        :server="currentFileManagerServer"
+        @close="handleFileManagerClose"
+      />
+    </el-dialog>
 
     <ScriptExecutorDialog ref="scriptExecutorDialogRef" />
 
@@ -185,7 +198,7 @@ import ServerSettingDialog from "./components/ServerSettingDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerTerminalDialog from "./components/ServerTerminalDialog.vue";
 import ServerMonitorDialog from "./components/ServerMonitorDialog.vue";
-import FileManagerDialog from "./components/FileManagerDialog.vue";
+import FileManager from "../file-management/index.vue";
 import ScriptExecutorDialog from "./components/ScriptExecutorDialog.vue";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
 
@@ -202,7 +215,9 @@ const serverSettingDialogRef = ref();
 const serverConfigDialogRef = ref();
 const serverTerminalDialogRef = ref();
 const serverMonitorDialogRef = ref();
-const fileManagerDialogRef = ref();
+// 文件管理对话框状态
+const fileManagerVisible = ref(false);
+const currentFileManagerServer = ref(null);
 const scriptExecutorDialogRef = ref();
 const fileUploadDialogRef = ref();
 
@@ -283,7 +298,16 @@ const handleMonitorServer = (server: any) => {
  * 处理文件管理
  */
 const handleFileManager = (server: any) => {
-  fileManagerDialogRef.value?.open(server);
+  currentFileManagerServer.value = server;
+  fileManagerVisible.value = true;
+};
+
+/**
+ * 关闭文件管理对话框
+ */
+const handleFileManagerClose = () => {
+  fileManagerVisible.value = false;
+  currentFileManagerServer.value = null;
 };
 
 /**

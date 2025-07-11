@@ -120,10 +120,12 @@ export interface ServerSetting {
   // ==================== 文件管理配置 ====================
   /** 是否启用文件管理 0:否 1:是 */
   monitorSysGenServerSettingFileManagementEnabled?: number;
-  /** 文件管理方式 (NONE:不启用, SSH:SSH模式, NODE:NODE模式, API:API模式) */
+  /** 文件管理方式 (NONE:不启用, LOCAL:本地连接, SSH:SSH模式, NODE:NODE模式, API:API模式) */
   monitorSysGenServerSettingFileManagementMode?: string;
   /** 文件管理API配置 (JSON格式，仅在API模式下使用) */
   monitorSysGenServerSettingFileManagementApiConfig?: string;
+  /** 选择的NODE客户端ID (仅在NODE模式下使用) */
+  monitorSysGenServerSettingFileManagementNodeClient?: string;
   /** 文件管理操作超时时间 (秒) */
   monitorSysGenServerSettingFileManagementTimeout?: number;
   /** 文件管理最大重试次数 */
@@ -532,5 +534,36 @@ export function validateFileManagementConfig(config: FileManagementApiConfig) {
     "post",
     "v1/gen/server/setting/file-management/validate",
     { data: config }
+  );
+}
+
+/**
+ * NODE客户端信息接口
+ */
+export interface NodeClient {
+  /** 服务器ID */
+  serverId: string;
+  /** 应用名称 */
+  applicationName: string;
+  /** 主机地址 */
+  host: string;
+  /** 端口号 */
+  port: number;
+  /** 状态 */
+  status: "ONLINE" | "OFFLINE";
+  /** 版本 */
+  version?: string;
+  /** 最后心跳时间 */
+  lastHeartbeat?: string;
+}
+
+/**
+ * 获取可用的NODE客户端列表
+ * @returns NODE客户端列表
+ */
+export function getAvailableNodeClients() {
+  return http.request<ReturnResult<NodeClient[]>>(
+    "get",
+    "v1/gen/server/setting/file-management/node-clients"
   );
 }

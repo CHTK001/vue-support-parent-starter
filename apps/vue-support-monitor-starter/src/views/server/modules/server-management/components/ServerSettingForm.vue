@@ -1348,225 +1348,96 @@
     </div>
 
     <!-- 文件管理配置 -->
-    <div v-if="section === 'filemanagement'" class="setting-section">
-      <el-form-item prop="monitorSysGenServerSettingFileManagementEnabled">
-        <template #label>
-          <div class="form-label">
-            <span>启用文件管理</span>
+    <div
+      v-if="section === 'filemanagement'"
+      class="setting-section file-management-section"
+      :class="{
+        enabled: formData.monitorSysGenServerSettingFileManagementEnabled === 1,
+        configured:
+          formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
+          formData.monitorSysGenServerSettingFileManagementMode !== 'NONE',
+      }"
+      @click="handleFileManagementSectionClick"
+    >
+      <!-- 配置面板头部 -->
+      <div class="file-management-header" @click.stop>
+        <div class="header-content">
+          <div class="header-title">
+            <IconifyIconOnline
+              icon="ri:folder-settings-line"
+              class="section-icon"
+            />
+            <span>文件管理配置</span>
             <el-tooltip
-              content="开启后可以通过Web界面管理服务器文件，支持SSH和API两种连接方式"
+              content="点击空白区域可快速配置文件管理功能"
               placement="top"
               effect="dark"
             >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              <IconifyIconOnline icon="ri:information-line" class="info-icon" />
             </el-tooltip>
           </div>
-        </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingFileManagementEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
-      </el-form-item>
-
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingFileManagementEnabled"
-        prop="monitorSysGenServerSettingFileManagementMode"
-      >
-        <template #label>
-          <div class="form-label">
-            <span>连接方式</span>
-            <el-tooltip
-              content="选择文件管理的连接方式：SSH直接连接、NODE在线客户端代理、API手动配置地址"
-              placement="top"
-              effect="dark"
+          <div class="header-actions">
+            <el-button
+              v-if="
+                formData.monitorSysGenServerSettingFileManagementEnabled === 0
+              "
+              type="primary"
+              size="small"
+              @click="quickEnableFileManagement"
             >
-              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </el-tooltip>
+              <IconifyIconOnline icon="ri:play-line" class="mr-1" />
+              快速启用
+            </el-button>
           </div>
-        </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingFileManagementMode"
-          placeholder="请选择连接方式"
-          style="width: 200px !important"
-          @change="handleFileManagementModeChange"
+        </div>
+      </div>
+
+      <!-- 可折叠的配置内容 -->
+      <el-collapse-transition>
+        <div
+          v-show="fileManagementPanelExpanded"
+          class="file-management-content"
         >
-          <el-option label="不启用" value="NONE" />
-          <el-option label="SSH连接" value="SSH" />
-          <el-option label="NODE客户端" value="NODE" />
-          <el-option label="API连接" value="API" />
-        </el-select>
-      </el-form-item>
+          <!-- 启用文件管理 -->
+          <el-form-item prop="monitorSysGenServerSettingFileManagementEnabled">
+            <template #label>
+              <div class="form-label">
+                <span>启用文件管理</span>
+                <el-tooltip
+                  content="开启后可以通过Web界面管理服务器文件系统，支持文件上传、下载、编辑等操作"
+                  placement="top"
+                  effect="dark"
+                >
+                  <IconifyIconOnline
+                    icon="ri:question-line"
+                    class="help-icon"
+                  />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-switch
+              ref="fileManagementEnabledSwitch"
+              v-model="formData.monitorSysGenServerSettingFileManagementEnabled"
+              :active-value="1"
+              :inactive-value="0"
+              active-text="开启"
+              inactive-text="关闭"
+              @change="handleChange"
+            />
+          </el-form-item>
 
-      <!-- SSH连接配置 -->
-      <template
-        v-if="formData.monitorSysGenServerSettingFileManagementMode === 'SSH'"
-      >
-        <el-divider content-position="left">
-          <span class="divider-text">SSH连接配置</span>
-        </el-divider>
-
-        <el-alert
-          title="SSH连接说明"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px"
-        >
-          SSH连接将使用服务器的SSH连接信息进行文件管理，支持完整的文件系统访问权限和权限管理功能。
-        </el-alert>
-      </template>
-
-      <!-- NODE客户端配置 -->
-      <template
-        v-if="formData.monitorSysGenServerSettingFileManagementMode === 'NODE'"
-      >
-        <el-divider content-position="left">
-          <span class="divider-text">NODE客户端配置</span>
-        </el-divider>
-
-        <el-alert
-          title="NODE客户端说明"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px"
-        >
-          NODE模式通过在线客户端代理进行文件管理，客户端地址将自动检测，无需手动配置。
-        </el-alert>
-      </template>
-
-      <!-- API连接配置 -->
-      <template
-        v-if="formData.monitorSysGenServerSettingFileManagementMode === 'API'"
-      >
-        <el-divider content-position="left">
-          <span class="divider-text">API连接配置</span>
-        </el-divider>
-
-        <el-form-item prop="apiHost">
-          <template #label>
-            <div class="form-label">
-              <span>API主机地址</span>
-              <el-tooltip
-                content="文件管理API服务的主机地址，如：192.168.1.100 或 file-api.example.com"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-input
-            v-model="apiConfig.apiHost"
-            placeholder="请输入API主机地址"
-            maxlength="100"
-            @change="handleApiConfigChange"
-          />
-        </el-form-item>
-
-        <el-form-item prop="apiPort">
-          <template #label>
-            <div class="form-label">
-              <span>API端口</span>
-              <el-tooltip
-                content="文件管理API服务的端口号，通常为8080或其他自定义端口"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-input-number
-            v-model="apiConfig.apiPort"
-            :min="1"
-            :max="65535"
-            placeholder="API端口"
-            style="width: 200px"
-            @change="handleApiConfigChange"
-          />
-        </el-form-item>
-
-        <el-form-item prop="basePath">
-          <template #label>
-            <div class="form-label">
-              <span>API基础路径</span>
-              <el-tooltip
-                content="API的基础路径，默认为 /api/file"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-input
-            v-model="apiConfig.basePath"
-            placeholder="/api/file"
-            maxlength="100"
-            @change="handleApiConfigChange"
-          />
-        </el-form-item>
-
-        <el-form-item prop="useHttps">
-          <template #label>
-            <div class="form-label">
-              <span>使用HTTPS</span>
-              <el-tooltip
-                content="是否使用HTTPS协议连接API服务"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-switch
-            v-model="apiConfig.useHttps"
-            active-text="HTTPS"
-            inactive-text="HTTP"
-            @change="handleApiConfigChange"
-          />
-        </el-form-item>
-
-        <el-form-item prop="authType">
-          <template #label>
-            <div class="form-label">
-              <span>认证方式</span>
-              <el-tooltip
-                content="选择API认证方式：无认证、Basic认证、Token认证或API Key认证"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-select
-            v-model="apiConfig.authType"
-            placeholder="请选择认证方式"
-            style="width: 200px !important"
-            @change="handleApiConfigChange"
+          <!-- 文件管理模式 -->
+          <el-form-item
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementEnabled === 1
+            "
+            prop="monitorSysGenServerSettingFileManagementMode"
           >
-            <el-option label="无认证" value="NONE" />
-            <el-option label="Basic认证" value="BASIC" />
-            <el-option label="Token认证" value="TOKEN" />
-            <el-option label="API Key认证" value="API_KEY" />
-          </el-select>
-        </el-form-item>
-
-        <!-- Basic认证配置 -->
-        <template v-if="apiConfig.authType === 'BASIC'">
-          <el-form-item prop="username">
             <template #label>
               <div class="form-label">
-                <span>用户名</span>
+                <span>文件管理模式</span>
                 <el-tooltip
-                  content="Basic认证的用户名"
+                  content="选择文件管理的连接方式：LOCAL-本地连接，SSH-SSH连接，NODE-NODE客户端代理，API-API接口连接"
                   placement="top"
                   effect="dark"
                 >
@@ -1577,20 +1448,33 @@
                 </el-tooltip>
               </div>
             </template>
-            <el-input
-              v-model="apiConfig.username"
-              placeholder="请输入用户名"
-              maxlength="100"
-              @change="handleApiConfigChange"
-            />
+            <el-select
+              ref="fileManagementModeSelect"
+              v-model="formData.monitorSysGenServerSettingFileManagementMode"
+              placeholder="请选择文件管理模式"
+              @change="handleFileManagementModeChange"
+            >
+              <el-option label="不启用" value="NONE" />
+              <el-option v-if="isLocalServer" label="本地连接" value="LOCAL" />
+              <el-option label="SSH连接" value="SSH" />
+              <el-option label="NODE客户端" value="NODE" />
+              <el-option label="API接口" value="API" />
+            </el-select>
           </el-form-item>
 
-          <el-form-item prop="password">
+          <!-- NODE客户端选择 -->
+          <el-form-item
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
+              formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
+            "
+            prop="monitorSysGenServerSettingFileManagementNodeClient"
+          >
             <template #label>
               <div class="form-label">
-                <span>密码</span>
+                <span>NODE客户端</span>
                 <el-tooltip
-                  content="Basic认证的密码"
+                  content="选择用于文件管理的NODE客户端，客户端必须在线且支持文件管理功能"
                   placement="top"
                   effect="dark"
                 >
@@ -1601,140 +1485,210 @@
                 </el-tooltip>
               </div>
             </template>
-            <el-input
-              v-model="apiConfig.password"
-              type="password"
-              placeholder="请输入密码"
-              maxlength="100"
-              show-password
-              @change="handleApiConfigChange"
-            />
+            <el-select
+              v-model="
+                formData.monitorSysGenServerSettingFileManagementNodeClient
+              "
+              placeholder="请选择NODE客户端"
+              :loading="loadingNodeClients"
+              @change="handleChange"
+            >
+              <el-option
+                v-for="client in nodeClients"
+                :key="client.serverId"
+                :label="`${client.name} (${client.address})`"
+                :value="client.serverId"
+              />
+            </el-select>
+            <div class="form-item-help">
+              <el-button
+                size="small"
+                type="primary"
+                link
+                @click="loadNodeClients"
+              >
+                刷新客户端列表
+              </el-button>
+            </div>
           </el-form-item>
-        </template>
 
-        <!-- Token认证配置 -->
-        <template v-if="apiConfig.authType === 'TOKEN'">
-          <el-form-item prop="token">
-            <template #label>
-              <div class="form-label">
+          <!-- API配置 -->
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
+              formData.monitorSysGenServerSettingFileManagementMode === 'API'
+            "
+            class="api-config-section"
+          >
+            <el-divider content-position="left">API连接配置</el-divider>
+
+            <!-- API主机 -->
+            <el-form-item>
+              <template #label>
+                <div class="form-label">
+                  <span>API主机</span>
+                  <el-tooltip
+                    content="文件管理API服务器的主机地址"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input
+                v-model="apiConfig.apiHost"
+                placeholder="localhost"
+                @input="handleApiConfigChange"
+              />
+            </el-form-item>
+
+            <!-- API端口 -->
+            <el-form-item>
+              <template #label>
+                <div class="form-label">
+                  <span>API端口</span>
+                </div>
+              </template>
+              <el-input-number
+                v-model="apiConfig.apiPort"
+                :min="1"
+                :max="65535"
+                placeholder="8080"
+                @change="handleApiConfigChange"
+              />
+            </el-form-item>
+
+            <!-- 基础路径 -->
+            <el-form-item>
+              <template #label>
+                <div class="form-label">
+                  <span>基础路径</span>
+                </div>
+              </template>
+              <el-input
+                v-model="apiConfig.basePath"
+                placeholder="/api/file"
+                @input="handleApiConfigChange"
+              />
+            </el-form-item>
+
+            <!-- HTTPS -->
+            <el-form-item>
+              <template #label>
+                <div class="form-label">
+                  <span>使用HTTPS</span>
+                </div>
+              </template>
+              <el-switch
+                v-model="apiConfig.useHttps"
+                @change="handleApiConfigChange"
+              />
+            </el-form-item>
+
+            <!-- 认证类型 -->
+            <el-form-item>
+              <template #label>
+                <div class="form-label">
+                  <span>认证类型</span>
+                </div>
+              </template>
+              <el-select
+                v-model="apiConfig.authType"
+                @change="handleApiConfigChange"
+              >
+                <el-option label="无认证" value="NONE" />
+                <el-option label="基础认证" value="BASIC" />
+                <el-option label="Token认证" value="TOKEN" />
+                <el-option label="API Key" value="API_KEY" />
+              </el-select>
+            </el-form-item>
+
+            <!-- 基础认证 -->
+            <div v-if="apiConfig.authType === 'BASIC'">
+              <el-form-item>
+                <template #label>
+                  <span>用户名</span>
+                </template>
+                <el-input
+                  v-model="apiConfig.username"
+                  @input="handleApiConfigChange"
+                />
+              </el-form-item>
+              <el-form-item>
+                <template #label>
+                  <span>密码</span>
+                </template>
+                <el-input
+                  v-model="apiConfig.password"
+                  type="password"
+                  show-password
+                  @input="handleApiConfigChange"
+                />
+              </el-form-item>
+            </div>
+
+            <!-- Token认证 -->
+            <el-form-item v-if="apiConfig.authType === 'TOKEN'">
+              <template #label>
                 <span>Token</span>
-                <el-tooltip
-                  content="Token认证的令牌"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input
-              v-model="apiConfig.token"
-              type="password"
-              placeholder="请输入Token"
-              maxlength="500"
-              show-password
-              @change="handleApiConfigChange"
-            />
-          </el-form-item>
-        </template>
-
-        <!-- API Key认证配置 -->
-        <template v-if="apiConfig.authType === 'API_KEY'">
-          <el-form-item prop="apiKey">
-            <template #label>
-              <div class="form-label">
-                <span>API密钥</span>
-                <el-tooltip
-                  content="API Key认证的密钥"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input
-              v-model="apiConfig.apiKey"
-              type="password"
-              placeholder="请输入API密钥"
-              maxlength="500"
-              show-password
-              @change="handleApiConfigChange"
-            />
-          </el-form-item>
-
-          <el-form-item prop="apiKeyHeader">
-            <template #label>
-              <div class="form-label">
-                <span>请求头名称</span>
-                <el-tooltip
-                  content="API Key在请求头中的名称，默认为 X-API-Key"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input
-              v-model="apiConfig.apiKeyHeader"
-              placeholder="X-API-Key"
-              maxlength="100"
-              @change="handleApiConfigChange"
-            />
-          </el-form-item>
-        </template>
-
-        <!-- 高级配置 -->
-        <el-divider content-position="left">
-          <span class="divider-text">高级配置</span>
-        </el-divider>
-
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item prop="connectionTimeout">
-              <template #label>
-                <div class="form-label">
-                  <span>连接超时</span>
-                  <el-tooltip
-                    content="API连接超时时间，单位：秒"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
               </template>
-              <el-input-number
-                v-model="apiConfig.connectionTimeout"
-                :min="5"
-                :max="300"
-                :step="5"
-                style="width: 100%"
-                @change="handleApiConfigChange"
+              <el-input
+                v-model="apiConfig.token"
+                type="password"
+                show-password
+                @input="handleApiConfigChange"
               />
-              <span class="form-tip">秒，建议值：30</span>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item prop="readTimeout">
+
+            <!-- API Key认证 -->
+            <div v-if="apiConfig.authType === 'API_KEY'">
+              <el-form-item>
+                <template #label>
+                  <span>API Key</span>
+                </template>
+                <el-input
+                  v-model="apiConfig.apiKey"
+                  type="password"
+                  show-password
+                  @input="handleApiConfigChange"
+                />
+              </el-form-item>
+              <el-form-item>
+                <template #label>
+                  <span>API Key Header</span>
+                </template>
+                <el-input
+                  v-model="apiConfig.apiKeyHeader"
+                  placeholder="X-API-Key"
+                  @input="handleApiConfigChange"
+                />
+              </el-form-item>
+            </div>
+          </div>
+
+          <!-- 高级配置 -->
+          <div
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
+              formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
+            "
+            class="advanced-config-section"
+          >
+            <el-divider content-position="left">高级配置</el-divider>
+
+            <!-- 操作超时时间 -->
+            <el-form-item
+              prop="monitorSysGenServerSettingFileManagementTimeout"
+            >
               <template #label>
                 <div class="form-label">
-                  <span>读取超时</span>
+                  <span>操作超时时间</span>
                   <el-tooltip
-                    content="API读取超时时间，单位：秒"
+                    content="文件操作的超时时间，单位：秒"
                     placement="top"
                     effect="dark"
                   >
@@ -1746,26 +1700,25 @@
                 </div>
               </template>
               <el-input-number
-                v-model="apiConfig.readTimeout"
+                v-model="
+                  formData.monitorSysGenServerSettingFileManagementTimeout
+                "
                 :min="10"
-                :max="600"
-                :step="10"
-                style="width: 100%"
-                @change="handleApiConfigChange"
+                :max="300"
+                @change="handleChange"
               />
-              <span class="form-tip">秒，建议值：60</span>
+              <span class="input-suffix">秒</span>
             </el-form-item>
-          </el-col>
-        </el-row>
 
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item prop="maxRetries">
+            <!-- 最大重试次数 -->
+            <el-form-item
+              prop="monitorSysGenServerSettingFileManagementMaxRetries"
+            >
               <template #label>
                 <div class="form-label">
                   <span>最大重试次数</span>
                   <el-tooltip
-                    content="API请求失败时的最大重试次数"
+                    content="文件操作失败时的最大重试次数"
                     placement="top"
                     effect="dark"
                   >
@@ -1777,23 +1730,24 @@
                 </div>
               </template>
               <el-input-number
-                v-model="apiConfig.maxRetries"
+                v-model="
+                  formData.monitorSysGenServerSettingFileManagementMaxRetries
+                "
                 :min="0"
                 :max="10"
-                :step="1"
-                style="width: 100%"
-                @change="handleApiConfigChange"
+                @change="handleChange"
               />
-              <span class="form-tip">次，建议值：3</span>
             </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item prop="sslVerificationEnabled">
+
+            <!-- 健康检查间隔 -->
+            <el-form-item
+              prop="monitorSysGenServerSettingClientHealthCheckInterval"
+            >
               <template #label>
                 <div class="form-label">
-                  <span>SSL证书验证</span>
+                  <span>健康检查间隔</span>
                   <el-tooltip
-                    content="是否验证SSL证书的有效性"
+                    content="客户端健康状态检查间隔，单位：秒"
                     placement="top"
                     effect="dark"
                   >
@@ -1804,160 +1758,62 @@
                   </el-tooltip>
                 </div>
               </template>
-              <el-switch
-                v-model="apiConfig.sslVerificationEnabled"
-                active-text="验证"
-                inactive-text="跳过"
-                @change="handleApiConfigChange"
+              <el-input-number
+                v-model="
+                  formData.monitorSysGenServerSettingClientHealthCheckInterval
+                "
+                :min="10"
+                :max="300"
+                @change="handleChange"
               />
+              <span class="input-suffix">秒</span>
             </el-form-item>
-          </el-col>
-        </el-row>
 
-        <!-- 测试连接 -->
-        <el-form-item>
-          <el-button
-            type="primary"
-            @click="testFileManagementConnection"
-            :loading="testingFileManagement"
-          >
-            <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
-            测试连接
-          </el-button>
-          <span class="form-item-tip">测试文件管理API连接是否正常</span>
-        </el-form-item>
-      </template>
+            <!-- 健康检查超时 -->
+            <el-form-item prop="monitorSysGenServerSettingClientHealthTimeout">
+              <template #label>
+                <div class="form-label">
+                  <span>健康检查超时</span>
+                  <el-tooltip
+                    content="客户端健康状态检查的超时时间，单位：秒"
+                    placement="top"
+                    effect="dark"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:question-line"
+                      class="help-icon"
+                    />
+                  </el-tooltip>
+                </div>
+              </template>
+              <el-input-number
+                v-model="formData.monitorSysGenServerSettingClientHealthTimeout"
+                :min="5"
+                :max="60"
+                @change="handleChange"
+              />
+              <span class="input-suffix">秒</span>
+            </el-form-item>
+          </div>
 
-      <!-- 通用配置 -->
-      <template
-        v-if="
-          formData.monitorSysGenServerSettingFileManagementEnabled &&
-          formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
-        "
-      >
-        <el-divider content-position="left">
-          <span class="divider-text">通用配置</span>
-        </el-divider>
-
-        <el-form-item prop="monitorSysGenServerSettingFileManagementTimeout">
-          <template #label>
-            <div class="form-label">
-              <span>操作超时时间</span>
-              <el-tooltip
-                content="文件管理操作的超时时间，单位：秒"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-input-number
-            v-model="formData.monitorSysGenServerSettingFileManagementTimeout"
-            :min="30"
-            :max="600"
-            :step="30"
-            placeholder="操作超时时间(秒)"
-            style="width: 200px"
-            @change="handleChange"
-          />
-          <span class="form-tip">秒，建议值：60</span>
-        </el-form-item>
-
-        <el-form-item prop="monitorSysGenServerSettingFileManagementMaxRetries">
-          <template #label>
-            <div class="form-label">
-              <span>最大重试次数</span>
-              <el-tooltip
-                content="文件操作失败时的最大重试次数"
-                placement="top"
-                effect="dark"
-              >
-                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-              </el-tooltip>
-            </div>
-          </template>
-          <el-input-number
-            v-model="
-              formData.monitorSysGenServerSettingFileManagementMaxRetries
-            "
-            :min="0"
-            :max="10"
-            :step="1"
-            placeholder="最大重试次数"
-            style="width: 200px"
-            @change="handleChange"
-          />
-          <span class="form-tip">次，建议值：3</span>
-        </el-form-item>
-
-        <!-- NODE模式特有配置 -->
-        <template
-          v-if="
-            formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
-          "
-        >
+          <!-- 测试连接按钮 -->
           <el-form-item
-            prop="monitorSysGenServerSettingClientHealthCheckInterval"
+            v-if="
+              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
+              formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
+            "
           >
-            <template #label>
-              <div class="form-label">
-                <span>健康检查间隔</span>
-                <el-tooltip
-                  content="客户端健康状态检查的时间间隔，单位：秒"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input-number
-              v-model="
-                formData.monitorSysGenServerSettingClientHealthCheckInterval
-              "
-              :min="10"
-              :max="300"
-              :step="10"
-              placeholder="健康检查间隔(秒)"
-              style="width: 200px"
-              @change="handleChange"
-            />
-            <span class="form-tip">秒，建议值：30</span>
+            <el-button
+              type="primary"
+              :loading="testingFileManagement"
+              @click="testFileManagementConnection"
+            >
+              <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
+              测试连接
+            </el-button>
           </el-form-item>
-
-          <el-form-item prop="monitorSysGenServerSettingClientHealthTimeout">
-            <template #label>
-              <div class="form-label">
-                <span>健康检查超时</span>
-                <el-tooltip
-                  content="客户端健康状态检查的超时时间，单位：秒"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
-              </div>
-            </template>
-            <el-input-number
-              v-model="formData.monitorSysGenServerSettingClientHealthTimeout"
-              :min="5"
-              :max="60"
-              :step="5"
-              placeholder="健康检查超时(秒)"
-              style="width: 200px"
-              @change="handleChange"
-            />
-            <span class="form-tip">秒，建议值：10</span>
-          </el-form-item>
-        </template>
-      </template>
+        </div>
+      </el-collapse-transition>
     </div>
 
     <!-- Prometheus配置 -->
@@ -2143,13 +1999,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, defineProps, defineEmits } from "vue";
+import { reactive, ref, watch, nextTick, defineProps, defineEmits } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type {
   ServerSetting,
   FileManagementApiConfig,
 } from "@/api/server/setting";
-import { testFileManagementConnection as testFileManagementConnectionApi } from "@/api/server/setting";
+import {
+  testFileManagementConnection as testFileManagementConnectionApi,
+  getAvailableNodeClients,
+} from "@/api/server/setting";
 
 // 定义属性
 const props = defineProps<{
@@ -2165,6 +2024,7 @@ const props = defineProps<{
     | "tasks"
     | "cleanup";
   isLocalServer?: boolean;
+  serverId?: number;
 }>();
 
 // 定义事件
@@ -2285,6 +2145,16 @@ const apiConfig = reactive<FileManagementApiConfig>({
   useClientPort: true,
 });
 
+// NODE 客户端相关数据
+const nodeClients = ref<any[]>([]);
+const loadingNodeClients = ref(false);
+const selectedNodeClient = ref<any>(null);
+
+// 文件管理配置面板状态
+const fileManagementPanelExpanded = ref(true);
+const fileManagementEnabledSwitch = ref(null);
+const fileManagementModeSelect = ref(null);
+
 /**
  * 处理数据变化
  */
@@ -2358,12 +2228,34 @@ const getNotificationAddressPlaceholder = () => {
 
 // 告警配置相关功能已集成到主配置中
 
+// 添加标志位防止循环更新
+const isUpdatingFromParent = ref(false);
+const isInternalUpdate = ref(false);
+
 // 监听外部数据变化
 watch(
   () => props.modelValue,
   (newValue) => {
-    if (newValue) {
-      Object.assign(formData, newValue);
+    if (newValue && !isInternalUpdate.value) {
+      isUpdatingFromParent.value = true;
+
+      // 只更新真正发生变化的字段，避免覆盖用户正在编辑的内容
+      const changes: Record<string, any> = {};
+      for (const key in newValue) {
+        if (newValue[key] !== formData[key]) {
+          changes[key] = newValue[key];
+        }
+      }
+
+      // 如果有变化才更新
+      if (Object.keys(changes).length > 0) {
+        Object.assign(formData, changes);
+      }
+
+      // 使用 nextTick 确保在下一个事件循环中重置标志位
+      nextTick(() => {
+        isUpdatingFromParent.value = false;
+      });
     }
   },
   { immediate: true, deep: true }
@@ -2373,7 +2265,14 @@ watch(
 watch(
   formData,
   (newValue) => {
-    emit("update:modelValue", newValue);
+    // 只有在不是从父组件更新时才向上传递
+    if (!isUpdatingFromParent.value) {
+      isInternalUpdate.value = true;
+      emit("update:modelValue", newValue);
+      nextTick(() => {
+        isInternalUpdate.value = false;
+      });
+    }
   },
   { deep: true }
 );
@@ -2490,12 +2389,51 @@ const handleFileManagementModeChange = () => {
         console.warn("解析API配置失败，使用默认配置:", error);
       }
     }
+  } else if (formData.monitorSysGenServerSettingFileManagementMode === "NODE") {
+    // 如果切换到NODE模式，加载客户端列表
+    loadNodeClients();
   } else {
-    // 如果切换到其他模式，清空API配置
+    // 如果切换到其他模式，清空API配置和NODE客户端选择
     formData.monitorSysGenServerSettingFileManagementApiConfig = "";
+    formData.monitorSysGenServerSettingFileManagementNodeClient = "";
+    selectedNodeClient.value = null;
   }
 
   handleChange();
+};
+
+/**
+ * 加载NODE客户端列表
+ */
+const loadNodeClients = async () => {
+  if (loadingNodeClients.value) return;
+
+  loadingNodeClients.value = true;
+  try {
+    const response = await getAvailableNodeClients();
+    if (response.code === 200 && response.data) {
+      nodeClients.value = response.data;
+    } else {
+      nodeClients.value = [];
+      ElMessage.warning("未找到可用的NODE客户端");
+    }
+
+    // 如果已有选择的客户端，更新选中状态
+    if (formData.monitorSysGenServerSettingFileManagementNodeClient) {
+      const selected = nodeClients.value.find(
+        (client) =>
+          client.serverId ===
+          formData.monitorSysGenServerSettingFileManagementNodeClient
+      );
+      selectedNodeClient.value = selected || null;
+    }
+  } catch (error) {
+    console.error("加载NODE客户端列表失败:", error);
+    ElMessage.error("加载NODE客户端列表失败");
+    nodeClients.value = [];
+  } finally {
+    loadingNodeClients.value = false;
+  }
 };
 
 /**
@@ -2543,6 +2481,85 @@ const testFileManagementConnection = async () => {
   } finally {
     testingFileManagement.value = false;
   }
+};
+
+/**
+ * 处理文件管理配置区域点击
+ */
+const handleFileManagementSectionClick = () => {
+  // 如果文件管理未启用，提示用户启用
+  if (formData.monitorSysGenServerSettingFileManagementEnabled === 0) {
+    ElMessageBox.confirm(
+      "文件管理功能当前未启用，是否要启用文件管理功能？",
+      "启用文件管理",
+      {
+        confirmButtonText: "启用",
+        cancelButtonText: "取消",
+        type: "info",
+        center: true,
+      }
+    )
+      .then(() => {
+        quickEnableFileManagement();
+      })
+      .catch(() => {
+        // 用户取消，聚焦到启用开关
+        nextTick(() => {
+          if (fileManagementEnabledSwitch.value) {
+            fileManagementEnabledSwitch.value.focus();
+          }
+        });
+      });
+  } else {
+    // 如果已启用但模式为NONE，聚焦到模式选择器
+    if (formData.monitorSysGenServerSettingFileManagementMode === "NONE") {
+      nextTick(() => {
+        if (fileManagementModeSelect.value) {
+          fileManagementModeSelect.value.focus();
+        }
+      });
+      ElMessage.info("请选择文件管理模式");
+    } else {
+      // 如果已配置，展开/收起面板
+      toggleFileManagementPanel();
+    }
+  }
+};
+
+/**
+ * 快速启用文件管理
+ */
+const quickEnableFileManagement = () => {
+  formData.monitorSysGenServerSettingFileManagementEnabled = 1;
+
+  // 如果是本地服务器，默认设置为LOCAL模式
+  if (props.isLocalServer) {
+    formData.monitorSysGenServerSettingFileManagementMode = "LOCAL";
+  } else {
+    // 非本地服务器，默认设置为SSH模式
+    formData.monitorSysGenServerSettingFileManagementMode = "SSH";
+  }
+
+  // 确保面板展开
+  fileManagementPanelExpanded.value = true;
+
+  handleChange();
+
+  // 聚焦到模式选择器
+  nextTick(() => {
+    if (fileManagementModeSelect.value) {
+      fileManagementModeSelect.value.focus();
+    }
+  });
+
+  ElMessage.success("文件管理功能已启用");
+};
+
+/**
+ * 切换文件管理配置面板展开/收起状态
+ */
+const toggleFileManagementPanel = () => {
+  fileManagementPanelExpanded.value = !fileManagementPanelExpanded.value;
 };
 </script>
 
@@ -2629,5 +2646,162 @@ const testFileManagementConnection = async () => {
 .current-alert-config .el-button--text {
   color: #409eff;
   font-size: 12px;
+}
+
+/* NODE客户端选择样式 */
+.node-client-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.client-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.client-name {
+  font-weight: 500;
+  color: #303133;
+  font-size: 14px;
+}
+
+.client-address {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.client-status {
+  margin-left: 8px;
+}
+
+/* 文件管理配置区域样式 */
+.file-management-section {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.file-management-section:hover {
+  border-color: var(--el-color-primary-light-7);
+  background-color: var(--el-fill-color-extra-light);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.file-management-section.enabled {
+  border-color: var(--el-color-primary-light-8);
+  background-color: var(--el-fill-color-lighter);
+}
+
+.file-management-section.configured {
+  border-color: var(--el-color-success-light-7);
+  background-color: var(--el-color-success-light-9);
+}
+
+.file-management-section.configured:hover {
+  border-color: var(--el-color-success-light-5);
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.15);
+}
+
+.file-management-header {
+  padding: 16px 20px;
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-light) 0%,
+    var(--el-fill-color-lighter) 100%
+  );
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  cursor: default;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+}
+
+.section-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.info-icon {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  cursor: help;
+  transition: color 0.3s;
+}
+
+.info-icon:hover {
+  color: var(--el-color-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-management-content {
+  padding: 20px;
+}
+
+/* 点击提示动画 */
+.file-management-section::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(
+    circle,
+    rgba(64, 158, 255, 0.2) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.file-management-section:active::before {
+  width: 200px;
+  height: 200px;
+}
+
+/* 快速启用按钮样式 */
+.header-actions .el-button--primary {
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary) 0%,
+    var(--el-color-primary-dark-2) 100%
+  );
+  border: none;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.header-actions .el-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.4);
 }
 </style>
