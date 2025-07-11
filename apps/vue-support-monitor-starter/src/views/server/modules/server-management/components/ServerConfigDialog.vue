@@ -1096,8 +1096,9 @@ const validateCurrentSection = () => {
  */
 const handleSave = async () => {
   try {
-    // 验证当前配置节
-    if (!validateCurrentSection()) {
+    // 基本参数验证
+    if (!serverId.value) {
+      message.error("服务器ID不能为空");
       return;
     }
 
@@ -1163,6 +1164,11 @@ const loadServerSetting = async () => {
         monitorSysGenServerSettingMonitorEnabled: 1,
         monitorSysGenServerSettingDataCollectionFrequency: 60,
         monitorSysGenServerSettingMetricsRetentionDays: 30,
+        // 文件管理配置默认值
+        monitorSysGenServerSettingFileManagementEnabled: 0,
+        monitorSysGenServerSettingFileManagementMode: "NONE",
+        monitorSysGenServerSettingFileManagementTimeout: 60,
+        monitorSysGenServerSettingFileManagementMaxRetries: 3,
       };
     }
   } catch (error) {
@@ -1175,6 +1181,11 @@ const loadServerSetting = async () => {
       monitorSysGenServerSettingMonitorEnabled: 1,
       monitorSysGenServerSettingDataCollectionFrequency: 60,
       monitorSysGenServerSettingMetricsRetentionDays: 30,
+      // 文件管理配置默认值
+      monitorSysGenServerSettingFileManagementEnabled: 0,
+      monitorSysGenServerSettingFileManagementMode: "NONE",
+      monitorSysGenServerSettingFileManagementTimeout: 60,
+      monitorSysGenServerSettingFileManagementMaxRetries: 3,
     };
   } finally {
     loadingSettings.value = false;
