@@ -1,0 +1,334 @@
+<template>
+  <el-dialog
+    v-model="dialogVisible"
+    title="文件上传"
+    width="70%"
+    top="5vh"
+    :close-on-click-modal="false"
+    :destroy-on-close="true"
+    class="file-upload-dialog"
+  >
+    <div class="upload-container">
+      <!-- 上传路径选择 -->
+      <div class="upload-path-section">
+        <div class="section-title">
+          <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
+          上传目标路径
+        </div>
+        <div class="path-input-group">
+          <el-input
+            v-model="uploadPath"
+            placeholder="请输入上传路径，如: /home/user/documents"
+            class="path-input"
+          >
+            <template #prepend>
+              <IconifyIconOnline icon="ri:folder-open-line" />
+            </template>
+          </el-input>
+          <el-button @click="selectPath" type="primary">
+            <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
+            选择路径
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 文件上传区域 -->
+      <div class="upload-area-section">
+        <div class="section-title">
+          <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-2" />
+          选择文件
+        </div>
+
+        <!-- 拖拽上传区域 -->
+        <div
+          class="upload-drop-zone"
+          :class="{ 'is-dragover': isDragOver }"
+          @drop="handleDrop"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @click="triggerFileSelect"
+        >
+          <div class="upload-content">
+            <IconifyIconOnline
+              icon="ri:upload-cloud-2-line"
+              class="upload-icon"
+            />
+            <div class="upload-text">
+              <p class="primary-text">点击选择文件或拖拽文件到此处</p>
+              <p class="secondary-text">
+                支持多文件上传，单个文件最大 {{ maxFileSize }}MB
+              </p>
+            </div>
+          </div>
+
+          <!-- 隐藏的文件输入 -->
+          <input
+            ref="fileInputRef"
+            type="file"
+            multiple
+            style="display: none"
+            @change="handleFileSelect"
+          />
+        </div>
+      </div>
+
+      <!-- 文件列表 -->
+      <div class="file-list-section" v-if="fileList.length > 0">
+        <div class="section-title">
+          <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
+          待上传文件 ({{ fileList.length }})
+        </div>
+
+        <div class="file-list">
+          <div
+            v-for="(file, index) in fileList"
+            :key="index"
+            class="file-item"
+            :class="{
+              uploading: file.uploading,
+              success: file.success,
+              error: file.error,
+            }"
+          >
+            <div class="file-info">
+              <IconifyIconOnline
+                :icon="getFileIcon(file.name)"
+                class="file-icon"
+              />
+              <div class="file-details">
+                <div class="file-name">{{ file.name }}</div>
+                <div class="file-size">{{ formatFileSize(file.size) }}</div>
+              </div>
+            </div>
+
+            <div class="file-status">
+              <div v-if="file.uploading" class="upload-progress">
+                <el-progress
+                  :percentage="file.progress"
+                  :stroke-width="4"
+                  :show-text="false"
+                />
+                <span class="progress-text">{{ file.progress }}%</span>
+              </div>
+              <div v-else-if="file.success" class="success-status">
+                <IconifyIconOnline
+                  icon="ri:check-line"
+                  class="status-icon success"
+                />
+                <span>上传成功</span>
+              </div>
+              <div v-else-if="file.error" class="error-status">
+                <IconifyIconOnline
+                  icon="ri:close-line"
+                  class="status-icon error"
+                />
+                <span>{{ file.errorMessage || "上传失败" }}</span>
+              </div>
+              <div v-else class="pending-status">
+                <IconifyIconOnline
+                  icon="ri:time-line"
+                  class="status-icon pending"
+                />
+                <span>等待上传</span>
+              </div>
+            </div>
+
+            <div class="file-actions">
+              <el-button
+                v-if="!file.uploading && !file.success"
+                size="small"
+                text
+                @click="removeFile(index)"
+              >
+                <IconifyIconOnline icon="ri:delete-bin-line" />
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 上传选项 -->
+      <div class="upload-options-section">
+        <div class="section-title">
+          <IconifyIconOnline icon="ri:settings-line" class="mr-2" />
+          上传选项
+        </div>
+        <div class="options-content">
+          <el-checkbox v-model="overwriteExisting">
+            覆盖已存在的文件
+          </el-checkbox>
+          <el-checkbox v-model="createDirectory"> 自动创建目录 </el-checkbox>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <div class="footer-info">
+          <span v-if="fileList.length > 0" class="file-count">
+            共 {{ fileList.length }} 个文件，总大小
+            {{ formatFileSize(totalSize) }}
+          </span>
+        </div>
+        <div class="footer-actions">
+          <el-button @click="closeDialog">取消</el-button>
+          <el-button @click="clearFiles" v-if="fileList.length > 0"
+            >清空</el-button
+          >
+          <el-button
+            type="primary"
+            @click="startUpload"
+            :disabled="fileList.length === 0 || !uploadPath || isUploading"
+            :loading="isUploading"
+          >
+            <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
+            {{ isUploading ? "上传中..." : "开始上传" }}
+          </el-button>
+        </div>
+      </div>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, nextTick } from "vue";
+import { ElMessage } from "element-plus";
+import { formatBytes } from "@pureadmin/utils";
+import { uploadFile } from "@/api/file-management";
+
+// Props
+const props = defineProps<{
+  visible: boolean;
+  serverId: number;
+  currentPath?: string;
+}>();
+
+// Emits
+const emit = defineEmits<{
+  "update:visible": [value: boolean];
+  "upload-success": [];
+}>();
+
+// 文件项接口
+interface FileItem {
+  name: string;
+  size: number;
+  file: File;
+  uploading: boolean;
+  progress: number;
+  success: boolean;
+  error: boolean;
+  errorMessage?: string;
+}
+
+// 响应式数据
+const uploadPath = ref("");
+const fileList = ref<FileItem[]>([]);
+const isDragOver = ref(false);
+const isUploading = ref(false);
+const overwriteExisting = ref(false);
+const createDirectory = ref(true);
+const maxFileSize = ref(100); // MB
+
+// 组件引用
+const fileInputRef = ref<HTMLInputElement>();
+
+// 计算属性
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (value) => {
+    emit("update:visible", value);
+    if (!value) {
+      resetUpload();
+    }
+  },
+});
+
+const totalSize = computed(() => {
+  return fileList.value.reduce((total, file) => total + file.size, 0);
+});
+
+// 监听当前路径变化
+watch(
+  () => props.currentPath,
+  (newPath) => {
+    if (newPath) {
+      uploadPath.value = newPath;
+    }
+  },
+  { immediate: true }
+);
+
+/**
+ * 格式化文件大小
+ */
+const formatFileSize = (size: number) => {
+  return formatBytes(size);
+};
+
+/**
+ * 获取文件图标
+ */
+const getFileIcon = (fileName: string) => {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+  const iconMap: Record<string, string> = {
+    // 图片
+    jpg: "ri:image-line",
+    jpeg: "ri:image-line",
+    png: "ri:image-line",
+    gif: "ri:image-line",
+    bmp: "ri:image-line",
+    svg: "ri:image-line",
+    webp: "ri:image-line",
+
+    // 文档
+    pdf: "ri:file-pdf-line",
+    doc: "ri:file-word-line",
+    docx: "ri:file-word-line",
+    xls: "ri:file-excel-line",
+    xlsx: "ri:file-excel-line",
+    ppt: "ri:file-ppt-line",
+    pptx: "ri:file-ppt-line",
+
+    // 代码
+    js: "ri:file-code-line",
+    ts: "ri:file-code-line",
+    vue: "ri:file-code-line",
+    html: "ri:file-code-line",
+    css: "ri:file-code-line",
+    json: "ri:file-code-line",
+    xml: "ri:file-code-line",
+
+    // 压缩包
+    zip: "ri:file-zip-line",
+    rar: "ri:file-zip-line",
+    "7z": "ri:file-zip-line",
+    tar: "ri:file-zip-line",
+    gz: "ri:file-zip-line",
+
+    // 文本
+    txt: "ri:file-text-line",
+    md: "ri:file-text-line",
+    log: "ri:file-text-line",
+
+    // 视频
+    mp4: "ri:video-line",
+    avi: "ri:video-line",
+    mov: "ri:video-line",
+    wmv: "ri:video-line",
+
+    // 音频
+    mp3: "ri:music-line",
+    wav: "ri:music-line",
+    flac: "ri:music-line",
+  };
+
+  return iconMap[ext] || "ri:file-line";
+};
+
+/**
+ * 触发文件选择
+ */
+const triggerFileSelect = () => {
+  fileI

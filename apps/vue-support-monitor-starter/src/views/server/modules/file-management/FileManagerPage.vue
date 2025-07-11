@@ -5,7 +5,7 @@
       <!-- 左侧文件树 -->
       <div class="left-panel">
         <!-- 目录结构头部 -->
-        <div class="tree-header">
+        <!-- <div class="tree-header">
           <div class="tree-header-left">
             <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
             <span class="tree-title">目录结构</span>
@@ -23,7 +23,7 @@
               title="关闭"
             />
           </div>
-        </div>
+        </div> -->
 
         <!-- 文件树内容 -->
         <div class="tree-content">
@@ -32,6 +32,8 @@
             :server-id="serverId"
             :current-path="currentPath"
             @node-click="handleTreeNodeClick"
+            @folder-click="handleTreeFolderClick"
+            @file-click="handleTreeFileClick"
             @refresh="handleTreeRefresh"
           />
         </div>
@@ -154,17 +156,44 @@ const getFileManagementModeText = (mode: string) => {
 };
 
 /**
- * 处理树节点点击
+ * 处理树节点点击（兼容旧版本）
  */
-const handleTreeNodeClick = (path: string, node: FileInfo) => {
+const handleTreeNodeClick = async (path: string, node: FileInfo) => {
   console.log("FileManagerPage: Tree node clicked", path, node);
   if (node.isDirectory) {
-    currentPath.value = path;
-    // 同步树的当前选中状态
-    fileTreeRef.value?.setCurrentPath(path);
-    // 主动加载右侧文件列表
-    fileListRef.value?.loadFileList();
+    await handleTreeFolderClick(path, node);
+  } else {
+    await handleTreeFileClick(path, node);
   }
+};
+
+/**
+ * 处理树文件夹点击
+ */
+const handleTreeFolderClick = async (path: string, node: FileInfo) => {
+  console.log("FileManagerPage: Tree folder clicked", path, node);
+
+  // 先更新路径
+  currentPath.value = path;
+
+  // 等待树的选中状态更新完成
+  await fileTreeRef.value?.setCurrentPath(path);
+
+  // 主动加载右侧文件列表
+  fileListRef.value?.loadFileList();
+
+  console.log("FileManagerPage: Directory clicked, path updated to:", path);
+};
+
+/**
+ * 处理树文件点击
+ */
+const handleTreeFileClick = async (path: string, node: FileInfo) => {
+  console.log("FileManagerPage: Tree file clicked", path, node);
+
+  // 如果是文件，触发预览
+  selectedFile.value = node;
+  previewVisible.value = true;
 };
 
 /**

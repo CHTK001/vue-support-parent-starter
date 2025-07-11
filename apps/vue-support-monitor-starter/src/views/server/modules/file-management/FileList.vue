@@ -18,6 +18,17 @@
 
       <!-- 工具栏 -->
       <div class="toolbar">
+        <!-- 返回上一层按钮 -->
+        <el-button
+          size="small"
+          @click="goBack"
+          :disabled="!canGoBack"
+          title="返回上一层"
+        >
+          <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
+          返回上一层
+        </el-button>
+
         <!-- 操作按钮 -->
         <el-button size="small" @click="refreshList">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
@@ -177,11 +188,61 @@
         <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 文件预览对话框 -->
+    <el-dialog
+      draggable
+      v-model="previewDialogVisible"
+      :title="`文件预览 - ${previewFileInfo?.name || ''}`"
+      width="90%"
+      top="5vh"
+      :close-on-click-modal="false"
+      :destroy-on-close="true"
+      class="file-preview-dialog"
+    >
+      <div class="preview-container" v-if="previewFileInfo">
+        <!-- 直接使用a标签下载文件 -->
+        <div class="download-preview">
+          <div class="download-info">
+            <IconifyIconOnline icon="ri:file-line" class="file-icon" />
+            <div class="file-details">
+              <h3>{{ previewFileInfo.name }}</h3>
+              <p class="file-size">
+                文件大小: {{ formatFileSize(previewFileInfo.size) }}
+              </p>
+              <p class="file-type">
+                文件类型: {{ getFileType(previewFileInfo.name) }}
+              </p>
+            </div>
+          </div>
+          <div class="download-actions">
+            <a
+              :href="getPreviewUrl(previewFileInfo)"
+              :download="previewFileInfo.name"
+              class="download-link"
+              @click="handleDownloadClick"
+            >
+              <el-button type="primary" size="large">
+                <IconifyIconOnline icon="ri:download-line" class="mr-2" />
+                下载文件
+              </el-button>
+            </a>
+            <el-button @click="openInNewTab" size="large">
+              <IconifyIconOnline icon="ri:external-link-line" class="mr-2" />
+              在新标签页打开
+            </el-button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="previewDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from "vue";
+import { ref, reactive, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
@@ -191,9 +252,9 @@ import {
   createDirectory,
   deleteFile,
   renameFile,
-  previewFile,
   downloadFile,
 } from "@/api/file-management";
+import { getConfig } from "@repo/config";
 
 // Props
 const props = defineProps<{
@@ -222,6 +283,10 @@ const contextMenuVisible = ref(false);
 const contextMenuPosition = reactive({ x: 0, y: 0 });
 const selectedContextFile = ref<FileInfo | null>(null);
 
+// 文件预览相关
+const previewDialogVisible = ref(false);
+const previewFileInfo = ref<FileInfo | null>(null);
+
 // 路径导航
 const pathItems = computed(() => {
   const parts = props.currentPath.split("/").filter(Boolean);
@@ -235,6 +300,30 @@ const pathItems = computed(() => {
 
   return items;
 });
+
+// 返回上一层相关
+const canGoBack = computed(() => {
+  return props.currentPath !== "/" && props.currentPath !== "";
+});
+
+/**
+ * 返回上一层
+ */
+const goBack = () => {
+  if (!canGoBack.value) return;
+
+  const parts = props.currentPath.split("/").filter(Boolean);
+  if (parts.length === 0) return;
+
+  // 移除最后一个路径部分
+  parts.pop();
+
+  // 构建父级路径
+  const parentPath = parts.length === 0 ? "/" : "/" + parts.join("/");
+
+  console.log("FileList: Going back from", props.currentPath, "to", parentPath);
+  emit("path-change", parentPath);
+};
 
 /**
  * 加载文件列表
@@ -351,7 +440,16 @@ const handleFileClick = (file: FileInfo) => {
 const handleRowDoubleClick = (file: FileInfo) => {
   console.log("FileList: File double clicked", file);
   if (file.isDirectory) {
+    // 双击文件夹：进入文件夹
     emit("path-change", file.path);
+  } else {
+    // 双击文件：预览文件
+    if (isFilePreviewable(file)) {
+      previewFileInfo.value = file;
+      previewDialogVisible.value = true;
+    } else {
+      ElMessage.warning("该文件类型不支持预览");
+    }
   }
 };
 
@@ -360,7 +458,7 @@ const handleRowDoubleClick = (file: FileInfo) => {
  */
 const handleRowRightClick = (
   file: FileInfo,
-  column: any,
+  _column: any,
   event: MouseEvent
 ) => {
   event.preventDefault();
@@ -415,9 +513,9 @@ const downloadFileAction = async () => {
       selectedContextFile.value.path
     );
 
-    if (response.success && response.data?.success) {
+    if (response.code === "00000" && response.data?.success) {
       // 处理下载
-      const downloadUrl = response.data.downloadUrl;
+      const downloadUrl = response.data.data?.downloadUrl;
       if (downloadUrl) {
         // 创建下载链接
         const link = document.createElement("a");
@@ -445,7 +543,7 @@ const downloadFileAction = async () => {
 /**
  * 预览文件
  */
-const previewFileAction = async () => {
+const previewFileAction = () => {
   if (!selectedContextFile.value || selectedContextFile.value.isDirectory)
     return;
 
@@ -456,28 +554,9 @@ const previewFileAction = async () => {
     return;
   }
 
-  try {
-    const response = await previewFile(
-      props.serverId,
-      selectedContextFile.value.path
-    );
-
-    if (response.success && response.data?.success) {
-      // 触发文件选择事件，传递预览数据
-      const fileWithPreview = {
-        ...selectedContextFile.value,
-        previewData: response.data,
-      };
-      emit("file-select", fileWithPreview);
-      ElMessage.success("文件预览加载成功");
-    } else {
-      ElMessage.error(response.data?.message || "预览失败");
-    }
-  } catch (error) {
-    console.error("预览文件失败:", error);
-    ElMessage.error("预览文件失败");
-  }
-
+  // 设置预览文件信息并显示预览对话框
+  previewFileInfo.value = selectedContextFile.value;
+  previewDialogVisible.value = true;
   contextMenuVisible.value = false;
 };
 
@@ -698,6 +777,78 @@ const deleteFileAction = async (file: FileInfo) => {
   }
 };
 
+/**
+ * 获取预览URL
+ */
+const getPreviewUrl = (file: FileInfo) => {
+  if (!file || !props.serverId) return "";
+
+  // 构建预览API URL
+  const baseUrl = getConfig().BaseUrl;
+  const previewUrl = `${baseUrl}/v1/file-management/preview`;
+  const params = new URLSearchParams({
+    filePath: file.path,
+    serverId: props.serverId.toString(),
+    previewType: "auto",
+    maxSizeMB: "10",
+  });
+
+  return `${previewUrl}?${params.toString()}`;
+};
+
+/**
+ * 获取文件类型描述
+ */
+const getFileType = (fileName: string) => {
+  if (!fileName) return "未知类型";
+
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+  const typeMap: Record<string, string> = {
+    txt: "文本文件",
+    md: "Markdown文档",
+    json: "JSON文件",
+    xml: "XML文件",
+    html: "HTML文档",
+    css: "CSS样式表",
+    js: "JavaScript文件",
+    ts: "TypeScript文件",
+    vue: "Vue组件",
+    py: "Python文件",
+    java: "Java文件",
+    jpg: "JPEG图片",
+    jpeg: "JPEG图片",
+    png: "PNG图片",
+    gif: "GIF图片",
+    pdf: "PDF文档",
+    doc: "Word文档",
+    docx: "Word文档",
+    xls: "Excel表格",
+    xlsx: "Excel表格",
+  };
+
+  return typeMap[ext] || `${ext.toUpperCase()}文件`;
+};
+
+/**
+ * 处理下载点击
+ */
+const handleDownloadClick = () => {
+  console.log("FileList: Download link clicked");
+  ElMessage.success("文件下载开始");
+};
+
+/**
+ * 在新标签页打开
+ */
+const openInNewTab = () => {
+  if (!previewFileInfo.value) return;
+
+  const url = getPreviewUrl(previewFileInfo.value);
+  window.open(url, "_blank");
+  ElMessage.info("已在新标签页打开文件");
+};
+
 // 暴露方法
 defineExpose({
   refreshList,
@@ -819,5 +970,123 @@ defineExpose({
 
 .menu-item:hover .menu-icon {
   color: var(--el-color-primary);
+}
+
+/* 文件预览对话框样式 */
+.file-preview-dialog {
+  --dialog-border-radius: 8px;
+}
+
+.file-preview-dialog :deep(.el-dialog) {
+  border-radius: var(--dialog-border-radius);
+  overflow: hidden;
+}
+
+.file-preview-dialog :deep(.el-dialog__header) {
+  background: var(--el-fill-color-extra-light);
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 16px 20px;
+}
+
+.file-preview-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  height: 75vh;
+  overflow: hidden;
+}
+
+.file-preview-dialog :deep(.el-dialog__footer) {
+  background: var(--el-fill-color-extra-light);
+  border-top: 1px solid var(--el-border-color-light);
+  padding: 12px 20px;
+}
+
+.preview-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 下载预览样式 */
+.download-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  min-height: 400px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+}
+
+.download-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  min-width: 400px;
+}
+
+.file-icon {
+  font-size: 48px;
+  color: var(--el-color-primary);
+  margin-right: 20px;
+  flex-shrink: 0;
+}
+
+.file-details {
+  flex: 1;
+}
+
+.file-details h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+
+.file-size,
+.file-type {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.download-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.download-link {
+  text-decoration: none;
+}
+
+.download-link:hover {
+  text-decoration: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .file-preview-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 5vh auto !important;
+  }
+
+  .file-preview-dialog :deep(.el-dialog__body) {
+    height: 70vh;
+  }
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+  .preview-iframe {
+    background: var(--el-bg-color-page);
+  }
 }
 </style>

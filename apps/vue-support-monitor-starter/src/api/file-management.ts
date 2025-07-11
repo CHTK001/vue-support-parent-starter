@@ -369,13 +369,6 @@ export function previewFile(
   previewType: string = "auto",
   maxSizeMB: number = 10
 ) {
-  console.log("API: previewFile called with", {
-    serverId,
-    filePath,
-    previewType,
-    maxSizeMB,
-  });
-
   return http.request<ReturnResult<FileOperationResponse>>(
     "get",
     "v1/file-management/preview",
