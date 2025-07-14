@@ -1,4 +1,4 @@
-import { request } from "@repo/config";
+import request from "@/api/config";
 
 // 文件分组接口
 export interface FileSystemGroup {
