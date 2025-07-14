@@ -97,7 +97,7 @@ export function getGroupAndChildrenIds(groupId: number) {
  */
 export function migrateFilesToGroup(fileIds: number[], targetGroupId: number) {
   return request<number>({
-    url: "/v1/filesystem/group/migrate-files",
+    url: "/v1/filesystem/group/operation/migrate-files",
     method: "PUT",
     params: { fileIds: fileIds.join(","), targetGroupId },
   });

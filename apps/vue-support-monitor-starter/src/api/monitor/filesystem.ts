@@ -61,6 +61,27 @@ export interface UploadQueueStatus {
   message?: string;
 }
 
+// 目录信息接口
+export interface DirectoryInfo {
+  name: string; // 目录名称
+  path: string; // 目录路径
+  size?: number; // 目录大小
+  lastModified?: number; // 最后修改时间
+  canRead: boolean; // 是否可读
+  canWrite: boolean; // 是否可写
+  hidden: boolean; // 是否隐藏
+}
+
+// 磁盘驱动器信息接口
+export interface DriveInfo {
+  name: string; // 驱动器名称
+  path: string; // 驱动器路径
+  type: string; // 驱动器类型
+  totalSpace: number; // 总空间
+  freeSpace: number; // 可用空间
+  usedSpace: number; // 已用空间
+}
+
 // 文件系统配置接口
 export interface FileSystemConfig {
   chunkSize: number; // 分片大小 (MB)
@@ -300,6 +321,32 @@ export const checkFileExists = (fileMd5: string) => {
     "/v1/filesystem/check-exists",
     {
       params: { fileMd5 },
+    }
+  );
+};
+
+/**
+ * 获取系统磁盘驱动器列表
+ */
+export const getSystemDrives = () => {
+  return http.request<ReturnResult<DriveInfo[]>>(
+    "get",
+    "/v1/system-info/drives"
+  );
+};
+
+/**
+ * 获取指定路径下的目录列表
+ */
+export const getDirectories = (
+  path: string,
+  includeHidden: boolean = false
+) => {
+  return http.request<ReturnResult<DirectoryInfo[]>>(
+    "get",
+    "/v1/system-info/directories",
+    {
+      params: { path, includeHidden },
     }
   );
 };
