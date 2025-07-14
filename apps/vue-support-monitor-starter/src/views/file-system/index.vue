@@ -150,11 +150,7 @@
       <div class="group-tree-container">
         <div class="group-tree-header">
           <h3>文件分组</h3>
-          <el-button
-            type="primary"
-            size="small"
-            @click="showGroupDialog = true"
-          >
+          <el-button type="primary" size="small" @click="handleCreateGroup">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             新建分组
           </el-button>
@@ -169,7 +165,7 @@
             :highlight-current="true"
             @node-click="handleGroupSelect"
           >
-            <template #default="{ node, data }">
+            <template #default="{ data }">
               <div class="group-tree-node">
                 <IconifyIconOnline
                   :icon="data.fileSystemGroupIcon || 'ri:folder-line'"
@@ -206,10 +202,10 @@
               @change="handleSearch"
             >
               <el-option label="全部" :value="null" />
-              <el-option label="待合并" :value="1" />
-              <el-option label="合并中" :value="2" />
-              <el-option label="已完成" :value="3" />
-              <el-option label="合并失败" :value="4" />
+              <el-option label="待合并" :value="0" />
+              <el-option label="合并中" :value="1" />
+              <el-option label="已完成" :value="2" />
+              <el-option label="合并失败" :value="3" />
             </el-select>
             <el-button type="primary" @click="handleSearch">
               <IconifyIconOnline icon="ri:search-line" class="mr-1" />
@@ -364,6 +360,13 @@
 
     <!-- MD5测试对话框 -->
     <MD5TestDialog v-model="showMD5TestDialog" />
+
+    <!-- 分组管理对话框 -->
+    <FileSystemGroupDialog
+      ref="groupDialogRef"
+      v-model="showGroupDialog"
+      @success="handleGroupSuccess"
+    />
   </div>
 </template>
 
@@ -397,6 +400,7 @@ import FileUploadDialog from "./components/FileUploadDialog.vue";
 import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
+import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
 
 // SSE连接
 const {
@@ -418,6 +422,7 @@ const showGroupDialog = ref(false);
 // 分组相关数据
 const groupTree = ref([]);
 const groupTreeRef = ref();
+const groupDialogRef = ref();
 const selectedGroupId = ref(null);
 const groupTreeProps = {
   children: "children",
@@ -435,6 +440,11 @@ const statistics = ref<FileStatistics>({
   mergingFiles: 0,
   completedFiles: 0,
   failedFiles: 0,
+  httpAccessEnabledFiles: 0,
+  todayUploadFiles: 0,
+  todayUploadSize: 0,
+  averageFileSize: 0,
+  storageUsageRate: 0,
 });
 
 // 搜索条件
@@ -472,7 +482,7 @@ const connectionStatusIcon = computed(() => {
 const loadGroupTree = async () => {
   try {
     const res = await getGroupTree();
-    if (res.code === "00000") {
+    if (String(res.code) === "00000") {
       groupTree.value = res.data || [];
     } else {
       console.error("加载分组树失败:", res.msg);
@@ -498,6 +508,23 @@ const handleGroupSelect = (data: FileSystemGroup) => {
     "ID:",
     data.fileSystemGroupId
   );
+};
+
+/**
+ * 处理分组操作成功
+ */
+const handleGroupSuccess = () => {
+  // 重新加载分组树
+  loadGroupTree();
+  // 重新加载文件列表
+  handleSearch();
+};
+
+/**
+ * 处理创建分组
+ */
+const handleCreateGroup = () => {
+  groupDialogRef.value?.openCreate();
 };
 
 // 生命周期
@@ -533,7 +560,7 @@ const loadStatistics = async () => {
     const res = await getFileStatistics();
     console.log("统计信息API响应:", res);
 
-    if (res.code === "00000" && res.data) {
+    if (String(res.code) === "00000" && res.data) {
       statistics.value = res.data;
       console.log("统计信息数据:", statistics.value);
     } else {
@@ -614,10 +641,10 @@ const getStatusType = (
     number,
     "success" | "warning" | "info" | "primary" | "danger"
   > = {
-    1: "warning", // 待合并
-    2: "primary", // 合并中
-    3: "success", // 已完成
-    4: "danger", // 合并失败
+    0: "warning", // 待合并
+    1: "primary", // 合并中
+    2: "success", // 已完成
+    3: "danger", // 合并失败
   };
   return typeMap[status] || "info";
 };
@@ -627,10 +654,10 @@ const getStatusType = (
  */
 const getStatusText = (status: number) => {
   const textMap: Record<number, string> = {
-    1: "待合并",
-    2: "合并中",
-    3: "已完成",
-    4: "合并失败",
+    0: "待合并",
+    1: "合并中",
+    2: "已完成",
+    3: "合并失败",
   };
   return textMap[status] || "未知";
 };
@@ -639,8 +666,8 @@ const getStatusText = (status: number) => {
  * 获取进度状态
  */
 const getProgressStatus = (status: number) => {
-  if (status === 3) return "success";
-  if (status === 4) return "exception";
+  if (status === 2) return "success";
+  if (status === 3) return "exception";
   return undefined;
 };
 
@@ -1113,6 +1140,7 @@ const testBackendAPI = async () => {
   }
 
   .file-list-container {
+    padding: 20px;
     flex: 1;
     background: white;
     border-radius: 8px;
