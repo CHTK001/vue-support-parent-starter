@@ -45,6 +45,11 @@ export interface FileStatistics {
   mergingFiles: number;
   completedFiles: number;
   failedFiles: number;
+  httpAccessEnabledFiles: number;
+  todayUploadFiles: number;
+  todayUploadSize: number;
+  averageFileSize: number;
+  storageUsageRate: number;
 }
 
 // 上传队列状态接口
@@ -66,6 +71,7 @@ export interface FileSystemConfig {
   allowedFileTypes: string[]; // 允许的文件类型
   maxFileSize: number; // 最大文件大小 (MB)
   storageQuota: number; // 存储配额 (GB)
+  storageRootPath?: string; // 文件存储根路径
 }
 
 // 文件系统实时状态接口
@@ -117,6 +123,7 @@ export const initChunkUpload = (data: {
   fileSize: number;
   fileMd5: string;
   chunkSize: number;
+  groupId?: number;
 }) => {
   return http.request<ReturnResult<{ fileId: number; chunkTotal: number }>>(
     "post",

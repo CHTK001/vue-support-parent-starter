@@ -91,6 +91,14 @@
             </div>
           </template>
 
+          <!-- 文件存储根目录 -->
+          <el-form-item label="存储根目录" prop="storageRootPath">
+            <DirectorySelector v-model="formData.storageRootPath" />
+            <div class="form-item-tip">
+              设置文件存储的根目录路径，所有上传的文件将保存在此目录下
+            </div>
+          </el-form-item>
+
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="自动合并">
@@ -175,6 +183,7 @@ import {
   getFileSystemConfig,
   updateFileSystemConfig,
 } from "@/api/monitor/filesystem";
+import DirectorySelector from "./DirectorySelector.vue";
 
 // Props & Emits
 const props = defineProps<{
@@ -201,6 +210,7 @@ const formData = reactive<FileSystemConfig>({
   allowedFileTypes: [],
   maxFileSize: 100,
   storageQuota: 100,
+  storageRootPath: "",
 });
 
 // 默认配置备份
@@ -246,6 +256,19 @@ const commonFileTypes = [
 
 // 表单验证规则
 const formRules: FormRules = {
+  storageRootPath: [
+    { required: true, message: "请选择文件存储根目录", trigger: "blur" },
+    {
+      validator: (rule, value, callback) => {
+        if (!value || value.trim() === "") {
+          callback(new Error("请选择文件存储根目录"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur",
+    },
+  ],
   chunkSize: [
     { required: true, message: "请设置分片大小", trigger: "blur" },
     {
@@ -454,5 +477,12 @@ const handleClose = () => {
   .el-switch__label {
     font-size: 12px;
   }
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 </style>

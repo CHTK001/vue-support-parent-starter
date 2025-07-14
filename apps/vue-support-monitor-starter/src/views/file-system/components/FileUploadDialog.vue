@@ -91,6 +91,21 @@
       <!-- 上传配置 -->
       <div class="upload-config">
         <el-form :model="uploadConfig" label-width="100px" size="small">
+          <el-form-item label="文件分组">
+            <el-select
+              v-model="uploadConfig.groupId"
+              placeholder="选择文件分组（可选）"
+              clearable
+              style="width: 100%"
+            >
+              <el-option
+                v-for="group in groupList"
+                :key="group.fileSystemGroupId"
+                :label="group.fileSystemGroupName"
+                :value="group.fileSystemGroupId"
+              />
+            </el-select>
+          </el-form-item>
           <el-form-item label="并发数">
             <el-input-number
               v-model="uploadConfig.concurrent"
@@ -140,6 +155,7 @@ import {
   checkUploadStatus,
   getFileSystemConfig,
 } from "@/api/monitor/filesystem";
+import { getGroupTree } from "@/api/monitor/filesystem-group";
 import type {
   UploadQueueStatus,
   FileSystemConfig,
@@ -182,7 +198,11 @@ const sseUnsubscribers = ref<(() => void)[]>([]);
 const uploadConfig = reactive({
   concurrent: 2, // 并发数 (默认值)
   retryCount: 3, // 重试次数 (默认值)
+  groupId: null as number | null, // 文件分组ID
 });
+
+// 分组列表
+const groupList = ref<any[]>([]);
 
 /**
  * 处理文件选择
@@ -420,6 +440,7 @@ const uploadSingleFile = async (
       fileSize: file.size,
       fileMd5,
       chunkSize: chunkSize,
+      groupId: uploadConfig.groupId,
     });
 
     if (initRes.code !== "00000" || !initRes.data) {
@@ -634,6 +655,34 @@ const loadConfig = async () => {
 };
 
 /**
+ * 加载分组列表
+ */
+const loadGroupList = async () => {
+  try {
+    const result = await getGroupTree();
+    if (result.code === "00000" && result.data) {
+      // 将树形结构扁平化为列表，只包含启用的分组
+      const flattenGroups = (groups: any[]): any[] => {
+        const result: any[] = [];
+        for (const group of groups) {
+          if (group.fileSystemGroupStatus === 1) {
+            // 只包含启用的分组
+            result.push(group);
+            if (group.children && group.children.length > 0) {
+              result.push(...flattenGroups(group.children));
+            }
+          }
+        }
+        return result;
+      };
+      groupList.value = flattenGroups(result.data);
+    }
+  } catch (error) {
+    console.error("加载分组列表失败:", error);
+  }
+};
+
+/**
  * 处理关闭
  */
 const handleClose = () => {
@@ -650,6 +699,7 @@ const handleClose = () => {
 watch(visible, (newVal) => {
   if (newVal) {
     loadConfig(); // 打开时加载配置
+    loadGroupList(); // 打开时加载分组列表
   } else {
     // 关闭时清理数据
     fileList.value = [];
@@ -663,6 +713,7 @@ watch(visible, (newVal) => {
 // 组件挂载时加载配置
 onMounted(() => {
   loadConfig();
+  loadGroupList();
   setupSSEListeners();
 });
 
