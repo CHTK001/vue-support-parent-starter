@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.monitor.starter.mapper.MonitorSysGenFileSystemMapper">
+
+    <!-- 根据MD5查询文件 -->
+    <select id="selectByMd5" resultType="com.chua.starter.monitor.starter.entity.MonitorSysGenFileSystem">
+        SELECT * FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_md5 = #{md5}
+        AND monitor_sys_gen_file_system_status != 3
+        LIMIT 1
+    </select>
+
+    <!-- 根据状态查询文件列表 -->
+    <select id="selectByStatus" resultType="com.chua.starter.monitor.starter.entity.MonitorSysGenFileSystem">
+        SELECT * FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询待合并的文件列表 -->
+    <select id="selectPendingMergeFiles" resultType="com.chua.starter.monitor.starter.entity.MonitorSysGenFileSystem">
+        <![CDATA[
+        SELECT * FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_status = 0
+        AND monitor_sys_gen_file_system_is_chunk = 1
+        AND monitor_sys_gen_file_system_chunk_uploaded >= monitor_sys_gen_file_system_chunk_total
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <!-- 更新文件状态 -->
+    <update id="updateFileStatus">
+        UPDATE monitor_sys_gen_file_system
+        SET monitor_sys_gen_file_system_status = #{status},
+            update_time = NOW()
+        WHERE monitor_sys_gen_file_system_id = #{fileId}
+    </update>
+
+    <!-- 更新已上传分片数 -->
+    <update id="updateChunkUploaded">
+        UPDATE monitor_sys_gen_file_system
+        SET monitor_sys_gen_file_system_chunk_uploaded = #{uploadedCount},
+            update_time = NOW()
+        WHERE monitor_sys_gen_file_system_id = #{fileId}
+    </update>
+
+    <!-- 增加下载次数 -->
+    <update id="incrementDownloadCount">
+        UPDATE monitor_sys_gen_file_system
+        SET monitor_sys_gen_file_system_download_count = monitor_sys_gen_file_system_download_count + 1,
+            monitor_sys_gen_file_system_last_download_time = NOW(),
+            update_time = NOW()
+        WHERE monitor_sys_gen_file_system_id = #{fileId}
+    </update>
+
+    <!-- 根据文件类型查询文件数量 -->
+    <select id="countByFileType" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_type = #{fileType}
+        AND monitor_sys_gen_file_system_status != 3
+    </select>
+
+    <!-- 查询文件大小统计 -->
+    <select id="getFileSizeStatistics" resultType="java.util.Map">
+        <![CDATA[
+        SELECT 
+            COUNT(*) as total_files,
+            SUM(monitor_sys_gen_file_system_size) as total_size,
+            AVG(monitor_sys_gen_file_system_size) as avg_size,
+            MAX(monitor_sys_gen_file_system_size) as max_size,
+            MIN(monitor_sys_gen_file_system_size) as min_size
+        FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_status != 3
+        ]]>
+    </select>
+
+    <!-- 根据上传用户查询文件列表 -->
+    <select id="selectByUploadUser" resultType="com.chua.starter.monitor.starter.entity.MonitorSysGenFileSystem">
+        SELECT * FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_upload_user = #{uploadUser}
+        AND monitor_sys_gen_file_system_status != 3
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询热门下载文件 -->
+    <select id="selectPopularFiles" resultType="com.chua.starter.monitor.starter.entity.MonitorSysGenFileSystem">
+        <![CDATA[
+        SELECT * FROM monitor_sys_gen_file_system
+        WHERE monitor_sys_gen_file_system_status = 1
+        AND monitor_sys_gen_file_system_download_count > 0
+        ORDER BY monitor_sys_gen_file_system_download_count DESC, monitor_sys_gen_file_system_last_download_time DESC
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <!-- 批量删除文件 -->
+    <update id="batchDeleteFiles">
+        UPDATE monitor_sys_gen_file_system
+        SET monitor_sys_gen_file_system_status = 3,
+            update_time = NOW()
+        WHERE monitor_sys_gen_file_system_id IN
+        <foreach collection="fileIds" item="fileId" open="(" separator="," close=")">
+            #{fileId}
+        </foreach>
+    </update>
+
+    <!-- 清理过期文件 -->
+    <update id="cleanExpiredFiles">
+        <![CDATA[
+        UPDATE monitor_sys_gen_file_system
+        SET monitor_sys_gen_file_system_status = 3,
+            update_time = NOW()
+        WHERE monitor_sys_gen_file_system_status != 3
+        AND create_time < DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        ]]>
+    </update>
+
+</mapper>

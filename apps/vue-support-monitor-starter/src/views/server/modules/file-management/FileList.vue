@@ -201,42 +201,14 @@
       class="file-preview-dialog"
     >
       <div class="preview-container" v-if="previewFileInfo">
-        <!-- 直接使用a标签下载文件 -->
-        <div class="download-preview">
-          <div class="download-info">
-            <IconifyIconOnline icon="ri:file-line" class="file-icon" />
-            <div class="file-details">
-              <h3>{{ previewFileInfo.name }}</h3>
-              <p class="file-size">
-                文件大小: {{ formatFileSize(previewFileInfo.size) }}
-              </p>
-              <p class="file-type">
-                文件类型: {{ getFileType(previewFileInfo.name) }}
-              </p>
-            </div>
-          </div>
-          <div class="download-actions">
-            <a
-              :href="getPreviewUrl(previewFileInfo)"
-              :download="previewFileInfo.name"
-              class="download-link"
-              @click="handleDownloadClick"
-            >
-              <el-button type="primary" size="large">
-                <IconifyIconOnline icon="ri:download-line" class="mr-2" />
-                下载文件
-              </el-button>
-            </a>
-            <el-button @click="openInNewTab" size="large">
-              <IconifyIconOnline icon="ri:external-link-line" class="mr-2" />
-              在新标签页打开
-            </el-button>
-          </div>
-        </div>
+        <iframe
+          :src="getPreviewUrl(previewFileInfo)"
+          class="preview-iframe min-h-[768px]"
+          frameborder="0"
+          @load="onIframeLoad"
+          @error="onIframeError"
+        ></iframe>
       </div>
-      <template #footer>
-        <el-button @click="previewDialogVisible = false">关闭</el-button>
-      </template>
     </el-dialog>
   </div>
 </template>
@@ -797,56 +769,54 @@ const getPreviewUrl = (file: FileInfo) => {
 };
 
 /**
- * 获取文件类型描述
+ * iframe加载完成
  */
-const getFileType = (fileName: string) => {
-  if (!fileName) return "未知类型";
-
-  const ext = fileName.split(".").pop()?.toLowerCase() || "";
-
-  const typeMap: Record<string, string> = {
-    txt: "文本文件",
-    md: "Markdown文档",
-    json: "JSON文件",
-    xml: "XML文件",
-    html: "HTML文档",
-    css: "CSS样式表",
-    js: "JavaScript文件",
-    ts: "TypeScript文件",
-    vue: "Vue组件",
-    py: "Python文件",
-    java: "Java文件",
-    jpg: "JPEG图片",
-    jpeg: "JPEG图片",
-    png: "PNG图片",
-    gif: "GIF图片",
-    pdf: "PDF文档",
-    doc: "Word文档",
-    docx: "Word文档",
-    xls: "Excel表格",
-    xlsx: "Excel表格",
-  };
-
-  return typeMap[ext] || `${ext.toUpperCase()}文件`;
+const onIframeLoad = () => {
+  console.log("FileList: Preview iframe loaded");
 };
 
 /**
- * 处理下载点击
+ * iframe加载错误
  */
-const handleDownloadClick = () => {
-  console.log("FileList: Download link clicked");
-  ElMessage.success("文件下载开始");
+const onIframeError = () => {
+  console.error("FileList: Preview iframe load error");
+  ElMessage.error("文件预览加载失败");
 };
 
 /**
- * 在新标签页打开
+ * 下载预览文件
  */
-const openInNewTab = () => {
+const downloadPreviewFile = async () => {
   if (!previewFileInfo.value) return;
 
-  const url = getPreviewUrl(previewFileInfo.value);
-  window.open(url, "_blank");
-  ElMessage.info("已在新标签页打开文件");
+  try {
+    const response = await downloadFile(
+      props.serverId,
+      previewFileInfo.value.path
+    );
+
+    if (response.code === "00000" && response.data?.success) {
+      // 处理下载
+      const downloadUrl = response.data.data?.downloadUrl;
+      if (downloadUrl) {
+        // 创建下载链接
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = previewFileInfo.value.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        ElMessage.success("文件下载开始");
+      } else {
+        ElMessage.error("获取下载链接失败");
+      }
+    } else {
+      ElMessage.error(response.data?.message || "下载失败");
+    }
+  } catch (error) {
+    console.error("下载文件失败:", error);
+    ElMessage.error("下载文件失败");
+  }
 };
 
 // 暴露方法
@@ -862,13 +832,13 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置文件列表背景为白色 */
 }
 
 .list-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-light);
-  background: var(--el-fill-color-extra-light);
+  background: #ffffff; /* 设置列表头部背景为白色 */
 }
 
 .path-navigation {
@@ -1008,67 +978,12 @@ defineExpose({
   overflow: hidden;
 }
 
-/* 下载预览样式 */
-.download-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  min-height: 400px;
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-}
-
-.download-info {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
   background: var(--el-bg-color);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  min-width: 400px;
-}
-
-.file-icon {
-  font-size: 48px;
-  color: var(--el-color-primary);
-  margin-right: 20px;
-  flex-shrink: 0;
-}
-
-.file-details {
   flex: 1;
-}
-
-.file-details h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  word-break: break-all;
-}
-
-.file-size,
-.file-type {
-  margin: 4px 0;
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-}
-
-.download-actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.download-link {
-  text-decoration: none;
-}
-
-.download-link:hover {
-  text-decoration: none;
 }
 
 /* 响应式设计 */
@@ -1083,10 +998,18 @@ defineExpose({
   }
 }
 
-/* 暗色主题适配 */
+/* 暗色主题适配 - 强制保持白色背景 */
 @media (prefers-color-scheme: dark) {
+  .file-list {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
+  .list-header {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
   .preview-iframe {
-    background: var(--el-bg-color-page);
+    background: #ffffff !important; /* 强制保持白色背景 */
   }
 }
 </style>

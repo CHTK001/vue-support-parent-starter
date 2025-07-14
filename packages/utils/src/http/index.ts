@@ -1,5 +1,14 @@
-import Axios, { type AxiosInstance, type AxiosRequestConfig, type CustomParamsSerializer } from "axios";
-import type { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from "../http/types";
+import Axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type CustomParamsSerializer,
+} from "axios";
+import type {
+  PureHttpError,
+  RequestMethods,
+  PureHttpResponse,
+  PureHttpRequestConfig,
+} from "../http/types";
 import { stringify } from "qs";
 import NProgress from "nprogress";
 import { message } from "../message";
@@ -21,6 +30,8 @@ export interface ReturnResult<E> {
   data: E;
   // 响应头
   headers?: any;
+  /** 是否成功 */
+  success: boolean;
 }
 const isNoAuth = (code) => {
   if (!code) {
@@ -89,8 +100,10 @@ class PureHttp {
       async (config: PureHttpRequestConfig): Promise<any> => {
         config.baseURL = getConfig().BaseUrl;
         config = uu2(config);
-        const an = config.headers["x-remote-animation"] || config.headers["loading"];
-        config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
+        const an =
+          config.headers["x-remote-animation"] || config.headers["loading"];
+        config.headers["x-req-fingerprint"] =
+          localStorageProxy().getItem("visitId");
         if (an) {
           if (an == "true") {
             // 开启进度条动画
@@ -122,7 +135,8 @@ class PureHttp {
               }
               if ((openAuth && data) || !openAuth) {
                 const now = new Date().getTime();
-                const expired = ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
+                const expired =
+                  ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;
@@ -140,7 +154,9 @@ class PureHttp {
                   }
                   resolve(PureHttp.retryOriginalRequest(config));
                 } else {
-                  config.headers["Authorization"] = formatToken(data.accessToken);
+                  config.headers["Authorization"] = formatToken(
+                    data.accessToken
+                  );
                   resolve(config);
                 }
               } else {
@@ -178,6 +194,7 @@ class PureHttp {
         result.response = response;
         result.msg = response.data?.msg || response.statusText;
         result.headers = response.headers;
+        result.success = response.data?.success || isSuccess(code);
         const resVersion = result.headers["x-response-version"];
         upgrade(resVersion);
         if (!isSuccess(code)) {
@@ -317,7 +334,12 @@ class PureHttp {
   }
 
   /** 通用请求工具函数 */
-  public request<T>(method: RequestMethods, url: string, param?: AxiosRequestConfig, axiosConfig?: PureHttpRequestConfig): Promise<T> {
+  public request<T>(
+    method: RequestMethods,
+    url: string,
+    param?: AxiosRequestConfig,
+    axiosConfig?: PureHttpRequestConfig
+  ): Promise<T> {
     const config = {
       method,
       url,
@@ -339,12 +361,20 @@ class PureHttp {
   }
 
   /** 单独抽离的`post`工具函数 */
-  public post<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
+  public post<T, P>(
+    url: string,
+    params?: AxiosRequestConfig<P>,
+    config?: PureHttpRequestConfig
+  ): Promise<T> {
     return this.request<T>("post", url, params, config);
   }
 
   /** 单独抽离的`get`工具函数 */
-  public get<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
+  public get<T, P>(
+    url: string,
+    params?: AxiosRequestConfig<P>,
+    config?: PureHttpRequestConfig
+  ): Promise<T> {
     return this.request<T>("get", url, params, config);
   }
 }

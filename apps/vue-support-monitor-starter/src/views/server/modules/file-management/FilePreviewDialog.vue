@@ -573,7 +573,7 @@ watch(
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置工具栏背景为白色 */
   border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
@@ -601,7 +601,7 @@ watch(
   flex: 1;
   overflow: auto;
   padding: 20px;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置代码内容背景为白色 */
 }
 
 .text-content pre,
@@ -805,6 +805,17 @@ watch(
 
   .image-container img {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* 暗色主题适配 - 强制保持白色背景 */
+@media (prefers-color-scheme: dark) {
+  .preview-toolbar {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
+  .code-content {
+    background: #ffffff !important; /* 强制保持白色背景 */
   }
 }
 </style>

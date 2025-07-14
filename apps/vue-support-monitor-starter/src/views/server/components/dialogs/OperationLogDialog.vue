@@ -1,8 +1,8 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="操作日志"
-    width="900px"
+    :title="dialogTitle"
+    width="1000px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
@@ -10,7 +10,7 @@
       <!-- 过滤器 -->
       <div class="log-filters">
         <el-row :gutter="16">
-          <el-col :span="6">
+          <el-col :span="5">
             <el-date-picker
               v-model="filters.dateRange"
               type="datetimerange"
@@ -21,32 +21,42 @@
               style="width: 100%"
             />
           </el-col>
-          <el-col :span="4">
-            <el-select v-model="filters.operation" placeholder="操作类型" size="small" clearable>
-              <el-option label="连接" value="connect" />
-              <el-option label="断开" value="disconnect" />
-              <el-option label="执行命令" value="command" />
-              <el-option label="文件传输" value="file_transfer" />
-              <el-option label="配置修改" value="config_change" />
-              <el-option label="监控操作" value="monitoring" />
+          <el-col :span="3">
+            <el-select
+              v-model="filters.level"
+              placeholder="日志级别"
+              size="small"
+              clearable
+            >
+              <el-option label="调试" value="DEBUG" />
+              <el-option label="信息" value="INFO" />
+              <el-option label="警告" value="WARN" />
+              <el-option label="错误" value="ERROR" />
+              <el-option label="致命" value="FATAL" />
             </el-select>
           </el-col>
-          <el-col :span="4">
-            <el-select v-model="filters.status" placeholder="操作状态" size="small" clearable>
-              <el-option label="成功" value="success" />
-              <el-option label="失败" value="failed" />
-              <el-option label="进行中" value="running" />
+          <el-col :span="3">
+            <el-select
+              v-model="filters.source"
+              placeholder="日志来源"
+              size="small"
+              clearable
+            >
+              <el-option label="系统日志" value="SYSTEM" />
+              <el-option label="应用日志" value="APPLICATION" />
+              <el-option label="安全日志" value="SECURITY" />
+              <el-option label="访问日志" value="ACCESS" />
             </el-select>
           </el-col>
           <el-col :span="4">
             <el-input
-              v-model="filters.user"
-              placeholder="操作用户"
+              v-model="filters.keyword"
+              placeholder="搜索关键词"
               size="small"
               clearable
             />
           </el-col>
-          <el-col :span="6">
+          <el-col :span="9">
             <el-button size="small" type="primary" @click="searchLogs">
               <IconifyIconOnline icon="ri:search-line" class="mr-1" />
               查询
@@ -59,6 +69,10 @@
               <IconifyIconOnline icon="ri:download-line" class="mr-1" />
               导出
             </el-button>
+            <el-button size="small" @click="clearLogs" type="danger" plain>
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+              清理
+            </el-button>
           </el-col>
         </el-row>
       </div>
@@ -69,37 +83,70 @@
           :data="logs"
           stripe
           size="small"
-          height="400"
+          height="450"
           @row-click="showLogDetail"
         >
-          <el-table-column prop="time" label="时间" width="160">
+          <el-table-column
+            prop="monitorSysGenServerLogCreateTime"
+            label="时间"
+            width="160"
+          >
             <template #default="{ row }">
-              {{ formatTime(row.time) }}
+              {{ formatTime(row.monitorSysGenServerLogCreateTime) }}
             </template>
           </el-table-column>
-          <el-table-column prop="user" label="用户" width="100" />
-          <el-table-column prop="operation" label="操作类型" width="120">
+          <el-table-column
+            prop="monitorSysGenServerLogLevel"
+            label="级别"
+            width="80"
+          >
             <template #default="{ row }">
-              <el-tag :type="getOperationType(row.operation)" size="small">
-                {{ getOperationText(row.operation) }}
+              <el-tag
+                :type="getLogLevelType(row.monitorSysGenServerLogLevel)"
+                size="small"
+              >
+                {{ getLogLevelText(row.monitorSysGenServerLogLevel) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="target" label="目标" width="150" show-overflow-tooltip />
-          <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="status" label="状态" width="80">
+          <el-table-column
+            prop="monitorSysGenServerLogSource"
+            label="来源"
+            width="100"
+          >
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)" size="small">
-                {{ getStatusText(row.status) }}
+              <el-tag
+                :type="getLogSourceType(row.monitorSysGenServerLogSource)"
+                size="small"
+                effect="plain"
+              >
+                {{ getLogSourceText(row.monitorSysGenServerLogSource) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="duration" label="耗时" width="80">
-            <template #default="{ row }">
-              {{ row.duration ? row.duration + 'ms' : '-' }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="ip" label="IP地址" width="120" />
+          <el-table-column
+            prop="monitorSysGenServerLogCategory"
+            label="分类"
+            width="100"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="monitorSysGenServerLogContent"
+            label="日志内容"
+            min-width="300"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="monitorSysGenServerLogIp"
+            label="IP地址"
+            width="120"
+          />
+          <el-table-column
+            prop="monitorSysGenServerLogHostname"
+            label="主机名"
+            width="120"
+            show-overflow-tooltip
+          />
           <el-table-column label="操作" width="80" fixed="right">
             <template #default="{ row }">
               <el-button size="small" text @click.stop="showLogDetail(row)">
@@ -126,28 +173,40 @@
       <!-- 统计信息 -->
       <div class="log-statistics">
         <el-row :gutter="16">
-          <el-col :span="6">
+          <el-col :span="4">
             <div class="stat-item">
               <div class="stat-value">{{ statistics.total }}</div>
-              <div class="stat-label">总操作数</div>
+              <div class="stat-label">总日志数</div>
             </div>
           </el-col>
-          <el-col :span="6">
-            <div class="stat-item success">
-              <div class="stat-value">{{ statistics.success }}</div>
-              <div class="stat-label">成功操作</div>
+          <el-col :span="4">
+            <div class="stat-item info">
+              <div class="stat-value">{{ statistics.info }}</div>
+              <div class="stat-label">信息日志</div>
             </div>
           </el-col>
-          <el-col :span="6">
-            <div class="stat-item failed">
-              <div class="stat-value">{{ statistics.failed }}</div>
-              <div class="stat-label">失败操作</div>
+          <el-col :span="4">
+            <div class="stat-item warning">
+              <div class="stat-value">{{ statistics.warn }}</div>
+              <div class="stat-label">警告日志</div>
             </div>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="4">
+            <div class="stat-item error">
+              <div class="stat-value">{{ statistics.error }}</div>
+              <div class="stat-label">错误日志</div>
+            </div>
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item">
-              <div class="stat-value">{{ statistics.avgDuration }}ms</div>
-              <div class="stat-label">平均耗时</div>
+              <div class="stat-value">{{ statistics.today }}</div>
+              <div class="stat-label">今日日志</div>
+            </div>
+          </el-col>
+          <el-col :span="4">
+            <div class="stat-item">
+              <div class="stat-value">{{ statistics.lastHour }}</div>
+              <div class="stat-label">最近1小时</div>
             </div>
           </el-col>
         </el-row>
@@ -157,59 +216,92 @@
     <!-- 日志详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="操作详情"
-      width="600px"
+      title="日志详情"
+      width="700px"
       append-to-body
     >
       <div class="log-detail" v-if="selectedLog">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="操作时间">
-            {{ formatTime(selectedLog.time) }}
+          <el-descriptions-item label="记录时间">
+            {{ formatTime(selectedLog.monitorSysGenServerLogCreateTime) }}
           </el-descriptions-item>
-          <el-descriptions-item label="操作用户">
-            {{ selectedLog.user }}
+          <el-descriptions-item label="服务器时间">
+            {{ formatTime(selectedLog.monitorSysGenServerLogServerTime) }}
           </el-descriptions-item>
-          <el-descriptions-item label="操作类型">
-            <el-tag :type="getOperationType(selectedLog.operation)" size="small">
-              {{ getOperationText(selectedLog.operation) }}
+          <el-descriptions-item label="日志级别">
+            <el-tag
+              :type="getLogLevelType(selectedLog.monitorSysGenServerLogLevel)"
+              size="small"
+            >
+              {{ getLogLevelText(selectedLog.monitorSysGenServerLogLevel) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="操作状态">
-            <el-tag :type="getStatusType(selectedLog.status)" size="small">
-              {{ getStatusText(selectedLog.status) }}
+          <el-descriptions-item label="日志来源">
+            <el-tag
+              :type="getLogSourceType(selectedLog.monitorSysGenServerLogSource)"
+              size="small"
+              effect="plain"
+            >
+              {{ getLogSourceText(selectedLog.monitorSysGenServerLogSource) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="目标对象">
-            {{ selectedLog.target }}
+          <el-descriptions-item label="日志分类">
+            {{ selectedLog.monitorSysGenServerLogCategory || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="执行耗时">
-            {{ selectedLog.duration ? selectedLog.duration + 'ms' : '-' }}
+          <el-descriptions-item label="线程名称">
+            {{ selectedLog.monitorSysGenServerLogThread || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="客户端IP">
-            {{ selectedLog.ip }}
+          <el-descriptions-item label="服务器IP">
+            {{ selectedLog.monitorSysGenServerLogIp || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="用户代理">
-            {{ selectedLog.userAgent || '-' }}
+          <el-descriptions-item label="主机名">
+            {{ selectedLog.monitorSysGenServerLogHostname || "-" }}
           </el-descriptions-item>
-          <el-descriptions-item label="操作描述" :span="2">
-            {{ selectedLog.description }}
+          <el-descriptions-item label="进程ID">
+            {{ selectedLog.monitorSysGenServerLogProcessId || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="记录器名称">
+            {{ selectedLog.monitorSysGenServerLogLogger || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="文件路径" :span="2">
+            {{ selectedLog.monitorSysGenServerLogFilePath || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="行号">
+            {{ selectedLog.monitorSysGenServerLogLineNumber || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="日志标签">
+            {{ selectedLog.monitorSysGenServerLogTags || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="日志内容" :span="2">
+            <div class="log-content">
+              {{ selectedLog.monitorSysGenServerLogContent }}
+            </div>
           </el-descriptions-item>
         </el-descriptions>
 
-        <!-- 详细信息 -->
-        <div class="detail-content" v-if="selectedLog.details">
-          <el-divider content-position="left">详细信息</el-divider>
+        <!-- 异常堆栈信息 -->
+        <div
+          class="detail-content"
+          v-if="selectedLog.monitorSysGenServerLogExceptionStack"
+        >
+          <el-divider content-position="left">异常堆栈信息</el-divider>
           <div class="detail-section">
-            <h4>请求参数</h4>
-            <pre class="detail-code">{{ JSON.stringify(selectedLog.details.request, null, 2) }}</pre>
+            <pre class="detail-code error">{{
+              selectedLog.monitorSysGenServerLogExceptionStack
+            }}</pre>
           </div>
-          <div class="detail-section" v-if="selectedLog.details.response">
-            <h4>响应结果</h4>
-            <pre class="detail-code">{{ JSON.stringify(selectedLog.details.response, null, 2) }}</pre>
-          </div>
-          <div class="detail-section" v-if="selectedLog.details.error">
-            <h4>错误信息</h4>
-            <pre class="detail-code error">{{ selectedLog.details.error }}</pre>
+        </div>
+
+        <!-- 额外数据 -->
+        <div
+          class="detail-content"
+          v-if="selectedLog.monitorSysGenServerLogExtraData"
+        >
+          <el-divider content-position="left">额外数据</el-divider>
+          <div class="detail-section">
+            <pre class="detail-code">{{
+              formatExtraData(selectedLog.monitorSysGenServerLogExtraData)
+            }}</pre>
           </div>
         </div>
       </div>
@@ -224,8 +316,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
+import {
+  getServerLogPage,
+  getServerLogStatistics,
+  exportServerLogs,
+  cleanupServerLogs,
+  type ServerLog,
+} from "@/api/server/log";
 
 // Props
 const props = defineProps<{
@@ -236,131 +336,124 @@ const props = defineProps<{
 const visible = ref(false);
 const loading = ref(false);
 const detailDialogVisible = ref(false);
-const selectedLog = ref<any>(null);
+const selectedLog = ref<ServerLog | null>(null);
+const currentServerId = ref<number | null>(null);
 
 // 过滤器
 const filters = reactive({
-  dateRange: [],
-  operation: '',
-  status: '',
-  user: ''
+  dateRange: [] as Date[],
+  level: "",
+  source: "",
+  keyword: "",
 });
 
 // 分页
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0
+  total: 0,
 });
 
 // 日志数据
-const logs = ref<any[]>([]);
+const logs = ref<ServerLog[]>([]);
 
 // 统计信息
 const statistics = reactive({
   total: 0,
-  success: 0,
-  failed: 0,
-  avgDuration: 0
+  info: 0,
+  warn: 0,
+  error: 0,
+  today: 0,
+  lastHour: 0,
+});
+
+// 计算属性
+const dialogTitle = computed(() => {
+  if (props.server) {
+    return `服务器日志 - ${props.server.name}`;
+  }
+  return "服务器日志";
 });
 
 // 方法
 const open = (server?: any) => {
   visible.value = true;
   if (server) {
-    // 如果指定了服务器，只显示该服务器的日志
-    filters.operation = '';
+    currentServerId.value = server.id || server.monitorSysGenServerId;
+    resetFilters();
     loadLogs();
+    loadStatistics();
   } else {
+    currentServerId.value = null;
     loadLogs();
+    loadStatistics();
   }
 };
 
 const handleClose = () => {
   visible.value = false;
   resetFilters();
+  currentServerId.value = null;
 };
 
 const loadLogs = async () => {
   try {
     loading.value = true;
-    
-    // 模拟加载日志数据
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 模拟日志数据
-    const mockLogs = [
-      {
-        id: 1,
-        time: new Date(Date.now() - 3600000),
-        user: 'admin',
-        operation: 'connect',
-        target: 'server01 (192.168.1.100:22)',
-        description: 'SSH连接到服务器',
-        status: 'success',
-        duration: 1250,
-        ip: '192.168.1.50',
-        userAgent: 'Mozilla/5.0...',
-        details: {
-          request: { host: '192.168.1.100', port: 22, protocol: 'SSH' },
-          response: { connected: true, sessionId: 'sess_123' }
-        }
-      },
-      {
-        id: 2,
-        time: new Date(Date.now() - 1800000),
-        user: 'admin',
-        operation: 'command',
-        target: 'server01',
-        description: '执行命令: ls -la',
-        status: 'success',
-        duration: 850,
-        ip: '192.168.1.50',
-        details: {
-          request: { command: 'ls -la' },
-          response: { output: 'total 24\ndrwxr-xr-x...' }
-        }
-      },
-      {
-        id: 3,
-        time: new Date(Date.now() - 900000),
-        user: 'admin',
-        operation: 'file_transfer',
-        target: 'server02',
-        description: '上传文件: config.txt',
-        status: 'failed',
-        duration: 5000,
-        ip: '192.168.1.50',
-        details: {
-          request: { file: 'config.txt', size: 1024 },
-          error: 'Permission denied'
-        }
-      }
-    ];
-    
-    logs.value = mockLogs;
-    pagination.total = mockLogs.length;
-    
-    // 更新统计信息
-    updateStatistics();
-    
+
+    // 构建查询参数
+    const params = {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      serverId: currentServerId.value,
+      level: filters.level || undefined,
+      source: filters.source || undefined,
+      keyword: filters.keyword || undefined,
+      startTime: filters.dateRange[0]
+        ? filters.dateRange[0].toISOString()
+        : undefined,
+      endTime: filters.dateRange[1]
+        ? filters.dateRange[1].toISOString()
+        : undefined,
+    };
+
+    const result = await getServerLogPage(params);
+
+    if (result.success && result.data) {
+      logs.value = result.data.records || [];
+      pagination.total = result.data.total || 0;
+    } else {
+      logs.value = [];
+      pagination.total = 0;
+      message.error(result.message || "加载日志失败");
+    }
   } catch (error) {
-    message.error('加载日志失败');
-    console.error('加载日志失败:', error);
+    message.error("加载日志失败");
+    console.error("加载日志失败:", error);
+    logs.value = [];
+    pagination.total = 0;
   } finally {
     loading.value = false;
   }
 };
 
-const updateStatistics = () => {
-  statistics.total = logs.value.length;
-  statistics.success = logs.value.filter(log => log.status === 'success').length;
-  statistics.failed = logs.value.filter(log => log.status === 'failed').length;
-  
-  const durations = logs.value.filter(log => log.duration).map(log => log.duration);
-  statistics.avgDuration = durations.length > 0 
-    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
-    : 0;
+const loadStatistics = async () => {
+  try {
+    if (!currentServerId.value) return;
+
+    const result = await getServerLogStatistics(currentServerId.value);
+
+    if (result.success && result.data) {
+      const data = result.data;
+      statistics.total = data.total || 0;
+      statistics.info = data.infoCount || 0;
+      statistics.warn = data.warnCount || 0;
+      statistics.error = data.errorCount || 0;
+      statistics.today = data.todayCount || 0;
+      statistics.lastHour = data.lastHourCount || 0;
+    }
+  } catch (error) {
+    console.error("加载统计信息失败:", error);
+  }
 };
 
 const searchLogs = () => {
@@ -370,46 +463,97 @@ const searchLogs = () => {
 
 const resetFilters = () => {
   filters.dateRange = [];
-  filters.operation = '';
-  filters.status = '';
-  filters.user = '';
+  filters.level = "";
+  filters.source = "";
+  filters.keyword = "";
   pagination.page = 1;
-  loadLogs();
+  if (visible.value) {
+    loadLogs();
+  }
 };
 
-const exportLogs = () => {
-  const data = logs.value.map(log => ({
-    时间: formatTime(log.time),
-    用户: log.user,
-    操作类型: getOperationText(log.operation),
-    目标: log.target,
-    描述: log.description,
-    状态: getStatusText(log.status),
-    耗时: log.duration ? log.duration + 'ms' : '-',
-    IP地址: log.ip
-  }));
-  
-  const csv = convertToCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `operation_logs_${Date.now()}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-  message.success('日志导出成功');
+const clearLogs = async () => {
+  try {
+    if (!currentServerId.value) {
+      message.warning("请先选择服务器");
+      return;
+    }
+
+    await ElMessageBox.confirm(
+      "确定要清理该服务器的日志吗？此操作不可恢复！",
+      "清理确认",
+      {
+        type: "warning",
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+      }
+    );
+
+    const result = await cleanupServerLogs(currentServerId.value);
+
+    if (result.success) {
+      message.success("日志清理成功");
+      loadLogs();
+      loadStatistics();
+    } else {
+      message.error(result.message || "日志清理失败");
+    }
+  } catch (error) {
+    if (error !== "cancel") {
+      message.error("日志清理失败");
+      console.error("日志清理失败:", error);
+    }
+  }
 };
 
-const convertToCSV = (data: any[]) => {
-  if (data.length === 0) return '';
-  
-  const headers = Object.keys(data[0]);
-  const csvContent = [
-    headers.join(','),
-    ...data.map(row => headers.map(header => `"${row[header]}"`).join(','))
-  ].join('\n');
-  
-  return '\uFEFF' + csvContent; // 添加BOM以支持中文
+const exportLogs = async () => {
+  try {
+    if (!currentServerId.value) {
+      message.warning("请先选择服务器");
+      return;
+    }
+
+    const params = {
+      serverId: currentServerId.value,
+      level: filters.level || undefined,
+      source: filters.source || undefined,
+      startTime: filters.dateRange[0]
+        ? filters.dateRange[0].toISOString()
+        : undefined,
+      endTime: filters.dateRange[1]
+        ? filters.dateRange[1].toISOString()
+        : undefined,
+      format: "csv",
+    };
+
+    const result = await exportServerLogs(params);
+
+    if (result.success && result.data) {
+      // 创建下载链接
+      const blob = new Blob([result.data], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `server_logs_${currentServerId.value}_${Date.now()}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      message.success("日志导出成功");
+    } else {
+      message.error(result.message || "日志导出失败");
+    }
+  } catch (error) {
+    message.error("日志导出失败");
+    console.error("日志导出失败:", error);
+  }
+};
+
+const formatExtraData = (extraData: string) => {
+  try {
+    const parsed = JSON.parse(extraData);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return extraData;
+  }
 };
 
 const handleSizeChange = (size: number) => {
@@ -422,55 +566,64 @@ const handleCurrentChange = (page: number) => {
   loadLogs();
 };
 
-const showLogDetail = (log: any) => {
+const showLogDetail = (log: ServerLog) => {
   selectedLog.value = log;
   detailDialogVisible.value = true;
 };
 
-const getOperationType = (operation: string) => {
+const getLogLevelType = (level: string) => {
   const typeMap = {
-    connect: 'success',
-    disconnect: 'info',
-    command: 'primary',
-    file_transfer: 'warning',
-    config_change: 'danger',
-    monitoring: 'info'
+    DEBUG: "info",
+    INFO: "primary",
+    WARN: "warning",
+    ERROR: "danger",
+    FATAL: "danger",
   };
-  return typeMap[operation as keyof typeof typeMap] || 'info';
+  return typeMap[level as keyof typeof typeMap] || "info";
 };
 
-const getOperationText = (operation: string) => {
+const getLogLevelText = (level: string) => {
   const textMap = {
-    connect: '连接',
-    disconnect: '断开',
-    command: '执行命令',
-    file_transfer: '文件传输',
-    config_change: '配置修改',
-    monitoring: '监控操作'
+    DEBUG: "调试",
+    INFO: "信息",
+    WARN: "警告",
+    ERROR: "错误",
+    FATAL: "致命",
   };
-  return textMap[operation as keyof typeof textMap] || operation;
+  return textMap[level as keyof typeof textMap] || level;
 };
 
-const getStatusType = (status: string) => {
+const getLogSourceType = (source: string) => {
   const typeMap = {
-    success: 'success',
-    failed: 'danger',
-    running: 'warning'
+    SYSTEM: "primary",
+    APPLICATION: "success",
+    SECURITY: "warning",
+    ACCESS: "info",
   };
-  return typeMap[status as keyof typeof typeMap] || 'info';
+  return typeMap[source as keyof typeof typeMap] || "info";
 };
 
-const getStatusText = (status: string) => {
+const getLogSourceText = (source: string) => {
   const textMap = {
-    success: '成功',
-    failed: '失败',
-    running: '进行中'
+    SYSTEM: "系统",
+    APPLICATION: "应用",
+    SECURITY: "安全",
+    ACCESS: "访问",
   };
-  return textMap[status as keyof typeof textMap] || status;
+  return textMap[source as keyof typeof textMap] || source;
 };
 
-const formatTime = (time: Date) => {
-  return time.toLocaleString();
+const formatTime = (time: string | Date) => {
+  if (!time) return "-";
+  const date = typeof time === "string" ? new Date(time) : time;
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 };
 
 // 生命周期
@@ -480,7 +633,7 @@ onMounted(() => {
 
 // 暴露方法
 defineExpose({
-  open
+  open,
 });
 </script>
 
@@ -514,11 +667,15 @@ defineExpose({
       border-radius: 6px;
       background-color: var(--el-bg-color);
 
-      &.success {
-        border-left: 4px solid var(--el-color-success);
+      &.info {
+        border-left: 4px solid var(--el-color-primary);
       }
 
-      &.failed {
+      &.warning {
+        border-left: 4px solid var(--el-color-warning);
+      }
+
+      &.error {
         border-left: 4px solid var(--el-color-danger);
       }
 
@@ -538,6 +695,19 @@ defineExpose({
 }
 
 .log-detail {
+  .log-content {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background-color: var(--el-fill-color-extra-light);
+    border-radius: 4px;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
   .detail-content {
     margin-top: 20px;
 
@@ -556,11 +726,13 @@ defineExpose({
         border: 1px solid var(--el-border-color-light);
         border-radius: 4px;
         padding: 12px;
-        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
         font-size: 12px;
         line-height: 1.4;
         overflow-x: auto;
         margin: 0;
+        max-height: 300px;
+        overflow-y: auto;
 
         &.error {
           background-color: #fef0f0;

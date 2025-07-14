@@ -331,4 +331,145 @@ const getFileIcon = (fileName: string) => {
  * 触发文件选择
  */
 const triggerFileSelect = () => {
-  fileI
+  fileInputRef.value?.click();
+};
+
+/**
+ * 处理文件选择
+ */
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const files = target.files;
+  if (files) {
+    addFiles(Array.from(files));
+  }
+  // 清空input值，允许重复选择同一文件
+  target.value = "";
+};
+
+/**
+ * 处理拖拽悬停
+ */
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = true;
+};
+
+/**
+ * 处理拖拽离开
+ */
+const handleDragLeave = (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = false;
+};
+
+/**
+ * 处理文件拖拽放置
+ */
+const handleDrop = (event: DragEvent) => {
+  event.preventDefault();
+  isDragOver.value = false;
+
+  const files = event.dataTransfer?.files;
+  if (files) {
+    addFiles(Array.from(files));
+  }
+};
+</script>
+
+<style scoped>
+.file-upload-dialog {
+  --dialog-border-radius: 8px;
+}
+
+.file-upload-dialog :deep(.el-dialog) {
+  border-radius: var(--dialog-border-radius);
+  overflow: hidden;
+}
+
+.file-upload-dialog :deep(.el-dialog__header) {
+  background: var(--el-fill-color-extra-light);
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 16px 20px;
+}
+
+.file-upload-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.file-upload-dialog :deep(.el-dialog__footer) {
+  background: var(--el-fill-color-extra-light);
+  border-top: 1px solid var(--el-border-color-light);
+  padding: 12px 20px;
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+}
+
+/* 路径选择区域 */
+.path-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.path-input {
+  flex: 1;
+}
+
+/* 上传区域 */
+.upload-drop-zone {
+  border: 2px dashed var(--el-border-color);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--el-fill-color-lighter);
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone.is-dragover {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--el-color-primary);
+}
+
+.upload-text .primary-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin: 0 0 4px 0;
+}
+
+.upload-text .secondary-text {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+}
+</style>

@@ -21,15 +21,6 @@ export default [
     },
     children: [
       {
-        path: "/node/script-all",
-        name: "node-script-list-all",
-        component: () => import("@/views/maintenance/node/script-list.vue"),
-        meta: {
-          icon: "ri:tools-line",
-          title: "节点脚本列表",
-        },
-      },
-      {
         path: "/script/script-list",
         name: "script-list-all",
         component: () => import("@/views/maintenance/script/script-list.vue"),
@@ -62,8 +53,8 @@ export default [
     path: "/management",
     name: "management",
     meta: {
-      icon: "ri:node-tree",
-      title: "节点管理",
+      icon: "ri:settings-3-line",
+      title: "系统管理",
     },
     children: [
       {
@@ -73,26 +64,6 @@ export default [
         meta: {
           title: "我的工作空间",
           showLink: false,
-        },
-      },
-      {
-        path: "/node/list",
-        name: "node-list",
-        component: () => import("@/views/maintenance/node/list.vue"),
-        meta: {
-          icon: "ri:node-tree",
-          title: "节点列表",
-          showParent: true,
-        },
-      },
-
-      {
-        path: "/node/search",
-        name: "node-search",
-        component: () => import("@/views/maintenance/node/search.vue"),
-        meta: {
-          icon: "ri:projector-line",
-          title: "项目管理",
         },
       },
 
@@ -213,7 +184,8 @@ export default [
       {
         path: "/file-manager/file-storage",
         name: "file-storage",
-        component: () => import("@/views/maintenance/file-manager/fileStorage/list.vue"),
+        component: () =>
+          import("@/views/maintenance/file-manager/fileStorage/list.vue"),
         meta: {
           icon: "simple-icons:files",
           title: "文件存储",
@@ -222,7 +194,8 @@ export default [
       {
         path: "/file-manager/release-task",
         name: "file-storage-release-task",
-        component: () => import("@/views/maintenance/file-manager/release-task/list.vue"),
+        component: () =>
+          import("@/views/maintenance/file-manager/release-task/list.vue"),
         meta: {
           title: "发布任务",
         },
@@ -230,7 +203,8 @@ export default [
       {
         path: "/file-manager/static-file-storage",
         name: "static-file-storage",
-        component: () => import("@/views/maintenance/file-manager/staticFileStorage/list.vue"),
+        component: () =>
+          import("@/views/maintenance/file-manager/staticFileStorage/list.vue"),
         meta: {
           title: "静态文件存储",
         },
@@ -294,7 +268,8 @@ export default [
       {
         path: "/system/assets/docker-list",
         name: "system-machine-docker-list",
-        component: () => import("@/views/maintenance/system/assets/docker/list.vue"),
+        component: () =>
+          import("@/views/maintenance/system/assets/docker/list.vue"),
         meta: {
           icon: "simple-icons:docker",
           title: "Docker 列表(系统)",
@@ -331,7 +306,8 @@ export default [
       {
         path: "/system/assets/ssh-list",
         name: "system-machine-ssh-list",
-        component: () => import("@/views/maintenance/system/assets/ssh/ssh-list.vue"),
+        component: () =>
+          import("@/views/maintenance/system/assets/ssh/ssh-list.vue"),
         meta: {
           icon: "ri:file-list-3-line",
           title: "SSH列表(系统)",
@@ -425,7 +401,8 @@ export default [
       {
         path: "/system/assets/machine-list",
         name: "system-machine-list",
-        component: () => import("@/views/maintenance/system/assets/machine/machine-list.vue"),
+        component: () =>
+          import("@/views/maintenance/system/assets/machine/machine-list.vue"),
         meta: {
           title: "节点列表",
         },
@@ -434,7 +411,8 @@ export default [
       {
         path: "/system/assets/repository-list",
         name: "system-global-repository",
-        component: () => import("@/views/maintenance/repository/global-repository.vue"),
+        component: () =>
+          import("@/views/maintenance/repository/global-repository.vue"),
         meta: {
           title: "全局仓库",
           showLink: false,
@@ -443,7 +421,10 @@ export default [
       {
         path: "/system/assets/script-library",
         name: "system-script-library",
-        component: () => import("@/views/maintenance/system/assets/script-library/script-library.vue"),
+        component: () =>
+          import(
+            "@/views/maintenance/system/assets/script-library/script-library.vue"
+          ),
         meta: {
           title: "脚本库",
           showLink: false,
@@ -452,7 +433,8 @@ export default [
       {
         path: "/user/permission-group",
         name: "permission-group",
-        component: () => import("@/views/maintenance/user/permission-group.vue"),
+        component: () =>
+          import("@/views/maintenance/user/permission-group.vue"),
         meta: {
           title: "权限组",
         },

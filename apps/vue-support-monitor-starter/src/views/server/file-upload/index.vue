@@ -4,9 +4,11 @@
     <div class="page-header">
       <div class="header-content">
         <h1 class="page-title">服务器文件上传</h1>
-        <p class="page-description">管理SSH服务器的文件上传任务，支持实时上传和定时上传</p>
+        <p class="page-description">
+          管理SSH服务器的文件上传任务，支持实时上传和定时上传
+        </p>
       </div>
-      
+
       <div class="header-actions">
         <el-button type="primary" @click="handleCreateTask">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
@@ -35,7 +37,7 @@
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="stat-card">
             <div class="stat-content">
@@ -43,13 +45,15 @@
                 <IconifyIconOnline icon="ep:loading" />
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ statistics.processingCount || 0 }}</div>
+                <div class="stat-value">
+                  {{ statistics.processingCount || 0 }}
+                </div>
                 <div class="stat-label">处理中任务</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="stat-card">
             <div class="stat-content">
@@ -57,13 +61,15 @@
                 <IconifyIconOnline icon="ep:check" />
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ statistics.completedCount || 0 }}</div>
+                <div class="stat-value">
+                  {{ statistics.completedCount || 0 }}
+                </div>
                 <div class="stat-label">已完成任务</div>
               </div>
             </div>
           </el-card>
         </el-col>
-        
+
         <el-col :span="6">
           <el-card class="stat-card">
             <div class="stat-content">
@@ -105,7 +111,7 @@
             </div>
           </div>
         </template>
-        
+
         <ServerFileUploadTasks
           ref="taskManagerRef"
           :ssh-servers="sshServers"
@@ -124,33 +130,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ElMessage } from "element-plus";
 // 移除 @element-plus/icons-vue 导入，使用全局 IconifyIconOnline 组件
 import {
   getServerFileUploadTaskStatistics,
-  getTaskQueueStatus,
-  optimizeTaskQueue,
-  getServerFileUploadTaskById
-} from '@/api/server-file-upload';
-import { getServerList } from '@/api/server';
-import ServerFileUploadTasks from '../components/ServerFileUploadTasks.vue';
-import ServerFileUploadDialog from '../components/dialogs/ServerFileUploadDialog.vue';
-import ServerFileUploadProgress from '../components/ServerFileUploadProgress.vue';
+  getServerFileUploadTaskById,
+} from "@/api/server-file-upload";
+import { getServerList } from "@/api/server";
+import ServerFileUploadTasks from "../components/ServerFileUploadTasks.vue";
+import ServerFileUploadDialog from "../components/dialogs/ServerFileUploadDialog.vue";
+import ServerFileUploadProgress from "../components/ServerFileUploadProgress.vue";
 
 // 响应式数据
 const loading = ref(false);
-const activeTab = ref('all');
+const activeTab = ref("all");
 const taskManagerRef = ref();
 const uploadDialogRef = ref();
 
 // SSH服务器列表
-const sshServers = ref<Array<{
-  monitorSysGenServerId: number;
-  monitorSysGenServerName: string;
-  monitorSysGenServerHost: string;
-  monitorSysGenServerType: string;
-}>>([]);
+const sshServers = ref<
+  Array<{
+    monitorSysGenServerId: number;
+    monitorSysGenServerName: string;
+    monitorSysGenServerHost: string;
+    monitorSysGenServerType: string;
+  }>
+>([]);
 
 // 统计数据
 const statistics = reactive({
@@ -162,7 +168,7 @@ const statistics = reactive({
   cancelledCount: 0,
   successRate: 0,
   avgUploadTime: 0,
-  totalFileSize: 0
+  totalFileSize: 0,
 });
 
 // 定时器
@@ -172,7 +178,7 @@ let statsTimer: NodeJS.Timeout | null = null;
 onMounted(() => {
   loadSshServers();
   loadStatistics();
-  
+
   // 启动定时刷新
   startAutoRefresh();
 });
@@ -187,20 +193,20 @@ const loadSshServers = async () => {
     const { data } = await getServerList({
       current: 1,
       size: 1000,
-      serverType: 'SSH'
+      serverType: "SSH",
     });
-    
+
     sshServers.value = data.records || [];
   } catch (error: any) {
-    console.error('加载SSH服务器列表失败:', error);
-    ElMessage.error('加载SSH服务器列表失败');
+    console.error("加载SSH服务器列表失败:", error);
+    ElMessage.error("加载SSH服务器列表失败");
   }
 };
 
 const loadStatistics = async () => {
   try {
     const { data } = await getServerFileUploadTaskStatistics();
-    
+
     Object.assign(statistics, {
       totalCount: data.totalCount || 0,
       pendingCount: data.pendingCount || 0,
@@ -210,10 +216,10 @@ const loadStatistics = async () => {
       cancelledCount: data.cancelledCount || 0,
       successRate: data.successRate || 0,
       avgUploadTime: data.avgUploadTime || 0,
-      totalFileSize: data.totalFileSize || 0
+      totalFileSize: data.totalFileSize || 0,
     });
   } catch (error: any) {
-    console.error('加载统计数据失败:', error);
+    console.error("加载统计数据失败:", error);
   }
 };
 
@@ -227,7 +233,7 @@ const handleCreateTask = () => {
 };
 
 const handleUploadSuccess = () => {
-  ElMessage.success('上传任务创建成功');
+  ElMessage.success("上传任务创建成功");
   loadStatistics();
   taskManagerRef.value?.handleRefresh();
 };
@@ -239,14 +245,14 @@ const handleTaskUpdated = () => {
 const handleTabChange = (tab: string) => {
   // 根据选中的标签页过滤任务
   const statusMap = {
-    'all': '',
-    'pending': 'PENDING',
-    'processing': 'PROCESSING',
-    'completed': 'COMPLETED',
-    'failed': 'FAILED'
+    all: "",
+    pending: "PENDING",
+    processing: "PROCESSING",
+    completed: "COMPLETED",
+    failed: "FAILED",
   };
-  
-  const status = statusMap[tab] || '';
+
+  const status = statusMap[tab] || "";
   taskManagerRef.value?.setStatusFilter(status);
 };
 
@@ -254,9 +260,9 @@ const handleViewTaskDetail = async (taskId: number) => {
   try {
     const { data } = await getServerFileUploadTaskById(taskId);
     // 这里可以打开任务详情对话框或跳转到详情页面
-    console.log('任务详情:', data);
+    console.log("任务详情:", data);
   } catch (error: any) {
-    ElMessage.error(error.message || '获取任务详情失败');
+    ElMessage.error(error.message || "获取任务详情失败");
   }
 };
 

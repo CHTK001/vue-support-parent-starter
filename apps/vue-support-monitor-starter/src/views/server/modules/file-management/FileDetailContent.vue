@@ -286,6 +286,7 @@ const handleDelete = async () => {
   padding: 16px;
   height: 100%;
   overflow-y: auto;
+  background: #ffffff; /* 设置文件详情内容背景为白色 */
 }
 
 .file-header {
@@ -388,5 +389,12 @@ const handleDelete = async () => {
 
 .file-detail-content::-webkit-scrollbar-thumb:hover {
   background: var(--el-color-primary-light-5);
+}
+
+/* 暗色主题适配 - 强制保持白色背景 */
+@media (prefers-color-scheme: dark) {
+  .file-detail-content {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
 }
 </style>
