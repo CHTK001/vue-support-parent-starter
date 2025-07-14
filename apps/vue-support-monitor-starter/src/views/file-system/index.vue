@@ -214,6 +214,14 @@
           </div>
           <div class="list-actions">
             <el-button
+              type="primary"
+              :disabled="!selectedFiles.length"
+              @click="showMoveToGroupDialog = true"
+            >
+              <IconifyIconOnline icon="ri:folder-transfer-line" class="mr-1" />
+              移动到分组
+            </el-button>
+            <el-button
               type="danger"
               :disabled="!selectedFiles.length"
               @click="handleBatchDelete"
@@ -367,6 +375,76 @@
       v-model="showGroupDialog"
       @success="handleGroupSuccess"
     />
+
+    <!-- 移动到分组对话框 -->
+    <el-dialog
+      v-model="showMoveToGroupDialog"
+      title="移动文件到分组"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <div class="move-to-group-dialog">
+        <div class="selected-files-info">
+          <p>已选择 {{ selectedFiles.length }} 个文件：</p>
+          <div class="file-list">
+            <div
+              v-for="file in selectedFiles.slice(0, 5)"
+              :key="file.fileSystemId"
+              class="file-item"
+            >
+              <IconifyIconOnline
+                :icon="getFileIcon(file.fileSystemType)"
+                class="file-icon"
+              />
+              <span class="file-name">{{ file.fileSystemName }}</span>
+            </div>
+            <div v-if="selectedFiles.length > 5" class="more-files">
+              还有 {{ selectedFiles.length - 5 }} 个文件...
+            </div>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <div class="group-selection">
+          <p>选择目标分组：</p>
+          <el-tree
+            ref="moveGroupTreeRef"
+            :data="groupTree"
+            :props="groupTreeProps"
+            node-key="fileSystemGroupId"
+            :highlight-current="true"
+            :expand-on-click-node="false"
+            @current-change="handleMoveGroupSelect"
+          >
+            <template #default="{ node, data }">
+              <div class="group-tree-node">
+                <IconifyIconOnline
+                  :icon="data.fileSystemGroupIcon || 'ri:folder-line'"
+                  :style="{ color: data.fileSystemGroupColor || '#409eff' }"
+                />
+                <span class="group-name">{{ data.fileSystemGroupName }}</span>
+                <span class="file-count">({{ data.fileCount || 0 }})</span>
+              </div>
+            </template>
+          </el-tree>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showMoveToGroupDialog = false">取消</el-button>
+          <el-button
+            type="primary"
+            :disabled="!selectedMoveGroupId"
+            :loading="moveToGroupLoading"
+            @click="handleMoveToGroup"
+          >
+            移动
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -393,6 +471,7 @@ import {
 } from "@/api/monitor/filesystem";
 import {
   getGroupTree,
+  migrateFilesToGroup,
   type FileSystemGroup,
 } from "@/api/monitor/filesystem-group";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
@@ -418,12 +497,18 @@ const showSettingsDialog = ref(false);
 const showMD5TestDialog = ref(false);
 const showDebugInfo = ref(false);
 const showGroupDialog = ref(false);
+const showMoveToGroupDialog = ref(false);
 
 // 分组相关数据
 const groupTree = ref([]);
 const groupTreeRef = ref();
 const groupDialogRef = ref();
 const selectedGroupId = ref(null);
+
+// 移动到分组相关数据
+const moveGroupTreeRef = ref();
+const selectedMoveGroupId = ref(null);
+const moveToGroupLoading = ref(false);
 const groupTreeProps = {
   children: "children",
   label: "fileSystemGroupName",
@@ -518,6 +603,45 @@ const handleGroupSuccess = () => {
   loadGroupTree();
   // 重新加载文件列表
   handleSearch();
+};
+
+/**
+ * 处理移动分组选择
+ */
+const handleMoveGroupSelect = (data: FileSystemGroup) => {
+  selectedMoveGroupId.value = data?.fileSystemGroupId || null;
+};
+
+/**
+ * 处理移动到分组
+ */
+const handleMoveToGroup = async () => {
+  if (!selectedMoveGroupId.value || !selectedFiles.value.length) {
+    return;
+  }
+
+  moveToGroupLoading.value = true;
+  try {
+    const fileIds = selectedFiles.value.map((file) => file.fileSystemId!);
+    const res = await migrateFilesToGroup(fileIds, selectedMoveGroupId.value);
+
+    if (String(res.code) === "00000") {
+      ElMessage.success(`成功移动 ${res.data} 个文件到指定分组`);
+      showMoveToGroupDialog.value = false;
+      selectedMoveGroupId.value = null;
+      selectedFiles.value = [];
+      // 重新加载数据
+      handleSearch();
+      loadGroupTree();
+    } else {
+      ElMessage.error(res.msg || "移动文件失败");
+    }
+  } catch (error) {
+    console.error("移动文件到分组失败:", error);
+    ElMessage.error("移动文件失败");
+  } finally {
+    moveToGroupLoading.value = false;
+  }
 };
 
 /**
@@ -1244,6 +1368,81 @@ const testBackendAPI = async () => {
 
       .list-actions {
         justify-content: flex-end;
+      }
+    }
+  }
+}
+
+// 移动到分组对话框样式
+.move-to-group-dialog {
+  .selected-files-info {
+    margin-bottom: 16px;
+
+    p {
+      margin: 0 0 12px 0;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .file-list {
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 4px;
+      padding: 8px;
+      background-color: var(--el-fill-color-extra-light);
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        font-size: 13px;
+
+        .file-icon {
+          font-size: 16px;
+          color: var(--el-color-primary);
+        }
+
+        .file-name {
+          color: var(--el-text-color-regular);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .more-files {
+        padding: 4px 0;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        text-align: center;
+        font-style: italic;
+      }
+    }
+  }
+
+  .group-selection {
+    p {
+      margin: 0 0 12px 0;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .group-tree-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+
+      .group-name {
+        flex: 1;
+        color: var(--el-text-color-primary);
+      }
+
+      .file-count {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
       }
     }
   }
