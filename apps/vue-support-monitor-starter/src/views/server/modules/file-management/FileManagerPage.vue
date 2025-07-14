@@ -445,11 +445,16 @@ defineExpose({
 
 <style scoped>
 .file-manager-page {
-  height: calc(100vh - 40px); /* 增加整体高度，减少顶部边距 */
+  height: 100vh; /* 撑满整个视口高度 */
+  width: 100vw; /* 撑满整个视口宽度 */
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置背景为白色 */
   overflow: hidden;
+  position: fixed; /* 固定定位确保撑满页面 */
+  top: 0;
+  left: 0;
+  z-index: 1000; /* 确保在最上层 */
 }
 
 .manager-content {
@@ -464,7 +469,7 @@ defineExpose({
   max-width: 400px;
   height: 100%;
   flex-shrink: 0;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置左侧面板背景为白色 */
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--el-border-color-light);
@@ -563,7 +568,7 @@ defineExpose({
   flex: 1;
   height: 100%;
   overflow: hidden;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置右侧面板背景为白色 */
   display: flex;
   flex-direction: column;
 }
@@ -578,7 +583,7 @@ defineExpose({
 /* 文件详情面板 */
 .file-detail-panel {
   overflow: hidden;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置文件详情面板背景为白色 */
   border-top: 1px solid var(--el-border-color-light);
   transition: height 0.3s ease;
   position: relative;
@@ -700,25 +705,25 @@ defineExpose({
   }
 }
 
-/* 暗色主题适配 */
+/* 暗色主题适配 - 强制保持白色背景 */
 @media (prefers-color-scheme: dark) {
   .file-manager-page {
-    background: var(--el-bg-color-page);
+    background: #ffffff !important; /* 强制保持白色背景 */
   }
 
   .tree-header {
-    background: var(--el-bg-color);
+    background: #ffffff !important; /* 强制保持白色背景 */
     border-bottom-color: var(--el-border-color);
   }
 
   .left-panel,
   .right-panel,
   .file-detail-panel {
-    background: var(--el-bg-color);
+    background: #ffffff !important; /* 强制保持白色背景 */
   }
 
   .detail-header {
-    background: var(--el-bg-color);
+    background: #ffffff !important; /* 强制保持白色背景 */
     border-bottom-color: var(--el-border-color);
   }
 

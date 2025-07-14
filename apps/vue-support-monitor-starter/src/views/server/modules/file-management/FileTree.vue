@@ -565,7 +565,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
+  background: #ffffff; /* 设置文件树背景为白色 */
   border-right: 1px solid var(--el-border-color-light);
 }
 
@@ -575,7 +575,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--el-fill-color-extra-light);
+  background: #ffffff; /* 设置树头部背景为白色 */
 }
 
 .tree-title {
@@ -718,6 +718,17 @@ defineExpose({
 @media (max-width: 768px) {
   .tree-content::-webkit-scrollbar {
     width: 4px;
+  }
+}
+
+/* 暗色主题适配 - 强制保持白色背景 */
+@media (prefers-color-scheme: dark) {
+  .file-tree {
+    background: #ffffff !important; /* 强制保持白色背景 */
+  }
+
+  .tree-header {
+    background: #ffffff !important; /* 强制保持白色背景 */
   }
 }
 </style>

@@ -51,6 +51,33 @@
         <span class="form-tip">秒，建议值：60-300</span>
       </el-form-item>
 
+      <!-- 数据上报方式 -->
+      <el-form-item prop="monitorSysGenServerSettingDataReportMethod">
+        <template #label>
+          <div class="form-label">
+            <span>数据上报方式</span>
+            <el-tooltip
+              content="选择监控数据的上报方式：NONE-不上报，API-通过API上报，PROMETHEUS-通过Prometheus上报"
+              placement="top"
+              effect="dark"
+            >
+              <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+            </el-tooltip>
+          </div>
+        </template>
+        <el-select
+          v-model="formData.monitorSysGenServerSettingDataReportMethod"
+          placeholder="请选择上报方式"
+          style="width: 200px"
+          @change="handleChange"
+        >
+          <el-option label="不上报" value="NONE" />
+          <el-option label="API上报" value="API" />
+          <el-option label="Prometheus" value="PROMETHEUS" />
+        </el-select>
+        <span class="form-tip">选择合适的数据上报方式</span>
+      </el-form-item>
+
       <!-- 指标保留天数 -->
       <el-form-item prop="monitorSysGenServerSettingMetricsRetentionDays">
         <template #label>
@@ -76,6 +103,62 @@
         />
         <span class="form-tip">天，建议值：30-90</span>
       </el-form-item>
+
+      <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
+      <div
+        v-if="
+          formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'
+        "
+        class="prometheus-basic-config"
+      >
+        <el-form-item prop="monitorSysGenServerSettingPrometheusHost">
+          <template #label>
+            <div class="form-label">
+              <span>Prometheus主机</span>
+              <el-tooltip
+                content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input
+            v-model="formData.monitorSysGenServerSettingPrometheusHost"
+            placeholder="localhost"
+            clearable
+            style="width: 200px"
+            @change="handleChange"
+          />
+          <span class="form-tip">Prometheus服务器地址</span>
+        </el-form-item>
+
+        <el-form-item prop="monitorSysGenServerSettingPrometheusPort">
+          <template #label>
+            <div class="form-label">
+              <span>Prometheus端口</span>
+              <el-tooltip
+                content="Prometheus服务器的端口号，默认为9090"
+                placement="top"
+                effect="dark"
+              >
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input-number
+            v-model="formData.monitorSysGenServerSettingPrometheusPort"
+            :min="1"
+            :max="65535"
+            :step="1"
+            placeholder="9090"
+            style="width: 200px"
+            @change="handleChange"
+          />
+          <span class="form-tip">端口号，默认9090</span>
+        </el-form-item>
+      </div>
     </div>
 
     <!-- 告警配置 -->
@@ -130,6 +213,7 @@
           <el-option label="短信" value="SMS" />
           <el-option label="钉钉" value="DINGTALK" />
           <el-option label="企业微信" value="WECHAT" />
+          <el-option label="网页推送" value="WEB_PUSH" />
           <el-option label="Webhook" value="WEBHOOK" />
         </el-select>
       </el-form-item>
@@ -2055,6 +2139,8 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingAutoRecoveryNotificationEnabled: 1,
 
   // Prometheus配置默认值
+  monitorSysGenServerSettingPrometheusHost: "localhost",
+  monitorSysGenServerSettingPrometheusPort: 9090,
   monitorSysGenServerSettingPrometheusUrl: "http://localhost:9090",
   monitorSysGenServerSettingPrometheusQueryPath: "/api/v1/query",
   monitorSysGenServerSettingPrometheusAuthEnabled: false,
@@ -2177,6 +2263,8 @@ const getNotificationAddressLabel = () => {
       return "钉钉Webhook";
     case "WECHAT":
       return "企业微信Webhook";
+    case "WEB_PUSH":
+      return "推送配置";
     case "WEBHOOK":
       return "Webhook URL";
     default:
@@ -2198,6 +2286,8 @@ const getNotificationAddressTooltip = () => {
       return "钉钉群机器人的Webhook地址，可在钉钉群设置中获取";
     case "WECHAT":
       return "企业微信群机器人的Webhook地址，可在企业微信群设置中获取";
+    case "WEB_PUSH":
+      return '网页推送配置，格式为JSON：{"endpoint":"推送端点","keys":{"p256dh":"公钥","auth":"认证密钥"}}';
     case "WEBHOOK":
       return "自定义Webhook接收地址，告警信息将以POST请求发送到此URL，支持集成第三方系统";
     default:
@@ -2219,6 +2309,8 @@ const getNotificationAddressPlaceholder = () => {
       return "请输入钉钉Webhook地址";
     case "WECHAT":
       return "请输入企业微信Webhook地址";
+    case "WEB_PUSH":
+      return "请输入网页推送配置JSON";
     case "WEBHOOK":
       return "请输入Webhook URL";
     default:
@@ -2607,6 +2699,24 @@ const toggleFileManagementPanel = () => {
     margin-left: 8px;
     color: var(--el-text-color-regular);
     font-size: 14px;
+  }
+}
+
+.prometheus-basic-config {
+  background-color: var(--el-fill-color-extra-light);
+  border-radius: 6px;
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 3px solid #409eff;
+
+  .el-form-item {
+    margin-bottom: 16px;
+  }
+
+  .form-tip {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
   }
 }
 

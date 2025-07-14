@@ -111,14 +111,13 @@ export default [
               showParent: true,
             },
           },
-
           {
-            path: "/server/file-upload",
-            name: "serverFileUpload",
-            component: () => import("@/views/server/file-upload/index.vue"),
+            path: "/server/file-system",
+            name: "serverFileSystem",
+            component: () => import("@/views/file-system/index.vue"),
             meta: {
-              icon: "ri:upload-cloud-line",
-              title: "文件上传管理",
+              icon: "ri:file-list-3-line",
+              title: "文件系统管理",
               showLink: true,
               showParent: true,
             },

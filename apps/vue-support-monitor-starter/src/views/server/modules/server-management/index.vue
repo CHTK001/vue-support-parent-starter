@@ -36,6 +36,19 @@
           <!-- 调试信息 -->
           <!-- 调试信息已移除，避免响应式更新导致的无限递归 -->
         </h2>
+
+        <!-- 组管理按钮 -->
+        <div class="group-management">
+          <el-button
+            type="primary"
+            plain
+            @click="openGroupManagement"
+            class="group-btn"
+          >
+            <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
+            组管理
+          </el-button>
+        </div>
       </div>
       <div class="toolbar-right"></div>
 
@@ -592,26 +605,6 @@
                                 文件管理
                               </el-dropdown-item>
                               <el-dropdown-item
-                                command="monitor"
-                                title="查看性能监控详情"
-                              >
-                                <IconifyIconOnline
-                                  icon="ri:dashboard-line"
-                                  class="mr-2"
-                                />
-                                性能监控
-                              </el-dropdown-item>
-                              <el-dropdown-item
-                                command="detail"
-                                title="查看服务器详情页面"
-                              >
-                                <IconifyIconOnline
-                                  icon="ri:dashboard-3-line"
-                                  class="mr-2"
-                                />
-                                详情页面
-                              </el-dropdown-item>
-                              <el-dropdown-item
                                 command="script"
                                 title="在服务器上执行脚本"
                               >
@@ -757,6 +750,10 @@
     <ScriptExecutorDialog ref="scriptDialogRef" />
     <AlertConfigDialog ref="alertDialogRef" />
     <OperationLogDialog ref="logDialogRef" />
+    <ServerGroupManageDialog
+      ref="groupManageDialogRef"
+      @success="handleSuccess"
+    />
   </div>
 </template>
 
@@ -826,6 +823,9 @@ const AlertConfigDialog = defineAsyncComponent(
 );
 const OperationLogDialog = defineAsyncComponent(
   () => import("../../components/dialogs/OperationLogDialog.vue")
+);
+const ServerGroupManageDialog = defineAsyncComponent(
+  () => import("./components/ServerGroupManageDialog.vue")
 );
 
 // 远程连接组件
@@ -905,6 +905,7 @@ const batchDialogRef = ref();
 const scriptDialogRef = ref();
 const alertDialogRef = ref();
 const logDialogRef = ref();
+const groupManageDialogRef = ref();
 
 // 本地调试
 const localDebugVisible = ref(false);
@@ -1439,6 +1440,14 @@ const handleSuccess = () => {
 };
 
 /**
+ * 打开组管理
+ */
+const openGroupManagement = () => {
+  // 打开组管理弹框
+  groupManageDialogRef.value?.open();
+};
+
+/**
  * 处理刷新服务器列表
  */
 const handleRefreshServerList = async () => {
@@ -1712,6 +1721,10 @@ onUnmounted(() => {
   backdrop-filter: blur(10px);
 
   .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
     .page-title {
       font-size: 24px;
       font-weight: 700;
@@ -1768,6 +1781,36 @@ onUnmounted(() => {
             var(--el-color-danger-light-9) 100%
           );
           color: var(--el-color-danger);
+        }
+      }
+    }
+
+    .group-management {
+      .group-btn {
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary) 0%,
+          var(--el-color-primary-light-3) 100%
+        );
+        border: none;
+        color: white;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(64, 158, 255, 0.4);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+
+        .iconify {
+          font-size: 16px;
         }
       }
     }

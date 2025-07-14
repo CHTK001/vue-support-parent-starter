@@ -25,7 +25,13 @@ defineEmits<{
 
 <style scoped>
 .file-manager {
-  height: 100%;
-  width: 100%;
+  height: 100vh; /* 撑满整个视口高度 */
+  width: 100vw; /* 撑满整个视口宽度 */
+  background: #ffffff; /* 设置背景为白色 */
+  position: fixed; /* 固定定位确保撑满页面 */
+  top: 0;
+  left: 0;
+  z-index: 1000; /* 确保在最上层 */
+  overflow: hidden; /* 防止滚动条 */
 }
 </style>
