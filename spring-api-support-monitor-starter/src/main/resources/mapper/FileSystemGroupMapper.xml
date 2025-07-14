@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.monitor.starter.mapper.FileSystemGroupMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="com.chua.starter.monitor.starter.entity.FileSystemGroup">
+        <id column="file_system_group_id" property="fileSystemGroupId" />
+        <result column="file_system_group_name" property="fileSystemGroupName" />
+        <result column="file_system_group_parent_id" property="fileSystemGroupParentId" />
+        <result column="file_system_group_path" property="fileSystemGroupPath" />
+        <result column="file_system_group_full_path" property="fileSystemGroupFullPath" />
+        <result column="file_system_group_level" property="fileSystemGroupLevel" />
+        <result column="file_system_group_tree_path" property="fileSystemGroupTreePath" />
+        <result column="file_system_group_description" property="fileSystemGroupDescription" />
+        <result column="file_system_group_is_default" property="fileSystemGroupIsDefault" />
+        <result column="file_system_group_sort" property="fileSystemGroupSort" />
+        <result column="file_system_group_status" property="fileSystemGroupStatus" />
+        <result column="file_system_group_icon" property="fileSystemGroupIcon" />
+        <result column="file_system_group_color" property="fileSystemGroupColor" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="create_by" property="createBy" />
+        <result column="update_by" property="updateBy" />
+    </resultMap>
+
+    <!-- 包含文件数量的结果映射 -->
+    <resultMap id="GroupWithFileCountResultMap" type="com.chua.starter.monitor.starter.entity.FileSystemGroup" extends="BaseResultMap">
+        <result column="file_count" property="fileCount" />
+    </resultMap>
+
+    <!-- 基础字段 -->
+    <sql id="Base_Column_List">
+        file_system_group_id, file_system_group_name, file_system_group_parent_id, 
+        file_system_group_path, file_system_group_full_path, file_system_group_level,
+        file_system_group_tree_path, file_system_group_description, file_system_group_is_default, 
+        file_system_group_sort, file_system_group_status, file_system_group_icon, 
+        file_system_group_color, create_time, update_time, create_by, update_by
+    </sql>
+
+    <!-- 查询所有根分组 -->
+    <select id="selectRootGroups" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM file_system_group
+        WHERE file_system_group_parent_id IS NULL
+        AND file_system_group_status = 1
+        ORDER BY file_system_group_sort ASC, file_system_group_id ASC
+    </select>
+
+    <!-- 根据父ID查询子分组 -->
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM file_system_group
+        WHERE file_system_group_parent_id = #{parentId}
+        AND file_system_group_status = 1
+        ORDER BY file_system_group_sort ASC, file_system_group_id ASC
+    </select>
+
+    <!-- 查询分组树形结构（包含文件数量统计） -->
+    <select id="selectGroupTreeWithFileCount" resultMap="GroupWithFileCountResultMap">
+        SELECT 
+            g.file_system_group_id, g.file_system_group_name, g.file_system_group_parent_id,
+            g.file_system_group_path, g.file_system_group_full_path, g.file_system_group_level,
+            g.file_system_group_tree_path, g.file_system_group_description, g.file_system_group_is_default, 
+            g.file_system_group_sort, g.file_system_group_status, g.file_system_group_icon, 
+            g.file_system_group_color, g.create_time, g.update_time, g.create_by, g.update_by,
+            COALESCE(f.file_count, 0) as file_count
+        FROM file_system_group g
+        LEFT JOIN (
+            SELECT file_system_group_id, COUNT(*) as file_count
+            FROM file_system
+            WHERE file_system_status = 2
+            GROUP BY file_system_group_id
+        ) f ON g.file_system_group_id = f.file_system_group_id
+        WHERE g.file_system_group_status = 1
+        ORDER BY g.file_system_group_level ASC, g.file_system_group_sort ASC, g.file_system_group_id ASC
+    </select>
+
+    <!-- 根据完整路径查询分组 -->
+    <select id="selectByFullPath" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM file_system_group
+        WHERE file_system_group_full_path = #{fullPath}
+        AND file_system_group_status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 查询指定分组及其所有子分组的ID列表（使用树链路ID优化查询） -->
+    <select id="selectGroupAndChildrenIds" resultType="java.lang.Integer">
+        SELECT file_system_group_id
+        FROM file_system_group
+        WHERE file_system_group_status = 1
+        AND (
+            file_system_group_id = #{groupId}
+            OR file_system_group_tree_path LIKE CONCAT((
+                SELECT file_system_group_tree_path 
+                FROM file_system_group 
+                WHERE file_system_group_id = #{groupId}
+            ), ',', #{groupId}, '%')
+        )
+    </select>
+
+    <!-- 更新分组的完整路径 -->
+    <update id="updateFullPath">
+        UPDATE file_system_group
+        SET file_system_group_full_path = #{fullPath},
+            update_time = NOW()
+        WHERE file_system_group_id = #{groupId}
+    </update>
+
+    <!-- 查询默认分组 -->
+    <select id="selectDefaultGroup" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM file_system_group
+        WHERE file_system_group_is_default = 1
+        AND file_system_group_status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 统计分组下的文件数量 -->
+    <select id="countFilesByGroupId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM file_system
+        WHERE file_system_group_id = #{groupId}
+        AND file_system_status = 2
+    </select>
+
+</mapper>

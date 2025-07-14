@@ -68,7 +68,9 @@
                 />
               </div>
               <div class="item-status">
-                <span class="status-text">{{ getStatusText(item.status) }}</span>
+                <span class="status-text">{{
+                  getStatusText(item.status)
+                }}</span>
                 <span v-if="item.message" class="status-message">
                   {{ item.message }}
                 </span>
@@ -98,10 +100,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { ElMessage } from "element-plus";
 import type { UploadQueueStatus } from "@/api/monitor/filesystem";
-import { checkUploadStatus } from "@/api/monitor/filesystem";
+
+// Props
+interface Props {
+  queueStatus: Map<number, UploadQueueStatus>;
+}
+
+const props = defineProps<Props>();
 
 // Emits
 const emit = defineEmits<{
@@ -111,22 +119,33 @@ const emit = defineEmits<{
 // 响应式数据
 const isCollapsed = ref(true);
 const queueList = ref<UploadQueueStatus[]>([]);
-const pollingTimer = ref<number>();
 
 // 计算属性
 const currentTask = computed(() => {
-  return queueList.value.find(item => 
-    item.status === 'uploading' || item.status === 'merging'
+  return queueList.value.find(
+    (item) => item.status === "uploading" || item.status === "merging"
   );
 });
 
+// 监听队列状态变化
+watch(
+  () => props.queueStatus,
+  (newQueueStatus) => {
+    // 将Map转换为数组
+    queueList.value = Array.from(newQueueStatus.values());
+    emit("queue-update", queueList.value);
+  },
+  { deep: true, immediate: true }
+);
+
 // 生命周期
 onMounted(() => {
-  startPolling();
+  // 初始化队列数据
+  queueList.value = Array.from(props.queueStatus.values());
 });
 
 onUnmounted(() => {
-  stopPolling();
+  // 清理工作
 });
 
 /**
@@ -140,7 +159,9 @@ const toggleCollapse = () => {
  * 添加到队列
  */
 const addToQueue = (task: UploadQueueStatus) => {
-  const existingIndex = queueList.value.findIndex(item => item.fileId === task.fileId);
+  const existingIndex = queueList.value.findIndex(
+    (item) => item.fileId === task.fileId
+  );
   if (existingIndex >= 0) {
     queueList.value[existingIndex] = task;
   } else {
@@ -153,7 +174,7 @@ const addToQueue = (task: UploadQueueStatus) => {
  * 从队列移除
  */
 const removeFromQueue = (fileId: number) => {
-  const index = queueList.value.findIndex(item => item.fileId === fileId);
+  const index = queueList.value.findIndex((item) => item.fileId === fileId);
   if (index >= 0) {
     queueList.value.splice(index, 1);
     emit("queue-update", queueList.value);
@@ -163,8 +184,11 @@ const removeFromQueue = (fileId: number) => {
 /**
  * 更新队列状态
  */
-const updateQueueStatus = (fileId: number, updates: Partial<UploadQueueStatus>) => {
-  const item = queueList.value.find(item => item.fileId === fileId);
+const updateQueueStatus = (
+  fileId: number,
+  updates: Partial<UploadQueueStatus>
+) => {
+  const item = queueList.value.find((item) => item.fileId === fileId);
   if (item) {
     Object.assign(item, updates);
     emit("queue-update", queueList.value);
@@ -172,41 +196,12 @@ const updateQueueStatus = (fileId: number, updates: Partial<UploadQueueStatus>) 
 };
 
 /**
- * 开始轮询
+ * 手动刷新队列状态
  */
-const startPolling = () => {
-  pollingTimer.value = window.setInterval(async () => {
-    if (queueList.value.length === 0) return;
-
-    // 检查进行中的任务状态
-    const activeTasks = queueList.value.filter(item => 
-      item.status === 'uploading' || item.status === 'merging'
-    );
-
-    for (const task of activeTasks) {
-      try {
-        const res = await checkUploadStatus(task.fileId);
-        if (res.code === "00000" && res.data) {
-          updateQueueStatus(task.fileId, {
-            progress: res.data.progress,
-            status: getStatusFromFileStatus(res.data.fileStatus),
-          });
-        }
-      } catch (error) {
-        console.error(`检查文件${task.fileId}状态失败:`, error);
-      }
-    }
-  }, 2000); // 每2秒检查一次
-};
-
-/**
- * 停止轮询
- */
-const stopPolling = () => {
-  if (pollingTimer.value) {
-    clearInterval(pollingTimer.value);
-    pollingTimer.value = undefined;
-  }
+const refreshQueue = () => {
+  // 从props重新获取最新数据
+  queueList.value = Array.from(props.queueStatus.values());
+  emit("queue-update", queueList.value);
 };
 
 /**
@@ -229,8 +224,8 @@ const resumeAll = () => {
  * 清除已完成
  */
 const clearCompleted = () => {
-  queueList.value = queueList.value.filter(item => 
-    item.status !== 'completed' && item.status !== 'failed'
+  queueList.value = queueList.value.filter(
+    (item) => item.status !== "completed" && item.status !== "failed"
   );
   emit("queue-update", queueList.value);
 };
@@ -265,22 +260,9 @@ const getStatusText = (status: string) => {
  * 获取进度状态
  */
 const getProgressStatus = (status: string) => {
-  if (status === 'completed') return "success";
-  if (status === 'failed') return "exception";
+  if (status === "completed") return "success";
+  if (status === "failed") return "exception";
   return undefined;
-};
-
-/**
- * 从文件状态获取队列状态
- */
-const getStatusFromFileStatus = (fileStatus: number): UploadQueueStatus['status'] => {
-  const statusMap: Record<number, UploadQueueStatus['status']> = {
-    1: 'uploading', // 待合并
-    2: 'merging',   // 合并中
-    3: 'completed', // 已完成
-    4: 'failed',    // 合并失败
-  };
-  return statusMap[fileStatus] || 'uploading';
 };
 
 // 暴露方法给父组件

@@ -39,7 +39,57 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
+        <el-button @click="showDebugInfo = !showDebugInfo">
+          <IconifyIconOnline icon="ri:bug-line" class="mr-1" />
+          调试
+        </el-button>
       </div>
+    </div>
+
+    <!-- 调试信息面板 -->
+    <div v-if="showDebugInfo" class="debug-panel">
+      <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>SSE连接调试信息</span>
+            <el-button @click="testSSEConnection" type="primary" size="small">
+              测试连接
+            </el-button>
+            <el-button @click="testBackendAPI" type="success" size="small">
+              测试后端API
+            </el-button>
+          </div>
+        </template>
+        <div class="debug-content">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="连接状态">
+              {{ connectionStatusText }}
+            </el-descriptions-item>
+            <el-descriptions-item label="客户端ID">
+              {{ sseState.clientId || "未分配" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="连接中">
+              {{ sseState.connecting ? "是" : "否" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="已连接">
+              {{ sseState.connected ? "是" : "否" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="重连次数">
+              {{ sseState.reconnectAttempts }}
+            </el-descriptions-item>
+            <el-descriptions-item label="最后心跳">
+              {{
+                sseState.lastHeartbeat
+                  ? new Date(sseState.lastHeartbeat).toLocaleString()
+                  : "无"
+              }}
+            </el-descriptions-item>
+            <el-descriptions-item label="错误信息" :span="2">
+              {{ sseState.error || "无" }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </el-card>
     </div>
 
     <!-- 统计卡片 -->
@@ -94,160 +144,217 @@
       </el-row>
     </div>
 
-    <!-- 文件列表 -->
-    <div class="file-list-container">
-      <div class="list-header">
-        <div class="search-bar">
-          <el-input
-            v-model="searchQuery.fileName"
-            placeholder="搜索文件名..."
-            clearable
-            @clear="handleSearch"
-            @keyup.enter="handleSearch"
+    <!-- 分组树和文件列表 -->
+    <div class="content-layout">
+      <!-- 左侧分组树 -->
+      <div class="group-tree-container">
+        <div class="group-tree-header">
+          <h3>文件分组</h3>
+          <el-button
+            type="primary"
+            size="small"
+            @click="showGroupDialog = true"
           >
-            <template #prefix>
-              <IconifyIconOnline icon="ri:search-line" />
-            </template>
-          </el-input>
-          <el-select
-            v-model="searchQuery.fileStatus"
-            placeholder="文件状态"
-            clearable
-            @change="handleSearch"
-          >
-            <el-option label="全部" :value="null" />
-            <el-option label="待合并" :value="1" />
-            <el-option label="合并中" :value="2" />
-            <el-option label="已完成" :value="3" />
-            <el-option label="合并失败" :value="4" />
-          </el-select>
-          <el-button type="primary" @click="handleSearch">
-            <IconifyIconOnline icon="ri:search-line" class="mr-1" />
-            搜索
+            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+            新建分组
           </el-button>
         </div>
-        <div class="list-actions">
-          <el-button
-            type="danger"
-            :disabled="!selectedFiles.length"
-            @click="handleBatchDelete"
+        <div class="group-tree-content">
+          <el-tree
+            ref="groupTreeRef"
+            :data="groupTree"
+            :props="groupTreeProps"
+            node-key="fileSystemGroupId"
+            :default-expand-all="true"
+            :highlight-current="true"
+            @node-click="handleGroupSelect"
           >
-            <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-            批量删除
-          </el-button>
-          <el-button @click="handleCleanExpired">
-            <IconifyIconOnline icon="ri:delete-bin-2-line" class="mr-1" />
-            清理过期
-          </el-button>
+            <template #default="{ node, data }">
+              <div class="group-tree-node">
+                <IconifyIconOnline
+                  :icon="data.fileSystemGroupIcon || 'ri:folder-line'"
+                  :style="{ color: data.fileSystemGroupColor || '#409EFF' }"
+                  class="mr-2"
+                />
+                <span class="group-name">{{ data.fileSystemGroupName }}</span>
+                <span class="file-count">({{ data.fileCount || 0 }})</span>
+              </div>
+            </template>
+          </el-tree>
         </div>
       </div>
 
-      <!-- 文件表格 -->
-      <div class="file-table">
-        <ScTable
-          ref="tableRef"
-          :url="getFileSystemPage"
-          :params="searchQuery"
-          table-name="file-system"
-          @selection-change="handleSelectionChange"
-        >
-          <el-table-column type="selection" width="55" />
-          <el-table-column label="文件名" min-width="200">
-            <template #default="{ row }">
-              <div class="file-name-cell">
-                <IconifyIconOnline
-                  :icon="getFileIcon(row.fileType)"
-                  class="file-icon"
+      <!-- 右侧文件列表 -->
+      <div class="file-list-container">
+        <div class="list-header">
+          <div class="search-bar">
+            <el-input
+              v-model="searchQuery.fileName"
+              placeholder="搜索文件名..."
+              clearable
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
+            <el-select
+              v-model="searchQuery.fileStatus"
+              placeholder="文件状态"
+              clearable
+              @change="handleSearch"
+            >
+              <el-option label="全部" :value="null" />
+              <el-option label="待合并" :value="1" />
+              <el-option label="合并中" :value="2" />
+              <el-option label="已完成" :value="3" />
+              <el-option label="合并失败" :value="4" />
+            </el-select>
+            <el-button type="primary" @click="handleSearch">
+              <IconifyIconOnline icon="ri:search-line" class="mr-1" />
+              搜索
+            </el-button>
+          </div>
+          <div class="list-actions">
+            <el-button
+              type="danger"
+              :disabled="!selectedFiles.length"
+              @click="handleBatchDelete"
+            >
+              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+              批量删除
+            </el-button>
+            <el-button @click="handleCleanExpired">
+              <IconifyIconOnline icon="ri:delete-bin-2-line" class="mr-1" />
+              清理过期
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 文件表格 -->
+        <div class="file-table">
+          <ScTable
+            ref="tableRef"
+            :url="getFileSystemPage"
+            :params="searchQuery"
+            table-name="file-system"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="55" />
+            <el-table-column label="文件名" min-width="200">
+              <template #default="{ row }">
+                <div class="file-name-cell">
+                  <IconifyIconOnline
+                    :icon="getFileIcon(row.fileSystemType)"
+                    class="file-icon"
+                  />
+                  <span class="file-name" :title="row.fileSystemName">
+                    {{ row.fileSystemName }}
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="文件大小" width="120" align="right">
+              <template #default="{ row }">
+                {{ formatFileSize(row.fileSystemSize) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row.fileSystemStatus)">
+                  {{ getStatusText(row.fileSystemStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="进度" width="150">
+              <template #default="{ row }">
+                <div v-if="row.fileSystemChunkTotal > 0" class="progress-cell">
+                  <el-progress
+                    :percentage="
+                      Math.round(
+                        (row.fileSystemChunkUploaded /
+                          row.fileSystemChunkTotal) *
+                          100
+                      )
+                    "
+                    :status="getProgressStatus(row.fileSystemStatus)"
+                    :stroke-width="6"
+                  />
+                </div>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="HTTP访问" width="100" align="center">
+              <template #default="{ row }">
+                <el-switch
+                  v-model="row.fileSystemHttpAccessEnabled"
+                  :disabled="row.fileSystemStatus !== 2"
+                  @change="handleToggleHttpAccess(row)"
                 />
-                <span class="file-name" :title="row.fileName">
-                  {{ row.fileName }}
-                </span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="文件大小" width="120" align="right">
-            <template #default="{ row }">
-              {{ formatFileSize(row.fileSize) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.fileStatus)">
-                {{ getStatusText(row.fileStatus) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="进度" width="150">
-            <template #default="{ row }">
-              <div v-if="row.chunkTotal > 0" class="progress-cell">
-                <el-progress
-                  :percentage="
-                    Math.round((row.chunkUploaded / row.chunkTotal) * 100)
-                  "
-                  :status="getProgressStatus(row.fileStatus)"
-                  :stroke-width="6"
-                />
-              </div>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="HTTP访问" width="100" align="center">
-            <template #default="{ row }">
-              <el-switch
-                v-model="row.httpAccessEnabled"
-                :disabled="row.fileStatus !== 3"
-                @change="handleToggleHttpAccess(row)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column label="创建时间" width="160">
-            <template #default="{ row }">
-              {{ formatDateTime(row.createTime) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.fileStatus === 3"
-                size="small"
-                type="primary"
-                @click="handleDownload(row)"
-              >
-                下载
-              </el-button>
-              <el-button
-                v-if="row.fileStatus === 4"
-                size="small"
-                type="warning"
-                @click="handleRetryMerge(row)"
-              >
-                重试
-              </el-button>
-              <el-button
-                v-if="row.fileStatus === 1"
-                size="small"
-                type="success"
-                @click="handleManualMerge(row)"
-              >
-                合并
-              </el-button>
-              <el-button size="small" type="danger" @click="handleDelete(row)">
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </ScTable>
+              </template>
+            </el-table-column>
+            <el-table-column label="创建时间" width="160">
+              <template #default="{ row }">
+                {{ formatDateTime(row.createTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.fileSystemStatus === 2"
+                  size="small"
+                  type="primary"
+                  @click="handleDownload(row)"
+                >
+                  下载
+                </el-button>
+                <el-button
+                  v-if="row.fileSystemStatus === 3"
+                  size="small"
+                  type="warning"
+                  @click="handleRetryMerge(row)"
+                >
+                  重试
+                </el-button>
+                <el-button
+                  v-if="row.fileSystemStatus === 0"
+                  size="small"
+                  type="success"
+                  @click="handleManualMerge(row)"
+                >
+                  合并
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="handleDelete(row)"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </ScTable>
+        </div>
       </div>
     </div>
 
     <!-- 上传对话框 -->
     <FileUploadDialog
       v-model="showUploadDialog"
+      :queue-status="queueStatus"
+      :on-message="onMessage"
+      :MESSAGE_TYPE="MESSAGE_TYPE"
       @upload-success="handleUploadSuccess"
+      @add-to-queue="handleAddToQueue"
     />
 
     <!-- 队列状态组件 -->
-    <UploadQueueStatus ref="queueStatusRef" @queue-update="handleQueueUpdate" />
+    <UploadQueueStatusComponent
+      ref="queueStatusRef"
+      :queue-status="queueStatus"
+      @queue-update="handleQueueUpdate"
+    />
 
     <!-- 文件系统设置对话框 -->
     <FileSystemSettings
@@ -268,7 +375,7 @@ import dayjs from "dayjs";
 import type {
   FileSystem,
   FileStatistics,
-  UploadQueueStatus as QueueStatus,
+  UploadQueueStatus,
 } from "@/api/monitor/filesystem";
 import {
   getFileSystemPage,
@@ -281,23 +388,41 @@ import {
   retryMergeTask,
   manualMergeFile,
 } from "@/api/monitor/filesystem";
-import { useFileSystemWebSocket } from "@/composables/useFileSystemWebSocket";
+import {
+  getGroupTree,
+  type FileSystemGroup,
+} from "@/api/monitor/filesystem-group";
+import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
-import UploadQueueStatus from "./components/UploadQueueStatus.vue";
+import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 
-// WebSocket连接
+// SSE连接
 const {
-  state: wsState,
-  connect: connectWS,
-  disconnect: disconnectWS,
-} = useFileSystemWebSocket();
+  state: sseState,
+  queueStatus,
+  connect: connectSSE,
+  disconnect: disconnectSSE,
+  onMessage,
+  MESSAGE_TYPE,
+} = useFileSystemSSE();
 
 // 响应式数据
 const showUploadDialog = ref(false);
 const showSettingsDialog = ref(false);
 const showMD5TestDialog = ref(false);
+const showDebugInfo = ref(false);
+const showGroupDialog = ref(false);
+
+// 分组相关数据
+const groupTree = ref([]);
+const groupTreeRef = ref();
+const selectedGroupId = ref(null);
+const groupTreeProps = {
+  children: "children",
+  label: "fileSystemGroupName",
+};
 const selectedFiles = ref<FileSystem[]>([]);
 const queueStatusRef = ref();
 const tableRef = ref();
@@ -316,38 +441,87 @@ const statistics = ref<FileStatistics>({
 const searchQuery = reactive({
   fileName: "",
   fileStatus: null as number | null,
+  groupId: null as number | null,
 });
 
-// WebSocket连接状态
+// SSE连接状态
 const connectionStatusText = computed(() => {
-  if (wsState.value.connecting) return "连接中";
-  if (wsState.value.connected) return "已连接";
-  if (wsState.value.error) return "连接失败";
+  if (sseState.value.connecting) return "连接中";
+  if (sseState.value.connected) return "已连接";
+  if (sseState.value.error) return "连接失败";
   return "未连接";
 });
 
 const connectionStatusClass = computed(() => {
-  if (wsState.value.connecting) return "status-connecting";
-  if (wsState.value.connected) return "status-connected";
-  if (wsState.value.error) return "status-error";
+  if (sseState.value.connecting) return "status-connecting";
+  if (sseState.value.connected) return "status-connected";
+  if (sseState.value.error) return "status-error";
   return "status-disconnected";
 });
 
 const connectionStatusIcon = computed(() => {
-  if (wsState.value.connecting) return "ri:loader-4-line";
-  if (wsState.value.connected) return "ri:wifi-line";
-  if (wsState.value.error) return "ri:wifi-off-line";
+  if (sseState.value.connecting) return "ri:loader-4-line";
+  if (sseState.value.connected) return "ri:wifi-line";
+  if (sseState.value.error) return "ri:wifi-off-line";
   return "ri:wifi-off-line";
 });
+
+/**
+ * 加载分组树
+ */
+const loadGroupTree = async () => {
+  try {
+    const res = await getGroupTree();
+    if (res.code === "00000") {
+      groupTree.value = res.data || [];
+    } else {
+      console.error("加载分组树失败:", res.msg);
+    }
+  } catch (error) {
+    console.error("加载分组树异常:", error);
+  }
+};
+
+/**
+ * 处理分组选择
+ */
+const handleGroupSelect = (data: FileSystemGroup) => {
+  selectedGroupId.value = data.fileSystemGroupId;
+  searchQuery.groupId = data.fileSystemGroupId;
+
+  // 重新加载文件列表
+  handleSearch();
+
+  console.log(
+    "选择分组:",
+    data.fileSystemGroupName,
+    "ID:",
+    data.fileSystemGroupId
+  );
+};
 
 // 生命周期
 onMounted(() => {
   loadStatistics();
-  connectWS(); // 连接WebSocket
+  loadGroupTree(); // 加载分组树
+  connectSSE(); // 连接SSE
+
+  // 注册SSE消息处理器
+  onMessage(MESSAGE_TYPE.UPLOAD_COMPLETED, () => {
+    refreshData();
+  });
+
+  onMessage(MESSAGE_TYPE.MERGE_COMPLETED, () => {
+    refreshData();
+  });
+
+  onMessage(MESSAGE_TYPE.FILE_DELETED, () => {
+    refreshData();
+  });
 });
 
 onUnmounted(() => {
-  disconnectWS(); // 断开WebSocket连接
+  disconnectSSE(); // 断开SSE连接
 });
 
 /**
@@ -475,11 +649,11 @@ const getProgressStatus = (status: number) => {
  */
 const handleDownload = async (file: FileSystem) => {
   try {
-    const blob = await downloadFile(file.fileId!);
+    const blob = await downloadFile(file.fileSystemId!);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = file.fileName;
+    a.download = file.fileSystemName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -497,14 +671,14 @@ const handleDownload = async (file: FileSystem) => {
 const handleDelete = async (file: FileSystem) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除文件 "${file.fileName}" 吗？`,
+      `确定要删除文件 "${file.fileSystemName}" 吗？`,
       "确认删除",
       {
         type: "warning",
       }
     );
 
-    const res = await deleteFile(file.fileId!);
+    const res = await deleteFile(file.fileSystemId!);
     if (res.code === "00000") {
       ElMessage.success("删除成功");
       refreshData();
@@ -532,7 +706,7 @@ const handleBatchDelete = async () => {
       }
     );
 
-    const fileIds = selectedFiles.value.map((f) => f.fileId!);
+    const fileIds = selectedFiles.value.map((f) => f.fileSystemId!);
     const res = await batchDeleteFiles(fileIds);
     if (res.code === "00000") {
       ElMessage.success("批量删除成功");
@@ -553,19 +727,22 @@ const handleBatchDelete = async () => {
  */
 const handleToggleHttpAccess = async (file: FileSystem) => {
   try {
-    const res = await toggleHttpAccess(file.fileId!, file.httpAccessEnabled!);
+    const res = await toggleHttpAccess(
+      file.fileSystemId!,
+      file.fileSystemHttpAccessEnabled!
+    );
     if (res.code === "00000") {
       ElMessage.success(
-        file.httpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
+        file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
       );
     } else {
       // 恢复原状态
-      file.httpAccessEnabled = !file.httpAccessEnabled;
+      file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
       ElMessage.error(res.msg || "操作失败");
     }
   } catch (error) {
     // 恢复原状态
-    file.httpAccessEnabled = !file.httpAccessEnabled;
+    file.fileSystemHttpAccessEnabled = !file.fileSystemHttpAccessEnabled;
     console.error("切换HTTP访问失败:", error);
     ElMessage.error("操作失败");
   }
@@ -604,7 +781,7 @@ const handleCleanExpired = async () => {
  */
 const handleRetryMerge = async (file: FileSystem) => {
   try {
-    const res = await retryMergeTask(file.fileId!);
+    const res = await retryMergeTask(file.fileSystemId!);
     if (res.code === "00000") {
       ElMessage.success("重试合并任务已提交");
       refreshData();
@@ -622,7 +799,7 @@ const handleRetryMerge = async (file: FileSystem) => {
  */
 const handleManualMerge = async (file: FileSystem) => {
   try {
-    const res = await manualMergeFile(file.fileId!);
+    const res = await manualMergeFile(file.fileSystemId!);
     if (res.code === "00000") {
       ElMessage.success("手动合并任务已提交");
       refreshData();
@@ -643,9 +820,17 @@ const handleUploadSuccess = () => {
 };
 
 /**
+ * 处理添加到队列
+ */
+const handleAddToQueue = (task: UploadQueueStatus) => {
+  // SSE会自动更新queueStatus，这里不需要手动处理
+  console.log("添加到上传队列:", task);
+};
+
+/**
  * 处理队列更新
  */
-const handleQueueUpdate = (queue: QueueStatus[]) => {
+const handleQueueUpdate = (queue: UploadQueueStatus[]) => {
   // 可以在这里处理队列状态更新
   console.log("队列状态更新:", queue);
 };
@@ -658,14 +843,72 @@ const handleSettingsUpdated = () => {
   // 可以在这里刷新相关数据
   loadStatistics();
 };
+
+/**
+ * 测试SSE连接
+ */
+const testSSEConnection = async () => {
+  try {
+    console.log("开始测试SSE连接...");
+
+    // 断开现有连接
+    disconnectSSE();
+
+    // 等待一秒后重新连接
+    setTimeout(() => {
+      console.log("重新建立SSE连接...");
+      connectSSE();
+    }, 1000);
+
+    ElMessage.info("正在重新建立SSE连接...");
+  } catch (error) {
+    console.error("测试SSE连接失败:", error);
+    ElMessage.error("测试连接失败");
+  }
+};
+
+/**
+ * 测试后端API连接
+ */
+const testBackendAPI = async () => {
+  try {
+    console.log("开始测试后端API连接...");
+
+    // 测试基本的文件统计API
+    const res = await getFileStatistics();
+    console.log("后端API响应:", res);
+
+    if (res.code === "00000") {
+      ElMessage.success("后端API连接正常");
+
+      // 测试SSE状态端点
+      const baseUrl = "/monitor/api";
+      const statusResponse = await fetch(`${baseUrl}/v1/filesystem/sse/status`);
+      console.log(
+        "SSE状态端点响应:",
+        statusResponse.status,
+        statusResponse.statusText
+      );
+
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        console.log("SSE状态数据:", statusData);
+        ElMessage.success("SSE状态端点也正常");
+      } else {
+        ElMessage.warning(`SSE状态端点返回: ${statusResponse.status}`);
+      }
+    } else {
+      ElMessage.error(`后端API错误: ${res.msg}`);
+    }
+  } catch (error) {
+    console.error("测试后端API失败:", error);
+    ElMessage.error(`后端API连接失败: ${error.message}`);
+  }
+};
 </script>
 
 <style scoped lang="scss">
 .file-system-page {
-  padding: 20px;
-  background: #f5f7fa;
-  min-height: 100vh;
-
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -812,11 +1055,71 @@ const handleSettingsUpdated = () => {
     }
   }
 
+  .content-layout {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 300px);
+  }
+
+  .group-tree-container {
+    width: 280px;
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .group-tree-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ebeef5;
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #303133;
+      }
+    }
+
+    .group-tree-content {
+      flex: 1;
+      overflow-y: auto;
+
+      .group-tree-node {
+        display: flex;
+        align-items: center;
+        width: 100%;
+
+        .group-name {
+          flex: 1;
+          margin-right: 8px;
+        }
+
+        .file-count {
+          font-size: 12px;
+          color: #909399;
+          background: #f5f7fa;
+          padding: 2px 6px;
+          border-radius: 10px;
+        }
+      }
+    }
+  }
+
   .file-list-container {
+    flex: 1;
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 
     .list-header {
       padding: 20px;

@@ -15,21 +15,26 @@ export interface ReturnPageResult<T> {
 
 // 文件系统实体接口
 export interface FileSystem {
-  fileId?: number;
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  fileMd5?: string;
-  fileType?: string;
-  fileStatus: number;
-  chunkTotal?: number;
-  chunkUploaded?: number;
-  uploadStartTime?: string;
-  uploadCompleteTime?: string;
-  httpAccessEnabled?: boolean;
-  httpAccessUrl?: string;
+  fileSystemId?: number;
+  fileSystemName: string;
+  fileSystemOriginalName?: string;
+  fileSystemPath: string;
+  fileSystemSize: number;
+  fileSystemMd5?: string;
+  fileSystemType?: string;
+  fileSystemExtension?: string;
+  fileSystemStatus: number;
+  fileSystemChunkTotal?: number;
+  fileSystemChunkUploaded?: number;
+  fileSystemUploadStartTime?: string;
+  fileSystemUploadCompleteTime?: string;
+  fileSystemHttpAccessEnabled?: boolean;
+  fileSystemHttpAccessUrl?: string;
+  fileSystemRemark?: string;
   createTime?: string;
   updateTime?: string;
+  createBy?: string;
+  updateBy?: string;
 }
 
 // 文件统计信息接口
@@ -71,6 +76,16 @@ export interface FileSystemRealtimeStatus {
   totalSpeed: number; // 总上传速度 (bytes/s)
   activeConnections: number;
   systemLoad: number; // 系统负载百分比
+}
+
+// 文件查询参数接口
+export interface FileQueryParams {
+  fileName?: string;
+  fileStatus?: number;
+  groupId?: number;
+  groupIds?: number[];
+  page?: number;
+  size?: number;
 }
 
 /**

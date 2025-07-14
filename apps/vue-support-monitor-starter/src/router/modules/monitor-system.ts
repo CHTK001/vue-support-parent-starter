@@ -125,8 +125,7 @@ export default [
           {
             path: "/server/nodes",
             name: "serverNodes",
-            component: () =>
-              import("@/views/server/modules/node-management/index.vue"),
+            component: () => import("@/views/node-management/index.vue"),
             meta: {
               icon: "ri:node-tree",
               title: "在线节点管理",

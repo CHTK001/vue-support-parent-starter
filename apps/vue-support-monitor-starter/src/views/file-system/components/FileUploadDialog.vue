@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
 import { formatBytes } from "@pureadmin/utils";
 import SparkMD5 from "spark-md5";
@@ -140,15 +140,25 @@ import {
   checkUploadStatus,
   getFileSystemConfig,
 } from "@/api/monitor/filesystem";
+import type {
+  UploadQueueStatus,
+  FileSystemConfig,
+} from "@/api/monitor/filesystem";
 
 // Props & Emits
-const props = defineProps<{
+interface Props {
   modelValue: boolean;
-}>();
+  queueStatus: Map<number, UploadQueueStatus>;
+  onMessage: (type: string, handler: (message: any) => void) => () => void;
+  MESSAGE_TYPE: any;
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
   "upload-success": [];
+  "add-to-queue": [task: UploadQueueStatus];
 }>();
 
 // 响应式数据
@@ -165,6 +175,8 @@ const uploadProgress = ref(0);
 const currentFileName = ref("");
 const isCalculatingMD5 = ref(false);
 const systemConfig = ref<FileSystemConfig | null>(null);
+const currentFileId = ref<number | null>(null);
+const sseUnsubscribers = ref<(() => void)[]>([]);
 
 // 上传配置
 const uploadConfig = reactive({
@@ -416,6 +428,19 @@ const uploadSingleFile = async (
 
     const { fileId, chunkTotal } = initRes.data;
 
+    // 设置当前文件ID，用于SSE进度监听
+    currentFileId.value = fileId;
+
+    // 添加到上传队列
+    const queueTask: UploadQueueStatus = {
+      fileId,
+      fileName: file.name,
+      progress: 0,
+      status: "uploading",
+      message: "开始上传...",
+    };
+    emit("add-to-queue", queueTask);
+
     // 使用并发控制的分片上传
     await uploadChunksWithConcurrency(
       file,
@@ -638,7 +663,63 @@ watch(visible, (newVal) => {
 // 组件挂载时加载配置
 onMounted(() => {
   loadConfig();
+  setupSSEListeners();
 });
+
+onUnmounted(() => {
+  cleanupSSEListeners();
+});
+
+/**
+ * 设置SSE监听器
+ */
+const setupSSEListeners = () => {
+  // 监听上传进度
+  const unsubscribeProgress = props.onMessage(
+    props.MESSAGE_TYPE.UPLOAD_PROGRESS,
+    (message: any) => {
+      if (message.data?.fileId === currentFileId.value) {
+        uploadProgress.value = Math.round(message.data.progress || 0);
+      }
+    }
+  );
+
+  // 监听上传完成
+  const unsubscribeCompleted = props.onMessage(
+    props.MESSAGE_TYPE.UPLOAD_COMPLETED,
+    (message: any) => {
+      if (message.data?.fileId === currentFileId.value) {
+        uploadProgress.value = 100;
+        ElMessage.success(message.data.message || "文件上传完成");
+      }
+    }
+  );
+
+  // 监听上传失败
+  const unsubscribeFailed = props.onMessage(
+    props.MESSAGE_TYPE.UPLOAD_FAILED,
+    (message: any) => {
+      if (message.data?.fileId === currentFileId.value) {
+        ElMessage.error(message.data.message || "文件上传失败");
+      }
+    }
+  );
+
+  // 保存取消订阅函数
+  sseUnsubscribers.value = [
+    unsubscribeProgress,
+    unsubscribeCompleted,
+    unsubscribeFailed,
+  ];
+};
+
+/**
+ * 清理SSE监听器
+ */
+const cleanupSSEListeners = () => {
+  sseUnsubscribers.value.forEach((unsubscribe) => unsubscribe());
+  sseUnsubscribers.value = [];
+};
 </script>
 
 <style scoped lang="scss">
