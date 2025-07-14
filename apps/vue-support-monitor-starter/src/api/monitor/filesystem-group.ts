@@ -76,7 +76,7 @@ export function deleteGroup(groupId: number) {
  */
 export function moveGroup(groupId: number, newParentId?: number) {
   return request<boolean>({
-    url: `/v1/filesystem/group/${groupId}/move`,
+    url: `/v1/filesystem/group/operation/${groupId}/move`,
     method: "PUT",
     params: { newParentId },
   });
@@ -87,7 +87,7 @@ export function moveGroup(groupId: number, newParentId?: number) {
  */
 export function getGroupAndChildrenIds(groupId: number) {
   return request<number[]>({
-    url: `/v1/filesystem/group/${groupId}/children-ids`,
+    url: `/v1/filesystem/group/operation/${groupId}/children-ids`,
     method: "GET",
   });
 }
