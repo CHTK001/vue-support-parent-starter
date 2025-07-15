@@ -444,10 +444,32 @@ const uploadSingleFile = async (
     });
 
     if (initRes.code !== "00000" || !initRes.data) {
-      throw new Error(initRes.message || "初始化上传失败");
+      throw new Error(initRes.msg || "初始化上传失败");
     }
 
-    const { fileId, chunkTotal } = initRes.data;
+    const { fileId, chunkTotal, exists, message } = initRes.data;
+
+    // 如果文件已存在，直接返回成功
+    if (exists) {
+      console.log(`文件 ${file.name} 已存在，跳过上传: ${message}`);
+
+      // 添加到上传队列并标记为完成
+      const queueTask: UploadQueueStatus = {
+        fileId,
+        fileName: file.name,
+        progress: 100,
+        status: "completed",
+        message: message || "文件已存在",
+      };
+      emit("add-to-queue", queueTask);
+
+      // 调用进度回调
+      if (progressCallback) {
+        progressCallback(100);
+      }
+
+      return; // 直接返回，不进行分片上传
+    }
 
     // 设置当前文件ID，用于SSE进度监听
     currentFileId.value = fileId;
@@ -558,7 +580,7 @@ const uploadFileChunk = async (
 
       const res = await uploadChunk(formData);
       if (res.code !== "00000") {
-        throw new Error(`分片${chunkNumber}上传失败: ${res.message}`);
+        throw new Error(`分片${chunkNumber}上传失败: ${res.msg}`);
       }
 
       // 上传成功，退出重试循环

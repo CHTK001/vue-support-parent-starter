@@ -1,619 +1,441 @@
 <template>
-  <div class="node-management">
+  <div class="node-management-container">
+    <!-- 页面标题 -->
     <div class="page-header">
-      <h2>在线节点管理</h2>
-      <p class="page-description">管理和监控发现服务中的在线节点</p>
-    </div>
-
-    <!-- 统计信息 -->
-    <div class="stats-container">
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <el-card class="stats-card">
-            <div class="stats-content">
-              <div class="stats-icon online">
-                <i class="ri-checkbox-circle-line"></i>
-              </div>
-              <div class="stats-info">
-                <div class="stats-value" :class="{ updating: loading }">
-                  {{ nodeStats.onlineCount }}
-                </div>
-                <div class="stats-label">在线节点</div>
-              </div>
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <div class="title-icon">
+              <i class="ri-server-line"></i>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
-            <div class="stats-content">
-              <div class="stats-icon offline">
-                <i class="ri-close-circle-line"></i>
-              </div>
-              <div class="stats-info">
-                <div class="stats-value" :class="{ updating: loading }">
-                  {{ nodeStats.offlineCount }}
-                </div>
-                <div class="stats-label">离线节点</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
-            <div class="stats-content">
-              <div class="stats-icon total">
-                <i class="ri-server-line"></i>
-              </div>
-              <div class="stats-info">
-                <div class="stats-value" :class="{ updating: loading }">
-                  {{ nodeStats.totalCount }}
-                </div>
-                <div class="stats-label">总节点数</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stats-card">
-            <div class="stats-content">
-              <div class="stats-icon apps">
-                <i class="ri-apps-line"></i>
-              </div>
-              <div class="stats-info">
-                <div class="stats-value" :class="{ updating: loading }">
-                  {{ nodeStats.applicationCount }}
-                </div>
-                <div class="stats-label">应用数量</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-
-    <!-- 搜索和操作栏 -->
-    <el-card class="search-card" shadow="never">
-      <div class="search-container">
-        <div class="search-left">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索节点名称、IP地址或应用名称"
-            style="width: 300px"
-            clearable
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <i class="ri-search-line"></i>
-            </template>
-          </el-input>
-          <el-select
-            v-model="selectedApplication"
-            placeholder="选择应用"
-            style="width: 200px; margin-left: 12px"
-            clearable
-            @change="handleApplicationFilter"
-          >
-            <el-option
-              v-for="app in applicationList"
-              :key="app"
-              :label="app"
-              :value="app"
-            />
-          </el-select>
+            <span class="title-text">在线节点管理</span>
+          </h1>
+          <p class="page-description">实时监控和管理所有在线节点的状态和性能</p>
         </div>
-        <div class="search-right">
-          <el-button type="primary" @click="refreshNodes" :loading="loading">
-            <i class="ri-refresh-line mr-1"></i>
+        <div class="header-actions">
+          <el-button
+            type="primary"
+            :loading="loading"
+            @click="refreshNodes"
+            class="refresh-btn"
+          >
+            <i class="ri-refresh-line"></i>
             刷新节点
           </el-button>
         </div>
       </div>
-    </el-card>
-
-    <!-- 节点卡片列表 -->
-    <div class="nodes-container" v-loading="loading">
-      <div v-if="filteredNodeList.length === 0" class="empty-container">
-        <el-empty description="暂无节点数据" :image-size="100" />
-      </div>
-      <transition-group v-else name="node-list" tag="div" class="node-grid">
-        <el-card
-          v-for="(node, index) in filteredNodeList"
-          :key="node.nodeId"
-          class="node-card"
-          :class="getNodeCardClass(node)"
-          :style="{ animationDelay: `${index * 0.1}s` }"
-          shadow="hover"
-          @click="viewNodeDetail(node)"
-        >
-          <div class="node-card-header">
-            <div class="node-info">
-              <div class="node-name">
-                <i class="ri-server-line mr-2"></i>
-                {{ node.nodeName || node.applicationName }}
-              </div>
-              <div class="node-address">
-                {{ node.ipAddress }}:{{ node.port }}
-              </div>
-            </div>
-            <div class="node-status">
-              <el-tag
-                :type="getStatusType(node.status)"
-                effect="dark"
-                size="small"
-              >
-                {{ getStatusText(node.status) }}
-              </el-tag>
-            </div>
-          </div>
-
-          <div class="node-card-content">
-            <!-- 性能指标 -->
-            <div class="performance-metrics" v-if="hasPerformanceData(node)">
-              <div
-                class="metric-item"
-                v-if="node.cpuUsage !== null && node.cpuUsage !== undefined"
-              >
-                <div class="metric-label">CPU</div>
-                <div class="metric-progress">
-                  <el-progress
-                    :percentage="Math.round(node.cpuUsage)"
-                    :color="getUsageColor(node.cpuUsage)"
-                    :stroke-width="6"
-                    :show-text="false"
-                  />
-                  <span class="metric-value"
-                    >{{ Math.round(node.cpuUsage) }}%</span
-                  >
-                </div>
-              </div>
-              <div
-                class="metric-item"
-                v-if="
-                  node.memoryUsage !== null && node.memoryUsage !== undefined
-                "
-              >
-                <div class="metric-label">内存</div>
-                <div class="metric-progress">
-                  <el-progress
-                    :percentage="Math.round(node.memoryUsage)"
-                    :color="getUsageColor(node.memoryUsage)"
-                    :stroke-width="6"
-                    :show-text="false"
-                  />
-                  <span class="metric-value"
-                    >{{ Math.round(node.memoryUsage) }}%</span
-                  >
-                </div>
-              </div>
-              <div
-                class="metric-item"
-                v-if="node.diskUsage !== null && node.diskUsage !== undefined"
-              >
-                <div class="metric-label">磁盘</div>
-                <div class="metric-progress">
-                  <el-progress
-                    :percentage="Math.round(node.diskUsage)"
-                    :color="getUsageColor(node.diskUsage)"
-                    :stroke-width="6"
-                    :show-text="false"
-                  />
-                  <span class="metric-value"
-                    >{{ Math.round(node.diskUsage) }}%</span
-                  >
-                </div>
-              </div>
-            </div>
-
-            <!-- 基本信息 -->
-            <div class="node-details">
-              <div class="detail-item">
-                <span class="detail-label">应用名称:</span>
-                <span class="detail-value">{{
-                  node.applicationName || "-"
-                }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">版本:</span>
-                <span class="detail-value">{{ node.version || "-" }}</span>
-              </div>
-              <div class="detail-item" v-if="node.responseTime">
-                <span class="detail-label">响应时间:</span>
-                <span class="detail-value">{{ node.responseTime }}ms</span>
-              </div>
-              <div class="detail-item" v-if="node.connectionCount">
-                <span class="detail-label">连接数:</span>
-                <span class="detail-value">{{ node.connectionCount }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">健康状态:</span>
-                <span class="detail-value">
-                  <el-tag
-                    :type="node.healthy ? 'success' : 'danger'"
-                    size="small"
-                  >
-                    {{ node.healthy ? "健康" : "异常" }}
-                  </el-tag>
-                </span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">最后心跳:</span>
-                <span class="detail-value">
-                  {{
-                    node.lastHeartbeatTime
-                      ? parseTime(node.lastHeartbeatTime)
-                      : "-"
-                  }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="node-card-footer">
-            <el-button
-              type="primary"
-              size="small"
-              @click.stop="viewNodeDetail(node)"
-            >
-              查看详情
-            </el-button>
-            <el-button
-              v-if="node.status === 'ONLINE'"
-              type="success"
-              size="small"
-              @click.stop="checkNodeHealth(node)"
-            >
-              健康检查
-            </el-button>
-          </div>
-        </el-card>
-      </transition-group>
     </div>
 
-    <!-- 节点详情对话框 -->
-    <el-dialog
-      v-model="detailDialogVisible"
-      title="节点详情"
-      width="600px"
-      :before-close="closeDetailDialog"
-    >
-      <div v-if="selectedNode" class="node-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="节点名称">
-            {{ selectedNode.nodeName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="节点地址">
-            {{ selectedNode.ipAddress }}
-          </el-descriptions-item>
-          <el-descriptions-item label="端口">
-            {{ selectedNode.port }}
-          </el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(selectedNode.status)" effect="dark">
-              {{ getStatusText(selectedNode.status) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="最后心跳">
-            {{
-              selectedNode.lastHeartbeatTime
-                ? parseTime(selectedNode.lastHeartbeatTime)
-                : "-"
-            }}
-          </el-descriptions-item>
-          <el-descriptions-item label="连接时间">
-            {{
-              selectedNode.connectTime
-                ? parseTime(selectedNode.connectTime)
-                : "-"
-            }}
-          </el-descriptions-item>
-          <el-descriptions-item label="服务版本" v-if="selectedNode.version">
-            {{ selectedNode.version }}
-          </el-descriptions-item>
-          <el-descriptions-item label="节点类型" v-if="selectedNode.nodeType">
-            {{ selectedNode.nodeType }}
-          </el-descriptions-item>
-          <el-descriptions-item label="健康状态">
-            <el-tag :type="selectedNode.healthy ? 'success' : 'danger'">
-              {{ selectedNode.healthy ? "健康" : "异常" }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item
-            label="连接数"
-            v-if="selectedNode.connectionCount"
-          >
-            {{ selectedNode.connectionCount }}
-          </el-descriptions-item>
-          <el-descriptions-item
-            label="响应时间"
-            v-if="selectedNode.responseTime"
-          >
-            {{ selectedNode.responseTime }}ms
-          </el-descriptions-item>
-          <el-descriptions-item
-            label="网络延迟"
-            v-if="selectedNode.networkLatency"
-          >
-            {{ selectedNode.networkLatency }}ms
-          </el-descriptions-item>
-        </el-descriptions>
-
-        <!-- 性能指标详情 -->
-        <div
-          v-if="hasPerformanceData(selectedNode)"
-          class="performance-details"
-        >
-          <h4>性能指标</h4>
-          <el-row :gutter="16">
-            <el-col
-              :span="8"
-              v-if="
-                selectedNode.cpuUsage !== null &&
-                selectedNode.cpuUsage !== undefined
-              "
-            >
-              <div class="metric-detail-card">
-                <div class="metric-detail-header">
-                  <i class="ri-cpu-line"></i>
-                  <span>CPU使用率</span>
-                </div>
-                <div class="metric-detail-content">
-                  <div class="metric-detail-value">
-                    {{ Math.round(selectedNode.cpuUsage) }}%
-                  </div>
-                  <el-progress
-                    :percentage="Math.round(selectedNode.cpuUsage)"
-                    :color="getUsageColor(selectedNode.cpuUsage)"
-                    :stroke-width="6"
-                  />
-                </div>
+    <!-- 统计卡片 -->
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card total-nodes" @click="filterByStatus('all')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="ri-server-line"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.totalNodes }}
               </div>
-            </el-col>
-            <el-col
-              :span="8"
-              v-if="
-                selectedNode.memoryUsage !== null &&
-                selectedNode.memoryUsage !== undefined
-              "
-            >
-              <div class="metric-detail-card">
-                <div class="metric-detail-header">
-                  <i class="ri-database-line"></i>
-                  <span>内存使用率</span>
-                </div>
-                <div class="metric-detail-content">
-                  <div class="metric-detail-value">
-                    {{ Math.round(selectedNode.memoryUsage) }}%
-                  </div>
-                  <el-progress
-                    :percentage="Math.round(selectedNode.memoryUsage)"
-                    :color="getUsageColor(selectedNode.memoryUsage)"
-                    :stroke-width="6"
-                  />
-                </div>
+              <div class="stat-label">总节点数</div>
+              <div class="stat-trend">
+                <i class="ri-arrow-up-line trend-icon"></i>
+                <span class="trend-text">实时更新</span>
               </div>
-            </el-col>
-            <el-col
-              :span="8"
-              v-if="
-                selectedNode.diskUsage !== null &&
-                selectedNode.diskUsage !== undefined
-              "
-            >
-              <div class="metric-detail-card">
-                <div class="metric-detail-header">
-                  <i class="ri-hard-drive-line"></i>
-                  <span>磁盘使用率</span>
-                </div>
-                <div class="metric-detail-content">
-                  <div class="metric-detail-value">
-                    {{ Math.round(selectedNode.diskUsage) }}%
-                  </div>
-                  <el-progress
-                    :percentage="Math.round(selectedNode.diskUsage)"
-                    :color="getUsageColor(selectedNode.diskUsage)"
-                    :stroke-width="6"
-                  />
-                </div>
-              </div>
-            </el-col>
-          </el-row>
+            </div>
+          </div>
         </div>
 
-        <div v-if="selectedNode.metadata" class="metadata-section">
-          <h4>节点元数据</h4>
-          <el-table :data="metadataList" border size="small">
-            <el-table-column prop="key" label="键" width="150" />
-            <el-table-column prop="value" label="值" show-overflow-tooltip />
-          </el-table>
+        <div class="stat-card online-nodes" @click="filterByStatus('ONLINE')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="ri-checkbox-circle-line"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.onlineNodes }}
+              </div>
+              <div class="stat-label">在线节点</div>
+              <div class="stat-trend">
+                <i class="ri-pulse-line trend-icon"></i>
+                <span class="trend-text">{{ getOnlineRate() }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card healthy-nodes" @click="filterByStatus('healthy')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="ri-heart-pulse-line"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.healthyNodes }}
+              </div>
+              <div class="stat-label">健康节点</div>
+              <div class="stat-trend">
+                <i class="ri-heart-line trend-icon"></i>
+                <span class="trend-text">{{ getHealthRate() }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card error-nodes" @click="filterByStatus('error')">
+          <div class="stat-background">
+            <div class="stat-pattern"></div>
+          </div>
+          <div class="stat-content">
+            <div class="stat-icon">
+              <i class="ri-error-warning-line"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" :class="{ counting: isCountingUp }">
+                {{ animatedStats.errorNodes }}
+              </div>
+              <div class="stat-label">异常节点</div>
+              <div class="stat-trend">
+                <i class="ri-alert-line trend-icon"></i>
+                <span class="trend-text">需关注</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <div class="search-section">
+      <el-card class="search-card" shadow="never">
+        <div class="search-container">
+          <div class="search-left">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索节点名称、IP地址或应用名称"
+              class="search-input"
+              clearable
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <i class="ri-search-line"></i>
+              </template>
+            </el-input>
+            <el-select
+              v-model="selectedApplication"
+              placeholder="选择应用"
+              class="app-filter"
+              clearable
+              @change="handleApplicationFilter"
+            >
+              <el-option
+                v-for="app in applicationList"
+                :key="app"
+                :label="app"
+                :value="app"
+              />
+            </el-select>
+            <el-select
+              v-model="selectedStatus"
+              placeholder="节点状态"
+              class="status-filter"
+              clearable
+              @change="handleStatusFilter"
+            >
+              <el-option label="在线" value="ONLINE" />
+              <el-option label="离线" value="OFFLINE" />
+              <el-option label="维护中" value="MAINTENANCE" />
+            </el-select>
+          </div>
+          <div class="search-right">
+            <el-button-group class="view-toggle">
+              <el-button
+                :type="viewMode === 'card' ? 'primary' : 'default'"
+                @click="viewMode = 'card'"
+              >
+                <i class="ri-grid-line"></i>
+              </el-button>
+              <el-button
+                :type="viewMode === 'table' ? 'primary' : 'default'"
+                @click="viewMode = 'table'"
+              >
+                <i class="ri-list-check"></i>
+              </el-button>
+            </el-button-group>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 节点列表 -->
+    <div class="nodes-section">
+      <div v-if="loading && nodeList.length === 0" class="loading-container">
+        <div class="loading-content">
+          <el-skeleton :rows="3" animated />
+          <p class="loading-text">正在加载节点数据...</p>
         </div>
       </div>
 
-      <template #footer>
-        <el-button @click="closeDetailDialog">关闭</el-button>
-      </template>
-    </el-dialog>
+      <div v-else-if="filteredNodeList.length === 0" class="empty-container">
+        <el-empty description="暂无节点数据" :image-size="120">
+          <template #description>
+            <p class="empty-text">{{ getEmptyText() }}</p>
+          </template>
+          <el-button type="primary" @click="refreshNodes">
+            <i class="ri-refresh-line"></i>
+            刷新数据
+          </el-button>
+        </el-empty>
+      </div>
+
+      <!-- 卡片视图 -->
+      <div v-else-if="viewMode === 'card'" class="nodes-grid">
+        <transition-group name="node-card" tag="div" class="grid-container">
+          <div
+            v-for="(node, index) in filteredNodeList"
+            :key="node.nodeId"
+            class="node-card-wrapper"
+            :style="{ animationDelay: `${index * 0.05}s` }"
+          >
+            <div
+              class="node-card"
+              :class="getNodeCardClass(node)"
+              @click="viewNodeDetail(node)"
+            >
+              <div class="card-header">
+                <div class="node-info">
+                  <div class="node-name">
+                    <i class="ri-server-line node-icon"></i>
+                    <span class="name-text">{{
+                      node.nodeName || node.applicationName
+                    }}</span>
+                  </div>
+                  <div class="node-address">
+                    <i class="ri-global-line address-icon"></i>
+                    <span>{{ node.ipAddress }}:{{ node.port }}</span>
+                  </div>
+                </div>
+                <div class="node-status">
+                  <el-tag
+                    :type="getStatusType(node.status)"
+                    :effect="node.status === 'ONLINE' ? 'dark' : 'plain'"
+                    class="status-tag"
+                  >
+                    <i :class="getStatusIcon(node.status)"></i>
+                    {{ getStatusText(node.status) }}
+                  </el-tag>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <div class="metrics-grid">
+                  <div class="metric-item">
+                    <div class="metric-icon cpu">
+                      <i class="ri-cpu-line"></i>
+                    </div>
+                    <div class="metric-info">
+                      <div class="metric-label">CPU</div>
+                      <div class="metric-value">
+                        {{ formatPercentage(node.cpuUsage) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="metric-icon memory">
+                      <i class="ri-database-line"></i>
+                    </div>
+                    <div class="metric-info">
+                      <div class="metric-label">内存</div>
+                      <div class="metric-value">
+                        {{ formatPercentage(node.memoryUsage) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="metric-icon disk">
+                      <i class="ri-hard-drive-line"></i>
+                    </div>
+                    <div class="metric-info">
+                      <div class="metric-label">磁盘</div>
+                      <div class="metric-value">
+                        {{ formatPercentage(node.diskUsage) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="metric-icon network">
+                      <i class="ri-wifi-line"></i>
+                    </div>
+                    <div class="metric-info">
+                      <div class="metric-label">延迟</div>
+                      <div class="metric-value">
+                        {{ formatLatency(node.networkLatency) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <div class="footer-info">
+                  <div class="last-heartbeat">
+                    <i class="ri-heart-pulse-line heartbeat-icon"></i>
+                    <span class="heartbeat-text">
+                      {{ formatHeartbeat(node.lastHeartbeatTime) }}
+                    </span>
+                  </div>
+                  <div class="connection-count">
+                    <i class="ri-links-line"></i>
+                    <span>{{ node.connectionCount || 0 }} 连接</span>
+                  </div>
+                </div>
+                <div class="card-actions">
+                  <el-button-group size="small">
+                    <el-button
+                      @click.stop="checkNodeHealth(node)"
+                      :loading="node.checking"
+                    >
+                      <i class="ri-stethoscope-line"></i>
+                    </el-button>
+                    <el-button @click.stop="viewNodeDetail(node)">
+                      <i class="ri-eye-line"></i>
+                    </el-button>
+                  </el-button-group>
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition-group>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { parseTime } from "@/utils/const";
 import {
   fetchAllOnlineNodes,
   fetchNodeStatistics,
-  checkNodeHealth as apiCheckNodeHealth,
+  apiCheckNodeHealth,
   type OnlineNodeInfo,
-  type NodeStatistics as BackendNodeStatistics,
+  type NodeStatistics,
 } from "@/api/node-management";
-
-// 前端使用的节点统计接口
-interface NodeStatistics {
-  onlineCount: number;
-  offlineCount: number;
-  totalCount: number;
-  applicationCount: number;
-}
+import { parseTime } from "@/utils/const";
 
 // 响应式数据
 const loading = ref(false);
 const nodeList = ref<OnlineNodeInfo[]>([]);
-const detailDialogVisible = ref(false);
-const selectedNode = ref<OnlineNodeInfo | null>(null);
+const nodeStats = ref<NodeStatistics>({
+  totalNodes: 0,
+  onlineNodes: 0,
+  offlineNodes: 0,
+  healthyNodes: 0,
+  errorNodes: 0,
+  maintenanceNodes: 0,
+  totalConnections: 0,
+  averageResponseTime: 0,
+  averageCpuUsage: 0,
+  averageMemoryUsage: 0,
+  averageDiskUsage: 0,
+  nodesByStatus: {},
+  nodesByApplication: {},
+  nodesByType: {},
+  recentActiveNodes: [],
+  fastestNodes: [],
+  highestLoadNodes: [],
+});
+
+// 动画统计数据
+const animatedStats = reactive({
+  totalNodes: 0,
+  onlineNodes: 0,
+  healthyNodes: 0,
+  errorNodes: 0,
+});
+
+const isCountingUp = ref(false);
+
+// 搜索和筛选
 const searchKeyword = ref("");
 const selectedApplication = ref("");
-const nodeStats = ref<NodeStatistics>({
-  onlineCount: 0,
-  offlineCount: 0,
-  totalCount: 0,
-  applicationCount: 0,
-});
+const selectedStatus = ref("");
+const viewMode = ref<"card" | "table">("card");
 
-// 性能统计数据
-const performanceStats = ref<BackendNodeStatistics | null>(null);
-
-// 轮询定时器
+// 轮询相关
 let pollingTimer: NodeJS.Timeout | null = null;
-const POLLING_INTERVAL = 30000; // 30秒轮询间隔
+const POLLING_INTERVAL = 30000; // 30秒
 
 // 计算属性
-const metadataList = computed(() => {
-  if (!selectedNode.value?.metadata) return [];
-  return Object.entries(selectedNode.value.metadata).map(([key, value]) => ({
-    key,
-    value: typeof value === "object" ? JSON.stringify(value) : String(value),
-  }));
-});
-
-// 应用列表
 const applicationList = computed(() => {
-  const apps = new Set(
-    nodeList.value.map((node) => node.applicationName).filter(Boolean)
-  );
-  return Array.from(apps);
+  const apps = new Set<string>();
+  nodeList.value.forEach((node) => {
+    if (node.applicationName) {
+      apps.add(node.applicationName);
+    }
+  });
+  return Array.from(apps).sort();
 });
 
-// 过滤后的节点列表
 const filteredNodeList = computed(() => {
   let filtered = nodeList.value;
 
-  // 按搜索关键词过滤
+  // 关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
     filtered = filtered.filter(
       (node) =>
         (node.nodeName && node.nodeName.toLowerCase().includes(keyword)) ||
-        node.applicationName.toLowerCase().includes(keyword) ||
-        node.ipAddress.toLowerCase().includes(keyword)
+        (node.applicationName &&
+          node.applicationName.toLowerCase().includes(keyword)) ||
+        (node.ipAddress && node.ipAddress.toLowerCase().includes(keyword))
     );
   }
 
-  // 按应用过滤
+  // 应用筛选
   if (selectedApplication.value) {
     filtered = filtered.filter(
       (node) => node.applicationName === selectedApplication.value
     );
   }
 
+  // 状态筛选
+  if (selectedStatus.value) {
+    filtered = filtered.filter((node) => node.status === selectedStatus.value);
+  }
+
   return filtered;
 });
 
-// 获取状态类型
-const getStatusType = (status: string) => {
-  switch (status) {
-    case "ONLINE":
-      return "success";
-    case "OFFLINE":
-      return "danger";
-    case "CONNECTING":
-      return "warning";
-    case "ERROR":
-      return "danger";
-    case "MAINTENANCE":
-      return "info";
-    default:
-      return "warning";
+// 方法
+const refreshNodes = async () => {
+  loading.value = true;
+  try {
+    await Promise.all([getNodeList(), getNodeStats()]);
+  } finally {
+    loading.value = false;
   }
 };
 
-// 获取状态文本
-const getStatusText = (status: string) => {
-  switch (status) {
-    case "ONLINE":
-      return "在线";
-    case "OFFLINE":
-      return "离线";
-    case "CONNECTING":
-      return "连接中";
-    case "ERROR":
-      return "异常";
-    case "MAINTENANCE":
-      return "维护中";
-    default:
-      return "未知";
-  }
-};
-
-// 获取节点卡片样式类
-const getNodeCardClass = (node: OnlineNodeInfo) => {
-  return {
-    "node-online": node.status === "ONLINE",
-    "node-offline": node.status === "OFFLINE",
-    "node-error": node.status === "ERROR",
-    "node-maintenance": node.status === "MAINTENANCE",
-  };
-};
-
-// 搜索处理
-const handleSearch = () => {
-  // 搜索逻辑已在计算属性中处理
-};
-
-// 应用过滤处理
-const handleApplicationFilter = () => {
-  // 过滤逻辑已在计算属性中处理
-};
-
-// 检查节点是否有性能数据
-const hasPerformanceData = (node: OnlineNodeInfo) => {
-  return (
-    (node.cpuUsage !== null && node.cpuUsage !== undefined) ||
-    (node.memoryUsage !== null && node.memoryUsage !== undefined) ||
-    (node.diskUsage !== null && node.diskUsage !== undefined)
-  );
-};
-
-// 根据使用率获取颜色
-const getUsageColor = (usage: number) => {
-  if (usage >= 90) return "#f56c6c"; // 红色 - 危险
-  if (usage >= 80) return "#e6a23c"; // 橙色 - 警告
-  if (usage >= 60) return "#409eff"; // 蓝色 - 正常
-  return "#67c23a"; // 绿色 - 良好
-};
-
-// 获取响应时间描述
-const getResponseTimeDescription = (responseTime: number) => {
-  if (responseTime <= 100) return "极快";
-  if (responseTime <= 300) return "快速";
-  if (responseTime <= 1000) return "正常";
-  if (responseTime <= 3000) return "较慢";
-  return "缓慢";
-};
-
-// 获取节点列表
 const getNodeList = async () => {
   try {
     const response = await fetchAllOnlineNodes();
     if (response.code === "00000") {
-      // 保留之前的数据，只在新数据不为空时更新
-      // 这样可以避免在配置保存后短暂的数据为空期间清空显示
       const newData = response.data || [];
       if (newData.length > 0 || nodeList.value.length === 0) {
         nodeList.value = newData;
-        // 只有在更新了节点列表时才更新本地统计，确保数据一致性
         updateNodeStats();
       }
-      // 如果没有更新节点列表，不调用updateNodeStats，避免统计数据与列表数据不一致
     } else {
       ElMessage.error(response.msg || "获取节点列表失败");
     }
@@ -623,73 +445,207 @@ const getNodeList = async () => {
   }
 };
 
-// 获取节点统计信息
 const getNodeStats = async () => {
   try {
     const response = await fetchNodeStatistics();
-    if (response.code === "00000" && response.data) {
-      const data = response.data;
-      // 只有在后端返回有效数据时才更新统计，避免在配置保存后短暂的数据为空期间
-      // 将统计数据重置为0，这样可以保持与节点列表的数据一致性
-      if (data.totalNodes > 0 || nodeStats.value.totalCount === 0) {
-        // 更新基础统计
-        nodeStats.value = {
-          onlineCount: data?.onlineNodes || 0,
-          offlineCount: data?.offlineNodes || 0,
-          totalCount: data?.totalNodes || 0,
-          applicationCount: Object.keys(data?.nodesByApplication || {}).length,
-        };
+    if (response.code === "00000") {
+      const newStats = response.data;
+      if (newStats) {
+        // 触发数字动画
+        animateStatsUpdate(newStats);
+        nodeStats.value = newStats;
       }
-      // 更新性能统计（性能统计可以为空，不影响基础统计的一致性）
-      performanceStats.value = data;
     }
   } catch (error) {
     console.error("获取节点统计失败:", error);
   }
 };
 
-// 更新节点统计（本地计算）
 const updateNodeStats = () => {
   const stats = {
-    onlineCount: nodeList.value.filter((node) => node.status === "ONLINE")
+    totalNodes: nodeList.value.length,
+    onlineNodes: nodeList.value.filter((n) => n.status === "ONLINE").length,
+    healthyNodes: nodeList.value.filter((n) => n.healthy).length,
+    errorNodes: nodeList.value.filter((n) => !n.healthy || n.status === "ERROR")
       .length,
-    offlineCount: nodeList.value.filter((node) => node.status === "OFFLINE")
-      .length,
-    totalCount: nodeList.value.length,
-    applicationCount: new Set(
-      nodeList.value.map((node) => node.applicationName)
-    ).size,
   };
-  nodeStats.value = stats;
+
+  animateStatsUpdate(stats);
 };
 
-// 刷新节点列表
-const refreshNodes = async () => {
-  loading.value = true;
-  try {
-    // 先获取节点列表，再获取统计信息
-    await getNodeList();
-    await getNodeStats();
-    ElMessage.success("节点列表刷新成功");
-  } catch (error) {
-    console.error("刷新节点列表失败:", error);
-    ElMessage.error("刷新节点列表失败");
-  } finally {
-    loading.value = false;
+const animateStatsUpdate = (newStats: any) => {
+  isCountingUp.value = true;
+
+  const duration = 1000;
+  const steps = 30;
+  const stepDuration = duration / steps;
+
+  const startStats = { ...animatedStats };
+  const targetStats = {
+    totalNodes: newStats.totalNodes || 0,
+    onlineNodes: newStats.onlineNodes || 0,
+    healthyNodes: newStats.healthyNodes || 0,
+    errorNodes: newStats.errorNodes || 0,
+  };
+
+  let currentStep = 0;
+
+  const animate = () => {
+    currentStep++;
+    const progress = currentStep / steps;
+
+    Object.keys(targetStats).forEach((key) => {
+      const start = startStats[key] || 0;
+      const target = targetStats[key];
+      const current = Math.round(start + (target - start) * progress);
+      animatedStats[key] = current;
+    });
+
+    if (currentStep < steps) {
+      setTimeout(animate, stepDuration);
+    } else {
+      isCountingUp.value = false;
+    }
+  };
+
+  animate();
+};
+
+// 筛选和搜索
+const handleSearch = () => {
+  // 搜索逻辑已在计算属性中处理
+};
+
+const handleApplicationFilter = () => {
+  // 筛选逻辑已在计算属性中处理
+};
+
+const handleStatusFilter = () => {
+  // 筛选逻辑已在计算属性中处理
+};
+
+const filterByStatus = (status: string) => {
+  if (status === "all") {
+    selectedStatus.value = "";
+  } else if (status === "healthy") {
+    selectedStatus.value = "";
+    // 这里可以添加健康状态的特殊筛选逻辑
+  } else if (status === "error") {
+    selectedStatus.value = "";
+    // 这里可以添加错误状态的特殊筛选逻辑
+  } else {
+    selectedStatus.value = status;
   }
 };
 
-// 查看节点详情
-const viewNodeDetail = (node: OnlineNodeInfo) => {
-  selectedNode.value = node;
-  detailDialogVisible.value = true;
+// 工具方法
+const getOnlineRate = () => {
+  if (nodeStats.value.totalNodes === 0) return 0;
+  return Math.round(
+    (nodeStats.value.onlineNodes / nodeStats.value.totalNodes) * 100
+  );
 };
 
-// 检查节点健康状态
+const getHealthRate = () => {
+  if (nodeStats.value.totalNodes === 0) return 0;
+  return Math.round(
+    (nodeStats.value.healthyNodes / nodeStats.value.totalNodes) * 100
+  );
+};
+
+const getEmptyText = () => {
+  if (
+    searchKeyword.value ||
+    selectedApplication.value ||
+    selectedStatus.value
+  ) {
+    return "没有找到符合条件的节点";
+  }
+  return "暂无节点数据，请检查节点服务是否正常";
+};
+
+const getNodeCardClass = (node: OnlineNodeInfo) => {
+  const classes = [];
+
+  if (node.status === "ONLINE") {
+    classes.push("node-online");
+  } else if (node.status === "OFFLINE") {
+    classes.push("node-offline");
+  } else {
+    classes.push("node-maintenance");
+  }
+
+  if (!node.healthy) {
+    classes.push("node-unhealthy");
+  }
+
+  return classes;
+};
+
+const getStatusType = (status: string) => {
+  switch (status) {
+    case "ONLINE":
+      return "success";
+    case "OFFLINE":
+      return "danger";
+    case "MAINTENANCE":
+      return "warning";
+    default:
+      return "info";
+  }
+};
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case "ONLINE":
+      return "在线";
+    case "OFFLINE":
+      return "离线";
+    case "MAINTENANCE":
+      return "维护中";
+    default:
+      return "未知";
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "ONLINE":
+      return "ri-checkbox-circle-line";
+    case "OFFLINE":
+      return "ri-close-circle-line";
+    case "MAINTENANCE":
+      return "ri-tools-line";
+    default:
+      return "ri-question-line";
+  }
+};
+
+const formatPercentage = (value: number | null | undefined) => {
+  if (value == null) return "-";
+  return `${Math.round(value)}%`;
+};
+
+const formatLatency = (value: number | null | undefined) => {
+  if (value == null) return "-";
+  return `${value}ms`;
+};
+
+const formatHeartbeat = (time: string | null | undefined) => {
+  if (!time) return "无心跳";
+  return parseTime(time, "{y}-{m}-{d} {h}:{i}:{s}");
+};
+
+// 节点操作
+const viewNodeDetail = (node: OnlineNodeInfo) => {
+  // TODO: 实现节点详情查看
+  console.log("查看节点详情:", node);
+};
+
 const checkNodeHealth = async (node: OnlineNodeInfo) => {
+  node.checking = true;
   try {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
-
     if (response.code === "00000") {
       ElMessage.success(
         `节点 ${node.nodeName || node.applicationName} 健康检查通过`
@@ -700,27 +656,19 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
   } catch (error) {
     console.error("节点健康检查失败:", error);
     ElMessage.error("节点健康检查失败");
+  } finally {
+    node.checking = false;
   }
 };
 
-// 关闭详情对话框
-const closeDetailDialog = () => {
-  detailDialogVisible.value = false;
-  selectedNode.value = null;
-};
-
-// 启动轮询
+// 轮询
 const startPolling = () => {
-  // 清除现有定时器
   if (pollingTimer) {
     clearInterval(pollingTimer);
   }
 
-  // 设置新的定时器
   pollingTimer = setInterval(async () => {
     try {
-      // 静默刷新，不显示loading状态
-      // 先获取节点列表，再获取统计信息，确保数据一致性
       await getNodeList();
       await getNodeStats();
     } catch (error) {
@@ -729,7 +677,6 @@ const startPolling = () => {
   }, POLLING_INTERVAL);
 };
 
-// 停止轮询
 const stopPolling = () => {
   if (pollingTimer) {
     clearInterval(pollingTimer);
@@ -737,565 +684,820 @@ const stopPolling = () => {
   }
 };
 
-// 组件挂载时加载数据并启动轮询
+// 生命周期
 onMounted(() => {
   refreshNodes();
   startPolling();
 });
 
-// 组件卸载时停止轮询
 onUnmounted(() => {
   stopPolling();
 });
 </script>
 
 <style scoped lang="scss">
-.node-management {
+.node-management-container {
   padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
 
+  // 页面标题
   .page-header {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 
-    h2 {
-      margin: 0 0 8px 0;
-      color: var(--el-text-color-primary);
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    .page-description {
-      margin: 0;
-      color: var(--el-text-color-regular);
-      font-size: 14px;
-    }
-  }
-
-  // 统计卡片样式
-  .stats-container {
-    margin-bottom: 20px;
-
-    .stats-card {
-      border-radius: 8px;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-
-      .stats-content {
-        display: flex;
-        align-items: center;
-        padding: 8px;
-
-        .stats-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 16px;
-          font-size: 24px;
-
-          &.online {
-            background: rgba(103, 194, 58, 0.1);
-            color: #67c23a;
-          }
-
-          &.offline {
-            background: rgba(245, 108, 108, 0.1);
-            color: #f56c6c;
-          }
-
-          &.total {
-            background: rgba(64, 158, 255, 0.1);
-            color: #409eff;
-          }
-
-          &.apps {
-            background: rgba(230, 162, 60, 0.1);
-            color: #e6a23c;
-          }
-        }
-
-        .stats-info {
-          .stats-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-            line-height: 1;
-            margin-bottom: 4px;
-            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-            // 数字变化时的动画效果
-            &.updating {
-              transform: scale(1.1);
-              color: var(--el-color-primary);
-            }
-          }
-
-          .stats-label {
-            font-size: 14px;
-            color: var(--el-text-color-regular);
-            transition: color 0.3s ease;
-          }
-        }
-      }
-    }
-  }
-
-  // 性能统计面板样式
-  .performance-stats-container {
-    margin-bottom: 20px;
-
-    .performance-card {
-      border-radius: 8px;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-
-      .card-header {
-        display: flex;
-        align-items: center;
-
-        .card-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-          display: flex;
-          align-items: center;
-        }
-      }
-
-      .performance-content {
-        padding: 16px 0;
-
-        .performance-value {
-          font-size: 28px;
-          font-weight: 700;
-          color: var(--el-text-color-primary);
-          margin-bottom: 12px;
-          text-align: center;
-        }
-
-        .performance-description {
-          text-align: center;
-          font-size: 12px;
-          color: var(--el-text-color-regular);
-          margin-top: 8px;
-        }
-      }
-    }
-  }
-
-  // 搜索卡片样式
-  .search-card {
-    margin-bottom: 20px;
-    border: 1px solid var(--el-border-color-light);
-
-    .search-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      .search-left {
-        display: flex;
-        align-items: center;
-      }
-    }
-  }
-
-  // 节点容器样式
-  .nodes-container {
-    .empty-container {
-      padding: 40px 0;
-      text-align: center;
-    }
-
-    .node-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-      gap: 20px;
-    }
-  }
-
-  // 节点列表动画
-  .node-list-enter-active {
-    animation: nodeSlideIn 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
-
-  .node-list-leave-active {
-    animation: nodeSlideOut 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
-
-  .node-list-move {
-    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
-
-  @keyframes nodeSlideIn {
-    0% {
-      opacity: 0;
-      transform: translateY(30px) scale(0.9);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes nodeSlideOut {
-    0% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(-30px) scale(0.9);
-    }
-  }
-
-  @keyframes cardFadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  // 节点卡片样式
-  .node-card {
-    border-radius: 12px;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    cursor: pointer;
-    border: 2px solid transparent;
-    position: relative;
-    overflow: hidden;
-    animation: cardFadeIn 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) both;
-
-    // 添加微妙的背景渐变
-    background: linear-gradient(
-      135deg,
-      var(--el-bg-color) 0%,
-      var(--el-fill-color-lighter) 100%
-    );
-
-    &:hover {
-      transform: translateY(-6px) scale(1.02);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-      border-color: var(--el-color-primary-light-7);
-    }
-
-    &.node-online {
-      border-left: 4px solid #67c23a;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, #67c23a, #85ce61);
-        opacity: 0.8;
-      }
-    }
-
-    &.node-offline {
-      border-left: 4px solid #f56c6c;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, #f56c6c, #f78989);
-        opacity: 0.8;
-      }
-    }
-
-    &.node-error {
-      border-left: 4px solid #f56c6c;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, #f56c6c, #f78989);
-        opacity: 0.8;
-      }
-    }
-
-    &.node-maintenance {
-      border-left: 4px solid #e6a23c;
-
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, #e6a23c, #ebb563);
-        opacity: 0.8;
-      }
-    }
-
-    .node-card-header {
+    .header-content {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px 32px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
 
-      .node-info {
-        flex: 1;
-
-        .node-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-          margin-bottom: 4px;
+      .title-section {
+        .page-title {
           display: flex;
           align-items: center;
-        }
+          margin: 0 0 8px 0;
+          font-size: 28px;
+          font-weight: 700;
+          color: #2c3e50;
 
-        .node-address {
-          font-size: 14px;
-          color: var(--el-text-color-regular);
-          font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-        }
-      }
-
-      .node-status {
-        flex-shrink: 0;
-      }
-    }
-
-    .node-card-content {
-      margin-bottom: 16px;
-
-      // 性能指标样式
-      .performance-metrics {
-        margin-bottom: 16px;
-        padding: 16px;
-        background: linear-gradient(
-          135deg,
-          var(--el-fill-color-lighter) 0%,
-          var(--el-fill-color-light) 100%
-        );
-        border-radius: 8px;
-        border: 1px solid var(--el-border-color-lighter);
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: linear-gradient(
-            135deg,
-            var(--el-fill-color-light) 0%,
-            var(--el-fill-color) 100%
-          );
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .metric-item {
-          display: flex;
-          align-items: center;
-          margin-bottom: 12px;
-          transition: all 0.3s ease;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          &:hover {
-            transform: translateX(2px);
-          }
-
-          .metric-label {
-            font-size: 13px;
-            color: var(--el-text-color-regular);
-            width: 45px;
-            flex-shrink: 0;
-            font-weight: 500;
-          }
-
-          .metric-progress {
-            flex: 1;
+          .title-icon {
             display: flex;
             align-items: center;
-            margin-left: 12px;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            margin-right: 16px;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 
-            .el-progress {
-              flex: 1;
-              margin-right: 12px;
-
-              :deep(.el-progress-bar__outer) {
-                transition: all 0.6s ease;
-              }
-
-              :deep(.el-progress-bar__inner) {
-                transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-              }
-            }
-
-            .metric-value {
-              font-size: 13px;
-              font-weight: 700;
-              color: var(--el-text-color-primary);
-              width: 40px;
-              text-align: right;
-              transition: all 0.3s ease;
+            i {
+              font-size: 24px;
+              color: white;
             }
           }
+
+          .title-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+        }
+
+        .page-description {
+          margin: 0;
+          color: #64748b;
+          font-size: 16px;
+          line-height: 1.5;
         }
       }
 
-      .node-details {
-        .detail-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 6px 0;
-          border-bottom: 1px solid var(--el-border-color-lighter);
+      .header-actions {
+        .refresh-btn {
+          height: 40px;
+          padding: 0 20px;
+          border-radius: 10px;
+          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+          transition: all 0.3s ease;
 
-          &:last-child {
-            border-bottom: none;
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
           }
 
-          .detail-label {
-            font-size: 14px;
-            color: var(--el-text-color-regular);
-            font-weight: 500;
-          }
-
-          .detail-value {
-            font-size: 14px;
-            color: var(--el-text-color-primary);
-            text-align: right;
-            max-width: 60%;
-            word-break: break-all;
+          i {
+            margin-right: 6px;
           }
         }
       }
-    }
-
-    .node-card-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
     }
   }
 
-  // 详情对话框样式
-  .node-detail {
-    .performance-details {
-      margin-top: 20px;
+  // 统计卡片
+  .stats-section {
+    margin-bottom: 24px;
 
-      h4 {
-        margin: 0 0 16px 0;
-        color: var(--el-text-color-primary);
-        font-size: 16px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
 
-        &:before {
-          content: "";
-          width: 4px;
-          height: 16px;
-          background: var(--el-color-primary);
-          margin-right: 8px;
-          border-radius: 2px;
+      .stat-card {
+        position: relative;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 24px;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+
+        &:hover {
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
-      }
 
-      .metric-detail-card {
-        background: var(--el-fill-color-lighter);
-        border-radius: 8px;
-        padding: 16px;
-        text-align: center;
+        .stat-background {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          opacity: 0.1;
+          z-index: 0;
 
-        .metric-detail-header {
+          .stat-pattern {
+            width: 100%;
+            height: 100%;
+            background-image:
+              radial-gradient(
+                circle at 20% 50%,
+                currentColor 2px,
+                transparent 2px
+              ),
+              radial-gradient(
+                circle at 80% 50%,
+                currentColor 2px,
+                transparent 2px
+              );
+            background-size: 30px 30px;
+            animation: patternMove 20s linear infinite;
+          }
+        }
+
+        .stat-content {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
-          justify-content: center;
-          margin-bottom: 12px;
 
-          i {
-            font-size: 18px;
-            margin-right: 6px;
-            color: var(--el-color-primary);
+          .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-right: 20px;
+            font-size: 28px;
+            color: white;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
           }
 
-          span {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--el-text-color-primary);
+          .stat-info {
+            flex: 1;
+
+            .stat-value {
+              font-size: 32px;
+              font-weight: 700;
+              line-height: 1;
+              margin-bottom: 4px;
+              transition: all 0.3s ease;
+
+              &.counting {
+                color: #409eff;
+                transform: scale(1.1);
+              }
+            }
+
+            .stat-label {
+              font-size: 14px;
+              color: #64748b;
+              font-weight: 500;
+              margin-bottom: 8px;
+            }
+
+            .stat-trend {
+              display: flex;
+              align-items: center;
+              font-size: 12px;
+              color: #10b981;
+
+              .trend-icon {
+                margin-right: 4px;
+                font-size: 14px;
+              }
+
+              .trend-text {
+                font-weight: 500;
+              }
+            }
           }
         }
 
-        .metric-detail-content {
-          .metric-detail-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--el-text-color-primary);
-            margin-bottom: 8px;
+        // 不同类型的卡片样式
+        &.total-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          .stat-background {
+            color: #667eea;
+          }
+        }
+
+        &.online-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          }
+          .stat-background {
+            color: #10b981;
+          }
+        }
+
+        &.healthy-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          }
+          .stat-background {
+            color: #f59e0b;
+          }
+        }
+
+        &.error-nodes {
+          .stat-icon {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          }
+          .stat-background {
+            color: #ef4444;
           }
         }
       }
     }
+  }
 
-    .metadata-section {
-      margin-top: 20px;
+  // 搜索区域
+  .search-section {
+    margin-bottom: 24px;
 
-      h4 {
-        margin: 0 0 12px 0;
-        color: var(--el-text-color-primary);
-        font-size: 14px;
-        font-weight: 600;
+    .search-card {
+      border-radius: 16px;
+      border: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+      :deep(.el-card__body) {
+        padding: 20px 24px;
+      }
+
+      .search-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+
+        .search-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+
+          .search-input {
+            width: 320px;
+
+            :deep(.el-input__wrapper) {
+              border-radius: 10px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+          }
+
+          .app-filter,
+          .status-filter {
+            width: 160px;
+
+            :deep(.el-select__wrapper) {
+              border-radius: 10px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+
+        .search-right {
+          .view-toggle {
+            :deep(.el-button) {
+              border-radius: 8px;
+
+              &:first-child {
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+              }
+
+              &:last-child {
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 节点列表区域
+  .nodes-section {
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+      .loading-content {
+        text-align: center;
+        max-width: 400px;
+
+        .loading-text {
+          margin-top: 16px;
+          color: #64748b;
+          font-size: 16px;
+        }
+      }
+    }
+
+    .empty-container {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 60px 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+      .empty-text {
+        color: #64748b;
+        font-size: 16px;
+        margin: 16px 0;
+      }
+    }
+
+    // 卡片视图
+    .nodes-grid {
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+
+        .node-card-wrapper {
+          animation: cardSlideIn 0.6s ease-out both;
+
+          .node-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #f0f0f0;
+            overflow: hidden;
+            position: relative;
+            height: fit-content;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+              border-color: #e6f4ff;
+            }
+
+            // 状态指示条
+            &::before {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 3px;
+              z-index: 1;
+            }
+
+            &.node-online::before {
+              background: linear-gradient(90deg, #10b981, #059669);
+            }
+
+            &.node-offline::before {
+              background: linear-gradient(90deg, #ef4444, #dc2626);
+            }
+
+            &.node-maintenance::before {
+              background: linear-gradient(90deg, #f59e0b, #d97706);
+            }
+
+            &.node-unhealthy {
+              border-color: rgba(239, 68, 68, 0.3);
+
+              &:hover {
+                border-color: rgba(239, 68, 68, 0.5);
+              }
+            }
+
+            .card-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 12px 14px;
+              border-bottom: 1px solid #f5f5f5;
+
+              .node-info {
+                flex: 1;
+                min-width: 0;
+
+                .node-name {
+                  display: flex;
+                  align-items: center;
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: #262626;
+                  margin-bottom: 4px;
+
+                  .node-icon {
+                    margin-right: 5px;
+                    color: #1890ff;
+                    font-size: 16px;
+                  }
+
+                  .name-text {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                  }
+                }
+
+                .node-address {
+                  display: flex;
+                  align-items: center;
+                  font-size: 12px;
+                  color: #8c8c8c;
+                  font-family: "SF Mono", "Monaco", "Menlo", monospace;
+
+                  .address-icon {
+                    margin-right: 4px;
+                    font-size: 12px;
+                  }
+                }
+              }
+
+              .node-status {
+                flex-shrink: 0;
+
+                .status-tag {
+                  font-weight: 500;
+                  border-radius: 4px;
+                  padding: 2px 8px;
+                  font-size: 11px;
+                  line-height: 1.4;
+
+                  i {
+                    margin-right: 2px;
+                    font-size: 10px;
+                  }
+                }
+              }
+            }
+
+            .card-body {
+              padding: 12px 18px;
+
+              .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+
+                .metric-item {
+                  display: flex;
+                  align-items: center;
+                  padding: 7px 9px;
+                  background: rgba(248, 250, 252, 0.5);
+                  border-radius: 7px;
+                  transition: all 0.25s ease;
+                  border: 1px solid rgba(0, 0, 0, 0.02);
+
+                  &:hover {
+                    background: rgba(248, 250, 252, 0.8);
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+                  }
+
+                  .metric-icon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    margin-right: 8px;
+                    font-size: 14px;
+                    color: white;
+
+                    &.cpu {
+                      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    }
+
+                    &.memory {
+                      background: linear-gradient(135deg, #10b981, #059669);
+                    }
+
+                    &.disk {
+                      background: linear-gradient(135deg, #f59e0b, #d97706);
+                    }
+
+                    &.network {
+                      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                    }
+                  }
+
+                  .metric-info {
+                    flex: 1;
+                    min-width: 0;
+
+                    .metric-label {
+                      font-size: 11px;
+                      color: #64748b;
+                      font-weight: 500;
+                      margin-bottom: 1px;
+                      line-height: 1.2;
+                    }
+
+                    .metric-value {
+                      font-size: 14px;
+                      font-weight: 600;
+                      color: #1f2937;
+                      font-family: "Monaco", "Menlo", monospace;
+                      line-height: 1.2;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                      white-space: nowrap;
+                    }
+                  }
+                }
+              }
+            }
+
+            .card-footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 11px 18px 13px;
+              background: rgba(248, 250, 252, 0.3);
+              border-top: 1px solid rgba(0, 0, 0, 0.03);
+
+              .footer-info {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+
+                .last-heartbeat,
+                .connection-count {
+                  display: flex;
+                  align-items: center;
+                  font-size: 11px;
+                  color: #64748b;
+
+                  i {
+                    margin-right: 4px;
+                    font-size: 12px;
+                  }
+                }
+
+                .last-heartbeat {
+                  .heartbeat-icon {
+                    color: #ef4444;
+                    animation: heartbeat 2s ease-in-out infinite;
+                  }
+
+                  .heartbeat-text {
+                    font-family: "Monaco", "Menlo", monospace;
+                  }
+                }
+              }
+
+              .card-actions {
+                :deep(.el-button-group) {
+                  .el-button {
+                    border-radius: 5px;
+                    padding: 4px 6px;
+                    font-size: 12px;
+
+                    &:first-child {
+                      border-top-right-radius: 0;
+                      border-bottom-right-radius: 0;
+                    }
+
+                    &:last-child {
+                      border-top-left-radius: 0;
+                      border-bottom-left-radius: 0;
+                    }
+
+                    i {
+                      font-size: 12px;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
 }
 
-// 响应式设计
-@media (max-width: 768px) {
-  .node-management {
-    padding: 12px;
+// 动画定义
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-    .stats-container {
-      .el-col {
-        margin-bottom: 12px;
-      }
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes patternMove {
+  0% {
+    background-position:
+      0 0,
+      15px 15px;
+  }
+  100% {
+    background-position:
+      30px 30px,
+      45px 45px;
+  }
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+// 过渡动画
+.node-card-enter-active,
+.node-card-leave-active {
+  transition: all 0.5s ease;
+}
+
+.node-card-enter-from {
+  opacity: 0;
+  transform: translateY(30px) scale(0.9);
+}
+
+.node-card-leave-to {
+  opacity: 0;
+  transform: translateY(-30px) scale(0.9);
+}
+
+.node-card-move {
+  transition: transform 0.5s ease;
+}
+
+// 响应式设计
+@media (max-width: 1200px) {
+  .node-management-container {
+    .stats-section .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
 
-    .search-container {
+    .nodes-section .nodes-grid .grid-container {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .node-management-container {
+    .stats-section .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .nodes-section .nodes-grid .grid-container {
+      grid-template-columns: 1fr;
+      gap: 10px;
+
+      .node-card-wrapper .node-card {
+        .card-header {
+          padding: 12px 16px 10px;
+
+          .node-info .node-name {
+            font-size: 15px;
+
+            .name-text {
+              max-width: 150px;
+            }
+          }
+
+          .node-info .node-address {
+            font-size: 12px;
+          }
+        }
+
+        .card-body {
+          padding: 10px 16px;
+
+          .metrics-grid {
+            gap: 8px;
+
+            .metric-item {
+              padding: 6px 8px;
+
+              .metric-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+                margin-right: 6px;
+              }
+
+              .metric-info {
+                .metric-label {
+                  font-size: 10px;
+                }
+
+                .metric-value {
+                  font-size: 13px;
+                }
+              }
+            }
+          }
+        }
+
+        .card-footer {
+          padding: 10px 16px 12px;
+
+          .footer-info {
+            gap: 3px;
+
+            .last-heartbeat,
+            .connection-count {
+              font-size: 10px;
+
+              i {
+                font-size: 11px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .node-management-container {
+    padding: 16px;
+
+    .page-header .header-content {
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .stats-section .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .search-section .search-card .search-container {
       flex-direction: column;
       gap: 12px;
 
       .search-left {
         width: 100%;
         flex-direction: column;
-        gap: 12px;
 
-        .el-input,
-        .el-select {
-          width: 100% !important;
+        .search-input,
+        .app-filter,
+        .status-filter {
+          width: 100%;
         }
       }
     }
 
-    .node-grid {
+    .nodes-section .nodes-grid .grid-container {
       grid-template-columns: 1fr;
     }
   }
