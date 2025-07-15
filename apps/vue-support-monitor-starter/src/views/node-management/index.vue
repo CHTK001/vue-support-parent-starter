@@ -238,48 +238,64 @@
               </div>
 
               <div class="card-body">
-                <div class="metrics-grid">
-                  <div class="metric-item">
-                    <div class="metric-icon cpu">
-                      <i class="ri-cpu-line"></i>
+                <div class="node-details">
+                  <div class="detail-row">
+                    <div class="detail-item">
+                      <i class="ri-apps-line detail-icon"></i>
+                      <div class="detail-info">
+                        <span class="detail-label">应用名称</span>
+                        <span class="detail-value">{{
+                          node.applicationName || "N/A"
+                        }}</span>
+                      </div>
                     </div>
-                    <div class="metric-info">
-                      <div class="metric-label">CPU</div>
-                      <div class="metric-value">
-                        {{ formatPercentage(node.cpuUsage) }}
+                    <div class="detail-item">
+                      <i class="ri-links-line detail-icon"></i>
+                      <div class="detail-info">
+                        <span class="detail-label">连接数</span>
+                        <span class="detail-value">{{
+                          node.connectionCount || 0
+                        }}</span>
                       </div>
                     </div>
                   </div>
-                  <div class="metric-item">
-                    <div class="metric-icon memory">
-                      <i class="ri-database-line"></i>
+                  <div class="detail-row">
+                    <div class="detail-item">
+                      <i class="ri-settings-3-line detail-icon"></i>
+                      <div class="detail-info">
+                        <span class="detail-label">运行环境</span>
+                        <span
+                          class="detail-value"
+                          :class="
+                            getEnvironmentClass(
+                              node.metadata?.applicationActive
+                            )
+                          "
+                          >{{ node.metadata?.applicationActive || "N/A" }}</span
+                        >
+                      </div>
                     </div>
-                    <div class="metric-info">
-                      <div class="metric-label">内存</div>
-                      <div class="metric-value">
-                        {{ formatPercentage(node.memoryUsage) }}
+                    <div class="detail-item">
+                      <i class="ri-global-line detail-icon"></i>
+                      <div class="detail-info">
+                        <span class="detail-label">请求地址</span>
+                        <span class="detail-value">{{
+                          node.metadata?.contextPath || "/"
+                        }}</span>
                       </div>
                     </div>
                   </div>
-                  <div class="metric-item">
-                    <div class="metric-icon disk">
-                      <i class="ri-hard-drive-line"></i>
-                    </div>
-                    <div class="metric-info">
-                      <div class="metric-label">磁盘</div>
-                      <div class="metric-value">
-                        {{ formatPercentage(node.diskUsage) }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="metric-item">
-                    <div class="metric-icon network">
-                      <i class="ri-wifi-line"></i>
-                    </div>
-                    <div class="metric-info">
-                      <div class="metric-label">延迟</div>
-                      <div class="metric-value">
-                        {{ formatLatency(node.networkLatency) }}
+                  <div
+                    v-if="node.metadata?.applicationActiveInclude"
+                    class="detail-row single"
+                  >
+                    <div class="detail-item full-width">
+                      <i class="ri-file-settings-line detail-icon"></i>
+                      <div class="detail-info">
+                        <span class="detail-label">配置项</span>
+                        <span class="detail-value config-value">{{
+                          node.metadata.applicationActiveInclude
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -288,15 +304,15 @@
 
               <div class="card-footer">
                 <div class="footer-info">
+                  <div class="connect-time">
+                    <i class="ri-time-line"></i>
+                    <span>{{ formatConnectTime(node.connectTime) }}</span>
+                  </div>
                   <div class="last-heartbeat">
                     <i class="ri-heart-pulse-line heartbeat-icon"></i>
                     <span class="heartbeat-text">
                       {{ formatHeartbeat(node.lastHeartbeatTime) }}
                     </span>
-                  </div>
-                  <div class="connection-count">
-                    <i class="ri-links-line"></i>
-                    <span>{{ node.connectionCount || 0 }} 连接</span>
                   </div>
                 </div>
                 <div class="card-actions">
@@ -304,10 +320,14 @@
                     <el-button
                       @click.stop="checkNodeHealth(node)"
                       :loading="node.checking"
+                      title="健康检查"
                     >
                       <i class="ri-stethoscope-line"></i>
                     </el-button>
-                    <el-button @click.stop="viewNodeDetail(node)">
+                    <el-button
+                      @click.stop="viewNodeDetail(node)"
+                      title="查看详情"
+                    >
                       <i class="ri-eye-line"></i>
                     </el-button>
                   </el-button-group>
@@ -621,19 +641,34 @@ const getStatusIcon = (status: string) => {
   }
 };
 
-const formatPercentage = (value: number | null | undefined) => {
-  if (value == null) return "-";
-  return `${Math.round(value)}%`;
-};
-
-const formatLatency = (value: number | null | undefined) => {
-  if (value == null) return "-";
-  return `${value}ms`;
+const formatConnectTime = (time: string | null | undefined) => {
+  if (!time) return "未连接";
+  return parseTime(time, "{m}-{d} {h}:{i}");
 };
 
 const formatHeartbeat = (time: string | null | undefined) => {
   if (!time) return "无心跳";
-  return parseTime(time, "{y}-{m}-{d} {h}:{i}:{s}");
+  return parseTime(time, "{m}-{d} {h}:{i}");
+};
+
+const getEnvironmentClass = (env: string | null | undefined) => {
+  if (!env) return "";
+  switch (env.toUpperCase()) {
+    case "UP":
+      return "env-up";
+    case "DOWN":
+      return "env-down";
+    case "PROD":
+    case "PRODUCTION":
+      return "env-prod";
+    case "DEV":
+    case "DEVELOPMENT":
+      return "env-dev";
+    case "TEST":
+      return "env-test";
+    default:
+      return "env-default";
+  }
 };
 
 // 节点操作
@@ -1043,28 +1078,32 @@ onUnmounted(() => {
     .nodes-grid {
       .grid-container {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
 
         .node-card-wrapper {
           animation: cardSlideIn 0.6s ease-out both;
 
           .node-card {
-            background: #ffffff;
-            border-radius: 8px;
+            background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 12px;
             padding: 0;
             cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid #f0f0f0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             overflow: hidden;
             position: relative;
             height: fit-content;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow:
+              0 2px 4px rgba(0, 0, 0, 0.02),
+              0 1px 6px rgba(0, 0, 0, 0.03);
 
             &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-              border-color: #e6f4ff;
+              transform: translateY(-2px) scale(1.01);
+              box-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.08),
+                0 2px 16px rgba(0, 0, 0, 0.04);
+              border-color: rgba(24, 144, 255, 0.2);
             }
 
             // 状态指示条
@@ -1076,18 +1115,22 @@ onUnmounted(() => {
               right: 0;
               height: 3px;
               z-index: 1;
+              border-radius: 12px 12px 0 0;
             }
 
             &.node-online::before {
-              background: linear-gradient(90deg, #10b981, #059669);
+              background: linear-gradient(90deg, #52c41a, #73d13d);
+              box-shadow: 0 1px 3px rgba(82, 196, 26, 0.3);
             }
 
             &.node-offline::before {
-              background: linear-gradient(90deg, #ef4444, #dc2626);
+              background: linear-gradient(90deg, #ff4d4f, #ff7875);
+              box-shadow: 0 1px 3px rgba(255, 77, 79, 0.3);
             }
 
             &.node-maintenance::before {
-              background: linear-gradient(90deg, #f59e0b, #d97706);
+              background: linear-gradient(90deg, #faad14, #ffc53d);
+              box-shadow: 0 1px 3px rgba(250, 173, 20, 0.3);
             }
 
             &.node-unhealthy {
@@ -1102,8 +1145,9 @@ onUnmounted(() => {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              padding: 12px 14px;
-              border-bottom: 1px solid #f5f5f5;
+              padding: 14px 16px 12px;
+              border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+              background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
 
               .node-info {
                 flex: 1;
@@ -1112,21 +1156,31 @@ onUnmounted(() => {
                 .node-name {
                   display: flex;
                   align-items: center;
-                  font-size: 14px;
+                  font-size: 15px;
                   font-weight: 600;
                   color: #262626;
-                  margin-bottom: 4px;
+                  margin-bottom: 5px;
+                  transition: color 0.2s ease;
 
                   .node-icon {
-                    margin-right: 5px;
+                    margin-right: 6px;
                     color: #1890ff;
-                    font-size: 16px;
+                    font-size: 18px;
+                    transition: transform 0.2s ease;
                   }
 
                   .name-text {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                  }
+
+                  &:hover {
+                    color: #1890ff;
+
+                    .node-icon {
+                      transform: scale(1.1);
+                    }
                   }
                 }
 
@@ -1136,10 +1190,15 @@ onUnmounted(() => {
                   font-size: 12px;
                   color: #8c8c8c;
                   font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                  transition: color 0.2s ease;
 
                   .address-icon {
                     margin-right: 4px;
                     font-size: 12px;
+                  }
+
+                  &:hover {
+                    color: #1890ff;
                   }
                 }
               }
@@ -1149,13 +1208,20 @@ onUnmounted(() => {
 
                 .status-tag {
                   font-weight: 500;
-                  border-radius: 4px;
-                  padding: 2px 8px;
+                  border-radius: 6px;
+                  padding: 3px 10px;
                   font-size: 11px;
                   line-height: 1.4;
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                  transition: all 0.2s ease;
+
+                  &:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+                  }
 
                   i {
-                    margin-right: 2px;
+                    margin-right: 3px;
                     font-size: 10px;
                   }
                 }
@@ -1163,77 +1229,132 @@ onUnmounted(() => {
             }
 
             .card-body {
-              padding: 12px 18px;
+              padding: 12px 16px;
 
-              .metrics-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-
-                .metric-item {
+              .node-details {
+                .detail-row {
                   display: flex;
-                  align-items: center;
-                  padding: 7px 9px;
-                  background: rgba(248, 250, 252, 0.5);
-                  border-radius: 7px;
-                  transition: all 0.25s ease;
-                  border: 1px solid rgba(0, 0, 0, 0.02);
+                  gap: 10px;
+                  margin-bottom: 10px;
 
-                  &:hover {
-                    background: rgba(248, 250, 252, 0.8);
-                    transform: translateY(-1px);
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+                  &:last-child {
+                    margin-bottom: 0;
                   }
 
-                  .metric-icon {
+                  &.single {
+                    .detail-item.full-width {
+                      flex: none;
+                      width: 100%;
+                    }
+                  }
+
+                  .detail-item {
+                    flex: 1;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 6px;
-                    margin-right: 8px;
-                    font-size: 14px;
-                    color: white;
+                    padding: 8px 10px;
+                    background: linear-gradient(
+                      135deg,
+                      #f8fafc 0%,
+                      #f1f5f9 100%
+                    );
+                    border-radius: 8px;
+                    border: 1px solid rgba(0, 0, 0, 0.04);
+                    transition: all 0.25s ease;
+                    position: relative;
+                    overflow: hidden;
 
-                    &.cpu {
-                      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    &::before {
+                      content: "";
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      width: 3px;
+                      height: 100%;
+                      background: linear-gradient(180deg, #1890ff, #40a9ff);
+                      opacity: 0;
+                      transition: opacity 0.25s ease;
                     }
 
-                    &.memory {
-                      background: linear-gradient(135deg, #10b981, #059669);
+                    &:hover {
+                      background: linear-gradient(
+                        135deg,
+                        #f0f7ff 0%,
+                        #e6f4ff 100%
+                      );
+                      border-color: rgba(24, 144, 255, 0.2);
+                      transform: translateY(-1px);
+                      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+
+                      &::before {
+                        opacity: 1;
+                      }
                     }
 
-                    &.disk {
-                      background: linear-gradient(135deg, #f59e0b, #d97706);
+                    .detail-icon {
+                      font-size: 16px;
+                      color: #1890ff;
+                      margin-right: 8px;
+                      flex-shrink: 0;
+                      transition: transform 0.25s ease;
                     }
 
-                    &.network {
-                      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-                    }
-                  }
-
-                  .metric-info {
-                    flex: 1;
-                    min-width: 0;
-
-                    .metric-label {
-                      font-size: 11px;
-                      color: #64748b;
-                      font-weight: 500;
-                      margin-bottom: 1px;
-                      line-height: 1.2;
+                    &:hover .detail-icon {
+                      transform: scale(1.1);
                     }
 
-                    .metric-value {
-                      font-size: 14px;
-                      font-weight: 600;
-                      color: #1f2937;
-                      font-family: "Monaco", "Menlo", monospace;
-                      line-height: 1.2;
-                      overflow: hidden;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
+                    .detail-info {
+                      flex: 1;
+                      min-width: 0;
+
+                      .detail-label {
+                        display: block;
+                        font-size: 11px;
+                        color: #8c8c8c;
+                        line-height: 1.3;
+                        margin-bottom: 2px;
+                        font-weight: 500;
+                      }
+
+                      .detail-value {
+                        display: block;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #262626;
+                        line-height: 1.3;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+
+                        &.env-up {
+                          color: #52c41a;
+                        }
+
+                        &.env-down {
+                          color: #ff4d4f;
+                        }
+
+                        &.env-prod {
+                          color: #fa541c;
+                        }
+
+                        &.env-dev {
+                          color: #1890ff;
+                        }
+
+                        &.env-test {
+                          color: #722ed1;
+                        }
+
+                        &.config-value {
+                          font-family: "SF Mono", "Monaco", "Menlo", monospace;
+                          font-size: 11px;
+                          background: rgba(0, 0, 0, 0.02);
+                          padding: 2px 6px;
+                          border-radius: 4px;
+                          color: #595959;
+                        }
+                      }
                     }
                   }
                 }
@@ -1244,21 +1365,26 @@ onUnmounted(() => {
               display: flex;
               justify-content: space-between;
               align-items: center;
-              padding: 11px 18px 13px;
-              background: rgba(248, 250, 252, 0.3);
-              border-top: 1px solid rgba(0, 0, 0, 0.03);
+              padding: 10px 16px 12px;
+              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+              border-top: 1px solid rgba(0, 0, 0, 0.04);
 
               .footer-info {
                 display: flex;
-                flex-direction: column;
-                gap: 4px;
+                gap: 16px;
+                flex: 1;
 
-                .last-heartbeat,
-                .connection-count {
+                .connect-time,
+                .last-heartbeat {
                   display: flex;
                   align-items: center;
                   font-size: 11px;
-                  color: #64748b;
+                  color: #8c8c8c;
+                  transition: color 0.2s ease;
+
+                  &:hover {
+                    color: #1890ff;
+                  }
 
                   i {
                     margin-right: 4px;
@@ -1268,31 +1394,45 @@ onUnmounted(() => {
 
                 .last-heartbeat {
                   .heartbeat-icon {
-                    color: #ef4444;
+                    color: #ff4d4f;
                     animation: heartbeat 2s ease-in-out infinite;
                   }
 
                   .heartbeat-text {
-                    font-family: "Monaco", "Menlo", monospace;
+                    font-family: "SF Mono", "Monaco", "Menlo", monospace;
                   }
                 }
               }
 
               .card-actions {
+                flex-shrink: 0;
+
                 :deep(.el-button-group) {
+                  border-radius: 6px;
+                  overflow: hidden;
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
                   .el-button {
-                    border-radius: 5px;
-                    padding: 4px 6px;
+                    border-radius: 0;
+                    padding: 4px 8px;
                     font-size: 12px;
+                    min-width: 28px;
+                    height: 28px;
+                    transition: all 0.2s ease;
 
                     &:first-child {
-                      border-top-right-radius: 0;
-                      border-bottom-right-radius: 0;
+                      border-top-left-radius: 6px;
+                      border-bottom-left-radius: 6px;
                     }
 
                     &:last-child {
-                      border-top-left-radius: 0;
-                      border-bottom-left-radius: 0;
+                      border-top-right-radius: 6px;
+                      border-bottom-right-radius: 6px;
+                    }
+
+                    &:hover {
+                      transform: translateY(-1px);
+                      z-index: 1;
                     }
 
                     i {
@@ -1383,7 +1523,7 @@ onUnmounted(() => {
     }
 
     .nodes-section .nodes-grid .grid-container {
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 12px;
     }
   }
@@ -1402,44 +1542,47 @@ onUnmounted(() => {
 
       .node-card-wrapper .node-card {
         .card-header {
-          padding: 12px 16px 10px;
+          padding: 10px 12px;
 
           .node-info .node-name {
-            font-size: 15px;
-
-            .name-text {
-              max-width: 150px;
-            }
+            font-size: 13px;
+            margin-bottom: 3px;
           }
 
           .node-info .node-address {
-            font-size: 12px;
+            font-size: 11px;
+          }
+
+          .node-status .status-tag {
+            font-size: 10px;
+            padding: 1px 6px;
           }
         }
 
         .card-body {
-          padding: 10px 16px;
+          padding: 8px 12px;
 
-          .metrics-grid {
-            gap: 8px;
+          .node-details {
+            .detail-row {
+              gap: 6px;
+              margin-bottom: 6px;
 
-            .metric-item {
-              padding: 6px 8px;
+              .detail-item {
+                padding: 4px 6px;
 
-              .metric-icon {
-                width: 24px;
-                height: 24px;
-                font-size: 12px;
-                margin-right: 6px;
-              }
-
-              .metric-info {
-                .metric-label {
-                  font-size: 10px;
+                .detail-icon {
+                  font-size: 12px;
+                  margin-right: 4px;
                 }
 
-                .metric-value {
-                  font-size: 13px;
+                .detail-info {
+                  .detail-label {
+                    font-size: 9px;
+                  }
+
+                  .detail-value {
+                    font-size: 11px;
+                  }
                 }
               }
             }
@@ -1447,18 +1590,28 @@ onUnmounted(() => {
         }
 
         .card-footer {
-          padding: 10px 16px 12px;
+          padding: 6px 12px 8px;
 
           .footer-info {
-            gap: 3px;
+            gap: 8px;
 
-            .last-heartbeat,
-            .connection-count {
-              font-size: 10px;
+            .connect-time,
+            .last-heartbeat {
+              font-size: 9px;
 
               i {
-                font-size: 11px;
+                font-size: 10px;
               }
+            }
+          }
+
+          .card-actions :deep(.el-button-group) .el-button {
+            padding: 2px 4px;
+            min-width: 20px;
+            height: 20px;
+
+            i {
+              font-size: 10px;
             }
           }
         }
