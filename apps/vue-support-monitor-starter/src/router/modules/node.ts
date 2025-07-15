@@ -68,6 +68,24 @@ export default [
           showLink: false,
         },
       },
+      {
+        path: "/node/management",
+        name: "node-management",
+        component: () => import("@/views/node-management/index.vue"),
+        meta: {
+          icon: "ri:server-line",
+          title: "在线节点管理",
+        },
+      },
+      {
+        path: "/node/remote",
+        name: "node-remote",
+        component: () => import("@/views/node-management/remote/index.vue"),
+        meta: {
+          icon: "ri:remote-control-line",
+          title: "节点远程管理",
+        },
+      },
     ],
   },
 ];

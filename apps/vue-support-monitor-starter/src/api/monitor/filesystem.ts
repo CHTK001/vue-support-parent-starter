@@ -137,6 +137,20 @@ export const getFileStatistics = () => {
 };
 
 /**
+ * 文件初始化上传响应接口
+ */
+export interface FileInitUploadResponse {
+  fileId: number;
+  fileName: string;
+  fileSize: number;
+  fileMd5: string;
+  chunkTotal: number;
+  chunkSize: number;
+  exists?: boolean;
+  message?: string;
+}
+
+/**
  * 初始化分片上传
  */
 export const initChunkUpload = (data: {
@@ -146,7 +160,7 @@ export const initChunkUpload = (data: {
   chunkSize: number;
   groupId?: number;
 }) => {
-  return http.request<ReturnResult<{ fileId: number; chunkTotal: number }>>(
+  return http.request<ReturnResult<FileInitUploadResponse>>(
     "post",
     "/v1/filesystem/init-chunk-upload",
     {
@@ -155,6 +169,7 @@ export const initChunkUpload = (data: {
         fileSize: data.fileSize,
         fileMd5: data.fileMd5,
         chunkSize: data.chunkSize,
+        groupId: data.groupId,
       },
     }
   );

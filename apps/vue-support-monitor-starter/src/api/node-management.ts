@@ -91,7 +91,20 @@ export const searchNodes = (keyword: string) => {
     "get",
     "/v1/monitor/nodes/search",
     {
-      params: { keyword }
+      params: { keyword },
+    }
+  );
+};
+
+/**
+ * 检查节点健康状态
+ */
+export const apiCheckNodeHealth = (ipAddress: string, port: number) => {
+  return http.request<ReturnResult<any>>(
+    "post",
+    "/v1/monitor/nodes/health-check",
+    {
+      data: { ipAddress, port },
     }
   );
 };
@@ -100,14 +113,10 @@ export const searchNodes = (keyword: string) => {
  * 检查节点健康状态
  */
 export const checkNodeHealth = (clientIp: string, clientPort: number) => {
-  return http.request<ReturnResult<any>>(
-    "get",
-    "/v1/monitor/nodes/health",
-    {
-      params: {
-        clientIp,
-        clientPort
-      }
-    }
-  );
+  return http.request<ReturnResult<any>>("get", "/v1/monitor/nodes/health", {
+    params: {
+      clientIp,
+      clientPort,
+    },
+  });
 };
