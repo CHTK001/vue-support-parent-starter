@@ -710,6 +710,13 @@
                 :key="selectedServerId + '-files'"
                 @close="closeRightPanel"
               />
+              <!-- 脚本管理组件 -->
+              <ScriptManagement
+                v-else-if="currentComponent === 'ScriptManagement'"
+                :server="selectedServer"
+                :key="selectedServerId + '-script'"
+                @close="closeRightPanel"
+              />
               <!-- 服务器详情组件 -->
               <ServerDetailComponents
                 v-else-if="currentComponent === 'ServerDetailComponents'"
@@ -846,6 +853,9 @@ const ServerLatencyDisplay = defineAsyncComponent(
 );
 const ServerDetailComponents = defineAsyncComponent(
   () => import("../server-detail-components/layout/index.vue")
+);
+const ScriptManagement = defineAsyncComponent(
+  () => import("../../../script-management/index.vue")
 );
 
 // 响应式状态
@@ -1289,7 +1299,8 @@ const handleServerAction = async (command: string, server: any) => {
       window.open(`/server/detail/${server.id}`, "_blank");
       break;
     case "script":
-      scriptDialogRef.value?.open(server);
+      selectedServerId.value = server.id;
+      currentComponent.value = "ScriptManagement";
       break;
     case "log":
       logDialogRef.value?.open(server);
