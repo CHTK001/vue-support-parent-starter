@@ -12,51 +12,6 @@ export default [
     },
     children: [
       {
-        path: "/service-monitor",
-        name: "serviceMonitor",
-        meta: {
-          icon: "ep:service",
-          title: "服务监控",
-          showLink: true,
-          showParent: true,
-        },
-        children: [
-          {
-            path: "/service-list",
-            name: "service-list",
-            component: () => import("@/views/monitor/service/app/index.vue"),
-            meta: {
-              icon: "ri:navigation-fill",
-              title: $t("buttons.monitor.service-list"),
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
-            path: "/online-service-list",
-            name: "online-service-list",
-            component: () => import("@/views/monitor/service/online/index.vue"),
-            meta: {
-              icon: "simple-icons:cloudflare",
-              title: $t("buttons.monitor.online-service-list"),
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
-            path: "/online-monitor",
-            name: "online-monitor",
-            component: () => import("@/views/monitor/service/online/index.vue"),
-            meta: {
-              icon: "simple-icons:cloudflare",
-              title: "在线监控详情",
-              showLink: false,
-              showParent: true,
-            },
-          },
-        ],
-      },
-      {
         path: "/job-monitor",
         name: "jobMonitor",
         meta: {

@@ -1,31 +1,5 @@
 <template>
   <div class="node-management-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <div class="title-icon">
-              <i class="ri-server-line"></i>
-            </div>
-            <span class="title-text">在线节点管理</span>
-          </h1>
-          <p class="page-description">实时监控和管理所有在线节点的状态和性能</p>
-        </div>
-        <div class="header-actions">
-          <el-button
-            type="primary"
-            :loading="loading"
-            @click="refreshNodes"
-            class="refresh-btn"
-          >
-            <i class="ri-refresh-line"></i>
-            刷新节点
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 统计卡片 -->
     <div class="stats-section">
       <div class="stats-grid">
@@ -160,6 +134,15 @@
           <div class="search-right">
             <el-button-group class="view-toggle">
               <el-button
+                type="primary"
+                :loading="loading"
+                @click="refreshNodes"
+                class="refresh-btn"
+              >
+                <i class="ri-refresh-line"></i>
+                刷新节点
+              </el-button>
+              <el-button
                 :type="viewMode === 'card' ? 'primary' : 'default'"
                 @click="viewMode = 'card'"
               >
@@ -209,8 +192,16 @@
           >
             <div
               class="node-card"
-              :class="getNodeCardClass(node)"
+              :class="[
+                getNodeCardClass(node),
+                {
+                  'menu-active':
+                    showMenu && hoveredNode?.nodeId === node.nodeId,
+                },
+              ]"
               @click="viewNodeDetail(node)"
+              @mouseenter="showActionMenu(node, $event)"
+              @mouseleave="hideActionMenu"
             >
               <div class="card-header">
                 <div class="node-info">
@@ -318,8 +309,14 @@
                 <div class="card-actions">
                   <el-button-group size="small">
                     <el-button
+                      @click.stop="openNodeDocumentation(node)"
+                      title="API文档"
+                    >
+                      <i class="ri-file-text-line"></i>
+                    </el-button>
+                    <el-button
                       @click.stop="checkNodeHealth(node)"
-                      :loading="node.checking"
+                      :loading="nodeCheckingStatus[node.nodeId]"
                       title="健康检查"
                     >
                       <i class="ri-stethoscope-line"></i>
@@ -338,12 +335,110 @@
         </transition-group>
       </div>
     </div>
+
+    <!-- 悬停功能菜单 -->
+    <teleport to="body">
+      <div
+        v-if="showMenu"
+        ref="actionMenuRef"
+        class="node-action-menu"
+        :style="menuStyle"
+        @mouseenter="keepMenuVisible"
+        @mouseleave="hideActionMenu"
+      >
+        <div class="menu-overlay">
+          <div class="menu-grid">
+            <div
+              class="action-icon api-docs"
+              @click="openNodeDocumentation(hoveredNode)"
+              :title="'API文档'"
+            >
+              <i class="ri-book-open-line"></i>
+              <span class="tooltip">API文档</span>
+            </div>
+            <div
+              class="action-icon monitoring"
+              @click="openNodeMonitoring(hoveredNode)"
+              :title="'监控面板'"
+            >
+              <i class="ri-bar-chart-box-line"></i>
+              <span class="tooltip">监控面板</span>
+            </div>
+            <div
+              class="action-icon terminal"
+              @click="openNodeTerminal(hoveredNode)"
+              :title="'终端连接'"
+            >
+              <i class="ri-terminal-box-line"></i>
+              <span class="tooltip">终端连接</span>
+            </div>
+            <div
+              class="action-icon files"
+              @click="openNodeFiles(hoveredNode)"
+              :title="'文件管理'"
+            >
+              <i class="ri-folder-open-line"></i>
+              <span class="tooltip">文件管理</span>
+            </div>
+            <div
+              class="action-icon health"
+              @click="checkNodeHealth(hoveredNode)"
+              :title="'健康检查'"
+            >
+              <i class="ri-heart-pulse-line"></i>
+              <span class="tooltip">健康检查</span>
+            </div>
+            <div
+              class="action-icon details"
+              @click="viewNodeDetail(hoveredNode)"
+              :title="'查看详情'"
+            >
+              <i class="ri-information-line"></i>
+              <span class="tooltip">查看详情</span>
+            </div>
+            <div
+              class="action-icon logs"
+              @click="openNodeLogs(hoveredNode)"
+              :title="'日志查看'"
+            >
+              <i class="ri-file-list-3-line"></i>
+              <span class="tooltip">日志查看</span>
+            </div>
+            <div
+              class="action-icon settings"
+              @click="openNodeSettings(hoveredNode)"
+              :title="'节点配置'"
+            >
+              <i class="ri-settings-3-line"></i>
+              <span class="tooltip">节点配置</span>
+            </div>
+            <div
+              class="action-icon restart"
+              @click="restartNode(hoveredNode)"
+              :title="'重启节点'"
+            >
+              <i class="ri-restart-line"></i>
+              <span class="tooltip">重启节点</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
 import { ElMessage } from "element-plus";
+import { useRouter } from "vue-router";
 import {
   fetchAllOnlineNodes,
   fetchNodeStatistics,
@@ -353,9 +448,22 @@ import {
 } from "@/api/node-management";
 import { parseTime } from "@/utils/const";
 
+// 路由
+const router = useRouter();
+
 // 响应式数据
 const loading = ref(false);
 const nodeList = ref<OnlineNodeInfo[]>([]);
+
+// 悬停菜单相关
+const showMenu = ref(false);
+const hoveredNode = ref<OnlineNodeInfo | null>(null);
+const actionMenuRef = ref<HTMLElement>();
+const menuStyle = ref({});
+let hideMenuTimer: NodeJS.Timeout | null = null;
+
+// 节点检查状态
+const nodeCheckingStatus = ref<Record<string, boolean>>({});
 const nodeStats = ref<NodeStatistics>({
   totalNodes: 0,
   onlineNodes: 0,
@@ -671,6 +779,113 @@ const getEnvironmentClass = (env: string | null | undefined) => {
   }
 };
 
+// 悬停菜单方法
+const showActionMenu = (node: OnlineNodeInfo, event: MouseEvent) => {
+  if (hideMenuTimer) {
+    clearTimeout(hideMenuTimer);
+    hideMenuTimer = null;
+  }
+
+  hoveredNode.value = node;
+  showMenu.value = true;
+
+  nextTick(() => {
+    const cardElement = event.currentTarget as HTMLElement;
+    const rect = cardElement.getBoundingClientRect();
+
+    // 菜单完全覆盖卡片
+    menuStyle.value = {
+      position: "fixed",
+      top: `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      zIndex: 9999,
+    };
+  });
+};
+
+const hideActionMenu = () => {
+  hideMenuTimer = setTimeout(() => {
+    showMenu.value = false;
+    hoveredNode.value = null;
+  }, 200);
+};
+
+const keepMenuVisible = () => {
+  if (hideMenuTimer) {
+    clearTimeout(hideMenuTimer);
+    hideMenuTimer = null;
+  }
+};
+
+// 节点功能方法
+const openNodeDocumentation = (node: OnlineNodeInfo) => {
+  if (!node) return;
+
+  // 隐藏菜单
+  showMenu.value = false;
+
+  // 打开新页面显示API文档
+  // 从metadata中获取contextPath
+  const contextPath = node.metadata?.contextPath || "";
+
+  const routeData = router.resolve({
+    name: "nodeDocumentation",
+    params: { nodeId: node.nodeId },
+    query: {
+      nodeName: node.nodeName || node.applicationName,
+      nodeAddress: `${node.ipAddress}:${node.port}`,
+      contextPath: contextPath,
+    },
+  });
+
+  window.open(routeData.href, "_blank");
+};
+
+const openNodeMonitoring = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("打开监控面板:", node);
+  // TODO: 实现监控面板功能
+};
+
+const openNodeTerminal = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("打开终端连接:", node);
+  // TODO: 实现终端连接功能
+};
+
+const openNodeFiles = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("打开文件管理:", node);
+  // TODO: 实现文件管理功能
+};
+
+const openNodeLogs = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("打开日志查看:", node);
+  // TODO: 实现日志查看功能
+};
+
+const openNodeSettings = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("打开节点配置:", node);
+  // TODO: 实现节点配置功能
+};
+
+const restartNode = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+  console.log("重启节点:", node);
+  // TODO: 实现节点重启功能
+  ElMessage.warning("节点重启功能开发中...");
+};
+
 // 节点操作
 const viewNodeDetail = (node: OnlineNodeInfo) => {
   // TODO: 实现节点详情查看
@@ -678,7 +893,7 @@ const viewNodeDetail = (node: OnlineNodeInfo) => {
 };
 
 const checkNodeHealth = async (node: OnlineNodeInfo) => {
-  node.checking = true;
+  nodeCheckingStatus.value[node.nodeId] = true;
   try {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
     if (response.code === "00000") {
@@ -692,7 +907,7 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
     console.error("节点健康检查失败:", error);
     ElMessage.error("节点健康检查失败");
   } finally {
-    node.checking = false;
+    nodeCheckingStatus.value[node.nodeId] = false;
   }
 };
 
@@ -1167,6 +1382,27 @@ onUnmounted(() => {
                 0 32px 64px rgba(0, 0, 0, 0.15),
                 0 16px 32px rgba(0, 0, 0, 0.1);
               border-color: rgba(59, 130, 246, 0.4);
+            }
+
+            &.menu-active {
+              transform: translateY(-8px) scale(1.01);
+              box-shadow:
+                0 40px 80px rgba(0, 0, 0, 0.2),
+                0 20px 40px rgba(0, 0, 0, 0.15);
+              border-color: rgba(59, 130, 246, 0.6);
+              background: rgba(255, 255, 255, 0.98);
+
+              &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(59, 130, 246, 0.05);
+                border-radius: 24px;
+                pointer-events: none;
+              }
             }
 
             // 状态指示条 - 更现代的设计
@@ -1828,6 +2064,197 @@ onUnmounted(() => {
         }
       }
     }
+  }
+}
+
+// 悬停菜单样式
+.node-action-menu {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  overflow: hidden;
+  animation: menuSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+
+  .menu-overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    max-width: 300px;
+    max-height: 280px;
+  }
+
+  .action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      transform: translateY(-2px) scale(1.05);
+      box-shadow:
+        0 8px 25px rgba(59, 130, 246, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    i {
+      font-size: 28px;
+      color: rgba(255, 255, 255, 0.9);
+      transition: all 0.3s ease;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    &:hover i {
+      color: white;
+      transform: scale(1.15);
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .tooltip {
+      position: absolute;
+      bottom: -35px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 10000;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 4px solid rgba(0, 0, 0, 0.9);
+      }
+    }
+
+    &:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      bottom: -40px;
+    }
+
+    // 不同功能的特定颜色主题
+    &.api-docs:hover {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow:
+        0 8px 25px rgba(34, 197, 94, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.monitoring:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      box-shadow:
+        0 8px 25px rgba(59, 130, 246, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.terminal:hover {
+      background: rgba(15, 23, 42, 0.3);
+      border-color: rgba(148, 163, 184, 0.4);
+      box-shadow:
+        0 8px 25px rgba(15, 23, 42, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.files:hover {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow:
+        0 8px 25px rgba(245, 158, 11, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.health:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow:
+        0 8px 25px rgba(239, 68, 68, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.details:hover {
+      background: rgba(168, 85, 247, 0.2);
+      border-color: rgba(168, 85, 247, 0.4);
+      box-shadow:
+        0 8px 25px rgba(168, 85, 247, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.logs:hover {
+      background: rgba(6, 182, 212, 0.2);
+      border-color: rgba(6, 182, 212, 0.4);
+      box-shadow:
+        0 8px 25px rgba(6, 182, 212, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.settings:hover {
+      background: rgba(107, 114, 128, 0.2);
+      border-color: rgba(107, 114, 128, 0.4);
+      box-shadow:
+        0 8px 25px rgba(107, 114, 128, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &.restart:hover {
+      background: rgba(220, 38, 38, 0.2);
+      border-color: rgba(220, 38, 38, 0.4);
+      box-shadow:
+        0 8px 25px rgba(220, 38, 38, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    backdrop-filter: blur(20px);
   }
 }
 

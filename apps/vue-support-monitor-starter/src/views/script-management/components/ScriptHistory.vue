@@ -41,22 +41,41 @@
     <div class="history-list" v-loading="loading">
       <div
         v-for="execution in filteredExecutions"
-        :key="execution.id"
+        :key="execution.monitorSysGenScriptExecutionId"
         class="execution-item"
-        @click="$emit('view-detail', execution)"
+        @click="handleViewDetail(execution)"
       >
         <!-- 执行信息头部 -->
         <div class="execution-header">
           <div class="execution-info">
-            <div class="script-name">{{ execution.scriptName }}</div>
+            <div class="script-name">
+              {{
+                execution.monitorSysGenScriptExecutionName ||
+                `执行记录 #${execution.monitorSysGenScriptExecutionId}`
+              }}
+            </div>
             <div class="execution-time">
-              {{ formatTime(execution.startTime) }}
+              {{
+                formatTime(
+                  execution.monitorSysGenScriptExecutionStartTime ||
+                    execution.monitorSysGenScriptExecutionCreateTime
+                )
+              }}
             </div>
           </div>
           <div class="execution-status">
-            <el-tag :type="getStatusTagType(execution.status)" size="small">
-              <IconifyIconOnline :icon="getStatusIcon(execution.status)" />
-              {{ getStatusText(execution.status) }}
+            <el-tag
+              :type="
+                getStatusTagType(execution.monitorSysGenScriptExecutionStatus)
+              "
+              size="small"
+            >
+              <IconifyIconOnline
+                :icon="
+                  getStatusIcon(execution.monitorSysGenScriptExecutionStatus)
+                "
+              />
+              {{ getStatusText(execution.monitorSysGenScriptExecutionStatus) }}
             </el-tag>
           </div>
         </div>
@@ -66,24 +85,49 @@
           <div class="detail-row">
             <div class="detail-item">
               <IconifyIconOnline icon="ri:time-line" />
-              <span>耗时: {{ formatDuration(execution.duration) }}</span>
+              <span
+                >耗时:
+                {{
+                  formatDuration(
+                    execution.monitorSysGenScriptExecutionDurationMs
+                  )
+                }}</span
+              >
             </div>
             <div class="detail-item">
               <IconifyIconOnline icon="ri:code-line" />
-              <span>退出码: {{ execution.exitCode ?? "无" }}</span>
+              <span
+                >退出码:
+                {{
+                  execution.monitorSysGenScriptExecutionExitCode ?? "无"
+                }}</span
+              >
             </div>
             <div class="detail-item">
               <IconifyIconOnline icon="ri:user-line" />
-              <span>执行人: {{ execution.executor || "系统" }}</span>
+              <span
+                >执行人:
+                {{
+                  execution.monitorSysGenScriptExecutionTriggerUser || "系统"
+                }}</span
+              >
             </div>
           </div>
 
           <!-- 输出预览 -->
-          <div v-if="execution.output" class="output-preview">
+          <div
+            v-if="execution.monitorSysGenScriptExecutionOutput"
+            class="output-preview"
+          >
             <div class="output-label">输出预览:</div>
             <div class="output-content">
-              {{ execution.output.substring(0, 200) }}
-              <span v-if="execution.output.length > 200">...</span>
+              {{
+                execution.monitorSysGenScriptExecutionOutput.substring(0, 200)
+              }}
+              <span
+                v-if="execution.monitorSysGenScriptExecutionOutput.length > 200"
+                >...</span
+              >
             </div>
           </div>
         </div>
@@ -99,7 +143,7 @@
             查看详情
           </el-button>
           <el-button
-            v-if="execution.status === 'running'"
+            v-if="execution.monitorSysGenScriptExecutionStatus === 'RUNNING'"
             size="small"
             type="text"
             @click="handleStopExecution(execution)"
@@ -133,18 +177,32 @@
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         small
+        @current-change="handlePageChange"
+        @size-change="handlePageSizeChange"
       />
     </div>
+
+    <!-- 执行详情对话框 -->
+    <ScriptExecutionDetail
+      v-model="showDetailDialog"
+      :executionData="selectedExecution"
+      @stop="handleStopExecution"
+      @rerun="handleRerun"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   getScriptExecutionPageList,
+  cleanExpiredExecutions,
+  batchDeleteExecutions,
   type ScriptExecution,
+  type ScriptExecutionPageParams,
 } from "@/api/server/script";
+import ScriptExecutionDetail from "./ExecutionDetailDialog.vue";
 
 // Emits
 const emit = defineEmits<{
@@ -159,33 +217,12 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 
-const executions = ref([
-  // 模拟数据
-  {
-    id: 1,
-    scriptName: "系统信息检查",
-    status: "success",
-    startTime: new Date("2024-01-15 14:30:00"),
-    endTime: new Date("2024-01-15 14:30:15"),
-    duration: 15000,
-    exitCode: 0,
-    executor: "admin",
-    output:
-      "Linux server01 5.4.0-74-generic #83-Ubuntu SMP Sat May 8 02:35:39 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux\n              total        used        free      shared  buff/cache   available\nMem:           7.8G        2.1G        3.2G        180M        2.5G        5.3G\nSwap:          2.0G          0B        2.0G",
-  },
-  {
-    id: 2,
-    scriptName: "日志清理",
-    status: "running",
-    startTime: new Date("2024-01-15 14:25:00"),
-    endTime: null,
-    duration: null,
-    exitCode: null,
-    executor: "admin",
-    output:
-      "正在清理日志文件...\n已清理 /var/log/syslog.1\n已清理 /var/log/auth.log.1",
-  },
-]);
+const executions = ref<ScriptExecution[]>([]);
+const selectedExecutions = ref<number[]>([]);
+
+// 执行详情对话框
+const showDetailDialog = ref(false);
+const selectedExecution = ref<ScriptExecution | null>(null);
 
 // 计算属性
 const filteredExecutions = computed(() => {
@@ -193,19 +230,30 @@ const filteredExecutions = computed(() => {
 
   // 按状态筛选
   if (filterStatus.value) {
-    result = result.filter((exec) => exec.status === filterStatus.value);
+    result = result.filter(
+      (exec) => exec.monitorSysGenScriptExecutionStatus === filterStatus.value
+    );
   }
 
   // 按时间范围筛选
   if (dateRange.value && dateRange.value.length === 2) {
     const [start, end] = dateRange.value;
     result = result.filter((exec) => {
-      const execTime = new Date(exec.startTime);
+      const execTime = new Date(
+        exec.monitorSysGenScriptExecutionStartTime ||
+          exec.monitorSysGenScriptExecutionCreateTime
+      );
       return execTime >= start && execTime <= end;
     });
   }
 
   return result;
+});
+
+// 监听筛选条件变化
+watch([filterStatus, dateRange], () => {
+  currentPage.value = 1; // 重置到第一页
+  loadExecutions();
 });
 
 // 初始化
@@ -215,11 +263,35 @@ onMounted(() => {
 
 // 方法
 const loadExecutions = async () => {
-  loading.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    total.value = executions.value.length;
+    loading.value = true;
+
+    const params: ScriptExecutionPageParams = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    };
+
+    // 添加状态筛选
+    if (filterStatus.value) {
+      params.monitorSysGenScriptExecutionStatus = filterStatus.value;
+    }
+
+    // 添加时间范围筛选
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startTime = dateRange.value[0].toISOString();
+      params.endTime = dateRange.value[1].toISOString();
+    }
+
+    const response = await getScriptExecutionPageList(params);
+
+    if (response.success && response.data) {
+      executions.value = response.data.records;
+      total.value = response.data.total;
+    } else {
+      ElMessage.error("获取执行历史失败");
+    }
   } catch (error) {
+    console.error("加载执行历史失败:", error);
     ElMessage.error("加载执行历史失败");
   } finally {
     loading.value = false;
@@ -233,7 +305,7 @@ const handleRefresh = () => {
 const handleClearHistory = async () => {
   try {
     await ElMessageBox.confirm(
-      "确定要清理所有执行历史吗？此操作不可恢复。",
+      "确定要清理过期的执行历史吗？将清理30天前的记录。",
       "清理确认",
       {
         type: "warning",
@@ -242,8 +314,13 @@ const handleClearHistory = async () => {
       }
     );
 
-    executions.value = [];
-    ElMessage.success("执行历史清理成功");
+    const response = await cleanExpiredExecutions(30);
+    if (response.success) {
+      ElMessage.success(`清理了 ${response.data} 条过期记录`);
+      loadExecutions(); // 重新加载数据
+    } else {
+      ElMessage.error("清理执行历史失败");
+    }
   } catch (error) {
     if (error !== "cancel") {
       ElMessage.error("清理执行历史失败");
@@ -260,8 +337,26 @@ const handleStopExecution = async (execution: any) => {
   }
 };
 
-const handleRerun = (execution: any) => {
+const handleRerun = (execution: ScriptExecution) => {
   ElMessage.info("重新执行功能开发中");
+};
+
+// 查看详情
+const handleViewDetail = (execution: ScriptExecution) => {
+  selectedExecution.value = execution;
+  showDetailDialog.value = true;
+};
+
+// 分页处理
+const handlePageChange = (page: number) => {
+  currentPage.value = page;
+  loadExecutions();
+};
+
+const handlePageSizeChange = (size: number) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+  loadExecutions();
 };
 
 const formatDuration = (duration: number | null) => {
@@ -308,8 +403,10 @@ const getStatusText = (status: string) => {
   return textMap[status] || "未知";
 };
 
-// 临时格式化时间函数
-const formatTime = (date: Date) => {
+// 格式化时间函数
+const formatTime = (dateStr: string | Date) => {
+  if (!dateStr) return "未知";
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
   return date.toLocaleString();
 };
 </script>

@@ -1,0 +1,1695 @@
+<template>
+  <div class="node-documentation">
+    <!-- 顶部导航栏 -->
+    <div class="doc-header">
+      <div class="header-left">
+        <el-button @click="goBack" size="small" type="primary" plain>
+          <i class="ri-arrow-left-line"></i>
+          返回
+        </el-button>
+        <div class="node-info">
+          <i class="ri-server-line"></i>
+          <span class="node-name">{{ nodeInfo.nodeName }}</span>
+          <el-tag
+            size="small"
+            :type="nodeInfo.status === 'ONLINE' ? 'success' : 'danger'"
+          >
+            {{ nodeInfo.status === "ONLINE" ? "在线" : "离线" }}
+          </el-tag>
+        </div>
+      </div>
+      <div class="header-right">
+        <el-button @click="refreshDocs" :loading="loading" size="small">
+          <i class="ri-refresh-line"></i>
+          刷新
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 主体内容 -->
+    <div class="doc-content">
+      <!-- 左侧API列表 -->
+      <div class="doc-sidebar">
+        <div class="sidebar-header">
+          <div class="header-title">
+            <i class="ri-code-box-line"></i>
+            <h3>API接口</h3>
+          </div>
+
+          <!-- 节点地址切换 -->
+          <div class="node-selector" v-if="sameNameNodes.length > 1">
+            <label class="selector-label">节点地址:</label>
+            <el-select
+              v-model="currentNodeAddress"
+              @change="switchNode"
+              size="small"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="node in sameNameNodes"
+                :key="node.address"
+                :label="`${node.address} (${node.status})`"
+                :value="node.address"
+              >
+                <div class="node-option">
+                  <span class="node-address">{{ node.address }}</span>
+                  <el-tag
+                    :type="node.status === 'ONLINE' ? 'success' : 'danger'"
+                    size="small"
+                  >
+                    {{ node.status === "ONLINE" ? "在线" : "离线" }}
+                  </el-tag>
+                </div>
+              </el-option>
+            </el-select>
+          </div>
+
+          <!-- 全局请求头设置 -->
+          <div class="global-headers">
+            <div class="headers-title">
+              <label class="selector-label">全局请求头:</label>
+              <el-button
+                @click="showHeaderDialog = true"
+                size="small"
+                type="primary"
+                plain
+              >
+                <i class="ri-settings-3-line"></i>
+                设置
+              </el-button>
+            </div>
+            <div
+              class="headers-preview"
+              v-if="Object.keys(globalHeaders).length > 0"
+            >
+              <div
+                v-for="(value, key) in globalHeaders"
+                :key="key"
+                class="header-item"
+              >
+                <span class="header-key">{{ key }}:</span>
+                <span class="header-value">{{ value }}</span>
+              </div>
+            </div>
+            <div v-else class="no-headers">
+              <span class="placeholder-text">未设置全局请求头</span>
+            </div>
+          </div>
+
+          <!-- 搜索框 -->
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索接口..."
+            size="small"
+            clearable
+          >
+            <template #prefix>
+              <i class="ri-search-line"></i>
+            </template>
+          </el-input>
+        </div>
+
+        <div class="api-tree">
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="5" animated />
+          </div>
+          <div v-else-if="!apiGroups.length" class="empty-container">
+            <el-empty description="暂无API文档" :image-size="80" />
+          </div>
+          <div v-else class="api-groups">
+            <div
+              v-for="group in filteredApiGroups"
+              :key="group.name"
+              class="api-group"
+            >
+              <div
+                class="group-header"
+                @click="toggleGroup(group.name)"
+                :class="{ expanded: expandedGroups.includes(group.name) }"
+              >
+                <i class="ri-folder-line group-icon"></i>
+                <span class="group-name">{{ group.name }}</span>
+                <span class="api-count">({{ group.apis.length }})</span>
+                <i class="ri-arrow-right-s-line expand-icon"></i>
+              </div>
+
+              <transition name="slide-down">
+                <div
+                  v-show="expandedGroups.includes(group.name)"
+                  class="group-apis"
+                >
+                  <div
+                    v-for="api in group.apis"
+                    :key="api.path + api.method"
+                    class="api-item"
+                    :class="{
+                      active:
+                        selectedApi?.path === api.path &&
+                        selectedApi?.method === api.method,
+                    }"
+                    @click="selectApi(api)"
+                  >
+                    <div class="api-method" :class="api.method.toLowerCase()">
+                      {{ api.method }}
+                    </div>
+                    <div class="api-info">
+                      <div class="api-path">{{ api.path }}</div>
+                      <div class="api-summary">
+                        {{ api.summary || "无描述" }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中间参数面板 -->
+      <div class="doc-params">
+        <div v-if="!selectedApi" class="no-selection">
+          <el-empty description="请选择一个API接口" :image-size="120" />
+        </div>
+        <div v-else class="api-details">
+          <!-- API基本信息 -->
+          <div class="api-header">
+            <div class="api-title">
+              <span
+                class="method-badge"
+                :class="selectedApi.method.toLowerCase()"
+              >
+                {{ selectedApi.method }}
+              </span>
+              <span class="api-path">{{ selectedApi.path }}</span>
+            </div>
+            <div class="api-summary">{{ selectedApi.summary || "无描述" }}</div>
+
+            <!-- 参数控制按钮 -->
+            <div class="param-controls">
+              <el-button-group size="small">
+                <el-button
+                  :type="showOnlyRequired ? 'primary' : ''"
+                  @click="showOnlyRequired = !showOnlyRequired"
+                >
+                  <i class="ri-star-line"></i>
+                  {{ showOnlyRequired ? "显示全部" : "仅必填" }}
+                </el-button>
+                <el-button @click="clearAllParams">
+                  <i class="ri-delete-bin-line"></i>
+                  清空参数
+                </el-button>
+              </el-button-group>
+            </div>
+          </div>
+
+          <!-- 参数表单 -->
+          <div class="params-section">
+            <el-tabs v-model="activeParamTab" class="params-tabs">
+              <!-- 路径参数 -->
+              <el-tab-pane
+                v-if="filteredPathParams.length"
+                label="路径参数"
+                name="path"
+              >
+                <div class="param-list">
+                  <div
+                    v-for="param in filteredPathParams"
+                    :key="param.name"
+                    class="param-item"
+                  >
+                    <label class="param-label">
+                      {{ param.name }}
+                      <span v-if="param.required" class="required">*</span>
+                      <el-tag
+                        v-if="param.required"
+                        type="danger"
+                        size="small"
+                        class="required-tag"
+                        >必填</el-tag
+                      >
+                    </label>
+                    <el-input
+                      v-model="paramValues.path[param.name]"
+                      :placeholder="param.description || `请输入${param.name}`"
+                      size="small"
+                    />
+                    <div class="param-desc">{{ param.description }}</div>
+                  </div>
+                </div>
+              </el-tab-pane>
+
+              <!-- 查询参数 -->
+              <el-tab-pane
+                v-if="filteredQueryParams.length"
+                label="查询参数"
+                name="query"
+              >
+                <div class="param-list">
+                  <div
+                    v-for="param in filteredQueryParams"
+                    :key="param.name"
+                    class="param-item"
+                  >
+                    <label class="param-label">
+                      {{ param.name }}
+                      <span v-if="param.required" class="required">*</span>
+                      <el-tag
+                        v-if="param.required"
+                        type="danger"
+                        size="small"
+                        class="required-tag"
+                        >必填</el-tag
+                      >
+                    </label>
+                    <el-input
+                      v-model="paramValues.query[param.name]"
+                      :placeholder="param.description || `请输入${param.name}`"
+                      size="small"
+                    />
+                    <div class="param-desc">{{ param.description }}</div>
+                  </div>
+                </div>
+              </el-tab-pane>
+
+              <!-- 请求体 -->
+              <el-tab-pane v-if="hasRequestBody" label="请求体" name="body">
+                <div class="body-editor">
+                  <el-input
+                    v-model="requestBody"
+                    type="textarea"
+                    :rows="8"
+                    placeholder="请输入JSON格式的请求体"
+                  />
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+
+            <!-- 执行按钮 -->
+            <div class="execute-section">
+              <el-button
+                type="primary"
+                @click="executeApi"
+                :loading="executing"
+                size="large"
+              >
+                <i class="ri-play-line"></i>
+                执行请求
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧结果面板 -->
+      <div class="doc-result">
+        <div class="result-header">
+          <el-tabs v-model="activeResultTab" class="result-tabs">
+            <el-tab-pane label="执行结果" name="result">
+              <template #label>
+                <span class="tab-label">
+                  <i class="ri-play-circle-line"></i>
+                  执行结果
+                </span>
+              </template>
+            </el-tab-pane>
+            <el-tab-pane label="代码示例" name="examples">
+              <template #label>
+                <span class="tab-label">
+                  <i class="ri-code-s-slash-line"></i>
+                  代码示例
+                </span>
+              </template>
+            </el-tab-pane>
+          </el-tabs>
+          <div class="result-actions">
+            <el-button
+              v-if="activeResultTab === 'result' && lastResponse"
+              @click="copyResponse"
+              size="small"
+            >
+              <i class="ri-file-copy-line"></i>
+              复制结果
+            </el-button>
+            <el-button
+              v-if="activeResultTab === 'examples'"
+              @click="copyCodeExample"
+              size="small"
+            >
+              <i class="ri-file-copy-line"></i>
+              复制代码
+            </el-button>
+            <el-button v-if="lastResponse" @click="clearResponse" size="small">
+              <i class="ri-delete-bin-line"></i>
+              清空
+            </el-button>
+          </div>
+        </div>
+
+        <div class="result-content">
+          <!-- 执行结果标签页 -->
+          <div v-if="activeResultTab === 'result'">
+            <div v-if="!lastResponse" class="no-result">
+              <el-empty description="暂无执行结果" :image-size="100" />
+            </div>
+            <div v-else class="response-container">
+            <!-- 响应状态 -->
+            <div class="response-status">
+              <div class="status-info">
+                <span
+                  class="status-code"
+                  :class="getStatusClass(lastResponse.status)"
+                >
+                  {{ lastResponse.status }}
+                </span>
+                <span class="status-text">{{
+                  getStatusText(lastResponse.status)
+                }}</span>
+              </div>
+              <div class="response-time">
+                <i class="ri-time-line"></i>
+                {{ lastResponse.duration }}ms
+              </div>
+            </div>
+
+            <!-- 响应头 -->
+            <div class="response-headers">
+              <h4>响应头</h4>
+              <div class="headers-content">
+                <div
+                  v-for="(value, key) in lastResponse.headers"
+                  :key="key"
+                  class="header-item"
+                >
+                  <span class="header-key">{{ key }}:</span>
+                  <span class="header-value">{{ value }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 响应体 -->
+            <div class="response-body">
+              <h4>响应体</h4>
+              <div class="body-content">
+                <pre class="json-content">{{
+                  formatJson(lastResponse.data)
+                }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 全局请求头设置对话框 -->
+    <el-dialog
+      v-model="showHeaderDialog"
+      title="全局请求头设置"
+      width="600px"
+      :before-close="handleHeaderDialogClose"
+    >
+      <div class="header-dialog-content">
+        <div class="dialog-description">
+          <p>设置的全局请求头将应用于所有API请求</p>
+        </div>
+
+        <div class="header-list">
+          <div
+            v-for="(header, index) in tempHeaders"
+            :key="index"
+            class="header-row"
+          >
+            <el-input
+              v-model="header.key"
+              placeholder="请求头名称"
+              size="small"
+              style="flex: 1"
+            />
+            <el-input
+              v-model="header.value"
+              placeholder="请求头值"
+              size="small"
+              style="flex: 2; margin-left: 8px"
+            />
+            <el-button
+              @click="removeHeader(index)"
+              size="small"
+              type="danger"
+              plain
+              style="margin-left: 8px"
+            >
+              <i class="ri-delete-bin-line"></i>
+            </el-button>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <el-button @click="addHeader" size="small" type="primary" plain>
+            <i class="ri-add-line"></i>
+            添加请求头
+          </el-button>
+          <el-button
+            @click="addCommonHeaders"
+            size="small"
+            type="success"
+            plain
+          >
+            <i class="ri-magic-line"></i>
+            添加常用请求头
+          </el-button>
+        </div>
+
+        <div class="common-headers-tips">
+          <el-collapse>
+            <el-collapse-item title="常用请求头示例" name="examples">
+              <div class="examples-list">
+                <div class="example-item">
+                  <strong>Authorization:</strong> Bearer your-token-here
+                </div>
+                <div class="example-item">
+                  <strong>Content-Type:</strong> application/json
+                </div>
+                <div class="example-item">
+                  <strong>Accept:</strong> application/json
+                </div>
+                <div class="example-item">
+                  <strong>X-API-Key:</strong> your-api-key
+                </div>
+                <div class="example-item">
+                  <strong>User-Agent:</strong> NodeDocumentation/1.0
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="resetHeaders" size="small">
+            <i class="ri-refresh-line"></i>
+            重置
+          </el-button>
+          <el-button @click="showHeaderDialog = false" size="small">
+            取消
+          </el-button>
+          <el-button @click="saveHeaders" type="primary" size="small">
+            <i class="ri-save-line"></i>
+            保存
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import { fetchNodeApiDocs, executeNodeApi } from "@/api/node-documentation";
+
+// 路由相关
+const route = useRoute();
+const router = useRouter();
+
+// 响应式数据
+const loading = ref(false);
+const executing = ref(false);
+const searchKeyword = ref("");
+const activeParamTab = ref("path");
+
+// 节点信息
+const nodeInfo = reactive({
+  nodeId: route.params.nodeId as string,
+  nodeName: (route.query.nodeName as string) || "未知节点",
+  nodeAddress: (route.query.nodeAddress as string) || "",
+  contextPath: (route.query.contextPath as string) || "",
+  status: "ONLINE",
+});
+
+// 同名节点管理
+const sameNameNodes = ref<
+  Array<{ address: string; status: string; nodeId: string }>
+>([]);
+const currentNodeAddress = ref(nodeInfo.nodeAddress);
+
+// 全局请求头管理
+const globalHeaders = ref<Record<string, string>>({});
+const showHeaderDialog = ref(false);
+const tempHeaders = ref<Array<{ key: string; value: string }>>([]);
+
+// 节点接口定义
+interface NodeOption {
+  address: string;
+  status: string;
+  nodeId: string;
+}
+
+// API文档数据
+const apiGroups = ref<ApiGroup[]>([]);
+const selectedApi = ref<ApiInfo | null>(null);
+const expandedGroups = ref<string[]>([]);
+
+// 参数数据
+const paramValues = reactive({
+  path: {} as Record<string, string>,
+  query: {} as Record<string, string>,
+});
+const requestBody = ref("");
+
+// 响应数据
+const lastResponse = ref<ApiResponse | null>(null);
+
+// 类型定义
+interface ApiGroup {
+  name: string;
+  apis: ApiInfo[];
+}
+
+interface ApiInfo {
+  path: string;
+  method: string;
+  summary?: string;
+  description?: string;
+  parameters?: ApiParameter[];
+  requestBody?: any;
+  responses?: any;
+}
+
+interface ApiParameter {
+  name: string;
+  in: string; // path, query, header, body
+  required: boolean;
+  type: string;
+  description?: string;
+}
+
+interface ApiResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  data: any;
+  duration: number;
+}
+
+// 计算属性
+const filteredApiGroups = computed(() => {
+  if (!searchKeyword.value) return apiGroups.value;
+
+  return apiGroups.value
+    .map((group) => ({
+      ...group,
+      apis: group.apis.filter(
+        (api) =>
+          api.path.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+          api.summary
+            ?.toLowerCase()
+            .includes(searchKeyword.value.toLowerCase()) ||
+          api.method.toLowerCase().includes(searchKeyword.value.toLowerCase())
+      ),
+    }))
+    .filter((group) => group.apis.length > 0);
+});
+
+const pathParams = computed(() => {
+  return selectedApi.value?.parameters?.filter((p) => p.in === "path") || [];
+});
+
+const queryParams = computed(() => {
+  return selectedApi.value?.parameters?.filter((p) => p.in === "query") || [];
+});
+
+const hasRequestBody = computed(() => {
+  return selectedApi.value?.method !== "GET" && selectedApi.value?.requestBody;
+});
+
+// 方法
+const goBack = () => {
+  router.back();
+};
+
+const refreshDocs = async () => {
+  await loadApiDocs();
+};
+
+// 加载同名节点
+const loadSameNameNodes = async () => {
+  try {
+    // 这里应该调用API获取同名节点列表
+    // 暂时使用模拟数据
+    const mockNodes = [
+      {
+        address: nodeInfo.nodeAddress,
+        status: "ONLINE",
+        nodeId: nodeInfo.nodeId,
+      },
+    ];
+
+    // TODO: 实际实现中应该调用后端API
+    // const response = await fetchSameNameNodes(nodeInfo.nodeName);
+    // sameNameNodes.value = response.data || mockNodes;
+
+    sameNameNodes.value = mockNodes;
+  } catch (error) {
+    console.error("加载同名节点失败:", error);
+    sameNameNodes.value = [
+      {
+        address: nodeInfo.nodeAddress,
+        status: "ONLINE",
+        nodeId: nodeInfo.nodeId,
+      },
+    ];
+  }
+};
+
+// 切换节点
+const switchNode = async (newAddress: string) => {
+  const selectedNode = sameNameNodes.value.find(
+    (node) => node.address === newAddress
+  );
+  if (!selectedNode) return;
+
+  // 更新当前节点信息
+  nodeInfo.nodeAddress = newAddress;
+  nodeInfo.nodeId = selectedNode.nodeId;
+  nodeInfo.status = selectedNode.status;
+
+  // 重新加载API文档
+  await loadApiDocs();
+
+  ElMessage.success(`已切换到节点: ${newAddress}`);
+};
+
+const loadApiDocs = async () => {
+  loading.value = true;
+  try {
+    console.log("开始加载API文档:", {
+      nodeId: nodeInfo.nodeId,
+      nodeAddress: nodeInfo.nodeAddress,
+      contextPath: nodeInfo.contextPath,
+    });
+
+    const response = await fetchNodeApiDocs(
+      nodeInfo.nodeId,
+      nodeInfo.nodeAddress,
+      nodeInfo.contextPath
+    );
+
+    console.log("API文档响应:", response);
+
+    if (response.ok) {
+      apiGroups.value = response.data || [];
+      console.log("API分组数据:", apiGroups.value);
+
+      // 默认展开第一个分组
+      if (apiGroups.value.length > 0) {
+        expandedGroups.value = [apiGroups.value[0].name];
+      } else {
+        console.warn("没有获取到API分组数据");
+        // 添加一些模拟数据用于测试
+        apiGroups.value = createMockApiGroups();
+        if (apiGroups.value.length > 0) {
+          expandedGroups.value = [apiGroups.value[0].name];
+        }
+      }
+    } else {
+      console.error("API文档请求失败:", response);
+      ElMessage.error(response.msg || "获取API文档失败");
+
+      // 在失败时也提供模拟数据
+      apiGroups.value = createMockApiGroups();
+      if (apiGroups.value.length > 0) {
+        expandedGroups.value = [apiGroups.value[0].name];
+      }
+    }
+  } catch (error) {
+    console.error("加载API文档异常:", error);
+    ElMessage.error("加载API文档失败: " + (error as Error).message);
+
+    // 异常时也提供模拟数据
+    apiGroups.value = createMockApiGroups();
+    if (apiGroups.value.length > 0) {
+      expandedGroups.value = [apiGroups.value[0].name];
+    }
+  } finally {
+    loading.value = false;
+  }
+};
+
+const toggleGroup = (groupName: string) => {
+  const index = expandedGroups.value.indexOf(groupName);
+  if (index > -1) {
+    expandedGroups.value.splice(index, 1);
+  } else {
+    expandedGroups.value.push(groupName);
+  }
+};
+
+const selectApi = (api: ApiInfo) => {
+  selectedApi.value = api;
+  // 重置参数值
+  paramValues.path = {};
+  paramValues.query = {};
+  requestBody.value = "";
+
+  // 设置默认参数标签页
+  if (pathParams.value.length > 0) {
+    activeParamTab.value = "path";
+  } else if (queryParams.value.length > 0) {
+    activeParamTab.value = "query";
+  } else if (hasRequestBody.value) {
+    activeParamTab.value = "body";
+  }
+};
+
+const executeApi = async () => {
+  if (!selectedApi.value) return;
+
+  executing.value = true;
+  const startTime = Date.now();
+
+  try {
+    const response = await executeNodeApi({
+      nodeId: nodeInfo.nodeId,
+      nodeAddress: nodeInfo.nodeAddress,
+      contextPath: nodeInfo.contextPath,
+      api: selectedApi.value,
+      pathParams: paramValues.path,
+      queryParams: paramValues.query,
+      requestBody: requestBody.value,
+      headers: globalHeaders.value, // 使用全局请求头
+    });
+
+    const duration = Date.now() - startTime;
+
+    lastResponse.value = {
+      status: response.status || 200,
+      statusText: response.statusText || "OK",
+      headers: response.headers || {},
+      data: response.data,
+      duration,
+    };
+
+    if (!response.ok) {
+      ElMessage.warning("请求执行完成，但返回了错误状态");
+    }
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    lastResponse.value = {
+      status: error.status || 500,
+      statusText: error.statusText || "Internal Server Error",
+      headers: error.headers || {},
+      data: error.message || "请求执行失败",
+      duration,
+    };
+    ElMessage.error("请求执行失败");
+  } finally {
+    executing.value = false;
+  }
+};
+
+const copyResponse = () => {
+  if (!lastResponse.value) return;
+
+  const content = JSON.stringify(lastResponse.value.data, null, 2);
+  navigator.clipboard
+    .writeText(content)
+    .then(() => {
+      ElMessage.success("响应内容已复制到剪贴板");
+    })
+    .catch(() => {
+      ElMessage.error("复制失败");
+    });
+};
+
+const clearResponse = () => {
+  lastResponse.value = null;
+};
+
+const getStatusClass = (status: number) => {
+  if (status >= 200 && status < 300) return "success";
+  if (status >= 300 && status < 400) return "warning";
+  if (status >= 400 && status < 500) return "error";
+  if (status >= 500) return "danger";
+  return "info";
+};
+
+const getStatusText = (status: number) => {
+  const statusTexts: Record<number, string> = {
+    200: "OK",
+    201: "Created",
+    204: "No Content",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    500: "Internal Server Error",
+  };
+  return statusTexts[status] || "Unknown";
+};
+
+const formatJson = (data: any) => {
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+};
+
+// 全局请求头管理方法
+const addHeader = () => {
+  tempHeaders.value.push({ key: "", value: "" });
+};
+
+const removeHeader = (index: number) => {
+  tempHeaders.value.splice(index, 1);
+};
+
+const addCommonHeaders = () => {
+  const commonHeaders = [
+    { key: "Content-Type", value: "application/json" },
+    { key: "Accept", value: "application/json" },
+    { key: "Authorization", value: "Bearer " },
+    { key: "X-API-Key", value: "" },
+  ];
+
+  commonHeaders.forEach((header) => {
+    // 检查是否已存在相同的key
+    const exists = tempHeaders.value.some((h) => h.key === header.key);
+    if (!exists) {
+      tempHeaders.value.push({ ...header });
+    }
+  });
+};
+
+const resetHeaders = () => {
+  tempHeaders.value = [];
+  globalHeaders.value = {};
+};
+
+const saveHeaders = () => {
+  // 过滤掉空的请求头
+  const validHeaders: Record<string, string> = {};
+  tempHeaders.value.forEach((header) => {
+    if (header.key.trim() && header.value.trim()) {
+      validHeaders[header.key.trim()] = header.value.trim();
+    }
+  });
+
+  globalHeaders.value = validHeaders;
+  showHeaderDialog.value = false;
+
+  // 保存到本地存储
+  localStorage.setItem("nodeDocGlobalHeaders", JSON.stringify(validHeaders));
+
+  ElMessage.success(`已保存 ${Object.keys(validHeaders).length} 个全局请求头`);
+};
+
+const handleHeaderDialogClose = () => {
+  // 恢复临时数据
+  tempHeaders.value = Object.entries(globalHeaders.value).map(
+    ([key, value]) => ({
+      key,
+      value,
+    })
+  );
+};
+
+const loadGlobalHeaders = () => {
+  try {
+    const saved = localStorage.getItem("nodeDocGlobalHeaders");
+    if (saved) {
+      globalHeaders.value = JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error("加载全局请求头失败:", error);
+  }
+};
+
+// 创建模拟API数据用于测试
+const createMockApiGroups = (): ApiGroup[] => {
+  return [
+    {
+      name: "用户管理",
+      apis: [
+        {
+          path: "/api/users",
+          method: "GET",
+          summary: "获取用户列表",
+          description: "获取系统中所有用户的列表信息",
+          parameters: [
+            {
+              name: "page",
+              in: "query",
+              required: false,
+              type: "integer",
+              description: "页码，默认为1",
+            },
+            {
+              name: "size",
+              in: "query",
+              required: false,
+              type: "integer",
+              description: "每页大小，默认为10",
+            },
+          ],
+        },
+        {
+          path: "/api/users/{id}",
+          method: "GET",
+          summary: "获取用户详情",
+          description: "根据用户ID获取用户详细信息",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              type: "string",
+              description: "用户ID",
+            },
+          ],
+        },
+        {
+          path: "/api/users",
+          method: "POST",
+          summary: "创建用户",
+          description: "创建新的用户账户",
+          parameters: [],
+          requestBody: {
+            type: "object",
+            properties: {
+              username: { type: "string", description: "用户名" },
+              email: { type: "string", description: "邮箱地址" },
+              password: { type: "string", description: "密码" },
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: "系统监控",
+      apis: [
+        {
+          path: "/actuator/health",
+          method: "GET",
+          summary: "健康检查",
+          description: "获取应用程序健康状态",
+          parameters: [],
+        },
+        {
+          path: "/actuator/info",
+          method: "GET",
+          summary: "应用信息",
+          description: "获取应用程序基本信息",
+          parameters: [],
+        },
+        {
+          path: "/actuator/metrics",
+          method: "GET",
+          summary: "系统指标",
+          description: "获取系统性能指标",
+          parameters: [],
+        },
+      ],
+    },
+    {
+      name: "文件管理",
+      apis: [
+        {
+          path: "/api/files",
+          method: "GET",
+          summary: "文件列表",
+          description: "获取文件系统中的文件列表",
+          parameters: [
+            {
+              name: "path",
+              in: "query",
+              required: false,
+              type: "string",
+              description: "文件路径",
+            },
+          ],
+        },
+        {
+          path: "/api/files/upload",
+          method: "POST",
+          summary: "上传文件",
+          description: "上传文件到服务器",
+          parameters: [],
+        },
+      ],
+    },
+  ];
+};
+
+// 生命周期
+onMounted(() => {
+  loadGlobalHeaders();
+  loadSameNameNodes();
+  loadApiDocs();
+});
+
+// 监听搜索关键词变化
+watch(searchKeyword, () => {
+  // 如果有搜索结果，自动展开所有分组
+  if (searchKeyword.value && filteredApiGroups.value.length > 0) {
+    expandedGroups.value = filteredApiGroups.value.map((group) => group.name);
+  }
+});
+
+// 监听对话框打开，初始化临时数据
+watch(showHeaderDialog, (newValue) => {
+  if (newValue) {
+    tempHeaders.value = Object.entries(globalHeaders.value).map(
+      ([key, value]) => ({
+        key,
+        value,
+      })
+    );
+    // 如果没有任何请求头，添加一个空行
+    if (tempHeaders.value.length === 0) {
+      tempHeaders.value.push({ key: "", value: "" });
+    }
+  }
+});
+</script>
+
+<style lang="scss" scoped>
+.node-documentation {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .node-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+
+        i {
+          color: #6b7280;
+        }
+
+        .node-name {
+          color: #111827;
+        }
+      }
+    }
+  }
+
+  .doc-content {
+    flex: 1;
+    display: flex;
+    height: calc(100vh - 73px);
+
+    .doc-sidebar {
+      width: 320px;
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+
+      .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid #f3f4f6;
+
+        h3 {
+          margin: 0 0 16px 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .node-selector {
+          margin-bottom: 16px;
+
+          .selector-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+          }
+
+          .node-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .node-address {
+              font-size: 13px;
+              color: #374151;
+            }
+          }
+        }
+
+        .global-headers {
+          margin-bottom: 16px;
+          padding: 12px;
+          background: #f9fafb;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+
+          .headers-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+
+            .selector-label {
+              font-size: 13px;
+              font-weight: 500;
+              color: #374151;
+            }
+          }
+
+          .headers-preview {
+            .header-item {
+              display: flex;
+              margin-bottom: 4px;
+              font-size: 12px;
+
+              .header-key {
+                font-weight: 500;
+                color: #6b7280;
+                margin-right: 4px;
+              }
+
+              .header-value {
+                color: #374151;
+                word-break: break-all;
+                flex: 1;
+              }
+            }
+          }
+
+          .no-headers {
+            .placeholder-text {
+              font-size: 12px;
+              color: #9ca3af;
+              font-style: italic;
+            }
+          }
+        }
+      }
+
+      .api-tree {
+        flex: 1;
+        overflow-y: auto;
+
+        .loading-container,
+        .empty-container {
+          padding: 40px 20px;
+        }
+
+        .api-groups {
+          .api-group {
+            .group-header {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 12px 20px;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              border-bottom: 1px solid #f3f4f6;
+
+              &:hover {
+                background: #f9fafb;
+              }
+
+              &.expanded {
+                background: #f3f4f6;
+
+                .expand-icon {
+                  transform: rotate(90deg);
+                }
+              }
+
+              .group-icon {
+                color: #6b7280;
+                font-size: 16px;
+              }
+
+              .group-name {
+                flex: 1;
+                font-weight: 500;
+                color: #374151;
+              }
+
+              .api-count {
+                font-size: 12px;
+                color: #9ca3af;
+              }
+
+              .expand-icon {
+                color: #9ca3af;
+                transition: transform 0.2s ease;
+              }
+            }
+
+            .group-apis {
+              .api-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 12px 20px 12px 48px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border-bottom: 1px solid #f9fafb;
+
+                &:hover {
+                  background: #f9fafb;
+                }
+
+                &.active {
+                  background: #eff6ff;
+                  border-left: 3px solid #3b82f6;
+                }
+
+                .api-method {
+                  padding: 2px 8px;
+                  border-radius: 4px;
+                  font-size: 11px;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  min-width: 45px;
+                  text-align: center;
+
+                  &.get {
+                    background: #dcfce7;
+                    color: #166534;
+                  }
+                  &.post {
+                    background: #dbeafe;
+                    color: #1d4ed8;
+                  }
+                  &.put {
+                    background: #fef3c7;
+                    color: #92400e;
+                  }
+                  &.delete {
+                    background: #fee2e2;
+                    color: #dc2626;
+                  }
+                  &.patch {
+                    background: #f3e8ff;
+                    color: #7c3aed;
+                  }
+                }
+
+                .api-info {
+                  flex: 1;
+                  min-width: 0;
+
+                  .api-path {
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: #374151;
+                    word-break: break-all;
+                  }
+
+                  .api-summary {
+                    font-size: 12px;
+                    color: #6b7280;
+                    margin-top: 2px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .doc-params {
+      flex: 1;
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+
+      .no-selection {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .api-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+
+        .api-header {
+          padding: 24px;
+          border-bottom: 1px solid #f3f4f6;
+
+          .api-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+
+            .method-badge {
+              padding: 4px 12px;
+              border-radius: 6px;
+              font-size: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+
+              &.get {
+                background: #dcfce7;
+                color: #166534;
+              }
+              &.post {
+                background: #dbeafe;
+                color: #1d4ed8;
+              }
+              &.put {
+                background: #fef3c7;
+                color: #92400e;
+              }
+              &.delete {
+                background: #fee2e2;
+                color: #dc2626;
+              }
+              &.patch {
+                background: #f3e8ff;
+                color: #7c3aed;
+              }
+            }
+
+            .api-path {
+              font-size: 18px;
+              font-weight: 600;
+              color: #111827;
+              font-family: "Monaco", "Menlo", monospace;
+            }
+          }
+
+          .api-summary {
+            color: #6b7280;
+            font-size: 14px;
+          }
+        }
+
+        .params-section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+
+          .params-tabs {
+            flex: 1;
+            padding: 0 24px;
+
+            :deep(.el-tabs__content) {
+              height: calc(100% - 40px);
+              overflow-y: auto;
+            }
+
+            .param-list {
+              .param-item {
+                margin-bottom: 20px;
+
+                .param-label {
+                  display: block;
+                  margin-bottom: 6px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  color: #374151;
+
+                  .required {
+                    color: #dc2626;
+                    margin-left: 4px;
+                  }
+                }
+
+                .param-desc {
+                  margin-top: 4px;
+                  font-size: 12px;
+                  color: #6b7280;
+                }
+              }
+            }
+
+            .body-editor {
+              height: 200px;
+
+              :deep(.el-textarea__inner) {
+                font-family: "Monaco", "Menlo", monospace;
+                font-size: 13px;
+              }
+            }
+          }
+
+          .execute-section {
+            padding: 24px;
+            border-top: 1px solid #f3f4f6;
+            text-align: center;
+          }
+        }
+      }
+    }
+
+    .doc-result {
+      width: 400px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f3f4f6;
+
+        h3 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .result-actions {
+          display: flex;
+          gap: 8px;
+        }
+      }
+
+      .result-content {
+        flex: 1;
+        overflow-y: auto;
+
+        .no-result {
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .response-container {
+          padding: 20px 24px;
+
+          .response-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+
+            .status-info {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              .status-code {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-weight: 600;
+                font-size: 12px;
+
+                &.success {
+                  background: #dcfce7;
+                  color: #166534;
+                }
+                &.warning {
+                  background: #fef3c7;
+                  color: #92400e;
+                }
+                &.error {
+                  background: #fee2e2;
+                  color: #dc2626;
+                }
+                &.danger {
+                  background: #fee2e2;
+                  color: #dc2626;
+                }
+                &.info {
+                  background: #e0e7ff;
+                  color: #3730a3;
+                }
+              }
+
+              .status-text {
+                font-size: 14px;
+                color: #374151;
+              }
+            }
+
+            .response-time {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 12px;
+              color: #6b7280;
+            }
+          }
+
+          .response-headers,
+          .response-body {
+            margin-bottom: 20px;
+
+            h4 {
+              margin: 0 0 12px 0;
+              font-size: 14px;
+              font-weight: 600;
+              color: #374151;
+            }
+
+            .headers-content {
+              background: #f9fafb;
+              border-radius: 6px;
+              padding: 12px;
+              font-size: 12px;
+
+              .header-item {
+                margin-bottom: 4px;
+
+                .header-key {
+                  font-weight: 500;
+                  color: #374151;
+                }
+
+                .header-value {
+                  color: #6b7280;
+                  margin-left: 8px;
+                }
+              }
+            }
+
+            .body-content {
+              .json-content {
+                background: #1f2937;
+                color: #f9fafb;
+                padding: 16px;
+                border-radius: 6px;
+                font-family: "Monaco", "Menlo", monospace;
+                font-size: 12px;
+                line-height: 1.5;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-break: break-all;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// 动画效果
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.slide-down-enter-to,
+.slide-down-leave-from {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+// 全局请求头对话框样式
+.header-dialog-content {
+  .dialog-description {
+    margin-bottom: 20px;
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  }
+
+  .header-list {
+    margin-bottom: 16px;
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+  }
+
+  .header-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .common-headers-tips {
+    .examples-list {
+      .example-item {
+        padding: 8px 12px;
+        background: #f9fafb;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-family: "Monaco", "Menlo", monospace;
+
+        strong {
+          color: #374151;
+        }
+      }
+    }
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+</style>
