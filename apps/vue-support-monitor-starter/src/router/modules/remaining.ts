@@ -13,16 +13,7 @@ export default [
       rank: 101,
     },
   },
-  {
-    path: "/service/document/:id",
-    name: "serviceDocument",
-    component: () => import("@/views/monitor/service/app/document/index.vue"),
-    meta: {
-      icon: "ri:file-list-line",
-      title: $t("buttons.monitor.service-document"),
-      showLink: false,
-    },
-  },
+
   {
     path: "/AccountSettings",
     name: "AccountSettings",
@@ -43,16 +34,7 @@ export default [
       showLink: false,
     },
   },
-  {
-    path: "/datav",
-    name: "datav",
-    component: () => import("@/views/monitor/service/dashboard/index.vue"),
-    meta: {
-      icon: "ep:setting",
-      title: $t("buttons.monitor.datav"),
-      showLink: false,
-    },
-  },
+
   {
     path: "/database/manage",
     name: "manageIndex",
@@ -74,12 +56,12 @@ export default [
     },
   },
   {
-    path: "/service/app/monitor",
-    name: "serviceAppMonitor",
-    component: () => import("@/views/monitor/service/app/monitor/index.vue"),
+    path: "/node/documentation/:nodeId",
+    name: "nodeDocumentation",
+    component: () => import("@/views/node-documentation/index.vue"),
     meta: {
-      icon: "ep:setting",
-      title: $t("buttons.monitor.datav"),
+      icon: "ri:file-text-line",
+      title: "节点API文档",
       showLink: false,
     },
   },

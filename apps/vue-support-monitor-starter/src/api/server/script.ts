@@ -330,17 +330,11 @@ export function importScript(file: File) {
 
 /**
  * 分页查询脚本执行记录列表
- * @param scriptId 脚本ID
- * @param pageNum 页码
- * @param pageSize 页大小
+ * @param params 查询参数
  * @returns 执行记录分页数据
  */
-export function getScriptExecutionPageList(
-  scriptId: number,
-  pageNum: number = 1,
-  pageSize: number = 10
-) {
-  // 后端返回的是IPage<ScriptExecuteResponseDTO>格式
+export function getScriptExecutionPageList(params: ScriptExecutionPageParams) {
+  // 后端返回的是IPage<MonitorSysGenScriptExecution>格式
   return http.request<
     ReturnResult<{
       records: ScriptExecution[];
@@ -348,9 +342,44 @@ export function getScriptExecutionPageList(
       current: number;
       size: number;
     }>
-  >("get", `script/${scriptId}/executions`, {
-    params: { pageNum, pageSize },
+  >("get", "script/execution/history", {
+    params: {
+      pageNum: params.page || 1,
+      pageSize: params.pageSize || 10,
+      scriptId: params.monitorSysGenScriptId,
+      serverId: params.monitorSysGenServerId,
+      status: params.monitorSysGenScriptExecutionStatus,
+      triggerType: params.monitorSysGenScriptExecutionTriggerType,
+      triggerUser: params.monitorSysGenScriptExecutionTriggerUser,
+      startTime: params.startTime,
+      endTime: params.endTime,
+    },
   });
+}
+
+/**
+ * 获取所有脚本执行历史（不分页）
+ * @param params 查询参数
+ * @returns 执行记录列表
+ */
+export function getAllScriptExecutionHistory(
+  params?: Partial<ScriptExecutionPageParams>
+) {
+  return http.request<ReturnResult<ScriptExecution[]>>(
+    "get",
+    "script/execution/history/all",
+    {
+      params: {
+        scriptId: params?.monitorSysGenScriptId,
+        serverId: params?.monitorSysGenServerId,
+        status: params?.monitorSysGenScriptExecutionStatus,
+        triggerType: params?.monitorSysGenScriptExecutionTriggerType,
+        triggerUser: params?.monitorSysGenScriptExecutionTriggerUser,
+        startTime: params?.startTime,
+        endTime: params?.endTime,
+      },
+    }
+  );
 }
 
 /**
@@ -478,10 +507,45 @@ export function getScriptExecutionOutput(id: number) {
  * @returns 统计数据
  */
 export function getScriptExecutionStatistics(scriptId?: number) {
-  return http.request<ReturnResult<any>>(
+  return http.request<ReturnResult<any>>("get", "script/execution/statistics", {
+    params: scriptId ? { scriptId } : undefined,
+  });
+}
+
+/**
+ * 获取正在运行的脚本执行记录
+ * @returns 正在运行的执行记录列表
+ */
+export function getRunningScriptExecutions() {
+  return http.request<ReturnResult<ScriptExecution[]>>(
     "get",
-    "v1/gen/server-script-execution/statistics",
-    { params: scriptId ? { scriptId } : undefined }
+    "script/execution/running"
+  );
+}
+
+/**
+ * 清理过期的执行记录
+ * @param days 保留天数
+ * @returns 清理结果
+ */
+export function cleanExpiredExecutions(days: number) {
+  return http.request<ReturnResult<number>>(
+    "delete",
+    "script/execution/clean",
+    { params: { days } }
+  );
+}
+
+/**
+ * 批量删除执行记录
+ * @param executionIds 执行记录ID列表
+ * @returns 删除结果
+ */
+export function batchDeleteExecutions(executionIds: number[]) {
+  return http.request<ReturnResult<boolean>>(
+    "delete",
+    "script/execution/batch",
+    { data: executionIds }
   );
 }
 
