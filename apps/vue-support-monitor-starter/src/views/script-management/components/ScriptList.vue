@@ -49,7 +49,7 @@
       >
         <!-- 卡片头部 -->
         <div class="card-header">
-          <div class="script-info">
+          <div class="script-info flex flex-row">
             <div class="script-name">{{ script.monitorSysGenScriptName }}</div>
             <div class="script-type">
               <el-tag
@@ -91,9 +91,6 @@
 
         <!-- 卡片内容 -->
         <div class="card-content">
-          <div class="script-description">
-            {{ script.monitorSysGenScriptDescription || "暂无描述" }}
-          </div>
           <div class="script-stats">
             <div class="stat-item">
               <IconifyIconOnline icon="ri:time-line" />
@@ -339,16 +336,39 @@ const formatTime = (date: Date) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f9fafb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(248, 250, 252, 0.85) 100%
+    );
+    backdrop-filter: blur(20px);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 20px 32px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
   .toolbar-left {
     display: flex;
@@ -413,85 +433,111 @@ const formatTime = (date: Date) => {
 
 .script-cards {
   flex: 1;
-  padding: 24px;
+  padding: 32px;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
   align-content: start;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    padding: 16px;
-    gap: 16px;
+    padding: 20px;
+    gap: 20px;
   }
 
-  @media (min-width: 1200px) {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+  @media (min-width: 1400px) {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 28px;
   }
 }
 
 .script-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  border: none;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    border-color: #d1d5db;
+    transform: translateY(-6px);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.25),
+      0 10px 10px rgba(0, 0, 0, 0.22);
+
+    &::before {
+      opacity: 1;
+    }
   }
-}
 
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 24px 24px 16px;
+    padding: 28px 28px 20px;
+    background: transparent;
 
     .script-info {
       flex: 1;
 
       .script-name {
-        font-size: 18px;
-        font-weight: 600;
-        color: #111827;
-        margin-bottom: 10px;
-        line-height: 1.3;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 12px;
+        line-height: 1.2;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .script-type {
         .el-tag {
-          border-radius: 20px;
-          font-weight: 500;
-          font-size: 12px;
+          border-radius: 24px;
+          font-weight: 600;
+          font-size: 11px;
           border: none;
-          padding: 6px 12px;
+          padding: 8px 16px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
           &.el-tag--primary {
-            background: #dbeafe;
-            color: #1e40af;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
           }
 
           &.el-tag--success {
-            background: #d1fae5;
-            color: #065f46;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: #ffffff;
           }
 
           &.el-tag--warning {
-            background: #fef3c7;
-            color: #92400e;
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: #ffffff;
           }
 
           &.el-tag--info {
-            background: #e5e7eb;
-            color: #374151;
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: #ffffff;
           }
         }
       }
@@ -512,36 +558,46 @@ const formatTime = (date: Date) => {
   }
 
   .card-content {
-    padding: 0 24px 20px;
+    padding: 0 28px 24px;
 
     .script-description {
-      color: #6b7280;
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 16px;
+      color: #4a5568;
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 20px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      min-height: 44px;
+      min-height: 51px;
+      font-weight: 400;
     }
 
     .script-stats {
       display: flex;
-      gap: 16px;
+      gap: 20px;
       align-items: center;
 
       .stat-item {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        color: #6b7280;
+        gap: 8px;
+        font-size: 14px;
+        color: #718096;
+        background: rgba(102, 126, 234, 0.08);
+        padding: 8px 12px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: rgba(102, 126, 234, 0.15);
+          transform: translateY(-1px);
+        }
 
         .iconify {
           font-size: 16px;
-          color: #9ca3af;
+          color: #667eea;
         }
       }
     }
@@ -551,57 +607,72 @@ const formatTime = (date: Date) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px 20px;
-    border-top: 1px solid #f3f4f6;
+    padding: 20px 28px 28px;
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.02) 0%,
+      rgba(118, 75, 162, 0.02) 100%
+    );
+    border-top: 1px solid rgba(102, 126, 234, 0.1);
 
     .script-status {
       .el-tag {
-        border-radius: 20px;
-        font-weight: 500;
-        font-size: 12px;
+        border-radius: 24px;
+        font-weight: 600;
+        font-size: 11px;
         border: none;
-        padding: 6px 12px;
+        padding: 8px 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
         &.el-tag--success {
-          background: #d1fae5;
-          color: #065f46;
+          background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+          color: #ffffff;
         }
 
         &.el-tag--info {
-          background: #e5e7eb;
-          color: #374151;
+          background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+          color: #ffffff;
         }
       }
     }
 
     .quick-actions {
       display: flex;
-      gap: 8px;
+      gap: 12px;
 
       .el-button {
-        border-radius: 8px;
-        font-weight: 500;
+        border-radius: 12px;
+        font-weight: 600;
         font-size: 12px;
-        padding: 8px 16px;
-        transition: all 0.2s ease;
-        border: 1px solid #d1d5db;
-        background: #ffffff;
-        color: #6b7280;
+        padding: 10px 20px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
 
         &:hover {
-          background: #f9fafb;
-          border-color: #9ca3af;
-          color: #374151;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         &.el-button--primary {
-          background: #3b82f6;
-          border-color: #3b82f6;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: #ffffff;
 
           &:hover {
-            background: #2563eb;
-            border-color: #2563eb;
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+          }
+        }
+
+        &:not(.el-button--primary) {
+          background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+          color: #4a5568;
+
+          &:hover {
+            background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
           }
         }
       }
