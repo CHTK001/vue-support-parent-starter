@@ -32,6 +32,7 @@ export interface ApiExecuteRequest {
   pathParams: Record<string, string>;
   queryParams: Record<string, string>;
   requestBody: string;
+  headers?: Record<string, string>;
 }
 
 export interface ApiResponse {
@@ -45,17 +46,25 @@ export interface ApiResponse {
 /**
  * 获取节点API文档
  */
-export const fetchNodeApiDocs = (nodeId: string, nodeAddress: string, contextPath: string) => {
-  return http.request<ReturnResult<ApiGroup[]>>("get", "/v1/monitor/nodes/api-docs", {
-    params: {
-      nodeId,
-      nodeAddress,
-      contextPath
-    },
-    headers: {
-      "x-remote-animation": "false",
-    },
-  });
+export const fetchNodeApiDocs = (
+  nodeId: string,
+  nodeAddress: string,
+  contextPath: string
+) => {
+  return http.request<ReturnResult<ApiGroup[]>>(
+    "get",
+    "/v1/monitor/nodes/api-docs",
+    {
+      params: {
+        nodeId,
+        nodeAddress,
+        contextPath,
+      },
+      headers: {
+        "x-remote-animation": "false",
+      },
+    }
+  );
 };
 
 /**
@@ -74,20 +83,28 @@ export const executeNodeApi = (request: ApiExecuteRequest) => {
  * 获取节点健康状态
  */
 export const getNodeHealth = (nodeId: string) => {
-  return http.request<ReturnResult<any>>("get", `/v1/monitor/nodes/${nodeId}/health`, {
-    headers: {
-      "x-remote-animation": "false",
-    },
-  });
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/monitor/nodes/${nodeId}/health`,
+    {
+      headers: {
+        "x-remote-animation": "false",
+      },
+    }
+  );
 };
 
 /**
  * 获取节点基本信息
  */
 export const getNodeInfo = (nodeId: string) => {
-  return http.request<ReturnResult<any>>("get", `/v1/monitor/nodes/${nodeId}/info`, {
-    headers: {
-      "x-remote-animation": "false",
-    },
-  });
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/monitor/nodes/${nodeId}/info`,
+    {
+      headers: {
+        "x-remote-animation": "false",
+      },
+    }
+  );
 };

@@ -226,8 +226,9 @@
                         type="danger"
                         size="small"
                         class="required-tag"
-                        >必填</el-tag
                       >
+                        必填
+                      </el-tag>
                     </label>
                     <el-input
                       v-model="paramValues.path[param.name]"
@@ -259,8 +260,9 @@
                         type="danger"
                         size="small"
                         class="required-tag"
-                        >必填</el-tag
                       >
+                        必填
+                      </el-tag>
                     </label>
                     <el-input
                       v-model="paramValues.query[param.name]"
@@ -353,153 +355,349 @@
               <el-empty description="暂无执行结果" :image-size="100" />
             </div>
             <div v-else class="response-container">
-            <!-- 响应状态 -->
-            <div class="response-status">
-              <div class="status-info">
-                <span
-                  class="status-code"
-                  :class="getStatusClass(lastResponse.status)"
-                >
-                  {{ lastResponse.status }}
-                </span>
-                <span class="status-text">{{
-                  getStatusText(lastResponse.status)
-                }}</span>
+              <!-- 响应状态 -->
+              <div class="response-status">
+                <div class="status-info">
+                  <span
+                    class="status-code"
+                    :class="getStatusClass(lastResponse.status)"
+                  >
+                    {{ lastResponse.status }}
+                  </span>
+                  <span class="status-text">{{
+                    getStatusText(lastResponse.status)
+                  }}</span>
+                </div>
+                <div class="response-time">
+                  <i class="ri-time-line"></i>
+                  {{ lastResponse.duration }}ms
+                </div>
               </div>
-              <div class="response-time">
-                <i class="ri-time-line"></i>
-                {{ lastResponse.duration }}ms
-              </div>
-            </div>
 
-            <!-- 响应头 -->
-            <div class="response-headers">
-              <h4>响应头</h4>
-              <div class="headers-content">
-                <div
-                  v-for="(value, key) in lastResponse.headers"
-                  :key="key"
-                  class="header-item"
-                >
-                  <span class="header-key">{{ key }}:</span>
-                  <span class="header-value">{{ value }}</span>
+              <!-- 响应头 -->
+              <div class="response-headers">
+                <div class="section-header" @click="toggleHeadersCollapse">
+                  <h4>
+                    <i class="ri-file-list-3-line"></i>
+                    响应头
+                    <span
+                      v-if="
+                        lastResponse.headers &&
+                        Object.keys(lastResponse.headers).length > 0
+                      "
+                      class="header-count"
+                    >
+                      ({{ Object.keys(lastResponse.headers).length }})
+                    </span>
+                  </h4>
+                  <div class="header-actions">
+                    <el-button
+                      size="small"
+                      text
+                      @click.stop="copyHeaders"
+                      v-if="
+                        lastResponse.headers &&
+                        Object.keys(lastResponse.headers).length > 0
+                      "
+                    >
+                      <i class="ri-file-copy-line"></i>
+                      复制
+                    </el-button>
+                    <el-button
+                      size="small"
+                      text
+                      @click.stop="toggleHeadersCollapse"
+                      class="collapse-btn"
+                    >
+                      <i
+                        :class="
+                          headersCollapsed
+                            ? 'ri-arrow-down-s-line'
+                            : 'ri-arrow-up-s-line'
+                        "
+                      ></i>
+                    </el-button>
+                  </div>
+                </div>
+                <el-collapse-transition>
+                  <div v-show="!headersCollapsed" class="headers-content">
+                    <div
+                      v-if="
+                        !lastResponse.headers ||
+                        Object.keys(lastResponse.headers).length === 0
+                      "
+                      class="empty-state"
+                    >
+                      <i class="ri-inbox-line"></i>
+                      <span>无响应头信息</span>
+                    </div>
+                    <div v-else class="headers-table">
+                      <div
+                        v-for="(value, key) in lastResponse.headers"
+                        :key="key"
+                        class="header-row"
+                      >
+                        <div class="header-key">{{ key }}</div>
+                        <div class="header-value">{{ value }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </el-collapse-transition>
+              </div>
+
+              <!-- 响应体 -->
+              <div class="response-body">
+                <div class="section-header">
+                  <h4>
+                    <i class="ri-code-box-line"></i>
+                    响应体
+                    <span v-if="getContentType()" class="content-type-badge">
+                      {{ getContentType() }}
+                    </span>
+                  </h4>
+                  <div class="body-actions">
+                    <el-button
+                      size="small"
+                      text
+                      @click="copyResponseBody"
+                      v-if="lastResponse.data"
+                    >
+                      <i class="ri-file-copy-line"></i>
+                      复制
+                    </el-button>
+                    <el-button
+                      size="small"
+                      text
+                      @click="downloadResponse"
+                      v-if="lastResponse.data"
+                    >
+                      <i class="ri-download-line"></i>
+                      下载
+                    </el-button>
+                  </div>
+                </div>
+                <div class="body-content">
+                  <div v-if="!lastResponse.data" class="empty-state">
+                    <i class="ri-inbox-line"></i>
+                    <span>无响应体内容</span>
+                  </div>
+                  <!-- JSON 内容 -->
+                  <div v-else-if="isJsonContent()" class="json-viewer">
+                    <codemirror-editor-vue3
+                      v-model:value="formattedResponseData"
+                      :options="jsonEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                  </div>
+                  <!-- 图片内容 -->
+                  <div v-else-if="isImageContent()" class="image-viewer">
+                    <img
+                      :src="getImageSrc()"
+                      alt="响应图片"
+                      class="response-image"
+                      @error="handleImageError"
+                    />
+                  </div>
+                  <!-- HTML 内容 -->
+                  <div v-else-if="isHtmlContent()" class="html-viewer">
+                    <codemirror-editor-vue3
+                      v-model:value="lastResponse.data"
+                      :options="htmlEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                  </div>
+                  <!-- XML 内容 -->
+                  <div v-else-if="isXmlContent()" class="xml-viewer">
+                    <codemirror-editor-vue3
+                      v-model:value="formattedXmlData"
+                      :options="xmlEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                  </div>
+                  <!-- 纯文本内容 -->
+                  <div v-else class="text-viewer">
+                    <codemirror-editor-vue3
+                      v-model:value="lastResponse.data"
+                      :options="textEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- 响应体 -->
-            <div class="response-body">
-              <h4>响应体</h4>
-              <div class="body-content">
-                <pre class="json-content">{{
-                  formatJson(lastResponse.data)
-                }}</pre>
+            <!-- 代码示例标签页 -->
+            <div v-if="activeResultTab === 'examples'" class="code-examples">
+              <div v-if="!selectedApi" class="no-selection">
+                <el-empty description="请选择一个API接口" :image-size="100" />
+              </div>
+              <div v-else class="examples-container">
+                <div class="examples-header">
+                  <h4>
+                    <i class="ri-code-s-slash-line"></i>
+                    代码示例
+                  </h4>
+                  <el-button
+                    size="small"
+                    @click="copyCodeExample"
+                    type="primary"
+                  >
+                    <i class="ri-file-copy-line"></i>
+                    复制代码
+                  </el-button>
+                </div>
+                <el-tabs v-model="activeLanguageTab" class="language-tabs">
+                  <el-tab-pane label="Java" name="java">
+                    <div class="code-block">
+                      <div class="code-content">
+                        <pre v-if="javaCode">{{ javaCode }}</pre>
+                        <div v-else style="padding: 20px; color: #666">
+                          正在生成Java代码...
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="JavaScript" name="javascript">
+                    <div class="code-block">
+                      <div class="code-content">
+                        <pre v-if="javascriptCode">{{ javascriptCode }}</pre>
+                        <div v-else style="padding: 20px; color: #666">
+                          正在生成JavaScript代码...
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="Python" name="python">
+                    <div class="code-block">
+                      <div class="code-content">
+                        <pre v-if="pythonCode">{{ pythonCode }}</pre>
+                        <div v-else style="padding: 20px; color: #666">
+                          正在生成Python代码...
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="cURL" name="curl">
+                    <div class="code-block">
+                      <div class="code-content">
+                        <pre v-if="curlCode">{{ curlCode }}</pre>
+                        <div v-else style="padding: 20px; color: #666">
+                          正在生成cURL代码...
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 全局请求头设置对话框 -->
-    <el-dialog
-      v-model="showHeaderDialog"
-      title="全局请求头设置"
-      width="600px"
-      :before-close="handleHeaderDialogClose"
-    >
-      <div class="header-dialog-content">
-        <div class="dialog-description">
-          <p>设置的全局请求头将应用于所有API请求</p>
-        </div>
+      <!-- 全局请求头设置对话框 -->
+      <el-dialog
+        v-model="showHeaderDialog"
+        title="全局请求头设置"
+        width="600px"
+        :before-close="handleHeaderDialogClose"
+      >
+        <div class="header-dialog-content">
+          <div class="dialog-description">
+            <p>设置的全局请求头将应用于所有API请求</p>
+          </div>
 
-        <div class="header-list">
-          <div
-            v-for="(header, index) in tempHeaders"
-            :key="index"
-            class="header-row"
-          >
-            <el-input
-              v-model="header.key"
-              placeholder="请求头名称"
-              size="small"
-              style="flex: 1"
-            />
-            <el-input
-              v-model="header.value"
-              placeholder="请求头值"
-              size="small"
-              style="flex: 2; margin-left: 8px"
-            />
-            <el-button
-              @click="removeHeader(index)"
-              size="small"
-              type="danger"
-              plain
-              style="margin-left: 8px"
+          <div class="header-list">
+            <div
+              v-for="(header, index) in tempHeaders"
+              :key="index"
+              class="header-row"
             >
-              <i class="ri-delete-bin-line"></i>
+              <el-input
+                v-model="header.key"
+                placeholder="请求头名称"
+                size="small"
+                style="flex: 1"
+              />
+              <el-input
+                v-model="header.value"
+                placeholder="请求头值"
+                size="small"
+                style="flex: 2; margin-left: 8px"
+              />
+              <el-button
+                @click="removeHeader(index)"
+                size="small"
+                type="danger"
+                plain
+                style="margin-left: 8px"
+              >
+                <i class="ri-delete-bin-line"></i>
+              </el-button>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <el-button @click="addHeader" size="small" type="primary" plain>
+              <i class="ri-add-line"></i>
+              添加请求头
+            </el-button>
+            <el-button
+              @click="addCommonHeaders"
+              size="small"
+              type="success"
+              plain
+            >
+              <i class="ri-magic-line"></i>
+              添加常用请求头
             </el-button>
           </div>
+
+          <div class="common-headers-tips">
+            <el-collapse>
+              <el-collapse-item title="常用请求头示例" name="examples">
+                <div class="examples-list">
+                  <div class="example-item">
+                    <strong>Authorization:</strong> Bearer your-token-here
+                  </div>
+                  <div class="example-item">
+                    <strong>Content-Type:</strong> application/json
+                  </div>
+                  <div class="example-item">
+                    <strong>Accept:</strong> application/json
+                  </div>
+                  <div class="example-item">
+                    <strong>X-API-Key:</strong> your-api-key
+                  </div>
+                  <div class="example-item">
+                    <strong>User-Agent:</strong> NodeDocumentation/1.0
+                  </div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
         </div>
 
-        <div class="header-actions">
-          <el-button @click="addHeader" size="small" type="primary" plain>
-            <i class="ri-add-line"></i>
-            添加请求头
-          </el-button>
-          <el-button
-            @click="addCommonHeaders"
-            size="small"
-            type="success"
-            plain
-          >
-            <i class="ri-magic-line"></i>
-            添加常用请求头
-          </el-button>
-        </div>
-
-        <div class="common-headers-tips">
-          <el-collapse>
-            <el-collapse-item title="常用请求头示例" name="examples">
-              <div class="examples-list">
-                <div class="example-item">
-                  <strong>Authorization:</strong> Bearer your-token-here
-                </div>
-                <div class="example-item">
-                  <strong>Content-Type:</strong> application/json
-                </div>
-                <div class="example-item">
-                  <strong>Accept:</strong> application/json
-                </div>
-                <div class="example-item">
-                  <strong>X-API-Key:</strong> your-api-key
-                </div>
-                <div class="example-item">
-                  <strong>User-Agent:</strong> NodeDocumentation/1.0
-                </div>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="resetHeaders" size="small">
-            <i class="ri-refresh-line"></i>
-            重置
-          </el-button>
-          <el-button @click="showHeaderDialog = false" size="small">
-            取消
-          </el-button>
-          <el-button @click="saveHeaders" type="primary" size="small">
-            <i class="ri-save-line"></i>
-            保存
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="resetHeaders" size="small">
+              <i class="ri-refresh-line"></i>
+              重置
+            </el-button>
+            <el-button @click="showHeaderDialog = false" size="small">
+              取消
+            </el-button>
+            <el-button @click="saveHeaders" type="primary" size="small">
+              <i class="ri-save-line"></i>
+              保存
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -508,6 +706,9 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { fetchNodeApiDocs, executeNodeApi } from "@/api/node-documentation";
+import CodemirrorEditorVue3 from "codemirror-editor-vue3";
+import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
 
 // 路由相关
 const route = useRoute();
@@ -518,6 +719,9 @@ const loading = ref(false);
 const executing = ref(false);
 const searchKeyword = ref("");
 const activeParamTab = ref("path");
+const activeResultTab = ref("result");
+const activeLanguageTab = ref("java");
+const showOnlyRequired = ref(false);
 
 // 节点信息
 const nodeInfo = reactive({
@@ -560,6 +764,7 @@ const requestBody = ref("");
 
 // 响应数据
 const lastResponse = ref<ApiResponse | null>(null);
+const headersCollapsed = ref(true); // 默认折叠响应头
 
 // 类型定义
 interface ApiGroup {
@@ -618,6 +823,16 @@ const pathParams = computed(() => {
 
 const queryParams = computed(() => {
   return selectedApi.value?.parameters?.filter((p) => p.in === "query") || [];
+});
+
+const filteredPathParams = computed(() => {
+  const params = pathParams.value;
+  return showOnlyRequired.value ? params.filter((p) => p.required) : params;
+});
+
+const filteredQueryParams = computed(() => {
+  const params = queryParams.value;
+  return showOnlyRequired.value ? params.filter((p) => p.required) : params;
 });
 
 const hasRequestBody = computed(() => {
@@ -698,7 +913,7 @@ const loadApiDocs = async () => {
 
     console.log("API文档响应:", response);
 
-    if (response.ok) {
+    if (response.success) {
       apiGroups.value = response.data || [];
       console.log("API分组数据:", apiGroups.value);
 
@@ -783,16 +998,32 @@ const executeApi = async () => {
 
     const duration = Date.now() - startTime;
 
-    lastResponse.value = {
-      status: response.status || 200,
-      statusText: response.statusText || "OK",
-      headers: response.headers || {},
-      data: response.data,
-      duration,
-    };
+    // 检查响应是否成功
+    if ((response as any).success && (response as any).data) {
+      const apiResponse = (response as any).data;
+      lastResponse.value = {
+        status: apiResponse.status || 200,
+        statusText: apiResponse.statusText || "OK",
+        headers: apiResponse.headers || {},
+        data: apiResponse.data,
+        duration,
+      };
 
-    if (!response.ok) {
-      ElMessage.warning("请求执行完成，但返回了错误状态");
+      if (apiResponse.status >= 400) {
+        ElMessage.warning("请求执行完成，但返回了错误状态");
+      } else {
+        ElMessage.success("API执行成功");
+      }
+    } else {
+      // 如果响应不成功，显示错误信息
+      lastResponse.value = {
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: {},
+        data: (response as any).msg || "API执行失败",
+        duration,
+      };
+      ElMessage.error((response as any).msg || "API执行失败");
     }
   } catch (error: any) {
     const duration = Date.now() - startTime;
@@ -827,6 +1058,42 @@ const clearResponse = () => {
   lastResponse.value = null;
 };
 
+const clearAllParams = () => {
+  paramValues.path = {};
+  paramValues.query = {};
+  requestBody.value = "";
+  ElMessage.success("已清空所有参数");
+};
+
+const copyCodeExample = () => {
+  let code = "";
+  switch (activeLanguageTab.value) {
+    case "java":
+      code = javaCode.value;
+      break;
+    case "javascript":
+      code = javascriptCode.value;
+      break;
+    case "python":
+      code = pythonCode.value;
+      break;
+    case "curl":
+      code = curlCode.value;
+      break;
+    default:
+      code = javaCode.value;
+  }
+
+  navigator.clipboard
+    .writeText(code)
+    .then(() => {
+      ElMessage.success("代码已复制到剪贴板");
+    })
+    .catch(() => {
+      ElMessage.error("复制失败");
+    });
+};
+
 const getStatusClass = (status: number) => {
   if (status >= 200 && status < 300) return "success";
   if (status >= 300 && status < 400) return "warning";
@@ -849,12 +1116,248 @@ const getStatusText = (status: number) => {
   return statusTexts[status] || "Unknown";
 };
 
-const formatJson = (data: any) => {
-  try {
-    return JSON.stringify(data, null, 2);
-  } catch {
-    return String(data);
+// 代码生成方法
+const generateJavaCode = () => {
+  if (!selectedApi.value) return "";
+
+  const api = selectedApi.value;
+  const baseUrl = `http://${nodeInfo.nodeAddress}${nodeInfo.contextPath}`;
+  let url = baseUrl + api.path;
+
+  // 替换路径参数
+  Object.entries(paramValues.path).forEach(([key, value]) => {
+    url = url.replace(`{${key}}`, value || `{${key}}`);
+  });
+
+  // 构建查询参数
+  const queryString = Object.entries(paramValues.query)
+    .filter(([_, value]) => value)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&");
+
+  if (queryString) {
+    url += `?${queryString}`;
   }
+
+  let code = `// Java - 使用 RestTemplate
+@Autowired
+private RestTemplate restTemplate;
+
+public void callApi() {
+    String url = "${url}";
+
+    // 设置请求头
+    HttpHeaders headers = new HttpHeaders();`;
+
+  // 添加全局请求头
+  Object.entries(globalHeaders.value).forEach(([key, value]) => {
+    code += `\n    headers.set("${key}", "${value}");`;
+  });
+
+  if (api.method === "GET") {
+    code += `
+
+    HttpEntity<String> entity = new HttpEntity<>(headers);
+    ResponseEntity<String> response = restTemplate.exchange(
+        url, HttpMethod.GET, entity, String.class);
+
+    System.out.println("Response: " + response.getBody());
+}`;
+  } else {
+    code += `
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    // 请求体
+    String requestBody = ${requestBody.value ? `"${requestBody.value.replace(/"/g, '\\"')}"` : '"{}"'};
+
+    HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+    ResponseEntity<String> response = restTemplate.exchange(
+        url, HttpMethod.${api.method}, entity, String.class);
+
+    System.out.println("Response: " + response.getBody());
+}`;
+  }
+
+  return code;
+};
+
+const generateJavaScriptCode = () => {
+  if (!selectedApi.value) return "";
+
+  const api = selectedApi.value;
+  const baseUrl = `http://${nodeInfo.nodeAddress}${nodeInfo.contextPath}`;
+  let url = baseUrl + api.path;
+
+  // 替换路径参数
+  Object.entries(paramValues.path).forEach(([key, value]) => {
+    url = url.replace(`{${key}}`, value || `{${key}}`);
+  });
+
+  // 构建查询参数
+  const queryString = Object.entries(paramValues.query)
+    .filter(([_, value]) => value)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&");
+
+  if (queryString) {
+    url += `?${queryString}`;
+  }
+
+  let code = `// JavaScript - 使用 fetch API
+const callApi = async () => {
+    const url = '${url}';
+
+    const options = {
+        method: '${api.method}',
+        headers: {`;
+
+  // 添加全局请求头
+  Object.entries(globalHeaders.value).forEach(([key, value]) => {
+    code += `\n            '${key}': '${value}',`;
+  });
+
+  if (api.method !== "GET" && requestBody.value) {
+    code += `\n            'Content-Type': 'application/json',`;
+    code += `
+        },
+        body: JSON.stringify(${requestBody.value || "{}"})
+    };`;
+  } else {
+    code += `
+        }
+    };`;
+  }
+
+  code += `
+
+    try {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        console.log('Response:', data);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+callApi();`;
+
+  return code;
+};
+
+const generatePythonCode = () => {
+  if (!selectedApi.value) return "";
+
+  const api = selectedApi.value;
+  const baseUrl = `http://${nodeInfo.nodeAddress}${nodeInfo.contextPath}`;
+  let url = baseUrl + api.path;
+
+  // 替换路径参数
+  Object.entries(paramValues.path).forEach(([key, value]) => {
+    url = url.replace(`{${key}}`, value || `{${key}}`);
+  });
+
+  // 构建查询参数
+  const queryParams = Object.entries(paramValues.query)
+    .filter(([_, value]) => value)
+    .reduce(
+      (acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+
+  let code = `# Python - 使用 requests 库
+import requests
+import json
+
+def call_api():
+    url = "${url}"
+
+    # 请求头
+    headers = {`;
+
+  // 添加全局请求头
+  Object.entries(globalHeaders.value).forEach(([key, value]) => {
+    code += `\n        "${key}": "${value}",`;
+  });
+
+  code += `
+    }
+
+    # 查询参数
+    params = ${JSON.stringify(queryParams, null, 8)}`;
+
+  if (api.method === "GET") {
+    code += `
+
+    response = requests.get(url, headers=headers, params=params)
+
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {response.json()}")`;
+  } else {
+    code += `
+
+    # 请求体
+    data = ${requestBody.value || "{}"}
+
+    response = requests.${api.method.toLowerCase()}(
+        url,
+        headers=headers,
+        params=params,
+        json=data
+    )
+
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {response.json()}")`;
+  }
+
+  code += `
+
+if __name__ == "__main__":
+    call_api()`;
+
+  return code;
+};
+
+const generateCurlCode = () => {
+  if (!selectedApi.value) return "";
+
+  const api = selectedApi.value;
+  const baseUrl = `http://${nodeInfo.nodeAddress}${nodeInfo.contextPath}`;
+  let url = baseUrl + api.path;
+
+  // 替换路径参数
+  Object.entries(paramValues.path).forEach(([key, value]) => {
+    url = url.replace(`{${key}}`, value || `{${key}}`);
+  });
+
+  // 构建查询参数
+  const queryString = Object.entries(paramValues.query)
+    .filter(([_, value]) => value)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&");
+
+  if (queryString) {
+    url += `?${queryString}`;
+  }
+
+  let code = `curl -X ${api.method} \\
+  "${url}"`;
+
+  // 添加全局请求头
+  Object.entries(globalHeaders.value).forEach(([key, value]) => {
+    code += ` \\
+  -H "${key}: ${value}"`;
+  });
+
+  if (api.method !== "GET" && requestBody.value) {
+    code += ` \\
+  -H "Content-Type: application/json" \\
+  -d '${requestBody.value}'`;
+  }
+
+  return code;
 };
 
 // 全局请求头管理方法
@@ -1043,6 +1546,235 @@ const createMockApiGroups = (): ApiGroup[] => {
   ];
 };
 
+// 响应内容处理方法
+const getContentType = () => {
+  if (!lastResponse.value?.headers) return "";
+
+  const contentType =
+    lastResponse.value.headers["content-type"] ||
+    lastResponse.value.headers["Content-Type"] ||
+    "";
+
+  // 提取主要的content-type，去掉charset等参数
+  return contentType.split(";")[0].trim();
+};
+
+const isJsonContent = () => {
+  const contentType = getContentType();
+  return (
+    contentType.includes("application/json") ||
+    contentType.includes("text/json") ||
+    typeof lastResponse.value?.data === "object"
+  );
+};
+
+const isImageContent = () => {
+  const contentType = getContentType();
+  return contentType.startsWith("image/");
+};
+
+const isHtmlContent = () => {
+  const contentType = getContentType();
+  return contentType.includes("text/html");
+};
+
+const isXmlContent = () => {
+  const contentType = getContentType();
+  return (
+    contentType.includes("application/xml") || contentType.includes("text/xml")
+  );
+};
+
+const getImageSrc = () => {
+  if (!lastResponse.value?.data) return "";
+
+  // 如果是base64数据
+  if (
+    typeof lastResponse.value.data === "string" &&
+    lastResponse.value.data.startsWith("data:")
+  ) {
+    return lastResponse.value.data;
+  }
+
+  // 如果是二进制数据，需要转换为blob URL
+  // 这里简化处理，实际项目中需要根据具体情况处理
+  return "";
+};
+
+const handleImageError = () => {
+  ElMessage.error("图片加载失败");
+};
+
+// 格式化响应数据
+const formattedResponseData = computed(() => {
+  if (!lastResponse.value?.data) return "";
+
+  if (typeof lastResponse.value.data === "string") {
+    try {
+      const parsed = JSON.parse(lastResponse.value.data);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return lastResponse.value.data;
+    }
+  }
+
+  return JSON.stringify(lastResponse.value.data, null, 2);
+});
+
+const formattedXmlData = computed(() => {
+  if (!lastResponse.value?.data) return "";
+
+  // 简单的XML格式化，实际项目中可以使用专门的XML格式化库
+  let xml = String(lastResponse.value.data);
+  xml = xml.replace(/></g, ">\n<");
+  return xml;
+});
+
+// 代码示例计算属性
+const javaCode = computed(() => generateJavaCode());
+const javascriptCode = computed(() => generateJavaScriptCode());
+const pythonCode = computed(() => generatePythonCode());
+const curlCode = computed(() => generateCurlCode());
+
+// CodeMirror编辑器配置
+const jsonEditorOptions = {
+  mode: "application/json",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const htmlEditorOptions = {
+  mode: "text/html",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const xmlEditorOptions = {
+  mode: "application/xml",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const textEditorOptions = {
+  mode: "text/plain",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  lineWrapping: true,
+};
+
+const codeEditorOptions = {
+  mode: "text/x-java",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const bashEditorOptions = {
+  mode: "shell",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  lineWrapping: true,
+};
+
+// 复制和下载方法
+const copyHeaders = () => {
+  if (!lastResponse.value?.headers) return;
+
+  const headersText = Object.entries(lastResponse.value.headers)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
+
+  navigator.clipboard
+    .writeText(headersText)
+    .then(() => {
+      ElMessage.success("响应头已复制到剪贴板");
+    })
+    .catch(() => {
+      ElMessage.error("复制失败");
+    });
+};
+
+const copyResponseBody = () => {
+  if (!lastResponse.value?.data) return;
+
+  let content = "";
+  if (typeof lastResponse.value.data === "string") {
+    content = lastResponse.value.data;
+  } else {
+    content = JSON.stringify(lastResponse.value.data, null, 2);
+  }
+
+  navigator.clipboard
+    .writeText(content)
+    .then(() => {
+      ElMessage.success("响应体已复制到剪贴板");
+    })
+    .catch(() => {
+      ElMessage.error("复制失败");
+    });
+};
+
+const downloadResponse = () => {
+  if (!lastResponse.value?.data) return;
+
+  let content = "";
+  let filename = "response";
+  let mimeType = "text/plain";
+
+  const contentType = getContentType();
+
+  if (isJsonContent()) {
+    content = formattedResponseData.value;
+    filename = "response.json";
+    mimeType = "application/json";
+  } else if (isXmlContent()) {
+    content = formattedXmlData.value;
+    filename = "response.xml";
+    mimeType = "application/xml";
+  } else if (isHtmlContent()) {
+    content = String(lastResponse.value.data);
+    filename = "response.html";
+    mimeType = "text/html";
+  } else {
+    content = String(lastResponse.value.data);
+    filename = "response.txt";
+  }
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  ElMessage.success(`已下载响应内容: ${filename}`);
+};
+
+// 响应头折叠切换
+const toggleHeadersCollapse = () => {
+  headersCollapsed.value = !headersCollapsed.value;
+};
+
 // 生命周期
 onMounted(() => {
   loadGlobalHeaders();
@@ -1119,23 +1851,66 @@ watch(showHeaderDialog, (newValue) => {
     flex: 1;
     display: flex;
     height: calc(100vh - 73px);
+    gap: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px;
 
     .doc-sidebar {
       width: 320px;
       background: white;
-      border-right: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow:
+        0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 20px 40px -10px rgba(0, 0, 0, 0.15),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
 
       .sidebar-header {
-        padding: 20px;
-        border-bottom: 1px solid #f3f4f6;
+        padding: 28px 24px;
+        border-bottom: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        position: relative;
 
-        h3 {
-          margin: 0 0 16px 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #111827;
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+        }
+
+        .header-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+
+          i {
+            font-size: 20px;
+          }
+
+          h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+          }
         }
 
         .node-selector {
@@ -1270,48 +2045,106 @@ watch(showHeaderDialog, (newValue) => {
                 display: flex;
                 align-items: flex-start;
                 gap: 12px;
-                padding: 12px 20px 12px 48px;
+                padding: 16px 20px 16px 48px;
                 cursor: pointer;
-                transition: all 0.2s ease;
-                border-bottom: 1px solid #f9fafb;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-bottom: 1px solid #f1f5f9;
+                margin: 2px 8px;
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+
+                &::before {
+                  content: "";
+                  position: absolute;
+                  top: 0;
+                  left: -100%;
+                  width: 100%;
+                  height: 100%;
+                  background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.6),
+                    transparent
+                  );
+                  transition: left 0.5s ease;
+                }
 
                 &:hover {
-                  background: #f9fafb;
+                  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                  transform: translateX(4px);
+                  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+                  border-bottom-color: transparent;
+
+                  &::before {
+                    left: 100%;
+                  }
                 }
 
                 &.active {
-                  background: #eff6ff;
-                  border-left: 3px solid #3b82f6;
+                  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                  border-left: 4px solid #3b82f6;
+                  transform: translateX(2px);
+                  box-shadow: 0 4px 15px -4px rgba(59, 130, 246, 0.25);
+                  border-bottom-color: transparent;
                 }
 
                 .api-method {
-                  padding: 2px 8px;
-                  border-radius: 4px;
+                  padding: 4px 12px;
+                  border-radius: 20px;
                   font-size: 11px;
-                  font-weight: 600;
+                  font-weight: 700;
                   text-transform: uppercase;
-                  min-width: 45px;
+                  min-width: 50px;
                   text-align: center;
+                  letter-spacing: 0.5px;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                  transition: all 0.2s ease;
 
                   &.get {
-                    background: #dcfce7;
+                    background: linear-gradient(
+                      135deg,
+                      #dcfce7 0%,
+                      #bbf7d0 100%
+                    );
                     color: #166534;
+                    border: 1px solid #86efac;
                   }
                   &.post {
-                    background: #dbeafe;
+                    background: linear-gradient(
+                      135deg,
+                      #dbeafe 0%,
+                      #bfdbfe 100%
+                    );
                     color: #1d4ed8;
+                    border: 1px solid #93c5fd;
                   }
                   &.put {
-                    background: #fef3c7;
+                    background: linear-gradient(
+                      135deg,
+                      #fef3c7 0%,
+                      #fde68a 100%
+                    );
                     color: #92400e;
+                    border: 1px solid #fcd34d;
                   }
                   &.delete {
-                    background: #fee2e2;
+                    background: linear-gradient(
+                      135deg,
+                      #fee2e2 0%,
+                      #fecaca 100%
+                    );
                     color: #dc2626;
+                    border: 1px solid #f87171;
                   }
                   &.patch {
-                    background: #f3e8ff;
+                    background: linear-gradient(
+                      135deg,
+                      #f3e8ff 0%,
+                      #e9d5ff 100%
+                    );
                     color: #7c3aed;
+                    border: 1px solid #c4b5fd;
                   }
                 }
 
@@ -1343,11 +2176,22 @@ watch(showHeaderDialog, (newValue) => {
     }
 
     .doc-params {
-      flex: 1;
+      width: 380px;
       background: white;
-      border-right: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow:
+        0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 20px 40px -10px rgba(0, 0, 0, 0.15),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
 
       .no-selection {
         flex: 1;
@@ -1362,8 +2206,26 @@ watch(showHeaderDialog, (newValue) => {
         flex-direction: column;
 
         .api-header {
-          padding: 24px;
-          border-bottom: 1px solid #f3f4f6;
+          padding: 28px 24px;
+          border-bottom: none;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          border-radius: 16px 16px 0 0;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(148, 163, 184, 0.3),
+              transparent
+            );
+          }
 
           .api-title {
             display: flex;
@@ -1414,6 +2276,17 @@ watch(showHeaderDialog, (newValue) => {
           }
         }
 
+        .param-controls {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #f1f5f9;
+
+          .el-button-group {
+            display: flex;
+            gap: 8px;
+          }
+        }
+
         .params-section {
           flex: 1;
           display: flex;
@@ -1442,6 +2315,10 @@ watch(showHeaderDialog, (newValue) => {
                   .required {
                     color: #dc2626;
                     margin-left: 4px;
+                  }
+
+                  .required-tag {
+                    margin-left: 8px;
                   }
                 }
 
@@ -1473,23 +2350,62 @@ watch(showHeaderDialog, (newValue) => {
     }
 
     .doc-result {
-      width: 400px;
+      flex: 1;
+      min-width: 0; // 确保能够收缩
       background: white;
+      border-radius: 16px;
+      box-shadow:
+        0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
+      transition: all 0.3s ease;
+      overflow: hidden;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 20px 40px -10px rgba(0, 0, 0, 0.15),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
 
       .result-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 24px;
-        border-bottom: 1px solid #f3f4f6;
+        padding: 24px 28px;
+        border-bottom: none;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 16px 16px 0 0;
+        position: relative;
 
-        h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #111827;
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(148, 163, 184, 0.3),
+            transparent
+          );
+        }
+
+        .result-tabs {
+          flex: 1;
+
+          .tab-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            i {
+              font-size: 16px;
+            }
+          }
         }
 
         .result-actions {
@@ -1571,48 +2487,214 @@ watch(showHeaderDialog, (newValue) => {
 
           .response-headers,
           .response-body {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
 
-            h4 {
-              margin: 0 0 12px 0;
-              font-size: 14px;
-              font-weight: 600;
-              color: #374151;
+            .section-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 16px;
+              padding: 12px 16px;
+              border-radius: 8px 8px 0 0;
+              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+              border: 1px solid #e2e8f0;
+              cursor: pointer;
+              transition: all 0.2s ease;
+
+              &:hover {
+                background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+              }
+
+              h4 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1f2937;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+
+                i {
+                  color: #6366f1;
+                  font-size: 18px;
+                }
+
+                .header-count {
+                  background: #6366f1;
+                  color: white;
+                  padding: 2px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 500;
+                  margin-left: 8px;
+                }
+
+                .content-type-badge {
+                  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                  color: white;
+                  padding: 4px 12px;
+                  border-radius: 20px;
+                  font-size: 12px;
+                  font-weight: 500;
+                  margin-left: 12px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+              }
+
+              .header-actions,
+              .body-actions {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+
+                .collapse-btn {
+                  padding: 4px 8px;
+
+                  i {
+                    font-size: 16px;
+                    transition: transform 0.2s ease;
+                  }
+                }
+              }
             }
 
             .headers-content {
-              background: #f9fafb;
-              border-radius: 6px;
-              padding: 12px;
-              font-size: 12px;
+              .empty-state {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 40px 20px;
+                color: #9ca3af;
+                background: #f9fafb;
+                border-radius: 12px;
+                border: 2px dashed #e5e7eb;
 
-              .header-item {
-                margin-bottom: 4px;
-
-                .header-key {
-                  font-weight: 500;
-                  color: #374151;
+                i {
+                  font-size: 32px;
+                  margin-bottom: 8px;
+                  opacity: 0.6;
                 }
 
-                .header-value {
-                  color: #6b7280;
-                  margin-left: 8px;
+                span {
+                  font-size: 14px;
+                }
+              }
+
+              .headers-table {
+                background: #f8fafc;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+
+                .header-row {
+                  display: grid;
+                  grid-template-columns: 1fr 2fr;
+                  border-bottom: 1px solid #e2e8f0;
+                  transition: background-color 0.2s ease;
+
+                  &:hover {
+                    background: #f1f5f9;
+                  }
+
+                  &:last-child {
+                    border-bottom: none;
+                  }
+
+                  .header-key {
+                    padding: 12px 16px;
+                    font-weight: 600;
+                    color: #374151;
+                    background: #f1f5f9;
+                    border-right: 1px solid #e2e8f0;
+                    font-family: "Monaco", "Menlo", monospace;
+                    font-size: 13px;
+                  }
+
+                  .header-value {
+                    padding: 12px 16px;
+                    color: #6b7280;
+                    font-family: "Monaco", "Menlo", monospace;
+                    font-size: 13px;
+                    word-break: break-all;
+                  }
                 }
               }
             }
 
             .body-content {
-              .json-content {
-                background: #1f2937;
-                color: #f9fafb;
-                padding: 16px;
-                border-radius: 6px;
-                font-family: "Monaco", "Menlo", monospace;
-                font-size: 12px;
-                line-height: 1.5;
-                overflow-x: auto;
-                white-space: pre-wrap;
-                word-break: break-all;
+              .empty-state {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 60px 20px;
+                color: #9ca3af;
+                background: #f9fafb;
+                border-radius: 12px;
+                border: 2px dashed #e5e7eb;
+
+                i {
+                  font-size: 48px;
+                  margin-bottom: 12px;
+                  opacity: 0.6;
+                }
+
+                span {
+                  font-size: 16px;
+                }
+              }
+
+              .json-viewer,
+              .html-viewer,
+              .xml-viewer,
+              .text-viewer {
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+                :deep(.CodeMirror) {
+                  height: 400px;
+                  font-family: "Monaco", "Menlo", "Consolas", monospace;
+                  font-size: 13px;
+                  line-height: 1.5;
+                }
+
+                :deep(.CodeMirror-scroll) {
+                  padding: 16px;
+                }
+
+                :deep(.CodeMirror-gutters) {
+                  background: #f8fafc;
+                  border-right: 1px solid #e2e8f0;
+                }
+
+                :deep(.CodeMirror-linenumber) {
+                  color: #9ca3af;
+                  padding: 0 8px;
+                }
+              }
+
+              .image-viewer {
+                background: #f9fafb;
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+                border: 1px solid #e2e8f0;
+
+                .response-image {
+                  max-width: 100%;
+                  max-height: 400px;
+                  border-radius: 8px;
+                  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                  transition: transform 0.2s ease;
+
+                  &:hover {
+                    transform: scale(1.02);
+                  }
+                }
               }
             }
           }
@@ -1691,5 +2773,92 @@ watch(showHeaderDialog, (newValue) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+// 代码示例样式
+.code-examples {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+
+  .examples-container {
+    height: 100%;
+
+    .examples-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f1f5f9;
+
+      h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        i {
+          color: #6366f1;
+          font-size: 20px;
+        }
+      }
+    }
+
+    .language-tabs {
+      height: calc(100% - 80px);
+
+      :deep(.el-tabs__header) {
+        margin-bottom: 16px;
+      }
+
+      :deep(.el-tabs__content) {
+        height: calc(100% - 60px);
+      }
+
+      :deep(.el-tab-pane) {
+        height: 100%;
+      }
+
+      .code-block {
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+        :deep(.CodeMirror) {
+          height: 100%;
+          font-family: "Monaco", "Menlo", "Consolas", monospace;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        :deep(.CodeMirror-scroll) {
+          padding: 16px;
+        }
+
+        :deep(.CodeMirror-gutters) {
+          background: #f8fafc;
+          border-right: 1px solid #e2e8f0;
+        }
+
+        :deep(.CodeMirror-linenumber) {
+          color: #9ca3af;
+          padding: 0 8px;
+        }
+      }
+    }
+  }
+
+  .no-selection {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
 }
 </style>
