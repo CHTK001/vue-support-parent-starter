@@ -339,7 +339,7 @@ const formatTime = (date: Date) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #f9fafb;
 }
 
 .toolbar {
@@ -434,112 +434,64 @@ const formatTime = (date: Date) => {
 
 .script-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   position: relative;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(102, 126, 234, 0.03) 0%,
-      rgba(118, 75, 162, 0.03) 100%
-    );
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-  }
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow:
-      0 10px 25px rgba(102, 126, 234, 0.15),
-      0 4px 10px rgba(0, 0, 0, 0.1);
-    border-color: rgba(102, 126, 234, 0.2);
-
-    &::before {
-      opacity: 1;
-    }
-
-    &::after {
-      opacity: 1;
-    }
-
-    .card-header .script-info .script-name {
-      color: #3b82f6;
-    }
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
   }
+}
 
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 20px 20px 16px;
-    background: #ffffff;
-    position: relative;
-    z-index: 1;
+    padding: 24px 24px 16px;
 
     .script-info {
       flex: 1;
 
       .script-name {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 8px;
-        line-height: 1.4;
-        transition: color 0.3s ease;
+        color: #111827;
+        margin-bottom: 10px;
+        line-height: 1.3;
       }
 
       .script-type {
         .el-tag {
-          border-radius: 6px;
+          border-radius: 20px;
           font-weight: 500;
           font-size: 12px;
           border: none;
-          padding: 4px 8px;
+          padding: 6px 12px;
 
           &.el-tag--primary {
-            background: #f0f9ff;
-            color: #0369a1;
+            background: #dbeafe;
+            color: #1e40af;
           }
 
           &.el-tag--success {
-            background: #f0fdf4;
-            color: #166534;
+            background: #d1fae5;
+            color: #065f46;
           }
 
           &.el-tag--warning {
-            background: #fffbeb;
-            color: #d97706;
+            background: #fef3c7;
+            color: #92400e;
           }
 
           &.el-tag--info {
-            background: #f8fafc;
-            color: #475569;
+            background: #e5e7eb;
+            color: #374151;
           }
         }
       }
@@ -560,49 +512,36 @@ const formatTime = (date: Date) => {
   }
 
   .card-content {
-    padding: 0 20px 16px;
-    position: relative;
-    z-index: 1;
+    padding: 0 24px 20px;
 
     .script-description {
-      color: #64748b;
+      color: #6b7280;
       font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 12px;
+      line-height: 1.6;
+      margin-bottom: 16px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      min-height: 42px;
+      min-height: 44px;
     }
 
     .script-stats {
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
 
       .stat-item {
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: #64748b;
-        background: #f8fafc;
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: #f1f5f9;
-          border-color: #cbd5e1;
-          color: #475569;
-        }
+        gap: 6px;
+        font-size: 13px;
+        color: #6b7280;
 
         .iconify {
-          font-size: 14px;
-          opacity: 0.7;
+          font-size: 16px;
+          color: #9ca3af;
         }
       }
     }
@@ -612,28 +551,25 @@ const formatTime = (date: Date) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px 16px;
-    background: #f8fafc;
-    border-top: 1px solid #f1f5f9;
-    position: relative;
-    z-index: 1;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #f3f4f6;
 
     .script-status {
       .el-tag {
-        border-radius: 6px;
+        border-radius: 20px;
         font-weight: 500;
         font-size: 12px;
         border: none;
-        padding: 4px 8px;
+        padding: 6px 12px;
 
         &.el-tag--success {
-          background: #dcfce7;
-          color: #166534;
+          background: #d1fae5;
+          color: #065f46;
         }
 
         &.el-tag--info {
-          background: #f1f5f9;
-          color: #475569;
+          background: #e5e7eb;
+          color: #374151;
         }
       }
     }
@@ -643,20 +579,19 @@ const formatTime = (date: Date) => {
       gap: 8px;
 
       .el-button {
-        border-radius: 6px;
+        border-radius: 8px;
         font-weight: 500;
         font-size: 12px;
-        padding: 6px 12px;
+        padding: 8px 16px;
         transition: all 0.2s ease;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #d1d5db;
         background: #ffffff;
-        color: #64748b;
+        color: #6b7280;
 
         &:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-          color: #475569;
-          transform: translateY(-1px);
+          background: #f9fafb;
+          border-color: #9ca3af;
+          color: #374151;
         }
 
         &.el-button--primary {
