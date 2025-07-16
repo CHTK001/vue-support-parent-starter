@@ -529,175 +529,214 @@
                 </div>
               </div>
             </div>
-
-            <!-- 代码示例标签页 -->
-            <div v-if="activeResultTab === 'examples'" class="code-examples">
-              <div v-if="!selectedApi" class="no-selection">
-                <el-empty description="请选择一个API接口" :image-size="100" />
+          </div>
+          <!-- 代码示例标签页 -->
+          <div v-if="activeResultTab === 'examples'" class="code-examples">
+            <div v-if="!selectedApi" class="no-selection">
+              <el-empty description="请选择一个API接口" :image-size="100" />
+            </div>
+            <div v-else class="examples-container">
+              <div class="examples-header">
+                <h4>
+                  <i class="ri-code-s-slash-line"></i>
+                  代码示例
+                </h4>
+                <el-button size="small" @click="copyCodeExample" type="primary">
+                  <i class="ri-file-copy-line"></i>
+                  复制代码
+                </el-button>
               </div>
-              <div v-else class="examples-container">
-                <div class="examples-header">
-                  <h4>
-                    <i class="ri-code-s-slash-line"></i>
-                    代码示例
-                  </h4>
-                  <el-button
-                    size="small"
-                    @click="copyCodeExample"
-                    type="primary"
-                  >
-                    <i class="ri-file-copy-line"></i>
-                    复制代码
-                  </el-button>
-                </div>
-                <el-tabs v-model="activeLanguageTab" class="language-tabs">
-                  <el-tab-pane label="Java" name="java">
-                    <div class="code-block">
-                      <div class="code-content">
-                        <pre v-if="javaCode">{{ javaCode }}</pre>
-                        <div v-else style="padding: 20px; color: #666">
-                          正在生成Java代码...
-                        </div>
-                      </div>
+              <el-tabs v-model="activeLanguageTab" class="language-tabs">
+                <el-tab-pane label="Java" name="java">
+                  <div class="code-block">
+                    <codemirror-editor-vue3
+                      v-if="javaCode"
+                      v-model:value="javaCode"
+                      :options="javaEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                    <div v-else class="empty-code">
+                      <el-empty
+                        :description="
+                          selectedApi
+                            ? '正在生成Java代码...'
+                            : '请先选择一个API接口'
+                        "
+                        :image-size="80"
+                      />
                     </div>
-                  </el-tab-pane>
-                  <el-tab-pane label="JavaScript" name="javascript">
-                    <div class="code-block">
-                      <div class="code-content">
-                        <pre v-if="javascriptCode">{{ javascriptCode }}</pre>
-                        <div v-else style="padding: 20px; color: #666">
-                          正在生成JavaScript代码...
-                        </div>
-                      </div>
+                  </div>
+                </el-tab-pane>
+                <el-tab-pane label="JavaScript" name="javascript">
+                  <div class="code-block">
+                    <codemirror-editor-vue3
+                      v-if="javascriptCode"
+                      v-model:value="javascriptCode"
+                      :options="javascriptEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                    <div v-else class="empty-code">
+                      <el-empty
+                        :description="
+                          selectedApi
+                            ? '正在生成JavaScript代码...'
+                            : '请先选择一个API接口'
+                        "
+                        :image-size="80"
+                      />
                     </div>
-                  </el-tab-pane>
-                  <el-tab-pane label="Python" name="python">
-                    <div class="code-block">
-                      <div class="code-content">
-                        <pre v-if="pythonCode">{{ pythonCode }}</pre>
-                        <div v-else style="padding: 20px; color: #666">
-                          正在生成Python代码...
-                        </div>
-                      </div>
+                  </div>
+                </el-tab-pane>
+                <el-tab-pane label="Python" name="python">
+                  <div class="code-block">
+                    <codemirror-editor-vue3
+                      v-if="pythonCode"
+                      v-model:value="pythonCode"
+                      :options="pythonEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                    <div v-else class="empty-code">
+                      <el-empty
+                        :description="
+                          selectedApi
+                            ? '正在生成Python代码...'
+                            : '请先选择一个API接口'
+                        "
+                        :image-size="80"
+                      />
                     </div>
-                  </el-tab-pane>
-                  <el-tab-pane label="cURL" name="curl">
-                    <div class="code-block">
-                      <div class="code-content">
-                        <pre v-if="curlCode">{{ curlCode }}</pre>
-                        <div v-else style="padding: 20px; color: #666">
-                          正在生成cURL代码...
-                        </div>
-                      </div>
+                  </div>
+                </el-tab-pane>
+                <el-tab-pane label="cURL" name="curl">
+                  <div class="code-block">
+                    <codemirror-editor-vue3
+                      v-if="curlCode"
+                      v-model:value="curlCode"
+                      :options="shellEditorOptions"
+                      height="400px"
+                      :read-only="true"
+                    />
+                    <div v-else class="empty-code">
+                      <el-empty
+                        :description="
+                          selectedApi
+                            ? '正在生成cURL代码...'
+                            : '请先选择一个API接口'
+                        "
+                        :image-size="80"
+                      />
                     </div>
-                  </el-tab-pane>
-                </el-tabs>
-              </div>
+                  </div>
+                </el-tab-pane>
+              </el-tabs>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 全局请求头设置对话框 -->
-      <el-dialog
-        v-model="showHeaderDialog"
-        title="全局请求头设置"
-        width="600px"
-        :before-close="handleHeaderDialogClose"
-      >
-        <div class="header-dialog-content">
-          <div class="dialog-description">
-            <p>设置的全局请求头将应用于所有API请求</p>
-          </div>
+    <!-- 全局请求头设置对话框 -->
+    <el-dialog
+      v-model="showHeaderDialog"
+      title="全局请求头设置"
+      width="600px"
+      :before-close="handleHeaderDialogClose"
+    >
+      <div class="header-dialog-content">
+        <div class="dialog-description">
+          <p>设置的全局请求头将应用于所有API请求</p>
+        </div>
 
-          <div class="header-list">
-            <div
-              v-for="(header, index) in tempHeaders"
-              :key="index"
-              class="header-row"
-            >
-              <el-input
-                v-model="header.key"
-                placeholder="请求头名称"
-                size="small"
-                style="flex: 1"
-              />
-              <el-input
-                v-model="header.value"
-                placeholder="请求头值"
-                size="small"
-                style="flex: 2; margin-left: 8px"
-              />
-              <el-button
-                @click="removeHeader(index)"
-                size="small"
-                type="danger"
-                plain
-                style="margin-left: 8px"
-              >
-                <i class="ri-delete-bin-line"></i>
-              </el-button>
-            </div>
-          </div>
-
-          <div class="header-actions">
-            <el-button @click="addHeader" size="small" type="primary" plain>
-              <i class="ri-add-line"></i>
-              添加请求头
-            </el-button>
-            <el-button
-              @click="addCommonHeaders"
+        <div class="header-list">
+          <div
+            v-for="(header, index) in tempHeaders"
+            :key="index"
+            class="header-row"
+          >
+            <el-input
+              v-model="header.key"
+              placeholder="请求头名称"
               size="small"
-              type="success"
+              style="flex: 1"
+            />
+            <el-input
+              v-model="header.value"
+              placeholder="请求头值"
+              size="small"
+              style="flex: 2; margin-left: 8px"
+            />
+            <el-button
+              @click="removeHeader(index)"
+              size="small"
+              type="danger"
               plain
+              style="margin-left: 8px"
             >
-              <i class="ri-magic-line"></i>
-              添加常用请求头
+              <i class="ri-delete-bin-line"></i>
             </el-button>
-          </div>
-
-          <div class="common-headers-tips">
-            <el-collapse>
-              <el-collapse-item title="常用请求头示例" name="examples">
-                <div class="examples-list">
-                  <div class="example-item">
-                    <strong>Authorization:</strong> Bearer your-token-here
-                  </div>
-                  <div class="example-item">
-                    <strong>Content-Type:</strong> application/json
-                  </div>
-                  <div class="example-item">
-                    <strong>Accept:</strong> application/json
-                  </div>
-                  <div class="example-item">
-                    <strong>X-API-Key:</strong> your-api-key
-                  </div>
-                  <div class="example-item">
-                    <strong>User-Agent:</strong> NodeDocumentation/1.0
-                  </div>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
           </div>
         </div>
 
-        <template #footer>
-          <div class="dialog-footer">
-            <el-button @click="resetHeaders" size="small">
-              <i class="ri-refresh-line"></i>
-              重置
-            </el-button>
-            <el-button @click="showHeaderDialog = false" size="small">
-              取消
-            </el-button>
-            <el-button @click="saveHeaders" type="primary" size="small">
-              <i class="ri-save-line"></i>
-              保存
-            </el-button>
-          </div>
-        </template>
-      </el-dialog>
-    </div>
+        <div class="header-actions">
+          <el-button @click="addHeader" size="small" type="primary" plain>
+            <i class="ri-add-line"></i>
+            添加请求头
+          </el-button>
+          <el-button
+            @click="addCommonHeaders"
+            size="small"
+            type="success"
+            plain
+          >
+            <i class="ri-magic-line"></i>
+            添加常用请求头
+          </el-button>
+        </div>
+
+        <div class="common-headers-tips">
+          <el-collapse>
+            <el-collapse-item title="常用请求头示例" name="examples">
+              <div class="examples-list">
+                <div class="example-item">
+                  <strong>Authorization:</strong> Bearer your-token-here
+                </div>
+                <div class="example-item">
+                  <strong>Content-Type:</strong> application/json
+                </div>
+                <div class="example-item">
+                  <strong>Accept:</strong> application/json
+                </div>
+                <div class="example-item">
+                  <strong>X-API-Key:</strong> your-api-key
+                </div>
+                <div class="example-item">
+                  <strong>User-Agent:</strong> NodeDocumentation/1.0
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="resetHeaders" size="small">
+            <i class="ri-refresh-line"></i>
+            重置
+          </el-button>
+          <el-button @click="showHeaderDialog = false" size="small">
+            取消
+          </el-button>
+          <el-button @click="saveHeaders" type="primary" size="small">
+            <i class="ri-save-line"></i>
+            保存
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1690,6 +1729,47 @@ const bashEditorOptions = {
   theme: "default",
   lineNumbers: true,
   readOnly: true,
+  lineWrapping: true,
+};
+
+// 代码示例编辑器配置
+const javaEditorOptions = {
+  mode: "text/x-java",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const javascriptEditorOptions = {
+  mode: "javascript",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const pythonEditorOptions = {
+  mode: "python",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+};
+
+const shellEditorOptions = {
+  mode: "shell",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: true,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
   lineWrapping: true,
 };
 
@@ -2850,6 +2930,26 @@ watch(showHeaderDialog, (newValue) => {
           color: #9ca3af;
           padding: 0 8px;
         }
+
+        .code-content {
+          padding: 16px;
+          background: #f8fafc;
+          height: 100%;
+          overflow-y: auto;
+
+          .code-pre {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            font-family: "Monaco", "Menlo", "Consolas", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #374151;
+          }
+        }
       }
     }
   }
@@ -2859,6 +2959,15 @@ watch(showHeaderDialog, (newValue) => {
     align-items: center;
     justify-content: center;
     height: 100%;
+  }
+
+  .empty-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    background: #f8fafc;
+    border-radius: 8px;
   }
 }
 </style>
