@@ -9,131 +9,125 @@
 ///
 
 import { http, type ReturnResult } from "@repo/utils";
-import axios from "../../config";
+import request from "../config";
 
 // ==================== 类型定义 ====================
 
 /**
- * 服务器脚本接口
+ * 服务器脚本接口（与后端MonitorSysGenScript实体类对应）
  */
 export interface ServerScript {
-  monitorSysGenServerScriptId: number;
-  monitorSysGenServerScriptName: string;
-  monitorSysGenServerScriptDescription?: string;
-  monitorSysGenServerScriptContent: string;
-  monitorSysGenServerScriptType: string;
-  monitorSysGenServerScriptLanguage: string;
-  monitorSysGenServerScriptVersion: string;
-  monitorSysGenServerScriptCategory?: string;
-  monitorSysGenServerScriptTags?: string;
-  monitorSysGenServerScriptParameters?: string;
-  monitorSysGenServerScriptTimeoutSeconds: number;
-  monitorSysGenServerScriptRetryCount: number;
-  monitorSysGenServerScriptIsTemplate: number;
-  monitorSysGenServerScriptIsPublic: number;
-  monitorSysGenServerScriptExecutionMode: string;
-  monitorSysGenServerScriptWorkingDirectory?: string;
-  monitorSysGenServerScriptEnvironmentVars?: string;
-  monitorSysGenServerScriptDependencies?: string;
-  monitorSysGenServerScriptValidationRules?: string;
-  monitorSysGenServerScriptCreateUser: string;
-  monitorSysGenServerScriptCreateTime: string;
-  monitorSysGenServerScriptUpdateTime: string;
-  monitorSysGenServerScriptLastExecutionTime?: string;
-  monitorSysGenServerScriptExecutionCount: number;
-  monitorSysGenServerScriptSuccessCount: number;
-  monitorSysGenServerScriptStatus: number;
+  monitorSysGenScriptId: number;
+  monitorSysGenScriptName: string;
+  monitorSysGenScriptDescription?: string;
+  monitorSysGenScriptContent: string;
+  monitorSysGenScriptType: string;
+  monitorSysGenScriptLanguage: string;
+  monitorSysGenScriptVersion: string;
+  monitorSysGenScriptCategory?: string;
+  monitorSysGenScriptTags?: string;
+  monitorSysGenScriptParameters?: string;
+  monitorSysGenScriptTimeoutSeconds: number;
+  monitorSysGenScriptRetryCount: number;
+  monitorSysGenScriptIsTemplate: number;
+  monitorSysGenScriptIsPublic: number;
+  monitorSysGenScriptExecutionMode: string;
+  monitorSysGenScriptWorkingDirectory?: string;
+  monitorSysGenScriptEnvironmentVars?: string;
+  monitorSysGenScriptDependencies?: string;
+  monitorSysGenScriptValidationRules?: string;
+  monitorSysGenScriptAuthor: string;
+  monitorSysGenScriptLastExecuteTime?: string;
+  monitorSysGenScriptExecuteCount: number;
+  monitorSysGenScriptStatus: "ENABLED" | "DISABLED";
+  // 继承自SysBase的字段
+  createTime: string;
+  updateTime: string;
+  createBy: string;
+  updateBy: string;
 }
 
 /**
- * 脚本执行记录接口
+ * 脚本执行记录接口（与后端MonitorSysGenScriptExecution实体类对应）
  */
 export interface ScriptExecution {
-  monitorSysGenServerScriptExecutionId: number;
-  monitorSysGenServerScriptId: number;
+  monitorSysGenScriptExecutionId: number;
+  monitorSysGenScriptId: number;
   monitorSysGenServerId: number;
-  monitorSysGenServerScriptExecutionName?: string;
-  monitorSysGenServerScriptExecutionParameters?: string;
-  monitorSysGenServerScriptExecutionStatus: string;
-  monitorSysGenServerScriptExecutionMode: string;
-  monitorSysGenServerScriptExecutionPriority: number;
-  monitorSysGenServerScriptExecutionStartTime?: string;
-  monitorSysGenServerScriptExecutionEndTime?: string;
-  monitorSysGenServerScriptExecutionDurationMs?: number;
-  monitorSysGenServerScriptExecutionExitCode?: number;
-  monitorSysGenServerScriptExecutionOutput?: string;
-  monitorSysGenServerScriptExecutionErrorOutput?: string;
-  monitorSysGenServerScriptExecutionWorkingDirectory?: string;
-  monitorSysGenServerScriptExecutionEnvironmentVars?: string;
-  monitorSysGenServerScriptExecutionProcessId?: string;
-  monitorSysGenServerScriptExecutionTriggerType: string;
-  monitorSysGenServerScriptExecutionTriggerUser?: string;
-  monitorSysGenServerScriptExecutionRetryCount: number;
-  monitorSysGenServerScriptExecutionMaxRetry: number;
-  monitorSysGenServerScriptExecutionParentId?: number;
-  monitorSysGenServerScriptExecutionScheduledTime?: string;
-  monitorSysGenServerScriptExecutionTimeoutSeconds: number;
-  monitorSysGenServerScriptExecutionTags?: string;
-  monitorSysGenServerScriptExecutionMetadata?: string;
-  monitorSysGenServerScriptExecutionCreateTime: string;
-  monitorSysGenServerScriptExecutionUpdateTime: string;
+  monitorSysGenScriptExecutionName?: string;
+  monitorSysGenScriptExecutionParameters?: string;
+  monitorSysGenScriptExecutionStatus: string;
+  monitorSysGenScriptExecutionMode: string;
+  monitorSysGenScriptExecutionPriority: number;
+  monitorSysGenScriptExecutionStartTime?: string;
+  monitorSysGenScriptExecutionEndTime?: string;
+  monitorSysGenScriptExecutionDurationMs?: number;
+  monitorSysGenScriptExecutionExitCode?: number;
+  monitorSysGenScriptExecutionOutput?: string;
+  monitorSysGenScriptExecutionErrorOutput?: string;
+  monitorSysGenScriptExecutionWorkingDirectory?: string;
+  monitorSysGenScriptExecutionEnvironmentVars?: string;
+  monitorSysGenScriptExecutionProcessId?: string;
+  monitorSysGenScriptExecutionTriggerType: string;
+  monitorSysGenScriptExecutionTriggerUser?: string;
+  monitorSysGenScriptExecutionRetryCount: number;
+  monitorSysGenScriptExecutionMaxRetry: number;
+  monitorSysGenScriptExecutionParentId?: number;
+  monitorSysGenScriptExecutionScheduledTime?: string;
+  monitorSysGenScriptExecutionTimeoutSeconds: number;
+  monitorSysGenScriptExecutionTags?: string;
+  monitorSysGenScriptExecutionMetadata?: string;
+  monitorSysGenScriptExecutionCreateTime: string;
+  monitorSysGenScriptExecutionUpdateTime: string;
 }
 
 /**
- * 服务器脚本分页查询参数
+ * 服务器脚本分页查询参数（与后端实体类字段对应）
  */
 export interface ServerScriptPageParams {
   page?: number;
   pageSize?: number;
-  monitorSysGenServerScriptName?: string;
-  monitorSysGenServerScriptType?: string;
-  monitorSysGenServerScriptCategory?: string;
-  monitorSysGenServerScriptCreateUser?: string;
-  monitorSysGenServerScriptIsTemplate?: number;
-  monitorSysGenServerScriptIsPublic?: number;
-  monitorSysGenServerScriptStatus?: number;
+  monitorSysGenScriptName?: string;
+  monitorSysGenScriptType?: string;
+  monitorSysGenScriptCategory?: string;
+  monitorSysGenScriptCreateUser?: string;
+  monitorSysGenScriptIsTemplate?: number;
+  monitorSysGenScriptIsPublic?: number;
+  monitorSysGenScriptStatus?: number;
 }
 
 /**
- * 脚本执行记录分页查询参数
+ * 脚本执行记录分页查询参数（与后端实体类字段对应）
  */
 export interface ScriptExecutionPageParams {
   page?: number;
   pageSize?: number;
-  monitorSysGenServerScriptId?: number;
+  monitorSysGenScriptId?: number;
   monitorSysGenServerId?: number;
-  monitorSysGenServerScriptExecutionStatus?: string;
-  monitorSysGenServerScriptExecutionTriggerType?: string;
-  monitorSysGenServerScriptExecutionTriggerUser?: string;
+  monitorSysGenScriptExecutionStatus?: string;
+  monitorSysGenScriptExecutionTriggerType?: string;
+  monitorSysGenScriptExecutionTriggerUser?: string;
   startTime?: string;
   endTime?: string;
 }
 
 /**
- * 服务器脚本保存参数
+ * 服务器脚本保存参数（与后端实体类字段对应）
  */
 export interface ServerScriptSaveParams {
-  monitorSysGenServerScriptId?: number;
-  monitorSysGenServerScriptName: string;
-  monitorSysGenServerScriptDescription?: string;
-  monitorSysGenServerScriptContent: string;
-  monitorSysGenServerScriptType: string;
-  monitorSysGenServerScriptLanguage: string;
-  monitorSysGenServerScriptVersion?: string;
-  monitorSysGenServerScriptCategory?: string;
-  monitorSysGenServerScriptTags?: string;
-  monitorSysGenServerScriptParameters?: string;
-  monitorSysGenServerScriptTimeoutSeconds?: number;
-  monitorSysGenServerScriptRetryCount?: number;
-  monitorSysGenServerScriptIsTemplate?: number;
-  monitorSysGenServerScriptIsPublic?: number;
-  monitorSysGenServerScriptExecutionMode?: string;
-  monitorSysGenServerScriptWorkingDirectory?: string;
-  monitorSysGenServerScriptEnvironmentVars?: string;
-  monitorSysGenServerScriptDependencies?: string;
-  monitorSysGenServerScriptValidationRules?: string;
-  monitorSysGenServerScriptCreateUser?: string;
-  monitorSysGenServerScriptStatus?: number;
+  monitorSysGenScriptId?: number;
+  monitorSysGenScriptName: string;
+  monitorSysGenScriptDescription?: string;
+  monitorSysGenScriptContent: string;
+  monitorSysGenScriptType: string;
+  monitorSysGenScriptLanguage?: string;
+  monitorSysGenScriptVersion?: string;
+  monitorSysGenScriptCategory?: string;
+  monitorSysGenScriptTags?: string;
+  monitorSysGenScriptParameters?: string;
+  monitorSysGenScriptTimeout?: number;
+  monitorSysGenScriptAuthor?: string;
+  monitorSysGenScriptStatus?: "ENABLED" | "DISABLED";
 }
 
 /**
@@ -155,7 +149,7 @@ export interface ScriptExecuteParams {
  */
 export interface BatchScriptOperationParams {
   ids: number[];
-  action: 'enable' | 'disable' | 'delete' | 'export';
+  action: "enable" | "disable" | "delete" | "export";
 }
 
 // ==================== API 函数 ====================
@@ -170,11 +164,26 @@ export interface BatchScriptOperationParams {
  * @returns 脚本分页数据
  */
 export function getServerScriptPageList(params: ServerScriptPageParams) {
-  return http.request<ReturnResult<{ records: ServerScript[]; total: number }>>(
-    "get",
-    "v1/gen/server-script/page",
-    { params }
-  );
+  // 转换参数格式以匹配后端ScriptQueryDTO
+  const queryDTO = {
+    scriptName: params.monitorSysGenScriptName,
+    scriptType: params.monitorSysGenScriptType,
+    scriptCategory: params.monitorSysGenScriptCategory,
+    scriptStatus: params.monitorSysGenScriptStatus,
+    scriptAuthor: params.monitorSysGenScriptCreateUser,
+    pageNum: params.page || 1,
+    pageSize: params.pageSize || 10,
+  };
+
+  // 后端返回的是IPage<ScriptManagementDTO>格式
+  return http.request<
+    ReturnResult<{
+      records: ServerScript[];
+      total: number;
+      current: number;
+      size: number;
+    }>
+  >("post", "script/page", { data: queryDTO });
 }
 
 /**
@@ -183,11 +192,7 @@ export function getServerScriptPageList(params: ServerScriptPageParams) {
  * @returns 脚本详细信息
  */
 export function getServerScriptDetail(id: number) {
-  return http.request<ReturnResult<ServerScript>>(
-    "get",
-    "v1/gen/server-script/page",
-    { params: { monitorSysGenServerScriptId: id } }
-  );
+  return http.request<ReturnResult<ServerScript>>("get", `script/${id}`);
 }
 
 /**
@@ -196,11 +201,9 @@ export function getServerScriptDetail(id: number) {
  * @returns 保存结果
  */
 export function saveServerScript(data: ServerScriptSaveParams) {
-  return http.request<ReturnResult<ServerScript>>(
-    "post",
-    "v1/gen/server-script/save",
-    { data }
-  );
+  return http.request<ReturnResult<ServerScript>>("post", "script", {
+    data: data,
+  });
 }
 
 /**
@@ -209,11 +212,9 @@ export function saveServerScript(data: ServerScriptSaveParams) {
  * @returns 更新结果
  */
 export function updateServerScript(data: ServerScriptSaveParams) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/gen/server-script/update",
-    { data }
-  );
+  return http.request<ReturnResult<ServerScript>>("put", "script", {
+    data: data,
+  });
 }
 
 /**
@@ -222,24 +223,19 @@ export function updateServerScript(data: ServerScriptSaveParams) {
  * @returns 删除结果
  */
 export function deleteServerScript(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    "v1/gen/server-script/delete",
-    { params: { id: id.toString() } }
-  );
+  return http.request<ReturnResult<boolean>>("delete", `script/${id}`);
 }
 
 /**
  * 复制服务器脚本
  * @param id 脚本ID
+ * @param newScriptName 新脚本名称
  * @returns 复制结果
  */
-export function duplicateServerScript(id: number) {
-  return http.request<ReturnResult<ServerScript>>(
-    "post",
-    "v1/gen/server-script/duplicate",
-    { params: { id: id.toString() } }
-  );
+export function duplicateServerScript(id: number, newScriptName?: string) {
+  return http.request<ReturnResult<ServerScript>>("post", `script/${id}/copy`, {
+    params: { newScriptName: newScriptName || `脚本副本_${Date.now()}` },
+  });
 }
 
 /**
@@ -248,46 +244,40 @@ export function duplicateServerScript(id: number) {
  * @returns 执行结果
  */
 export function executeServerScript(params: ScriptExecuteParams) {
-  return http.request<ReturnResult<ScriptExecution>>(
-    "post",
-    "v1/gen/server-script/execute",
-    { data: params }
-  );
+  return http.request<ReturnResult<ScriptExecution>>("post", "script/execute", {
+    data: params,
+  });
 }
 
 /**
- * 批量操作服务器脚本
- * @param params 批量操作参数
- * @returns 操作结果
+ * 批量删除服务器脚本
+ * @param scriptIds 脚本ID列表
+ * @returns 删除结果
  */
-export function batchOperateServerScripts(params: BatchScriptOperationParams) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server-script/batch-operation",
-    { data: params }
-  );
+export function batchDeleteServerScripts(scriptIds: number[]) {
+  return http.request<ReturnResult<boolean>>("delete", "script/batch", {
+    data: scriptIds,
+  });
 }
 
 /**
- * 获取脚本模板列表
- * @returns 模板列表
+ * 获取脚本模板
+ * @param scriptType 脚本类型
+ * @returns 脚本模板内容
  */
-export function getScriptTemplates() {
-  return http.request<ReturnResult<ServerScript[]>>(
+export function getScriptTemplate(scriptType: string) {
+  return http.request<ReturnResult<string>>(
     "get",
-    "v1/gen/server-script/templates"
+    `script/template/${scriptType}`
   );
 }
 
 /**
- * 获取公开脚本列表
- * @returns 公开脚本列表
+ * 获取脚本统计信息
+ * @returns 统计信息
  */
-export function getPublicScripts() {
-  return http.request<ReturnResult<ServerScript[]>>(
-    "get",
-    "v1/gen/server-script/public"
-  );
+export function getScriptStatistics() {
+  return http.request<ReturnResult<any>>("get", "script/statistics");
 }
 
 /**
@@ -297,11 +287,10 @@ export function getPublicScripts() {
  * @returns 验证结果
  */
 export function validateScript(content: string, type: string) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server-script/validate",
-    { data: { content, type } }
-  );
+  return http.request<ReturnResult<boolean>>("post", "script/validate", {
+    params: { scriptType: type },
+    data: content,
+  });
 }
 
 /**
@@ -310,7 +299,7 @@ export function validateScript(content: string, type: string) {
  * @returns 文件数据
  */
 export function exportScript(id: number) {
-  return axios({
+  return request({
     url: "v1/gen/server-script/export",
     method: "get",
     params: { id },
@@ -326,8 +315,8 @@ export function exportScript(id: number) {
 export function importScript(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  
-  return axios({
+
+  return request({
     url: "v1/gen/server-script/import",
     method: "post",
     data: formData,
@@ -341,41 +330,120 @@ export function importScript(file: File) {
 
 /**
  * 分页查询脚本执行记录列表
- * @param params 查询参数
+ * @param scriptId 脚本ID
+ * @param pageNum 页码
+ * @param pageSize 页大小
  * @returns 执行记录分页数据
  */
-export function getScriptExecutionPageList(params: ScriptExecutionPageParams) {
-  return http.request<ReturnResult<{ records: ScriptExecution[]; total: number }>>(
-    "get",
-    "v1/gen/server-script-execution/page",
-    { params }
-  );
+export function getScriptExecutionPageList(
+  scriptId: number,
+  pageNum: number = 1,
+  pageSize: number = 10
+) {
+  // 后端返回的是IPage<ScriptExecuteResponseDTO>格式
+  return http.request<
+    ReturnResult<{
+      records: ScriptExecution[];
+      total: number;
+      current: number;
+      size: number;
+    }>
+  >("get", `script/${scriptId}/executions`, {
+    params: { pageNum, pageSize },
+  });
 }
 
 /**
  * 获取脚本执行记录详情
- * @param id 执行记录ID
+ * @param executionId 执行记录ID
  * @returns 执行记录详细信息
  */
-export function getScriptExecutionDetail(id: number) {
+export function getScriptExecutionDetail(executionId: number) {
   return http.request<ReturnResult<ScriptExecution>>(
     "get",
-    "v1/gen/server-script-execution/page",
-    { params: { monitorSysGenServerScriptExecutionId: id } }
+    `script/execution/${executionId}`
   );
 }
 
 /**
  * 停止脚本执行
- * @param id 执行记录ID
+ * @param executionId 执行记录ID
  * @returns 停止结果
  */
-export function stopScriptExecution(id: number) {
+export function stopScriptExecution(executionId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    "v1/gen/server-script-execution/stop",
-    { params: { id: id.toString() } }
+    `script/execution/${executionId}/stop`
   );
+}
+
+/**
+ * 获取支持的脚本类型
+ * @returns 脚本类型列表
+ */
+export function getSupportedScriptTypes() {
+  return http.request<ReturnResult<any[]>>("get", "script/types");
+}
+
+/**
+ * 检查脚本名称是否可用
+ * @param scriptName 脚本名称
+ * @param excludeId 排除的脚本ID
+ * @returns 是否可用
+ */
+export function checkScriptName(scriptName: string, excludeId?: number) {
+  return http.request<ReturnResult<boolean>>("get", "script/name/check", {
+    params: { scriptName, excludeId },
+  });
+}
+
+/**
+ * 根据分类获取脚本
+ * @param category 脚本分类
+ * @returns 脚本列表
+ */
+export function getScriptsByCategory(category: string) {
+  return http.request<ReturnResult<ServerScript[]>>(
+    "get",
+    `script/category/${category}`
+  );
+}
+
+/**
+ * 根据标签搜索脚本
+ * @param tag 标签
+ * @returns 脚本列表
+ */
+export function searchScriptsByTag(tag: string) {
+  return http.request<ReturnResult<ServerScript[]>>(
+    "get",
+    "script/search/tag",
+    {
+      params: { tag },
+    }
+  );
+}
+
+/**
+ * 获取最近执行的脚本
+ * @param limit 限制数量
+ * @returns 脚本列表
+ */
+export function getRecentExecutedScripts(limit: number = 10) {
+  return http.request<ReturnResult<ServerScript[]>>("get", "script/recent", {
+    params: { limit },
+  });
+}
+
+/**
+ * 获取热门脚本
+ * @param limit 限制数量
+ * @returns 脚本列表
+ */
+export function getPopularScripts(limit: number = 10) {
+  return http.request<ReturnResult<ServerScript[]>>("get", "script/popular", {
+    params: { limit },
+  });
 }
 
 /**
@@ -430,7 +498,7 @@ export const SCRIPT_TYPE = {
   JAVASCRIPT: "JAVASCRIPT",
 } as const;
 
-export type ScriptType = typeof SCRIPT_TYPE[keyof typeof SCRIPT_TYPE];
+export type ScriptType = (typeof SCRIPT_TYPE)[keyof typeof SCRIPT_TYPE];
 
 /**
  * 执行模式枚举
@@ -440,7 +508,8 @@ export const EXECUTION_MODE = {
   ASYNC: "ASYNC",
 } as const;
 
-export type ExecutionMode = typeof EXECUTION_MODE[keyof typeof EXECUTION_MODE];
+export type ExecutionMode =
+  (typeof EXECUTION_MODE)[keyof typeof EXECUTION_MODE];
 
 /**
  * 执行状态枚举
@@ -454,7 +523,8 @@ export const EXECUTION_STATUS = {
   TIMEOUT: "TIMEOUT",
 } as const;
 
-export type ExecutionStatus = typeof EXECUTION_STATUS[keyof typeof EXECUTION_STATUS];
+export type ExecutionStatus =
+  (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
 
 /**
  * 触发类型枚举
@@ -466,4 +536,4 @@ export const TRIGGER_TYPE = {
   EVENT: "EVENT",
 } as const;
 
-export type TriggerType = typeof TRIGGER_TYPE[keyof typeof TRIGGER_TYPE];
+export type TriggerType = (typeof TRIGGER_TYPE)[keyof typeof TRIGGER_TYPE];

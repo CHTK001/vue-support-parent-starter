@@ -133,6 +133,17 @@ export default [
               showParent: true,
             },
           },
+          {
+            path: "/server/script-management",
+            name: "serverScriptManagement",
+            component: () => import("@/views/script-management/index.vue"),
+            meta: {
+              icon: "ri:code-s-slash-line",
+              title: "脚本管理",
+              showLink: true,
+              showParent: true,
+            },
+          },
         ],
       },
     ],
