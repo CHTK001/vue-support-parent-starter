@@ -58,7 +58,8 @@ export default [
   {
     path: "/node/documentation/:nodeId",
     name: "nodeDocumentation",
-    component: () => import("@/views/node-documentation/index.vue"),
+    component: () =>
+      import("@/views/node-management/module/node-documentation/index.vue"),
     meta: {
       icon: "ri:file-text-line",
       title: "节点API文档",

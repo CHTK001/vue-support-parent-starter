@@ -29,7 +29,7 @@
     <!-- 主体内容 -->
     <div class="doc-content">
       <!-- 左侧API列表 -->
-      <div class="doc-sidebar">
+      <div class="doc-sidebar" :style="{ width: sidebarWidth + 'px' }">
         <div class="sidebar-header">
           <div class="header-title">
             <i class="ri-code-box-line"></i>
@@ -127,10 +127,13 @@
                 @click="toggleGroup(group.name)"
                 :class="{ expanded: expandedGroups.includes(group.name) }"
               >
-                <i class="ri-folder-line group-icon"></i>
+                <IconifyIconOnline icon="ri:folder-line" class="group-icon" />
                 <span class="group-name">{{ group.name }}</span>
                 <span class="api-count">({{ group.apis.length }})</span>
-                <i class="ri-arrow-right-s-line expand-icon"></i>
+                <IconifyIconOnline
+                  icon="ri:arrow-right-s-line"
+                  class="expand-icon"
+                />
               </div>
 
               <transition name="slide-down">
@@ -166,8 +169,14 @@
         </div>
       </div>
 
+      <!-- 拖拽分割线1 -->
+      <div
+        class="resize-handle resize-handle-1"
+        @mousedown="startResize($event, 'sidebar')"
+      ></div>
+
       <!-- 中间参数面板 -->
-      <div class="doc-params">
+      <div class="doc-params" :style="{ width: paramsWidth + 'px' }">
         <div v-if="!selectedApi" class="no-selection">
           <el-empty description="请选择一个API接口" :image-size="120" />
         </div>
@@ -277,10 +286,10 @@
               <!-- 请求体 -->
               <el-tab-pane v-if="hasRequestBody" label="请求体" name="body">
                 <div class="body-editor">
-                  <el-input
-                    v-model="requestBody"
-                    type="textarea"
-                    :rows="8"
+                  <codemirror-editor-vue3
+                    v-model:value="requestBody"
+                    :options="requestBodyEditorOptions"
+                    height="300px"
                     placeholder="请输入JSON格式的请求体"
                   />
                 </div>
@@ -302,6 +311,12 @@
           </div>
         </div>
       </div>
+
+      <!-- 拖拽分割线2 -->
+      <div
+        class="resize-handle resize-handle-2"
+        @mousedown="startResize($event, 'params')"
+      ></div>
 
       <!-- 右侧结果面板 -->
       <div class="doc-result">
@@ -449,7 +464,7 @@
               <div class="response-body">
                 <div class="section-header">
                   <h4>
-                    <i class="ri-code-box-line"></i>
+                    <IconifyIconOnline icon="ri:code-box-line" />
                     响应体
                     <span v-if="getContentType()" class="content-type-badge">
                       {{ getContentType() }}
@@ -462,7 +477,7 @@
                       @click="copyResponseBody"
                       v-if="lastResponse.data"
                     >
-                      <i class="ri-file-copy-line"></i>
+                      <IconifyIconOnline icon="ri:file-copy-line" />
                       复制
                     </el-button>
                     <el-button
@@ -471,14 +486,14 @@
                       @click="downloadResponse"
                       v-if="lastResponse.data"
                     >
-                      <i class="ri-download-line"></i>
+                      <IconifyIconOnline icon="ri:download-line" />
                       下载
                     </el-button>
                   </div>
                 </div>
                 <div class="body-content">
                   <div v-if="!lastResponse.data" class="empty-state">
-                    <i class="ri-inbox-line"></i>
+                    <IconifyIconOnline icon="ri:inbox-line" />
                     <span>无响应体内容</span>
                   </div>
                   <!-- JSON 内容 -->
@@ -536,24 +551,14 @@
               <el-empty description="请选择一个API接口" :image-size="100" />
             </div>
             <div v-else class="examples-container">
-              <div class="examples-header">
-                <h4>
-                  <i class="ri-code-s-slash-line"></i>
-                  代码示例
-                </h4>
-                <el-button size="small" @click="copyCodeExample" type="primary">
-                  <i class="ri-file-copy-line"></i>
-                  复制代码
-                </el-button>
-              </div>
               <el-tabs v-model="activeLanguageTab" class="language-tabs">
                 <el-tab-pane label="Java" name="java">
                   <div class="code-block">
                     <codemirror-editor-vue3
                       v-if="javaCode"
-                      v-model:value="javaCode"
+                      :value="javaCode"
                       :options="javaEditorOptions"
-                      height="400px"
+                      height="100%"
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
@@ -571,10 +576,10 @@
                 <el-tab-pane label="JavaScript" name="javascript">
                   <div class="code-block">
                     <codemirror-editor-vue3
-                      v-if="javascriptCode"
-                      v-model:value="javascriptCode"
+                      v-if="selectedApi && javascriptCode"
+                      :value="javascriptCode"
                       :options="javascriptEditorOptions"
-                      height="400px"
+                      height="100%"
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
@@ -592,10 +597,10 @@
                 <el-tab-pane label="Python" name="python">
                   <div class="code-block">
                     <codemirror-editor-vue3
-                      v-if="pythonCode"
-                      v-model:value="pythonCode"
+                      v-if="selectedApi && pythonCode"
+                      :value="pythonCode"
                       :options="pythonEditorOptions"
-                      height="400px"
+                      height="100%"
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
@@ -613,10 +618,10 @@
                 <el-tab-pane label="cURL" name="curl">
                   <div class="code-block">
                     <codemirror-editor-vue3
-                      v-if="curlCode"
-                      v-model:value="curlCode"
+                      v-if="selectedApi && curlCode"
+                      :value="curlCode"
                       :options="shellEditorOptions"
-                      height="400px"
+                      height="100%"
                       :read-only="true"
                     />
                     <div v-else class="empty-code">
@@ -805,6 +810,13 @@ const requestBody = ref("");
 const lastResponse = ref<ApiResponse | null>(null);
 const headersCollapsed = ref(true); // 默认折叠响应头
 
+// 布局拖拽相关
+const sidebarWidth = ref(320);
+const paramsWidth = ref(400);
+const mainContentWidth = ref(0);
+const isDragging = ref(false);
+const dragType = ref("");
+
 // 类型定义
 interface ApiGroup {
   name: string;
@@ -875,7 +887,10 @@ const filteredQueryParams = computed(() => {
 });
 
 const hasRequestBody = computed(() => {
-  return selectedApi.value?.method !== "GET" && selectedApi.value?.requestBody;
+  if (!selectedApi.value) return false;
+  const method = selectedApi.value.method.toUpperCase();
+  // 支持POST、PUT、PATCH、DELETE等需要请求体的方法
+  return ["POST", "PUT", "PATCH"].includes(method);
 });
 
 // 方法
@@ -1000,12 +1015,181 @@ const toggleGroup = (groupName: string) => {
   }
 };
 
+// 生成示例请求体
+const generateExampleRequestBody = (api: ApiInfo) => {
+  const method = api.method.toUpperCase();
+  const path = api.path.toLowerCase();
+
+  // 根据HTTP方法和路径生成相应的示例
+  if (method === "POST") {
+    if (path.includes("user") || path.includes("account")) {
+      return JSON.stringify(
+        {
+          username: "john_doe",
+          email: "john@example.com",
+          password: "password123",
+          firstName: "John",
+          lastName: "Doe",
+          phone: "+86 138 0013 8000",
+          role: "user",
+        },
+        null,
+        2
+      );
+    } else if (path.includes("product") || path.includes("item")) {
+      return JSON.stringify(
+        {
+          name: "新产品",
+          description: "这是一个新产品的描述",
+          price: 299.99,
+          category: "electronics",
+          brand: "示例品牌",
+          inStock: true,
+          tags: ["新品", "热销"],
+        },
+        null,
+        2
+      );
+    } else if (path.includes("order")) {
+      return JSON.stringify(
+        {
+          customerId: 1001,
+          items: [
+            {
+              productId: 2001,
+              quantity: 2,
+              unitPrice: 299.99,
+            },
+          ],
+          shippingAddress: {
+            street: "北京市朝阳区建国路1号",
+            city: "北京",
+            province: "北京市",
+            zipCode: "100000",
+            country: "中国",
+          },
+          paymentMethod: "credit_card",
+        },
+        null,
+        2
+      );
+    } else {
+      return JSON.stringify(
+        {
+          name: "示例名称",
+          description: "示例描述",
+          type: "example",
+          status: "active",
+          metadata: {
+            source: "api_test",
+            version: "1.0",
+          },
+        },
+        null,
+        2
+      );
+    }
+  } else if (method === "PUT") {
+    if (path.includes("user") || path.includes("account")) {
+      return JSON.stringify(
+        {
+          id: 1001,
+          username: "john_doe_updated",
+          email: "john.updated@example.com",
+          firstName: "John",
+          lastName: "Doe",
+          phone: "+86 138 0013 8001",
+          status: "active",
+          lastModified: new Date().toISOString(),
+        },
+        null,
+        2
+      );
+    } else if (path.includes("product") || path.includes("item")) {
+      return JSON.stringify(
+        {
+          id: 2001,
+          name: "更新的产品名称",
+          description: "更新后的产品描述",
+          price: 399.99,
+          category: "electronics",
+          inStock: false,
+          lastUpdated: new Date().toISOString(),
+        },
+        null,
+        2
+      );
+    } else {
+      return JSON.stringify(
+        {
+          id: 1,
+          name: "更新的名称",
+          description: "更新的描述",
+          status: "updated",
+          version: 2,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      );
+    }
+  } else if (method === "PATCH") {
+    if (path.includes("user") || path.includes("account")) {
+      return JSON.stringify(
+        {
+          email: "new.email@example.com",
+          phone: "+86 138 0013 8002",
+          status: "active",
+        },
+        null,
+        2
+      );
+    } else if (path.includes("product") || path.includes("item")) {
+      return JSON.stringify(
+        {
+          price: 199.99,
+          inStock: true,
+          description: "部分更新的产品描述",
+        },
+        null,
+        2
+      );
+    } else {
+      return JSON.stringify(
+        {
+          status: "updated",
+          description: "部分更新的描述",
+        },
+        null,
+        2
+      );
+    }
+  } else {
+    // 默认示例
+    return JSON.stringify(
+      {
+        message: "请根据API文档填写请求参数",
+        example: "这是一个示例请求体",
+        timestamp: new Date().toISOString(),
+      },
+      null,
+      2
+    );
+  }
+};
+
 const selectApi = (api: ApiInfo) => {
   selectedApi.value = api;
   // 重置参数值
   paramValues.path = {};
   paramValues.query = {};
-  requestBody.value = "";
+
+  // 为POST/PUT/PATCH请求设置示例请求体
+  if (api.method !== "GET" && api.method !== "DELETE") {
+    requestBody.value = generateExampleRequestBody(api);
+  } else {
+    requestBody.value = "";
+  }
 
   // 设置默认参数标签页
   if (pathParams.value.length > 0) {
@@ -1178,42 +1362,67 @@ const generateJavaCode = () => {
     url += `?${queryString}`;
   }
 
-  let code = `// Java - 使用 RestTemplate
-@Autowired
-private RestTemplate restTemplate;
+  let code = `// Java - 使用 OkHttp
+import okhttp3.*;
+import java.io.IOException;
 
-public void callApi() {
-    String url = "${url}";
+public class ApiClient {
+    private static final OkHttpClient client = new OkHttpClient();
 
-    // 设置请求头
-    HttpHeaders headers = new HttpHeaders();`;
+    public void callApi() throws IOException {
+        String url = "${url}";
+
+        // 构建请求头
+        Headers.Builder headersBuilder = new Headers.Builder();`;
 
   // 添加全局请求头
   Object.entries(globalHeaders.value).forEach(([key, value]) => {
-    code += `\n    headers.set("${key}", "${value}");`;
+    code += `\n        headersBuilder.add("${key}", "${value}");`;
   });
 
   if (api.method === "GET") {
     code += `
 
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-    ResponseEntity<String> response = restTemplate.exchange(
-        url, HttpMethod.GET, entity, String.class);
+        // 构建GET请求
+        Request request = new Request.Builder()
+            .url(url)
+            .headers(headersBuilder.build())
+            .get()
+            .build();
 
-    System.out.println("Response: " + response.getBody());
+        // 执行请求
+        try (Response response = client.newCall(request).execute()) {
+            if (response.body() != null) {
+                System.out.println("Response: " + response.body().string());
+            }
+        }
+    }
 }`;
   } else {
+    const bodyContent = requestBody.value
+      ? requestBody.value.replace(/"/g, '\\"')
+      : "{}";
     code += `
-    headers.setContentType(MediaType.APPLICATION_JSON);
+        headersBuilder.add("Content-Type", "application/json");
 
-    // 请求体
-    String requestBody = ${requestBody.value ? `"${requestBody.value.replace(/"/g, '\\"')}"` : '"{}"'};
+        // 请求体
+        String jsonBody = "${bodyContent}";
+        RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json"));
 
-    HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-    ResponseEntity<String> response = restTemplate.exchange(
-        url, HttpMethod.${api.method}, entity, String.class);
+        // 构建${api.method}请求
+        Request request = new Request.Builder()
+            .url(url)
+            .headers(headersBuilder.build())
+            .method("${api.method}", body)
+            .build();
 
-    System.out.println("Response: " + response.getBody());
+        // 执行请求
+        try (Response response = client.newCall(request).execute()) {
+            if (response.body() != null) {
+                System.out.println("Response: " + response.body().string());
+            }
+        }
+    }
 }`;
   }
 
@@ -1524,6 +1733,124 @@ const createMockApiGroups = (): ApiGroup[] => {
               username: { type: "string", description: "用户名" },
               email: { type: "string", description: "邮箱地址" },
               password: { type: "string", description: "密码" },
+              firstName: { type: "string", description: "名字" },
+              lastName: { type: "string", description: "姓氏" },
+            },
+          },
+        },
+        {
+          path: "/api/users/{id}",
+          method: "PUT",
+          summary: "更新用户",
+          description: "更新指定用户的信息",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              type: "integer",
+              description: "用户ID",
+            },
+          ],
+          requestBody: {
+            type: "object",
+            properties: {
+              username: { type: "string", description: "用户名" },
+              email: { type: "string", description: "邮箱地址" },
+              firstName: { type: "string", description: "名字" },
+              lastName: { type: "string", description: "姓氏" },
+              status: { type: "string", description: "用户状态" },
+            },
+          },
+        },
+        {
+          path: "/api/users/{id}",
+          method: "PATCH",
+          summary: "部分更新用户",
+          description: "部分更新指定用户的信息",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              type: "integer",
+              description: "用户ID",
+            },
+          ],
+          requestBody: {
+            type: "object",
+            properties: {
+              email: { type: "string", description: "邮箱地址" },
+              status: { type: "string", description: "用户状态" },
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: "产品管理",
+      apis: [
+        {
+          path: "/api/products",
+          method: "GET",
+          summary: "获取产品列表",
+          description: "获取所有产品的列表",
+          parameters: [
+            {
+              name: "page",
+              in: "query",
+              required: false,
+              type: "integer",
+              description: "页码",
+            },
+            {
+              name: "size",
+              in: "query",
+              required: false,
+              type: "integer",
+              description: "每页数量",
+            },
+          ],
+        },
+        {
+          path: "/api/products",
+          method: "POST",
+          summary: "创建产品",
+          description: "创建新的产品",
+          parameters: [],
+          requestBody: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "产品名称" },
+              description: { type: "string", description: "产品描述" },
+              price: { type: "number", description: "产品价格" },
+              category: { type: "string", description: "产品分类" },
+              brand: { type: "string", description: "品牌" },
+            },
+          },
+        },
+        {
+          path: "/api/products/{id}",
+          method: "PUT",
+          summary: "更新产品",
+          description: "更新指定产品的信息",
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              type: "integer",
+              description: "产品ID",
+            },
+          ],
+          requestBody: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "产品名称" },
+              description: { type: "string", description: "产品描述" },
+              price: { type: "number", description: "产品价格" },
+              category: { type: "string", description: "产品分类" },
+              inStock: { type: "boolean", description: "是否有库存" },
             },
           },
         },
@@ -1670,10 +1997,26 @@ const formattedXmlData = computed(() => {
 });
 
 // 代码示例计算属性
-const javaCode = computed(() => generateJavaCode());
-const javascriptCode = computed(() => generateJavaScriptCode());
-const pythonCode = computed(() => generatePythonCode());
-const curlCode = computed(() => generateCurlCode());
+const javaCode = computed(() => {
+  const code = generateJavaCode();
+  console.log("Java Code:", code);
+  return code;
+});
+const javascriptCode = computed(() => {
+  const code = generateJavaScriptCode();
+  console.log("JavaScript Code:", code);
+  return code;
+});
+const pythonCode = computed(() => {
+  const code = generatePythonCode();
+  console.log("Python Code:", code);
+  return code;
+});
+const curlCode = computed(() => {
+  const code = generateCurlCode();
+  console.log("cURL Code:", code);
+  return code;
+});
 
 // CodeMirror编辑器配置
 const jsonEditorOptions = {
@@ -1744,7 +2087,7 @@ const javaEditorOptions = {
 };
 
 const javascriptEditorOptions = {
-  mode: "javascript",
+  mode: "text/javascript",
   theme: "default",
   lineNumbers: true,
   readOnly: true,
@@ -1754,7 +2097,7 @@ const javascriptEditorOptions = {
 };
 
 const pythonEditorOptions = {
-  mode: "python",
+  mode: "text/x-python",
   theme: "default",
   lineNumbers: true,
   readOnly: true,
@@ -1771,6 +2114,21 @@ const shellEditorOptions = {
   foldGutter: true,
   gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
   lineWrapping: true,
+};
+
+// 请求体编辑器配置
+const requestBodyEditorOptions = {
+  mode: "application/json",
+  theme: "default",
+  lineNumbers: true,
+  readOnly: false,
+  foldGutter: true,
+  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lineWrapping: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  indentUnit: 2,
+  tabSize: 2,
 };
 
 // 复制和下载方法
@@ -1855,6 +2213,41 @@ const toggleHeadersCollapse = () => {
   headersCollapsed.value = !headersCollapsed.value;
 };
 
+// 拖拽调整大小相关方法
+const startResize = (event: MouseEvent, type: string) => {
+  isDragging.value = true;
+  dragType.value = type;
+
+  const startX = event.clientX;
+  const startSidebarWidth = sidebarWidth.value;
+  const startParamsWidth = paramsWidth.value;
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging.value) return;
+
+    const deltaX = e.clientX - startX;
+
+    if (type === "sidebar") {
+      const newWidth = Math.max(200, Math.min(600, startSidebarWidth + deltaX));
+      sidebarWidth.value = newWidth;
+    } else if (type === "params") {
+      const newWidth = Math.max(300, Math.min(800, startParamsWidth + deltaX));
+      paramsWidth.value = newWidth;
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.value = false;
+    dragType.value = "";
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  document.addEventListener("mousemove", handleMouseMove);
+  document.addEventListener("mouseup", handleMouseUp);
+  event.preventDefault();
+};
+
 // 生命周期
 onMounted(() => {
   loadGlobalHeaders();
@@ -1898,30 +2291,52 @@ watch(showHeaderDialog, (newValue) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 20px 32px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
 
       .node-info {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #374151;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
 
         i {
-          color: #6b7280;
+          color: #3b82f6;
+          font-size: 20px;
         }
 
         .node-name {
-          color: #111827;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+
+      .el-button {
+        border-radius: 12px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         }
       }
     }
@@ -1931,12 +2346,13 @@ watch(showHeaderDialog, (newValue) => {
     flex: 1;
     display: flex;
     height: calc(100vh - 73px);
-    gap: 20px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 20px;
+    position: relative;
 
     .doc-sidebar {
-      width: 320px;
+      min-width: 200px;
+      max-width: 600px;
       background: white;
       border-radius: 16px;
       box-shadow:
@@ -1944,7 +2360,7 @@ watch(showHeaderDialog, (newValue) => {
         0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
-      transition: all 0.3s ease;
+      transition: box-shadow 0.3s ease;
 
       &:hover {
         transform: translateY(-2px);
@@ -2255,8 +2671,45 @@ watch(showHeaderDialog, (newValue) => {
       }
     }
 
+    // 拖拽分割线样式
+    .resize-handle {
+      width: 4px;
+      background: transparent;
+      cursor: col-resize;
+      position: relative;
+      z-index: 10;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(59, 130, 246, 0.3);
+      }
+
+      &:active {
+        background: rgba(59, 130, 246, 0.6);
+      }
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 2px;
+        height: 40px;
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 1px;
+        transition: all 0.2s ease;
+      }
+
+      &:hover::before {
+        background: rgba(59, 130, 246, 0.8);
+        height: 60px;
+      }
+    }
+
     .doc-params {
-      width: 380px;
+      min-width: 300px;
+      max-width: 800px;
       background: white;
       border-radius: 16px;
       box-shadow:
@@ -2264,7 +2717,7 @@ watch(showHeaderDialog, (newValue) => {
         0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
-      transition: all 0.3s ease;
+      transition: box-shadow 0.3s ease;
 
       &:hover {
         transform: translateY(-2px);
@@ -2411,11 +2864,25 @@ watch(showHeaderDialog, (newValue) => {
             }
 
             .body-editor {
-              height: 200px;
+              height: 300px;
+              border: 1px solid #e1e5e9;
+              border-radius: 8px;
+              overflow: hidden;
 
               :deep(.el-textarea__inner) {
                 font-family: "Monaco", "Menlo", monospace;
                 font-size: 13px;
+              }
+
+              :deep(.CodeMirror) {
+                height: 100%;
+                font-family: "Monaco", "Menlo", "Consolas", monospace;
+                font-size: 13px;
+                border-radius: 8px;
+              }
+
+              :deep(.CodeMirror-scroll) {
+                height: 100%;
               }
             }
           }
@@ -2965,7 +3432,7 @@ watch(showHeaderDialog, (newValue) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 400px;
+    height: 100%;
     background: #f8fafc;
     border-radius: 8px;
   }
