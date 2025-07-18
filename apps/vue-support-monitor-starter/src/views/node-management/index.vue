@@ -9,7 +9,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-icon">
-              <i class="ri-server-line"></i>
+              <IconifyIconOnline icon="ri:server-line" />
             </div>
             <div class="stat-info">
               <div class="stat-value" :class="{ counting: isCountingUp }">
@@ -17,7 +17,7 @@
               </div>
               <div class="stat-label">总节点数</div>
               <div class="stat-trend">
-                <i class="ri-arrow-up-line trend-icon"></i>
+                <IconifyIconOnline icon="ri:arrow-up-line" class="trend-icon" />
                 <span class="trend-text">实时更新</span>
               </div>
             </div>
@@ -30,7 +30,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-icon">
-              <i class="ri-checkbox-circle-line"></i>
+              <IconifyIconOnline icon="ri:checkbox-circle-line" />
             </div>
             <div class="stat-info">
               <div class="stat-value" :class="{ counting: isCountingUp }">
@@ -38,7 +38,7 @@
               </div>
               <div class="stat-label">在线节点</div>
               <div class="stat-trend">
-                <i class="ri-pulse-line trend-icon"></i>
+                <IconifyIconOnline icon="ri:pulse-line" class="trend-icon" />
                 <span class="trend-text">{{ getOnlineRate() }}%</span>
               </div>
             </div>
@@ -51,7 +51,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-icon">
-              <i class="ri-heart-pulse-line"></i>
+              <IconifyIconOnline icon="ri:heart-pulse-line" />
             </div>
             <div class="stat-info">
               <div class="stat-value" :class="{ counting: isCountingUp }">
@@ -59,7 +59,7 @@
               </div>
               <div class="stat-label">健康节点</div>
               <div class="stat-trend">
-                <i class="ri-heart-line trend-icon"></i>
+                <IconifyIconOnline icon="ri:heart-line" class="trend-icon" />
                 <span class="trend-text">{{ getHealthRate() }}%</span>
               </div>
             </div>
@@ -72,7 +72,7 @@
           </div>
           <div class="stat-content">
             <div class="stat-icon">
-              <i class="ri-error-warning-line"></i>
+              <IconifyIconOnline icon="ri:error-warning-line" />
             </div>
             <div class="stat-info">
               <div class="stat-value" :class="{ counting: isCountingUp }">
@@ -80,7 +80,7 @@
               </div>
               <div class="stat-label">异常节点</div>
               <div class="stat-trend">
-                <i class="ri-alert-line trend-icon"></i>
+                <IconifyIconOnline icon="ri:alert-line" class="trend-icon" />
                 <span class="trend-text">需关注</span>
               </div>
             </div>
@@ -102,7 +102,7 @@
               @input="handleSearch"
             >
               <template #prefix>
-                <i class="ri-search-line"></i>
+                <IconifyIconOnline icon="ri:search-line" />
               </template>
             </el-input>
             <el-select
@@ -139,20 +139,20 @@
                 @click="refreshNodes"
                 class="refresh-btn"
               >
-                <i class="ri-refresh-line"></i>
+                <IconifyIconOnline icon="ri:refresh-line" />
                 刷新节点
               </el-button>
               <el-button
                 :type="viewMode === 'card' ? 'primary' : 'default'"
                 @click="viewMode = 'card'"
               >
-                <i class="ri-grid-line"></i>
+                <IconifyIconOnline icon="ri:grid-line" />
               </el-button>
               <el-button
                 :type="viewMode === 'table' ? 'primary' : 'default'"
                 @click="viewMode = 'table'"
               >
-                <i class="ri-list-check"></i>
+                <IconifyIconOnline icon="ri:list-check" />
               </el-button>
             </el-button-group>
           </div>
@@ -175,7 +175,7 @@
             <p class="empty-text">{{ getEmptyText() }}</p>
           </template>
           <el-button type="primary" @click="refreshNodes">
-            <i class="ri-refresh-line"></i>
+            <IconifyIconOnline icon="ri:refresh-line" />
             刷新数据
           </el-button>
         </el-empty>
@@ -206,13 +206,19 @@
               <div class="card-header">
                 <div class="node-info">
                   <div class="node-name">
-                    <i class="ri-server-line node-icon"></i>
+                    <IconifyIconOnline
+                      icon="ri:server-line"
+                      class="node-icon"
+                    />
                     <span class="name-text">{{
                       node.nodeName || node.applicationName
                     }}</span>
                   </div>
                   <div class="node-address">
-                    <i class="ri-global-line address-icon"></i>
+                    <IconifyIconOnline
+                      icon="ri:global-line"
+                      class="address-icon"
+                    />
                     <span>{{ node.ipAddress }}:{{ node.port }}</span>
                   </div>
                 </div>
@@ -222,7 +228,7 @@
                     :effect="node.status === 'ONLINE' ? 'dark' : 'plain'"
                     class="status-tag"
                   >
-                    <i :class="getStatusIcon(node.status)"></i>
+                    <IconifyIconOnline :icon="getStatusIcon(node.status)" />
                     {{ getStatusText(node.status) }}
                   </el-tag>
                 </div>
@@ -232,7 +238,10 @@
                 <div class="node-details">
                   <div class="detail-row">
                     <div class="detail-item">
-                      <i class="ri-apps-line detail-icon"></i>
+                      <IconifyIconOnline
+                        icon="ri:apps-line"
+                        class="detail-icon"
+                      />
                       <div class="detail-info">
                         <span class="detail-label">应用名称</span>
                         <span class="detail-value">{{
@@ -241,7 +250,10 @@
                       </div>
                     </div>
                     <div class="detail-item">
-                      <i class="ri-links-line detail-icon"></i>
+                      <IconifyIconOnline
+                        icon="ri:links-line"
+                        class="detail-icon"
+                      />
                       <div class="detail-info">
                         <span class="detail-label">连接数</span>
                         <span class="detail-value">{{
@@ -252,7 +264,10 @@
                   </div>
                   <div class="detail-row">
                     <div class="detail-item">
-                      <i class="ri-settings-3-line detail-icon"></i>
+                      <IconifyIconOnline
+                        icon="ri:settings-3-line"
+                        class="detail-icon"
+                      />
                       <div class="detail-info">
                         <span class="detail-label">运行环境</span>
                         <span
@@ -267,7 +282,10 @@
                       </div>
                     </div>
                     <div class="detail-item">
-                      <i class="ri-global-line detail-icon"></i>
+                      <IconifyIconOnline
+                        icon="ri:global-line"
+                        class="detail-icon"
+                      />
                       <div class="detail-info">
                         <span class="detail-label">请求地址</span>
                         <span class="detail-value">{{
@@ -281,7 +299,10 @@
                     class="detail-row single"
                   >
                     <div class="detail-item full-width">
-                      <i class="ri-file-settings-line detail-icon"></i>
+                      <IconifyIconOnline
+                        icon="ri:file-settings-line"
+                        class="detail-icon"
+                      />
                       <div class="detail-info">
                         <span class="detail-label">配置项</span>
                         <span class="detail-value config-value">{{
@@ -296,11 +317,14 @@
               <div class="card-footer">
                 <div class="footer-info">
                   <div class="connect-time">
-                    <i class="ri-time-line"></i>
+                    <IconifyIconOnline icon="ri:time-line" />
                     <span>{{ formatConnectTime(node.connectTime) }}</span>
                   </div>
                   <div class="last-heartbeat">
-                    <i class="ri-heart-pulse-line heartbeat-icon"></i>
+                    <IconifyIconOnline
+                      icon="ri:heart-pulse-line"
+                      class="heartbeat-icon"
+                    />
                     <span class="heartbeat-text">
                       {{ formatHeartbeat(node.lastHeartbeatTime) }}
                     </span>
@@ -312,20 +336,20 @@
                       @click.stop="openNodeDocumentation(node)"
                       title="API文档"
                     >
-                      <i class="ri-file-text-line"></i>
+                      <IconifyIconOnline icon="ri:file-text-line" />
                     </el-button>
                     <el-button
                       @click.stop="checkNodeHealth(node)"
                       :loading="nodeCheckingStatus[node.nodeId]"
                       title="健康检查"
                     >
-                      <i class="ri-stethoscope-line"></i>
+                      <IconifyIconOnline icon="ri:stethoscope-line" />
                     </el-button>
                     <el-button
                       @click.stop="viewNodeDetail(node)"
                       title="查看详情"
                     >
-                      <i class="ri-eye-line"></i>
+                      <IconifyIconOnline icon="ri:eye-line" />
                     </el-button>
                   </el-button-group>
                 </div>
@@ -353,7 +377,12 @@
               @click="openNodeDocumentation(hoveredNode)"
               :title="'API文档'"
             >
-              <i class="ri-book-open-line"></i>
+              <IconifyIconOnline
+                icon="ri:book-open-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">API文档</span>
             </div>
             <div
@@ -361,7 +390,12 @@
               @click="openNodeMonitoring(hoveredNode)"
               :title="'监控面板'"
             >
-              <i class="ri-bar-chart-box-line"></i>
+              <IconifyIconOnline
+                icon="ri:bar-chart-box-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">监控面板</span>
             </div>
             <div
@@ -369,7 +403,12 @@
               @click="openNodeTerminal(hoveredNode)"
               :title="'终端连接'"
             >
-              <i class="ri-terminal-box-line"></i>
+              <IconifyIconOnline
+                icon="ri:terminal-box-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">终端连接</span>
             </div>
             <div
@@ -377,7 +416,12 @@
               @click="openNodeFiles(hoveredNode)"
               :title="'文件管理'"
             >
-              <i class="ri-folder-open-line"></i>
+              <IconifyIconOnline
+                icon="ri:folder-open-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">文件管理</span>
             </div>
             <div
@@ -385,7 +429,12 @@
               @click="checkNodeHealth(hoveredNode)"
               :title="'健康检查'"
             >
-              <i class="ri-heart-pulse-line"></i>
+              <IconifyIconOnline
+                icon="ri:heart-pulse-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">健康检查</span>
             </div>
             <div
@@ -393,7 +442,12 @@
               @click="viewNodeDetail(hoveredNode)"
               :title="'查看详情'"
             >
-              <i class="ri-information-line"></i>
+              <IconifyIconOnline
+                icon="ri:information-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">查看详情</span>
             </div>
             <div
@@ -401,15 +455,38 @@
               @click="openNodeLogs(hoveredNode)"
               :title="'日志查看'"
             >
-              <i class="ri-file-list-3-line"></i>
+              <IconifyIconOnline
+                icon="ri:file-list-3-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">日志查看</span>
+            </div>
+            <div
+              class="action-icon logger-config"
+              @click="openLoggerConfig(hoveredNode)"
+              :title="'日志配置'"
+            >
+              <IconifyIconOnline
+                icon="ri:settings-4-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
+              <span class="tooltip">日志配置</span>
             </div>
             <div
               class="action-icon settings"
               @click="openNodeSettings(hoveredNode)"
               :title="'节点配置'"
             >
-              <i class="ri-settings-3-line"></i>
+              <IconifyIconOnline
+                icon="ri:settings-3-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">节点配置</span>
             </div>
             <div
@@ -417,26 +494,29 @@
               @click="restartNode(hoveredNode)"
               :title="'重启节点'"
             >
-              <i class="ri-restart-line"></i>
+              <IconifyIconOnline
+                icon="ri:restart-line"
+                width="38px"
+                height="38px"
+                class="text-white"
+              />
               <span class="tooltip">重启节点</span>
             </div>
           </div>
         </div>
       </div>
     </teleport>
+
+    <!-- 日志配置组件 -->
+    <LoggerConfig
+      v-model="showLoggerConfigDialog"
+      :node-info="selectedNodeForLogger"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  onUnmounted,
-  watch,
-  nextTick,
-} from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
 import {
@@ -447,6 +527,7 @@ import {
   type NodeStatistics,
 } from "@/api/node-management";
 import { parseTime } from "@/utils/const";
+import LoggerConfig from "./module/logger-config/index.vue";
 
 // 路由
 const router = useRouter();
@@ -496,6 +577,10 @@ const isCountingUp = ref(false);
 
 // 搜索和筛选
 const searchKeyword = ref("");
+
+// 日志配置组件相关
+const showLoggerConfigDialog = ref(false);
+const selectedNodeForLogger = ref<OnlineNodeInfo | null>(null);
 const selectedApplication = ref("");
 const selectedStatus = ref("");
 const viewMode = ref<"card" | "table">("card");
@@ -739,13 +824,13 @@ const getStatusText = (status: string) => {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case "ONLINE":
-      return "ri-checkbox-circle-line";
+      return "ri:checkbox-circle-line";
     case "OFFLINE":
-      return "ri-close-circle-line";
+      return "ri:close-circle-line";
     case "MAINTENANCE":
-      return "ri-tools-line";
+      return "ri:tools-line";
     default:
-      return "ri-question-line";
+      return "ri:question-line";
   }
 };
 
@@ -869,6 +954,15 @@ const openNodeLogs = (node: OnlineNodeInfo) => {
   showMenu.value = false;
   console.log("打开日志查看:", node);
   // TODO: 实现日志查看功能
+};
+
+const openLoggerConfig = (node: OnlineNodeInfo) => {
+  if (!node) return;
+  showMenu.value = false;
+
+  // 打开日志配置组件
+  showLoggerConfigDialog.value = true;
+  selectedNodeForLogger.value = node;
 };
 
 const openNodeSettings = (node: OnlineNodeInfo) => {
@@ -2330,6 +2424,70 @@ onUnmounted(() => {
     &:nth-child(4) {
       transition-delay: 150ms;
     }
+  }
+}
+
+// 日志配置弹框样式
+.dialog-header {
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .header-icon {
+      font-size: 24px;
+      color: #409eff;
+    }
+
+    .header-text {
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #303133;
+      }
+
+      p {
+        margin: 4px 0 0 0;
+        font-size: 14px;
+        color: #909399;
+      }
+    }
+  }
+}
+
+.logger-config-content {
+  .search-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .logger-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .logger-icon {
+      color: #409eff;
+      font-size: 16px;
+    }
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+// 日志配置菜单项样式
+.action-icon.logger-config {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  &:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-2px) scale(1.05);
   }
 }
 </style>
