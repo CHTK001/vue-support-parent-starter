@@ -7,18 +7,18 @@
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建脚本
         </el-button>
-        
+
         <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
         </el-button>
-        
+
         <el-button @click="handleImport">
           <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
           导入脚本
         </el-button>
       </div>
-      
+
       <div class="toolbar-right">
         <el-select
           v-model="filterType"
@@ -33,7 +33,7 @@
           <el-option label="Batch" value="BATCH" />
           <el-option label="JavaScript" value="JAVASCRIPT" />
         </el-select>
-        
+
         <el-select
           v-model="filterCategory"
           placeholder="分类"
@@ -47,7 +47,7 @@
           <el-option label="备份脚本" value="backup" />
           <el-option label="其他" value="other" />
         </el-select>
-        
+
         <el-input
           v-model="searchKeyword"
           placeholder="搜索脚本名称..."
@@ -70,15 +70,20 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" />
-      
+
       <el-table-column label="脚本信息" min-width="200">
         <template #default="{ row }">
           <div class="script-info">
             <div class="script-name">
-              <IconifyIconOnline :icon="getScriptIcon(row.monitorSysGenServerScriptType)" class="script-icon" />
+              <IconifyIconOnline
+                :icon="getScriptIcon(row.monitorSysGenServerScriptType)"
+                class="script-icon"
+              />
               {{ row.monitorSysGenServerScriptName }}
             </div>
-            <div class="script-desc">{{ row.monitorSysGenServerScriptDescription || '无描述' }}</div>
+            <div class="script-desc">
+              {{ row.monitorSysGenServerScriptDescription || "无描述" }}
+            </div>
             <div v-if="row.monitorSysGenServerScriptTags" class="script-tags">
               <el-tag
                 v-for="tag in getTagList(row.monitorSysGenServerScriptTags)"
@@ -93,27 +98,30 @@
           </div>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="脚本类型" width="100" align="center">
         <template #default="{ row }">
-          <el-tag :type="getScriptTypeColor(row.monitorSysGenServerScriptType)" size="small">
+          <el-tag
+            :type="getScriptTypeColor(row.monitorSysGenServerScriptType)"
+            size="small"
+          >
             {{ row.monitorSysGenServerScriptType }}
           </el-tag>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="分类" width="100" align="center">
         <template #default="{ row }">
-          <span>{{ row.monitorSysGenServerScriptCategory || '-' }}</span>
+          <span>{{ row.monitorSysGenServerScriptCategory || "-" }}</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="版本" width="80" align="center">
         <template #default="{ row }">
-          <span>{{ row.monitorSysGenServerScriptVersion || 'v1.0' }}</span>
+          <span>{{ row.monitorSysGenServerScriptVersion || "v1.0" }}</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="状态" width="80" align="center">
         <template #default="{ row }">
           <el-switch
@@ -124,16 +132,20 @@
           />
         </template>
       </el-table-column>
-      
+
       <el-table-column label="执行统计" width="120" align="center">
         <template #default="{ row }">
           <div class="execution-stats">
-            <div>总计: {{ row.monitorSysGenServerScriptExecutionCount || 0 }}</div>
-            <div>成功: {{ row.monitorSysGenServerScriptSuccessCount || 0 }}</div>
+            <div>
+              总计: {{ row.monitorSysGenServerScriptExecutionCount || 0 }}
+            </div>
+            <div>
+              成功: {{ row.monitorSysGenServerScriptSuccessCount || 0 }}
+            </div>
           </div>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="最后执行" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerScriptLastExecutionTime">
@@ -142,26 +154,30 @@
           <span v-else class="text-muted">从未执行</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="创建者" width="100" align="center">
         <template #default="{ row }">
           {{ row.monitorSysGenServerScriptCreateUser }}
         </template>
       </el-table-column>
-      
+
       <el-table-column label="操作" width="280" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button size="small" type="primary" @click="$emit('execute', row)">
+            <el-button
+              size="small"
+              type="primary"
+              @click="$emit('execute', row)"
+            >
               <IconifyIconOnline icon="ri:play-line" />
               执行
             </el-button>
-            
+
             <el-button size="small" @click="$emit('edit', row)">
               <IconifyIconOnline icon="ri:edit-line" />
               编辑
             </el-button>
-            
+
             <el-dropdown @command="(cmd) => handleAction(cmd, row)">
               <el-button size="small">
                 <IconifyIconOnline icon="ri:more-line" />
@@ -169,11 +185,19 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="view">查看代码</el-dropdown-item>
-                  <el-dropdown-item command="duplicate">复制脚本</el-dropdown-item>
-                  <el-dropdown-item command="history">执行历史</el-dropdown-item>
+                  <el-dropdown-item command="duplicate"
+                    >复制脚本</el-dropdown-item
+                  >
+                  <el-dropdown-item command="history"
+                    >执行历史</el-dropdown-item
+                  >
                   <el-dropdown-item command="export">导出脚本</el-dropdown-item>
-                  <el-dropdown-item command="validate">语法检查</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  <el-dropdown-item command="validate"
+                    >语法检查</el-dropdown-item
+                  >
+                  <el-dropdown-item command="delete" divided
+                    >删除</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -206,18 +230,18 @@
         <div class="code-header">
           <el-descriptions :column="3" size="small">
             <el-descriptions-item label="脚本名称">
-              {{ selectedScript.monitorSysGenServerScriptName }}
+              {{ selectedScript.monitorSysGenScriptName }}
             </el-descriptions-item>
             <el-descriptions-item label="脚本类型">
-              {{ selectedScript.monitorSysGenServerScriptType }}
+              {{ selectedScript.monitorSysGenScriptType }}
             </el-descriptions-item>
             <el-descriptions-item label="版本">
-              {{ selectedScript.monitorSysGenServerScriptVersion }}
+              {{ selectedScript.monitorSysGenScriptVersion }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="code-content">
-          <pre><code>{{ selectedScript.monitorSysGenServerScriptContent }}</code></pre>
+          <pre><code>{{ selectedScript.monitorSysGenScriptContent }}</code></pre>
         </div>
       </div>
     </el-dialog>
@@ -244,10 +268,12 @@
           </div>
         </template>
       </el-upload>
-      
+
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleUploadScript">确定导入</el-button>
+        <el-button type="primary" @click="handleUploadScript"
+          >确定导入</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -309,9 +335,9 @@ const loadScriptList = async () => {
     const params = {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      monitorSysGenServerScriptName: searchKeyword.value || undefined,
-      monitorSysGenServerScriptType: filterType.value || undefined,
-      monitorSysGenServerScriptCategory: filterCategory.value || undefined,
+      monitorSysGenScriptName: searchKeyword.value || undefined,
+      monitorSysGenScriptType: filterType.value || undefined,
+      monitorSysGenScriptCategory: filterCategory.value || undefined,
     };
 
     const res = await getServerScriptPageList(params);
@@ -359,7 +385,7 @@ const getScriptTypeColor = (type: string) => {
  * 获取标签列表
  */
 const getTagList = (tags: string) => {
-  return tags ? tags.split(",").filter(tag => tag.trim()) : [];
+  return tags ? tags.split(",").filter((tag) => tag.trim()) : [];
 };
 
 /**
@@ -420,7 +446,8 @@ const handleStatusChange = async (script: ServerScript) => {
     console.error("状态更新失败:", error);
     message.error("状态更新失败");
     // 回滚状态
-    script.monitorSysGenServerScriptStatus = script.monitorSysGenServerScriptStatus === 1 ? 0 : 1;
+    script.monitorSysGenServerScriptStatus =
+      script.monitorSysGenServerScriptStatus === 1 ? 0 : 1;
   }
 };
 
@@ -678,7 +705,7 @@ onMounted(() => {
 
       pre {
         margin: 0;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 13px;
         line-height: 1.5;
         white-space: pre-wrap;

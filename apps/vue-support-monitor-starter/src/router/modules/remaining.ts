@@ -10,28 +10,10 @@ export default [
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
-      rank: 101
-    }
+      rank: 101,
+    },
   },
-  {
-    path: "/service/document/:id",
-    name: "serviceDocument",
-    component: () => import("@/views/monitor/service/app/document/index.vue"),
-    meta: {
-      icon: "ri:file-list-line",
-      title: $t("buttons.monitor.service-document"),
-      showLink: false
-    }
-  },
-  {
-    path: "/ssh-tabs",
-    name: "ssh-tabs",
-    component: () => import("@/views/maintenance/ssh/ssh-tabs.vue"),
-    meta: {
-      title: "SSH 标签",
-      showLink: false
-    }
-  },
+
   {
     path: "/AccountSettings",
     name: "AccountSettings",
@@ -40,8 +22,8 @@ export default [
     },
     meta: {
       title: $t("buttons.accountSetting"),
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/ossdetail",
@@ -49,19 +31,10 @@ export default [
     component: () => import("@/views/monitor/oss/detail.vue"),
     meta: {
       title: $t("buttons.oss.detail"),
-      showLink: false
-    }
+      showLink: false,
+    },
   },
-  {
-    path: "/datav",
-    name: "datav",
-    component: () => import("@/views/monitor/service/dashboard/index.vue"),
-    meta: {
-      icon: "ep:setting",
-      title: $t("buttons.monitor.datav"),
-      showLink: false
-    }
-  },
+
   {
     path: "/database/manage",
     name: "manageIndex",
@@ -69,28 +42,32 @@ export default [
     meta: {
       icon: "ri:database-2-line",
       title: $t("buttons.monitor.database"),
-      showLink: false
-    }
+      showLink: false,
+    },
   },
+<<<<<<< HEAD
 
+=======
   {
-    path: "/service/app/monitor",
-    name: "serviceAppMonitor",
-    component: () => import("@/views/monitor/service/app/monitor/index.vue"),
-    meta: {
-      icon: "ep:setting",
-      title: $t("buttons.monitor.datav"),
-      showLink: false
-    }
-  },
-  {
-    path: "/full-terminal",
-    name: "fullTerminal",
-    component: () => import("@/views/maintenance/ssh/full-terminal.vue"),
+    path: "/database/fullscreen",
+    name: "fullscreenIndex",
+    component: () => import("@/views/monitor/gen/fullscreen.vue"),
     meta: {
       icon: "ep:full-screen",
-      title: "SSH 全屏终端",
-      showLink: false
-    }
-  }
+      title: $t("buttons.monitor.fullscreen"),
+      showLink: false,
+    },
+  },
+>>>>>>> 81fa6c985c3b20899bf35731f3860d013c332b21
+  {
+    path: "/node/documentation/:nodeId",
+    name: "nodeDocumentation",
+    component: () =>
+      import("@/views/node-management/module/node-documentation/index.vue"),
+    meta: {
+      icon: "ri:file-text-line",
+      title: "节点API文档",
+      showLink: false,
+    },
+  },
 ] satisfies Array<RouteConfigsTable>;

@@ -8,54 +8,9 @@ export default [
       icon: "ep:monitor",
       title: "监控系统",
       showLink: true,
-      rank: 1
+      rank: 1,
     },
     children: [
-      {
-        path: "/service-monitor",
-        name: "serviceMonitor",
-        meta: {
-          icon: "ep:service",
-          title: "服务监控",
-          showLink: true,
-          showParent: true
-        },
-        children: [
-          {
-            path: "/service-list",
-            name: "service-list",
-            component: () => import("@/views/monitor/service/app/index.vue"),
-            meta: {
-              icon: "ri:navigation-fill",
-              title: $t("buttons.monitor.service-list"),
-              showLink: true,
-              showParent: true
-            }
-          },
-          {
-            path: "/online-service-list",
-            name: "online-service-list",
-            component: () => import("@/views/monitor/service/online/index.vue"),
-            meta: {
-              icon: "simple-icons:cloudflare",
-              title: $t("buttons.monitor.online-service-list"),
-              showLink: true,
-              showParent: true
-            }
-          },
-          {
-            path: "/online-monitor",
-            name: "online-monitor",
-            component: () => import("@/views/monitor/service/online/index.vue"),
-            meta: {
-              icon: "simple-icons:cloudflare",
-              title: "在线监控详情",
-              showLink: false,
-              showParent: true
-            }
-          }
-        ]
-      },
       {
         path: "/job-monitor",
         name: "jobMonitor",
@@ -63,7 +18,7 @@ export default [
           icon: "line-md:bell-twotone-loop",
           title: "任务监控",
           showLink: true,
-          showParent: true
+          showParent: true,
         },
         children: [
           {
@@ -74,8 +29,8 @@ export default [
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.job-list"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
           {
             path: "/job-log",
@@ -85,10 +40,10 @@ export default [
               icon: "simple-icons:logmein",
               title: $t("buttons.monitor.job-log"),
               showLink: true,
-              showParent: true
-            }
-          }
-        ]
+              showParent: true,
+            },
+          },
+        ],
       },
       {
         path: "/server-monitor",
@@ -97,7 +52,7 @@ export default [
           icon: "ri:server-line",
           title: "服务器监控",
           showLink: true,
-          showParent: true
+          showParent: true,
         },
         children: [
           {
@@ -108,23 +63,44 @@ export default [
               icon: "ri:server-line",
               title: $t("buttons.monitor.server-management"),
               showLink: true,
-              showParent: true
-            }
+              showParent: true,
+            },
           },
-
           {
-            path: "/server/file-upload",
-            name: "serverFileUpload",
-            component: () => import("@/views/server/file-upload/index.vue"),
+            path: "/server/file-system",
+            name: "serverFileSystem",
+            component: () => import("@/views/file-system/index.vue"),
             meta: {
-              icon: "ri:upload-cloud-line",
-              title: "文件上传管理",
+              icon: "ri:file-list-3-line",
+              title: "文件系统管理",
               showLink: true,
-              showParent: true
-            }
-          }
-        ]
-      }
-    ]
-  }
+              showParent: true,
+            },
+          },
+          {
+            path: "/server/nodes",
+            name: "serverNodes",
+            component: () => import("@/views/node-management/index.vue"),
+            meta: {
+              icon: "ri:node-tree",
+              title: "在线节点管理",
+              showLink: true,
+              showParent: true,
+            },
+          },
+          {
+            path: "/server/script-management",
+            name: "serverScriptManagement",
+            component: () => import("@/views/script-management/index.vue"),
+            meta: {
+              icon: "ri:code-s-slash-line",
+              title: "脚本管理",
+              showLink: true,
+              showParent: true,
+            },
+          },
+        ],
+      },
+    ],
+  },
 ];

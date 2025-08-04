@@ -3,19 +3,19 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button
-          type="primary"
-          plain
-          @click="goBack"
-          class="back-btn"
-        >
+        <el-button type="primary" plain @click="goBack" class="back-btn">
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
           返回
         </el-button>
         <div class="server-info">
           <div class="server-title">
-            <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
-            <span class="server-name">{{ serverInfo?.name || '服务器详情' }}</span>
+            <IconifyIconOnline
+              :icon="getProtocolIcon(serverInfo?.protocol)"
+              class="server-icon"
+            />
+            <span class="server-name">{{
+              serverInfo?.name || "服务器详情"
+            }}</span>
             <el-tag
               :type="getStatusType(serverInfo?.status)"
               size="small"
@@ -25,7 +25,8 @@
             </el-tag>
           </div>
           <div class="server-subtitle">
-            {{ serverInfo?.host }}:{{ serverInfo?.port }} | {{ serverInfo?.protocol }}
+            {{ serverInfo?.host }}:{{ serverInfo?.port }} |
+            {{ serverInfo?.protocol }}
           </div>
         </div>
       </div>
@@ -39,42 +40,25 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button
-          type="info"
-          @click="handleFileManager"
-          plain
-        >
+        <el-button type="info" @click="handleFileManager" plain>
           <IconifyIconOnline icon="ri:folder-line" class="mr-1" />
           文件管理
         </el-button>
-        <el-button
-          type="primary"
-          @click="handleAddComponent"
-        >
+        <el-button type="primary" @click="handleAddComponent">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加组件
         </el-button>
-        <el-button
-          type="warning"
-          @click="handleManageComponents"
-          plain
-        >
+        <el-button type="warning" @click="handleManageComponents" plain>
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
           管理组件
         </el-button>
 
-        <el-button
-          @click="handleComponentConfig"
-          plain
-        >
+        <el-button @click="handleComponentConfig" plain>
           <IconifyIconOnline icon="ri:dashboard-line" class="mr-1" />
           组件配置
         </el-button>
 
-        <el-button
-          @click="handleLayoutConfig"
-          plain
-        >
+        <el-button @click="handleLayoutConfig" plain>
           <IconifyIconOnline icon="ri:layout-grid-line" class="mr-1" />
           布局配置
         </el-button>
@@ -84,8 +68,11 @@
           @click="toggleEditMode"
           plain
         >
-          <IconifyIconOnline :icon="editMode ? 'ri:eye-line' : 'ri:edit-line'" class="mr-1" />
-          {{ editMode ? '预览模式' : '编辑模式' }}
+          <IconifyIconOnline
+            :icon="editMode ? 'ri:eye-line' : 'ri:edit-line'"
+            class="mr-1"
+          />
+          {{ editMode ? "预览模式" : "编辑模式" }}
         </el-button>
       </div>
     </div>
@@ -110,7 +97,9 @@
         </span>
         <div class="toolbar-actions">
           <el-button @click="handleCancelEdit">取消</el-button>
-          <el-button type="primary" @click="handleSaveLayout">保存布局</el-button>
+          <el-button type="primary" @click="handleSaveLayout"
+            >保存布局</el-button
+          >
         </div>
       </div>
     </div>
@@ -128,11 +117,16 @@
     />
 
     <!-- 文件管理对话框 -->
-    <FileManagerDialog
-      ref="fileManagerDialogRef"
-      :server-id="serverId"
-      :server-info="serverInfo"
-    />
+    <el-dialog
+      v-model="fileManagerVisible"
+      title="文件管理"
+      width="90%"
+      :before-close="handleFileManagerClose"
+      append-to-body
+      destroy-on-close
+    >
+      <FileManager :server="serverInfo" @close="handleFileManagerClose" />
+    </el-dialog>
 
     <!-- 组件配置对话框 -->
     <ComponentConfigDialog
@@ -160,13 +154,13 @@ import {
   initDefaultComponentsForServerDetail,
   deleteServerDetailComponent,
   type ServerComponent,
-  type ServerDisplayData
+  type ServerDisplayData,
 } from "@/api/server";
 
 // 导入组件
 import ComponentEditDialog from "./components/dialogs/ComponentEditDialog.vue";
 import ComponentManageDialog from "./components/dialogs/ComponentManageDialog.vue";
-import FileManagerDialog from "./components/dialogs/FileManagerDialog.vue";
+import FileManager from "./modules/file-management/index.vue";
 import ComponentConfigDialog from "./components/dialogs/ComponentConfigDialog.vue";
 import LayoutConfigDialog from "./components/dialogs/LayoutConfigDialog.vue";
 import GridLayoutEditor from "./components/layout/GridLayoutEditor.vue";
@@ -193,10 +187,12 @@ const layout = ref<any[]>([]);
 // 组件引用
 const componentEditDialogRef = ref();
 const componentManageDialogRef = ref();
-const fileManagerDialogRef = ref();
 const componentConfigDialogRef = ref();
 const layoutConfigDialogRef = ref();
 const gridLayoutEditorRef = ref();
+
+// 文件管理对话框状态
+const fileManagerVisible = ref(false);
 
 // 组件类型映射
 const componentTypeMap = {
@@ -213,7 +209,9 @@ const componentTypeMap = {
  * 获取组件类型
  */
 const getComponentType = (type: string) => {
-  return componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent;
+  return (
+    componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent
+  );
 };
 
 /**
@@ -267,10 +265,7 @@ const goBack = () => {
 const handleRefresh = async () => {
   refreshLoading.value = true;
   try {
-    await Promise.all([
-      loadServerInfo(),
-      loadComponents()
-    ]);
+    await Promise.all([loadServerInfo(), loadComponents()]);
     message.success("刷新成功");
   } catch (error) {
     console.error("刷新失败:", error);
@@ -298,14 +293,21 @@ const handleManageComponents = () => {
  * 文件管理
  */
 const handleFileManager = () => {
-  fileManagerDialogRef.value?.open();
+  fileManagerVisible.value = true;
+};
+
+/**
+ * 关闭文件管理对话框
+ */
+const handleFileManagerClose = () => {
+  fileManagerVisible.value = false;
 };
 
 /**
  * 组件配置
  */
 const handleComponentConfig = () => {
-  componentConfigDialogRef.value?.open('add');
+  componentConfigDialogRef.value?.open("add");
 };
 
 /**
@@ -321,7 +323,7 @@ const handleLayoutConfig = () => {
 const toggleEditMode = () => {
   editMode.value = !editMode.value;
   if (gridLayoutEditorRef.value) {
-    gridLayoutEditorRef.value.setEditMode(editMode.value ? 'edit' : 'view');
+    gridLayoutEditorRef.value.setEditMode(editMode.value ? "edit" : "view");
   }
 };
 
@@ -401,8 +403,10 @@ const handleCancelEdit = () => {
 const handleSaveLayout = async () => {
   try {
     // 将布局信息映射回组件数据
-    const updatedComponents = components.value.map(component => {
-      const layoutItem = layout.value.find(item => item.i === String(component.monitorSysGenServerComponentId));
+    const updatedComponents = components.value.map((component) => {
+      const layoutItem = layout.value.find(
+        (item) => item.i === String(component.monitorSysGenServerComponentId)
+      );
       if (layoutItem) {
         return {
           ...component,
@@ -410,8 +414,8 @@ const handleSaveLayout = async () => {
             x: layoutItem.x,
             y: layoutItem.y,
             w: layoutItem.w,
-            h: layoutItem.h
-          })
+            h: layoutItem.h,
+          }),
         };
       }
       return component;
@@ -449,7 +453,7 @@ const handleComponentsManaged = () => {
  */
 const handleComponentConfigSuccess = () => {
   loadComponents();
-  message.success('组件配置已保存');
+  message.success("组件配置已保存");
 };
 
 /**
@@ -458,7 +462,7 @@ const handleComponentConfigSuccess = () => {
 const handleApplyLayoutTemplate = (template: any) => {
   if (gridLayoutEditorRef.value) {
     gridLayoutEditorRef.value.setLayout(template.config.layout);
-    message.success('布局模板已应用');
+    message.success("布局模板已应用");
   }
 };
 
@@ -486,11 +490,13 @@ const loadComponents = async () => {
     if (res.code === "00000") {
       components.value = res.data || [];
       // 转换为网格布局格式
-      layout.value = components.value.map(component => {
+      layout.value = components.value.map((component) => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
           if (component.monitorSysGenServerComponentPosition) {
-            position = JSON.parse(component.monitorSysGenServerComponentPosition);
+            position = JSON.parse(
+              component.monitorSysGenServerComponentPosition
+            );
           }
         } catch (e) {
           console.warn("解析组件位置失败:", e);
@@ -503,7 +509,7 @@ const loadComponents = async () => {
           w: position.w,
           h: position.h,
           componentType: component.monitorSysGenServerComponentType,
-          ...component
+          ...component,
         };
       });
     }

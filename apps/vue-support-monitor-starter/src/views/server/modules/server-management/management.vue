@@ -87,6 +87,7 @@
           <ServerList
             ref="serverListRef"
             @edit="handleEditServer"
+            @config="handleServerConfig"
             @setting="handleServerSetting"
             @delete="handleDeleteServer"
             @connect="handleConnectServer"
@@ -97,7 +98,7 @@
             @upload="handleFileUpload"
           />
         </el-tab-pane>
-        
+
         <el-tab-pane label="连接状态" name="connections">
           <ServerConnectionStatusList
             ref="connectionStatusRef"
@@ -105,7 +106,7 @@
             @batch-test="handleBatchTestConnection"
           />
         </el-tab-pane>
-        
+
         <el-tab-pane label="文件上传" name="uploads">
           <FileUploadTasks
             ref="fileUploadRef"
@@ -115,7 +116,7 @@
             @cancel="handleCancelUploadTask"
           />
         </el-tab-pane>
-        
+
         <el-tab-pane label="脚本管理" name="scripts">
           <ServerScripts
             ref="serverScriptsRef"
@@ -125,7 +126,7 @@
             @delete="handleDeleteScript"
           />
         </el-tab-pane>
-        
+
         <el-tab-pane label="日志管理" name="logs">
           <ServerLogs
             ref="serverLogsRef"
@@ -134,38 +135,43 @@
             @cleanup="handleCleanupLogs"
           />
         </el-tab-pane>
-
-
       </el-tabs>
     </div>
 
     <!-- 对话框组件 -->
-    <ServerEditDialog
-      ref="serverEditDialogRef"
-      @success="handleServerSaved"
-    />
+    <ServerEditDialog ref="serverEditDialogRef" @success="handleServerSaved" />
 
     <ServerSettingDialog
       ref="serverSettingDialogRef"
       @success="handleServerSaved"
     />
 
-    <ServerTerminalDialog
-      ref="serverTerminalDialogRef"
+    <ServerConfigDialog
+      ref="serverConfigDialogRef"
+      @success="handleServerSaved"
     />
-    
-    <ServerMonitorDialog
-      ref="serverMonitorDialogRef"
-    />
-    
-    <FileManagerDialog
-      ref="fileManagerDialogRef"
-    />
-    
-    <ScriptExecutorDialog
-      ref="scriptExecutorDialogRef"
-    />
-    
+
+    <ServerTerminalDialog ref="serverTerminalDialogRef" />
+
+    <ServerMonitorDialog ref="serverMonitorDialogRef" />
+
+    <!-- 文件管理对话框 -->
+    <el-dialog
+      v-model="fileManagerVisible"
+      title="文件管理"
+      width="90%"
+      :before-close="handleFileManagerClose"
+      append-to-body
+      destroy-on-close
+    >
+      <FileManager
+        :server="currentFileManagerServer"
+        @close="handleFileManagerClose"
+      />
+    </el-dialog>
+
+    <ScriptExecutorDialog ref="scriptExecutorDialogRef" />
+
     <FileUploadDialog
       ref="fileUploadDialogRef"
       @success="handleUploadSuccess"
@@ -189,9 +195,10 @@ import ServerLogs from "./components/ServerLogs.vue";
 // 导入对话框组件
 import ServerEditDialog from "./components/ServerEditDialog.vue";
 import ServerSettingDialog from "./components/ServerSettingDialog.vue";
+import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerTerminalDialog from "./components/ServerTerminalDialog.vue";
 import ServerMonitorDialog from "./components/ServerMonitorDialog.vue";
-import FileManagerDialog from "./components/FileManagerDialog.vue";
+import FileManager from "../file-management/index.vue";
 import ScriptExecutorDialog from "./components/ScriptExecutorDialog.vue";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
 
@@ -205,9 +212,12 @@ const serverLogsRef = ref();
 // 对话框引用
 const serverEditDialogRef = ref();
 const serverSettingDialogRef = ref();
+const serverConfigDialogRef = ref();
 const serverTerminalDialogRef = ref();
 const serverMonitorDialogRef = ref();
-const fileManagerDialogRef = ref();
+// 文件管理对话框状态
+const fileManagerVisible = ref(false);
+const currentFileManagerServer = ref(null);
 const scriptExecutorDialogRef = ref();
 const fileUploadDialogRef = ref();
 
@@ -257,6 +267,13 @@ const handleServerSetting = (server: any) => {
 };
 
 /**
+ * 处理服务器配置管理
+ */
+const handleServerConfig = (server: any) => {
+  serverConfigDialogRef.value?.open(server.monitorSysGenServerId);
+};
+
+/**
  * 处理删除服务器
  */
 const handleDeleteServer = (server: any) => {
@@ -281,7 +298,16 @@ const handleMonitorServer = (server: any) => {
  * 处理文件管理
  */
 const handleFileManager = (server: any) => {
-  fileManagerDialogRef.value?.open(server);
+  currentFileManagerServer.value = server;
+  fileManagerVisible.value = true;
+};
+
+/**
+ * 关闭文件管理对话框
+ */
+const handleFileManagerClose = () => {
+  fileManagerVisible.value = false;
+  currentFileManagerServer.value = null;
 };
 
 /**
