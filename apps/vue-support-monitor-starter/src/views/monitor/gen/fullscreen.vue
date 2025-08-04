@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { fetchGenSessionHits } from "@/api/monitor/gen/session";
+// import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 import { useGlobal } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScLazy from "@repo/components/ScLazy/index.vue";
@@ -148,12 +148,12 @@ const handleHits = async () => {
   }
 
   try {
-    const res = await fetchGenSessionHits(item.data);
-    (res?.data || []).forEach(element => {
-      item.hits[element.name] = element.fields;
-    });
-    componentRef.value.upgradeHits(item.hits);
-    message("数据刷新成功", { type: "success" });
+    // const res = await fetchGenSessionHits(item.data);
+    // (res?.data || []).forEach(element => {
+    //   item.hits[element.name] = element.fields;
+    // });
+    // componentRef.value.upgradeHits(item.hits);
+    message("数据刷新功能暂时不可用", { type: "warning" });
     // 刷新后自动隐藏控制面板
     setTimeout(() => {
       showControls.value = false;

@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { fetchGenSessionChildren, fetchGenSessionCopyTableConstruct, fetchGenSessionDropTable, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
+// import { fetchGenSessionChildren, fetchGenSessionCopyTableConstruct, fetchGenSessionDropTable, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount, defineExpose, watch } from "vue";
 import contextMenu from "@repo/components/ScContextMenu/index.vue";

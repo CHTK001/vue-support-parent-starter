@@ -72,16 +72,7 @@ export default [
       showLink: false
     }
   },
-  {
-    path: "/database/fullscreen",
-    name: "fullscreenIndex",
-    component: () => import("@/views/monitor/gen/fullscreen.vue"),
-    meta: {
-      icon: "ep:full-screen",
-      title: $t("buttons.monitor.fullscreen"),
-      showLink: false
-    }
-  },
+
   {
     path: "/service/app/monitor",
     name: "serviceAppMonitor",
