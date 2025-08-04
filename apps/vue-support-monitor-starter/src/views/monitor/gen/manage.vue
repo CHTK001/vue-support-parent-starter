@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { fetchGenSessionHits } from "@/api/monitor/gen/session";
+// import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 import { useGlobal } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import splitpane from "@repo/components/ReSplitPane";
@@ -155,7 +155,9 @@ const singleSplit = computed(() => {
     return item.data.genSplit;
   }
   // 否则根据类型判断
-  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC" && item.data.genType != "PROMETHEUS" && item.data.genType != "NACOS" && item.data.genType != "SERIAL";
+  return (
+    item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC" && item.data.genType != "PROMETHEUS" && item.data.genType != "NACOS" && item.data.genType != "SERIAL"
+  );
 });
 
 /**
@@ -282,12 +284,12 @@ const handleHits = async () => {
   }
 
   try {
-    const res = await fetchGenSessionHits(item.data);
-    (res?.data || []).forEach(element => {
-      item.hits[element.name] = element.fields;
-    });
-    componentRef.value.upgradeHits(item.hits);
-    message("数据刷新成功", { type: "success" });
+    // const res = await fetchGenSessionHits(item.data);
+    // (res?.data || []).forEach(element => {
+    //   item.hits[element.name] = element.fields;
+    // });
+    // componentRef.value.upgradeHits(item.hits);
+    message("数据刷新功能暂时不可用", { type: "warning" });
   } catch (error) {
     message("数据刷新失败", { type: "error" });
   }

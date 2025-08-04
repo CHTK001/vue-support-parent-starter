@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { fetchGenSessionExecute } from "@/api/monitor/gen/session";
+// import { fetchGenSessionExecute } from "@/api/monitor/gen/session";
 import { message } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { defineAsyncComponent, defineExpose, defineProps, reactive, ref } from "vue";

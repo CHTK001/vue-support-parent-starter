@@ -1,13 +1,5 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title="服务器配置管理"
-    width="90%"
-    :close-on-click-modal="false"
-    destroy-on-close
-    top="10px"
-    class="server-config-dialog"
-  >
+  <el-dialog v-model="visible" title="服务器配置管理" width="90%" :close-on-click-modal="false" destroy-on-close top="10px" class="server-config-dialog">
     <div class="dialog-content" v-loading="loading">
       <div class="config-container">
         <!-- 左侧导航 -->
@@ -21,14 +13,8 @@
               </div>
             </div>
           </div>
-          
-          <el-menu
-            v-model="activeSection"
-            mode="vertical"
-            class="config-menu"
-            @select="handleSectionChange"
-          >
 
+          <el-menu v-model="activeSection" mode="vertical" class="config-menu" @select="handleSectionChange">
             <el-menu-item index="proxy">
               <IconifyIconOnline icon="ri:global-line" />
               <span>代理设置</span>
@@ -89,285 +75,182 @@
 
             <!-- 配置表单 -->
             <div v-loading="loadingSettings" element-loading-text="加载配置中..." class="form-container">
-              <el-form
-                ref="formRef"
-                :model="settingData"
-                label-width="160px"
-                size="default"
-                class="config-form"
-                :disabled="loadingSettings"
-              >
+              <el-form ref="formRef" :model="settingData" label-width="160px" size="default" class="config-form" :disabled="loadingSettings">
+                <!-- 代理配置 -->
+                <div v-show="activeSection === 'proxy'" class="config-section">
+                  <div class="section-description">
+                    <el-alert title="代理配置" description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型。" type="info" :closable="false" class="mb-4" />
+                  </div>
 
+                  <el-form-item label="启用代理">
+                    <div class="switch-wrapper">
+                      <el-switch
+                        v-model="settingData.monitorSysGenServerSettingProxyEnabled"
+                        :active-value="1"
+                        :inactive-value="0"
+                        active-text="启用"
+                        inactive-text="禁用"
+                        @change="handleSettingChange"
+                      />
+                      <el-tooltip content="启用后将通过代理服务器进行连接" placement="top">
+                        <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                      </el-tooltip>
+                    </div>
+                  </el-form-item>
 
-              <!-- 代理配置 -->
-              <div v-show="activeSection === 'proxy'" class="config-section">
-                <div class="section-description">
-                  <el-alert
-                    title="代理配置"
-                    description="配置代理服务器以实现网络连接转发，支持HTTP、SOCKS5、SSH隧道和Guacamole等多种代理类型。"
-                    type="info"
-                    :closable="false"
-                    class="mb-4"
-                  />
+                  <template v-if="settingData.monitorSysGenServerSettingProxyEnabled === 1">
+                    <el-form-item label="代理类型">
+                      <el-select v-model="settingData.monitorSysGenServerSettingProxyType" placeholder="选择代理类型" style="width: 200px !important" @change="handleSettingChange">
+                        <el-option label="HTTP代理" value="HTTP" />
+                        <el-option label="SOCKS5代理" value="SOCKS5" />
+                        <el-option label="SSH隧道" value="SSH_TUNNEL" />
+                        <el-option label="Guacamole代理" value="GUACAMOLE" />
+                      </el-select>
+                    </el-form-item>
+
+                    <el-form-item label="代理地址">
+                      <el-input v-model="settingData.monitorSysGenServerSettingProxyHost" placeholder="请输入代理服务器地址" style="width: 300px" @change="handleSettingChange" />
+                    </el-form-item>
+
+                    <el-form-item label="代理端口">
+                      <el-input-number v-model="settingData.monitorSysGenServerSettingProxyPort" :min="1" :max="65535" placeholder="端口号" style="width: 200px" @change="handleSettingChange" />
+                    </el-form-item>
+
+                    <el-form-item label="代理用户名">
+                      <el-input v-model="settingData.monitorSysGenServerSettingProxyUsername" placeholder="代理用户名（可选）" style="width: 200px" @change="handleSettingChange" />
+                    </el-form-item>
+
+                    <el-form-item label="代理密码">
+                      <el-input
+                        v-model="settingData.monitorSysGenServerSettingProxyPassword"
+                        type="password"
+                        placeholder="代理密码（可选）"
+                        show-password
+                        style="width: 200px"
+                        @change="handleSettingChange"
+                      />
+                    </el-form-item>
+
+                    <!-- GUACAMOLE特殊配置说明 -->
+                    <template v-if="settingData.monitorSysGenServerSettingProxyType === 'GUACAMOLE'">
+                      <el-alert
+                        title="Guacamole代理配置"
+                        description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置。"
+                        type="info"
+                        :closable="false"
+                        class="mt-4"
+                      />
+                    </template>
+                  </template>
                 </div>
 
-                <el-form-item label="启用代理">
-                  <div class="switch-wrapper">
-                    <el-switch
-                      v-model="settingData.monitorSysGenServerSettingProxyEnabled"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="启用"
-                      inactive-text="禁用"
-                      @change="handleSettingChange"
-                    />
-                    <el-tooltip content="启用后将通过代理服务器进行连接" placement="top">
-                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-                    </el-tooltip>
+                <!-- 指标管理 -->
+                <div v-show="activeSection === 'metrics'" class="config-section">
+                  <div class="section-description">
+                    <el-alert title="指标管理" description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式。" type="info" :closable="false" class="mb-4" />
                   </div>
-                </el-form-item>
 
-                <template v-if="settingData.monitorSysGenServerSettingProxyEnabled === 1">
-                  <el-form-item label="代理类型">
-                    <el-select
-                      v-model="settingData.monitorSysGenServerSettingProxyType"
-                      placeholder="选择代理类型"
-                      style="width: 200px !important"
-                      @change="handleSettingChange"
-                    >
-                      <el-option label="HTTP代理" value="HTTP" />
-                      <el-option label="SOCKS5代理" value="SOCKS5" />
-                      <el-option label="SSH隧道" value="SSH_TUNNEL" />
-                      <el-option label="Guacamole代理" value="GUACAMOLE" />
-                    </el-select>
+                  <el-form-item label="指标收集">
+                    <div class="switch-wrapper">
+                      <el-switch v-model="settingData.monitorSysGenServerSettingMonitorEnabled" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" />
+                      <el-tooltip content="启用后将收集服务器性能指标" placement="top">
+                        <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                      </el-tooltip>
+                    </div>
                   </el-form-item>
 
-                  <el-form-item label="代理地址">
-                    <el-input
-                      v-model="settingData.monitorSysGenServerSettingProxyHost"
-                      placeholder="请输入代理服务器地址"
-                      style="width: 300px"
-                      @change="handleSettingChange"
-                    />
-                  </el-form-item>
+                  <template v-if="settingData.monitorSysGenServerSettingMonitorEnabled === 1">
+                    <el-form-item label="收集频率">
+                      <el-input-number
+                        v-model="settingData.monitorSysGenServerSettingDataCollectionFrequency"
+                        :min="10"
+                        :max="3600"
+                        :step="10"
+                        placeholder="收集频率(秒)"
+                        style="width: 200px"
+                        @change="handleSettingChange"
+                      />
+                      <span class="form-tip">秒，建议值：30</span>
+                    </el-form-item>
 
-                  <el-form-item label="代理端口">
-                    <el-input-number
-                      v-model="settingData.monitorSysGenServerSettingProxyPort"
-                      :min="1"
-                      :max="65535"
-                      placeholder="端口号"
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                  </el-form-item>
+                    <el-form-item label="数据保留天数">
+                      <el-input-number
+                        v-model="settingData.monitorSysGenServerSettingMetricsRetentionDays"
+                        :min="1"
+                        :max="365"
+                        placeholder="保留天数"
+                        style="width: 200px"
+                        @change="handleSettingChange"
+                      />
+                      <span class="form-tip">天，建议值：30</span>
+                    </el-form-item>
 
-                  <el-form-item label="代理用户名">
-                    <el-input
-                      v-model="settingData.monitorSysGenServerSettingProxyUsername"
-                      placeholder="代理用户名（可选）"
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                  </el-form-item>
-
-                  <el-form-item label="代理密码">
-                    <el-input
-                      v-model="settingData.monitorSysGenServerSettingProxyPassword"
-                      type="password"
-                      placeholder="代理密码（可选）"
-                      show-password
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                  </el-form-item>
-
-                  <!-- GUACAMOLE特殊配置说明 -->
-                  <template v-if="settingData.monitorSysGenServerSettingProxyType === 'GUACAMOLE'">
                     <el-alert
-                      title="Guacamole代理配置"
-                      description="Guacamole代理将通过Web界面提供远程桌面连接功能，具体连接参数请在服务器详情页面中配置。"
-                      type="info"
+                      title="指标管理说明"
+                      description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面。"
+                      type="success"
                       :closable="false"
-                      class="mt-4"
+                      class="mb-4"
                     />
                   </template>
-                </template>
-              </div>
-
-              <!-- 指标管理 -->
-              <div v-show="activeSection === 'metrics'" class="config-section">
-                <div class="section-description">
-                  <el-alert
-                    title="指标管理"
-                    description="配置服务器性能指标的收集、上报和存储策略，支持多种数据上报方式。"
-                    type="info"
-                    :closable="false"
-                    class="mb-4"
-                  />
                 </div>
 
-                <el-form-item label="指标收集">
-                  <div class="switch-wrapper">
-                    <el-switch
-                      v-model="settingData.monitorSysGenServerSettingMonitorEnabled"
-                      :active-value="1"
-                      :inactive-value="0"
-                      active-text="启用"
-                      inactive-text="禁用"
+                <!-- 监控配置节 -->
+                <div v-show="activeSection === 'monitor'" class="config-section">
+                  <ServerSettingForm v-model="settingData" section="monitor" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                </div>
+
+                <!-- 告警配置节 -->
+                <div v-show="activeSection === 'alert'" class="config-section">
+                  <ServerSettingForm v-model="settingData" section="alert" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                </div>
+
+                <!-- Docker配置节 -->
+                <div v-show="activeSection === 'docker'" class="config-section">
+                  <ServerSettingForm v-model="settingData" section="docker" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                </div>
+
+                <!-- Prometheus配置节 -->
+                <div v-show="activeSection === 'prometheus'" class="config-section">
+                  <div class="section-description">
+                    <el-alert
+                      title="Prometheus配置"
+                      description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径。"
+                      type="info"
+                      show-icon
+                      :closable="false"
+                      class="mb-4"
                     />
-                    <el-tooltip content="启用后将收集服务器性能指标" placement="top">
-                      <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-                    </el-tooltip>
                   </div>
-                </el-form-item>
-
-                <template v-if="settingData.monitorSysGenServerSettingMonitorEnabled === 1">
-                  <el-form-item label="收集频率">
-                    <el-input-number
-                      v-model="settingData.monitorSysGenServerSettingDataCollectionFrequency"
-                      :min="10"
-                      :max="3600"
-                      :step="10"
-                      placeholder="收集频率(秒)"
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                    <span class="form-tip">秒，建议值：30</span>
-                  </el-form-item>
-
-                  <el-form-item label="数据保留天数">
-                    <el-input-number
-                      v-model="settingData.monitorSysGenServerSettingMetricsRetentionDays"
-                      :min="1"
-                      :max="365"
-                      placeholder="保留天数"
-                      style="width: 200px"
-                      @change="handleSettingChange"
-                    />
-                    <span class="form-tip">天，建议值：30</span>
-                  </el-form-item>
-
-                  <el-alert
-                    title="指标管理说明"
-                    description="此页面主要用于查看和管理服务器的监控指标数据，包括数据查询、图表展示等功能。具体的监控参数配置请使用左侧对应的配置页面。"
-                    type="success"
-                    :closable="false"
-                    class="mb-4"
-                  />
-                </template>
-              </div>
-
-              <!-- 监控配置节 -->
-              <div v-show="activeSection === 'monitor'" class="config-section">
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="monitor"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
-
-              <!-- 告警配置节 -->
-              <div v-show="activeSection === 'alert'" class="config-section">
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="alert"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
-
-              <!-- Docker配置节 -->
-              <div v-show="activeSection === 'docker'" class="config-section">
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="docker"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
-
-              <!-- Prometheus配置节 -->
-              <div v-show="activeSection === 'prometheus'" class="config-section">
-                <div class="section-description">
-                  <el-alert
-                    title="Prometheus配置"
-                    description="配置Prometheus服务器连接信息，用于查询历史监控数据和指标。支持基本认证和自定义查询路径。"
-                    type="info"
-                    show-icon
-                    :closable="false"
-                    class="mb-4"
-                  />
+                  <ServerSettingForm v-model="settingData" section="prometheus" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="prometheus"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
 
-              <!-- 高级配置节 -->
-              <div v-show="activeSection === 'advanced'" class="config-section">
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="advanced"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
-
-              <!-- 任务配置节 -->
-              <div v-show="activeSection === 'tasks'" class="config-section">
-                <div class="section-description">
-                  <el-alert
-                    title="任务配置"
-                    description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能。"
-                    type="info"
-                    show-icon
-                    :closable="false"
-                    class="mb-4"
-                  />
+                <!-- 高级配置节 -->
+                <div v-show="activeSection === 'advanced'" class="config-section">
+                  <ServerSettingForm v-model="settingData" section="advanced" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="tasks"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
 
-              <!-- 清理配置节 -->
-              <div v-show="activeSection === 'cleanup'" class="config-section">
-                <div class="section-description">
-                  <el-alert
-                    title="清理配置"
-                    description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能。"
-                    type="info"
-                    show-icon
-                    :closable="false"
-                    class="mb-4"
-                  />
+                <!-- 任务配置节 -->
+                <div v-show="activeSection === 'tasks'" class="config-section">
+                  <div class="section-description">
+                    <el-alert title="任务配置" description="配置服务器的定时任务，包括端口检测、在线状态检测、延迟检测等功能。" type="info" show-icon :closable="false" class="mb-4" />
+                  </div>
+                  <ServerSettingForm v-model="settingData" section="tasks" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
-                <ServerSettingForm
-                  v-model="settingData"
-                  section="cleanup"
-                  :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
-                  @change="handleSettingChange"
-                />
-              </div>
 
-              <!-- 配置历史节 -->
-              <div v-show="activeSection === 'history'" class="config-section">
-                <ServerSettingHistory
-                  v-if="serverId && activeSection === 'history'"
-                  :server-id="serverId"
-                  :server-info="currentServer"
-                  @restored="handleHistoryRestored"
-                />
-              </div>
-            </el-form>
+                <!-- 清理配置节 -->
+                <div v-show="activeSection === 'cleanup'" class="config-section">
+                  <div class="section-description">
+                    <el-alert title="清理配置" description="配置系统清理任务，包括日志清理、临时文件清理、WebSocket会话清理等功能。" type="info" show-icon :closable="false" class="mb-4" />
+                  </div>
+                  <ServerSettingForm v-model="settingData" section="cleanup" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                </div>
+
+                <!-- 配置历史节 -->
+                <div v-show="activeSection === 'history'" class="config-section">
+                  <ServerSettingHistory v-if="serverId && activeSection === 'history'" :server-id="serverId" :server-info="currentServer" @restored="handleHistoryRestored" />
+                </div>
+              </el-form>
             </div>
           </el-card>
         </div>
@@ -444,8 +327,6 @@ const validationRules = {
   }
 };
 
-
-
 /**
  * 获取当前节的标题
  */
@@ -488,10 +369,8 @@ const handleHistoryRestored = (historyId: number) => {
  */
 const handleSettingChange = () => {
   // 当表单数据变化时触发，settingData已经通过v-model自动更新
-  console.log('设置数据变化:', settingData.value);
+  console.log("设置数据变化:", settingData.value);
 };
-
-
 
 /**
  * 重置表单
@@ -508,7 +387,7 @@ const validateCurrentSection = () => {
   if (!currentRules) return true;
 
   // 特殊处理代理配置节 - 只有在启用代理时才进行校验
-  if (activeSection.value === 'proxy') {
+  if (activeSection.value === "proxy") {
     const proxyEnabled = settingData.value.monitorSysGenServerSettingProxyEnabled;
     if (!proxyEnabled || proxyEnabled === 0) {
       // 代理未启用，跳过代理参数校验
@@ -520,7 +399,7 @@ const validateCurrentSection = () => {
     const value = settingData.value[field as keyof ServerSetting];
 
     for (const rule of rules as any[]) {
-      if (rule.required && (!value && value !== 0)) {
+      if (rule.required && !value && value !== 0) {
         message.error(rule.message);
         return false;
       }
@@ -561,7 +440,7 @@ const handleSave = async () => {
     // 保存服务器设置
     const submitData = {
       ...settingData.value,
-      monitorSysGenServerId: serverId.value,
+      monitorSysGenServerId: serverId.value
     };
 
     const result = await saveOrUpdateServerSetting(submitData);
@@ -617,7 +496,7 @@ const loadServerSetting = async () => {
         monitorSysGenServerSettingProxyEnabled: 0,
         monitorSysGenServerSettingMonitorEnabled: 1,
         monitorSysGenServerSettingDataCollectionFrequency: 60,
-        monitorSysGenServerSettingMetricsRetentionDays: 30,
+        monitorSysGenServerSettingMetricsRetentionDays: 30
       };
     }
   } catch (error) {
@@ -629,7 +508,7 @@ const loadServerSetting = async () => {
       monitorSysGenServerSettingProxyEnabled: 0,
       monitorSysGenServerSettingMonitorEnabled: 1,
       monitorSysGenServerSettingDataCollectionFrequency: 60,
-      monitorSysGenServerSettingMetricsRetentionDays: 30,
+      monitorSysGenServerSettingMetricsRetentionDays: 30
     };
   } finally {
     loadingSettings.value = false;
@@ -647,10 +526,7 @@ const loadServerData = async () => {
 
   loading.value = true;
   try {
-    await Promise.all([
-      loadServerInfo(),
-      loadServerSetting()
-    ]);
+    await Promise.all([loadServerInfo(), loadServerSetting()]);
   } finally {
     loading.value = false;
   }
@@ -668,7 +544,7 @@ const open = async (id: number) => {
 
 // 暴露方法
 defineExpose({
-  open,
+  open
 });
 </script>
 
@@ -677,7 +553,7 @@ defineExpose({
   :deep(.el-dialog) {
     border-radius: 12px;
   }
-  
+
   :deep(.el-dialog__body) {
     padding: 0;
   }
@@ -777,7 +653,7 @@ defineExpose({
 }
 
 .config-section {
-  max-width: 600px;
+  max-width: 800px;
 
   .section-description {
     margin-bottom: 20px;

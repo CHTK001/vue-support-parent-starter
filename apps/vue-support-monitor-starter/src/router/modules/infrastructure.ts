@@ -12,40 +12,6 @@ export default [
     },
     children: [
       {
-        path: "/web-services",
-        name: "webServices",
-        meta: {
-          icon: "simple-icons:nginx",
-          title: "Web服务",
-          showLink: true,
-          showParent: true
-        },
-        children: [
-          {
-            path: "/nginx-config",
-            name: "nginx-config",
-            component: () => import("@/views/monitor/nginx/index.vue"),
-            meta: {
-              icon: "simple-icons:nginx",
-              title: "Nginx配置",
-              showLink: true,
-              showParent: true
-            }
-          },
-          {
-            path: "/proxy/index",
-            name: "proxyIndex",
-            component: () => import("@/views/monitor/proxy/index.vue"),
-            meta: {
-              icon: "ri:product-hunt-fill",
-              title: $t("buttons.monitor.proxy"),
-              showLink: true,
-              showParent: true
-            }
-          }
-        ]
-      },
-      {
         path: "/storage-services",
         name: "storageServices",
         meta: {
