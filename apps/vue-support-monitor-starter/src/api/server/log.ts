@@ -9,7 +9,6 @@
 ///
 
 import { http, type ReturnResult } from "@repo/utils";
-import axios from "../../config";
 
 // ==================== 类型定义 ====================
 
@@ -17,13 +16,25 @@ import axios from "../../config";
  * 服务器日志接口
  */
 export interface ServerLog {
-  monitorSysGenServerLogId: number;
-  monitorSysGenServerId: number;
-  monitorSysGenServerLogLevel: string;
-  monitorSysGenServerLogSource: string;
-  monitorSysGenServerLogContent: string;
-  monitorSysGenServerLogTimestamp: string;
-  monitorSysGenServerLogCreateTime: string;
+  monitorSysGenServerLogId?: number;
+  monitorSysGenServerId?: number;
+  monitorSysGenServerLogLevel?: string;
+  monitorSysGenServerLogSource?: string;
+  monitorSysGenServerLogCategory?: string;
+  monitorSysGenServerLogContent?: string;
+  monitorSysGenServerLogCreateTime?: string;
+  monitorSysGenServerLogServerTime?: string;
+  monitorSysGenServerLogThread?: string;
+  monitorSysGenServerLogLogger?: string;
+  monitorSysGenServerLogFilePath?: string;
+  monitorSysGenServerLogLineNumber?: number;
+  monitorSysGenServerLogIp?: string;
+  monitorSysGenServerLogHostname?: string;
+  monitorSysGenServerLogProcessId?: string;
+  monitorSysGenServerLogExceptionStack?: string;
+  monitorSysGenServerLogExtraData?: string;
+  monitorSysGenServerLogTags?: string;
+  monitorSysGenServerLogStatus?: number;
 }
 
 /**
@@ -47,10 +58,10 @@ export interface ServerLogConfig {
 export interface ServerLogPageParams {
   page?: number;
   pageSize?: number;
-  monitorSysGenServerId?: number;
-  monitorSysGenServerLogLevel?: string;
-  monitorSysGenServerLogSource?: string;
-  monitorSysGenServerLogContent?: string;
+  serverId?: number;
+  level?: string;
+  source?: string;
+  keyword?: string;
   startTime?: string;
   endTime?: string;
 }
@@ -79,7 +90,7 @@ export interface ServerLogConfigSaveParams {
  * @param params 查询参数
  * @returns 日志分页数据
  */
-export function getServerLogPageList(params: ServerLogPageParams) {
+export function getServerLogPage(params: ServerLogPageParams) {
   return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
     "get",
     "v1/gen/server-log/page",
@@ -132,7 +143,10 @@ export function batchDeleteServerLogs(ids: number[]) {
  * @param params 查询参数
  * @returns 日志列表
  */
-export function getServerLogsByServerId(serverId: number, params?: Omit<ServerLogPageParams, 'monitorSysGenServerId'>) {
+export function getServerLogsByServerId(
+  serverId: number,
+  params?: Omit<ServerLogPageParams, "monitorSysGenServerId">
+) {
   return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
     "get",
     "v1/gen/server-log/page",
@@ -146,7 +160,10 @@ export function getServerLogsByServerId(serverId: number, params?: Omit<ServerLo
  * @param params 查询参数
  * @returns 日志列表
  */
-export function getServerLogsByLevel(level: string, params?: Omit<ServerLogPageParams, 'monitorSysGenServerLogLevel'>) {
+export function getServerLogsByLevel(
+  level: string,
+  params?: Omit<ServerLogPageParams, "monitorSysGenServerLogLevel">
+) {
   return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
     "get",
     "v1/gen/server-log/page",
@@ -160,7 +177,10 @@ export function getServerLogsByLevel(level: string, params?: Omit<ServerLogPageP
  * @param params 查询参数
  * @returns 日志列表
  */
-export function searchServerLogs(keyword: string, params?: ServerLogPageParams) {
+export function searchServerLogs(
+  keyword: string,
+  params?: ServerLogPageParams
+) {
   return http.request<ReturnResult<{ records: ServerLog[]; total: number }>>(
     "get",
     "v1/gen/server-log/search",
@@ -187,24 +207,23 @@ export function getServerLogStatistics(serverId?: number) {
  * @returns 文件数据
  */
 export function exportServerLogs(params: ServerLogPageParams) {
-  return axios({
-    url: "v1/gen/server-log/export",
-    method: "get",
+  return http.request<Blob>("get", "v1/gen/server-log/export", {
     params,
     responseType: "blob",
   });
 }
 
 /**
- * 清理过期日志
- * @param days 保留天数
+ * 清理服务器日志
+ * @param serverId 服务器ID
+ * @param beforeDate 清理此日期之前的日志
  * @returns 清理结果
  */
-export function cleanupExpiredLogs(days: number) {
+export function cleanupServerLogs(serverId: number, beforeDate?: string) {
   return http.request<ReturnResult<number>>(
-    "post",
+    "delete",
     "v1/gen/server-log/cleanup",
-    { params: { days } }
+    { params: { serverId, beforeDate } }
   );
 }
 
@@ -303,7 +322,7 @@ export const LOG_LEVEL = {
   FATAL: "FATAL",
 } as const;
 
-export type LogLevel = typeof LOG_LEVEL[keyof typeof LOG_LEVEL];
+export type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
 
 /**
  * 日志级别映射
@@ -322,7 +341,7 @@ export const logLevelMap: Record<LogLevel, { color: string; text: string }> = {
  * @returns 颜色类型
  */
 export function getLogLevelColor(level: LogLevel): string {
-  return logLevelMap[level]?.color || 'info';
+  return logLevelMap[level]?.color || "info";
 }
 
 /**
@@ -332,4 +351,45 @@ export function getLogLevelColor(level: LogLevel): string {
  */
 export function getLogLevelText(level: LogLevel): string {
   return logLevelMap[level]?.text || level;
+}
+
+/**
+ * 日志来源枚举
+ */
+export const LOG_SOURCE = {
+  SYSTEM: "SYSTEM",
+  APPLICATION: "APPLICATION",
+  SECURITY: "SECURITY",
+  ACCESS: "ACCESS",
+} as const;
+
+export type LogSource = (typeof LOG_SOURCE)[keyof typeof LOG_SOURCE];
+
+/**
+ * 日志来源映射
+ */
+export const logSourceMap: Record<LogSource, { color: string; text: string }> =
+  {
+    [LOG_SOURCE.SYSTEM]: { color: "primary", text: "系统" },
+    [LOG_SOURCE.APPLICATION]: { color: "success", text: "应用" },
+    [LOG_SOURCE.SECURITY]: { color: "warning", text: "安全" },
+    [LOG_SOURCE.ACCESS]: { color: "info", text: "访问" },
+  };
+
+/**
+ * 获取日志来源颜色
+ * @param source 日志来源
+ * @returns 颜色类型
+ */
+export function getLogSourceColor(source: LogSource): string {
+  return logSourceMap[source]?.color || "info";
+}
+
+/**
+ * 获取日志来源文本
+ * @param source 日志来源
+ * @returns 来源文本
+ */
+export function getLogSourceText(source: LogSource): string {
+  return logSourceMap[source]?.text || source;
 }

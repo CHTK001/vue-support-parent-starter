@@ -1489,6 +1489,9 @@ importers:
       '@codemirror/theme-one-dark':
         specifier: 'catalog:'
         version: 6.1.2
+      '@element-plus/icons-vue':
+        specifier: ^2.3.1
+        version: 2.3.1(vue@3.5.13(typescript@5.8.2))
       '@highlightjs/vue-plugin':
         specifier: 'catalog:'
         version: 2.1.0(highlight.js@11.11.1)(vue@3.5.13(typescript@5.8.2))

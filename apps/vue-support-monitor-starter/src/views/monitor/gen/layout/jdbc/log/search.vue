@@ -1,18 +1,45 @@
 <template>
   <div :style="{ height: '600px', overflow: 'auto' }">
     <el-empty v-if="detailData.length == 0" />
-    <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
-      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
+    <el-timeline
+      v-else
+      v-infinite-scroll="load"
+      style="max-width: 98%"
+      class="infinite-list"
+      :infinite-scroll-disabled="disabled"
+      :infinite-scroll-immediate="false"
+    >
+      <el-timeline-item
+        v-for="(item, index) in detailData"
+        :key="index"
+        :timestamp="dateFormat(item.timestamp * 1)"
+        color="#0bbd87"
+        icon="MoreFilled"
+        placement="top"
+      >
         <el-card v-if="item.text" style="width: 100%">
-          <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
+          <el-tag style="margin-left: 10px" type="danger">{{
+            item.event
+          }}</el-tag>
           <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
-          <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{ item.threadAddress }}</el-tag>
-          <el-tag v-if="item.threadId" style="margin-left: 10px">THREAD: {{ item.threadId }}</el-tag>
-          <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text) }} </code> </pre>
+          <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{
+            item.threadAddress
+          }}</el-tag>
+          <el-tag v-if="item.threadId" style="margin-left: 10px"
+            >THREAD: {{ item.threadId }}</el-tag
+          >
+          <pre
+            ref="sqlPre"
+            class="language-sql line-numbers inline-color"
+          ><code class="language-sql line-numbers inline-color">{{ getMessage(item.text) }} </code> </pre>
         </el-card>
       </el-timeline-item>
-      <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
-      <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
+      <p v-if="loading" style="text-align: center; margin-top: 20px">
+        加载中...
+      </p>
+      <p v-if="noMore" style="text-align: center; margin-top: 20px">
+        无更多数据
+      </p>
     </el-timeline>
   </div>
 </template>
@@ -30,13 +57,13 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
 import { AnsiUp } from "ansi_up";
-import { fetchSearchQuery } from "@/api/monitor/service";
+// import { fetchSearchQuery } from "@/api/monitor/service"; // 已删除服务监控功能
 const ansi_up = new AnsiUp();
 export default {
   name: "consoleLog",
   props: {
     time: { type: Array, default: () => [] },
-    width: { type: String, default: "100%" }
+    width: { type: String, default: "100%" },
   },
   data() {
     return {
@@ -68,10 +95,10 @@ export default {
           tables: {
             users: ["name", "score", "birthDate"],
             countries: ["name", "population", "size"],
-            score: ["zooao"]
-          }
-        }
-      }
+            score: ["zooao"],
+          },
+        },
+      },
     };
   },
   beforeUnmount() {
@@ -143,7 +170,11 @@ export default {
     },
     getKeyword() {
       if (this.tableName) {
-        return this.action ? "@event:" + this.action + " and @from:" : this.tableName ? "@from:" : this.tableName;
+        return this.action
+          ? "@event:" + this.action + " and @from:"
+          : this.tableName
+            ? "@from:"
+            : this.tableName;
       }
       return "";
     },
@@ -156,11 +187,11 @@ export default {
         action: this.action,
         keyword: this.getKeyword(),
         count: 10,
-        offset: this.current * 10
-      }).then(res => {
+        offset: this.current * 10,
+      }).then((res) => {
         if (res.code == "00000") {
           this.highlightSQL();
-          res.data.data.forEach(it => {
+          res.data.data.forEach((it) => {
             this.detailData.push(it);
           });
           this.total = this.detailTotal = res.data.total;
@@ -187,7 +218,7 @@ export default {
       this.rangTimeValue = rangTimeValue;
       this.doSearch();
       return this;
-    }
-  }
+    },
+  },
 };
 </script>
