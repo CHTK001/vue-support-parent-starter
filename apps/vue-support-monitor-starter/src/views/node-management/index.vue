@@ -371,137 +371,53 @@
         @mouseleave="hideActionMenu"
       >
         <div class="menu-overlay">
+          <!-- 分页指示器 -->
+          <div class="menu-pagination" v-if="totalMenuPages > 1">
+            <div
+              v-for="page in totalMenuPages"
+              :key="page"
+              class="page-dot"
+              :class="{ active: currentMenuPage === page }"
+              @click="switchMenuPage(page)"
+            ></div>
+          </div>
+
+          <!-- 菜单网格 -->
           <div class="menu-grid">
             <div
-              class="action-icon api-docs"
-              @click="openNodeDocumentation(hoveredNode)"
-              :title="'API文档'"
+              v-for="action in currentPageActions"
+              :key="action.key"
+              class="action-icon"
+              :class="action.key"
+              @click="action.handler(hoveredNode)"
+              :title="action.title"
             >
               <IconifyIconOnline
-                icon="ri:book-open-line"
+                :icon="action.icon"
                 width="38px"
                 height="38px"
                 class="text-white"
               />
-              <span class="tooltip">API文档</span>
+              <span class="tooltip">{{ action.title }}</span>
             </div>
-            <div
-              class="action-icon monitoring"
-              @click="openNodeMonitoring(hoveredNode)"
-              :title="'监控面板'"
+          </div>
+
+          <!-- 分页导航按钮 -->
+          <div class="menu-navigation" v-if="totalMenuPages > 1">
+            <button
+              class="nav-btn prev"
+              :disabled="currentMenuPage === 1"
+              @click="prevMenuPage"
             >
-              <IconifyIconOnline
-                icon="ri:bar-chart-box-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">监控面板</span>
-            </div>
-            <div
-              class="action-icon terminal"
-              @click="openNodeTerminal(hoveredNode)"
-              :title="'终端连接'"
+              <IconifyIconOnline icon="ri:arrow-left-line" />
+            </button>
+            <button
+              class="nav-btn next"
+              :disabled="currentMenuPage === totalMenuPages"
+              @click="nextMenuPage"
             >
-              <IconifyIconOnline
-                icon="ri:terminal-box-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">终端连接</span>
-            </div>
-            <div
-              class="action-icon files"
-              @click="openNodeFiles(hoveredNode)"
-              :title="'文件管理'"
-            >
-              <IconifyIconOnline
-                icon="ri:folder-open-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">文件管理</span>
-            </div>
-            <div
-              class="action-icon health"
-              @click="checkNodeHealth(hoveredNode)"
-              :title="'健康检查'"
-            >
-              <IconifyIconOnline
-                icon="ri:heart-pulse-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">健康检查</span>
-            </div>
-            <div
-              class="action-icon details"
-              @click="viewNodeDetail(hoveredNode)"
-              :title="'查看详情'"
-            >
-              <IconifyIconOnline
-                icon="ri:information-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">查看详情</span>
-            </div>
-            <div
-              class="action-icon logs"
-              @click="openNodeLogs(hoveredNode)"
-              :title="'日志查看'"
-            >
-              <IconifyIconOnline
-                icon="ri:file-list-3-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">日志查看</span>
-            </div>
-            <div
-              class="action-icon logger-config"
-              @click="openLoggerConfig(hoveredNode)"
-              :title="'日志配置'"
-            >
-              <IconifyIconOnline
-                icon="ri:settings-4-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">日志配置</span>
-            </div>
-            <div
-              class="action-icon settings"
-              @click="openNodeSettings(hoveredNode)"
-              :title="'节点配置'"
-            >
-              <IconifyIconOnline
-                icon="ri:settings-3-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">节点配置</span>
-            </div>
-            <div
-              class="action-icon restart"
-              @click="restartNode(hoveredNode)"
-              :title="'重启节点'"
-            >
-              <IconifyIconOnline
-                icon="ri:restart-line"
-                width="38px"
-                height="38px"
-                class="text-white"
-              />
-              <span class="tooltip">重启节点</span>
-            </div>
+              <IconifyIconOnline icon="ri:arrow-right-line" />
+            </button>
           </div>
         </div>
       </div>
@@ -542,6 +458,10 @@ const hoveredNode = ref<OnlineNodeInfo | null>(null);
 const actionMenuRef = ref<HTMLElement>();
 const menuStyle = ref({});
 let hideMenuTimer: NodeJS.Timeout | null = null;
+
+// 菜单分页相关
+const currentMenuPage = ref(1);
+const itemsPerPage = 9; // 每页最多9个功能
 
 // 节点检查状态
 const nodeCheckingStatus = ref<Record<string, boolean>>({});
@@ -873,6 +793,7 @@ const showActionMenu = (node: OnlineNodeInfo, event: MouseEvent) => {
 
   hoveredNode.value = node;
   showMenu.value = true;
+  currentMenuPage.value = 1; // 重置到第一页
 
   nextTick(() => {
     const cardElement = event.currentTarget as HTMLElement;
@@ -901,6 +822,23 @@ const keepMenuVisible = () => {
   if (hideMenuTimer) {
     clearTimeout(hideMenuTimer);
     hideMenuTimer = null;
+  }
+};
+
+// 菜单分页方法
+const switchMenuPage = (page: number) => {
+  currentMenuPage.value = page;
+};
+
+const nextMenuPage = () => {
+  if (currentMenuPage.value < totalMenuPages.value) {
+    currentMenuPage.value++;
+  }
+};
+
+const prevMenuPage = () => {
+  if (currentMenuPage.value > 1) {
+    currentMenuPage.value--;
   }
 };
 
@@ -1027,6 +965,102 @@ const stopPolling = () => {
     pollingTimer = null;
   }
 };
+
+// 定义所有功能项
+const allMenuActions = [
+  {
+    key: "api-docs",
+    title: "API文档",
+    icon: "ri:book-open-line",
+    handler: openNodeDocumentation,
+  },
+  {
+    key: "monitoring",
+    title: "监控面板",
+    icon: "ri:bar-chart-box-line",
+    handler: openNodeMonitoring,
+  },
+  {
+    key: "terminal",
+    title: "终端连接",
+    icon: "ri:terminal-box-line",
+    handler: openNodeTerminal,
+  },
+  {
+    key: "files",
+    title: "文件管理",
+    icon: "ri:folder-open-line",
+    handler: openNodeFiles,
+  },
+  {
+    key: "health",
+    title: "健康检查",
+    icon: "ri:heart-pulse-line",
+    handler: checkNodeHealth,
+  },
+  {
+    key: "details",
+    title: "查看详情",
+    icon: "ri:information-line",
+    handler: viewNodeDetail,
+  },
+  {
+    key: "logs",
+    title: "日志查看",
+    icon: "ri:file-list-3-line",
+    handler: openNodeLogs,
+  },
+  {
+    key: "logger-config",
+    title: "日志配置",
+    icon: "ri:settings-4-line",
+    handler: openLoggerConfig,
+  },
+  {
+    key: "settings",
+    title: "节点配置",
+    icon: "ri:settings-3-line",
+    handler: openNodeSettings,
+  },
+  {
+    key: "restart",
+    title: "重启节点",
+    icon: "ri:restart-line",
+    handler: restartNode,
+  },
+  {
+    key: "metrics",
+    title: "性能指标",
+    icon: "ri:dashboard-line",
+    handler: (node: OnlineNodeInfo) => {
+      showMenu.value = false;
+      console.log("查看性能指标:", node);
+      ElMessage.info("性能指标功能开发中...");
+    },
+  },
+  {
+    key: "backup",
+    title: "数据备份",
+    icon: "ri:database-2-line",
+    handler: (node: OnlineNodeInfo) => {
+      showMenu.value = false;
+      console.log("数据备份:", node);
+      ElMessage.info("数据备份功能开发中...");
+    },
+  },
+];
+
+// 计算总页数
+const totalMenuPages = computed(() => {
+  return Math.ceil(allMenuActions.length / itemsPerPage);
+});
+
+// 计算当前页的功能项
+const currentPageActions = computed(() => {
+  const startIndex = (currentMenuPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return allMenuActions.slice(startIndex, endIndex);
+});
 
 // 生命周期
 onMounted(() => {
@@ -2174,9 +2208,40 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    position: relative;
+  }
+
+  // 分页指示器
+  .menu-pagination {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+
+    .page-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &.active {
+        background: rgba(59, 130, 246, 0.8);
+        transform: scale(1.2);
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.6);
+      }
+    }
   }
 
   .menu-grid {
@@ -2188,6 +2253,43 @@ onUnmounted(() => {
     height: 100%;
     max-width: 300px;
     max-height: 280px;
+  }
+
+  // 分页导航按钮
+  .menu-navigation {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 10;
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.8);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      font-size: 14px;
+
+      &:hover:not(:disabled) {
+        background: rgba(59, 130, 246, 1);
+        transform: scale(1.1);
+      }
+
+      &:disabled {
+        background: rgba(255, 255, 255, 0.2);
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+    }
   }
 
   .action-icon {

@@ -746,13 +746,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
-import { fetchNodeApiDocs, executeNodeApi } from "@/api/node-documentation";
+import {
+  executeNodeApi,
+  fetchNodeSwaggerResources,
+} from "@/api/node-documentation";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
-import { javascript } from "@codemirror/lang-javascript";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { ElMessage } from "element-plus";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // 路由相关
 const route = useRoute();
@@ -953,44 +954,82 @@ const switchNode = async (newAddress: string) => {
 const loadApiDocs = async () => {
   loading.value = true;
   try {
-    console.log("开始加载API文档:", {
+    console.log("开始加载API文档、接口列表和Swagger资源:", {
       nodeId: nodeInfo.nodeId,
       nodeAddress: nodeInfo.nodeAddress,
       contextPath: nodeInfo.contextPath,
     });
 
-    const response = await fetchNodeApiDocs(
-      nodeInfo.nodeId,
-      nodeInfo.nodeAddress,
-      nodeInfo.contextPath
-    );
+    // 同时调用三个接口
+    const [docsResponse, resourcesResponse] = await Promise.allSettled([
+      fetchNodeApiDocs(
+        nodeInfo.nodeId,
+        nodeInfo.nodeAddress,
+        nodeInfo.contextPath
+      ),
+      fetchNodeSwaggerResources(
+        nodeInfo.nodeId,
+        nodeInfo.nodeAddress,
+        nodeInfo.contextPath
+      ),
+    ]);
 
-    console.log("API文档响应:", response);
+    console.log("API文档响应:", docsResponse);
+    console.log("API列表响应:", listResponse);
+    console.log("Swagger资源响应:", resourcesResponse);
 
-    if (response.success) {
-      apiGroups.value = response.data || [];
+    let hasValidData = false;
+
+    // 处理API文档响应
+    if (docsResponse.status === "fulfilled" && docsResponse.value.success) {
+      apiGroups.value = docsResponse.value.data || [];
       console.log("API分组数据:", apiGroups.value);
+      hasValidData = apiGroups.value.length > 0;
+    }
 
-      // 默认展开第一个分组
-      if (apiGroups.value.length > 0) {
-        expandedGroups.value = [apiGroups.value[0].name];
-      } else {
-        console.warn("没有获取到API分组数据");
-        // 添加一些模拟数据用于测试
-        apiGroups.value = createMockApiGroups();
-        if (apiGroups.value.length > 0) {
-          expandedGroups.value = [apiGroups.value[0].name];
-        }
+    // 处理API列表响应
+    if (listResponse.status === "fulfilled" && listResponse.value.success) {
+      const apiList = listResponse.value.data || [];
+      console.log("API列表数据:", apiList);
+
+      // 如果没有分组数据但有列表数据，将列表数据转换为分组格式
+      if (!hasValidData && apiList.length > 0) {
+        apiGroups.value = convertApiListToGroups(apiList);
+        hasValidData = true;
       }
-    } else {
-      console.error("API文档请求失败:", response);
-      ElMessage.error(response.msg || "获取API文档失败");
+    }
 
-      // 在失败时也提供模拟数据
+    // 处理Swagger资源响应
+    if (
+      resourcesResponse.status === "fulfilled" &&
+      resourcesResponse.value.success
+    ) {
+      const resources = resourcesResponse.value.data || [];
+      console.log("Swagger资源数据:", resources);
+
+      // 如果前两个接口都没有数据，但有Swagger资源，可以基于资源信息生成基础API结构
+      if (!hasValidData && resources.length > 0) {
+        apiGroups.value = convertSwaggerResourcesToGroups(resources);
+        hasValidData = true;
+      }
+    }
+
+    // 如果三个接口都没有返回有效数据，使用模拟数据
+    if (!hasValidData) {
+      console.warn("没有获取到有效的API数据，使用模拟数据");
       apiGroups.value = createMockApiGroups();
-      if (apiGroups.value.length > 0) {
-        expandedGroups.value = [apiGroups.value[0].name];
-      }
+    }
+
+    // 默认展开第一个分组
+    if (apiGroups.value.length > 0) {
+      expandedGroups.value = [apiGroups.value[0].name];
+    }
+
+    // 显示加载结果
+    if (hasValidData) {
+      ElMessage.success("API文档加载成功");
+    } else {
+      ElMessage.warning("未获取到API数据，显示模拟数据");
     }
   } catch (error) {
     console.error("加载API文档异常:", error);
@@ -1910,6 +1949,107 @@ const createMockApiGroups = (): ApiGroup[] => {
       ],
     },
   ];
+};
+
+// 将API列表转换为分组格式
+const convertApiListToGroups = (apiList: ApiInfo[]) => {
+  const groups: Record<string, ApiInfo[]> = {};
+
+  // 根据路径前缀对API进行分组
+  apiList.forEach((api) => {
+    const pathParts = api.path.split("/").filter((part) => part);
+    let groupName = "默认分组";
+
+    if (pathParts.length > 0) {
+      const firstPart = pathParts[0];
+
+      // 根据路径前缀确定分组名称
+      if (firstPart === "api") {
+        groupName = pathParts[1] ? `${pathParts[1]}管理` : "API接口";
+      } else if (firstPart === "actuator") {
+        groupName = "系统监控";
+      } else if (firstPart.includes("user")) {
+        groupName = "用户管理";
+      } else if (firstPart.includes("file")) {
+        groupName = "文件管理";
+      } else if (firstPart.includes("system")) {
+        groupName = "系统管理";
+      } else {
+        groupName = `${firstPart}接口`;
+      }
+    }
+
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(api);
+  });
+
+  // 转换为分组数组格式
+  return Object.entries(groups).map(([name, apis]) => ({
+    name,
+    apis,
+  }));
+};
+
+// 将Swagger资源转换为分组格式
+const convertSwaggerResourcesToGroups = (resources: any[]) => {
+  const groups: any[] = [];
+
+  resources.forEach((resource) => {
+    const groupName = resource.name || resource.location || "默认分组";
+
+    // 基于Swagger资源创建基础API结构
+    const apis: ApiInfo[] = [
+      {
+        path: resource.url || "/swagger-ui.html",
+        method: "GET",
+        summary: `${groupName} - Swagger文档`,
+        description: `访问 ${groupName} 的Swagger UI文档`,
+        parameters: [],
+      },
+    ];
+
+    // 如果有swaggerVersion信息，添加版本相关的API
+    if (resource.swaggerVersion) {
+      apis.push({
+        path: resource.location || "/v2/api-docs",
+        method: "GET",
+        summary: `${groupName} - API文档JSON`,
+        description: `获取 ${groupName} 的API文档JSON格式`,
+        parameters: [],
+      });
+    }
+
+    groups.push({
+      name: groupName,
+      apis,
+    });
+  });
+
+  return groups.length > 0
+    ? groups
+    : [
+        {
+          name: "Swagger资源",
+          apis: [
+            {
+              path: "/swagger-ui.html",
+              method: "GET",
+              summary: "Swagger UI",
+              description: "访问Swagger UI界面",
+              parameters: [],
+            },
+            {
+              path: "/v2/api-docs",
+              method: "GET",
+              summary: "API文档",
+              description: "获取API文档JSON格式",
+              parameters: [],
+            },
+          ],
+        },
+      ];
 };
 
 // 响应内容处理方法
