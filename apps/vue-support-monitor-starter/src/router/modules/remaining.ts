@@ -45,6 +45,9 @@ export default [
       showLink: false,
     },
   },
+<<<<<<< HEAD
+
+=======
   {
     path: "/database/fullscreen",
     name: "fullscreenIndex",
@@ -55,6 +58,7 @@ export default [
       showLink: false,
     },
   },
+>>>>>>> 81fa6c985c3b20899bf35731f3860d013c332b21
   {
     path: "/node/documentation/:nodeId",
     name: "nodeDocumentation",
