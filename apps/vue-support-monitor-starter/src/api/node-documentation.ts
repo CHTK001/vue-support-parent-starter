@@ -68,6 +68,54 @@ export const fetchNodeApiDocs = (
 };
 
 /**
+ * 获取节点接口列表
+ */
+export const fetchNodeApiList = (
+  nodeId: string,
+  nodeAddress: string,
+  contextPath: string
+) => {
+  return http.request<ReturnResult<ApiInfo[]>>(
+    "get",
+    "/v1/monitor/nodes/api-list",
+    {
+      params: {
+        nodeId,
+        nodeAddress,
+        contextPath,
+      },
+      headers: {
+        "x-remote-animation": "false",
+      },
+    }
+  );
+};
+
+/**
+ * 获取节点Swagger资源信息
+ */
+export const fetchNodeSwaggerResources = (
+  nodeId: string,
+  nodeAddress: string,
+  contextPath: string
+) => {
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    "/v1/monitor/nodes/swagger-resources",
+    {
+      params: {
+        nodeId,
+        nodeAddress,
+        contextPath,
+      },
+      headers: {
+        "x-remote-animation": "false",
+      },
+    }
+  );
+};
+
+/**
  * 执行节点API
  */
 export const executeNodeApi = (request: ApiExecuteRequest) => {
