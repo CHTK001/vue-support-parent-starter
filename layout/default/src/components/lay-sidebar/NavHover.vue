@@ -422,6 +422,12 @@ const defer = useDefer(firstLevelMenus.value.length);
     @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
     <LaySidebarLogo v-if="showLogo" :collapse="isHoverCollapsed" />
 
+    <!-- 导航栏左侧的收缩按钮 -->
+    <div v-show="isShow" class="sidebar-collapse-btn" @click="toggleHoverSideBar">
+      <IconifyIconOffline icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="sidebar-collapse-icon" />
+    </div>
+
     <!-- 悬浮时显示的收缩按钮 -->
     <div v-show="isShow" class="hover-collapse-btn" @click="toggleHoverSideBar">
       <IconifyIconOffline icon="ri:arrow-left-s-line"
@@ -1054,6 +1060,43 @@ const defer = useDefer(firstLevelMenus.value.length);
     &:hover {
       opacity: 0.8;
     }
+  }
+}
+
+/* 导航栏左侧的收缩按钮 */
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 32px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar-collapse-icon {
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+    transition: all 0.3s ease;
+  }
+
+  &:hover .sidebar-collapse-icon {
+    color: var(--el-color-primary);
   }
 }
 

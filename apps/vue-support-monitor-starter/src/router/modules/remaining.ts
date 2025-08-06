@@ -36,4 +36,14 @@ export default [
       showLink: false,
     },
   },
+  {
+    path: "/file-manager/:serverId",
+    name: "fileManager",
+    component: () => import("@/views/server/modules/file-management/index.vue"),
+    meta: {
+      icon: "ri:folder-line",
+      title: "文件管理器",
+      showLink: false,
+    },
+  },
 ] satisfies Array<RouteConfigsTable>;

@@ -424,6 +424,19 @@ watch(
   }
 );
 
+// 监听serverId变化，刷新文件树
+watch(
+  () => props.serverId,
+  (newServerId) => {
+    console.log("FileManagerPage: serverId changed to", newServerId);
+    if (newServerId && fileTreeRef.value) {
+      // 主动刷新文件树
+      fileTreeRef.value.refreshTree();
+    }
+  },
+  { immediate: true }
+);
+
 // 生命周期
 onMounted(() => {
   console.log("FileManagerPage: Mounted with serverId", props.serverId);
