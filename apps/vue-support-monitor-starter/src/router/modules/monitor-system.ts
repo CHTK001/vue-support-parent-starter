@@ -24,7 +24,7 @@ export default [
           {
             path: "/job-list",
             name: "job-list",
-            component: () => import("@/views/monitor/job/info/index.vue"),
+            component: () => import("@/views/job/info/index.vue"),
             meta: {
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.job-list"),
@@ -35,7 +35,7 @@ export default [
           {
             path: "/job-log",
             name: "job-log",
-            component: () => import("@/views/monitor/job/log/index.vue"),
+            component: () => import("@/views/job/log/index.vue"),
             meta: {
               icon: "simple-icons:logmein",
               title: $t("buttons.monitor.job-log"),

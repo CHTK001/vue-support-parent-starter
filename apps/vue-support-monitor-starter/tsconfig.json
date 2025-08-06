@@ -44,6 +44,6 @@
     "src/router/modules/soft.ts1",
     "src/router/modules/protect-redrect.ts1",
     "src/router/modules/montor.ts1"
-  ],
+, "src/router/modules/infrastructure.ts1"  ],
   "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }

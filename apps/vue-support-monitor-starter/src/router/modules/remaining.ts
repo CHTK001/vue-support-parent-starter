@@ -26,40 +26,6 @@ export default [
     },
   },
   {
-    path: "/ossdetail",
-    name: "ossdetail",
-    component: () => import("@/views/monitor/oss/detail.vue"),
-    meta: {
-      title: $t("buttons.oss.detail"),
-      showLink: false,
-    },
-  },
-
-  {
-    path: "/database/manage",
-    name: "manageIndex",
-    component: () => import("@/views/monitor/gen/manage.vue"),
-    meta: {
-      icon: "ri:database-2-line",
-      title: $t("buttons.monitor.database"),
-      showLink: false,
-    },
-  },
-<<<<<<< HEAD
-
-=======
-  {
-    path: "/database/fullscreen",
-    name: "fullscreenIndex",
-    component: () => import("@/views/monitor/gen/fullscreen.vue"),
-    meta: {
-      icon: "ep:full-screen",
-      title: $t("buttons.monitor.fullscreen"),
-      showLink: false,
-    },
-  },
->>>>>>> 81fa6c985c3b20899bf35731f3860d013c332b21
-  {
     path: "/node/documentation/:nodeId",
     name: "nodeDocumentation",
     component: () =>
