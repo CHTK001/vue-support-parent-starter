@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { computed, nextTick, onBeforeMount, onMounted, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import LayPanel from "../lay-panel/index.vue";
 import { useNav } from "../../hooks/useNav";
+import LayPanel from "../lay-panel/index.vue";
 
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { useDataThemeChange } from "../../hooks/useDataThemeChange";  
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
+import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
@@ -479,20 +479,15 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented
-            resize
-            class="select-none modern-segmented"
-            :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
-            :options="themeOptions"
-            @change="
+          <Segmented resize class="select-none modern-segmented"
+            :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0" :options="themeOptions" @change="
               (theme) => {
                 theme.index === 1 && theme.index !== 2 ? (dataTheme = true) : (dataTheme = false);
                 overallStyle = theme.option.theme;
                 dataThemeChange(theme.option.theme);
                 theme.index === 2 && watchSystemThemeChange();
               }
-            "
-          />
+            " />
         </div>
       </div>
 
@@ -504,15 +499,9 @@ onUnmounted(() => {
         </div>
         <div class="setting-content">
           <div class="theme-color-grid">
-            <div
-              v-for="(item, index) in themeColors"
-              v-show="showThemeColors(item.themeColor)"
-              :key="index"
-              class="theme-color-item"
-              :class="{ 'is-selected': item.themeColor === layoutTheme.theme }"
-              :style="getThemeColorStyle(item.color)"
-              @click="setLayoutThemeColor(item.themeColor)"
-            >
+            <div v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index"
+              class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }"
+              :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
               <!-- 选中状态指示器 -->
               <div class="selection-indicator">
                 <div class="check-ring">
@@ -537,83 +526,52 @@ onUnmounted(() => {
         </div>
         <div class="setting-content">
           <ul class="pure-theme">
-        <li
-          ref="verticalRef"
-          v-tippy="{
-            content: t('panel.pureVerticalTip'),
-            zIndex: 41000,
-          }"
-          :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
-          @click="setLayoutModel('vertical')"
-        >
-          <div />
-          <div />
-        </li>
-        <li
-          v-if="device !== 'mobile'"
-          ref="horizontalRef"
-          v-tippy="{
-            content: t('panel.pureHorizontalTip'),
-            zIndex: 41000,
-          }"
-          :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
-          @click="setLayoutModel('horizontal')"
-        >
-          <div />
-          <div />
-        </li>
-        <li
-          v-if="device !== 'mobile'"
-          ref="mixRef"
-          v-tippy="{
-            content: t('panel.pureMixTip'),
-            zIndex: 41000,
-          }"
-          :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
-          @click="setLayoutModel('mix')"
-        >
-          <div />
-          <div />
-        </li>
-        <li
-          v-if="device !== 'mobile'"
-          ref="hoverRef"
-          v-tippy="{
-            content: '悬停导航：只显示一级菜单，鼠标悬停显示子菜单',
-            zIndex: 41000,
-          }"
-          :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
-          @click="setLayoutModel('hover')"
-        >
-          <div />
-          <div />
-          <div />
-        </li>
-        <!-- 占位符，保持网格布局完整 -->
-        <li
-          v-if="device !== 'mobile'"
-          class="placeholder-layout"
-          v-tippy="{
-            content: '敬请期待更多布局模式',
-            zIndex: 41000,
-          }"
-        >
-          <div class="coming-soon">
-            <span>敬请期待</span>
-          </div>
-        </li>
-        <li
-          v-if="device !== 'mobile'"
-          class="placeholder-layout"
-          v-tippy="{
-            content: '敬请期待更多布局模式',
-            zIndex: 41000,
-          }"
-        >
-          <div class="coming-soon">
-            <span>敬请期待</span>
-          </div>
-        </li>
+            <li ref="verticalRef" v-tippy="{
+              content: t('panel.pureVerticalTip'),
+              zIndex: 41000,
+            }" :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''" @click="setLayoutModel('vertical')">
+              <div />
+              <div />
+            </li>
+            <li v-if="device !== 'mobile'" ref="horizontalRef" v-tippy="{
+              content: t('panel.pureHorizontalTip'),
+              zIndex: 41000,
+            }" :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''" @click="setLayoutModel('horizontal')">
+              <div />
+              <div />
+            </li>
+            <li v-if="device !== 'mobile'" ref="mixRef" v-tippy="{
+              content: t('panel.pureMixTip'),
+              zIndex: 41000,
+            }" :class="layoutTheme.layout === 'mix' ? 'is-select' : ''" @click="setLayoutModel('mix')">
+              <div />
+              <div />
+            </li>
+            <li v-if="device !== 'mobile'" ref="hoverRef" v-tippy="{
+              content: '悬停导航：只显示一级菜单，鼠标悬停显示子菜单',
+              zIndex: 41000,
+            }" :class="layoutTheme.layout === 'hover' ? 'is-select' : ''" @click="setLayoutModel('hover')">
+              <div />
+              <div />
+              <div />
+            </li>
+            <li v-if="device !== 'mobile'" ref="cardRef" v-tippy="{
+              content: '卡片导航：以卡片形式展示所有可访问页面',
+              zIndex: 41000,
+            }" :class="layoutTheme.layout === 'card' ? 'is-select' : ''" @click="setLayoutModel('card')">
+              <div />
+              <div />
+              <div />
+              <div />
+            </li>
+            <li v-if="device !== 'mobile'" class="placeholder-layout" v-tippy="{
+              content: '敬请期待更多布局模式',
+              zIndex: 41000,
+            }">
+              <div class="coming-soon">
+                <span>敬请期待</span>
+              </div>
+            </li>
           </ul>
         </div>
       </div>
@@ -625,9 +583,12 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="mb-2 select-none modern-segmented" :modelValue="isNumber(settings.stretch) ? 1 : 0" :options="stretchTypeOptions" @change="stretchTypeChange" />
-          <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280" :max="1600" controls-position="right" @change="(value: number) => setStretch(value)" />
-          <button v-else v-ripple="{ class: 'text-gray-300' }" class="stretch-button" @click="setStretch(!settings.stretch)">
+          <Segmented resize class="mb-2 select-none modern-segmented" :modelValue="isNumber(settings.stretch) ? 1 : 0"
+            :options="stretchTypeOptions" @change="stretchTypeChange" />
+          <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280"
+            :max="1600" controls-position="right" @change="(value: number) => setStretch(value)" />
+          <button v-else v-ripple="{ class: 'text-gray-300' }" class="stretch-button"
+            @click="setStretch(!settings.stretch)">
             <div class="stretch-indicator" :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']">
               <IconifyIconOffline :icon="settings.stretch ? RightArrow : LeftArrow" height="20" />
               <div class="stretch-line" />
@@ -649,31 +610,18 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureStretchMargin") || "内容边距" }}</label>
               <div class="custom-number-input">
-                <button
-                  class="number-btn decrease"
-                  @click="adjustValue('contentMargin', -1)"
-                  :disabled="settings.contentMargin <= 0"
-                >
+                <button class="number-btn decrease" @click="adjustValue('contentMargin', -1)"
+                  :disabled="settings.contentMargin <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input
-                    type="number"
-                    v-model.number="settings.contentMargin"
-                    @input="handleInput($event, 'contentMargin')"
-                    @keydown="handleKeydown($event, 'contentMargin')"
-                :min="0"
-                :max="100"
-                    class="number-input"
-                    placeholder="0"
-              />
+                  <input type="number" v-model.number="settings.contentMargin"
+                    @input="handleInput($event, 'contentMargin')" @keydown="handleKeydown($event, 'contentMargin')"
+                    :min="0" :max="100" class="number-input" placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button
-                  class="number-btn increase"
-                  @click="adjustValue('contentMargin', 1)"
-                  :disabled="settings.contentMargin >= 100"
-                >
+                <button class="number-btn increase" @click="adjustValue('contentMargin', 1)"
+                  :disabled="settings.contentMargin >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -682,31 +630,18 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureLayoutRadius") || "圆角大小" }}</label>
               <div class="custom-number-input">
-                <button
-                  class="number-btn decrease"
-                  @click="adjustValue('layoutRadius', -1)"
-                  :disabled="settings.layoutRadius <= 0"
-                >
+                <button class="number-btn decrease" @click="adjustValue('layoutRadius', -1)"
+                  :disabled="settings.layoutRadius <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input
-                    type="number"
-                    v-model.number="settings.layoutRadius"
-                    @input="handleInput($event, 'layoutRadius')"
-                    @keydown="handleKeydown($event, 'layoutRadius')"
-                :min="0"
-                :max="100"
-                    class="number-input"
-                    placeholder="0"
-              />
+                  <input type="number" v-model.number="settings.layoutRadius"
+                    @input="handleInput($event, 'layoutRadius')" @keydown="handleKeydown($event, 'layoutRadius')"
+                    :min="0" :max="100" class="number-input" placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button
-                  class="number-btn increase"
-                  @click="adjustValue('layoutRadius', 1)"
-                  :disabled="settings.layoutRadius >= 100"
-                >
+                <button class="number-btn increase" @click="adjustValue('layoutRadius', 1)"
+                  :disabled="settings.layoutRadius >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -715,31 +650,18 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureLayoutBlur") || "模糊效果" }}</label>
               <div class="custom-number-input">
-                <button
-                  class="number-btn decrease"
-                  @click="adjustValue('layoutBlur', -1)"
-                  :disabled="settings.layoutBlur <= 0"
-                >
+                <button class="number-btn decrease" @click="adjustValue('layoutBlur', -1)"
+                  :disabled="settings.layoutBlur <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input
-                    type="number"
-                    v-model.number="settings.layoutBlur"
-                    @input="handleInput($event, 'layoutBlur')"
-                    @keydown="handleKeydown($event, 'layoutBlur')"
-                :min="0"
-                :max="100"
-                    class="number-input"
-                    placeholder="0"
-              />
+                  <input type="number" v-model.number="settings.layoutBlur" @input="handleInput($event, 'layoutBlur')"
+                    @keydown="handleKeydown($event, 'layoutBlur')" :min="0" :max="100" class="number-input"
+                    placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button
-                  class="number-btn increase"
-                  @click="adjustValue('layoutBlur', 1)"
-                  :disabled="settings.layoutBlur >= 100"
-                >
+                <button class="number-btn increase" @click="adjustValue('layoutBlur', 1)"
+                  :disabled="settings.layoutBlur >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -755,7 +677,9 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
+          <Segmented resize class="select-none modern-segmented"
+            :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions"
+            @change="onChange" />
         </div>
       </div>
 
@@ -805,12 +729,14 @@ onUnmounted(() => {
 
             <div class="switch-item">
               <label class="switch-label">Logo</label>
-              <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false" @change="logoChange" />
+              <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false"
+                @change="logoChange" />
             </div>
 
             <div class="switch-item">
               <label class="switch-label">内容卡片</label>
-              <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false" @change="cardBodyChange" />
+              <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false"
+                @change="cardBodyChange" />
             </div>
 
             <div class="switch-item">
@@ -847,10 +773,9 @@ onUnmounted(() => {
     right: 0;
     height: 2px;
     background: linear-gradient(90deg,
-      rgba(var(--el-color-primary-rgb), 0.1) 0%,
-      rgba(var(--el-color-primary-rgb), 0.3) 50%,
-      rgba(var(--el-color-primary-rgb), 0.1) 100%
-    );
+        rgba(var(--el-color-primary-rgb), 0.1) 0%,
+        rgba(var(--el-color-primary-rgb), 0.3) 50%,
+        rgba(var(--el-color-primary-rgb), 0.1) 100%);
     z-index: 0;
   }
 
@@ -863,14 +788,14 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background: radial-gradient(circle at 20% 80%, var(--el-color-primary-light-9) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, var(--el-color-primary-light-9) 0%, transparent 50%);
+      radial-gradient(circle at 80% 20%, var(--el-color-primary-light-9) 0%, transparent 50%);
     opacity: 0.3;
     pointer-events: none;
     z-index: 0;
   }
 
   // 确保内容在装饰之上
-  > * {
+  >* {
     position: relative;
     z-index: 1;
   }
@@ -881,10 +806,9 @@ onUnmounted(() => {
 
     &::before {
       background: linear-gradient(90deg,
-        rgba(var(--el-color-primary-rgb), 0.15) 0%,
-        rgba(var(--el-color-primary-rgb), 0.4) 50%,
-        rgba(var(--el-color-primary-rgb), 0.15) 100%
-      );
+          rgba(var(--el-color-primary-rgb), 0.15) 0%,
+          rgba(var(--el-color-primary-rgb), 0.4) 50%,
+          rgba(var(--el-color-primary-rgb), 0.15) 100%);
     }
   }
 }
@@ -899,7 +823,7 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-extra-light);
   // 优化 transition，只对变形和阴影生效，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   backdrop-filter: blur(8px);
 
@@ -912,10 +836,9 @@ onUnmounted(() => {
     right: 0;
     height: 1px;
     background: linear-gradient(90deg,
-      transparent,
-      var(--el-color-primary-light-7),
-      transparent
-    );
+        transparent,
+        var(--el-color-primary-light-7),
+        transparent);
     border-radius: 12px 12px 0 0;
   }
 
@@ -927,10 +850,9 @@ onUnmounted(() => {
 
     &::before {
       background: linear-gradient(90deg,
-        transparent,
-        var(--el-color-primary-light-5),
-        transparent
-      );
+          transparent,
+          var(--el-color-primary-light-5),
+          transparent);
     }
   }
 
@@ -969,9 +891,8 @@ onUnmounted(() => {
     width: 40px;
     height: 2px;
     background: linear-gradient(90deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
+        var(--el-color-primary),
+        var(--el-color-primary-light-3));
     border-radius: 1px;
     transition: width 0.3s ease;
   }
@@ -1044,8 +965,8 @@ onUnmounted(() => {
     border-radius: 6px;
     // 优化 transition，只对变形和阴影生效
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.15s ease;
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.15s ease;
     font-weight: 500;
     color: var(--el-text-color-regular);
     padding: 8px 14px;
@@ -1068,10 +989,9 @@ onUnmounted(() => {
       width: 100%;
       height: 100%;
       background: linear-gradient(90deg,
-        transparent,
-        rgba(var(--el-color-primary-rgb), 0.1),
-        transparent
-      );
+          transparent,
+          rgba(var(--el-color-primary-rgb), 0.1),
+          transparent);
       transition: left 0.5s ease;
     }
 
@@ -1130,7 +1050,7 @@ onUnmounted(() => {
   background: var(--el-fill-color-extra-light);
   // 优化 transition，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 
@@ -1143,9 +1063,8 @@ onUnmounted(() => {
     bottom: 0;
     width: 3px;
     background: linear-gradient(180deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
+        var(--el-color-primary),
+        var(--el-color-primary-light-3));
     transform: scaleY(0);
     transform-origin: bottom;
     transition: transform 0.3s ease;
@@ -1198,7 +1117,7 @@ onUnmounted(() => {
   border-radius: 10px;
   // 优化 transition，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--el-border-color-extra-light);
   position: relative;
   overflow: hidden;
@@ -1212,10 +1131,9 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg,
-      transparent,
-      rgba(var(--el-color-primary-rgb), 0.05),
-      transparent
-    );
+        transparent,
+        rgba(var(--el-color-primary-rgb), 0.05),
+        transparent);
     transition: left 0.5s ease;
   }
 
@@ -1266,7 +1184,7 @@ onUnmounted(() => {
   cursor: pointer;
   // 优化 transition，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 16px;
   position: relative;
   overflow: hidden;
@@ -1281,10 +1199,9 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg,
-      transparent,
-      rgba(var(--el-color-primary-rgb), 0.05),
-      transparent
-    );
+        transparent,
+        rgba(var(--el-color-primary-rgb), 0.05),
+        transparent);
     transition: left 0.6s ease;
   }
 
@@ -1300,10 +1217,9 @@ onUnmounted(() => {
 
     .stretch-line {
       background: linear-gradient(90deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3),
-        var(--el-color-primary)
-      );
+          var(--el-color-primary),
+          var(--el-color-primary-light-3),
+          var(--el-color-primary));
     }
   }
 
@@ -1326,10 +1242,9 @@ onUnmounted(() => {
       flex: 1;
       height: 2px;
       background: linear-gradient(90deg,
-        var(--el-color-primary-light-5),
-        var(--el-color-primary),
-        var(--el-color-primary-light-5)
-      );
+          var(--el-color-primary-light-5),
+          var(--el-color-primary),
+          var(--el-color-primary-light-5));
       border-radius: 1px;
       margin: 0 12px;
       position: relative;
@@ -1344,10 +1259,9 @@ onUnmounted(() => {
         right: -2px;
         bottom: -1px;
         background: linear-gradient(90deg,
-          transparent,
-          rgba(var(--el-color-primary-rgb), 0.3),
-          transparent
-        );
+            transparent,
+            rgba(var(--el-color-primary-rgb), 0.3),
+            transparent);
         border-radius: 2px;
         opacity: 0;
         transition: opacity 0.3s ease;
@@ -1384,15 +1298,14 @@ onUnmounted(() => {
   height: 48px;
   font-weight: 600;
   background: linear-gradient(135deg,
-    var(--el-color-danger),
-    var(--el-color-danger-light-3)
-  );
+      var(--el-color-danger),
+      var(--el-color-danger-light-3));
   border: none;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.25);
   // 优化 transition，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
@@ -1406,18 +1319,16 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.2),
-      transparent
-    );
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent);
     transition: left 0.6s ease;
   }
 
   &:hover {
     background: linear-gradient(135deg,
-      var(--el-color-danger-light-3),
-      var(--el-color-danger)
-    );
+        var(--el-color-danger-light-3),
+        var(--el-color-danger));
     box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.35);
     transform: translateY(-2px);
 
@@ -1458,7 +1369,7 @@ onUnmounted(() => {
     border: none;
     // 优化 transition，加快背景色切换
     transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     position: relative;
     background: var(--el-switch-off-color);
@@ -1473,9 +1384,8 @@ onUnmounted(() => {
       bottom: 1px;
       border-radius: 23px;
       background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.05)
-      );
+          rgba(255, 255, 255, 0.2),
+          rgba(255, 255, 255, 0.05));
       pointer-events: none;
     }
 
@@ -1501,8 +1411,8 @@ onUnmounted(() => {
       border-radius: 50%;
       // 优化 transition，加快位置和背景色切换
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                  background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                  box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
       position: relative;
       display: flex;
@@ -1520,9 +1430,8 @@ onUnmounted(() => {
         bottom: 1px;
         border-radius: 50%;
         background: linear-gradient(135deg,
-          rgba(255, 255, 255, 0.3),
-          transparent
-        );
+            rgba(255, 255, 255, 0.3),
+            transparent);
         pointer-events: none;
       }
     }
@@ -1531,9 +1440,8 @@ onUnmounted(() => {
   &.is-checked {
     .el-switch__core {
       background: linear-gradient(135deg,
-        var(--el-switch-on-color),
-        var(--el-color-primary-light-3)
-      );
+          var(--el-switch-on-color),
+          var(--el-color-primary-light-3));
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
       .el-switch__action {
@@ -1556,9 +1464,8 @@ onUnmounted(() => {
   &:not(.is-checked) {
     .el-switch__core {
       background: linear-gradient(135deg,
-        var(--el-switch-off-color),
-        var(--el-fill-color-light)
-      );
+          var(--el-switch-off-color),
+          var(--el-fill-color-light));
 
       .el-switch__action {
         transform: translateX(2px);
@@ -1623,17 +1530,15 @@ onUnmounted(() => {
 
       &::before {
         background: linear-gradient(135deg,
-          rgba(255, 255, 255, 0.1),
-          rgba(255, 255, 255, 0.02)
-        );
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.02));
       }
     }
 
     .el-switch__action {
       background: linear-gradient(135deg,
-        var(--el-bg-color),
-        var(--el-bg-color-overlay)
-      );
+          var(--el-bg-color),
+          var(--el-bg-color-overlay));
       border-color: var(--el-border-color);
     }
 
@@ -1829,10 +1734,10 @@ onUnmounted(() => {
     }
 
     .number-unit {
-    font-size: 12px;
-    color: var(--el-text-color-placeholder);
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
       margin-left: 4px;
-    font-weight: 500;
+      font-weight: 500;
     }
   }
 
@@ -1866,7 +1771,7 @@ onUnmounted(() => {
   box-shadow: var(--el-box-shadow-lighter);
   transition: all 0.3s ease;
 
-    &:hover {
+  &:hover {
     border-color: var(--el-border-color-hover);
     box-shadow: var(--el-box-shadow-light);
     transform: translateY(-1px);
@@ -1945,7 +1850,7 @@ onUnmounted(() => {
   overflow: hidden;
   // 优化 transition，避免主题切换延迟
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1.5px solid var(--el-border-color-extra-light);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 
@@ -1958,10 +1863,9 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.3) 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 100%
-    );
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 100%);
     pointer-events: none;
     z-index: 1;
   }
@@ -2093,10 +1997,9 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
   opacity: 0;
   transform: translateX(-100%);
   transition: all 0.6s ease;
@@ -2110,10 +2013,12 @@ onUnmounted(() => {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.7;
     transform: scale(1.05);
   }
+
   100% {
     opacity: 0;
     transform: scale(1.1);
@@ -2618,6 +2523,58 @@ onUnmounted(() => {
       }
     }
 
+    &:nth-child(5) {
+      &::after {
+        content: "卡片导航";
+      }
+
+      div {
+        &:nth-child(1) {
+          position: absolute;
+          top: 15px;
+          left: 15px;
+          width: 12px;
+          height: 12px;
+          background: var(--el-color-primary);
+          border-radius: 2px;
+          opacity: 0.9;
+        }
+
+        &:nth-child(2) {
+          position: absolute;
+          top: 15px;
+          left: 32px;
+          width: 12px;
+          height: 12px;
+          background: var(--el-color-primary);
+          border-radius: 2px;
+          opacity: 0.9;
+        }
+
+        &:nth-child(3) {
+          position: absolute;
+          top: 32px;
+          left: 15px;
+          width: 12px;
+          height: 12px;
+          background: var(--el-color-primary);
+          border-radius: 2px;
+          opacity: 0.9;
+        }
+
+        &:nth-child(4) {
+          position: absolute;
+          top: 32px;
+          left: 32px;
+          width: 12px;
+          height: 12px;
+          background: var(--el-color-primary);
+          border-radius: 2px;
+          opacity: 0.9;
+        }
+      }
+    }
+
     /* 占位符样式 */
     &.placeholder-layout {
       opacity: 0.6;
@@ -2657,9 +2614,11 @@ onUnmounted(() => {
 .is-select {
   border: 2px solid var(--el-color-primary);
 }
+
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
 }
+
 // 通用设置样式 - 完全适配 Element Plus 主题系统
 .setting {
   margin-top: 12px;
@@ -2776,16 +2735,16 @@ p.mt-5 {
 .el-table,
 .el-form-item {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
-              border-color var(--theme-transition-duration) var(--theme-transition-timing),
-              color var(--theme-transition-duration) var(--theme-transition-timing) !important;
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing) !important;
 }
 
 // 确保所有使用CSS变量的元素都能快速响应主题变化
 [style*="--el-"],
 [class*="el-"] {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
-              border-color var(--theme-transition-duration) var(--theme-transition-timing),
-              color var(--theme-transition-duration) var(--theme-transition-timing);
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing);
 }
 
 

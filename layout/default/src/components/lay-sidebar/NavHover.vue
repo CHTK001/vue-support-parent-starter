@@ -20,10 +20,13 @@ const subMenuPosition = ref({ top: 0, left: 0 });
 const hideTimer = ref(null);
 const showTimer = ref(null);
 
-const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
+const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar, layout } = useNav();
 
 // 悬浮导航的收缩状态
 const isHoverCollapsed = ref(false);
+
+// 从全局状态获取布局模式
+const isCardMode = computed(() => layout.value === 'card');
 
 // 悬浮导航专用的切换函数
 function toggleHoverSideBar() {
@@ -36,6 +39,36 @@ function toggleHoverSideBar() {
     '--hover-sidebar-width',
     isHoverCollapsed.value ? '64px' : '200px'
   );
+}
+
+// 获取有具体路由地址的菜单项（用于卡片模式）
+const cardMenuItems = computed(() => {
+  const collectMenuItems = (menus: any[]) => {
+    const items: any[] = [];
+
+    menus.forEach(menu => {
+      // 如果有具体的路由地址且不是父级菜单，则添加到卡片列表
+      if (menu.path && menu.path !== '/' && menu.meta?.showLink !== false && !menu.children?.length) {
+        items.push(menu);
+      }
+
+      // 递归处理子菜单
+      if (menu.children && menu.children.length > 0) {
+        items.push(...collectMenuItems(menu.children));
+      }
+    });
+
+    return items;
+  };
+
+  return collectMenuItems(usePermissionStoreHook().wholeMenus);
+});
+
+// 处理卡片点击事件
+function handleCardClick(menu: any) {
+  // 在新窗口中打开页面
+  const routeUrl = router.resolve(menu.path);
+  window.open(routeUrl.href, '_blank');
 }
 
 // 收藏相关数据
@@ -417,7 +450,23 @@ const defer = useDefer(firstLevelMenus.value.length);
 </script>
 
 <template>
-  <div v-loading="loading"
+  <!-- 卡片导航模式 -->
+  <div v-if="isCardMode" class="card-navigation-container">
+    <!-- 卡片网格 -->
+    <div class="card-grid">
+      <div v-for="menu in cardMenuItems" :key="menu.path" class="menu-card" @click="handleCardClick(menu)">
+        <div class="card-icon">
+          <IconifyIconOffline v-if="menu.meta?.icon" :icon="menu.meta.icon" />
+          <IconifyIconOnline v-else-if="menu.meta?.iconOnline" :icon="menu.meta.iconOnline" />
+          <span v-else>{{ menu.meta?.title?.charAt(0) || '?' }}</span>
+        </div>
+        <div class="card-title">{{ menu.meta?.title }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 悬浮导航模式 -->
+  <div v-else v-loading="loading"
     :class="['sidebar-hover-container', showLogo ? 'has-logo' : 'no-logo', isHoverCollapsed ? 'collapsed' : 'expanded']"
     @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
     <LaySidebarLogo v-if="showLogo" :collapse="isHoverCollapsed" />
@@ -550,6 +599,74 @@ const defer = useDefer(firstLevelMenus.value.length);
 </template>
 
 <style lang="scss" scoped>
+/* 卡片导航模式样式 */
+.card-navigation-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--el-bg-color-page);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 24px;
+  max-width: 1000px;
+  width: 100%;
+  justify-items: center;
+  padding: 20px;
+}
+
+.menu-card {
+  width: 140px;
+  height: 140px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 16px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--el-color-primary);
+  }
+
+  .card-icon {
+    font-size: 32px;
+    color: var(--el-color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    line-height: 1.2;
+    word-break: break-all;
+    max-width: 100%;
+  }
+}
+
 .sidebar-hover-container {
   position: relative;
   height: 100%;
