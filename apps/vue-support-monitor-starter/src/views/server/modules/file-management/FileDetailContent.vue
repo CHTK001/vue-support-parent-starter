@@ -170,46 +170,139 @@ const getFileIcon = (file: FileInfo) => {
 
   const ext = file.name.split(".").pop()?.toLowerCase();
   const iconMap: Record<string, string> = {
-    // 图片
-    jpg: "ri:image-line",
-    jpeg: "ri:image-line",
-    png: "ri:image-line",
-    gif: "ri:image-line",
-    bmp: "ri:image-line",
-    svg: "ri:image-line",
+    // JavaScript/TypeScript
+    js: "ri:javascript-line",
+    ts: "ri:javascript-line",
+    jsx: "ri:javascript-line",
+    tsx: "ri:javascript-line",
+    vue: "ri:vuejs-line",
+
+    // Web技术
+    html: "ri:html5-line",
+    htm: "ri:html5-line",
+    css: "ri:css3-line",
+    scss: "ri:css3-line",
+    sass: "ri:css3-line",
+    less: "ri:css3-line",
+
+    // Java相关
+    java: "ri:file-code-line",
+    jar: "ri:archive-line",
+    war: "ri:archive-line",
+    ear: "ri:archive-line",
+    class: "ri:file-code-line",
+
+    // C/C++
+    c: "ri:file-code-line",
+    cpp: "ri:file-code-line",
+    cc: "ri:file-code-line",
+    cxx: "ri:file-code-line",
+    h: "ri:file-code-line",
+    hpp: "ri:file-code-line",
+
+    // Python
+    py: "ri:file-code-line",
+    pyc: "ri:file-code-line",
+    pyo: "ri:file-code-line",
+    pyw: "ri:file-code-line",
+
+    // 其他编程语言
+    php: "ri:file-code-line",
+    go: "ri:file-code-line",
+    rs: "ri:file-code-line",
+    rb: "ri:file-code-line",
+    pl: "ri:file-code-line",
+    sh: "ri:file-code-line",
+    bat: "ri:file-code-line",
+    cmd: "ri:file-code-line",
+    ps1: "ri:file-code-line",
+
+    // 配置文件
+    json: "ri:settings-3-line",
+    xml: "ri:settings-3-line",
+    yaml: "ri:settings-3-line",
+    yml: "ri:settings-3-line",
+    toml: "ri:settings-3-line",
+    ini: "ri:settings-3-line",
+    conf: "ri:settings-3-line",
+    config: "ri:settings-3-line",
+    properties: "ri:settings-3-line",
+
     // 文档
+    md: "ri:markdown-line",
+    markdown: "ri:markdown-line",
     txt: "ri:file-text-line",
+    log: "ri:file-text-line",
+    pdf: "ri:file-pdf-line",
     doc: "ri:file-word-line",
     docx: "ri:file-word-line",
-    pdf: "ri:file-pdf-line",
     xls: "ri:file-excel-line",
     xlsx: "ri:file-excel-line",
     ppt: "ri:file-ppt-line",
     pptx: "ri:file-ppt-line",
-    // 代码
-    js: "ri:file-code-line",
-    ts: "ri:file-code-line",
-    html: "ri:file-code-line",
-    css: "ri:file-code-line",
-    java: "ri:file-code-line",
-    py: "ri:file-code-line",
-    cpp: "ri:file-code-line",
-    c: "ri:file-code-line",
-    // 压缩包
+
+    // 压缩文件
     zip: "ri:file-zip-line",
     rar: "ri:file-zip-line",
     "7z": "ri:file-zip-line",
     tar: "ri:file-zip-line",
     gz: "ri:file-zip-line",
+    bz2: "ri:file-zip-line",
+    xz: "ri:file-zip-line",
+
+    // 图片
+    jpg: "ri:image-line",
+    jpeg: "ri:image-line",
+    png: "ri:image-line",
+    gif: "ri:image-line",
+    svg: "ri:image-line",
+    bmp: "ri:image-line",
+    webp: "ri:image-line",
+    ico: "ri:image-line",
+
     // 音频
     mp3: "ri:music-line",
     wav: "ri:music-line",
     flac: "ri:music-line",
+    aac: "ri:music-line",
+    ogg: "ri:music-line",
+    wma: "ri:music-line",
+
     // 视频
     mp4: "ri:video-line",
     avi: "ri:video-line",
     mkv: "ri:video-line",
     mov: "ri:video-line",
+    wmv: "ri:video-line",
+    flv: "ri:video-line",
+    webm: "ri:video-line",
+
+    // 可执行文件
+    exe: "ri:install-line",
+    msi: "ri:install-line",
+    dmg: "ri:install-line",
+    deb: "ri:install-line",
+    rpm: "ri:install-line",
+    app: "ri:install-line",
+
+    // 库文件
+    dll: "ri:code-box-line",
+    so: "ri:code-box-line",
+    dylib: "ri:code-box-line",
+    lib: "ri:code-box-line",
+    a: "ri:code-box-line",
+
+    // 数据库
+    db: "ri:database-line",
+    sqlite: "ri:database-line",
+    sql: "ri:database-line",
+
+    // 字体
+    ttf: "ri:font-size-line",
+    otf: "ri:font-size-line",
+    woff: "ri:font-size-line",
+    woff2: "ri:font-size-line",
+    eot: "ri:font-size-line",
   };
 
   return iconMap[ext || ""] || "ri:file-line";

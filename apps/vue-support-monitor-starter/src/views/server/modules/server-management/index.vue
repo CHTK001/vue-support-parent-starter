@@ -1291,13 +1291,14 @@ const handleServerAction = async (command: string, server: any) => {
       await testConnection(server);
       break;
     case "files":
-      // 使用路由跳转到文件管理页面
-      router.push({
+      // 在新标签页中打开文件管理器
+      const routeData = router.resolve({
         name: "fileManager",
         params: {
           serverId: String(server.monitorSysGenServerId || server.id),
         },
       });
+      window.open(routeData.href, "_blank");
       break;
     case "monitor":
       selectedServerId.value = server.id;

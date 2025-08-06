@@ -3,10 +3,15 @@
     <!-- 头部信息 -->
     <div class="monitor-header">
       <div class="server-info">
-        <h3 class="server-name">{{ server?.name || '未知服务器' }}</h3>
+        <h3 class="server-name">{{ server?.name || "未知服务器" }}</h3>
         <div class="server-details">
-          <span class="server-address">{{ server?.host }}:{{ server?.port }}</span>
-          <el-tag :type="getOnlineStatusType(server?.onlineStatus)" size="small">
+          <span class="server-address"
+            >{{ server?.host }}:{{ server?.port }}</span
+          >
+          <el-tag
+            :type="getOnlineStatusType(server?.onlineStatus)"
+            size="small"
+          >
             {{ getOnlineStatusText(server?.onlineStatus) }}
           </el-tag>
           <el-tag type="info" size="small">{{ server?.protocol }}</el-tag>
@@ -33,7 +38,10 @@
           <span class="metric-title">CPU使用率</span>
         </div>
         <div class="metric-content">
-          <div class="metric-value" :class="{ 'animating': cpuAnimation.isAnimating.value }">
+          <div
+            class="metric-value"
+            :class="{ animating: cpuAnimation.isAnimating.value }"
+          >
             {{ cpuAnimation.formattedValue.value }}
           </div>
           <el-progress
@@ -42,7 +50,7 @@
             :show-text="false"
           />
           <div class="metric-details">
-            <span>核心数: {{ metrics?.cpu?.cores || 'N/A' }}</span>
+            <span>核心数: {{ metrics?.cpu?.cores || "N/A" }}</span>
             <span>负载: {{ (metrics?.cpu?.load1m || 0).toFixed(2) }}</span>
           </div>
         </div>
@@ -55,12 +63,17 @@
           <span class="metric-title">内存使用率</span>
         </div>
         <div class="metric-content">
-          <div class="metric-value" :class="{ 'animating': memoryAnimation.isAnimating.value }">
+          <div
+            class="metric-value"
+            :class="{ animating: memoryAnimation.isAnimating.value }"
+          >
             {{ memoryAnimation.formattedValue.value }}
           </div>
           <el-progress
             :percentage="memoryAnimation.displayValue.value"
-            :color="getProgressColor(memoryAnimation.displayValue.value, 'memory')"
+            :color="
+              getProgressColor(memoryAnimation.displayValue.value, 'memory')
+            "
             :show-text="false"
           />
           <div class="metric-details">
@@ -74,7 +87,12 @@
       <div class="metric-card disk-card">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
-          <span class="metric-title">磁盘使用情况 <span class="partitions-count">{{ diskPartitions.length }} 个分区</span></span>
+          <span class="metric-title"
+            >磁盘使用情况
+            <span class="partitions-count"
+              >{{ diskPartitions.length }} 个分区</span
+            ></span
+          >
         </div>
 
         <!-- 磁盘分区列表 -->
@@ -88,13 +106,21 @@
               >
                 <div class="partition-header">
                   <div class="partition-info">
-                    <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
-                    <span class="partition-name">{{ partition.name || partition.mount }}</span>
+                    <IconifyIconOnline
+                      icon="ri:folder-line"
+                      class="partition-icon"
+                    />
+                    <span class="partition-name">{{
+                      partition.name || partition.mount
+                    }}</span>
                     <el-tag size="small" type="info" class="partition-type">
                       {{ partition.type }}
                     </el-tag>
                   </div>
-                  <div class="partition-usage" :class="getPartitionUsageClass(partition.usagePercent || 0)">
+                  <div
+                    class="partition-usage"
+                    :class="getPartitionUsageClass(partition.usagePercent || 0)"
+                  >
                     {{ Math.round(partition.usagePercent || 0) }}%
                   </div>
                 </div>
@@ -119,11 +145,15 @@
           <div class="network-stats">
             <div class="network-item">
               <span class="network-label">入站:</span>
-              <span class="network-value">{{ formatBytes(metrics?.network?.in) }}/s</span>
+              <span class="network-value"
+                >{{ formatBytes(metrics?.network?.in) }}/s</span
+              >
             </div>
             <div class="network-item">
               <span class="network-label">出站:</span>
-              <span class="network-value">{{ formatBytes(metrics?.network?.out) }}/s</span>
+              <span class="network-value"
+                >{{ formatBytes(metrics?.network?.out) }}/s</span
+              >
             </div>
           </div>
           <div class="metric-details">
@@ -162,15 +192,15 @@
           </div>
           <div class="info-item">
             <span class="info-label">负载平均:</span>
-            <span class="info-value">{{ metrics?.loadAverage || 'N/A' }}</span>
+            <span class="info-value">{{ metrics?.loadAverage || "N/A" }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">进程数:</span>
-            <span class="info-value">{{ metrics?.processCount || 'N/A' }}</span>
+            <span class="info-value">{{ metrics?.processCount || "N/A" }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">CPU核心数:</span>
-            <span class="info-value">{{ metrics?.cpu?.cores || 'N/A' }}</span>
+            <span class="info-value">{{ metrics?.cpu?.cores || "N/A" }}</span>
           </div>
         </div>
       </div>
@@ -186,7 +216,12 @@
             {{ Math.round(metrics?.temperature || 0) }}°C
           </div>
           <el-progress
-            :percentage="Math.min(Math.round((metrics?.temperature || 0) / 100 * 100), 100)"
+            :percentage="
+              Math.min(
+                Math.round(((metrics?.temperature || 0) / 100) * 100),
+                100
+              )
+            "
             :color="getProgressColor(metrics?.temperature || 0, 'temperature')"
             :show-text="false"
           />
@@ -212,14 +247,14 @@ import {
   formatNetworkSpeed,
   formatNumber,
   formatUptime,
-  formatTime
+  formatTime,
   //@ts-ignore
 } from "@/composables/useMetricsThreshold";
 import {
   usePercentageAnimation,
   useBytesAnimation,
   useIntegerAnimation,
-  useNetworkSpeedAnimation
+  useNetworkSpeedAnimation,
 } from "@/composables/useNumberAnimation";
 
 /**
@@ -326,35 +361,78 @@ const diskPartitions = computed(() => {
 });
 
 // 监听指标数据变化
-watch(() => props.metricsData, (newMetrics, oldMetrics) => {
-  if (newMetrics) {
-    console.log('ServerMonitor接收到指标数据:', newMetrics);
+watch(
+  () => props.metricsData,
+  (newMetrics, oldMetrics) => {
+    if (newMetrics) {
+      console.log("ServerMonitor接收到指标数据:", newMetrics);
 
-    // 更新动画值 - 如果新值为空且旧值存在，则保持旧值
-    updateAnimationValueSafely(cpuAnimation, newMetrics.cpu?.usage, oldMetrics?.cpu?.usage);
-    updateAnimationValueSafely(memoryAnimation, newMetrics.memory?.usage, oldMetrics?.memory?.usage);
-    updateAnimationValueSafely(diskAnimation, newMetrics.disk?.usage, oldMetrics?.disk?.usage);
-    updateAnimationValueSafely(networkInAnimation, newMetrics.network?.in, oldMetrics?.network?.in);
-    updateAnimationValueSafely(networkOutAnimation, newMetrics.network?.out, oldMetrics?.network?.out);
-    updateAnimationValueSafely(uptimeAnimation, newMetrics.uptime, oldMetrics?.uptime);
-    updateAnimationValueSafely(processCountAnimation, newMetrics.processCount, oldMetrics?.processCount);
+      // 更新动画值 - 如果新值为空且旧值存在，则保持旧值
+      updateAnimationValueSafely(
+        cpuAnimation,
+        newMetrics.cpu?.usage,
+        oldMetrics?.cpu?.usage
+      );
+      updateAnimationValueSafely(
+        memoryAnimation,
+        newMetrics.memory?.usage,
+        oldMetrics?.memory?.usage
+      );
+      updateAnimationValueSafely(
+        diskAnimation,
+        newMetrics.disk?.usage,
+        oldMetrics?.disk?.usage
+      );
+      updateAnimationValueSafely(
+        networkInAnimation,
+        newMetrics.network?.in,
+        oldMetrics?.network?.in
+      );
+      updateAnimationValueSafely(
+        networkOutAnimation,
+        newMetrics.network?.out,
+        oldMetrics?.network?.out
+      );
+      updateAnimationValueSafely(
+        uptimeAnimation,
+        newMetrics.uptime,
+        oldMetrics?.uptime
+      );
+      updateAnimationValueSafely(
+        processCountAnimation,
+        newMetrics.processCount,
+        oldMetrics?.processCount
+      );
 
-    // 温度数据特殊处理
-    if (newMetrics.temperature !== undefined && newMetrics.temperature !== null) {
-      temperatureAnimation.setValue(newMetrics.temperature);
-    } else if (oldMetrics?.temperature !== undefined && oldMetrics?.temperature !== null) {
-      // 如果新数据没有温度但旧数据有，保持旧值
-      temperatureAnimation.setValue(oldMetrics.temperature);
+      // 温度数据特殊处理
+      if (
+        newMetrics.temperature !== undefined &&
+        newMetrics.temperature !== null
+      ) {
+        temperatureAnimation.setValue(newMetrics.temperature);
+      } else if (
+        oldMetrics?.temperature !== undefined &&
+        oldMetrics?.temperature !== null
+      ) {
+        // 如果新数据没有温度但旧数据有，保持旧值
+        temperatureAnimation.setValue(oldMetrics.temperature);
+      }
     }
-  }
-}, { deep: true });
+  },
+  { deep: true }
+);
 
 // 方法
-const getOnlineStatusType = (status: number): "success" | "warning" | "info" | "primary" | "danger" => {
-  const statusMap: Record<number, "success" | "warning" | "info" | "primary" | "danger"> = {
+const getOnlineStatusType = (
+  status: number
+): "success" | "warning" | "info" | "primary" | "danger" => {
+  const statusMap: Record<
+    number,
+    "success" | "warning" | "info" | "primary" | "danger"
+  > = {
     1: "success",
     0: "danger",
-    2: "warning"
+    2: "warning",
   };
   return statusMap[status] || "info";
 };
@@ -362,8 +440,8 @@ const getOnlineStatusType = (status: number): "success" | "warning" | "info" | "
 const getOnlineStatusText = (status: number) => {
   const statusMap: Record<number, string> = {
     1: "在线",
-    0: "离线", 
-    2: "异常"
+    0: "离线",
+    2: "异常",
   };
   return statusMap[status] || "未知";
 };
@@ -376,7 +454,7 @@ const thresholds = {
   memory: { normal: 60, warning: 80, critical: 90 },
   disk: { normal: 70, warning: 85, critical: 95 },
   temperature: { normal: 50, warning: 70, critical: 85 },
-  network: { normal: 60, warning: 80, critical: 90 }
+  network: { normal: 60, warning: 80, critical: 90 },
 };
 
 /**
@@ -387,22 +465,22 @@ const getMetricColor = (metricType: string, value: number) => {
   if (!threshold) return "#67c23a";
 
   if (value >= threshold.critical) return "#f56c6c"; // 红色
-  if (value >= threshold.warning) return "#e6a23c";  // 黄色
+  if (value >= threshold.warning) return "#e6a23c"; // 黄色
   return "#67c23a"; // 绿色
 };
 
 /**
  * 获取进度条颜色（支持渐变）
  */
-const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
+const getProgressColor = (percentage: number, metricType: string = "cpu") => {
   const threshold = thresholds[metricType as keyof typeof thresholds];
   if (!threshold) return "#67c23a";
 
   // 返回渐变色配置
   return [
-    { color: '#67c23a', "percentage": threshold.normal },
-    { color: '#e6a23c',  "percentage": threshold.warning },
-    { color: '#f56c6c',  "percentage": 100 }
+    { color: "#67c23a", percentage: threshold.normal },
+    { color: "#e6a23c", percentage: threshold.warning },
+    { color: "#f56c6c", percentage: 100 },
   ];
 };
 
@@ -410,21 +488,27 @@ const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
  * 获取温度颜色
  */
 const getTempColor = (temp: number) => {
-  return getMetricColor('temperature', temp);
+  return getMetricColor("temperature", temp);
 };
-
-
 
 /**
  * 安全更新动画值 - 如果新值为空且旧值存在，则保持旧值
  */
-const updateAnimationValueSafely = (animation: any, newValue: any, oldValue: any) => {
+const updateAnimationValueSafely = (
+  animation: any,
+  newValue: any,
+  oldValue: any
+) => {
   // 如果新值有效，使用新值
   if (newValue !== undefined && newValue !== null && !isNaN(Number(newValue))) {
     animation.setValue(Number(newValue));
   }
   // 如果新值无效但旧值有效，保持旧值
-  else if (oldValue !== undefined && oldValue !== null && !isNaN(Number(oldValue))) {
+  else if (
+    oldValue !== undefined &&
+    oldValue !== null &&
+    !isNaN(Number(oldValue))
+  ) {
     animation.setValue(Number(oldValue));
   }
   // 如果都无效，设为0
@@ -437,7 +521,7 @@ const formatBytes = (bytes: number | undefined) => {
   if (!bytes) return "0 B";
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + " " + sizes[i];
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
 };
 
 const formatNumber = (num: number | undefined) => {
@@ -458,13 +542,13 @@ const getOsName = computed(() => {
   if (metrics.value?.osInfo) {
     const osInfo = metrics.value.osInfo;
     // 匹配常见的操作系统名称
-    if (osInfo.includes('Ubuntu')) return 'Ubuntu';
-    if (osInfo.includes('CentOS')) return 'CentOS';
-    if (osInfo.includes('Red Hat')) return 'Red Hat';
-    if (osInfo.includes('Debian')) return 'Debian';
-    if (osInfo.includes('Windows')) return 'Windows';
-    if (osInfo.includes('macOS') || osInfo.includes('Darwin')) return 'macOS';
-    if (osInfo.includes('Linux')) return 'Linux';
+    if (osInfo.includes("Ubuntu")) return "Ubuntu";
+    if (osInfo.includes("CentOS")) return "CentOS";
+    if (osInfo.includes("Red Hat")) return "Red Hat";
+    if (osInfo.includes("Debian")) return "Debian";
+    if (osInfo.includes("Windows")) return "Windows";
+    if (osInfo.includes("macOS") || osInfo.includes("Darwin")) return "macOS";
+    if (osInfo.includes("Linux")) return "Linux";
 
     // 如果包含 "OS:" 标记，提取其后的内容
     const osMatch = osInfo.match(/OS:\s*([^;]+)/);
@@ -473,10 +557,10 @@ const getOsName = computed(() => {
     }
 
     // 返回第一部分作为操作系统名称
-    return osInfo.split(' ')[0] || osInfo;
+    return osInfo.split(" ")[0] || osInfo;
   }
 
-  return 'N/A';
+  return "N/A";
 });
 
 /**
@@ -511,7 +595,7 @@ const getOsVersion = computed(() => {
     }
   }
 
-  return 'N/A';
+  return "N/A";
 });
 
 /**
@@ -531,7 +615,7 @@ const getHostname = computed(() => {
     }
   }
 
-  return 'N/A';
+  return "N/A";
 });
 
 /**
@@ -542,10 +626,10 @@ const getSystemArch = computed(() => {
     const osInfo = metrics.value.osInfo;
 
     // 匹配架构信息
-    if (osInfo.includes('x86_64') || osInfo.includes('amd64')) return 'x86_64';
-    if (osInfo.includes('i386') || osInfo.includes('i686')) return 'i386';
-    if (osInfo.includes('aarch64') || osInfo.includes('arm64')) return 'ARM64';
-    if (osInfo.includes('armv7') || osInfo.includes('armhf')) return 'ARM';
+    if (osInfo.includes("x86_64") || osInfo.includes("amd64")) return "x86_64";
+    if (osInfo.includes("i386") || osInfo.includes("i686")) return "i386";
+    if (osInfo.includes("aarch64") || osInfo.includes("arm64")) return "ARM64";
+    if (osInfo.includes("armv7") || osInfo.includes("armhf")) return "ARM";
 
     // 匹配 "Arch:" 标记
     const archMatch = osInfo.match(/Arch:\s*([^;]+)/);
@@ -554,16 +638,16 @@ const getSystemArch = computed(() => {
     }
   }
 
-  return 'N/A';
+  return "N/A";
 });
 
 /**
  * 获取磁盘分区使用率颜色类名
  */
 const getPartitionUsageClass = (percentage: number) => {
-  if (percentage >= 90) return 'usage-critical';
-  if (percentage >= 75) return 'usage-warning';
-  return 'usage-normal';
+  if (percentage >= 90) return "usage-critical";
+  if (percentage >= 75) return "usage-warning";
+  return "usage-normal";
 };
 
 const formatUptime = (uptime: number | undefined) => {
@@ -585,7 +669,7 @@ const refreshMetrics = async () => {
     loading.value = true;
 
     // 通知父组件刷新指标数据
-    emit('refreshMetrics', serverId.value);
+    emit("refreshMetrics", serverId.value);
 
     message.success("指标数据刷新请求已发送");
   } catch (error) {
@@ -600,7 +684,7 @@ const startAutoRefresh = () => {
   updateTimer.value = setInterval(() => {
     if (serverId.value) {
       // 通知父组件自动刷新指标数据
-      emit('refreshMetrics', serverId.value);
+      emit("refreshMetrics", serverId.value);
     }
   }, 30000); // 30秒自动刷新
 };
@@ -619,7 +703,7 @@ onMounted(() => {
 
   // 如果有服务器ID，立即请求一次数据
   if (serverId.value) {
-    emit('refreshMetrics', serverId.value);
+    emit("refreshMetrics", serverId.value);
   }
 });
 
@@ -635,7 +719,11 @@ onUnmounted(() => {
   flex-direction: column;
   padding: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-extra-light) 100%
+  );
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -656,7 +744,11 @@ onUnmounted(() => {
   align-items: flex-start;
   margin-bottom: 24px;
   padding: 20px;
-  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-extra-light) 100%
+  );
   border-radius: 16px;
   border: 1px solid var(--el-border-color-lighter);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -666,7 +758,11 @@ onUnmounted(() => {
       font-size: 22px;
       font-weight: 700;
       margin: 0 0 12px 0;
-      background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-color-primary) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-text-color-primary) 0%,
+        var(--el-color-primary) 100%
+      );
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -679,7 +775,7 @@ onUnmounted(() => {
       flex-wrap: wrap;
 
       .server-address {
-        font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
         color: var(--el-text-color-secondary);
         background: var(--el-fill-color-light);
         padding: 6px 12px;
@@ -694,17 +790,29 @@ onUnmounted(() => {
         border: none;
 
         &.el-tag--success {
-          background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-success-light-8) 0%,
+            var(--el-color-success-light-9) 100%
+          );
           color: var(--el-color-success);
         }
 
         &.el-tag--danger {
-          background: linear-gradient(135deg, var(--el-color-danger-light-8) 0%, var(--el-color-danger-light-9) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-danger-light-8) 0%,
+            var(--el-color-danger-light-9) 100%
+          );
           color: var(--el-color-danger);
         }
 
         &.el-tag--info {
-          background: linear-gradient(135deg, var(--el-color-info-light-8) 0%, var(--el-color-info-light-9) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-info-light-8) 0%,
+            var(--el-color-info-light-9) 100%
+          );
           color: var(--el-color-info);
         }
       }
@@ -757,7 +865,11 @@ onUnmounted(() => {
 }
 
 .metric-card {
-  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-bg-color) 0%,
+    var(--el-fill-color-extra-light) 100%
+  );
   border: 1px solid var(--el-border-color-light);
   border-radius: 16px;
   padding: 20px;
@@ -769,21 +881,37 @@ onUnmounted(() => {
   animation: slideInUp 0.6s ease-out;
   animation-fill-mode: both;
 
-  &:nth-child(1) { animation-delay: 0.1s; }
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.3s; }
-  &:nth-child(4) { animation-delay: 0.4s; }
-  &:nth-child(5) { animation-delay: 0.5s; }
-  &:nth-child(6) { animation-delay: 0.6s; }
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.5s;
+  }
+  &:nth-child(6) {
+    animation-delay: 0.6s;
+  }
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -829,7 +957,11 @@ onUnmounted(() => {
     .metric-value {
       font-size: 28px;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-color-primary) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--el-text-color-primary) 0%,
+        var(--el-color-primary) 100%
+      );
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -890,7 +1022,11 @@ onUnmounted(() => {
 
       :deep(.el-progress-bar__inner) {
         border-radius: 8px;
-        background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
+        background: linear-gradient(
+          90deg,
+          var(--el-color-primary-light-3) 0%,
+          var(--el-color-primary) 100%
+        );
       }
     }
   }
@@ -947,7 +1083,11 @@ onUnmounted(() => {
 .update-time {
   margin-top: 20px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-extra-light) 0%,
+    var(--el-fill-color-light) 100%
+  );
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
   font-size: 13px;
@@ -1123,7 +1263,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1165,6 +1306,9 @@ onUnmounted(() => {
 
 /* 磁盘卡片样式 */
 .disk-card {
+  /* 覆盖父级的overflow: hidden，允许显示滚动条 */
+  overflow: visible;
+
   .metric-header {
     display: flex;
     align-items: center;
@@ -1209,26 +1353,34 @@ onUnmounted(() => {
   }
 
   .partitions-list-container {
-    max-height: 400px;
+    height: 300px;
+    max-height: 600px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 4px;
 
     /* 自定义滚动条样式 */
     &::-webkit-scrollbar {
-      width: 6px;
+      width: 8px;
     }
 
     &::-webkit-scrollbar-track {
       background: var(--el-fill-color-lighter);
-      border-radius: 3px;
+      border-radius: 4px;
+      margin: 2px;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color-darker);
-      border-radius: 3px;
+      background: var(--el-color-primary-light-7);
+      border-radius: 4px;
+      border: 1px solid var(--el-fill-color-lighter);
 
       &:hover {
         background: var(--el-color-primary-light-5);
+      }
+
+      &:active {
+        background: var(--el-color-primary-light-3);
       }
     }
   }

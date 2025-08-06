@@ -118,9 +118,10 @@ const getFileIcon = (file: FileInfo) => {
   if (file.isDirectory) {
     return "ri:folder-line";
   }
-  
+
   const ext = file.name.split(".").pop()?.toLowerCase();
   switch (ext) {
+    // JavaScript/TypeScript
     case "js":
     case "ts":
     case "jsx":
@@ -128,30 +129,157 @@ const getFileIcon = (file: FileInfo) => {
       return "ri:javascript-line";
     case "vue":
       return "ri:vuejs-line";
+
+    // Web技术
     case "html":
+    case "htm":
       return "ri:html5-line";
     case "css":
     case "scss":
     case "sass":
+    case "less":
       return "ri:css3-line";
-    case "json":
+
+    // Java相关
+    case "java":
       return "ri:file-code-line";
+    case "jar":
+    case "war":
+    case "ear":
+      return "ri:archive-line";
+    case "class":
+      return "ri:file-code-line";
+
+    // C/C++
+    case "c":
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "h":
+    case "hpp":
+      return "ri:file-code-line";
+
+    // Python
+    case "py":
+    case "pyc":
+    case "pyo":
+    case "pyw":
+      return "ri:file-code-line";
+
+    // 其他编程语言
+    case "php":
+    case "go":
+    case "rs":
+    case "rb":
+    case "pl":
+    case "sh":
+    case "bat":
+    case "cmd":
+    case "ps1":
+      return "ri:file-code-line";
+
+    // 配置文件
+    case "json":
+    case "xml":
+    case "yaml":
+    case "yml":
+    case "toml":
+    case "ini":
+    case "conf":
+    case "config":
+    case "properties":
+      return "ri:settings-3-line";
+
+    // 文档
     case "md":
+    case "markdown":
       return "ri:markdown-line";
     case "txt":
+    case "log":
       return "ri:file-text-line";
     case "pdf":
       return "ri:file-pdf-line";
+    case "doc":
+    case "docx":
+      return "ri:file-word-line";
+    case "xls":
+    case "xlsx":
+      return "ri:file-excel-line";
+    case "ppt":
+    case "pptx":
+      return "ri:file-ppt-line";
+
+    // 压缩文件
     case "zip":
     case "rar":
     case "7z":
+    case "tar":
+    case "gz":
+    case "bz2":
+    case "xz":
       return "ri:file-zip-line";
+
+    // 图片
     case "jpg":
     case "jpeg":
     case "png":
     case "gif":
     case "svg":
+    case "bmp":
+    case "webp":
+    case "ico":
       return "ri:image-line";
+
+    // 音频
+    case "mp3":
+    case "wav":
+    case "flac":
+    case "aac":
+    case "ogg":
+    case "wma":
+      return "ri:music-line";
+
+    // 视频
+    case "mp4":
+    case "avi":
+    case "mkv":
+    case "mov":
+    case "wmv":
+    case "flv":
+    case "webm":
+      return "ri:video-line";
+
+    // 可执行文件
+    case "exe":
+    case "msi":
+    case "dmg":
+    case "deb":
+    case "rpm":
+    case "app":
+      return "ri:install-line";
+
+    // 库文件
+    case "dll":
+    case "so":
+    case "dylib":
+    case "lib":
+    case "a":
+      return "ri:code-box-line";
+
+    // 数据库
+    case "db":
+    case "sqlite":
+    case "sql":
+      return "ri:database-line";
+
+    // 字体
+    case "ttf":
+    case "otf":
+    case "woff":
+    case "woff2":
+    case "eot":
+      return "ri:font-size-line";
+
     default:
       return "ri:file-line";
   }
