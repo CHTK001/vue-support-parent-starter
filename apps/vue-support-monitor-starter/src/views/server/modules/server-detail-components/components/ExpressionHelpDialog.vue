@@ -15,15 +15,27 @@
         <div class="header-left">
           <IconifyIconOnline icon="ri:question-line" class="header-icon" />
           <span :id="titleId" :class="titleClass" class="dialog-title">
-            {{ serverReportType === 'prometheus' ? 'PromQL 表达式帮助' : '组件选择帮助' }}
+            {{
+              serverReportType === "prometheus"
+                ? "PromQL 表达式帮助"
+                : "组件选择帮助"
+            }}
           </span>
         </div>
         <div class="header-right">
-          <el-tag v-if="serverReportType === 'prometheus'" type="success" size="small">
+          <el-tag
+            v-if="serverReportType === 'prometheus'"
+            type="success"
+            size="small"
+          >
             <IconifyIconOnline icon="logos:prometheus" class="mr-1" />
             Prometheus
           </el-tag>
-          <el-tag v-else-if="serverReportType === 'api'" type="primary" size="small">
+          <el-tag
+            v-else-if="serverReportType === 'api'"
+            type="primary"
+            size="small"
+          >
             <IconifyIconOnline icon="ri:api-line" class="mr-1" />
             API 上报
           </el-tag>
@@ -35,7 +47,7 @@
       </div>
     </template>
 
-    <div class="help-content">
+    <div class="help-content modern-scrollbar">
       <!-- Prometheus 表达式帮助 -->
       <div v-if="serverReportType === 'prometheus'" class="prometheus-help">
         <div class="help-section">
@@ -44,7 +56,7 @@
             Prometheus PromQL 语法
           </h3>
           <p>Prometheus 查询语言 (PromQL) 用于查询时间序列数据。</p>
-          
+
           <h4>基本语法</h4>
           <div class="code-block">
             <pre><code># 查询指标
@@ -69,23 +81,22 @@ sum(rate(http_requests_total[5m]))</code></pre>
             <div class="function-item">
               <strong>irate()</strong> - 计算瞬时增长率
             </div>
-            <div class="function-item">
-              <strong>avg()</strong> - 平均值
-            </div>
-            <div class="function-item">
-              <strong>sum()</strong> - 求和
-            </div>
-            <div class="function-item">
-              <strong>max()</strong> - 最大值
-            </div>
-            <div class="function-item">
-              <strong>min()</strong> - 最小值
-            </div>
+            <div class="function-item"><strong>avg()</strong> - 平均值</div>
+            <div class="function-item"><strong>sum()</strong> - 求和</div>
+            <div class="function-item"><strong>max()</strong> - 最大值</div>
+            <div class="function-item"><strong>min()</strong> - 最小值</div>
           </div>
 
           <h4>示例表达式</h4>
           <div class="examples">
-            <div class="example-item" @click="selectExpression('100 - (avg(irate(node_cpu_seconds_total{mode=&quot;idle&quot;}[5m])) * 100)')">
+            <div
+              class="example-item"
+              @click="
+                selectExpression(
+                  '100 - (avg(irate(node_cpu_seconds_total{mode=&quot;idle&quot;}[5m])) * 100)'
+                )
+              "
+            >
               <div class="example-header">
                 <strong>CPU使用率</strong>
                 <el-button type="primary" text size="small">
@@ -93,9 +104,19 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   选择
                 </el-button>
               </div>
-              <code>100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</code>
+              <code
+                >100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) *
+                100)</code
+              >
             </div>
-            <div class="example-item" @click="selectExpression('(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100')">
+            <div
+              class="example-item"
+              @click="
+                selectExpression(
+                  '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100'
+                )
+              "
+            >
               <div class="example-header">
                 <strong>内存使用率</strong>
                 <el-button type="primary" text size="small">
@@ -103,9 +124,19 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   选择
                 </el-button>
               </div>
-              <code>(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100</code>
+              <code
+                >(1 - (node_memory_MemAvailable_bytes /
+                node_memory_MemTotal_bytes)) * 100</code
+              >
             </div>
-            <div class="example-item" @click="selectExpression('(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100')">
+            <div
+              class="example-item"
+              @click="
+                selectExpression(
+                  '(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100'
+                )
+              "
+            >
               <div class="example-header">
                 <strong>磁盘使用率</strong>
                 <el-button type="primary" text size="small">
@@ -113,9 +144,17 @@ sum(rate(http_requests_total[5m]))</code></pre>
                   选择
                 </el-button>
               </div>
-              <code>(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100</code>
+              <code
+                >(1 - (node_filesystem_avail_bytes /
+                node_filesystem_size_bytes)) * 100</code
+              >
             </div>
-            <div class="example-item" @click="selectExpression('rate(node_network_receive_bytes_total[5m])')">
+            <div
+              class="example-item"
+              @click="
+                selectExpression('rate(node_network_receive_bytes_total[5m])')
+              "
+            >
               <div class="example-header">
                 <strong>网络接收流量</strong>
                 <el-button type="primary" text size="small">
@@ -137,7 +176,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
             可用组件类型
           </h3>
           <p>选择要监控的系统组件，系统将自动收集相应的监控数据。</p>
-          
+
           <div class="component-grid">
             <div class="component-category">
               <h4>
@@ -145,21 +184,30 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 系统资源
               </h4>
               <div class="component-list">
-                <div class="component-item" @click="selectComponent('cpu_usage')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('cpu_usage')"
+                >
                   <div class="component-info">
                     <strong>CPU使用率</strong>
                     <span>监控CPU使用百分比</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
-                <div class="component-item" @click="selectComponent('memory_usage')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('memory_usage')"
+                >
                   <div class="component-info">
                     <strong>内存使用率</strong>
                     <span>监控内存使用百分比</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
-                <div class="component-item" @click="selectComponent('load_average')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('load_average')"
+                >
                   <div class="component-info">
                     <strong>系统负载</strong>
                     <span>监控系统平均负载</span>
@@ -175,14 +223,20 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 存储监控
               </h4>
               <div class="component-list">
-                <div class="component-item" @click="selectComponent('disk_usage')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('disk_usage')"
+                >
                   <div class="component-info">
                     <strong>磁盘使用率</strong>
                     <span>监控磁盘空间使用情况</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
-                <div class="component-item" @click="selectComponent('disk_list')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('disk_list')"
+                >
                   <div class="component-info">
                     <strong>磁盘列表</strong>
                     <span>显示所有磁盘信息</span>
@@ -205,7 +259,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 网络监控
               </h4>
               <div class="component-list">
-                <div class="component-item" @click="selectComponent('network_io')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('network_io')"
+                >
                   <div class="component-info">
                     <strong>网络IO</strong>
                     <span>监控网络流量统计</span>
@@ -221,21 +278,30 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 进程监控
               </h4>
               <div class="component-list">
-                <div class="component-item" @click="selectComponent('process_list')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('process_list')"
+                >
                   <div class="component-info">
                     <strong>进程列表</strong>
                     <span>显示系统进程信息</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
-                <div class="component-item" @click="selectComponent('process_count')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('process_count')"
+                >
                   <div class="component-info">
                     <strong>进程数量统计</strong>
                     <span>统计系统进程数量</span>
                   </div>
                   <el-button type="primary" text size="small">选择</el-button>
                 </div>
-                <div class="component-item" @click="selectComponent('top_processes')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('top_processes')"
+                >
                   <div class="component-info">
                     <strong>资源占用TOP进程</strong>
                     <span>显示资源占用最高的进程</span>
@@ -251,7 +317,10 @@ sum(rate(http_requests_total[5m]))</code></pre>
                 系统信息
               </h4>
               <div class="component-list">
-                <div class="component-item" @click="selectComponent('system_info')">
+                <div
+                  class="component-item"
+                  @click="selectComponent('system_info')"
+                >
                   <div class="component-info">
                     <strong>系统基本信息</strong>
                     <span>显示系统基本配置信息</span>
@@ -302,7 +371,10 @@ const serverReportType = ref<string>("prometheus");
 /**
  * 打开对话框
  */
-const open = (type: string = "PROMETHEUS", reportType: string = "prometheus") => {
+const open = (
+  type: string = "PROMETHEUS",
+  reportType: string = "prometheus"
+) => {
   expressionType.value = type;
   serverReportType.value = reportType;
   visible.value = true;
@@ -406,7 +478,7 @@ defineExpose({
 
       pre {
         margin: 0;
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
         font-size: 13px;
         line-height: 1.5;
         color: var(--el-text-color-primary);
@@ -466,7 +538,7 @@ defineExpose({
           background: var(--el-fill-color-extra-light);
           padding: 8px 12px;
           border-radius: 4px;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
           font-size: 12px;
           color: var(--el-color-primary);
           word-break: break-all;
