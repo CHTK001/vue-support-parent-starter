@@ -374,7 +374,7 @@ const getNodeIcon = (data: FileInfo) => {
 /**
  * 刷新树
  */
-const refreshTree = () => {
+const refreshTree = async () => {
   console.log("FileTree: Refreshing tree");
 
   // 清理所有数据和加载状态
@@ -383,6 +383,15 @@ const refreshTree = () => {
 
   // 重新设置空数组，让懒加载重新开始
   treeData.value = [];
+
+  // 主动加载根节点数据
+  if (props.serverId) {
+    await loadRootNode();
+    // 如果有根节点数据，更新树数据以触发显示
+    if (rootNodeData.value.length > 0) {
+      treeData.value = [...rootNodeData.value];
+    }
+  }
 
   emit("refresh");
 };
@@ -541,14 +550,16 @@ watch(
 /**
  * 组件挂载时的初始化
  */
-onMounted(() => {
+onMounted(async () => {
   console.log("FileTree: Component mounted, serverId:", props.serverId);
   if (props.serverId) {
-    console.log(
-      "FileTree: Initial serverId available, setting up lazy loading"
-    );
-    // 设置一个虚拟根节点来触发懒加载，但不显示这个节点
-    treeData.value = [];
+    console.log("FileTree: Initial serverId available, loading root data");
+    // 主动加载根节点数据
+    await loadRootNode();
+    // 如果有根节点数据，更新树数据以触发显示
+    if (rootNodeData.value.length > 0) {
+      treeData.value = [...rootNodeData.value];
+    }
   }
 });
 

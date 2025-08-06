@@ -808,6 +808,7 @@ import {
   type ServerMetricsDisplay,
   mapServerListToDisplayData,
 } from "@/api/server";
+import { useRouter } from "vue-router";
 import { useServerMetricsStore } from "@/stores/serverMetrics";
 import { useGlobalServerLatency } from "@/composables/useServerLatency";
 // 移除 WebSocket 导入，改为通过 props 接收数据
@@ -857,6 +858,9 @@ const ServerDetailComponents = defineAsyncComponent(
 const ScriptManagement = defineAsyncComponent(
   () => import("../../../script-management/index.vue")
 );
+
+// 路由实例
+const router = useRouter();
 
 // 响应式状态
 const loading = ref(false);
@@ -1287,8 +1291,13 @@ const handleServerAction = async (command: string, server: any) => {
       await testConnection(server);
       break;
     case "files":
-      selectedServerId.value = server.id;
-      currentComponent.value = "FileManager";
+      // 使用路由跳转到文件管理页面
+      router.push({
+        name: "fileManager",
+        params: {
+          serverId: String(server.monitorSysGenServerId || server.id),
+        },
+      });
       break;
     case "monitor":
       selectedServerId.value = server.id;

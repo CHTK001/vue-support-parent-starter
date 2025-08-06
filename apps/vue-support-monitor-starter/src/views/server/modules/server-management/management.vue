@@ -181,6 +181,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import { message } from "@repo/utils";
 import { getServerStatistics } from "@/api/server";
 // import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/server";
@@ -201,6 +203,9 @@ import ServerMonitorDialog from "./components/ServerMonitorDialog.vue";
 import FileManager from "../file-management/index.vue";
 import ScriptExecutorDialog from "./components/ScriptExecutorDialog.vue";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
+
+// 路由实例
+const router = useRouter();
 
 // 组件引用
 const serverListRef = ref();
@@ -295,11 +300,39 @@ const handleMonitorServer = (server: any) => {
 };
 
 /**
- * 处理文件管理
+ * 处理文件管理（在当前页面打开）
  */
 const handleFileManager = (server: any) => {
   currentFileManagerServer.value = server;
   fileManagerVisible.value = true;
+};
+
+/**
+ * 在新页面中打开文件管理器
+ */
+const handleFileManagerNewPage = (server: any) => {
+  if (!server?.monitorSysGenServerId) {
+    ElMessage.warning("服务器ID无效");
+    return;
+  }
+
+  // 检查文件管理功能是否启用
+  const fileManagementMode =
+    server.fileManagementMode || server.monitorSysGenServerFileManagementMode;
+  if (!fileManagementMode || fileManagementMode === "NONE") {
+    ElMessage.warning("该服务器未启用文件管理功能");
+    return;
+  }
+
+  // 在新页面中打开文件管理器
+  const routeData = router.resolve({
+    name: "fileManager",
+    params: {
+      serverId: String(server.monitorSysGenServerId),
+    },
+  });
+
+  window.open(routeData.href, "_blank");
 };
 
 /**
