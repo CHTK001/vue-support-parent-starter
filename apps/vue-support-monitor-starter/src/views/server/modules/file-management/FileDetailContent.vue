@@ -1,5 +1,5 @@
 <template>
-  <div class="file-detail-content" v-if="fileInfo">
+  <div class="file-detail-content modern-scrollbar" v-if="fileInfo">
     <!-- 文件图标和名称 -->
     <div class="file-header">
       <div class="file-icon-large">
@@ -465,23 +465,28 @@ const handleDelete = async () => {
   min-width: 80px;
 }
 
-/* 滚动条样式 */
+/* 统一的细滚动条样式 */
 .file-detail-content::-webkit-scrollbar {
   width: 4px;
-}
-
-.file-detail-content::-webkit-scrollbar-track {
-  background: var(--el-fill-color-lighter);
+  height: 4px;
   border-radius: 2px;
+  background-color: transparent;
 }
 
 .file-detail-content::-webkit-scrollbar-thumb {
-  background: var(--el-border-color-darker);
+  background: rgba(140, 140, 140, 0.3);
   border-radius: 2px;
+  box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
 }
 
 .file-detail-content::-webkit-scrollbar-thumb:hover {
-  background: var(--el-color-primary-light-5);
+  background: rgba(140, 140, 140, 0.5);
+}
+
+.file-detail-content::-webkit-scrollbar-track {
+  background-color: rgba(140, 140, 140, 0);
+  border-radius: 2px;
+  box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
 }
 
 /* 暗色主题适配 - 强制保持白色背景 */

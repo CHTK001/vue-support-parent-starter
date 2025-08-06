@@ -30,7 +30,7 @@
     </div>
 
     <!-- 指标卡片 -->
-    <div class="metrics-grid" v-loading="loading">
+    <div class="metrics-grid modern-scrollbar" v-loading="loading">
       <!-- CPU使用率 -->
       <div class="metric-card">
         <div class="metric-header">
@@ -97,7 +97,7 @@
 
         <!-- 磁盘分区列表 -->
         <div class="disk-partitions">
-          <div class="partitions-list-container">
+          <div class="partitions-list-container modern-scrollbar">
             <div class="partitions-list">
               <div
                 v-for="(partition, index) in diskPartitions"
@@ -169,7 +169,7 @@
           <IconifyIconOnline icon="ri:information-line" class="metric-icon" />
           <span class="metric-title">系统信息</span>
         </div>
-        <div class="metric-content">
+        <div class="metric-content modern-scrollbar">
           <div class="info-item">
             <span class="info-label">操作系统:</span>
             <span class="info-value">{{ getOsName }}</span>
@@ -718,7 +718,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 24px;
-  overflow: hidden;
+  overflow: visible;
   background: linear-gradient(
     135deg,
     var(--el-bg-color) 0%,
@@ -843,24 +843,30 @@ onUnmounted(() => {
   gap: 20px;
   overflow-y: auto;
   padding: 4px;
+  min-height: 400px;
 
-  /* 自定义滚动条 */
+  /* 统一的细滚动条样式 */
   &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--el-fill-color-extra-light);
-    border-radius: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: transparent;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--el-border-color-dark);
-    border-radius: 3px;
+    background: rgba(140, 140, 140, 0.3);
+    border-radius: 2px;
+    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
 
     &:hover {
-      background: var(--el-color-primary-light-5);
+      background: rgba(140, 140, 140, 0.5);
     }
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: rgba(140, 140, 140, 0);
+    border-radius: 2px;
+    box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
   }
 }
 
@@ -873,6 +879,7 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-light);
   border-radius: 16px;
   padding: 20px;
+  min-height: 200px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -1032,7 +1039,40 @@ onUnmounted(() => {
   }
 
   &.system-info {
+    /* 覆盖父级的overflow: hidden，允许显示滚动条 */
+    overflow: visible;
+
     .metric-content {
+      height: 300px;
+      max-height: 400px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 4px;
+
+      /* 统一的细滚动条样式 */
+      &::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+        border-radius: 2px;
+        background-color: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(140, 140, 140, 0.3);
+        border-radius: 2px;
+        box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
+
+        &:hover {
+          background: rgba(140, 140, 140, 0.5);
+        }
+      }
+
+      &::-webkit-scrollbar-track {
+        background-color: rgba(140, 140, 140, 0);
+        border-radius: 2px;
+        box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
+      }
+
       .info-item {
         display: flex;
         justify-content: space-between;
@@ -1359,29 +1399,28 @@ onUnmounted(() => {
     overflow-x: hidden;
     padding-right: 4px;
 
-    /* 自定义滚动条样式 */
+    /* 统一的细滚动条样式 */
     &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--el-fill-color-lighter);
-      border-radius: 4px;
-      margin: 2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background-color: transparent;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-color-primary-light-7);
-      border-radius: 4px;
-      border: 1px solid var(--el-fill-color-lighter);
+      background: rgba(140, 140, 140, 0.3);
+      border-radius: 2px;
+      box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
 
       &:hover {
-        background: var(--el-color-primary-light-5);
+        background: rgba(140, 140, 140, 0.5);
       }
+    }
 
-      &:active {
-        background: var(--el-color-primary-light-3);
-      }
+    &::-webkit-scrollbar-track {
+      background-color: rgba(140, 140, 140, 0);
+      border-radius: 2px;
+      box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
     }
   }
 

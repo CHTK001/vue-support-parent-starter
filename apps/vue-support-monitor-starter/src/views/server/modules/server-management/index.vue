@@ -243,7 +243,7 @@
         </div>
 
         <!-- 服务器卡片列表 -->
-        <div class="server-list" v-loading="loading">
+        <div class="server-list modern-scrollbar" v-loading="loading">
           <!-- 最小化状态下的简化服务器列表 -->
           <template v-if="leftPanelMinimized">
             <!-- 最小化状态下的空状态 -->
@@ -2119,23 +2119,28 @@ onUnmounted(() => {
     overflow-y: auto;
     padding: 20px;
 
-    /* 自定义滚动条 */
+    /* 统一的细滚动条样式 */
     &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--el-fill-color-extra-light);
-      border-radius: 3px;
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background-color: transparent;
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color-dark);
-      border-radius: 3px;
+      background: rgba(140, 140, 140, 0.3);
+      border-radius: 2px;
+      box-shadow: inset 0 0 6px rgba(140, 140, 140, 0.3);
 
       &:hover {
-        background: var(--el-color-primary-light-5);
+        background: rgba(140, 140, 140, 0.5);
       }
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: rgba(140, 140, 140, 0);
+      border-radius: 2px;
+      box-shadow: inset 0 0 6px rgba(140, 140, 140, 0);
     }
 
     .server-card {

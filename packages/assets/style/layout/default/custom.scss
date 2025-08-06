@@ -144,3 +144,16 @@ img {
 .font-bold {
   font-weight: 700;
 }
+
+// 现代化滚动条
+.modern-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 3px;
+  }
+}
+
