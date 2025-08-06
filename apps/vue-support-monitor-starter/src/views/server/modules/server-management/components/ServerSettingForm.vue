@@ -73,6 +73,7 @@
         >
           <el-option label="不上报" value="NONE" />
           <el-option label="API上报" value="API" />
+          <el-option label="本地上报" value="LOCAL" />
           <el-option label="Prometheus" value="PROMETHEUS" />
         </el-select>
         <span class="form-tip">选择合适的数据上报方式</span>
