@@ -968,7 +968,7 @@ defineExpose({
   /* hover时背景色更亮 */
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important;
   /* hover时阴影更突出 */
-  transform: scale(1.05) translateY(-50%) !important;
+  transform: translateY(-50%) scale(1.05) !important;
   /* 保持垂直居中并略微放大 */
 }
 
@@ -978,7 +978,7 @@ defineExpose({
   /* hover时背景色更亮 */
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.6) !important;
   /* hover时阴影更突出 */
-  transform: scale(1.05) translateX(-50%) !important;
+  transform: translateX(-50%) scale(1.05) !important;
   /* 保持水平居中并略微放大 */
 }
 

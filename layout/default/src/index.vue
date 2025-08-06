@@ -2,26 +2,25 @@
 import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
-import { useDataThemeChange } from "./hooks/useDataThemeChange";
-import { initRouter, useAppStoreHook, useSettingStoreHook, useUserStoreHook } from "@repo/core";
+import { initRouter, useAppStoreHook, useConfigStore, useSettingStoreHook } from "@repo/core";
 import { useI18n } from "vue-i18n";
+import { useDataThemeChange } from "./hooks/useDataThemeChange";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
-import { useConfigStore } from "@repo/core";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
 import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
-import LayNavbar from "./components/lay-navbar/index.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
-import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
-import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
-import LayTag from "./components/lay-tag/index.vue";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
+import LayNavbar from "./components/lay-navbar/index.vue";
+import LaySetting from "./components/lay-setting/index.vue";
+import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
+import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
+import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import LayTag from "./components/lay-tag/index.vue";
 window.onload = () => {
   registerRequestIdleCallback(() => {
     createFingerprint((finger) => {
@@ -40,6 +39,8 @@ const { layout } = useLayout();
 const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
 const { $storage } = useGlobal<any>();
+
+
 
 const set: setType = reactive({
   sidebar: computed(() => {
@@ -138,6 +139,7 @@ onMounted(async () => {
     toggle("mobile", false);
   }
 });
+
 /**
  * //根据参数名去清除，可以多个
  */
@@ -188,7 +190,9 @@ const LayHeader = defineComponent({
 
 <template>
   <div ref="appWrapperRef" :class="['app-wrapper', set.classes]">
-    <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+    <div
+      v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))"
+      class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
     <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
     <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
     <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
@@ -228,6 +232,7 @@ const LayHeader = defineComponent({
   --un-shadow: var(--tab-box-shadow-v2);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
+
 .app-wrapper {
   position: relative;
   width: 100%;
@@ -244,12 +249,15 @@ const LayHeader = defineComponent({
     top: 0;
   }
 }
+
 :deep(.bg-layout > div > .el-card__body) {
   padding: 0;
 }
+
 .bg-bg_color {
   background-color: var(--el-bg-color);
 }
+
 .app-mask {
   position: absolute;
   top: 0;
@@ -260,9 +268,12 @@ const LayHeader = defineComponent({
   opacity: 0.3;
 }
 
+
+
 .re-screen {
   margin-top: 12px;
 }
+
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
 }
