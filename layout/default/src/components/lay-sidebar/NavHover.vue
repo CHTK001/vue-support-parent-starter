@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router";
-import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
-import { useNav } from "../../hooks/useNav";
+import { isAllEmpty } from "@pureadmin/utils";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
-import { isAllEmpty } from "@pureadmin/utils";
+import { emitter, usePermissionStoreHook } from "@repo/core";
+import { indexedDBProxy, localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import LaySidebarLogo from "./components/SidebarLogo.vue";
-import LaySidebarItem from "./components/SidebarItem.vue";
+import { useRoute, useRouter } from "vue-router";
+import { useNav } from "../../hooks/useNav";
 import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
-import { localStorageProxy, useDefer, indexedDBProxy } from "@repo/utils";
-
+import LaySidebarLogo from "./components/SidebarLogo.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,6 +21,22 @@ const hideTimer = ref(null);
 const showTimer = ref(null);
 
 const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } = useNav();
+
+// 悬浮导航的收缩状态
+const isHoverCollapsed = ref(false);
+
+// 悬浮导航专用的切换函数
+function toggleHoverSideBar() {
+  // 在悬浮导航模式下，收缩按钮控制导航的收缩状态
+  // 收缩时只显示图标，展开时显示完整菜单
+  isHoverCollapsed.value = !isHoverCollapsed.value;
+
+  // 通过CSS变量通知全局布局状态变化
+  document.documentElement.style.setProperty(
+    '--hover-sidebar-width',
+    isHoverCollapsed.value ? '64px' : '200px'
+  );
+}
 
 // 收藏相关数据
 const favoriteMenus = ref([]);
@@ -173,6 +187,12 @@ function clearTimers() {
 function handleMenuHover(menu: any, event: MouseEvent) {
   clearTimers();
 
+  // 收缩状态下不显示子菜单
+  if (isHoverCollapsed.value) {
+    hideSubMenuDelayed();
+    return;
+  }
+
   if (!menu.children || menu.children.length === 0) {
     hideSubMenuDelayed();
     return;
@@ -237,7 +257,7 @@ function isMenuActive(menu: any): boolean {
   if (!menu.children || menu.children.length === 0) {
     return defaultActive.value === menu.path;
   }
-  
+
   // 检查子菜单是否有激活项
   return menu.children.some((child: any) => {
     if (child.children && child.children.length > 0) {
@@ -326,6 +346,20 @@ function formatAddTime(timeStr: string): string {
 
 // 处理菜单点击
 function handleMenuClick(menu: any) {
+  // 收缩状态下，直接导航到第一个可用路径
+  if (isHoverCollapsed.value) {
+    if (!menu.children || menu.children.length === 0) {
+      router.push(menu.path);
+    } else {
+      const firstPath = getFirstNavigablePath(menu);
+      if (firstPath) {
+        router.push(firstPath);
+      }
+    }
+    return;
+  }
+
+  // 展开状态下的正常逻辑
   // 如果没有子菜单，直接导航
   if (!menu.children || menu.children.length === 0) {
     router.push(menu.path);
@@ -369,6 +403,9 @@ onMounted(async () => {
 
   // 加载收藏菜单
   await loadFavorites();
+
+  // 初始化CSS变量
+  document.documentElement.style.setProperty('--hover-sidebar-width', '200px');
 });
 
 onBeforeUnmount(() => {
@@ -380,47 +417,39 @@ const defer = useDefer(firstLevelMenus.value.length);
 </script>
 
 <template>
-  <div 
-    v-loading="loading" 
-    :class="['sidebar-hover-container', showLogo ? 'has-logo' : 'no-logo']"
-    @mouseenter.prevent="isShow = true" 
-    @mouseleave.prevent="isShow = false"
-  >
-    <LaySidebarLogo v-if="showLogo" :collapse="false" />
-    
+  <div v-loading="loading"
+    :class="['sidebar-hover-container', showLogo ? 'has-logo' : 'no-logo', isHoverCollapsed ? 'collapsed' : 'expanded']"
+    @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+    <LaySidebarLogo v-if="showLogo" :collapse="isHoverCollapsed" />
+
+    <!-- 悬浮时显示的收缩按钮 -->
+    <div v-show="isShow" class="hover-collapse-btn" @click="toggleHoverSideBar">
+      <IconifyIconOffline icon="ri:arrow-left-s-line"
+        :style="{ transform: isHoverCollapsed ? 'rotate(180deg)' : 'none' }" class="collapse-icon" />
+      <span class="collapse-text">{{ isHoverCollapsed ? '点击展开' : '点击折叠' }}</span>
+    </div>
+
     <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
       <div class="hover-menu-container">
         <!-- 一级菜单 -->
-        <div
-          v-for="(menu, index) in firstLevelMenus"
-          :key="menu.path"
-          class="first-level-menu-item"
-          :class="{ 'is-active': isMenuActive(menu) }"
-          @mouseenter="handleMenuHover(menu, $event)"
-          @mouseleave="handleMenuLeave"
-          @click="handleMenuClick(menu)"
-        >
+        <div v-for="(menu, index) in firstLevelMenus" :key="menu.path" class="first-level-menu-item"
+          :class="{ 'is-active': isMenuActive(menu) }" @mouseenter="handleMenuHover(menu, $event)"
+          @mouseleave="handleMenuLeave" @click="handleMenuClick(menu)">
           <div class="menu-content">
             <IconifyIconOnline v-if="menu.meta?.icon" :icon="menu.meta.icon" class="menu-icon" />
-            <span class="menu-title">{{ menu.meta?.title }}</span>
-            <!-- 移除箭头图标，保持简洁 -->
+            <span v-if="!isHoverCollapsed" class="menu-title">{{ menu.meta?.title }}</span>
+            <!-- 收缩状态下只显示图标 -->
           </div>
         </div>
       </div>
     </el-scrollbar>
-    
+
     <!-- 子菜单弹出层 -->
     <Teleport to="body">
-      <div 
-        v-if="subMenuVisible && currentSubMenus.length > 0"
-        class="sub-menu-popup"
-        :style="{
-          top: subMenuPosition.top + 'px',
-          left: subMenuPosition.left + 'px'
-        }"
-        @mouseenter="handleSubMenuHover"
-        @mouseleave="handleSubMenuLeave"
-      >
+      <div v-if="subMenuVisible && currentSubMenus.length > 0" class="sub-menu-popup" :style="{
+        top: subMenuPosition.top + 'px',
+        left: subMenuPosition.left + 'px'
+      }" @mouseenter="handleSubMenuHover" @mouseleave="handleSubMenuLeave">
         <div class="sub-menu-container" :style="{ width: dynamicContainerWidth }">
           <!-- 去掉标题头部 -->
           <div class="sub-menu-content">
@@ -435,29 +464,16 @@ const defer = useDefer(firstLevelMenus.value.length);
                 gridTemplateColumns: `repeat(${getGridColumns(favoriteMenus.length)}, 1fr)`,
                 gridTemplateRows: `repeat(${getItemsPerColumn(favoriteMenus.length)}, auto)`
               }">
-                <div
-                  v-for="favorite in favoriteMenus"
-                  :key="favorite.path"
-                  class="menu-item-wrapper"
-                  @mouseenter="handleMenuItemHover(favorite)"
-                  @mouseleave="handleMenuItemLeave"
-                >
-                  <router-link
-                    :to="favorite.path"
-                    class="favorite-menu-item"
-                    @click="hideSubMenu"
-                  >
+                <div v-for="favorite in favoriteMenus" :key="favorite.path" class="menu-item-wrapper"
+                  @mouseenter="handleMenuItemHover(favorite)" @mouseleave="handleMenuItemLeave">
+                  <router-link :to="favorite.path" class="favorite-menu-item" @click="hideSubMenu">
                     <IconifyIconOnline v-if="favorite.icon" :icon="favorite.icon" class="favorite-menu-icon" />
                     <span>{{ favorite.title }}</span>
                     <span class="add-time">{{ formatAddTime(favorite.addTime) }}</span>
                   </router-link>
                   <!-- 取消收藏按钮 -->
-                  <button
-                    v-if="hoveredMenuItem?.path === favorite.path"
-                    class="favorite-btn remove-favorite"
-                    @click="toggleFavorite(favorite, $event)"
-                    title="取消收藏"
-                  >
+                  <button v-if="hoveredMenuItem?.path === favorite.path" class="favorite-btn remove-favorite"
+                    @click="toggleFavorite(favorite, $event)" title="取消收藏">
                     <IconifyIconOnline icon="ep:delete" class="favorite-icon" />
                   </button>
                 </div>
@@ -475,32 +491,18 @@ const defer = useDefer(firstLevelMenus.value.length);
                   <div v-if="subMenu.children && subMenu.children.length > 0" class="menu-column">
                     <div class="column-title">{{ subMenu.meta?.title }}</div>
                     <div class="column-items">
-                      <div
-                        v-for="thirdMenu in subMenu.children"
-                        :key="thirdMenu.path"
-                        class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(thirdMenu)"
-                        @mouseleave="handleMenuItemLeave"
-                      >
-                        <router-link
-                          :to="thirdMenu.path"
-                          class="menu-item"
-                          :class="{ 'is-active': defaultActive === thirdMenu.path }"
-                          @click="hideSubMenu"
-                        >
+                      <div v-for="thirdMenu in subMenu.children" :key="thirdMenu.path" class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(thirdMenu)" @mouseleave="handleMenuItemLeave">
+                        <router-link :to="thirdMenu.path" class="menu-item"
+                          :class="{ 'is-active': defaultActive === thirdMenu.path }" @click="hideSubMenu">
                           {{ thirdMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button
-                          v-if="hoveredMenuItem?.path === thirdMenu.path"
-                          class="favorite-btn"
+                        <button v-if="hoveredMenuItem?.path === thirdMenu.path" class="favorite-btn"
                           :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
                           @click="toggleFavorite(thirdMenu, $event)"
-                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'"
-                        >
-                          <IconifyIconOnline
-                            :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'"
-                          />
+                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'">
+                          <IconifyIconOnline :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'" />
                         </button>
                       </div>
                     </div>
@@ -508,35 +510,22 @@ const defer = useDefer(firstLevelMenus.value.length);
                 </template>
 
                 <!-- 直接的二级菜单项作为单独列 -->
-                <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)" class="menu-column">
+                <div v-if="currentSubMenus.some(menu => !menu.children || menu.children.length === 0)"
+                  class="menu-column">
                   <div class="column-title">其他功能</div>
                   <div class="column-items">
                     <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
-                      <div
-                        v-if="!subMenu.children || subMenu.children.length === 0"
-                        class="menu-item-wrapper"
-                        @mouseenter="handleMenuItemHover(subMenu)"
-                        @mouseleave="handleMenuItemLeave"
-                      >
-                        <router-link
-                          :to="subMenu.path"
-                          class="menu-item"
-                          :class="{ 'is-active': defaultActive === subMenu.path }"
-                          @click="hideSubMenu"
-                        >
+                      <div v-if="!subMenu.children || subMenu.children.length === 0" class="menu-item-wrapper"
+                        @mouseenter="handleMenuItemHover(subMenu)" @mouseleave="handleMenuItemLeave">
+                        <router-link :to="subMenu.path" class="menu-item"
+                          :class="{ 'is-active': defaultActive === subMenu.path }" @click="hideSubMenu">
                           {{ subMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
-                        <button
-                          v-if="hoveredMenuItem?.path === subMenu.path"
-                          class="favorite-btn"
-                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
-                          @click="toggleFavorite(subMenu, $event)"
-                          :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'"
-                        >
-                          <IconifyIconOnline
-                            :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'"
-                          />
+                        <button v-if="hoveredMenuItem?.path === subMenu.path" class="favorite-btn"
+                          :class="{ 'is-favorited': isMenuFavorited(subMenu) }" @click="toggleFavorite(subMenu, $event)"
+                          :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'">
+                          <IconifyIconOnline :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'" />
                         </button>
                       </div>
                     </template>
@@ -548,12 +537,9 @@ const defer = useDefer(firstLevelMenus.value.length);
         </div>
       </div>
     </Teleport>
-    
-    <LaySidebarLeftCollapse 
-      v-if="device !== 'mobile'" 
-      :is-active="pureApp.sidebar.opened" 
-      @toggleClick="toggleSideBar" 
-    />
+
+    <!-- 底部收缩按钮保持原有逻辑 -->
+    <LaySidebarLeftCollapse :is-active="!isHoverCollapsed" @toggleClick="toggleHoverSideBar" />
   </div>
 </template>
 
@@ -570,15 +556,37 @@ const defer = useDefer(firstLevelMenus.value.length);
   z-index: 10;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 
+  /* 收缩状态 */
+  &.collapsed {
+    width: 64px;
+
+    .hover-menu-container {
+      padding: 8px 4px;
+    }
+
+    .first-level-menu-item {
+      .menu-content {
+        justify-content: center;
+        padding: 0 8px;
+
+        .menu-icon {
+          margin-right: 0;
+        }
+      }
+    }
+  }
+
   &.has-logo {
     .scrollbar-wrapper {
-      height: calc(100% - 60px);
+      height: calc(100% - 100px);
+      /* 为logo和收缩按钮预留空间 */
     }
   }
 
   &.no-logo {
     .scrollbar-wrapper {
-      height: 100%;
+      height: calc(100% - 40px);
+      /* 为收缩按钮预留空间 */
     }
   }
 
@@ -817,8 +825,10 @@ const defer = useDefer(firstLevelMenus.value.length);
   display: grid;
   gap: 6px 8px; // 优化四列布局的网格间距
   width: 100%;
-  grid-auto-flow: column; /* 纵向排布：先填满第一列，再填第二列，然后第三列，最后第四列 */
-  align-items: start; /* 顶部对齐 */
+  grid-auto-flow: column;
+  /* 纵向排布：先填满第一列，再填第二列，然后第三列，最后第四列 */
+  align-items: start;
+  /* 顶部对齐 */
 
   /* 网格列数和行数通过内联样式动态设置 */
   /* 最多4列，菜单项纵向排列，确保均匀分布 */
@@ -1044,6 +1054,44 @@ const defer = useDefer(firstLevelMenus.value.length);
     &:hover {
       opacity: 0.8;
     }
+  }
+}
+
+/* 悬浮时显示的收缩按钮 */
+.hover-collapse-btn {
+  position: absolute;
+  top: 50%;
+  right: -70px;
+  transform: translateY(-50%);
+  height: 32px;
+  background: var(--el-color-primary);
+  border: none;
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 4px;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--el-color-primary-dark-2);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .collapse-icon {
+    font-size: 12px;
+    color: #ffffff;
+    margin-right: 4px;
+    transition: all 0.3s ease;
+  }
+
+  .collapse-text {
+    font-size: 12px;
+    color: #ffffff;
+    line-height: 1;
   }
 }
 </style>

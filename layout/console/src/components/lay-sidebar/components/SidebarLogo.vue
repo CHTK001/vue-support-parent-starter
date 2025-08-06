@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import TypeIt from "@repo/components/ReTypeit";
 import { getTopMenu } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
-import TypeIt from "@repo/components/ReTypeit";
 
 defineProps({
   collapse: Boolean,
@@ -13,13 +13,18 @@ const { title, getLogo } = useNav();
 <template>
   <div class="sidebar-logo-container" :class="{ collapses: collapse }">
     <transition name="sidebarLogoFade">
-      <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
+      <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link"
+        :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></span>
+        <span class="sidebar-title">
+          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+        </span>
       </router-link>
       <router-link v-else key="expand" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></span>
+        <span class="sidebar-title">
+          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+        </span>
       </router-link>
     </transition>
   </div>
@@ -56,6 +61,23 @@ const { title, getLogo } = useNav();
       color: var(#000);
       text-overflow: ellipsis;
       white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+  }
+
+  /* 收缩状态样式 */
+  &.collapses {
+    .sidebar-logo-link {
+      justify-content: center;
+      padding-left: 0;
+
+      .sidebar-title {
+        display: none;
+      }
+
+      img {
+        margin: 0;
+      }
     }
   }
 }
