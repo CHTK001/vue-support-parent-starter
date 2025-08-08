@@ -50,7 +50,6 @@
           </el-button>
         </div>
       </div>
-      <div class="toolbar-right"></div>
 
       <div class="toolbar-right">
         <!-- 筛选器 -->
@@ -119,61 +118,74 @@
           </el-input>
         </el-tooltip>
 
-        <!-- 操作按钮 -->
-        <el-tooltip
-          content="刷新服务器列表"
-          placement="bottom"
-          :show-after="500"
-        >
-          <el-button size="small" @click="handleRefreshServerList">
-            <IconifyIconOnline icon="ep:refresh" class="mr-1" />
-            刷新
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
-          <el-button type="primary" size="small" @click="showAddDialog">
-            <IconifyIconOnline icon="ep:plus" class="mr-1" />
-            新增
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip content="更多操作" placement="bottom" :show-after="500">
-          <el-dropdown @command="handleToolbarAction">
-            <el-button size="small">
-              更多
-              <IconifyIconOnline icon="ep:arrow-down" class="ml-1" />
+        <!-- 操作按钮组 -->
+        <div class="action-buttons">
+          <el-tooltip
+            content="重置筛选条件"
+            placement="bottom"
+            :show-after="500"
+          >
+            <el-button size="small" @click="handleResetFilters">
+              <IconifyIconOnline icon="ep:refresh-left" class="mr-1" />
+              重置
             </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <!-- <el-dropdown-item command="import" title="从文件导入服务器配置">
-                  <IconifyIconOnline icon="ri:upload-line" class="mr-2" />
-                  导入配置
-                </el-dropdown-item>
-                <el-dropdown-item command="export" title="导出服务器配置到文件">
-                  <IconifyIconOnline icon="ri:download-line" class="mr-2" />
-                  导出配置
-                </el-dropdown-item>
-                <el-dropdown-item command="batch" title="批量管理多台服务器">
-                  <IconifyIconOnline icon="ri:checkbox-multiple-line" class="mr-2" />
-                  批量操作
-                </el-dropdown-item>
-                <el-dropdown-item command="script" title="批量执行脚本">
-                  <IconifyIconOnline icon="ri:code-line" class="mr-2" />
-                  脚本执行
-                </el-dropdown-item>
-                <el-dropdown-item command="alert" title="配置监控告警规则">
-                  <IconifyIconOnline icon="ri:alarm-line" class="mr-2" />
-                  告警配置
-                </el-dropdown-item>
-                <el-dropdown-item command="log" title="查看系统操作日志">
-                  <IconifyIconOnline icon="ri:history-line" class="mr-2" />
-                  操作日志
-                </el-dropdown-item> -->
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </el-tooltip>
+          </el-tooltip>
+
+          <el-tooltip
+            content="刷新服务器列表"
+            placement="bottom"
+            :show-after="500"
+          >
+            <el-button size="small" @click="handleRefreshServerList">
+              <IconifyIconOnline icon="ep:refresh" class="mr-1" />
+              刷新
+            </el-button>
+          </el-tooltip>
+
+          <el-tooltip content="新增服务器" placement="bottom" :show-after="500">
+            <el-button type="primary" size="small" @click="showAddDialog">
+              <IconifyIconOnline icon="ep:plus" class="mr-1" />
+              新增
+            </el-button>
+          </el-tooltip>
+
+          <el-tooltip content="更多操作" placement="bottom" :show-after="500">
+            <el-dropdown @command="handleToolbarAction">
+              <el-button size="small">
+                更多
+                <IconifyIconOnline icon="ep:arrow-down" class="ml-1" />
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <!-- <el-dropdown-item command="import" title="从文件导入服务器配置">
+                    <IconifyIconOnline icon="ri:upload-line" class="mr-2" />
+                    导入配置
+                  </el-dropdown-item>
+                  <el-dropdown-item command="export" title="导出服务器配置到文件">
+                    <IconifyIconOnline icon="ri:download-line" class="mr-2" />
+                    导出配置
+                  </el-dropdown-item>
+                  <el-dropdown-item command="batch" title="批量管理多台服务器">
+                    <IconifyIconOnline icon="ri:checkbox-multiple-line" class="mr-2" />
+                    批量操作
+                  </el-dropdown-item>
+                  <el-dropdown-item command="script" title="批量执行脚本">
+                    <IconifyIconOnline icon="ri:code-line" class="mr-2" />
+                    脚本执行
+                  </el-dropdown-item>
+                  <el-dropdown-item command="alert" title="配置监控告警规则">
+                    <IconifyIconOnline icon="ri:alarm-line" class="mr-2" />
+                    告警配置
+                  </el-dropdown-item>
+                  <el-dropdown-item command="log" title="查看系统操作日志">
+                    <IconifyIconOnline icon="ri:history-line" class="mr-2" />
+                    操作日志
+                  </el-dropdown-item> -->
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </el-tooltip>
+        </div>
       </div>
     </div>
 
@@ -1483,6 +1495,18 @@ const handleRefreshServerList = async () => {
 };
 
 /**
+ * 处理重置筛选条件
+ */
+const handleResetFilters = () => {
+  searchKeyword.value = "";
+  filterGroup.value = "";
+  filterProtocol.value = "";
+  filterStatus.value = "";
+  activeGroup.value = "all";
+  message.success("筛选条件已重置");
+};
+
+/**
  * 更新特定服务器的连接状态
  */
 const updateServerConnectionStatus = async (
@@ -1884,6 +1908,15 @@ onUnmounted(() => {
           box-shadow: 0 0 0 2px var(--el-color-primary-light-7);
         }
       }
+    }
+
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 16px;
+      padding-left: 16px;
+      border-left: 1px solid var(--el-border-color-lighter);
     }
 
     .el-button {
@@ -2922,6 +2955,38 @@ onUnmounted(() => {
 
 /* 响应式优化 */
 @media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+
+    .toolbar-left,
+    .toolbar-right {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .toolbar-right {
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .action-buttons {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        gap: 6px;
+      }
+
+      .search-input {
+        width: 200px;
+      }
+
+      .filter-select {
+        width: 100px;
+      }
+    }
+  }
+
   .metrics-switch {
     margin-left: 0;
     margin-top: 8px;

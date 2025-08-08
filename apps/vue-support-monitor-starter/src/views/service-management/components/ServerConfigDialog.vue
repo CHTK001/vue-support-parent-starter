@@ -30,7 +30,16 @@
             <div class="filter-info">
               <div class="filter-name">{{ filter.name }}</div>
               <div class="filter-type">{{ filter.type }}</div>
-              <div class="filter-description">{{ filter.description }}</div>
+              <div class="filter-description" v-if="filter.description">
+                {{ filter.description }}
+              </div>
+              <div class="filter-detail" v-if="filter.describeDetail">
+                <el-tooltip :content="filter.describeDetail" placement="top">
+                  <el-icon class="detail-icon">
+                    <InfoFilled />
+                  </el-icon>
+                </el-tooltip>
+              </div>
             </div>
             <div class="filter-actions">
               <el-button
@@ -177,6 +186,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { InfoFilled } from "@element-plus/icons-vue";
 import draggable from "vuedraggable";
 import {
   getAvailableServletFilterObjects,
@@ -580,6 +590,20 @@ watch(
       font-size: 14px;
       color: #606266;
       line-height: 1.4;
+    }
+
+    .filter-detail {
+      margin-top: 4px;
+
+      .detail-icon {
+        color: #909399;
+        font-size: 14px;
+        cursor: help;
+
+        &:hover {
+          color: #409eff;
+        }
+      }
     }
   }
 
