@@ -52,9 +52,13 @@ export interface RecentChange {
  * 根据服务器ID查询历史记录
  */
 export function getHistoryByServerId(serverId: number, limit: number = 20) {
-  return http.request<ReturnResult<ServerSettingHistory[]>>('get',`/api/v1/monitor/server/setting/history/server/${serverId}`, {
-    params: { limit }
-  });
+  return http.request<ReturnResult<ServerSettingHistory[]>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}`,
+    {
+      params: { limit },
+    }
+  );
 }
 
 /**
@@ -65,79 +69,115 @@ export function getHistoryByServerIdAndTimeRange(
   startTime?: string,
   endTime?: string
 ) {
-  return http.request<ReturnResult<ServerSettingHistory[]>>("get", `/api/v1/monitor/server/setting/history/server/${serverId}/range`, {
-    params: { startTime, endTime }
-  });
+  return http.request<ReturnResult<ServerSettingHistory[]>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}/range`,
+    {
+      params: { startTime, endTime },
+    }
+  );
 }
 
 /**
  * 根据变更类型查询历史记录
  */
 export function getHistoryByChangeType(changeType: string, limit: number = 20) {
-  return http.request<ReturnResult<ServerSettingHistory[]>>("get", `/api/v1/monitor/server/setting/history/type/${changeType}`, {
-    params: { limit }
-  });
+  return http.request<ReturnResult<ServerSettingHistory[]>>(
+    "get",
+    `/v1/monitor/server/setting/history/type/${changeType}`,
+    {
+      params: { limit },
+    }
+  );
 }
 
 /**
  * 获取历史记录统计信息
  */
 export function getHistoryStatistics(serverId?: number) {
-  return http.request<ReturnResult<HistoryStatistics>>("get", "/api/v1/monitor/server/setting/history/statistics", {
-    params: { serverId }
-  });
+  return http.request<ReturnResult<HistoryStatistics>>(
+    "get",
+    "/v1/monitor/server/setting/history/statistics",
+    {
+      params: { serverId },
+    }
+  );
 }
 
 /**
  * 获取历史记录详情
  */
 export function getHistoryDetail(historyId: number) {
-  return http.request<ReturnResult<any>>("get", `/api/v1/monitor/server/setting/history/${historyId}/detail`);
+  return http.request<ReturnResult<any>>(
+    "get",
+    `/v1/monitor/server/setting/history/${historyId}/detail`
+  );
 }
 
 /**
  * 恢复历史配置
  */
 export function restoreFromHistory(historyId: number, user: string = "system") {
-  return http.request<ReturnResult<any>>("post", `/api/v1/monitor/server/setting/history/${historyId}/restore`, null, {
-    params: { user }
-  });
+  return http.request<ReturnResult<any>>(
+    "post",
+    `/v1/monitor/server/setting/history/${historyId}/restore`,
+    null,
+    {
+      params: { user },
+    }
+  );
 }
 
 /**
  * 比较两个历史记录的差异
  */
 export function compareHistory(historyId1: number, historyId2: number) {
-  return http.request<ReturnResult<any>>("get", "/api/v1/monitor/server/setting/history/compare", {
-    params: { historyId1, historyId2 }
-  });
+  return http.request<ReturnResult<any>>(
+    "get",
+    "/v1/monitor/server/setting/history/compare",
+    {
+      params: { historyId1, historyId2 },
+    }
+  );
 }
 
 /**
  * 获取最近的配置变更
  */
 export function getRecentChanges(serverId: number, limit: number = 10) {
-  return http.request<ReturnResult<RecentChange[]>>("get", `/api/v1/monitor/server/setting/history/server/${serverId}/recent`, {
-    params: { limit }
-  });
+  return http.request<ReturnResult<RecentChange[]>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}/recent`,
+    {
+      params: { limit },
+    }
+  );
 }
 
 /**
  * 获取配置变更摘要
  */
 export function getChangeSummary(serverId: number, days: number = 30) {
-  return http.request<ReturnResult<ChangeSummary>>("get", `/api/v1/monitor/server/setting/history/server/${serverId}/summary`, {
-    params: { days }
-  });
+  return http.request<ReturnResult<ChangeSummary>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}/summary`,
+    {
+      params: { days },
+    }
+  );
 }
 
 /**
  * 获取配置变更趋势
  */
 export function getChangeTrend(serverId: number, days: number = 30) {
-  return http.request<ReturnResult<any[]>>("get", `/api/v1/monitor/server/setting/history/server/${serverId}/trend`, {
-    params: { days }
-  });
+  return http.request<ReturnResult<any[]>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}/trend`,
+    {
+      params: { days },
+    }
+  );
 }
 
 /**
@@ -149,25 +189,36 @@ export function exportHistory(
   endTime?: string,
   format: string = "json"
 ) {
-  return http.request<ReturnResult<string>>("get", `/api/v1/monitor/server/setting/history/server/${serverId}/export`, {
-    params: { startTime, endTime, format }
-  });
+  return http.request<ReturnResult<string>>(
+    "get",
+    `/v1/monitor/server/setting/history/server/${serverId}/export`,
+    {
+      params: { startTime, endTime, format },
+    }
+  );
 }
 
 /**
  * 删除指定时间之前的历史记录
  */
 export function deleteHistoryBeforeTime(beforeTime: string) {
-  return http.request<ReturnResult<number>>("delete", "/api/v1/monitor/server/setting/history/cleanup", {
-    params: { beforeTime }
-  });
+  return http.request<ReturnResult<number>>(
+    "delete",
+    "/v1/monitor/server/setting/history/cleanup",
+    {
+      params: { beforeTime },
+    }
+  );
 }
 
 /**
  * 根据服务器ID删除历史记录
  */
 export function deleteHistoryByServerId(serverId: number) {
-  return http.request<ReturnResult<number>>("delete", `/api/v1/monitor/server/setting/history/server/${serverId}`);
+  return http.request<ReturnResult<number>>(
+    "delete",
+    `/v1/monitor/server/setting/history/server/${serverId}`
+  );
 }
 
 /**
@@ -182,16 +233,25 @@ export function recordHistory(data: {
   settingSnapshot?: string;
   changedFields?: string;
 }) {
-  return http.request<ReturnResult<boolean>>("post", "/api/v1/monitor/server/setting/history/record", null, {
-    params: data
-  });
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "/v1/monitor/server/setting/history/record",
+    null,
+    {
+      params: data,
+    }
+  );
 }
 
 /**
  * 检查配置是否有变更
  */
 export function hasChanges(serverId: number, newSetting: any) {
-  return http.request<ReturnResult<boolean>>("post", `/api/v1/monitor/server/setting/history/server/${serverId}/check-changes`, newSetting);
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    `/v1/monitor/server/setting/history/server/${serverId}/check-changes`,
+    newSetting
+  );
 }
 
 /**
@@ -199,9 +259,9 @@ export function hasChanges(serverId: number, newSetting: any) {
  */
 export const ChangeType = {
   CREATE: "CREATE",
-  UPDATE: "UPDATE", 
+  UPDATE: "UPDATE",
   DELETE: "DELETE",
-  RESTORE: "RESTORE"
+  RESTORE: "RESTORE",
 } as const;
 
 /**
@@ -211,7 +271,7 @@ export const ChangeTypeNames = {
   [ChangeType.CREATE]: "创建",
   [ChangeType.UPDATE]: "更新",
   [ChangeType.DELETE]: "删除",
-  [ChangeType.RESTORE]: "恢复"
+  [ChangeType.RESTORE]: "恢复",
 } as const;
 
 /**
@@ -221,5 +281,5 @@ export const ChangeTypeColors = {
   [ChangeType.CREATE]: "success",
   [ChangeType.UPDATE]: "primary",
   [ChangeType.DELETE]: "danger",
-  [ChangeType.RESTORE]: "warning"
+  [ChangeType.RESTORE]: "warning",
 } as const;

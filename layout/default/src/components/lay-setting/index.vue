@@ -751,35 +751,110 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-// 现代化设置容器 - 统一设计风格
+// 现代化动画关键帧
+@keyframes gradientShift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes backgroundFloat {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+
+  66% {
+    transform: translateY(5px) rotate(-1deg);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes selectPulse {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px var(--el-color-primary-light-8),
+      var(--el-box-shadow);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 6px var(--el-color-primary-light-7),
+      0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+// 现代化设置容器 - 全新设计语言
 .modern-setting-container {
-  padding: 20px;
+  padding: 24px;
   background: var(--el-bg-color-page);
-  border-radius: 16px;
+  border-radius: 20px;
   min-height: 100vh;
-  width: 420px;
+  width: 440px;
   max-width: 100%;
   position: relative;
   overflow: hidden;
-  // 移除 transition: all，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
-  // 现代化背景装饰 - 与导航栏风格一致
+  // 现代化背景装饰 - 动态渐变
   &::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
+    height: 3px;
     background: linear-gradient(90deg,
-        rgba(var(--el-color-primary-rgb), 0.1) 0%,
-        rgba(var(--el-color-primary-rgb), 0.3) 50%,
-        rgba(var(--el-color-primary-rgb), 0.1) 100%);
+        var(--el-color-primary-light-5) 0%,
+        var(--el-color-primary) 25%,
+        var(--el-color-primary-dark-2) 50%,
+        var(--el-color-primary) 75%,
+        var(--el-color-primary-light-5) 100%);
+    background-size: 200% 100%;
+    animation: gradientShift 8s ease-in-out infinite;
     z-index: 0;
   }
 
-  // 添加微妙的背景纹理
+  // 优雅的背景纹理
   &::after {
     content: "";
     position: absolute;
@@ -787,11 +862,15 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 80%, var(--el-color-primary-light-9) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, var(--el-color-primary-light-9) 0%, transparent 50%);
-    opacity: 0.3;
+    background:
+      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%),
+      radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%),
+      radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
+      radial-gradient(circle at 25% 75%, var(--el-color-warning-light-9) 0%, transparent 30%);
+    opacity: 0.4;
     pointer-events: none;
     z-index: 0;
+    animation: backgroundFloat 12s ease-in-out infinite;
   }
 
   // 确保内容在装饰之上
@@ -806,53 +885,97 @@ onUnmounted(() => {
 
     &::before {
       background: linear-gradient(90deg,
-          rgba(var(--el-color-primary-rgb), 0.15) 0%,
-          rgba(var(--el-color-primary-rgb), 0.4) 50%,
-          rgba(var(--el-color-primary-rgb), 0.15) 100%);
+          var(--el-color-primary-light-3) 0%,
+          var(--el-color-primary-light-1) 25%,
+          var(--el-color-primary) 50%,
+          var(--el-color-primary-light-1) 75%,
+          var(--el-color-primary-light-3) 100%);
     }
+
+    &::after {
+      opacity: 0.2;
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
   }
 }
 
-// 设置区域 - 现代化卡片设计
+// 设置区域 - 现代化玻璃态卡片设计
 .setting-section {
-  margin-bottom: 20px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid var(--el-border-color-extra-light);
-  // 优化 transition，只对变形和阴影生效，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
-  backdrop-filter: blur(8px);
+  overflow: hidden;
 
-  // 现代化装饰线 - 与导航栏风格一致
+  // 现代化装饰线 - 动态渐变
   &::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
+    height: 2px;
     background: linear-gradient(90deg,
-        transparent,
-        var(--el-color-primary-light-7),
-        transparent);
-    border-radius: 12px 12px 0 0;
+        transparent 0%,
+        var(--el-color-primary-light-5) 20%,
+        var(--el-color-primary) 50%,
+        var(--el-color-primary-light-5) 80%,
+        transparent 100%);
+    border-radius: 16px 16px 0 0;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
   }
 
-  // 微交互效果
+  // 微妙的光泽效果
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+  }
+
+  // 优雅的悬停效果
   &:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border-color: var(--el-color-primary-light-8);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+    border-color: rgba(var(--el-color-primary-rgb), 0.3);
+    transform: translateY(-2px) scale(1.01);
 
     &::before {
+      opacity: 1;
       background: linear-gradient(90deg,
-          transparent,
-          var(--el-color-primary-light-5),
-          transparent);
+          transparent 0%,
+          var(--el-color-primary-light-3) 20%,
+          var(--el-color-primary) 50%,
+          var(--el-color-primary-light-3) 80%,
+          transparent 100%);
+    }
+
+    &::after {
+      opacity: 1;
     }
   }
 
@@ -862,14 +985,27 @@ onUnmounted(() => {
 
   // 暗色主题适配
   .dark & {
-    background: var(--el-bg-color);
-    border-color: var(--el-border-color-light);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(var(--el-bg-color-rgb), 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.2) inset;
 
     &:hover {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      border-color: var(--el-color-primary-light-6);
+      background: rgba(var(--el-bg-color-rgb), 0.9);
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.15) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.2) inset;
+      border-color: rgba(var(--el-color-primary-rgb), 0.4);
     }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    padding: 20px;
+    margin-bottom: 20px;
   }
 }
 
@@ -877,61 +1013,111 @@ onUnmounted(() => {
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--el-border-color-extra-light);
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(var(--el-border-color-rgb), 0.3);
   position: relative;
 
-  // 装饰性渐变线
+  // 装饰性渐变线 - 更加动态
   &::after {
     content: "";
     position: absolute;
     bottom: -1px;
     left: 0;
-    width: 40px;
-    height: 2px;
+    width: 50px;
+    height: 3px;
     background: linear-gradient(90deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3));
-    border-radius: 1px;
-    transition: width 0.3s ease;
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-3) 50%,
+        var(--el-color-success-light-5) 100%);
+    border-radius: 2px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
   }
 
   &:hover::after {
-    width: 80px;
+    width: 100px;
+    background: linear-gradient(90deg,
+        var(--el-color-primary) 0%,
+        var(--el-color-primary-light-2) 30%,
+        var(--el-color-success) 70%,
+        var(--el-color-warning) 100%);
+    box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 
   .section-icon {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--el-color-primary);
-    margin-right: 12px;
-    background: var(--el-color-primary-light-9);
-    padding: 8px;
-    border-radius: 8px;
-    width: 34px;
-    height: 34px;
+    margin-right: 14px;
+    background: linear-gradient(135deg,
+        var(--el-color-primary-light-9),
+        var(--el-color-primary-light-8));
+    padding: 10px;
+    border-radius: 12px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 4px 12px rgba(var(--el-color-primary-rgb), 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+
+    // 光泽效果
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
 
     &:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-      background: var(--el-color-primary-light-8);
+      transform: translateY(-2px) scale(1.08);
+      box-shadow:
+        0 8px 20px rgba(var(--el-color-primary-rgb), 0.25),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      background: linear-gradient(135deg,
+          var(--el-color-primary-light-8),
+          var(--el-color-primary-light-7));
+
+      &::before {
+        opacity: 1;
+      }
     }
   }
 
   .section-title {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: var(--el-text-color-primary);
     margin: 0;
     flex: 1;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     text-align: left;
     writing-mode: horizontal-tb;
+    background: linear-gradient(135deg,
+        var(--el-text-color-primary),
+        var(--el-color-primary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: linear-gradient(135deg,
+          var(--el-color-primary),
+          var(--el-color-success));
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
   }
 }
 
@@ -1832,27 +2018,31 @@ onUnmounted(() => {
   }
 }
 
-// 现代化主题色选择器 - 更紧凑设计
+// 现代化主题色选择器 - 玻璃态设计
 .theme-color-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-  padding: 0;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .theme-color-item {
   position: relative;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   cursor: pointer;
   overflow: hidden;
-  // 优化 transition，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1.5px solid var(--el-border-color-extra-light);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
 
   // 基础光泽效果
   &::before {
@@ -1872,9 +2062,11 @@ onUnmounted(() => {
 
   // 悬停效果
   &:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    border-color: var(--el-color-primary-light-6);
+    transform: translateY(-4px) scale(1.08);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.15),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    border-color: rgba(255, 255, 255, 0.8);
 
     .shine-effect {
       opacity: 1;
@@ -1882,22 +2074,27 @@ onUnmounted(() => {
     }
 
     .selection-indicator {
-      transform: scale(1.05);
+      transform: scale(1.1);
+    }
+
+    &::before {
+      opacity: 1;
     }
   }
 
   // 点击效果
   &:active {
-    transform: translateY(-1px) scale(1.01);
+    transform: translateY(-2px) scale(1.05);
   }
 
   // 选中状态
   &.is-selected {
-    border-color: var(--el-color-primary);
+    border-color: rgba(255, 255, 255, 0.9);
     box-shadow:
-      0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2),
-      0 4px 16px rgba(var(--el-color-primary-rgb), 0.25);
-    transform: translateY(-1px);
+      0 0 0 3px rgba(var(--el-color-primary-rgb), 0.3),
+      0 8px 24px rgba(var(--el-color-primary-rgb), 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    transform: translateY(-2px) scale(1.05);
 
     .selection-indicator {
       opacity: 1;
@@ -2137,59 +2334,103 @@ onUnmounted(() => {
 // 移除设置区域的进入动画
 // .setting-section animation - 已移除
 
-// 布局模式选择器 - 完全适配 Element Plus 主题系统
+// 布局模式选择器 - 现代化玻璃态设计
 .pure-theme {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-  padding: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+  padding: 12px;
 
   li {
     position: relative;
     width: 100%;
-    height: 85px;
+    height: 90px;
     overflow: hidden;
     cursor: pointer;
-    background: var(--el-fill-color-extra-light);
-    border-radius: var(--border-radius-base, 16px);
-    box-shadow: var(--el-box-shadow-light);
-    transition: all var(--animation-duration, 0.4s) cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid var(--el-border-color-lighter);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border-radius: 18px;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 
-    // 添加微妙的背景动画
+    // 现代化光泽效果
     &::before {
       content: "";
       position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      opacity: 0;
+      transition: all 0.6s ease;
+      pointer-events: none;
+    }
+
+    // 动态边框效果
+    &::after {
+      content: "";
+      position: absolute;
       top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, var(--el-color-primary-light-9), transparent);
-      transition: left var(--animation-duration, 0.6s) ease;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 18px;
+      padding: 1px;
+      background: linear-gradient(135deg,
+          transparent,
+          var(--el-color-primary-light-7),
+          transparent);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     &:hover {
-      transform: translateY(calc(-4px * var(--animation-scale, 1))) scale(var(--animation-scale, 1.02));
-      box-shadow: var(--el-box-shadow-dark);
-      border-color: var(--el-color-primary-light-7);
+      transform: translateY(-6px) scale(1.03);
+      box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+      border-color: rgba(var(--el-color-primary-rgb), 0.4);
+      background: rgba(255, 255, 255, 0.85);
 
       &::before {
-        left: 100%;
+        opacity: 1;
+      }
+
+      &::after {
+        opacity: 1;
       }
     }
 
     &:active {
-      transform: translateY(-2px) scale(0.98);
+      transform: translateY(-3px) scale(1.01);
     }
 
     &.is-select {
       border-color: var(--el-color-primary);
       box-shadow:
-        0 0 0 4px var(--el-color-primary-light-8),
-        var(--el-box-shadow);
-      background: var(--el-color-primary-light-9);
-      animation: selectPulse 2s infinite;
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.2),
+        0 12px 32px rgba(var(--el-color-primary-rgb), 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      background: rgba(var(--el-color-primary-rgb), 0.05);
+      transform: translateY(-3px);
+      animation: selectPulse 3s ease-in-out infinite;
+
+      &::after {
+        opacity: 1;
+        background: linear-gradient(135deg,
+            var(--el-color-primary-light-5),
+            var(--el-color-primary),
+            var(--el-color-primary-light-5));
+      }
     }
 
     // 占位符布局样式
@@ -2750,5 +2991,100 @@ p.mt-5 {
 
 .modern-input-number .el-input__wrapper {
   border-radius: var(--el-border-radius-base, 8px) !important;
+}
+
+// 响应式设计优化
+@media (max-width: 768px) {
+  .modern-setting-container {
+    padding: 16px;
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .setting-section {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 14px;
+  }
+
+  .section-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+
+    .section-title {
+      font-size: 16px;
+    }
+  }
+
+  .pure-theme {
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 12px;
+    padding: 8px;
+
+    li {
+      height: 75px;
+      border-radius: 14px;
+    }
+  }
+
+  .theme-color-grid {
+    grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+    gap: 8px;
+    padding: 6px;
+  }
+
+  .theme-color-item {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+
+    &:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    &.is-selected {
+      transform: translateY(-1px) scale(1.03);
+    }
+  }
+
+  .switch-grid {
+    gap: 8px;
+  }
+
+  .switch-item {
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-setting-container {
+    padding: 12px;
+  }
+
+  .setting-section {
+    padding: 16px;
+  }
+
+  .pure-theme {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+
+    li {
+      height: 70px;
+    }
+  }
+
+  .theme-color-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
 }
 </style>
