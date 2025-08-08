@@ -1,22 +1,5 @@
 <template>
   <div class="service-management-container">
-    <div class="page-header">
-      <div class="header-left">
-        <h2>服务管理</h2>
-        <p>管理和配置系统中的各种服务器</p>
-      </div>
-      <div class="header-right">
-        <el-button type="primary" @click="showAddDialog = true">
-          <IconifyIconOnline icon="ri:add-line" />
-          新增服务器
-        </el-button>
-        <el-button @click="refreshData">
-          <IconifyIconOnline icon="ri:refresh-line" />
-          刷新
-        </el-button>
-      </div>
-    </div>
-
     <!-- 统计卡片 -->
     <div class="statistics-cards">
       <el-card class="stat-card">
@@ -95,7 +78,9 @@
               <el-option label="异常" value="ERROR" />
             </el-select>
           </el-form-item>
-          <el-form-item>
+
+          <!-- 操作按钮组 -->
+          <el-form-item class="action-buttons">
             <el-button type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
               查询
@@ -103,6 +88,14 @@
             <el-button @click="resetQuery">
               <IconifyIconOnline icon="ri:refresh-line" />
               重置
+            </el-button>
+            <el-button @click="refreshData">
+              <IconifyIconOnline icon="ri:refresh-line" />
+              刷新
+            </el-button>
+            <el-button type="primary" @click="showAddDialog = true">
+              <IconifyIconOnline icon="ri:add-line" />
+              新增服务器
             </el-button>
           </el-form-item>
         </el-form>
@@ -703,6 +696,24 @@ onMounted(() => {
 
   .filter-content {
     padding: 8px 0;
+
+    .el-form {
+      .action-buttons {
+        margin-left: 16px;
+        padding-left: 16px;
+        border-left: 1px solid #e4e7ed;
+
+        .el-button {
+          margin-left: 8px;
+          border-radius: 8px;
+          font-weight: 500;
+
+          &:first-child {
+            margin-left: 0;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -853,6 +864,27 @@ onMounted(() => {
 
   .statistics-cards {
     grid-template-columns: 1fr;
+  }
+
+  .filter-card {
+    .filter-content {
+      .el-form {
+        .el-form-item {
+          margin-bottom: 16px;
+
+          &.action-buttons {
+            margin-left: 0;
+            padding-left: 0;
+            border-left: none;
+
+            .el-button {
+              margin-bottom: 8px;
+              margin-right: 8px;
+            }
+          }
+        }
+      }
+    }
   }
 
   .server-list .server-grid {

@@ -26,7 +26,9 @@ export interface SystemServerSetting {
 export interface ServletFilterObject {
   type: string;
   name: string;
-  description: string;
+  description?: string;
+  describeType?: string;
+  describeDetail?: string;
   className: string;
   version: string;
   configItems?: FilterConfigItem[];
