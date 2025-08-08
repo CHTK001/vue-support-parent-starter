@@ -7,48 +7,31 @@
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
         </el-button>
-        
+
         <el-button @click="handleExportLogs">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出日志
         </el-button>
-        
+
         <el-button type="danger" @click="handleCleanupLogs">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           清理日志
         </el-button>
       </div>
-      
+
       <div class="toolbar-right">
-        <el-select
-          v-model="filterServerId"
-          placeholder="选择服务器"
-          clearable
-          style="width: 150px"
-          @change="handleFilter"
-        >
-          <el-option
-            v-for="server in serverList"
-            :key="server.id"
-            :label="server.name"
-            :value="server.id"
-          />
+        <el-select v-model="filterServerId" placeholder="选择服务器" clearable style="width: 150px" @change="handleFilter">
+          <el-option v-for="server in serverList" :key="server.id" :label="server.name" :value="server.id" />
         </el-select>
-        
-        <el-select
-          v-model="filterLevel"
-          placeholder="日志级别"
-          clearable
-          style="width: 120px; margin-left: 12px"
-          @change="handleFilter"
-        >
+
+        <el-select v-model="filterLevel" placeholder="日志级别" clearable style="width: 120px; margin-left: 12px" @change="handleFilter">
           <el-option label="DEBUG" value="DEBUG" />
           <el-option label="INFO" value="INFO" />
           <el-option label="WARN" value="WARN" />
           <el-option label="ERROR" value="ERROR" />
           <el-option label="FATAL" value="FATAL" />
         </el-select>
-        
+
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
@@ -58,14 +41,8 @@
           style="width: 350px; margin-left: 12px"
           @change="handleFilter"
         />
-        
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索日志内容..."
-          clearable
-          style="width: 200px; margin-left: 12px"
-          @input="handleSearch"
-        >
+
+        <el-input v-model="searchKeyword" placeholder="搜索日志内容..." clearable style="width: 200px; margin-left: 12px" @input="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
@@ -74,61 +51,44 @@
     </div>
 
     <!-- 日志表格 -->
-    <el-table
-      v-loading="loading"
-      :data="logList"
-      stripe
-      :row-class-name="getRowClassName"
-      @selection-change="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="logList" stripe :row-class-name="getRowClassName" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" />
-      
+
       <el-table-column label="时间" width="160" align="center">
         <template #default="{ row }">
           {{ formatDateTime(row.monitorSysGenServerLogTimestamp) }}
         </template>
       </el-table-column>
-      
+
       <el-table-column label="服务器" width="120" align="center">
         <template #default="{ row }">
           <span>{{ getServerName(row.monitorSysGenServerId) }}</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="级别" width="80" align="center">
         <template #default="{ row }">
-          <el-tag
-            :type="getLogLevelColor(row.monitorSysGenServerLogLevel)"
-            size="small"
-            effect="light"
-          >
+          <el-tag :type="getLogLevelColor(row.monitorSysGenServerLogLevel)" size="small" effect="light">
             {{ row.monitorSysGenServerLogLevel }}
           </el-tag>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="来源" width="120" align="center">
         <template #default="{ row }">
-          <span>{{ row.monitorSysGenServerLogSource || '-' }}</span>
+          <span>{{ row.monitorSysGenServerLogSource || "-" }}</span>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="日志内容" min-width="400">
         <template #default="{ row }">
           <div class="log-content">
             <span class="log-text">{{ row.monitorSysGenServerLogContent }}</span>
-            <el-button
-              v-if="row.monitorSysGenServerLogContent.length > 100"
-              type="text"
-              size="small"
-              @click="handleViewFullLog(row)"
-            >
-              查看完整
-            </el-button>
+            <el-button v-if="row.monitorSysGenServerLogContent.length > 100" type="text" size="small" @click="handleViewFullLog(row)">查看完整</el-button>
           </div>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="操作" width="120" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
@@ -136,8 +96,8 @@
               <IconifyIconOnline icon="ri:eye-line" />
               查看
             </el-button>
-            
-            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
+
+            <el-dropdown @command="cmd => handleAction(cmd, row)">
               <el-button size="small">
                 <IconifyIconOnline icon="ri:more-line" />
               </el-button>
@@ -168,12 +128,7 @@
     </div>
 
     <!-- 日志详情对话框 -->
-    <el-dialog
-      v-model="logDetailVisible"
-      title="日志详情"
-      width="80%"
-      destroy-on-close
-    >
+    <el-dialog v-model="logDetailVisible" title="日志详情" width="80%" destroy-on-close>
       <div v-if="selectedLog" class="log-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="时间">
@@ -188,7 +143,7 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="来源">
-            {{ selectedLog.monitorSysGenServerLogSource || '-' }}
+            {{ selectedLog.monitorSysGenServerLogSource || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="内容" span="2">
             <div class="log-content-detail">
@@ -197,7 +152,7 @@
           </el-descriptions-item>
         </el-descriptions>
       </div>
-      
+
       <template #footer>
         <el-button @click="logDetailVisible = false">关闭</el-button>
         <el-button type="primary" @click="handleCopyLogContent">复制内容</el-button>
@@ -205,34 +160,18 @@
     </el-dialog>
 
     <!-- 清理日志对话框 -->
-    <el-dialog
-      v-model="cleanupDialogVisible"
-      title="清理日志"
-      width="400px"
-      destroy-on-close
-    >
+    <el-dialog v-model="cleanupDialogVisible" title="清理日志" width="400px" destroy-on-close>
       <div class="cleanup-form">
         <el-form :model="cleanupForm" label-width="100px">
           <el-form-item label="保留天数">
-            <el-input-number
-              v-model="cleanupForm.days"
-              :min="1"
-              :max="365"
-              placeholder="保留天数"
-              style="width: 100%"
-            />
+            <el-input-number v-model="cleanupForm.days" :min="1" :max="365" placeholder="保留天数" style="width: 100%" />
           </el-form-item>
           <el-form-item>
-            <el-alert
-              title="注意"
-              :description="`将删除 ${cleanupForm.days} 天前的所有日志记录，此操作不可恢复！`"
-              type="warning"
-              :closable="false"
-            />
+            <el-alert title="注意" :description="`将删除 ${cleanupForm.days} 天前的所有日志记录，此操作不可恢复！`" type="warning" :closable="false" />
           </el-form-item>
         </el-form>
       </div>
-      
+
       <template #footer>
         <el-button @click="cleanupDialogVisible = false">取消</el-button>
         <el-button type="danger" @click="handleConfirmCleanup">确定清理</el-button>
@@ -245,16 +184,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import {
-  getServerLogPageList,
-  deleteServerLog,
-  batchDeleteServerLogs,
-  exportServerLogs,
-  cleanupExpiredLogs,
-  LogLevel,
-  getLogLevelColor,
-  type ServerLog,
-} from "@/api/server/log";
+import { getServerLogPageList, deleteServerLog, batchDeleteServerLogs, exportServerLogs, cleanupExpiredLogs, LogLevel, getLogLevelColor, type ServerLog } from "@/api/server/log";
 
 // 定义事件
 const emit = defineEmits<{
@@ -279,17 +209,17 @@ const dateRange = ref<[Date, Date] | null>(null);
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0,
+  total: 0
 });
 
 // 对话框
 const logDetailVisible = ref(false);
 const cleanupDialogVisible = ref(false);
-const selectedLog = ref<ServerLog | null>(null);
+const selectedLog = ref<ServerLog | null | any>(null);
 
 // 清理表单
 const cleanupForm = reactive({
-  days: 30,
+  days: 30
 });
 
 /**
@@ -305,7 +235,7 @@ const loadLogList = async () => {
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
-      endTime: dateRange.value?.[1]?.toISOString(),
+      endTime: dateRange.value?.[1]?.toISOString()
     };
 
     const res = await getServerLogPageList(params);
@@ -383,7 +313,7 @@ const handleExportLogs = async () => {
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
-      endTime: dateRange.value?.[1]?.toISOString(),
+      endTime: dateRange.value?.[1]?.toISOString()
     };
 
     const res = await exportServerLogs(params);
@@ -391,7 +321,7 @@ const handleExportLogs = async () => {
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `server-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `server-logs-${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
     message.success("日志导出成功");
@@ -487,15 +417,11 @@ const handleAction = async (command: string, log: ServerLog) => {
  */
 const handleDeleteLog = async (log: ServerLog) => {
   try {
-    await ElMessageBox.confirm(
-      "确定要删除这条日志记录吗？",
-      "删除确认",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
+    await ElMessageBox.confirm("确定要删除这条日志记录吗？", "删除确认", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+    });
 
     const res = await deleteServerLog(log.monitorSysGenServerLogId);
     if (res.code === "00000") {
@@ -547,7 +473,7 @@ const refresh = () => {
 // 暴露方法
 defineExpose({
   refresh,
-  filterByServer,
+  filterByServer
 });
 
 // 生命周期
@@ -607,7 +533,7 @@ onMounted(() => {
 
       pre {
         margin: 0;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 13px;
         line-height: 1.5;
         white-space: pre-wrap;
