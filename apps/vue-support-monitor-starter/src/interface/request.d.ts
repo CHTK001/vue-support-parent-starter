@@ -12,4 +12,5 @@ export interface IResponse<T> {
   data?: T;
   code: string;
   msg: string;
+  success: boolean;
 }
