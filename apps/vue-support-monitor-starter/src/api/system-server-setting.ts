@@ -26,7 +26,7 @@ export interface SystemServerSetting {
 export interface ServletFilterObject {
   type: string;
   name: string;
-  description?: string;
+  describe?: string;
   describeType?: string;
   describeDetail?: string;
   className: string;
@@ -65,7 +65,7 @@ export function getSystemServerSettingPage(
   params: SystemServerSettingPageParams
 ) {
   return request({
-    url: "/api/system/server/setting/page",
+    url: "/system/server/setting/page",
     method: "get",
     params,
   });
@@ -76,7 +76,7 @@ export function getSystemServerSettingPage(
  */
 export function getSystemServerSettingById(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}`,
+    url: `/system/server/setting/${id}`,
     method: "get",
   });
 }
@@ -86,7 +86,7 @@ export function getSystemServerSettingById(id: number) {
  */
 export function getSystemServerSettingByServerId(serverId: number) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}`,
+    url: `/system/server/setting/server/${serverId}`,
     method: "get",
   });
 }
@@ -101,7 +101,7 @@ export function installServletFilter(
   description?: string
 ) {
   return request({
-    url: "/api/system/server/setting/install",
+    url: "/system/server/setting/install",
     method: "post",
     params: {
       serverId,
@@ -117,7 +117,7 @@ export function installServletFilter(
  */
 export function uninstallServletFilter(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}/uninstall`,
+    url: `/system/server/setting/${id}/uninstall`,
     method: "delete",
   });
 }
@@ -127,7 +127,7 @@ export function uninstallServletFilter(id: number) {
  */
 export function enableServletFilter(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}/enable`,
+    url: `/system/server/setting/${id}/enable`,
     method: "post",
   });
 }
@@ -137,7 +137,7 @@ export function enableServletFilter(id: number) {
  */
 export function disableServletFilter(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}/disable`,
+    url: `/system/server/setting/${id}/disable`,
     method: "post",
   });
 }
@@ -150,7 +150,7 @@ export function updateServletFilterOrder(
   settingOrders: Array<{ id: number; sortOrder: number }>
 ) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}/order`,
+    url: `/system/server/setting/server/${serverId}/order`,
     method: "post",
     data: settingOrders,
   });
@@ -164,7 +164,7 @@ export function updateServletFilterConfig(
   config: Record<string, any>
 ) {
   return request({
-    url: `/api/system/server/setting/${id}/config`,
+    url: `/system/server/setting/${id}/config`,
     method: "put",
     data: config,
   });
@@ -175,7 +175,7 @@ export function updateServletFilterConfig(
  */
 export function getServletFilterConfig(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}/config`,
+    url: `/system/server/setting/${id}/config`,
     method: "get",
   });
 }
@@ -185,7 +185,7 @@ export function getServletFilterConfig(id: number) {
  */
 export function getAvailableServletFilterTypes() {
   return request({
-    url: "/api/system/server/setting/types",
+    url: "/system/server/setting/types",
     method: "get",
   });
 }
@@ -195,7 +195,7 @@ export function getAvailableServletFilterTypes() {
  */
 export function getAvailableServletFilterObjects() {
   return request({
-    url: "/api/system/server/setting/objects",
+    url: "/system/server/setting/objects",
     method: "get",
   });
 }
@@ -208,7 +208,7 @@ export function batchInstallServletFilters(
   filterTypes: string[]
 ) {
   return request({
-    url: "/api/system/server/setting/batch-install",
+    url: "/system/server/setting/batch-install",
     method: "post",
     params: {
       serverId,
@@ -225,7 +225,7 @@ export function batchOperationServletFilter(
   operation: string
 ) {
   return request({
-    url: "/api/system/server/setting/batch",
+    url: "/system/server/setting/batch",
     method: "post",
     params: {
       settingIds: settingIds.join(","),
@@ -239,7 +239,7 @@ export function batchOperationServletFilter(
  */
 export function resetServletFilterConfig(id: number) {
   return request({
-    url: `/api/system/server/setting/${id}/reset`,
+    url: `/system/server/setting/${id}/reset`,
     method: "post",
   });
 }
@@ -249,7 +249,7 @@ export function resetServletFilterConfig(id: number) {
  */
 export function exportServerFiltersConfig(serverId: number) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}/export`,
+    url: `/system/server/setting/server/${serverId}/export`,
     method: "get",
   });
 }
@@ -262,7 +262,7 @@ export function importServerFiltersConfig(
   configData: Record<string, any>
 ) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}/import`,
+    url: `/system/server/setting/server/${serverId}/import`,
     method: "post",
     data: configData,
   });
@@ -273,7 +273,7 @@ export function importServerFiltersConfig(
  */
 export function getServletFilterConfigItems(filterType: string) {
   return request({
-    url: `/api/system/server/setting/servlet-filters/${filterType}/config-items`,
+    url: `/system/server/setting/servlet-filters/${filterType}/config-items`,
     method: "get",
   });
 }
@@ -283,7 +283,7 @@ export function getServletFilterConfigItems(filterType: string) {
  */
 export function applyConfigToRunningServer(serverId: number) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}/apply`,
+    url: `/system/server/setting/server/${serverId}/apply`,
     method: "post",
   });
 }
@@ -296,7 +296,7 @@ export function cloneServerSettings(
   targetServerId: number
 ) {
   return request({
-    url: "/api/system/server/setting/clone",
+    url: "/system/server/setting/clone",
     method: "post",
     params: { sourceServerId, targetServerId },
   });
@@ -310,7 +310,7 @@ export function getSystemServerSettingByServerIdAndEnabled(
   enabled: boolean
 ) {
   return request({
-    url: `/api/system/server/setting/server/${serverId}/enabled/${enabled}`,
+    url: `/system/server/setting/server/${serverId}/enabled/${enabled}`,
     method: "get",
   });
 }
@@ -323,7 +323,7 @@ export function batchUpdateServletFilterEnabled(
   enabled: boolean
 ) {
   return request({
-    url: "/api/system/server/setting/batch-enabled",
+    url: "/system/server/setting/batch-enabled",
     method: "put",
     params: { settingIds, enabled },
   });

@@ -126,13 +126,18 @@
           >
             <div class="server-header">
               <div class="server-title">
-                <h3>{{ server.systemServerName }}</h3>
-                <el-tag
-                  :type="getStatusTagType(server.systemServerStatus)"
-                  size="small"
-                >
-                  {{ getStatusText(server.systemServerStatus) }}
-                </el-tag>
+                <div class="server-icon">
+                  <component :is="getProtocolIcon(server.systemServerType)" />
+                </div>
+                <div class="server-title-content">
+                  <h3>{{ server.systemServerName }}</h3>
+                  <el-tag
+                    :type="getStatusTagType(server.systemServerStatus)"
+                    size="small"
+                  >
+                    {{ getStatusText(server.systemServerStatus) }}
+                  </el-tag>
+                </div>
               </div>
               <div class="server-actions">
                 <el-dropdown @command="handleServerAction">
@@ -142,13 +147,19 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item
-                        :command="`edit-${server.systemServerId}`"
+                        :command="{
+                          type: 'edit',
+                          server: server,
+                        }"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
                         编辑
                       </el-dropdown-item>
                       <el-dropdown-item
-                        :command="`clone-${server.systemServerId}`"
+                        :command="{
+                          type: 'clone',
+                          server: server,
+                        }"
                       >
                         <IconifyIconOnline icon="ri:file-copy-line" />
                         克隆
@@ -174,29 +185,57 @@
             </div>
 
             <div class="server-info">
-              <div class="info-item">
-                <span class="info-label">类型:</span>
+              <div
+                class="info-item"
+                :title="'类型: ' + server.systemServerType"
+              >
+                <IconifyIconOnline icon="ri:equalizer-line" />
                 <span class="info-value">{{ server.systemServerType }}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">端口:</span>
+              <div
+                class="info-item"
+                :title="'端口: ' + server.systemServerPort"
+              >
+                <IconifyIconOnline icon="ri:door-lock-line" />
                 <span class="info-value">{{ server.systemServerPort }}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">最大连接:</span>
+              <div
+                class="info-item"
+                :title="
+                  '最大连接数: ' +
+                  (server.systemServerMaxConnections || '无限制')
+                "
+              >
+                <IconifyIconOnline icon="ri:group-line" />
                 <span class="info-value">{{
-                  server.systemServerMaxConnections || "无限制"
+                  server.systemServerMaxConnections || "∞"
                 }}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">超时时间:</span>
-                <span class="info-value"
-                  >{{ server.systemServerTimeout || "默认" }}s</span
-                >
-              </div>
-              <div class="info-item" v-if="server.systemServerDescription">
-                <span class="info-label">描述:</span>
+              <div
+                class="info-item"
+                :title="'超时时间: ' + (server.systemServerTimeout || '默认')"
+              >
+                <IconifyIconOnline icon="ri:time-line" />
                 <span class="info-value">{{
+                  server.systemServerTimeout || "-"
+                }}</span>
+              </div>
+              <div
+                class="info-item"
+                :title="'上下文: ' + (server.systemServerContextPath || '无')"
+              >
+                <IconifyIconOnline icon="ri:parentheses-fill" />
+                <span class="info-value">{{
+                  server.systemServerContextPath || "无"
+                }}</span>
+              </div>
+              <div
+                class="info-item"
+                v-if="server.systemServerDescription"
+                :title="'描述: ' + server.systemServerDescription"
+              >
+                <IconifyIconOnline icon="ri:file-text-line" />
+                <span class="info-value text-ellipsis">{{
                   server.systemServerDescription
                 }}</span>
               </div>
@@ -284,6 +323,7 @@ import {
 import ServerFormDialog from "./components/ServerFormDialog.vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
+import { getProtocolIcon } from "@/components/protocol-icons";
 
 // 页面标题
 defineOptions({
@@ -292,6 +332,7 @@ defineOptions({
 
 // 响应式数据
 const loading = ref(false);
+const serverTable = ref<any>(null);
 const serverTypes = ref<string[]>([]);
 const statistics = ref<SystemServerStatistics>({
   total: 0,
@@ -433,6 +474,7 @@ const resetQuery = () => {
 // 刷新数据
 const refreshData = () => {
   loadStatistics();
+  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方法
 };
 
 // 启动服务器
@@ -495,16 +537,27 @@ const restartServer = async (serverId: number) => {
 };
 
 // 处理服务器操作
-const handleServerAction = (command: string) => {
+const handleServerAction = (command: any) => {
+  // 处理对象形式的命令（编辑和克隆操作）
+  if (typeof command === "object" && command !== null) {
+    const { type, server } = command;
+    switch (type) {
+      case "edit":
+        currentServer.value = { ...server };
+        showAddDialog.value = true;
+        break;
+      case "clone":
+        currentServer.value = { ...server };
+        showCloneDialog.value = true;
+        break;
+    }
+    return;
+  }
+
+  // 处理字符串形式的命令（重启和删除操作）
   const [action, serverIdStr] = command.split("-");
   const serverId = parseInt(serverIdStr);
   switch (action) {
-    case "edit":
-      showAddDialog.value = true;
-      break;
-    case "clone":
-      showCloneDialog.value = true;
-      break;
     case "restart":
       restartServer(serverId);
       break;
@@ -581,6 +634,8 @@ onMounted(() => {
   padding: 24px;
   height: 100%;
   background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
@@ -706,62 +761,45 @@ onMounted(() => {
 
 // 服务器列表
 .server-list {
+  flex: 1;
   .server-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
     margin-bottom: 24px;
   }
 
   .server-card {
-    border-radius: 16px;
-    border: none;
-    background: linear-gradient(145deg, #ffffff, #f5f7fa);
-    box-shadow:
-      6px 6px 12px #e6e9ed,
-      -6px -6px 12px #ffffff;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    padding: 1rem;
+    padding: 10px;
     &:hover {
-      transform: translateY(-6px) scale(1.02);
+      transform: translateY(-2px);
       box-shadow:
-        12px 12px 20px #e6e9ed,
-        -12px -12px 20px #ffffff;
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
-    // 状态指示条 - 使用渐变和光晕效果
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 6px;
-      background: #e4e7ed;
-      border-radius: 3px;
+    &.server-running {
+      border-left: 3px solid #67c23a;
     }
 
-    &.server-running::before {
-      background: linear-gradient(90deg, #67c23a, #95eb5e);
-      box-shadow: 0 0 15px rgba(103, 194, 58, 0.4);
+    &.server-stopped {
+      border-left: 3px solid #909399;
     }
 
-    &.server-stopped::before {
-      background: linear-gradient(90deg, #909399, #c0c4cc);
-      box-shadow: 0 0 15px rgba(144, 147, 153, 0.4);
-    }
-
-    &.server-transitioning::before {
-      background: linear-gradient(90deg, #e6a23c, #f7c06c);
-      box-shadow: 0 0 15px rgba(230, 162, 60, 0.4);
+    &.server-transitioning {
+      border-left: 3px solid #e6a23c;
       animation: pulse 2s infinite;
     }
 
-    &.server-error::before {
-      background: linear-gradient(90deg, #f56c6c, #ff9b9b);
-      box-shadow: 0 0 15px rgba(245, 108, 108, 0.4);
+    &.server-error {
+      border-left: 3px solid #f56c6c;
     }
 
     .server-header {
@@ -776,21 +814,53 @@ onMounted(() => {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
 
-        h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #2c3e50;
-          letter-spacing: -0.3px;
+        .server-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          background: #f1f5f9;
+          color: #64748b;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #e2e8f0;
+            color: #475569;
+          }
+
+          .protocol-icon {
+            width: 24px;
+            height: 24px;
+          }
         }
-        .el-tag {
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          padding: 4px 8px;
-          border-radius: 6px;
+
+        .server-title-content {
+          flex: 1;
+          min-width: 0;
+
+          h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .el-tag {
+            margin-top: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+          }
         }
       }
 
@@ -819,37 +889,41 @@ onMounted(() => {
     .server-info {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 8px;
+      margin-bottom: 12px;
 
       .info-item {
-        padding: 8px;
-        background: rgba(255, 255, 255, 0.6);
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        padding: 6px;
+        background: #f8fafc;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: help;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.9);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          background: #f1f5f9;
         }
 
-        .info-label {
-          font-size: 12px;
-          color: #909399;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          margin-bottom: 2px;
+        .iconify-icon {
+          font-size: 16px;
+          color: #64748b;
+          flex-shrink: 0;
         }
 
         .info-value {
-          font-size: 14px;
-          color: #2c3e50;
-          font-weight: 600;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          font-size: 12px;
+          color: #334155;
+          font-weight: 500;
+          flex: 1;
+          min-width: 0;
+
+          &.text-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
         }
       }
     }
@@ -861,52 +935,50 @@ onMounted(() => {
 
         .el-button {
           flex: 1;
-          border-radius: 12px;
+          border-radius: 4px;
           font-weight: 500;
-          height: 32px;
-          font-size: 13px;
-          letter-spacing: 0.3px;
-          text-transform: uppercase;
+          height: 28px;
+          font-size: 12px;
+          padding: 0 12px;
           transition: all 0.3s ease;
 
           &.el-button--success {
-            background: linear-gradient(135deg, #67c23a, #95eb5e);
-            border: none;
-
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
-            }
-          }
-
-          &.el-button--danger {
-            background: linear-gradient(135deg, #f56c6c, #ff9b9b);
-            border: none;
-
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
-            }
-          }
-
-          &.el-button--warning {
-            background: linear-gradient(135deg, #e6a23c, #f7c06c);
+            background: #10b981;
             border: none;
             color: white;
 
             &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(230, 162, 60, 0.3);
+              background: #059669;
+            }
+          }
+
+          &.el-button--danger {
+            background: #ef4444;
+            border: none;
+            color: white;
+
+            &:hover {
+              background: #dc2626;
+            }
+          }
+
+          &.el-button--warning {
+            background: #f59e0b;
+            border: none;
+            color: white;
+
+            &:hover {
+              background: #d97706;
             }
           }
 
           &.el-button--primary {
-            background: linear-gradient(135deg, #409eff, #69b7ff);
+            background: #3b82f6;
             border: none;
+            color: white;
 
             &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+              background: #2563eb;
             }
           }
 

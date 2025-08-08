@@ -33,8 +33,8 @@
 
   & .peg {
     box-shadow:
-            0 0 10px var(--el-color-primary),
-            0 0 5px var(--el-color-primary) !important;
+      0 0 10px var(--el-color-primary),
+      0 0 5px var(--el-color-primary) !important;
   }
 
   & .spinner-icon {
@@ -86,8 +86,8 @@
     border-radius: 4px;
     outline: none;
     transition:
-            background-color 0.2s,
-            color 0.2s;
+      background-color 0.2s,
+      color 0.2s;
 
     &:hover {
       color: rgb(0 0 0 / 88%) !important;
@@ -106,9 +106,9 @@
   background: #fff !important;
   border-width: 0 !important;
   box-shadow:
-          0 3px 6px -4px #0000001f,
-          0 6px 16px #00000014,
-          0 9px 28px 8px #0000000d !important;
+    0 3px 6px -4px #0000001f,
+    0 6px 16px #00000014,
+    0 9px 28px 8px #0000000d !important;
 
   & .el-message__content {
     color: #000000d9 !important;
@@ -120,8 +120,8 @@
     border-radius: 4px;
     outline: none;
     transition:
-            background-color 0.2s,
-            color 0.2s;
+      background-color 0.2s,
+      color 0.2s;
 
     &:hover {
       background-color: rgb(0 0 0 / 6%);
@@ -156,12 +156,13 @@
     padding: 10px 20px;
     margin: auto -16px -16px;
     box-shadow:
-            0 -1px 0 0 #e0e3e8,
-            0 -3px 6px 0 rgb(69 98 155 / 12%);
+      0 -1px 0 0 #e0e3e8,
+      0 -3px 6px 0 rgb(69 98 155 / 12%);
   }
 }
 /* 仿 el-scrollbar 滚动条样式，支持大多数浏览器，如Chrome、Edge、Firefox、Safari等。整体暗色风格在 src/style/dark.scss 文件进行了适配 */
 .el-dialog,
+.modern-scrollbar,
 .thin-scrollbar,
 .pure-scrollbar {
   scrollbar-color: var(--el-color-primary) transparent; /* 滑块颜色、轨道颜色 */
@@ -179,7 +180,7 @@
 
   /* 滚动条滑块 */
   ::-webkit-scrollbar-thumb {
-    background-color: var(--el-color-primary-light-1);;
+    background-color: var(--el-color-primary-light-1);
     border-radius: 4px;
   }
 
