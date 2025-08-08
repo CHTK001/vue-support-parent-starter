@@ -10,6 +10,7 @@ export interface SystemServer {
   systemServerName: string;
   systemServerPort: number;
   systemServerType: string;
+  systemServerContextPath: string;
   systemServerStatus?:
     | "STOPPED"
     | "RUNNING"

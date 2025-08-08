@@ -30,15 +30,11 @@
             <div class="filter-info">
               <div class="filter-name">{{ filter.name }}</div>
               <div class="filter-type">{{ filter.type }}</div>
-              <div class="filter-description" v-if="filter.description">
-                {{ filter.description }}
-              </div>
-              <div class="filter-detail" v-if="filter.describeDetail">
-                <el-tooltip :content="filter.describeDetail" placement="top">
-                  <el-icon class="detail-icon">
-                    <InfoFilled />
-                  </el-icon>
+              <div class="filter-detail" v-if="filter.describe">
+                <el-tooltip :content="filter.describe" placement="top">
+                  <el-icon class="detail-icon"> <InfoFilled /> </el-icon>
                 </el-tooltip>
+                {{ filter.describe }}
               </div>
             </div>
             <div class="filter-actions">
@@ -261,7 +257,6 @@ const loadAvailableFilters = async () => {
 // 加载已安装的ServletFilter
 const loadInstalledFilters = async () => {
   if (!props.serverId) return;
-
   installedLoading.value = true;
   try {
     const response = await getSystemServerSettingByServerId(props.serverId);
@@ -273,6 +268,7 @@ const loadInstalledFilters = async () => {
       );
     } else {
       ElMessage.error(response.msg || "加载已安装Filter失败");
+      erver / setting / objects;
     }
   } catch (error) {
     console.error("加载已安装Filter失败:", error);

@@ -28,11 +28,14 @@
           style="width: 100%"
         >
           <el-option
-            v-for="type in serverTypes"
-            :key="type"
-            :label="type"
-            :value="type"
-          />
+            v-for="item in serverTypes"
+            :key="item.name"
+            :label="
+              item.describe ? item.describe + '(' + item.name + ')' : item.name
+            "
+            :value="item.name"
+          >
+          </el-option>
         </el-select>
       </el-form-item>
 
@@ -69,6 +72,14 @@
           v-model="formData.systemServerTimeout"
           :min="1"
           :max="3600"
+          placeholder="不填则使用默认值"
+          style="width: 100%"
+        />
+      </el-form-item>
+
+      <el-form-item label="上下文" prop="systemServerContextPath">
+        <el-input
+          v-model="formData.systemServerContextPath"
           placeholder="不填则使用默认值"
           style="width: 100%"
         />
@@ -117,7 +128,7 @@ import {
 interface Props {
   visible: boolean;
   serverData?: SystemServer | null;
-  serverTypes: string[];
+  serverTypes: any[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -150,6 +161,7 @@ const isEdit = computed(() => !!props.serverData?.systemServerId);
 const formData = reactive<SystemServer>({
   systemServerName: "",
   systemServerType: "",
+  systemServerContextPath: "",
   systemServerPort: 8080,
   systemServerMaxConnections: undefined,
   systemServerTimeout: undefined,

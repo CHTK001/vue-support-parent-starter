@@ -373,6 +373,7 @@ watch(
         newMetrics.cpu?.usage,
         oldMetrics?.cpu?.usage
       );
+      debugger;
       updateAnimationValueSafely(
         memoryAnimation,
         newMetrics.memory?.usage,
@@ -1043,8 +1044,8 @@ onUnmounted(() => {
     overflow: visible;
 
     .metric-content {
-      height: 300px;
-      max-height: 400px;
+      height: 500px;
+      max-height: 200px;
       overflow-y: auto;
       overflow-x: hidden;
       padding-right: 4px;
@@ -1393,8 +1394,8 @@ onUnmounted(() => {
   }
 
   .partitions-list-container {
-    height: 300px;
-    max-height: 600px;
+    height: 400px;
+    max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 4px;
