@@ -1,5 +1,3 @@
-import { $t } from "@repo/config";
-
 export default [
   {
     path: "/service-management",
