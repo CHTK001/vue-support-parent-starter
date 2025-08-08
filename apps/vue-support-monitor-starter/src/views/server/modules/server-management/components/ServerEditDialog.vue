@@ -879,11 +879,33 @@ const setData = async (data: ServerDisplayData | any) => {
         monitorSysGenServerDesc: data.description,
         monitorSysGenServerTags: data.tags,
         monitorSysGenServerStatus: data.status,
+        // 确保操作系统信息正确映射
+        monitorSysGenServerOsType: data.osType || "",
+        monitorSysGenServerOsVersion: data.osVersion || "",
+        monitorSysGenServerOsArch: data.osArch || "x86_64",
+        monitorSysGenServerOsCustom:
+          data.osType === "Custom" ? data.osCustom : "",
         ...data,
       });
     } else {
       // 直接赋值（兼容原有的后台数据格式）
-      Object.assign(formData, data);
+      const mappedData = {
+        ...data,
+        // 确保操作系统信息存在默认值
+        monitorSysGenServerOsType: data.monitorSysGenServerOsType || "",
+        monitorSysGenServerOsVersion: data.monitorSysGenServerOsVersion || "",
+        monitorSysGenServerOsArch: data.monitorSysGenServerOsArch || "x86_64",
+        monitorSysGenServerOsCustom:
+          data.monitorSysGenServerOsType === "Custom"
+            ? data.monitorSysGenServerOsCustom
+            : "",
+      };
+      Object.assign(formData, mappedData);
+    }
+
+    // 如果设置了操作系统类型，触发handleOsTypeChange以确保相关字段正确设置
+    if (formData.monitorSysGenServerOsType) {
+      handleOsTypeChange();
     }
   } else {
     resetForm();
@@ -954,6 +976,9 @@ const handleGroupCreateSuccess = () => {
  * 重置表单
  */
 const resetForm = () => {
+  // 清除osInfo
+  osInfo.value = null;
+
   Object.assign(formData, {
     monitorSysGenServerId: null,
     monitorSysGenServerName: "",
@@ -975,10 +1000,10 @@ const resetForm = () => {
     monitorSysGenServerColorDepth: "24",
     monitorSysGenServerVncPassword: "",
     monitorSysGenServerReadOnly: 0,
-    // 操作系统信息
+    // 操作系统信息 - 确保所有字段都被重置
     monitorSysGenServerOsType: "",
     monitorSysGenServerOsVersion: "",
-    monitorSysGenServerOsArch: "",
+    monitorSysGenServerOsArch: "x86_64", // 设置默认架构
     monitorSysGenServerOsCustom: "",
     // 是否本地服务器
     monitorSysGenServerIsLocal: 0,
@@ -1026,46 +1051,64 @@ const handleProtocolChange = () => {
  * 处理操作系统类型变化
  */
 const handleOsTypeChange = () => {
-  // 根据操作系统类型设置默认架构
+  // 根据操作系统类型设置默认架构和版本信息
   const osType = formData.monitorSysGenServerOsType;
+  const osTypeLower = osType.toLowerCase();
 
-  if (!formData.monitorSysGenServerOsArch) {
-    if (osType.toLowerCase().includes("windows")) {
-      formData.monitorSysGenServerOsArch = "x86_64";
-    } else if (
-      osType.toLowerCase().includes("ubuntu") ||
-      osType.toLowerCase().includes("debian") ||
-      osType.toLowerCase().includes("centos") ||
-      osType.toLowerCase().includes("rhel")
-    ) {
-      formData.monitorSysGenServerOsArch = "x86_64";
-    } else if (osType.toLowerCase().includes("macos")) {
-      formData.monitorSysGenServerOsArch = "aarch64"; // 新的Mac通常是ARM架构
-    } else {
-      formData.monitorSysGenServerOsArch = "x86_64"; // 默认x86_64
-    }
+  // 设置默认架构
+  if (
+    !formData.monitorSysGenServerOsArch ||
+    formData.monitorSysGenServerOsArch === ""
+  ) {
+    formData.monitorSysGenServerOsArch = osTypeLower.includes("macos")
+      ? "aarch64"
+      : "x86_64";
   }
 
   // 根据操作系统类型设置默认版本信息
-  if (!formData.monitorSysGenServerOsVersion) {
-    if (osType === "Ubuntu 22.04 LTS") {
-      formData.monitorSysGenServerOsVersion = "22.04.3 LTS";
-    } else if (osType === "Ubuntu 20.04 LTS") {
-      formData.monitorSysGenServerOsVersion = "20.04.6 LTS";
-    } else if (osType === "CentOS 8") {
-      formData.monitorSysGenServerOsVersion = "8.5.2111";
-    } else if (osType === "CentOS 7") {
-      formData.monitorSysGenServerOsVersion = "7.9.2009";
-    } else if (osType === "Windows Server 2022") {
-      formData.monitorSysGenServerOsVersion = "21H2";
-    } else if (osType === "Windows Server 2019") {
-      formData.monitorSysGenServerOsVersion = "1809";
+  const osVersionMap = {
+    "Windows Server": "2022",
+    Windows: "11",
+    Ubuntu: "22.04 LTS",
+    CentOS: "8.5",
+    Debian: "11",
+    "Red Hat": "9.0",
+    macOS: "13.0",
+  };
+
+  if (
+    !formData.monitorSysGenServerOsVersion ||
+    formData.monitorSysGenServerOsVersion === ""
+  ) {
+    // 查找匹配的操作系统版本
+    const matchedOs = Object.keys(osVersionMap).find((os) =>
+      osTypeLower.includes(os.toLowerCase())
+    );
+    if (matchedOs) {
+      formData.monitorSysGenServerOsVersion = osVersionMap[matchedOs];
+    } else {
+      formData.monitorSysGenServerOsVersion = "";
     }
   }
 
-  // 清空自定义操作系统名称（如果不是自定义类型）
-  if (osType !== "Custom") {
+  // 处理自定义操作系统类型
+  if (osType === "Custom") {
+    // 保持自定义名称不变
+    if (!formData.monitorSysGenServerOsCustom) {
+      formData.monitorSysGenServerOsCustom = "";
+    }
+  } else {
+    // 非自定义类型时清空自定义名称
     formData.monitorSysGenServerOsCustom = "";
+  }
+
+  // 如果从检测结果获取到了操作系统信息，优先使用检测结果
+  if (osInfo.value) {
+    formData.monitorSysGenServerOsArch =
+      osInfo.value.osArch || formData.monitorSysGenServerOsArch;
+    if (osInfo.value.osVersion) {
+      formData.monitorSysGenServerOsVersion = osInfo.value.osVersion;
+    }
   }
 };
 
@@ -1314,7 +1357,7 @@ const handleSubmit = async () => {
 
     loading.value = true;
 
-    // 准备提交数据，确保数字类型正确
+    // 准备提交数据，确保数字类型正确和操作系统信息正确
     const submitData = {
       ...formData,
       // 确保数字类型字段正确
@@ -1323,6 +1366,13 @@ const handleSubmit = async () => {
       monitorSysGenServerStatus: Number(
         formData.monitorSysGenServerStatus || 1
       ),
+      // 处理操作系统信息
+      monitorSysGenServerOsType:
+        formData.monitorSysGenServerOsType === "Custom"
+          ? formData.monitorSysGenServerOsCustom
+          : formData.monitorSysGenServerOsType,
+      monitorSysGenServerOsVersion: formData.monitorSysGenServerOsVersion || "",
+      monitorSysGenServerOsArch: formData.monitorSysGenServerOsArch || "x86_64",
     };
 
     // 调试信息：打印提交的数据
