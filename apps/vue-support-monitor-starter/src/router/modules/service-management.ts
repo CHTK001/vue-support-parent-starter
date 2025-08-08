@@ -8,7 +8,7 @@ export default [
       icon: "ri:service-line",
       title: "服务管理",
       showLink: true,
-      rank: 2,
+      rank: 2
     },
     children: [
       {
@@ -19,9 +19,9 @@ export default [
           icon: "ri:settings-3-line",
           title: "服务管理",
           showLink: true,
-          showParent: true,
-        },
-      },
-    ],
-  },
+          showParent: true
+        }
+      }
+    ]
+  }
 ];
