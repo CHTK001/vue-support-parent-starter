@@ -21,15 +21,24 @@
           </el-button>
         </div>
 
-        <div class="filter-list" v-loading="availableLoading">
+        <div class="filter-list thin-scrollbar" v-loading="availableLoading">
           <div
-            v-for="filter in availableFilters"
+            v-for="(filter, index) in availableFilters"
             :key="filter.type"
             class="filter-item available"
           >
             <div class="filter-info">
-              <div class="filter-name">{{ filter.name }}</div>
-              <div class="filter-type">{{ filter.type }}</div>
+              <div class="filter-name">
+                <span class="filter-seq"> {{ index + 1 }}</span>
+                <span>
+                  {{ filter.describe || filter.name }}
+                </span>
+                <span class="filter-type">
+                  {{
+                    filter.describe ? filter.name : filter.describeType
+                  }}</span
+                >
+              </div>
               <div class="filter-detail" v-if="filter.describe">
                 <el-tooltip :content="filter.describe" placement="top">
                   <el-icon class="detail-icon"> <InfoFilled /> </el-icon>
@@ -78,7 +87,7 @@
           </div>
         </div>
 
-        <div class="filter-list" v-loading="installedLoading">
+        <div class="filter-list thin-scrollbar" v-loading="installedLoading">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -198,16 +207,19 @@ import {
 } from "@/api/system-server-setting";
 import FilterConfigDialog from "./FilterConfigDialog.vue";
 import FilterConfigItemDialog from "./FilterConfigItemDialog.vue";
+import { SystemServer } from "@/api/system-server";
 
 // Props
 interface Props {
   visible: boolean;
   serverId?: number | null;
+  server?: SystemServer;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   serverId: null,
+  server: {} as SystemServer,
 });
 
 // Emits
@@ -242,7 +254,18 @@ const loadAvailableFilters = async () => {
   try {
     const response = await getAvailableServletFilterObjects();
     if (response.success) {
-      availableFilters.value = response.data;
+      availableFilters.value = response.data.filter((item) => {
+        if (!item.supportedTypes) {
+          return true;
+        }
+        if (item.supportedTypes.length === 0) {
+          return true;
+        }
+
+        return item.supportedTypes.includes(
+          props.server?.systemServerType?.toLocaleUpperCase()
+        );
+      });
     } else {
       ElMessage.error(response.msg || "加载可用Filter失败");
     }
@@ -261,14 +284,9 @@ const loadInstalledFilters = async () => {
   try {
     const response = await getSystemServerSettingByServerId(props.serverId);
     if (response.success) {
-      installedFilters.value = response.data.sort(
-        (a, b) =>
-          (a.systemServerSettingSortOrder || 0) -
-          (b.systemServerSettingSortOrder || 0)
-      );
+      installedFilters.value = response.data;
     } else {
       ElMessage.error(response.msg || "加载已安装Filter失败");
-      erver / setting / objects;
     }
   } catch (error) {
     console.error("加载已安装Filter失败:", error);
@@ -292,14 +310,9 @@ const refreshInstalledFilters = () => {
 const installFilter = async (filter: ServletFilterObject) => {
   if (!props.serverId) return;
 
-  installLoading.value[filter.type] = true;
+  installLoading.value[filter.name] = true;
   try {
-    const response = await installServletFilter(
-      props.serverId,
-      filter.type,
-      filter.name,
-      filter.description
-    );
+    const response = await installServletFilter(props.serverId, filter.name);
 
     if (response.success) {
       ElMessage.success("安装成功");
@@ -570,6 +583,23 @@ watch(
       display: flex;
       align-items: center;
       gap: 8px;
+      /* 美化序号 */
+      .filter-seq {
+        display: inline-flex; /* 让数字水平、垂直居中 */
+        align-items: center;
+        justify-content: center;
+        width: 22px; /* 圆点大小 */
+        height: 22px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #409eff, #53a8ff); /* 渐变色背景 */
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1;
+        margin-right: 8px; /* 和右侧文字留点距离 */
+        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.25);
+        user-select: none; /* 防止被选中 */
+      }
     }
 
     .filter-type {

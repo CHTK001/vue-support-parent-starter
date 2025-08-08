@@ -270,7 +270,7 @@
                 <el-button
                   type="primary"
                   size="small"
-                  @click="openServerConfig(server.systemServerId)"
+                  @click="openServerConfig(server.systemServerId, server)"
                 >
                   <IconifyIconOnline icon="ri:settings-3-line" />
                   设置
@@ -299,6 +299,7 @@
     <!-- 服务器配置对话框 -->
     <ServerConfigDialog
       v-model:visible="showConfigDialog"
+      :server="currentServer"
       :server-id="currentServerId"
       @success="handleConfigSuccess"
     />
@@ -596,8 +597,9 @@ const handleDeleteServer = async (serverId: number) => {
 };
 
 // 打开服务器配置
-const openServerConfig = (serverId: number) => {
+const openServerConfig = (serverId: number, server: SystemServer) => {
   currentServerId.value = serverId;
+  currentServer.value = server;
   showConfigDialog.value = true;
 };
 
@@ -619,6 +621,7 @@ const handleCloneSuccess = () => {
 const handleConfigSuccess = () => {
   showConfigDialog.value = false;
   currentServerId.value = null;
+  currentServer.value = null;
   refreshData();
 };
 

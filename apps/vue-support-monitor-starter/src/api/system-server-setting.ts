@@ -94,20 +94,13 @@ export function getSystemServerSettingByServerId(serverId: number) {
 /**
  * 安装ServletFilter
  */
-export function installServletFilter(
-  serverId: number,
-  filterType: string,
-  filterName: string,
-  description?: string
-) {
+export function installServletFilter(serverId: number, filterType: string) {
   return request({
     url: "/system/server/setting/install",
     method: "post",
     params: {
       serverId,
       filterType,
-      filterName,
-      description,
     },
   });
 }

@@ -373,7 +373,6 @@ watch(
         newMetrics.cpu?.usage,
         oldMetrics?.cpu?.usage
       );
-      debugger;
       updateAnimationValueSafely(
         memoryAnimation,
         newMetrics.memory?.usage,
