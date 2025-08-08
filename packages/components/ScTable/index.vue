@@ -1159,6 +1159,10 @@ const componentMap = {
   flex-shrink: 0; /* 防止分页区域被压缩 */
   padding: 10px 0;
   width: 100%;
+  padding: 16px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 /* 确保表格内容区域不会被分页挤压 */
