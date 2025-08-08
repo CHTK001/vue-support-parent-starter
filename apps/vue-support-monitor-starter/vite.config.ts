@@ -30,7 +30,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/monitor/api": {
-          target: "http://localhost:19170",
+          target: "http://172.16.2.226:19170",
           ws: true,
           changeOrigin: true,
           timeout: 60000, // 60秒超时
@@ -81,7 +81,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       rollupOptions: {
         input: {
           index: pathResolve("./index.html", import.meta.url),
-          preview: pathResolve("./preview.html", import.meta.url),
         },
         // 静态资源分类打包
         output: {
