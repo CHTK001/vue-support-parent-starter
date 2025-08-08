@@ -30,8 +30,8 @@ export const config: Config = {
 export const parseData = res => {
   return {
     //分析无分页的数据字段结构
-    data: res.data?.data || res.data?.rows,
-    rows: res.data?.data || res.data?.rows, //分析行数据字段结构
+    data: res.data?.data || res.data?.rows || res.data?.records,
+    rows: res.data?.data || res.data?.rows || res.data?.records, //分析行数据字段结构
     total: res.data?.total ?? res?.data?.recordsTotal ?? 0, //分析总数字段结构
     summary: res.summary, //分析合计行字段结构
     msg: res.msg || res.message, //分析描述字段结构

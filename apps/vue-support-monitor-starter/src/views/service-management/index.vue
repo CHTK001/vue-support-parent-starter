@@ -103,155 +103,145 @@
     </el-card>
 
     <!-- 服务器列表 -->
-    <div class="server-list" v-loading="loading">
-      <div class="server-grid">
-        <el-card
-          v-for="server in serverList"
-          :key="server.systemServerId"
-          class="server-card"
-          :class="getServerCardClass(server.systemServerStatus)"
-        >
-          <div class="server-header">
-            <div class="server-title">
-              <h3>{{ server.systemServerName }}</h3>
-              <el-tag
-                :type="getStatusTagType(server.systemServerStatus)"
-                size="small"
-              >
-                {{ getStatusText(server.systemServerStatus) }}
-              </el-tag>
-            </div>
-            <div class="server-actions">
-              <el-dropdown @command="handleServerAction">
-                <el-button type="text" size="small">
-                  <IconifyIconOnline icon="ri:more-line" />
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item
-                      :command="`edit-${server.systemServerId}`"
-                    >
-                      <IconifyIconOnline icon="ri:edit-line" />
-                      编辑
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="`clone-${server.systemServerId}`"
-                    >
-                      <IconifyIconOnline icon="ri:file-copy-line" />
-                      克隆
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="`restart-${server.systemServerId}`"
-                      :disabled="server.systemServerStatus !== 'RUNNING'"
-                    >
-                      <IconifyIconOnline icon="ri:restart-line" />
-                      重启
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="`delete-${server.systemServerId}`"
-                      divided
-                    >
-                      <IconifyIconOnline icon="ri:delete-bin-line" />
-                      删除
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
-          </div>
-
-          <div class="server-info">
-            <div class="info-item">
-              <span class="info-label">类型:</span>
-              <span class="info-value">{{ server.systemServerType }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">端口:</span>
-              <span class="info-value">{{ server.systemServerPort }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">最大连接:</span>
-              <span class="info-value">{{
-                server.systemServerMaxConnections || "无限制"
-              }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">超时时间:</span>
-              <span class="info-value"
-                >{{ server.systemServerTimeout || "默认" }}s</span
-              >
-            </div>
-            <div class="info-item" v-if="server.systemServerDescription">
-              <span class="info-label">描述:</span>
-              <span class="info-value">{{
-                server.systemServerDescription
-              }}</span>
-            </div>
-          </div>
-
-          <div class="server-footer">
-            <div class="server-controls">
-              <el-button
-                v-if="server.systemServerStatus === 'STOPPED'"
-                type="success"
-                size="small"
-                @click="startServer(server.systemServerId)"
-                :loading="actionLoading[server.systemServerId]"
-              >
-                <IconifyIconOnline icon="ri:play-line" />
-                启动
-              </el-button>
-              <el-button
-                v-else-if="server.systemServerStatus === 'RUNNING'"
-                type="danger"
-                size="small"
-                @click="stopServer(server.systemServerId)"
-                :loading="actionLoading[server.systemServerId]"
-              >
-                <IconifyIconOnline icon="ri:stop-line" />
-                停止
-              </el-button>
-              <el-button v-else type="warning" size="small" disabled>
-                {{ getStatusText(server.systemServerStatus) }}
-              </el-button>
-
-              <el-button
-                type="primary"
-                size="small"
-                @click="openServerConfig(server.systemServerId)"
-              >
-                <IconifyIconOnline icon="ri:settings-3-line" />
-                设置
-              </el-button>
-            </div>
-          </div>
-        </el-card>
-      </div>
-
-      <!-- 空状态 -->
-      <el-empty
-        v-if="!loading && serverList.length === 0"
-        description="暂无服务器数据"
+    <div class="server-list">
+      <ScTable
+        ref="serverTable"
+        :loading="loading"
+        :url="getSystemServerPage"
+        :params="queryParams"
+        layout="card"
       >
-        <el-button type="primary" @click="showAddDialog = true"
-          >新增服务器</el-button
-        >
-      </el-empty>
-    </div>
+        <template #empty>
+          <el-empty description="暂无服务器数据">
+            <el-button type="primary" @click="showAddDialog = true">
+              新增服务器
+            </el-button>
+          </el-empty>
+        </template>
 
-    <!-- 分页 -->
-    <div class="pagination-container" v-if="total > 0">
-      <el-pagination
-        v-model:current-page="queryParams.current"
-        v-model:page-size="queryParams.size"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleQuery"
-        @current-change="handleQuery"
-      />
-    </div>
+        <template #default="{ row: server }">
+          <el-card
+            class="server-card"
+            :class="getServerCardClass(server.systemServerStatus)"
+          >
+            <div class="server-header">
+              <div class="server-title">
+                <h3>{{ server.systemServerName }}</h3>
+                <el-tag
+                  :type="getStatusTagType(server.systemServerStatus)"
+                  size="small"
+                >
+                  {{ getStatusText(server.systemServerStatus) }}
+                </el-tag>
+              </div>
+              <div class="server-actions">
+                <el-dropdown @command="handleServerAction">
+                  <el-button type="text" size="small">
+                    <IconifyIconOnline icon="ri:more-line" />
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item
+                        :command="`edit-${server.systemServerId}`"
+                      >
+                        <IconifyIconOnline icon="ri:edit-line" />
+                        编辑
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        :command="`clone-${server.systemServerId}`"
+                      >
+                        <IconifyIconOnline icon="ri:file-copy-line" />
+                        克隆
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        :command="`restart-${server.systemServerId}`"
+                        :disabled="server.systemServerStatus !== 'RUNNING'"
+                      >
+                        <IconifyIconOnline icon="ri:restart-line" />
+                        重启
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        :command="`delete-${server.systemServerId}`"
+                        divided
+                      >
+                        <IconifyIconOnline icon="ri:delete-bin-line" />
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </div>
 
+            <div class="server-info">
+              <div class="info-item">
+                <span class="info-label">类型:</span>
+                <span class="info-value">{{ server.systemServerType }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">端口:</span>
+                <span class="info-value">{{ server.systemServerPort }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">最大连接:</span>
+                <span class="info-value">{{
+                  server.systemServerMaxConnections || "无限制"
+                }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">超时时间:</span>
+                <span class="info-value"
+                  >{{ server.systemServerTimeout || "默认" }}s</span
+                >
+              </div>
+              <div class="info-item" v-if="server.systemServerDescription">
+                <span class="info-label">描述:</span>
+                <span class="info-value">{{
+                  server.systemServerDescription
+                }}</span>
+              </div>
+            </div>
+
+            <div class="server-footer">
+              <div class="server-controls">
+                <el-button
+                  v-if="server.systemServerStatus === 'STOPPED'"
+                  type="success"
+                  size="small"
+                  @click="startServer(server.systemServerId)"
+                  :loading="actionLoading[server.systemServerId]"
+                >
+                  <IconifyIconOnline icon="ri:play-line" />
+                  启动
+                </el-button>
+                <el-button
+                  v-else-if="server.systemServerStatus === 'RUNNING'"
+                  type="danger"
+                  size="small"
+                  @click="stopServer(server.systemServerId)"
+                  :loading="actionLoading[server.systemServerId]"
+                >
+                  <IconifyIconOnline icon="ri:stop-line" />
+                  停止
+                </el-button>
+                <el-button v-else type="warning" size="small" disabled>
+                  {{ getStatusText(server.systemServerStatus) }}
+                </el-button>
+
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="openServerConfig(server.systemServerId)"
+                >
+                  <IconifyIconOnline icon="ri:settings-3-line" />
+                  设置
+                </el-button>
+              </div>
+            </div>
+          </el-card>
+        </template>
+      </ScTable>
+    </div>
     <!-- 新增/编辑对话框 -->
     <ServerFormDialog
       v-model:visible="showAddDialog"
@@ -279,18 +269,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import type { IResponse } from "@/interface/request";
 import {
-  getSystemServerPage,
   getAvailableServerTypes,
+  getSystemServerPage,
   getSystemServerStatistics,
   startSystemServer,
   stopSystemServer,
   restartSystemServer,
   deleteSystemServer,
-  cloneSystemServer,
   type SystemServer,
   type SystemServerStatistics,
-  type CloneServerParams,
 } from "@/api/system-server";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
@@ -303,7 +292,6 @@ defineOptions({
 
 // 响应式数据
 const loading = ref(false);
-const serverList = ref<SystemServer[]>([]);
 const serverTypes = ref<string[]>([]);
 const statistics = ref<SystemServerStatistics>({
   total: 0,
@@ -311,8 +299,29 @@ const statistics = ref<SystemServerStatistics>({
   stopped: 0,
   error: 0,
 });
-const total = ref(0);
 const actionLoading = ref<Record<number, boolean>>({});
+
+// 表格列配置
+const columns = [
+  {
+    label: "服务器名称",
+    prop: "systemServerName",
+  },
+  {
+    label: "服务器类型",
+    prop: "systemServerType",
+  },
+  {
+    label: "运行状态",
+    prop: "systemServerStatus",
+  },
+];
+
+// 处理分页变化
+const handlePaginationChange = (pagination: any) => {
+  queryParams.current = pagination.currentPage;
+  queryParams.size = pagination.pageSize;
+};
 
 // 查询参数
 const queryParams = reactive({
@@ -382,31 +391,13 @@ const getStatusText = (status: string) => {
   }
 };
 
-// 加载数据
-const loadData = async () => {
-  loading.value = true;
-  try {
-    const response = await getSystemServerPage(queryParams);
-    if (response.success) {
-      serverList.value = response.data.records;
-      total.value = response.data.total;
-    } else {
-      ElMessage.error(response.msg || "加载数据失败");
-    }
-  } catch (error) {
-    console.error("加载数据失败:", error);
-    ElMessage.error("加载数据失败");
-  } finally {
-    loading.value = false;
-  }
-};
-
 // 加载服务器类型
 const loadServerTypes = async () => {
   try {
     const response = await getAvailableServerTypes();
-    if (response.success) {
-      serverTypes.value = response.data;
+    const { code, data, msg } = response;
+    if (code === "00000") {
+      serverTypes.value = data;
     }
   } catch (error) {
     console.error("加载服务器类型失败:", error);
@@ -417,8 +408,9 @@ const loadServerTypes = async () => {
 const loadStatistics = async () => {
   try {
     const response = await getSystemServerStatistics();
-    if (response.success) {
-      statistics.value = response.data;
+    const { code, data, msg } = response;
+    if (code === "00000") {
+      statistics.value = data;
     }
   } catch (error) {
     console.error("加载统计信息失败:", error);
@@ -428,7 +420,6 @@ const loadStatistics = async () => {
 // 查询
 const handleQuery = () => {
   queryParams.current = 1;
-  loadData();
 };
 
 // 重置查询
@@ -441,7 +432,6 @@ const resetQuery = () => {
 
 // 刷新数据
 const refreshData = () => {
-  loadData();
   loadStatistics();
 };
 
@@ -450,11 +440,12 @@ const startServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await startSystemServer(serverId);
-    if (response.success) {
+    const { code, data, msg } = response;
+    if (code === "00000") {
       ElMessage.success("服务器启动成功");
       refreshData();
     } else {
-      ElMessage.error(response.msg || "启动失败");
+      ElMessage.error(msg || "启动失败");
     }
   } catch (error) {
     console.error("启动服务器失败:", error);
@@ -469,11 +460,12 @@ const stopServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await stopSystemServer(serverId);
-    if (response.success) {
+    const { code, data, msg } = response;
+    if (code === "00000") {
       ElMessage.success("服务器停止成功");
       refreshData();
     } else {
-      ElMessage.error(response.msg || "停止失败");
+      ElMessage.error(msg || "停止失败");
     }
   } catch (error) {
     console.error("停止服务器失败:", error);
@@ -488,7 +480,7 @@ const restartServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
     const response = await restartSystemServer(serverId);
-    if (response.success) {
+    if (response.code === "00000") {
       ElMessage.success("服务器重启成功");
       refreshData();
     } else {
@@ -506,15 +498,11 @@ const restartServer = async (serverId: number) => {
 const handleServerAction = (command: string) => {
   const [action, serverIdStr] = command.split("-");
   const serverId = parseInt(serverIdStr);
-  const server = serverList.value.find((s) => s.systemServerId === serverId);
-
   switch (action) {
     case "edit":
-      currentServer.value = server || null;
       showAddDialog.value = true;
       break;
     case "clone":
-      currentServer.value = server || null;
       showCloneDialog.value = true;
       break;
     case "restart":
@@ -540,7 +528,7 @@ const handleDeleteServer = async (serverId: number) => {
     );
 
     const response = await deleteSystemServer(serverId);
-    if (response.success) {
+    if (response.code === "00000") {
       ElMessage.success("删除成功");
       refreshData();
     } else {
@@ -583,7 +571,6 @@ const handleConfigSuccess = () => {
 
 // 初始化
 onMounted(() => {
-  loadData();
   loadServerTypes();
   loadStatistics();
 });
