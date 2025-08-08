@@ -714,17 +714,16 @@ onMounted(() => {
   }
 
   .server-card {
-    border-radius: 20px;
+    border-radius: 16px;
     border: none;
     background: linear-gradient(145deg, #ffffff, #f5f7fa);
     box-shadow:
-      8px 8px 16px #e6e9ed,
-      -8px -8px 16px #ffffff;
+      6px 6px 12px #e6e9ed,
+      -6px -6px 12px #ffffff;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    padding: 1.5rem;
-
+    padding: 1rem;
     &:hover {
       transform: translateY(-6px) scale(1.02);
       box-shadow:
@@ -769,24 +768,23 @@ onMounted(() => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
       border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
       .server-title {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
 
         h3 {
           margin: 0;
-          font-size: 20px;
+          font-size: 16px;
           font-weight: 600;
           color: #2c3e50;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.3px;
         }
-
         .el-tag {
           font-weight: 500;
           text-transform: uppercase;
@@ -821,13 +819,13 @@ onMounted(() => {
     .server-info {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin-bottom: 16px;
 
       .info-item {
-        padding: 12px;
+        padding: 8px;
         background: rgba(255, 255, 255, 0.6);
-        border-radius: 12px;
+        border-radius: 8px;
         transition: all 0.3s ease;
 
         &:hover {
@@ -837,16 +835,16 @@ onMounted(() => {
         }
 
         .info-label {
-          font-size: 13px;
+          font-size: 12px;
           color: #909399;
           font-weight: 500;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
+          letter-spacing: 0.3px;
+          margin-bottom: 2px;
         }
 
         .info-value {
-          font-size: 16px;
+          font-size: 14px;
           color: #2c3e50;
           font-weight: 600;
           white-space: nowrap;
@@ -865,9 +863,9 @@ onMounted(() => {
           flex: 1;
           border-radius: 12px;
           font-weight: 500;
-          height: 40px;
-          font-size: 14px;
-          letter-spacing: 0.5px;
+          height: 32px;
+          font-size: 13px;
+          letter-spacing: 0.3px;
           text-transform: uppercase;
           transition: all 0.3s ease;
 
