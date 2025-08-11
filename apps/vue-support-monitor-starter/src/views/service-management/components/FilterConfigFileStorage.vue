@@ -120,13 +120,27 @@
               </el-radio-group>
             </div>
             <el-form :model="currentStorage" :rules="formRules(currentStorage)" ref="detailFormRef" label-width="120px" class="storage-form">
-              <template v-if="currentStorage.fileStorageType === 'LOCAL'">
-                <el-form-item label="根路径" prop="fileStorageBasePath">
-                  <el-input v-model="currentStorage.fileStorageBasePath" placeholder="如: /data/files" />
+                <el-form-item label="根路径" prop="fileStorageEndpoint" v-if="currentStorage.fileStorageType === 'FILESYSTEM'">
+                  <div class="dir-picker">
+                    <el-cascader
+                      v-model="dirSelection"
+                      :options="dirOptions"
+                      :props="dirProps"
+                      :show-all-levels="false"
+                      clearable
+                      filterable
+                      placeholder="选择本地目录"
+                      @focus="ensureDrivesLoaded"
+                      @change="onDirChange"
+                    />
+                    <el-input
+                      v-model="currentStorage.fileStorageEndpoint"
+                      placeholder="如: C:/data/files"
+                      style="flex:1"
+                    />
+                  </div>
                 </el-form-item>
-              </template>
-              <template v-else>
-                <el-form-item label="端点" prop="fileStorageEndpoint">
+                <el-form-item label="端点" prop="fileStorageEndpoint" v-else>
                   <el-input v-model="currentStorage.fileStorageEndpoint" placeholder="https://endpoint" />
                 </el-form-item>
                 <el-form-item label="Bucket" prop="fileStorageBucket">
@@ -141,7 +155,6 @@
                 <el-form-item label="区域" prop="fileStorageRegion">
                   <el-input v-model="currentStorage.fileStorageRegion" />
                 </el-form-item>
-              </template>
             </el-form>
           </div>
           <el-empty v-else description="请选择左侧已安装的存储或新增一个" />
@@ -171,6 +184,7 @@ import {
   type FileStorageConfig,
 } from "@/api/system-server-setting";
 import { fetchOptionList, fetchOptionObjectsList } from "@/api/spi";
+import { getSystemDrives, getSystemDirectories, type DriveInfo, type DirectoryInfo } from "@/api/system-info";
 
 interface Props {
   visible: boolean;
@@ -240,14 +254,10 @@ function formRules(s: FileStorageConfig): FormRules {
   const common: FormRules = {
     fileStorageType: [{ required: true, message: "请选择存储类型", trigger: "change" }],
   };
-  if (s.fileStorageType === "LOCAL") {
-    common.fileStorageBasePath = [{ required: true, message: "请输入根路径", trigger: "blur" }];
-  } else {
     common.fileStorageEndpoint = [{ required: true, message: "请输入Endpoint", trigger: "blur" }];
     common.fileStorageBucket = [{ required: true, message: "请输入Bucket", trigger: "blur" }];
-    common.fileStorageAccessKey = [{ required: true, message: "请输入AccessKey", trigger: "blur" }];
-    common.fileStorageSecretKey = [{ required: true, message: "请输入SecretKey", trigger: "blur" }];
-  }
+    // common.fileStorageAccessKey = [{ required: true, message: "请输入AccessKey", trigger: "blur" }];
+    // common.fileStorageSecretKey = [{ required: true, message: "请输入SecretKey", trigger: "blur" }];
   return common;
 }
 
@@ -416,8 +426,8 @@ async function handleSave() {
     if (s.fileStorageType === 'LOCAL') {
       if (!s.fileStorageBasePath) { ElMessage.error(`存储 #${i + 1} 请填写根路径`); return; }
     } else {
-      if (!s.fileStorageEndpoint || !s.fileStorageBucket || !s.fileStorageAccessKey || !s.fileStorageSecretKey) {
-        ElMessage.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket/AccessKey/SecretKey`);
+      if (!s.fileStorageEndpoint || !s.fileStorageBucket) {
+        ElMessage.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket`);
         return;
       }
     }
@@ -452,6 +462,53 @@ function reload() { loadData(); }
 
 // 当前选中存储
 const currentStorage = computed(() => (selectedIndex.value != null ? storages.value[selectedIndex.value] : null));
+
+// 本地目录选择（仅 LOCAL 类型使用）
+const dirSelection = ref<string | undefined>(undefined);
+const dirOptions = ref<any[]>([]);
+const dirProps = {
+  value: 'path',
+  label: 'name',
+  children: 'children',
+  emitPath: false,
+  checkStrictly: true,
+  lazy: true,
+  async lazyLoad(node: any, resolve: (nodes: any[]) => void) {
+    try {
+      if (node.level === 0) {
+        const res = await getSystemDrives();
+        const list = (res.data || []).map((d: DriveInfo) => ({ path: d.path, name: d.name, leaf: false }));
+        resolve(list);
+      } else {
+        const res = await getSystemDirectories(node.data.path, false);
+        const list = (res.data || []).map((d: DirectoryInfo) => ({ path: d.path, name: d.name, leaf: false }));
+        resolve(list);
+      }
+    } catch {
+      resolve([]);
+    }
+  }
+};
+
+async function ensureDrivesLoaded() {
+  if (dirOptions.value.length > 0) return;
+  try {
+    const res = await getSystemDrives();
+    dirOptions.value = (res.data || []).map((d: DriveInfo) => ({ path: d.path, name: d.name }));
+  } catch { dirOptions.value = []; }
+}
+
+function onDirChange(val: string) {
+  if (currentStorage.value) currentStorage.value.fileStorageEndpoint = val;
+}
+
+watch(() => currentStorage.value?.fileStorageType, (t) => {
+  if (t !== 'FILESYSTEM') {
+    dirSelection.value = undefined;
+  } else if (currentStorage.value?.fileStorageEndpoint) {
+    dirSelection.value = currentStorage.value.fileStorageEndpoint as unknown as string;
+  }
+});
 
 // 统一加载
 async function loadData() {
@@ -510,6 +567,9 @@ async function loadData() {
 /* 右侧类型按钮组 */
 .detail-card { border-radius: 8px;height: 100%; }
 .type-group { display:flex; align-items:center; gap: 8px; margin-bottom: 8px }
+
+.dir-picker { display:flex; align-items:center; gap:8px }
+.dir-picker :deep(.el-cascader) { width: 360px }
 
 @media (max-width: 920px) { .three-col { grid-template-columns: 1fr } }
 </style>
