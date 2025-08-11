@@ -991,4 +991,75 @@ onMounted(() => {
     }
   }
 }
+
+/* Modern enhancements for service cards */
+.server-list .server-card {
+  border-radius: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.server-list .server-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--card-accent, #e5e7eb);
+}
+
+.server-list .server-card.server-running { --card-accent: #10b981; }
+.server-list .server-card.server-stopped { --card-accent: #94a3b8; }
+.server-list .server-card.server-transitioning { --card-accent: #f59e0b; }
+.server-list .server-card.server-error { --card-accent: #ef4444; }
+
+.server-list .server-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.12);
+}
+
+/* Subtle slide-in for actions */
+.server-list .server-card .server-actions {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.server-list .server-card:hover .server-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Info grid pill look */
+.server-list .server-card .server-info .info-item {
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.server-list .server-card .server-info .info-item:hover {
+  background: #f1f5f9;
+  border-color: #e5eaf0;
+}
+
+/* Title optics */
+.server-list .server-card .server-title-content h3 {
+  font-size: 17px;
+  letter-spacing: -0.2px;
+}
+
+/* Better buttons contrast on cards */
+.server-list .server-card .server-footer .server-controls .el-button {
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .server-list .server-card {
+    border-radius: 12px;
+    padding: 14px;
+  }
+}
 </style>
