@@ -387,30 +387,32 @@ export interface IpRateLimitRule {
   ipRateLimitServerId?: number;
   ipRateLimitIp: string;
   ipRateLimitQps?: number;
+  ipRateLimitType?: 'RATE_LIMIT' | 'WHITELIST' | 'BLACKLIST';
   ipRateLimitEnabled?: boolean;
 }
 
-export function getIpRateLimitRules(serverId: number) {
+export function getIpRateLimitRules(serverId: number, settingId: number) {
   return request({
-    url: `/system/server/setting/rate-limit/ip/${serverId}`,
+    url: `/system/server/setting/rate-limit/ip/${serverId}/${settingId}`,
     method: "get",
   });
 }
 
 export function saveIpRateLimitRules(
   serverId: number,
+  settingId: number,
   rules: IpRateLimitRule[]
 ) {
   return request({
-    url: `/system/server/setting/rate-limit/ip/${serverId}/save`,
+    url: `/system/server/setting/rate-limit/ip/${serverId}/${settingId}/save`,
     method: "post",
     data: rules,
   });
 }
 
-export function deleteIpRateLimitRules(serverId: number) {
+export function deleteIpRateLimitRules(serverId: number, settingId: number) {
   return request({
-    url: `/system/server/setting/rate-limit/ip/${serverId}`,
+    url: `/system/server/setting/rate-limit/ip/${serverId}/${settingId}`,
     method: "delete",
   });
 }
@@ -421,30 +423,32 @@ export interface AddressRateLimitRule {
   addressRateLimitServerId?: number;
   addressRateLimitAddress: string;
   addressRateLimitQps?: number;
+  addressRateLimitType?: 'RATE_LIMIT' | 'WHITELIST' | 'BLACKLIST';
   addressRateLimitEnabled?: boolean;
 }
 
-export function getAddressRateLimitRules(serverId: number) {
+export function getAddressRateLimitRules(serverId: number, settingId: number) {
   return request({
-    url: `/system/server/setting/rate-limit/address/${serverId}`,
+    url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}`,
     method: "get",
   });
 }
 
 export function saveAddressRateLimitRules(
   serverId: number,
+  settingId: number,
   rules: AddressRateLimitRule[]
 ) {
   return request({
-    url: `/system/server/setting/rate-limit/address/${serverId}/save`,
+    url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}/save`,
     method: "post",
     data: rules,
   });
 }
 
-export function deleteAddressRateLimitRules(serverId: number) {
+export function deleteAddressRateLimitRules(serverId: number, settingId: number) {
   return request({
-    url: `/system/server/setting/rate-limit/address/${serverId}`,
+    url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}`,
     method: "delete",
   });
 }

@@ -9,7 +9,7 @@
   // Vue文件格式化配置
   "[vue]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "Vue.volar"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
 
   // TypeScript文件格式化配置

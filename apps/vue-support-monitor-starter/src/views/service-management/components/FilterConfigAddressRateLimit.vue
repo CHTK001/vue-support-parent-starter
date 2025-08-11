@@ -8,16 +8,22 @@
   >
     <div>
       <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
+        <el-select v-model="r.addressRateLimitType" style="width: 140px" placeholder="类型">
+          <el-option label="限流" value="RATE_LIMIT" />
+          <el-option label="白名单" value="WHITELIST" />
+          <el-option label="黑名单" value="BLACKLIST" />
+        </el-select>
         <el-input
           v-model="r.addressRateLimitAddress"
           placeholder="地址前缀/路径（例如 /api/user）"
-          style="width: 260px"
+          style="width: 220px; margin-left: 8px"
         />
         <el-input-number
           v-model="r.addressRateLimitQps"
           :min="1"
           :max="100000"
-          style="width: 160px; margin-left: 8px"
+          style="width: 140px; margin-left: 8px"
+          :disabled="r.addressRateLimitType !== 'RATE_LIMIT'"
         />
         <el-switch v-model="r.addressRateLimitEnabled" style="margin-left: 8px" />
         <el-button type="danger" circle style="margin-left: 8px" @click="rules.splice(idx, 1)">
@@ -50,6 +56,7 @@ import {
 interface Props {
   visible: boolean;
   serverId: number;
+  filterSettingId: number;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<{
@@ -74,7 +81,7 @@ watch(visibleInner, (v) => emit("update:visible", v));
 async function loadData() {
   rules.value = [];
   try {
-    const res = await getAddressRateLimitRules(props.serverId);
+    const res = await getAddressRateLimitRules(props.serverId, props.filterSettingId);
     if (res.success && Array.isArray(res.data)) {
       rules.value = res.data;
     }
@@ -85,6 +92,7 @@ async function loadData() {
 
 function addRule() {
   rules.value.push({
+    addressRateLimitType: 'RATE_LIMIT',
     addressRateLimitAddress: "",
     addressRateLimitQps: 100,
     addressRateLimitEnabled: true,
@@ -94,7 +102,7 @@ function addRule() {
 async function handleSave() {
   loading.value = true;
   try {
-    const res = await saveAddressRateLimitRules(props.serverId, rules.value);
+    const res = await saveAddressRateLimitRules(props.serverId, props.filterSettingId, rules.value);
     if (res.success) {
       ElMessage.success("保存成功，已热应用");
       emit("success");
