@@ -86,7 +86,7 @@
             >
               <div class="item-title">
                 <span class="seq">#{{ idx + 1 }}</span>
-                <span class="type">{{ s.fileStorageType || '-' }}</span>
+                <span class="type">{{ getFileStorageDescribe(s.fileStorageType) || '-' }}</span>
                 <el-tag size="small" :type="s.fileStorageEnabled ? 'success' : 'info'">
                   {{ s.fileStorageEnabled ? '启用' : '禁用' }}
                 </el-tag>
@@ -110,7 +110,8 @@
             <div class="card-header">存储配置</div>
           </template>
           <div v-if="currentStorage">
-            <div class="type-group">
+            <ScSelect v-model="currentStorage.fileStorageType" :options="typeOptions"   />
+            <!-- <div class="type-group">
               <el-radio-group v-model="currentStorage.fileStorageType" size="small">
                 <el-radio-button
                   v-for="opt in typeOptions"
@@ -118,26 +119,11 @@
                   :label="opt.name"
                 >{{ opt.describe || opt.name }}</el-radio-button>
               </el-radio-group>
-            </div>
+            </div> -->
             <el-form :model="currentStorage" :rules="formRules(currentStorage)" ref="detailFormRef" label-width="120px" class="storage-form">
                 <el-form-item label="根路径" prop="fileStorageEndpoint" v-if="currentStorage.fileStorageType === 'FILESYSTEM'">
                   <div class="dir-picker">
-                    <el-cascader
-                      v-model="dirSelection"
-                      :options="dirOptions"
-                      :props="dirProps"
-                      :show-all-levels="false"
-                      clearable
-                      filterable
-                      placeholder="选择本地目录"
-                      @focus="ensureDrivesLoaded"
-                      @change="onDirChange"
-                    />
-                    <el-input
-                      v-model="currentStorage.fileStorageEndpoint"
-                      placeholder="如: C:/data/files"
-                      style="flex:1"
-                    />
+                    <DirectorySelector v-model="currentStorage.fileStorageEndpoint" />
                   </div>
                 </el-form-item>
                 <el-form-item label="端点" prop="fileStorageEndpoint" v-else>
@@ -185,6 +171,9 @@ import {
 } from "@/api/system-server-setting";
 import { fetchOptionList, fetchOptionObjectsList } from "@/api/spi";
 import { getSystemDrives, getSystemDirectories, type DriveInfo, type DirectoryInfo } from "@/api/system-info";
+import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 interface Props {
   visible: boolean;
@@ -226,7 +215,7 @@ const imageSettingOptions = ref<SpiOption[]>([]);
 const imageFilterOptions = ref<SpiOption[]>([]);
 const imageSettingSelection = ref<string[]>([]);
 const imageFilterSelection = ref<string[]>([]);
-
+// 处理选中变化
 function applySelectionsToGlobal() {
   if (global.value.openSetting) {
     global.value.settingsStr = imageSettingSelection.value.join(",");
@@ -254,11 +243,37 @@ function formRules(s: FileStorageConfig): FormRules {
   const common: FormRules = {
     fileStorageType: [{ required: true, message: "请选择存储类型", trigger: "change" }],
   };
-    common.fileStorageEndpoint = [{ required: true, message: "请输入Endpoint", trigger: "blur" }];
-    common.fileStorageBucket = [{ required: true, message: "请输入Bucket", trigger: "blur" }];
-    // common.fileStorageAccessKey = [{ required: true, message: "请输入AccessKey", trigger: "blur" }];
-    // common.fileStorageSecretKey = [{ required: true, message: "请输入SecretKey", trigger: "blur" }];
+  common.fileStorageEndpoint = [{ required: true, message: "请选择根目录", trigger: "blur" }];
+  common.fileStorageBucket = [{ required: true, message: "请输入Bucket", trigger: "blur" }];
+  if(s.fileStorageType !== 'FILESYSTEM') {
+    common.fileStorageAccessKey = [{ required: true, message: "请输入AccessKey", trigger: "blur" }];
+    common.fileStorageSecretKey = [{ required: true, message: "请输入SecretKey", trigger: "blur" }];
+  }
   return common;
+}
+
+const getIcon = (type) => {
+  if(!type) {
+    return 'ri:file-line';
+  }
+  if(type === 'FILESYSTEM') {
+    return 'ri:computer-line';
+  }
+
+  if(type === 'FTP' || type === 'SFTP') {
+    return "ri:folder-2-line";
+  }
+
+  if(type === 'ALIYUN') {
+    
+  }
+
+  return 'ri:file-line';
+
+}
+
+const getFileStorageDescribe =  (type) => {
+  return typeOptions.value.find(it => it.value === type)?.describe || type;
 }
 
 function selectStorage(idx: number) { selectedIndex.value = idx; }
@@ -367,7 +382,12 @@ async function loadTypeOptionsFromSpi() {
     if (res?.success) {
       const list = (res.data || []).map((it: any) => {
         if (typeof it === 'string') return { name: it } as SpiOption;
-        return { name: it?.name ?? it?.value ?? it?.label, describe: it?.describe ?? it?.label } as SpiOption;
+        return { 
+          name: it?.name ?? it?.value ?? it?.label, 
+          value: it?.name, 
+          icon: getIcon(it?.name),
+          describe: it?.describe ?? it?.label 
+        } as SpiOption;
       }).filter((it: SpiOption) => !!it.name);
       if (list.length > 0) {
         const seen = new Set<string>();
@@ -568,7 +588,7 @@ async function loadData() {
 .detail-card { border-radius: 8px;height: 100%; }
 .type-group { display:flex; align-items:center; gap: 8px; margin-bottom: 8px }
 
-.dir-picker { display:flex; align-items:center; gap:8px }
+.dir-picker { display:flex; align-items:center; gap:8px; width: 100%; }
 .dir-picker :deep(.el-cascader) { width: 360px }
 
 @media (max-width: 920px) { .three-col { grid-template-columns: 1fr } }

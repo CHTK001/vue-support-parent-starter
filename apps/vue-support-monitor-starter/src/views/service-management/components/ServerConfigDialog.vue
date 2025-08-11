@@ -196,11 +196,13 @@
     <FilterConfigIpRateLimit
       v-model:visible="showIpRateLimitDialog"
       :server-id="props.serverId as number"
+      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
       @success="handleConfigSuccess"
     />
     <FilterConfigAddressRateLimit
       v-model:visible="showAddressRateLimitDialog"
       :server-id="props.serverId as number"
+      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
       @success="handleConfigSuccess"
     />
 

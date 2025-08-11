@@ -1,8 +1,8 @@
 <template>
   <div class="card-selector-container">
     <!-- 原生select布局 -->
-    <SelectLayout 
-      v-if="layout === 'select'" 
+    <SelectLayout
+      v-if="layout === 'select'"
       v-model="selectValue"
       :options="options"
       :multiple="multiple"
@@ -16,16 +16,12 @@
     />
 
     <!-- 卡片选择器布局 -->
-    <div 
-      v-else-if="layout === 'card'"
-      class="card-selector-flex" 
-      :style="flexStyles"
-    >
+    <div v-else-if="layout === 'card'" class="card-selector-flex" :style="flexStyles">
       <!-- 使用CardLayout组件 -->
       <CardLayout
         v-for="item in options"
         :key="item.value"
-        :label="item.label"
+        :label="item.label || item.describe || item.name"
         :value="item.value"
         :icon="item.icon"
         :is-selected="isSelected(item.value)"
@@ -37,16 +33,12 @@
     </div>
 
     <!-- 药丸选择器布局 -->
-    <div 
-      v-else-if="layout === 'pill'"
-      class="pill-selector-flex" 
-      :style="flexStyles"
-    >
+    <div v-else-if="layout === 'pill'" class="pill-selector-flex" :style="flexStyles">
       <!-- 使用PillLayout组件 -->
       <PillLayout
         v-for="item in options"
         :key="item.value"
-        :label="item.label"
+        :label="item.label || item.describe || item.name"
         :value="item.value"
         :icon="item.icon"
         :is-selected="isSelected(item.value)"
@@ -58,14 +50,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, defineEmits, ref, watch } from "vue";
-import { IconifyIconOnline } from "../ReIcon";
+import { computed, defineEmits, defineProps, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
 import SelectLayout from "./components/SelectLayout.vue";
 
 interface CardOption {
   label: string;
+  name?: string;
+  describe?: string;
   value: string | number;
   icon: string;
 }
@@ -74,22 +67,22 @@ const props = defineProps({
   // v-model绑定值
   modelValue: {
     type: [String, Number, Array],
-    default: "",
+    default: ""
   },
   // 选项数组
   options: {
     type: Array as () => CardOption[],
-    required: true,
+    required: true
   },
   // 每行显示的卡片数量
   columns: {
     type: [Number, String],
-    default: "auto",
+    default: "auto"
   },
   // 卡片间距
   gap: {
     type: Number,
-    default: 12,
+    default: 12
   },
   // 布局类型
   layout: {
@@ -122,14 +115,14 @@ const props = defineProps({
   // 卡片宽度
   width: {
     type: String,
-    default: '120px'
+    default: "120px"
   },
   // 图标位置
   iconPosition: {
     type: String,
-    default: 'center',
+    default: "center",
     validator: (value: string) => {
-      return ['center', 'top'].includes(value);
+      return ["center", "top"].includes(value);
     }
   }
 });
@@ -146,11 +139,13 @@ const flexStyles = computed(() => {
   };
 });
 
-
 // 监听modelValue变化同步到selectValue
-watch(() => props.modelValue, (newValue) => {
-  selectValue.value = newValue;
-});
+watch(
+  () => props.modelValue,
+  newValue => {
+    selectValue.value = newValue;
+  }
+);
 
 // 检查是否已达到选择上限
 const isReachedLimit = computed(() => {
@@ -161,12 +156,12 @@ const isReachedLimit = computed(() => {
 // 判断选项是否应该被禁用（已达到限制且未被选中）
 const isItemDisabled = (value: string | number) => {
   if (!props.multiple || props.limit <= 0) return false;
-  
+
   // 如果已达到限制，且当前项未被选中，则禁用
   if (isReachedLimit.value && !isSelected(value)) {
     return true;
   }
-  
+
   return false;
 };
 
@@ -179,14 +174,14 @@ const handleNativeSelectChange = (value: string | number | Array<string | number
 // 全选
 const selectAll = () => {
   if (!props.multiple) return;
-  
+
   let allValues = props.options.map(item => item.value);
-  
+
   // 如果有数量限制，截取到限制数量
   if (props.limit > 0 && allValues.length > props.limit) {
     allValues = allValues.slice(0, props.limit);
   }
-  
+
   emit("update:modelValue", allValues);
   emit("change", allValues);
   selectValue.value = allValues;
@@ -195,17 +190,15 @@ const selectAll = () => {
 // 反选
 const invertSelection = () => {
   if (!props.multiple || !Array.isArray(props.modelValue)) return;
-  
+
   const currentValues = props.modelValue as (string | number)[];
-  let invertedValues = props.options
-    .map(item => item.value)
-    .filter(value => !currentValues.includes(value));
-    
+  let invertedValues = props.options.map(item => item.value).filter(value => !currentValues.includes(value));
+
   // 如果有数量限制，截取到限制数量
   if (props.limit > 0 && invertedValues.length > props.limit) {
     invertedValues = invertedValues.slice(0, props.limit);
   }
-  
+
   emit("update:modelValue", invertedValues);
   emit("change", invertedValues);
   selectValue.value = invertedValues;
@@ -214,7 +207,7 @@ const invertSelection = () => {
 // 清空选择
 const clearSelection = () => {
   if (!props.multiple) return;
-  
+
   const emptyArray: (string | number)[] = [];
   emit("update:modelValue", emptyArray);
   emit("change", emptyArray);
@@ -237,12 +230,12 @@ const handleSelect = (value: string | number) => {
   if (props.multiple) {
     // 多选模式
     let newValue: (string | number)[] = [];
-    
+
     if (Array.isArray(props.modelValue)) {
       // 如果已经是数组，复制一份
       //@ts-ignore
       newValue = [...props.modelValue];
-      
+
       // 切换选中状态：如果已选中则移除，否则添加
       const index = newValue.indexOf(value);
       if (index > -1) {
@@ -258,7 +251,7 @@ const handleSelect = (value: string | number) => {
       // 如果不是数组，创建一个新数组并添加当前值
       newValue = [value];
     }
-    
+
     emit("update:modelValue", newValue);
     emit("change", newValue);
   } else {
@@ -282,14 +275,14 @@ const handleSelect = (value: string | number) => {
     margin-right: 4px;
     vertical-align: middle;
   }
-  
+
   // 卡片flex布局
   .card-selector-flex {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
   }
-  
+
   // 药丸flex布局
   .pill-selector-flex {
     display: flex;
