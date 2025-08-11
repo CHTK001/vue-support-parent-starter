@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visibleInner"
     title="文件存储配置"
-    width="1200px"
+    width="80%"
     top="10px"
     :close-on-click-modal="false"
     @close="handleClose"
@@ -118,7 +118,6 @@
                   :label="opt.name"
                 >{{ opt.describe || opt.name }}</el-radio-button>
               </el-radio-group>
-              <el-switch v-model="currentStorage.fileStorageEnabled" inline-prompt active-text="启用" inactive-text="禁用" style="margin-left: 10px" />
             </div>
             <el-form :model="currentStorage" :rules="formRules(currentStorage)" ref="detailFormRef" label-width="120px" class="storage-form">
               <template v-if="currentStorage.fileStorageType === 'LOCAL'">
@@ -127,19 +126,19 @@
                 </el-form-item>
               </template>
               <template v-else>
-                <el-form-item label="Endpoint" prop="fileStorageEndpoint">
+                <el-form-item label="端点" prop="fileStorageEndpoint">
                   <el-input v-model="currentStorage.fileStorageEndpoint" placeholder="https://endpoint" />
                 </el-form-item>
                 <el-form-item label="Bucket" prop="fileStorageBucket">
                   <el-input v-model="currentStorage.fileStorageBucket" />
                 </el-form-item>
-                <el-form-item label="AccessKey" prop="fileStorageAccessKey">
+                <el-form-item label="账号" prop="fileStorageAccessKey">
                   <el-input v-model="currentStorage.fileStorageAccessKey" />
                 </el-form-item>
-                <el-form-item label="SecretKey" prop="fileStorageSecretKey">
+                <el-form-item label="密码" prop="fileStorageSecretKey">
                   <el-input v-model="currentStorage.fileStorageSecretKey" type="password" />
                 </el-form-item>
-                <el-form-item label="Region" prop="fileStorageRegion">
+                <el-form-item label="区域" prop="fileStorageRegion">
                   <el-input v-model="currentStorage.fileStorageRegion" />
                 </el-form-item>
               </template>
@@ -486,7 +485,7 @@ async function loadData() {
 
 <style scoped>
 .three-col { display: grid; grid-template-columns: 1fr 0.9fr 1.4fr; gap: 12px; align-items: start }
-.left-col, .middle-col, .right-col { min-width: 0 }
+.left-col, .middle-col, .right-col { min-width: 0; height: 100%; }
 .global-card { margin-bottom: 12px; border-radius: 8px }
 .card-header { font-weight: 600 }
 .global-form :deep(.el-input__wrapper), .storage-form :deep(.el-input__wrapper) { border-radius: 8px }
@@ -500,7 +499,7 @@ async function loadData() {
 .header-actions :deep(.el-button) { border-radius: 8px }
 
 /* 中间列表 */
-.installed-card { border-radius: 8px }
+.installed-card { border-radius: 8px;height: 100%; }
 .installed-list { max-height: 640px }
 .installed-item { padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: #fff; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; gap: 6px }
 .installed-item.active { border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.1) }
@@ -509,6 +508,7 @@ async function loadData() {
 .installed-item .item-actions { display: flex; align-items: center; gap: 6px; justify-self: end }
 
 /* 右侧类型按钮组 */
+.detail-card { border-radius: 8px;height: 100%; }
 .type-group { display:flex; align-items:center; gap: 8px; margin-bottom: 8px }
 
 @media (max-width: 920px) { .three-col { grid-template-columns: 1fr } }
