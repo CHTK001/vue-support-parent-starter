@@ -98,6 +98,7 @@
               <div
                 class="filter-item installed"
                 :class="{ disabled: !filter.systemServerSettingEnabled }"
+                @dblclick="openConfigDialog(filter)"
               >
                 <div class="drag-handle">
                   <IconifyIconOnline icon="ri:drag-move-line" />
@@ -105,7 +106,9 @@
 
                 <div class="filter-info">
                   <div class="filter-name">
-                    {{ filter.systemServerSettingName }}
+                    <span class="filter-name-link" title="点击打开配置" @click="openConfigDialog(filter)">
+                      {{ filter.systemServerSettingName }}
+                    </span>
                     <el-tag
                       :type="
                         filter.systemServerSettingEnabled ? 'success' : 'info'
@@ -173,10 +176,31 @@
       </div>
     </div>
 
-    <!-- Filter配置对话框 -->
+    <!-- Filter配置对话框（通用+专用） -->
     <FilterConfigDialog
       v-model:visible="showConfigDialog"
       :filter-setting="currentFilterSetting"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigFileStorage
+      v-model:visible="showFileStorageDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigServiceDiscovery
+      v-model:visible="showServiceDiscoveryDialog"
+      :server-id="props.serverId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigIpRateLimit
+      v-model:visible="showIpRateLimitDialog"
+      :server-id="props.serverId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigAddressRateLimit
+      v-model:visible="showAddressRateLimitDialog"
+      :server-id="props.serverId as number"
       @success="handleConfigSuccess"
     />
 
@@ -207,6 +231,10 @@ import {
 } from "@/api/system-server-setting";
 import FilterConfigDialog from "./FilterConfigDialog.vue";
 import FilterConfigItemDialog from "./FilterConfigItemDialog.vue";
+import FilterConfigFileStorage from "./FilterConfigFileStorage.vue";
+import FilterConfigServiceDiscovery from "./FilterConfigServiceDiscovery.vue";
+import FilterConfigIpRateLimit from "./FilterConfigIpRateLimit.vue";
+import FilterConfigAddressRateLimit from "./FilterConfigAddressRateLimit.vue";
 import { SystemServer } from "@/api/system-server";
 
 // Props
@@ -240,6 +268,10 @@ const availableFilters = ref<ServletFilterObject[]>([]);
 const installedFilters = ref<SystemServerSetting[]>([]);
 
 const showConfigDialog = ref(false);
+const showFileStorageDialog = ref(false);
+const showServiceDiscoveryDialog = ref(false);
+const showIpRateLimitDialog = ref(false);
+const showAddressRateLimitDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
 // 计算属性
@@ -423,15 +455,46 @@ const saveOrder = async () => {
   }
 };
 
-// 打开配置对话框
+// 打开配置对话框（根据类型分发到专用页面）
 const openConfigDialog = (filter: SystemServerSetting) => {
   currentFilterSetting.value = filter;
+  // 先关闭全部
+  showConfigDialog.value = false;
+  showFileStorageDialog.value = false;
+  showServiceDiscoveryDialog.value = false;
+  showIpRateLimitDialog.value = false;
+  showAddressRateLimitDialog.value = false;
+
+  const type = (filter.systemServerSettingType || "").toLowerCase();
+
+  if (type.includes("filestorage")) {
+    showFileStorageDialog.value = true;
+    return;
+  }
+  if (type.includes("servicediscovery")) {
+    showServiceDiscoveryDialog.value = true;
+    return;
+  }
+  if (type.includes("ipratelimit")) {
+    showIpRateLimitDialog.value = true;
+    return;
+  }
+  if (type.includes("addressratelimit")) {
+    showAddressRateLimitDialog.value = true;
+    return;
+  }
+
+  // 兜底：通用配置
   showConfigDialog.value = true;
 };
 
-// 配置成功回调
+// 配置成功回调（统一收口）
 const handleConfigSuccess = () => {
   showConfigDialog.value = false;
+  showFileStorageDialog.value = false;
+  showServiceDiscoveryDialog.value = false;
+  showIpRateLimitDialog.value = false;
+  showAddressRateLimitDialog.value = false;
   currentFilterSetting.value = null;
   loadInstalledFilters();
 };
@@ -637,6 +700,14 @@ watch(
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+  }
+
+  .filter-name-link {
+    cursor: pointer;
+    color: #409eff;
+  }
+  .filter-name-link:hover {
+    text-decoration: underline;
   }
 }
 
