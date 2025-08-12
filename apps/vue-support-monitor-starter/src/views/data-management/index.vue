@@ -34,23 +34,20 @@
       </div>
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="!loading && filteredList.length === 0" class="empty-wrap">
-      <el-empty description="暂无数据源配置">
-        <el-button type="primary" @click="openEdit()">新建配置</el-button>
-      </el-empty>
-    </div>
+    <ScTable
+      class="card-grid"
+      :loading="loading"
+      :url="pageSystemDataSettings"
+      :params="queryParams"
+      layout="card"
+    >
+      <template #empty>
+        <el-empty description="暂无数据源配置">
+          <el-button type="primary" @click="openEdit()">新建配置</el-button>
+        </el-empty>
+      </template>
 
-    <!-- 卡片栅格 -->
-    <el-row v-else :gutter="16" class="card-grid" v-loading="loading">
-      <el-col
-        v-for="item in filteredList"
-        :key="item.systemDataSettingId"
-        :xs="24"
-        :sm="12"
-        :md="8"
-        :lg="6"
-      >
+      <template #default="{ row: item }">
         <el-card :class="['data-card modern-card', getTypeClass(item.systemDataSettingType)]" shadow="hover">
           <div class="card-header">
             <div class="left">
@@ -94,7 +91,7 @@
                   <IconifyIconOnline icon="ri:login-circle-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="capMap[item.systemDataSettingId!]?.document" content="查看文档" placement="top" :show-after="500">
+              <el-tooltip v-if="capOf(item)?.document" content="查看文档" placement="top" :show-after="500">
                 <el-button size="small" @click.stop.prevent="viewDocument(item)">
                   <IconifyIconOnline icon="ri:file-text-line" />
                 </el-button>
@@ -109,7 +106,7 @@
                   <IconifyIconOnline icon="ri:settings-3-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="capMap[item.systemDataSettingId!]?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'" placement="top" :show-after="500">
+              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'" placement="top" :show-after="500">
                 <el-button size="small" @click.stop.prevent="toggleBackup(item)">
                   <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
                 </el-button>
@@ -122,8 +119,8 @@
             </el-button-group>
           </div>
         </el-card>
-      </el-col>
-    </el-row>
+      </template>
+    </ScTable>
 
     <EditDialog v-model:visible="showEdit" :model-value="current" @success="load" />
     <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
@@ -131,13 +128,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import {
-  listSystemDataSettings,
-  deleteSystemDataSetting,
-  getSystemDataCapabilities,
-  type SystemDataSetting,
-} from "@/api/system-data";
+import { ref, computed, onMounted, watch } from "vue";
+import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting } from "@/api/system-data";
 import { useRouter } from "vue-router";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
@@ -171,30 +163,11 @@ const typeOptions = computed(
     ) as string[]
 );
 
-const filteredList = computed(() => {
-  let arr = list.value.slice();
-  if (searchKey.value) {
-    const k = searchKey.value.toLowerCase();
-    arr = arr.filter(
-      (i) =>
-        (i.systemDataSettingName || "").toLowerCase().includes(k) ||
-        (i.systemDataSettingType || "").toLowerCase().includes(k)
-    );
-  }
-  if (typeFilter.value) {
-    arr = arr.filter((i) => i.systemDataSettingType === typeFilter.value);
-  }
-  arr.sort((a, b) => {
-    if (sortKey.value === "type")
-      return (a.systemDataSettingType || "").localeCompare(
-        b.systemDataSettingType || ""
-      );
-    return (a.systemDataSettingName || "").localeCompare(
-      b.systemDataSettingName || ""
-    );
-  });
-  return arr;
-});
+// 交给 ScTable 处理分页与过滤，这里保留 options 构建
+const queryParams = ref({ current: 1, size: 20, name: "", type: "" })
+watch([searchKey, typeFilter], () => {
+  queryParams.value = { ...queryParams.value, current: 1, name: searchKey.value, type: typeFilter.value || "" }
+})
 
 function getTypeTag(type?: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' {
   const t = (type || '').toLowerCase()
@@ -224,16 +197,9 @@ function getTypeClass(type?: string) {
 async function load() {
   loading.value = true;
   try {
-    const res = await listSystemDataSettings();
+    const res = await pageSystemDataSettings({ current: 1, size: 20 })
     if (res?.success) {
-      list.value = res.data || [];
-      // 加载能力
-      for (const item of list.value) {
-        const r = await getSystemDataCapabilities(
-          item.systemDataSettingId as number
-        );
-        if (r?.success) capMap.value[item.systemDataSettingId!] = r.data || {};
-      }
+      list.value = (res.data?.records as any[]) || []
     }
   } finally {
     loading.value = false;
@@ -305,6 +271,11 @@ function toggleBackup(row: SystemDataSetting) {
     !backupOn.value[row.systemDataSettingId!];
 }
 
+function capOf(item: any) {
+  if (!item) return {}
+  return { backup: item.capabilitiesBackup, document: item.capabilitiesDocument, file: item.capabilitiesFile }
+}
+
 onMounted(load);
 </script>
 
@@ -357,6 +328,16 @@ onMounted(load);
   background: linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,1) 40%);
   position: relative;
 }
+/* 左侧绿色条 */
+.modern-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #10b981; /* emerald-500 */
+}
 .modern-card.is-jdbc::before { background: radial-gradient(220px 110px at 10% 0%, rgba(14,165,233,0.10), transparent 60%); }
 .modern-card.is-redis::before { background: radial-gradient(220px 110px at 10% 0%, rgba(244,63,94,0.10), transparent 60%); }
 .modern-card.is-zk::before { background: radial-gradient(220px 110px at 10% 0%, rgba(99,102,241,0.10), transparent 60%); }
@@ -370,9 +351,11 @@ onMounted(load);
 }
 .modern-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.12);
   border-color: var(--el-color-primary-light-5);
 }
+/* 常驻基础阴影 */
+.modern-card { box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06); }
 
 .card-header {
   display: flex;
