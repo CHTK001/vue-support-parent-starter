@@ -22,6 +22,7 @@ export default [
           showParent: true,
         },
       },
+      
       {
         path: "/data/analysis",
         name: "dataAnalysis",

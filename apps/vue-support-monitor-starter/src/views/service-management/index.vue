@@ -173,7 +173,7 @@
 
             <div class="server-footer">
               <div class="server-controls">
-                <el-button v-if="server.systemServerStatus === 'STOPPED'" type="success" size="small" @click="startServer(server.systemServerId)" :loading="actionLoading[server.systemServerId]">
+                <el-button v-if="server.systemServerStatus === 'STOPPED' || server.systemServerStatus === 'ERROR'" type="success" size="small" @click="startServer(server.systemServerId)" :loading="actionLoading[server.systemServerId]">
                   <IconifyIconOnline icon="ri:play-line" />
                   启动
                 </el-button>

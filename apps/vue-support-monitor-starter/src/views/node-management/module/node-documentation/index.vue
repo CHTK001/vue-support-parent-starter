@@ -748,6 +748,7 @@
 <script setup lang="ts">
 import {
   executeNodeApi,
+  fetchNodeApiDocs,
   fetchNodeSwaggerResources,
 } from "@/api/node-documentation";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";

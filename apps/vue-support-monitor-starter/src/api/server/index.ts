@@ -2205,7 +2205,7 @@ export interface ServerComponentLayout {
 export function getEnabledServerComponentLayouts(serverId: number) {
   return http.request<ReturnResult<ServerComponentLayout[]>>(
     "get",
-    `api/monitor/server/component/layout/server/${serverId}/enabled`
+    `monitor/server/component/layout/server/${serverId}/enabled`
   );
 }
 
@@ -2217,7 +2217,7 @@ export function getEnabledServerComponentLayouts(serverId: number) {
 export function deleteServerComponentLayout(layoutId: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `api/monitor/server/component/layout/${layoutId}`
+    `monitor/server/component/layout/${layoutId}`
   );
 }
 
@@ -2229,7 +2229,7 @@ export function deleteServerComponentLayout(layoutId: number) {
 export function batchUpdateLayoutPositions(layouts: ServerComponentLayout[]) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    "api/monitor/server/component/layout/batch/position",
+    "monitor/server/component/layout/batch/position",
     { data: layouts }
   );
 }
@@ -2254,7 +2254,7 @@ export function createServerComponentLayout(
 ) {
   return http.request<ReturnResult<ServerComponentLayout>>(
     "post",
-    "api/monitor/server/component/layout/create",
+    "monitor/server/component/layout/create",
     {
       params: { serverId, componentId, x, y, w, h },
     }

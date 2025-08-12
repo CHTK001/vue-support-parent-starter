@@ -327,8 +327,9 @@ export function batchUpdateServletFilterEnabled(
 export interface ServiceDiscoveryConfig {
   systemServerSettingServiceDiscoveryId?: number;
   serviceDiscoveryServerId: number;
-  serviceDiscoveryMode?: string; // SPRING/DEFAULT
+  serviceDiscoveryMode?: string; // SPRING/TABLE/HAZELCAST
   serviceDiscoveryBeanName?: string;
+  serviceDiscoveryBalance?: string; // 负载均衡策略，如 weight/round/random/...
   serviceDiscoveryEnabled?: boolean;
 }
 

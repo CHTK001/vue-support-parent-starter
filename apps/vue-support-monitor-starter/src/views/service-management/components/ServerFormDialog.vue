@@ -39,6 +39,14 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="系统服务器主机">
+        <el-input
+          v-model="formData.systemServerHost"
+          placeholder="请输入服务器主机"
+          clearable
+        />
+      </el-form-item>
+
       <el-form-item label="服务器端口" prop="systemServerPort">
         <el-input-number
           v-model="formData.systemServerPort"
@@ -163,6 +171,7 @@ const formData = reactive<SystemServer>({
   systemServerType: "",
   systemServerContextPath: "",
   systemServerPort: 8080,
+  systemServerHost: "0.0.0.0",
   systemServerMaxConnections: undefined,
   systemServerTimeout: undefined,
   systemServerAutoStart: false,
