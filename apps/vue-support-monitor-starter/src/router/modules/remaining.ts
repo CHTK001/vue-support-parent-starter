@@ -26,6 +26,36 @@ export default [
     },
   },
   {
+    path: "/data/console/jdbc",
+    name: "dataJdbcConsoleFull",
+    component: () => import("@/views/data-management/console/jdbc/index.vue"),
+    meta: {
+      title: "JDBC 控制台",
+      showLink: false,
+      fullScreen: true
+    }
+  },
+  {
+    path: "/data/console/redis",
+    name: "dataRedisConsoleFull",
+    component: () => import("@/views/data-management/console/redis/index.vue"),
+    meta: {
+      title: "Redis 控制台",
+      showLink: false,
+      fullScreen: true
+    }
+  },
+  {
+    path: "/data/console/zk",
+    name: "dataZookeeperConsoleFull",
+    component: () => import("@/views/data-management/console/zk/index.vue"),
+    meta: {
+      title: "ZooKeeper 控制台",
+      showLink: false,
+      fullScreen: true
+    }
+  },
+  {
     path: "/node/documentation/:nodeId",
     name: "nodeDocumentation",
     component: () =>
