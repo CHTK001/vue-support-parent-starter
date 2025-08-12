@@ -183,9 +183,9 @@ watch([searchKey, typeFilter], () => {
 
 function getTypeTag(type?: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' {
   const t = (type || '').toLowerCase()
-  if (t.includes('jdbc') || t.includes('sql')) return 'success'
-  if (t.includes('redis')) return 'warning'
-  if (t.includes('zk') || t.includes('zookeeper')) return 'info'
+  if (t.includes('jdbc') || t.includes('sql')) { return 'success' }
+  if (t.includes('redis')) { return 'warning' }
+  if (t.includes('zk') || t.includes('zookeeper')) { return 'info' }
   return 'info'
 }
 
@@ -200,9 +200,9 @@ function addressOf(i: SystemDataSetting) {
 
 function getTypeClass(type?: string) {
   const t = (type || '').toLowerCase()
-  if (t.includes('jdbc') || t.includes('sql')) return 'is-jdbc'
-  if (t.includes('redis')) return 'is-redis'
-  if (t.includes('zk') || t.includes('zookeeper')) return 'is-zk'
+  if (t.includes('jdbc') || t.includes('sql')) { return 'is-jdbc' }
+  if (t.includes('redis')) { return 'is-redis' }
+  if (t.includes('zk') || t.includes('zookeeper')) { return 'is-zk' }
   return 'is-default'
 }
 
@@ -296,7 +296,7 @@ async function toggleBackup(row: SystemDataSetting) {
 async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
   try {
     const raw = fileEvent?.raw as File
-    if (!raw) return
+    if (!raw) { return }
     if (!row.systemDataSettingId) {
       ElMessage.warning('请先保存配置再上传驱动')
       return
