@@ -12,10 +12,21 @@ export interface SystemDataSetting {
   systemDataSettingAuthType?: string;
   systemDataSettingIcon?: string;
   systemDataSettingConsoleType?: "TABLE" | "GRAPH" | "FILE";
+  /** 图表类型 */
+  systemDataSettingChartType?: string;
+  /** 协议（如 jdbc:mysql、redis 等） */
+  systemDataSettingProtocol?: string;
   systemDataSettingTimeoutMs?: number;
-  systemDataSettingIsFile?: boolean;
+  /** 模式：REMOTE/FILE */
+  systemDataSettingMode?: "REMOTE" | "FILE";
   systemDataSettingEnabled?: boolean;
   systemDataSettingConfig?: string;
+  /** JDBC 驱动类名（仅数据库类型使用） */
+  systemDataSettingDriverClass?: string;
+  /** JDBC 驱动文件路径（仅数据库类型使用） */
+  systemDataSettingDriverPath?: string;
+  /** 远程图片地址 */
+  systemDataSettingImageUrl?: string;
 }
 
 export function listSystemDataSettings() {
@@ -54,4 +65,35 @@ export function saveConsoleConfig(id: number, config: any) {
     method: "post",
     data: typeof config === "string" ? config : JSON.stringify(config),
   });
+}
+
+/**
+ * 上传 JDBC 驱动文件
+ */
+export function uploadJdbcDriver(id: number, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return request({
+    url: `/system/data/setting/${id}/driver/upload`,
+    method: "post",
+    data: form,
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+}
+
+/**
+ * 文档HTML
+ */
+export function getDocumentHtmlUrl(id: number) {
+  return `/api/system/data/setting/${id}/document/html`;
+}
+
+export function startBackup(id: number) {
+  return request({ url: `/system/data/setting/${id}/backup/start`, method: 'post' })
+}
+export function stopBackup(id: number) {
+  return request({ url: `/system/data/setting/${id}/backup/stop`, method: 'post' })
+}
+export function backupStatus(id: number) {
+  return request({ url: `/system/data/setting/${id}/backup/status`, method: 'get' })
 }
