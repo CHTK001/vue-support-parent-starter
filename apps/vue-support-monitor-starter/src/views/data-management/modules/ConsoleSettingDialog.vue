@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose">
+  <el-dialog v-model="visibleLocal" title="控制台权限设置" width="520px" @close="handleClose" class="data-console-setting-dialog">
     <div v-if="isJdbc" class="section">
       <div class="section-title">JDBC 控制台</div>
       <el-form label-width="140px">
@@ -120,5 +120,9 @@ async function handleSave() {
 <style scoped>
 .section { padding: 8px 4px }
 .section-title { font-weight: 600; color: var(--el-text-color-regular); margin-bottom: 8px }
+.data-console-setting-dialog :deep(.el-dialog__body) {
+  padding-left: 24px;
+  padding-right: 24px;
+}
 </style>
 

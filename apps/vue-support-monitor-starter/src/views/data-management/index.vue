@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page flex flex-col">
     <!-- 顶部工具栏：搜索 / 类型过滤 / 排序 / 新建 -->
     <div class="toolbar modern-toolbar">
       <div class="left">
@@ -39,6 +39,7 @@
       :loading="loading"
       :url="pageSystemDataSettings"
       :params="queryParams"
+      :col-size="4"
       layout="card"
     >
       <template #empty>
@@ -51,11 +52,7 @@
         <el-card :class="['data-card modern-card', getTypeClass(item.systemDataSettingType)]" shadow="hover">
           <div class="card-header">
             <div class="left">
-              <img
-                v-if="item.systemDataSettingIcon"
-                :src="item.systemDataSettingIcon"
-                class="icon icon-img"
-              />
+              <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="icon icon-img" />
               <div v-else class="icon icon-badge" :data-name="item.systemDataSettingName">
                 {{ (item.systemDataSettingName || "D").slice(0, 1).toUpperCase() }}
               </div>
@@ -84,6 +81,9 @@
               </el-tooltip>
             </div>
           </div>
+          <!-- 右下角背景图/图标（45度分割遮罩） -->
+          <div class="bg-corner" :style="bgStyle(item)"></div>
+
           <div class="card-actions" @click.stop>
             <el-button-group>
               <el-tooltip content="打开控制台" placement="top" :show-after="500">
@@ -116,6 +116,13 @@
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
+              <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="top" :show-after="500">
+                <el-upload :auto-upload="false" :show-file-list="false" :on-change="f => onUploadDriver(item, f)">
+                  <el-button size="small">
+                    <IconifyIconOnline icon="ri:upload-2-line" />
+                  </el-button>
+                </el-upload>
+              </el-tooltip>
             </el-button-group>
           </div>
         </el-card>
@@ -123,13 +130,16 @@
     </ScTable>
 
     <EditDialog v-model:visible="showEdit" :model-value="current" @success="load" />
+    <el-dialog v-model="showDoc" title="文档" width="80%">
+      <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
+    </el-dialog>
     <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting } from "@/api/system-data";
+import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting, uploadJdbcDriver, getDocumentHtmlUrl, startBackup, stopBackup, backupStatus } from "@/api/system-data";
 import { useRouter } from "vue-router";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
@@ -142,6 +152,8 @@ const capMap = ref<
   Record<number, { backup?: boolean; document?: boolean; file?: boolean }>
 >({});
 const backupOn = ref<Record<number, boolean>>({});
+const showDoc = ref(false)
+const docUrl = ref('')
 
 const showEdit = ref(false);
 const current = ref<SystemDataSetting | null>(null);
@@ -192,6 +204,12 @@ function getTypeClass(type?: string) {
   if (t.includes('redis')) return 'is-redis'
   if (t.includes('zk') || t.includes('zookeeper')) return 'is-zk'
   return 'is-default'
+}
+
+function isJdbcItem(row: SystemDataSetting) {
+  const type = (row.systemDataSettingType || '').toLowerCase()
+  const url = (row.systemDataSettingServer || '').toLowerCase()
+  return type.includes('jdbc') || type.includes('sql') || url.startsWith('jdbc:')
 }
 
 async function load() {
@@ -263,12 +281,32 @@ async function remove(row: SystemDataSetting) {
 }
 
 function viewDocument(row: SystemDataSetting) {
-  // 打开文档查看器（后续实现）
+  docUrl.value = getDocumentHtmlUrl(row.systemDataSettingId as number)
+  showDoc.value = true
 }
 
-function toggleBackup(row: SystemDataSetting) {
-  backupOn.value[row.systemDataSettingId!] =
-    !backupOn.value[row.systemDataSettingId!];
+async function toggleBackup(row: SystemDataSetting) {
+  const id = row.systemDataSettingId as number
+  const on = backupOn.value[id]
+  const res = on ? await stopBackup(id) : await startBackup(id)
+  if (!res?.success) { ElMessage.error(res?.msg || '操作失败'); return }
+  backupOn.value[id] = !on
+}
+
+async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
+  try {
+    const raw = fileEvent?.raw as File
+    if (!raw) return
+    if (!row.systemDataSettingId) {
+      ElMessage.warning('请先保存配置再上传驱动')
+      return
+    }
+    const res = await uploadJdbcDriver(row.systemDataSettingId, raw)
+    if (!res?.success) { ElMessage.error(res?.msg || '上传失败'); return }
+    ElMessage.success('上传成功')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '上传失败')
+  }
 }
 
 function capOf(item: any) {
@@ -276,7 +314,16 @@ function capOf(item: any) {
   return { backup: item.capabilitiesBackup, document: item.capabilitiesDocument, file: item.capabilitiesFile }
 }
 
+function bgStyle(item: SystemDataSetting) {
+  const img = item.systemDataSettingImageUrl || item.systemDataSettingIcon
+  return img ? { backgroundImage: `url(${img})` } : {}
+}
+
 onMounted(load);
+onMounted(async () => {
+  // 初始化备份状态（可按需批量拉取，这里逐个）
+  // 简化处理：进入页面后不主动轮询，点击时即时切换
+})
 </script>
 
 <style scoped>
@@ -356,6 +403,20 @@ onMounted(load);
 }
 /* 常驻基础阴影 */
 .modern-card { box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06); }
+
+/* 右下角45度背景区 */
+.bg-corner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46%;
+  height: 46%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.12;
+  clip-path: polygon(54% 0, 100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
 
 .card-header {
   display: flex;
