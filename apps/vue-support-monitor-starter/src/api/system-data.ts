@@ -22,6 +22,10 @@ export function listSystemDataSettings() {
   return request({ url: "/system/data/setting/list", method: "get" });
 }
 
+export function pageSystemDataSettings(params: { current?: number; size?: number; name?: string; type?: string }) {
+  return request({ url: "/system/data/setting/page", method: "get", params });
+}
+
 export function saveSystemDataSetting(data: SystemDataSetting) {
   return request({ url: "/system/data/setting/save", method: "post", data });
 }
