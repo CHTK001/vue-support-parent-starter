@@ -137,7 +137,7 @@
     </ScTable>
 
     <EditDialog v-model:visible="showEdit" :model-value="current" @success="load" />
-    <el-dialog v-model="showDoc" title="文档" width="80%">
+    <el-dialog v-model="showDoc" title="文档" width="80%" draggable>
       <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
     </el-dialog>
     <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
@@ -195,7 +195,7 @@ async function loadBackupList() {
   const now = Date.now()
   const dayMs = 24 * 60 * 60 * 1000
   const res = await querySystemDataSeries({
-    name: 'system_backup',
+    name: 'system:data:backup',
     keyword: `settingId:${currentSettingIdForBackup.value}`,
     fromTimestamp: now - 7 * dayMs,
     toTimestamp: now,

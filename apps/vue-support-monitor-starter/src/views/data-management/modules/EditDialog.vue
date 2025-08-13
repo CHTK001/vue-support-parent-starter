@@ -225,6 +225,7 @@ const loading = ref(false);
 const form = ref<SystemDataSetting>({
   systemDataSettingName: "",
   systemDataSettingType: "",
+  systemDataSettingProtocol: "",
   systemDataSettingEnabled: true,
   systemDataSettingTimeoutMs: 600000,
   systemDataSettingMode: "REMOTE",
@@ -316,6 +317,7 @@ function init() {
     : {
         systemDataSettingName: "",
         systemDataSettingType: "",
+        systemDataSettingProtocol: "",
         systemDataSettingEnabled: true,
         systemDataSettingMode: "REMOTE",
       };
