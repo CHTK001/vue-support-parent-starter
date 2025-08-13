@@ -3,21 +3,31 @@
     <!-- 顶部工具栏：搜索 / 类型过滤 / 排序 / 新建 -->
     <div class="toolbar modern-toolbar p-[16px]">
       <div class="left">
+        <el-input v-model="query.keyword" class="w-280" placeholder="搜索项目名称..." clearable>
+          <template #prefix>
+            <IconifyIconOnline icon="ep:search" />
+          </template>
+        </el-input>
+        <el-select v-model="query.platform" class="w-200" clearable placeholder="选择平台">
+          <el-option label="全部" value="" />
+          <el-option label="Spring" value="spring" />
+          <el-option label="Node" value="node" />
+          <el-option label="其他" value="other" />
+        </el-select>
+        <el-button type="primary" class="ml-8" @click="reload">
+          <IconifyIconOnline icon="ep:search" class="mr-1" />
+          搜索
+        </el-button>
       </div>
       <div class="right">
         <el-button type="primary" @click="handleOpenEit({})">
-          <IconifyIconOnline icon="ri:add-line" /> 新建配置
+          <IconifyIconOnline icon="ri:add-line" />
+          新建配置
         </el-button>
       </div>
     </div>
 
-    <ScTable
-      class="card-grid"
-      :url="fetchAppPageList"
-      :col-size="4"
-      ref="tableRef"
-      layout="card"
-    >
+    <ScTable class="card-grid" :url="fetchAppPageList" :col-size="4" ref="tableRef" layout="card">
       <template #empty>
         <el-empty description="暂无项目配置">
           <el-button type="primary" @click="handleOpenEit({})">新建配置</el-button>
@@ -25,52 +35,28 @@
       </template>
 
       <template #default="{ row: item }">
-        <el-card
-          :class="[
-            'data-card modern-card',
-          ]"
-          shadow="hover"
-        >
+        <el-card :class="['data-card modern-card']" shadow="hover">
           <div class="card-header">
             <div class="left">
-              <img
-                v-if="item.systemDataSettingIcon"
-                :src="item.systemDataSettingIcon"
-                class="icon icon-img"
-              />
-              <div
-                v-else
-                class="icon icon-badge"
-                :data-name="item.monitorApplicationName"
-              >
-                {{
-                  (item.monitorApplicationName || "D").slice(0, 1).toUpperCase()
-                }}
+              <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="icon icon-img" />
+              <div v-else class="icon icon-badge" :data-name="item.monitorApplicationName">
+                {{ (item.monitorApplicationName || "D").slice(0, 1).toUpperCase() }}
               </div>
               <div class="title" :title="item.monitorName">
-                {{ item.monitorName }}  
+                {{ item.monitorName }}
               </div>
             </div>
           </div>
           <div class="card-body">
             <div class="meta-row">
-              <IconifyIconOnline
-                class="mr-4 text-muted"
-                icon="ri:terminal-line"
-              />
+              <IconifyIconOnline class="mr-4 text-muted" icon="ri:terminal-line" />
               <span class="label">平台</span>
-              <span class="value">{{
-                item.monitorApplicationName || "-"
-              }}</span>
+              <span class="value">{{ item.monitorApplicationName || "-" }}</span>
             </div>
             <div class="meta-row">
               <IconifyIconOnline class="mr-4 text-muted" icon="ri:link-m" />
               <span class="label">名称</span>
-              <el-tooltip
-                :content="item.monitorName"
-                placement="top"
-                :show-after="150"
-              >
+              <el-tooltip :content="item.monitorName" placement="top" :show-after="150">
                 <span class="value ellipsis">{{ item.monitorName }}</span>
               </el-tooltip>
             </div>
@@ -83,11 +69,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip content="删除" placement="top" :show-after="500">
-                <el-button
-                  size="small"
-                  type="danger"
-                  @click.stop.prevent="handleDelete(item)"
-                >
+                <el-button size="small" type="danger" @click.stop.prevent="handleDelete(item)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
@@ -96,11 +78,7 @@
         </el-card>
       </template>
     </ScTable>
-    <EditDialog
-      :data="currentData"
-      :visible="editDialogStatus"
-      @success="handleSuccessOpenEit"
-    ></EditDialog>
+    <EditDialog :data="currentData" :visible="editDialogStatus" @success="handleSuccessOpenEit"></EditDialog>
   </div>
 </template>
 
@@ -113,6 +91,12 @@ import { ElMessageBox } from "element-plus";
 const tableRef = ref<any>();
 const editDialogStatus = ref(false);
 const currentData = ref<any>();
+
+// 查询参数
+const query = ref<{ keyword: string; platform: string | undefined }>({ keyword: "", platform: undefined });
+const reload = () => {
+  tableRef.value?.reload(query.value);
+};
 /**
  * 成功打开编辑
  */
@@ -132,9 +116,9 @@ const handleDelete = (item: any) => {
   ElMessageBox.confirm("确定删除该配置吗？", "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "warning",
+    type: "warning"
   }).then(() => {
-    fetchAppDelete({ monitorId: item.monitorId }).then((res) => {
+    fetchAppDelete({ monitorId: item.monitorId }).then(res => {
       if (res.code === "00000") {
         tableRef.value.reload();
       }
@@ -187,11 +171,7 @@ const handleDelete = (item: any) => {
     transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.78) 0%,
-    rgba(255, 255, 255, 1) 40%
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 1) 40%);
   position: relative;
 }
 /* 左侧绿色条 */
@@ -205,42 +185,22 @@ const handleDelete = (item: any) => {
   background: #10b981; /* emerald-500 */
 }
 .modern-card.is-jdbc::before {
-  background: radial-gradient(
-    220px 110px at 10% 0%,
-    rgba(14, 165, 233, 0.1),
-    transparent 60%
-  );
+  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.1), transparent 60%);
 }
 .modern-card.is-redis::before {
-  background: radial-gradient(
-    220px 110px at 10% 0%,
-    rgba(244, 63, 94, 0.1),
-    transparent 60%
-  );
+  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.1), transparent 60%);
 }
 .modern-card.is-zk::before {
-  background: radial-gradient(
-    220px 110px at 10% 0%,
-    rgba(99, 102, 241, 0.1),
-    transparent 60%
-  );
+  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.1), transparent 60%);
 }
 .modern-card.is-default::before {
-  background: radial-gradient(
-    220px 110px at 10% 0%,
-    rgba(100, 116, 139, 0.08),
-    transparent 60%
-  );
+  background: radial-gradient(220px 110px at 10% 0%, rgba(100, 116, 139, 0.08), transparent 60%);
 }
 .modern-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    240px 120px at 10% 0%,
-    rgba(14, 165, 233, 0.08),
-    transparent 60%
-  );
+  background: radial-gradient(240px 120px at 10% 0%, rgba(14, 165, 233, 0.08), transparent 60%);
   pointer-events: none;
 }
 .modern-card:hover {
@@ -295,11 +255,7 @@ const handleDelete = (item: any) => {
   justify-content: center;
   font-weight: 700;
   color: #0ea5e9;
-  background: radial-gradient(
-    120px 80px at 10% 10%,
-    rgba(14, 165, 233, 0.18),
-    rgba(14, 165, 233, 0.06)
-  );
+  background: radial-gradient(120px 80px at 10% 10%, rgba(14, 165, 233, 0.18), rgba(14, 165, 233, 0.06));
 }
 .title {
   font-weight: 600;
