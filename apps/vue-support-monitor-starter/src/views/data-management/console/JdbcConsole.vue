@@ -25,9 +25,18 @@
           <span v-if="currentComment" class="comment" :title="currentComment">• 注释：{{ currentComment }}</span>
         </div>
         <div class="toolbar">
-          <el-button type="primary" size="small" @click="execute">执行</el-button>
-          <el-button size="small" @click="formatSql">格式化</el-button>
-          <el-button size="small" :disabled="!currentPath" @click="openStructureTab">结构</el-button>
+          <el-button type="primary" size="small" @click="execute">
+            <IconifyIconOnline :icon="icons.execute" class="mr-1" />
+            执行
+          </el-button>
+          <el-button size="small" @click="formatSql">
+            <IconifyIconOnline :icon="formatIcon" class="mr-1" />
+            格式化
+          </el-button>
+          <el-button size="small" :disabled="!currentPath" @click="openStructureTab">
+            <IconifyIconOnline :icon="icons.structure" class="mr-1" />
+            结构
+          </el-button>
         </div>
       </div>
       <div class="right-body">
@@ -63,6 +72,14 @@ const props = defineProps<{ id: number }>();
 
 const treeData = ref<any[]>([]);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
+
+// 工具栏图标（格式化图标由 JS 生成选择）
+const icons = { execute: "ri:play-circle-line", structure: "ri:table-2" } as const;
+const formatIcon = computed(() => {
+  // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好）
+  return Math.random() > 0.5 ? "ri:magic-line" : "ri:pencil-ruler-2-line";
+});
+
 const keyword = ref("");
 const currentPath = ref<string | undefined>(undefined);
 
@@ -141,10 +158,6 @@ async function loadRoot() {
 async function handleNodeClick(node: any) {
   currentNodeData.value = node;
   currentPath.value = node?.path;
-  await loadCurrentComment();
-  const res = await request({ url: `/system/data/console/${props.id}/children`, method: "get", params: { parentPath: currentPath.value } });
-  const records = extractArrayFromApi(res?.data);
-  node.children = records.map(normalizeTreeNode);
 }
 
 // 懒加载子节点（结合 hasChildren 展示展开图标）
@@ -196,7 +209,109 @@ async function execute() {
 }
 
 function formatSql() {
-  // 预留：格式化
+  const src = sql.value || "";
+  if (!src.trim()) return;
+  try {
+    const formatted = simpleSqlFormat(src);
+    sql.value = formatted;
+    statusText.value = "已格式化 SQL";
+  } catch (e) {
+    statusText.value = "格式化失败";
+  }
+}
+
+function simpleSqlFormat(input: string): string {
+  let s = (input || "").replace(/\r\n/g, "\n").trim();
+  // 先统一多空格为单空格（注意：简单处理，可能影响字符串字面量）
+  s = s.replace(/\s+/g, " ");
+
+  // 关键词大写
+  const KEYWORDS = [
+    "SELECT",
+    "FROM",
+    "WHERE",
+    "GROUP BY",
+    "ORDER BY",
+    "HAVING",
+    "LIMIT",
+    "OFFSET",
+    "JOIN",
+    "LEFT JOIN",
+    "RIGHT JOIN",
+    "INNER JOIN",
+    "OUTER JOIN",
+    "CROSS JOIN",
+    "ON",
+    "AND",
+    "OR",
+    "UNION",
+    "UNION ALL",
+    "WITH",
+    "VALUES",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "SET"
+  ];
+  // 先按长度降序，避免短词先匹配
+  KEYWORDS.sort((a, b) => b.length - a.length);
+  for (const kw of KEYWORDS) {
+    const pattern = kw.replace(/\s+/g, "\\s+");
+    const re = new RegExp(`\\b${pattern}\\b`, "gi");
+    s = s.replace(re, kw);
+  }
+
+  // 在主要关键词前断行
+  const BREAK_BEFORE = [
+    "SELECT",
+    "FROM",
+    "WHERE",
+    "GROUP BY",
+    "ORDER BY",
+    "HAVING",
+    "LIMIT",
+    "OFFSET",
+    "UNION ALL",
+    "UNION",
+    "LEFT JOIN",
+    "RIGHT JOIN",
+    "INNER JOIN",
+    "OUTER JOIN",
+    "CROSS JOIN",
+    "JOIN",
+    "ON",
+    "AND",
+    "OR"
+  ];
+  for (const token of BREAK_BEFORE) {
+    const pattern = token.replace(/\s+/g, "\\s+");
+    const re = new RegExp(`\\s*\\b${pattern}\\b`, "g");
+    s = s.replace(re, `\n${token}`);
+  }
+
+  // 逗号后换行，提升可读性
+  s = s.replace(/,\s*/g, ",\n  ");
+  // 多余空行压缩
+  s = s.replace(/\n{2,}/g, "\n");
+
+  // 简单缩进：根据括号层级
+  const lines = s.split("\n").map(l => l.trim());
+  const out: string[] = [];
+  let level = 0;
+  for (let line of lines) {
+    if (!line) continue;
+    // 关闭括号在前，先减级
+    const leadingClose = line.match(/^\)+/);
+    if (leadingClose) {
+      level = Math.max(0, level - leadingClose[0].length);
+    }
+    out.push("  ".repeat(level) + line);
+    // 行内括号调整层级
+    const open = (line.match(/\(/g) || []).length;
+    const close = (line.match(/\)/g) || []).length;
+    level = Math.max(0, level + open - close);
+  }
+  return out.join("\n");
 }
 
 async function openStructureTab() {
@@ -243,14 +358,24 @@ function isColumnLeaf(data: any): boolean {
  * 构建右键菜单项
  * - 根据控制台配置和节点类型动态生成
  */
-function buildMenuItems(): MenuItem[] {
+function buildMenuItems(type): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p);
   const items: MenuItem[] = [];
-  if (allow(consoleConfig.value.jdbc?.viewTableStructure)) items.push({ key: "view-structure", label: "查看表结构", icon: "ri:table-2" });
-  if (allow(consoleConfig.value.jdbc?.copyTableName)) items.push({ key: "copy-table-name", label: "复制表名", icon: "ri:file-copy-line" });
-  if (allow(consoleConfig.value.jdbc?.copyCreateTable)) items.push({ key: "copy-create-sql", label: "复制建表语句", icon: "ri:article-line" });
+  if (allow(consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"))) {
+    items.push({ key: "view-structure", label: "查看表结构", icon: "ri:table-2" });
+  }
+  if (allow(consoleConfig.value.jdbc?.copyTableName) && type.includes("TABLE")) {
+    items.push({ key: "copy-table-name", label: "复制表名", icon: "ri:file-copy-line" });
+  }
+  if (allow(consoleConfig.value.jdbc?.copyCreateTable) && type.includes("TABLE")) {
+    items.push({ key: "copy-create-sql", label: "复制建表语句", icon: "ri:article-line" });
+  }
+
+  if (allow(consoleConfig.value.jdbc?.copyTableName) && type.includes("COLUMN")) {
+    items.push({ key: "copy-column-name", label: "复制字段名", icon: "ri:file-copy-line" });
+  }
   // 添加注释：仅在字段（叶子列）上显示
-  if (allow(consoleConfig.value.jdbc?.addFieldComment) && contextNode.value && isColumnLeaf(contextNode.value)) {
+  if (allow(consoleConfig.value.jdbc?.addFieldComment) && contextNode.value && isColumnLeaf(contextNode.value) && type.includes("COLUMN")) {
     items.push({ key: "add-comment", label: "添加注释", icon: "ri:chat-new-line" });
   }
   return items;
@@ -263,7 +388,10 @@ const menuItems = ref<MenuItem[]>([]);
  */
 function handleNodeContextMenu(event: MouseEvent, data: any) {
   contextNode.value = data;
-  menuItems.value = buildMenuItems();
+  menuItems.value = buildMenuItems(data.type);
+  if (!menuItems.value.length) {
+    return;
+  }
   menuX.value = event.clientX;
   menuY.value = event.clientY;
   menuVisible.value = true;
@@ -284,6 +412,9 @@ async function onMenuSelect(key: string) {
       await viewTableStructure(contextNode.value);
       break;
     case "copy-table-name":
+      await copyTableName(contextNode.value);
+      break;
+    case "copy-column-name":
       await copyTableName(contextNode.value);
       break;
     case "copy-create-sql":
