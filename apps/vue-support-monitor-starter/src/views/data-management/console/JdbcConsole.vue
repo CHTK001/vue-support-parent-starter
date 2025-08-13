@@ -5,11 +5,18 @@
       <el-tree
         :data="treeData"
         :props="treeProps"
+        :load="loadChildrenLazy"
+        lazy
         node-key="path"
         @node-click="handleNodeClick"
         @node-contextmenu="handleNodeContextMenu"
         class="tree"
-      />
+      >
+        <template #default="{ node, data }">
+          <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
+          <span>{{ data.name }}</span>
+        </template>
+      </el-tree>
     </div>
     <div class="right">
       <div class="editor-bar">
@@ -38,13 +45,14 @@
 import { ref, onMounted } from 'vue'
 import CodeEditor from '@/components/codeEditor/index.vue'
 import request from '@/api/config'
+import { extractArrayFromApi, normalizeTreeNode } from '@/views/data-management/utils/dataTree'
 import CommonContextMenu, { type MenuItem } from '@/components/CommonContextMenu.vue'
 import { getConsoleConfig } from '@/api/system-data'
 
 const props = defineProps<{ id: number }>()
 
 const treeData = ref<any[]>([])
-const treeProps = { label: 'name', children: 'children' }
+const treeProps = { label: 'name', children: 'children', isLeaf: 'leaf' }
 const keyword = ref('')
 const currentPath = ref<string | undefined>(undefined)
 
@@ -68,35 +76,51 @@ async function loadConsoleConfig() {
   }
 }
 
-function extractArray(payload: any): any[] {
-  if (!payload) return []
-  if (Array.isArray(payload)) return payload
-  return (
-    payload.records || payload.nodes || payload.children || payload.list || []
-  )
-}
-
-function normalizeNode(n: any): any {
-  const name = n?.name ?? n?.label ?? n?.title ?? n?.path ?? n?.id ?? "节点"
-  const path = n?.path ?? n?.id ?? name
-  const childrenRaw = n?.children
-  const children = Array.isArray(childrenRaw)
-    ? childrenRaw.map(normalizeNode)
-    : []
-  return { ...n, name, path, children }
-}
-
 async function loadRoot() {
   const res = await request({ url: `/system/data/console/${props.id}/root`, method: 'get', params: { keyword: keyword.value } })
-  const records = extractArray(res?.data)
-  treeData.value = records.map(normalizeNode)
+  const records = extractArrayFromApi(res?.data)
+  treeData.value = records.map(normalizeTreeNode)
 }
 
 async function handleNodeClick(node: any) {
   currentPath.value = node?.path
   const res = await request({ url: `/system/data/console/${props.id}/children`, method: 'get', params: { parentPath: currentPath.value } })
-  const records = extractArray(res?.data)
-  node.children = records.map(normalizeNode)
+  const records = extractArrayFromApi(res?.data)
+  node.children = records.map(normalizeTreeNode)
+}
+
+// 懒加载子节点（结合 hasChildren 展示展开图标）
+const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) => {
+  // 根节点（node.level === 0）直接返回已有 children
+  if (!node || node.level === 0) {
+    return resolve(treeData.value || [])
+  }
+  const data = node.data || {}
+  if (data.leaf === true) {
+    return resolve([])
+  }
+  const parentPath = data.path
+  const res = await request({ url: `/system/data/console/${props.id}/children`, method: 'get', params: { parentPath } })
+  const records = extractArrayFromApi(res?.data).map(normalizeTreeNode)
+  resolve(records)
+}
+
+// 根据类型/层级返回 JDBC 树节点图标
+function getJdbcNodeIcon(node: any, data: any): string {
+  const type = (data?.type || '').toString().toLowerCase()
+  if (type) {
+    if (type.includes('db') || type.includes('database') || type.includes('schema') || type.includes('catalog')) return 'ri:database-2-line'
+    if (type.includes('table')) return 'ri:table-2'
+    if (type.includes('column') || type.includes('field')) return 'ri:braces-line'
+    if (type.includes('view')) return 'ri:layout-2-line'
+    if (type.includes('index')) return 'ri:hashtag'
+  }
+  // 按层级兜底：1-库 2-表 3-列 其他-文件
+  const level = Number(node?.level || 0)
+  if (level <= 1) return 'ri:database-2-line'
+  if (level === 2) return 'ri:table-2'
+  if (level === 3) return 'ri:braces-line'
+  return data?.leaf ? 'ri:file-2-line' : 'ri:folder-2-line'
 }
 
 async function execute() {
