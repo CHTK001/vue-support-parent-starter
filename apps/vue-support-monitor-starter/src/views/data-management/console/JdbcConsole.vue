@@ -41,10 +41,13 @@
       </div>
       <div class="right-body">
         <CodeEditor v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
-        <el-tabs v-model="activeTab" class="result-tabs" type="border-card" tab-position="top">
+         <el-tabs v-model="activeTab" class="result-tabs" type="border-card" tab-position="top">
           <el-tab-pane name="result" label="结果">
             <div class="result">
-              <el-table v-if="rows.length" :data="rows" size="small" height="220">
+              <div v-if="columns.length" class="fields mb-2">
+                <el-tag v-for="col in columns" :key="col" size="small" class="mr-1 mb-1">{{ col }}</el-tag>
+              </div>
+              <el-table v-if="columns.length" :data="rows" size="small" height="220">
                 <el-table-column v-for="col in columns" :key="col" :prop="col" :label="col" :min-width="120" />
               </el-table>
               <el-empty v-else description="无结果" />
@@ -202,6 +205,7 @@ async function execute() {
   const res = await request({ url: `/system/data/console/${props.id}/execute`, method: "post", params: { type: "sql" }, data: sql.value });
   const data = res?.data;
   columns.value = data?.columns || [];
+  await Promise.resolve();
   rows.value = data?.rows || [];
   const ms = Math.round(performance.now() - start);
   statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms`;
