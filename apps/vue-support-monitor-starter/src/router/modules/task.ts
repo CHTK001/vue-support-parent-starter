@@ -8,7 +8,7 @@ export default [
       icon: "ep:monitor",
       title: "任务管理",
       showLink: true,
-      rank: 1,
+      rank: 1
     },
     children: [
       {
@@ -18,7 +18,7 @@ export default [
           icon: "line-md:bell-twotone-loop",
           title: "项目管理",
           showLink: true,
-          showParent: true,
+          showParent: true
         },
         children: [
           {
@@ -29,10 +29,10 @@ export default [
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.app-list"),
               showLink: true,
-              showParent: true,
-            },
-          },
-        ],
+              showParent: true
+            }
+          }
+        ]
       },
       {
         path: "/job-monitor",
@@ -41,7 +41,7 @@ export default [
           icon: "line-md:bell-twotone-loop",
           title: "调度任务",
           showLink: true,
-          showParent: true,
+          showParent: true
         },
         children: [
           {
@@ -52,8 +52,8 @@ export default [
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.job-list"),
               showLink: true,
-              showParent: true,
-            },
+              showParent: true
+            }
           },
           {
             path: "/job-log",
@@ -63,11 +63,11 @@ export default [
               icon: "simple-icons:logmein",
               title: $t("buttons.monitor.job-log"),
               showLink: true,
-              showParent: true,
-            },
-          },
-        ],
-      },
-    ],
-  },
+              showParent: true
+            }
+          }
+        ]
+      }
+    ]
+  }
 ];
