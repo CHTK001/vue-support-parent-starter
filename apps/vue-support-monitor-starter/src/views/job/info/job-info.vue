@@ -111,15 +111,15 @@
                   <div class="app-stats" />
                   <div class="app-actions">
                     <el-button size="small" type="primary" class="action-btn" @click="edit(row)">
-                      <IconifyIconOnline icon="ep:edit" class="mr-1" />
+                      <IconifyIconOnline icon="ep:edit" />
                       编辑
                     </el-button>
                     <el-button size="small" type="success" class="action-btn" @click="trigger(row)">
-                      <IconifyIconOnline icon="ep:video-play" class="mr-1" />
+                      <IconifyIconOnline icon="ep:video-play" />
                       执行
                     </el-button>
                     <el-button size="small" type="info" class="action-btn" @click="logger(row)">
-                      <IconifyIconOnline icon="ep:document" class="mr-1" />
+                      <IconifyIconOnline icon="ep:document" />
                       日志
                     </el-button>
                     <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
