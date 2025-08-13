@@ -6,12 +6,7 @@
         <Suspense>
           <template #default>
             <div class="job-filter-controls">
-              <sc-select-filter
-                :data="filterData"
-                :label-width="80"
-                @on-change="filterChange"
-                inline
-              />
+              <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" inline />
             </div>
           </template>
           <template #fallback>
@@ -23,49 +18,42 @@
       </div>
 
       <div class="job-search-section">
-        <el-select
-          v-model="form.jobGroup"
-          class="job-group-dropdown"
-          placeholder="选择任务组"
-        >
+        <el-select v-model="form.jobGroup" class="job-group-dropdown" placeholder="选择任务组">
           <el-option :value="0" label="全部">
             <div class="job-option-item">
               <IconifyIconOnline icon="ep:menu" class="mr-2" />
               <span>全部</span>
             </div>
           </el-option>
-          <el-option
-            v-for="item in executorData"
-            :key="item.monitorId"
-            :value="item.monitorId"
-          >
+          <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId">
             <div class="job-option-item">
               <IconifyIconOnline icon="ep:folder-opened" class="mr-2" />
               <span>{{ item.monitorName }}</span>
-              <span class="job-app-label">{{
-                item.monitorApplicationName
-              }}</span>
+              <span class="job-app-label">{{ item.monitorApplicationName }}</span>
             </div>
           </el-option>
         </el-select>
 
+        <!-- 状态快捷切换 -->
+        <el-button-group class="status-toggle">
+          <el-button :type="form.jobTriggerStatus === null ? 'primary' : ''" @click="setStatus(null)">全部</el-button>
+          <el-button :type="form.jobTriggerStatus === 1 ? 'success' : ''" @click="setStatus(1)">启动</el-button>
+          <el-button :type="form.jobTriggerStatus === 0 ? 'info' : ''" @click="setStatus(0)">停止</el-button>
+        </el-button-group>
+
         <div class="job-search-box">
-          <el-input
-            v-model="form.jobDesc"
-            placeholder="搜索任务描述..."
-            clearable
-          >
+          <el-input v-model="form.jobDesc" placeholder="搜索任务描述..." clearable>
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
           </el-input>
-          <el-button type="primary" @click="search" class="job-search-button">
+          <el-button type="primary" class="job-search-button" @click="search">
             <IconifyIconOnline icon="ep:search" class="mr-1" />
             搜索
           </el-button>
         </div>
 
-        <el-button type="primary" @click="add" class="job-add-button">
+        <el-button type="primary" class="job-add-button" @click="add">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建任务
         </el-button>
@@ -74,69 +62,44 @@
 
     <!-- 主内容区域 -->
     <div class="job-content">
-      <ScTable
-        ref="tableRef"
-        :loading="loading"
-        :data="data"
-        :total="total"
-        layout="card"
-        cardLayout="default"
-        v-model:page="form"
-        @data-change="search"
-        class="job-table"
-      >
+      <ScTable ref="tableRef" v-model:page="form" class="job-table" :col-size="4" :data="data" :total="total" :loading="loading" layout="card" cardLayout="default" @data-change="search">
         <template #default="{ row }">
-          <div
-            class="app-wrapper"
-            :class="{ 'app-wrapper-active': row.jobTriggerStatus === 1 }"
-          >
+          <div class="app-wrapper" :class="{ 'app-wrapper-active': row.jobTriggerStatus === 1 }">
+            <!-- 状态角标：运行/停止 -->
+            <div class="status-badge" :class="row.jobTriggerStatus === 1 ? 'is-running' : 'is-stopped'">
+              <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:circle-close-filled'" />
+            </div>
             <div class="media-content">
-              <div
-                class="app-logo"
-                @click="row.jobTriggerStatus === 1 ? stop(row) : start(row)"
-              >
-                <IconifyIconOnline
-                  :icon="
-                    row.jobTriggerStatus === 1
-                      ? 'ep:video-pause'
-                      : 'ep:video-play'
-                  "
-                  :class="
-                    row.jobTriggerStatus === 1
-                      ? 'app-toggle-running'
-                      : 'app-toggle-stopped'
-                  "
-                />
+              <div class="app-logo" @click="row.jobTriggerStatus === 1 ? stop(row) : start(row)">
+                <el-tag size="small" :type="row.jobTriggerStatus === 1 ? 'success' : 'info'" effect="light" class="status-chip">
+                  <IconifyIconOnline :icon="row.jobTriggerStatus === 1 ? 'ep:success-filled' : 'ep:minus'" class="mr-1" />
+                  {{ row.jobTriggerStatus === 1 ? "运行中" : "已停止" }}
+                </el-tag>
               </div>
 
               <div class="app-content">
-                <h3 class="app-title">{{ row.jobName }}</h3>
+                <div class="app-title-row">
+                  <el-tooltip :content="row.jobName" placement="top" :show-after="200">
+                    <h3 class="app-title">{{ row.jobName }}</h3>
+                  </el-tooltip>
+                </div>
                 <div class="app-tags">
-                  <el-tag
-                    size="small"
-                    :type="row.jobTriggerStatus === 1 ? 'success' : 'info'"
-                    effect="light"
-                  >
-                    {{ row.jobTriggerStatus === 1 ? "运行中" : "已停止" }}
+                  <el-tag size="small" effect="plain" class="title-pill">
+                    {{ row.jobScheduleType }}
+                    <template v-if="row.jobScheduleType === 'FIXED'">{{ row.jobScheduleTime }}s</template>
                   </el-tag>
-                  <el-tag size="small" type="primary" class="ml-2">{{
-                    row.jobGlueType
-                  }}</el-tag>
-                  <el-tag size="small" effect="plain" class="ml-2">{{
-                    row.jobApplicationActive
-                  }}</el-tag>
+                  <el-tag size="small" type="primary" class="ml-2">{{ row.jobGlueType }}</el-tag>
+                  <el-tag size="small" effect="plain" class="ml-2">{{ row.jobApplicationActive }}</el-tag>
                 </div>
 
                 <div class="app-desc">
                   <div class="job-meta-item">
                     <IconifyIconOnline icon="ep:timer" class="mr-1" />
                     <span>{{ row.jobType }}</span>
-                    <span class="ml-2"
-                      >{{ row.jobScheduleType }} {{ row.jobScheduleTime }}
-                      <span v-if="row.jobScheduleType === 'FIXED'"
-                        >秒</span
-                      ></span
-                    >
+                    <span class="ml-2">
+                      {{ row.jobScheduleType }} {{ row.jobScheduleTime }}
+                      <span v-if="row.jobScheduleType === 'FIXED'">秒</span>
+                    </span>
                   </div>
                   <div class="job-meta-item mt-2">
                     <IconifyIconOnline icon="ep:user" class="mr-1" />
@@ -145,98 +108,49 @@
                 </div>
 
                 <div class="app-footer">
-                  <div class="app-stats"></div>
+                  <div class="app-stats" />
                   <div class="app-actions">
-                    <el-button
-                      size="small"
-                      type="primary"
-                      @click="edit(row)"
-                      class="action-btn"
-                    >
-                      <IconifyIconOnline icon="ep:edit" class="mr-1" />编辑
+                    <el-button size="small" type="primary" class="action-btn" @click="edit(row)">
+                      <IconifyIconOnline icon="ep:edit" class="mr-1" />
+                      编辑
                     </el-button>
-                    <el-button
-                      size="small"
-                      type="success"
-                      @click="trigger(row)"
-                      class="action-btn"
-                    >
-                      <IconifyIconOnline
-                        icon="ep:video-play"
-                        class="mr-1"
-                      />执行
+                    <el-button size="small" type="success" class="action-btn" @click="trigger(row)">
+                      <IconifyIconOnline icon="ep:video-play" class="mr-1" />
+                      执行
                     </el-button>
-                    <el-button
-                      size="small"
-                      type="info"
-                      @click="logger(row)"
-                      class="action-btn"
-                    >
-                      <IconifyIconOnline icon="ep:document" class="mr-1" />日志
+                    <el-button size="small" type="info" class="action-btn" @click="logger(row)">
+                      <IconifyIconOnline icon="ep:document" class="mr-1" />
+                      日志
                     </el-button>
-                    <el-dropdown
-                      trigger="click"
-                      @command="(command) => handleCommand(command, row)"
-                    >
+                    <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
                       <el-button size="small" class="more-btn">
                         <IconifyIconOnline icon="ep:more-filled" />
                       </el-button>
                       <template #dropdown>
                         <el-dropdown-menu>
                           <el-dropdown-item command="nextTriggerTime">
-                            <IconifyIconOnline
-                              icon="ep:calendar"
-                              class="mr-1"
-                            />
+                            <IconifyIconOnline icon="ep:calendar" class="mr-1" />
                             下次执行时间
                           </el-dropdown-item>
                           <el-dropdown-item command="jobgroupById">
-                            <IconifyIconOnline
-                              icon="ep:connection"
-                              class="mr-1"
-                            />
+                            <IconifyIconOnline icon="ep:connection" class="mr-1" />
                             注册节点
                           </el-dropdown-item>
-                          <el-dropdown-item
-                            v-if="
-                              !row.jobTriggerStatus || row.jobTriggerStatus == 0
-                            "
-                            divided
-                            command="start"
-                          >
-                            <IconifyIconOnline
-                              icon="ep:video-play"
-                              class="mr-1"
-                            />
+                          <el-dropdown-item v-if="!row.jobTriggerStatus || row.jobTriggerStatus == 0" divided command="start">
+                            <IconifyIconOnline icon="ep:video-play" class="mr-1" />
                             启动
                           </el-dropdown-item>
-                          <el-dropdown-item
-                            v-if="row.jobTriggerStatus == 1"
-                            divided
-                            command="stop"
-                          >
-                            <IconifyIconOnline
-                              icon="ep:video-pause"
-                              class="mr-1"
-                            />
+                          <el-dropdown-item v-if="row.jobTriggerStatus == 1" divided command="stop">
+                            <IconifyIconOnline icon="ep:video-pause" class="mr-1" />
                             停止
                           </el-dropdown-item>
                           <el-dropdown-item command="copy">
-                            <IconifyIconOnline
-                              icon="ep:copy-document"
-                              class="mr-1"
-                            />
+                            <IconifyIconOnline icon="ep:copy-document" class="mr-1" />
                             复制
                           </el-dropdown-item>
                           <el-dropdown-item divided command="delete">
-                            <IconifyIconOnline
-                              icon="ep:delete"
-                              class="mr-1"
-                              style="color: var(--el-color-danger)"
-                            />
-                            <span style="color: var(--el-color-danger)"
-                              >删除</span
-                            >
+                            <IconifyIconOnline icon="ep:delete" class="mr-1" style="color: var(--el-color-danger)" />
+                            <span style="color: var(--el-color-danger)">删除</span>
                           </el-dropdown-item>
                         </el-dropdown-menu>
                       </template>
@@ -256,13 +170,7 @@
     </div>
 
     <!-- 弹窗组件 -->
-    <el-dialog
-      v-model="triggerShow"
-      draggable
-      :title="triggerTitle"
-      class="job-dialog"
-      width="500px"
-    >
+    <el-dialog v-model="triggerShow" draggable :title="triggerTitle" class="job-dialog" width="500px">
       <el-form :model="form" label-width="120px">
         <el-form-item label="任务参数">
           <el-input v-model="executorParam" type="textarea" :rows="6" />
@@ -273,44 +181,21 @@
       </el-form>
       <template #footer>
         <span class="job-dialog-footer">
-          <el-button :loading="triggerLoadding" @click="triggerShow = false"
-            >取消</el-button
-          >
-          <el-button
-            :loading="triggerLoadding"
-            type="primary"
-            @click="triggerExecute"
-            >确定</el-button
-          >
+          <el-button :loading="triggerLoadding" @click="triggerShow = false">取消</el-button>
+          <el-button :loading="triggerLoadding" type="primary" @click="triggerExecute">确定</el-button>
         </span>
       </template>
     </el-dialog>
 
-    <el-dialog
-      v-model="jobinfoNextTriggerTimeShow"
-      draggable
-      title="下一次执行时间"
-      width="400px"
-      class="job-dialog"
-    >
+    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时间" width="400px" class="job-dialog">
       <div class="job-next-time-list">
-        <div
-          v-for="item in jobinfoNextTriggerTimeData"
-          :key="item"
-          class="job-next-time-item"
-        >
+        <div v-for="item in jobinfoNextTriggerTimeData" :key="item" class="job-next-time-item">
           {{ item }}
         </div>
       </div>
     </el-dialog>
 
-    <el-dialog
-      v-model="jobgroupByIdShow"
-      draggable
-      title="注册地址"
-      width="400px"
-      class="job-dialog"
-    >
+    <el-dialog v-model="jobgroupByIdShow" draggable title="注册地址" width="400px" class="job-dialog">
       <el-empty v-if="jobgroupByIdData.length == 0" />
       <div v-else class="job-node-list">
         <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
@@ -325,14 +210,7 @@
 
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import {
-  fetchJobNextTriggerTime,
-  fetchJobPageList,
-  fetchJobDelete,
-  fetchJobStart,
-  fetchJobStop,
-  fetchJobTrigger,
-} from "@/api/monitor/job";
+import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 import { fetchAppList } from "@/api/monitor/app";
 // import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功能
 import { defineAsyncComponent, ref, reactive, onMounted } from "vue";
@@ -342,9 +220,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 
 // 动态导入组件
 const Save = defineAsyncComponent(() => import("./save.vue"));
-const ScSelectFilter = defineAsyncComponent(
-  () => import("@repo/components/ScSelectFilter/index.vue")
-);
+const ScSelectFilter = defineAsyncComponent(() => import("@repo/components/ScSelectFilter/index.vue"));
 
 // 表格引用
 const tableRef = ref(null);
@@ -368,7 +244,7 @@ const form = reactive({
   jobDesc: undefined,
   jobGroup: 0,
   pageNum: 1,
-  pageSize: 12,
+  pageSize: 12
 });
 
 const data = ref([]);
@@ -387,37 +263,34 @@ const filterData = [
     options: [
       {
         label: "全部",
-        value: null,
+        value: null
       },
       {
         label: "停止",
-        value: 0,
+        value: 0
       },
       {
         label: "启动",
-        value: 1,
-      },
-    ],
-  },
+        value: 1
+      }
+    ]
+  }
 ];
 
 // 初始化数据
 const initial = async () => {
   try {
-    const res = await fetchAppList();
+    const res = await fetchAppList({});
     executorData.value = res?.data || [];
-    form.jobGroup =
-      executorData.value && executorData.value.length == 1
-        ? executorData.value[0].monitorId
-        : 0;
-    search();
+    form.jobGroup = executorData.value && executorData.value.length == 1 ? executorData.value[0].monitorId : 0;
+    search({});
   } catch (error) {
     console.error("初始化失败:", error);
   }
 };
 
 // 搜索方法
-const search = async (param) => {
+const search = async param => {
   if (param) {
     Object.assign(form, param);
   }
@@ -434,18 +307,24 @@ const search = async (param) => {
 };
 
 // 过滤器变化
-const filterChange = (row) => {
+const filterChange = row => {
   form.jobTriggerStatus = row.jobTriggerStatus;
-  search();
+  search({});
+};
+
+// 状态快捷切换（与筛选器联动）
+const setStatus = (v: number | null) => {
+  form.jobTriggerStatus = v as any;
+  search(undefined);
 };
 
 // 处理成功回调
 const handlerSuccess = () => {
-  search();
+  search(undefined);
 };
 
 // 编辑任务
-const edit = (row) => {
+const edit = row => {
   saveShow.value = true;
   setTimeout(() => {
     saveRef.value.setExecutorData(executorData.value).open("edit", row);
@@ -453,7 +332,7 @@ const edit = (row) => {
 };
 
 // 复制任务
-const copy = (row) => {
+const copy = row => {
   saveShow.value = true;
   setTimeout(() => {
     saveRef.value.setExecutorData(executorData.value).open("copy", row);
@@ -461,17 +340,17 @@ const copy = (row) => {
 };
 
 // 删除任务
-const del = async (row) => {
+const del = async row => {
   try {
     await ElMessageBox.confirm(`确定要删除任务 "${row.jobName}" 吗？`, "提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
-      type: "warning",
+      type: "warning"
     });
 
     const res = await fetchJobDelete({ id: row.jobId });
     if (res.code === "00000") {
-      data.value = data.value.filter((it) => it.jobId != row.jobId);
+      data.value = data.value.filter(it => it.jobId != row.jobId);
       ElMessage.success("操作成功");
     } else {
       ElMessage.error(res.msg);
@@ -485,11 +364,11 @@ const del = async (row) => {
 };
 
 // 启动任务
-const start = async (row) => {
+const start = async row => {
   try {
     const res = await fetchJobStart({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find((it) => it.jobId == row.jobId);
+      const item = data.value.find(it => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 1;
       }
@@ -503,12 +382,14 @@ const start = async (row) => {
   }
 };
 
-// 停止任务
-const stop = async (row) => {
+// 停止任务（增加二次确认）
+const stop = async row => {
   try {
+    await ElMessageBox.confirm(`确定要停止任务 "${row.jobName}" 吗？`, "提示", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" });
+
     const res = await fetchJobStop({ jobId: row.jobId });
     if (res.code === "00000") {
-      const item = data.value.find((it) => it.jobId == row.jobId);
+      const item = data.value.find(it => it.jobId == row.jobId);
       if (item) {
         item.jobTriggerStatus = 0;
       }
@@ -517,8 +398,10 @@ const stop = async (row) => {
       ElMessage.error(res.msg);
     }
   } catch (error) {
-    console.error("停止失败:", error);
-    ElMessage.error("停止失败");
+    if (error !== "cancel") {
+      console.error("停止失败:", error);
+      ElMessage.error("停止失败");
+    }
   }
 };
 
@@ -537,7 +420,7 @@ const triggerExecute = async () => {
     const res = await fetchJobTrigger({
       id: triggerId.value,
       executorParam: executorParam.value,
-      addressList: addressList.value,
+      addressList: addressList.value
     });
 
     if (res.code === "00000") {
@@ -555,50 +438,36 @@ const triggerExecute = async () => {
 };
 
 // 触发执行
-const trigger = (row) => {
+const trigger = row => {
   triggerTitle.value = row.jobName + "(执行一次)";
   triggerShow.value = true;
   triggerId.value = row.jobId;
 };
 
-// 查看注册节点
-const jobgroupById = async (row) => {
-  try {
-    const res = await fetchServiceList({ uriSpec: "monitor" });
-    if (res.code === "00000") {
-      jobgroupByIdData.value = res.data.filter((it) => {
-        return (
-          it?.metadata?.applicationName == row.jobApplicationName &&
-          it?.metadata?.applicationActive == row.jobApplicationActive
-        );
-      });
-      jobgroupByIdShow.value = true;
-    } else {
-      ElMessage.error(res.msg);
-    }
-  } catch (error) {
-    console.error("获取节点失败:", error);
-    ElMessage.error("获取节点失败");
-  }
+// 查看注册节点（服务监控已移除，展示空列表提示）
+const jobgroupById = async (row: any) => {
+  ElMessage.info("服务节点信息功能已移除");
+  jobgroupByIdData.value = [];
+  jobgroupByIdShow.value = true;
 };
 
 // 查看日志
-const logger = (row) => {
+const logger = row => {
   router.push({
     path: "/job-log",
     query: {
       jobLogApp: row.jobApplicationName,
-      jobLogProfile: row.jobApplicationProfile,
-    },
+      jobLogProfile: row.jobApplicationProfile
+    }
   });
 };
 
 // 查看下一次执行时间
-const nextTriggerTime = async (row) => {
+const nextTriggerTime = async row => {
   try {
     const res = await fetchJobNextTriggerTime({
       jobScheduleType: row.jobScheduleType,
-      jobScheduleTime: row.jobScheduleTime,
+      jobScheduleTime: row.jobScheduleTime
     });
 
     if (res.code === "00000") {
@@ -796,7 +665,7 @@ onMounted(() => {
     top: 0;
     left: 0;
     right: 0;
-    height: 0;
+    height: 2px;
     background-color: var(--el-color-primary);
     transition: height 0.3s ease;
     z-index: 1;
@@ -818,7 +687,7 @@ onMounted(() => {
     height: 100px;
     border-radius: 8px;
     overflow: hidden;
-    margin: 20px;
+    margin: 10px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -979,6 +848,58 @@ onMounted(() => {
   :deep(.el-pagination) {
     margin-top: 24px;
     justify-content: center;
+  }
+}
+
+/* 状态角标 */
+.status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--el-fill-color-light);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.status-badge.is-running {
+  color: var(--el-color-success);
+}
+.status-badge.is-stopped {
+  color: var(--el-text-color-secondary);
+}
+
+/* 现代化卡片视觉增强 */
+.app-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title-pill {
+  border-radius: 999px;
+  border-color: var(--el-border-color-lighter);
+}
+.app-wrapper {
+  backdrop-filter: saturate(1.2) blur(2px);
+}
+.app-wrapper:hover .app-actions .el-button {
+  transform: translateY(-1px);
+}
+.app-actions .el-button.action-btn.is-loading {
+  opacity: 0.86;
+}
+@media (max-width: 768px) {
+  .app-wrapper {
+    height: auto;
+  }
+  .app-logo {
+    margin: 16px;
+    width: 72px;
+    height: 72px;
   }
 }
 </style>
