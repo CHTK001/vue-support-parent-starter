@@ -12,6 +12,9 @@
         <el-form-item label="复制建表语句">
           <el-switch v-model="form.jdbc.copyCreateTable" />
         </el-form-item>
+        <el-form-item label="字段添加注释">
+          <el-switch v-model="form.jdbc.addFieldComment" />
+        </el-form-item>
       </el-form>
     </div>
     <div v-if="isRedis" class="section">
@@ -57,6 +60,7 @@ interface ConsoleConfig {
     viewTableStructure: boolean
     copyTableName: boolean
     copyCreateTable: boolean
+    addFieldComment: boolean
   }
   redis: {
     copyKeyName: boolean
@@ -69,7 +73,7 @@ interface ConsoleConfig {
 }
 
 const form = reactive<ConsoleConfig>({
-  jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false },
+  jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true },
   redis: { copyKeyName: true, viewTtl: true },
   zk: { createNode: false, deleteNode: false },
 })
@@ -88,7 +92,7 @@ watch(
       if (text) {
         try {
           const cfg = JSON.parse(text)
-          form.jdbc = Object.assign({ viewTableStructure: true, copyTableName: true, copyCreateTable: false }, cfg?.jdbc || {})
+          form.jdbc = Object.assign({ viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true }, cfg?.jdbc || {})
           form.redis = Object.assign({ copyKeyName: true, viewTtl: true }, cfg?.redis || {})
           form.zk = Object.assign({ createNode: false, deleteNode: false }, cfg?.zk || {})
         } catch (_) {
