@@ -1,3 +1,4 @@
+import { getConfig } from "@repo/config";
 import request from "./config";
 
 export interface SystemDataSetting {
@@ -85,7 +86,7 @@ export function uploadJdbcDriver(id: number, file: File) {
  * 文档HTML
  */
 export function getDocumentHtmlUrl(id: number) {
-  return `/api/system/data/setting/${id}/document/html`;
+  return `${getConfig().BaseUrl}/system/data/setting/${id}/document/html`;
 }
 
 export function startBackup(id: number) {
@@ -102,7 +103,7 @@ export function backupStatus(id: number) {
  * 查询系统数据（RedisSearchService）
  */
 export function querySystemDataSeries(params: {
-  name: string;
+  name: string; // 例如 system:data:backup 或 system:data:log
   keyword?: string;
   fromTimestamp?: number;
   toTimestamp?: number;

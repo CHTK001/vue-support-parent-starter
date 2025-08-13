@@ -68,15 +68,35 @@ async function loadConsoleConfig() {
   }
 }
 
+function extractArray(payload: any): any[] {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload
+  return (
+    payload.records || payload.nodes || payload.children || payload.list || []
+  )
+}
+
+function normalizeNode(n: any): any {
+  const name = n?.name ?? n?.label ?? n?.title ?? n?.path ?? n?.id ?? "节点"
+  const path = n?.path ?? n?.id ?? name
+  const childrenRaw = n?.children
+  const children = Array.isArray(childrenRaw)
+    ? childrenRaw.map(normalizeNode)
+    : []
+  return { ...n, name, path, children }
+}
+
 async function loadRoot() {
   const res = await request({ url: `/system/data/console/${props.id}/root`, method: 'get', params: { keyword: keyword.value } })
-  treeData.value = res?.data?.records || []
+  const records = extractArray(res?.data)
+  treeData.value = records.map(normalizeNode)
 }
 
 async function handleNodeClick(node: any) {
   currentPath.value = node?.path
   const res = await request({ url: `/system/data/console/${props.id}/children`, method: 'get', params: { parentPath: currentPath.value } })
-  node.children = res?.data?.records || []
+  const records = extractArray(res?.data)
+  node.children = records.map(normalizeNode)
 }
 
 async function execute() {
