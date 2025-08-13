@@ -8,11 +8,7 @@
     <el-card class="section-card" shadow="never">
       <div class="section-title">导航模式</div>
       <div class="nav-options">
-        <div
-          class="nav-item"
-          :class="{ active: form.navMode === 'side' }"
-          @click="setMode('side')"
-        >
+        <div class="nav-item" :class="{ active: form.navMode === 'side' }" @click="setMode('side')">
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="side">侧边导航</el-radio>
           </div>
@@ -23,11 +19,7 @@
           </div>
         </div>
 
-        <div
-          class="nav-item"
-          :class="{ active: form.navMode === 'top' }"
-          @click="setMode('top')"
-        >
+        <div class="nav-item" :class="{ active: form.navMode === 'top' }" @click="setMode('top')">
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="top">顶部导航</el-radio>
           </div>
@@ -38,11 +30,7 @@
           </div>
         </div>
 
-        <div
-          class="nav-item"
-          :class="{ active: form.navMode === 'mix' }"
-          @click="setMode('mix')"
-        >
+        <div class="nav-item" :class="{ active: form.navMode === 'mix' }" @click="setMode('mix')">
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="mix">混合导航</el-radio>
           </div>
@@ -65,34 +53,36 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { reactive, onMounted } from "vue";
+import { ElMessage } from "element-plus";
 
-type NavMode = 'side' | 'top' | 'mix'
+type NavMode = "side" | "top" | "mix";
 
-const form = reactive<{ navMode: NavMode }>({ navMode: 'side' })
+const form = reactive<{ navMode: NavMode }>({ navMode: "side" });
 
-const setMode = (m: NavMode) => { form.navMode = m }
+const setMode = (m: NavMode) => {
+  form.navMode = m;
+};
 
-const STORAGE_KEY = 'app.navMode'
+const STORAGE_KEY = "app.navMode";
 
 onMounted(() => {
-  const saved = (localStorage.getItem(STORAGE_KEY) as NavMode) || ''
-  if (saved === 'side' || saved === 'top' || saved === 'mix') {
-    form.navMode = saved
+  const saved = (localStorage.getItem(STORAGE_KEY) as NavMode) || "";
+  if (saved === "side" || saved === "top" || saved === "mix") {
+    form.navMode = saved;
   }
-})
+});
 
 const save = () => {
-  localStorage.setItem(STORAGE_KEY, form.navMode)
-  ElMessage.success('已保存导航模式')
-}
+  localStorage.setItem(STORAGE_KEY, form.navMode);
+  ElMessage.success("已保存导航模式");
+};
 
 const reset = () => {
-  form.navMode = 'side'
-  localStorage.removeItem(STORAGE_KEY)
-  ElMessage.success('已重置导航模式')
-}
+  form.navMode = "side";
+  localStorage.removeItem(STORAGE_KEY);
+  ElMessage.success("已重置导航模式");
+};
 </script>
 
 <style scoped>
@@ -126,30 +116,89 @@ const reset = () => {
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
-  transition: border-color .2s ease, transform .15s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.15s ease;
   /* 移除任何模糊相关效果：不使用滤镜 */
 }
-.nav-item:hover { border-color: var(--el-color-primary-light-5); transform: translateY(-1px); }
-.nav-item.active { border-color: var(--el-color-primary); }
-.nav-head { font-weight: 600; }
-.nav-desc { color: var(--el-text-color-secondary); margin: 6px 0 10px; min-height: 22px; }
+.nav-item:hover {
+  border-color: var(--el-color-primary-light-5);
+  transform: translateY(-1px);
+}
+.nav-item.active {
+  border-color: var(--el-color-primary);
+}
+.nav-head {
+  font-weight: 600;
+}
+.nav-desc {
+  color: var(--el-text-color-secondary);
+  margin: 6px 0 10px;
+  min-height: 22px;
+}
 
 /* 简易示意图，无模糊 */
-.nav-illustration { position: relative; height: 80px; border-radius: 8px; overflow: hidden; background: var(--el-fill-color-lighter); }
-.nav-illustration .menu { position: absolute; left: 0; top: 0; bottom: 0; width: 24%; background: var(--el-color-primary-light-8); }
-.nav-illustration .content { position: absolute; right: 0; top: 0; bottom: 0; width: 76%; background: var(--el-fill-color); }
-.nav-illustration .bar { position: absolute; left: 0; right: 0; top: 0; height: 20px; background: var(--el-color-primary-light-8); }
-.nav-illustration.top .content { top: 20px; width: 100%; left: 0; }
-.nav-illustration.mix .bar { height: 20px; }
-.nav-illustration.mix .menu { top: 20px; width: 22%; }
-.nav-illustration.mix .content { left: 22%; width: 78%; top: 20px; }
+.nav-illustration {
+  position: relative;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--el-fill-color-lighter);
+}
+.nav-illustration .menu {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 24%;
+  background: var(--el-color-primary-light-8);
+}
+.nav-illustration .content {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 76%;
+  background: var(--el-fill-color);
+}
+.nav-illustration .bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20px;
+  background: var(--el-color-primary-light-8);
+}
+.nav-illustration.top .content {
+  top: 20px;
+  width: 100%;
+  left: 0;
+}
+.nav-illustration.mix .bar {
+  height: 20px;
+}
+.nav-illustration.mix .menu {
+  top: 20px;
+  width: 22%;
+}
+.nav-illustration.mix .content {
+  left: 22%;
+  width: 78%;
+  top: 20px;
+}
 
-.actions { margin-top: 14px; }
-.tip { margin-top: 6px; color: var(--el-text-color-secondary); font-size: 12px; }
+.actions {
+  margin-top: 14px;
+}
+.tip {
+  margin-top: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
 
 @media (max-width: 1200px) {
-  .nav-options { grid-template-columns: 1fr; }
+  .nav-options {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
-
-
