@@ -15,6 +15,7 @@
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
           <span>{{ data.name }}</span>
+          <span class="el-form-item-msg ml-2 mt-3">{{ data.properties?.comment }}</span>
         </template>
       </el-tree>
     </div>
@@ -253,18 +254,12 @@ async function copyCreateSql(node: any) {
 async function addFieldComment(node: any) {
   if (!node?.path) return
   try {
-    // 预填已有注释
-    let initial = ''
-    try {
-      const res = await getFieldComment(props.id, node.path)
-      initial = res?.data?.data?.systemDataFieldCommentComment || ''
-    } catch (_) {}
     const { value } = await ElMessageBox.prompt('请输入要添加的注释内容：', '添加注释', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       inputType: 'textarea',
       inputPlaceholder: '请输入注释...',
-      inputValue: initial
+      inputValue: node?.properties?.comment || ''
     })
     if (!value || !value.trim()) return
     await saveFieldComment(props.id, { nodePath: node.path, comment: value.trim() })
