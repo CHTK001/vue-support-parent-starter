@@ -43,11 +43,12 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import CodeEditor from '@/components/codeEditor/index.vue'
 import request from '@/api/config'
 import { extractArrayFromApi, normalizeTreeNode } from '@/views/data-management/utils/dataTree'
 import CommonContextMenu, { type MenuItem } from '@/components/CommonContextMenu.vue'
-import { getConsoleConfig } from '@/api/system-data'
+import { getConsoleConfig, getFieldComment, saveFieldComment } from '@/api/system-data'
 
 const props = defineProps<{ id: number }>()
 
@@ -61,7 +62,7 @@ const columns = ref<string[]>([])
 const rows = ref<any[]>([])
 
 // console config
-const consoleConfig = ref<{ jdbc?: { viewTableStructure?: boolean; copyTableName?: boolean; copyCreateTable?: boolean } }>({})
+const consoleConfig = ref<{ jdbc?: { viewTableStructure?: boolean; copyTableName?: boolean; copyCreateTable?: boolean; addFieldComment?: boolean } }>({})
 
 async function loadConsoleConfig() {
   if (!props.id) return
@@ -69,10 +70,16 @@ async function loadConsoleConfig() {
   const text = res?.data as string | undefined
   if (text) {
     try {
-      consoleConfig.value = JSON.parse(text) || {}
+      const parsed = JSON.parse(text) || {}
+      // defaults when persisted config missing fields
+      parsed.jdbc = Object.assign({ viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true }, parsed.jdbc || {})
+      consoleConfig.value = parsed
     } catch (_) {
-      consoleConfig.value = {}
+      consoleConfig.value = { jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true } }
     }
+  } else {
+    // fallback defaults to avoid empty context menu
+    consoleConfig.value = { jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true } }
   }
 }
 
@@ -106,6 +113,9 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
 }
 
 // 根据类型/层级返回 JDBC 树节点图标
+/**
+ * 根据节点元信息返回合适的图标
+ */
 function getJdbcNodeIcon(node: any, data: any): string {
   const type = (data?.type || '').toString().toLowerCase()
   if (type) {
@@ -134,23 +144,46 @@ function formatSql() {
   // 预留：格式化
 }
 
-// context menu state
+/**
+ * 右键菜单状态管理
+ */
 const menuVisible = ref(false)
 const menuX = ref(0)
 const menuY = ref(0)
 const contextNode = ref<any | null>(null)
 
+/**
+ * 判断是否为列/字段类型的叶子节点
+ */
+function isColumnLeaf(data: any): boolean {
+  const type = (data?.type || '').toString().toLowerCase()
+  if (type.includes('column') || type.includes('field')) return true
+  // level 3 usually column, also rely on leaf flag
+  return Boolean(data?.leaf) && (data?.level === 3 || /\.(\w+)$/.test(data?.path || ''))
+}
+
+/**
+ * 构建右键菜单项
+ * - 根据控制台配置和节点类型动态生成
+ */
 function buildMenuItems(): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p)
   const items: MenuItem[] = []
   if (allow(consoleConfig.value.jdbc?.viewTableStructure)) items.push({ key: 'view-structure', label: '查看表结构', icon: 'ri:table-2' })
   if (allow(consoleConfig.value.jdbc?.copyTableName)) items.push({ key: 'copy-table-name', label: '复制表名', icon: 'ri:file-copy-line' })
   if (allow(consoleConfig.value.jdbc?.copyCreateTable)) items.push({ key: 'copy-create-sql', label: '复制建表语句', icon: 'ri:article-line' })
+  // 添加注释：仅在字段（叶子列）上显示
+  if (allow(consoleConfig.value.jdbc?.addFieldComment) && contextNode.value && isColumnLeaf(contextNode.value)) {
+    items.push({ key: 'add-comment', label: '添加注释', icon: 'ri:chat-new-line' })
+  }
   return items
 }
 
 const menuItems = ref<MenuItem[]>([])
 
+/**
+ * 处理树节点右键事件，展示上下文菜单
+ */
 function handleNodeContextMenu(event: MouseEvent, data: any) {
   contextNode.value = data
   menuItems.value = buildMenuItems()
@@ -161,6 +194,9 @@ function handleNodeContextMenu(event: MouseEvent, data: any) {
   document.addEventListener('click', hide)
 }
 
+/**
+ * 处理右键菜单点击
+ */
 async function onMenuSelect(key: string) {
   if (!contextNode.value) return
   switch (key) {
@@ -173,9 +209,15 @@ async function onMenuSelect(key: string) {
     case 'copy-create-sql':
       await copyCreateSql(contextNode.value)
       break
+    case 'add-comment':
+      await addFieldComment(contextNode.value)
+      break
   }
 }
 
+/**
+ * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
+ */
 async function viewTableStructure(node: any) {
   if (!node?.path) return
   const res = await request({ url: `/system/data/console/${props.id}/node`, method: 'get', params: { nodePath: node.path, action: 'structure' } })
@@ -184,17 +226,52 @@ async function viewTableStructure(node: any) {
   sql.value = typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2)
 }
 
+/**
+ * 复制树节点名称（通常为表名或列名）
+ */
 async function copyTableName(node: any) {
   const name = node?.name || ''
   if (!name) return
   await navigator.clipboard.writeText(name)
 }
 
+/**
+ * 复制建表语句
+ */
 async function copyCreateSql(node: any) {
   if (!node?.path) return
   const res = await request({ url: `/system/data/console/${props.id}/node`, method: 'get', params: { nodePath: node.path, action: 'ddl' } })
   const ddl = res?.data?.data || ''
   await navigator.clipboard.writeText(typeof ddl === 'string' ? ddl : JSON.stringify(ddl))
+}
+
+/**
+ * 为指定字段节点添加注释
+ * - 弹出输入框
+ * - 提交到后端保存
+ */
+async function addFieldComment(node: any) {
+  if (!node?.path) return
+  try {
+    // 预填已有注释
+    let initial = ''
+    try {
+      const res = await getFieldComment(props.id, node.path)
+      initial = res?.data?.data?.systemDataFieldCommentComment || ''
+    } catch (_) {}
+    const { value } = await ElMessageBox.prompt('请输入要添加的注释内容：', '添加注释', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'textarea',
+      inputPlaceholder: '请输入注释...',
+      inputValue: initial
+    })
+    if (!value || !value.trim()) return
+    await saveFieldComment(props.id, { nodePath: node.path, comment: value.trim() })
+    ElMessage.success('已保存注释')
+  } catch (_) {
+    // canceled
+  }
 }
 
 onMounted(async () => {

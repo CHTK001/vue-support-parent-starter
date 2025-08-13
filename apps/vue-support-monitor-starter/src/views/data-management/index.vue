@@ -398,11 +398,6 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
 
 <style scoped>
 .page {
-  padding: 16px;
-  background:
-    radial-gradient(1600px 500px at 10% -20%, rgba(14,165,233,0.06), rgba(14,165,233,0)),
-    radial-gradient(1400px 480px at 110% 0%, rgba(59,130,246,0.06), rgba(59,130,246,0)),
-    var(--el-bg-color-page);
   min-height: 100%;
 }
 

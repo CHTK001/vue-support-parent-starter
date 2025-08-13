@@ -142,3 +142,21 @@ export function downloadBackup(settingId: number, path: string) {
     responseType: 'blob'
   })
 }
+
+/**
+ * 字段注释：查询
+ * @param settingId 数据源配置ID
+ * @param nodePath 节点路径（库/表/列 唯一定位）
+ */
+export function getFieldComment(settingId: number, nodePath: string) {
+  return request({ url: `/system/data/console/${settingId}/field/comment`, method: 'get', params: { nodePath } })
+}
+
+/**
+ * 字段注释：保存
+ * @param settingId 数据源配置ID
+ * @param payload 包含节点路径与注释内容
+ */
+export function saveFieldComment(settingId: number, payload: { nodePath: string; comment: string }) {
+  return request({ url: `/system/data/console/${settingId}/field/comment`, method: 'post', data: payload })
+}

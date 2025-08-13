@@ -7,16 +7,14 @@ buttons:
     job: 任务管理
     job-list: 任务列表
     job-log: 任务日志
-
     oss: 对象存储
     proxy: 代理管理
     serial: 串口监控
     serial-monitor: 串口监控
     serial-config: 串口配置
     serial-manage: 串口管理
-
     server: 服务器管理
     server-management: 服务器管理
     setting: 系统配置
-
 i18n_1974fe5349: 安装成功
+buttons.monitor.app-list: 项目管理

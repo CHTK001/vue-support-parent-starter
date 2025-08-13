@@ -12,6 +12,29 @@ export default [
     },
     children: [
       {
+        path: "/app",
+        name: "app",
+        meta: {
+          icon: "line-md:bell-twotone-loop",
+          title: "项目管理",
+          showLink: true,
+          showParent: true,
+        },
+        children: [
+          {
+            path: "/app-list",
+            name: "app-list",
+            component: () => import("@/views/app/index.vue"),
+            meta: {
+              icon: "line-md:bell-twotone-loop",
+              title: $t("buttons.monitor.app-list"),
+              showLink: true,
+              showParent: true,
+            },
+          },
+        ],
+      },
+      {
         path: "/job-monitor",
         name: "jobMonitor",
         meta: {
