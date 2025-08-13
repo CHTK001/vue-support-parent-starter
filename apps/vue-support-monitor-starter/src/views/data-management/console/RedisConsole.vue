@@ -19,6 +19,7 @@ async function execute() {
   const res = await request({ url: `/system/data/console/${props.id}/execute`, method: 'post', params: { type: 'redis' }, data: cmd.value })
   result.value = JSON.stringify(res?.data || {}, null, 2)
 }
+
 </script>
 <style scoped>
 .console { display:flex; flex-direction:column; gap:8px; height: calc(100vh - 180px) }

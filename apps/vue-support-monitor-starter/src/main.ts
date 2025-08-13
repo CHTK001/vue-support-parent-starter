@@ -44,6 +44,8 @@ import * as AntIcons from "@ant-design/icons-vue";
 import IconPlugin from "./components/Icon";
 // 导入Ant Design Vue全局配置
 import setupAntdConfig from "./components/AntdConfig";
+import GlobalSocketPlugin from "./plugins/globalSocket";
+import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 
 
 // 全局注册 components 文件夹下的所有组件
@@ -103,6 +105,8 @@ techUILite(app).then(() => {
 
 
 
+    app.use(GlobalSocketPlugin);
+    setupFullscreenSocket(router);
     app.mount("#app");
   });
 });

@@ -97,3 +97,47 @@ export function stopBackup(id: number) {
 export function backupStatus(id: number) {
   return request({ url: `/system/data/setting/${id}/backup/status`, method: 'get' })
 }
+
+/**
+ * 查询系统数据（RedisSearchService）
+ */
+export function querySystemDataSeries(params: {
+  name: string;
+  keyword?: string;
+  fromTimestamp?: number;
+  toTimestamp?: number;
+  offset?: number;
+  count?: number;
+  sort?: string;
+}) {
+  return request({ url: "/v1/search/series", method: "get", params });
+}
+
+/**
+ * 聚合查询系统数据
+ */
+export function aggregateSystemData(params: {
+  name: string;
+  keyword?: string;
+  fromTimestamp?: number;
+  toTimestamp?: number;
+  offset?: number;
+  count?: number;
+  sort?: string;
+  // 透传聚合参数
+  [key: string]: any;
+}) {
+  return request({ url: "/v1/search/aggregate", method: "get", params });
+}
+
+/**
+ * 下载备份文件
+ */
+export function downloadBackup(settingId: number, path: string) {
+  return request({
+    url: `/system/data/console/${settingId}/backup/download`,
+    method: 'get',
+    params: { path },
+    responseType: 'blob'
+  })
+}

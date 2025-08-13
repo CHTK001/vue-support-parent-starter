@@ -60,7 +60,14 @@
                 {{ item.systemDataSettingName }}
               </div>
             </div>
-            <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType }}</el-tag>
+            <div class="right-status" @click.stop="openBackupList(item)">
+              <el-badge :value="logCounts[item.systemDataSettingId!] || 0" :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
+                <el-tag size="small" type="warning">日志</el-tag>
+              </el-badge>
+              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0" :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
+                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType }}</el-tag>
+              </el-badge>
+            </div>
           </div>
           <div class="card-body">
             <div class="meta-row">
@@ -134,12 +141,27 @@
       <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
     </el-dialog>
     <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
+    <el-dialog v-model="showBackupDialog" title="备份数据" width="60%">
+      <el-table :data="backupList" height="50vh" size="small">
+        <el-table-column prop="timestamp" label="时间" width="180">
+          <template #default="{ row }">{{ row.timestamp ? new Date(row.timestamp).toLocaleString() : '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="name" label="名称" min-width="180" />
+        <el-table-column prop="size" label="大小" width="120" />
+        <el-table-column prop="path" label="路径" min-width="240" />
+      </el-table>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showBackupDialog = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting, uploadJdbcDriver, getDocumentHtmlUrl, startBackup, stopBackup, backupStatus } from "@/api/system-data";
+import { ref, computed, onMounted, watch, inject, onBeforeUnmount } from "vue";
+import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting, uploadJdbcDriver, getDocumentHtmlUrl, startBackup, stopBackup, backupStatus, querySystemDataSeries } from "@/api/system-data";
 import { useRouter } from "vue-router";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
@@ -154,6 +176,37 @@ const capMap = ref<
 const backupOn = ref<Record<number, boolean>>({});
 const showDoc = ref(false)
 const docUrl = ref('')
+
+// 实时计数：备份与日志
+const backupCounts = ref<Record<number, number>>({});
+const logCounts = ref<Record<number, number>>({});
+
+// 备份列表对话框
+const showBackupDialog = ref(false)
+const currentSettingIdForBackup = ref<number | null>(null)
+const backupList = ref<any[]>([])
+async function openBackupList(row: SystemDataSetting) {
+  currentSettingIdForBackup.value = row.systemDataSettingId || null
+  await loadBackupList()
+  showBackupDialog.value = true
+}
+async function loadBackupList() {
+  if (!currentSettingIdForBackup.value) return
+  const now = Date.now()
+  const dayMs = 24 * 60 * 60 * 1000
+  const res = await querySystemDataSeries({
+    name: 'system_backup',
+    keyword: `settingId:${currentSettingIdForBackup.value}`,
+    fromTimestamp: now - 7 * dayMs,
+    toTimestamp: now,
+    offset: 0,
+    count: 100,
+    sort: 'timestamp desc'
+  })
+  // 后端返回结构未知，这里尽量兼容常见字段
+  const items = (res?.data?.items || res?.data?.records || res?.data || []) as any[]
+  backupList.value = Array.isArray(items) ? items : []
+}
 
 const showEdit = ref(false);
 const current = ref<SystemDataSetting | null>(null);
@@ -320,10 +373,27 @@ function bgStyle(item: SystemDataSetting) {
 }
 
 onMounted(load);
+// 使用 inject 获取全局 socket，统一监听 system/data 前缀主题
+const globalSocket = inject<any>('globalSocket')
+let unsubBackup: any | null = null
+let unsubLog: any | null = null
 onMounted(async () => {
-  // 初始化备份状态（可按需批量拉取，这里逐个）
-  // 简化处理：进入页面后不主动轮询，点击时即时切换
+  if (!globalSocket) return
+  await globalSocket.connect?.()
+  unsubBackup = globalSocket.on?.('system/data/backup', (m: any) => {
+    const sid = Number(m?.settingId || m?.data?.settingId)
+    if (!sid) return
+    const curr = backupCounts.value[sid] || 0
+    backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 }
+  })
+  unsubLog = globalSocket.on?.('system/data/log', (m: any) => {
+    const sid = Number(m?.settingId || m?.data?.settingId)
+    if (!sid) return
+    const curr = logCounts.value[sid] || 0
+    logCounts.value = { ...logCounts.value, [sid]: curr + 1 }
+  })
 })
+onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog(); })
 </script>
 
 <style scoped>
