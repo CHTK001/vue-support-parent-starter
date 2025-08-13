@@ -1,12 +1,12 @@
+import { fetchSetting } from "@pages/setting";
 import { useWatermark } from "@pureadmin/utils";
 import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
 import { defineStore } from "pinia";
-import { nextTick, ref, provide } from "vue";
+import { nextTick, provide, ref } from "vue";
 import { socket } from "../../config/socket";
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig, putConfig } from "../utils";
 import { useSettingStore } from "./SettingStore";
-import { fetchSetting } from "@pages/setting";
 const config = getConfig();
 
 const preventLocal = ref();
