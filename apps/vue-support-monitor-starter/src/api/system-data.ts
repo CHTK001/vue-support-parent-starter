@@ -160,3 +160,13 @@ export function getFieldComment(settingId: number, nodePath: string) {
 export function saveFieldComment(settingId: number, payload: { nodePath: string; comment: string }) {
   return request({ url: `/system/data/console/${settingId}/field/comment`, method: 'post', data: payload })
 }
+
+/** 打开表：查询并合并字段注释 */
+export function openTable(settingId: number, nodePath: string, limit = 100) {
+  return request({ url: `/system/data/console/${settingId}/table/open`, method: 'get', params: { nodePath, limit } })
+}
+
+/** 表分析：各字段值分布统计 */
+export function analyzeTable(settingId: number, nodePath: string, limit = 1000) {
+  return request({ url: `/system/data/console/${settingId}/table/analyze`, method: 'get', params: { nodePath, limit } })
+}
