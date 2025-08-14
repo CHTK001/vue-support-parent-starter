@@ -6,30 +6,35 @@
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-tree class="tree" :data="treeData" :props="treeProps" :load="loadChildrenLazy" lazy node-key="path" :expand-on-click-node="false" @node-click="handleNodeClick" @node-contextmenu="handleNodeContextMenu">
+      <el-tree class="tree" :data="treeData" :props="treeProps" :load="loadChildrenLazy" lazy node-key="path"
+        :expand-on-click-node="false" @node-click="handleNodeClick" @node-contextmenu="handleNodeContextMenu">
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
           <span class="flex justify-between w-full">
-            <span>{{ data.name }}</span>
+            <span>
+              <span>{{ data.name }}</span>
+              <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.columnType }}</span>
+              <span v-if="data.properties?.columnSize" class="el-form-item-msg ml-2 mt-[3px]">({{ data.properties?.columnSize }})</span>
+            </span>
             <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.comment }}</span>
           </span>
         </template>
       </el-tree>
     </div>
     <div class="splitter cursor-col-resize" @mousedown="onDragStart" @dblclick="resetWidth" />
-     <div class="right image-paper">
+    <div class="right image-paper">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentComment" class="comment" :title="currentComment">• 注释：{{ currentComment }}</span>
         </div>
-         <div class="toolbar">
-           <el-button v-if="showEditor" type="primary" size="small" @click="execute">
+        <div class="toolbar">
+          <el-button v-if="showEditor" type="primary" size="small" @click="execute">
             <IconifyIconOnline :icon="icons.execute" class="mr-1" />
             执行
           </el-button>
-           <el-button v-if="showEditor" size="small" @click="formatSql">
+          <el-button v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
           </el-button>
@@ -37,10 +42,12 @@
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             结构
           </el-button>
-           <el-button-group>
-             <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!tableComment" @click="showTableComment = !showTableComment">表头注释</el-button>
-             <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!Object.keys(columnComments).length" @click="showFieldComments = !showFieldComments">字段注释</el-button>
-           </el-button-group>
+          <el-button-group>
+            <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!searched"
+              @click="showTableComment = !showTableComment">表头注释</el-button>
+            <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!searched"
+              @click="showFieldComments = !showFieldComments">字段注释</el-button>
+          </el-button-group>
           <el-button size="small" :disabled="!currentPath || !columns.length" @click="toggleAnalyze">
             <IconifyIconOnline :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'" class="mr-1" />
             {{ analyzing ? '退出分析' : '分析' }}
@@ -48,47 +55,69 @@
         </div>
       </div>
       <div class="right-body">
-         <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
-         <el-tabs v-model="activeTab" class="result-tabs " type="border-card" tab-position="top">
-          <el-tab-pane name="result" class="h-full" label="结果">
-            <div class="result">
-               <div v-if="showTableComment && tableComment" class="table-comment" :title="tableComment">表：{{ tableComment }}</div>
-               <div class="result-content-toolbar h-[32px]">
-                <el-tooltip content="筛选列">
-                  <IconifyIconOnline icon="ri:menu-unfold-line"  class="item" title="筛选列"/>
-                </el-tooltip>
-               </div>
-               <el-table border v-if="columns.length" :data="rows" size="small" height="220" :row-class-name="rowClassName">
-                <el-table-column v-for="col in columns" :key="col" :prop="col" :label="col" :min-width="120">
-                  <template #header>
-                    <div class="col-header">
-                      <span>{{ col.name }}</span>
-                      <span v-if="columnComments[col] && !showFieldComments" class="hidden-note" :title="columnComments[col]"></span>
-                      <div v-if="analyzing && analysisData[col]?.length" class="chart mini-bar">
-                        <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)" @click.stop="toggleFilter(col, b.value)"></div>
-                      </div>
-                    </div>
-                  </template>
-                  <template #default="{ row }">
-                    <span>{{ row[col.name] }}</span>
-                    <span v-if="columnComments[col] && showFieldComments" class="comment-text" :title="columnComments[col]">（{{ columnComments[col] }}）</span>
-                  </template>
-                </el-table-column>
-              </el-table>
-              <el-empty v-else description="无结果" />
+        <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'"
+          :options="{ mode: 'sql' }" />
+        <el-tabs v-model="activeTab" class="result-tabs " type="border-card" tab-position="top">
+          <el-tab-pane name="result" class="!h-full" label="结果">
+            <div class="result" v-if="columns.length">
+              <el-popover v-model:visible="columnFilterVisible" trigger="click" placement="bottom-end" width="260">
+                <template #reference>
+                  <el-button size="small" text @click.stop="columnFilterVisible = !columnFilterVisible">
+                    <IconifyIconOnline icon="ri:menu-unfold-line" class="mr-1" />筛选列
+                  </el-button>
+                </template>
+                <div class="col-filter">
+                  <div class="ops">
+                    <el-link type="primary" :underline="false" @click="selectedColumnNames = [...columns]">全选</el-link>
+                    <el-link type="danger" :underline="false" @click="selectedColumnNames = []">清空</el-link>
+                  </div>
+                  <el-scrollbar height="220px">
+                    <el-checkbox-group v-model="selectedColumnNames">
+                      <el-checkbox v-for="col in columns" :key="col" :label="col">{{ col }}</el-checkbox>
+                    </el-checkbox-group>
+                  </el-scrollbar>
+                </div>
+              </el-popover>
             </div>
+            <el-table border v-if="columns.length" :data="rows" size="small"  height="580px"
+              :row-class-name="rowClassName">
+             
+              <el-table-column v-for="col in visibleColumns" :key="col" :prop="col.name" :label="col.name"
+                :min-width="120">
+                <template #header>
+                  <div class="col-header flex flex-col justify-start items-start">
+                    <div>{{ col.name }}</div>
+                    <div v-if="showTableComment" class="hidden-note el-form-item-msg" :title="col.comment">
+                      ({{ col.comment }})
+                    </div>
+                    <div v-if="analyzing && analysisData[col]?.length" class="chart mini-bar">
+                      <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)"
+                        @click.stop="toggleFilter(col, b.value)"></div>
+                    </div>
+                  </div>
+                </template>
+                <template #default="{ row }">
+                  <div class="flex flex-col">
+                    <div v-if="showFieldComments" class="comment-text el-form-item-msg" :title="col.name">（{{ col.comment }}）</div>
+                    <div>{{ row[col.name] }}</div>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-empty v-else description="无结果" />
           </el-tab-pane>
         </el-tabs>
-      </div>
-      <div class="right-status">
-        <span v-if="statusText">{{ statusText }}</span>
-      </div>
     </div>
-    <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect" @close="menuVisible = false" />
+    <div class="right-status">
+      <span v-if="statusText">{{ statusText }}</span>
+    </div>
+  </div>
+  <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect"
+    @close="menuVisible = false" />
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import request from "@/api/config";
@@ -108,19 +137,25 @@ const formatIcon = computed(() => {
   return Math.random() > 0.5 ? "ri:magic-line" : "ri:pencil-ruler-2-line";
 });
 
+const searched = ref(false);
 const keyword = ref("");
 const currentPath = ref<string | undefined>(undefined);
 
 const sql = ref("select * from file_system");
 const columns = ref<string[]>([]);
 const rows = ref<any[]>([]);
-const columnComments = ref<Record<string, string>>({});
 const tableComment = ref("");
 const analyzing = ref(false);
 const analysisData = ref<Record<string, Array<{ value: string; count: number }>>>({});
 const showEditor = ref(true);
 const showTableComment = ref(false);
 const showFieldComments = ref(false);
+const columnFilterVisible = ref(false);
+const selectedColumnNames = ref<string[]>([]);
+const visibleColumns = computed(() => {
+  if (!selectedColumnNames.value.length) return columns.value;
+  return columns.value.filter(col => selectedColumnNames.value.includes(col));
+}) as any;
 const activeTab = ref<"result" | "structure">("result");
 const structureContent = ref("");
 const statusText = ref("");
@@ -196,15 +231,16 @@ async function handleNodeClick(node: any) {
   // 若为表节点，打开表（查询+注释）
   const type = (node?.type || '').toString().toUpperCase();
   if (type.includes('TABLE')) {
-    sql.value = `select * from ${node.name}`;
-  //   const resp = await openTable(props.id, node.path, 100);
-  //   columns.value = resp?.data?.data?.columns || [];
-  //   rows.value = [];
-  //   await Promise.resolve();
-  //   rows.value = resp?.data?.data?.rows || [];
-  //   columnComments.value = resp?.data?.data?.columnComments || {};
-  //   tableComment.value = resp?.data?.data?.tableComment || '';
-  //   activeTab.value = 'result';
+    sql.value = `select * from ${node.name} limit 1000`;
+    await execute();
+    //   const resp = await openTable(props.id, node.path, 100);
+    //   columns.value = resp?.data?.data?.columns || [];
+    //   rows.value = [];
+    //   await Promise.resolve();
+    //   rows.value = resp?.data?.data?.rows || [];
+    //   columnComments.value = resp?.data?.data?.columnComments || {};
+    //   tableComment.value = resp?.data?.data?.tableComment || '';
+    //   activeTab.value = 'result';
   }
 }
 
@@ -247,12 +283,14 @@ function getJdbcNodeIcon(node: any, data: any): string {
 
 async function execute() {
   const start = performance.now();
+  searched.value = false;
   const res = await request({ url: `/system/data/console/${props.id}/execute`, method: "post", params: { type: "sql" }, data: sql.value });
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
   await Promise.resolve();
   rows.value = dataData?.rows || [];
+  searched.value = true;
   const ms = Math.round(performance.now() - start);
   statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms`;
   activeTab.value = "result";
@@ -421,7 +459,7 @@ async function loadCurrentComment() {
       const res = await getFieldComment(props.id, currentPath.value);
       currentComment.value = res?.data?.data?.systemDataFieldCommentComment || "";
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 /**
@@ -528,7 +566,6 @@ async function openTableAndRender(hideEditor: boolean) {
   rows.value = [];
   await Promise.resolve();
   rows.value = resp?.data?.data?.rows || [];
-  columnComments.value = resp?.data?.data?.columnComments || {};
   tableComment.value = resp?.data?.data?.tableComment || '';
   activeTab.value = 'result';
   showEditor.value = !hideEditor ? true : false;
@@ -580,8 +617,14 @@ async function addFieldComment(node: any) {
       inputValue: node?.properties?.comment || ""
     });
     if (!value || !value.trim()) return;
-    await saveFieldComment(props.id, { nodePath: node.path, comment: value.trim() });
+    await saveFieldComment(props.id, { 
+      nodePath: node.path, 
+      comment: value.trim(),
+      dataType: node.properties?.dataType,
+      nullable: node.properties?.nullable
+    });
     ElMessage.success("已保存注释");
+    node.properties.comment = value.trim();
   } catch (_) {
     // canceled
   }
@@ -598,6 +641,7 @@ onMounted(async () => {
   height: calc(100vh - 16px);
   overflow: hidden;
 }
+
 .left {
   border: 1px solid #eee;
   border-radius: 8px;
@@ -605,11 +649,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 }
+
 .tree {
   margin-top: 8px;
   flex: 1;
   overflow: auto;
 }
+
 .right {
   border: 1px solid #eee;
   border-radius: 8px;
@@ -617,6 +663,7 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
 }
+
 .right-header {
   display: flex;
   align-items: center;
@@ -625,19 +672,23 @@ onMounted(async () => {
   border-bottom: 1px solid #eee;
   background: var(--el-fill-color-lighter);
 }
+
 .right-header .path {
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--el-text-color-secondary);
 }
+
 .right-header .comment {
   margin-left: 8px;
   color: var(--el-text-color-regular);
 }
+
 .ellipsis {
   max-width: 520px;
   overflow: hidden;
+
   /* 拖拽分割条 */
   .splitter {
     width: 6px;
@@ -646,12 +697,15 @@ onMounted(async () => {
     border-left: 1px solid var(--el-border-color-lighter);
     border-right: 1px solid var(--el-border-color-lighter);
   }
+
   .splitter:hover {
     background: var(--el-border-color);
   }
+
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
 .right-body {
   padding: 8px;
   display: flex;
@@ -660,9 +714,14 @@ onMounted(async () => {
   gap: 8px;
   overflow: hidden;
 }
+
 .result {
   flex: 1;
   overflow: auto;
+  display: flex;
+  flex-direction: row;
+  align-content: end;
+
   .result-content-toolbar {
     width: 100%;
     line-height: 32px;
@@ -670,32 +729,31 @@ onMounted(async () => {
     align-items: center;
     justify-content: end;
     padding: 0px 10px 0px 10px;
+
     &:hover {
       background-color: #f0f2f5;
     }
+
     .item {
       cursor: pointer;
     }
   }
 }
+
 .result-tabs {
   flex: 1 !important;
 }
+
 .result-tabs :deep(.el-tabs__content) {
   padding: 0;
 }
+
 .col-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 6px;
 }
-.hidden-note {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--el-color-warning);
-  display: inline-block;
-}
+
 .mini-bar {
   display: inline-flex;
   align-items: flex-end;
@@ -703,6 +761,7 @@ onMounted(async () => {
   height: 42px;
   margin-left: 6px;
 }
+
 .mini-bar .bar {
   width: 6px;
   background: var(--el-color-primary);
@@ -710,15 +769,18 @@ onMounted(async () => {
   cursor: pointer;
   opacity: 0.8;
 }
+
 .row-dim {
   opacity: 0.4;
 }
+
 .image-paper {
   background:
     linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
     linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 40px 100%,
     linear-gradient(#fff, #fff);
 }
+
 .right-status {
   height: 28px;
   border-top: 1px solid #eee;
