@@ -218,6 +218,11 @@
                   <ServerSettingForm v-model="settingData" section="docker" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
 
+                <!-- 文件管理配置节 -->
+                <div v-show="activeSection === 'filemanagement'" class="config-section">
+                  <ServerSettingForm v-model="settingData" section="filemanagement" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                </div>
+
                 <!-- Prometheus配置节 -->
                 <div v-show="activeSection === 'prometheus'" class="config-section">
                   <div class="section-description">
@@ -233,10 +238,7 @@
                   <ServerSettingForm v-model="settingData" section="prometheus" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
                 <!-- 文件管理配置节 -->
-                <div
-                  v-show="activeSection === 'filemanagement'"
-                  class="config-section"
-                >
+                <div v-show="activeSection === 'filemanagement'" class="config-section">
                   <div class="section-description">
                     <el-alert
                       title="文件管理配置"
@@ -247,14 +249,7 @@
                       class="mb-4"
                     />
                   </div>
-                  <ServerSettingForm
-                    v-model="settingData"
-                    section="filemanagement"
-                    :is-local-server="
-                      currentServer?.monitorSysGenServerIsLocal === 1
-                    "
-                    @change="handleSettingChange"
-                  />
+                  <ServerSettingForm v-model="settingData" section="filemanagement" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
                 <!-- 高级配置节 -->
                 <div v-show="activeSection === 'advanced'" class="config-section">
