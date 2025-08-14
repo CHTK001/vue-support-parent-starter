@@ -358,7 +358,7 @@
 
       <!-- 拖拽分割线 -->
       <el-tooltip content="拖拽调整面板宽度" placement="right" :show-after="500" v-if="!leftPanelMinimized">
-        <div class="resize-handle" @mousedown="startResize"></div>
+        <div class="resize-handle" @mousedown="startResize" />
       </el-tooltip>
 
       <!-- 右侧内容区域 -->

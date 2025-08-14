@@ -218,11 +218,6 @@
                   <ServerSettingForm v-model="settingData" section="docker" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
                 </div>
 
-                <!-- 文件管理配置节 -->
-                <div v-show="activeSection === 'filemanagement'" class="config-section">
-                  <ServerSettingForm v-model="settingData" section="filemanagement" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
-                </div>
-
                 <!-- Prometheus配置节 -->
                 <div v-show="activeSection === 'prometheus'" class="config-section">
                   <div class="section-description">
@@ -249,7 +244,13 @@
                       class="mb-4"
                     />
                   </div>
-                  <ServerSettingForm v-model="settingData" section="filemanagement" :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1" @change="handleSettingChange" />
+                  <ServerSettingForm
+                    v-model="settingData"
+                    section="filemanagement"
+                    :is-local-server="currentServer?.monitorSysGenServerIsLocal === 1"
+                    :simple-style="true"
+                    @change="handleSettingChange"
+                  />
                 </div>
                 <!-- 高级配置节 -->
                 <div v-show="activeSection === 'advanced'" class="config-section">
@@ -287,7 +288,7 @@
       <div class="dialog-footer">
         <el-button @click="visible = false">关闭</el-button>
         <template v-if="activeSection !== 'history'">
-          <el-button @click="handleSave" type="primary" :loading="saving">
+          <el-button type="primary" :loading="saving" @click="handleSave">
             <IconifyIconOnline icon="ri:save-line" class="mr-1" />
             保存配置
           </el-button>
@@ -298,7 +299,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, defineAsyncComponent } from "vue";
+import { ref, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { getServerInfo, type ServerInfo } from "@/api/server";
 import { getServerSettingByServerId, saveOrUpdateServerSetting, type ServerSetting } from "@/api/server/setting";
