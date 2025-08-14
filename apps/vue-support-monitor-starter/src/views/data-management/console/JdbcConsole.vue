@@ -12,7 +12,7 @@
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
           <span class="flex justify-between w-full">
             <span>
-              <span>{{ data.name }}</span>
+          <span>{{ data.name }}</span>
               <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.columnType }}</span>
               <span v-if="data.properties?.columnSize" class="el-form-item-msg ml-2 mt-[3px]">({{ data.properties?.columnSize }})</span>
             </span>
@@ -103,11 +103,11 @@
                   </div>
                 </template>
               </el-table-column>
-            </el-table>
-            <el-empty v-else description="无结果" />
+        </el-table>
+        <el-empty v-else description="无结果" />
           </el-tab-pane>
         </el-tabs>
-    </div>
+      </div>
     <div class="right-status">
       <span v-if="statusText">{{ statusText }}</span>
     </div>
@@ -120,10 +120,10 @@
 import { ref, onMounted, computed, onBeforeUnmount, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
-import request from "@/api/config";
+// request不再直接使用，统一在system-data.ts封装
 import { extractArrayFromApi, normalizeTreeNode } from "@/views/data-management/utils/dataTree";
 import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
-import { getConsoleConfig, getFieldComment, saveFieldComment, openTable, analyzeTable } from "@/api/system-data";
+import { getConsoleConfig, getFieldComment, saveFieldComment, openTable, analyzeTable, getConsoleRoot, getConsoleChildren, getConsoleNode, executeConsole } from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
 
@@ -220,9 +220,9 @@ async function loadConsoleConfig() {
 }
 
 async function loadRoot() {
-  const res = await request({ url: `/system/data/console/${props.id}/root`, method: "get", params: { keyword: keyword.value } });
-  const records = extractArrayFromApi(res?.data);
-  treeData.value = records.map(normalizeTreeNode);
+  const res = await getConsoleRoot(props.id, keyword.value)
+  const records = extractArrayFromApi(res?.data)
+  treeData.value = records.map(normalizeTreeNode)
 }
 
 async function handleNodeClick(node: any) {
@@ -254,10 +254,10 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
   if (data.leaf === true) {
     return resolve([]);
   }
-  const parentPath = data.path;
-  const res = await request({ url: `/system/data/console/${props.id}/children`, method: "get", params: { parentPath } });
-  const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-  resolve(records);
+  const parentPath = data.path
+  const res = await getConsoleChildren(props.id, parentPath)
+  const records = extractArrayFromApi(res?.data).map(normalizeTreeNode)
+  resolve(records)
 };
 
 // 根据类型/层级返回 JDBC 树节点图标
@@ -284,7 +284,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await request({ url: `/system/data/console/${props.id}/execute`, method: "post", params: { type: "sql" }, data: sql.value });
+  const res = await executeConsole(props.id, sql.value, 'sql')
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
@@ -447,8 +447,8 @@ async function toggleAnalyze() {
 }
 
 async function fetchStructure(nodePath: string): Promise<string> {
-  const res = await request({ url: `/system/data/console/${props.id}/node`, method: "get", params: { nodePath, action: "structure" } });
-  const detail = res?.data?.data || "";
+  const res = await getConsoleNode(props.id, nodePath, 'structure')
+  const detail = res?.data?.data || ''
   return typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
 
@@ -487,6 +487,10 @@ function isColumnLeaf(data: any): boolean {
 function buildMenuItems(type): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p);
   const items: MenuItem[] = [];
+  // 刷新当前节点（仅非叶子节点显示）
+  if (contextNode.value && contextNode.value.leaf !== true) {
+    items.push({ key: 'refresh-node', label: '刷新', icon: 'ri:refresh-line' })
+  }
   if (type?.includes('TABLE')) {
     items.push({ key: 'open-table', label: '打开表', icon: 'ri:table-2' });
   }
@@ -537,6 +541,9 @@ function handleNodeContextMenu(event: MouseEvent, data: any) {
 async function onMenuSelect(key: string) {
   if (!contextNode.value) return;
   switch (key) {
+    case 'refresh-node':
+      await refreshContextNodeChildren()
+      break
     case 'open-table':
       await openTableAndRender(true);
       break;
@@ -572,12 +579,30 @@ async function openTableAndRender(hideEditor: boolean) {
 }
 
 /**
+ * 刷新当前右键节点的子节点
+ */
+async function refreshContextNodeChildren() {
+  const node = contextNode.value
+  if (!node?.path) return
+  try {
+  const res = await getConsoleChildren(props.id, node.path)
+    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode)
+    node.children = records
+    node.leaf = records.length === 0
+  } catch (e) {
+    // ignore
+  } finally {
+    menuVisible.value = false
+  }
+}
+
+/**
  * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
  */
 async function viewTableStructure(node: any) {
   if (!node?.path) return;
-  const res = await request({ url: `/system/data/console/${props.id}/node`, method: "get", params: { nodePath: node.path, action: "structure" } });
-  const detail = res?.data?.data || "";
+  const res = await getConsoleNode(props.id, node.path, 'structure')
+  const detail = res?.data?.data || '';
   // 简单展示：放到 editor 中
   sql.value = typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
@@ -596,8 +621,8 @@ async function copyTableName(node: any) {
  */
 async function copyCreateSql(node: any) {
   if (!node?.path) return;
-  const res = await request({ url: `/system/data/console/${props.id}/node`, method: "get", params: { nodePath: node.path, action: "ddl" } });
-  const ddl = res?.data?.data || "";
+  const res = await getConsoleNode(props.id, node.path, 'ddl')
+  const ddl = res?.data?.data || '';
   await navigator.clipboard.writeText(typeof ddl === "string" ? ddl : JSON.stringify(ddl));
 }
 
