@@ -7,6 +7,7 @@ import LayPanel from "../lay-panel/index.vue";
 
 import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { ElMessage } from "element-plus";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 
 import Check from "@iconify-icons/ep/check";
@@ -63,7 +64,8 @@ const settings = reactive({
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache,
   stretch: $storage.configure.stretch,
-
+  keepAlive: true,
+  debugMode: false,
 });
 
 const getThemeColorStyle = computed(() => {
@@ -158,8 +160,6 @@ function cardBodyChange() {
   unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
 }
 
-
-
 /** 数字输入框调整值函数 */
 const adjustValue = (key: string, delta: number): void => {
   const currentValue = settings[key] as number;
@@ -170,13 +170,13 @@ const adjustValue = (key: string, delta: number): void => {
 
     // 根据不同的参数调用对应的变更函数
     switch (key) {
-      case 'contentMargin':
+      case "contentMargin":
         contentMarginChange(newValue);
         break;
-      case 'layoutRadius':
+      case "layoutRadius":
         layoutRadiusChange(newValue);
         break;
-      case 'layoutBlur':
+      case "layoutBlur":
         layoutBlurChange(newValue);
         break;
     }
@@ -185,10 +185,10 @@ const adjustValue = (key: string, delta: number): void => {
 
 /** 处理数字输入框的键盘事件 */
 const handleKeydown = (event: KeyboardEvent, key: string): void => {
-  if (event.key === 'ArrowUp') {
+  if (event.key === "ArrowUp") {
     event.preventDefault();
     adjustValue(key, 1);
-  } else if (event.key === 'ArrowDown') {
+  } else if (event.key === "ArrowDown") {
     event.preventDefault();
     adjustValue(key, -1);
   }
@@ -208,13 +208,13 @@ const handleInput = (event: Event, key: string): void => {
 
     // 调用对应的变更函数
     switch (key) {
-      case 'contentMargin':
+      case "contentMargin":
         contentMarginChange(value);
         break;
-      case 'layoutRadius':
+      case "layoutRadius":
         layoutRadiusChange(value);
         break;
-      case 'layoutBlur':
+      case "layoutBlur":
         layoutBlurChange(value);
         break;
     }
@@ -265,8 +265,6 @@ const getThemeColor = computed(() => {
     }
   };
 });
-
-
 
 const pClass = computed(() => {
   return ["mb-[12px]", "font-medium", "text-sm", "dark:text-white"];
@@ -320,8 +318,6 @@ const markOptions = computed<Array<OptionsType>>(() => {
     },
   ];
 });
-
-
 
 /** 设置导航模式 */
 function setLayoutModel(layout: string) {
@@ -392,22 +388,15 @@ onBeforeMount(() => {
     settings.weakVal && document.querySelector("html")?.classList.add("html-weakness");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
-
-
   });
 });
 
 // 收集 tippy 实例的函数
 const collectTippyInstances = () => {
   nextTick(() => {
-    const elementsWithTippy = [
-      verticalRef.value,
-      horizontalRef.value,
-      mixRef.value,
-      hoverRef.value
-    ].filter(Boolean);
+    const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value].filter(Boolean);
 
-    elementsWithTippy.forEach(element => {
+    elementsWithTippy.forEach((element) => {
       if (element && element._tippy) {
         tippyInstances.value.push(element._tippy);
       }
@@ -427,22 +416,17 @@ onMounted(() => {
 // 销毁所有 tippy 实例的函数
 const destroyAllTippyInstances = () => {
   // 销毁通过 v-tippy 指令创建的实例
-  const elementsWithTippy = [
-    verticalRef.value,
-    horizontalRef.value,
-    mixRef.value,
-    hoverRef.value
-  ].filter(Boolean);
+  const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value].filter(Boolean);
 
-  elementsWithTippy.forEach(element => {
+  elementsWithTippy.forEach((element) => {
     if (element && element._tippy) {
       element._tippy.destroy();
     }
   });
 
   // 销毁存储在数组中的实例
-  tippyInstances.value.forEach(instance => {
-    if (instance && typeof instance.destroy === 'function') {
+  tippyInstances.value.forEach((instance) => {
+    if (instance && typeof instance.destroy === "function") {
       instance.destroy();
     }
   });
@@ -451,13 +435,135 @@ const destroyAllTippyInstances = () => {
   tippyInstances.value = [];
 
   // 清理可能残留的 tippy DOM 元素
-  const tippyElements = document.querySelectorAll('[data-tippy-root]');
-  tippyElements.forEach(element => {
+  const tippyElements = document.querySelectorAll("[data-tippy-root]");
+  tippyElements.forEach((element) => {
     if (element.parentNode) {
       element.parentNode.removeChild(element);
     }
   });
 };
+
+/** 重置到默认设置 */
+function resetToDefault() {
+  // 重置所有设置到默认值
+  Object.assign(settings, {
+    menuTransition: false,
+    contentMargin: 10,
+    layoutRadius: 10,
+    layoutBlur: 10,
+    greyVal: false,
+    weakVal: false,
+    tabsVal: false,
+    cardBody: true,
+    showLogo: true,
+    showModel: "chrome",
+    hideFooter: true,
+    multiTagsCache: false,
+    stretch: false,
+    keepAlive: true,
+    debugMode: false,
+  });
+
+  // 重置主题
+  setLayoutModel("vertical");
+  dataThemeChange("light");
+
+  // 应用变更
+  contentMarginChange(10);
+  layoutRadiusChange(10);
+  layoutBlurChange(10);
+  greyChange(false);
+  weekChange(false);
+  tagsChange();
+  hideFooterChange();
+  logoChange();
+  cardBodyChange();
+  multiTagsCacheChange();
+
+  ElMessage.success("已恢复默认设置");
+}
+
+/** 导出设置 */
+function exportSettings() {
+  const settingsData = {
+    ...settings,
+    layout: layoutTheme.value.layout,
+    theme: layoutTheme.value.theme,
+    overallStyle: overallStyle.value,
+    logoVal: logoVal.value,
+    cardBodyVal: cardBodyVal.value,
+  };
+
+  const dataStr = JSON.stringify(settingsData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(dataBlob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `system-settings-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+  ElMessage.success("设置已导出");
+}
+
+/** 导入设置 */
+function importSettings() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+
+  input.onchange = (event) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedSettings = JSON.parse(e.target?.result as string);
+
+        // 应用导入的设置
+        Object.assign(settings, importedSettings);
+
+        if (importedSettings.layout) {
+          setLayoutModel(importedSettings.layout);
+        }
+
+        if (importedSettings.theme) {
+          dataThemeChange(importedSettings.theme);
+        }
+
+        if (importedSettings.logoVal !== undefined) {
+          logoVal.value = importedSettings.logoVal;
+        }
+
+        if (importedSettings.cardBodyVal !== undefined) {
+          cardBodyVal.value = importedSettings.cardBodyVal;
+        }
+
+        // 应用所有变更
+        contentMarginChange(settings.contentMargin);
+        layoutRadiusChange(settings.layoutRadius);
+        layoutBlurChange(settings.layoutBlur);
+        greyChange(settings.greyVal);
+        weekChange(settings.weakVal);
+        tagsChange();
+        hideFooterChange();
+        logoChange();
+        cardBodyChange();
+        multiTagsCacheChange();
+
+        ElMessage.success("设置已导入");
+      } catch (error) {
+        ElMessage.error("导入失败，文件格式不正确");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  input.click();
+}
 
 onUnmounted(() => {
   removeMatchMedia();
@@ -465,8 +571,6 @@ onUnmounted(() => {
   // 移除事件监听器
   emitter.off("settingPanelClosed");
 });
-
-
 </script>
 
 <template>
@@ -479,15 +583,20 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureOverallStyle") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="select-none modern-segmented"
-            :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0" :options="themeOptions" @change="
+          <Segmented
+            resize
+            class="select-none modern-segmented"
+            :modelValue="overallStyle === 'system' ? 2 : dataTheme ? 1 : 0"
+            :options="themeOptions"
+            @change="
               (theme) => {
                 theme.index === 1 && theme.index !== 2 ? (dataTheme = true) : (dataTheme = false);
                 overallStyle = theme.option.theme;
                 dataThemeChange(theme.option.theme);
                 theme.index === 2 && watchSystemThemeChange();
               }
-            " />
+            "
+          />
         </div>
       </div>
 
@@ -499,17 +608,13 @@ onUnmounted(() => {
         </div>
         <div class="setting-content">
           <div class="theme-color-grid">
-            <div v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index"
-              class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }"
-              :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
+            <div v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" class="theme-color-item" :class="{ 'is-selected': item.themeColor === layoutTheme.theme }" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
               <!-- 选中状态指示器 -->
               <div class="selection-indicator">
                 <div class="check-ring">
                   <IconifyIconOffline :icon="Check" class="check-icon" />
                 </div>
               </div>
-
-
 
               <!-- 光泽效果层 -->
               <div class="shine-effect"></div>
@@ -523,51 +628,134 @@ onUnmounted(() => {
         <div class="section-header">
           <IconifyIconOffline :icon="'ri:layout-line'" class="section-icon" />
           <h3 class="section-title">{{ t("panel.pureLayoutModel") }}</h3>
+          <div class="section-description">选择适合您的导航布局模式</div>
         </div>
         <div class="setting-content">
+          <!-- 导航模式说明卡片 -->
+          <div class="layout-description-card">
+            <div class="description-item" :class="{ active: layoutTheme.layout === 'vertical' }">
+              <div class="description-icon">
+                <IconifyIconOffline :icon="'ri:sidebar-unfold-line'" />
+              </div>
+              <div class="description-content">
+                <h4>纵向布局</h4>
+                <p>经典侧边栏导航，适合功能丰富的管理系统，菜单层级清晰，操作便捷</p>
+              </div>
+            </div>
+            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'horizontal' }">
+              <div class="description-icon">
+                <IconifyIconOffline :icon="'ri:navigation-line'" />
+              </div>
+              <div class="description-content">
+                <h4>横向布局</h4>
+                <p>顶部导航栏设计，充分利用屏幕宽度，适合内容展示型应用</p>
+              </div>
+            </div>
+            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'mix' }">
+              <div class="description-icon">
+                <IconifyIconOffline :icon="'ri:layout-grid-line'" />
+              </div>
+              <div class="description-content">
+                <h4>混合布局</h4>
+                <p>结合顶部和侧边导航优势，一级菜单在顶部，子菜单在侧边</p>
+              </div>
+            </div>
+            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'hover' }">
+              <div class="description-icon">
+                <IconifyIconOffline :icon="'ri:cursor-line'" />
+              </div>
+              <div class="description-content">
+                <h4>悬停导航</h4>
+                <p>极简设计，只显示图标，鼠标悬停展开子菜单，节省空间</p>
+              </div>
+            </div>
+            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'card' }">
+              <div class="description-icon">
+                <IconifyIconOffline :icon="'ri:apps-line'" />
+              </div>
+              <div class="description-content">
+                <h4>卡片导航</h4>
+                <p>以卡片形式展示所有功能模块，直观易用，适合功能较少的应用</p>
+              </div>
+            </div>
+          </div>
+
           <ul class="pure-theme">
-            <li ref="verticalRef" v-tippy="{
-              content: t('panel.pureVerticalTip'),
-              zIndex: 41000,
-            }" :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''" @click="setLayoutModel('vertical')">
+            <li
+              ref="verticalRef"
+              v-tippy="{
+                content: '纵向布局：经典侧边栏导航，适合功能丰富的管理系统',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
+              @click="setLayoutModel('vertical')"
+            >
               <div />
               <div />
             </li>
-            <li v-if="device !== 'mobile'" ref="horizontalRef" v-tippy="{
-              content: t('panel.pureHorizontalTip'),
-              zIndex: 41000,
-            }" :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''" @click="setLayoutModel('horizontal')">
+            <li
+              v-if="device !== 'mobile'"
+              ref="horizontalRef"
+              v-tippy="{
+                content: '横向布局：顶部导航栏设计，充分利用屏幕宽度',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
+              @click="setLayoutModel('horizontal')"
+            >
               <div />
               <div />
             </li>
-            <li v-if="device !== 'mobile'" ref="mixRef" v-tippy="{
-              content: t('panel.pureMixTip'),
-              zIndex: 41000,
-            }" :class="layoutTheme.layout === 'mix' ? 'is-select' : ''" @click="setLayoutModel('mix')">
+            <li
+              v-if="device !== 'mobile'"
+              ref="mixRef"
+              v-tippy="{
+                content: '混合布局：结合顶部和侧边导航优势',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
+              @click="setLayoutModel('mix')"
+            >
               <div />
               <div />
             </li>
-            <li v-if="device !== 'mobile'" ref="hoverRef" v-tippy="{
-              content: '悬停导航：只显示一级菜单，鼠标悬停显示子菜单',
-              zIndex: 41000,
-            }" :class="layoutTheme.layout === 'hover' ? 'is-select' : ''" @click="setLayoutModel('hover')">
+            <li
+              v-if="device !== 'mobile'"
+              ref="hoverRef"
+              v-tippy="{
+                content: '悬停导航：极简设计，鼠标悬停展开子菜单',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
+              @click="setLayoutModel('hover')"
+            >
               <div />
               <div />
               <div />
             </li>
-            <li v-if="device !== 'mobile'" ref="cardRef" v-tippy="{
-              content: '卡片导航：以卡片形式展示所有可访问页面',
-              zIndex: 41000,
-            }" :class="layoutTheme.layout === 'card' ? 'is-select' : ''" @click="setLayoutModel('card')">
+            <li
+              v-if="device !== 'mobile'"
+              ref="cardRef"
+              v-tippy="{
+                content: '卡片导航：以卡片形式展示所有功能模块',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'card' ? 'is-select' : ''"
+              @click="setLayoutModel('card')"
+            >
               <div />
               <div />
               <div />
               <div />
             </li>
-            <li v-if="device !== 'mobile'" class="placeholder-layout" v-tippy="{
-              content: '敬请期待更多布局模式',
-              zIndex: 41000,
-            }">
+            <li
+              v-if="device !== 'mobile'"
+              class="placeholder-layout"
+              v-tippy="{
+                content: '敬请期待更多布局模式',
+                zIndex: 41000,
+              }"
+            >
               <div class="coming-soon">
                 <span>敬请期待</span>
               </div>
@@ -583,12 +771,9 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureStretch") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="mb-2 select-none modern-segmented" :modelValue="isNumber(settings.stretch) ? 1 : 0"
-            :options="stretchTypeOptions" @change="stretchTypeChange" />
-          <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280"
-            :max="1600" controls-position="right" @change="(value: number) => setStretch(value)" />
-          <button v-else v-ripple="{ class: 'text-gray-300' }" class="stretch-button"
-            @click="setStretch(!settings.stretch)">
+          <Segmented resize class="mb-2 select-none modern-segmented" :modelValue="isNumber(settings.stretch) ? 1 : 0" :options="stretchTypeOptions" @change="stretchTypeChange" />
+          <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280" :max="1600" controls-position="right" @change="(value: number) => setStretch(value)" />
+          <button v-else v-ripple="{ class: 'text-gray-300' }" class="stretch-button" @click="setStretch(!settings.stretch)">
             <div class="stretch-indicator" :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']">
               <IconifyIconOffline :icon="settings.stretch ? RightArrow : LeftArrow" height="20" />
               <div class="stretch-line" />
@@ -610,18 +795,14 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureStretchMargin") || "内容边距" }}</label>
               <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('contentMargin', -1)"
-                  :disabled="settings.contentMargin <= 0">
+                <button class="number-btn decrease" @click="adjustValue('contentMargin', -1)" :disabled="settings.contentMargin <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input type="number" v-model.number="settings.contentMargin"
-                    @input="handleInput($event, 'contentMargin')" @keydown="handleKeydown($event, 'contentMargin')"
-                    :min="0" :max="100" class="number-input" placeholder="0" />
+                  <input type="number" v-model.number="settings.contentMargin" @input="handleInput($event, 'contentMargin')" @keydown="handleKeydown($event, 'contentMargin')" :min="0" :max="100" class="number-input" placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button class="number-btn increase" @click="adjustValue('contentMargin', 1)"
-                  :disabled="settings.contentMargin >= 100">
+                <button class="number-btn increase" @click="adjustValue('contentMargin', 1)" :disabled="settings.contentMargin >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -630,18 +811,14 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureLayoutRadius") || "圆角大小" }}</label>
               <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('layoutRadius', -1)"
-                  :disabled="settings.layoutRadius <= 0">
+                <button class="number-btn decrease" @click="adjustValue('layoutRadius', -1)" :disabled="settings.layoutRadius <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input type="number" v-model.number="settings.layoutRadius"
-                    @input="handleInput($event, 'layoutRadius')" @keydown="handleKeydown($event, 'layoutRadius')"
-                    :min="0" :max="100" class="number-input" placeholder="0" />
+                  <input type="number" v-model.number="settings.layoutRadius" @input="handleInput($event, 'layoutRadius')" @keydown="handleKeydown($event, 'layoutRadius')" :min="0" :max="100" class="number-input" placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button class="number-btn increase" @click="adjustValue('layoutRadius', 1)"
-                  :disabled="settings.layoutRadius >= 100">
+                <button class="number-btn increase" @click="adjustValue('layoutRadius', 1)" :disabled="settings.layoutRadius >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -650,18 +827,14 @@ onUnmounted(() => {
             <div class="param-item">
               <label class="param-label">{{ t("panel.pureLayoutBlur") || "模糊效果" }}</label>
               <div class="custom-number-input">
-                <button class="number-btn decrease" @click="adjustValue('layoutBlur', -1)"
-                  :disabled="settings.layoutBlur <= 0">
+                <button class="number-btn decrease" @click="adjustValue('layoutBlur', -1)" :disabled="settings.layoutBlur <= 0">
                   <IconifyIconOffline :icon="'ri:subtract-line'" />
                 </button>
                 <div class="number-display">
-                  <input type="number" v-model.number="settings.layoutBlur" @input="handleInput($event, 'layoutBlur')"
-                    @keydown="handleKeydown($event, 'layoutBlur')" :min="0" :max="100" class="number-input"
-                    placeholder="0" />
+                  <input type="number" v-model.number="settings.layoutBlur" @input="handleInput($event, 'layoutBlur')" @keydown="handleKeydown($event, 'layoutBlur')" :min="0" :max="100" class="number-input" placeholder="0" />
                   <span class="number-unit">px</span>
                 </div>
-                <button class="number-btn increase" @click="adjustValue('layoutBlur', 1)"
-                  :disabled="settings.layoutBlur >= 100">
+                <button class="number-btn increase" @click="adjustValue('layoutBlur', 1)" :disabled="settings.layoutBlur >= 100">
                   <IconifyIconOffline :icon="'ri:add-line'" />
                 </button>
               </div>
@@ -677,9 +850,7 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="select-none modern-segmented"
-            :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions"
-            @change="onChange" />
+          <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
         </div>
       </div>
 
@@ -697,51 +868,177 @@ onUnmounted(() => {
         </div>
       </div>
 
-
-
       <!-- 界面显示设置区域 -->
       <div class="setting-section">
         <div class="section-header">
           <IconifyIconOffline :icon="'ri:eye-line'" class="section-icon" />
           <h3 class="section-title">{{ t("panel.pureInterfaceDisplay") }}</h3>
+          <div class="section-description">自定义界面显示效果和功能开关</div>
         </div>
         <div class="setting-content">
-          <div class="switch-grid">
-            <div class="switch-item">
-              <label class="switch-label">{{ t("panel.pureGreyModel") }}</label>
-              <el-switch v-model="settings.greyVal" inline-prompt @change="greyChange" />
-            </div>
+          <!-- 视觉效果设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:palette-line'" class="group-icon" />
+              视觉效果
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">{{ t("panel.pureGreyModel") }}</label>
+                  <span class="switch-desc">开启灰色模式，降低色彩饱和度</span>
+                </div>
+                <el-switch v-model="settings.greyVal" inline-prompt @change="greyChange" />
+              </div>
 
-            <div class="switch-item">
-              <label class="switch-label">{{ t("panel.pureWeakModel") }}</label>
-              <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">{{ t("panel.pureWeakModel") }}</label>
+                  <span class="switch-desc">色弱模式，优化色彩对比度</span>
+                </div>
+                <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
+              </div>
             </div>
+          </div>
 
-            <div class="switch-item">
-              <label class="switch-label">{{ t("panel.pureHiddenTags") }}</label>
-              <el-switch v-model="settings.tabsVal" inline-prompt @change="tagsChange" />
+          <!-- 界面元素设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:layout-4-line'" class="group-icon" />
+              界面元素
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">显示Logo</label>
+                  <span class="switch-desc">在侧边栏顶部显示系统Logo</span>
+                </div>
+                <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false" @change="logoChange" />
+              </div>
+
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">{{ t("panel.pureHiddenTags") }}</label>
+                  <span class="switch-desc">隐藏页面顶部的标签页导航</span>
+                </div>
+                <el-switch v-model="settings.tabsVal" inline-prompt @change="tagsChange" />
+              </div>
+
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">{{ t("panel.pureHiddenFooter") }}</label>
+                  <span class="switch-desc">隐藏页面底部的页脚信息</span>
+                </div>
+                <el-switch v-model="settings.hideFooter" inline-prompt @change="hideFooterChange" />
+              </div>
+
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">内容卡片</label>
+                  <span class="switch-desc">为页面内容添加卡片样式背景</span>
+                </div>
+                <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false" @change="cardBodyChange" />
+              </div>
             </div>
+          </div>
 
-            <div class="switch-item">
-              <label class="switch-label">{{ t("panel.pureHiddenFooter") }}</label>
-              <el-switch v-model="settings.hideFooter" inline-prompt @change="hideFooterChange" />
+          <!-- 功能设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:settings-3-line'" class="group-icon" />
+              功能设置
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">{{ t("panel.pureMultiTagsCache") }}</label>
+                  <span class="switch-desc">持久化保存已打开的标签页</span>
+                </div>
+                <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="switch-item">
-              <label class="switch-label">Logo</label>
-              <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false"
-                @change="logoChange" />
+      <!-- 高级设置区域 -->
+      <div class="setting-section">
+        <div class="section-header">
+          <IconifyIconOffline :icon="'ri:tools-line'" class="section-icon" />
+          <h3 class="section-title">高级设置</h3>
+          <div class="section-description">更多个性化配置选项</div>
+        </div>
+        <div class="setting-content">
+          <!-- 性能优化 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:speed-line'" class="group-icon" />
+              性能优化
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">组件缓存</label>
+                  <span class="switch-desc">开启页面组件缓存，提升切换速度</span>
+                </div>
+                <el-switch v-model="settings.keepAlive" inline-prompt />
+              </div>
             </div>
+          </div>
 
-            <div class="switch-item">
-              <label class="switch-label">内容卡片</label>
-              <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false"
-                @change="cardBodyChange" />
+          <!-- 用户体验 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:user-heart-line'" class="group-icon" />
+              用户体验
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">页面拉伸</label>
+                  <span class="switch-desc">自适应页面宽度，充分利用屏幕空间</span>
+                </div>
+                <el-switch v-model="settings.stretch" inline-prompt />
+              </div>
             </div>
+          </div>
 
-            <div class="switch-item">
-              <label class="switch-label">{{ t("panel.pureMultiTagsCache") }}</label>
-              <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
+          <!-- 开发者选项 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:code-line'" class="group-icon" />
+              开发者选项
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">调试模式</label>
+                  <span class="switch-desc">显示更多调试信息（开发环境）</span>
+                </div>
+                <el-switch v-model="settings.debugMode" inline-prompt />
+              </div>
+            </div>
+          </div>
+
+          <!-- 重置选项 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:refresh-line'" class="group-icon" />
+              重置选项
+            </h4>
+            <div class="reset-actions">
+              <el-button type="warning" plain @click="resetToDefault">
+                <IconifyIconOffline :icon="'ri:restart-line'" />
+                恢复默认设置
+              </el-button>
+              <el-button type="info" plain @click="exportSettings">
+                <IconifyIconOffline :icon="'ri:download-line'" />
+                导出配置
+              </el-button>
+              <el-button type="success" plain @click="importSettings">
+                <IconifyIconOffline :icon="'ri:upload-line'" />
+                导入配置
+              </el-button>
             </div>
           </div>
         </div>
@@ -753,7 +1050,6 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 // 现代化动画关键帧
 @keyframes gradientShift {
-
   0%,
   100% {
     background-position: 0% 50%;
@@ -765,7 +1061,6 @@ onUnmounted(() => {
 }
 
 @keyframes backgroundFloat {
-
   0%,
   100% {
     transform: translateY(0px) rotate(0deg);
@@ -798,7 +1093,6 @@ onUnmounted(() => {
 }
 
 @keyframes selectPulse {
-
   0%,
   100% {
     box-shadow:
@@ -843,12 +1137,7 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg,
-        var(--el-color-primary-light-5) 0%,
-        var(--el-color-primary) 25%,
-        var(--el-color-primary-dark-2) 50%,
-        var(--el-color-primary) 75%,
-        var(--el-color-primary-light-5) 100%);
+    background: linear-gradient(90deg, var(--el-color-primary-light-5) 0%, var(--el-color-primary) 25%, var(--el-color-primary-dark-2) 50%, var(--el-color-primary) 75%, var(--el-color-primary-light-5) 100%);
     background-size: 200% 100%;
     animation: gradientShift 8s ease-in-out infinite;
     z-index: 0;
@@ -863,9 +1152,7 @@ onUnmounted(() => {
     right: 0;
     bottom: 0;
     background:
-      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%),
-      radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%),
-      radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
+      radial-gradient(circle at 25% 25%, var(--el-color-primary-light-9) 0%, transparent 40%), radial-gradient(circle at 75% 75%, var(--el-color-primary-light-9) 0%, transparent 40%), radial-gradient(circle at 75% 25%, var(--el-color-success-light-9) 0%, transparent 30%),
       radial-gradient(circle at 25% 75%, var(--el-color-warning-light-9) 0%, transparent 30%);
     opacity: 0.4;
     pointer-events: none;
@@ -874,7 +1161,7 @@ onUnmounted(() => {
   }
 
   // 确保内容在装饰之上
-  >* {
+  > * {
     position: relative;
     z-index: 1;
   }
@@ -884,12 +1171,7 @@ onUnmounted(() => {
     background: var(--el-bg-color-page);
 
     &::before {
-      background: linear-gradient(90deg,
-          var(--el-color-primary-light-3) 0%,
-          var(--el-color-primary-light-1) 25%,
-          var(--el-color-primary) 50%,
-          var(--el-color-primary-light-1) 75%,
-          var(--el-color-primary-light-3) 100%);
+      background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary-light-1) 25%, var(--el-color-primary) 50%, var(--el-color-primary-light-1) 75%, var(--el-color-primary-light-3) 100%);
     }
 
     &::after {
@@ -929,12 +1211,7 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--el-color-primary-light-5) 20%,
-        var(--el-color-primary) 50%,
-        var(--el-color-primary-light-5) 80%,
-        transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--el-color-primary-light-5) 20%, var(--el-color-primary) 50%, var(--el-color-primary-light-5) 80%, transparent 100%);
     border-radius: 16px 16px 0 0;
     opacity: 0.6;
     transition: opacity 0.3s ease;
@@ -966,12 +1243,7 @@ onUnmounted(() => {
 
     &::before {
       opacity: 1;
-      background: linear-gradient(90deg,
-          transparent 0%,
-          var(--el-color-primary-light-3) 20%,
-          var(--el-color-primary) 50%,
-          var(--el-color-primary-light-3) 80%,
-          transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, var(--el-color-primary-light-3) 20%, var(--el-color-primary) 50%, var(--el-color-primary-light-3) 80%, transparent 100%);
     }
 
     &::after {
@@ -1013,10 +1285,27 @@ onUnmounted(() => {
 .section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(var(--el-border-color-rgb), 0.3);
   position: relative;
+  flex-wrap: wrap;
+
+  .section-description {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    margin-left: auto;
+    opacity: 0.8;
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      margin-left: 0;
+      margin-top: 4px;
+      text-align: left;
+    }
+  }
 
   // 装饰性渐变线 - 更加动态
   &::after {
@@ -1026,10 +1315,7 @@ onUnmounted(() => {
     left: 0;
     width: 50px;
     height: 3px;
-    background: linear-gradient(90deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 50%,
-        var(--el-color-success-light-5) 100%);
+    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 50%, var(--el-color-success-light-5) 100%);
     border-radius: 2px;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
@@ -1037,11 +1323,7 @@ onUnmounted(() => {
 
   &:hover::after {
     width: 100px;
-    background: linear-gradient(90deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-2) 30%,
-        var(--el-color-success) 70%,
-        var(--el-color-warning) 100%);
+    background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-2) 30%, var(--el-color-success) 70%, var(--el-color-warning) 100%);
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 
@@ -1049,9 +1331,7 @@ onUnmounted(() => {
     font-size: 20px;
     color: var(--el-color-primary);
     margin-right: 14px;
-    background: linear-gradient(135deg,
-        var(--el-color-primary-light-9),
-        var(--el-color-primary-light-8));
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
     padding: 10px;
     border-radius: 12px;
     width: 40px;
@@ -1084,9 +1364,7 @@ onUnmounted(() => {
       box-shadow:
         0 8px 20px rgba(var(--el-color-primary-rgb), 0.25),
         0 1px 0 rgba(255, 255, 255, 0.9) inset;
-      background: linear-gradient(135deg,
-          var(--el-color-primary-light-8),
-          var(--el-color-primary-light-7));
+      background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-7));
 
       &::before {
         opacity: 1;
@@ -1103,18 +1381,14 @@ onUnmounted(() => {
     letter-spacing: 0.5px;
     text-align: left;
     writing-mode: horizontal-tb;
-    background: linear-gradient(135deg,
-        var(--el-text-color-primary),
-        var(--el-color-primary));
+    background: linear-gradient(135deg, var(--el-text-color-primary), var(--el-color-primary));
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     transition: all 0.3s ease;
 
     &:hover {
-      background: linear-gradient(135deg,
-          var(--el-color-primary),
-          var(--el-color-success));
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
       background-clip: text;
       -webkit-background-clip: text;
     }
@@ -1137,6 +1411,135 @@ onUnmounted(() => {
   }
 }
 
+// 导航模式说明卡片
+.layout-description-card {
+  background: var(--el-fill-color-extra-light);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-extra-light);
+
+  .description-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      transform: translateX(4px);
+    }
+
+    &.active {
+      background: var(--el-color-primary-light-8);
+      border: 1px solid var(--el-color-primary-light-6);
+
+      .description-icon {
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+      }
+
+      h4 {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .description-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--el-fill-color-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-size: 18px;
+      color: var(--el-text-color-regular);
+      transition: all 0.3s ease;
+    }
+
+    .description-content {
+      flex: 1;
+
+      h4 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        transition: all 0.3s ease;
+      }
+
+      p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+// 设置组样式
+.setting-group {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+
+    .group-icon {
+      margin-right: 8px;
+      font-size: 16px;
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+// 开关信息样式
+.switch-info {
+  flex: 1;
+
+  .switch-desc {
+    display: block;
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+}
+
+// 重置操作按钮组
+.reset-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .el-button {
+    flex: 1;
+    min-width: 120px;
+
+    @media (max-width: 768px) {
+      min-width: 100px;
+      font-size: 12px;
+    }
+  }
+}
+
 // 美化 Segmented 组件 - 现代化设计
 :deep(.layui-segmented) {
   background: var(--el-fill-color-extra-light);
@@ -1145,12 +1548,15 @@ onUnmounted(() => {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--el-border-color-extra-light);
   // 移除 transition: all，避免主题切换延迟
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 
   .layui-segmented-item {
     border-radius: 6px;
     // 优化 transition，只对变形和阴影生效
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       background-color 0.15s ease;
     font-weight: 500;
@@ -1174,10 +1580,7 @@ onUnmounted(() => {
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg,
-          transparent,
-          rgba(var(--el-color-primary-rgb), 0.1),
-          transparent);
+      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.1), transparent);
       transition: left 0.5s ease;
     }
 
@@ -1235,7 +1638,8 @@ onUnmounted(() => {
   margin-bottom: 6px;
   background: var(--el-fill-color-extra-light);
   // 优化 transition，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -1248,9 +1652,7 @@ onUnmounted(() => {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: linear-gradient(180deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3));
+    background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
     transform: scaleY(0);
     transform-origin: bottom;
     transition: transform 0.3s ease;
@@ -1302,7 +1704,8 @@ onUnmounted(() => {
   background: var(--el-fill-color-extra-light);
   border-radius: 10px;
   // 优化 transition，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--el-border-color-extra-light);
   position: relative;
@@ -1316,10 +1719,7 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(var(--el-color-primary-rgb), 0.05),
-        transparent);
+    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.05), transparent);
     transition: left 0.5s ease;
   }
 
@@ -1369,7 +1769,8 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   // 优化 transition，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 16px;
   position: relative;
@@ -1384,10 +1785,7 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(var(--el-color-primary-rgb), 0.05),
-        transparent);
+    background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.05), transparent);
     transition: left 0.6s ease;
   }
 
@@ -1402,10 +1800,7 @@ onUnmounted(() => {
     }
 
     .stretch-line {
-      background: linear-gradient(90deg,
-          var(--el-color-primary),
-          var(--el-color-primary-light-3),
-          var(--el-color-primary));
+      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
     }
   }
 
@@ -1427,10 +1822,7 @@ onUnmounted(() => {
     .stretch-line {
       flex: 1;
       height: 2px;
-      background: linear-gradient(90deg,
-          var(--el-color-primary-light-5),
-          var(--el-color-primary),
-          var(--el-color-primary-light-5));
+      background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-primary), var(--el-color-primary-light-5));
       border-radius: 1px;
       margin: 0 12px;
       position: relative;
@@ -1444,10 +1836,7 @@ onUnmounted(() => {
         left: -2px;
         right: -2px;
         bottom: -1px;
-        background: linear-gradient(90deg,
-            transparent,
-            rgba(var(--el-color-primary-rgb), 0.3),
-            transparent);
+        background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.3), transparent);
         border-radius: 2px;
         opacity: 0;
         transition: opacity 0.3s ease;
@@ -1483,14 +1872,13 @@ onUnmounted(() => {
   border-radius: 12px;
   height: 48px;
   font-weight: 600;
-  background: linear-gradient(135deg,
-      var(--el-color-danger),
-      var(--el-color-danger-light-3));
+  background: linear-gradient(135deg, var(--el-color-danger), var(--el-color-danger-light-3));
   border: none;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(var(--el-color-danger-rgb), 0.25);
   // 优化 transition，避免主题切换延迟
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.3px;
   position: relative;
@@ -1504,17 +1892,12 @@ onUnmounted(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.6s ease;
   }
 
   &:hover {
-    background: linear-gradient(135deg,
-        var(--el-color-danger-light-3),
-        var(--el-color-danger));
+    background: linear-gradient(135deg, var(--el-color-danger-light-3), var(--el-color-danger));
     box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.35);
     transform: translateY(-2px);
 
@@ -1554,7 +1937,8 @@ onUnmounted(() => {
     border-radius: 24px;
     border: none;
     // 优化 transition，加快背景色切换
-    transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transition:
+      background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     position: relative;
@@ -1569,9 +1953,7 @@ onUnmounted(() => {
       right: 1px;
       bottom: 1px;
       border-radius: 23px;
-      background: linear-gradient(135deg,
-          rgba(255, 255, 255, 0.2),
-          rgba(255, 255, 255, 0.05));
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
       pointer-events: none;
     }
 
@@ -1596,7 +1978,8 @@ onUnmounted(() => {
       background: linear-gradient(135deg, #ffffff, #f8f9fa);
       border-radius: 50%;
       // 优化 transition，加快位置和背景色切换
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      transition:
+        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
         box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
@@ -1615,9 +1998,7 @@ onUnmounted(() => {
         right: 1px;
         bottom: 1px;
         border-radius: 50%;
-        background: linear-gradient(135deg,
-            rgba(255, 255, 255, 0.3),
-            transparent);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent);
         pointer-events: none;
       }
     }
@@ -1625,9 +2006,7 @@ onUnmounted(() => {
 
   &.is-checked {
     .el-switch__core {
-      background: linear-gradient(135deg,
-          var(--el-switch-on-color),
-          var(--el-color-primary-light-3));
+      background: linear-gradient(135deg, var(--el-switch-on-color), var(--el-color-primary-light-3));
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
       .el-switch__action {
@@ -1649,9 +2028,7 @@ onUnmounted(() => {
 
   &:not(.is-checked) {
     .el-switch__core {
-      background: linear-gradient(135deg,
-          var(--el-switch-off-color),
-          var(--el-fill-color-light));
+      background: linear-gradient(135deg, var(--el-switch-off-color), var(--el-fill-color-light));
 
       .el-switch__action {
         transform: translateX(2px);
@@ -1715,16 +2092,12 @@ onUnmounted(() => {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 
       &::before {
-        background: linear-gradient(135deg,
-            rgba(255, 255, 255, 0.1),
-            rgba(255, 255, 255, 0.02));
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
       }
     }
 
     .el-switch__action {
-      background: linear-gradient(135deg,
-          var(--el-bg-color),
-          var(--el-bg-color-overlay));
+      background: linear-gradient(135deg, var(--el-bg-color), var(--el-bg-color-overlay));
       border-color: var(--el-border-color);
     }
 
@@ -2052,10 +2425,7 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.3) 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 100%);
     pointer-events: none;
     z-index: 1;
   }
@@ -2112,8 +2482,6 @@ onUnmounted(() => {
         }
       }
     }
-
-
 
     // 选中状态的脉冲动画
     &::after {
@@ -2184,8 +2552,6 @@ onUnmounted(() => {
   }
 }
 
-
-
 // 光泽效果
 .shine-effect {
   position: absolute;
@@ -2193,10 +2559,7 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.4),
-      transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   opacity: 0;
   transform: translateX(-100%);
   transition: all 0.6s ease;
@@ -2382,11 +2745,10 @@ onUnmounted(() => {
       bottom: 0;
       border-radius: 18px;
       padding: 1px;
-      background: linear-gradient(135deg,
-          transparent,
-          var(--el-color-primary-light-7),
-          transparent);
-      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      background: linear-gradient(135deg, transparent, var(--el-color-primary-light-7), transparent);
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
       mask-composite: exclude;
       opacity: 0;
       transition: opacity 0.3s ease;
@@ -2426,10 +2788,7 @@ onUnmounted(() => {
 
       &::after {
         opacity: 1;
-        background: linear-gradient(135deg,
-            var(--el-color-primary-light-5),
-            var(--el-color-primary),
-            var(--el-color-primary-light-5));
+        background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary), var(--el-color-primary-light-5));
       }
     }
 
@@ -2712,7 +3071,9 @@ onUnmounted(() => {
             height: 2px;
             border-radius: 1px;
             background: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 4px 0 rgba(255, 255, 255, 0.7), 0 8px 0 rgba(255, 255, 255, 0.7);
+            box-shadow:
+              0 4px 0 rgba(255, 255, 255, 0.7),
+              0 8px 0 rgba(255, 255, 255, 0.7);
           }
         }
 
@@ -2758,7 +3119,10 @@ onUnmounted(() => {
             height: 2px;
             border-radius: 1px;
             background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 0 rgba(255, 255, 255, 0.9), 0 8px 0 rgba(255, 255, 255, 0.9), 0 12px 0 rgba(255, 255, 255, 0.9);
+            box-shadow:
+              0 4px 0 rgba(255, 255, 255, 0.9),
+              0 8px 0 rgba(255, 255, 255, 0.9),
+              0 12px 0 rgba(255, 255, 255, 0.9);
           }
         }
       }
@@ -2975,7 +3339,8 @@ p.mt-5 {
 .el-menu,
 .el-table,
 .el-form-item {
-  transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
+  transition:
+    background-color var(--theme-transition-duration) var(--theme-transition-timing),
     border-color var(--theme-transition-duration) var(--theme-transition-timing),
     color var(--theme-transition-duration) var(--theme-transition-timing) !important;
 }
@@ -2983,11 +3348,11 @@ p.mt-5 {
 // 确保所有使用CSS变量的元素都能快速响应主题变化
 [style*="--el-"],
 [class*="el-"] {
-  transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
+  transition:
+    background-color var(--theme-transition-duration) var(--theme-transition-timing),
     border-color var(--theme-transition-duration) var(--theme-transition-timing),
     color var(--theme-transition-duration) var(--theme-transition-timing);
 }
-
 
 .modern-input-number .el-input__wrapper {
   border-radius: var(--el-border-radius-base, 8px) !important;
