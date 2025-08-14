@@ -220,8 +220,8 @@ import 'codemirror/theme/zenburn.css'
 // placeholder
 import 'codemirror/addon/display/placeholder.js'
 
-// import 'codemirror/addon/hint/show-hint.css'
-// import 'codemirror/addon/hint/show-hint.js'
+ import 'codemirror/addon/hint/show-hint.css'
+ import 'codemirror/addon/hint/show-hint.js'
 // import 'codemirror/addon/hint/javascript-hint.js'
 // import 'codemirror/addon/hint/xml-hint.js'
 // import 'codemirror/addon/hint/css-hint.js'

@@ -157,7 +157,7 @@ export function getFieldComment(settingId: number, nodePath: string) {
  * @param settingId 数据源配置ID
  * @param payload 包含节点路径与注释内容
  */
-export function saveFieldComment(settingId: number, payload: { nodePath: string; comment: string }) {
+export function saveFieldComment(settingId: number, payload: { nodePath: string; comment: string, dataType?: string, nullable?: boolean }) {
   return request({ url: `/system/data/console/${settingId}/field/comment`, method: 'post', data: payload })
 }
 
