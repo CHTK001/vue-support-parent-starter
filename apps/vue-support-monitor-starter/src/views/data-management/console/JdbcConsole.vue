@@ -6,7 +6,7 @@
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-tree class="tree" :data="treeData" :props="treeProps" :load="loadChildrenLazy" lazy node-key="path" @node-click="handleNodeClick" @node-contextmenu="handleNodeContextMenu">
+      <el-tree class="tree" :data="treeData" :props="treeProps" :load="loadChildrenLazy" lazy node-key="path" :expand-on-click-node="false" @node-click="handleNodeClick" @node-contextmenu="handleNodeContextMenu">
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
           <span class="flex justify-between w-full">
@@ -17,19 +17,19 @@
       </el-tree>
     </div>
     <div class="splitter cursor-col-resize" @mousedown="onDragStart" @dblclick="resetWidth" />
-    <div class="right image-paper">
+     <div class="right image-paper">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentComment" class="comment" :title="currentComment">• 注释：{{ currentComment }}</span>
         </div>
-        <div class="toolbar">
-          <el-button type="primary" size="small" @click="execute">
+         <div class="toolbar">
+           <el-button v-if="showEditor" type="primary" size="small" @click="execute">
             <IconifyIconOnline :icon="icons.execute" class="mr-1" />
             执行
           </el-button>
-          <el-button size="small" @click="formatSql">
+           <el-button v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
           </el-button>
@@ -37,18 +37,43 @@
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             结构
           </el-button>
+           <el-button-group>
+             <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!tableComment" @click="showTableComment = !showTableComment">表头注释</el-button>
+             <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!Object.keys(columnComments).length" @click="showFieldComments = !showFieldComments">字段注释</el-button>
+           </el-button-group>
+          <el-button size="small" :disabled="!currentPath || !columns.length" @click="toggleAnalyze">
+            <IconifyIconOnline :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'" class="mr-1" />
+            {{ analyzing ? '退出分析' : '分析' }}
+          </el-button>
         </div>
       </div>
       <div class="right-body">
-        <CodeEditor v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
-         <el-tabs v-model="activeTab" class="result-tabs" type="border-card" tab-position="top">
-          <el-tab-pane name="result" label="结果">
+         <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
+         <el-tabs v-model="activeTab" class="result-tabs " type="border-card" tab-position="top">
+          <el-tab-pane name="result" class="h-full" label="结果">
             <div class="result">
-              <div v-if="columns.length" class="fields mb-2">
-                <el-tag v-for="col in columns" :key="col" size="small" class="mr-1 mb-1">{{ col }}</el-tag>
-              </div>
-              <el-table v-if="columns.length" :data="rows" size="small" height="220">
-                <el-table-column v-for="col in columns" :key="col" :prop="col" :label="col" :min-width="120" />
+               <div v-if="showTableComment && tableComment" class="table-comment" :title="tableComment">表：{{ tableComment }}</div>
+               <div class="result-content-toolbar h-[32px]">
+                <el-tooltip content="筛选列">
+                  <IconifyIconOnline icon="ri:menu-unfold-line"  class="item" title="筛选列"/>
+                </el-tooltip>
+               </div>
+               <el-table border v-if="columns.length" :data="rows" size="small" height="220" :row-class-name="rowClassName">
+                <el-table-column v-for="col in columns" :key="col" :prop="col" :label="col" :min-width="120">
+                  <template #header>
+                    <div class="col-header">
+                      <span>{{ col.name }}</span>
+                      <span v-if="columnComments[col] && !showFieldComments" class="hidden-note" :title="columnComments[col]"></span>
+                      <div v-if="analyzing && analysisData[col]?.length" class="chart mini-bar">
+                        <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)" @click.stop="toggleFilter(col, b.value)"></div>
+                      </div>
+                    </div>
+                  </template>
+                  <template #default="{ row }">
+                    <span>{{ row[col.name] }}</span>
+                    <span v-if="columnComments[col] && showFieldComments" class="comment-text" :title="columnComments[col]">（{{ columnComments[col] }}）</span>
+                  </template>
+                </el-table-column>
               </el-table>
               <el-empty v-else description="无结果" />
             </div>
@@ -69,7 +94,7 @@ import CodeEditor from "@/components/codeEditor/index.vue";
 import request from "@/api/config";
 import { extractArrayFromApi, normalizeTreeNode } from "@/views/data-management/utils/dataTree";
 import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
-import { getConsoleConfig, getFieldComment, saveFieldComment } from "@/api/system-data";
+import { getConsoleConfig, getFieldComment, saveFieldComment, openTable, analyzeTable } from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
 
@@ -86,9 +111,16 @@ const formatIcon = computed(() => {
 const keyword = ref("");
 const currentPath = ref<string | undefined>(undefined);
 
-const sql = ref("select 1");
+const sql = ref("select * from file_system");
 const columns = ref<string[]>([]);
 const rows = ref<any[]>([]);
+const columnComments = ref<Record<string, string>>({});
+const tableComment = ref("");
+const analyzing = ref(false);
+const analysisData = ref<Record<string, Array<{ value: string; count: number }>>>({});
+const showEditor = ref(true);
+const showTableComment = ref(false);
+const showFieldComments = ref(false);
 const activeTab = ref<"result" | "structure">("result");
 const structureContent = ref("");
 const statusText = ref("");
@@ -161,6 +193,19 @@ async function loadRoot() {
 async function handleNodeClick(node: any) {
   currentNodeData.value = node;
   currentPath.value = node?.path;
+  // 若为表节点，打开表（查询+注释）
+  const type = (node?.type || '').toString().toUpperCase();
+  if (type.includes('TABLE')) {
+    sql.value = `select * from ${node.name}`;
+  //   const resp = await openTable(props.id, node.path, 100);
+  //   columns.value = resp?.data?.data?.columns || [];
+  //   rows.value = [];
+  //   await Promise.resolve();
+  //   rows.value = resp?.data?.data?.rows || [];
+  //   columnComments.value = resp?.data?.data?.columnComments || {};
+  //   tableComment.value = resp?.data?.data?.tableComment || '';
+  //   activeTab.value = 'result';
+  }
 }
 
 // 懒加载子节点（结合 hasChildren 展示展开图标）
@@ -204,9 +249,10 @@ async function execute() {
   const start = performance.now();
   const res = await request({ url: `/system/data/console/${props.id}/execute`, method: "post", params: { type: "sql" }, data: sql.value });
   const data = res?.data;
-  columns.value = data?.columns || [];
+  const dataData = data?.data || {};
+  columns.value = dataData?.columns || [];
   await Promise.resolve();
-  rows.value = data?.rows || [];
+  rows.value = dataData?.rows || [];
   const ms = Math.round(performance.now() - start);
   statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms`;
   activeTab.value = "result";
@@ -324,6 +370,44 @@ async function openStructureTab() {
   activeTab.value = "structure";
 }
 
+function barStyle(col: string, b: { value: string; count: number }) {
+  const list = analysisData.value[col] || [];
+  const max = Math.max(1, ...list.map(i => i.count));
+  const h = Math.max(4, Math.round((b.count / max) * 40));
+  return { height: `${h}px` };
+}
+
+const filters = ref<Record<string, Set<string>>>({});
+function toggleFilter(col: string, value: string) {
+  if (!filters.value[col]) filters.value[col] = new Set();
+  const set = filters.value[col];
+  if (set.has(value)) set.delete(value); else set.add(value);
+}
+
+function rowClassName({ row }) {
+  // 当配置了某列的筛选值，则不在所选值集合中的行置灰
+  for (const col of Object.keys(filters.value)) {
+    const set = filters.value[col];
+    if (set && set.size > 0) {
+      const v = String(row[col]);
+      if (!set.has(v)) return 'row-dim';
+    }
+  }
+  return '';
+}
+
+async function toggleAnalyze() {
+  analyzing.value = !analyzing.value;
+  if (!analyzing.value) {
+    analysisData.value = {};
+    filters.value = {} as any;
+    return;
+  }
+  if (!currentPath.value) return;
+  const resp = await analyzeTable(props.id, currentPath.value, 1000);
+  analysisData.value = resp?.data?.data || {};
+}
+
 async function fetchStructure(nodePath: string): Promise<string> {
   const res = await request({ url: `/system/data/console/${props.id}/node`, method: "get", params: { nodePath, action: "structure" } });
   const detail = res?.data?.data || "";
@@ -365,6 +449,9 @@ function isColumnLeaf(data: any): boolean {
 function buildMenuItems(type): MenuItem[] {
   const allow = (p?: boolean) => Boolean(p);
   const items: MenuItem[] = [];
+  if (type?.includes('TABLE')) {
+    items.push({ key: 'open-table', label: '打开表', icon: 'ri:table-2' });
+  }
   if (allow(consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"))) {
     items.push({ key: "view-structure", label: "查看表结构", icon: "ri:table-2" });
   }
@@ -412,6 +499,9 @@ function handleNodeContextMenu(event: MouseEvent, data: any) {
 async function onMenuSelect(key: string) {
   if (!contextNode.value) return;
   switch (key) {
+    case 'open-table':
+      await openTableAndRender(true);
+      break;
     case "view-structure":
       await viewTableStructure(contextNode.value);
       break;
@@ -428,6 +518,20 @@ async function onMenuSelect(key: string) {
       await addFieldComment(contextNode.value);
       break;
   }
+}
+
+async function openTableAndRender(hideEditor: boolean) {
+  const node = contextNode.value;
+  if (!node?.path) return;
+  const resp = await openTable(props.id, node.path, 100);
+  columns.value = resp?.data?.data?.columns || [];
+  rows.value = [];
+  await Promise.resolve();
+  rows.value = resp?.data?.data?.rows || [];
+  columnComments.value = resp?.data?.data?.columnComments || {};
+  tableComment.value = resp?.data?.data?.tableComment || '';
+  activeTab.value = 'result';
+  showEditor.value = !hideEditor ? true : false;
 }
 
 /**
@@ -487,7 +591,7 @@ onMounted(async () => {
   await Promise.all([loadConsoleConfig(), loadRoot()]);
 });
 </script>
-<style scoped>
+<style scoped lang="scss">
 .console {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -551,6 +655,7 @@ onMounted(async () => {
 .right-body {
   padding: 8px;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
@@ -558,12 +663,55 @@ onMounted(async () => {
 .result {
   flex: 1;
   overflow: auto;
+  .result-content-toolbar {
+    width: 100%;
+    line-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    padding: 0px 10px 0px 10px;
+    &:hover {
+      background-color: #f0f2f5;
+    }
+    .item {
+      cursor: pointer;
+    }
+  }
 }
 .result-tabs {
-  flex: 1;
+  flex: 1 !important;
 }
 .result-tabs :deep(.el-tabs__content) {
   padding: 0;
+}
+.col-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.hidden-note {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-warning);
+  display: inline-block;
+}
+.mini-bar {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 42px;
+  margin-left: 6px;
+}
+.mini-bar .bar {
+  width: 6px;
+  background: var(--el-color-primary);
+  border-radius: 2px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.row-dim {
+  opacity: 0.4;
 }
 .image-paper {
   background:
