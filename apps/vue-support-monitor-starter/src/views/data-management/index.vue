@@ -3,22 +3,12 @@
     <!-- 顶部工具栏：搜索 / 类型过滤 / 排序 / 新建 -->
     <div class="toolbar modern-toolbar">
       <div class="left">
-        <el-input
-          v-model="searchKey"
-          placeholder="搜索名称/类型"
-          clearable
-          class="w-280"
-        >
+        <el-input v-model="searchKey" placeholder="搜索名称/类型" clearable class="w-280">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
-          v-model="typeFilter"
-          placeholder="全部类型"
-          class="w-200 ml-8"
-          clearable
-        >
+        <el-select v-model="typeFilter" placeholder="全部类型" class="w-200 ml-8" clearable>
           <el-option label="全部类型" value="" />
           <el-option v-for="t in typeOptions" :key="t" :label="t" :value="t" />
         </el-select>
@@ -34,14 +24,8 @@
       </div>
     </div>
 
-    <ScTable
-      class="card-grid"
-      :loading="loading"
-      :url="pageSystemDataSettings"
-      :params="queryParams"
-      :col-size="4"
-      layout="card"
-    >
+    <ScTable class="card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4"
+      layout="card">
       <template #empty>
         <el-empty description="暂无数据源配置">
           <el-button type="primary" @click="openEdit()">新建配置</el-button>
@@ -61,24 +45,24 @@
               </div>
             </div>
             <div class="right-status" @click.stop="openBackupList(item)">
-              <el-badge :value="logCounts[item.systemDataSettingId!] || 0" :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
+              <el-badge :value="logCounts[item.systemDataSettingId!] || 0"
+                :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
                 <el-tag size="small" type="warning">日志</el-tag>
               </el-badge>
-              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0" :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
-                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType }}</el-tag>
+              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0"
+                :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
+                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType
+                  }}</el-tag>
               </el-badge>
             </div>
           </div>
           <div class="card-body">
             <div class="meta-row">
-              <IconifyIconOnline
-                class="mr-4 text-muted"
-                icon="ri:terminal-line"
-              />
+              <IconifyIconOnline class="mr-4 text-muted" icon="ri:terminal-line" />
               <span class="label">控制台</span>
               <span class="value">{{
                 item.systemDataSettingConsoleType || "-"
-              }}</span>
+                }}</span>
             </div>
             <div class="meta-row">
               <IconifyIconOnline class="mr-4 text-muted" icon="ri:link-m" />
@@ -113,7 +97,8 @@
                   <IconifyIconOnline icon="ri:settings-3-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'" placement="top" :show-after="500">
+              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'"
+                placement="top" :show-after="500">
                 <el-button size="small" @click.stop.prevent="toggleBackup(item)">
                   <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
                 </el-button>
@@ -123,7 +108,7 @@
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="top" :show-after="500">
+              <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="bottom" :show-after="500">
                 <el-upload :auto-upload="false" :show-file-list="false" :on-change="f => onUploadDriver(item, f)">
                   <el-button size="small">
                     <IconifyIconOnline icon="ri:upload-2-line" />
@@ -140,32 +125,20 @@
     <el-dialog v-model="showDoc" title="文档" width="80%" draggable>
       <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
     </el-dialog>
-    <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
-    <el-dialog v-model="showBackupDialog" title="备份数据" width="60%">
-      <el-table :data="backupList" height="50vh" size="small">
-        <el-table-column prop="timestamp" label="时间" width="180">
-          <template #default="{ row }">{{ row.timestamp ? new Date(row.timestamp).toLocaleString() : '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="name" label="名称" min-width="180" />
-        <el-table-column prop="size" label="大小" width="120" />
-        <el-table-column prop="path" label="路径" min-width="240" />
-      </el-table>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showBackupDialog = false">关闭</el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType"
+      @saved="onSavedSetting" />
+    <BackConsoleDialog :visibe="showBackupDialog" :data="backupLogList" @close="onCloseBackupDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, inject, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, watch, inject, onBeforeUnmount, reactive } from "vue";
 import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting, uploadJdbcDriver, getDocumentHtmlUrl, startBackup, stopBackup, backupStatus, querySystemDataSeries } from "@/api/system-data";
 import { useRouter } from "vue-router";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
 
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
@@ -187,9 +160,13 @@ const currentSettingIdForBackup = ref<number | null>(null)
 const backupList = ref<any[]>([])
 async function openBackupList(row: SystemDataSetting) {
   currentSettingIdForBackup.value = row.systemDataSettingId || null
-  await loadBackupList()
   showBackupDialog.value = true
 }
+
+async function onCloseBackupDialog() {
+  showBackupDialog.value = false
+}
+
 async function loadBackupList() {
   if (!currentSettingIdForBackup.value) return
   const now = Date.now()
@@ -214,7 +191,7 @@ const current = ref<SystemDataSetting | null>(null);
 const showSetting = ref(false)
 const settingId = ref<number | null>(null)
 const settingType = ref<string | undefined>(undefined)
-
+const backupLogList = reactive<any>([]);
 
 // 过滤与排序
 const searchKey = ref("");
@@ -382,7 +359,10 @@ onMounted(async () => {
   await globalSocket.connect?.()
   unsubBackup = globalSocket.on?.('system/data/backup', (m: any) => {
     const sid = Number(m?.settingId || m?.data?.settingId)
-    if (!sid) return
+    if (!sid) {
+      return
+    }
+    backupLogList.push(m?.message);
     const curr = backupCounts.value[sid] || 0
     backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 }
   })
@@ -409,21 +389,26 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   margin-bottom: 16px;
   gap: 12px;
 }
+
 .modern-toolbar .left {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .w-280 {
   width: 280px;
 }
+
 .w-200 {
   width: 200px;
 }
+
 .w-160 {
   width: 160px;
 }
+
 .ml-8 {
   margin-left: 8px;
 }
@@ -432,14 +417,16 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
 .card-grid {
   --gap: 16px;
 }
+
 .modern-card {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 14px;
   overflow: hidden;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  background: linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,1) 40%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 1) 40%);
   position: relative;
 }
+
 /* 左侧绿色条 */
 .modern-card::after {
   content: "";
@@ -448,26 +435,44 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #10b981; /* emerald-500 */
+  background: #10b981;
+  /* emerald-500 */
 }
-.modern-card.is-jdbc::before { background: radial-gradient(220px 110px at 10% 0%, rgba(14,165,233,0.10), transparent 60%); }
-.modern-card.is-redis::before { background: radial-gradient(220px 110px at 10% 0%, rgba(244,63,94,0.10), transparent 60%); }
-.modern-card.is-zk::before { background: radial-gradient(220px 110px at 10% 0%, rgba(99,102,241,0.10), transparent 60%); }
-.modern-card.is-default::before { background: radial-gradient(220px 110px at 10% 0%, rgba(100,116,139,0.08), transparent 60%); }
+
+.modern-card.is-jdbc::before {
+  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.10), transparent 60%);
+}
+
+.modern-card.is-redis::before {
+  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.10), transparent 60%);
+}
+
+.modern-card.is-zk::before {
+  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.10), transparent 60%);
+}
+
+.modern-card.is-default::before {
+  background: radial-gradient(220px 110px at 10% 0%, rgba(100, 116, 139, 0.08), transparent 60%);
+}
+
 .modern-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(240px 120px at 10% 0%, rgba(14,165,233,0.08), transparent 60%);
+  background: radial-gradient(240px 120px at 10% 0%, rgba(14, 165, 233, 0.08), transparent 60%);
   pointer-events: none;
 }
+
 .modern-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.12);
   border-color: var(--el-color-primary-light-5);
 }
+
 /* 常驻基础阴影 */
-.modern-card { box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06); }
+.modern-card {
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+}
 
 /* 右下角45度背景区 */
 .bg-corner {
@@ -490,14 +495,24 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   gap: 12px;
   padding: 14px 14px 0;
 }
+
 .card-header .left {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
 }
-.icon { width: 36px; height: 36px; }
-.icon-img { border-radius: 10px; object-fit: cover; }
+
+.icon {
+  width: 36px;
+  height: 36px;
+}
+
+.icon-img {
+  border-radius: 10px;
+  object-fit: cover;
+}
+
 .icon-badge {
   border-radius: 999px;
   display: flex;
@@ -505,8 +520,9 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   justify-content: center;
   font-weight: 700;
   color: #0ea5e9;
-  background: radial-gradient(120px 80px at 10% 10%, rgba(14,165,233,0.18), rgba(14,165,233,0.06));
+  background: radial-gradient(120px 80px at 10% 10%, rgba(14, 165, 233, 0.18), rgba(14, 165, 233, 0.06));
 }
+
 .title {
   font-weight: 600;
   flex: 1;
@@ -518,6 +534,7 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
 .card-body {
   padding: 12px 14px 0;
 }
+
 .meta-row {
   display: flex;
   align-items: center;
@@ -525,10 +542,12 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   color: var(--el-text-color-secondary);
   line-height: 22px;
 }
+
 .meta-row .label {
   width: 60px;
   color: var(--el-text-color-regular);
 }
+
 .meta-row .value {
   flex: 1;
   color: var(--el-text-color-secondary);
@@ -536,7 +555,11 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.ellipsis { display: inline-block; max-width: 100%; }
+
+.ellipsis {
+  display: inline-block;
+  max-width: 100%;
+}
 
 .card-actions {
   margin-top: 12px;
@@ -545,7 +568,11 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   transform: translateY(6px);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.modern-card:hover .card-actions { opacity: 1; transform: translateY(0); }
+
+.modern-card:hover .card-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 .card-actions :deep(.el-button-group) {
   width: 100%;
@@ -553,8 +580,14 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-.card-actions :deep(.el-button-group .el-button) { border: none; }
-.card-actions :deep(.el-button-group .el-button:not(:last-child)) { border-right: 1px solid var(--el-border-color-lighter); }
+
+.card-actions :deep(.el-button-group .el-button) {
+  border: none;
+}
+
+.card-actions :deep(.el-button-group .el-button:not(:last-child)) {
+  border-right: 1px solid var(--el-border-color-lighter);
+}
 
 /* 按钮风格系统 */
 .btn-solid-primary {
@@ -565,21 +598,31 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   color: var(--btn-text);
   border: none;
 }
-.btn-solid-primary:hover { background: var(--btn-bg-hover); color: #fff; }
+
+.btn-solid-primary:hover {
+  background: var(--btn-bg-hover);
+  color: #fff;
+}
 
 .btn-soft {
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-primary);
   border: 1px solid var(--el-border-color-lighter);
 }
-.btn-soft:hover { background: var(--el-fill-color); }
+
+.btn-soft:hover {
+  background: var(--el-fill-color);
+}
 
 .btn-soft-danger {
   background: rgba(244, 63, 94, 0.06);
   color: var(--el-color-danger);
   border: 1px solid rgba(244, 63, 94, 0.18);
 }
-.btn-soft-danger:hover { background: rgba(244, 63, 94, 0.1); }
+
+.btn-soft-danger:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
 
 /* 空状态 */
 .empty-wrap {
@@ -590,6 +633,7 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
 .text-muted {
   color: var(--el-text-color-secondary);
 }
+
 .mr-4 {
   margin-right: 4px;
 }

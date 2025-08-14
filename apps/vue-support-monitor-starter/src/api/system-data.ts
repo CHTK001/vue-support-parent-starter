@@ -170,3 +170,22 @@ export function openTable(settingId: number, nodePath: string, limit = 100) {
 export function analyzeTable(settingId: number, nodePath: string, limit = 1000) {
   return request({ url: `/system/data/console/${settingId}/table/analyze`, method: 'get', params: { nodePath, limit } })
 }
+
+// 控制台：树与节点（canonical definitions only)
+export function getConsoleRoot(settingId: number, keyword?: string) {
+  return request({ url: `/system/data/console/${settingId}/root`, method: 'get', params: { keyword } })
+}
+
+export function getConsoleChildren(settingId: number, parentPath: string) {
+  return request({ url: `/system/data/console/${settingId}/children`, method: 'get', params: { parentPath } })
+}
+
+export function getConsoleNode(settingId: number, nodePath: string, action?: string) {
+  const params: any = { nodePath }
+  if (action) params.action = action
+  return request({ url: `/system/data/console/${settingId}/node`, method: 'get', params })
+}
+
+export function executeConsole(settingId: number, command: string, type: string = 'sql') {
+  return request({ url: `/system/data/console/${settingId}/execute`, method: 'post', params: { type }, data: command })
+}
