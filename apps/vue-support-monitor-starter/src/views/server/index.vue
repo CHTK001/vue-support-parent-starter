@@ -30,7 +30,7 @@ import {
   type ServerMetricsDisplay,
   mapServerListToDisplayData,
   mapServerMetricsToDisplay,
-  SERVER_WS_MESSAGE_TYPE,
+  SERVER_WS_MESSAGE_TYPE
 } from "@/api/server";
 
 // 导入 server-management 组件
@@ -60,10 +60,10 @@ const latencyManager = useGlobalServerLatency();
 const loadServers = async () => {
   try {
     loading.value = true;
-    const res = await getServerPageList({
+    const res = (await getServerPageList({
       page: 1,
-      pageSize: 1000, // 加载所有服务器
-    }) as any;
+      pageSize: 1000 // 加载所有服务器
+    })) as any;
 
     if (res.code == "00000") {
       // 使用字段映射转换后台数据为前端显示数据
@@ -71,7 +71,7 @@ const loadServers = async () => {
       servers.value = mapServerListToDisplayData(serverList);
       totalCount.value = res.data?.total || 0;
 
-      console.log('已加载服务器列表:', servers.value.length, '台服务器');
+      console.log("已加载服务器列表:", servers.value.length, "台服务器");
     }
   } catch (error) {
     console.error("加载服务器列表失败:", error);
@@ -85,7 +85,7 @@ const loadServers = async () => {
  * 处理刷新服务器列表请求
  */
 const handleRefreshServers = async () => {
-  console.log('收到刷新服务器列表请求');
+  console.log("收到刷新服务器列表请求");
   await loadServers();
 };
 
@@ -93,8 +93,8 @@ const handleRefreshServers = async () => {
  * 处理服务器操作请求
  */
 const handleServerAction = async (action: string, server: any) => {
-  console.log('收到服务器操作请求:', action, server);
-  
+  console.log("收到服务器操作请求:", action, server);
+
   switch (action) {
     case "test":
       await testConnection(server);
@@ -109,7 +109,7 @@ const handleServerAction = async (action: string, server: any) => {
       await disconnectServer(server);
       break;
     default:
-      console.log('未处理的服务器操作:', action);
+      console.log("未处理的服务器操作:", action);
   }
 };
 
@@ -117,7 +117,7 @@ const handleServerAction = async (action: string, server: any) => {
  * 处理选择服务器请求
  */
 const handleSelectServer = (server: any) => {
-  console.log('收到选择服务器请求:', server);
+  console.log("收到选择服务器请求:", server);
   // 这里可以处理服务器选择逻辑
 };
 
@@ -187,15 +187,11 @@ const disconnectServer = async (server: any) => {
  */
 const deleteServerConfirm = async (server: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除服务器 "${server.name}" 吗？`,
-      "删除确认",
-      {
-        type: "warning",
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-      }
-    );
+    await ElMessageBox.confirm(`确定要删除服务器 "${server.name}" 吗？`, "删除确认", {
+      type: "warning",
+      confirmButtonText: "确定",
+      cancelButtonText: "取消"
+    });
 
     const res = await deleteServer(server.id);
     if (res.code == "00000") {
@@ -232,11 +228,11 @@ const safeExtractValue = (newValue: any, oldValue: any): number => {
  * 初始化WebSocket消息处理
  */
 const initWebSocketHandlers = () => {
-  console.log('初始化WebSocket消息处理器...');
+  console.log("初始化WebSocket消息处理器...");
 
   // 监听服务器指标数据
-  onMessage('server_metrics', (message) => {
-    console.log('收到server_metrics消息:', message);
+  onMessage("server_metrics", message => {
+    console.log("收到server_metrics消息:", message);
     if (message.serverId && message.data) {
       // 处理嵌套数据格式，兼容新旧格式
       const data = message.data;
@@ -253,9 +249,7 @@ const initWebSocketHandlers = () => {
       const osInfo = data.osInfo ? JSON.parse(data.osInfo) : {};
 
       // 提取负载平均值
-      const loadAverage = data.loadAverage ??
-        (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ??
-        currentMetrics?.loadAverage;
+      const loadAverage = data.loadAverage ?? (data.cpu?.load1m ? `${data.cpu.load1m} ${data.cpu.load5m || 0} ${data.cpu.load15m || 0}` : undefined) ?? currentMetrics?.loadAverage;
 
       // 更新store中的指标数据
       serverMetricsStore.updateServerMetrics(message.serverId, {
@@ -273,14 +267,14 @@ const initWebSocketHandlers = () => {
         processCount: data.processCount || 0,
         loadAverage,
         temperature: data.temperature,
-        status: data.status === 1 ? 'online' : 'offline',
+        status: data.status === 1 ? "online" : "offline",
         collectTime: data.collectTime || new Date().toISOString(),
         // 添加系统信息字段
         osInfo: osInfo.osInfo,
         osName: osInfo.osName,
         osVersion: osInfo.osVersion,
-        hostname: osInfo.hostname  || "未知",
-        extraInfo: data.extraInfo,
+        hostname: osInfo.hostname || "未知",
+        extraInfo: data.extraInfo
       });
 
       // 同时更新本地缓存，传递完整的数据对象
@@ -292,17 +286,17 @@ const initWebSocketHandlers = () => {
   });
 
   // 监听服务器状态汇总
-  onMessage('server_status_summary', (message) => {
-    console.log('收到server_status_summary消息:', message);
+  onMessage("server_status_summary", message => {
+    console.log("收到server_status_summary消息:", message);
     if (message.data) {
       serverMetricsStore.updateStatusSummary(message.data);
-      console.log('已更新服务器状态汇总');
+      console.log("已更新服务器状态汇总");
     }
   });
 
   // 监听连接状态变化
-  onMessage('connection_status_change', (message) => {
-    console.log('收到connection_status_change消息:', message);
+  onMessage("connection_status_change", message => {
+    console.log("收到connection_status_change消息:", message);
     if (message.serverId) {
       // 更新服务器连接状态
       const serverIndex = servers.value.findIndex(s => s.id === String(message.serverId));
@@ -314,8 +308,8 @@ const initWebSocketHandlers = () => {
   });
 
   // 监听服务器告警
-  onMessage('server_alerts', (message) => {
-    console.log('收到server_alerts消息:', message);
+  onMessage("server_alerts", message => {
+    console.log("收到server_alerts消息:", message);
     if (message.serverId && message.data) {
       console.log(`服务器 ${message.serverId} 告警信息:`, message.data);
       // 可以显示告警通知
@@ -323,9 +317,9 @@ const initWebSocketHandlers = () => {
   });
 
   // 监听服务器延迟数据
-  onMessage(SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY, (message) => {
-    console.log('收到server_latency消息:', message);
-    if (message.serverId && message.data && typeof message.data.latency === 'number') {
+  onMessage(SERVER_WS_MESSAGE_TYPE.SERVER_LATENCY, message => {
+    console.log("收到server_latency消息:", message);
+    if (message.serverId && message.data && typeof message.data.latency === "number") {
       // 更新延迟数据到延迟管理器
       latencyManager.updateLatencyData(message.serverId, message.data.latency, message.data.timestamp);
 
@@ -339,11 +333,11 @@ const initWebSocketHandlers = () => {
   });
 
   // 监听批量服务器延迟数据
-  onMessage(SERVER_WS_MESSAGE_TYPE.BATCH_SERVER_LATENCY, (message) => {
-    console.log('收到batch_server_latency消息:', message);
+  onMessage(SERVER_WS_MESSAGE_TYPE.BATCH_SERVER_LATENCY, message => {
+    console.log("收到batch_server_latency消息:", message);
     if (Array.isArray(message.data)) {
       message.data.forEach((latencyData: any) => {
-        if (latencyData.serverId && typeof latencyData.latency === 'number') {
+        if (latencyData.serverId && typeof latencyData.latency === "number") {
           // 更新延迟数据到延迟管理器
           latencyManager.updateLatencyData(latencyData.serverId, latencyData.latency, latencyData.timestamp);
 
@@ -358,13 +352,13 @@ const initWebSocketHandlers = () => {
     }
   });
 
-  console.log('WebSocket消息处理器初始化完成');
+  console.log("WebSocket消息处理器初始化完成");
 };
 
 // 生命周期钩子
 onMounted(async () => {
-  console.log('server/index.vue 组件已挂载');
-  
+  console.log("server/index.vue 组件已挂载");
+
   // 加载服务器列表
   await loadServers();
 
@@ -374,22 +368,22 @@ onMounted(async () => {
   // 连接 WebSocket
   try {
     await connect();
-    console.log('WebSocket 连接成功');
+    console.log("WebSocket 连接成功");
   } catch (error) {
-    console.error('WebSocket 连接失败:', error);
+    console.error("WebSocket 连接失败:", error);
   }
 });
 
 onUnmounted(() => {
-  console.log('server/index.vue 组件已卸载');
-  
+  console.log("server/index.vue 组件已卸载");
+
   // 断开 WebSocket 连接
   disconnect();
-  console.log('WebSocket 连接已断开');
+  console.log("WebSocket 连接已断开");
 
   // 清理缓存数据
   serverMetricsStore.clearCache();
-  console.log('服务器指标缓存已清理');
+  console.log("服务器指标缓存已清理");
 });
 </script>
 

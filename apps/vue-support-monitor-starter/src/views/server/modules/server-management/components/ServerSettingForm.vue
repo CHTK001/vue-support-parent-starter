@@ -6,23 +6,12 @@
         <template #label>
           <div class="form-label">
             <span>启用监控</span>
-            <el-tooltip
-              content="开启后将定期收集服务器的CPU、内存、磁盘、网络等性能指标数据，用于监控服务器运行状态"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后将定期收集服务器的CPU、内存、磁盘、网络等性能指标数据，用于监控服务器运行状态" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingMonitorEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingMonitorEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
       <!-- 监控间隔：从指标管理迁移过来 -->
@@ -30,24 +19,12 @@
         <template #label>
           <div class="form-label">
             <span>监控间隔</span>
-            <el-tooltip
-              content="后台定时任务检查服务器状态的间隔时间，影响告警检测和状态更新的及时性"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="后台定时任务检查服务器状态的间隔时间，影响告警检测和状态更新的及时性" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingMonitorInterval"
-          :min="30"
-          :max="3600"
-          :step="30"
-          placeholder="监控间隔(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingMonitorInterval" :min="30" :max="3600" :step="30" placeholder="监控间隔(秒)" style="width: 200px" @change="handleChange" />
         <span class="form-tip">秒，建议值：60-300</span>
       </el-form-item>
 
@@ -56,21 +33,12 @@
         <template #label>
           <div class="form-label">
             <span>数据上报方式</span>
-            <el-tooltip
-              content="选择监控数据的上报方式：NONE-不上报，API-通过API上报，PROMETHEUS-通过Prometheus上报"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="选择监控数据的上报方式：NONE-不上报，API-通过API上报，PROMETHEUS-通过Prometheus上报" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingDataReportMethod"
-          placeholder="请选择上报方式"
-          style="width: 200px"
-          @change="handleChange"
-        >
+        <el-select v-model="formData.monitorSysGenServerSettingDataReportMethod" placeholder="请选择上报方式" style="width: 200px" @change="handleChange">
           <el-option label="不上报" value="NONE" />
           <el-option label="API上报" value="API" />
           <el-option label="本地上报" value="LOCAL" />
@@ -84,54 +52,27 @@
         <template #label>
           <div class="form-label">
             <span>指标保留天数</span>
-            <el-tooltip
-              content="历史监控数据的保留时间，超过此时间的数据将被自动清理"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="历史监控数据的保留时间，超过此时间的数据将被自动清理" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingMetricsRetentionDays"
-          :min="1"
-          :max="365"
-          :step="1"
-          placeholder="保留天数"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingMetricsRetentionDays" :min="1" :max="365" :step="1" placeholder="保留天数" style="width: 200px" @change="handleChange" />
         <span class="form-tip">天，建议值：30-90</span>
       </el-form-item>
 
       <!-- Prometheus配置 - 当选择Prometheus上报方式时显示 -->
-      <div
-        v-if="
-          formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'
-        "
-        class="prometheus-basic-config"
-      >
+      <div v-if="formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'" class="prometheus-basic-config">
         <el-form-item prop="monitorSysGenServerSettingPrometheusHost">
           <template #label>
             <div class="form-label">
               <span>Prometheus主机</span>
-              <el-tooltip
-                content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100"
-                placement="top"
-                effect="dark"
-              >
+              <el-tooltip content="Prometheus服务器的主机地址，例如：localhost 或 192.168.1.100" placement="top" effect="dark">
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
               </el-tooltip>
             </div>
           </template>
-          <el-input
-            v-model="formData.monitorSysGenServerSettingPrometheusHost"
-            placeholder="localhost"
-            clearable
-            style="width: 200px"
-            @change="handleChange"
-          />
+          <el-input v-model="formData.monitorSysGenServerSettingPrometheusHost" placeholder="localhost" clearable style="width: 200px" @change="handleChange" />
           <span class="form-tip">Prometheus服务器地址</span>
         </el-form-item>
 
@@ -139,24 +80,12 @@
           <template #label>
             <div class="form-label">
               <span>Prometheus端口</span>
-              <el-tooltip
-                content="Prometheus服务器的端口号，默认为9090"
-                placement="top"
-                effect="dark"
-              >
+              <el-tooltip content="Prometheus服务器的端口号，默认为9090" placement="top" effect="dark">
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
               </el-tooltip>
             </div>
           </template>
-          <el-input-number
-            v-model="formData.monitorSysGenServerSettingPrometheusPort"
-            :min="1"
-            :max="65535"
-            :step="1"
-            placeholder="9090"
-            style="width: 200px"
-            @change="handleChange"
-          />
+          <el-input-number v-model="formData.monitorSysGenServerSettingPrometheusPort" :min="1" :max="65535" :step="1" placeholder="9090" style="width: 200px" @change="handleChange" />
           <span class="form-tip">端口号，默认9090</span>
         </el-form-item>
       </div>
@@ -168,48 +97,24 @@
         <template #label>
           <div class="form-label">
             <span>启用告警</span>
-            <el-tooltip
-              content="开启后当监控指标超过设定阈值时将自动发送告警通知，支持多种通知方式"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后当监控指标超过设定阈值时将自动发送告警通知，支持多种通知方式" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingAlertEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingAlertEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingAlertEnabled"
-        prop="monitorSysGenServerSettingAlertNotificationMethod"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingAlertEnabled" prop="monitorSysGenServerSettingAlertNotificationMethod">
         <template #label>
           <div class="form-label">
             <span>告警方式</span>
-            <el-tooltip
-              content="选择告警通知的发送方式，支持邮件、短信、钉钉、企业微信和自定义Webhook"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="选择告警通知的发送方式，支持邮件、短信、钉钉、企业微信和自定义Webhook" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingAlertNotificationMethod"
-          placeholder="请选择告警方式"
-          style="width: 200px !important"
-          class="min-w-[200px]"
-          @change="handleChange"
-        >
+        <el-select v-model="formData.monitorSysGenServerSettingAlertNotificationMethod" placeholder="请选择告警方式" style="width: 200px !important" class="min-w-[200px]" @change="handleChange">
           <el-option label="邮件" value="EMAIL" />
           <el-option label="短信" value="SMS" />
           <el-option label="钉钉" value="DINGTALK" />
@@ -219,31 +124,16 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingAlertEnabled &&
-          formData.monitorSysGenServerSettingAlertNotificationMethod
-        "
-        prop="monitorSysGenServerSettingAlertNotificationAddress"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingAlertEnabled && formData.monitorSysGenServerSettingAlertNotificationMethod" prop="monitorSysGenServerSettingAlertNotificationAddress">
         <template #label>
           <div class="form-label">
             <span>{{ getNotificationAddressLabel() }}</span>
-            <el-tooltip
-              :content="getNotificationAddressTooltip()"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip :content="getNotificationAddressTooltip()" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingAlertNotificationAddress"
-          :placeholder="getNotificationAddressPlaceholder()"
-          maxlength="500"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingAlertNotificationAddress" :placeholder="getNotificationAddressPlaceholder()" maxlength="500" @change="handleChange" />
       </el-form-item>
 
       <!-- 告警阈值配置 -->
@@ -258,15 +148,8 @@
               <template #label>
                 <div class="form-label">
                   <span>CPU使用率阈值</span>
-                  <el-tooltip
-                    content="当CPU使用率超过此阈值时触发告警，建议设置为70-85%"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
+                  <el-tooltip content="当CPU使用率超过此阈值时触发告警，建议设置为70-85%" placement="top" effect="dark">
+                    <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                   </el-tooltip>
                 </div>
               </template>
@@ -288,22 +171,13 @@
               <template #label>
                 <div class="form-label">
                   <span>内存使用率阈值</span>
-                  <el-tooltip
-                    content="当内存使用率超过此阈值时触发告警，建议设置为75-90%"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
+                  <el-tooltip content="当内存使用率超过此阈值时触发告警，建议设置为75-90%" placement="top" effect="dark">
+                    <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                   </el-tooltip>
                 </div>
               </template>
               <el-input-number
-                v-model="
-                  formData.monitorSysGenServerSettingMemoryAlertThreshold
-                "
+                v-model="formData.monitorSysGenServerSettingMemoryAlertThreshold"
                 :min="1"
                 :max="100"
                 :precision="1"
@@ -323,15 +197,8 @@
               <template #label>
                 <div class="form-label">
                   <span>磁盘使用率阈值</span>
-                  <el-tooltip
-                    content="当磁盘使用率超过此阈值时触发告警，建议设置为80-95%"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
+                  <el-tooltip content="当磁盘使用率超过此阈值时触发告警，建议设置为80-95%" placement="top" effect="dark">
+                    <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                   </el-tooltip>
                 </div>
               </template>
@@ -349,28 +216,17 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item
-              prop="monitorSysGenServerSettingNetworkAlertThreshold"
-            >
+            <el-form-item prop="monitorSysGenServerSettingNetworkAlertThreshold">
               <template #label>
                 <div class="form-label">
                   <span>网络流量阈值</span>
-                  <el-tooltip
-                    content="当网络流量超过此阈值时触发告警，单位为Mbps"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
+                  <el-tooltip content="当网络流量超过此阈值时触发告警，单位为Mbps" placement="top" effect="dark">
+                    <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                   </el-tooltip>
                 </div>
               </template>
               <el-input-number
-                v-model="
-                  formData.monitorSysGenServerSettingNetworkAlertThreshold
-                "
+                v-model="formData.monitorSysGenServerSettingNetworkAlertThreshold"
                 :min="1"
                 :max="10000"
                 :precision="1"
@@ -384,25 +240,17 @@
           </el-col>
         </el-row>
 
-        <el-form-item
-          prop="monitorSysGenServerSettingResponseTimeAlertThreshold"
-        >
+        <el-form-item prop="monitorSysGenServerSettingResponseTimeAlertThreshold">
           <template #label>
             <div class="form-label">
               <span>响应时间阈值</span>
-              <el-tooltip
-                content="当服务器响应时间超过此阈值时触发告警，单位为毫秒"
-                placement="top"
-                effect="dark"
-              >
+              <el-tooltip content="当服务器响应时间超过此阈值时触发告警，单位为毫秒" placement="top" effect="dark">
                 <IconifyIconOnline icon="ri:question-line" class="help-icon" />
               </el-tooltip>
             </div>
           </template>
           <el-input-number
-            v-model="
-              formData.monitorSysGenServerSettingResponseTimeAlertThreshold
-            "
+            v-model="formData.monitorSysGenServerSettingResponseTimeAlertThreshold"
             :min="100"
             :max="60000"
             :step="100"
@@ -418,60 +266,29 @@
         </el-divider>
       </template>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingAlertEnabled"
-        prop="monitorSysGenServerSettingAlertSilenceDuration"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingAlertEnabled" prop="monitorSysGenServerSettingAlertSilenceDuration">
         <template #label>
           <div class="form-label">
             <span>告警静默时间</span>
-            <el-tooltip
-              content="同一类型告警在此时间内不会重复发送，避免告警轰炸，建议15-60分钟"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="同一类型告警在此时间内不会重复发送，避免告警轰炸，建议15-60分钟" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingAlertSilenceDuration"
-          :min="5"
-          :max="1440"
-          :step="5"
-          placeholder="静默时间(分钟)"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingAlertSilenceDuration" :min="5" :max="1440" :step="5" placeholder="静默时间(分钟)" style="width: 200px" @change="handleChange" />
         <span class="form-tip">分钟，建议值：15-60</span>
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingAlertEnabled"
-        prop="monitorSysGenServerSettingAutoRecoveryNotificationEnabled"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingAlertEnabled" prop="monitorSysGenServerSettingAutoRecoveryNotificationEnabled">
         <template #label>
           <div class="form-label">
             <span>自动恢复通知</span>
-            <el-tooltip
-              content="当告警状态恢复正常时是否发送恢复通知，帮助及时了解问题解决情况"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="当告警状态恢复正常时是否发送恢复通知，帮助及时了解问题解决情况" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="
-            formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled
-          "
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingAutoRecoveryNotificationEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
     </div>
 
@@ -481,159 +298,75 @@
         <template #label>
           <div class="form-label">
             <span>支持Docker</span>
-            <el-tooltip
-              content="标识服务器是否安装了Docker，开启后可以监控Docker容器和镜像信息"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="标识服务器是否安装了Docker，开启后可以监控Docker容器和镜像信息" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingDockerEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="支持"
-          inactive-text="不支持"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingDockerEnabled" :active-value="1" :inactive-value="0" active-text="支持" inactive-text="不支持" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingDockerEnabled"
-        prop="monitorSysGenServerSettingDockerMonitorEnabled"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled" prop="monitorSysGenServerSettingDockerMonitorEnabled">
         <template #label>
           <div class="form-label">
             <span>启用Docker监控</span>
-            <el-tooltip
-              content="开启后将监控Docker容器的运行状态、资源使用情况和容器日志"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后将监控Docker容器的运行状态、资源使用情况和容器日志" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingDockerEnabled"
-        prop="monitorSysGenServerSettingDockerConnectionType"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled" prop="monitorSysGenServerSettingDockerConnectionType">
         <template #label>
           <div class="form-label">
             <span>连接方式</span>
-            <el-tooltip
-              content="选择连接Docker的方式：Shell命令行方式或Docker API方式"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="选择连接Docker的方式：Shell命令行方式或Docker API方式" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingDockerConnectionType"
-          placeholder="请选择连接方式"
-          style="width: 200px !important"
-          @change="handleChange"
-        >
+        <el-select v-model="formData.monitorSysGenServerSettingDockerConnectionType" placeholder="请选择连接方式" style="width: 200px !important" @change="handleChange">
           <el-option label="Shell命令" value="SHELL" />
           <el-option label="Docker API" value="API" />
         </el-select>
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingDockerEnabled &&
-          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
-        "
-        prop="monitorSysGenServerSettingDockerApiUrl"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerApiUrl">
         <template #label>
           <div class="form-label">
             <span>Docker API地址</span>
-            <el-tooltip
-              content="Docker API的访问地址，如：unix:///var/run/docker.sock 或 tcp://localhost:2376"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Docker API的访问地址，如：unix:///var/run/docker.sock 或 tcp://localhost:2376" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingDockerApiUrl"
-          placeholder="如：unix:///var/run/docker.sock"
-          maxlength="200"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingDockerApiUrl" placeholder="如：unix:///var/run/docker.sock" maxlength="200" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingDockerEnabled &&
-          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
-        "
-        prop="monitorSysGenServerSettingDockerApiVersion"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerApiVersion">
         <template #label>
           <div class="form-label">
             <span>API版本</span>
-            <el-tooltip
-              content="Docker API的版本号，如：1.40、1.41等，可通过 docker version 命令查看"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Docker API的版本号，如：1.40、1.41等，可通过 docker version 命令查看" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingDockerApiVersion"
-          placeholder="如：1.40"
-          maxlength="50"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingDockerApiVersion" placeholder="如：1.40" maxlength="50" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingDockerEnabled &&
-          formData.monitorSysGenServerSettingDockerConnectionType === 'API'
-        "
-        prop="monitorSysGenServerSettingDockerTlsEnabled"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingDockerEnabled && formData.monitorSysGenServerSettingDockerConnectionType === 'API'" prop="monitorSysGenServerSettingDockerTlsEnabled">
         <template #label>
           <div class="form-label">
             <span>启用TLS</span>
-            <el-tooltip
-              content="是否启用TLS加密连接Docker API，提高连接安全性"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="是否启用TLS加密连接Docker API，提高连接安全性" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingDockerTlsEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingDockerTlsEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
     </div>
 
@@ -643,157 +376,76 @@
         <template #label>
           <div class="form-label">
             <span>启用代理</span>
-            <el-tooltip
-              content="通过代理服务器连接目标服务器，适用于网络隔离或需要跳板机的环境"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="通过代理服务器连接目标服务器，适用于网络隔离或需要跳板机的环境" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingProxyEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingProxyEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingProxyEnabled"
-        prop="monitorSysGenServerSettingProxyType"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingProxyEnabled" prop="monitorSysGenServerSettingProxyType">
         <template #label>
           <div class="form-label">
             <span>代理类型</span>
-            <el-tooltip
-              content="选择代理协议类型：HTTP代理适用于Web流量，SOCKS5代理支持更多协议，Guacamole用于远程桌面"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="选择代理协议类型：HTTP代理适用于Web流量，SOCKS5代理支持更多协议，Guacamole用于远程桌面" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-select
-          v-model="formData.monitorSysGenServerSettingProxyType"
-          placeholder="请选择代理类型"
-          style="width: 200px !important"
-          @change="handleChange"
-        >
+        <el-select v-model="formData.monitorSysGenServerSettingProxyType" placeholder="请选择代理类型" style="width: 200px !important" @change="handleChange">
           <el-option label="HTTP代理" value="HTTP" />
           <el-option label="SOCKS5代理" value="SOCKS5" />
           <el-option label="Guacamole代理" value="GUACAMOLE" />
         </el-select>
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingProxyEnabled"
-        prop="monitorSysGenServerSettingProxyHost"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingProxyEnabled" prop="monitorSysGenServerSettingProxyHost">
         <template #label>
           <div class="form-label">
             <span>代理主机</span>
-            <el-tooltip
-              content="代理服务器的IP地址或域名，如：192.168.1.100 或 proxy.example.com"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="代理服务器的IP地址或域名，如：192.168.1.100 或 proxy.example.com" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingProxyHost"
-          placeholder="请输入代理主机地址"
-          maxlength="100"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingProxyHost" placeholder="请输入代理主机地址" maxlength="100" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingProxyEnabled"
-        prop="monitorSysGenServerSettingProxyPort"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingProxyEnabled" prop="monitorSysGenServerSettingProxyPort">
         <template #label>
           <div class="form-label">
             <span>代理端口</span>
-            <el-tooltip
-              content="代理服务器的端口号，HTTP代理通常使用8080，SOCKS5代理通常使用1080"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="代理服务器的端口号，HTTP代理通常使用8080，SOCKS5代理通常使用1080" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingProxyPort"
-          :min="1"
-          :max="65535"
-          placeholder="代理端口"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingProxyPort" :min="1" :max="65535" placeholder="代理端口" style="width: 200px" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingProxyEnabled &&
-          formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
-        "
-        prop="monitorSysGenServerSettingProxyUsername"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'" prop="monitorSysGenServerSettingProxyUsername">
         <template #label>
           <div class="form-label">
             <span>代理用户名</span>
-            <el-tooltip
-              content="代理服务器的认证用户名，如果代理不需要认证可留空"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="代理服务器的认证用户名，如果代理不需要认证可留空" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingProxyUsername"
-          placeholder="代理用户名(可选)"
-          maxlength="100"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingProxyUsername" placeholder="代理用户名(可选)" maxlength="100" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="
-          formData.monitorSysGenServerSettingProxyEnabled &&
-          formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'
-        "
-        prop="monitorSysGenServerSettingProxyPassword"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingProxyEnabled && formData.monitorSysGenServerSettingProxyType !== 'GUACAMOLE'" prop="monitorSysGenServerSettingProxyPassword">
         <template #label>
           <div class="form-label">
             <span>代理密码</span>
-            <el-tooltip
-              content="代理服务器的认证密码，如果代理不需要认证可留空"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="代理服务器的认证密码，如果代理不需要认证可留空" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingProxyPassword"
-          type="password"
-          placeholder="代理密码(可选)"
-          maxlength="100"
-          show-password
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingProxyPassword" type="password" placeholder="代理密码(可选)" maxlength="100" show-password @change="handleChange" />
       </el-form-item>
     </div>
 
@@ -803,37 +455,19 @@
         <template #label>
           <div class="form-label">
             <span>日志监控</span>
-            <el-tooltip
-              content="开启后将监控指定的系统日志文件，检测异常日志和错误信息"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后将监控指定的系统日志文件，检测异常日志和错误信息" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingLogMonitorEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingLogMonitorEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingLogMonitorEnabled"
-        prop="monitorSysGenServerSettingLogFilePaths"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingLogMonitorEnabled" prop="monitorSysGenServerSettingLogFilePaths">
         <template #label>
           <div class="form-label">
             <span>日志文件路径</span>
-            <el-tooltip
-              content="需要监控的日志文件路径，支持通配符，多个路径用换行分隔，如：/var/log/nginx/*.log"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="需要监控的日志文件路径，支持通配符，多个路径用换行分隔，如：/var/log/nginx/*.log" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
@@ -852,71 +486,36 @@
         <template #label>
           <div class="form-label">
             <span>端口监控</span>
-            <el-tooltip
-              content="开启后将监控指定端口的连通性和响应时间"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后将监控指定端口的连通性和响应时间" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingPortMonitorEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingPortMonitorEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-show="formData.monitorSysGenServerSettingPortMonitorEnabled"
-        prop="monitorSysGenServerSettingMonitorPorts"
-      >
+      <el-form-item v-show="formData.monitorSysGenServerSettingPortMonitorEnabled" prop="monitorSysGenServerSettingMonitorPorts">
         <template #label>
           <div class="form-label">
             <span>监控端口</span>
-            <el-tooltip
-              content="需要监控的端口列表，多个端口用逗号分隔，如：80,443,3306,6379"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="需要监控的端口列表，多个端口用逗号分隔，如：80,443,3306,6379" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingMonitorPorts"
-          placeholder="请输入监控端口，多个端口用逗号分隔，如：80,443,3306"
-          maxlength="500"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingMonitorPorts" placeholder="请输入监控端口，多个端口用逗号分隔，如：80,443,3306" maxlength="500" @change="handleChange" />
       </el-form-item>
 
       <el-form-item prop="monitorSysGenServerSettingConnectionTimeout">
         <template #label>
           <div class="form-label">
             <span>连接超时时间</span>
-            <el-tooltip
-              content="建立连接的最大等待时间，超过此时间将认为连接失败，建议15-60秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="建立连接的最大等待时间，超过此时间将认为连接失败，建议15-60秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingConnectionTimeout"
-          :min="5"
-          :max="300"
-          :step="5"
-          placeholder="连接超时时间(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingConnectionTimeout" :min="5" :max="300" :step="5" placeholder="连接超时时间(秒)" style="width: 200px" @change="handleChange" />
         <span class="form-tip">秒，建议值：15-60</span>
       </el-form-item>
 
@@ -924,52 +523,25 @@
         <template #label>
           <div class="form-label">
             <span>读取超时时间</span>
-            <el-tooltip
-              content="数据读取的最大等待时间，超过此时间将认为读取失败，建议30-120秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="数据读取的最大等待时间，超过此时间将认为读取失败，建议30-120秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingReadTimeout"
-          :min="10"
-          :max="600"
-          :step="10"
-          placeholder="读取超时时间(秒)"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingReadTimeout" :min="10" :max="600" :step="10" placeholder="读取超时时间(秒)" style="width: 200px" @change="handleChange" />
         <span class="form-tip">秒，建议值：30-120</span>
       </el-form-item>
 
-      <el-form-item
-        prop="monitorSysGenServerSettingPerformanceSuggestionEnabled"
-      >
+      <el-form-item prop="monitorSysGenServerSettingPerformanceSuggestionEnabled">
         <template #label>
           <div class="form-label">
             <span>性能优化建议</span>
-            <el-tooltip
-              content="开启后系统将根据监控数据分析服务器性能瓶颈并提供优化建议"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="开启后系统将根据监控数据分析服务器性能瓶颈并提供优化建议" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="
-            formData.monitorSysGenServerSettingPerformanceSuggestionEnabled
-          "
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingPerformanceSuggestionEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
     </div>
 
@@ -980,23 +552,12 @@
         <template #label>
           <div class="form-label">
             <span>端口检测间隔</span>
-            <el-tooltip
-              content="端口状态检测的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="端口状态检测的时间间隔，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingPortCheckInterval"
-          :min="10"
-          :max="3600"
-          :step="10"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingPortCheckInterval" :min="10" :max="3600" :step="10" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
 
@@ -1005,49 +566,24 @@
         <template #label>
           <div class="form-label">
             <span>在线状态检测</span>
-            <el-tooltip
-              content="定期检测服务器的在线状态"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="定期检测服务器的在线状态" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingOnlineCheckEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingOnlineCheckEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingOnlineCheckEnabled === 1"
-        prop="monitorSysGenServerSettingOnlineCheckInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingOnlineCheckEnabled === 1" prop="monitorSysGenServerSettingOnlineCheckInterval">
         <template #label>
           <div class="form-label">
             <span>在线检测间隔</span>
-            <el-tooltip
-              content="在线状态检测的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="在线状态检测的时间间隔，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingOnlineCheckInterval"
-          :min="10"
-          :max="3600"
-          :step="10"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingOnlineCheckInterval" :min="10" :max="3600" :step="10" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
 
@@ -1056,49 +592,24 @@
         <template #label>
           <div class="form-label">
             <span>延迟检测</span>
-            <el-tooltip
-              content="定期检测服务器的网络延迟"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="定期检测服务器的网络延迟" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingLatencyCheckEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingLatencyCheckEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingLatencyCheckEnabled === 1"
-        prop="monitorSysGenServerSettingLatencyCheckInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingLatencyCheckEnabled === 1" prop="monitorSysGenServerSettingLatencyCheckInterval">
         <template #label>
           <div class="form-label">
             <span>延迟检测间隔</span>
-            <el-tooltip
-              content="延迟检测的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="延迟检测的时间间隔，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingLatencyCheckInterval"
-          :min="10"
-          :max="3600"
-          :step="10"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingLatencyCheckInterval" :min="10" :max="3600" :step="10" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
     </div>
@@ -1110,49 +621,24 @@
         <template #label>
           <div class="form-label">
             <span>日志清理</span>
-            <el-tooltip
-              content="定期清理过期的日志文件"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="定期清理过期的日志文件" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingLogCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingLogCleanupEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingLogCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingLogRetentionDays"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingLogCleanupEnabled === 1" prop="monitorSysGenServerSettingLogRetentionDays">
         <template #label>
           <div class="form-label">
             <span>日志保留天数</span>
-            <el-tooltip
-              content="日志文件的保留天数，超过此天数的日志将被清理"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="日志文件的保留天数，超过此天数的日志将被清理" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingLogRetentionDays"
-          :min="1"
-          :max="365"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingLogRetentionDays" :min="1" :max="365" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">天</span>
       </el-form-item>
 
@@ -1161,49 +647,24 @@
         <template #label>
           <div class="form-label">
             <span>临时文件清理</span>
-            <el-tooltip
-              content="定期清理临时文件和缓存"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="定期清理临时文件和缓存" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingTempFileCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingTempFileCleanupEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingTempFileCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingTempFileRetentionHours"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingTempFileCleanupEnabled === 1" prop="monitorSysGenServerSettingTempFileRetentionHours">
         <template #label>
           <div class="form-label">
             <span>临时文件保留时间</span>
-            <el-tooltip
-              content="临时文件的保留时间，超过此时间的文件将被清理"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="临时文件的保留时间，超过此时间的文件将被清理" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingTempFileRetentionHours"
-          :min="1"
-          :max="168"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingTempFileRetentionHours" :min="1" :max="168" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">小时</span>
       </el-form-item>
 
@@ -1212,49 +673,24 @@
         <template #label>
           <div class="form-label">
             <span>WebSocket会话清理</span>
-            <el-tooltip
-              content="定期清理无效的WebSocket连接"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="定期清理无效的WebSocket连接" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingWebSocketCleanupEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingWebSocketCleanupEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingWebSocketCleanupEnabled === 1"
-        prop="monitorSysGenServerSettingWebSocketCleanupInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingWebSocketCleanupEnabled === 1" prop="monitorSysGenServerSettingWebSocketCleanupInterval">
         <template #label>
           <div class="form-label">
             <span>会话清理间隔</span>
-            <el-tooltip
-              content="WebSocket会话清理的时间间隔，单位：分钟"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="WebSocket会话清理的时间间隔，单位：分钟" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingWebSocketCleanupInterval"
-          :min="1"
-          :max="60"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingWebSocketCleanupInterval" :min="1" :max="60" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">分钟</span>
       </el-form-item>
 
@@ -1263,159 +699,76 @@
         <template #label>
           <div class="form-label">
             <span>文件上传队列处理</span>
-            <el-tooltip
-              content="启用文件上传队列的自动处理功能"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="启用文件上传队列的自动处理功能" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingFileUploadEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingFileUploadEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1" prop="monitorSysGenServerSettingFileUploadInterval">
         <template #label>
           <div class="form-label">
             <span>队列处理间隔</span>
-            <el-tooltip
-              content="文件上传队列处理的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="文件上传队列处理的时间间隔，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadInterval"
-          :min="5"
-          :max="300"
-          :step="5"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingFileUploadInterval" :min="5" :max="300" :step="5" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadStatusCheckInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1" prop="monitorSysGenServerSettingFileUploadStatusCheckInterval">
         <template #label>
           <div class="form-label">
             <span>状态检查间隔</span>
-            <el-tooltip
-              content="文件上传任务状态检查的时间间隔，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="文件上传任务状态检查的时间间隔，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="
-            formData.monitorSysGenServerSettingFileUploadStatusCheckInterval
-          "
-          :min="10"
-          :max="600"
-          :step="10"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingFileUploadStatusCheckInterval" :min="10" :max="600" :step="10" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadCleanupInterval"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1" prop="monitorSysGenServerSettingFileUploadCleanupInterval">
         <template #label>
           <div class="form-label">
             <span>临时文件清理间隔</span>
-            <el-tooltip
-              content="文件上传临时文件清理的时间间隔，单位：小时"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="文件上传临时文件清理的时间间隔，单位：小时" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadCleanupInterval"
-          :min="1"
-          :max="24"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingFileUploadCleanupInterval" :min="1" :max="24" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">小时</span>
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadTimeout"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1" prop="monitorSysGenServerSettingFileUploadTimeout">
         <template #label>
           <div class="form-label">
             <span>上传超时时间</span>
-            <el-tooltip
-              content="文件上传任务的超时时间，单位：分钟"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="文件上传任务的超时时间，单位：分钟" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadTimeout"
-          :min="5"
-          :max="120"
-          :step="5"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingFileUploadTimeout" :min="5" :max="120" :step="5" style="width: 200px" @change="handleChange" />
         <span class="unit">分钟</span>
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1"
-        prop="monitorSysGenServerSettingFileUploadMaxRetries"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingFileUploadEnabled === 1" prop="monitorSysGenServerSettingFileUploadMaxRetries">
         <template #label>
           <div class="form-label">
             <span>最大重试次数</span>
-            <el-tooltip
-              content="文件上传失败时的最大重试次数"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="文件上传失败时的最大重试次数" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingFileUploadMaxRetries"
-          :min="0"
-          :max="10"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingFileUploadMaxRetries" :min="0" :max="10" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">次</span>
       </el-form-item>
 
@@ -1435,470 +788,243 @@
     <!-- 文件管理配置 -->
     <div
       v-if="section === 'filemanagement'"
-      class="setting-section file-management-section"
-      :class="{
-        enabled: formData.monitorSysGenServerSettingFileManagementEnabled === 1,
-        configured:
-          formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-          formData.monitorSysGenServerSettingFileManagementMode !== 'NONE',
-      }"
-      @click="handleFileManagementSectionClick"
+      class="setting-section"
+      :class="
+        !simpleStyle
+          ? {
+              'file-management-section': true,
+              enabled: formData.monitorSysGenServerSettingFileManagementEnabled === 1,
+              configured: formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
+            }
+          : {}
+      "
     >
-      <!-- 配置面板头部 -->
-      <div class="file-management-header" @click.stop>
-        <div class="header-content">
-          <div class="header-title">
-            <IconifyIconOnline
-              icon="ri:folder-settings-line"
-              class="section-icon"
-            />
-            <span>文件管理配置</span>
-            <el-tooltip
-              content="点击空白区域可快速配置文件管理功能"
-              placement="top"
-              effect="dark"
-            >
-              <IconifyIconOnline icon="ri:information-line" class="info-icon" />
-            </el-tooltip>
-          </div>
-          <div class="header-actions">
-            <el-button
-              v-if="
-                formData.monitorSysGenServerSettingFileManagementEnabled === 0
-              "
-              type="primary"
-              size="small"
-              @click="quickEnableFileManagement"
-            >
-              <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-              快速启用
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <!-- 配置内容（简洁风格） -->
+      <div class="file-management-content">
+        <!-- 启用文件管理 -->
+        <el-form-item prop="monitorSysGenServerSettingFileManagementEnabled">
+          <template #label>
+            <div class="form-label">
+              <span>启用文件管理</span>
+              <el-tooltip content="开启后可以通过Web界面管理服务器文件系统，支持文件上传、下载、编辑等操作" placement="top" effect="dark">
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-switch v-model="formData.monitorSysGenServerSettingFileManagementEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
+        </el-form-item>
 
-      <!-- 可折叠的配置内容 -->
-      <el-collapse-transition>
-        <div
-          v-show="fileManagementPanelExpanded"
-          class="file-management-content"
+        <!-- 文件管理模式 -->
+        <el-form-item v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1" prop="monitorSysGenServerSettingFileManagementMode">
+          <template #label>
+            <div class="form-label">
+              <span>文件管理模式</span>
+              <el-tooltip content="选择文件管理的连接方式：LOCAL-本地连接，SSH-SSH连接，NODE-NODE客户端代理，API-API接口连接" placement="top" effect="dark">
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-select v-model="formData.monitorSysGenServerSettingFileManagementMode" placeholder="请选择文件管理模式" @change="handleFileManagementModeChange">
+            <el-option label="不启用" value="NONE" />
+            <el-option v-if="isLocalServer" label="本地连接" value="LOCAL" />
+            <el-option label="SSH连接" value="SSH" />
+            <el-option label="NODE客户端" value="NODE" />
+            <el-option label="API接口" value="API" />
+          </el-select>
+        </el-form-item>
+
+        <!-- NODE客户端选择 -->
+        <el-form-item
+          v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode === 'NODE'"
+          prop="monitorSysGenServerSettingFileManagementNodeClient"
         >
-          <!-- 启用文件管理 -->
-          <el-form-item prop="monitorSysGenServerSettingFileManagementEnabled">
+          <template #label>
+            <div class="form-label">
+              <span>NODE客户端</span>
+              <el-tooltip content="选择用于文件管理的NODE客户端，客户端必须在线且支持文件管理功能" placement="top" effect="dark">
+                <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-select v-model="formData.monitorSysGenServerSettingFileManagementNodeClient" placeholder="请选择NODE客户端" :loading="loadingNodeClients" @change="handleChange">
+            <el-option v-for="client in nodeClients" :key="client.serverId" :label="`${client.name} (${client.address})`" :value="client.serverId" />
+          </el-select>
+          <div class="form-item-help">
+            <el-button size="small" type="primary" link @click="loadNodeClients">刷新客户端列表</el-button>
+          </div>
+        </el-form-item>
+
+        <!-- API配置 -->
+        <div v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode === 'API'" class="api-config-section">
+          <el-divider content-position="left">API连接配置</el-divider>
+
+          <!-- API主机 -->
+          <el-form-item>
             <template #label>
               <div class="form-label">
-                <span>启用文件管理</span>
-                <el-tooltip
-                  content="开启后可以通过Web界面管理服务器文件系统，支持文件上传、下载、编辑等操作"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
+                <span>API主机</span>
+                <el-tooltip content="文件管理API服务器的主机地址" placement="top" effect="dark">
+                  <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                 </el-tooltip>
               </div>
             </template>
-            <el-switch
-              ref="fileManagementEnabledSwitch"
-              v-model="formData.monitorSysGenServerSettingFileManagementEnabled"
-              :active-value="1"
-              :inactive-value="0"
-              active-text="开启"
-              inactive-text="关闭"
-              @change="handleChange"
-            />
+            <el-input v-model="apiConfig.apiHost" placeholder="localhost" @input="handleApiConfigChange" />
           </el-form-item>
 
-          <!-- 文件管理模式 -->
-          <el-form-item
-            v-if="
-              formData.monitorSysGenServerSettingFileManagementEnabled === 1
-            "
-            prop="monitorSysGenServerSettingFileManagementMode"
-          >
+          <!-- API端口 -->
+          <el-form-item>
             <template #label>
               <div class="form-label">
-                <span>文件管理模式</span>
-                <el-tooltip
-                  content="选择文件管理的连接方式：LOCAL-本地连接，SSH-SSH连接，NODE-NODE客户端代理，API-API接口连接"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
-                </el-tooltip>
+                <span>API端口</span>
               </div>
             </template>
-            <el-select
-              ref="fileManagementModeSelect"
-              v-model="formData.monitorSysGenServerSettingFileManagementMode"
-              placeholder="请选择文件管理模式"
-              @change="handleFileManagementModeChange"
-            >
-              <el-option label="不启用" value="NONE" />
-              <el-option v-if="isLocalServer" label="本地连接" value="LOCAL" />
-              <el-option label="SSH连接" value="SSH" />
-              <el-option label="NODE客户端" value="NODE" />
-              <el-option label="API接口" value="API" />
+            <el-input-number v-model="apiConfig.apiPort" :min="1" :max="65535" placeholder="8080" @change="handleApiConfigChange" />
+          </el-form-item>
+
+          <!-- 基础路径 -->
+          <el-form-item>
+            <template #label>
+              <div class="form-label">
+                <span>基础路径</span>
+              </div>
+            </template>
+            <el-input v-model="apiConfig.basePath" placeholder="/api/file" @input="handleApiConfigChange" />
+          </el-form-item>
+
+          <!-- HTTPS -->
+          <el-form-item>
+            <template #label>
+              <div class="form-label">
+                <span>使用HTTPS</span>
+              </div>
+            </template>
+            <el-switch v-model="apiConfig.useHttps" @change="handleApiConfigChange" />
+          </el-form-item>
+
+          <!-- 认证类型 -->
+          <el-form-item>
+            <template #label>
+              <div class="form-label">
+                <span>认证类型</span>
+              </div>
+            </template>
+            <el-select v-model="apiConfig.authType" @change="handleApiConfigChange">
+              <el-option label="无认证" value="NONE" />
+              <el-option label="基础认证" value="BASIC" />
+              <el-option label="Token认证" value="TOKEN" />
+              <el-option label="API Key" value="API_KEY" />
             </el-select>
           </el-form-item>
 
-          <!-- NODE客户端选择 -->
-          <el-form-item
-            v-if="
-              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-              formData.monitorSysGenServerSettingFileManagementMode === 'NODE'
-            "
-            prop="monitorSysGenServerSettingFileManagementNodeClient"
-          >
+          <!-- 基础认证 -->
+          <div v-if="apiConfig.authType === 'BASIC'">
+            <el-form-item>
+              <template #label>
+                <span>用户名</span>
+              </template>
+              <el-input v-model="apiConfig.username" @input="handleApiConfigChange" />
+            </el-form-item>
+            <el-form-item>
+              <template #label>
+                <span>密码</span>
+              </template>
+              <el-input v-model="apiConfig.password" type="password" show-password @input="handleApiConfigChange" />
+            </el-form-item>
+          </div>
+
+          <!-- Token认证 -->
+          <el-form-item v-if="apiConfig.authType === 'TOKEN'">
+            <template #label>
+              <span>Token</span>
+            </template>
+            <el-input v-model="apiConfig.token" type="password" show-password @input="handleApiConfigChange" />
+          </el-form-item>
+
+          <!-- API Key认证 -->
+          <div v-if="apiConfig.authType === 'API_KEY'">
+            <el-form-item>
+              <template #label>
+                <span>API Key</span>
+              </template>
+              <el-input v-model="apiConfig.apiKey" type="password" show-password @input="handleApiConfigChange" />
+            </el-form-item>
+            <el-form-item>
+              <template #label>
+                <span>API Key Header</span>
+              </template>
+              <el-input v-model="apiConfig.apiKeyHeader" placeholder="X-API-Key" @input="handleApiConfigChange" />
+            </el-form-item>
+          </div>
+        </div>
+
+        <!-- 高级配置 -->
+        <div v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'" class="advanced-config-section">
+          <el-divider content-position="left">高级配置</el-divider>
+
+          <!-- 操作超时时间 -->
+          <el-form-item prop="monitorSysGenServerSettingFileManagementTimeout">
             <template #label>
               <div class="form-label">
-                <span>NODE客户端</span>
-                <el-tooltip
-                  content="选择用于文件管理的NODE客户端，客户端必须在线且支持文件管理功能"
-                  placement="top"
-                  effect="dark"
-                >
-                  <IconifyIconOnline
-                    icon="ri:question-line"
-                    class="help-icon"
-                  />
+                <span>操作超时时间</span>
+                <el-tooltip content="文件操作的超时时间，单位：秒" placement="top" effect="dark">
+                  <IconifyIconOnline icon="ri:question-line" class="help-icon" />
                 </el-tooltip>
               </div>
             </template>
-            <el-select
-              v-model="
-                formData.monitorSysGenServerSettingFileManagementNodeClient
-              "
-              placeholder="请选择NODE客户端"
-              :loading="loadingNodeClients"
-              @change="handleChange"
-            >
-              <el-option
-                v-for="client in nodeClients"
-                :key="client.serverId"
-                :label="`${client.name} (${client.address})`"
-                :value="client.serverId"
-              />
-            </el-select>
-            <div class="form-item-help">
-              <el-button
-                size="small"
-                type="primary"
-                link
-                @click="loadNodeClients"
-              >
-                刷新客户端列表
-              </el-button>
-            </div>
+            <el-input-number v-model="formData.monitorSysGenServerSettingFileManagementTimeout" :min="10" :max="300" @change="handleChange" />
+            <span class="input-suffix">秒</span>
           </el-form-item>
 
-          <!-- API配置 -->
-          <div
-            v-if="
-              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-              formData.monitorSysGenServerSettingFileManagementMode === 'API'
-            "
-            class="api-config-section"
-          >
-            <el-divider content-position="left">API连接配置</el-divider>
+          <!-- 最大重试次数 -->
+          <el-form-item prop="monitorSysGenServerSettingFileManagementMaxRetries">
+            <template #label>
+              <div class="form-label">
+                <span>最大重试次数</span>
+                <el-tooltip content="文件操作失败时的最大重试次数" placement="top" effect="dark">
+                  <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input-number v-model="formData.monitorSysGenServerSettingFileManagementMaxRetries" :min="0" :max="10" @change="handleChange" />
+          </el-form-item>
 
-            <!-- API主机 -->
-            <el-form-item>
-              <template #label>
-                <div class="form-label">
-                  <span>API主机</span>
-                  <el-tooltip
-                    content="文件管理API服务器的主机地址"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
-              </template>
-              <el-input
-                v-model="apiConfig.apiHost"
-                placeholder="localhost"
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
+          <!-- 健康检查间隔 -->
+          <el-form-item prop="monitorSysGenServerSettingClientHealthCheckInterval">
+            <template #label>
+              <div class="form-label">
+                <span>健康检查间隔</span>
+                <el-tooltip content="客户端健康状态检查间隔，单位：秒" placement="top" effect="dark">
+                  <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input-number v-model="formData.monitorSysGenServerSettingClientHealthCheckInterval" :min="10" :max="300" @change="handleChange" />
+            <span class="input-suffix">秒</span>
+          </el-form-item>
 
-            <!-- API端口 -->
-            <el-form-item>
-              <template #label>
-                <div class="form-label">
-                  <span>API端口</span>
-                </div>
-              </template>
-              <el-input-number
-                v-model="apiConfig.apiPort"
-                :min="1"
-                :max="65535"
-                placeholder="8080"
-                @change="handleApiConfigChange"
-              />
-            </el-form-item>
-
-            <!-- 基础路径 -->
-            <el-form-item>
-              <template #label>
-                <div class="form-label">
-                  <span>基础路径</span>
-                </div>
-              </template>
-              <el-input
-                v-model="apiConfig.basePath"
-                placeholder="/api/file"
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-
-            <!-- HTTPS -->
-            <el-form-item>
-              <template #label>
-                <div class="form-label">
-                  <span>使用HTTPS</span>
-                </div>
-              </template>
-              <el-switch
-                v-model="apiConfig.useHttps"
-                @change="handleApiConfigChange"
-              />
-            </el-form-item>
-
-            <!-- 认证类型 -->
-            <el-form-item>
-              <template #label>
-                <div class="form-label">
-                  <span>认证类型</span>
-                </div>
-              </template>
-              <el-select
-                v-model="apiConfig.authType"
-                @change="handleApiConfigChange"
-              >
-                <el-option label="无认证" value="NONE" />
-                <el-option label="基础认证" value="BASIC" />
-                <el-option label="Token认证" value="TOKEN" />
-                <el-option label="API Key" value="API_KEY" />
-              </el-select>
-            </el-form-item>
-
-            <!-- 基础认证 -->
-            <div v-if="apiConfig.authType === 'BASIC'">
-              <el-form-item>
-                <template #label>
-                  <span>用户名</span>
-                </template>
-                <el-input
-                  v-model="apiConfig.username"
-                  @input="handleApiConfigChange"
-                />
-              </el-form-item>
-              <el-form-item>
-                <template #label>
-                  <span>密码</span>
-                </template>
-                <el-input
-                  v-model="apiConfig.password"
-                  type="password"
-                  show-password
-                  @input="handleApiConfigChange"
-                />
-              </el-form-item>
-            </div>
-
-            <!-- Token认证 -->
-            <el-form-item v-if="apiConfig.authType === 'TOKEN'">
-              <template #label>
-                <span>Token</span>
-              </template>
-              <el-input
-                v-model="apiConfig.token"
-                type="password"
-                show-password
-                @input="handleApiConfigChange"
-              />
-            </el-form-item>
-
-            <!-- API Key认证 -->
-            <div v-if="apiConfig.authType === 'API_KEY'">
-              <el-form-item>
-                <template #label>
-                  <span>API Key</span>
-                </template>
-                <el-input
-                  v-model="apiConfig.apiKey"
-                  type="password"
-                  show-password
-                  @input="handleApiConfigChange"
-                />
-              </el-form-item>
-              <el-form-item>
-                <template #label>
-                  <span>API Key Header</span>
-                </template>
-                <el-input
-                  v-model="apiConfig.apiKeyHeader"
-                  placeholder="X-API-Key"
-                  @input="handleApiConfigChange"
-                />
-              </el-form-item>
-            </div>
-          </div>
-
-          <!-- 高级配置 -->
-          <div
-            v-if="
-              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-              formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
-            "
-            class="advanced-config-section"
-          >
-            <el-divider content-position="left">高级配置</el-divider>
-
-            <!-- 操作超时时间 -->
-            <el-form-item
-              prop="monitorSysGenServerSettingFileManagementTimeout"
-            >
-              <template #label>
-                <div class="form-label">
-                  <span>操作超时时间</span>
-                  <el-tooltip
-                    content="文件操作的超时时间，单位：秒"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
-              </template>
-              <el-input-number
-                v-model="
-                  formData.monitorSysGenServerSettingFileManagementTimeout
-                "
-                :min="10"
-                :max="300"
-                @change="handleChange"
-              />
-              <span class="input-suffix">秒</span>
-            </el-form-item>
-
-            <!-- 最大重试次数 -->
-            <el-form-item
-              prop="monitorSysGenServerSettingFileManagementMaxRetries"
-            >
-              <template #label>
-                <div class="form-label">
-                  <span>最大重试次数</span>
-                  <el-tooltip
-                    content="文件操作失败时的最大重试次数"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
-              </template>
-              <el-input-number
-                v-model="
-                  formData.monitorSysGenServerSettingFileManagementMaxRetries
-                "
-                :min="0"
-                :max="10"
-                @change="handleChange"
-              />
-            </el-form-item>
-
-            <!-- 健康检查间隔 -->
-            <el-form-item
-              prop="monitorSysGenServerSettingClientHealthCheckInterval"
-            >
-              <template #label>
-                <div class="form-label">
-                  <span>健康检查间隔</span>
-                  <el-tooltip
-                    content="客户端健康状态检查间隔，单位：秒"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
-              </template>
-              <el-input-number
-                v-model="
-                  formData.monitorSysGenServerSettingClientHealthCheckInterval
-                "
-                :min="10"
-                :max="300"
-                @change="handleChange"
-              />
-              <span class="input-suffix">秒</span>
-            </el-form-item>
-
-            <!-- 健康检查超时 -->
-            <el-form-item prop="monitorSysGenServerSettingClientHealthTimeout">
-              <template #label>
-                <div class="form-label">
-                  <span>健康检查超时</span>
-                  <el-tooltip
-                    content="客户端健康状态检查的超时时间，单位：秒"
-                    placement="top"
-                    effect="dark"
-                  >
-                    <IconifyIconOnline
-                      icon="ri:question-line"
-                      class="help-icon"
-                    />
-                  </el-tooltip>
-                </div>
-              </template>
-              <el-input-number
-                v-model="formData.monitorSysGenServerSettingClientHealthTimeout"
-                :min="5"
-                :max="60"
-                @change="handleChange"
-              />
-              <span class="input-suffix">秒</span>
-            </el-form-item>
-          </div>
-
-          <!-- 测试连接按钮 -->
-          <el-form-item
-            v-if="
-              formData.monitorSysGenServerSettingFileManagementEnabled === 1 &&
-              formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
-            "
-          >
-            <el-button
-              type="primary"
-              :loading="testingFileManagement"
-              @click="testFileManagementConnection"
-            >
-              <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
-              测试连接
-            </el-button>
+          <!-- 健康检查超时 -->
+          <el-form-item prop="monitorSysGenServerSettingClientHealthTimeout">
+            <template #label>
+              <div class="form-label">
+                <span>健康检查超时</span>
+                <el-tooltip content="客户端健康状态检查的超时时间，单位：秒" placement="top" effect="dark">
+                  <IconifyIconOnline icon="ri:question-line" class="help-icon" />
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input-number v-model="formData.monitorSysGenServerSettingClientHealthTimeout" :min="5" :max="60" @change="handleChange" />
+            <span class="input-suffix">秒</span>
           </el-form-item>
         </div>
-      </el-collapse-transition>
+
+        <!-- 测试连接按钮 -->
+        <el-form-item v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'">
+          <el-button type="primary" :loading="testingFileManagement" @click="testFileManagementConnection">
+            <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
+            测试连接
+          </el-button>
+        </el-form-item>
+      </div>
     </div>
 
     <!-- Prometheus配置 -->
@@ -1908,65 +1034,36 @@
         <template #label>
           <div class="form-label">
             <span>服务器URL</span>
-            <el-tooltip
-              content="Prometheus服务器的完整URL地址，例如：http://localhost:9090"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Prometheus服务器的完整URL地址，例如：http://localhost:9090" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingPrometheusUrl"
-          placeholder="http://localhost:9090"
-          clearable
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingPrometheusUrl" placeholder="http://localhost:9090" clearable @change="handleChange" />
       </el-form-item>
 
       <el-form-item prop="monitorSysGenServerSettingPrometheusQueryPath">
         <template #label>
           <div class="form-label">
             <span>查询路径</span>
-            <el-tooltip
-              content="Prometheus API查询路径，默认为 /api/v1/query_range"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Prometheus API查询路径，默认为 /api/v1/query_range" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingPrometheusQueryPath"
-          placeholder="/api/v1/query_range"
-          clearable
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingPrometheusQueryPath" placeholder="/api/v1/query_range" clearable @change="handleChange" />
       </el-form-item>
 
       <el-form-item prop="monitorSysGenServerSettingPrometheusTimeout">
         <template #label>
           <div class="form-label">
             <span>查询超时</span>
-            <el-tooltip
-              content="Prometheus查询超时时间，单位：秒"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Prometheus查询超时时间，单位：秒" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input-number
-          v-model="formData.monitorSysGenServerSettingPrometheusTimeout"
-          :min="1"
-          :max="300"
-          :step="1"
-          style="width: 200px"
-          @change="handleChange"
-        />
+        <el-input-number v-model="formData.monitorSysGenServerSettingPrometheusTimeout" :min="1" :max="300" :step="1" style="width: 200px" @change="handleChange" />
         <span class="unit">秒</span>
       </el-form-item>
 
@@ -1975,73 +1072,36 @@
         <template #label>
           <div class="form-label">
             <span>启用认证</span>
-            <el-tooltip
-              content="启用后需要提供用户名和密码进行基本认证"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="启用后需要提供用户名和密码进行基本认证" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-switch
-          v-model="formData.monitorSysGenServerSettingPrometheusAuthEnabled"
-          :active-value="1"
-          :inactive-value="0"
-          active-text="开启"
-          inactive-text="关闭"
-          @change="handleChange"
-        />
+        <el-switch v-model="formData.monitorSysGenServerSettingPrometheusAuthEnabled" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
-        prop="monitorSysGenServerSettingPrometheusUsername"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1" prop="monitorSysGenServerSettingPrometheusUsername">
         <template #label>
           <div class="form-label">
             <span>用户名</span>
-            <el-tooltip
-              content="Prometheus服务器认证用户名"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Prometheus服务器认证用户名" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingPrometheusUsername"
-          placeholder="请输入用户名"
-          clearable
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingPrometheusUsername" placeholder="请输入用户名" clearable @change="handleChange" />
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1"
-        prop="monitorSysGenServerSettingPrometheusPassword"
-      >
+      <el-form-item v-if="formData.monitorSysGenServerSettingPrometheusAuthEnabled === 1" prop="monitorSysGenServerSettingPrometheusPassword">
         <template #label>
           <div class="form-label">
             <span>密码</span>
-            <el-tooltip
-              content="Prometheus服务器认证密码"
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content="Prometheus服务器认证密码" placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingPrometheusPassword"
-          type="password"
-          placeholder="请输入密码"
-          show-password
-          clearable
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingPrometheusPassword" type="password" placeholder="请输入密码" show-password clearable @change="handleChange" />
       </el-form-item>
 
       <!-- 高级配置 -->
@@ -2049,31 +1109,17 @@
         <template #label>
           <div class="form-label">
             <span>标签过滤器</span>
-            <el-tooltip
-              content='用于过滤Prometheus指标的标签，格式：key1="value1",key2="value2"'
-              placement="top"
-              effect="dark"
-            >
+            <el-tooltip content='用于过滤Prometheus指标的标签，格式：key1="value1",key2="value2"' placement="top" effect="dark">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingPrometheusLabels"
-          type="textarea"
-          :rows="3"
-          placeholder='instance="server_1",job="node_exporter"'
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingPrometheusLabels" type="textarea" :rows="3" placeholder='instance="server_1",job="node_exporter"' @change="handleChange" />
       </el-form-item>
 
       <!-- 测试连接 -->
       <el-form-item>
-        <el-button
-          type="primary"
-          @click="testPrometheusConnection"
-          :loading="testingConnection"
-        >
+        <el-button type="primary" @click="testPrometheusConnection" :loading="testingConnection">
           <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
           测试连接
         </el-button>
@@ -2086,30 +1132,17 @@
 <script setup lang="ts">
 import { reactive, ref, watch, nextTick, defineProps, defineEmits } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type {
-  ServerSetting,
-  FileManagementApiConfig,
-} from "@/api/server/setting";
-import {
-  testFileManagementConnection as testFileManagementConnectionApi,
-  getAvailableNodeClients,
-} from "@/api/server/setting";
+import type { ServerSetting, FileManagementApiConfig } from "@/api/server/setting";
+import { testFileManagementConnection as testFileManagementConnectionApi, getAvailableNodeClients } from "@/api/server/setting";
 
 // 定义属性
 const props = defineProps<{
   modelValue: Partial<ServerSetting>;
-  section:
-    | "monitor"
-    | "alert"
-    | "docker"
-    | "proxy"
-    | "prometheus"
-    | "filemanagement"
-    | "advanced"
-    | "tasks"
-    | "cleanup";
+  section: "monitor" | "alert" | "docker" | "proxy" | "prometheus" | "filemanagement" | "advanced" | "tasks" | "cleanup";
   isLocalServer?: boolean;
   serverId?: number;
+  /** 简洁样式：用于在配置对话框中与其他分节保持一致的风格 */
+  simpleStyle?: boolean;
 }>();
 
 // 定义事件
@@ -2198,7 +1231,7 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingFileManagementTimeout: 60,
   monitorSysGenServerSettingFileManagementMaxRetries: 3,
   monitorSysGenServerSettingClientHealthCheckInterval: 30,
-  monitorSysGenServerSettingClientHealthTimeout: 10,
+  monitorSysGenServerSettingClientHealthTimeout: 10
 };
 
 // 表单数据
@@ -2229,7 +1262,7 @@ const apiConfig = reactive<FileManagementApiConfig>({
   compressionEnabled: true,
   sslVerificationEnabled: true,
   useClientAddress: true,
-  useClientPort: true,
+  useClientPort: true
 });
 
 // NODE 客户端相关数据
@@ -2238,9 +1271,6 @@ const loadingNodeClients = ref(false);
 const selectedNodeClient = ref<any>(null);
 
 // 文件管理配置面板状态
-const fileManagementPanelExpanded = ref(true);
-const fileManagementEnabledSwitch = ref(null);
-const fileManagementModeSelect = ref(null);
 
 /**
  * 处理数据变化
@@ -2328,7 +1358,7 @@ const isInternalUpdate = ref(false);
 // 监听外部数据变化
 watch(
   () => props.modelValue,
-  (newValue) => {
+  newValue => {
     if (newValue && !isInternalUpdate.value) {
       isUpdatingFromParent.value = true;
 
@@ -2357,7 +1387,7 @@ watch(
 // 监听表单数据变化
 watch(
   formData,
-  (newValue) => {
+  newValue => {
     // 只有在不是从父组件更新时才向上传递
     if (!isUpdatingFromParent.value) {
       isInternalUpdate.value = true;
@@ -2377,19 +1407,14 @@ const clearAllSettings = () => {
   ElMessageBox.confirm("确定要清除所有配置吗？此操作不可恢复。", "警告", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "warning",
+    type: "warning"
   })
     .then(() => {
       // 清除所有配置，设置为空值或禁用状态
-      Object.keys(formData).forEach((key) => {
+      Object.keys(formData).forEach(key => {
         if (key.includes("Enabled")) {
           formData[key] = 0;
-        } else if (
-          key.includes("Interval") ||
-          key.includes("Timeout") ||
-          key.includes("Days") ||
-          key.includes("Hours")
-        ) {
+        } else if (key.includes("Interval") || key.includes("Timeout") || key.includes("Days") || key.includes("Hours")) {
           formData[key] = 0;
         } else if (typeof formData[key] === "string") {
           formData[key] = "";
@@ -2413,7 +1438,7 @@ const resetToDefault = () => {
   ElMessageBox.confirm("确定要重置为默认配置吗？当前配置将被覆盖。", "确认", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "info",
+    type: "info"
   })
     .then(() => {
       // 重置为默认值
@@ -2439,7 +1464,7 @@ const testPrometheusConnection = async () => {
   try {
     // 这里应该调用后端API测试连接
     // 暂时模拟测试
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // 模拟成功
     ElMessage.success("Prometheus连接测试成功");
@@ -2468,15 +1493,13 @@ const handleFileManagementModeChange = () => {
         connectionTimeout: 30,
         readTimeout: 60,
         maxRetries: 3,
-        sslVerificationEnabled: true,
+        sslVerificationEnabled: true
       });
       handleApiConfigChange();
     } else {
       // 如果已有配置，解析并加载
       try {
-        const config = JSON.parse(
-          formData.monitorSysGenServerSettingFileManagementApiConfig
-        );
+        const config = JSON.parse(formData.monitorSysGenServerSettingFileManagementApiConfig);
         Object.assign(apiConfig, config);
       } catch (error) {
         console.warn("解析API配置失败，使用默认配置:", error);
@@ -2513,11 +1536,7 @@ const loadNodeClients = async () => {
 
     // 如果已有选择的客户端，更新选中状态
     if (formData.monitorSysGenServerSettingFileManagementNodeClient) {
-      const selected = nodeClients.value.find(
-        (client) =>
-          client.serverId ===
-          formData.monitorSysGenServerSettingFileManagementNodeClient
-      );
+      const selected = nodeClients.value.find(client => client.serverId === formData.monitorSysGenServerSettingFileManagementNodeClient);
       selectedNodeClient.value = selected || null;
     }
   } catch (error) {
@@ -2535,8 +1554,7 @@ const loadNodeClients = async () => {
 const handleApiConfigChange = () => {
   // 将API配置对象序列化为JSON字符串
   try {
-    formData.monitorSysGenServerSettingFileManagementApiConfig =
-      JSON.stringify(apiConfig);
+    formData.monitorSysGenServerSettingFileManagementApiConfig = JSON.stringify(apiConfig);
   } catch (error) {
     console.error("序列化API配置失败:", error);
     formData.monitorSysGenServerSettingFileManagementApiConfig = "";
@@ -2559,9 +1577,7 @@ const testFileManagementConnection = async () => {
     console.log("测试文件管理连接...");
 
     // 调用API测试连接
-    const result = await testFileManagementConnectionApi(
-      formData.monitorSysGenServerId
-    );
+    const result = await testFileManagementConnectionApi(formData.monitorSysGenServerId);
 
     if (result.data) {
       ElMessage.success("文件管理连接测试成功");
@@ -2576,84 +1592,7 @@ const testFileManagementConnection = async () => {
   }
 };
 
-/**
- * 处理文件管理配置区域点击
- */
-const handleFileManagementSectionClick = () => {
-  // 如果文件管理未启用，提示用户启用
-  if (formData.monitorSysGenServerSettingFileManagementEnabled === 0) {
-    ElMessageBox.confirm(
-      "文件管理功能当前未启用，是否要启用文件管理功能？",
-      "启用文件管理",
-      {
-        confirmButtonText: "启用",
-        cancelButtonText: "取消",
-        type: "info",
-        center: true,
-      }
-    )
-      .then(() => {
-        quickEnableFileManagement();
-      })
-      .catch(() => {
-        // 用户取消，聚焦到启用开关
-        nextTick(() => {
-          if (fileManagementEnabledSwitch.value) {
-            fileManagementEnabledSwitch.value.focus();
-          }
-        });
-      });
-  } else {
-    // 如果已启用但模式为NONE，聚焦到模式选择器
-    if (formData.monitorSysGenServerSettingFileManagementMode === "NONE") {
-      nextTick(() => {
-        if (fileManagementModeSelect.value) {
-          fileManagementModeSelect.value.focus();
-        }
-      });
-      ElMessage.info("请选择文件管理模式");
-    } else {
-      // 如果已配置，展开/收起面板
-      toggleFileManagementPanel();
-    }
-  }
-};
-
-/**
- * 快速启用文件管理
- */
-const quickEnableFileManagement = () => {
-  formData.monitorSysGenServerSettingFileManagementEnabled = 1;
-
-  // 如果是本地服务器，默认设置为LOCAL模式
-  if (props.isLocalServer) {
-    formData.monitorSysGenServerSettingFileManagementMode = "LOCAL";
-  } else {
-    // 非本地服务器，默认设置为SSH模式
-    formData.monitorSysGenServerSettingFileManagementMode = "SSH";
-  }
-
-  // 确保面板展开
-  fileManagementPanelExpanded.value = true;
-
-  handleChange();
-
-  // 聚焦到模式选择器
-  nextTick(() => {
-    if (fileManagementModeSelect.value) {
-      fileManagementModeSelect.value.focus();
-    }
-  });
-
-  ElMessage.success("文件管理功能已启用");
-};
-
-/**
- * 切换文件管理配置面板展开/收起状态
- */
-const toggleFileManagementPanel = () => {
-  fileManagementPanelExpanded.value = !fileManagementPanelExpanded.value;
-};
+// 已移除文件管理折叠/点击启用逻辑，采用简洁风格直接展示表单
 </script>
 
 <style scoped>
@@ -2791,7 +1730,7 @@ const toggleFileManagementPanel = () => {
 }
 
 /* 文件管理配置区域样式 */
-.file-management-section {
+/* .file-management-section {
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 0;
@@ -2807,28 +1746,24 @@ const toggleFileManagementPanel = () => {
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
-.file-management-section.enabled {
+/* .file-management-section.enabled {
   border-color: var(--el-color-primary-light-8);
   background-color: var(--el-fill-color-lighter);
 }
 
-.file-management-section.configured {
+/* .file-management-section.configured {
   border-color: var(--el-color-success-light-7);
   background-color: var(--el-color-success-light-9);
 }
 
-.file-management-section.configured:hover {
+/* .file-management-section.configured:hover {
   border-color: var(--el-color-success-light-5);
   box-shadow: 0 2px 8px rgba(103, 194, 58, 0.15);
 }
 
-.file-management-header {
+/* .file-management-header {
   padding: 16px 20px;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-light) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
+  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
   cursor: default;
 }
@@ -2870,7 +1805,7 @@ const toggleFileManagementPanel = () => {
   gap: 8px;
 }
 
-.file-management-content {
+/* .file-management-content {
   padding: 20px;
 }
 
@@ -2882,11 +1817,7 @@ const toggleFileManagementPanel = () => {
   left: 50%;
   width: 0;
   height: 0;
-  background: radial-gradient(
-    circle,
-    rgba(64, 158, 255, 0.2) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, rgba(64, 158, 255, 0.2) 0%, transparent 70%);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   transition: all 0.6s ease;
@@ -2901,11 +1832,7 @@ const toggleFileManagementPanel = () => {
 
 /* 快速启用按钮样式 */
 .header-actions .el-button--primary {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-dark-2) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
   border: none;
   box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
   transition: all 0.3s ease;
