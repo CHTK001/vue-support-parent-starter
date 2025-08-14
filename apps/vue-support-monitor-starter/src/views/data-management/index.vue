@@ -44,7 +44,7 @@
                 {{ item.systemDataSettingName }}
               </div>
             </div>
-            <div class="right-status" @click.stop="openBackupList(item)">
+            <div class="right-status cursor-pointer" @click.stop="openBackupList(item)">
               <el-badge :value="logCounts[item.systemDataSettingId!] || 0"
                 :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
                 <el-tag size="small" type="warning">日志</el-tag>
@@ -139,6 +139,11 @@ import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
+import {format} from "sql-formatter";
+import Prism from 'prismjs'                    // ② 高亮核心
+import 'prismjs/components/prism-sql'          // ③ SQL 语法文件
+import 'prismjs/themes/prism-tomorrow.css'     // ④ 主题（任选）
+
 
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
@@ -362,7 +367,13 @@ onMounted(async () => {
     if (!sid) {
       return
     }
-    backupLogList.push(m?.message);
+    if(m?.message) {
+      backupLogList.push(format(m?.message));
+    }
+
+    if(backupLogList.length > 100) {
+      backupLogList.shift();
+    }
     const curr = backupCounts.value[sid] || 0
     backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 }
   })
