@@ -631,55 +631,6 @@ onUnmounted(() => {
           <div class="section-description">选择适合您的导航布局模式</div>
         </div>
         <div class="setting-content">
-          <!-- 导航模式说明卡片 -->
-          <div class="layout-description-card">
-            <div class="description-item" :class="{ active: layoutTheme.layout === 'vertical' }">
-              <div class="description-icon">
-                <IconifyIconOffline :icon="'ri:sidebar-unfold-line'" />
-              </div>
-              <div class="description-content">
-                <h4>纵向布局</h4>
-                <p>经典侧边栏导航，适合功能丰富的管理系统，菜单层级清晰，操作便捷</p>
-              </div>
-            </div>
-            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'horizontal' }">
-              <div class="description-icon">
-                <IconifyIconOffline :icon="'ri:navigation-line'" />
-              </div>
-              <div class="description-content">
-                <h4>横向布局</h4>
-                <p>顶部导航栏设计，充分利用屏幕宽度，适合内容展示型应用</p>
-              </div>
-            </div>
-            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'mix' }">
-              <div class="description-icon">
-                <IconifyIconOffline :icon="'ri:layout-grid-line'" />
-              </div>
-              <div class="description-content">
-                <h4>混合布局</h4>
-                <p>结合顶部和侧边导航优势，一级菜单在顶部，子菜单在侧边</p>
-              </div>
-            </div>
-            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'hover' }">
-              <div class="description-icon">
-                <IconifyIconOffline :icon="'ri:cursor-line'" />
-              </div>
-              <div class="description-content">
-                <h4>悬停导航</h4>
-                <p>极简设计，只显示图标，鼠标悬停展开子菜单，节省空间</p>
-              </div>
-            </div>
-            <div v-if="device !== 'mobile'" class="description-item" :class="{ active: layoutTheme.layout === 'card' }">
-              <div class="description-icon">
-                <IconifyIconOffline :icon="'ri:apps-line'" />
-              </div>
-              <div class="description-content">
-                <h4>卡片导航</h4>
-                <p>以卡片形式展示所有功能模块，直观易用，适合功能较少的应用</p>
-              </div>
-            </div>
-          </div>
-
           <ul class="pure-theme">
             <li
               ref="verticalRef"
@@ -692,6 +643,9 @@ onUnmounted(() => {
             >
               <div />
               <div />
+              <div class="layout-desc">
+                <h5>纵向布局</h5>
+              </div>
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -705,6 +659,9 @@ onUnmounted(() => {
             >
               <div />
               <div />
+              <div class="layout-desc">
+                <h5>横向布局</h5>
+              </div>
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -718,6 +675,10 @@ onUnmounted(() => {
             >
               <div />
               <div />
+              <div />
+              <div class="layout-desc">
+                <h5>混合布局</h5>
+              </div>
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -732,6 +693,9 @@ onUnmounted(() => {
               <div />
               <div />
               <div />
+              <div class="layout-desc">
+                <h5>悬停导航</h5>
+              </div>
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -747,6 +711,9 @@ onUnmounted(() => {
               <div />
               <div />
               <div />
+              <div class="layout-desc">
+                <h5>卡片导航</h5>
+              </div>
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -1484,6 +1451,46 @@ onUnmounted(() => {
       }
     }
   }
+}
+
+// 覆盖：将描述文本合并到下方 li 中心显示
+.pure-theme li .layout-desc {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  font-size: 8px !important;
+  z-index: 2;
+  pointer-events: none;
+
+  h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.4;
+    padding: 0 6px;
+  }
+}
+
+// 移除底部 data-label 文案，避免与内嵌描述重复
+.pure-theme li::after {
+  content: "";
+  background: transparent;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
 }
 
 // 设置组样式
