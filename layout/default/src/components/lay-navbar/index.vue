@@ -15,24 +15,16 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
 <template>
   <div class="modern-navbar">
     <!-- 移动端汉堡菜单 -->
-    <LaySidebarTopCollapse
-      v-if="device === 'mobile'"
-      class="hamburger-container"
-      :is-active="pureApp.sidebar.opened"
-      @toggleClick="toggleSideBar"
-    />
+    <LaySidebarTopCollapse v-if="device === 'mobile'" class="hamburger-container" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
 
     <!-- 面包屑导航 -->
-    <LaySidebarBreadCrumb
-      v-if="layout !== 'mix' && device !== 'mobile'"
-      class="breadcrumb-container"
-    />
+    <LaySidebarBreadCrumb v-if="layout !== 'mix' && device !== 'mobile'" class="breadcrumb-container" />
 
     <!-- 混合布局导航 -->
     <LayNavMix v-if="layout === 'mix'" />
 
-    <!-- 纵向布局右侧工具栏 -->
-    <div v-if="layout === 'vertical' || layout === 'hover'" class="vertical-header-right">
+    <!-- 纵向/悬停/卡片布局右侧工具栏 -->
+    <div v-if="layout === 'vertical' || layout === 'hover' || layout === 'card'" class="vertical-header-right">
       <LayTool />
     </div>
   </div>
@@ -60,11 +52,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg,
-      rgba(64, 158, 255, 0.1) 0%,
-      rgba(64, 158, 255, 0.3) 50%,
-      rgba(64, 158, 255, 0.1) 100%
-    );
+    background: linear-gradient(90deg, rgba(64, 158, 255, 0.1) 0%, rgba(64, 158, 255, 0.3) 50%, rgba(64, 158, 255, 0.1) 100%);
   }
 
   // 暗色主题适配
@@ -73,18 +61,14 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
     &::before {
-      background: linear-gradient(90deg,
-        rgba(64, 158, 255, 0.15) 0%,
-        rgba(64, 158, 255, 0.4) 50%,
-        rgba(64, 158, 255, 0.15) 100%
-      );
+      background: linear-gradient(90deg, rgba(64, 158, 255, 0.15) 0%, rgba(64, 158, 255, 0.4) 50%, rgba(64, 158, 255, 0.15) 100%);
     }
   }
 
-// 保持向后兼容
-.navbar {
-  @extend .modern-navbar;
-}
+  // 保持向后兼容
+  .navbar {
+    @extend .modern-navbar;
+  }
 
   // 汉堡菜单容器美化
   .hamburger-container {
