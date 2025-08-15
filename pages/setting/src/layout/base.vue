@@ -1,12 +1,11 @@
 <script>
-import Save from "@iconify-icons/ri/test-tube-line";
-import draggable from "vuedraggable";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { queryEmail, transformI18n } from "@repo/config";
-import { fetchSetting, fetchUpdateBatchSetting } from "../api";
 import { fetchListDictItem } from "@repo/core";
-import { deepClean, message } from "@repo/utils";
-import { defineComponent, markRaw, onMounted } from "vue";
+import { message } from "@repo/utils";
+import { defineComponent } from "vue";
+import draggable from "vuedraggable";
+import { fetchSetting, fetchUpdateBatchSetting } from "../api";
 
 export default defineComponent({
   components: { draggable },
@@ -133,7 +132,7 @@ export default defineComponent({
       <div :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
         <div class="h-full">
           <div class="relative h-full">
-            <el-form label-width="200px" class="h-full">
+            <el-form label-width="200px" class="h-full thin-scrollbar">
               <el-row :gutter="20" class="h-full">
                 <el-col class="w-1/2" :lg="12" ref="list">
                   <draggable v-model="groupList" @end="handleChange">
