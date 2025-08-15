@@ -12,10 +12,10 @@
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="side">侧边导航</el-radio>
           </div>
-          <div class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统。</div>
           <div class="nav-illustration side">
             <div class="menu"></div>
             <div class="content"></div>
+            <div class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统。</div>
           </div>
         </div>
 
@@ -23,10 +23,10 @@
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="top">顶部导航</el-radio>
           </div>
-          <div class="nav-desc">顶部水平菜单，简洁直观，适合一级模块较少的场景。</div>
           <div class="nav-illustration top">
             <div class="bar"></div>
             <div class="content"></div>
+            <div class="nav-desc">顶部水平菜单，简洁直观，适合一级模块较少的场景。</div>
           </div>
         </div>
 
@@ -34,11 +34,11 @@
           <div class="nav-head">
             <el-radio :model-value="form.navMode" label="mix">混合导航</el-radio>
           </div>
-          <div class="nav-desc">顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统。</div>
           <div class="nav-illustration mix">
             <div class="bar"></div>
             <div class="menu"></div>
             <div class="content"></div>
+            <div class="nav-desc">顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统。</div>
           </div>
         </div>
       </div>
@@ -53,8 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import { onMounted, reactive } from "vue";
 
 type NavMode = "side" | "top" | "mix";
 
@@ -131,10 +131,15 @@ const reset = () => {
 .nav-head {
   font-weight: 600;
 }
-.nav-desc {
+.nav-illustration .nav-desc {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
   color: var(--el-text-color-secondary);
-  margin: 6px 0 10px;
-  min-height: 22px;
 }
 
 /* 简易示意图，无模糊 */
