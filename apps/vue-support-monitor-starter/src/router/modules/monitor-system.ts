@@ -8,7 +8,7 @@ export default [
       icon: "ri:server-line",
       title: "服务器监控",
       showLink: true,
-      showParent: true
+      showParent: true,
     },
     children: [
       {
@@ -19,8 +19,8 @@ export default [
           icon: "ri:server-line",
           title: $t("buttons.monitor.server-management"),
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/server/file-system",
@@ -30,8 +30,8 @@ export default [
           icon: "ri:file-list-3-line",
           title: "文件系统管理",
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/server/nodes",
@@ -41,8 +41,8 @@ export default [
           icon: "ri:node-tree",
           title: "在线节点管理",
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/server/script-management",
@@ -52,8 +52,8 @@ export default [
           icon: "ri:code-s-slash-line",
           title: "脚本管理",
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
       },
       {
         path: "/soft/index",
@@ -63,8 +63,30 @@ export default [
           icon: "ri:apps-2-line",
           title: "软件管理",
           showLink: true,
-          showParent: true
-        }
+          showParent: true,
+        },
+      },
+      {
+        path: "/server/alert/push-template",
+        name: "alertPushTemplate",
+        component: () => import("@/views/alert/push-template/index.vue"),
+        meta: {
+          icon: "ri:mail-settings-line",
+          title: "告警推送模板",
+          showLink: true,
+          showParent: true,
+        },
+      },
+      {
+        path: "/server/alert/push-config",
+        name: "alertPushConfig",
+        component: () => import("@/views/alert/push-config/index.vue"),
+        meta: {
+          icon: "ri:notification-2-line",
+          title: "告警推送配置",
+          showLink: true,
+          showParent: true,
+        },
       },
       {
         path: "/soft/detail/:id",
@@ -74,9 +96,9 @@ export default [
           icon: "ri:app-store-line",
           title: "软件详情",
           showLink: false,
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+    ],
+  },
 ];
