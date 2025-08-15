@@ -37,7 +37,7 @@
                 v-if="
                   formData.monitorSysGenServerSettingDataReportMethod !== 'API'
                 "
-                label="数据收集频率"
+                label="数据收集频率(秒)"
                 prop="monitorSysGenServerSettingDataCollectionFrequency"
               >
                 <el-input-number
@@ -49,7 +49,6 @@
                   :step="10"
                   controls-position="right"
                 />
-                <span class="unit">秒</span>
                 <el-tooltip
                   content="API上报方式由客户端控制推送频率，无需设置收集频率"
                   placement="top"
@@ -59,7 +58,7 @@
               </el-form-item>
 
               <el-form-item
-                label="数据保留时间"
+                label="数据保留时间(天)"
                 prop="monitorSysGenServerSettingMetricsRetentionDays"
               >
                 <el-input-number
@@ -71,7 +70,6 @@
                   :step="1"
                   controls-position="right"
                 />
-                <span class="unit">天</span>
               </el-form-item>
             </div>
           </el-tab-pane>
@@ -169,7 +167,7 @@
           <el-tab-pane label="指标管理" name="metrics">
             <div class="tab-content">
               <el-form-item
-                label="监控间隔"
+                label="监控间隔(秒)"
                 prop="monitorSysGenServerSettingMonitorInterval"
               >
                 <el-input-number
@@ -179,11 +177,10 @@
                   :step="30"
                   controls-position="right"
                 />
-                <span class="unit">秒</span>
               </el-form-item>
 
               <el-form-item
-                label="数据保留时间"
+                label="数据保留时间(天)"
                 prop="monitorSysGenServerSettingMetricsRetentionDays"
               >
                 <el-input-number
@@ -195,7 +192,6 @@
                   :step="1"
                   controls-position="right"
                 />
-                <span class="unit">天</span>
               </el-form-item>
             </div>
           </el-tab-pane>
@@ -218,7 +214,7 @@
 
               <template v-if="formData.monitorSysGenServerSettingAlertEnabled">
                 <el-form-item
-                  label="CPU阈值"
+                  label="CPU阈值(%)"
                   prop="monitorSysGenServerSettingCpuAlertThreshold"
                 >
                   <el-input-number
@@ -230,11 +226,10 @@
                     :precision="1"
                     controls-position="right"
                   />
-                  <span class="unit">%</span>
                 </el-form-item>
 
                 <el-form-item
-                  label="内存阈值"
+                  label="内存阈值(%)"
                   prop="monitorSysGenServerSettingMemoryAlertThreshold"
                 >
                   <el-input-number
@@ -246,11 +241,10 @@
                     :precision="1"
                     controls-position="right"
                   />
-                  <span class="unit">%</span>
                 </el-form-item>
 
                 <el-form-item
-                  label="磁盘阈值"
+                  label="磁盘阈值(%)"
                   prop="monitorSysGenServerSettingDiskAlertThreshold"
                 >
                   <el-input-number
@@ -262,7 +256,6 @@
                     :precision="1"
                     controls-position="right"
                   />
-                  <span class="unit">%</span>
                 </el-form-item>
 
                 <el-form-item
@@ -450,7 +443,7 @@
                   <el-divider content-position="left">通用配置</el-divider>
 
                   <el-form-item
-                    label="操作超时时间"
+                    label="操作超时时间(秒)"
                     prop="monitorSysGenServerSettingFileManagementTimeout"
                   >
                     <el-input-number
@@ -462,11 +455,10 @@
                       :step="30"
                       style="width: 200px"
                     />
-                    <span class="unit">秒</span>
                   </el-form-item>
 
                   <el-form-item
-                    label="最大重试次数"
+                    label="最大重试次数(次)"
                     prop="monitorSysGenServerSettingFileManagementMaxRetries"
                   >
                     <el-input-number
@@ -478,7 +470,6 @@
                       :step="1"
                       style="width: 200px"
                     />
-                    <span class="unit">次</span>
                   </el-form-item>
                 </template>
               </template>
@@ -489,7 +480,7 @@
           <el-tab-pane label="高级配置" name="advanced">
             <div class="tab-content">
               <el-form-item
-                label="连接超时"
+                label="连接超时(秒)"
                 prop="monitorSysGenServerSettingConnectionTimeout"
               >
                 <el-input-number
@@ -499,11 +490,10 @@
                   :step="5"
                   controls-position="right"
                 />
-                <span class="unit">秒</span>
               </el-form-item>
 
               <el-form-item
-                label="读取超时"
+                label="读取超时(秒)"
                 prop="monitorSysGenServerSettingReadTimeout"
               >
                 <el-input-number
@@ -513,7 +503,6 @@
                   :step="5"
                   controls-position="right"
                 />
-                <span class="unit">秒</span>
               </el-form-item>
 
               <el-form-item

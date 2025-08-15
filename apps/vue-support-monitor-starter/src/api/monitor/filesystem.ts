@@ -82,17 +82,24 @@ export interface DriveInfo {
   usedSpace: number; // 已用空间
 }
 
-// 文件系统配置接口
-export interface FileSystemConfig {
-  chunkSize: number; // 分片大小 (MB)
-  maxConcurrent: number; // 最大并发数
-  retryCount: number; // 重试次数
-  autoMerge: boolean; // 自动合并
-  enableHttpAccess: boolean; // 启用HTTP访问
-  allowedFileTypes: string[]; // 允许的文件类型
-  maxFileSize: number; // 最大文件大小 (MB)
-  storageQuota: number; // 存储配额 (GB)
-  storageRootPath?: string; // 文件存储根路径
+// 后端实体：文件系统配置（与后端 FileSystemSetting 对齐）
+export interface FileSystemSetting {
+  fileSystemSettingId?: number;
+  fileSystemSettingName?: string;
+  fileSystemSettingChunkUploadEnabled?: boolean;
+  fileSystemSettingChunkSizeMb?: number;
+  fileSystemSettingMergeTaskLimit?: number;
+  fileSystemSettingManualMergeEnabled?: boolean;
+  fileSystemSettingDownloadEnabled?: boolean;
+  fileSystemSettingHttpAccessEnabled?: boolean;
+  fileSystemSettingHttpAccessDomain?: string;
+  fileSystemSettingAllowedFileTypes?: string; // 逗号分隔，如 "*.jpg,*.png"
+  fileSystemSettingMaxFileSizeMb?: number;
+  fileSystemSettingStorageRootPath?: string;
+  fileSystemSettingTempStoragePath?: string;
+  fileSystemSettingFileRetentionDays?: number;
+  fileSystemSettingEnabled?: boolean;
+  fileSystemSettingRemark?: string;
 }
 
 // 文件系统实时状态接口
@@ -292,7 +299,7 @@ export const retryMergeTask = (fileId: number) => {
  * 获取文件系统配置
  */
 export const getFileSystemConfig = () => {
-  return http.request<ReturnResult<FileSystemConfig>>(
+  return http.request<ReturnResult<FileSystemSetting>>(
     "get",
     "/v1/filesystem/config"
   );
@@ -301,7 +308,7 @@ export const getFileSystemConfig = () => {
 /**
  * 更新文件系统配置
  */
-export const updateFileSystemConfig = (config: Partial<FileSystemConfig>) => {
+export const updateFileSystemConfig = (config: Partial<FileSystemSetting>) => {
   return http.request<ReturnResult<boolean>>("put", "/v1/filesystem/config", {
     data: config,
   });
