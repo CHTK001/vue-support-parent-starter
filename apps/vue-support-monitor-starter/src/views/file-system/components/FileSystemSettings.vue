@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="文件系统设置"
-    width="600px"
+    width="800px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
@@ -11,7 +11,7 @@
         ref="formRef"
         :model="formData"
         :rules="formRules"
-        label-width="100px"
+        label-width="150px"
         label-position="left"
       >
         <!-- 上传设置 -->
@@ -25,35 +25,40 @@
 
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="分片大小" prop="chunkSize">
+              <el-form-item
+                label="分片大小(MB)"
+                prop="fileSystemSettingChunkSizeMb"
+              >
                 <el-input-number
-                  v-model="formData.chunkSize"
+                  v-model="formData.fileSystemSettingChunkSizeMb"
                   :min="1"
                   :max="100"
                   :step="1"
                   controls-position="right"
                   class="w-full"
                 />
-                <span class="form-item-suffix">MB</span>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="最大并发数" prop="maxConcurrent">
+              <el-form-item
+                label="最大并发数(个)"
+                prop="fileSystemSettingMergeTaskLimit"
+              >
                 <el-input-number
-                  v-model="formData.maxConcurrent"
+                  v-model="formData.fileSystemSettingMergeTaskLimit"
                   :min="1"
                   :max="20"
                   :step="1"
                   controls-position="right"
                   class="w-full"
                 />
-                <span class="form-item-suffix">个</span>
               </el-form-item>
             </el-col>
           </el-row>
 
           <el-row :gutter="16">
             <el-col :span="12">
+              <!-- 重试次数（后端未持久化，临时下线）
               <el-form-item label="重试次数" prop="retryCount">
                 <el-input-number
                   v-model="formData.retryCount"
@@ -65,18 +70,21 @@
                 />
                 <span class="form-item-suffix">次</span>
               </el-form-item>
+              -->
             </el-col>
             <el-col :span="12">
-              <el-form-item label="最大文件大小" prop="maxFileSize">
+              <el-form-item
+                label="最大文件大小(MB)"
+                prop="fileSystemSettingMaxFileSizeMb"
+              >
                 <el-input-number
-                  v-model="formData.maxFileSize"
+                  v-model="formData.fileSystemSettingMaxFileSizeMb"
                   :min="1"
                   :max="10240"
                   :step="1"
                   controls-position="right"
                   class="w-full"
                 />
-                <span class="form-item-suffix">MB</span>
               </el-form-item>
             </el-col>
           </el-row>
@@ -92,8 +100,13 @@
           </template>
 
           <!-- 文件存储根目录 -->
-          <el-form-item label="存储根目录" prop="storageRootPath">
-            <DirectorySelector v-model="formData.storageRootPath" />
+          <el-form-item
+            label="存储根目录"
+            prop="fileSystemSettingStorageRootPath"
+          >
+            <DirectorySelector
+              v-model="formData.fileSystemSettingStorageRootPath"
+            />
             <div class="form-item-tip">
               设置文件存储的根目录路径，所有上传的文件将保存在此目录下
             </div>
@@ -101,9 +114,9 @@
 
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="自动合并">
+              <el-form-item label="手动合并">
                 <el-switch
-                  v-model="formData.autoMerge"
+                  v-model="formData.fileSystemSettingManualMergeEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
@@ -112,7 +125,7 @@
             <el-col :span="12">
               <el-form-item label="HTTP访问">
                 <el-switch
-                  v-model="formData.enableHttpAccess"
+                  v-model="formData.fileSystemSettingHttpAccessEnabled"
                   active-text="启用"
                   inactive-text="禁用"
                 />
@@ -122,6 +135,7 @@
 
           <el-row :gutter="16">
             <el-col :span="12">
+              <!-- 存储配额（后端未持久化，临时下线）
               <el-form-item label="存储配额" prop="storageQuota">
                 <el-input-number
                   v-model="formData.storageQuota"
@@ -133,15 +147,19 @@
                 />
                 <span class="form-item-suffix">GB</span>
               </el-form-item>
+              -->
             </el-col>
             <el-col :span="12">
               <!-- 占位列，保持布局对齐 -->
             </el-col>
           </el-row>
 
-          <el-form-item label="允许的文件类型" prop="allowedFileTypes">
+          <el-form-item
+            label="允许的文件类型"
+            prop="fileSystemSettingAllowedFileTypes"
+          >
             <el-select
-              v-model="formData.allowedFileTypes"
+              v-model="allowedTypesList"
               multiple
               filterable
               allow-create
@@ -176,9 +194,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, computed } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import type { FileSystemConfig } from "@/api/monitor/filesystem";
+import type { FileSystemSetting } from "@/api/monitor/filesystem";
 import {
   getFileSystemConfig,
   updateFileSystemConfig,
@@ -201,20 +219,34 @@ const saving = ref(false);
 const formRef = ref<FormInstance>();
 
 // 表单数据
-const formData = reactive<FileSystemConfig>({
-  chunkSize: 5,
-  maxConcurrent: 3,
-  retryCount: 3,
-  autoMerge: true,
-  enableHttpAccess: false,
-  allowedFileTypes: [],
-  maxFileSize: 100,
-  storageQuota: 100,
-  storageRootPath: "",
+const formData = reactive<FileSystemSetting>({
+  fileSystemSettingChunkSizeMb: 5,
+  fileSystemSettingMergeTaskLimit: 3,
+  fileSystemSettingManualMergeEnabled: false,
+  fileSystemSettingHttpAccessEnabled: false,
+  fileSystemSettingAllowedFileTypes: "*",
+  fileSystemSettingMaxFileSizeMb: 100,
+  fileSystemSettingStorageRootPath: "",
 });
 
 // 默认配置备份
-const defaultConfig = reactive<FileSystemConfig>({ ...formData });
+const defaultConfig = reactive<FileSystemSetting>({ ...formData });
+
+// 允许类型的数组视图，与实体的逗号分隔字符串字段互转
+const allowedTypesList = computed<string[]>({
+  get() {
+    const v = formData.fileSystemSettingAllowedFileTypes || "";
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => !!s);
+  },
+  set(arr: string[]) {
+    formData.fileSystemSettingAllowedFileTypes = Array.isArray(arr)
+      ? arr.join(",")
+      : "";
+  },
+});
 
 // 常见文件类型
 const commonFileTypes = [
@@ -256,7 +288,7 @@ const commonFileTypes = [
 
 // 表单验证规则
 const formRules: FormRules = {
-  storageRootPath: [
+  fileSystemSettingStorageRootPath: [
     { required: true, message: "请选择文件存储根目录", trigger: "blur" },
     {
       validator: (rule, value, callback) => {
@@ -269,7 +301,7 @@ const formRules: FormRules = {
       trigger: "blur",
     },
   ],
-  chunkSize: [
+  fileSystemSettingChunkSizeMb: [
     { required: true, message: "请设置分片大小", trigger: "blur" },
     {
       type: "number",
@@ -279,7 +311,7 @@ const formRules: FormRules = {
       trigger: "blur",
     },
   ],
-  maxConcurrent: [
+  fileSystemSettingMergeTaskLimit: [
     { required: true, message: "请设置最大并发数", trigger: "blur" },
     {
       type: "number",
@@ -289,33 +321,13 @@ const formRules: FormRules = {
       trigger: "blur",
     },
   ],
-  retryCount: [
-    { required: true, message: "请设置重试次数", trigger: "blur" },
-    {
-      type: "number",
-      min: 0,
-      max: 10,
-      message: "重试次数必须在0-10之间",
-      trigger: "blur",
-    },
-  ],
-  maxFileSize: [
+  fileSystemSettingMaxFileSizeMb: [
     { required: true, message: "请设置最大文件大小", trigger: "blur" },
     {
       type: "number",
       min: 1,
       max: 10240,
       message: "最大文件大小必须在1-10240MB之间",
-      trigger: "blur",
-    },
-  ],
-  storageQuota: [
-    { required: true, message: "请设置存储配额", trigger: "blur" },
-    {
-      type: "number",
-      min: 1,
-      max: 10240,
-      message: "存储配额必须在1-10240GB之间",
       trigger: "blur",
     },
   ],
@@ -344,6 +356,7 @@ const loadConfig = async () => {
   try {
     const result = await getFileSystemConfig();
     if (result.code === "00000" && result.data) {
+      // 直接使用实体字段
       Object.assign(formData, result.data);
       Object.assign(defaultConfig, result.data);
     }
@@ -372,7 +385,7 @@ const handleSave = async () => {
       emit("settings-updated");
       handleClose();
     } else {
-      ElMessage.error(result.message || "保存设置失败");
+      ElMessage.error((result as any).msg || "保存设置失败");
     }
   } catch (error) {
     console.error("保存设置失败:", error);

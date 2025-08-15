@@ -114,6 +114,7 @@
           <el-select
             v-model="edit.form.monitorSysGenAlertPushConfigChannel"
             placeholder="请选择通道"
+            :disabled="!!edit.form.monitorSysGenAlertPushConfigTemplateId"
           >
             <el-option
               v-for="item in channels"
@@ -205,7 +206,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import DataTable from "@/components/common/DataTable.vue";
 import { ElMessage } from "element-plus";
 import {
@@ -274,7 +275,14 @@ const rules = {
     { required: true, message: "请选择告警类型", trigger: "change" },
   ],
   monitorSysGenAlertPushConfigChannel: [
-    { required: true, message: "请选择通道", trigger: "change" },
+    {
+      validator: (_rule: any, value: any, callback: any) => {
+        if (edit.form.monitorSysGenAlertPushConfigTemplateId) return callback();
+        if (!value) return callback(new Error("请选择通道"));
+        callback();
+      },
+      trigger: "change",
+    },
   ],
 };
 
@@ -283,6 +291,20 @@ function openEdit(row?: any) {
   edit.form = row ? { ...row } : { monitorSysGenAlertPushConfigEnabled: true };
   loadTemplateOptions();
 }
+
+// 模板选择自动回填通道
+watch(
+  () => edit.form.monitorSysGenAlertPushConfigTemplateId,
+  (tplId) => {
+    const tpl = templateOptions.value.find(
+      (t: any) => t.monitorSysGenMessagePushTemplateId === tplId
+    );
+    if (tpl) {
+      edit.form.monitorSysGenAlertPushConfigChannel =
+        tpl.monitorSysGenMessagePushTemplateChannel;
+    }
+  }
+);
 
 async function loadTemplateOptions() {
   const res: any = await fetchAlertPushTemplatePage({
