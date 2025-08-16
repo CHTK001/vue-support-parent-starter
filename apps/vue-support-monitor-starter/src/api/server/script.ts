@@ -244,9 +244,41 @@ export function duplicateServerScript(id: number, newScriptName?: string) {
  * @returns 执行结果
  */
 export function executeServerScript(params: ScriptExecuteParams) {
-  return http.request<ReturnResult<ScriptExecution>>("post", "script/execute", {
-    data: params,
-  });
+  return http.request<ReturnResult<ScriptExecution>>(
+    "post",
+    `script/${params.scriptId}/execute`,
+    {
+      data: {
+        ...params,
+      },
+    }
+  );
+}
+
+/**
+ * 在节点上执行脚本
+ */
+export function executeNodeScript(params: {
+  nodeId: string | number;
+  script: string;
+  scriptType?: string;
+  workingDirectory?: string;
+  timeout?: number;
+}) {
+  const {
+    nodeId,
+    script,
+    scriptType = "SHELL",
+    workingDirectory,
+    timeout = 300,
+  } = params;
+  return http.request<ReturnResult<any>>(
+    "post",
+    "/node-remote/execute-script",
+    {
+      params: { nodeId, script, scriptType, workingDirectory, timeout },
+    }
+  );
 }
 
 /**

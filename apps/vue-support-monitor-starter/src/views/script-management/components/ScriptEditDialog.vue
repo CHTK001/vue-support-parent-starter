@@ -13,102 +13,117 @@
     @close="handleClose"
   >
     <div class="dialog-content">
-      <!-- 基本信息表单 -->
-      <div class="script-form">
-        <el-form
-          ref="formRef"
-          :model="scriptForm"
-          :rules="formRules"
-          label-width="100px"
-          class="script-form-content"
-        >
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="脚本名称" prop="monitorSysGenScriptName">
-                <el-input
-                  v-model="scriptForm.monitorSysGenScriptName"
-                  placeholder="请输入脚本名称"
-                  clearable
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="脚本类型" prop="monitorSysGenScriptType">
-                <el-select
-                  v-model="scriptForm.monitorSysGenScriptType"
-                  placeholder="请选择脚本类型"
-                  style="width: 100%"
-                  @change="handleTypeChange"
-                >
-                  <el-option label="Shell" value="SHELL" />
-                  <el-option label="Python" value="PYTHON" />
-                  <el-option label="PowerShell" value="POWERSHELL" />
-                  <el-option label="Batch" value="BATCH" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+      <el-tabs v-model="activeSubTab">
+        <!-- 子Tab：编辑 -->
+        <el-tab-pane label="编辑" name="edit">
+          <!-- 基本信息表单 -->
+          <div class="script-form">
+            <el-form
+              ref="formRef"
+              :model="scriptForm"
+              :rules="formRules"
+              label-width="100px"
+              class="script-form-content"
+            >
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="脚本名称" prop="monitorSysGenScriptName">
+                    <el-input
+                      v-model="scriptForm.monitorSysGenScriptName"
+                      placeholder="请输入脚本名称"
+                      clearable
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="脚本类型" prop="monitorSysGenScriptType">
+                    <el-select
+                      v-model="scriptForm.monitorSysGenScriptType"
+                      placeholder="请选择脚本类型"
+                      style="width: 100%"
+                      @change="handleTypeChange"
+                    >
+                      <el-option label="Shell" value="SHELL" />
+                      <el-option label="Python" value="PYTHON" />
+                      <el-option label="PowerShell" value="POWERSHELL" />
+                      <el-option label="Batch" value="BATCH" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
 
-          <el-row>
-            <el-col :span="24">
-              <el-form-item
-                label="脚本描述"
-                prop="monitorSysGenScriptDescription"
-              >
-                <el-input
-                  v-model="scriptForm.monitorSysGenScriptDescription"
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入脚本描述"
-                  maxlength="200"
-                  show-word-limit
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
+              <el-row>
+                <el-col :span="24">
+                  <el-form-item
+                    label="脚本描述"
+                    prop="monitorSysGenScriptDescription"
+                  >
+                    <el-input
+                      v-model="scriptForm.monitorSysGenScriptDescription"
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入脚本描述"
+                      maxlength="200"
+                      show-word-limit
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
 
-          <el-row>
-            <el-col :span="12">
-              <el-form-item label="脚本状态" prop="monitorSysGenScriptStatus">
-                <el-radio-group v-model="scriptForm.monitorSysGenScriptStatus">
-                  <el-radio value="ENABLED">启用</el-radio>
-                  <el-radio value="DISABLED">禁用</el-radio>
-                </el-radio-group>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </div>
-
-      <!-- 代码编辑器 -->
-      <div class="code-editor-section">
-        <div class="section-header">
-          <h4>脚本内容</h4>
-          <div class="editor-actions">
-            <el-button size="small" @click="loadTemplate">
-              <IconifyIconOnline icon="ri:file-add-line" />
-              加载模板
-            </el-button>
-            <el-button size="small" @click="formatCode">
-              <IconifyIconOnline icon="ri:code-s-slash-line" />
-              格式化
-            </el-button>
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item
+                    label="脚本状态"
+                    prop="monitorSysGenScriptStatus"
+                  >
+                    <el-radio-group
+                      v-model="scriptForm.monitorSysGenScriptStatus"
+                    >
+                      <el-radio value="ENABLED">启用</el-radio>
+                      <el-radio value="DISABLED">禁用</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
           </div>
-        </div>
 
-        <div class="code-editor-wrapper">
-          <CodeEditor
-            :content="scriptForm.monitorSysGenScriptContent"
-            @update:content="handleContentChange"
-            :options="{
-              mode: getEditorLanguage(scriptForm.monitorSysGenScriptType),
-            }"
-            height="400px"
-            :show-tool="true"
-            placeholder="请输入脚本内容..."
-          />
-        </div>
-      </div>
+          <!-- 代码编辑器 -->
+          <div class="code-editor-section">
+            <div class="section-header">
+              <h4>脚本内容</h4>
+              <div class="editor-actions">
+                <el-button size="small" @click="loadTemplate">
+                  <IconifyIconOnline icon="ri:file-add-line" />
+                  加载模板
+                </el-button>
+                <el-button size="small" @click="formatCode">
+                  <IconifyIconOnline icon="ri:code-s-slash-line" />
+                  格式化
+                </el-button>
+              </div>
+            </div>
+
+            <div class="code-editor-wrapper">
+              <CodeEditor
+                :content="scriptForm.monitorSysGenScriptContent"
+                @update:content="handleContentChange"
+                :options="{
+                  mode: getEditorLanguage(scriptForm.monitorSysGenScriptType),
+                }"
+                height="400px"
+                :show-tool="true"
+                placeholder="请输入脚本内容..."
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- 子Tab：上传记录（仅编辑模式显示） -->
+        <el-tab-pane label="上传记录" name="upload-records" v-if="isEdit">
+          <ScriptUploadRecords :script-id="scriptForm.monitorSysGenScriptId" />
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <!-- 对话框底部按钮 -->
@@ -127,6 +142,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import ScriptUploadRecords from "./ScriptUploadRecords.vue";
 import { saveServerScript, updateServerScript } from "@/api/server/script";
 import CodeEditor from "@/components/codeEditor/index.vue";
 
