@@ -8,32 +8,75 @@
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="90px">
       <el-form-item label="类型" prop="type">
-        <ScSelect v-model="form.type" :options="typeOptions" placeholder="请选择类型" />
+        <ScSelect
+          v-model="form.type"
+          :options="typeOptions"
+          placeholder="请选择类型"
+        />
       </el-form-item>
 
-      <el-form-item v-if="form.type === 'REMOTE'" label="服务器" prop="serverId">
-        <ScSelect v-model="form.serverId" :options="serverOptions" placeholder="请选择服务器" />
+      <el-form-item
+        v-if="form.type === 'REMOTE'"
+        label="服务器"
+        prop="serverIds"
+      >
+        <el-select
+          v-model="form.serverIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择服务器"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in serverOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
+        </el-select>
       </el-form-item>
 
-      <el-form-item v-else label="节点" prop="nodeId">
-        <ScSelect v-model="form.nodeId" :options="nodeOptions" placeholder="请选择节点" />
+      <el-form-item v-else label="节点" prop="nodeIds">
+        <el-select
+          v-model="form.nodeIds"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择节点"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="opt in nodeOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
+        </el-select>
       </el-form-item>
 
-      <el-form-item label="上传目录" prop="targetPath">
-        <el-input v-model="form.targetPath" placeholder="例如：/home/user/app 或 C:\\apps" />
+      <el-form-item label="上传目录" prop="dirPath">
+        <el-input
+          v-model="form.dirPath"
+          placeholder="请输入上传目录，例如 /opt/monitor/scripts"
+          clearable
+        />
       </el-form-item>
 
-      <el-form-item label="文件" prop="file">
-        <el-upload :limit="1" :auto-upload="false" :on-change="onFileChange" :file-list="fileList">
-          <el-button type="primary">选择文件</el-button>
-        </el-upload>
-        <el-progress v-if="progress > 0" :percentage="progress" style="width: 100%; margin-top: 8px" />
+      <el-form-item label="是否覆盖">
+        <el-switch
+          v-model="form.overwrite"
+          active-text="是"
+          inactive-text="否"
+        />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleConfirm">确认上传</el-button>
+      <el-button type="primary" :loading="submitting" @click="handleConfirm"
+        >确认上传</el-button
+      >
     </template>
   </el-dialog>
 </template>
@@ -42,10 +85,12 @@
 import { ref, watch, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { uploadServerFileWithProgress } from "@/api/server/upload";
-import { uploadFileToNode } from "@/api/node-remote";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/node";
+import {
+  fetchUploadScriptToNode,
+  fetchUploadScriptToServer,
+} from "@/api/script-upload";
 
 interface Props {
   visible: boolean;
@@ -53,21 +98,23 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits<["update:visible"]>();
+const emit = defineEmits<{
+  (e: "update:visible", value: boolean): void;
+}>();
 
 const visibleInner = ref(false);
 watch(
   () => props.visible,
-  v => (visibleInner.value = v)
+  (v) => (visibleInner.value = v)
 );
 
 const formRef = ref<any>();
 const form = ref({
   type: "REMOTE" as "REMOTE" | "NODE",
-  serverId: undefined as any,
-  nodeId: undefined as any,
-  targetPath: "",
-  file: undefined as File | undefined,
+  serverIds: [] as Array<string>,
+  nodeIds: [] as Array<string>,
+  dirPath: "/opt/monitor/scripts",
+  overwrite: true,
 });
 
 const typeOptions = [
@@ -83,92 +130,90 @@ const submitting = ref(false);
 
 const rules = {
   type: [{ required: true, message: "请选择类型" }],
-  serverId: [{ required: () => form.value.type === "REMOTE", message: "请选择服务器" }],
-  nodeId: [{ required: () => form.value.type === "NODE", message: "请选择节点" }],
-  targetPath: [
-    { required: true, message: "请输入上传目录" },
-    { validator: validatePath, trigger: "blur" },
+  serverIds: [
+    { required: () => form.value.type === "REMOTE", message: "请选择服务器" },
   ],
-  file: [{ required: true, message: "请选择文件" }],
+  nodeIds: [
+    { required: () => form.value.type === "NODE", message: "请选择节点" },
+  ],
+  dirPath: [{ required: true, message: "请输入上传目录" }],
 };
 
-function validatePath(_: any, v: string, cb: (e?: Error) => void) {
-  if (!v || !v.trim()) return cb(new Error("上传目录不能为空"));
-  const isAbs = v.startsWith("/") || /^[A-Za-z]:[\\/]/.test(v);
-  if (!isAbs) return cb(new Error("请输入绝对路径"));
-  if (v.includes("..")) return cb(new Error("路径不能包含 .."));
-  cb();
-}
-
-const onFileChange = (file: any, list: any[]) => {
-  form.value.file = file?.raw;
-  fileList.value = list.slice(-1);
-};
-
-onMounted(async () => {
+async function loadServerOptions() {
   try {
-    const servers = await getServerList({ page: 1, pageSize: 500 });
-    const records = (servers as any)?.data?.records || [];
-    serverOptions.value = records.map((s: any) => ({
+    const res: any = await getServerList({ page: 1, pageSize: 500 });
+    const records = res?.data?.records || res?.data?.data || res?.records || [];
+    serverOptions.value = (records || []).map((s: any) => ({
       label: `${s.monitorSysGenServerName || s.monitorSysGenServerHost || s.monitorSysGenServerId}`,
-      value: s.monitorSysGenServerId,
+      value: String(s.monitorSysGenServerId ?? s.id ?? s.serverId),
     }));
   } catch (e) {
     // 忽略，交互层提示
+    serverOptions.value = [];
   }
+}
 
+async function loadNodeOptions() {
   try {
-    const nodes = await getNodeListAll({});
-    const list = (nodes as any)?.data || [];
-    nodeOptions.value = list.map((n: any) => ({
+    const res: any = await getNodeListAll({});
+    const list = res?.data?.records || res?.data || res?.list || [];
+    nodeOptions.value = (list || []).map((n: any) => ({
       label: `${n.name || n.nodeId || n.id}`,
-      value: n.id || n.nodeId,
+      value: String(n.id ?? n.nodeId ?? n.code ?? n.name),
     }));
   } catch (e) {
     // 忽略
+    nodeOptions.value = [];
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadServerOptions(), loadNodeOptions()]);
+});
+
+watch(visibleInner, async (v) => {
+  if (v) {
+    // 每次打开时刷新一次，避免缓存导致的下拉无数据
+    await Promise.all([loadServerOptions(), loadNodeOptions()]);
   }
 });
 
 const handleConfirm = async () => {
   await formRef.value?.validate();
-  if (!form.value.file) return;
-
   submitting.value = true;
-  progress.value = 0;
   try {
+    if (!props.scriptId) throw new Error("缺少脚本ID");
+
     if (form.value.type === "REMOTE") {
-      await uploadServerFileWithProgress(
-        {
-          serverId: form.value.serverId!,
-          targetPath: form.value.targetPath,
-          file: form.value.file!,
-          scriptId: props.scriptId,
-        },
-        e => {
-          if ((e as any)?.total) {
-            progress.value = Math.round(((e as any).loaded * 100) / (e as any).total);
-          }
-        }
+      if (!form.value.serverIds?.length) throw new Error("请选择服务器");
+      await Promise.all(
+        form.value.serverIds.map((sid) =>
+          fetchUploadScriptToServer({
+            serverId: sid,
+            scriptId: props.scriptId!,
+            overwrite: form.value.overwrite,
+            targetPath: form.value.dirPath,
+          })
+        )
       );
     } else {
-      await uploadFileToNode(
-        {
-          nodeId: String(form.value.nodeId!),
-          remoteFilePath: form.value.targetPath,
-          file: form.value.file!,
-          scriptId: props.scriptId,
-        },
-        e => {
-          if ((e as any)?.total) {
-            progress.value = Math.round(((e as any).loaded * 100) / (e as any).total);
-          }
-        }
+      if (!form.value.nodeIds?.length) throw new Error("请选择节点");
+      await Promise.all(
+        form.value.nodeIds.map((nid) =>
+          fetchUploadScriptToNode({
+            nodeId: nid,
+            remoteFilePath: form.value.dirPath,
+            scriptId: props.scriptId!,
+            overwrite: form.value.overwrite,
+          })
+        )
       );
     }
-    ElMessage.success("上传成功");
+
+    ElMessage.success("已提交上传任务");
     emit("update:visible", false);
   } catch (e: any) {
-    ElMessage.error(e?.message || "上传失败");
+    ElMessage.error(e?.message || "提交失败");
   } finally {
     submitting.value = false;
   }
@@ -182,6 +227,4 @@ const handleClose = () => {
 };
 </script>
 
-<style scoped>
-</style>
-
+<style scoped></style>

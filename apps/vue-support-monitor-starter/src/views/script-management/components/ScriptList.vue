@@ -134,6 +134,10 @@
               <IconifyIconOnline icon="ri:play-line" />
               执行
             </el-button>
+            <el-button size="small" @click.stop="openUpload(script)">
+              <IconifyIconOnline icon="ri:upload-2-line" />
+              上传
+            </el-button>
             <el-button size="small" @click.stop="$emit('edit', script)">
               <IconifyIconOnline icon="ri:edit-line" />
               编辑
@@ -151,12 +155,19 @@
         </el-button>
       </div>
     </div>
+    <!-- 上传对话框：挂在列表页，避免每卡片重复渲染 -->
+    <UploadToRunningScriptDialog
+      :visible="uploadDialogVisible"
+      :script-id="selectedScriptId as any"
+      @update:visible="(v: boolean) => (uploadDialogVisible = v)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import UploadToRunningScriptDialog from "./UploadToRunningScriptDialog.vue";
 import {
   getServerScriptPageList,
   deleteServerScript,
@@ -170,6 +181,14 @@ const emit = defineEmits<{
   edit: [script: any];
   create: [];
 }>();
+
+// 上传对话框状态
+const uploadDialogVisible = ref(false);
+const selectedScriptId = ref<number | string | null>(null);
+const openUpload = (script: any) => {
+  selectedScriptId.value = script.monitorSysGenScriptId ?? script.id;
+  uploadDialogVisible.value = true;
+};
 
 // 响应式数据
 const loading = ref(false);
@@ -332,34 +351,6 @@ const formatTime = (date: Date) => {
 </script>
 
 <style scoped lang="scss">
-.script-list {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(248, 250, 252, 0.85) 100%
-    );
-    backdrop-filter: blur(20px);
-  }
-
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-}
-
 .toolbar {
   display: flex;
   justify-content: space-between;

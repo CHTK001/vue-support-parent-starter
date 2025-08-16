@@ -88,10 +88,6 @@
             <IconifyIconOnline icon="ri:eye-line" />
             查看详情
           </el-button>
-          <el-button size="small" type="primary" @click="openUpload(script)">
-            <IconifyIconOnline icon="ri:upload-2-line" />
-            上传
-          </el-button>
           <el-button size="small" type="danger" @click="$emit('stop', script)">
             <IconifyIconOnline icon="ri:stop-line" />
             停止执行
@@ -149,14 +145,9 @@ const runningScripts = ref([
   },
 ]);
 
-// 上传对话框状态
+// 上传对话框状态（已移除上传按钮，这里也不再使用）
 const uploadDialogVisible = ref(false);
 const selectedScriptId = ref<number | string | null>(null);
-
-const openUpload = (script: any) => {
-  selectedScriptId.value = script.id;
-  uploadDialogVisible.value = true;
-};
 
 let refreshTimer: NodeJS.Timeout | null = null;
 

@@ -10,14 +10,69 @@
       <!-- 脚本信息 -->
       <div class="script-info">
         <div class="info-header">
-          <IconifyIconOnline :icon="getScriptIcon(scriptData?.type)" />
+          <IconifyIconOnline :icon="getScriptIcon(normalizedType)" />
           <div class="script-details">
-            <h3>{{ scriptData?.name || "未知脚本" }}</h3>
-            <p>{{ scriptData?.description || "暂无描述" }}</p>
+            <h3>
+              {{
+                scriptData?.name ||
+                scriptData?.monitorSysGenScriptName ||
+                "未知脚本"
+              }}
+            </h3>
+            <p>
+              {{
+                scriptData?.description ||
+                scriptData?.monitorSysGenScriptDescription ||
+                "暂无描述"
+              }}
+            </p>
           </div>
-          <el-tag :type="getScriptTypeTagType(scriptData?.type)" size="small">
+          <el-tag :type="getScriptTypeTagType(normalizedType)" size="small">
             {{ scriptData?.type }}
           </el-tag>
+        </div>
+
+        <!-- 目标选择：基于上传成功记录 -->
+        <div class="target-select">
+          <h4>选择目标</h4>
+          <el-radio-group v-model="targetType" size="small">
+            <el-radio-button label="SERVER">服务器</el-radio-button>
+            <el-radio-button label="NODE">节点</el-radio-button>
+          </el-radio-group>
+
+          <div class="target-row">
+            <el-select
+              v-if="targetType === 'SERVER'"
+              v-model="selectedServerId"
+              filterable
+              clearable
+              placeholder="选择最近上传成功的服务器"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="srv in successServers"
+                :key="srv.id"
+                :label="srv.label"
+                :value="srv.id"
+              />
+            </el-select>
+
+            <el-select
+              v-else
+              v-model="selectedNodeId"
+              filterable
+              clearable
+              placeholder="选择最近上传成功的节点"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="node in successNodes"
+                :key="node.id"
+                :label="node.label"
+                :value="node.id"
+              />
+            </el-select>
+          </div>
         </div>
       </div>
 
@@ -34,27 +89,15 @@
             />
           </el-form-item>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="工作目录">
-                <el-input
-                  v-model="executeForm.workingDir"
-                  placeholder="脚本执行的工作目录"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="超时时间">
-                <el-input-number
-                  v-model="executeForm.timeout"
-                  :min="1"
-                  :max="3600"
-                  placeholder="秒"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
+          <el-form-item label="超时时间">
+            <el-input-number
+              v-model="executeForm.timeout"
+              :min="1"
+              :max="3600"
+              placeholder="秒"
+              style="width: 240px"
+            />
+          </el-form-item>
 
           <el-form-item label="执行选项">
             <el-checkbox v-model="executeForm.async">异步执行</el-checkbox>
@@ -123,8 +166,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, onMounted, computed } from "vue";
 import { ElMessage } from "element-plus";
+import { executeServerScript, executeNodeScript } from "@/api/server/script";
+import { fetchScriptUploadRecords } from "@/api/script-upload";
 
 // Props
 interface Props {
@@ -142,18 +187,91 @@ const emit = defineEmits<{
 
 // 响应式数据
 const visible = ref(false);
+
+// 规范化脚本类型（小写），用于图标与标签样式
+const normalizedType = computed(() => {
+  const t =
+    (props.scriptData?.type ||
+      props.scriptData?.monitorSysGenScriptType ||
+      "") + "";
+  return t.toLowerCase();
+});
+
 const executing = ref(false);
 const stopping = ref(false);
 const activeTab = ref("stdout");
-const executionResult = ref(null);
+const executionResult = ref<any | null>(null);
+
+// 目标选择
+const targetType = ref<"SERVER" | "NODE">("SERVER");
+const selectedServerId = ref<number | null>(null);
+const selectedNodeId = ref<string | null>(null);
+const successServers = ref<{ id: number; label: string }[]>([]);
+const successNodes = ref<{ id: string; label: string }[]>([]);
 
 const executeForm = reactive({
   parameters: "",
-  workingDir: "",
   timeout: 300,
   async: false,
   saveOutput: true,
 });
+
+// 加载最近上传成功的服务器/节点
+const loadSuccessTargets = async () => {
+  try {
+    const query = { pageNum: 1, pageSize: 50 } as any;
+    // 只取当前脚本的记录
+    if (props.scriptData?.monitorSysGenScriptId) {
+      query.scriptId = props.scriptData.monitorSysGenScriptId;
+    }
+    const resp = await fetchScriptUploadRecords(query);
+    const list = (resp?.data?.records || []) as any[];
+    const serverMap = new Map<number, string>();
+    const nodeMap = new Map<string, string>();
+    list
+      .filter((r) => r.monitorSysGenScriptUploadStatus === "SUCCESS")
+      .forEach((r) => {
+        if (
+          r.monitorSysGenScriptUploadType === "REMOTE" &&
+          r.monitorSysGenScriptUploadServerId
+        ) {
+          const label = `${r.monitorSysGenScriptUploadServerId} (${r.monitorSysGenScriptUploadIp || "-"})`;
+          serverMap.set(r.monitorSysGenScriptUploadServerId, label);
+        }
+        if (
+          r.monitorSysGenScriptUploadType === "NODE" &&
+          r.monitorSysGenScriptUploadNodeId
+        ) {
+          const label = `${r.monitorSysGenScriptUploadNodeId} (${r.monitorSysGenScriptUploadIp || "-"})`;
+          nodeMap.set(r.monitorSysGenScriptUploadNodeId, label);
+        }
+      });
+    successServers.value = Array.from(serverMap, ([id, label]) => ({
+      id,
+      label,
+    }));
+    successNodes.value = Array.from(nodeMap, ([id, label]) => ({ id, label }));
+  } catch (e) {
+    // ignore
+  }
+};
+
+onMounted(() => {
+  if (props.modelValue) {
+    loadSuccessTargets();
+  }
+});
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val;
+    if (val) {
+      resetForm();
+      loadSuccessTargets();
+    }
+  }
+);
 
 // 监听器
 watch(
@@ -173,7 +291,6 @@ watch(visible, (val) => {
 // 方法
 const resetForm = () => {
   executeForm.parameters = "";
-  executeForm.workingDir = "";
   executeForm.timeout = 300;
   executeForm.async = false;
   executeForm.saveOutput = true;
@@ -188,34 +305,81 @@ const handleExecute = async () => {
 
   executing.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // 构造参数
+    const scriptId =
+      props.scriptData.monitorSysGenScriptId || props.scriptData.id;
+    const baseParams = {
+      parameters: executeForm.parameters
+        ? executeForm.parameters.split(/\s+/).filter(Boolean)
+        : [],
+      timeout: executeForm.timeout,
+      async: executeForm.async,
+      triggerType: "MANUAL",
+    } as any;
 
-    // 模拟执行结果
-    executionResult.value = {
-      id: Date.now(),
-      status: "running",
-      startTime: new Date(),
-      endTime: null,
-      duration: null,
-      exitCode: null,
-      stdout: "脚本开始执行...\n",
-      stderr: "",
-    };
-
-    // 模拟异步更新结果
-    setTimeout(() => {
-      if (executionResult.value) {
-        executionResult.value.status = "success";
-        executionResult.value.endTime = new Date();
-        executionResult.value.duration = 5000;
-        executionResult.value.exitCode = 0;
-        executionResult.value.stdout += "脚本执行完成\n退出码: 0";
+    if (targetType.value === "SERVER") {
+      const serverId =
+        selectedServerId.value ||
+        props.scriptData.monitorSysGenScriptServerId ||
+        props.scriptData.serverId;
+      if (!serverId) {
+        ElMessage.warning("请选择服务器");
+        return;
       }
-    }, 3000);
+      const resp = await executeServerScript({
+        scriptId,
+        serverId,
+        ...baseParams,
+      });
 
-    emit("success");
-  } catch (error) {
-    ElMessage.error("脚本执行失败");
+      if (resp.success && resp.data) {
+        const ex = resp.data as any;
+        executionResult.value = {
+          id: ex.monitorSysGenScriptExecutionId,
+          status: (ex.monitorSysGenScriptExecutionStatus || "RUNNING")
+            .toString()
+            .toLowerCase(),
+          startTime: ex.monitorSysGenScriptExecutionStartTime,
+          endTime: ex.monitorSysGenScriptExecutionEndTime,
+          duration: ex.monitorSysGenScriptExecutionDuration,
+          exitCode: ex.monitorSysGenScriptExecutionExitCode,
+          stdout: ex.monitorSysGenScriptExecutionStdout,
+          stderr: ex.monitorSysGenScriptExecutionStderr,
+        };
+        ElMessage.success("已提交执行");
+        emit("success");
+      } else {
+        throw new Error(resp.msg || "执行失败");
+      }
+    } else {
+      // 节点执行：直接传脚本内容
+      const content =
+        props.scriptData?.monitorSysGenScriptContent ||
+        props.scriptData?.content;
+      const scriptType =
+        props.scriptData?.monitorSysGenScriptType ||
+        props.scriptData?.type ||
+        "SHELL";
+      const nodeId = selectedNodeId.value;
+      if (!nodeId) {
+        ElMessage.warning("请选择节点");
+        return;
+      }
+      const resp = await executeNodeScript({
+        nodeId,
+        script: content || "",
+        scriptType,
+        timeout: baseParams.timeout,
+      });
+      if (resp.success) {
+        ElMessage.success("已提交执行");
+        emit("success");
+      } else {
+        throw new Error(resp.msg || "执行失败");
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.message || "脚本执行失败");
   } finally {
     executing.value = false;
   }
@@ -310,11 +474,62 @@ const getStatusText = (status: string) => {
 </script>
 
 <style scoped lang="scss">
-// 样式与之前的设计保持一致
 .execute-dialog {
   max-height: 70vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-// 其他样式省略
+.script-info .info-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.script-details h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.script-details p {
+  margin: 4px 0 0;
+  color: var(--el-text-color-secondary);
+}
+
+.target-select {
+  background: var(--el-fill-color-lighter);
+  padding: 12px;
+  border-radius: 8px;
+}
+.target-select h4 {
+  margin: 0 0 8px 0;
+}
+.target-row {
+  margin-top: 8px;
+}
+
+.execute-config h4,
+.execution-result h4 {
+  margin: 0 0 8px 0;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.duration {
+  color: var(--el-text-color-secondary);
+}
+
+.output-content {
+  background: #0b1020;
+  color: #d6e2ff;
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 160px;
+}
+.no-output {
+  color: var(--el-text-color-secondary);
+}
 </style>
