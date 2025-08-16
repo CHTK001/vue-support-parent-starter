@@ -4,31 +4,13 @@
     <div class="toolbar">
       <el-form :inline="true" size="small">
         <el-form-item label="在线节点">
-          <el-select
-            v-model="selectedNodeId"
-            filterable
-            placeholder="选择 Arthas 节点"
-            style="min-width: 320px"
-            @change="handleSelectNode"
-          >
-            <el-option
-              v-for="node in arthasNodes"
-              :key="node.nodeId"
-              :label="formatNodeLabel(node)"
-              :value="node.nodeId"
-            />
+          <el-select v-model="selectedNodeId" filterable placeholder="选择 Arthas 节点" style="min-width: 320px" @change="handleSelectNode">
+            <el-option v-for="node in arthasNodes" :key="node.nodeId" :label="formatNodeLabel(node)" :value="node.nodeId" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button
-            type="primary"
-            :disabled="!selectedNode"
-            @click="connectNode"
-            >连接</el-button
-          >
-          <el-button :disabled="!connected" @click="disconnectNode"
-            >断开</el-button
-          >
+          <el-button type="primary" :disabled="!selectedNode" @click="connectNode">连接</el-button>
+          <el-button :disabled="!connected" @click="disconnectNode">断开</el-button>
           <el-button @click="reloadNodes">刷新节点</el-button>
         </el-form-item>
       </el-form>
@@ -38,11 +20,7 @@
       <!-- 左侧功能区：连接成功后显示 -->
       <div class="left-panel" v-if="connected">
         <div class="panel-title">功能列表</div>
-        <el-menu
-          class="feature-menu"
-          :default-active="activeFeature"
-          @select="handleFeatureSelect"
-        >
+        <el-menu class="feature-menu" :default-active="activeFeature" @select="handleFeatureSelect">
           <el-menu-item v-for="f in features" :key="f.key" :index="f.key">
             <IconifyIconOnline :icon="f.icon" class="mr-2" />
             <span>{{ f.title }}</span>
@@ -53,37 +31,19 @@
       <!-- 右侧内容区 -->
       <div class="right-panel">
         <div v-if="!connected" class="empty-state">
-          <el-empty
-            description="请选择包含 Arthas 客户端的在线节点并点击连接"
-          />
+          <el-empty description="请选择包含 Arthas 客户端的在线节点并点击连接" />
         </div>
         <div v-else class="feature-container">
           <!-- 控制台：后端代理控制台，而不是前端直连 -->
           <div v-if="activeFeature === 'console'" class="console-wrap">
-            <el-alert
-              type="info"
-              :closable="false"
-              show-icon
-              class="mb-2"
-              title="提示：控制台由后端代理连接（HTTP/WS），前端仅展示"
-            >
-            </el-alert>
-            <iframe
-              v-if="consoleUrlRef"
-              :src="consoleUrlRef"
-              class="console-iframe"
-              frameborder="0"
-            />
+            <el-alert type="info" :closable="false" show-icon class="mb-2" title="提示：控制台由后端代理连接（HTTP/WS），前端仅展示"></el-alert>
+            <iframe v-if="consoleUrlRef" :src="consoleUrlRef" class="console-iframe" frameborder="0" />
             <div v-else class="tip">后端未提供控制台代理地址或连接尚未建立</div>
           </div>
 
           <!-- 其他功能占位：根据后端接口补充实际内容 -->
           <div v-else class="placeholder">
-            <el-result
-              icon="info"
-              :title="currentFeature?.title || '功能'"
-              sub-title="请根据后端接口对接具体功能内容"
-            />
+            <el-result icon="info" :title="currentFeature?.title || '功能'" sub-title="请根据后端接口对接具体功能内容" />
           </div>
         </div>
       </div>
@@ -94,10 +54,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import {
-  fetchAllOnlineNodes,
-  type OnlineNodeInfo,
-} from "@/api/node-management";
+import { fetchAllOnlineNodes, type OnlineNodeInfo } from "@/api/node-management";
 import { connectArthasNode } from "@/api/arthas-management";
 
 // 选择的节点
@@ -115,20 +72,16 @@ const features = [
   { key: "memory", title: "内存", icon: "ri:database-2-line" },
   { key: "class", title: "类加载", icon: "ri:code-s-slash-line" },
   { key: "logger", title: "日志", icon: "ri:file-list-3-line" },
-  { key: "profiler", title: "性能分析", icon: "ri:line-chart-line" },
+  { key: "profiler", title: "性能分析", icon: "ri:line-chart-line" }
 ];
 
-const currentFeature = computed(() =>
-  features.find((f) => f.key === activeFeature.value)
-);
+const currentFeature = computed(() => features.find(f => f.key === activeFeature.value));
 
 // 仅包含 REPORT_ARTHAS_CLIENT_PORT 元数据的节点视为 Arthas 节点
 const ARTHAS_META_KEY = "report.client.arthas.port";
-const arthasNodes = computed(() =>
-  nodeList.value.filter(
-    (n) => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {})
-  )
-);
+const arthasNodes = computed(() => {
+  return nodeList.value.filter(n => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {}));
+});
 
 // 控制台URL由后端返回（后端代理连接 arthas-console）
 const consoleUrlRef = ref("");
@@ -140,8 +93,7 @@ function formatNodeLabel(n: OnlineNodeInfo) {
 }
 
 function handleSelectNode() {
-  selectedNode.value =
-    nodeList.value.find((n) => n.nodeId === selectedNodeId.value) || null;
+  selectedNode.value = nodeList.value.find(n => n.nodeId === selectedNodeId.value) || null;
 }
 
 async function reloadNodes() {
@@ -150,10 +102,7 @@ async function reloadNodes() {
     if (res?.success) {
       nodeList.value = res.data || [];
       // 若当前选中的节点已不在列表，重置选择
-      if (
-        selectedNode.value &&
-        !nodeList.value.some((n) => n.nodeId === selectedNode.value!.nodeId)
-      ) {
+      if (selectedNode.value && !nodeList.value.some(n => n.nodeId === selectedNode.value!.nodeId)) {
         selectedNodeId.value = "";
         selectedNode.value = null;
         connected.value = false;
