@@ -267,7 +267,6 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
 function getJdbcNodeIcon(node: any, data: any): string {
   const type = (data?.type || "").toString().toLowerCase();
   if (type) {
-    debugger;
     if (type.includes("db") || type.includes("database") || type.includes("schema") || type.includes("catalog")) return "ri:database-2-line";
     if (type.includes("table")) return "ri:table-2";
     if (type.includes("column") || type.includes("field")) return "ri:braces-line";
@@ -293,7 +292,7 @@ async function execute() {
   rows.value = dataData?.rows || [];
   searched.value = true;
   const ms = Math.round(performance.now() - start);
-  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms`;
+  statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
   activeTab.value = "result";
 }
 
