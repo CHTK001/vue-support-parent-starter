@@ -72,6 +72,7 @@
             @path-change="handlePathChange"
             @file-select="handleFileSelect"
             @refresh="handleListRefresh"
+            @sync="openDistribute($event)"
           />
         </div>
 
@@ -114,6 +115,14 @@
               :enqueue="enqueue"
               :preset-files="presetFiles"
               @success="handleUploadSuccess"
+            />
+
+            <MultiTargetDistributeDialog
+              v-model="showDistributeDialog"
+              :source-server-id="serverId"
+              :source-file-path="selectedFile?.path || ''"
+              :current-path="currentPath"
+              @success="handleDistributeSuccess"
             />
 
             <!-- 上传队列状态 -->
@@ -218,6 +227,7 @@ import FileList from "./FileList.vue";
 import FilePreviewDialog from "./FilePreviewDialog.vue";
 import FileDetailContent from "./FileDetailContent.vue";
 import MultiTargetUploadDialog from "./components/MultiTargetUploadDialog.vue";
+import MultiTargetDistributeDialog from "./components/MultiTargetDistributeDialog.vue";
 import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
 import { useUploadManager } from "./composables/useUploadManager";
@@ -234,6 +244,7 @@ const currentPath = ref("/");
 const selectedFile = ref<FileInfo | null>(null);
 const previewVisible = ref(false);
 const detailVisible = ref(false);
+const showDistributeDialog = ref(false);
 
 // 拖拽调整高度相关
 const detailPanelHeight = ref(300); // 默认高度
@@ -507,6 +518,17 @@ const handleKeydown = (event: KeyboardEvent) => {
   // ESC 关闭对话框
   if (event.key === "Escape") {
     if (previewVisible.value) {
+
+// 打开分发对话框
+function openDistribute(file: FileInfo) {
+  selectedFile.value = file;
+  showDistributeDialog.value = true;
+}
+
+function handleDistributeSuccess() {
+  ElMessage.success("同步任务已完成");
+}
+
       previewVisible.value = false;
     } else if (detailVisible.value) {
       detailVisible.value = false;
