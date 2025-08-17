@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, defineProps } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -31,14 +31,14 @@ const connecting = ref(false);
 
 function baseUrl() {
   // 与应用 application.yaml BaseUrl 保持一致，默认 /monitor/api
-  return '/monitor/api';
+  return "/monitor/api";
 }
 
 function buildWsUrl(nodeId: string) {
   const loc = window.location;
-  const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = loc.protocol === "https:" ? "wss:" : "ws:";
   const host = loc.host;
-  return `${protocol}//${host}${baseUrl()}/v1/arthas/console/${encodeURIComponent(nodeId)}/ws`;
+  return `${protocol}//${host}${baseUrl()}/v1/arthas/console/ws?nodeId=${encodeURIComponent(nodeId)}`;
 }
 
 function append(text: string) {
@@ -58,8 +58,8 @@ function connect() {
       connecting.value = false;
       append(`\n[connected] ${url}\n`);
     };
-    ws.value.onmessage = (evt) => {
-      const data = typeof evt.data === 'string' ? evt.data : '';
+    ws.value.onmessage = evt => {
+      const data = typeof evt.data === "string" ? evt.data : "";
       append(data);
     };
     ws.value.onclose = () => {
@@ -78,7 +78,9 @@ function connect() {
 
 function disconnect() {
   if (ws.value) {
-    try { ws.value.close(); } catch {}
+    try {
+      ws.value.close();
+    } catch {}
     ws.value = null;
   }
 }
@@ -90,18 +92,18 @@ function reconnect() {
 }
 
 function clearOutput() {
-  if (outputRef.value) outputRef.value.textContent = '';
+  if (outputRef.value) outputRef.value.textContent = "";
 }
 
 function sendCommand() {
   if (!ws.value || !connected.value) return;
-  const cmd = (command.value || '').trim();
+  const cmd = (command.value || "").trim();
   if (!cmd) return;
   // 发送换行以执行
   try {
     ws.value.send(cmd + "\n");
     append(`\n> ${cmd}\n`);
-    command.value = '';
+    command.value = "";
   } catch {}
 }
 
@@ -110,9 +112,12 @@ function quick(cmd: string) {
   sendCommand();
 }
 
-watch(() => props.nodeId, (n, o) => {
-  if (n && n !== o) reconnect();
-});
+watch(
+  () => props.nodeId,
+  (n, o) => {
+    if (n && n !== o) reconnect();
+  }
+);
 
 onMounted(() => {
   if (props.nodeId) connect();
@@ -124,9 +129,29 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.terminal-console { display: flex; flex-direction: column; height: 100%; }
-.toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
-.quick-cmds { display: flex; gap: 6px; margin: 4px 0 8px; flex-wrap: wrap; }
-.output { flex: 1; overflow: auto; background: #0b0f19; color: #e6edf3; padding: 10px; border-radius: 4px; white-space: pre-wrap; }
+.terminal-console {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.quick-cmds {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+  flex-wrap: wrap;
+}
+.output {
+  flex: 1;
+  overflow: auto;
+  background: #0b0f19;
+  color: #e6edf3;
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
 </style>
-
