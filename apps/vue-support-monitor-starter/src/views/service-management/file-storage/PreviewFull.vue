@@ -67,6 +67,47 @@
         <el-button size="small" @click="fetchPreviewItems">
           <IconifyIconOnline icon="ri:refresh-line" /> 刷新
         </el-button>
+        <!-- 面包屑与上级 -->
+        <div class="crumbs">
+          <el-button size="small" @click="goUp" :disabled="!canGoUp"
+            >上级</el-button
+          >
+          <el-breadcrumb separator="/" class="bc">
+            <el-breadcrumb-item
+              v-for="(c, i) in crumbs"
+              :key="i"
+              @click="onCrumbClick(i)"
+              class="bc-item"
+            >
+              {{ c.name || "/" }}
+            </el-breadcrumb-item>
+          </el-breadcrumb>
+        </div>
+        <!-- 服务器信息 -->
+        <div class="server-info">
+          <template v-if="serverInfo">
+            <IconifyIconOnline icon="ri:server-line" />
+            <span class="si-name" :title="serverInfo.monitorSysGenServerName">
+              {{ serverInfo.monitorSysGenServerName }}
+            </span>
+            <span
+              class="si-addr"
+              :title="
+                serverInfo.monitorSysGenServerHost +
+                ':' +
+                serverInfo.monitorSysGenServerPort
+              "
+            >
+              {{ serverInfo.monitorSysGenServerHost }}:{{
+                serverInfo.monitorSysGenServerPort
+              }}
+            </span>
+          </template>
+          <template v-else>
+            <IconifyIconOnline icon="ri:server-line" />
+            <span class="si-name">服务器: -</span>
+          </template>
+        </div>
         <div class="spacer" />
         <div class="pager">
           <el-button
@@ -78,7 +119,7 @@
           <el-button
             size="small"
             @click="goNextPage"
-            :disabled="!pager.marker || previewItems.length < pager.limit"
+            :disabled="previewItems.length < pager.limit"
             >下一页</el-button
           >
           <span class="gap" />
@@ -117,40 +158,197 @@
               :key="it.id"
               class="file-card"
               shadow="hover"
+              @click="onItemClick(it)"
             >
-              <div class="file-thumb">{{ it.ext || "文件" }}</div>
-              <div class="file-name" :title="it.name">{{ it.name }}</div>
+              <div class="thumb-wrap">
+                <template v-if="isImage(it)">
+                  <el-image
+                    :src="buildUrl(it)"
+                    fit="cover"
+                    lazy
+                    :fallback="IMAGE_FALLBACK_CARD"
+                  />
+                </template>
+                <template v-else>
+                  <img :src="getFileThumb(it)" class="ph-img" />
+                </template>
+              </div>
+              <div class="meta">
+                <div class="name" :title="it.name">{{ it.name }}</div>
+                <div class="sub">{{ formatSize(it.size) }}</div>
+              </div>
             </el-card>
           </div>
         </template>
         <template v-else>
           <div class="image-grid">
-            <el-image
+            <div
               v-for="it in previewItems"
               :key="it.id"
-              :src="it.url"
-              fit="cover"
-              lazy
-            />
+              class="img-card"
+              @click="onItemClick(it)"
+            >
+              <template v-if="isImage(it)">
+                <el-image
+                  :src="buildUrl(it)"
+                  fit="cover"
+                  lazy
+                  :fallback="IMAGE_FALLBACK_BIG"
+                />
+              </template>
+              <template v-else>
+                <img :src="getFileThumb(it)" alt="file" />
+              </template>
+              <div class="overlay">
+                <div class="ov-name" :title="it.name">{{ it.name }}</div>
+                <div class="ov-sub">{{ formatSize(it.size) }}</div>
+              </div>
+            </div>
           </div>
         </template>
       </div>
     </main>
+    <!-- 预览弹窗：非图片文件用 iframe 预览（?preview） -->
+    <el-dialog
+      v-model="previewDialogVisible"
+      width="80%"
+      top="20px"
+      title="预览"
+    >
+      <iframe
+        v-if="previewUrl"
+        :src="previewUrl"
+        style="width: 100%; height: 70vh; border: none"
+      />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+
 import {
   getFileStorageConfig,
+  getSystemServerSettingByServerId,
   type FileStorageConfig,
+  type SystemServerSetting,
 } from "@/api/system-server-setting";
+import { getSystemServerById, type SystemServer } from "@/api/system-server";
 import { fileStorageList } from "@/api/file-manager/file-storage";
+// 本地静态资源（按后缀）
+import imgFolder from "@/assets/images/folder.png";
+import imgFile from "@/assets/images/File.png";
+import imgUnknown from "@/assets/images/unknown.png";
+import imgPdf from "@/assets/images/pdf.png";
+import imgDoc from "@/assets/images/doc.png";
+import imgDocx from "@/assets/images/docx.png";
+import imgXls from "@/assets/images/xls.png";
+import imgXlsx from "@/assets/images/xlsx.png";
+import imgXlsm from "@/assets/images/xlsm.png";
+import imgPpt from "@/assets/images/ppt.png";
+import imgPptx from "@/assets/images/pptx.png";
+import imgTxt from "@/assets/images/txt.png";
+import imgMd from "@/assets/images/md.png";
+import imgCsv from "@/assets/images/csv.png";
+import imgZip from "@/assets/images/zip.png";
+import imgRar from "@/assets/images/rar.png";
+import img7z from "@/assets/images/7z.png";
+import imgGz from "@/assets/images/gz.png";
+import imgTgz from "@/assets/images/tgz.png";
+import imgBmp from "@/assets/images/bmp.png";
+import imgGif from "@/assets/images/gif.png";
+import imgPng from "@/assets/images/png.png";
+import imgJpg from "@/assets/images/jpg.png";
+import imgJpeg from "@/assets/images/jpeg.png";
+import imgWebp from "@/assets/images/webp.png";
+import imgTiff from "@/assets/images/tiff.png";
+import imgHeic from "@/assets/images/heic.png";
+import imgMp4 from "@/assets/images/mp4.png";
+import imgJar from "@/assets/images/jar.png";
+import imgJava from "@/assets/images/java.png";
+import imgExe from "@/assets/images/exe.png";
+import imgSh from "@/assets/images/sh.png";
+import imgBat from "@/assets/images/bat.png";
+import imgPy from "@/assets/images/py.png";
+import imgJs from "@/assets/images/js.png";
+import imgTs from "@/assets/images/ts.png";
+import imgCss from "@/assets/images/css.png";
+import imgScss from "@/assets/images/scss.png";
+import imgHtml from "@/assets/images/html.png";
+import imgXml from "@/assets/images/xml.png";
+import imgYaml from "@/assets/images/yaml.png";
+import imgYml from "@/assets/images/yml.png";
+import imgJson from "@/assets/images/json.png";
+import imgSql from "@/assets/images/sql.png";
+import imgSqlite from "@/assets/images/sqlite.png";
+import imgMdb from "@/assets/images/mdb.png";
+import imgLog from "@/assets/images/log.png";
+import imgOfd from "@/assets/images/OFD.png";
+import imgEml from "@/assets/images/EML.png";
+import img404 from "@/assets/images/404.webp";
+
+const serverInfo = ref<SystemServer | any>({});
+
+// 整个服务的设置数据（预览页可使用）
+const serverSettings = ref<SystemServerSetting[]>([]);
 
 const route = useRoute();
 const serverId = Number(route.params.serverId);
+
+// 根目录（限制返回上级时不越过）
+const rootPath = ref<string>("/");
+
+const crumbs = computed(() => {
+  // 生成面包屑：/a/b/c => ['/', 'a', 'b', 'c']
+  const p = (currentPath.value || "/").replace(/\\+/g, "/");
+  if (p === "/") return [{ name: "/", full: "/" }];
+  const seg = p.split("/").filter(Boolean);
+  const arr: { name: string; full: string }[] = [{ name: "/", full: "/" }];
+  let acc = "";
+  for (const s of seg) {
+    acc = joinPath(acc || "/", s);
+    arr.push({ name: s, full: acc });
+  }
+  return arr;
+});
+
+const canGoUp = computed(() => {
+  const cp = currentPath.value || "/";
+  const rp = rootPath.value || "/";
+  if (cp === rp) return false;
+  // 允许回到 rootPath 但不越过
+  return true;
+});
+
+function goUp() {
+  if (!canGoUp.value) return;
+  const rp = rootPath.value || "/";
+  const cp = currentPath.value || "/";
+  if (cp === rp) return;
+  const parts = cp.split("/").filter(Boolean);
+  parts.pop();
+  const target = parts.length ? `/${parts.join("/")}` : rp;
+  currentPath.value = target;
+  resetPager();
+  fetchPreviewItems();
+}
+
+function onCrumbClick(index: number) {
+  const list = crumbs.value;
+  if (!list.length) return;
+  const rp = rootPath.value || "/";
+  const target = list[index]?.full || rp;
+  // 不越过根
+  if (target.length < rp.length) {
+    currentPath.value = rp;
+  } else {
+    currentPath.value = target;
+  }
+  resetPager();
+  fetchPreviewItems();
+}
 
 const collapsed = ref(false);
 const storages = ref<FileStorageConfig[]>([]);
@@ -158,10 +356,115 @@ const selectedIndex = ref<number | null>(null);
 const mode = ref<"list" | "card" | "image">("list");
 const previewItems = ref<any[]>([]);
 
+// 当前目录（点击文件夹进入）
+const currentPath = ref<string>("/");
+
+// 预览弹窗
+const previewDialogVisible = ref(false);
+const previewUrl = ref("");
+
+// 图片模式占位（本地替代图）
+const IMAGE_FALLBACK_CARD = img404;
+const IMAGE_FALLBACK_BIG = img404;
+// 在线直观图标已不再使用，统一改成本地静态图（见 EXT_ICON_MAP）
+
+// 后缀到占位图映射（小写）
+const EXT_ICON_MAP: Record<string, string> = {
+  // 文档类
+  pdf: imgPdf,
+  doc: imgDoc,
+  docx: imgDocx,
+  xls: imgXls,
+  xlsx: imgXlsx,
+  xlsm: imgXlsm,
+  ppt: imgPpt,
+  pptx: imgPptx,
+  txt: imgTxt,
+  md: imgMd,
+  csv: imgCsv,
+  // 压缩与包
+  zip: imgZip,
+  rar: imgRar,
+  "7z": img7z,
+  gz: imgGz,
+  tgz: imgTgz,
+  bz2: imgZip,
+  tar: imgZip,
+  // 图片
+  bmp: imgBmp,
+  gif: imgGif,
+  png: imgPng,
+  jpg: imgJpg,
+  jpeg: imgJpeg,
+  webp: imgWebp,
+  tiff: imgTiff,
+  heic: imgHeic,
+  // 视频/音频（示例仅 mp4，其他可按需扩展本地图）
+  mp4: imgMp4,
+  // 运行包/脚本/二进制
+  jar: imgJar,
+  exe: imgExe,
+  sh: imgSh,
+  bat: imgBat,
+  // 代码/配置
+  py: imgPy,
+  js: imgJs,
+  ts: imgTs,
+  css: imgCss,
+  scss: imgScss,
+  html: imgHtml,
+  xml: imgXml,
+  yaml: imgYaml,
+  yml: imgYml,
+  json: imgJson,
+  sql: imgSql,
+  sqlite: imgSqlite,
+  mdb: imgMdb,
+  log: imgLog,
+  ofd: imgOfd,
+  eml: imgEml,
+};
+
+// 提取后缀
+function getExt(it: any): string {
+  const direct = String(it?.ext || it?.suffix || "").toLowerCase();
+  if (direct) return direct;
+  const name = String(it?.name || "");
+  const i = name.lastIndexOf(".");
+  return i > -1 ? name.slice(i + 1).toLowerCase() : "";
+}
+
+// 根据后缀选择占位
+function getFileThumb(it: any): string {
+  if (it?.directory) return imgFolder;
+  const ext = getExt(it);
+  if (!ext) return imgUnknown || imgFile;
+  return EXT_ICON_MAP[ext] || imgUnknown || imgFile;
+}
+
+// 轻量缓存：30秒内同参命中直接返回，减少请求
+const listCache = new Map<
+  string,
+  { ts: number; items: any[]; marker: string }
+>();
+const CACHE_TTL = 30_000;
+function makeCacheKey(s: any, basePath: string, limit: number, marker: string) {
+  return [
+    serverId,
+    s?.fileStorageType,
+    s?.fileStorageEndpoint,
+    s?.fileStorageBucket,
+    basePath,
+    limit,
+    marker,
+  ].join("|");
+}
+
 // 基于 marker 的分页（与后端 AbstractFileStorage#calcIndex 对齐）
-const pager = ref({ page: 1, limit: 50, marker: "", nextMarker: "" });
+const pager = ref({ page: 1, limit: 20, marker: "", nextMarker: "" });
 function base64EncodeUtf8(input: string) {
-  return btoa(unescape(encodeURIComponent(input)));
+  // 这里的 input 仅包含 ASCII（如 "index_0"），直接 btoa 即可
+  return btoa(input);
 }
 function hexEncode(str: string) {
   const bytes = new TextEncoder().encode(str);
@@ -192,10 +495,9 @@ function goPrevPage() {
   fetchPreviewItems();
 }
 function goNextPage() {
-  if (!pager.value.nextMarker && previewItems.value.length < pager.value.limit)
-    return;
+  if (previewItems.value.length < pager.value.limit) return;
   pager.value.page += 1;
-  pager.value.marker = pager.value.nextMarker || makeMarker(pager.value.page);
+  pager.value.marker = makeMarker(pager.value.page);
   fetchPreviewItems();
 }
 
@@ -204,6 +506,13 @@ function toggleCollapse() {
 }
 function selectStorage(idx: number) {
   selectedIndex.value = idx;
+  const s = storages.value[idx];
+  const base = s?.fileStorageBasePath || "/";
+  // 切换存储时重置根目录与当前目录
+  rootPath.value = base;
+  currentPath.value = base;
+  resetPager();
+  fetchPreviewItems();
 }
 
 function addStorage() {
@@ -220,15 +529,78 @@ function addStorage() {
   selectedIndex.value = storages.value.length - 1;
 }
 
+// 工具：拼路径，确保只有一个斜杠
+function joinPath(parent: string, name: string) {
+  const a = (parent || "/").replace(/\\+/g, "/").replace(/\/+/g, "/");
+  const b = (name || "").replace(/\\+/g, "/").replace(/\/+/g, "/");
+  const p = `${a.endsWith("/") ? a.slice(0, -1) : a}/${b.startsWith("/") ? b.slice(1) : b}`;
+  return p || "/";
+}
+
+function formatSize(size: number | string) {
+  const n = Number(size || 0);
+  if (isNaN(n)) return "-";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
+}
+
+function isImage(it: any) {
+  const ext = String(it?.ext || it?.suffix || "").toLowerCase();
+  const img = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
+  return img.includes(ext);
+}
+
+function buildUrl(it: any, usePreview = false) {
+  const s =
+    selectedIndex.value != null
+      ? storages.value[selectedIndex.value]
+      : storages.value[0];
+
+  const si = (serverInfo as any).value || {};
+  const host = si.systemServerHost || si.monitorSysGenServerHost || "127.0.0.1";
+  const port = si.systemServerPort || si.monitorSysGenServerPort || 8080;
+  const context =
+    si.systemServerContextPath || si.systemServerContentPath || "";
+  const base = `http://${host}:${port}${context}`;
+  const bucket = s?.fileStorageBucket ? `/${s.fileStorageBucket}` : "";
+  const filePath = joinPath(
+    String(it?.filePath || currentPath.value || "/"),
+    String(it?.name || "")
+  );
+  const url = `${base}` + `${bucket}${filePath}`.replace(/\/+/, "/");
+  return usePreview ? `${url}?preview` : url;
+}
+
+function onItemClick(it: any) {
+  // 目录：进入
+  if (it?.directory) {
+    currentPath.value = joinPath(currentPath.value || "/", it.name || "");
+    resetPager();
+    fetchPreviewItems();
+    return;
+  }
+  // 文件：弹窗 iframe 预览
+  previewUrl.value = buildUrl(it, true);
+  previewDialogVisible.value = true;
+}
+
 async function reload() {
   try {
-    const res = await getFileStorageConfig(serverId);
-    if (res?.success && Array.isArray(res.data)) {
-      storages.value = res.data as any[];
-      if (!storages.value.length) ElMessage.info("当前服务器暂无已安装的存储");
-      selectedIndex.value = storages.value.length ? 0 : null;
-      await fetchPreviewItems();
-    }
+    getFileStorageConfig(serverId).then(async (res) => {
+      if (res?.success && Array.isArray(res.data)) {
+        storages.value = res.data as any[];
+        if (!storages.value.length)
+          ElMessage.info("当前服务器暂无已安装的存储");
+        selectedIndex.value = storages.value.length ? 0 : null;
+        const s = storages.value[0];
+        const base = s?.fileStorageBasePath || "/";
+        rootPath.value = base;
+        currentPath.value = base;
+        await fetchPreviewItems();
+      }
+    });
   } catch (e) {
     storages.value = [];
   }
@@ -236,6 +608,10 @@ async function reload() {
 
 async function doPreview(idx: number) {
   selectedIndex.value = idx;
+  const s = storages.value[idx];
+  const base = s?.fileStorageBasePath || "/";
+  rootPath.value = base;
+  currentPath.value = base;
   await fetchPreviewItems();
 }
 
@@ -249,19 +625,48 @@ async function fetchPreviewItems() {
       previewItems.value = [];
       return;
     }
+    if (!currentPath.value) currentPath.value = s.fileStorageBasePath || "/";
+
+    // 缓存命中：直接使用
+    const key = makeCacheKey(
+      s,
+      currentPath.value,
+      pager.value.limit,
+      pager.value.marker || ""
+    );
+    const now = Date.now();
+    const cached = listCache.get(key);
+    if (cached && now - cached.ts < CACHE_TTL) {
+      previewItems.value = cached.items;
+      pager.value.marker = cached.marker || pager.value.marker;
+      return;
+    }
+
     const params = new URLSearchParams();
     params.append("serverId", String(serverId));
     params.append("type", s.fileStorageType || "");
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
-    params.append("basePath", s.fileStorageBasePath || "/");
+    params.append(
+      "basePath",
+      currentPath.value || s.fileStorageBasePath || "/"
+    );
+    // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
+    // 通过 marker 控制分页游标
     params.append("marker", pager.value.marker || "");
+    // 请求裁剪字段，提示后端只返回必要字段（若后端不支持，会被忽略）
+    params.append("fields", "name,size,modified,ext,directory,filePath");
+    // 请求简化模式（若后端不支持，会被忽略）
+    params.append("simple", "1");
+
     const res = await fileStorageList(params);
     const rr = res?.data; // ReturnResult<ListObjectResult>
     const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
-    pager.value.marker = rr.marker;
-    previewItems.value = (items || []).map((it: any, i: number) => ({
+    pager.value.marker = rr?.marker || pager.value.marker;
+
+    // 仅取必要字段，避免在前端继续扩大对象
+    const mapped = (items || []).map((it: any, i: number) => ({
       id: it.fileId || it.id || i,
       name:
         it.name ||
@@ -270,18 +675,34 @@ async function fetchPreviewItems() {
         it.originalFilename ||
         it.path ||
         "",
-      size: it.size || it.fileSize || it.length || "",
+      size: it.size || it.fileSize || it.length || 0,
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
-      url: it.url || it.previewUrl || it.downloadUrl || "",
+      filePath: it.filePath || it.parentPath || currentPath.value || "/",
+      directory: it.directory === true,
     }));
+
+    previewItems.value = mapped;
+    listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
   } catch (e) {
     previewItems.value = [];
   }
 }
 
-onMounted(async () => {
-  await reload();
+const loadServerInfo = async () => {
+  try {
+    const res = await getSystemServerById(serverId);
+    if (res?.success) {
+      serverInfo.value = res.data;
+    }
+  } catch (e) {
+    ElMessage.error(e.message);
+  }
+};
+
+onMounted(() => {
+  loadServerInfo();
+  reload();
 });
 </script>
 
@@ -351,6 +772,32 @@ onMounted(async () => {
   gap: 8px;
   margin-bottom: 10px;
 }
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crumbs .bc {
+  max-width: 40%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crumbs .bc-item {
+  cursor: pointer;
+}
+.server-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--el-text-color-secondary);
+}
+.server-info .si-name {
+  font-weight: 500;
+}
+.server-info .si-addr {
+  font-size: 12px;
+}
 .preview-body {
   height: calc(100vh - 170px);
   overflow: auto;
@@ -363,25 +810,73 @@ onMounted(async () => {
 .file-card {
   width: 160px;
 }
-.file-thumb {
+.thumb-wrap {
   height: 100px;
+  background: #f7f7f7;
+  border-radius: 6px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f7f7f7;
-  color: #888;
 }
-.file-name {
+.ph-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.meta {
   margin-top: 6px;
   font-size: 12px;
+}
+.meta .name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.meta .sub {
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
 }
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
+}
+.img-card {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.img-card .el-image,
+.img-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.55) 80%
+  );
+  color: #fff;
+}
+.overlay .ov-name {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay .ov-sub {
+  font-size: 12px;
+  opacity: 0.85;
 }
 @media (max-width: 1080px) {
   .fs-full {
