@@ -231,6 +231,33 @@
                 </div>
               </template>
             </div>
+            <div class="pager">
+              <el-button
+                size="small"
+                @click="goPrevPage"
+                :disabled="pager.page <= 1"
+                >上一页</el-button
+              >
+              <el-button
+                size="small"
+                @click="goNextPage"
+                :disabled="previewItems.length < pager.limit"
+                >下一页</el-button
+              >
+              <span class="gap" />
+              <span>每页</span>
+              <el-select
+                v-model="pager.limit"
+                size="small"
+                style="width: 90px"
+                @change="onLimitChange"
+              >
+                <el-option :value="20" label="20" />
+                <el-option :value="50" label="50" />
+                <el-option :value="100" label="100" />
+              </el-select>
+              <span>条</span>
+            </div>
           </div>
           <div v-else-if="currentStorage">
             <ScSelect
@@ -476,6 +503,49 @@ const rightPreview = ref({
   mode: "list" as "list" | "card" | "image",
 });
 const previewItems = ref<any[]>([]);
+// 基于 marker 的分页
+const pager = ref({ page: 1, limit: 50, marker: "", nextMarker: "" });
+
+function base64EncodeUtf8(input: string) {
+  // 将 UTF-8 字符串编码为 base64（兼容中文）
+  // eslint-disable-next-line no-undef
+  return btoa(unescape(encodeURIComponent(input)));
+}
+function hexEncode(str: string) {
+  const bytes = new TextEncoder().encode(str);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+function makeMarker(index: number) {
+  if (!index || index <= 1) return "";
+  const raw = `${index}_0`;
+  const b64 = base64EncodeUtf8(raw);
+  return hexEncode(b64);
+}
+function resetPager() {
+  pager.value.page = 1;
+  pager.value.marker = "";
+  pager.value.nextMarker = "";
+}
+function onLimitChange() {
+  resetPager();
+  fetchPreviewItems();
+}
+function goPrevPage() {
+  if (pager.value.page <= 1) return;
+  pager.value.page -= 1;
+  pager.value.marker =
+    pager.value.page === 1 ? "" : makeMarker(pager.value.page);
+  fetchPreviewItems();
+}
+function goNextPage() {
+  // 简单依据条目数量判断是否可能有下一页
+  if (previewItems.value.length < pager.value.limit) return;
+  pager.value.page += 1;
+  pager.value.marker = makeMarker(pager.value.page);
+  fetchPreviewItems();
+}
 
 function previewStorage(idx: number) {
   selectedIndex.value = idx;
@@ -490,7 +560,7 @@ async function openFullPreview() {
   }
   // 路由跳转到全屏预览页面
   try {
-    const url = `/service/file-storage/preview/${props.serverId}`;
+    const url = `#/service/file-storage/preview/${props.serverId}`;
     // 通过 a 标签打开新窗口，避免依赖全局路由实例
     const a = document.createElement("a");
     a.href = url;
@@ -516,14 +586,23 @@ async function fetchPreviewItems() {
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
     params.append("basePath", s.fileStorageBasePath || "/");
+    params.append("limit", String(pager.value.limit));
+    params.append("marker", pager.value.marker || "");
     // 兼容接口期望的表单提交
     const res = await fileStorageList(params);
-    const items = Array.isArray(res?.data) ? res.data : res?.data?.list || [];
+    const rr = res?.data; // ReturnResult
+    const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
     previewItems.value = (items || []).map((it: any, i: number) => ({
-      id: it.id || i,
-      name: it.name || it.filename || it.fileName || it.path || "",
-      size: it.size || it.length || "",
-      modified: it.modified || it.updateTime || it.lastModified || "",
+      id: it.fileId || it.id || i,
+      name:
+        it.name ||
+        it.filename ||
+        it.fileName ||
+        it.originalFilename ||
+        it.path ||
+        "",
+      size: it.size || it.fileSize || it.length || "",
+      modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
       url: it.url || it.previewUrl || it.downloadUrl || "",
     }));
