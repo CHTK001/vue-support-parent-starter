@@ -503,8 +503,33 @@ const rightPreview = ref({
   mode: "list" as "list" | "card" | "image",
 });
 const previewItems = ref<any[]>([]);
+// 轻量缓存：30秒内同参命中直接返回，减少请求
+const listCache = new Map<
+  string,
+  { ts: number; items: any[]; marker: string }
+>();
+const CACHE_TTL = 30_000;
+function makeCacheKey(
+  serverId: number,
+  s: any,
+  basePath: string,
+  limit: number,
+  marker: string
+) {
+  return [
+    serverId,
+    s?.fileStorageType,
+    s?.fileStorageEndpoint,
+    s?.fileStorageBucket,
+    basePath,
+    limit,
+    marker,
+  ].join("|");
+}
+// 请求互斥：使用页面已有 loading 状态
+
 // 基于 marker 的分页
-const pager = ref({ page: 1, limit: 50, marker: "", nextMarker: "" });
+const pager = ref({ page: 1, limit: 20, marker: "", nextMarker: "" });
 
 function base64EncodeUtf8(input: string) {
   // 将 UTF-8 字符串编码为 base64（兼容中文）
@@ -574,25 +599,55 @@ async function openFullPreview() {
 
 async function fetchPreviewItems() {
   try {
+    if (loading.value) return;
+    loading.value = true;
+
     const s =
       selectedIndex.value != null
         ? storages.value[selectedIndex.value]
         : storages.value[0];
-    if (!s) return;
+    if (!s) {
+      loading.value = false;
+      return;
+    }
+
+    const basePath = s.fileStorageBasePath || "/";
+    const key = makeCacheKey(
+      props.serverId,
+      s,
+      basePath,
+      pager.value.limit,
+      pager.value.marker || ""
+    );
+    const now = Date.now();
+    const cached = listCache.get(key);
+    if (cached && now - cached.ts < CACHE_TTL) {
+      previewItems.value = cached.items;
+      pager.value.marker = cached.marker || pager.value.marker;
+      loading.value = false;
+      return;
+    }
+
     // 调用文件存储列表接口（后端使用FileStorage#listObject）
     const params = new URLSearchParams();
     params.append("serverId", String(props.serverId));
     params.append("type", s.fileStorageType || "");
     params.append("bucket", s.fileStorageBucket || "");
     params.append("endpoint", s.fileStorageEndpoint || "");
-    params.append("basePath", s.fileStorageBasePath || "/");
+    params.append("basePath", basePath);
+    // 控制每次返回条数
     params.append("limit", String(pager.value.limit));
+    // 分页游标
     params.append("marker", pager.value.marker || "");
+    // 提示后端只返回必要字段（若不支持会被忽略）
+    params.append("fields", "name,size,modified,ext,url");
+    // 简化模式，减少拼装计算（若不支持会被忽略）
+    params.append("simple", "1");
     // 兼容接口期望的表单提交
     const res = await fileStorageList(params);
     const rr = res?.data; // ReturnResult
     const items = Array.isArray(rr?.metadata) ? rr.metadata : [];
-    previewItems.value = (items || []).map((it: any, i: number) => ({
+    const mapped = (items || []).map((it: any, i: number) => ({
       id: it.fileId || it.id || i,
       name:
         it.name ||
@@ -606,9 +661,13 @@ async function fetchPreviewItems() {
       ext: it.ext || it.suffix || "",
       url: it.url || it.previewUrl || it.downloadUrl || "",
     }));
+    previewItems.value = mapped;
+    listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
   } catch (e) {
     // 忽略错误，保持空数据
     previewItems.value = [];
+  } finally {
+    loading.value = false;
   }
 }
 

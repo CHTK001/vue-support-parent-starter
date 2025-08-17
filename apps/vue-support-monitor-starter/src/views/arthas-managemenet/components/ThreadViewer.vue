@@ -1,22 +1,34 @@
 <template>
   <div class="thread-viewer">
     <div class="toolbar">
-      <el-input v-model="keyword" placeholder="可选：按关键字过滤输出" clearable style="max-width: 260px" />
+      <el-input
+        v-model="keyword"
+        placeholder="可选：按关键字过滤输出"
+        clearable
+        style="max-width: 260px"
+      />
       <el-select v-model="count" style="width: 160px">
         <el-option :value="10" label="最近10条" />
         <el-option :value="20" label="最近20条" />
         <el-option :value="50" label="最近50条" />
       </el-select>
       <el-checkbox v-model="blocking">仅阻塞</el-checkbox>
-      <el-input v-model="threadId" placeholder="线程ID（优先）" style="max-width: 160px" />
+      <el-input
+        v-model="threadId"
+        placeholder="线程ID（优先）"
+        style="max-width: 160px"
+      />
       <el-button @click="clearOutput">清屏</el-button>
-      <el-button type="primary" :disabled="!nodeId" @click="run">刷新</el-button>
+      <el-button type="primary" :disabled="!nodeId" @click="run"
+        >刷新</el-button
+      >
     </div>
     <pre class="output" ref="outRef"></pre>
   </div>
 </template>
 
 <script setup lang="ts">
+import { createWebSocketUrl } from "@/utils/guacamole";
 import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
@@ -32,15 +44,19 @@ function baseUrl() {
   return "/monitor/api";
 }
 function buildWsUrl(nodeId: string) {
-  const loc = window.location;
-  const protocol = loc.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${loc.host}${baseUrl()}/v1/arthas/console/ws?nodeId=${encodeURIComponent(nodeId)}`;
+  return createWebSocketUrl("/v1/arthas/console/ws", "other", null, nodeId);
 }
 
 function ensure() {
-  if (ws.value && (ws.value.readyState === WebSocket.OPEN || ws.value.readyState === WebSocket.CONNECTING)) return;
+  if (
+    ws.value &&
+    (ws.value.readyState === WebSocket.OPEN ||
+      ws.value.readyState === WebSocket.CONNECTING)
+  )
+    return;
   ws.value = new WebSocket(buildWsUrl(props.nodeId));
-  ws.value.onmessage = evt => append(typeof evt.data === "string" ? evt.data : "");
+  ws.value.onmessage = (evt) =>
+    append(typeof evt.data === "string" ? evt.data : "");
 }
 
 function send(cmd: string) {
@@ -52,14 +68,15 @@ function send(cmd: string) {
     } catch {}
   };
   if (ready === WebSocket.OPEN) doSend();
-  else if (ready === WebSocket.CONNECTING) ws.value.addEventListener("open", doSend, { once: true });
+  else if (ready === WebSocket.CONNECTING)
+    ws.value.addEventListener("open", doSend, { once: true });
 }
 
 function append(text: string) {
   const el = outRef.value;
   if (!el) return;
   if (keyword.value) {
-    const lines = text.split(/\r?\n/).filter(l => l.includes(keyword.value));
+    const lines = text.split(/\r?\n/).filter((l) => l.includes(keyword.value));
     el.textContent += lines.join("\n") + "\n";
   } else {
     el.textContent += text;
