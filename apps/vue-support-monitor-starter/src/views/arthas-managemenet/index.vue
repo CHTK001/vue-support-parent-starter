@@ -1,9 +1,10 @@
 <template>
   <div class="arthas-management">
     <div class="toolbar">
-      <NodeSelector :nodes="arthasNodes" label="在线节点" placeholder="选择 Arthas 节点" v-model="selectedNodeId" @change="handleSelectNode" @refresh="reloadNodes" />
+      <NodeSelector :nodes="arthasNodes" label="在线节点" placeholder="选择 Arthas 节点" v-model="selectedNodeId" @change="handleSelectNode" />
       <div class="ops">
-        <el-button type="primary" :disabled="!selectedNode" @click="connectNode">连接</el-button>
+        <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes">刷新</el-button>
+        <el-button type="primary" :disabled="!selectedNode && !connected" @click="connectNode">连接</el-button>
         <el-button :disabled="!connected" @click="disconnectNode">断开</el-button>
       </div>
     </div>
@@ -19,10 +20,11 @@
           <el-empty description="请选择包含 Arthas 客户端的在线节点并点击连接" />
         </div>
         <div v-else class="feature-container">
-          <ConsoleViewer v-if="activeFeature === 'console'" :url="consoleUrlRef" />
+          <TerminalConsole v-if="activeFeature === 'console'" :node-id="selectedNodeId" />
 
-          <div v-else class="placeholder">
-            <el-result icon="info" :title="currentFeature?.title || '功能'" sub-title="请根据后端接口对接具体功能内容" />
+          <div v-else class="console-wrap">
+            <el-alert type="info" :closable="false" show-icon class="mb-2" :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`" />
+            <TerminalConsole :node-id="selectedNodeId" />
           </div>
         </div>
       </div>
@@ -35,9 +37,9 @@ import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
-import ConsoleViewer from "@/views/arthas-managemenet/components/ConsoleViewer.vue";
-import { fetchArthasNodes, connectArthasNode } from "@/api/arthas-management";
-import type { OnlineNodeInfo } from "@/api/arthas-management";
+import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
+import { fetchAllOnlineNodes, type OnlineNodeInfo } from "@/api/node-management";
+import { connectArthasNode } from "@/api/arthas-management";
 
 const nodeList = ref<OnlineNodeInfo[]>([]);
 const selectedNodeId = ref<string>("");
@@ -68,7 +70,7 @@ function handleSelectNode() {
 
 async function reloadNodes() {
   try {
-    const res: any = await fetchArthasNodes();
+    const res: any = await fetchAllOnlineNodes();
     if (res?.success) {
       nodeList.value = res.data || [];
       if (selectedNode.value && !nodeList.value.some(n => n.nodeId === selectedNode.value!.nodeId)) {
