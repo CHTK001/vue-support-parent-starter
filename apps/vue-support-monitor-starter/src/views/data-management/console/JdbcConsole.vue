@@ -6,13 +6,22 @@
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
-      <el-tree class="tree" :data="treeData" :props="treeProps" :load="loadChildrenLazy" lazy node-key="path"
-        :expand-on-click-node="false" @node-click="handleNodeClick" @node-contextmenu="handleNodeContextMenu">
+      <el-tree
+        class="tree"
+        :data="treeData"
+        :props="treeProps"
+        :load="loadChildrenLazy"
+        lazy
+        node-key="path"
+        :expand-on-click-node="false"
+        @node-click="handleNodeClick"
+        @node-contextmenu="handleNodeContextMenu"
+      >
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
           <span class="flex justify-between w-full">
             <span>
-          <span>{{ data.name }}</span>
+              <span>{{ data.name }}</span>
               <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.columnType }}</span>
               <span v-if="data.properties?.columnSize" class="el-form-item-msg ml-2 mt-[3px]">({{ data.properties?.columnSize }})</span>
             </span>
@@ -43,27 +52,25 @@
             结构
           </el-button>
           <el-button-group>
-            <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!searched"
-              @click="showTableComment = !showTableComment">表头注释</el-button>
-            <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!searched"
-              @click="showFieldComments = !showFieldComments">字段注释</el-button>
+            <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!searched" @click="showTableComment = !showTableComment">表头注释</el-button>
+            <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!searched" @click="showFieldComments = !showFieldComments">字段注释</el-button>
           </el-button-group>
           <el-button size="small" :disabled="!currentPath || !columns.length" @click="toggleAnalyze">
             <IconifyIconOnline :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'" class="mr-1" />
-            {{ analyzing ? '退出分析' : '分析' }}
+            {{ analyzing ? "退出分析" : "分析" }}
           </el-button>
         </div>
       </div>
       <div class="right-body">
-        <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'"
-          :options="{ mode: 'sql' }" />
-        <el-tabs v-model="activeTab" class="result-tabs " type="border-card" tab-position="top">
+        <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
+        <el-tabs v-model="activeTab" class="result-tabs" type="border-card" tab-position="top">
           <el-tab-pane name="result" class="!h-full" label="结果">
             <div class="result" v-if="columns.length">
               <el-popover v-model:visible="columnFilterVisible" trigger="click" placement="bottom-end" width="260">
                 <template #reference>
                   <el-button size="small" text @click.stop="columnFilterVisible = !columnFilterVisible">
-                    <IconifyIconOnline icon="ri:menu-unfold-line" class="mr-1" />筛选列
+                    <IconifyIconOnline icon="ri:menu-unfold-line" class="mr-1" />
+                    筛选列
                   </el-button>
                 </template>
                 <div class="col-filter">
@@ -79,20 +86,14 @@
                 </div>
               </el-popover>
             </div>
-            <el-table border v-if="columns.length" :data="rows" size="small"  height="580px"
-              :row-class-name="rowClassName">
-             
-              <el-table-column v-for="col in visibleColumns" :key="col" :prop="col.name" :label="col.name"
-                :min-width="120">
+            <el-table border v-if="columns.length" :data="rows" size="small" height="580px" :row-class-name="rowClassName">
+              <el-table-column v-for="col in visibleColumns" :key="col" :prop="col.name" :label="col.name" :min-width="120">
                 <template #header>
                   <div class="col-header flex flex-col justify-start items-start">
                     <div>{{ col.name }}</div>
-                    <div v-if="showTableComment" class="hidden-note el-form-item-msg" :title="col.comment">
-                      ({{ col.comment }})
-                    </div>
+                    <div v-if="showTableComment" class="hidden-note el-form-item-msg" :title="col.comment">({{ col.comment }})</div>
                     <div v-if="analyzing && analysisData[col]?.length" class="chart mini-bar">
-                      <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)"
-                        @click.stop="toggleFilter(col, b.value)"></div>
+                      <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)" @click.stop="toggleFilter(col, b.value)"></div>
                     </div>
                   </div>
                 </template>
@@ -103,17 +104,16 @@
                   </div>
                 </template>
               </el-table-column>
-        </el-table>
-        <el-empty v-else description="无结果" />
+            </el-table>
+            <el-empty v-else description="无结果" />
           </el-tab-pane>
         </el-tabs>
       </div>
-    <div class="right-status">
-      <span v-if="statusText">{{ statusText }}</span>
+      <div class="right-status">
+        <span v-if="statusText">{{ statusText }}</span>
+      </div>
     </div>
-  </div>
-  <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect"
-    @close="menuVisible = false" />
+    <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect" @close="menuVisible = false" />
   </div>
 </template>
 <script setup lang="ts">
@@ -220,17 +220,17 @@ async function loadConsoleConfig() {
 }
 
 async function loadRoot() {
-  const res = await getConsoleRoot(props.id, keyword.value)
-  const records = extractArrayFromApi(res?.data)
-  treeData.value = records.map(normalizeTreeNode)
+  const res = await getConsoleRoot(props.id, keyword.value);
+  const records = extractArrayFromApi(res?.data);
+  treeData.value = records.map(normalizeTreeNode);
 }
 
 async function handleNodeClick(node: any) {
   currentNodeData.value = node;
   currentPath.value = node?.path;
   // 若为表节点，打开表（查询+注释）
-  const type = (node?.type || '').toString().toUpperCase();
-  if (type.includes('TABLE')) {
+  const type = (node?.type || "").toString().toUpperCase();
+  if (type.includes("TABLE")) {
     sql.value = `select * from ${node.name} limit 1000`;
     await execute();
     //   const resp = await openTable(props.id, node.path, 100);
@@ -254,10 +254,10 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
   if (data.leaf === true) {
     return resolve([]);
   }
-  const parentPath = data.path
-  const res = await getConsoleChildren(props.id, parentPath)
-  const records = extractArrayFromApi(res?.data).map(normalizeTreeNode)
-  resolve(records)
+  const parentPath = data.path;
+  const res = await getConsoleChildren(props.id, parentPath);
+  const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
+  resolve(records);
 };
 
 // 根据类型/层级返回 JDBC 树节点图标
@@ -267,6 +267,7 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
 function getJdbcNodeIcon(node: any, data: any): string {
   const type = (data?.type || "").toString().toLowerCase();
   if (type) {
+    debugger;
     if (type.includes("db") || type.includes("database") || type.includes("schema") || type.includes("catalog")) return "ri:database-2-line";
     if (type.includes("table")) return "ri:table-2";
     if (type.includes("column") || type.includes("field")) return "ri:braces-line";
@@ -284,7 +285,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, 'sql')
+  const res = await executeConsole(props.id, sql.value, "sql");
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
@@ -419,7 +420,8 @@ const filters = ref<Record<string, Set<string>>>({});
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
   const set = filters.value[col];
-  if (set.has(value)) set.delete(value); else set.add(value);
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
 }
 
 function rowClassName({ row }) {
@@ -428,10 +430,10 @@ function rowClassName({ row }) {
     const set = filters.value[col];
     if (set && set.size > 0) {
       const v = String(row[col]);
-      if (!set.has(v)) return 'row-dim';
+      if (!set.has(v)) return "row-dim";
     }
   }
-  return '';
+  return "";
 }
 
 async function toggleAnalyze() {
@@ -447,8 +449,8 @@ async function toggleAnalyze() {
 }
 
 async function fetchStructure(nodePath: string): Promise<string> {
-  const res = await getConsoleNode(props.id, nodePath, 'structure')
-  const detail = res?.data?.data || ''
+  const res = await getConsoleNode(props.id, nodePath, "structure");
+  const detail = res?.data?.data || "";
   return typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
 
@@ -459,7 +461,7 @@ async function loadCurrentComment() {
       const res = await getFieldComment(props.id, currentPath.value);
       currentComment.value = res?.data?.data?.systemDataFieldCommentComment || "";
     }
-  } catch (_) { }
+  } catch (_) {}
 }
 
 /**
@@ -489,10 +491,10 @@ function buildMenuItems(type): MenuItem[] {
   const items: MenuItem[] = [];
   // 刷新当前节点（仅非叶子节点显示）
   if (contextNode.value && contextNode.value.leaf !== true) {
-    items.push({ key: 'refresh-node', label: '刷新', icon: 'ri:refresh-line' })
+    items.push({ key: "refresh-node", label: "刷新", icon: "ri:refresh-line" });
   }
-  if (type?.includes('TABLE')) {
-    items.push({ key: 'open-table', label: '打开表', icon: 'ri:table-2' });
+  if (type?.includes("TABLE")) {
+    items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
   }
   if (allow(consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"))) {
     items.push({ key: "view-structure", label: "查看表结构", icon: "ri:table-2" });
@@ -541,10 +543,10 @@ function handleNodeContextMenu(event: MouseEvent, data: any) {
 async function onMenuSelect(key: string) {
   if (!contextNode.value) return;
   switch (key) {
-    case 'refresh-node':
-      await refreshContextNodeChildren()
-      break
-    case 'open-table':
+    case "refresh-node":
+      await refreshContextNodeChildren();
+      break;
+    case "open-table":
       await openTableAndRender(true);
       break;
     case "view-structure":
@@ -573,8 +575,8 @@ async function openTableAndRender(hideEditor: boolean) {
   rows.value = [];
   await Promise.resolve();
   rows.value = resp?.data?.data?.rows || [];
-  tableComment.value = resp?.data?.data?.tableComment || '';
-  activeTab.value = 'result';
+  tableComment.value = resp?.data?.data?.tableComment || "";
+  activeTab.value = "result";
   showEditor.value = !hideEditor ? true : false;
 }
 
@@ -582,17 +584,17 @@ async function openTableAndRender(hideEditor: boolean) {
  * 刷新当前右键节点的子节点
  */
 async function refreshContextNodeChildren() {
-  const node = contextNode.value
-  if (!node?.path) return
+  const node = contextNode.value;
+  if (!node?.path) return;
   try {
-  const res = await getConsoleChildren(props.id, node.path)
-    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode)
-    node.children = records
-    node.leaf = records.length === 0
+    const res = await getConsoleChildren(props.id, node.path);
+    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
+    node.children = records;
+    node.leaf = records.length === 0;
   } catch (e) {
     // ignore
   } finally {
-    menuVisible.value = false
+    menuVisible.value = false;
   }
 }
 
@@ -601,8 +603,8 @@ async function refreshContextNodeChildren() {
  */
 async function viewTableStructure(node: any) {
   if (!node?.path) return;
-  const res = await getConsoleNode(props.id, node.path, 'structure')
-  const detail = res?.data?.data || '';
+  const res = await getConsoleNode(props.id, node.path, "structure");
+  const detail = res?.data?.data || "";
   // 简单展示：放到 editor 中
   sql.value = typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
@@ -621,8 +623,8 @@ async function copyTableName(node: any) {
  */
 async function copyCreateSql(node: any) {
   if (!node?.path) return;
-  const res = await getConsoleNode(props.id, node.path, 'ddl')
-  const ddl = res?.data?.data || '';
+  const res = await getConsoleNode(props.id, node.path, "ddl");
+  const ddl = res?.data?.data || "";
   await navigator.clipboard.writeText(typeof ddl === "string" ? ddl : JSON.stringify(ddl));
 }
 
@@ -642,8 +644,8 @@ async function addFieldComment(node: any) {
       inputValue: node?.properties?.comment || ""
     });
     if (!value || !value.trim()) return;
-    await saveFieldComment(props.id, { 
-      nodePath: node.path, 
+    await saveFieldComment(props.id, {
+      nodePath: node.path,
       comment: value.trim(),
       dataType: node.properties?.dataType,
       nullable: node.properties?.nullable

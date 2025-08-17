@@ -19,13 +19,13 @@
       </div>
       <div class="right">
         <el-button type="primary" @click="openEdit()">
-          <IconifyIconOnline icon="ri:add-line" /> 新建配置
+          <IconifyIconOnline icon="ri:add-line" />
+          新建配置
         </el-button>
       </div>
     </div>
 
-    <ScTable class="card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4"
-      layout="card">
+    <ScTable class="card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
       <template #empty>
         <el-empty description="暂无数据源配置">
           <el-button type="primary" @click="openEdit()">新建配置</el-button>
@@ -45,14 +45,11 @@
               </div>
             </div>
             <div class="right-status cursor-pointer" @click.stop="openBackupList(item)">
-              <el-badge :value="logCounts[item.systemDataSettingId!] || 0"
-                :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
+              <el-badge :value="logCounts[item.systemDataSettingId!] || 0" :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
                 <el-tag size="small" type="warning">日志</el-tag>
               </el-badge>
-              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0"
-                :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
-                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType
-                  }}</el-tag>
+              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0" :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
+                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType }}</el-tag>
               </el-badge>
             </div>
           </div>
@@ -60,9 +57,7 @@
             <div class="meta-row">
               <IconifyIconOnline class="mr-4 text-muted" icon="ri:terminal-line" />
               <span class="label">控制台</span>
-              <span class="value">{{
-                item.systemDataSettingConsoleType || "-"
-                }}</span>
+              <span class="value">{{ item.systemDataSettingConsoleType || "-" }}</span>
             </div>
             <div class="meta-row">
               <IconifyIconOnline class="mr-4 text-muted" icon="ri:link-m" />
@@ -97,8 +92,7 @@
                   <IconifyIconOnline icon="ri:settings-3-line" />
                 </el-button>
               </el-tooltip>
-              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'"
-                placement="top" :show-after="500">
+              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'" placement="top" :show-after="500">
                 <el-button size="small" @click.stop.prevent="toggleBackup(item)">
                   <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
                 </el-button>
@@ -125,77 +119,83 @@
     <el-dialog v-model="showDoc" title="文档" width="80%" draggable>
       <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
     </el-dialog>
-    <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType"
-      @saved="onSavedSetting" />
+    <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
     <BackConsoleDialog :visibe="showBackupDialog" :data="backupLogList" @close="onCloseBackupDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, inject, onBeforeUnmount, reactive } from "vue";
-import { pageSystemDataSettings, deleteSystemDataSetting, type SystemDataSetting, uploadJdbcDriver, getDocumentHtmlUrl, startBackup, stopBackup, backupStatus, querySystemDataSeries } from "@/api/system-data";
+import {
+  pageSystemDataSettings,
+  deleteSystemDataSetting,
+  type SystemDataSetting,
+  uploadJdbcDriver,
+  getDocumentHtmlUrl,
+  startBackup,
+  stopBackup,
+  backupStatus,
+  querySystemDataSeries
+} from "@/api/system-data";
 import { useRouter } from "vue-router";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import BackConsoleDialog from "./modules/BackConsoleDialog.vue";
-import {format} from "sql-formatter";
-import Prism from 'prismjs'                    // ② 高亮核心
-import 'prismjs/components/prism-sql'          // ③ SQL 语法文件
-import 'prismjs/themes/prism-tomorrow.css'     // ④ 主题（任选）
-
+import { format } from "sql-formatter";
+import Prism from "prismjs"; // ② 高亮核心
+import "prismjs/components/prism-sql"; // ③ SQL 语法文件
+import "prismjs/themes/prism-tomorrow.css"; // ④ 主题（任选）
 
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
 const router = useRouter();
-const capMap = ref<
-  Record<number, { backup?: boolean; document?: boolean; file?: boolean }>
->({});
+const capMap = ref<Record<number, { backup?: boolean; document?: boolean; file?: boolean }>>({});
 const backupOn = ref<Record<number, boolean>>({});
-const showDoc = ref(false)
-const docUrl = ref('')
+const showDoc = ref(false);
+const docUrl = ref("");
 
 // 实时计数：备份与日志
 const backupCounts = ref<Record<number, number>>({});
 const logCounts = ref<Record<number, number>>({});
 
 // 备份列表对话框
-const showBackupDialog = ref(false)
-const currentSettingIdForBackup = ref<number | null>(null)
-const backupList = ref<any[]>([])
+const showBackupDialog = ref(false);
+const currentSettingIdForBackup = ref<number | null>(null);
+const backupList = ref<any[]>([]);
 async function openBackupList(row: SystemDataSetting) {
-  currentSettingIdForBackup.value = row.systemDataSettingId || null
-  showBackupDialog.value = true
+  currentSettingIdForBackup.value = row.systemDataSettingId || null;
+  showBackupDialog.value = true;
 }
 
 async function onCloseBackupDialog() {
-  showBackupDialog.value = false
+  showBackupDialog.value = false;
 }
 
 async function loadBackupList() {
-  if (!currentSettingIdForBackup.value) return
-  const now = Date.now()
-  const dayMs = 24 * 60 * 60 * 1000
+  if (!currentSettingIdForBackup.value) return;
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
   const res = await querySystemDataSeries({
-    name: 'system:data:backup',
+    name: "system:data:backup",
     keyword: `settingId:${currentSettingIdForBackup.value}`,
     fromTimestamp: now - 7 * dayMs,
     toTimestamp: now,
     offset: 0,
     count: 100,
-    sort: 'timestamp desc'
-  })
+    sort: "timestamp desc"
+  });
   // 后端返回结构未知，这里尽量兼容常见字段
-  const items = (res?.data?.items || res?.data?.records || res?.data || []) as any[]
-  backupList.value = Array.isArray(items) ? items : []
+  const items = (res?.data?.items || res?.data?.data || res?.data || []) as any[];
+  backupList.value = Array.isArray(items) ? items : [];
 }
 
 const showEdit = ref(false);
 const current = ref<SystemDataSetting | null>(null);
 
-const showSetting = ref(false)
-const settingId = ref<number | null>(null)
-const settingType = ref<string | undefined>(undefined)
+const showSetting = ref(false);
+const settingId = ref<number | null>(null);
+const settingType = ref<string | undefined>(undefined);
 const backupLogList = reactive<any>([]);
 
 // 过滤与排序
@@ -203,56 +203,58 @@ const searchKey = ref("");
 const typeFilter = ref<string | "">("");
 const sortKey = ref<"name" | "type">("name");
 
-const typeOptions = computed(
-  () =>
-    Array.from(
-      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean))
-    ) as string[]
-);
+const typeOptions = computed(() => Array.from(new Set(list.value.map(i => i.systemDataSettingType).filter(Boolean))) as string[]);
 
 // 交给 ScTable 处理分页与过滤，这里保留 options 构建
-const queryParams = ref({ current: 1, size: 20, name: "", type: "" })
+const queryParams = ref({ current: 1, size: 20, name: "", type: "" });
 watch([searchKey, typeFilter], () => {
-  queryParams.value = { ...queryParams.value, current: 1, name: searchKey.value, type: typeFilter.value || "" }
-})
+  queryParams.value = { ...queryParams.value, current: 1, name: searchKey.value, type: typeFilter.value || "" };
+});
 
-function getTypeTag(type?: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' {
-  const t = (type || '').toLowerCase()
-  if (t.includes('jdbc') || t.includes('sql')) { return 'success' }
-  if (t.includes('redis')) { return 'warning' }
-  if (t.includes('zk') || t.includes('zookeeper')) { return 'info' }
-  return 'info'
+function getTypeTag(type?: string): "success" | "warning" | "info" | "primary" | "danger" {
+  const t = (type || "").toLowerCase();
+  if (t.includes("jdbc") || t.includes("sql")) {
+    return "success";
+  }
+  if (t.includes("redis")) {
+    return "warning";
+  }
+  if (t.includes("zk") || t.includes("zookeeper")) {
+    return "info";
+  }
+  return "info";
 }
 
 function addressOf(i: SystemDataSetting) {
-  return (
-    i.systemDataSettingServer ||
-    (i.systemDataSettingHost
-      ? `${i.systemDataSettingHost}:${i.systemDataSettingPort || ""}`
-      : "-")
-  )
+  return i.systemDataSettingServer || (i.systemDataSettingHost ? `${i.systemDataSettingHost}:${i.systemDataSettingPort || ""}` : "-");
 }
 
 function getTypeClass(type?: string) {
-  const t = (type || '').toLowerCase()
-  if (t.includes('jdbc') || t.includes('sql')) { return 'is-jdbc' }
-  if (t.includes('redis')) { return 'is-redis' }
-  if (t.includes('zk') || t.includes('zookeeper')) { return 'is-zk' }
-  return 'is-default'
+  const t = (type || "").toLowerCase();
+  if (t.includes("jdbc") || t.includes("sql")) {
+    return "is-jdbc";
+  }
+  if (t.includes("redis")) {
+    return "is-redis";
+  }
+  if (t.includes("zk") || t.includes("zookeeper")) {
+    return "is-zk";
+  }
+  return "is-default";
 }
 
 function isJdbcItem(row: SystemDataSetting) {
-  const type = (row.systemDataSettingType || '').toLowerCase()
-  const url = (row.systemDataSettingServer || '').toLowerCase()
-  return type.includes('jdbc') || type.includes('sql') || url.startsWith('jdbc:')
+  const type = (row.systemDataSettingType || "").toLowerCase();
+  const url = (row.systemDataSettingServer || "").toLowerCase();
+  return type.includes("jdbc") || type.includes("sql") || url.startsWith("jdbc:");
 }
 
 async function load() {
   loading.value = true;
   try {
-    const res = await pageSystemDataSettings({ current: 1, size: 20 })
+    const res = await pageSystemDataSettings({ current: 1, size: 20 });
     if (res?.success) {
-      list.value = (res.data?.records as any[]) || []
+      list.value = (res.data?.data as any[]) || [];
     }
   } finally {
     loading.value = false;
@@ -266,47 +268,42 @@ function openEdit(row?: SystemDataSetting) {
 
 function openConsole(row: SystemDataSetting) {
   const type = (row.systemDataSettingType || "").toLowerCase();
-  if (
-    type.includes("jdbc") ||
-    type.includes("sql") ||
-    (row.systemDataSettingServer || "").toLowerCase().startsWith("jdbc:")
-  ) {
+  if (type.includes("jdbc") || type.includes("sql") || (row.systemDataSettingServer || "").toLowerCase().startsWith("jdbc:")) {
     router.push({
       name: "dataJdbcConsoleFull",
-      query: { id: row.systemDataSettingId },
+      query: { id: row.systemDataSettingId }
     });
     return;
   }
   if (type.includes("redis")) {
     router.push({
       name: "dataRedisConsoleFull",
-      query: { id: row.systemDataSettingId },
+      query: { id: row.systemDataSettingId }
     });
     return;
   }
   if (type.includes("zk") || type.includes("zookeeper")) {
     router.push({
       name: "dataZookeeperConsoleFull",
-      query: { id: row.systemDataSettingId },
+      query: { id: row.systemDataSettingId }
     });
     return;
   }
 }
 
-
 function openSetting(row: SystemDataSetting) {
-  settingId.value = row.systemDataSettingId as number
-  settingType.value = row.systemDataSettingType
-  showSetting.value = true
+  settingId.value = row.systemDataSettingId as number;
+  settingType.value = row.systemDataSettingType;
+  showSetting.value = true;
 }
 
 function onSavedSetting() {
-  ElMessage.success('已保存控制台设置')
+  ElMessage.success("已保存控制台设置");
 }
 
 async function remove(row: SystemDataSetting) {
   await ElMessageBox.confirm(`确定删除 ${row.systemDataSettingName}?`, "提示", {
-    type: "warning",
+    type: "warning"
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
@@ -316,75 +313,86 @@ async function remove(row: SystemDataSetting) {
 }
 
 function viewDocument(row: SystemDataSetting) {
-  docUrl.value = getDocumentHtmlUrl(row.systemDataSettingId as number)
-  showDoc.value = true
+  docUrl.value = getDocumentHtmlUrl(row.systemDataSettingId as number);
+  showDoc.value = true;
 }
 
 async function toggleBackup(row: SystemDataSetting) {
-  const id = row.systemDataSettingId as number
-  const on = backupOn.value[id]
-  const res = on ? await stopBackup(id) : await startBackup(id)
-  if (!res?.success) { ElMessage.error(res?.msg || '操作失败'); return }
-  backupOn.value[id] = !on
+  const id = row.systemDataSettingId as number;
+  const on = backupOn.value[id];
+  const res = on ? await stopBackup(id) : await startBackup(id);
+  if (!res?.success) {
+    ElMessage.error(res?.msg || "操作失败");
+    return;
+  }
+  backupOn.value[id] = !on;
 }
 
 async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
   try {
-    const raw = fileEvent?.raw as File
-    if (!raw) { return }
-    if (!row.systemDataSettingId) {
-      ElMessage.warning('请先保存配置再上传驱动')
-      return
+    const raw = fileEvent?.raw as File;
+    if (!raw) {
+      return;
     }
-    const res = await uploadJdbcDriver(row.systemDataSettingId, raw)
-    if (!res?.success) { ElMessage.error(res?.msg || '上传失败'); return }
-    ElMessage.success('上传成功')
+    if (!row.systemDataSettingId) {
+      ElMessage.warning("请先保存配置再上传驱动");
+      return;
+    }
+    const res = await uploadJdbcDriver(row.systemDataSettingId, raw);
+    if (!res?.success) {
+      ElMessage.error(res?.msg || "上传失败");
+      return;
+    }
+    ElMessage.success("上传成功");
   } catch (e: any) {
-    ElMessage.error(e?.message || '上传失败')
+    ElMessage.error(e?.message || "上传失败");
   }
 }
 
 function capOf(item: any) {
-  if (!item) return {}
-  return { backup: item.capabilitiesBackup, document: item.capabilitiesDocument, file: item.capabilitiesFile }
+  if (!item) return {};
+  return { backup: item.capabilitiesBackup, document: item.capabilitiesDocument, file: item.capabilitiesFile };
 }
 
 function bgStyle(item: SystemDataSetting) {
-  const img = item.systemDataSettingImageUrl || item.systemDataSettingIcon
-  return img ? { backgroundImage: `url(${img})` } : {}
+  const img = item.systemDataSettingImageUrl || item.systemDataSettingIcon;
+  return img ? { backgroundImage: `url(${img})` } : {};
 }
 
 onMounted(load);
 // 使用 inject 获取全局 socket，统一监听 system/data 前缀主题
-const globalSocket = inject<any>('globalSocket')
-let unsubBackup: any | null = null
-let unsubLog: any | null = null
+const globalSocket = inject<any>("globalSocket");
+let unsubBackup: any | null = null;
+let unsubLog: any | null = null;
 onMounted(async () => {
-  if (!globalSocket) return
-  await globalSocket.connect?.()
-  unsubBackup = globalSocket.on?.('system/data/backup', (m: any) => {
-    const sid = Number(m?.settingId || m?.data?.settingId)
+  if (!globalSocket) return;
+  await globalSocket.connect?.();
+  unsubBackup = globalSocket.on?.("system/data/backup", (m: any) => {
+    const sid = Number(m?.settingId || m?.data?.settingId);
     if (!sid) {
-      return
+      return;
     }
-    if(m?.message) {
+    if (m?.message) {
       backupLogList.push(format(m?.message));
     }
 
-    if(backupLogList.length > 100) {
+    if (backupLogList.length > 100) {
       backupLogList.shift();
     }
-    const curr = backupCounts.value[sid] || 0
-    backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 }
-  })
-  unsubLog = globalSocket.on?.('system/data/log', (m: any) => {
-    const sid = Number(m?.settingId || m?.data?.settingId)
-    if (!sid) return
-    const curr = logCounts.value[sid] || 0
-    logCounts.value = { ...logCounts.value, [sid]: curr + 1 }
-  })
-})
-onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog(); })
+    const curr = backupCounts.value[sid] || 0;
+    backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 };
+  });
+  unsubLog = globalSocket.on?.("system/data/log", (m: any) => {
+    const sid = Number(m?.settingId || m?.data?.settingId);
+    if (!sid) return;
+    const curr = logCounts.value[sid] || 0;
+    logCounts.value = { ...logCounts.value, [sid]: curr + 1 };
+  });
+});
+onBeforeUnmount(() => {
+  if (unsubBackup) unsubBackup();
+  if (unsubLog) unsubLog();
+});
 </script>
 
 <style scoped>
@@ -433,7 +441,10 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 1) 40%);
   position: relative;
 }
@@ -451,15 +462,15 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
 }
 
 .modern-card.is-jdbc::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.10), transparent 60%);
+  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.1), transparent 60%);
 }
 
 .modern-card.is-redis::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.10), transparent 60%);
+  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.1), transparent 60%);
 }
 
 .modern-card.is-zk::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.10), transparent 60%);
+  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.1), transparent 60%);
 }
 
 .modern-card.is-default::before {
@@ -577,7 +588,9 @@ onBeforeUnmount(() => { if (unsubBackup) unsubBackup(); if (unsubLog) unsubLog()
   padding: 8px 14px 14px;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .modern-card:hover .card-actions {
