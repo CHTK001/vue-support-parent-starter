@@ -78,7 +78,7 @@ async function request<T = any>(arg: string | AxiosRequestConfig, config?: Axios
     typeof arg === "string"
       ? {
           url: arg,
-          ...config,
+          ...config
         }
       : arg;
   return http.request((options.method || "GET") as RequestMethods, options.url, options);
