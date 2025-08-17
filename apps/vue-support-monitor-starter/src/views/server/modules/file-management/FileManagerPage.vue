@@ -44,6 +44,25 @@
 
       <!-- 右侧文件列表 -->
       <div class="right-panel">
+        <!-- 工具栏 -->
+        <div
+          class="list-toolbar"
+          style="
+            padding: 8px 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+          "
+        >
+          <el-button
+            type="primary"
+            size="small"
+            @click="showUploadDialog = true"
+          >
+            <IconifyIconOnline icon="ri:upload-cloud-2-line" class="mr-1" />
+            上传文件
+          </el-button>
+        </div>
         <!-- 文件列表区域 -->
         <div class="file-list-container">
           <FileList
@@ -87,6 +106,27 @@
             </el-button>
           </div>
           <div class="detail-content">
+            <!-- 上传对话框 -->
+            <MultiTargetUploadDialog
+              v-model="showUploadDialog"
+              :current-path="currentPath"
+              :queue-status="queueStatus"
+              :enqueue="enqueue"
+              :preset-files="presetFiles"
+              @success="handleUploadSuccess"
+            />
+
+            <!-- 上传队列状态 -->
+            <UploadQueueStatusComponent
+              ref="queueStatusRef"
+              :queue-status="queueStatus"
+              @queue-update="handleQueueUpdate"
+              @pause-all="manager.pauseAll()"
+              @resume-all="manager.resumeAll()"
+              @clear-completed="manager.clearCompleted()"
+              @cancel-task="manager.cancelTask($event)"
+              @sync-task="handleSyncTask"
+            />
             <FileDetailContent
               :server-id="serverId"
               :file-info="selectedFile"
@@ -107,16 +147,80 @@
       @file-updated="handleFileUpdated"
     />
   </div>
+const presetFiles = ref<File[]>([]);
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
+// 上传对话框
+const showUploadDialog = ref(false);
+
+// 队列状态（与文件系统模块复用）
+const {
+  queueStatus,
+  connect: connectSSE,
+  disconnect: disconnectSSE,
+  onMessage,
+  MESSAGE_TYPE,
+} = useFileSystemSSE();
+const queueStatusRef = ref();
+
+function handleUploadSuccess() {
+  // 上传成功后刷新当前列表
+  fileListRef.value?.refreshList?.();
+}
+
+function handleQueueUpdate(list: any[]) {
+  // 可选：在页面其他位置同步显示数量
+  console.log("Upload queue updated:", list?.length);
+}
+
+// 上传管理器（并发/控制）
+const manager = useUploadManager({
+  concurrency: 3,
+  maxRetries: 2,
+  queueMap: queueStatus,
+});
+const enqueue = (
+  tasks: Array<{
+    id: number;
+    name: string;
+    run: (
+      signal: AbortSignal,
+function handleSyncTask(fileId: number) {
+  const meta = manager.getTaskMeta?.(fileId);
+  if (!meta?.file) {
+    ElMessage.warning("无法获取原始文件，无法同步");
+    return;
+  }
+  // 预填文件到对话框，用户选择目标服务器/节点后执行
+  presetFiles.value = [meta.file];
+  showUploadDialog.value = true;
+}
+
+      onProgress: (p: number) => void
+    ) => Promise<void>;
+  }>
+) => {
+  manager.enqueue(tasks as any);
+};
+onMounted(() => {
+  connectSSE();
+});
+
+onUnmounted(() => {
+  disconnectSSE();
+});
 import type { FileInfo } from "@/api/file-management";
 import FileTree from "./FileTree.vue";
 import FileList from "./FileList.vue";
 import FilePreviewDialog from "./FilePreviewDialog.vue";
 import FileDetailContent from "./FileDetailContent.vue";
+import MultiTargetUploadDialog from "./components/MultiTargetUploadDialog.vue";
+import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
+import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
+import { useUploadManager } from "./composables/useUploadManager";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 // Props
