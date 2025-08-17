@@ -253,6 +253,21 @@ export const downloadFile = (fileId: number) => {
 };
 
 /**
+ * 分发文件系统文件（以 fileId 为源，直连分发到服务器/节点）
+ */
+export const distributeFileSystemFile = (data: {
+  fileId: number;
+  targetType: "SERVER" | "NODE";
+  targetIds: Array<string | number>;
+  targetDir: string;
+  overwrite?: boolean;
+}) => {
+  return http.request<ReturnResult<any>>("post", "/v1/filesystem/distribute", {
+    data,
+  });
+};
+
+/**
  * 获取文件HTTP访问URL
  */
 export const getHttpAccessUrl = (fileId: number) => {
