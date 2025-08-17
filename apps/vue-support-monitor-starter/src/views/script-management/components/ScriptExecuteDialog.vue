@@ -4,6 +4,7 @@
     title="执行脚本"
     width="70%"
     :close-on-click-modal="false"
+    class="execute-dialog-modern"
     @close="handleClose"
   >
     <div class="execute-dialog">
@@ -517,6 +518,49 @@ const getStatusText = (status: string) => {
   display: flex;
   align-items: center;
   gap: 12px;
+  .execute-dialog-modern :deep(.el-dialog__body) {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 255, 255, 0.9)
+    );
+  }
+  .execute-dialog {
+    max-height: 70vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .script-info {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  }
+  .execute-config,
+  .execution-result {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  }
+  .info-header h3 {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+  }
+  .output-content {
+    background: #0b1020;
+    color: #d6e2ff;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 160px;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+  }
 }
 .duration {
   color: var(--el-text-color-secondary);

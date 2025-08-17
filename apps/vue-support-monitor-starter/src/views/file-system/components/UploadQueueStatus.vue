@@ -55,7 +55,7 @@
                   size="small"
                   text
                   type="danger"
-                  @click="removeFromQueue(item.fileId)"
+                  @click="$emit('cancel-task', item.fileId)"
                 >
                   <IconifyIconOnline icon="ri:close-line" />
                 </el-button>
@@ -71,9 +71,22 @@
                 <span class="status-text">{{
                   getStatusText(item.status)
                 }}</span>
-                <span v-if="item.message" class="status-message">
-                  {{ item.message }}
-                </span>
+                <span v-if="item.message" class="status-message">{{
+                  item.message
+                }}</span>
+                <el-button
+                  v-if="item.status === 'completed'"
+                  size="small"
+                  text
+                  type="primary"
+                  @click="$emit('sync-task', item.fileId)"
+                >
+                  <IconifyIconOnline
+                    icon="ri:share-forward-line"
+                    class="mr-1"
+                  />
+                  同步
+                </el-button>
               </div>
             </div>
           </div>
@@ -81,15 +94,19 @@
 
         <!-- 队列操作 -->
         <div v-if="queueList.length" class="queue-actions">
-          <el-button size="small" @click="pauseAll">
+          <el-button size="small" @click="$emit('pause-all')">
             <IconifyIconOnline icon="ri:pause-line" class="mr-1" />
             暂停全部
           </el-button>
-          <el-button size="small" @click="resumeAll">
+          <el-button size="small" @click="$emit('resume-all')">
             <IconifyIconOnline icon="ri:play-line" class="mr-1" />
             继续全部
           </el-button>
-          <el-button size="small" type="danger" @click="clearCompleted">
+          <el-button
+            size="small"
+            type="danger"
+            @click="$emit('clear-completed')"
+          >
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             清除已完成
           </el-button>
@@ -114,6 +131,11 @@ const props = defineProps<Props>();
 // Emits
 const emit = defineEmits<{
   "queue-update": [queue: UploadQueueStatus[]];
+  "pause-all": [];
+  "resume-all": [];
+  "clear-completed": [];
+  "cancel-task": [fileId: number];
+  "sync-task": [fileId: number];
 }>();
 
 // 响应式数据

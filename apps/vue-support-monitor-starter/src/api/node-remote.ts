@@ -4,8 +4,15 @@ import axios from "axios";
  * 上传文件到节点
  */
 export function uploadFileToNode(
-  params: { nodeId: string; remoteFilePath: string; file: File; overwrite?: boolean; scriptId?: number | string },
-  onUploadProgress?: (e: ProgressEvent) => void
+  params: {
+    nodeId: string;
+    remoteFilePath: string;
+    file: File;
+    overwrite?: boolean;
+    scriptId?: number | string;
+  },
+  onUploadProgress?: (e: ProgressEvent) => void,
+  signal?: AbortSignal
 ) {
   const fd = new FormData();
   fd.append("nodeId", params.nodeId);
@@ -23,6 +30,6 @@ export function uploadFileToNode(
     headers: { "Content-Type": "multipart/form-data" },
     timeout: 0,
     onUploadProgress,
+    signal,
   });
 }
-
