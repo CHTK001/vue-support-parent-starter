@@ -106,7 +106,11 @@
 
                 <div class="filter-info">
                   <div class="filter-name">
-                    <span class="filter-name-link" title="点击打开配置" @click="openConfigDialog(filter)">
+                    <span
+                      class="filter-name-link"
+                      title="点击打开配置"
+                      @click="openConfigDialog(filter)"
+                    >
                       {{ filter.systemServerSettingName }}
                     </span>
                     <el-tag
@@ -185,7 +189,7 @@
     <FilterConfigFileStorage
       v-model:visible="showFileStorageDialog"
       :server-id="props.serverId as number"
-      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
     <FilterConfigServiceDiscovery
@@ -196,13 +200,31 @@
     <FilterConfigIpRateLimit
       v-model:visible="showIpRateLimitDialog"
       :server-id="props.serverId as number"
-      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
     <FilterConfigAddressRateLimit
       v-model:visible="showAddressRateLimitDialog"
       :server-id="props.serverId as number"
-      :filter-setting-id="(currentFilterSetting?.systemServerSettingId as number)"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigQpsRateLimit
+      v-model:visible="showQpsRateLimitDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigRequestFingerprint
+      v-model:visible="showRequestFingerprintDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
+      @success="handleConfigSuccess"
+    />
+    <FilterConfigDynamicExpression
+      v-model:visible="showDynamicExprDialog"
+      :server-id="props.serverId as number"
+      :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
     />
 
@@ -237,6 +259,9 @@ import FilterConfigFileStorage from "./FilterConfigFileStorage.vue";
 import FilterConfigServiceDiscovery from "./FilterConfigServiceDiscovery.vue";
 import FilterConfigIpRateLimit from "./FilterConfigIpRateLimit.vue";
 import FilterConfigAddressRateLimit from "./FilterConfigAddressRateLimit.vue";
+import FilterConfigQpsRateLimit from "./FilterConfigQpsRateLimit.vue";
+import FilterConfigRequestFingerprint from "./FilterConfigRequestFingerprint.vue";
+import FilterConfigDynamicExpression from "./FilterConfigDynamicExpression.vue";
 import { SystemServer } from "@/api/system-server";
 
 // Props
@@ -274,6 +299,9 @@ const showFileStorageDialog = ref(false);
 const showServiceDiscoveryDialog = ref(false);
 const showIpRateLimitDialog = ref(false);
 const showAddressRateLimitDialog = ref(false);
+const showQpsRateLimitDialog = ref(false);
+const showRequestFingerprintDialog = ref(false);
+const showDynamicExprDialog = ref(false);
 const currentFilterSetting = ref<SystemServerSetting | null>(null);
 
 // 计算属性
@@ -466,6 +494,9 @@ const openConfigDialog = (filter: SystemServerSetting) => {
   showServiceDiscoveryDialog.value = false;
   showIpRateLimitDialog.value = false;
   showAddressRateLimitDialog.value = false;
+  showQpsRateLimitDialog.value = false;
+  showRequestFingerprintDialog.value = false;
+  showDynamicExprDialog.value = false;
 
   const type = (filter.systemServerSettingType || "").toLowerCase();
 
@@ -483,6 +514,18 @@ const openConfigDialog = (filter: SystemServerSetting) => {
   }
   if (type.includes("addressratelimit")) {
     showAddressRateLimitDialog.value = true;
+    return;
+  }
+  if (type.includes("qpsratelimit")) {
+    showQpsRateLimitDialog.value = true;
+    return;
+  }
+  if (type.includes("requestfingerprint")) {
+    showRequestFingerprintDialog.value = true;
+    return;
+  }
+  if (type.includes("dynamicexpression")) {
+    showDynamicExprDialog.value = true;
     return;
   }
 
