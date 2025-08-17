@@ -23,6 +23,7 @@
         <div v-else class="feature-container">
           <TerminalConsole v-if="activeFeature === 'console'" :node-id="selectedNodeId" />
           <ThreadViewer v-else-if="activeFeature === 'thread'" :node-id="selectedNodeId" />
+          <TraceViewer v-else-if="activeFeature === 'trace'" :node-id="selectedNodeId" />
           <div v-else class="console-wrap">
             <el-alert type="info" :closable="false" show-icon class="mb-2" :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`" />
             <TerminalConsole :node-id="selectedNodeId" />
@@ -42,6 +43,7 @@ import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
 import ThreadViewer from "@/views/arthas-managemenet/components/ThreadViewer.vue";
+import TraceViewer from "@/views/arthas-managemenet/components/TraceViewer.vue";
 import ArthasConfigDialog from "@/views/arthas-managemenet/components/ArthasConfigDialog.vue";
 import { fetchAllOnlineNodes, type OnlineNodeInfo } from "@/api/node-management";
 import { connectArthasNode } from "@/api/arthas-management";
@@ -56,6 +58,7 @@ const activeFeature = ref("console");
 const features = [
   { key: "console", title: "控制台", icon: "ri:terminal-box-line" },
   { key: "thread", title: "线程", icon: "ri:stack-line" },
+  { key: "trace", title: "链路追踪", icon: "ri:route-line" },
   { key: "jvm", title: "JVM", icon: "ri:cpu-line" },
   { key: "memory", title: "内存", icon: "ri:database-2-line" },
   { key: "class", title: "类加载", icon: "ri:code-s-slash-line" },
