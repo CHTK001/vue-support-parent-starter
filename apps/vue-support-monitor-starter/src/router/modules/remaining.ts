@@ -32,8 +32,8 @@ export default [
     meta: {
       title: "JDBC 控制台",
       showLink: false,
-      fullScreen: true
-    }
+      fullScreen: true,
+    },
   },
   {
     path: "/data/console/redis",
@@ -42,8 +42,8 @@ export default [
     meta: {
       title: "Redis 控制台",
       showLink: false,
-      fullScreen: true
-    }
+      fullScreen: true,
+    },
   },
   {
     path: "/data/console/zk",
@@ -52,8 +52,8 @@ export default [
     meta: {
       title: "ZooKeeper 控制台",
       showLink: false,
-      fullScreen: true
-    }
+      fullScreen: true,
+    },
   },
   {
     path: "/node/documentation/:nodeId",
@@ -74,6 +74,17 @@ export default [
       icon: "ri:folder-line",
       title: "文件管理器",
       showLink: false,
+    },
+  },
+  {
+    path: "/service/file-storage/preview/:serverId",
+    name: "fileStoragePreviewFull",
+    component: () =>
+      import("@/views/service-management/file-storage/PreviewFull.vue"),
+    meta: {
+      title: "文件存储预览",
+      showLink: false,
+      fullScreen: true,
     },
   },
 ] satisfies Array<RouteConfigsTable>;

@@ -388,7 +388,7 @@ export interface IpRateLimitRule {
   ipRateLimitServerId?: number;
   ipRateLimitIp: string;
   ipRateLimitQps?: number;
-  ipRateLimitType?: 'RATE_LIMIT' | 'WHITELIST' | 'BLACKLIST';
+  ipRateLimitType?: "RATE_LIMIT" | "WHITELIST" | "BLACKLIST";
   ipRateLimitEnabled?: boolean;
 }
 
@@ -424,7 +424,7 @@ export interface AddressRateLimitRule {
   addressRateLimitServerId?: number;
   addressRateLimitAddress: string;
   addressRateLimitQps?: number;
-  addressRateLimitType?: 'RATE_LIMIT' | 'WHITELIST' | 'BLACKLIST';
+  addressRateLimitType?: "RATE_LIMIT" | "WHITELIST" | "BLACKLIST";
   addressRateLimitEnabled?: boolean;
 }
 
@@ -447,10 +447,38 @@ export function saveAddressRateLimitRules(
   });
 }
 
-export function deleteAddressRateLimitRules(serverId: number, settingId: number) {
+export function deleteAddressRateLimitRules(
+  serverId: number,
+  settingId: number
+) {
   return request({
     url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}`,
     method: "delete",
+  });
+}
+
+// ==================== QPS 限流配置 ====================
+export interface QpsRateLimitConfig {
+  enabled: boolean;
+  limiterType: string;
+  threshold: number;
+  timeUnit: string;
+  rejectStrategy: string;
+  penaltyDuration: string;
+  penaltyPermanent: boolean;
+  penaltyThreshold?: number | null;
+  whitelistIps: string[];
+  blacklistIps: string[];
+}
+
+export function saveServletFilterConfig(
+  settingId: number,
+  config: QpsRateLimitConfig
+) {
+  return request({
+    url: `/system/server/setting/${settingId}/config`,
+    method: "post",
+    data: config,
   });
 }
 
@@ -489,4 +517,3 @@ export function deleteFileStorageConfig(serverId: number) {
     method: "delete",
   });
 }
-
