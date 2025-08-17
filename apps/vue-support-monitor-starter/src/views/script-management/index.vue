@@ -171,7 +171,30 @@ const handleStopScript = (execution: any) => {
 };
 
 const handleViewExecutionDetail = (execution: any) => {
-  currentExecution.value = execution;
+  // 统一映射为 ExecutionDetailDialog 需要的结构
+  const ex = execution?.raw || execution || {};
+  currentExecution.value = {
+    id: ex.monitorSysGenScriptExecutionId || execution.id,
+    scriptName: ex.monitorSysGenScriptId
+      ? `脚本#${ex.monitorSysGenScriptId}`
+      : execution.scriptName,
+    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "")
+      .toString()
+      .toLowerCase(),
+    exitCode:
+      ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
+    startTime: ex.monitorSysGenScriptExecutionStartTime
+      ? new Date(ex.monitorSysGenScriptExecutionStartTime)
+      : execution.startTime,
+    endTime: ex.monitorSysGenScriptExecutionEndTime
+      ? new Date(ex.monitorSysGenScriptExecutionEndTime)
+      : execution.endTime,
+    duration:
+      ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
+    stdout: ex.monitorSysGenScriptExecutionStdout ?? execution.stdout ?? "",
+    stderr: ex.monitorSysGenScriptExecutionStderr ?? execution.stderr ?? "",
+    executor: ex.createBy || execution.executor || "",
+  } as any;
   detailDialogVisible.value = true;
 };
 </script>

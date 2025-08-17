@@ -18,10 +18,7 @@
             {{ executionData.scriptName }}
           </el-descriptions-item>
           <el-descriptions-item label="执行状态">
-            <el-tag :type="getStatusTagType(executionData.status)">
-              <IconifyIconOnline :icon="getStatusIcon(executionData.status)" />
-              {{ getStatusText(executionData.status) }}
-            </el-tag>
+            <StatusTag :status="executionData.status" />
           </el-descriptions-item>
           <el-descriptions-item label="退出码">
             <span :class="getExitCodeClass(executionData.exitCode)">
@@ -48,45 +45,24 @@
         <h4>输出信息</h4>
         <el-tabs v-model="activeTab">
           <el-tab-pane label="标准输出" name="stdout">
-            <div class="output-container">
-              <div class="output-toolbar">
-                <el-button size="small" @click="copyOutput('stdout')">
-                  <IconifyIconOnline icon="ri:file-copy-line" />
-                  复制
-                </el-button>
-                <el-button size="small" @click="downloadOutput('stdout')">
-                  <IconifyIconOnline icon="ri:download-line" />
-                  下载
-                </el-button>
-              </div>
-              <div class="output-content">
-                <pre v-if="executionData.stdout">{{
-                  executionData.stdout
-                }}</pre>
-                <div v-else class="no-output">暂无标准输出</div>
-              </div>
-            </div>
+            <OutputPanel
+              title="标准输出"
+              :content="executionData.stdout"
+              empty-text="暂无标准输出"
+              icon="ri:terminal-line"
+              :max-height="'240px'"
+            />
           </el-tab-pane>
 
           <el-tab-pane label="错误输出" name="stderr">
-            <div class="output-container">
-              <div class="output-toolbar">
-                <el-button size="small" @click="copyOutput('stderr')">
-                  <IconifyIconOnline icon="ri:file-copy-line" />
-                  复制
-                </el-button>
-                <el-button size="small" @click="downloadOutput('stderr')">
-                  <IconifyIconOnline icon="ri:download-line" />
-                  下载
-                </el-button>
-              </div>
-              <div class="output-content error">
-                <pre v-if="executionData.stderr">{{
-                  executionData.stderr
-                }}</pre>
-                <div v-else class="no-output">暂无错误输出</div>
-              </div>
-            </div>
+            <OutputPanel
+              title="错误输出"
+              :content="executionData.stderr"
+              empty-text="暂无错误输出"
+              icon="ri:alarm-warning-line"
+              :error="true"
+              :max-height="'240px'"
+            />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -109,8 +85,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
+import {
+  getScriptExecutionDetail,
+  getScriptExecutionOutput,
+  stopScriptExecution,
+} from "@/api/server/script";
+import StatusTag from "./StatusTag.vue";
+import OutputPanel from "./OutputPanel.vue";
 
 // Props
 interface Props {
@@ -136,6 +119,70 @@ watch(
     visible.value = val;
   }
 );
+// 轮询刷新运行中执行详情（简单轮询）
+let pollTimer: any = null;
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (val && props.executionData?.status === "running") {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+  }
+);
+
+onUnmounted(() => stopPolling());
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    try {
+      const id = props.executionData?.id;
+      if (!id) return;
+      // 拉取详情
+      const detail = await getScriptExecutionDetail(id);
+      // 拉取输出
+      const output = await getScriptExecutionOutput(id);
+      if (detail.success && detail.data) {
+        // 合并进当前数据对象（保持字段名对齐）
+        props.executionData.status = (
+          detail.data.monitorSysGenScriptExecutionStatus || ""
+        )
+          .toString()
+          .toLowerCase();
+        props.executionData.exitCode =
+          detail.data.monitorSysGenScriptExecutionExitCode ??
+          props.executionData.exitCode;
+        props.executionData.endTime =
+          detail.data.monitorSysGenScriptExecutionEndTime ||
+          props.executionData.endTime;
+        props.executionData.duration =
+          detail.data.monitorSysGenScriptExecutionDuration ??
+          props.executionData.duration;
+      }
+      if (output.success && output.data) {
+        props.executionData.stdout =
+          output.data.output ?? props.executionData.stdout;
+        props.executionData.stderr =
+          output.data.errorOutput ?? props.executionData.stderr;
+      }
+      // 若已结束则停止轮询
+      if (props.executionData.status !== "running") {
+        stopPolling();
+      }
+    } catch (e) {
+      // 忽略轮询异常
+    }
+  }, 3000);
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
 
 watch(visible, (val) => {
   emit("update:modelValue", val);
@@ -146,8 +193,18 @@ const handleClose = () => {
   visible.value = false;
 };
 
-const handleStop = () => {
-  ElMessage.info("停止执行功能开发中");
+const handleStop = async () => {
+  try {
+    if (!props.executionData?.id) return;
+    const resp = await stopScriptExecution(props.executionData.id);
+    if (resp.success) {
+      ElMessage.success("停止指令已发送");
+    } else {
+      ElMessage.error(resp.msg || "停止执行失败");
+    }
+  } catch (e) {
+    ElMessage.error("停止执行失败");
+  }
 };
 
 const handleRerun = () => {

@@ -1,14 +1,14 @@
 <template>
   <div class="running-scripts">
     <!-- 工具栏 -->
-    <div class="toolbar">
-      <div class="toolbar-left">
+    <Toolbar>
+      <template #left>
         <div class="running-count">
           <IconifyIconOnline icon="ri:play-circle-line" />
           <span>运行中脚本: {{ runningScripts.length }}</span>
         </div>
-      </div>
-      <div class="toolbar-right">
+      </template>
+      <template #right>
         <el-button size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
@@ -22,8 +22,8 @@
           <IconifyIconOnline icon="ri:stop-line" />
           停止全部
         </el-button>
-      </div>
-    </div>
+      </template>
+    </Toolbar>
 
     <!-- 运行中脚本列表 -->
     <div class="scripts-list" v-loading="loading">
@@ -114,8 +114,20 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
+import Toolbar from "./Toolbar.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  getRunningScriptExecutions,
+  stopScriptExecution,
+} from "@/api/server/script";
 import UploadToRunningScriptDialog from "./UploadToRunningScriptDialog.vue";
+/**
+ * 组件：运行中脚本
+ * 职责：展示运行中执行列表、刷新、停止全部、查看详情。
+ * 注意：
+ *  - 轮询刷新频率：3s
+ *  - 停止全部会逐个调用停止接口，失败不阻断
+ */
 
 // Emits
 const emit = defineEmits<{
@@ -125,31 +137,46 @@ const emit = defineEmits<{
 
 // 响应式数据
 const loading = ref(false);
-const runningScripts = ref([
-  // 模拟数据
-  {
-    id: 1,
-    scriptName: "日志清理脚本",
-    startTime: new Date(Date.now() - 120000), // 2分钟前开始
-    output:
-      "正在清理日志文件...\n已清理 /var/log/syslog.1\n已清理 /var/log/auth.log.1\n正在处理 /var/log/kern.log...",
-    showOutput: false,
-  },
-  {
-    id: 2,
-    scriptName: "系统备份脚本",
-    startTime: new Date(Date.now() - 300000), // 5分钟前开始
-    output:
-      "开始系统备份...\n正在备份 /etc 目录\n正在备份 /home 目录\n备份进度: 45%",
-    showOutput: false,
-  },
-]);
+const runningScripts = ref<any[]>([]);
 
 // 上传对话框状态（已移除上传按钮，这里也不再使用）
 const uploadDialogVisible = ref(false);
 const selectedScriptId = ref<number | string | null>(null);
 
-let refreshTimer: NodeJS.Timeout | null = null;
+import { usePolling } from "../composables/usePolling";
+
+// 方法
+const loadRunningScripts = async () => {
+  loading.value = true;
+  try {
+    const resp = await getRunningScriptExecutions();
+    if (resp.success && Array.isArray(resp.data)) {
+      runningScripts.value = resp.data.map((ex: any) => ({
+        id: ex.monitorSysGenScriptExecutionId,
+        scriptName: ex.monitorSysGenScriptId
+          ? `脚本#${ex.monitorSysGenScriptId}`
+          : `执行记录 #${ex.monitorSysGenScriptExecutionId}`,
+        startTime: ex.monitorSysGenScriptExecutionStartTime
+          ? new Date(ex.monitorSysGenScriptExecutionStartTime)
+          : new Date(),
+        output: ex.monitorSysGenScriptExecutionStdout || "",
+        showOutput: false,
+        raw: ex,
+      }));
+    } else {
+      runningScripts.value = [];
+    }
+  } catch (error) {
+    ElMessage.error("加载运行中脚本失败");
+  } finally {
+    loading.value = false;
+  }
+};
+
+const { start: startAutoRefresh, stop: stopAutoRefresh } = usePolling(
+  loadRunningScripts,
+  3000
+);
 
 // 初始化
 onMounted(() => {
@@ -161,44 +188,13 @@ onUnmounted(() => {
   stopAutoRefresh();
 });
 
-// 方法
-const loadRunningScripts = async () => {
-  loading.value = true;
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // 模拟更新输出
-    runningScripts.value.forEach((script) => {
-      if (Math.random() > 0.7) {
-        script.output += `\n新的输出行 ${new Date().toLocaleTimeString()}`;
-      }
-    });
-  } catch (error) {
-    ElMessage.error("加载运行中脚本失败");
-  } finally {
-    loading.value = false;
-  }
-};
-
-const startAutoRefresh = () => {
-  refreshTimer = setInterval(() => {
-    loadRunningScripts();
-  }, 3000); // 每3秒刷新一次
-};
-
-const stopAutoRefresh = () => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-};
-
 const handleRefresh = () => {
   loadRunningScripts();
 };
 
 const handleStopAll = async () => {
   try {
+    if (runningScripts.value.length === 0) return;
     await ElMessageBox.confirm(
       `确定要停止所有运行中的脚本吗？共 ${runningScripts.value.length} 个脚本。`,
       "停止确认",
@@ -209,8 +205,17 @@ const handleStopAll = async () => {
       }
     );
 
-    runningScripts.value = [];
-    ElMessage.success("所有脚本已停止");
+    const ids = runningScripts.value.map((s) => s.id);
+    for (const id of ids) {
+      try {
+        await stopScriptExecution(id);
+      } catch (e) {
+        // 忽略单个失败，继续尝试停止其它
+      }
+    }
+
+    ElMessage.success("停止指令已发送");
+    loadRunningScripts();
   } catch (error) {
     if (error !== "cancel") {
       ElMessage.error("停止脚本失败");
@@ -240,7 +245,7 @@ const formatRunningDuration = (startTime: Date) => {
 };
 
 const getProgressPercentage = (script: any) => {
-  // 基于运行时间计算进度（模拟）
+  // 基于运行时间估算进度（UI展示用）
   const duration = Date.now() - script.startTime.getTime();
   const maxDuration = 10 * 60 * 1000; // 假设最长10分钟
   return Math.min((duration / maxDuration) * 100, 95);
@@ -253,25 +258,252 @@ const getProgressStatus = (script: any) => {
   return "exception";
 };
 
-// 临时格式化时间函数
+// 格式化时间
 const formatTime = (date: Date) => {
   return date.toLocaleString();
 };
 </script>
 
 <style scoped lang="scss">
-// 样式与之前的设计保持一致
 .running-scripts {
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 16px 20px;
+  background: transparent;
 }
 
-// 旋转动画
-.rotating {
-  animation: rotate 2s linear infinite;
+/* 顶部工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.75)
+  );
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+
+  .running-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #334155;
+
+    .count-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #4f46e5;
+      font-weight: 700;
+    }
+  }
+
+  :deep(.el-button) {
+    border-radius: 10px;
+    font-weight: 500;
+  }
 }
 
+/* 列表区域 */
+.scripts-list {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+}
+
+/* 单条脚本卡片 */
+.script-item {
+  position: relative;
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.25),
+      rgba(118, 75, 162, 0.25)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  }
+}
+
+/* 头部信息 */
+.script-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+
+  .script-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    background: linear-gradient(135deg, #10b981 0%, #22c55e 60%, #84cc16 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+  }
+
+  .script-meta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748b;
+    display: flex;
+    gap: 10px;
+
+    .execution-id,
+    .start-time {
+      background: rgba(100, 116, 139, 0.08);
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+  }
+
+  :deep(.el-tag) {
+    border-radius: 10px;
+    border: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    .rotating {
+      animation: rotate 1.2s linear infinite;
+    }
+  }
+}
+
+/* 进度区域 */
+.execution-progress {
+  margin-top: 12px;
+
+  .progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+
+  :deep(.el-progress) {
+    .el-progress-bar__outer {
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 999px;
+    }
+    .el-progress-bar__inner {
+      background: linear-gradient(90deg, #22c55e, #10b981);
+    }
+  }
+}
+
+/* 输出区域 */
+.output-section {
+  margin-top: 12px;
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #334155;
+  }
+
+  :deep(.el-button.is-text) {
+    color: #475569;
+    &:hover {
+      color: #0ea5e9;
+    }
+  }
+
+  .output-content {
+    margin-top: 8px;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      monospace;
+    white-space: pre-wrap;
+    background: #0b1220;
+    color: #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    max-height: 160px;
+    overflow: auto;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+  }
+}
+
+/* 操作区域 */
+.script-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(226, 232, 240, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+
+  :deep(.el-button) {
+    border-radius: 10px;
+  }
+}
+
+/* 空状态 */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 32px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.75)
+  );
+  border: 1px dashed rgba(16, 185, 129, 0.25);
+  border-radius: 16px;
+  color: #64748b;
+
+  .empty-icon {
+    font-size: 28px;
+    color: #10b981;
+    margin-bottom: 6px;
+  }
+
+  .empty-text {
+    margin: 4px 0 0;
+    font-weight: 600;
+  }
+}
+
+/* 旋转动画 */
 @keyframes rotate {
   from {
     transform: rotate(0deg);
@@ -280,6 +512,4 @@ const formatTime = (date: Date) => {
     transform: rotate(360deg);
   }
 }
-
-// 其他样式省略
 </style>
