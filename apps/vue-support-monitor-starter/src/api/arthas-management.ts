@@ -24,3 +24,21 @@ export function disconnectArthasNode(nodeId: string) {
   });
 }
 
+// 服务器 Tunnel 配置
+export interface ArthasTunnelConfigDto {
+  address?: string;
+  username?: string;
+  password?: string;
+}
+
+export function getTunnelConfig(serverId: any) {
+  return http.request<ReturnResult<ArthasTunnelConfigDto>>("get", "/v1/arthas/tunnel-config", {
+    params: { serverId }
+  });
+}
+
+export function setTunnelConfig(serverId: any, data: ArthasTunnelConfigDto) {
+  return http.request<ReturnResult<boolean>>("post", "/v1/arthas/tunnel-config/set", {
+    params: { serverId, ...data }
+  });
+}

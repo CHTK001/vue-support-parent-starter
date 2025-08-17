@@ -4,15 +4,16 @@
       <NodeSelector :nodes="arthasNodes" label="在线节点" placeholder="选择 Arthas 节点" v-model="selectedNodeId" @change="handleSelectNode" />
       <div class="ops">
         <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes">刷新</el-button>
-        <el-button type="primary" :disabled="!selectedNode && !connected" @click="connectNode">连接</el-button>
+        <el-button type="primary" :disabled="!selectedNode || connected" @click="connectNode">连接</el-button>
         <el-button :disabled="!connected" @click="disconnectNode">断开</el-button>
+        <el-button :disabled="!selectedNode" @click="configVisible = true">配置</el-button>
       </div>
     </div>
 
     <div class="content">
-      <div class="left-panel" v-if="connected">
+      <div v-if="connected" class="left-panel">
         <div class="panel-title">功能列表</div>
-        <FeatureMenu :features="features" v-model="activeFeature" @select="handleFeatureSelect" />
+        <FeatureMenu v-model="activeFeature" :features="features" @select="handleFeatureSelect" />
       </div>
 
       <div class="right-panel">
@@ -21,7 +22,7 @@
         </div>
         <div v-else class="feature-container">
           <TerminalConsole v-if="activeFeature === 'console'" :node-id="selectedNodeId" />
-
+          <ThreadViewer v-else-if="activeFeature === 'thread'" :node-id="selectedNodeId" />
           <div v-else class="console-wrap">
             <el-alert type="info" :closable="false" show-icon class="mb-2" :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`" />
             <TerminalConsole :node-id="selectedNodeId" />
@@ -29,6 +30,8 @@
         </div>
       </div>
     </div>
+
+    <ArthasConfigDialog v-model="configVisible" :server-id="selectedNodeId" @saved="reloadNodes" />
   </div>
 </template>
 
@@ -38,6 +41,8 @@ import { ElMessage } from "element-plus";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
+import ThreadViewer from "@/views/arthas-managemenet/components/ThreadViewer.vue";
+import ArthasConfigDialog from "@/views/arthas-managemenet/components/ArthasConfigDialog.vue";
 import { fetchAllOnlineNodes, type OnlineNodeInfo } from "@/api/node-management";
 import { connectArthasNode } from "@/api/arthas-management";
 
@@ -45,6 +50,7 @@ const nodeList = ref<OnlineNodeInfo[]>([]);
 const selectedNodeId = ref<string>("");
 const selectedNode = ref<OnlineNodeInfo | null>(null);
 const connected = ref(false);
+const configVisible = ref(false);
 const activeFeature = ref("console");
 
 const features = [
@@ -98,6 +104,7 @@ async function connectNode() {
       }
       consoleUrlRef.value = url;
       connected.value = !!url || true;
+      activeFeature.value = "console";
       ElMessage.success("连接成功");
     } else {
       consoleUrlRef.value = "";
