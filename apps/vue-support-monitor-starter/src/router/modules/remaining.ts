@@ -32,7 +32,6 @@ export default [
     meta: {
       title: "JDBC 控制台",
       showLink: false,
-      fullScreen: true,
     },
   },
   {
@@ -42,7 +41,6 @@ export default [
     meta: {
       title: "Redis 控制台",
       showLink: false,
-      fullScreen: true,
     },
   },
   {
@@ -52,7 +50,6 @@ export default [
     meta: {
       title: "ZooKeeper 控制台",
       showLink: false,
-      fullScreen: true,
     },
   },
   {
@@ -84,7 +81,6 @@ export default [
     meta: {
       title: "文件存储预览",
       showLink: false,
-      fullScreen: true,
     },
   },
 ] satisfies Array<RouteConfigsTable>;
