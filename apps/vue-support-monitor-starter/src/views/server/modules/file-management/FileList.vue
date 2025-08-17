@@ -101,6 +101,13 @@
                       <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                       下载
                     </el-dropdown-item>
+                    <el-dropdown-item command="sync" v-if="!row.isDirectory">
+                      <IconifyIconOnline
+                        icon="ri:share-forward-line"
+                        class="mr-1"
+                      />
+                      同步
+                    </el-dropdown-item>
                     <el-dropdown-item command="rename">
                       <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
                       重命名
@@ -239,6 +246,7 @@ const emit = defineEmits<{
   "path-change": [path: string];
   "file-select": [file: FileInfo];
   refresh: [];
+  sync: [file: FileInfo];
 }>();
 
 // 响应式数据
@@ -813,6 +821,9 @@ const handleFileAction = async (command: string, file: FileInfo) => {
   switch (command) {
     case "download":
       ElMessage.info("下载功能开发中");
+      break;
+    case "sync":
+      emit("sync", file);
       break;
     case "rename":
       await renameFileAction(file);

@@ -314,6 +314,14 @@
                   下载
                 </el-button>
                 <el-button
+                  v-if="row.fileSystemStatus === 2"
+                  size="small"
+                  type="success"
+                  @click="openDistribute(row)"
+                >
+                  同步
+                </el-button>
+                <el-button
                   v-if="row.fileSystemStatus === 3"
                   size="small"
                   type="warning"
@@ -344,6 +352,12 @@
     </div>
 
     <!-- 上传对话框 -->
+    <FileSystemDistributeDialog
+      v-model="showDistributeDialog"
+      :file="currentDistributeFile"
+      @success="handleDistributeSuccess"
+    />
+
     <FileUploadDialog
       v-model="showUploadDialog"
       :queue-status="queueStatus"
@@ -476,6 +490,7 @@ import {
 } from "@/api/monitor/filesystem-group";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
 import FileUploadDialog from "./components/FileUploadDialog.vue";
+import FileSystemDistributeDialog from "./components/FileSystemDistributeDialog.vue";
 import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
@@ -771,6 +786,20 @@ const getStatusType = (
     3: "danger", // 合并失败
   };
   return typeMap[status] || "info";
+};
+
+/**
+ * 打开同步对话框
+ */
+const showDistributeDialog = ref(false);
+const currentDistributeFile = ref<FileSystem | null>(null);
+const openDistribute = (file: FileSystem) => {
+  currentDistributeFile.value = file;
+  showDistributeDialog.value = true;
+};
+
+const handleDistributeSuccess = () => {
+  ElMessage.success("同步任务已完成");
 };
 
 /**
