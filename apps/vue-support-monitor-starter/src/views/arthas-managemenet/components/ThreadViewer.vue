@@ -28,49 +28,17 @@
 </template>
 
 <script setup lang="ts">
-import { createWebSocketUrl } from "@/utils/guacamole";
+import { execArthasCommand } from "@/api/arthas-http";
 import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
-const ws = ref<WebSocket | null>(null);
+// HTTP 模式不再需要 WS
 const outRef = ref<HTMLElement | null>(null);
 const keyword = ref("");
 const count = ref(20);
 const blocking = ref(false);
 const threadId = ref<string | number | "">("");
-
-function baseUrl() {
-  return "/monitor/api";
-}
-function buildWsUrl(nodeId: string) {
-  return createWebSocketUrl("/v1/arthas/console/ws", "other", null, nodeId);
-}
-
-function ensure() {
-  if (
-    ws.value &&
-    (ws.value.readyState === WebSocket.OPEN ||
-      ws.value.readyState === WebSocket.CONNECTING)
-  )
-    return;
-  ws.value = new WebSocket(buildWsUrl(props.nodeId));
-  ws.value.onmessage = (evt) =>
-    append(typeof evt.data === "string" ? evt.data : "");
-}
-
-function send(cmd: string) {
-  if (!ws.value) return;
-  const ready = ws.value.readyState;
-  const doSend = () => {
-    try {
-      ws.value?.send(cmd);
-    } catch {}
-  };
-  if (ready === WebSocket.OPEN) doSend();
-  else if (ready === WebSocket.CONNECTING)
-    ws.value.addEventListener("open", doSend, { once: true });
-}
 
 function append(text: string) {
   const el = outRef.value;
@@ -95,20 +63,25 @@ function buildCmd(): string {
   return `thread -n ${count.value}\n`;
 }
 
-function run() {
+async function run() {
   if (!props.nodeId) return;
-  ensure();
-  send(buildCmd());
+  const cmd = buildCmd();
+  try {
+    const res = await execArthasCommand(props.nodeId, cmd.replace(/\n$/, ""));
+    if (res?.success) {
+      append(res.data?.output || "");
+    } else {
+      append(`\n[error] ${res?.msg || "执行失败"}\n`);
+    }
+  } catch (e: any) {
+    append(`\n[error] ${e?.message || e}\n`);
+  }
 }
 
 watch(
   () => props.nodeId,
   (n, o) => {
     if (n && n !== o) {
-      try {
-        ws.value?.close();
-      } catch {}
-      ws.value = null;
       clearOutput();
     }
   }
@@ -118,12 +91,7 @@ onMounted(() => {
   if (props.nodeId) run();
 });
 
-onBeforeUnmount(() => {
-  try {
-    ws.value?.close();
-  } catch {}
-  ws.value = null;
-});
+onBeforeUnmount(() => {});
 </script>
 
 <style scoped>
