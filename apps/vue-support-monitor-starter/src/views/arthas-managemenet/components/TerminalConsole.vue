@@ -1,8 +1,15 @@
 <template>
   <div class="terminal-console">
     <div class="toolbar">
-      <el-input v-model="command" placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler" @keyup.enter.native="sendCommand" clearable />
-      <el-button type="primary" @click="sendCommand" :disabled="!connected">执行</el-button>
+      <el-input
+        v-model="command"
+        placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler"
+        @keyup.enter.native="sendCommand"
+        clearable
+      />
+      <el-button type="primary" @click="sendCommand" :disabled="!connected"
+        >执行</el-button
+      >
       <el-button @click="clearOutput">清屏</el-button>
       <el-button @click="reconnect" :disabled="connecting">重连</el-button>
     </div>
@@ -12,39 +19,72 @@
       <el-button size="small" @click="quick('jvm')">jvm</el-button>
       <el-button size="small" @click="quick('heap')">heap</el-button>
       <el-button size="small" @click="quick('logger')">logger</el-button>
-      <el-button size="small" @click="quick('profiler start; sleep 10; profiler stop')">profiler</el-button>
+      <el-button
+        size="small"
+        @click="quick('profiler start; sleep 10; profiler stop')"
+        >profiler</el-button
+      >
     </div>
-    <pre class="output" ref="outputRef"></pre>
+    <div
+      class="output"
+      :style="containerStyle"
+      ref="xtermRef"
+      @click="focusTerm"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
+import "xterm/css/xterm.css";
+import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
+import { WebLinksAddon } from "xterm-addon-web-links";
+import { createWebSocketUrl } from "@/utils/guacamole";
 
 const props = defineProps<{ nodeId: string }>();
 
 const ws = ref<WebSocket | null>(null);
-const outputRef = ref<HTMLElement | null>(null);
+const xtermRef = ref<HTMLElement | null>(null);
+const terminal = ref<Terminal | null>(null);
+let fitAddon: FitAddon | null = null;
 const command = ref("");
 const connected = ref(false);
 const connecting = ref(false);
-
-function baseUrl() {
-  // 与应用 application.yaml BaseUrl 保持一致，默认 /monitor/api
-  return "/monitor/api";
+let termDataDispose: { dispose: () => void } | null = null;
+const fixedCols = ref<number>(0);
+const fixedRows = ref<number>(0);
+const containerStyle = ref<Record<string, string>>({});
+function handleTermData(data: string) {
+  if (!ws.value || !connected.value || !terminal.value) return;
+  // 处理常见按键：回车、退格、Ctrl+C
+  try {
+    ws.value.send(data);
+  } catch {}
+}
+function focusTerm() {
+  terminal.value?.focus();
 }
 
 function buildWsUrl(nodeId: string) {
-  const loc = window.location;
-  const protocol = loc.protocol === "https:" ? "wss:" : "ws:";
-  const host = loc.host;
-  return `${protocol}//${host}${baseUrl()}/v1/arthas/console/ws?nodeId=${encodeURIComponent(nodeId)}`;
+  return createWebSocketUrl("/v1/arthas/console/ws", "other", null, nodeId);
 }
 
 function append(text: string) {
-  if (!outputRef.value) return;
-  outputRef.value.textContent += text;
-  outputRef.value.scrollTop = outputRef.value.scrollHeight;
+  if (!terminal.value) return;
+  requestAnimationFrame(() => {
+    terminal.value!.write(text);
+  });
+}
+
+function sendResize() {
+  if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return;
+  const cols = fixedCols.value || (terminal.value?.cols ?? 0);
+  const rows = fixedRows.value || (terminal.value?.rows ?? 0);
+  if (!cols || !rows) return;
+  try {
+    ws.value.send(JSON.stringify({ action: "resize", cols, rows }));
+  } catch {}
 }
 
 function connect() {
@@ -53,23 +93,28 @@ function connect() {
     connecting.value = true;
     const url = buildWsUrl(props.nodeId);
     ws.value = new WebSocket(url);
+    initialTerm();
     ws.value.onopen = () => {
       connected.value = true;
       connecting.value = false;
-      append(`\n[connected] ${url}\n`);
+      // 连接成功，下发一次固定的 cols/rows
+      sendResize();
     };
-    ws.value.onmessage = evt => {
-      const data = typeof evt.data === "string" ? evt.data : "";
-      append(data);
+    ws.value.onmessage = (evt) => {
+      if (typeof evt.data === "string") {
+        append(evt.data);
+      } else if (evt.data instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = () => append(String(reader.result || ""));
+        reader.readAsText(evt.data);
+      }
     };
     ws.value.onclose = () => {
       connected.value = false;
       connecting.value = false;
-      append(`\n[closed]\n`);
     };
     ws.value.onerror = () => {
       connecting.value = false;
-      append(`\n[error]\n`);
     };
   } catch (e) {
     connecting.value = false;
@@ -83,6 +128,60 @@ function disconnect() {
     } catch {}
     ws.value = null;
   }
+  if (terminal.value) {
+    try {
+      terminal.value.dispose();
+    } catch {}
+    terminal.value = null;
+  }
+  if (termDataDispose) {
+    try {
+      termDataDispose.dispose();
+    } catch {}
+    termDataDispose = null;
+  }
+  fitAddon = null;
+}
+
+function initialTerm() {
+  // 初始化 xterm
+  if (!terminal.value && xtermRef.value) {
+    terminal.value = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Consolas, "Courier New", monospace',
+      theme: {
+        background: "#1e1e1e",
+        foreground: "#d4d4d4",
+        cursor: "#ffffff",
+      },
+      convertEol: true,
+      windowsMode: true,
+      scrollback: 2000,
+    });
+    fitAddon = new FitAddon();
+    terminal.value.loadAddon(fitAddon);
+    terminal.value.loadAddon(new WebLinksAddon());
+    terminal.value.open(xtermRef.value);
+    termDataDispose = terminal.value.onData(handleTermData);
+    try {
+      fitAddon.fit();
+    } catch {}
+    // 记录一次初始化计算得到的 cols/rows，并固定下来
+    fixedCols.value = terminal.value.cols;
+    fixedRows.value = terminal.value.rows;
+    // 锁定容器尺寸为当前像素大小，避免后续布局变化
+    const viewport = xtermRef.value.querySelector(
+      ".xterm-viewport"
+    ) as HTMLElement | null;
+    const box = viewport || xtermRef.value;
+    const w = (box as HTMLElement).clientWidth;
+    const h = (box as HTMLElement).clientHeight;
+    if (w && h) {
+      containerStyle.value = { width: w + "px", height: h + "px" };
+    }
+    terminal.value.focus();
+  }
 }
 
 function reconnect() {
@@ -92,7 +191,7 @@ function reconnect() {
 }
 
 function clearOutput() {
-  if (outputRef.value) outputRef.value.textContent = "";
+  if (terminal.value) terminal.value.clear();
 }
 
 function sendCommand() {
@@ -120,7 +219,9 @@ watch(
 );
 
 onMounted(() => {
-  if (props.nodeId) connect();
+  if (props.nodeId) {
+    connect();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -152,6 +253,38 @@ onBeforeUnmount(() => {
   color: #e6edf3;
   padding: 10px;
   border-radius: 4px;
+  height: 768px;
   white-space: pre-wrap;
+}
+.xterm-viewport {
+  scrollbar-color: var(--el-color-primary) transparent;
+  /* 滑块颜色、轨道颜色 */
+
+  /* Firefox */
+  scrollbar-width: thin;
+
+  /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px;
+    /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary);
+    /* 滑块hover颜色 */
+  }
 }
 </style>
