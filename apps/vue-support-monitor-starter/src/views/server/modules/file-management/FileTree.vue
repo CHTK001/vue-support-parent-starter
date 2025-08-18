@@ -46,19 +46,19 @@
         @node-collapse="handleNodeCollapse"
       >
         <template #default="{ node, data }">
-          <div class="tree-node">
-            <IconifyIconOnline
-              :icon="getNodeIcon(data)"
-              :class="['node-icon', { 'folder-icon': data.isDirectory }]"
-            />
+          <div
+            class="tree-node"
+            :class="{ 'drop-over': dragOverPath === data.path }"
+            @dragenter.prevent="onDragEnterNode(data)"
+            @dragover.prevent
+            @dragleave.prevent="onDragLeaveNode(data)"
+            @drop.stop="onDropToNode($event, data)"
+          >
+            <IconifyIconOnline :icon="getNodeIcon(data)" :class="['node-icon', { 'folder-icon': data.isDirectory }]" />
             <span class="node-label" :title="data.name">{{ data.name }}</span>
 
             <!-- 加载状态指示器 -->
-            <IconifyIconOnline
-              v-if="loadingNodes.has(data.path)"
-              icon="ri:loader-4-line"
-              class="node-loading"
-            />
+            <IconifyIconOnline v-if="loadingNodes.has(data.path)" icon="ri:loader-4-line" class="node-loading" />
 
             <div class="node-actions" v-if="data.isDirectory" @click.stop>
               <el-tooltip content="新建文件夹" placement="top">
@@ -67,12 +67,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip content="刷新" placement="top">
-                <el-button
-                  size="small"
-                  text
-                  @click="refreshNode(node, data)"
-                  :loading="loadingNodes.has(data.path)"
-                >
+                <el-button size="small" text @click="refreshNode(node, data)" :loading="loadingNodes.has(data.path)">
                   <IconifyIconOnline icon="ri:refresh-line" />
                 </el-button>
               </el-tooltip>
@@ -83,19 +78,10 @@
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <el-dialog
-      v-model="createFolderVisible"
-      title="新建文件夹"
-      width="400px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
       <el-form :model="createFolderForm" label-width="80px">
         <el-form-item label="文件夹名">
-          <el-input
-            v-model="createFolderForm.name"
-            placeholder="请输入文件夹名称"
-            @keyup.enter="confirmCreateFolder"
-          />
+          <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -110,12 +96,7 @@
 import { ref, reactive, onMounted, nextTick, watch } from "vue";
 import { ElMessage, ElTree } from "element-plus";
 import type { FileInfo } from "@/api/file-management";
-import {
-  getFileTree,
-  getFileList,
-  createDirectory,
-  previewFile,
-} from "@/api/file-management";
+import { getFileTree, getFileList, createDirectory, previewFile } from "@/api/file-management";
 
 // Props
 const props = defineProps<{
@@ -129,6 +110,7 @@ const emit = defineEmits<{
   "folder-click": [path: string, node: FileInfo];
   "file-click": [path: string, node: FileInfo];
   refresh: [];
+  "drop-upload": [targetDir: string, files: File[]];
 }>();
 
 // 响应式数据
@@ -139,8 +121,11 @@ const rootNodeData = ref<FileInfo[]>([]); // 存储根节点数据
 const createFolderVisible = ref(false);
 const createFolderForm = reactive({
   name: "",
-  parentPath: "",
+  parentPath: ""
 });
+
+// 拖拽高亮状态
+const dragOverPath = ref<string | null>(null);
 
 // 性能优化配置
 const LAZY_LOAD_PAGE_SIZE = 50; // 每次懒加载的数量
@@ -150,7 +135,7 @@ const loadingNodes = ref(new Set<string>()); // 正在加载的节点路径
 const treeProps = {
   children: "children",
   label: "name",
-  isLeaf: "leaf", // 使用后端返回的 leaf 属性
+  isLeaf: "leaf" // 使用后端返回的 leaf 属性
 };
 
 /**
@@ -170,11 +155,7 @@ const loadRootNode = async () => {
     const res = await getFileTree(props.serverId, "/", 1, false, true, 100, 0);
     console.log("FileTree: API response", res);
 
-    if (
-      res.code === "00000" &&
-      res.data?.success &&
-      (res.data.fileTree || res.data.tree)
-    ) {
+    if (res.code === "00000" && res.data?.success && (res.data.fileTree || res.data.tree)) {
       // 获取根节点数据
       const treeData = res.data.fileTree || res.data.tree;
       console.log("FileTree: Received tree data", treeData);
@@ -263,7 +244,7 @@ const loadNode = async (node: any, resolve: Function) => {
       console.log("FileTree: Raw children data", children);
 
       // 处理子节点数据，确保正确设置 leaf 属性
-      const processedChildren = children.map((child) => {
+      const processedChildren = children.map(child => {
         // 后端应该已经设置了正确的 leaf 属性
         // 但为了保险起见，我们再次确认
         if (child.leaf === undefined) {
@@ -272,10 +253,7 @@ const loadNode = async (node: any, resolve: Function) => {
         return child;
       });
 
-      console.log(
-        "FileTree: Children loaded with lazy loading",
-        processedChildren
-      );
+      console.log("FileTree: Children loaded with lazy loading", processedChildren);
 
       resolve(processedChildren);
     } else {
@@ -324,6 +302,66 @@ const handleNodeExpand = (data: FileInfo, node: any) => {
 const handleNodeCollapse = (data: FileInfo, node: any) => {
   console.log("FileTree: 节点折叠:", data.path);
 };
+
+/**
+ * 目录节点接收拖拽上传
+ */
+const onDropToNode = (ev: DragEvent, data: FileInfo) => {
+  if (!data?.isDirectory) return;
+  dragOverPath.value = null;
+  const items = ev.dataTransfer?.items;
+  if (items && items.length) {
+    // 支持目录拖拽：递归读取 entries
+    const entries: any[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = (items[i] as any).webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+    if (entries.length) {
+      readEntriesRecursive(entries).then(files => emit("drop-upload", data.path, files));
+      return;
+    }
+  }
+  const files = Array.from(ev.dataTransfer?.files || []);
+  if (files.length === 0) return;
+  emit("drop-upload", data.path, files);
+};
+
+function onDragEnterNode(data: FileInfo) {
+  if (data?.isDirectory) dragOverPath.value = data.path;
+}
+function onDragLeaveNode(data: FileInfo) {
+  if (dragOverPath.value === data.path) dragOverPath.value = null;
+}
+
+async function readEntriesRecursive(entries: any[]): Promise<File[]> {
+  const collected: File[] = [];
+  async function walk(entry: any, pathPrefix = ""): Promise<void> {
+    return new Promise(resolve => {
+      if (entry.isFile) {
+        entry.file((file: File) => {
+          Object.defineProperty(file, "webkitRelativePath", {
+            value: pathPrefix + file.name
+          });
+          collected.push(file);
+          resolve();
+        });
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        reader.readEntries(async (ents: any[]) => {
+          for (const e of ents) {
+            await walk(e, pathPrefix + entry.name + "/");
+          }
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  }
+  for (const e of entries) await walk(e);
+  return collected;
+}
 
 /**
  * 获取节点图标
@@ -530,7 +568,7 @@ const refreshTree = async () => {
 const expandAll = () => {
   // 遍历所有节点并展开
   const expandNodes = (nodes: any[]) => {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
       if (node.isDirectory) {
         treeRef.value?.setExpanded(node.path, true);
         if (node.children) {
@@ -548,7 +586,7 @@ const expandAll = () => {
 const collapseAll = () => {
   // 遍历所有节点并折叠
   const collapseNodes = (nodes: any[]) => {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
       if (node.isDirectory) {
         treeRef.value?.setExpanded(node.path, false);
         if (node.children) {
@@ -635,8 +673,7 @@ const expandToPath = async (targetPath: string) => {
       currentPath += "/" + part;
 
       // 展开当前路径的父节点
-      const parentPath =
-        currentPath.substring(0, currentPath.lastIndexOf("/")) || "/";
+      const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/")) || "/";
       if (parentPath !== "/") {
         await nextTick();
         // 使用 el-tree 的正确方法来展开节点
@@ -662,7 +699,7 @@ const expandToPath = async (targetPath: string) => {
  */
 watch(
   () => props.serverId,
-  (newServerId) => {
+  newServerId => {
     if (newServerId) {
       console.log("FileTree: serverId changed to", newServerId);
       // 清理之前的数据
@@ -681,12 +718,7 @@ watch(
 watch(
   () => props.serverId,
   async (newServerId, oldServerId) => {
-    console.log(
-      "FileTree: serverId changed from",
-      oldServerId,
-      "to",
-      newServerId
-    );
+    console.log("FileTree: serverId changed from", oldServerId, "to", newServerId);
     if (newServerId && newServerId !== oldServerId) {
       // 清理旧数据
       rootNodeData.value = [];
@@ -723,7 +755,7 @@ onMounted(async () => {
 defineExpose({
   refreshTree,
   setCurrentPath,
-  expandToPath,
+  expandToPath
 });
 </script>
 
@@ -771,6 +803,10 @@ defineExpose({
   align-items: center;
   width: 100%;
   padding: 2px 0;
+}
+.tree-node.drop-over {
+  background: var(--el-color-primary-light-9);
+  border-radius: 4px;
 }
 
 .node-icon {
