@@ -57,8 +57,8 @@
       <el-select
         v-model="refreshInterval"
         style="width: 120px"
-        :disabled="!autoRefresh"
-        placeholder="刷新间隔"
+        placeholder="拉取间隔"
+        title="设置结果拉取间隔（同时用于自动刷新间隔）"
       >
         <el-option :value="5" label="5秒" />
         <el-option :value="10" label="10秒" />
@@ -216,9 +216,11 @@ import {
 } from "vue";
 import { QuestionFilled, Loading } from "@element-plus/icons-vue";
 import {
+  getOrCreateSession,
   execArthasCommandAsync,
   pullArthasResults,
   interruptArthasJob,
+  closeArthasSession,
 } from "@/api/arthas-http";
 
 const props = defineProps<{ nodeId: string }>();
@@ -243,7 +245,7 @@ const methodPattern = ref("exec");
 const condition = ref("");
 const useRegex = ref(false);
 const count = ref(10);
-const expand = ref(2);
+const expand = ref(0);
 
 // 自动刷新相关
 const autoRefresh = ref(false);
@@ -296,20 +298,30 @@ function clearData() {
 // 构建命令
 function buildCmd(): string {
   const parts: string[] = ["trace"];
-  if (useRegex.value) parts.push("-E");
+  if (useRegex.value) {
+    parts.push("-E");
+    console.log("添加正则表达式参数 -E");
+  } else {
+    console.log("未勾选正则表达式，不添加 -E 参数");
+  }
   parts.push(classPatternTrim.value);
   parts.push((methodPattern.value || "*").trim() || "*");
   const cond = (condition.value || "").trim();
   if (cond) parts.push(`'${cond}'`);
   if (count.value && count.value > 0) parts.push("-n", String(count.value));
   if (expand.value && expand.value > 0) parts.push("-x", String(expand.value));
-  return parts.join(" ");
+
+  const cmd = parts.join(" ");
+  console.log("构建的完整命令:", cmd);
+  console.log("useRegex.value:", useRegex.value);
+  return cmd;
 }
 
 // 解析链路追踪数据
 function parseTraceData(output: any): TraceInfo[] {
   try {
     if (!output?.body?.results) {
+      console.log("没有找到results数据");
       return [];
     }
 
@@ -319,19 +331,21 @@ function parseTraceData(output: any): TraceInfo[] {
     // 查找trace类型的结果
     for (const result of results) {
       if (result.type === "trace") {
-        // 检查是否有tree数据
-        if (result.tree) {
+        // 检查是否有root数据（新格式）或tree数据（旧格式）
+        const traceRoot = result.root || result.tree;
+        if (traceRoot) {
           // 解析trace树结构
           const trace: TraceInfo = {
-            className: extractClassName(result.tree),
-            methodName: extractMethodName(result.tree),
-            cost: result.cost || 0,
+            className: extractClassName(traceRoot),
+            methodName: extractMethodName(traceRoot),
+            cost: result.cost || traceRoot.cost || 0,
             success: !result.exception,
             timestamp: Date.now(),
-            tree: parseTraceTree(result.tree, 0),
+            tree: parseTraceTree(traceRoot, 0),
             expanded: false,
           };
           traces.push(trace);
+          console.log("成功解析trace数据:", trace.className, trace.methodName);
         } else if (result.className && result.methodName) {
           // 可能是其他格式的trace数据，尝试直接解析
           const trace: TraceInfo = {
@@ -344,10 +358,14 @@ function parseTraceData(output: any): TraceInfo[] {
             expanded: false,
           };
           traces.push(trace);
+          console.log("解析简单trace数据:", trace.className, trace.methodName);
+        } else {
+          console.log("trace数据格式不识别:", result);
         }
       }
     }
 
+    console.log("解析完成，trace数量:", traces.length);
     return traces;
   } catch (e) {
     console.error("解析链路追踪数据失败:", e);
@@ -391,20 +409,40 @@ function parseTraceTree(tree: any, depth: number): TraceNode[] {
 // 从trace树中提取类名
 function extractClassName(tree: any): string {
   if (!tree) return "";
+
+  // 如果当前节点有className，直接返回
   if (tree.className) return tree.className;
+
+  // 如果是thread类型的根节点，查找children中的第一个method
+  if (tree.type === "thread" && tree.children && tree.children.length > 0) {
+    return extractClassName(tree.children[0]);
+  }
+
+  // 如果是数组，取第一个元素
   if (Array.isArray(tree) && tree.length > 0) {
     return extractClassName(tree[0]);
   }
+
   return "";
 }
 
 // 从trace树中提取方法名
 function extractMethodName(tree: any): string {
   if (!tree) return "";
+
+  // 如果当前节点有methodName，直接返回
   if (tree.methodName) return tree.methodName;
+
+  // 如果是thread类型的根节点，查找children中的第一个method
+  if (tree.type === "thread" && tree.children && tree.children.length > 0) {
+    return extractMethodName(tree.children[0]);
+  }
+
+  // 如果是数组，取第一个元素
   if (Array.isArray(tree) && tree.length > 0) {
     return extractMethodName(tree[0]);
   }
+
   return "";
 }
 
@@ -449,26 +487,47 @@ async function run() {
 
   try {
     const cmd = buildCmd();
+    console.log("开始执行trace流程，命令:", cmd);
 
-    // 1. 异步启动trace命令
-    const execRes = await execArthasCommandAsync(props.nodeId, cmd);
+    // 1. 先获取或创建会话（不执行命令）
+    console.log("步骤1: 获取或创建会话");
+    const sessionRes = await getOrCreateSession(props.nodeId, cmd);
 
-    if (execRes?.success && execRes.data) {
-      sessionId.value = execRes.data.sessionId;
-      consumerId.value = execRes.data.consumerId;
-      jobId.value = execRes.data.jobId;
-      isRunning.value = true;
+    if (sessionRes?.success && sessionRes.data) {
+      sessionId.value = sessionRes.data.sessionId;
+      consumerId.value = sessionRes.data.consumerId;
       connected.value = true;
+      console.log("会话获取成功:", sessionId.value);
 
-      // 2. 开始定期拉取结果
-      startPullingResults();
+      // 2. 异步执行trace命令
+      console.log("步骤2: 异步执行trace命令");
+      const execRes = await execArthasCommandAsync(props.nodeId, cmd);
+      if (execRes?.success && execRes.data) {
+        // 更新jobId（可能会有新的jobId）
+        sessionId.value = execRes.data.sessionId;
+        consumerId.value = execRes.data.consumerId;
+        jobId.value = execRes.data.jobId;
+        isRunning.value = true;
+        console.log("命令执行成功，jobId:", jobId.value);
+
+        // 3. 开始定期拉取结果
+        console.log("步骤3: 开始定期拉取结果");
+        startPullingResults();
+        loading.value = false; // 命令执行成功，停止loading
+      } else {
+        error.value = execRes?.msg || "执行trace命令失败";
+        loading.value = false;
+        console.error("命令执行失败:", execRes?.msg);
+      }
     } else {
-      error.value = execRes?.msg || "启动trace命令失败";
+      error.value = sessionRes?.msg || "获取会话失败";
       loading.value = false;
+      console.error("会话获取失败:", sessionRes?.msg);
     }
   } catch (e: any) {
     error.value = e?.message || "启动trace命令异常";
     loading.value = false;
+    console.error("trace启动异常:", e);
   }
 }
 
@@ -484,10 +543,12 @@ function startPullingResults() {
   // 立即拉取一次
   pullResults();
 
-  // 每2秒拉取一次结果
+  // 使用页面配置的刷新间隔拉取结果
+  const intervalMs = refreshInterval.value * 1000;
+  console.log(`开始定时拉取，间隔: ${refreshInterval.value}秒`);
   pullTimer = setInterval(() => {
     pullResults();
-  }, 2000);
+  }, intervalMs);
 }
 
 // 拉取结果
@@ -498,8 +559,23 @@ async function pullResults() {
     const pullRes = await pullArthasResults(sessionId.value, consumerId.value);
 
     if (pullRes?.success && pullRes.data) {
+      // 检查是否重新创建了会话
+      const data = pullRes.data as any;
+      if (data.recreated) {
+        // 会话被重新创建，更新本地信息
+        sessionId.value = data.sessionId;
+        consumerId.value = data.consumerId;
+        jobId.value = data.jobId;
+        console.log("会话已重新创建:", data.message);
+        return; // 本次不处理数据，等待下次拉取
+      }
+
+      // 修复数据结构解析
+      const responseBody =
+        (pullRes.data.body as any)?.body || pullRes.data.body;
+
       const output = {
-        body: pullRes.data.body,
+        body: responseBody,
         sessionId: pullRes.data.sessionId,
         state: "SUCCEEDED",
       };
@@ -511,11 +587,30 @@ async function pullResults() {
       if (parsedTraces.length > 0) {
         traces.value = [...traces.value, ...parsedTraces];
         traceStats.value = calculateStats(traces.value);
+        console.log("成功添加trace数据，当前总数:", traces.value.length);
       }
 
-      // 检查是否有enhancer错误
-      const results = pullRes.data.body?.results || [];
+      // 检查是否有enhancer错误或status错误
+      const results = responseBody?.results || [];
       const enhancerResult = results.find((r: any) => r.type === "enhancer");
+      const statusResult = results.find((r: any) => r.type === "status");
+
+      // 检查status错误（如命令参数错误）
+      if (statusResult && statusResult.statusCode !== 0) {
+        error.value = `Trace命令执行失败: ${statusResult.message}
+
+可能的原因：
+1. 命令参数格式不正确
+2. 类名或方法名不存在
+3. 权限不足
+
+建议：
+1. 检查类名和方法名是否正确
+2. 确保目标类已被加载
+3. 检查命令参数格式`;
+        await stopTrace();
+        return;
+      }
 
       if (enhancerResult && !enhancerResult.success) {
         if (enhancerResult.effect?.overLimitMsg) {
@@ -531,10 +626,12 @@ async function pullResults() {
         }
         // enhancer失败时停止拉取
         await stopTrace();
+        return;
       }
 
       // 检查job状态
-      if (pullRes.data.body?.jobStatus === "TERMINATED") {
+      const jobStatus = responseBody?.jobStatus || pullRes.data.body?.jobStatus;
+      if (jobStatus === "TERMINATED") {
         // job已结束，停止拉取
         await stopTrace();
 
@@ -571,10 +668,10 @@ async function stopTrace() {
     pullTimer = null;
   }
 
-  // 如果有jobId，尝试中断job
-  if (sessionId.value && jobId.value) {
+  // 如果有sessionId，尝试中断job
+  if (sessionId.value) {
     try {
-      await interruptArthasJob(sessionId.value, jobId.value);
+      await interruptArthasJob(sessionId.value);
     } catch (e) {
       console.error("中断trace job失败:", e);
     }
@@ -589,6 +686,16 @@ async function stopTrace() {
 // 停止追踪（用户点击停止按钮）
 async function sendStop() {
   await stopTrace();
+
+  // 关闭会话
+  if (sessionId.value) {
+    try {
+      await closeArthasSession(sessionId.value);
+      console.log("会话已关闭:", sessionId.value);
+    } catch (e) {
+      console.error("关闭会话失败:", e);
+    }
+  }
 }
 
 // 启动自动刷新
@@ -635,6 +742,12 @@ watch(refreshInterval, () => {
   if (autoRefresh.value && props.nodeId && classPatternTrim.value) {
     startAutoRefresh(); // 重新启动定时器
   }
+
+  // 如果正在拉取结果，也重新启动拉取定时器
+  if (isRunning.value && pullTimer) {
+    console.log(`刷新间隔变更为${refreshInterval.value}秒，重新启动拉取定时器`);
+    startPullingResults();
+  }
 });
 
 // 监听节点变化
@@ -656,10 +769,33 @@ onMounted(() => {
   // 不自动执行，需要用户设置类匹配后手动执行
 });
 
-// 组件卸载时清理定时器
-onBeforeUnmount(() => {
+// 监控useRegex值的变化
+watch(useRegex, (newVal, oldVal) => {
+  console.log("useRegex值变化:", oldVal, "->", newVal);
+  console.log("新命令:", buildCmd());
+});
+
+// 组件挂载时的调试信息
+onMounted(() => {
+  console.log("TraceViewer组件已挂载");
+  console.log("useRegex初始值:", useRegex.value);
+  console.log("初始命令:", buildCmd());
+});
+
+// 组件卸载时清理定时器和会话
+onBeforeUnmount(async () => {
   stopAutoRefresh();
-  stopTrace();
+  await stopTrace();
+
+  // 关闭会话
+  if (sessionId.value) {
+    try {
+      await closeArthasSession(sessionId.value);
+      console.log("页面卸载，会话已关闭:", sessionId.value);
+    } catch (e) {
+      console.error("页面卸载时关闭会话失败:", e);
+    }
+  }
 });
 </script>
 
