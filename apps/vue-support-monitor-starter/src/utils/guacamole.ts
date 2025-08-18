@@ -3,6 +3,7 @@
  * 基于 guacamole-common-js 实现
  */
 
+import { getConfig } from "@repo/config";
 import Guacamole from "guacamole-common-js";
 
 export interface GuacamoleClientConfig {
@@ -344,9 +345,9 @@ export function createWebSocketUrl(
   serverId: string | number,
   nodeId?: string | number
 ): string {
+  baseUrl = getConfig().BaseUrl + baseUrl;
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.host;
-
   // 如果 baseUrl 是相对路径，构建完整的 WebSocket URL
   if (baseUrl.startsWith("/")) {
     return `${wsProtocol}//${host}${baseUrl}?serverId=${serverId}&protocol=${protocol}&nodeId=${nodeId}`;
