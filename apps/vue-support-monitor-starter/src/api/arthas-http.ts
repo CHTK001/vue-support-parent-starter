@@ -131,7 +131,44 @@ export function execArthasCommand(
 }
 
 /**
- * 异步执行arthas命令
+ * 获取或创建会话（推荐使用）
+ * - 后端路径：POST /v1/arthas/get-or-create-session
+ * - 请求体：{ nodeId, command? }
+ * - 返回：{ sessionId, consumerId, jobId }
+ * - 逻辑：先检查是否有可用会话，没有则创建新会话
+ */
+export function getOrCreateSession(nodeId: string, command?: string) {
+  return http.request<ReturnResult<ArthasAsyncExecResp>>(
+    "post",
+    "/v1/arthas/get-or-create-session",
+    {
+      data: { nodeId, command },
+      timeout: 10000,
+      headers: { "x-remote-animation": "false" },
+    }
+  );
+}
+
+/**
+ * 初始化会话
+ * - 后端路径：POST /v1/arthas/init-session
+ * - 请求体：{ nodeId, command? }
+ * - 返回：{ sessionId, consumerId, jobId }
+ */
+export function initSession(nodeId: string, command?: string) {
+  return http.request<ReturnResult<ArthasAsyncExecResp>>(
+    "post",
+    "/v1/arthas/init-session",
+    {
+      data: { nodeId, command },
+      timeout: 10000,
+      headers: { "x-remote-animation": "false" },
+    }
+  );
+}
+
+/**
+ * 异步执行arthas命令（已废弃，建议使用getOrCreateSession）
  * - 后端路径：POST /v1/arthas/async-exec
  * - 请求体：{ nodeId, command }
  * - 返回：{ sessionId, consumerId, jobId }
@@ -169,11 +206,24 @@ export function pullArthasResults(sessionId: string, consumerId: string) {
 /**
  * 停止arthas命令执行
  * - 后端路径：POST /v1/arthas/interrupt-job
- * - 请求体：{ sessionId, jobId }
+ * - 请求体：{ sessionId }
  */
-export function interruptArthasJob(sessionId: string, jobId: number) {
+export function interruptArthasJob(sessionId: string) {
   return http.request<ReturnResult<any>>("post", "/v1/arthas/interrupt-job", {
-    data: { sessionId, jobId },
+    data: { sessionId },
+    timeout: 5000,
+    headers: { "x-remote-animation": "false" },
+  });
+}
+
+/**
+ * 关闭arthas会话
+ * - 后端路径：POST /v1/arthas/close-session
+ * - 请求体：{ sessionId }
+ */
+export function closeArthasSession(sessionId: string) {
+  return http.request<ReturnResult<any>>("post", "/v1/arthas/close-session", {
+    data: { sessionId },
     timeout: 5000,
     headers: { "x-remote-animation": "false" },
   });

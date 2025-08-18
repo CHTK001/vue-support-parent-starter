@@ -1,38 +1,88 @@
 <template>
   <div class="arthas-management">
     <div class="toolbar">
-      <NodeSelector :nodes="arthasNodes" label="在线节点" placeholder="选择 Arthas 节点" v-model="selectedNodeId" @change="handleSelectNode" />
+      <NodeSelector
+        :nodes="arthasNodes"
+        label="在线节点"
+        placeholder="选择 Arthas 节点"
+        v-model="selectedNodeId"
+        @change="handleSelectNode"
+      />
       <div class="ops">
-        <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes">刷新</el-button>
-        <el-button type="primary" :disabled="!selectedNode || connected" @click="connectNode">连接</el-button>
-        <el-button :disabled="!connected" @click="disconnectNode">断开</el-button>
-        <el-button :disabled="!selectedNode" @click="configVisible = true">配置</el-button>
+        <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes"
+          >刷新</el-button
+        >
+        <el-button
+          type="primary"
+          :disabled="!selectedNode || connected"
+          @click="connectNode"
+          >连接</el-button
+        >
+        <el-button :disabled="!connected" @click="disconnectNode"
+          >断开</el-button
+        >
+        <el-button :disabled="!selectedNode" @click="configVisible = true"
+          >配置</el-button
+        >
       </div>
     </div>
 
     <div class="content">
       <div v-if="connected" class="left-panel">
         <div class="panel-title">功能列表</div>
-        <FeatureMenu v-model="activeFeature" :features="features" @select="handleFeatureSelect" />
+        <FeatureMenu
+          v-model="activeFeature"
+          :features="features"
+          @select="handleFeatureSelect"
+        />
       </div>
 
       <div class="right-panel">
         <div v-if="!connected" class="empty-state">
-          <el-empty description="请选择包含 Arthas 客户端的在线节点并点击连接" />
+          <el-empty
+            description="请选择包含 Arthas 客户端的在线节点并点击连接"
+          />
         </div>
         <div v-else class="feature-container">
-          <TerminalConsole v-if="activeFeature === 'console'" :node-id="selectedNodeId" />
-          <ThreadViewer v-else-if="activeFeature === 'thread'" :node-id="selectedNodeId" />
-          <TraceViewer v-else-if="activeFeature === 'trace'" :node-id="selectedNodeId" />
+          <TerminalConsole
+            v-if="activeFeature === 'console'"
+            :node-id="selectedNodeId"
+          />
+          <ThreadViewer
+            v-else-if="activeFeature === 'thread'"
+            :node-id="selectedNodeId"
+          />
+          <TraceViewer
+            v-else-if="activeFeature === 'trace'"
+            :node-id="selectedNodeId"
+          />
+          <SmViewer
+            v-else-if="activeFeature === 'class'"
+            :node-id="selectedNodeId"
+          />
+          <MemoryViewer
+            v-else-if="activeFeature === 'memory'"
+            :node-id="selectedNodeId"
+          />
           <div v-else class="console-wrap">
-            <el-alert type="info" :closable="false" show-icon class="mb-2" :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`" />
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+              class="mb-2"
+              :title="`当前功能（${currentFeature?.title || '功能'}）由 Arthas 控制台提供，请在下方控制台内操作`"
+            />
             <TerminalConsole :node-id="selectedNodeId" />
           </div>
         </div>
       </div>
     </div>
 
-    <ArthasConfigDialog v-model="configVisible" :server-id="selectedNodeId" @saved="reloadNodes" />
+    <ArthasConfigDialog
+      v-model="configVisible"
+      :server-id="selectedNodeId"
+      @saved="reloadNodes"
+    />
   </div>
 </template>
 
@@ -44,8 +94,13 @@ import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
 import ThreadViewer from "@/views/arthas-managemenet/components/ThreadViewer.vue";
 import TraceViewer from "@/views/arthas-managemenet/components/TraceViewer.vue";
+import SmViewer from "@/views/arthas-managemenet/components/SmViewer.vue";
+import MemoryViewer from "@/views/arthas-managemenet/components/MemoryViewer.vue";
 import ArthasConfigDialog from "@/views/arthas-managemenet/components/ArthasConfigDialog.vue";
-import { fetchAllOnlineNodes, type OnlineNodeInfo } from "@/api/node-management";
+import {
+  fetchAllOnlineNodes,
+  type OnlineNodeInfo,
+} from "@/api/node-management";
 import { connectArthasNode } from "@/api/arthas-management";
 
 const nodeList = ref<OnlineNodeInfo[]>([]);
@@ -61,20 +116,25 @@ const features = [
   { key: "trace", title: "链路追踪", icon: "ri:route-line" },
   { key: "jvm", title: "JVM", icon: "ri:cpu-line" },
   { key: "memory", title: "内存", icon: "ri:database-2-line" },
-  { key: "class", title: "类加载", icon: "ri:code-s-slash-line" },
-  { key: "logger", title: "日志", icon: "ri:file-list-3-line" },
-  { key: "profiler", title: "性能分析", icon: "ri:line-chart-line" }
+  { key: "class", title: "堆栈", icon: "ri:code-s-slash-line" },
 ];
 
-const currentFeature = computed(() => features.find(f => f.key === activeFeature.value));
+const currentFeature = computed(() =>
+  features.find((f) => f.key === activeFeature.value)
+);
 
 const ARTHAS_META_KEY = "report.client.arthas.port";
-const arthasNodes = computed(() => nodeList.value.filter(n => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {})));
+const arthasNodes = computed(() =>
+  nodeList.value.filter(
+    (n) => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {})
+  )
+);
 
 const consoleUrlRef = ref("");
 
 function handleSelectNode() {
-  selectedNode.value = nodeList.value.find(n => n.nodeId === selectedNodeId.value) || null;
+  selectedNode.value =
+    nodeList.value.find((n) => n.nodeId === selectedNodeId.value) || null;
 }
 
 async function reloadNodes() {
@@ -82,7 +142,10 @@ async function reloadNodes() {
     const res: any = await fetchAllOnlineNodes();
     if (res?.success) {
       nodeList.value = res.data || [];
-      if (selectedNode.value && !nodeList.value.some(n => n.nodeId === selectedNode.value!.nodeId)) {
+      if (
+        selectedNode.value &&
+        !nodeList.value.some((n) => n.nodeId === selectedNode.value!.nodeId)
+      ) {
         selectedNodeId.value = "";
         selectedNode.value = null;
         connected.value = false;
