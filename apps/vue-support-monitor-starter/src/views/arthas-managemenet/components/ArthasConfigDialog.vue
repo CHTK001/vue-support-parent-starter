@@ -7,6 +7,14 @@
       <el-form-item label="HTTP API 地址">
         <el-input v-model="form.http" placeholder="http://host:port/api" />
       </el-form-item>
+      <el-form-item label="HTTP超时时间(ms)">
+        <el-input-number
+          v-model="httpTimeout"
+          :min="1000"
+          :step="1000"
+          :max="120000"
+        />
+      </el-form-item>
       <el-form-item label="用户名">
         <el-input v-model="form.username" placeholder="可选" />
       </el-form-item>
@@ -56,6 +64,12 @@ const form = ref<ArthasTunnelConfigDto>({
   password: "",
 });
 
+// HTTP 超时（仅前端使用，不提交到后端）
+const HTTP_TIMEOUT_KEY = "arthas.http.timeout";
+const httpTimeout = ref<number>(
+  Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000)
+);
+
 function close() {
   visible.value = false;
 }
@@ -72,6 +86,11 @@ async function onOpen() {
       form.value.http =
         res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
       form.value.password = res.data?.arthasTunnelConfigPassword || "";
+      // 读取本地已保存的超时，若无则保持默认
+      const t = Number(
+        localStorage.getItem(HTTP_TIMEOUT_KEY) || httpTimeout.value || 15000
+      );
+      httpTimeout.value = isNaN(t) ? 15000 : t;
     } else {
       ElMessage.error(res?.msg || "获取配置失败");
     }
@@ -86,7 +105,10 @@ async function save() {
   if (!props.serverId) return;
   try {
     loading.value = true;
+    // 保存后端可识别的字段
     const ok: any = await setTunnelConfig(props.serverId as any, form.value);
+    // 同步保存前端HTTP超时到本地
+    localStorage.setItem(HTTP_TIMEOUT_KEY, String(httpTimeout.value || 15000));
     if (ok?.success) {
       ElMessage.success("保存成功");
       emit("saved");

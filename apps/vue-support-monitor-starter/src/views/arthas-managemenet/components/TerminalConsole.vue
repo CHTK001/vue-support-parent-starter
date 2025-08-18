@@ -168,15 +168,15 @@ function initialTerm() {
       fitAddon.fit();
     } catch {}
     // 记录一次初始化计算得到的 cols/rows，并固定下来
-    fixedCols.value = terminal.value.cols;
-    fixedRows.value = terminal.value.rows;
+    fixedCols.value = terminal.value.cols - 10;
+    fixedRows.value = terminal.value.rows + 30;
     // 锁定容器尺寸为当前像素大小，避免后续布局变化
     const viewport = xtermRef.value.querySelector(
       ".xterm-viewport"
     ) as HTMLElement | null;
     const box = viewport || xtermRef.value;
     const w = (box as HTMLElement).clientWidth;
-    const h = (box as HTMLElement).clientHeight;
+    const h = (box as HTMLElement).clientHeight + 350;
     if (w && h) {
       containerStyle.value = { width: w + "px", height: h + "px" };
     }
@@ -253,9 +253,10 @@ onBeforeUnmount(() => {
   color: #e6edf3;
   padding: 10px;
   border-radius: 4px;
-  height: 768px;
   white-space: pre-wrap;
+  overflow-x: hidden;
 }
+.output,
 .xterm-viewport {
   scrollbar-color: var(--el-color-primary) transparent;
   /* 滑块颜色、轨道颜色 */
