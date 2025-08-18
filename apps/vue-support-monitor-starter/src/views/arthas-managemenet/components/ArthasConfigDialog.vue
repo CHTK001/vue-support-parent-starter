@@ -1,6 +1,6 @@
 <template>
-  <el-dialog v-model="visible" title="Arthas 配置" width="520px" @open="onOpen">
-    <el-form :model="form" label-width="100px">
+  <el-dialog v-model="visible" title="Arthas 配置" width="620px" @open="onOpen">
+    <el-form :model="form" label-width="150px">
       <el-form-item label="Tunnel 地址">
         <el-input v-model="form.address" placeholder="ws://host:port/ws" />
       </el-form-item>
