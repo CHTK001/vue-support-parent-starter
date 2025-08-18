@@ -4,11 +4,7 @@
     <div class="panel-content">
       <!-- 脚本列表 -->
       <div v-show="activeTab === 'list'" class="tab-content">
-        <ScriptList
-          @execute="handleExecuteScript"
-          @edit="handleEditScript"
-          @create="handleCreateScript"
-        />
+        <ScriptList @execute="handleExecuteScript" @edit="handleEditScript" @create="handleCreateScript" />
       </div>
 
       <!-- 执行历史 -->
@@ -23,54 +19,35 @@
 
       <!-- 运行中脚本 -->
       <div v-show="activeTab === 'running'" class="tab-content">
-        <RunningScripts
-          @stop="handleStopScript"
-          @view-detail="handleViewExecutionDetail"
-        />
+        <RunningScripts @stop="handleStopScript" @view-detail="handleViewExecutionDetail" />
       </div>
     </div>
 
     <!-- 底部标签页导航 -->
     <div class="bottom-tabs">
       <div class="tab-nav">
-        <div
-          class="tab-item"
-          :class="{ active: activeTab === 'list' }"
-          @click="activeTab = 'list'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
           <div class="tab-icon">
             <IconifyIconOnline icon="ri:file-list-3-line" />
           </div>
           <div class="tab-label">主页</div>
         </div>
 
-        <div
-          class="tab-item"
-          :class="{ active: activeTab === 'upload-records' }"
-          @click="activeTab = 'upload-records'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'upload-records' }" @click="activeTab = 'upload-records'">
           <div class="tab-icon">
             <IconifyIconOnline icon="ri:upload-cloud-2-line" />
           </div>
           <div class="tab-label">上传历史</div>
         </div>
 
-        <div
-          class="tab-item"
-          :class="{ active: activeTab === 'history' }"
-          @click="activeTab = 'history'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
           <div class="tab-icon">
             <IconifyIconOnline icon="ri:history-line" />
           </div>
           <div class="tab-label">执行历史</div>
         </div>
 
-        <div
-          class="tab-item"
-          :class="{ active: activeTab === 'running' }"
-          @click="activeTab = 'running'"
-        >
+        <div class="tab-item" :class="{ active: activeTab === 'running' }" @click="activeTab = 'running'">
           <div class="tab-icon">
             <IconifyIconOnline icon="ri:play-circle-line" />
           </div>
@@ -80,25 +57,13 @@
     </div>
 
     <!-- 脚本编辑对话框 -->
-    <ScriptEditDialog
-      v-model:visible="editDialogVisible"
-      :script-data="currentScript"
-      @save="handleSaveScript"
-      @test="handleTestScript"
-    />
+    <ScriptEditDialog v-model:visible="editDialogVisible" :script-data="currentScript" @save="handleSaveScript" @test="handleTestScript" />
 
     <!-- 脚本执行对话框 -->
-    <ScriptExecuteDialog
-      v-model="executeDialogVisible"
-      :script-data="currentScript"
-      @success="handleExecuteSuccess"
-    />
+    <ScriptExecuteDialog v-model="executeDialogVisible" :script-data="currentScript" @success="handleExecuteSuccess" />
 
     <!-- 执行详情对话框 -->
-    <ExecutionDetailDialog
-      v-model="detailDialogVisible"
-      :execution-data="currentExecution"
-    />
+    <ExecutionDetailDialog v-model="detailDialogVisible" :execution-data="currentExecution" />
   </div>
 </template>
 
@@ -175,25 +140,15 @@ const handleViewExecutionDetail = (execution: any) => {
   const ex = execution?.raw || execution || {};
   currentExecution.value = {
     id: ex.monitorSysGenScriptExecutionId || execution.id,
-    scriptName: ex.monitorSysGenScriptId
-      ? `脚本#${ex.monitorSysGenScriptId}`
-      : execution.scriptName,
-    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "")
-      .toString()
-      .toLowerCase(),
-    exitCode:
-      ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
-    startTime: ex.monitorSysGenScriptExecutionStartTime
-      ? new Date(ex.monitorSysGenScriptExecutionStartTime)
-      : execution.startTime,
-    endTime: ex.monitorSysGenScriptExecutionEndTime
-      ? new Date(ex.monitorSysGenScriptExecutionEndTime)
-      : execution.endTime,
-    duration:
-      ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
+    scriptName: ex.monitorSysGenScriptId ? `脚本#${ex.monitorSysGenScriptId}` : execution.scriptName,
+    status: (ex.monitorSysGenScriptExecutionStatus || execution.status || "").toString().toLowerCase(),
+    exitCode: ex.monitorSysGenScriptExecutionExitCode ?? execution.exitCode ?? null,
+    startTime: ex.monitorSysGenScriptExecutionStartTime ? new Date(ex.monitorSysGenScriptExecutionStartTime) : execution.startTime,
+    endTime: ex.monitorSysGenScriptExecutionEndTime ? new Date(ex.monitorSysGenScriptExecutionEndTime) : execution.endTime,
+    duration: ex.monitorSysGenScriptExecutionDuration ?? execution.duration ?? null,
     stdout: ex.monitorSysGenScriptExecutionStdout ?? execution.stdout ?? "",
     stderr: ex.monitorSysGenScriptExecutionStderr ?? execution.stderr ?? "",
-    executor: ex.createBy || execution.executor || "",
+    executor: ex.createBy || execution.executor || ""
   } as any;
   detailDialogVisible.value = true;
 };
@@ -279,11 +234,7 @@ const handleViewExecutionDetail = (execution: any) => {
       }
 
       &.active {
-        background: linear-gradient(
-          135deg,
-          rgba(102, 126, 234, 0.1) 0%,
-          rgba(118, 75, 162, 0.1) 100%
-        );
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
 
         .tab-icon {
           color: #667eea;
