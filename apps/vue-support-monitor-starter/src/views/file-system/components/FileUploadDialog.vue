@@ -1,38 +1,16 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title="文件上传"
-    width="600px"
-    :close-on-click-modal="false"
-    @close="handleClose"
-  >
+  <el-dialog v-model="visible" title="文件上传" width="600px" :close-on-click-modal="false" @close="handleClose">
     <div class="upload-dialog">
       <!-- 拖拽上传区域 -->
-      <div
-        class="upload-area"
-        :class="{ 'is-dragover': isDragOver }"
-        @drop="handleDrop"
-        @dragover="handleDragOver"
-        @dragleave="handleDragLeave"
-        @click="triggerFileSelect"
-      >
+      <div class="upload-area" :class="{ 'is-dragover': isDragOver }" @drop="handleDrop" @dragover="handleDragOver" @dragleave="handleDragLeave" @click="triggerFileSelect">
         <div class="upload-content">
-          <IconifyIconOnline
-            icon="ri:upload-cloud-2-line"
-            class="upload-icon"
-          />
+          <IconifyIconOnline icon="ri:upload-cloud-2-line" class="upload-icon" />
           <div class="upload-text">
             <p class="primary-text">点击选择文件或拖拽文件到此处</p>
             <p class="secondary-text">支持多文件上传，单个文件最大 100MB</p>
           </div>
         </div>
-        <input
-          ref="fileInputRef"
-          type="file"
-          multiple
-          style="display: none"
-          @change="handleFileSelect"
-        />
+        <input ref="fileInputRef" type="file" multiple style="display: none" @change="handleFileSelect" />
       </div>
 
       <!-- 文件列表 -->
@@ -47,22 +25,14 @@
         <div class="list-content">
           <div v-for="(file, index) in fileList" :key="index" class="file-item">
             <div class="file-info">
-              <IconifyIconOnline
-                :icon="getFileIcon(file.name)"
-                class="file-icon"
-              />
+              <IconifyIconOnline :icon="getFileIcon(file.name)" class="file-icon" />
               <div class="file-details">
                 <div class="file-name" :title="file.name">{{ file.name }}</div>
                 <div class="file-size">{{ formatFileSize(file.size) }}</div>
               </div>
             </div>
             <div class="file-actions">
-              <el-button
-                size="small"
-                text
-                type="danger"
-                @click="removeFile(index)"
-              >
+              <el-button size="small" text type="danger" @click="removeFile(index)">
                 <IconifyIconOnline icon="ri:close-line" />
               </el-button>
             </div>
@@ -74,54 +44,29 @@
       <div v-if="uploading" class="upload-progress">
         <div class="progress-info">
           <span class="current-file">
-            <template v-if="isCalculatingMD5">
-              正在计算文件哈希: {{ currentFileName }}
-            </template>
-            <template v-else> 正在上传: {{ currentFileName }} </template>
+            <template v-if="isCalculatingMD5">正在计算文件哈希: {{ currentFileName }}</template>
+            <template v-else>正在上传: {{ currentFileName }}</template>
           </span>
           <span class="progress-text">{{ uploadProgress }}%</span>
         </div>
-        <el-progress
-          :percentage="uploadProgress"
-          :stroke-width="8"
-          :status="isCalculatingMD5 ? 'warning' : undefined"
-        />
+        <el-progress :percentage="uploadProgress" :stroke-width="8" :status="isCalculatingMD5 ? 'warning' : undefined" />
       </div>
 
       <!-- 上传配置 -->
       <div class="upload-config">
         <el-form :model="uploadConfig" label-width="100px" size="small">
           <el-form-item label="文件分组">
-            <el-select
-              v-model="uploadConfig.groupId"
-              placeholder="选择文件分组（可选）"
-              clearable
-              style="width: 100%"
-            >
-              <el-option
-                v-for="group in groupList"
-                :key="group.fileSystemGroupId"
-                :label="group.fileSystemGroupName"
-                :value="group.fileSystemGroupId"
-              />
+            <el-select v-model="uploadConfig.groupId" placeholder="选择文件分组（可选）" clearable style="width: 100%">
+              <el-option v-for="group in groupList" :key="group.fileSystemGroupId" :label="group.fileSystemGroupName" :value="group.fileSystemGroupId" />
             </el-select>
           </el-form-item>
           <el-form-item label="并发数">
-            <el-input-number
-              v-model="uploadConfig.concurrent"
-              :min="1"
-              :max="5"
-              controls-position="right"
-            />
+            <el-input-number v-model="uploadConfig.concurrent" :min="1" :max="5" controls-position="right" />
           </el-form-item>
           <el-form-item label="配置信息" v-if="systemConfig">
             <div class="config-info">
-              <span class="config-item"
-                >分片大小: {{ systemConfig.chunkSize }}MB</span
-              >
-              <span class="config-item"
-                >最大文件: {{ systemConfig.maxFileSize }}MB</span
-              >
+              <span class="config-item">分片大小: {{ systemConfig.chunkSize }}MB</span>
+              <span class="config-item">最大文件: {{ systemConfig.maxFileSize }}MB</span>
             </div>
           </el-form-item>
         </el-form>
@@ -131,12 +76,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleClose">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="!fileList.length || uploading"
-          :loading="uploading"
-          @click="startUpload"
-        >
+        <el-button type="primary" :disabled="!fileList.length || uploading" :loading="uploading" @click="startUpload">
           {{ uploading ? "上传中..." : "开始上传" }}
         </el-button>
       </div>
@@ -149,17 +89,9 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
 import { formatBytes } from "@pureadmin/utils";
 import SparkMD5 from "spark-md5";
-import {
-  initChunkUpload,
-  uploadChunk,
-  checkUploadStatus,
-  getFileSystemConfig,
-} from "@/api/monitor/filesystem";
+import { initChunkUpload, uploadChunk, checkUploadStatus, getFileSystemConfig } from "@/api/monitor/filesystem";
 import { getGroupTree } from "@/api/monitor/filesystem-group";
-import type {
-  UploadQueueStatus,
-  FileSystemConfig,
-} from "@/api/monitor/filesystem";
+import type { UploadQueueStatus, FileSystemConfig } from "@/api/monitor/filesystem";
 
 // Props & Emits
 interface Props {
@@ -180,7 +112,7 @@ const emit = defineEmits<{
 // 响应式数据
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
+  set: value => emit("update:modelValue", value)
 });
 
 const fileInputRef = ref<HTMLInputElement>();
@@ -198,7 +130,7 @@ const sseUnsubscribers = ref<(() => void)[]>([]);
 const uploadConfig = reactive({
   concurrent: 2, // 并发数 (默认值)
   retryCount: 3, // 重试次数 (默认值)
-  groupId: null as number | null, // 文件分组ID
+  groupId: null as number | null // 文件分组ID
 });
 
 // 分组列表
@@ -255,19 +187,17 @@ const addFiles = (files: File[]) => {
   }
 
   const maxSize = systemConfig.value.maxFileSize * 1024 * 1024; // 转换为字节
-  const validFiles = files.filter((file) => {
+  const validFiles = files.filter(file => {
     if (file.size > maxSize) {
-      ElMessage.warning(
-        `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`
-      );
+      ElMessage.warning(`文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`);
       return false;
     }
     return true;
   });
 
   // 去重
-  const existingNames = new Set(fileList.value.map((f) => f.name));
-  const newFiles = validFiles.filter((file) => !existingNames.has(file.name));
+  const existingNames = new Set(fileList.value.map(f => f.name));
+  const newFiles = validFiles.filter(file => !existingNames.has(file.name));
 
   if (newFiles.length !== validFiles.length) {
     ElMessage.warning("部分文件已存在，已跳过重复文件");
@@ -302,7 +232,7 @@ const calculateFileMD5 = async (file: File): Promise<string> => {
     const reader = new FileReader();
     const spark = new SparkMD5.ArrayBuffer();
 
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         spark.append(e.target?.result as ArrayBuffer);
         const md5Hash = spark.end();
@@ -341,7 +271,7 @@ const calculateLargeFileMD5 = async (file: File): Promise<string> => {
       fileReader.readAsArrayBuffer(chunk);
     };
 
-    fileReader.onload = (e) => {
+    fileReader.onload = e => {
       try {
         spark.append(e.target?.result as ArrayBuffer);
         currentChunk++;
@@ -406,10 +336,7 @@ const startUpload = async () => {
 /**
  * 上传单个文件
  */
-const uploadSingleFile = async (
-  file: File,
-  progressCallback?: (progress: number) => void
-) => {
+const uploadSingleFile = async (file: File, progressCallback?: (progress: number) => void) => {
   try {
     // 显示MD5计算状态
     isCalculatingMD5.value = true;
@@ -432,7 +359,7 @@ const uploadSingleFile = async (
       throw new Error("系统配置未加载");
     }
 
-    const chunkSize = systemConfig.value.chunkSize * 1024 * 1024; // 转换为字节
+    const chunkSize = (systemConfig.value.chunkSize || 100) * 1024 * 1024; // 转换为字节
 
     // 初始化分片上传
     const initRes = await initChunkUpload({
@@ -440,7 +367,7 @@ const uploadSingleFile = async (
       fileSize: file.size,
       fileMd5,
       chunkSize: chunkSize,
-      groupId: uploadConfig.groupId,
+      groupId: uploadConfig.groupId
     });
 
     if (initRes.code !== "00000" || !initRes.data) {
@@ -459,7 +386,7 @@ const uploadSingleFile = async (
         fileName: file.name,
         progress: 100,
         status: "completed",
-        message: message || "文件已存在",
+        message: message || "文件已存在"
       };
       emit("add-to-queue", queueTask);
 
@@ -480,19 +407,12 @@ const uploadSingleFile = async (
       fileName: file.name,
       progress: 0,
       status: "uploading",
-      message: "开始上传...",
+      message: "开始上传..."
     };
     emit("add-to-queue", queueTask);
 
     // 使用并发控制的分片上传
-    await uploadChunksWithConcurrency(
-      file,
-      fileId,
-      chunkTotal,
-      chunkSize,
-      uploadConfig.concurrent,
-      progressCallback
-    );
+    await uploadChunksWithConcurrency(file, fileId, chunkTotal, chunkSize, uploadConfig.concurrent, progressCallback);
   } finally {
     isCalculatingMD5.value = false;
   }
@@ -501,14 +421,7 @@ const uploadSingleFile = async (
 /**
  * 并发控制的分片上传
  */
-const uploadChunksWithConcurrency = async (
-  file: File,
-  fileId: number,
-  chunkTotal: number,
-  chunkSize: number,
-  concurrent: number,
-  progressCallback?: (progress: number) => void
-) => {
+const uploadChunksWithConcurrency = async (file: File, fileId: number, chunkTotal: number, chunkSize: number, concurrent: number, progressCallback?: (progress: number) => void) => {
   const chunkQueue: number[] = [];
   for (let i = 0; i < chunkTotal; i++) {
     chunkQueue.push(i);
@@ -523,9 +436,7 @@ const uploadChunksWithConcurrency = async (
       uploadWorker(file, fileId, chunkSize, chunkQueue, () => {
         completedChunks.value++;
         if (progressCallback) {
-          const progress = Math.round(
-            (completedChunks.value / chunkTotal) * 100
-          );
+          const progress = Math.round((completedChunks.value / chunkTotal) * 100);
           progressCallback(progress);
         }
       })
@@ -538,13 +449,7 @@ const uploadChunksWithConcurrency = async (
 /**
  * 上传工作器 - 处理分片队列
  */
-const uploadWorker = async (
-  file: File,
-  fileId: number,
-  chunkSize: number,
-  chunkQueue: number[],
-  onChunkComplete?: () => void
-): Promise<void> => {
+const uploadWorker = async (file: File, fileId: number, chunkSize: number, chunkQueue: number[], onChunkComplete?: () => void): Promise<void> => {
   while (chunkQueue.length > 0) {
     const chunkNumber = chunkQueue.shift();
     if (chunkNumber !== undefined) {
@@ -557,12 +462,7 @@ const uploadWorker = async (
 /**
  * 上传文件分片（带重试机制）
  */
-const uploadFileChunk = async (
-  file: File,
-  fileId: number,
-  chunkNumber: number,
-  chunkSize: number
-) => {
+const uploadFileChunk = async (file: File, fileId: number, chunkNumber: number, chunkSize: number) => {
   const maxRetries = uploadConfig.retryCount;
   let lastError: Error | null = null;
 
@@ -587,24 +487,17 @@ const uploadFileChunk = async (
       return;
     } catch (error) {
       lastError = error as Error;
-      console.warn(
-        `分片${chunkNumber}上传失败，尝试次数: ${attempt + 1}/${maxRetries + 1}`,
-        error
-      );
+      console.warn(`分片${chunkNumber}上传失败，尝试次数: ${attempt + 1}/${maxRetries + 1}`, error);
 
       // 如果不是最后一次尝试，等待一段时间后重试
       if (attempt < maxRetries) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (attempt + 1))
-        ); // 递增延迟
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 递增延迟
       }
     }
   }
 
   // 所有重试都失败了
-  throw new Error(
-    `分片${chunkNumber}上传失败，已重试${maxRetries}次: ${lastError?.message}`
-  );
+  throw new Error(`分片${chunkNumber}上传失败，已重试${maxRetries}次: ${lastError?.message}`);
 };
 
 /**
@@ -653,7 +546,7 @@ const getFileIcon = (fileName: string) => {
     html: "ri:code-line",
     css: "ri:code-line",
     java: "ri:code-line",
-    py: "ri:code-line",
+    py: "ri:code-line"
   };
   return iconMap[ext || ""] || "ri:file-line";
 };
@@ -718,7 +611,7 @@ const handleClose = () => {
 };
 
 // 监听对话框显示状态
-watch(visible, (newVal) => {
+watch(visible, newVal => {
   if (newVal) {
     loadConfig(); // 打开时加载配置
     loadGroupList(); // 打开时加载分组列表
@@ -748,49 +641,36 @@ onUnmounted(() => {
  */
 const setupSSEListeners = () => {
   // 监听上传进度
-  const unsubscribeProgress = props.onMessage(
-    props.MESSAGE_TYPE.UPLOAD_PROGRESS,
-    (message: any) => {
-      if (message.data?.fileId === currentFileId.value) {
-        uploadProgress.value = Math.round(message.data.progress || 0);
-      }
+  const unsubscribeProgress = props.onMessage(props.MESSAGE_TYPE.UPLOAD_PROGRESS, (message: any) => {
+    if (message.data?.fileId === currentFileId.value) {
+      uploadProgress.value = Math.round(message.data.progress || 0);
     }
-  );
+  });
 
   // 监听上传完成
-  const unsubscribeCompleted = props.onMessage(
-    props.MESSAGE_TYPE.UPLOAD_COMPLETED,
-    (message: any) => {
-      if (message.data?.fileId === currentFileId.value) {
-        uploadProgress.value = 100;
-        ElMessage.success(message.data.message || "文件上传完成");
-      }
+  const unsubscribeCompleted = props.onMessage(props.MESSAGE_TYPE.UPLOAD_COMPLETED, (message: any) => {
+    if (message.data?.fileId === currentFileId.value) {
+      uploadProgress.value = 100;
+      ElMessage.success(message.data.message || "文件上传完成");
     }
-  );
+  });
 
   // 监听上传失败
-  const unsubscribeFailed = props.onMessage(
-    props.MESSAGE_TYPE.UPLOAD_FAILED,
-    (message: any) => {
-      if (message.data?.fileId === currentFileId.value) {
-        ElMessage.error(message.data.message || "文件上传失败");
-      }
+  const unsubscribeFailed = props.onMessage(props.MESSAGE_TYPE.UPLOAD_FAILED, (message: any) => {
+    if (message.data?.fileId === currentFileId.value) {
+      ElMessage.error(message.data.message || "文件上传失败");
     }
-  );
+  });
 
   // 保存取消订阅函数
-  sseUnsubscribers.value = [
-    unsubscribeProgress,
-    unsubscribeCompleted,
-    unsubscribeFailed,
-  ];
+  sseUnsubscribers.value = [unsubscribeProgress, unsubscribeCompleted, unsubscribeFailed];
 };
 
 /**
  * 清理SSE监听器
  */
 const cleanupSSEListeners = () => {
-  sseUnsubscribers.value.forEach((unsubscribe) => unsubscribe());
+  sseUnsubscribers.value.forEach(unsubscribe => unsubscribe());
   sseUnsubscribers.value = [];
 };
 </script>
