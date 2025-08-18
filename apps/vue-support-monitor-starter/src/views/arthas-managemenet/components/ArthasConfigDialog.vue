@@ -4,16 +4,26 @@
       <el-form-item label="Tunnel 地址">
         <el-input v-model="form.address" placeholder="ws://host:port/ws" />
       </el-form-item>
+      <el-form-item label="HTTP API 地址">
+        <el-input v-model="form.http" placeholder="http://host:port/api" />
+      </el-form-item>
       <el-form-item label="用户名">
         <el-input v-model="form.username" placeholder="可选" />
       </el-form-item>
       <el-form-item label="密码">
-        <el-input v-model="form.password" type="password" show-password placeholder="可选" />
+        <el-input
+          v-model="form.password"
+          type="password"
+          show-password
+          placeholder="可选"
+        />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="save">保存</el-button>
+      <el-button type="primary" :loading="loading" @click="save"
+        >保存</el-button
+      >
     </template>
   </el-dialog>
 </template>
@@ -21,18 +31,30 @@
 <script setup lang="ts">
 import { ref, watch, computed, defineProps, defineEmits } from "vue";
 import { ElMessage } from "element-plus";
-import { getTunnelConfig, setTunnelConfig, type ArthasTunnelConfigDto } from "@/api/arthas-management";
+import {
+  getTunnelConfig,
+  setTunnelConfig,
+  type ArthasTunnelConfigDto,
+} from "@/api/arthas-management";
 
-const props = defineProps<{ modelValue: boolean; serverId: string | number | undefined }>();
+const props = defineProps<{
+  modelValue: boolean;
+  serverId: string | number | undefined;
+}>();
 const emit = defineEmits(["update:modelValue", "saved"]);
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (v: boolean) => emit("update:modelValue", v)
+  set: (v: boolean) => emit("update:modelValue", v),
 });
 
 const loading = ref(false);
-const form = ref<ArthasTunnelConfigDto>({ address: "ws://127.0.0.1:7777/ws", username: "", password: "" });
+const form = ref<ArthasTunnelConfigDto>({
+  address: "ws://127.0.0.1:7777/ws",
+  http: "http://127.0.0.1:8563/api",
+  username: "",
+  password: "",
+});
 
 function close() {
   visible.value = false;
@@ -44,9 +66,12 @@ async function onOpen() {
     loading.value = true;
     const res: any = await getTunnelConfig(props.serverId as any);
     if (res?.success) {
-      form.value.address = res.data?.address || "ws://127.0.0.1:7777/ws";
-      form.value.username = res.data?.username || "";
-      form.value.password = res.data?.password || "";
+      form.value.address =
+        res.data?.arthasTunnelConfigAddress || "ws://127.0.0.1:7777/ws";
+      form.value.username = res.data?.arthasTunnelConfigUsername || "";
+      form.value.http =
+        res.data?.arthasTunnelConfigHttp || "http://127.0.0.1:8563/api";
+      form.value.password = res.data?.arthasTunnelConfigPassword || "";
     } else {
       ElMessage.error(res?.msg || "获取配置失败");
     }
