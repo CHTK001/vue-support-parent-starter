@@ -1,3 +1,4 @@
+import { getConfig } from "@repo/config";
 import axios from "axios";
 
 /**
@@ -17,18 +18,18 @@ export function uploadServerFileWithProgress(
   const formData = new FormData();
   formData.append("file", params.file);
   return axios({
-    url: "v1/file-management/upload",
+    url: getConfig().BaseUrl + "/v1/file-management/upload",
     method: "post",
     data: formData,
     params: {
       serverId: Number(params.serverId),
       targetPath: params.targetPath,
       overwrite: Boolean(params.overwrite ?? false),
-      ...(params.scriptId != null ? { scriptId: params.scriptId } : {}),
+      ...(params.scriptId != null ? { scriptId: params.scriptId } : {})
     },
     headers: { "Content-Type": "multipart/form-data" },
     timeout: 0,
     onUploadProgress,
-    signal,
+    signal
   });
 }

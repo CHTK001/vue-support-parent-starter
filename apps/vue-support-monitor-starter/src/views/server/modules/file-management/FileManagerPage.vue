@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manager-page">
+  <div class="file-manager-page" @dragenter.prevent @dragover.prevent @drop.prevent>
     <!-- 主要内容区域 -->
     <div class="manager-content">
       <!-- 左侧文件树 -->
@@ -555,10 +555,24 @@ watch(
 onMounted(() => {
   console.log("FileManagerPage: Mounted with serverId", props.serverId);
   document.addEventListener("keydown", handleKeydown);
+  const prevent = (e: DragEvent) => {
+    e.preventDefault();
+  };
+  // 防止浏览器默认的拖拽打开行为（全局）
+  document.addEventListener("dragover", prevent);
+  document.addEventListener("drop", prevent);
+  // 存到 window 以便卸载时移除
+  (window as any).__fm_prevent_drag__ = prevent;
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
+  const prevent = (window as any).__fm_prevent_drag__ as (e: DragEvent) => void;
+  if (prevent) {
+    document.removeEventListener("dragover", prevent);
+    document.removeEventListener("drop", prevent);
+    (window as any).__fm_prevent_drag__ = null;
+  }
 });
 
 // 暴露方法
