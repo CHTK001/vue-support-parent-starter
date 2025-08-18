@@ -168,8 +168,8 @@ function initialTerm() {
       fitAddon.fit();
     } catch {}
     // 记录一次初始化计算得到的 cols/rows，并固定下来
-    fixedCols.value = terminal.value.cols - 10;
-    fixedRows.value = terminal.value.rows + 30;
+    fixedCols.value = terminal.value.cols + 100;
+    fixedRows.value = terminal.value.rows + 100;
     // 锁定容器尺寸为当前像素大小，避免后续布局变化
     const viewport = xtermRef.value.querySelector(
       ".xterm-viewport"
