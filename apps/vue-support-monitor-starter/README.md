@@ -4,6 +4,19 @@
 
 Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus 的监控管理系统前端应用。
 
+### 数据管理控制台更新（2025-08-18）
+
+- Redis 控制台对齐 JDBC 控制台：
+  - 左侧统一为树结构，复用 /root、/children、/node 接口
+  - 右侧按 Key 类型自动渲染不同视图（string/hash/list/set/zset）
+  - 支持分栏拖拽与刷新当前值
+- 修改文件：src/views/data-management/console/RedisConsole.vue
+
+- 数据管理设置编辑页：
+  - 控制台类型改为“启用控制台”开关（关闭时提交空 consoleType）
+  - 远程模式（REMOTE）下增加必填校验：Server 或 Host+Port 二选一
+  - 后端新增接口：POST /system/data/setting/save
+
 ## 最新更新
 
 ### 文件存储配置模块优化
@@ -13,11 +26,13 @@ Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus �
 #### 主要改进
 
 1. **界面设计统一化**
+
    - 采用与 PreviewFull.vue 一致的三行布局设计
    - 统一的图标系统和视觉风格
    - 改进的选中状态和悬停效果
 
 2. **智能配置表单**
+
    - 根据存储类型动态显示相关配置项
    - 为不同存储类型提供专门的配置说明
    - 优化的表单验证规则
@@ -40,10 +55,12 @@ Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus �
 每种存储类型都有对应的配置要求：
 
 **FILESYSTEM (文件系统)**
+
 - 根路径：服务器本地文件系统路径
 - 基础路径：相对于根路径的子目录
 
 **对象存储 (S3/MinIO/OSS)**
+
 - 端点：对象存储服务的访问端点
 - 存储桶：用于组织文件的容器
 - 访问密钥：用于身份验证的密钥对

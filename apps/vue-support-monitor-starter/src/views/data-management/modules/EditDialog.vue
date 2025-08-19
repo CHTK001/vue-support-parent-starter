@@ -66,7 +66,7 @@
               :disabled="!modeChosen"
             />
             <el-input-number
-            class="!min-w-[150px]"
+              class="!min-w-[150px]"
               v-model="form.systemDataSettingPort"
               :min="0"
               :max="65535"
@@ -99,16 +99,8 @@
 
       <!-- 右：高级配置 -->
       <div class="col right">
-        <el-form-item label="控制台类型">
-          <el-select
-            v-model="form.systemDataSettingConsoleType"
-            placeholder="请选择"
-            :disabled="!modeChosen"
-          >
-            <el-option label="表格" value="TABLE" />
-            <el-option label="图形" value="GRAPH" />
-            <el-option label="文件" value="FILE" />
-          </el-select>
+        <el-form-item label="启用控制台">
+          <el-switch v-model="consoleEnabled" :disabled="!modeChosen" />
         </el-form-item>
         <el-form-item label="图表类型">
           <el-select
@@ -232,6 +224,9 @@ const form = ref<SystemDataSetting>({
 });
 const formRef = ref();
 
+// 是否启用控制台（由原“控制台类型”字段派生）
+const consoleEnabled = ref<boolean>(true);
+
 const rules = {
   systemDataSettingName: [
     { required: true, message: "请输入名称", trigger: "blur" },
@@ -241,6 +236,39 @@ const rules = {
   ],
   systemDataSettingType: [
     { required: true, message: "请选择类型", trigger: "change" },
+  ],
+  // 远程模式下地址/主机/端口校验：需填写“地址(连接串)”或“主机+端口”
+  systemDataSettingHost: [
+    {
+      validator: (_: any, __: any, cb: (e?: Error) => void) => {
+        if (form.value.systemDataSettingMode !== "REMOTE") return cb();
+        const server = (form.value.systemDataSettingServer || "").trim();
+        const host = (form.value.systemDataSettingHost || "").trim();
+        const port = form.value.systemDataSettingPort;
+        if (server) return cb();
+        if (!host)
+          return cb(new Error("远程模式下需填写“地址”或同时填写“主机+端口”"));
+        if (!Number.isInteger(port) || port <= 0)
+          return cb(new Error("请填写有效端口(>0)"));
+        return cb();
+      },
+      trigger: ["blur", "change"],
+    },
+  ],
+  systemDataSettingPort: [
+    {
+      validator: (_: any, value: any, cb: (e?: Error) => void) => {
+        if (form.value.systemDataSettingMode !== "REMOTE") return cb();
+        const server = (form.value.systemDataSettingServer || "").trim();
+        const host = (form.value.systemDataSettingHost || "").trim();
+        if (server) return cb();
+        if (!host) return cb(); // 由 host 的校验提示
+        if (!Number.isInteger(value) || value <= 0)
+          return cb(new Error("请填写有效端口(>0)"));
+        return cb();
+      },
+      trigger: ["blur", "change"],
+    },
   ],
 };
 
@@ -321,6 +349,11 @@ function init() {
         systemDataSettingEnabled: true,
         systemDataSettingMode: "REMOTE",
       };
+  // 启用控制台：由历史 consoleType 是否为空推断（为空则视为禁用，不为空视为启用）；默认启用
+  const oldConsoleType = (props.modelValue as any)
+    ?.systemDataSettingConsoleType;
+  consoleEnabled.value =
+    oldConsoleType == null ? true : String(oldConsoleType).length > 0;
 }
 
 async function handleSave() {
@@ -331,7 +364,13 @@ async function handleSave() {
       loading.value = false;
       return;
     }
-    const res = await saveSystemDataSetting(form.value);
+    // 与后端兼容：保留原字段，但用启用开关控制其是否为空
+    const payload: any = { ...(form.value as any) };
+    if (!consoleEnabled.value) {
+      // 关闭控制台：清空 consoleType（后端可据此视为禁用）
+      payload.systemDataSettingConsoleType = "";
+    }
+    const res = await saveSystemDataSetting(payload);
     if (!res?.success) {
       ElMessage.error(res?.msg || "保存失败");
       return;

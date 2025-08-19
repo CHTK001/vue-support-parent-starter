@@ -1,7 +1,13 @@
 <template>
   <div class="console" :style="gridStyle">
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
-      <el-input v-model="keyword" placeholder="搜索..." size="small" clearable @change="loadRoot">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索..."
+        size="small"
+        clearable
+        @change="loadRoot"
+      >
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
@@ -22,24 +28,43 @@
           <span class="flex justify-between w-full">
             <span>
               <span>{{ data.name }}</span>
-              <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.columnType }}</span>
-              <span v-if="data.properties?.columnSize" class="el-form-item-msg ml-2 mt-[3px]">({{ data.properties?.columnSize }})</span>
+              <span class="el-form-item-msg ml-2 mt-[3px]">{{
+                data.properties?.columnType
+              }}</span>
+              <span
+                v-if="data.properties?.columnSize"
+                class="el-form-item-msg ml-2 mt-[3px]"
+                >({{ data.properties?.columnSize }})</span
+              >
             </span>
-            <span class="el-form-item-msg ml-2 mt-[3px]">{{ data.properties?.comment }}</span>
+            <span class="el-form-item-msg ml-2 mt-[3px]">{{
+              data.properties?.comment
+            }}</span>
           </span>
         </template>
       </el-tree>
     </div>
-    <div class="splitter cursor-col-resize" @mousedown="onDragStart" @dblclick="resetWidth" />
+    <div
+      class="splitter cursor-col-resize"
+      @mousedown="onDragStart"
+      @dblclick="resetWidth"
+    />
     <div class="right image-paper">
       <div class="right-header">
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
-          <span v-if="currentComment" class="comment" :title="currentComment">• 注释：{{ currentComment }}</span>
+          <span v-if="currentComment" class="comment" :title="currentComment"
+            >• 注释：{{ currentComment }}</span
+          >
         </div>
         <div class="toolbar">
-          <el-button v-if="showEditor" type="primary" size="small" @click="execute">
+          <el-button
+            v-if="showEditor"
+            type="primary"
+            size="small"
+            @click="execute"
+          >
             <IconifyIconOnline :icon="icons.execute" class="mr-1" />
             执行
           </el-button>
@@ -47,59 +72,169 @@
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
           </el-button>
-          <el-button size="small" :disabled="!currentPath" @click="openStructureTab">
+          <el-button
+            size="small"
+            :disabled="!currentPath"
+            @click="openStructureTab"
+          >
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             结构
           </el-button>
           <el-button-group>
-            <el-button size="small" :type="showTableComment ? 'primary' : 'default'" :disabled="!searched" @click="showTableComment = !showTableComment">表头注释</el-button>
-            <el-button size="small" :type="showFieldComments ? 'primary' : 'default'" :disabled="!searched" @click="showFieldComments = !showFieldComments">字段注释</el-button>
+            <el-button
+              size="small"
+              :type="showTableComment ? 'primary' : 'default'"
+              :disabled="!searched"
+              @click="showTableComment = !showTableComment"
+              >表头注释</el-button
+            >
+            <el-button
+              size="small"
+              :type="showFieldComments ? 'primary' : 'default'"
+              :disabled="!searched"
+              @click="showFieldComments = !showFieldComments"
+              >字段注释</el-button
+            >
           </el-button-group>
-          <el-button size="small" :disabled="!currentPath || !columns.length" @click="toggleAnalyze">
-            <IconifyIconOnline :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'" class="mr-1" />
+          <el-button
+            size="small"
+            :disabled="!currentPath || !columns.length"
+            @click="toggleAnalyze"
+          >
+            <IconifyIconOnline
+              :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'"
+              class="mr-1"
+            />
             {{ analyzing ? "退出分析" : "分析" }}
           </el-button>
         </div>
       </div>
       <div class="right-body">
-        <CodeEditor v-if="showEditor" v-model:content="sql" :showTool="false" :height="'200px'" :options="{ mode: 'sql' }" />
-        <el-tabs v-model="activeTab" class="result-tabs" type="border-card" tab-position="top">
+        <CodeEditor
+          v-if="showEditor"
+          v-model:content="sql"
+          :showTool="false"
+          :height="'200px'"
+          :options="{ mode: 'sql' }"
+        />
+        <el-tabs
+          v-model="activeTab"
+          class="result-tabs"
+          type="border-card"
+          tab-position="top"
+        >
           <el-tab-pane name="result" class="!h-full" label="结果">
             <div class="result" v-if="columns.length">
-              <el-popover v-model:visible="columnFilterVisible" trigger="click" placement="bottom-end" width="260">
+              <el-popover
+                v-model:visible="columnFilterVisible"
+                trigger="click"
+                placement="bottom-end"
+                width="260"
+              >
                 <template #reference>
-                  <el-button size="small" text @click.stop="columnFilterVisible = !columnFilterVisible">
-                    <IconifyIconOnline icon="ri:menu-unfold-line" class="mr-1" />
+                  <el-button
+                    size="small"
+                    text
+                    @click.stop="columnFilterVisible = !columnFilterVisible"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:menu-unfold-line"
+                      class="mr-1"
+                    />
                     筛选列
                   </el-button>
                 </template>
                 <div class="col-filter">
                   <div class="ops">
-                    <el-link type="primary" :underline="false" @click="selectedColumnNames = [...columns]">全选</el-link>
-                    <el-link type="danger" :underline="false" @click="selectedColumnNames = []">清空</el-link>
+                    <el-link
+                      type="primary"
+                      :underline="false"
+                      @click="selectedColumnNames = [...columns]"
+                      >全选</el-link
+                    >
+                    <el-link
+                      type="danger"
+                      :underline="false"
+                      @click="selectedColumnNames = []"
+                      >清空</el-link
+                    >
                   </div>
                   <el-scrollbar height="220px">
                     <el-checkbox-group v-model="selectedColumnNames">
-                      <el-checkbox v-for="col in columns" :key="col" :label="col">{{ col }}</el-checkbox>
+                      <el-checkbox
+                        v-for="col in columns"
+                        :key="col"
+                        :label="col"
+                        >{{ col }}</el-checkbox
+                      >
                     </el-checkbox-group>
                   </el-scrollbar>
                 </div>
               </el-popover>
             </div>
-            <el-table border v-if="columns.length" :data="rows" size="small" height="580px" :row-class-name="rowClassName">
-              <el-table-column v-for="col in visibleColumns" :key="col" :prop="col.name" :label="col.name" :min-width="120">
+            <el-table
+              border
+              v-if="columns.length"
+              :data="rows"
+              size="small"
+              height="580px"
+              :row-class-name="rowClassName"
+            >
+              <el-table-column
+                v-for="col in visibleColumns"
+                :key="col"
+                :prop="col.name"
+                :label="col.name"
+                :min-width="120"
+              >
                 <template #header>
-                  <div class="col-header flex flex-col justify-start items-start">
-                    <div>{{ col.name }}</div>
-                    <div v-if="showTableComment" class="hidden-note el-form-item-msg" :title="col.comment">({{ col.comment }})</div>
-                    <div v-if="analyzing && analysisData[col]?.length" class="chart mini-bar">
-                      <div v-for="b in analysisData[col]" :key="b.value" class="bar" :style="barStyle(col, b)" @click.stop="toggleFilter(col, b.value)"></div>
+                  <div
+                    class="col-header flex flex-col justify-start items-start"
+                  >
+                    <div>
+                      {{ col.name }}
+                    </div>
+                    <div
+                      v-if="showTableComment"
+                      class="hidden-note el-form-item-msg"
+                      :title="col.comment"
+                    >
+                      ({{ col.comment }})
+                    </div>
+
+                    <div
+                      v-if="analyzing && analysisData[col.name]?.length"
+                      class="chart mini-bar"
+                    >
+                      <div
+                        v-for="b in analysisData[col.name]"
+                        :key="b.value"
+                        class="bar-wrap"
+                      >
+                        <el-tooltip
+                          :content="barTooltip(col.name, b)"
+                          placement="top"
+                          :show-after="200"
+                        >
+                          <div
+                            class="bar"
+                            :style="barStyle(col.name, b)"
+                            @click.stop="toggleFilter(col.name, b.value)"
+                          ></div>
+                        </el-tooltip>
+                      </div>
                     </div>
                   </div>
                 </template>
                 <template #default="{ row }">
                   <div class="flex flex-col">
-                    <div v-if="showFieldComments" class="comment-text el-form-item-msg" :title="col.name">（{{ col.comment }}）</div>
+                    <div
+                      v-if="showFieldComments"
+                      class="comment-text el-form-item-msg"
+                      :title="col.name"
+                    >
+                      （{{ col.comment }}）
+                    </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
                 </template>
@@ -113,17 +248,42 @@
         <span v-if="statusText">{{ statusText }}</span>
       </div>
     </div>
-    <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect" @close="menuVisible = false" />
+    <CommonContextMenu
+      :visible="menuVisible"
+      :x="menuX"
+      :y="menuY"
+      :items="menuItems"
+      @select="onMenuSelect"
+      @close="menuVisible = false"
+    />
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, watch } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
 // request不再直接使用，统一在system-data.ts封装
-import { extractArrayFromApi, normalizeTreeNode } from "@/views/data-management/utils/dataTree";
-import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
-import { getConsoleConfig, getFieldComment, saveFieldComment, openTable, analyzeTable, getConsoleRoot, getConsoleChildren, getConsoleNode, executeConsole } from "@/api/system-data";
+import {
+  extractArrayFromApi,
+  normalizeTreeNode,
+} from "@/views/data-management/utils/dataTree";
+import CommonContextMenu, {
+  type MenuItem,
+} from "@/components/CommonContextMenu.vue";
+import {
+  getConsoleConfig,
+  getFieldComment,
+  saveFieldComment,
+  openTable,
+  analyzeTable,
+  getConsoleRoot,
+  getConsoleChildren,
+  getConsoleNode,
+  executeConsole,
+  getStructureCapabilities,
+  renameTable,
+  backupTable,
+} from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
 
@@ -131,7 +291,10 @@ const treeData = ref<any[]>([]);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
 
 // 工具栏图标（格式化图标由 JS 生成选择）
-const icons = { execute: "ri:play-circle-line", structure: "ri:table-2" } as const;
+const icons = {
+  execute: "ri:play-circle-line",
+  structure: "ri:table-2",
+} as const;
 const formatIcon = computed(() => {
   // 简单随机切换书写笔/魔棒两种风格（可改为基于主题/偏好）
   return Math.random() > 0.5 ? "ri:magic-line" : "ri:pencil-ruler-2-line";
@@ -146,7 +309,9 @@ const columns = ref<string[]>([]);
 const rows = ref<any[]>([]);
 const tableComment = ref("");
 const analyzing = ref(false);
-const analysisData = ref<Record<string, Array<{ value: string; count: number }>>>({});
+const analysisData = ref<
+  Record<string, Array<{ value: string; count: number }>>
+>({});
 const showEditor = ref(true);
 const showTableComment = ref(false);
 const showFieldComments = ref(false);
@@ -154,7 +319,7 @@ const columnFilterVisible = ref(false);
 const selectedColumnNames = ref<string[]>([]);
 const visibleColumns = computed(() => {
   if (!selectedColumnNames.value.length) return columns.value;
-  return columns.value.filter(col => selectedColumnNames.value.includes(col));
+  return columns.value.filter((col) => selectedColumnNames.value.includes(col));
 }) as any;
 const activeTab = ref<"result" | "structure">("result");
 const structureContent = ref("");
@@ -165,7 +330,9 @@ const currentComment = ref("");
 // 左右可拖拽分栏
 const leftWidth = ref(300);
 const isDragging = ref(false);
-const gridStyle = computed(() => ({ gridTemplateColumns: `${leftWidth.value}px 6px 1fr` }));
+const gridStyle = computed(() => ({
+  gridTemplateColumns: `${leftWidth.value}px 6px 1fr`,
+}));
 let startX = 0;
 let startW = 300;
 function onDragStart(e: MouseEvent) {
@@ -198,7 +365,14 @@ onBeforeUnmount(() => {
 });
 
 // console config
-const consoleConfig = ref<{ jdbc?: { viewTableStructure?: boolean; copyTableName?: boolean; copyCreateTable?: boolean; addFieldComment?: boolean } }>({});
+const consoleConfig = ref<{
+  jdbc?: {
+    viewTableStructure?: boolean;
+    copyTableName?: boolean;
+    copyCreateTable?: boolean;
+    addFieldComment?: boolean;
+  };
+}>({});
 
 async function loadConsoleConfig() {
   if (!props.id) return;
@@ -208,14 +382,49 @@ async function loadConsoleConfig() {
     try {
       const parsed = JSON.parse(text) || {};
       // defaults when persisted config missing fields
-      parsed.jdbc = Object.assign({ viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true }, parsed.jdbc || {});
+      parsed.jdbc = Object.assign(
+        {
+          viewTableStructure: true,
+          copyTableName: true,
+          copyCreateTable: false,
+          addFieldComment: true,
+        },
+        parsed.jdbc || {}
+      );
       consoleConfig.value = parsed;
     } catch (_) {
-      consoleConfig.value = { jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true } };
+      consoleConfig.value = {
+        jdbc: {
+          viewTableStructure: true,
+          copyTableName: true,
+          copyCreateTable: false,
+          addFieldComment: true,
+        },
+      };
     }
   } else {
     // fallback defaults to avoid empty context menu
-    consoleConfig.value = { jdbc: { viewTableStructure: true, copyTableName: true, copyCreateTable: false, addFieldComment: true } };
+    consoleConfig.value = {
+      jdbc: {
+        viewTableStructure: true,
+        copyTableName: true,
+        copyCreateTable: false,
+        addFieldComment: true,
+      },
+    };
+  }
+  // 结构操作能力（SPI 探测）
+  const structureCaps = ref<{
+    supportsRenameTable?: boolean;
+    supportsBackupTable?: boolean;
+  }>({});
+  async function loadStructureCaps() {
+    try {
+      const res = await getStructureCapabilities(props.id);
+      structureCaps.value = (res?.data || {}) as any;
+    } catch (_) {
+      structureCaps.value = {};
+    }
   }
 }
 
@@ -245,7 +454,10 @@ async function handleNodeClick(node: any) {
 }
 
 // 懒加载子节点（结合 hasChildren 展示展开图标）
-const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) => {
+const loadChildrenLazy = async (
+  node: any,
+  resolve: (children: any[]) => void
+) => {
   // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
     return resolve(treeData.value || []);
@@ -267,9 +479,16 @@ const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) =
 function getJdbcNodeIcon(node: any, data: any): string {
   const type = (data?.type || "").toString().toLowerCase();
   if (type) {
-    if (type.includes("db") || type.includes("database") || type.includes("schema") || type.includes("catalog")) return "ri:database-2-line";
+    if (
+      type.includes("db") ||
+      type.includes("database") ||
+      type.includes("schema") ||
+      type.includes("catalog")
+    )
+      return "ri:database-2-line";
     if (type.includes("table")) return "ri:table-2";
-    if (type.includes("column") || type.includes("field")) return "ri:braces-line";
+    if (type.includes("column") || type.includes("field"))
+      return "ri:braces-line";
     if (type.includes("view")) return "ri:layout-2-line";
     if (type.includes("index")) return "ri:hashtag";
   }
@@ -339,7 +558,7 @@ function simpleSqlFormat(input: string): string {
     "INSERT",
     "UPDATE",
     "DELETE",
-    "SET"
+    "SET",
   ];
   // 先按长度降序，避免短词先匹配
   KEYWORDS.sort((a, b) => b.length - a.length);
@@ -369,7 +588,7 @@ function simpleSqlFormat(input: string): string {
     "JOIN",
     "ON",
     "AND",
-    "OR"
+    "OR",
   ];
   for (const token of BREAK_BEFORE) {
     const pattern = token.replace(/\s+/g, "\\s+");
@@ -383,7 +602,7 @@ function simpleSqlFormat(input: string): string {
   s = s.replace(/\n{2,}/g, "\n");
 
   // 简单缩进：根据括号层级
-  const lines = s.split("\n").map(l => l.trim());
+  const lines = s.split("\n").map((l) => l.trim());
   const out: string[] = [];
   let level = 0;
   for (let line of lines) {
@@ -410,17 +629,35 @@ async function openStructureTab() {
 
 function barStyle(col: string, b: { value: string; count: number }) {
   const list = analysisData.value[col] || [];
-  const max = Math.max(1, ...list.map(i => i.count));
+  const max = Math.max(1, ...list.map((i) => i.count));
   const h = Math.max(4, Math.round((b.count / max) * 40));
   return { height: `${h}px` };
 }
 
+function barTooltip(col: string, b: { value: string; count: number }) {
+  const v =
+    b.value === null || b.value === undefined || b.value === "null"
+      ? "(空)"
+      : String(b.value);
+  return `${col}: ${v}（${b.count}）`;
+}
+
 const filters = ref<Record<string, Set<string>>>({});
+const hasActiveFilters = computed(() =>
+  Object.values(filters.value).some((s) => s && s.size > 0)
+);
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
   const set = filters.value[col];
-  if (set.has(value)) set.delete(value);
-  else set.add(value);
+  const v = String(value);
+  if (set.has(v)) set.delete(v);
+  else set.add(v);
+}
+function clearAllFilters() {
+  filters.value = {} as any;
+}
+function removeFilterGroup(col: string) {
+  delete filters.value[col];
 }
 
 function rowClassName({ row }) {
@@ -444,7 +681,7 @@ async function toggleAnalyze() {
   }
   if (!currentPath.value) return;
   const resp = await analyzeTable(props.id, currentPath.value, 1000);
-  analysisData.value = resp?.data?.data || {};
+  analysisData.value = resp?.data || {};
 }
 
 async function fetchStructure(nodePath: string): Promise<string> {
@@ -458,7 +695,8 @@ async function loadCurrentComment() {
   try {
     if (currentPath.value) {
       const res = await getFieldComment(props.id, currentPath.value);
-      currentComment.value = res?.data?.data?.systemDataFieldCommentComment || "";
+      currentComment.value =
+        res?.data?.data?.systemDataFieldCommentComment || "";
     }
   } catch (_) {}
 }
@@ -478,7 +716,10 @@ function isColumnLeaf(data: any): boolean {
   const type = (data?.type || "").toString().toLowerCase();
   if (type.includes("column") || type.includes("field")) return true;
   // level 3 usually column, also rely on leaf flag
-  return Boolean(data?.leaf) && (data?.level === 3 || /\.(\w+)$/.test(data?.path || ""));
+  return (
+    Boolean(data?.leaf) &&
+    (data?.level === 3 || /\.(\w+)$/.test(data?.path || ""))
+  );
 }
 
 /**
@@ -495,22 +736,77 @@ function buildMenuItems(type): MenuItem[] {
   if (type?.includes("TABLE")) {
     items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
   }
-  if (allow(consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"))) {
-    items.push({ key: "view-structure", label: "查看表结构", icon: "ri:table-2" });
+  if (
+    allow(
+      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
+    )
+  ) {
+    items.push({
+      key: "view-structure",
+      label: "查看表结构",
+      icon: "ri:table-2",
+    });
   }
-  if (allow(consoleConfig.value.jdbc?.copyTableName) && type.includes("TABLE")) {
-    items.push({ key: "copy-table-name", label: "复制表名", icon: "ri:file-copy-line" });
+  if (
+    allow(consoleConfig.value.jdbc?.copyTableName) &&
+    type.includes("TABLE")
+  ) {
+    items.push({
+      key: "copy-table-name",
+      label: "复制表名",
+      icon: "ri:file-copy-line",
+    });
   }
-  if (allow(consoleConfig.value.jdbc?.copyCreateTable) && type.includes("TABLE")) {
-    items.push({ key: "copy-create-sql", label: "复制建表语句", icon: "ri:article-line" });
+  if (
+    allow(consoleConfig.value.jdbc?.copyCreateTable) &&
+    type.includes("TABLE")
+  ) {
+    items.push({
+      key: "copy-create-sql",
+      label: "复制建表语句",
+      icon: "ri:article-line",
+    });
   }
 
-  if (allow(consoleConfig.value.jdbc?.copyTableName) && type.includes("COLUMN")) {
-    items.push({ key: "copy-column-name", label: "复制字段名", icon: "ri:file-copy-line" });
+  if (
+    allow(consoleConfig.value.jdbc?.copyTableName) &&
+    type.includes("COLUMN")
+  ) {
+    items.push({
+      key: "copy-column-name",
+      label: "复制字段名",
+      icon: "ri:file-copy-line",
+    });
   }
   // 添加注释：仅在字段（叶子列）上显示
-  if (allow(consoleConfig.value.jdbc?.addFieldComment) && contextNode.value && isColumnLeaf(contextNode.value) && type.includes("COLUMN")) {
-    items.push({ key: "add-comment", label: "添加注释", icon: "ri:chat-new-line" });
+  if (
+    allow(consoleConfig.value.jdbc?.addFieldComment) &&
+    contextNode.value &&
+    isColumnLeaf(contextNode.value) &&
+    type.includes("COLUMN")
+  ) {
+    items.push({
+      key: "add-comment",
+      label: "添加注释",
+      icon: "ri:chat-new-line",
+    });
+  }
+  // SPI 能力：重命名表 / 备份表（仅在表节点显示）
+  if (type.includes("TABLE")) {
+    if (structureCaps.value.supportsRenameTable) {
+      items.push({
+        key: "rename-table",
+        label: "重命名表",
+        icon: "ri:edit-2-line",
+      });
+    }
+    if (structureCaps.value.supportsBackupTable) {
+      items.push({
+        key: "backup-table",
+        label: "备份表",
+        icon: "ri:database-2-line",
+      });
+    }
   }
   return items;
 }
@@ -563,6 +859,41 @@ async function onMenuSelect(key: string) {
     case "add-comment":
       await addFieldComment(contextNode.value);
       break;
+    case "rename-table": {
+      if (!contextNode.value?.path) return;
+      try {
+        const { value } = await ElMessageBox.prompt(
+          "请输入新表名：",
+          "重命名表",
+          { confirmButtonText: "确定", cancelButtonText: "取消" }
+        );
+        if (!value || !value.trim()) return;
+        await renameTable(props.id, {
+          nodePath: contextNode.value.path,
+          newName: value.trim(),
+        });
+        ElMessage.success("已重命名");
+        await refreshContextNodeChildren();
+      } catch (_) {}
+      break;
+    }
+    case "backup-table": {
+      if (!contextNode.value?.path) return;
+      try {
+        const { value } = await ElMessageBox.prompt(
+          "请输入备份表名：",
+          "备份表",
+          { confirmButtonText: "确定", cancelButtonText: "取消" }
+        );
+        if (!value || !value.trim()) return;
+        await backupTable(props.id, {
+          nodePath: contextNode.value.path,
+          backupName: value.trim(),
+        });
+        ElMessage.success("已发起备份");
+      } catch (_) {}
+      break;
+    }
   }
 }
 
@@ -605,7 +936,8 @@ async function viewTableStructure(node: any) {
   const res = await getConsoleNode(props.id, node.path, "structure");
   const detail = res?.data?.data || "";
   // 简单展示：放到 editor 中
-  sql.value = typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
+  sql.value =
+    typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
 }
 
 /**
@@ -624,7 +956,9 @@ async function copyCreateSql(node: any) {
   if (!node?.path) return;
   const res = await getConsoleNode(props.id, node.path, "ddl");
   const ddl = res?.data?.data || "";
-  await navigator.clipboard.writeText(typeof ddl === "string" ? ddl : JSON.stringify(ddl));
+  await navigator.clipboard.writeText(
+    typeof ddl === "string" ? ddl : JSON.stringify(ddl)
+  );
 }
 
 /**
@@ -635,19 +969,23 @@ async function copyCreateSql(node: any) {
 async function addFieldComment(node: any) {
   if (!node?.path) return;
   try {
-    const { value } = await ElMessageBox.prompt("请输入要添加的注释内容：", "添加注释", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      inputType: "textarea",
-      inputPlaceholder: "请输入注释...",
-      inputValue: node?.properties?.comment || ""
-    });
+    const { value } = await ElMessageBox.prompt(
+      "请输入要添加的注释内容：",
+      "添加注释",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        inputType: "textarea",
+        inputPlaceholder: "请输入注释...",
+        inputValue: node?.properties?.comment || "",
+      }
+    );
     if (!value || !value.trim()) return;
     await saveFieldComment(props.id, {
       nodePath: node.path,
       comment: value.trim(),
       dataType: node.properties?.dataType,
-      nullable: node.properties?.nullable
+      nullable: node.properties?.nullable,
     });
     ElMessage.success("已保存注释");
     node.properties.comment = value.trim();
@@ -803,7 +1141,8 @@ onMounted(async () => {
 .image-paper {
   background:
     linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
-    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 40px 100%,
+    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 /
+      40px 100%,
     linear-gradient(#fff, #fff);
 }
 
