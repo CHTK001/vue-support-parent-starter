@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manager-page">
+  <div class="file-manager-page" @dragenter.prevent @dragover.prevent @drop.prevent>
     <!-- 主要内容区域 -->
     <div class="manager-content">
       <!-- 左侧文件树 -->
@@ -35,12 +35,13 @@
             @folder-click="handleTreeFolderClick"
             @file-click="handleTreeFileClick"
             @refresh="handleTreeRefresh"
+            @drop-upload="handleDropUpload"
           />
         </div>
       </div>
 
       <!-- 分割线 -->
-      <div class="splitter"></div>
+      <div class="splitter" />
 
       <!-- 右侧文件列表 -->
       <div class="right-panel">
@@ -61,6 +62,7 @@
             @file-select="handleFileSelect"
             @refresh="handleListRefresh"
             @sync="openDistribute($event)"
+            @drop-upload="handleDropUpload"
           />
         </div>
 
@@ -68,7 +70,7 @@
         <div v-if="detailVisible" class="file-detail-panel" :class="{ 'panel-visible': detailVisible }" :style="{ height: detailVisible ? `${detailPanelHeight}px` : '0px' }">
           <!-- 拖拽手柄 -->
           <div class="resize-handle" @mousedown="startResize" @touchstart="startResize">
-            <div class="resize-indicator"></div>
+            <div class="resize-indicator" />
           </div>
 
           <div class="detail-header">
@@ -76,7 +78,7 @@
               <IconifyIconOnline icon="ri:file-info-line" class="mr-2" />
               <span>文件属性</span>
             </div>
-            <el-button size="small" text @click="detailVisible = false" class="close-detail-btn">
+            <el-button size="small" text class="close-detail-btn" @click="detailVisible = false">
               <IconifyIconOnline icon="ri:close-line" />
             </el-button>
           </div>
@@ -116,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 // 上传对话框
 const showUploadDialog = ref(false);
 
@@ -138,7 +140,7 @@ function handleQueueUpdate(list: any[]) {
 const manager = useUploadManager({
   concurrency: 3,
   maxRetries: 2,
-  queueMap: queueStatus
+  queueMap: queueStatus.value
 });
 const presetFiles = ref<File[]>([]);
 function handleSyncTask(fileId: number) {
@@ -150,6 +152,30 @@ function handleSyncTask(fileId: number) {
   // 预填文件到对话框，用户选择目标服务器/节点后执行
   presetFiles.value = [meta.file];
   showUploadDialog.value = true;
+}
+
+// 上传对话框入队方法：供子组件调用
+const enqueue = (
+  tasks: Array<{
+    id: number;
+    name: string;
+    run: (signal: AbortSignal, onProgress: (p: number) => void) => Promise<void>;
+  }>
+) => {
+  manager.enqueue(tasks as any);
+};
+
+// 打开分发对话框（来自文件列表 @sync 事件）
+function openDistribute(file: FileInfo) {
+  selectedFile.value = file;
+  showDistributeDialog.value = true;
+}
+
+// 分发完成回调（关闭对话框并刷新列表）
+function handleDistributeSuccess() {
+  ElMessage.success("同步任务已完成");
+  showDistributeDialog.value = false;
+  fileListRef.value?.refreshList?.();
 }
 
 onMounted(() => {
@@ -169,7 +195,7 @@ import MultiTargetDistributeDialog from "./components/MultiTargetDistributeDialo
 import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
 import { useUploadManager } from "./composables/useUploadManager";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { uploadServerFileWithProgress } from "@/api/server/upload";
 
 // Props
 const props = defineProps<{
@@ -352,6 +378,51 @@ const handleFileUpdated = () => {
 };
 
 /**
+ * 处理拖拽上传（来自左树或右列表）
+ */
+async function handleDropUpload(targetDir: string, files: File[]) {
+  if (!props.serverId) {
+    ElMessage.warning("请先选择服务器");
+    return;
+  }
+  if (!targetDir) targetDir = currentPath.value || "/";
+  if (!targetDir.startsWith("/")) targetDir = "/" + targetDir;
+
+  // 是否覆盖确认
+  const { value: overwrite } = await ElMessageBox.confirm(`目标目录: ${targetDir}\n共 ${files.length} 个文件。是否覆盖已存在的同名文件？`, "上传确认", {
+    confirmButtonText: "覆盖",
+    cancelButtonText: "不覆盖",
+    distinguishCancelAndClose: true,
+    type: "warning"
+  })
+    .then(() => ({ value: true }))
+    .catch(action => ({ value: action === "confirm" }));
+
+  // 构建上传任务并入队
+  const tasks = files.map(file => {
+    const id = -Date.now() - Math.floor(Math.random() * 100000);
+    const name = `${file.name} @ S:${props.serverId}`;
+    return {
+      id,
+      name,
+      meta: { file, target: { type: "SERVER", id: props.serverId }, dirPath: targetDir },
+      run: (signal: AbortSignal, onProgress: (p: number) => void) =>
+        uploadServerFileWithProgress(
+          { serverId: props.serverId, targetPath: targetDir, file, overwrite },
+          e => {
+            const percent = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+            onProgress(percent);
+          },
+          signal
+        ).then(() => void 0)
+    };
+  });
+
+  manager.enqueue(tasks as any);
+  showUploadDialog.value = true; // 打开上传对话框查看进度
+}
+
+/**
  * 刷新当前视图
  */
 const refreshAll = () => {
@@ -448,16 +519,6 @@ const handleKeydown = (event: KeyboardEvent) => {
   // ESC 关闭对话框
   if (event.key === "Escape") {
     if (previewVisible.value) {
-      // 打开分发对话框
-      function openDistribute(file: FileInfo) {
-        selectedFile.value = file;
-        showDistributeDialog.value = true;
-      }
-
-      function handleDistributeSuccess() {
-        ElMessage.success("同步任务已完成");
-      }
-
       previewVisible.value = false;
     } else if (detailVisible.value) {
       detailVisible.value = false;
@@ -494,10 +555,24 @@ watch(
 onMounted(() => {
   console.log("FileManagerPage: Mounted with serverId", props.serverId);
   document.addEventListener("keydown", handleKeydown);
+  const prevent = (e: DragEvent) => {
+    e.preventDefault();
+  };
+  // 防止浏览器默认的拖拽打开行为（全局）
+  document.addEventListener("dragover", prevent);
+  document.addEventListener("drop", prevent);
+  // 存到 window 以便卸载时移除
+  (window as any).__fm_prevent_drag__ = prevent;
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
+  const prevent = (window as any).__fm_prevent_drag__ as (e: DragEvent) => void;
+  if (prevent) {
+    document.removeEventListener("dragover", prevent);
+    document.removeEventListener("drop", prevent);
+    (window as any).__fm_prevent_drag__ = null;
+  }
 });
 
 // 暴露方法
