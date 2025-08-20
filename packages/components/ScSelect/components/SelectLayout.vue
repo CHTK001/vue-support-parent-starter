@@ -1,16 +1,16 @@
 <template>
   <div class="selector-native-wrapper">
-    <el-select 
+    <el-select
       v-model="modelValue"
       :multiple="multiple"
       class="selector-native-select"
-      @change="handleNativeSelectChange"
       collapse-tags
       collapse-tags-tooltip
       :max-collapse-tags="maxCollapseTags"
       filterable
       :reserve-keyword="false"
       :multiple-limit="multiple ? limit : 0"
+      @change="handleNativeSelectChange"
     >
       <!-- 多选模式下显示批量操作按钮作为第一个选项 -->
       <el-option v-if="multiple && options.length > 1 && showBatchActions" :value="'__actions__'" :disabled="true" class="select-actions-option">
@@ -31,17 +31,12 @@
           </div>
         </div>
       </el-option>
-      
+
       <!-- 选项列表 -->
-      <el-option
-        v-for="item in options"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value"
-      >
+      <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
         <div class="select-option-content select-flex">
-            <IconifyIconOnline v-if="item.icon" :icon="item.icon" class="select-option-icon" />
-            <span>{{ item.label }}</span>
+          <IconifyIconOnline v-if="item.icon" :icon="item.icon" class="select-option-icon" />
+          <span>{{ item.label }}</span>
         </div>
       </el-option>
     </el-select>
@@ -49,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, watch } from "vue";
+import { defineEmits, defineProps, ref, watch } from "vue";
 import { IconifyIconOnline } from "../../ReIcon";
 
 interface CardOption {
@@ -61,11 +56,11 @@ interface CardOption {
 const props = defineProps({
   modelValue: {
     type: [String, Number, Array],
-    default: "",
+    default: ""
   },
   options: {
     type: Array as () => CardOption[],
-    required: true,
+    required: true
   },
   multiple: {
     type: Boolean,
@@ -91,15 +86,18 @@ const emit = defineEmits(["update:modelValue", "change", "selectAll", "invertSel
 const modelValue = ref(props.modelValue);
 
 // 监听modelValue变化同步到本地
-watch(() => props.modelValue, (newValue) => {
-  modelValue.value = newValue;
-});
+watch(
+  () => props.modelValue,
+  newValue => {
+    modelValue.value = newValue;
+  }
+);
 
 // 处理原生select变化
 const handleNativeSelectChange = (value: string | number | Array<string | number>) => {
   // 过滤掉可能的__actions__值
   if (Array.isArray(value)) {
-    const filteredValue = value.filter(v => v !== '__actions__');
+    const filteredValue = value.filter(v => v !== "__actions__");
     emit("update:modelValue", filteredValue);
     emit("change", filteredValue);
   } else {
@@ -136,7 +134,7 @@ const handleClearSelection = () => {
 
 .selector-native-wrapper {
   width: 100%;
-  
+
   .selector-native-select {
     width: 100%;
   }
@@ -155,7 +153,7 @@ const handleClearSelection = () => {
 .select-actions-option {
   background-color: var(--el-fill-color-light);
   pointer-events: auto !important;
-  
+
   &:hover {
     background-color: var(--el-fill-color-light);
   }
@@ -165,19 +163,19 @@ const handleClearSelection = () => {
 .select-actions-container {
   width: 100%;
   border-bottom: 1px solid var(--el-border-color-light);
-  
+
   .select-action-title {
     font-size: 13px;
     color: var(--el-text-color-secondary);
     font-weight: bold;
     margin-bottom: 12px;
-    
+
     .select-action-row {
       margin-top: 10px;
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      
+
       .el-button {
         flex: 1;
         font-size: 12px;
@@ -193,7 +191,7 @@ const handleClearSelection = () => {
   display: flex;
   align-items: center;
   white-space: nowrap;
-  
+
   .select-option-icon {
     margin-right: 8px;
     padding-top: 8px;
@@ -206,20 +204,20 @@ const handleClearSelection = () => {
 :deep(.el-dark) {
   .select-actions-option {
     background-color: var(--el-bg-color-overlay);
-    
+
     &:hover {
       background-color: var(--el-bg-color-overlay);
     }
   }
-  
+
   .select-option-content {
     .select-option-icon {
       color: var(--el-color-primary);
     }
   }
-  
+
   .select-actions-container {
     border-bottom: 1px solid var(--el-border-color-darker);
   }
 }
-</style> 
+</style>

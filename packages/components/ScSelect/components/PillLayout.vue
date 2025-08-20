@@ -1,7 +1,7 @@
 <template>
   <div
     class="pill-selector-item"
-    :class="{ 
+    :class="{
       active: isSelected,
       disabled: isDisabled
     }"
@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineEmits, defineProps } from "vue";
 import { IconifyIconOnline } from "../../ReIcon";
 
 const props = defineProps({
@@ -38,7 +38,7 @@ const props = defineProps({
   isDisabled: {
     type: Boolean,
     default: false
-  },
+  }
 });
 
 const emit = defineEmits(["select"]);
@@ -81,7 +81,7 @@ const handleSelect = () => {
     border-color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
     box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-    
+
     &::after {
       transform: scaleX(1);
     }
@@ -109,7 +109,7 @@ const handleSelect = () => {
     font-size: 18px;
     margin-bottom: 10px;
     z-index: 1;
-    
+
     &:hover {
       transform: scale(1.1) rotate(5deg);
     }
@@ -125,7 +125,7 @@ const handleSelect = () => {
     color: var(--el-text-color-primary);
     padding: 0 4px;
   }
-  
+
   &.active .pill-icon {
     color: var(--el-color-white);
     background-color: var(--el-color-primary);
@@ -136,29 +136,29 @@ const handleSelect = () => {
 :deep(.dark) {
   .pill-selector-item {
     background-color: var(--el-bg-color-overlay);
-    
+
     &:hover {
       background-color: var(--el-bg-color);
     }
-    
+
     &.active {
       background-color: var(--el-color-primary-dark-2);
       border-color: var(--el-color-primary);
-      
+
       .pill-label {
         color: var(--el-color-white);
       }
     }
-    
+
     .pill-icon {
       background-color: var(--el-bg-color-overlay);
       color: var(--el-color-primary);
     }
-    
+
     &.active .pill-icon {
       background-color: var(--el-color-primary);
       color: var(--el-color-white);
     }
   }
 }
-</style> 
+</style>
