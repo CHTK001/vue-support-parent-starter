@@ -439,6 +439,7 @@ onBeforeUnmount(() => {
 
 .modern-card {
   border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--el-box-shadow-light);
   border-radius: 14px;
   overflow: hidden;
   transition:

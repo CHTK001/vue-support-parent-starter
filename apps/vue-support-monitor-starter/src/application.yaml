@@ -18,7 +18,7 @@ BaseUrl: /monitor/api
 #是否开启租户登录
 OpenTenantLogin: false
 #是否开启基础登录
-OpenTenantBase: false
+OpenBaseLogin: false
 #是否开启刷新token
 OpenShowRefreshToken: true
 #是否开启邮箱设置
