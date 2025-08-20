@@ -230,11 +230,19 @@ export function getConsoleRoot(settingId: number, keyword?: string) {
   });
 }
 
-export function getConsoleChildren(settingId: number, parentPath: string) {
+export function getConsoleChildren(
+  settingId: number,
+  parentPath: string,
+  page?: number,
+  size?: number
+) {
+  const params: any = { parentPath };
+  if (typeof page === "number") params.page = page;
+  if (typeof size === "number") params.size = size;
   return request({
     url: `/system/data/console/${settingId}/children`,
     method: "get",
-    params: { parentPath },
+    params,
   });
 }
 

@@ -54,7 +54,7 @@
       </div>
       <div class="right-body">
         <template v-if="path">
-          <el-input v-model="content" type="textarea" :rows="16" />
+          <el-input v-model="content" type="textarea" :rows="40" disabled readonly />
         </template>
         <el-empty v-else description="请选择左侧节点" />
       </div>
@@ -115,7 +115,7 @@ async function refreshNode() {
   if (!path.value) return;
   const start = performance.now();
   const res = await getConsoleNode(props.id, path.value);
-  content.value = (res?.data?.data || "") as any;
+  content.value = (res?.data?.properties?.data || "") as any;
   const ms = Math.round(performance.now() - start);
   statusText.value = `加载完成，用时 ${ms} ms`;
 }
