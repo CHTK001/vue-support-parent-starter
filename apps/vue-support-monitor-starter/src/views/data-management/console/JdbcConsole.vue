@@ -1,14 +1,51 @@
 <template>
   <div class="console" :style="gridStyle">
-    <JdbcTree
-      :treeData="treeData"
-      :treeProps="treeProps"
-      :loadChildrenLazy="loadChildrenLazy"
-      :keyword="keyword"
-      @node-click="handleNodeClick"
-      @node-contextmenu="handleNodeContextMenu"
-      @search="(k)=>{ keyword = k; loadRoot(); }"
-    />
+    <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
+      <el-input
+        v-model="keyword"
+        placeholder="搜索..."
+        size="small"
+        clearable
+        @change="loadRoot"
+      >
+        <template #append>
+          <IconifyIconOnline icon="ri:search-line" />
+        </template>
+      </el-input>
+      <el-tree
+        ref="treeRef"
+        :key="treeVersion"
+        class="tree"
+        :data="treeData"
+        :props="treeProps"
+        :load="loadChildrenLazy"
+        lazy
+        node-key="path"
+        :expand-on-click-node="false"
+        @node-click="handleNodeClick"
+        @node-contextmenu="handleNodeContextMenu"
+      >
+        <template #default="{ node, data }">
+          <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
+          <span class="flex justify-between w-full">
+            <span>
+              <span>{{ data.name }}</span>
+              <span class="el-form-item-msg ml-2 mt-[3px]">{{
+                data.properties?.columnType
+              }}</span>
+              <span
+                v-if="data.properties?.columnSize"
+                class="el-form-item-msg ml-2 mt-[3px]"
+                >({{ data.properties?.columnSize }})</span
+              >
+            </span>
+            <span class="el-form-item-msg ml-2 mt-[3px]">{{
+              data.properties?.comment
+            }}</span>
+          </span>
+        </template>
+      </el-tree>
+    </div>
     <div
       class="splitter cursor-col-resize"
       @mousedown="onDragStart"
@@ -23,24 +60,56 @@
             >• 注释：{{ currentComment }}</span
           >
         </div>
-        <JdbcToolbar
-          :showEditor="showEditor"
-          :formatIcon="formatIcon"
-          :icons="icons"
-          :currentPath="currentPath"
-          :searched="searched"
-          :showTableComment="showTableComment"
-          :showFieldComments="showFieldComments"
-          :analyzing="analyzing"
-          :columnsLength="columns.length"
-          @execute="execute"
-          @reset-tree="resetTree"
-          @format="formatSql"
-          @open-structure="openStructureTab"
-          @toggle-table-comment="() => showTableComment = !showTableComment"
-          @toggle-field-comment="() => showFieldComments = !showFieldComments"
-          @toggle-analyze="toggleAnalyze"
-        />
+        <div class="toolbar">
+          <el-button
+            v-if="showEditor"
+            type="primary"
+            size="small"
+            @click="execute"
+          >
+            <IconifyIconOnline :icon="icons.execute" class="mr-1" />
+            执行
+          </el-button>
+          <el-button v-if="showEditor" size="small" @click="formatSql">
+            <IconifyIconOnline :icon="formatIcon" class="mr-1" />
+            格式化
+          </el-button>
+          <el-button
+            size="small"
+            :disabled="!currentPath"
+            @click="openStructureTab"
+          >
+            <IconifyIconOnline :icon="icons.structure" class="mr-1" />
+            结构
+          </el-button>
+          <el-button-group>
+            <el-button
+              size="small"
+              :type="showTableComment ? 'primary' : 'default'"
+              :disabled="!searched"
+              @click="showTableComment = !showTableComment"
+              >表头注释</el-button
+            >
+            <el-button
+              size="small"
+              :type="showFieldComments ? 'primary' : 'default'"
+              :disabled="!searched"
+              @click="showFieldComments = !showFieldComments"
+              >字段注释</el-button
+            >
+          </el-button-group>
+          <el-button
+            size="small"
+            :disabled="!currentPath || !columns.length"
+            @click="toggleAnalyze"
+          >
+            <IconifyIconOnline
+              :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'"
+              class="mr-1"
+            />
+            {{ analyzing ? "退出分析" : "分析" }}
+          </el-button>
+        </div>
       </div>
       <div class="right-body">
         <CodeEditor
@@ -112,7 +181,6 @@
               size="small"
               height="580px"
               :row-class-name="rowClassName"
-              :key="tableKey"
             >
               <el-table-column
                 v-for="col in visibleColumns"
@@ -193,11 +261,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
-import JdbcTree from './jdbc/JdbcTree.vue';
-import JdbcToolbar from './jdbc/JdbcToolbar.vue';
 // request不再直接使用，统一在system-data.ts封装
 import {
   extractArrayFromApi,
@@ -224,6 +290,8 @@ import {
 const props = defineProps<{ id: number }>();
 
 const treeData = ref<any[]>([]);
+const treeRef = ref<any>();
+const treeVersion = ref(0);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
 
 // 工具栏图标（格式化图标由 JS 生成选择）
@@ -262,8 +330,6 @@ const structureContent = ref("");
 const statusText = ref("");
 const currentNodeData = ref<any | null>(null);
 const currentComment = ref("");
-// 用于强制 el-table 重新渲染，避免旧数据与新数据混合的问题
-const tableKey = ref(0);
 
 // 左右可拖拽分栏
 const leftWidth = ref(300);
@@ -298,29 +364,9 @@ function resetWidth() {
   leftWidth.value = 300;
 }
 
-/**
- * 重置左侧树：清理当前选中与结果，并重新加载根节点
- */
-async function resetTree() {
-  // 清理右侧显示
-  currentPath.value = undefined;
-  currentNodeData.value = null;
-  columns.value = [];
-  rows.value = [];
-  tableComment.value = "";
-  currentComment.value = "";
-  activeTab.value = "result";
-  statusText.value = "";
-  // 关闭可能打开的右键菜单
-  menuVisible.value = false;
-  // 重新加载树根
-  try {
-    await loadRoot();
-    ElMessage.success("已重置树");
-  } catch (e) {
-    ElMessage.error("重置树失败");
-  }
-}
+onBeforeUnmount(() => {
+  onDragEnd();
+});
 
 // console config
 const consoleConfig = ref<{
@@ -377,6 +423,9 @@ async function loadRoot() {
   const res = await getConsoleRoot(props.id, keyword.value);
   const records = extractArrayFromApi(res?.data);
   treeData.value = records.map(normalizeTreeNode);
+  // 强制重建树，清理已加载/展开状态，避免重复追加
+  await nextTick();
+  treeVersion.value++;
 }
 
 async function handleNodeClick(node: any) {
@@ -453,11 +502,7 @@ async function execute() {
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
   await Promise.resolve();
-  // 使用新数组替换，确保响应式系统以及 el-table 使用新的引用
-  const newRows = dataData?.rows || [];
-  rows.value = Array.isArray(newRows) ? [...newRows] : [];
-  // 增量 tableKey 强制表格重建，防止旧 DOM 状态残留
-  tableKey.value++;
+  rows.value = dataData?.rows || [];
   searched.value = true;
   const ms = Math.round(performance.now() - start);
   statusText.value = `已返回 ${rows.value.length} 行，用时 ${ms} ms, ${data?.errorMessage || ""}`;
@@ -671,41 +716,6 @@ function isColumnLeaf(data: any): boolean {
   );
 }
 
-// 新增：根据 path 在 treeData 中查找节点
-function findNodeByPath(path: string, nodes: any[]): any | null {
-  if (!path) return null;
-  for (const n of nodes || []) {
-    if (n.path === path) return n;
-    if (n.children && n.children.length) {
-      const found = findNodeByPath(path, n.children);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-// 新增：按 path 刷新节点的子节点（用于刷新父节点或当前节点）
-async function refreshNodeChildrenByPath(nodePath: string) {
-  if (!nodePath) return;
-  try {
-    const res = await getConsoleChildren(props.id, nodePath);
-    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    const target = findNodeByPath(nodePath, treeData.value);
-    if (target) {
-      target.children = records;
-      target.leaf = records.length === 0;
-    } else {
-      // 如果树中未找到该节点，尝试更新根数据（回退）
-      // 此情况在 lazy 加载或首次加载时可能发生
-      if (nodePath === "") {
-        treeData.value = records;
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-}
-
 /**
  * 构建右键菜单项
  * - 根据控制台配置和节点类型动态生成
@@ -807,10 +817,9 @@ function handleNodeContextMenu(event: MouseEvent, data: any) {
   menuVisible.value = true;
   const hide = () => {
     menuVisible.value = false;
-    // 这里使用 once 选项确保监听器仅触发一次，避免多次右键导致监听器累积
+    document.removeEventListener("click", hide);
   };
-  // 使用一次性监听，避免重复添加多个全局 click 监听器
-  document.addEventListener("click", hide, { once: true });
+  document.addEventListener("click", hide);
 }
 
 /**
@@ -846,11 +855,7 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            inputValue: contextNode.value.name,
-          }
+          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -858,17 +863,26 @@ async function onMenuSelect(key: string) {
           newName: value.trim(),
         });
         ElMessage.success("已重命名");
-        await refreshContextNodeChildren();
+        contextNode.value.name = value.trim();
+        refreshNodeChildren({
+          path: contextNode.value.parentPath
+        });
+        // await refreshContextNodeChildren();
       } catch (_) {}
       break;
     }
     case "backup-table": {
       if (!contextNode.value?.path) return;
       try {
+        const now = new Date();
+        const yyyy = String(now.getFullYear());
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const dd = String(now.getDate()).padStart(2, "0");
+        const defaultName = `${contextNode.value.name}${yyyy}${mm}${dd}`;
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          { confirmButtonText: "确定", cancelButtonText: "取消" }
+          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -876,6 +890,9 @@ async function onMenuSelect(key: string) {
           backupName: value.trim(),
         });
         ElMessage.success("已发起备份");
+        refreshNodeChildren({
+          path: contextNode.value.parentPath
+        });
       } catch (_) {}
       break;
     }
@@ -887,46 +904,53 @@ async function openTableAndRender(hideEditor: boolean) {
   if (!node?.path) return;
   const resp = await openTable(props.id, node.path, 100);
   columns.value = resp?.data?.data?.columns || [];
-  // 使用新数组替换，确保不与旧数据混合
-  const newRows = resp?.data?.data?.rows || [];
-  rows.value = Array.isArray(newRows) ? [...newRows] : [];
-  tableKey.value++;
+  rows.value = [];
+  await Promise.resolve();
+  rows.value = resp?.data?.data?.rows || [];
   tableComment.value = resp?.data?.data?.tableComment || "";
   activeTab.value = "result";
   showEditor.value = !hideEditor ? true : false;
 }
 
 /**
- * 刷新当前右键节点的子节点（改为优先刷新父节点以反映比如重命名带来的变化）
+ * 刷新当前节点的子节点
+ */
+async function refreshNodeChildren(node: any) {
+  if (!node?.path) return;
+  try {
+    const res = await getConsoleChildren(props.id, node?.path);
+    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+      // 用 API 覆盖子节点，避免越刷越多
+      treeRef.value.updateKeyChildren(node?.path, records);
+    } else {
+      // 兜底：直接覆盖数据
+      node.children = records;
+    }
+    node.leaf = records.length === 0;
+  } catch (e) {
+    // ignore
+  } finally {
+    menuVisible.value = false;
+  }
+}
+/**
+ * 刷新当前右键节点的子节点
  */
 async function refreshContextNodeChildren() {
   const node = contextNode.value;
   if (!node?.path) return;
   try {
-    // 目标：当对表进行重命名或字段注释时，通常需要刷新父节点以更新子列表显示。
-    const parentPath = (node.path || "").replace(/\/[^\/]+$/, "");
-    if (parentPath && parentPath !== node.path) {
-      await refreshNodeChildrenByPath(parentPath);
+    const res = await getConsoleChildren(props.id, node.path);
+    const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+      // 用 API 覆盖子节点，避免越刷越多
+      treeRef.value.updateKeyChildren(node.path, records);
     } else {
-      // 无父路径则刷新当前节点
-      await refreshNodeChildrenByPath(node.path);
+      // 兜底：直接覆盖数据
+      node.children = records;
     }
-
-    // 如果当前选中的表正好位于被刷新的节点下，重新加载当前表的数据以防止旧数据残留
-    try {
-      if (currentPath.value) {
-        // 如果当前路径与被刷新的节点相同或为其子路径，则刷新表数据
-        if (
-          currentPath.value === node.path ||
-          currentPath.value.startsWith(node.path + ".") ||
-          currentPath.value.startsWith(node.path + "/")
-        ) {
-          await reloadCurrentTablePreserveEditor();
-        }
-      }
-    } catch (_) {
-      // ignore reload errors
-    }
+    node.leaf = records.length === 0;
   } catch (e) {
     // ignore
   } finally {
@@ -934,22 +958,9 @@ async function refreshContextNodeChildren() {
   }
 }
 
-// 新增：在不修改编辑器可见性的前提下，重新加载当前表的数据
-async function reloadCurrentTablePreserveEditor() {
-  if (!currentPath.value) return;
-  try {
-    const resp = await openTable(props.id, currentPath.value, 100);
-    columns.value = resp?.data?.data?.columns || [];
-    const newRows = resp?.data?.data?.rows || [];
-    rows.value = Array.isArray(newRows) ? [...newRows] : [];
-    tableKey.value++;
-    tableComment.value = resp?.data?.data?.tableComment || "";
-    activeTab.value = "result";
-  } catch (e) {
-    // ignore
-  }
-}
-
+/**
+ * 查看表结构（将返回内容放置到 SQL 编辑器中展示）
+ */
 async function viewTableStructure(node: any) {
   if (!node?.path) return;
   const res = await getConsoleNode(props.id, node.path, "structure");
@@ -1007,14 +1018,7 @@ async function addFieldComment(node: any) {
       nullable: node.properties?.nullable,
     });
     ElMessage.success("已保存注释");
-    // 立即更新当前节点的内存数据，保证界面即时反馈
-    node.properties = node.properties || {};
     node.properties.comment = value.trim();
-    // 同时刷新父节点的子列表以确保树的持久状态与后端保持一致
-    try {
-      contextNode.value = node;
-      await refreshContextNodeChildren();
-    } catch (_) {}
   } catch (_) {
     // canceled
   }
