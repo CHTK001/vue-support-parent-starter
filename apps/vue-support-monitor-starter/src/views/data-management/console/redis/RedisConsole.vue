@@ -2,19 +2,13 @@
   <div class="console" :style="gridStyle" @contextmenu.prevent>
     <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
     <div class="left overflow-auto thin-scrollbar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索..."
-        size="small"
-        clearable
-        @change="loadRoot"
-      >
+      <el-input v-model="keyword" placeholder="搜索..." size="small" clearable @change="loadRoot">
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
       </el-input>
       <el-tree
-      ref="treeRef"
+        ref="treeRef"
         class="tree"
         :data="treeData"
         :props="treeProps"
@@ -26,15 +20,12 @@
         @node-contextmenu="handleNodeContextMenu"
       >
         <template #default="{ node, data }">
-          <IconifyIconOnline
-            :icon="getRedisNodeIcon(node, data)"
-            class="mr-1"
-          />
+          <IconifyIconOnline :icon="getRedisNodeIcon(node, data)" class="mr-1" />
           <span class="flex justify-between w-full">
             <span>{{ data.name }}</span>
             <span v-if="data.type" class="el-form-item-msg ml-2 mt-[3px]">
-              {{data.description}}
-              {{data.type}}
+              {{ data.description }}
+              {{ data.type }}
             </span>
           </span>
         </template>
@@ -42,11 +33,7 @@
     </div>
 
     <!-- 分割条 -->
-    <div
-      class="splitter cursor-col-resize"
-      @mousedown="onDragStart"
-      @dblclick="resetWidth"
-    />
+    <div class="splitter cursor-col-resize" @mousedown="onDragStart" @dblclick="resetWidth" />
 
     <!-- 右侧：头部 + 内容区（按 key 类型渲染不同组件） -->
     <div class="right image-paper">
@@ -54,19 +41,14 @@
         <div class="path" :title="currentPath || '未选择'">
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
-          <span v-if="currentType" class="comment"
-            >• 类型：{{ currentType }}</span
-          >
-          <span>• TTL: {{nodeValue?.properties?.ttl}}</span>
+          <span v-if="currentType" class="comment">• 类型：{{ currentType }}</span>
+          <span>• TTL: {{ nodeValue?.properties?.ttl }}</span>
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
-          <el-button
-            size="small"
-            :disabled="!currentPath"
-            @click="refreshValue"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
+          <el-button size="small" :disabled="!currentPath" @click="refreshValue">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+            刷新
           </el-button>
         </div>
       </div>
@@ -75,53 +57,24 @@
         <template v-if="currentPath">
           <!-- STRING -->
           <div v-if="viewerType === 'string'" class="result-wrap">
-            <el-input
-              v-model="stringValue"
-              type="textarea"
-              :rows="14"
-              readonly
-            />
+            <el-input v-model="stringValue" type="textarea" :rows="14" readonly />
           </div>
           <!-- HASH -->
-          <el-table
-            v-else-if="viewerType === 'hash'"
-            :data="hashRows"
-            size="small"
-            border
-            height="580px"
-          >
+          <el-table v-else-if="viewerType === 'hash'" :data="hashRows" size="small" border height="580px">
             <el-table-column prop="field" label="字段" :min-width="160" />
             <el-table-column prop="value" label="值" :min-width="240" />
           </el-table>
           <!-- LIST -->
-          <el-table
-            v-else-if="viewerType === 'list'"
-            :data="listRows"
-            size="small"
-            border
-            height="580px"
-          >
+          <el-table v-else-if="viewerType === 'list'" :data="listRows" size="small" border height="580px">
             <el-table-column prop="index" label="#" width="70" />
             <el-table-column prop="value" label="值" :min-width="240" />
           </el-table>
           <!-- SET -->
-          <el-table
-            v-else-if="viewerType === 'set'"
-            :data="setRows"
-            size="small"
-            border
-            height="580px"
-          >
+          <el-table v-else-if="viewerType === 'set'" :data="setRows" size="small" border height="580px">
             <el-table-column prop="value" label="成员" :min-width="240" />
           </el-table>
           <!-- ZSET -->
-          <el-table
-            v-else-if="viewerType === 'zset'"
-            :data="zsetRows"
-            size="small"
-            border
-            height="580px"
-          >
+          <el-table v-else-if="viewerType === 'zset'" :data="zsetRows" size="small" border height="580px">
             <el-table-column prop="member" label="成员" :min-width="200" />
             <el-table-column prop="score" label="分数" width="120" />
           </el-table>
@@ -135,14 +88,7 @@
 
       <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>
-        <CommonContextMenu
-          :visible="menuVisible"
-          :x="menuX"
-          :y="menuY"
-          :items="menuItems"
-          @select="onMenuSelect"
-          @close="menuVisible = false"
-        />
+        <CommonContextMenu :visible="menuVisible" :x="menuX" :y="menuY" :items="menuItems" @select="onMenuSelect" @close="menuVisible = false" />
       </div>
     </div>
   </div>
@@ -150,19 +96,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount } from "vue";
-import CommonContextMenu, {
-  type MenuItem,
-} from "@/components/CommonContextMenu.vue";
+import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
 
-import {
-  extractArrayFromApi,
-  normalizeTreeNode,
-} from "@/views/data-management/utils/dataTree";
-import {
-  getConsoleRoot,
-  getConsoleChildren,
-  getConsoleNode,
-} from "@/api/system-data";
+import { extractArrayFromApi, normalizeTreeNode } from "@/views/data-management/utils/dataTree";
+import { getConsoleRoot, getConsoleChildren, getConsoleNode } from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
 const treeRef = ref<any>();
@@ -181,10 +118,7 @@ async function loadRoot() {
   treeData.value = records.map(normalizeTreeNode);
 }
 
-const loadChildrenLazy = async (
-  node: any,
-  resolve: (children: any[]) => void
-) => {
+const loadChildrenLazy = async (node: any, resolve: (children: any[]) => void) => {
   if (!node || node.level === 0) return resolve(treeData.value || []);
   const data = node.data || {};
 
@@ -244,15 +178,11 @@ function normalizeValueForView(val: any) {
     case "hash": {
       if (Array.isArray(val)) {
         // [[field, value], ...] 或 [{field,value}]
-        hashRows.value = val.map((it: any) =>
-          Array.isArray(it)
-            ? { field: String(it[0]), value: String(it[1]) }
-            : { field: String(it.field), value: String(it.value) }
-        );
+        hashRows.value = val.map((it: any) => (Array.isArray(it) ? { field: String(it[0]), value: String(it[1]) } : { field: String(it.field), value: String(it.value) }));
       } else if (val && typeof val === "object") {
-        hashRows.value = Object.keys(val).map((k) => ({
+        hashRows.value = Object.keys(val).map(k => ({
           field: k,
-          value: String(val[k]),
+          value: String(val[k])
         }));
       }
       break;
@@ -264,16 +194,12 @@ function normalizeValueForView(val: any) {
     }
     case "set": {
       const arr = Array.isArray(val) ? val : Object.values(val || {});
-      setRows.value = arr.map((v) => ({ value: String(v) }));
+      setRows.value = arr.map(v => ({ value: String(v) }));
       break;
     }
     case "zset": {
       const arr = Array.isArray(val) ? val : [];
-      zsetRows.value = arr.map((it: any) =>
-        Array.isArray(it)
-          ? { member: String(it[0]), score: Number(it[1]) }
-          : { member: String(it.member), score: Number(it.score) }
-      );
+      zsetRows.value = arr.map((it: any) => (Array.isArray(it) ? { member: String(it[0]), score: Number(it[1]) } : { member: String(it.member), score: Number(it.score) }));
       break;
     }
     default:
@@ -331,7 +257,7 @@ function tryPrettyJsonString(src: string): string {
 const leftWidth = ref(300);
 const isDragging = ref(false);
 const gridStyle = computed(() => ({
-  gridTemplateColumns: `${leftWidth.value}px 6px 1fr`,
+  gridTemplateColumns: `${leftWidth.value}px 6px 1fr`
 }));
 let startX = 0,
   startW = 300;
@@ -364,20 +290,20 @@ function buildMenuItems(data: any): MenuItem[] {
     key: "open",
     label: "打开",
     icon: "ri:folder-open-line",
-    disabled: !data?.path,
+    disabled: !data?.path
   });
   items.push({
     key: "copy-key",
     label: "复制 Key 名称",
     icon: "ri:file-copy-line",
-    disabled: !data?.name,
+    disabled: !data?.name
   });
   // 删除 Key：若不需要可移除此项
   items.push({
     key: "delete-key",
     label: "删除 Key",
     icon: "ri:delete-bin-line",
-    disabled: !data?.path,
+    disabled: !data?.path
   });
   return items;
 }
@@ -415,11 +341,10 @@ async function onMenuSelect(key: string) {
   }
 }
 
-
 /**
  * 刷新当前右键节点的子节点
  */
- async function refreshContextNodeChildren() {
+async function refreshContextNodeChildren() {
   const node = contextNode.value;
   if (!node?.path) return;
   try {
@@ -556,8 +481,7 @@ onMounted(loadRoot);
 .image-paper {
   background:
     linear-gradient(transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 100% 40px,
-    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 /
-      40px 100%,
+    linear-gradient(90deg, transparent 39px, rgba(0, 0, 0, 0.035) 40px) 0 0 / 40px 100%,
     linear-gradient(#fff, #fff);
 }
 .right-status {
