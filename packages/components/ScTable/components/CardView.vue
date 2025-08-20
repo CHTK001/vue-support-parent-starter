@@ -49,12 +49,12 @@
         <div class="is-always-shadow" @contextmenu="handleContextMenu($event, row)">
           <!-- 根据layout属性决定是否使用ScCard包装 -->
           <template v-if="layout === 'card'">
-            <ScCard hoverable>
+            <ScCard hoverable class="is-always-shadow-item">
               <slot :row="row" :index="index" />
             </ScCard>
           </template>
           <template v-else>
-            <slot :row="row" :index="index" />
+            <slot :row="row" :index="index" class="is-always-shadow-item" />
           </template>
         </div>
       </el-col>
@@ -89,10 +89,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, useSlots, onMounted, onUnmounted, nextTick } from "vue";
-import { debounce } from "lodash-es";
-import ContextMenu from "../plugins/ContextMenu.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
+import { debounce } from "lodash-es";
+import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
+import ContextMenu from "../plugins/ContextMenu.vue";
 
 // 定义props
 const props = defineProps({
@@ -538,7 +538,7 @@ const handleMenuAction = action => {
 
 <style lang="scss" scoped>
 .card-view-container {
-  .is-always-shadow {
+  .is-always-shadow-item {
     box-shadow: var(--el-box-shadow-light);
   }
   .card-col {

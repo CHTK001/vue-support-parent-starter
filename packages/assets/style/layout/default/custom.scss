@@ -19,7 +19,12 @@ img {
   width: 100%;
   border-radius: 10px;
 }
-
+.inner-svg,
+.option-icon-wrapper {
+  svg {
+    color: white;
+  }
+}
 .flex-col {
   flex-direction: column;
 }
