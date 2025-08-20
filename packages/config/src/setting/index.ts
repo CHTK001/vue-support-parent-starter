@@ -5,6 +5,8 @@ export const globalSetting: PlatformConfigs = {
   StorageEncode: true, //缓存是否加密
   remoteAnimation: true, //开启远程动画
   OpenSetting: true, //开启动态配置
+  OpenTenantLogin: false, //是否开启租户登录
+  OpenBaseLogin: true, //是否开启基础登录
   sfcScriptUrl: "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js", // vue3-sfc-loader 地址
   OpenAuth: true, //开启鉴权
   RemoteLayout: false, //开启远程布局
