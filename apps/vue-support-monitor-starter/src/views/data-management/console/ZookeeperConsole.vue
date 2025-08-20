@@ -116,10 +116,26 @@ async function refreshNode() {
   const start = performance.now();
   const res = await getConsoleNode(props.id, path.value);
   content.value = (res?.data?.properties?.data || "") as any;
+  content.value = tryPrettyJsonString(content.value);
   const ms = Math.round(performance.now() - start);
   statusText.value = `加载完成，用时 ${ms} ms`;
 }
-
+function tryPrettyJsonString(src: string): string {
+  const s = (src || "").trim();
+  if (!s) return src;
+  const first = s[0];
+  const last = s[s.length - 1];
+  // 粗略判断可能是 JSON 文本
+  if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
+    try {
+      const obj = JSON.parse(s);
+      return JSON.stringify(obj, null, 2);
+    } catch {
+      return src; // 非合法 JSON，原样返回
+    }
+  }
+  return src;
+}
 // 左右拖拽
 const leftWidth = ref(300);
 const isDragging = ref(false);

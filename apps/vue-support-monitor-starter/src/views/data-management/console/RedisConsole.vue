@@ -233,10 +233,14 @@ function normalizeValueForView(val: any) {
   zsetRows.value = [];
 
   switch (viewerType.value) {
-    case "string":
-      stringValue.value =
-        typeof val === "string" ? val : JSON.stringify(val, null, 2);
+    case "string": {
+      if (typeof val === "string") {
+        stringValue.value = tryPrettyJsonString(val);
+      } else {
+        stringValue.value = JSON.stringify(val, null, 2);
+      }
       break;
+    }
     case "hash": {
       if (Array.isArray(val)) {
         // [[field, value], ...] 或 [{field,value}]
@@ -297,10 +301,30 @@ async function refreshValue() {
 
 function pretty(val: any) {
   try {
-    return typeof val === "string" ? val : JSON.stringify(val, null, 2);
+    if (typeof val === "string") {
+      return tryPrettyJsonString(val);
+    }
+    return JSON.stringify(val, null, 2);
   } catch {
     return String(val);
   }
+}
+
+function tryPrettyJsonString(src: string): string {
+  const s = (src || "").trim();
+  if (!s) return src;
+  const first = s[0];
+  const last = s[s.length - 1];
+  // 粗略判断可能是 JSON 文本
+  if ((first === "{" && last === "}") || (first === "[" && last === "]")) {
+    try {
+      const obj = JSON.parse(s);
+      return JSON.stringify(obj, null, 2);
+    } catch {
+      return src; // 非合法 JSON，原样返回
+    }
+  }
+  return src;
 }
 
 // 左右拖拽
