@@ -1,43 +1,14 @@
 <template>
   <div class="console" :style="gridStyle" @contextmenu.prevent>
-    <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
-    <div class="left overflow-auto thin-scrollbar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索..."
-        size="small"
-        clearable
-        @change="loadRoot"
-      >
-        <template #append>
-          <IconifyIconOnline icon="ri:search-line" />
-        </template>
-      </el-input>
-      <el-tree
-        class="tree"
-        :data="treeData"
-        :props="treeProps"
-        :load="loadChildrenLazy"
-        lazy
-        node-key="path"
-        :expand-on-click-node="false"
-        @node-click="handleNodeClick"
-        @node-contextmenu="handleNodeContextMenu"
-      >
-        <template #default="{ node, data }">
-          <IconifyIconOnline
-            :icon="getRedisNodeIcon(node, data)"
-            class="mr-1"
-          />
-          <span class="flex justify-between w-full">
-            <span>{{ data.name }}</span>
-            <span v-if="data.type" class="el-form-item-msg ml-2 mt-[3px]">{{
-              data.type
-            }}</span>
-          </span>
-        </template>
-      </el-tree>
-    </div>
+    <RedisTree
+      :treeData="treeData"
+      :treeProps="treeProps"
+      :loadChildrenLazy="loadChildrenLazy"
+      :keyword="keyword"
+      @node-click="handleNodeClick"
+      @node-contextmenu="handleNodeContextMenu"
+      @search="(k)=>{ keyword = k; loadRoot(); }"
+    />
 
     <!-- 分割条 -->
     <div
@@ -56,15 +27,7 @@
             >• 类型：{{ currentType }}</span
           >
         </div>
-        <div class="toolbar">
-          <el-button
-            size="small"
-            :disabled="!currentPath"
-            @click="refreshValue"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </el-button>
-        </div>
+        <RedisToolbar :currentPath="currentPath" @refresh="refreshValue" />
       </div>
 
       <div class="right-body">

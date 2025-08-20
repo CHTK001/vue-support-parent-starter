@@ -1,7 +1,7 @@
 <template>
   <div
     class="card-selector-item"
-    :class="{ 
+    :class="{
       active: isSelected,
       disabled: isDisabled,
       'icon-position-top': iconPosition === 'top'
@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineEmits, defineProps } from "vue";
 import { IconifyIconOnline } from "../../ReIcon";
 
 const props = defineProps({
@@ -43,13 +43,13 @@ const props = defineProps({
   },
   width: {
     type: String,
-    default: '100px'
+    default: "100px"
   },
   iconPosition: {
     type: String,
-    default: 'center',
+    default: "center",
     validator: (value: string) => {
-      return ['center', 'top'].includes(value);
+      return ["center", "top"].includes(value);
     }
   }
 });
@@ -155,11 +155,11 @@ const handleSelect = () => {
     max-width: 100%;
     color: var(--el-text-color-primary);
   }
-  
+
   &.icon-position-top {
     padding-top: 45px;
     margin-top: 25px;
-    
+
     .card-icon {
       position: absolute;
       top: -25px;
@@ -167,13 +167,15 @@ const handleSelect = () => {
       height: 52px;
       padding: 12px;
       box-shadow: var(--el-box-shadow-light);
-      transition: all 0.3s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      
+      transition:
+        all 0.3s ease,
+        transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
       &:hover {
         transform: scale(1.5);
       }
     }
-    
+
     &.active .card-icon {
       transform: scale(1.2);
       box-shadow: 0 6px 12px rgba(var(--el-color-primary-rgb), 0.2);
@@ -184,29 +186,29 @@ const handleSelect = () => {
 :deep(.dark) {
   .card-selector-item {
     background-color: var(--el-bg-color-overlay);
-    
+
     &:hover {
       background-color: var(--el-bg-color);
     }
-    
+
     &.active {
       background-color: var(--el-color-primary-dark-2);
       border-color: var(--el-color-primary);
-      
+
       .card-label {
         color: var(--el-color-white);
       }
     }
-    
+
     .card-icon {
       background-color: var(--el-bg-color-overlay);
       color: var(--el-color-primary);
     }
-    
+
     &.active .card-icon {
       background-color: var(--el-color-primary-light-5);
       color: var(--el-color-white);
     }
   }
 }
-</style> 
+</style>
