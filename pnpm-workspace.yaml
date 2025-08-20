@@ -175,7 +175,7 @@ catalog:
   dotenv: ^16.4.5
   echarts: ^5.6.0
   el-table-infinite-scroll: ^3.0.6
-  element-plus: ^2.9.2
+  element-plus: ^2.10.7
   "@element-plus/icons-vue": ^2.3.1
   eslint: ^9.17.0
   eslint-config-prettier: ^9.1.0

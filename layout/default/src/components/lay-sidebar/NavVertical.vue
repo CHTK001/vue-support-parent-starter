@@ -21,10 +21,10 @@ const { device, pureApp, isCollapse, tooltipEffect, menuSelect, toggleSideBar } 
 const subMenuData = ref([]);
 
 const menuData = computed(() => {
-  return pureApp.layout === "mix" && device.value !== "mobile" ? subMenuData.value : usePermissionStoreHook().wholeMenus;
+  return pureApp?.layout === "mix" && device.value !== "mobile" ? subMenuData.value : usePermissionStoreHook().wholeMenus;
 });
 
-const loading = computed(() => (pureApp.layout === "mix" ? false : menuData.value.length === 0 ? true : false));
+const loading = computed(() => (pureApp?.layout === "mix" ? false : menuData.value.length === 0 ? true : false));
 
 const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
 
@@ -78,8 +78,8 @@ const defer = useDefer(menuData.value.length);
         </span>
       </el-menu>
     </el-scrollbar>
-    <LaySidebarCenterCollapse v-if="device !== 'mobile' && (isShow || isCollapse)" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
-    <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarCenterCollapse v-if="device !== 'mobile' && (isShow || isCollapse)" :is-active="pureApp?.sidebar?.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarLeftCollapse v-if="device !== 'mobile'" :is-active="pureApp?.sidebar?.opened" @toggleClick="toggleSideBar" />
   </div>
 </template>
 

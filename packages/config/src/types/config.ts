@@ -4,6 +4,8 @@ export interface PlatformConfigs {
   cardBody?: boolean;
   OpenAuth?: boolean;
   OpenSetting?: boolean;
+  OpenTenantLogin?: boolean;
+  OpenBaseLogin?: boolean;
   sfcScriptUrl?: string;
   remoteAnimation?: boolean;
   menuTransition?: boolean;
