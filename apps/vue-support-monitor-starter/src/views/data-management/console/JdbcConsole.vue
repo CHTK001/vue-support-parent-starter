@@ -74,6 +74,9 @@
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
           </el-button>
+          <el-button size="small" @click="onRefreshTree">
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
+          </el-button>
           <el-button
             size="small"
             :disabled="!currentPath"
@@ -426,6 +429,10 @@ async function loadRoot() {
   // 强制重建树，清理已加载/展开状态，避免重复追加
   await nextTick();
   treeVersion.value++;
+}
+
+function onRefreshTree() {
+  loadRoot();
 }
 
 async function handleNodeClick(node: any) {
@@ -1048,6 +1055,12 @@ onMounted(async () => {
   margin-top: 8px;
   flex: 1;
   overflow: auto;
+}
+
+.left-toolbar {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
 }
 
 .right {

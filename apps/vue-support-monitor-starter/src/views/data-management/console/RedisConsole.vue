@@ -1,14 +1,45 @@
 <template>
   <div class="console" :style="gridStyle" @contextmenu.prevent>
-    <RedisTree
-      :treeData="treeData"
-      :treeProps="treeProps"
-      :loadChildrenLazy="loadChildrenLazy"
-      :keyword="keyword"
-      @node-click="handleNodeClick"
-      @node-contextmenu="handleNodeContextMenu"
-      @search="(k)=>{ keyword = k; loadRoot(); }"
-    />
+    <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
+    <div class="left overflow-auto thin-scrollbar">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索..."
+        size="small"
+        clearable
+        @change="loadRoot"
+      >
+        <template #append>
+          <IconifyIconOnline icon="ri:search-line" />
+        </template>
+      </el-input>
+      <el-tree
+      ref="treeRef"
+        class="tree"
+        :data="treeData"
+        :props="treeProps"
+        :load="loadChildrenLazy"
+        lazy
+        node-key="path"
+        :expand-on-click-node="false"
+        @node-click="handleNodeClick"
+        @node-contextmenu="handleNodeContextMenu"
+      >
+        <template #default="{ node, data }">
+          <IconifyIconOnline
+            :icon="getRedisNodeIcon(node, data)"
+            class="mr-1"
+          />
+          <span class="flex justify-between w-full">
+            <span>{{ data.name }}</span>
+            <span v-if="data.type" class="el-form-item-msg ml-2 mt-[3px]">
+              {{data.description}}
+              {{data.type}}
+            </span>
+          </span>
+        </template>
+      </el-tree>
+    </div>
 
     <!-- 分割条 -->
     <div
@@ -26,8 +57,18 @@
           <span v-if="currentType" class="comment"
             >• 类型：{{ currentType }}</span
           >
+          <span>• TTL: {{nodeValue?.properties?.ttl}}</span>
+          <!-- <span>{{nodeValue}}</span> -->
         </div>
-        <RedisToolbar :currentPath="currentPath" @refresh="refreshValue" />
+        <div class="toolbar">
+          <el-button
+            size="small"
+            :disabled="!currentPath"
+            @click="refreshValue"
+          >
+            <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
+          </el-button>
+        </div>
       </div>
 
       <div class="right-body">
@@ -124,6 +165,7 @@ import {
 } from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
+const treeRef = ref<any>();
 
 // 左侧树
 const keyword = ref("");
@@ -243,8 +285,8 @@ async function refreshValue() {
   if (!currentPath.value) return;
   const start = performance.now();
   const res = await getConsoleNode(props.id, currentPath.value);
-  const val = res?.data?.data;
-  nodeValue.value = val;
+  const val = res?.data?.type;
+  nodeValue.value = res?.data;
   normalizeValueForView(val);
   const ms = Math.round(performance.now() - start);
   statusText.value = `加载完成，用时 ${ms} ms`;
@@ -346,15 +388,29 @@ async function onMenuSelect(key: string) {
   }
 }
 
-async function refreshContextNodeChildren() {
+
+/**
+ * 刷新当前右键节点的子节点
+ */
+ async function refreshContextNodeChildren() {
   const node = contextNode.value;
   if (!node?.path) return;
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    node.children = records;
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+      // 用 API 覆盖子节点，避免越刷越多
+      treeRef.value.updateKeyChildren(node.path, records);
+    } else {
+      // 兜底：直接覆盖数据
+      node.children = records;
+    }
     node.leaf = records.length === 0;
-  } catch (_) {}
+  } catch (e) {
+    // ignore
+  } finally {
+    menuVisible.value = false;
+  }
 }
 
 async function copyKeyName(node: any) {
