@@ -171,6 +171,9 @@ const treeRef = ref<any>();
 const keyword = ref("");
 const treeData = ref<any[]>([]);
 const treeProps = { label: "name", children: "children", isLeaf: "leaf" };
+// 针对大量 key 的分页参数
+const page = ref(1);
+const size = ref(200);
 
 async function loadRoot() {
   const res = await getConsoleRoot(props.id, keyword.value);
@@ -186,7 +189,7 @@ const loadChildrenLazy = async (
   const data = node.data || {};
 
   if (data.leaf === true) return resolve([]);
-  const res = await getConsoleChildren(props.id, data.path);
+  const res = await getConsoleChildren(props.id, data.path, page.value, size.value);
   resolve(extractArrayFromApi(res?.data).map(normalizeTreeNode));
 };
 
