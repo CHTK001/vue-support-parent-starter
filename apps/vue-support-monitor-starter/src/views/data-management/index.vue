@@ -289,6 +289,22 @@ function openConsole(row: SystemDataSetting) {
     });
     return;
   }
+  if (type.includes("influx")) {
+    router.push({ name: "dataInfluxConsoleFull", query: { id: row.systemDataSettingId } });
+    return;
+  }
+  if (type.includes("mqtt")) {
+    router.push({ name: "dataMqttConsoleFull", query: { id: row.systemDataSettingId } });
+    return;
+  }
+  if (type.includes("graph") || type.includes("graphdb") || type.includes("neo4j")) {
+    router.push({ name: "dataGraphConsoleFull", query: { id: row.systemDataSettingId } });
+    return;
+  }
+  if (type.includes("email")) {
+    router.push({ name: "dataEmailConsoleFull", query: { id: row.systemDataSettingId } });
+    return;
+  }
 }
 
 function openSetting(row: SystemDataSetting) {
