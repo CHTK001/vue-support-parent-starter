@@ -1,5 +1,5 @@
 <script setup>
-import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "@/api/manage/secret";
+import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "../../api/secret";
 import ScTable from "@repo/components/ScTable/index.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
@@ -182,16 +182,16 @@ const dialogClose = async () => {
                   <template #default="{ row }">
                     <el-button v-if="hasSyncFunction(row)" size="small" plain link type="primary"
                       :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')">
-                      {{ $t("buttons.sync") }}
+                      同步
                     </el-button>
-                    <el-button v-auth="'sys:secret:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link
+                    <el-button size="small" plain link
                       type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">
-                      {{ $t("buttons.edit") }}
+                      编辑
                     </el-button>
 
-                    <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row)">
+                    <el-popconfirm title="确认删除吗？" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button v-auth="'sys:secret:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small"
+                        <el-button size="small"
                           type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
                       </template>
                     </el-popconfirm>
@@ -205,3 +205,36 @@ const dialogClose = async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.main {
+  height: 100%;
+}
+
+.background-color {
+  background-color: var(--el-bg-color-page);
+}
+
+.left-panel {
+  flex: 1;
+}
+
+.right-panel {
+  display: flex;
+  align-items: center;
+  padding-right: 20px;
+}
+
+.right-panel-search {
+  display: flex;
+  gap: 8px;
+}
+
+.nopadding {
+  padding: 0;
+}
+
+.search-form {
+  margin-bottom: 0;
+}
+</style>

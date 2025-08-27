@@ -25,18 +25,19 @@
 </template>
 
 <script>
-import { fetchPageTemplateCategory, fetchSmsSync } from "@repo/core";
-import { transformI18n } from "@repo/config";
-import { defineComponent } from "vue";
+import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { transformI18n } from "@repo/config";
+import { fetchSmsSync } from "@repo/core";
 import { message } from "@repo/utils";
+import { defineComponent } from "vue";
 
 export default defineComponent({
   props: {
     sysSecretFunctions: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -44,22 +45,23 @@ export default defineComponent({
       loading: false,
       visible: false,
       form: {
-        syncType: null
+        syncType: null,
       },
       category: [],
-      title: transformI18n("buttons.sync")
+      title: "同步",
     };
   },
   mounted() {},
   methods: {
     transformI18n,
     useRenderIcon,
+    debounce,
 
     async handleSubmit() {
       this.loading = true;
       if (this.form.syncType === "SMS") {
         fetchSmsSync(this.form)
-          .then(res => {
+          .then((res) => {
             if (res.code == "00000") {
               message("短信模板同步成功", { type: "success" });
               this.visible = false;
@@ -67,7 +69,7 @@ export default defineComponent({
               message(res.msg, { type: "error" });
             }
           })
-          .catch(err => {
+          .catch((err) => {
             message(err.msg, { type: "error" });
           })
           .finally(() => {
@@ -88,7 +90,33 @@ export default defineComponent({
     },
     open(mode) {
       this.visible = true;
-    }
-  }
+    },
+  },
 });
 </script>
+
+<style scoped>
+.pure-container {
+  height: 100%;
+}
+
+.el-dialog {
+  border-radius: 8px;
+}
+
+.el-form {
+  padding: 20px 0;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.min-w-[240px] {
+  min-width: 240px;
+}
+</style>

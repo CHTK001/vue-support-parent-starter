@@ -1,6 +1,6 @@
 <script>
 import { defineComponent, toRaw } from "vue";
-import { fetchUpdateSecret, fetchSaveSecret } from "@/api/manage/secret";
+import { fetchUpdateSecret, fetchSaveSecret } from "../../api/secret";
 import { fetchListDictItem } from "@repo/core";
 
 import { message } from "@repo/utils";
@@ -72,7 +72,7 @@ export default defineComponent({
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
-      this.title = mode == "save" ? this.t("message.save") : this.t("message.edit");
+      this.title = mode == "save" ? "保存" : "编辑";
     },
     debounce(fn, time, immediate) {
       return debounce(fn, time, immediate);
@@ -180,3 +180,25 @@ export default defineComponent({
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.el-dialog {
+  border-radius: 8px;
+}
+
+.el-form {
+  padding: 20px 0;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
+}
+
+.el-row {
+  margin: 0;
+}
+
+.el-col {
+  padding: 0 10px;
+}
+</style>
