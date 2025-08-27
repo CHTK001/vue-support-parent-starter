@@ -52,7 +52,15 @@ export default [
       showLink: false
     }
   },
-
+ {
+    path: "/data/console/influx",
+    name: "dataInfluxConsoleFull",
+    component: () => import("@/views/data-management/console/influx/index.vue"),
+    meta: {
+      title: "ZooKeeper 控制台",
+      showLink: false
+    }
+  },
   {
     path: "/data/console/mqtt",
     name: "dataMqttConsoleFull",

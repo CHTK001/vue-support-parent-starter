@@ -55,33 +55,73 @@
 
       <div class="right-body">
         <template v-if="currentPath">
-          <!-- STRING -->
-          <div v-if="viewerType === 'string'" class="result-wrap">
-            <el-input v-model="stringValue" type="textarea" :rows="14" readonly />
-          </div>
-          <!-- HASH -->
-          <el-table v-else-if="viewerType === 'hash'" :data="hashRows" size="small" border height="580px">
-            <el-table-column prop="field" label="字段" :min-width="160" />
-            <el-table-column prop="value" label="值" :min-width="240" />
-          </el-table>
-          <!-- LIST -->
-          <el-table v-else-if="viewerType === 'list'" :data="listRows" size="small" border height="580px">
-            <el-table-column prop="index" label="#" width="70" />
-            <el-table-column prop="value" label="值" :min-width="240" />
-          </el-table>
-          <!-- SET -->
-          <el-table v-else-if="viewerType === 'set'" :data="setRows" size="small" border height="580px">
-            <el-table-column prop="value" label="成员" :min-width="240" />
-          </el-table>
-          <!-- ZSET -->
-          <el-table v-else-if="viewerType === 'zset'" :data="zsetRows" size="small" border height="580px">
-            <el-table-column prop="member" label="成员" :min-width="200" />
-            <el-table-column prop="score" label="分数" width="120" />
-          </el-table>
-          <!-- 其他类型：JSON 展示 -->
-          <div v-else class="result-wrap">
-            <pre>{{ pretty(nodeValue) }}</pre>
-          </div>
+          <template v-if="valueTypeText">
+            <!-- valueType 分支：根据 properties.valueType 选择展示组件 -->
+            <div v-if="valueTypeName === 'boolean'" class="result-wrap">
+              <el-switch v-model="vBoolean" disabled />
+            </div>
+            <div v-else-if="valueTypeName === 'number'" class="result-wrap">
+              <el-input :model-value="String(vNumber ?? '')" readonly />
+            </div>
+            <el-table v-else-if="valueTypeName === 'array'" :data="vArrayRows" size="small" border height="580px">
+              <el-table-column prop="index" label="#" width="70" />
+              <el-table-column prop="value" label="值" :min-width="240" />
+            </el-table>
+            <el-table v-else-if="valueTypeName === 'dict' || valueTypeName === 'map' || valueTypeName === 'object'" :data="vDictRows" size="small" border height="580px">
+              <el-table-column prop="key" label="键" :min-width="160" />
+              <el-table-column prop="value" label="值" :min-width="240" />
+            </el-table>
+            <div v-else-if="valueTypeName === 'color'" class="result-wrap">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <el-color-picker v-model="vColor" disabled />
+                <span>{{ vColor }}</span>
+              </div>
+            </div>
+            <div v-else-if="valueTypeName === 'mail' || valueTypeName === 'email'" class="result-wrap">
+              <el-link :href="`mailto:${vText}`" target="_blank">{{ vText }}</el-link>
+            </div>
+            <div v-else-if="valueTypeName === 'password' || valueTypeName === 'appsecret'" class="result-wrap">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span>{{ secretVisible ? vText : maskedPassword }}</span>
+                <el-button size="small" @click="secretVisible = !secretVisible">{{ secretVisible ? '隐藏' : '显示' }}</el-button>
+              </div>
+            </div>
+            <div v-else-if="valueTypeName === 'textarea' || valueTypeName === 'text' || valueTypeName === 'string'" class="result-wrap">
+              <el-input v-model="vText" type="textarea" :rows="14" readonly />
+            </div>
+            <div v-else class="result-wrap">
+              <pre>{{ pretty(vRaw) }}</pre>
+            </div>
+          </template>
+          <template v-else>
+            <!-- STRING -->
+            <div v-if="viewerType === 'string'" class="result-wrap">
+              <el-input v-model="stringValue" type="textarea" :rows="14" readonly />
+            </div>
+            <!-- HASH -->
+            <el-table v-else-if="viewerType === 'hash'" :data="hashRows" size="small" border height="580px">
+              <el-table-column prop="field" label="字段" :min-width="160" />
+              <el-table-column prop="value" label="值" :min-width="240" />
+            </el-table>
+            <!-- LIST -->
+            <el-table v-else-if="viewerType === 'list'" :data="listRows" size="small" border height="580px">
+              <el-table-column prop="index" label="#" width="70" />
+              <el-table-column prop="value" label="值" :min-width="240" />
+            </el-table>
+            <!-- SET -->
+            <el-table v-else-if="viewerType === 'set'" :data="setRows" size="small" border height="580px">
+              <el-table-column prop="value" label="成员" :min-width="240" />
+            </el-table>
+            <!-- ZSET -->
+            <el-table v-else-if="viewerType === 'zset'" :data="zsetRows" size="small" border height="580px">
+              <el-table-column prop="member" label="成员" :min-width="200" />
+              <el-table-column prop="score" label="分数" width="120" />
+            </el-table>
+            <!-- 其他类型：JSON 展示 -->
+            <div v-else class="result-wrap">
+              <pre>{{ pretty(nodeValue) }}</pre>
+            </div>
+          </template>
         </template>
         <el-empty v-else description="请选择左侧 key" />
       </div>
@@ -142,70 +182,173 @@ const currentType = ref<string>("");
 const nodeValue = ref<any>(null);
 const statusText = ref("");
 
-const viewerType = computed(() => {
-  const t = (currentType.value || "").toLowerCase();
-  if (t.includes("string")) return "string";
-  if (t.includes("hash")) return "hash";
-  if (t.includes("list")) return "list";
-  if (t.includes("set") && !t.includes("zset")) return "set";
-  if (t.includes("zset") || t.includes("sorted")) return "zset";
-  return "raw";
-});
+// valueType 显示相关
+const valueTypeText = computed(() => (nodeValue.value?.properties?.valueType || nodeValue.value?.properties?.valuetype || nodeValue.value?.properties?.value_type || "").toString());
+const valueTypeName = computed(() => valueTypeText.value.trim().toLowerCase());
 
-// 各类型派生数据
-const stringValue = ref("");
+const vBoolean = ref<boolean>(false);
+const vNumber = ref<number | null>(null);
+const vArrayRows = ref<Array<{ index: number; value: string }>>([]);
+const vDictRows = ref<Array<{ key: string; value: string }>>([]);
+const vColor = ref<string>("#000000");
+const vText = ref<string>("");
+const vRaw = ref<any>(null);
+const secretVisible = ref(false);
+const maskedPassword = computed(() => (vText.value ? "•".repeat(Math.min(12, Math.max(6, vText.value.length))) : "••••••"));
+
+// 作为兜底的 Redis 类型渲染状态
+const viewerType = ref<"" | "string" | "hash" | "list" | "set" | "zset">("");
+const stringValue = ref<string>("");
 const hashRows = ref<Array<{ field: string; value: string }>>([]);
 const listRows = ref<Array<{ index: number; value: string }>>([]);
 const setRows = ref<Array<{ value: string }>>([]);
 const zsetRows = ref<Array<{ member: string; score: number }>>([]);
 
+function clearValueTypeView() {
+  vBoolean.value = false;
+  vNumber.value = null;
+  vArrayRows.value = [];
+  vDictRows.value = [];
+  vColor.value = "#000000";
+  vText.value = "";
+  vRaw.value = null;
+  secretVisible.value = false;
+}
+
+function getNodeActualValue(data: any) {
+  const p = (data && data.properties) || {};
+  return p.value ?? p.data ?? data?.value ?? data?.data ?? data?.content ?? null;
+}
+
+function parseBoolean(x: any): boolean {
+  const s = String(x).trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes' || s === 'y' || s === 'on';
+}
+
+function ensureColorString(x: any): string {
+  const s = String(x || '').trim();
+  if (!s) return '#000000';
+  const m = s.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (m) return s.startsWith('#') ? s : '#' + s;
+  return s; // 保留原值
+}
+
+function normalizeByValueType(val: any) {
+  clearValueTypeView();
+  vRaw.value = val;
+  const t = valueTypeName.value;
+  try {
+    if (t === 'boolean') {
+      vBoolean.value = typeof val === 'boolean' ? val : parseBoolean(val);
+      return;
+    }
+    if (t === 'number') {
+      const n = typeof val === 'number' ? val : Number(val);
+      vNumber.value = isNaN(n) ? null : n;
+      return;
+    }
+    if (t === 'array') {
+      const arr = Array.isArray(val) ? val : (val ? (typeof val === 'string' ? JSON.parse(val) : []) : []);
+      vArrayRows.value = (Array.isArray(arr) ? arr : []).map((v: any, i: number) => ({ index: i, value: typeof v === 'string' ? v : JSON.stringify(v) }));
+      return;
+    }
+    if (t === 'dict' || t === 'map' || t === 'object') {
+      const obj = (val && typeof val === 'object') ? val : (typeof val === 'string' ? JSON.parse(val) : {});
+      vDictRows.value = Object.keys(obj || {}).map(k => ({ key: k, value: typeof obj[k] === 'string' ? obj[k] : JSON.stringify(obj[k]) }));
+      return;
+    }
+    if (t === 'color') {
+      vColor.value = ensureColorString(val);
+      return;
+    }
+    if (t === 'mail' || t === 'email') {
+      vText.value = String(val ?? '');
+      return;
+    }
+    if (t === 'password' || t === 'appsecret') {
+      vText.value = String(val ?? '');
+      return;
+    }
+    if (t === 'textarea' || t === 'text' || t === 'string') {
+      if (typeof val === 'string') {
+        vText.value = tryPrettyJsonString(val);
+      } else {
+        vText.value = JSON.stringify(val, null, 2);
+      }
+      return;
+    }
+  } catch (_) {
+    // 解析失败走默认
+  }
+  // 默认展示原始值
+  vRaw.value = val;
+}
+
+// Redis 类型兜底处理
 function normalizeValueForView(val: any) {
+  // 清空
+  viewerType.value = "";
   stringValue.value = "";
   hashRows.value = [];
   listRows.value = [];
   setRows.value = [];
   zsetRows.value = [];
 
-  switch (viewerType.value) {
-    case "string": {
-      if (typeof val === "string") {
-        stringValue.value = tryPrettyJsonString(val);
-      } else {
-        stringValue.value = JSON.stringify(val, null, 2);
-      }
-      break;
+  const typeText = (currentType.value || nodeValue.value?.type || nodeValue.value?.properties?.type || '').toString().toLowerCase();
+
+  // 尝试基于形状推断
+  const isArray = Array.isArray(val);
+  const isObj = val && typeof val === 'object' && !isArray;
+
+  if (typeText.includes('zset')) {
+    viewerType.value = 'zset';
+    const rows: Array<{ member: string; score: number }> = [];
+    if (isArray) {
+      (val as any[]).forEach((it) => {
+        if (it && typeof it === 'object') {
+          const m = (it as any).member ?? (Array.isArray(it) ? it[0] : undefined);
+          const s = (it as any).score ?? (Array.isArray(it) ? it[1] : undefined);
+          if (m !== undefined) rows.push({ member: String(m), score: Number(s ?? 0) });
+        }
+      });
     }
-    case "hash": {
-      if (Array.isArray(val)) {
-        // [[field, value], ...] 或 [{field,value}]
-        hashRows.value = val.map((it: any) => (Array.isArray(it) ? { field: String(it[0]), value: String(it[1]) } : { field: String(it.field), value: String(it.value) }));
-      } else if (val && typeof val === "object") {
-        hashRows.value = Object.keys(val).map(k => ({
-          field: k,
-          value: String(val[k])
-        }));
-      }
-      break;
-    }
-    case "list": {
-      const arr = Array.isArray(val) ? val : [];
-      listRows.value = arr.map((v, i) => ({ index: i, value: String(v) }));
-      break;
-    }
-    case "set": {
-      const arr = Array.isArray(val) ? val : Object.values(val || {});
-      setRows.value = arr.map(v => ({ value: String(v) }));
-      break;
-    }
-    case "zset": {
-      const arr = Array.isArray(val) ? val : [];
-      zsetRows.value = arr.map((it: any) => (Array.isArray(it) ? { member: String(it[0]), score: Number(it[1]) } : { member: String(it.member), score: Number(it.score) }));
-      break;
-    }
-    default:
-      // raw
-      break;
+    zsetRows.value = rows;
+    return;
   }
+
+  if (typeText.includes('hash') || (isObj && !typeText)) {
+    viewerType.value = 'hash';
+    const entries: Array<{ field: string; value: string }> = [];
+    if (isObj) {
+      Object.keys(val || {}).forEach((k) => entries.push({ field: k, value: typeof val[k] === 'string' ? val[k] : JSON.stringify(val[k]) }));
+    } else if (isArray) {
+      (val as any[]).forEach((it) => {
+        if (it && typeof it === 'object') {
+          const f = (it as any).field ?? (Array.isArray(it) ? it[0] : undefined);
+          const v = (it as any).value ?? (Array.isArray(it) ? it[1] : undefined);
+          if (f !== undefined) entries.push({ field: String(f), value: typeof v === 'string' ? v : JSON.stringify(v) });
+        }
+      });
+    }
+    hashRows.value = entries;
+    return;
+  }
+
+  if (typeText.includes('list') || (isArray && !typeText)) {
+    viewerType.value = 'list';
+    listRows.value = (Array.isArray(val) ? val : []).map((v, i) => ({ index: i, value: typeof v === 'string' ? v : JSON.stringify(v) }));
+    return;
+  }
+
+  if (typeText.includes('set')) {
+    viewerType.value = 'set';
+    setRows.value = (Array.isArray(val) ? val : []).map((v) => ({ value: typeof v === 'string' ? v : JSON.stringify(v) }));
+    return;
+  }
+
+  // 默认按字符串
+  viewerType.value = 'string';
+  stringValue.value = typeof val === 'string' ? tryPrettyJsonString(val) : JSON.stringify(val, null, 2);
 }
 
 async function handleNodeClick(node: any) {
@@ -218,9 +361,13 @@ async function refreshValue() {
   if (!currentPath.value) return;
   const start = performance.now();
   const res = await getConsoleNode(props.id, currentPath.value);
-  const val = res?.data?.type;
   nodeValue.value = res?.data;
-  normalizeValueForView(val);
+  const val = getNodeActualValue(nodeValue.value);
+  if (valueTypeText.value) {
+    normalizeByValueType(val);
+  } else {
+    normalizeValueForView(val);
+  }
   const ms = Math.round(performance.now() - start);
   statusText.value = `加载完成，用时 ${ms} ms`;
 }
