@@ -153,6 +153,9 @@ catalogs:
     '@types/js-cookie':
       specifier: ^3.0.6
       version: 3.0.6
+    '@types/leaflet':
+      specifier: ^1.9.20
+      version: 1.9.20
     '@types/markdown-it':
       specifier: ^14.1.2
       version: 14.1.2
@@ -618,12 +621,21 @@ catalogs:
     stylelint:
       specifier: ^16.12.0
       version: 16.15.0
+    stylelint-config-html:
+      specifier: ^1.1.0
+      version: 1.1.0
     stylelint-config-recess-order:
       specifier: ^5.1.1
       version: 5.1.1
+    stylelint-config-recommended-scss:
+      specifier: ^14.1.0
+      version: 14.1.0
     stylelint-config-recommended-vue:
       specifier: ^1.5.0
       version: 1.6.0
+    stylelint-config-standard:
+      specifier: ^36.0.1
+      version: 36.0.1
     stylelint-config-standard-scss:
       specifier: ^14.0.0
       version: 14.0.0
@@ -855,6 +867,9 @@ importers:
       '@pages/map':
         specifier: workspace:^
         version: link:pages/map
+      '@pages/project':
+        specifier: workspace:^
+        version: link:pages/project
       '@pages/setting':
         specifier: workspace:^
         version: link:pages/setting
@@ -1268,7 +1283,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.8.2))
@@ -1752,7 +1767,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
       vue3-smooth-dnd:
         specifier: 'catalog:'
         version: 0.0.6(vue@3.5.13(typescript@5.8.2))
@@ -2944,7 +2959,7 @@ importers:
         version: 2.2.8(typescript@5.8.2)
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
 
   apps/vue-support-vtools-starter:
     dependencies:
@@ -3502,7 +3517,7 @@ importers:
         version: 4.3.0(vue@3.5.13(typescript@5.8.2))
       '@intlify/unplugin-vue-i18n':
         specifier: 'catalog:'
-        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@3.29.5)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
+        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@4.35.0)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
       '@types/gradient-string':
         specifier: 'catalog:'
         version: 1.1.6
@@ -3589,7 +3604,7 @@ importers:
         version: 6.0.1
       rollup-plugin-visualizer:
         specifier: 'catalog:'
-        version: 5.14.0(rollup@3.29.5)
+        version: 5.14.0(rollup@4.35.0)
       sass:
         specifier: 'catalog:'
         version: 1.85.1
@@ -3622,7 +3637,7 @@ importers:
         version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
       vite-plugin-cdn-import:
         specifier: 'catalog:'
-        version: 1.0.1(rollup@3.29.5)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+        version: 1.0.1(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
       vite-plugin-checker:
         specifier: 'catalog:'
         version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
@@ -4393,7 +4408,7 @@ importers:
         version: 5.1.3(vue@3.5.13(typescript@5.8.2))
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
     devDependencies:
       vite:
         specifier: 'catalog:'
@@ -6431,6 +6446,118 @@ importers:
       vue-eslint-parser:
         specifier: 'catalog:'
         version: 9.4.3(eslint@9.22.0(jiti@2.4.2))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.8(typescript@5.8.2)
+
+  pages/project:
+    dependencies:
+      '@pureadmin/utils':
+        specifier: 'catalog:'
+        version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
+      '@repo/components':
+        specifier: workspace:^
+        version: link:../../packages/components
+      echarts:
+        specifier: 'catalog:'
+        version: 5.6.0
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.10.7(vue@3.5.13(typescript@5.8.2))
+      leaflet:
+        specifier: 'catalog:'
+        version: 1.9.4
+      unbuild:
+        specifier: 'catalog:'
+        version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.13(typescript@5.8.2)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.1.2(vue@3.5.13(typescript@5.8.2))
+    devDependencies:
+      '@commitlint/cli':
+        specifier: 'catalog:'
+        version: 19.8.0(@types/node@20.17.24)(typescript@5.8.2)
+      '@commitlint/config-conventional':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@commitlint/types':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@repo/build':
+        specifier: workspace:^
+        version: link:../../packages/build
+      '@repo/config':
+        specifier: workspace:^
+        version: link:../../packages/config
+      '@repo/tailwind-config':
+        specifier: workspace:^
+        version: link:../../packages/tailwind-config
+      '@repo/tsconfig':
+        specifier: workspace:^
+        version: link:../../packages/tsconfig
+      '@types/leaflet':
+        specifier: 'catalog:'
+        version: 1.9.20
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.17.24
+      '@typescript-eslint/eslint-plugin':
+        specifier: 'catalog:'
+        version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/parser':
+        specifier: 'catalog:'
+        version: 8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 5.2.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      autoprefixer:
+        specifier: 'catalog:'
+        version: 10.4.21(postcss@8.5.3)
+      eslint:
+        specifier: 'catalog:'
+        version: 9.22.0(jiti@2.4.2)
+      eslint-plugin-vue:
+        specifier: 'catalog:'
+        version: 9.33.0(eslint@9.22.0(jiti@2.4.2))
+      postcss:
+        specifier: 'catalog:'
+        version: 8.5.3
+      prettier:
+        specifier: 'catalog:'
+        version: 3.5.3
+      stylelint:
+        specifier: 'catalog:'
+        version: 16.15.0(typescript@5.8.2)
+      stylelint-config-html:
+        specifier: 'catalog:'
+        version: 1.1.0(postcss-html@1.8.0)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-recess-order:
+        specifier: 'catalog:'
+        version: 5.1.1(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-recommended-scss:
+        specifier: 'catalog:'
+        version: 14.1.0(postcss@8.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-recommended-vue:
+        specifier: 'catalog:'
+        version: 1.6.0(postcss-html@1.8.0)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-standard:
+        specifier: 'catalog:'
+        version: 36.0.1(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-standard-scss:
+        specifier: 'catalog:'
+        version: 14.0.0(postcss@8.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.2
+      vite:
+        specifier: 'catalog:'
+        version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
       vue-tsc:
         specifier: 'catalog:'
         version: 2.2.8(typescript@5.8.2)
@@ -10592,6 +10719,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/leaflet@1.9.20':
+    resolution: {integrity: sha512-rooalPMlk61LCaLOvBF2VIf9M47HgMQqi5xQ9QRi7c8PkdIe0WrIi5IxXUXQjAdL0c+vcQ01mYWbthzmp9GHWw==}
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
@@ -20674,33 +20804,6 @@ snapshots:
 
   '@intlify/shared@12.0.0-alpha.3': {}
 
-  '@intlify/unplugin-vue-i18n@6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@3.29.5)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))':
-    dependencies:
-      '@eslint-community/eslint-utils': 4.5.0(eslint@9.22.0(jiti@2.4.2))
-      '@intlify/bundle-utils': 10.0.0(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))
-      '@intlify/shared': 11.1.11
-      '@intlify/vue-i18n-extensions': 8.0.0(@intlify/shared@11.1.11)(@vue/compiler-dom@3.5.13)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
-      '@rollup/pluginutils': 5.1.4(rollup@3.29.5)
-      '@typescript-eslint/scope-manager': 8.26.1
-      '@typescript-eslint/typescript-estree': 8.26.1(typescript@5.8.2)
-      debug: 4.4.0
-      fast-glob: 3.3.3
-      js-yaml: 4.1.0
-      json5: 2.2.3
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-      unplugin: 1.16.1
-      vue: 3.5.13(typescript@5.8.2)
-    optionalDependencies:
-      vue-i18n: 11.1.2(vue@3.5.13(typescript@5.8.2))
-    transitivePeerDependencies:
-      - '@vue/compiler-dom'
-      - eslint
-      - rollup
-      - supports-color
-      - typescript
-
   '@intlify/unplugin-vue-i18n@6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@4.35.0)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))':
     dependencies:
       '@eslint-community/eslint-utils': 4.5.0(eslint@9.22.0(jiti@2.4.2))
@@ -23574,6 +23677,10 @@ snapshots:
   '@types/js-cookie@3.0.6': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/leaflet@1.9.20':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/linkify-it@5.0.0': {}
 
@@ -30559,14 +30666,6 @@ snapshots:
     optionalDependencies:
       '@babel/code-frame': 7.26.2
 
-  rollup-plugin-external-globals@0.10.0(rollup@3.29.5):
-    dependencies:
-      '@rollup/pluginutils': 5.1.4(rollup@3.29.5)
-      estree-walker: 3.0.3
-      is-reference: 3.0.3
-      magic-string: 0.30.17
-      rollup: 3.29.5
-
   rollup-plugin-external-globals@0.10.0(rollup@4.35.0):
     dependencies:
       '@rollup/pluginutils': 5.1.4(rollup@4.35.0)
@@ -30574,15 +30673,6 @@ snapshots:
       is-reference: 3.0.3
       magic-string: 0.30.17
       rollup: 4.35.0
-
-  rollup-plugin-visualizer@5.14.0(rollup@3.29.5):
-    dependencies:
-      open: 8.4.2
-      picomatch: 4.0.2
-      source-map: 0.7.4
-      yargs: 17.7.2
-    optionalDependencies:
-      rollup: 3.29.5
 
   rollup-plugin-visualizer@5.14.0(rollup@4.35.0):
     dependencies:
@@ -31932,14 +32022,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-cdn-import@1.0.1(rollup@3.29.5)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)):
-    dependencies:
-      rollup-plugin-external-globals: 0.10.0(rollup@3.29.5)
-      vite-plugin-externals: 0.6.2(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
-    transitivePeerDependencies:
-      - rollup
-      - vite
-
   vite-plugin-cdn-import@1.0.1(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)):
     dependencies:
       rollup-plugin-external-globals: 0.10.0(rollup@4.35.0)
@@ -32193,7 +32275,7 @@ snapshots:
 
   vue3-puzzle-vcode@1.1.7: {}
 
-  vue3-sfc-loader@0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2)):
+  vue3-sfc-loader@0.9.5(vue@3.5.13(typescript@5.8.2)):
     dependencies:
       '@babel/code-frame': 7.26.2
       '@babel/core': 7.26.10

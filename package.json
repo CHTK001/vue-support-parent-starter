@@ -41,6 +41,7 @@
     "@layout/default": "workspace:^",
     "@layout/engine": "workspace:^",
     "@pages/example": "workspace:^",
+    "@pages/project": "workspace:^",
     "@pages/map": "workspace:^",
     "@pages/setting": "workspace:^",
     "@pages/tools": "workspace:^",
