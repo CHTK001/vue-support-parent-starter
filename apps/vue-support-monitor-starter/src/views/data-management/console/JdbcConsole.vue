@@ -27,7 +27,7 @@
       >
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
-          <span class="flex justify-between w-full !max-w-[120px]" >
+          <span class="flex justify-between w-full">
             <span>
               <span>{{ data.name }}</span>
               <span class="el-form-item-msg ml-2 mt-[3px]">{{
@@ -168,9 +168,9 @@
                     <el-checkbox-group v-model="selectedColumnNames">
                       <el-checkbox
                         v-for="col in columns"
-                        :key="col.name"
-                        :label="col.name"
-                        >{{ col.name }}</el-checkbox
+                        :key="col"
+                        :label="col"
+                        >{{ col }}</el-checkbox
                       >
                     </el-checkbox-group>
                   </el-scrollbar>
@@ -478,32 +478,27 @@ const loadChildrenLazy = async (
  * 根据节点元信息返回合适的图标
  */
 function getJdbcNodeIcon(node: any, data: any): string {
-  try {
-    
-    const type = (data?.type || "").toString().toLowerCase();
-    if (type) {
-      if (
-        type.includes("db") ||
-        type.includes("database") ||
-        type.includes("schema") ||
-        type.includes("catalog")
-      )
-        return "ri:database-2-line";
-      if (type.includes("table")) return "ri:table-2";
-      if (type.includes("column") || type.includes("field"))
-        return "ri:braces-line";
-      if (type.includes("view")) return "ri:layout-2-line";
-      if (type.includes("index")) return "ri:hashtag";
-    }
-    // 按层级兜底：1-库 2-表 3-列 其他-文件
-    const level = Number(node?.level || 0);
-    if (level <= 1) return "ri:database-2-line";
-    if (level === 2) return "ri:table-2";
-    if (level === 3) return "ri:braces-line";
-    return data?.leaf ? "ri:file-2-line" : "ri:folder-2-line";
-  } catch (error) {
-    return "ri:table-2";
+  const type = (data?.type || "").toString().toLowerCase();
+  if (type) {
+    if (
+      type.includes("db") ||
+      type.includes("database") ||
+      type.includes("schema") ||
+      type.includes("catalog")
+    )
+      return "ri:database-2-line";
+    if (type.includes("table")) return "ri:table-2";
+    if (type.includes("column") || type.includes("field"))
+      return "ri:braces-line";
+    if (type.includes("view")) return "ri:layout-2-line";
+    if (type.includes("index")) return "ri:hashtag";
   }
+  // 按层级兜底：1-库 2-表 3-列 其他-文件
+  const level = Number(node?.level || 0);
+  if (level <= 1) return "ri:database-2-line";
+  if (level === 2) return "ri:table-2";
+  if (level === 3) return "ri:braces-line";
+  return data?.leaf ? "ri:file-2-line" : "ri:folder-2-line";
 }
 
 async function execute() {
