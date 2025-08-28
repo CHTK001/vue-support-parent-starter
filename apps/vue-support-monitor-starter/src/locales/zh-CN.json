@@ -2862,5 +2862,10 @@
   "i18n_ffa9fd37b5": "工作空间管理",
   "i18n_ffaf95f0ef": "启动的容器 可以看到很多host上的设备 可以执行mount。 可以在docker容器中启动docker容器。",
   "i18n_ffd67549cf": "：范围：1~12，同时支持不区分大小写的别名：\"jan\",\"feb\", \"mar\", \"apr\", \"may\",\"jun\", \"jul\", \"aug\",\"sep\",\"oct\", \"nov\", \"dec\"",
-  "i18n_fffd3ce745": "共享"
+  "i18n_fffd3ce745": "共享",
+  "buttons.monitor.fullscreen": "",
+  "buttons.monitor.oss": "",
+  "buttons.monitor.serial-config": "",
+  "buttons.monitor.database-tools": "",
+  "buttons.monitor.setting": ""
 }

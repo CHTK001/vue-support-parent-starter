@@ -1,211 +1,32 @@
 <template>
   <div class="email-console">
     <!-- 顶部工具栏 -->
-    <div class="email-header">
-      <div class="header-left">
-        <IconifyIconOnline icon="ri:mail-line" class="email-icon" />
-        <h2 class="email-title">邮箱控制台</h2>
-      </div>
-      <div class="header-right">
-        <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="showCompose = true">
-          撰写邮件
-        </el-button>
-        <el-button :icon="useRenderIcon('ri:refresh-line')" @click="refreshEmails">
-          刷新
-        </el-button>
-      </div>
-    </div>
+    <EmailHeader @compose="handleCompose" @refresh="refreshEmails" />
 
     <!-- 主要内容区域 -->
     <div class="email-content">
       <!-- 左侧导航栏 -->
-      <div class="email-sidebar">
-        <div class="sidebar-section">
-          <h3 class="section-title">邮箱</h3>
-          <div class="folder-list">
-            <div 
-              v-for="folder in folders" 
-              :key="folder.key"
-              :class="['folder-item', { active: activeFolder === folder.key }]"
-              @click="selectFolder(folder.key)"
-            >
-              <IconifyIconOnline :icon="folder.icon" class="folder-icon" />
-              <span class="folder-name">{{ folder.name }}</span>
-              <span v-if="folder.count > 0" class="folder-count">{{ folder.count }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="sidebar-section">
-          <h3 class="section-title">标签</h3>
-          <div class="tag-list">
-            <div 
-              v-for="tag in tags" 
-              :key="tag.key"
-              :class="['tag-item', { active: activeTag === tag.key }]"
-              @click="selectTag(tag.key)"
-            >
-              <div :class="['tag-color', tag.color]"></div>
-              <span class="tag-name">{{ tag.name }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <EmailSidebar :folders="folders" :tags="tags" :active-folder="activeFolder" :active-tag="activeTag" @folder-select="selectFolder" @tag-select="selectTag" />
 
       <!-- 中间邮件列表 -->
-      <div class="email-list">
-        <div class="list-header">
-          <div class="list-controls">
-            <el-checkbox v-model="selectAll" @change="handleSelectAll" />
-            <el-button-group class="action-buttons">
-              <el-button size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="deleteSelected">
-                删除
-              </el-button>
-              <el-button size="small" :icon="useRenderIcon('ri:star-line')" @click="starSelected">
-                标星
-              </el-button>
-              <el-button size="small" :icon="useRenderIcon('ri:mail-check-line')" @click="markAsRead">
-                标记已读
-              </el-button>
-            </el-button-group>
-          </div>
-          <div class="list-search">
-            <el-input 
-              v-model="searchQuery" 
-              placeholder="搜索邮件..." 
-              :prefix-icon="useRenderIcon('ri:search-line')"
-              clearable
-            />
-          </div>
-        </div>
-
-        <div class="list-content">
-          <div 
-            v-for="email in filteredEmails" 
-            :key="email.id"
-            :class="['email-item', { 
-              active: selectedEmail?.id === email.id,
-              unread: !email.read,
-              starred: email.starred
-            }]"
-            @click="selectEmail(email)"
-          >
-            <div class="email-checkbox">
-              <el-checkbox v-model="email.selected" @click.stop />
-            </div>
-            <div class="email-star" @click.stop="toggleStar(email)">
-              <IconifyIconOnline 
-                :icon="email.starred ? 'ri:star-fill' : 'ri:star-line'" 
-                :class="{ starred: email.starred }"
-              />
-            </div>
-            <div class="email-sender">
-              <div class="sender-avatar">
-                <IconifyIconOnline icon="ri:user-line" />
-              </div>
-              <span class="sender-name">{{ email.sender }}</span>
-            </div>
-            <div class="email-content-preview">
-              <div class="email-subject">{{ email.subject }}</div>
-              <div class="email-preview">{{ email.preview }}</div>
-            </div>
-            <div class="email-meta">
-              <div class="email-time">{{ formatTime(email.time) }}</div>
-              <div v-if="email.hasAttachment" class="email-attachment">
-                <IconifyIconOnline icon="ri:attachment-line" />
-              </div>
-            </div>
-          </div>
-
-          <!-- 空状态 -->
-          <div v-if="filteredEmails.length === 0" class="empty-state">
-            <IconifyIconOnline icon="ri:mail-line" class="empty-icon" />
-            <p class="empty-text">暂无邮件</p>
-          </div>
-        </div>
-      </div>
+      <EmailList
+        :emails="filteredEmails"
+        :selected-email-id="selectedEmail?.id"
+        @email-select="selectEmail"
+        @email-star="toggleStar"
+        @emails-delete="deleteSelected"
+        @emails-star="starSelected"
+        @emails-mark-read="markAsRead"
+        @search="handleSearch"
+      />
 
       <!-- 右侧邮件详情/撰写区域 -->
       <div class="email-detail">
         <!-- 撰写邮件 -->
-        <div v-if="showCompose" class="compose-area">
-          <div class="compose-header">
-            <h3>撰写邮件</h3>
-            <div class="compose-actions">
-              <el-button size="small" @click="saveDraft">保存草稿</el-button>
-              <el-button type="primary" size="small" @click="sendEmail">发送</el-button>
-              <el-button size="small" @click="showCompose = false">关闭</el-button>
-            </div>
-          </div>
-          <div class="compose-form">
-            <div class="form-row">
-              <label>收件人：</label>
-              <el-input v-model="composeForm.to" placeholder="输入收件人邮箱地址，多个用逗号分隔" />
-            </div>
-            <div class="form-row">
-              <label>抄送：</label>
-              <el-input v-model="composeForm.cc" placeholder="抄送邮箱地址" />
-            </div>
-            <div class="form-row">
-              <label>主题：</label>
-              <el-input v-model="composeForm.subject" placeholder="邮件主题" />
-            </div>
-            <div class="form-row full">
-              <label>内容：</label>
-              <CodeEditor 
-                v-model:content="composeForm.content" 
-                :height="'300px'" 
-                :options="{ mode: 'markdown' }" 
-                :showTool="true" 
-              />
-            </div>
-          </div>
-        </div>
+        <EmailCompose v-if="showCompose" ref="composeRef" :initial-form="composeForm" @send="sendEmail" @save-draft="saveDraft" @close="handleComposeClose" />
 
         <!-- 邮件详情 -->
-        <div v-else-if="selectedEmail" class="detail-area">
-          <div class="detail-header">
-            <div class="detail-subject">{{ selectedEmail.subject }}</div>
-            <div class="detail-actions">
-              <el-button size="small" :icon="useRenderIcon('ri:reply-line')" @click="replyEmail">
-                回复
-              </el-button>
-              <el-button size="small" :icon="useRenderIcon('ri:reply-all-line')" @click="replyAllEmail">
-                全部回复
-              </el-button>
-              <el-button size="small" :icon="useRenderIcon('ri:share-forward-line')" @click="forwardEmail">
-                转发
-              </el-button>
-              <el-button size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="deleteEmail">
-                删除
-              </el-button>
-            </div>
-          </div>
-          <div class="detail-info">
-            <div class="sender-info">
-              <div class="sender-avatar large">
-                <IconifyIconOnline icon="ri:user-line" />
-              </div>
-              <div class="sender-details">
-                <div class="sender-name">{{ selectedEmail.sender }}</div>
-                <div class="sender-email">{{ selectedEmail.senderEmail }}</div>
-                <div class="email-time">{{ formatFullTime(selectedEmail.time) }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="detail-content">
-            <div class="email-body" v-html="selectedEmail.content"></div>
-          </div>
-        </div>
-
-        <!-- 默认状态 -->
-        <div v-else class="welcome-area">
-          <div class="welcome-content">
-            <IconifyIconOnline icon="ri:mail-open-line" class="welcome-icon" />
-            <h3>欢迎使用邮箱控制台</h3>
-            <p>选择左侧邮件查看详情，或点击撰写邮件开始写邮件</p>
-          </div>
-        </div>
+        <EmailDetail v-else :email="selectedEmail" @reply="replyEmail" @reply-all="replyAllEmail" @forward="forwardEmail" @delete="deleteEmail" />
       </div>
     </div>
 
@@ -219,120 +40,128 @@ import CodeEditor from "@/components/codeEditor/index.vue";
 import { executeConsole } from "@/api/system-data";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import EmailHeader from "./components/EmailHeader.vue";
+import EmailSidebar from "./components/EmailSidebar.vue";
+import EmailList from "./components/EmailList.vue";
+import EmailDetail from "./components/EmailDetail.vue";
+import EmailCompose from "./components/EmailCompose.vue";
 
 const props = defineProps<{ id: number }>();
 
+// 组件引用
+const composeRef = ref(null);
+
 // 界面状态
 const showCompose = ref(false);
-const activeFolder = ref('inbox');
-const activeTag = ref('');
+const activeFolder = ref("inbox");
+const activeTag = ref("");
 const selectedEmail = ref(null);
 const selectAll = ref(false);
-const searchQuery = ref('');
-const status = ref('');
-const statusType = ref('success');
+const searchQuery = ref("");
+const status = ref("");
+const statusType = ref("success");
 
 // 撰写邮件表单
 const composeForm = ref({
-  to: '',
-  cc: '',
-  subject: '',
-  content: ''
+  to: "",
+  cc: "",
+  subject: "",
+  content: ""
 });
 
 // 邮箱文件夹
 const folders = ref([
-  { key: 'inbox', name: '收件箱', icon: 'ri:inbox-line', count: 5 },
-  { key: 'sent', name: '已发送', icon: 'ri:send-plane-line', count: 0 },
-  { key: 'drafts', name: '草稿箱', icon: 'ri:draft-line', count: 2 },
-  { key: 'trash', name: '垃圾箱', icon: 'ri:delete-bin-line', count: 0 },
-  { key: 'spam', name: '垃圾邮件', icon: 'ri:spam-line', count: 0 }
+  { key: "inbox", name: "收件箱", icon: "ri:inbox-line", count: 5 },
+  { key: "sent", name: "已发送", icon: "ri:send-plane-line", count: 0 },
+  { key: "drafts", name: "草稿箱", icon: "ri:draft-line", count: 2 },
+  { key: "trash", name: "垃圾箱", icon: "ri:delete-bin-line", count: 0 },
+  { key: "spam", name: "垃圾邮件", icon: "ri:spam-line", count: 0 }
 ]);
 
 // 邮件标签
 const tags = ref([
-  { key: 'important', name: '重要', color: 'red' },
-  { key: 'work', name: '工作', color: 'blue' },
-  { key: 'personal', name: '个人', color: 'green' },
-  { key: 'finance', name: '财务', color: 'orange' }
+  { key: "important", name: "重要", color: "red" },
+  { key: "work", name: "工作", color: "blue" },
+  { key: "personal", name: "个人", color: "green" },
+  { key: "finance", name: "财务", color: "orange" }
 ]);
 
 // 模拟邮件数据
 const emails = ref([
   {
     id: 1,
-    sender: '系统管理员',
-    senderEmail: 'admin@system.com',
-    subject: '系统维护通知',
-    preview: '系统将于今晚进行例行维护，预计维护时间为2小时...',
-    content: '<p>尊敬的用户：</p><p>系统将于今晚22:00-24:00进行例行维护，期间可能影响部分功能使用。</p><p>感谢您的理解与支持。</p>',
+    sender: "系统管理员",
+    senderEmail: "admin@system.com",
+    subject: "系统维护通知",
+    preview: "系统将于今晚进行例行维护，预计维护时间为2小时...",
+    content: "<p>尊敬的用户：</p><p>系统将于今晚22:00-24:00进行例行维护，期间可能影响部分功能使用。</p><p>感谢您的理解与支持。</p>",
     time: new Date(Date.now() - 1000 * 60 * 30), // 30分钟前
     read: false,
     starred: true,
     selected: false,
     hasAttachment: false,
-    folder: 'inbox',
-    tags: ['important']
+    folder: "inbox",
+    tags: ["important"]
   },
   {
     id: 2,
-    sender: '数据库监控',
-    senderEmail: 'monitor@db.com',
-    subject: '数据库连接异常告警',
-    preview: '检测到数据库连接异常，请及时处理...',
-    content: '<p>告警详情：</p><ul><li>数据库：MySQL-Production</li><li>异常时间：2024-01-15 14:30:25</li><li>异常类型：连接超时</li></ul>',
+    sender: "数据库监控",
+    senderEmail: "monitor@db.com",
+    subject: "数据库连接异常告警",
+    preview: "检测到数据库连接异常，请及时处理...",
+    content: "<p>告警详情：</p><ul><li>数据库：MySQL-Production</li><li>异常时间：2024-01-15 14:30:25</li><li>异常类型：连接超时</li></ul>",
     time: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2小时前
     read: true,
     starred: false,
     selected: false,
     hasAttachment: true,
-    folder: 'inbox',
-    tags: ['work']
+    folder: "inbox",
+    tags: ["work"]
   },
   {
     id: 3,
-    sender: '备份服务',
-    senderEmail: 'backup@service.com',
-    subject: '每日备份报告',
-    preview: '今日备份任务已完成，备份文件大小：2.3GB...',
-    content: '<p>备份报告：</p><p>备份时间：2024-01-15 03:00:00</p><p>备份状态：成功</p><p>备份大小：2.3GB</p>',
+    sender: "备份服务",
+    senderEmail: "backup@service.com",
+    subject: "每日备份报告",
+    preview: "今日备份任务已完成，备份文件大小：2.3GB...",
+    content: "<p>备份报告：</p><p>备份时间：2024-01-15 03:00:00</p><p>备份状态：成功</p><p>备份大小：2.3GB</p>",
     time: new Date(Date.now() - 1000 * 60 * 60 * 8), // 8小时前
     read: true,
     starred: false,
     selected: false,
     hasAttachment: false,
-    folder: 'inbox',
+    folder: "inbox",
     tags: []
   },
   {
     id: 4,
-    sender: '安全中心',
-    senderEmail: 'security@center.com',
-    subject: '登录异常提醒',
-    preview: '检测到异常登录行为，IP地址：192.168.1.100...',
-    content: '<p>安全提醒：</p><p>检测到来自IP 192.168.1.100的异常登录尝试。</p><p>如非本人操作，请立即修改密码。</p>',
+    sender: "安全中心",
+    senderEmail: "security@center.com",
+    subject: "登录异常提醒",
+    preview: "检测到异常登录行为，IP地址：192.168.1.100...",
+    content: "<p>安全提醒：</p><p>检测到来自IP 192.168.1.100的异常登录尝试。</p><p>如非本人操作，请立即修改密码。</p>",
     time: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1天前
     read: false,
     starred: false,
     selected: false,
     hasAttachment: false,
-    folder: 'inbox',
-    tags: ['important']
+    folder: "inbox",
+    tags: ["important"]
   },
   {
     id: 5,
-    sender: '性能监控',
-    senderEmail: 'performance@monitor.com',
-    subject: 'CPU使用率告警',
-    preview: '服务器CPU使用率持续超过80%，请关注...',
-    content: '<p>性能告警：</p><p>服务器：Web-Server-01</p><p>CPU使用率：85%</p><p>持续时间：15分钟</p>',
+    sender: "性能监控",
+    senderEmail: "performance@monitor.com",
+    subject: "CPU使用率告警",
+    preview: "服务器CPU使用率持续超过80%，请关注...",
+    content: "<p>性能告警：</p><p>服务器：Web-Server-01</p><p>CPU使用率：85%</p><p>持续时间：15分钟</p>",
     time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2天前
     read: true,
     starred: true,
     selected: false,
     hasAttachment: false,
-    folder: 'inbox',
-    tags: ['work']
+    folder: "inbox",
+    tags: ["work"]
   }
 ]);
 
@@ -343,23 +172,21 @@ const filteredEmails = computed(() => {
     if (activeFolder.value && email.folder !== activeFolder.value) {
       return false;
     }
-    
+
     // 按标签过滤
     if (activeTag.value && !email.tags.includes(activeTag.value)) {
       return false;
     }
-    
+
     // 按搜索关键词过滤
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
-      return email.subject.toLowerCase().includes(query) || 
-             email.sender.toLowerCase().includes(query) ||
-             email.preview.toLowerCase().includes(query);
+      return email.subject.toLowerCase().includes(query) || email.sender.toLowerCase().includes(query) || email.preview.toLowerCase().includes(query);
     }
-    
+
     return true;
   });
-  
+
   // 按时间排序，最新的在前
   return result.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 });
@@ -367,12 +194,12 @@ const filteredEmails = computed(() => {
 // 方法
 function selectFolder(folderKey: string) {
   activeFolder.value = folderKey;
-  activeTag.value = '';
+  activeTag.value = "";
   selectedEmail.value = null;
 }
 
 function selectTag(tagKey: string) {
-  activeTag.value = activeTag.value === tagKey ? '' : tagKey;
+  activeTag.value = activeTag.value === tagKey ? "" : tagKey;
   selectedEmail.value = null;
 }
 
@@ -397,19 +224,15 @@ function handleSelectAll() {
 function deleteSelected() {
   const selectedEmails = filteredEmails.value.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    ElMessage.warning('请先选择要删除的邮件');
+    ElMessage.warning("请先选择要删除的邮件");
     return;
   }
-  
-  ElMessageBox.confirm(
-    `确定要删除选中的 ${selectedEmails.length} 封邮件吗？`,
-    '确认删除',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
+
+  ElMessageBox.confirm(`确定要删除选中的 ${selectedEmails.length} 封邮件吗？`, "确认删除", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
     selectedEmails.forEach(email => {
       const index = emails.value.findIndex(e => e.id === email.id);
       if (index > -1) {
@@ -418,7 +241,7 @@ function deleteSelected() {
     });
     selectAll.value = false;
     selectedEmail.value = null;
-    ElMessage.success('删除成功');
+    ElMessage.success("删除成功");
     updateFolderCount();
   });
 }
@@ -426,51 +249,65 @@ function deleteSelected() {
 function starSelected() {
   const selectedEmails = filteredEmails.value.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    ElMessage.warning('请先选择要标星的邮件');
+    ElMessage.warning("请先选择要标星的邮件");
     return;
   }
-  
+
   selectedEmails.forEach(email => {
     email.starred = true;
   });
-  ElMessage.success('标星成功');
+  ElMessage.success("标星成功");
 }
 
 function markAsRead() {
   const selectedEmails = filteredEmails.value.filter(email => email.selected);
   if (selectedEmails.length === 0) {
-    ElMessage.warning('请先选择要标记的邮件');
+    ElMessage.warning("请先选择要标记的邮件");
     return;
   }
-  
+
   selectedEmails.forEach(email => {
     email.read = true;
   });
   updateFolderCount();
-  ElMessage.success('标记成功');
+  ElMessage.success("标记成功");
+}
+
+function handleCompose() {
+  showCompose.value = true;
+  composeForm.value = { to: "", cc: "", subject: "", content: "" };
+}
+
+function handleComposeClose() {
+  showCompose.value = false;
+  composeForm.value = { to: "", cc: "", subject: "", content: "" };
+}
+
+function handleSearch(query: string) {
+  searchQuery.value = query;
 }
 
 function refreshEmails() {
-  ElMessage.success('邮件列表已刷新');
+  ElMessage.success("邮件列表已刷新");
   updateFolderCount();
 }
 
 function updateFolderCount() {
   folders.value.forEach(folder => {
-    if (folder.key === 'inbox') {
-      folder.count = emails.value.filter(email => email.folder === 'inbox' && !email.read).length;
+    if (folder.key === "inbox") {
+      folder.count = emails.value.filter(email => email.folder === "inbox" && !email.read).length;
     }
   });
 }
 
 function replyEmail() {
   if (!selectedEmail.value) return;
-  
+
   composeForm.value = {
     to: selectedEmail.value.senderEmail,
-    cc: '',
+    cc: "",
     subject: `Re: ${selectedEmail.value.subject}`,
-    content: `\n\n--- 原始邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, '')}`
+    content: `\n\n--- 原始邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`
   };
   showCompose.value = true;
 }
@@ -481,44 +318,40 @@ function replyAllEmail() {
 
 function forwardEmail() {
   if (!selectedEmail.value) return;
-  
+
   composeForm.value = {
-    to: '',
-    cc: '',
+    to: "",
+    cc: "",
     subject: `Fwd: ${selectedEmail.value.subject}`,
-    content: `\n\n--- 转发邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, '')}`
+    content: `\n\n--- 转发邮件 ---\n发件人: ${selectedEmail.value.sender}\n时间: ${formatFullTime(selectedEmail.value.time)}\n主题: ${selectedEmail.value.subject}\n\n${selectedEmail.value.content.replace(/<[^>]*>/g, "")}`
   };
   showCompose.value = true;
 }
 
 function deleteEmail() {
   if (!selectedEmail.value) return;
-  
-  ElMessageBox.confirm(
-    '确定要删除这封邮件吗？',
-    '确认删除',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
+
+  ElMessageBox.confirm("确定要删除这封邮件吗？", "确认删除", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
     const index = emails.value.findIndex(e => e.id === selectedEmail.value.id);
     if (index > -1) {
       emails.value.splice(index, 1);
     }
     selectedEmail.value = null;
-    ElMessage.success('删除成功');
+    ElMessage.success("删除成功");
     updateFolderCount();
   });
 }
 
 async function sendEmail() {
   if (!composeForm.value.to || !composeForm.value.subject) {
-    ElMessage.warning('请填写收件人和主题');
+    ElMessage.warning("请填写收件人和主题");
     return;
   }
-  
+
   try {
     const cmd = JSON.stringify({
       to: composeForm.value.to,
@@ -526,15 +359,15 @@ async function sendEmail() {
       subject: composeForm.value.subject,
       content: composeForm.value.content
     });
-    
+
     const res = await executeConsole(props.id, cmd, "email");
-    
+
     if (res?.data?.success) {
       status.value = "邮件发送成功";
       statusType.value = "success";
       showCompose.value = false;
-      composeForm.value = { to: '', cc: '', subject: '', content: '' };
-      ElMessage.success('邮件发送成功');
+      composeForm.value = { to: "", cc: "", subject: "", content: "" };
+      ElMessage.success("邮件发送成功");
     } else {
       status.value = res?.data?.msg || "邮件发送失败";
       statusType.value = "error";
@@ -543,17 +376,17 @@ async function sendEmail() {
   } catch (error) {
     status.value = "邮件发送失败";
     statusType.value = "error";
-    ElMessage.error('邮件发送失败');
+    ElMessage.error("邮件发送失败");
   }
-  
+
   // 清除状态提示
   setTimeout(() => {
-    status.value = '';
+    status.value = "";
   }, 5000);
 }
 
 function saveDraft() {
-  ElMessage.success('草稿已保存');
+  ElMessage.success("草稿已保存");
 }
 
 function formatTime(time: Date) {
@@ -562,7 +395,7 @@ function formatTime(time: Date) {
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
+
   if (minutes < 60) {
     return `${minutes}分钟前`;
   } else if (hours < 24) {
@@ -575,13 +408,13 @@ function formatTime(time: Date) {
 }
 
 function formatFullTime(time: Date) {
-  return time.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return time.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
   });
 }
 
@@ -660,11 +493,13 @@ onMounted(() => {
   letter-spacing: 0.5px;
 }
 
-.folder-list, .tag-list {
+.folder-list,
+.tag-list {
   padding: 0 8px;
 }
 
-.folder-item, .tag-item {
+.folder-item,
+.tag-item {
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -675,11 +510,13 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.folder-item:hover, .tag-item:hover {
+.folder-item:hover,
+.tag-item:hover {
   background: #f0f9ff;
 }
 
-.folder-item.active, .tag-item.active {
+.folder-item.active,
+.tag-item.active {
   background: #409eff;
   color: #fff;
 }
@@ -694,7 +531,8 @@ onMounted(() => {
   color: #fff;
 }
 
-.folder-name, .tag-name {
+.folder-name,
+.tag-name {
   flex: 1;
 }
 
@@ -719,10 +557,18 @@ onMounted(() => {
   margin-right: 8px;
 }
 
-.tag-color.red { background: #f56c6c; }
-.tag-color.blue { background: #409eff; }
-.tag-color.green { background: #67c23a; }
-.tag-color.orange { background: #e6a23c; }
+.tag-color.red {
+  background: #f56c6c;
+}
+.tag-color.blue {
+  background: #409eff;
+}
+.tag-color.green {
+  background: #67c23a;
+}
+.tag-color.orange {
+  background: #e6a23c;
+}
 
 /* 中间邮件列表 */
 .email-list {
@@ -784,7 +630,7 @@ onMounted(() => {
 }
 
 .email-item.unread::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
@@ -1105,7 +951,7 @@ onMounted(() => {
   .email-sidebar {
     width: 200px;
   }
-  
+
   .email-list {
     width: 350px;
   }
@@ -1115,17 +961,17 @@ onMounted(() => {
   .email-content {
     flex-direction: column;
   }
-  
+
   .email-sidebar {
     width: 100%;
     height: 200px;
   }
-  
+
   .email-list {
     width: 100%;
     height: 300px;
   }
-  
+
   .email-detail {
     height: auto;
     min-height: 400px;
