@@ -21,7 +21,14 @@
     </div>
 
     <div class="list-content">
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-state">
+        <el-skeleton :rows="5" animated />
+      </div>
+      
+      <!-- 邮件列表 -->
       <div
+        v-else
         v-for="email in emails"
         :key="email.id"
         :class="[
@@ -62,7 +69,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="emails.length === 0" class="empty-state">
+      <div v-if="!loading && emails.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:mail-line" class="empty-icon" />
         <p class="empty-text">暂无邮件</p>
       </div>
@@ -96,6 +103,7 @@ interface Email {
 const props = defineProps<{
   emails: Email[];
   selectedEmailId?: number;
+  loading?: boolean;
 }>();
 
 // 定义事件
@@ -339,6 +347,10 @@ function formatTime(time: Date) {
 .email-attachment {
   font-size: 14px;
   color: #909399;
+}
+
+.loading-state {
+  padding: 16px;
 }
 
 .empty-state {

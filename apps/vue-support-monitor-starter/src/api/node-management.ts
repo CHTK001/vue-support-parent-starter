@@ -47,66 +47,46 @@ export interface NodeStatistics {
  * 获取所有在线节点列表
  */
 export const fetchAllOnlineNodes = () => {
-  return http.request<ReturnResult<OnlineNodeInfo[]>>(
-    "get",
-    "/v1/monitor/nodes/all"
-  );
+  return http.request<ReturnResult<OnlineNodeInfo[]>>("get", "/v1/monitor/nodes/all");
 };
 
 /**
  * 获取节点统计信息
  */
 export const fetchNodeStatistics = () => {
-  return http.request<ReturnResult<NodeStatistics>>(
-    "get",
-    "/v1/monitor/nodes/statistics"
-  );
+  return http.request<ReturnResult<NodeStatistics>>("get", "/v1/monitor/nodes/statistics");
 };
 
 /**
  * 根据应用名称分组获取在线节点
  */
 export const fetchNodesByApplication = () => {
-  return http.request<ReturnResult<Record<string, OnlineNodeInfo[]>>>(
-    "get",
-    "/v1/monitor/nodes/by-application"
-  );
+  return http.request<ReturnResult<Record<string, OnlineNodeInfo[]>>>("get", "/v1/monitor/nodes/by-application");
 };
 
 /**
  * 根据节点ID获取节点详细信息
  */
 export const fetchNodeDetails = (nodeId: string) => {
-  return http.request<ReturnResult<OnlineNodeInfo>>(
-    "get",
-    `/v1/monitor/nodes/details/${nodeId}`
-  );
+  return http.request<ReturnResult<OnlineNodeInfo>>("get", `/v1/monitor/nodes/details/${nodeId}`);
 };
 
 /**
  * 搜索节点
  */
 export const searchNodes = (keyword: string) => {
-  return http.request<ReturnResult<OnlineNodeInfo[]>>(
-    "get",
-    "/v1/monitor/nodes/search",
-    {
-      params: { keyword },
-    }
-  );
+  return http.request<ReturnResult<OnlineNodeInfo[]>>("get", "/v1/monitor/nodes/search", {
+    params: { keyword }
+  });
 };
 
 /**
  * 检查节点健康状态
  */
 export const apiCheckNodeHealth = (ipAddress: string, port: number) => {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "/v1/monitor/nodes/health-check",
-    {
-      data: { ipAddress, port },
-    }
-  );
+  return http.request<ReturnResult<any>>("post", "/v1/monitor/nodes/health-check", {
+    data: { ipAddress, port }
+  });
 };
 
 /**
@@ -116,7 +96,7 @@ export const checkNodeHealth = (clientIp: string, clientPort: number) => {
   return http.request<ReturnResult<any>>("get", "/v1/monitor/nodes/health", {
     params: {
       clientIp,
-      clientPort,
-    },
+      clientPort
+    }
   });
 };

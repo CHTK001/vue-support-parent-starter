@@ -25,8 +25,8 @@ export function getBackupList(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -38,8 +38,8 @@ export function getTableNameList() {
     url: "/system/backup/table-name-list",
     method: "post",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -49,15 +49,15 @@ export function getTableNameList() {
  */
 export function createBackup(tableNameList) {
   const data = {
-    tableNameList,
+    tableNameList
   };
   return axios({
     url: "/system/backup/create",
     method: "post",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    data,
+    data
   });
 }
 
@@ -71,8 +71,8 @@ export function deleteBackup(id) {
     method: "post",
     data: { id },
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -88,8 +88,8 @@ export function restoreBackup(id) {
     timeout: 0,
     data: { id },
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -100,7 +100,7 @@ export function restoreBackup(id) {
  */
 export function downloadBackupFile(id) {
   return loadRouterBase("/system/backup/download", {
-    id: id,
+    id: id
   });
 }
 
@@ -115,12 +115,12 @@ export function uploadBackupFile(formData) {
   return axios({
     url: "/system/backup/upload",
     headers: {
-      "Content-Type": "multipart/form-data;charset=UTF-8",
+      "Content-Type": "multipart/form-data;charset=UTF-8"
     },
     method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
+    data: formData
   });
 }
 
@@ -130,8 +130,8 @@ export function getTriggerUrl(params) {
     method: "post",
     params: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -140,12 +140,12 @@ export const backupTypeArray = [
   { key: 1, value: t("i18n_67b667bf98"), disabled: false },
   { key: 2, value: t("i18n_90c0458a4c"), disabled: true },
   { key: 3, value: t("i18n_590e5b46a0"), disabled: true },
-  { key: 4, value: t("i18n_4696724ed3"), disabled: true },
+  { key: 4, value: t("i18n_4696724ed3"), disabled: true }
 ];
 
-export const arrayToMap = (arra) => {
+export const arrayToMap = arra => {
   const obj = {};
-  arra.forEach((value) => {
+  arra.forEach(value => {
     obj[value.key] = value.value;
   });
   return obj;
@@ -156,5 +156,5 @@ export const backupTypeMap = arrayToMap(backupTypeArray);
 export const backupStatusMap = {
   0: t("i18n_5d459d550a"),
   1: t("i18n_3ba621d736"),
-  2: t("i18n_1012e09849"),
+  2: t("i18n_1012e09849")
 };

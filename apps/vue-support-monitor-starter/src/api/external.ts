@@ -12,15 +12,15 @@ import axios from "axios";
 
 const external = axios.create({
   timeout: 5 * 1000,
-  headers: {},
+  headers: {}
 });
 
 // 响应拦截器
 external.interceptors.response.use(
-  async (response) => {
+  async response => {
     return response.data;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
@@ -31,7 +31,7 @@ export function executionRequest(url: any, param: any) {
     method: "get",
     params: param,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }

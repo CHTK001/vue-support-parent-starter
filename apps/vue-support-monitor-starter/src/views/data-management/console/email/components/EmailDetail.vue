@@ -23,8 +23,24 @@
           </div>
         </div>
       </div>
+      <!-- 附件区域 -->
+      <div v-if="email.hasAttachment" class="detail-attachments">
+        <div class="attachments-header">
+          <IconifyIconOnline icon="ri:attachment-line" />
+          <span>附件</span>
+        </div>
+        <div class="attachments-list">
+          <div class="attachment-item">
+            <IconifyIconOnline icon="ri:file-line" />
+            <span class="attachment-name">附件文件.pdf</span>
+            <span class="attachment-size">(2.3MB)</span>
+            <el-button size="small" type="primary" link @click="downloadAttachment">下载</el-button>
+          </div>
+        </div>
+      </div>
+      
       <div class="detail-content">
-        <div class="email-body" v-html="email.content"></div>
+        <div class="email-body" v-html="parseEmailContent(email.content)"></div>
       </div>
     </div>
 
@@ -106,6 +122,26 @@ function formatFullTime(time: Date) {
     minute: "2-digit",
     second: "2-digit"
   });
+}
+
+function parseEmailContent(content: string): string {
+  if (!content) return '';
+  
+  // 如果内容已经是HTML格式，直接返回
+  if (content.includes('<') && content.includes('>')) {
+    return content;
+  }
+  
+  // 将纯文本转换为HTML格式
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+    .replace(/  /g, '&nbsp;&nbsp;');
+}
+
+function downloadAttachment() {
+  // 这里应该调用下载附件的API
+  console.log('下载附件');
 }
 </script>
 
@@ -193,6 +229,50 @@ function formatFullTime(time: Date) {
 .sender-details .email-time {
   font-size: 12px;
   color: #c0c4cc;
+}
+
+/* 附件区域 */
+.detail-attachments {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 12px;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.attachment-name {
+  flex: 1;
+  color: #303133;
+}
+
+.attachment-size {
+  color: #909399;
+  font-size: 12px;
 }
 
 .detail-content {

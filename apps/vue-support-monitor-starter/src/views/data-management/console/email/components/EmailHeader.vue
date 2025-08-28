@@ -7,6 +7,8 @@
     <div class="header-right">
       <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
       <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh">刷新</el-button>
+      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
+      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>
     </div>
   </div>
 </template>
@@ -18,6 +20,8 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const emit = defineEmits<{
   compose: [];
   refresh: [];
+  cloudSync: [];
+  cloudBackup: [];
 }>();
 
 // 事件处理
@@ -27,6 +31,14 @@ function handleCompose() {
 
 function handleRefresh() {
   emit('refresh');
+}
+
+function handleCloudSync() {
+  emit('cloudSync');
+}
+
+function handleCloudBackup() {
+  emit('cloudBackup');
 }
 </script>
 

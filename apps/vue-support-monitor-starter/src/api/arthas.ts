@@ -32,5 +32,3 @@ export function setServerTunnelAddress(serverId: number, tunnelAddress: string) 
     params: { serverId, tunnelAddress }
   });
 }
-
-

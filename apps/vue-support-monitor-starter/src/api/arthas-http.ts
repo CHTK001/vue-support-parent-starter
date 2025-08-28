@@ -113,20 +113,13 @@ export interface ArthasPullResultsResp {
  * - 请求体：{ nodeId, command, collectMillis }
  * - 超时时间：从本地设置(arthas.http.timeout)读取并作为Axios timeout，同时作为收集时长的默认值
  */
-export function execArthasCommand(
-  nodeId: string,
-  command: string,
-  collectMillis?: number
-) {
+export function execArthasCommand(nodeId: string, command: string, collectMillis?: number) {
   const timeout = Number(localStorage.getItem(HTTP_TIMEOUT_KEY) || 15000);
-  const ms =
-    typeof collectMillis === "number" && collectMillis > 0
-      ? collectMillis
-      : timeout;
+  const ms = typeof collectMillis === "number" && collectMillis > 0 ? collectMillis : timeout;
   return http.request<ReturnResult<ArthasExecResp>>("post", "/v1/arthas/exec", {
     data: { nodeId, command, collectMillis: ms },
     timeout,
-    headers: { "x-remote-animation": "false" },
+    headers: { "x-remote-animation": "false" }
   });
 }
 
@@ -138,15 +131,11 @@ export function execArthasCommand(
  * - 逻辑：先检查是否有可用会话，没有则创建新会话
  */
 export function getOrCreateSession(nodeId: string, command?: string) {
-  return http.request<ReturnResult<ArthasAsyncExecResp>>(
-    "post",
-    "/v1/arthas/get-or-create-session",
-    {
-      data: { nodeId, command },
-      timeout: 10000,
-      headers: { "x-remote-animation": "false" },
-    }
-  );
+  return http.request<ReturnResult<ArthasAsyncExecResp>>("post", "/v1/arthas/get-or-create-session", {
+    data: { nodeId, command },
+    timeout: 10000,
+    headers: { "x-remote-animation": "false" }
+  });
 }
 
 /**
@@ -156,15 +145,11 @@ export function getOrCreateSession(nodeId: string, command?: string) {
  * - 返回：{ sessionId, consumerId, jobId }
  */
 export function initSession(nodeId: string, command?: string) {
-  return http.request<ReturnResult<ArthasAsyncExecResp>>(
-    "post",
-    "/v1/arthas/init-session",
-    {
-      data: { nodeId, command },
-      timeout: 10000,
-      headers: { "x-remote-animation": "false" },
-    }
-  );
+  return http.request<ReturnResult<ArthasAsyncExecResp>>("post", "/v1/arthas/init-session", {
+    data: { nodeId, command },
+    timeout: 10000,
+    headers: { "x-remote-animation": "false" }
+  });
 }
 
 /**
@@ -174,15 +159,11 @@ export function initSession(nodeId: string, command?: string) {
  * - 返回：{ sessionId, consumerId, jobId }
  */
 export function execArthasCommandAsync(nodeId: string, command: string) {
-  return http.request<ReturnResult<ArthasAsyncExecResp>>(
-    "post",
-    "/v1/arthas/async-exec",
-    {
-      data: { nodeId, command },
-      timeout: 10000, // 异步执行超时时间较短
-      headers: { "x-remote-animation": "false" },
-    }
-  );
+  return http.request<ReturnResult<ArthasAsyncExecResp>>("post", "/v1/arthas/async-exec", {
+    data: { nodeId, command },
+    timeout: 10000, // 异步执行超时时间较短
+    headers: { "x-remote-animation": "false" }
+  });
 }
 
 /**
@@ -192,15 +173,11 @@ export function execArthasCommandAsync(nodeId: string, command: string) {
  * - 返回：命令执行结果
  */
 export function pullArthasResults(sessionId: string, consumerId: string) {
-  return http.request<ReturnResult<ArthasPullResultsResp>>(
-    "post",
-    "/v1/arthas/pull-results",
-    {
-      data: { sessionId, consumerId },
-      timeout: 5000, // 拉取结果超时时间较短
-      headers: { "x-remote-animation": "false" },
-    }
-  );
+  return http.request<ReturnResult<ArthasPullResultsResp>>("post", "/v1/arthas/pull-results", {
+    data: { sessionId, consumerId },
+    timeout: 5000, // 拉取结果超时时间较短
+    headers: { "x-remote-animation": "false" }
+  });
 }
 
 /**
@@ -212,7 +189,7 @@ export function interruptArthasJob(sessionId: string) {
   return http.request<ReturnResult<any>>("post", "/v1/arthas/interrupt-job", {
     data: { sessionId },
     timeout: 5000,
-    headers: { "x-remote-animation": "false" },
+    headers: { "x-remote-animation": "false" }
   });
 }
 
@@ -225,6 +202,6 @@ export function closeArthasSession(sessionId: string) {
   return http.request<ReturnResult<any>>("post", "/v1/arthas/close-session", {
     data: { sessionId },
     timeout: 5000,
-    headers: { "x-remote-animation": "false" },
+    headers: { "x-remote-animation": "false" }
   });
 }
