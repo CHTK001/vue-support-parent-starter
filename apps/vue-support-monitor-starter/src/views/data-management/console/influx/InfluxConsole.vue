@@ -743,17 +743,6 @@ function buildMenuItems(type): MenuItem[] {
     items.push({ key: "open-table", label: "打开表", icon: "ri:table-2" });
   }
   if (
-    allow(
-      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
-    )
-  ) {
-    items.push({
-      key: "view-structure",
-      label: "查看表结构",
-      icon: "ri:table-2",
-    });
-  }
-  if (
     allow(consoleConfig.value.jdbc?.copyTableName) &&
     type.includes("TABLE")
   ) {
@@ -763,20 +752,10 @@ function buildMenuItems(type): MenuItem[] {
       icon: "ri:file-copy-line",
     });
   }
-  if (
-    allow(consoleConfig.value.jdbc?.copyCreateTable) &&
-    type.includes("TABLE")
-  ) {
-    items.push({
-      key: "copy-create-sql",
-      label: "复制建表语句",
-      icon: "ri:article-line",
-    });
-  }
 
   if (
     allow(consoleConfig.value.jdbc?.copyTableName) &&
-    type.includes("COLUMN")
+    type.includes("FIELD")
   ) {
     items.push({
       key: "copy-column-name",
@@ -789,25 +768,12 @@ function buildMenuItems(type): MenuItem[] {
     allow(consoleConfig.value.jdbc?.addFieldComment) &&
     contextNode.value &&
     isColumnLeaf(contextNode.value) &&
-    type.includes("COLUMN")
+    type.includes("FIELD")
   ) {
     items.push({
       key: "add-comment",
       label: "添加注释",
       icon: "ri:chat-new-line",
-    });
-  }
-  // SPI 能力：重命名表 / 备份表（仅在表节点显示）
-  if (type.includes("TABLE")) {
-    items.push({
-      key: "rename-table",
-      label: "重命名表",
-      icon: "ri:edit-2-line",
-    });
-    items.push({
-      key: "backup-table",
-      label: "备份表",
-      icon: "ri:database-2-line",
     });
   }
   return items;

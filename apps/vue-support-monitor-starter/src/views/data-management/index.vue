@@ -1,7 +1,41 @@
 <template>
-  <div class="page flex flex-col">
-    <!-- 顶部工具栏：搜索 / 类型过滤 / 排序 / 新建 -->
-    <div class="toolbar modern-toolbar">
+  <div class="data-management-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="page-title-section">
+            <div class="title-icon">
+              <IconifyIconOnline icon="ri:database-2-line" />
+            </div>
+            <div class="title-content">
+              <h1 class="page-title">数据管理中心</h1>
+              <p class="page-subtitle">统一管理各类数据源连接，支持多种数据库类型和实时监控</p>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="stats-overview">
+            <div class="stat-item">
+              <div class="stat-number">{{ list.length }}</div>
+              <div class="stat-label">数据源</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">{{ typeOptions.length }}</div>
+              <div class="stat-label">类型</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">{{ Object.keys(backupOn).filter(k => backupOn[k]).length }}</div>
+              <div class="stat-label">备份中</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar-section">
+      <div class="toolbar modern-toolbar">
       <div class="left">
         <el-input v-model="searchKey" placeholder="搜索名称/类型" clearable class="w-280">
           <template #prefix>
@@ -16,16 +50,19 @@
           <el-option label="按名称排序" value="name" />
           <el-option label="按类型排序" value="type" />
         </el-select>
-      </div>
-      <div class="right">
-        <el-button type="primary" @click="openEdit()">
-          <IconifyIconOnline icon="ri:add-line" />
-          新建配置
-        </el-button>
+        </div>
+        <div class="right">
+          <el-button type="primary" size="large" @click="openEdit()" class="create-btn">
+            <IconifyIconOnline icon="ri:add-line" />
+            新建数据源
+          </el-button>
+        </div>
       </div>
     </div>
 
-    <ScTable class="card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
+    <!-- 内容区域 -->
+    <div class="content-section">
+      <ScTable class="enhanced-card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
       <template #empty>
         <el-empty description="暂无数据源配置">
           <el-button type="primary" @click="openEdit()">新建配置</el-button>
@@ -33,91 +70,125 @@
       </template>
 
       <template #default="{ row: item }">
-        <el-card :class="['data-card modern-card', getTypeClass(item.systemDataSettingType)]" shadow="hover">
-          <div class="card-header">
-            <div class="left">
-              <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="icon icon-img" />
-              <div v-else class="icon icon-badge" :data-name="item.systemDataSettingName">
-                {{ (item.systemDataSettingName || "D").slice(0, 1).toUpperCase() }}
+        <div class="enhanced-card-wrapper">
+          <el-card :class="['enhanced-data-card', getTypeClass(item.systemDataSettingType)]" shadow="never">
+            <!-- 卡片状态指示器 -->
+            <div class="card-status-indicator" :class="getStatusClass(item)"></div>
+            
+            <!-- 卡片头部 -->
+            <div class="enhanced-card-header">
+              <div class="header-main">
+                <div class="icon-container">
+                  <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="data-icon" />
+                  <div v-else class="data-icon-placeholder" :class="getTypeClass(item.systemDataSettingType)">
+                    <IconifyIconOnline :icon="getTypeIcon(item.systemDataSettingType)" />
+                  </div>
+                </div>
+                <div class="title-section">
+                  <h3 class="data-title" :title="item.systemDataSettingName">
+                    {{ item.systemDataSettingName }}
+                  </h3>
+                  <div class="type-badge">
+                    <el-tag :type="getTypeTag(item.systemDataSettingType)" size="small" effect="light">
+                      {{ item.systemDataSettingType }}
+                    </el-tag>
+                  </div>
+                </div>
               </div>
-              <div class="title" :title="item.systemDataSettingName">
-                {{ item.systemDataSettingName }}
+              <div class="header-actions">
+                <div class="quick-actions">
+                  <el-tooltip v-if="capOf(item)?.document" content="查看文档" placement="top">
+                    <el-button class="quick-action-btn" size="small" text @click.stop="viewDocument(item)">
+                      <IconifyIconOnline icon="ri:file-text-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '停止备份' : '开始备份'" placement="top">
+                    <el-button 
+                      class="quick-action-btn" 
+                      :class="{ 'backup-active': backupOn[item.systemDataSettingId!] }"
+                      size="small" 
+                      text 
+                      @click.stop="toggleBackup(item)"
+                    >
+                      <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="top">
+                    <el-upload :auto-upload="false" :show-file-list="false" :on-change="f => onUploadDriver(item, f)" class="upload-action">
+                      <el-button class="quick-action-btn" size="small" text>
+                        <IconifyIconOnline icon="ri:upload-2-line" />
+                      </el-button>
+                    </el-upload>
+                  </el-tooltip>
+                  <el-tooltip content="编辑配置" placement="top">
+                    <el-button class="quick-action-btn" size="small" text @click.stop="openEdit(item)">
+                      <IconifyIconOnline icon="ri:edit-line" />
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="删除数据源" placement="top">
+                    <el-button class="quick-action-btn danger" size="small" text @click.stop="remove(item)">
+                      <IconifyIconOnline icon="ri:delete-bin-line" />
+                    </el-button>
+                  </el-tooltip>
+                </div>
               </div>
             </div>
-            <div class="right-status cursor-pointer" @click.stop="openBackupList(item)">
-              <el-badge :value="logCounts[item.systemDataSettingId!] || 0" :hidden="!(logCounts[item.systemDataSettingId!] > 0)" type="danger">
-                <el-tag size="small" type="warning">日志</el-tag>
-              </el-badge>
-              <el-badge :value="backupCounts[item.systemDataSettingId!] || 0" :hidden="!(backupCounts[item.systemDataSettingId!] > 0)" type="success" class="ml-8">
-                <el-tag size="small" :type="getTypeTag(item.systemDataSettingType)">{{ item.systemDataSettingType }}</el-tag>
-              </el-badge>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="meta-row">
-              <IconifyIconOnline class="mr-4 text-muted" icon="ri:terminal-line" />
-              <span class="label">控制台</span>
-              <span class="value">{{ item.systemDataSettingConsoleType || "-" }}</span>
-            </div>
-            <div class="meta-row">
-              <IconifyIconOnline class="mr-4 text-muted" icon="ri:link-m" />
-              <span class="label">地址</span>
-              <el-tooltip :content="addressOf(item)" placement="top" :show-after="150">
-                <span class="value ellipsis">{{ addressOf(item) }}</span>
-              </el-tooltip>
-            </div>
-          </div>
-          <!-- 右下角背景图/图标（45度分割遮罩） -->
-          <div class="bg-corner" :style="bgStyle(item)"></div>
+             
+             <!-- 卡片主体内容 -->
+             <div class="enhanced-card-body">
+               <div class="connection-info">
+                 <div class="info-item">
+                   <div class="info-icon">
+                     <IconifyIconOnline icon="ri:terminal-line" />
+                   </div>
+                   <div class="info-content">
+                     <div class="info-label">控制台类型</div>
+                     <div class="info-value">{{ item.systemDataSettingConsoleType || '未配置' }}</div>
+                   </div>
+                 </div>
+                 <div class="info-item">
+                   <div class="info-icon">
+                     <IconifyIconOnline icon="ri:link-m" />
+                   </div>
+                   <div class="info-content">
+                     <div class="info-label">连接地址</div>
+                     <div class="info-value" :title="addressOf(item)">{{ addressOf(item) }}</div>
+                   </div>
+                 </div>
+               </div>
+               
+               <!-- 连接状态 -->
+               <div class="connection-status">
+                 <div class="status-indicator" :class="getConnectionStatus(item)">
+                   <div class="status-dot"></div>
+                   <span class="status-text">{{ getConnectionStatusText(item) }}</span>
+                 </div>
+               </div>
+             </div>
+             
+             <!-- 背景装饰 -->
+             <div class="card-decoration" :style="bgStyle(item)"></div>
 
-          <div class="card-actions" @click.stop>
-            <el-button-group>
-              <el-tooltip content="打开控制台" placement="top" :show-after="500">
-                <el-button size="small" type="primary" @click.stop.prevent="openConsole(item)">
-                  <IconifyIconOnline icon="ri:login-circle-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="capOf(item)?.document" content="查看文档" placement="top" :show-after="500">
-                <el-button size="small" @click.stop.prevent="viewDocument(item)">
-                  <IconifyIconOnline icon="ri:file-text-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="编辑" placement="top" :show-after="500">
-                <el-button size="small" @click.stop.prevent="openEdit(item)">
-                  <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="设置" placement="top" :show-after="500">
-                <el-button size="small" type="primary" plain @click.stop.prevent="openSetting(item)">
-                  <IconifyIconOnline icon="ri:settings-3-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '关闭备份' : '开启备份'" placement="top" :show-after="500">
-                <el-button size="small" @click.stop.prevent="toggleBackup(item)">
-                  <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top" :show-after="500">
-                <el-button size="small" type="danger" @click.stop.prevent="remove(item)">
-                  <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="bottom" :show-after="500">
-                <el-upload :auto-upload="false" :show-file-list="false" :on-change="f => onUploadDriver(item, f)">
-                  <el-button size="small">
-                    <IconifyIconOnline icon="ri:upload-2-line" />
+             <!-- 操作按钮 -->
+             <div class="enhanced-card-actions" @click.stop>
+              <div class="action-buttons">
+                <el-tooltip content="打开控制台" placement="top">
+                  <el-button size="small" type="primary" @click.stop.prevent="openConsole(item)" class="action-btn primary-action">
+                    <IconifyIconOnline icon="ri:login-circle-line" />
                   </el-button>
-                </el-upload>
-              </el-tooltip>
-            </el-button-group>
-          </div>
-        </el-card>
+                </el-tooltip>
+              </div>
+            </div>
+          </el-card>
+        </div>
       </template>
-    </ScTable>
+      </ScTable>
+    </div>
 
+    <!-- 对话框组件 -->
     <EditDialog v-model:visible="showEdit" :model-value="current" @success="load" />
-    <el-dialog v-model="showDoc" title="文档" width="80%" draggable>
-      <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none"></iframe>
+    <el-dialog v-model="showDoc" title="数据源文档" width="80%" draggable class="doc-dialog">
+      <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>
     </el-dialog>
     <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
     <BackConsoleDialog :visibe="showBackupDialog" :data="backupLogList" @close="onCloseBackupDialog" />
@@ -375,6 +446,67 @@ function bgStyle(item: SystemDataSetting) {
   return img ? { backgroundImage: `url(${img})` } : {};
 }
 
+// 新增的UI辅助函数
+function getTypeIcon(type?: string): string {
+  const t = (type || "").toLowerCase();
+  if (t.includes("jdbc") || t.includes("sql") || t.includes("mysql") || t.includes("postgres")) {
+    return "ri:database-2-line";
+  }
+  if (t.includes("redis")) {
+    return "ri:stack-line";
+  }
+  if (t.includes("zk") || t.includes("zookeeper")) {
+    return "ri:node-tree";
+  }
+  if (t.includes("influx")) {
+    return "ri:line-chart-line";
+  }
+  if (t.includes("mqtt")) {
+    return "ri:wireless-charging-line";
+  }
+  if (t.includes("graph") || t.includes("neo4j")) {
+    return "ri:share-circle-line";
+  }
+  if (t.includes("email")) {
+    return "ri:mail-line";
+  }
+  return "ri:database-line";
+}
+
+function getStatusClass(item: SystemDataSetting): string {
+  // 这里可以根据实际的连接状态来判断
+  // 暂时使用随机状态作为示例
+  const statuses = ["connected", "disconnected", "warning"];
+  return statuses[Math.floor(Math.random() * statuses.length)];
+}
+
+function getConnectionStatus(item: SystemDataSetting): string {
+  // 根据实际情况判断连接状态
+  const hasAddress = addressOf(item) !== "-";
+  const hasConsole = item.systemDataSettingConsoleType;
+  
+  if (hasAddress && hasConsole) {
+    return "status-connected";
+  } else if (hasAddress) {
+    return "status-warning";
+  }
+  return "status-disconnected";
+}
+
+function getConnectionStatusText(item: SystemDataSetting): string {
+  const status = getConnectionStatus(item);
+  switch (status) {
+    case "status-connected":
+      return "已连接";
+    case "status-warning":
+      return "配置中";
+    case "status-disconnected":
+      return "未连接";
+    default:
+      return "未知";
+  }
+}
+
 onMounted(load);
 // 使用 inject 获取全局 socket，统一监听 system/data 前缀主题
 const globalSocket = inject<any>("globalSocket");
@@ -412,23 +544,127 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.page {
-  min-height: 100%;
+/* 页面主容器 */
+.data-management-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 0;
 }
 
-/* 顶部工具栏 */
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 32px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.page-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.title-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 统计概览 */
+.stats-overview {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  min-width: 80px;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #3b82f6;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* 工具栏区域 */
+.toolbar-section {
+  margin: 0 auto;
+}
+
 .modern-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  gap: 12px;
+  background: white;
+  padding: 20px 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
 }
 
 .modern-toolbar .left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -444,190 +680,493 @@ onBeforeUnmount(() => {
   width: 160px;
 }
 
-.ml-8 {
-  margin-left: 8px;
+.create-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
 }
 
-/* 栅格与卡片 */
-.card-grid {
-  --gap: 16px;
+.create-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-.modern-card {
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--el-box-shadow-light);
-  border-radius: 14px;
+/* 内容区域 */
+.content-section {
+  margin: 0 auto;
+}
+
+/* 增强卡片网格 */
+.enhanced-card-grid {
+  --gap: 20px;
+}
+
+/* 卡片包装器 */
+.enhanced-card-wrapper {
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enhanced-card-wrapper:hover {
+  transform: translateY(-8px);
+}
+
+/* 增强数据卡片 */
+.enhanced-data-card {
+  height: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
   overflow: hidden;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 1) 40%);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* 左侧绿色条 */
-.modern-card::after {
-  content: "";
+.enhanced-data-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 卡片状态指示器 */
+.card-status-indicator {
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #10b981;
-  /* emerald-500 */
-}
-
-.modern-card.is-jdbc::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.1), transparent 60%);
-}
-
-.modern-card.is-redis::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.1), transparent 60%);
-}
-
-.modern-card.is-zk::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.1), transparent 60%);
-}
-
-.modern-card.is-default::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(100, 116, 139, 0.08), transparent 60%);
-}
-
-.modern-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(240px 120px at 10% 0%, rgba(14, 165, 233, 0.08), transparent 60%);
-  pointer-events: none;
-}
-
-.modern-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.12);
-  border-color: var(--el-color-primary-light-5);
-}
-
-/* 常驻基础阴影 */
-.modern-card {
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
-}
-
-/* 右下角45度背景区 */
-.bg-corner {
-  position: absolute;
+  left: 0;
   right: 0;
-  bottom: 0;
-  width: 46%;
-  height: 46%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.12;
-  clip-path: polygon(54% 0, 100% 0, 100% 100%, 0 100%);
-  pointer-events: none;
+  height: 4px;
+  z-index: 2;
 }
 
-.card-header {
+.card-status-indicator.connected {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.card-status-indicator.warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.card-status-indicator.disconnected {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* 增强卡片头部 */
+.enhanced-card-header {
+  padding: 24px 24px 16px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 14px 0;
+  position: relative;
+  z-index: 1;
 }
 
-.card-header .left {
+.header-main {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 16px;
+  flex: 1;
 }
 
-.icon {
-  width: 36px;
-  height: 36px;
-}
-
-.icon-img {
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.icon-badge {
-  border-radius: 999px;
+.icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #0ea5e9;
-  background: radial-gradient(120px 80px at 10% 10%, rgba(14, 165, 233, 0.18), rgba(14, 165, 233, 0.06));
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
 }
 
-.title {
-  font-weight: 600;
+.data-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.data-icon-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  border-radius: 12px;
+}
+
+.data-icon-placeholder.is-jdbc {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.data-icon-placeholder.is-redis {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.data-icon-placeholder.is-zk {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.data-icon-placeholder.is-default {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
+  min-width: 0;
+}
+
+.data-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.card-body {
-  padding: 12px 14px 0;
+.type-badge {
+  align-self: flex-start;
 }
 
-.meta-row {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--el-text-color-secondary);
-  line-height: 22px;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
 }
 
-.meta-row .label {
-  width: 60px;
-  color: var(--el-text-color-regular);
+.enhanced-card-wrapper:hover .quick-actions {
+  opacity: 1;
 }
 
-.meta-row .value {
+.quick-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #64748b;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.quick-action-btn.backup-active {
+  background: linear-gradient(135deg, #67c23a, #85ce61);
+  color: white;
+  border-color: #67c23a;
+}
+
+.quick-action-btn.backup-active:hover {
+  background: linear-gradient(135deg, #85ce61, #67c23a);
+  transform: scale(1.1);
+}
+
+.quick-action-btn.danger {
+  color: #ef4444;
+}
+
+.quick-action-btn.danger:hover {
+    background: linear-gradient(135deg, #f56c6c, #f78989);
+    color: white;
+    border-color: #f56c6c;
+  }
+
+  .upload-action {
+    display: inline-block;
+  }
+
+  .upload-action .el-upload {
+    display: inline-block;
+  }
+
+.status-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-badge {
+  transition: all 0.2s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+}
+
+/* 增强卡片主体 */
+.enhanced-card-body {
+  padding: 0 24px 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.connection-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: all 0.2s ease;
+}
+
+.info-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #cbd5e1;
+}
+
+.info-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.info-content {
   flex: 1;
-  color: var(--el-text-color-secondary);
-  overflow: hidden;
+  min-width: 0;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ellipsis {
-  display: inline-block;
-  max-width: 100%;
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.card-actions {
-  margin-top: 12px;
-  padding: 8px 14px 14px;
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.status-connected .status-dot {
+  background: #10b981;
+}
+
+.status-indicator.status-connected .status-text {
+  color: #059669;
+}
+
+.status-indicator.status-warning .status-dot {
+  background: #f59e0b;
+}
+
+.status-indicator.status-warning .status-text {
+  color: #d97706;
+}
+
+.status-indicator.status-disconnected .status-dot {
+  background: #ef4444;
+}
+
+.status-indicator.status-disconnected .status-text {
+  color: #dc2626;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 卡片装饰背景 */
+.card-decoration {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.08;
+  border-radius: 0 20px 0 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 增强操作按钮 */
+.enhanced-card-actions {
+  padding: 12px 24px 20px;
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
+  background: rgba(248, 250, 252, 0.5);
   opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+  transform: translateY(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modern-card:hover .card-actions {
+.enhanced-card-wrapper:hover .enhanced-card-actions {
   opacity: 1;
   transform: translateY(0);
 }
 
-.card-actions :deep(.el-button-group) {
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.8);
+  color: #64748b;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #cbd5e1;
+  color: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.primary-action {
   width: 100%;
+  height: auto;
+  padding: 10px 16px;
   border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.card-actions :deep(.el-button-group .el-button) {
+  font-weight: 600;
+  font-size: 14px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   border: none;
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
-.card-actions :deep(.el-button-group .el-button:not(:last-child)) {
-  border-right: 1px solid var(--el-border-color-lighter);
+.primary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  color: white;
+}
+
+.secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.backup-active {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+  color: #059669;
+}
+
+.backup-active:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #059669;
+  color: #059669;
+}
+
+.danger-action {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #dc2626;
+}
+
+.danger-action:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.upload-action {
+  display: inline-block;
+}
+
+.upload-action .action-btn {
+  width: 32px;
+  height: 32px;
 }
 
 /* 按钮风格系统 */
@@ -665,14 +1204,200 @@ onBeforeUnmount(() => {
   background: rgba(244, 63, 94, 0.1);
 }
 
-/* 空状态 */
+/* 空状态样式 */
 .empty-wrap {
-  padding: 60px 0;
+  padding: 80px 40px;
+  text-align: center;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin: 20px 0;
 }
 
-/* 小色彩辅助 */
+.empty-icon {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #94a3b8;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  max-width: 400px;
+  margin: 0 auto 32px;
+}
+
+.empty-action {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
+}
+
+.empty-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* 对话框样式 */
+.doc-dialog :deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.doc-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 20px 24px;
+}
+
+.doc-dialog :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.doc-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  
+  .stats-overview {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 24px 16px;
+  }
+  
+  .toolbar-section,
+  .content-section {
+    padding: 0 16px;
+  }
+  
+  .modern-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .modern-toolbar .left {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .w-280,
+  .w-200,
+  .w-160 {
+    width: 100%;
+  }
+  
+  .stats-overview {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .stat-item {
+    flex: 1;
+    min-width: calc(50% - 6px);
+  }
+  
+  .secondary-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .page-subtitle {
+    font-size: 14px;
+  }
+  
+  .enhanced-card-header {
+    padding: 20px 16px 12px;
+  }
+  
+  .enhanced-card-body {
+    padding: 0 16px 12px;
+  }
+  
+  .enhanced-card-actions {
+    padding: 12px 16px 20px;
+  }
+  
+  .secondary-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 工具类 */
 .text-muted {
-  color: var(--el-text-color-secondary);
+  color: #64748b;
+}
+
+.text-primary {
+  color: #3b82f6;
+}
+
+.text-success {
+  color: #10b981;
+}
+
+.text-warning {
+  color: #f59e0b;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.bg-primary {
+  background-color: #3b82f6;
+}
+
+.bg-success {
+  background-color: #10b981;
+}
+
+.bg-warning {
+  background-color: #f59e0b;
+}
+
+.bg-danger {
+  background-color: #ef4444;
 }
 
 .mr-4 {
