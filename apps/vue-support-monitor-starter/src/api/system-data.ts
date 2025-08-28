@@ -6,6 +6,8 @@ export interface SystemDataSetting {
   systemDataSettingName: string;
   systemDataSettingType: string; // SPI 类型: JDBC/REDIS/...
   systemDataSettingServer?: string;
+  systemDataSettingPolicy?: string;
+  systemDataSettingDatabase?: string;
   systemDataSettingHost?: string;
   systemDataSettingPort?: number;
   systemDataSettingUsername?: string;
@@ -263,12 +265,13 @@ export function getConsoleNode(
 export function executeConsole(
   settingId: number,
   command: string,
-  type: string = "sql"
+  type: string = "sql",
+  queryId?: string
 ) {
   return request({
     url: `/system/data/console/${settingId}/execute`,
     method: "post",
-    params: { type },
+    params: { type, queryId: queryId },
     data: command,
   });
 }

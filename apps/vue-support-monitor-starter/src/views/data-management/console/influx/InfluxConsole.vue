@@ -79,11 +79,11 @@
           </el-button>
           <el-button
             size="small"
-            :disabled="!currentPath"
-            @click="openStructureTab"
+            v-if="currentPath"
+            @click="handleQueryPolicy"
           >
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
-            结构
+            查询策略
           </el-button>
           <el-button-group>
             <el-button
@@ -101,17 +101,6 @@
               >字段注释</el-button
             >
           </el-button-group>
-          <el-button
-            size="small"
-            :disabled="!currentPath || !columns.length"
-            @click="toggleAnalyze"
-          >
-            <IconifyIconOnline
-              :icon="analyzing ? 'ri:close-circle-line' : 'ri:bar-chart-2-line'"
-              class="mr-1"
-            />
-            {{ analyzing ? "退出分析" : "分析" }}
-          </el-button>
         </div>
       </div>
       <div class="right-body">
@@ -232,13 +221,13 @@
                   </div>
                 </template>
                 <template #default="{ row }">
-                  <div class="flex flex-col">
+                  <div class="flex flex-row">
                     <div
                       v-if="showFieldComments"
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      （{{ col.comment }}）
+                      <span v-if="col.comment ">（{{ col.comment }}）</span>
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
@@ -356,6 +345,13 @@ function onDragging(e: MouseEvent) {
   const next = Math.min(800, Math.max(220, startW + dx));
   leftWidth.value = next;
 }
+
+async function handleQueryPolicy() {
+  const _currentPath =  currentPath.value.split('/');
+  sql.value = "SHOW RETENTION POLICIES ON " + _currentPath[1];
+  await execute();
+}
+
 function onDragEnd() {
   if (!isDragging.value) return;
   isDragging.value = false;
@@ -440,8 +436,9 @@ async function handleNodeClick(node: any) {
   currentPath.value = node?.path;
   // 若为表节点，打开表（查询+注释）
   const type = (node?.type || "").toString().toUpperCase();
+  const databaseName = node.parentPath.replace('/', '');
   if (type.includes("TABLE")) {
-    sql.value = `select * from ${node.name} limit 1000`;
+    sql.value = `select * from ${node.name} limit 100`;
     await execute();
     //   const resp = await openTable(props.id, node.path, 100);
     //   columns.value = resp?.data?.data?.columns || [];
@@ -509,7 +506,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, "sql");
+  const res = await executeConsole(props.id, sql.value, "sql", currentPath.value);
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];

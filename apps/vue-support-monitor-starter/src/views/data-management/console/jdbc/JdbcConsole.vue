@@ -238,7 +238,7 @@
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      （{{ col.comment }}）
+                      <span v-if="col.comment ">（{{ col.comment }}）</span>
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
@@ -509,7 +509,7 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, "sql");
+  const res = await executeConsole(props.id, sql.value, "sql", currentPath.value);
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];

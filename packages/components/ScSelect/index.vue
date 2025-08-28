@@ -60,7 +60,7 @@ interface CardOption {
   name?: string;
   describe?: string;
   value: string | number;
-  icon: string;
+  icon?: string; // 图标现在是可选的，支持ri:xx格式和http链接
 }
 
 const props = defineProps({

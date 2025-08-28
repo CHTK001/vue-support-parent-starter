@@ -62,7 +62,7 @@
 
     <!-- 内容区域 -->
     <div class="content-section">
-      <ScTable class="enhanced-card-grid" :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
+      <ScTable class="enhanced-card-grid !h-[600px]" ref="tableRef"  :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
       <template #empty>
         <el-empty description="暂无数据源配置">
           <el-button type="primary" @click="openEdit()">新建配置</el-button>
@@ -268,7 +268,7 @@ const showSetting = ref(false);
 const settingId = ref<number | null>(null);
 const settingType = ref<string | undefined>(undefined);
 const backupLogList = reactive<any>([]);
-
+const tableRef = ref();
 // 过滤与排序
 const searchKey = ref("");
 const typeFilter = ref<string | "">("");
@@ -321,15 +321,7 @@ function isJdbcItem(row: SystemDataSetting) {
 }
 
 async function load() {
-  loading.value = true;
-  try {
-    const res = await pageSystemDataSettings({ current: 1, size: 20 });
-    if (res?.success) {
-      list.value = (res.data?.data as any[]) || [];
-    }
-  } finally {
-    loading.value = false;
-  }
+  tableRef.value.reload();
 }
 
 function openEdit(row?: SystemDataSetting) {
