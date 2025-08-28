@@ -108,6 +108,7 @@
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
     "@originjs/vite-plugin-commonjs": "catalog:",
+    "@pages/dict": "workspace:^",
     "@pages/project": "workspace:^",
     "@repo/build": "workspace:^",
     "@types/gradient-string": "catalog:",

@@ -17,7 +17,7 @@ export default [
       {
         path: "/project/index",
         name: "ProjectIndex",
-        component: () => import("@repo/pages/project/index.vue"),
+        component: () => import("@pages/project/index.vue"),
         meta: {
           title: "项目管理",
           showParent: true,
@@ -26,7 +26,7 @@ export default [
       {
         path: "/project/manage",
         name: "ProjectManage",
-        component: () => import("@repo/pages/project/src/views/project/index.vue"),
+        component: () => import("@pages/project/src/views/project/index.vue"),
         meta: {
           title: "项目管理",
           showLink: false,
@@ -35,7 +35,7 @@ export default [
       {
         path: "/project/secret",
         name: "ProjectSecret",
-        component: () => import("@repo/pages/project/src/views/secret/index.vue"),
+        component: () => import("@pages/project/src/views/secret/index.vue"),
         meta: {
           title: "密钥管理",
           showLink: false,
@@ -44,7 +44,7 @@ export default [
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
-        component: () => import("@repo/pages/project/src/views/ai/llm/index.vue"),
+        component: () => import("@pages/project/src/views/ai/llm/index.vue"),
         meta: {
           title: "大语言模型",
           showLink: false,
@@ -53,7 +53,7 @@ export default [
       {
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
-        component: () => import("@repo/pages/project/src/views/ai/vincent/index.vue"),
+        component: () => import("@pages/project/src/views/ai/vincent/index.vue"),
         meta: {
           title: "图像生成",
           showLink: false,
