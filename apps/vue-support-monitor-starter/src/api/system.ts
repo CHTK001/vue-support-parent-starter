@@ -21,8 +21,8 @@ export function getLogList(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -45,8 +45,8 @@ export function deleteLog(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -58,8 +58,8 @@ export function getServerCache() {
     url: "/system/server-cache",
     method: "post",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -73,8 +73,8 @@ export function getNodeCache(data) {
     method: "post",
     data,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -91,8 +91,8 @@ export function clearCache(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -103,8 +103,8 @@ export function asyncRefreshCache(params) {
 
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -119,8 +119,8 @@ export function clearErrorWorkspace(params) {
 
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -134,8 +134,8 @@ export function getConfigData(data) {
     method: "post",
     data: data,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -148,8 +148,8 @@ export function getIpConfigData() {
     method: "post",
     data: {},
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -166,8 +166,8 @@ export function editIpConfig(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -185,8 +185,8 @@ export function editConfig(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -198,8 +198,8 @@ export function getMailConfigData() {
     url: "/system/mail-config-data",
     method: "post",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -209,8 +209,8 @@ export function oauthConfigOauth2(params) {
     method: "get",
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -220,8 +220,8 @@ export function oauthConfigOauth2Save(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -243,8 +243,8 @@ export function editMailConfig(params) {
     method: "post",
     data: params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -259,9 +259,9 @@ export function systemInfo(data) {
     headers: {
       tip: "no",
       loading: "no",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     },
-    data,
+    data
   });
 }
 
@@ -277,12 +277,12 @@ export function uploadUpgradeFile(formData) {
     url: "/system/upload-jar-sharding",
     headers: {
       "Content-Type": "multipart/form-data;charset=UTF-8",
-      loading: "no",
+      loading: "no"
     },
     method: "post",
     // 0 表示无超时时间
     timeout: 0,
-    data: formData,
+    data: formData
   });
 }
 
@@ -297,7 +297,7 @@ export function uploadUpgradeFileMerge(data) {
 
     data: data,
     // 0 表示无超时时间
-    timeout: 0,
+    timeout: 0
   });
 }
 
@@ -312,8 +312,8 @@ export function changelog(data) {
 
     data,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -324,8 +324,8 @@ export function changBetaRelease(params) {
 
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -336,8 +336,8 @@ export function changeDownloadAuth(params) {
 
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -352,8 +352,8 @@ export function checkVersion(data) {
 
     data,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -369,8 +369,8 @@ export function remoteUpgrade(params) {
 
     params,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -383,8 +383,8 @@ export function getProxyConfig() {
     method: "get",
     params: {},
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -396,8 +396,8 @@ export function saveProxyConfig(data) {
     url: "/system/save_proxy_config",
     method: "post",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    data: data,
+    data: data
   });
 }

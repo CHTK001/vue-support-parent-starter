@@ -1,7 +1,7 @@
 <template>
   <div class="email-console">
     <!-- 顶部工具栏 -->
-    <EmailHeader @compose="handleCompose" @refresh="refreshEmails" />
+    <EmailHeader @compose="handleCompose" @refresh="refreshEmails" @cloud-sync="handleCloudSync" @cloud-backup="handleCloudBackup" />
 
     <!-- 主要内容区域 -->
     <div class="email-content">
@@ -12,6 +12,7 @@
       <EmailList
         :emails="filteredEmails"
         :selected-email-id="selectedEmail?.id"
+        :loading="loading"
         @email-select="selectEmail"
         @email-star="toggleStar"
         @emails-delete="deleteSelected"
@@ -38,6 +39,7 @@
 import { ref, computed, onMounted } from "vue";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { executeConsole } from "@/api/system-data";
+import { fetchEmails, getEmailHistory, syncEmails, updateEmailStatus, backupEmail, type SystemDataEmailHistory } from "@/api/email";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import EmailHeader from "./components/EmailHeader.vue";
@@ -52,6 +54,7 @@ const props = defineProps<{ id: number }>();
 const composeRef = ref(null);
 
 // 界面状态
+const selectedFolder = ref(null);
 const showCompose = ref(false);
 const activeFolder = ref("inbox");
 const activeTag = ref("");
@@ -86,84 +89,14 @@ const tags = ref([
   { key: "finance", name: "财务", color: "orange" }
 ]);
 
-// 模拟邮件数据
-const emails = ref([
-  {
-    id: 1,
-    sender: "系统管理员",
-    senderEmail: "admin@system.com",
-    subject: "系统维护通知",
-    preview: "系统将于今晚进行例行维护，预计维护时间为2小时...",
-    content: "<p>尊敬的用户：</p><p>系统将于今晚22:00-24:00进行例行维护，期间可能影响部分功能使用。</p><p>感谢您的理解与支持。</p>",
-    time: new Date(Date.now() - 1000 * 60 * 30), // 30分钟前
-    read: false,
-    starred: true,
-    selected: false,
-    hasAttachment: false,
-    folder: "inbox",
-    tags: ["important"]
-  },
-  {
-    id: 2,
-    sender: "数据库监控",
-    senderEmail: "monitor@db.com",
-    subject: "数据库连接异常告警",
-    preview: "检测到数据库连接异常，请及时处理...",
-    content: "<p>告警详情：</p><ul><li>数据库：MySQL-Production</li><li>异常时间：2024-01-15 14:30:25</li><li>异常类型：连接超时</li></ul>",
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2小时前
-    read: true,
-    starred: false,
-    selected: false,
-    hasAttachment: true,
-    folder: "inbox",
-    tags: ["work"]
-  },
-  {
-    id: 3,
-    sender: "备份服务",
-    senderEmail: "backup@service.com",
-    subject: "每日备份报告",
-    preview: "今日备份任务已完成，备份文件大小：2.3GB...",
-    content: "<p>备份报告：</p><p>备份时间：2024-01-15 03:00:00</p><p>备份状态：成功</p><p>备份大小：2.3GB</p>",
-    time: new Date(Date.now() - 1000 * 60 * 60 * 8), // 8小时前
-    read: true,
-    starred: false,
-    selected: false,
-    hasAttachment: false,
-    folder: "inbox",
-    tags: []
-  },
-  {
-    id: 4,
-    sender: "安全中心",
-    senderEmail: "security@center.com",
-    subject: "登录异常提醒",
-    preview: "检测到异常登录行为，IP地址：192.168.1.100...",
-    content: "<p>安全提醒：</p><p>检测到来自IP 192.168.1.100的异常登录尝试。</p><p>如非本人操作，请立即修改密码。</p>",
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1天前
-    read: false,
-    starred: false,
-    selected: false,
-    hasAttachment: false,
-    folder: "inbox",
-    tags: ["important"]
-  },
-  {
-    id: 5,
-    sender: "性能监控",
-    senderEmail: "performance@monitor.com",
-    subject: "CPU使用率告警",
-    preview: "服务器CPU使用率持续超过80%，请关注...",
-    content: "<p>性能告警：</p><p>服务器：Web-Server-01</p><p>CPU使用率：85%</p><p>持续时间：15分钟</p>",
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2天前
-    read: true,
-    starred: true,
-    selected: false,
-    hasAttachment: false,
-    folder: "inbox",
-    tags: ["work"]
-  }
-]);
+// 邮件数据
+const emails = ref<SystemDataEmailHistory[]>([]);
+const loading = ref(false);
+const pagination = ref({
+  current: 1,
+  size: 20,
+  total: 0
+});
 
 // 过滤邮件
 const filteredEmails = computed(() => {
@@ -211,8 +144,48 @@ function selectEmail(email: any) {
   }
 }
 
-function toggleStar(email: any) {
-  email.starred = !email.starred;
+async function toggleStar(email: SystemDataEmailHistory) {
+  const newStarred = !email.starred;
+  const startTime = Date.now();
+
+  console.log("[邮件操作] 开始更新星标状态", {
+    emailId: email.id,
+    subject: email.subject,
+    currentStarred: email.starred,
+    newStarred: newStarred,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    await updateEmailStatus(props.id, { id: email.id, starred: newStarred });
+
+    // 更新本地状态
+    email.starred = newStarred;
+    updateFolderCount();
+
+    const duration = Date.now() - startTime;
+    console.log("[邮件操作] 星标状态更新成功", {
+      emailId: email.id,
+      newStarred: newStarred,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    });
+
+    ElMessage.success(newStarred ? "已添加星标" : "已取消星标");
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorInfo = {
+      emailId: email.id,
+      subject: email.subject,
+      operation: newStarred ? "添加星标" : "取消星标",
+      message: error.message || "未知错误",
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error("[邮件操作] 星标状态更新失败:", errorInfo);
+    ElMessage.error(`${newStarred ? "添加" : "取消"}星标失败: ${error.message || "未知错误"}`);
+  }
 }
 
 function handleSelectAll() {
@@ -259,18 +232,52 @@ function starSelected() {
   ElMessage.success("标星成功");
 }
 
-function markAsRead() {
-  const selectedEmails = filteredEmails.value.filter(email => email.selected);
-  if (selectedEmails.length === 0) {
-    ElMessage.warning("请先选择要标记的邮件");
+async function markAsRead() {
+  const unreadEmails = filteredEmails.value.filter(email => email.selected && !email.read);
+  if (unreadEmails.length === 0) {
+    ElMessage.warning("没有选中未读邮件");
     return;
   }
 
-  selectedEmails.forEach(email => {
-    email.read = true;
+  const startTime = Date.now();
+  console.log("[邮件操作] 开始标记邮件为已读", {
+    count: unreadEmails.length,
+    emailIds: unreadEmails.map(e => e.id),
+    timestamp: new Date().toISOString()
   });
-  updateFolderCount();
-  ElMessage.success("标记成功");
+
+  try {
+    const updatePromises = unreadEmails.map(email => updateEmailStatus(props.id, { id: email.id, read: true }));
+
+    await Promise.all(updatePromises);
+
+    // 更新本地状态
+    unreadEmails.forEach(email => {
+      email.read = true;
+    });
+
+    const duration = Date.now() - startTime;
+    console.log("[邮件操作] 标记已读成功", {
+      count: unreadEmails.length,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    });
+
+    ElMessage.success(`已标记 ${unreadEmails.length} 封邮件为已读`);
+    updateFolderCount();
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorInfo = {
+      message: error.message || "未知错误",
+      count: unreadEmails.length,
+      emailIds: unreadEmails.map(e => e.id),
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error("[邮件操作] 标记已读失败:", errorInfo);
+    ElMessage.error(`标记已读失败: ${error.message || "未知错误"}`);
+  }
 }
 
 function handleCompose() {
@@ -287,9 +294,69 @@ function handleSearch(query: string) {
   searchQuery.value = query;
 }
 
-function refreshEmails() {
-  ElMessage.success("邮件列表已刷新");
-  updateFolderCount();
+async function refreshEmails() {
+  if (loading.value) return;
+
+  loading.value = true;
+  status.value = "正在同步邮件...";
+  statusType.value = "info";
+
+  const startTime = Date.now();
+  console.log("[邮件同步] 开始同步邮件", {
+    timestamp: new Date().toISOString(),
+    folder: selectedFolder.value,
+    pagination: pagination.value
+  });
+
+  try {
+    // 首先尝试从邮件服务器同步邮件
+    console.log("[邮件拉取] 正在从邮件服务器同步...");
+    const syncResult = await fetchEmails(props.id, activeFolder.value);
+
+    if (syncResult.success) {
+      status.value = "邮件拉取成功，正在加载...";
+      console.log("[邮件拉取] 服务器同步成功", syncResult);
+    } else {
+      console.warn("[邮件拉取] 服务器同步失败，继续加载本地数据", syncResult);
+      status.value = "服务器拉取失败，加载本地数据...";
+    }
+    updateFolderCount();
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorInfo = {
+      message: error.message || "未知错误",
+      stack: error.stack,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString(),
+      folder: selectedFolder.value,
+      pagination: pagination.value
+    };
+
+    console.error("[邮件同步] 同步失败:", errorInfo);
+
+    // 根据错误类型提供不同的错误信息
+    let errorMessage = "邮件同步失败";
+    if (error.message?.includes("网络")) {
+      errorMessage = "网络连接失败，请检查网络设置";
+    } else if (error.message?.includes("认证") || error.message?.includes("授权")) {
+      errorMessage = "邮箱认证失败，请检查账号密码";
+    } else if (error.message?.includes("超时")) {
+      errorMessage = "连接超时，请稍后重试";
+    } else if (error.message) {
+      errorMessage = `邮件同步失败: ${error.message}`;
+    }
+
+    status.value = errorMessage;
+    statusType.value = "error";
+    ElMessage.error(errorMessage);
+  } finally {
+    loading.value = false;
+
+    // 清除状态提示
+    setTimeout(() => {
+      status.value = "";
+    }, 5000);
+  }
 }
 
 function updateFolderCount() {
@@ -352,31 +419,75 @@ async function sendEmail() {
     return;
   }
 
-  try {
-    const cmd = JSON.stringify({
-      to: composeForm.value.to,
-      cc: composeForm.value.cc,
-      subject: composeForm.value.subject,
-      content: composeForm.value.content
-    });
+  const startTime = Date.now();
+  const emailData = {
+    to: composeForm.value.to,
+    cc: composeForm.value.cc,
+    subject: composeForm.value.subject,
+    content: composeForm.value.content
+  };
 
+  console.log("[邮件发送] 开始发送邮件", {
+    to: emailData.to,
+    cc: emailData.cc,
+    subject: emailData.subject,
+    contentLength: emailData.content.length,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    const cmd = JSON.stringify(emailData);
     const res = await executeConsole(props.id, cmd, "email");
 
+    const duration = Date.now() - startTime;
+
     if (res?.data?.success) {
+      console.log("[邮件发送] 邮件发送成功", {
+        to: emailData.to,
+        subject: emailData.subject,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      });
+
       status.value = "邮件发送成功";
       statusType.value = "success";
       showCompose.value = false;
       composeForm.value = { to: "", cc: "", subject: "", content: "" };
       ElMessage.success("邮件发送成功");
+
+      // 发送成功后刷新邮件列表
+      refreshEmails();
     } else {
-      status.value = res?.data?.msg || "邮件发送失败";
+      const errorMsg = res?.data?.msg || "邮件发送失败";
+      console.error("[邮件发送] 邮件发送失败", {
+        to: emailData.to,
+        subject: emailData.subject,
+        error: errorMsg,
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString()
+      });
+
+      status.value = errorMsg;
       statusType.value = "error";
-      ElMessage.error(status.value);
+      ElMessage.error(errorMsg);
     }
   } catch (error) {
-    status.value = "邮件发送失败";
+    const duration = Date.now() - startTime;
+    const errorInfo = {
+      to: emailData.to,
+      subject: emailData.subject,
+      message: error.message || "未知错误",
+      stack: error.stack,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error("[邮件发送] 邮件发送异常:", errorInfo);
+
+    const errorMessage = `邮件发送失败: ${error.message || "未知错误"}`;
+    status.value = errorMessage;
     statusType.value = "error";
-    ElMessage.error("邮件发送失败");
+    ElMessage.error(errorMessage);
   }
 
   // 清除状态提示
@@ -387,6 +498,100 @@ async function sendEmail() {
 
 function saveDraft() {
   ElMessage.success("草稿已保存");
+}
+
+// 云同步处理函数
+async function handleCloudSync() {
+  loading.value = true;
+  status.value = "正在进行云同步...";
+  statusType.value = "info";
+
+  try {
+    const result = await syncEmails(props.id, activeFolder.value);
+    
+    if (result.success) {
+      status.value = "云同步成功";
+      statusType.value = "success";
+      ElMessage.success("云同步成功");
+      
+      // 同步成功后刷新邮件列表
+      await refreshEmails();
+    } else {
+      const errorMsg = result.message || "云同步失败";
+      status.value = errorMsg;
+      statusType.value = "error";
+      ElMessage.error(errorMsg);
+    }
+  } catch (error) {
+    const errorMessage = `云同步失败: ${error.message || "未知错误"}`;
+    status.value = errorMessage;
+    statusType.value = "error";
+    ElMessage.error(errorMessage);
+    console.error("[云同步] 同步失败:", error);
+  } finally {
+    loading.value = false;
+    
+    // 清除状态提示
+    setTimeout(() => {
+      status.value = "";
+    }, 5000);
+  }
+}
+
+// 云备份处理函数
+function handleCloudBackup() {
+  // 创建文件输入元素
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.eml,.msg,.mbox';
+  fileInput.style.display = 'none';
+  
+  fileInput.onchange = async (event) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    
+    loading.value = true;
+    status.value = "正在上传邮件文件...";
+    statusType.value = "info";
+    
+    try {
+      const result = await backupEmail(props.id, file);
+      
+      if (result.success) {
+        status.value = "邮件备份成功";
+        statusType.value = "success";
+        ElMessage.success(`邮件备份成功: ${result.data?.filename || file.name}`);
+        
+        // 备份成功后刷新邮件列表
+        await refreshEmails();
+      } else {
+        const errorMsg = result.message || "邮件备份失败";
+        status.value = errorMsg;
+        statusType.value = "error";
+        ElMessage.error(errorMsg);
+      }
+    } catch (error) {
+      const errorMessage = `邮件备份失败: ${error.message || "未知错误"}`;
+      status.value = errorMessage;
+      statusType.value = "error";
+      ElMessage.error(errorMessage);
+      console.error("[云备份] 备份失败:", error);
+    } finally {
+      loading.value = false;
+      
+      // 清除状态提示
+      setTimeout(() => {
+        status.value = "";
+      }, 5000);
+    }
+    
+    // 清理文件输入元素
+    document.body.removeChild(fileInput);
+  };
+  
+  // 添加到DOM并触发点击
+  document.body.appendChild(fileInput);
+  fileInput.click();
 }
 
 function formatTime(time: Date) {
@@ -419,7 +624,7 @@ function formatFullTime(time: Date) {
 }
 
 onMounted(() => {
-  updateFolderCount();
+  refreshEmails();
 });
 </script>
 <style scoped>

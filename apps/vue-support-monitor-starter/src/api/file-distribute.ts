@@ -19,10 +19,5 @@ export interface FileOperationResponse {
 
 export function distributeFile(req: FileDistributeRequest) {
   // 后端使用 @RequestBody JSON
-  return http.request<ReturnResult<FileOperationResponse>>(
-    "post",
-    "/v1/file-management/distribute",
-    { data: req }
-  );
+  return http.request<ReturnResult<FileOperationResponse>>("post", "/v1/file-management/distribute", { data: req });
 }
-

@@ -30,6 +30,6 @@ export function uploadFileToNode(
     headers: { "Content-Type": "multipart/form-data" },
     timeout: 0,
     onUploadProgress,
-    signal,
+    signal
   });
 }

@@ -22,13 +22,13 @@ import axios from "./config";
 export function getLicense() {
   return axios({
     url: "/about/license",
-    method: "get",
+    method: "get"
   });
 }
 
 export function getThankDependency() {
   return axios({
     url: "/about/thank-dependency",
-    method: "get",
+    method: "get"
   });
 }

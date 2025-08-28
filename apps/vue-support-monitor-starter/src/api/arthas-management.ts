@@ -9,25 +9,18 @@ export interface OnlineNodeInfo {
 }
 
 export function fetchArthasNodes() {
-  return http.request<ReturnResult<OnlineNodeInfo[]>>(
-    "get",
-    "/v1/arthas/nodes"
-  );
+  return http.request<ReturnResult<OnlineNodeInfo[]>>("get", "/v1/arthas/nodes");
 }
 
 export function connectArthasNode(nodeId: string) {
-  return http.request<ReturnResult<{ consoleUrl?: string } | string>>(
-    "post",
-    "/v1/arthas/connect",
-    {
-      params: { nodeId },
-    }
-  );
+  return http.request<ReturnResult<{ consoleUrl?: string } | string>>("post", "/v1/arthas/connect", {
+    params: { nodeId }
+  });
 }
 
 export function disconnectArthasNode(nodeId: string) {
   return http.request<ReturnResult<boolean>>("post", "/v1/arthas/disconnect", {
-    params: { nodeId },
+    params: { nodeId }
   });
 }
 
@@ -40,21 +33,13 @@ export interface ArthasTunnelConfigDto {
 }
 
 export function getTunnelConfig(serverId: any) {
-  return http.request<ReturnResult<ArthasTunnelConfigDto>>(
-    "get",
-    "/v1/arthas/tunnel-config",
-    {
-      params: { serverId },
-    }
-  );
+  return http.request<ReturnResult<ArthasTunnelConfigDto>>("get", "/v1/arthas/tunnel-config", {
+    params: { serverId }
+  });
 }
 
 export function setTunnelConfig(serverId: any, data: ArthasTunnelConfigDto) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "/v1/arthas/tunnel-config/set",
-    {
-      params: { serverId, ...data },
-    }
-  );
+  return http.request<ReturnResult<boolean>>("post", "/v1/arthas/tunnel-config/set", {
+    params: { serverId, ...data }
+  });
 }
