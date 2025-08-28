@@ -105,6 +105,7 @@
                   { value: 'platform', label: '平台选项' },
                   { value: 'theme', label: '主题选项' },
                   { value: 'social', label: '社交媒体' },
+                  { value: 'httpIcon', label: 'HTTP图标' },
                 ]"
               />
             </el-form-item>
@@ -199,6 +200,14 @@ const socialOptions = [
   { label: "油管", value: "youtube", icon: "ri:youtube-fill" },
 ];
 
+const httpIconOptions = [
+  { label: "GitHub", value: "github", icon: "https://github.com/favicon.ico" },
+  { label: "Google", value: "google", icon: "https://www.google.com/favicon.ico" },
+  { label: "百度", value: "baidu", icon: "https://www.baidu.com/favicon.ico" },
+  { label: "默认图标", value: "default" }, // 测试默认图标
+  { label: "Remix图标", value: "remix", icon: "ri:github-fill" }, // 测试ri:格式
+];
+
 // 动态选项
 const options = computed(() => {
   switch (optionSet.value) {
@@ -208,6 +217,8 @@ const options = computed(() => {
       return themeOptions;
     case "social":
       return socialOptions;
+    case "httpIcon":
+      return httpIconOptions;
     default:
       return basicOptions;
   }

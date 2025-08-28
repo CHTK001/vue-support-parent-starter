@@ -1,5 +1,6 @@
 <template>
   <el-dialog
+    draggable
     v-model="visibleInner"
     :title="modelValue ? '编辑配置' : '新建配置'"
     width="1200px"
@@ -29,15 +30,50 @@
         </el-form-item>
 
         <el-form-item label="类型" prop="systemDataSettingType">
-          <el-select v-model="form.systemDataSettingType" filterable>
-            <el-option
-              v-for="item in systemDataSettingTypeValues"
-              :key="item.value || item.name"
-              :label="item.name"
-              :value="item?.value || item.name"
-            />
-          </el-select>
+          <ScSelect
+            layout="select"
+            v-model="form.systemDataSettingType"
+            :options="systemDataSettingTypeValues.map(item => ({ label: item.name, value: item.value || item.name, icon: item.icon }))"
+            placeholder="请选择类型"
+            filterable
+          />
         </el-form-item>
+
+        <!-- 远程模式必填字段 -->
+        <template v-if="form.systemDataSettingMode === 'REMOTE'">
+          <el-form-item label="主机/端口" prop="systemDataSettingHost">
+            <div style="display: flex; gap: 8px; width: 100%">
+              <el-input
+                v-model="form.systemDataSettingHost"
+                placeholder="主机"
+                :disabled="!modeChosen"
+              />
+              <el-input-number
+                class="!min-w-[150px]"
+                v-model="form.systemDataSettingPort"
+                :min="0"
+                :max="65535"
+                placeholder="端口"
+                :disabled="!modeChosen"
+                prop="systemDataSettingPort"
+              />
+            </div>
+          </el-form-item>
+        </template>
+
+        <!-- JDBC类型必填字段 -->
+        <template v-if="form.systemDataSettingType === 'JDBC'">
+          <el-form-item label="JDBC驱动" prop="systemDataSettingDriverClass">
+            <ScSelect
+            layout="select"
+              v-model="form.systemDataSettingDriverClass"
+              :options="jdbcDrivers"
+              placeholder="选择驱动"
+              :disabled="!modeChosen"
+              filterable
+            />
+          </el-form-item>
+        </template>
 
         <el-form-item label="协议">
           <el-select
@@ -56,7 +92,12 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="地址">
+      </div>
+
+      <!-- 右：高级配置 -->
+      <div class="col right">
+
+         <el-form-item label="地址">
           <el-input
             v-model="form.systemDataSettingServer"
             placeholder="优先填写完整连接串"
@@ -64,23 +105,33 @@
           />
         </el-form-item>
 
-        <el-form-item label="主机/端口">
-          <div style="display: flex; gap: 8px; width: 100%">
-            <el-input
-              v-model="form.systemDataSettingHost"
-              placeholder="主机"
-              :disabled="!modeChosen"
-            />
-            <el-input-number
-              class="!min-w-[150px]"
-              v-model="form.systemDataSettingPort"
-              :min="0"
-              :max="65535"
-              placeholder="端口"
-              :disabled="!modeChosen"
-            />
-          </div>
+        <el-form-item label="数据库名称">
+          <el-input
+            v-model="form.systemDataSettingDatabase"
+            placeholder="请填写数据库名称"
+          />
         </el-form-item>
+
+        <!-- 非远程模式或作为备选的主机/端口 -->
+        <template v-if="form.systemDataSettingMode !== 'REMOTE'">
+          <el-form-item label="主机/端口">
+            <div style="display: flex; gap: 8px; width: 100%">
+              <el-input
+                v-model="form.systemDataSettingHost"
+                placeholder="主机"
+                :disabled="!modeChosen"
+              />
+              <el-input-number
+                class="!min-w-[150px]"
+                v-model="form.systemDataSettingPort"
+                :min="0"
+                :max="65535"
+                placeholder="端口"
+                :disabled="!modeChosen"
+              />
+            </div>
+          </el-form-item>
+        </template>
 
         <el-form-item label="账号/密码">
           <div style="display: flex; gap: 8px; width: 100%">
@@ -98,68 +149,22 @@
           </div>
         </el-form-item>
 
+        <el-form-item v-if="form.systemDataSettingType == 'INFLUXDB'" label="数据库策略">
+          <el-input v-model="form.systemDataSettingPolicy" placeholder="请填写数据库策略"></el-input>
+        </el-form-item>
+
         <el-form-item label="启用">
           <el-switch
             v-model="form.systemDataSettingEnabled"
             :disabled="!modeChosen"
           />
         </el-form-item>
-      </div>
-
-      <!-- 右：高级配置 -->
-      <div class="col right">
-        <el-form-item label="启用控制台">
+        <el-form-item label="控制台">
           <el-switch v-model="consoleEnabled" :disabled="!modeChosen" />
         </el-form-item>
 
-        <el-form-item label="图表类型">
-          <el-select
-            v-model="form.systemDataSettingChartType"
-            filterable
-            allow-create
-            :disabled="!modeChosen"
-            placeholder="可自定义"
-          >
-            <el-option label="LINE" value="LINE" />
-            <el-option label="BAR" value="BAR" />
-            <el-option label="PIE" value="PIE" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="远程图片URL" prop="systemDataSettingImageUrl">
-          <el-input
-            v-model="form.systemDataSettingImageUrl"
-            placeholder="http(s)://..."
-            :disabled="!modeChosen"
-          />
-        </el-form-item>
-
-        <el-form-item label="图标URL" prop="systemDataSettingIcon">
-          <el-input
-            v-model="form.systemDataSettingIcon"
-            placeholder="http(s)://..."
-            :disabled="!modeChosen"
-          />
-        </el-form-item>
-
-        <!-- JDBC 驱动设置（仅当协议为 jdbc 时显示） -->
-        <template v-if="isJdbc">
-          <el-form-item label="JDBC驱动">
-            <el-select
-              v-model="form.systemDataSettingDriverClass"
-              placeholder="选择驱动"
-              :disabled="!modeChosen"
-              filterable
-              allow-create
-            >
-              <el-option
-                v-for="d in jdbcDrivers"
-                :key="d.value"
-                :label="d.label"
-                :value="d.value"
-              />
-            </el-select>
-          </el-form-item>
+        <!-- JDBC 驱动文件设置（仅当类型为 JDBC 时显示） -->
+        <template v-if="form.systemDataSettingType === 'JDBC'">
           <el-form-item label="驱动文件">
             <div style="display: flex; gap: 8px; width: 100%">
               <el-input
@@ -241,30 +246,36 @@ const form = ref<SystemDataSetting>({
 const consoleEnabled = ref<boolean>(true);
 
 const modeOptions = [
-  { label: "远程", value: "REMOTE" },
-  { label: "文件", value: "FILE" },
+  { label: "远程", value: "REMOTE", icon: "ri:cloud-line" },
+  { label: "文件", value: "FILE", icon: "ri:file-line" },
 ];
 
 const systemDataSettingTypeValues = [
-  { name: "数据库", value: "JDBC" },
-  { name: "REDIS", value: "REDIS" },
-  { name: "ZOOKEEPER", value: "ZOOKEEPER" },
-  { name: "INFLUXDB", value: "INFLUXDB" },
+  { name: "数据库", value: "JDBC", icon: "ri:database-line" },
+  { name: "REDIS", value: "REDIS", icon: "ri:database-2-line" },
+  { name: "ZOOKEEPER", value: "ZOOKEEPER", icon: "ri:node-tree" },
+  { name: "时序数据库(INFLUXDB)", value: "INFLUXDB", icon: "ri:line-chart-line" },
+  { name: "电子邮件", value: "EMAIL", icon: "ri:mail-line" },
 ];
+
+const systemDataSettingPolicy = [
+  "INFLUXDB"
+]
 
 // 协议列表（包含 jdbc）
 const protocolOptions = [
-  "jdbc",
-  "mysql",
-  "postgresql",
-  "sqlite",
-  "oracle",
-  "sqlserver",
-  "redis",
-  "zookeeper",
-  "influxdb",
-  "mongodb",
-  "kafka",
+  "Jdbc",
+  "Mysql",
+  "Postgresql",
+  "Sqlite",
+  "Oracle",
+  "Sqlserver",
+  "Redis",
+  "Zookeeper",
+  "Influxdb",
+  "Mongodb",
+  "Kafka",
+  "Email"
 ];
 
 // 常见协议默认端口
@@ -286,6 +297,24 @@ const defaultPorts: Record<string, number> = {
 const isJdbc = computed(
   () => (form.value.systemDataSettingProtocol || "").toLowerCase() === "jdbc"
 );
+
+// JDBC 驱动选项
+const jdbcDrivers = [
+  { label: "MySQL8", value: "com.mysql.cj.jdbc.Driver", icon: "ri:database-line" },
+  { label: "MySQL5", value: "com.mysql.jdbc.Driver", icon: "ri:database-line" },
+  { label: "PostgreSQL", value: "org.postgresql.Driver", icon: "ri:database-2-line" },
+  { label: "Oracle", value: "oracle.jdbc.driver.OracleDriver", icon: "ri:database-fill" },
+  { label: "SQL Server", value: "com.microsoft.sqlserver.jdbc.SQLServerDriver", icon: "ri:microsoft-line" },
+  { label: "SQLite", value: "org.sqlite.JDBC", icon: "ri:file-3-line" },
+  { label: "H2", value: "org.h2.Driver", icon: "ri:hard-drive-line" },
+  { label: "TiDB", value: "com.mysql.cj.jdbc.Driver", icon: "ri:cloud-line" },
+  { label: "MariaDB", value: "org.mariadb.jdbc.Driver", icon: "ri:database-line" },
+  { label: "ClickHouse", value: "ru.yandex.clickhouse.ClickHouseDriver", icon: "ri:bar-chart-line" },
+  { label: "DM (达梦)", value: "dm.jdbc.driver.DmDriver", icon: "ri:shield-line" },
+  { label: "KingBase (人大金仓)", value: "com.kingbase8.Driver", icon: "ri:shield-line" },
+  { label: "GBase", value: "com.gbase.jdbc.Driver", icon: "ri:shield-line" },
+
+];
 
 const modeChosen = computed(() => !!form.value.systemDataSettingMode);
 
@@ -331,7 +360,7 @@ watch(
   (p) => {
     const key = (p || "").toLowerCase();
     // 按需求：选择协议后直接覆盖主机值
-    form.value.systemDataSettingHost = "127.0.0.1";
+    // form.value.systemDataSettingHost = "127.0.0.1";
     // 设置默认端口（如有），jdbc 不设置，避免误导
     if (defaultPorts[key] != null) {
       form.value.systemDataSettingPort = defaultPorts[key] as any;
@@ -360,7 +389,8 @@ watch(
 );
 
 // 表单规则：
-// - 远程模式校验：需填写“地址”或“主机+端口”
+// - 远程模式校验：主机+端口必填
+// - JDBC类型校验：驱动必填
 // - 图片/图标互斥校验
 const rules: FormRules = {
   systemDataSettingName: [
@@ -376,14 +406,9 @@ const rules: FormRules = {
     {
       validator: (_: any, __: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingMode !== "REMOTE") return cb();
-        const server = (form.value.systemDataSettingServer || "").trim();
         const host = (form.value.systemDataSettingHost || "").trim();
-        const port = form.value.systemDataSettingPort as any;
-        if (server) return cb();
         if (!host)
-          return cb(new Error("远程模式下需填写“地址”或同时填写“主机+端口”"));
-        if (!Number.isInteger(port) || port <= 0)
-          return cb(new Error("请填写有效端口(>0)"));
+          return cb(new Error("远程模式下主机为必填项"));
         return cb();
       },
       trigger: ["blur", "change"],
@@ -393,12 +418,20 @@ const rules: FormRules = {
     {
       validator: (_: any, value: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingMode !== "REMOTE") return cb();
-        const server = (form.value.systemDataSettingServer || "").trim();
-        const host = (form.value.systemDataSettingHost || "").trim();
-        if (server) return cb();
-        if (!host) return cb(); // 由 host 的校验提示
         if (!Number.isInteger(value) || value <= 0)
-          return cb(new Error("请填写有效端口(>0)"));
+          return cb(new Error("远程模式下端口为必填项，请填写有效端口(>0)"));
+        return cb();
+      },
+      trigger: ["blur", "change"],
+    },
+  ],
+  systemDataSettingDriverClass: [
+    {
+      validator: (_: any, value: any, cb: (e?: Error) => void) => {
+        if (form.value.systemDataSettingType !== "JDBC") return cb();
+        const driver = (value || "").trim();
+        if (!driver)
+          return cb(new Error("数据库类型下JDBC驱动为必填项"));
         return cb();
       },
       trigger: ["blur", "change"],

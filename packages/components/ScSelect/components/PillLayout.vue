@@ -8,7 +8,7 @@
     @click="handleSelect"
   >
     <div class="pill-icon">
-      <IconifyIconOnline :icon="icon" />
+      <IconRenderer :icon="icon || 'ri:settings-3-line'" />
     </div>
     <div class="pill-label">{{ label }}</div>
   </div>
@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { defineEmits, defineProps } from "vue";
-import { IconifyIconOnline } from "../../ReIcon";
+import IconRenderer from "./IconRenderer.vue";
 
 const props = defineProps({
   label: {
@@ -29,7 +29,7 @@ const props = defineProps({
   },
   icon: {
     type: String,
-    required: true
+    default: "ri:settings-3-line"
   },
   isSelected: {
     type: Boolean,

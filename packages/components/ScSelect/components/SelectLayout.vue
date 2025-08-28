@@ -35,7 +35,9 @@
       <!-- 选项列表 -->
       <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
         <div class="select-option-content select-flex">
-          <IconifyIconOnline v-if="item.icon" :icon="item.icon" class="select-option-icon" />
+          <div v-if="item.icon" class="select-option-icon">
+            <IconRenderer :icon="item.icon" />
+          </div>
           <span>{{ item.label }}</span>
         </div>
       </el-option>
@@ -46,11 +48,12 @@
 <script setup lang="ts">
 import { defineEmits, defineProps, ref, watch } from "vue";
 import { IconifyIconOnline } from "../../ReIcon";
+import IconRenderer from "./IconRenderer.vue";
 
 interface CardOption {
   label: string;
   value: string | number;
-  icon: string;
+  icon?: string; // 图标现在是可选的，支持ri:xx格式和http链接
 }
 
 const props = defineProps({
@@ -194,8 +197,11 @@ const handleClearSelection = () => {
 
   .select-option-icon {
     margin-right: 8px;
-    padding-top: 8px;
-    font-size: 24px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--el-color-primary);
   }
 }
