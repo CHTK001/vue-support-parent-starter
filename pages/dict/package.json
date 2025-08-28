@@ -1,0 +1,70 @@
+{
+  "name": "@pages/dict",
+  "version": "1.0.0",
+  "description": "字典管理模块",
+  "private": true,
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
+    "element-plus": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@commitlint/types": "catalog:",
+    "@repo/build": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
+    "@repo/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "autoprefixer": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-prettier": "catalog:",
+    "eslint-plugin-vue": "catalog:",
+    "postcss": "catalog:",
+    "prettier": "catalog:",
+    "sass": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

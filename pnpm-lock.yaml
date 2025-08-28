@@ -2804,6 +2804,12 @@ importers:
       '@originjs/vite-plugin-commonjs':
         specifier: 'catalog:'
         version: 1.0.3
+      '@pages/dict':
+        specifier: workspace:^
+        version: link:../../pages/dict
+      '@pages/project':
+        specifier: workspace:^
+        version: link:../../pages/project
       '@repo/build':
         specifier: workspace:^
         version: link:../../packages/build
@@ -5121,6 +5127,97 @@ importers:
       webpack-cli:
         specifier: ^5.1.4
         version: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.98.0)
+
+  pages/dict:
+    dependencies:
+      '@pureadmin/utils':
+        specifier: 'catalog:'
+        version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
+      '@repo/components':
+        specifier: workspace:^
+        version: link:../../packages/components
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.10.7(vue@3.5.13(typescript@5.8.2))
+      unbuild:
+        specifier: 'catalog:'
+        version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.13(typescript@5.8.2)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.1.2(vue@3.5.13(typescript@5.8.2))
+    devDependencies:
+      '@commitlint/cli':
+        specifier: 'catalog:'
+        version: 19.8.0(@types/node@20.17.24)(typescript@5.8.2)
+      '@commitlint/config-conventional':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@commitlint/types':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@repo/build':
+        specifier: workspace:^
+        version: link:../../packages/build
+      '@repo/config':
+        specifier: workspace:^
+        version: link:../../packages/config
+      '@repo/tailwind-config':
+        specifier: workspace:^
+        version: link:../../packages/tailwind-config
+      '@repo/tsconfig':
+        specifier: workspace:^
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.17.24
+      '@typescript-eslint/eslint-plugin':
+        specifier: 'catalog:'
+        version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/parser':
+        specifier: 'catalog:'
+        version: 8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 5.2.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      autoprefixer:
+        specifier: 'catalog:'
+        version: 10.4.21(postcss@8.5.3)
+      eslint:
+        specifier: 'catalog:'
+        version: 9.22.0(jiti@2.4.2)
+      eslint-config-prettier:
+        specifier: 'catalog:'
+        version: 9.1.0(eslint@9.22.0(jiti@2.4.2))
+      eslint-plugin-prettier:
+        specifier: 'catalog:'
+        version: 5.2.3(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.22.0(jiti@2.4.2)))(eslint@9.22.0(jiti@2.4.2))(prettier@3.5.3)
+      eslint-plugin-vue:
+        specifier: 'catalog:'
+        version: 9.33.0(eslint@9.22.0(jiti@2.4.2))
+      postcss:
+        specifier: 'catalog:'
+        version: 8.5.3
+      prettier:
+        specifier: 'catalog:'
+        version: 3.5.3
+      sass:
+        specifier: 'catalog:'
+        version: 1.85.1
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.2
+      vite:
+        specifier: 'catalog:'
+        version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.8(typescript@5.8.2)
 
   pages/email:
     dependencies:
