@@ -6,7 +6,17 @@
     <!-- 主要内容区域 -->
     <div class="email-content">
       <!-- 左侧导航栏 -->
-      <EmailSidebar ref="sidebarRef" :setting-id="props.id" :folders="folders" :tags="tags" :active-folder="activeFolder" :active-tag="activeTag" @folder-select="selectFolder" @tag-select="selectTag" @menu-loaded="handleMenuLoaded" />
+      <EmailSidebar
+        ref="sidebarRef"
+        :setting-id="props.id"
+        :folders="folders"
+        :tags="tags"
+        :active-folder="activeFolder"
+        :active-tag="activeTag"
+        @folder-select="selectFolder"
+        @tag-select="selectTag"
+        @menu-loaded="handleMenuLoaded"
+      />
 
       <!-- 中间邮件列表 -->
       <EmailList
@@ -43,7 +53,7 @@
 import { ref, computed, onMounted } from "vue";
 import CodeEditor from "@/components/codeEditor/index.vue";
 import { executeConsole, getConsoleRoot } from "@/api/system-data";
-import { fetchEmails, getEmailHistory, syncEmails, updateEmailStatus, backupEmail, type SystemDataEmailHistory } from "@/api/email";
+import { fetchEmails, getEmailHistory, syncEmails, updateEmailStatus, backupEmail, type SystemDataEmailHistory, fetchEmailsObject } from "@/api/email";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { indexedDBProxy } from "@repo/utils";
@@ -53,6 +63,128 @@ import EmailList from "./components/EmailList.vue";
 import EmailDetail from "./components/EmailDetail.vue";
 import EmailCompose from "./components/EmailCompose.vue";
 import { it } from "element-plus/es/locale/index.mjs";
+
+// 缓存相关接口定义
+interface EmailCacheData {
+  emails: SystemDataEmailHistory[];
+  total: number;
+  pageNumber: number;
+  hasMore: boolean;
+  timestamp: number;
+  folderKey: string;
+  settingId: number;
+}
+
+interface EmailCacheKey {
+  settingId: number;
+  folderKey: string;
+  pageNumber: number;
+}
+
+// 缓存工具函数
+const EMAIL_CACHE_PREFIX = "email_cache";
+const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存过期时间
+
+// 生成缓存键
+const generateCacheKey = (settingId: number, folderKey: string, pageNumber: number): string => {
+  return `${EMAIL_CACHE_PREFIX}_${settingId}_${folderKey}_${pageNumber}`;
+};
+
+// 生成文件夹缓存键（用于存储整个文件夹的邮件列表）
+const generateFolderCacheKey = (settingId: number, folderKey: string): string => {
+  return `${EMAIL_CACHE_PREFIX}_folder_${settingId}_${folderKey}`;
+};
+
+// 检查缓存是否过期
+const isCacheExpired = (timestamp: number): boolean => {
+  return Date.now() - timestamp > CACHE_EXPIRY_TIME;
+};
+
+// 从缓存获取邮件数据
+const getEmailsFromCache = async (settingId: number, folderKey: string, pageNumber: number): Promise<EmailCacheData | null> => {
+  try {
+    const cacheKey = generateCacheKey(settingId, folderKey, pageNumber);
+    const cachedData: EmailCacheData | null = await indexedDBProxy().getItem(cacheKey);
+
+    if (cachedData && !isCacheExpired(cachedData.timestamp)) {
+      console.log("[邮件缓存] 从缓存加载邮件数据", {
+        settingId,
+        folderKey,
+        pageNumber,
+        emailsCount: cachedData.emails.length,
+        total: cachedData.total,
+        cacheTime: new Date(cachedData.timestamp).toISOString()
+      });
+      return cachedData;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("[邮件缓存] 读取缓存失败:", error);
+    return null;
+  }
+};
+
+// 保存邮件数据到缓存
+const saveEmailsToCache = async (settingId: number, folderKey: string, pageNumber: number, emails: SystemDataEmailHistory[], total: number, hasMore: boolean): Promise<void> => {
+  try {
+    const cacheKey = generateCacheKey(settingId, folderKey, pageNumber);
+    const cacheData: EmailCacheData = {
+      emails,
+      total,
+      pageNumber,
+      hasMore,
+      timestamp: Date.now(),
+      folderKey,
+      settingId
+    };
+
+    await indexedDBProxy().setItem(cacheKey, cacheData);
+
+    console.log("[邮件缓存] 保存邮件数据到缓存", {
+      settingId,
+      folderKey,
+      pageNumber,
+      emailsCount: emails.length,
+      total,
+      hasMore
+    });
+  } catch (error) {
+    console.error("[邮件缓存] 保存缓存失败:", error);
+  }
+};
+
+// 清理过期缓存
+const clearExpiredCache = async (settingId: number): Promise<void> => {
+  try {
+    // 这里可以实现更复杂的缓存清理逻辑
+    // 由于indexedDBProxy没有提供遍历所有键的方法，我们暂时跳过自动清理
+    console.log("[邮件缓存] 缓存清理功能待实现");
+  } catch (error) {
+    console.error("[邮件缓存] 清理缓存失败:", error);
+  }
+};
+
+// 清理指定文件夹的所有缓存
+const clearFolderCache = async (settingId: number, folderKey: string): Promise<void> => {
+  try {
+    // 清理前几页的缓存（假设最多缓存10页）
+    const clearPromises = [];
+    for (let page = 1; page <= 10; page++) {
+      const cacheKey = generateCacheKey(settingId, folderKey, page);
+      clearPromises.push(indexedDBProxy().removeItem(cacheKey));
+    }
+
+    await Promise.all(clearPromises);
+
+    console.log("[邮件缓存] 清理文件夹缓存", {
+      settingId,
+      folderKey
+    });
+  } catch (error) {
+    console.error("[邮件缓存] 清理文件夹缓存失败:", error);
+  }
+};
 
 const props = defineProps<{ id: number }>();
 
@@ -130,65 +262,162 @@ const filteredEmails = computed(() => {
   });
 
   // 按时间排序，最新的在前
-  return result.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  return result.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 });
 
 // 方法
-function selectFolder(folderKey: string) {
+async function selectFolder(folderKey: string) {
   activeFolder.value = folderKey;
   activeTag.value = "";
   selectedEmail.value = null;
-  
+
   // 重置分页状态
   emailsPageNumber.value = 1;
   hasMore.value = true;
   loading.value = true;
-  
+
   // 重置滚动位置
   if (emailListRef.value?.resetScroll) {
     emailListRef.value.resetScroll();
   }
-  
-  fetchEmails(props.id, folderKey, "list-messages", emailsPageNumber.value).then(res => {
-    const data = res?.data?.record || {} as any;
-    emails.value = data.data || [];
-    emailsTotal.value = data.total || 0;
-    
-    // 检查是否还有更多数据
-    hasMore.value = emails.value.length < emailsTotal.value;
-    loading.value = false;
-  }).catch(error => {
-    console.error('加载邮件失败:', error);
-    loading.value = false;
-    ElMessage.error('加载邮件失败');
-  });
+
+  // 先尝试从缓存加载数据
+  const cacheKey = generateCacheKey(props.id, folderKey, emailsPageNumber.value);
+  const cachedData = await getEmailsFromCache(props.id, folderKey, emailsPageNumber.value);
+  indexedDBProxy()
+    .getItemAsync(cacheKey)
+    .then(cachedData => {
+      // 使用缓存数据立即显示
+      emails.value = cachedData.emails;
+      emailsTotal.value = cachedData.total;
+      hasMore.value = cachedData.hasMore;
+      loading.value = false;
+
+      console.log("[邮件加载] 使用缓存数据显示邮件列表", {
+        folderKey,
+        emailsCount: cachedData.emails.length,
+        total: cachedData.total
+      });
+    })
+    .catch(async e => {
+      // 异步获取最新数据
+      try {
+        const res = await fetchEmailsObject(props.id, {
+          folderName: folderKey,
+          command: "list-messages",
+          pageNumber: emailsPageNumber.value
+        });
+        //@ts-ignore
+        const data = res?.data?.record || ({} as any);
+        const newEmails = data.data || [];
+        const newTotal = data.total || 0;
+        const newHasMore = newEmails.length < newTotal;
+
+        // 更新界面数据
+        emails.value = newEmails;
+        emailsTotal.value = newTotal;
+        hasMore.value = newHasMore;
+        loading.value = false;
+
+        // 保存到缓存
+        await saveEmailsToCache(props.id, folderKey, emailsPageNumber.value, newEmails, newTotal, newHasMore);
+
+        console.log("[邮件加载] 从服务器获取最新数据", {
+          folderKey,
+          emailsCount: newEmails.length,
+          total: newTotal,
+          hasMore: newHasMore
+        });
+      } catch (error) {
+        console.error("加载邮件失败:", error);
+
+        // 如果没有缓存数据且网络请求失败，显示错误
+        if (!cachedData) {
+          loading.value = false;
+          ElMessage.error("加载邮件失败");
+        } else {
+          // 有缓存数据时，只显示警告
+          ElMessage.warning("无法获取最新邮件，显示缓存数据");
+        }
+      }
+    });
 }
 
 // 加载更多邮件
-function loadMoreEmails() {
+async function loadMoreEmails() {
   if (loadingMore.value || !hasMore.value) {
     return;
   }
-  
+
   loadingMore.value = true;
   emailsPageNumber.value += 1;
-  
-  fetchEmails(props.id, activeFolder.value, "list-messages", emailsPageNumber.value).then(res => {
-    const data = res?.data?.record || {} as any;
+
+  // 先尝试从缓存加载分页数据
+  const cachedData = await getEmailsFromCache(props.id, activeFolder.value, emailsPageNumber.value);
+  if (cachedData) {
+    // 使用缓存数据立即显示
+    emails.value = [...emails.value, ...cachedData.emails];
+    hasMore.value = cachedData.hasMore;
+    loadingMore.value = false;
+
+    console.log("[邮件分页] 使用缓存数据加载更多邮件", {
+      folderKey: activeFolder.value,
+      pageNumber: emailsPageNumber.value,
+      emailsCount: cachedData.emails.length,
+      totalEmails: emails.value.length
+    });
+  }
+
+  // 异步获取最新分页数据
+  try {
+    const res = await fetchEmailsObject(props.id, {
+      folderName: activeFolder.value,
+      command: "list-messages",
+      pageNumber: emailsPageNumber.value
+    });
+    //@ts-ignore
+    const data = res?.data?.record || ({} as any);
     const newEmails = data.record || [];
-    
-    // 追加新邮件到现有列表
-    emails.value = [...emails.value, ...newEmails];
-    
-    // 检查是否还有更多数据
-    hasMore.value = emails.value.length < emailsTotal.value;
+    const newHasMore = emails.value.length - (cachedData ? cachedData.emails.length : 0) + newEmails.length < emailsTotal.value;
+
+    // 如果有缓存数据，需要替换对应的部分；如果没有缓存，直接追加
+    if (cachedData) {
+      // 移除之前添加的缓存数据，添加最新数据
+      const emailsWithoutCache = emails.value.slice(0, emails.value.length - cachedData.emails.length);
+      emails.value = [...emailsWithoutCache, ...newEmails];
+    } else {
+      // 直接追加新邮件到现有列表
+      emails.value = [...emails.value, ...newEmails];
+    }
+
+    // 更新状态
+    hasMore.value = newHasMore;
     loadingMore.value = false;
-  }).catch(error => {
-    console.error('加载更多邮件失败:', error);
-    loadingMore.value = false;
-    emailsPageNumber.value -= 1; // 回退页码
-    ElMessage.error('加载更多邮件失败');
-  });
+
+    // 保存到缓存
+    await saveEmailsToCache(props.id, activeFolder.value, emailsPageNumber.value, newEmails, emailsTotal.value, newHasMore);
+
+    console.log("[邮件分页] 从服务器获取最新分页数据", {
+      folderKey: activeFolder.value,
+      pageNumber: emailsPageNumber.value,
+      emailsCount: newEmails.length,
+      totalEmails: emails.value.length,
+      hasMore: newHasMore
+    });
+  } catch (error) {
+    console.error("加载更多邮件失败:", error);
+
+    // 如果没有缓存数据且网络请求失败，回退状态
+    if (!cachedData) {
+      loadingMore.value = false;
+      emailsPageNumber.value -= 1; // 回退页码
+      ElMessage.error("加载更多邮件失败");
+    } else {
+      // 有缓存数据时，只显示警告
+      loadingMore.value = false;
+      ElMessage.warning("无法获取最新邮件，显示缓存数据");
+    }
+  }
 }
 
 function selectTag(tagKey: string) {
@@ -198,6 +427,14 @@ function selectTag(tagKey: string) {
 
 function selectEmail(email: any) {
   selectedEmail.value = email;
+  // fetchEmailsObject(props.id, {
+  //   folderName: activeFolder.value,
+  //   command: "read-message",
+  //   pageNumber: email.pageNumber,
+  //   messageId: email.messageId
+  // }).then(res => {
+  //   debugger;
+  // });
   if (!email.read) {
     email.read = true;
     updateFolderCount();
@@ -232,6 +469,14 @@ async function toggleStar(email: SystemDataEmailHistory) {
     });
 
     ElMessage.success(newStarred ? "已添加星标" : "已取消星标");
+
+    // 更新缓存中的邮件状态
+    await clearFolderCache(props.id, activeFolder.value);
+    console.log("[缓存更新] 星标状态更新后清理缓存", {
+      folderKey: activeFolder.value,
+      emailId: email.id,
+      starred: newStarred
+    });
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorInfo = {
@@ -254,7 +499,7 @@ function handleSelectAll() {
   });
 }
 
-function deleteSelected() {
+async function deleteSelected() {
   const selectedEmails = filteredEmails.value.filter(email => email.selected);
   if (selectedEmails.length === 0) {
     ElMessage.warning("请先选择要删除的邮件");
@@ -265,7 +510,7 @@ function deleteSelected() {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning"
-  }).then(() => {
+  }).then(async () => {
     selectedEmails.forEach(email => {
       const index = emails.value.findIndex(e => e.id === email.id);
       if (index > -1) {
@@ -276,6 +521,13 @@ function deleteSelected() {
     selectedEmail.value = null;
     ElMessage.success("删除成功");
     updateFolderCount();
+
+    // 清理相关缓存
+    await clearFolderCache(props.id, activeFolder.value);
+    console.log("[缓存清理] 批量删除邮件后清理缓存", {
+      folderKey: activeFolder.value,
+      deletedCount: selectedEmails.length
+    });
   });
 }
 
@@ -325,6 +577,13 @@ async function markAsRead() {
 
     ElMessage.success(`已标记 ${unreadEmails.length} 封邮件为已读`);
     updateFolderCount();
+
+    // 更新缓存中的邮件状态
+    await clearFolderCache(props.id, activeFolder.value);
+    console.log("[缓存更新] 标记已读后清理缓存", {
+      folderKey: activeFolder.value,
+      count: unreadEmails.length
+    });
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorInfo = {
@@ -376,6 +635,12 @@ async function refreshEmails() {
     if (syncResult.success) {
       status.value = "邮件拉取成功，正在加载...";
       console.log("[邮件拉取] 服务器同步成功", syncResult);
+
+      // 同步成功后清理缓存，确保下次加载最新数据
+      await clearFolderCache(props.id, activeFolder.value);
+      console.log("[缓存清理] 邮件同步成功后清理缓存", {
+        folderKey: activeFolder.value
+      });
     } else {
       console.warn("[邮件拉取] 服务器同步失败，继续加载本地数据", syncResult);
       status.value = "服务器拉取失败，加载本地数据...";
@@ -455,14 +720,14 @@ function forwardEmail() {
   showCompose.value = true;
 }
 
-function deleteEmail() {
+async function deleteEmail() {
   if (!selectedEmail.value) return;
 
   ElMessageBox.confirm("确定要删除这封邮件吗？", "确认删除", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
     type: "warning"
-  }).then(() => {
+  }).then(async () => {
     const index = emails.value.findIndex(e => e.id === selectedEmail.value.id);
     if (index > -1) {
       emails.value.splice(index, 1);
@@ -470,6 +735,12 @@ function deleteEmail() {
     selectedEmail.value = null;
     ElMessage.success("删除成功");
     updateFolderCount();
+
+    // 清理相关缓存
+    await clearFolderCache(props.id, activeFolder.value);
+    console.log("[缓存清理] 删除邮件后清理缓存", {
+      folderKey: activeFolder.value
+    });
   });
 }
 
@@ -568,12 +839,12 @@ async function handleCloudSync() {
 
   try {
     const result = await syncEmails(props.id, activeFolder.value);
-    
+
     if (result.success) {
       status.value = "云同步成功";
       statusType.value = "success";
       ElMessage.success("云同步成功");
-      
+
       // 同步成功后刷新邮件列表
       await refreshEmails();
     } else {
@@ -590,7 +861,7 @@ async function handleCloudSync() {
     console.error("[云同步] 同步失败:", error);
   } finally {
     loading.value = false;
-    
+
     // 清除状态提示
     setTimeout(() => {
       status.value = "";
@@ -601,27 +872,27 @@ async function handleCloudSync() {
 // 云备份处理函数
 function handleCloudBackup() {
   // 创建文件输入元素
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.eml,.msg,.mbox';
-  fileInput.style.display = 'none';
-  
-  fileInput.onchange = async (event) => {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".eml,.msg,.mbox";
+  fileInput.style.display = "none";
+
+  fileInput.onchange = async event => {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    
+
     loading.value = true;
     status.value = "正在上传邮件文件...";
     statusType.value = "info";
-    
+
     try {
       const result = await backupEmail(props.id, file);
-      
+
       if (result.success) {
         status.value = "邮件备份成功";
         statusType.value = "success";
         ElMessage.success(`邮件备份成功: ${result.data?.filename || file.name}`);
-        
+
         // 备份成功后刷新邮件列表
         await refreshEmails();
       } else {
@@ -638,17 +909,17 @@ function handleCloudBackup() {
       console.error("[云备份] 备份失败:", error);
     } finally {
       loading.value = false;
-      
+
       // 清除状态提示
       setTimeout(() => {
         status.value = "";
       }, 5000);
     }
-    
+
     // 清理文件输入元素
     document.body.removeChild(fileInput);
   };
-  
+
   // 添加到DOM并触发点击
   document.body.appendChild(fileInput);
   fileInput.click();
@@ -656,18 +927,18 @@ function handleCloudBackup() {
 
 // 处理菜单清空事件
 function handleMenuCleared() {
-  console.log('[EmailConsole] 菜单数据已清空，将重新加载');
+  console.log("[EmailConsole] 菜单数据已清空，将重新加载");
   loadRoot();
 }
 
 // 处理菜单加载事件
 function handleMenuLoaded(menuData: any) {
-  console.log('[EmailConsole] 菜单数据已从IndexedDB加载', {
+  console.log("[EmailConsole] 菜单数据已从IndexedDB加载", {
     foldersCount: menuData.folders?.length || 0,
     tagsCount: menuData.tags?.length || 0,
     lastUpdated: new Date(menuData.lastUpdated).toISOString()
   });
-  
+
   // 更新本地的folders和tags数据
   if (menuData.folders && menuData.folders.length > 0) {
     folders.value = menuData.folders;
@@ -711,7 +982,7 @@ async function loadRoot() {
     it.key = it.name;
     return it;
   });
-  
+
   // 加载成功后保存到 IndexedDB
   if (folders.value && folders.value.length > 0) {
     try {
@@ -722,9 +993,9 @@ async function loadRoot() {
         lastUpdated: Date.now()
       };
       await indexedDBProxy().setItem(menuKey, menuData);
-      console.log('[EmailConsole] 菜单数据已保存到IndexedDB');
+      console.log("[EmailConsole] 菜单数据已保存到IndexedDB");
     } catch (error) {
-      console.error('[EmailConsole] 保存菜单数据到IndexedDB失败:', error);
+      console.error("[EmailConsole] 保存菜单数据到IndexedDB失败:", error);
     }
   }
 }
@@ -732,30 +1003,38 @@ async function loadRoot() {
 async function loadFromIndexedDB() {
   try {
     const menuKey = `email_menu_${props.id}`;
-    const cachedData = await indexedDBProxy().getItem(menuKey) as any;
-    
-    if (cachedData && cachedData.folders) {
-      console.log('[EmailConsole] 从IndexedDB加载菜单数据');
-      folders.value = cachedData.folders;
-      if (cachedData.tags) {
-        tags.value = cachedData.tags;
-      }
-      return true; // 表示成功从缓存加载
-    }
+    indexedDBProxy()
+      .getItemAsync(menuKey)
+      .then(cachedData => {
+        //@ts-ignore
+        if (cachedData && cachedData.folders) {
+          console.log("[EmailConsole] 从IndexedDB加载菜单数据");
+          //@ts-ignore
+          folders.value = cachedData.folders;
+          //@ts-ignore
+          if (cachedData.tags) {
+            //@ts-ignore
+            tags.value = cachedData.tags;
+          }
+          return;
+        }
+        loadRoot();
+      })
+      .catch(e => {
+        loadRoot();
+      });
   } catch (error) {
-    console.error('[EmailConsole] 从IndexedDB加载菜单数据失败:', error);
+    console.error("[EmailConsole] 从IndexedDB加载菜单数据失败:", error);
   }
   return false; // 表示需要从服务器加载
 }
 
 onMounted(async () => {
+  // 清理过期缓存
+  await clearExpiredCache(props.id);
+
   // 优先从 IndexedDB 加载数据
-  const loadedFromCache = await loadFromIndexedDB();
-  
-  // 如果缓存中没有数据，则从服务器加载
-  if (!loadedFromCache) {
-    await loadRoot();
-  }
+  loadFromIndexedDB();
 });
 </script>
 <style scoped>

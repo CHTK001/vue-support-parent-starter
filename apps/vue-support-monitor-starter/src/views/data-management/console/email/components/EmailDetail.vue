@@ -17,9 +17,9 @@
             <IconifyIconOnline icon="ri:user-line" />
           </div>
           <div class="sender-details">
-            <div class="sender-name">{{ email.sender }}</div>
+            <div class="sender-name">{{ email.from }}</div>
             <div class="sender-email">{{ email.senderEmail }}</div>
-            <div class="email-time">{{ formatFullTime(email.time) }}</div>
+            <div class="email-time">{{ formatFullTime(email.sentDate) }}</div>
           </div>
         </div>
       </div>
@@ -38,7 +38,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="detail-content">
         <div class="email-body" v-html="parseEmailContent(email.content)"></div>
       </div>
@@ -61,12 +61,13 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // 定义接口
 interface Email {
   id: number;
-  sender: string;
+  form: string;
+  to: string;
   senderEmail: string;
   subject: string;
   preview: string;
   content: string;
-  time: Date;
+  sentDate: Date;
   read: boolean;
   starred: boolean;
   selected: boolean;
@@ -83,7 +84,7 @@ const props = defineProps<{
 // 定义事件
 const emit = defineEmits<{
   reply: [email: Email];
-  'reply-all': [email: Email];
+  "reply-all": [email: Email];
   forward: [email: Email];
   delete: [email: Email];
 }>();
@@ -91,30 +92,30 @@ const emit = defineEmits<{
 // 方法
 function handleReply() {
   if (props.email) {
-    emit('reply', props.email);
+    emit("reply", props.email);
   }
 }
 
 function handleReplyAll() {
   if (props.email) {
-    emit('reply-all', props.email);
+    emit("reply-all", props.email);
   }
 }
 
 function handleForward() {
   if (props.email) {
-    emit('forward', props.email);
+    emit("forward", props.email);
   }
 }
 
 function handleDelete() {
   if (props.email) {
-    emit('delete', props.email);
+    emit("delete", props.email);
   }
 }
 
 function formatFullTime(time: Date) {
-  return time.toLocaleString("zh-CN", {
+  return time?.toLocaleString("zh-CN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -125,23 +126,20 @@ function formatFullTime(time: Date) {
 }
 
 function parseEmailContent(content: string): string {
-  if (!content) return '';
-  
+  if (!content) return "";
+
   // 如果内容已经是HTML格式，直接返回
-  if (content.includes('<') && content.includes('>')) {
+  if (content.includes("<") && content.includes(">")) {
     return content;
   }
-  
+
   // 将纯文本转换为HTML格式
-  return content
-    .replace(/\n/g, '<br>')
-    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-    .replace(/  /g, '&nbsp;&nbsp;');
+  return content.replace(/\n/g, "<br>").replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;").replace(/  /g, "&nbsp;&nbsp;");
 }
 
 function downloadAttachment() {
   // 这里应该调用下载附件的API
-  console.log('下载附件');
+  console.log("下载附件");
 }
 </script>
 
@@ -277,11 +275,13 @@ function downloadAttachment() {
 
 .detail-content {
   flex: 1;
+  max-width: 1200px;
   padding: 24px;
   overflow-y: auto;
 }
 
 .email-body {
+  max-height: 600px;
   line-height: 1.6;
   color: #303133;
 }

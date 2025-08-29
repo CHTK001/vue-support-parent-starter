@@ -10,31 +10,25 @@
         </el-button-group>
       </div>
       <div class="list-search">
-        <el-input 
-          v-model="searchQuery" 
-          placeholder="搜索邮件..." 
-          :prefix-icon="useRenderIcon('ri:search-line')" 
-          clearable 
-          @input="handleSearch"
-        />
+        <el-input v-model="searchQuery" placeholder="搜索邮件..." :prefix-icon="useRenderIcon('ri:search-line')" clearable @input="handleSearch" />
       </div>
     </div>
 
-    <div ref="listContentRef" class="list-content" @scroll="handleScroll">
+    <div ref="listContentRef" class="list-content overflow-x-hidden" @scroll="handleScroll">
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
         <el-skeleton :rows="5" animated />
       </div>
-      
+
       <!-- 邮件列表 -->
       <div
         v-else
         v-for="email in emailData"
-        :key="email.id"
+        :key="email.messageId"
         :class="[
           'email-item',
           {
-            active: selectedEmailId === email.id,
+            active: mouseClick === email.messageId,
             unread: !email.read,
             starred: email.starred
           }
@@ -45,23 +39,20 @@
           <el-checkbox v-model="email.selected" @click.stop />
         </div>
         <div class="email-star" @click.stop="toggleStar(email)">
-          <IconifyIconOnline 
-            :icon="email.starred ? 'ri:star-fill' : 'ri:star-line'" 
-            :class="{ starred: email.starred }" 
-          />
+          <IconifyIconOnline :icon="email.starred ? 'ri:star-fill' : 'ri:star-line'" :class="{ starred: email.starred }" />
         </div>
         <div class="email-sender">
           <div class="sender-avatar">
             <IconifyIconOnline icon="ri:user-line" />
           </div>
-          <span class="sender-name">{{ email.sender }}</span>
+          <span class="sender-name" :title="email.from">{{ email.from }}</span>
         </div>
         <div class="email-content-preview">
-          <div class="email-subject">{{ email.subject }}</div>
+          <div class="email-subject" :title="email.subject">{{ email.subject }}</div>
           <div class="email-preview">{{ email.preview }}</div>
         </div>
         <div class="email-meta">
-          <div class="email-time">{{ formatTime(email.time) }}</div>
+          <div class="email-time">{{ formatTime(email.sentDate) }}</div>
           <div v-if="email.hasAttachment" class="email-attachment">
             <IconifyIconOnline icon="ri:attachment-line" />
           </div>
@@ -92,13 +83,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage } from "element-plus";
 
 // 定义接口
 interface Email {
-  id: number;
+  messageId: number;
   sender: string;
   senderEmail: string;
   subject: string;
@@ -124,36 +115,41 @@ const props = defineProps<{
 
 // 定义事件
 const emit = defineEmits<{
-  'email-select': [email: Email];
-  'email-star': [email: Email];
-  'emails-delete': [emails: Email[]];
-  'emails-star': [emails: Email[]];
-  'emails-mark-read': [emails: Email[]];
-  'search': [query: string];
-  'load-more': [];
+  "email-select": [email: Email];
+  "email-star": [email: Email];
+  "emails-delete": [emails: Email[]];
+  "emails-star": [emails: Email[]];
+  "emails-mark-read": [emails: Email[]];
+  search: [query: string];
+  "load-more": [];
 }>();
 
 // 响应式数据
-const emailData = ref(props.emails);
+const emailData = ref(props.emails as any);
 const selectAll = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const listContentRef = ref<HTMLElement>();
 const isLoadingMore = ref(false);
-
+const mouseClick = ref();
 // 监听全选状态
-watch(() => props.emails, (v) => {
-  emailData.value = v;
-  const selectedCount = emailData.value.filter(email => email.selected).length;
-  selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
-}, { deep: true });
+watch(
+  () => props.emails,
+  v => {
+    emailData.value = v;
+    const selectedCount = emailData.value.filter(email => email.selected).length;
+    selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
+  },
+  { deep: true }
+);
 
 // 方法
 function selectEmail(email: Email) {
-  emit('email-select', email);
+  mouseClick.value = email.messageId;
+  emit("email-select", email);
 }
 
 function toggleStar(email: Email) {
-  emit('email-star', email);
+  emit("email-star", email);
 }
 
 function handleSelectAll() {
@@ -168,7 +164,7 @@ function handleDeleteSelected() {
     ElMessage.warning("请先选择要删除的邮件");
     return;
   }
-  emit('emails-delete', selectedEmails);
+  emit("emails-delete", selectedEmails);
 }
 
 function handleStarSelected() {
@@ -177,7 +173,7 @@ function handleStarSelected() {
     ElMessage.warning("请先选择要标星的邮件");
     return;
   }
-  emit('emails-star', selectedEmails);
+  emit("emails-star", selectedEmails);
 }
 
 function handleMarkAsRead() {
@@ -186,11 +182,11 @@ function handleMarkAsRead() {
     ElMessage.warning("请先选择要标记的邮件");
     return;
   }
-  emit('emails-mark-read', selectedEmails);
+  emit("emails-mark-read", selectedEmails);
 }
 
 function handleSearch() {
-  emit('search', searchQuery.value);
+  emit("search", searchQuery.value);
 }
 
 // 滚动处理函数
@@ -201,13 +197,13 @@ function handleScroll() {
 
   const { scrollTop, scrollHeight, clientHeight } = listContentRef.value;
   const threshold = 50; // 距离底部50px时开始加载
-  
+
   if (scrollTop + clientHeight >= scrollHeight - threshold) {
     // 检查是否还有更多数据
     if (props.hasMore !== false) {
       isLoadingMore.value = true;
-      emit('load-more');
-      
+      emit("load-more");
+
       // 防抖处理，避免重复触发
       setTimeout(() => {
         isLoadingMore.value = false;
@@ -228,7 +224,8 @@ defineExpose({
   resetScroll
 });
 
-function formatTime(time: Date) {
+function formatTime(time: any) {
+  time = new Date(time);
   const now = new Date();
   const diff = now.getTime() - time.getTime();
   const minutes = Math.floor(diff / (1000 * 60));
@@ -296,14 +293,47 @@ function formatTime(time: Date) {
   background: #f8f9fa;
 }
 
+.email-item:active {
+  border-left: 2px solid #3b82f6;
+  transform: scale(0.98);
+}
+
 .email-item.active {
-  background: #e3f2fd;
-  border-left: 3px solid #409eff;
+  background-color: #ffc7f3 !important;
+  border-left: 4px solid #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  transform: translateX(2px);
 }
 
 .email-item.unread {
-  background: #fff;
+  background: #f0f9ff;
   font-weight: 600;
+}
+
+/* 已读邮件样式 */
+.email-item:not(.unread) {
+  background: #ffffff;
+  color: #6b7280;
+}
+
+.email-item:not(.unread) .email-subject {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.email-item:not(.unread) .sender-name {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.email-item.unread .email-subject {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.email-item.unread .sender-name {
+  color: #374151;
+  font-weight: 500;
 }
 
 .email-item.unread::before {
@@ -345,7 +375,7 @@ function formatTime(time: Date) {
 }
 
 .sender-avatar {
-  width: 32px;
+  min-width: 32px;
   height: 32px;
   border-radius: 50%;
   background: #e4e7ed;
@@ -471,7 +501,7 @@ function formatTime(time: Date) {
 
 .no-more-text::before,
 .no-more-text::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   width: 60px;

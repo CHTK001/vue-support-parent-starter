@@ -303,6 +303,7 @@ class IndexedDBStorageProxy implements ProxyStorage {
   private cache: Map<string, any> = new Map();
   private initialized: boolean = false;
   private initializePromise: Promise<void>;
+  private loadingKeys: Set<string> = new Set(); // 跟踪正在加载的键，避免重复请求
 
   constructor(dbName?: string, storeName?: string, version?: number) {
     this.db = new IndexedDBStorage(dbName, storeName, version);
@@ -327,7 +328,9 @@ class IndexedDBStorageProxy implements ProxyStorage {
   }
 
   /**
-   * 获取值（同步方法，但首次访问可能会返回null）
+   * 获取值（同步方法）
+   * 会尝试从缓存获取，如果缓存中没有则异步从IndexedDB加载并更新缓存
+   * 注意：首次访问可能返回null，但会触发异步加载，后续访问可以获取到数据
    */
   getItem<T>(key: string): T {
     if (!key) return null as T;
@@ -342,14 +345,22 @@ class IndexedDBStorageProxy implements ProxyStorage {
       return cachedValue as T;
     }
     
-    // 如果缓存中没有，异步加载并返回null
-    // 注意：这会导致首次访问可能返回null
-    this.db.getItem<T>(key).then(value => {
-      if (value !== null) {
-        this.cache.set(newKey, value);
-      }
-    });
+    // 如果缓存中没有且没有正在加载，则异步从IndexedDB加载
+    if (!this.loadingKeys.has(newKey)) {
+      this.loadingKeys.add(newKey);
+      
+      this.db.getItem<T>(key).then(value => {
+        if (value !== null) {
+          this.cache.set(newKey, value);
+        }
+        this.loadingKeys.delete(newKey);
+      }).catch(error => {
+        console.error(`从IndexedDB获取键"${key}"失败:`, error);
+        this.loadingKeys.delete(newKey);
+      });
+    }
     
+    // 当前返回null，但已触发异步加载（如果需要）
     return null as T;
   }
 
@@ -419,6 +430,43 @@ class IndexedDBStorageProxy implements ProxyStorage {
     if (this.initialized) return;
     return this.initializePromise;
   }
+
+  /**
+   * 异步获取值，确保在初始化完成后获取
+   * 适用于需要确保能获取到缓存数据的场景（如页面刷新后）
+   */
+  async getItemAsync<T>(key: string): Promise<T> {
+    if (!key) return null as T;
+    
+    // 等待初始化完成
+    await this.waitForInitialization();
+    
+    // 初始化完成后，直接从缓存获取
+    return this.getItem<T>(key);
+  }
+
+  /**
+   * 同步获取值，如果初始化未完成则等待
+   * 这是一个阻塞方法，会等待初始化完成后再返回结果
+   * 适用于应用启动时需要立即获取缓存数据的场景
+   */
+  getItemSync<T>(key: string): T {
+    if (!key) return null as T;
+    
+    const newKey = key.startsWith(responsiveStorageNameSpace()) 
+      ? key 
+      : getConfig().SystemCode + key;
+    
+    // 如果已经初始化，直接从缓存获取
+    if (this.initialized) {
+      return this.cache.get(newKey) ?? null as T;
+    }
+    
+    // 如果未初始化，这里只能返回null
+    // 建议使用getItemAsync方法来确保获取到数据
+    console.warn(`getItemSync: 初始化未完成，建议使用getItemAsync方法获取键"${key}"`);
+    return null as T;
+  }
 }
 
 // 创建IndexedDB代理实例，重命名变量以避免与全局indexedDB冲突
@@ -428,4 +476,4 @@ const idbProxy = new IndexedDBStorageProxy();
 export const indexedDBProxy = () => idbProxy;
 
 // 导出异步版本的IndexedDB接口，用于需要确保数据操作完成的场景
-export const asyncIndexedDB = () => idbProxy.getAsyncStorage(); 
+export const asyncIndexedDB = () => idbProxy.getAsyncStorage();
