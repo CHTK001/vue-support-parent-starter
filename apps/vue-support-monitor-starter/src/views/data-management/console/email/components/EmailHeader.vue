@@ -5,27 +5,10 @@
       <h2 class="email-title">邮箱控制台</h2>
     </div>
     <div class="header-right">
-      <el-button
-        type="primary"
-        :icon="useRenderIcon('ri:add-line')"
-        @click="handleCompose"
-        >撰写邮件</el-button
-      >
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
-        >刷新</el-button
-      >
-      <el-button
-        type="success"
-        :icon="useRenderIcon('ri:cloud-line')"
-        @click="handleCloudSync"
-        >云同步</el-button
-      >
-      <el-button
-        type="warning"
-        :icon="useRenderIcon('ri:upload-cloud-line')"
-        @click="handleCloudBackup"
-        >云备份</el-button
-      >
+      <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
+      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh">刷新</el-button>
+      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
+      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>
     </div>
   </div>
 </template>
@@ -46,6 +29,7 @@ const emit = defineEmits<{
   cloudSync: [];
   cloudBackup: [];
   "menu-cleared": [];
+  "cache-cleared": [];
 }>();
 
 // 清空IndexedDB中的菜单数据
@@ -61,17 +45,50 @@ async function clearMenuFromDB(settingId: number) {
   }
 }
 
+// 清空IndexedDB中的邮件缓存数据
+async function clearEmailCacheFromDB(settingId: number) {
+  try {
+    const EMAIL_CACHE_PREFIX = "email_cache";
+    // 清理前几页的缓存（假设最多缓存10页，支持多个文件夹）
+    const folders = ["收件箱", "草稿箱", "已发送", "已删除", "垃圾邮件", "病毒文件夹", "广告邮件", "订阅邮件"];
+    const clearPromises = [];
+
+    for (const folder of folders) {
+      for (let page = 1; page <= 10; page++) {
+        const cacheKey = `${EMAIL_CACHE_PREFIX}_${settingId}_${folder}_${page}`;
+        clearPromises.push(indexedDBProxy().removeItem(cacheKey));
+      }
+      // 也清理文件夹级别的缓存
+      const folderCacheKey = `${EMAIL_CACHE_PREFIX}_folder_${settingId}_${folder}`;
+      clearPromises.push(indexedDBProxy().removeItem(folderCacheKey));
+    }
+
+    await Promise.all(clearPromises);
+    console.log("[EmailHeader] 已清空IndexedDB中的邮件缓存数据", { settingId });
+    return true;
+  } catch (error) {
+    console.error("[EmailHeader] 清空IndexedDB邮件缓存数据失败:", error);
+    return false;
+  }
+}
+
 // 事件处理
 function handleCompose() {
   emit("compose");
 }
 
 async function handleRefresh() {
-  // 如果有settingId，先清空IndexedDB中的菜单数据
+  // 如果有settingId，先清空IndexedDB中的菜单数据和邮件缓存数据
   if (props.settingId) {
-    const cleared = await clearMenuFromDB(props.settingId);
-    if (cleared) {
+    const menuCleared = await clearMenuFromDB(props.settingId);
+    const cacheCleared = await clearEmailCacheFromDB(props.settingId);
+
+    if (menuCleared) {
       emit("menu-cleared");
+    }
+
+    if (cacheCleared) {
+      emit("cache-cleared");
     }
   }
 }

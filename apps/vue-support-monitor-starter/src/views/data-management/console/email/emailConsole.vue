@@ -1,7 +1,7 @@
 <template>
   <div class="email-console">
     <!-- 顶部工具栏 -->
-    <EmailHeader :setting-id="props.id" @compose="handleCompose" @refresh="refreshEmails" @cloud-sync="handleCloudSync" @cloud-backup="handleCloudBackup" @menu-cleared="handleMenuCleared" />
+    <EmailHeader :setting-id="props.id" @compose="handleCompose" @cloud-sync="handleCloudSync" @cloud-backup="handleCloudBackup" @menu-cleared="handleMenuCleared" @cache-cleared="handleCacheCleared" />
 
     <!-- 主要内容区域 -->
     <div class="email-content">
@@ -929,6 +929,22 @@ function handleCloudBackup() {
 function handleMenuCleared() {
   console.log("[EmailConsole] 菜单数据已清空，将重新加载");
   loadRoot();
+}
+
+// 处理缓存清空事件
+function handleCacheCleared() {
+  console.log("[EmailConsole] 邮件缓存数据已清空");
+  // 清空当前邮件列表，强制重新加载
+  emails.value = [];
+  emailsTotal.value = 0;
+  emailsPageNumber.value = 1;
+  hasMore.value = true;
+  selectedEmail.value = null;
+  
+  // 重置EmailList组件的滚动位置
+  if (emailListRef.value?.resetScroll) {
+    emailListRef.value.resetScroll();
+  }
 }
 
 // 处理菜单加载事件

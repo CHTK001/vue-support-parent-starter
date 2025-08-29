@@ -1,6 +1,5 @@
 import { ProxyStorage } from "@pureadmin/utils";
-import { responsiveStorageNameSpace } from "@repo/config";
-import { getConfig } from "@repo/config";
+import { getConfig, responsiveStorageNameSpace } from "@repo/config";
 import * as CryptoJs from "../crypto";
 const config = getConfig();
 
@@ -17,17 +16,17 @@ class IndexedDBStorage {
   private readyResolve: () => void;
   private readyReject: (error: Error) => void;
 
-  constructor(dbName: string = 'appDatabase', storeName: string = 'appStore', version: number = 1) {
+  constructor(dbName: string = "appDatabase", storeName: string = "appStore", version: number = 1) {
     this.dbName = getConfig().SystemCode + dbName;
     this.storeName = storeName;
     this.version = version;
-    
+
     // 创建一个Promise，用于表示数据库是否已经准备好
     this.readyPromise = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
     });
-    
+
     // 初始化数据库
     this.init();
   }
@@ -41,8 +40,8 @@ class IndexedDBStorage {
       const request = window.indexedDB.open(this.dbName, this.version);
 
       request.onerror = (event) => {
-        console.error('IndexedDB打开失败:', event);
-        this.readyReject(new Error('无法打开IndexedDB'));
+        console.error("IndexedDB打开失败:", event);
+        this.readyReject(new Error("无法打开IndexedDB"));
       };
 
       request.onsuccess = (event) => {
@@ -53,14 +52,14 @@ class IndexedDBStorage {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // 如果存储对象不存在，则创建
         if (!db.objectStoreNames.contains(this.storeName)) {
-          db.createObjectStore(this.storeName, { keyPath: 'key' });
+          db.createObjectStore(this.storeName, { keyPath: "key" });
         }
       };
     } catch (error) {
-      console.error('IndexedDB初始化失败:', error);
+      console.error("IndexedDB初始化失败:", error);
       this.readyReject(error as Error);
     }
   }
@@ -81,20 +80,18 @@ class IndexedDBStorage {
   async getItem<T>(key: string): Promise<T | null> {
     try {
       await this.waitForReady();
-      
+
       if (!key) return null;
-      
-      const newKey = key.startsWith(responsiveStorageNameSpace()) 
-        ? key 
-        : getConfig().SystemCode + key;
+
+      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
 
       return new Promise<T | null>((resolve, reject) => {
         if (!this.db) {
-          reject(new Error('数据库未初始化'));
+          reject(new Error("数据库未初始化"));
           return;
         }
 
-        const transaction = this.db.transaction(this.storeName, 'readonly');
+        const transaction = this.db.transaction(this.storeName, "readonly");
         const store = transaction.objectStore(this.storeName);
         const request = store.get(newKey);
 
@@ -116,7 +113,7 @@ class IndexedDBStorage {
             try {
               value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
             } catch (error) {
-              console.error('解密失败:', error);
+              console.error("解密失败:", error);
             }
           }
 
@@ -124,7 +121,7 @@ class IndexedDBStorage {
         };
       });
     } catch (error) {
-      console.error('获取数据失败:', error);
+      console.error("获取数据失败:", error);
       return null;
     }
   }
@@ -138,15 +135,13 @@ class IndexedDBStorage {
   async setItem<T>(key: string, value: T): Promise<void> {
     try {
       await this.waitForReady();
-      
+
       if (!key) return;
-      
-      const newKey = key.startsWith(responsiveStorageNameSpace()) 
-        ? key 
-        : getConfig().SystemCode + key;
+
+      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
 
       let valueToStore = value;
-      
+
       // 加密处理
       if (config.StorageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
         valueToStore = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.StorageKey) as any;
@@ -154,11 +149,11 @@ class IndexedDBStorage {
 
       return new Promise<void>((resolve, reject) => {
         if (!this.db) {
-          reject(new Error('数据库未初始化'));
+          reject(new Error("数据库未初始化"));
           return;
         }
 
-        const transaction = this.db.transaction(this.storeName, 'readwrite');
+        const transaction = this.db.transaction(this.storeName, "readwrite");
         const store = transaction.objectStore(this.storeName);
         const request = store.put({ key: newKey, value: valueToStore });
 
@@ -171,7 +166,7 @@ class IndexedDBStorage {
         };
       });
     } catch (error) {
-      console.error('设置数据失败:', error);
+      console.error("设置数据失败:", error);
     }
   }
 
@@ -183,20 +178,18 @@ class IndexedDBStorage {
   async removeItem(key: string): Promise<void> {
     try {
       await this.waitForReady();
-      
+
       if (!key) return;
-      
-      const newKey = key.startsWith(responsiveStorageNameSpace()) 
-        ? key 
-        : getConfig().SystemCode + key;
+
+      const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
 
       return new Promise<void>((resolve, reject) => {
         if (!this.db) {
-          reject(new Error('数据库未初始化'));
+          reject(new Error("数据库未初始化"));
           return;
         }
 
-        const transaction = this.db.transaction(this.storeName, 'readwrite');
+        const transaction = this.db.transaction(this.storeName, "readwrite");
         const store = transaction.objectStore(this.storeName);
         const request = store.delete(newKey);
 
@@ -209,7 +202,7 @@ class IndexedDBStorage {
         };
       });
     } catch (error) {
-      console.error('删除数据失败:', error);
+      console.error("删除数据失败:", error);
     }
   }
 
@@ -223,16 +216,16 @@ class IndexedDBStorage {
 
       return new Promise<void>((resolve, reject) => {
         if (!this.db) {
-          reject(new Error('数据库未初始化'));
+          reject(new Error("数据库未初始化"));
           return;
         }
 
-        const transaction = this.db.transaction(this.storeName, 'readwrite');
+        const transaction = this.db.transaction(this.storeName, "readwrite");
         const store = transaction.objectStore(this.storeName);
         const request = store.clear();
 
         request.onerror = () => {
-          reject(new Error('清空存储失败'));
+          reject(new Error("清空存储失败"));
         };
 
         request.onsuccess = () => {
@@ -240,7 +233,7 @@ class IndexedDBStorage {
         };
       });
     } catch (error) {
-      console.error('清空数据失败:', error);
+      console.error("清空数据失败:", error);
     }
   }
 
@@ -254,41 +247,41 @@ class IndexedDBStorage {
 
       return new Promise<Record<string, any>>((resolve, reject) => {
         if (!this.db) {
-          reject(new Error('数据库未初始化'));
+          reject(new Error("数据库未初始化"));
           return;
         }
 
-        const transaction = this.db.transaction(this.storeName, 'readonly');
+        const transaction = this.db.transaction(this.storeName, "readonly");
         const store = transaction.objectStore(this.storeName);
         const request = store.getAll();
 
         request.onerror = () => {
-          reject(new Error('获取所有数据失败'));
+          reject(new Error("获取所有数据失败"));
         };
 
         request.onsuccess = () => {
           const result: Record<string, any> = {};
-          
+
           for (const item of request.result) {
             let value = item.value;
-            
+
             // 解密处理
             if (config.StorageEncode && !item.key.startsWith(responsiveStorageNameSpace())) {
               try {
                 value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
               } catch (error) {
-                console.error('解密失败:', error);
+                console.error("解密失败:", error);
               }
             }
-            
+
             result[item.key] = value;
           }
-          
+
           resolve(result);
         };
       });
     } catch (error) {
-      console.error('获取所有数据失败:', error);
+      console.error("获取所有数据失败:", error);
       return {};
     }
   }
@@ -300,14 +293,14 @@ class IndexedDBStorage {
  */
 class IndexedDBStorageProxy implements ProxyStorage {
   private db: IndexedDBStorage;
-  private cache: Map<string, any> = new Map();
+  private static cache: Map<string, any> = new Map();
   private initialized: boolean = false;
   private initializePromise: Promise<void>;
   private loadingKeys: Set<string> = new Set(); // 跟踪正在加载的键，避免重复请求
 
   constructor(dbName?: string, storeName?: string, version?: number) {
     this.db = new IndexedDBStorage(dbName, storeName, version);
-    
+
     // 初始化缓存
     this.initializePromise = this.initialize();
   }
@@ -319,11 +312,11 @@ class IndexedDBStorageProxy implements ProxyStorage {
     try {
       const allData = await this.db.getAll();
       for (const [key, value] of Object.entries(allData)) {
-        this.cache.set(key, value);
+        IndexedDBStorageProxy.cache.set(key, value);
       }
       this.initialized = true;
     } catch (error) {
-      console.error('初始化IndexedDB缓存失败:', error);
+      console.error("初始化IndexedDB缓存失败:", error);
     }
   }
 
@@ -334,32 +327,33 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   getItem<T>(key: string): T {
     if (!key) return null as T;
-    
-    const newKey = key.startsWith(responsiveStorageNameSpace()) 
-      ? key 
-      : getConfig().SystemCode + key;
-      
+
+    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+
     // 从缓存中获取
-    const cachedValue = this.cache.get(newKey);
+    const cachedValue = IndexedDBStorageProxy.cache.get(newKey);
     if (cachedValue !== undefined) {
       return cachedValue as T;
     }
-    
+
     // 如果缓存中没有且没有正在加载，则异步从IndexedDB加载
     if (!this.loadingKeys.has(newKey)) {
       this.loadingKeys.add(newKey);
-      
-      this.db.getItem<T>(key).then(value => {
-        if (value !== null) {
-          this.cache.set(newKey, value);
-        }
-        this.loadingKeys.delete(newKey);
-      }).catch(error => {
-        console.error(`从IndexedDB获取键"${key}"失败:`, error);
-        this.loadingKeys.delete(newKey);
-      });
+
+      this.db
+        .getItem<T>(key)
+        .then((value) => {
+          if (value !== null) {
+            IndexedDBStorageProxy.cache.set(newKey, value);
+          }
+          this.loadingKeys.delete(newKey);
+        })
+        .catch((error) => {
+          console.error(`从IndexedDB获取键"${key}"失败:`, error);
+          this.loadingKeys.delete(newKey);
+        });
     }
-    
+
     // 当前返回null，但已触发异步加载（如果需要）
     return null as T;
   }
@@ -369,16 +363,14 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   setItem<T>(key: string, value: T) {
     if (!key) return;
-    
-    const newKey = key.startsWith(responsiveStorageNameSpace()) 
-      ? key 
-      : getConfig().SystemCode + key;
-      
+
+    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+
     // 更新缓存
-    this.cache.set(newKey, value);
-    
+    IndexedDBStorageProxy.cache.set(newKey, value);
+
     // 异步写入数据库
-    this.db.setItem(key, value).catch(error => {
+    this.db.setItem(key, value).catch((error) => {
       console.error(`设置IndexedDB键"${key}"失败:`, error);
     });
   }
@@ -388,16 +380,14 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   removeItem(key: string) {
     if (!key) return;
-    
-    const newKey = key.startsWith(responsiveStorageNameSpace()) 
-      ? key 
-      : getConfig().SystemCode + key;
-      
+
+    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+
     // 从缓存中删除
-    this.cache.delete(newKey);
-    
+    IndexedDBStorageProxy.cache.delete(newKey);
+
     // 异步从数据库中删除
-    this.db.removeItem(key).catch(error => {
+    this.db.removeItem(key).catch((error) => {
       console.error(`删除IndexedDB键"${key}"失败:`, error);
     });
   }
@@ -407,11 +397,11 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   clear() {
     // 清空缓存
-    this.cache.clear();
-    
+    IndexedDBStorageProxy.cache.clear();
+
     // 异步清空数据库
-    this.db.clear().catch(error => {
-      console.error('清空IndexedDB失败:', error);
+    this.db.clear().catch((error) => {
+      console.error("清空IndexedDB失败:", error);
     });
   }
 
@@ -437,10 +427,10 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   async getItemAsync<T>(key: string): Promise<T> {
     if (!key) return null as T;
-    
+
     // 等待初始化完成
     await this.waitForInitialization();
-    
+
     // 初始化完成后，直接从缓存获取
     return this.getItem<T>(key);
   }
@@ -452,16 +442,14 @@ class IndexedDBStorageProxy implements ProxyStorage {
    */
   getItemSync<T>(key: string): T {
     if (!key) return null as T;
-    
-    const newKey = key.startsWith(responsiveStorageNameSpace()) 
-      ? key 
-      : getConfig().SystemCode + key;
-    
+
+    const newKey = key.startsWith(responsiveStorageNameSpace()) ? key : getConfig().SystemCode + key;
+
     // 如果已经初始化，直接从缓存获取
     if (this.initialized) {
-      return this.cache.get(newKey) ?? null as T;
+      return IndexedDBStorageProxy.cache.get(newKey) ?? (null as T);
     }
-    
+
     // 如果未初始化，这里只能返回null
     // 建议使用getItemAsync方法来确保获取到数据
     console.warn(`getItemSync: 初始化未完成，建议使用getItemAsync方法获取键"${key}"`);
