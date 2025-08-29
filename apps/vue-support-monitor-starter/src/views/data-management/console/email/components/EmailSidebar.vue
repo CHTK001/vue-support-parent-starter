@@ -3,8 +3,12 @@
     <div class="sidebar-section">
       <h3 class="section-title">邮箱</h3>
       <div class="folder-list">
+        <div v-if="isLoading" class="loading-placeholder">
+          <el-skeleton :rows="3" animated />
+        </div>
         <div 
-          v-for="folder in folders" 
+          v-else
+          v-for="folder in localFolders" 
           :key="folder.key" 
           :class="['folder-item', { active: activeFolder === folder.key }]" 
           @click="selectFolder(folder.key)"
@@ -19,8 +23,12 @@
     <div class="sidebar-section">
       <h3 class="section-title">标签</h3>
       <div class="tag-list">
+        <div v-if="isLoading" class="loading-placeholder">
+          <el-skeleton :rows="2" animated />
+        </div>
         <div 
-          v-for="tag in tags" 
+          v-else
+          v-for="tag in localTags" 
           :key="tag.key" 
           :class="['tag-item', { active: activeTag === tag.key }]" 
           @click="selectTag(tag.key)"
@@ -34,7 +42,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { indexedDBProxy } from '@repo/utils';
 
 // 定义接口
 interface Folder {
@@ -50,19 +59,132 @@ interface Tag {
   color: string;
 }
 
+interface MenuData {
+  folders: Folder[];
+  tags: Tag[];
+  lastUpdated: number;
+}
+
 // 定义props
 const props = defineProps<{
   folders: Folder[];
   tags: Tag[];
   activeFolder: string;
   activeTag: string;
+  settingId: number;
 }>();
 
 // 定义事件
 const emit = defineEmits<{
   'folder-select': [folderKey: string];
   'tag-select': [tagKey: string];
+  'menu-loaded': [menuData: MenuData];
 }>();
+
+// 本地状态
+const localFolders = ref<Folder[]>([]);
+const localTags = ref<Tag[]>([]);
+const isLoading = ref(true);
+
+// IndexedDB存储键
+const getMenuKey = (settingId: number) => `email_menu_${settingId}`;
+
+// 从IndexedDB加载菜单数据
+async function loadMenuFromDB() {
+  try {
+    const menuKey = getMenuKey(props.settingId);
+    const cachedMenu: MenuData | null = await indexedDBProxy().getItem(menuKey);
+    
+    if (cachedMenu && cachedMenu.folders && cachedMenu.tags) {
+      console.log('[EmailSidebar] 从IndexedDB加载菜单数据', {
+        settingId: props.settingId,
+        foldersCount: cachedMenu.folders.length,
+        tagsCount: cachedMenu.tags.length,
+        lastUpdated: new Date(cachedMenu.lastUpdated).toISOString()
+      });
+      
+      localFolders.value = cachedMenu.folders;
+      localTags.value = cachedMenu.tags;
+      
+      // 通知父组件菜单已加载
+      emit('menu-loaded', cachedMenu);
+      return true;
+    }
+  } catch (error) {
+    console.error('[EmailSidebar] 从IndexedDB加载菜单数据失败:', error);
+  }
+  return false;
+}
+
+// 保存菜单数据到IndexedDB
+async function saveMenuToDB(folders: Folder[], tags: Tag[]) {
+  try {
+    const menuKey = getMenuKey(props.settingId);
+    // 深度克隆数据，确保移除Vue响应式代理
+    const menuData: MenuData = {
+      folders: JSON.parse(JSON.stringify(folders)),
+      tags: JSON.parse(JSON.stringify(tags)),
+      lastUpdated: Date.now()
+    };
+    
+    await indexedDBProxy().setItem(menuKey, menuData);
+    console.log('[EmailSidebar] 菜单数据已保存到IndexedDB', {
+      settingId: props.settingId,
+      foldersCount: folders.length,
+      tagsCount: tags.length
+    });
+  } catch (error) {
+    console.error('[EmailSidebar] 保存菜单数据到IndexedDB失败:', error);
+  }
+}
+
+// 清空IndexedDB中的菜单数据
+async function clearMenuFromDB(settingId: number) {
+  try {
+    const menuKey = getMenuKey(settingId);
+    await indexedDBProxy().removeItem(menuKey);
+    console.log('[EmailSidebar] 已清空IndexedDB中的菜单数据', { settingId });
+  } catch (error) {
+    console.error('[EmailSidebar] 清空IndexedDB菜单数据失败:', error);
+  }
+}
+
+// 监听props变化，更新本地数据并保存到IndexedDB
+watch(
+  () => [props.folders, props.tags],
+  ([newFolders, newTags]) => {
+    if (newFolders && newFolders.length > 0) {
+      localFolders.value = newFolders;
+      saveMenuToDB(newFolders, newTags || []);
+    }
+    if (newTags && newTags.length > 0) {
+      localTags.value = newTags;
+      saveMenuToDB(localFolders.value, newTags);
+    }
+  },
+  { deep: true }
+);
+
+// 组件挂载时加载数据
+onMounted(async () => {
+  isLoading.value = true;
+  
+  // 先尝试从IndexedDB加载
+  const loaded = await loadMenuFromDB();
+  
+  // 如果IndexedDB中没有数据，使用props中的数据
+  if (!loaded) {
+    localFolders.value = props.folders || [];
+    localTags.value = props.tags || [];
+    
+    // 如果props有数据，保存到IndexedDB
+    if (props.folders && props.folders.length > 0) {
+      await saveMenuToDB(props.folders, props.tags || []);
+    }
+  }
+  
+  isLoading.value = false;
+});
 
 // 方法
 function selectFolder(folderKey: string) {
@@ -72,6 +194,11 @@ function selectFolder(folderKey: string) {
 function selectTag(tagKey: string) {
   emit('tag-select', tagKey);
 }
+
+// 暴露清空方法给父组件
+defineExpose({
+  clearMenuFromDB: () => clearMenuFromDB(props.settingId)
+});
 </script>
 
 <style scoped>
@@ -189,5 +316,11 @@ function selectTag(tagKey: string) {
 
 .email-sidebar::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* 加载占位符样式 */
+.loading-placeholder {
+  padding: 8px 12px;
+  margin: 2px 0;
 }
 </style>

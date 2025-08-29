@@ -5,16 +5,39 @@
       <h2 class="email-title">邮箱控制台</h2>
     </div>
     <div class="header-right">
-      <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</el-button>
-      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh">刷新</el-button>
-      <el-button type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</el-button>
-      <el-button type="warning" :icon="useRenderIcon('ri:upload-cloud-line')" @click="handleCloudBackup">云备份</el-button>
+      <el-button
+        type="primary"
+        :icon="useRenderIcon('ri:add-line')"
+        @click="handleCompose"
+        >撰写邮件</el-button
+      >
+      <el-button :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
+        >刷新</el-button
+      >
+      <el-button
+        type="success"
+        :icon="useRenderIcon('ri:cloud-line')"
+        @click="handleCloudSync"
+        >云同步</el-button
+      >
+      <el-button
+        type="warning"
+        :icon="useRenderIcon('ri:upload-cloud-line')"
+        @click="handleCloudBackup"
+        >云备份</el-button
+      >
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { indexedDBProxy } from "@repo/utils";
+
+// 定义props
+const props = defineProps<{
+  settingId?: number;
+}>();
 
 // 定义事件
 const emit = defineEmits<{
@@ -22,23 +45,43 @@ const emit = defineEmits<{
   refresh: [];
   cloudSync: [];
   cloudBackup: [];
+  "menu-cleared": [];
 }>();
+
+// 清空IndexedDB中的菜单数据
+async function clearMenuFromDB(settingId: number) {
+  try {
+    const menuKey = `email_menu_${settingId}`;
+    await indexedDBProxy().removeItem(menuKey);
+    console.log("[EmailHeader] 已清空IndexedDB中的菜单数据", { settingId });
+    return true;
+  } catch (error) {
+    console.error("[EmailHeader] 清空IndexedDB菜单数据失败:", error);
+    return false;
+  }
+}
 
 // 事件处理
 function handleCompose() {
-  emit('compose');
+  emit("compose");
 }
 
-function handleRefresh() {
-  emit('refresh');
+async function handleRefresh() {
+  // 如果有settingId，先清空IndexedDB中的菜单数据
+  if (props.settingId) {
+    const cleared = await clearMenuFromDB(props.settingId);
+    if (cleared) {
+      emit("menu-cleared");
+    }
+  }
 }
 
 function handleCloudSync() {
-  emit('cloudSync');
+  emit("cloudSync");
 }
 
 function handleCloudBackup() {
-  emit('cloudBackup');
+  emit("cloudBackup");
 }
 </script>
 

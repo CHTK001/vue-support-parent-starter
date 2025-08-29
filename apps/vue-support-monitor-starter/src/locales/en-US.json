@@ -2862,5 +2862,7 @@
   "i18n_ffa9fd37b5": "Workspace management",
   "i18n_ffaf95f0ef": "Startup container, you can see many devices on the host, you can perform mount. You can start the docker container in the docker container.",
   "i18n_ffd67549cf": ": Range: 1~ 12, also supports case-insensitive aliases: \"jan\",\"feb\",\"mar\",\"apr\",\"may\",\"jun\",\"jul\",\"aug\",\"sep\",\"oct\",\"nov\",\"dec\"",
-  "i18n_fffd3ce745": "share"
+  "i18n_fffd3ce745": "share",
+  "buttons.monitor.server": "服务管理",
+  "buttons.monitor.server-management": ""
 }

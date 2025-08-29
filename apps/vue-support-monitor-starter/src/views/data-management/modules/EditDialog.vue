@@ -133,7 +133,7 @@
           </el-form-item>
         </template>
 
-        <el-form-item label="账号/密码">
+        <el-form-item :label="form.systemDataSettingType == 'EMAIL' ? '账号/授权码': '账号/密码'">
           <div style="display: flex; gap: 8px; width: 100%">
             <el-input
               v-model="form.systemDataSettingUsername"
@@ -143,7 +143,7 @@
             <el-input
               v-model="form.systemDataSettingPassword"
               type="password"
-              placeholder="密码"
+              :placeholder="form.systemDataSettingType == 'EMAIL' ? '授权码' : '密码'"
               :disabled="!modeChosen"
             />
           </div>

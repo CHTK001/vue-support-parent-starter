@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <div class="list-content">
+    <div ref="listContentRef" class="list-content" @scroll="handleScroll">
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
         <el-skeleton :rows="5" animated />
@@ -29,7 +29,7 @@
       <!-- 邮件列表 -->
       <div
         v-else
-        v-for="email in emails"
+        v-for="email in emailData"
         :key="email.id"
         :class="[
           'email-item',
@@ -68,8 +68,22 @@
         </div>
       </div>
 
+      <!-- 加载更多状态 -->
+      <div v-if="loadingMore" class="loading-more">
+        <el-skeleton :rows="2" animated />
+        <div class="loading-more-text">
+          <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
+          正在加载更多邮件...
+        </div>
+      </div>
+
+      <!-- 没有更多数据提示 -->
+      <div v-if="!loading && !loadingMore && hasMore === false && emailData.length > 0" class="no-more-data">
+        <div class="no-more-text">已加载全部邮件</div>
+      </div>
+
       <!-- 空状态 -->
-      <div v-if="!loading && emails.length === 0" class="empty-state">
+      <div v-if="!loading && emailData.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:mail-line" class="empty-icon" />
         <p class="empty-text">暂无邮件</p>
       </div>
@@ -78,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage } from "element-plus";
 
@@ -104,6 +118,8 @@ const props = defineProps<{
   emails: Email[];
   selectedEmailId?: number;
   loading?: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
 }>();
 
 // 定义事件
@@ -114,16 +130,22 @@ const emit = defineEmits<{
   'emails-star': [emails: Email[]];
   'emails-mark-read': [emails: Email[]];
   'search': [query: string];
+  'load-more': [];
 }>();
 
 // 响应式数据
+const emailData = ref(props.emails);
 const selectAll = ref(false);
 const searchQuery = ref('');
+const listContentRef = ref<HTMLElement>();
+const isLoadingMore = ref(false);
 
 // 监听全选状态
-watch(() => props.emails, () => {
-  const selectedCount = props.emails.filter(email => email.selected).length;
-  selectAll.value = selectedCount > 0 && selectedCount === props.emails.length;
+watch(() => props.emails, (v) => {
+  emailData.value = v;
+  const selectedCount = emailData.value.filter(email => email.selected).length;
+  debugger
+  selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
 }, { deep: true });
 
 // 方法
@@ -171,6 +193,41 @@ function handleMarkAsRead() {
 function handleSearch() {
   emit('search', searchQuery.value);
 }
+
+// 滚动处理函数
+function handleScroll() {
+  if (!listContentRef.value || props.loading || props.loadingMore || isLoadingMore.value) {
+    return;
+  }
+
+  const { scrollTop, scrollHeight, clientHeight } = listContentRef.value;
+  const threshold = 50; // 距离底部50px时开始加载
+  
+  if (scrollTop + clientHeight >= scrollHeight - threshold) {
+    // 检查是否还有更多数据
+    if (props.hasMore !== false) {
+      isLoadingMore.value = true;
+      emit('load-more');
+      
+      // 防抖处理，避免重复触发
+      setTimeout(() => {
+        isLoadingMore.value = false;
+      }, 1000);
+    }
+  }
+}
+
+// 重置滚动位置（当切换文件夹时）
+function resetScroll() {
+  if (listContentRef.value) {
+    listContentRef.value.scrollTop = 0;
+  }
+}
+
+// 暴露方法给父组件
+defineExpose({
+  resetScroll
+});
 
 function formatTime(time: Date) {
   const now = new Date();
@@ -370,6 +427,65 @@ function formatTime(time: Date) {
 .empty-text {
   font-size: 14px;
   margin: 0;
+}
+
+/* 加载更多样式 */
+.loading-more {
+  padding: 16px;
+  text-align: center;
+}
+
+.loading-more-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #909399;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 没有更多数据样式 */
+.no-more-data {
+  padding: 16px;
+  text-align: center;
+}
+
+.no-more-text {
+  font-size: 12px;
+  color: #c0c4cc;
+  position: relative;
+}
+
+.no-more-text::before,
+.no-more-text::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 1px;
+  background: #e4e7ed;
+}
+
+.no-more-text::before {
+  left: -80px;
+}
+
+.no-more-text::after {
+  right: -80px;
 }
 
 /* 滚动条样式 */
