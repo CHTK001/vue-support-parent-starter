@@ -115,11 +115,6 @@ const emailListRef = ref(null);
 // 过滤邮件
 const filteredEmails = computed(() => {
   let result = emails.value.filter(email => {
-    // 按文件夹过滤
-    if (activeFolder.value && email.folder !== activeFolder.value) {
-      return false;
-    }
-
     // 按标签过滤
     if (activeTag.value && !email.tags.includes(activeTag.value)) {
       return false;
@@ -156,7 +151,7 @@ function selectFolder(folderKey: string) {
   
   fetchEmails(props.id, folderKey, "list-messages", emailsPageNumber.value).then(res => {
     const data = res?.data?.record || {} as any;
-    emails.value = data.record || [];
+    emails.value = data.data || [];
     emailsTotal.value = data.total || 0;
     
     // 检查是否还有更多数据
