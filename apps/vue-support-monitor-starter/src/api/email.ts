@@ -141,7 +141,7 @@ export function getEmailHistory(
   }
 ): Promise<ReturnResult<SystemDataEmailHistory[]>> {
   return http.request("get", `/system/data/email/${settingId}/history`, {
-    params: params,
+    params: params
   });
 }
 
@@ -157,11 +157,25 @@ export function fetchEmails(
   settingId: number,
   folderName: string = "INBOX",
   command?: string,
-  pageNumber?: number = 1,
-  limit: number = 50
+  pageNumber: number = 1,
+  limit: number = 50,
+  messageId?: string
 ): Promise<ReturnResult<EmailFetchResponse>> {
   return http.request("post", `/system/data/email/${settingId}/fetch`, {
-    params: { folderName, limit,command, pageNumber },
+    params: { folderName, limit, command, pageNumber, messageId }
+  });
+}
+/**
+ * 拉取邮件
+ *
+ * @param settingId 数据源配置ID
+ * @param folderName 邮件文件夹名称，默认为INBOX
+ * @param limit 拉取邮件数量限制，默认为50
+ * @returns 拉取结果
+ */
+export function fetchEmailsObject(settingId: number, params: any): Promise<ReturnResult<EmailFetchResponse>> {
+  return http.request("post", `/system/data/email/${settingId}/fetch`, {
+    params: params
   });
 }
 
@@ -172,12 +186,9 @@ export function fetchEmails(
  * @param folderName 邮件文件夹名称，默认为INBOX
  * @returns 同步结果
  */
-export function syncEmails(
-  settingId: number,
-  folderName: string = "INBOX"
-): Promise<ReturnResult<EmailFetchResponse>> {
+export function syncEmails(settingId: number, folderName: string = "INBOX"): Promise<ReturnResult<EmailFetchResponse>> {
   return http.request("post", `/system/data/email/${settingId}/sync`, {
-    data: { folderName },
+    data: { folderName }
   });
 }
 
@@ -188,12 +199,9 @@ export function syncEmails(
  * @param request 更新请求
  * @returns 更新结果
  */
-export function updateEmailStatus(
-  settingId: number,
-  request: EmailStatusUpdateRequest
-): Promise<ReturnResult<string>> {
+export function updateEmailStatus(settingId: number, request: EmailStatusUpdateRequest): Promise<ReturnResult<string>> {
   return http.request("put", `/system/data/email/${settingId}/status`, {
-    data: request,
+    data: request
   });
 }
 
@@ -204,15 +212,12 @@ export function updateEmailStatus(
  * @param file 邮件文件
  * @returns 备份结果
  */
-export function backupEmail(
-  settingId: number,
-  file: File
-): Promise<ReturnResult<EmailBackupResponse>> {
+export function backupEmail(settingId: number, file: File): Promise<ReturnResult<EmailBackupResponse>> {
   const formData = new FormData();
   formData.append("file", file);
 
   return http.request("post", `/system/data/email/${settingId}/backup`, {
     data: formData,
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": "multipart/form-data" }
   });
 }
