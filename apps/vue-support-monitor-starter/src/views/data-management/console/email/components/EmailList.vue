@@ -144,7 +144,6 @@ const isLoadingMore = ref(false);
 watch(() => props.emails, (v) => {
   emailData.value = v;
   const selectedCount = emailData.value.filter(email => email.selected).length;
-  debugger
   selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
 }, { deep: true });
 
