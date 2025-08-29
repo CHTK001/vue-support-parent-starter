@@ -9,6 +9,7 @@ export interface SystemDataEmailHistory {
   messageId: string;
   subject: string;
   sender: string;
+  starred?: string;
   senderEmail: string;
   recipients: string;
   ccRecipients?: string;
@@ -139,7 +140,9 @@ export function getEmailHistory(
     starred?: boolean;
   }
 ): Promise<ReturnResult<SystemDataEmailHistory[]>> {
-  return http.request("get", `/system/data/email/${settingId}/history`, { params: params });
+  return http.request("get", `/system/data/email/${settingId}/history`, {
+    params: params,
+  });
 }
 
 /**
@@ -150,8 +153,16 @@ export function getEmailHistory(
  * @param limit 拉取邮件数量限制，默认为50
  * @returns 拉取结果
  */
-export function fetchEmails(settingId: number, folderName: string = "INBOX", limit: number = 50): Promise<ReturnResult<EmailFetchResponse>> {
-  return http.request("post", `/system/data/email/${settingId}/fetch`, { data: { folderName, limit } });
+export function fetchEmails(
+  settingId: number,
+  folderName: string = "INBOX",
+  command?: string,
+  pageNumber?: number = 1,
+  limit: number = 50
+): Promise<ReturnResult<EmailFetchResponse>> {
+  return http.request("post", `/system/data/email/${settingId}/fetch`, {
+    params: { folderName, limit,command, pageNumber },
+  });
 }
 
 /**
@@ -161,8 +172,13 @@ export function fetchEmails(settingId: number, folderName: string = "INBOX", lim
  * @param folderName 邮件文件夹名称，默认为INBOX
  * @returns 同步结果
  */
-export function syncEmails(settingId: number, folderName: string = "INBOX"): Promise<ReturnResult<EmailFetchResponse>> {
-  return http.request("post", `/system/data/email/${settingId}/sync`, { data: { folderName } });
+export function syncEmails(
+  settingId: number,
+  folderName: string = "INBOX"
+): Promise<ReturnResult<EmailFetchResponse>> {
+  return http.request("post", `/system/data/email/${settingId}/sync`, {
+    data: { folderName },
+  });
 }
 
 /**
@@ -172,8 +188,13 @@ export function syncEmails(settingId: number, folderName: string = "INBOX"): Pro
  * @param request 更新请求
  * @returns 更新结果
  */
-export function updateEmailStatus(settingId: number, request: EmailStatusUpdateRequest): Promise<ReturnResult<string>> {
-  return http.request("put", `/system/data/email/${settingId}/status`, { data: request });
+export function updateEmailStatus(
+  settingId: number,
+  request: EmailStatusUpdateRequest
+): Promise<ReturnResult<string>> {
+  return http.request("put", `/system/data/email/${settingId}/status`, {
+    data: request,
+  });
 }
 
 /**
@@ -183,12 +204,15 @@ export function updateEmailStatus(settingId: number, request: EmailStatusUpdateR
  * @param file 邮件文件
  * @returns 备份结果
  */
-export function backupEmail(settingId: number, file: File): Promise<ReturnResult<EmailBackupResponse>> {
+export function backupEmail(
+  settingId: number,
+  file: File
+): Promise<ReturnResult<EmailBackupResponse>> {
   const formData = new FormData();
   formData.append("file", file);
 
   return http.request("post", `/system/data/email/${settingId}/backup`, {
     data: formData,
-    headers: { "Content-Type": "multipart/form-data" }
+    headers: { "Content-Type": "multipart/form-data" },
   });
 }

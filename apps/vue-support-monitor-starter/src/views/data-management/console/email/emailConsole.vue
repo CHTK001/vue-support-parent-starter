@@ -1,24 +1,28 @@
 <template>
   <div class="email-console">
     <!-- 顶部工具栏 -->
-    <EmailHeader @compose="handleCompose" @refresh="refreshEmails" @cloud-sync="handleCloudSync" @cloud-backup="handleCloudBackup" />
+    <EmailHeader :setting-id="props.id" @compose="handleCompose" @refresh="refreshEmails" @cloud-sync="handleCloudSync" @cloud-backup="handleCloudBackup" @menu-cleared="handleMenuCleared" />
 
     <!-- 主要内容区域 -->
     <div class="email-content">
       <!-- 左侧导航栏 -->
-      <EmailSidebar :folders="folders" :tags="tags" :active-folder="activeFolder" :active-tag="activeTag" @folder-select="selectFolder" @tag-select="selectTag" />
+      <EmailSidebar ref="sidebarRef" :setting-id="props.id" :folders="folders" :tags="tags" :active-folder="activeFolder" :active-tag="activeTag" @folder-select="selectFolder" @tag-select="selectTag" @menu-loaded="handleMenuLoaded" />
 
       <!-- 中间邮件列表 -->
       <EmailList
+        ref="emailListRef"
         :emails="filteredEmails"
         :selected-email-id="selectedEmail?.id"
         :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
         @email-select="selectEmail"
         @email-star="toggleStar"
         @emails-delete="deleteSelected"
         @emails-star="starSelected"
         @emails-mark-read="markAsRead"
         @search="handleSearch"
+        @load-more="loadMoreEmails"
       />
 
       <!-- 右侧邮件详情/撰写区域 -->
@@ -38,20 +42,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import CodeEditor from "@/components/codeEditor/index.vue";
-import { executeConsole } from "@/api/system-data";
+import { executeConsole, getConsoleRoot } from "@/api/system-data";
 import { fetchEmails, getEmailHistory, syncEmails, updateEmailStatus, backupEmail, type SystemDataEmailHistory } from "@/api/email";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { indexedDBProxy } from "@repo/utils";
 import EmailHeader from "./components/EmailHeader.vue";
 import EmailSidebar from "./components/EmailSidebar.vue";
 import EmailList from "./components/EmailList.vue";
 import EmailDetail from "./components/EmailDetail.vue";
 import EmailCompose from "./components/EmailCompose.vue";
+import { it } from "element-plus/es/locale/index.mjs";
 
 const props = defineProps<{ id: number }>();
 
 // 组件引用
 const composeRef = ref(null);
+const sidebarRef = ref(null);
 
 // 界面状态
 const selectedFolder = ref(null);
@@ -74,11 +81,11 @@ const composeForm = ref({
 
 // 邮箱文件夹
 const folders = ref([
-  { key: "inbox", name: "收件箱", icon: "ri:inbox-line", count: 5 },
-  { key: "sent", name: "已发送", icon: "ri:send-plane-line", count: 0 },
-  { key: "drafts", name: "草稿箱", icon: "ri:draft-line", count: 2 },
-  { key: "trash", name: "垃圾箱", icon: "ri:delete-bin-line", count: 0 },
-  { key: "spam", name: "垃圾邮件", icon: "ri:spam-line", count: 0 }
+  // { key: "inbox", name: "收件箱", icon: "ri:inbox-line", count: 5 },
+  // { key: "sent", name: "已发送", icon: "ri:send-plane-line", count: 0 },
+  // { key: "drafts", name: "草稿箱", icon: "ri:draft-line", count: 2 },
+  // { key: "trash", name: "垃圾箱", icon: "ri:delete-bin-line", count: 0 },
+  // { key: "spam", name: "垃圾邮件", icon: "ri:spam-line", count: 0 }
 ]);
 
 // 邮件标签
@@ -91,12 +98,19 @@ const tags = ref([
 
 // 邮件数据
 const emails = ref<SystemDataEmailHistory[]>([]);
+const emailsTotal = ref(0);
+const emailsPageNumber = ref(1);
 const loading = ref(false);
+const loadingMore = ref(false);
+const hasMore = ref(true);
 const pagination = ref({
   current: 1,
   size: 20,
   total: 0
 });
+
+// 组件引用
+const emailListRef = ref(null);
 
 // 过滤邮件
 const filteredEmails = computed(() => {
@@ -129,6 +143,57 @@ function selectFolder(folderKey: string) {
   activeFolder.value = folderKey;
   activeTag.value = "";
   selectedEmail.value = null;
+  
+  // 重置分页状态
+  emailsPageNumber.value = 1;
+  hasMore.value = true;
+  loading.value = true;
+  
+  // 重置滚动位置
+  if (emailListRef.value?.resetScroll) {
+    emailListRef.value.resetScroll();
+  }
+  
+  fetchEmails(props.id, folderKey, "list-messages", emailsPageNumber.value).then(res => {
+    const data = res?.data?.record || {} as any;
+    emails.value = data.record || [];
+    emailsTotal.value = data.total || 0;
+    
+    // 检查是否还有更多数据
+    hasMore.value = emails.value.length < emailsTotal.value;
+    loading.value = false;
+  }).catch(error => {
+    console.error('加载邮件失败:', error);
+    loading.value = false;
+    ElMessage.error('加载邮件失败');
+  });
+}
+
+// 加载更多邮件
+function loadMoreEmails() {
+  if (loadingMore.value || !hasMore.value) {
+    return;
+  }
+  
+  loadingMore.value = true;
+  emailsPageNumber.value += 1;
+  
+  fetchEmails(props.id, activeFolder.value, "list-messages", emailsPageNumber.value).then(res => {
+    const data = res?.data?.record || {} as any;
+    const newEmails = data.record || [];
+    
+    // 追加新邮件到现有列表
+    emails.value = [...emails.value, ...newEmails];
+    
+    // 检查是否还有更多数据
+    hasMore.value = emails.value.length < emailsTotal.value;
+    loadingMore.value = false;
+  }).catch(error => {
+    console.error('加载更多邮件失败:', error);
+    loadingMore.value = false;
+    emailsPageNumber.value -= 1; // 回退页码
+    ElMessage.error('加载更多邮件失败');
+  });
 }
 
 function selectTag(tagKey: string) {
@@ -517,7 +582,7 @@ async function handleCloudSync() {
       // 同步成功后刷新邮件列表
       await refreshEmails();
     } else {
-      const errorMsg = result.message || "云同步失败";
+      const errorMsg = result.msg || "云同步失败";
       status.value = errorMsg;
       statusType.value = "error";
       ElMessage.error(errorMsg);
@@ -565,7 +630,7 @@ function handleCloudBackup() {
         // 备份成功后刷新邮件列表
         await refreshEmails();
       } else {
-        const errorMsg = result.message || "邮件备份失败";
+        const errorMsg = result.msg || "邮件备份失败";
         status.value = errorMsg;
         statusType.value = "error";
         ElMessage.error(errorMsg);
@@ -592,6 +657,29 @@ function handleCloudBackup() {
   // 添加到DOM并触发点击
   document.body.appendChild(fileInput);
   fileInput.click();
+}
+
+// 处理菜单清空事件
+function handleMenuCleared() {
+  console.log('[EmailConsole] 菜单数据已清空，将重新加载');
+  loadRoot();
+}
+
+// 处理菜单加载事件
+function handleMenuLoaded(menuData: any) {
+  console.log('[EmailConsole] 菜单数据已从IndexedDB加载', {
+    foldersCount: menuData.folders?.length || 0,
+    tagsCount: menuData.tags?.length || 0,
+    lastUpdated: new Date(menuData.lastUpdated).toISOString()
+  });
+  
+  // 更新本地的folders和tags数据
+  if (menuData.folders && menuData.folders.length > 0) {
+    folders.value = menuData.folders;
+  }
+  if (menuData.tags && menuData.tags.length > 0) {
+    tags.value = menuData.tags;
+  }
 }
 
 function formatTime(time: Date) {
@@ -622,9 +710,57 @@ function formatFullTime(time: Date) {
     second: "2-digit"
   });
 }
+async function loadRoot() {
+  const res = await getConsoleRoot(props.id);
+  folders.value = res?.data?.data.map(it => {
+    it.key = it.name;
+    return it;
+  });
+  
+  // 加载成功后保存到 IndexedDB
+  if (folders.value && folders.value.length > 0) {
+    try {
+      const menuKey = `email_menu_${props.id}`;
+      const menuData = {
+        folders: JSON.parse(JSON.stringify(folders.value)),
+        tags: JSON.parse(JSON.stringify(tags.value || [])),
+        lastUpdated: Date.now()
+      };
+      await indexedDBProxy().setItem(menuKey, menuData);
+      console.log('[EmailConsole] 菜单数据已保存到IndexedDB');
+    } catch (error) {
+      console.error('[EmailConsole] 保存菜单数据到IndexedDB失败:', error);
+    }
+  }
+}
 
-onMounted(() => {
-  refreshEmails();
+async function loadFromIndexedDB() {
+  try {
+    const menuKey = `email_menu_${props.id}`;
+    const cachedData = await indexedDBProxy().getItem(menuKey) as any;
+    
+    if (cachedData && cachedData.folders) {
+      console.log('[EmailConsole] 从IndexedDB加载菜单数据');
+      folders.value = cachedData.folders;
+      if (cachedData.tags) {
+        tags.value = cachedData.tags;
+      }
+      return true; // 表示成功从缓存加载
+    }
+  } catch (error) {
+    console.error('[EmailConsole] 从IndexedDB加载菜单数据失败:', error);
+  }
+  return false; // 表示需要从服务器加载
+}
+
+onMounted(async () => {
+  // 优先从 IndexedDB 加载数据
+  const loadedFromCache = await loadFromIndexedDB();
+  
+  // 如果缓存中没有数据，则从服务器加载
+  if (!loadedFromCache) {
+    await loadRoot();
+  }
 });
 </script>
 <style scoped>
