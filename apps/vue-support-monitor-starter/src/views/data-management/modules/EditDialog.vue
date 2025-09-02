@@ -159,6 +159,9 @@
             :disabled="!modeChosen"
           />
         </el-form-item>
+        <el-form-item label="是否支持IDLE">
+          <el-switch v-model="form.systemDataSettingIdle" />
+        </el-form-item>
         <el-form-item label="控制台">
           <el-switch v-model="consoleEnabled" :disabled="!modeChosen" />
         </el-form-item>
@@ -209,6 +212,7 @@ import {
   type SystemDataSetting,
   uploadJdbcDriver,
 } from "@/api/system-data";
+import { fromBase64 } from "js-base64";
 
 interface Props {
   visible: boolean;
@@ -226,6 +230,7 @@ const form = ref<SystemDataSetting>({
   systemDataSettingId: undefined as any,
   systemDataSettingName: "",
   systemDataSettingType: "",
+  systemDataSettingIdle: false,
   systemDataSettingProtocol: "",
   systemDataSettingServer: "",
   systemDataSettingHost: "",

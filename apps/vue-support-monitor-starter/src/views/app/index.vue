@@ -1,101 +1,363 @@
 <template>
   <div class="page flex flex-col">
+    <!-- 页面标题区域 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">
+            <IconifyIconOnline icon="ri:apps-2-line" class="title-icon" />
+            项目管理
+          </h1>
+          <p class="page-subtitle">管理和监控您的应用项目配置</p>
+        </div>
+        <div class="stats-section">
+          <div class="stat-card">
+            <div class="stat-number">{{ totalApps }}</div>
+            <div class="stat-label">总项目数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ activeApps }}</div>
+            <div class="stat-label">活跃项目</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 顶部工具栏：搜索 / 类型过滤 / 排序 / 新建 -->
-    <div class="toolbar modern-toolbar p-[16px]">
+    <div class="toolbar modern-toolbar">
       <div class="left">
-        <el-input v-model="query.keyword" class="w-280" placeholder="搜索项目名称..." clearable>
-          <template #prefix>
-            <IconifyIconOnline icon="ep:search" />
-          </template>
-        </el-input>
-        <el-select v-model="query.platform" class="w-200" clearable placeholder="选择平台">
-          <el-option label="全部" value="" />
-          <el-option label="Spring" value="spring" />
-          <el-option label="Node" value="node" />
-          <el-option label="其他" value="other" />
-        </el-select>
-        <el-button type="primary" class="ml-8" @click="reload">
-          <IconifyIconOnline icon="ep:search" class="mr-1" />
-          搜索
-        </el-button>
+        <div class="search-container">
+          <el-input
+            v-model="query.keyword"
+            class="search-input"
+            placeholder="搜索项目名称、平台..."
+            clearable
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ep:search" class="search-icon" />
+            </template>
+          </el-input>
+        </div>
+        <div class="filter-container">
+          <el-select
+            v-model="query.platform"
+            class="platform-select"
+            clearable
+            placeholder="选择平台"
+          >
+            <el-option label="全部平台" value="">
+              <div class="option-item">
+                <IconifyIconOnline icon="ri:apps-line" class="option-icon" />
+                <span>全部平台</span>
+              </div>
+            </el-option>
+            <el-option label="Spring Boot" value="spring">
+              <div class="option-item">
+                <IconifyIconOnline
+                  icon="simple-icons:springboot"
+                  class="option-icon spring-icon"
+                />
+                <span>Spring Boot</span>
+              </div>
+            </el-option>
+            <el-option label="Node.js" value="node">
+              <div class="option-item">
+                <IconifyIconOnline
+                  icon="simple-icons:nodedotjs"
+                  class="option-icon node-icon"
+                />
+                <span>Node.js</span>
+              </div>
+            </el-option>
+            <el-option label="其他" value="other">
+              <div class="option-item">
+                <IconifyIconOnline icon="ri:more-line" class="option-icon" />
+                <span>其他</span>
+              </div>
+            </el-option>
+          </el-select>
+        </div>
       </div>
       <div class="right">
-        <el-button type="primary" @click="handleOpenEit({})">
-          <IconifyIconOnline icon="ri:add-line" />
-          新建配置
+        <el-button class="search-btn" @click="reload">
+          <IconifyIconOnline icon="ep:search" class="btn-icon" />
+          搜索
+        </el-button>
+        <el-button type="primary" class="create-btn" @click="handleOpenEit({})">
+          <IconifyIconOnline icon="ri:add-circle-line" class="btn-icon" />
+          新建项目
         </el-button>
       </div>
     </div>
 
-    <ScTable class="card-grid" :url="fetchAppPageList" :col-size="4" ref="tableRef" layout="card">
-      <template #empty>
-        <el-empty description="暂无项目配置">
-          <el-button type="primary" @click="handleOpenEit({})">新建配置</el-button>
-        </el-empty>
-      </template>
-
-      <template #default="{ row: item }">
-        <el-card :class="['data-card modern-card']" shadow="hover">
-          <div class="card-header">
-            <div class="left">
-              <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="icon icon-img" />
-              <div v-else class="icon icon-badge" :data-name="item.monitorApplicationName">
-                {{ (item.monitorApplicationName || "D").slice(0, 1).toUpperCase() }}
+    <div class="relative h-full w-full">
+      <ScTable
+        class="card-grid"
+        :url="fetchAppPageList"
+        :col-size="4"
+        ref="tableRef"
+        layout="card"
+      >
+        <template #empty>
+          <div class="empty-state">
+            <div class="empty-illustration">
+              <IconifyIconOnline icon="ri:apps-2-line" class="empty-icon" />
+            </div>
+            <h3 class="empty-title">暂无项目配置</h3>
+            <p class="empty-description">开始创建您的第一个项目配置</p>
+            <el-button
+              type="primary"
+              class="empty-action"
+              @click="handleOpenEit({})"
+            >
+              <IconifyIconOnline icon="ri:add-circle-line" class="btn-icon" />
+              新建项目
+            </el-button>
+          </div>
+        </template>
+  
+        <template #default="{ row: item }">
+          <div class="app-card" @click="handleCardClick(item)">
+            <!-- 状态指示器 -->
+            <div class="status-indicator" :class="getStatusClass(item)"></div>
+  
+            <!-- 卡片头部 -->
+            <div class="card-header">
+              <div class="app-icon-wrapper">
+                <img
+                  v-if="item.systemDataSettingIcon"
+                  :src="item.systemDataSettingIcon"
+                  class="app-icon app-icon-img"
+                />
+                <div
+                  v-else
+                  class="app-icon app-icon-badge"
+                  :class="getPlatformClass(item.monitorApplicationName)"
+                >
+                  <IconifyIconOnline
+                    :icon="getPlatformIcon(item.monitorApplicationName)"
+                    class="platform-icon"
+                  />
+                </div>
+                <div class="status-badge" :class="getStatusClass(item)">
+                  <IconifyIconOnline
+                    :icon="getStatusIcon(item)"
+                    class="status-icon"
+                  />
+                </div>
               </div>
-              <div class="title" :title="item.monitorName">
-                {{ item.monitorName }}
+              <div class="app-info">
+                <h3 class="app-title" :title="item.monitorName">
+                  {{ item.monitorName }}
+                </h3>
+                <div class="app-platform">
+                  <IconifyIconOnline
+                    :icon="getPlatformIcon(item.monitorApplicationName)"
+                    class="platform-icon-small"
+                  />
+                  <span>{{ item.monitorApplicationName || "未知平台" }}</span>
+                </div>
+              </div>
+            </div>
+  
+            <!-- 卡片内容 -->
+            <div class="card-content">
+              <div class="metrics-grid">
+                <div class="metric-item">
+                  <IconifyIconOnline icon="ri:time-line" class="metric-icon" />
+                  <div class="metric-info">
+                    <span class="metric-label">最后更新</span>
+                    <span class="metric-value">{{
+                      formatTime(item.updateTime)
+                    }}</span>
+                  </div>
+                </div>
+                <div class="metric-item">
+                  <IconifyIconOnline icon="ri:pulse-line" class="metric-icon" />
+                  <div class="metric-info">
+                    <span class="metric-label">运行状态</span>
+                    <span class="metric-value" :class="getStatusClass(item)">{{
+                      getStatusText(item)
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+  
+              <!-- 标签区域 -->
+              <div class="tags-section" v-if="item.tags && item.tags.length">
+                <el-tag
+                  v-for="tag in item.tags"
+                  :key="tag"
+                  size="small"
+                  class="app-tag"
+                >
+                  {{ tag }}
+                </el-tag>
+              </div>
+            </div>
+  
+            <!-- 卡片操作 -->
+            <div class="card-actions" @click.stop>
+              <div class="action-buttons">
+                <el-tooltip content="查看详情" placement="top">
+                  <el-button
+                    class="action-btn primary"
+                    @click.stop="handleViewDetail(item)"
+                  >
+                    <IconifyIconOnline icon="ri:eye-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="编辑配置" placement="top">
+                  <el-button class="action-btn" @click.stop="handleOpenEit(item)">
+                    <IconifyIconOnline icon="ri:edit-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="复制配置" placement="top">
+                  <el-button class="action-btn" @click.stop="handleCopy(item)">
+                    <IconifyIconOnline icon="ri:file-copy-line" />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button
+                    class="action-btn danger"
+                    @click.stop="handleDelete(item)"
+                  >
+                    <IconifyIconOnline icon="ri:delete-bin-line" />
+                  </el-button>
+                </el-tooltip>
               </div>
             </div>
           </div>
-          <div class="card-body">
-            <div class="meta-row">
-              <IconifyIconOnline class="mr-4 text-muted" icon="ri:terminal-line" />
-              <span class="label">平台</span>
-              <span class="value">{{ item.monitorApplicationName || "-" }}</span>
-            </div>
-            <div class="meta-row">
-              <IconifyIconOnline class="mr-4 text-muted" icon="ri:link-m" />
-              <span class="label">名称</span>
-              <el-tooltip :content="item.monitorName" placement="top" :show-after="150">
-                <span class="value ellipsis">{{ item.monitorName }}</span>
-              </el-tooltip>
-            </div>
-          </div>
-          <div class="card-actions" @click.stop>
-            <el-button-group>
-              <el-tooltip content="编辑" placement="top" :show-after="500">
-                <el-button size="small" @click.stop.prevent="handleOpenEit(item)">
-                  <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top" :show-after="500">
-                <el-button size="small" type="danger" @click.stop.prevent="handleDelete(item)">
-                  <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
-              </el-tooltip>
-            </el-button-group>
-          </div>
-        </el-card>
-      </template>
-    </ScTable>
-    <EditDialog :data="currentData" :visible="editDialogStatus" @success="handleSuccessOpenEit"></EditDialog>
+        </template>
+      </ScTable>
+    </div>
+    <EditDialog
+      :data="currentData"
+      :visible="editDialogStatus"
+      @success="handleSuccessOpenEit"
+    ></EditDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import EditDialog from "./modules/EditDialog.vue";
 import { fetchAppDelete, fetchAppPageList } from "@/api/monitor/app";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox, ElMessage } from "element-plus";
+import { message } from "@repo/utils";
 
 const tableRef = ref<any>();
 const editDialogStatus = ref(false);
 const currentData = ref<any>();
+const appList = ref<any[]>([]);
 
 // 查询参数
-const query = ref<{ keyword: string; platform: string | undefined }>({ keyword: "", platform: undefined });
+const query = ref<{ keyword: string; platform: string | undefined }>({
+  keyword: "",
+  platform: undefined,
+});
+
+// 统计数据
+const totalApps = computed(() => appList.value.length);
+const activeApps = computed(
+  () => appList.value.filter((app) => app.status === "active").length
+);
+
 const reload = () => {
   tableRef.value?.reload(query.value);
+};
+
+// 获取平台图标
+const getPlatformIcon = (platform: string) => {
+  const platformMap: Record<string, string> = {
+    spring: "simple-icons:springboot",
+    node: "simple-icons:nodedotjs",
+    java: "simple-icons:openjdk",
+    python: "simple-icons:python",
+    go: "simple-icons:go",
+    docker: "simple-icons:docker",
+    kubernetes: "simple-icons:kubernetes",
+  };
+  return platformMap[platform?.toLowerCase()] || "ri:code-box-line";
+};
+
+// 获取平台样式类
+const getPlatformClass = (platform: string) => {
+  const classMap: Record<string, string> = {
+    spring: "platform-spring",
+    node: "platform-node",
+    java: "platform-java",
+    python: "platform-python",
+    go: "platform-go",
+    docker: "platform-docker",
+  };
+  return classMap[platform?.toLowerCase()] || "platform-default";
+};
+
+// 获取状态样式类
+const getStatusClass = (item: any) => {
+  // 模拟状态逻辑，实际应根据真实数据判断
+  // const random = Math.random();
+  // if (random > 0.8) return 'status-error';
+  // if (random > 0.6) return 'status-warning';
+  return "status-success";
+};
+
+// 获取状态图标
+const getStatusIcon = (item: any) => {
+  const statusClass = getStatusClass(item);
+  const iconMap: Record<string, string> = {
+    "status-success": "ri:check-line",
+    "status-warning": "ri:error-warning-line",
+    "status-error": "ri:close-line",
+  };
+  return iconMap[statusClass] || "ri:question-line";
+};
+
+// 获取状态文本
+const getStatusText = (item: any) => {
+  const statusClass = getStatusClass(item);
+  const textMap: Record<string, string> = {
+    "status-success": "运行正常",
+    "status-warning": "运行异常",
+    "status-error": "已停止",
+  };
+  return textMap[statusClass] || "未知";
+};
+
+// 格式化时间
+const formatTime = (time: string) => {
+  if (!time) return "未知";
+  const date = new Date(time);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}天前`;
+  if (hours > 0) return `${hours}小时前`;
+  if (minutes > 0) return `${minutes}分钟前`;
+  return "刚刚";
+};
+
+// 卡片点击事件
+const handleCardClick = (item: any) => {
+  // 可以添加卡片点击逻辑，比如跳转到详情页
+  console.log("Card clicked:", item);
+};
+
+// 查看详情
+const handleViewDetail = (item: any) => {
+  message.info("查看详情功能开发中...");
+};
+
+// 复制配置
+const handleCopy = (item: any) => {
+  const copyData = { ...item };
+  delete copyData.monitorId;
+  copyData.monitorName = `${item.monitorName}_副本`;
+  handleOpenEit(copyData);
 };
 /**
  * 成功打开编辑
@@ -116,9 +378,9 @@ const handleDelete = (item: any) => {
   ElMessageBox.confirm("确定删除该配置吗？", "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "warning"
+    type: "warning",
   }).then(() => {
-    fetchAppDelete({ monitorId: item.monitorId }).then(res => {
+    fetchAppDelete({ monitorId: item.monitorId }).then((res) => {
       if (res.code === "00000") {
         tableRef.value.reload();
       }
@@ -128,239 +390,586 @@ const handleDelete = (item: any) => {
 </script>
 
 <style scoped>
+/* 页面基础样式 */
 .page {
-  min-height: 100%;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
-/* 顶部工具栏 */
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.title-section {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.2;
+}
+
+.title-icon {
+  font-size: 32px;
+  color: #3b82f6;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
+.stats-section {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  min-width: 80px;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #3b82f6;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* 工具栏样式 */
 .modern-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  gap: 12px;
+  background: white;
+  padding: 20px 12px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 16px;
 }
+
 .modern-toolbar .left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  flex: 1;
   flex-wrap: wrap;
 }
-.w-280 {
-  width: 280px;
+
+.search-container {
+  flex: 1;
+  max-width: 400px;
 }
-.w-200 {
+
+.search-input {
+  width: 100%;
+  border-radius: 12px;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.search-icon {
+  color: #667eea;
+}
+
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.platform-select {
   width: 200px;
 }
-.w-160 {
-  width: 160px;
-}
-.ml-8 {
-  margin-left: 8px;
+
+.platform-select :deep(.el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
 
-/* 栅格与卡片 */
-.card-grid {
-  --gap: 16px;
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.modern-card {
-  border: 1px solid var(--el-border-color-lighter);
-  box-shadow: var(--el-box-shadow-light);
-  border-radius: 14px;
-  overflow: hidden;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 1) 40%);
-  position: relative;
+
+.option-icon {
+  font-size: 16px;
 }
-/* 左侧绿色条 */
-.modern-card::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #10b981; /* emerald-500 */
+
+.spring-icon {
+  color: #6db33f;
 }
-.modern-card.is-jdbc::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(14, 165, 233, 0.1), transparent 60%);
+
+.node-icon {
+  color: #339933;
 }
-.modern-card.is-redis::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(244, 63, 94, 0.1), transparent 60%);
+
+.search-btn,
+.create-btn {
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  border: none;
 }
-.modern-card.is-zk::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(99, 102, 241, 0.1), transparent 60%);
+
+.create-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
-.modern-card.is-default::before {
-  background: radial-gradient(220px 110px at 10% 0%, rgba(100, 116, 139, 0.08), transparent 60%);
-}
-.modern-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(240px 120px at 10% 0%, rgba(14, 165, 233, 0.08), transparent 60%);
-  pointer-events: none;
-}
-.modern-card:hover {
+
+.create-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.12);
-  border-color: var(--el-color-primary-light-5);
-}
-/* 常驻基础阴影 */
-.modern-card {
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* 右下角45度背景区 */
-.bg-corner {
+.btn-icon {
+  margin-right: 6px;
+}
+
+/* 卡片网格 */
+.card-grid {
+  --gap: 20px;
+}
+
+/* 应用卡片 */
+.app-card {
+  height: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-card:hover {
+  border-color: #3b82f6;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-8px);
+}
+
+.app-card::before {
+  content: "";
   position: absolute;
+  top: 0;
+  left: 0;
   right: 0;
-  bottom: 0;
-  width: 46%;
-  height: 46%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.12;
-  clip-path: polygon(54% 0, 100% 0, 100% 100%, 0 100%);
-  pointer-events: none;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
 }
 
+/* 状态指示器 */
+.status-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.status-indicator.status-success {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.status-indicator.status-warning {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.status-indicator.status-error {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* 卡片头部 */
 .card-header {
+  padding: 20px 20px 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 14px 0;
+  align-items: flex-start;
+  gap: 16px;
 }
-.card-header .left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
+
+.app-icon-wrapper {
+  position: relative;
+  flex-shrink: 0;
 }
-.icon {
-  width: 36px;
-  height: 36px;
-}
-.icon-img {
-  border-radius: 10px;
-  object-fit: cover;
-}
-.icon-badge {
-  border-radius: 999px;
+
+.app-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #0ea5e9;
-  background: radial-gradient(120px 80px at 10% 10%, rgba(14, 165, 233, 0.18), rgba(14, 165, 233, 0.06));
-}
-.title {
+  font-size: 20px;
   font-weight: 600;
+  color: white;
+}
+
+.app-icon-img {
+  object-fit: cover;
+}
+
+.app-icon-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.platform-spring {
+  background: linear-gradient(135deg, #6db33f 0%, #4a7c59 100%);
+}
+
+.platform-node {
+  background: linear-gradient(135deg, #339933 0%, #2d5a2d 100%);
+}
+
+.platform-java {
+  background: linear-gradient(135deg, #ed8b00 0%, #b8860b 100%);
+}
+
+.platform-python {
+  background: linear-gradient(135deg, #3776ab 0%, #2d5a87 100%);
+}
+
+.platform-go {
+  background: linear-gradient(135deg, #00add8 0%, #007d9c 100%);
+}
+
+.platform-docker {
+  background: linear-gradient(135deg, #2496ed 0%, #1a73e8 100%);
+}
+
+.platform-default {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.platform-icon {
+  font-size: 24px;
+}
+
+.status-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-icon {
+  font-size: 12px;
+}
+
+.status-success .status-icon {
+  color: #10b981;
+}
+
+.status-warning .status-icon {
+  color: #f59e0b;
+}
+
+.status-error .status-icon {
+  color: #ef4444;
+}
+
+.app-info {
   flex: 1;
+  min-width: 0;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.card-body {
-  padding: 12px 14px 0;
-}
-.meta-row {
+.app-platform {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--el-text-color-secondary);
-  line-height: 22px;
-}
-.meta-row .label {
-  width: 60px;
-  color: var(--el-text-color-regular);
-}
-.meta-row .value {
-  flex: 1;
-  color: var(--el-text-color-secondary);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.ellipsis {
-  display: inline-block;
-  max-width: 100%;
+  color: #6b7280;
+  font-size: 14px;
 }
 
-.card-actions {
-  margin-top: 12px;
-  padding: 8px 14px 14px;
-  opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+.platform-icon-small {
+  font-size: 14px;
 }
-.modern-card:hover .card-actions {
+
+/* 卡片内容 */
+.card-content {
+  padding: 0 20px;
+  flex: 1;
+}
+
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.metric-icon {
+  font-size: 16px;
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.metric-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.metric-value.status-success {
+  color: #10b981;
+}
+
+.metric-value.status-warning {
+  color: #f59e0b;
+}
+
+.metric-value.status-error {
+  color: #ef4444;
+}
+
+.tags-section {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.app-tag {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: none;
+  border-radius: 6px;
+}
+
+/* 卡片操作 */
+.card-actions {
+  padding: 16px 20px 20px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.app-card:hover .card-actions {
   opacity: 1;
   transform: translateY(0);
 }
 
-.card-actions :deep(.el-button-group) {
-  width: 100%;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
-.card-actions :deep(.el-button-group .el-button) {
+
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   border: none;
-}
-.card-actions :deep(.el-button-group .el-button:not(:last-child)) {
-  border-right: 1px solid var(--el-border-color-lighter);
-}
-
-/* 按钮风格系统 */
-.btn-solid-primary {
-  --btn-bg: var(--el-color-primary);
-  --btn-bg-hover: var(--el-color-primary-light-3);
-  --btn-text: #fff;
-  background: var(--btn-bg);
-  color: var(--btn-text);
-  border: none;
-}
-.btn-solid-primary:hover {
-  background: var(--btn-bg-hover);
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
 }
 
-.btn-soft {
-  background: var(--el-fill-color-lighter);
-  color: var(--el-text-color-primary);
-  border: 1px solid var(--el-border-color-lighter);
-}
-.btn-soft:hover {
-  background: var(--el-fill-color);
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.btn-soft-danger {
-  background: rgba(244, 63, 94, 0.06);
-  color: var(--el-color-danger);
-  border: 1px solid rgba(244, 63, 94, 0.18);
+.action-btn.primary {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
 }
-.btn-soft-danger:hover {
-  background: rgba(244, 63, 94, 0.1);
+
+.action-btn.primary:hover {
+  background: #667eea;
+  color: white;
+}
+
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.action-btn.danger:hover {
+  background: #ef4444;
+  color: white;
 }
 
 /* 空状态 */
-.empty-wrap {
-  padding: 60px 0;
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  margin: 40px;
 }
 
-/* 小色彩辅助 */
-.text-muted {
-  color: var(--el-text-color-secondary);
+.empty-illustration {
+  margin-bottom: 24px;
 }
-.mr-4 {
-  margin-right: 4px;
+
+.empty-icon {
+  font-size: 64px;
+  color: #d1d5db;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+}
+
+.empty-action {
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 24px 16px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .stats-section {
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .modern-toolbar {
+    padding: 0 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modern-toolbar .left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-container {
+    max-width: none;
+  }
+
+  .filter-container {
+    justify-content: space-between;
+  }
+
+  .card-grid {
+    padding: 0 16px;
+  }
 }
 </style>

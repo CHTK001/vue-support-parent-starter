@@ -10,6 +10,7 @@ class GlobalSocket {
   private connecting = false;
 
   async connect(): Promise<boolean> {
+    debugger
     if (this.client) return true;
     if (this.connecting) return false;
     this.connecting = true;

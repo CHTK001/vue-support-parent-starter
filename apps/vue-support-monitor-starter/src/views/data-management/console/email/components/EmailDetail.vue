@@ -5,10 +5,30 @@
       <div class="detail-header">
         <div class="detail-subject">{{ email.subject }}</div>
         <div class="detail-actions">
-          <el-button size="small" :icon="useRenderIcon('ri:reply-line')" @click="handleReply">回复</el-button>
-          <el-button size="small" :icon="useRenderIcon('ri:reply-all-line')" @click="handleReplyAll">全部回复</el-button>
-          <el-button size="small" :icon="useRenderIcon('ri:share-forward-line')" @click="handleForward">转发</el-button>
-          <el-button size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete">删除</el-button>
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:reply-line')"
+            @click="handleReply"
+            >回复</el-button
+          >
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:reply-all-line')"
+            @click="handleReplyAll"
+            >全部回复</el-button
+          >
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:share-forward-line')"
+            @click="handleForward"
+            >转发</el-button
+          >
+          <el-button
+            size="small"
+            :icon="useRenderIcon('ri:delete-bin-line')"
+            @click="handleDelete"
+            >删除</el-button
+          >
         </div>
       </div>
       <div class="detail-info">
@@ -34,7 +54,13 @@
             <IconifyIconOnline icon="ri:file-line" />
             <span class="attachment-name">附件文件.pdf</span>
             <span class="attachment-size">(2.3MB)</span>
-            <el-button size="small" type="primary" link @click="downloadAttachment">下载</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              link
+              @click="downloadAttachment"
+              >下载</el-button
+            >
           </div>
         </div>
       </div>
@@ -121,7 +147,7 @@ function formatFullTime(time: Date) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit"
+    second: "2-digit",
   });
 }
 
@@ -129,7 +155,7 @@ function parseEmailContent(content: string): string {
   if (!content) return "";
 
   // 检查是否为multipart/alternative类型
-  if (content.includes('Content-Type: multipart/alternative')) {
+  if (content.includes("Content-Type: multipart/alternative")) {
     return parseMultipartAlternativeContent(content);
   }
 
@@ -139,41 +165,61 @@ function parseEmailContent(content: string): string {
   }
 
   // 将纯文本转换为HTML格式，并转换链接
-  return content
-    .replace(/\n/g, "<br>")
-    .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
-    .replace(/  /g, "&nbsp;&nbsp;")
-    // 转换HTTP/HTTPS链接为可点击链接
-    .replace(/(https?:\/\/[^\s<>"']+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
-    // 转换邮箱地址为可点击链接
-    .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, '<a href="mailto:$1">$1</a>');
+  return (
+    content
+      .replace(/\n/g, "<br>")
+      .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
+      .replace(/  /g, "&nbsp;&nbsp;")
+      // 转换HTTP/HTTPS链接为可点击链接
+      .replace(
+        /(https?:\/\/[^\s<>"']+)/gi,
+        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+      )
+      // 转换邮箱地址为可点击链接
+      .replace(
+        /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+        '<a href="mailto:$1">$1</a>'
+      )
+  );
 }
 
 // 解析multipart/alternative邮件内容
 function parseMultipartAlternativeContent(content: string): string {
   try {
     // 查找HTML部分
-    const htmlMatch = content.match(/Content-Type: text\/html[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i);
+    const htmlMatch = content.match(
+      /Content-Type: text\/html[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i
+    );
     if (htmlMatch && htmlMatch[1]) {
       return sanitizeHtmlContent(htmlMatch[1].trim());
     }
 
     // 如果没有HTML部分，查找纯文本部分
-    const textMatch = content.match(/Content-Type: text\/plain[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i);
+    const textMatch = content.match(
+      /Content-Type: text\/plain[\s\S]*?\n\n([\s\S]*?)(?=\n--)/i
+    );
     if (textMatch && textMatch[1]) {
       const textContent = textMatch[1].trim();
       // 转换链接
-      return textContent
-        .replace(/\n/g, "<br>")
-        .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
-        .replace(/  /g, "&nbsp;&nbsp;")
-        // 转换HTTP/HTTPS链接为可点击链接
-        .replace(/(https?:\/\/[^\s<>"']+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
-        // 转换邮箱地址为可点击链接
-        .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi, '<a href="mailto:$1">$1</a>');
+      return (
+        textContent
+          .replace(/\n/g, "<br>")
+          .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
+          .replace(/  /g, "&nbsp;&nbsp;")
+          // 转换HTTP/HTTPS链接为可点击链接
+          .replace(
+            /(https?:\/\/[^\s<>"']+)/gi,
+            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+          )
+          // 转换邮箱地址为可点击链接
+          .replace(
+            /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+            '<a href="mailto:$1">$1</a>'
+          )
+      );
     }
   } catch (error) {
-    console.warn('解析multipart/alternative邮件内容失败:', error);
+    console.warn("解析multipart/alternative邮件内容失败:", error);
   }
 
   // 如果解析失败，返回原始内容
@@ -185,36 +231,48 @@ function sanitizeHtmlContent(htmlContent: string): string {
   // 移除可能影响全局样式的标签和属性
   let sanitized = htmlContent
     // 移除style标签
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     // 移除link标签（CSS链接）
-    .replace(/<link[^>]*>/gi, '')
+    .replace(/<link[^>]*>/gi, "")
     // 移除script标签
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     // 移除内联style属性中可能影响全局的样式
-    .replace(/style\s*=\s*["'][^"']*(?:position\s*:\s*(?:fixed|absolute)|z-index\s*:|top\s*:|left\s*:|right\s*:|bottom\s*:)[^"']*["']/gi, '')
+    .replace(
+      /style\s*=\s*["'][^"']*(?:position\s*:\s*(?:fixed|absolute)|z-index\s*:|top\s*:|left\s*:|right\s*:|bottom\s*:)[^"']*["']/gi,
+      ""
+    )
     // 移除可能的CSS导入
-    .replace(/@import[^;]+;/gi, '')
+    .replace(/@import[^;]+;/gi, "")
     // 移除html、head、body标签
-    .replace(/<\/?(?:html|head|body)[^>]*>/gi, '')
+    .replace(/<\/?(?:html|head|body)[^>]*>/gi, "")
     // 移除meta标签
-    .replace(/<meta[^>]*>/gi, '')
+    .replace(/<meta[^>]*>/gi, "")
     // 移除title标签
-    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, "");
 
   // 转换现有链接，确保在新窗口打开
-  sanitized = sanitized.replace(/<a([^>]*href=["'][^"']+["'][^>]*)>/gi, (match, attrs) => {
-    if (!attrs.includes('target=')) {
-      attrs += ' target="_blank" rel="noopener noreferrer"';
+  sanitized = sanitized.replace(
+    /<a([^>]*href=["'][^"']+["'][^>]*)>/gi,
+    (match, attrs) => {
+      if (!attrs.includes("target=")) {
+        attrs += ' target="_blank" rel="noopener noreferrer"';
+      }
+      return `<a${attrs}>`;
     }
-    return `<a${attrs}>`;
-  });
+  );
 
   // 转换HTML内容中未被标记的纯文本链接
   // 注意：需要避免转换已经在<a>标签内的链接
-  sanitized = sanitized.replace(/(?!<a[^>]*>)(https?:\/\/[^\s<>"']+)(?![^<]*<\/a>)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-  
+  sanitized = sanitized.replace(
+    /(?!<a[^>]*>)(https?:\/\/[^\s<>"']+)(?![^<]*<\/a>)/gi,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+
   // 转换HTML内容中未被标记的邮箱地址
-  sanitized = sanitized.replace(/(?!<a[^>]*>)([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?![^<]*<\/a>)/gi, '<a href="mailto:$1">$1</a>');
+  sanitized = sanitized.replace(
+    /(?!<a[^>]*>)([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?![^<]*<\/a>)/gi,
+    '<a href="mailto:$1">$1</a>'
+  );
 
   return sanitized;
 }
@@ -385,14 +443,14 @@ function downloadAttachment() {
   right: auto !important;
   bottom: auto !important;
   transform: none !important;
-  
+
   /* 重置尺寸相关属性 */
   max-width: 100% !important;
   max-height: none !important;
-  
+
   /* 重置字体相关属性 */
   font-family: inherit !important;
-  
+
   /* 防止溢出 */
   overflow: visible !important;
   overflow-x: hidden !important;
@@ -417,12 +475,24 @@ function downloadAttachment() {
   line-height: 1.4 !important;
 }
 
-.email-body :deep(h1) { font-size: 24px !important; }
-.email-body :deep(h2) { font-size: 20px !important; }
-.email-body :deep(h3) { font-size: 18px !important; }
-.email-body :deep(h4) { font-size: 16px !important; }
-.email-body :deep(h5) { font-size: 14px !important; }
-.email-body :deep(h6) { font-size: 12px !important; }
+.email-body :deep(h1) {
+  font-size: 24px !important;
+}
+.email-body :deep(h2) {
+  font-size: 20px !important;
+}
+.email-body :deep(h3) {
+  font-size: 18px !important;
+}
+.email-body :deep(h4) {
+  font-size: 16px !important;
+}
+.email-body :deep(h5) {
+  font-size: 14px !important;
+}
+.email-body :deep(h6) {
+  font-size: 12px !important;
+}
 
 .email-body :deep(ul),
 .email-body :deep(ol) {
@@ -489,7 +559,7 @@ function downloadAttachment() {
   padding: 12px !important;
   margin: 12px 0 !important;
   overflow-x: auto !important;
-  font-family: 'Courier New', monospace !important;
+  font-family: "Courier New", monospace !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
 }
@@ -499,7 +569,7 @@ function downloadAttachment() {
   border: 1px solid #e4e7ed !important;
   border-radius: 2px !important;
   padding: 2px 4px !important;
-  font-family: 'Courier New', monospace !important;
+  font-family: "Courier New", monospace !important;
   font-size: 13px !important;
 }
 

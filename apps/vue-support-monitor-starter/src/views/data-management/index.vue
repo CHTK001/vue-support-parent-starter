@@ -10,22 +10,30 @@
             </div>
             <div class="title-content">
               <h1 class="page-title">数据管理中心</h1>
-              <p class="page-subtitle">统一管理各类数据源连接，支持多种数据库类型和实时监控</p>
+              <p class="page-subtitle">
+                统一管理各类数据源连接，支持多种数据库类型和实时监控
+              </p>
             </div>
           </div>
         </div>
         <div class="header-right">
           <div class="stats-overview">
             <div class="stat-item">
-              <div class="stat-number">{{ list.length }}</div>
+              <div class="stat-number">
+                {{ fetchServerStaticData.dataSourceTotal }}
+              </div>
               <div class="stat-label">数据源</div>
             </div>
             <div class="stat-item">
-              <div class="stat-number">{{ typeOptions.length }}</div>
+              <div class="stat-number">
+                {{ fetchServerStaticData.dataSourceType }}
+              </div>
               <div class="stat-label">类型</div>
             </div>
             <div class="stat-item">
-              <div class="stat-number">{{ Object.keys(backupOn).filter(k => backupOn[k]).length }}</div>
+              <div class="stat-number">
+                {{ Object.keys(backupOn).filter((k) => backupOn[k]).length }}
+              </div>
               <div class="stat-label">备份中</div>
             </div>
           </div>
@@ -36,23 +44,43 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
-      <div class="left">
-        <el-input v-model="searchKey" placeholder="搜索名称/类型" clearable class="w-280">
-          <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
-          </template>
-        </el-input>
-        <el-select v-model="typeFilter" placeholder="全部类型" class="w-200 ml-8" clearable>
-          <el-option label="全部类型" value="" />
-          <el-option v-for="t in typeOptions" :key="t" :label="t" :value="t" />
-        </el-select>
-        <el-select v-model="sortKey" class="w-160 ml-8">
-          <el-option label="按名称排序" value="name" />
-          <el-option label="按类型排序" value="type" />
-        </el-select>
+        <div class="left">
+          <el-input
+            v-model="searchKey"
+            placeholder="搜索名称/类型"
+            clearable
+            class="w-280"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </el-input>
+          <el-select
+            v-model="typeFilter"
+            placeholder="全部类型"
+            class="w-200 ml-8"
+            clearable
+          >
+            <el-option label="全部类型" value="" />
+            <el-option
+              v-for="t in typeOptions"
+              :key="t"
+              :label="t"
+              :value="t"
+            />
+          </el-select>
+          <el-select v-model="sortKey" class="w-160 ml-8">
+            <el-option label="按名称排序" value="name" />
+            <el-option label="按类型排序" value="type" />
+          </el-select>
         </div>
         <div class="right">
-          <el-button type="primary" size="large" @click="openEdit()" class="create-btn">
+          <el-button
+            type="primary"
+            size="large"
+            @click="openEdit()"
+            class="create-btn"
+          >
             <IconifyIconOnline icon="ri:add-line" />
             新建数据源
           </el-button>
@@ -62,141 +90,258 @@
 
     <!-- 内容区域 -->
     <div class="content-section">
-      <ScTable class="enhanced-card-grid !h-[600px]" ref="tableRef"  :loading="loading" :url="pageSystemDataSettings" :params="queryParams" :col-size="4" layout="card">
-      <template #empty>
-        <el-empty description="暂无数据源配置">
-          <el-button type="primary" @click="openEdit()">新建配置</el-button>
-        </el-empty>
-      </template>
+      <ScTable
+        class="enhanced-card-grid"
+        ref="tableRef"
+        :loading="loading"
+        :url="pageSystemDataSettings"
+        :params="queryParams"
+        :col-size="4"
+        layout="card"
+      >
+        <template #empty>
+          <el-empty description="暂无数据源配置">
+            <el-button type="primary" @click="openEdit()">新建配置</el-button>
+          </el-empty>
+        </template>
 
-      <template #default="{ row: item }">
-        <div class="enhanced-card-wrapper">
-          <el-card :class="['enhanced-data-card', getTypeClass(item.systemDataSettingType)]" shadow="never">
-            <!-- 卡片状态指示器 -->
-            <div class="card-status-indicator" :class="getStatusClass(item)"></div>
-            
-            <!-- 卡片头部 -->
-            <div class="enhanced-card-header">
-              <div class="header-main">
-                <div class="icon-container">
-                  <img v-if="item.systemDataSettingIcon" :src="item.systemDataSettingIcon" class="data-icon" />
-                  <div v-else class="data-icon-placeholder" :class="getTypeClass(item.systemDataSettingType)">
-                    <IconifyIconOnline :icon="getTypeIcon(item.systemDataSettingType)" />
-                  </div>
-                </div>
-                <div class="title-section">
-                  <h3 class="data-title" :title="item.systemDataSettingName">
-                    {{ item.systemDataSettingName }}
-                  </h3>
-                  <div class="type-badge">
-                    <el-tag :type="getTypeTag(item.systemDataSettingType)" size="small" effect="light">
-                      {{ item.systemDataSettingType }}
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-              <div class="header-actions">
-                <div class="quick-actions">
-                  <el-tooltip v-if="capOf(item)?.document" content="查看文档" placement="top">
-                    <el-button class="quick-action-btn" size="small" text @click.stop="viewDocument(item)">
-                      <IconifyIconOnline icon="ri:file-text-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="capOf(item)?.backup" :content="backupOn[item.systemDataSettingId!] ? '停止备份' : '开始备份'" placement="top">
-                    <el-button 
-                      class="quick-action-btn" 
-                      :class="{ 'backup-active': backupOn[item.systemDataSettingId!] }"
-                      size="small" 
-                      text 
-                      @click.stop="toggleBackup(item)"
+        <template #default="{ row: item }">
+          <div class="enhanced-card-wrapper">
+            <el-card
+              :class="[
+                'enhanced-data-card',
+                getTypeClass(item.systemDataSettingType),
+              ]"
+              shadow="never"
+            >
+              <!-- 卡片状态指示器 -->
+              <div
+                class="card-status-indicator"
+                :class="getStatusClass(item)"
+              ></div>
+
+              <!-- 卡片头部 -->
+              <div class="enhanced-card-header">
+                <div class="header-main">
+                  <div class="icon-container">
+                    <img
+                      v-if="item.systemDataSettingIcon"
+                      :src="item.systemDataSettingIcon"
+                      class="data-icon"
+                    />
+                    <div
+                      v-else
+                      class="data-icon-placeholder"
+                      :class="getTypeClass(item.systemDataSettingType)"
                     >
-                      <IconifyIconOnline :icon="backupOn[item.systemDataSettingId!] ? 'ri:pause-line' : 'ri:play-line'" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="isJdbcItem(item)" content="上传驱动" placement="top">
-                    <el-upload :auto-upload="false" :show-file-list="false" :on-change="f => onUploadDriver(item, f)" class="upload-action">
-                      <el-button class="quick-action-btn" size="small" text>
-                        <IconifyIconOnline icon="ri:upload-2-line" />
+                      <IconifyIconOnline
+                        :icon="getTypeIcon(item.systemDataSettingType)"
+                      />
+                    </div>
+                  </div>
+                  <div class="title-section">
+                    <h3 class="data-title" :title="item.systemDataSettingName">
+                      {{ item.systemDataSettingName }}
+                    </h3>
+                    <div class="type-badge">
+                      <el-tag
+                        :type="getTypeTag(item.systemDataSettingType)"
+                        size="small"
+                        effect="light"
+                      >
+                        {{ item.systemDataSettingType }}
+                      </el-tag>
+                    </div>
+                  </div>
+                </div>
+                <div class="header-actions">
+                  <div class="quick-actions">
+                    <el-tooltip
+                      v-if="capOf(item)?.document"
+                      content="查看文档"
+                      placement="top"
+                    >
+                      <el-button
+                        class="quick-action-btn"
+                        size="small"
+                        text
+                        @click.stop="viewDocument(item)"
+                      >
+                        <IconifyIconOnline icon="ri:file-text-line" />
                       </el-button>
-                    </el-upload>
-                  </el-tooltip>
-                  <el-tooltip content="编辑配置" placement="top">
-                    <el-button class="quick-action-btn" size="small" text @click.stop="openEdit(item)">
-                      <IconifyIconOnline icon="ri:edit-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip content="删除数据源" placement="top">
-                    <el-button class="quick-action-btn danger" size="small" text @click.stop="remove(item)">
-                      <IconifyIconOnline icon="ri:delete-bin-line" />
+                    </el-tooltip>
+                    <el-tooltip
+                      v-if="capOf(item)?.backup"
+                      :content="
+                        backupOn[item.systemDataSettingId!]
+                          ? '停止备份'
+                          : '开始备份'
+                      "
+                      placement="top"
+                    >
+                      <el-button
+                        class="quick-action-btn"
+                        :class="{
+                          'backup-active': backupOn[item.systemDataSettingId!],
+                        }"
+                        size="small"
+                        text
+                        @click.stop="toggleBackup(item)"
+                      >
+                        <IconifyIconOnline
+                          :icon="
+                            backupOn[item.systemDataSettingId!]
+                              ? 'ri:pause-line'
+                              : 'ri:play-line'
+                          "
+                        />
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip
+                      v-if="isJdbcItem(item)"
+                      content="上传驱动"
+                      placement="top"
+                    >
+                      <el-upload
+                        :auto-upload="false"
+                        :show-file-list="false"
+                        :on-change="(f) => onUploadDriver(item, f)"
+                        class="upload-action"
+                      >
+                        <el-button class="quick-action-btn" size="small" text>
+                          <IconifyIconOnline icon="ri:upload-2-line" />
+                        </el-button>
+                      </el-upload>
+                    </el-tooltip>
+                    <el-tooltip content="编辑配置" placement="top">
+                      <el-button
+                        class="quick-action-btn"
+                        size="small"
+                        text
+                        @click.stop="openEdit(item)"
+                      >
+                        <IconifyIconOnline icon="ri:edit-line" />
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip content="删除数据源" placement="top">
+                      <el-button
+                        class="quick-action-btn danger"
+                        size="small"
+                        text
+                        @click.stop="remove(item)"
+                      >
+                        <IconifyIconOnline icon="ri:delete-bin-line" />
+                      </el-button>
+                    </el-tooltip>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 卡片主体内容 -->
+              <div class="enhanced-card-body">
+                <div class="connection-info">
+                  <div class="info-item">
+                    <div class="info-icon">
+                      <IconifyIconOnline icon="ri:terminal-line" />
+                    </div>
+                    <div class="info-content">
+                      <div class="info-label">控制台类型</div>
+                      <div class="info-value">
+                        {{ item.systemDataSettingConsoleType || "未配置" }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-icon">
+                      <IconifyIconOnline icon="ri:link-m" />
+                    </div>
+                    <div class="info-content">
+                      <div class="info-label">连接地址</div>
+                      <div class="info-value" :title="addressOf(item)">
+                        {{ addressOf(item) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 连接状态 -->
+                <div class="connection-status">
+                  <div
+                    class="status-indicator"
+                    :class="getConnectionStatus(item)"
+                  >
+                    <div class="status-dot"></div>
+                    <span class="status-text">{{
+                      getConnectionStatusText(item)
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 背景装饰 -->
+              <div class="card-decoration" :style="bgStyle(item)"></div>
+
+              <!-- 操作按钮 -->
+              <div class="enhanced-card-actions" @click.stop>
+                <div class="action-buttons">
+                  <el-tooltip content="打开控制台" placement="top">
+                    <el-button
+                      size="small"
+                      type="primary"
+                      @click.stop.prevent="openConsole(item)"
+                      class="action-btn primary-action"
+                    >
+                      <IconifyIconOnline icon="ri:login-circle-line" />
                     </el-button>
                   </el-tooltip>
                 </div>
               </div>
-            </div>
-             
-             <!-- 卡片主体内容 -->
-             <div class="enhanced-card-body">
-               <div class="connection-info">
-                 <div class="info-item">
-                   <div class="info-icon">
-                     <IconifyIconOnline icon="ri:terminal-line" />
-                   </div>
-                   <div class="info-content">
-                     <div class="info-label">控制台类型</div>
-                     <div class="info-value">{{ item.systemDataSettingConsoleType || '未配置' }}</div>
-                   </div>
-                 </div>
-                 <div class="info-item">
-                   <div class="info-icon">
-                     <IconifyIconOnline icon="ri:link-m" />
-                   </div>
-                   <div class="info-content">
-                     <div class="info-label">连接地址</div>
-                     <div class="info-value" :title="addressOf(item)">{{ addressOf(item) }}</div>
-                   </div>
-                 </div>
-               </div>
-               
-               <!-- 连接状态 -->
-               <div class="connection-status">
-                 <div class="status-indicator" :class="getConnectionStatus(item)">
-                   <div class="status-dot"></div>
-                   <span class="status-text">{{ getConnectionStatusText(item) }}</span>
-                 </div>
-               </div>
-             </div>
-             
-             <!-- 背景装饰 -->
-             <div class="card-decoration" :style="bgStyle(item)"></div>
-
-             <!-- 操作按钮 -->
-             <div class="enhanced-card-actions" @click.stop>
-              <div class="action-buttons">
-                <el-tooltip content="打开控制台" placement="top">
-                  <el-button size="small" type="primary" @click.stop.prevent="openConsole(item)" class="action-btn primary-action">
-                    <IconifyIconOnline icon="ri:login-circle-line" />
-                  </el-button>
-                </el-tooltip>
-              </div>
-            </div>
-          </el-card>
-        </div>
-      </template>
+            </el-card>
+          </div>
+        </template>
       </ScTable>
     </div>
 
     <!-- 对话框组件 -->
-    <EditDialog v-model:visible="showEdit" :model-value="current" @success="load" />
-    <el-dialog v-model="showDoc" title="数据源文档" width="80%" draggable class="doc-dialog">
-      <iframe :src="docUrl" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>
+    <EditDialog
+      v-model:visible="showEdit"
+      :model-value="current"
+      @success="load"
+    />
+    <el-dialog
+      v-model="showDoc"
+      title="数据源文档"
+      width="80%"
+      draggable
+      class="doc-dialog"
+    >
+      <iframe
+        :src="docUrl"
+        style="width: 100%; height: 70vh; border: none; border-radius: 8px"
+      ></iframe>
     </el-dialog>
-    <ConsoleSettingDialog v-model="showSetting" :setting-id="settingId" :setting-type="settingType" @saved="onSavedSetting" />
-    <BackConsoleDialog :visibe="showBackupDialog" :data="backupLogList" @close="onCloseBackupDialog" />
+    <ConsoleSettingDialog
+      v-model="showSetting"
+      :setting-id="settingId"
+      :setting-type="settingType"
+      @saved="onSavedSetting"
+    />
+    <BackConsoleDialog
+      :visibe="showBackupDialog"
+      :data="backupLogList"
+      @close="onCloseBackupDialog"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, inject, onBeforeUnmount, reactive } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+  reactive,
+} from "vue";
 import {
   pageSystemDataSettings,
   deleteSystemDataSetting,
@@ -206,9 +351,11 @@ import {
   startBackup,
   stopBackup,
   backupStatus,
-  querySystemDataSeries
+  querySystemDataSeries,
+  fetchServerStatic,
 } from "@/api/system-data";
 import { useRouter } from "vue-router";
+import { ServerDataStatic } from "@/types/server-data";
 import EditDialog from "./modules/EditDialog.vue";
 import ConsoleSettingDialog from "./modules/ConsoleSettingDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -221,7 +368,9 @@ import "prismjs/themes/prism-tomorrow.css"; // ④ 主题（任选）
 const loading = ref(false);
 const list = ref<SystemDataSetting[]>([]);
 const router = useRouter();
-const capMap = ref<Record<number, { backup?: boolean; document?: boolean; file?: boolean }>>({});
+const capMap = ref<
+  Record<number, { backup?: boolean; document?: boolean; file?: boolean }>
+>({});
 const backupOn = ref<Record<number, boolean>>({});
 const showDoc = ref(false);
 const docUrl = ref("");
@@ -254,16 +403,20 @@ async function loadBackupList() {
     toTimestamp: now,
     offset: 0,
     count: 100,
-    sort: "timestamp desc"
+    sort: "timestamp desc",
   });
   // 后端返回结构未知，这里尽量兼容常见字段
-  const items = (res?.data?.items || res?.data?.data || res?.data || []) as any[];
+  const items = (res?.data?.items ||
+    res?.data?.data ||
+    res?.data ||
+    []) as any[];
   backupList.value = Array.isArray(items) ? items : [];
 }
 
 const showEdit = ref(false);
 const current = ref<SystemDataSetting | null>(null);
 
+const fetchServerStaticData = ref<ServerDataStatic>({} as ServerDataStatic);
 const showSetting = ref(false);
 const settingId = ref<number | null>(null);
 const settingType = ref<string | undefined>(undefined);
@@ -274,15 +427,27 @@ const searchKey = ref("");
 const typeFilter = ref<string | "">("");
 const sortKey = ref<"name" | "type">("name");
 
-const typeOptions = computed(() => Array.from(new Set(list.value.map(i => i.systemDataSettingType).filter(Boolean))) as string[]);
+const typeOptions = computed(
+  () =>
+    Array.from(
+      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean))
+    ) as string[]
+);
 
 // 交给 ScTable 处理分页与过滤，这里保留 options 构建
 const queryParams = ref({ current: 1, size: 20, name: "", type: "" });
 watch([searchKey, typeFilter], () => {
-  queryParams.value = { ...queryParams.value, current: 1, name: searchKey.value, type: typeFilter.value || "" };
+  queryParams.value = {
+    ...queryParams.value,
+    current: 1,
+    name: searchKey.value,
+    type: typeFilter.value || "",
+  };
 });
 
-function getTypeTag(type?: string): "success" | "warning" | "info" | "primary" | "danger" {
+function getTypeTag(
+  type?: string
+): "success" | "warning" | "info" | "primary" | "danger" {
   const t = (type || "").toLowerCase();
   if (t.includes("jdbc") || t.includes("sql")) {
     return "success";
@@ -297,7 +462,12 @@ function getTypeTag(type?: string): "success" | "warning" | "info" | "primary" |
 }
 
 function addressOf(i: SystemDataSetting) {
-  return i.systemDataSettingServer || (i.systemDataSettingHost ? `${i.systemDataSettingHost}:${i.systemDataSettingPort || ""}` : "-");
+  return (
+    i.systemDataSettingServer ||
+    (i.systemDataSettingHost
+      ? `${i.systemDataSettingHost}:${i.systemDataSettingPort || ""}`
+      : "-")
+  );
 }
 
 function getTypeClass(type?: string) {
@@ -317,7 +487,9 @@ function getTypeClass(type?: string) {
 function isJdbcItem(row: SystemDataSetting) {
   const type = (row.systemDataSettingType || "").toLowerCase();
   const url = (row.systemDataSettingServer || "").toLowerCase();
-  return type.includes("jdbc") || type.includes("sql") || url.startsWith("jdbc:");
+  return (
+    type.includes("jdbc") || type.includes("sql") || url.startsWith("jdbc:")
+  );
 }
 
 async function load() {
@@ -331,43 +503,58 @@ function openEdit(row?: SystemDataSetting) {
 
 function openConsole(row: SystemDataSetting) {
   const type = (row.systemDataSettingType || "").toLowerCase();
-  if (type.includes("jdbc") || type.includes("sql") || (row.systemDataSettingServer || "").toLowerCase().startsWith("jdbc:")) {
-    router.push({
+  let _url = "";
+  if (
+    type.includes("jdbc") ||
+    type.includes("sql") ||
+    (row.systemDataSettingServer || "").toLowerCase().startsWith("jdbc:")
+  ) {
+    _url = router.resolve({
       name: "dataJdbcConsoleFull",
-      query: { id: row.systemDataSettingId }
-    });
-    return;
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("redis")) {
-    router.push({
+  else if (type.includes("redis")) {
+    _url = router.resolve({
       name: "dataRedisConsoleFull",
-      query: { id: row.systemDataSettingId }
-    });
-    return;
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("zk") || type.includes("zookeeper")) {
-    router.push({
+  else if (type.includes("zk") || type.includes("zookeeper")) {
+    _url = router.resolve({
       name: "dataZookeeperConsoleFull",
-      query: { id: row.systemDataSettingId }
-    });
-    return;
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("influx")) {
-    router.push({ name: "dataInfluxConsoleFull", query: { id: row.systemDataSettingId } });
-    return;
+ else  if (type.includes("influx")) {
+    _url = router.resolve({
+      name: "dataInfluxConsoleFull",
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("mqtt")) {
-    router.push({ name: "dataMqttConsoleFull", query: { id: row.systemDataSettingId } });
-    return;
+  else if (type.includes("mqtt")) {
+    _url = router.resolve({
+      name: "dataMqttConsoleFull",
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("graph") || type.includes("graphdb") || type.includes("neo4j")) {
-    router.push({ name: "dataGraphConsoleFull", query: { id: row.systemDataSettingId } });
-    return;
+  else if (
+    type.includes("graph") ||
+    type.includes("graphdb") ||
+    type.includes("neo4j")
+  ) {
+    _url = router.resolve({
+      name: "dataGraphConsoleFull",
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
-  if (type.includes("email")) {
-    router.push({ name: "dataEmailConsoleFull", query: { id: row.systemDataSettingId } });
-    return;
+  else if (type.includes("email")) {
+    _url = router.resolve({
+      name: "dataEmailConsoleFull",
+      query: { id: row.systemDataSettingId },
+    }).href;
   }
+   window.open(_url, '_blank')
 }
 
 function openSetting(row: SystemDataSetting) {
@@ -382,7 +569,7 @@ function onSavedSetting() {
 
 async function remove(row: SystemDataSetting) {
   await ElMessageBox.confirm(`确定删除 ${row.systemDataSettingName}?`, "提示", {
-    type: "warning"
+    type: "warning",
   });
   const res = await deleteSystemDataSetting(row.systemDataSettingId as number);
   if (res?.success) {
@@ -430,7 +617,11 @@ async function onUploadDriver(row: SystemDataSetting, fileEvent: any) {
 
 function capOf(item: any) {
   if (!item) return {};
-  return { backup: item.capabilitiesBackup, document: item.capabilitiesDocument, file: item.capabilitiesFile };
+  return {
+    backup: item.capabilitiesBackup,
+    document: item.capabilitiesDocument,
+    file: item.capabilitiesFile,
+  };
 }
 
 function bgStyle(item: SystemDataSetting) {
@@ -441,7 +632,12 @@ function bgStyle(item: SystemDataSetting) {
 // 新增的UI辅助函数
 function getTypeIcon(type?: string): string {
   const t = (type || "").toLowerCase();
-  if (t.includes("jdbc") || t.includes("sql") || t.includes("mysql") || t.includes("postgres")) {
+  if (
+    t.includes("jdbc") ||
+    t.includes("sql") ||
+    t.includes("mysql") ||
+    t.includes("postgres")
+  ) {
     return "ri:database-2-line";
   }
   if (t.includes("redis")) {
@@ -476,7 +672,7 @@ function getConnectionStatus(item: SystemDataSetting): string {
   // 根据实际情况判断连接状态
   const hasAddress = addressOf(item) !== "-";
   const hasConsole = item.systemDataSettingConsoleType;
-  
+
   if (hasAddress && hasConsole) {
     return "status-connected";
   } else if (hasAddress) {
@@ -498,58 +694,41 @@ function getConnectionStatusText(item: SystemDataSetting): string {
       return "未知";
   }
 }
-
-onMounted(load);
-// 使用 inject 获取全局 socket，统一监听 system/data 前缀主题
-const globalSocket = inject<any>("globalSocket");
-let unsubBackup: any | null = null;
-let unsubLog: any | null = null;
-onMounted(async () => {
-  if (!globalSocket) return;
-  await globalSocket.connect?.();
-  unsubBackup = globalSocket.on?.("system/data/backup", (m: any) => {
-    const sid = Number(m?.settingId || m?.data?.settingId);
-    if (!sid) {
-      return;
-    }
-    if (m?.message) {
-      backupLogList.push(format(m?.message));
-    }
-
-    if (backupLogList.length > 100) {
-      backupLogList.shift();
-    }
-    const curr = backupCounts.value[sid] || 0;
-    backupCounts.value = { ...backupCounts.value, [sid]: curr + 1 };
+/**
+ * 服务器静态数据
+ */
+const fetchServerStaticDataFunction = () => {
+  fetchServerStatic().then((res) => {
+    fetchServerStaticData.value = res.data;
   });
-  unsubLog = globalSocket.on?.("system/data/log", (m: any) => {
-    const sid = Number(m?.settingId || m?.data?.settingId);
-    if (!sid) return;
-    const curr = logCounts.value[sid] || 0;
-    logCounts.value = { ...logCounts.value, [sid]: curr + 1 };
-  });
-});
-onBeforeUnmount(() => {
-  if (unsubBackup) unsubBackup();
-  if (unsubLog) unsubLog();
+};
+
+onMounted(() => {
+  load();
+  fetchServerStaticDataFunction();
 });
 </script>
 
 <style scoped>
 /* 页面主容器 */
 .data-management-page {
-  min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* 页面头部 */
 .page-header {
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-bottom: 1px solid #e2e8f0;
-  padding: 32px 24px;
-  margin-bottom: 24px;
+  padding: 24px 0px;
+  margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.content-section {
+  position: relative;
 }
 
 .header-content {
@@ -637,11 +816,6 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-/* 工具栏区域 */
-.toolbar-section {
-  margin: 0 auto;
-}
-
 .modern-toolbar {
   display: flex;
   align-items: center;
@@ -685,11 +859,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* 内容区域 */
-.content-section {
-  margin: 0 auto;
-}
-
 /* 增强卡片网格 */
 .enhanced-card-grid {
   --gap: 20px;
@@ -714,12 +883,16 @@ onBeforeUnmount(() => {
   background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .enhanced-data-card:hover {
   border-color: #3b82f6;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* 卡片状态指示器 */
@@ -893,18 +1066,18 @@ onBeforeUnmount(() => {
 }
 
 .quick-action-btn.danger:hover {
-    background: linear-gradient(135deg, #f56c6c, #f78989);
-    color: white;
-    border-color: #f56c6c;
-  }
+  background: linear-gradient(135deg, #f56c6c, #f78989);
+  color: white;
+  border-color: #f56c6c;
+}
 
-  .upload-action {
-    display: inline-block;
-  }
+.upload-action {
+  display: inline-block;
+}
 
-  .upload-action .el-upload {
-    display: inline-block;
-  }
+.upload-action .el-upload {
+  display: inline-block;
+}
 
 .status-badges {
   display: flex;
@@ -1036,7 +1209,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1280,7 +1454,7 @@ onBeforeUnmount(() => {
     align-items: flex-start;
     gap: 24px;
   }
-  
+
   .stats-overview {
     width: 100%;
     justify-content: space-between;
@@ -1291,39 +1465,39 @@ onBeforeUnmount(() => {
   .page-header {
     padding: 24px 16px;
   }
-  
+
   .toolbar-section,
   .content-section {
     padding: 0 16px;
   }
-  
+
   .modern-toolbar {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
   }
-  
+
   .modern-toolbar .left {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .w-280,
   .w-200,
   .w-160 {
     width: 100%;
   }
-  
+
   .stats-overview {
     flex-wrap: wrap;
     gap: 12px;
   }
-  
+
   .stat-item {
     flex: 1;
     min-width: calc(50% - 6px);
   }
-  
+
   .secondary-actions {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1333,23 +1507,23 @@ onBeforeUnmount(() => {
   .page-title {
     font-size: 24px;
   }
-  
+
   .page-subtitle {
     font-size: 14px;
   }
-  
+
   .enhanced-card-header {
     padding: 20px 16px 12px;
   }
-  
+
   .enhanced-card-body {
     padding: 0 16px 12px;
   }
-  
+
   .enhanced-card-actions {
     padding: 12px 16px 20px;
   }
-  
+
   .secondary-actions {
     grid-template-columns: 1fr;
   }

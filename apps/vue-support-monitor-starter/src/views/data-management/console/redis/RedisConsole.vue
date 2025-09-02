@@ -135,13 +135,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount, inject } from "vue";
 import CommonContextMenu, { type MenuItem } from "@/components/CommonContextMenu.vue";
+import { ElMessage } from "element-plus";
+import { socket } from "@repo/core";
+import { getConfig } from "@repo/config";
+import { splitToArray } from "@repo/utils";
 
 import { extractArrayFromApi, normalizeTreeNode } from "@/views/data-management/utils/dataTree";
 import { getConsoleRoot, getConsoleChildren, getConsoleNode } from "@/api/system-data";
 
 const props = defineProps<{ id: number }>();
+
+// 使用全局Socket.IO或创建独立连接
+const globalSocket = inject<any>('globalSocket');
+let socketConnection: any = null;
+let unsubscribeHandlers: any[] = [];
+
 const treeRef = ref<any>();
 
 // 左侧树
@@ -545,9 +555,75 @@ function resetWidth() {
   leftWidth.value = 300;
 }
 
-onBeforeUnmount(() => onDragEnd());
+onBeforeUnmount(() => {
+  onDragEnd();
+  
+  // 清理Socket.IO事件监听
+  unsubscribeHandlers.forEach(handler => handler());
+  unsubscribeHandlers = [];
+  
+  // 如果是独立连接，断开连接
+  if (socketConnection && !globalSocket?.value) {
+    socketConnection.disconnect();
+  }
+  
+  socketConnection = null;
+});
 
-onMounted(loadRoot);
+onMounted(async () => {
+  await loadRoot();
+  
+  // 建立Socket.IO连接
+  if (globalSocket?.value) {
+    // 使用全局Socket.IO连接
+    socketConnection = globalSocket.value;
+  } else {
+    // 创建独立的Socket.IO连接
+    const config = getConfig();
+    debugger
+    socketConnection = socket(splitToArray(config.SocketUrl), undefined, {});
+  }
+  
+  if (socketConnection) {
+    // 监听系统数据监听事件
+    const listenHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'redis') {
+        try {
+          console.log('Redis Console received message:', data);
+          if (data.messageType === 'status') {
+            console.log('Status update:', data.content);
+            statusText.value = data.content || '';
+          } else if (data.messageType === 'log') {
+            ElMessage.info(data.content || '');
+          } else if (data.messageType === 'error') {
+            ElMessage.error(data.content || '操作出现错误');
+          }
+        } catch (error) {
+          console.error('Error processing console message:', error);
+        }
+      }
+    };
+    
+    const logHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'redis') {
+        try {
+          console.log('Redis Console log:', data);
+          ElMessage.info(data.content || '');
+        } catch (error) {
+          console.error('Error processing log message:', error);
+        }
+      }
+    };
+    
+    socketConnection.on('system/data/listen', listenHandler);
+    socketConnection.on('system/data/log', logHandler);
+    
+    unsubscribeHandlers.push(
+      () => socketConnection.off('system/data/listen', listenHandler),
+      () => socketConnection.off('system/data/log', logHandler)
+    );
+  }
+});
 </script>
 
 <style scoped lang="scss">
