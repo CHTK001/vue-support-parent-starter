@@ -1,17 +1,16 @@
-import { defineAsyncComponent, defineComponent } from "vue";
-import * as Vue from "vue";
 import { isNumber } from "@pureadmin/utils";
-import { http } from "../http";
-import * as date from "../date";
-import * as Config from "@repo/config";
-import * as sass from "sass";
-import * as echarts from "echarts";
 import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
-import { loadJS } from "../load";
-import type { ReturnResult } from "../http";
-import { getConfig } from "@repo/config";
 import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
-import { timestamp } from "@vueuse/core";
+import * as Config from "@repo/config";
+import { getConfig } from "@repo/config";
+import * as echarts from "echarts";
+import * as sass from "sass";
+import * as Vue from "vue";
+import { defineAsyncComponent } from "vue";
+import * as date from "../date";
+import type { ReturnResult } from "../http";
+import { http } from "../http";
+import { loadJS } from "../load";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -155,7 +154,7 @@ const loadRemoteModule = (name, sysSfcId, sysSfc) => {
         }
       }
       let res = null;
-      await loadJS(getConfig().sfcScriptUrl, "js", undefined);
+      await loadJS(getConfig().SfcScriptUrl, "js", undefined);
       const loadModule = exports["vue3-sfc-loader"]?.loadModule || window["vue3-sfc-loader"]?.loadModule;
       res = await loadModule(name, getOptions(name, sysSfcId));
       cacheLoadModule[sysSfcId] = {

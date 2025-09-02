@@ -66,7 +66,13 @@
       </div>
 
       <div class="detail-content">
-        <div class="email-body" v-html="parseEmailContent(email.content)"></div>
+        <iframe 
+          ref="emailContentFrame"
+          class="email-body-iframe"
+          :srcdoc="email.content"
+          frameborder="0"
+          sandbox="allow-same-origin"
+        ></iframe>
       </div>
     </div>
 
@@ -619,6 +625,15 @@ function downloadAttachment() {
 .welcome-content p {
   margin: 0;
   font-size: 14px;
+}
+
+/* 邮件内容iframe样式 */
+.email-body-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border: none;
+  background: #fff;
 }
 
 /* 滚动条样式 */

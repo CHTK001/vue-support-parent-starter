@@ -1,18 +1,18 @@
 export interface PlatformConfigs {
-  adminRoles?: string[];
-  opsRoles?: string[];
-  cardBody?: boolean;
+  AdminRoles?: string[];
+  OpsRoles?: string[];
+  CardBody?: boolean;
   OpenAuth?: boolean;
   OpenSetting?: boolean;
   OpenTenantLogin?: boolean;
   OpenBaseLogin?: boolean;
-  sfcScriptUrl?: string;
-  remoteAnimation?: boolean;
-  menuTransition?: boolean;
+  SfcScriptUrl?: string;
+  RemoteAnimation?: boolean;
+  MenuTransition?: boolean;
   contentMargin?: Number;
   RemoteLayout?: boolean;
-  layoutRadius?: number;
-  layoutBlur?: number;
+  LayoutRadius?: number;
+  LayoutBlur?: number;
   RemoteMenu?: boolean;
   StorageEncode?: boolean;
   ShowBarSetting?: boolean;
