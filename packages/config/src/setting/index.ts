@@ -1,19 +1,19 @@
 import type { PlatformConfigs } from "../types/config";
 export const globalSetting: PlatformConfigs = {
-  adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
-  opsRoles: ["ADMIN", "SUPER_ADMIN", "OPS"], // 运维角色列表
+  AdminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
+  OpsRoles: ["ADMIN", "SUPER_ADMIN", "OPS"], // 运维角色列表
   StorageEncode: true, //缓存是否加密
-  remoteAnimation: true, //开启远程动画
+  RemoteAnimation: true, //开启远程动画
   OpenSetting: true, //开启动态配置
   OpenTenantLogin: false, //是否开启租户登录
   OpenBaseLogin: true, //是否开启基础登录
-  sfcScriptUrl: "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js", // vue3-sfc-loader 地址
+  SfcScriptUrl: "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js", // vue3-sfc-loader 地址
   OpenAuth: true, //开启鉴权
   RemoteLayout: false, //开启远程布局
   RemoteMenu: false, //开启远程菜单
-  menuTransition: false, //开启动画
-  layoutRadius: 10, // 圆角
-  layoutBlur: 10, // 模糊程度
+  MenuTransition: false, //开启动画
+  LayoutRadius: 10, // 圆角
+  LayoutBlur: 10, // 模糊程度
   ShowBarSetting: false, //是否显示设置
   ShowBarNotice: false, //是否显示通知
   ShowLanguage: true, //是否显示语言切换: false, //是否显示通知

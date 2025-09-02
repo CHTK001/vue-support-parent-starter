@@ -1,6 +1,6 @@
-import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig } from "@repo/config";
 import type { Directive } from "vue";
+import { useUserStoreHook } from "../../store/modules/UserStore";
 
 /**
  * 用户权限指令
@@ -8,7 +8,7 @@ import type { Directive } from "vue";
  */
 export const admin: Directive = {
   mounted(el) {
-    const admins = getConfig().opsRoles || [];
+    const admins = getConfig().OpsRoles || [];
     const roles = useUserStoreHook().roles || [];
     let flag = false;
     roles.map((val) => {

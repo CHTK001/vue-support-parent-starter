@@ -1,9 +1,9 @@
 // 响应式storage
+import { localStorageProxy } from "@repo/utils";
+import Storage from "responsive-storage";
 import type { App } from "vue";
 import type { PlatformConfigs } from "../index";
 import { $t, responsiveStorageNameSpace } from "../index";
-import { localStorageProxy } from "@repo/utils";
-import Storage from "responsive-storage";
 
 export const defaultRouterArrays = [
   {
@@ -38,8 +38,8 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         weak: config.Weak ?? false,
         hideTabs: config.HideTabs ?? false,
         contentMargin: config.contentMargin || 10,
-        layoutRadius: config.layoutRadius || 10,
-        layoutBlur: config.layoutRadius || 10,
+        layoutRadius: config.LayoutRadius || 10,
+        layoutBlur: config.LayoutRadius || 10,
         hideFooter: config.HideFooter ?? true,
         showLogo: config.ShowLogo ?? true,
         showModel: config.ShowModel ?? "chrome",

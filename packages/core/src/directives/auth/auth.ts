@@ -1,5 +1,5 @@
-import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig } from "@repo/config";
+import { useUserStoreHook } from "../../store/modules/UserStore";
 
 /**
  * 用户权限指令
@@ -10,12 +10,11 @@ import { getConfig } from "@repo/config";
 export default {
   mounted(el, binding) {
     const roles = useUserStoreHook().roles || [];
-    const adminRoles = getConfig().adminRoles || [];
+    const adminRoles = getConfig().AdminRoles || [];
     if (adminRoles.filter((it) => roles.includes(it)).length > 0) {
       return;
     }
     const permissions = useUserStoreHook().perms || [];
-    if (!permissions.some((v) => v === binding.value))
-      el.parentNode.removeChild(el);
+    if (!permissions.some((v) => v === binding.value)) el.parentNode.removeChild(el);
   },
 };

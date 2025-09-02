@@ -139,7 +139,7 @@ watch(
     const selectedCount = emailData.value.filter(email => email.selected).length;
     selectAll.value = selectedCount > 0 && selectedCount === emailData.value.length;
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 // 方法

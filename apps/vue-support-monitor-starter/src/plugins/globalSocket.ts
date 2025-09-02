@@ -2,21 +2,23 @@ import type { App } from "vue";
 import { socket } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
-
+import { useConfigStore } from "@repo/core";
 type Handler = (data: any) => void;
-
 class GlobalSocket {
   private client: any | null = null;
   private connecting = false;
 
   async connect(): Promise<boolean> {
-    debugger
     if (this.client) return true;
     if (this.connecting) return false;
     this.connecting = true;
     try {
-      const cfg = getConfig();
-      this.client = socket(splitToArray(cfg.SocketUrl), undefined, {});
+      useConfigStore().load();
+      this.client = useConfigStore().getSocket();
+      if(null == this.client) {
+        const cfg = getConfig();
+        this.client = socket(splitToArray(cfg.SocketUrl), undefined, {});
+      }
       this.connecting = false;
       return true;
     } catch (e) {

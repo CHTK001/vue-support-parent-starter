@@ -1158,7 +1158,7 @@ onUnmounted(() => {
 .setting-section {
   margin-bottom: 24px;
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
+  // backdrop-filter: blur(20px);
   border-radius: 16px;
   padding: 24px;
   box-shadow:

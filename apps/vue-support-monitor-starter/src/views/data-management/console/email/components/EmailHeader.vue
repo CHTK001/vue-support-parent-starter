@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { indexedDBProxy } from "@repo/utils";
+import { indexedDBProxy, message } from "@repo/utils";
 
 // 定义props
 const props = defineProps<{
@@ -50,7 +50,7 @@ async function clearEmailCacheFromDB(settingId: number) {
   try {
     const EMAIL_CACHE_PREFIX = "email_cache";
     // 清理前几页的缓存（假设最多缓存10页，支持多个文件夹）
-    const folders = ["收件箱", "草稿箱", "已发送", "已删除", "垃圾邮件", "病毒文件夹", "广告邮件", "订阅邮件"];
+    const folders = ["INBOX","收件箱", "草稿箱", "已发送", "已删除", "垃圾邮件", "病毒文件夹", "广告邮件", "订阅邮件"];
     const clearPromises = [];
 
     for (const folder of folders) {
@@ -82,15 +82,8 @@ async function handleRefresh() {
   if (props.settingId) {
     const menuCleared = await clearMenuFromDB(props.settingId);
     const cacheCleared = await clearEmailCacheFromDB(props.settingId);
-
-    if (menuCleared) {
-      emit("menu-cleared");
-    }
-
-    if (cacheCleared) {
-      emit("cache-cleared");
-    }
   }
+  message.success("刷新成功");
 }
 
 function handleCloudSync() {

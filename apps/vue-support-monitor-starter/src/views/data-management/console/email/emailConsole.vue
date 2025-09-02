@@ -267,6 +267,7 @@ const selectAll = ref(false);
 const searchQuery = ref("");
 const status = ref("");
 const statusType = ref<String>("success");
+const menuKey = `email_menu_${props.id}`;
 
 // 撰写邮件表单
 const composeForm = ref({
@@ -276,8 +277,15 @@ const composeForm = ref({
   content: "",
 });
 
+interface EmailFolder {
+  key: string;
+  name: string;
+  icon: string;
+  count: number;
+}
+
 // 邮箱文件夹
-const folders = ref([
+const folders = ref<EmailFolder[]>([
   // { key: "inbox", name: "收件箱", icon: "ri:inbox-line", count: 5 },
   // { key: "sent", name: "已发送", icon: "ri:send-plane-line", count: 0 },
   // { key: "drafts", name: "草稿箱", icon: "ri:draft-line", count: 2 },
@@ -313,19 +321,19 @@ const emailListRef = ref(null);
 const filteredEmails = computed(() => {
   let result = emails.value.filter((email) => {
     // 按标签过滤
-    if (activeTag.value && !email.tags.includes(activeTag.value)) {
-      return false;
-    }
+    // if (activeTag.value && !email.tags.includes(activeTag.value)) {
+    //   return false;
+    // }
 
-    // 按搜索关键词过滤
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
-      return (
-        email.subject.toLowerCase().includes(query) ||
-        email.sender.toLowerCase().includes(query) ||
-        email.preview.toLowerCase().includes(query)
-      );
-    }
+    // // 按搜索关键词过滤
+    // if (searchQuery.value) {
+    //   const query = searchQuery.value.toLowerCase();
+    //   return (
+    //     email.subject.toLowerCase().includes(query) ||
+    //     email.sender.toLowerCase().includes(query) ||
+    //     email.preview.toLowerCase().includes(query)
+    //   );
+    // }
 
     return true;
   });
@@ -546,7 +554,7 @@ function selectEmail(email: any) {
   // });
   if (!email.read) {
     email.read = true;
-    updateFolderCount();
+    // updateFolderCount();
     fetchMessageRead(email);
   }
 }
@@ -1145,7 +1153,6 @@ async function loadRoot() {
   // 加载成功后保存到 IndexedDB
   if (folders.value && folders.value.length > 0) {
     try {
-      const menuKey = `email_menu_${props.id}`;
       const menuData = {
         folders: JSON.parse(JSON.stringify(folders.value)),
         tags: JSON.parse(JSON.stringify(tags.value || [])),
@@ -1161,7 +1168,6 @@ async function loadRoot() {
 
 async function loadFromIndexedDB() {
   try {
-    const menuKey = `email_menu_${props.id}`;
     indexedDBProxy()
       .getItemAsync(menuKey)
       .then((cachedData) => {
@@ -1207,35 +1213,52 @@ onMounted(async () => {
     }
 
     // 监听邮件相关消息
-    const emailHandler = (message: any) => {
-      const settingId = Number(
-        message?.systemDataSettingId || message?.settingId
+    const emailHandler = async (message: any) => {
+      console.log("[EmailConsole] 接收到新邮件消息");
+      //设置数量
+      folders.value.forEach((it) => {
+        if(it.name === '收件箱' && message.folder == "INBOX") {
+          it.count += 1;
+          return;
+        }
+        if(it.name == message.folder) {
+          it.count += 1;
+        }
+      });
+       const cacheKey = generateCacheKey(
+        props.id,
+        message.folder == "INBOX" ? "收件箱" : message.folder,
+        emailsPageNumber.value
       );
-      if (settingId !== props.id) return;
+      let emailBox = [];
+      let emailBoxTotal = 0;
+      indexedDBProxy()
+        .getItemAsync(cacheKey).then(async (cachedData) => {
+          //@ts-ignore
+          emailBox = cachedData?.emails || [];
+          //@ts-ignore
+          emailBoxTotal = cachedData?.total || 0;
+          emailBoxTotal ++;
+          emailBox.unshift(message);
 
-      console.log("[EmailConsole] 收到Socket.IO消息:", message);
+          emails.value = emailBox;
+          emailsTotal.value = emailBoxTotal;
+             // 保存到缓存
+          await saveEmailsToCache(
+              props.id,
+              message.folder == "INBOX" ? "收件箱" : message.folder,
+              emailsPageNumber.value,
+              emailBox,
+              emailBoxTotal,
+              hasMore.value
+            );
+      });
 
-      if (message.type === "status") {
-        status.value = message.data;
-        statusType.value = message.success ? "success" : "error";
-
-        // 清除状态提示
-        setTimeout(() => {
-          status.value = "";
-        }, 5000);
-      } else if (message.type === "log") {
-        console.log("[EmailConsole] 日志:", message.data);
-      } else if (message.type === "error") {
-        ElMessage.error(message.data || "邮件操作失败");
-      } else if (message.type === "email_message") {
-        // 处理邮件消息
-        console.log("[EmailConsole] 邮件消息:", message.data);
-      }
     };
 
     // 监听system/data/listen主题
     const unsubListen = socketConnection.on?.(
-      "system/data/listen",
+      "system/data/listen/new_message/" + props.id,
       emailHandler
     );
     if (unsubListen) unsubscribeHandlers.push(unsubListen);
