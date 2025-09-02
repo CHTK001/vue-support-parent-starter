@@ -2867,5 +2867,6 @@
   "buttons.monitor.oss": "",
   "buttons.monitor.serial-config": "",
   "buttons.monitor.database-tools": "",
-  "buttons.monitor.setting": ""
+  "buttons.monitor.setting": "",
+  "buttons.monitor.app-list": "应用列表"
 }

@@ -55,7 +55,7 @@
 }
 .text-empty {
   color: gray;
-  font-size: 14px
+  font-size: 14px;
 }
 .el-dialog.is-fullscreen {
   border-radius: 0 !important;
@@ -112,15 +112,15 @@
 }
 .bg-theme {
   --un-bg-opacity: 1;
-    background-color: rgba(85, 85, 255, var(--un-bg-opacity));
+  background-color: rgba(85, 85, 255, var(--un-bg-opacity));
 }
 .bg-theme-skyblue {
   --un-bg-opacity: 1;
-    background-color: rgba(82, 180, 254, var(--un-bg-opacity));
+  background-color: rgba(82, 180, 254, var(--un-bg-opacity));
 }
 .bg-theme-skyblue2 {
   --un-bg-opacity: 1;
-    background-color: rgba(133, 231, 254, var(--un-bg-opacity));
+  background-color: rgba(133, 231, 254, var(--un-bg-opacity));
 }
 
 .el-dropdown-menu__item {
@@ -130,9 +130,10 @@
   border-radius: 9999px;
 }
 
-translate-x-50\%{
+translate-x-50\% {
   --un-translate-x: -50%;
-  transform: translate(var(--un-translate-x)) translateY(var(--un-translate-y)) translateZ(var(--un-translate-z)) rotate(var(--un-rotate)) rotateX(var(--un-rotate-x)) rotateY(var(--un-rotate-y)) rotate(var(--un-rotate-z)) skew(var(--un-skew-x)) skewY(var(--un-skew-y)) scaleX(var(--un-scale-x)) scaleY(var(--un-scale-y)) scaleZ(var(--un-scale-z));
+  transform: translate(var(--un-translate-x)) translateY(var(--un-translate-y)) translateZ(var(--un-translate-z)) rotate(var(--un-rotate)) rotateX(var(--un-rotate-x)) rotateY(var(--un-rotate-y)) rotate(var(--un-rotate-z)) skew(var(--un-skew-x)) skewY(var(--un-skew-y)) scaleX(var(--un-scale-x))
+    scaleY(var(--un-scale-y)) scaleZ(var(--un-scale-z));
 }
 .el-custom-line {
   border: 1px solid var(--el-border-color);
@@ -144,13 +145,21 @@ translate-x-50\%{
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
   overflow: hidden;
-  margin: 10px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-left: 0px;
+  display: flex;
+  flex-direction: column;
   transition: var(--el-transition-duration);
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  .content-section {
+    flex: 1;
+    height: 100%;
+  }
 }
 .shadow {
-  box-shadow: 0 4px 10px 0 rgba(163, 146, 238, .302);
+  box-shadow: 0 4px 10px 0 rgba(163, 146, 238, 0.302);
 }
 .sidebar-custom {
   --un-shadow: var(--sider-box-shadow);
@@ -158,11 +167,11 @@ translate-x-50\%{
 }
 .sidebar-custom-v1 {
   --un-shadow-v1: var(--sider-box-shadow-v1);
-    box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow-v1);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow-v1);
 }
 .sidebar-custom-v2 {
   --un-shadow-v2: var(--sider-box-shadow-v2);
-    box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow-v2);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow-v2);
 }
 .ltr {
   border-radius: 0 calc(var(--layoutRadius)) calc(var(--layoutRadius)) 0 !important;
@@ -213,7 +222,7 @@ translate-x-50\%{
   align-items: center;
   -webkit-backdrop-filter: blur(4.2px);
   backdrop-filter: blur(4.2px);
-  background: hsla(0, 0%, 7%, .4);
+  background: hsla(0, 0%, 7%, 0.4);
   border-radius: 100px;
   display: flex;
   height: 30px;
@@ -401,7 +410,6 @@ section.panel-padding > aside {
   padding: 10px 10px;
 }
 
-
 .el-dialog__footer {
   padding: 10px 10px !important;
   // border-top: 1px solid #F0F0F0;
@@ -485,10 +493,10 @@ section.panel-padding > aside {
   height: 28px;
   line-height: 28px;
   padding: 0 14px;
-  border: 0 ;
-  border-radius: 6px ;
+  border: 0;
+  border-radius: 6px;
   font-weight: bold;
-  transition: all 0s ;
+  transition: all 0s;
 }
 .el-tag--warning {
   font-weight: bold;
@@ -612,21 +620,21 @@ section.panel-padding > aside {
     width: 2px;
     height: 2px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(50, 50, 50, 0.2) !important;
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb:hover {
     background-color: rgba(50, 50, 50, 0.4) !important;
   }
-  
+
   &::-webkit-scrollbar-track {
     background-color: rgba(50, 50, 50, 0.05) !important;
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-track:hover {
     background-color: rgba(50, 50, 50, 0.1) !important;
   }

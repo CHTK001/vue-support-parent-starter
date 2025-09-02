@@ -15,9 +15,20 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, inject } from 'vue'
+import { ElMessage } from 'element-plus'
 import { executeConsole } from '@/api/system-data'
+import { socket } from '@repo/core'
+import { getConfig } from '@repo/config'
+import { splitToArray } from '@repo/utils'
+
 const props = defineProps<{ id:number }>()
+
+// 使用全局Socket.IO或创建独立连接
+const globalSocket = inject<any>('globalSocket')
+let socketConnection: any = null
+let unsubscribeHandlers: any[] = []
+
 const topic = ref('test/topic')
 const subTopic = ref('test/#')
 const payload = ref('hello')
@@ -28,6 +39,76 @@ async function publish(){
 async function subscribe(){
   await executeConsole(props.id, `SUBSCRIBE ${subTopic.value}`, 'mqtt')
 }
+
+onMounted(async () => {
+  // 建立Socket.IO连接
+  if (globalSocket?.value) {
+    // 使用全局Socket.IO连接
+    socketConnection = globalSocket.value
+  } else {
+    // 创建独立的Socket.IO连接
+    const config = getConfig()
+    socketConnection = socket(splitToArray(config.SocketUrl), undefined, {})
+  }
+  
+  if (socketConnection) {
+    // 监听系统数据监听事件
+    const listenHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'mqtt') {
+        try {
+          console.log('MQTT Console received message:', data)
+          if (data.messageType === 'mqtt_message') {
+            // 处理 MQTT 消息，添加到消息列表
+            messages.value.unshift({
+              time: new Date().toLocaleString(),
+              topic: data.topic || '',
+              payload: data.content || data.payload || ''
+            })
+          } else if (data.messageType === 'log') {
+            ElMessage.info(data.content || '')
+          } else if (data.messageType === 'error') {
+            ElMessage.error(data.content || '操作出现错误')
+          }
+        } catch (error) {
+          console.error('Error processing console message:', error)
+        }
+      }
+    }
+    
+    const logHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'mqtt') {
+        try {
+          console.log('MQTT Console log:', data)
+          ElMessage.info(data.content || '')
+        } catch (error) {
+          console.error('Error processing log message:', error)
+        }
+      }
+    }
+    
+    socketConnection.on('system/data/listen', listenHandler)
+    socketConnection.on('system/data/log', logHandler)
+    
+    unsubscribeHandlers.push(
+      () => socketConnection.off('system/data/listen', listenHandler),
+      () => socketConnection.off('system/data/log', logHandler)
+    )
+  }
+})
+
+onBeforeUnmount(() => {
+  // 清理Socket.IO事件监听
+  unsubscribeHandlers.forEach(handler => handler())
+  unsubscribeHandlers = []
+  
+  // 如果是独立连接，断开连接
+  if (socketConnection && !globalSocket?.value) {
+    socketConnection.disconnect()
+  }
+  
+  socketConnection = null
+})
+
 </script>
 <style scoped>
 .console{ display:flex; flex-direction:column; gap:8px; }

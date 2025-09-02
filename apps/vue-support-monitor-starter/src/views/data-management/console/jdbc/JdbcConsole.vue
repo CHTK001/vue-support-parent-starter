@@ -27,7 +27,7 @@
       >
         <template #default="{ node, data }">
           <IconifyIconOnline :icon="getJdbcNodeIcon(node, data)" class="mr-1" />
-          <span class="flex justify-between w-full !max-w-[120px]" >
+          <span class="flex justify-between w-full !max-w-[120px]">
             <span>
               <span>{{ data.name }}</span>
               <span class="el-form-item-msg ml-2 mt-[3px]">{{
@@ -238,7 +238,7 @@
                       class="comment-text el-form-item-msg"
                       :title="col.name"
                     >
-                      <span v-if="col.comment ">（{{ col.comment }}）</span>
+                      <span v-if="col.comment">（{{ col.comment }}）</span>
                     </div>
                     <div>{{ row[col.name] }}</div>
                   </div>
@@ -264,9 +264,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, inject } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import CodeEditor from "@/components/codeEditor/index.vue";
+import { socket } from "@repo/core";
+import { getConfig } from "@repo/config";
+import { splitToArray } from "@repo/utils";
 // request不再直接使用，统一在system-data.ts封装
 import {
   extractArrayFromApi,
@@ -292,6 +295,11 @@ import {
 
 const props = defineProps<{ id: number }>();
 
+// 使用全局Socket.IO或创建独立连接
+const globalSocket = inject<any>('globalSocket');
+let socketConnection: any = null;
+let unsubscribeHandlers: any[] = [];
+
 const treeData = ref<any[]>([]);
 const treeRef = ref<any>();
 const treeVersion = ref(0);
@@ -312,7 +320,7 @@ const keyword = ref("");
 const currentPath = ref<string | undefined>(undefined);
 
 const sql = ref("select * from file_system");
-const columns = ref<string[]>([]);
+const columns = ref<any[]>([]);
 const rows = ref<any[]>([]);
 const tableComment = ref("");
 const analyzing = ref(false);
@@ -369,6 +377,17 @@ function resetWidth() {
 
 onBeforeUnmount(() => {
   onDragEnd();
+  
+  // 清理Socket.IO事件监听
+  unsubscribeHandlers.forEach(handler => handler());
+  unsubscribeHandlers = [];
+  
+  // 如果是独立连接，断开连接
+  if (socketConnection && !globalSocket?.value) {
+    socketConnection.disconnect();
+  }
+  
+  socketConnection = null;
 });
 
 // console config
@@ -479,7 +498,6 @@ const loadChildrenLazy = async (
  */
 function getJdbcNodeIcon(node: any, data: any): string {
   try {
-    
     const type = (data?.type || "").toString().toLowerCase();
     if (type) {
       if (
@@ -509,7 +527,12 @@ function getJdbcNodeIcon(node: any, data: any): string {
 async function execute() {
   const start = performance.now();
   searched.value = false;
-  const res = await executeConsole(props.id, sql.value, "sql", currentPath.value);
+  const res = await executeConsole(
+    props.id,
+    sql.value,
+    "sql",
+    currentPath.value
+  );
   const data = res?.data;
   const dataData = data?.data || {};
   columns.value = dataData?.columns || [];
@@ -867,7 +890,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: contextNode.value.name,
+          }
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -877,7 +904,7 @@ async function onMenuSelect(key: string) {
         ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
         // await refreshContextNodeChildren();
       } catch (_) {}
@@ -894,7 +921,11 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            inputValue: defaultName,
+          }
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -903,7 +934,7 @@ async function onMenuSelect(key: string) {
         });
         ElMessage.success("已发起备份");
         refreshNodeChildren({
-          path: contextNode.value.parentPath
+          path: contextNode.value.parentPath,
         });
       } catch (_) {}
       break;
@@ -932,7 +963,10 @@ async function refreshNodeChildren(node: any) {
   try {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
@@ -955,7 +989,10 @@ async function refreshContextNodeChildren() {
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
+    if (
+      treeRef.value &&
+      typeof treeRef.value.updateKeyChildren === "function"
+    ) {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -1038,6 +1075,55 @@ async function addFieldComment(node: any) {
 
 onMounted(async () => {
   await Promise.all([loadConsoleConfig(), loadRoot()]);
+  
+  // 建立Socket.IO连接
+  if (globalSocket?.value) {
+    // 使用全局Socket.IO连接
+    socketConnection = globalSocket.value;
+  } else {
+    // 创建独立的Socket.IO连接
+    const config = getConfig();
+    socketConnection = socket(splitToArray(config.SocketUrl), undefined, {});
+  }
+  
+  if (socketConnection) {
+    // 监听系统数据监听事件
+    const listenHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'jdbc') {
+        try {
+          console.log('JDBC Console received message:', data);
+          if (data.messageType === 'status') {
+            statusText.value = data.content || '';
+          } else if (data.messageType === 'log') {
+            ElMessage.info(data.content || '');
+          } else if (data.messageType === 'error') {
+            ElMessage.error(data.content || '操作出现错误');
+          }
+        } catch (error) {
+          console.error('Error processing console message:', error);
+        }
+      }
+    };
+    
+    const logHandler = (data: any) => {
+      if (data.settingId === props.id && data.type === 'jdbc') {
+        try {
+          console.log('JDBC Console log:', data);
+          ElMessage.info(data.content || '');
+        } catch (error) {
+          console.error('Error processing log message:', error);
+        }
+      }
+    };
+    
+    socketConnection.on('system/data/listen', listenHandler);
+    socketConnection.on('system/data/log', logHandler);
+    
+    unsubscribeHandlers.push(
+      () => socketConnection.off('system/data/listen', listenHandler),
+      () => socketConnection.off('system/data/log', logHandler)
+    );
+  }
 });
 </script>
 <style scoped lang="scss">
