@@ -44,6 +44,9 @@
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "v-viewer": "catalog:",
+    "js-base64": "catalog:",
+    "hls.js": "catalog:",
+    "lodash-es": "catalog:",
     "viewerjs": "catalog:"
   },
   "devDependencies": {

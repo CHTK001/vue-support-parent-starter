@@ -1,14 +1,14 @@
 // import "@/utils/sso";
+import { isAllEmpty, isUrl, openLink } from "@pureadmin/utils";
 import { getConfig, multipleTabsKey, transformI18n, userKey } from "@repo/config";
 import type { UserResult } from "@repo/core";
-import Cookies from "js-cookie";
-import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
-import { isUrl, openLink, isAllEmpty } from "@pureadmin/utils";
-import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";
-import { ascending, getTopMenu, initRouter, isOneOfArray, getHistoryMode, findRouteByPath, handleAliveRoute, formatTwoStageRoutes, formatFlatteningRoutes } from "./utils";
 import { removeToken, useMultiTagsStoreHook } from "@repo/core";
+import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
+import Cookies from "js-cookie";
 import yaml from "js-yaml";
+import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";
+import { usePermissionStoreHook } from "../store/modules/PermissionStore";
+import { ascending, findRouteByPath, formatFlatteningRoutes, formatTwoStageRoutes, getHistoryMode, getTopMenu, handleAliveRoute, initRouter, isOneOfArray } from "./utils";
 
 /** 路由白名单 */
 const whiteList = ["/login"];
@@ -22,6 +22,9 @@ const noInModules: Record<string, any> = import.meta.glob(["./modules/**/remaini
 });
 Object.keys(noInModules || {}).forEach((key) => {
   const _value = noInModules[key].default;
+  if (!_value) {
+    return;
+  }
   if (_value instanceof Array) {
     _value.forEach((it) => remainingRouter.push(it));
     return;
@@ -160,7 +163,11 @@ export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infini
 
 /** 不参与菜单的路由 */
 export const remainingPaths = Object.keys(remainingRouter).map((v) => {
-  return remainingRouter[v].path;
+  const route = remainingRouter[v];
+  if (!route) {
+    return;
+  }
+  return route.path;
 });
 /** 创建路由实例 */
 export const router: Router = createRouter({
