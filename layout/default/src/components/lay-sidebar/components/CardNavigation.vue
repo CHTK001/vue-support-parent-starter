@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LayTool from "../../lay-tool/index.vue";
 import LaySidebarBreadCrumb from "./SidebarBreadCrumb.vue";
-import { useGlobal } from "@pureadmin/utils";
 const { $storage, $config } = useGlobal();
 
 // Props
@@ -186,8 +186,12 @@ function handleMouseLeave() {
 
 // 处理二级菜单悬停
 function handleSubMenuEnter(subMenu: any, event?: MouseEvent) {
+  // 清除相关的超时定时器
   if (subHoverTimeout.value) {
     clearTimeout(subHoverTimeout.value);
+  }
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
   }
 
   if (shouldShowSubMenu(subMenu, 2)) {
@@ -209,13 +213,21 @@ function handleSubMenuEnter(subMenu: any, event?: MouseEvent) {
 function handleSubMenuLeave() {
   subHoverTimeout.value = setTimeout(() => {
     hoveredSubMenu.value = null;
+    hoveredThirdMenu.value = null; // 同时清除三级菜单
   }, 200);
 }
 
 // 处理三级菜单悬停
 function handleThirdMenuEnter(thirdMenu: any, event?: MouseEvent) {
+  // 清除所有相关的超时定时器，防止菜单意外消失
   if (thirdHoverTimeout.value) {
     clearTimeout(thirdHoverTimeout.value);
+  }
+  if (subHoverTimeout.value) {
+    clearTimeout(subHoverTimeout.value);
+  }
+  if (hoverTimeout.value) {
+    clearTimeout(hoverTimeout.value);
   }
 
   if (shouldShowSubMenu(thirdMenu, 3)) {
@@ -230,11 +242,6 @@ function handleThirdMenuEnter(thirdMenu: any, event?: MouseEvent) {
         top: rect.top,
         left: rect.right + 10,
       };
-    } else if (!event) {
-      // 鼠标移动到三级菜单时，不重新计算位置
-      if (thirdHoverTimeout.value) {
-        clearTimeout(thirdHoverTimeout.value);
-      }
     }
   }
 }
@@ -495,7 +502,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 三级子菜单悬停弹出 -->
-    <div v-if="hoveredThirdMenu && shouldShowSubMenu(hoveredThirdMenu, 3)" class="sub-menu-popup level-3" :style="{ top: subMenuPosition3.top + 'px', left: subMenuPosition3.left + 'px' }" @mouseenter="handleThirdMenuEnter(hoveredThirdMenu)" @mouseleave="handleThirdMenuLeave">
+    <div v-if="hoveredThirdMenu && shouldShowSubMenu(hoveredThirdMenu, 3)" class="sub-menu-popup level-3" :style="{ top: subMenuPosition3.top + 'px', left: subMenuPosition3.left + 'px' }" @mouseenter="() => handleThirdMenuEnter(hoveredThirdMenu)" @mouseleave="handleThirdMenuLeave">
       <div class="sub-menu-grid">
         <div v-for="subMenu in getSubMenuItems(hoveredThirdMenu, 3)" :key="subMenu.path" class="sub-menu-card" @click="handleSubMenuClick(subMenu)">
           <div class="sub-card-icon">
@@ -518,10 +525,10 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   z-index: 2000;
   display: flex;
   flex-direction: column;
+  background: var(--el-bg-color-page);
   padding: 0;
 }
 
@@ -989,8 +996,16 @@ onUnmounted(() => {
     transform: translateX(0);
     animation: subMenuSlideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* 添加左侧连接区域，防止鼠标移动时意外触发mouseleave */
     &::before {
-      display: none;
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 0;
+      width: 10px;
+      height: 100%;
+      background: transparent;
+      pointer-events: auto;
     }
 
     &::after {
@@ -1011,8 +1026,16 @@ onUnmounted(() => {
     transform: translateX(0);
     animation: subMenuSlideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* 添加左侧连接区域，防止鼠标移动时意外触发mouseleave */
     &::before {
-      display: none;
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 0;
+      width: 10px;
+      height: 100%;
+      background: transparent;
+      pointer-events: auto;
     }
 
     &::after {

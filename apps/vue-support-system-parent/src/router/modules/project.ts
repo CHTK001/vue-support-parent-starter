@@ -1,4 +1,3 @@
-import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 const Layout = () => import("@layout/default");
 
@@ -11,7 +10,7 @@ export default [
     meta: {
       icon: "ep:folder",
       title: "项目管理",
-      rank: 5,
+      rank: 5
     },
     children: [
       {
@@ -20,8 +19,8 @@ export default [
         component: () => import("@pages/project"),
         meta: {
           title: "项目管理",
-          showParent: true,
-        },
+          showParent: true
+        }
       },
       {
         path: "/project/manage",
@@ -29,8 +28,8 @@ export default [
         component: () => import("@pages/project/ProjectIndex"),
         meta: {
           title: "项目管理",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/secret",
@@ -38,8 +37,8 @@ export default [
         component: () => import("@pages/project/SecretIndex"),
         meta: {
           title: "密钥管理",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/ai/llm",
@@ -47,8 +46,8 @@ export default [
         component: () => import("@pages/project/LlmIndex"),
         meta: {
           title: "大语言模型",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/ai/vincent",
@@ -56,8 +55,8 @@ export default [
         component: () => import("@pages/project/VincentIndex"),
         meta: {
           title: "图像生成",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/ai/video",
@@ -65,8 +64,8 @@ export default [
         component: () => import("@pages/project/VideoIndex"),
         meta: {
           title: "视频生成",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/ai/colorization",
@@ -74,8 +73,8 @@ export default [
         component: () => import("@pages/project/ColorizationIndex"),
         meta: {
           title: "图像上色",
-          showLink: false,
-        },
+          showLink: false
+        }
       },
       {
         path: "/project/ai/resolution",
@@ -83,9 +82,9 @@ export default [
         component: () => import("@pages/project/ResolutionIndex"),
         meta: {
           title: "图像分辨率增强",
-          showLink: false,
-        },
-      },
-    ],
-  },
+          showLink: false
+        }
+      }
+    ]
+  }
 ] satisfies Array<RouteConfigsTable>;

@@ -32,7 +32,10 @@ const rules = {
 };
 const handleClose = async () => {
   env.visible = false;
-  env.form = {};
+  env.form = {
+    sysServiceModuleMenuTagsList: [],
+    sysServiceModuleMenuTagsList2: [],
+  };
 };
 
 const handleUpdate = async () => {
@@ -70,14 +73,20 @@ const handleUpdate = async () => {
 };
 
 const handleOpen = async (item, mode) => {
-  env.form = item;
+  // 重置表单为初始状态
+  env.form = {
+    sysServiceModuleMenuTagsList: [],
+    sysServiceModuleMenuTagsList2: [],
+  };
+  // 复制传入的数据，避免引用问题
+  if (item && mode === "edit") {
+    Object.assign(env.form, item);
+  }
   env.mode = mode;
   env.visible = true;
   if (mode == "save") {
     env.title = "新增模块";
     env.form.sysServiceModuleSort = 1;
-    env.form.sysServiceModuleMenuTagsList = [];
-    env.form.sysServiceModuleMenuTagsList2 = [];
     return;
   }
   env.title = "模块更新 - " + item.sysServiceModuleName;

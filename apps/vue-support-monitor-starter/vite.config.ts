@@ -1,8 +1,8 @@
-import { getPluginsList } from "./build/plugins";
-import { include, exclude } from "./build/optimize";
-import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
 import path from "path";
+import { type ConfigEnv, loadEnv, type UserConfigExport } from "vite";
+import { exclude, include } from "./build/optimize";
+import { getPluginsList } from "./build/plugins";
+import { __APP_INFO__, alias, pathResolve, root, wrapperEnv } from "./build/utils";
 
 // 声明压缩类型
 type ViteCompression = "none" | "gzip" | "brotli" | "both" | "gzip-clear" | "brotli-clear" | "both-clear";
@@ -30,7 +30,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/monitor/api": {
-          target: "http://127.0.0.1:19170",
+          target: "http://172.16.2.226:19170",
           ws: true,
           changeOrigin: true,
           timeout: 60000, // 60秒超时

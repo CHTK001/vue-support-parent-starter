@@ -1,6 +1,6 @@
+import { Account } from "@layout/default";
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
-import { Account } from "@layout/default";
 const Layout = () => import("@layout/default");
 
 export default [
@@ -11,8 +11,8 @@ export default [
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
-      rank: 101,
-    },
+      rank: 101
+    }
   },
   {
     path: "/AccountSettings",
@@ -22,8 +22,8 @@ export default [
     },
     meta: {
       title: $t("buttons.accountSetting"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/CameraPreview",
@@ -31,8 +31,8 @@ export default [
     component: () => import("@/views/manage/template/device/preview/index.vue"),
     meta: {
       title: $t("buttons.accountSetting"),
-      showLink: false,
-    },
+      showLink: false
+    }
   },
   {
     path: "/redirect",
@@ -40,14 +40,14 @@ export default [
     meta: {
       title: $t("status.pureLoad"),
       showLink: false,
-      rank: 102,
+      rank: 102
     },
     children: [
       {
         path: "/redirect/:path(.*)",
         name: "Redirect",
-        component: () => import("@repo/pages/layout/redirect.vue"),
-      },
-    ],
-  },
+        component: () => import("@repo/pages/layout/redirect.vue")
+      }
+    ]
+  }
 ] satisfies Array<RouteConfigsTable>;

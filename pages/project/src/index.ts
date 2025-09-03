@@ -13,6 +13,10 @@ import LlmIndex from "./views/ai/llm/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
 import VideoIndex from "./views/ai/video/index.vue";
 import VincentIndex from "./views/ai/vincent/index.vue";
+import DeviceIndex from "./views/device/index.vue";
+import DeviceTemplate from "./views/template/device/index.vue";
+import EmailTemplate from "./views/template/email/index.vue";
+import SmsTemplate from "./views/template/sms/index.vue";
 
 // 默认导出主布局
 export default LayoutDefault;
@@ -20,6 +24,9 @@ export default LayoutDefault;
 // 导出所有页面组件
 export {
   ColorizationIndex,
+  DeviceIndex,
+  DeviceTemplate,
+  EmailTemplate,
   // AI模块
   LlmIndex,
   // 项目管理
@@ -27,6 +34,7 @@ export {
   ResolutionIndex,
   // 密钥管理
   SecretIndex,
+  SmsTemplate,
   VideoIndex,
   VincentIndex,
 };

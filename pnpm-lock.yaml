@@ -1283,7 +1283,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.8.2))
@@ -1767,7 +1767,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
       vue3-smooth-dnd:
         specifier: 'catalog:'
         version: 0.0.6(vue@3.5.13(typescript@5.8.2))
@@ -2965,7 +2965,7 @@ importers:
         version: 2.2.8(typescript@5.8.2)
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
 
   apps/vue-support-vtools-starter:
     dependencies:
@@ -4420,7 +4420,7 @@ importers:
         version: 5.1.3(vue@3.5.13(typescript@5.8.2))
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
     devDependencies:
       vite:
         specifier: 'catalog:'
@@ -6567,9 +6567,18 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.10.7(vue@3.5.13(typescript@5.8.2))
+      hls.js:
+        specifier: 'catalog:'
+        version: 1.6.0-beta.4.0.canary.11038
+      js-base64:
+        specifier: 'catalog:'
+        version: 3.7.7
       leaflet:
         specifier: 'catalog:'
         version: 1.9.4
+      lodash-es:
+        specifier: 'catalog:'
+        version: 4.17.21
       unbuild:
         specifier: 'catalog:'
         version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
@@ -32449,7 +32458,7 @@ snapshots:
 
   vue3-puzzle-vcode@1.1.7: {}
 
-  vue3-sfc-loader@0.9.5(vue@3.5.13(typescript@5.8.2)):
+  vue3-sfc-loader@0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2)):
     dependencies:
       '@babel/code-frame': 7.26.2
       '@babel/core': 7.26.10
