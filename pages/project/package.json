@@ -47,7 +47,11 @@
     "js-base64": "catalog:",
     "hls.js": "catalog:",
     "lodash-es": "catalog:",
-    "viewerjs": "catalog:"
+    "viewerjs": "catalog:",
+    "nanoid": "catalog:",
+    "vue-files-preview": "catalog:",
+    "highlight.js": "catalog:",
+    "@microsoft/fetch-event-source": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

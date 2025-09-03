@@ -105,18 +105,7 @@
                       </div>
 
                       <div class="project-stats">
-                        <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:eye-line')" /></el-icon>
-                          <span>{{ row?.views || Math.floor(Math.random() * 1000) + 100 }}</span>
-                        </div>
-                        <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:star-line')" /></el-icon>
-                          <span>{{ row?.stars || Math.floor(Math.random() * 50) + 10 }}</span>
-                        </div>
-                        <div class="stat-item">
-                          <el-icon><component :is="useRenderIcon('ri:time-line')" /></el-icon>
-                          <span>{{ getTimeAgo(row?.updateTime) }}</span>
-                        </div>
+                        <div class="stat-item pt-3" />
                       </div>
                     </div>
                     <div class="project-tags">
@@ -132,7 +121,7 @@
                     <div class="more" @click.stop>
                       <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
                         <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
-                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleDropdownCommand">
+                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command="handleDropdownCommand">
                           <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
@@ -141,7 +130,7 @@
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
                                     <el-dropdown-menu>
-                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click.prevent="handleUpdateDefault(row, item1)">
+                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click="handleUpdateDefault(row, item1)">
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
                                       </el-dropdown-item>
@@ -149,7 +138,7 @@
                                   </template>
                                 </el-dropdown>
                               </el-dropdown-item>
-                              <el-dropdown-item v-for="(item1, index) in row.source" :key="index" class="h-[32px]" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1)">
+                              <el-dropdown-item v-for="(item1, index) in row.source" :key="index" class="h-[32px]" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1, $event)">
                                 {{ item1.name }}
                                 <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                               </el-dropdown-item>
@@ -401,7 +390,7 @@ const handleUpdateDefault = async (row, item1) => {
 const eventMap = {
   DA_YU_YAN: (row, item1) => {
     router.push({
-      name: "llm-template",
+      name: "ProjectAiLlm",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -411,7 +400,7 @@ const eventMap = {
   },
   WEN_SHENG_TU: (row, item1) => {
     router.push({
-      name: "aiVincent",
+      name: "ProjectAiVincent",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -421,7 +410,7 @@ const eventMap = {
   },
   COLORIZATION: (row, item1) => {
     router.push({
-      name: "aiColorization",
+      name: "ProjectAiColorization",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -431,7 +420,7 @@ const eventMap = {
   },
   RESOLUTION: (row, item1) => {
     router.push({
-      name: "aiResolution",
+      name: "ProjectAiResolution",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -441,7 +430,7 @@ const eventMap = {
   },
   WEN_SHENG_SHI_PIN: (row, item1) => {
     router.push({
-      name: "aiVideo",
+      name: "ProjectAiVideo",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -481,7 +470,10 @@ const eventMap = {
   },
 };
 
-const handleEventCustom = async (row, item1) => {
+const handleEventCustom = async (row, item1, event) => {
+  if (event) {
+    event.stopPropagation();
+  }
   try {
     eventMap[item1.code](row, item1);
   } catch (error) {}

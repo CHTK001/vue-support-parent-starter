@@ -56,11 +56,11 @@
   </div>
 </template>
 <script setup>
-import { fetchListDictItem } from "@repo/core";
-import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
 import { debounce } from "@pureadmin/utils";
-import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "@/api/manage/project-ai-module";
+import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
+import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
+import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "../../api/manage/project-ai-module";
 
 const emit = defineEmits();
 const rules = {
