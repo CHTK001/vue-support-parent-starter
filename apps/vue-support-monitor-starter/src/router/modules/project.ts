@@ -96,6 +96,42 @@ export default [
           title: "图像分辨率增强",
           showLink: false
         }
+      },
+      {
+        path: "/project/template/device",
+        name: "device-template",
+        component: async () => {
+          const { DeviceTemplate } = await import("@pages/project");
+          return DeviceTemplate;
+        },
+        meta: {
+          title: "设备模板",
+          showLink: false
+        }
+      },
+      {
+        path: "/project/template/sms",
+        name: "sms-template",
+        component: async () => {
+          const { SmsTemplate } = await import("@pages/project");
+          return SmsTemplate;
+        },
+        meta: {
+          title: "短信模板",
+          showLink: false
+        }
+      },
+      {
+        path: "/project/template/email",
+        name: "email-template",
+        component: async () => {
+          const { EmailTemplate } = await import("@pages/project");
+          return EmailTemplate;
+        },
+        meta: {
+          title: "邮件模板",
+          showLink: false
+        }
       }
     ]
   }

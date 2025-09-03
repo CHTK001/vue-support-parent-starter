@@ -150,10 +150,10 @@
   </div>
 </template>
 <script setup>
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
 import { debounce } from "@pureadmin/utils";
-import { fetchGetForModelSetting, fetchSaveForModelSetting, fetchUpdateForModelSetting } from "@/api/ai/vincent-setting";
 import { message } from "@repo/utils";
+import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { fetchGetForModelSetting, fetchUpdateForModelSetting } from "../../api/ai/vincent-setting";
 import { getStyleLabel } from "./vincent/hook";
 
 const emit = defineEmits();

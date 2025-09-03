@@ -46,7 +46,7 @@
         :xl="computedPageSize"
         class="card-col"
       >
-        <div class="is-always-shadow" @contextmenu="handleContextMenu($event, row)">
+        <div class="is-always-shadow" @contextmenu="handleContextMenu($event, row)" @click="onRowClick(row)">
           <!-- 根据layout属性决定是否使用ScCard包装 -->
           <template v-if="layout === 'card'">
             <ScCard hoverable class="is-always-shadow-item">

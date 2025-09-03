@@ -5,10 +5,10 @@ import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/confi
 import { router, setupStore } from "@repo/core";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
-import { createApp, type Directive } from "vue";
+import Table from "@pureadmin/table";
 import { useElementPlus } from "@repo/plugins";
 import techUILite from "techui-vue3-lite";
-import Table from "@pureadmin/table";
+import { createApp, type Directive } from "vue";
 // import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式
 import "@repo/assets/style/layout/default/reset.scss";
@@ -16,8 +16,8 @@ import "@repo/assets/style/layout/default/reset.scss";
 import "@repo/assets/style/layout/default/tailwind.css";
 import "element-plus/dist/index.css";
 // 导入字体图标
-import "@repo/assets/iconfont/iconfont.js";
 import "@repo/assets/iconfont/iconfont.css";
+import "@repo/assets/iconfont/iconfont.js";
 // 导入公共样式
 import "@repo/assets/style/layout/default/index.scss";
 // 导入阈值样式
@@ -44,22 +44,21 @@ import * as AntIcons from "@ant-design/icons-vue";
 import IconPlugin from "./components/Icon";
 // 导入Ant Design Vue全局配置
 import setupAntdConfig from "./components/AntdConfig";
-import GlobalSocketPlugin from "./plugins/globalSocket";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
-
+import GlobalSocketPlugin from "./plugins/globalSocket";
 
 // 全局注册 components 文件夹下的所有组件
 const modules = import.meta.glob("./components/**/index.vue", { eager: true });
 const components: Record<string, any> = {};
 
-Object.keys(modules).forEach((key) => {
+Object.keys(modules).forEach(key => {
   const componentName = key.split("/").slice(-2, -1)[0];
   components[componentName] = (modules[key] as any).default;
 });
 
 const app = createApp(App);
 
-Object.keys(directives).forEach((key) => {
+Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 
@@ -71,14 +70,14 @@ app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
 // 全局注册 Ant Design Vue 的图标组件
-Object.keys(AntIcons).forEach((key) => {
+Object.keys(AntIcons).forEach(key => {
   app.component(key, AntIcons[key]);
 });
 
 // 全局注册 components 文件夹下的所有组件
-Object.keys(components).forEach((key) => {
+Object.keys(components).forEach(key => {
   // 组件名转换为驼峰式命名，首字母大写
-  const componentName = key.replace(/-(\w)/g, (_, c) => c.toUpperCase()).replace(/^\w/, (c) => c.toUpperCase());
+  const componentName = key.replace(/-(\w)/g, (_, c) => c.toUpperCase()).replace(/^\w/, c => c.toUpperCase());
   app.component(componentName, components[key]);
 });
 
@@ -89,12 +88,15 @@ app.use(Antd);
 app.use(IconPlugin);
 // 使用Ant Design Vue全局配置
 app.use(setupAntdConfig);
-
+app.config.warnHandler = (msg, instance, trace) => {
+  if (msg.includes("__proxyIdCheat__")) return;
+  console.warn(msg, trace);
+};
 // 注册指令
 setupDirectives(app);
 
 techUILite(app).then(() => {
-  getPlatformConfig(app).then(async (config) => {
+  getPlatformConfig(app).then(async config => {
     setupStore(app);
     app.use(router);
     await router.isReady();
@@ -102,8 +104,6 @@ techUILite(app).then(() => {
     app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
     // .use(PureDescriptions)
     // .use(useEcharts);
-
-
 
     app.use(GlobalSocketPlugin);
     setupFullscreenSocket(router);

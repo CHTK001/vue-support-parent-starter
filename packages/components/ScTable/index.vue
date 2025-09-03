@@ -49,6 +49,7 @@ const props = defineProps({
   rowClick: { type: Function, default: () => {} },
   columns: { type: Array, default: () => [] },
   dataLoaded: { type: Function, default: () => {} },
+  afterLoadedData: { type: Function, default: () => {} },
   sorted: { type: Function, default: data => data },
   columnInTemplate: { type: Boolean, default: true },
   remoteSort: { type: Boolean, default: false },
@@ -377,6 +378,7 @@ const loaded = () => {
   emit("loaded");
   emit("data-loaded", tableData.value, total.value);
   props.dataLoaded(tableData.value, total.value);
+  props.afterLoadedData(tableData.value, total.value);
 };
 
 // 分页点击
