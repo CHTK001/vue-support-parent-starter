@@ -41,9 +41,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, defineAsyncComponent, ref, onMounted, watch, nextTick } from "vue";
-import { InputType } from "./types";
+import { computed, defineAsyncComponent, markRaw, onMounted, ref, watch } from "vue";
 import { getDefaultIcon } from "./defaultIcons";
+import { InputType } from "./types";
 
 // 使用异步组件导入各种类型的输入组件
 const TextInput = defineAsyncComponent(() => import("./components/TextInput.vue"));
@@ -61,6 +61,7 @@ const SelectInput = defineAsyncComponent(() => import("./components/SelectInput.
 const TotpInput = defineAsyncComponent(() => import("./components/TotpInput.vue"));
 const DateTimeInput = defineAsyncComponent(() => import("./components/DateTimeInput.vue"));
 const CardInput = defineAsyncComponent(() => import("./components/CardInput.vue"));
+const RichTextInput = defineAsyncComponent(() => import("./components/RichTextInput.vue"));
 
 // 标记为原始类型以提高性能
 const Components = {
@@ -371,5 +372,35 @@ defineExpose({
 .sc-input {
   width: 100%;
   display: inline-block;
+  position: relative;
+
+  // 现代化的过渡效果
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  // 悬停效果
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  // 聚焦状态
+  &:focus-within {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+  }
+
+  // 深色模式适配
+  @media (prefers-color-scheme: dark) {
+    &:focus-within {
+      filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
+    }
+  }
+
+  // 响应式设计
+  @media (max-width: 768px) {
+    &:hover,
+    &:focus-within {
+      transform: none;
+    }
+  }
 }
 </style>

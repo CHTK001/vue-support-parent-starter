@@ -375,15 +375,39 @@ defineExpose({
 
 <style lang="scss" scoped>
 .sc-select-input-wrapper {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &.is-invalid {
+    animation: shake 0.5s ease-in-out;
+    
     :deep(.el-input__wrapper) {
-      box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+      box-shadow: 0 0 0 2px var(--el-color-danger) inset !important;
+      border-color: var(--el-color-danger) !important;
     }
     
     :deep(.el-select .el-input.is-focus .el-input__wrapper) {
-      box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+      box-shadow: 0 0 0 2px var(--el-color-danger) inset !important;
+    }
+  }
+  
+  // 悬停效果
+  &:hover {
+    transform: translateY(-1px);
+    
+    :deep(.el-input__wrapper) {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  // 聚焦状态
+  &:focus-within {
+    transform: translateY(-2px);
+    
+    :deep(.el-input__wrapper) {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
     }
   }
 }
@@ -391,10 +415,20 @@ defineExpose({
 .sc-select-input-container {
   display: flex;
   align-items: center;
+  flex: 1;
   
   &.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    
     .sc-select-input__prefix-icon {
       color: var(--el-disabled-text-color);
+    }
+    
+    :deep(.el-input__wrapper) {
+      box-shadow: none !important;
+      transform: none !important;
     }
   }
 }
@@ -403,6 +437,12 @@ defineExpose({
   color: var(--el-text-color-placeholder);
   font-size: 16px;
   margin-left: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    color: var(--el-color-primary);
+    transform: scale(1.1);
+  }
 }
 
 .sc-select-input__error {
@@ -411,25 +451,114 @@ defineExpose({
   line-height: 1;
   padding-top: 4px;
   margin-left: 1px;
+  animation: fadeInUp 0.3s ease-out;
+  font-weight: 500;
 }
 
 .sc-select-input {
   width: 100%;
+  
+  :deep(.el-select__wrapper) {
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+    
+    &.is-focus {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+      transform: translateY(-2px);
+    }
+  }
+  
+  // 下拉箭头美化
+  :deep(.el-select__caret) {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      color: var(--el-color-primary);
+      transform: scale(1.2);
+    }
+  }
+  
+  // 标签美化（多选模式）
+  :deep(.el-tag) {
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+    border: 1px solid var(--el-color-primary-light-7);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+    
+    .el-tag__close {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        background: var(--el-color-danger);
+        color: white;
+        transform: scale(1.2);
+      }
+    }
+  }
 }
 
 :deep(.el-select) {
   width: 100%;
 }
 
+// 下拉面板美化
+:deep(.el-select-dropdown) {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--el-border-color-lighter);
+  backdrop-filter: blur(8px);
+  
+  .el-select-dropdown__item {
+    border-radius: 6px;
+    margin: 2px 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+    
+    &.selected {
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+      color: white;
+      font-weight: 600;
+      
+      &:hover {
+        background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      }
+    }
+  }
+}
+
 .select-actions-option {
   :deep(.el-select-dropdown__item) {
     height: auto;
     padding: 0;
+    background: var(--el-fill-color-extra-light);
+    border-radius: 8px;
+    margin: 4px 8px;
+    
+    &:hover {
+      background: var(--el-fill-color-light);
+      transform: none;
+    }
   }
 }
 
 .select-actions-container {
-  padding: 8px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
 }
@@ -438,21 +567,84 @@ defineExpose({
   display: flex;
   gap: 8px;
   justify-content: space-between;
+  
+  .el-button {
+    border-radius: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
 }
 
 .select-option-content {
   display: flex;
   align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   .select-option-icon {
     margin-right: 8px;
     font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: scale(1.2);
+    }
   }
 }
 
 .is-loading {
   color: var(--el-text-color-secondary);
-  animation: rotating 2s linear infinite;
+  animation: pulse 2s ease-in-out infinite;
+  
+  :deep(.el-select__wrapper) {
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      animation: loading-shimmer 1.5s ease-in-out infinite;
+    }
+  }
+}
+
+// 动画定义
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes loading-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 @keyframes rotating {
@@ -463,4 +655,23 @@ defineExpose({
     transform: rotate(360deg);
   }
 }
-</style> 
+
+// 响应式设计
+@media (max-width: 768px) {
+  .sc-select-input-wrapper {
+    &:hover,
+    &:focus-within {
+      transform: none;
+    }
+  }
+  
+  .sc-select-input {
+    :deep(.el-select__wrapper) {
+      &:hover,
+      &.is-focus {
+        transform: none;
+      }
+    }
+  }
+}
+</style>

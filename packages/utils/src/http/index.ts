@@ -74,6 +74,9 @@ class PureHttp {
   /** 保存当前`Axios`实例对象 */
   private static axiosInstance: AxiosInstance = Axios.create(defaultConfig);
 
+  /** 存储活跃的请求控制器 */
+  private static activeRequests = new Map<string, AbortController>();
+
   /** 重连原始请求 */
   private static retryOriginalRequest(config: PureHttpRequestConfig) {
     return new Promise((resolve) => {
@@ -319,7 +322,7 @@ class PureHttp {
   }
 
   /** 通用请求工具函数 */
-  public request<T>(method: RequestMethods, url: string, param?: AxiosRequestConfig, axiosConfig?: PureHttpRequestConfig): Promise<T> {
+  public request<T>(method: RequestMethods, url: string, param?: AxiosRequestConfig, axiosConfig?: PureHttpRequestConfig): Promise<T> & { requestId: string } {
     const config = {
       method,
       url,
@@ -327,17 +330,35 @@ class PureHttp {
       ...axiosConfig,
     } as PureHttpRequestConfig;
 
+    // 生成请求唯一标识
+    const requestId = `${method}_${url}_${Date.now()}_${Math.random()}`;
+    
+    // 创建AbortController
+    const abortController = new AbortController();
+    config.signal = abortController.signal;
+    
+    // 存储请求控制器
+    PureHttp.activeRequests.set(requestId, abortController);
+
     // 单独处理自定义请求/响应回调
-    return new Promise((resolve, reject) => {
+    const promise = new Promise<T>((resolve, reject) => {
       PureHttp.axiosInstance
         .request(config)
         .then((response: undefined) => {
+          // 请求完成后移除控制器
+          PureHttp.activeRequests.delete(requestId);
           resolve(response);
         })
         .catch((error) => {
+          // 请求失败后移除控制器
+          PureHttp.activeRequests.delete(requestId);
           reject(error);
         });
     });
+
+    // 将requestId附加到Promise上
+    (promise as any).requestId = requestId;
+    return promise as Promise<T> & { requestId: string };
   }
 
   /** 单独抽离的`post`工具函数 */
@@ -348,6 +369,34 @@ class PureHttp {
   /** 单独抽离的`get`工具函数 */
   public get<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("get", url, params, config);
+  }
+
+  /** 取消请求方法 */
+  public abort(requestId?: string, reason?: string): void {
+    if (requestId) {
+      // 取消特定请求
+      const controller = PureHttp.activeRequests.get(requestId);
+      if (controller) {
+        controller.abort(reason || '请求被主动取消');
+        PureHttp.activeRequests.delete(requestId);
+      }
+    } else {
+      // 取消所有活跃请求
+      PureHttp.activeRequests.forEach((controller, id) => {
+        controller.abort(reason || '所有请求被主动取消');
+      });
+      PureHttp.activeRequests.clear();
+    }
+  }
+
+  /** 获取活跃请求数量 */
+  public getActiveRequestsCount(): number {
+    return PureHttp.activeRequests.size;
+  }
+
+  /** 获取所有活跃请求的ID列表 */
+  public getActiveRequestIds(): string[] {
+    return Array.from(PureHttp.activeRequests.keys());
   }
 }
 
