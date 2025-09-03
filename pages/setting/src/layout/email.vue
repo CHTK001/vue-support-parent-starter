@@ -1,7 +1,7 @@
 <template>
   <div class="fullscreen">
     <el-row v-if="hasAuth">
-      <el-col :span="12">
+      <el-col :span="16">
         <el-form :model="form" label-width="200px" class="h-full">
           <el-form-item label="项目" prop="sysProjectId">
             <ScTableSelect

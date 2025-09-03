@@ -135,7 +135,7 @@ export default defineComponent({
           <div class="relative h-full">
             <el-form label-width="200px" class="h-full thin-scrollbar">
               <el-row :gutter="20" class="h-full">
-                <el-col class="w-1/2" :lg="12" ref="list">
+                <el-col class="w-2/3" :lg="16" ref="list">
                   <draggable v-model="groupList" @end="handleChange">
                     <template #item="{ element }">
                       <el-form-item :key="$index" :label="element.sysSettingRemark || element.sysSettingName" class="item !cursor-move">
@@ -143,7 +143,8 @@ export default defineComponent({
                           <sc-input v-if="element.sysSettingValueType == 'Boolean'" v-model="element.sysSettingValue" type="boolean" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
 
                           <sc-input v-else-if="element.sysSettingValueType == 'Number'" v-model="element.sysSettingValue" type="number" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
-                          <sc-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" type="text" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" type="array" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'List'" v-model="element.sysSettingValue" type="list" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
                           <sc-input v-else-if="element.sysSettingValueType == 'Dict'" v-model="element.sysSettingValue" type="dict" :options="select[element.sysSettingName]" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
                           <sc-input v-else-if="element.sysSettingValueType == 'Color'" v-model="element.sysSettingValue" type="color" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
                           <sc-input v-else-if="element.sysSettingValueType == 'Mail'" v-model="element.sysSettingValue" type="email" placeholder="请输入邮箱" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />

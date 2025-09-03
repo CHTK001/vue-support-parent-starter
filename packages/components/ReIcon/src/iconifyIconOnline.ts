@@ -13,6 +13,28 @@ export default defineComponent({
   },
   render() {
     const attrs = this.$attrs;
+
+    // 检查是否为HTTP/HTTPS URL
+    const httpReg = /^https?:\/\//;
+    if (httpReg.test(this.icon)) {
+      // 如果是HTTP URL，使用img标签渲染
+      return h("img", {
+        src: this.icon,
+        alt: "icon",
+        style: {
+          width: "1em",
+          height: "1em",
+          display: "inline-block",
+          verticalAlign: "middle",
+          objectFit: "contain",
+          outline: "none",
+          ...(attrs?.style || {})
+        },
+        ...attrs
+      });
+    }
+
+    // 否则使用Iconify组件
     return h(
       IconifyIcon,
       {

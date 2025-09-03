@@ -62,6 +62,7 @@ const TotpInput = defineAsyncComponent(() => import("./components/TotpInput.vue"
 const DateTimeInput = defineAsyncComponent(() => import("./components/DateTimeInput.vue"));
 const CardInput = defineAsyncComponent(() => import("./components/CardInput.vue"));
 const RichTextInput = defineAsyncComponent(() => import("./components/RichTextInput.vue"));
+const ListInput = defineAsyncComponent(() => import("./components/ListInput.vue"));
 
 // 标记为原始类型以提高性能
 const Components = {
@@ -91,7 +92,9 @@ const Components = {
   [InputType.CARD]: markRaw(CardInput),
   [InputType.CAPTCHA]: markRaw(CaptchaInput),
   [InputType.SELECT]: markRaw(SelectInput),
-  [InputType.TOTP]: markRaw(TotpInput)
+  [InputType.TOTP]: markRaw(TotpInput),
+  [InputType.LIST]: markRaw(ListInput),
+  [InputType.ARRAY]: markRaw(ListInput)
 };
 
 export type OptionItem = {
@@ -210,7 +213,9 @@ const componentMap = {
   [InputType.CARD]: Components[InputType.CARD],
   [InputType.CAPTCHA]: Components[InputType.CAPTCHA],
   [InputType.SELECT]: Components[InputType.SELECT],
-  [InputType.TOTP]: Components[InputType.TOTP]
+  [InputType.TOTP]: Components[InputType.TOTP],
+  [InputType.LIST]: Components[InputType.LIST],
+  [InputType.ARRAY]: Components[InputType.ARRAY]
 };
 
 /**
