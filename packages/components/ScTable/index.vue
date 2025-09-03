@@ -1,15 +1,14 @@
 <script setup>
-import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
-import { defineAsyncComponent, ref, reactive, computed, watch, nextTick, onMounted, onUnmounted, onActivated, onDeactivated } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate, deepCopy, localStorageProxy } from "@repo/utils";
-import TableView from "./components/TableView.vue";
+import { deepCopy, localStorageProxy, paginate } from "@repo/utils";
+import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
+import CanvasTableView from "./components/CanvasTableView.vue";
 import CardView from "./components/CardView.vue";
 import ListView from "./components/ListView.vue";
+import TableView from "./components/TableView.vue";
 import VirtualTableView from "./components/VirtualTableView.vue";
-import CanvasTableView from "./components/CanvasTableView.vue";
 import Pagination from "./plugins/Pagination.vue";
-import { ElAutoResizer } from "element-plus";
 
 const columnSetting = defineAsyncComponent(() => import("./plugins/columnSetting.vue"));
 
@@ -37,7 +36,7 @@ const props = defineProps({
   countDownText: { type: String, default: "刷新" },
   /**开启缓存后缓存页数 */
   cachePage: { type: Number, default: 3 },
-  height: { type: [String, Number], default: "95%" },
+  height: { type: [String, Number], default: "auto" },
   size: { type: String, default: "default" },
   border: { type: [Boolean, String], default: false },
   stripe: { type: [Boolean, String], default: false },
@@ -120,6 +119,14 @@ const countDown = computed(() => {
 
 const storageKey = computed(() => {
   return `table_config_${props.tableId || props.tableName || "default"}`;
+});
+
+// 计算高度
+const computedHeight = computed(() => {
+  if (props.height === "auto") {
+    return "100%";
+  }
+  return props.height;
 });
 
 // 从localStorage加载配置
@@ -1051,10 +1058,10 @@ const componentMap = {
 </script>
 
 <template>
-  <div ref="scTableMain" class="sc-table-container">
+  <div ref="scTableMain" class="sc-table-container" :class="{ 'auto-height': height === 'auto' }">
     <div class="sc-table-wrapper">
       <!-- 表格内容区域 -->
-      <div class="sc-table-content-wrapper">
+      <div class="sc-table-auto-height">
         <component
           :is="componentMap[layout]"
           ref="scTable"
@@ -1068,7 +1075,7 @@ const componentMap = {
           :contextmenu="contextmenu"
           :contextmenu-class="contextmenuClass"
           :row-key="rowKey"
-          :height="'100%'"
+          :height="computedHeight"
           :column-in-template="columnInTemplate"
           :remote-filter="remoteFilter"
           :remote-summary="remoteSummary"
@@ -1133,18 +1140,31 @@ const componentMap = {
 .sc-table-container {
   width: 100%;
   height: 100%;
-  position: absolute;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  &.auto-height {
+    position: relative;
+    flex: 1;
+    min-height: 400px;
+  }
 }
 
 .sc-table-wrapper {
   width: 100%;
   height: 100%;
   display: flex;
+  flex: 1;
   flex-direction: column;
   overflow: hidden;
+
+  .auto-height & {
+    min-height: 400px;
+  }
+  .sc-table-auto-height {
+    flex: 1;
+  }
 }
 
 .sc-table-content-wrapper {
@@ -1154,6 +1174,13 @@ const componentMap = {
   position: relative;
   display: flex;
   flex-direction: column;
+
+  .auto-height & {
+    flex: none;
+    height: auto;
+    min-height: 300px;
+    overflow-y: auto;
+  }
 }
 
 .sc-table-pagination-wrapper {
