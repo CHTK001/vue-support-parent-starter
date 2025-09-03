@@ -17,7 +17,7 @@ export default [
       {
         path: "/project/index",
         name: "ProjectIndex",
-        component: () => import("@pages/project/index.vue"),
+        component: () => import("@pages/project"),
         meta: {
           title: "项目管理",
           showParent: true,
@@ -26,7 +26,7 @@ export default [
       {
         path: "/project/manage",
         name: "ProjectManage",
-        component: () => import("@pages/project/src/views/project/index.vue"),
+        component: () => import("@pages/project/ProjectIndex"),
         meta: {
           title: "项目管理",
           showLink: false,
@@ -35,7 +35,7 @@ export default [
       {
         path: "/project/secret",
         name: "ProjectSecret",
-        component: () => import("@pages/project/src/views/secret/index.vue"),
+        component: () => import("@pages/project/SecretIndex"),
         meta: {
           title: "密钥管理",
           showLink: false,
@@ -44,7 +44,7 @@ export default [
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
-        component: () => import("@pages/project/src/views/ai/llm/index.vue"),
+        component: () => import("@pages/project/LlmIndex"),
         meta: {
           title: "大语言模型",
           showLink: false,
@@ -53,7 +53,7 @@ export default [
       {
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
-        component: () => import("@pages/project/src/views/ai/vincent/index.vue"),
+        component: () => import("@pages/project/VincentIndex"),
         meta: {
           title: "图像生成",
           showLink: false,
@@ -62,7 +62,7 @@ export default [
       {
         path: "/project/ai/video",
         name: "ProjectAiVideo",
-        component: () => import("@repo/pages/project/src/views/ai/video/index.vue"),
+        component: () => import("@pages/project/VideoIndex"),
         meta: {
           title: "视频生成",
           showLink: false,
@@ -71,7 +71,7 @@ export default [
       {
         path: "/project/ai/colorization",
         name: "ProjectAiColorization",
-        component: () => import("@repo/pages/project/src/views/ai/colorization/index.vue"),
+        component: () => import("@pages/project/ColorizationIndex"),
         meta: {
           title: "图像上色",
           showLink: false,
@@ -80,7 +80,7 @@ export default [
       {
         path: "/project/ai/resolution",
         name: "ProjectAiResolution",
-        component: () => import("@repo/pages/project/src/views/ai/resolution/index.vue"),
+        component: () => import("@pages/project/ResolutionIndex"),
         meta: {
           title: "图像分辨率增强",
           showLink: false,

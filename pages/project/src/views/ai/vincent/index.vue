@@ -261,19 +261,19 @@
   </div>
 </template>
 <script setup>
-import { fetchGetTaskForVincent, fetchSaveTaskForVincent } from "@/api/ai/text-generations";
-import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
+import Error from "@repo/assets/images/error.png";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useUserStoreHook } from "@repo/core";
 import { clearObject, getRandomInt, localStorageProxy, message } from "@repo/utils";
-import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed, ref } from "vue";
-import { useRoute } from "vue-router";
-import { getStyleLabel, RANDOM_DATA, CREATIVE_TEMPLATE, getQuality } from "./hook";
-import { fetchListForModelTemplate } from "@/api/ai/vincent-template";
-import Error from "@repo/assets/images/error.png";
-import "viewerjs/dist/viewer.css";
 import { api as viewerApi } from "v-viewer";
-import { fetchListForModelStyle } from "@/api/ai/vincent-style";
+import "viewerjs/dist/viewer.css";
+import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef } from "vue";
+import { useRoute } from "vue-router";
+import { fetchGetTaskForVincent, fetchSaveTaskForVincent } from "../../../api/ai/text-generations";
+import { fetchListForModelStyle } from "../../../api/ai/vincent-style";
+import { fetchListForModelTemplate } from "../../../api/ai/vincent-template";
+import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
+import { getQuality, RANDOM_DATA } from "./hook";
 const HistoryLayout = defineAsyncComponent(() => import("./history.vue"));
 const vincent = defineAsyncComponent(() => import("./vincent.vue"));
 const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));

@@ -5,6 +5,7 @@
       <div class="detail-header">
         <div class="detail-subject">{{ email.subject }}</div>
         <div class="detail-actions">
+        <!--
           <el-button
             size="small"
             :icon="useRenderIcon('ri:reply-line')"
@@ -28,7 +29,7 @@
             :icon="useRenderIcon('ri:delete-bin-line')"
             @click="handleDelete"
             >删除</el-button
-          >
+          >-->
         </div>
       </div>
       <div class="detail-info">

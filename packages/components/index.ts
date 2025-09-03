@@ -1,9 +1,10 @@
-import ScTable from "./ScTable/index.vue";
+import { useRenderIcon } from "./ReIcon/src/hooks";
 import ScCard from "./ScCard/index.vue";
-
-export { ScTable, ScCard };
+import ScTable from "./ScTable/index.vue";
+export { ScCard, ScTable };
 
 export default {
   ScTable,
-  ScCard
+  ScCard,
+  useRenderIcon
 };

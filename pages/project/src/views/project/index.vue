@@ -11,7 +11,7 @@
                   <div class="project-card">
                     <div class="project-image">
                       <div class="image-container">
-                        <el-image :src="row.sysProjectIcon" fit="cover" lazy class="project-img">
+                        <el-image :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
                           <template #error>
                             <div class="image-placeholder">
                               <div class="placeholder-icon-wrapper">
@@ -19,7 +19,7 @@
                                   <component :is="useRenderIcon('ri:image-2-line')" />
                                 </el-icon>
                               </div>
-                              <div class="placeholder-text">{{ row.sysProjectName }}</div>
+                              <div class="placeholder-text">{{ row?.sysProjectName }}</div>
                             </div>
                           </template>
                         </el-image>
@@ -27,31 +27,23 @@
                       </div>
                     </div>
                     <div class="project-tags">
-                      <el-tag type="primary" effect="plain" class="project-name-tag">{{ row.sysProjectName }}</el-tag>
+                      <el-tag type="primary" effect="plain" class="project-name-tag">{{ row?.sysProjectName }}</el-tag>
                     </div>
                     <div class="project-actions">
-                      <template v-for="(item, index) in row.sysProjectFunction?.split(',') || []" :key="index">
+                      <template v-for="(item, index) in row?.sysProjectFunction?.split(',') || []" :key="index">
                         <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light" :offset="8">
-                          <el-button
-                            v-if="functionMap[item]"
-                            type="primary"
-                            circle
-                            size="small"
-                            class="action-button"
-                            :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)"
-                            :style="{ animationDelay: index * 0.05 + 's' }"
-                          />
+                          <el-button v-if="functionMap[item]" type="primary" circle size="small" class="action-button" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)" :style="{ animationDelay: index * 0.05 + 's' }" />
                         </el-tooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
-                      <el-button-group v-if="row.sysProjectFunction" class="ml-[1px] z-[100]">
-                        <el-button v-if="row.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
+                      <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
+                        <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
                         <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleCommand">
                           <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item v-if="defer(0) && row.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                              <el-dropdown-item v-if="defer(0) && row?.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
                                 <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
@@ -89,12 +81,12 @@
 </template>
 
 <script setup>
-import { fetchPageProject, fetchUpdateProjectDefault, fetchDeleteProject } from "@/api/manage/project";
-import { defineAsyncComponent, onMounted, reactive, ref, nextTick, computed, watch } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import SaveDialog from "./save.vue";
+import { useRenderIcon } from "@repo/components";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
+import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import { fetchDeleteProject, fetchPageProject, fetchUpdateProjectDefault } from "../../api/manage/project";
+import SaveDialog from "./save.vue";
 
 import { message, stringSplitToNumber } from "@repo/utils";
 const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
@@ -108,14 +100,14 @@ const saveDialogRef = ref();
 const tableRef = ref();
 const defaultSettingRef = ref();
 
-const handleCommand = event => {
+const handleCommand = (event) => {
   event.stopPropagation();
 };
 
-const handleDelete = async row => {
+const handleDelete = async (row) => {
   fetchDeleteProject({
-    sysProjectId: row.sysProjectId
-  }).then(res => {
+    sysProjectId: row.sysProjectId,
+  }).then((res) => {
     if (res.code === "00000") {
       message("删除成功", { type: "success" });
       tableRef.value?.reload(form);
@@ -127,13 +119,13 @@ const handleUpdateDefault = async (row, item1) => {
   fetchUpdateProjectDefault({
     sysProjectId: row.sysProjectId,
     sysProjectDefaultType: item1.value,
-    sysSetDefault: item1.label ? 0 : 1
-  }).then(res => {
+    sysSetDefault: item1.label ? 0 : 1,
+  }).then((res) => {
     if (res.code === "00000") {
       message(res.msg, { type: "success" });
       tableRef.value.updateData(
         res.data,
-        it => it.sysProjectId == row.sysProjectId,
+        (it) => it.sysProjectId == row.sysProjectId,
         (element, _updateData) => {
           deepCopy(element, _updateData);
           element.source = getDefaultValueArr(element);
@@ -150,8 +142,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   WEN_SHENG_TU: (row, item1) => {
@@ -160,8 +152,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   COLORIZATION: (row, item1) => {
@@ -170,8 +162,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   RESOLUTION: (row, item1) => {
@@ -180,8 +172,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   WEN_SHENG_SHI_PIN: (row, item1) => {
@@ -190,8 +182,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   SHE_BEI: (row, item1) => {
@@ -200,8 +192,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   DUAN_XIN: (row, item1) => {
@@ -210,8 +202,8 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   YOU_JIAN: (row, item1) => {
@@ -220,10 +212,10 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
-  }
+  },
 };
 
 const handleEventCustom = async (row, item1) => {
@@ -232,60 +224,60 @@ const handleEventCustom = async (row, item1) => {
   } catch (error) {}
 };
 
-const getDefaultValueArr = row => {
+const getDefaultValueArr = (row) => {
   const defaultValue = {};
   const storeValues1 = stringSplitToNumber(row.sysProjectFunctionDefaultIds);
-  storeValues1.forEach(element => {
+  storeValues1.forEach((element) => {
     defaultValue[element] = true;
   });
   const storeValues = stringSplitToNumber(row.sysProjectFunction);
-  const rs = storeValues.map(item => {
+  const rs = storeValues.map((item) => {
     return {
       label: !!defaultValue[item],
       value: item,
       name: functionMap[item]?.sysDictItemName,
       code: functionMap[item]?.sysDictItemCode,
-      icon: functionMap[item]?.sysDictItemIcon
+      icon: functionMap[item]?.sysDictItemIcon,
     };
   });
-  return rs.filter(it => it.name);
+  return rs.filter((it) => it.name);
 };
 
-const getLabel = val => {
+const getLabel = (val) => {
   return functionMap[val]?.sysDictItemName;
 };
 
-const getFunctionLabel = val => {
-  const _rs = (val?.split(",") || []).map(item => {
+const getFunctionLabel = (val) => {
+  const _rs = (val?.split(",") || []).map((item) => {
     return `<div type="primary"  class="mx-[2px]">${getLabel(item)}</div>`;
   });
   return _rs.join("");
 };
 const loading = ref(true);
-const handleAfterLoadedData = row => {
+const handleAfterLoadedData = (row) => {
   loading.value = false;
-  row.forEach(item => {
+  row.forEach((item) => {
     item.source = getDefaultValueArr(item);
   });
   return row;
 };
 const handleAfterPropertieSet = async () => {
   fetchListDictItem({
-    sysDictId: 1
-  }).then(res => {
+    sysDictId: 1,
+  }).then((res) => {
     dictItem = res?.data;
   });
   fetchListDictItem({
-    sysDictId: 6
-  }).then(res => {
+    sysDictId: 6,
+  }).then((res) => {
     functionList = res?.data;
-    functionList.forEach(item => {
+    functionList.forEach((item) => {
       functionMap[item.sysDictItemId] = item;
     });
   });
 };
 
-const handleDefault = async data => {
+const handleDefault = async (data) => {
   defaultSettingRef.value.handleType(functionList);
   defaultSettingRef.value.handleOpen(data);
 };
@@ -294,7 +286,7 @@ const handleSave = async (mode, data) => {
   saveDialogRef.value.handleFunction(functionList);
   saveDialogRef.value.handleOpen(mode, data);
 };
-const handleCopy = async row => {
+const handleCopy = async (row) => {
   saveDialogRef.value.handleDictItem(dictItem);
   saveDialogRef.value.handleFunction(functionList);
   saveDialogRef.value.handleOpen("add", row);
@@ -303,7 +295,7 @@ const handleRefresh = async () => {
   tableRef.value?.reload(form);
 };
 
-const handleRowClick = async data => {
+const handleRowClick = async (data) => {
   handleSave("edit", data);
 };
 
@@ -418,9 +410,7 @@ onMounted(async () => {
       content: "";
       position: fixed;
       inset: 0;
-      background:
-        radial-gradient(circle at 0% 0%, rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.08), transparent 50%),
-        radial-gradient(circle at 100% 100%, rgba(var(--el-color-success-rgb, 103, 194, 58), 0.08), transparent 50%);
+      background: radial-gradient(circle at 0% 0%, rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.08), transparent 50%), radial-gradient(circle at 100% 100%, rgba(var(--el-color-success-rgb, 103, 194, 58), 0.08), transparent 50%);
       pointer-events: none;
       z-index: -1;
     }
@@ -750,9 +740,7 @@ onMounted(async () => {
     background: var(--el-bg-color-page, linear-gradient(135deg, #1a1c23, #111827, #0f172a));
 
     .project-dashboard::before {
-      background:
-        radial-gradient(circle at 0% 0%, rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.15), transparent 50%),
-        radial-gradient(circle at 100% 100%, rgba(var(--el-color-success-rgb, 103, 194, 58), 0.15), transparent 50%);
+      background: radial-gradient(circle at 0% 0%, rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.15), transparent 50%), radial-gradient(circle at 100% 100%, rgba(var(--el-color-success-rgb, 103, 194, 58), 0.15), transparent 50%);
     }
   }
 

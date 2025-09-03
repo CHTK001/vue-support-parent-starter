@@ -1,5 +1,4 @@
 import { http, type ReturnResult } from "@repo/utils";
-
 /**
  * 删除项目
  */
@@ -29,7 +28,6 @@ export const fetchUpdateProject = (params) => {
     data: params,
   });
 };
-
 /**
  * 更新项目默认值
  */

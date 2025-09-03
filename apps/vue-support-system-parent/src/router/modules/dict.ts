@@ -17,7 +17,7 @@ export default [
       {
         path: "/dict/index",
         name: "DictIndex",
-        component: () => import("@pages/dict/index.vue"),
+        component: () => import("@pages/dict"),
         meta: {
           title: "字典管理",
           showParent: true,

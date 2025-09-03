@@ -67,40 +67,40 @@ export default [
           },
         ],
       },
-      {
-        path: "/server-config",
-        name: "serverConcofg",
-        meta: {
-          icon: "ri:server-line",
-          title: "服务器配置",
-          showLink: true,
-          showParent: true,
-        },
-        children: [
-          {
-            path: "/server/alert/push-template",
-            name: "alertPushTemplate",
-            component: () => import("@/views/alert/push-template/index.vue"),
-            meta: {
-              icon: "ri:mail-settings-line",
-              title: "告警推送模板",
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
-            path: "/server/alert/push-config",
-            name: "alertPushConfig",
-            component: () => import("@/views/alert/push-config/index.vue"),
-            meta: {
-              icon: "ri:notification-2-line",
-              title: "告警推送配置",
-              showLink: true,
-              showParent: true,
-            },
-          },
-        ],
-      },
+      // {
+      //   path: "/server-config",
+      //   name: "serverConcofg",
+      //   meta: {
+      //     icon: "ri:server-line",
+      //     title: "服务器配置",
+      //     showLink: true,
+      //     showParent: true,
+      //   },
+      //   children: [
+      //     {
+      //       path: "/server/alert/push-template",
+      //       name: "alertPushTemplate",
+      //       component: () => import("@/views/alert/push-template/index.vue"),
+      //       meta: {
+      //         icon: "ri:mail-settings-line",
+      //         title: "告警推送模板",
+      //         showLink: true,
+      //         showParent: true,
+      //       },
+      //     },
+      //     {
+      //       path: "/server/alert/push-config",
+      //       name: "alertPushConfig",
+      //       component: () => import("@/views/alert/push-config/index.vue"),
+      //       meta: {
+      //         icon: "ri:notification-2-line",
+      //         title: "告警推送配置",
+      //         showLink: true,
+      //         showParent: true,
+      //       },
+      //     },
+      //   ],
+      // },
       {
         path: "/server-soft",
         name: "serverSoft",

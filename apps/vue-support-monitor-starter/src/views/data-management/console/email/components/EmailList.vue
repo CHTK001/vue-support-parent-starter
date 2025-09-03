@@ -68,6 +68,21 @@
         </div>
       </div>
 
+      <!-- 加载更多按钮 -->
+      <div v-if="!loading && !loadingMore && hasMore !== false && emailData.length > 0" class="load-more-button">
+        <el-button 
+          type="primary" 
+          :loading="loadingMore" 
+          @click="handleLoadMore"
+          class="load-more-btn"
+        >
+          <template #loading>
+            <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
+          </template>
+          {{ loadingMore ? '加载中...' : '加载更多' }}
+        </el-button>
+      </div>
+
       <!-- 没有更多数据提示 -->
       <div v-if="!loading && !loadingMore && hasMore === false && emailData.length > 0" class="no-more-data">
         <div class="no-more-text">已加载全部邮件</div>
@@ -187,6 +202,23 @@ function handleMarkAsRead() {
 
 function handleSearch() {
   emit("search", searchQuery.value);
+}
+
+// 手动加载更多
+function handleLoadMore() {
+  if (props.loading || props.loadingMore || isLoadingMore.value) {
+    return;
+  }
+  
+  if (props.hasMore !== false) {
+    isLoadingMore.value = true;
+    emit("load-more");
+    
+    // 防抖处理，避免重复触发
+    setTimeout(() => {
+      isLoadingMore.value = false;
+    }, 1000);
+  }
 }
 
 // 滚动处理函数
@@ -456,6 +488,26 @@ function formatTime(time: any) {
 .empty-text {
   font-size: 14px;
   margin: 0;
+}
+
+/* 加载更多按钮样式 */
+.load-more-button {
+  padding: 16px;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+}
+
+.load-more-btn {
+  width: 200px;
+  height: 36px;
+  border-radius: 18px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 /* 加载更多样式 */

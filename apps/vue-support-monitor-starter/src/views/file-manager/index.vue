@@ -266,7 +266,7 @@
                       <IconifyIconOnline icon="ri:download-line" />
                     </el-button>
                     <el-button
-                      @click="renameFile(row)"
+                      @click="renameFileValue(row)"
                       size="small"
                       class="action-btn-small"
                     >
@@ -365,7 +365,7 @@
     <!-- 文件预览对话框 -->
     <FilePreviewDialog
       v-model="showPreviewDialog"
-      :file="previewFile"
+      :file="previewFileValue"
       @close="showPreviewDialog = false"
     />
 
@@ -386,7 +386,7 @@
     <!-- 重命名对话框 -->
     <RenameDialog
       v-model="showRenameDialog"
-      :file="renameFile"
+      :file="renameFileValue"
       @rename-success="handleRenameSuccess"
     />
   </div>
@@ -438,8 +438,8 @@ const showPreviewDialog = ref(false)
 const showUploadDialog = ref(false)
 const showCreateFolderDialog = ref(false)
 const showRenameDialog = ref(false)
-const previewFile = ref<FileItem | null>(null)
-const renameFile = ref<FileItem | null>(null)
+const previewFileValue = ref<FileItem | null>(null)
+const renameFileValue = ref<FileItem | null>(null)
 
 // 引用
 const directoryTreeRef = ref()
@@ -623,7 +623,7 @@ const handleFileDoubleClick = (file: FileItem) => {
     currentPath.value = file.path
     loadDirectory(file.path)
   } else {
-    previewFile.value = file
+    previewFileValue.value = file
     showPreviewDialog.value = true
   }
 }
@@ -779,7 +779,7 @@ const formatDate = (timestamp: number) => {
 }
 
 const previewFile = (file: FileItem) => {
-  previewFile.value = file
+  previewFileValue.value = file
   showPreviewDialog.value = true
 }
 
@@ -806,7 +806,7 @@ const downloadSelected = async () => {
 }
 
 const renameFile = (file: FileItem) => {
-  renameFile.value = file
+  renameFileValue.value = file
   showRenameDialog.value = true
 }
 
@@ -862,7 +862,7 @@ const deleteSelected = async () => {
 const handleFileAction = (command: string, file: FileItem) => {
   switch (command) {
     case 'rename':
-      renameFile(file)
+      renameFileValue(file)
       break
     case 'delete':
       deleteFile(file)
