@@ -322,10 +322,26 @@ defineExpose({
 <style lang="scss" scoped>
 .sc-text-input-wrapper {
   width: 100%;
+  position: relative;
+  
+  // 现代化的过渡效果
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &.is-invalid {
     :deep(.el-input__wrapper) {
       box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+      animation: shake 0.3s ease-in-out;
+    }
+  }
+  
+  &.is-loading {
+    :deep(.el-input__wrapper) {
+      background: linear-gradient(90deg, 
+        var(--el-fill-color-light) 25%, 
+        var(--el-fill-color) 50%, 
+        var(--el-fill-color-light) 75%);
+      background-size: 200% 100%;
+      animation: loading-shimmer 1.5s infinite;
     }
   }
 }
@@ -333,10 +349,34 @@ defineExpose({
 .sc-text-input-container {
   display: flex;
   align-items: center;
+  position: relative;
+  
+  // 现代化的输入框样式
+  :deep(.el-input__wrapper) {
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+    
+    &.is-focus {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+      transform: translateY(-2px);
+    }
+  }
   
   &.is-disabled {
     .sc-text-input__prefix-icon {
       color: var(--el-disabled-text-color);
+    }
+    
+    :deep(.el-input__wrapper) {
+      opacity: 0.6;
+      transform: none !important;
+      box-shadow: none !important;
     }
   }
 }
@@ -379,4 +419,34 @@ defineExpose({
     transform: rotate(360deg);
   }
 }
-</style> 
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+</style>

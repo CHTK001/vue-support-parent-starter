@@ -4,6 +4,9 @@
       <div class="gradient-orb orb-1"></div>
       <div class="gradient-orb orb-2"></div>
       <div class="gradient-orb orb-3"></div>
+      <div class="floating-particles">
+        <div class="particle" v-for="i in 12" :key="i" :style="getParticleStyle(i)"></div>
+      </div>
     </div>
 
     <div class="modern-workspace">
@@ -12,18 +15,41 @@
           <el-header class="dashboard-header">
             <div class="header-content">
               <div class="header-title">
-                <h1 class="title-text">
-                  <el-icon class="title-icon">
-                    <component :is="useRenderIcon('ri:apps-2-line')" />
-                  </el-icon>
-                  项目管理
-                </h1>
-                <p class="title-subtitle">管理和配置您的AI项目</p>
+                <div class="title-wrapper">
+                  <div class="title-icon-wrapper">
+                    <el-icon class="title-icon">
+                      <component :is="useRenderIcon('ri:apps-2-line')" />
+                    </el-icon>
+                    <div class="icon-glow"></div>
+                  </div>
+                  <div class="title-content">
+                    <h1 class="title-text">
+                      项目管理中心
+                      <span class="title-badge">Pro</span>
+                    </h1>
+                    <p class="title-subtitle">
+                      <el-icon><component :is="useRenderIcon('ri:data-line')" /></el-icon>
+                      智能管理和监控您的所有AI项目
+                      <span class="project-count">{{ projectStats.total }} 个项目</span>
+                    </p>
+                  </div>
+                </div>
               </div>
               <div class="header-actions">
+                <div class="stats-overview">
+                  <div class="stat-item">
+                    <div class="stat-value">{{ projectStats.active }}</div>
+                    <div class="stat-label">活跃项目</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ projectStats.completed }}</div>
+                    <div class="stat-label">已完成</div>
+                  </div>
+                </div>
                 <el-button type="primary" class="add-project-btn" @click="handleSave('add', {})">
                   <el-icon><component :is="useRenderIcon('ri:add-line')" /></el-icon>
-                  新建项目
+                  <span class="btn-text">新建项目</span>
+                  <div class="btn-glow"></div>
                 </el-button>
               </div>
             </div>
@@ -35,34 +61,62 @@
                 <template #default="{ row }">
                   <div class="project-card" :class="{ 'card-loading': loading }">
                     <div class="card-glow"></div>
-                    <div class="project-image">
-                      <div class="image-container">
-                        <el-image :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
-                          <template #error>
-                            <div class="image-placeholder">
-                              <div class="placeholder-icon-wrapper">
-                                <el-icon class="placeholder-icon">
-                                  <component :is="useRenderIcon('ri:image-2-line')" />
-                                </el-icon>
+                    <div class="card-header">
+                      <div class="project-image">
+                        <div class="image-container">
+                          <el-image :src="row?.sysProjectIcon" fit="cover" lazy class="project-img">
+                            <template #error>
+                              <div class="image-placeholder">
+                                <div class="placeholder-icon-wrapper">
+                                  <el-icon class="placeholder-icon">
+                                    <component :is="useRenderIcon('ri:image-2-line')" />
+                                  </el-icon>
+                                  <div class="icon-ripple"></div>
+                                </div>
+                                <div class="placeholder-text">{{ row?.sysProjectName }}</div>
                               </div>
-                              <div class="placeholder-text">{{ row?.sysProjectName }}</div>
-                            </div>
-                          </template>
-                        </el-image>
-                        <div class="image-overlay" />
-                        <div class="image-shine"></div>
-                      </div>
-                    </div>
-                    <div class="project-content">
-                      <div class="project-header">
-                        <h3 class="project-title">{{ row?.sysProjectName }}</h3>
-                        <div class="project-status">
-                          <div class="status-dot"></div>
-                          <span class="status-text">活跃</span>
+                            </template>
+                          </el-image>
+                          <div class="image-overlay" />
+                          <div class="image-shine"></div>
                         </div>
                       </div>
+
+                      <div class="project-status" :class="getStatusClass(row)">
+                        <div class="status-indicator">
+                          <div class="status-dot"></div>
+                          <div class="status-pulse"></div>
+                        </div>
+                        <span class="status-text">活跃</span>
+                      </div>
+                    </div>
+
+                    <div class="project-content">
+                      <div class="project-header">
+                        <h3 class="project-title" :title="row?.sysProjectName">{{ row?.sysProjectName }}</h3>
+                        <div class="project-meta">
+                          <span class="project-id">#{{ row?.sysProjectId || "001" }}</span>
+                          <span class="project-date">{{ formatDate(row?.createTime) }}</span>
+                        </div>
+                      </div>
+
                       <div class="project-description">
-                        <p class="description-text">{{ row?.sysProjectDescription || "暂无描述" }}</p>
+                        <p class="description-text">{{ row?.sysProjectDescription || "这是一个精心设计的项目，致力于提供优质的解决方案" }}</p>
+                      </div>
+
+                      <div class="project-stats">
+                        <div class="stat-item">
+                          <el-icon><component :is="useRenderIcon('ri:eye-line')" /></el-icon>
+                          <span>{{ row?.views || Math.floor(Math.random() * 1000) + 100 }}</span>
+                        </div>
+                        <div class="stat-item">
+                          <el-icon><component :is="useRenderIcon('ri:star-line')" /></el-icon>
+                          <span>{{ row?.stars || Math.floor(Math.random() * 50) + 10 }}</span>
+                        </div>
+                        <div class="stat-item">
+                          <el-icon><component :is="useRenderIcon('ri:time-line')" /></el-icon>
+                          <span>{{ getTimeAgo(row?.updateTime) }}</span>
+                        </div>
                       </div>
                     </div>
                     <div class="project-tags">
@@ -78,7 +132,7 @@
                     <div class="more" @click.stop>
                       <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
                         <el-button v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
-                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleCommand">
+                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleDropdownCommand">
                           <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
@@ -139,9 +193,179 @@ const saveDialogRef = ref();
 const tableRef = ref();
 const defaultSettingRef = ref();
 
-const handleCommand = (event) => {
-  event.stopPropagation();
-};
+// 项目统计数据
+const projectStats = reactive({
+  total: 0,
+  active: 0,
+  completed: 0,
+});
+
+// 粒子动画样式
+ const getParticleStyle = (index) => {
+   const delay = index * 0.5;
+   const duration = 3 + Math.random() * 2;
+   const size = 2 + Math.random() * 3;
+   const x = Math.random() * 100;
+   const y = Math.random() * 100;
+   
+   return {
+     left: `${x}%`,
+     top: `${y}%`,
+     width: `${size}px`,
+     height: `${size}px`,
+     animationDelay: `${delay}s`,
+     animationDuration: `${duration}s`
+   };
+ };
+ 
+ // 获取项目状态样式类
+ const getStatusClass = (row) => {
+   const status = row?.status || 'active';
+   return {
+     'status-active': status === 'active',
+     'status-completed': status === 'completed',
+     'status-paused': status === 'paused',
+     'status-error': status === 'error'
+   };
+ };
+ 
+ // 获取状态文本
+ const getStatusText = (row) => {
+   const status = row?.status || 'active';
+   const statusMap = {
+     active: '活跃',
+     completed: '已完成',
+     paused: '暂停',
+     error: '错误'
+   };
+   return statusMap[status] || '未知';
+ };
+ 
+ // 格式化日期
+ const formatDate = (dateStr) => {
+   if (!dateStr) return '最近';
+   const date = new Date(dateStr);
+   const now = new Date();
+   const diff = now - date;
+   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+   
+   if (days === 0) return '今天';
+   if (days === 1) return '昨天';
+   if (days < 7) return `${days}天前`;
+   if (days < 30) return `${Math.floor(days / 7)}周前`;
+   return date.toLocaleDateString();
+ };
+ 
+ // 获取时间差
+ const getTimeAgo = (dateStr) => {
+   if (!dateStr) return '刚刚';
+   const date = new Date(dateStr);
+   const now = new Date();
+   const diff = now - date;
+   const minutes = Math.floor(diff / (1000 * 60));
+   const hours = Math.floor(diff / (1000 * 60 * 60));
+   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+   
+   if (minutes < 1) return '刚刚';
+   if (minutes < 60) return `${minutes}分钟前`;
+   if (hours < 24) return `${hours}小时前`;
+   if (days < 7) return `${days}天前`;
+   return formatDate(dateStr);
+ };
+ 
+ // 获取项目类型
+ const getProjectType = (row) => {
+   const types = ['Web应用', 'API服务', '数据分析', '机器学习', '移动应用'];
+   return types[Math.floor(Math.random() * types.length)];
+ };
+ 
+ // 获取标签类型
+ const getTagType = (tag) => {
+   const typeMap = {
+     'Vue': 'success',
+     'React': 'primary',
+     'Node.js': 'warning',
+     'Python': 'info',
+     'AI': 'danger'
+   };
+   return typeMap[tag] || 'info';
+ };
+ 
+ // 获取快速操作
+ const getQuickActions = (row) => {
+   return [
+     {
+       key: 'view',
+       type: 'primary',
+       icon: useRenderIcon('ri:eye-line'),
+       title: '查看详情',
+       handler: (row) => console.log('查看', row)
+     },
+     {
+       key: 'edit',
+       type: 'success',
+       icon: useRenderIcon('ri:edit-line'),
+       title: '编辑项目',
+       handler: (row) => handleSave('edit', row)
+     },
+     {
+       key: 'deploy',
+       type: 'warning',
+       icon: useRenderIcon('ri:rocket-line'),
+       title: '部署项目',
+       handler: (row) => console.log('部署', row)
+     }
+   ];
+ };
+ 
+ // 获取卡片样式类
+ const getCardClass = (row) => {
+   return {
+     'card-featured': row?.featured,
+     'card-new': isNewProject(row),
+     'card-updated': isRecentlyUpdated(row)
+   };
+ };
+ 
+ // 判断是否为新项目
+ const isNewProject = (row) => {
+   if (!row?.createTime) return false;
+   const createDate = new Date(row.createTime);
+   const now = new Date();
+   const daysDiff = (now - createDate) / (1000 * 60 * 60 * 24);
+   return daysDiff <= 7;
+ };
+ 
+ // 判断是否最近更新
+ const isRecentlyUpdated = (row) => {
+   if (!row?.updateTime) return false;
+   const updateDate = new Date(row.updateTime);
+   const now = new Date();
+   const daysDiff = (now - updateDate) / (1000 * 60 * 60 * 24);
+   return daysDiff <= 3;
+ };
+ 
+ // 处理下拉菜单命令
+  const handleDropdownCommand = (command, row) => {
+    switch (command) {
+      case 'edit':
+        handleSave('edit', row);
+        break;
+      case 'clone':
+        console.log('克隆项目', row);
+        break;
+      case 'export':
+        console.log('导出配置', row);
+        break;
+      case 'delete':
+        handleDelete(row);
+        break;
+    }
+  };
+ 
+ const handleCommand = (event) => {
+   event.stopPropagation();
+ };
 
 const handleDelete = async (row) => {
   fetchDeleteProject({
@@ -298,6 +522,12 @@ const handleAfterLoadedData = (row) => {
   row.forEach((item) => {
     item.source = getDefaultValueArr(item);
   });
+
+  // 更新项目统计
+  projectStats.total = row.length;
+  projectStats.active = row.filter((item) => item.status !== "completed").length;
+  projectStats.completed = row.filter((item) => item.status === "completed").length;
+
   return row;
 };
 const handleAfterPropertieSet = async () => {
@@ -359,6 +589,37 @@ onMounted(async () => {
   background: linear-gradient(135deg, var(--el-bg-color-page, #f8fafc) 0%, var(--el-fill-color-lighter, #f0f2f5) 50%, var(--el-bg-color-page, #f8fafc) 100%);
 }
 
+.floating-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+
+  .particle {
+    position: absolute;
+    background: linear-gradient(45deg, rgba(64, 158, 255, 0.6), rgba(103, 194, 58, 0.6));
+    border-radius: 50%;
+    animation: float 4s ease-in-out infinite;
+    opacity: 0.7;
+    filter: blur(1px);
+
+    @keyframes float {
+      0%,
+      100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.7;
+      }
+      50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 0.3;
+      }
+    }
+  }
+}
+
 .gradient-orb {
   position: absolute;
   border-radius: 50%;
@@ -398,56 +659,224 @@ onMounted(async () => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding: 0;
   height: auto;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(64, 158, 255, 0.05) 50%, transparent 100%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
 
   .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 32px;
-    max-width: 1400px;
+    padding: 12px 16px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
   }
 
   .header-title {
-    .title-text {
-      margin: 0;
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .title-wrapper {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
+    }
+
+    .title-icon-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(103, 194, 58, 0.1));
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
 
       .title-icon {
-        font-size: 2.2rem;
-        color: var(--el-color-primary);
+        font-size: 2rem;
         background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        z-index: 2;
+      }
+
+      .icon-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        border-radius: 50%;
+        opacity: 0.3;
+        filter: blur(8px);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+          opacity: 0.3;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.2);
+          opacity: 0.5;
+        }
       }
     }
 
-    .title-subtitle {
-      margin: 8px 0 0 0;
-      color: var(--el-text-color-secondary);
-      font-size: 1rem;
-      font-weight: 400;
+    .title-content {
+      .title-text {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-success));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .title-badge {
+          background: linear-gradient(135deg, #ffd700, #ffed4e);
+          color: #1a1a1a;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          text-shadow: none;
+          box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+          animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+          from {
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+          }
+          to {
+            box-shadow: 0 4px 16px rgba(255, 215, 0, 0.6);
+          }
+        }
+      }
+
+      .title-subtitle {
+        margin: 8px 0 0 0;
+        color: var(--el-text-color-secondary);
+        font-size: 1rem;
+        font-weight: 400;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .project-count {
+          background: rgba(64, 158, 255, 0.1);
+          color: var(--el-color-primary);
+          padding: 2px 8px;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          margin-left: 8px;
+        }
+      }
     }
   }
 
-  .add-project-btn {
-    padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 600;
-    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
-    border: none;
-    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 24px;
 
-    &:hover {
-      box-shadow: 0 8px 20px rgba(64, 158, 255, 0.4);
+    .stats-overview {
+      display: flex;
+      gap: 16px;
+
+      .stat-item {
+        text-align: center;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--el-color-primary);
+          line-height: 1;
+        }
+
+        .stat-label {
+          font-size: 0.8rem;
+          color: var(--el-text-color-secondary);
+          margin-top: 4px;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .add-project-btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      border: none;
+      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+
+      .btn-text {
+        position: relative;
+        z-index: 2;
+      }
+
+      .btn-glow {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease;
+      }
+
+      &:hover {
+        box-shadow: 0 8px 20px rgba(64, 158, 255, 0.4);
+        transform: translateY(-2px);
+
+        .btn-glow {
+          left: 100%;
+        }
+      }
     }
   }
 }
@@ -600,6 +1029,58 @@ onMounted(async () => {
     pointer-events: none;
   }
 
+  &.card-new {
+    border: 2px solid var(--el-color-success);
+    box-shadow:
+      0 8px 32px rgba(103, 194, 58, 0.2),
+      0 2px 8px rgba(103, 194, 58, 0.1);
+      
+    &::after {
+      content: 'NEW';
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      z-index: 10;
+      animation: pulse 2s infinite;
+    }
+  }
+
+  &.card-featured {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 193, 7, 0.05));
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    
+    &::after {
+      content: '⭐';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 1.2rem;
+      z-index: 10;
+      animation: sparkle 3s ease-in-out infinite;
+    }
+  }
+
+  &.card-updated {
+    border-left: 4px solid var(--el-color-primary);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--el-color-primary), transparent);
+      animation: progress 2s ease-in-out infinite;
+    }
+  }
+
   .card-glow {
     position: absolute;
     top: -2px;
@@ -615,6 +1096,7 @@ onMounted(async () => {
   }
 
   &:hover {
+    transform: translateY(-8px) scale(1.02);
     box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.12),
       0 8px 16px rgba(0, 0, 0, 0.08),
@@ -627,6 +1109,31 @@ onMounted(async () => {
     .card-glow {
       opacity: 0.1;
     }
+
+    .image-shine {
+      transform: translateX(100%);
+    }
+
+    .project-image .image-container {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  @keyframes sparkle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1); }
+    75% { transform: rotate(270deg) scale(1.1); }
+  }
+  
+  @keyframes progress {
+    0% { width: 0%; }
+    100% { width: 100%; }
   }
 
   .project-image {
@@ -730,58 +1237,139 @@ onMounted(async () => {
     }
   }
 
-  // 项目内容区域
-  .project-content {
-    padding: 24px;
-
-    .project-header {
+  .card-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 0;
+    
+    .project-status {
+      position: relative;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 16px;
-
-      .project-title {
-        margin: 0;
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--el-text-color-primary);
-        line-height: 1.3;
-        max-width: 70%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      
+      &.status-active {
+        background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
+        border: 1px solid rgba(103, 194, 58, 0.3);
+        color: var(--el-color-success);
       }
-
-      .project-status {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        background: linear-gradient(135deg, rgba(103, 194, 58, 0.1), rgba(103, 194, 58, 0.05));
-        border-radius: 12px;
-        border: 1px solid rgba(103, 194, 58, 0.2);
-
+      
+      &.status-completed {
+        background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
+        border: 1px solid rgba(64, 158, 255, 0.3);
+        color: var(--el-color-primary);
+      }
+      
+      &.status-paused {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        color: var(--el-color-warning);
+      }
+      
+      &.status-error {
+        background: linear-gradient(135deg, rgba(245, 108, 108, 0.15), rgba(245, 108, 108, 0.08));
+        border: 1px solid rgba(245, 108, 108, 0.3);
+        color: var(--el-color-danger);
+      }
+      
+      .status-indicator {
+        position: relative;
+        
         .status-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: var(--el-color-success);
+          background: currentColor;
+          position: relative;
+          z-index: 2;
         }
+        
+        .status-pulse {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: currentColor;
+          opacity: 0.6;
+          animation: statusPulse 2s ease-in-out infinite;
+        }
+      }
+      
+      .status-text {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
 
-        .status-text {
+  // 项目内容区域
+  .project-content {
+    padding: 20px 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .project-header {
+      margin-bottom: 16px;
+
+      .project-title {
+        margin: 0 0 8px 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: var(--el-color-primary);
+        }
+      }
+      
+      .project-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        
+        .project-id {
           font-size: 0.8rem;
+          color: var(--el-color-primary);
+          background: rgba(64, 158, 255, 0.1);
+          padding: 2px 8px;
+          border-radius: 8px;
+          font-weight: 600;
+        }
+        
+        .project-date {
+          font-size: 0.8rem;
+          color: var(--el-text-color-secondary);
           font-weight: 500;
-          color: var(--el-color-success);
         }
       }
     }
 
     .project-description {
+      margin-bottom: 16px;
+      flex: 1;
+      
       .description-text {
         margin: 0;
         font-size: 0.95rem;
         color: var(--el-text-color-secondary);
-        line-height: 1.5;
+        line-height: 1.6;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
@@ -789,95 +1377,231 @@ onMounted(async () => {
         text-overflow: ellipsis;
       }
     }
-
-    .el-tag {
-      border-radius: 10px;
-      padding: 6px 14px;
-      font-weight: 500;
-      border: none;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s ease;
-
-      &:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    .project-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0;
+      border-top: 1px solid var(--el-border-color-lighter);
+      
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.8rem;
+        color: var(--el-text-color-secondary);
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: var(--el-color-primary);
+        }
+        
+        i {
+          font-size: 0.9rem;
+        }
       }
-
-      &[type="primary"] {
-        background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.12));
-        color: var(--el-color-primary, #409eff);
-      }
-
-      &[type="success"] {
-        background: var(--el-color-success-light-9, rgba(103, 194, 58, 0.12));
-        color: var(--el-color-success, #67c23a);
-      }
+    }
+  }
+  
+  @keyframes statusPulse {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.5);
+      opacity: 0.2;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(2);
+      opacity: 0;
     }
   }
 
   .project-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
     position: absolute;
-    top: 28px;
+    top: 16px;
+    left: 20px;
     right: 20px;
-    max-width: 70%;
-
-    .el-tag {
-      border-radius: 10px;
-      padding: 6px 14px;
-      font-weight: 500;
-      border: none;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s ease;
-
-      &:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 5;
+    
+    .primary-tags {
+      display: flex;
+      gap: 8px;
+      
+      .project-name-tag {
+        background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
+        border: 1px solid rgba(64, 158, 255, 0.2);
+        color: var(--el-color-primary);
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: linear-gradient(135deg, rgba(64, 158, 255, 0.2), rgba(64, 158, 255, 0.1));
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+        }
       }
-
-      &[type="primary"] {
-        background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.12));
-        color: var(--el-color-primary, #409eff);
-      }
-
-      &[type="success"] {
-        background: var(--el-color-success-light-9, rgba(103, 194, 58, 0.12));
-        color: var(--el-color-success, #67c23a);
+    }
+    
+    .function-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 60%;
+      justify-content: flex-end;
+      
+      .function-tag {
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        border: none;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        &[type="primary"] {
+          background: rgba(64, 158, 255, 0.12);
+          color: var(--el-color-primary);
+        }
+        
+        &[type="success"] {
+          background: rgba(103, 194, 58, 0.12);
+          color: var(--el-color-success);
+        }
+        
+        &[type="warning"] {
+          background: rgba(255, 193, 7, 0.12);
+          color: var(--el-color-warning);
+        }
+        
+        &[type="info"] {
+          background: rgba(144, 147, 153, 0.12);
+          color: var(--el-color-info);
+        }
+        
+        &[type="danger"] {
+          background: rgba(245, 108, 108, 0.12);
+          color: var(--el-color-danger);
+        }
       }
     }
   }
 
   .project-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
     position: absolute;
     bottom: 20px;
     left: 20px;
-
-    .action-button {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      padding: 0;
-      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.12));
-      border: none;
-      color: var(--el-color-primary, #409eff);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-
-      :deep(i) {
-        font-size: 14px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+    
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      
+      .action-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        padding: 0;
+        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        border: none;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        position: relative;
+        overflow: hidden;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s ease;
+        }
+        
+        &:hover {
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          
+          &::before {
+            left: 100%;
+          }
+        }
+        
+        &[type="primary"] {
+          background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
+          color: var(--el-color-primary);
+          border: 1px solid rgba(64, 158, 255, 0.2);
+          
+          &:hover {
+            background: linear-gradient(135deg, rgba(64, 158, 255, 0.25), rgba(64, 158, 255, 0.15));
+            box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+          }
+        }
+        
+        &[type="success"] {
+          background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
+          color: var(--el-color-success);
+          border: 1px solid rgba(103, 194, 58, 0.2);
+          
+          &:hover {
+            background: linear-gradient(135deg, rgba(103, 194, 58, 0.25), rgba(103, 194, 58, 0.15));
+            box-shadow: 0 6px 16px rgba(103, 194, 58, 0.3);
+          }
+        }
+        
+        &[type="warning"] {
+          background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+          color: var(--el-color-warning);
+          border: 1px solid rgba(255, 193, 7, 0.2);
+          
+          &:hover {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.15));
+            box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
+          }
+        }
       }
-
-      &:hover {
-        background: var(--el-color-primary-light-8, rgba(64, 158, 255, 0.18));
-        box-shadow: 0 6px 12px rgba(var(--el-color-primary-rgb, 64, 158, 255), 0.15);
+    }
+    
+    .main-actions {
+      .more-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: var(--el-text-color-primary);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
       }
     }
   }

@@ -1,5 +1,6 @@
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScInput from "@repo/components/ScInput/index.vue";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
@@ -8,7 +9,7 @@ import draggable from "vuedraggable";
 import { fetchSetting, fetchUpdateBatchSetting } from "../api";
 
 export default defineComponent({
-  components: { draggable },
+  components: { draggable, ScInput },
   props: {
     data: {
       type: Object,
@@ -139,35 +140,30 @@ export default defineComponent({
                     <template #item="{ element }">
                       <el-form-item :key="$index" :label="element.sysSettingRemark || element.sysSettingName" class="item !cursor-move">
                         <div v-if="element.sysSettingName" class="w-full">
-                          <div v-if="element.sysSettingValueType == 'Boolean'" class="toggle-card" :class="{ 'toggle-active': element.sysSettingValue === 'true', 'toggle-disabled': element.sysSettingAppInner == 1 }" @click="element.sysSettingAppInner != 1 && toggleBooleanValue(element)">
-                            <div class="toggle-icon">
-                              <i class="el-icon" v-if="element.sysSettingValue === 'true'">
-                                <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
-                                  <path fill="currentColor" d="M406.656 706.944L195.84 496.256a32 32 0 10-45.248 45.248l256 256 512-512a32 32 0 00-45.248-45.248L406.592 706.944z"></path>
-                                </svg>
-                              </i>
-                              <i class="el-icon" v-else>
-                                <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
-                                  <path
-                                    fill="currentColor"
-                                    d="M764.288 214.592L512 466.88 259.712 214.592a31.936 31.936 0 00-45.12 45.12L466.752 512 214.528 764.224a31.936 31.936 0 1045.12 45.184L512 557.184l252.288 252.288a31.936 31.936 0 0045.12-45.12L557.12 512.064l252.288-252.352a31.936 31.936 0 10-45.12-45.184z"
-                                  ></path>
-                                </svg>
-                              </i>
-                            </div>
-                            <div class="toggle-text">{{ element.sysSettingValue === "true" ? "是" : "否" }}</div>
-                          </div>
+                          <sc-input v-if="element.sysSettingValueType == 'Boolean'" v-model="element.sysSettingValue" type="boolean" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
 
-                          <el-input-number v-else-if="element.sysSettingValueType == 'Number'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
-                          <el-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
-                          <el-select v-else-if="element.sysSettingValueType == 'Dict'" v-model="element.sysSettingValue" :remote="true" :remote-method="queryDict(item)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1">
-                            <el-option v-for="(option, $index) in select[element.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
-                          </el-select>
-                          <el-color-picker v-else-if="element.sysSettingValueType == 'Color'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" show-alpha />
-                          <el-autocomplete v-else-if="element.sysSettingValueType == 'Mail'" v-model="element.sysSettingValue" :fetch-suggestions="queryEmailMethod" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
-                          <el-input v-else-if="element.sysSettingValueType == 'Password' || element.sysSettingValueType == 'AppSecret'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="password" show-password="" />
-                          <el-input v-else-if="element.sysSettingValueType == 'TextArea'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="textarea" show-password="" />
-                          <el-input v-else v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Number'" v-model="element.sysSettingValue" type="number" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" type="text" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Dict'" v-model="element.sysSettingValue" type="dict" :options="select[element.sysSettingName]" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Color'" v-model="element.sysSettingValue" type="color" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input v-else-if="element.sysSettingValueType == 'Mail'" v-model="element.sysSettingValue" type="email" placeholder="请输入邮箱" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <sc-input
+                            v-else-if="element.sysSettingValueType == 'Password' || element.sysSettingValueType == 'AppSecret'"
+                            v-model="element.sysSettingValue"
+                            type="password"
+                            :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)"
+                            :disabled="element.sysSettingAppInner == 1"
+                            :readonly="element.sysSettingAppInner == 1"
+                          />
+                          <sc-input
+                            v-else-if="element.sysSettingValueType == 'TextArea'"
+                            v-model="element.sysSettingValue"
+                            type="textarea"
+                            :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)"
+                            :disabled="element.sysSettingAppInner == 1"
+                            :readonly="element.sysSettingAppInner == 1"
+                          />
+                          <sc-input v-else v-model="element.sysSettingValue" type="text" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
                         </div>
                       </el-form-item>
                     </template>
