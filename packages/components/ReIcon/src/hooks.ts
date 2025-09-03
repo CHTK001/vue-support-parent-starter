@@ -12,6 +12,8 @@ import { IconifyIconOnline, IconifyIconOffline, FontIcon } from "../index";
 export function useRenderIcon(icon: any, attrs?: iconType): Component {
   // iconfont
   const ifReg = /^IF-/;
+  // HTTP远程图标
+  const httpReg = /^https?:\/\//;
   // typeof icon === "function" 属于SVG
   if (ifReg.test(icon)) {
     // iconfont
@@ -24,6 +26,26 @@ export function useRenderIcon(icon: any, attrs?: iconType): Component {
         return h(FontIcon, {
           icon: iconName,
           iconType,
+          ...attrs
+        });
+      }
+    });
+  } else if (httpReg.test(icon)) {
+    // HTTP远程图标
+    return defineComponent({
+      name: "HttpIcon",
+      render() {
+        return h("img", {
+          src: icon,
+          alt: "icon",
+          style: {
+            width: "1em",
+            height: "1em",
+            display: "inline-block",
+            verticalAlign: "middle",
+            objectFit: "contain",
+            ...attrs?.style
+          },
           ...attrs
         });
       }

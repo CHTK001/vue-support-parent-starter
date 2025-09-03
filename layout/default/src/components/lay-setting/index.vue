@@ -68,6 +68,29 @@ const settings = reactive({
   debugMode: false,
 });
 
+/** 卡片颜色模式配置 */
+const cardColorMode = ref($storage.configure?.cardColorMode ?? "all");
+
+const cardColorOptions = computed<Array<OptionsType>>(() => {
+  return [
+    {
+      label: "全部颜色",
+      tip: "所有卡片使用随机渐变色",
+      value: "all",
+    },
+    {
+      label: "1/3颜色",
+      tip: "仅使用部分颜色组合",
+      value: "third",
+    },
+    {
+      label: "纯白模式",
+      tip: "所有卡片使用纯白背景",
+      value: "white",
+    },
+  ];
+});
+
 const getThemeColorStyle = computed(() => {
   return (color: string) => {
     return { background: color };
@@ -158,6 +181,13 @@ function logoChange() {
 /** 卡片Body */
 function cardBodyChange() {
   unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
+}
+
+/** 卡片颜色模式变更 */
+function onCardColorModeChange({ option }: { option: OptionsType }) {
+  const { value } = option;
+  cardColorMode.value = value;
+  storageConfigureChange("cardColorMode", value);
 }
 
 /** 数字输入框调整值函数 */
@@ -463,6 +493,10 @@ function resetToDefault() {
     keepAlive: true,
     debugMode: false,
   });
+
+  // 重置卡片颜色模式
+  cardColorMode.value = "all";
+  storageConfigureChange("cardColorMode", "all");
 
   // 重置主题
   setLayoutModel("vertical");
@@ -905,6 +939,29 @@ onUnmounted(() => {
                   <span class="switch-desc">为页面内容添加卡片样式背景</span>
                 </div>
                 <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false" @change="cardBodyChange" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片导航设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:palette-line'" class="group-icon" />
+              卡片导航
+            </h4>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">卡片颜色模式</label>
+                <span class="setting-desc">选择卡片导航的颜色显示方式</span>
+              </div>
+              <div class="setting-control">
+                <Segmented 
+                  resize 
+                  class="select-none modern-segmented" 
+                  :modelValue="cardColorMode === 'all' ? 0 : cardColorMode === 'third' ? 1 : 2" 
+                  :options="cardColorOptions" 
+                  @change="onCardColorModeChange" 
+                />
               </div>
             </div>
           </div>

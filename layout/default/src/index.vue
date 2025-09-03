@@ -28,6 +28,7 @@ window.onload = () => {
     });
   });
 };
+const CardNavigation = defineAsyncComponent(() => import("./components/lay-sidebar/components/CardNavigation.vue"));
 const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
@@ -192,36 +193,54 @@ const LayHeader = defineComponent({
 
 <template>
   <div ref="appWrapperRef" :class="['app-wrapper', set.classes]">
-    <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
-    <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
-    <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
-    <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
-      <div v-if="set.fixedHeader">
-        <LayHeader />
-        <!-- 主体内容 -->
-        <Suspense>
-          <template #default>
-            <div>
-              <LayContent :fixed-header="set.fixedHeader" />
-            </div>
-          </template>
-        </Suspense>
+    <!-- 卡片导航模式：直接渲染CardNavigation组件 -->
+    <template v-if="layout.includes('card')">
+      <Suspense>
+        <template #default>
+          <CardNavigation />
+        </template>
+        <template #fallback>
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+          </div>
+        </template>
+      </Suspense>
+    </template>
+
+    <!-- 其他导航模式：原有逻辑 -->
+    <template v-else>
+      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
+      <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
+      <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
+        <div v-if="set.fixedHeader">
+          <LayHeader />
+          <!-- 主体内容 -->
+          <Suspense>
+            <template #default>
+              <div>
+                <LayContent :fixed-header="set.fixedHeader" />
+              </div>
+            </template>
+          </Suspense>
+        </div>
+        <el-scrollbar v-else>
+          <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
+            <BackTopIcon />
+          </el-backtop>
+          <LayHeader />
+          <!-- 主体内容 -->
+          <Suspense>
+            <template #default>
+              <div>
+                <LayContent :fixed-header="set.fixedHeader" />
+              </div>
+            </template>
+          </Suspense>
+        </el-scrollbar>
       </div>
-      <el-scrollbar v-else>
-        <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
-          <BackTopIcon />
-        </el-backtop>
-        <LayHeader />
-        <!-- 主体内容 -->
-        <Suspense>
-          <template #default>
-            <div>
-              <LayContent :fixed-header="set.fixedHeader" />
-            </div>
-          </template>
-        </Suspense>
-      </el-scrollbar>
-    </div>
+    </template>
+
     <!-- 系统设置 -->
     <LaySetting v-if="pureSetting.ShowBarSetting" />
   </div>
@@ -274,5 +293,33 @@ const LayHeader = defineComponent({
 
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
+}
+
+// 异步组件加载状态样式
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: var(--el-bg-color);
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -78,6 +78,47 @@
     </div>
 
     <div class="example-section">
+      <h3>HTTP协议图标支持</h3>
+      <div class="example-box">
+        <div class="http-icon-demo">
+          <div class="http-icon-row">
+            <div class="http-icon-item">
+              <IconifyIconOnline :icon="httpIcon1" style="font-size: 32px" />
+              <span>在线组件 HTTP</span>
+            </div>
+            <div class="http-icon-item">
+              <IconifyIconOffline :icon="httpIcon1" style="font-size: 32px" />
+              <span>离线组件 HTTP</span>
+            </div>
+            <div class="http-icon-item">
+              <component :is="useRenderIconHttp1" style="font-size: 32px" />
+              <span>useRenderIcon HTTP</span>
+            </div>
+          </div>
+          <div class="http-icon-row">
+            <div class="http-icon-item">
+              <IconifyIconOnline :icon="httpIcon2" style="font-size: 32px" />
+              <span>GitHub图标</span>
+            </div>
+            <div class="http-icon-item">
+              <IconifyIconOffline :icon="httpIcon2" style="font-size: 32px" />
+              <span>Vue图标</span>
+            </div>
+            <div class="http-icon-item">
+              <component :is="useRenderIconHttp2" style="font-size: 32px" />
+              <span>React图标</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="example-code">
+        <pre>&lt;!-- HTTP协议图标示例 --&gt;
+&lt;IconifyIconOnline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg" /&gt;
+&lt;IconifyIconOffline icon="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg" /&gt;</pre>
+      </div>
+    </div>
+
+    <div class="example-section">
       <h3>图标选择器</h3>
       <div class="example-box">
         <div class="icon-selector-demo">
@@ -122,6 +163,17 @@
 <script setup>
 import { ref, computed } from "vue";
 import { message } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOffline } from "@repo/components/ReIcon";
+
+// HTTP图标URL
+const httpIcon1 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg";
+const httpIcon2 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/vuedotjs.svg";
+const httpIcon3 = "https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/react.svg";
+
+// 使用useRenderIcon创建HTTP图标组件
+const useRenderIconHttp1 = useRenderIcon(httpIcon1);
+const useRenderIconHttp2 = useRenderIcon(httpIcon3);
 
 // 在线图标列表（示例）
 const onlineIcons = [
@@ -411,5 +463,34 @@ const copyIconCode = () => {
   margin: 0;
   font-size: 14px;
   color: #606266;
+}
+
+.http-icon-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.http-icon-row {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.http-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.http-icon-item span {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
 }
 </style>

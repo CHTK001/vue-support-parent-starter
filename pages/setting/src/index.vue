@@ -121,11 +121,11 @@ const close = (group) => {
   // 可以在这里添加关闭后的逻辑，如刷新数据等
   console.log("关闭设置面板:", group);
 };
-if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
-  nextTick(() => {
-    onRowClick(localStorageProxyObject.getItem(SETTING_TAB_VALUE));
-  });
-}
+// if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
+//   nextTick(() => {
+//     onRowClick(localStorageProxyObject.getItem(SETTING_TAB_VALUE));
+//   });
+// }
 
 const handleOpenItemDialog = async () => {
   config.saveItemStatus = true;
@@ -186,7 +186,12 @@ const getCurrentSetting = () => {
 
     <!-- 设置内容区域 -->
     <div class="setting-content-container" v-if="currentItem">
-      <SaveLayoutRaw ref="saveLayout" @close="close(currentItem.group)" class="w-full" />
+      <template v-if="!layout[currentItem.group]">
+        <SaveLayoutRaw ref="saveLayout" @close="close(currentItem.group)" class="w-full" />
+      </template>
+      <el-drawer v-model="layout[currentItem.group]" size="50%" :title="currentItem.name">
+        <component :is="layout[currentItem.group]" :data="currentItem" />
+      </el-drawer>
     </div>
 
     <SaveItem ref="saveItemRef" @close="handleCloseItemDialog" />

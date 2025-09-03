@@ -29,7 +29,9 @@ export enum InputType {
   CAPTCHA = "captcha",
   SELECT = "select",
   TOTP = "totp",
-  RICHTEXT = "richtext"
+  RICHTEXT = "richtext",
+  LIST = "list",
+  ARRAY = "array"
 }
 
 export default InputType;

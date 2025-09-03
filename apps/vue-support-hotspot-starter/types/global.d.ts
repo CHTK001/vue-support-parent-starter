@@ -121,6 +121,7 @@ declare global {
       showModel?: string;
       multiTagsCache?: boolean;
       stretch?: boolean | number;
+      cardColorMode?: string;
     };
     tags?: Array<any>;
   }
