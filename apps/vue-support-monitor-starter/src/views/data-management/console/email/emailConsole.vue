@@ -480,13 +480,12 @@ async function loadMoreEmails() {
     });
     //@ts-ignore
     const data = res?.data?.record || ({} as any);
-    const newEmails = data.record || [];
+    const newEmails = data.data || [];
     const newHasMore =
       emails.value.length -
         (cachedData ? cachedData.emails.length : 0) +
         newEmails.length <
       emailsTotal.value;
-
     // 如果有缓存数据，需要替换对应的部分；如果没有缓存，直接追加
     if (cachedData) {
       // 移除之前添加的缓存数据，添加最新数据
@@ -509,7 +508,7 @@ async function loadMoreEmails() {
       props.id,
       activeFolder.value,
       emailsPageNumber.value,
-      newEmails,
+      newEmails.value,
       emailsTotal.value,
       newHasMore
     );

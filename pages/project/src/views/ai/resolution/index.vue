@@ -1,10 +1,10 @@
 <script setup>
-import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
-import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed, ref } from "vue";
-import { clearObject, fileToBase64, getRandomInt, localStorageProxy, message, urlImageInfo } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { clearObject, fileToBase64, localStorageProxy, message, urlImageInfo } from "@repo/utils";
+import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
 import { useRoute } from "vue-router";
-import { fetchGetTaskForResolution, fetchSaveTaskForResolution } from "@/api/ai/image-resolution";
+import { fetchGetTaskForResolution, fetchSaveTaskForResolution } from "../../../api/ai/image-resolution";
+import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
 const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
@@ -14,9 +14,9 @@ const modelList = shallowRef([]);
 const settingOpen = shallowRef(false);
 const route = useRoute();
 const props = defineProps({
-  category: RESOLUTION,
-  type: RESOLUTION,
-  selectedItemLabel: ai - image - resolution - selected
+  category: "RESOLUTION",
+  type: "RESOLUTION",
+  selectedItemLabel: "ai-image-resolution-selected",
 });
 const resolutionImage = shallowRef();
 const resolutionImageSize = reactive({});
@@ -24,16 +24,16 @@ const form = reactive({
   model: "",
   sysAiModuleType: "RESOLUTION",
   scaleFactor: 2,
-  url: null
+  url: null,
 });
 const env = {
-  category: "RESOLUTION"
+  category: "RESOLUTION",
 };
 let intervalId = null;
 const loadingConfig = reactive({
   export: false,
   alwaysTrue: true,
-  showHistory: true
+  showHistory: true,
 });
 const formSetting = reactive({});
 const handleOpenModuleManager = async () => {
@@ -42,8 +42,8 @@ const handleOpenModuleManager = async () => {
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
 };
-const handleChangeModule = async value => {
-  const _item = modelList.value.find(it => it.sysAiModuleCode === value);
+const handleChangeModule = async (value) => {
+  const _item = modelList.value.find((it) => it.sysAiModuleCode === value);
   env.sysProjectId = _item.sysProjectId;
   env.sysProjectName = _item.sysProjectName;
   env.sysAiModuleId = _item.sysAiModuleId;
@@ -55,13 +55,13 @@ const handleChangeModule = async value => {
 };
 const initialModuleList = async () => {
   const { data } = await fetchListProjectForAiModule(form);
-  modelList.value = data.map(it => {
+  modelList.value = data.map((it) => {
     it.vincentSetting = {
       ...it.vincentSetting,
-      sysAiVincentSupportedSizeList: it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || []
+      sysAiVincentSupportedSizeList: it.vincentSetting?.sysAiVincentSupportedSize?.split(",") || [],
     };
     return {
-      ...it
+      ...it,
     };
   });
   const _selectedModel = localStorageProxy().getItem(props.selectedItemLabel);
@@ -92,7 +92,7 @@ const requestId = () => {
   const _requestId = localStorageProxy().getItem("resolution-request-id:" + getKey());
   return _requestId;
 };
-const loadedRequestId = async row => {
+const loadedRequestId = async (row) => {
   localStorageProxy().setItem("resolution-request-id:" + getKey(), row.taskId);
 };
 const loadInterval = () => {
@@ -137,7 +137,7 @@ const createInterval = () => {
           scLoadingRef.value.stepTo(data.progress);
         }
       })
-      .catch(e => {
+      .catch((e) => {
         clearTask();
       });
   }, 5000);
@@ -165,7 +165,7 @@ const onAfterProperieSet = () => {
 };
 
 const modelSelectLabel = computed(() => {
-  return modelList.value.find(it => it.sysAiModuleCode === form.model);
+  return modelList.value.find((it) => it.sysAiModuleCode === form.model);
 });
 const handleRefreshEnvironment = async () => {
   await initialModuleList();
@@ -182,16 +182,16 @@ const handleExport = async () => {
       loadedRequestId(data);
       createInterval();
     })
-    .catch(e => {
+    .catch((e) => {
       clearTask();
     });
 };
 const showImageUrl = shallowRef();
 const showImageSize = reactive({
   width: 1024,
-  height: 1024
+  height: 1024,
 });
-const handleChange = async files => {
+const handleChange = async (files) => {
   if (showImageUrl.value) {
     URL.revokeObjectURL(showImageUrl.value);
   }
@@ -260,9 +260,7 @@ onMounted(async () => {
                 <template #dropdown>
                   <el-dropdown-menu class="!p-2">
                     <el-dropdown-item class="!rounded !my-1" @click="() => (form.scaleFactor = 1)">原始尺寸</el-dropdown-item>
-                    <el-dropdown-item v-for="item in formSetting.sysAiVincentSupportedSizeList" :key="item" class="!rounded !my-1" @click="() => (form.scaleFactor = item)">
-                      {{ item }}倍
-                    </el-dropdown-item>
+                    <el-dropdown-item v-for="item in formSetting.sysAiVincentSupportedSizeList" :key="item" class="!rounded !my-1" @click="() => (form.scaleFactor = item)"> {{ item }}倍 </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -285,7 +283,7 @@ onMounted(async () => {
             class="h-full relativeoverflow-hidden compare-image"
             :style="{
               '--image-height': showImageSize.height + 'px',
-              '--image-width': showImageSize.width + 'px'
+              '--image-width': showImageSize.width + 'px',
             }"
           >
             <div v-if="!resolutionImage" class="flex justify-center h-full w-full image-container">

@@ -8,7 +8,6 @@ export const fetchPageProjectForAiModule = (params) => {
     params,
   });
 };
-
 /**
  * 项目模型列表
  */
@@ -17,7 +16,6 @@ export const fetchListProjectForAiModule = (params) => {
     params,
   });
 };
-
 /**
  * 删除模型模板
  */
@@ -26,7 +24,6 @@ export const fetchDeleteProjectForAiModule = (params) => {
     data: params,
   });
 };
-
 /**
  * 更新模型模板
  */
@@ -35,7 +32,6 @@ export const fetchUpdateProjectForAiModule = (params) => {
     data: params,
   });
 };
-
 /**
  * 新增模型模板
  */

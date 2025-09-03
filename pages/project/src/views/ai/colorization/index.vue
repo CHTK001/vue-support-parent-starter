@@ -1,11 +1,10 @@
 <script setup>
-import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
-import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed, ref } from "vue";
-import { clearObject, fileToBase64, getRandomInt, localStorageProxy, message, urlImageInfo } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { clearObject, fileToBase64, localStorageProxy, message } from "@repo/utils";
+import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
 import { useRoute } from "vue-router";
-import { fetchGetTaskForResolution, fetchSaveTaskForResolution } from "@/api/ai/image-resolution";
-import { fetchGetTaskForColorization, fetchSaveTaskForColorization } from "@/api/ai/image-colorization";
+import { fetchGetTaskForColorization, fetchSaveTaskForColorization } from "../../../api/ai/image-colorization";
+import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
 const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));

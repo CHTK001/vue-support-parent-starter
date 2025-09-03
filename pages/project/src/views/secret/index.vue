@@ -1,17 +1,16 @@
 <script setup>
-import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "../../api/secret";
-import ScTable from "@repo/components/ScTable/index.vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
-import { markRaw } from "vue";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
+import Download from "@iconify-icons/ri/cloud-line";
 import { debounce } from "@pureadmin/utils";
-import { nextTick, reactive, ref } from "vue";
+import { useRenderIcon } from "@repo/components";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { markRaw, nextTick, reactive, ref } from "vue";
+import { fetchDeleteSecret, fetchPageSecret, fetchUpdateSecret } from "../../api/manage/secret";
 import SaveDialog from "./save.vue";
 import SyncDialog from "./sync.vue";
-import Download from "@iconify-icons/ri/cloud-line";
 
 const table = ref();
 const saveDialog = ref();
@@ -19,33 +18,33 @@ const syncDialog = ref();
 const formRef = ref();
 const visible = reactive({
   save: false,
-  sync: false
+  sync: false,
 });
 
 const sysSecretFunctions = reactive([
   {
     label: "短信",
-    value: "SMS"
-  }
+    value: "SMS",
+  },
 ]);
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const form = reactive({
   sysSecretGroup: null,
   sysSecretCode: null,
   sysSecretAppId: null,
-  sysSecretAppSecret: null
+  sysSecretAppSecret: null,
 });
 const loading = reactive({
-  query: false
+  query: false,
 });
-const resetForm = async formRef => {
+const resetForm = async (formRef) => {
   formRef.resetFields();
   onSearch();
 };
 
-const onDelete = async it => {
+const onDelete = async (it) => {
   loading.query = true;
   await fetchDeleteSecret(it.sysSecretId);
   table.value.reload();
@@ -60,7 +59,7 @@ const onSearch = debounce(
   true
 );
 
-const isShow = val => {
+const isShow = (val) => {
   return ["SMS"].includes(val);
 };
 const syncOpen = async (row, mode) => {
@@ -76,7 +75,7 @@ const dialogOpen = async (row, mode) => {
   saveDialog.value.setData(row).open(mode);
 };
 
-const hasSyncFunction = row => {
+const hasSyncFunction = (row) => {
   return (row.sysSecretFunction || "").split(",").includes("SMS");
 };
 const dialogClose = async () => {
@@ -86,16 +85,13 @@ const dialogClose = async () => {
 </script>
 <template>
   <div class="main background-color">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :sysSecretFunctions="sysSecretFunctions"
-      :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
-    <SyncDialog v-if="visible.sync" ref="syncDialog" :sysSecretFunctions="sysSecretFunctions"
-      :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :sysSecretFunctions="sysSecretFunctions" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
+    <SyncDialog v-if="visible.sync" ref="syncDialog" :sysSecretFunctions="sysSecretFunctions" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header>
           <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="form"
-              class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
+            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
               <el-form-item label="密钥分组" prop="sysRoleName">
                 <el-input v-model="form.sysSecretGroup" placeholder="请输入密钥分组" clearable class="!w-[180px]" />
               </el-form-item>
@@ -106,8 +102,7 @@ const dialogClose = async () => {
           </div>
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query"
-                @click="onSearch()" />
+              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch()" />
               <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
               <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
             </div>
@@ -122,8 +117,7 @@ const dialogClose = async () => {
                   <template #default="{ row }">
                     <el-tag v-if="row.sysSecretGroup">{{ row.sysSecretGroup }}</el-tag>
                     <span v-else>/</span>
-                    <span class="flex-col justify-end"
-                      style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                    <span class="flex-col justify-end" style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
                       {{ row.sysSecretCode }}
                     </span>
                   </template>
@@ -166,9 +160,7 @@ const dialogClose = async () => {
                 </el-table-column>
                 <el-table-column label="启用" prop="sysSecretStatus" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
-                    <el-switch v-model="row.sysSecretStatus" class="h-fit"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1"
-                      :inactive-value="0" @change="fetchUpdateSecret(row)" />
+                    <el-switch v-model="row.sysSecretStatus" class="h-fit" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateSecret(row)" />
                   </template>
                 </el-table-column>
                 <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip />
@@ -180,19 +172,12 @@ const dialogClose = async () => {
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" min-width="130px" align="center">
                   <template #default="{ row }">
-                    <el-button v-if="hasSyncFunction(row)" size="small" plain link type="primary"
-                      :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')">
-                      同步
-                    </el-button>
-                    <el-button size="small" plain link
-                      type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">
-                      编辑
-                    </el-button>
+                    <el-button v-if="hasSyncFunction(row)" size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')"> 同步 </el-button>
+                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')"> 编辑 </el-button>
 
                     <el-popconfirm title="确认删除吗？" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button size="small"
-                          type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
+                        <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
                       </template>
                     </el-popconfirm>
                   </template>

@@ -42,7 +42,9 @@
     "echarts": "catalog:",
     "leaflet": "catalog:",
     "vue": "catalog:",
-    "vue-i18n": "catalog:"
+    "vue-i18n": "catalog:",
+    "v-viewer": "catalog:",
+    "viewerjs": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

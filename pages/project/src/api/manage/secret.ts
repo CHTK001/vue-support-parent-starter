@@ -8,7 +8,7 @@ export type Secret = {
 };
 
 /**
- * 删除密钥
+ * 删除组织机构
  */
 export const fetchDeleteSecret = sysSecretId => {
   if (null == sysSecretId) {
@@ -21,7 +21,7 @@ export const fetchDeleteSecret = sysSecretId => {
 };
 
 /**
- * 新增密钥
+ * 新增组织机构
  */
 export const fetchSaveSecret = params => {
   return http.request<ReturnResult<Secret>>("post", "/v2/secret/save", {
@@ -30,7 +30,7 @@ export const fetchSaveSecret = params => {
 };
 
 /**
- * 更新密钥
+ * 更新组织机构
  */
 export const fetchUpdateSecret = params => {
   if (!params.sysSecretId) {
@@ -42,7 +42,7 @@ export const fetchUpdateSecret = params => {
 };
 
 /**
- * 密钥列表
+ * 组织机构列表
  */
 export const fetchPageSecret = params => {
   return http.request<ReturnResult<Secret[]>>("get", "/v2/secret/page", {

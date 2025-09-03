@@ -26,10 +26,10 @@
   </div>
 </template>
 <script setup>
-import { fetchUpdateProject } from "@/api/manage/project";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToNumber } from "@repo/utils";
-import { defineExpose, ref, reactive, defineEmits } from "vue";
+import { defineEmits, defineExpose, reactive, ref } from "vue";
+import { fetchUpdateProject } from "../../api/manage/project";
 
 const emit = defineEmits(["success"]);
 const visible = ref(false);

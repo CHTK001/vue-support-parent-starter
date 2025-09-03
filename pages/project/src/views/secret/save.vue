@@ -1,19 +1,19 @@
 <script>
-import { defineComponent, toRaw } from "vue";
-import { fetchUpdateSecret, fetchSaveSecret } from "../../api/secret";
 import { fetchListDictItem } from "@repo/core";
+import { defineComponent } from "vue";
+import { fetchSaveSecret, fetchUpdateSecret } from "../../api/manage/secret";
 
+import { debounce } from "@pureadmin/utils";
+import { clearObject } from "@repo/config";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { debounce, throttle } from "@pureadmin/utils";
-import { clearObject } from "@repo/config";
 
 export default defineComponent({
   props: {
     sysSecretFunctions: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -28,20 +28,20 @@ export default defineComponent({
         sysSecretCdn: null,
         sysSecretFunctions: [],
         sysSecretFunction: null,
-        sysSecretRemark: null
+        sysSecretRemark: null,
       },
       visible: false,
       rules: {
         sysSecretDictItemId: [{ required: true, message: "请选择厂家", trigger: "blur" }],
         sysSecretGroup: [{ required: true, message: "请输入密钥分组", trigger: "blur" }],
-        sysSecretCode: [{ required: true, message: "请输入编码, 可自行唯一", trigger: "blur" }]
+        sysSecretCode: [{ required: true, message: "请输入编码, 可自行唯一", trigger: "blur" }],
       },
       loading: false,
       title: "",
       mode: "save",
 
       dictItem: [],
-      t: null
+      t: null,
     };
   },
   mounted() {
@@ -52,8 +52,8 @@ export default defineComponent({
   methods: {
     async initialize() {
       fetchListDictItem({
-        sysDictId: 1
-      }).then(res => {
+        sysDictId: 1,
+      }).then((res) => {
         this.dictItem = res?.data;
       });
     },
@@ -78,7 +78,7 @@ export default defineComponent({
       return debounce(fn, time, immediate);
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -100,8 +100,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

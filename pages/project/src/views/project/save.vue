@@ -1,7 +1,6 @@
 <template>
   <div class="project-save-container">
-    <el-dialog v-model="visible" :title="env.title" :close-on-click-modal="false" :close-on-press-escape="false"
-      :destroy-on-close="true" draggable class="project-dialog" @close="close">
+    <el-dialog v-model="visible" :title="env.title" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable class="project-dialog" @close="close">
       <template #header>
         <div class="dialog-custom-header">
           <!-- 基本信息区域 -->
@@ -11,8 +10,7 @@
           </div>
         </div>
       </template>
-      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
-        class="project-form">
+      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="project-form">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="项目名称" prop="sysProjectName">
@@ -43,8 +41,7 @@
           <el-col :span="12">
             <el-form-item label="接入方式" prop="sysProjectVender">
               <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
-                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName"
-                  :value="item.sysDictItemId" />
+                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -67,10 +64,9 @@
                 <template #label>
                   <div>
                     <span>AppKey</span>
-                    <span v-if="form.sysProjectAppKey"><el-icon v-copy:click="form.sysProjectAppKey"
-                        class="top-[2px] cursor-pointer">
-                        <component :is="useRenderIcon('ep:copy-document')"></component>
-                      </el-icon></span>
+                    <span v-if="form.sysProjectAppKey"
+                      ><el-icon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"> <component :is="useRenderIcon('ep:copy-document')"></component> </el-icon
+                    ></span>
                   </div>
                 </template>
                 <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />
@@ -106,10 +102,8 @@
 
             <el-col :span="12">
               <el-form-item label="功能" prop="sysProjectFunction">
-                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple
-                  @change="handleChangeFunction">
-                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName"
-                    :value="item.sysDictItemId" />
+                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
+                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -160,21 +154,15 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="主体账号" prop="sysProjectSmtpFrom">
-              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail"
-                :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
+              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
 
       <template #footer>
-        <el-button @click="handleClose" class="cancel-btn">
-          取消
-        </el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="env.loading"
-          @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn">
-          保存
-        </el-button>
+        <el-button @click="handleClose" class="cancel-btn"> 取消 </el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="env.loading" @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn"> 保存 </el-button>
       </template>
     </el-dialog>
   </div>
@@ -275,7 +263,7 @@
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .project-save-container {
     .form-section {
       background: var(--el-bg-color-overlay);
@@ -286,11 +274,11 @@
 </style>
 
 <script setup>
-import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { deepClean, deepCopy, message, queryEmail, stringSplitToNumber } from "@repo/utils";
+import { message, queryEmail, stringSplitToNumber } from "@repo/utils";
 import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
+import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
 const show = reactive({
   smtp: false,
 });

@@ -3,8 +3,7 @@
     <!-- 保持原有结构，添加新的类名 -->
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="settings-btn" circle
-      size="large" type="primary"></el-button>
+    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="settings-btn" circle size="large" type="primary"></el-button>
     <el-container class="llm-main-container">
       <el-main class="chat-main">
         <chat :form="form" :env="env"></chat>
@@ -22,11 +21,9 @@
           <el-form-item label="模型" prop="model">
             <div class="flex justify-start w-full">
               <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
-                <el-option v-for="item in modelList" class="!h-[60px]" :key="item" :label="item.sysAiModuleName"
-                  :value="item.sysAiModuleCode">
+                <el-option v-for="item in modelList" class="!h-[60px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <template #default>
-                    <el-tooltip placement="right" :raw-content="true"
-                      :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                    <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
                       <span class="flex justify-between py-2">
                         <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-item">
                           <template #error>
@@ -46,13 +43,11 @@
                   </div>
                 </template>
               </el-select>
-              <el-button v-if="env.showEdit" circle class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')"
-                @click="handleOpenModule"></el-button>
+              <el-button v-if="env.showEdit" circle class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
             </div>
           </el-form-item>
           <el-form-item label="角色设定" prop="system" v-if="showRoleSetting">
-            <el-input :rows="10" type="textarea" placeholder="此处需要填写的是大模型的角色属性，示例：你是一个专业的商业文案专家"
-              v-model="form.system"></el-input>
+            <el-input :rows="10" type="textarea" placeholder="此处需要填写的是大模型的角色属性，示例：你是一个专业的商业文案专家" v-model="form.system"></el-input>
           </el-form-item>
 
           <el-form-item prop="tokens">
@@ -70,8 +65,7 @@
               <el-slider :min="1" :max="16" v-model="form.topK"></el-slider>
               <el-input-number :min="1" :max="16" v-model="form.topK"></el-input-number>
             </div>
-            <span class="el-form-item-msg">平衡生成文本的质量和多样性，较小的 k 值会减少随机性，使得输出更加稳定；而较大的 k 值会增加随机性，产生更多新颖的输出。取值范围[1,
-              6]，默认为4</span>
+            <span class="el-form-item-msg">平衡生成文本的质量和多样性，较小的 k 值会减少随机性，使得输出更加稳定；而较大的 k 值会增加随机性，产生更多新颖的输出。取值范围[1, 6]，默认为4</span>
           </el-form-item>
 
           <el-form-item prop="temperature">
@@ -365,7 +359,6 @@
           }
 
           .el-input-number {
-
             :deep(.el-input-number__decrease),
             :deep(.el-input-number__increase) {
               @apply text-gray-400;
@@ -403,7 +396,6 @@
 }
 
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0);
@@ -441,13 +433,13 @@
 }
 </style>
 <script setup>
-import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
+import Error from "@repo/assets/images/error.png";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useUserStoreHook } from "@repo/core";
 import { getRandomInt, localStorageProxy } from "@repo/utils";
-import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed } from "vue";
+import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
 import { useRoute } from "vue-router";
-import Error from "@repo/assets/images/error.png";
+import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 
 const chat = defineAsyncComponent(() => import("./chat.vue"));
 const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
