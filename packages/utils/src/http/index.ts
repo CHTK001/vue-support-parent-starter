@@ -1,3 +1,4 @@
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { formatToken, getConfig, getToken, handRefreshToken, logOut, upgrade } from "@repo/config";
 import { UserResult } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
@@ -170,6 +171,9 @@ class PureHttp {
         }
         response = uu1(response);
         const data = response.data?.data || response.data;
+        if (data instanceof Object) {
+          data.records = data?.records || data?.data || data;
+        }
         const result: any = {
           data: null,
           code: 0,
@@ -332,11 +336,11 @@ class PureHttp {
 
     // 生成请求唯一标识
     const requestId = `${method}_${url}_${Date.now()}_${Math.random()}`;
-    
+
     // 创建AbortController
     const abortController = new AbortController();
     config.signal = abortController.signal;
-    
+
     // 存储请求控制器
     PureHttp.activeRequests.set(requestId, abortController);
 
@@ -377,13 +381,13 @@ class PureHttp {
       // 取消特定请求
       const controller = PureHttp.activeRequests.get(requestId);
       if (controller) {
-        controller.abort(reason || '请求被主动取消');
+        controller.abort(reason || "请求被主动取消");
         PureHttp.activeRequests.delete(requestId);
       }
     } else {
       // 取消所有活跃请求
       PureHttp.activeRequests.forEach((controller, id) => {
-        controller.abort(reason || '所有请求被主动取消');
+        controller.abort(reason || "所有请求被主动取消");
       });
       PureHttp.activeRequests.clear();
     }
@@ -397,6 +401,62 @@ class PureHttp {
   /** 获取所有活跃请求的ID列表 */
   public getActiveRequestIds(): string[] {
     return Array.from(PureHttp.activeRequests.keys());
+  }
+
+  /** SSE连接方法 */
+  public sse(
+    url: string,
+    options: {
+      onmessage?: (event: MessageEvent) => void;
+      onopen?: (response: Response) => void;
+      onerror?: (error: any) => void;
+      onclose?: () => void;
+      headers?: Record<string, string>;
+      method?: string;
+      body?: string | FormData;
+      signal?: AbortSignal;
+    } = {}
+  ): AbortController {
+    const controller = new AbortController();
+    const token = getToken();
+
+    const defaultHeaders = {
+      Authorization: formatToken(token),
+      "x-req-fingerprint": localStorageProxy().getItem("visitId") || "",
+      ...options.headers,
+    };
+
+    fetchEventSource(getConfig().BaseUrl + url, {
+      method: options.method || "GET",
+      //@ts-ignore
+      headers: defaultHeaders,
+      body: options.body,
+      signal: controller.signal,
+      onopen: async (response) => {
+        if (response.ok && response.headers.get("content-type")?.includes("text/event-stream")) {
+          options.onopen?.(response);
+        } else {
+          throw new Error(`SSE连接失败: ${response.status} ${response.statusText}`);
+        }
+      },
+      onmessage: (event) => {
+        options.onmessage?.(event);
+      },
+      onerror: (error) => {
+        options.onerror?.(error);
+        throw error;
+      },
+      onclose: () => {
+        options.onclose?.();
+      },
+    }).catch((error) => {
+      if (error.name !== "AbortError") {
+        console.error("SSE连接错误:", error);
+        options.onerror?.(error);
+      }
+    });
+
+    return controller;
   }
 }
 

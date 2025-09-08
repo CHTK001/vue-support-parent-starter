@@ -59,7 +59,7 @@
             <div class="content-wrapper">
               <ScTable ref="tableRef" layout="card" :col-size="6" :row-size="2" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
                 <template #default="{ row }">
-                  <div class="project-card" :class="{ 'card-loading': loading }">
+                  <div class="project-card" :class="{ 'card-loading': loading }" :style="{ '--project-icon-url': `url(${row?.sysProjectIcon})`, '--random-hue': Math.floor(Math.random() * 360) }">
                     <div class="card-glow"></div>
                     <div class="card-header">
                       <div class="project-image">
@@ -1013,12 +1013,57 @@ onMounted(async () => {
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, hsl(calc(var(--random-hue, 200) + 180), 70%, 85%) 0%, hsl(calc(var(--random-hue, 200) + 180), 60%, 75%) 100%);
+    clip-path: polygon(0% 0%, 60% 0%, 0% 60%);
+    border-radius: 24px;
+    z-index: -1;
+    opacity: 0.9;
+    transition: all 0.3s ease;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--project-icon-url);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    clip-path: polygon(0% 0%, 40% 0%, 0% 60%);
+    border-radius: 24px;
+    z-index: 2;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(1px);
+  }
+
+  &:hover::before {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+
+  &:hover::after {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
     right: 0;
     bottom: 0;
     background: linear-gradient(135deg, rgba(64, 158, 255, 0.02) 0%, rgba(103, 194, 58, 0.02) 50%, rgba(255, 193, 7, 0.02) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
+    z-index: 1;
   }
 
   &.card-new {

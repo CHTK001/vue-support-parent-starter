@@ -1,16 +1,14 @@
 import type { RouteConfigsTable } from "@repo/core";
-const Layout = () => import("@layout/default");
 
 export default [
   {
     path: "/project",
     name: "Project",
-    component: Layout,
     redirect: "/project/manage",
     meta: {
       icon: "ep:folder",
       title: "项目管理",
-      rank: 5
+      rank: 5,
     },
     children: [
       {
@@ -22,8 +20,7 @@ export default [
         },
         meta: {
           title: "项目管理",
-          showLink: false
-        }
+        },
       },
       {
         path: "/project/secret",
@@ -34,20 +31,20 @@ export default [
         },
         meta: {
           title: "密钥管理",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
         component: async () => {
-          const { LlmIndex } = await import("@pages/project");
-          return LlmIndex;
+          const { LlmNewIndex } = await import("@pages/project");
+          return LlmNewIndex;
         },
         meta: {
           title: "大语言模型",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/vincent",
@@ -58,8 +55,8 @@ export default [
         },
         meta: {
           title: "图像生成",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/video",
@@ -70,8 +67,8 @@ export default [
         },
         meta: {
           title: "视频生成",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/colorization",
@@ -82,8 +79,8 @@ export default [
         },
         meta: {
           title: "图像上色",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/ai/resolution",
@@ -94,8 +91,8 @@ export default [
         },
         meta: {
           title: "图像分辨率增强",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/template/device",
@@ -106,8 +103,8 @@ export default [
         },
         meta: {
           title: "设备模板",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/template/sms",
@@ -118,8 +115,8 @@ export default [
         },
         meta: {
           title: "短信模板",
-          showLink: false
-        }
+          showLink: false,
+        },
       },
       {
         path: "/project/template/email",
@@ -130,9 +127,9 @@ export default [
         },
         meta: {
           title: "邮件模板",
-          showLink: false
-        }
-      }
-    ]
-  }
+          showLink: false,
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

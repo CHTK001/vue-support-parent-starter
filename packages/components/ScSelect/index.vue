@@ -28,6 +28,7 @@
         :is-disabled="isItemDisabled(item.value)"
         :width="width"
         :icon-position="iconPosition"
+        :shape="shape"
         @select="handleSelect"
       />
     </div>
@@ -46,6 +47,22 @@
         @select="handleSelect"
       />
     </div>
+
+    <!-- 下拉选择器布局 -->
+    <DropdownLayout
+      v-else-if="layout === 'dropdown'"
+      :options="options"
+      :model-value="modelValue"
+      :multiple="multiple"
+      :limit="limit"
+      :icon="dropdownIcon"
+      :title="dropdownTitle"
+      :placeholder="dropdownPlaceholder"
+      :dropdown-direction="dropdownDirection"
+      :is-selected="isSelected"
+      :is-item-disabled="isItemDisabled"
+      @select="handleSelect"
+    />
   </div>
 </template>
 
@@ -54,6 +71,7 @@ import { computed, defineEmits, defineProps, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
 import SelectLayout from "./components/SelectLayout.vue";
+import DropdownLayout from "./components/DropdownLayout.vue";
 
 interface CardOption {
   label: string;
@@ -89,7 +107,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill"].includes(value);
+      return ["card", "select", "pill", "dropdown"].includes(value);
     }
   },
   // 是否多选
@@ -123,6 +141,37 @@ const props = defineProps({
     default: "center",
     validator: (value: string) => {
       return ["center", "top"].includes(value);
+    }
+  },
+  // 下拉选择器图标
+  dropdownIcon: {
+    type: String,
+    default: "ri:settings-3-line"
+  },
+  // 下拉选择器标题
+  dropdownTitle: {
+    type: String,
+    default: ""
+  },
+  // 下拉选择器占位符
+  dropdownPlaceholder: {
+    type: String,
+    default: "请选择"
+  },
+  // 形状类型
+  shape: {
+    type: String,
+    default: "rounded",
+    validator: (value: string) => {
+      return ["circle", "rectangle", "rounded"].includes(value);
+    }
+  },
+  // 下拉方向
+  dropdownDirection: {
+    type: String,
+    default: "vertical",
+    validator: (value: string) => {
+      return ["vertical", "horizontal"].includes(value);
     }
   }
 });

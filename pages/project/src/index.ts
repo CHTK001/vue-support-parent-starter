@@ -9,10 +9,10 @@ import SecretIndex from "./views/secret/index.vue";
 
 // AI模块页面
 import ColorizationIndex from "./views/ai/colorization/index.vue";
-import LlmIndex from "./views/ai/llm/index.vue";
+import VincentIndex from "./views/ai/generation/index.vue";
+import LlmNewIndex from "./views/ai/llm-new/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
 import VideoIndex from "./views/ai/video/index.vue";
-import VincentIndex from "./views/ai/vincent/index.vue";
 import DeviceIndex from "./views/device/index.vue";
 import DeviceTemplate from "./views/template/device/index.vue";
 import EmailTemplate from "./views/template/email/index.vue";
@@ -28,7 +28,7 @@ export {
   DeviceTemplate,
   EmailTemplate,
   // AI模块
-  LlmIndex,
+  LlmNewIndex,
   // 项目管理
   ProjectIndex,
   ResolutionIndex,

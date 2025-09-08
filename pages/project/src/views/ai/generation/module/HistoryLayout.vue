@@ -1,13 +1,13 @@
 <script setup>
-import { fetchHistoryTaskForVincent } from "@/api/ai/text-generations";
-import { defineExpose, defineEmits, defineProps, onMounted, reactive, shallowRef, defineAsyncComponent, watch } from "vue";
 import Error from "@repo/assets/images/error.png";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import "viewerjs/dist/viewer.css";
-import { api as viewerApi } from "v-viewer";
 import { checkImage } from "@repo/utils";
-import "video.js/dist/video-js.css";
 import { VideoPlayer } from "@videojs-player/vue";
+import { api as viewerApi } from "v-viewer";
+import "video.js/dist/video-js.css";
+import "viewerjs/dist/viewer.css";
+import { defineEmits, defineExpose, defineProps, onMounted, reactive, shallowRef } from "vue";
+import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
 
 const emit = defineEmits(["redrawer"]);
 const props = defineProps({

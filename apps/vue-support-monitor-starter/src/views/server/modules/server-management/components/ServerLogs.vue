@@ -32,15 +32,7 @@
           <el-option label="FATAL" value="FATAL" />
         </el-select>
 
-        <el-date-picker
-          v-model="dateRange"
-          type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          style="width: 350px; margin-left: 12px"
-          @change="handleFilter"
-        />
+        <el-date-picker v-model="dateRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" style="width: 350px; margin-left: 12px" @change="handleFilter" />
 
         <el-input v-model="searchKeyword" placeholder="搜索日志内容..." clearable style="width: 200px; margin-left: 12px" @input="handleSearch">
           <template #prefix>
@@ -97,7 +89,7 @@
               查看
             </el-button>
 
-            <el-dropdown @command="cmd => handleAction(cmd, row)">
+            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
               <el-button size="small">
                 <IconifyIconOnline icon="ri:more-line" />
               </el-button>
@@ -116,15 +108,7 @@
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+      <el-pagination v-model:current-page="pagination.page" v-model:page-size="pagination.pageSize" :total="pagination.total" :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
     </div>
 
     <!-- 日志详情对话框 -->
@@ -181,10 +165,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { deleteServerLog, exportServerLogs, getLogLevelColor, getServerLogPageList, type ServerLog } from "@/api/server/log";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { getServerLogPageList, deleteServerLog, batchDeleteServerLogs, exportServerLogs, cleanupExpiredLogs, LogLevel, getLogLevelColor, type ServerLog } from "@/api/server/log";
+import { onMounted, reactive, ref } from "vue";
 
 // 定义事件
 const emit = defineEmits<{
@@ -209,7 +193,7 @@ const dateRange = ref<[Date, Date] | null>(null);
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0
+  total: 0,
 });
 
 // 对话框
@@ -219,7 +203,7 @@ const selectedLog = ref<ServerLog | null | any>(null);
 
 // 清理表单
 const cleanupForm = reactive({
-  days: 30
+  days: 30,
 });
 
 /**
@@ -235,7 +219,7 @@ const loadLogList = async () => {
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
-      endTime: dateRange.value?.[1]?.toISOString()
+      endTime: dateRange.value?.[1]?.toISOString(),
     };
 
     const res = await getServerLogPageList(params);
@@ -255,7 +239,7 @@ const loadLogList = async () => {
  * 获取服务器名称
  */
 const getServerName = (serverId: number) => {
-  const server = serverList.value.find(s => s.id === serverId);
+  const server = serverList.value.find((s) => s.id === serverId);
   return server?.name || `服务器${serverId}`;
 };
 
@@ -313,7 +297,7 @@ const handleExportLogs = async () => {
       monitorSysGenServerLogLevel: filterLevel.value || undefined,
       monitorSysGenServerLogContent: searchKeyword.value || undefined,
       startTime: dateRange.value?.[0]?.toISOString(),
-      endTime: dateRange.value?.[1]?.toISOString()
+      endTime: dateRange.value?.[1]?.toISOString(),
     };
 
     const res = await exportServerLogs(params);
@@ -420,7 +404,7 @@ const handleDeleteLog = async (log: ServerLog) => {
     await ElMessageBox.confirm("确定要删除这条日志记录吗？", "删除确认", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
-      type: "warning"
+      type: "warning",
     });
 
     const res = await deleteServerLog(log.monitorSysGenServerLogId);
@@ -473,7 +457,7 @@ const refresh = () => {
 // 暴露方法
 defineExpose({
   refresh,
-  filterByServer
+  filterByServer,
 });
 
 // 生命周期
