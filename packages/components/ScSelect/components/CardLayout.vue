@@ -4,7 +4,10 @@
     :class="{
       active: isSelected,
       disabled: isDisabled,
-      'icon-position-top': iconPosition === 'top'
+      'icon-position-top': iconPosition === 'top',
+      'shape-circle': shape === 'circle',
+      'shape-rectangle': shape === 'rectangle',
+      'shape-rounded': shape === 'rounded'
     }"
     :style="{ width }"
     @click="handleSelect"
@@ -50,6 +53,13 @@ const props = defineProps({
     default: "center",
     validator: (value: string) => {
       return ["center", "top"].includes(value);
+    }
+  },
+  shape: {
+    type: String,
+    default: "rounded",
+    validator: (value: string) => {
+      return ["circle", "rectangle", "rounded"].includes(value);
     }
   }
 });
@@ -156,6 +166,23 @@ const handleSelect = () => {
     color: var(--el-text-color-primary);
   }
 
+  // 形状样式
+  &.shape-circle {
+    border-radius: 50%;
+    aspect-ratio: 1;
+    width: 120px !important;
+    height: 120px !important;
+    min-height: 120px;
+  }
+
+  &.shape-rectangle {
+    border-radius: 0;
+  }
+
+  &.shape-rounded {
+    border-radius: 12px;
+  }
+
   &.icon-position-top {
     padding-top: 45px;
     margin-top: 25px;
@@ -179,6 +206,16 @@ const handleSelect = () => {
     &.active .card-icon {
       transform: scale(1.2);
       box-shadow: 0 6px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+
+    // 圆形形状的特殊处理
+    &.shape-circle {
+      .card-icon {
+        top: -20px;
+        width: 40px;
+        height: 40px;
+        padding: 8px;
+      }
     }
   }
 }

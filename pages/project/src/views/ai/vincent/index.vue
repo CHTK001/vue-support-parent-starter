@@ -1,293 +1,249 @@
 <template>
-  <div class="common-layout overflow-hidden pt-1 pb-1 pl-1">
+  <div class="ai-generator-layout">
+    <!-- 对话框组件 -->
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="floating-settings-btn" circle size="large" type="primary"></el-button>
-    <Transition name="fade-slide">
-      <el-container class="overflow-hidden modern-container">
-        <el-aside style="height: 100%; width: var(--aside-width)" class="modern-aside" id="aside">
-          <div>
-            <div class="w-full flex justify-end mb-4 header-actions">
-              <el-icon :size="35" @click="loadModule" class="action-icon" v-if="settingOpen">
-                <component :is="useRenderIcon('mdi:refresh')" />
-              </el-icon>
-              <el-icon :size="35" @click="handleTrigger" class="action-icon toggle-icon" :class="{ 'left-2': !settingOpen }">
-                <component :is="useRenderIcon('mdi:menu-open')" v-if="settingOpen" />
-                <component :is="useRenderIcon('mdi:menu-close')" v-else />
-              </el-icon>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 媒体展示区域 -->
+      <div class="media-display-area">
+        <div class="media-container" v-if="generatedResults.length > 0">
+          <div class="media-grid">
+            <div v-for="(result, index) in generatedResults" :key="index" class="media-item" @click="previewMedia(result)">
+              <el-image v-if="result.type === 'image'" :src="result.url" fit="cover" class="media-image">
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                    <span>加载失败</span>
+                  </div>
+                </template>
+              </el-image>
+              <video v-else-if="result.type === 'video'" :src="result.url" class="media-video" controls></video>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" v-else>
+          <el-icon size="80" class="empty-icon"><Picture /></el-icon>
+          <p class="empty-text">生成的图片或视频将在这里显示</p>
+        </div>
+      </div>
+
+      <!-- 历史记录区域 -->
+      <div class="history-section" v-if="showHistory">
+        <HistoryLayout ref="historyLayoutRef" :form="form" :full="showHistory" :env="env" @redrawer="handleReDraw"></HistoryLayout>
+      </div>
+    </div>
+
+    <!-- 底部输入区域 -->
+    <div class="bottom-input-area">
+      <!-- 设置选项栏 -->
+      <div class="settings-bar" v-if="showSettings">
+        <el-scrollbar class="settings-scroll">
+          <div class="settings-content">
+            <!-- 模型选择 -->
+            <div class="setting-item">
+              <label class="setting-label">模型</label>
+              <el-select v-model="form.model" placeholder="选择模型" size="small" @change="handleChangeModule" class="compact-select">
+                <el-option v-for="item in modelList" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                  <div class="model-option">
+                    <el-image :src="item.sysProjectIcon" class="model-icon" />
+                    <span>{{ item.sysAiModuleName }}</span>
+                  </div>
+                </el-option>
+              </el-select>
             </div>
 
-            <el-form ref="formRef" :model="form" :rules="rules" v-if="settingOpen" label-width="100px">
-              <el-form-item label="模型名称" prop="model">
-                <div class="flex justify-start w-full">
-                  <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
-                    <el-option v-for="item in modelList" class="!h-[60px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
-                      <template #default>
-                        <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                          <span class="flex justify-between py-2">
-                            <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-item">
-                              <template #error>
-                                <img :src="Error" />
-                              </template>
-                            </el-image>
-                            <span class="justify-start content-center pl-1">{{ item.sysAiModuleName }}</span>
-                            <span class="el-form-item-msg content-center">{{ item.sysProjectName }}</span>
-                          </span>
-                        </el-tooltip>
-                      </template>
-                    </el-option>
-                    <template #label="{ label }">
-                      <div class="flex justify-start">
-                        <el-image class="!h-[24px] !w-[24px]" :src="modelSelectLabel?.sysProjectIcon" />
-                        <span class="pl-2">{{ label }}</span>
-                      </div>
-                    </template>
-                  </el-select>
-                  <el-button v-if="env.showEdit" class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="比例" prop="parameters.size" class="ration--GrtZmC3d">
-                <el-radio-group v-model="form.parameters.size" class="flex justify-start items-start flex-wrap">
-                  <el-radio-button class="!ml-0 mt-1 mr-[12px] item" round :key="item" :value="item" v-for="(item, index) in formSetting.sysAiVincentSupportedSize?.split(',') || []">
-                    <template #default>
-                      <div class="flex justify-center align-middle">
-                        <div class="text-center flex">
-                          <i :style="{ 'aspect-ratio': getRatio(item) }" class="ai-generator_apsect_ratio_vis2__IHeeP"></i>
-                          <span class="ml-1 text-center size-center">{{ item }}</span>
-                        </div>
-                      </div>
-                    </template>
-                  </el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-
-              <el-form-item label="风格" prop="parameters.style" v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0">
-                <el-select v-model="form.parameters.style" placeholder="请选择风格">
-                  <el-option :key="item.sysAiVincentStyleCode" class="!h-[60px]" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode" v-for="item in styleData || []">
-                    <template #default>
-                      <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiVincentStyleName}</div>`">
-                        <span class="flex justify-between py-2">
-                          <el-image :src="item.sysAiVincentStyleImage" fit="scale-down" class="!h-[50px] !w-[50px] option-item">
-                            <template #error>
-                              <img :src="Error" />
-                            </template>
-                          </el-image>
-                          <span class="justify-start content-center pl-1">{{ item.sysAiVincentStyleName }}</span>
-                          <span class="el-form-item-msg content-center">{{ item.sysAiVincentStyleCode }}</span>
-                        </span>
-                      </el-tooltip>
-                    </template>
-                  </el-option>
-                  <template #label="{ label }">
-                    <div class="flex justify-start">
-                      <el-image class="!h-[24px] !w-[24px]" :src="modelSelectStyle" />
-                      <span class="pl-2">{{ label }}</span>
-                    </div>
-                  </template>
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="正向提示词" prop="input.prompt">
-                <el-input v-model="form.input.prompt" :rows="5" type="textarea" placeholder="正向提示词，用来描述生成图像中期望包含的元素和视觉特点。支持中英文，长度不超过800个字符，每个汉字/字母占一个字符，超过部分会自动截断。示例值：一只坐着的橘黄色的猫，表情愉悦，活泼可爱，逼真准确。"></el-input>
-                <span
-                  class="item-parent-item"
-                  @click="
-                    () => {
-                      form.input.prompt = randomPrompt;
-                    }
-                  "
-                >
-                  <span class="el-form-item-msg1" :title="randomPrompt">
-                    {{ randomPrompt }}
-                  </span>
-                  <el-icon class="cursor-pointer">
-                    <component :is="useRenderIcon('ep:refresh')" @click="handleRefreshRandom()" />
-                  </el-icon>
-                </span>
-              </el-form-item>
-
-              <el-form-item label="反向提示词" prop="negativePrompt" v-if="form.sysAiModuleType == 'VINCENT'">
-                <el-input
-                  v-model="form.input.negativePrompt"
-                  :rows="4"
-                  type="textarea"
-                  placeholder="反向提示词，用来描述不希望在画面中看到的内容，可以对画面进行限制。支持中英文，长度不超过500个字符，超过部分会自动截断。示例值：低分辨率、错误、最差质量、低质量、残缺、多余的手指、比例不良等。"
-                ></el-input>
-              </el-form-item>
-
-              <template v-if="formSetting.sysAiVincentSupportRefImage">
-                <el-form-item label="参考图像" prop="refImg" v-if="form.sysAiModuleType == 'VINCENT'">
-                  <div class="flex w-full align-middle template">
-                    <el-image readonly :src="form.input.refImg" class="align-middle w-[40px] h-[40px]">
-                      <template #error>
-                        <el-icon size="20">
-                          <component :is="useRenderIcon('ep:plus')"></component>
-                        </el-icon>
-                      </template>
-                    </el-image>
-                    <div class="flex-1 text-center text-template cursor-pointer template" @click="showRefImage = !showRefImage">选择模板</div>
-                    <div class="align-middle template">
-                      <el-icon size="20" class="align-middle">
-                        <component :is="useRenderIcon('ep:arrow-right')"></component>
-                      </el-icon>
-                    </div>
+            <!-- 比例选择 -->
+            <div class="setting-item">
+              <label class="setting-label">比例</label>
+              <el-radio-group v-model="form.parameters.size" size="small" class="compact-radio-group">
+                <el-radio-button v-for="size in formSetting.sysAiVincentSupportedSize?.split(',') || []" :key="size" :value="size" class="ratio-button">
+                  <div class="ratio-content">
+                    <i :style="{ 'aspect-ratio': getRatio(size) }" class="ratio-visual"></i>
+                    <span class="ratio-text">{{ size }}</span>
                   </div>
-                </el-form-item>
-                <el-form-item label="参考图像" prop="refImg" v-if="form.sysAiModuleType == 'VIDEO'">
-                  <div class="flex w-full align-middle template">
-                    <el-select v-model="form.input.refImgType" clearable>
-                      <el-option value="URL" label="远程地址" />
-                      <el-option value="FILE" label="本地文件" />
-                    </el-select>
-                  </div>
-                  <template v-if="form.input.refImgType == 'URL'">
-                    <div class="flex justify-between gap-1 w-full">
-                      <el-input type="textarea" style="width: calc(100% - 80px)" :rows="3" v-model="form.input.refImg" placeholder="请输入远程地址"></el-input>
-                      <el-image fit="scale-down" class="block el-upload-list__item-thumbnail !h-[80px] !w-[80px] m-0" :src="form.input.refImg" alt="" />
-                    </div>
-                  </template>
-                  <el-upload accept="image/*" ref="elUploadRef" :limit="1" class="avatar-uploader justify-start" :auto-upload="false" v-else-if="form.input.refImgType == 'FILE'" :on-change="handleAvatarSuccess">
-                    <el-icon class="avatar-uploader-icon">
-                      <component :is="useRenderIcon('ep:upload')" />
-                    </el-icon>
-                    <template #file="{ file }">
-                      <div class="relative" @click="handlePictureCardPreview(file)">
-                        <img class="el-upload-list__item-thumbnail h-full w-[180px] m-0" :src="form.input.refImg" alt="" />
-                        <span class="el-upload-list__item-actions cursor-pointer">
-                          <el-button circle size="small" class="btn-text-blur !h-[20px] !w-[20px]" @click.stop="handleRemove(file)" :icon="useRenderIcon('ep:close')"> </el-button>
-                        </span>
-                      </div>
-                    </template>
-                  </el-upload>
-                </el-form-item>
-              </template>
-
-              <template v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedQuality">
-                <el-form-item label="生成模式" prop="parameters.quality" class="ration--GrtZmC3d">
-                  <el-radio-group v-model="form.parameters.quality" class="flex justify-start items-start flex-wrap">
-                    <el-radio-button class="!ml-0 mr-[12px] item" round :key="item" :value="item" v-for="(item, index) in formSetting.sysAiVincentSupportedQuality?.split(',') || []">
-                      <template #default>
-                        <el-tooltip :content="getQuality(item).title">
-                          <div class="flex justify-center align-middle">
-                            <div class="text-center flex">
-                              <el-icon>
-                                <component :is="useRenderIcon(getQuality(item).icon)" />
-                              </el-icon>
-                              <span class="ml-1 text-center size-center">{{ getQuality(item).name }}</span>
-                            </div>
-                          </div>
-                        </el-tooltip>
-                      </template>
-                    </el-radio-button>
-                  </el-radio-group>
-                </el-form-item>
-
-                <el-form-item label="帧率" prop="parameters.fps" v-if="formSetting.sysAiVincentSupportedFps">
-                  <el-select v-model="form.parameters.fps">
-                    <el-option v-for="item in formSetting.sysAiVincentSupportedFps?.split(',') || []" :key="item" :value="item"></el-option>
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="AI音效" prop="parameters.withAudio" v-if="formSetting.sysAiVincentSupportAudio">
-                  <el-segmented
-                    v-model="form.parameters.withAudio"
-                    :options="[
-                      {
-                        label: '开启',
-                        value: 1,
-                      },
-                      {
-                        label: '关闭',
-                        value: 0,
-                      },
-                    ]"
-                  ></el-segmented>
-                </el-form-item>
-              </template>
-              <el-form-item label="输出张数" prop="parameters.number"> <el-input-number :min="1" :max="formSetting.sysAiVincentSupportedNumber" :step="1" v-model="form.parameters.number" /> </el-form-item>
-
-              <el-form-item class="flex justify-end">
-                <el-button class="w-full" :loading="loadingConfig.export" @click="handleExport" :icon="useRenderIcon('ri:export-fill')" title="生成" type="primary"></el-button>
-              </el-form-item>
-            </el-form>
-          </div>
-          <div class="overflow-hidde absolute w-[500px] top-0 ref-image p-3 z-50" v-click-outside="closePopup" v-if="showRefImage && settingOpen">
-            <div class="flex justify-end pb-5">
-              <el-icon class="cursor-pointer" @click="showRefImage = false">
-                <component :is="useRenderIcon('ep:close')"></component>
-              </el-icon>
+                </el-radio-button>
+              </el-radio-group>
             </div>
-            <el-row>
-              <el-col
-                :span="8"
-                v-for="row in templateList"
-                @click="
-                  () => {
-                    form.input.refImg = row.sysAiVincentTemplateAddress;
-                    form.input.style = row.sysAiVincentTemplateModelName;
-                  }
-                "
-                class="cursor-pointer"
-              >
-                <div class="flex flex-col gap-2 px-2 ref-image-item">
-                  <el-image :src="row.sysAiVincentTemplateAddress" fit="cover" class="img"></el-image>
-                  <div>
-                    <h2 class="text">{{ row.sysAiVincentTemplateName }}</h2>
+
+            <!-- 风格选择 -->
+            <div class="setting-item" v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0">
+              <label class="setting-label">风格</label>
+              <el-select v-model="form.parameters.style" placeholder="选择风格" size="small" class="compact-select">
+                <el-option v-for="item in styleData" :key="item.sysAiVincentStyleCode" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode">
+                  <div class="style-option">
+                    <el-image :src="item.sysAiVincentStyleImage" class="style-icon" />
+                    <span>{{ item.sysAiVincentStyleName }}</span>
                   </div>
-                  <div class="el-form-item-msg">{{ row.sysAiVincentTemplateRemark }}</div>
-                </div>
-              </el-col>
-            </el-row>
+                </el-option>
+              </el-select>
+            </div>
+
+            <!-- 输出数量 -->
+            <div class="setting-item">
+              <label class="setting-label">数量</label>
+              <el-input-number v-model="form.parameters.number" :min="1" :max="formSetting.sysAiVincentSupportedNumber || 4" size="small" class="compact-number" controls-position="right" />
+            </div>
+
+            <!-- 质量选择（视频模式） -->
+            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedQuality">
+              <label class="setting-label">质量</label>
+              <el-radio-group v-model="form.parameters.quality" size="small" class="compact-radio-group">
+                <el-radio-button v-for="item in formSetting.sysAiVincentSupportedQuality?.split(',') || []" :key="item" :value="item">
+                  {{ getQuality(item)?.name || item }}
+                </el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <!-- 帧率选择（视频模式） -->
+            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportedFps">
+              <label class="setting-label">帧率</label>
+              <el-select v-model="form.parameters.fps" placeholder="选择帧率" size="small" class="compact-select">
+                <el-option v-for="fps in formSetting.sysAiVincentSupportedFps?.split(',') || []" :key="fps" :label="fps + ' FPS'" :value="fps" />
+              </el-select>
+            </div>
+
+            <!-- AI音效（视频模式） -->
+            <div class="setting-item" v-if="form.sysAiModuleType == 'VIDEO' && formSetting.sysAiVincentSupportAudio">
+              <label class="setting-label">音效</label>
+              <el-switch v-model="form.parameters.withAudio" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" size="small" />
+            </div>
           </div>
-        </el-aside>
-        <el-main class="overflow-hidden main modern-main">
-          <div class="pl-2 relative">
-            <vincent ref="vincentRef" :form="form" :env="env" class="modern-content" v-if="loadingConfig.showHistory"></vincent>
-            <el-tag
-              @click="handleHistory"
-              type="default"
-              class="history-toggle"
-              :class="{
-                'history-toggle-visible': loadingConfig.showHistory,
-                'history-toggle-hidden': !loadingConfig.showHistory,
-              }"
-              ><span class="el-form-item-msg">历史信息</span></el-tag
+        </el-scrollbar>
+      </div>
+
+      <!-- 主输入框 -->
+      <div class="input-container">
+        <div class="input-wrapper">
+          <!-- 主输入区域 -->
+          <div class="main-input">
+            <EditorSender
+              ref="editorSenderRef"
+              v-model="currentMessage"
+              placeholder="💌 描述你想要生成的图片或视频... 支持多模态输入"
+              :max-length="2000"
+              :loading="loadingConfig.export"
+              :disabled="loadingConfig.export"
+              :auto-focus="true"
+              :clearable="true"
+              @change="handleCurrentChangeValue"
+              variant="updown"
+              submit-type="enter"
+              :custom-style="{ maxHeight: '200px' }"
+              @submit="handleGenerate"
+              @clear="handleClearInput"
+              class="editor-sender"
             >
-            <HistoryLayout ref="historyLayoutRef" :form="form" :full="loadingConfig.showHistory" :env="env" class="overflow-hidden" @redrawer="handleReDraw"></HistoryLayout>
+              <!-- 自定义前缀 -->
+              <template #prefix>
+                <div class="input-prefix">
+                  <el-tooltip content="参考图片" placement="top" v-if="formSetting.sysAiVincentSupportRefImage">
+                    <el-button circle @click="handleRefImage">
+                      <IconifyIconOnline icon="ri:image-line" />
+                    </el-button>
+                  </el-tooltip>
+
+                  <el-tooltip content="高级设置" placement="top">
+                    <el-button circle @click="toggleAdvanced" :type="showAdvanced ? 'primary' : 'default'">
+                      <IconifyIconOnline icon="ri:settings-3-line" />
+                    </el-button>
+                  </el-tooltip>
+                </div>
+              </template>
+
+              <!-- 自定义操作列表 -->
+              <template #action-list>
+                <div class="action-buttons">
+                  <!-- 模型选择按钮 -->
+                  <ScSelect v-model="form.model" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect"> </ScSelect>
+
+                  <!-- 分辨率选择按钮 -->
+                  <ScSelect v-model="form.parameters.size" :options="sizeOptions" layout="dropdown" dropdown-icon="ri:aspect-ratio-line" dropdown-title="比例" dropdown-placeholder="选择分辨率" @change="handleSizeSelect" />
+
+                  <!-- 风格选择按钮 (仅VINCENT类型显示) -->
+                  <ScSelect v-if="form.sysAiModuleType === 'VINCENT' && styleOptions.length > 0" v-model="form.parameters.style" :options="styleOptions" layout="dropdown" dropdown-icon="ri:palette-line" dropdown-title="风格" dropdown-placeholder="选择风格" @change="handleStyleSelect">
+                    <template #header="{ item }">
+                      {{ item }}
+                    </template>
+                  </ScSelect>
+
+                  <!-- 数量选择按钮 -->
+                  <ScSelect v-model="form.parameters.number" :options="numberOptions" layout="dropdown" class="min-w-[150px]" dropdown-icon="ri:hashtag" dropdown-title="数量" dropdown-placeholder="选择数量" @change="handleNumberSelect" />
+
+                  <!-- 生成/停止按钮 -->
+                  <el-button v-if="loadingConfig.export" circle @click="stopGeneration" class="stop-btn">
+                    <IconifyIconOnline icon="ri:stop-circle-line" />
+                  </el-button>
+                  <el-button v-else circle @click="handleGenerate" :disabled="!canGenerate" class="generate-btn" type="primary">
+                    <IconifyIconOnline icon="ri:magic-line" />
+                  </el-button>
+                </div>
+              </template>
+
+              <!-- 自定义底部 - 反向提示词 -->
+              <template #footer v-if="form.sysAiModuleType == 'VINCENT' && showAdvanced">
+                <div class="negative-prompt-section">
+                  <div class="negative-prompt-label">
+                    <IconifyIconOnline icon="ri:subtract-line" />
+                    <span>反向提示词</span>
+                  </div>
+                  <el-input v-model="form.input.negativePrompt" type="textarea" :rows="1" placeholder="不希望出现的内容..." class="negative-prompt-input"></el-input>
+                </div>
+              </template>
+            </EditorSender>
           </div>
-        </el-main>
-      </el-container>
-    </Transition>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 <script setup>
-import Error from "@repo/assets/images/error.png";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { Picture } from "@element-plus/icons-vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
 import { clearObject, getRandomInt, localStorageProxy, message } from "@repo/utils";
-import { api as viewerApi } from "v-viewer";
-import "viewerjs/dist/viewer.css";
+
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { computed, defineAsyncComponent, onMounted, reactive, ref, shallowRef } from "vue";
 import { useRoute } from "vue-router";
 import { fetchGetTaskForVincent, fetchSaveTaskForVincent } from "../../../api/ai/text-generations";
 import { fetchListForModelStyle } from "../../../api/ai/vincent-style";
 import { fetchListForModelTemplate } from "../../../api/ai/vincent-template";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
-import { getQuality, RANDOM_DATA } from "./hook";
-const HistoryLayout = defineAsyncComponent(() => import("./history.vue"));
-const vincent = defineAsyncComponent(() => import("./vincent.vue"));
-const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
-const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
-const vincentRef = shallowRef();
+import { RANDOM_DATA } from "./hook";
+const HistoryLayout = defineAsyncComponent(() => import("./module/HistoryLayout.vue"));
+const ModuleUpdateDialog = defineAsyncComponent(() => import("./module/ModuleUpdateDialog.vue"));
+const ModuleDialog = defineAsyncComponent(() => import("./module/ModuleDialog.vue"));
 const historyLayoutRef = shallowRef();
-const elUploadRef = shallowRef();
 const styleData = shallowRef([]);
-const settingOpen = shallowRef(true);
-const showRefImage = shallowRef(false);
 const loadingConfig = reactive({
   export: false,
-  showHistory: true,
 });
+
+// 新的响应式变量
+const showSettings = ref(false);
+const showHistory = ref(false);
+const showAdvanced = ref(false);
+const generatedResults = ref([]);
+
+// EditorSender 相关变量
+const currentMessage = ref("");
+const editorSenderRef = ref(null);
+
+// 初始化currentMessage的值
+currentMessage.value = "一只坐着的橘黄色的猫，表情愉悦，活泼可爱，逼真准确。";
+
+// 监听form.input.prompt的变化，同步到currentMessage
+// watch(
+//   () => form.input.prompt,
+//   (newVal) => {
+//     if (newVal !== currentMessage.value) {
+//       currentMessage.value = newVal;
+//     }
+//   },
+//   { immediate: true }
+// );
 
 const props = defineProps({
   category: "IMAGE",
@@ -333,53 +289,154 @@ const rules = {
   "parameters.number": [{ required: true, message: "请输入输出图片张数", trigger: "change" }],
 };
 const route = useRoute();
-const handleAvatarSuccess = (response, uploadFile) => {
-  const fileReader = new FileReader();
-  fileReader.onload = (e) => {
-    form.input.refImg = e.target.result;
-  };
-  fileReader.readAsDataURL(uploadFile[0].raw);
+
+// 新的切换方法
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value;
 };
-/**
- * 预览
- * @param file
- */
-const handlePictureCardPreview = async (file) => {
-  viewerApi({
-    images: [form.input.refImg],
-    options: {
-      backdrop: true,
-      inline: true,
-    },
-  });
+
+const toggleHistory = () => {
+  showHistory.value = !showHistory.value;
+  if (historyLayoutRef.value) {
+    historyLayoutRef.value.refull(!showHistory.value);
+  }
+};
+
+const toggleAdvanced = () => {
+  showAdvanced.value = !showAdvanced.value;
+};
+
+const handleRefImage = () => {
+  // 处理参考图片选择
+  console.log("选择参考图片");
+};
+
+const handleGenerate = async () => {
+  // 同步EditorSender的内容到form.input.prompt
+  if (currentMessage.value.trim()) {
+    form.input.prompt = currentMessage.value.trim();
+  }
+  // 处理生成请求
+  await handleExport();
+};
+
+// EditorSender 相关方法
+const handleCurrentChangeValue = async () => {
+  if (editorSenderRef.value) {
+    const result = editorSenderRef.value.getCurrentValue();
+    currentMessage.value = result.text;
+    form.input.prompt = result.text;
+  }
+};
+
+const handleClearInput = () => {
+  currentMessage.value = "";
+  form.input.prompt = "";
+  if (editorSenderRef.value) {
+    editorSenderRef.value.clear();
+  }
+};
+
+// 下拉选择处理方法
+const handleModelSelect = (modelValue) => {
+  form.model = modelValue;
+  handleChangeModule(modelValue);
+};
+
+const handleSizeSelect = (sizeValue) => {
+  form.parameters.size = sizeValue;
+};
+
+const handleStyleSelect = (styleValue) => {
+  form.parameters.style = styleValue;
+};
+
+const handleNumberSelect = (numberValue) => {
+  form.parameters.number = numberValue;
+};
+
+// 选项数据
+const sizeOptions = computed(() => {
+  const sizes = formSetting.sysAiVincentSupportedSize?.split(",") || [];
+  return sizes.map((size) => ({
+    value: size,
+    label: size,
+    description: getRatio(size),
+  }));
+});
+
+const styleOptions = computed(() => {
+  return styleData.value.map((style) => ({
+    value: style.sysAiVincentStyleCode,
+    label: style.sysAiVincentStyleName,
+    preview: style.sysAiVincentStyleImage,
+  }));
+});
+
+const numberOptions = computed(() => {
+  const maxNumber = formSetting.sysAiVincentSupportedNumber || 4;
+  const options = [];
+  for (let i = 1; i <= maxNumber; i++) {
+    options.push({
+      value: i,
+      label: `${i}张`,
+      description: i === 1 ? "单张生成" : `生成${i}张图片`,
+    });
+  }
+  return options;
+});
+
+const modelOptions = computed(() => {
+  return modelList.value.map((model) => ({
+    value: model.sysAiModuleCode,
+    label: model.sysAiModuleName,
+    description: model.sysAiModuleNameDesc,
+    icon: model.sysProjectIcon,
+  }));
+});
+
+const stopGeneration = () => {
+  // 停止生成
+  loadingConfig.export = false;
+  console.log("停止生成");
+};
+
+// 计算属性：是否可以生成
+const canGenerate = computed(() => {
+  return currentMessage.value.trim().length > 0 && !loadingConfig.export;
+});
+
+const previewMedia = (result) => {
+  // 预览媒体文件
+  console.log("预览媒体:", result);
 };
 
 /**
- * 历史信息开关
+ * 历史信息开关 (保持兼容性)
  */
 const handleHistory = async () => {
-  loadingConfig.showHistory = !loadingConfig.showHistory;
-  historyLayoutRef.value.refull(!loadingConfig.showHistory);
-};
-
-/**
- * 删除文件
- * @param file 文件
- */
-const handleRemove = async (file) => {
-  elUploadRef.value.abort();
-  elUploadRef.value.handleRemove(file);
-  elUploadRef.value.clearFiles();
-};
-/**
- * 关闭弹窗
- */
-const closePopup = async (el) => {
-  showRefImage.value = false;
+  toggleHistory();
 };
 
 const modelSelectStyle = computed(() => {
   return styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style)?.sysAiVincentStyleImage;
+});
+
+// 当前选择的模型名称
+const currentModelName = computed(() => {
+  const model = modelList.value.find((it) => it.sysAiModuleCode === form.model);
+  return model?.sysAiModuleName || "选择模型";
+});
+
+// 当前选择的分辨率
+const currentSizeName = computed(() => {
+  return form.parameters.size || "选择分辨率";
+});
+
+// 当前选择的风格名称
+const currentStyleName = computed(() => {
+  const style = styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style);
+  return style?.sysAiVincentStyleName || "选择风格";
 });
 /**
  * 获取随机提示词
@@ -426,6 +483,22 @@ const getRatio = (item) => {
 
   return `${simplifiedWidth}/${simplifiedHeight}`;
 };
+
+/**
+ * 获取质量配置
+ */
+const getQuality = (quality) => {
+  const qualityMap = {
+    HD: { name: "高清", value: "HD" },
+    FHD: { name: "全高清", value: "FHD" },
+    "4K": { name: "超高清", value: "4K" },
+    low: { name: "标清", value: "low" },
+    medium: { name: "中等", value: "medium" },
+    high: { name: "高质量", value: "high" },
+  };
+  return qualityMap[quality] || { name: quality, value: quality };
+};
+
 /**
  * 获取key
  */
@@ -463,7 +536,7 @@ const initialImageIndex = async () => {
   }
 };
 const updateImageIndex = async (finished, progress) => {
-  vincentRef.value?.updateImageIndex(progress);
+  // 图片索引更新逻辑已移至新的展示区域
 };
 
 const getKey = () => {
@@ -475,17 +548,28 @@ const clearTask = () => {
   localStorageProxy().removeItem("vincent-request-id:" + getKey());
   updateImageIndex(true);
   loadingConfig.export = false;
-  vincentRef.value?.finish();
 };
 
 const updateImage = async (images) => {
-  vincentRef.value.updateImage(images);
+  // 更新生成结果到新的展示区域
+  if (images && images.length > 0) {
+    const newResults = images.map((url, index) => ({
+      id: Date.now() + index,
+      type: form.sysAiModuleType === "VIDEO" ? "video" : "image",
+      url: url,
+      timestamp: new Date().toISOString(),
+    }));
+    generatedResults.value = newResults;
+  } else {
+    generatedResults.value = [];
+  }
+
+  // 图片更新已移至新的展示区域
 };
 const createInterval = () => {
   if (!requestId()) {
     loadingConfig.export = false;
     clearTask();
-    vincentRef.value.clearImage();
     updateImage([]);
     return;
   }
@@ -503,48 +587,65 @@ const createInterval = () => {
       .catch((e) => {
         loadingConfig.export = false;
         clearTask();
-        vincentRef.value.clearImage();
         updateImage([]);
       });
   }, 5000);
 };
 const handleExport = async () => {
-  formRef.value.validate(async (valid) => {
-    if (valid) {
-      loadingConfig.export = true;
-      initialImageIndex();
-      vincentRef.value.initialImageIndex();
+  // 如果没有formRef，直接执行生成逻辑
+  const executeGeneration = async () => {
+    loadingConfig.export = true;
+    initialImageIndex();
+    if (historyLayoutRef.value) {
       historyLayoutRef.value.updateData();
-      fetchSaveTaskForVincent(form)
-        .then((res) => {
-          if (res.data?.output?.taskStatus === "FAILURE") {
-            loadingConfig.export = false;
-            clearTask();
-            vincentRef.value.clearImage();
-            updateImage([]);
-            vincentRef.value.failure();
-            message("创建任务失败!", { type: "error" });
-            return;
-          }
-
-          if (res.data?.output?.images) {
-            clearTask();
-            updateImage(res.data.output.images);
-            updateImageIndex(true, 100);
-            return;
-          }
-          loadedRequestId(res);
-          createInterval();
-        })
-        .catch((e) => {
-          loadingConfig.export = false;
-          clearTask();
-          vincentRef.value.clearImage();
-          updateImage([]);
-          vincentRef.value.failure();
-        });
     }
-  });
+
+    try {
+      const res = await fetchSaveTaskForVincent(form);
+
+      if (res.data?.output?.taskStatus === "FAILURE") {
+        loadingConfig.export = false;
+        clearTask();
+        updateImage([]);
+        message("创建任务失败!", { type: "error" });
+        return;
+      }
+
+      if (res.data?.output?.images) {
+        clearTask();
+        updateImage(res.data.output.images);
+        updateImageIndex(true, 100);
+        return;
+      }
+
+      loadedRequestId(res);
+      createInterval();
+    } catch (e) {
+      loadingConfig.export = false;
+      clearTask();
+      updateImage([]);
+      message("生成失败!", { type: "error" });
+    }
+  };
+
+  if (formRef.value) {
+    formRef.value.validate(async (valid) => {
+      if (valid) {
+        await executeGeneration();
+      }
+    });
+  } else {
+    // 简单验证必要字段
+    if (!form.model) {
+      message("请选择模型", { type: "warning" });
+      return;
+    }
+    if (!form.input.prompt) {
+      message("请输入提示词", { type: "warning" });
+      return;
+    }
+    await executeGeneration();
+  }
 };
 const handleChangeModule = async (value) => {
   const _item = modelList.value.find((it) => it.sysAiModuleCode === value);
@@ -562,10 +663,6 @@ const modelSelectLabel = computed(() => {
   return modelList.value.find((it) => it.sysAiModuleCode === form.model);
 });
 
-const handleTrigger = async () => {
-  settingOpen.value = !settingOpen.value;
-  window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "55px");
-};
 const onAfterProperieSet = () => {
   handleRefreshRandom();
   const query = route.query;
@@ -646,7 +743,6 @@ const loadStyle = async (row) => {
 onMounted(async () => {
   onAfterProperieSet();
   initialModuleList();
-  handleTrigger();
 });
 </script>
 <style scoped lang="scss">
@@ -668,18 +764,6 @@ onMounted(async () => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   height: calc(100vh - 20px);
-}
-
-/* 侧边栏样式 */
-.modern-aside {
-  border-radius: 16px;
-  border-right: 1px solid rgba(0, 0, 0, 0.05);
-  background-color: var(--el-bg-color);
-  padding: 20px;
-  position: relative;
-  overflow: hidden !important;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.03);
-  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* 主内容区样式 */
@@ -713,28 +797,6 @@ onMounted(async () => {
   }
 }
 
-/* 头部操作按钮 */
-.header-actions {
-  padding: 8px 0;
-}
-
-.action-icon {
-  margin-left: 12px;
-  padding: 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
-    transform: scale(1.1);
-  }
-}
-
-.toggle-icon {
-  color: var(--el-color-primary);
-}
-
 /* 历史记录切换按钮 */
 .history-toggle {
   position: absolute;
@@ -761,42 +823,305 @@ onMounted(async () => {
   }
 }
 
-/* 表单元素美化 */
-:deep(.el-form-item) {
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
+/* 新的AI生成器布局样式 */
+.ai-generator-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  overflow: hidden;
 }
 
-:deep(.el-input),
-:deep(.el-select),
-:deep(.el-textarea__inner) {
+/* 主要内容区域 */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+/* 媒体展示区域 */
+.media-display-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.media-container {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  height: 100%;
+}
+
+.media-item {
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.media-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.media-image,
+.media-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  height: 100%;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 16px;
+  margin: 0;
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #c0c4cc;
+}
+
+/* 历史记录区域 */
+.history-section {
+  height: 300px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+/* 底部输入区域 */
+.bottom-input-area {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+/* 设置选项栏 */
+.settings-bar {
+  margin-bottom: 16px;
+  max-height: 120px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.settings-scroll {
+  height: 100%;
+}
+
+.settings-content {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-direction: row;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+  min-width: 120px;
+}
+
+.setting-label {
+  font-size: 12px;
+  color: #8b949e;
+  min-width: 40px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.compact-select {
+  min-width: 120px;
+}
+
+.compact-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ratio-button {
+  margin: 0 !important;
+}
+
+.ratio-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ratio-visual {
+  width: 12px;
+  height: 12px;
+  background: rgba(64, 158, 255, 0.3);
+  border: 1px solid #409eff;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.ratio-text {
+  font-size: 11px;
+}
+
+.compact-number {
+  width: 80px;
+}
+
+.model-option,
+.style-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-icon,
+.style-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+/* 输入容器 */
+.input-container {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.input-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.main-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-input,
+.negative-prompt-input {
   border-radius: 8px;
   transition: all 0.3s ease;
-
-  &:focus,
-  &:hover {
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
-  }
 }
 
-:deep(.el-radio-button__inner) {
+.prompt-input :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  border: 2px solid #e4e7ed;
   transition: all 0.3s ease;
+}
+
+.prompt-input :deep(.el-textarea__inner:focus) {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+}
+
+.negative-prompt-input :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  background-color: #fafafa;
+}
+
+.input-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 10px;
+  }
+
+  .settings-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .setting-item {
+    min-width: auto;
+    justify-content: space-between;
+  }
+
+  .input-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-tools,
+  .input-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .media-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 动画效果 */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.5s ease;
+  transition: all 0.3s ease;
 }
 
-.fade-slide-enter-from,
-.fade-slide-leave-to {
+.fade-slide-enter-from {
   opacity: 0;
   transform: translateY(20px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
 /* 参考图像样式 */
@@ -980,5 +1305,163 @@ onMounted(async () => {
     background-color: rgba(var(--el-color-primary-rgb), 0.05);
     transform: translateX(5px);
   }
+}
+
+/* 操作按钮样式 */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  color: var(--el-text-color-regular);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  min-width: auto;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--el-box-shadow-light);
+}
+
+.action-btn .btn-text {
+  font-size: 12px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.generate-btn {
+  background: var(--el-color-primary);
+  border: none;
+  color: var(--el-color-white);
+  transition: all 0.3s ease;
+}
+
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--el-box-shadow);
+  background: var(--el-color-primary-light-3);
+}
+
+.stop-btn {
+  background: var(--el-color-danger);
+  border: none;
+  color: var(--el-color-white);
+  transition: all 0.3s ease;
+}
+
+.stop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--el-box-shadow);
+  background: var(--el-color-danger-light-3);
+}
+
+/* 下拉菜单样式 */
+:deep(.model-dropdown),
+:deep(.size-dropdown),
+:deep(.style-dropdown) {
+  .el-dropdown-menu {
+    border-radius: var(--el-border-radius-base);
+    box-shadow: var(--el-box-shadow-dark);
+    border: 1px solid var(--el-border-color-lighter);
+    backdrop-filter: blur(20px);
+    background: var(--el-bg-color-overlay);
+  }
+
+  .el-dropdown-menu__item {
+    padding: 12px 16px;
+    border-radius: var(--el-border-radius-small);
+    margin: 4px 8px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+    }
+
+    &.is-active {
+      background: var(--el-color-primary);
+      color: var(--el-color-white);
+    }
+  }
+}
+
+.model-item,
+.size-item {
+  .model-name,
+  .size-name {
+    font-weight: 500;
+    font-size: var(--el-font-size-base);
+    margin-bottom: 2px;
+    color: var(--el-text-color-primary);
+  }
+
+  .model-desc,
+  .size-desc {
+    font-size: var(--el-font-size-small);
+    color: var(--el-text-color-regular);
+  }
+}
+
+.style-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .style-name {
+    font-weight: 500;
+    font-size: var(--el-font-size-base);
+    flex: 1;
+    color: var(--el-text-color-primary);
+  }
+
+  .style-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--el-border-radius-small);
+    background-size: cover;
+    background-position: center;
+    border: 2px solid var(--el-border-color-light);
+    box-shadow: var(--el-box-shadow-light);
+  }
+}
+
+/* 反向提示词区域样式 */
+.negative-prompt-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--el-color-danger-light-9);
+  border-radius: var(--el-border-radius-base);
+  border: 1px solid var(--el-color-danger-light-8);
+}
+
+.negative-prompt-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: var(--el-font-size-small);
+  color: var(--el-color-danger);
+  font-weight: 500;
+}
+
+.input-prefix {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
 }
 </style>

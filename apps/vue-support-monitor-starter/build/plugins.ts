@@ -1,25 +1,30 @@
-import { cdn } from "./cdn";
-import vue from "@vitejs/plugin-vue";
-import { pathResolve } from "./utils";
-import { viteBuildInfo } from "./info";
-import svgLoader from "vite-svg-loader";
-import type { PluginOption } from "vite";
-import vueJsx from "@vitejs/plugin-vue-jsx";
-import { configCompressPlugin } from "./compress";
-import removeNoMatch from "vite-plugin-router-warn";
-import { visualizer } from "rollup-plugin-visualizer";
-import removeConsole from "vite-plugin-remove-console";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
-import { vitePluginFakeServer } from "vite-plugin-fake-server";
-import { prismjsPlugin } from "vite-plugin-prismjs";
+import vue from "@vitejs/plugin-vue";
+import vueJsx from "@vitejs/plugin-vue-jsx";
 import { codeInspectorPlugin } from "code-inspector-plugin";
+import { visualizer } from "rollup-plugin-visualizer";
+import type { PluginOption } from "vite";
+import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { prismjsPlugin } from "vite-plugin-prismjs";
+import removeConsole from "vite-plugin-remove-console";
+import removeNoMatch from "vite-plugin-router-warn";
 import topLevelAwait from "vite-plugin-top-level-await";
+import svgLoader from "vite-svg-loader";
+import { cdn } from "./cdn";
+import { configCompressPlugin } from "./compress";
+import { viteBuildInfo } from "./info";
+import { pathResolve } from "./utils";
 
 export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompression): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
   return [
     topLevelAwait(),
     vue(),
+    nodePolyfills({
+      // 把 Node 全局变量注入到浏览器端
+      globals: { process: true, Buffer: true },
+    }),
     // jsx、tsx语法支持
     vueJsx(),
     prismjsPlugin({
