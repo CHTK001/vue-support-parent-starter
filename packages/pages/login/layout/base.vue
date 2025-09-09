@@ -3,14 +3,13 @@ import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layo
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import TypeIt from "@repo/components/ReTypeit";
 import ScCode from "@repo/components/ScCode/index.vue";
-import { $t, getConfig, setConfig, transformI18n } from "@repo/config";
+import { $t, getConfig, transformI18n } from "@repo/config";
 import { fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
-import { fetchDefaultSetting } from "@pages/setting";
 
 import { getParameter, message, uu3 } from "@repo/utils";
 import $ from "jquery";
 import { Md5 } from "ts-md5";
-import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "../components/thirdParty.vue";
@@ -52,7 +51,9 @@ const props = defineProps({
     type: Number,
   },
 });
-const isShowThirdPartyValue = computed(() => Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]));
+const isShowThirdPartyValue = computed(() => {
+  return Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]) && props.defaultSetting.OpenThirdPartyLogin;
+});
 
 const defaultVerifyCode = ref({
   verifyCodeKey: "",
@@ -143,7 +144,7 @@ const onLogin = async (formEl) => {
   }
 
   // 验证码检查
-  if (props.defaultSetting.openVerifyCode) {
+  if (props.defaultSetting.OpenVerifyCode) {
     if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
       getVerifyCode();
@@ -186,7 +187,7 @@ const onLogin = async (formEl) => {
           message(error.message || "登录失败，请检查用户名和密码", { type: "error" });
 
           // 刷新验证码
-          if (props.defaultSetting.openVerifyCode) {
+          if (props.defaultSetting.OpenVerifyCode) {
             getVerifyCode();
           }
         })
@@ -226,23 +227,24 @@ function onSuccess() {
   }
 
   // 添加成功反馈效果
-  const vcodeContainer = document.querySelector('.vcode-component-wrapper');
+  const vcodeContainer = document.querySelector(".vcode-component-wrapper");
   if (vcodeContainer) {
-    vcodeContainer.classList.add('vcode-success');
+    vcodeContainer.classList.add("vcode-success");
 
     // 显示成功消息
     message("验证成功！", { type: "success" });
 
     // 延迟执行登录，让用户看到成功效果
     setTimeout(() => {
-      if (!loading.value) { // 再次检查loading状态
+      if (!loading.value) {
+        // 再次检查loading状态
         onLogin(currentFormEl.value);
         currentFormEl.value = null;
         vcodeRef.value?.reset();
         vcodeClose();
 
         // 清除成功状态
-        vcodeContainer.classList.remove('vcode-success');
+        vcodeContainer.classList.remove("vcode-success");
       }
     }, 1000);
   } else {
@@ -260,9 +262,9 @@ function onFail() {
   vcodeState.value = false;
 
   // 添加失败反馈效果
-  const vcodeContainer = document.querySelector('.vcode-component-wrapper');
+  const vcodeContainer = document.querySelector(".vcode-component-wrapper");
   if (vcodeContainer) {
-    vcodeContainer.classList.add('vcode-error');
+    vcodeContainer.classList.add("vcode-error");
 
     // 显示失败消息
     message("验证失败，请重试", { type: "error" });
@@ -270,7 +272,7 @@ function onFail() {
     // 延迟重置，让用户看到失败效果
     setTimeout(() => {
       vcodeRef.value?.reset();
-      vcodeContainer.classList.remove('vcode-error');
+      vcodeContainer.classList.remove("vcode-error");
     }, 1500);
   } else {
     // 如果找不到容器，直接重置
@@ -326,24 +328,16 @@ onBeforeUnmount(() => {
       </defs>
     </svg>
     <!-- 滑动验证码对话框 -->
-    <el-dialog
-      v-model="openVcode"
-      width="480px"
-      draggable
-      title="滑动验证"
-      @close="vcodeClose"
-      class="modern-dialog vcode-dialog"
-      append-to-body
-    >
-      <div v-if="props.defaultSetting.openVcode" class="vcode-container">
+    <el-dialog v-model="openVcode" width="480px" draggable title="滑动验证" @close="vcodeClose" class="modern-dialog vcode-dialog" append-to-body>
+      <div v-if="props.defaultSetting.OpenVcode" class="vcode-container">
         <Motion :delay="150">
           <div class="vcode-wrapper">
             <!-- 验证说明 -->
             <div class="verification-notice">
               <div class="notice-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <div class="notice-content">
@@ -357,9 +351,9 @@ onBeforeUnmount(() => {
               <div class="vcode-header">
                 <div class="vcode-title">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>拼图验证</span>
                 </div>
@@ -367,28 +361,21 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="vcode-puzzle-area">
-                <Vcode
-                  ref="vcodeRef"
-                  :show="props.defaultSetting.openVcode"
-                  type="inside"
-                  :puzzleScale="0.8"
-                  @fail="onFail"
-                  @success="onSuccess"
-                />
+                <Vcode ref="vcodeRef" :show="props.defaultSetting.OpenVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
               </div>
 
               <!-- 操作提示 -->
               <div class="vcode-tips">
                 <div class="tip-item">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>拖动滑块到正确位置</span>
                 </div>
                 <div class="tip-item">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>仔细观察拼图缺口</span>
                 </div>
@@ -399,8 +386,8 @@ onBeforeUnmount(() => {
             <div class="verification-status">
               <div class="status-item">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>安全验证保护您的账户</span>
               </div>
@@ -411,16 +398,7 @@ onBeforeUnmount(() => {
     </el-dialog>
 
     <!-- TOTP验证码对话框 -->
-    <el-dialog
-      v-model="openToptcode"
-      width="480px"
-      :close-on-click-modal="false"
-      draggable
-      title="动态验证码验证"
-      @close="vcodeToptClose"
-      class="modern-dialog totp-dialog"
-      append-to-body
-    >
+    <el-dialog v-model="openToptcode" width="480px" :close-on-click-modal="false" draggable title="动态验证码验证" @close="vcodeToptClose" class="modern-dialog totp-dialog" append-to-body>
       <div class="totp-container">
         <Motion :delay="150">
           <div class="totp-wrapper">
@@ -428,36 +406,31 @@ onBeforeUnmount(() => {
             <div class="security-notice">
               <div class="notice-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <p class="notice-text">为了您的账户安全，请输入动态验证码</p>
             </div>
 
             <!-- 验证码输入组件 -->
-            <ScCode
-              ref="scCodeRef"
-              :disabled="loading"
-              @onComplete="handleTotpComplete"
-              @onChange="handleTotpChange"
-            />
+            <ScCode ref="scCodeRef" :disabled="loading" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
 
             <!-- 帮助信息 -->
             <div class="help-info">
               <div class="help-item">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>验证码每30秒更新一次</span>
               </div>
               <div class="help-item">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>支持粘贴验证码</span>
               </div>
@@ -536,14 +509,7 @@ onBeforeUnmount(() => {
                   ]"
                   class="modern-form-item"
                 >
-                  <el-input
-                    v-model="ruleForm.tenantId"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.pureTenant')"
-                    :prefix-icon="useRenderIcon('ri:lock-fill')"
-                    class="modern-input"
-                  />
+                  <el-input v-model="ruleForm.tenantId" clearable :disabled="loading" :placeholder="t('login.pureTenant')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
                 </el-form-item>
               </div>
             </Motion>
@@ -563,14 +529,7 @@ onBeforeUnmount(() => {
                   prop="username"
                   class="modern-form-item"
                 >
-                  <el-input
-                    v-model="ruleForm.username"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.pureUsername')"
-                    :prefix-icon="useRenderIcon('ri:user-3-fill')"
-                    class="modern-input"
-                  />
+                  <el-input v-model="ruleForm.username" clearable :disabled="loading" :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon('ri:user-3-fill')" class="modern-input" />
                 </el-form-item>
               </div>
             </Motion>
@@ -580,46 +539,22 @@ onBeforeUnmount(() => {
               <div class="form-field-wrapper">
                 <label class="field-label">密码</label>
                 <el-form-item prop="password" class="modern-form-item">
-                  <el-input
-                    v-model="ruleForm.password"
-                    clearable
-                    show-password
-                    :disabled="loading"
-                    :placeholder="t('login.purePassword')"
-                    :prefix-icon="useRenderIcon('ri:lock-fill')"
-                    class="modern-input"
-                  />
+                  <el-input v-model="ruleForm.password" clearable show-password :disabled="loading" :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
                 </el-form-item>
               </div>
             </Motion>
 
             <!-- 验证码字段 -->
-            <Motion v-if="props.defaultSetting.openVerifyCode" :delay="200">
+            <Motion v-if="props.defaultSetting.OpenVerifyCode" :delay="200">
               <div class="form-field-wrapper">
                 <label class="field-label">验证码</label>
                 <div class="verify-code-wrapper">
                   <el-form-item prop="verifyCode" class="modern-form-item verify-code-input">
-                    <el-input
-                      v-model="ruleForm.verifyCode"
-                      clearable
-                      :disabled="loading"
-                      :placeholder="t('login.verifyCode')"
-                      :prefix-icon="useRenderIcon('ri:lock-fill')"
-                      class="modern-input"
-                    />
+                    <el-input v-model="ruleForm.verifyCode" clearable :disabled="loading" :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
                   </el-form-item>
-                  <div
-                    class="verify-code-image"
-                    :class="{ 'disabled': loading }"
-                    @click="!loading && getVerifyCode()"
-                  >
-                    <el-image
-                      :src="defaultVerifyCode.verifyCodeBase64"
-                      fit="fill"
-                      :lazy="true"
-                      class="code-image"
-                    />
-                    <div class="refresh-hint">{{ loading ? '登录中...' : '点击刷新' }}</div>
+                  <div class="verify-code-image" :class="{ disabled: loading }" @click="!loading && getVerifyCode()">
+                    <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" class="code-image" />
+                    <div class="refresh-hint">{{ loading ? "登录中..." : "点击刷新" }}</div>
                   </div>
                 </div>
               </div>
@@ -628,47 +563,19 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-                <el-button
-                  v-if="props.defaultSetting.openVerifyCode"
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLogin(ruleFormRef)"
-                >
+                <el-button v-if="props.defaultSetting.OpenVerifyCode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
                 </el-button>
-                <el-button
-                  v-else-if="props.defaultSetting.openVcode"
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLoginCode(ruleFormRef)"
-                >
+                <el-button v-else-if="props.defaultSetting.OpenVcode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
                 </el-button>
-                <el-button
-                  v-else-if="props.defaultSetting.checkTotpOpen"
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLoginToptCode(ruleFormRef)"
-                >
+                <el-button v-else-if="props.defaultSetting.CheckToptOpen" class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
                 </el-button>
-                <el-button
-                  v-else
-                  class="modern-login-button"
-                  size="large"
-                  type="primary"
-                  :loading="loading"
-                  @click="onLogin(ruleFormRef)"
-                >
+                <el-button v-else class="modern-login-button" size="large" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
                 </el-button>
@@ -769,14 +676,7 @@ onBeforeUnmount(() => {
         right: -15px;
         bottom: -15px;
         border-radius: 50%;
-        background: conic-gradient(
-          from 0deg,
-          var(--el-color-primary),
-          var(--el-color-primary-light-3),
-          var(--el-color-primary),
-          var(--el-color-primary-light-5),
-          var(--el-color-primary)
-        );
+        background: conic-gradient(from 0deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary), var(--el-color-primary-light-5), var(--el-color-primary));
         opacity: 0.3;
         animation: rotate 8s linear infinite;
         z-index: 1;
@@ -807,7 +707,8 @@ onBeforeUnmount(() => {
           height: 100px;
           border-radius: 50%;
           box-shadow:
-            0 6px 24px rgba(0, 0, 0, 0.08), // 调整阴影尺寸
+            0 6px 24px rgba(0, 0, 0, 0.08),
+            // 调整阴影尺寸
             0 3px 12px var(--el-color-primary-light-8),
             inset 0 1px 3px rgba(255, 255, 255, 0.3);
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -823,12 +724,7 @@ onBeforeUnmount(() => {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(
-              135deg,
-              transparent 0%,
-              rgba(255, 255, 255, 0.1) 50%,
-              transparent 100%
-            );
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -837,7 +733,8 @@ onBeforeUnmount(() => {
           &:hover {
             transform: scale(1.05) translateY(-3px); // 减少缩放和位移
             box-shadow:
-              0 12px 36px rgba(0, 0, 0, 0.12), // 调整阴影尺寸
+              0 12px 36px rgba(0, 0, 0, 0.12),
+              // 调整阴影尺寸
               0 6px 18px var(--el-color-primary-light-7),
               inset 0 1px 3px rgba(255, 255, 255, 0.4);
 
@@ -953,12 +850,7 @@ onBeforeUnmount(() => {
           position: relative;
 
           .title-gradient {
-            background: linear-gradient(
-              135deg,
-              var(--el-text-color-primary) 0%,
-              var(--el-color-primary) 50%,
-              var(--el-text-color-primary) 100%
-            );
+            background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-color-primary) 50%, var(--el-text-color-primary) 100%);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -974,12 +866,7 @@ onBeforeUnmount(() => {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(
-                135deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.2) 50%,
-                transparent 100%
-              );
+              background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
               background-clip: text;
               -webkit-background-clip: text;
               opacity: 0;
@@ -995,12 +882,7 @@ onBeforeUnmount(() => {
         .title-underline {
           width: 40px; // 从60px减少到40px
           height: 3px; // 从4px减少到3px
-          background: linear-gradient(
-            90deg,
-            var(--el-color-primary),
-            var(--el-color-primary-light-3),
-            var(--el-color-primary)
-          );
+          background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
           border-radius: 2px;
           margin: 0 auto;
           position: relative;
@@ -1013,12 +895,7 @@ onBeforeUnmount(() => {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-              90deg,
-              transparent,
-              rgba(255, 255, 255, 0.6),
-              transparent
-            );
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
             animation: shimmer 2s ease-in-out infinite;
           }
         }
@@ -1055,11 +932,7 @@ onBeforeUnmount(() => {
         align-items: center;
         justify-content: center;
         padding: 6px 16px; // 从8px 20px减少到6px 16px
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-9),
-          var(--el-color-primary-light-8)
-        );
+        background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
         border: 1px solid var(--el-color-primary-light-7);
         border-radius: 16px; // 从20px减少到16px
         box-shadow: var(--el-box-shadow-lighter);
@@ -1074,12 +947,7 @@ onBeforeUnmount(() => {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.3),
-            transparent
-          );
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
           transition: left 0.6s ease;
         }
 
@@ -1476,7 +1344,7 @@ onBeforeUnmount(() => {
         gap: 8px;
 
         &::before {
-          content: '';
+          content: "";
           width: 20px;
           height: 20px;
           background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
@@ -1485,7 +1353,7 @@ onBeforeUnmount(() => {
           position: relative;
 
           &::after {
-            content: '';
+            content: "";
             position: absolute;
             top: 50%;
             left: 50%;
@@ -1572,18 +1440,13 @@ onBeforeUnmount(() => {
 
       // 添加装饰性背景
       &::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-9) 0%,
-          transparent 50%,
-          var(--el-color-success-light-9) 100%
-        );
+        background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 50%, var(--el-color-success-light-9) 100%);
         opacity: 0.3;
         z-index: 0;
       }
@@ -1605,12 +1468,7 @@ onBeforeUnmount(() => {
         animation: bounceIn 0.6s ease-out;
 
         &::before {
-          background: linear-gradient(
-            135deg,
-            var(--el-color-success-light-8) 0%,
-            transparent 50%,
-            var(--el-color-success-light-7) 100%
-          );
+          background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, transparent 50%, var(--el-color-success-light-7) 100%);
         }
 
         .vcode-header .vcode-title {
@@ -1635,12 +1493,7 @@ onBeforeUnmount(() => {
         animation: shake 0.5s ease-in-out;
 
         &::before {
-          background: linear-gradient(
-            135deg,
-            var(--el-color-error-light-8) 0%,
-            transparent 50%,
-            var(--el-color-error-light-7) 100%
-          );
+          background: linear-gradient(135deg, var(--el-color-error-light-8) 0%, transparent 50%, var(--el-color-error-light-7) 100%);
         }
 
         .vcode-header .vcode-title {
@@ -1760,12 +1613,7 @@ onBeforeUnmount(() => {
 
           // 滑块轨道
           .vcode-slider-track {
-            background: linear-gradient(
-              90deg,
-              var(--el-fill-color-light) 0%,
-              var(--el-fill-color-extra-light) 50%,
-              var(--el-fill-color-light) 100%
-            );
+            background: linear-gradient(90deg, var(--el-fill-color-light) 0%, var(--el-fill-color-extra-light) 50%, var(--el-fill-color-light) 100%);
             border: 2px solid var(--el-border-color-lighter);
             border-radius: 24px;
             height: 48px;
@@ -1775,18 +1623,13 @@ onBeforeUnmount(() => {
 
             // 添加轨道装饰
             &::before {
-              content: '';
+              content: "";
               position: absolute;
               top: 0;
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(var(--el-color-primary-rgb), 0.1) 50%,
-                transparent 100%
-              );
+              background: linear-gradient(90deg, transparent 0%, rgba(var(--el-color-primary-rgb), 0.1) 50%, transparent 100%);
               animation: shimmer 2s ease-in-out infinite;
             }
 
@@ -1808,11 +1651,7 @@ onBeforeUnmount(() => {
 
           // 滑块按钮
           .vcode-slider-btn {
-            background: linear-gradient(
-              135deg,
-              var(--el-color-primary) 0%,
-              var(--el-color-primary-light-3) 100%
-            );
+            background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
             border: 3px solid var(--el-bg-color);
             border-radius: 50%;
             width: 44px;
@@ -1827,7 +1666,7 @@ onBeforeUnmount(() => {
 
             // 添加滑块图标
             &::before {
-              content: '';
+              content: "";
               position: absolute;
               top: 50%;
               left: 50%;
@@ -1840,7 +1679,7 @@ onBeforeUnmount(() => {
             }
 
             &::after {
-              content: '';
+              content: "";
               position: absolute;
               top: 50%;
               left: 50%;
@@ -1852,11 +1691,7 @@ onBeforeUnmount(() => {
             }
 
             &:hover {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-primary-dark-2) 0%,
-                var(--el-color-primary) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
               transform: scale(1.1);
               box-shadow:
                 0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
@@ -1872,20 +1707,12 @@ onBeforeUnmount(() => {
           // 成功状态
           &.vcode-success {
             .vcode-slider-track {
-              background: linear-gradient(
-                90deg,
-                var(--el-color-success-light-8) 0%,
-                var(--el-color-success-light-9) 100%
-              );
+              background: linear-gradient(90deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
               border-color: var(--el-color-success-light-5);
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-success) 0%,
-                var(--el-color-success-light-3) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
 
               &::after {
                 background: var(--el-color-success);
@@ -1896,21 +1723,13 @@ onBeforeUnmount(() => {
           // 失败状态
           &.vcode-error {
             .vcode-slider-track {
-              background: linear-gradient(
-                90deg,
-                var(--el-color-error-light-8) 0%,
-                var(--el-color-error-light-9) 100%
-              );
+              background: linear-gradient(90deg, var(--el-color-error-light-8) 0%, var(--el-color-error-light-9) 100%);
               border-color: var(--el-color-error-light-5);
               animation: shake 0.5s ease-in-out;
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-error) 0%,
-                var(--el-color-error-light-3) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-error) 0%, var(--el-color-error-light-3) 100%);
 
               &::after {
                 background: var(--el-color-error);
@@ -1953,7 +1772,7 @@ onBeforeUnmount(() => {
         gap: 8px;
 
         &::before {
-          content: '';
+          content: "";
           width: 20px;
           height: 20px;
           background: var(--el-color-primary);
@@ -1962,7 +1781,7 @@ onBeforeUnmount(() => {
           position: relative;
 
           &::after {
-            content: '';
+            content: "";
             position: absolute;
             top: 50%;
             left: 50%;
@@ -2062,7 +1881,8 @@ onBeforeUnmount(() => {
 
 // 动画关键帧
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -2080,7 +1900,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -2091,7 +1912,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes gradientShift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -2142,7 +1964,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
   }
   50% {
@@ -2151,7 +1974,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes sparkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }

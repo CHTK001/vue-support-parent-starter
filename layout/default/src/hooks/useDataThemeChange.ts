@@ -151,12 +151,14 @@ export function useDataThemeChange() {
   function onReset() {
     removeToken();
     localStorageProxy().clear();
-    const { Grey, Weak, MultiTagsCache, EpThemeColor, Layout } = getConfig();
+    const { Grey, Weak, Invert, Monochrome, MultiTagsCache, EpThemeColor, Layout } = getConfig();
     useAppStoreHook().setLayout(Layout);
     setEpThemeColor(EpThemeColor);
     useMultiTagsStoreHook().multiTagsCacheChange(MultiTagsCache);
     toggleClass(Grey, "html-grey", document.querySelector("html"));
     toggleClass(Weak, "html-weakness", document.querySelector("html"));
+    toggleClass(Invert, "html-invert", document.querySelector("html"));
+    toggleClass(Monochrome, "html-monochrome", document.querySelector("html"));
     router.push("/login");
     useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
     resetRouter();

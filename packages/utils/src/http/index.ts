@@ -171,8 +171,8 @@ class PureHttp {
         }
         response = uu1(response);
         const data = response.data?.data || response.data;
-        if (data instanceof Object) {
-          data.records = data?.records || data?.data || data;
+        if (data instanceof Object &&  data?.data) {
+          data.records =  data?.data;
         }
         const result: any = {
           data: null,

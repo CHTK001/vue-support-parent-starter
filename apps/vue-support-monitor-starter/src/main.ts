@@ -1,10 +1,9 @@
+import { createApp, type Directive } from "vue";
 import Table from "@pureadmin/table";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
 import { useElementPlus } from "@repo/plugins";
 import { MotionPlugin } from "@vueuse/motion";
-import techUILite from "techui-vue3-lite";
-import { createApp, type Directive } from "vue";
 import App from "./App.vue";
 // 引入重置样式
 import "@/styles/threshold.scss";
@@ -55,18 +54,16 @@ app.config.warnHandler = (msg, instance, trace) => {
 // 注册指令
 setupDirectives(app);
 
-techUILite(app).then(() => {
-  getPlatformConfig(app).then(async (config) => {
-    setupStore(app);
-    app.use(router);
-    await router.isReady();
-    injectResponsiveStorage(app, config);
-    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-    // .use(PureDescriptions)
-    // .use(useEcharts);
+getPlatformConfig(app).then(async (config) => {
+  setupStore(app);
+  app.use(router);
+  await router.isReady();
+  injectResponsiveStorage(app, config);
+  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  // .use(PureDescriptions)
+  // .use(useEcharts);
 
-    app.use(GlobalSocketPlugin);
-    setupFullscreenSocket(router);
-    app.mount("#app");
-  });
+  app.use(GlobalSocketPlugin);
+  setupFullscreenSocket(router);
+  app.mount("#app");
 });

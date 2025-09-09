@@ -57,6 +57,8 @@ const settings = reactive({
   layoutBlur: $storage.configure.layoutBlur,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
+  invertVal: $storage.configure.invert ?? false,
+  monochromeVal: $storage.configure.monochrome ?? false,
   tabsVal: $storage.configure.hideTabs,
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
@@ -144,6 +146,20 @@ const weekChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.weakVal, "html-weakness", htmlEl);
   storageConfigureChange("weak", value);
+};
+
+/** 反色模式设置 */
+const invertChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.invertVal, "html-invert", htmlEl);
+  storageConfigureChange("invert", value);
+};
+
+/** 黑白模式设置 */
+const monochromeChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.monochromeVal, "html-monochrome", htmlEl);
+  storageConfigureChange("monochrome", value);
 };
 
 /** 隐藏标签页设置 */
@@ -346,6 +362,16 @@ const markOptions = computed<Array<OptionsType>>(() => {
       tip: t("panel.pureTagsStyleChromeTip"),
       value: "chrome",
     },
+    {
+      label: "极简模式",
+      tip: "纯文字标签，无边框和背景，极简风格",
+      value: "minimal",
+    },
+    {
+      label: "圆角模式",
+      tip: "圆角卡片风格，现代化设计",
+      value: "rounded",
+    },
   ];
 });
 
@@ -416,6 +442,8 @@ onBeforeMount(() => {
     watchSystemThemeChange();
     settings.greyVal && document.querySelector("html")?.classList.add("html-grey");
     settings.weakVal && document.querySelector("html")?.classList.add("html-weakness");
+    settings.invertVal && document.querySelector("html")?.classList.add("html-invert");
+    settings.monochromeVal && document.querySelector("html")?.classList.add("html-monochrome");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
   });
@@ -851,7 +879,7 @@ onUnmounted(() => {
           <h3 class="section-title">{{ t("panel.pureTagsStyle") }}</h3>
         </div>
         <div class="setting-content">
-          <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
+          <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : markValue === 'chrome' ? 2 : markValue === 'minimal' ? 3 : markValue === 'rounded' ? 4 : 0" :options="markOptions" @change="onChange" />
         </div>
       </div>
 
@@ -898,6 +926,22 @@ onUnmounted(() => {
                   <span class="switch-desc">色弱模式，优化色彩对比度</span>
                 </div>
                 <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
+              </div>
+
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">反色模式</label>
+                  <span class="switch-desc">反转页面颜色，适合夜间使用</span>
+                </div>
+                <el-switch v-model="settings.invertVal" inline-prompt @change="invertChange" />
+              </div>
+
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">黑白模式</label>
+                  <span class="switch-desc">移除所有颜色，显示黑白界面</span>
+                </div>
+                <el-switch v-model="settings.monochromeVal" inline-prompt @change="monochromeChange" />
               </div>
             </div>
           </div>

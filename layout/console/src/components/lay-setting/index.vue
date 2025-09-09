@@ -52,6 +52,8 @@ const settings = reactive({
   layoutBlur: $storage.configure.layoutBlur,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
+  invertVal: $storage.configure.invert ?? false,
+  monochromeVal: $storage.configure.monochrome ?? false,
   tabsVal: $storage.configure.hideTabs,
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
@@ -59,6 +61,8 @@ const settings = reactive({
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache,
   stretch: $storage.configure.stretch,
+  keepAlive: true,
+  debugMode: false,
 });
 
 const getThemeColorStyle = computed(() => {
@@ -110,10 +114,24 @@ const greyChange = (value): void => {
 };
 
 /** 色弱模式设置 */
-const weekChange = (value): void => {
+const weekChange = (value: boolean): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.weakVal, "html-weakness", htmlEl);
   storageConfigureChange("weak", value);
+};
+
+/** 反色模式设置 */
+const invertChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.invertVal, "html-invert", htmlEl);
+  storageConfigureChange("invert", value);
+};
+
+/** 黑白模式设置 */
+const monochromeChange = (value: boolean): void => {
+  const htmlEl = document.querySelector("html");
+  toggleClass(settings.monochromeVal, "html-monochrome", htmlEl);
+  storageConfigureChange("monochrome", value);
 };
 
 /** 隐藏标签页设置 */
@@ -245,6 +263,16 @@ const markOptions = computed<Array<OptionsType>>(() => {
       tip: t("panel.pureTagsStyleChromeTip"),
       value: "chrome",
     },
+    {
+      label: "极简模式",
+      tip: "纯文字标签，无边框和背景，极简风格",
+      value: "minimal",
+    },
+    {
+      label: "圆角模式",
+      tip: "圆角卡片风格，现代化设计",
+      value: "rounded",
+    },
   ];
 });
 
@@ -315,6 +343,8 @@ onBeforeMount(() => {
     watchSystemThemeChange();
     settings.greyVal && document.querySelector("html")?.classList.add("html-grey");
     settings.weakVal && document.querySelector("html")?.classList.add("html-weakness");
+    settings.invertVal && document.querySelector("html")?.classList.add("html-invert");
+    settings.monochromeVal && document.querySelector("html")?.classList.add("html-monochrome");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
   });
@@ -430,7 +460,7 @@ onUnmounted(() => removeMatchMedia);
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
-      <Segmented resize class="select-none" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
+      <Segmented resize class="select-none modern-segmented" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : markValue === 'chrome' ? 2 : markValue === 'minimal' ? 3 : markValue === 'rounded' ? 4 : 0" :options="markOptions" @change="onChange" />
 
       <p class="mt-5 font-medium text-base dark:text-white">
         <b>{{ t("panel.transition") }}</b>
@@ -453,6 +483,14 @@ onUnmounted(() => removeMatchMedia);
         <li>
           <span class="dark:text-white">{{ t("panel.pureWeakModel") }}</span>
           <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
+        </li>
+        <li>
+          <span class="dark:text-white">反色模式</span>
+          <el-switch v-model="settings.invertVal" inline-prompt @change="invertChange" />
+        </li>
+        <li>
+          <span class="dark:text-white">黑白模式</span>
+          <el-switch v-model="settings.monochromeVal" inline-prompt @change="monochromeChange" />
         </li>
         <li>
           <span class="dark:text-white">{{ t("panel.pureHiddenTags") }}</span>

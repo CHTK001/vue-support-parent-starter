@@ -12,6 +12,8 @@
   "OverallStyle": "light",
   "Grey": false,
   "Weak": false,
+  "Invert": false,
+  "Monochrome": false,
   "HideTabs": false,
   "HideFooter": false,
   "Stretch": false,
