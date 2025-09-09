@@ -243,24 +243,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
-import {
-  getFileStorageConfig,
-  saveFileStorageConfig,
-  deleteFileStorageConfig,
-  getServletFilterConfig,
-  updateServletFilterConfig,
-  getServletFilterConfigItems,
-  type FileStorageConfig
-} from "@/api/system-server-setting";
-import { fetchOptionList, fetchOptionObjectsList } from "@/api/spi";
 import { fileStorageList } from "@/api/file-manager/file-storage";
-import { getSystemDrives, getSystemDirectories, type DriveInfo, type DirectoryInfo } from "@/api/system-info";
+import { fetchOptionObjectsList } from "@/api/spi";
+import { getSystemDirectories, getSystemDrives, type DirectoryInfo, type DriveInfo } from "@/api/system-info";
+import { deleteFileStorageConfig, getFileStorageConfig, getServletFilterConfig, getServletFilterConfigItems, saveFileStorageConfig, updateServletFilterConfig, type FileStorageConfig } from "@/api/system-server-setting";
 import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
+import { computed, nextTick, ref, watch } from "vue";
 
 interface Props {
   visible: boolean;
@@ -300,7 +291,7 @@ const global = ref({
   watermarkColor: "",
   watermarkX: 0,
   watermarkY: 0,
-  formatCacheTimeMinutes: 1440
+  formatCacheTimeMinutes: 1440,
 });
 
 const imageSettingOptions = ref<SpiOption[]>([]);
@@ -323,17 +314,17 @@ watch([imageSettingSelection, imageFilterSelection, () => global.value.openPlugi
 
 watch(
   () => props.visible,
-  async v => {
+  async (v) => {
     visibleInner.value = v;
     if (v) await loadData();
   },
   { immediate: true }
 );
-watch(visibleInner, v => emit("update:visible", v));
+watch(visibleInner, (v) => emit("update:visible", v));
 
 function formRules(s: FileStorageConfig): FormRules {
   const common: FormRules = {
-    fileStorageType: [{ required: true, message: "请选择存储类型", trigger: "change" }]
+    fileStorageType: [{ required: true, message: "请选择存储类型", trigger: "change" }],
   };
 
   // 根据存储类型设置不同的验证规则
@@ -351,7 +342,7 @@ function formRules(s: FileStorageConfig): FormRules {
   return common;
 }
 
-const getIcon = type => {
+const getIcon = (type) => {
   if (!type) {
     return "ri:file-line";
   }
@@ -371,7 +362,7 @@ const getIcon = type => {
 };
 
 // 获取存储类型图标
-const getStorageIcon = type => {
+const getStorageIcon = (type) => {
   const iconMap = {
     FILESYSTEM: "ri:hard-drive-2-line",
     LOCAL: "ri:hard-drive-2-line",
@@ -380,13 +371,13 @@ const getStorageIcon = type => {
     ALIYUN: "ri:cloud-line",
     OSS: "ri:cloud-line",
     FTP: "ri:folder-transfer-line",
-    SFTP: "ri:folder-shield-2-line"
+    SFTP: "ri:folder-shield-2-line",
   };
   return iconMap[type] || "ri:file-line";
 };
 
-const getFileStorageDescribe = type => {
-  return typeOptions.value.find(it => it.value === type)?.describe || type;
+const getFileStorageDescribe = (type) => {
+  return typeOptions.value.find((it) => it.value === type)?.describe || type;
 };
 
 // 测试存储连接
@@ -422,14 +413,14 @@ function newStorage(): FileStorageConfig {
     fileStorageBucket: "",
     fileStorageAccessKey: "",
     fileStorageSecretKey: "",
-    fileStorageRegion: ""
+    fileStorageRegion: "",
   } as any;
 }
 
 // 右侧预览状态
 const rightPreview = ref({
   visible: false,
-  mode: "list" as "list" | "card" | "image"
+  mode: "list" as "list" | "card" | "image",
 });
 const previewItems = ref<any[]>([]);
 // 轻量缓存：30秒内同参命中直接返回，减少请求
@@ -451,7 +442,7 @@ function base64EncodeUtf8(input: string) {
 function hexEncode(str: string) {
   const bytes = new TextEncoder().encode(str);
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 function makeMarker(index: number) {
@@ -555,7 +546,7 @@ async function fetchPreviewItems() {
       size: it.size || it.fileSize || it.length || "",
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
-      url: it.url || it.previewUrl || it.downloadUrl || ""
+      url: it.url || it.previewUrl || it.downloadUrl || "",
     }));
     previewItems.value = mapped;
     listCache.set(key, { ts: now, items: mapped, marker: pager.value.marker });
@@ -622,7 +613,7 @@ async function saveGlobal() {
     watermarkColor: global.value.openWatermark ? global.value.watermarkColor || undefined : undefined,
     watermarkX: global.value.openWatermark ? Number(global.value.watermarkX || 0) : undefined,
     watermarkY: global.value.openWatermark ? Number(global.value.watermarkY || 0) : undefined,
-    formatCacheTimeMinutes: Number(global.value.formatCacheTimeMinutes || 0)
+    formatCacheTimeMinutes: Number(global.value.formatCacheTimeMinutes || 0),
   };
   const res = await updateServletFilterConfig(props.filterSettingId, payload);
   return !!res.success;
@@ -662,13 +653,13 @@ async function loadTypeOptionsFromSpi() {
             name: it?.name ?? it?.value ?? it?.label,
             value: it?.name,
             icon: getIcon(it?.name),
-            describe: it?.describe ?? it?.label
+            describe: it?.describe ?? it?.label,
           } as SpiOption;
         })
         .filter((it: SpiOption) => !!it.name);
       if (list.length > 0) {
         const seen = new Set<string>();
-        typeOptions.value = list.filter(it => (seen.has(it.name) ? false : (seen.add(it.name), true)));
+        typeOptions.value = list.filter((it) => (seen.has(it.name) ? false : (seen.add(it.name), true)));
       }
     }
   } catch {}
@@ -685,7 +676,7 @@ async function loadOptionalProviderOptions() {
             ? { name: it }
             : {
                 name: it?.name ?? it?.value ?? it?.label,
-                describe: it?.describe ?? it?.label
+                describe: it?.describe ?? it?.label,
               }
         )
         .filter((it: any) => !!it.name);
@@ -700,7 +691,7 @@ async function loadOptionalProviderOptions() {
             ? { name: it }
             : {
                 name: it?.name ?? it?.value ?? it?.label,
-                describe: it?.describe ?? it?.label
+                describe: it?.describe ?? it?.label,
               }
         )
         .filter((it: any) => !!it.name);
@@ -710,12 +701,12 @@ async function loadOptionalProviderOptions() {
     if (global.value.settingsStr)
       imageSettingSelection.value = global.value.settingsStr
         .split(",")
-        .map(s => s.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
     if (global.value.pluginsStr)
       imageFilterSelection.value = global.value.pluginsStr
         .split(",")
-        .map(s => s.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
   } catch {}
 }
@@ -741,17 +732,17 @@ async function handleSave() {
   for (let i = 0; i < storages.value.length; i++) {
     const s = storages.value[i];
     if (!s.fileStorageType) {
-      ElMessage.error(`存储 #${i + 1} 未选择类型`);
+      message.error(`存储 #${i + 1} 未选择类型`);
       return;
     }
     if (s.fileStorageType === "LOCAL") {
       if (!s.fileStorageBasePath) {
-        ElMessage.error(`存储 #${i + 1} 请填写根路径`);
+        message.error(`存储 #${i + 1} 请填写根路径`);
         return;
       }
     } else {
-      if (!s.fileStorageEndpoint || !s.fileStorageBucket) {
-        ElMessage.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket`);
+      if (!s.fileStorageEndpoint) {
+        message.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket`);
         return;
       }
     }
@@ -768,7 +759,7 @@ async function handleSave() {
       const res = await saveFileStorageConfig(toPayload(s));
       if (!res.success) throw new Error(res.msg || "保存失败");
     }
-    ElMessage.success("保存成功，已热应用");
+    ElMessage.success({ message: "保存成功，已热应用" });
     emit("success");
     visibleInner.value = false;
   } catch (e: any) {
@@ -806,7 +797,7 @@ const dirProps = {
         const list = (res.data || []).map((d: DriveInfo) => ({
           path: d.path,
           name: d.name,
-          leaf: false
+          leaf: false,
         }));
         resolve(list);
       } else {
@@ -814,14 +805,14 @@ const dirProps = {
         const list = (res.data || []).map((d: DirectoryInfo) => ({
           path: d.path,
           name: d.name,
-          leaf: false
+          leaf: false,
         }));
         resolve(list);
       }
     } catch {
       resolve([]);
     }
-  }
+  },
 };
 
 async function ensureDrivesLoaded() {
@@ -830,7 +821,7 @@ async function ensureDrivesLoaded() {
     const res = await getSystemDrives();
     dirOptions.value = (res.data || []).map((d: DriveInfo) => ({
       path: d.path,
-      name: d.name
+      name: d.name,
     }));
   } catch {
     dirOptions.value = [];
@@ -843,7 +834,7 @@ function onDirChange(val: string) {
 
 watch(
   () => currentStorage.value?.fileStorageType,
-  t => {
+  (t) => {
     if (t !== "FILESYSTEM") {
       dirSelection.value = undefined;
     } else if (currentStorage.value?.fileStorageEndpoint) {
@@ -873,7 +864,7 @@ async function loadData() {
           // 后端可能未提供该接口或暂未有配置，容错为空
           storages.value = [];
         }
-      })()
+      })(),
     ]);
     selectedIndex.value = storages.value.length > 0 ? 0 : null;
     if (rightPreview.value.visible) {

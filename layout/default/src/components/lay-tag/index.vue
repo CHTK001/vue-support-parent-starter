@@ -538,7 +538,7 @@ const deferTag = useDefer(tagsViews?.length);
           v-for="(item, index) in multiTags"
           :ref="'dynamic' + index"
           :key="index"
-          :class="['scroll-item is-closable', linkIsActive(item), showModel === 'chrome' && 'chrome-item', isFixedTag(item) && 'fixed-tag']"
+          :class="['scroll-item is-closable', linkIsActive(item), showModel === 'chrome' && 'chrome-item', showModel === 'minimal' && 'minimal-item', showModel === 'rounded' && 'rounded-item', isFixedTag(item) && 'fixed-tag']"
           @contextmenu.prevent="openMenu(item, $event)"
           @mouseenter.prevent="onMouseenter(index)"
           @mouseleave.prevent="onMouseleave(index)"

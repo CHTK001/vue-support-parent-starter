@@ -16,10 +16,10 @@
       <div class="option-overlay flex flex-row">
         <div class="option-label truncate">
           <el-tooltip :content="option.description || option.name">
-            {{ option.description || option.name }}
+            {{ option.label || option.name }}
           </el-tooltip>
         </div>
-        <div v-if="isSelected" class="selected-indicator">
+        <div v-if="isSelected" class="selected-indicator"> 
           <IconRenderer icon="ri:check-line" />
         </div>
       </div>
@@ -34,7 +34,7 @@
         <!-- 文本选项自定义内容插槽 -->
         <slot name="content" :option="option" :isSelected="isSelected">
           <div class="option-label">{{ option.label || option.describe || option.name }}</div>
-          <div v-if="option.description" class="option-description">{{ option.description }}</div>
+          <div v-if="option.description" class="option-description truncate !max-w-[100px]">{{ option.description }}</div>
         </slot>
       </div>
     </div>

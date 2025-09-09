@@ -126,6 +126,12 @@
                       <IconifyIconOnline icon="ri:settings-3-line" />
                     </el-button>
                   </el-tooltip>
+
+                  <el-tooltip content="随机描述词" placement="top">
+                    <el-button circle @click="handleRandomPrompt" type="default">
+                      <IconifyIconOnline icon="ep:refresh" />
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </template>
 
@@ -291,6 +297,18 @@ const toggleAdvanced = () => {
 const handleRefImage = () => {
   // 处理参考图片选择
   console.log("选择参考图片");
+};
+
+const handleRandomPrompt = async () => {
+  // 获取随机描述词
+  await handleRefreshRandom();
+  // 将随机描述词设置到输入框
+  currentMessage.value = randomPrompt.value;
+  form.input.prompt = randomPrompt.value;
+  // 如果EditorSender组件有setValue方法，也同步设置
+  if (editorSenderRef.value && editorSenderRef.value.setValue) {
+    editorSenderRef.value.setValue(randomPrompt.value);
+  }
 };
 
 const handleGenerate = async () => {

@@ -88,7 +88,23 @@ const options = computed(() => [
 ]);
 
 const currentValue = computed({
-  get: () => props.modelValue,
+  get: () => {
+    // 处理不同类型的boolean值
+    const value = props.modelValue;
+
+    // 如果是字符串类型
+    if (typeof value === "string") {
+      return value.toLowerCase() === "true";
+    }
+
+    // 如果是数字类型
+    if (typeof value === "number") {
+      return value === 1;
+    }
+
+    // 默认返回boolean值
+    return Boolean(value);
+  },
   set: val => emit("update:modelValue", val)
 });
 

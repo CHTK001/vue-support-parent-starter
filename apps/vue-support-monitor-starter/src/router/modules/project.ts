@@ -23,6 +23,29 @@ export default [
         },
       },
       {
+        path: "/project/ai/llm/web",
+        name: "ProjectAiLlmWeb",
+        component: async () => {
+          const { LlmNewIndex } = await import("@pages/project");
+          return LlmNewIndex;
+        },
+        meta: {
+          title: "大语言模型",
+        },
+      },
+      {
+        path: "/project/ai/vincent/web",
+        name: "ProjectAiVincent",
+        component: async () => {
+          const { VincentIndex } = await import("@pages/project");
+          return VincentIndex;
+        },
+        meta: {
+          title: "图像生成",
+          showLink: false,
+        },
+      },
+      {
         path: "/project/secret",
         name: "ProjectSecret",
         component: async () => {

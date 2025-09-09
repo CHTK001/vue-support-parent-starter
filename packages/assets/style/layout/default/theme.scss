@@ -93,3 +93,29 @@ html[data-theme="auroraGreen"] {
   --pure-theme-menu-title-hover: #fff;
   --pure-theme-menu-active-before: #60ac80;
 }
+
+/* 反色模式 */
+html.html-invert {
+  filter: invert(1) hue-rotate(180deg);
+
+  /* 媒体元素需要双重反转以保持正常显示 */
+  img,
+  video,
+  iframe,
+  svg,
+  canvas,
+  [style*="background-image"] {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+/* 黑白模式 */
+html.html-monochrome {
+  filter: grayscale(1);
+
+  * {
+    color: inherit !important;
+    background-color: inherit !important;
+    border-color: inherit !important;
+  }
+}

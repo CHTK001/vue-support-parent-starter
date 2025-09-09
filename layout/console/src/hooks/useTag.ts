@@ -148,6 +148,14 @@ export function useTags() {
       if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
       toggleClass(true, "schedule-in", instance.refs["schedule" + index][0]);
       toggleClass(false, "schedule-out", instance.refs["schedule" + index][0]);
+    } else if (unref(showModel) === "minimal") {
+      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
+      toggleClass(true, "minimal-in", instance.refs["dynamic" + index][0]);
+      toggleClass(false, "minimal-out", instance.refs["dynamic" + index][0]);
+    } else if (unref(showModel) === "rounded") {
+      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
+      toggleClass(true, "rounded-in", instance.refs["dynamic" + index][0]);
+      toggleClass(false, "rounded-out", instance.refs["dynamic" + index][0]);
     } else {
       if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
       toggleClass(true, "card-in", instance.refs["dynamic" + index][0]);
@@ -162,6 +170,14 @@ export function useTags() {
       if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
       toggleClass(false, "schedule-in", instance.refs["schedule" + index][0]);
       toggleClass(true, "schedule-out", instance.refs["schedule" + index][0]);
+    } else if (unref(showModel) === "minimal") {
+      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
+      toggleClass(false, "minimal-in", instance.refs["dynamic" + index][0]);
+      toggleClass(true, "minimal-out", instance.refs["dynamic" + index][0]);
+    } else if (unref(showModel) === "rounded") {
+      if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
+      toggleClass(false, "rounded-in", instance.refs["dynamic" + index][0]);
+      toggleClass(true, "rounded-out", instance.refs["dynamic" + index][0]);
     } else {
       if (hasClass(instance.refs["dynamic" + index][0], "is-active")) return;
       toggleClass(false, "card-in", instance.refs["dynamic" + index][0]);
@@ -176,7 +192,7 @@ export function useTags() {
   onMounted(() => {
     if (!showModel.value) {
       const configure = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`);
-      configure.showModel = "card";
+      configure.showModel = "chrome";
       localStorageProxy().setItem(`${responsiveStorageNameSpace()}configure`, configure);
     }
   });

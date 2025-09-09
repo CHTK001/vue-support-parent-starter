@@ -14,6 +14,8 @@ RemoteLayoutSave: true
 LocationLayout: true
 #远程API地址
 BaseUrl: /monitor/api
+#Google标签风格
+ShowModel: "chrome"
 # AccountType: tenant
 #是否开启租户登录
 OpenTenantLogin: false

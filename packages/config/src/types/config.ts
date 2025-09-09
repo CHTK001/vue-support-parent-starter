@@ -36,6 +36,8 @@ export interface PlatformConfigs {
   OverallStyle?: string;
   Grey?: boolean;
   Weak?: boolean;
+  Invert?: boolean;
+  Monochrome?: boolean;
   HideTabs?: boolean;
   HideFooter?: boolean;
   Stretch?: boolean | number;

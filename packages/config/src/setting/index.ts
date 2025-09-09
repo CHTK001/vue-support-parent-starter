@@ -34,12 +34,14 @@ export const globalSetting: PlatformConfigs = {
   OverallStyle: "light", // 整体风格（浅色：light、深色：dark、自动：system）（会缓存）更多详情看 https://github.com/pure-admin/vue-pure-admin/commit/dd783136229da9e291b518df93227111f4216ad0#commitcomment-137027417
   Grey: false, // 灰色模式（会缓存）
   Weak: false, // 色弱模式（会缓存）
+  Invert: false, // 反色模式（会缓存）
+  Monochrome: false, // 黑白模式（会缓存）
   HideTabs: false, // 是否隐藏标签页（会缓存）
   HideFooter: true, // 是否隐藏页脚（会缓存）
   SidebarStatus: true, // vertical左侧菜单模式模式下侧边栏状态（true 展开、false 收起）（会缓存）
   EpThemeColor: "#409EFF", // 主题色（会缓存）
   ShowLogo: true, // 是否显示logo（会缓存）
-  ShowModel: "google", // 标签页风格（smart 灵动模式、card 卡片模式）（会缓存）
+  ShowModel: "chrome", // 标签页风格（smart 灵动模式、card 卡片模式、chrome 谷歌风格、minimal 极简模式、rounded 圆角模式）（会缓存）
   MenuArrowIconNoTransition: false, // 菜单展开、收起图标是否开启动画，如遇菜单展开、收起卡顿设置成 true 即可（默认 false，开启动画）
   CachingAsyncRoutes: true, // 是否开启动态路由缓存本地的全局配置，默认 false
   TooltipEffect: "light", // 可配置平台主体所有 el-tooltip 的 effect 属性，默认 light，不会影响业务代码

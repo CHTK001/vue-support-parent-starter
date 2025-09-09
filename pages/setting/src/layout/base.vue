@@ -61,7 +61,7 @@ export default defineComponent({
       Object.assign(this.form, data);
       fetchSetting(data.group)
         .then((res) => {
-          this.groupList.push(...res?.data);
+          this.groupList.push(...res?.data?.filter((it) => it.sysSettingGroup === data.group));
         })
         .finally(() => {
           this.layoutLoading = false;

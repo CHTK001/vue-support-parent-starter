@@ -47,6 +47,63 @@
       box-shadow: none;
     }
 
+    &.minimal-item {
+      padding: 0 16px;
+      margin: 0 4px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--el-fill-color-light);
+        border-radius: 4px;
+      }
+
+      .tag-title {
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+      }
+
+      &.is-active .tag-title {
+        color: var(--el-color-primary);
+        font-weight: 600;
+      }
+    }
+
+    &.rounded-item {
+      padding: 0 16px;
+      margin: 0 6px;
+      background: var(--el-fill-color-extra-light);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        background: var(--el-fill-color-light);
+        border-color: var(--el-color-primary-light-7);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .tag-title {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
+
+      &.is-active {
+        background: var(--el-color-primary-light-9);
+        border-color: var(--el-color-primary);
+        box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+
+        .tag-title {
+          color: var(--el-color-primary);
+          font-weight: 600;
+        }
+      }
+    }
+
     .el-icon-close {
       position: absolute;
       top: 50%;
@@ -66,6 +123,26 @@
       &:hover {
         color: rgb(0 0 0 / 88%) !important;
         background-color: rgb(0 0 0 / 6%);
+      }
+    }
+
+    &.minimal-item .el-icon-close {
+      right: 4px;
+      background: transparent;
+
+      &:hover {
+        background-color: var(--el-color-danger-light-8);
+        color: var(--el-color-danger);
+      }
+    }
+
+    &.rounded-item .el-icon-close {
+      right: 8px;
+      border-radius: 50%;
+
+      &:hover {
+        background-color: var(--el-color-danger-light-8);
+        color: var(--el-color-danger);
       }
     }
   }
@@ -216,6 +293,30 @@
   .chrome-tab-divider {
     opacity: 0;
   }
+
+  &.minimal-item {
+    color: inherit;
+    box-shadow: none;
+    background: var(--el-fill-color-light);
+    border-radius: 4px;
+
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+  }
+
+  &.rounded-item {
+    color: inherit;
+    box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
+
+    .tag-title {
+      color: var(--el-color-primary) !important;
+      font-weight: 600;
+    }
+  }
 }
 
 .arrow-left,
@@ -277,6 +378,47 @@
 
   .tag-title {
     color: #666;
+  }
+}
+
+/* 极简模式鼠标悬停效果 */
+.minimal-in {
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+
+  .tag-title {
+    color: var(--el-color-primary);
+  }
+}
+
+.minimal-out {
+  background: transparent;
+
+  .tag-title {
+    color: var(--el-text-color-regular);
+  }
+}
+
+/* 圆角模式鼠标悬停效果 */
+.rounded-in {
+  background: var(--el-fill-color-light);
+  border-color: var(--el-color-primary-light-7);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  .tag-title {
+    color: var(--el-color-primary);
+  }
+}
+
+.rounded-out {
+  background: var(--el-fill-color-extra-light);
+  border-color: var(--el-border-color-lighter);
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  .tag-title {
+    color: var(--el-text-color-primary);
   }
 }
 

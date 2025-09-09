@@ -1,10 +1,10 @@
 <script setup>
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
+import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config";
 import { fetchVerifyCode } from "@repo/core";
-import { fetchDefaultSetting } from "@pages/setting";
 import { getParameter } from "@repo/utils";
-import { computed, defineAsyncComponent, markRaw, onBeforeMount, reactive, ref, shallowRef, toRaw } from "vue";
+import { computed, defineAsyncComponent, markRaw, onBeforeMount, reactive, ref, toRaw } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
@@ -23,7 +23,7 @@ const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
 const loading = ref(false);
-const loginType = shallowRef(1);
+const loginType = ref(1);
 const ruleFormRef = ref();
 const { initStorage } = useLayout();
 initStorage();
@@ -35,13 +35,14 @@ const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translationCh, translationEn } = useTranslationLang();
 
 const defaultSetting = reactive({
-  openVerifyCode: false,
-  openVcode: false,
-  checkTotpOpen: false,
-  systemName: "",
+  OpenVerifyCode: false,
+  OpenVcode: false,
+  CheckTotpOpen: false,
+  OpenThirdPartyLogin: false,
+  SystemName: "",
 });
 const ssoSetting = reactive({
-  gitee: false,
+  Gitee: false,
 });
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
@@ -65,12 +66,16 @@ const loadDefaultSetting = async () => {
       if (element.sysSettingName === "SlidingBlockOpen") {
         defaultSetting.openVcode = element.sysSettingValue === "true";
         return;
-      } else if (element.sysSettingGroup === "sso") {
-        const _val = element.sysSettingValue === "true";
-        ssoSetting[element.sysSettingName] = _val;
       }
-
+      if (element.sysSettingName === "OpenThirdPartyLogin") {
+        const _val = element.sysSettingValue === "true";
+        defaultSetting.OpenThirdPartyLogin = _val;
+        return;
+      }
       defaultSetting[element.sysSettingName] = element.sysSettingValue === "true";
+    } else if (element.sysSettingGroup === "sso") {
+      const _val = element.sysSettingValue === "true";
+      ssoSetting[element.sysSettingName] = _val;
     }
   });
 
@@ -106,6 +111,20 @@ const getVerifyCode = async () => {
 const handleChangeLoginType = async (_val) => {
   loginType.value = _val;
 };
+
+const openSwitchLoginType = computed(() => {
+  return defaultSetting.OpenBaseLogin && defaultSetting.OpenTenantLogin;
+});
+
+const getSwitchLoginType = () => {
+  if (defaultSetting.OpenBaseLogin) {
+    return 1;
+  }
+  if (defaultSetting.OpenTenantLogin) {
+    return 2;
+  }
+};
+loginType.value = getSwitchLoginType();
 </script>
 
 <template>
@@ -122,14 +141,7 @@ const handleChangeLoginType = async (_val) => {
       <div class="toolbar-content">
         <!-- 主题切换 -->
         <div class="theme-switch-container">
-          <el-switch
-            v-model="dataTheme"
-            inline-prompt
-            :active-icon="dayIcon"
-            :inactive-icon="darkIcon"
-            @change="dataThemeChange"
-            class="modern-theme-switch"
-          />
+          <el-switch v-model="dataTheme" inline-prompt :active-icon="dayIcon" :inactive-icon="darkIcon" @change="dataThemeChange" class="modern-theme-switch" />
         </div>
 
         <!-- 语言切换 -->
@@ -139,21 +151,11 @@ const handleChangeLoginType = async (_val) => {
           </div>
           <template #dropdown>
             <el-dropdown-menu class="modern-dropdown-menu">
-              <el-dropdown-item
-                :style="getDropdownItemStyle(locale, 'zh-CN')"
-                :class="getDropdownItemClass(locale, 'zh-CN')"
-                @click="translationCh"
-                class="dropdown-item"
-              >
+              <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh-CN')" :class="getDropdownItemClass(locale, 'zh-CN')" @click="translationCh" class="dropdown-item">
                 <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" icon="@iconify-icons/ep/check" />
                 <span>简体中文</span>
               </el-dropdown-item>
-              <el-dropdown-item
-                :style="getDropdownItemStyle(locale, 'en-US')"
-                :class="getDropdownItemClass(locale, 'en-US')"
-                @click="translationEn"
-                class="dropdown-item"
-              >
+              <el-dropdown-item :style="getDropdownItemStyle(locale, 'en-US')" :class="getDropdownItemClass(locale, 'en-US')" @click="translationEn" class="dropdown-item">
                 <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" icon="@iconify-icons/ep/check" />
                 <span>English</span>
               </el-dropdown-item>
@@ -178,24 +180,13 @@ const handleChangeLoginType = async (_val) => {
         <div class="form-section">
           <div class="form-wrapper">
             <!-- 登录表单 -->
-            <BaseLayout
-              v-if="loginType == 1 || loginType == 2"
-              :accountType="loginType"
-              :defaultSetting="defaultSetting"
-              :ssoSetting="ssoSetting"
-              class="login-form-component"
-            />
+            <BaseLayout v-if="loginType == 1 || loginType == 2" :accountType="loginType" :defaultSetting="defaultSetting" :ssoSetting="ssoSetting" class="login-form-component" />
 
             <!-- 登录类型选择 -->
-            <div v-if="defaultSetting.OpenBaseLogin || defaultSetting.OpenTenantLogin" class="login-type-selector">
+            <div v-if="openSwitchLoginType" class="login-type-selector">
               <div class="selector-title">选择登录方式</div>
               <div class="selector-options">
-                <div
-                  v-if="defaultSetting.OpenBaseLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 1 }"
-                  @click="handleChangeLoginType(1)"
-                >
+                <div v-if="defaultSetting.OpenBaseLogin" class="option-card" :class="{ active: loginType == 1 }" @click="handleChangeLoginType(1)">
                   <div class="option-icon-wrapper">
                     <el-icon class="option-icon">
                       <component :is="useRenderIcon('ep:user')" />
@@ -207,12 +198,7 @@ const handleChangeLoginType = async (_val) => {
                   </div>
                 </div>
 
-                <div
-                  v-if="defaultSetting.OpenTenantLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 2 }"
-                  @click="handleChangeLoginType(2)"
-                >
+                <div v-if="defaultSetting.OpenTenantLogin" class="option-card" :class="{ active: loginType == 2 }" @click="handleChangeLoginType(2)">
                   <div class="option-icon-wrapper">
                     <el-icon class="option-icon">
                       <component :is="useRenderIcon('ep:office-building')" />
@@ -265,12 +251,7 @@ const handleChangeLoginType = async (_val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      135deg,
-      rgba(var(--el-color-primary-rgb), 0.1) 0%,
-      var(--el-bg-color-page) 50%,
-      rgba(var(--el-color-primary-rgb), 0.05) 100%
-    );
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, var(--el-bg-color-page) 50%, rgba(var(--el-color-primary-rgb), 0.05) 100%);
     backdrop-filter: blur(8px);
   }
 
@@ -280,21 +261,7 @@ const handleChangeLoginType = async (_val) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(
-      circle at 20% 80%,
-      var(--el-color-primary-light-9) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 80% 20%,
-      var(--el-color-primary-light-8) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 40% 40%,
-      var(--el-color-primary-light-9) 0%,
-      transparent 50%
-    );
+    background-image: radial-gradient(circle at 20% 80%, var(--el-color-primary-light-9) 0%, transparent 50%), radial-gradient(circle at 80% 20%, var(--el-color-primary-light-8) 0%, transparent 50%), radial-gradient(circle at 40% 40%, var(--el-color-primary-light-9) 0%, transparent 50%);
     animation: float 20s ease-in-out infinite;
   }
 }
@@ -465,12 +432,7 @@ const handleChangeLoginType = async (_val) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-extra-light) 0%,
-    var(--el-fill-color-lighter) 50%,
-    var(--el-fill-color-light) 100%
-  );
+  background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-lighter) 50%, var(--el-fill-color-light) 100%);
   position: relative;
   overflow: hidden;
 
@@ -502,11 +464,7 @@ const handleChangeLoginType = async (_val) => {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(
-      circle,
-      var(--el-color-primary-light-9) 0%,
-      transparent 60%
-    );
+    background: radial-gradient(circle, var(--el-color-primary-light-9) 0%, transparent 60%);
     animation: rotate 30s linear infinite;
     z-index: 1;
   }
@@ -569,12 +527,7 @@ const handleChangeLoginType = async (_val) => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      var(--el-color-primary-light-9) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(45deg, transparent 0%, var(--el-color-primary-light-9) 50%, transparent 100%);
     opacity: 0.3;
     z-index: 1;
   }
@@ -596,7 +549,7 @@ const handleChangeLoginType = async (_val) => {
 
   .selector-options {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px; // 从16px减少到12px
 
     .option-card {
@@ -619,12 +572,7 @@ const handleChangeLoginType = async (_val) => {
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          var(--el-color-primary-light-9),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, var(--el-color-primary-light-9), transparent);
         transition: left 0.5s ease;
       }
 
@@ -721,7 +669,8 @@ const handleChangeLoginType = async (_val) => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
