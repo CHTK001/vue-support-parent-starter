@@ -15,7 +15,7 @@
   </div>
 </template>
 <script setup>
-import { ref, defineEmits, defineExpose, reactive } from "vue";
+import { ref, defineExpose, reactive } from "vue";
 import { loadSfcModule } from "@repo/utils";
 const emit = defineEmits(["close"]);
 const title = ref("");

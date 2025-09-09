@@ -1,15 +1,8 @@
 <template>
   <div class="terminal-console">
     <div class="toolbar">
-      <el-input
-        v-model="command"
-        placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler"
-        @keyup.enter.native="sendCommand"
-        clearable
-      />
-      <el-button type="primary" @click="sendCommand" :disabled="!connected"
-        >执行</el-button
-      >
+      <el-input v-model="command" placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler" @keyup.enter.native="sendCommand" clearable />
+      <el-button type="primary" @click="sendCommand" :disabled="!connected">执行</el-button>
       <el-button @click="clearOutput">清屏</el-button>
       <el-button @click="reconnect" :disabled="connecting">重连</el-button>
     </div>
@@ -19,23 +12,14 @@
       <el-button size="small" @click="quick('jvm')">jvm</el-button>
       <el-button size="small" @click="quick('heap')">heap</el-button>
       <el-button size="small" @click="quick('logger')">logger</el-button>
-      <el-button
-        size="small"
-        @click="quick('profiler start; sleep 10; profiler stop')"
-        >profiler</el-button
-      >
+      <el-button size="small" @click="quick('profiler start; sleep 10; profiler stop')">profiler</el-button>
     </div>
-    <div
-      class="output"
-      :style="containerStyle"
-      ref="xtermRef"
-      @click="focusTerm"
-    ></div>
+    <div class="output" :style="containerStyle" ref="xtermRef" @click="focusTerm"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import "xterm/css/xterm.css";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
@@ -171,9 +155,7 @@ function initialTerm() {
     fixedCols.value = terminal.value.cols + 100;
     fixedRows.value = terminal.value.rows + 100;
     // 锁定容器尺寸为当前像素大小，避免后续布局变化
-    const viewport = xtermRef.value.querySelector(
-      ".xterm-viewport"
-    ) as HTMLElement | null;
+    const viewport = xtermRef.value.querySelector(".xterm-viewport") as HTMLElement | null;
     const box = viewport || xtermRef.value;
     const w = (box as HTMLElement).clientWidth;
     const h = (box as HTMLElement).clientHeight + 350;

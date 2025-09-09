@@ -3,32 +3,13 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-input
-          v-model="classPattern"
-          placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）"
-          style="min-width: 280px"
-          clearable
-        />
-        <el-input
-          v-model="methodPattern"
-          placeholder="方法名/通配（可选，默认 *）"
-          style="width: 200px"
-          clearable
-        />
+        <el-input v-model="classPattern" placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）" style="min-width: 280px" clearable />
+        <el-input v-model="methodPattern" placeholder="方法名/通配（可选，默认 *）" style="width: 200px" clearable />
         <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
         <el-checkbox v-model="declaredOnly">仅声明方法(-d)</el-checkbox>
-        <el-input-number
-          v-model="collectMillis"
-          :min="2000"
-          :max="60000"
-          :step="1000"
-          controls-position="right"
-          style="width: 160px"
-        />
+        <el-input-number v-model="collectMillis" :min="2000" :max="60000" :step="1000" controls-position="right" style="width: 160px" />
         <span class="label">超时(ms)</span>
-        <el-button type="primary" :disabled="!nodeId || !classPatternTrim" :loading="loading" @click="run">
-          执行
-        </el-button>
+        <el-button type="primary" :disabled="!nodeId || !classPatternTrim" :loading="loading" @click="run"> 执行 </el-button>
         <el-button @click="clearData">清空</el-button>
       </div>
     </div>
@@ -45,7 +26,7 @@
       <el-table-column prop="parameters" label="参数" min-width="220" show-overflow-tooltip />
       <el-table-column prop="declared" label="声明" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.declared ? 'success' : 'info'" size="small">{{ row.declared ? '是' : '否' }}</el-tag>
+          <el-tag :type="row.declared ? 'success' : 'info'" size="small">{{ row.declared ? "是" : "否" }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="classLoader" label="类加载器" min-width="220" show-overflow-tooltip />
@@ -60,7 +41,7 @@
 
 <script setup lang="ts">
 import { execArthasCommand } from "@/api/arthas-http";
-import { ref, computed, defineProps } from "vue";
+import { ref, computed } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -117,7 +98,7 @@ function parseSm(output: any): SmRow[] {
       const methodName = r.methodName || r.name || r.method || "";
       const returnType = r.returnType || r.return || r.ret || "";
       const paramsArr: any[] = r.parameterTypes || r.parameters || r.args || [];
-      const parameters = Array.isArray(paramsArr) ? paramsArr.join(", ") : (typeof paramsArr === "string" ? paramsArr : "");
+      const parameters = Array.isArray(paramsArr) ? paramsArr.join(", ") : typeof paramsArr === "string" ? paramsArr : "";
       const modifiers = r.modifiers || r.modifier || r.access || "";
       const declared = !!(r.declared || r.isDeclared || declaredOnly.value);
       const classLoader = r.classLoader || r.classLoaderHash || r.loader || undefined;
@@ -137,7 +118,7 @@ function parseSm(output: any): SmRow[] {
       // 有些实现把 methods 放在数组里
       if (Array.isArray(r.methods)) {
         for (const m of r.methods) {
-          const p = Array.isArray(m.parameterTypes) ? m.parameterTypes.join(", ") : (m.parameters || "");
+          const p = Array.isArray(m.parameterTypes) ? m.parameterTypes.join(", ") : m.parameters || "";
           parsed.push({
             className: m.className || klass,
             methodName: m.methodName || m.name || methodName,
@@ -180,11 +161,35 @@ async function run() {
 </script>
 
 <style scoped>
-.sm-viewer { display: flex; flex-direction: column; gap: 16px; height: 100%; }
-.control-panel { background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e9ecef; }
-.control-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.label { color: #666; font-size: 12px; }
-.mb-4 { margin-bottom: 16px; }
-.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; }
+.sm-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+.control-panel {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.label {
+  color: #666;
+  font-size: 12px;
+}
+.mb-4 {
+  margin-bottom: 16px;
+}
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>
-

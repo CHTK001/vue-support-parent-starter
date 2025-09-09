@@ -6,7 +6,7 @@ import LayLogo from "../lay-sidebar/components/SidebarLogo.vue";
 import LogoutCircleRLine from "@iconify-icons/ri/menu-fill";
 import LogoutCircleClose from "@iconify-icons/ri/close-fill";
 import LayTool from "../lay-tool/index.vue";
-import { defineExpose, defineEmits, shallowRef } from "vue";
+import { defineExpose, shallowRef } from "vue";
 
 const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 

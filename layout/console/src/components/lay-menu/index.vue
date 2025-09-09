@@ -57,7 +57,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { transformI18n } from "@repo/config";
 import { usePermissionStoreHook } from "@repo/core";
-import { computed, defineAsyncComponent, defineEmits, defineExpose, ref, shallowRef } from "vue";
+import { computed, defineAsyncComponent, defineExpose, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";
 const emit = defineEmits();
 const LayMenuChildren = defineAsyncComponent(() => import("./menu.vue"));

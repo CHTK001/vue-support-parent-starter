@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { ref, unref, watch, onMounted, nextTick, defineEmits } from "vue";
+import { ref, unref, watch, onMounted, nextTick } from "vue";
 
 const loadEmit = defineEmits(["loaded"]);
 defineOptions({
@@ -46,10 +46,7 @@ function init() {
 watch(
   () => currentRoute.fullPath,
   (path) => {
-    if (
-      currentRoute.name === "Redirect" &&
-      path.includes(props.frameInfo?.fullPath)
-    ) {
+    if (currentRoute.name === "Redirect" && path.includes(props.frameInfo?.fullPath)) {
       frameSrc.value = path; // redirect时，置换成任意值，待重定向后 重新赋值
       loading.value = true;
     }
@@ -57,7 +54,7 @@ watch(
     if (props.frameInfo?.fullPath === path) {
       frameSrc.value = props.frameInfo?.frameSrc;
     }
-  },
+  }
 );
 
 onMounted(() => {

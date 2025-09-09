@@ -1,12 +1,7 @@
 <template>
   <div class="trace-viewer">
     <div class="toolbar">
-      <el-input
-        v-model="classPattern"
-        placeholder="类匹配（必填，如 com.example.service.UserService）"
-        style="min-width: 300px"
-        clearable
-      >
+      <el-input v-model="classPattern" placeholder="类匹配（必填，如 com.example.service.UserService）" style="min-width: 300px" clearable>
         <template #suffix>
           <el-tooltip placement="top">
             <template #content>
@@ -22,63 +17,25 @@
           </el-tooltip>
         </template>
       </el-input>
-      <el-input
-        v-model="methodPattern"
-        placeholder="方法匹配（可选，默认 *）"
-        style="min-width: 200px"
-        clearable
-      />
-      <el-input
-        v-model="condition"
-        placeholder="条件表达式（可选，如 #cost>10）"
-        style="min-width: 220px"
-        clearable
-      />
+      <el-input v-model="methodPattern" placeholder="方法匹配（可选，默认 *）" style="min-width: 200px" clearable />
+      <el-input v-model="condition" placeholder="条件表达式（可选，如 #cost>10）" style="min-width: 220px" clearable />
       <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
-      <el-input-number
-        v-model="count"
-        :min="1"
-        :max="1000"
-        :step="1"
-        controls-position="right"
-        style="width: 120px"
-      />
+      <el-input-number v-model="count" :min="1" :max="1000" :step="1" controls-position="right" style="width: 120px" />
       <span class="label">-n</span>
-      <el-input-number
-        v-model="expand"
-        :min="0"
-        :max="10"
-        :step="1"
-        controls-position="right"
-        style="width: 100px"
-      />
+      <el-input-number v-model="expand" :min="0" :max="10" :step="1" controls-position="right" style="width: 100px" />
       <span class="label">-x</span>
       <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-      <el-select
-        v-model="refreshInterval"
-        style="width: 120px"
-        placeholder="拉取间隔"
-        title="设置结果拉取间隔（同时用于自动刷新间隔）"
-      >
+      <el-select v-model="refreshInterval" style="width: 120px" placeholder="拉取间隔" title="设置结果拉取间隔（同时用于自动刷新间隔）">
         <el-option :value="5" label="5秒" />
         <el-option :value="10" label="10秒" />
         <el-option :value="30" label="30秒" />
         <el-option :value="60" label="60秒" />
       </el-select>
       <el-button @click="clearData">清空</el-button>
-      <el-button
-        type="primary"
-        :disabled="!nodeId || !classPatternTrim || isRunning"
-        :loading="loading"
-        @click="run"
-      >
+      <el-button type="primary" :disabled="!nodeId || !classPatternTrim || isRunning" :loading="loading" @click="run">
         {{ autoRefresh && countdown > 0 ? `执行(${countdown}s)` : "执行" }}
       </el-button>
-      <el-button
-        @click="sendStop"
-        :disabled="!isRunning"
-        :type="isRunning ? 'danger' : 'default'"
-      >
+      <el-button @click="sendStop" :disabled="!isRunning" :type="isRunning ? 'danger' : 'default'">
         {{ isRunning ? "停止追踪" : "停止" }}
       </el-button>
       <div v-if="isRunning" class="status-indicator">
@@ -101,8 +58,7 @@
               <p>暂无链路追踪数据</p>
               <p class="empty-tips">
                 请设置具体的类匹配模式并点击执行<br />
-                <strong>建议：</strong
-                >使用具体的实现类名，避免接口或抽象类<br />
+                <strong>建议：</strong>使用具体的实现类名，避免接口或抽象类<br />
                 <strong>示例：</strong>com.example.service.UserService
               </p>
             </div>
@@ -121,9 +77,7 @@
               </div>
               <div class="stat-item">
                 <span class="stat-label">成功次数</span>
-                <span class="stat-value success">{{
-                  traceStats.successCount
-                }}</span>
+                <span class="stat-value success">{{ traceStats.successCount }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">失败次数</span>
@@ -147,46 +101,25 @@
 
         <!-- 链路追踪列表 -->
         <div class="trace-list">
-          <el-card
-            v-for="(trace, index) in traces"
-            :key="index"
-            shadow="hover"
-            class="trace-card"
-            @click="expandTrace(trace)"
-          >
+          <el-card v-for="(trace, index) in traces" :key="index" shadow="hover" class="trace-card" @click="expandTrace(trace)">
             <div class="trace-header">
               <div class="trace-info">
-                <span class="trace-method"
-                  >{{ trace.className }}.{{ trace.methodName }}</span
-                >
-                <el-tag
-                  :type="trace.success ? 'success' : 'danger'"
-                  size="small"
-                  class="trace-status"
-                >
+                <span class="trace-method">{{ trace.className }}.{{ trace.methodName }}</span>
+                <el-tag :type="trace.success ? 'success' : 'danger'" size="small" class="trace-status">
                   {{ trace.success ? "成功" : "失败" }}
                 </el-tag>
               </div>
               <div class="trace-metrics">
                 <span class="trace-cost">{{ trace.cost }}ms</span>
-                <span class="trace-time">{{
-                  formatTime(trace.timestamp)
-                }}</span>
+                <span class="trace-time">{{ formatTime(trace.timestamp) }}</span>
               </div>
             </div>
 
             <div v-if="trace.expanded" class="trace-details">
               <div class="trace-tree">
-                <div
-                  v-for="(node, nodeIndex) in trace.tree"
-                  :key="nodeIndex"
-                  class="tree-node"
-                  :style="{ paddingLeft: node.depth * 20 + 'px' }"
-                >
+                <div v-for="(node, nodeIndex) in trace.tree" :key="nodeIndex" class="tree-node" :style="{ paddingLeft: node.depth * 20 + 'px' }">
                   <div class="node-content">
-                    <span class="node-method"
-                      >{{ node.className }}.{{ node.methodName }}</span
-                    >
+                    <span class="node-method">{{ node.className }}.{{ node.methodName }}</span>
                     <span class="node-cost">{{ node.cost }}ms</span>
                     <span v-if="node.exception" class="node-exception">
                       <el-tag type="danger" size="small">异常</el-tag>
@@ -206,22 +139,9 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-  computed,
-  defineProps,
-} from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { QuestionFilled, Loading } from "@element-plus/icons-vue";
-import {
-  getOrCreateSession,
-  execArthasCommandAsync,
-  pullArthasResults,
-  interruptArthasJob,
-  closeArthasSession,
-} from "@/api/arthas-http";
+import { getOrCreateSession, execArthasCommandAsync, pullArthasResults, interruptArthasJob, closeArthasSession } from "@/api/arthas-http";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -238,9 +158,7 @@ const isRunning = ref(false);
 let pullTimer: NodeJS.Timeout | null = null;
 
 // 表单数据
-const classPattern = ref(
-  "com.chua.starter.monitor.arthas.ArthasCommandController"
-);
+const classPattern = ref("com.chua.starter.monitor.arthas.ArthasCommandController");
 const methodPattern = ref("exec");
 const condition = ref("");
 const useRegex = ref(false);
@@ -571,8 +489,7 @@ async function pullResults() {
       }
 
       // 修复数据结构解析
-      const responseBody =
-        (pullRes.data.body as any)?.body || pullRes.data.body;
+      const responseBody = (pullRes.data.body as any)?.body || pullRes.data.body;
 
       const output = {
         body: responseBody,

@@ -1,5 +1,4 @@
 <script setup>
-import { defineProps } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const props = defineProps({
   tips: {
@@ -14,24 +13,25 @@ const props = defineProps({
     type: String,
     default: "top"
   }
-})
+});
 </script>
 <template>
   <div>
     <el-form-item v-bind="$attrs" v-on="$listeners">
-      <template #label="{label}">
+      <template #label="{ label }">
         <span>{{ label }}</span>
         <el-tooltip v-if="props.tips" :trigger="props.trigger" :placement="props.placement" :content="props.tips">
-          <el-icon  class="tooltip" >
+          <el-icon class="tooltip">
             <component :is="useRenderIcon('ep:question-filled')" />
           </el-icon>
         </el-tooltip>
       </template>
-      <slot ></slot>
+      <slot />
     </el-form-item>
   </div>
 </template>
 <style scoped>
-.tooltip{
+.tooltip {
   padding-top: 1em;
-}</style>
+}
+</style>

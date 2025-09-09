@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, defineProps, defineEmits, defineAsyncComponent } from "vue";
+import { ref, reactive, defineAsyncComponent } from "vue";
 import { createDownload, updateDownload } from "@/api/download";
 import { getVideoList } from "@/api/video";
 import { message } from "@repo/utils";

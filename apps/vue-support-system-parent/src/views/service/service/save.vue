@@ -3,7 +3,7 @@ import { fetchUploadFile } from "@/api/manage/upload";
 import { fetchBindServiceModule } from "@/api/service/module";
 import { fetchBindService, fetchSaveService, fetchUpdateService } from "@/api/service/service";
 import { getRandomIntBelow, message } from "@repo/utils";
-import { defineExpose, defineEmits, shallowRef, reactive, defineAsyncComponent } from "vue";
+import { defineExpose, shallowRef, reactive, defineAsyncComponent } from "vue";
 
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();

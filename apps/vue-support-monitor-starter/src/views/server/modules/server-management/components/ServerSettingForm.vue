@@ -153,16 +153,7 @@
                   </el-tooltip>
                 </div>
               </template>
-              <el-input-number
-                v-model="formData.monitorSysGenServerSettingCpuAlertThreshold"
-                :min="1"
-                :max="100"
-                :precision="1"
-                :step="5"
-                placeholder="CPU阈值"
-                style="width: 100%"
-                @change="handleChange"
-              />
+              <el-input-number v-model="formData.monitorSysGenServerSettingCpuAlertThreshold" :min="1" :max="100" :precision="1" :step="5" placeholder="CPU阈值" style="width: 100%" @change="handleChange" />
               <span class="form-tip">%，建议值：80</span>
             </el-form-item>
           </el-col>
@@ -176,16 +167,7 @@
                   </el-tooltip>
                 </div>
               </template>
-              <el-input-number
-                v-model="formData.monitorSysGenServerSettingMemoryAlertThreshold"
-                :min="1"
-                :max="100"
-                :precision="1"
-                :step="5"
-                placeholder="内存阈值"
-                style="width: 100%"
-                @change="handleChange"
-              />
+              <el-input-number v-model="formData.monitorSysGenServerSettingMemoryAlertThreshold" :min="1" :max="100" :precision="1" :step="5" placeholder="内存阈值" style="width: 100%" @change="handleChange" />
               <span class="form-tip">%，建议值：85</span>
             </el-form-item>
           </el-col>
@@ -202,16 +184,7 @@
                   </el-tooltip>
                 </div>
               </template>
-              <el-input-number
-                v-model="formData.monitorSysGenServerSettingDiskAlertThreshold"
-                :min="1"
-                :max="100"
-                :precision="1"
-                :step="5"
-                placeholder="磁盘阈值"
-                style="width: 100%"
-                @change="handleChange"
-              />
+              <el-input-number v-model="formData.monitorSysGenServerSettingDiskAlertThreshold" :min="1" :max="100" :precision="1" :step="5" placeholder="磁盘阈值" style="width: 100%" @change="handleChange" />
               <span class="form-tip">%，建议值：90</span>
             </el-form-item>
           </el-col>
@@ -225,16 +198,7 @@
                   </el-tooltip>
                 </div>
               </template>
-              <el-input-number
-                v-model="formData.monitorSysGenServerSettingNetworkAlertThreshold"
-                :min="1"
-                :max="10000"
-                :precision="1"
-                :step="10"
-                placeholder="网络阈值"
-                style="width: 100%"
-                @change="handleChange"
-              />
+              <el-input-number v-model="formData.monitorSysGenServerSettingNetworkAlertThreshold" :min="1" :max="10000" :precision="1" :step="10" placeholder="网络阈值" style="width: 100%" @change="handleChange" />
               <span class="form-tip">Mbps，建议值：100</span>
             </el-form-item>
           </el-col>
@@ -249,15 +213,7 @@
               </el-tooltip>
             </div>
           </template>
-          <el-input-number
-            v-model="formData.monitorSysGenServerSettingResponseTimeAlertThreshold"
-            :min="100"
-            :max="60000"
-            :step="100"
-            placeholder="响应时间阈值"
-            style="width: 200px"
-            @change="handleChange"
-          />
+          <el-input-number v-model="formData.monitorSysGenServerSettingResponseTimeAlertThreshold" :min="100" :max="60000" :step="100" placeholder="响应时间阈值" style="width: 200px" @change="handleChange" />
           <span class="form-tip">毫秒，建议值：5000</span>
         </el-form-item>
 
@@ -472,14 +428,7 @@
             </el-tooltip>
           </div>
         </template>
-        <el-input
-          v-model="formData.monitorSysGenServerSettingLogFilePaths"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入日志文件路径，多个路径用换行分隔&#10;如：/var/log/nginx/access.log&#10;/var/log/nginx/error.log"
-          maxlength="1000"
-          @change="handleChange"
-        />
+        <el-input v-model="formData.monitorSysGenServerSettingLogFilePaths" type="textarea" :rows="3" placeholder="请输入日志文件路径，多个路径用换行分隔&#10;如：/var/log/nginx/access.log&#10;/var/log/nginx/error.log" maxlength="1000" @change="handleChange" />
       </el-form-item>
 
       <el-form-item prop="monitorSysGenServerSettingPortMonitorEnabled">
@@ -794,7 +743,7 @@
           ? {
               'file-management-section': true,
               enabled: formData.monitorSysGenServerSettingFileManagementEnabled === 1,
-              configured: formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
+              configured: formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode !== 'NONE',
             }
           : {}
       "
@@ -834,10 +783,7 @@
         </el-form-item>
 
         <!-- NODE客户端选择 -->
-        <el-form-item
-          v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode === 'NODE'"
-          prop="monitorSysGenServerSettingFileManagementNodeClient"
-        >
+        <el-form-item v-if="formData.monitorSysGenServerSettingFileManagementEnabled === 1 && formData.monitorSysGenServerSettingFileManagementMode === 'NODE'" prop="monitorSysGenServerSettingFileManagementNodeClient">
           <template #label>
             <div class="form-label">
               <span>NODE客户端</span>
@@ -1130,7 +1076,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, nextTick, defineProps, defineEmits } from "vue";
+import { reactive, ref, watch, nextTick, defineEmits } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { ServerSetting, FileManagementApiConfig } from "@/api/server/setting";
 import { testFileManagementConnection as testFileManagementConnectionApi, getAvailableNodeClients } from "@/api/server/setting";
@@ -1231,7 +1177,7 @@ const DEFAULT_VALUES = {
   monitorSysGenServerSettingFileManagementTimeout: 60,
   monitorSysGenServerSettingFileManagementMaxRetries: 3,
   monitorSysGenServerSettingClientHealthCheckInterval: 30,
-  monitorSysGenServerSettingClientHealthTimeout: 10
+  monitorSysGenServerSettingClientHealthTimeout: 10,
 };
 
 // 表单数据
@@ -1262,7 +1208,7 @@ const apiConfig = reactive<FileManagementApiConfig>({
   compressionEnabled: true,
   sslVerificationEnabled: true,
   useClientAddress: true,
-  useClientPort: true
+  useClientPort: true,
 });
 
 // NODE 客户端相关数据
@@ -1358,7 +1304,7 @@ const isInternalUpdate = ref(false);
 // 监听外部数据变化
 watch(
   () => props.modelValue,
-  newValue => {
+  (newValue) => {
     if (newValue && !isInternalUpdate.value) {
       isUpdatingFromParent.value = true;
 
@@ -1387,7 +1333,7 @@ watch(
 // 监听表单数据变化
 watch(
   formData,
-  newValue => {
+  (newValue) => {
     // 只有在不是从父组件更新时才向上传递
     if (!isUpdatingFromParent.value) {
       isInternalUpdate.value = true;
@@ -1407,11 +1353,11 @@ const clearAllSettings = () => {
   ElMessageBox.confirm("确定要清除所有配置吗？此操作不可恢复。", "警告", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "warning"
+    type: "warning",
   })
     .then(() => {
       // 清除所有配置，设置为空值或禁用状态
-      Object.keys(formData).forEach(key => {
+      Object.keys(formData).forEach((key) => {
         if (key.includes("Enabled")) {
           formData[key] = 0;
         } else if (key.includes("Interval") || key.includes("Timeout") || key.includes("Days") || key.includes("Hours")) {
@@ -1438,7 +1384,7 @@ const resetToDefault = () => {
   ElMessageBox.confirm("确定要重置为默认配置吗？当前配置将被覆盖。", "确认", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    type: "info"
+    type: "info",
   })
     .then(() => {
       // 重置为默认值
@@ -1464,7 +1410,7 @@ const testPrometheusConnection = async () => {
   try {
     // 这里应该调用后端API测试连接
     // 暂时模拟测试
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // 模拟成功
     ElMessage.success("Prometheus连接测试成功");
@@ -1493,7 +1439,7 @@ const handleFileManagementModeChange = () => {
         connectionTimeout: 30,
         readTimeout: 60,
         maxRetries: 3,
-        sslVerificationEnabled: true
+        sslVerificationEnabled: true,
       });
       handleApiConfigChange();
     } else {
@@ -1536,7 +1482,7 @@ const loadNodeClients = async () => {
 
     // 如果已有选择的客户端，更新选中状态
     if (formData.monitorSysGenServerSettingFileManagementNodeClient) {
-      const selected = nodeClients.value.find(client => client.serverId === formData.monitorSysGenServerSettingFileManagementNodeClient);
+      const selected = nodeClients.value.find((client) => client.serverId === formData.monitorSysGenServerSettingFileManagementNodeClient);
       selectedNodeClient.value = selected || null;
     }
   } catch (error) {

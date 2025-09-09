@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineExpose, nextTick, defineAsyncComponent, reactive, ref, defineEmits } from "vue";
+import { defineExpose, nextTick, defineAsyncComponent, reactive, ref } from "vue";
 import { fetchSettingPage } from "../api";
 import { $t } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";

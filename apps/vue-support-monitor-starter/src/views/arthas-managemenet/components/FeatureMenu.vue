@@ -8,24 +8,29 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue';
-
-interface FeatureItem { key: string; title: string; icon?: string }
+interface FeatureItem {
+  key: string;
+  title: string;
+  icon?: string;
+}
 
 const props = defineProps<{
   features: FeatureItem[];
   modelValue: string;
 }>();
-const emit = defineEmits(['update:modelValue', 'select']);
+const emit = defineEmits(["update:modelValue", "select"]);
 
 function onSelect(key: string) {
-  emit('update:modelValue', key);
-  emit('select', key);
+  emit("update:modelValue", key);
+  emit("select", key);
 }
 </script>
 
 <style scoped>
-.feature-menu { border-right: none; }
-.mr-2 { margin-right: 6px; }
+.feature-menu {
+  border-right: none;
+}
+.mr-2 {
+  margin-right: 6px;
+}
 </style>
-

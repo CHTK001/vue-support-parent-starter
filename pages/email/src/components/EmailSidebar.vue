@@ -1,51 +1,51 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue';
-import { IconifyIconOnline } from '@iconify/vue';
-import EmailAccountSelector from './EmailAccountSelector.vue';
+import { defineEmits } from "vue";
+import { IconifyIconOnline } from "@iconify/vue";
+import EmailAccountSelector from "./EmailAccountSelector.vue";
 
 const props = defineProps({
   accounts: {
     type: Array,
-    required: true
+    required: true,
   },
   folders: {
     type: Array,
-    required: true
+    required: true,
   },
   labels: {
     type: Array,
-    required: true
+    required: true,
   },
   selectedAccountId: {
     type: String,
-    default: ''
+    default: "",
   },
   selectedFolderId: {
     type: String,
-    default: ''
+    default: "",
   },
   selectedLabelId: {
     type: String,
-    default: ''
-  }
+    default: "",
+  },
 });
 
-const emit = defineEmits(['select-account', 'select-folder', 'select-label', 'compose-email']);
+const emit = defineEmits(["select-account", "select-folder", "select-label", "compose-email"]);
 
 const selectAccount = (accountId) => {
-  emit('select-account', accountId);
+  emit("select-account", accountId);
 };
 
 const selectFolder = (folderId) => {
-  emit('select-folder', folderId);
+  emit("select-folder", folderId);
 };
 
 const selectLabel = (labelId) => {
-  emit('select-label', labelId);
+  emit("select-label", labelId);
 };
 
 const composeEmail = () => {
-  emit('compose-email');
+  emit("compose-email");
 };
 </script>
 
@@ -53,13 +53,9 @@ const composeEmail = () => {
   <div class="email-sidebar">
     <!-- 账户选择器 -->
     <div class="email-sidebar__account">
-      <EmailAccountSelector 
-        :accounts="accounts" 
-        :selectedAccountId="selectedAccountId" 
-        @select-account="selectAccount" 
-      />
+      <EmailAccountSelector :accounts="accounts" :selectedAccountId="selectedAccountId" @select-account="selectAccount" />
     </div>
-    
+
     <!-- 写邮件按钮 -->
     <div class="email-sidebar__compose">
       <el-button type="primary" @click="composeEmail" class="email-sidebar__compose-btn">
@@ -67,18 +63,12 @@ const composeEmail = () => {
         <span>写邮件</span>
       </el-button>
     </div>
-    
+
     <!-- 文件夹列表 -->
     <div class="email-sidebar__section">
       <div class="email-sidebar__section-title">文件夹</div>
       <div class="email-sidebar__folders">
-        <div 
-          v-for="folder in folders" 
-          :key="folder.emailFolderId" 
-          class="email-sidebar__folder"
-          :class="{ 'is-active': folder.emailFolderId === selectedFolderId }"
-          @click="selectFolder(folder.emailFolderId)"
-        >
+        <div v-for="folder in folders" :key="folder.emailFolderId" class="email-sidebar__folder" :class="{ 'is-active': folder.emailFolderId === selectedFolderId }" @click="selectFolder(folder.emailFolderId)">
           <div class="email-sidebar__folder-icon">
             <IconifyIconOnline :icon="folder.emailFolderIcon" />
           </div>
@@ -89,18 +79,12 @@ const composeEmail = () => {
         </div>
       </div>
     </div>
-    
+
     <!-- 标签列表 -->
     <div class="email-sidebar__section">
       <div class="email-sidebar__section-title">标签</div>
       <div class="email-sidebar__labels">
-        <div 
-          v-for="label in labels" 
-          :key="label.emailLabelId" 
-          class="email-sidebar__label"
-          :class="{ 'is-active': label.emailLabelId === selectedLabelId }"
-          @click="selectLabel(label.emailLabelId)"
-        >
+        <div v-for="label in labels" :key="label.emailLabelId" class="email-sidebar__label" :class="{ 'is-active': label.emailLabelId === selectedLabelId }" @click="selectLabel(label.emailLabelId)">
           <div class="email-sidebar__label-color" :style="{ backgroundColor: label.emailLabelColor }"></div>
           <div class="email-sidebar__label-name">{{ label.emailLabelName }}</div>
           <div class="email-sidebar__label-count" v-if="label.emailLabelCount > 0">
@@ -120,15 +104,15 @@ const composeEmail = () => {
   flex-direction: column;
   background-color: var(--el-bg-color-page);
   border-right: 1px solid var(--el-border-color-light);
-  
+
   &__account {
     padding: 16px;
     border-bottom: 1px solid var(--el-border-color-light);
   }
-  
+
   &__compose {
     padding: 16px;
-    
+
     &-btn {
       width: 100%;
       display: flex;
@@ -139,15 +123,15 @@ const composeEmail = () => {
       border-radius: 22px;
       font-size: 16px;
     }
-    
+
     &-icon {
       font-size: 20px;
     }
   }
-  
+
   &__section {
     padding: 16px;
-    
+
     &-title {
       font-size: 14px;
       font-weight: 600;
@@ -156,13 +140,13 @@ const composeEmail = () => {
       padding-left: 8px;
     }
   }
-  
+
   &__folders {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
-  
+
   &__folder {
     display: flex;
     align-items: center;
@@ -170,32 +154,32 @@ const composeEmail = () => {
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: var(--el-fill-color-light);
     }
-    
+
     &.is-active {
       background-color: var(--el-color-primary-light-9);
-      
+
       .email-sidebar__folder-icon,
       .email-sidebar__folder-name {
         color: var(--el-color-primary);
       }
     }
-    
+
     &-icon {
       font-size: 18px;
       color: var(--el-text-color-regular);
       margin-right: 12px;
     }
-    
+
     &-name {
       flex: 1;
       font-size: 14px;
       color: var(--el-text-color-primary);
     }
-    
+
     &-count {
       font-size: 12px;
       color: var(--el-text-color-secondary);
@@ -209,13 +193,13 @@ const composeEmail = () => {
       padding: 0 8px;
     }
   }
-  
+
   &__labels {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
-  
+
   &__label {
     display: flex;
     align-items: center;
@@ -223,32 +207,32 @@ const composeEmail = () => {
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: var(--el-fill-color-light);
     }
-    
+
     &.is-active {
       background-color: var(--el-color-primary-light-9);
-      
+
       .email-sidebar__label-name {
         color: var(--el-color-primary);
       }
     }
-    
+
     &-color {
       width: 12px;
       height: 12px;
       border-radius: 50%;
       margin-right: 12px;
     }
-    
+
     &-name {
       flex: 1;
       font-size: 14px;
       color: var(--el-text-color-primary);
     }
-    
+
     &-count {
       font-size: 12px;
       color: var(--el-text-color-secondary);

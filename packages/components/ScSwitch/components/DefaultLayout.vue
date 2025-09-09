@@ -21,12 +21,12 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref, watch } from "vue";
+import { ref, watch } from "vue";
 
 const props = defineProps({
   modelValue: {
     type: [Boolean, String, Number],
-    default: false,
+    default: false
   },
   disabled: {
     type: Boolean,
@@ -96,17 +96,23 @@ const emit = defineEmits(["update:modelValue", "change"]);
 const switchValue = ref(props.modelValue);
 
 // 监听modelValue变化同步到switchValue
-watch(() => props.modelValue, (newValue) => {
-  switchValue.value = newValue;
-});
+watch(
+  () => props.modelValue,
+  newValue => {
+    switchValue.value = newValue;
+  }
+);
 
 // 监听switchValue变化触发update:modelValue
-watch(() => switchValue.value, (newValue) => {
-  emit("update:modelValue", newValue);
-});
+watch(
+  () => switchValue.value,
+  newValue => {
+    emit("update:modelValue", newValue);
+  }
+);
 
 // 处理状态变化
 const handleChange = (value: boolean | string | number) => {
   emit("change", value);
 };
-</script> 
+</script>

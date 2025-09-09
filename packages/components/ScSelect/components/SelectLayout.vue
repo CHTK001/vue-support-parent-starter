@@ -46,11 +46,11 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits, defineProps, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import { IconifyIconOnline } from "../../ReIcon";
 import IconRenderer from "./IconRenderer.vue";
 
-interface CardOption {
+export interface CardOption {
   label: string;
   value: string | number;
   icon?: string; // 图标现在是可选的，支持ri:xx格式和http链接

@@ -4,8 +4,8 @@
     <div class="otp-header">
       <div class="otp-icon">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
       <h3 class="otp-title">请输入验证码</h3>
@@ -18,25 +18,25 @@
         <input
           v-for="(code, index) in verificationCodes"
           :key="index"
+          :ref="el => (inputRefs[index] = el)"
           v-model="verificationCodes[index]"
-          @input="handleInput(index, $event)"
-          @keydown="handleKeyDown(index, $event)"
-          @focus="handleFocus(index)"
-          @blur="handleBlur(index)"
-          :ref="el => inputRefs[index] = el"
           :disabled="props.disabled"
           maxlength="1"
           class="modern-otp-input"
           :class="{
-            'active': activeIndex === index,
-            'filled': verificationCodes[index],
-            'error': hasError,
-            'disabled': props.disabled
+            active: activeIndex === index,
+            filled: verificationCodes[index],
+            error: hasError,
+            disabled: props.disabled
           }"
           type="text"
           inputmode="numeric"
+          @input="handleInput(index, $event)"
           pattern="[0-9]*"
+          @keydown="handleKeyDown(index, $event)"
           autocomplete="one-time-code"
+          @focus="handleFocus(index)"
+          @blur="handleBlur(index)"
         />
       </div>
     </form>
@@ -44,23 +44,30 @@
     <!-- 底部操作区域 -->
     <div class="otp-footer">
       <div class="otp-actions">
-        <button
-          type="button"
-          class="clear-button"
-          @click="clearAll"
-          :disabled="!hasValue || props.disabled"
-        >
+        <button type="button" class="clear-button" :disabled="!hasValue || props.disabled" @click="clearAll">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path
+              d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           清空
         </button>
 
         <div class="paste-hint">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path
+              d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           支持粘贴验证码
         </div>
@@ -70,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, defineEmits, defineExpose, defineProps, computed, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, defineExpose, computed, onMounted, onUnmounted } from "vue";
 
 // 定义props
 const props = defineProps({
@@ -80,30 +87,30 @@ const props = defineProps({
   }
 });
 
-const verificationCodes = ref(['', '', '', '', '', '']);
+const verificationCodes = ref(["", "", "", "", "", ""]);
 const activeIndex = ref(-1);
 const hasError = ref(false);
 const inputRefs = ref([]);
 
-const emit = defineEmits(['complete', 'change']);
+const emit = defineEmits(["complete", "change"]);
 
 // 计算属性
 const hasValue = computed(() => {
-  return verificationCodes.value.some(code => code !== '');
+  return verificationCodes.value.some(code => code !== "");
 });
 
 // 粘贴处理函数
-const handlePaste = (e) => {
+const handlePaste = e => {
   e.preventDefault();
   const clipboardData = e.clipboardData || window.clipboardData;
-  const pastedText = clipboardData.getData('text');
+  const pastedText = clipboardData.getData("text");
 
   // 只保留数字
-  const numericText = pastedText.replace(/\D/g, '');
+  const numericText = pastedText.replace(/\D/g, "");
   let text = numericText.substring(0, 6);
 
   // 清空当前输入
-  verificationCodes.value = ['', '', '', '', '', ''];
+  verificationCodes.value = ["", "", "", "", "", ""];
 
   // 填入粘贴的内容
   for (let i = 0; i < text.length; i++) {
@@ -134,11 +141,11 @@ const handleInput = (index, event) => {
     return; // 如果禁用，不处理输入
   }
 
-  const value = event.target.value.replace(/\D/g, ''); // 只允许数字
+  const value = event.target.value.replace(/\D/g, ""); // 只允许数字
 
   if (value.length > 1) {
     // 处理多字符输入（可能是粘贴）
-    const chars = value.split('');
+    const chars = value.split("");
     for (let i = 0; i < Math.min(chars.length, 6 - index); i++) {
       if (index + i < 6) {
         verificationCodes.value[index + i] = chars[i];
@@ -187,10 +194,10 @@ const handleInput = (index, event) => {
 // 键盘事件处理
 const handleKeyDown = (index, event) => {
   // 处理删除操作
-  if (event.key === 'Backspace') {
+  if (event.key === "Backspace") {
     if (!verificationCodes.value[index] && index > 0) {
       // 当前输入框为空，删除前一个
-      verificationCodes.value[index - 1] = '';
+      verificationCodes.value[index - 1] = "";
       nextTick(() => {
         if (inputRefs.value[index - 1]) {
           inputRefs.value[index - 1].focus();
@@ -198,7 +205,7 @@ const handleKeyDown = (index, event) => {
       });
     } else {
       // 清空当前输入框
-      verificationCodes.value[index] = '';
+      verificationCodes.value[index] = "";
     }
 
     const _value = verificationCodes.value.join("");
@@ -206,7 +213,7 @@ const handleKeyDown = (index, event) => {
   }
 
   // 处理左右箭头键
-  if (event.key === 'ArrowLeft' && index > 0) {
+  if (event.key === "ArrowLeft" && index > 0) {
     nextTick(() => {
       if (inputRefs.value[index - 1]) {
         inputRefs.value[index - 1].focus();
@@ -214,7 +221,7 @@ const handleKeyDown = (index, event) => {
     });
   }
 
-  if (event.key === 'ArrowRight' && index < 5) {
+  if (event.key === "ArrowRight" && index < 5) {
     nextTick(() => {
       if (inputRefs.value[index + 1]) {
         inputRefs.value[index + 1].focus();
@@ -224,7 +231,7 @@ const handleKeyDown = (index, event) => {
 };
 
 // 焦点处理
-const handleFocus = (index) => {
+const handleFocus = index => {
   activeIndex.value = index;
   // 选中输入框中的内容
   nextTick(() => {
@@ -234,13 +241,13 @@ const handleFocus = (index) => {
   });
 };
 
-const handleBlur = (index) => {
+const handleBlur = index => {
   activeIndex.value = -1;
 };
 
 // 清空所有输入
 const clearAll = () => {
-  verificationCodes.value = ['', '', '', '', '', ''];
+  verificationCodes.value = ["", "", "", "", "", ""];
   hasError.value = false;
   const _value = verificationCodes.value.join("");
   emit("onChange", _value);
@@ -268,7 +275,7 @@ onMounted(() => {
   // 为第一个输入框添加粘贴事件监听
   inputRefs.value.forEach(input => {
     if (input) {
-      input.addEventListener('paste', handlePaste);
+      input.addEventListener("paste", handlePaste);
     }
   });
 
@@ -284,7 +291,7 @@ onUnmounted(() => {
   // 清理事件监听
   inputRefs.value.forEach(input => {
     if (input) {
-      input.removeEventListener('paste', handlePaste);
+      input.removeEventListener("paste", handlePaste);
     }
   });
 });
@@ -292,7 +299,7 @@ onUnmounted(() => {
 defineExpose({
   clear,
   clearAll,
-  setError,
+  setError
 });
 </script>
 
@@ -355,18 +362,13 @@ defineExpose({
     position: relative;
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: -4px;
       left: -4px;
       right: -4px;
       bottom: -4px;
-      background: conic-gradient(
-        from 0deg,
-        var(--el-color-primary-light-8),
-        var(--el-color-primary-light-5),
-        var(--el-color-primary-light-8)
-      );
+      background: conic-gradient(from 0deg, var(--el-color-primary-light-8), var(--el-color-primary-light-5), var(--el-color-primary-light-8));
       border-radius: 50%;
       z-index: -1;
       animation: rotate 3s linear infinite;
@@ -459,7 +461,7 @@ defineExpose({
     color: var(--el-color-success);
 
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 50%;
       left: 50%;
@@ -591,7 +593,8 @@ defineExpose({
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
     transform: translate(-50%, -50%) scale(1);
   }
@@ -602,13 +605,21 @@ defineExpose({
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-2px);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(2px);
   }
 }
@@ -708,7 +719,6 @@ defineExpose({
 .verification-container {
   display: flex;
 }
-
 
 .verification-input {
   width: 40px;

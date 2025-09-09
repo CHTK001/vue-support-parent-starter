@@ -28,7 +28,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToNumber } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, ref } from "vue";
+import { defineExpose, reactive, ref } from "vue";
 import { fetchUpdateProject } from "../../api/manage/project";
 
 const emit = defineEmits(["success"]);

@@ -1,7 +1,7 @@
 <script setup>
 import { fetchSaveServiceModule, fetchUpdateServiceModule } from "@/api/service/module";
 import { message } from "@repo/utils";
-import { defineExpose, defineEmits, shallowRef, reactive, ref } from "vue";
+import { defineExpose, shallowRef, reactive, ref } from "vue";
 
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();

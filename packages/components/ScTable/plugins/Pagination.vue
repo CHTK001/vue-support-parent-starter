@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, defineProps, defineEmits } from "vue";
+import { ref, computed, watch, onMounted, defineEmits } from "vue";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";

@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, reactive, ref, defineProps } from "vue";
+import { defineAsyncComponent, reactive, ref } from "vue";
 import { GridLayout } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";

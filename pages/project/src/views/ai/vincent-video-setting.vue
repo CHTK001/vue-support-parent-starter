@@ -152,7 +152,7 @@
 <script setup>
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineExpose, reactive, shallowRef } from "vue";
 import { fetchGetForModelSetting, fetchUpdateForModelSetting } from "../../api/ai/vincent-setting";
 import { getStyleLabel } from "./vincent/hook";
 

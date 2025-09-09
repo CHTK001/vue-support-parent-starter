@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits } from "vue";
+import { ref } from "vue";
 import AddDownloadLink from "./AddDownloadLink.vue";
 import BaseDialog from "./BaseDialog.vue";
 

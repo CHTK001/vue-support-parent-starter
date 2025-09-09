@@ -165,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { deleteServerLog, exportServerLogs, getLogLevelColor, getServerLogPageList, type ServerLog } from "@/api/server/log";
+import { deleteServerLog, exportServerLogs, getLogLevelColor, type ServerLog } from "@/api/server/log";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
@@ -222,11 +222,11 @@ const loadLogList = async () => {
       endTime: dateRange.value?.[1]?.toISOString(),
     };
 
-    const res = await getServerLogPageList(params);
-    if (res.code === "00000") {
-      logList.value = res.data.records || [];
-      pagination.total = res.data.total || 0;
-    }
+    // const res = await getServerLogPageList(params);
+    // if (res.code === "00000") {
+    //   logList.value = res.data.records || [];
+    //   pagination.total = res.data.total || 0;
+    // }
   } catch (error) {
     console.error("加载日志列表失败:", error);
     message.error("加载日志列表失败");

@@ -47,7 +47,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message, queryEmail } from "@repo/utils";
-import { defineAsyncComponent, defineProps, onMounted, reactive, shallowRef } from "vue";
+import { defineAsyncComponent,  onMounted, reactive, shallowRef } from "vue";
 const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
 const hasAuth = shallowRef(true);

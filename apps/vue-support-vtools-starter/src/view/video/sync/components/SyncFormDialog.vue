@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { getVideoSyncDetail, createVideoSync, updateVideoSync } from "@/api/video";
 import { createSyncFormState, syncConfigRules, resetSyncFormState, fillSyncFormFromResponse, validateExtraParams, syncTypeOptions } from "../data/syncConfig";

@@ -1,7 +1,7 @@
 <script setup>
 import { deepClean, message } from "@repo/utils";
 import * as _ from "lodash-es";
-import { computed, defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
+import { computed,  defineExpose, reactive, ref, shallowRef } from "vue";
 import { fetchUpdateChannelForDevice } from "../../../../api/manage/device-channel";
 
 // 定义组件事件

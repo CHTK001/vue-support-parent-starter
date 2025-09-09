@@ -18,7 +18,7 @@
 </template>
 <script setup>
 import { fetchUploadSfc } from "@repo/core";
-import { ref, defineEmits, defineExpose, reactive } from "vue";
+import { ref, defineExpose, reactive } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks.ts";
 import { message } from "@repo/utils";
 const emit = defineEmits(["close"]);
@@ -26,12 +26,12 @@ const title = ref("");
 const uploadRef = ref();
 const visible = ref(false);
 const dataReact = reactive({
-  data: {}
+  data: {},
 });
 const remote = ref();
 
-const handleChange = async raw => {
-  fetchUploadSfc(raw.raw, dataReact.data).then(res => {
+const handleChange = async (raw) => {
+  fetchUploadSfc(raw.raw, dataReact.data).then((res) => {
     message(res?.code === "00000" ? "上传成功" : res?.message, { type: res?.code === "00000" ? "success" : "error" });
     if (res?.code === "00000") {
       onClose();
@@ -45,7 +45,7 @@ const onClose = async () => {
   emit("close");
   visible.value = false;
 };
-const setData = async data => {
+const setData = async (data) => {
   Object.assign(dataReact.data, data);
   title.value = dataReact.data.sysSfcChineseName + "[上传组件]";
 };
@@ -56,6 +56,6 @@ const open = async () => {
 
 defineExpose({
   setData,
-  open
+  open,
 });
 </script>

@@ -1,5 +1,5 @@
 <script setup>
-import { defineExpose, defineEmits, reactive, ref } from "vue";
+import { defineExpose,  reactive, ref } from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { message } from "@repo/utils";

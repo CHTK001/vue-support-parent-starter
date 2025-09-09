@@ -93,7 +93,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { clearObject, message } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchDeleteForModelTemplate, fetchListForModelTemplate, fetchSaveForModelTemplate, fetchUpdateForModelTemplate } from "../../api/ai/vincent-template";
 import { CATEGORY_TEMPLATE, DEFAULT_TEMPLATE_PROMPT, DEFAULT_TEMPLATE_RESOLUTION } from "./vincent/hook";
