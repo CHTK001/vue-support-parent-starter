@@ -3,21 +3,11 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-button
-          type="primary"
-          :disabled="!nodeId"
-          :loading="loading"
-          @click="run"
-        >
+        <el-button type="primary" :disabled="!nodeId" :loading="loading" @click="run">
           {{ autoRefresh && countdown > 0 ? `刷新(${countdown}s)` : "刷新" }}
         </el-button>
         <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-        <el-select
-          v-model="refreshInterval"
-          style="width: 120px"
-          placeholder="刷新间隔"
-          title="设置内存数据刷新间隔"
-        >
+        <el-select v-model="refreshInterval" style="width: 120px" placeholder="刷新间隔" title="设置内存数据刷新间隔">
           <el-option :value="5" label="5秒" />
           <el-option :value="10" label="10秒" />
           <el-option :value="30" label="30秒" />
@@ -28,14 +18,7 @@
     </div>
 
     <!-- 错误提示 -->
-    <el-alert
-      v-if="error"
-      type="error"
-      :title="error"
-      :closable="false"
-      show-icon
-      class="mb-4"
-    />
+    <el-alert v-if="error" type="error" :title="error" :closable="false" show-icon class="mb-4" />
 
     <!-- 内存概览卡片 -->
     <div v-if="memoryData" class="memory-overview">
@@ -49,22 +32,11 @@
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
-                :percentage="memoryData.heap.usage"
-                :color="getProgressColor(memoryData.heap.usage)"
-                :show-text="false"
-              />
+              <el-progress :percentage="memoryData.heap.usage" :color="getProgressColor(memoryData.heap.usage)" :show-text="false" />
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.heap.used) }}</span>
-              <span
-                >最大:
-                {{
-                  memoryData.heap.max > 0
-                    ? formatBytes(memoryData.heap.max)
-                    : "无限制"
-                }}</span
-              >
+              <span>最大: {{ memoryData.heap.max > 0 ? formatBytes(memoryData.heap.max) : "无限制" }}</span>
             </div>
           </div>
         </el-card>
@@ -78,11 +50,7 @@
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
-                :percentage="memoryData.nonHeap.usage"
-                :color="getProgressColor(memoryData.nonHeap.usage)"
-                :show-text="false"
-              />
+              <el-progress :percentage="memoryData.nonHeap.usage" :color="getProgressColor(memoryData.nonHeap.usage)" :show-text="false" />
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.nonHeap.used) }}</span>
@@ -100,11 +68,7 @@
           </div>
           <div class="memory-info">
             <div class="memory-bar">
-              <el-progress
-                :percentage="memoryData.direct.usage"
-                :color="getProgressColor(memoryData.direct.usage)"
-                :show-text="false"
-              />
+              <el-progress :percentage="memoryData.direct.usage" :color="getProgressColor(memoryData.direct.usage)" :show-text="false" />
             </div>
             <div class="memory-details">
               <span>已用: {{ formatBytes(memoryData.direct.used) }}</span>
@@ -122,10 +86,7 @@
         <el-table-column prop="name" label="内存池名称" min-width="200" />
         <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag
-              :type="row.type === 'HEAP' ? 'primary' : 'info'"
-              size="small"
-            >
+            <el-tag :type="row.type === 'HEAP' ? 'primary' : 'info'" size="small">
               {{ row.type }}
             </el-tag>
           </template>
@@ -164,7 +125,7 @@
 
 <script setup lang="ts">
 import { execArthasCommand } from "@/api/arthas-http";
-import { ref, watch, onBeforeUnmount, defineProps } from "vue";
+import { ref, watch, onBeforeUnmount } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -236,48 +197,29 @@ function parseMemoryData(output: any): {
 
     // 汇总项：总堆、总非堆、直接内存
     const heapTotal = heapPools.find((p: any) => p?.name === "heap") || {};
-    const nonHeapTotal =
-      nonHeapPools.find((p: any) => p?.name === "nonheap") || {};
-    const directBuffer =
-      bufferPools.find((p: any) => p?.name === "direct") || {};
+    const nonHeapTotal = nonHeapPools.find((p: any) => p?.name === "nonheap") || {};
+    const directBuffer = bufferPools.find((p: any) => p?.name === "direct") || {};
 
     const memoryData: MemoryData = {
       heap: {
         used: heapTotal.used || 0,
         committed: heapTotal.total || 0,
         max: heapTotal.max || 0,
-        usage:
-          heapTotal.max > 0
-            ? (heapTotal.used / heapTotal.max) * 100
-            : heapTotal.total > 0
-              ? (heapTotal.used / heapTotal.total) * 100
-              : 0,
+        usage: heapTotal.max > 0 ? (heapTotal.used / heapTotal.max) * 100 : heapTotal.total > 0 ? (heapTotal.used / heapTotal.total) * 100 : 0,
       },
       nonHeap: {
         used: nonHeapTotal.used || 0,
         committed: nonHeapTotal.total || 0,
         max: nonHeapTotal.max || 0,
         // 非堆max可能为-1，回退用total计算
-        usage:
-          nonHeapTotal.max > 0
-            ? (nonHeapTotal.used / nonHeapTotal.max) * 100
-            : nonHeapTotal.total > 0
-              ? (nonHeapTotal.used / nonHeapTotal.total) * 100
-              : 0,
+        usage: nonHeapTotal.max > 0 ? (nonHeapTotal.used / nonHeapTotal.max) * 100 : nonHeapTotal.total > 0 ? (nonHeapTotal.used / nonHeapTotal.total) * 100 : 0,
       },
       direct: {
         used: directBuffer.used || 0,
         committed: directBuffer.total || 0,
         max: directBuffer.max || 0,
         // 直接内存通常max为负值（无限制），用total或used近似
-        usage:
-          directBuffer.max > 0
-            ? (directBuffer.used / directBuffer.max) * 100
-            : directBuffer.total > 0
-              ? (directBuffer.used / directBuffer.total) * 100
-              : directBuffer.used
-                ? 100
-                : 0,
+        usage: directBuffer.max > 0 ? (directBuffer.used / directBuffer.max) * 100 : directBuffer.total > 0 ? (directBuffer.used / directBuffer.total) * 100 : directBuffer.used ? 100 : 0,
       },
     };
 
@@ -288,8 +230,7 @@ function parseMemoryData(output: any): {
       const max = pool.max || 0;
       const total = pool.total || 0;
       const used = pool.used || 0;
-      const usage =
-        max > 0 ? (used / max) * 100 : total > 0 ? (used / total) * 100 : 0;
+      const usage = max > 0 ? (used / max) * 100 : total > 0 ? (used / total) * 100 : 0;
       pools.push({
         name: pool.name || "",
         type,
@@ -323,8 +264,7 @@ async function run() {
     const res = await execArthasCommand(props.nodeId, cmd);
 
     if (res?.success) {
-      const { memoryData: parsedMemoryData, memoryPools: parsedPools } =
-        parseMemoryData(res.data?.output);
+      const { memoryData: parsedMemoryData, memoryPools: parsedPools } = parseMemoryData(res.data?.output);
       memoryData.value = parsedMemoryData;
       memoryPools.value = parsedPools;
 

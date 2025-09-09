@@ -59,7 +59,7 @@
 import { debounce } from "@pureadmin/utils";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
+import { defineExpose, reactive, ref, shallowRef } from "vue";
 import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "../../api/manage/project-ai-module";
 
 const emit = defineEmits();

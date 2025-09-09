@@ -17,22 +17,15 @@
     <div v-if="loading" class="serial-list-loading p-4 flex justify-center">
       <el-skeleton :rows="5" animated />
     </div>
-    
+
     <el-empty v-else-if="!serialList || serialList.length === 0" description="暂无串口配置" class="mt-8" />
-    
+
     <div v-else class="serial-list-content p-2">
-      <el-card
-        v-for="item in serialList"
-        :key="item.monitorSerialId"
-        class="serial-item mb-3 cursor-pointer"
-        :class="{ 'serial-item-active': selectedSerialId === item.monitorSerialId }"
-        @click="selectSerial(item.monitorSerialId)"
-        shadow="hover"
-      >
+      <el-card v-for="item in serialList" :key="item.monitorSerialId" class="serial-item mb-3 cursor-pointer" :class="{ 'serial-item-active': selectedSerialId === item.monitorSerialId }" @click="selectSerial(item.monitorSerialId)" shadow="hover">
         <div class="flex justify-between items-center">
           <div class="serial-info">
-            <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || '未命名串口' }}</div>
-            <div class="serial-port text-gray-500 text-sm">{{ item.monitorSerialPort || 'COM1' }} - {{ item.monitorSerialBaudRate || '9600' }}波特</div>
+            <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || "未命名串口" }}</div>
+            <div class="serial-port text-gray-500 text-sm">{{ item.monitorSerialPort || "COM1" }} - {{ item.monitorSerialBaudRate || "9600" }}波特</div>
           </div>
           <div class="serial-actions">
             <el-dropdown trigger="click" @command="handleCommand($event, item)">
@@ -58,51 +51,23 @@
     </div>
 
     <!-- 添加/编辑串口对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑串口' : '添加串口'"
-      width="500px"
-      destroy-on-close
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        label-width="100px"
-        :rules="rules"
-      >
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑串口' : '添加串口'" width="500px" destroy-on-close>
+      <el-form ref="formRef" :model="form" label-width="100px" :rules="rules">
         <el-form-item label="串口名称" prop="monitorSerialName">
           <el-input v-model="form.monitorSerialName" placeholder="请输入串口名称" />
         </el-form-item>
-        
+
         <el-form-item label="串口" prop="monitorSerialPort">
           <div class="flex gap-2 w-full">
-            <el-select
-              v-model="form.monitorSerialPort"
-              placeholder="选择串口端口"
-              class="flex-1"
-              filterable
-              allow-create
-              :loading="loadingPorts"
-              @focus="handleRefreshPorts"
-            >
-              <el-option
-                v-for="port in availablePorts"
-                :key="port"
-                :label="port"
-                :value="port"
-              />
+            <el-select v-model="form.monitorSerialPort" placeholder="选择串口端口" class="flex-1" filterable allow-create :loading="loadingPorts" @focus="handleRefreshPorts">
+              <el-option v-for="port in availablePorts" :key="port" :label="port" :value="port" />
             </el-select>
-            <el-button
-              size="default"
-              @click="handleRefreshPorts"
-              :loading="loadingPorts"
-              title="刷新可用串口"
-            >
+            <el-button size="default" @click="handleRefreshPorts" :loading="loadingPorts" title="刷新可用串口">
               <IconifyIconOnline icon="ep:refresh" />
             </el-button>
           </div>
         </el-form-item>
-        
+
         <el-form-item label="波特率" prop="monitorSerialBaudRate">
           <el-select v-model="form.monitorSerialBaudRate" placeholder="请选择波特率" class="w-full">
             <el-option :value="110" label="110" />
@@ -121,7 +86,7 @@
             <el-option :value="921600" label="921600" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="数据位" prop="monitorSerialDataBits">
           <el-select v-model="form.monitorSerialDataBits" placeholder="请选择数据位" class="w-full">
             <el-option :value="5" label="5" />
@@ -130,7 +95,7 @@
             <el-option :value="8" label="8" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="停止位" prop="monitorSerialStopBits">
           <el-select v-model="form.monitorSerialStopBits" placeholder="请选择停止位" class="w-full">
             <el-option :value="1" label="1" />
@@ -138,7 +103,7 @@
             <el-option :value="2" label="2" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="校验位" prop="monitorSerialParity">
           <el-select v-model="form.monitorSerialParity" placeholder="请选择校验位" class="w-full">
             <el-option value="none" label="无校验" />
@@ -148,7 +113,7 @@
             <el-option value="space" label="空格校验" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="流控制" prop="monitorSerialFlowControl">
           <el-select v-model="form.monitorSerialFlowControl" placeholder="请选择流控制" class="w-full">
             <el-option value="none" label="无" />
@@ -156,14 +121,9 @@
             <el-option value="software" label="软件流控" />
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="描述">
-          <el-input
-            v-model="form.monitorSerialDescription"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入串口描述（可选）"
-          />
+          <el-input v-model="form.monitorSerialDescription" type="textarea" :rows="3" placeholder="请输入串口描述（可选）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -175,11 +135,7 @@
     </el-dialog>
 
     <!-- 删除确认对话框 -->
-    <el-dialog
-      v-model="deleteDialogVisible"
-      title="删除确认"
-      width="400px"
-    >
+    <el-dialog v-model="deleteDialogVisible" title="删除确认" width="400px">
       <div class="delete-confirm">
         <IconifyIconOnline icon="ep:warning" class="text-warning text-xl mr-2" />
         <span>确定要删除此串口配置吗？此操作不可恢复。</span>
@@ -195,29 +151,29 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, reactive } from 'vue';
+import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
 
 const props = defineProps({
   serialList: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   selectedSerialId: {
     type: String,
-    default: ''
+    default: "",
   },
   availablePorts: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   loadingPorts: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['select-serial', 'add-serial', 'edit-serial', 'delete-serial', 'refresh', 'refresh-ports']);
+const emit = defineEmits(["select-serial", "add-serial", "edit-serial", "delete-serial", "refresh", "refresh-ports"]);
 
 // 状态
 const loading = ref(false);
@@ -226,60 +182,46 @@ const deleteDialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const deleting = ref(false);
-const currentSerialId = ref('');
+const currentSerialId = ref("");
 
 // 表单
 const formRef = ref();
 const form = reactive({
-  monitorSerialId: '',
-  monitorSerialName: '',
-  monitorSerialPort: '',
+  monitorSerialId: "",
+  monitorSerialName: "",
+  monitorSerialPort: "",
   monitorSerialBaudRate: 9600,
   monitorSerialDataBits: 8,
   monitorSerialStopBits: 1,
-  monitorSerialParity: 'none',
-  monitorSerialFlowControl: 'none',
-  monitorSerialDescription: ''
+  monitorSerialParity: "none",
+  monitorSerialFlowControl: "none",
+  monitorSerialDescription: "",
 });
 
 // 表单验证规则
 const rules = {
-  monitorSerialName: [
-    { required: true, message: '请输入串口名称', trigger: 'blur' }
-  ],
-  monitorSerialPort: [
-    { required: true, message: '请输入串口', trigger: 'blur' }
-  ],
-  monitorSerialBaudRate: [
-    { required: true, message: '请选择波特率', trigger: 'change' }
-  ],
-  monitorSerialDataBits: [
-    { required: true, message: '请选择数据位', trigger: 'change' }
-  ],
-  monitorSerialStopBits: [
-    { required: true, message: '请选择停止位', trigger: 'change' }
-  ],
-  monitorSerialParity: [
-    { required: true, message: '请选择校验位', trigger: 'change' }
-  ],
-  monitorSerialFlowControl: [
-    { required: true, message: '请选择流控制', trigger: 'change' }
-  ]
+  monitorSerialName: [{ required: true, message: "请输入串口名称", trigger: "blur" }],
+  monitorSerialPort: [{ required: true, message: "请输入串口", trigger: "blur" }],
+  monitorSerialBaudRate: [{ required: true, message: "请选择波特率", trigger: "change" }],
+  monitorSerialDataBits: [{ required: true, message: "请选择数据位", trigger: "change" }],
+  monitorSerialStopBits: [{ required: true, message: "请选择停止位", trigger: "change" }],
+  monitorSerialParity: [{ required: true, message: "请选择校验位", trigger: "change" }],
+  monitorSerialFlowControl: [{ required: true, message: "请选择流控制", trigger: "change" }],
 };
 
 // 选择串口
 const selectSerial = (serialId) => {
-  emit('select-serial', serialId);
+  emit("select-serial", serialId);
 };
 
 // 处理刷新
 const handleRefresh = () => {
-  emit('refresh');
+  emit("refresh");
 };
 
 // 处理刷新可用串口
 const handleRefreshPorts = () => {
-  emit('refresh-ports');
+  emit("refresh-ports");
 };
 
 // 处理添加串口
@@ -291,9 +233,9 @@ const handleAddSerial = () => {
 
 // 处理下拉菜单命令
 const handleCommand = (command, item) => {
-  if (command === 'edit') {
+  if (command === "edit") {
     handleEditSerial(item);
-  } else if (command === 'delete') {
+  } else if (command === "delete") {
     handleDeleteSerial(item);
   }
 };
@@ -302,14 +244,14 @@ const handleCommand = (command, item) => {
 const handleEditSerial = (item) => {
   isEdit.value = true;
   resetForm();
-  
+
   // 填充表单数据
-  Object.keys(form).forEach(key => {
+  Object.keys(form).forEach((key) => {
     if (item[key] !== undefined) {
       form[key] = item[key];
     }
   });
-  
+
   dialogVisible.value = true;
 };
 
@@ -323,11 +265,11 @@ const handleDeleteSerial = (item) => {
 const confirmDelete = async () => {
   try {
     deleting.value = true;
-    emit('delete-serial', currentSerialId.value);
+    emit("delete-serial", currentSerialId.value);
     deleteDialogVisible.value = false;
   } catch (error) {
-    console.error('删除串口失败:', error);
-    message.error('删除串口失败');
+    console.error("删除串口失败:", error);
+    message.error("删除串口失败");
   } finally {
     deleting.value = false;
   }
@@ -336,20 +278,20 @@ const confirmDelete = async () => {
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return;
-  
+
   try {
     await formRef.value.validate();
     submitting.value = true;
-    
+
     if (isEdit.value) {
-      emit('edit-serial', { ...form });
+      emit("edit-serial", { ...form });
     } else {
-      emit('add-serial', { ...form });
+      emit("add-serial", { ...form });
     }
-    
+
     dialogVisible.value = false;
   } catch (error) {
-    console.error('表单验证失败:', error);
+    console.error("表单验证失败:", error);
   } finally {
     submitting.value = false;
   }
@@ -360,16 +302,16 @@ const resetForm = () => {
   if (formRef.value) {
     formRef.value.resetFields();
   }
-  
-  form.monitorSerialId = '';
-  form.monitorSerialName = '';
-  form.monitorSerialPort = '';
+
+  form.monitorSerialId = "";
+  form.monitorSerialName = "";
+  form.monitorSerialPort = "";
   form.monitorSerialBaudRate = 9600;
   form.monitorSerialDataBits = 8;
   form.monitorSerialStopBits = 1;
-  form.monitorSerialParity = 'none';
-  form.monitorSerialFlowControl = 'none';
-  form.monitorSerialDescription = '';
+  form.monitorSerialParity = "none";
+  form.monitorSerialFlowControl = "none";
+  form.monitorSerialDescription = "";
 };
 </script>
 
@@ -394,11 +336,11 @@ const resetForm = () => {
 .serial-item {
   transition: all 0.3s;
   border-left: 3px solid transparent;
-  
+
   &:hover {
     transform: translateY(-2px);
   }
-  
+
   &-active {
     border-left-color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
@@ -414,4 +356,4 @@ const resetForm = () => {
   align-items: center;
   padding: 10px 0;
 }
-</style> 
+</style>

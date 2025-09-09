@@ -6,7 +6,7 @@ import { VideoPlayer } from "@videojs-player/vue";
 import { api as viewerApi } from "v-viewer";
 import "video.js/dist/video-js.css";
 import "viewerjs/dist/viewer.css";
-import { defineEmits, defineExpose, defineProps, onMounted, reactive, shallowRef } from "vue";
+import { defineExpose, onMounted, reactive, shallowRef } from "vue";
 import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
 
 const emit = defineEmits(["redrawer"]);

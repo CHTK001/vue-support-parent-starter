@@ -1,5 +1,5 @@
 <script setup>
-import { defineEmits, defineExpose, defineAsyncComponent, reactive, shallowRef } from "vue";
+import { defineExpose, defineAsyncComponent, reactive, shallowRef } from "vue";
 import { localStorageProxy, message } from "@repo/utils";
 import { fetchSaveOrUpdateDictItemProperty } from "@repo/core";
 import { useI18n } from "vue-i18n";

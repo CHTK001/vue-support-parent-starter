@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, nextTick, reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 import { fetchBindTotp, fetchUnbindTotp, fetchGetTotpUri } from "@repo/core";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";

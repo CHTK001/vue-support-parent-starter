@@ -1,13 +1,7 @@
 <script setup>
-import Error from "@repo/assets/images/error.png";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { checkImage } from "@repo/utils";
-import { VideoPlayer } from "@videojs-player/vue";
-import { api as viewerApi } from "v-viewer";
-import "video.js/dist/video-js.css";
-import "viewerjs/dist/viewer.css";
-import { defineEmits, defineExpose, defineProps, onMounted, reactive, shallowRef } from "vue";
+import { computed, defineExpose, onMounted, shallowRef } from "vue";
 import { fetchHistoryTaskForVincent } from "../../../../api/ai/text-generations";
+import MediaDisplay from "./MediaDisplay.vue";
 
 const emit = defineEmits(["redrawer"]);
 const props = defineProps({
@@ -23,18 +17,55 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  newGeneratedData: {
+    type: Array,
+    default: () => [],
+  },
 });
-const toolShow = reactive({});
+
 const historyData = shallowRef([]);
+
+/**
+ * 合并新生成的数据和历史数据，最新数据在最上方
+ */
+const displayData = computed(() => {
+  const allData = [...historyData.value];
+
+  // 如果有新生成的数据，添加到最前面
+  if (props.newGeneratedData && props.newGeneratedData.length > 0) {
+    const newItem = {
+      id: `new_generated_${Date.now()}`,
+      config: {
+        input: {
+          prompt: props.form.input?.prompt || "新生成的内容",
+        },
+        model: props.form.model,
+        parameters: {
+          size: props.form.parameters?.size,
+          style: props.form.parameters?.style,
+          number: props.form.parameters?.number,
+          quality: props.form.parameters?.quality,
+          fps: props.form.parameters?.fps,
+        },
+      },
+      sysAiVincentTaskUrls: props.newGeneratedData.map((item) => item.url),
+      sysAiVincentTaskLocalUrls: props.newGeneratedData.map((item) => item.url),
+    };
+    allData.unshift(newItem); // 添加到数组开头
+  }
+
+  return allData;
+});
 /**
  * 加载历史数据(前十张)
  * @return {*}
  */
 const loadHistoryData = async () => {
   fetchHistoryTaskForVincent({ sysAiVincentTaskType: props.env.category }).then(({ data }) => {
-    historyData.value = data.map((it) => {
+    historyData.value = data.map((it, index) => {
       return {
         ...it,
+        id: it.id || `history_${index}_${Date.now()}`, // 确保每个项目都有唯一ID
         config: !it.sysAiVincentTaskCondition ? {} : JSON.parse(it.sysAiVincentTaskCondition),
         sysAiVincentTaskUrls: it?.sysAiVincentTaskUrl?.split(",") || [],
         sysAiVincentTaskLocalUrls: it?.sysAiVincentTaskLocalUrl?.split(",") || [],
@@ -44,78 +75,17 @@ const loadHistoryData = async () => {
 };
 
 /**
- * 预览图片
- * @param {*}
- * @return {*}
+ * 处理媒体预览事件
  */
-const handlePreview = (url, localUrl) => {
-  const _images = [];
-  if (url) {
-    checkImage(url)
-      .then((res) => {
-        _images.push(url);
-        viewerApi({
-          images: _images,
-          options: {
-            backdrop: true,
-            inline: true,
-          },
-        });
-      })
-      .catch((e) => {
-        _images.push(localUrl);
-        viewerApi({
-          images: _images,
-          options: {
-            backdrop: true,
-            inline: true,
-          },
-        });
-      });
-    return;
-  }
-  let _loadingImages = [];
-  historyData.value.forEach((ele) => {
-    ele.sysAiVincentTaskLocalUrls.forEach((url) => {
-      _loadingImages.push(checkImage(url));
-    });
-    ele.sysAiVincentTaskLocalUrls.forEach((url) => {
-      _loadingImages.push(checkImage(url));
-    });
-  });
-  Promise.allSettled(_loadingImages).then((results) => {
-    results.forEach((it) => {
-      if (!it.value) {
-        return;
-      }
-      _images.push(it.value);
-    });
-    viewerApi({
-      images: _images,
-      options: {
-        backdrop: true,
-        inline: true,
-      },
-    });
-  });
+const handleMediaPreview = (url, localUrl) => {
+  console.log("媒体预览:", url, localUrl);
 };
+
 /**
- * 下载图片
- * @param {*}
- * @return {*}
+ * 处理媒体下载事件
  */
-const handleDownload = (url, localUrl) => {
-  checkImage(url)
-    .then((res) => {
-      const link = document.createElement("a");
-      link.href = url;
-      link.click();
-    })
-    .catch((e) => {
-      const link = document.createElement("a");
-      link.href = localUrl;
-      link.click();
-    });
+const handleMediaDownload = (url, localUrl) => {
+  console.log("媒体下载:", url, localUrl);
 };
 /**
  * 获取span
@@ -165,140 +135,253 @@ defineExpose({
 });
 </script>
 <template>
-  <div class="!overflow-auto history relative" id="historyLayout">
-    <el-row v-for="row in historyData" class="flex" :gutter="4">
-      <el-col :span="20">
-        <el-row :gutter="6">
-          <el-col :span="4" v-for="(item, index) in row.config?.parameters?.number || 1">
-            <div
-              class="img-item cursor-pointer relative z-0"
-              :class="[
-                {
-                  video: props.form.sysAiModuleType == 'VIDEO',
-                },
-                {
-                  image: props.form.sysAiModuleType !== 'VIDEO',
-                },
-              ]"
-            >
-              <el-image
-                :src="row.sysAiVincentTaskUrls[index]"
-                class="img"
-                v-if="props.form.sysAiModuleType == 'VINCENT'"
-                @click.prevent="handlePreview(row.sysAiVincentTaskUrls[index], row.sysAiVincentTaskLocalUrls[index])"
-                @mouseover="toolShow[row.sysAiVincentTaskUrls[index]] = true"
-                @mouseleave="toolShow[row.sysAiVincentTaskUrls[index]] = false"
-              >
-                <template #error>
-                  <el-image :src="row.sysAiVincentTaskLocalUrls[index]" class="img2" style="--show-level-one-shadow: 0">
-                    <template #error>
-                      <img :src="Error" alt="" class="errorImg" />
-                    </template>
-                  </el-image>
-                </template>
-              </el-image>
-              <VideoPlayer
-                :controlBar="{
-                  timeDivider: true,
-                  durationDisplay: true,
-                  remainingTimeDisplay: true,
-                  fullscreenToggle: true,
-                }"
-                notSupportedMessage="此视频暂无法播放，请稍后再试"
-                :height="250"
-                :width="250"
-                :src="row.sysAiVincentTaskUrls[index]"
-                controls
-                :autoplay="false"
-                language="cn"
-                :playbackRates="[0.5, 1, 1.5, 2]"
-                class="w-full video process"
-                v-else-if="props.form.sysAiModuleType == 'VIDEO'"
-              />
+  <div class="!overflow-auto history relative thin-scroller" id="historyLayout">
+    <!-- 每一条结果一行显示 -->
+    <div v-for="row in displayData" :key="row.id" class="history-row">
+      <!-- 媒体展示区域 -->
+      <div class="media-wrapper">
+        <MediaDisplay
+          :media-urls="row.sysAiVincentTaskUrls"
+          :local-media-urls="row.sysAiVincentTaskLocalUrls"
+          :media-type="props.form.sysAiModuleType"
+          :media-count="row.config?.parameters?.number || 1"
+          :row-id="row.id"
+          :media-size="{ width: 150, height: 150 }"
+          @preview="handleMediaPreview"
+          @download="handleMediaDownload"
+        />
+      </div>
 
-              <div class="absolute tool z-1 bottom-0 p-2" v-if="toolShow[row.sysAiVincentTaskUrls[index]] && props.form.sysAiModuleType == 'VINCENT'">
-                <el-button circle :icon="useRenderIcon('ep:download')" @click="handleDownload(row.sysAiVincentTaskUrls[index], row.sysAiVincentTaskLocalUrls[index])"></el-button>
-                <el-button circle :icon="useRenderIcon('ep:view')" @click.stop="handlePreview()"></el-button>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
-      </el-col>
-      <el-col :span="4" class="h-full w-full" :title="row.config?.input?.prompt">
-        <el-card class="h-full w-full card ribbon-3">
-          <div class="flex flex-col relative z-0">
-            <div class="otherTypeCou--QIGeNEET">
-              <div class="otherType--fqMcYymU cursor-pointer" @click="handleReDraw(row.config.model, 'model')">{{ row.config.model }}</div>
-            </div>
-            <div class="prompt--Kll06NyU">
-              <div class="text--gF1ZsVLO textLine3--Mzcb_C92" data-spm-anchor-id="5176.28735648.0.i0.1ed81eceaEw8DO" @click="handleReDraw(row.config?.input?.prompt)">{{ row.config?.input?.prompt }}</div>
-            </div>
-            <div class="help--DsIM8RLY" v-if="row?.input?.refImage">
-              <div class="popoverLine--Zm22xWTH" style="gap: 8px">
-                <div>
-                  <span>参考图像</span>
-                  <el-image :src="row.input.refImage" class="w-[40px] h-[40px]" />
-                </div>
-              </div>
-            </div>
-            <div class="btnLine--kz2jqeAV active--SBaVjOyL"></div>
+      <!-- 参数信息区域 -->
+      <div class="params-section">
+        <div class="prompt-text" :title="row.config?.input?.prompt">
+          <span class="prompt-label">提示词：</span>
+          <span class="prompt-content" @click="handleReDraw(row.config?.input?.prompt)">{{ row.config?.input?.prompt }}</span>
+        </div>
+
+        <div class="model-params">
+          <div class="param-item">
+            <span class="param-label">模型：</span>
+            <span class="param-value model-name" @click="handleReDraw(row.config.model, 'model')">{{ row.config.model }}</span>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+
+          <div class="param-item" v-if="row.config?.parameters?.size">
+            <span class="param-label">尺寸：</span>
+            <span class="param-value">{{ row.config.parameters.size }}</span>
+          </div>
+
+          <div class="param-item" v-if="row.config?.parameters?.style">
+            <span class="param-label">风格：</span>
+            <span class="param-value">{{ row.config.parameters.style }}</span>
+          </div>
+
+          <div class="param-item" v-if="row.config?.parameters?.number">
+            <span class="param-label">数量：</span>
+            <span class="param-value">{{ row.config.parameters.number }}</span>
+          </div>
+
+          <div class="param-item" v-if="row.config?.parameters?.quality">
+            <span class="param-label">质量：</span>
+            <span class="param-value">{{ row.config.parameters.quality }}</span>
+          </div>
+
+          <div class="param-item" v-if="row.config?.parameters?.fps">
+            <span class="param-label">帧率：</span>
+            <span class="param-value">{{ row.config.parameters.fps }} FPS</span>
+          </div>
+
+          <div class="param-item" v-if="row.config?.input?.negativePrompt">
+            <span class="param-label">反向提示词：</span>
+            <span class="param-value negative-prompt">{{ row.config.input.negativePrompt }}</span>
+          </div>
+        </div>
+
+        <!-- 参考图像 -->
+        <div class="ref-image-section" v-if="row?.input?.refImage">
+          <span class="param-label">参考图像：</span>
+          <el-image :src="row.input.refImage" class="ref-image" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 <style scoped lang="scss">
 .history {
-  height: calc(100vh - var(--show-history-top-height));
-  padding: 0 20px 0 20px;
-}
-.image,
-.card,
-.img-item {
-  max-width: 250px;
-  max-height: 250px;
-  border-radius: 10px;
-  margin: 5px 0 5px 0;
-}
-.card {
-  height: auto;
-  width: auto;
-}
-.video {
-  height: 250px;
-  width: 250px;
-  border-radius: 10px;
-  padding: 5px 0 5px 0;
-  box-shadow:
-    0px 2px 4px 0px rgba(0, 0, 0, 0.4),
-    0px 7px 13px -3px rgba(0, 0, 0, 0.3),
-    0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
-}
-.img {
-  --show-level-one-shadown: 1;
   height: 100%;
-  width: 100%;
-  border-radius: 10px;
-  box-shadow:
-    0px 2px 4px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.6)),
-    0px 7px 13px -3px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.7)),
-    0px -3px 0px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.8)) inset;
-  &:has(.img2) {
-    --show-level-one-shadown: 0;
-  }
-  .img2 {
-    box-shadow:
-      0px 2px 4px 0px rgba(0, 0, 0, 0.4),
-      0px 7px 13px -3px rgba(0, 0, 0, 0.3),
-      0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
+  padding: 20px;
+  background: #f5f7fa;
+}
+
+// 历史记录行布局 - 每个项目独立成行
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-height: 200px;
+
+  &:hover {
+    transform: translateY(-2px);
   }
 }
-.tool {
-  backdrop-filter: blur(10px) brightness(90%);
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
-  width: 100%;
+
+// 媒体展示区域包装器 - 左侧区域，根据内容自适应宽度
+.media-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  flex: 1;
+  justify-content: flex-start;
+  align-items: center;
+  border-radius: 8px;
+  padding: 15px;
+  min-width: fit-content;
+}
+
+// 参数信息区域 - 右侧固定参数块
+.params-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 300px !important;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.prompt-text {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #409eff;
+
+  .prompt-label {
+    font-weight: 600;
+    color: #303133;
+    margin-right: 8px;
+    font-size: 14px;
+  }
+
+  .prompt-content {
+    color: #606266;
+    cursor: pointer;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+
+    &:hover {
+      color: #409eff;
+      text-decoration: underline;
+    }
+  }
+}
+
+.model-params {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #fafbfc;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .param-label {
+    font-weight: 500;
+    color: #909399;
+    margin-right: 8px;
+    min-width: 80px;
+    font-size: 13px;
+  }
+
+  .param-value {
+    color: #606266;
+    font-size: 13px;
+    flex: 1;
+    text-align: right;
+
+    &.model-name {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      }
+    }
+
+    &.negative-prompt {
+      color: #f56c6c;
+      font-style: italic;
+    }
+  }
+}
+
+.ref-image-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #67c23a;
+
+  .param-label {
+    font-weight: 500;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  .ref-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    border: 2px solid #e4e7ed;
+    object-fit: cover;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .history-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .media-wrapper {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .params-section {
+    min-width: auto;
+  }
 }
 .btnLine--kz2jqeAV.active--SBaVjOyL {
   justify-content: space-between;

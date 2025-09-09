@@ -4,46 +4,52 @@
       <div v-if="showTypeSelector" class="search-type-selector">
         <div class="custom-select">
           <select v-model="currentSearchType" @change="handleSearchTypeChange">
-          <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
-            {{ typeConfig.label }}
-          </option>
-        </select>
+            <option v-for="typeConfig in searchTypes" :key="typeConfig.type" :value="typeConfig.type">
+              {{ typeConfig.label }}
+            </option>
+          </select>
           <div class="select-arrow"></div>
         </div>
-        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes"
-          :on-change="handleSearchTypeChange"></slot>
+        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange"></slot>
       </div>
-      
+
       <!-- 普通搜索输入框 -->
       <div v-if="currentSearchType !== SearchType.NAVIGATION" class="search-input-container">
-        <input v-if="type === 'input'" v-model="searchText" type="text" :placeholder="currentPlaceholder"
-          @input="handleInput" @keyup.enter="handleSearch"
-          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }" />
+        <input
+          v-if="type === 'input'"
+          v-model="searchText"
+          type="text"
+          :placeholder="currentPlaceholder"
+          @input="handleInput"
+          @keyup.enter="handleSearch"
+          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }"
+        />
 
         <select v-else v-model="searchText" @change="handleInput">
-        <option value="">请选择</option>
-        <option v-for="option in options" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
+          <option value="">请选择</option>
+          <option v-for="option in options" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
 
         <button type="button" class="search-button" @click="handleSearch">
           <svg viewBox="0 0 24 24" width="18" height="18">
-          <path fill="currentColor"
-              d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-        </svg>
+            <path
+              fill="currentColor"
+              d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+            />
+          </svg>
         </button>
-        </div>
-      
+      </div>
+
       <!-- 导航搜索专用双输入框 -->
       <div v-else class="navigation-input-container">
         <div class="navigation-input-group">
           <div class="nav-input start-input">
             <span class="nav-point-icon start-point-icon"></span>
-            <input v-model="navStartPoint" type="text" placeholder="请输入起点" 
-              @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
+            <input v-model="navStartPoint" type="text" placeholder="请输入起点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">×</button>
-    </div>
+          </div>
           <div class="nav-swap-btn" @click="swapNavPoints" title="交换起终点">
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
@@ -51,69 +57,66 @@
           </div>
           <div class="nav-input end-input">
             <span class="nav-point-icon end-point-icon"></span>
-            <input v-model="navEndPoint" type="text" placeholder="请输入终点" 
-              @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
+            <input v-model="navEndPoint" type="text" placeholder="请输入终点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
           </div>
         </div>
-<<<<<<< HEAD
-        
-=======
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
+        <<<<<<< HEAD ======= >>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
         <button type="button" class="nav-search-button" @click="handleNavSearch">
           <span class="nav-search-icon"></span>
           <span>查询</span>
         </button>
       </div>
     </div>
-    
+
     <!-- 自定义搜索框插槽 -->
-    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput"
-      :on-search="handleSearch"></slot>
-    
+    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch"></slot>
+
     <!-- 搜索结果列表 -->
     <transition name="slide-fade">
-    <div v-if="showResults && results.length > 0" class="search-results">
-        <div v-for="result in results" :key="result.id" class="result-item"
-          :class="{ 
-            'selected': selectedMarker === result.id,
+      <div v-if="showResults && results.length > 0" class="search-results">
+        <div
+          v-for="result in results"
+          :key="result.id"
+          class="result-item"
+          :class="{
+            selected: selectedMarker === result.id,
             'navigation-origin': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'origin',
             'navigation-destination': currentSearchType === SearchType.NAVIGATION && result.navigationRole === 'destination'
-          }" @click="handleSelect(result)">
+          }"
+          @click="handleSelect(result)"
+        >
           <div class="result-content" @click="handleSelect(result)">
-        <!-- 导航搜索结果角标 -->
-        <div v-if="currentSearchType === SearchType.NAVIGATION" class="navigation-role-badge"
-          :class="result.navigationRole === 'origin' ? 'origin-badge' : 'destination-badge'">
-          {{ result.navigationRole === 'origin' ? '起' : '终' }}
-        </div>
-        <div class="result-title">{{ result.name }}</div>
+            <!-- 导航搜索结果角标 -->
+            <div v-if="currentSearchType === SearchType.NAVIGATION" class="navigation-role-badge" :class="result.navigationRole === 'origin' ? 'origin-badge' : 'destination-badge'">
+              {{ result.navigationRole === "origin" ? "起" : "终" }}
+            </div>
+            <div class="result-title">{{ result.name }}</div>
             <div class="result-address">
               <span class="location-icon"></span>
               {{ result.address }}
-      </div>
-    </div>
+            </div>
+          </div>
           <div class="result-actions">
             <div v-if="result.distance" class="result-distance">
               {{ formatDistance(result.distance) }}
             </div>
             <div class="action-buttons">
-              <button class="action-btn start-btn" :class="{ 'active': startPointId === result.id }"
-                @click.stop="setAsStartPoint(result)" title="从这里出发">
+              <button class="action-btn start-btn" :class="{ active: startPointId === result.id }" @click.stop="setAsStartPoint(result)" title="从这里出发">
                 <span class="start-icon"></span>
                 从这出发
               </button>
-              <button class="action-btn end-btn" :class="{ 'active': endPointId === result.id }"
-                @click.stop="setAsEndPoint(result)" title="到这里去">
+              <button class="action-btn end-btn" :class="{ active: endPointId === result.id }" @click.stop="setAsEndPoint(result)" title="到这里去">
                 <span class="end-icon"></span>
                 到这去
-      </button>
-    </div>
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- 自定义搜索结果插槽 -->
+        <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
       </div>
-      
-      <!-- 自定义搜索结果插槽 -->
-      <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
-    </div>
     </transition>
 
     <!-- 添加暂无数据提示 -->
@@ -140,36 +143,40 @@
           <span class="endpoint-text">终点：{{ getMarkerTitle(endPointMarkerId) }}</span>
         </div>
       </div>
-      
+
       <div class="transport-type-selector">
-        <div v-for="type in transportTypes" :key="type.value" class="transport-type-option"
-          :class="{ 'active': currentTransportType === type.value }" @click="selectTransportType(type.value)"
-          :title="type.label">
+        <div
+          v-for="type in transportTypes"
+          :key="type.value"
+          class="transport-type-option"
+          :class="{ active: currentTransportType === type.value }"
+          @click="selectTransportType(type.value)"
+          :title="type.label"
+        >
           <span :class="['transport-icon', type.value + '-icon']"></span>
         </div>
       </div>
-      
+
       <div class="navigation-buttons">
         <button @click="createRouteNavigation" class="navigation-button">
           <span class="navigation-icon"></span>
           开始导航
         </button>
-        <button @click="clearRoutePoints" class="clear-button">
-          清除
-      </button>
-    </div>
+        <button @click="clearRoutePoints" class="clear-button">清除</button>
+      </div>
     </div>
 
     <!-- 导航路线详情面板 -->
     <transition name="slide-fade">
-      <div v-if="showRouteDetails && routeDetails.length > 0" 
-           class="route-details" 
-           :class="[getRouteDetailsPanelPosition(), {'is-dragging': isDragging, 'is-closing': isClosing}]"
-           ref="routeDetailsPanel"
-           @touchstart="handleTouchStart"
-           @touchmove="handleTouchMove"
-           @touchend="handleTouchEnd">
-
+      <div
+        v-if="showRouteDetails && routeDetails.length > 0"
+        class="route-details"
+        :class="[getRouteDetailsPanelPosition(), { 'is-dragging': isDragging, 'is-closing': isClosing }]"
+        ref="routeDetailsPanel"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
         <div class="route-summary">
           <div class="route-info">
             <span class="route-distance">{{ formatDistance(routeTotalDistance) }}</span>
@@ -186,8 +193,7 @@
         <div class="route-options" v-if="alternativeRoutes.length > 0">
           <div class="route-option-title">备选路线</div>
           <div class="route-options-list">
-            <div v-for="(route, index) in alternativeRoutes" :key="index" class="route-option"
-              :class="{ 'active': currentRouteIndex === index }" @click="selectRoute(index)">
+            <div v-for="(route, index) in alternativeRoutes" :key="index" class="route-option" :class="{ active: currentRouteIndex === index }" @click="selectRoute(index)">
               <div class="route-option-info">
                 <div class="route-option-name">路线 {{ index + 1 }}</div>
                 <div class="route-option-stats">
@@ -225,21 +231,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, defineProps, defineEmits, onMounted, computed, watch, onBeforeUnmount } from 'vue';
-import type { PropType } from 'vue';
-import type { SearchBoxConfig, SearchResult, SearchTypeConfig } from '../types/search';
-import { SearchType } from '../types/search';
-import { DEFAULT_END_ICON, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_START_ICON } from '../types/default';
-import { ConfigObject } from '../composables/ConfigObject';
-import { SearchObject } from '../composables/SearchObject';
-import { SearchHandlerFactory } from '../interfaces/SearchHandler';
-import { ElMessage } from 'element-plus';
+import { ref, defineExpose, onMounted, computed, watch, onBeforeUnmount } from "vue";
+import type { PropType } from "vue";
+import type { SearchBoxConfig, SearchResult, SearchTypeConfig } from "../types/search";
+import { SearchType } from "../types/search";
+import { DEFAULT_END_ICON, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_START_ICON } from "../types/default";
+import { ConfigObject } from "../composables/ConfigObject";
+import { SearchObject } from "../composables/SearchObject";
+import { SearchHandlerFactory } from "../interfaces/SearchHandler";
+import { ElMessage } from "element-plus";
 
 // Props 定义
 const props = defineProps({
   placeholder: {
     type: String,
-    default: '请输入搜索关键词'
+    default: "请输入搜索关键词"
   },
   debounceTime: {
     type: Number,
@@ -247,35 +253,35 @@ const props = defineProps({
   },
   position: {
     type: String,
-    default: 'top-right',
-    validator: (value: string) => ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(value)
+    default: "top-right",
+    validator: (value: string) => ["top-left", "top-right", "bottom-left", "bottom-right"].includes(value)
   },
   searchBoxConfig: {
     type: Object as PropType<SearchBoxConfig>,
-    default: () => ({...DEFAULT_SEARCH_BOX_CONFIG})
+    default: () => ({ ...DEFAULT_SEARCH_BOX_CONFIG })
   },
   type: {
     type: String,
-    default: 'input',
-    validator: (value: string) => ['input', 'select'].includes(value)
+    default: "input",
+    validator: (value: string) => ["input", "select"].includes(value)
   },
   options: {
     type: Array as PropType<{ value: string; label: string }[]>,
     default: () => []
-  },
+  }
 });
 
 let searchObject: SearchObject = null;
 
 // Emits 定义
 const emit = defineEmits<{
-  (e: 'search', results: SearchResult[]): void;
-  (e: 'select', result: SearchResult): void;
-  (e: 'type-change', type: SearchType): void;
+  (e: "search", results: SearchResult[]): void;
+  (e: "select", result: SearchResult): void;
+  (e: "type-change", type: SearchType): void;
 }>();
 
 // 响应式状态
-const searchText = ref('');
+const searchText = ref("");
 const results = ref<SearchResult[]>([]);
 const showResults = ref(false);
 let configObject = null;
@@ -283,8 +289,8 @@ let searchTimer: number | null = null;
 const selectedMarker = ref<string | null>(null);
 
 // 导航搜索相关状态
-const navStartPoint = ref('');
-const navEndPoint = ref('');
+const navStartPoint = ref("");
+const navEndPoint = ref("");
 let navSearchTimer: number | null = null;
 
 // 搜索类型相关
@@ -303,38 +309,41 @@ const isValidCoordinate = computed(() => {
   if (currentSearchType.value !== SearchType.COORDINATE || !searchText.value.trim()) {
     return false;
   }
-  
+
   // 使用搜索处理器验证输入
   const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
   if (handler && handler.validateInput) {
     return handler.validateInput(searchText.value);
   }
-  
+
   // 如果没有处理器，使用默认验证逻辑
   try {
     // 尝试解析坐标字符串，支持多种格式
-    const coordStr = searchText.value.trim().replace(/，/g, ',').replace(/\s+/g, ',');
-    const coords = coordStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-    
+    const coordStr = searchText.value.trim().replace(/，/g, ",").replace(/\s+/g, ",");
+    const coords = coordStr
+      .split(",")
+      .map(s => parseFloat(s.trim()))
+      .filter(n => !isNaN(n));
+
     if (coords.length >= 2) {
       const lng = coords[0];
       const lat = coords[1];
-      
+
       // 验证坐标是否在有效范围内
       return lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90;
     }
   } catch (error) {
     return false;
   }
-  
+
   return false;
 });
 
 // 监听搜索类型变化
-watch(currentSearchType, (newType) => {
+watch(currentSearchType, newType => {
   if (searchObject) {
     searchObject.setSearchType(newType);
-    emit('type-change', newType);
+    emit("type-change", newType);
     // 清空搜索结果
     results.value = [];
     showResults.value = false;
@@ -343,29 +352,29 @@ watch(currentSearchType, (newType) => {
 
 // 组件挂载时检查初始化状态
 onMounted(() => {
-  console.log('SearchBox 组件已挂载，检查搜索对象状态');
+  console.log("SearchBox 组件已挂载，检查搜索对象状态");
   if (!searchObject) {
-    console.warn('搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
+    console.warn("搜索对象尚未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
   } else {
-    console.log('搜索对象已就绪');
+    console.log("搜索对象已就绪");
     // 设置初始搜索类型
     searchObject.setSearchType(currentSearchType.value);
   }
 });
 
 // 处理搜索类型变更
-const handleSearchTypeChange = (event) => {
+const handleSearchTypeChange = event => {
   const newType = event.target ? event.target.value : event;
   currentSearchType.value = newType;
   // 清空搜索框
-  searchText.value = '';
+  searchText.value = "";
   // 清空导航搜索框
-  navStartPoint.value = '';
-  navEndPoint.value = '';
+  navStartPoint.value = "";
+  navEndPoint.value = "";
   // 清空搜索结果，不触发搜索
   results.value = [];
   showResults.value = false;
-  
+
   // 如果导航路线详情面板已打开，则关闭
   if (showRouteDetails.value) {
     closeRouteDetails();
@@ -377,17 +386,17 @@ const handleInput = () => {
   if (searchTimer) {
     clearTimeout(searchTimer);
   }
-  
+
   searchTimer = window.setTimeout(async () => {
     if (searchText.value.trim()) {
       try {
         // 检查 searchObject 是否已初始化
         if (!searchObject) {
-          console.error('搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
-          ElMessage.error('搜索功能未准备好，请稍后再试');
+          console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
+          ElMessage.error("搜索功能未准备好，请稍后再试");
           return;
         }
-        
+
         // 使用搜索处理器验证输入
         const handler = SearchHandlerFactory.getHandler(currentSearchType.value);
         if (handler && handler.validateInput && !handler.validateInput(searchText.value)) {
@@ -395,18 +404,18 @@ const handleInput = () => {
           if (currentSearchType.value === SearchType.NAVIGATION) {
             ElMessage.warning('请按照"起点-终点"的格式输入，例如：北京-上海');
           } else {
-            ElMessage.warning('请输入有效的搜索内容');
+            ElMessage.warning("请输入有效的搜索内容");
           }
           return;
         }
-        
+
         // 如果导航路线详情面板已打开，则关闭
         if (showRouteDetails.value) {
           closeRouteDetails();
         }
-        
+
         console.log(`开始搜索: ${searchText.value}, 类型: ${currentSearchType.value}`);
-        
+
         // 格式化输入（如果处理器支持）
         if (handler && handler.formatInput) {
           const formattedInput = handler.formatInput(searchText.value);
@@ -414,20 +423,20 @@ const handleInput = () => {
             searchText.value = formattedInput;
           }
         }
-        
+
         const searchResults = await searchObject.search(searchText.value, props.searchBoxConfig as any, currentSearchType.value);
-        console.log('搜索结果:', searchResults);
+        console.log("搜索结果:", searchResults);
         results.value = searchResults;
         showResults.value = true; // 无论结果是否为空，都显示结果区域
-        emit('search', searchResults);
-        
+        emit("search", searchResults);
+
         // 如果是导航搜索，并且有结果，显示特殊提示
         if (currentSearchType.value === SearchType.NAVIGATION && searchResults.length > 0) {
-          ElMessage.info('请选择起点和终点以创建导航路线');
+          ElMessage.info("请选择起点和终点以创建导航路线");
         }
       } catch (error) {
-        console.error('搜索失败:', error);
-        ElMessage.error('搜索失败: ' + (error.message || '未知错误'));
+        console.error("搜索失败:", error);
+        ElMessage.error("搜索失败: " + (error.message || "未知错误"));
         results.value = [];
         showResults.value = true; // 搜索失败时也显示空结果
       }
@@ -441,19 +450,19 @@ const handleInput = () => {
 // 处理搜索按钮点击
 const handleSearch = async () => {
   if (!searchText.value.trim()) return;
-  
+
   try {
     if (searchObject) {
       // 如果导航路线详情面板已打开，则关闭
       if (showRouteDetails.value) {
         closeRouteDetails();
       }
-      
+
       // 开始搜索
       await searchObject.search(searchText.value, props.searchBoxConfig, currentSearchType.value);
     }
   } catch (error) {
-    console.error('搜索失败:', error);
+    console.error("搜索失败:", error);
   }
 };
 
@@ -475,31 +484,31 @@ const setAsStartPoint = (result: SearchResult) => {
     startPointId.value = null;
     return;
   }
-  
+
   // 设置为新的起点
   startPointId.value = result.id;
-  
+
   if (searchObject) {
     // 移除旧的起点标记（如果存在）
     if (startPointMarkerId.value) {
       searchObject.removeMarker(startPointMarkerId.value);
     }
-    
+
     // 添加新的起点标记
     const markerId = searchObject.addMarker({
       ...result,
       position: result.location,
       icon: {
         url: DEFAULT_START_ICON,
-        className: 'start-point-marker',
+        className: "start-point-marker",
         label: {
-          text: '起点',
-          className: 'start-point-label'
+          text: "起点",
+          className: "start-point-label"
         }
       },
       zIndex: 1000
     });
-    
+
     startPointMarkerId.value = markerId;
   }
 };
@@ -516,44 +525,44 @@ const setAsEndPoint = (result: SearchResult) => {
     endPointId.value = null;
     return;
   }
-  
+
   // 设置为新的终点
   endPointId.value = result.id;
-  
+
   if (searchObject) {
     // 移除旧的终点标记（如果存在）
     if (endPointMarkerId.value) {
       searchObject.removeMarker(endPointMarkerId.value);
     }
-    
+
     // 添加新的终点标记
     const markerId = searchObject.addMarker({
       ...result,
       position: result.location,
       icon: {
         url: DEFAULT_END_ICON,
-        className: 'end-point-marker',
+        className: "end-point-marker",
         label: {
-          text: '终点',
-          className: 'end-point-label'
+          text: "终点",
+          className: "end-point-label"
         }
       },
       zIndex: 1000
     });
-    
+
     endPointMarkerId.value = markerId;
   }
 };
 
 // 导航相关
 const transportTypes = [
-  { value: 'driving', label: '驾车' },
-  { value: 'transit', label: '公交' },
-  { value: 'walking', label: '步行' },
-  { value: 'bicycling', label: '骑行' },
-  { value: 'ebike', label: '电动车' }
+  { value: "driving", label: "驾车" },
+  { value: "transit", label: "公交" },
+  { value: "walking", label: "步行" },
+  { value: "bicycling", label: "骑行" },
+  { value: "ebike", label: "电动车" }
 ];
-const currentTransportType = ref('driving');
+const currentTransportType = ref("driving");
 
 // 选择交通工具类型
 const selectTransportType = (type: string) => {
@@ -584,19 +593,19 @@ const selectRoute = (index: number) => {
   if (index === currentRouteIndex.value || !alternativeRoutes.value[index]) {
     return;
   }
-  
+
   currentRouteIndex.value = index;
   const selectedRoute = alternativeRoutes.value[index];
-  
+
   // 更新路线详情
   routeTotalDistance.value = selectedRoute.distance || 0;
   routeTotalDuration.value = selectedRoute.duration || 0;
-  
+
   // 更新路线步骤
   if (selectedRoute.steps && selectedRoute.steps.length > 0) {
     updateRouteDetails(selectedRoute.steps);
   }
-  
+
   // 调用 SearchObject 的 switchRoute 方法切换路线
   try {
     if (searchObject) {
@@ -608,61 +617,61 @@ const selectRoute = (index: number) => {
       }
     }
   } catch (error) {
-    console.error('切换路线时发生错误:', error);
+    console.error("切换路线时发生错误:", error);
   }
 };
 
 // 获取交通状况类名
 const getTrafficClass = (traffic: number | string): string => {
-  if (typeof traffic === 'undefined' || traffic === null) {
-    return 'traffic-unknown';
+  if (typeof traffic === "undefined" || traffic === null) {
+    return "traffic-unknown";
   }
-  
-  const trafficValue = typeof traffic === 'string' ? parseInt(traffic, 10) : traffic;
-  
-  if (trafficValue < 1.2) return 'traffic-smooth';
-  if (trafficValue < 1.5) return 'traffic-normal';
-  if (trafficValue < 2) return 'traffic-slow';
-  return 'traffic-congested';
+
+  const trafficValue = typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
+
+  if (trafficValue < 1.2) return "traffic-smooth";
+  if (trafficValue < 1.5) return "traffic-normal";
+  if (trafficValue < 2) return "traffic-slow";
+  return "traffic-congested";
 };
 
 // 获取交通状况文本
 const getTrafficText = (traffic: number | string): string => {
-  if (typeof traffic === 'undefined' || traffic === null) {
-    return '未知';
+  if (typeof traffic === "undefined" || traffic === null) {
+    return "未知";
   }
-  
-  const trafficValue = typeof traffic === 'string' ? parseInt(traffic, 10) : traffic;
-  
-  if (trafficValue < 1.2) return '畅通';
-  if (trafficValue < 1.5) return '正常';
-  if (trafficValue < 2) return '缓行';
-  return '拥堵';
+
+  const trafficValue = typeof traffic === "string" ? parseInt(traffic, 10) : traffic;
+
+  if (trafficValue < 1.2) return "畅通";
+  if (trafficValue < 1.5) return "正常";
+  if (trafficValue < 2) return "缓行";
+  return "拥堵";
 };
 
 // 更新路线详情
 const updateRouteDetails = (steps: any[]) => {
   routeDetails.value = [];
-  
+
   // 添加起点
   routeDetails.value.push({
-    action: 'start',
-    instruction: '起点',
+    action: "start",
+    instruction: "起点",
     distance: 0,
     duration: 0,
-    roadName: ''
+    roadName: ""
   });
-  
+
   // 添加各个步骤
   steps.forEach((step: any, index: number) => {
     // 解析指令中的行动
-    const action = parseStepAction(step.instruction || '');
-    
+    const action = parseStepAction(step.instruction || "");
+
     // 处理不同API返回格式的兼容
     const distance = step.distance || step.step_distance || 0;
-    const duration = step.duration || (step.cost?.duration || 0);
-    const roadName = step.road_name || step.road || '';
-    
+    const duration = step.duration || step.cost?.duration || 0;
+    const roadName = step.road_name || step.road || "";
+
     routeDetails.value.push({
       action,
       instruction: step.instruction || `步骤 ${index + 1}`,
@@ -671,55 +680,62 @@ const updateRouteDetails = (steps: any[]) => {
       roadName
     });
   });
-  
+
   // 添加终点
   routeDetails.value.push({
-    action: 'end',
-    instruction: '终点',
+    action: "end",
+    instruction: "终点",
     distance: 0,
     duration: 0,
-    roadName: ''
+    roadName: ""
   });
 };
 
 // 关闭路线详情
 const closeRouteDetails = () => {
-  console.log('关闭路线详情面板');
-  
+  console.log("关闭路线详情面板");
+
   // 重置面板样式
   if (routeDetailsPanel.value) {
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
     if (isMobile) {
-      routeDetailsPanel.value.style.setProperty('--drag-y', '0px');
-      routeDetailsPanel.value.style.transform = 'translateX(-50%)';
+      routeDetailsPanel.value.style.setProperty("--drag-y", "0px");
+      routeDetailsPanel.value.style.transform = "translateX(-50%)";
     } else {
-      routeDetailsPanel.value.style.transform = '';
+      routeDetailsPanel.value.style.transform = "";
     }
   }
-  
+
   // 重置状态
   showRouteDetails.value = false;
   showRouteDetailsList.value = true; // 重置为默认展开状态
   routeDetails.value = [];
   isDragging.value = false;
   isClosing.value = false;
-  
-  console.log('路线详情面板已关闭');
+
+  console.log("路线详情面板已关闭");
 };
 
 // 获取步骤图标类名
 const getStepIconClass = (step: any) => {
-  if (step.action === 'start') return 'icon-start';
-  if (step.action === 'end') return 'icon-end';
-  
+  if (step.action === "start") return "icon-start";
+  if (step.action === "end") return "icon-end";
+
   switch (step.action) {
-    case 'straight': return 'icon-straight';
-    case 'left': return 'icon-left';
-    case 'right': return 'icon-right';
-    case 'slight-left': return 'icon-slight-left';
-    case 'slight-right': return 'icon-slight-right';
-    case 'uturn': return 'icon-uturn';
-    default: return 'icon-straight';
+    case "straight":
+      return "icon-straight";
+    case "left":
+      return "icon-left";
+    case "right":
+      return "icon-right";
+    case "slight-left":
+      return "icon-slight-left";
+    case "slight-right":
+      return "icon-slight-right";
+    case "uturn":
+      return "icon-uturn";
+    default:
+      return "icon-straight";
   }
 };
 
@@ -728,7 +744,7 @@ const formatDistance = (distance: number): string => {
   if (distance < 1000) {
     return `${distance}米`;
   } else {
-  return `${(distance / 1000).toFixed(1)}公里`;
+    return `${(distance / 1000).toFixed(1)}公里`;
   }
 };
 
@@ -741,13 +757,13 @@ const formatDuration = (duration: number): string => {
   } else {
     const hours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
-    return `${hours}小时${minutes > 0 ? minutes + '分钟' : ''}`;
+    return `${hours}小时${minutes > 0 ? minutes + "分钟" : ""}`;
   }
 };
 
 // 在 script setup 部分添加一个辅助函数
 const checkRouteDetailsVisibility = () => {
-  console.log('路线详情面板可见性状态:', {
+  console.log("路线详情面板可见性状态:", {
     showRouteDetails: showRouteDetails.value,
     hasRouteDetails: routeDetails.value.length > 0,
     position: props.position,
@@ -757,70 +773,70 @@ const checkRouteDetailsVisibility = () => {
 
 // 创建导航路线并显示详情
 const createRouteNavigation = async () => {
-  console.log('开始创建导航路线');
-  
+  console.log("开始创建导航路线");
+
   if (!startPointId.value || !endPointId.value) {
-    ElMessage.warning('请先设置起点和终点');
+    ElMessage.warning("请先设置起点和终点");
     return;
   }
-  
+
   try {
     // 检查 ShapeObject 是否已初始化
     if (searchObject.checkShapeObject && !searchObject.checkShapeObject()) {
-      console.error('ShapeObject 未初始化，可能无法绘制路线');
-      ElMessage.warning('地图绘制组件未准备好，路线可能无法正确显示');
+      console.error("ShapeObject 未初始化，可能无法绘制路线");
+      ElMessage.warning("地图绘制组件未准备好，路线可能无法正确显示");
     }
-    
+
     // 调用导航方法
-    console.log('调用 createNavigation 方法，参数:', {
+    console.log("调用 createNavigation 方法，参数:", {
       startPointMarkerId: startPointMarkerId.value,
       endPointMarkerId: endPointMarkerId.value,
       transportType: currentTransportType.value
     });
-    
+
     await searchObject.createNavigation(startPointMarkerId.value, endPointMarkerId.value, currentTransportType.value);
-    console.log('导航路线创建成功，准备获取导航信息');
-    
+    console.log("导航路线创建成功，准备获取导航信息");
+
     // 获取导航路线信息
     const navigationResponse = searchObject.getNavigationInfo();
-    console.log('获取到导航信息:', navigationResponse);
-    
+    console.log("获取到导航信息:", navigationResponse);
+
     // 检查是否有路径数据
     if (!navigationResponse || !navigationResponse.route || !navigationResponse.route.paths || navigationResponse.route.paths.length === 0) {
-      console.error('导航响应中没有有效的路径数据');
-      ElMessage.error('未能获取到有效的导航路径');
+      console.error("导航响应中没有有效的路径数据");
+      ElMessage.error("未能获取到有效的导航路径");
       return;
     }
-    
+
     // 重置路线选择状态
     alternativeRoutes.value = [];
     currentRouteIndex.value = 0;
-    
+
     if (navigationResponse && navigationResponse.route && navigationResponse.route.paths && navigationResponse.route.paths.length > 0) {
       // 处理主路线
       const mainPath = navigationResponse.route.paths[0];
       routeTotalDistance.value = mainPath.distance || 0;
       routeTotalDuration.value = mainPath.duration || 0;
-      
-      console.log('主路线信息:', {
+
+      console.log("主路线信息:", {
         distance: mainPath.distance,
         duration: mainPath.duration,
         steps: mainPath.steps?.length || 0
       });
-      
+
       // 检查步骤中是否包含polyline数据
       if (mainPath.steps && mainPath.steps.length > 0) {
         const hasPolyline = mainPath.steps.some(step => step.polyline);
-        console.log('步骤中是否包含polyline数据:', hasPolyline);
+        console.log("步骤中是否包含polyline数据:", hasPolyline);
         if (!hasPolyline) {
-          console.warn('步骤中没有polyline数据，可能无法正确绘制路线');
+          console.warn("步骤中没有polyline数据，可能无法正确绘制路线");
         }
       }
-      
+
       // 处理路线步骤
       const steps = mainPath.steps || [];
       updateRouteDetails(steps);
-      
+
       // 处理备选路线
       if (navigationResponse.route.paths.length > 1) {
         // 添加主路线到备选路线列表
@@ -831,7 +847,7 @@ const createRouteNavigation = async () => {
           steps: mainPath.steps || [],
           isMain: true
         });
-        
+
         // 添加其他备选路线
         for (let i = 1; i < navigationResponse.route.paths.length; i++) {
           const path = navigationResponse.route.paths[i];
@@ -843,87 +859,87 @@ const createRouteNavigation = async () => {
             isMain: false
           });
         }
-        
-        console.log('共找到', alternativeRoutes.value.length, '条备选路线');
+
+        console.log("共找到", alternativeRoutes.value.length, "条备选路线");
       }
-      
-      console.log('路线详情准备完成，共', routeDetails.value.length, '个步骤');
+
+      console.log("路线详情准备完成，共", routeDetails.value.length, "个步骤");
       // 显示路线详情
       showRouteDetails.value = true;
-      console.log('设置 showRouteDetails =', showRouteDetails.value);
+      console.log("设置 showRouteDetails =", showRouteDetails.value);
     } else {
       // 如果没有路线详情，尝试使用默认值显示简单的路线信息
       routeTotalDistance.value = 0;
       routeTotalDuration.value = 0;
-      
+
       routeDetails.value = [
         {
-          action: 'start',
-          instruction: '起点',
+          action: "start",
+          instruction: "起点",
           distance: 0,
           duration: 0,
-          roadName: ''
+          roadName: ""
         },
         {
-          action: 'straight',
-          instruction: '沿道路直行',
+          action: "straight",
+          instruction: "沿道路直行",
           distance: 0,
           duration: 0,
-          roadName: '未知道路'
+          roadName: "未知道路"
         },
         {
-          action: 'end',
-          instruction: '终点',
+          action: "end",
+          instruction: "终点",
           distance: 0,
           duration: 0,
-          roadName: ''
+          roadName: ""
         }
       ];
-      
+
       // 显示路线详情
       showRouteDetails.value = true;
     }
-    
-    ElMessage.success('导航路线已生成');
+
+    ElMessage.success("导航路线已生成");
     // 检查路线详情面板可见性
     setTimeout(checkRouteDetailsVisibility, 100);
   } catch (error) {
-    console.error('创建导航路线失败:', error);
-    ElMessage.error('创建导航路线失败');
+    console.error("创建导航路线失败:", error);
+    ElMessage.error("创建导航路线失败");
   }
 };
 
 // 解析步骤指令中的行动
 const parseStepAction = (instruction: string): string => {
-  if (!instruction) return 'straight';
-  
-  const leftTurns = ['左转', '向左转', '左前方转弯', '左后方转弯'];
-  const rightTurns = ['右转', '向右转', '右前方转弯', '右后方转弯'];
-  const slightLeftTurns = ['稍向左转', '左前方行驶'];
-  const slightRightTurns = ['稍向右转', '右前方行驶'];
-  const uTurns = ['掉头', 'U形转弯', '调头'];
-  
+  if (!instruction) return "straight";
+
+  const leftTurns = ["左转", "向左转", "左前方转弯", "左后方转弯"];
+  const rightTurns = ["右转", "向右转", "右前方转弯", "右后方转弯"];
+  const slightLeftTurns = ["稍向左转", "左前方行驶"];
+  const slightRightTurns = ["稍向右转", "右前方行驶"];
+  const uTurns = ["掉头", "U形转弯", "调头"];
+
   for (const term of leftTurns) {
-    if (instruction.includes(term)) return 'left';
+    if (instruction.includes(term)) return "left";
   }
-  
+
   for (const term of rightTurns) {
-    if (instruction.includes(term)) return 'right';
+    if (instruction.includes(term)) return "right";
   }
-  
+
   for (const term of slightLeftTurns) {
-    if (instruction.includes(term)) return 'slight-left';
+    if (instruction.includes(term)) return "slight-left";
   }
-  
+
   for (const term of slightRightTurns) {
-    if (instruction.includes(term)) return 'slight-right';
+    if (instruction.includes(term)) return "slight-right";
   }
-  
+
   for (const term of uTurns) {
-    if (instruction.includes(term)) return 'uturn';
+    if (instruction.includes(term)) return "uturn";
   }
-  
-  return 'straight';
+
+  return "straight";
 };
 
 // 清除路线点
@@ -934,49 +950,49 @@ const clearRoutePoints = () => {
       searchObject.removeMarker(startPointMarkerId.value);
       startPointMarkerId.value = null;
     }
-    
+
     // 清除终点标记
     if (endPointMarkerId.value) {
       searchObject.removeMarker(endPointMarkerId.value);
       endPointMarkerId.value = null;
     }
-    
+
     // 清除导航路线
     searchObject.clearNavigation();
   }
-  
+
   // 重置状态
   startPointId.value = null;
   endPointId.value = null;
 };
 
 // 修改 handleSelect 方法，避免与起点终点按钮冲突
-const handleSelect = (result) => {
+const handleSelect = result => {
   // 调用 searchObject 的 selectResult 方法
   if (searchObject) {
     searchObject.selectResult(result);
-    
+
     // 记录当前选中的标记
     selectedMarker.value = result.id;
-    
+
     // 如果是导航搜索结果，自动设置起点和终点
     if (currentSearchType.value === SearchType.NAVIGATION) {
-      if (result.navigationRole === 'origin') {
+      if (result.navigationRole === "origin") {
         setAsStartPoint(result);
-      } else if (result.navigationRole === 'destination') {
+      } else if (result.navigationRole === "destination") {
         setAsEndPoint(result);
       }
     }
   }
-  
+
   // 触发 select 事件
-  emit('select', result);
+  emit("select", result);
 };
 
 // 在组件销毁时清理资源
 onBeforeUnmount(() => {
   clearRoutePoints();
-  
+
   // 关闭路线详情
   showRouteDetails.value = false;
   routeDetails.value = [];
@@ -988,25 +1004,25 @@ onBeforeUnmount(() => {
 const getRouteDetailsPanelPosition = () => {
   // 根据搜索框的位置决定路线详情面板的位置
   switch (props.position) {
-    case 'top-left':
-      return 'panel-right';
-    case 'top-right':
-      return 'panel-left';
-    case 'bottom-left':
-      return 'panel-top-right';
-    case 'bottom-right':
-      return 'panel-top-left';
+    case "top-left":
+      return "panel-right";
+    case "top-right":
+      return "panel-left";
+    case "bottom-left":
+      return "panel-top-right";
+    case "bottom-right":
+      return "panel-top-left";
     default:
-      return 'panel-left';
+      return "panel-left";
   }
 };
 
 // 修改 getMarkerTitle 方法
 const getMarkerTitle = (markerId: string | null): string => {
   if (!markerId || !searchObject) {
-    return '未设置';
+    return "未设置";
   }
-  
+
   // 从搜索结果中查找对应的标记信息
   const result = results.value.find(r => {
     if (r.id === startPointId.value && markerId === startPointMarkerId.value) {
@@ -1017,8 +1033,8 @@ const getMarkerTitle = (markerId: string | null): string => {
     }
     return false;
   });
-  
-  return result?.name || '未知位置';
+
+  return result?.name || "未知位置";
 };
 
 defineExpose({
@@ -1027,8 +1043,8 @@ defineExpose({
   },
   setSearchObject: (_searchObject: SearchObject) => {
     searchObject = _searchObject;
-    console.log('搜索对象已初始化', searchObject);
-    
+    console.log("搜索对象已初始化", searchObject);
+
     // 设置初始搜索类型
     if (searchObject) {
       searchObject.setSearchType(currentSearchType.value);
@@ -1045,7 +1061,7 @@ defineExpose({
     results.value = [];
     showResults.value = false;
   }
-})
+});
 
 // 处理触摸开始
 const handleTouchStart = (event: TouchEvent) => {
@@ -1059,27 +1075,27 @@ const handleTouchStart = (event: TouchEvent) => {
 const handleTouchMove = (event: TouchEvent) => {
   touchCurrentY.value = event.touches[0].clientY;
   const deltaY = touchCurrentY.value - touchStartY.value;
-  
+
   // 只处理向下拖动
   if (deltaY > 0) {
     isDragging.value = true;
-    
+
     // 应用变换，但有阻尼效果
     if (routeDetailsPanel.value) {
       const transform = Math.min(deltaY * 0.5, 200);
-      
+
       // 检查是否为移动设备（根据CSS媒体查询的结果）
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-      
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
       if (isMobile) {
         // 在移动设备上，我们使用CSS变量来控制拖动
-        routeDetailsPanel.value.style.setProperty('--drag-y', `${transform}px`);
+        routeDetailsPanel.value.style.setProperty("--drag-y", `${transform}px`);
         routeDetailsPanel.value.style.transform = `translateX(-50%) translateY(${transform}px)`;
       } else {
         // 在桌面设备上，我们直接使用transform
         routeDetailsPanel.value.style.transform = `translateY(${transform}px)`;
       }
-      
+
       // 如果拖动超过阈值，显示关闭提示
       if (deltaY > dragThreshold) {
         isClosing.value = true;
@@ -1087,7 +1103,7 @@ const handleTouchMove = (event: TouchEvent) => {
         isClosing.value = false;
       }
     }
-    
+
     // 阻止默认行为（页面滚动）
     event.preventDefault();
   }
@@ -1096,22 +1112,22 @@ const handleTouchMove = (event: TouchEvent) => {
 // 处理触摸结束
 const handleTouchEnd = () => {
   const deltaY = touchCurrentY.value - touchStartY.value;
-  
+
   if (deltaY > dragThreshold) {
     // 如果拖动超过阈值，关闭面板
     closeRouteDetails();
   } else if (routeDetailsPanel.value) {
     // 否则恢复原位
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
     if (isMobile) {
-      routeDetailsPanel.value.style.setProperty('--drag-y', '0px');
-      routeDetailsPanel.value.style.transform = 'translateX(-50%)';
+      routeDetailsPanel.value.style.setProperty("--drag-y", "0px");
+      routeDetailsPanel.value.style.transform = "translateX(-50%)";
     } else {
-      routeDetailsPanel.value.style.transform = '';
+      routeDetailsPanel.value.style.transform = "";
     }
   }
-  
+
   isDragging.value = false;
   isClosing.value = false;
 };
@@ -1121,7 +1137,7 @@ const handleNavInputChange = () => {
   if (navSearchTimer) {
     clearTimeout(navSearchTimer);
   }
-  
+
   navSearchTimer = window.setTimeout(() => {
     // 暂时不做自动搜索，只在点击查询按钮时搜索
   }, props.debounceTime);
@@ -1130,39 +1146,39 @@ const handleNavInputChange = () => {
 // 处理导航搜索
 const handleNavSearch = async () => {
   if (!navStartPoint.value.trim() || !navEndPoint.value.trim()) {
-    ElMessage.warning('请输入起点和终点');
+    ElMessage.warning("请输入起点和终点");
     return;
   }
-  
+
   try {
     if (!searchObject) {
-      console.error('搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法');
-      ElMessage.error('搜索功能未准备好，请稍后再试');
+      console.error("搜索对象未初始化，请确保在使用搜索功能前调用 setSearchObject 方法");
+      ElMessage.error("搜索功能未准备好，请稍后再试");
       return;
     }
-    
+
     // 如果导航路线详情面板已打开，则关闭
     if (showRouteDetails.value) {
       closeRouteDetails();
     }
-    
+
     // 构建导航搜索关键词（起点-终点格式）
     const keyword = `${navStartPoint.value} → ${navEndPoint.value}`;
     searchText.value = keyword;
-    
+
     console.log(`开始导航搜索: ${keyword}`);
     const searchResults = await searchObject.search(keyword, props.searchBoxConfig as any, SearchType.NAVIGATION);
-    console.log('导航搜索结果:', searchResults);
+    console.log("导航搜索结果:", searchResults);
     results.value = searchResults;
     showResults.value = true;
-    emit('search', searchResults);
-    
+    emit("search", searchResults);
+
     if (searchResults.length > 0) {
-      ElMessage.info('请选择起点和终点以创建导航路线');
+      ElMessage.info("请选择起点和终点以创建导航路线");
     }
   } catch (error) {
-    console.error('导航搜索失败:', error);
-    ElMessage.error('导航搜索失败: ' + (error.message || '未知错误'));
+    console.error("导航搜索失败:", error);
+    ElMessage.error("导航搜索失败: " + (error.message || "未知错误"));
     results.value = [];
     showResults.value = true;
   }
@@ -1170,12 +1186,12 @@ const handleNavSearch = async () => {
 
 // 清除导航起点
 const clearNavStartPoint = () => {
-  navStartPoint.value = '';
+  navStartPoint.value = "";
 };
 
 // 清除导航终点
 const clearNavEndPoint = () => {
-  navEndPoint.value = '';
+  navEndPoint.value = "";
 };
 
 // 交换起点和终点
@@ -1210,21 +1226,21 @@ $transition-time: 0.2s;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
   background-color: #fff;
-  
+
   .search-container {
     display: flex;
     padding: 10px;
     border-bottom: 1px solid rgba($border-color, 0.6);
   }
-  
+
   .search-type-selector {
     margin-right: 8px;
     width: 85px;
-    
+
     .custom-select {
       position: relative;
   height: 36px;
-      
+
       select {
         appearance: none;
         width: 100%;
@@ -1237,18 +1253,18 @@ $transition-time: 0.2s;
         color: $text-primary;
         cursor: pointer;
         transition: all $transition-time;
-        
+
         &:hover {
           border-color: $border-hover;
         }
-      
+
       &:focus {
           outline: none;
           border-color: $primary-color;
           box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
         }
       }
-      
+
       .select-arrow {
         position: absolute;
         top: 50%;
@@ -1263,13 +1279,13 @@ $transition-time: 0.2s;
       }
     }
   }
-  
+
   // 导航搜索专用样式
   .navigation-input-container {
     flex: 1;
     display: flex;
     flex-direction: column;
-    
+
     .navigation-input-group {
 <<<<<<< HEAD
     display: flex;
@@ -1279,7 +1295,7 @@ $transition-time: 0.2s;
       flex-direction: row;
 >>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
       margin-bottom: 8px;
-      
+
       .nav-input {
         flex: 1;
   position: relative;
@@ -1290,16 +1306,16 @@ $transition-time: 0.2s;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
         background-color: #fff;
-        
+
         &:hover {
           border-color: $border-hover;
         }
-        
+
         &:focus-within {
           border-color: $primary-color;
           box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
         }
-        
+
         .nav-point-icon {
           position: absolute;
           left: 8px;
@@ -1309,15 +1325,15 @@ $transition-time: 0.2s;
           background-repeat: no-repeat;
           background-position: center;
         }
-        
+
         .start-point-icon {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
         }
-        
+
         .end-point-icon {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
         }
-        
+
         input {
 <<<<<<< HEAD
     width: 100%;
@@ -1329,12 +1345,12 @@ $transition-time: 0.2s;
           outline: none;
           font-size: 14px;
           color: $text-primary;
-          
+
           &::placeholder {
             color: $text-muted;
           }
         }
-        
+
         .nav-clear-btn {
           position: absolute;
           right: 8px;
@@ -1350,14 +1366,14 @@ $transition-time: 0.2s;
           justify-content: center;
           cursor: pointer;
           border-radius: 50%;
-          
+
           &:hover {
             color: $text-secondary;
             background-color: #f0f0f0;
           }
         }
       }
-      
+
       .nav-swap-btn {
         width: 24px;
         height: 24px;
@@ -1369,18 +1385,18 @@ $transition-time: 0.2s;
         justify-content: center;
         cursor: pointer;
         color: $text-secondary;
-        
+
         &:hover {
           background-color: #e0e0e0;
           color: $primary-color;
         }
       }
     }
-    
+
     .transport-mode-selector {
       display: flex;
       margin-bottom: 8px;
-      
+
       .transport-mode {
         width: 36px;
 <<<<<<< HEAD
@@ -1395,19 +1411,19 @@ $transition-time: 0.2s;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        
+
         &:hover {
           background-color: #e8e8e8;
         }
-        
+
         &.active {
           background-color: rgba($primary-color, 0.1);
-          
+
           .transport-icon {
             opacity: 1;
           }
         }
-        
+
         .transport-icon {
           width: 20px;
           height: 20px;
@@ -1415,30 +1431,30 @@ $transition-time: 0.2s;
           background-repeat: no-repeat;
           background-position: center;
           opacity: 0.7;
-          
+
           &.driving-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
           }
-          
+
           &.transit-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2303A9F4'%3E%3Cpath d='M4 16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v8zm4.5-3c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3Cpath d='M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zm0 2c3.71 0 5.13.46 5.67 1H6.43c.6-.52 2.05-1 5.57-1z' fill='%2303A9F4'/%3E%3C/svg%3E");
           }
-          
+
           &.walking-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
           }
-          
+
           &.bicycling-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
           }
-          
+
           &.ebike-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
           }
         }
       }
     }
-    
+
     .nav-search-button {
       height: 36px;
       border: none;
@@ -1455,15 +1471,15 @@ $transition-time: 0.2s;
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s;
-      
+
       &:hover {
         background-color: $primary-hover;
       }
-      
+
       &:active {
         background-color: $primary-active;
       }
-      
+
       .nav-search-icon {
         width: 16px;
         height: 16px;
@@ -1475,12 +1491,12 @@ $transition-time: 0.2s;
       }
     }
   }
-  
+
   .search-input-container {
     position: relative;
     flex: 1;
     height: 36px;
-  
+
     input, select {
     width: 100%;
       height: 100%;
@@ -1490,27 +1506,27 @@ $transition-time: 0.2s;
     font-size: 14px;
       color: $text-primary;
       transition: all $transition-time;
-      
+
       &::placeholder {
         color: $text-muted;
       }
-      
+
       &:hover {
         border-color: $border-hover;
       }
-    
+
     &:focus {
   outline: none;
         border-color: $primary-color;
         box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
       }
-      
+
       &.coordinate-input {
         font-family: 'Courier New', monospace;
         letter-spacing: 0.5px;
       }
     }
-    
+
     .search-button {
   position: absolute;
       top: 0;
@@ -1526,12 +1542,12 @@ $transition-time: 0.2s;
       color: $text-secondary;
       border-radius: 0 $border-radius $border-radius 0;
       transition: all $transition-time;
-    
+
     &:hover {
         color: $primary-color;
         background-color: rgba($primary-color, 0.05);
       }
-      
+
       &:active {
         color: $primary-active;
       }
@@ -1542,29 +1558,29 @@ $transition-time: 0.2s;
   max-height: 300px;
   overflow-y: auto;
     background-color: #fff;
-    
+
     &::-webkit-scrollbar {
       width: 5px;
     }
-    
+
     &::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background: #ccc;
       border-radius: 3px;
     }
-    
+
     &::-webkit-scrollbar-thumb:hover {
       background: #aaa;
     }
-    
+
     &.empty-results {
       padding: 30px 0;
     }
   }
-  
+
   .result-item {
     display: flex;
     flex-direction: column;
@@ -1572,27 +1588,27 @@ $transition-time: 0.2s;
     border-bottom: 1px solid rgba($border-color, 0.4);
     transition: background-color $transition-time;
     position: relative;
-    
+
     &:hover {
       background-color: rgba($primary-color, 0.03);
     }
-    
+
     &.navigation-origin {
       background-color: rgba(#1aad19, 0.05);
-      
+
       &:hover {
         background-color: rgba(#1aad19, 0.1);
       }
     }
-    
+
     &.navigation-destination {
       background-color: rgba(#ff525d, 0.05);
-      
+
       &:hover {
         background-color: rgba(#ff525d, 0.1);
       }
     }
-    
+
     .result-content {
 <<<<<<< HEAD
     cursor: pointer;
@@ -1604,13 +1620,13 @@ $transition-time: 0.2s;
       margin-bottom: 8px;
       position: relative;
       padding-left: 15px;
-    
+
     &:hover {
         .result-title {
           color: $primary-color;
         }
       }
-      
+
       .navigation-role-badge {
         position: absolute;
         left: -5px;
@@ -1624,11 +1640,11 @@ $transition-time: 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
-        
+
         &.origin-badge {
           background-color: #1aad19;
         }
-        
+
         &.destination-badge {
           background-color: #ff525d;
         }
@@ -1654,7 +1670,7 @@ $transition-time: 0.2s;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      
+
       .location-icon {
         display: inline-block;
         width: 12px;
@@ -1665,14 +1681,14 @@ $transition-time: 0.2s;
         opacity: 0.7;
       }
     }
-    
+
     .result-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
     }
-    
+
     .result-distance {
       font-size: 12px;
       color: $primary-color;
@@ -1682,12 +1698,12 @@ $transition-time: 0.2s;
       white-space: nowrap;
       margin-right: 8px;
     }
-    
+
     .action-buttons {
       display: flex;
       gap: 6px;
     }
-    
+
     .action-btn {
     display: flex;
       align-items: center;
@@ -1700,43 +1716,43 @@ $transition-time: 0.2s;
       color: $text-secondary;
       cursor: pointer;
       transition: all 0.2s;
-      
+
       &:hover {
         border-color: $primary-color;
         color: $primary-color;
       }
-      
+
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
       color: white;
       }
-      
+
       .start-icon, .end-icon {
         display: inline-block;
         width: 12px;
         height: 12px;
         margin-right: 3px;
       }
-      
+
       .start-icon {
         background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
         background-size: contain;
       }
-      
+
       .end-icon {
         background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
         background-size: contain;
       }
     }
   }
-  
+
   .navigation-panel {
     padding: 12px;
     display: block;
     justify-content: space-between;
     border-top: 1px solid rgba($border-color, 0.6);
-    
+
     .route-endpoints {
       display: flex;
       align-items: center;
@@ -1745,30 +1761,30 @@ $transition-time: 0.2s;
       padding: 8px;
       background-color: #f8f8f8;
       border-radius: $border-radius;
-      
+
       .endpoint {
         display: flex;
         align-items: center;
         flex: 1;
         min-width: 0;
-        
+
         .endpoint-icon {
           width: 20px;
           height: 20px;
           margin-right: 8px;
           flex-shrink: 0;
         }
-        
+
         .start-icon {
           background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
           background-size: contain;
         }
-        
+
         .end-icon {
           background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
           background-size: contain;
         }
-        
+
         .endpoint-text {
           font-size: 13px;
           color: $text-primary;
@@ -1777,7 +1793,7 @@ $transition-time: 0.2s;
           text-overflow: ellipsis;
         }
       }
-      
+
       .endpoint-divider {
         width: 1px;
         height: 20px;
@@ -1786,7 +1802,7 @@ $transition-time: 0.2s;
         flex-shrink: 0;
       }
     }
-    
+
     .transport-type-selector {
       display: flex;
       gap: 8px;
@@ -1794,7 +1810,7 @@ $transition-time: 0.2s;
       justify-content: space-between;
       border-bottom: 1px solid rgba($border-color, 0.4);
       margin-bottom: 10px;
-      
+
       .transport-type-option {
         display: flex;
         align-items: center;
@@ -1806,20 +1822,20 @@ $transition-time: 0.2s;
         transition: all 0.2s;
         width: 40px;
         height: 40px;
-        
+
         &:hover {
           background-color: rgba($primary-color, 0.05);
         }
-        
+
         &.active {
           background-color: rgba($primary-color, 0.1);
-          
+
           .transport-icon {
             transform: scale(1.1);
             opacity: 1;
           }
         }
-        
+
         .transport-icon {
           display: block;
           width: 24px;
@@ -1829,28 +1845,28 @@ $transition-time: 0.2s;
           background-position: center;
           transition: transform 0.2s;
           opacity: 0.7;
-          
+
           &.driving-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
           }
-          
+
           &.transit-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2303A9F4'%3E%3Cpath d='M4 16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v8zm4.5-3c-.83 0-1.5-.67-1.5-1.5S7.67 10 8.5 10s1.5.67 1.5 1.5S9.33 13 8.5 13zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3Cpath d='M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zm0 2c3.71 0 5.13.46 5.67 1H6.43c.6-.52 2.05-1 5.57-1z' fill='%2303A9F4'/%3E%3C/svg%3E");
           }
-          
+
           &.walking-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
           }
-          
+
           &.bicycling-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
           }
-          
+
           &.ebike-icon {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
           }
         }
-        
+
         .transport-label {
           font-size: 12px;
           color: $text-secondary;
@@ -1879,16 +1895,16 @@ $transition-time: 0.2s;
       transition: all $transition-time;
       flex: 1;
       margin-right: 8px;
-      
+
       &:hover {
         background-color: $primary-hover;
       }
-      
+
       &:active {
         background-color: $primary-active;
         transform: translateY(1px);
       }
-      
+
       .navigation-icon {
         display: inline-block;
   width: 16px;
@@ -1898,7 +1914,7 @@ $transition-time: 0.2s;
   background-size: contain;
       }
     }
-    
+
     .clear-button {
       padding: 8px 12px;
       border: 1px solid $border-color;
@@ -1907,18 +1923,18 @@ $transition-time: 0.2s;
       color: $text-secondary;
       cursor: pointer;
       transition: all $transition-time;
-      
+
       &:hover {
         border-color: $error-color;
         color: $error-color;
       }
-      
+
       &:active {
         background-color: rgba($error-color, 0.05);
       }
     }
   }
-  
+
   // 路线详情样式
   .route-details {
     border: 1px solid rgba($border-color, 0.6);
@@ -1934,31 +1950,31 @@ $transition-time: 0.2s;
     z-index: 1000;
     height: 100%;
     transition: transform 0.3s ease;
-    
+
     // 拖动状态
     &.is-dragging {
       transition: none;
     }
-    
+
     // 关闭状态
     &.is-closing {
       .drag-hint {
         opacity: 1;
         transform: translateY(0);
       }
-      
+
       .drag-handle-line {
         background-color: $primary-color;
       }
     }
-    
+
     // 下拉手柄
     .drag-handle {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 8px 0 4px;
-      
+
       .drag-handle-line {
         width: 40px;
         height: 4px;
@@ -1966,7 +1982,7 @@ $transition-time: 0.2s;
         border-radius: 2px;
         transition: background-color 0.3s ease;
       }
-      
+
       .drag-hint {
         font-size: 12px;
         color: $primary-color;
@@ -1976,20 +1992,20 @@ $transition-time: 0.2s;
         transition: all 0.3s ease;
       }
     }
-    
+
     // 根据搜索框位置调整路线详情面板位置
     &.panel-left {
       right: 100%;
       left: auto;
       margin-right: 10px;
     }
-    
+
     &.panel-right {
       left: 100%;
       right: auto;
       margin-left: 10px;
     }
-    
+
     &.panel-top-left {
       right: 0;
       bottom: 100%;
@@ -1997,7 +2013,7 @@ $transition-time: 0.2s;
       margin-bottom: 10px;
       margin-right: 0;
     }
-    
+
     &.panel-top-right {
       left: 0;
       bottom: 100%;
@@ -2005,7 +2021,7 @@ $transition-time: 0.2s;
       margin-bottom: 10px;
       margin-left: 0;
     }
-    
+
     // 调试信息样式
     .debug-info {
       padding: 8px;
@@ -2013,47 +2029,47 @@ $transition-time: 0.2s;
       border-bottom: 1px dashed #ccc;
       font-size: 12px;
       color: #666;
-      
+
       .debug-title {
         font-weight: bold;
         margin-bottom: 4px;
         color: #333;
       }
-      
+
       .debug-item {
         display: flex;
         margin-bottom: 2px;
-        
+
         .debug-label {
           width: 80px;
           font-weight: 500;
         }
-        
+
         .debug-value {
           flex: 1;
         }
       }
     }
-    
+
     // 路线选择样式
     .route-options {
       padding: 10px 15px;
       border-bottom: 1px solid rgba($border-color, 0.6);
-      
+
       .route-option-title {
         font-size: 14px;
         font-weight: 500;
         color: $text-primary;
         margin-bottom: 8px;
       }
-      
+
       .route-options-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
         max-height: 200px;
         overflow-y: auto;
-        
+
         .route-option {
           display: flex;
           justify-content: space-between;
@@ -2063,74 +2079,74 @@ $transition-time: 0.2s;
           border: 1px solid rgba($border-color, 0.6);
           cursor: pointer;
           transition: all 0.2s;
-          
+
           &:hover {
             border-color: $primary-color;
             background-color: rgba($primary-color, 0.03);
           }
-          
+
           &.active {
             border-color: $primary-color;
             background-color: rgba($primary-color, 0.08);
-            
+
             .route-option-name {
               color: $primary-color;
               font-weight: 500;
             }
           }
-          
+
           .route-option-info {
             flex: 1;
             min-width: 0;
-            
+
             .route-option-name {
               font-size: 14px;
               color: $text-primary;
               margin-bottom: 4px;
             }
-            
+
             .route-option-stats {
               display: flex;
               gap: 8px;
               font-size: 12px;
               color: $text-secondary;
-              
+
               .route-option-distance {
                 color: $text-secondary;
               }
-              
+
               .route-option-duration {
                 color: $text-secondary;
               }
             }
           }
-          
+
           .route-option-traffic {
             padding: 2px 6px;
             border-radius: 2px;
             font-size: 12px;
             font-weight: 500;
-            
+
             &.traffic-smooth {
               background-color: rgba(#52c41a, 0.1);
               color: #52c41a;
             }
-            
+
             &.traffic-normal {
               background-color: rgba(#1890ff, 0.1);
               color: #1890ff;
             }
-            
+
             &.traffic-slow {
               background-color: rgba(#faad14, 0.1);
               color: #faad14;
             }
-            
+
             &.traffic-congested {
               background-color: rgba(#f5222d, 0.1);
               color: #f5222d;
             }
-            
+
             &.traffic-unknown {
               background-color: rgba($text-secondary, 0.1);
               color: $text-secondary;
@@ -2139,7 +2155,7 @@ $transition-time: 0.2s;
         }
       }
     }
-    
+
     .route-summary {
       display: flex;
       justify-content: space-between;
@@ -2148,28 +2164,28 @@ $transition-time: 0.2s;
       background-color: #f5f5f5;
       border-top-left-radius: $border-radius;
       border-top-right-radius: $border-radius;
-      
+
       .route-info {
         display: flex;
         justify-content: space-between;
-        
+
         .route-distance {
           font-size: 16px;
           font-weight: 500;
           color: #333;
         }
-        
+
         .route-duration {
           font-size: 14px;
           color: #666;
           margin-top: 4px;
         }
       }
-      
+
       .route-actions {
         display: flex;
         align-items: center;
-        
+
         .toggle-details-button {
           border: none;
           background: none;
@@ -2180,19 +2196,19 @@ $transition-time: 0.2s;
           display: flex;
           align-items: center;
           margin-right: 8px;
-          
+
           .arrow-icon {
             display: inline-block;
             width: 0;
             height: 0;
             margin-left: 4px;
-            
+
             &.down {
               border-left: 4px solid transparent;
               border-right: 4px solid transparent;
               border-top: 4px solid $primary-color;
             }
-            
+
             &.up {
               border-left: 4px solid transparent;
               border-right: 4px solid transparent;
@@ -2200,7 +2216,7 @@ $transition-time: 0.2s;
             }
           }
         }
-        
+
         .close-button {
           width: 24px;
           height: 24px;
@@ -2212,11 +2228,11 @@ $transition-time: 0.2s;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          
+
           &:hover {
             background-color: #e0e0e0;
           }
-          
+
           .close-icon {
             font-size: 16px;
             line-height: 1;
@@ -2224,44 +2240,44 @@ $transition-time: 0.2s;
         }
       }
     }
-    
+
     .route-steps {
       overflow-y: auto;
       padding: 0 0 10px;
-      
+
       &::-webkit-scrollbar {
         width: 5px;
       }
-      
+
       &::-webkit-scrollbar-track {
         background: #f1f1f1;
       }
-      
+
       &::-webkit-scrollbar-thumb {
         background: #ccc;
         border-radius: 3px;
       }
-      
+
       &::-webkit-scrollbar-thumb:hover {
         background: #aaa;
       }
-      
+
       .route-step {
         display: flex;
         padding: 10px 15px;
         position: relative;
-        
+
         &:hover {
           background-color: #f9f9f9;
         }
-        
+
         .step-icon-container {
           width: 24px;
           display: flex;
           flex-direction: column;
           align-items: center;
           margin-right: 12px;
-          
+
           .step-icon {
             width: 24px;
             height: 24px;
@@ -2276,46 +2292,46 @@ $transition-time: 0.2s;
             background-position: center;
   background-repeat: no-repeat;
             background-size: 14px;
-            
+
             &.icon-start {
               background-color: #1aad19;
               border-color: #1aad19;
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
-            
+
             &.icon-end {
               background-color: #ff525d;
               border-color: #ff525d;
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
-            
+
             &.icon-straight {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z'/%3E%3C/svg%3E");
             }
-            
+
             &.icon-left {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z'/%3E%3C/svg%3E");
             }
-            
+
             &.icon-right {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z'/%3E%3C/svg%3E");
             }
-            
+
             &.icon-slight-left {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M14.12 15.88L9.24 11l4.88-4.88L13 5l-6 6 6 6z'/%3E%3C/svg%3E");
               transform: rotate(-45deg);
             }
-            
+
             &.icon-slight-right {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M9.88 15.88L14.76 11l-4.88-4.88L11 5l6 6-6 6z'/%3E%3C/svg%3E");
               transform: rotate(45deg);
             }
-            
+
             &.icon-uturn {
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M7 18v-6c0-3.31 2.69-6 6-6s6 2.69 6 6v7h2v-7c0-4.42-3.58-8-8-8s-8 3.58-8 8v6H3l4 4 4-4H7z'/%3E%3C/svg%3E");
             }
           }
-          
+
           .step-line {
             position: absolute;
             width: 2px;
@@ -2326,30 +2342,30 @@ $transition-time: 0.2s;
             z-index: 1;
           }
         }
-        
+
         .step-content {
           flex: 1;
-          
+
           .step-instruction {
             font-size: 14px;
             color: #333;
             line-height: 1.4;
             margin-bottom: 4px;
           }
-          
+
           .step-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
             color: #999;
-            
+
             .road-name {
               color: #666;
               margin-right: 8px;
               font-weight: 500;
             }
-            
+
             .step-distance {
               color: #999;
             }
@@ -2413,12 +2429,12 @@ $transition-time: 0.2s;
   .search-box {
     width: calc(100% - 20px);
     max-width: 340px;
-    
+
     .action-buttons {
       .action-btn {
         padding: 3px 6px;
         font-size: 11px;
-        
+
         .start-icon, .end-icon {
           width: 10px;
           height: 10px;
@@ -2426,28 +2442,28 @@ $transition-time: 0.2s;
         }
       }
     }
-    
+
     // 导航搜索适配
     .navigation-input-container {
       .navigation-input-group {
         flex-direction: column;
-        
+
         .nav-input {
           margin-bottom: 8px;
         }
-        
+
         .nav-swap-btn {
           transform: rotate(90deg);
           margin: 0 auto 8px;
         }
       }
-      
+
       .transport-mode-selector {
         justify-content: space-between;
-        
+
         .transport-mode {
           margin-right: 4px;
-          
+
           &:last-child {
             margin-right: 0;
           }
@@ -2455,7 +2471,7 @@ $transition-time: 0.2s;
       }
     }
   }
-  
+
   .route-details {
     position: fixed;
     left: 50%;
@@ -2468,25 +2484,25 @@ $transition-time: 0.2s;
     border: 1px solid rgba($border-color, 0.6);
     max-height: 60vh;
     overflow-y: auto;
-    
+
     &.is-dragging {
       overflow-y: hidden;
     }
-    
+
     .drag-handle {
       padding: 12px 0 8px;
-      
+
       .drag-handle-line {
         width: 60px;
         height: 5px;
       }
-      
+
       .drag-hint {
         font-size: 13px;
         margin-top: 6px;
       }
     }
-    
+
     &.panel-left,
     &.panel-right,
     &.panel-top-left,
@@ -2497,47 +2513,47 @@ $transition-time: 0.2s;
       top: auto;
       bottom: 10px;
       margin: 0;
-      
+
       &.is-dragging {
         transform: translateX(-50%) translateY(var(--drag-y, 0));
       }
     }
-    
+
     .route-options {
       .route-option {
         padding: 6px 10px;
-        
+
         .route-option-info {
           .route-option-name {
             font-size: 13px;
           }
-          
+
           .route-option-stats {
             font-size: 11px;
           }
         }
-        
+
         .route-option-traffic {
           font-size: 11px;
           padding: 1px 4px;
         }
       }
     }
-    
+
     .route-steps {
       .route-step {
         padding: 8px 12px;
-        
+
         .step-icon {
           width: 20px;
           height: 20px;
         }
-        
+
         .step-content {
           .step-instruction {
             font-size: 13px;
           }
-          
+
           .step-info {
             font-size: 11px;
           }
@@ -2546,4 +2562,4 @@ $transition-time: 0.2s;
     }
   }
 }
-</style> 
+</style>

@@ -178,7 +178,7 @@
 
 <script setup lang="ts">
 import { execArthasCommand } from "@/api/arthas-http";
-import { ref, watch, onMounted, onBeforeUnmount, defineProps } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 

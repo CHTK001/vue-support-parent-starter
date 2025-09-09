@@ -1,22 +1,22 @@
 <script setup>
-import { ref, defineProps, defineEmits, computed } from 'vue';
-import { IconifyIconOnline } from '@iconify/vue';
+import { ref, computed } from "vue";
+import { IconifyIconOnline } from "@iconify/vue";
 
 const props = defineProps({
   accounts: {
     type: Array,
-    required: true
+    required: true,
   },
   selectedAccountId: {
     type: String,
-    default: ''
-  }
+    default: "",
+  },
 });
 
-const emit = defineEmits(['select-account']);
+const emit = defineEmits(["select-account"]);
 
 const selectedAccount = computed(() => {
-  return props.accounts.find(account => account.emailAccountId === props.selectedAccountId) || props.accounts[0];
+  return props.accounts.find((account) => account.emailAccountId === props.selectedAccountId) || props.accounts[0];
 });
 
 const isDropdownOpen = ref(false);
@@ -26,7 +26,7 @@ const toggleDropdown = () => {
 };
 
 const selectAccount = (accountId) => {
-  emit('select-account', accountId);
+  emit("select-account", accountId);
   isDropdownOpen.value = false;
 };
 </script>
@@ -47,13 +47,7 @@ const selectAccount = (accountId) => {
     </div>
 
     <div class="email-account-selector__dropdown" v-if="isDropdownOpen">
-      <div 
-        v-for="account in accounts" 
-        :key="account.emailAccountId" 
-        class="email-account-selector__item"
-        :class="{ 'is-active': account.emailAccountId === selectedAccountId }"
-        @click="selectAccount(account.emailAccountId)"
-      >
+      <div v-for="account in accounts" :key="account.emailAccountId" class="email-account-selector__item" :class="{ 'is-active': account.emailAccountId === selectedAccountId }" @click="selectAccount(account.emailAccountId)">
         <div class="email-account-selector__item-avatar">
           <img :src="account.emailAccountAvatar" :alt="account.emailAccountName" />
           <div class="email-account-selector__item-badge" v-if="account.emailAccountUnreadCount > 0">
@@ -76,7 +70,7 @@ const selectAccount = (accountId) => {
 .email-account-selector {
   position: relative;
   width: 100%;
-  
+
   &__current {
     display: flex;
     align-items: center;
@@ -86,46 +80,46 @@ const selectAccount = (accountId) => {
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid var(--el-border-color-light);
-    
+
     &:hover {
       border-color: var(--el-color-primary);
     }
   }
-  
+
   &__avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     overflow: hidden;
     margin-right: 12px;
-    
+
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
   }
-  
+
   &__info {
     flex: 1;
   }
-  
+
   &__name {
     font-weight: 600;
     font-size: 16px;
     color: var(--el-text-color-primary);
   }
-  
+
   &__address {
     font-size: 13px;
     color: var(--el-text-color-secondary);
   }
-  
+
   &__toggle {
     font-size: 20px;
     color: var(--el-text-color-secondary);
   }
-  
+
   &__dropdown {
     position: absolute;
     top: calc(100% + 5px);
@@ -138,22 +132,22 @@ const selectAccount = (accountId) => {
     overflow: hidden;
     border: 1px solid var(--el-border-color-light);
   }
-  
+
   &__item {
     display: flex;
     align-items: center;
     padding: 12px 16px;
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: var(--el-fill-color-light);
     }
-    
+
     &.is-active {
       background-color: var(--el-color-primary-light-9);
     }
-    
+
     &-avatar {
       width: 32px;
       height: 32px;
@@ -161,14 +155,14 @@ const selectAccount = (accountId) => {
       overflow: hidden;
       margin-right: 12px;
       position: relative;
-      
+
       img {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
     }
-    
+
     &-badge {
       position: absolute;
       top: -4px;
@@ -184,22 +178,22 @@ const selectAccount = (accountId) => {
       justify-content: center;
       padding: 0 4px;
     }
-    
+
     &-info {
       flex: 1;
     }
-    
+
     &-name {
       font-weight: 500;
       font-size: 14px;
       color: var(--el-text-color-primary);
     }
-    
+
     &-address {
       font-size: 12px;
       color: var(--el-text-color-secondary);
     }
-    
+
     &-provider {
       font-size: 12px;
       font-weight: 600;

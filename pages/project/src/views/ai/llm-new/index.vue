@@ -6,14 +6,11 @@
     <el-button @click="handleOpenModuleManager" class="settings-btn" circle size="large" type="primary">
       <IconifyIconOnline icon="ep:setting" />
     </el-button>
-    <el-container class="llm-main-container">
-      <el-main class="chat-main">
-        <ChatComponent :form="form" :env="env" ref="chatComponentRef" />
-      </el-main>
-      <el-aside class="control-panel-container !h-full" id="aside">
-        <ControlPanel :form="form" :rules="rules" :model-list="modelList" :env="env" :show-role-setting="showRoleSetting" :is-open="settingOpen" @refresh="loadModule" @change-module="handleChangeModule" @open-module="handleOpenModule" @click-seed="handleClickSeed" @toggle="handlePanelToggle" />
-      </el-aside>
-    </el-container>
+    <div class="llm-main-container">
+      <div class="chat-main">
+        <ChatComponent :form="form" :env="env" :model-list="modelList" ref="chatComponentRef" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -44,8 +41,12 @@
     }
   }
 
+  .llm-main-container {
+    @apply h-full;
+  }
+
   .chat-main {
-    @apply p-0 relative;
+    @apply p-0 relative h-full;
     transition: all 0.4s var(--transition);
 
     .chat-placeholder {
@@ -59,11 +60,6 @@
         @apply text-gray-500;
       }
     }
-  }
-
-  .control-panel-container {
-    width: var(--aside-width);
-    transition: all 0.5s var(--transition);
   }
 }
 
@@ -143,12 +139,11 @@ import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from 
 import { useRoute } from "vue-router";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 
-// 导入新的ChatComponent组件和ControlPanel组件
+// 导入新的ChatComponent组件
 const ChatComponent = defineAsyncComponent(() => import("./module/ChatComponent.vue"));
-const ControlPanel = defineAsyncComponent(() => import("./module/ControlPanel.vue"));
 const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
-const settingOpen = shallowRef(false);
+
 const form = reactive({
   tokens: 2048,
   topK: 4,
@@ -174,10 +169,6 @@ const route = useRoute();
 const handleClickSeed = async () => {
   form.seed = getRandomInt(0, 9999999999);
 };
-const showRoleSetting = computed(() => {
-  const item = modelList.value.filter((it) => (it.sysAiModuleId = form.model));
-  return item ? item?.[0]?.sysAiModuleRoleSetting : 0;
-});
 
 const handleChangeModule = async (value) => {
   const _item = modelList.value.find((it) => it.sysAiModuleCode === value);
@@ -188,15 +179,7 @@ const handleChangeModule = async (value) => {
   form.sysAiModuleVlm = _item.sysAiModuleVlm;
   localStorageProxy().setItem("ai-chat-selected", value);
 };
-const handleTrigger = async () => {
-  settingOpen.value = !settingOpen.value;
-  window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "55px");
-};
 
-const handlePanelToggle = async (isOpen) => {
-  settingOpen.value = isOpen;
-  window.aside.style.setProperty("--aside-width", isOpen ? "400px" : "55px");
-};
 const handleModule = async (data) => {
   const one = modelList.value.filter((it) => (it.sysAiModuleId = data));
   form.model = one.sysAiModuleCode;
@@ -240,6 +223,5 @@ const initialModuleList = async () => {
 onMounted(async () => {
   onAfterProperieSet();
   initialModuleList();
-  handleTrigger();
 });
 </script>

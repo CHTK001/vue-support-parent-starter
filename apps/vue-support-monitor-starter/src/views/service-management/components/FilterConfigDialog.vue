@@ -20,16 +20,15 @@
   </el-dialog>
 </template>
 <script setup lang="ts">
-import { defineEmits, defineProps, ref, watch, withDefaults, computed } from "vue";
-import { ElMessage } from "element-plus";
 import type { SystemServerSetting } from "@/api/system-server-setting";
-import {
-  getSystemServerSettingItemBySettingId,
-  batchSaveSystemServerSettingItems,
-  type SystemServerSettingItem
-} from "@/api/system-server-setting-item";
+import { batchSaveSystemServerSettingItems, getSystemServerSettingItemBySettingId, type SystemServerSettingItem } from "@/api/system-server-setting-item";
+import { ElMessage } from "element-plus";
+import { computed, ref, watch, withDefaults } from "vue";
 
-interface Props { visible?: boolean; filterSetting?: SystemServerSetting | null }
+interface Props {
+  visible?: boolean;
+  filterSetting?: SystemServerSetting | null;
+}
 const props = withDefaults(defineProps<Props>(), { visible: false, filterSetting: null });
 const emit = defineEmits<{ (e: "update:visible", visible: boolean): void; (e: "success"): void }>();
 
@@ -38,19 +37,19 @@ const saving = ref(false);
 
 const settingId = computed(() => props.filterSetting?.systemServerSettingId || null);
 
-type KvRow = { _key: string; id?: number; name: string; value: string }
+type KvRow = { _key: string; id?: number; name: string; value: string };
 const rows = ref<KvRow[]>([]);
 
 watch(
   () => props.visible,
-  async v => {
+  async (v) => {
     visibleInner.value = !!v;
     if (v) await loadData();
   },
   { immediate: true }
 );
 
-watch(visibleInner, v => emit("update:visible", v));
+watch(visibleInner, (v) => emit("update:visible", v));
 
 async function loadData() {
   rows.value = [];
@@ -62,7 +61,7 @@ async function loadData() {
         _key: `${it.systemServerSettingItemId}-${it.systemServerSettingItemName}`,
         id: it.systemServerSettingItemId,
         name: it.systemServerSettingItemName,
-        value: it.systemServerSettingItemValue || ""
+        value: it.systemServerSettingItemValue || "",
       }));
     }
     if (rows.value.length === 0) addRow();
@@ -78,12 +77,12 @@ function addRow() {
 async function handleSave() {
   if (!settingId.value) return;
   const items: SystemServerSettingItem[] = rows.value
-    .filter(r => r.name.trim().length > 0)
-    .map(r => ({
+    .filter((r) => r.name.trim().length > 0)
+    .map((r) => ({
       systemServerSettingItemId: r.id,
       systemServerSettingItemSettingId: settingId.value!,
       systemServerSettingItemName: r.name.trim(),
-      systemServerSettingItemValue: r.value ?? ""
+      systemServerSettingItemValue: r.value ?? "",
     }));
 
   saving.value = true;
@@ -101,9 +100,15 @@ async function handleSave() {
   }
 }
 
-function handleClose() { visibleInner.value = false }
+function handleClose() {
+  visibleInner.value = false;
+}
 </script>
 
 <style scoped>
-.kv-row { display: flex; align-items: center; margin-bottom: 8px }
+.kv-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
 </style>

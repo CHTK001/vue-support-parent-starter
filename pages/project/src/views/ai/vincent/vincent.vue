@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineExpose, onMounted, reactive, ref, defineAsyncComponent } from "vue";
+import {  defineExpose, onMounted, reactive, ref, defineAsyncComponent } from "vue";
 import Wait from "@repo/assets/images/wait.apng";
 import Error from "@repo/assets/images/error.png";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";

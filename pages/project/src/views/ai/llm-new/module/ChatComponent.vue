@@ -123,8 +123,8 @@
         </BubbleList>
       </div>
 
-      <!-- EditorSender 输入区域 -->
-      <div class="input-area">
+      <!-- 输入区域 -->
+      <div class="input-area" style="position: relative">
         <EditorSender
           ref="editorSenderRef"
           v-model="currentMessage"
@@ -184,6 +184,16 @@
                 </svg>
               </el-button>
 
+              <!-- 模型配置浮动面板 -->
+              <ScPanel v-model:visible="showModelConfig" position="top-right" @close="showModelConfig = false">
+                <template #reference>
+                  <el-button circle @click="toggleModelConfig" class="config-btn" title="高级功能">
+                    <IconifyIconOnline icon="mdi:tune-variant" />
+                  </el-button>
+                </template>
+                <ModelConfig :form="form" :rules="rules" :model-list="modelList" :env="env" :show-role-setting="showRoleSetting" @refresh="handleRefreshModels" @change-module="handleChangeModule" @open-module="handleOpenModule" @click-seed="handleClickSeed" @close="showModelConfig = false" />
+              </ScPanel>
+
               <el-button v-if="isLoading" circle @click="stopGeneration" class="stop-btn">
                 <IconifyIconOnline icon="ri:stop-circle-line" />
               </el-button>
@@ -211,6 +221,8 @@
             </div>
           </template>
         </EditorSender>
+
+
       </div>
     </div>
   </div>
@@ -219,11 +231,13 @@
 <script setup>
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScPanel from "@repo/components/ScPanel/index.vue";
 import { fetchCallStream } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";
 import { createConversation, deleteConversation, getConversationList, getConversationMessages, renameConversation, saveMessages } from "../../../../api/ai/conversation";
+import ModelConfig from "./ModelConfig.vue";
 const aiAvatar = "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png";
 const userAvatar = "https://avatars.githubusercontent.com/u/76239030?v=4";
 // Props
@@ -252,6 +266,12 @@ const isConversationCollapsed = ref(false);
 const conversationLoading = ref(false);
 const currentConversationId = ref(null);
 const conversationList = ref([]);
+
+// 模型配置相关数据
+const showModelConfig = ref(false);
+const modelList = ref([]);
+const rules = ref({});
+const showRoleSetting = ref(true);
 
 // 用户和机器人信息
 const userInfo = computed(() => ({
@@ -671,6 +691,37 @@ const scrollToBottom = () => {
   if (messagesContainerBubbleList.value) {
     messagesContainerBubbleList.value.scrollToBottom();
   }
+};
+
+// 模型配置相关方法
+const toggleModelConfig = () => {
+  showModelConfig.value = !showModelConfig.value;
+};
+
+const handleRefreshModels = () => {
+  // 刷新模型列表的逻辑
+  message.success("模型列表已刷新");
+};
+
+const handleChangeModule = (moduleCode) => {
+  // 切换模型的逻辑
+  if (props.form) {
+    props.form.model = moduleCode;
+  }
+  message.success("模型已切换");
+};
+
+const handleOpenModule = () => {
+  // 打开模型管理的逻辑
+  message.info("打开模型管理");
+};
+
+const handleClickSeed = () => {
+  // 生成新的随机种子
+  if (props.form) {
+    props.form.seed = Math.floor(Math.random() * 1000000);
+  }
+  message.success("已生成新的随机种子");
 };
 
 // 清空消息
@@ -1581,6 +1632,17 @@ defineExpose({
       }
 
       .action-buttons {
+        .config-btn {
+          background: #8b5cf6;
+          border-color: #8b5cf6;
+          color: white;
+
+          &:hover {
+            background: #7c3aed;
+            border-color: #7c3aed;
+          }
+        }
+
         .stop-btn {
           &:hover {
             background: #dc2626;

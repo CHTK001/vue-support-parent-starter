@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, nextTick, reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 import { des } from "@repo/config";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
@@ -9,17 +9,17 @@ import Profile from "./Profile.vue";
 const { t } = useI18n();
 
 defineOptions({
-  name: "AccountManagement"
+  name: "AccountManagement",
 });
 
 const props = defineProps({
   userInfo: {
-    type: Object
-  }
+    type: Object,
+  },
 });
 const visible = reactive({
   phone: false,
-  email: false
+  email: false,
 });
 
 const title = ref("");
@@ -28,14 +28,14 @@ const list = ref([
     title: t("title.phone"),
     illustrate: props.userInfo?.sysUserPhone ? t("message.bindPhone") + "：" + des(props.userInfo?.sysUserPhone) : t("message.unbindPhone"),
     button: t("buttons.update"),
-    type: "phone"
+    type: "phone",
   },
   {
     title: t("title.email2"),
     illustrate: props.userInfo?.sysUserEmail ? t("message.bindEmail") + "：" + des(props.userInfo?.sysUserEmail) : t("message.unbindEmail"),
     button: t("buttons.update"),
-    type: "email"
-  }
+    type: "email",
+  },
 ]);
 
 async function onClick(item) {

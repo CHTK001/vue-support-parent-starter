@@ -1,29 +1,15 @@
 <template>
   <div class="thread-viewer">
     <div class="toolbar">
-      <el-input
-        v-model="keyword"
-        placeholder="按线程名称过滤"
-        clearable
-        style="max-width: 200px"
-      />
+      <el-input v-model="keyword" placeholder="按线程名称过滤" clearable style="max-width: 200px" />
       <el-select v-model="count" style="width: 120px">
         <el-option :value="10" label="10条" />
         <el-option :value="20" label="20条" />
         <el-option :value="50" label="50条" />
       </el-select>
       <el-checkbox v-model="blocking">仅阻塞</el-checkbox>
-      <el-input
-        v-model="threadId"
-        placeholder="线程ID"
-        style="max-width: 120px"
-      />
-      <el-select
-        v-model="stateFilter"
-        placeholder="状态筛选"
-        style="width: 140px"
-        clearable
-      >
+      <el-input v-model="threadId" placeholder="线程ID" style="max-width: 120px" />
+      <el-select v-model="stateFilter" placeholder="状态筛选" style="width: 140px" clearable>
         <el-option value="RUNNABLE" label="RUNNABLE" />
         <el-option value="WAITING" label="WAITING" />
         <el-option value="TIMED_WAITING" label="TIMED_WAITING" />
@@ -32,24 +18,14 @@
         <el-option value="TERMINATED" label="TERMINATED" />
       </el-select>
       <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-      <el-select
-        v-model="refreshInterval"
-        style="width: 120px"
-        :disabled="!autoRefresh"
-        placeholder="刷新间隔"
-      >
+      <el-select v-model="refreshInterval" style="width: 120px" :disabled="!autoRefresh" placeholder="刷新间隔">
         <el-option :value="5" label="5秒" />
         <el-option :value="10" label="10秒" />
         <el-option :value="30" label="30秒" />
         <el-option :value="60" label="60秒" />
       </el-select>
       <el-button @click="clearData">清空</el-button>
-      <el-button
-        type="primary"
-        :disabled="!nodeId"
-        :loading="loading"
-        @click="run"
-      >
+      <el-button type="primary" :disabled="!nodeId" :loading="loading" @click="run">
         {{ autoRefresh && countdown > 0 ? `刷新(${countdown}s)` : "刷新" }}
       </el-button>
     </div>
@@ -64,20 +40,9 @@
       </div>
 
       <div v-else class="thread-table-container">
-        <el-table
-          :data="filteredThreads"
-          height="100%"
-          stripe
-          @row-click="handleRowClick"
-          row-class-name="thread-row"
-        >
+        <el-table :data="filteredThreads" height="100%" stripe @row-click="handleRowClick" row-class-name="thread-row">
           <el-table-column prop="id" label="ID" width="80" sortable />
-          <el-table-column
-            prop="name"
-            label="线程名称"
-            min-width="200"
-            show-overflow-tooltip
-          >
+          <el-table-column prop="name" label="线程名称" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
               <div class="thread-name">
                 <el-tag v-if="row.daemon" size="small" type="info">守护</el-tag>
@@ -93,29 +58,15 @@
             </template>
           </el-table-column>
           <el-table-column prop="cpu" label="CPU%" width="100" sortable>
-            <template #default="{ row }">
-              {{ (row.cpu || 0).toFixed(1) }}%
-            </template>
+            <template #default="{ row }"> {{ (row.cpu || 0).toFixed(1) }}% </template>
           </el-table-column>
-          <el-table-column
-            prop="priority"
-            label="优先级"
-            width="100"
-            sortable
-          />
-          <el-table-column
-            prop="group"
-            label="线程组"
-            width="120"
-            show-overflow-tooltip
-          />
+          <el-table-column prop="priority" label="优先级" width="100" sortable />
+          <el-table-column prop="group" label="线程组" width="120" show-overflow-tooltip />
           <el-table-column prop="time" label="时间(ms)" width="120" sortable />
           <el-table-column label="阻塞信息" width="120">
             <template #default="{ row }">
               <div v-if="row.blockedCount > 0" class="blocked-info">
-                <el-tag type="warning" size="small">{{
-                  row.blockedCount
-                }}</el-tag>
+                <el-tag type="warning" size="small">{{ row.blockedCount }}</el-tag>
               </div>
               <span v-else class="blocked-info">无</span>
             </template>
@@ -130,9 +81,7 @@
           </el-table-column>
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click.stop="viewStackTrace(row)">
-                堆栈
-              </el-button>
+              <el-button size="small" @click.stop="viewStackTrace(row)"> 堆栈 </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -140,43 +89,24 @@
     </div>
 
     <!-- 堆栈跟踪对话框 -->
-    <el-dialog
-      v-model="stackTraceVisible"
-      :title="`线程堆栈 - ${selectedThread?.name} (ID: ${selectedThread?.id})`"
-      width="80%"
-      top="5vh"
-    >
+    <el-dialog v-model="stackTraceVisible" :title="`线程堆栈 - ${selectedThread?.name} (ID: ${selectedThread?.id})`" width="80%" top="5vh">
       <div v-if="selectedThread" class="stack-trace-content">
         <div class="thread-info">
           <el-descriptions :column="3" border>
-            <el-descriptions-item label="线程ID">{{
-              selectedThread.id
-            }}</el-descriptions-item>
-            <el-descriptions-item label="线程名称">{{
-              selectedThread.name
-            }}</el-descriptions-item>
+            <el-descriptions-item label="线程ID">{{ selectedThread.id }}</el-descriptions-item>
+            <el-descriptions-item label="线程名称">{{ selectedThread.name }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag :type="getStateType(selectedThread.state)">{{
-                selectedThread.state
-              }}</el-tag>
+              <el-tag :type="getStateType(selectedThread.state)">{{ selectedThread.state }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="优先级">{{
-              selectedThread.priority
-            }}</el-descriptions-item>
-            <el-descriptions-item label="线程组">{{
-              selectedThread.group
-            }}</el-descriptions-item>
+            <el-descriptions-item label="优先级">{{ selectedThread.priority }}</el-descriptions-item>
+            <el-descriptions-item label="线程组">{{ selectedThread.group }}</el-descriptions-item>
             <el-descriptions-item label="是否守护线程">
               <el-tag :type="selectedThread.daemon ? 'info' : 'success'">
                 {{ selectedThread.daemon ? "是" : "否" }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="CPU使用率"
-              >{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item
-            >
-            <el-descriptions-item label="运行时间"
-              >{{ selectedThread.time }}ms</el-descriptions-item
-            >
+            <el-descriptions-item label="CPU使用率">{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item>
+            <el-descriptions-item label="运行时间">{{ selectedThread.time }}ms</el-descriptions-item>
             <el-descriptions-item label="是否中断">
               <el-tag :type="selectedThread.interrupted ? 'danger' : 'success'">
                 {{ selectedThread.interrupted ? "是" : "否" }}
@@ -188,36 +118,19 @@
         <div v-if="selectedThread.lockInfo" class="lock-info">
           <h4>锁信息</h4>
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="锁名称">{{
-              selectedThread.lockName
-            }}</el-descriptions-item>
-            <el-descriptions-item label="锁拥有者ID">{{
-              selectedThread.lockOwnerId
-            }}</el-descriptions-item>
+            <el-descriptions-item label="锁名称">{{ selectedThread.lockName }}</el-descriptions-item>
+            <el-descriptions-item label="锁拥有者ID">{{ selectedThread.lockOwnerId }}</el-descriptions-item>
           </el-descriptions>
         </div>
 
         <div class="stack-trace">
           <h4>堆栈跟踪</h4>
-          <div
-            v-if="
-              selectedThread.stackTrace && selectedThread.stackTrace.length > 0
-            "
-            class="stack-frames"
-          >
-            <div
-              v-for="(frame, index) in selectedThread.stackTrace"
-              :key="index"
-              class="stack-frame"
-            >
+          <div v-if="selectedThread.stackTrace && selectedThread.stackTrace.length > 0" class="stack-frames">
+            <div v-for="(frame, index) in selectedThread.stackTrace" :key="index" class="stack-frame">
               <div class="frame-method">
                 <span class="class-name">{{ frame.className }}</span>
                 <span class="method-name">.{{ frame.methodName }}</span>
-                <span v-if="frame.fileName" class="file-info">
-                  ({{ frame.fileName }}:{{
-                    frame.lineNumber > 0 ? frame.lineNumber : "Native"
-                  }})
-                </span>
+                <span v-if="frame.fileName" class="file-info"> ({{ frame.fileName }}:{{ frame.lineNumber > 0 ? frame.lineNumber : "Native" }}) </span>
               </div>
             </div>
           </div>
@@ -232,14 +145,7 @@
 
 <script setup lang="ts">
 import { execArthasCommand, type ArthasThreadInfo } from "@/api/arthas-http";
-import {
-  ref,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-  computed,
-  defineProps,
-} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -268,9 +174,7 @@ const filteredThreads = computed(() => {
 
   // 按关键字过滤
   if (keyword.value) {
-    result = result.filter((thread) =>
-      thread.name.toLowerCase().includes(keyword.value.toLowerCase())
-    );
+    result = result.filter((thread) => thread.name.toLowerCase().includes(keyword.value.toLowerCase()));
   }
 
   // 按状态过滤
@@ -282,9 +186,7 @@ const filteredThreads = computed(() => {
 });
 
 // 获取状态对应的标签类型
-function getStateType(
-  state: string
-): "success" | "info" | "warning" | "danger" | "primary" {
+function getStateType(state: string): "success" | "info" | "warning" | "danger" | "primary" {
   switch (state) {
     case "RUNNABLE":
       return "success";

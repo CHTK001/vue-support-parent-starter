@@ -51,7 +51,7 @@
 <script setup>
 import { useGlobal } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { computed, defineEmits, defineProps } from "vue";
+import { computed } from "vue";
 import { localStorageProxy } from "@repo/utils";
 import { router, useUserStoreHook } from "@repo/core";
 const userInfo = useUserStoreHook().sysUserId;

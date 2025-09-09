@@ -6,32 +6,9 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 媒体展示区域 -->
-      <div class="media-display-area">
-        <div class="media-container" v-if="generatedResults.length > 0">
-          <div class="media-grid">
-            <div v-for="(result, index) in generatedResults" :key="index" class="media-item" @click="previewMedia(result)">
-              <el-image v-if="result.type === 'image'" :src="result.url" fit="cover" class="media-image">
-                <template #error>
-                  <div class="image-error">
-                    <el-icon><Picture /></el-icon>
-                    <span>加载失败</span>
-                  </div>
-                </template>
-              </el-image>
-              <video v-else-if="result.type === 'video'" :src="result.url" class="media-video" controls></video>
-            </div>
-          </div>
-        </div>
-        <div class="empty-state" v-else>
-          <el-icon size="80" class="empty-icon"><Picture /></el-icon>
-          <p class="empty-text">生成的图片或视频将在这里显示</p>
-        </div>
-      </div>
-
-      <!-- 历史记录区域 -->
-      <div class="history-section" v-if="showHistory">
-        <HistoryLayout ref="historyLayoutRef" :form="form" :full="showHistory" :env="env" @redrawer="handleReDraw"></HistoryLayout>
+      <!-- 历史记录区域（包含新生成的内容） -->
+      <div class="history-section">
+        <HistoryLayout ref="historyLayoutRef" :form="form" :full="true" :env="env" :new-generated-data="generatedResults" @redrawer="handleReDraw"></HistoryLayout>
       </div>
     </div>
 
@@ -156,13 +133,27 @@
               <template #action-list>
                 <div class="action-buttons">
                   <!-- 模型选择按钮 -->
-                  <ScSelect v-model="form.model" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect"> </ScSelect>
+                  <ScSelect v-model="form.model" class="min-w-[200px]" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect"> </ScSelect>
 
                   <!-- 分辨率选择按钮 -->
-                  <ScSelect v-model="form.parameters.size" :options="sizeOptions" layout="dropdown" dropdown-icon="ri:aspect-ratio-line" dropdown-title="比例" dropdown-placeholder="选择分辨率" @change="handleSizeSelect" />
+                  <ScSelect v-model="form.parameters.size" :options="sizeOptions" layout="dropdown" dropdown-icon="ri:aspect-ratio-line" dropdown-title="比例" dropdown-placeholder="选择分辨率" @change="handleSizeSelect" v-if="sizeOptions && sizeOptions.length > 0" />
 
                   <!-- 风格选择按钮 (仅VINCENT类型显示) -->
-                  <ScSelect v-if="form.sysAiModuleType === 'VINCENT' && styleOptions.length > 0" v-model="form.parameters.style" :options="styleOptions" layout="dropdown" dropdown-icon="ri:palette-line" dropdown-title="风格" dropdown-placeholder="选择风格" @change="handleStyleSelect">
+                  <ScSelect
+                    displayMode="large"
+                    v-if="form.sysAiModuleType === 'VINCENT' && styleOptions.length > 0"
+                    v-model="form.parameters.style"
+                    :options="styleOptions"
+                    layout="dropdown"
+                    dropdown-direction="horizontal"
+                    :dropdown-col="4"
+                    display-mode="large"
+                    width="100%"
+                    dropdown-icon="ri:palette-line"
+                    dropdown-title="风格"
+                    dropdown-placeholder="选择风格"
+                    @change="handleStyleSelect"
+                  >
                     <template #header="{ item }">
                       {{ item }}
                     </template>
@@ -199,7 +190,6 @@
   </div>
 </template>
 <script setup>
-import { Picture } from "@element-plus/icons-vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
 import { clearObject, getRandomInt, localStorageProxy, message } from "@repo/utils";
@@ -223,7 +213,6 @@ const loadingConfig = reactive({
 
 // 新的响应式变量
 const showSettings = ref(false);
-const showHistory = ref(false);
 const showAdvanced = ref(false);
 const generatedResults = ref([]);
 
@@ -293,13 +282,6 @@ const route = useRoute();
 // 新的切换方法
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
-};
-
-const toggleHistory = () => {
-  showHistory.value = !showHistory.value;
-  if (historyLayoutRef.value) {
-    historyLayoutRef.value.refull(!showHistory.value);
-  }
 };
 
 const toggleAdvanced = () => {
@@ -390,7 +372,7 @@ const modelOptions = computed(() => {
   return modelList.value.map((model) => ({
     value: model.sysAiModuleCode,
     label: model.sysAiModuleName,
-    description: model.sysAiModuleNameDesc,
+    description: model.sysAiModuleRemark || model.sysAiModuleName,
     icon: model.sysProjectIcon,
   }));
 });
@@ -411,12 +393,7 @@ const previewMedia = (result) => {
   console.log("预览媒体:", result);
 };
 
-/**
- * 历史信息开关 (保持兼容性)
- */
-const handleHistory = async () => {
-  toggleHistory();
-};
+// 历史记录相关方法已移除，现在HistoryLayout始终显示
 
 const modelSelectStyle = computed(() => {
   return styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style)?.sysAiVincentStyleImage;
@@ -841,83 +818,10 @@ onMounted(async () => {
   padding-bottom: 0;
 }
 
-/* 媒体展示区域 */
-.media-display-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-
-.media-container {
-  width: 100%;
-  height: 100%;
-  padding: 20px;
-}
-
-.media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  height: 100%;
-}
-
-.media-item {
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-}
-
-.media-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-}
-
-.media-image,
-.media-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #909399;
-  height: 100%;
-}
-
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 16px;
-  margin: 0;
-}
-
-.image-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #c0c4cc;
-}
+/* 媒体展示区域样式已移至 HistoryLayout 和 MediaDisplay 组件 */
 
 /* 历史记录区域 */
 .history-section {
-  height: 300px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);

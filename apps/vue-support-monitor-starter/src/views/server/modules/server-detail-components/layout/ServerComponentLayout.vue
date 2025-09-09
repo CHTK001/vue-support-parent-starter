@@ -26,19 +26,7 @@
       </div>
     </div>
 
-    <GridLayout
-      v-if="layout.length > 0"
-      class="h-full"
-      :layout="layout"
-      :col-num="24"
-      :row-height="30"
-      :is-draggable="editable"
-      :is-resizable="editable"
-      :vertical-compact="true"
-      :use-css-transforms="true"
-      :margin="[10, 10]"
-      @layout-updated="handleLayoutUpdated"
-    >
+    <GridLayout v-if="layout.length > 0" class="h-full" :layout="layout" :col-num="24" :row-height="30" :is-draggable="editable" :is-resizable="editable" :vertical-compact="true" :use-css-transforms="true" :margin="[10, 10]" @layout-updated="handleLayoutUpdated">
       <GridItem v-for="item in layout" :key="item.i" :x="item.x" :y="item.y" :w="item.w" :h="item.h" :i="item.i">
         <div class="grid-item-content">
           <div v-if="editable" class="grid-item-overlay">
@@ -175,13 +163,7 @@
             <div class="component-cards">
               <el-empty v-if="myComponents.length === 0" description="暂无可用组件" />
               <div v-else class="component-grid">
-                <div
-                  v-for="item in myComponents"
-                  :key="item.monitorSysGenServerComponentId"
-                  class="component-card"
-                  :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }"
-                  @click="toggleComponentSelection(item)"
-                >
+                <div v-for="item in myComponents" :key="item.monitorSysGenServerComponentId" class="component-card" :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }" @click="toggleComponentSelection(item)">
                   <div class="component-card-header">
                     <span class="component-card-title">{{ item.monitorSysGenServerComponentName }}</span>
                     <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenServerComponentType)">
@@ -200,13 +182,7 @@
             <div class="component-cards">
               <el-empty v-if="sharedComponents.length === 0" description="暂无共享组件" />
               <div v-else class="component-grid">
-                <div
-                  v-for="item in sharedComponents"
-                  :key="item.monitorSysGenServerComponentId"
-                  class="component-card"
-                  :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }"
-                  @click="toggleComponentSelection(item)"
-                >
+                <div v-for="item in sharedComponents" :key="item.monitorSysGenServerComponentId" class="component-card" :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }" @click="toggleComponentSelection(item)">
                   <div class="component-card-header">
                     <span class="component-card-title">{{ item.monitorSysGenServerComponentName }}</span>
                     <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenServerComponentType)">
@@ -244,42 +220,41 @@
 </template>
 
 <script setup lang="ts">
+import type { ComponentRealtimeMessage } from "@/api/server";
 import {
-  getEnabledServerComponentLayouts,
-  getAvailableComponentDefinitions,
-  createServerComponentLayout,
-  deleteServerComponentLayout,
   batchUpdateLayoutPositions,
-  getComponentsByServerId,
+  createServerComponentLayout,
   createServerDetailComponent,
-  updateServerDetailComponent,
+  deleteServerComponentLayout,
   executeComponentQuery,
-  getComponentRealtimeData,
-  type ServerComponentLayout
+  getAvailableComponentDefinitions,
+  getComponentsByServerId,
+  getEnabledServerComponentLayouts,
+  updateServerDetailComponent,
+  type ServerComponentLayout,
 } from "@/api/server";
+import { useServerMetrics } from "@/composables/useServerWebSocket";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
-import { defineExpose, defineProps, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { defineExpose, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";
-import type { ComponentRealtimeMessage } from "@/api/server";
-import { useServerMetrics } from "@/composables/useServerWebSocket";
 
 const props = defineProps({
   serverId: {
     type: Number,
-    required: true
+    required: true,
   },
   editable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   timeParams: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 });
 
 // 响应式状态
@@ -311,7 +286,7 @@ const addForm = reactive({
   w: 6,
   h: 6,
   valueUnit: "",
-  showTitle: true
+  showTitle: true,
 });
 
 // 组件选择器相关
@@ -332,13 +307,13 @@ const componentTypeOptions = [
   { label: "折线图", value: "line" },
   { label: "柱状图", value: "bar" },
   { label: "饼图", value: "pie" },
-  { label: "表格", value: "table" }
+  { label: "表格", value: "table" },
 ];
 
 // 表达式类型选项
 const expressionTypeOptions = [
   { label: "固定组件", value: "COMPONENT" },
-  { label: "Prometheus PromQL", value: "PROMETHEUS" }
+  { label: "Prometheus PromQL", value: "PROMETHEUS" },
 ];
 
 // 组件选项
@@ -350,7 +325,7 @@ const componentOptions = [
   { label: "磁盘列表", value: "disk_list" },
   { label: "系统信息", value: "system_info" },
   { label: "进程列表", value: "process_list" },
-  { label: "系统负载", value: "load_average" }
+  { label: "系统负载", value: "load_average" },
 ];
 
 // Prometheus 示例表达式
@@ -360,7 +335,7 @@ const prometheusExamples = [
   { label: "磁盘使用率", value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
   { label: "网络接收", value: "irate(node_network_receive_bytes_total[5m])" },
   { label: "系统负载", value: "node_load1" },
-  { label: "服务状态", value: "up" }
+  { label: "服务状态", value: "up" },
 ];
 
 // 数值单位选项
@@ -369,7 +344,7 @@ const valueUnitOptions = [
   { label: "字节", value: "bytes" },
   { label: "状态", value: "status" },
   { label: "数量", value: "count" },
-  { label: "时间", value: "time" }
+  { label: "时间", value: "time" },
 ];
 
 // 表单验证规则
@@ -377,7 +352,7 @@ const addFormRules = {
   title: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
   type: [{ required: true, message: "请选择组件类型", trigger: "change" }],
   expressionType: [{ required: true, message: "请选择表达式类型", trigger: "change" }],
-  expression: [{ required: true, message: "请输入表达式或选择组件", trigger: "blur" }]
+  expression: [{ required: true, message: "请输入表达式或选择组件", trigger: "blur" }],
 };
 
 // 监听布局变化
@@ -392,7 +367,7 @@ watch(
 // 监听timeParams变化，更新查询时间范围
 watch(
   () => props.timeParams,
-  newTimeParams => {
+  (newTimeParams) => {
     if (newTimeParams && newTimeParams.start && newTimeParams.end) {
       queryTimeRange.value = [new Date(newTimeParams.start), new Date(newTimeParams.end)];
       console.log("时间参数更新:", newTimeParams, "转换后的时间范围:", queryTimeRange.value);
@@ -423,7 +398,7 @@ onBeforeUnmount(() => {
   });
 
   // 清理所有实时数据订阅
-  realtimeUnsubscribeFunctions.value.forEach(unsubscribe => {
+  realtimeUnsubscribeFunctions.value.forEach((unsubscribe) => {
     if (unsubscribe) unsubscribe();
   });
   realtimeUnsubscribeFunctions.value.clear();
@@ -448,14 +423,14 @@ const loadComponents = async () => {
       const componentsMap = new Map();
 
       if (componentsRes.code === "00000" && componentsRes.data) {
-        componentsRes.data.forEach(component => {
+        componentsRes.data.forEach((component) => {
           componentsMap.set(component.monitorSysGenServerComponentId, component);
         });
       }
 
       // 3. 合并布局配置和组件定义
       layout.value = layoutRes.data
-        .map(layoutConfig => {
+        .map((layoutConfig) => {
           const component = componentsMap.get(layoutConfig.monitorSysGenServerComponentId);
 
           if (!component) {
@@ -483,10 +458,10 @@ const loadComponents = async () => {
             showTitle: component.monitorSysGenServerComponentShowTitle !== false,
             valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
             chartConfig: component.monitorSysGenServerComponentChartConfig,
-            enabled: component.monitorSysGenServerComponentEnabled
+            enabled: component.monitorSysGenServerComponentEnabled,
           };
         })
-        .filter(item => item !== null);
+        .filter((item) => item !== null);
 
       console.log("加载的布局配置:", layout.value);
 
@@ -531,7 +506,7 @@ const saveConfigToServer = async () => {
 
     // 构建布局更新数据
     const layoutUpdates = layout.value.map(
-      item =>
+      (item) =>
         ({
           monitorSysGenServerComponentLayoutId: item.layoutId,
           monitorSysGenServerId: props.serverId,
@@ -543,7 +518,7 @@ const saveConfigToServer = async () => {
           monitorSysGenServerComponentLayoutZIndex: item.zIndex || 1,
           monitorSysGenServerComponentLayoutMovable: item.movable !== false,
           monitorSysGenServerComponentLayoutResizable: item.resizable !== false,
-          monitorSysGenServerComponentLayoutStatus: 1
+          monitorSysGenServerComponentLayoutStatus: 1,
         }) as ServerComponentLayout
     );
 
@@ -587,8 +562,8 @@ const addComponent = async () => {
         x: 0,
         y: getNextY(),
         w: addForm.w,
-        h: addForm.h
-      })
+        h: addForm.h,
+      }),
     };
 
     const res = await createServerDetailComponent(componentData);
@@ -614,7 +589,7 @@ const addComponent = async () => {
  */
 const getNextY = () => {
   if (layout.value.length === 0) return 0;
-  const maxY = Math.max(...layout.value.map(item => item.y + item.h));
+  const maxY = Math.max(...layout.value.map((item) => item.y + item.h));
   return maxY;
 };
 
@@ -630,7 +605,7 @@ const resetAddForm = () => {
     showTitle: true,
     w: 6,
     h: 6,
-    valueUnit: ""
+    valueUnit: "",
   });
   addFormRef.value?.clearValidate();
 };
@@ -655,8 +630,8 @@ const editComponent = (item: any) => {
       y: item.y,
       w: item.w,
       h: item.h,
-      i: item.i
-    })
+      i: item.i,
+    }),
   });
 };
 
@@ -668,7 +643,7 @@ const removeComponent = async (item: any) => {
     await ElMessageBox.confirm(`确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`, "移除确认", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
-      type: "warning"
+      type: "warning",
     });
 
     // 删除布局配置，而不是删除组件定义
@@ -678,7 +653,7 @@ const removeComponent = async (item: any) => {
       ElMessage.success("组件已从布局中移除");
 
       // 从前端布局中移除
-      const index = layout.value.findIndex(layoutItem => layoutItem.layoutId === item.layoutId);
+      const index = layout.value.findIndex((layoutItem) => layoutItem.layoutId === item.layoutId);
       if (index > -1) {
         layout.value.splice(index, 1);
       }
@@ -725,13 +700,13 @@ const handleChartConfigSave = async (item: any, config: any) => {
       monitorSysGenServerComponentExpressionType: item.expressionType || "COMPONENT",
       monitorSysGenServerComponentExpression: item.expression || "",
       monitorSysGenServerComponentEnabled: item.enabled || 1,
-      monitorSysGenServerComponentChartConfig: JSON.stringify(config)
+      monitorSysGenServerComponentChartConfig: JSON.stringify(config),
     } as any);
 
     if (res.code === "00000") {
       ElMessage.success("图表配置保存成功");
       // 更新本地数据
-      const layoutItem = layout.value.find(l => l.componentId === item.componentId);
+      const layoutItem = layout.value.find((l) => l.componentId === item.componentId);
       if (layoutItem) {
         layoutItem.chartConfig = JSON.stringify(config);
       }
@@ -773,14 +748,14 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
       componentId,
       expressionType,
       timeRange: currentTimeRange,
-      serverId: props.serverId
+      serverId: props.serverId,
     });
 
     // 构建时间范围参数
     const timeRange = {
       startTime: Math.floor(currentTimeRange[0].getTime() / 1000),
       endTime: Math.floor(currentTimeRange[1].getTime() / 1000),
-      step: 60
+      step: 60,
     };
 
     let result: any;
@@ -816,7 +791,7 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
       componentsData.value[item.i] = {
         ...result.data,
         updateTime: new Date().toLocaleTimeString(),
-        expressionType: expressionType
+        expressionType: expressionType,
       };
       console.log(`组件数据查询成功: ${item.expression}`, result.data);
     } else {
@@ -824,7 +799,7 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
       componentsData.value[item.i] = {
         error: result?.msg || "数据查询失败",
         updateTime: new Date().toLocaleTimeString(),
-        expressionType: expressionType
+        expressionType: expressionType,
       };
     }
   } catch (error) {
@@ -832,7 +807,7 @@ const executeUnifiedQuery = async (item: any, timeRangeOverride?: any) => {
     componentsData.value[item.i] = {
       error: error.message || "数据查询异常",
       updateTime: new Date().toLocaleTimeString(),
-      expressionType: item.expressionType || "COMPONENT"
+      expressionType: item.expressionType || "COMPONENT",
     };
   }
 };
@@ -860,7 +835,7 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
         componentName: item.title,
         data: extractedData,
         type: "realtime",
-        timestamp: message.timestamp || Date.now()
+        timestamp: message.timestamp || Date.now(),
       };
 
       // 更新组件数据
@@ -868,7 +843,7 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
         data: extractedData,
         updateTime: new Date().toLocaleTimeString(),
         expressionType: "REALTIME",
-        realtimeMessage: realtimeMessage
+        realtimeMessage: realtimeMessage,
       };
 
       console.log(`实时数据更新: ${item.title}`, extractedData);
@@ -882,14 +857,14 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
       code: "00000",
       data: {
         message: "实时数据订阅已启动，数据将通过Socket.IO推送更新",
-        subscribed: true
-      }
+        subscribed: true,
+      },
     };
   } catch (error) {
     console.error("实时数据查询失败:", error);
     return {
       code: "50000",
-      msg: error.message || "实时数据订阅失败"
+      msg: error.message || "实时数据订阅失败",
     };
   }
 };
@@ -929,7 +904,7 @@ const extractDataFromServerMetrics = (metrics: any, expression: string) => {
       memoryUsage: metrics.memoryUsage || 0,
       diskUsage: metrics.diskUsage || 0,
       networkIn: metrics.networkIn || 0,
-      networkOut: metrics.networkOut || 0
+      networkOut: metrics.networkOut || 0,
     };
   }
 
@@ -1063,7 +1038,7 @@ const loadMyComponents = async () => {
       console.log("获取到组件定义:", res.data.length, "个组件");
 
       // 过滤掉已经在布局中的组件
-      const availableComponents = res.data.filter((component: any) => !layout.value.some(layoutItem => layoutItem.componentId === component.monitorSysGenServerComponentId));
+      const availableComponents = res.data.filter((component: any) => !layout.value.some((layoutItem) => layoutItem.componentId === component.monitorSysGenServerComponentId));
 
       myComponents.value = availableComponents;
       console.log("可选组件定义:", availableComponents.length, "个");
@@ -1124,7 +1099,7 @@ const addSelectedComponents = async () => {
     loading.value = true;
 
     const allComponents = [...myComponents.value, ...sharedComponents.value];
-    const selectedItems = allComponents.filter(component => selectedComponents.value.includes(component.monitorSysGenServerComponentId));
+    const selectedItems = allComponents.filter((component) => selectedComponents.value.includes(component.monitorSysGenServerComponentId));
 
     // 为每个选中的组件创建布局配置
     for (const component of selectedItems) {
@@ -1158,7 +1133,7 @@ const addSelectedComponents = async () => {
           showTitle: component.monitorSysGenServerComponentShowTitle !== false,
           valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
           chartConfig: component.monitorSysGenServerComponentChartConfig,
-          enabled: component.monitorSysGenServerComponentEnabled
+          enabled: component.monitorSysGenServerComponentEnabled,
         };
 
         layout.value.push(componentItem);
@@ -1193,7 +1168,7 @@ const getComponentTypeTag = (type: string): "success" | "warning" | "info" | "pr
     line: "info",
     bar: "warning",
     pie: "danger",
-    table: "primary"
+    table: "primary",
   };
   return typeMap[type] || "primary";
 };
@@ -1208,7 +1183,7 @@ const getComponentTypeName = (type: string) => {
     line: "折线图",
     bar: "柱状图",
     pie: "饼图",
-    table: "表格"
+    table: "表格",
   };
   return typeMap[type] || "未知";
 };
@@ -1216,7 +1191,7 @@ const getComponentTypeName = (type: string) => {
 // 监听组件选择器显示状态
 watch(
   () => showComponentSelector.value,
-  show => {
+  (show) => {
     if (show) {
       loadMyComponents();
     }
@@ -1228,7 +1203,7 @@ defineExpose({
   loadComponents,
   saveConfigToServer,
   handleManualQuery,
-  executeUnifiedQuery
+  executeUnifiedQuery,
 });
 </script>
 

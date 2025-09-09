@@ -50,6 +50,7 @@
     "unbuild": "catalog:",
     "v-viewer": "catalog:",
     "viewerjs": "catalog:",
+    "video.js": "catalog:",
     "vue": "catalog:",
     "vue-files-preview": "catalog:",
     "vue-i18n": "catalog:"

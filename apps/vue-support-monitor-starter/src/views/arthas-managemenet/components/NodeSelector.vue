@@ -9,8 +9,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, computed } from "vue";
 import type { OnlineNodeInfo } from "@/api/node-management";
+import { computed } from "vue";
 
 const props = defineProps<{
   nodes: OnlineNodeInfo[];
@@ -22,7 +22,7 @@ const emit = defineEmits(["update:modelValue", "change"]);
 
 const value = computed({
   get: () => (props.modelValue as string) || "",
-  set: (v: string) => emit("update:modelValue", v)
+  set: (v: string) => emit("update:modelValue", v),
 });
 
 function formatNodeLabel(n: OnlineNodeInfo) {

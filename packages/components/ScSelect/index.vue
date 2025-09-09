@@ -55,10 +55,13 @@
       :model-value="modelValue"
       :multiple="multiple"
       :limit="limit"
+      :width="width"
       :icon="dropdownIcon"
       :title="dropdownTitle"
       :placeholder="dropdownPlaceholder"
       :dropdown-direction="dropdownDirection"
+      :dropdown-col="dropdownCol"
+      :display-mode="displayMode"
       :is-selected="isSelected"
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
@@ -67,19 +70,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineEmits, defineProps, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
+import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
-import SelectLayout from "./components/SelectLayout.vue";
-import DropdownLayout from "./components/DropdownLayout.vue";
-
-interface CardOption {
-  label: string;
-  name?: string;
-  describe?: string;
-  value: string | number;
-  icon?: string; // 图标现在是可选的，支持ri:xx格式和http链接
-}
+import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
 
 const props = defineProps({
   // v-model绑定值
@@ -89,7 +84,7 @@ const props = defineProps({
   },
   // 选项数组
   options: {
-    type: Array as () => CardOption[],
+    type: Array as () => DropdownOption[] & CardOption[],
     required: true
   },
   // 每行显示的卡片数量
@@ -133,7 +128,7 @@ const props = defineProps({
   // 卡片宽度
   width: {
     type: String,
-    default: "120px"
+    default: "100px"
   },
   // 图标位置
   iconPosition: {
@@ -172,6 +167,22 @@ const props = defineProps({
     default: "vertical",
     validator: (value: string) => {
       return ["vertical", "horizontal"].includes(value);
+    }
+  },
+  // 下拉面板列数
+  dropdownCol: {
+    type: Number,
+    default: 1,
+    validator: (value: number) => {
+      return value > 0 && value <= 6;
+    }
+  },
+  // 显示模式
+  displayMode: {
+    type: String,
+    default: "normal",
+    validator: (value: string) => {
+      return ["normal", "large"].includes(value);
     }
   }
 });

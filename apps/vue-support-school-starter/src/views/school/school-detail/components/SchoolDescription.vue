@@ -13,8 +13,6 @@
 </template>
 
 <script lang="ts" setup>
-import { defineProps } from "vue";
-
 // 接收属性
 defineProps<{
   title: string;

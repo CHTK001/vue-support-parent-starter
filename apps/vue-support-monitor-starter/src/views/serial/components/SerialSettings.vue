@@ -2,11 +2,11 @@
   <div class="serial-settings-container">
     <el-form :model="form" label-width="100px" label-position="right">
       <h4 class="mb-4 font-medium">串口参数</h4>
-      
+
       <el-form-item label="串口" prop="monitorSerialPort">
         <el-input v-model="form.monitorSerialPort" placeholder="请输入串口，如COM1、/dev/ttyUSB0" />
       </el-form-item>
-      
+
       <el-form-item label="波特率" prop="monitorSerialBaudRate">
         <el-select v-model="form.monitorSerialBaudRate" placeholder="选择波特率" class="w-full">
           <el-option :value="110" label="110" />
@@ -25,7 +25,7 @@
           <el-option :value="921600" label="921600" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="数据位" prop="monitorSerialDataBits">
         <el-select v-model="form.monitorSerialDataBits" placeholder="选择数据位" class="w-full">
           <el-option :value="5" label="5" />
@@ -34,7 +34,7 @@
           <el-option :value="8" label="8" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="停止位" prop="monitorSerialStopBits">
         <el-select v-model="form.monitorSerialStopBits" placeholder="选择停止位" class="w-full">
           <el-option :value="1" label="1" />
@@ -42,7 +42,7 @@
           <el-option :value="2" label="2" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="校验位" prop="monitorSerialParity">
         <el-select v-model="form.monitorSerialParity" placeholder="选择校验位" class="w-full">
           <el-option value="none" label="无校验" />
@@ -52,7 +52,7 @@
           <el-option value="space" label="空格校验" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="流控制" prop="monitorSerialFlowControl">
         <el-select v-model="form.monitorSerialFlowControl" placeholder="选择流控制" class="w-full">
           <el-option value="none" label="无" />
@@ -60,32 +60,32 @@
           <el-option value="software" label="软件流控" />
         </el-select>
       </el-form-item>
-      
+
       <el-divider />
       <h4 class="mb-4 font-medium">显示设置</h4>
-      
+
       <el-form-item label="接收格式" prop="monitorSerialReceiveFormat">
         <el-select v-model="form.monitorSerialReceiveFormat" placeholder="选择接收格式" class="w-full">
           <el-option value="text" label="文本" />
           <el-option value="hex" label="HEX" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="自动滚动">
         <el-switch v-model="form.monitorSerialAutoScroll" />
       </el-form-item>
-      
+
       <el-form-item label="添加时间戳">
         <el-switch v-model="form.monitorSerialAddTimestamp" />
       </el-form-item>
-      
+
       <el-form-item label="发送后换行">
         <el-switch v-model="form.monitorSerialAddNewline" />
       </el-form-item>
-      
+
       <el-divider />
       <h4 class="mb-4 font-medium">命令预设</h4>
-      
+
       <el-form-item>
         <div class="command-presets">
           <div v-for="(preset, index) in form.monitorSerialCommandPresets" :key="index" class="command-preset-item mb-4">
@@ -105,7 +105,7 @@
               </el-radio-group>
             </div>
           </div>
-          
+
           <el-button type="primary" plain @click="addCommandPreset">
             <IconifyIconOnline icon="ep:plus" class="mr-1" />
             添加命令预设
@@ -117,56 +117,60 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, reactive, watch } from 'vue';
+import { reactive, watch } from "vue";
 
 const props = defineProps({
   serialData: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 });
 
-const emit = defineEmits(['save']);
+const emit = defineEmits(["save"]);
 
 // 表单数据
 const form = reactive({
-  monitorSerialPort: '',
+  monitorSerialPort: "",
   monitorSerialBaudRate: 9600,
   monitorSerialDataBits: 8,
   monitorSerialStopBits: 1,
-  monitorSerialParity: 'none',
-  monitorSerialFlowControl: 'none',
-  monitorSerialReceiveFormat: 'text',
+  monitorSerialParity: "none",
+  monitorSerialFlowControl: "none",
+  monitorSerialReceiveFormat: "text",
   monitorSerialAutoScroll: true,
   monitorSerialAddTimestamp: true,
   monitorSerialAddNewline: true,
-  monitorSerialCommandPresets: []
+  monitorSerialCommandPresets: [],
 });
 
 // 监听串口数据变化
-watch(() => props.serialData, (newData) => {
-  if (newData) {
-    // 填充表单数据
-    Object.keys(form).forEach(key => {
-      if (newData[key] !== undefined) {
-        form[key] = newData[key];
+watch(
+  () => props.serialData,
+  (newData) => {
+    if (newData) {
+      // 填充表单数据
+      Object.keys(form).forEach((key) => {
+        if (newData[key] !== undefined) {
+          form[key] = newData[key];
+        }
+      });
+
+      // 如果没有预设命令，初始化一个空数组
+      if (!form.monitorSerialCommandPresets) {
+        form.monitorSerialCommandPresets = [];
       }
-    });
-    
-    // 如果没有预设命令，初始化一个空数组
-    if (!form.monitorSerialCommandPresets) {
-      form.monitorSerialCommandPresets = [];
     }
-  }
-}, { deep: true, immediate: true });
+  },
+  { deep: true, immediate: true }
+);
 
 // 添加命令预设
 const addCommandPreset = () => {
   form.monitorSerialCommandPresets.push({
-    name: '',
-    command: '',
+    name: "",
+    command: "",
     addNewline: true,
-    type: 'text'
+    type: "text",
   });
 };
 
@@ -182,7 +186,7 @@ const getSettings = () => {
 
 // 暴露方法给父组件
 defineExpose({
-  getSettings
+  getSettings,
 });
 </script>
 
@@ -204,4 +208,4 @@ h4 {
   border-radius: 4px;
   background-color: var(--el-fill-color-light);
 }
-</style> 
+</style>

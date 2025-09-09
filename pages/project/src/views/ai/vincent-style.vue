@@ -55,7 +55,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { clearObject, message } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchDeleteForModelStyle, fetchListForModelStyle, fetchSaveForModelStyle, fetchUpdateForModelStyle } from "../../api/ai/vincent-style";
 const { t } = useI18n();

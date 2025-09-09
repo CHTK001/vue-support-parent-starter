@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, defineProps, watch } from "vue";
+import { ref, watch } from "vue";
 import { findOnlineResources } from "@/api/online";
 import { message } from "@repo/utils";
 import type { VideoItem } from "@/types/video";

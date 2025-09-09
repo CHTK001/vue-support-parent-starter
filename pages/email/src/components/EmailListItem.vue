@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits, computed } from "vue";
+import { computed } from "vue";
 import { IconifyIconOnline } from "@iconify/vue";
 
 const props = defineProps({

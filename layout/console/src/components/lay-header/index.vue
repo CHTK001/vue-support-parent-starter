@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useDark, useGlobal } from "@pureadmin/utils";
 import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
-import { defineEmits, computed, reactive, shallowRef } from "vue";
+import { computed, reactive, shallowRef } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
 import LayNavbar from "../lay-navbar/index.vue";

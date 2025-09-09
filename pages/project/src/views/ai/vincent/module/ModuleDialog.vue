@@ -118,7 +118,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineAsyncComponent, defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchDeleteProjectForAiModule, fetchPageProjectForAiModule, fetchUpdateProjectForAiModule } from "../../../../api/manage/project-ai-module";
 

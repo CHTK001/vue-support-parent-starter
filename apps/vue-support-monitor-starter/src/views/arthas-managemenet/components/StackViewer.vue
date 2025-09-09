@@ -3,101 +3,39 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <el-input
-          v-model="classPattern"
-          placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）"
-          style="min-width: 260px"
-          clearable
-        />
-        <el-input
-          v-model="methodPattern"
-          placeholder="方法名/通配（默认 *）"
-          style="width: 200px"
-          clearable
-        />
-        <el-input
-          v-model="condition"
-          placeholder="条件表达式（可选，如 #cost>10）"
-          style="min-width: 220px"
-          clearable
-        />
+        <el-input v-model="classPattern" placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）" style="min-width: 260px" clearable />
+        <el-input v-model="methodPattern" placeholder="方法名/通配（默认 *）" style="width: 200px" clearable />
+        <el-input v-model="condition" placeholder="条件表达式（可选，如 #cost>10）" style="min-width: 220px" clearable />
         <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
-        <el-input-number
-          v-model="count"
-          :min="1"
-          :max="200"
-          :step="1"
-          controls-position="right"
-          style="width: 140px"
-        />
+        <el-input-number v-model="count" :min="1" :max="200" :step="1" controls-position="right" style="width: 140px" />
         <span class="label">-n 次数</span>
-        <el-input-number
-          v-model="collectMillis"
-          :min="1000"
-          :max="60000"
-          :step="1000"
-          controls-position="right"
-          style="width: 160px"
-        />
+        <el-input-number v-model="collectMillis" :min="1000" :max="60000" :step="1000" controls-position="right" style="width: 160px" />
         <span class="label">收集毫秒</span>
-        <el-button
-          type="primary"
-          :disabled="!nodeId || !classPatternTrim"
-          :loading="loading"
-          @click="run"
-        >
-          执行
-        </el-button>
+        <el-button type="primary" :disabled="!nodeId || !classPatternTrim" :loading="loading" @click="run"> 执行 </el-button>
         <el-button @click="clearData">清空</el-button>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <el-alert
-      v-if="error"
-      type="error"
-      :title="error"
-      :closable="false"
-      show-icon
-      class="mb-4"
-    />
+    <el-alert v-if="error" type="error" :title="error" :closable="false" show-icon class="mb-4" />
 
     <!-- 结果列表 -->
     <div v-if="stacks.length > 0" class="stacks">
-      <el-card
-        v-for="(item, idx) in stacks"
-        :key="idx"
-        class="stack-card"
-        shadow="hover"
-      >
+      <el-card v-for="(item, idx) in stacks" :key="idx" class="stack-card" shadow="hover">
         <div class="stack-header">
           <div class="stack-info">
             <span class="stack-method">{{ item.methodDisplay }}</span>
-            <el-tag v-if="item.threadName" type="info" size="small">{{
-              item.threadName
-            }}</el-tag>
-            <el-tag v-if="item.timestamp" type="success" size="small">{{
-              formatTime(item.timestamp)
-            }}</el-tag>
+            <el-tag v-if="item.threadName" type="info" size="small">{{ item.threadName }}</el-tag>
+            <el-tag v-if="item.timestamp" type="success" size="small">{{ formatTime(item.timestamp) }}</el-tag>
           </div>
-          <el-tag :type="getUsageType(item.depth)" size="small"
-            >深度: {{ item.depth }}</el-tag
-          >
+          <el-tag :type="getUsageType(item.depth)" size="small">深度: {{ item.depth }}</el-tag>
         </div>
 
         <div class="stack-frames">
-          <div
-            v-for="(frame, i) in item.stackTrace"
-            :key="i"
-            class="stack-frame"
-          >
+          <div v-for="(frame, i) in item.stackTrace" :key="i" class="stack-frame">
             <span class="class-name">{{ frame.className }}</span>
             <span class="method-name">.{{ frame.methodName }}</span>
-            <span v-if="frame.fileName" class="file-info">
-              ({{ frame.fileName }}:{{
-                frame.lineNumber > 0 ? frame.lineNumber : "Native"
-              }})
-            </span>
+            <span v-if="frame.fileName" class="file-info"> ({{ frame.fileName }}:{{ frame.lineNumber > 0 ? frame.lineNumber : "Native" }}) </span>
           </div>
         </div>
       </el-card>
@@ -112,14 +50,12 @@
 
 <script setup lang="ts">
 import { execArthasCommand } from "@/api/arthas-http";
-import { ref, computed, defineProps } from "vue";
+import { ref, computed } from "vue";
 
 const props = defineProps<{ nodeId: string }>();
 
 // 控件
-const classPattern = ref(
-  "com.chua.starter.monitor.arthas.ArthasCommandController"
-);
+const classPattern = ref("com.chua.starter.monitor.arthas.ArthasCommandController");
 const classPatternTrim = computed(() => (classPattern.value || "").trim());
 const methodPattern = ref("*");
 const condition = ref("");
@@ -209,8 +145,7 @@ async function run() {
       const items = parseStackData(res.data?.output);
       stacks.value = items;
       if (items.length === 0) {
-        error.value =
-          "未获取到调用路径数据：请确认类/方法匹配且目标方法在收集期间被调用";
+        error.value = "未获取到调用路径数据：请确认类/方法匹配且目标方法在收集期间被调用";
       }
     } else {
       error.value = res?.msg || "执行失败";
@@ -281,9 +216,7 @@ function getUsageType(depth: number): "success" | "warning" | "danger" {
   font-weight: 600;
 }
 .stack-frames {
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 12px;
   line-height: 1.6;
 }
