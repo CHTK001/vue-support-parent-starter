@@ -18,7 +18,7 @@ const { t } = useI18n();
 const { tooltipEffect } = useNav();
 
 const iconClass = computed(() => {
-  return ["w-[16px]", "h-[16px]", "inline-block", "align-middle", "cursor-pointer", "duration-[100ms]"];
+  return ["w-[16px]", "h-[16px]", "inline-block", "align-middle", "cursor-pointer", "duration-&lsqb;100ms&rsqb"];
 });
 
 //@ts-ignore
@@ -36,13 +36,18 @@ const toggleClick = () => {
 
 <template>
   <div class="left-collapse" :class="{ 'collapsed-state': !isActive }">
-    <IconifyIconOffline v-tippy="{
-      content: isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand'),
-      theme: tooltipEffect,
-      hideOnClick: 'toggle',
-      placement: 'right',
-    }" :icon="MenuFold" :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']"
-      :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }" @click="toggleClick" />
+    <IconifyIconOffline
+      v-tippy="{
+        content: isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand'),
+        theme: tooltipEffect,
+        hideOnClick: 'toggle',
+        placement: 'right',
+      }"
+      :icon="MenuFold"
+      :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']"
+      :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }"
+      @click="toggleClick"
+    />
   </div>
 </template>
 
@@ -83,7 +88,7 @@ const toggleClick = () => {
     box-shadow: 0 0 8px -2px var(--el-color-primary);
 
     &::before {
-      content: '';
+      content: "";
       position: absolute;
       top: -2px;
       left: 50%;
