@@ -1,6 +1,107 @@
 # 更新日志
 
-## [最新更新] - 2025-08-18
+## [最新更新] - 2025-01-10
+
+### 🎥 WebRTC实时通信模块
+
+新增完整的WebRTC实时通信功能模块，支持视频通话、视频会议、屏幕共享等功能。
+
+#### ✨ 新增功能
+
+1. **房间管理系统**
+   - 房间列表查看和搜索功能
+   - 创建和加入房间功能
+   - 房间状态实时监控
+   - 房间成员管理
+
+2. **视频通话功能**
+   - 一对一视频通话
+   - 音频/视频控制开关
+   - 通话质量实时监控
+   - 通话记录管理
+
+3. **视频会议功能**
+   - 多人视频会议支持
+   - 会议室创建和管理
+   - 参会者权限控制
+   - 会议录制功能（预留接口）
+
+4. **屏幕共享功能**
+   - 桌面屏幕共享
+   - 应用窗口共享
+   - 共享权限控制
+   - 实时标注功能（预留接口）
+
+5. **统计监控功能**
+   - 房间使用统计图表
+   - 通话质量分析
+   - 用户活跃度统计
+   - 系统性能监控
+
+#### 🛠 技术实现
+
+- **WebRTC标准**: 基于现代WebRTC API实现P2P音视频通信
+- **Socket.IO集成**: 实时信令交换和状态同步
+- **Vue 3 Composition API**: 使用组合式函数封装业务逻辑
+- **TypeScript支持**: 完整的类型定义和接口规范
+- **Element Plus UI**: 统一的界面设计和交互体验
+
+#### 📁 新增文件
+
+**页面组件**
+- `src/views/webrtc/index.vue` - WebRTC主页面
+- `src/views/webrtc/rooms/index.vue` - 房间管理页面
+- `src/views/webrtc/video-call/index.vue` - 视频通话页面
+- `src/views/webrtc/video-conference/index.vue` - 视频会议页面
+- `src/views/webrtc/screen-share/index.vue` - 屏幕共享页面
+- `src/views/webrtc/statistics/index.vue` - 统计监控页面
+
+**API接口**
+- `src/api/webrtc/index.ts` - API统一导出
+- `src/api/webrtc/rooms.ts` - 房间管理接口
+- `src/api/webrtc/users.ts` - 用户管理接口
+- `src/api/webrtc/statistics.ts` - 统计数据接口
+- `src/api/webrtc/config.ts` - 配置管理接口
+
+**组合式函数**
+- `src/composables/webrtc/index.ts` - 组合式函数统一导出
+- `src/composables/webrtc/useWebRTCCall.ts` - 视频通话逻辑
+- `src/composables/webrtc/useWebRTCConference.ts` - 视频会议逻辑
+- `src/composables/webrtc/useWebRTCScreenShare.ts` - 屏幕共享逻辑
+
+**服务层**
+- `src/services/webrtc/index.ts` - 服务统一导出
+- `src/services/webrtc/socket.ts` - Socket.IO客户端服务
+
+**路由配置**
+- `src/router/modules/webrtc.ts` - WebRTC路由模块
+- 更新 `src/stores/route-menu.ts` - 添加菜单映射
+
+#### 🎯 使用指南
+
+1. **访问入口**: 主菜单 → 实时通信 → WebRTC管理
+2. **房间管理**: 创建房间、查看房间列表、管理房间成员
+3. **发起通话**: 选择在线用户，点击发起通话按钮
+4. **加入会议**: 输入会议ID或从列表选择会议室
+5. **屏幕共享**: 在通话或会议中启用屏幕共享功能
+
+#### 🔧 配置说明
+
+- **开发环境**: WebSocket服务默认连接 `ws://localhost:3000`
+- **生产环境**: 自动使用当前域名的WebSocket服务
+- **模拟模式**: 开发阶段提供模拟Socket服务，便于前端开发测试
+
+#### 📋 待完善功能
+
+- [ ] 后端Socket.IO服务集成
+- [ ] 会议录制功能实现
+- [ ] 屏幕共享标注功能
+- [ ] 移动端适配优化
+- [ ] 国际化支持
+
+---
+
+## [历史更新] - 2025-08-18
 
 ### 数据管理控制台 - RedisConsole 重构
 

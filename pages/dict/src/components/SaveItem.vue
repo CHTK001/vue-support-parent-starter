@@ -98,7 +98,6 @@ export default defineComponent({
   },
 });
 </script>
-
 <template>
   <div>
     <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">

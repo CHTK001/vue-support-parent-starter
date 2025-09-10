@@ -54,6 +54,17 @@ export default [
             },
           },
           {
+            path: "/project/ai/face/detect/web",
+            name: "ProjectAiFaceDetectWeb",
+            component: async () => {
+              const { FaceDetectIndex } = await import("@pages/project");
+              return FaceDetectIndex;
+            },
+            meta: {
+              title: "人脸检测",
+            },
+          },
+          {
             path: "/project/ai/video/web",
             name: "ProjectAiVideoWeb",
             component: async () => {
