@@ -48,8 +48,12 @@ const displayData = computed(() => {
           fps: props.form.parameters?.fps,
         },
       },
-      sysAiVincentTaskUrls: props.newGeneratedData.map((item) => item.url),
-      sysAiVincentTaskLocalUrls: props.newGeneratedData.map((item) => item.url),
+      sysAiVincentTaskUrls: props.newGeneratedData.map((item) => item.url).filter((url) => url !== null),
+      sysAiVincentTaskLocalUrls: props.newGeneratedData.map((item) => item.url).filter((url) => url !== null),
+      // 添加占位符和进度信息
+      isGenerating: props.newGeneratedData.some((item) => item.isPlaceholder),
+      placeholderData: props.newGeneratedData.filter((item) => item.isPlaceholder),
+      generatedData: props.newGeneratedData.filter((item) => !item.isPlaceholder),
     };
     allData.unshift(newItem); // 添加到数组开头
   }
@@ -146,7 +150,9 @@ defineExpose({
           :media-type="props.form.sysAiModuleType"
           :media-count="row.config?.parameters?.number || 1"
           :row-id="row.id"
-          :media-size="{ width: 150, height: 150 }"
+          :media-size="{ width: 261, height: 261 }"
+          :placeholder-data="row.placeholderData || []"
+          :is-generating="row.isGenerating || false"
           @preview="handleMediaPreview"
           @download="handleMediaDownload"
         />
@@ -154,52 +160,60 @@ defineExpose({
 
       <!-- 参数信息区域 -->
       <div class="params-section">
+        <!-- 提示词区域 -->
         <div class="prompt-text" :title="row.config?.input?.prompt">
-          <span class="prompt-label">提示词：</span>
           <span class="prompt-content" @click="handleReDraw(row.config?.input?.prompt)">{{ row.config?.input?.prompt }}</span>
         </div>
 
-        <div class="model-params">
-          <div class="param-item">
-            <span class="param-label">模型：</span>
-            <span class="param-value model-name" @click="handleReDraw(row.config.model, 'model')">{{ row.config.model }}</span>
+        <!-- 标签式参数展示 -->
+        <div class="param-tags">
+          <div class="param-tag model-tag" @click="handleReDraw(row.config.model, 'model')">
+            <span class="tag-icon">🤖</span>
+            <span class="tag-text">{{ row.config.model }}</span>
           </div>
 
-          <div class="param-item" v-if="row.config?.parameters?.size">
-            <span class="param-label">尺寸：</span>
-            <span class="param-value">{{ row.config.parameters.size }}</span>
+          <div class="param-tag" v-if="row.config?.parameters?.size">
+            <span class="tag-icon">📐</span>
+            <span class="tag-text">{{ row.config.parameters.size }}</span>
           </div>
 
-          <div class="param-item" v-if="row.config?.parameters?.style">
-            <span class="param-label">风格：</span>
-            <span class="param-value">{{ row.config.parameters.style }}</span>
+          <div class="param-tag" v-if="row.config?.parameters?.number">
+            <span class="tag-icon">🔢</span>
+            <span class="tag-text">{{ row.config.parameters.number }}张</span>
           </div>
 
-          <div class="param-item" v-if="row.config?.parameters?.number">
-            <span class="param-label">数量：</span>
-            <span class="param-value">{{ row.config.parameters.number }}</span>
+          <div class="param-tag" v-if="row.config?.parameters?.style">
+            <span class="tag-icon">🎨</span>
+            <span class="tag-text">{{ row.config.parameters.style }}</span>
           </div>
 
-          <div class="param-item" v-if="row.config?.parameters?.quality">
-            <span class="param-label">质量：</span>
-            <span class="param-value">{{ row.config.parameters.quality }}</span>
+          <div class="param-tag" v-if="row.config?.parameters?.quality">
+            <span class="tag-icon">⭐</span>
+            <span class="tag-text">{{ row.config.parameters.quality }}</span>
           </div>
 
-          <div class="param-item" v-if="row.config?.parameters?.fps">
-            <span class="param-label">帧率：</span>
-            <span class="param-value">{{ row.config.parameters.fps }} FPS</span>
+          <div class="param-tag" v-if="row.config?.parameters?.fps">
+            <span class="tag-icon">🎬</span>
+            <span class="tag-text">{{ row.config.parameters.fps }}FPS</span>
           </div>
+        </div>
 
-          <div class="param-item" v-if="row.config?.input?.negativePrompt">
-            <span class="param-label">反向提示词：</span>
-            <span class="param-value negative-prompt">{{ row.config.input.negativePrompt }}</span>
-          </div>
+        <!-- 创建时间 -->
+        <div class="creation-time">
+          <span class="time-label">创建时间</span>
+          <span class="time-value">{{ row.createTime }}</span>
         </div>
 
         <!-- 参考图像 -->
         <div class="ref-image-section" v-if="row?.input?.refImage">
-          <span class="param-label">参考图像：</span>
+          <span class="ref-label">参考图像</span>
           <el-image :src="row.input.refImage" class="ref-image" />
+        </div>
+
+        <!-- 反向提示词 -->
+        <div class="negative-prompt-section" v-if="row.config?.input?.negativePrompt">
+          <span class="negative-label">反向提示词</span>
+          <span class="negative-content">{{ row.config.input.negativePrompt }}</span>
         </div>
       </div>
     </div>
@@ -216,8 +230,8 @@ defineExpose({
 .history-row {
   display: flex;
   align-items: stretch;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 10px;
   border-radius: 12px;
   transition: all 0.3s ease;
   min-height: 200px;
@@ -235,7 +249,6 @@ defineExpose({
   justify-content: flex-start;
   align-items: center;
   border-radius: 8px;
-  padding: 15px;
   min-width: fit-content;
 }
 
@@ -243,101 +256,105 @@ defineExpose({
 .params-section {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   width: 300px !important;
   background: #fff;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 16px;
   border: 1px solid #e4e7ed;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .prompt-text {
-  margin-bottom: 12px;
-  padding: 10px;
-  background: #f8f9fa;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 8px;
-  border-left: 4px solid #409eff;
-
-  .prompt-label {
-    font-weight: 600;
-    color: #303133;
-    margin-right: 8px;
-    font-size: 14px;
-  }
+  border-left: 3px solid #409eff;
 
   .prompt-content {
-    color: #606266;
+    color: #495057;
     cursor: pointer;
-    line-height: 1.6;
+    line-height: 1.5;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
 
     &:hover {
       color: #409eff;
-      text-decoration: underline;
     }
   }
 }
 
-.model-params {
+.param-tags {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
-  padding: 12px;
-  background: #fafbfc;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  margin: 8px 0;
 }
 
-.param-item {
+.param-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #495057;
+  transition: all 0.2s ease;
+  cursor: default;
+
+  &:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+  }
+
+  &.model-tag {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+  }
+
+  .tag-icon {
+    font-size: 14px;
+  }
+
+  .tag-text {
+    font-weight: 500;
+  }
+}
+
+.creation-time {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border-left: 3px solid #17a2b8;
 
-  &:last-child {
-    border-bottom: none;
-  }
-
-  .param-label {
+  .time-label {
+    font-size: 12px;
+    color: #6c757d;
     font-weight: 500;
-    color: #909399;
-    margin-right: 8px;
-    min-width: 80px;
-    font-size: 13px;
   }
 
-  .param-value {
-    color: #606266;
-    font-size: 13px;
-    flex: 1;
-    text-align: right;
-
-    &.model-name {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      }
-    }
-
-    &.negative-prompt {
-      color: #f56c6c;
-      font-style: italic;
-    }
+  .time-value {
+    font-size: 12px;
+    color: #495057;
+    font-weight: 600;
   }
 }
 
@@ -346,24 +363,50 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 12px;
-  padding: 10px;
-  background: #f8f9fa;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 8px;
-  border-left: 4px solid #67c23a;
+  border-left: 3px solid #28a745;
 
-  .param-label {
+  .ref-label {
+    font-size: 12px;
+    color: #6c757d;
     font-weight: 500;
-    color: #909399;
-    font-size: 13px;
   }
 
   .ref-image {
-    width: 50px;
-    height: 50px;
-    border-radius: 8px;
-    border: 2px solid #e4e7ed;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 2px solid #dee2e6;
     object-fit: cover;
+  }
+}
+
+.negative-prompt-section {
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border-radius: 8px;
+  border-left: 3px solid #e53e3e;
+
+  .negative-label {
+    display: block;
+    font-size: 11px;
+    color: #a0aec0;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .negative-content {
+    font-size: 12px;
+    color: #e53e3e;
+    font-style: italic;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 

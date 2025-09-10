@@ -110,6 +110,7 @@
   <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment" />
   <ModuleVideoSettingUpdateDialog ref="moduleVideoSettingUpdateDialogRef" />
   <ModuleResolutionSettingUpdateDialog ref="moduleResolutionSettingUpdateDialogRef" />
+  <ModuleSettingUpdateDialog ref="moduleSettingUpdateDialogRef" @success="handleRefreshEnvironment" />
   <ModuleTemplateUpdateDialog ref="moduleTemplateUpdateDialogRef" @success="handleRefreshEnvironmentTemplate" />
   <StyleLayout ref="styleLayoutRef" @success="loadConfig" :data="env.item" />
 </template>
@@ -125,6 +126,7 @@ import { fetchDeleteProjectForAiModule, fetchPageProjectForAiModule, fetchUpdate
 const ModuleUpdateDialog = defineAsyncComponent(() => import("./ModuleUpdateDialog.vue"));
 const ModuleResolutionSettingUpdateDialog = defineAsyncComponent(() => import("../../resolution-setting.vue"));
 const ModuleVideoSettingUpdateDialog = defineAsyncComponent(() => import("../../vincent-video-setting.vue"));
+const ModuleSettingUpdateDialog = defineAsyncComponent(() => import("../../vincent-setting.vue"));
 const ModuleTemplateUpdateDialog = defineAsyncComponent(() => import("../../vincent-template.vue"));
 const StyleLayout = defineAsyncComponent(() => import("../../vincent-style.vue"));
 

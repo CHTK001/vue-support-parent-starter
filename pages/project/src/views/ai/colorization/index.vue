@@ -256,7 +256,7 @@ onMounted(async () => {
       <el-main class="pt-0 pb-4 px-0 overflow-hidden">
         <div class="flex justify-center align-middle h-full relative">
           <div
-            class="h-full relative overflow-hidden compare-image rounded-lg shadow-lg flex justify-center"
+            class="h-full relative overflow-hidden compare-image rounded-lg shadow-lg flex justify-center flex-1"
             :style="{
               '--image-height': showImageSize.height + 'px',
               '--image-width': showImageSize.width + 'px',

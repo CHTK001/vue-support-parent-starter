@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, defineEmits } from "vue";
+import { ref, watch, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { getTunnelConfig, setTunnelConfig, type ArthasTunnelConfigDto } from "@/api/arthas-management";
 

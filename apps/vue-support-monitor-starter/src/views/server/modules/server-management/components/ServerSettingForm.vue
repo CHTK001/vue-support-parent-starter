@@ -1076,10 +1076,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, nextTick, defineEmits } from "vue";
+import type { FileManagementApiConfig, ServerSetting } from "@/api/server/setting";
+import { getAvailableNodeClients, testFileManagementConnection as testFileManagementConnectionApi } from "@/api/server/setting";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { ServerSetting, FileManagementApiConfig } from "@/api/server/setting";
-import { testFileManagementConnection as testFileManagementConnectionApi, getAvailableNodeClients } from "@/api/server/setting";
+import { nextTick, reactive, ref, watch } from "vue";
 
 // 定义属性
 const props = defineProps<{

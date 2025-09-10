@@ -12,6 +12,83 @@ export default [
     },
     children: [
       {
+        path: "/project/llm",
+        name: "ProjectLlm",
+        redirect: "/project/llm",
+        meta: {
+          icon: "ep:folder",
+          title: "大语言模型",
+        },
+        children: [
+          {
+            path: "/project/ai/llm/web",
+            name: "ProjectAiLlmWeb",
+            component: async () => {
+              const { LlmNewIndex } = await import("@pages/project");
+              return LlmNewIndex;
+            },
+            meta: {
+              title: "大语言模型",
+            },
+          },
+        ],
+      },
+      {
+        path: "/project/generation",
+        name: "ProjectGeneration",
+        redirect: "/project/llm",
+        meta: {
+          icon: "ep:folder",
+          title: "文生图模型",
+        },
+        children: [
+          {
+            path: "/project/ai/vincent/web",
+            name: "ProjectAiVincentWeb",
+            component: async () => {
+              const { VincentIndex } = await import("@pages/project");
+              return VincentIndex;
+            },
+            meta: {
+              title: "图像生成",
+            },
+          },
+          {
+            path: "/project/ai/video/web",
+            name: "ProjectAiVideoWeb",
+            component: async () => {
+              const { VideoIndex } = await import("@pages/project");
+              return VideoIndex;
+            },
+            meta: {
+              title: "视频生成",
+            },
+          },
+          {
+            path: "/project/ai/colorization/web",
+            name: "ProjectAiColorizationWeb",
+            component: async () => {
+              const { ColorizationIndex } = await import("@pages/project");
+              return ColorizationIndex;
+            },
+            meta: {
+              title: "图像上色",
+            },
+          },
+          {
+            path: "/project/ai/resolution/web",
+            name: "ProjectAiResolutionWeb",
+            component: async () => {
+              const { ResolutionIndex } = await import("@pages/project");
+              return ResolutionIndex;
+            },
+            meta: {
+              title: "图像分辨率增强",
+            },
+          },
+        ],
+      },
+      {
         path: "/project/manage",
         name: "ProjectManage",
         component: async () => {
@@ -20,29 +97,6 @@ export default [
         },
         meta: {
           title: "项目管理",
-        },
-      },
-      {
-        path: "/project/ai/llm/web",
-        name: "ProjectAiLlmWeb",
-        component: async () => {
-          const { LlmNewIndex } = await import("@pages/project");
-          return LlmNewIndex;
-        },
-        meta: {
-          title: "大语言模型",
-        },
-      },
-      {
-        path: "/project/ai/vincent/web",
-        name: "ProjectAiVincent",
-        component: async () => {
-          const { VincentIndex } = await import("@pages/project");
-          return VincentIndex;
-        },
-        meta: {
-          title: "图像生成",
-          showLink: false,
         },
       },
       {

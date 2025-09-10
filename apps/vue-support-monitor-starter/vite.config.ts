@@ -1,4 +1,3 @@
-import path from "path";
 import { type ConfigEnv, loadEnv, type UserConfigExport } from "vite";
 import { exclude, include } from "./build/optimize";
 import { getPluginsList } from "./build/plugins";
@@ -30,9 +29,9 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           name: "vue-support-monitor-starter",
           version: "1.0.0",
           dependencies: {},
-          devDependencies: {}
+          devDependencies: {},
         },
-        lastBuildTime: new Date().toISOString()
+        lastBuildTime: new Date().toISOString(),
       }),
       __APP_ENV__: JSON.stringify(newMode),
     },
@@ -67,6 +66,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           //引入的less全局变量，来自于开源组件ayin-color和ayin-lessmixins，访问https://www.npmjs.com/package/ayin-color 查看相关信息
         },
         scss: {
+          additionalData: `
+            @use "@repo/assets/style/layout/default/variables.scss" as *;
+            @use "@repo/assets/style/layout/default/mixin.scss";
+          `,
         },
       },
     },
