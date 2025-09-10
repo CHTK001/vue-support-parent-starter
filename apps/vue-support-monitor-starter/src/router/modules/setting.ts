@@ -8,7 +8,7 @@ export default [
       icon: "ep:setting",
       rank: 10299,
       title: $t("buttons.monitor.setting"),
-      showLink: true
+      showLink: true,
     },
     children: [
       {
@@ -20,9 +20,17 @@ export default [
           rank: 10299,
           title: $t("buttons.monitor.setting"),
           showLink: true,
-          showParent: true
-        }
-      }
-    ]
-  }
+          showParent: true,
+        },
+      },
+      {
+        path: "/dict",
+        name: "DictManagement",
+        component: () => import("@pages/dict"),
+        meta: {
+          title: "字典管理",
+        },
+      },
+    ],
+  },
 ];

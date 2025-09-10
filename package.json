@@ -42,6 +42,8 @@
     "@layout/engine": "workspace:^",
     "@pages/example": "workspace:^",
     "@pages/project": "workspace:^",
+    "@pages/dict": "workspace:^",
+    "@pages/log": "workspace:^",
     "@pages/map": "workspace:^",
     "@pages/setting": "workspace:^",
     "@pages/tools": "workspace:^",

@@ -1,12 +1,14 @@
-<script setup>
-import { defineAsyncComponent, nextTick, reactive, ref, shallowRef } from "vue";
+<script setup lang="ts">
+import { computed, defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
+const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { getConfig } from "@repo/config";
 import { localStorageProxy } from "@repo/utils";
+import { ElMessage } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { fetchListForGroup, type SysSettingGroup } from "./api/group";
 const localStorageProxyObject = localStorageProxy();
 const SETTING_TAB_VALUE = "setting-tab-value";
 
@@ -22,8 +24,19 @@ const data = reactive([]);
 const layout = reactive({
   sms: defineAsyncComponent(() => import("./layout/sms.vue")),
   email: defineAsyncComponent(() => import("./layout/email.vue")),
+  group: GroupManagement,
 });
-const productsConfig = reactive([
+// 默认配置项（作为后备）
+const defaultProductsConfig = [
+  {
+    group: "group",
+    description: "管理系统配置分组",
+    name: "系统组设置",
+    isSetup: true,
+    type: 4,
+    icon: "mdi:tune-variant",
+    hide: false,
+  },
   {
     group: "default",
     description: t("product.default"),
@@ -33,93 +46,58 @@ const productsConfig = reactive([
     icon: "ri:airplay-fill",
     hide: false,
   },
-  {
-    group: "config",
-    description: t("product.config"),
-    name: "系统设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:export-line",
-    hide: false,
-  },
+];
 
-  {
-    group: "weixin",
-    name: "微信设置",
-    isSetup: true,
-    type: 4,
-    icon: "simple-icons:wechat",
-    hide: !(getConfig().OpenSettingWeixin || !0),
-  },
-  {
-    group: "gitee",
-    name: "Gitee设置",
-    isSetup: true,
-    type: 4,
-    icon: "simple-icons:gitee",
-    hide: !(getConfig().OpenSettingGitee || !0),
-  },
-  {
-    group: "email",
-    name: "邮件设置",
-    isSetup: true,
-    type: 4,
-    icon: "bi:mailbox2",
-    project: true,
-    hide: !(getConfig().OpenSettingEmail || !1),
-  },
-  {
-    group: "sms",
-    name: "短信设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:phone-find-line",
-    project: true,
-    hide: !(getConfig().OpenSettingSms || !1),
-  },
-  {
-    group: "llm",
-    name: "大语言模型设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:login-box-fill",
-    hide: !(getConfig().OpenSettingLlm || !1),
-  },
-  {
-    group: "webrtc",
-    name: "WebRtc设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:login-box-fill",
-    hide: !(getConfig().OpenSettingWebrtc || !1),
-  },
-  {
-    group: "sso",
-    name: "SSO设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:login-box-fill",
-    hide: !(getConfig().OpenSettingSso || !0),
-  },
-]);
+// 从接口获取的配置项
+const productsConfig = reactive([]);
 
-const products = productsConfig.filter((it) => !it.hide);
+const products = computed(() => {
+  return productsConfig.filter((it) => !it.hide);
+});
 const saveLayout = shallowRef();
 
 const currentItem = shallowRef();
 const onRowClick = async (it) => {
   const _tabValue = config.tabValue;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
-  const item = products.filter((item) => item.group === _tabValue)[0];
+  const item = products.value.filter((item) => item.group === _tabValue)[0];
   currentItem.value = item;
-  saveLayout.value?.setData(item);
-  saveLayout.value?.open();
+
+  // 如果是配置组管理，直接显示对话框
+  if (item.group === "group") {
+    layout[item.group] = true;
+  } else if (layout[item.group]) {
+    // 如果有自定义布局组件，显示抽屉
+    layout[item.group] = true;
+  } else {
+    // 否则使用默认的设置布局
+    saveLayout.value?.setData(item);
+    saveLayout.value?.open();
+  }
 };
 
 // 关闭设置面板
 const close = (group) => {
-  // 可以在这里添加关闭后的逻辑，如刷新数据等
+  // 关闭对应的布局组件
+  if (layout[group] !== undefined) {
+    layout[group] = false;
+  }
+
+  // 如果是配置组管理，刷新配置数据
+  if (group === "group") {
+    loadProductsConfig();
+  }
+
   console.log("关闭设置面板:", group);
+};
+
+// 打开配置组管理
+const openGroupManagement = () => {
+  const groupItem = productsConfig.value.find((item) => item.group === "group");
+  if (groupItem) {
+    currentItem.value = groupItem;
+    layout.group = true;
+  }
 };
 // if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
 //   nextTick(() => {
@@ -144,12 +122,64 @@ const isDefaultView = () => {
 
 // 获取当前选中的设置项
 const getCurrentSetting = () => {
-  return products.find((item) => item.group === config.tabValue);
+  return products.value.find((item) => item.group === config.tabValue);
 };
+
+/**
+ * 从接口获取配置组数据
+ * @author CH
+ * @date 2024-01-15
+ * @version 1.0.0
+ */
+const loadProductsConfig = async () => {
+  try {
+    const { data } = await fetchListForGroup({});
+    if (data && data.length > 0) {
+      // 将接口返回的配置组数据转换为产品配置格式
+      const apiGroups = data
+        .filter((group: SysSettingGroup) => group.sysSettingGroupEnable)
+        .map((group: SysSettingGroup) => ({
+          group: group.sysSettingGroupCode,
+          name: group.sysSettingGroupName,
+          description: group.sysSettingGroupRemark || `设置${group.sysSettingGroupName}`,
+          isSetup: true,
+          type: 4,
+          icon: group.sysSettingGroupIcon || "ri:settings-line",
+          hide: group.sysSettingGroupEnable,
+        }));
+
+      // 确保 default 和 group 配置始终存在，将其作为固定值与远程配置合并
+      const defaultItem = defaultProductsConfig.find((item) => item.group === "default");
+      const groupItem = defaultProductsConfig.find((item) => item.group === "group");
+      const otherDefaults = defaultProductsConfig.filter((item) => item.group !== "default" && item.group !== "group");
+
+      // 过滤掉远程配置中的 default 和 group 项（如果存在）
+      const filteredApiGroups = apiGroups.filter((item) => item.group !== "default" && item.group !== "group");
+
+      // 合并配置：group（系统组设置）第一位 + default（基础配置）第二位 + 其他默认配置 + 远程配置
+      productsConfig.splice(0, productsConfig.length, groupItem, defaultItem, ...otherDefaults, ...filteredApiGroups);
+    } else {
+      // 接口失败时使用默认配置
+      productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
+      console.warn("获取配置组失败，使用默认配置");
+    }
+  } catch (error) {
+    // 接口异常时使用默认配置
+    productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
+    console.error("加载配置组失败:", error);
+    ElMessage.warning("加载配置组失败，使用默认配置");
+  }
+};
+
+// 组件挂载时加载配置
+onMounted(() => {
+  loadProductsConfig();
+});
 </script>
 <template>
   <div class="app-container h-full modern-setting-container">
     <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle @click="handleOpenItemDialog" />
+    <el-button :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle @click="openGroupManagement" />
 
     <!-- 页面标题 -->
     <div class="setting-header">
@@ -189,9 +219,17 @@ const getCurrentSetting = () => {
       <template v-if="!layout[currentItem.group]">
         <SaveLayoutRaw ref="saveLayout" @close="close(currentItem.group)" class="w-full" />
       </template>
-      <el-drawer v-model="layout[currentItem.group]" size="50%" :title="currentItem.name">
-        <component :is="layout[currentItem.group]" :data="currentItem" />
-      </el-drawer>
+      <template v-else-if="currentItem.group === 'group'">
+        <!-- 配置组管理使用全屏显示 -->
+        <el-dialog v-model="layout.group" :title="currentItem.name" width="90%" top="5vh" destroy-on-close @close="close(currentItem.group)">
+          <GroupManagement :data="currentItem" />
+        </el-dialog>
+      </template>
+      <template v-else>
+        <el-drawer v-model="layout[currentItem.group]" size="50%" :title="currentItem.name">
+          <component :is="layout[currentItem.group]" :data="currentItem" />
+        </el-drawer>
+      </template>
     </div>
 
     <SaveItem ref="saveItemRef" @close="handleCloseItemDialog" />
@@ -227,6 +265,24 @@ const getCurrentSetting = () => {
 
   &:hover {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.floating-group-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 90px;
+  z-index: 100;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
   }
 }
 

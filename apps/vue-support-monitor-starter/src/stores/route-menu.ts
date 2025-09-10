@@ -69,7 +69,14 @@ const routeMenuMap: Record<string, string> = {
   authConfig: '/system/oauth-config',
   overview: '/overview',
   'system-overview': '/system/overview',
-  about: '/about'
+  about: '/about',
+  // WebRTC相关路由
+  webrtcIndex: '/webrtc/index',
+  webrtcRooms: '/webrtc/rooms',
+  webrtcVideoCall: '/webrtc/video-call',
+  webrtcVideoConference: '/webrtc/video-conference',
+  webrtcScreenShare: '/webrtc/screen-share',
+  webrtcStatistics: '/webrtc/statistics'
 }
 
 export default routeMenuMap

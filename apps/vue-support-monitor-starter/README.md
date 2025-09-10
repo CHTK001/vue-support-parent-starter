@@ -19,6 +19,90 @@ Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus �
 
 ## 最新更新
 
+### WebRTC实时通信模块（2025-01-10）
+
+新增完整的WebRTC实时通信功能模块，支持视频通话、视频会议、屏幕共享等功能：
+
+#### 主要功能
+
+1. **房间管理**
+   - 房间列表查看和搜索
+   - 创建和加入房间
+   - 房间状态实时监控
+   - 房间成员管理
+
+2. **视频通话**
+   - 一对一视频通话
+   - 音频/视频控制
+   - 通话质量监控
+   - 通话记录管理
+
+3. **视频会议**
+   - 多人视频会议
+   - 会议室管理
+   - 参会者权限控制
+   - 会议录制功能
+
+4. **屏幕共享**
+   - 桌面屏幕共享
+   - 应用窗口共享
+   - 共享权限控制
+   - 实时标注功能
+
+5. **统计监控**
+   - 房间使用统计
+   - 通话质量分析
+   - 用户活跃度统计
+   - 系统性能监控
+
+#### 技术特性
+
+- **WebRTC技术**: 基于现代WebRTC标准，支持P2P直连
+- **Socket.IO**: 实时信令交换和状态同步
+- **响应式设计**: 适配桌面和移动设备
+- **模块化架构**: 功能模块独立，便于维护和扩展
+- **TypeScript**: 完整的类型定义，提供更好的开发体验
+
+#### 文件结构
+
+```
+src/
+├── views/webrtc/                          # WebRTC页面组件
+│   ├── index.vue                          # WebRTC主页面
+│   ├── rooms/
+│   │   └── index.vue                      # 房间管理页面
+│   ├── video-call/
+│   │   └── index.vue                      # 视频通话页面
+│   ├── video-conference/
+│   │   └── index.vue                      # 视频会议页面
+│   ├── screen-share/
+│   │   └── index.vue                      # 屏幕共享页面
+│   └── statistics/
+│       └── index.vue                      # 统计监控页面
+├── api/webrtc/                            # WebRTC API接口
+│   ├── index.ts                           # 统一导出
+│   ├── rooms.ts                           # 房间管理接口
+│   ├── users.ts                           # 用户管理接口
+│   ├── statistics.ts                      # 统计接口
+│   └── config.ts                          # 配置接口
+├── composables/webrtc/                    # WebRTC组合式函数
+│   ├── index.ts                           # 统一导出
+│   ├── useWebRTCCall.ts                   # 视频通话逻辑
+│   ├── useWebRTCConference.ts             # 视频会议逻辑
+│   └── useWebRTCScreenShare.ts            # 屏幕共享逻辑
+└── services/webrtc/                       # WebRTC服务
+    ├── index.ts                           # 统一导出
+    └── socket.ts                          # Socket.IO客户端
+```
+
+#### 使用说明
+
+1. **访问WebRTC模块**: 在主菜单中选择"实时通信" -> "WebRTC管理"
+2. **创建房间**: 在房间管理页面点击"创建房间"按钮
+3. **发起通话**: 选择在线用户，点击"发起通话"按钮
+4. **加入会议**: 输入会议室ID或从列表中选择会议室
+5. **屏幕共享**: 在通话或会议中点击"共享屏幕"按钮
+
 ### 文件存储配置模块优化
 
 参考 `PreviewFull.vue` 的设计理念，对文件存储配置模块进行了全面优化：
@@ -102,13 +186,36 @@ npm run build
 ```
 src/
 ├── views/
+│   ├── webrtc/                              # WebRTC实时通信模块
+│   │   ├── index.vue                        # WebRTC主页面
+│   │   ├── rooms/                           # 房间管理
+│   │   ├── video-call/                      # 视频通话
+│   │   ├── video-conference/                # 视频会议
+│   │   ├── screen-share/                    # 屏幕共享
+│   │   └── statistics/                      # 统计监控
 │   ├── service-management/
 │   │   ├── components/
 │   │   │   └── FilterConfigFileStorage.vue  # 文件存储配置组件
 │   │   └── file-storage/
 │   │       └── PreviewFull.vue              # 文件预览组件
 │   └── ...
-├── api/                                     # API 接口定义
+├── api/
+│   ├── webrtc/                              # WebRTC API接口
+│   │   ├── rooms.ts                         # 房间管理接口
+│   │   ├── users.ts                         # 用户管理接口
+│   │   ├── statistics.ts                    # 统计接口
+│   │   └── config.ts                        # 配置接口
+│   └── ...                                  # 其他API接口定义
+├── composables/
+│   ├── webrtc/                              # WebRTC组合式函数
+│   │   ├── useWebRTCCall.ts                 # 视频通话逻辑
+│   │   ├── useWebRTCConference.ts           # 视频会议逻辑
+│   │   └── useWebRTCScreenShare.ts          # 屏幕共享逻辑
+│   └── ...                                  # 其他组合式函数
+├── services/
+│   ├── webrtc/                              # WebRTC服务
+│   │   └── socket.ts                        # Socket.IO客户端
+│   └── ...                                  # 其他服务
 ├── components/                              # 公共组件
 └── assets/                                  # 静态资源
 ```

@@ -9,6 +9,7 @@ import SecretIndex from "./views/secret/index.vue";
 
 // AI模块页面
 import ColorizationIndex from "./views/ai/colorization/index.vue";
+import FaceDetectIndex from "./views/ai/face/detect/index.vue";
 import VincentIndex from "./views/ai/generation/index.vue";
 import LlmNewIndex from "./views/ai/llm-new/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
@@ -27,6 +28,8 @@ export {
   DeviceIndex,
   DeviceTemplate,
   EmailTemplate,
+  // 人脸检测
+  FaceDetectIndex,
   // AI模块
   LlmNewIndex,
   // 项目管理
@@ -36,5 +39,6 @@ export {
   SecretIndex,
   SmsTemplate,
   VideoIndex,
-  VincentIndex,
+  VincentIndex
 };
+

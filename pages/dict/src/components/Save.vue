@@ -1,15 +1,12 @@
 <template>
   <div class="dict-save-container">
-    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false"
-      :destroy-on-close="true" draggable class="dict-dialog" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
-        class="dict-form">
+    <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable class="dict-dialog" @close="close">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" class="dict-form">
         <el-row :gutter="20">
           <!-- 字典父节点选择 -->
           <el-col :span="24">
             <el-form-item label="字典父节点" prop="sysDictPid">
-              <el-tree-select v-model="form.sysDictPid" :props="defaultProps" check-strictly class="dict-tree-select"
-                :data="treeData">
+              <el-tree-select v-model="form.sysDictPid" :props="defaultProps" check-strictly class="dict-tree-select" :data="treeData">
                 <template #label="scope">
                   <span v-if="!scope?.label">
                     <span v-if="scope.value == '0'" class="dict-root-node">根节点</span>
@@ -31,7 +28,7 @@
                 <el-input v-model="form.sysDictName" placeholder="请输入字典名称" class="dict-input">
                   <template #prefix>
                     <el-icon>
-                      <Document />
+                      <IconifyIconOnline icon="ep:document" />
                     </el-icon>
                   </template>
                 </el-input>
@@ -41,7 +38,7 @@
                 <el-input v-model="form.sysDictCode" placeholder="请输入字典编码" class="dict-input">
                   <template #prefix>
                     <el-icon>
-                      <Key />
+                      <IconifyIconOnline icon="ep:key" />
                     </el-icon>
                   </template>
                 </el-input>
@@ -51,9 +48,7 @@
               <el-form-item label="字典i18n" prop="sysDictI18n">
                 <el-input v-model="form.sysDictI18n" placeholder="请输入字典i18n" class="dict-input">
                   <template #prefix>
-                    <el-icon>
-                      <Globe />
-                    </el-icon>
+                    <IconifyIconOnline icon="fa-solid:language" />
                   </template>
                 </el-input>
                 <div class="form-item-help">国际化标识，用于多语言支持</div>
@@ -67,16 +62,12 @@
               <div class="section-title">高级设置</div>
 
               <el-form-item label="系统变量" prop="sysDictInSystem">
-                <el-radio-group v-model="form.sysDictInSystem" class="dict-radio-group">
-                  <el-radio :label="1">是</el-radio>
-                  <el-radio :label="0">否</el-radio>
-                </el-radio-group>
+                <ReSegmented v-model="form.sysDictInSystem" :options="options" class="dict-segmented" />
                 <div class="form-item-help">设置为系统变量后将无法删除</div>
               </el-form-item>
 
               <el-form-item label="描述" prop="sysDictRemark">
-                <el-input v-model="form.sysDictRemark" placeholder="请输入描述" type="textarea" :rows="3"
-                  class="dict-textarea" />
+                <el-input v-model="form.sysDictRemark" placeholder="请输入描述" type="textarea" :rows="3" class="dict-textarea" />
               </el-form-item>
             </div>
           </el-col>
@@ -85,12 +76,8 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visible = false" class="cancel-btn">
-            取消
-          </el-button>
-          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()" class="save-btn">
-            保存
-          </el-button>
+          <el-button @click="visible = false" class="cancel-btn"> 取消 </el-button>
+          <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()" class="save-btn"> 保存 </el-button>
         </div>
       </template>
     </el-dialog>
@@ -98,17 +85,16 @@
 </template>
 
 <script>
+import ReSegmented from "@repo/components/ReSegmented";
 import { fetchSaveDict, fetchUpdateDict } from "@repo/core";
 import { message } from "@repo/utils";
+import { pinyin } from "pinyin-pro";
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
-import { Document, Key, Globe } from "@element-plus/icons-vue";
 
 export default defineComponent({
   components: {
-    Document,
-    Key,
-    Globe,
+    ReSegmented,
   },
   data() {
     return {
@@ -140,6 +126,11 @@ export default defineComponent({
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
       },
+      // 系统变量选项
+      options: [
+        { label: "是", value: 1 },
+        { label: "否", value: 0 },
+      ],
       loading: false,
       title: "",
       mode: "save",
@@ -157,12 +148,8 @@ export default defineComponent({
         if (!val && !!this.form.sysDictCode) {
           return;
         }
-        // 简单的拼音转换逻辑，可以根据需要替换为更完善的库
-        const py = val ? val.replace(/[\u4e00-\u9fa5]/g, (char) => {
-          // 这里可以集成拼音库，暂时使用简单转换
-          return char;
-        }).toUpperCase().replace(/\s+/g, '_') : '';
-        this.form.sysDictCode = py;
+        const py = pinyin(val, { toneType: "none", type: "array" }) || [];
+        this.form.sysDictCode = py.map((it) => String(it).toUpperCase()).join("_");
       },
     },
   },
@@ -179,15 +166,7 @@ export default defineComponent({
     async close() {
       this.visible = false;
       this.loading = false;
-      this.form = {
-        sysDictId: "",
-        sysDictCode: "",
-        sysDictInSystem: 0,
-        sysDictPid: 0,
-        sysDictName: "",
-        sysDictI18n: "",
-        sysDictRemark: "",
-      };
+      this.form = {};
     },
     // 设置表单数据
     setData(data) {
@@ -339,7 +318,7 @@ export default defineComponent({
     }
   }
 
-  .dict-radio-group {
+  .dict-segmented {
     width: 100%;
   }
 
@@ -363,7 +342,7 @@ export default defineComponent({
 }
 
 // 暗色主题适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .dict-save-container {
     .form-section {
       background: var(--el-bg-color-overlay);
