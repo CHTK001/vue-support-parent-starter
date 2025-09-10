@@ -136,7 +136,7 @@ catalog:
   ansi_up: ^6.0.2
   archiver: ^7.0.1
   assert: ^2.1.0
-  autoprefixer: ^10.4.20
+  autoprefixer: ^10.4.21
   axios: ^1.7.2
   axios-mock-adapter: ^2.1.0
   ayin-color: 1.0.9

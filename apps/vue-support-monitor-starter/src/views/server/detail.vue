@@ -9,18 +9,9 @@
         </el-button>
         <div class="server-info">
           <div class="server-title">
-            <IconifyIconOnline
-              :icon="getProtocolIcon(serverInfo?.protocol)"
-              class="server-icon"
-            />
-            <span class="server-name">{{
-              serverInfo?.name || "服务器详情"
-            }}</span>
-            <el-tag
-              :type="getStatusType(serverInfo?.status)"
-              size="small"
-              class="status-tag"
-            >
+            <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
+            <span class="server-name">{{ serverInfo?.name || "服务器详情" }}</span>
+            <el-tag :type="getStatusType(serverInfo?.status)" size="small" class="status-tag">
               {{ getStatusText(serverInfo?.status) }}
             </el-tag>
           </div>
@@ -31,12 +22,7 @@
         </div>
       </div>
       <div class="header-right">
-        <el-button
-          type="success"
-          @click="handleRefresh"
-          :loading="refreshLoading"
-          plain
-        >
+        <el-button type="success" @click="handleRefresh" :loading="refreshLoading" plain>
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
@@ -63,15 +49,8 @@
           布局配置
         </el-button>
 
-        <el-button
-          :type="editMode ? 'success' : 'default'"
-          @click="toggleEditMode"
-          plain
-        >
-          <IconifyIconOnline
-            :icon="editMode ? 'ri:eye-line' : 'ri:edit-line'"
-            class="mr-1"
-          />
+        <el-button :type="editMode ? 'success' : 'default'" @click="toggleEditMode" plain>
+          <IconifyIconOnline :icon="editMode ? 'ri:eye-line' : 'ri:edit-line'" class="mr-1" />
           {{ editMode ? "预览模式" : "编辑模式" }}
         </el-button>
       </div>
@@ -79,13 +58,7 @@
 
     <!-- 组件网格布局 -->
     <div class="components-container" v-loading="loading">
-      <GridLayoutEditor
-        ref="gridLayoutEditorRef"
-        :server-id="serverId"
-        :initial-layout="layout"
-        @layout-change="handleLayoutUpdated"
-        @save="handleSaveLayout"
-      />
+      <GridLayoutEditor ref="gridLayoutEditorRef" :server-id="serverId" :initial-layout="layout" @layout-change="handleLayoutUpdated" @save="handleSaveLayout" />
     </div>
 
     <!-- 编辑模式工具栏 -->
@@ -97,80 +70,50 @@
         </span>
         <div class="toolbar-actions">
           <el-button @click="handleCancelEdit">取消</el-button>
-          <el-button type="primary" @click="handleSaveLayout"
-            >保存布局</el-button
-          >
+          <el-button type="primary" @click="handleSaveLayout">保存布局</el-button>
         </div>
       </div>
     </div>
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog
-      ref="componentEditDialogRef"
-      @success="handleComponentSaved"
-    />
+    <ComponentEditDialog ref="componentEditDialogRef" @success="handleComponentSaved" />
 
     <!-- 组件管理对话框 -->
-    <ComponentManageDialog
-      ref="componentManageDialogRef"
-      @success="handleComponentsManaged"
-    />
+    <ComponentManageDialog ref="componentManageDialogRef" @success="handleComponentsManaged" />
 
     <!-- 文件管理对话框 -->
-    <el-dialog
-      v-model="fileManagerVisible"
-      title="文件管理"
-      width="90%"
-      :before-close="handleFileManagerClose"
-      append-to-body
-      destroy-on-close
-    >
+    <el-dialog v-model="fileManagerVisible" title="文件管理" width="90%" :before-close="handleFileManagerClose" append-to-body destroy-on-close>
       <FileManager :server="serverInfo" @close="handleFileManagerClose" />
     </el-dialog>
 
     <!-- 组件配置对话框 -->
-    <ComponentConfigDialog
-      ref="componentConfigDialogRef"
-      :server-id="serverId"
-      @success="handleComponentConfigSuccess"
-    />
+    <ComponentConfigDialog ref="componentConfigDialogRef" :server-id="serverId" @success="handleComponentConfigSuccess" />
 
     <!-- 布局配置对话框 -->
-    <LayoutConfigDialog
-      ref="layoutConfigDialogRef"
-      @apply="handleApplyLayoutTemplate"
-    />
+    <LayoutConfigDialog ref="layoutConfigDialogRef" @apply="handleApplyLayoutTemplate" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { batchUpdateComponentPosition, deleteServerDetailComponent, getEnabledServerDetailComponents, getServerInfo, initDefaultComponentsForServerDetail, type ServerComponent, type ServerDisplayData } from "@/api/server";
 import { message } from "@repo/utils";
-import {
-  getServerInfo,
-  getEnabledServerDetailComponents,
-  batchUpdateComponentPosition,
-  initDefaultComponentsForServerDetail,
-  deleteServerDetailComponent,
-  type ServerComponent,
-  type ServerDisplayData,
-} from "@/api/server";
+import { onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // 导入组件
-import ComponentEditDialog from "./components/dialogs/ComponentEditDialog.vue";
-import ComponentManageDialog from "./components/dialogs/ComponentManageDialog.vue";
-import FileManager from "./modules/file-management/index.vue";
-import ComponentConfigDialog from "./components/dialogs/ComponentConfigDialog.vue";
-import LayoutConfigDialog from "./components/dialogs/LayoutConfigDialog.vue";
-import GridLayoutEditor from "./components/layout/GridLayoutEditor.vue";
+import BarChartComponent from "./components/charts/BarChartComponent.vue";
 import CardComponent from "./components/charts/CardComponent.vue";
+import DiskPartitionsComponent from "./components/charts/DiskPartitionsComponent.vue";
 import GaugeComponent from "./components/charts/GaugeComponent.vue";
 import LineChartComponent from "./components/charts/LineChartComponent.vue";
-import BarChartComponent from "./components/charts/BarChartComponent.vue";
 import PieChartComponent from "./components/charts/PieChartComponent.vue";
 import TableComponent from "./components/charts/TableComponent.vue";
-import DiskPartitionsComponent from "./components/charts/DiskPartitionsComponent.vue";
+import ComponentConfigDialog from "./components/dialogs/ComponentConfigDialog.vue";
+import ComponentEditDialog from "./components/dialogs/ComponentEditDialog.vue";
+import ComponentManageDialog from "./components/dialogs/ComponentManageDialog.vue";
+import LayoutConfigDialog from "./components/dialogs/LayoutConfigDialog.vue";
+import GridLayoutEditor from "./components/layout/GridLayoutEditor.vue";
+import FileManager from "./modules/file-management/index.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -209,9 +152,7 @@ const componentTypeMap = {
  * 获取组件类型
  */
 const getComponentType = (type: string) => {
-  return (
-    componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent
-  );
+  return componentTypeMap[type as keyof typeof componentTypeMap] || CardComponent;
 };
 
 /**
@@ -404,9 +345,7 @@ const handleSaveLayout = async () => {
   try {
     // 将布局信息映射回组件数据
     const updatedComponents = components.value.map((component) => {
-      const layoutItem = layout.value.find(
-        (item) => item.i === String(component.monitorSysGenServerComponentId)
-      );
+      const layoutItem = layout.value.find((item) => item.i === String(component.monitorSysGenServerComponentId));
       if (layoutItem) {
         return {
           ...component,
@@ -421,7 +360,7 @@ const handleSaveLayout = async () => {
       return component;
     });
 
-    const res = await batchUpdateComponentPosition(updatedComponents);
+    const res = await batchUpdateComponentPosition(serverId.value, updatedComponents);
     if (res.code === "00000") {
       message.success("布局保存成功");
       editMode.value = false;
@@ -473,6 +412,7 @@ const loadServerInfo = async () => {
   try {
     const res = await getServerInfo(String(serverId.value));
     if (res.code === "00000") {
+      //@ts-ignore
       serverInfo.value = res.data;
     }
   } catch (error) {
@@ -494,9 +434,7 @@ const loadComponents = async () => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
           if (component.monitorSysGenServerComponentPosition) {
-            position = JSON.parse(
-              component.monitorSysGenServerComponentPosition
-            );
+            position = JSON.parse(component.monitorSysGenServerComponentPosition);
           }
         } catch (e) {
           console.warn("解析组件位置失败:", e);

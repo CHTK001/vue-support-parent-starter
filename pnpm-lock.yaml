@@ -259,17 +259,11 @@ catalogs:
       specifier: ^2.1.0
       version: 2.1.0
     autoprefixer:
-      specifier: ^10.4.20
+      specifier: ^10.4.21
       version: 10.4.21
     axios:
       specifier: ^1.7.2
       version: 1.11.0
-    ayin-color:
-      specifier: 1.0.9
-      version: 1.0.9
-    ayin-lessmixins:
-      specifier: 1.0.7
-      version: 1.0.7
     babel-loader:
       specifier: ^9.2.1
       version: 9.2.1
@@ -705,9 +699,6 @@ catalogs:
     tailwindcss-animate:
       specifier: ^1.0.7
       version: 1.0.7
-    techui-vue3-lite:
-      specifier: ^3.0.8
-      version: 3.0.8
     tippy.js:
       specifier: ^6.3.7
       version: 6.3.7
@@ -1633,12 +1624,6 @@ importers:
       axios:
         specifier: 'catalog:'
         version: 1.11.0
-      ayin-color:
-        specifier: 'catalog:'
-        version: 1.0.9(webpack@5.101.3(@swc/core@1.13.5))
-      ayin-lessmixins:
-        specifier: 'catalog:'
-        version: 1.0.7(webpack@5.101.3(@swc/core@1.13.5))
       base64-js:
         specifier: 'catalog:'
         version: 1.5.1
@@ -1771,9 +1756,6 @@ importers:
       tailwindcss-animate:
         specifier: 'catalog:'
         version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.13.5)(@swc/wasm@1.13.5)(@types/node@20.19.13)(typescript@5.9.2)))
-      techui-vue3-lite:
-        specifier: 'catalog:'
-        version: 3.0.8(webpack@5.101.3(@swc/core@1.13.5))
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -11590,12 +11572,6 @@ packages:
   axios@1.11.0:
     resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
 
-  ayin-color@1.0.9:
-    resolution: {integrity: sha512-15iZN205m0TzrqxzkfiYxVUQ18yVIG/s8CTh/9q7KLVkWhv0nfpSGBnFeOZtFIy0HZ2Qv5IyVmlI65e1SmrOOA==}
-
-  ayin-lessmixins@1.0.7:
-    resolution: {integrity: sha512-0R9a0KStFffK7whD301eBWBsH3MpO7L3e4wML/854mhhjjqGZ+jAErBIljTR1GBMT8BJWxf9SclAOYWIHTs6mQ==}
-
   babel-helper-vue-jsx-merge-props@2.0.3:
     resolution: {integrity: sha512-gsLiKK7Qrb7zYJNgiXKpXblxbV5ffSwR0f5whkPAaBAR4fhi6bwRZxX9wBlIc5M/v8CCkXUbXZL4N/nSE97cqg==}
 
@@ -11878,9 +11854,6 @@ packages:
   chownr@2.0.0:
     resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
     engines: {node: '>=10'}
-
-  chroma-js@3.1.2:
-    resolution: {integrity: sha512-IJnETTalXbsLx1eKEgx19d5L6SRM7cH4vINw/99p/M11HCuXGRWL+6YmCm7FWFGIo6dtWuQoQi1dc5yQ7ESIHg==}
 
   chrome-trace-event@1.0.4:
     resolution: {integrity: sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==}
@@ -14450,19 +14423,6 @@ packages:
     resolution: {integrity: sha512-Y0yMPslvnBnTZi7Nrs/gDyYZYauNf61xWNCehISHIORxZmmpoluNkcWTfcyb47is5uJQCv5QJX5xKKubbs+a6w==}
     engines: {node: ^14.15.0 || >=16.0.0}
     hasBin: true
-
-  less-loader@12.3.0:
-    resolution: {integrity: sha512-0M6+uYulvYIWs52y0LqN4+QM9TqWAohYSNTo4htE8Z7Cn3G/qQMEmktfHmyJT23k+20kU9zHH2wrfFXkxNLtVw==}
-    engines: {node: '>= 18.12.0'}
-    peerDependencies:
-      '@rspack/core': 0.x || 1.x
-      less: ^3.5.0 || ^4.0.0
-      webpack: ^5.0.0
-    peerDependenciesMeta:
-      '@rspack/core':
-        optional: true
-      webpack:
-        optional: true
 
   less@4.4.1:
     resolution: {integrity: sha512-X9HKyiXPi0f/ed0XhgUlBeFfxrlDP3xR4M7768Zl+WXLUViuL9AOPPJP4nCV0tgRWvTYvpNmN0SFhZOQzy16PA==}
@@ -17419,9 +17379,6 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
-
-  techui-vue3-lite@3.0.8:
-    resolution: {integrity: sha512-pFZYw+bfC8WZ50HHicjF8y9nzwxJwjKXTDMZAH37yXCStUi/hPhQ+4VNO/Xq1d3VHxZr4I6h4b+MEPL0eNgvOQ==}
 
   temp-dir@1.0.0:
     resolution: {integrity: sha512-xZFXEGbG7SNC3itwBzI3RYjq/cEhBkx2hJuKGIUOcEULmkQExXiHat2z/qkISYsuR+IKumhEfKKbV5qXmhICFQ==}
@@ -24464,25 +24421,6 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  ayin-color@1.0.9(webpack@5.101.3(@swc/core@1.13.5)):
-    dependencies:
-      ayin-lessmixins: 1.0.7(webpack@5.101.3(@swc/core@1.13.5))
-      chroma-js: 3.1.2
-      less: 4.4.1
-      less-loader: 12.3.0(less@4.4.1)(webpack@5.101.3(@swc/core@1.13.5))
-    transitivePeerDependencies:
-      - '@rspack/core'
-      - webpack
-
-  ayin-lessmixins@1.0.7(webpack@5.101.3(@swc/core@1.13.5)):
-    dependencies:
-      ayin-color: 1.0.9(webpack@5.101.3(@swc/core@1.13.5))
-      less: 4.4.1
-      less-loader: 12.3.0(less@4.4.1)(webpack@5.101.3(@swc/core@1.13.5))
-    transitivePeerDependencies:
-      - '@rspack/core'
-      - webpack
-
   babel-helper-vue-jsx-merge-props@2.0.3: {}
 
   babel-loader@9.2.1(@babel/core@7.28.4)(webpack@5.101.3(@swc/core@1.13.5)):
@@ -24846,8 +24784,6 @@ snapshots:
 
   chownr@2.0.0: {}
 
-  chroma-js@3.1.2: {}
-
   chrome-trace-event@1.0.4: {}
 
   ci-info@2.0.0: {}
@@ -25136,6 +25072,7 @@ snapshots:
   copy-anything@2.0.6:
     dependencies:
       is-what: 3.14.1
+    optional: true
 
   core-js-compat@3.45.1:
     dependencies:
@@ -27226,7 +27163,8 @@ snapshots:
 
   is-url@1.2.4: {}
 
-  is-what@3.14.1: {}
+  is-what@3.14.1:
+    optional: true
 
   is-windows@1.0.2: {}
 
@@ -27498,12 +27436,6 @@ snapshots:
       - encoding
       - supports-color
 
-  less-loader@12.3.0(less@4.4.1)(webpack@5.101.3(@swc/core@1.13.5)):
-    dependencies:
-      less: 4.4.1
-    optionalDependencies:
-      webpack: 5.101.3(@swc/core@1.13.5)
-
   less@4.4.1:
     dependencies:
       copy-anything: 2.0.6
@@ -27517,6 +27449,7 @@ snapshots:
       mime: 1.6.0
       needle: 3.3.1
       source-map: 0.6.1
+    optional: true
 
   levn@0.4.1:
     dependencies:
@@ -29032,7 +28965,8 @@ snapshots:
 
   parse-ms@4.0.0: {}
 
-  parse-node-version@1.0.1: {}
+  parse-node-version@1.0.1:
+    optional: true
 
   parse-path@7.1.0:
     dependencies:
@@ -31070,14 +31004,6 @@ snapshots:
       minizlib: 2.1.2
       mkdirp: 1.0.4
       yallist: 4.0.0
-
-  techui-vue3-lite@3.0.8(webpack@5.101.3(@swc/core@1.13.5)):
-    dependencies:
-      ayin-color: 1.0.9(webpack@5.101.3(@swc/core@1.13.5))
-      ayin-lessmixins: 1.0.7(webpack@5.101.3(@swc/core@1.13.5))
-    transitivePeerDependencies:
-      - '@rspack/core'
-      - webpack
 
   temp-dir@1.0.0: {}
 

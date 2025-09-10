@@ -6,58 +6,30 @@
         <div class="server-info">
           <div class="server-title">
             <IconifyIconOnline :icon="getProtocolIcon(serverInfo?.protocol)" class="server-icon" />
-            <span class="server-name">{{ serverInfo?.name || '服务器详情' }}</span>
-            <el-tag
-              :type="getStatusType(serverInfo?.status)"
-              size="small"
-              class="status-tag"
-            >
+            <span class="server-name">{{ serverInfo?.name || "服务器详情" }}</span>
+            <el-tag :type="getStatusType(serverInfo?.status)" size="small" class="status-tag">
               {{ getStatusText(serverInfo?.status) }}
             </el-tag>
           </div>
-          <div class="server-subtitle">
-            {{ serverInfo?.host }}:{{ serverInfo?.port }} | {{ serverInfo?.protocol }}
-          </div>
+          <div class="server-subtitle">{{ serverInfo?.host }}:{{ serverInfo?.port }} | {{ serverInfo?.protocol }}</div>
         </div>
       </div>
       <div class="header-right">
-        <el-button
-          type="success"
-          @click="handleRefresh"
-          :loading="refreshLoading"
-          plain
-          size="small"
-        >
+        <el-button type="success" @click="handleRefresh" :loading="refreshLoading" plain size="small">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button
-          type="primary"
-          @click="handleInitDefaultComponents"
-          :loading="loading"
-          plain
-          size="small"
-        >
+        <el-button type="primary" @click="handleInitDefaultComponents" :loading="loading" plain size="small">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           初始化组件
         </el-button>
-        <el-button
-          type="info"
-          @click="handleManageComponents"
-          plain
-          size="small"
-        >
+        <el-button type="info" @click="handleManageComponents" plain size="small">
           <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
           管理组件
         </el-button>
-        <el-button
-          :type="editMode ? 'success' : 'warning'"
-          @click="toggleEditMode"
-          plain
-          size="small"
-        >
+        <el-button :type="editMode ? 'success' : 'warning'" @click="toggleEditMode" plain size="small">
           <IconifyIconOnline :icon="editMode ? 'ri:save-line' : 'ri:edit-line'" class="mr-1" />
-          {{ editMode ? '保存布局' : '编辑布局' }}
+          {{ editMode ? "保存布局" : "编辑布局" }}
         </el-button>
       </div>
     </div>
@@ -66,72 +38,38 @@
     <div class="components-container" v-loading="loading">
       <div v-if="components.length === 0" class="empty-state">
         <el-empty description="暂无组件">
-          <el-button type="primary" @click="handleInitDefaultComponents">
-            初始化默认组件
-          </el-button>
+          <el-button type="primary" @click="handleInitDefaultComponents"> 初始化默认组件 </el-button>
         </el-empty>
       </div>
-      
-      <GridLayoutEditor
-        v-else
-        ref="gridLayoutEditorRef"
-        :layout="layout"
-        :edit-mode="editMode"
-        @layout-updated="handleLayoutUpdated"
-        @component-edit="handleComponentEdit"
-        @component-delete="handleComponentDelete"
-      >
+
+      <GridLayoutEditor v-else ref="gridLayoutEditorRef" :layout="layout" :edit-mode="editMode" @layout-updated="handleLayoutUpdated" @component-edit="handleComponentEdit" @component-delete="handleComponentDelete">
         <template #component="{ item }">
-          <component
-            :is="getComponentType(item.componentType)"
-            :component-data="item"
-            :server-id="serverId"
-            :edit-mode="editMode"
-            @edit="handleComponentEdit"
-            @delete="handleComponentDelete"
-            @refresh="handleComponentRefresh"
-          />
+          <component :is="getComponentType(item.componentType)" :component-data="item" :server-id="serverId" :edit-mode="editMode" @edit="handleComponentEdit" @delete="handleComponentDelete" @refresh="handleComponentRefresh" />
         </template>
       </GridLayoutEditor>
     </div>
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog
-      ref="componentEditDialogRef"
-      :server-id="serverId"
-      @saved="handleComponentSaved"
-    />
+    <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
 
     <!-- 组件管理对话框 -->
-    <ComponentManageDialog
-      ref="componentManageDialogRef"
-      :server-id="serverId"
-      @managed="handleComponentsManaged"
-    />
+    <ComponentManageDialog ref="componentManageDialogRef" :server-id="serverId" @managed="handleComponentsManaged" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { batchUpdateComponentPosition, deleteServerDetailComponent, getEnabledServerDetailComponents, getServerInfo, initDefaultComponentsForServerDetail, type ServerComponent, type ServerDisplayData } from "@/api/server";
 import { message } from "@repo/utils";
-import {
-  getServerInfo,
-  getEnabledServerDetailComponents,
-  batchUpdateComponentPosition,
-  initDefaultComponentsForServerDetail,
-  deleteServerDetailComponent,
-  type ServerComponent,
-  type ServerDisplayData
-} from "@/api/server";
+import { ref, watch } from "vue";
 
 // 导入组件
+import GridLayoutEditor from "../../components/layout/GridLayoutEditor.vue";
 import ComponentEditDialog from "./components/ComponentEditDialog.vue";
 import ComponentManageDialog from "./components/ComponentManageDialog.vue";
-import GridLayoutEditor from "../../components/layout/GridLayoutEditor.vue";
+import BarChartComponent from "./components/previews/BarPreview.vue";
 import CardComponent from "./components/previews/CardPreview.vue";
 import GaugeComponent from "./components/previews/GaugePreview.vue";
 import LineChartComponent from "./components/previews/LinePreview.vue";
-import BarChartComponent from "./components/previews/BarPreview.vue";
 import PieChartComponent from "./components/previews/PiePreview.vue";
 import TableComponent from "./components/previews/TablePreview.vue";
 
@@ -187,7 +125,7 @@ const getProtocolIcon = (protocol?: string) => {
 /**
  * 获取状态类型
  */
-const getStatusType = (status?: string):any => {
+const getStatusType = (status?: string): any => {
   const typeMap: Record<string, string> = {
     ONLINE: "success",
     OFFLINE: "danger",
@@ -232,7 +170,7 @@ const loadComponents = async () => {
     if (res.code === "00000") {
       components.value = res.data || [];
       // 转换为网格布局格式
-      layout.value = components.value.map(component => {
+      layout.value = components.value.map((component) => {
         let position = { x: 0, y: 0, w: 6, h: 6 };
         try {
           if (component.monitorSysGenServerComponentPosition) {
@@ -249,7 +187,7 @@ const loadComponents = async () => {
           w: position.w,
           h: position.h,
           componentType: component.monitorSysGenServerComponentType,
-          ...component
+          ...component,
         };
       });
     }
@@ -266,10 +204,7 @@ const loadComponents = async () => {
 const handleRefresh = async () => {
   refreshLoading.value = true;
   try {
-    await Promise.all([
-      loadServerInfo(),
-      loadComponents()
-    ]);
+    await Promise.all([loadServerInfo(), loadComponents()]);
     message.success("刷新成功");
   } catch (error) {
     console.error("刷新失败:", error);
@@ -323,17 +258,17 @@ const toggleEditMode = async () => {
  */
 const handleSaveLayout = async () => {
   try {
-    const layoutData = layout.value.map(item => ({
+    const layoutData = layout.value.map((item) => ({
       componentId: Number(item.i),
       position: JSON.stringify({
         x: item.x,
         y: item.y,
         w: item.w,
-        h: item.h
-      })
+        h: item.h,
+      }),
     }));
 
-    const res = await batchUpdateComponentPosition(layoutData);
+    const res = await batchUpdateComponentPosition(props.serverId, layoutData as any);
     if (res.code === "00000") {
       message.success("布局保存成功");
     } else {
@@ -399,12 +334,16 @@ const handleComponentsManaged = () => {
 };
 
 // 监听服务器ID变化
-watch(() => props.serverId, (newServerId) => {
-  if (newServerId) {
-    loadServerInfo();
-    loadComponents();
-  }
-}, { immediate: true });
+watch(
+  () => props.serverId,
+  (newServerId) => {
+    if (newServerId) {
+      loadServerInfo();
+      loadComponents();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss" scoped>
