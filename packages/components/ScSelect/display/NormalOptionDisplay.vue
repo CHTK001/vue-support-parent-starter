@@ -19,7 +19,7 @@
             {{ option.label || option.name }}
           </el-tooltip>
         </div>
-        <div v-if="isSelected" class="selected-indicator"> 
+        <div v-if="isSelected" class="selected-indicator">
           <IconRenderer icon="ri:check-line" />
         </div>
       </div>

@@ -1,5 +1,6 @@
 <script setup>
 import Error from "@repo/assets/images/error.png";
+import Wait from "@repo/assets/images/wait.apng";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { checkImage } from "@repo/utils";
 import { VideoPlayer } from "@videojs-player/vue";
@@ -39,6 +40,16 @@ const props = defineProps({
   mediaSize: {
     type: Object,
     default: () => ({ width: 120, height: 120 }),
+  },
+  // 占位符数据
+  placeholderData: {
+    type: Array,
+    default: () => [],
+  },
+  // 是否正在生成
+  isGenerating: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -125,8 +136,18 @@ const handleDownload = (url, localUrl) => {
 <template>
   <div class="media-display">
     <div v-for="(item, index) in mediaCount" :key="index" class="media-item cursor-pointer relative" @mouseover="toolShow[`${rowId}_${index}`] = true" @mouseleave="toolShow[`${rowId}_${index}`] = false">
+      <!-- 占位符显示 (仅在生成中且没有实际媒体数据时显示) -->
+      <div v-if="isGenerating && placeholderData[index] && !mediaUrls[index]" class="placeholder-container media-content-fallback">
+        <div class="placeholder-content">
+          <b class="progress-text">进度: {{ placeholderData[index]?.progress || 10 }}%</b>
+          <div class="placeholder-image-wrapper" :style="{ transform: 'translateY(' + (100 - (placeholderData[index]?.progress || 10)) + '%)' }">
+            <img :src="Wait" class="placeholder-image" />
+          </div>
+        </div>
+      </div>
+
       <!-- 图片展示 -->
-      <el-image v-if="mediaType === 'VINCENT'" :src="mediaUrls[index]" class="media-content" @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])">
+      <el-image v-else-if="mediaType === 'VINCENT' && (mediaUrls[index] || localMediaUrls[index])" :src="mediaUrls[index]" class="media-content" @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])">
         <template #error>
           <el-image :src="localMediaUrls[index]" class="media-content-fallback">
             <template #error>
@@ -138,7 +159,7 @@ const handleDownload = (url, localUrl) => {
 
       <!-- 视频展示 -->
       <VideoPlayer
-        v-else-if="mediaType === 'VIDEO'"
+        v-else-if="mediaType === 'VIDEO' && mediaUrls[index]"
         :controlBar="{
           timeDivider: true,
           durationDisplay: true,
@@ -146,8 +167,8 @@ const handleDownload = (url, localUrl) => {
           fullscreenToggle: true,
         }"
         notSupportedMessage="此视频暂无法播放，请稍后再试"
-        :height="mediaSize.height"
-        :width="mediaSize.width"
+        :height="261"
+        :width="261"
         :src="mediaUrls[index]"
         controls
         :autoplay="false"
@@ -156,8 +177,10 @@ const handleDownload = (url, localUrl) => {
         class="video-player"
       />
 
+      <el-image v-else :src="Error" class="media-content-fallback"></el-image>
+
       <!-- 鼠标悬停显示的操作按钮 -->
-      <div class="hover-tools" v-if="toolShow[`${rowId}_${index}`]">
+      <div class="hover-tools" v-if="toolShow[`${rowId}_${index}`] && mediaUrls[index]">
         <el-tooltip content="查看" placement="top">
           <el-button circle size="small" :icon="useRenderIcon('ep:view')" @click.stop="handlePreview(mediaUrls[index], localMediaUrls[index])"></el-button>
         </el-tooltip>
@@ -190,16 +213,71 @@ const handleDownload = (url, localUrl) => {
 
 .media-content,
 .media-content-fallback {
-  border-radius: 10px;
-  height: 285px;
+  border-radius: 16px;
+  max-width: 285px;
   box-shadow:
     0px 2px 4px 0px rgba(0, 0, 0, 0.4),
     0px 7px 13px -3px rgba(0, 0, 0, 0.3),
     0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
 }
 
+.placeholder-container {
+  width: 300px;
+  height: 300px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.placeholder-content {
+  width: 100%;
+  height: 100%;
+  background-color: #f7f8fc;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px) brightness(90%);
+  background-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+    0px 7px 13px -3px rgba(0, 0, 0, 0.3),
+    0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
+}
+
+.progress-text {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  font-size: 14px;
+  z-index: 2;
+  color: #333;
+}
+
+.placeholder-image-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateY(100%);
+  transition: all 1s;
+  z-index: 1;
+}
+
+.placeholder-image {
+  width: 261px;
+  height: 261px;
+  border-radius: 16px;
+  // box-shadow:
+  //   0px 2px 4px 0px rgba(0, 0, 0, 0.4),
+  //   0px 7px 13px -3px rgba(0, 0, 0, 0.3),
+  //   0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
+}
+
 .video-player {
-  border-radius: 10px;
+  border-radius: 16px;
+  width: 261px;
+  height: 261px;
   box-shadow:
     0px 2px 4px 0px rgba(0, 0, 0, 0.4),
     0px 7px 13px -3px rgba(0, 0, 0, 0.3),

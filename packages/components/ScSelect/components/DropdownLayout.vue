@@ -32,7 +32,7 @@
         <slot name="header" :item="currentSelectedData" :selectedValues="modelValue" />
         <!-- 当前选择数据展示插槽 -->
         <slot name="summary" :item="currentSelectedData" :selectedValues="modelValue" :selectedCount="currentSelectedData.length" />
-        <div class="options-grid thin-scroller overflow-y-auto" :class="{ 'has-preview': hasPreviewOptions }">
+        <div class="options-grid thin-scroller overflow-y-auto ss" :class="{ 'has-preview': hasPreviewOptions }" :style="getStyle">
           <template v-if="displayMode === 'large'">
             <LargeOptionDisplay
               v-for="option in options"
@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed,  ref } from "vue";
+import { computed, ref } from "vue";
 import LargeOptionDisplay from "../display/LargeOptionDisplay.vue";
 import NormalOptionDisplay from "../display/NormalOptionDisplay.vue";
 import IconRenderer from "./IconRenderer.vue";
@@ -111,6 +111,10 @@ const props = defineProps({
   width: {
     type: String,
     default: "120px"
+  },
+  height: {
+    type: String,
+    default: "600px"
   },
   icon: {
     type: String,
@@ -172,6 +176,12 @@ const popoverPlacement = computed(() => {
 
 const popoverWidth = computed(() => {
   return props.width;
+});
+
+const getStyle = computed(() => {
+  return {
+    height: props.height
+  };
 });
 
 const popoverClass = computed(() => {
@@ -304,7 +314,6 @@ const selectOption = (value: string | number) => {
 }
 
 .dropdown-panel-content {
-  max-height: 320px;
   overflow-y: auto;
   padding: 8px;
 
@@ -318,10 +327,13 @@ const selectOption = (value: string | number) => {
     margin: -8px -8px 8px -8px;
     border-radius: 12px 12px 0 0;
   }
-
+  .ss {
+    height: 260px;
+  }
   .options-grid {
     display: grid;
     grid-template-columns: 1fr;
+    align-content: center;
     gap: 4px;
 
     &.has-preview {
@@ -362,7 +374,6 @@ const selectOption = (value: string | number) => {
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 8px;
       width: 100%;
-      max-height: 250px;
       overflow-y: auto;
 
       &.has-preview {

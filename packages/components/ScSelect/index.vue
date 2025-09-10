@@ -56,6 +56,7 @@
       :multiple="multiple"
       :limit="limit"
       :width="width"
+      :height="height"
       :icon="dropdownIcon"
       :title="dropdownTitle"
       :placeholder="dropdownPlaceholder"
@@ -129,6 +130,10 @@ const props = defineProps({
   width: {
     type: String,
     default: "100px"
+  },
+  height: {
+    type: String,
+    default: "100%"
   },
   // 图标位置
   iconPosition: {

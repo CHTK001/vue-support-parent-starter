@@ -4,6 +4,9 @@
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"></ModuleDialog>
 
+    <!-- 模型配置管理面板 -->
+    <ModuleDialog ref="modelConfigDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate" />
+
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 历史记录区域（包含新生成的内容） -->
@@ -98,13 +101,15 @@
             <EditorSender
               ref="editorSenderRef"
               v-model="currentMessage"
-              placeholder="💌 描述你想要生成的图片或视频... 支持多模态输入"
+              placeholder="💌 描述你想要生成的图片或视频... 支持多模态输入，输入@选择风格标签"
               :max-length="2000"
               :loading="loadingConfig.export"
               :disabled="loadingConfig.export"
               :auto-focus="true"
               :clearable="true"
+              :select-list="styleSelectList"
               @change="handleCurrentChangeValue"
+              @select-tag="handleStyleTagSelect"
               variant="updown"
               submit-type="enter"
               :custom-style="{ maxHeight: '200px' }"
@@ -115,21 +120,21 @@
               <!-- 自定义前缀 -->
               <template #prefix>
                 <div class="input-prefix">
-                  <el-tooltip content="参考图片" placement="top" v-if="formSetting.sysAiVincentSupportRefImage">
-                    <el-button circle @click="handleRefImage">
-                      <IconifyIconOnline icon="ri:image-line" />
-                    </el-button>
-                  </el-tooltip>
-
                   <el-tooltip content="高级设置" placement="top">
                     <el-button circle @click="toggleAdvanced" :type="showAdvanced ? 'primary' : 'default'">
-                      <IconifyIconOnline icon="ri:settings-3-line" />
+                      <IconifyIconOnline icon="mdi:tune-variant" />
                     </el-button>
                   </el-tooltip>
 
                   <el-tooltip content="随机描述词" placement="top">
                     <el-button circle @click="handleRandomPrompt" type="default">
                       <IconifyIconOnline icon="ep:refresh" />
+                    </el-button>
+                  </el-tooltip>
+
+                  <el-tooltip content="模型配置" placement="top">
+                    <el-button circle @click="toggleModelConfig" :type="showModelConfig ? 'primary' : 'default'">
+                      <IconifyIconOnline icon="ri:settings-4-line" />
                     </el-button>
                   </el-tooltip>
                 </div>
@@ -139,7 +144,7 @@
               <template #action-list>
                 <div class="action-buttons">
                   <!-- 模型选择按钮 -->
-                  <ScSelect v-model="form.model" class="min-w-[200px]" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect"> </ScSelect>
+                  <ScSelect v-model="form.model" class="min-w-[200px]" :options="modelOptions" layout="dropdown" dropdown-icon="ri:cpu-line" dropdown-title="模型选择" dropdown-placeholder="选择模型" @change="handleModelSelect" height="600px"> </ScSelect>
 
                   <!-- 分辨率选择按钮 -->
                   <ScSelect v-model="form.parameters.size" :options="sizeOptions" layout="dropdown" dropdown-icon="ri:aspect-ratio-line" dropdown-title="比例" dropdown-placeholder="选择分辨率" @change="handleSizeSelect" v-if="sizeOptions && sizeOptions.length > 0" />
@@ -155,6 +160,7 @@
                     :dropdown-col="4"
                     display-mode="large"
                     width="100%"
+                    height="600px"
                     dropdown-icon="ri:palette-line"
                     dropdown-title="风格"
                     dropdown-placeholder="选择风格"
@@ -225,6 +231,9 @@ const generatedResults = ref([]);
 // EditorSender 相关变量
 const currentMessage = ref("");
 const editorSenderRef = ref(null);
+
+// 模型配置管理面板相关变量
+const modelConfigDialogRef = ref(null);
 
 // 初始化currentMessage的值
 currentMessage.value = "一只坐着的橘黄色的猫，表情愉悦，活泼可爱，逼真准确。";
@@ -306,8 +315,9 @@ const handleRandomPrompt = async () => {
   currentMessage.value = randomPrompt.value;
   form.input.prompt = randomPrompt.value;
   // 如果EditorSender组件有setValue方法，也同步设置
-  if (editorSenderRef.value && editorSenderRef.value.setValue) {
-    editorSenderRef.value.setValue(randomPrompt.value);
+  if (editorSenderRef.value && editorSenderRef.value.setText) {
+    editorSenderRef.value.clear();
+    editorSenderRef.value.setText(randomPrompt.value);
   }
 };
 
@@ -355,6 +365,39 @@ const handleNumberSelect = (numberValue) => {
   form.parameters.number = numberValue;
 };
 
+// 处理风格标签选择
+const handleStyleTagSelect = (tagData) => {
+  // tagData 包含选择的标签信息
+  if (tagData && tagData.key === "style") {
+    // 更新风格选择
+    form.parameters.style = tagData.selectedId;
+
+    // 找到对应的风格名称
+    const selectedStyle = styleData.value.find((style) => style.sysAiVincentStyleCode === tagData.selectedId);
+    if (selectedStyle) {
+      console.log("选择了风格标签:", selectedStyle.sysAiVincentStyleName);
+      // 可以在这里添加一些用户反馈，比如消息提示
+      message.success(`已选择风格: ${selectedStyle.sysAiVincentStyleName}`);
+    }
+  }
+};
+
+// 手动触发风格标签选择对话框
+const openStyleTagDialog = () => {
+  if (editorSenderRef.value && styleData.value.length > 0) {
+    // 获取当前光标位置的元素
+    const editorElement = editorSenderRef.value.$el?.querySelector(".editor-content");
+    if (editorElement) {
+      editorSenderRef.value.openSelectDialog({
+        key: "style",
+        elm: editorElement,
+        beforeText: "",
+        afterText: "",
+      });
+    }
+  }
+};
+
 // 选项数据
 const sizeOptions = computed(() => {
   const sizes = formSetting.sysAiVincentSupportedSize?.split(",") || [];
@@ -371,6 +414,25 @@ const styleOptions = computed(() => {
     label: style.sysAiVincentStyleName,
     preview: style.sysAiVincentStyleImage,
   }));
+});
+
+// EditorSender 风格标签选择列表配置
+const styleSelectList = computed(() => {
+  if (!styleData.value || styleData.value.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      dialogTitle: "选择风格标签",
+      key: "style",
+      options: styleData.value.map((style) => ({
+        id: style.sysAiVincentStyleCode,
+        name: style.sysAiVincentStyleName,
+        preview: style.sysAiVincentStyleImage,
+      })),
+    },
+  ];
 });
 
 const numberOptions = computed(() => {
@@ -409,6 +471,30 @@ const canGenerate = computed(() => {
 const previewMedia = (result) => {
   // 预览媒体文件
   console.log("预览媒体:", result);
+};
+
+// 模型配置相关方法
+const toggleModelConfig = () => {
+  // 打开模型配置管理面板
+  if (modelConfigDialogRef.value) {
+    const params = {
+      sysAiModuleType: "VINCENT", // 图像生成模型类型
+    };
+
+    // 只有当sysProjectId存在时才传递该参数
+    if (env.sysProjectId) {
+      params.sysProjectId = env.sysProjectId;
+      params.sysProjectName = env.sysProjectName;
+    }
+
+    modelConfigDialogRef.value.handleOpen(params, "edit");
+  }
+};
+
+const handleGenerateSeed = () => {
+  // 生成新的随机种子
+  form.parameters.seed = Math.floor(Math.random() * 1000000);
+  message.success(`已生成新的随机种子: ${form.parameters.seed}`);
 };
 
 // 历史记录相关方法已移除，现在HistoryLayout始终显示
@@ -526,12 +612,38 @@ const loadInterval = () => {
 
 const process = reactive({});
 const initialImageIndex = async () => {
+  // 创建占位符数据
+  const placeholders = [];
   for (let index = 0; index < form.parameters.number; index++) {
     process[index] = 10;
+    placeholders.push({
+      id: `placeholder_${Date.now()}_${index}`,
+      type: form.sysAiModuleType === "VIDEO" ? "video" : "image",
+      url: null, // 占位符没有实际URL
+      isPlaceholder: true,
+      progress: 10,
+      timestamp: new Date().toISOString(),
+    });
   }
+  // 设置占位符到生成结果中
+  generatedResults.value = placeholders;
 };
 const updateImageIndex = async (finished, progress) => {
-  // 图片索引更新逻辑已移至新的展示区域
+  if (finished) {
+    // 生成完成，清除进度显示
+    generatedResults.value.forEach((item) => {
+      if (item.isPlaceholder) {
+        item.progress = 100;
+      }
+    });
+  } else if (progress && generatedResults.value.length > 0) {
+    // 更新占位符的进度
+    generatedResults.value.forEach((item) => {
+      if (item.isPlaceholder) {
+        item.progress = Math.max(progress, 10);
+      }
+    });
+  }
 };
 
 const getKey = () => {
@@ -571,7 +683,8 @@ const createInterval = () => {
   intervalId = setInterval(() => {
     fetchGetTaskForVincent({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
       .then((res) => {
-        if (res.data?.output?.taskStatus === "SUCCESS") {
+        const _status = res.data?.output?.taskStatus || res.data?.output?.task_status;
+        if (_status === "SUCCESS") {
           clearTask();
           updateImage(res.data?.output?.results?.map((it) => it.url));
           updateImageIndex(true, 100);
@@ -613,8 +726,30 @@ const handleExport = async () => {
         return;
       }
 
+      // 获取当前选中模型的异步支持配置
+      const currentModel = modelList.value.find((it) => it.sysAiModuleCode === form.model);
+      const supportAsync = currentModel?.sysAiVincentSupportAsync || 0;
+
       loadedRequestId(res);
-      createInterval();
+
+      // 根据模型是否支持异步来决定处理方式
+      if (supportAsync === 1) {
+        // 支持异步，使用定时查询
+        createInterval();
+      } else {
+        // 不支持异步，直接处理同步结果
+        if (res.data?.output?.results) {
+          clearTask();
+          updateImage(res.data.output.results.map((it) => it.url));
+          updateImageIndex(true, 100);
+        } else {
+          // 如果没有直接结果，仍然需要等待
+          loadingConfig.export = false;
+          clearTask();
+          updateImage([]);
+          message("生成完成，但未获取到结果", { type: "warning" });
+        }
+      }
     } catch (e) {
       loadingConfig.export = false;
       clearTask();
@@ -840,10 +975,11 @@ onMounted(async () => {
 
 /* 历史记录区域 */
 .history-section {
+  height: 100%;
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   overflow: hidden;
 }
 
@@ -1380,10 +1516,88 @@ onMounted(async () => {
   font-weight: 500;
 }
 
+/* EditorSender 风格标签样式 */
+:deep(.editor-sender) {
+  .select-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--el-color-primary-light-9);
+    border: 1px solid var(--el-color-primary-light-7);
+    border-radius: var(--el-border-radius-small);
+    color: var(--el-color-primary);
+    font-size: var(--el-font-size-small);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--el-color-primary-light-8);
+      border-color: var(--el-color-primary-light-6);
+    }
+  }
+
+  .select-dialog {
+    .style-option-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px;
+      border-radius: var(--el-border-radius-base);
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--el-fill-color-light);
+      }
+
+      .style-preview-img {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--el-border-radius-small);
+        object-fit: cover;
+        border: 1px solid var(--el-border-color-light);
+      }
+
+      .style-name {
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
+    }
+  }
+}
+
 .input-prefix {
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 8px;
+
+  .model-config-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--el-border-radius-small);
+    background: var(--el-color-info-light-9);
+    border: 1px solid var(--el-color-info-light-7);
+    color: var(--el-color-info);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+
+    &:hover {
+      background: var(--el-color-info-light-8);
+      border-color: var(--el-color-info-light-6);
+      color: var(--el-color-info-dark-2);
+    }
+
+    &.active {
+      background: var(--el-color-primary);
+      border-color: var(--el-color-primary);
+      color: white;
+    }
+  }
 }
 </style>

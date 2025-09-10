@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed, watch, onMounted, defineEmits } from "vue";
+import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
+import { computed, onMounted, ref, watch } from "vue";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
-import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
 
 // 定义组件属性
 const props = defineProps({
