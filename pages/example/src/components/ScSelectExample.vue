@@ -1,127 +1,142 @@
 <template>
   <div class="sc-select-example" :class="{ 'el-dark': isDarkMode }">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <div class="header-content">
-            <h3>卡片选择器组件 (ScSelect)</h3>
-            <p class="text-secondary">一个灵活的卡片式选择器组件，支持多种布局和样式自定义</p>
+    <div class="example-content">
+      <!-- 左侧预览区域 -->
+      <div class="preview-area">
+        <h4>组件预览</h4>
+        <div class="preview-container" :class="{ 'custom-style': useCustomStyle, dark: isDarkMode }">
+          <ScSelect
+            v-model="selectedValue"
+            :options="options"
+            :columns="columns"
+            :gap="gap"
+            :layout="layout"
+            :multiple="showFilterDemo ? true : multiple"
+            :limit="limit"
+            :max-collapse-tags="maxCollapseTags"
+            :width="width"
+            :icon-position="iconPosition"
+            :filter-output-format="showFilterDemo ? filterOutputFormat : undefined"
+            @change="handleChange"
+          />
+
+          <div class="result-display mt-4">
+            <el-alert v-if="showFilterDemo" :title="`过滤器选中值: ${filterSelectedValue.join(', ')}`" type="success" :closable="false" />
+            <el-alert v-else-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
+            <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
           </div>
-          <div class="theme-switch">
-            <el-tooltip content="切换主题">
-              <el-button circle @click="toggleTheme">
-                <IconifyIconOnline :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'" />
-              </el-button>
+
+          <!-- 输出格式展示 -->
+          <div v-if="showFilterDemo && outputFormatDisplay" class="output-format-display mt-4">
+            <h5>{{ filterOutputFormat.toUpperCase() }}格式输出:</h5>
+            <pre class="output-code"><code>{{ outputFormatDisplay }}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧配置面板 -->
+      <div class="config-panel">
+        <h4>配置选项</h4>
+        <el-form label-position="top" size="default">
+          <el-form-item label="布局类型">
+            <el-segmented
+              v-model="layout"
+              class="w-100"
+              :options="[
+                { value: 'card', label: '卡片' },
+                { value: 'pill', label: '长条' },
+                { value: 'select', label: '下拉' },
+              ]"
+            />
+          </el-form-item>
+
+          <el-form-item label="选择模式">
+            <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
+          </el-form-item>
+
+          <el-form-item v-if="layout === 'card'" label="图标位置">
+            <el-radio-group v-model="iconPosition">
+              <el-radio label="center">居中</el-radio>
+              <el-radio label="top">顶部突出</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="UI主题">
+            <el-radio-group v-model="isDarkMode">
+              <el-radio :label="false">亮色</el-radio>
+              <el-radio :label="true">暗色</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="自定义样式">
+            <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
+          </el-form-item>
+
+          <el-form-item label="卡片宽度">
+            <el-input-number v-model="widthValue" :min="80" :max="300" :step="10" @change="updateWidth" />
+            <span class="ml-2">px</span>
+          </el-form-item>
+
+          <el-form-item label="卡片间距">
+            <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
+          </el-form-item>
+
+          <el-form-item label="多选限制数量" :disabled="!multiple">
+            <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
+              <div>
+                <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
+                <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
+              </div>
             </el-tooltip>
-          </div>
-        </div>
-      </template>
+          </el-form-item>
 
-      <div class="example-content">
-        <!-- 左侧预览区域 -->
-        <div class="preview-area">
-          <h4>组件预览</h4>
-          <div class="preview-container" :class="{ 'custom-style': useCustomStyle, 'dark': isDarkMode }">
-            <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :width="width" :icon-position="iconPosition" @change="handleChange" />
+          <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
+            <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
+              <div>
+                <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
+                <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
+              </div>
+            </el-tooltip>
+          </el-form-item>
 
-            <div class="result-display mt-4">
-              <el-alert v-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
-              <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
-            </div>
-          </div>
-        </div>
+          <el-form-item label="演示模式">
+            <el-switch v-model="showFilterDemo" active-text="过滤器模式" inactive-text="普通选择器" class="w-100" />
+          </el-form-item>
 
-        <!-- 右侧配置面板 -->
-        <div class="config-panel">
-          <h4>配置选项</h4>
-          <el-form label-position="top" size="default">
-            <el-form-item label="布局类型">
-              <el-segmented
-                v-model="layout"
-                class="w-100"
-                :options="[
-                  { value: 'card', label: '卡片' },
-                  { value: 'pill', label: '长条' },
-                  { value: 'select', label: '下拉' }
-                ]"
-              />
-            </el-form-item>
+          <el-form-item v-if="!showFilterDemo" label="选项集合">
+            <el-segmented
+              v-model="optionSet"
+              class="w-100"
+              :options="[
+                { value: 'basic', label: '基础选项' },
+                { value: 'platform', label: '平台选项' },
+                { value: 'theme', label: '主题选项' },
+                { value: 'social', label: '社交媒体' },
+                { value: 'httpIcon', label: 'HTTP图标' },
+              ]"
+            />
+          </el-form-item>
 
-            <el-form-item label="选择模式">
-              <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
-            </el-form-item>
-
-            <el-form-item v-if="layout === 'card'" label="图标位置">
-              <el-radio-group v-model="iconPosition">
-                <el-radio label="center">居中</el-radio>
-                <el-radio label="top">顶部突出</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item label="UI主题">
-              <el-radio-group v-model="isDarkMode">
-                <el-radio :label="false">亮色</el-radio>
-                <el-radio :label="true">暗色</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item label="自定义样式">
-              <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
-            </el-form-item>
-
-            <el-form-item label="卡片宽度">
-              <el-input-number v-model="widthValue" :min="80" :max="300" :step="10" @change="updateWidth" />
-              <span class="ml-2">px</span>
-            </el-form-item>
-
-            <el-form-item label="卡片间距">
-              <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
-            </el-form-item>
-
-            <el-form-item label="多选限制数量" :disabled="!multiple">
-              <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
-                <div>
-                  <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
-                  <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
-                </div>
-              </el-tooltip>
-            </el-form-item>
-
-            <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
-              <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
-                <div>
-                  <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
-                  <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
-                </div>
-              </el-tooltip>
-            </el-form-item>
-
-            <el-form-item label="选项集">
-              <el-segmented
-                v-model="optionSet"
-                class="w-100"
-                :options="[
-                  { value: 'basic', label: '基础选项' },
-                  { value: 'platform', label: '平台选项' },
-                  { value: 'theme', label: '主题选项' },
-                  { value: 'social', label: '社交媒体' },
-                  { value: 'httpIcon', label: 'HTTP图标' },
-                ]"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
+          <el-form-item v-if="showFilterDemo" label="输出格式">
+            <el-select v-model="filterOutputFormat" class="w-100">
+              <el-option label="Default格式" value="default" />
+              <el-option label="Array格式" value="array" />
+              <el-option label="SQL格式" value="sql" />
+              <el-option label="Lucene格式" value="lucene" />
+            </el-select>
+          </el-form-item>
+        </el-form>
       </div>
+    </div>
 
-      <!-- 代码示例 -->
-      <div class="code-example mt-4">
-        <h4>代码示例</h4>
-        <el-alert type="info" :closable="false" class="mb-3">
-          <div class="code-desc">根据当前配置生成的代码示例</div>
-        </el-alert>
-        <pre><code class="language-html">{{ codeExample }}</code></pre>
-      </div>
-    </el-card>
+    <!-- 代码示例 -->
+    <div class="code-example mt-4">
+      <h4>代码示例</h4>
+      <el-alert type="info" :closable="false" class="mb-3">
+        <div class="code-desc">根据当前配置生成的代码示例</div>
+      </el-alert>
+      <pre><code class="language-html">{{ codeExample }}</code></pre>
+    </div>
   </div>
 </template>
 
@@ -143,7 +158,7 @@ const toggleTheme = () => {
 const layout = ref("card");
 const columnsType = ref("auto");
 const columnsValue = ref(3);
-const columns = computed(() => columnsType.value === "auto" ? "auto" : columnsValue.value);
+const columns = computed(() => (columnsType.value === "auto" ? "auto" : columnsValue.value));
 const gap = ref(8);
 const multiple = ref(false);
 const useCustomStyle = ref(false);
@@ -151,8 +166,10 @@ const optionSet = ref("basic");
 const limit = ref(0);
 const maxCollapseTags = ref(1);
 const widthValue = ref(120);
-const width = ref('120px');
-const iconPosition = ref('center');
+const width = ref("120px");
+const iconPosition = ref("center");
+const filterOutputFormat = ref("default");
+const showFilterDemo = ref(false);
 
 // 更新宽度
 const updateWidth = (val) => {
@@ -208,8 +225,21 @@ const httpIconOptions = [
   { label: "Remix图标", value: "remix", icon: "ri:github-fill" }, // 测试ri:格式
 ];
 
+// 过滤器演示选项
+const filterOptions = [
+  { label: "前端开发", value: "frontend", field: "category", operator: "eq" },
+  { label: "后端开发", value: "backend", field: "category", operator: "eq" },
+  { label: "移动开发", value: "mobile", field: "category", operator: "eq" },
+  { label: "数据分析", value: "data", field: "category", operator: "eq" },
+  { label: "人工智能", value: "ai", field: "category", operator: "eq" },
+  { label: "云计算", value: "cloud", field: "category", operator: "eq" },
+];
+
 // 动态选项
 const options = computed(() => {
+  if (showFilterDemo.value) {
+    return filterOptions;
+  }
   switch (optionSet.value) {
     case "platform":
       return platformOptions;
@@ -227,14 +257,52 @@ const options = computed(() => {
 // 选中值
 const selectedSingle = ref("option1");
 const selectedMultiple = ref(["option1", "option3"]);
+const filterSelectedValue = ref(["frontend", "backend"]);
+
+// 输出格式展示
+const outputFormatDisplay = computed(() => {
+  if (!showFilterDemo.value) return null;
+
+  const value = filterSelectedValue.value;
+  const selectedOptions = filterOptions.filter((opt) => value.includes(opt.value));
+
+  switch (filterOutputFormat.value) {
+    case "array":
+      return JSON.stringify(value, null, 2);
+    case "sql":
+      if (selectedOptions.length === 0) return "";
+      const sqlConditions = selectedOptions.map((opt) => `${opt.field} ${opt.operator} '${opt.value}'`);
+      return sqlConditions.join(" OR ");
+    case "lucene":
+      if (selectedOptions.length === 0) return "";
+      const luceneConditions = selectedOptions.map((opt) => `${opt.field}:${opt.value}`);
+      return luceneConditions.join(" OR ");
+    default: // default
+      return JSON.stringify(
+        selectedOptions.map((opt) => ({
+          label: opt.label,
+          value: opt.value,
+          field: opt.field,
+          operator: opt.operator,
+        })),
+        null,
+        2
+      );
+  }
+});
 
 // 根据选择模式显示不同的选中值
 const selectedValue = computed({
   get() {
+    if (showFilterDemo.value) {
+      return filterSelectedValue.value;
+    }
     return multiple.value ? selectedMultiple.value : selectedSingle.value;
   },
   set(val) {
-    if (multiple.value) {
+    if (showFilterDemo.value) {
+      filterSelectedValue.value = val;
+    } else if (multiple.value) {
       selectedMultiple.value = val;
     } else {
       selectedSingle.value = val;
@@ -270,8 +338,8 @@ watch(optionSet, () => {
 // 监听布局变化
 watch(layout, (newLayout) => {
   // 药丸布局更适合显示社交媒体图标
-  if (newLayout === 'pill' && optionSet.value !== 'social') {
-    optionSet.value = 'social';
+  if (newLayout === "pill" && optionSet.value !== "social") {
+    optionSet.value = "social";
   }
 });
 
@@ -283,18 +351,22 @@ const handleChange = (value) => {
 
 // 生成代码示例
 const codeExample = computed(() => {
+  const isMultiple = showFilterDemo.value ? true : multiple.value;
+  const modelName = showFilterDemo.value ? "filterValue" : isMultiple ? "selectedValues" : "selectedValue";
+
   let code = `<template>
   <div${useCustomStyle.value ? ' class="custom-style-container"' : ""}>
     <ScSelect
-      v-model="${multiple.value ? "selectedValues" : "selectedValue"}"
+      v-model="${modelName}"
       :options="options"
       ${layout.value !== "card" ? `:layout="${layout.value}"` : ""}
       ${gap.value !== 8 ? `:gap="${gap.value}"` : ""}
       ${widthValue.value !== 120 ? `:width="${width.value}"` : ""}
-      ${layout.value === 'card' && iconPosition.value !== "center" ? `:icon-position="${iconPosition.value}"` : ""}
+      ${layout.value === "card" && iconPosition.value !== "center" ? `:icon-position="${iconPosition.value}"` : ""}
       ${limit.value !== 0 ? `:limit="${limit.value}"` : ""}
-      ${multiple.value && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
-      ${multiple.value ? "multiple" : ""}
+      ${isMultiple && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
+      ${isMultiple ? "multiple" : ""}
+      ${showFilterDemo.value ? `:filter-output-format="${filterOutputFormat.value}"` : ""}
       @change="handleChange"
     />
   </div>
@@ -304,7 +376,7 @@ const codeExample = computed(() => {
 import { ref } from 'vue';
 
 // 选中值
-const ${multiple.value ? "selectedValues = ref(" + JSON.stringify(selectedMultiple.value) + ");" : 'selectedValue = ref("' + selectedSingle.value + '");'}
+const ${showFilterDemo.value ? "filterValue = ref(" + JSON.stringify(filterSelectedValue.value) + ");" : isMultiple ? "selectedValues = ref(" + JSON.stringify(selectedMultiple.value) + ");" : 'selectedValue = ref("' + selectedSingle.value + '");'}
 
 // 选项数据
 const options = ${JSON.stringify(options.value, null, 2)};
@@ -312,6 +384,7 @@ const options = ${JSON.stringify(options.value, null, 2)};
 // 处理选中变化
 const handleChange = (value) => {
   console.log("选中值变化:", value);
+  ${showFilterDemo.value ? `console.log("输出格式: ${filterOutputFormat.value}", value);` : ""}
 };
 <\/script>`;
 
@@ -476,6 +549,34 @@ code {
   text-align: center;
 }
 
+.output-format-display {
+  margin-top: 16px;
+}
+
+.output-format-display h5 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.output-code {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.output-code code {
+  color: #495057;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
 /* 暗黑模式样式 */
 .el-dark {
   --preview-bg: #1a1a1a;
@@ -491,7 +592,7 @@ code {
   border-color: var(--preview-border);
 }
 
-.el-dark h3, 
+.el-dark h3,
 .el-dark h4 {
   color: var(--heading-color);
 }
@@ -505,6 +606,19 @@ code {
 }
 
 .el-dark code {
+  color: var(--code-color);
+}
+
+.el-dark .output-format-display h5 {
+  color: var(--heading-color);
+}
+
+.el-dark .output-code {
+  background-color: var(--code-bg);
+  border-color: #333;
+}
+
+.el-dark .output-code code {
   color: var(--code-color);
 }
 
@@ -536,7 +650,7 @@ code {
   .example-content {
     flex-direction: column;
   }
-  
+
   .config-panel {
     width: 100%;
   }

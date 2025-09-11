@@ -264,6 +264,7 @@ export interface ReportConfigParams {
  * 服务器组件配置
  */
 export interface ServerComponent {
+  monitorSysGenServerDetailComponentName?: string;
   monitorSysGenServerComponentId?: number;
   monitorSysGenServerId: number;
   monitorSysGenServerComponentName: string;
@@ -1988,6 +1989,22 @@ export function getAvailableComponentDefinitions(serverId: number) {
  */
 export function createServerDetailComponent(data: ServerComponent) {
   return createServerComponent(data);
+}
+
+/**
+ * 保存服务器详情组件（创建或更新）
+ * @author CH
+ * @param data 组件数据
+ * @returns 保存结果
+ */
+export function saveServerDetailComponent(data: ServerComponent) {
+  if (data.monitorSysGenServerComponentId) {
+    // 更新现有组件
+    return updateServerComponent(data.monitorSysGenServerComponentId, data);
+  } else {
+    // 创建新组件
+    return createServerComponent(data);
+  }
 }
 
 /**

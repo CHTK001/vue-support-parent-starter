@@ -32,6 +32,22 @@
       :inactive-icon="inactiveIcon"
       @change="handleChange"
     />
+    <ModernLayout 
+      v-else-if="layout === 'modern'"
+      v-model="currentValue"
+      :disabled="disabled"
+      :loading="loading"
+      :size="size"
+      :active-text="activeText"
+      :inactive-text="inactiveText"
+      :active-value="activeValue"
+      :inactive-value="inactiveValue"
+      :active-color="activeColor"
+      :inactive-color="inactiveColor"
+      :active-icon="activeIcon"
+      :inactive-icon="inactiveIcon"
+      @change="handleChange"
+    />
     <el-switch
       v-else
       v-model="currentValue"
@@ -53,6 +69,7 @@
 import { computed, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
+import ModernLayout from "./components/ModernLayout.vue";
 
 const props = defineProps({
   modelValue: {
@@ -70,7 +87,7 @@ const props = defineProps({
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) => ["default", "card", "slider"].includes(val)
+    validator: (val: string) => ["default", "card", "slider", "modern"].includes(val)
   },
   size: {
     type: String,
@@ -137,4 +154,4 @@ const handleChange = (val: boolean | string | number) => {
 .sc-switch {
   display: inline-block;
 }
-</style> 
+</style>

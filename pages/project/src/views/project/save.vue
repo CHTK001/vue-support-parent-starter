@@ -156,7 +156,7 @@
             </div>
 
             <el-form-item label="项目功能" prop="sysProjectFunction" class="form-item full-width">
-              <el-select v-model="selectedFunctions" placeholder="请选择项目功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
+              <el-select v-model="selectedFunctions" :max-collapse-tags="5" placeholder="请选择项目功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
                 <el-option v-for="item in functionOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
                   <div class="option-content">
                     <span class="option-name">{{ item.sysDictItemName }}</span>

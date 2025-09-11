@@ -4,7 +4,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // 引入 Vue 的响应式和生命周期相关函数
 import { computed, defineAsyncComponent, nextTick, reactive, ref, watch } from "vue";
 // 引入获取用户日志分页数据的 API 函数
-import { fetchPageUserLog } from "@repo/core";
+import { fetchPageLog } from "@repo/core";
 // 引入国际化转换函数
 import { transformI18n } from "@repo/config";
 // 引入根据 IP 获取物理地址和计算时间差的工具函数
@@ -16,7 +16,7 @@ import { debounce } from "@pureadmin/utils";
 // 引入 Vue i18n 的 useI18n 函数，用于国际化
 import { useI18n } from "vue-i18n";
 // 将 Detail 组件标记为原始组件，避免响应式处理
-const DetailLayout = defineAsyncComponent(() => import("./ccomponents/detail.vue"));
+const DetailLayout = defineAsyncComponent(() => import("./LogDetail.vue"));
 // 获取国际化实例
 const { t } = useI18n();
 // 定义详情页组件的引用
@@ -202,7 +202,7 @@ const moduleOptions = reactive([
         <div ref="contentRef" class="log-content">
           <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
             <!-- 表格组件 -->
-            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" class="log-table">
+            <ScTable ref="table" :url="fetchPageLog" :rowClick="openDetail" class="log-table">
               <!-- 表格列保持不变 -->
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>

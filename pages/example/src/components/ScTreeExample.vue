@@ -1,152 +1,140 @@
 <template>
   <div class="sc-tree-example">
-    <h2 class="example-title">ScTree 树形组件</h2>
-    <p class="example-description">ScTree是一个基于Element Plus的树形组件，支持节点拖拽排序、展开/收起、节点选择等功能。</p>
+    <!-- 预览区域 -->
+    <div class="preview-area">
+      <h4>组件预览</h4>
+      <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
+        <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen">
+          <el-icon v-if="isFullscreen"><i class="el-icon-close" /></el-icon>
+          <el-icon v-else><i class="el-icon-full-screen" /></el-icon>
+        </el-button>
 
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <h3>树形组件 (ScTree)</h3>
-          <p class="text-secondary">可配置、功能丰富的树形控件，支持拖拽排序和多种数据操作</p>
-        </div>
-      </template>
-
-      <!-- 预览区域 -->
-      <div class="preview-area">
-        <h4>组件预览</h4>
-        <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
-          <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen">
-            <el-icon v-if="isFullscreen"><i class="el-icon-close" /></el-icon>
-            <el-icon v-else><i class="el-icon-full-screen" /></el-icon>
-          </el-button>
-
-          <div class="panel-preview">
-            <ScTree
-              ref="treeRef"
-              v-model:data="treeData"
-              :props="treeProps"
-              :node-key="nodeKey"
-              :highlight-current="highlightCurrent"
-              :default-expand-all="defaultExpandAll"
-              :expand-on-click-node="expandOnClickNode"
-              :check-on-click-node="checkOnClickNode"
-              :auto-expand-parent="autoExpandParent"
-              :show-checkbox="showCheckbox"
-              :check-strictly="checkStrictly"
-              :draggable="draggable"
-              :accordion="accordion"
-              :indent="indent"
-              @node-click="handleNodeClick"
-              @check="handleCheck"
-              @node-drag-end="handleDragEnd"
-              @node-drop="handleNodeDrop"
-            />
-          </div>
+        <div class="panel-preview">
+          <ScTree
+            ref="treeRef"
+            v-model:data="treeData"
+            :props="treeProps"
+            :node-key="nodeKey"
+            :highlight-current="highlightCurrent"
+            :default-expand-all="defaultExpandAll"
+            :expand-on-click-node="expandOnClickNode"
+            :check-on-click-node="checkOnClickNode"
+            :auto-expand-parent="autoExpandParent"
+            :show-checkbox="showCheckbox"
+            :check-strictly="checkStrictly"
+            :draggable="draggable"
+            :accordion="accordion"
+            :indent="indent"
+            @node-click="handleNodeClick"
+            @check="handleCheck"
+            @node-drag-end="handleDragEnd"
+            @node-drop="handleNodeDrop"
+          />
         </div>
       </div>
+    </div>
 
-      <!-- 操作按钮区域 -->
-      <div class="action-bar">
-        <el-button @click="expandAll" type="primary" size="small" plain>展开所有</el-button>
-        <el-button @click="collapseAll" type="info" size="small" plain>折叠所有</el-button>
-        <el-button @click="getSelectedData" type="success" size="small" plain>获取选中节点</el-button>
-        <el-button @click="getAllData" type="warning" size="small" plain>获取所有数据</el-button>
-        <el-button @click="resetData" type="danger" size="small" plain>重置数据</el-button>
-        <el-button @click="addNode" size="small" plain>添加节点</el-button>
-      </div>
+    <!-- 操作按钮区域 -->
+    <div class="action-bar">
+      <el-button @click="expandAll" type="primary" size="small" plain>展开所有</el-button>
+      <el-button @click="collapseAll" type="info" size="small" plain>折叠所有</el-button>
+      <el-button @click="getSelectedData" type="success" size="small" plain>获取选中节点</el-button>
+      <el-button @click="getAllData" type="warning" size="small" plain>获取所有数据</el-button>
+      <el-button @click="resetData" type="danger" size="small" plain>重置数据</el-button>
+      <el-button @click="addNode" size="small" plain>添加节点</el-button>
+    </div>
 
-      <!-- 配置面板 -->
-      <div class="config-panel mt-4">
-        <h4>配置选项</h4>
-        <el-row :gutter="20">
-          <!-- 基本配置 -->
-          <el-col :xs="24" :sm="12">
-            <h5>基础配置</h5>
-            <el-form label-position="top" size="default">
-              <el-form-item label="节点键名">
-                <el-input v-model="nodeKey" placeholder="节点唯一标识的属性名" />
-              </el-form-item>
+    <!-- 配置面板 -->
+    <div class="config-panel mt-4">
+      <h4>配置选项</h4>
+      <el-row :gutter="20">
+        <!-- 基本配置 -->
+        <el-col :xs="24" :sm="12">
+          <h5>基础配置</h5>
+          <el-form label-position="top" size="default">
+            <el-form-item label="节点键名">
+              <el-input v-model="nodeKey" placeholder="节点唯一标识的属性名" />
+            </el-form-item>
 
-              <el-form-item label="缩进大小">
-                <el-slider v-model="indent" :min="8" :max="32" :step="4" show-stops />
-              </el-form-item>
+            <el-form-item label="缩进大小">
+              <el-slider v-model="indent" :min="8" :max="32" :step="4" show-stops />
+            </el-form-item>
 
-              <el-divider content-position="center">树节点属性</el-divider>
+            <el-divider content-position="center">树节点属性</el-divider>
 
-              <el-form-item label="子节点属性名">
-                <el-input v-model="treeProps.children" placeholder="子节点属性名" />
-              </el-form-item>
+            <el-form-item label="子节点属性名">
+              <el-input v-model="treeProps.children" placeholder="子节点属性名" />
+            </el-form-item>
 
-              <el-form-item label="标签属性名">
-                <el-input v-model="treeProps.label" placeholder="标签属性名" />
-              </el-form-item>
+            <el-form-item label="标签属性名">
+              <el-input v-model="treeProps.label" placeholder="标签属性名" />
+            </el-form-item>
 
-              <el-form-item label="禁用属性名">
-                <el-input v-model="treeProps.disabled" placeholder="禁用属性名" />
-              </el-form-item>
-            </el-form>
-          </el-col>
+            <el-form-item label="禁用属性名">
+              <el-input v-model="treeProps.disabled" placeholder="禁用属性名" />
+            </el-form-item>
+          </el-form>
+        </el-col>
 
-          <!-- 功能配置 -->
-          <el-col :xs="24" :sm="12">
-            <h5>功能配置</h5>
-            <el-form label-position="top" size="default">
-              <el-form-item label="基本功能">
-                <div class="option-switches">
-                  <el-switch v-model="highlightCurrent" active-text="高亮当前节点" />
-                  <el-switch v-model="defaultExpandAll" active-text="默认展开所有" />
-                  <el-switch v-model="autoExpandParent" active-text="自动展开父节点" />
-                  <el-switch v-model="expandOnClickNode" active-text="点击节点展开" />
-                </div>
-              </el-form-item>
+        <!-- 功能配置 -->
+        <el-col :xs="24" :sm="12">
+          <h5>功能配置</h5>
+          <el-form label-position="top" size="default">
+            <el-form-item label="基本功能">
+              <div class="option-switches">
+                <el-switch v-model="highlightCurrent" active-text="高亮当前节点" />
+                <el-switch v-model="defaultExpandAll" active-text="默认展开所有" />
+                <el-switch v-model="autoExpandParent" active-text="自动展开父节点" />
+                <el-switch v-model="expandOnClickNode" active-text="点击节点展开" />
+              </div>
+            </el-form-item>
 
-              <el-form-item label="选择功能">
-                <div class="option-switches">
-                  <el-switch v-model="showCheckbox" active-text="显示复选框" />
-                  <el-switch v-model="checkStrictly" :disabled="!showCheckbox" active-text="严格选择模式" />
-                  <el-switch v-model="checkOnClickNode" active-text="点击节点选中" />
-                </div>
-              </el-form-item>
+            <el-form-item label="选择功能">
+              <div class="option-switches">
+                <el-switch v-model="showCheckbox" active-text="显示复选框" />
+                <el-switch v-model="checkStrictly" :disabled="!showCheckbox" active-text="严格选择模式" />
+                <el-switch v-model="checkOnClickNode" active-text="点击节点选中" />
+              </div>
+            </el-form-item>
 
-              <el-form-item label="高级功能">
-                <div class="option-switches">
-                  <el-switch v-model="draggable" active-text="启用拖拽功能" />
-                  <el-switch v-model="accordion" active-text="手风琴模式" />
-                </div>
-              </el-form-item>
-            </el-form>
-          </el-col>
-        </el-row>
-      </div>
+            <el-form-item label="高级功能">
+              <div class="option-switches">
+                <el-switch v-model="draggable" active-text="启用拖拽功能" />
+                <el-switch v-model="accordion" active-text="手风琴模式" />
+              </div>
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+    </div>
 
-      <!-- 操作结果 -->
-      <div v-if="operationResult" class="operation-result">
-        <h4>操作结果</h4>
-        <div class="result-container">
-          <div class="result-header">
-            <span>{{ operationResultTitle }}</span>
-            <el-button type="text" @click="operationResult = null">关闭</el-button>
-          </div>
-          <pre class="result-content">{{ operationResult }}</pre>
+    <!-- 操作结果 -->
+    <div v-if="operationResult" class="operation-result">
+      <h4>操作结果</h4>
+      <div class="result-container">
+        <div class="result-header">
+          <span>{{ operationResultTitle }}</span>
+          <el-button type="text" @click="operationResult = null">关闭</el-button>
         </div>
+        <pre class="result-content">{{ operationResult }}</pre>
       </div>
+    </div>
 
-      <!-- 代码示例 -->
-      <div class="code-example mt-4">
-        <h4>代码示例</h4>
-        <el-alert type="info" :closable="false" class="mb-3">
-          <div class="code-desc">根据当前配置生成的代码示例</div>
-        </el-alert>
-        <pre><code class="language-html">{{ generatedCode }}</code></pre>
-      </div>
-    </el-card>
+    <!-- 代码示例 -->
+    <div class="code-example mt-4">
+      <h4>代码示例</h4>
+      <el-alert type="info" :closable="false" class="mb-3">
+        <div class="code-desc">根据当前配置生成的代码示例</div>
+      </el-alert>
+      <pre><code class="language-html">{{ generatedCode }}</code></pre>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
 import ScTree from "@repo/components/ScTree/index.vue";
-import type { TreeNodeData, TreeNode, TreeProps, TreeKey } from "@repo/components/ScTree/types";
+import type { TreeNode, TreeNodeData, TreeProps } from "@repo/components/ScTree/types";
+import { computed, reactive, ref } from "vue";
 
 // 初始树形数据
 const initialTreeData: TreeNodeData[] = [

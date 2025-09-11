@@ -61,6 +61,20 @@ const onRowClick = async (it) => {
   const _tabValue = config.tabValue;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
   const item = products.value.filter((item) => item.group === _tabValue)[0];
+  
+  // 数据验证：确保item存在且有必要的属性
+  if (!item) {
+    console.error('未找到对应的配置项:', _tabValue);
+    ElMessage.error('配置项不存在，请刷新页面重试');
+    return;
+  }
+  
+  if (!item.group) {
+    console.error('配置项缺少group属性:', item);
+    ElMessage.error('配置项数据异常，请联系管理员');
+    return;
+  }
+  
   currentItem.value = item;
 
   // 如果是配置组管理，直接显示对话框
@@ -71,8 +85,26 @@ const onRowClick = async (it) => {
     layout[item.group] = true;
   } else {
     // 否则使用默认的设置布局
-    saveLayout.value?.setData(item);
-    saveLayout.value?.open();
+    try {
+      // 确保SaveLayoutRaw组件已经加载
+      if (!saveLayout.value) {
+        console.error('SaveLayoutRaw组件未加载');
+        ElMessage.error('组件加载失败，请刷新页面重试');
+        return;
+      }
+      
+      // 验证item数据完整性
+      if (!item.name) {
+        console.warn('配置项缺少name属性，使用group作为默认名称:', item);
+        item.name = item.group;
+      }
+      
+      await saveLayout.value.setData(item);
+      await saveLayout.value.open();
+    } catch (error) {
+      console.error('打开设置布局失败:', error);
+      ElMessage.error('打开设置页面失败，请重试');
+    }
   }
 };
 
@@ -145,7 +177,7 @@ const loadProductsConfig = async () => {
           isSetup: true,
           type: 4,
           icon: group.sysSettingGroupIcon || "ri:settings-line",
-          hide: group.sysSettingGroupEnable,
+          hide: !group.sysSettingGroupEnable,
         }));
 
       // 确保 default 和 group 配置始终存在，将其作为固定值与远程配置合并
@@ -220,10 +252,10 @@ onMounted(() => {
         <SaveLayoutRaw ref="saveLayout" @close="close(currentItem.group)" class="w-full" />
       </template>
       <template v-else-if="currentItem.group === 'group'">
-        <!-- 配置组管理使用全屏显示 -->
-        <el-dialog v-model="layout.group" :title="currentItem.name" width="90%" top="5vh" destroy-on-close @close="close(currentItem.group)">
+        <!-- 配置组管理使用抽屉显示 -->
+        <el-drawer v-model="layout.group" size="60%" :title="currentItem.name" destroy-on-close @close="close(currentItem.group)">
           <GroupManagement :data="currentItem" />
-        </el-dialog>
+        </el-drawer>
       </template>
       <template v-else>
         <el-drawer v-model="layout[currentItem.group]" size="50%" :title="currentItem.name">
@@ -256,8 +288,8 @@ onMounted(() => {
   bottom: 30px;
   right: 30px;
   z-index: 100;
-  width: 50px !important;
-  height: 50px !important;
+  width: 38px !important;
+  height: 38px !important;
   border-radius: 50%;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -273,8 +305,8 @@ onMounted(() => {
   bottom: 30px;
   right: 90px;
   z-index: 100;
-  width: 50px !important;
-  height: 50px !important;
+  width: 38px !important;
+  height: 38px !important;
   border-radius: 50%;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -76,10 +76,10 @@
           </div>
 
           <!-- Max Tokens -->
-          <div class="mb-4">
+          <div class="mb-4" v-if="form.tokens">
             <div class="flex items-center justify-between mb-2">
               <span class="font-medium text-gray-700 dark:text-gray-300">回复长度</span>
-              <span class="text-purple-600 font-mono">{{ form.tokens }}</span>
+              <span class="text-purple-600 font-mono">{{ form?.tokens }}</span>
             </div>
             <div class="flex items-center gap-3">
               <el-slider :min="1" :max="8192" v-model="form.tokens" class="flex-1" />

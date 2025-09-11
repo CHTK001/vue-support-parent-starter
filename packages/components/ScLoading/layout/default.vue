@@ -1,10 +1,10 @@
 <script setup>
-import { defineExpose,  ref, defineAsyncComponent, shallowRef } from 'vue';
+import { defineExpose, ref } from "vue";
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  layout: { type: String, default: 'default' },
+  layout: { type: String, default: "default" },
   showNumber: { type: Boolean, default: false },
   showLoading: { type: Boolean, default: false },
   showLoadingLabel: { type: String, default: "加载中..." },
@@ -16,7 +16,7 @@ const _step = ref(0);
  * 步长
  * @param {number} value
  */
-const stepTo = (value) => {
+const stepTo = value => {
   const animate = () => {
     if (_step.value < value) {
       _step.value++;
@@ -38,28 +38,28 @@ defineExpose({
 });
 </script>
 <template>
-  <div class="h-full w-full" :style="{'--loading-border-radius': props.borderRadius + 'px'}">
-     <div class="shadow-text">
-        <div class="text-center inline-block text-white text-14px w-full h-full">
-          <div class="relative flex flex-col items-center justify-center h-full">
-            <div class="rounded-2.5 flex items-center justify-center shadow-bg">
-              <div data-v-a4c4d738="" class="relative w-8 h-8">
-                <span data-v-a4c4d738="" class="left-circle absolute top-0 left-0 rounded-full bg-theme-skyblue w-3 h-3"></span>
-                <span data-v-a4c4d738="" class="right-circle absolute top-0 right-0 rounded-full bg-theme w-3 h-3"></span>
-                <span data-v-a4c4d738="" class="bottom-circle absolute bottom-0 left-50% -translate-x-50% rounded-full bg-theme-skyblue2 w-3 h-3"></span>
-              </div>
+  <div class="h-full w-full" :style="{ '--loading-border-radius': props.borderRadius + 'px' }">
+    <div class="shadow-text">
+      <div class="text-center inline-block text-white text-14px w-full h-full">
+        <div class="relative flex flex-col items-center justify-center h-full">
+          <div class="rounded-2.5 flex items-center justify-center shadow-bg">
+            <div data-v-a4c4d738="" class="relative w-8 h-8">
+              <span data-v-a4c4d738="" class="left-circle absolute top-0 left-0 rounded-full bg-theme-skyblue w-3 h-3" />
+              <span data-v-a4c4d738="" class="right-circle absolute top-0 right-0 rounded-full bg-theme w-3 h-3" />
+              <span data-v-a4c4d738="" class="bottom-circle absolute bottom-0 left-50% -translate-x-50% rounded-full bg-theme-skyblue2 w-3 h-3" />
             </div>
-            <p class="mt-4 xl:text-lg text-base text-white font-bold" v-if="props.showNumber">
-              {{ _step }}  
-             <span class="text-sm">%</span>
-            </p>
-            <p class="mt-4 text-sm text-white font-bold" v-if="props.showLoading">
-              {{ props.showLoadingLabel }}
-            </p>
-            <!---->
           </div>
+          <p v-if="props.showNumber" class="mt-4 xl:text-lg text-base text-white font-bold">
+            {{ _step }}
+            <span class="text-sm">%</span>
+          </p>
+          <p v-if="props.showLoading" class="mt-4 text-sm text-white font-bold">
+            {{ props.showLoadingLabel }}
+          </p>
+          <!---->
         </div>
       </div>
+    </div>
   </div>
 </template>
 <style scoped lang="scss">
@@ -118,4 +118,5 @@ defineExpose({
   60% {
     transform: translate(-134%, -167%);
   }
-}</style>
+}
+</style>

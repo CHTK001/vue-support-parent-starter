@@ -1,8 +1,8 @@
 <script>
-import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import scStatusIndicator from "@repo/components/ScMini/scStatusIndicator.vue";
+import { defineComponent } from "vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 export default defineComponent({
@@ -10,15 +10,15 @@ export default defineComponent({
   props: {
     moduleOptions: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
       icon: { EyeClose: null },
       visible: false,
       row: {},
-      clickEye: false
+      clickEye: false,
     };
   },
   mounted() {
@@ -46,14 +46,14 @@ export default defineComponent({
     },
     transform(value) {
       value = String(value || "").toUpperCase();
-      const _value = this.moduleOptions.filter(item => {
+      const _value = this.moduleOptions.filter((item) => {
         if (item.value == value) {
           return item.label;
         }
       });
       return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

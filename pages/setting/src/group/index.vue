@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { onMounted, reactive, ref } from "vue";
-import { fetchDeleteForGroup, fetchListForGroup, fetchSaveOrUpdateForGroup, type SysSettingGroup } from "../api/group";
+import draggable from "vuedraggable";
+import { nextTick, onMounted, reactive, ref } from "vue";
+import { fetchBatchUpdateForGroup, fetchDeleteForGroup, fetchListForGroup, fetchSaveOrUpdateForGroup, type SysSettingGroup } from "../api/group";
 
 // 响应式数据
 const loading = ref(false);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const groupList = ref<SysSettingGroup[]>([]);
+const cardContainer = ref();
 
 // 表单数据
 const formData = reactive<SysSettingGroup>({
@@ -35,11 +37,49 @@ const getGroupList = async () => {
     loading.value = true;
     const { data } = await fetchListForGroup({});
     groupList.value = data || [];
+    // 数据加载完成后自动触发排序更新
+    await nextTick();
   } catch (error) {
     console.error("获取组列表失败:", error);
     ElMessage.error("获取组列表失败");
   } finally {
     loading.value = false;
+  }
+};
+
+/**
+ * 拖拽结束处理
+ */
+const handleDragEnd = async () => {
+  try {
+    // 更新排序字段
+    const updatedList = groupList.value.map((item, index) => ({
+      ...item,
+      sysSettingGroupSort: index + 1,
+    }));
+
+    // 批量更新到服务器
+    await handleBatchUpdate(updatedList);
+  } catch (error) {
+    console.error("拖拽排序失败:", error);
+    ElMessage.error("拖拽排序失败");
+    // 重新获取数据恢复原状态
+    await getGroupList();
+  }
+};
+
+/**
+ * 批量更新排序
+ */
+const handleBatchUpdate = async (updatedList: SysSettingGroup[]) => {
+  try {
+    await fetchBatchUpdateForGroup(updatedList);
+    ElMessage.success("排序更新成功");
+  } catch (error) {
+    console.error("批量更新失败:", error);
+    ElMessage.error("排序更新失败");
+    // 重新获取数据恢复原状态
+    await getGroupList();
   }
 };
 
@@ -99,12 +139,12 @@ const handleSave = async () => {
 
     const { data } = await fetchSaveOrUpdateForGroup(formData);
 
-    if (data && data.success) {
+    if (data) {
       ElMessage.success(isEdit.value ? "更新成功" : "创建成功");
       dialogVisible.value = false;
       await getGroupList();
     } else {
-      ElMessage.error(data?.message || "保存失败");
+      ElMessage.error(data?.msg || "保存失败");
     }
   } catch (error) {
     console.error("保存失败:", error);
@@ -136,50 +176,83 @@ const handleClose = () => {
 };
 
 // 组件挂载时获取数据
-onMounted(() => {
-  getGroupList();
+onMounted(async () => {
+  await getGroupList();
+});
+</script>
+
+<script lang="ts">
+import { defineComponent } from "vue";
+import draggable from "vuedraggable";
+
+export default defineComponent({
+  components: {
+    draggable
+  }
 });
 </script>
 
 <template>
   <div class="group-management">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2>配置组管理</h2>
-      <p>管理系统配置分组，用于组织和分类各种系统设置</p>
-    </div>
-
     <!-- 操作栏 -->
     <div class="toolbar">
       <el-button type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleAdd"> 新增配置组 </el-button>
       <el-button :icon="useRenderIcon('ri:refresh-line')" @click="getGroupList"> 刷新 </el-button>
     </div>
 
-    <!-- 数据表格 -->
-    <el-table v-loading="loading" :data="groupList" stripe border class="group-table">
-      <el-table-column prop="sysSettingGroupName" label="组名称" min-width="120" />
-      <el-table-column prop="sysSettingGroupCode" label="组编码" min-width="20" />
-      <el-table-column label="图标" width="80" align="center">
-        <template #default="{ row }">
-          <el-icon v-if="row.sysSettingGroupIcon" size="20">
-            <component :is="useRenderIcon(row.sysSettingGroupIcon)" />
-          </el-icon>
-          <span v-else class="text-gray-400">-</span>
+    <!-- 卡片容器 -->
+    <div v-loading="loading" class="card-container">
+      <draggable 
+        v-model="groupList" 
+        item-key="sysSettingGroupId" 
+        handle=".drag-handle" 
+        animation="150" 
+        ghost-class="sortable-ghost" 
+        chosen-class="sortable-chosen" 
+        drag-class="sortable-drag" 
+        @end="handleDragEnd"
+        class="draggable-container"
+      >
+        <template #item="{ element: item, index }">
+          <div class="group-card">
+        <div class="card-header">
+          <div class="card-title">
+            <el-icon v-if="item.sysSettingGroupIcon" class="card-icon">
+              <component :is="useRenderIcon(item.sysSettingGroupIcon)" />
+            </el-icon>
+            <span class="group-name">{{ item.sysSettingGroupName }}</span>
+            <el-tag size="small" class="group-code">{{ item.sysSettingGroupCode }}</el-tag>
+          </div>
+          <div class="card-actions">
+            <el-switch v-model="item.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" size="small" />
+          </div>
+        </div>
+
+        <div class="card-content">
+          <p class="group-description">{{ item.sysSettingGroupRemark || "暂无描述" }}</p>
+        </div>
+
+        <div class="card-footer">
+          <div class="drag-handle">
+            <el-icon><component :is="useRenderIcon('ri:drag-move-line')" /></el-icon>
+            <span class="sort-text">拖拽排序</span>
+          </div>
+          <div class="action-buttons">
+            <el-button type="primary" link size="small" :icon="useRenderIcon('ri:edit-line')" @click="handleEdit(item)"> 编辑 </el-button>
+            <el-button type="danger" link size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete(item)"> 删除 </el-button>
+          </div>
+        </div>
+          </div>
         </template>
-      </el-table-column>
-      <el-table-column label="状态" width="100" align="center">
-        <template #default="{ row }">
-          <el-switch v-model="row.sysSettingGroupEnable" active-text="启用" inactive-text="禁用" />
-        </template>
-      </el-table-column>
-      <el-table-column prop="sysSettingGroupRemark" label="描述" min-width="150" show-overflow-tooltip />
-      <el-table-column label="操作" width="150" align="center" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" :icon="useRenderIcon('ri:edit-line')" @click="handleEdit(row)"> 编辑 </el-button>
-          <el-button type="danger" link size="small" :icon="useRenderIcon('ri:delete-bin-line')" @click="handleDelete(row)"> 删除 </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </draggable>
+
+      <!-- 空状态 -->
+      <div v-if="!loading && groupList.length === 0" class="empty-state">
+        <el-empty description="暂无配置组数据">
+          <el-button type="primary" @click="handleAdd">创建第一个配置组</el-button>
+        </el-empty>
+      </div>
+    </div>
 
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑配置组' : '新增配置组'" width="500px" @close="handleClose">
@@ -228,7 +301,6 @@ onMounted(() => {
 
 .page-header {
   margin-bottom: 20px;
-  padding: 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -257,11 +329,113 @@ onMounted(() => {
   gap: 12px;
 }
 
-.group-table {
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  min-height: 200px;
+}
+
+.group-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e4e7ed;
+  transition: all 0.3s ease;
+  cursor: move;
   overflow: hidden;
+}
+
+.group-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.card-icon {
+  font-size: 20px;
+  color: #409eff;
+}
+
+.group-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.group-code {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.card-content {
+  padding: 16px 20px;
+}
+
+.group-description {
+  margin: 0;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 21px;
+}
+
+.card-footer {
+  padding: 12px 20px;
+  background: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #909399;
+  font-size: 12px;
+  cursor: move;
+}
+
+.drag-handle:hover {
+  color: #409eff;
+}
+
+.sort-text {
+  user-select: none;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
 }
 
 .dialog-footer {
@@ -270,22 +444,25 @@ onMounted(() => {
   gap: 12px;
 }
 
-:deep(.el-table) {
-  border-radius: 8px;
+/* 拖拽排序样式 */
+.draggable-container {
+  display: contents;
 }
 
-:deep(.el-table__header) {
-  background-color: #f8f9fa;
+.sortable-ghost {
+  opacity: 0.5;
+  background: #f0f9ff;
+  border: 2px dashed #409eff;
 }
 
-:deep(.el-table th) {
-  background-color: #f8f9fa !important;
-  color: #303133;
-  font-weight: 600;
+.sortable-chosen {
+  transform: rotate(5deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
-:deep(.el-table td) {
-  padding: 12px 0;
+.sortable-drag {
+  transform: rotate(5deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.el-switch) {
@@ -295,5 +472,9 @@ onMounted(() => {
 
 :deep(.el-button--small) {
   padding: 4px 8px;
+}
+
+:deep(.el-loading-mask) {
+  border-radius: 8px;
 }
 </style>

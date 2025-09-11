@@ -43,6 +43,14 @@ export const fetchSaveOrUpdateForGroup = (params: SysSettingGroup) => {
   });
 };
 /**
+ * 更新
+ */
+export const fetchBatchUpdateForGroup = (params: SysSettingGroup[]) => {
+  return http.request<ReturnResult<SysSettingGroup>>("post", "/v2/setting/group/batchUpdate", {
+    data: params,
+  });
+};
+/**
  * 删除
  */
 export const fetchDeleteForGroup = (params: { sysSettingGroupId: number }) => {

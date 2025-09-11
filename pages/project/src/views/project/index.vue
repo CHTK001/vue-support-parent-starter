@@ -167,6 +167,7 @@ import { useRenderIcon } from "@repo/components";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import { ElMessage } from "element-plus";
 import { fetchDeleteProject, fetchPageProject, fetchUpdateProjectDefault } from "../../api/manage/project";
 import SaveDialog from "./save.vue";
 
@@ -389,7 +390,7 @@ const handleUpdateDefault = async (row, item1) => {
 
 const eventMap = {
   DA_YU_YAN: (row, item1) => {
-    router.push({
+    return router.push({
       name: "ProjectAiLlm",
       query: {
         sysProjectId: row.sysProjectId,
@@ -399,7 +400,7 @@ const eventMap = {
     });
   },
   WEN_SHENG_TU: (row, item1) => {
-    router.push({
+    return router.push({
       name: "ProjectAiVincent",
       query: {
         sysProjectId: row.sysProjectId,
@@ -409,7 +410,7 @@ const eventMap = {
     });
   },
   COLORIZATION: (row, item1) => {
-    router.push({
+    return router.push({
       name: "ProjectAiColorization",
       query: {
         sysProjectId: row.sysProjectId,
@@ -419,7 +420,7 @@ const eventMap = {
     });
   },
   RESOLUTION: (row, item1) => {
-    router.push({
+    return router.push({
       name: "ProjectAiResolution",
       query: {
         sysProjectId: row.sysProjectId,
@@ -429,7 +430,7 @@ const eventMap = {
     });
   },
   WEN_SHENG_SHI_PIN: (row, item1) => {
-    router.push({
+    return router.push({
       name: "ProjectAiVideo",
       query: {
         sysProjectId: row.sysProjectId,
@@ -439,7 +440,7 @@ const eventMap = {
     });
   },
   SHE_BEI: (row, item1) => {
-    router.push({
+    return router.push({
       name: "device-template",
       query: {
         sysProjectId: row.sysProjectId,
@@ -449,7 +450,7 @@ const eventMap = {
     });
   },
   DUAN_XIN: (row, item1) => {
-    router.push({
+    return router.push({
       name: "sms-template",
       query: {
         sysProjectId: row.sysProjectId,
@@ -459,8 +460,89 @@ const eventMap = {
     });
   },
   YOU_JIAN: (row, item1) => {
-    router.push({
+    return router.push({
       name: "email-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  // 图像处理相关功能
+  REN_XIANG_JIAN_CE: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageDetection",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  TU_XIANG_JIAN_CE: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageDetection",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  TU_XIANG_SHI_BIE: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageRecognition",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  FACE_PIAN_SHI_BIE: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageRecognition",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  TU_XIANG_TE_ZHENG_ZHI: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageFeature",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  REN_XIANG_TE_ZHENG_ZHI: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageFeature",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  OCR: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageOcr",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  TU_XIANG_FENG_GE: (row, item1) => {
+    return router.push({
+      name: "ProjectAiImageStyle",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -475,8 +557,24 @@ const handleEventCustom = async (row, item1, event) => {
     event.stopPropagation();
   }
   try {
-    eventMap[item1.code](row, item1);
-  } catch (error) {}
+    // 检查eventMap中是否存在对应的处理函数
+    if (!eventMap[item1.code]) {
+      console.warn(`未找到功能代码 ${item1.code} 对应的处理函数`);
+      return;
+    }
+    
+    // 执行路由跳转
+    console.log(`正在跳转到功能: ${item1.code}`, { row, item1 });
+    await eventMap[item1.code](row, item1);
+    
+    // 添加延迟确保路由跳转完成
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+  } catch (error) {
+    console.error(`功能 ${item1.code} 跳转失败:`, error);
+    // 可以添加用户提示
+    ElMessage.error(`页面跳转失败，请重试`);
+  }
 };
 
 const getDefaultValueArr = (row) => {

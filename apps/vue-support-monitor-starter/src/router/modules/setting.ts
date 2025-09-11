@@ -31,6 +31,30 @@ export default [
           title: "字典管理",
         },
       },
+      {
+        path: "/holiday/index",
+        name: "HolidayIndex",
+        component: async () => {
+          const { SystemHolidayIndex } = await import("@pages/system");
+          return SystemHolidayIndex;
+        },
+        meta: {
+          title: "节假日管理",
+          icon: "ep:calendar",
+        },
+      },
+      {
+        path: "/log/system/index",
+        name: "LogSystemIndex",
+        component: async () => {
+          const { SystemLogIndex } = await import("@pages/system");
+          return SystemLogIndex;
+        },
+        meta: {
+          title: "系统日志",
+          icon: "ep:files",
+        },
+      },
     ],
   },
 ];

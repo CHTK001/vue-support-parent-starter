@@ -128,10 +128,13 @@ const templateOpen = async (item, mode) => {
 };
 
 const form = reactive({
-  sysTemplateName: null,
-  sysDictItemId1: null,
-  sysDictItemId2: null,
-  sysDictItemId3: null,
+  sysSmsTemplateName: null,
+  sysSmsTemplateCategory: null,
+  sysProjectId: null,
+});
+
+const params = reactive({
+  ...form,
 });
 
 const dialogClose = () => {
@@ -156,7 +159,7 @@ const resetForm = async (ref) => {
         <div class="left-panel">
           <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
             <el-form-item label="模板名称" prop="sysSmsTemplateName">
-              <el-input v-model="form.sysTemplateName" placeholder="请输入模板名称" clearable class="!w-[180px]" />
+              <el-input v-model="form.sysSmsTemplateName" placeholder="请输入模板名称" clearable class="!w-[180px]" />
             </el-form-item>
 
             <el-form-item label="模板类型" prop="sysSmsTemplateCategory">
@@ -185,7 +188,7 @@ const resetForm = async (ref) => {
               <div>
                 <el-tooltip v-if="row.sysSmsTemplateRemark" :content="row.sysSmsTemplateRemark">
                   <el-tag :title="row.sysSmsTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
-                    {{ row.sysTemplateName }}
+                    {{ row.sysSmsTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
                     {{ row.sysSmsTemplateCode }}

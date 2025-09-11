@@ -1,10 +1,10 @@
 {
-  "name": "@pages/log",
+  "name": "@pages/system",
   "version": "1.0.0",
-  "description": "系统日志模块",
+  "description": "系统管理模块",
   "private": true,
   "keywords": [],
-  "author": "",
+  "author": "CH",
   "license": "ISC",
   "type": "module",
   "scripts": {
@@ -61,10 +61,8 @@
     "eslint-plugin-vue": "catalog:",
     "postcss": "catalog:",
     "prettier": "catalog:",
-    "sass": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vue-tsc": "catalog:"
+    "vite": "catalog:"
   }
 }

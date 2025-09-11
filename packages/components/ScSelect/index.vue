@@ -67,6 +67,18 @@
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
     />
+
+    <!-- 过滤器布局 -->
+    <FilterLayout
+      v-if="layout === 'filter'"
+      :model-value="selectValue"
+      :options="options"
+      :label-width="labelWidth"
+      :filter-output-format="filterOutputFormat"
+      :filter-operator="filterOperator"
+      :filter-field="filterField"
+      @change="handleChange"
+    />
   </div>
 </template>
 
@@ -74,6 +86,7 @@
 import { computed, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
+import FilterLayout from "./components/FilterLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
 import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
 
@@ -103,7 +116,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown"].includes(value);
+      return ["card", "select", "pill", "dropdown", "filter"].includes(value);
     }
   },
   // 是否多选
@@ -189,6 +202,28 @@ const props = defineProps({
     validator: (value: string) => {
       return ["normal", "large"].includes(value);
     }
+  },
+  // 过滤器模式标签宽度
+  labelWidth: {
+    type: String,
+    default: "100px"
+  },
+  // 过滤器模式输出格式
+  filterOutputFormat: {
+    type: String,
+    default: "default",
+    validator: (value: string) => ["default", "array", "sql", "lucene"].includes(value)
+  },
+  // 过滤器模式操作符
+  filterOperator: {
+    type: String,
+    default: "in",
+    validator: (value: string) => ["in", "eq", "ne", "gt", "gte", "lt", "lte", "like", "between"].includes(value)
+  },
+  // 过滤器模式字段名
+  filterField: {
+    type: String,
+    default: "field"
   }
 });
 
@@ -234,6 +269,168 @@ const isItemDisabled = (value: string | number) => {
 const handleNativeSelectChange = (value: string | number | Array<string | number>) => {
   emit("update:modelValue", value);
   emit("change", value);
+};
+
+// 格式化SQL条件
+const formatSqlCondition = (field: string, operator: string, values: any[]) => {
+  if (!values || values.length === 0) return "";
+
+  const value = values[0];
+  const escapedValue = typeof value === "string" ? `'${value}'` : value;
+
+  switch (operator) {
+    case "eq":
+      return `${field} = ${escapedValue}`;
+    case "ne":
+      return `${field} != ${escapedValue}`;
+    case "gt":
+      return `${field} > ${escapedValue}`;
+    case "gte":
+      return `${field} >= ${escapedValue}`;
+    case "lt":
+      return `${field} < ${escapedValue}`;
+    case "lte":
+      return `${field} <= ${escapedValue}`;
+    case "like":
+      return `${field} LIKE '%${value}%'`;
+    case "between":
+      if (values.length >= 2) {
+        const val1 = typeof values[0] === "string" ? `'${values[0]}'` : values[0];
+        const val2 = typeof values[1] === "string" ? `'${values[1]}'` : values[1];
+        return `${field} BETWEEN ${val1} AND ${val2}`;
+      }
+      return `${field} >= ${escapedValue}`;
+    case "in":
+    default:
+      if (values.length === 1) {
+        return `${field} = ${escapedValue}`;
+      } else {
+        const valueList = values.map(v => (typeof v === "string" ? `'${v}'` : v)).join(", ");
+        return `${field} IN (${valueList})`;
+      }
+  }
+};
+
+// 格式化Lucene条件
+const formatLuceneCondition = (field: string, operator: string, values: any[]) => {
+  if (!values || values.length === 0) return "";
+
+  const value = values[0];
+
+  switch (operator) {
+    case "eq":
+      return `${field}:"${value}"`;
+    case "ne":
+      return `NOT ${field}:"${value}"`;
+    case "gt":
+      return `${field}:{${value} TO *}`;
+    case "gte":
+      return `${field}:[${value} TO *]`;
+    case "lt":
+      return `${field}:{* TO ${value}}`;
+    case "lte":
+      return `${field}:[* TO ${value}]`;
+    case "like":
+      return `${field}:*${value}*`;
+    case "between":
+      if (values.length >= 2) {
+        return `${field}:[${values[0]} TO ${values[1]}]`;
+      }
+      return `${field}:[${value} TO *]`;
+    case "in":
+    default:
+      if (values.length === 1) {
+        return `${field}:"${value}"`;
+      } else {
+        const valueList = values.map(v => `${field}:"${v}"`).join(" OR ");
+        return `(${valueList})`;
+      }
+  }
+};
+
+// 将default格式转换为SQL
+const convertDefaultToSql = (defaultData: any) => {
+  if (!defaultData || typeof defaultData !== "object") {
+    return "";
+  }
+
+  const conditions: string[] = [];
+
+  for (const [key, value] of Object.entries(defaultData)) {
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue;
+      if (value.length === 1) {
+        conditions.push(`${key} = '${value[0]}'`);
+      } else {
+        const valueList = value.map(v => `'${v}'`).join(", ");
+        conditions.push(`${key} IN (${valueList})`);
+      }
+    } else {
+      conditions.push(`${key} = '${value}'`);
+    }
+  }
+
+  return conditions.join(" AND ");
+};
+
+// 将default格式转换为Lucene
+const convertDefaultToLucene = (defaultData: any) => {
+  if (!defaultData || typeof defaultData !== "object") {
+    return "";
+  }
+
+  const conditions: string[] = [];
+
+  for (const [key, value] of Object.entries(defaultData)) {
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue;
+      if (value.length === 1) {
+        conditions.push(`${key}:"${value[0]}"`);
+      } else {
+        const valueList = value.map(v => `${key}:"${v}"`).join(" OR ");
+        conditions.push(`(${valueList})`);
+      }
+    } else {
+      conditions.push(`${key}:"${value}"`);
+    }
+  }
+
+  return conditions.join(" AND ");
+};
+
+// 处理过滤器变化
+const handleChange = (value: any) => {
+  if (props.layout === "filter") {
+    let result = value;
+
+    // 根据输出格式转换结果
+    if (props.filterOutputFormat === "array") {
+      result = Array.isArray(value) ? value : [value];
+    } else if (props.filterOutputFormat === "sql") {
+      // 将default格式完整转换为SQL where条件格式字符串
+      result = convertDefaultToSql(value);
+    } else if (props.filterOutputFormat === "lucene") {
+      // 将default格式完整转换为Lucene查询格式字符串
+      result = convertDefaultToLucene(value);
+    } else {
+      // default格式，保持原始格式
+      result = value;
+    }
+
+    emit("update:modelValue", result);
+    emit("change", result);
+  } else {
+    emit("update:modelValue", value);
+    emit("change", value);
+  }
 };
 
 // 全选

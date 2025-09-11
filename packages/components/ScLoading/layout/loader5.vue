@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { defineExpose, ref, defineAsyncComponent, shallowRef } from "vue";
+import { defineExpose, ref } from "vue";
 
 const emit = defineEmits(["update:modelValue"]);
 const props = defineProps({
@@ -160,4 +160,4 @@ defineExpose({
   right: 15%;
   animation-delay: 0.3s;
 }
-</template>
+</style>

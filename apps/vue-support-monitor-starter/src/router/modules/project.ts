@@ -55,10 +55,10 @@ export default [
           },
           {
             path: "/project/ai/face/detect/web",
-            name: "ProjectAiFaceDetectWeb",
+            name: "ProjectAiImageDetectionWeb",
             component: async () => {
-              const { FaceDetectIndex } = await import("@pages/project");
-              return FaceDetectIndex;
+              const { ImageDetectIndex } = await import("@pages/project");
+              return ImageDetectIndex;
             },
             meta: {
               title: "人脸检测",
@@ -119,6 +119,19 @@ export default [
         },
         meta: {
           title: "密钥管理",
+          showLink: false,
+        },
+      },
+
+      {
+        path: "/project/ai/face/detect",
+        name: "ProjectAiImageDetection",
+        component: async () => {
+          const { ImageDetectIndex } = await import("@pages/project");
+          return ImageDetectIndex;
+        },
+        meta: {
+          title: "人脸检测",
           showLink: false,
         },
       },
