@@ -1,169 +1,152 @@
 <template>
   <div class="sc-switch-example" :class="{ 'el-dark': isDarkMode }">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <div class="header-content">
-            <h3>多布局开关组件 (ScSwitch)</h3>
-            <p class="text-secondary">一个支持多种布局风格的开关组件，可自定义样式和行为</p>
+    <div class="example-content">
+      <!-- 左侧预览区域 -->
+      <div class="preview-area">
+        <h4>组件预览</h4>
+        <div class="preview-container" :class="{ dark: isDarkMode }">
+          <div class="preview-item">
+            <ScSwitch
+              v-model="switchValue"
+              :layout="layout"
+              :size="size"
+              :disabled="disabled"
+              :loading="loading"
+              :active-text="activeText"
+              :inactive-text="inactiveText"
+              :active-color="activeColor"
+              :inactive-color="inactiveColor"
+              :active-icon="activeIcon"
+              :inactive-icon="inactiveIcon"
+              @change="handleChange"
+            />
           </div>
-          <div class="theme-switch">
-            <el-tooltip content="切换主题">
-              <el-button circle @click="toggleTheme">
-                <IconifyIconOnline :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'" />
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
-      </template>
 
-      <div class="example-content">
-        <!-- 左侧预览区域 -->
-        <div class="preview-area">
-          <h4>组件预览</h4>
-          <div class="preview-container" :class="{ 'dark': isDarkMode }">
-            <div class="preview-item">
-              <ScSwitch
-                v-model="switchValue"
-                :layout="layout"
-                :size="size"
-                :disabled="disabled"
-                :loading="loading"
-                :active-text="activeText"
-                :inactive-text="inactiveText"
-                :active-color="activeColor"
-                :inactive-color="inactiveColor"
-                :active-icon="activeIcon"
-                :inactive-icon="inactiveIcon"
-                @change="handleChange"
-              />
-            </div>
-
-            <div class="result-display mt-4">
-              <el-alert :title="`当前状态: ${switchValue}`" type="success" :closable="false" />
-            </div>
-          </div>
-          
-          <!-- 布局预览 -->
-          <h4 class="mt-4">布局类型预览</h4>
-          <div class="layout-preview">
-            <div class="layout-item">
-              <p class="layout-title">默认布局</p>
-              <ScSwitch v-model="switchValueDefault" layout="default" active-text="开启" inactive-text="关闭" />
-            </div>
-            <div class="layout-item">
-              <p class="layout-title">卡片布局</p>
-              <ScSwitch v-model="switchValueCard" layout="card" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
-            </div>
-            <div class="layout-item">
-              <p class="layout-title">滑块布局</p>
-              <ScSwitch v-model="switchValueSlider" layout="slider" active-text="开启" inactive-text="关闭" active-icon="ep:check" />
-            </div>
+          <div class="result-display mt-4">
+            <el-alert :title="`当前状态: ${switchValue}`" type="success" :closable="false" />
           </div>
         </div>
 
-        <!-- 右侧配置面板 -->
-        <div class="config-panel">
-          <h4>配置选项</h4>
-          <el-form label-position="top" size="default">
-            <el-form-item label="布局类型">
-              <el-segmented
-                v-model="layout"
-                class="w-100"
-                :options="[
-                  { value: 'default', label: '默认' },
-                  { value: 'card', label: '卡片' },
-                  { value: 'slider', label: '滑块' }
-                ]"
-              />
-            </el-form-item>
-
-            <el-form-item label="组件尺寸">
-              <el-radio-group v-model="size">
-                <el-radio label="small">小</el-radio>
-                <el-radio label="default">默认</el-radio>
-                <el-radio label="large">大</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item label="UI主题">
-              <el-radio-group v-model="isDarkMode">
-                <el-radio :label="false">亮色</el-radio>
-                <el-radio :label="true">暗色</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item label="开关状态">
-              <el-switch v-model="switchValue" />
-            </el-form-item>
-
-            <el-form-item label="禁用状态">
-              <el-switch v-model="disabled" />
-            </el-form-item>
-
-            <el-form-item label="加载状态">
-              <el-switch v-model="loading" />
-            </el-form-item>
-
-            <el-form-item label="开启文本">
-              <el-input v-model="activeText" placeholder="开启时显示的文本" />
-            </el-form-item>
-
-            <el-form-item label="关闭文本">
-              <el-input v-model="inactiveText" placeholder="关闭时显示的文本" />
-            </el-form-item>
-
-            <el-form-item label="开启图标">
-              <el-select v-model="activeIcon" placeholder="选择图标" class="w-100">
-                <el-option label="无图标" value="" />
-                <el-option label="对勾" value="ep:check" />
-                <el-option label="打开" value="ep:open" />
-                <el-option label="灯泡" value="ep:light" />
-                <el-option label="电源" value="ep:turn-off" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="关闭图标">
-              <el-select v-model="inactiveIcon" placeholder="选择图标" class="w-100">
-                <el-option label="无图标" value="" />
-                <el-option label="关闭" value="ep:close" />
-                <el-option label="关机" value="ep:turn-off" />
-                <el-option label="禁止" value="ep:remove" />
-                <el-option label="月亮" value="ep:moon" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="激活颜色">
-              <el-color-picker v-model="activeColor" />
-            </el-form-item>
-
-            <el-form-item label="未激活颜色">
-              <el-color-picker v-model="inactiveColor" />
-            </el-form-item>
-          </el-form>
+        <!-- 布局预览 -->
+        <h4 class="mt-4">布局类型预览</h4>
+        <div class="layout-preview">
+          <div class="layout-item">
+            <p class="layout-title">默认布局</p>
+            <ScSwitch v-model="switchValueDefault" layout="default" active-text="开启" inactive-text="关闭" />
+          </div>
+          <div class="layout-item">
+            <p class="layout-title">卡片布局</p>
+            <ScSwitch v-model="switchValueCard" layout="card" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
+          </div>
+          <div class="layout-item">
+            <p class="layout-title">滑块布局</p>
+            <ScSwitch v-model="switchValueSlider" layout="slider" active-text="开启" inactive-text="关闭" active-icon="ep:check" />
+          </div>
+          <div class="layout-item">
+            <p class="layout-title">现代布局</p>
+            <ScSwitch v-model="switchValueModern" layout="modern" active-text="ON" inactive-text="OFF" active-icon="ep:check" inactive-icon="ep:close" />
+          </div>
         </div>
       </div>
 
-      <!-- 代码示例 -->
-      <div class="code-example mt-4">
-        <h4>代码示例</h4>
-        <el-alert type="info" :closable="false" class="mb-3">
-          <div class="code-desc">根据当前配置生成的代码示例</div>
-        </el-alert>
-        <pre><code class="language-html">{{ codeExample }}</code></pre>
+      <!-- 右侧配置面板 -->
+      <div class="config-panel">
+        <h4>配置选项</h4>
+        <el-form label-position="top" size="default">
+          <el-form-item label="布局类型">
+            <el-segmented
+              v-model="layout"
+              class="w-100"
+              :options="[
+                { value: 'default', label: '默认' },
+                { value: 'card', label: '卡片' },
+                { value: 'slider', label: '滑块' },
+                { value: 'modern', label: '现代' },
+              ]"
+            />
+          </el-form-item>
+
+          <el-form-item label="组件尺寸">
+            <el-radio-group v-model="size">
+              <el-radio label="small">小</el-radio>
+              <el-radio label="default">默认</el-radio>
+              <el-radio label="large">大</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="UI主题">
+            <el-radio-group v-model="isDarkMode">
+              <el-radio :label="false">亮色</el-radio>
+              <el-radio :label="true">暗色</el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="开关状态">
+            <el-switch v-model="switchValue" />
+          </el-form-item>
+
+          <el-form-item label="禁用状态">
+            <el-switch v-model="disabled" />
+          </el-form-item>
+
+          <el-form-item label="加载状态">
+            <el-switch v-model="loading" />
+          </el-form-item>
+
+          <el-form-item label="开启文本">
+            <el-input v-model="activeText" placeholder="开启时显示的文本" />
+          </el-form-item>
+
+          <el-form-item label="关闭文本">
+            <el-input v-model="inactiveText" placeholder="关闭时显示的文本" />
+          </el-form-item>
+
+          <el-form-item label="开启图标">
+            <el-select v-model="activeIcon" placeholder="选择图标" class="w-100">
+              <el-option label="无图标" value="" />
+              <el-option label="对勾" value="ep:check" />
+              <el-option label="打开" value="ep:open" />
+              <el-option label="灯泡" value="ep:light" />
+              <el-option label="电源" value="ep:turn-off" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="关闭图标">
+            <el-select v-model="inactiveIcon" placeholder="选择图标" class="w-100">
+              <el-option label="无图标" value="" />
+              <el-option label="关闭" value="ep:close" />
+              <el-option label="关机" value="ep:turn-off" />
+              <el-option label="禁止" value="ep:remove" />
+              <el-option label="月亮" value="ep:moon" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="激活颜色">
+            <el-color-picker v-model="activeColor" />
+          </el-form-item>
+
+          <el-form-item label="未激活颜色">
+            <el-color-picker v-model="inactiveColor" />
+          </el-form-item>
+        </el-form>
       </div>
-    </el-card>
+    </div>
+
+    <!-- 代码示例 -->
+    <div class="code-example mt-4">
+      <h4>代码示例</h4>
+      <el-alert type="info" :closable="false" class="mb-3">
+        <div class="code-desc">根据当前配置生成的代码示例</div>
+      </el-alert>
+      <pre><code class="language-html">{{ codeExample }}</code></pre>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { ElMessage } from "element-plus";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-
-// 主题设置
-const isDarkMode = ref(false);
+import { ElMessage } from "element-plus";
+import { computed, ref } from "vue";
 
 // 切换主题
 const toggleTheme = () => {
@@ -187,6 +170,7 @@ const switchValue = ref(false);
 const switchValueDefault = ref(true);
 const switchValueCard = ref(true);
 const switchValueSlider = ref(true);
+const switchValueModern = ref(true);
 
 // 处理状态变化
 const handleChange = (value) => {
@@ -201,8 +185,8 @@ const codeExample = computed(() => {
     v-model="value"
     ${layout.value !== "default" ? `layout="${layout.value}"` : ""}
     ${size.value !== "default" ? `size="${size.value}"` : ""}
-    ${disabled.value ? 'disabled' : ""}
-    ${loading.value ? 'loading' : ""}
+    ${disabled.value ? "disabled" : ""}
+    ${loading.value ? "loading" : ""}
     ${activeText.value ? `active-text="${activeText.value}"` : ""}
     ${inactiveText.value ? `inactive-text="${inactiveText.value}"` : ""}
     ${activeIcon.value ? `active-icon="${activeIcon.value}"` : ""}
@@ -388,7 +372,7 @@ code {
   color: #ddd;
 }
 
-.el-dark h3, 
+.el-dark h3,
 .el-dark h4 {
   color: var(--heading-color);
 }
@@ -409,9 +393,9 @@ code {
   .example-content {
     flex-direction: column;
   }
-  
+
   .config-panel {
     width: 100%;
   }
 }
-</style> 
+</style>

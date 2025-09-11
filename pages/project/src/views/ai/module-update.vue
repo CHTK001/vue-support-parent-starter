@@ -22,7 +22,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="vlm模型" prop="sysAiModuleVlm">
+        <el-form-item label="vlm模型" prop="sysAiModuleVlm" v-if="form.sysAiModuleType == 'LLM'">
           <el-segmented
             v-model="form.sysAiModuleVlm"
             :options="[
@@ -31,7 +31,23 @@
             ]"
           ></el-segmented>
         </el-form-item>
-        <el-form-item label="模型地址" prop="sysAiModuleUrl">
+
+        <el-form-item label="本地模型" prop="sysAiModuleLocation">
+          <ScSelect
+            :options="[
+              { label: '本地', value: 1, icon: 'ep:folder' },
+              { label: '远程', value: 0, icon: 'ri:link' },
+            ]"
+            v-model="form.sysAiModuleLocation"
+          ></ScSelect>
+        </el-form-item>
+
+        <el-form-item label="模型地址" prop="sysAiModuleUrl" v-if="form.sysAiModuleLocation == 1">
+          <DirectorySelector v-model="form.sysAiModuleUrl" />
+          <span class="el-form-item-msg">模型的本地地址</span>
+        </el-form-item>
+
+        <el-form-item label="模型地址" prop="sysAiModuleUrl" v-else>
           <el-input v-model="form.sysAiModuleUrl" placeholder="请输入模型地址"></el-input>
         </el-form-item>
 
@@ -57,11 +73,13 @@
 </template>
 <script setup>
 import { debounce } from "@pureadmin/utils";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";
 import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "../../api/manage/project-ai-module";
-
+import DirectorySelector from "./DirectorySelector.vue";
+import { DEFAULT_MODULE_TYPE } from "./hook";
 const emit = defineEmits();
 const rules = {
   sysAiModuleCode: [
@@ -72,34 +90,14 @@ const rules = {
     { required: true, message: "请输入模块名称", trigger: "blur" },
     { min: 2, max: 200, message: "长度在 2 到 200个字符", trigger: "blur" },
   ],
-  sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "blur" }],
-  sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "blur" }],
-  sysAiModuleVlm: [{ required: true, message: "请选择是否vlm模型", trigger: "blur" }],
+  sysAiModuleLocation: [{ required: true, message: "请选择是否本地模型", trigger: "blur" }],
+  sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "change" }],
+  sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "change" }],
+  sysAiModuleVlm: [{ required: true, message: "请选择是否vlm模型", trigger: "change" }],
 };
 const formRef = ref();
 const form = ref({});
-const moduleType = shallowRef([
-  {
-    label: "大语言",
-    value: "LLM",
-  },
-  {
-    label: "文生图",
-    value: "VINCENT",
-  },
-  {
-    label: "文生视频",
-    value: "VIDEO",
-  },
-  {
-    label: "超分辨率",
-    value: "RESOLUTION",
-  },
-  {
-    label: "图像上色",
-    value: "COLORIZATION",
-  },
-]);
+const moduleType = DEFAULT_MODULE_TYPE;
 const env = reactive({
   visible: false,
   mode: "edit",

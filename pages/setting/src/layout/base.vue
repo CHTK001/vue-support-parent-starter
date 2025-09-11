@@ -58,10 +58,36 @@ export default defineComponent({
     setData(data) {
       this.close();
       this.layoutLoading = true;
+      
+      // 数据验证
+      if (!data || !data.group) {
+        console.error('setData: 无效的数据参数', data);
+        this.layoutLoading = false;
+        message('配置数据无效', { type: 'error' });
+        return this;
+      }
+      
       Object.assign(this.form, data);
+      
       fetchSetting(data.group)
         .then((res) => {
-          this.groupList.push(...res?.data?.filter((it) => it.sysSettingGroup === data.group));
+          if (res && res.data) {
+            const filteredData = res.data.filter((it) => it.sysSettingGroup === data.group);
+            this.groupList.push(...filteredData);
+            
+            // 如果没有获取到任何配置项，显示提示
+            if (filteredData.length === 0) {
+              console.warn('未获取到配置项:', data.group);
+              message('该分组暂无配置项', { type: 'warning' });
+            }
+          } else {
+            console.error('fetchSetting返回数据格式异常:', res);
+            message('获取配置失败，数据格式异常', { type: 'error' });
+          }
+        })
+        .catch((error) => {
+          console.error('获取配置失败:', error);
+          message('获取配置失败，请检查网络连接', { type: 'error' });
         })
         .finally(() => {
           this.layoutLoading = false;
@@ -136,7 +162,20 @@ export default defineComponent({
             <el-form label-width="200px" class="h-full thin-scrollbar">
               <el-row :gutter="20" class="h-full">
                 <el-col class="w-2/3" :lg="16" ref="list">
-                  <draggable v-model="groupList" @end="handleChange">
+                  <!-- 加载状态 -->
+                  <div v-if="layoutLoading" class="loading-container">
+                    <el-skeleton :rows="5" animated />
+                  </div>
+                  
+                  <!-- 空状态 -->
+                  <div v-else-if="!layoutLoading && groupList.length === 0" class="empty-container">
+                    <el-empty description="该分组暂无配置项">
+                      <el-button type="primary" @click="close">返回</el-button>
+                    </el-empty>
+                  </div>
+                  
+                  <!-- 配置项列表 -->
+                  <draggable v-else v-model="groupList" @end="handleChange">
                     <template #item="{ element }">
                       <el-form-item :key="$index" :label="element.sysSettingRemark || element.sysSettingName" class="item !cursor-move">
                         <div v-if="element.sysSettingName" class="w-full">
@@ -244,6 +283,20 @@ export default defineComponent({
     background-color: var(--el-fill-color-light);
     box-shadow: var(--el-box-shadow-light);
   }
+}
+
+.loading-container {
+  padding: 20px;
+  min-height: 200px;
+}
+
+.empty-container {
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.el-button) {

@@ -1,329 +1,357 @@
 # Vue Support Parent Starter
 
-一个基于 Vue 3 + Element Plus 的 AI 功能集成平台，提供多种人工智能服务的前端界面。
-
-## 功能特性
-
-### 🎯 核心功能
-- **AI人脸检测模块**: 智能人脸检测与标注
-  - **功能**: 检测图片中的人脸位置和关键点
-  - **接口**:
-    - `POST /api/ai/face/detection` - 人脸检测（同步）
-    - `POST /api/ai/face/feature` - 人脸特征提取
-    - `POST /api/ai/face/recognizer` - 人脸识别
-    - `POST /api/ai/face/compare` - 人脸对比
-  - **特性**:
-    - 全屏图片上传区域
-    - 实时人脸检测与标注
-    - 原图与检测结果对比显示
-    - 支持多种检测模型选择
-
-- **配置组管理模块**: 系统配置分组管理
-  - **功能**: 管理和组织系统各种配置项
-  - **接口**:
-    - `GET /v2/setting/group/list` - 获取配置组列表
-    - `POST /v2/setting/group/saveOrUpdate` - 新增/更新配置组
-    - `POST /v2/setting/group/delete` - 删除配置组
-  - **特性**:
-    - 动态配置组管理
-    - 图标和状态管理
-    - 实时配置更新
-    - 配置组启用/禁用控制
-    - **系统固定配置**: 作为核心功能始终显示，不受远程配置影响
-
-### AI 功能模块
-
-#### 1. 图像上色 (Image Colorization)
-- **路径**: `/ai/colorization`
-- **功能**: 将黑白图片转换为彩色图片
-- **接口**: 
-  - `POST /api/ai/colorization/save` - 提交上色任务
-  - `GET /api/ai/colorization/get` - 查询任务状态
-- **特性**:
-  - 支持多种上色模型选择
-  - 实时任务进度显示
-  - 左右对比展示效果
-  - 支持结果图片下载
-
-#### 2. 人脸检测 (Face Detection) 🆕
-- **路径**: `/ai/face/detect`
-- **功能**: 检测图片中的人脸位置和关键点
-- **接口**:
-  - `POST /api/ai/face/detection` - 人脸检测（同步）
-  - `POST /api/ai/face/feature` - 人脸特征提取
-  - `POST /api/ai/face/recognizer` - 人脸识别
-  - `POST /api/ai/face/compare` - 人脸对比
-- **特性**:
-  - 全屏图片上传区域
-  - 自动人脸边界框绘制
-  - 关键点标注显示
-  - 检测结果统计信息
-  - 原图与检测结果对比展示
-  - 支持检测结果图片下载
-- **检测结果格式**:
-  ```json
-  {
-    "faces": [
-      {
-        "bbox": {
-          "x": 100,
-          "y": 150,
-          "width": 200,
-          "height": 250
-        },
-        "landmarks": [
-          {"x": 120, "y": 180},
-          {"x": 180, "y": 180}
-        ]
-      }
-    ]
-  }
-  ```
-
-### WebRTC 实时通信模块
-
-#### 1. 房间管理
-- **路径**: `/webrtc/room`
-- **功能**: WebRTC 房间的创建、管理和监控
-- **特性**:
-  - 房间列表展示
-  - 创建/加入房间
-  - 房间状态监控
-  - 用户管理
-
-#### 2. 视频通话
-- **路径**: `/webrtc/video-call`
-- **功能**: 一对一视频通话
-- **特性**:
-  - 实时音视频通话
-  - 摄像头/麦克风控制
-  - 通话质量监控
-
-#### 3. 视频会议
-- **路径**: `/webrtc/video-conference`
-- **功能**: 多人视频会议
-- **特性**:
-  - 多人同时通话
-  - 屏幕共享
-  - 会议控制面板
-
-#### 4. 房间统计
-- **路径**: `/webrtc/statistics`
-- **功能**: 房间使用情况统计
-- **特性**:
-  - 实时数据监控
-  - 历史数据分析
-  - 性能指标展示
-
-## 技术栈
-
-- **前端框架**: Vue 3 + Composition API
-- **UI 组件库**: Element Plus
-- **构建工具**: Vite
-- **状态管理**: Pinia
-- **路由管理**: Vue Router
-- **HTTP 客户端**: Axios
-- **实时通信**: Socket.IO Client
-- **WebRTC**: 原生 WebRTC API
-- **样式**: SCSS
+一个基于Vue 3 + TypeScript的企业级前端项目模板，包含多个子应用和共享组件库。
 
 ## 项目结构
 
 ```
 vue-support-parent-starter/
-├── pages/project/src/
-│   ├── views/ai/                    # AI 功能页面
-│   │   ├── colorization/           # 图像上色
-│   │   │   └── index.vue
-│   │   ├── face/                   # 人脸相关功能
-│   │   │   └── detect/             # 人脸检测
-│   │   │       └── index.vue
-│   │   └── generation/             # 图像生成
-│   ├── views/webrtc/               # WebRTC 功能页面
-│   │   ├── room/                   # 房间管理
-│   │   ├── video-call/             # 视频通话
-│   │   ├── video-conference/       # 视频会议
-│   │   └── statistics/             # 统计页面
-│   ├── api/ai/                     # AI 相关接口
-│   │   ├── face.ts                 # 人脸检测接口
-│   │   └── image-colorization.ts   # 图像上色接口
-│   ├── api/webrtc/                 # WebRTC 相关接口
-│   └── components/                 # 公共组件
-│       ├── ScCompare/              # 图片对比组件
-│       └── ScLoading/              # 加载组件
+├── apps/                          # 应用目录
+│   ├── vue-support-monitor-starter/  # 监控应用
+│   └── ...
+├── back/                          # 后端相关
+├── docs/                          # 文档
+├── layout/                        # 布局组件
+├── packages/                      # 共享包
+│   ├── components/               # 共享组件库
+│   │   ├── ScSearch/            # 搜索组件
+│   │   └── ...
+│   └── ...
+├── pages/                         # 页面模块
+│   ├── holiday/                  # 节假日模块
+│   └── ...
 └── README.md
 ```
 
+## 特性
+
+- 🚀 **Vue 3 + TypeScript**: 使用最新的Vue 3 Composition API和TypeScript
+- 📦 **Monorepo**: 使用monorepo架构管理多个应用和包
+- 🎨 **Element Plus**: 基于Element Plus UI组件库
+- 🔧 **共享组件**: 提供丰富的共享组件库
+- 📱 **响应式设计**: 完美适配移动端和桌面端
+- 🌐 **国际化**: 支持多语言
+- 🔒 **权限控制**: 完整的权限管理系统
+
 ## 快速开始
+
+### 环境要求
+
+- Node.js >= 16.0.0
+- npm >= 7.0.0 或 yarn >= 1.22.0
 
 ### 安装依赖
 
 ```bash
 npm install
+# 或
+yarn install
 ```
 
 ### 启动开发服务器
 
 ```bash
 npm run dev
+# 或
+yarn dev
 ```
 
 ### 构建生产版本
 
 ```bash
 npm run build
+# 或
+yarn build
 ```
 
-## API 接口说明
+## 组件库
 
-### 人脸检测接口
+### ScSearch 搜索组件
 
-#### 人脸检测 API
+一个功能强大、高度可定制的Vue 3搜索表单组件。
 
-```typescript
-// 人脸检测（同步接口）
-fetchFaceDetection(params: FaceRequest, file: File)
+#### 特性
 
-// 人脸特征提取
-fetchFaceFeature(params: FaceRequest, file: File)
+- 🚀 **Vue 3 + TypeScript**: 使用Composition API重构，提供完整的类型支持
+- 🎨 **多种控件类型**: 支持输入框、选择器、日期选择器、时间选择器、级联选择器、开关等
+- ⚡ **性能优化**: 内置防抖搜索、响应式布局优化
+- 🔧 **高度可定制**: 支持自定义验证规则、样式配置
+- 📱 **响应式设计**: 完美适配移动端和桌面端
+- ♿ **无障碍访问**: 支持键盘导航和屏幕阅读器
 
-// 人脸识别
-fetchFaceRecognizer(params: FaceRequest, file: File)
-
-// 人脸对比
-fetchFaceCompare(params: FaceRequest, file: File, file2: File)
-
-// 请求参数接口
-interface FaceRequest {
-  requestId: string;  // 请求ID
-  model: string;      // 模型名称
-  provider: string;   // 服务提供商
-}
-
-// 检测结果接口
-interface FaceDetectionResult {
-  faces: Array<{
-    bbox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-    landmarks?: Array<{
-      x: number;
-      y: number;
-    }>;
-    confidence?: number;
-  }>;
-}
-```
-
-## 组件使用说明
-
-### ScCompare 图片对比组件
-
-用于展示原图与处理结果的对比效果。
+#### 基础用法
 
 ```vue
-<ScCompare 
-  left-image-label="原图" 
-  :left-image="originalImage" 
-  :right-image="processedImage" 
-  right-image-label="处理结果" 
-  transition="fade"
-/>
+<template>
+  <ScSearch
+    :columns="searchColumns"
+    :model-value="searchForm"
+    @update:model-value="handleFormChange"
+    @search="handleSearch"
+    @reset="handleReset"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import ScSearch, { type SearchFormItem } from '@repo/components/ScSearch'
+
+const searchForm = ref({
+  name: '',
+  status: '',
+  dateRange: []
+})
+
+const searchColumns: SearchFormItem[] = [
+  {
+    prop: 'name',
+    label: '用户名',
+    type: 'input',
+    placeholder: '请输入用户名',
+    clearable: true
+  },
+  {
+    prop: 'status',
+    label: '状态',
+    type: 'select',
+    placeholder: '请选择状态',
+    clearable: true,
+    children: [
+      { label: '启用', value: 1 },
+      { label: '禁用', value: 0 }
+    ]
+  },
+  {
+    prop: 'dateRange',
+    label: '创建时间',
+    type: 'daterange',
+    placeholder: '请选择时间范围',
+    clearable: true,
+    valueFormat: 'YYYY-MM-DD'
+  }
+]
+
+const handleFormChange = (form: Record<string, any>) => {
+  searchForm.value = form
+}
+
+const handleSearch = (form: Record<string, any>) => {
+  console.log('搜索参数:', form)
+}
+
+const handleReset = (form: Record<string, any>) => {
+  console.log('重置后的表单:', form)
+}
+</script>
 ```
 
-**Props:**
-- `left-image`: 左侧图片 URL
-- `right-image`: 右侧图片 URL  
-- `left-image-label`: 左侧图片标签
-- `right-image-label`: 右侧图片标签
-- `transition`: 过渡动画效果
+#### 支持的表单控件类型
 
-### ScLoading 加载组件
+- `input` - 输入框
+- `textarea` - 文本域
+- `select` - 下拉选择器
+- `datepicker` - 日期选择器
+- `daterange` - 日期范围选择器
+- `time` - 时间选择器
+- `timerange` - 时间范围选择器
+- `radio` - 单选按钮组
+- `checkbox` - 复选框组
+- `number` - 数字输入框
+- `segmented` - 分段控制器
+- `switch` - 开关
+- `cascader` - 级联选择器
 
-用于显示任务处理进度。
+详细文档请查看: [ScSearch组件文档](./packages/components/ScSearch/README.md)
+
+### ScSwitch 开关组件
+
+一个功能丰富、样式多样的Vue 3开关组件。
+
+#### 特性
+
+- 🎨 **多种布局**: 支持 `default`、`card`、`slider`、`modern` 四种布局样式
+- 🚀 **Vue 3 + TypeScript**: 使用Composition API，提供完整的类型支持
+- 🎯 **高度可定制**: 支持自定义颜色、图标、文本、尺寸等
+- ⚡ **流畅动画**: 内置平滑过渡动画和视觉反馈
+- 📱 **响应式设计**: 完美适配各种屏幕尺寸
+- ♿ **无障碍访问**: 支持键盘操作和屏幕阅读器
+
+#### 基础用法
 
 ```vue
-<ScLoading 
-  ref="scLoadingRef" 
-  v-model="loadingConfig.export" 
-  transition="fade"
-/>
+<template>
+  <!-- 默认布局 -->
+  <ScSwitch v-model="switchValue" />
+  
+  <!-- 卡片布局 -->
+  <ScSwitch 
+    v-model="switchValue" 
+    layout="card" 
+    active-text="开启" 
+    inactive-text="关闭" 
+  />
+  
+  <!-- 滑块布局 -->
+  <ScSwitch 
+    v-model="switchValue" 
+    layout="slider" 
+    active-icon="ep:check" 
+    inactive-icon="ep:close" 
+  />
+  
+  <!-- 现代布局 -->
+  <ScSwitch 
+    v-model="switchValue" 
+    layout="modern" 
+    active-text="ON" 
+    inactive-text="OFF" 
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import ScSwitch from '@repo/components/ScSwitch'
+
+const switchValue = ref(false)
+</script>
 ```
 
-## 开发规范
+#### 布局样式
+
+- **default**: 基于Element Plus的默认开关样式
+- **card**: 卡片式布局，适合表单场景
+- **slider**: 滑块式布局，提供更丰富的视觉效果
+- **modern**: 现代化布局，具有渐变背景和阴影效果
+
+#### 主要属性
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| modelValue | boolean | false | 开关状态 |
+| layout | string | 'default' | 布局类型：default/card/slider/modern |
+| size | string | 'default' | 尺寸：small/default/large |
+| disabled | boolean | false | 是否禁用 |
+| loading | boolean | false | 是否加载中 |
+| activeText | string | - | 开启时的文字描述 |
+| inactiveText | string | - | 关闭时的文字描述 |
+| activeIcon | string | - | 开启时的图标 |
+| inactiveIcon | string | - | 关闭时的图标 |
+| activeColor | string | - | 开启时的背景色 |
+| inactiveColor | string | - | 关闭时的背景色 |
+
+详细文档请查看: [ScSwitch组件文档](./packages/components/ScSwitch/README.md)
+
+## 页面模块
+
+### Holiday 节假日模块
+
+提供节假日数据管理和展示功能。
+
+#### 特性
+
+- 📅 **日历展示**: 基于Element Plus Calendar组件
+- 🔄 **数据同步**: 支持节假日数据同步
+- 📱 **响应式设计**: 完美适配各种屏幕尺寸
+- 🎨 **自定义样式**: 支持自定义节假日样式
+
+#### 访问路径
+
+```
+/holiday/index
+```
+
+## 应用
+
+### Vue Support Monitor Starter
+
+监控应用，提供系统监控和WebRTC统计功能。
+
+#### 特性
+
+- 📊 **系统监控**: 实时系统状态监控
+- 📈 **WebRTC统计**: WebRTC连接和性能统计
+- 📋 **房间管理**: WebRTC房间管理功能
+- 🔧 **配置管理**: 系统配置管理
+
+## 开发指南
 
 ### 代码规范
 
-1. **Java 代码**:
-   - 遵循阿里巴巴 Java 开发手册
-   - 使用 Lombok 简化代码
-   - 添加完整的方法注释
-   - 重要代码添加日志记录
+1. **Java代码规范**:
+   - 遵循阿里代码规范
+   - 使用Lombok代替Getter/Setter和构造方法
+   - 添加完整的注释(作者[CH]、创建时间、版本)
+   - 方法需要入参、出参说明和方法说明
+   - 重要代码需要添加日志和debug日志
+   - SQL语句必须在XML文件中，不允许出现在Java文件中
 
-2. **前端代码**:
-   - 使用 Vue 3 Composition API
-   - 组件命名采用 PascalCase
-   - 方法命名采用 camelCase
-   - 添加 TypeScript 类型定义
+2. **前端代码规范**:
+   - 使用TypeScript进行类型检查
+   - 遵循Vue 3 Composition API最佳实践
+   - 组件需要添加完整的类型定义
+   - 重要功能需要添加注释
+
+### 文档要求
+
+修改/新增功能都要完善项目中的文档(README.MD, CHANGELOG.MD)，必须能够让前端模块能够清晰的了解到新增的功能、接口、参数、说明(包括接口说明,字段说明等)。
 
 ### 提交规范
 
-- feat: 新功能
-- fix: 修复问题
-- docs: 文档更新
-- style: 代码格式调整
-- refactor: 代码重构
-- test: 测试相关
-- chore: 构建过程或辅助工具的变动
+使用约定式提交规范:
+
+- `feat`: 新功能
+- `fix`: 修复bug
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 代码重构
+- `test`: 测试相关
+- `chore`: 构建过程或辅助工具的变动
 
 ## 更新日志
 
-### v1.1.0 (2024-01-15)
+### v2.0.0 (2025-01-17)
 
-#### 新增功能
-- ✨ 新增人脸检测功能模块
-- ✨ 实现全屏图片上传界面
-- ✨ 支持人脸边界框和关键点绘制
-- ✨ 添加检测结果统计信息显示
-- ✨ 集成 ScCompare 组件进行结果对比
-- ✨ 支持检测结果图片下载
+#### ScSearch组件重大更新
 
-#### 接口更新
-- 🔧 新增 `/api/ai/face/detection` 人脸检测同步接口
-- 🔧 新增 `/api/ai/face/feature` 人脸特征提取接口
-- 🔧 新增 `/api/ai/face/recognizer` 人脸识别接口
-- 🔧 新增 `/api/ai/face/compare` 人脸对比接口
+- 🚀 **重大更新**: 从Options API重构为Composition API + TypeScript
+- ✨ **新增功能**:
+  - 支持时间选择器和时间范围选择器
+  - 支持级联选择器
+  - 支持开关控件
+  - 支持复选框组
+  - 添加防抖搜索功能
+  - 添加表单验证支持
+  - 添加v-model支持
+  - 暴露组件方法供外部调用
+- 🎨 **界面优化**:
+  - 改进响应式布局
+  - 优化移动端适配
+  - 增强无障碍访问支持
+- 🐛 **问题修复**:
+  - 修复表单重置问题
+  - 修复展开/收起状态管理
+  - 修复图标显示问题
 
-#### 技术改进
-- 🎨 优化图片上传和处理流程
-- 🎨 改进接口为同步调用，提升用户体验
-- 🎨 增强错误处理和用户提示
-- 🎨 新增多种人脸相关功能支持
+#### WebRTC监控模块
 
-### v1.0.0 (2024-01-01)
+- ✨ **新增功能**: 添加getRoomHistory函数，支持房间历史数据查询
+- 🐛 **问题修复**: 修复API导入路径问题
 
-#### 基础功能
-- ✨ 实现图像上色功能
-- ✨ 集成 WebRTC 实时通信模块
-- ✨ 建立基础项目架构
+#### Holiday节假日模块
+
+- ✨ **新增功能**: 完整的节假日模块实现
+- 📅 **日历组件**: 基于Element Plus Calendar的节假日展示
+- 🔄 **数据同步**: 支持节假日数据同步功能
+- 🎨 **响应式设计**: 完美适配各种设备
 
 ## 许可证
 
 MIT License
 
-## 贡献指南
+## 贡献
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
+欢迎提交Issue和Pull Request来帮助改进这个项目。
 
 ## 联系方式
 
-- 作者: [CH]
-- 邮箱: [your-email@example.com]
-- 项目地址: [https://github.com/your-username/vue-support-parent-starter]
+如有问题，请联系开发团队。

@@ -233,6 +233,31 @@ export const exportStatisticsReport = (type: 'system' | 'rooms' | 'users', param
 };
 
 /**
+ * 获取房间历史数据
+ * @param roomId 房间ID
+ * @param params 时间范围参数
+ * @returns 房间历史数据
+ */
+export const getRoomHistory = (roomId: string, params?: StatisticsTimeRangeParams) => {
+  return http.request<{
+    roomId: string;
+    roomName: string;
+    history: {
+      timestamp: string;
+      userCount: number;
+      duration: number;
+      events: {
+        type: 'user_joined' | 'user_left' | 'room_created' | 'room_closed';
+        timestamp: string;
+        userId?: string;
+        username?: string;
+        description: string;
+      }[];
+    }[];
+  }>('get', `/webrtc/statistics/rooms/${roomId}/history`, { params });
+};
+
+/**
  * 获取实时监控数据
  * @returns 实时监控数据
  */

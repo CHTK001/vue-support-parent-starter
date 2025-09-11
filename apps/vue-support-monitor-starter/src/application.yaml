@@ -23,11 +23,5 @@ OpenTenantLogin: false
 OpenBaseLogin: false
 #是否开启刷新token
 OpenShowRefreshToken: true
-#是否开启邮箱设置
-OpenSettingEmail: true
-#是否开启短信设置
-OpenSettingSms: true
-#是否开启LLM设置
-OpenSettingLlm: true
 #是否开启缓存加密
 StorageEncode: false

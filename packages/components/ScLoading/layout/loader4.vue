@@ -1,3 +1,79 @@
+<template>
+  <div class="h-full w-full" :style="{ '--loading-border-radius': props.borderRadius + 'px' }">
+    <div class="shadow-text">
+      <div class="text-center inline-block text-white text-14px w-full h-full">
+        <div class="relative w-full flex flex-col items-center justify-center h-full">
+          <div class="w-full rounded-2.5 flex items-center justify-center">
+            <div data-v-a4c4d738="" class="w-full flex justify-center items-center text-white">
+              <!-- From Uiverse.io by rust_1966 -->
+              <div
+                class="progress-container"
+                :style="{
+                  '--current-step': _step + '%'
+                }"
+              >
+                <div class="progress-bar" />
+                <div v-if="props.showNumber" class="progress-text">{{ _step }} %</div>
+                <div class="particles">
+                  <div class="particle" />
+                  <div class="particle" />
+                  <div class="particle" />
+                  <div class="particle" />
+                  <div class="particle" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-if="props.showLoading" class="mt-4 text-sm text-white font-bold">
+            {{ props.showLoadingLabel }}
+          </p>
+          <!---->
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineExpose, ref } from "vue";
+
+const emit = defineEmits(["update:modelValue"]);
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+  layout: { type: String, default: "default" },
+  showNumber: { type: Boolean, default: false },
+  showLoading: { type: Boolean, default: false },
+  showLoadingLabel: { type: String, default: "加载中..." },
+  borderRadius: { type: Number, default: 10 }
+});
+
+const _step = ref(0);
+
+/**
+ * 步长
+ * @param {number} value
+ */
+const stepTo = value => {
+  const animate = () => {
+    if (_step.value < value) {
+      _step.value++;
+      requestAnimationFrame(animate);
+    }
+  };
+  requestAnimationFrame(animate);
+};
+
+/**
+ * 重置
+ */
+const reset = async () => {
+  _step.value = 0;
+};
+defineExpose({
+  stepTo,
+  reset
+});
+</script>
 <style scoped>
 /* From Uiverse.io by rust_1966 */
 .progress-container {
@@ -135,79 +211,3 @@
   animation-delay: 2.5s;
 }
 </style>
-
-<template>
-  <div class="h-full w-full" :style="{ '--loading-border-radius': props.borderRadius + 'px' }">
-    <div class="shadow-text">
-      <div class="text-center inline-block text-white text-14px w-full h-full">
-        <div class="relative w-full flex flex-col items-center justify-center h-full">
-          <div class="w-full rounded-2.5 flex items-center justify-center">
-            <div data-v-a4c4d738="" class="w-full flex justify-center items-center text-white">
-              <!-- From Uiverse.io by rust_1966 -->
-              <div
-                class="progress-container"
-                :style="{
-                  '--current-step': _step + '%'
-                }"
-              >
-                <div class="progress-bar"></div>
-                <div class="progress-text" v-if="props.showNumber">{{ _step }} %</div>
-                <div class="particles">
-                  <div class="particle"></div>
-                  <div class="particle"></div>
-                  <div class="particle"></div>
-                  <div class="particle"></div>
-                  <div class="particle"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="mt-4 text-sm text-white font-bold" v-if="props.showLoading">
-            {{ props.showLoadingLabel }}
-          </p>
-          <!---->
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-<script setup>
-import { defineExpose, ref, defineAsyncComponent, shallowRef } from "vue";
-
-const emit = defineEmits(["update:modelValue"]);
-const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  layout: { type: String, default: "default" },
-  showNumber: { type: Boolean, default: false },
-  showLoading: { type: Boolean, default: false },
-  showLoadingLabel: { type: String, default: "加载中..." },
-  borderRadius: { type: Number, default: 10 }
-});
-
-const _step = ref(0);
-
-/**
- * 步长
- * @param {number} value
- */
-const stepTo = value => {
-  const animate = () => {
-    if (_step.value < value) {
-      _step.value++;
-      requestAnimationFrame(animate);
-    }
-  };
-  requestAnimationFrame(animate);
-};
-
-/**
- * 重置
- */
-const reset = async () => {
-  _step.value = 0;
-};
-defineExpose({
-  stepTo,
-  reset
-});
-</script>

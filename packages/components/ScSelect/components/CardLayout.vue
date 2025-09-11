@@ -20,7 +20,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits } from "vue";
 import IconRenderer from "./IconRenderer.vue";
 
 const props = defineProps({

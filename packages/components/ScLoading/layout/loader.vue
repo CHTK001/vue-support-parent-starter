@@ -1,3 +1,176 @@
+<template>
+  <div class="h-full w-full" :style="{ '--loading-border-radius': props.borderRadius + 'px' }">
+    <div class="shadow-text">
+      <div class="text-center inline-block text-white text-14px w-full h-full">
+        <div class="relative flex flex-col items-center justify-center h-full">
+          <div class="rounded-2.5 flex items-center justify-center">
+            <div data-v-a4c4d738="" class="relative flex justify-between items-center text-white">
+              <div class="scene">
+                <div class="forest">
+                  <div class="tree tree1">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                  </div>
+
+                  <div class="tree tree2">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+
+                  <div class="tree tree3">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+
+                  <div class="tree tree4">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+
+                  <div class="tree tree5">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+
+                  <div class="tree tree6">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+
+                  <div class="tree tree7">
+                    <div class="branch branch-top" />
+                    <div class="branch branch-middle" />
+                    <div class="branch branch-bottom" />
+                  </div>
+                </div>
+
+                <div class="tent">
+                  <div class="roof" />
+                  <div class="roof-border-left">
+                    <div class="roof-border roof-border1" />
+                    <div class="roof-border roof-border2" />
+                    <div class="roof-border roof-border3" />
+                  </div>
+                  <div class="entrance">
+                    <div class="door left-door">
+                      <div class="left-door-inner" />
+                    </div>
+                    <div class="door right-door">
+                      <div class="right-door-inner" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="floor">
+                  <div class="ground ground1" />
+                  <div class="ground ground2" />
+                </div>
+
+                <div class="fireplace">
+                  <div class="support" />
+                  <div class="support" />
+                  <div class="bar" />
+                  <div class="hanger" />
+                  <div class="smoke" />
+                  <div class="pan" />
+                  <div class="fire">
+                    <div class="line line1">
+                      <div class="particle particle1" />
+                      <div class="particle particle2" />
+                      <div class="particle particle3" />
+                      <div class="particle particle4" />
+                    </div>
+                    <div class="line line2">
+                      <div class="particle particle1" />
+                      <div class="particle particle2" />
+                      <div class="particle particle3" />
+                      <div class="particle particle4" />
+                    </div>
+                    <div class="line line3">
+                      <div class="particle particle1" />
+                      <div class="particle particle2" />
+                      <div class="particle particle3" />
+                      <div class="particle particle4" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="time-wrapper">
+                  <div class="time">
+                    <div class="day" />
+                    <div class="night">
+                      <div class="moon" />
+                      <div class="star star1 star-big" />
+                      <div class="star star2 star-big" />
+                      <div class="star star3 star-big" />
+                      <div class="star star4" />
+                      <div class="star star5" />
+                      <div class="star star6" />
+                      <div class="star star7" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-if="props.showNumber" class="mt-4 xl:text-lg text-base text-white font-bold">
+            {{ _step }}
+            <span class="text-sm">%</span>
+          </p>
+          <p v-if="props.showLoading" class="mt-4 text-sm text-white font-bold">
+            {{ props.showLoadingLabel }}
+          </p>
+          <!---->
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineExpose, ref } from "vue";
+
+const emit = defineEmits(["update:modelValue"]);
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+  layout: { type: String, default: "default" },
+  showNumber: { type: Boolean, default: false },
+  showLoading: { type: Boolean, default: false },
+  showLoadingLabel: { type: String, default: "加载中..." },
+  borderRadius: { type: Number, default: 10 }
+});
+
+const _step = ref(0);
+/**
+ * 步长
+ * @param {number} value
+ */
+const stepTo = value => {
+  const animate = () => {
+    if (_step.value < value) {
+      _step.value++;
+      requestAnimationFrame(animate);
+    }
+  };
+  requestAnimationFrame(animate);
+};
+
+/**
+ * 重置
+ */
+const reset = async () => {
+  _step.value = 0;
+};
+defineExpose({
+  stepTo,
+  reset
+});
+</script>
 <style scoped>
 /* From Uiverse.io by Admin12121 */
 @keyframes stageBackground {
@@ -845,176 +1018,3 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 </style>
-
-<template>
-  <div class="h-full w-full" :style="{ '--loading-border-radius': props.borderRadius + 'px' }">
-    <div class="shadow-text">
-      <div class="text-center inline-block text-white text-14px w-full h-full">
-        <div class="relative flex flex-col items-center justify-center h-full">
-          <div class="rounded-2.5 flex items-center justify-center">
-            <div data-v-a4c4d738="" class="relative flex justify-between items-center text-white">
-              <div class="scene">
-                <div class="forest">
-                  <div class="tree tree1">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                  </div>
-
-                  <div class="tree tree2">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-
-                  <div class="tree tree3">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-
-                  <div class="tree tree4">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-
-                  <div class="tree tree5">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-
-                  <div class="tree tree6">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-
-                  <div class="tree tree7">
-                    <div class="branch branch-top"></div>
-                    <div class="branch branch-middle"></div>
-                    <div class="branch branch-bottom"></div>
-                  </div>
-                </div>
-
-                <div class="tent">
-                  <div class="roof"></div>
-                  <div class="roof-border-left">
-                    <div class="roof-border roof-border1"></div>
-                    <div class="roof-border roof-border2"></div>
-                    <div class="roof-border roof-border3"></div>
-                  </div>
-                  <div class="entrance">
-                    <div class="door left-door">
-                      <div class="left-door-inner"></div>
-                    </div>
-                    <div class="door right-door">
-                      <div class="right-door-inner"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="floor">
-                  <div class="ground ground1"></div>
-                  <div class="ground ground2"></div>
-                </div>
-
-                <div class="fireplace">
-                  <div class="support"></div>
-                  <div class="support"></div>
-                  <div class="bar"></div>
-                  <div class="hanger"></div>
-                  <div class="smoke"></div>
-                  <div class="pan"></div>
-                  <div class="fire">
-                    <div class="line line1">
-                      <div class="particle particle1"></div>
-                      <div class="particle particle2"></div>
-                      <div class="particle particle3"></div>
-                      <div class="particle particle4"></div>
-                    </div>
-                    <div class="line line2">
-                      <div class="particle particle1"></div>
-                      <div class="particle particle2"></div>
-                      <div class="particle particle3"></div>
-                      <div class="particle particle4"></div>
-                    </div>
-                    <div class="line line3">
-                      <div class="particle particle1"></div>
-                      <div class="particle particle2"></div>
-                      <div class="particle particle3"></div>
-                      <div class="particle particle4"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="time-wrapper">
-                  <div class="time">
-                    <div class="day"></div>
-                    <div class="night">
-                      <div class="moon"></div>
-                      <div class="star star1 star-big"></div>
-                      <div class="star star2 star-big"></div>
-                      <div class="star star3 star-big"></div>
-                      <div class="star star4"></div>
-                      <div class="star star5"></div>
-                      <div class="star star6"></div>
-                      <div class="star star7"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="mt-4 xl:text-lg text-base text-white font-bold" v-if="props.showNumber">
-            {{ _step }}
-            <span class="text-sm">%</span>
-          </p>
-          <p class="mt-4 text-sm text-white font-bold" v-if="props.showLoading">
-            {{ props.showLoadingLabel }}
-          </p>
-          <!---->
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-<script setup>
-import { defineExpose, ref, defineAsyncComponent, shallowRef } from "vue";
-
-const emit = defineEmits(["update:modelValue"]);
-const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  layout: { type: String, default: "default" },
-  showNumber: { type: Boolean, default: false },
-  showLoading: { type: Boolean, default: false },
-  showLoadingLabel: { type: String, default: "加载中..." },
-  borderRadius: { type: Number, default: 10 }
-});
-
-const _step = ref(0);
-/**
- * 步长
- * @param {number} value
- */
-const stepTo = value => {
-  const animate = () => {
-    if (_step.value < value) {
-      _step.value++;
-      requestAnimationFrame(animate);
-    }
-  };
-  requestAnimationFrame(animate);
-};
-
-/**
- * 重置
- */
-const reset = async () => {
-  _step.value = 0;
-};
-defineExpose({
-  stepTo,
-  reset
-});
-</script>

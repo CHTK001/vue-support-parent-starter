@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { defineExpose, ref, defineAsyncComponent, shallowRef } from "vue";
+import { defineExpose, ref } from "vue";
 
 const emit = defineEmits(["update:modelValue"]);
 const props = defineProps({
@@ -288,4 +288,4 @@ defineExpose({
     transform: translate(100px, 100px) rotate(112deg);
   }
 }
-</template>
+</style>

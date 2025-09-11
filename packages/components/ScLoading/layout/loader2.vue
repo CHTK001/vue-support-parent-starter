@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { defineExpose,  ref, defineAsyncComponent, shallowRef } from "vue";
+import { defineExpose, ref } from "vue";
 
 const emit = defineEmits(["update:modelValue"]);
 const props = defineProps({
@@ -362,4 +362,4 @@ defineExpose({
     opacity: 1;
   }
 }
-</template>
+</style>

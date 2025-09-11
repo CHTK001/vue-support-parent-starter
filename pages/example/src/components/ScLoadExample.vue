@@ -1,143 +1,134 @@
 <template>
   <div class="load-example">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <h3>加载组件 (ScLoading)</h3>
-          <p class="text-secondary">一个灵活、高度可定制的加载组件，支持多种布局和进度显示</p>
-        </div>
-      </template>
+    <!-- 预览区域 -->
+    <div class="preview-area">
+      <h4>组件预览</h4>
+      <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
+        <el-button class="close-preview-btn" type="danger" circle size="small" @click="closeLoading" v-if="loadingVisible">
+          <IconifyIconOnline icon="ep:close" />
+        </el-button>
 
-      <!-- 预览区域 -->
-      <div class="preview-area">
-        <h4>组件预览</h4>
-        <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
-          <el-button class="close-preview-btn" type="danger" circle size="small" @click="closeLoading" v-if="loadingVisible">
-            <IconifyIconOnline icon="ep:close" />
-          </el-button>
+        <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen" v-if="loadingVisible">
+          <IconifyIconOnline :icon="isFullscreen ? 'ep:close-bold' : 'ep:full-screen'" />
+        </el-button>
 
-          <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen" v-if="loadingVisible">
-            <IconifyIconOnline :icon="isFullscreen ? 'ep:close-bold' : 'ep:full-screen'" />
-          </el-button>
-
-          <div class="loading-area">
-            <ScLoading ref="loadingRef" v-model="loadingVisible" :layout="selectedLayout" :show-number="showNumber" :show-loading="showLoadingText" :show-loading-label="loadingLabel" :auto-close-finished="autoCloseFinished" :border-radius="borderRadius" :style="customLoadingStyle" />
-          </div>
+        <div class="loading-area">
+          <ScLoading ref="loadingRef" v-model="loadingVisible" :layout="selectedLayout" :show-number="showNumber" :show-loading="showLoadingText" :show-loading-label="loadingLabel" :auto-close-finished="autoCloseFinished" :border-radius="borderRadius" :style="customLoadingStyle" />
         </div>
       </div>
+    </div>
 
-      <!-- 配置面板 -->
-      <div class="config-panel mt-4">
-        <h4>配置选项</h4>
+    <!-- 配置面板 -->
+    <div class="config-panel mt-4">
+      <h4>配置选项</h4>
+      <el-row :gutter="20">
+        <!-- 布局和显示选项 -->
+        <el-col :xs="24" :sm="12">
+          <el-form label-position="top" size="default">
+            <el-form-item label="布局类型">
+              <el-select v-model="selectedLayout" class="w-100">
+                <el-option v-for="layout in layouts" :key="layout.value" :label="layout.label" :value="layout.value" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="显示选项">
+              <div class="display-options">
+                <el-switch v-model="showNumber" active-text="显示进度数字" />
+                <el-switch v-model="showLoadingText" active-text="显示加载文本" />
+                <el-switch v-model="autoCloseFinished" active-text="完成自动关闭" />
+              </div>
+            </el-form-item>
+
+            <el-form-item label="加载文本" v-if="showLoadingText">
+              <el-input v-model="loadingLabel" placeholder="请输入加载提示文本" />
+            </el-form-item>
+          </el-form>
+        </el-col>
+
+        <!-- 样式选项 -->
+        <el-col :xs="24" :sm="12">
+          <el-form label-position="top" size="default">
+            <el-form-item label="背景颜色">
+              <el-color-picker v-model="customBgColor" show-alpha class="w-100" />
+            </el-form-item>
+
+            <el-form-item label="进度条颜色">
+              <el-color-picker v-model="customColor" class="w-100" />
+            </el-form-item>
+
+            <el-form-item label="圆角大小">
+              <el-slider v-model="borderRadius" :min="0" :max="20" :step="1" show-stops />
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+
+      <!-- 进度控制 -->
+      <div class="progress-control mt-4">
+        <h4>进度控制</h4>
         <el-row :gutter="20">
-          <!-- 布局和显示选项 -->
-          <el-col :xs="24" :sm="12">
-            <el-form label-position="top" size="default">
-              <el-form-item label="布局类型">
-                <el-select v-model="selectedLayout" class="w-100">
-                  <el-option v-for="layout in layouts" :key="layout.value" :label="layout.label" :value="layout.value" />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="显示选项">
-                <div class="display-options">
-                  <el-switch v-model="showNumber" active-text="显示进度数字" />
-                  <el-switch v-model="showLoadingText" active-text="显示加载文本" />
-                  <el-switch v-model="autoCloseFinished" active-text="完成自动关闭" />
-                </div>
-              </el-form-item>
-
-              <el-form-item label="加载文本" v-if="showLoadingText">
-                <el-input v-model="loadingLabel" placeholder="请输入加载提示文本" />
-              </el-form-item>
-            </el-form>
+          <el-col :span="16">
+            <el-slider v-model="progress" :min="0" :max="100" :step="1" :show-tooltip="true" :format-tooltip="(value) => `${value}%`" @change="handleProgressChange" />
           </el-col>
-
-          <!-- 样式选项 -->
-          <el-col :xs="24" :sm="12">
-            <el-form label-position="top" size="default">
-              <el-form-item label="背景颜色">
-                <el-color-picker v-model="customBgColor" show-alpha class="w-100" />
-              </el-form-item>
-
-              <el-form-item label="进度条颜色">
-                <el-color-picker v-model="customColor" class="w-100" />
-              </el-form-item>
-
-              <el-form-item label="圆角大小">
-                <el-slider v-model="borderRadius" :min="0" :max="20" :step="1" show-stops />
-              </el-form-item>
-            </el-form>
+          <el-col :span="8">
+            <div class="action-buttons">
+              <el-button-group>
+                <el-button type="primary" @click="showLoading">
+                  <IconifyIconOnline icon="ep:view" />
+                  <span>显示</span>
+                </el-button>
+                <el-button type="success" @click="simulateProgress">
+                  <IconifyIconOnline icon="ep:video-play" />
+                  <span>自动进度</span>
+                </el-button>
+                <el-button type="warning" @click="resetProgress">
+                  <IconifyIconOnline icon="ep:refresh-right" />
+                  <span>重置</span>
+                </el-button>
+                <el-button type="danger" @click="closeLoading">
+                  <IconifyIconOnline icon="ep:close" />
+                  <span>关闭</span>
+                </el-button>
+              </el-button-group>
+            </div>
           </el-col>
         </el-row>
-
-        <!-- 进度控制 -->
-        <div class="progress-control mt-4">
-          <h4>进度控制</h4>
-          <el-row :gutter="20">
-            <el-col :span="16">
-              <el-slider v-model="progress" :min="0" :max="100" :step="1" :show-tooltip="true" :format-tooltip="(value) => `${value}%`" @change="handleProgressChange" />
-            </el-col>
-            <el-col :span="8">
-              <div class="action-buttons">
-                <el-button-group>
-                  <el-button type="primary" @click="showLoading">
-                    <IconifyIconOnline icon="ep:view" />
-                    <span>显示</span>
-                  </el-button>
-                  <el-button type="success" @click="simulateProgress">
-                    <IconifyIconOnline icon="ep:video-play" />
-                    <span>自动进度</span>
-                  </el-button>
-                  <el-button type="warning" @click="resetProgress">
-                    <IconifyIconOnline icon="ep:refresh-right" />
-                    <span>重置</span>
-                  </el-button>
-                  <el-button type="danger" @click="closeLoading">
-                    <IconifyIconOnline icon="ep:close" />
-                    <span>关闭</span>
-                  </el-button>
-                </el-button-group>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
       </div>
+    </div>
 
-      <!-- 布局选择器 -->
-      <div class="layout-selector mt-4">
-        <h4>布局样式选择</h4>
-        <p class="example-desc">点击卡片预览对应的布局样式</p>
+    <!-- 布局选择器 -->
+    <div class="layout-selector mt-4">
+      <h4>布局样式选择</h4>
+      <p class="example-desc">点击卡片预览对应的布局样式</p>
 
-        <div class="layout-grid">
-          <div v-for="layout in layouts" :key="layout.value" class="layout-item" :class="{ active: selectedLayout === layout.value }" @click="previewLayout(layout.value)">
-            <div class="layout-preview">
-              <ScLoading :layout="layout.value" :model-value="true" :show-number="false" :show-loading="false" />
-            </div>
-            <div class="layout-name">
-              {{ layout.label }}
-              <el-tag v-if="selectedLayout === layout.value" size="small" effect="dark" type="success" class="active-tag">当前选中</el-tag>
-            </div>
+      <div class="layout-grid">
+        <div v-for="layout in layouts" :key="layout.value" class="layout-item" :class="{ active: selectedLayout === layout.value }" @click="previewLayout(layout.value)">
+          <div class="layout-preview">
+            <ScLoading :layout="layout.value" :model-value="true" :show-number="false" :show-loading="false" />
+          </div>
+          <div class="layout-name">
+            {{ layout.label }}
+            <el-tag v-if="selectedLayout === layout.value" size="small" effect="dark" type="success" class="active-tag">当前选中</el-tag>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 代码示例 -->
-      <div class="code-example mt-4">
-        <h4>代码示例</h4>
-        <el-alert type="info" :closable="false" class="mb-3">
-          <div class="code-desc">根据当前配置生成的代码示例</div>
-        </el-alert>
-        <pre><code class="language-html">{{ codeExample }}</code></pre>
-      </div>
-    </el-card>
+    <!-- 代码示例 -->
+    <div class="code-example mt-4">
+      <h4>代码示例</h4>
+      <el-alert type="info" :closable="false" class="mb-3">
+        <div class="code-desc">根据当前配置生成的代码示例</div>
+      </el-alert>
+      <pre><code class="language-html">{{ codeExample }}</code></pre>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from "vue";
-import ScLoading from "@repo/components/ScLoading/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScLoading from "@repo/components/ScLoading/index.vue";
+import { computed, onUnmounted, ref } from "vue";
 
 // 加载组件引用
 const loadingRef = ref(null);

@@ -6,6 +6,7 @@
           <el-button @click="handleOpenEditDialog({}, 'save')" title="新增" :icon="useRenderIcon('ep:plus')" class="btn-text btn-add"></el-button>
         </div>
       </el-header>
+      {{ env }}
       <ScTable ref="tableRef" :url="fetchPageProjectForAiModule" :params="env.params" class="overflow-auto table-custom">
         <!-- 表格列 -->
         <el-table-column prop="sysAiModuleName" label="模型名称" width="300px" fixed align="center">
@@ -92,6 +93,8 @@
         <el-table-column label="操作" width="220px" fixed="right">
           <template #default="scope">
             <el-row class="justify-end">
+              <el-button v-if="scope.row.sysAiModuleType === 'LLM'" title="大语言模型配置" @click="handleOpenLlmConfigDialog(scope.row, 'edit')" :icon="useRenderIcon('mdi:tune-variant')" class="btn-text btn-operation"></el-button>
+              <el-button v-if="scope.row.sysAiModuleType === 'FACE_DETECTION'" title="图像检测配置" @click="handleOpenImageDetectionDialog(scope.row, 'edit')" :icon="useRenderIcon('mdi:face-recognition')" class="btn-text btn-operation"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VIDEO'" title="文生视频模型设置" @click="handleOpenVideoSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text btn-operation"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图模型设置" @click="handleOpenSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text btn-operation"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'RESOLUTION'" title="超分辨率模型设置" @click="handleOpenResolutionSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text btn-operation"></el-button>
@@ -135,6 +138,7 @@ const StyleLayout = defineAsyncComponent(() => import("./vincent-style.vue"));
 const styleLayoutRef = shallowRef();
 const tableRef = shallowRef();
 const moduleUpdateDialogRef = shallowRef();
+const moduleLlmConfigDialogRef = shallowRef();
 const moduleVideoSettingUpdateDialogRef = shallowRef();
 const moduleResolutionSettingUpdateDialogRef = shallowRef();
 const moduleSettingUpdateDialogRef = shallowRef();
@@ -186,6 +190,14 @@ const handleOpenVideoSettingDialog = async (item) => {
 
 const handleOpenTemplateDialog = async (item) => {
   moduleTemplateUpdateDialogRef.value.handleOpen(item, "edit");
+};
+
+const handleOpenLlmConfigDialog = async (item) => {
+  moduleLlmConfigDialogRef.value.handleOpen(item, "edit");
+};
+
+const handleOpenImageDetectionDialog = async (item) => {
+  moduleImageDetectionDialogRef.value.handleOpen(item, "edit");
 };
 
 const handleRefreshEnvironment = async () => {
