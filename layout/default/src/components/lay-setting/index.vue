@@ -19,6 +19,18 @@ import DayIcon from "@repo/assets/svg/day.svg?component";
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 //@ts-ignore
 import SystemIcon from "@repo/assets/svg/system.svg?component";
+//@ts-ignore
+import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
+//@ts-ignore
+import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
+//@ts-ignore
+import MixIcon from "@repo/assets/svg/mix.svg?component";
+//@ts-ignore
+import HoverIcon from "@repo/assets/svg/hover.svg?component";
+//@ts-ignore
+import CardIcon from "@repo/assets/svg/card.svg?component";
+//@ts-ignore
+import DoubleIcon from "@repo/assets/svg/double.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
@@ -739,11 +751,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'vertical' ? 'is-select' : ''"
               @click="setLayoutModel('vertical')"
             >
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>纵向布局</h5>
-              </div>
+              <VerticalIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -755,11 +763,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
               @click="setLayoutModel('horizontal')"
             >
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>横向布局</h5>
-              </div>
+              <HorizontalIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -771,12 +775,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'mix' ? 'is-select' : ''"
               @click="setLayoutModel('mix')"
             >
-              <div />
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>混合布局</h5>
-              </div>
+              <MixIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -788,12 +787,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'hover' ? 'is-select' : ''"
               @click="setLayoutModel('hover')"
             >
-              <div />
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>悬停导航</h5>
-              </div>
+              <HoverIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -805,13 +799,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'card' ? 'is-select' : ''"
               @click="setLayoutModel('card')"
             >
-              <div />
-              <div />
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>卡片导航</h5>
-              </div>
+              <CardIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -823,14 +811,7 @@ onUnmounted(() => {
               :class="layoutTheme.layout === 'double' ? 'is-select' : ''"
               @click="setLayoutModel('double')"
             >
-              <div />
-              <div />
-              <div />
-              <div />
-              <div />
-              <div class="layout-desc">
-                <h5>双栏导航</h5>
-              </div>
+              <DoubleIcon />
             </li>
             <li
               v-if="device !== 'mobile'"
@@ -3003,17 +2984,16 @@ onUnmounted(() => {
 // 布局模式选择器 - 现代化玻璃态设计
 .pure-theme {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-top: 24px;
   padding: 12px;
 
   li {
     position: relative;
-    width: 100%;
-    height: 90px;
     overflow: hidden;
     cursor: pointer;
+    height: 82px;
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
     border-radius: 18px;
@@ -3023,6 +3003,10 @@ onUnmounted(() => {
       0 -1px 0 rgba(0, 0, 0, 0.05) inset;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
 
     // 现代化光泽效果
     &::before {
@@ -3058,21 +3042,21 @@ onUnmounted(() => {
     }
 
     &:hover {
-      transform: translateY(-6px) scale(1.03);
-      box-shadow:
-        0 16px 40px rgba(0, 0, 0, 0.12),
-        0 1px 0 rgba(255, 255, 255, 0.9) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.05) inset;
-      border-color: rgba(var(--el-color-primary-rgb), 0.4);
-      background: rgba(255, 255, 255, 0.85);
+      //transform: translateY(-6px) scale(1.03);
+      // box-shadow:
+      //   0 16px 40px rgba(0, 0, 0, 0.12),
+      //   0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      //   0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+      // border-color: rgba(var(--el-color-primary-rgb), 0.4);
+      // background: rgba(255, 255, 255, 0.85);
 
-      &::before {
-        opacity: 1;
-      }
+      // &::before {
+      //   opacity: 1;
+      // }
 
-      &::after {
-        opacity: 1;
-      }
+      // &::after {
+      //   opacity: 1;
+      // }
     }
 
     &:active {
@@ -3162,326 +3146,53 @@ onUnmounted(() => {
       border-color: rgba(64, 158, 255, 0.2);
     }
 
-    &:nth-child(1) {
-      &::after {
-        content: "纵向布局";
-      }
-
-      div {
-        &:nth-child(1) {
-          width: 30%;
-          height: 100%;
-          background: var(--el-color-primary);
-          opacity: 0.8;
-          position: relative;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-          }
-
-          &::before {
-            content: "";
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 16px;
-            height: 3px;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-          }
-        }
-
-        &:nth-child(2) {
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 70%;
-          height: 30%;
-          background: var(--el-bg-color);
-          box-shadow: 0 0 1px #888;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
-            width: 40px;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--el-fill-color-light);
-          }
-        }
-      }
+    // 图片图标样式
+    .layout-icon {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: fill;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
 
-    &:nth-child(2) {
-      &::after {
-        content: "横向布局";
-      }
-
-      div {
-        &:nth-child(1) {
-          width: 100%;
-          height: 30%;
-          background: var(--el-color-primary);
-          opacity: 0.8;
-          box-shadow: 0 0 1px #888;
-          position: relative;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 15px;
-            transform: translateY(-50%);
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
-          }
-
-          &::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 40px;
-            transform: translateY(-50%);
-            width: 16px;
-            height: 3px;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.7);
-          }
-        }
-
-        &:nth-child(2) {
-          position: absolute;
-          bottom: 20px;
-          left: 10px;
-          right: 10px;
-          height: 8px;
-          border-radius: 4px;
-          background: var(--el-fill-color-light);
-        }
-      }
+    // SVG组件样式 - 让SVG撑满li容器
+    svg {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1 !important;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      border-radius: 18px;
     }
 
-    &:nth-child(3) {
-      &::after {
-        content: "混合布局";
-      }
-
-      div {
-        &:nth-child(1) {
-          width: 100%;
-          height: 30%;
-          background: var(--el-color-primary);
-          opacity: 0.8;
-          box-shadow: 0 0 1px #888;
-          position: relative;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 15px;
-            transform: translateY(-50%);
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
-          }
-        }
-
-        &:nth-child(2) {
-          position: absolute;
-          bottom: 20px;
-          left: 0;
-          width: 30%;
-          height: 70%;
-          background: var(--el-color-primary-light-8);
-          box-shadow: 0 0 1px #888;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 16px;
-            height: 3px;
-            border-radius: 1px;
-            background: var(--el-color-primary);
-          }
-        }
-
-        &:nth-child(3) {
-          position: absolute;
-          bottom: 30px;
-          right: 10px;
-          width: 40px;
-          height: 6px;
-          border-radius: 3px;
-          background: var(--el-fill-color-light);
-        }
-      }
+    // 针对Vue组件形式的SVG
+    > * {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1 !important;
+      border-radius: 18px;
     }
 
-    &:nth-child(4) {
-      &::after {
-        content: "悬停导航";
-      }
-
-      div {
-        &:nth-child(1) {
-          width: 25%;
-          height: 100%;
-          background: var(--el-color-primary);
-          opacity: 0.8;
-          position: relative;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-          }
-
-          &::before {
-            content: "";
-            position: absolute;
-            top: 26px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 12px;
-            height: 2px;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.7);
-            box-shadow:
-              0 4px 0 rgba(255, 255, 255, 0.7),
-              0 8px 0 rgba(255, 255, 255, 0.7);
-          }
-        }
-
-        &:nth-child(2) {
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 75%;
-          height: 30%;
-          background: var(--el-bg-color);
-          box-shadow: 0 0 1px #888;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
-            width: 35px;
-            height: 4px;
-            border-radius: 2px;
-            background: var(--el-fill-color-light);
-          }
-        }
-
-        &:nth-child(3) {
-          position: absolute;
-          top: 10px;
-          left: 25px;
-          width: 40px;
-          height: 35px;
-          background: var(--el-color-primary-light-5);
-          border-radius: 4px;
-          opacity: 0.8;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            width: 24px;
-            height: 2px;
-            border-radius: 1px;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow:
-              0 4px 0 rgba(255, 255, 255, 0.9),
-              0 8px 0 rgba(255, 255, 255, 0.9),
-              0 12px 0 rgba(255, 255, 255, 0.9);
-          }
-        }
-      }
+    &:hover .layout-icon {
+      transform: scale(1.05);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
     }
 
-    &:nth-child(5) {
-      &::after {
-        content: "卡片导航";
-      }
-
-      div {
-        &:nth-child(1) {
-          position: absolute;
-          top: 15px;
-          left: 15px;
-          width: 12px;
-          height: 12px;
-          background: var(--el-color-primary);
-          border-radius: 2px;
-          opacity: 0.9;
-        }
-
-        &:nth-child(2) {
-          position: absolute;
-          top: 15px;
-          left: 32px;
-          width: 12px;
-          height: 12px;
-          background: var(--el-color-primary);
-          border-radius: 2px;
-          opacity: 0.9;
-        }
-
-        &:nth-child(3) {
-          position: absolute;
-          top: 32px;
-          left: 15px;
-          width: 12px;
-          height: 12px;
-          background: var(--el-color-primary);
-          border-radius: 2px;
-          opacity: 0.9;
-        }
-
-        &:nth-child(4) {
-          position: absolute;
-          top: 32px;
-          left: 32px;
-          width: 12px;
-          height: 12px;
-          background: var(--el-color-primary);
-          border-radius: 2px;
-          opacity: 0.9;
-        }
-      }
+    &:hover svg {
+      transform: scale(1.05);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
     }
+
+    &.is-select .layout-icon {
+      filter: drop-shadow(0 2px 8px rgba(64, 158, 255, 0.3));
+    }
+
+    &.is-select svg {
+      filter: drop-shadow(0 2px 8px rgba(64, 158, 255, 0.3));
+    }
+
+    // 移除旧的nth-child样式，现在使用新的el-row布局
 
     /* 占位符样式 */
     &.placeholder-layout {
@@ -3615,6 +3326,18 @@ p.mt-5 {
     border-radius: var(--border-radius-small, 2px);
   }
 }
+// 新的el-row布局预览样式
+.layout-preview {
+  width: 90%;
+  height: 90%;
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--el-fill-color-extra-light);
+  border: 1px solid var(--el-border-color-extra-light);
+
+  // 移除了el-row布局相关的CSS样式，恢复使用SVG图标
+}
 </style>
 
 <style lang="scss">
@@ -3692,12 +3415,12 @@ p.mt-5 {
   }
 
   .pure-theme {
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 12px;
     padding: 8px;
 
     li {
-      height: 75px;
+      height: 430px;
       border-radius: 14px;
     }
   }
@@ -3742,11 +3465,11 @@ p.mt-5 {
   }
 
   .pure-theme {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
     gap: 10px;
 
     li {
-      height: 70px;
+      height: 430px;
     }
   }
 
@@ -3756,3 +3479,4 @@ p.mt-5 {
   }
 }
 </style>
+bubu

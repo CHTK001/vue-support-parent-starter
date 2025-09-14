@@ -252,28 +252,23 @@ const isSubMenuOpened = computed(() => {
   }
 }
 
-// 自动展开模式：禁用子菜单折叠功能
+// 自动展开模式：隐藏折叠箭头，但保持展开功能
 :deep(.auto-expand-submenu) {
   .el-sub-menu__icon-arrow {
     display: none !important;
   }
   
+  // 保持所有交互功能，只是隐藏箭头
   .el-sub-menu__title {
-    cursor: default;
-    pointer-events: none;
+    cursor: pointer;
   }
   
-  // 但是保持子菜单内容的点击事件
   .el-menu-item {
     pointer-events: auto;
   }
   
   .el-sub-menu {
     pointer-events: auto;
-    
-    .el-sub-menu__title {
-      pointer-events: none;
-    }
   }
 }
 </style>

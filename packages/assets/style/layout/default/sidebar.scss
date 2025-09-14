@@ -654,7 +654,7 @@ body[layout="vertical"] {
 
   .hideSidebar {
     .fixed-header {
-      width: calc(100% - 54px);
+      width: calc(100% - 64px);
       transition: width var(--pure-transition-duration);
     }
 
@@ -744,7 +744,7 @@ body[layout="mix"] {
 
   .hideSidebar {
     .fixed-header {
-      width: calc(100% - 54px);
+      width: calc(100% - 64px);
       transition: width var(--pure-transition-duration);
     }
 
@@ -1008,7 +1008,7 @@ body[layout="double"] {
   /* 折叠状态 */
   .hideSidebar {
     .fixed-header {
-      width: calc(100% - 54px);
+      width: calc(100% - 64px);
       transition: width var(--pure-transition-duration);
     }
 

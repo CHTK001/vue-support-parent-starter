@@ -209,12 +209,46 @@ const LayHeader = defineComponent({
       </Suspense>
     </template>
 
+    <!-- 双栏导航模式：特殊布局 -->
+    <template v-else-if="layout.includes('double')">
+      <div v-show="set.device === 'mobile' && set.sidebar.opened" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <div class="double-layout-container">
+        <NavDouble v-show="!pureSetting.hiddenSideBar" />
+        <div :class="['main-container', 'double-main', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
+          <div v-if="set.fixedHeader">
+            <LayHeader />
+            <!-- 主体内容 -->
+            <Suspense>
+              <template #default>
+                <div>
+                  <LayContent :fixed-header="set.fixedHeader" />
+                </div>
+              </template>
+            </Suspense>
+          </div>
+          <el-scrollbar v-else>
+            <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
+              <BackTopIcon />
+            </el-backtop>
+            <LayHeader />
+            <!-- 主体内容 -->
+            <Suspense>
+              <template #default>
+                <div>
+                  <LayContent :fixed-header="set.fixedHeader" />
+                </div>
+              </template>
+            </Suspense>
+          </el-scrollbar>
+        </div>
+      </div>
+    </template>
+
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
-      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover') || layout.includes('double'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
       <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
       <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
-      <NavDouble v-show="!pureSetting.hiddenSideBar && layout.includes('double')" />
       <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
         <div v-if="set.fixedHeader">
           <LayHeader />
@@ -296,6 +330,19 @@ const LayHeader = defineComponent({
 
 .bg-bg_color {
   background-color: var(--el-bg-color) !important;
+}
+
+// 双栏导航布局容器
+.double-layout-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  
+  .double-main {
+    flex: 1;
+    min-width: 0;
+    margin-left: 0 !important;
+  }
 }
 
 // 异步组件加载状态样式
