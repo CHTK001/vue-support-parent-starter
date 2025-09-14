@@ -43,6 +43,7 @@
     "@pages/example": "workspace:^",
     "@pages/project": "workspace:^",
     "@pages/system": "workspace:^",
+    "@pages/video": "workspace:^",
     "@pages/dict": "workspace:^",
     "@pages/map": "workspace:^",
     "@pages/setting": "workspace:^",

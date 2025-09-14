@@ -19,6 +19,66 @@ Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus �
 
 ## 最新更新
 
+### 软件管理模块组件化重构（2025-01-10）
+
+对软件管理模块进行了全面的组件化重构，提升了代码的可维护性和复用性：
+
+#### 主要改进
+
+1. **组件化架构**
+   - 将原有的单文件组件拆分为多个独立的功能组件
+   - 提高了代码的可维护性和复用性
+   - 便于团队协作开发
+
+2. **新增组件**
+   - `ContainerCard`: 容器信息卡片组件
+   - `ContainerActions`: 容器操作按钮组件
+   - `LogViewer`: 日志查看器组件
+   - `SoftVersionManager`: 软件版本管理组件
+   - `StatsCard`: 统计信息卡片组件
+   - `InstallProgress`: 安装进度组件
+
+3. **WebSocket集成**
+   - 集成实时通信功能
+   - 支持容器状态实时更新
+   - 支持日志实时推送
+   - 支持统计信息实时刷新
+
+4. **完善的API文档**
+   - 详细的接口说明文档
+   - 完整的数据模型定义
+   - 使用示例和错误处理
+
+#### 技术特性
+
+- **模块化设计**: 功能组件独立，便于维护和扩展
+- **TypeScript**: 完整的类型定义，提供更好的开发体验
+- **响应式设计**: 适配桌面和移动设备
+- **实时通信**: 基于WebSocket的实时数据更新
+- **统一样式**: 遵循Element Plus设计规范
+
+#### 文件结构
+
+```
+src/views/soft/
+├── index.vue                    # 软件管理主页面
+├── detail.vue                   # 软件详情页面
+├── containers.vue               # 容器管理页面
+├── records.vue                  # 安装记录页面
+└── components/                  # 软件管理组件
+    ├── index.ts                 # 组件统一导出
+    ├── ContainerCard.vue        # 容器信息卡片
+    ├── ContainerActions.vue     # 容器操作按钮
+    ├── LogViewer.vue           # 日志查看器
+    ├── SoftVersionManager.vue   # 版本管理
+    ├── StatsCard.vue           # 统计信息卡片
+    └── InstallProgress.vue      # 安装进度
+```
+
+#### API文档
+
+详细的API接口文档请参考：[软件管理模块API文档](./docs/API_SOFT_MANAGEMENT.md)
+
 ### WebRTC实时通信模块（2025-01-10）
 
 新增完整的WebRTC实时通信功能模块，支持视频通话、视频会议、屏幕共享等功能：

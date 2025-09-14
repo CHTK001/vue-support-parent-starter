@@ -1,23 +1,5 @@
 <template>
   <div class="example-container">
-    <el-card class="example-header">
-      <template #header>
-        <div class="card-header">
-          <span>组件示例展示</span>
-          <div class="search-box">
-            <el-input v-model="searchText" placeholder="搜索组件" clearable>
-              <template #prefix>
-                <IconifyIconOnline icon="ep:search" />
-              </template>
-            </el-input>
-          </div>
-        </div>
-      </template>
-      <div class="example-description">
-        <p>这里展示了系统中所有可用的组件示例，点击卡片查看对应组件的详细用法和示例。每个组件都提供了基础用法、高级用法和API说明。</p>
-      </div>
-    </el-card>
-
     <ScTable layout="card" ref="tableRef" class="h-[600px]" height="600px" :data="componentList" :params="{}" :col-size="3" :row-size="10">
       <template #default="{ row }">
         <div class="component-card" @click="openComponentExample(row)">
@@ -40,8 +22,8 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent, shallowRef } from "vue";
 import { message } from "@repo/utils";
+import { computed, defineAsyncComponent, ref, shallowRef } from "vue";
 
 // 搜索文本
 const searchText = ref("");
@@ -127,7 +109,7 @@ const asyncComponentOptions = {
 const resolveComponent = (path) => {
   return defineAsyncComponent({
     ...asyncComponentOptions,
-    loader: () => /* @vite-ignore */ import(path)
+    loader: () => /* @vite-ignore */ import(path),
   });
 };
 
@@ -212,6 +194,12 @@ const components = [
     description: "Socket事件进度条组件，用于监听Socket事件并显示进度，支持进度条和日志两种布局方式",
     component: resolveComponent("./components/ScSocketEventProcessExample.vue"),
   },
+  {
+    name: "ScWindowModal",
+    icon: "carbon:application-web",
+    description: "窗口模态框组件，支持多窗口管理、拖拽、缩放、最大化、最小化等功能，提供完整的桌面级窗口体验",
+    component: resolveComponent("./components/ScWindowModalExample.vue"),
+  },
 ];
 
 // 过滤后的组件列表
@@ -227,49 +215,105 @@ const componentList = computed(() => {
 
 <style scoped>
 .example-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  min-height: 100vh;
+  padding: 24px;
+  position: relative;
+}
+
+.example-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .example-header {
-  margin-bottom: 16px;
+  margin-bottom: 32px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  border-radius: 16px;
+  position: relative;
+  z-index: 1;
 }
 
-.example-content {
-  flex: 1;
-  overflow: hidden;
+.example-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .card-header span {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-box {
-  width: 300px;
+  width: 320px;
+}
+
+.search-box :deep(.el-input__wrapper) {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-box :deep(.el-input__wrapper:hover) {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
 }
 
 .example-description {
-  color: #666;
-  margin-bottom: 8px;
-  padding: 10px;
+  color: #555;
+  margin-bottom: 0;
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  position: relative;
+  z-index: 2;
 }
 
 .component-card {
-  height: 180px;
-  padding: 20px;
-  border-radius: 12px;
-  background-color: var(--el-bg-color);
-  transition: all 0.3s ease;
+  height: 200px;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -277,43 +321,162 @@ const componentList = computed(() => {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  border: 1px solid transparent;
+}
+
+.component-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.component-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.component-card:hover::before {
+  opacity: 1;
+}
+
+.component-card:active {
+  transform: translateY(-4px) scale(1.01);
 }
 
 .component-icon {
-  font-size: 40px;
-  margin-bottom: 16px;
-  color: var(--el-color-primary);
+  font-size: 48px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.component-card:hover .component-icon {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.3));
 }
 
 .component-info {
   text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
 .component-name {
-  font-size: 18px;
-  margin-bottom: 8px;
-  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: #2c3e50;
+  transition: color 0.3s ease;
+}
+
+.component-card:hover .component-name {
+  color: #667eea;
 }
 
 .component-desc {
   font-size: 14px;
   color: #666;
-  line-height: 1.4;
+  line-height: 1.5;
+  transition: color 0.3s ease;
+}
+
+.component-card:hover .component-desc {
+  color: #555;
 }
 
 .component-tag {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--el-color-primary);
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  opacity: 0.8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  z-index: 3;
+  transition: all 0.3s ease;
+}
+
+.component-card:hover .component-tag {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .example-container {
+    padding: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .component-card {
+    height: 180px;
+    padding: 20px;
+  }
+
+  .component-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+  }
+
+  .component-name {
+    font-size: 18px;
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .example-container {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  }
+
+  .example-header {
+    background: rgba(44, 62, 80, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .component-card {
+    background: rgba(44, 62, 80, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .component-name {
+    color: #ecf0f1;
+  }
+
+  .component-desc {
+    color: #bdc3c7;
+  }
+
+  .example-description {
+    color: #bdc3c7;
+  }
 }
 </style>

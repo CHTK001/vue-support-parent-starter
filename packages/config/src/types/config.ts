@@ -50,5 +50,9 @@ export interface PlatformConfigs {
   TooltipEffect?: Effect;
   ResponsiveStorageNameSpace?: string;
   MenuSearchHistory?: number;
+  // 菜单设置相关配置
+  ShowNewMenu?: boolean; // 是否显示新增菜单
+  NewMenuText?: string; // 新菜单显示文本
+  NewMenuTimeLimit?: number; // 新菜单显示时间限制（小时）
 }
 export type Effect = "light" | "dark";

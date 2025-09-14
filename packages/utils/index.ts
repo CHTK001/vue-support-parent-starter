@@ -27,6 +27,7 @@ export * from "./src/progress/index";
 export * from "./src/repo-localforage/index";
 export * from "./src/preventDefault";
 export * from "./src/print";
+export * from "./src/menuUtils";
 export * from "./src/file";
 export * from "./src/url";
 export * from "./src/net";

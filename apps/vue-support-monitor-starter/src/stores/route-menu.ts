@@ -78,7 +78,12 @@ const routeMenuMap: Record<string, string> = {
   webrtcScreenShare: '/webrtc/screen-share',
   webrtcStatistics: '/webrtc/statistics',
   // 节假日管理路由
-  holidayIndex: '/holiday/index'
+  holidayIndex: '/holiday/index',
+  // 软件管理相关路由
+  softIndex: '/soft/index',
+  softDetail: '/soft/detail',
+  softRecords: '/soft/records',
+  softContainers: '/soft/containers'
 }
 
 export default routeMenuMap

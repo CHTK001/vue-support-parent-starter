@@ -1,0 +1,65 @@
+{
+  "name": "@pages/video",
+  "version": "1.0.0",
+  "description": "视频管理模块",
+  "private": true,
+  "keywords": [],
+  "author": "CH",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
+    "element-plus": "catalog:",
+    "socket.io-client": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "@types/lodash-es": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:",
+    "lodash-es": "catalog:",
+    "nanoid": "catalog:"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@commitlint/types": "catalog:",
+    "@repo/build": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@types/lodash-es": "catalog:",
+    "@types/node": "catalog:",
+    "autoprefixer": "catalog:",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "unbuild": "catalog:",
+    "vite": "catalog:"
+  }
+}

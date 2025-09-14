@@ -8,9 +8,9 @@
               {{ typeConfig.label }}
             </option>
           </select>
-          <div class="select-arrow"></div>
+          <div class="select-arrow" />
         </div>
-        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange"></slot>
+        <slot name="type-selector" :current-type="currentSearchType" :search-types="searchTypes" :on-change="handleSearchTypeChange" />
       </div>
 
       <!-- 普通搜索输入框 -->
@@ -20,9 +20,9 @@
           v-model="searchText"
           type="text"
           :placeholder="currentPlaceholder"
+          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }"
           @input="handleInput"
           @keyup.enter="handleSearch"
-          :class="{ 'coordinate-input': currentSearchType === SearchType.COORDINATE }"
         />
 
         <select v-else v-model="searchText" @change="handleInput">
@@ -46,31 +46,31 @@
       <div v-else class="navigation-input-container">
         <div class="navigation-input-group">
           <div class="nav-input start-input">
-            <span class="nav-point-icon start-point-icon"></span>
+            <span class="nav-point-icon start-point-icon" />
             <input v-model="navStartPoint" type="text" placeholder="请输入起点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navStartPoint" class="nav-clear-btn" @click="clearNavStartPoint">×</button>
           </div>
-          <div class="nav-swap-btn" @click="swapNavPoints" title="交换起终点">
+          <div class="nav-swap-btn" title="交换起终点" @click="swapNavPoints">
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z" />
             </svg>
           </div>
           <div class="nav-input end-input">
-            <span class="nav-point-icon end-point-icon"></span>
+            <span class="nav-point-icon end-point-icon" />
             <input v-model="navEndPoint" type="text" placeholder="请输入终点" @input="handleNavInputChange" @keyup.enter="handleNavSearch" />
             <button v-if="navEndPoint" class="nav-clear-btn" @click="clearNavEndPoint">×</button>
           </div>
         </div>
         <<<<<<< HEAD ======= >>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
         <button type="button" class="nav-search-button" @click="handleNavSearch">
-          <span class="nav-search-icon"></span>
+          <span class="nav-search-icon" />
           <span>查询</span>
         </button>
       </div>
     </div>
 
     <!-- 自定义搜索框插槽 -->
-    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch"></slot>
+    <slot name="search-input" :search-text="searchText" :placeholder="currentPlaceholder" :on-input="handleInput" :on-search="handleSearch" />
 
     <!-- 搜索结果列表 -->
     <transition name="slide-fade">
@@ -93,7 +93,7 @@
             </div>
             <div class="result-title">{{ result.name }}</div>
             <div class="result-address">
-              <span class="location-icon"></span>
+              <span class="location-icon" />
               {{ result.address }}
             </div>
           </div>
@@ -102,12 +102,12 @@
               {{ formatDistance(result.distance) }}
             </div>
             <div class="action-buttons">
-              <button class="action-btn start-btn" :class="{ active: startPointId === result.id }" @click.stop="setAsStartPoint(result)" title="从这里出发">
-                <span class="start-icon"></span>
+              <button class="action-btn start-btn" :class="{ active: startPointId === result.id }" title="从这里出发" @click.stop="setAsStartPoint(result)">
+                <span class="start-icon" />
                 从这出发
               </button>
-              <button class="action-btn end-btn" :class="{ active: endPointId === result.id }" @click.stop="setAsEndPoint(result)" title="到这里去">
-                <span class="end-icon"></span>
+              <button class="action-btn end-btn" :class="{ active: endPointId === result.id }" title="到这里去" @click.stop="setAsEndPoint(result)">
+                <span class="end-icon" />
                 到这去
               </button>
             </div>
@@ -115,7 +115,7 @@
         </div>
 
         <!-- 自定义搜索结果插槽 -->
-        <slot name="search-results" :results="results" :on-select="handleSelect"></slot>
+        <slot name="search-results" :results="results" :on-select="handleSelect" />
       </div>
     </transition>
 
@@ -123,7 +123,7 @@
     <transition name="slide-fade">
       <div v-if="showResults && results.length === 0 && searchText.trim()" class="search-results empty-results">
         <div class="empty-state">
-          <span class="empty-icon"></span>
+          <span class="empty-icon" />
           <p>未找到结果</p>
           <small>请尝试其他关键词或搜索方式</small>
         </div>
@@ -134,12 +134,12 @@
     <div v-if="startPointId && endPointId" class="navigation-panel">
       <div class="route-endpoints">
         <div class="endpoint start-point">
-          <span class="endpoint-icon start-icon"></span>
+          <span class="endpoint-icon start-icon" />
           <span class="endpoint-text">起点：{{ getMarkerTitle(startPointMarkerId) }}</span>
         </div>
-        <div class="endpoint-divider"></div>
+        <div class="endpoint-divider" />
         <div class="endpoint end-point">
-          <span class="endpoint-icon end-icon"></span>
+          <span class="endpoint-icon end-icon" />
           <span class="endpoint-text">终点：{{ getMarkerTitle(endPointMarkerId) }}</span>
         </div>
       </div>
@@ -150,19 +150,19 @@
           :key="type.value"
           class="transport-type-option"
           :class="{ active: currentTransportType === type.value }"
-          @click="selectTransportType(type.value)"
           :title="type.label"
+          @click="selectTransportType(type.value)"
         >
-          <span :class="['transport-icon', type.value + '-icon']"></span>
+          <span :class="['transport-icon', type.value + '-icon']" />
         </div>
       </div>
 
       <div class="navigation-buttons">
-        <button @click="createRouteNavigation" class="navigation-button">
-          <span class="navigation-icon"></span>
+        <button class="navigation-button" @click="createRouteNavigation">
+          <span class="navigation-icon" />
           开始导航
         </button>
-        <button @click="clearRoutePoints" class="clear-button">清除</button>
+        <button class="clear-button" @click="clearRoutePoints">清除</button>
       </div>
     </div>
 
@@ -170,9 +170,9 @@
     <transition name="slide-fade">
       <div
         v-if="showRouteDetails && routeDetails.length > 0"
+        ref="routeDetailsPanel"
         class="route-details"
         :class="[getRouteDetailsPanelPosition(), { 'is-dragging': isDragging, 'is-closing': isClosing }]"
-        ref="routeDetailsPanel"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
@@ -183,14 +183,14 @@
             <span class="route-duration">{{ formatDuration(routeTotalDuration) }}</span>
           </div>
           <div class="route-actions">
-            <button @click="closeRouteDetails" class="close-button" title="关闭导航详情">
+            <button class="close-button" title="关闭导航详情" @click="closeRouteDetails">
               <span class="close-icon">×</span>
             </button>
           </div>
         </div>
 
         <!-- 多条路线选择 -->
-        <div class="route-options" v-if="alternativeRoutes.length > 0">
+        <div v-if="alternativeRoutes.length > 0" class="route-options">
           <div class="route-option-title">备选路线</div>
           <div class="route-options-list">
             <div v-for="(route, index) in alternativeRoutes" :key="index" class="route-option" :class="{ active: currentRouteIndex === index }" @click="selectRoute(index)">
@@ -212,8 +212,8 @@
           <div v-if="showRouteDetailsList" class="route-steps">
             <div v-for="(step, index) in routeDetails" :key="index" class="route-step">
               <div class="step-icon-container">
-                <div class="step-icon" :class="getStepIconClass(step)"></div>
-                <div v-if="index < routeDetails.length - 1" class="step-line"></div>
+                <div class="step-icon" :class="getStepIconClass(step)" />
+                <div v-if="index < routeDetails.length - 1" class="step-line" />
               </div>
               <div class="step-content">
                 <div class="step-instruction">{{ step.instruction }}</div>
@@ -231,15 +231,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, onMounted, computed, watch, onBeforeUnmount } from "vue";
+import { ElMessage } from "element-plus";
 import type { PropType } from "vue";
-import type { SearchBoxConfig, SearchResult, SearchTypeConfig } from "../types/search";
-import { SearchType } from "../types/search";
-import { DEFAULT_END_ICON, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_START_ICON } from "../types/default";
+import { computed, defineExpose, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ConfigObject } from "../composables/ConfigObject";
 import { SearchObject } from "../composables/SearchObject";
 import { SearchHandlerFactory } from "../interfaces/SearchHandler";
-import { ElMessage } from "element-plus";
+import { DEFAULT_END_ICON, DEFAULT_SEARCH_BOX_CONFIG, DEFAULT_START_ICON } from "../types/default";
+import type { SearchBoxConfig, SearchResult } from "../types/search";
+import { SearchType } from "../types/search";
 
 // Props 定义
 const props = defineProps({
@@ -1222,7 +1222,7 @@ $transition-time: 0.2s;
   position: absolute;
   z-index: 1000;
   width: 340px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
   background-color: #fff;
@@ -1239,7 +1239,7 @@ $transition-time: 0.2s;
 
     .custom-select {
       position: relative;
-  height: 36px;
+      height: 36px;
 
       select {
         appearance: none;
@@ -1249,7 +1249,7 @@ $transition-time: 0.2s;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         background-color: #fff;
-      font-size: 14px;
+        font-size: 14px;
         color: $text-primary;
         cursor: pointer;
         transition: all $transition-time;
@@ -1258,7 +1258,7 @@ $transition-time: 0.2s;
           border-color: $border-hover;
         }
 
-      &:focus {
+        &:focus {
           outline: none;
           border-color: $primary-color;
           box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
@@ -1287,21 +1287,16 @@ $transition-time: 0.2s;
     flex-direction: column;
 
     .navigation-input-group {
-<<<<<<< HEAD
-    display: flex;
-    align-items: center;
-=======
       display: flex;
       flex-direction: row;
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
       margin-bottom: 8px;
 
       .nav-input {
         flex: 1;
-  position: relative;
+        position: relative;
         height: 36px;
-  display: flex;
-  align-items: center;
+        display: flex;
+        align-items: center;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
@@ -1335,11 +1330,7 @@ $transition-time: 0.2s;
         }
 
         input {
-<<<<<<< HEAD
-    width: 100%;
-=======
-  width: 100%;
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
+          width: 100%;
           height: 100%;
           border: none;
           outline: none;
@@ -1399,11 +1390,7 @@ $transition-time: 0.2s;
 
       .transport-mode {
         width: 36px;
-<<<<<<< HEAD
-    height: 36px;
-=======
-  height: 36px;
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
+        height: 36px;
         border-radius: $border-radius;
         margin-right: 8px;
         background-color: #f5f5f5;
@@ -1461,11 +1448,7 @@ $transition-time: 0.2s;
       border-radius: $border-radius;
       background-color: $primary-color;
       color: white;
-<<<<<<< HEAD
-    font-size: 14px;
-=======
-  font-size: 14px;
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
+      font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1497,13 +1480,14 @@ $transition-time: 0.2s;
     flex: 1;
     height: 36px;
 
-    input, select {
-    width: 100%;
+    input,
+    select {
+      width: 100%;
       height: 100%;
       border: 1px solid $border-color;
       border-radius: $border-radius;
       padding: 0 40px 0 12px;
-    font-size: 14px;
+      font-size: 14px;
       color: $text-primary;
       transition: all $transition-time;
 
@@ -1515,35 +1499,35 @@ $transition-time: 0.2s;
         border-color: $border-hover;
       }
 
-    &:focus {
-  outline: none;
+      &:focus {
+        outline: none;
         border-color: $primary-color;
         box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
       }
 
       &.coordinate-input {
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         letter-spacing: 0.5px;
       }
     }
 
     .search-button {
-  position: absolute;
+      position: absolute;
       top: 0;
       right: 0;
       width: 36px;
       height: 36px;
       border: none;
       background: none;
-    cursor: pointer;
-  display: flex;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
       color: $text-secondary;
       border-radius: 0 $border-radius $border-radius 0;
       transition: all $transition-time;
 
-    &:hover {
+      &:hover {
         color: $primary-color;
         background-color: rgba($primary-color, 0.05);
       }
@@ -1552,11 +1536,11 @@ $transition-time: 0.2s;
         color: $primary-active;
       }
     }
-}
+  }
 
-.search-results {
-  max-height: 300px;
-  overflow-y: auto;
+  .search-results {
+    max-height: 300px;
+    overflow-y: auto;
     background-color: #fff;
 
     &::-webkit-scrollbar {
@@ -1610,18 +1594,14 @@ $transition-time: 0.2s;
     }
 
     .result-content {
-<<<<<<< HEAD
-    cursor: pointer;
-=======
-  cursor: pointer;
->>>>>>> 641230fc1f5a9b44c253a970a70b5aa5cff539c6
+      cursor: pointer;
       flex: 1;
       min-width: 0;
       margin-bottom: 8px;
       position: relative;
       padding-left: 15px;
 
-    &:hover {
+      &:hover {
         .result-title {
           color: $primary-color;
         }
@@ -1649,21 +1629,21 @@ $transition-time: 0.2s;
           background-color: #ff525d;
         }
       }
-}
+    }
 
-.result-title {
-  font-size: 14px;
+    .result-title {
+      font-size: 14px;
       font-weight: 500;
       color: $text-primary;
-  margin-bottom: 4px;
+      margin-bottom: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       transition: color 0.2s;
-}
+    }
 
-.result-address {
-  font-size: 12px;
+    .result-address {
+      font-size: 12px;
       color: $text-secondary;
       display: flex;
       align-items: center;
@@ -1676,7 +1656,8 @@ $transition-time: 0.2s;
         width: 12px;
         height: 12px;
         margin-right: 4px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23666666' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23666666' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
+          no-repeat center center;
         background-size: contain;
         opacity: 0.7;
       }
@@ -1705,9 +1686,9 @@ $transition-time: 0.2s;
     }
 
     .action-btn {
-    display: flex;
+      display: flex;
       align-items: center;
-    justify-content: center;
+      justify-content: center;
       padding: 3px 8px;
       border-radius: 3px;
       border: 1px solid rgba($border-color, 0.8);
@@ -1725,10 +1706,11 @@ $transition-time: 0.2s;
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
-      color: white;
+        color: white;
       }
 
-      .start-icon, .end-icon {
+      .start-icon,
+      .end-icon {
         display: inline-block;
         width: 12px;
         height: 12px;
@@ -1736,12 +1718,14 @@ $transition-time: 0.2s;
       }
 
       .start-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
+          no-repeat center center;
         background-size: contain;
       }
 
       .end-icon {
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
+          no-repeat center center;
         background-size: contain;
       }
     }
@@ -1776,12 +1760,14 @@ $transition-time: 0.2s;
         }
 
         .start-icon {
-          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231aad19' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
+            no-repeat center center;
           background-size: contain;
         }
 
         .end-icon {
-          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") no-repeat center center;
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff525d' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E")
+            no-repeat center center;
           background-size: contain;
         }
 
@@ -1818,7 +1804,7 @@ $transition-time: 0.2s;
         padding: 8px;
         border-radius: 50%;
         background-color: #f5f5f5;
-      cursor: pointer;
+        cursor: pointer;
         transition: all 0.2s;
         width: 40px;
         height: 40px;
@@ -1873,17 +1859,17 @@ $transition-time: 0.2s;
           transition: all 0.2s;
         }
       }
-}
+    }
 
-.navigation-buttons {
-  display: flex;
-  gap: 8px;
+    .navigation-buttons {
+      display: flex;
+      gap: 8px;
       margin-top: 10px;
-}
+    }
 
     .navigation-button {
-  display: flex;
-  align-items: center;
+      display: flex;
+      align-items: center;
       justify-content: center;
       background-color: $primary-color;
       color: white;
@@ -1891,7 +1877,7 @@ $transition-time: 0.2s;
       border-radius: $border-radius;
       padding: 8px 16px;
       font-size: 14px;
-  cursor: pointer;
+      cursor: pointer;
       transition: all $transition-time;
       flex: 1;
       margin-right: 8px;
@@ -1907,11 +1893,12 @@ $transition-time: 0.2s;
 
       .navigation-icon {
         display: inline-block;
-  width: 16px;
-  height: 16px;
+        width: 16px;
+        height: 16px;
         margin-right: 6px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E") no-repeat center center;
-  background-size: contain;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E")
+          no-repeat center center;
+        background-size: contain;
       }
     }
 
@@ -2290,7 +2277,7 @@ $transition-time: 0.2s;
             position: relative;
             z-index: 2;
             background-position: center;
-  background-repeat: no-repeat;
+            background-repeat: no-repeat;
             background-size: 14px;
 
             &.icon-start {
@@ -2435,7 +2422,8 @@ $transition-time: 0.2s;
         padding: 3px 6px;
         font-size: 11px;
 
-        .start-icon, .end-icon {
+        .start-icon,
+        .end-icon {
           width: 10px;
           height: 10px;
           margin-right: 2px;

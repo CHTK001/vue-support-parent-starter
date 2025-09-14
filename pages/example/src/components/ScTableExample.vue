@@ -176,9 +176,12 @@
 
     <el-divider></el-divider>
     <div class="code-panel">
-      <h4>代码示例：</h4>
-      <el-alert title="此代码示例会根据您在配置面板中的选择实时更新" type="info" :closable="false" show-icon style="margin-bottom: 15px" />
-      <pre><code class="language-html">{{ generatedCode }}</code></pre>
+      <CodeDisplay 
+        :code="generatedCode" 
+        language="html" 
+        title="代码示例" 
+        description="此代码示例会根据您在配置面板中的选择实时更新"
+      />
 
       <div v-if="config.contextMenu" class="context-menu-help">
         <h4>右键菜单使用说明</h4>
@@ -220,6 +223,7 @@
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
+import CodeDisplay from "./CodeDisplay.vue";
 
 // 配置项
 const config = reactive({

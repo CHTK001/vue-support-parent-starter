@@ -131,17 +131,19 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <h4>代码示例</h4>
-      <el-alert type="info" :closable="false" class="mb-3">
-        <div class="code-desc">根据当前配置生成的代码示例</div>
-      </el-alert>
-      <pre><code class="language-html">{{ codeExample }}</code></pre>
+      <CodeDisplay 
+        :code="codeExample" 
+        language="html" 
+        title="代码示例" 
+        description="根据当前配置生成的代码示例"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import CodeDisplay from "./CodeDisplay.vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";

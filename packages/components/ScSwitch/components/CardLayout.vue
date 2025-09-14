@@ -1,5 +1,5 @@
 <template>
-  <div 
+  <div
     class="sc-switch-card"
     :class="[
       `sc-switch-card--${size}`,
@@ -18,13 +18,13 @@
     <div class="sc-switch-card__inner">
       <div class="sc-switch-card__content">
         <div v-if="loading" class="sc-switch-card__loading">
-          <i class="el-icon-loading"></i>
+          <i class="el-icon-loading" />
         </div>
         <template v-else>
-          <div class="sc-switch-card__icon" v-if="currentIcon">
+          <div v-if="currentIcon" class="sc-switch-card__icon">
             <IconifyIconOnline :icon="currentIcon" />
           </div>
-          <div class="sc-switch-card__text" v-if="currentText">
+          <div v-if="currentText" class="sc-switch-card__text">
             {{ currentText }}
           </div>
         </template>
@@ -34,8 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { IconifyIconOnline } from '@repo/components/ReIcon';
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { computed } from "vue";
 
 const props = defineProps({
   modelValue: {
@@ -52,16 +52,16 @@ const props = defineProps({
   },
   size: {
     type: String,
-    default: 'default',
-    validator: (val: string) => ['small', 'default', 'large'].includes(val)
+    default: "default",
+    validator: (val: string) => ["small", "default", "large"].includes(val)
   },
   activeText: {
     type: String,
-    default: ''
+    default: ""
   },
   inactiveText: {
     type: String,
-    default: ''
+    default: ""
   },
   activeValue: {
     type: [Boolean, String, Number],
@@ -73,44 +73,46 @@ const props = defineProps({
   },
   activeColor: {
     type: String,
-    default: '#409eff'
+    default: "#409eff"
   },
   inactiveColor: {
     type: String,
-    default: '#dcdfe6'
+    default: "#dcdfe6"
   },
   activeIcon: {
     type: String,
-    default: ''
+    default: ""
   },
   inactiveIcon: {
     type: String,
-    default: ''
+    default: ""
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'change']);
+const emit = defineEmits(["update:modelValue", "change"]);
 
 // 计算当前是否为选中状态
 const isChecked = computed(() => props.modelValue === props.activeValue);
 
 // 计算当前显示的图标
-const currentIcon = computed(() => isChecked.value ? props.activeIcon : props.inactiveIcon);
+const currentIcon = computed(() => (isChecked.value ? props.activeIcon : props.inactiveIcon));
 
 // 计算当前显示的文本
-const currentText = computed(() => isChecked.value ? props.activeText : props.inactiveText);
+const currentText = computed(() => (isChecked.value ? props.activeText : props.inactiveText));
 
 // 切换开关状态
 const toggleSwitch = () => {
   if (props.disabled || props.loading) return;
-  
+
   const newValue = isChecked.value ? props.inactiveValue : props.activeValue;
-  emit('update:modelValue', newValue);
-  emit('change', newValue);
+  emit("update:modelValue", newValue);
+  emit("change", newValue);
 };
 </script>
 
 <style lang="scss" scoped>
+@use "sass:color";
+
 .sc-switch-card {
   display: inline-flex;
   align-items: center;
@@ -120,7 +122,7 @@ const toggleSwitch = () => {
   border-radius: 8px;
   transition: all 0.3s;
   user-select: none;
-  
+
   &__inner {
     width: 100%;
     height: 100%;
@@ -128,7 +130,7 @@ const toggleSwitch = () => {
     align-items: center;
     justify-content: center;
   }
-  
+
   &__content {
     display: flex;
     flex-direction: column;
@@ -136,76 +138,76 @@ const toggleSwitch = () => {
     justify-content: center;
     gap: 4px;
   }
-  
+
   &__icon {
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  
+
   &__loading {
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  
+
   &--small {
     width: 60px;
     height: 36px;
     font-size: 12px;
-    
+
     .sc-switch-card__icon {
       font-size: 16px;
     }
   }
-  
+
   &--default {
     width: 80px;
     height: 48px;
     font-size: 14px;
-    
+
     .sc-switch-card__icon {
       font-size: 20px;
     }
   }
-  
+
   &--large {
     width: 100px;
     height: 60px;
     font-size: 16px;
-    
+
     .sc-switch-card__icon {
       font-size: 24px;
     }
   }
-  
+
   // 状态样式
   &.is-checked {
     background-color: var(--active-color, #409eff);
     color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
-  
+
   &:not(.is-checked) {
     background-color: var(--inactive-color, #dcdfe6);
     color: #606266;
   }
-  
+
   &.is-disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
-  
+
   &:not(.is-disabled):not(.is-checked):hover {
-    background-color: darken(#dcdfe6, 5%);
+    background-color: color.adjust(#dcdfe6, $lightness: -5%);
   }
-  
+
   &:not(.is-disabled).is-checked:hover {
-    background-color: darken(#409eff, 5%);
+    background-color: color.adjust(#409eff, $lightness: -5%);
   }
-  
+
   &.is-loading {
     cursor: wait;
   }
 }
-</style> 
+</style>

@@ -7,23 +7,22 @@ defineProps({
   collapse: Boolean,
 });
 
-const { title, getLogo } = useNav();
+const { title, getLogo, layout } = useNav();
 </script>
 
 <template>
   <div class="sidebar-logo-container" :class="{ collapses: collapse }">
     <transition name="sidebarLogoFade">
-      <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link"
-        :to="getTopMenu()?.path ?? '/'">
+      <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title">
-          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+        <span class="sidebar-title"  v-if="layout!= 'double'"">
+          <TypeIt  :options="{ strings: [title], cursor: false, speed: 100 }" />
         </span>
       </router-link>
       <router-link v-else key="expand" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title">
-          <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+        <span class="sidebar-title" v-if="layout!= 'double'">
+          <TypeIt  :options="{ strings: [title], cursor: false, speed: 100 }" />
         </span>
       </router-link>
     </transition>

@@ -12,6 +12,7 @@ catalog:
   "@changesets/changelog-github": ^0.5.0
   "@changesets/cli": ^2.27.9
   "@changesets/git": ^3.0.1
+  "@types/lodash-es": 4.17.12
   "@clack/prompts": ^0.7.0
   "@codemirror/lang-javascript": ^6.2.2
   "@codemirror/lang-yaml": ^6.1.1
