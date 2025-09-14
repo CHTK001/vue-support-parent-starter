@@ -76,6 +76,7 @@ const getSectionStyle = computed(() => {
 onMounted(async () => {
   nextTick(() => {
     document.body.style.setProperty("height", "100vh");
+    document.body.style.setProperty("overflow", "hidden");
     document.body.style.setProperty("--contentMargin", contentMargin.value + "px");
     document.body.style.setProperty("--layoutRadius", layoutRadius.value + "px");
     document.body.style.setProperty("--layoutBlur", layoutBlur.value + "px");

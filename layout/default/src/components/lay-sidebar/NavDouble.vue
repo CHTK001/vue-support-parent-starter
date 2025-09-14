@@ -95,11 +95,9 @@ function getSubMenuData(firstLevelMenu = null) {
 
 // 处理一级菜单点击
 function handleFirstLevelMenuClick(menu: any) {
-  // 如果是折叠状态，不切换选中菜单，而是通过悬浮显示子菜单
-  if (!isCollapse.value) {
-    selectedFirstLevelMenu.value = menu;
-    getSubMenuData(menu);
-  }
+  // 始终更新选中的菜单和子菜单数据，确保三级菜单能正确展开
+  selectedFirstLevelMenu.value = menu;
+  getSubMenuData(menu);
   emit("menuClick", menu);
 }
 
@@ -113,8 +111,8 @@ function handleFavoriteToggle(menu: any, isFavorited: boolean) {
   emit("favoriteToggle", menu, isFavorited);
 }
 
-// 获取默认展开的菜单项
-function getDefaultOpeneds() {
+// 获取默认展开的菜单项（计算属性，确保响应式更新）
+const defaultOpeneds = computed(() => {
   if (doubleNavConfig.value.expandMode === "auto") {
     // 自动展开模式下，递归获取所有子菜单路径
     const getAllMenuPaths = (menus: any[]): string[] => {
@@ -135,7 +133,7 @@ function getDefaultOpeneds() {
   }
 
   return [];
-}
+});
 
 // 检查菜单是否展开（根据配置）
 function isMenuExpanded(menu: any) {
@@ -226,6 +224,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         <!-- 自动展开模式：使用el-menu，但禁用折叠功能 -->
         <el-menu
           v-if="doubleNavConfig.expandMode === 'auto'"
+          :key="selectedFirstLevelMenu?.path || 'default'"
           :unique-opened="false"
           mode="vertical"
           popper-class="pure-scrollbar"
@@ -234,7 +233,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           :collapse-transition="false"
           :popper-effect="tooltipEffect"
           :default-active="defaultActive"
-          :default-openeds="getDefaultOpeneds()"
+          :default-openeds="defaultOpeneds"
         >
           <span v-for="(routes, index) in subMenuData" :key="index">
             <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
@@ -242,7 +241,19 @@ const defer = useDefer(firstLevelMenus.value.length);
         </el-menu>
 
         <!-- 手动展开模式：使用el-menu，保留折叠功能 -->
-        <el-menu v-else :unique-opened="false" mode="vertical" popper-class="pure-scrollbar" class="sub-menu-list select-none" :collapse="false" :collapse-transition="false" :popper-effect="tooltipEffect" :default-active="defaultActive" :default-openeds="getDefaultOpeneds()">
+        <el-menu
+          v-else
+          :key="selectedFirstLevelMenu?.path || 'default'"
+          :unique-opened="false"
+          mode="vertical"
+          popper-class="pure-scrollbar"
+          class="sub-menu-list select-none"
+          :collapse="false"
+          :collapse-transition="false"
+          :popper-effect="tooltipEffect"
+          :default-active="defaultActive"
+          :default-openeds="defaultOpeneds"
+        >
           <span v-for="(routes, index) in subMenuData" :key="index">
             <DoubleNavSidebarItem :key="routes.path" :item="routes" :base-path="routes.path" :expand-mode="doubleNavConfig.expandMode" class="sub-menu-item select-none" @menu-click="handleSubMenuClick" @favorite-toggle="handleFavoriteToggle" />
           </span>
@@ -262,13 +273,15 @@ const defer = useDefer(firstLevelMenus.value.length);
   height: 100%;
   display: flex;
   transition: all 0.3s ease;
+  width: 264px; // 64px(左栏) + 200px(右栏)
+  flex-shrink: 0;
 
   // 折叠状态样式
   &.collapsed {
-    width: 54px !important;
+    width: 64px !important;
     .double-nav-left {
-      width: 54px;
-      min-width: 54px;
+      width: 64px;
+      min-width: 64px;
     }
 
     .double-nav-right {
@@ -279,8 +292,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 // 左栏样式
 .double-nav-left {
-  width: 48px;
-  min-width: 48px;
+  width: 64px;
+  min-width: 64px;
   background-color: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
@@ -306,20 +319,20 @@ const defer = useDefer(firstLevelMenus.value.length);
       justify-content: center;
       align-items: center;
       padding: 0 !important;
-      height: 48px;
+      height: 56px;
 
       .menu-icon-only {
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 20px;
-        height: 20px;
-        font-size: 16px;
+        width: 24px;
+        height: 24px;
+        font-size: 18px;
 
         svg,
         i {
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
         }
       }
     }
@@ -328,8 +341,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 
 // 右栏样式
 .double-nav-right {
-  flex: 1;
-  width: calc(100% - 48px);
+  width: 200px;
+  min-width: 200px;
   background-color: var(--el-bg-color-page);
   transition: all 0.3s ease;
 
@@ -353,6 +366,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 
   // 统一菜单样式
   .sub-menu-list {
+    padding: 8px;
+
     .sub-menu-item {
       :deep(.el-menu-item) {
         border-radius: 6px;
