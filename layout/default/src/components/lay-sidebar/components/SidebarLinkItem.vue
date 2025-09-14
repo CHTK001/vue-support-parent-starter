@@ -4,14 +4,21 @@ import { isUrl } from "@pureadmin/utils";
 import type { MenuType } from "@repo/core";
 
 const props = defineProps<{
-  to: MenuType;
+  to: MenuType | { path: string };
 }>();
 
-const isExternalLink = computed(() => isUrl(props.to.name));
-const getLinkProps = (item: MenuType) => {
+const isExternalLink = computed(() => {
+  if ('path' in props.to) {
+    return isUrl(props.to.path);
+  }
+  return isUrl(props.to.name);
+});
+
+const getLinkProps = (item: MenuType | { path: string }) => {
   if (isExternalLink.value) {
+    const url = 'path' in item ? item.path : item.name;
     return {
-      href: item.name,
+      href: url,
       target: "_blank",
       rel: "noopener"
     };

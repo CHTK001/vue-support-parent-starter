@@ -162,13 +162,12 @@ export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(format
 export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infinity)).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
-export const remainingPaths = Object.keys(remainingRouter).map((v) => {
-  const route = remainingRouter[v];
+export const remainingPaths = remainingRouter.map((route) => {
   if (!route) {
     return;
   }
   return route.path;
-});
+}).filter(Boolean);
 /** 创建路由实例 */
 export const router: Router = createRouter({
   //@ts-ignore

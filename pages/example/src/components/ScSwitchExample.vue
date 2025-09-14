@@ -133,13 +133,7 @@
     </div>
 
     <!-- 代码示例 -->
-    <div class="code-example mt-4">
-      <h4>代码示例</h4>
-      <el-alert type="info" :closable="false" class="mb-3">
-        <div class="code-desc">根据当前配置生成的代码示例</div>
-      </el-alert>
-      <pre><code class="language-html">{{ codeExample }}</code></pre>
-    </div>
+    <CodeDisplay :code="codeExample" language="html" title="代码示例" description="根据当前配置生成的代码示例" :show-line-numbers="false" :show-fullscreen="true" class="mt-4" />
   </div>
 </template>
 
@@ -147,6 +141,7 @@
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { ElMessage } from "element-plus";
 import { computed, ref } from "vue";
+import CodeDisplay from "./CodeDisplay.vue";
 
 // 切换主题
 const toggleTheme = () => {
@@ -347,6 +342,8 @@ code {
   margin-bottom: 8px;
 }
 
+
+
 /* 暗黑模式样式 */
 .el-dark {
   --preview-bg: #1a1a1a;
@@ -376,6 +373,8 @@ code {
 .el-dark h4 {
   color: var(--heading-color);
 }
+
+
 
 .el-dark .text-secondary {
   color: #aaa;

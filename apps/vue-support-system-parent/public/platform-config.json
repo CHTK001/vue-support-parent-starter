@@ -25,5 +25,8 @@
   "CachingAsyncRoutes": false,
   "TooltipEffect": "light",
   "ResponsiveStorageNameSpace": "responsive-",
-  "MenuSearchHistory": 6
+  "MenuSearchHistory": 6,
+  "ShowNewMenu": true,
+  "NewMenuText": "new",
+  "NewMenuTimeLimit": 168
 }

@@ -4,6 +4,7 @@ import { useNav } from "../../../hooks/useNav";
 import NavVertical from "../NavVertical.vue";
 import NavHorizontal from "../NavHorizontal.vue";
 import NavMix from "../NavMix.vue";
+import NavDouble from "../NavDouble.vue";
 
 // Props
 interface Props {
@@ -51,6 +52,12 @@ function handleFavoriteToggle(menu: any, isFavorited: boolean) {
   />
   <NavMix 
     v-else-if="layout === 'mix'"
+    :show-logo="props.showLogo"
+    @menu-click="handleMenuClick"
+    @favorite-toggle="handleFavoriteToggle"
+  />
+  <NavDouble 
+    v-else-if="layout === 'double'"
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"
     @favorite-toggle="handleFavoriteToggle"

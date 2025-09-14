@@ -133,6 +133,28 @@ export default [
               showParent: true,
             },
           },
+          {
+            path: "/soft/records",
+            name: "softRecords",
+            component: () => import("@/views/soft/records.vue"),
+            meta: {
+              icon: "ri:history-line",
+              title: "安装记录",
+              showLink: true,
+              showParent: true,
+            },
+          },
+          {
+            path: "/soft/containers",
+            name: "softContainers",
+            component: () => import("@/views/soft/containers.vue"),
+            meta: {
+              icon: "ri:container-line",
+              title: "容器管理",
+              showLink: true,
+              showParent: true,
+            },
+          },
         ],
       },
     ],

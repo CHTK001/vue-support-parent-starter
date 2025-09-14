@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ReText } from "@repo/components/ReText";
 import { resolvePath as configResolvePath, getConfig, transformI18n } from "@repo/config";
@@ -111,6 +112,7 @@ function resolvePath(routePath: string) {
             class="!w-full !text-inherit"
           >
             {{ transformI18n(onlyOneChild?.meta?.i18nKey || onlyOneChild?.meta?.title) }}
+            <ReMenuNewBadge :createTime="onlyOneChild?.meta?.createTime || item?.meta?.createTime" :type="onlyOneChild?.meta?.badgeType || item?.meta?.badgeType || 'primary'" :customText="onlyOneChild?.meta?.badgeText || item?.meta?.badgeText" />
           </ReText>
           <SidebarExtraIcon :extraIcon="onlyOneChild?.meta?.extraIcon" />
         </div>
@@ -135,6 +137,7 @@ function resolvePath(routePath: string) {
         }"
       >
         {{ transformI18n(onlyOneChild?.meta?.i18nKey || item?.meta?.title) }}
+        <ReMenuNewBadge v-if="!isCollapse" :createTime="item?.meta?.createTime" :type="item?.meta?.badgeType || 'primary'" :customText="item?.meta?.badgeText" />
       </ReText>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item?.meta?.extraIcon" />
     </template>

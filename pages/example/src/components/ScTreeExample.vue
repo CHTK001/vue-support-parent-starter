@@ -122,17 +122,19 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <h4>代码示例</h4>
-      <el-alert type="info" :closable="false" class="mb-3">
-        <div class="code-desc">根据当前配置生成的代码示例</div>
-      </el-alert>
-      <pre><code class="language-html">{{ generatedCode }}</code></pre>
+      <CodeDisplay 
+        :code="generatedCode" 
+        language="html" 
+        title="代码示例" 
+        description="根据当前配置生成的代码示例"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import ScTree from "@repo/components/ScTree/index.vue";
+import CodeDisplay from "./CodeDisplay.vue";
 import type { TreeNode, TreeNodeData, TreeProps } from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
 

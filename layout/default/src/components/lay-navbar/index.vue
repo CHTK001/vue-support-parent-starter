@@ -23,8 +23,8 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     <!-- 混合布局导航 -->
     <LayNavMix v-if="layout === 'mix'" />
 
-    <!-- 纵向/悬停/卡片布局右侧工具栏 -->
-    <div v-if="layout === 'vertical' || layout === 'hover' || layout === 'card'" class="vertical-header-right">
+    <!-- 纵向/悬停/卡片/双栏布局右侧工具栏 -->
+    <div v-if="layout === 'vertical' || layout === 'hover' || layout === 'card' || layout === 'double'" class="vertical-header-right">
       <LayTool />
     </div>
   </div>

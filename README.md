@@ -32,6 +32,7 @@ vue-support-parent-starter/
 - 📱 **响应式设计**: 完美适配移动端和桌面端
 - 🌐 **国际化**: 支持多语言
 - 🔒 **权限控制**: 完整的权限管理系统
+- 🧭 **多种导航模式**: 支持纵向、横向、混合、悬停、卡片、双栏等多种导航布局
 
 ## 快速开始
 
@@ -163,6 +164,76 @@ const handleReset = (form: Record<string, any>) => {
 
 详细文档请查看: [ScSearch组件文档](./packages/components/ScSearch/README.md)
 
+### MenuNewBadge 菜单新增标识组件
+
+一个用于在菜单项上显示"新增"标识的Vue 3组件，帮助用户快速识别最近添加的菜单项。
+
+#### 特性
+
+- 🚀 **Vue 3 + TypeScript**: 使用Composition API，提供完整的类型支持
+- ⏰ **时间控制**: 可配置新菜单标识的显示时间限制
+- 🎨 **样式自定义**: 支持多种标识样式和自定义文本
+- 🌓 **主题适配**: 支持暗色主题和响应式设计
+- ✨ **动画效果**: 包含脉冲动画和光泽效果
+- 🔧 **全局配置**: 可通过系统设置全局控制
+
+#### 基础用法
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <ReMenuNewBadge 
+    :createTime="'2025-01-14T10:00:00Z'"
+  />
+  
+  <!-- 自定义样式和文本 -->
+  <ReMenuNewBadge 
+    :createTime="'2025-01-14T10:00:00Z'"
+    type="success"
+    customText="最新"
+  />
+  
+  <!-- 强制显示 -->
+  <ReMenuNewBadge 
+    :createTime="'2025-01-01T00:00:00Z'"
+    :forceShow="true"
+    type="warning"
+    customText="热门"
+  />
+</template>
+
+<script setup>
+import { ReMenuNewBadge } from '@repo/components'
+</script>
+```
+
+#### 支持的样式类型
+
+- `default` - 灰色渐变背景
+- `primary` - 蓝色渐变背景（默认）
+- `success` - 绿色渐变背景
+- `warning` - 橙色渐变背景
+- `danger` - 红色渐变背景
+
+#### 工具函数
+
+```typescript
+import { MenuNewUtils, createNewMenu } from '@repo/utils'
+
+// 检查是否应该显示新增标识
+const shouldShow = MenuNewUtils.shouldShowNewBadge('2025-01-14T10:00:00Z')
+
+// 创建带有新增标识的菜单项
+const newMenuItem = createNewMenu(
+  { path: '/new-feature', name: 'NewFeature', meta: { title: '新功能' } },
+  '2025-01-14T10:00:00Z',
+  'primary',
+  '新增'
+)
+```
+
+详细文档请查看: [菜单新增标识功能说明](./docs/菜单新增标识功能说明.md)
+
 ### ScSwitch 开关组件
 
 一个功能丰富、样式多样的Vue 3开关组件。
@@ -258,6 +329,336 @@ const switchValue = ref(false)
 
 ```
 /holiday/index
+```
+
+## 路由配置
+
+### 页面路由
+
+项目采用Vue Router进行路由管理，主要路由配置如下：
+
+#### 节假日模块路由
+```typescript
+{
+  path: '/holiday',
+  name: 'Holiday',
+  children: [
+    {
+      path: 'index',
+      name: 'HolidayIndex',
+      component: () => import('@/pages/holiday/index.vue'),
+      meta: {
+        title: '节假日管理',
+        requiresAuth: true
+      }
+    }
+  ]
+}
+```
+
+#### 视频模块路由
+```typescript
+{
+  path: '/video',
+  name: 'Video',
+  children: [
+    {
+      path: 'search',
+      name: 'VideoSearch',
+      component: () => import('@/pages/video/search.vue'),
+      meta: {
+        title: '视频搜索',
+        requiresAuth: true,
+        permissions: ['video:search:view']
+      }
+    },
+    {
+      path: 'manage',
+      name: 'VideoManage',
+      component: () => import('@/pages/video/manage.vue'),
+      meta: {
+        title: '视频管理',
+        requiresAuth: true,
+        permissions: ['video:manage:view']
+      }
+    },
+    {
+      path: 'config',
+      name: 'VideoConfig',
+      component: () => import('@/pages/video/config.vue'),
+      meta: {
+        title: '配置管理',
+        requiresAuth: true,
+        permissions: ['video:config:view']
+      }
+    },
+    {
+      path: 'parse',
+      name: 'VideoParse',
+      component: () => import('@/pages/video/parse.vue'),
+      meta: {
+        title: '视频解析',
+        requiresAuth: true,
+        permissions: ['video:parse:view']
+      }
+    },
+    {
+      path: 'analytics',
+      name: 'VideoAnalytics',
+      component: () => import('@/pages/video/analytics.vue'),
+      meta: {
+        title: '数据分析',
+        requiresAuth: true,
+        permissions: ['video:analytics:view']
+      }
+    },
+    {
+      path: 'settings',
+      name: 'VideoSettings',
+      component: () => import('@/pages/video/settings.vue'),
+      meta: {
+        title: '系统设置',
+        requiresAuth: true,
+        permissions: ['video:settings:view']
+      }
+    }
+  ]
+}
+```
+
+#### 监控应用路由
+```typescript
+{
+  path: '/monitor',
+  name: 'Monitor',
+  children: [
+    {
+      path: 'webrtc',
+      name: 'WebRTCMonitor',
+      component: () => import('@/apps/vue-support-monitor-starter/views/webrtc.vue'),
+      meta: {
+        title: 'WebRTC监控',
+        requiresAuth: true
+      }
+    },
+    {
+      path: 'room',
+      name: 'RoomManage',
+      component: () => import('@/apps/vue-support-monitor-starter/views/room.vue'),
+      meta: {
+        title: '房间管理',
+        requiresAuth: true
+      }
+    }
+  ]
+}
+```
+
+### 路由守卫
+
+项目配置了全局路由守卫，用于权限验证和页面访问控制：
+
+```typescript
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 检查是否需要登录
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    next('/login')
+    return
+  }
+  
+  // 检查权限
+  if (to.meta.permissions && !hasPermissions(to.meta.permissions)) {
+    next('/403')
+    return
+  }
+  
+  next()
+})
+```
+
+### Video 视频模块
+
+提供完整的视频管理、搜索、解析和播放功能。
+
+#### 特性
+
+- 🔍 **视频搜索**: 支持多条件视频搜索和筛选
+- 📹 **视频管理**: 完整的视频CRUD操作
+- 🔗 **视频解析**: 支持多平台视频链接解析
+- ⚙️ **配置管理**: 灵活的系统配置管理
+- 📊 **数据分析**: 视频播放和使用统计分析
+- 🎮 **视频播放**: 内置视频播放器支持
+- 📱 **响应式设计**: 完美适配各种设备
+- 🔒 **权限控制**: 基于角色的权限管理
+
+#### 主要功能模块
+
+##### 1. 视频搜索 (/video/search)
+- 支持关键词搜索
+- 多维度筛选（分类、来源、格式、时长、评分等）
+- 搜索结果展示和排序
+- 搜索历史记录
+- 热门搜索推荐
+
+##### 2. 视频管理 (/video/manage)
+- 视频列表展示和管理
+- 视频详情查看和编辑
+- 视频上传和导入
+- 批量操作支持
+- 视频状态管理
+
+##### 3. 视频解析 (/video/parse)
+- 支持多平台视频链接解析
+- 解析接口管理和配置
+- 解析历史记录
+- 解析结果缓存
+- 解析失败重试机制
+
+##### 4. 配置管理 (/video/config)
+- 系统配置参数管理
+- 解析接口配置
+- 同步配置管理
+- 配置导入导出
+
+##### 5. 数据分析 (/video/analytics)
+- 视频播放统计
+- 用户行为分析
+- 系统性能监控
+- 数据报表生成
+
+##### 6. 系统设置 (/video/settings)
+- 系统参数配置
+- 用户权限管理
+- 接口配置管理
+- 系统维护工具
+
+#### API接口
+
+##### 视频管理接口
+```typescript
+// 获取视频列表
+GET /api/video/list
+// 获取视频详情
+GET /api/video/detail/:id
+// 添加视频
+POST /api/video/add
+// 更新视频
+PUT /api/video/update/:id
+// 删除视频
+DELETE /api/video/delete/:id
+```
+
+##### 视频搜索接口
+```typescript
+// 搜索视频
+POST /api/video/search
+// 获取搜索建议
+GET /api/video/search/suggestions
+// 获取热门搜索
+GET /api/video/search/hot
+// 获取搜索历史
+GET /api/video/search/history
+```
+
+##### 视频解析接口
+```typescript
+// 解析视频链接
+POST /api/video/parse
+// 获取解析接口列表
+GET /api/video/parse/interfaces
+// 获取解析历史
+GET /api/video/parse/history
+```
+
+##### 配置管理接口
+```typescript
+// 获取配置列表
+GET /api/video/config/list
+// 获取配置详情
+GET /api/video/config/detail/:id
+// 更新配置
+PUT /api/video/config/update/:id
+// 同步配置
+POST /api/video/config/sync
+```
+
+#### 数据类型定义
+
+##### 视频信息类型
+```typescript
+interface VideoInfo {
+  id: string;                    // 视频ID
+  title: string;                 // 视频标题
+  description?: string;          // 视频描述
+  cover?: string;               // 视频封面
+  duration?: number;            // 视频时长（秒）
+  size?: number;                // 视频大小（字节）
+  format?: string;              // 视频格式
+  resolution?: string;          // 视频分辨率
+  url: string;                  // 视频URL
+  source?: string;              // 视频来源
+  category?: string;            // 视频分类
+  tags?: string[];              // 视频标签
+  status?: VideoStatus;         // 视频状态
+  createTime?: string;          // 创建时间
+  updateTime?: string;          // 更新时间
+}
+```
+
+##### 搜索请求参数
+```typescript
+interface VideoSearchRequest {
+  keyword?: string;             // 搜索关键词
+  category?: string;            // 视频分类
+  source?: string;              // 视频来源
+  format?: string;              // 视频格式
+  minDuration?: number;         // 最小时长
+  maxDuration?: number;         // 最大时长
+  minRating?: number;           // 最小评分
+  maxRating?: number;           // 最大评分
+  status?: VideoStatus;         // 视频状态
+  current?: number;             // 当前页码
+  size?: number;                // 每页大小
+}
+```
+
+##### 解析结果类型
+```typescript
+interface ParseResult {
+  success: boolean;             // 解析是否成功
+  videoInfo?: VideoInfo;        // 视频信息
+  errorMessage?: string;        // 错误信息
+  duration: number;             // 解析耗时（毫秒）
+  interfaceId: string;          // 使用的接口
+  parseTime: string;            // 解析时间
+}
+```
+
+#### 权限配置
+
+视频模块支持基于角色的权限控制：
+
+- `video:search:view` - 视频搜索查看权限
+- `video:manage:view` - 视频管理查看权限
+- `video:manage:add` - 视频添加权限
+- `video:manage:edit` - 视频编辑权限
+- `video:manage:delete` - 视频删除权限
+- `video:config:view` - 配置查看权限
+- `video:config:edit` - 配置编辑权限
+- `video:analytics:view` - 数据分析查看权限
+- `video:settings:view` - 系统设置查看权限
+- `video:settings:edit` - 系统设置编辑权限
+
+#### 访问路径
+
+```
+/video/search          # 视频搜索
+/video/manage          # 视频管理
+/video/config          # 配置管理
+/video/parse           # 视频解析
+/video/analytics       # 数据分析
+/video/settings        # 系统设置
 ```
 
 ## 应用

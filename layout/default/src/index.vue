@@ -20,6 +20,7 @@ import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import LayTag from "./components/lay-tag/index.vue";
 window.onload = () => {
   registerRequestIdleCallback(() => {
@@ -33,6 +34,7 @@ const LayContent = defineAsyncComponent(() => import("./components/lay-content/i
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
+const NavDouble = markRaw(NavDoubleLayout);
 const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
@@ -181,7 +183,7 @@ const LayHeader = defineComponent({
       },
       {
         default: () => [
-          !pureSetting.hiddenSideBar && (layout.value.includes("vertical") || layout.value.includes("mix") || layout.value.includes("hover") || layout.value.includes("card")) ? h(LayNavbar) : null,
+          !pureSetting.hiddenSideBar && (layout.value.includes("vertical") || layout.value.includes("mix") || layout.value.includes("hover") || layout.value.includes("card") || layout.value.includes("double")) ? h(LayNavbar) : null,
           !pureSetting.hiddenSideBar && layout.value.includes("horizontal") ? h(NavHorizontal) : null,
           h(markRaw(LayTag)),
         ],
@@ -209,9 +211,10 @@ const LayHeader = defineComponent({
 
     <!-- 其他导航模式：原有逻辑 -->
     <template v-else>
-      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+      <div v-show="set.device === 'mobile' && set.sidebar.opened && (layout.includes('vertical') || layout.includes('hover') || layout.includes('double'))" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
       <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
       <NavHover v-show="!pureSetting.hiddenSideBar && layout.includes('hover')" />
+      <NavDouble v-show="!pureSetting.hiddenSideBar && layout.includes('double')" />
       <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
         <div v-if="set.fixedHeader">
           <LayHeader />

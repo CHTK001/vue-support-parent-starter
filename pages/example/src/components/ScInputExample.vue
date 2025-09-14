@@ -414,11 +414,12 @@
 
       <!-- 代码示例 -->
       <div class="code-example mt-4">
-        <h4>代码示例</h4>
-        <el-alert type="info" :closable="false" class="mb-3">
-          <div class="code-desc">根据当前配置生成的代码示例</div>
-        </el-alert>
-        <pre><code class="language-html">{{ codeExample }}</code></pre>
+        <CodeDisplay 
+          :code="codeExample" 
+          language="html" 
+          title="代码示例" 
+          description="根据当前配置生成的代码示例"
+        />
       </div>
     </el-card>
   </div>
@@ -430,6 +431,7 @@ import { ElMessage } from "element-plus";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import axios from "axios";
+import CodeDisplay from "./CodeDisplay.vue";
 
 // 主题设置
 const isDarkMode = ref(false);
@@ -980,4 +982,4 @@ code {
     width: 100%;
   }
 }
-</style> 
+</style>

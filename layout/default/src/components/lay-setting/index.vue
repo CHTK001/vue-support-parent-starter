@@ -30,6 +30,7 @@ const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
 const hoverRef = ref();
+const doubleRef = ref();
 
 // 存储 tippy 实例的数组，用于组件销毁时清理
 const tippyInstances = ref([]);
@@ -68,6 +69,13 @@ const settings = reactive({
   stretch: $storage.configure.stretch,
   keepAlive: true,
   debugMode: false,
+  // 菜单设置相关
+  showNewMenu: $storage.configure.showNewMenu ?? true,
+  newMenuText: $storage.configure.newMenuText ?? "new",
+  newMenuTimeLimit: $storage.configure.newMenuTimeLimit ?? 168,
+  // 双栏导航设置相关
+  doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
+  doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
 });
 
 /** 卡片颜色模式配置 */
@@ -395,19 +403,23 @@ watch($storage, ({ layout }) => {
   switch (layout["layout"]) {
     case "vertical":
       toggleClass(true, "is-select", unref(verticalRef));
-      debounce(setFalse([horizontalRef, mixRef, hoverRef]), 50);
+      debounce(setFalse([horizontalRef, mixRef, hoverRef, doubleRef]), 50);
       break;
     case "horizontal":
       toggleClass(true, "is-select", unref(horizontalRef));
-      debounce(setFalse([verticalRef, mixRef, hoverRef]), 50);
+      debounce(setFalse([verticalRef, mixRef, hoverRef, doubleRef]), 50);
       break;
     case "mix":
       toggleClass(true, "is-select", unref(mixRef));
-      debounce(setFalse([verticalRef, horizontalRef, hoverRef]), 50);
+      debounce(setFalse([verticalRef, horizontalRef, hoverRef, doubleRef]), 50);
       break;
     case "hover":
       toggleClass(true, "is-select", unref(hoverRef));
-      debounce(setFalse([verticalRef, horizontalRef, mixRef]), 50);
+      debounce(setFalse([verticalRef, horizontalRef, mixRef, doubleRef]), 50);
+      break;
+    case "double":
+      toggleClass(true, "is-select", unref(doubleRef));
+      debounce(setFalse([verticalRef, horizontalRef, mixRef, hoverRef]), 50);
       break;
   }
 });
@@ -452,7 +464,7 @@ onBeforeMount(() => {
 // 收集 tippy 实例的函数
 const collectTippyInstances = () => {
   nextTick(() => {
-    const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value].filter(Boolean);
+    const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value, doubleRef.value].filter(Boolean);
 
     elementsWithTippy.forEach((element) => {
       if (element && element._tippy) {
@@ -474,7 +486,7 @@ onMounted(() => {
 // 销毁所有 tippy 实例的函数
 const destroyAllTippyInstances = () => {
   // 销毁通过 v-tippy 指令创建的实例
-  const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value].filter(Boolean);
+  const elementsWithTippy = [verticalRef.value, horizontalRef.value, mixRef.value, hoverRef.value, doubleRef.value].filter(Boolean);
 
   elementsWithTippy.forEach((element) => {
     if (element && element._tippy) {
@@ -569,6 +581,27 @@ function exportSettings() {
   ElMessage.success("设置已导出");
 }
 
+/** 菜单设置变更处理 */
+function showNewMenuChange() {
+  storageConfigureChange("showNewMenu", settings.showNewMenu);
+}
+
+function newMenuTextChange() {
+  storageConfigureChange("newMenuText", settings.newMenuText);
+}
+
+function newMenuTimeLimitChange() {
+  storageConfigureChange("newMenuTimeLimit", settings.newMenuTimeLimit);
+}
+
+function doubleNavExpandModeChange() {
+  storageConfigureChange("doubleNavExpandMode", settings.doubleNavExpandMode);
+}
+
+function doubleNavAutoExpandAllChange() {
+  storageConfigureChange("doubleNavAutoExpandAll", settings.doubleNavAutoExpandAll);
+}
+
 /** 导入设置 */
 function importSettings() {
   const input = document.createElement("input");
@@ -614,6 +647,9 @@ function importSettings() {
         logoChange();
         cardBodyChange();
         multiTagsCacheChange();
+        showNewMenuChange();
+        newMenuTextChange();
+        newMenuTimeLimitChange();
 
         ElMessage.success("设置已导入");
       } catch (error) {
@@ -779,6 +815,25 @@ onUnmounted(() => {
             </li>
             <li
               v-if="device !== 'mobile'"
+              ref="doubleRef"
+              v-tippy="{
+                content: '双栏导航：左右双栏布局，支持子菜单展开控制',
+                zIndex: 41000,
+              }"
+              :class="layoutTheme.layout === 'double' ? 'is-select' : ''"
+              @click="setLayoutModel('double')"
+            >
+              <div />
+              <div />
+              <div />
+              <div />
+              <div />
+              <div class="layout-desc">
+                <h5>双栏导航</h5>
+              </div>
+            </li>
+            <li
+              v-if="device !== 'mobile'"
               class="placeholder-layout"
               v-tippy="{
                 content: '敬请期待更多布局模式',
@@ -790,6 +845,45 @@ onUnmounted(() => {
               </div>
             </li>
           </ul>
+        </div>
+      </div>
+      <!-- 卡片导航设置 -->
+      <div v-if="layoutTheme.layout === 'card'" class="setting-section">
+        <div class="section-header">
+          <IconifyIconOffline :icon="'ri:layout-column-line'" class="section-icon" />
+          <h3 class="section-title">卡片导航</h3>
+          <div class="section-description">配置卡片导航行为</div>
+        </div>
+        <div class="setting-content">
+          <div class="switch-item">
+            <Segmented resize class="select-none modern-segmented" :modelValue="cardColorMode === 'all' ? 0 : cardColorMode === 'third' ? 1 : 2" :options="cardColorOptions" @change="onCardColorModeChange" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 双栏导航配置区域 -->
+      <div v-if="layoutTheme.layout === 'double'" class="setting-section">
+        <div class="section-header">
+          <IconifyIconOffline :icon="'ri:layout-column-line'" class="section-icon" />
+          <h3 class="section-title">双栏导航配置</h3>
+          <div class="section-description">配置双栏导航的子菜单展开行为</div>
+        </div>
+        <div class="setting-content">
+          <div class="switch-item">
+            <label class="switch-label">展开模式</label>
+            <div class="radio-group">
+              <el-radio-group v-model="settings.doubleNavExpandMode" @change="doubleNavExpandModeChange">
+                <el-radio value="auto">自动展开</el-radio>
+                <el-radio value="manual">手动展开</el-radio>
+              </el-radio-group>
+            </div>
+          </div>
+          <div class="setting-content">
+            <div v-if="settings.doubleNavExpandMode === 'manual'" class="switch-item">
+              <label class="switch-label">展开子菜单</label>
+              <el-switch v-model="settings.doubleNavAutoExpandAll" @change="doubleNavAutoExpandAllChange" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -987,29 +1081,6 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- 卡片导航设置 -->
-          <div class="setting-group">
-            <h4 class="group-title">
-              <IconifyIconOffline :icon="'ri:palette-line'" class="group-icon" />
-              卡片导航
-            </h4>
-            <div class="setting-item">
-              <div class="setting-info">
-                <label class="setting-label">卡片颜色模式</label>
-                <span class="setting-desc">选择卡片导航的颜色显示方式</span>
-              </div>
-              <div class="setting-control">
-                <Segmented 
-                  resize 
-                  class="select-none modern-segmented" 
-                  :modelValue="cardColorMode === 'all' ? 0 : cardColorMode === 'third' ? 1 : 2" 
-                  :options="cardColorOptions" 
-                  @change="onCardColorModeChange" 
-                />
-              </div>
-            </div>
-          </div>
-
           <!-- 功能设置 -->
           <div class="setting-group">
             <h4 class="group-title">
@@ -1024,6 +1095,63 @@ onUnmounted(() => {
                 </div>
                 <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 菜单设置区域 -->
+      <div class="setting-section">
+        <div class="section-header">
+          <IconifyIconOffline :icon="'ri:menu-line'" class="section-icon" />
+          <h3 class="section-title">菜单设置</h3>
+          <div class="section-description">配置新增菜单的显示方式</div>
+        </div>
+        <div class="setting-content">
+          <!-- 新菜单显示设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:add-circle-line'" class="group-icon" />
+              新菜单显示
+            </h4>
+            <div class="switch-grid">
+              <div class="switch-item">
+                <div class="switch-info">
+                  <label class="switch-label">显示新增菜单</label>
+                  <span class="switch-desc">是否在菜单项上显示新增标识</span>
+                </div>
+                <el-switch v-model="settings.showNewMenu" inline-prompt @change="showNewMenuChange" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 新菜单文本设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:text'" class="group-icon" />
+              显示文本
+            </h4>
+            <div class="input-item">
+              <div class="input-info">
+                <label class="input-label">新菜单标识文本</label>
+                <span class="input-desc">自定义新菜单显示的文本内容</span>
+              </div>
+              <el-input v-model="settings.newMenuText" placeholder="请输入显示文本" maxlength="10" show-word-limit @blur="newMenuTextChange" style="width: 120px" />
+            </div>
+          </div>
+
+          <!-- 时间限制设置 -->
+          <div class="setting-group">
+            <h4 class="group-title">
+              <IconifyIconOffline :icon="'ri:time-line'" class="group-icon" />
+              时间控制
+            </h4>
+            <div class="input-item">
+              <div class="input-info">
+                <label class="input-label">显示时间限制</label>
+                <span class="input-desc">菜单创建后多少小时内显示新标识（小时）</span>
+              </div>
+              <el-input-number v-model="settings.newMenuTimeLimit" :min="1" :max="8760" :step="1" @change="newMenuTimeLimitChange" style="width: 120px" />
             </div>
           </div>
         </div>
@@ -2025,6 +2153,73 @@ onUnmounted(() => {
 
     &:hover {
       box-shadow: 0 6px 20px rgba(var(--el-color-danger-rgb), 0.4);
+    }
+  }
+}
+
+// 输入项样式
+.input-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-light);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.6s ease;
+  }
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.1);
+    transform: translateY(-1px);
+
+    &::before {
+      left: 100%;
+    }
+  }
+
+  .input-info {
+    flex: 1;
+    margin-right: 16px;
+
+    .input-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .input-desc {
+      font-size: 12px;
+      color: var(--el-text-color-regular);
+      line-height: 1.4;
+      opacity: 0.8;
+    }
+  }
+
+  // 暗色主题适配
+  .dark & {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+
+    &:hover {
+      border-color: var(--el-color-primary-light-3);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
     }
   }
 }
