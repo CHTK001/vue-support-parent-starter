@@ -58,7 +58,7 @@ export interface VideoSearchRequest {
   page: number;
   size: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 // 视频下载信息
@@ -101,23 +101,27 @@ export interface VideoSyncConfig {
   videoSyncConfigName: string;
   videoSyncConfigSource: string;
   videoSyncConfigUrl?: string;
+  videoConfigRemark?: string;
   videoSyncConfigKeyword?: string;
   videoSyncConfigCategory?: string;
   videoSyncConfigCron?: string;
   videoSyncConfigStatus?: number;
-  videoSyncConfigLastTime?: string;
+  videoSyncInterval?: number;
+  syncCount?: number;
+  videoSyncConfigLastSyncTime?: string;
+  videoConfigHeaders?: string;
   createTime?: string;
   updateTime?: string;
 }
 
 // 网盘类型枚举
 export enum PanType {
-  BAIDU = 'BAIDU',
-  ALIYUN = 'ALIYUN',
-  QUARK = 'QUARK',
-  UC = 'UC',
-  LANZOU = 'LANZOU',
-  TIANYI = 'TIANYI'
+  BAIDU = "BAIDU",
+  ALIYUN = "ALIYUN",
+  QUARK = "QUARK",
+  UC = "UC",
+  LANZOU = "LANZOU",
+  TIANYI = "TIANYI",
 }
 
 // 网盘资源
@@ -141,12 +145,12 @@ export interface PanSouResult {
 
 // SocketIO消息类型
 export enum MessageType {
-  SYNC_START = 'SYNC_START',
-  SYNC_PROGRESS = 'SYNC_PROGRESS',
-  SYNC_COMPLETE = 'SYNC_COMPLETE',
-  SYNC_ERROR = 'SYNC_ERROR',
-  VIDEO_PROCESSING = 'VIDEO_PROCESSING',
-  SYSTEM_NOTIFICATION = 'SYSTEM_NOTIFICATION'
+  SYNC_START = "SYNC_START",
+  SYNC_PROGRESS = "SYNC_PROGRESS",
+  SYNC_COMPLETE = "SYNC_COMPLETE",
+  SYNC_ERROR = "SYNC_ERROR",
+  VIDEO_PROCESSING = "VIDEO_PROCESSING",
+  SYSTEM_NOTIFICATION = "SYSTEM_NOTIFICATION",
 }
 
 // SocketIO消息

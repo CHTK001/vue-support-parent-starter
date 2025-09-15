@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.2] - 2024-12-19
+
+### 新增
+
+- **Socket服务增强**: 全面升级Socket连接管理
+  - 🔌 **全局Socket服务**: 新增基于Vue Composition API的全局Socket服务
+  - 💉 **依赖注入支持**: 使用provide/inject模式，便于组件间共享Socket连接
+  - 📡 **响应式状态**: Socket连接状态使用Vue响应式系统管理
+  - 🔄 **向后兼容**: 保持原有socket工厂函数完全不变，确保现有代码正常运行
+  - 🎯 **统一管理**: 提供createGlobalSocketService、provideGlobalSocket、useGlobalSocket等API
+  - 📚 **完整文档**: 新增详细的使用文档和示例代码
+  - 🛡️ **类型安全**: 完整的TypeScript类型定义和接口支持
+
 ## [2.3.1] - 2025-01-14
 
 ### 修复

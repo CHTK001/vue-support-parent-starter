@@ -5,11 +5,11 @@
  * @since 2024-12-19
  */
 
-import { http } from '@pureadmin/utils';
-import type { ApiResponse, PageResponse, VideoSyncConfig } from './types';
+import { http } from "@repo/utils";
+import type { ApiResponse, PageResponse, VideoSyncConfig } from "./types";
 
 // API基础路径
-const API_BASE = '/api/video/sync-config';
+const API_BASE = "v1/video/sync";
 
 /**
  * 获取同步配置列表
@@ -19,8 +19,8 @@ const API_BASE = '/api/video/sync-config';
  * @returns 分页配置列表
  */
 export const getSyncConfigs = (page: number = 1, size: number = 10, keyword?: string): Promise<PageResponse<VideoSyncConfig>> => {
-  return http.get(`${API_BASE}/list`, {
-    params: { page, size, keyword }
+  return http.get(`${API_BASE}/page`, {
+    params: { page, size, keyword },
   });
 };
 
@@ -39,7 +39,7 @@ export const getSyncConfigDetail = (configId: string): Promise<ApiResponse<Video
  * @returns 操作结果
  */
 export const addSyncConfig = (config: VideoSyncConfig): Promise<ApiResponse<string>> => {
-  return http.post(`${API_BASE}/add`, config);
+  return http.post(`${API_BASE}/save`, config);
 };
 
 /**
@@ -97,7 +97,7 @@ export const batchExecuteSyncConfigs = (configIds: string[]): Promise<ApiRespons
  */
 export const getSyncHistory = (configId: string, page: number = 1, size: number = 10): Promise<PageResponse<any>> => {
   return http.get(`${API_BASE}/history/${configId}`, {
-    params: { page, size }
+    params: { page, size },
   });
 };
 

@@ -5,6 +5,14 @@
  * @since 2024-12-19
  */
 
-export { default } from "./index.vue";
-export * from "./router";
+// 主要页面组件导出
+import VideoConfig from "./views/config/index.vue";
+import VideoManage from "./views/manage/index.vue";
+import VideoParse from "./views/parse/index.vue";
+import VideoSearch from "./views/search/index.vue";
+import VideoSearchResult from "./views/search/result.vue";
+
+// 主模块导出
 export * from "./api";
+export * from "./router";
+export { VideoConfig, VideoManage, VideoParse, VideoSearch, VideoSearchResult };

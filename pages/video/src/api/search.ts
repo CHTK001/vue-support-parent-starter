@@ -5,7 +5,7 @@
  * @since 2024-12-19
  */
 
-import { http } from '@pureadmin/utils';
+import { http } from "@repo/utils";
 import type { ApiResponse, PageResponse, VideoKeyword, PanSouResult, PanType } from './types';
 
 // API基础路径

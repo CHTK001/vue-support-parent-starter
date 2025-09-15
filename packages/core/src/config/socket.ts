@@ -1,6 +1,156 @@
 import { getToken } from "@repo/core";
 import { message, uu4 } from "@repo/utils";
 import { io } from "socket.io-client";
+import { inject, provide, ref, type InjectionKey } from "vue";
+
+/**
+ * 全局Socket服务接口
+ * @author CH
+ * @version 1.0.0
+ * @since 2024-12-19
+ */
+export interface GlobalSocketService {
+  socket: any;
+  isConnected: boolean;
+  connect: () => void;
+  disconnect: () => void;
+  on: (event: string, callback: Function) => void;
+  off: (event: string) => void;
+  emit: (event: string, data?: any) => void;
+  close: () => void;
+}
+
+// 全局Socket注入键
+export const GlobalSocketKey: InjectionKey<GlobalSocketService> = Symbol("GlobalSocket");
+
+/**
+ * 创建全局Socket服务
+ * @param urls Socket服务器地址数组
+ * @param context Socket.IO路径
+ * @param query 查询参数
+ * @param options Socket选项
+ */
+export function createGlobalSocketService(
+  urls: string[],
+  context = "/socket.io",
+  query = {},
+  options = {
+    transports: ["websocket"],
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: 3,
+    reconnectionDelay: 1000,
+  }
+): GlobalSocketService {
+  let socketInstance: any = null;
+  const isConnected = ref(false);
+
+  /**
+   * 连接Socket
+   */
+  const connect = () => {
+    if (socketInstance) {
+      console.warn("Global Socket已连接");
+      return;
+    }
+
+    // 使用原有的socket工厂函数创建连接
+    socketInstance = socket(urls, context, query, options);
+
+    // 监听连接状态
+    socketInstance.on("connect", () => {
+      isConnected.value = true;
+    });
+
+    socketInstance.on("disconnect", () => {
+      isConnected.value = false;
+    });
+  };
+
+  /**
+   * 断开连接
+   */
+  const disconnect = () => {
+    if (socketInstance) {
+      socketInstance.close();
+      socketInstance = null;
+      isConnected.value = false;
+    }
+  };
+
+  /**
+   * 监听事件
+   */
+  const on = (event: string, callback: Function) => {
+    if (socketInstance) {
+      socketInstance.on(event, callback);
+    }
+  };
+
+  /**
+   * 移除事件监听
+   */
+  const off = (event: string) => {
+    if (socketInstance) {
+      socketInstance.off(event);
+    }
+  };
+
+  /**
+   * 发送事件
+   */
+  const emit = (event: string, data?: any) => {
+    if (socketInstance) {
+      socketInstance.emit(event, data);
+    }
+  };
+
+  /**
+   * 关闭连接
+   */
+  const close = () => {
+    disconnect();
+  };
+
+  return {
+    get socket() {
+      return socketInstance;
+    },
+    get isConnected() {
+      return isConnected.value;
+    },
+    connect,
+    disconnect,
+    on,
+    off,
+    emit,
+    close,
+  };
+}
+
+/**
+ * 提供全局Socket服务
+ * @param urls Socket服务器地址数组
+ * @param context Socket.IO路径
+ * @param query 查询参数
+ * @param options Socket选项
+ */
+export function provideGlobalSocket(urls: string[], context?: string, query?: any, options?: any) {
+  const socketService = createGlobalSocketService(urls, context, query, options);
+  provide(GlobalSocketKey, socketService);
+  return socketService;
+}
+
+/**
+ * 注入全局Socket服务
+ */
+export function useGlobalSocket(): GlobalSocketService {
+  const socketService = inject(GlobalSocketKey);
+  if (!socketService) {
+    throw new Error("Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()");
+  }
+  return socketService;
+}
 
 export const socket = (
   urls,

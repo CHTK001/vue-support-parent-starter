@@ -1,7 +1,7 @@
 // 全局路由类型声明
 
-import type { RouteComponent, RouteLocationNormalized } from "vue-router";
 import type { FunctionalComponent } from "vue";
+import type { RouteComponent, RouteLocationNormalized } from "vue-router";
 
 declare global {
   interface ToRouteType extends RouteLocationNormalized {
@@ -56,6 +56,8 @@ declare global {
      * 而通过设置`activePath`指定激活菜单即可获得高亮，`activePath`为指定激活菜单的`path`）
      */
     activePath?: string;
+    /** 排序 */
+    rank?: number;
   }
 
   /**

@@ -166,8 +166,8 @@
 import { useRenderIcon } from "@repo/components";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
-import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
+import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { fetchDeleteProject, fetchPageProject, fetchUpdateProjectDefault } from "../../api/manage/project";
 import SaveDialog from "./save.vue";
 
@@ -562,14 +562,13 @@ const handleEventCustom = async (row, item1, event) => {
       console.warn(`未找到功能代码 ${item1.code} 对应的处理函数`);
       return;
     }
-    
+
     // 执行路由跳转
     console.log(`正在跳转到功能: ${item1.code}`, { row, item1 });
     await eventMap[item1.code](row, item1);
-    
+
     // 添加延迟确保路由跳转完成
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
   } catch (error) {
     console.error(`功能 ${item1.code} 跳转失败:`, error);
     // 可以添加用户提示
