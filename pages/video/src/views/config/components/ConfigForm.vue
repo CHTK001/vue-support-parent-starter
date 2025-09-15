@@ -152,13 +152,9 @@ const handleSave = () => {
       
       apiCall
         .then((result) => {
-          if (result.success) {
             ElMessage.success(props.editing ? "配置更新成功" : "配置添加成功");
             emit("success");
             handleClose();
-          } else {
-            ElMessage.error(result.message || "操作失败");
-          }
         })
         .catch((error) => {
           console.error("保存配置失败:", error);
