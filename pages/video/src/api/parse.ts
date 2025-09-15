@@ -5,11 +5,11 @@
  * @since 2024-12-19
  */
 
-import { http } from '@pureadmin/utils';
-import type { ApiResponse } from './types';
+import { http } from "@repo/utils";
+import type { ApiResponse } from "./types";
 
 // API基础路径
-const API_BASE = '/api/video/parse';
+const API_BASE = "/api/video/parse";
 
 // 解析接口配置
 export interface ParseApiConfig {
@@ -60,7 +60,7 @@ export const getParseApis = (): Promise<ApiResponse<ParseApiConfig[]>> => {
 export const parseVideoUrl = (url: string, apiId: string): Promise<ApiResponse<ParseResult>> => {
   return http.post(`${API_BASE}/parse`, {
     url,
-    apiId
+    apiId,
   });
 };
 
@@ -73,7 +73,7 @@ export const parseVideoUrl = (url: string, apiId: string): Promise<ApiResponse<P
 export const batchParseVideoUrls = (urls: string[], apiId: string): Promise<ApiResponse<ParseResult[]>> => {
   return http.post(`${API_BASE}/batch-parse`, {
     urls,
-    apiId
+    apiId,
   });
 };
 
@@ -83,14 +83,19 @@ export const batchParseVideoUrls = (urls: string[], apiId: string): Promise<ApiR
  * @param size 每页大小
  * @returns 解析历史列表
  */
-export const getParseHistory = (page: number = 1, size: number = 20): Promise<ApiResponse<{
-  records: ParseHistory[];
-  total: number;
-  current: number;
-  size: number;
-}>> => {
+export const getParseHistory = (
+  page: number = 1,
+  size: number = 20
+): Promise<
+  ApiResponse<{
+    records: ParseHistory[];
+    total: number;
+    current: number;
+    size: number;
+  }>
+> => {
   return http.get(`${API_BASE}/history`, {
-    params: { page, size }
+    params: { page, size },
   });
 };
 
@@ -116,12 +121,16 @@ export const deleteParseHistory = (historyId: string): Promise<ApiResponse<boole
  * @param url 视频URL
  * @returns 检测结果
  */
-export const validateVideoUrl = (url: string): Promise<ApiResponse<{
-  valid: boolean;
-  platform?: string;
-  title?: string;
-  error?: string;
-}>> => {
+export const validateVideoUrl = (
+  url: string
+): Promise<
+  ApiResponse<{
+    valid: boolean;
+    platform?: string;
+    title?: string;
+    error?: string;
+  }>
+> => {
   return http.post(`${API_BASE}/validate`, { url });
 };
 
@@ -131,16 +140,21 @@ export const validateVideoUrl = (url: string): Promise<ApiResponse<{
  * @param endDate 结束日期
  * @returns 统计信息
  */
-export const getParseStats = (startDate?: string, endDate?: string): Promise<ApiResponse<{
-  totalParses: number;
-  successParses: number;
-  failedParses: number;
-  successRate: number;
-  popularApis: Array<{ apiId: string; count: number; label: string }>;
-  popularPlatforms: Array<{ platform: string; count: number }>;
-}>> => {
+export const getParseStats = (
+  startDate?: string,
+  endDate?: string
+): Promise<
+  ApiResponse<{
+    totalParses: number;
+    successParses: number;
+    failedParses: number;
+    successRate: number;
+    popularApis: Array<{ apiId: string; count: number; label: string }>;
+    popularPlatforms: Array<{ platform: string; count: number }>;
+  }>
+> => {
   return http.get(`${API_BASE}/stats`, {
-    params: { startDate, endDate }
+    params: { startDate, endDate },
   });
 };
 
@@ -149,11 +163,15 @@ export const getParseStats = (startDate?: string, endDate?: string): Promise<Api
  * @param apiId 解析接口ID
  * @returns 测试结果
  */
-export const testParseApi = (apiId: string): Promise<ApiResponse<{
-  available: boolean;
-  responseTime?: number;
-  error?: string;
-}>> => {
+export const testParseApi = (
+  apiId: string
+): Promise<
+  ApiResponse<{
+    available: boolean;
+    responseTime?: number;
+    error?: string;
+  }>
+> => {
   return http.post(`${API_BASE}/test-api`, { apiId });
 };
 
@@ -161,12 +179,16 @@ export const testParseApi = (apiId: string): Promise<ApiResponse<{
  * 获取热门视频网站列表
  * @returns 热门网站列表
  */
-export const getPopularVideoSites = (): Promise<ApiResponse<Array<{
-  name: string;
-  url: string;
-  icon: string;
-  platform: string;
-}>>> => {
+export const getPopularVideoSites = (): Promise<
+  ApiResponse<
+    Array<{
+      name: string;
+      url: string;
+      icon: string;
+      platform: string;
+    }>
+  >
+> => {
   return http.get(`${API_BASE}/popular-sites`);
 };
 
@@ -175,7 +197,7 @@ export const getPopularVideoSites = (): Promise<ApiResponse<Array<{
  * @param config 解析接口配置
  * @returns 操作结果
  */
-export const addCustomParseApi = (config: Omit<ParseApiConfig, 'value'>): Promise<ApiResponse<string>> => {
+export const addCustomParseApi = (config: Omit<ParseApiConfig, "value">): Promise<ApiResponse<string>> => {
   return http.post(`${API_BASE}/custom-api`, config);
 };
 

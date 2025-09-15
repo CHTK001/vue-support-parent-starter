@@ -201,171 +201,171 @@ const projectStats = reactive({
 });
 
 // 粒子动画样式
- const getParticleStyle = (index) => {
-   const delay = index * 0.5;
-   const duration = 3 + Math.random() * 2;
-   const size = 2 + Math.random() * 3;
-   const x = Math.random() * 100;
-   const y = Math.random() * 100;
-   
-   return {
-     left: `${x}%`,
-     top: `${y}%`,
-     width: `${size}px`,
-     height: `${size}px`,
-     animationDelay: `${delay}s`,
-     animationDuration: `${duration}s`
-   };
- };
- 
- // 获取项目状态样式类
- const getStatusClass = (row) => {
-   const status = row?.status || 'active';
-   return {
-     'status-active': status === 'active',
-     'status-completed': status === 'completed',
-     'status-paused': status === 'paused',
-     'status-error': status === 'error'
-   };
- };
- 
- // 获取状态文本
- const getStatusText = (row) => {
-   const status = row?.status || 'active';
-   const statusMap = {
-     active: '活跃',
-     completed: '已完成',
-     paused: '暂停',
-     error: '错误'
-   };
-   return statusMap[status] || '未知';
- };
- 
- // 格式化日期
- const formatDate = (dateStr) => {
-   if (!dateStr) return '最近';
-   const date = new Date(dateStr);
-   const now = new Date();
-   const diff = now - date;
-   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-   
-   if (days === 0) return '今天';
-   if (days === 1) return '昨天';
-   if (days < 7) return `${days}天前`;
-   if (days < 30) return `${Math.floor(days / 7)}周前`;
-   return date.toLocaleDateString();
- };
- 
- // 获取时间差
- const getTimeAgo = (dateStr) => {
-   if (!dateStr) return '刚刚';
-   const date = new Date(dateStr);
-   const now = new Date();
-   const diff = now - date;
-   const minutes = Math.floor(diff / (1000 * 60));
-   const hours = Math.floor(diff / (1000 * 60 * 60));
-   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-   
-   if (minutes < 1) return '刚刚';
-   if (minutes < 60) return `${minutes}分钟前`;
-   if (hours < 24) return `${hours}小时前`;
-   if (days < 7) return `${days}天前`;
-   return formatDate(dateStr);
- };
- 
- // 获取项目类型
- const getProjectType = (row) => {
-   const types = ['Web应用', 'API服务', '数据分析', '机器学习', '移动应用'];
-   return types[Math.floor(Math.random() * types.length)];
- };
- 
- // 获取标签类型
- const getTagType = (tag) => {
-   const typeMap = {
-     'Vue': 'success',
-     'React': 'primary',
-     'Node.js': 'warning',
-     'Python': 'info',
-     'AI': 'danger'
-   };
-   return typeMap[tag] || 'info';
- };
- 
- // 获取快速操作
- const getQuickActions = (row) => {
-   return [
-     {
-       key: 'view',
-       type: 'primary',
-       icon: useRenderIcon('ri:eye-line'),
-       title: '查看详情',
-       handler: (row) => console.log('查看', row)
-     },
-     {
-       key: 'edit',
-       type: 'success',
-       icon: useRenderIcon('ri:edit-line'),
-       title: '编辑项目',
-       handler: (row) => handleSave('edit', row)
-     },
-     {
-       key: 'deploy',
-       type: 'warning',
-       icon: useRenderIcon('ri:rocket-line'),
-       title: '部署项目',
-       handler: (row) => console.log('部署', row)
-     }
-   ];
- };
- 
- // 获取卡片样式类
- const getCardClass = (row) => {
-   return {
-     'card-featured': row?.featured,
-     'card-new': isNewProject(row),
-     'card-updated': isRecentlyUpdated(row)
-   };
- };
- 
- // 判断是否为新项目
- const isNewProject = (row) => {
-   if (!row?.createTime) return false;
-   const createDate = new Date(row.createTime);
-   const now = new Date();
-   const daysDiff = (now - createDate) / (1000 * 60 * 60 * 24);
-   return daysDiff <= 7;
- };
- 
- // 判断是否最近更新
- const isRecentlyUpdated = (row) => {
-   if (!row?.updateTime) return false;
-   const updateDate = new Date(row.updateTime);
-   const now = new Date();
-   const daysDiff = (now - updateDate) / (1000 * 60 * 60 * 24);
-   return daysDiff <= 3;
- };
- 
- // 处理下拉菜单命令
-  const handleDropdownCommand = (command, row) => {
-    switch (command) {
-      case 'edit':
-        handleSave('edit', row);
-        break;
-      case 'clone':
-        console.log('克隆项目', row);
-        break;
-      case 'export':
-        console.log('导出配置', row);
-        break;
-      case 'delete':
-        handleDelete(row);
-        break;
-    }
+const getParticleStyle = (index) => {
+  const delay = index * 0.5;
+  const duration = 3 + Math.random() * 2;
+  const size = 2 + Math.random() * 3;
+  const x = Math.random() * 100;
+  const y = Math.random() * 100;
+
+  return {
+    left: `${x}%`,
+    top: `${y}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`,
   };
- 
- const handleCommand = (event) => {
-   event.stopPropagation();
- };
+};
+
+// 获取项目状态样式类
+const getStatusClass = (row) => {
+  const status = row?.status || "active";
+  return {
+    "status-active": status === "active",
+    "status-completed": status === "completed",
+    "status-paused": status === "paused",
+    "status-error": status === "error",
+  };
+};
+
+// 获取状态文本
+const getStatusText = (row) => {
+  const status = row?.status || "active";
+  const statusMap = {
+    active: "活跃",
+    completed: "已完成",
+    paused: "暂停",
+    error: "错误",
+  };
+  return statusMap[status] || "未知";
+};
+
+// 格式化日期
+const formatDate = (dateStr) => {
+  if (!dateStr) return "最近";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days === 0) return "今天";
+  if (days === 1) return "昨天";
+  if (days < 7) return `${days}天前`;
+  if (days < 30) return `${Math.floor(days / 7)}周前`;
+  return date.toLocaleDateString();
+};
+
+// 获取时间差
+const getTimeAgo = (dateStr) => {
+  if (!dateStr) return "刚刚";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (hours < 24) return `${hours}小时前`;
+  if (days < 7) return `${days}天前`;
+  return formatDate(dateStr);
+};
+
+// 获取项目类型
+const getProjectType = (row) => {
+  const types = ["Web应用", "API服务", "数据分析", "机器学习", "移动应用"];
+  return types[Math.floor(Math.random() * types.length)];
+};
+
+// 获取标签类型
+const getTagType = (tag) => {
+  const typeMap = {
+    Vue: "success",
+    React: "primary",
+    "Node.js": "warning",
+    Python: "info",
+    AI: "danger",
+  };
+  return typeMap[tag] || "info";
+};
+
+// 获取快速操作
+const getQuickActions = (row) => {
+  return [
+    {
+      key: "view",
+      type: "primary",
+      icon: useRenderIcon("ri:eye-line"),
+      title: "查看详情",
+      handler: (row) => console.log("查看", row),
+    },
+    {
+      key: "edit",
+      type: "success",
+      icon: useRenderIcon("ri:edit-line"),
+      title: "编辑项目",
+      handler: (row) => handleSave("edit", row),
+    },
+    {
+      key: "deploy",
+      type: "warning",
+      icon: useRenderIcon("ri:rocket-line"),
+      title: "部署项目",
+      handler: (row) => console.log("部署", row),
+    },
+  ];
+};
+
+// 获取卡片样式类
+const getCardClass = (row) => {
+  return {
+    "card-featured": row?.featured,
+    "card-new": isNewProject(row),
+    "card-updated": isRecentlyUpdated(row),
+  };
+};
+
+// 判断是否为新项目
+const isNewProject = (row) => {
+  if (!row?.createTime) return false;
+  const createDate = new Date(row.createTime);
+  const now = new Date();
+  const daysDiff = (now - createDate) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 7;
+};
+
+// 判断是否最近更新
+const isRecentlyUpdated = (row) => {
+  if (!row?.updateTime) return false;
+  const updateDate = new Date(row.updateTime);
+  const now = new Date();
+  const daysDiff = (now - updateDate) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 3;
+};
+
+// 处理下拉菜单命令
+const handleDropdownCommand = (command, row) => {
+  switch (command) {
+    case "edit":
+      handleSave("edit", row);
+      break;
+    case "clone":
+      console.log("克隆项目", row);
+      break;
+    case "export":
+      console.log("导出配置", row);
+      break;
+    case "delete":
+      handleDelete(row);
+      break;
+  }
+};
+
+const handleCommand = (event) => {
+  event.stopPropagation();
+};
 
 const handleDelete = async (row) => {
   fetchDeleteProject({
@@ -1034,9 +1034,9 @@ onMounted(async () => {
     box-shadow:
       0 8px 32px rgba(103, 194, 58, 0.2),
       0 2px 8px rgba(103, 194, 58, 0.1);
-      
+
     &::after {
-      content: 'NEW';
+      content: "NEW";
       position: absolute;
       top: 12px;
       left: 12px;
@@ -1054,9 +1054,9 @@ onMounted(async () => {
   &.card-featured {
     background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 193, 7, 0.05));
     border: 2px solid rgba(255, 215, 0, 0.3);
-    
+
     &::after {
-      content: '⭐';
+      content: "⭐";
       position: absolute;
       top: 12px;
       right: 12px;
@@ -1068,9 +1068,9 @@ onMounted(async () => {
 
   &.card-updated {
     border-left: 4px solid var(--el-color-primary);
-    
+
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
@@ -1120,20 +1120,38 @@ onMounted(async () => {
   }
 
   @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
   }
-  
+
   @keyframes sparkle {
-    0%, 100% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(90deg) scale(1.1); }
-    50% { transform: rotate(180deg) scale(1); }
-    75% { transform: rotate(270deg) scale(1.1); }
+    0%,
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
+    25% {
+      transform: rotate(90deg) scale(1.1);
+    }
+    50% {
+      transform: rotate(180deg) scale(1);
+    }
+    75% {
+      transform: rotate(270deg) scale(1.1);
+    }
   }
-  
+
   @keyframes progress {
-    0% { width: 0%; }
-    100% { width: 100%; }
+    0% {
+      width: 0%;
+    }
+    100% {
+      width: 100%;
+    }
   }
 
   .project-image {
@@ -1243,7 +1261,7 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: flex-start;
     padding: 16px 20px 0;
-    
+
     .project-status {
       position: relative;
       display: flex;
@@ -1253,34 +1271,34 @@ onMounted(async () => {
       border-radius: 12px;
       backdrop-filter: blur(10px);
       transition: all 0.3s ease;
-      
+
       &.status-active {
         background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
         border: 1px solid rgba(103, 194, 58, 0.3);
         color: var(--el-color-success);
       }
-      
+
       &.status-completed {
         background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
         border: 1px solid rgba(64, 158, 255, 0.3);
         color: var(--el-color-primary);
       }
-      
+
       &.status-paused {
         background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
         border: 1px solid rgba(255, 193, 7, 0.3);
         color: var(--el-color-warning);
       }
-      
+
       &.status-error {
         background: linear-gradient(135deg, rgba(245, 108, 108, 0.15), rgba(245, 108, 108, 0.08));
         border: 1px solid rgba(245, 108, 108, 0.3);
         color: var(--el-color-danger);
       }
-      
+
       .status-indicator {
         position: relative;
-        
+
         .status-dot {
           width: 8px;
           height: 8px;
@@ -1289,7 +1307,7 @@ onMounted(async () => {
           position: relative;
           z-index: 2;
         }
-        
+
         .status-pulse {
           position: absolute;
           top: 50%;
@@ -1303,7 +1321,7 @@ onMounted(async () => {
           animation: statusPulse 2s ease-in-out infinite;
         }
       }
-      
+
       .status-text {
         font-size: 0.8rem;
         font-weight: 600;
@@ -1333,17 +1351,17 @@ onMounted(async () => {
         text-overflow: ellipsis;
         white-space: nowrap;
         transition: color 0.3s ease;
-        
+
         &:hover {
           color: var(--el-color-primary);
         }
       }
-      
+
       .project-meta {
         display: flex;
         align-items: center;
         gap: 12px;
-        
+
         .project-id {
           font-size: 0.8rem;
           color: var(--el-color-primary);
@@ -1352,7 +1370,7 @@ onMounted(async () => {
           border-radius: 8px;
           font-weight: 600;
         }
-        
+
         .project-date {
           font-size: 0.8rem;
           color: var(--el-text-color-secondary);
@@ -1364,7 +1382,7 @@ onMounted(async () => {
     .project-description {
       margin-bottom: 16px;
       flex: 1;
-      
+
       .description-text {
         margin: 0;
         font-size: 0.95rem;
@@ -1377,14 +1395,14 @@ onMounted(async () => {
         text-overflow: ellipsis;
       }
     }
-    
+
     .project-stats {
       display: flex;
       align-items: center;
       gap: 16px;
       padding: 12px 0;
       border-top: 1px solid var(--el-border-color-lighter);
-      
+
       .stat-item {
         display: flex;
         align-items: center;
@@ -1392,18 +1410,18 @@ onMounted(async () => {
         font-size: 0.8rem;
         color: var(--el-text-color-secondary);
         transition: color 0.3s ease;
-        
+
         &:hover {
           color: var(--el-color-primary);
         }
-        
+
         i {
           font-size: 0.9rem;
         }
       }
     }
   }
-  
+
   @keyframes statusPulse {
     0% {
       transform: translate(-50%, -50%) scale(1);
@@ -1428,11 +1446,11 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: flex-start;
     z-index: 5;
-    
+
     .primary-tags {
       display: flex;
       gap: 8px;
-      
+
       .project-name-tag {
         background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
         border: 1px solid rgba(64, 158, 255, 0.2);
@@ -1446,7 +1464,7 @@ onMounted(async () => {
         align-items: center;
         gap: 4px;
         transition: all 0.3s ease;
-        
+
         &:hover {
           background: linear-gradient(135deg, rgba(64, 158, 255, 0.2), rgba(64, 158, 255, 0.1));
           transform: translateY(-1px);
@@ -1454,14 +1472,14 @@ onMounted(async () => {
         }
       }
     }
-    
+
     .function-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       max-width: 60%;
       justify-content: flex-end;
-      
+
       .function-tag {
         padding: 4px 8px;
         border-radius: 8px;
@@ -1470,32 +1488,32 @@ onMounted(async () => {
         border: none;
         backdrop-filter: blur(8px);
         transition: all 0.3s ease;
-        
+
         &:hover {
           transform: translateY(-1px);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         &[type="primary"] {
           background: rgba(64, 158, 255, 0.12);
           color: var(--el-color-primary);
         }
-        
+
         &[type="success"] {
           background: rgba(103, 194, 58, 0.12);
           color: var(--el-color-success);
         }
-        
+
         &[type="warning"] {
           background: rgba(255, 193, 7, 0.12);
           color: var(--el-color-warning);
         }
-        
+
         &[type="info"] {
           background: rgba(144, 147, 153, 0.12);
           color: var(--el-color-info);
         }
-        
+
         &[type="danger"] {
           background: rgba(245, 108, 108, 0.12);
           color: var(--el-color-danger);
@@ -1513,11 +1531,11 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     z-index: 5;
-    
+
     .quick-actions {
       display: flex;
       gap: 8px;
-      
+
       .action-button {
         width: 36px;
         height: 36px;
@@ -1529,9 +1547,9 @@ onMounted(async () => {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         position: relative;
         overflow: hidden;
-        
+
         &::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
@@ -1540,43 +1558,43 @@ onMounted(async () => {
           background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
           transition: left 0.5s ease;
         }
-        
+
         &:hover {
           transform: translateY(-2px) scale(1.05);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-          
+
           &::before {
             left: 100%;
           }
         }
-        
+
         &[type="primary"] {
           background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
           color: var(--el-color-primary);
           border: 1px solid rgba(64, 158, 255, 0.2);
-          
+
           &:hover {
             background: linear-gradient(135deg, rgba(64, 158, 255, 0.25), rgba(64, 158, 255, 0.15));
             box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
           }
         }
-        
+
         &[type="success"] {
           background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
           color: var(--el-color-success);
           border: 1px solid rgba(103, 194, 58, 0.2);
-          
+
           &:hover {
             background: linear-gradient(135deg, rgba(103, 194, 58, 0.25), rgba(103, 194, 58, 0.15));
             box-shadow: 0 6px 16px rgba(103, 194, 58, 0.3);
           }
         }
-        
+
         &[type="warning"] {
           background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
           color: var(--el-color-warning);
           border: 1px solid rgba(255, 193, 7, 0.2);
-          
+
           &:hover {
             background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.15));
             box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
@@ -1584,7 +1602,7 @@ onMounted(async () => {
         }
       }
     }
-    
+
     .main-actions {
       .more-btn {
         width: 36px;
@@ -1596,7 +1614,7 @@ onMounted(async () => {
         backdrop-filter: blur(10px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease;
-        
+
         &:hover {
           background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
           transform: translateY(-2px) scale(1.05);

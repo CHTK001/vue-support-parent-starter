@@ -31,7 +31,7 @@
             </template>
             <template #append>
               <el-button type="primary" @click="handleSearch" :loading="searching">
-                <el-icon><Search /></el-icon>
+                <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
                 搜索
               </el-button>
             </template>
@@ -69,7 +69,7 @@
         <!-- 搜索选项切换 -->
         <div class="search-options flex items-center justify-between">
           <el-button text @click="showAdvanced = !showAdvanced">
-            <el-icon><Setting /></el-icon>
+            <el-icon><IconifyIconOnline icon="ep:setting" /></el-icon>
             {{ showAdvanced ? '收起高级搜索' : '展开高级搜索' }}
           </el-button>
           
@@ -100,7 +100,7 @@
     <!-- 热门关键词 -->
     <div class="hot-keywords bg-white rounded-lg shadow p-6 mb-6">
       <h3 class="text-lg font-semibold mb-4 flex items-center">
-        <el-icon class="mr-2 text-red-500"><Star /></el-icon>
+        <el-icon class="mr-2 text-red-500"><IconifyIconOnline icon="ep:star" /></el-icon>
         热门搜索
       </h3>
       <div class="flex flex-wrap gap-2">
@@ -121,11 +121,11 @@
     <div class="search-history bg-white rounded-lg shadow p-6" v-if="searchHistory.length > 0">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold flex items-center">
-          <el-icon class="mr-2 text-blue-500"><Clock /></el-icon>
+          <el-icon class="mr-2 text-blue-500"><IconifyIconOnline icon="ep:clock" /></el-icon>
           搜索历史
         </h3>
         <el-button text type="danger" @click="clearHistory">
-          <el-icon><Delete /></el-icon>
+          <el-icon><IconifyIconOnline icon="ep:delete" /></el-icon>
           清空
         </el-button>
       </div>
@@ -150,7 +150,7 @@
 import { ref, reactive, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Search, Setting, Star, Clock, Delete } from '@element-plus/icons-vue';
+// 移除错误的图标导入，直接使用IconifyIconOnline组件
 import { getHotKeywords, getSearchSuggestions, getSearchHistory, clearSearchHistory, recordSearchBehavior } from '../../api/search';
 import type { VideoKeyword } from '../../api/types';
 
@@ -200,7 +200,7 @@ const initYearOptions = () => {
 /**
  * 处理搜索
  */
-const handleSearch = async () => {
+const handleSearch = () => {
   if (!searchForm.keyword.trim()) {
     ElMessage.warning('请输入搜索关键词');
     return;
@@ -208,45 +208,47 @@ const handleSearch = async () => {
 
   searching.value = true;
   
-  try {
-    // 记录搜索行为
-    await recordSearchBehavior(searchForm.keyword, searchForm.source);
-    
-    // 添加到搜索历史
-    addToHistory(searchForm.keyword);
-    
-    // 跳转到搜索结果页
-    router.push({
-      name: 'VideoSearchResult',
-      query: {
-        keyword: searchForm.keyword,
-        source: searchForm.source,
-        category: searchForm.category,
-        year: searchForm.year,
-        platform: searchForm.platform
-      }
+  // 记录搜索行为
+  recordSearchBehavior(searchForm.keyword, searchForm.source)
+    .then(() => {
+      // 添加到搜索历史
+      addToHistory(searchForm.keyword);
+      
+      // 跳转到搜索结果页
+      router.push({
+        name: 'VideoSearchResult',
+        query: {
+          keyword: searchForm.keyword,
+          source: searchForm.source,
+          category: searchForm.category,
+          year: searchForm.year,
+          platform: searchForm.platform
+        }
+      });
+    })
+    .catch((error) => {
+      console.error('搜索失败:', error);
+      ElMessage.error('搜索失败，请稍后重试');
+    })
+    .finally(() => {
+      searching.value = false;
     });
-  } catch (error) {
-    console.error('搜索失败:', error);
-    ElMessage.error('搜索失败，请稍后重试');
-  } finally {
-    searching.value = false;
-  }
 };
 
 /**
  * 处理输入变化
  */
-const handleInputChange = async (value: string) => {
+const handleInputChange = (value: string) => {
   if (value.length >= 2) {
-    try {
-      const response = await getSearchSuggestions(value, 5);
-      if (response.code === 1000) {
-        suggestions.value = response.data;
-      }
-    } catch (error) {
-      console.error('获取搜索建议失败:', error);
-    }
+    getSearchSuggestions(value, 5)
+      .then((response) => {
+        if (response.code === 1000) {
+          suggestions.value = response.data;
+        }
+      })
+      .catch((error) => {
+        console.error('获取搜索建议失败:', error);
+      });
   } else {
     suggestions.value = [];
   }
@@ -312,30 +314,32 @@ const removeHistory = (keyword: string) => {
 /**
  * 清空搜索历史
  */
-const clearHistory = async () => {
-  try {
-    await clearSearchHistory();
-    searchHistory.value = [];
-    localStorage.removeItem('video-search-history');
-    ElMessage.success('搜索历史已清空');
-  } catch (error) {
-    console.error('清空搜索历史失败:', error);
-    ElMessage.error('清空失败，请稍后重试');
-  }
+const clearHistory = () => {
+  clearSearchHistory()
+    .then(() => {
+      searchHistory.value = [];
+      localStorage.removeItem('video-search-history');
+      ElMessage.success('搜索历史已清空');
+    })
+    .catch((error) => {
+      console.error('清空搜索历史失败:', error);
+      ElMessage.error('清空失败，请稍后重试');
+    });
 };
 
 /**
  * 加载热门关键词
  */
-const loadHotKeywords = async () => {
-  try {
-    const response = await getHotKeywords(10);
-    if (response.code === 1000) {
-      hotKeywords.value = response.data;
-    }
-  } catch (error) {
-    console.error('加载热门关键词失败:', error);
-  }
+const loadHotKeywords = () => {
+  getHotKeywords(10)
+    .then((response) => {
+      if (response.code === 1000) {
+        hotKeywords.value = response.data;
+      }
+    })
+    .catch((error) => {
+      console.error('加载热门关键词失败:', error);
+    });
 };
 
 /**

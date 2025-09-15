@@ -5,11 +5,11 @@
  * @since 2024-12-19
  */
 
-import { http } from '@pureadmin/utils';
-import type { ApiResponse, PageResponse, VideoInfo, VideoSearchRequest, VideoDownload, VideoRating, VideoStats } from './types';
+import { http } from "@repo/utils";
+import type { ApiResponse, PageResponse, VideoDownload, VideoInfo, VideoRating, VideoSearchRequest, VideoStats } from "./types";
 
 // API基础路径
-const API_BASE = '/api/video';
+const API_BASE = "/api/video";
 
 /**
  * 搜索视频

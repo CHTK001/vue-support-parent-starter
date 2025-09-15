@@ -171,8 +171,8 @@ class PureHttp {
         }
         response = uu1(response);
         const data = response.data?.data || response.data;
-        if (data instanceof Object &&  data?.data) {
-          data.records =  data?.data;
+        if (data instanceof Object && data?.data) {
+          data.records = data?.data;
         }
         const result: any = {
           data: null,
@@ -366,13 +366,33 @@ class PureHttp {
   }
 
   /** 单独抽离的`post`工具函数 */
-  public post<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
-    return this.request<T>("post", url, params, config);
+  public post<T, P>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
+    return this.request<T>("post", url, {
+      data: data,
+      headers: config?.headers,
+    });
+  }
+  /** 单独抽离的`put`工具函数 */
+  public put<T, P>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
+    return this.request<T>("put", url, {
+      data: data,
+      headers: config?.headers,
+    });
   }
 
   /** 单独抽离的`get`工具函数 */
-  public get<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
-    return this.request<T>("get", url, params, config);
+  public get<T, P>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
+    return this.request<T>("get", url, {
+      params: params,
+      headers: config?.headers,
+    });
+  }
+  /** 单独抽离的`delete`工具函数 */
+  public delete<T, P>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
+    return this.request<T>("delete", url, {
+      params: params,
+      headers: config?.headers,
+    });
   }
 
   /** 取消请求方法 */
