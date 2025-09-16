@@ -146,7 +146,56 @@ npm run build
 4. API 调用统一使用异步回调方式
 5. Socket 连接使用封装的服务
 
+## 功能特性
+
+### 配置管理
+
+- ✨ 视频同步配置的增删改查
+- ✨ 配置状态管理（启用/禁用）
+- ✨ 同步任务执行和监控
+- ✨ **手动停止同步功能**：支持在同步过程中手动停止正在执行的同步任务
+- ✨ 连接测试功能
+- ✨ 实时状态更新（通过 Socket 连接）
+
+#### 停止同步功能
+
+当配置处于同步中状态时，会显示红色的"停止"按钮，点击后可以手动停止正在执行的同步任务：
+
+- **触发条件**：配置状态为同步中（`videoSyncConfigStatus === 2`）
+- **操作方式**：点击配置卡片上的红色"停止"按钮
+- **确认机制**：弹出确认对话框，防止误操作
+- **API 接口**：`stopSyncTask(configId)` - 停止指定配置的同步任务
+- **状态更新**：停止成功后，配置状态自动恢复为启用状态
+
+```typescript
+// 停止同步示例
+const handleStop = (config: VideoSyncConfig) => {
+  ElMessageBox.confirm(`确定要停止配置 "${config.videoSyncConfigName}" 的同步任务吗？`, "确认停止", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      stopSyncTask(config.videoSyncConfigId!)
+        .then(() => {
+          ElMessage.success("同步任务已停止");
+          config.videoSyncConfigStatus = 1; // 恢复为启用状态
+        })
+        .catch((error) => {
+          ElMessage.error("停止同步任务失败");
+        });
+    });
+};
+```
+
 ## 更新日志
+
+### v1.2.0 (2024-12-19)
+
+- ✨ 新增手动停止同步功能
+- ✨ 在配置卡片中添加停止按钮（仅在同步中状态显示）
+- 🔧 完善 API 接口，新增 `stopSyncTask` 方法
+- 📝 更新文档，添加停止功能使用说明
 
 ### v1.1.0 (2024-12-19)
 

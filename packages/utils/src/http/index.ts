@@ -1,4 +1,5 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { isObject } from "@pureadmin/utils";
 import { formatToken, getConfig, getToken, handRefreshToken, logOut, upgrade } from "@repo/config";
 import { UserResult } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
@@ -356,7 +357,10 @@ class PureHttp {
         .catch((error) => {
           // 请求失败后移除控制器
           PureHttp.activeRequests.delete(requestId);
-          reject(error);
+          if (error?.response?.data && isObject(error.response.data) && !error?.response?.data?.message) {
+            error.response.data.message = error.response.data.msg;
+          }
+          reject(error?.response?.data || error);
         });
     });
 
@@ -366,14 +370,14 @@ class PureHttp {
   }
 
   /** 单独抽离的`post`工具函数 */
-  public post<T, P>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
+  public post<T>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("post", url, {
       data: data,
       headers: config?.headers,
     });
   }
   /** 单独抽离的`put`工具函数 */
-  public put<T, P>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
+  public put<T>(url: string, data?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("put", url, {
       data: data,
       headers: config?.headers,
@@ -381,14 +385,14 @@ class PureHttp {
   }
 
   /** 单独抽离的`get`工具函数 */
-  public get<T, P>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
+  public get<T>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("get", url, {
       params: params,
       headers: config?.headers,
     });
   }
   /** 单独抽离的`delete`工具函数 */
-  public delete<T, P>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
+  public delete<T>(url: string, params?: any, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("delete", url, {
       params: params,
       headers: config?.headers,
@@ -441,6 +445,7 @@ class PureHttp {
     const token = getToken();
 
     const defaultHeaders = {
+      //@ts-ignore
       Authorization: formatToken(token),
       "x-req-fingerprint": localStorageProxy().getItem("visitId") || "",
       ...options.headers,
@@ -460,6 +465,7 @@ class PureHttp {
         }
       },
       onmessage: (event) => {
+        //@ts-ignore
         options.onmessage?.(event);
       },
       onerror: (error) => {

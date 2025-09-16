@@ -92,13 +92,14 @@
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
 import ScTable from "@repo/components/ScTable/index.vue";
+import { socket } from "@repo/core";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
-import { deleteSyncConfig, executeSyncConfig, getSyncConfigs, testSyncConfig, toggleSyncConfigStatus } from "../../api/config";
+import { deleteSyncConfig, executeSyncConfig, getSyncConfigs, stopSyncTask, testSyncConfig, toggleSyncConfigStatus } from "../../api/config";
 import type { VideoSyncConfig } from "../../api/types";
-import { socket } from "@repo/core";
 
 // 导入组件
+import { message } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";
 import ConfigForm from "./components/ConfigForm.vue";
 import ConfigStats from "./components/ConfigStats.vue";
@@ -152,13 +153,18 @@ const editingConfig = ref<VideoSyncConfig | null>(null);
 const initSocket = () => {
   // 使用封装的socket工厂函数创建连接
   const urls = [window.location.origin]; // 使用当前域名
-  socketInstance = socket(urls, "/video-sync", {}, {
-    transports: ["websocket"],
-    autoConnect: true,
-    reconnection: true,
-    reconnectionAttempts: 3,
-    reconnectionDelay: 1000,
-  });
+  socketInstance = socket(
+    urls,
+    "/video-sync",
+    {},
+    {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+    }
+  );
 
   // 监听连接成功
   socketInstance.on("connect", () => {
@@ -177,10 +183,10 @@ const initSocket = () => {
 
   // 监听同步状态更新
   socketInstance.on("sync-status", (data) => {
-    const config = configList.value.find((c) => c.configId === data.configId);
+    const config = configList.value.find((c) => c.videoSyncConfigId === data.videoSyncConfigId);
     if (config) {
-      config.configStatus = data.status;
-      config.lastSyncTime = data.lastSyncTime;
+      config.videoSyncConfigStatus = data.status;
+      config.videoSyncConfigLastSyncTime = data.lastSyncTime;
       config.syncCount = data.syncCount;
     }
     updateStats();
@@ -271,8 +277,7 @@ const handleSync = (config: VideoSyncConfig) => {
       config.videoSyncConfigStatus = 2; // 同步中状态
     })
     .catch((error) => {
-      console.error("执行同步失败:", error);
-      ElMessage.error("执行同步失败");
+      message.error(error.message);
     })
     .finally(() => {
       (config as any).syncing = false;
@@ -299,6 +304,9 @@ const handleCommand = (command: string, config: VideoSyncConfig) => {
     case "sync":
       handleSync(config);
       break;
+    case "stop":
+      handleStop(config);
+      break;
     case "edit":
       editConfig(config);
       break;
@@ -309,6 +317,35 @@ const handleCommand = (command: string, config: VideoSyncConfig) => {
       testConnection(config);
       break;
   }
+};
+
+/**
+ * 停止同步
+ * @param config 配置信息
+ */
+const handleStop = (config: VideoSyncConfig) => {
+  ElMessageBox.confirm(`确定要停止配置 "${config.videoSyncConfigName}" 的同步任务吗？`, "确认停止", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      // 用户确认停止
+      stopSyncTask(config.videoSyncConfigId!)
+        .then(() => {
+          // 成功回调，不需要判断code
+          ElMessage.success("同步任务已停止");
+          config.videoSyncConfigStatus = 1; // 恢复为启用状态
+          updateStats();
+        })
+        .catch((error) => {
+          console.error("停止同步任务失败:", error);
+          ElMessage.error("停止同步任务失败");
+        });
+    })
+    .catch(() => {
+      // 用户取消操作
+    });
 };
 
 /**

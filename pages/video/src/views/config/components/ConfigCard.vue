@@ -27,10 +27,13 @@
         <el-button v-if="config.videoSyncConfigStatus === 0" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
           <IconifyIconOnline icon="ep:video-play" />
         </el-button>
-        <el-button v-else type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+        <el-button v-else-if="config.videoSyncConfigStatus === 1" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
           <IconifyIconOnline icon="ep:video-pause" />
         </el-button>
-        <el-button type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+        <el-button v-if="config.videoSyncConfigStatus === 2" type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
+          <IconifyIconOnline icon="ep:close" />
+        </el-button>
+        <el-button v-if="config.videoSyncConfigStatus !== 2" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
       </div>
@@ -67,10 +70,6 @@
         <el-button type="primary" size="small" @click="handleAction('edit')">
           <IconifyIconOnline icon="ep:edit" class="mr-1" />
           编辑
-        </el-button>
-        <el-button type="info" size="small" @click="handleAction('test')">
-          <IconifyIconOnline icon="ep:connection" class="mr-1" />
-          测试
         </el-button>
       </div>
       <div class="secondary-actions">

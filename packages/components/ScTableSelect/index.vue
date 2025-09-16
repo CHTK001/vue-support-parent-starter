@@ -1,6 +1,7 @@
 <template>
   <div>
     <t-select-table
+      ref="tSelectTableRef"
       :defaultSelectVal="defaultSettingValue"
       class="!w-full"
       :table="state.table"
@@ -12,30 +13,29 @@
       :remote="props.remote"
       :remote-method="remoteMethod"
       :max-height="props.maxHeight"
-      @selectionChange="selectionChange"
-      @radioChange="selectionChange"
       isShowPagination
       :placeholder="placeholder"
-      ref="tSelectTableRef"
+      @selectionChange="selectionChange"
+      @radioChange="selectionChange"
       @page-change="pageChange"
     >
       <template #footer>
-        <slot name="footer"></slot>
+        <slot name="footer" />
       </template>
       <template #toolbar>
-        <slot name="toolbar"></slot>
+        <slot name="toolbar" />
       </template>
     </t-select-table>
   </div>
 </template>
 
 <script setup>
-import "@wocwin/t-ui-plus/lib/style.css";
-import config from "./setting.ts";
 import { TSelectTable } from "@wocwin/t-ui-plus";
-import { onMounted, reactive, watch, defineExpose, ref } from "vue";
+import "@wocwin/t-ui-plus/lib/style.css";
+import { defineExpose, onMounted, reactive, ref, watch } from "vue";
+import config from "./setting.ts";
 const selectedValue = ref(null);
-const emit = defineEmits();
+const emit = defineEmits(["update:modelValue", "selectionChange"]);
 const tSelectTableRef = ref();
 const defaultSettingValue = ref([]);
 const props = defineProps({
@@ -46,6 +46,7 @@ const props = defineProps({
     type: Function,
     default: () => {}
   },
+
   keywords: {
     type: Object,
     default: { label: "label", value: "id" }

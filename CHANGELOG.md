@@ -5,6 +5,54 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.4] - 2025-01-17
+
+### 新增
+
+- **视频源管理模块**: 全新的视频源配置和管理功能
+  - 🎯 **视频源管理页面**: 新增 `/video/source` 页面，提供完整的视频源管理功能
+    - 创建 `source/index.vue` 主页面，参考config页面结构并去除统计部分
+    - 支持视频源列表展示、搜索、筛选和分页功能
+    - 提供新增、编辑、删除、批量操作等完整功能
+  - 🎨 **视频源组件**: 新增专用的视频源管理组件
+    - 创建 `SourceCard.vue` 卡片组件，展示视频源详细信息
+    - 创建 `SourceForm.vue` 表单组件，支持新增和编辑视频源
+    - 支持平台图标展示、状态管理、连接测试等功能
+  - 🔌 **API接口完善**: 扩展 `source.ts` API接口功能
+    - 新增搜索、筛选、批量操作等查询参数支持
+    - 新增批量删除、状态切换、连接测试等操作接口
+    - 新增统计信息、导入导出等扩展功能接口
+    - 完整的TypeScript类型定义和参数验证
+  - 📚 **文档完善**: 更新项目文档，添加视频源管理功能说明
+    - 在README.md中新增视频源管理功能介绍
+    - 完整的API接口文档和数据类型定义
+    - 新增权限配置和访问路径说明
+    - 符合项目文档规范，便于前端开发理解和使用
+
+## [2.3.3] - 2024-12-19
+
+### 重构
+
+- **Video项目架构优化**: 全面重构video项目的Socket和API调用方式
+  - 🔌 **Socket连接统一**: 将video项目中的直接socket.io使用替换为封装的socket服务
+    - 修改 `pages/video/src/views/config/index.vue` 使用统一的socket封装
+    - 移除直接的 `socket.io-client` 依赖，使用 `@repo/core/config/socket`
+    - 统一socket连接、事件监听和断开逻辑
+  - 🔄 **API调用方式重构**: 将所有await调用改为异步回调方式
+    - 重构 `search/index.vue` 中的搜索、建议、历史等API调用
+    - 重构 `manage/index.vue` 中的视频加载、详情、删除等API调用
+    - 重构 `search/result.vue` 中的搜索和详情API调用
+    - 重构 `config/components/ConfigForm.vue` 中的表单验证和保存API调用
+    - 统一使用 `.then/.catch/.finally` 替代 `async/await`
+  - 📚 **文档完善**: 新增video项目README文档
+    - 详细说明Socket使用规范和API调用规范
+    - 提供正确和错误的代码示例对比
+    - 完整的项目结构和开发指南
+  - 🛡️ **代码规范**: 统一错误处理和用户体验
+    - 标准化异步操作的loading状态管理
+    - 统一错误消息提示和用户反馈
+    - 优化代码可读性和维护性
+
 ## [2.3.2] - 2024-12-19
 
 ### 新增
