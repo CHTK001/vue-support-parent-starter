@@ -5,6 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.6] - 2025-09-16
+
+### 重构
+
+- 视频管理页 UI：集成 VideoFilter 与 VideoResults 组件，实现筛选与海报网格布局
+  - 支持四类筛选：类型、年代、地区、语言；提供“全部”快捷多选逻辑
+  - 顶部工具栏新增关键词搜索与排序切换（推荐、最新上线、最多播放、评分最高）
+  - 结果区采用 2:3 封面比例卡片，展示评分/播放次数、类型标签、地区/语言/年份提示
+- 参数与接口对齐
+  - 请求接口：POST /v1/video/page
+  - 入参映射：
+    - keyword: string
+    - videoType: string（多值以英文逗号分隔）
+    - videoYear: string（多值以英文逗号分隔）
+    - videoDistrict: string（多值以英文逗号分隔）
+    - videoLanguage: string（多值以英文逗号分隔）
+    - order: string（排序键，枚举 recommend | newest | "videoViews desc" | "videoScore desc"）
+- 文档
+  - 更新根 README：新增 VideoFilter 与 VideoResults 使用说明（props、emits、参数映射与示例）
+  - 本 CHANGELOG 记录以上改动
+
 ## [2.3.5] - 2025-01-17
 
 ### 新增

@@ -76,9 +76,8 @@
       :model-value="selectValue"
       :options="selectListOptions"
       :label-width="labelWidth"
+      :filter-fileld-type="filterFileldType"
       :filter-output-format="filterOutputFormat"
-      :filter-operator="filterOperator"
-      :filter-field="filterField"
       @change="handleChange"
     />
 
@@ -124,6 +123,11 @@ export interface SelectProps {
   label: string;
   prop: string;
   icon: string;
+}
+
+export interface FilterFieldType {
+  prop: string;
+  type: string;
 }
 
 const props = defineProps({
@@ -282,16 +286,9 @@ const props = defineProps({
     default: "default",
     validator: (value: string) => ["default", "array", "sql", "lucene"].includes(value)
   },
-  // 过滤器模式操作符
-  filterOperator: {
-    type: String,
-    default: "in",
-    validator: (value: string) => ["in", "eq", "ne", "gt", "gte", "lt", "lte", "like", "between"].includes(value)
-  },
-  // 过滤器模式字段名
-  filterField: {
-    type: String,
-    default: "field"
+  filterFileldType: {
+    type: Array,
+    default: () => [] as FilterFieldType[]
   },
   tableColumns: {
     type: Array as () => TableColumn[],

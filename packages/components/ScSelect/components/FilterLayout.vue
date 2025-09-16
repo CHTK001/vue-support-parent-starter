@@ -1,12 +1,3 @@
-<!--
- * @Descripttion: 过滤器V2
- * @version: 2.6
- * @Author: sakuya
- * @Date: 2021年7月30日14:48:41
- * @LastEditors: sakuya
- * @LastEditTime: 2023年2月7日09:46:45
--->
-
 <template>
   <div class="sc-filterBar">
     <slot :filterLength="filterObjLength" :openFilter="openFilter">
@@ -57,9 +48,9 @@
                           v-model="item.value"
                           :placeholder="item.field.placeholder || '请选择'"
                           filterable
-                          :multiple="item.field.extend.multiple"
+                          :multiple="item.field.extend?.multiple"
                           :loading="item.selectLoading"
-                          :remote="item.field.extend.remote"
+                          :remote="item.field.extend?.remote"
                           :remote-method="
                             query => {
                               remoteMethod(query, item);
@@ -67,7 +58,7 @@
                           "
                           @visible-change="visibleChange($event, item)"
                         >
-                          <el-option v-for="field in item.field.extend.data" :key="field.value" :label="field.label" :value="field.value" />
+                          <el-option v-for="field in item.field.extend?.data || []" :key="field.value" :label="field.label" :value="field.value" />
                         </el-select>
                         <!-- 日期 -->
                         <el-date-picker
@@ -111,8 +102,8 @@
                         <el-date-picker
                           v-if="item.field.type == 'customDate'"
                           v-model="item.value"
-                          :type="item.field.extend.dateType || 'date'"
-                          :value-format="item.field.extend.valueFormat"
+                          :type="item.field.extend?.dateType || 'date'"
+                          :value-format="item.field.extend?.valueFormat"
                           :placeholder="item.field.placeholder || '请选择'"
                           start-placeholder="开始日期"
                           end-placeholder="结束日期"
@@ -160,365 +151,371 @@
     </el-drawer>
   </div>
 </template>
-
-<script>
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref } from "vue";
 import my from "../plugin/FilterMySetting.vue";
 import config from "../setting/filterBar";
 
-export default {
-  name: "filterBar",
-  components: {
-    my
+interface FilterField {
+  value: string;
+  label: string;
+  type?: string;
+  operator?: string;
+  operators?: { label: string; value: string }[];
+  extend?: any;
+  placeholder?: string;
+  repeat?: boolean;
+  selected?: boolean;
+}
+
+interface FilterItem {
+  field: FilterField;
+  operator: string;
+  value: any;
+  selectLoading?: boolean;
+}
+
+const props = defineProps({
+  modelValue: {
+    type: [String, Number, Array, Object],
+    default: ""
   },
-  props: {
-    filterName: { type: String, default: "" },
-    showOperator: { type: Boolean, default: true },
-    options: { type: Object, default: () => {} },
-    // 输出格式：default(默认对象格式)、sql(SQL WHERE子句)、lucene(Lucene查询语法)、array(数组格式)
-    outputFormat: { type: String, default: "default", validator: value => ["default", "sql", "lucene", "array"].includes(value) },
-    // 自定义运算符配置
-    customOperators: { type: Array, default: () => [] },
-    // SQL表名前缀（用于SQL格式输出）
-    sqlTablePrefix: { type: String, default: "" },
-    // 字段映射配置（用于格式转换）
-    fieldMapping: { type: Object, default: () => ({}) },
-    // 是否启用严格模式（空值过滤）
-    strictMode: { type: Boolean, default: false }
+  options: {
+    type: Array as () => FilterField[],
+    default: () => []
   },
-  emits: ["filterChange", "formatChange"],
-  data() {
-    return {
-      drawer: false,
-      operator: this.effectiveOperators,
-      fields: this.options,
-      filter: [],
-      myFilter: [],
-      filterObjLength: 0,
-      saveLoading: false
-    };
+  labelWidth: {
+    type: String,
+    default: "100px"
   },
-  computed: {
-    filterObj() {
-      const obj = {};
-      this.filter.forEach(item => {
-        if (this.strictMode && (!item.value || item.value === "")) {
-          return; // 严格模式下跳过空值
-        }
-        const fieldKey = this.fieldMapping[item.field.value] || item.field.value;
-        obj[fieldKey] = this.showOperator ? `${item.value}${config.separator}${item.operator}` : `${item.value}`;
-      });
-      return obj;
-    },
-    // 获取有效的运算符列表
-    effectiveOperators() {
-      return this.customOperators.length > 0 ? this.customOperators : config.operator;
-    },
-    // 格式化输出结果
-    formattedOutput() {
-      switch (this.outputFormat) {
-        case "sql":
-          return this.generateSQLOutput();
-        case "lucene":
-          return this.generateLuceneOutput();
-        case "array":
-          return this.generateArrayOutput();
-        default:
-          return this.filterObj;
-      }
-    }
+  filterOutputFormat: {
+    type: String,
+    default: "default",
+    validator: (v: string) => ["default", "array", "sql", "lucene"].includes(v)
   },
-  mounted() {
-    //默认显示的过滤项
-    this.fields.forEach(item => {
-      if (item.selected) {
-        this.filter.push({
-          field: item,
-          operator: item.operator || "include",
-          value: ""
-        });
-      }
-    });
+  filterOperator: {
+    type: String,
+    default: "in",
+    validator: (v: string) => ["in", "eq", "ne", "gt", "gte", "lt", "lte", "like", "between"].includes(v)
   },
-  methods: {
-    //打开过滤器
-    openFilter() {
-      this.drawer = true;
-    },
-    //增加过滤项
-    addFilter() {
-      //下一组新增过滤
-      var filterArr = this.fields.filter(field => !this.filter.some(item => field.value == item.field.value && !item.field.repeat));
-      if (this.fields.length <= 0 || filterArr.length <= 0) {
-        this.$message.warning("无过滤项");
-        return false;
-      }
-      const filterNum = filterArr[0];
-      this.filter.push({
-        field: filterNum,
-        operator: filterNum.operator || "include",
+  filterField: {
+    type: String,
+    default: "field"
+  },
+  filterName: {
+    type: String,
+    default: ""
+  },
+  showOperator: {
+    type: Boolean,
+    default: true
+  },
+  customOperators: {
+    type: Array as () => { label: string; value: string }[],
+    default: () => []
+  },
+  sqlTablePrefix: {
+    type: String,
+    default: ""
+  },
+  fieldMapping: {
+    type: Object as () => Record<string, string>,
+    default: () => ({})
+  },
+  strictMode: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const emit = defineEmits(["update:modelValue", "change", "filterChange", "formatChange"]);
+
+const drawer = ref(false);
+const fields = ref<FilterField[]>(props.options);
+const filter = ref<FilterItem[]>([]);
+const myFilter = ref<any[]>([]);
+const filterObjLength = ref(0);
+const saveLoading = ref(false);
+
+const filterObj = computed(() => {
+  const obj: Record<string, any> = {};
+  filter.value.forEach(item => {
+    if (props.strictMode && (!item.value || item.value === "")) return;
+    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    obj[fieldKey] = props.showOperator ? `${item.value}${config.separator}${item.operator}` : `${item.value}`;
+  });
+  return obj;
+});
+
+const effectiveOperators = computed(() => {
+  return props.customOperators.length > 0 ? props.customOperators : config.operator;
+});
+
+const formattedOutput = computed(() => {
+  switch (props.filterOutputFormat) {
+    case "sql":
+      return generateSQLOutput();
+    case "lucene":
+      return generateLuceneOutput();
+    case "array":
+      return generateArrayOutput();
+    default:
+      return filterObj.value;
+  }
+});
+
+onMounted(() => {
+  fields.value.forEach(item => {
+    if (item.selected) {
+      filter.value.push({
+        field: item,
+        operator: item.operator || "include",
         value: ""
       });
-    },
-    //删除过滤项
-    delFilter(index) {
-      this.filter.splice(index, 1);
-    },
-    //过滤项字段变更事件
-    fieldChange(tr) {
-      let oldType = tr.field.type;
-      tr.field.type = "";
-      this.$nextTick(() => {
-        tr.field.type = oldType;
-      });
-      tr.operator = tr.field.operator || "include";
-      tr.value = "";
-    },
-    //下拉框显示事件处理异步
-    async visibleChange(isopen, item) {
-      if (isopen && item.field.extend.request && !item.field.extend.remote) {
-        item.selectLoading = true;
-        try {
-          var data = await item.field.extend.request();
-        } catch (error) {
-          console.log(error);
-        }
-        item.field.extend.data = data;
-        item.selectLoading = false;
+    }
+  });
+});
+
+function openFilter() {
+  drawer.value = true;
+}
+
+function addFilter() {
+  const filterArr = fields.value.filter(field => !filter.value.some(item => field.value == item.field.value && !item.field.repeat));
+  if (fields.value.length <= 0 || filterArr.length <= 0) {
+    // @ts-ignore
+    window?.$message?.warning?.("无过滤项");
+    return false;
+  }
+  const filterNum = filterArr[0];
+  filter.value.push({
+    field: filterNum,
+    operator: filterNum.operator || "include",
+    value: ""
+  });
+}
+
+function delFilter(index: number) {
+  filter.value.splice(index, 1);
+}
+
+function fieldChange(tr: FilterItem) {
+  const oldType = tr.field.type;
+  tr.field.type = "";
+  nextTick(() => {
+    tr.field.type = oldType;
+  });
+  tr.operator = tr.field.operator || "include";
+  tr.value = "";
+}
+
+async function visibleChange(isopen: boolean, item: FilterItem) {
+  if (isopen && item.field.extend?.request && !item.field.extend.remote) {
+    item.selectLoading = true;
+    try {
+      const data = await item.field.extend.request();
+      item.field.extend.data = data;
+    } catch (error) {
+      console.log(error);
+    }
+    item.selectLoading = false;
+  }
+}
+
+async function remoteMethod(query: string, item: FilterItem) {
+  if (!item.field.extend?.request) return false;
+  if (query !== "") {
+    item.selectLoading = true;
+    try {
+      const data = await item.field.extend.request(query);
+      item.field.extend.data = data;
+    } catch (error) {
+      console.log(error);
+    }
+    item.selectLoading = false;
+  } else {
+    item.field.extend.data = [];
+  }
+}
+
+function selectMyfilter(item: any) {
+  filter.value = [];
+  fields.value.forEach(field => {
+    const filterValue = item.filterObj[field.value];
+    if (filterValue) {
+      let operator = filterValue.split("|")[1];
+      let value = filterValue.split("|")[0];
+      if (field.type == "select" && field.extend?.multiple) {
+        value = value.split(",");
+      } else if (field.type == "daterange") {
+        value = value.split(",");
       }
-    },
-    //下拉框显示事件处理异步搜索
-    async remoteMethod(query, item) {
-      if (!item.field.extend.request) {
+      filter.value.push({
+        field,
+        operator,
+        value
+      });
+    }
+  });
+  filterObjLength.value = Object.keys(item.filterObj).length;
+  emit("filterChange", item.filterObj);
+  drawer.value = false;
+}
+
+function ok() {
+  filterObjLength.value = filter.value.length;
+  const output = formattedOutput.value;
+  emit("update:modelValue", output);
+  emit("change", output);
+  emit("filterChange", output);
+  emit("formatChange", {
+    format: props.filterOutputFormat,
+    data: output,
+    originalData: filterObj.value
+  });
+  drawer.value = false;
+}
+
+function saveMy() {
+  // @ts-ignore
+  window
+    ?.$prompt?.("常用过滤名称", "另存为常用", {
+      inputPlaceholder: "请输入识别度较高的常用过滤名称",
+      inputPattern: /\S/,
+      inputErrorMessage: "名称不能为空"
+    })
+    .then(async ({ value }: any) => {
+      saveLoading.value = true;
+      const saveObj = {
+        title: value,
+        filterObj: filterObj.value
+      };
+      try {
+        await config.saveMy(props.filterName, saveObj);
+      } catch (error) {
+        saveLoading.value = false;
+
+        console.log(error);
         return false;
       }
-      if (query !== "") {
-        item.selectLoading = true;
-        try {
-          var data = await item.field.extend.request(query);
-        } catch (error) {
-          console.log(error);
-        }
-        item.field.extend.data = data;
-        item.selectLoading = false;
-      } else {
-        item.field.extend.data = [];
-      }
-    },
-    //选择常用过滤
-    selectMyfilter(item) {
-      //常用过滤回显当前过滤项
-      this.filter = [];
-      this.fields.forEach(field => {
-        var filterValue = item.filterObj[field.value];
-        if (filterValue) {
-          var operator = filterValue.split("|")[1];
-          var value = filterValue.split("|")[0];
-          if (field.type == "select" && field.extend.multiple) {
-            value = value.split(",");
-          } else if (field.type == "daterange") {
-            value = value.split(",");
-          }
-          this.filter.push({
-            field: field,
-            operator: operator,
-            value: value
-          });
-        }
-      });
-      this.filterObjLength = Object.keys(item.filterObj).length;
-      this.$emit("filterChange", item.filterObj);
-      this.drawer = false;
-    },
-    //立即过滤
-    ok() {
-      this.filterObjLength = this.filter.length;
-      const output = this.formattedOutput;
-      this.$emit("filterChange", output);
-      this.$emit("formatChange", {
-        format: this.outputFormat,
-        data: output,
-        originalData: this.filterObj
-      });
-      this.drawer = false;
-    },
-    //保存常用
-    saveMy() {
-      this.$prompt("常用过滤名称", "另存为常用", {
-        inputPlaceholder: "请输入识别度较高的常用过滤名称",
-        inputPattern: /\S/,
-        inputErrorMessage: "名称不能为空"
-      })
-        .then(async ({ value }) => {
-          this.saveLoading = true;
-          const saveObj = {
-            title: value,
-            filterObj: this.filterObj
-          };
-          try {
-            var save = await config.saveMy(this.filterName, saveObj);
-          } catch (error) {
-            this.saveLoading = false;
-            console.log(error);
-            return false;
-          }
-          if (!save) {
-            return false;
-          }
+      myFilter.value.push(saveObj);
+      // @ts-ignore
+      window?.$message?.success?.(`${props.filterName} 保存常用成功`);
+      saveLoading.value = false;
+    })
+    .catch(() => {});
+}
 
-          this.myFilter.push(saveObj);
-          this.$message.success(`${this.filterName} 保存常用成功`);
-          this.saveLoading = false;
-        })
-        .catch(() => {
-          //
-        });
-    },
-    //清空过滤
-    clear() {
-      this.filter = [];
-      this.filterObjLength = 0;
-      const output = this.formattedOutput;
-      this.$emit("filterChange", output);
-      this.$emit("formatChange", {
-        format: this.outputFormat,
-        data: output,
-        originalData: this.filterObj
-      });
-    },
-    
-    /**
-     * 生成SQL WHERE子句格式输出
-     * @returns {string} SQL WHERE子句
-     */
-    generateSQLOutput() {
-      if (this.filter.length === 0) return "";
-      
-      const conditions = [];
-      this.filter.forEach(item => {
-        if (this.strictMode && (!item.value || item.value === "")) {
-          return;
+function clear() {
+  filter.value = [];
+  filterObjLength.value = 0;
+  const output = formattedOutput.value;
+  emit("update:modelValue", output);
+  emit("change", output);
+  emit("filterChange", output);
+  emit("formatChange", {
+    format: props.filterOutputFormat,
+    data: output,
+    originalData: filterObj.value
+  });
+}
+
+function generateSQLOutput() {
+  if (filter.value.length === 0) return "";
+  const conditions: string[] = [];
+  filter.value.forEach(item => {
+    if (props.strictMode && (!item.value || item.value === "")) return;
+    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const tableName = props.sqlTablePrefix ? `${props.sqlTablePrefix}.` : "";
+    const fullFieldName = `${tableName}${fieldKey}`;
+    const operator = props.showOperator ? item.operator : "=";
+    let value = item.value;
+    switch (operator) {
+      case "=":
+      case "!=":
+      case ">":
+      case ">=":
+      case "<":
+      case "<=":
+        if (typeof value === "string" && isNaN(Number(value))) {
+          value = `'${value.replace(/'/g, "''")}'`;
         }
-        
-        const fieldKey = this.fieldMapping[item.field.value] || item.field.value;
-        const tableName = this.sqlTablePrefix ? `${this.sqlTablePrefix}.` : "";
-        const fullFieldName = `${tableName}${fieldKey}`;
-        const operator = this.showOperator ? item.operator : "=";
-        let value = item.value;
-        
-        // 处理不同的运算符
-        switch (operator) {
-          case "=":
-          case "!=":
-          case ">":
-          case ">=":
-          case "<":
-          case "<=":
-            if (typeof value === "string" && isNaN(value)) {
-              value = `'${value.replace(/'/g, "''")}'`; // 转义单引号
-            }
-            conditions.push(`${fullFieldName} ${operator} ${value}`);
-            break;
-          case "include":
-            conditions.push(`${fullFieldName} LIKE '%${value.replace(/'/g, "''").replace(/%/g, "\\%")}%'`);
-            break;
-          case "notinclude":
-            conditions.push(`${fullFieldName} NOT LIKE '%${value.replace(/'/g, "''").replace(/%/g, "\\%")}%'`);
-            break;
-          default:
-            if (typeof value === "string" && isNaN(value)) {
-              value = `'${value.replace(/'/g, "''")}'`;
-            }
-            conditions.push(`${fullFieldName} ${operator} ${value}`);
+        conditions.push(`${fullFieldName} ${operator} ${value}`);
+        break;
+      case "include":
+        conditions.push(`${fullFieldName} LIKE '%${value.replace(/'/g, "''").replace(/%/g, "\\%")}%'`);
+        break;
+      case "notinclude":
+        conditions.push(`${fullFieldName} NOT LIKE '%${value.replace(/'/g, "''").replace(/%/g, "\\%")}%'`);
+        break;
+      default:
+        if (typeof value === "string" && isNaN(Number(value))) {
+          value = `'${value.replace(/'/g, "''")}'`;
         }
-      });
-      
-      return conditions.length > 0 ? conditions.join(" AND ") : "";
-    },
-    
-    /**
-     * 生成Lucene查询语法格式输出
-     * @returns {string} Lucene查询字符串
-     */
-    generateLuceneOutput() {
-      if (this.filter.length === 0) return "";
-      
-      const conditions = [];
-      this.filter.forEach(item => {
-        if (this.strictMode && (!item.value || item.value === "")) {
-          return;
-        }
-        
-        const fieldKey = this.fieldMapping[item.field.value] || item.field.value;
-        const operator = this.showOperator ? item.operator : "=";
-        let value = item.value;
-        
-        // 转义Lucene特殊字符
-        const escapeLucene = (str) => {
-          return str.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, '\\$&');
-        };
-        
-        // 处理不同的运算符
-        switch (operator) {
-          case "=":
-            conditions.push(`${fieldKey}:"${escapeLucene(String(value))}"`);
-            break;
-          case "!=":
-            conditions.push(`-${fieldKey}:"${escapeLucene(String(value))}"`);
-            break;
-          case ">":
-            conditions.push(`${fieldKey}:{${escapeLucene(String(value))} TO *}`);
-            break;
-          case ">=":
-            conditions.push(`${fieldKey}:[${escapeLucene(String(value))} TO *]`);
-            break;
-          case "<":
-            conditions.push(`${fieldKey}:{* TO ${escapeLucene(String(value))}}`);
-            break;
-          case "<=":
-            conditions.push(`${fieldKey}:[* TO ${escapeLucene(String(value))}]`);
-            break;
-          case "include":
-            conditions.push(`${fieldKey}:*${escapeLucene(String(value))}*`);
-            break;
-          case "notinclude":
-            conditions.push(`-${fieldKey}:*${escapeLucene(String(value))}*`);
-            break;
-          default:
-            conditions.push(`${fieldKey}:"${escapeLucene(String(value))}"`);
-        }
-      });
-      
-      return conditions.length > 0 ? conditions.join(" AND ") : "";
-    },
-    
-    /**
-     * 生成数组格式输出
-     * @returns {Array} 过滤条件数组
-     */
-    generateArrayOutput() {
-      const result = [];
-      this.filter.forEach(item => {
-        if (this.strictMode && (!item.value || item.value === "")) {
-          return;
-        }
-        
-        const fieldKey = this.fieldMapping[item.field.value] || item.field.value;
-        const operator = this.showOperator ? item.operator : "=";
-        
-        result.push({
-          field: fieldKey,
-          operator: operator,
-          value: item.value,
-          originalField: item.field.value,
-          fieldType: item.field.type || "text",
-          fieldLabel: item.field.label || item.field.value
-        });
-      });
-      
-      return result;
+        conditions.push(`${fullFieldName} ${operator} ${value}`);
     }
-  }
-};
+  });
+  return conditions.length > 0 ? conditions.join(" AND ") : "";
+}
+
+function generateLuceneOutput() {
+  if (filter.value.length === 0) return "";
+  const conditions: string[] = [];
+  filter.value.forEach(item => {
+    if (props.strictMode && (!item.value || item.value === "")) return;
+    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const operator = props.showOperator ? item.operator : "=";
+    let value = item.value;
+    const escapeLucene = (str: string) => str.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, "\\$&");
+    switch (operator) {
+      case "=":
+        conditions.push(`${fieldKey}:"${escapeLucene(String(value))}"`);
+        break;
+      case "!=":
+        conditions.push(`-${fieldKey}:"${escapeLucene(String(value))}"`);
+        break;
+      case ">":
+        conditions.push(`${fieldKey}:{${escapeLucene(String(value))} TO *}`);
+        break;
+      case ">=":
+        conditions.push(`${fieldKey}:[${escapeLucene(String(value))} TO *]`);
+        break;
+      case "<":
+        conditions.push(`${fieldKey}:{* TO ${escapeLucene(String(value))}}`);
+        break;
+      case "<=":
+        conditions.push(`${fieldKey}:[* TO ${escapeLucene(String(value))}]`);
+        break;
+      case "include":
+        conditions.push(`${fieldKey}:*${escapeLucene(String(value))}*`);
+        break;
+      case "notinclude":
+        conditions.push(`-${fieldKey}:*${escapeLucene(String(value))}*`);
+        break;
+      default:
+        conditions.push(`${fieldKey}:"${escapeLucene(String(value))}"`);
+    }
+  });
+  return conditions.length > 0 ? conditions.join(" AND ") : "";
+}
+
+function generateArrayOutput() {
+  const result: any[] = [];
+  filter.value.forEach(item => {
+    if (props.strictMode && (!item.value || item.value === "")) return;
+    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const operator = props.showOperator ? item.operator : "=";
+    result.push({
+      field: fieldKey,
+      operator,
+      value: item.value,
+      originalField: item.field.value,
+      fieldType: item.field.type || "text",
+      fieldLabel: item.field.label || item.field.value
+    });
+  });
+  return result;
+}
 </script>
 
 <style scoped>
@@ -550,14 +547,13 @@ export default {
   width: 100%;
   margin: 15px 0;
 }
-.sc-filter-main table tr {
-}
 .sc-filter-main table td {
   padding: 5px 10px 5px 0;
 }
 .sc-filter-main table td:deep(.el-input .el-input__inner) {
   vertical-align: top;
 }
+
 .sc-filter-main table td .el-select {
   display: block;
 }
@@ -613,5 +609,22 @@ export default {
 }
 .dark .nodata {
   border-color: var(--el-border-color-light);
+}
+
+/* Footer pin and spacing to match screenshot */
+.el-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 20px;
+  background: transparent;
+}
+
+.sc-filter-main h2 {
+  margin-bottom: 12px;
+}
+
+.el-button[icon][text] {
+  color: var(--el-color-primary);
 }
 </style>

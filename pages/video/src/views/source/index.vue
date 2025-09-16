@@ -15,7 +15,9 @@
             <div class="search-input">
               <el-input v-model="searchKeyword" placeholder="搜索视频源平台或URL" @input="handleSearch">
                 <template #prefix>
-                  <el-icon><IconifyIconOnline icon="ep:search" /></el-icon>
+                  <el-icon>
+                    <IconifyIconOnline icon="ep:search" />
+                  </el-icon>
                 </template>
               </el-input>
             </div>
@@ -34,7 +36,9 @@
                 新增视频源
               </el-button>
               <el-button @click="refreshSources" class="action-btn secondary-action">
-                <el-icon><IconifyIconOnline icon="ep:refresh" /></el-icon>
+                <el-icon>
+                  <IconifyIconOnline icon="ep:refresh" />
+                </el-icon>
               </el-button>
             </div>
           </div>
@@ -42,20 +46,11 @@
       </div>
 
       <div class="list-content flex-1">
-        <ScTable
-          :url="getSourceList"
-          :params="{
-            keyword: searchKeyword,
-            status: statusFilter,
-          }"
-          :col-size="4"
-          layout="card"
-          :page-size="pageSize"
-          @selection-change="handleSelectionChange"
-          @data-loaded="handleDataLoaded"
-          class="source-cards"
-          ref="tableRef"
-        >
+        <ScTable :url="getSourceList" :params="{
+          keyword: searchKeyword,
+          status: statusFilter,
+        }" :col-size="4" layout="card" :page-size="pageSize" @selection-change="handleSelectionChange"
+          @data-loaded="handleDataLoaded" class="source-cards" ref="tableRef">
           <!-- 空状态模板 -->
           <template #empty>
             <div class="empty-state">
@@ -80,7 +75,8 @@
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="showAddDialog" :title="editingSource ? '编辑视频源' : '新增视频源'" width="600px" :close-on-click-modal="false" class="source-dialog">
+    <el-dialog v-model="showAddDialog" :title="editingSource ? '编辑视频源' : '新增视频源'" width="80%"
+      :close-on-click-modal="false" class="source-dialog" draggable>
       <SourceForm :source="editingSource" @submit="handleSubmit" @cancel="handleCancel" ref="formRef" />
     </el-dialog>
   </div>

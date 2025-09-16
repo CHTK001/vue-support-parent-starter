@@ -1,156 +1,117 @@
-/**
- * 视频管理API接口
- * @author CH
- * @version 1.0.0
- * @since 2024-12-19
- */
-
-import { http } from "@repo/utils";
-import type { ApiResponse, PageResponse, VideoDownload, VideoInfo, VideoRating, VideoSearchRequest, VideoStats } from "./types";
-
-// API基础路径
-const API_BASE = "v1/video/keyword";
+import { http, type ReturnResult } from "@repo/utils";
+import type { VideoItem, VideoSyncItem, VideoSyncQuery } from "../types/video";
 
 /**
- * 搜索视频
- * @param params 搜索参数
- * @returns 分页视频列表
+ * 视频管理接口部分
  */
-export const searchVideos = (params: VideoSearchRequest): Promise<PageResponse<VideoInfo>> => {
-  return http.post(`v1/video/online/find`, params);
+
+/**
+ * 获取视频列表
+ * @param params 查询参数
+ * @returns 视频列表数据
+ */
+export const getVideoList = (params: any) => {
+  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/page", { data: params });
 };
 
 /**
  * 获取视频详情
- * @param videoId 视频ID
- * @returns 视频详情
+ * @param id 视频ID
+ * @returns 视频详细信息
  */
-export const getVideoDetail = (videoId: string): Promise<ApiResponse<VideoInfo>> => {
-  return http.get(`${API_BASE}/detail/${videoId}`);
+export const getVideoDetail = (id: string) => {
+  return http.request<ReturnResult<VideoItem>>("get", `/v1/video/${id}`);
 };
 
 /**
- * 添加视频
- * @param video 视频信息
- * @returns 操作结果
+ * 获取热门搜索关键词
+ * @returns 热门关键词列表
  */
-export const addVideo = (video: VideoInfo): Promise<ApiResponse<string>> => {
-  return http.post(`${API_BASE}/add`, video);
+export const getVideoHotKeywords = () => {
+  return http.request<ReturnResult<any>>("get", "/v1/video/hotKeywords");
 };
 
 /**
- * 修改视频
- * @param video 视频信息
- * @returns 操作结果
+ * 创建新视频
+ * @param data 视频数据
+ * @returns 创建结果
  */
-export const updateVideo = (video: VideoInfo): Promise<ApiResponse<boolean>> => {
-  return http.put(`${API_BASE}/update`, video);
+export const createVideo = (data: VideoItem) => {
+  return http.request<ReturnResult<any>>("post", "/v1/video/save", { data: data });
+};
+
+/**
+ * 更新视频信息
+ * @param data 更新的视频数据
+ * @returns 更新结果
+ */
+export const updateVideo = (data: VideoItem) => {
+  return http.request<ReturnResult<any>>("put", "/v1/video/update", { data: data });
 };
 
 /**
  * 删除视频
  * @param videoId 视频ID
- * @returns 操作结果
+ * @returns 删除结果
  */
-export const deleteVideo = (videoId: string): Promise<ApiResponse<boolean>> => {
-  return http.delete(`${API_BASE}/delete/${videoId}`);
+export const deleteVideo = (videoId: number | string) => {
+  return http.request<ReturnResult<any>>("delete", `/v1/video/${videoId}`);
 };
 
 /**
- * 批量删除视频
- * @param videoIds 视频ID列表
- * @returns 操作结果
+ * 视频同步管理接口部分
  */
-export const batchDeleteVideos = (videoIds: string[]): Promise<ApiResponse<boolean>> => {
-  return http.delete(`${API_BASE}/batch-delete`, { data: videoIds });
+
+/**
+ * 获取视频同步列表
+ * @param params 同步查询参数
+ * @returns 视频同步列表数据
+ */
+export const getVideoSyncList = (params: VideoSyncQuery) => {
+  return http.request<ReturnResult<VideoSyncItem[]>>("get", "/v1/video/sync/page", { params });
 };
 
 /**
- * 获取视频下载地址列表
- * @param videoId 视频ID
- * @returns 下载地址列表
+ * 获取视频同步详情
+ * @param syncId 同步ID
+ * @returns 同步详细信息
  */
-export const getVideoDownloads = (videoId: string): Promise<ApiResponse<VideoDownload[]>> => {
-  return http.get(`${API_BASE}/downloads/${videoId}`);
+export const getVideoSyncDetail = (syncId: number | string) => {
+  return http.request<ReturnResult<VideoSyncItem>>("get", `/v1/video/sync/${syncId}`);
 };
 
 /**
- * 添加视频下载地址
- * @param download 下载信息
- * @returns 操作结果
+ * 创建视频同步任务
+ * @param data 同步任务数据
+ * @returns 创建结果
  */
-export const addVideoDownload = (download: VideoDownload): Promise<ApiResponse<string>> => {
-  return http.post(`${API_BASE}/download/add`, download);
+export const createVideoSync = (data: VideoSyncItem) => {
+  return http.request<ReturnResult<any>>("post", "/v1/video/sync/save", { data: data });
 };
 
 /**
- * 更新视频下载地址
- * @param download 下载信息
- * @returns 操作结果
+ * 更新视频同步任务
+ * @param data 更新的同步任务数据
+ * @returns 更新结果
  */
-export const updateVideoDownload = (download: VideoDownload): Promise<ApiResponse<boolean>> => {
-  return http.put(`${API_BASE}/download/update`, download);
+export const updateVideoSync = (data: VideoSyncItem) => {
+  return http.request<ReturnResult<any>>("put", "/v1/video/sync/update", { data: data });
 };
 
 /**
- * 删除视频下载地址
- * @param downloadId 下载ID
- * @returns 操作结果
+ * 删除视频同步任务
+ * @param syncId 同步任务ID
+ * @returns 删除结果
  */
-export const deleteVideoDownload = (downloadId: string): Promise<ApiResponse<boolean>> => {
-  return http.delete(`${API_BASE}/download/delete/${downloadId}`);
+export const deleteVideoSync = (syncId: number | string) => {
+  return http.request<ReturnResult<any>>("delete", `/v1/video/sync/${syncId}`);
 };
 
 /**
- * 获取视频评分列表
- * @param videoId 视频ID
- * @returns 评分列表
+ * 执行同步任务
+ * @param syncId 同步任务ID
+ * @returns 执行结果
  */
-export const getVideoRatings = (videoId: string): Promise<ApiResponse<VideoRating[]>> => {
-  return http.get(`${API_BASE}/ratings/${videoId}`);
-};
-
-/**
- * 添加视频评分
- * @param rating 评分信息
- * @returns 操作结果
- */
-export const addVideoRating = (rating: VideoRating): Promise<ApiResponse<string>> => {
-  return http.post(`${API_BASE}/rating/add`, rating);
-};
-
-/**
- * 获取统计信息
- * @returns 统计数据
- */
-export const getVideoStats = (): Promise<ApiResponse<VideoStats>> => {
-  return http.get(`${API_BASE}/stats`);
-};
-
-/**
- * 获取热门视频
- * @param limit 数量限制
- * @returns 热门视频列表
- */
-export const getHotVideos = (limit: number = 10): Promise<ApiResponse<VideoInfo[]>> => {
-  return http.get(`${API_BASE}/hot`, { params: { limit } });
-};
-
-/**
- * 获取最新视频
- * @param limit 数量限制
- * @returns 最新视频列表
- */
-export const getLatestVideos = (limit: number = 10): Promise<ApiResponse<VideoInfo[]>> => {
-  return http.get(`${API_BASE}/latest`, { params: { limit } });
-};
-
-/**
- * 获取推荐视频
- * @param videoId 基于的视频ID
- * @param limit 数量限制
- * @returns 推荐视频列表
- */
-export const getRecommendVideos = (videoId: string, limit: number = 10): Promise<ApiResponse<VideoInfo[]>> => {
-  return http.get(`${API_BASE}/recommend/${videoId}`, { params: { limit } });
+export const executeSyncTask = (syncId: number | string) => {
+  return http.request<ReturnResult<any>>("post", `/v1/video/sync/${syncId}/execute`);
 };
