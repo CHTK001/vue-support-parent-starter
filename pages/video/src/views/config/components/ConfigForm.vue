@@ -5,12 +5,8 @@
         <el-input v-model="formData.videoSyncConfigName" placeholder="请输入配置名称" />
       </el-form-item>
 
-      <el-form-item label="同步源" prop="videoSyncConfigSource">
-        <ScSelect v-model="formData.videoSyncConfigSource" :options="syncSourceOptions" layout="card" style="width: 100%" />
-      </el-form-item>
-
-      <el-form-item label="同步地址" prop="videoSyncConfigUrl">
-        <el-input v-model="formData.videoSyncConfigUrl" placeholder="请输入同步地址" />
+      <el-form-item label="同步源" prop="videoSourceId">
+        <ScSelect v-model="formData.videoSourceId" :props="selectProps" :url="getSourceList" :is-remote="true" layout="card" style="width: 100%" />
       </el-form-item>
 
       <el-form-item label="同步间隔">
@@ -47,10 +43,11 @@
 
 <script setup lang="ts">
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { reactive, ref, watch } from "vue";
-import type { VideoSyncConfig } from "../../../api/types";
-import { addSyncConfig, updateSyncConfig } from "../../../api/config";
 import { ElMessage } from "element-plus";
+import { reactive, ref, watch } from "vue";
+import { addSyncConfig, updateSyncConfig } from "../../../api/config";
+import { getSourceList } from "../../../api/source";
+import type { VideoSyncConfig } from "../../../api/types";
 
 /**
  * 配置表单组件
@@ -98,16 +95,18 @@ const syncSourceOptions = [
 // 表单数据
 const formData = reactive<Partial<VideoSyncConfig>>({
   videoSyncConfigName: "",
-  videoSyncConfigSource: "",
-  videoSyncConfigUrl: "",
-  videoSyncConfigKeyword: "",
-  videoSyncConfigCategory: "",
-  videoSyncConfigCron: "",
+  videoSourceId: "",
   videoSyncConfigStatus: 1,
   videoSyncInterval: 0,
   videoConfigHeaders: "",
   videoConfigRemark: "",
 });
+
+const selectProps = {
+  label: "videoSourceName",
+  prop: "videoSourceId",
+  icon: "videoSourceIcon",
+};
 
 // 表单验证规则
 const formRules = {
@@ -139,22 +138,21 @@ const resetForm = () => {
  * 处理保存
  */
 const handleSave = () => {
-  formRef.value.validate()
+  formRef.value
+    .validate()
     .then((valid: boolean) => {
       if (!valid) return;
 
       saving.value = true;
-      
+
       // 根据编辑状态调用不同的API
-      const apiCall = props.editing && props.config?.videoSyncConfigId 
-        ? updateSyncConfig({ ...formData, videoSyncConfigId: props.config.videoSyncConfigId } as VideoSyncConfig)
-        : addSyncConfig(formData as VideoSyncConfig);
-      
+      const apiCall = props.editing && props.config?.videoSyncConfigId ? updateSyncConfig({ ...formData, videoSyncConfigId: props.config.videoSyncConfigId } as VideoSyncConfig) : addSyncConfig(formData as VideoSyncConfig);
+
       apiCall
         .then((result) => {
-            ElMessage.success(props.editing ? "配置更新成功" : "配置添加成功");
-            emit("success");
-            handleClose();
+          ElMessage.success(props.editing ? "配置更新成功" : "配置添加成功");
+          emit("success");
+          handleClose();
         })
         .catch((error) => {
           console.error("保存配置失败:", error);

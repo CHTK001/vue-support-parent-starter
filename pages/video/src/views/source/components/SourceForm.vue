@@ -1,38 +1,34 @@
 <template>
-  <div class="source-form">
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="formRules"
-      label-width="120px"
-      label-position="left"
-      class="form-container"
-    >
+  <div class="source-form thin-scroller">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" label-position="left" class="form-container">
       <div class="form-section">
         <h4 class="section-title">
           <IconifyIconOnline icon="ep:info-filled" class="section-icon" />
           基础信息
         </h4>
-        
-        <el-form-item label="平台名称" prop="videoSourcePlatform">
-          <el-input
-            v-model="formData.videoSourcePlatform"
-            placeholder="请输入视频源平台名称，如：观影AC、PanSou等"
-            maxlength="50"
-            show-word-limit
-          >
+
+        <el-form-item label="数据源名称" prop="videoSourceName">
+          <el-input v-model="formData.videoSourceName" placeholder="请输入数据源名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
           </el-input>
         </el-form-item>
 
+        <el-form-item label="平台名称" prop="videoSourcePlatform">
+          <el-input v-model="formData.videoSourcePlatform" placeholder="请输入视频源平台名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
+            <template #prefix>
+              <IconifyIconOnline icon="ep:video-camera" />
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item label="数据源图标" prop="videoSourceIcon">
+          <IconSelect v-model="formData.videoSourceIcon"> </IconSelect>
+        </el-form-item>
+
         <el-form-item label="视频源URL" prop="videoSourceUrl">
-          <el-input
-            v-model="formData.videoSourceUrl"
-            placeholder="请输入视频源的API地址或网站URL"
-            type="url"
-          >
+          <el-input v-model="formData.videoSourceUrl" placeholder="请输入视频源的API地址或网站URL" type="url">
             <template #prefix>
               <IconifyIconOnline icon="ep:link" />
             </template>
@@ -40,15 +36,7 @@
         </el-form-item>
 
         <el-form-item label="启用状态" prop="videoSourceEnable">
-          <el-switch
-            v-model="formData.videoSourceEnable"
-            :active-value="1"
-            :inactive-value="0"
-            active-text="启用"
-            inactive-text="禁用"
-            active-color="#67c23a"
-            inactive-color="#f56c6c"
-          />
+          <el-switch v-model="formData.videoSourceEnable" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" active-color="#67c23a" inactive-color="#f56c6c" />
         </el-form-item>
       </div>
 
@@ -59,49 +47,22 @@
         </h4>
 
         <el-form-item label="最大查询数" prop="videoSourceMaxResource">
-          <el-input-number
-            v-model="formData.videoSourceMaxResource"
-            :min="0"
-            :max="10000"
-            :step="10"
-            placeholder="0表示无限制"
-            controls-position="right"
-            class="w-full"
-          />
-          <div class="form-tip">
-            设置单次查询返回的最大资源数量，0表示无限制
-          </div>
+          <el-input-number v-model="formData.videoSourceMaxResource" :min="0" :max="10000" :step="10" placeholder="0表示无限制" controls-position="right" class="w-full" />
+          <div class="form-tip">设置单次查询返回的最大资源数量，0表示无限制</div>
         </el-form-item>
 
         <el-form-item label="访问Token" prop="videoSourceToken">
-          <el-input
-            v-model="formData.videoSourceToken"
-            placeholder="如果API需要认证，请输入访问Token"
-            type="password"
-            show-password
-          >
+          <el-input v-model="formData.videoSourceToken" placeholder="如果API需要认证，请输入访问Token" type="password" show-password>
             <template #prefix>
               <IconifyIconOnline icon="ep:key" />
             </template>
           </el-input>
-          <div class="form-tip">
-            用于API认证的Token，如果不需要认证可留空
-          </div>
+          <div class="form-tip">用于API认证的Token，如果不需要认证可留空</div>
         </el-form-item>
 
         <el-form-item label="User Agent" prop="videoSourceUserAgent">
-          <el-input
-            v-model="formData.videoSourceUserAgent"
-            placeholder="自定义User Agent，留空使用默认值"
-            type="textarea"
-            :rows="2"
-            maxlength="500"
-            show-word-limit
-          >
-          </el-input>
-          <div class="form-tip">
-            自定义请求头User Agent，用于模拟不同浏览器访问
-          </div>
+          <el-input v-model="formData.videoSourceUserAgent" placeholder="自定义User Agent，留空使用默认值" type="textarea" :rows="2" maxlength="500" show-word-limit> </el-input>
+          <div class="form-tip">自定义请求头User Agent，用于模拟不同浏览器访问</div>
         </el-form-item>
       </div>
 
@@ -110,15 +71,9 @@
           <IconifyIconOnline icon="ep:cpu" class="section-icon" />
           预设模板
         </h4>
-        
+
         <div class="template-grid">
-          <div 
-            v-for="template in templates" 
-            :key="template.name"
-            class="template-card"
-            :class="{ active: selectedTemplate === template.name }"
-            @click="applyTemplate(template)"
-          >
+          <div v-for="template in templates" :key="template.name" class="template-card" :class="{ active: selectedTemplate === template.name }" @click="applyTemplate(template)">
             <div class="template-icon">
               <IconifyIconOnline :icon="template.icon" />
             </div>
@@ -131,17 +86,9 @@
       </div>
     </el-form>
 
-    <div class="form-actions">
-      <el-button @click="handleCancel" size="large">
-        取消
-      </el-button>
-      <el-button 
-        type="primary" 
-        @click="handleSubmit" 
-        :loading="submitting"
-        size="large"
-      >
-        {{ isEdit ? '更新' : '添加' }}
+    <div class="form-actions absolute bottom-2 right-10">
+      <el-button type="primary" @click="handleSubmit" :loading="submitting" size="large">
+        {{ isEdit ? "更新" : "添加" }}
       </el-button>
     </div>
   </div>
@@ -154,9 +101,10 @@
  * @version 1.0.0
  * @since 2024-12-19
  */
-import { ref, reactive, computed, watch } from "vue";
+import { IconSelect } from "@repo/components/ReIcon";
 import type { FormInstance, FormRules } from "element-plus";
-import type { VideoSource } from "@/api/types";
+import { computed, reactive, ref, watch } from "vue";
+import type { VideoSource } from "../../../api/types";
 
 // 组件属性
 interface Props {
@@ -176,17 +124,19 @@ const emit = defineEmits<Emits>();
 // 响应式数据
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
-const selectedTemplate = ref('');
+const selectedTemplate = ref("");
 
 // 表单数据
 const formData = reactive<VideoSource>({
   videoSourceId: 0,
-  videoSourcePlatform: '',
-  videoSourceUrl: '',
+  videoSourcePlatform: "",
+  videoSourceName: "",
+  videoSourceIcon: "",
+  videoSourceUrl: "",
   videoSourceEnable: 1,
   videoSourceMaxResource: 100,
-  videoSourceToken: '',
-  videoSourceUserAgent: '',
+  videoSourceToken: "",
+  videoSourceUserAgent: "",
 });
 
 // 计算属性
@@ -195,62 +145,56 @@ const isEdit = computed(() => !!props.source?.videoSourceId);
 // 表单验证规则
 const formRules: FormRules = {
   videoSourcePlatform: [
-    { required: true, message: '请输入平台名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '平台名称长度在 2 到 50 个字符', trigger: 'blur' },
+    { required: true, message: "请输入平台名称", trigger: "blur" },
+    { min: 2, max: 50, message: "平台名称长度在 2 到 50 个字符", trigger: "blur" },
+  ],
+  videoSourceName: [
+    { required: true, message: "请输入数据源名称", trigger: "blur" },
+    { min: 2, max: 50, message: "数据源名称长度在 2 到 50 个字符", trigger: "blur" },
   ],
   videoSourceUrl: [
-    { required: true, message: '请输入视频源URL', trigger: 'blur' },
-    { type: 'url', message: '请输入有效的URL地址', trigger: 'blur' },
+    { required: true, message: "请输入视频源URL", trigger: "blur" },
+    { type: "url", message: "请输入有效的URL地址", trigger: "blur" },
   ],
-  videoSourceMaxResource: [
-    { type: 'number', min: 0, max: 10000, message: '最大查询数范围为 0-10000', trigger: 'blur' },
-  ],
+  videoSourceMaxResource: [{ type: "number", min: 0, max: 10000, message: "最大查询数范围为 0-10000", trigger: "blur" }],
 };
 
 // 预设模板
 const templates = [
   {
-    name: '观影AC',
-    icon: 'ep:video-camera',
-    description: '观影AC视频源配置',
+    name: "观影",
+    icon: "ep:film",
+    description: "观影视频源配置",
     config: {
-      videoSourcePlatform: '观影AC',
-      videoSourceUrl: 'https://api.guanyingac.com',
-      videoSourceMaxResource: 100,
-      videoSourceUserAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    },
-  },
-  {
-    name: '观影MV',
-    icon: 'ep:film',
-    description: '观影MV视频源配置',
-    config: {
-      videoSourcePlatform: '观影MV',
-      videoSourceUrl: 'https://api.guanyingmv.com',
+      videoSourceName: "观影",
+      videoSourcePlatform: "GUANYIN",
+      videoSourceUrl: "https://api.guanyingmv.com",
       videoSourceMaxResource: 50,
-      videoSourceUserAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     },
   },
   {
-    name: '观影TV',
-    icon: 'ep:monitor',
-    description: '观影TV视频源配置',
+    name: "豆瓣",
+    icon: "simple-icons:douban",
+    description: "豆瓣视频源配置",
     config: {
-      videoSourcePlatform: '观影TV',
-      videoSourceUrl: 'https://api.guanyingtv.com',
-      videoSourceMaxResource: 200,
-      videoSourceUserAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      videoSourceName: "豆瓣",
+      videoSourcePlatform: "DOUBAN",
+      videoSourceUrl: "https://api.douban.com",
+      videoSourceMaxResource: 50,
+      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     },
   },
   {
-    name: 'PanSou',
-    icon: 'ep:folder-opened',
-    description: 'PanSou网盘搜索配置',
+    name: "PanSou",
+    icon: "ep:folder-opened",
+    description: "PanSou网盘搜索配置",
     config: {
-      videoSourcePlatform: 'PanSou',
-      videoSourceUrl: 'https://api.pansou.com',
+      videoSourceName: "盘搜",
+      videoSourcePlatform: "PanSou",
+      videoSourceUrl: "https://api.pansou.com",
       videoSourceMaxResource: 500,
-      videoSourceUserAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     },
   },
 ];
@@ -269,29 +213,22 @@ const applyTemplate = (template: any) => {
  */
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   try {
     await formRef.value.validate();
     submitting.value = true;
-    
+
     const submitData = { ...formData };
     if (isEdit.value && props.source) {
       submitData.videoSourceId = props.source.videoSourceId;
     }
-    
-    emit('submit', submitData);
+
+    emit("submit", submitData);
   } catch (error) {
-    console.error('表单验证失败:', error);
+    console.error("表单验证失败:", error);
   } finally {
     submitting.value = false;
   }
-};
-
-/**
- * 处理取消
- */
-const handleCancel = () => {
-  emit('cancel');
 };
 
 /**
@@ -301,7 +238,7 @@ const resetForm = () => {
   if (formRef.value) {
     formRef.value.resetFields();
   }
-  selectedTemplate.value = '';
+  selectedTemplate.value = "";
 };
 
 // 监听props变化，初始化表单数据
@@ -315,12 +252,14 @@ watch(
       // 设置默认值
       Object.assign(formData, {
         videoSourceId: 0,
-        videoSourcePlatform: '',
-        videoSourceUrl: '',
+        videoSourcePlatform: "",
+        videoSourceName: "",
+        videoSourceIcon: "",
+        videoSourceUrl: "",
         videoSourceEnable: 1,
         videoSourceMaxResource: 100,
-        videoSourceToken: '',
-        videoSourceUserAgent: '',
+        videoSourceToken: "",
+        videoSourceUserAgent: "",
       });
     }
   },
@@ -472,21 +411,21 @@ defineExpose({
   .template-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .template-card {
     padding: 12px;
   }
-  
+
   .template-icon {
     width: 32px;
     height: 32px;
     font-size: 16px;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .form-actions .el-button {
     width: 100%;
   }

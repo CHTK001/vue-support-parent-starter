@@ -24,33 +24,25 @@
 
       <!-- 快速操作 -->
       <div class="quick-actions">
-        <el-button v-if="config.videoSyncConfigStatus === 0" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
+        <el-button v-if="config.videoSyncConfigStatus !== 'START'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
           <IconifyIconOnline icon="ep:video-play" />
         </el-button>
-        <el-button v-else-if="config.videoSyncConfigStatus === 1" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+        <el-button v-else-if="config.videoSyncConfigStatus !== 'START'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
           <IconifyIconOnline icon="ep:video-pause" />
         </el-button>
-        <el-button v-if="config.videoSyncConfigStatus === 2" type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
-          <IconifyIconOnline icon="ep:close" />
-        </el-button>
-        <el-button v-if="config.videoSyncConfigStatus !== 2" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+
+        <el-button v-if="config.videoSyncConfigStatus !== 'START'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
           <IconifyIconOnline icon="ep:refresh" />
+        </el-button>
+
+        <el-button v-else type="danger" size="small" circle @click="handleAction('stop')" title="停止同步">
+          <IconifyIconOnline icon="ep:close" />
         </el-button>
       </div>
     </div>
 
     <!-- 卡片主体 -->
     <div class="config-card-body">
-      <!-- 同步地址 -->
-      <div class="config-url" v-if="config.videoSyncConfigUrl">
-        <div class="url-label">同步地址</div>
-        <el-tooltip :content="config.videoSyncConfigUrl" placement="top">
-          <div class="url-value" @click="handleCopyUrl(config.videoSyncConfigUrl)">
-            {{ config.videoSyncConfigUrl }}
-          </div>
-        </el-tooltip>
-      </div>
-
       <!-- 统计信息 -->
       <div class="config-stats">
         <div class="stat-item">

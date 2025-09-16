@@ -3,10 +3,10 @@
     <div class="card-header">
       <div class="platform-info">
         <div class="platform-icon">
-          <IconifyIconOnline :icon="getPlatformIcon(source.videoSourcePlatform)" />
+          <IconifyIconOnline :icon="getPlatformIcon(source)" />
         </div>
         <div class="platform-details">
-          <h4 class="platform-name">{{ source.videoSourcePlatform }}</h4>
+          <h4 class="platform-name">{{ source.videoSourceName }}</h4>
           <p class="platform-url">{{ formatUrl(source.videoSourceUrl) }}</p>
         </div>
       </div>
@@ -17,23 +17,13 @@
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="test">
-                <IconifyIconOnline icon="ep:connection" class="mr-2" />
-                测试连接
-              </el-dropdown-item>
               <el-dropdown-item command="edit">
                 <IconifyIconOnline icon="ep:edit" class="mr-2" />
                 编辑
               </el-dropdown-item>
-              <el-dropdown-item 
-                :command="source.videoSourceEnable ? 'disable' : 'enable'"
-                :class="source.videoSourceEnable ? 'text-warning' : 'text-success'"
-              >
-                <IconifyIconOnline 
-                  :icon="source.videoSourceEnable ? 'ep:video-pause' : 'ep:video-play'" 
-                  class="mr-2" 
-                />
-                {{ source.videoSourceEnable ? '禁用' : '启用' }}
+              <el-dropdown-item :command="source.videoSourceEnable ? 'disable' : 'enable'" :class="source.videoSourceEnable ? 'text-warning' : 'text-success'">
+                <IconifyIconOnline :icon="source.videoSourceEnable ? 'ep:video-pause' : 'ep:video-play'" class="mr-2" />
+                {{ source.videoSourceEnable ? "禁用" : "启用" }}
               </el-dropdown-item>
               <el-dropdown-item command="delete" class="text-danger">
                 <IconifyIconOnline icon="ep:delete" class="mr-2" />
@@ -49,17 +39,13 @@
       <div class="config-grid">
         <div class="config-item">
           <span class="config-label">状态</span>
-          <el-tag 
-            :type="source.videoSourceEnable ? 'success' : 'danger'"
-            size="small"
-            class="config-value"
-          >
-            {{ source.videoSourceEnable ? '启用' : '禁用' }}
+          <el-tag :type="source.videoSourceEnable ? 'success' : 'danger'" size="small" class="config-value">
+            {{ source.videoSourceEnable ? "启用" : "禁用" }}
           </el-tag>
         </div>
         <div class="config-item">
           <span class="config-label">最大查询数</span>
-          <span class="config-value">{{ source.videoSourceMaxResource || '无限制' }}</span>
+          <span class="config-value">{{ source.videoSourceMaxResource || "无限制" }}</span>
         </div>
         <div class="config-item" v-if="source.videoSourceToken">
           <span class="config-label">Token</span>
@@ -74,21 +60,7 @@
 
     <div class="card-footer">
       <div class="footer-actions">
-        <el-button 
-          size="small" 
-          type="primary" 
-          @click="handleTest"
-          :loading="testing"
-          class="test-btn"
-        >
-          <IconifyIconOnline icon="ep:connection" class="mr-1" />
-          测试连接
-        </el-button>
-        <el-button 
-          size="small" 
-          @click="handleEdit"
-          class="edit-btn"
-        >
+        <el-button size="small" @click="handleEdit" class="edit-btn">
           <IconifyIconOnline icon="ep:edit" class="mr-1" />
           编辑
         </el-button>
@@ -105,7 +77,7 @@
  * @since 2024-12-19
  */
 import { ref } from "vue";
-import type { VideoSource } from "@/api/types";
+import type { VideoSource } from "../../../api/types";
 
 // 组件属性
 interface Props {
@@ -130,18 +102,23 @@ const testing = ref(false);
  * @param platform 平台名称
  * @returns 图标名称
  */
-const getPlatformIcon = (platform: string): string => {
+const getPlatformIcon = (videoSource: any): string => {
+  const platform = videoSource.videoSourcePlatform;
+  const icon = videoSource.videoSourceIcon;
+  if (icon) {
+    return icon;
+  }
   const iconMap: Record<string, string> = {
-    '观影AC': 'ep:video-camera',
-    '观影MV': 'ep:film',
-    '观影TV': 'ep:monitor',
-    'PanSou': 'ep:folder-opened',
-    '豆瓣': 'ep:star-filled',
-    '优酷': 'ep:video-play',
-    'YouTube': 'ep:video-camera-filled',
-    'Bilibili': 'ep:video-play',
+    观影AC: "ep:video-camera",
+    观影MV: "ep:film",
+    观影TV: "ep:monitor",
+    PanSou: "ep:folder-opened",
+    豆瓣: "ep:star-filled",
+    优酷: "ep:video-play",
+    YouTube: "ep:video-camera-filled",
+    Bilibili: "ep:video-play",
   };
-  return iconMap[platform] || 'ep:video-camera';
+  return iconMap[platform] || "ep:video-camera";
 };
 
 /**
@@ -150,12 +127,12 @@ const getPlatformIcon = (platform: string): string => {
  * @returns 格式化后的URL
  */
 const formatUrl = (url: string): string => {
-  if (!url) return '';
+  if (!url) return "";
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
   } catch {
-    return url.length > 30 ? url.substring(0, 30) + '...' : url;
+    return url.length > 30 ? url.substring(0, 30) + "..." : url;
   }
 };
 
@@ -165,9 +142,9 @@ const formatUrl = (url: string): string => {
  * @returns 掩码后的Token
  */
 const maskToken = (token: string): string => {
-  if (!token) return '';
-  if (token.length <= 8) return '****';
-  return token.substring(0, 4) + '****' + token.substring(token.length - 4);
+  if (!token) return "";
+  if (token.length <= 8) return "****";
+  return token.substring(0, 4) + "****" + token.substring(token.length - 4);
 };
 
 /**
@@ -176,17 +153,17 @@ const maskToken = (token: string): string => {
  * @returns 格式化后的User Agent
  */
 const formatUserAgent = (ua: string): string => {
-  if (!ua) return '';
+  if (!ua) return "";
   // 提取浏览器信息
   const chromeMatch = ua.match(/Chrome\/(\d+\.\d+)/);
   const firefoxMatch = ua.match(/Firefox\/(\d+\.\d+)/);
   const safariMatch = ua.match(/Safari\/(\d+\.\d+)/);
-  
+
   if (chromeMatch) return `Chrome ${chromeMatch[1]}`;
   if (firefoxMatch) return `Firefox ${firefoxMatch[1]}`;
   if (safariMatch) return `Safari ${safariMatch[1]}`;
-  
-  return ua.length > 20 ? ua.substring(0, 20) + '...' : ua;
+
+  return ua.length > 20 ? ua.substring(0, 20) + "..." : ua;
 };
 
 /**
@@ -194,7 +171,7 @@ const formatUserAgent = (ua: string): string => {
  * @param command 命令类型
  */
 const handleCommand = (command: string) => {
-  emit('action', command, props.source);
+  emit("action", command, props.source);
 };
 
 /**
@@ -203,7 +180,7 @@ const handleCommand = (command: string) => {
 const handleTest = async () => {
   testing.value = true;
   try {
-    emit('testConnection', props.source);
+    emit("testConnection", props.source);
   } finally {
     setTimeout(() => {
       testing.value = false;
@@ -215,7 +192,7 @@ const handleTest = async () => {
  * 处理编辑
  */
 const handleEdit = () => {
-  emit('action', 'edit', props.source);
+  emit("action", "edit", props.source);
 };
 </script>
 
@@ -335,7 +312,7 @@ const handleEdit = () => {
 }
 
 .token-value {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   background: #f5f7fa;
   padding: 2px 6px;
   border-radius: 4px;
@@ -402,21 +379,21 @@ const handleEdit = () => {
   .config-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .platform-info {
     gap: 8px;
   }
-  
+
   .platform-icon {
     width: 40px;
     height: 40px;
     font-size: 18px;
   }
-  
+
   .platform-name {
     font-size: 14px;
   }
-  
+
   .platform-url {
     font-size: 12px;
   }

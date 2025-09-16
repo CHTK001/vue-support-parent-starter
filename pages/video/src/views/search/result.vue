@@ -31,10 +31,7 @@
             <span class="filter-label">来源:</span>
             <el-radio-group v-model="currentSource" @change="handleSourceChange">
               <el-radio-button label="">全部</el-radio-button>
-              <el-radio-button label="pansou">PanSou</el-radio-button>
-              <el-radio-button label="douban">豆瓣</el-radio-button>
-              <el-radio-button label="Youku">优酷</el-radio-button>
-              <el-radio-button label="bilibili">哔哩哔哩</el-radio-button>
+              <el-radio-button :label="item.videoSourcePlatform" v-for="item in sourceList">{{ item.videoSourceName }}</el-radio-button>
             </el-radio-group>
           </div>
 
@@ -358,7 +355,8 @@
 import { ElMessage } from "element-plus";
 import { onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import type { VideoInfo, VideoSearchRequest } from "../../api/types";
+import { getSourceList } from "../../api/source";
+import type { VideoInfo, VideoSearchRequest, VideoSource } from "../../api/types";
 import { getVideoDetail, searchVideos } from "../../api/video";
 
 /**
@@ -387,7 +385,7 @@ const totalCount = ref(0);
 const searchTime = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(20);
-
+const sourceList = ref<VideoSource>([]);
 // 过滤器
 const currentSource = ref("");
 const sortBy = ref("relevance");
@@ -409,6 +407,12 @@ const newSearchForm = reactive({
  */
 const goBack = () => {
   router.back();
+};
+
+const initializerSource = async () => {
+  getSourceList().then((res) => {
+    sourceList.value = res.data.records as any;
+  });
 };
 
 /**
@@ -684,6 +688,7 @@ watch(
 
 // 组件挂载
 onMounted(() => {
+  initializerSource();
   initSearchParams();
   if (searchParams.keyword) {
     performSearch();
@@ -691,11 +696,15 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .search-result {
   padding: 0;
   background-color: #f5f5f5;
   min-height: 100vh;
+
+  .search-results {
+    flex: 1;
+  }
 }
 
 .filter-label {

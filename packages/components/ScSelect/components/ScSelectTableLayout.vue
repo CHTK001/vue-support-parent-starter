@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- @ts-ignore -->
     <TSelectTable
       ref="tSelectTableRef"
       class="!w-full"

@@ -25,69 +25,6 @@
       </div>
     </div>
 
-    <!-- 统计信息 -->
-    <div class="stats-cards grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-      <div class="stat-card bg-white rounded-lg shadow p-4">
-        <div class="flex items-center">
-          <div class="stat-icon bg-blue-100 text-blue-600 p-3 rounded-full mr-3">
-            <el-icon><IconifyIconOnline icon="ep:video-play" /></el-icon>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">总视频数</p>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.totalVideos }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card bg-white rounded-lg shadow p-4">
-        <div class="flex items-center">
-          <div class="stat-icon bg-green-100 text-green-600 p-3 rounded-full mr-3">
-            <el-icon><IconifyIconOnline icon="ep:folder-opened" /></el-icon>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">总大小</p>
-            <p class="text-2xl font-bold text-gray-800">{{ formatFileSize(stats.totalSize) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card bg-white rounded-lg shadow p-4">
-        <div class="flex items-center">
-          <div class="stat-icon bg-yellow-100 text-yellow-600 p-3 rounded-full mr-3">
-            <el-icon><IconifyIconOnline icon="ep:star" /></el-icon>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">收藏数</p>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.favoriteVideos }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card bg-white rounded-lg shadow p-4">
-        <div class="flex items-center">
-          <div class="stat-icon bg-purple-100 text-purple-600 p-3 rounded-full mr-3">
-            <el-icon><IconifyIconOnline icon="ep:view" /></el-icon>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">总播放</p>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.totalViews }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card bg-white rounded-lg shadow p-4">
-        <div class="flex items-center">
-          <div class="stat-icon bg-red-100 text-red-600 p-3 rounded-full mr-3">
-            <el-icon><IconifyIconOnline icon="ep:clock" /></el-icon>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">今日新增</p>
-            <p class="text-2xl font-bold text-gray-800">{{ stats.todayAdded }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 工具栏 -->
     <div class="toolbar bg-white rounded-lg shadow p-4 mb-6">
       <div class="flex items-center justify-between">

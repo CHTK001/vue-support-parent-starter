@@ -45,7 +45,7 @@
         </div>
       </div>
 
-      <div class="list-content flex-1">
+      <div class="list-content flex-[1]">
         <ScTable
           :url="getSyncConfigs"
           :params="{

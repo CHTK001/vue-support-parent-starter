@@ -19,6 +19,10 @@ export interface VideoSource {
   videoSourceId: number;
   //平台
   videoSourcePlatform: string;
+  //数据源名称
+  videoSourceName: string;
+  //数据源图标
+  videoSourceIcon: string;
   //视频资源URL
   videoSourceUrl: string;
   //是否启用
@@ -116,13 +120,10 @@ export interface VideoKeyword {
 export interface VideoSyncConfig {
   videoSyncConfigId?: string;
   videoSyncConfigName: string;
-  videoSyncConfigSource: string;
-  videoSyncConfigUrl?: string;
+  videoSourceId: string;
   videoConfigRemark?: string;
   videoSyncConfigKeyword?: string;
-  videoSyncConfigCategory?: string;
-  videoSyncConfigCron?: string;
-  videoSyncConfigStatus?: number;
+  videoSyncConfigStatus?: string;
   videoSyncInterval?: number;
   syncCount?: number;
   videoSyncConfigLastSyncTime?: string;
