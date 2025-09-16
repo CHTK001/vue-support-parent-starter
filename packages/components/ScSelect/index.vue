@@ -4,7 +4,9 @@
     <SelectLayout
       v-if="layout === 'select'"
       v-model="selectValue"
-      :options="options"
+      :options="selectOptions"
+      :url="url"
+      :url-params="urlParams"
       :multiple="multiple"
       :limit="limit"
       :max-collapse-tags="maxCollapseTags"
@@ -19,7 +21,7 @@
     <div v-else-if="layout === 'card'" class="card-selector-flex" :style="flexStyles">
       <!-- 使用CardLayout组件 -->
       <CardLayout
-        v-for="item in options"
+        v-for="item in selectOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
         :value="item.value"
@@ -37,7 +39,7 @@
     <div v-else-if="layout === 'pill'" class="pill-selector-flex" :style="flexStyles">
       <!-- 使用PillLayout组件 -->
       <PillLayout
-        v-for="item in options"
+        v-for="item in selectOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
         :value="item.value"
@@ -51,8 +53,10 @@
     <!-- 下拉选择器布局 -->
     <DropdownLayout
       v-else-if="layout === 'dropdown'"
-      :options="options"
+      :options="selectOptions"
       :model-value="modelValue"
+      :url="url"
+      :url-params="urlParams"
       :multiple="multiple"
       :limit="limit"
       :width="width"
@@ -72,23 +76,51 @@
     <FilterLayout
       v-if="layout === 'filter'"
       :model-value="selectValue"
-      :options="options"
+      :options="selectOptions"
       :label-width="labelWidth"
       :filter-output-format="filterOutputFormat"
       :filter-operator="filterOperator"
       :filter-field="filterField"
       @change="handleChange"
     />
+
+    <!-- 表格选择器布局 -->
+    <ScSelectTable
+      v-else-if="layout === 'table'"
+      v-model="selectValue"
+      :options="options"
+      :url="url"
+      :url-params="urlParams"
+      :multiple="multiple"
+      :limit="limit"
+      :columns="tableColumns"
+      :width="width"
+      :is-remote="isRemote"
+      :height="height"
+      :keywords="tableKeywords"
+      :border="tableBorder"
+      :icon="dropdownIcon"
+      :remote-search="tableRemoteSearch"
+      :title="dropdownTitle"
+      :page-size="tablePageSize"
+      :placeholder="dropdownPlaceholder"
+    />
   </div>
 </template>
-
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
+import ScSelectTable from "./components/ScSelectTableLayout.vue";
 import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
+
+export interface TableColumn {
+  prop: string;
+  label: string;
+  minWidth: string;
+}
 
 const props = defineProps({
   // v-model绑定值
@@ -96,10 +128,23 @@ const props = defineProps({
     type: [String, Number, Array],
     default: ""
   },
+  // 数据源URL函数
+  url: {
+    type: Function,
+    default: () => {}
+  },
+  urlParams: {
+    type: Object,
+    default: () => {}
+  },
   // 选项数组
   options: {
     type: Array as () => DropdownOption[] & CardOption[],
     required: true
+  },
+  isRemote: {
+    type: Boolean,
+    default: false
   },
   // 每行显示的卡片数量
   columns: {
@@ -116,7 +161,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown", "filter"].includes(value);
+      return ["card", "select", "pill", "dropdown", "filter", "table"].includes(value);
     }
   },
   // 是否多选
@@ -155,6 +200,14 @@ const props = defineProps({
     validator: (value: string) => {
       return ["center", "top"].includes(value);
     }
+  },
+  tableBorder: {
+    type: Boolean,
+    default: true
+  },
+  tableKeywords: {
+    type: Object,
+    default: { label: "label", value: "value" } as const
   },
   // 下拉选择器图标
   dropdownIcon: {
@@ -224,14 +277,27 @@ const props = defineProps({
   filterField: {
     type: String,
     default: "field"
+  },
+  tableColumns: {
+    type: Array as () => TableColumn[],
+    default: () => [] as TableColumn[]
+  },
+  tablePageSize: {
+    type: Number,
+    default: 10
+  },
+  tableRemoteSearch: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits(["update:modelValue", "change"]);
+const emit = defineEmits(["update:modelValue", "change", "success", "failure", "selection-change", "search", "page-change", "size-change", "focus", "blur", "clear", "error"]);
 
+const isRemoteData = ref(props.isRemote);
 // 原生select绑定值
 const selectValue = ref(props.modelValue);
-
+const selectOptions = ref(props.options);
 // 计算flex样式
 const flexStyles = computed(() => {
   return {
@@ -244,6 +310,40 @@ watch(
   () => props.modelValue,
   newValue => {
     selectValue.value = newValue;
+  }
+);
+const fetchOptions = async () => {
+  if (typeof props.url === "function") {
+    props.url(props.urlParams).then(res => {
+      try {
+        if (res?.data) {
+          selectOptions.value = res.data;
+          return;
+        }
+        selectOptions.value = res as any;
+      } catch (error) {
+        console.error("获取数据失败:", error);
+      }
+    });
+  }
+};
+
+const initializer = async () => {
+  if (!isRemoteData.value) {
+    return;
+  }
+  fetchOptions();
+};
+
+onMounted(async () => {
+  initializer();
+});
+
+watch(
+  () => props.isRemote,
+  async newValue => {
+    isRemoteData.value = newValue;
+    await initializer();
   }
 );
 

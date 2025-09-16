@@ -515,19 +515,26 @@ router.beforeEach((to, from, next) => {
 - 解析结果缓存
 - 解析失败重试机制
 
-##### 4. 配置管理 (/video/config)
+##### 4. 视频源管理 (/video/source)
+- 视频源配置和管理
+- 多平台视频源支持
+- 视频源连接测试
+- 批量操作和导入导出
+- 视频源状态监控
+
+##### 5. 配置管理 (/video/config)
 - 系统配置参数管理
 - 解析接口配置
 - 同步配置管理
 - 配置导入导出
 
-##### 5. 数据分析 (/video/analytics)
+##### 6. 数据分析 (/video/analytics)
 - 视频播放统计
 - 用户行为分析
 - 系统性能监控
 - 数据报表生成
 
-##### 6. 系统设置 (/video/settings)
+##### 7. 系统设置 (/video/settings)
 - 系统参数配置
 - 用户权限管理
 - 接口配置管理
@@ -569,6 +576,36 @@ POST /api/video/parse
 GET /api/video/parse/interfaces
 // 获取解析历史
 GET /api/video/parse/history
+```
+
+##### 视频源管理接口
+```typescript
+// 获取视频源列表
+GET /api/video/source/page
+// 获取视频源详情
+GET /api/video/source/detail/:id
+// 添加视频源
+POST /api/video/source/save
+// 更新视频源
+PUT /api/video/source/update
+// 删除视频源
+DELETE /api/video/source/delete/:id
+// 批量删除视频源
+DELETE /api/video/source/batch/delete
+// 批量操作视频源
+POST /api/video/source/batch/operate
+// 切换视频源状态
+PUT /api/video/source/toggle/:id
+// 测试视频源连接
+POST /api/video/source/test/:id
+// 测试视频源连接（通过配置）
+POST /api/video/source/test/config
+// 获取视频源统计信息
+GET /api/video/source/stats
+// 导出视频源配置
+GET /api/video/source/export
+// 导入视频源配置
+POST /api/video/source/import
 ```
 
 ##### 配置管理接口
@@ -623,6 +660,45 @@ interface VideoSearchRequest {
 }
 ```
 
+##### 视频源类型
+```typescript
+interface VideoSource {
+  videoSourceId?: string;       // 视频源ID
+  videoSourceName: string;      // 视频源名称
+  videoSourcePlatform: string;  // 视频源平台
+  videoSourceUrl: string;       // 视频源URL
+  videoSourceToken?: string;    // 视频源Token
+  videoSourceUserAgent?: string; // 用户代理
+  videoSourceHeaders?: string;  // 请求头
+  videoSourceParams?: string;   // 请求参数
+  videoSourceTimeout?: number;  // 超时时间（秒）
+  videoSourceRetry?: number;    // 重试次数
+  videoSourceStatus?: boolean;  // 启用状态
+  videoSourceDescription?: string; // 描述
+  createTime?: string;          // 创建时间
+  updateTime?: string;          // 更新时间
+}
+```
+
+##### 视频源查询参数
+```typescript
+interface VideoSourceQueryParams {
+  keyword?: string;             // 搜索关键词
+  platform?: string;           // 平台筛选
+  status?: boolean;             // 状态筛选
+  current?: number;             // 当前页码
+  size?: number;                // 每页大小
+}
+```
+
+##### 视频源批量操作参数
+```typescript
+interface VideoSourceBatchParams {
+  ids: string[];                // 视频源ID列表
+  operation: 'enable' | 'disable' | 'delete'; // 操作类型
+}
+```
+
 ##### 解析结果类型
 ```typescript
 interface ParseResult {
@@ -644,6 +720,13 @@ interface ParseResult {
 - `video:manage:add` - 视频添加权限
 - `video:manage:edit` - 视频编辑权限
 - `video:manage:delete` - 视频删除权限
+- `video:source:view` - 视频源查看权限
+- `video:source:add` - 视频源添加权限
+- `video:source:edit` - 视频源编辑权限
+- `video:source:delete` - 视频源删除权限
+- `video:source:test` - 视频源测试权限
+- `video:source:export` - 视频源导出权限
+- `video:source:import` - 视频源导入权限
 - `video:config:view` - 配置查看权限
 - `video:config:edit` - 配置编辑权限
 - `video:analytics:view` - 数据分析查看权限
@@ -655,8 +738,9 @@ interface ParseResult {
 ```
 /video/search          # 视频搜索
 /video/manage          # 视频管理
-/video/config          # 配置管理
 /video/parse           # 视频解析
+/video/source          # 视频源管理
+/video/config          # 配置管理
 /video/analytics       # 数据分析
 /video/settings        # 系统设置
 ```

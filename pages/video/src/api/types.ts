@@ -12,7 +12,24 @@ export interface ApiResponse<T = any> {
   data: T;
   timestamp: string;
 }
-
+/**
+ * 视频资源
+ */
+export interface VideoSource {
+  videoSourceId: number;
+  //平台
+  videoSourcePlatform: string;
+  //视频资源URL
+  videoSourceUrl: string;
+  //是否启用
+  videoSourceEnable: number;
+  //最大查询数量
+  videoSourceMaxResource: number;
+  //视频资源Token
+  videoSourceToken: string;
+  //视频资源UserAgent
+  videoSourceUserAgent: string;
+}
 // 分页响应格式
 export interface PageResponse<T = any> {
   code: number;
@@ -51,7 +68,7 @@ export interface VideoInfo {
 // 视频搜索请求
 export interface VideoSearchRequest {
   keyword: string;
-  category?: string;
+  videoType?: string;
   year?: number;
   rating?: number;
   platform?: string;

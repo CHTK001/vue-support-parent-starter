@@ -4,10 +4,10 @@ export default {
   pageSize: 20, //表格每一页条数
   parseData: function (res: any) {
     return {
-      data: res.data.data,
-      total: res.data.total, //分析总数字段结构
-      msg: res.message, //分析描述字段结构
-      code: res.code //分析状态字段结构
+      data: res.data.data || res.data,
+      total: res.data.total || res.total, //分析总数字段结构
+      msg: res.message || res.msg, //分析描述字段结构
+      code: res.code || res.status //分析状态字段结构
     };
   },
   request: {

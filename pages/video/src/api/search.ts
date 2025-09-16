@@ -9,7 +9,7 @@ import { http } from "@repo/utils";
 import type { ApiResponse, PageResponse, VideoKeyword, PanSouResult, PanType } from './types';
 
 // API基础路径
-const API_BASE = '/api/video';
+const API_BASE = "v1/video/keyword";
 const PANSOU_API_BASE = '/api/pansou';
 
 /**
@@ -134,11 +134,11 @@ export const getSearchSuggestions = (keyword: string, limit: number = 10): Promi
  * @returns 操作结果
  */
 export const recordSearchBehavior = (keyword: string, source?: string, resultCount?: number): Promise<ApiResponse<boolean>> => {
-  return http.post(`${API_BASE}/search/record`, {
+  return http.post(`${API_BASE}/page`, {
     keyword,
     source,
-    resultCount,
-    timestamp: new Date().toISOString()
+    pageSize:resultCount,
+    timestamp: new Date().toISOString(),
   });
 };
 

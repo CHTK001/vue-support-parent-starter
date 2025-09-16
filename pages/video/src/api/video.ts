@@ -9,7 +9,7 @@ import { http } from "@repo/utils";
 import type { ApiResponse, PageResponse, VideoDownload, VideoInfo, VideoRating, VideoSearchRequest, VideoStats } from "./types";
 
 // API基础路径
-const API_BASE = "/api/video";
+const API_BASE = "v1/video/keyword";
 
 /**
  * 搜索视频
@@ -17,7 +17,7 @@ const API_BASE = "/api/video";
  * @returns 分页视频列表
  */
 export const searchVideos = (params: VideoSearchRequest): Promise<PageResponse<VideoInfo>> => {
-  return http.post(`${API_BASE}/search`, params);
+  return http.post(`v1/video/online/find`, params);
 };
 
 /**

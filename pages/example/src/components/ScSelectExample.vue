@@ -3,13 +3,14 @@
     <div class="example-content">
       <!-- 左侧预览区域 -->
       <div class="preview-area">
-        <h4>组件预览</h4>
+        <h4>组件预览{{ layout }}</h4>
         <div class="preview-container" :class="{ 'custom-style': useCustomStyle, dark: isDarkMode }">
           <ScSelect
             v-model="selectedValue"
             :options="options"
-            :columns="columns"
+            :url="mockTableUrl"
             :gap="gap"
+            :is-remote="isRemote"
             :layout="layout"
             :multiple="showFilterDemo ? true : multiple"
             :limit="limit"
@@ -43,9 +44,12 @@
               v-model="layout"
               class="w-100"
               :options="[
+                { value: 'select', label: '默认' },
                 { value: 'card', label: '卡片' },
                 { value: 'pill', label: '长条' },
-                { value: 'select', label: '下拉' },
+                { value: 'dropdown', label: '下拉' },
+                { value: 'filter', label: '筛选' },
+                { value: 'table', label: '表格下拉' },
               ]"
             />
           </el-form-item>
@@ -113,6 +117,8 @@
                 { value: 'theme', label: '主题选项' },
                 { value: 'social', label: '社交媒体' },
                 { value: 'httpIcon', label: 'HTTP图标' },
+                { value: 'tableData', label: '表格数据' },
+                { value: 'remote', label: '远程数据' },
               ]"
             />
           </el-form-item>
@@ -131,26 +137,22 @@
 
     <!-- 代码示例 -->
     <div class="code-example mt-4">
-      <CodeDisplay 
-        :code="codeExample" 
-        language="html" 
-        title="代码示例" 
-        description="根据当前配置生成的代码示例"
-      />
+      <CodeDisplay :code="codeExample" language="html" title="代码示例" description="根据当前配置生成的代码示例" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import CodeDisplay from "./CodeDisplay.vue";
-import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ElMessage } from "element-plus";
+import { computed, ref, watch } from "vue";
+import CodeDisplay from "./CodeDisplay.vue";
 
 // 主题设置
 const isDarkMode = ref(false);
-
+const isRemote = computed(() => {
+  return optionSet.value === "remote";
+});
 // 切换主题
 const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value;
@@ -172,6 +174,48 @@ const width = ref("120px");
 const iconPosition = ref("center");
 const filterOutputFormat = ref("default");
 const showFilterDemo = ref(false);
+
+// 模拟表格数据API
+const mockTableUrl = async (params) => {
+  // 模拟API延迟
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  // 模拟数据
+  const allData = [
+    { id: 1, label: "张三", value: "user1", department: "技术部", position: "前端工程师", experience: "3年", status: "在职" },
+    { id: 2, label: "李四", value: "user2", department: "产品部", position: "产品经理", experience: "5年", status: "在职" },
+    { id: 3, label: "王五", value: "user3", department: "设计部", position: "UI设计师", experience: "2年", status: "在职" },
+    { id: 4, label: "赵六", value: "user4", department: "技术部", position: "后端工程师", experience: "4年", status: "离职" },
+    { id: 5, label: "钱七", value: "user5", department: "运营部", position: "运营专员", experience: "1年", status: "在职" },
+    { id: 6, label: "孙八", value: "user6", department: "技术部", position: "全栈工程师", experience: "6年", status: "在职" },
+    { id: 7, label: "周九", value: "user7", department: "测试部", position: "测试工程师", experience: "3年", status: "在职" },
+    { id: 8, label: "吴十", value: "user8", department: "技术部", position: "架构师", experience: "8年", status: "在职" },
+  ];
+
+  // 模拟搜索过滤
+  let filteredData = allData;
+  if (params?.keywords) {
+    filteredData = allData.filter((item) => item.label.includes(params.keywords) || item.department.includes(params.keywords) || item.position.includes(params.keywords));
+  }
+
+  if (params?.page) {
+    // 模拟分页
+    const start = (params.page - 1) * params.pageSize;
+    const end = start + params.pageSize;
+    const pageData = filteredData.slice(start, end);
+
+    return {
+      data: pageData,
+      total: filteredData.length,
+      page: params.page,
+      pageSize: params.pageSize,
+    };
+  }
+  return {
+    data: filteredData,
+    total: filteredData.length,
+  };
+};
 
 // 更新宽度
 const updateWidth = (val) => {
@@ -227,6 +271,25 @@ const httpIconOptions = [
   { label: "Remix图标", value: "remix", icon: "ri:github-fill" }, // 测试ri:格式
 ];
 
+// 表格数据选项
+const tableDataOptions = [
+  { label: "张三", value: "user1", department: "技术部", position: "前端工程师", experience: "3年", status: "在职" },
+  { label: "李四", value: "user2", department: "产品部", position: "产品经理", experience: "5年", status: "在职" },
+  { label: "王五", value: "user3", department: "设计部", position: "UI设计师", experience: "2年", status: "在职" },
+  { label: "赵六", value: "user4", department: "技术部", position: "后端工程师", experience: "4年", status: "离职" },
+  { label: "钱七", value: "user5", department: "运营部", position: "运营专员", experience: "1年", status: "在职" },
+  { label: "孙八", value: "user6", department: "技术部", position: "全栈工程师", experience: "6年", status: "在职" },
+];
+
+// 表格列配置
+const tableColumns = [
+  { prop: "label", label: "姓名", width: 100, show: true },
+  { prop: "department", label: "部门", width: 100, show: true },
+  { prop: "position", label: "职位", width: 120, show: true },
+  { prop: "experience", label: "经验", width: 80, show: true },
+  { prop: "status", label: "状态", width: 80, show: true },
+];
+
 // 过滤器演示选项
 const filterOptions = [
   { label: "前端开发", value: "frontend", field: "category", operator: "eq" },
@@ -251,6 +314,10 @@ const options = computed(() => {
       return socialOptions;
     case "httpIcon":
       return httpIconOptions;
+    case "tableData":
+      return tableDataOptions;
+    case "remote":
+      return [];
     default:
       return basicOptions;
   }
@@ -333,7 +400,9 @@ watch(optionSet, () => {
   if (multiple.value) {
     selectedMultiple.value = [options.value[0].value];
   } else {
-    selectedSingle.value = options.value[0].value;
+    if (options.value.length > 0) {
+      selectedSingle.value = options.value[0].value;
+    }
   }
 });
 
@@ -342,6 +411,10 @@ watch(layout, (newLayout) => {
   // 药丸布局更适合显示社交媒体图标
   if (newLayout === "pill" && optionSet.value !== "social") {
     optionSet.value = "social";
+  }
+  // 表格布局更适合显示表格数据
+  if (newLayout === "select-table" && optionSet.value !== "tableData") {
+    optionSet.value = "tableData";
   }
 });
 
@@ -361,6 +434,7 @@ const codeExample = computed(() => {
     <ScSelect
       v-model="${modelName}"
       :options="options"
+      ${layout.value === "select-table" ? ':columns="columns"' : ""}
       ${layout.value !== "card" ? `:layout="${layout.value}"` : ""}
       ${gap.value !== 8 ? `:gap="${gap.value}"` : ""}
       ${widthValue.value !== 120 ? `:width="${width.value}"` : ""}
@@ -369,6 +443,15 @@ const codeExample = computed(() => {
       ${isMultiple && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
       ${isMultiple ? "multiple" : ""}
       ${showFilterDemo.value ? `:filter-output-format="${filterOutputFormat.value}"` : ""}
+      ${layout.value === "select-table" ? `:table-columns="tableColumns"` : ""}
+      ${layout.value === "select-table" ? `:table-url="mockTableUrl"` : ""}
+      ${layout.value === "select-table" ? `:table-params="tableParams"` : ""}
+      ${layout.value === "select-table" ? `:table-keywords="'keywords'"` : ""}
+      ${layout.value === "select-table" ? `:table-placeholder="'请选择用户'"` : ""}
+      ${layout.value === "select-table" ? `:table-loading="false"` : ""}
+      ${layout.value === "select-table" ? `@selection-change="handleTableSelectionChange"` : ""}
+      ${layout.value === "select-table" ? `@search="handleTableSearch"` : ""}
+      ${layout.value === "select-table" ? `@page-change="handleTablePageChange"` : ""}
       @change="handleChange"
     />
   </div>
@@ -383,11 +466,53 @@ const ${showFilterDemo.value ? "filterValue = ref(" + JSON.stringify(filterSelec
 // 选项数据
 const options = ${JSON.stringify(options.value, null, 2)};
 
+${
+  layout.value === "select-table"
+    ? `// 表格列配置
+const tableColumns = ${JSON.stringify(tableColumns, null, 2)};
+
+// 表格查询参数
+const tableParams = ref({
+  page: 1,
+  pageSize: 10
+});
+
+// 模拟表格数据API
+const mockTableUrl = async (params) => {
+  // 模拟API调用
+  const response = await fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+  return response.json();
+};`
+    : ""
+}
+
 // 处理选中变化
 const handleChange = (value) => {
   console.log("选中值变化:", value);
   ${showFilterDemo.value ? `console.log("输出格式: ${filterOutputFormat.value}", value);` : ""}
 };
+
+${
+  layout.value === "select-table"
+    ? `// 表格选择器事件处理
+const handleTableSelectionChange = (selection) => {
+  console.log("表格选择变化:", selection);
+};
+
+const handleTableSearch = (keywords) => {
+  console.log("表格搜索:", keywords);
+};
+
+const handleTablePageChange = (page) => {
+  console.log("表格分页变化:", page);
+  tableParams.value.page = page;
+};`
+    : ""
+}
 <\/script>`;
 
   if (useCustomStyle.value) {
@@ -459,7 +584,7 @@ const handleChange = (value) => {
 }
 
 .config-panel {
-  width: 320px;
+  width: 520px;
   flex-shrink: 0;
 }
 
