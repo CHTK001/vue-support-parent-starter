@@ -10,7 +10,7 @@ import VideoConfig from "./views/config/index.vue";
 import VideoManage from "./views/manage/index.vue";
 import VideoParse from "./views/parse/index.vue";
 import VideoSearch from "./views/search/index.vue";
-import VideoSearchResult from "./views/search/result.vue";
+import VideoSearchResult from "./views/search/search.vue";
 import VideoSource from "./views/source/index.vue";
 
 // 主模块导出

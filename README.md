@@ -492,351 +492,70 @@ router.beforeEach((to, from, next) => {
 - 📱 **响应式设计**: 完美适配各种设备
 - 🔒 **权限控制**: 基于角色的权限管理
 
-#### 主要功能模块
+#### 组件说明：VideoFilter 与 VideoResults
 
-##### 1. 视频搜索 (/video/search)
-- 支持关键词搜索
-- 多维度筛选（分类、来源、格式、时长、评分等）
-- 搜索结果展示和排序
-- 搜索历史记录
-- 热门搜索推荐
+- 目标：在 `/video/manage` 集成筛选条 + 海报网格布局，统一参数与接口。
+- 接口：POST `/v1/video/page`（apps/vue-support-vtools-starter/src/api/video.ts -> getVideoList）。
 
-##### 2. 视频管理 (/video/manage)
-- 视频列表展示和管理
-- 视频详情查看和编辑
-- 视频上传和导入
-- 批量操作支持
-- 视频状态管理
+1) VideoFilter 组件
 
-##### 3. 视频解析 (/video/parse)
-- 支持多平台视频链接解析
-- 解析接口管理和配置
-- 解析历史记录
-- 解析结果缓存
-- 解析失败重试机制
+- 用途：提供 类型/年代/地区/语言 多选筛选，支持“全部”快捷逻辑与更多/收起。
+- 引用路径：`@/view/video/components/VideoFilter.vue`
+- Props
+  - `modelValue?: { types: string[]; years: string[]; districts: string[]; languages: string[] }`
+  - `autoSearch?: boolean` 默认 true；为 false 时显示“搜索”按钮
+- Emits
+  - `update:modelValue` 返回与 modelValue 相同结构
+  - `filter-change` 筛选改变时触发（autoSearch=true 时自动触发）
+  - `search` 当 autoSearch=false，点击确认按钮触发
+- 选项来源
+  - 类型：`@/view/video/data/categories` → `movieTypes`
+  - 年代：`generateYearOptions()` 生成，含“全部”与常用分组
+  - 地区/语言：`@/view/video/data/videoOptions`
 
-##### 4. 视频源管理 (/video/source)
-- 视频源配置和管理
-- 多平台视频源支持
-- 视频源连接测试
-- 批量操作和导入导出
-- 视频源状态监控
+2) VideoResults 组件
 
-##### 5. 配置管理 (/video/config)
-- 系统配置参数管理
-- 解析接口配置
-- 同步配置管理
-- 配置导入导出
+- 用途：卡片网格结果展示，内置排序（推荐/最新上线/最多播放/评分最高）与点击跳转。
+- 引用路径：`@/view/video/components/VideoResults.vue`
+- Props
+  - `url: (params:any)=>PromiseLike<any>` 接口函数（建议传 `getVideoList`）
+  - `params?: any` 接口参数对象（见下方映射）
+  - `sortBy?: string` 初始排序，默认 `recommend`
+  - `total?: number` 可选，外部传入总数
+- Emits
+  - `sort-change` 参数：`sort: string`
+  - `video-click` 参数：`video: any`
+  - `data-loaded` 参数：`data: any`（携带 total 时会同步组件内计数）
+- 暴露方法
+  - `refresh()` 触发内部 ScTable 刷新
 
-##### 6. 数据分析 (/video/analytics)
-- 视频播放统计
-- 用户行为分析
-- 系统性能监控
-- 数据报表生成
+3) 参数映射与请求示例
 
-##### 7. 系统设置 (/video/settings)
-- 系统参数配置
-- 用户权限管理
-- 接口配置管理
-- 系统维护工具
+- 过滤器到接口字段的映射（多选使用英文逗号拼接，含“全部”时忽略该维度）：
+  - `keyword` → string（关键词，来自顶部输入框）
+  - `videoType` → string（由 VideoFilter.types 归一化）
+  - `videoYear` → string（由 VideoFilter.years 归一化）
+  - `videoDistrict` → string（由 VideoFilter.districts 归一化）
+  - `videoLanguage` → string（由 VideoFilter.languages 归一化）
+  - `order` → string（与排序一致，`recommend` | `newest` | `videoViews desc` | `videoScore desc`）
 
-#### API接口
+- 在页面 <video-manage> 中的典型用法：
 
-##### 视频管理接口
-```typescript
-// 获取视频列表
-GET /api/video/list
-// 获取视频详情
-GET /api/video/detail/:id
-// 添加视频
-POST /api/video/add
-// 更新视频
-PUT /api/video/update/:id
-// 删除视频
-DELETE /api/video/delete/:id
-```
+```vue
+<template>
+  <VideoFilter v-model="filters" :autoSearch="true" @filter-change="applyFilters" />
+  <VideoResults
+    ref="resultsRef"
+    :url="getVideoList"
+    :params="requestParams"
+    :sort-by="sortBy"
+    @sort-change="onSortChange"
+    @video-click="onVideoClick"
+  />
+</template>
 
-##### 视频搜索接口
-```typescript
-// 搜索视频
-POST /api/video/search
-// 获取搜索建议
-GET /api/video/search/suggestions
-// 获取热门搜索
-GET /api/video/search/hot
-// 获取搜索历史
-GET /api/video/search/history
-```
 
-##### 视频解析接口
-```typescript
-// 解析视频链接
-POST /api/video/parse
-// 获取解析接口列表
-GET /api/video/parse/interfaces
-// 获取解析历史
-GET /api/video/parse/history
-```
+4) ScTable 期望数据结构（简要）
 
-##### 视频源管理接口
-```typescript
-// 获取视频源列表
-GET /api/video/source/page
-// 获取视频源详情
-GET /api/video/source/detail/:id
-// 添加视频源
-POST /api/video/source/save
-// 更新视频源
-PUT /api/video/source/update
-// 删除视频源
-DELETE /api/video/source/delete/:id
-// 批量删除视频源
-DELETE /api/video/source/batch/delete
-// 批量操作视频源
-POST /api/video/source/batch/operate
-// 切换视频源状态
-PUT /api/video/source/toggle/:id
-// 测试视频源连接
-POST /api/video/source/test/:id
-// 测试视频源连接（通过配置）
-POST /api/video/source/test/config
-// 获取视频源统计信息
-GET /api/video/source/stats
-// 导出视频源配置
-GET /api/video/source/export
-// 导入视频源配置
-POST /api/video/source/import
-```
-
-##### 配置管理接口
-```typescript
-// 获取配置列表
-GET /api/video/config/list
-// 获取配置详情
-GET /api/video/config/detail/:id
-// 更新配置
-PUT /api/video/config/update/:id
-// 同步配置
-POST /api/video/config/sync
-```
-
-#### 数据类型定义
-
-##### 视频信息类型
-```typescript
-interface VideoInfo {
-  id: string;                    // 视频ID
-  title: string;                 // 视频标题
-  description?: string;          // 视频描述
-  cover?: string;               // 视频封面
-  duration?: number;            // 视频时长（秒）
-  size?: number;                // 视频大小（字节）
-  format?: string;              // 视频格式
-  resolution?: string;          // 视频分辨率
-  url: string;                  // 视频URL
-  source?: string;              // 视频来源
-  category?: string;            // 视频分类
-  tags?: string[];              // 视频标签
-  status?: VideoStatus;         // 视频状态
-  createTime?: string;          // 创建时间
-  updateTime?: string;          // 更新时间
-}
-```
-
-##### 搜索请求参数
-```typescript
-interface VideoSearchRequest {
-  keyword?: string;             // 搜索关键词
-  category?: string;            // 视频分类
-  source?: string;              // 视频来源
-  format?: string;              // 视频格式
-  minDuration?: number;         // 最小时长
-  maxDuration?: number;         // 最大时长
-  minRating?: number;           // 最小评分
-  maxRating?: number;           // 最大评分
-  status?: VideoStatus;         // 视频状态
-  current?: number;             // 当前页码
-  size?: number;                // 每页大小
-}
-```
-
-##### 视频源类型
-```typescript
-interface VideoSource {
-  videoSourceId?: string;       // 视频源ID
-  videoSourceName: string;      // 视频源名称
-  videoSourcePlatform: string;  // 视频源平台
-  videoSourceUrl: string;       // 视频源URL
-  videoSourceToken?: string;    // 视频源Token
-  videoSourceUserAgent?: string; // 用户代理
-  videoSourceHeaders?: string;  // 请求头
-  videoSourceParams?: string;   // 请求参数
-  videoSourceTimeout?: number;  // 超时时间（秒）
-  videoSourceRetry?: number;    // 重试次数
-  videoSourceStatus?: boolean;  // 启用状态
-  videoSourceDescription?: string; // 描述
-  createTime?: string;          // 创建时间
-  updateTime?: string;          // 更新时间
-}
-```
-
-##### 视频源查询参数
-```typescript
-interface VideoSourceQueryParams {
-  keyword?: string;             // 搜索关键词
-  platform?: string;           // 平台筛选
-  status?: boolean;             // 状态筛选
-  current?: number;             // 当前页码
-  size?: number;                // 每页大小
-}
-```
-
-##### 视频源批量操作参数
-```typescript
-interface VideoSourceBatchParams {
-  ids: string[];                // 视频源ID列表
-  operation: 'enable' | 'disable' | 'delete'; // 操作类型
-}
-```
-
-##### 解析结果类型
-```typescript
-interface ParseResult {
-  success: boolean;             // 解析是否成功
-  videoInfo?: VideoInfo;        // 视频信息
-  errorMessage?: string;        // 错误信息
-  duration: number;             // 解析耗时（毫秒）
-  interfaceId: string;          // 使用的接口
-  parseTime: string;            // 解析时间
-}
-```
-
-#### 权限配置
-
-视频模块支持基于角色的权限控制：
-
-- `video:search:view` - 视频搜索查看权限
-- `video:manage:view` - 视频管理查看权限
-- `video:manage:add` - 视频添加权限
-- `video:manage:edit` - 视频编辑权限
-- `video:manage:delete` - 视频删除权限
-- `video:source:view` - 视频源查看权限
-- `video:source:add` - 视频源添加权限
-- `video:source:edit` - 视频源编辑权限
-- `video:source:delete` - 视频源删除权限
-- `video:source:test` - 视频源测试权限
-- `video:source:export` - 视频源导出权限
-- `video:source:import` - 视频源导入权限
-- `video:config:view` - 配置查看权限
-- `video:config:edit` - 配置编辑权限
-- `video:analytics:view` - 数据分析查看权限
-- `video:settings:view` - 系统设置查看权限
-- `video:settings:edit` - 系统设置编辑权限
-
-#### 访问路径
-
-```
-/video/search          # 视频搜索
-/video/manage          # 视频管理
-/video/parse           # 视频解析
-/video/source          # 视频源管理
-/video/config          # 配置管理
-/video/analytics       # 数据分析
-/video/settings        # 系统设置
-```
-
-## 应用
-
-### Vue Support Monitor Starter
-
-监控应用，提供系统监控和WebRTC统计功能。
-
-#### 特性
-
-- 📊 **系统监控**: 实时系统状态监控
-- 📈 **WebRTC统计**: WebRTC连接和性能统计
-- 📋 **房间管理**: WebRTC房间管理功能
-- 🔧 **配置管理**: 系统配置管理
-
-## 开发指南
-
-### 代码规范
-
-1. **Java代码规范**:
-   - 遵循阿里代码规范
-   - 使用Lombok代替Getter/Setter和构造方法
-   - 添加完整的注释(作者[CH]、创建时间、版本)
-   - 方法需要入参、出参说明和方法说明
-   - 重要代码需要添加日志和debug日志
-   - SQL语句必须在XML文件中，不允许出现在Java文件中
-
-2. **前端代码规范**:
-   - 使用TypeScript进行类型检查
-   - 遵循Vue 3 Composition API最佳实践
-   - 组件需要添加完整的类型定义
-   - 重要功能需要添加注释
-
-### 文档要求
-
-修改/新增功能都要完善项目中的文档(README.MD, CHANGELOG.MD)，必须能够让前端模块能够清晰的了解到新增的功能、接口、参数、说明(包括接口说明,字段说明等)。
-
-### 提交规范
-
-使用约定式提交规范:
-
-- `feat`: 新功能
-- `fix`: 修复bug
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 代码重构
-- `test`: 测试相关
-- `chore`: 构建过程或辅助工具的变动
-
-## 更新日志
-
-### v2.0.0 (2025-01-17)
-
-#### ScSearch组件重大更新
-
-- 🚀 **重大更新**: 从Options API重构为Composition API + TypeScript
-- ✨ **新增功能**:
-  - 支持时间选择器和时间范围选择器
-  - 支持级联选择器
-  - 支持开关控件
-  - 支持复选框组
-  - 添加防抖搜索功能
-  - 添加表单验证支持
-  - 添加v-model支持
-  - 暴露组件方法供外部调用
-- 🎨 **界面优化**:
-  - 改进响应式布局
-  - 优化移动端适配
-  - 增强无障碍访问支持
-- 🐛 **问题修复**:
-  - 修复表单重置问题
-  - 修复展开/收起状态管理
-  - 修复图标显示问题
-
-#### WebRTC监控模块
-
-- ✨ **新增功能**: 添加getRoomHistory函数，支持房间历史数据查询
-- 🐛 **问题修复**: 修复API导入路径问题
-
-#### Holiday节假日模块
-
-- ✨ **新增功能**: 完整的节假日模块实现
-- 📅 **日历组件**: 基于Element Plus Calendar的节假日展示
-- 🔄 **数据同步**: 支持节假日数据同步功能
-- 🎨 **响应式设计**: 完美适配各种设备
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request来帮助改进这个项目。
-
-## 联系方式
-
-如有问题，请联系开发团队。
+- 行字段：`videoId` | `videoTitle`/`videoName` | `videoCover` | `videoScore` | `videoViews` | `videoYear` | `videoDistrict` | `videoLanguage` | `videoType`
+- 说明：`videoCover` 可为逗号分隔多源；组件内处理 `videoPlatform` 兼容样式；结果卡片封面等比裁剪（2:3）。
