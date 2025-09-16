@@ -180,6 +180,11 @@ const filterOptions = [
 | filterOperator | String | 'in' | 过滤器模式操作符：in/eq/ne/gt/gte/lt/lte/like/between |
 | filterField | String | 'field' | 过滤器模式字段名 |
 | outputValueTypeToArray | Boolean | false | 是否将输出值转为数组格式 |
+| customOperators | Array | [] | 自定义运算符列表，格式：[{label: '显示名', value: '值'}] |
+| fieldMapping | Object | {} | 字段映射配置，用于将显示字段映射为实际字段名 |
+| strictMode | Boolean | false | 严格模式，为true时过滤空值条件 |
+| sqlTablePrefix | String | '' | SQL输出时的表名前缀 |
+| showOperator | Boolean | true | 是否显示运算符选择 |
 
 ### Events
 
@@ -187,6 +192,8 @@ const filterOptions = [
 |--------|------|------|
 | change | value | 选中值变化时触发 |
 | update:modelValue | value | 更新绑定值 |
+| filterChange | output | 过滤条件变化时触发，返回格式化后的输出 |
+| formatChange | {format, data, originalData} | 输出格式变化时触发，包含格式类型和数据 |
 
 ### Slots
 
@@ -243,6 +250,84 @@ const filterOptions = [
 
 // 范围
 "createTime:[2023-01-01 TO 2023-12-31]"
+```
+
+## FilterLayout 组件高级配置
+
+### 父组件参数配置
+
+```vue
+<template>
+  <FilterLayout
+    v-model="filterData"
+    :options="filterOptions"
+    :output-format="'sql'"
+    :custom-operators="customOps"
+    :field-mapping="fieldMap"
+    :strict-mode="true"
+    :sql-table-prefix="'t1'"
+    @filter-change="handleFilterChange"
+    @format-change="handleFormatChange"
+  />
+</template>
+
+<script setup>
+const filterData = ref([])
+const customOps = [
+  { label: '正则匹配', value: 'regex' },
+  { label: '模糊查询', value: 'fuzzy' }
+]
+const fieldMap = {
+  '用户名': 'username',
+  '创建时间': 'create_time'
+}
+
+const handleFilterChange = (output) => {
+  console.log('过滤输出:', output)
+}
+
+const handleFormatChange = ({ format, data, originalData }) => {
+  console.log('格式:', format, '数据:', data, '原始:', originalData)
+}
+</script>
+```
+
+### 多种数据格式输出示例
+
+#### SQL格式输出
+```javascript
+// 输入条件：用户名包含"admin"，状态等于"active"
+// SQL输出：
+"t1.username LIKE '%admin%' AND t1.status = 'active'"
+```
+
+#### Lucene格式输出
+```javascript
+// 相同条件的Lucene输出：
+"username:*admin* AND status:\"active\""
+```
+
+#### 数组格式输出
+```javascript
+// 相同条件的数组输出：
+[
+  {
+    field: "username",
+    operator: "include",
+    value: "admin",
+    originalField: "用户名",
+    fieldType: "text",
+    fieldLabel: "用户名"
+  },
+  {
+    field: "status",
+    operator: "=",
+    value: "active",
+    originalField: "状态",
+    fieldType: "text",
+    fieldLabel: "状态"
+  }
+]
 ```
 
 ## 样式定制
@@ -380,6 +465,14 @@ const handleFilterChange = (value) => {
 5. **样式覆盖**：使用 `:deep()` 选择器来覆盖组件内部样式
 
 ## 更新日志
+
+### v2.2.0
+- 新增FilterLayout组件父组件参数配置功能
+- 新增SQL、Lucene、Array多种数据格式输出支持
+- 新增自定义运算符配置
+- 新增字段映射功能
+- 新增严格模式和表前缀配置
+- 完善formatChange事件，提供更丰富的输出信息
 
 ### v2.1.0
 - 新增过滤器布局模式

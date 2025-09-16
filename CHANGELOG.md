@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.5] - 2025-01-17
+
+### 新增
+
+- **FilterLayout组件功能增强**: 完善过滤器组件的配置和输出功能
+  - 🎯 **父组件参数配置**: 新增多种可配置参数支持
+    - 新增 `customOperators` 自定义运算符配置，支持扩展运算符类型
+    - 新增 `fieldMapping` 字段映射功能，支持显示字段与实际字段的映射
+    - 新增 `strictMode` 严格模式，可过滤空值条件
+    - 新增 `sqlTablePrefix` SQL表前缀配置，支持多表查询
+    - 新增 `showOperator` 运算符显示控制
+  - 🔄 **多种数据格式输出**: 支持SQL、Lucene、Array等多种输出格式
+    - 实现 `generateSQLOutput()` 方法，生成标准SQL WHERE子句
+    - 实现 `generateLuceneOutput()` 方法，生成Lucene查询语法
+    - 实现 `generateArrayOutput()` 方法，生成结构化数组数据
+    - 支持字符转义、运算符映射、条件组合等完整功能
+  - 📡 **事件系统完善**: 新增格式化输出事件
+    - 新增 `formatChange` 事件，提供格式类型、输出数据和原始数据
+    - 完善 `filterChange` 事件，支持格式化后的数据输出
+    - 支持实时格式切换和数据同步
+  - 📚 **文档完善**: 更新组件文档和使用示例
+    - 在ScSelect README.md中新增FilterLayout高级配置说明
+    - 提供完整的参数配置示例和输出格式对比
+    - 新增多种数据格式的使用场景和最佳实践
+
 ## [2.3.4] - 2025-01-17
 
 ### 新增

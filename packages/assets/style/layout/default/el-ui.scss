@@ -513,6 +513,24 @@ section.panel-padding > aside {
   color: #fff !important;
 }
 
+.borderless-select {
+  /* 去除默认边框 */
+  .borderless-select :deep(.el-input__wrapper) {
+    box-shadow: none !important;
+  }
+  /* 去除聚焦时的蓝色边框 (通常需要两个选择器) */
+  .borderless-select :deep(.el-input__wrapper.is-focus),
+  .borderless-select :deep(.el-input.is-focus .el-input__wrapper) {
+    box-shadow: none !important;
+    /* 如果还有边框颜色，可以同时修改 */
+    border-color: transparent !important;
+  }
+  /* 可选：去除悬停时的边框 */
+  .borderless-select :deep(.el-input__wrapper:hover) {
+    box-shadow: none !important;
+  }
+}
+
 .dark {
   .el-tag {
     color: #eee !important;

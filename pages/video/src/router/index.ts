@@ -83,11 +83,24 @@ const routes = [
         path: "/video/sync",
         name: "VideoSync",
         meta: {
-          title: "视频同步",
+          title: "视频源",
           icon: "ep:video-play",
           rank: 9,
         },
         children: [
+          {
+            path: "/video/source",
+            name: "VideoSource",
+            component: async () => {
+              const { VideoSource } = await import("@pages/video");
+              return VideoSource;
+            },
+            meta: {
+              title: "视频源管理",
+              icon: "ep:setting",
+              rank: 4,
+            },
+          },
           {
             path: "/video/config",
             name: "VideoConfig",
@@ -96,7 +109,7 @@ const routes = [
               return VideoConfig;
             },
             meta: {
-              title: "配置管理",
+              title: "视频同步配置",
               icon: "ep:setting",
               rank: 4,
             },

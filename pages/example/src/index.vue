@@ -165,6 +165,12 @@ const components = [
     component: resolveComponent("./components/ScLoadExample.vue"),
   },
   {
+    name: "ScWorkflow",
+    icon: "carbon:progress-bar",
+    description: "工作流组件",
+    component: resolveComponent("./components/ScWorkflowExample.vue"),
+  },
+  {
     name: "ScMap",
     icon: "ri:map-pin-range-line",
     description: "地图组件",

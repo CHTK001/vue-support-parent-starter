@@ -11,21 +11,19 @@
     <!-- 搜索区域 -->
     <div class="search-section">
       <div class="search-container">
-        <!-- 分类选择器 -->
-        <div class="category-selector">
-           <el-select v-model="searchForm.videoType" placeholder="分类" size="large" class="category-select">
-            <el-option label="全部" value="" />
-            <el-option label="电影" value="movie" />
-            <el-option label="电视剧" value="tv" />
-            <el-option label="动漫" value="anime" />
-            <el-option label="综艺" value="variety" />
-            <el-option label="纪录片" value="documentary" />
-          </el-select>
-        </div>
-
         <!-- 搜索输入框 -->
         <div class="search-input-container">
           <el-input v-model="searchForm.keyword" placeholder="搜索视频、演员、导演..." size="large" class="search-input" @keyup.enter="handleSearch" @focus="showSuggestions = true" @blur="hideSuggestions" @input="handleInputChange">
+            <template #prepend>
+              <el-select v-model="searchForm.videoType" placeholder="分类" size="large" class="category-select borderless-select">
+                <el-option label="全部" value="" />
+                <el-option label="电影" value="movie" />
+                <el-option label="电视剧" value="tv" />
+                <el-option label="动漫" value="anime" />
+                <el-option label="综艺" value="variety" />
+                <el-option label="纪录片" value="documentary" />
+              </el-select>
+            </template>
             <template #suffix>
               <el-button type="primary" @click="handleSearch" :loading="searching" class="search-btn">
                 <IconifyIconOnline icon="ep:search" />
@@ -77,7 +75,7 @@ const router = useRouter();
 // 搜索表单
 const searchForm = reactive({
   keyword: "",
-  videoType: "all",
+  videoType: "",
 });
 
 // 页面状态
@@ -229,7 +227,7 @@ onMounted(() => {
 
 .search-section {
   width: 100%;
-  max-width: 584px;
+  max-width: 784px;
   position: relative;
 }
 

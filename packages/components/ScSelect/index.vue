@@ -4,9 +4,7 @@
     <SelectLayout
       v-if="layout === 'select'"
       v-model="selectValue"
-      :options="selectOptions"
-      :url="url"
-      :url-params="urlParams"
+      :options="selectListOptions"
       :multiple="multiple"
       :limit="limit"
       :max-collapse-tags="maxCollapseTags"
@@ -21,7 +19,7 @@
     <div v-else-if="layout === 'card'" class="card-selector-flex" :style="flexStyles">
       <!-- 使用CardLayout组件 -->
       <CardLayout
-        v-for="item in selectOptions"
+        v-for="item in selectListOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
         :value="item.value"
@@ -39,7 +37,7 @@
     <div v-else-if="layout === 'pill'" class="pill-selector-flex" :style="flexStyles">
       <!-- 使用PillLayout组件 -->
       <PillLayout
-        v-for="item in selectOptions"
+        v-for="item in selectListOptions"
         :key="item.value"
         :label="item.label || item.describe || item.name"
         :value="item.value"
@@ -53,7 +51,7 @@
     <!-- 下拉选择器布局 -->
     <DropdownLayout
       v-else-if="layout === 'dropdown'"
-      :options="selectOptions"
+      :options="selectListOptions"
       :model-value="modelValue"
       :url="url"
       :url-params="urlParams"
@@ -76,7 +74,7 @@
     <FilterLayout
       v-if="layout === 'filter'"
       :model-value="selectValue"
-      :options="selectOptions"
+      :options="selectListOptions"
       :label-width="labelWidth"
       :filter-output-format="filterOutputFormat"
       :filter-operator="filterOperator"
@@ -88,7 +86,7 @@
     <ScSelectTable
       v-else-if="layout === 'table'"
       v-model="selectValue"
-      :options="options"
+      :options="selectListOptions"
       :url="url"
       :url-params="urlParams"
       :multiple="multiple"
@@ -122,6 +120,12 @@ export interface TableColumn {
   minWidth: string;
 }
 
+export interface SelectProps {
+  label: string;
+  prop: string;
+  icon: string;
+}
+
 const props = defineProps({
   // v-model绑定值
   modelValue: {
@@ -140,7 +144,18 @@ const props = defineProps({
   // 选项数组
   options: {
     type: Array as () => DropdownOption[] & CardOption[],
-    required: true
+    required: true,
+    default: () => []
+  },
+  props: {
+    type: Object,
+    default: () => {
+      return {
+        label: "label",
+        prop: "value",
+        icon: "icon"
+      } as SelectProps;
+    }
   },
   isRemote: {
     type: Boolean,
@@ -298,6 +313,16 @@ const isRemoteData = ref(props.isRemote);
 // 原生select绑定值
 const selectValue = ref(props.modelValue);
 const selectOptions = ref(props.options);
+const selectListOptions = computed(() => {
+  return selectOptions.value.map(item => {
+    return {
+      ...item,
+      label: item[props.props.label],
+      value: item[props.props.prop],
+      icon: item[props.props.icon]
+    };
+  });
+});
 // 计算flex样式
 const flexStyles = computed(() => {
   return {
@@ -316,11 +341,15 @@ const fetchOptions = async () => {
   if (typeof props.url === "function") {
     props.url(props.urlParams).then(res => {
       try {
-        if (res?.data) {
-          selectOptions.value = res.data;
+        if (!res?.data) {
+          selectOptions.value = (res || []) as any;
+        }
+        if (res.data?.total) {
+          selectOptions.value = res.data?.records || [];
           return;
         }
-        selectOptions.value = res as any;
+        selectOptions.value = res.data || [];
+        return;
       } catch (error) {
         console.error("获取数据失败:", error);
       }
@@ -329,7 +358,7 @@ const fetchOptions = async () => {
 };
 
 const initializer = async () => {
-  if (!isRemoteData.value) {
+  if (!isRemoteData.value || props.layout === "table") {
     return;
   }
   fetchOptions();
@@ -583,7 +612,7 @@ const isSelected = (value: string | number) => {
     return Array.isArray(props.modelValue) && props.modelValue.includes(value);
   } else {
     // 单选模式下，直接比较值
-    return props.modelValue === value;
+    return props.modelValue == value;
   }
 };
 

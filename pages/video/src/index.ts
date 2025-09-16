@@ -11,8 +11,9 @@ import VideoManage from "./views/manage/index.vue";
 import VideoParse from "./views/parse/index.vue";
 import VideoSearch from "./views/search/index.vue";
 import VideoSearchResult from "./views/search/result.vue";
+import VideoSource from "./views/source/index.vue";
 
 // 主模块导出
 export * from "./api";
 export * from "./router";
-export { VideoConfig, VideoManage, VideoParse, VideoSearch, VideoSearchResult };
+export { VideoConfig, VideoManage, VideoParse, VideoSearch, VideoSearchResult, VideoSource };

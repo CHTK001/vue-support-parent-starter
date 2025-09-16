@@ -584,7 +584,7 @@ const handleTablePageChange = (page) => {
 }
 
 .config-panel {
-  width: 520px;
+  width: 700px;
   flex-shrink: 0;
 }
 

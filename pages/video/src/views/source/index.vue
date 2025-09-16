@@ -1,7 +1,7 @@
 <template>
   <div class="video-source">
     <!-- 视频源列表 -->
-    <div class="source-list flex flex-col">
+    <div class="source-list flex flex-col h-full">
       <div class="list-header">
         <div class="list-header-content">
           <div class="list-title-section">
@@ -48,6 +48,7 @@
             keyword: searchKeyword,
             status: statusFilter,
           }"
+          :col-size="4"
           layout="card"
           :page-size="pageSize"
           @selection-change="handleSelectionChange"
@@ -79,19 +80,8 @@
     </div>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog
-      v-model="showAddDialog"
-      :title="editingSource ? '编辑视频源' : '新增视频源'"
-      width="600px"
-      :close-on-click-modal="false"
-      class="source-dialog"
-    >
-      <SourceForm
-        :source="editingSource"
-        @submit="handleSubmit"
-        @cancel="handleCancel"
-        ref="formRef"
-      />
+    <el-dialog v-model="showAddDialog" :title="editingSource ? '编辑视频源' : '新增视频源'" width="600px" :close-on-click-modal="false" class="source-dialog">
+      <SourceForm :source="editingSource" @submit="handleSubmit" @cancel="handleCancel" ref="formRef" />
     </el-dialog>
   </div>
 </template>
@@ -103,13 +93,12 @@
  * @version 1.0.0
  * @since 2024-12-19
  */
-import { ref, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ScTable } from "@repo/components";
+import { onMounted, onUnmounted, ref } from "vue";
+import { deleteSource, getSourceList, saveSource, updateSource } from "../../api/source";
+import type { VideoSource } from "../../api/types";
 import SourceCard from "./components/SourceCard.vue";
 import SourceForm from "./components/SourceForm.vue";
-import { getSourceList, saveSource, updateSource, deleteSource } from "@/api/source";
-import type { VideoSource } from "@/api/types";
 
 // 响应式数据
 const searchKeyword = ref("");
@@ -180,15 +169,11 @@ const editSource = (source: VideoSource) => {
  * 删除视频源
  */
 const deleteSourceItem = (source: VideoSource) => {
-  ElMessageBox.confirm(
-    `确定要删除视频源 "${source.videoSourcePlatform}" 吗？`,
-    "确认删除",
-    {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    }
-  )
+  ElMessageBox.confirm(`确定要删除视频源 "${source.videoSourcePlatform}" 吗？`, "确认删除", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
     .then(() => {
       deleteSource(source.videoSourceId)
         .then(() => {
@@ -296,7 +281,6 @@ onUnmounted(() => {
 .video-source {
   padding: 20px;
   background: #f5f7fa;
-  min-height: 100vh;
 }
 
 .source-list {
