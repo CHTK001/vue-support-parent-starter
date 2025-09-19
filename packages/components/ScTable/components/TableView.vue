@@ -34,6 +34,11 @@
             :filter-method="remoteFilter || !item.filters ? null : filterHandler"
             show-overflow-tooltip
           >
+            <template #header="{ column }">
+              <span @click="onColClick(column, $event)" style="cursor: pointer;">
+                {{ item.label }}
+              </span>
+            </template>
             <template #default="scope">
               <slot :name="item.prop" v-bind="scope" :row="scope.row">
                 {{ item.formatter ? item.formatter(scope.row) : scope.row[item.prop] || item.defaultValue || "-" }}
@@ -97,7 +102,7 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change"]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click"]);
 
 // 右键菜单相关状态
 const contextMenuRef = ref(null);
@@ -307,6 +312,10 @@ const sortChange = sort => {
 
 const filterChange = filters => {
   emit("filter-change", filters);
+};
+
+const onColClick = (column, event) => {
+  emit("col-click", column, event);
 };
 
 const filterHandler = (value, row, column) => {

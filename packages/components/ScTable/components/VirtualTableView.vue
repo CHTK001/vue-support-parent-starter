@@ -72,7 +72,7 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change"]);
+const emit = defineEmits(["row-click", "selection-change", "sort-change", "filter-change", "col-click"]);
 
 // refs
 const tableContainer = ref(null);

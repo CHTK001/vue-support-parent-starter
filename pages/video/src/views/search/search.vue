@@ -101,10 +101,10 @@
       </div>
 
       <!-- 使用 ScTable 渲染卡片结果，替换原 video-grid + 分页 -->
-      <ScTable ref="tableRef" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded">
+      <ScTable ref="tableRef" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded" @row-click="handleRowClick">
         <template #default="{ row }">
           <div class="video-card" :class="{ 'video-card-large': displayMode === 'large' }">
-            <div class="video-cover">
+            <div class="video-cover !w-full">
               <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="(row.videoCover || '').split(',')[0]" fit="cover">
                 <template #error>
                   <img :src="placeholderImage" alt="no-cover" />
@@ -231,7 +231,7 @@ const selectedDistricts = ref<string[]>(["ALL"]); // 多选
 const selectedLanguages = ref<string[]>(["ALL"]); // 多选
 
 // 显示模式
-const displayMode = ref("large");
+const displayMode = ref("default");
 
 // 排序方式
 const sortBy = ref("vote_count.desc");
@@ -328,6 +328,16 @@ const handleDataLoaded = (data: any, total: number) => {
   }
 };
 
+const handleRowClick = async (row, index, event) => {
+  //VideoDetailResult
+  router.push({
+    name: "VideoDetailResult",
+    query: {
+      id: row.videoId,
+    },
+  });
+};
+
 // 处理分类点击（单选）
 const handleCategoryClick = (category) => {
   // 更新所有分类的活动状态
@@ -377,20 +387,23 @@ onMounted(() => {
   }
 });
 
-
-watch(() => props.category, (newCategory) => {
-  if (newCategory) {
-    selectedCategories.value = newCategory;
+watch(
+  () => props.category,
+  (newCategory) => {
+    if (newCategory) {
+      selectedCategories.value = newCategory;
+    }
   }
-});
+);
 
-watch(() => props.keyword, (newKeyword) => {
-  if (newKeyword) {
-    searchKeyword.value = newKeyword;
+watch(
+  () => props.keyword,
+  (newKeyword) => {
+    if (newKeyword) {
+      searchKeyword.value = newKeyword;
+    }
   }
-});
-
-
+);
 
 defineExpose({
   handleSearch,

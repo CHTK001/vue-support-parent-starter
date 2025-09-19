@@ -155,7 +155,7 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "load-more", "layout-updated", "next-page", "prev-page", "update:currentPage"]);
+const emit = defineEmits(["row-click", "selection-change", "load-more", "layout-updated", "next-page", "prev-page", "update:currentPage", "col-click"]);
 
 // 响应式数据
 const currentDataList = ref([]);
