@@ -24,14 +24,14 @@
 
       <!-- 快速操作 -->
       <div class="quick-actions">
-        <el-button v-if="config.videoSyncConfigStatus !== 'START'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
+        <el-button v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
           <IconifyIconOnline icon="ep:video-play" />
         </el-button>
-        <el-button v-else-if="config.videoSyncConfigStatus !== 'START'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
+        <el-button v-else-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
           <IconifyIconOnline icon="ep:video-pause" />
         </el-button>
 
-        <el-button v-if="config.videoSyncConfigStatus !== 'START'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
+        <el-button v-if="config.videoSyncConfigStatus !== 'START' && config.videoSyncConfigStatus !== 'PROGRESS'" type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
 

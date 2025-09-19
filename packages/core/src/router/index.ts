@@ -3,7 +3,7 @@ import { isAllEmpty, isUrl, openLink } from "@pureadmin/utils";
 import { getConfig, multipleTabsKey, transformI18n, userKey } from "@repo/config";
 import type { UserResult } from "@repo/core";
 import { removeToken, useMultiTagsStoreHook } from "@repo/core";
-import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
+import { buildHierarchyTree, localStorageProxy, NProgress, splitRemainingLeaves } from "@repo/utils";
 import Cookies from "js-cookie";
 import yaml from "js-yaml";
 import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";
@@ -142,6 +142,9 @@ const _createNormalRouter = () => {
   Object.keys(modules).forEach((key) => {
     const route = modules[key].default;
     routes.push(route);
+    // const { removed, remaining } = splitRemainingLeaves(route);
+    // routes.push(remaining);
+    // remainingRouter.push(...removed);
     routerNameMapping.add(route.name?.toLowerCase());
   });
 };
@@ -149,8 +152,8 @@ const _createNormalRouter = () => {
 if (getConfig().AutoRouter || getConfig().RouterModule == "AUTO" || false) {
   _createAutoRouter();
 } else if (getConfig().RouterModule == "MIX") {
-  _createNormalRouter();
   _createAutoRouter();
+  _createNormalRouter();
 } else {
   _createNormalRouter();
 }
@@ -162,12 +165,14 @@ export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(format
 export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infinity)).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
-export const remainingPaths = remainingRouter.map((route) => {
-  if (!route) {
-    return;
-  }
-  return route.path;
-}).filter(Boolean);
+export const remainingPaths = remainingRouter
+  .map((route) => {
+    if (!route) {
+      return;
+    }
+    return route.path;
+  })
+  .filter(Boolean);
 /** 创建路由实例 */
 export const router: Router = createRouter({
   //@ts-ignore

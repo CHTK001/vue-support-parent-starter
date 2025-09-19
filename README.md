@@ -312,6 +312,187 @@ const switchValue = ref(false)
 
 详细文档请查看: [ScSwitch组件文档](./packages/components/ScSwitch/README.md)
 
+### ScMessageDialog 实时消息对话框组件
+
+一个功能强大的实时消息对话框组件，支持多种位置、样式配置和交互功能。
+
+#### 特性
+
+- 🚀 **Vue 3 + TypeScript**: 使用Composition API，提供完整的类型支持
+- 📍 **多种位置**: 支持四个角落定位（top-left、top-right、bottom-left、bottom-right）
+- 🎨 **样式自定义**: 支持自定义宽度、高度、透明度等样式配置
+- 📊 **进度监控**: 内置进度条支持，可显示任务执行进度
+- 🔄 **自动功能**: 支持自动展开、自动滚动到最新消息
+- 📝 **Markdown渲染**: 支持Markdown格式的消息内容渲染
+- 🎯 **模板支持**: 支持自定义消息模板和插槽
+- ⚡ **实时更新**: 适用于WebSocket实时消息展示
+
+#### 基础用法
+
+```vue
+<template>
+  <!-- 基础用法 -->
+  <ScMessageDialog
+    :visible="dialogVisible"
+    title="消息监控"
+    :data="messages"
+    position="top-right"
+    width="400px"
+    height="300px"
+    @close="dialogVisible = false"
+  />
+  
+  <!-- 唯一进度条模式 -->
+  <ScMessageDialog
+    :visible="progressVisible"
+    title="任务进度"
+    :data="progressMessages"
+    position="bottom-right"
+    width="500px"
+    height="400px"
+    :progress-unique="true"
+    @close="progressVisible = false"
+  />
+  
+  <!-- Markdown内容展示 -->
+  <ScMessageDialog
+    :visible="markdownVisible"
+    title="Markdown演示"
+    :markdown-content="markdownContent"
+    position="top-left"
+    width="600px"
+    height="450px"
+    :enable-markdown="true"
+    @close="markdownVisible = false"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ScMessageDialog } from '@repo/components'
+
+const dialogVisible = ref(false)
+const progressVisible = ref(false)
+const markdownVisible = ref(false)
+
+const messages = ref([
+  {
+    title: '系统启动',
+    message: '系统启动成功',
+    time: new Date().toISOString()
+  },
+  {
+    title: '数据同步',
+    message: '数据同步完成',
+    time: new Date().toISOString(),
+    progress: 100
+  }
+])
+
+const progressMessages = ref([
+  {
+    title: '任务1',
+    message: '正在处理数据...',
+    time: new Date().toISOString(),
+    progress: 30
+  },
+  {
+    title: '任务2',
+    message: '数据处理完成',
+    time: new Date().toISOString(),
+    progress: 100
+  }
+])
+
+const markdownContent = ref(`
+# 标题
+
+这是一个 **Markdown** 示例。
+
+- 列表项1
+- 列表项2
+
+\`\`\`javascript
+console.log('Hello World');
+\`\`\`
+`)
+</script>
+```
+
+#### 消息数据格式
+
+```typescript
+interface DataItem {
+  title?: string               // 消息标题
+  message?: string             // 消息内容
+  time?: string | Date         // 时间戳
+  progress?: number            // 进度值（0-100）
+  step?: {                     // 步骤进度
+    current: number            // 当前步骤
+    total: number              // 总步骤数
+  }
+  [key: string]: any          // 其他自定义字段
+}
+```
+
+#### 主要属性
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|---------|
+| visible | boolean | false | 对话框显示状态 |
+| title | string | '消息' | 对话框标题 |
+| content | string | - | 普通文本内容 |
+| markdownContent | string | - | Markdown格式内容 |
+| data | MessageItem[] | [] | 消息数据数组 |
+| position | string | 'bottom-right' | 位置：top-left/top-right/bottom-left/bottom-right |
+| width | string\|number | '400px' | 对话框宽度 |
+| height | string\|number | '300px' | 对话框高度 |
+| opacity | number | 0.95 | 透明度（0-1） |
+| defaultCollapsed | boolean | false | 是否默认收缩 |
+| autoExpandOnData | boolean | true | 有数据时是否自动展开 |
+| autoScroll | boolean | true | 是否自动滚动到底部 |
+| stopAutoScrollOnManual | boolean | true | 手动滚动时是否停止自动滚动 |
+| **progressUnique** | **boolean** | **true** | **进度条是否唯一显示（仅在底部显示一条进度）** |
+| **enableMarkdown** | **boolean** | **false** | **是否启用Markdown解析** |
+
+#### 事件
+
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| close | - | 关闭对话框时触发 |
+| message-click | message: MessageItem | 点击消息时触发 |
+| clear | - | 清空消息时触发 |
+
+#### 插槽
+
+| 插槽名 | 参数 | 说明 |
+|--------|------|------|
+| message | { message: MessageItem, index: number } | 自定义消息模板 |
+| header | { title: string } | 自定义头部内容 |
+| footer | { messages: MessageItem[] } | 自定义底部内容 |
+
+#### 外部方法
+
+通过组件 ref 可以调用以下方法：
+
+| 方法名 | 参数 | 说明 |
+|--------|------|------|
+| clear | - | 清除所有消息内容 |
+| close | - | 关闭对话框 |
+| toggleCollapse | - | 切换折叠状态 |
+| scrollToBottom | - | 滚动到底部 |
+
+#### 使用场景
+
+- **实时监控**: WebSocket消息实时展示
+- **进度跟踪**: 任务执行进度监控
+- **系统通知**: 系统状态和通知消息
+- **数据同步**: 数据同步过程展示
+- **日志查看**: 实时日志信息展示
+- **消息管理**: 支持一键清除所有消息内容
+
+详细文档请查看: [ScMessageDialog组件文档](./packages/components/ScMessageDialog/README.md)
+
 ## 页面模块
 
 ### Holiday 节假日模块

@@ -68,7 +68,7 @@ export default {
     //删除常用过滤
     async closeMyfilter(item, index) {
       try {
-        var del = await config.delMy(this.filterName);
+        var del = await config.delMy(this.filterName, item.title);
       } catch (error) {
         return false;
       }
@@ -92,9 +92,8 @@ export default {
 };
 </script>
 
+.style-scope-fix
 <style scoped>
-.sc-filter-my {
-}
 .sc-filter-my-loading {
   padding: 15px;
 }

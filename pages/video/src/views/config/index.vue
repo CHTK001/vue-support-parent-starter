@@ -3,6 +3,9 @@
     <!-- 统计信息组件 -->
     <ConfigStats :stats="stats" class="mb-6" />
 
+    <!-- 同步信息对话框 -->
+    <ScMessageDialog :visible="showSyncDialog" title="同步信息监听" :data="syncMessages" position="bottom-right" width="450px" height="400px" :opacity="0.95" :auto-expand-on-data="true" :auto-scroll="true" :stop-auto-scroll-on-manual="true" @close="showSyncDialog = false" />
+
     <!-- 配置列表 -->
     <div class="config-list flex flex-col">
       <div class="list-header">
@@ -92,13 +95,14 @@
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
 import ScTable from "@repo/components/ScTable/index.vue";
-import { socket } from "@repo/core";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { deleteSyncConfig, executeSyncConfig, getSyncConfigs, stopSyncTask, testSyncConfig, toggleSyncConfigStatus } from "../../api/config";
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
+import { ScMessageDialog } from "@repo/components";
+import { useGlobalSocket } from "@repo/core";
 import { message } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";
 import ConfigForm from "./components/ConfigForm.vue";
@@ -113,7 +117,7 @@ import LogViewer from "./components/LogViewer.vue";
  */
 
 // Socket连接
-let socketInstance: any = null;
+let socketInstance: any = useGlobalSocket();
 
 // 页面状态
 const loading = ref(false);
@@ -143,7 +147,11 @@ const stats = reactive({
 // 对话框状态
 const showAddDialog = ref(false);
 const showLogsDialog = ref(false);
+const showSyncDialog = ref(true); // 默认显示同步信息对话框
 const editingConfig = ref<VideoSyncConfig | null>(null);
+
+// 同步消息数据
+const syncMessages = ref<any[]>([]);
 
 // 移除了不再需要的表单相关变量，业务逻辑已移至ConfigForm组件内部
 
@@ -151,53 +159,36 @@ const editingConfig = ref<VideoSyncConfig | null>(null);
  * 初始化Socket连接
  */
 const initSocket = () => {
-  // 使用封装的socket工厂函数创建连接
-  const urls = [window.location.origin]; // 使用当前域名
-  socketInstance = socket(
-    urls,
-    "/video-sync",
-    {},
-    {
-      transports: ["websocket"],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 3,
-      reconnectionDelay: 1000,
+  if (!socketInstance) {
+    return;
+  }
+
+  // 监听同步信息
+  socketInstance.on("/topic/video-sync/global", (data) => {
+    const dataObject = JSON.parse(data.data);
+    const config = configList.value.find((c) => c.videoSyncConfigId === dataObject.videoSyncConfigId);
+    // 添加同步消息到对话框
+    const syncMessage = {
+      title: `配置同步更新`,
+      message: dataObject?.message || `配置ID: ${dataObject.videoSyncConfigId}\n状态: ${getStatusText(dataObject.type)}\n同步数量: ${dataObject.syncCount || 0}`,
+      isHtml: true,
+      time: new Date(),
+      progress: dataObject.status === "syncing" ? Math.min((dataObject.syncCount || 0) * 10, 90) : dataObject.status === "completed" ? 100 : undefined,
+    };
+
+    syncMessages.value.push(syncMessage);
+
+    // 保持最新的50条消息
+    if (syncMessages.value.length > 50) {
+      syncMessages.value = syncMessages.value.slice(-50);
     }
-  );
 
-  // 监听连接成功
-  socketInstance.on("connect", () => {
-    console.log("Video Socket连接成功");
-  });
-
-  // 监听连接断开
-  socketInstance.on("disconnect", () => {
-    console.log("Video Socket连接断开");
-  });
-
-  // 监听连接错误
-  socketInstance.on("connect_error", (error) => {
-    console.error("Video Socket连接错误:", error);
-  });
-
-  // 监听同步状态更新
-  socketInstance.on("sync-status", (data) => {
-    const config = configList.value.find((c) => c.videoSyncConfigId === data.videoSyncConfigId);
     if (config) {
-      config.videoSyncConfigStatus = data.status;
-      config.videoSyncConfigLastSyncTime = data.lastSyncTime;
-      config.syncCount = data.syncCount;
+      config.videoSyncConfigStatus = dataObject.status;
+      config.videoSyncConfigLastSyncTime = dataObject.lastSyncTime;
+      config.syncCount = dataObject.syncCount;
     }
     updateStats();
-  });
-
-  // 监听同步日志
-  socketInstance.on("sync-log", (log) => {
-    syncLogs.value.unshift(log);
-    if (syncLogs.value.length > 100) {
-      syncLogs.value.pop();
-    }
   });
 };
 
@@ -205,9 +196,9 @@ const initSocket = () => {
  * 数据加载完成回调
  * @param data 加载的数据
  */
-const handleDataLoaded = (data: any) => {
-  configList.value = data.data || [];
-  totalCount.value = data.total || 0;
+const handleDataLoaded = (data: any, total: number) => {
+  configList.value = data || [];
+  totalCount.value = total || 0;
   updateStats();
 };
 
@@ -221,13 +212,47 @@ const loadConfigs = async () => {
 };
 
 /**
+ * 获取状态文本
+ * @param status 状态值
+ * @returns 状态文本
+ */
+const getStatusText = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    SYNC_START: "同步开始",
+    SYNC_COMPLETE: "同步完成",
+    SYNC_ERROR: "同步异常",
+    SYNC_PENDING: "同步等待中",
+    enabled: "启用",
+    disabled: "禁用",
+    syncing: "同步中",
+    completed: "同步完成",
+    error: "异常",
+    pending: "等待中",
+  };
+  return statusMap[status] || status;
+};
+
+/**
  * 更新统计信息
  */
 const updateStats = () => {
   stats.totalConfigs = configList.value.length;
-  stats.enabledConfigs = configList.value.filter((c) => c.configStatus === "enabled").length;
-  stats.syncingConfigs = configList.value.filter((c) => c.configStatus === "syncing").length;
-  stats.errorConfigs = configList.value.filter((c) => c.configStatus === "error").length;
+  stats.enabledConfigs = configList.value.filter((c) => c.videoSyncConfigEnable === true).length;
+  stats.syncingConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "syncing").length;
+  stats.errorConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "error").length;
+};
+
+/**
+ * 添加测试同步消息（用于演示）
+ */
+const addTestSyncMessage = () => {
+  const testMessage = {
+    title: "测试同步消息",
+    message: `这是一条测试消息\n时间: ${new Date().toLocaleString()}\n状态: 正常`,
+    time: new Date(),
+    progress: Math.floor(Math.random() * 100),
+  };
+  syncMessages.value.push(testMessage);
 };
 
 /**
@@ -274,7 +299,8 @@ const handleSync = (config: VideoSyncConfig) => {
     .then(() => {
       // 成功回调，不需要判断code
       ElMessage.success("同步任务已启动");
-      config.videoSyncConfigStatus = 2; // 同步中状态
+      config.videoSyncConfigStatus = "START"; // 同步中状态
+      handleSearch();
     })
     .catch((error) => {
       message.error(error.message);
@@ -335,8 +361,9 @@ const handleStop = (config: VideoSyncConfig) => {
         .then(() => {
           // 成功回调，不需要判断code
           ElMessage.success("同步任务已停止");
-          config.videoSyncConfigStatus = 1; // 恢复为启用状态
+          config.videoSyncConfigStatus = "STOP"; // 恢复为启用状态
           updateStats();
+          handleSearch();
         })
         .catch((error) => {
           console.error("停止同步任务失败:", error);
@@ -355,7 +382,7 @@ const toggleConfigStatus = (config: VideoSyncConfig, enable: boolean) => {
   toggleSyncConfigStatus(config.videoSyncConfigId!, enable ? 1 : 0)
     .then(() => {
       // 成功回调，不需要判断code
-      config.videoSyncConfigStatus = enable ? 1 : 0;
+      config.videoSyncConfigEnable = enable ? !0 : !1;
       ElMessage.success(`${enable ? "启用" : "禁用"}成功`);
       updateStats();
     })
@@ -467,14 +494,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (socketInstance) {
     // 移除事件监听
-    socketInstance.off("sync-status");
-    socketInstance.off("sync-log");
-    socketInstance.off("connect");
-    socketInstance.off("disconnect");
-    socketInstance.off("connect_error");
-    // 断开连接
-    socketInstance.close();
-    socketInstance = null;
+    socketInstance.off("/topic/video-sync/global");
   }
 });
 </script>
@@ -536,11 +556,10 @@ onUnmounted(() => {
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
 }
 
 .action-btn {
-  padding: 10px 20px;
   border-radius: 6px;
   font-weight: 600;
   font-size: 14px;

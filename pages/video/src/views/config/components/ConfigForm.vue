@@ -28,6 +28,13 @@
       <el-form-item label="配置说明">
         <el-input v-model="formData.videoConfigRemark" type="textarea" :rows="2" placeholder="请输入配置说明" />
       </el-form-item>
+
+      <el-form-item label="当前索引">
+        <el-tooltip content="点击刷新当前索引" placement="top">
+          <el-text>{{ formData.videoSyncConfigLastOffset }} </el-text>
+          <IconifyIcon icon="ep:refresh" @click="handleReset" />
+        </el-tooltip>
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -96,7 +103,8 @@ const syncSourceOptions = [
 const formData = reactive<Partial<VideoSyncConfig>>({
   videoSyncConfigName: "",
   videoSourceId: "",
-  videoSyncConfigStatus: 1,
+  videoSyncConfigStatus: "",
+  videoSyncConfigLastOffset: "",
   videoSyncInterval: 0,
   videoConfigHeaders: "",
   videoConfigRemark: "",
@@ -134,6 +142,10 @@ const resetForm = () => {
   formRef.value?.resetFields();
 };
 
+
+const handleReset = async () => {
+  formData.videoSyncConfigLastOffset = "";
+}
 /**
  * 处理保存
  */

@@ -1,13 +1,13 @@
 // 视频分类数据
 export const videoCategories = [
-  { label: "全部", value: null, active: true, icon: "ep:grid" },
+  { label: "全部", value: "ALL", active: true, icon: "ep:grid" },
   { label: "电影", value: "MV", active: false, icon: "ep:film" },
   { label: "电视剧", value: "TV", active: false, icon: "ep:monitor" },
   // { label: "磁力", value: "MA", active: false, icon: "ep:magnet" },
   { label: "动漫", value: "AC", active: false, icon: "ep:picture-rounded" },
-  { label: "纪录片", value: "纪录片", active: false, icon: "ep:camera" },
-  { label: "综艺", value: "综艺", active: false, icon: "ep:magic-stick" },
-  { label: "体育", value: "体育", active: false, icon: "ep:basketball" },
+  { label: "纪录片", value: "DOC", active: false, icon: "ep:camera" },
+  { label: "综艺", value: "VAR", active: false, icon: "ep:magic-stick" },
+  { label: "体育", value: "SP", active: false, icon: "ep:basketball" },
   { label: "音乐", value: "music", active: false, icon: "ep:headset" },
   { label: "解析", value: "vip", active: false, icon: "ep:video-play" },
   { label: "教育", value: "教育", active: false, icon: "ep:reading" },
@@ -15,9 +15,14 @@ export const videoCategories = [
   { label: "其他", value: "其他", active: false, icon: "ep:more-filled" },
 ];
 
+export const allCategories = videoCategories.map((item) => ({
+  label: item.label,
+  value: item.value,
+}));
+
 // 电影类型数据
 export const movieTypes = [
-  { label: "全部", value: "全部", active: true },
+  { label: "全部", value: "ALL", active: true },
   { label: "动作", value: "动作", active: false },
   { label: "喜剧", value: "喜剧", active: false },
   { label: "爱情", value: "爱情", active: false },
@@ -47,13 +52,13 @@ export const movieTypes = [
   { label: "历史", value: "历史", active: false },
   { label: "真人秀", value: "真人秀", active: false },
   { label: "脱口秀", value: "脱口秀", active: false },
-  { label: "多选", value: "多选", active: false },
+  // { label: "多选", value: "多选", active: false },
 ];
 
 // 年代数据 - 动态生成从当前年份开始往前推
 export const generateYearOptions = () => {
   const currentYear = new Date().getFullYear();
-  const years = [{ label: "全部", value: "全部", active: true }];
+  const years = [{ label: "全部", value: "ALL", active: true }];
 
   // 添加具体年份 - 从当前年到2015年
   for (let year = currentYear; year >= 2015; year--) {

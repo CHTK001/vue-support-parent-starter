@@ -201,10 +201,17 @@ const components = [
     component: resolveComponent("./components/ScSocketEventProcessExample.vue"),
   },
   {
-    name: "ScWindowModal",
-    icon: "carbon:application-web",
-    description: "窗口模态框组件，支持多窗口管理、拖拽、缩放、最大化、最小化等功能，提供完整的桌面级窗口体验",
-    component: resolveComponent("./components/ScWindowModalExample.vue"),
+    name: "ScWindowDialog",
+      title: "ScWindowDialog",
+      icon: "carbon:application-web",
+      description: "增强型对话框组件，基于Element Plus Dialog封装，支持主题样式、图标显示、自定义头部和底部等功能",
+    component: resolveComponent("./components/ScWindowDialogExample.vue"),
+  },
+  {
+    name: "ScMessageDialog",
+    icon: "carbon:chat",
+    description: "实时消息对话框组件，支持多种位置、样式配置和交互功能，可用于显示同步信息、进度监控等",
+    component: resolveComponent("./components/ScMessageDialogExample.vue"),
   },
 ];
 

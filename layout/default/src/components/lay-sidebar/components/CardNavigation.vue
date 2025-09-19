@@ -141,9 +141,33 @@ function handleCardClick(menu: any) {
 // 处理子菜单点击
 function handleSubMenuClick(subMenu: any) {
   emit("cardClick", subMenu);
-  // 在新标签页中打开子菜单链接
-  window.open("/" + router.resolve(subMenu.path).href, "_blank");
+
+  // 检查是否为remaining菜单项
+  if (subMenu.meta?.remaining === true) {
+    // 检查是否在当前页面打开
+    if (subMenu.meta?.remainingSelf === true) {
+      // 在当前页面打开，跳转到remaining组件页面
+      const componentPath = convertPathToComponentParam(subMenu.path);
+      router.push(`/remaining-component/${componentPath}`);
+    } else {
+      // 默认行为：在新标签页打开remaining组件页面
+      const componentPath = convertPathToComponentParam(subMenu.path);
+      const fullUrl = `${window.location.origin}/#/remaining-component/${componentPath}`;
+      window.open(fullUrl, "_blank");
+    }
+  } else {
+    // 在新标签页中打开子菜单链接
+    window.open("/" + router.resolve(subMenu.path).href, "_blank");
+  }
+
   hoveredMenu.value = null;
+}
+
+// 将路径转换为组件路径参数
+function convertPathToComponentParam(path: string): string {
+  // 移除开头的斜杠并将路径转换为组件参数
+  const cleanPath = path.replace(/^\//, "");
+  return cleanPath.replace(/\//g, "-");
 }
 
 // 处理鼠标悬停

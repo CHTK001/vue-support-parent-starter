@@ -5,6 +5,44 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.9] - 2025-01-18
+
+### 新增
+
+- **ScMessageDialog 组件清除功能**: 新增消息清除功能和外部方法调用
+  - 🧹 **清除按钮**: 在头部控制栏新增清除按钮，支持一键清空所有消息
+  - 🔧 **外部方法**: 通过 defineExpose 暴露 clear、close、toggleCollapse、scrollToBottom 方法
+  - 📡 **清除事件**: 新增 clear 事件，支持父组件监听清除操作
+  - 🎨 **样式优化**: 清除按钮悬停时显示红色，与其他控制按钮保持一致的设计风格
+  - 📖 **文档完善**: 新增 ScMessageDialog 组件完整的 README.md 文档，更新根目录文档说明
+
+## [2.3.8] - 2025-01-18
+
+### 新增
+
+- **ScMessageDialog 组件功能增强**: 新增进度条唯一性控制和Markdown解析开关
+  - 🎯 **progressUnique 参数**: 控制进度条是否唯一显示（默认true），设置后仅在底部显示一条统一进度条
+  - 📝 **enableMarkdown 参数**: 控制是否启用Markdown解析（默认false），可动态开启/关闭Markdown渲染
+  - 🔧 **逻辑优化**: 改进进度条显示逻辑，支持多种进度展示模式
+  - 📚 **示例更新**: 在pages/example中新增唯一进度条和Markdown解析的演示
+  - 📖 **文档完善**: 更新README.md和CHANGELOG.md，提供详细的参数说明和使用示例
+
+## [2.3.7] - 2025-01-18
+
+### 新增
+
+- **ScMessageDialog 实时消息对话框组件**: 新增功能强大的实时消息展示组件
+  - 🚀 **Vue 3 + TypeScript**: 使用Composition API，提供完整的类型支持
+  - 📍 **多种位置**: 支持四个角落定位（top-left、top-right、bottom-left、bottom-right）
+  - 🎨 **样式自定义**: 支持自定义宽度、高度、透明度等样式配置
+  - 📊 **进度监控**: 内置进度条支持，可显示任务执行进度
+  - 🔄 **自动功能**: 支持自动展开、自动滚动到最新消息
+  - 📝 **Markdown渲染**: 支持Markdown格式的消息内容渲染
+  - 🎯 **模板支持**: 支持自定义消息模板和插槽
+  - ⚡ **实时更新**: 适用于WebSocket实时消息展示
+  - 🔧 **完整集成**: 已集成到video/config页面用于同步信息展示
+  - 📚 **示例完善**: 在pages/example中提供完整的使用示例和演示
+
 ## [2.3.6] - 2025-09-16
 
 ### 重构

@@ -1,7 +1,6 @@
 <template>
   <div class="source-form thin-scroller">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left"
-      class="form-container flex flex-row gap-6 flex-1">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left" class="form-container flex flex-row gap-6 flex-1">
       <div class="form-section flex-1">
         <h4 class="section-title">
           <IconifyIconOnline icon="ep:info-filled" class="section-icon" />
@@ -9,8 +8,7 @@
         </h4>
 
         <el-form-item label="数据源名称" prop="videoSourceName">
-          <el-input v-model="formData.videoSourceName" placeholder="请输入数据源名称，如：观影AC、PanSou等" maxlength="50"
-            show-word-limit>
+          <el-input v-model="formData.videoSourceName" placeholder="请输入数据源名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
@@ -18,8 +16,7 @@
         </el-form-item>
 
         <el-form-item label="平台名称" prop="videoSourcePlatform">
-          <el-input v-model="formData.videoSourcePlatform" placeholder="请输入视频源平台名称，如：观影AC、PanSou等" maxlength="50"
-            show-word-limit>
+          <el-input v-model="formData.videoSourcePlatform" placeholder="请输入视频源平台名称，如：观影AC、PanSou等" maxlength="50" show-word-limit>
             <template #prefix>
               <IconifyIconOnline icon="ep:video-camera" />
             </template>
@@ -39,8 +36,7 @@
         </el-form-item>
 
         <el-form-item label="启用状态" prop="videoSourceEnable">
-          <el-switch v-model="formData.videoSourceEnable" :active-value="1" :inactive-value="0" active-text="启用"
-            inactive-text="禁用" active-color="#67c23a" inactive-color="#f56c6c" />
+          <el-switch v-model="formData.videoSourceEnable" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" active-color="#67c23a" inactive-color="#f56c6c" />
         </el-form-item>
       </div>
 
@@ -51,14 +47,12 @@
         </h4>
 
         <el-form-item label="最大查询数" prop="videoSourceMaxResource">
-          <el-input-number v-model="formData.videoSourceMaxResource" :min="0" :max="10000" :step="10"
-            placeholder="0表示无限制" controls-position="right" class="w-full" />
+          <el-input-number v-model="formData.videoSourceMaxResource" :min="0" :max="10000" :step="10" placeholder="0表示无限制" controls-position="right" class="w-full" />
           <div class="form-tip">设置单次查询返回的最大资源数量，0表示无限制</div>
         </el-form-item>
 
         <el-form-item label="访问Token" prop="videoSourceToken">
-          <el-input v-model="formData.videoSourceToken" placeholder="如果API需要认证，请输入访问Token" type="password"
-            show-password>
+          <el-input v-model="formData.videoSourceToken" placeholder="如果API需要认证，请输入访问Token" type="password" show-password>
             <template #prefix>
               <IconifyIconOnline icon="ep:key" />
             </template>
@@ -66,13 +60,22 @@
           <div class="form-tip">用于API认证的Token，如果不需要认证可留空</div>
         </el-form-item>
 
+        <el-form-item label="支持类型" prop="videoSourceType">
+          <el-select v-model="formData.videoSourceType" multiple placeholder="请输入支持的视频类型，如：movie、tv等">
+            <el-option v-for="item in allCategories" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="User Agent" prop="videoSourceUserAgent">
-          <el-input v-model="formData.videoSourceUserAgent" placeholder="自定义User Agent，留空使用默认值" type="textarea"
-            :rows="2" maxlength="500" show-word-limit> </el-input>
+          <el-input v-model="formData.videoSourceUserAgent" placeholder="自定义User Agent，留空使用默认值" type="textarea" :rows="2" maxlength="500" show-word-limit> </el-input>
           <div class="form-tip">自定义请求头User Agent，用于模拟不同浏览器访问</div>
         </el-form-item>
-      </div>
 
+        <el-form-item label="最小年份" prop="videoSourceMinYear">
+          <el-input-number v-model="formData.videoSourceMinYear" :min="1900" :max="2024" :step="1" placeholder="请输入最小年份" controls-position="right" class="w-full" />
+          <div class="form-tip">设置查询的最小年份，0表示无限制</div>
+        </el-form-item>
+      </div>
     </el-form>
     <div class="form-section flex-1">
       <h4 class="section-title">
@@ -81,8 +84,7 @@
       </h4>
 
       <div class="template-grid">
-        <div v-for="template in templates" :key="template.name" class="template-card"
-          :class="{ active: selectedTemplate === template.name }" @click="applyTemplate(template)">
+        <div v-for="template in templates" :key="template.name" class="template-card" :class="{ active: selectedTemplate === template.name }" @click="applyTemplate(template)">
           <div class="template-icon">
             <IconifyIconOnline :icon="template.icon" />
           </div>
@@ -113,6 +115,7 @@ import { IconSelect } from "@repo/components/ReIcon";
 import type { FormInstance, FormRules } from "element-plus";
 import { computed, reactive, ref, watch } from "vue";
 import type { VideoSource } from "../../../api/types";
+import { allCategories } from "../../../data/categories";
 
 // 组件属性
 interface Props {
@@ -140,8 +143,10 @@ const formData = reactive<VideoSource>({
   videoSourcePlatform: "",
   videoSourceName: "",
   videoSourceIcon: "",
+  videoSourceType: "",
   videoSourceUrl: "",
   videoSourceEnable: 1,
+  videoSourceMinYear: 1970,
   videoSourceMaxResource: 100,
   videoSourceToken: "",
   videoSourceUserAgent: "",
@@ -175,7 +180,7 @@ const templates = [
     description: "观影视频源配置",
     config: {
       videoSourceName: "观影",
-      videoSourcePlatform: "GUANYIN",
+      videoSourcePlatform: "GUANYING",
       videoSourceUrl: "https://api.guanyingmv.com",
       videoSourceMaxResource: 50,
       videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",

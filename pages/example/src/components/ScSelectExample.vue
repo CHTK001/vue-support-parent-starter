@@ -48,7 +48,7 @@
                 { value: 'card', label: '卡片' },
                 { value: 'pill', label: '长条' },
                 { value: 'dropdown', label: '下拉' },
-                { value: 'filter', label: '筛选' },
+                { value: 'tree', label: '树形' },
                 { value: 'table', label: '表格下拉' },
               ]"
             />
@@ -147,7 +147,6 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 import { ElMessage } from "element-plus";
 import { computed, ref, watch } from "vue";
 import CodeDisplay from "./CodeDisplay.vue";
-
 // 主题设置
 const isDarkMode = ref(false);
 const isRemote = computed(() => {

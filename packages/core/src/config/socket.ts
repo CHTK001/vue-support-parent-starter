@@ -147,7 +147,8 @@ export function provideGlobalSocket(urls: string[], context?: string, query?: an
 export function useGlobalSocket(): GlobalSocketService {
   const socketService = inject(GlobalSocketKey);
   if (!socketService) {
-    throw new Error("Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()");
+    console.log("Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()");
+    return null;
   }
   return socketService;
 }

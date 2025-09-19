@@ -1,5 +1,4 @@
 import * as log from './log';
-
 // 导出日志模块
 export { log };
 

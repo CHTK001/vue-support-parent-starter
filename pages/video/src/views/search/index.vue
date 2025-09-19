@@ -1,7 +1,7 @@
 <template>
   <div class="video-search-container">
     <!-- 搜索首页 -->
-    <div v-if="!showResults" class="search-home">
+    <div class="search-home">
       <div class="search-title">视频搜索</div>
       <div class="search-box">
         <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input" clearable @keyup.enter="handleSearch">
@@ -27,72 +27,24 @@
         </div>
       </div>
     </div>
-
-    <!-- 搜索结果页 -->
-    <div v-else class="search-results">
-      <!-- 导航菜单 -->
-      <div class="category-nav">
-        <div v-for="category in videoCategories" :key="category.value" :class="['category-item', { active: category.active }]" @click="handleCategoryClick(category)">
-          {{ category.label }}
-        </div>
-      </div>
-
-      <!-- 搜索结果 -->
-      <div class="results-container">
-        <div class="results-header">
-          <div class="results-count">
-            共找到 <span class="count">{{ totalResults }}</span> 个结果
-          </div>
-          <div class="results-sort">
-            <el-radio-group v-model="sortBy" size="small">
-              <el-radio-button label="recommend">推荐</el-radio-button>
-              <el-radio-button label="newest">最新上线</el-radio-button>
-              <el-radio-button label="popular">最多播放</el-radio-button>
-              <el-radio-button label="rating">评分最高</el-radio-button>
-            </el-radio-group>
-          </div>
-        </div>
-
-        <div class="video-grid">
-          <div v-for="video in videoResults" :key="video.videoId" class="video-card">
-            <div class="video-cover">
-              <img :src="video.videoCover || placeholderImage" :alt="video.videoName" />
-              <div class="video-rating">{{ video.rating }}</div>
-              <div class="video-views">{{ formatViews(video.views) }}次播放</div>
-            </div>
-            <div class="video-info">
-              <div class="video-name">{{ video.videoName }}</div>
-              <div class="video-meta">{{ video.year }} · {{ video.district }} · {{ video.language }}</div>
-              <div class="video-tags">
-                <el-tag v-for="(tag, index) in video.videoTags?.split(',')" :key="index" size="small">
-                  {{ tag }}
-                </el-tag>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 分页 -->
-        <div class="pagination-container">
-          <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[12, 24, 36, 48]" layout="total, sizes, prev, pager, next, jumper" :total="totalResults" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { placeholderImage } from "../../data";
-import { generateYearOptions, hotSearchKeywords, mockVideoResults, movieTypes, videoCategories } from "../../data/categories";
-import { districtOptions, languageOptions } from "../../data/videoOptions";
-import { computed, onMounted, ref, watch } from "vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { getConfig } from "@repo/config";
+import { getRandomString } from "@repo/utils";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { message } from "@repo/utils";
+import { generateYearOptions, hotSearchKeywords, movieTypes, videoCategories } from "../../data/categories";
+import { districtOptions, languageOptions } from "../../data/videoOptions";
 
 // Element-Plus图标是全局参数，不需要导入
 
 const router = useRouter();
 const route = useRoute();
+const config = getConfig();
+const ossAddress = getRandomString(config.OssAddress);
 
 // 搜索相关
 const searchKeyword = ref("");
@@ -147,13 +99,22 @@ const selectedLanguages = ref<string[]>([null]);
 // 排序方式
 const sortBy = ref("recommend");
 
-// 分页相关
-const currentPage = ref(1);
-const pageSize = ref(12);
+// ScTable 相关
+const tableRef = ref();
+const loading = ref(false);
 const totalResults = ref(0);
 
-// 搜索结果
-const videoResults = ref<any[]>([]);
+// 统一构造 ScTable 请求参数
+const searchParams = computed(() => ({
+  videoName: searchKeyword.value || undefined,
+  videoTypes: selectedCategory.value || undefined,
+  videoSubtypes: selectedType.value || undefined,
+  videoYear: selectedYear.value || undefined,
+  videoDistrict: selectedDistricts.value?.includes(null as any) ? undefined : selectedDistricts.value?.join(","),
+  videoLanguage: selectedLanguages.value?.includes(null as any) ? undefined : selectedLanguages.value?.join(","),
+  sortBy: sortBy.value,
+  order: sortBy.value,
+}));
 
 // 切换更多筛选条件显示
 const toggleMoreTypes = () => {
@@ -178,7 +139,7 @@ const handleCategoryClick = (category: any) => {
     item.active = item.value === category.value;
   });
   selectedCategory.value = category.value;
-  fetchVideoResults();
+  tableRef.value?.refresh?.();
 };
 
 // 处理类型点击
@@ -187,7 +148,7 @@ const handleTypeClick = (type: any) => {
     item.active = item.value === type.value;
   });
   selectedType.value = type.value;
-  fetchVideoResults();
+  tableRef.value?.refresh?.();
 };
 
 // 处理年代点击
@@ -196,145 +157,95 @@ const handleYearClick = (year: any) => {
     item.active = item.value === year.value;
   });
   selectedYear.value = year.value;
-  fetchVideoResults();
+  tableRef.value?.refresh?.();
 };
 
 // 处理地区点击（多选）
 const handleDistrictClick = (district: any) => {
   if (district.value === null) {
-    // 点击全部，清除其他选择
-    selectedDistricts.value = [null];
+    selectedDistricts.value = [null as any];
     districts.value.forEach((item) => {
       item.active = item.value === null;
     });
   } else {
-    // 移除全部选项
-    const allIndex = selectedDistricts.value.indexOf(null);
+    const allIndex = selectedDistricts.value.indexOf(null as any);
     if (allIndex !== -1) {
       selectedDistricts.value.splice(allIndex, 1);
       districts.value.find((item) => item.value === null)!.active = false;
     }
-
-    // 切换选中状态
     const index = selectedDistricts.value.indexOf(district.value);
     if (index === -1) {
       selectedDistricts.value.push(district.value);
     } else {
       selectedDistricts.value.splice(index, 1);
-      // 如果没有选中任何项，则默认选中全部
       if (selectedDistricts.value.length === 0) {
-        selectedDistricts.value = [null];
+        selectedDistricts.value = [null as any];
         districts.value.find((item) => item.value === null)!.active = true;
       }
     }
   }
-  fetchVideoResults();
+  tableRef.value?.refresh?.();
 };
 
 // 处理语言点击（多选）
 const handleLanguageClick = (language: any) => {
   if (language.value === null) {
-    // 点击全部，清除其他选择
-    selectedLanguages.value = [null];
+    selectedLanguages.value = [null as any];
     languages.value.forEach((item) => {
       item.active = item.value === null;
     });
   } else {
-    // 移除全部选项
-    const allIndex = selectedLanguages.value.indexOf(null);
+    const allIndex = selectedLanguages.value.indexOf(null as any);
     if (allIndex !== -1) {
       selectedLanguages.value.splice(allIndex, 1);
       languages.value.find((item) => item.value === null)!.active = false;
     }
-
-    // 切换选中状态
     const index = selectedLanguages.value.indexOf(language.value);
     if (index === -1) {
       selectedLanguages.value.push(language.value);
     } else {
       selectedLanguages.value.splice(index, 1);
-      // 如果没有选中任何项，则默认选中全部
       if (selectedLanguages.value.length === 0) {
-        selectedLanguages.value = [null];
+        selectedLanguages.value = [null as any];
         languages.value.find((item) => item.value === null)!.active = true;
       }
     }
   }
-  fetchVideoResults();
+  tableRef.value?.refresh?.();
 };
 
-// 处理热门标签点击
+// 热门标签点击
 const handleHotTagClick = (keyword: string) => {
   searchKeyword.value = keyword;
   handleSearch();
 };
 
-// 处理搜索
+// 搜索
 const handleSearch = () => {
   if (!searchKeyword.value.trim() && !showResults.value) {
     return;
   }
-
   showResults.value = true;
-  currentPage.value = 1;
-  fetchVideoResults();
-
-  // 更新路由
-  router.push({
-    path: "/video/search/results",
-    query: {
-      keyword: searchKeyword.value,
-    },
-  });
+  // 交由 ScTable 控制分页与加载
+  tableRef.value?.refresh?.();
+  const fullUrl = `${window.location.origin}/?keyword=${searchKeyword.value}#/remaining-component/video-search-result`;
+  window.open(fullUrl, "_blank");
 };
 
-// 处理分页大小变化
-const handleSizeChange = (size: number) => {
-  pageSize.value = size;
-  fetchVideoResults();
+// 数据加载回调（ScTable 标准事件）
+const handleDataLoaded = (data: any, total: number) => {
+  if (typeof total === "number") totalResults.value = total;
 };
 
-// 处理页码变化
-const handleCurrentChange = (page: number) => {
-  currentPage.value = page;
-  fetchVideoResults();
+// 生成兼容的图片OSS地址
+const createCompatibleImageUrl = (videoCover: string, videoPlatform: string) => {
+  if (!videoCover) return null as any;
+  return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
 };
 
-// 格式化播放次数
-const formatViews = (views: number) => {
-  if (views >= 10000) {
-    return (views / 10000).toFixed(1) + "万";
-  }
-  return views.toString();
-};
-
-// 获取视频结果
-const fetchVideoResults = async () => {
-  try {
-    // 实际项目中应该调用API获取数据
-    // const params = {
-    //   videoName: searchKeyword.value,
-    //   videoType: selectedCategory.value === null ? null : selectedCategory.value,
-    //   videoSubtype: selectedType.value === null ? null : selectedType.value,
-    //   videoYear: selectedYear.value === null ? null : selectedYear.value,
-    //   videoDistrict: selectedDistricts.value.includes(null) ? null : selectedDistricts.value.join(','),
-    //   videoLanguage: selectedLanguages.value.includes(null) ? null : selectedLanguages.value.join(','),
-    //   sortBy: sortBy.value,
-    //   pageNum: currentPage.value,
-    //   pageSize: pageSize.value,
-    // };
-    // const res = getVideoList(params);
-    // videoResults.value = res.data;
-    // totalResults.value = res.total;
-
-    // 使用模拟数据
-    setTimeout(() => {
-      videoResults.value = mockVideoResults;
-      totalResults.value = mockVideoResults.length;
-    }, 300);
-  } catch (error) {
-    console.error("获取视频列表失败:", error);
-  }
+// 点击视频卡片
+const handleVideoClick = (video: any) => {
+  router.push(`/video/manage/detail?id=${video.videoId}`);
 };
 </script>
 
@@ -528,32 +439,6 @@ const fetchVideoResults = async () => {
 
 .filter-option.more .el-icon {
   margin-left: 5px;
-}
-
-.results-container {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.results-count {
-  font-size: 14px;
-  color: #606266;
-}
-
-.results-count .count {
-  color: #f56c6c;
-  font-weight: bold;
 }
 
 .video-grid {

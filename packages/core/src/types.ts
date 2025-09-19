@@ -1,4 +1,3 @@
-import type { RouteRecordName } from "vue-router";
 import type { IconifyIcon } from "@iconify/vue";
 
 export type RouteMetaType = {
@@ -24,6 +23,8 @@ export type MenuType = {
     showParent?: boolean;
     extraIcon?: string;
     i18nKey?: string;
+    remainingSelf?: boolean;
+    remaining?: boolean;
   };
   showTooltip?: boolean;
   parentId?: number;
