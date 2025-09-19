@@ -4,7 +4,7 @@ ScSelect 是一个功能强大的多布局选择器组件，支持多种显示�
 
 ## 功能特性
 
-- 🎨 **多种布局模式**：支持 select、card、pill、dropdown、filter 五种布局
+- 🎨 **多种布局模式**：支持 select、card、pill、dropdown、filter、table、tree 七种布局
 - 🔄 **单选/多选**：灵活的选择模式，支持选择数量限制
 - 📱 **响应式设计**：自适应不同屏幕尺寸
 - 🎯 **批量操作**：支持全选、反选、清空等批量操作
@@ -148,6 +148,128 @@ const filterOptions = [
 </script>
 ```
 
+### 5. 表格布局 (table)
+
+```vue
+<template>
+  <ScSelect
+    v-model="selectedValue"
+    :options="tableOptions"
+    layout="table"
+    :table-columns="tableColumns"
+    :table-page-size="10"
+    :table-remote-search="true"
+    height="400px"
+  />
+</template>
+
+<script setup>
+const selectedValue = ref('')
+const tableOptions = [
+  { label: '用户1', value: 'user1', email: 'user1@example.com', status: '活跃' },
+  { label: '用户2', value: 'user2', email: 'user2@example.com', status: '禁用' }
+]
+const tableColumns = [
+  { prop: 'label', label: '用户名', minWidth: '120px' },
+  { prop: 'email', label: '邮箱', minWidth: '180px' },
+  { prop: 'status', label: '状态', minWidth: '80px' }
+]
+</script>
+```
+
+### 6. 树形布局 (tree)
+
+```vue
+<template>
+  <ScSelect
+    v-model="selectedValue"
+    :options="treeOptions"
+    layout="tree"
+    :multiple="false"
+    :tree-props="{ children: 'children', label: 'label' }"
+    tree-node-key="value"
+    tree-icon-prop="icon"
+    tree-desc-prop="desc"
+    :tree-show-search="true"
+    tree-search-placeholder="搜索节点"
+    :tree-show-actions="true"
+    :tree-default-expand-all="false"
+    :tree-expand-on-click-node="false"
+    :tree-check-strictly="false"
+    :tree-leaf-only="false"
+    height="300px"
+  />
+</template>
+
+<script setup>
+const selectedValue = ref('')
+const treeOptions = [
+  {
+    label: '一级节点1',
+    value: 'level1-1',
+    icon: 'ep:folder',
+    desc: '这是一级节点',
+    children: [
+      {
+        label: '二级节点1-1',
+        value: 'level2-1-1',
+        icon: 'ep:document',
+        desc: '这是二级节点'
+      },
+      {
+        label: '二级节点1-2',
+        value: 'level2-1-2',
+        icon: 'ep:document',
+        desc: '这是二级节点',
+        children: [
+          {
+            label: '三级节点1-2-1',
+            value: 'level3-1-2-1',
+            icon: 'ep:document',
+            desc: '这是三级节点'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    label: '一级节点2',
+    value: 'level1-2',
+    icon: 'ep:folder',
+    desc: '这是一级节点',
+    children: [
+      {
+        label: '二级节点2-1',
+        value: 'level2-2-1',
+        icon: 'ep:document',
+        desc: '这是二级节点'
+      }
+    ]
+  }
+]
+</script>
+```
+
+#### 树形布局多选模式
+
+```vue
+<template>
+  <ScSelect
+    v-model="selectedValues"
+    :options="treeOptions"
+    layout="tree"
+    :multiple="true"
+    :tree-check-strictly="true"
+    :tree-leaf-only="true"
+    height="400px"
+  />
+</template>
+
+<script setup>
+const selectedValues = ref([])
+</script>
+```
+
 ## API
 
 ### Props
@@ -157,7 +279,7 @@ const filterOptions = [
 | modelValue | String/Array/Object | - | 绑定值 |
 | options | Array | [] | 选项数据 |
 
-| layout | String | 'select' | 布局模式：select/card/pill/dropdown/filter |
+| layout | String | 'select' | 布局模式：select/card/pill/dropdown/filter/table/tree |
 | multiple | Boolean | false | 是否多选 |
 | limit | Number | 0 | 多选时的最大选择数量，0表示无限制 |
 | columns | Number | 3 | 卡片布局的列数 |
@@ -185,6 +307,20 @@ const filterOptions = [
 | strictMode | Boolean | false | 严格模式，为true时过滤空值条件 |
 | sqlTablePrefix | String | '' | SQL输出时的表名前缀 |
 | showOperator | Boolean | true | 是否显示运算符选择 |
+| tableColumns | Array | [] | 表格布局的列配置 |
+| tablePageSize | Number | 10 | 表格布局的页大小 |
+| tableRemoteSearch | Boolean | false | 表格布局是否启用远程搜索 |
+| treeProps | Object | {children: 'children', label: 'label', disabled: 'disabled'} | 树节点配置 |
+| treeNodeKey | String | 'value' | 树节点唯一标识字段 |
+| treeIconProp | String | 'icon' | 树节点图标字段 |
+| treeDescProp | String | 'desc' | 树节点描述字段 |
+| treeShowSearch | Boolean | true | 是否显示搜索框 |
+| treeSearchPlaceholder | String | '请输入关键词搜索' | 搜索框占位符 |
+| treeShowActions | Boolean | true | 是否显示操作栏 |
+| treeDefaultExpandAll | Boolean | false | 是否默认展开所有节点 |
+| treeExpandOnClickNode | Boolean | false | 是否在点击节点时展开/收起节点 |
+| treeCheckStrictly | Boolean | false | 在显示复选框的情况下，是否严格的遵循父子不互相关联的做法 |
+| treeLeafOnly | Boolean | false | 是否只能选择叶子节点 |
 
 ### Events
 
@@ -194,6 +330,9 @@ const filterOptions = [
 | update:modelValue | value | 更新绑定值 |
 | filterChange | output | 过滤条件变化时触发，返回格式化后的输出 |
 | formatChange | {format, data, originalData} | 输出格式变化时触发，包含格式类型和数据 |
+| node-click | (data, node) | 树形布局节点点击时触发 |
+| check | (data, checked, indeterminate) | 树形布局复选框变化时触发 |
+| current-change | (data, node) | 树形布局当前选中节点变化时触发 |
 
 ### Slots
 

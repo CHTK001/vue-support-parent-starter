@@ -47,6 +47,8 @@
     "leaflet.markercluster": "catalog:",
     "lodash-es": "catalog:",
     "mapv": "catalog:",
+    "marked": "catalog:",
+    "draggable-resizable-vue3": "catalog:",
     "monaco-editor": "catalog:",
     "ngeohash": "catalog:",
     "ol": "catalog:",

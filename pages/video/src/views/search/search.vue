@@ -1,23 +1,5 @@
 <template>
   <div class="video-search-results">
-    <!-- 导航菜单 (单选) -->
-    <div class="category-nav">
-      <div v-for="category in videoCategories" :key="category.value" :class="['category-item', { active: selectedCategories === category.value }]" @click="handleCategoryClick(category)">
-        <IconifyIconOnline v-if="category.icon" :icon="category.icon" :size="18" />
-        <span>{{ category.label }}</span>
-      </div>
-      <div class="search-box">
-        <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input" clearable @keyup.enter="handleSearch">
-          <template #prefix>
-            <IconifyIconOnline icon="ep:search" />
-          </template>
-        </el-input>
-        <el-button type="primary" class="search-button" @click="handleSearch">
-          <IconifyIconOnline icon="ep:search" />
-        </el-button>
-      </div>
-    </div>
-
     <!-- 筛选条件 -->
     <div class="filter-container">
       <!-- 类型筛选 -->
@@ -98,70 +80,116 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div class="results-container">
+    <div class="results-container flex-1">
       <div class="results-header">
         <div class="results-count">
           共找到 <span class="count">{{ totalResults }}</span> 个结果
         </div>
-        <div class="results-sort">
-          <el-radio-group v-model="sortBy" size="small">
-            <el-radio-button label="recommend">推荐</el-radio-button>
-            <el-radio-button label="newest">最新上线</el-radio-button>
-            <el-radio-button label="popular">最多播放</el-radio-button>
-            <el-radio-button label="rating">评分最高</el-radio-button>
-          </el-radio-group>
+        <div class="results-controls">
+          <div class="display-mode">
+            <el-radio-group v-model="displayMode" size="small">
+              <el-radio-button label="default">默认</el-radio-button>
+              <el-radio-button label="large">大图</el-radio-button>
+            </el-radio-group>
+          </div>
+          <div class="results-sort">
+            <el-select v-model="sortBy" class="!w-[200px]">
+              <el-option @change="handleSortChange" :value="item.value" :label="item.label" v-for="item in VideoOrderByOptions">{{ item.label }}</el-option>
+            </el-select>
+          </div>
         </div>
       </div>
 
-      <div class="video-grid">
-        <div v-for="video in videoResults" :key="video.videoId" class="video-card">
-          <div class="video-cover">
-            <img :src="video.videoCover || placeholderImage" :alt="video.videoName" />
-            <div class="video-rating">{{ video.rating }}</div>
-            <div class="video-views">{{ formatViews(video.views) }}次播放</div>
-          </div>
-          <div class="video-info">
-            <div class="video-name">{{ video.videoName }}</div>
-            <div class="video-meta">{{ video.year }} · {{ video.district }} · {{ video.language }}</div>
-            <div class="video-tags">
-              <el-tag v-for="(tag, index) in video.videoTags?.split(',')" :key="index" size="small">
-                {{ tag }}
-              </el-tag>
+      <!-- 使用 ScTable 渲染卡片结果，替换原 video-grid + 分页 -->
+      <ScTable ref="tableRef" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded">
+        <template #default="{ row }">
+          <div class="video-card" :class="{ 'video-card-large': displayMode === 'large' }">
+            <div class="video-cover">
+              <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="(row.videoCover || '').split(',')[0]" fit="cover">
+                <template #error>
+                  <img :src="placeholderImage" alt="no-cover" />
+                </template>
+              </el-image>
+              <div v-else class="video-cover-placeholder">暂无封面</div>
+
+              <!-- 大图模式下的信息覆盖层 -->
+              <div v-if="displayMode === 'large'" class="video-overlay">
+                <div class="video-rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
+                <div class="video-views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
+                <div class="video-info-overlay">
+                  <div class="video-name-overlay">{{ row.videoTitle || row.videoName }}</div>
+                  <div class="video-meta-overlay">
+                    <span v-if="row.videoYear">{{ row.videoYear }}年</span>
+                    <span v-if="row.videoDistrict"> · {{ row.videoDistrict }}</span>
+                    <span v-if="row.videoLanguage"> · {{ row.videoLanguage }}</span>
+                  </div>
+                  <div class="video-tags-overlay" v-if="row.videoType">
+                    <el-tag v-for="(tag, index) in (row.videoType || '')?.split(',')" :key="index" size="small">
+                      {{ tag }}
+                    </el-tag>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 默认模式下的评分和播放次数 -->
+              <template v-else>
+                <div class="video-rating" v-if="row.videoScore">{{ row.videoScore }}分</div>
+                <div class="video-views" v-if="row.videoViews">{{ formatViews(row.videoViews) }}次播放</div>
+              </template>
+            </div>
+
+            <!-- 默认模式下的信息区域 -->
+            <div v-if="displayMode === 'default'" class="video-info">
+              <div class="video-name">{{ row.videoTitle || row.videoName }}</div>
+              <div class="video-meta">
+                <span v-if="row.videoYear">{{ row.videoYear }}年</span>
+                <span v-if="row.videoDistrict"> · {{ row.videoDistrict }}</span>
+                <span v-if="row.videoLanguage"> · {{ row.videoLanguage }}</span>
+              </div>
+              <div class="video-tags" v-if="row.videoType">
+                <el-tag v-for="(tag, index) in (row.videoType || '')?.split(',')" :key="index" size="small">
+                  {{ tag }}
+                </el-tag>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :page-sizes="[12, 24, 36, 48]" layout="total, sizes, prev, pager, next, jumper" :total="totalResults" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
-      </div>
+        </template>
+      </ScTable>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { generateYearOptions, mockVideoResults, movieTypes, videoCategories } from "../../data/categories";
-import { districtOptions, languageOptions } from "../../data/videoOptions";
-import { message } from "@repo/utils";
-import { computed, onMounted, ref } from "vue";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { computed, defineExpose, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { placeholderImage } from "../../data";
-
-// Element-Plus图标和IconifyIconOnline是全局参数，不需要导入
+import { getVideoList } from "../../api/video";
+import { placeholderImage, VideoOrderByOptions } from "../../data";
+import { generateYearOptions, movieTypes, videoCategories } from "../../data/categories";
+import { districtOptions, languageOptions } from "../../data/videoOptions";
+const props = defineProps({
+  keyword: {
+    type: String,
+    default: "",
+  },
+  category: {
+    type: String,
+    default: "",
+  },
+});
 
 const router = useRouter();
 const route = useRoute();
 
 // 搜索相关
-const searchKeyword = ref("");
+const searchKeyword = ref(props.keyword);
 
 // 分类和筛选
 const categories = ref(videoCategories);
 const types = ref(movieTypes);
 const years = ref(generateYearOptions());
-const districts = ref([{ label: "全部", value: null, active: true }, ...districtOptions.map((item) => ({ ...item, active: false }))]);
-const languages = ref([{ label: "全部", value: null, active: true }, ...languageOptions.map((item) => ({ ...item, active: false }))]);
+const districts = ref([...districtOptions.map((item) => ({ ...item, active: false }))]);
+const languages = ref([...languageOptions.map((item) => ({ ...item, active: false }))]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -196,23 +224,47 @@ const displayedLanguages = computed(() => {
 });
 
 // 已选择的筛选条件（导航菜单是单选，其他筛选条件是多选）
-const selectedCategories = ref<string>(null); // 改为单选，保存单个值
-const selectedTypes = ref<string[]>(["all"]); // 多选
-const selectedYears = ref<string[]>(["all"]); // 多选
-const selectedDistricts = ref<string[]>(["all"]); // 多选
-const selectedLanguages = ref<string[]>(["all"]); // 多选
+const selectedCategories = ref<string>(props.category); // 改为单选，保存单个值
+const selectedTypes = ref<string[]>(["ALL"]); // 多选
+const selectedYears = ref<string[]>(["ALL"]); // 多选
+const selectedDistricts = ref<string[]>(["ALL"]); // 多选
+const selectedLanguages = ref<string[]>(["ALL"]); // 多选
+
+// 显示模式
+const displayMode = ref("large");
 
 // 排序方式
-const sortBy = ref("recommend");
+const sortBy = ref("vote_count.desc");
 
-// 分页相关
-const currentPage = ref(1);
-const pageSize = ref(12);
-const totalResults = ref(0);
+// 分页相关（保留原状态以兼容旧逻辑，但不再用于渲染）
 
-// 搜索结果
-const videoResults = ref<any[]>([]);
+// ScTable 相关
+const tableRef = ref();
+const loading = ref(false);
 
+// 统一构造 ScTable 请求参数
+const searchParams = computed(() => {
+  const params = {
+    category: selectedCategories.value || undefined,
+    keyword: searchKeyword.value || undefined,
+    videoName: searchKeyword.value || undefined,
+    videoSubtypes: selectedTypes.value?.includes("ALL") ? undefined : selectedTypes.value?.join(","),
+    years: selectedYears.value?.includes("ALL") ? undefined : selectedYears.value?.join(","),
+    districts: selectedDistricts.value?.includes("ALL") ? undefined : selectedDistricts.value?.join(","),
+    languages: selectedLanguages.value?.includes("ALL") ? undefined : selectedLanguages.value?.join(","),
+    sortBy: sortBy.value,
+    order: sortBy.value,
+  };
+  // 调试信息：打印当前参数
+  console.log("searchParams updated:", params);
+  console.log("selectedTypes:", selectedTypes.value);
+  console.log("selectedYears:", selectedYears.value);
+  return params;
+});
+
+const handleSearch = async () => {
+  tableRef.value?.refresh?.();
+};
 // 切换更多筛选条件显示
 const toggleMoreTypes = () => {
   showAllTypes.value = !showAllTypes.value;
@@ -231,36 +283,49 @@ const toggleMoreLanguages = () => {
 };
 
 // 处理单选的方法（专门用于导航菜单）
-const handleSingleSelect = (item, selectedItem, allValue = "all") => {
+const handleSingleSelect = async (item, selectedItem, allValue = "all") => {
   selectedItem.value = item.value;
-  fetchVideoResults();
+  // 等待响应式数据更新完成后再刷新表格
+  await nextTick();
+  tableRef.value?.refresh?.();
 };
 
 // 处理多选通用方法
-const handleMultiSelect = (item, selectedItems, allValue = null) => {
+const handleMultiSelect = async (item, selectedItems, allValue = null) => {
   if (item.value === allValue) {
-    // 点击"全部"，清除其他选择
     selectedItems.value = [allValue];
   } else {
-    // 移除全部选项
     const allIndex = selectedItems.value.indexOf(allValue);
     if (allIndex !== -1) {
       selectedItems.value.splice(allIndex, 1);
     }
-
-    // 切换选中状态
     const index = selectedItems.value.indexOf(item.value);
     if (index === -1) {
       selectedItems.value.push(item.value);
     } else {
       selectedItems.value.splice(index, 1);
-      // 如果没有选中任何项，则默认选中全部
       if (selectedItems.value.length === 0) {
         selectedItems.value = [allValue];
       }
     }
   }
-  fetchVideoResults();
+  // 等待响应式数据更新完成后再刷新表格
+  await nextTick();
+  tableRef.value?.refresh?.();
+};
+
+const handleSortChange = async () => {
+  await nextTick();
+  tableRef.value?.refresh?.();
+};
+
+const totalResults = ref(0);
+
+// 数据加载回调（ScTable 标准事件）
+const handleDataLoaded = (data: any, total: number) => {
+  if (typeof total === "number") {
+    totalResults.value = total;
+  }
 };
 
 // 处理分类点击（单选）
@@ -274,86 +339,33 @@ const handleCategoryClick = (category) => {
 
 // 处理类型点击（多选）
 const handleTypeClick = (type) => {
-  handleMultiSelect(type, selectedTypes);
+  handleMultiSelect(type, selectedTypes, "ALL");
 };
 
 // 处理年代点击（多选）
 const handleYearClick = (year) => {
-  handleMultiSelect(year, selectedYears);
+  handleMultiSelect(year, selectedYears, "ALL");
 };
 
 // 处理地区点击（多选）
 const handleDistrictClick = (district) => {
-  handleMultiSelect(district, selectedDistricts);
+  handleMultiSelect(district, selectedDistricts, "ALL");
 };
 
 // 处理语言点击（多选）
 const handleLanguageClick = (language) => {
-  handleMultiSelect(language, selectedLanguages);
-};
-
-// 处理搜索
-const handleSearch = () => {
-  if (!searchKeyword.value.trim()) {
-    return;
-  }
-
-  currentPage.value = 1;
-  fetchVideoResults();
-};
-
-// 处理分页大小变化
-const handleSizeChange = (size: number) => {
-  pageSize.value = size;
-  fetchVideoResults();
-};
-
-// 处理页码变化
-const handleCurrentChange = (page: number) => {
-  currentPage.value = page;
-  fetchVideoResults();
+  handleMultiSelect(language, selectedLanguages, "ALL");
 };
 
 // 格式化播放次数
 const formatViews = (views: number) => {
+  if (!views) {
+    return "";
+  }
   if (views >= 10000) {
     return (views / 10000).toFixed(1) + "万";
   }
   return views.toString();
-};
-
-// 获取视频结果
-const fetchVideoResults = async () => {
-  try {
-    // 构建查询参数
-    const params = {
-      keyword: searchKeyword.value,
-      category: selectedCategories.value === null ? null : selectedCategories.value, // 单选，全部传null
-      types: selectedTypes.value.includes(null) ? [] : selectedTypes.value,
-      years: selectedYears.value.includes(null) ? [] : selectedYears.value,
-      districts: selectedDistricts.value.includes(null) ? [] : selectedDistricts.value,
-      languages: selectedLanguages.value.includes(null) ? [] : selectedLanguages.value,
-      sortBy: sortBy.value,
-      page: currentPage.value,
-      pageSize: pageSize.value,
-    };
-
-    console.log("搜索参数:", params);
-
-    // 实际项目中应该调用API获取数据
-    // const res = await getVideoList(params);
-    // videoResults.value = res.data;
-    // totalResults.value = res.total;
-
-    // 使用模拟数据
-    setTimeout(() => {
-      videoResults.value = mockVideoResults;
-      totalResults.value = mockVideoResults.length;
-    }, 300);
-  } catch (error) {
-    console.error("获取视频列表失败:", error);
-    message("获取视频列表失败", { type: "error" });
-  }
 };
 
 // 初始化
@@ -363,16 +375,37 @@ onMounted(() => {
   if (keyword) {
     searchKeyword.value = keyword;
   }
-  fetchVideoResults();
+});
+
+
+watch(() => props.category, (newCategory) => {
+  if (newCategory) {
+    selectedCategories.value = newCategory;
+  }
+});
+
+watch(() => props.keyword, (newKeyword) => {
+  if (newKeyword) {
+    searchKeyword.value = newKeyword;
+  }
+});
+
+
+
+defineExpose({
+  handleSearch,
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .video-search-results {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background-color: #f5f7fa;
-  padding: 20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
 }
 
 .search-header {
@@ -444,14 +477,14 @@ onMounted(() => {
 .filter-container {
   background-color: white;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  padding: 10px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .filter-row {
   display: flex;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .filter-row:last-child {
@@ -508,6 +541,8 @@ onMounted(() => {
 .results-container {
   background-color: white;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
@@ -517,8 +552,17 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
+}
+
+.results-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.display-mode {
+  display: flex;
+  align-items: center;
 }
 
 .results-count {
@@ -617,6 +661,95 @@ onMounted(() => {
   font-size: 10px;
   padding: 0 4px;
   height: 20px;
+}
+
+/* 大图模式样式 */
+.video-card-large {
+  position: relative;
+  min-height: 280px;
+
+  .video-cover {
+    height: 100%;
+    min-height: 280px;
+  }
+}
+
+.video-card-large .video-cover {
+  height: 0;
+  padding-bottom: 75%; /* 4:3 比例，更大的图片 */
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.8) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-card-large:hover .video-overlay {
+  opacity: 1;
+}
+
+.video-overlay .video-rating {
+  position: static;
+  align-self: flex-end;
+  background-color: rgba(247, 186, 42, 0.9);
+  color: white;
+  margin-bottom: auto;
+}
+
+.video-overlay .video-views {
+  position: static;
+  align-self: flex-end;
+  background-color: rgba(0, 0, 0, 0.8);
+  margin-top: 8px;
+}
+
+.video-info-overlay {
+  margin-top: auto;
+}
+
+.video-name-overlay {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-meta-overlay {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.video-tags-overlay {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.video-tags-overlay .el-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  height: 22px;
+  background-color: rgba(64, 158, 255, 0.9);
+  border: none;
+  color: white;
 }
 
 .pagination-container {

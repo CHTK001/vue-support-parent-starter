@@ -31,26 +31,28 @@
                         <el-tag :disable-transitions="true">{{ index + 1 }}</el-tag>
                       </td>
                       <td>
-                        <py-select v-model="item.field" :options="fields" :filter="filter" placeholder="过滤字段" filterable @change="fieldChange(item)" />
+                        <el-select v-model="item.field" placeholder="请选择过滤字段" filterable @change="() => fieldChange(item)">
+                          <el-option v-for="f in fieldsNormalized" :key="f.value" :label="f.label" :value="f.value" />
+                        </el-select>
                       </td>
                       <td v-if="showOperator">
                         <el-select v-model="item.operator" placeholder="运算符">
-                          <el-option v-for="ope in item.field.operators || effectiveOperators" :key="ope.value" :label="ope.label" :value="ope.value" />
+                          <el-option v-for="ope in getFieldByValue(item.field)?.operators || effectiveOperators" :key="ope.value" :label="ope.label" :value="ope.value" />
                         </el-select>
                       </td>
                       <td>
-                        <el-input v-if="!item.field.type" v-model="item.value" placeholder="请选择过滤字段" disabled />
-                        <!-- 输入框 -->
-                        <el-input v-if="item.field.type == 'text'" v-model="item.value" :placeholder="item.field.placeholder || '请输入'" />
-                        <!-- 下拉框 -->
+                        <template v-if="!getFieldByValue(item.field)">
+                          <el-input v-model="item.value" placeholder="请选择过滤字段" disabled />
+                        </template>
+                        <el-input v-else-if="getFieldByValue(item.field)?.type == 'text'" v-model="item.value" :placeholder="getFieldByValue(item.field)?.placeholder || '请输入'" />
                         <el-select
-                          v-if="item.field.type == 'select'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'select'"
                           v-model="item.value"
-                          :placeholder="item.field.placeholder || '请选择'"
+                          :placeholder="getFieldByValue(item.field)?.placeholder || '请选择'"
                           filterable
-                          :multiple="item.field.extend?.multiple"
+                          :multiple="getFieldByValue(item.field)?.extend?.multiple"
                           :loading="item.selectLoading"
-                          :remote="item.field.extend?.remote"
+                          :remote="getFieldByValue(item.field)?.extend?.remote"
                           :remote-method="
                             query => {
                               remoteMethod(query, item);
@@ -58,20 +60,18 @@
                           "
                           @visible-change="visibleChange($event, item)"
                         >
-                          <el-option v-for="field in item.field.extend?.data || []" :key="field.value" :label="field.label" :value="field.value" />
+                          <el-option v-for="opt in getFieldByValue(item.field)?.extend?.data || []" :key="opt.value" :label="opt.label" :value="opt.value" />
                         </el-select>
-                        <!-- 日期 -->
                         <el-date-picker
-                          v-if="item.field.type == 'date'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'date'"
                           v-model="item.value"
                           type="date"
                           value-format="YYYY-MM-DD"
-                          :placeholder="item.field.placeholder || '请选择日期'"
+                          :placeholder="getFieldByValue(item.field)?.placeholder || '请选择日期'"
                           style="width: 100%"
                         />
-                        <!-- 日期范围 -->
                         <el-date-picker
-                          v-if="item.field.type == 'daterange'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'daterange'"
                           v-model="item.value"
                           type="daterange"
                           value-format="YYYY-MM-DD"
@@ -79,18 +79,16 @@
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <!-- 日期时间 -->
                         <el-date-picker
-                          v-if="item.field.type == 'datetime'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'datetime'"
                           v-model="item.value"
                           type="datetime"
                           value-format="YYYY-MM-DD HH:mm:ss"
-                          :placeholder="item.field.placeholder || '请选择日期'"
+                          :placeholder="getFieldByValue(item.field)?.placeholder || '请选择日期'"
                           style="width: 100%"
                         />
-                        <!-- 日期时间范围 -->
                         <el-date-picker
-                          v-if="item.field.type == 'datetimerange'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'datetimerange'"
                           v-model="item.value"
                           type="datetimerange"
                           value-format="YYYY-MM-DD HH:mm:ss"
@@ -98,29 +96,26 @@
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <!-- 自定义日期 -->
                         <el-date-picker
-                          v-if="item.field.type == 'customDate'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'customDate'"
                           v-model="item.value"
-                          :type="item.field.extend?.dateType || 'date'"
-                          :value-format="item.field.extend?.valueFormat"
-                          :placeholder="item.field.placeholder || '请选择'"
+                          :type="getFieldByValue(item.field)?.extend?.dateType || 'date'"
+                          :value-format="getFieldByValue(item.field)?.extend?.valueFormat"
+                          :placeholder="getFieldByValue(item.field)?.placeholder || '请选择'"
                           start-placeholder="开始日期"
                           end-placeholder="结束日期"
                           style="width: 100%"
                         />
-                        <!-- 开关 -->
-                        <el-switch v-if="item.field.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
-                        <!-- 标签 -->
+                        <el-switch v-else-if="getFieldByValue(item.field)?.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
                         <el-select
-                          v-if="item.field.type == 'tags'"
+                          v-else-if="getFieldByValue(item.field)?.type == 'tags'"
                           v-model="item.value"
                           multiple
                           filterable
                           allow-create
                           default-first-option
                           no-data-text="输入关键词后按回车确认"
-                          :placeholder="item.field.placeholder || '请输入'"
+                          :placeholder="getFieldByValue(item.field)?.placeholder || '请输入'"
                         />
                       </td>
                       <td>
@@ -152,7 +147,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import my from "../plugin/FilterMySetting.vue";
 import config from "../setting/filterBar";
 
@@ -169,7 +164,7 @@ interface FilterField {
 }
 
 interface FilterItem {
-  field: FilterField;
+  field: string; // store field by its value/key
   operator: string;
   value: any;
   selectLoading?: boolean;
@@ -231,7 +226,24 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "change", "filterChange", "formatChange"]);
 
 const drawer = ref(false);
-const fields = ref<FilterField[]>(props.options);
+// keep original options but normalize to a consistent fields structure
+const fields = ref<FilterField[]>(props.options || []);
+const fieldsNormalized = computed<FilterField[]>(() => {
+  return (props.options || []).map((o: any) => {
+    // if option already has type/operator/etc, keep; otherwise normalize
+    return {
+      value: o.value ?? o.prop ?? o.field ?? o.key,
+      label: o.label ?? o.name ?? o.title ?? String(o.value ?? ""),
+      type: o.type ?? "text",
+      operator: o.operator ?? o.defaultOperator ?? "include",
+      operators: o.operators ?? o.ops ?? undefined,
+      extend: o.extend ?? o.extra ?? {},
+      placeholder: o.placeholder ?? "",
+      repeat: o.repeat ?? false,
+      selected: o.selected ?? false
+    } as FilterField;
+  });
+});
 const filter = ref<FilterItem[]>([]);
 const myFilter = ref<any[]>([]);
 const filterObjLength = ref(0);
@@ -241,11 +253,16 @@ const filterObj = computed(() => {
   const obj: Record<string, any> = {};
   filter.value.forEach(item => {
     if (props.strictMode && (!item.value || item.value === "")) return;
-    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const fieldKey = props.fieldMapping[item.field] || item.field;
     obj[fieldKey] = props.showOperator ? `${item.value}${config.separator}${item.operator}` : `${item.value}`;
   });
   return obj;
 });
+
+function getFieldByValue(val?: string) {
+  if (!val) return undefined;
+  return fieldsNormalized.value.find(f => f.value === val);
+}
 
 const effectiveOperators = computed(() => {
   return props.customOperators.length > 0 ? props.customOperators : config.operator;
@@ -265,15 +282,24 @@ const formattedOutput = computed(() => {
 });
 
 onMounted(() => {
-  fields.value.forEach(item => {
+  fieldsNormalized.value.forEach(item => {
     if (item.selected) {
       filter.value.push({
-        field: item,
+        field: item.value,
         operator: item.operator || "include",
         value: ""
       });
     }
   });
+  // load my filters from storage
+  (async () => {
+    try {
+      myFilter.value = await config.getMy(props.filterName);
+    } catch (error) {
+      console.error("load myFilter error", error);
+      myFilter.value = [];
+    }
+  })();
 });
 
 function openFilter() {
@@ -281,15 +307,14 @@ function openFilter() {
 }
 
 function addFilter() {
-  const filterArr = fields.value.filter(field => !filter.value.some(item => field.value == item.field.value && !item.field.repeat));
-  if (fields.value.length <= 0 || filterArr.length <= 0) {
-    // @ts-ignore
-    window?.$message?.warning?.("无过滤项");
+  const filterArr = fieldsNormalized.value.filter(field => !filter.value.some(item => field.value == item.field && !field.repeat));
+  if (fieldsNormalized.value.length <= 0 || filterArr.length <= 0) {
+    (window as any)?.$message?.warning?.("无过滤项");
     return false;
   }
   const filterNum = filterArr[0];
   filter.value.push({
-    field: filterNum,
+    field: filterNum.value,
     operator: filterNum.operator || "include",
     value: ""
   });
@@ -300,21 +325,20 @@ function delFilter(index: number) {
 }
 
 function fieldChange(tr: FilterItem) {
-  const oldType = tr.field.type;
-  tr.field.type = "";
-  nextTick(() => {
-    tr.field.type = oldType;
-  });
-  tr.operator = tr.field.operator || "include";
+  // tr.field is a field.value (string); reset operator/value based on normalized field
+  const f = getFieldByValue(tr.field);
+  if (!f) return;
+  tr.operator = f.operator || "include";
   tr.value = "";
 }
 
 async function visibleChange(isopen: boolean, item: FilterItem) {
-  if (isopen && item.field.extend?.request && !item.field.extend.remote) {
+  const f = getFieldByValue(item.field);
+  if (isopen && f?.extend?.request && !f.extend.remote) {
     item.selectLoading = true;
     try {
-      const data = await item.field.extend.request();
-      item.field.extend.data = data;
+      const data = await f.extend.request();
+      f.extend.data = data;
     } catch (error) {
       console.log(error);
     }
@@ -323,35 +347,36 @@ async function visibleChange(isopen: boolean, item: FilterItem) {
 }
 
 async function remoteMethod(query: string, item: FilterItem) {
-  if (!item.field.extend?.request) return false;
+  const f = getFieldByValue(item.field);
+  if (!f?.extend?.request) return false;
   if (query !== "") {
     item.selectLoading = true;
     try {
-      const data = await item.field.extend.request(query);
-      item.field.extend.data = data;
+      const data = await f.extend.request(query);
+      f.extend.data = data;
     } catch (error) {
       console.log(error);
     }
     item.selectLoading = false;
   } else {
-    item.field.extend.data = [];
+    f.extend.data = [];
   }
 }
 
 function selectMyfilter(item: any) {
-  filter.value = [];
-  fields.value.forEach(field => {
+  filter.value.length = 0;
+  fieldsNormalized.value.forEach(field => {
     const filterValue = item.filterObj[field.value];
     if (filterValue) {
       let operator = filterValue.split("|")[1];
-      let value = filterValue.split("|")[0];
+      let value: any = filterValue.split("|")[0];
       if (field.type == "select" && field.extend?.multiple) {
         value = value.split(",");
       } else if (field.type == "daterange") {
         value = value.split(",");
       }
       filter.value.push({
-        field,
+        field: field.value,
         operator,
         value
       });
@@ -377,33 +402,48 @@ function ok() {
 }
 
 function saveMy() {
-  // @ts-ignore
-  window
-    ?.$prompt?.("常用过滤名称", "另存为常用", {
-      inputPlaceholder: "请输入识别度较高的常用过滤名称",
-      inputPattern: /\S/,
-      inputErrorMessage: "名称不能为空"
-    })
-    .then(async ({ value }: any) => {
-      saveLoading.value = true;
-      const saveObj = {
-        title: value,
-        filterObj: filterObj.value
-      };
-      try {
-        await config.saveMy(props.filterName, saveObj);
-      } catch (error) {
+  // use global prompt/message if available (Element UI integration)
+  const win = window as any;
+  if (win?.$prompt) {
+    win
+      .$prompt("常用过滤名称", "另存为常用", {
+        inputPlaceholder: "请输入识别度较高的常用过滤名称",
+        inputPattern: /\S/,
+        inputErrorMessage: "名称不能为空"
+      })
+      .then(async ({ value }: any) => {
+        saveLoading.value = true;
+        const saveObj = {
+          title: value,
+          filterObj: filterObj.value
+        };
+        try {
+          const ok = await config.saveMy(props.filterName, saveObj);
+          if (ok) {
+            myFilter.value.push(saveObj);
+            win?.$message?.success?.(`${props.filterName} 保存常用成功`);
+          }
+        } catch (error) {
+          console.log(error);
+        }
         saveLoading.value = false;
-
-        console.log(error);
-        return false;
-      }
-      myFilter.value.push(saveObj);
-      // @ts-ignore
-      window?.$message?.success?.(`${props.filterName} 保存常用成功`);
-      saveLoading.value = false;
-    })
-    .catch(() => {});
+      })
+      .catch(() => {});
+  } else {
+    // fallback to native prompt
+    const title = prompt("请输入常用过滤名称");
+    if (title) {
+      const saveObj = { title, filterObj: filterObj.value };
+      config.saveMy(props.filterName, saveObj).then((res: any) => {
+        if (res) {
+          myFilter.value.push(saveObj);
+          try {
+            (window as any)?.$message?.success?.(`${props.filterName} 保存常用成功`);
+          } catch (e) {}
+        }
+      });
+    }
+  }
 }
 
 function clear() {
@@ -425,7 +465,8 @@ function generateSQLOutput() {
   const conditions: string[] = [];
   filter.value.forEach(item => {
     if (props.strictMode && (!item.value || item.value === "")) return;
-    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const f = getFieldByValue(item.field);
+    const fieldKey = props.fieldMapping[f?.value || item.field] || f?.value || item.field;
     const tableName = props.sqlTablePrefix ? `${props.sqlTablePrefix}.` : "";
     const fullFieldName = `${tableName}${fieldKey}`;
     const operator = props.showOperator ? item.operator : "=";
@@ -463,7 +504,8 @@ function generateLuceneOutput() {
   const conditions: string[] = [];
   filter.value.forEach(item => {
     if (props.strictMode && (!item.value || item.value === "")) return;
-    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const f = getFieldByValue(item.field);
+    const fieldKey = props.fieldMapping[f?.value || item.field] || f?.value || item.field;
     const operator = props.showOperator ? item.operator : "=";
     let value = item.value;
     const escapeLucene = (str: string) => str.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, "\\$&");
@@ -503,15 +545,16 @@ function generateArrayOutput() {
   const result: any[] = [];
   filter.value.forEach(item => {
     if (props.strictMode && (!item.value || item.value === "")) return;
-    const fieldKey = props.fieldMapping[item.field.value] || item.field.value;
+    const f = getFieldByValue(item.field);
+    const fieldKey = props.fieldMapping[f?.value || item.field] || f?.value || item.field;
     const operator = props.showOperator ? item.operator : "=";
     result.push({
       field: fieldKey,
       operator,
       value: item.value,
-      originalField: item.field.value,
-      fieldType: item.field.type || "text",
-      fieldLabel: item.field.label || item.field.value
+      originalField: f?.value || item.field,
+      fieldType: f?.type || "text",
+      fieldLabel: f?.label || f?.value || item.field
     });
   });
   return result;

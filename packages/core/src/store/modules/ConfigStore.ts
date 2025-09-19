@@ -2,8 +2,8 @@ import { fetchSetting } from "@pages/setting";
 import { useWatermark } from "@pureadmin/utils";
 import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
 import { defineStore } from "pinia";
-import { nextTick, provide, ref } from "vue";
-import { socket } from "../../config/socket";
+import { nextTick, ref } from "vue";
+import { provideGlobalSocket } from "../../config/socket";
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig, putConfig } from "../utils";
 import { useSettingStore } from "./SettingStore";
@@ -140,8 +140,8 @@ export const useConfigStore = defineStore({
     },
     async openSocket(urls, context) {
       this.close();
-      this.socket = socket(urls, context, {});
-      provide("socket", this.socket);
+      this.socket = provideGlobalSocket(urls, context, {});
+      this.socket.connect();
     },
     async openWatermark() {
       var config = {

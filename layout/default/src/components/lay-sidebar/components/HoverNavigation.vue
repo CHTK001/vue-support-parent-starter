@@ -347,6 +347,42 @@ function formatAddTime(timeStr: string): string {
   return date.toLocaleDateString();
 }
 
+// 处理子菜单点击
+function handleSubMenuClick(menu: any, event?: Event) {
+  // 阻止默认的router-link导航行为
+  if (event) {
+    event.preventDefault();
+  }
+
+  // 隐藏子菜单
+  hideSubMenu();
+
+  // 检查是否为remaining菜单项
+  if (menu.meta?.remaining === true) {
+    // 检查是否在当前页面打开
+    if (menu.meta?.remainingSelf === true) {
+      // 在当前页面打开，跳转到remaining组件页面
+      const componentPath = convertPathToComponentParam(menu.path);
+      router.push(`/remaining-component/${componentPath}`);
+    } else {
+      // 默认行为：在新标签页打开remaining组件页面
+      const componentPath = convertPathToComponentParam(menu.path);
+      const fullUrl = `${window.location.origin}/#/remaining-component/${componentPath}`;
+      window.open(fullUrl, "_blank");
+    }
+  } else {
+    // 正常的Vue router导航
+    router.push(menu.path);
+  }
+}
+
+// 将路径转换为组件路径参数
+function convertPathToComponentParam(path: string): string {
+  // 移除开头的斜杠并将路径转换为组件参数
+  const cleanPath = path.replace(/^\//, "");
+  return cleanPath.replace(/\//g, "-");
+}
+
 // 处理菜单点击
 function handleMenuClick(menu: any) {
   // 触发菜单点击事件
@@ -355,7 +391,14 @@ function handleMenuClick(menu: any) {
   // 收缩状态下，直接导航到第一个可用路径
   if (isHoverCollapsed.value) {
     if (!menu.children || menu.children.length === 0) {
-      router.push(menu.path);
+      // 检查是否为remaining菜单项
+      if (menu.meta?.remaining === true) {
+        const baseUrl = window.location.origin;
+        const fullUrl = `${baseUrl}${menu.path}`;
+        window.open(fullUrl, "_blank");
+      } else {
+        router.push(menu.path);
+      }
     } else {
       const firstPath = getFirstNavigablePath(menu);
       if (firstPath) {
@@ -475,7 +518,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                 }"
               >
                 <div v-for="favorite in favoriteMenus" :key="favorite.path" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(favorite)" @mouseleave="handleMenuItemLeave">
-                  <router-link :to="favorite.path" class="favorite-menu-item" @click="hideSubMenu">
+                  <router-link :to="favorite.path" class="favorite-menu-item" @click="handleSubMenuClick(favorite, $event)">
                     <IconifyIconOnline v-if="favorite.icon" :icon="favorite.icon" class="favorite-menu-icon" />
                     <span>{{ favorite.title }}</span>
                     <span class="add-time">{{ formatAddTime(favorite.addTime) }}</span>
@@ -503,7 +546,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                     <div class="column-title">{{ subMenu.meta?.title }}</div>
                     <div class="column-items">
                       <div v-for="thirdMenu in subMenu.children" :key="thirdMenu.path" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(thirdMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="thirdMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === thirdMenu.path }" @click="hideSubMenu">
+                        <router-link :to="thirdMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === thirdMenu.path }" @click="handleSubMenuClick(thirdMenu, $event)">
                           {{ thirdMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->
@@ -521,7 +564,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                   <div class="column-items">
                     <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                       <div v-if="!subMenu.children || subMenu.children.length === 0" class="menu-item-wrapper" @mouseenter="handleMenuItemHover(subMenu)" @mouseleave="handleMenuItemLeave">
-                        <router-link :to="subMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === subMenu.path }" @click="hideSubMenu">
+                        <router-link :to="subMenu.path" class="menu-item" :class="{ 'is-active': defaultActive === subMenu.path }" @click="handleSubMenuClick(subMenu, $event)">
                           {{ subMenu.meta?.title }}
                         </router-link>
                         <!-- 收藏按钮 -->

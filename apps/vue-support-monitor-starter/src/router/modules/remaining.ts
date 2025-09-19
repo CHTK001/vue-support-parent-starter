@@ -1,6 +1,6 @@
+import { Account } from "@layout/default";
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
-import { Account } from "@layout/default";
 
 export default [
   {
@@ -10,8 +10,8 @@ export default [
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
-      rank: 101
-    }
+      rank: 101,
+    },
   },
 
   {
@@ -22,8 +22,8 @@ export default [
     },
     meta: {
       title: $t("buttons.accountSetting"),
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/jdbc",
@@ -31,8 +31,8 @@ export default [
     component: () => import("@/views/data-management/console/jdbc/index.vue"),
     meta: {
       title: "JDBC 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/redis",
@@ -40,8 +40,8 @@ export default [
     component: () => import("@/views/data-management/console/redis/index.vue"),
     meta: {
       title: "Redis 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/zk",
@@ -49,17 +49,17 @@ export default [
     component: () => import("@/views/data-management/console/zk/index.vue"),
     meta: {
       title: "ZooKeeper 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
- {
+  {
     path: "/data/console/influx",
     name: "dataInfluxConsoleFull",
     component: () => import("@/views/data-management/console/influx/index.vue"),
     meta: {
       title: "InfluxDB 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/mqtt",
@@ -67,8 +67,8 @@ export default [
     component: () => import("@/views/data-management/console/mqtt/index.vue"),
     meta: {
       title: "MQTT 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/graph",
@@ -76,8 +76,8 @@ export default [
     component: () => import("@/views/data-management/console/graph/index.vue"),
     meta: {
       title: "图数据库 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/data/console/email",
@@ -85,8 +85,8 @@ export default [
     component: () => import("@/views/data-management/console/email/index.vue"),
     meta: {
       title: "Email 控制台",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/node/documentation/:nodeId",
@@ -95,8 +95,8 @@ export default [
     meta: {
       icon: "ri:file-text-line",
       title: "节点API文档",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/file-manager/:serverId",
@@ -105,8 +105,8 @@ export default [
     meta: {
       icon: "ri:folder-line",
       title: "文件管理器",
-      showLink: false
-    }
+      showLink: false,
+    },
   },
   {
     path: "/service/file-storage/preview/:serverId",
@@ -114,7 +114,7 @@ export default [
     component: () => import("@/views/service-management/file-storage/PreviewFull.vue"),
     meta: {
       title: "文件存储预览",
-      showLink: false
-    }
-  }
+      showLink: false,
+    },
+  },
 ] satisfies Array<RouteConfigsTable>;

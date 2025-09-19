@@ -102,6 +102,27 @@
       :page-size="tablePageSize"
       :placeholder="dropdownPlaceholder"
     />
+
+    <!-- 树形选择器布局 -->
+    <ScSelectTreeLayout
+      v-else-if="layout === 'tree'"
+      v-model="selectValue"
+      :options="selectListOptions"
+      :multiple="multiple"
+      :props="treeProps"
+      :node-key="treeNodeKey"
+      :icon-prop="treeIconProp"
+      :desc-prop="treeDescProp"
+      :show-search="treeShowSearch"
+      :search-placeholder="treeSearchPlaceholder"
+      :show-actions="treeShowActions"
+      :height="height"
+      :default-expand-all="treeDefaultExpandAll"
+      :expand-on-click-node="treeExpandOnClickNode"
+      :check-strictly="treeCheckStrictly"
+      :leaf-only="treeLeafOnly"
+      @change="handleChange"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -111,6 +132,7 @@ import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue"
 import FilterLayout from "./components/FilterLayout.vue";
 import PillLayout from "./components/PillLayout.vue";
 import ScSelectTable from "./components/ScSelectTableLayout.vue";
+import ScSelectTreeLayout from "./components/ScSelectTreeLayout.vue";
 import SelectLayout, { CardOption } from "./components/SelectLayout.vue";
 
 export interface TableColumn {
@@ -180,7 +202,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown", "filter", "table"].includes(value);
+      return ["card", "select", "pill", "dropdown", "filter", "table", "tree"].includes(value);
     }
   },
   // 是否多选
@@ -299,6 +321,66 @@ const props = defineProps({
     default: 10
   },
   tableRemoteSearch: {
+    type: Boolean,
+    default: false
+  },
+  // 树形布局相关props
+  // 树节点配置
+  treeProps: {
+    type: Object,
+    default: () => ({
+      children: 'children',
+      label: 'label',
+      disabled: 'disabled'
+    })
+  },
+  // 树节点唯一标识字段
+  treeNodeKey: {
+    type: String,
+    default: 'value'
+  },
+  // 树节点图标字段
+  treeIconProp: {
+    type: String,
+    default: 'icon'
+  },
+  // 树节点描述字段
+  treeDescProp: {
+    type: String,
+    default: 'desc'
+  },
+  // 是否显示搜索框
+  treeShowSearch: {
+    type: Boolean,
+    default: true
+  },
+  // 搜索框占位符
+  treeSearchPlaceholder: {
+    type: String,
+    default: '请输入关键词搜索'
+  },
+  // 是否显示操作栏
+  treeShowActions: {
+    type: Boolean,
+    default: true
+  },
+  // 是否默认展开所有节点
+  treeDefaultExpandAll: {
+    type: Boolean,
+    default: false
+  },
+  // 是否在点击节点时展开/收起节点
+  treeExpandOnClickNode: {
+    type: Boolean,
+    default: false
+  },
+  // 在显示复选框的情况下，是否严格的遵循父子不互相关联的做法
+  treeCheckStrictly: {
+    type: Boolean,
+    default: false
+  },
+  // 是否只能选择叶子节点
+  treeLeafOnly: {
     type: Boolean,
     default: false
   }

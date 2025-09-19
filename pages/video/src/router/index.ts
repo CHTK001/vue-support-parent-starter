@@ -36,6 +36,7 @@ const routes = [
               title: "视频搜索",
               icon: "ep:search",
               rank: 1,
+              remaining: true,
             },
           },
           {
@@ -48,6 +49,7 @@ const routes = [
             meta: {
               title: "搜索结果",
               showLink: false,
+              remaining: true,
             },
           },
           {
@@ -74,6 +76,7 @@ const routes = [
               title: "视频管理",
               icon: "ep:video-camera",
               rank: 3,
+              remaining: true,
             },
           },
         ],

@@ -1,5 +1,6 @@
 // 视频地区选项
 export const districtOptions = [
+  { label: "全部", value: "ALL" },
   { label: "大陆", value: "大陆" },
   { label: "香港", value: "香港" },
   { label: "台湾", value: "台湾" },
@@ -26,6 +27,7 @@ export const districtOptions = [
 
 // 视频语言选项
 export const languageOptions = [
+  { label: "全部", value: "ALL" },
   { label: "英语", value: "英语" },
   { label: "法语", value: "法语" },
   { label: "国语", value: "国语" },

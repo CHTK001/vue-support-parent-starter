@@ -28,6 +28,10 @@ declare global {
     auths?: Array<string>;
     /** 路由组件缓存（开启 `true`、关闭 `false`）`可选` */
     keepAlive?: boolean;
+    /** 路由是否参与菜单的展示（默认`true`）`可选` */
+    remaining?: boolean;
+    /** remaining菜单项是否在当前页面打开（默认`false`，弹出新页面）`可选` */
+    remainingSelf?: boolean;
     /** 内嵌的`iframe`链接 `可选` */
     frameSrc?: string;
     /** `iframe`页是否开启首次加载动画（默认`true`）`可选` */
@@ -72,6 +76,7 @@ declare global {
     redirect?: string;
     /** 按需加载组件 `可选` */
     component?: RouteComponent;
+    /** 路由是否参与菜单的展示（默认`true`）`可选` */
     meta?: CustomizeRouteMeta;
     /** 子路由配置项 */
     children?: Array<RouteChildrenConfigsTable>;
@@ -97,6 +102,10 @@ export interface RouteConfigsTable {
     showLink?: boolean;
     /** 菜单升序排序，值越高排的越后（只针对顶级路由）`可选` */
     rank?: number;
+    /** 路由是否参与菜单的展示（默认`true`）`可选` */
+    remaining?: boolean;
+    /** remaining菜单项是否在当前页面打开（默认`false`，弹出新页面）`可选` */
+    remainingSelf?: boolean;
   };
   /** 子路由配置项 */
   children?: Array<RouteChildrenConfigsTable>;

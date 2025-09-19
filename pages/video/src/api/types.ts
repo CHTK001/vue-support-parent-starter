@@ -25,8 +25,12 @@ export interface VideoSource {
   videoSourceIcon: string;
   //视频资源URL
   videoSourceUrl: string;
+  //支持类型
+  videoSourceType: string;
   //是否启用
   videoSourceEnable: number;
+  //最小年份
+  videoSourceMinYear: number;
   //最大查询数量
   videoSourceMaxResource: number;
   //视频资源Token
@@ -122,8 +126,10 @@ export interface VideoSyncConfig {
   videoSyncConfigName: string;
   videoSourceId: string;
   videoConfigRemark?: string;
+  videoSyncConfigLastOffset?: string;
   videoSyncConfigKeyword?: string;
   videoSyncConfigStatus?: string;
+  videoSyncConfigEnable?: boolean;
   videoSyncInterval?: number;
   syncCount?: number;
   videoSyncConfigLastSyncTime?: string;

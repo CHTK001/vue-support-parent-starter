@@ -4,7 +4,45 @@ export enum DesType {
   card,
   name,
 }
+export type RouteItem = any; // 你的路由类型
+export type RouteInput = RouteItem | RouteItem[];
 
+interface SplitResult<T extends RouteInput> {
+  removed: RouteItem[];
+  remaining: T;
+}
+/**
+ * 支持对象或数组传入，返回同类型剩余结构 + 被删节点数组
+ */
+export function splitRemainingLeaves<T extends RouteInput>(input: T): SplitResult<T> {
+  const isArr = Array.isArray(input);
+  const copy: RouteItem[] = isArr ? input : [input];
+
+  const removed: RouteItem[] = [];
+
+  function walk(list: RouteItem[]) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const node = list[i];
+
+      if (node.children?.length) {
+        walk(node.children);
+      }
+
+      const isLeaf = !node.children || node.children.length === 0;
+      if (isLeaf && node.meta?.remaining === true) {
+        removed.push({ ...node });
+        list.splice(i, 1);
+      }
+    }
+  }
+
+  walk(copy);
+
+  return {
+    removed,
+    remaining: (isArr ? copy : copy[0]) as T,
+  };
+}
 /**
  * 深度清理对象中的undefined属性
  * 该函数递归地遍历对象的每个属性，如果属性值为undefined，则从对象中删除该属性

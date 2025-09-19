@@ -1,3 +1,7 @@
+import { asyncIndexedDB } from "@repo/utils";
+
+const KEY_PREFIX = "sc_filter_";
+
 export default {
   //运算符
   operator: [
@@ -36,39 +40,51 @@ export default {
   ],
   //过滤结果运算符的分隔符
   separator: "|",
-  //获取我的常用
-  getMy: function (name) {
-    return new Promise(resolve => {
-      console.log(`这里可以根据${name}参数请求接口`);
-      var list = [];
-      setTimeout(() => {
-        resolve(list);
-      }, 500);
-    });
+  //获取我的常用（从IndexedDB读取）
+  getMy: async function (name) {
+    try {
+      const key = KEY_PREFIX + name;
+      const db = asyncIndexedDB();
+      const list: any[] = (await db.getItem(key)) || [];
+      return list;
+    } catch (error) {
+      console.error("getMy error", error);
+      return [];
+    }
   },
   /**
    * 常用保存处理 返回resolve后继续操作
    * @name scFilterBar组件的props->filterName
    * @obj 过滤项整理好的对象
    */
-  saveMy: function (name, obj) {
-    return new Promise(resolve => {
-      console.log(name, obj);
-      setTimeout(() => {
-        resolve(true);
-      }, 500);
-    });
+  saveMy: async function (name, obj) {
+    try {
+      const key = KEY_PREFIX + name;
+      const db = asyncIndexedDB();
+      const list: any[] = (await db.getItem(key)) || [];
+      list.push(obj);
+      await db.setItem(key, list);
+      return true;
+    } catch (error) {
+      console.error("saveMy error", error);
+      return false;
+    }
   },
   /**
    * 常用删除处理 返回resolve后继续操作
    * @name scFilterBar组件的props->filterName
    */
-  delMy: function (name) {
-    return new Promise(resolve => {
-      console.log(name);
-      setTimeout(() => {
-        resolve(true);
-      }, 500);
-    });
+  delMy: async function (name, title) {
+    try {
+      const key = KEY_PREFIX + name;
+      const db = asyncIndexedDB();
+      const list: any[] = (await db.getItem(key)) || [];
+      const newList = list.filter((it: any) => it.title !== title);
+      await db.setItem(key, newList);
+      return true;
+    } catch (error) {
+      console.error("delMy error", error);
+      return false;
+    }
   }
 };

@@ -1,108 +1,91 @@
 <template>
-  <div class="video-home">
-    <!-- 搜索首页 -->
-    <VideoSearchHome v-if="!showResults" @search="handleSearch" />
-
-    <!-- 导航和内容页面 -->
-    <VideoContentPage v-else :initial-keyword="searchKeyword" :initial-category="selectedCategory" @home-click="handleHomeClick" />
+  <div class="video-search-results">
+    <div class="nav flex justify-between">
+      <div class="category-nav">
+        <div v-for="category in videoCategories" :key="category.value" :class="['category-item', { active: selectedCategories === category.value }]" @click="handleCategoryClick(category)">
+          <IconifyIconOnline v-if="category.icon" :icon="category.icon" :size="18" />
+          <span>{{ category.label }}</span>
+        </div>
+      </div>
+      <div class="search-box flex justify-start items-center">
+        <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input h-[38px]" clearable @keyup.enter="handleSearch">
+          <template #prefix>
+            <IconifyIconOnline icon="ep:search" />
+          </template>
+        </el-input>
+        <el-button type="primary" class="search-button !h-[38px] !w-[48px] m-4" @click="handleSearch">
+          <IconifyIconOnline icon="ep:search" />
+        </el-button>
+      </div>
+    </div>
+    <Search ref="searchRef" :keyword="searchKeyword" :category="selectedCategories"></Search>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import VideoSearchHome from "./components/VideoSearchHome.vue";
-import VideoContentPage from "./components/VideoContentPage.vue";
+import { ref } from "vue";
+import { videoCategories } from "../../data/categories";
+import Search from "../search/search.vue";
 
-const router = useRouter();
-const route = useRoute();
-
-// 搜索相关状态
+const searchRef = ref();
+const selectedCategories = ref("ALL");
 const searchKeyword = ref("");
-const selectedCategory = ref("");
-const showResults = ref(false);
 
-/**
- * 处理搜索事件
- * @param keyword 搜索关键词
- */
-const handleSearch = (keyword: string) => {
-  searchKeyword.value = keyword;
-  showResults.value = true;
-
-  router.push({
-    path: "/video/search",
-    query: {
-      keyword,
-    },
-  });
+// 处理分类点击
+const handleCategoryClick = (category: any): void => {
+  selectedCategories.value = category.value;
+  searchRef.value.handleSearch();
 };
 
-/**
- * 处理首页点击事件
- * 显示VideoSearchHome页面
- */
-const handleHomeClick = () => {
-  // 立即切换到首页视图
-  showResults.value = false;
-  searchKeyword.value = "";
-  selectedCategory.value = "";
-
-  // 确保路由更新，防止路由事件触发前视图已经改变
-  router.push({
-    path: "/video",
-    replace: true,
-  });
+const handleSearch = () => {
+  searchRef.value.handleSearch();
 };
-
-/**
- * 初始化页面状态
- * 根据当前路由决定是否显示结果页面
- */
-const initPageState = () => {
-  const query = route.query;
-  const path = route.path;
-
-  // 判断是否为根路径且无查询参数（首页状态）
-  const isHomePage = path === "/video" && !query.keyword && !query.type;
-  if (isHomePage) {
-    // 如果是视频首页且没有查询参数，显示VideoSearchHome
-    showResults.value = false;
-    searchKeyword.value = "";
-    selectedCategory.value = "";
-  } else if (query.keyword || query.type || path.includes("/video/category") || path.includes("/video/search")) {
-    // 如果URL包含关键词或类型，或者路径是分类或搜索页，则显示结果页面
-    if (query.keyword) {
-      searchKeyword.value = query.keyword as string;
-    }
-
-    if (query.type) {
-      selectedCategory.value = query.type as string;
-    }
-
-    showResults.value = true;
-  }
-};
-
-// 页面加载时初始化状态
-onMounted(() => {
-  initPageState();
-});
-
-// 监听路由变化，用于处理页面刷新和导航
-watch(
-  () => route,
-  () => {
-    initPageState();
-  },
-  { deep: true }
-);
 </script>
-
 <style lang="scss" scoped>
-.video-home {
+.video-search-results {
   width: 100%;
-  min-height: 100vh;
-  background-color: var(--el-fill-color-light);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.category-nav {
+  display: flex;
+  min-height: 70px;
+  overflow: hidden;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin: 4px 8px 4px 0;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 30px;
+  transition: all 0.3s;
+  gap: 6px;
+
+  &:hover {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+  }
+
+  &.active {
+    color: white;
+    background-color: var(--el-color-primary);
+    font-weight: 500;
+    box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);
+  }
 }
 </style>
