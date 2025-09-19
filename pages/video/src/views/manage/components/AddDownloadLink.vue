@@ -46,13 +46,13 @@
 </template>
 
 <script setup lang="ts">
-import type { DownloadItem } from "../../../types/upload";
-import type { VideoItem } from "../../../types/video";
 import { message } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";
 import { defineAsyncComponent, reactive, ref } from "vue";
 import { createDownload, updateDownload } from "../../../api/download";
 import { getVideoList } from "../../../api/video";
+import type { DownloadItem } from "../../../types/upload";
+import type { VideoItem } from "../../../types/video";
 const CardSelector = defineAsyncComponent(() => import("@repo/components/ScSelect/index.vue"));
 
 // 资源类型定义
@@ -63,7 +63,7 @@ const resourceTypes = [
   { label: "百度网盘", value: "百度网盘", icon: "ep:cloudy" },
   { label: "阿里云盘", value: "阿里云盘", icon: "ep:cloud" },
   { label: "天翼网盘", value: "天翼网盘", icon: "ep:lightning" },
-];
+] as any;
 
 const props = defineProps({
   initialData: {

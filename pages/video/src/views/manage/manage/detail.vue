@@ -1,56 +1,96 @@
 <template>
   <div class="video-detail-container">
+    <!-- 美化后的页面头部 -->
     <div class="detail-header">
-      <el-button @click="goBack" class="back-button">
-        <IconifyIconOnline icon="ep:arrow-left" />
-        返回
-      </el-button>
-      <h2 class="detail-title">{{ videoData.videoTitle || videoData.videoName }}</h2>
+      <div class="header-background"></div>
+      <div class="header-content">
+        <el-button @click="goBack" class="back-button">
+          <IconifyIconOnline icon="ep:arrow-left" />
+          返回
+        </el-button>
+        <div class="header-title">
+          <h1 class="detail-title">{{ videoData.videoTitle || videoData.videoName }}</h1>
+          <div class="title-subtitle" v-if="videoData.videoYear">{{ videoData.videoYear }}年</div>
+        </div>
+      </div>
     </div>
 
     <div class="detail-content">
+      <!-- 美化后的海报和操作区域 -->
       <div class="poster-section">
         <div class="poster-wrapper">
-          <el-image v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
-            <template #error>
-              <el-image
-                v-if="videoData.videoCover"
-                referrerpolicy="no-referrer"
-                :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)"
-                :preview-src-list="[createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)]"
-                fit="cover"
-                class="poster-image"
-              >
-                <template #error>
-                  <div class="no-poster">暂无海报</div>
-                </template>
-              </el-image>
-            </template>
-          </el-image>
-          <div v-else class="no-poster">暂无海报</div>
+          <div class="poster-container">
+            <el-image v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
+              <template #error>
+                <el-image
+                  v-if="videoData.videoCover"
+                  referrerpolicy="no-referrer"
+                  :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)"
+                  :preview-src-list="[createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)]"
+                  fit="cover"
+                  class="poster-image"
+                >
+                  <template #error>
+                    <div class="no-poster">
+                      <IconifyIconOnline icon="ep:picture" class="no-poster-icon" />
+                      <span>暂无海报</span>
+                    </div>
+                  </template>
+                </el-image>
+              </template>
+            </el-image>
+            <div v-else class="no-poster">
+              <IconifyIconOnline icon="ep:picture" class="no-poster-icon" />
+              <span>暂无海报</span>
+            </div>
+            <div class="poster-overlay"></div>
+          </div>
+        </div>
+
+        <!-- 剧情简介卡片 -->
+        <div class="info-card detail-info mb-8">
+          <div class="card-header">
+            <div class="section-title">
+              <IconifyIconOnline icon="ep:document" class="title-icon" />
+              <h3>剧情简介</h3>
+            </div>
+          </div>
+          <div class="plot-summary">
+            <p v-if="videoData.videoDescription" class="plot-text">{{ videoData.videoDescription }}</p>
+            <div v-else class="no-data">
+              <IconifyIconOnline icon="ep:warning" />
+              <span>暂无简介</span>
+            </div>
+          </div>
         </div>
 
         <div class="action-buttons">
-          <el-button type="primary" @click="handleEdit" class="action-btn">
+          <el-button type="primary" @click="handleEdit" class="action-btn primary-btn">
             <IconifyIconOnline icon="ep:edit" />
-            编辑视频
+            <span>编辑视频</span>
           </el-button>
-          <el-button type="success" @click="handlePlay" class="action-btn" v-if="videoData.videoUrl">
+          <el-button type="success" @click="handlePlay" class="action-btn play-btn" v-if="videoData.videoUrl">
             <IconifyIconOnline icon="ep:video-play" />
-            播放视频
+            <span>播放视频</span>
           </el-button>
         </div>
       </div>
 
+      <!-- 美化后的信息区域 -->
       <div class="info-section">
-        <div class="basic-info">
-          <div class="info-header">
-            <h3 class="section-title">基本信息</h3>
+        <!-- 基本信息卡片 -->
+        <div class="info-card basic-info">
+          <div class="card-header">
+            <div class="section-title">
+              <IconifyIconOnline icon="ep:info-filled" class="title-icon" />
+              <h3>基本信息</h3>
+            </div>
             <div class="ratings-container">
               <!-- 视频评分 -->
               <div class="score-tag" v-if="videoData.videoScore">
                 <IconifyIconOnline icon="ep:star-filled" class="star-icon" />
-                <span>{{ videoData.videoScore }}分</span>
+                <span class="score-value">{{ videoData.videoScore }}</span>
+                <span class="score-text">分</span>
               </div>
 
               <!-- 豆瓣和IMDb评分 -->
@@ -65,89 +105,48 @@
           </div>
 
           <div class="info-grid">
-            <div class="info-item">
-              <span class="item-label">类型：</span>
-              <span class="item-value">
-                <el-tag class="type-tag" type="primary" v-for="(item, index) in (videoData.videoType || '未分类')?.split(',')" :key="index">{{ item }}</el-tag>
-              </span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">年份：</span>
-              <span class="item-value">{{ videoData.videoYear || "未知" }}年</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">上映日期</span>
-              <span class="item-value">{{ videoData.videoRelease || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">地区：</span>
-              <span class="item-value">{{ videoData.videoDistrict || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">语言：</span>
-              <span class="item-value">{{ videoData.videoLanguage || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">导演：</span>
-              <span class="item-value director-name">{{ videoData.videoDirector || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">主演：</span>
-              <span class="item-value actor-name">{{ videoData.videoActor || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">时长：</span>
-              <span class="item-value">{{ videoData.videoDuration ? `${videoData.videoDuration}分钟` : "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">状态：</span>
-              <span class="item-value">
-                <el-tag :type="videoData.videoStatus === 0 ? 'success' : 'info'" size="small">
-                  {{ videoData.videoStatus === 0 ? "启用" : "禁用" }}
-                </el-tag>
-              </span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">发布时间：</span>
-              <span class="item-value">{{ videoData.videoPublishDate || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">更新时间：</span>
-              <span class="item-value">{{ formatDateTime(videoData.updateTime) || "未知" }}</span>
+            <div class="info-item" v-for="(item, index) in infoItems" :key="index">
+              <div class="item-label">
+                <IconifyIconOnline :icon="item.icon" class="item-icon" />
+                <span>{{ item.label }}</span>
+              </div>
+              <div class="item-value" :class="item.class">
+                <component :is="item.component" v-bind="item.props">
+                  {{ item.value }}
+                </component>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="detail-info">
-          <h3 class="section-title">剧情简介</h3>
-          <div class="plot-summary">
-            <p v-if="videoData.videoDescription">{{ videoData.videoDescription }}</p>
-            <p v-else class="no-data">暂无简介</p>
-          </div>
-        </div>
-
-        <div class="download-section">
-          <div class="section-header">
-            <h3 class="section-title">下载信息</h3>
+        <!-- 下载信息卡片 -->
+        <div class="info-card download-section">
+          <div class="card-header">
+            <div class="section-title">
+              <IconifyIconOnline icon="ep:download" class="title-icon" />
+              <h3>下载信息</h3>
+            </div>
             <el-button type="primary" size="small" @click="showAddLinkDialog" class="add-link-btn">
               <IconifyIconOnline icon="ep:plus" />
-              新增链接
+              <span>新增链接</span>
             </el-button>
           </div>
 
           <div class="download-tabs">
-            <el-tabs type="border-card">
-              <!-- 下载资源选项卡 - 更紧凑的布局 -->
+            <el-tabs type="border-card" class="modern-tabs">
+              <!-- 下载资源选项卡 -->
               <el-tab-pane label="下载资源">
-                <!-- 添加清晰度过滤 -->
+                <!-- 过滤器 -->
                 <div class="filter-container">
-                  <el-select v-model="downloadQualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange">
-                    <el-option label="全部" value="" />
-                    <el-option label="4K" value="4K" />
-                    <el-option label="1080P" value="1080P" />
-                    <el-option label="720P" value="720P" />
-                    <el-option label="标清" value="标清" />
-                  </el-select>
+                  <div class="filter-row">
+                    <el-select v-model="downloadQualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange" class="filter-select">
+                      <el-option label="全部" value="" />
+                      <el-option label="4K" value="4K" />
+                      <el-option label="1080P" value="1080P" />
+                      <el-option label="720P" value="720P" />
+                      <el-option label="标清" value="标清" />
+                    </el-select>
+                  </div>
                 </div>
 
                 <div class="download-list compact" v-if="videoData.downloadList && videoData.downloadList.length > 0">
@@ -314,28 +313,6 @@
             <span v-if="!videoData.videoTags || videoData.videoTags.split(',').filter((t) => t).length === 0" class="no-data"> 暂无标签 </span>
           </div>
         </div>
-
-        <div class="source-section">
-          <h3 class="section-title">来源信息</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="item-label">来源平台：</span>
-              <span class="item-value">{{ videoData.videoPlatform || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">豆瓣ID：</span>
-              <span class="item-value">{{ videoData.videoDouBanId || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">视频大小：</span>
-              <span class="item-value">{{ videoData.videoSize || "未知" }}</span>
-            </div>
-            <div class="info-item">
-              <span class="item-label">视频质量：</span>
-              <span class="item-value">{{ videoData.videoQuality || "未知" }}</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
     <!-- 添加链接对话框 -->
@@ -350,6 +327,7 @@ import { ElMessageBox } from "element-plus";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { deleteDownload } from "../../../api/download";
+import { findPlayAddress } from "../../../api/play";
 import { getVideoDetail } from "../../../api/video";
 import { panTypes } from "../../../data/panTypes";
 import { getDownloadField, getDownloadIcon, magnetTypeOptions, parseMagnetLinks, parseOnlineLinks, qualityFilterOptions } from "../../../data/videoFilters";
@@ -373,6 +351,107 @@ const qualityFilter = ref("");
 const downloadQualityFilter = ref("");
 const panTypeFilter = ref("");
 const magnetTypeFilter = ref("");
+const playAddressList = ref([]);
+
+// 信息项配置
+const infoItems = computed(() => [
+  {
+    label: "类型",
+    icon: "ep:collection-tag",
+    value: videoData.value.videoType || "未分类",
+    component: "div",
+    class: "type-tags",
+    props: {
+      innerHTML: (videoData.value.videoType || "未分类")
+        .split(",")
+        .map((type) => `<span class="type-tag">${type}</span>`)
+        .join(""),
+    },
+  },
+  {
+    label: "年份",
+    icon: "ep:calendar",
+    value: `${videoData.value.videoYear || "未知"}年`,
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "上映日期",
+    icon: "ep:date",
+    value: videoData.value.videoRelease || "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "地区",
+    icon: "ep:location",
+    value: videoData.value.videoDistrict || "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "语言",
+    icon: "ep:chat-line-round",
+    value: videoData.value.videoLanguage || "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "导演",
+    icon: "ep:user",
+    value: videoData.value.videoDirector || "未知",
+    component: "span",
+    class: "director-name",
+    props: {},
+  },
+  {
+    label: "主演",
+    icon: "ep:user-filled",
+    value: videoData.value.videoActor || "未知",
+    component: "span",
+    class: "actor-name",
+    props: {},
+  },
+  {
+    label: "时长",
+    icon: "ep:timer",
+    value: videoData.value.videoDuration ? `${videoData.value.videoDuration}分钟` : "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "状态",
+    icon: "ep:circle-check",
+    value: videoData.value.videoStatus === 0 ? "启用" : "禁用",
+    component: "el-tag",
+    class: "",
+    props: {
+      type: videoData.value.videoStatus === 0 ? "success" : "info",
+      size: "small",
+    },
+  },
+  {
+    label: "发布时间",
+    icon: "ep:clock",
+    value: videoData.value.videoPublishDate || "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+  {
+    label: "更新时间",
+    icon: "ep:refresh",
+    value: formatDateTime(videoData.value.updateTime) || "未知",
+    component: "span",
+    class: "",
+    props: {},
+  },
+]);
 
 // 过滤后的磁力链接
 const filteredMagnetLinks = computed(() => {
@@ -439,6 +518,13 @@ const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
 };
 
+const fetchPlayAddress = async (videoId: number) => {
+  findPlayAddress({ videoId }).then((res) => {
+    //@ts-ignore
+    playAddressList.value = res.data;
+  });
+};
+
 // 获取视频详情
 const fetchVideoDetail = async () => {
   const videoId: any = route.query.id;
@@ -448,6 +534,7 @@ const fetchVideoDetail = async () => {
   getVideoDetail(videoId)
     .then((res) => {
       videoData.value = res.data;
+      fetchPlayAddress(videoId);
     })
     .catch((error) => {
       console.error("获取视频详情失败:", error);
@@ -672,812 +759,1065 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-.video-detail-container {
-  padding: 32px;
-  background: linear-gradient(145deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
-  min-height: 100%;
-  color: var(--el-text-color-primary);
-}
-
-.detail-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 36px;
-  position: relative;
-}
-
-.back-button {
-  margin-right: 24px;
-  border-radius: 50px;
-  padding: 10px 20px;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  font-weight: 600;
-
-  &:hover {
-    transform: translateX(-6px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  }
-
-  .icon {
-    margin-right: 8px;
-    font-size: 18px;
-  }
-}
-
-.detail-title {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--el-text-color-primary);
-  letter-spacing: -0.5px;
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.detail-content {
-  display: flex;
-  gap: 36px;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.poster-section {
-  width: 340px;
-  flex-shrink: 0;
-}
-
-.poster-wrapper {
-  width: 100%;
-  height: 480px;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-bottom: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 30%);
+<style scoped>
+/* 动画关键帧 */
+@keyframes fadeInUp {
+  from {
     opacity: 0;
-    transition: opacity 0.4s ease;
-    z-index: 1;
-    pointer-events: none;
+    transform: translateY(30px);
   }
-
-  &:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
-
-    &::before {
-      opacity: 1;
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.poster-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.8s ease;
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
-  &:hover {
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
     transform: scale(1.05);
   }
 }
 
-.no-poster {
-  width: 100%;
-  height: 100%;
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 全局容器样式 */
+.video-detail-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow-x: hidden;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* 页面头部样式 */
+.detail-header {
+  position: relative;
+  padding: 30px 0;
+  margin-bottom: 30px;
+}
+
+.header-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+  backdrop-filter: blur(10px);
+}
+
+.header-content {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
-  color: var(--el-text-color-secondary);
-  font-size: 18px;
+  gap: 20px;
+}
+
+.back-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.header-title {
+  flex: 1;
+}
+
+.detail-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+}
+
+.title-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 5px;
   font-weight: 500;
 }
 
+/* 主要内容区域 */
+.detail-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+/* 海报区域样式 */
+.poster-section {
+  flex-shrink: 0;
+  width: 320px;
+  animation: fadeInLeft 0.8s ease-out;
+}
+
+.poster-wrapper {
+  margin-bottom: 25px;
+  animation: scaleIn 0.6s ease-out 0.2s both;
+}
+
+.poster-container {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.poster-container:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+}
+
+.poster-image {
+  width: 100%;
+  height: 450px;
+  object-fit: cover;
+}
+
+.poster-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  pointer-events: none;
+}
+
+.no-poster {
+  width: 100%;
+  height: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #6c757d;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.no-poster-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+
+/* 操作按钮样式 */
 .action-buttons {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .action-btn {
-  flex: 1;
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  border-radius: 16px;
-  padding: 16px 0;
-  font-weight: 700;
-  font-size: 16px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: none;
-
-  &:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.18);
-  }
-
-  &[type="primary"] {
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  }
-
-  &[type="success"] {
-    background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
-  }
+  gap: 8px;
 }
 
+.primary-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+}
+
+.play-btn {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+  border: none;
+  box-shadow: 0 8px 20px rgba(86, 171, 47, 0.3);
+}
+
+.play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(86, 171, 47, 0.4);
+}
+
+/* 信息区域样式 */
 .info-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  max-width: 100%;
-  overflow-x: hidden;
+  gap: 30px;
+  animation: fadeInRight 0.8s ease-out;
 }
 
-.basic-info,
-.detail-info,
-.tags-section,
-.source-section,
-.download-section {
-  padding: 28px 32px;
-  background: var(--el-bg-color-page);
+.info-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
-  border: 1px solid rgba(var(--el-border-color-lighter), 0.05);
-
-  &:hover {
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-  }
+  animation: slideInFromBottom 0.6s ease-out;
 }
 
-.info-header {
+.info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.info-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.info-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.info-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.info-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f8f9fa;
 }
 
 .section-title {
-  position: relative;
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--el-text-color-primary);
-  padding-left: 18px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 28px;
-    background: linear-gradient(0deg, var(--el-color-primary) 0%, var(--el-color-primary-light-5) 100%);
-    border-radius: 3px;
-  }
-}
-
-.add-link-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.2);
-  }
+  gap: 12px;
+  margin: 0;
 }
 
-.add-link-form {
-  margin-top: 20px;
+.section-title h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
 }
 
+.title-icon {
+  font-size: 24px;
+  color: #667eea;
+}
+
+/* 评分区域样式 */
 .ratings-container {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 15px;
 }
 
 .score-tag {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, var(--el-color-warning-light-8) 0%, var(--el-color-warning-light-9) 100%);
-  color: var(--el-color-warning-dark-2);
+  gap: 6px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+  color: white;
   padding: 8px 16px;
-  border-radius: 12px;
+  border-radius: 25px;
   font-weight: 700;
   font-size: 16px;
-  box-shadow: 0 4px 8px rgba(var(--el-color-warning-rgb), 0.15);
-  transform: translateY(0);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
 
-  &:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 8px 16px rgba(var(--el-color-warning-rgb), 0.2);
-  }
+.star-icon {
+  font-size: 18px;
+}
 
-  .star-icon {
-    margin-right: 8px;
-    font-size: 20px;
-    color: var(--el-color-warning);
-  }
+.score-value {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.score-text {
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .external-ratings {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .rating-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 15px;
   border-radius: 12px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  font-size: 12px;
+  min-width: 70px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
 
-  &.douban {
-    background: linear-gradient(135deg, #f5fffa 0%, #ebf9f1 100%);
-    color: var(--el-color-success-dark-2);
-    border: 1px solid rgba(var(--el-color-success-rgb), 0.15);
-  }
+.rating-item.douban {
+  background: linear-gradient(135deg, #00b51d 0%, #00a01a 100%);
+  color: white;
+}
 
-  &.imdb {
-    background: linear-gradient(135deg, #fffdf5 0%, #fff7e6 100%);
-    color: var(--el-color-warning-dark-2);
-    border: 1px solid rgba(var(--el-color-warning-rgb), 0.15);
-  }
+.rating-item.imdb {
+  background: linear-gradient(135deg, #f5c518 0%, #e6b800 100%);
+  color: #000;
+}
 
-  &:hover {
-    transform: translateY(-6px) scale(1.05);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  }
+.rating-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 .rating-name {
-  margin-right: 10px;
   font-weight: 700;
+  margin-bottom: 3px;
 }
 
 .rating-score {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
-  margin-right: 8px;
 }
 
 .rating-count {
-  font-size: 12px;
-  opacity: 0.9;
-  font-weight: 500;
+  font-size: 10px;
+  opacity: 0.8;
+  margin-top: 2px;
 }
 
+/* 信息网格样式 */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  padding: 0 6px;
-  width: 100%;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
 }
 
 .info-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item:hover {
+  background: rgba(102, 126, 234, 0.02);
+  border-radius: 8px;
+  padding: 15px;
+  margin: 0 -15px;
 }
 
 .item-label {
-  color: var(--el-text-color-secondary);
-  margin-right: 12px;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
-  font-size: 15px;
+  color: #495057;
+  min-width: 100px;
+  margin-right: 20px;
+}
+
+.item-icon {
+  font-size: 16px;
+  color: #667eea;
 }
 
 .item-value {
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-  font-size: 15px;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-/* 导演和主演名字设置为主题色 */
-.director-name,
-.actor-name {
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.type-tag {
-  border: none;
-  margin-right: 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  padding: 6px 14px;
-  font-size: 12px;
-  box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.15);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.2);
-  }
-}
-
-.plot-summary {
-  line-height: 1.9;
-  color: var(--el-text-color-primary);
-  text-align: justify;
-  font-size: 16px;
-  padding: 0 8px;
+  flex: 1;
+  color: #2c3e50;
   font-weight: 500;
 }
 
-.tags-list {
+.type-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 0 6px;
+  gap: 6px;
 }
 
-.tag-item {
-  margin-right: 8px;
-  margin-bottom: 8px;
-  border-radius: 30px;
-  padding: 8px 18px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+.type-tag {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
-
-  &:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
-  }
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
-.no-data {
-  color: var(--el-text-color-secondary);
-  font-style: italic;
-  padding: 12px 6px;
+.director-name,
+.actor-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* 剧情简介样式 */
+.plot-summary {
+  line-height: 1.8;
+  color: #495057;
   font-size: 15px;
 }
 
-/* 下载区域样式 */
-.download-tabs {
-  margin-top: 20px;
-
-  .filter-container {
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .filter-container .el-select {
-    width: 150px;
-  }
-
-  :deep(.el-tabs__item) {
-    font-size: 16px;
-    font-weight: 600;
-    padding: 0 28px;
-    height: 52px;
-    line-height: 52px;
-    transition: all 0.3s ease;
-
-    &.is-active {
-      font-weight: 700;
-      transform: translateY(-2px);
-    }
-
-    &:hover {
-      color: var(--el-color-primary);
-    }
-  }
-
-  :deep(.el-tabs--border-card) {
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(var(--el-border-color-lighter), 0.1);
-  }
-
-  :deep(.el-tabs__nav) {
-    background: linear-gradient(180deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
-  }
+.plot-text {
+  margin: 0;
+  text-align: justify;
 }
 
-.download-list {
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 30px;
+  background: rgba(108, 117, 125, 0.05);
+  border-radius: 12px;
+}
+
+/* 下载区域样式 */
+.add-link-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.add-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.download-tabs {
+  margin-top: 20px;
+}
+
+.modern-tabs {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* 过滤器样式 */
+.filter-container {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.filter-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.filter-select {
+  min-width: 150px;
+}
+
+.pan-type-tags {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pan-type-tag {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.pan-type-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.pan-type-selected {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* 下载列表样式 */
+.download-list.compact {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 12px 8px;
+  gap: 15px;
 }
 
 .download-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: linear-gradient(145deg, var(--el-bg-color) 0%, var(--el-bg-color-page) 100%);
-  border-radius: 16px;
-  border-left: 6px solid var(--el-color-primary);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  margin-bottom: 16px;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
 
-  &:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-    border-left-width: 10px;
-  }
+.download-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.download-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.download-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.download-item:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.download-item:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.download-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .download-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  margin-right: 20px;
 }
 
 .download-name {
   display: flex;
   align-items: center;
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
+  gap: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 15px;
 }
 
 .download-icon {
-  margin-right: 14px;
-  font-size: 24px;
+  font-size: 18px;
+  color: #667eea;
 }
 
-.magnet-icon {
-  color: var(--el-color-primary);
+.download-icon.magnet-icon {
+  color: #e74c3c;
 }
 
-.pan-icon {
-  color: var(--el-color-success);
+.download-icon.pan-icon {
+  color: #3498db;
 }
 
-.online-icon {
-  color: var(--el-color-warning);
+.download-icon.online-icon {
+  color: #27ae60;
 }
 
 .download-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-  line-height: 1.5;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(108, 117, 125, 0.1);
+  border-radius: 15px;
   font-weight: 500;
 }
 
-.inline-tags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  white-space: normal;
+.meta-icon {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
-.inline-quality,
-.inline-platform {
-  display: inline-block;
-  margin-left: 14px;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
-  color: var(--el-color-success-dark-2);
+.download-quality {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
   font-weight: 600;
-  box-shadow: 0 3px 8px rgba(var(--el-color-success-rgb), 0.1);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
 }
 
-.inline-platform {
-  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
-  color: var(--el-text-color-secondary);
+.download-size {
+  color: #495057;
+}
+
+.download-platform {
+  color: #007bff;
+  font-weight: 600;
 }
 
 .download-actions {
   display: flex;
-  gap: 14px;
-  margin-left: 20px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
-.download-actions .el-button {
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 80px;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border-radius: 12px;
-  padding: 10px 18px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  gap: 5px;
+}
 
-  &:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.action-btn.success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.action-btn.success:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.action-btn.warning {
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
+.action-btn.warning:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+  animation: pulse 2s infinite;
+}
+
+/* 按钮点击效果 */
+.action-btn:active {
+  transform: translateY(0) scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* 加载状态动画 */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 响应式设计优化 */
+@media (max-width: 1400px) {
+  .video-detail-container {
+    padding: 20px;
   }
 
-  &[type="primary"] {
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    border: none;
-  }
-
-  &[type="success"] {
-    background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
-    border: none;
+  .detail-content {
+    gap: 24px;
   }
 }
 
-/* 响应式设计，保留原有代码并根据需要调整 */
 @media (max-width: 1200px) {
+  .video-detail-container {
+    padding: 18px;
+  }
+
+  .detail-content {
+    gap: 20px;
+  }
+
+  .poster-section {
+    width: 280px;
+  }
+
   .info-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 15px;
   }
 
   .download-list.compact {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+  }
+
+  .info-card {
+    padding: 20px;
   }
 }
 
 @media (max-width: 992px) {
+  .video-detail-container {
+    padding: 16px;
+  }
+
   .detail-content {
-    gap: 16px;
+    gap: 18px;
   }
 
   .poster-section {
-    width: 250px;
+    width: 260px;
+    animation-delay: 0s;
   }
 
   .poster-wrapper {
-    height: 350px;
+    height: 380px;
   }
 
-  .info-header {
+  .info-section {
+    animation-delay: 0.1s;
+  }
+
+  .card-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
 
   .ratings-container {
-    margin-top: 12px;
+    margin-top: 15px;
   }
 
   .external-ratings {
     flex-wrap: wrap;
-  }
-
-  .download-list.compact {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
   }
 
   .download-actions {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .download-actions .el-button {
-    padding: 8px 10px;
+  .action-btn {
+    padding: 10px 14px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 768px) {
   .video-detail-container {
-    padding: 16px;
+    padding: 14px;
+    animation-duration: 0.4s;
   }
 
   .detail-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 15px;
+    margin-bottom: 20px;
   }
 
   .detail-title {
-    font-size: 20px;
+    font-size: 22px;
+    line-height: 1.3;
   }
 
   .detail-content {
     flex-direction: column;
     width: 100%;
+    gap: 20px;
   }
 
   .poster-section {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    animation: fadeInUp 0.5s ease-out;
   }
 
   .poster-wrapper {
-    height: 300px;
-    max-width: 220px;
-    margin: 0 auto 16px auto;
+    height: 320px;
+    max-width: 240px;
+    margin: 0 auto 20px auto;
   }
 
   .action-buttons {
     justify-content: center;
+    gap: 10px;
+  }
+
+  .action-btn {
+    min-width: 120px;
+    padding: 12px 16px;
   }
 
   .info-section {
     width: 100%;
+    animation: fadeInUp 0.5s ease-out 0.1s both;
   }
 
   .info-grid {
     grid-template-columns: 1fr;
-    width: 100%;
+    gap: 12px;
   }
 
   .info-item {
-    flex-wrap: wrap;
-    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .item-label {
+    font-weight: 600;
+    color: #495057;
   }
 
   .item-value {
-    max-width: 100%;
+    width: 100%;
+    text-align: left;
   }
 
   .download-list.compact {
-    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .download-item {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
   }
 
   .download-info {
-    flex: 1;
-    min-width: 60%;
-    max-width: 100%;
+    width: 100%;
   }
 
-  .download-actions {
-    margin-top: 0;
-    width: auto;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
+  .download-name {
+    font-size: 16px;
+    margin-bottom: 10px;
   }
 
   .download-meta {
-    flex-direction: row;
-    flex-wrap: wrap;
+    justify-content: flex-start;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 8px;
   }
 
-  .download-quality::before,
-  .download-size::before,
-  .download-platform::before,
-  .download-date::before,
-  .download-count::before,
-  .download-type::before {
-    content: "";
-    margin-right: 0;
+  .download-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .action-btn {
+    flex: 1;
+    min-width: 0;
+    max-width: 120px;
   }
 }
 
 @media (max-width: 576px) {
   .video-detail-container {
     padding: 12px;
+    animation-duration: 0.3s;
   }
 
   .detail-title {
+    font-size: 20px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .card-header .section-title {
     font-size: 18px;
+    text-align: center;
   }
 
-  .section-title {
-    font-size: 16px;
-  }
-
-  .basic-info,
-  .detail-info,
-  .tags-section,
-  .source-section,
-  .download-section {
-    padding: 15px;
+  .info-card {
+    padding: 16px;
+    margin-bottom: 12px;
   }
 
   .poster-wrapper {
-    height: 280px;
-    max-width: 100%;
+    height: 300px;
+    max-width: 200px;
+    margin: 0 auto 16px auto;
   }
 
   .action-buttons {
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .action-btn {
+    width: 100%;
+    max-width: 200px;
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+
+  .info-grid {
+    gap: 10px;
+  }
+
+  .info-item {
+    padding: 12px;
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   .download-item {
-    padding: 10px;
-  }
-
-  .download-info {
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .download-actions {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-    justify-content: flex-start;
-  }
-
-  .download-actions .el-button {
-    flex: 0 1 auto;
-    padding: 8px 12px;
-    height: auto;
-    min-height: 32px;
-    min-width: 80px;
-  }
-
-  .download-actions .el-button span {
-    font-size: 12px;
-  }
-
-  .tags-list {
-    gap: 6px;
-  }
-
-  .tag-item {
-    margin-right: 0;
-    margin-bottom: 0;
+    padding: 14px;
+    border-radius: 10px;
   }
 
   .download-name {
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .download-meta {
+    justify-content: center;
     flex-wrap: wrap;
-    width: 100%;
+    gap: 6px;
   }
 
-  .download-name span {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .meta-item {
+    font-size: 12px;
+    padding: 3px 8px;
   }
 
-  .inline-quality,
-  .inline-platform {
-    margin-top: 4px;
-    margin-left: 0;
-    margin-right: 4px;
+  .download-actions {
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    flex: 0 1 auto;
+    min-width: 80px;
+    max-width: 100px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* 优化动画性能 */
+  .download-item:nth-child(n + 4) {
+    animation-delay: 0.3s;
+  }
+
+  /* 简化hover效果以提升性能 */
+  .download-item:hover,
+  .info-card:hover,
+  .action-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  /* 隐藏不必要的装饰元素 */
+  .poster-overlay {
+    display: none;
   }
 }
 

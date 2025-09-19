@@ -330,12 +330,8 @@ const handleDataLoaded = (data: any, total: number) => {
 
 const handleRowClick = async (row, index, event) => {
   //VideoDetailResult
-  router.push({
-    name: "VideoDetailResult",
-    query: {
-      id: row.videoId,
-    },
-  });
+  const fullUrl = `${window.location.origin}/#/remaining-component/video-detail-result?id=${row.videoId}`;
+  window.open(fullUrl, "_blank");
 };
 
 // 处理分类点击（单选）
