@@ -66,6 +66,32 @@ const routes = [
             },
           },
           {
+            path: "/video/add",
+            name: "VideoAdd",
+            component: async () => {
+              const { VideoAddResult } = await import("@pages/video");
+              return VideoAddResult;
+            },
+            meta: {
+              title: "视频详情",
+              showLink: false,
+              remaining: true,
+            },
+          },
+          {
+            path: "/video/edit",
+            name: "VideoEdit",
+            component: async () => {
+              const { VideoEditResult } = await import("@pages/video");
+              return VideoEditResult;
+            },
+            meta: {
+              title: "视频详情",
+              showLink: false,
+              remaining: true,
+            },
+          },
+          {
             path: "/video/parse",
             name: "VideoParse",
             component: async () => {

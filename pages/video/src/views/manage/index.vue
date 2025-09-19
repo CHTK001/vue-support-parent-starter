@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { videoCategories } from "../../data/categories";
-import Search from "../search/search.vue";
+import Search from "./search.vue";
 
 const searchRef = ref();
 const selectedCategories = ref("ALL");

@@ -66,6 +66,9 @@ const loadComponent = async () => {
     } else if (componentPath.value === "video-search-result") {
       const { VideoSearchResult } = await import("@pages/video");
       dynamicComponent.value = VideoSearchResult;
+    } else if (componentPath.value === "video-detail-result") {
+      const { VideoDetailResult } = await import("@pages/video");
+      dynamicComponent.value = VideoDetailResult;
     } else if (componentPath.value === "video-manage") {
       const { VideoManage } = await import("@pages/video");
       dynamicComponent.value = VideoManage;
