@@ -127,7 +127,7 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "prev-page", "next-page", "update:currentPage"]);
+const emit = defineEmits(["row-click", "selection-change", "prev-page", "next-page", "update:currentPage", "col-click"]);
 
 // 响应式数据
 const selectedRows = ref([]);

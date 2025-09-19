@@ -53,6 +53,19 @@ const routes = [
             },
           },
           {
+            path: "/video/detail/result",
+            name: "VideoDetailResult",
+            component: async () => {
+              const { VideoDetailResult } = await import("@pages/video");
+              return VideoDetailResult;
+            },
+            meta: {
+              title: "视频详情",
+              showLink: false,
+              remaining: true,
+            },
+          },
+          {
             path: "/video/parse",
             name: "VideoParse",
             component: async () => {

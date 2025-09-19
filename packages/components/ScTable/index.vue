@@ -67,7 +67,7 @@ const props = defineProps({
 });
 
 // 定义组件事件
-const emit = defineEmits(["loaded", "data-loaded", "dataChange", "finish", "update:cardLayout"]);
+const emit = defineEmits(["loaded", "data-loaded", "dataChange", "finish", "update:cardLayout", "rowClick", "colClick"]);
 
 // 引用
 const scTableMain = ref(null);
@@ -814,33 +814,6 @@ onDeactivated(() => {
   isActive.value = false;
 });
 
-// 暴露方法给父组件
-defineExpose({
-  refresh,
-  upData,
-  updateData,
-  reload,
-  unshiftRow,
-  pushRow,
-  updateKey,
-  updateIndex,
-  removeIndex,
-  removeIndexes,
-  removeKey,
-  removeKeys,
-  clearSelection,
-  toggleRowSelection,
-  toggleAllSelection,
-  toggleRowExpansion,
-  setCurrentRow,
-  clearSort,
-  clearFilter,
-  doLayout,
-  sort,
-  getSelection,
-  loadMore
-});
-
 // 新增的方法
 const onRefresh = () => {
   currentPage.value = 1;
@@ -868,6 +841,11 @@ const onColumnReset = async () => {
 const onRowClick = (row, index, event) => {
   props.rowClick(row, index, event);
   emit("row-click", row, index, event);
+};
+
+// 列点击事件处理
+const onColClick = (column, event) => {
+  emit("colClick", column, event);
 };
 
 // 当前页变更处理
@@ -1057,6 +1035,34 @@ const componentMap = {
   virtual: VirtualTableView,
   canvas: CanvasTableView
 };
+
+// 暴露方法给父组件
+defineExpose({
+  refresh,
+  upData,
+  updateData,
+  reload,
+  unshiftRow,
+  pushRow,
+  updateKey,
+  updateIndex,
+  removeIndex,
+  removeIndexes,
+  removeKey,
+  removeKeys,
+  clearSelection,
+  toggleRowSelection,
+  toggleAllSelection,
+  toggleRowExpansion,
+  setCurrentRow,
+  clearSort,
+  clearFilter,
+  doLayout,
+  sort,
+  getSelection,
+  loadMore,
+  onColClick
+});
 </script>
 
 <template>
@@ -1088,6 +1094,7 @@ const componentMap = {
           :row-size="rowSize"
           :layout="layout === 'card' ? cardLayout : undefined"
           @row-click="onRowClick"
+          @col-click="onColClick"
           @selection-change="selectionChange"
           @sort-change="sortChange"
           @filter-change="filterChange"
