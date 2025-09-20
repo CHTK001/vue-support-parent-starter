@@ -85,61 +85,61 @@ withDefaults(defineProps<Props>(), {
   // 状态颜色
   &.status-success {
     .status-dot {
-      background-color: #67c23a;
+      background-color: var(--el-color-success);
       &.pulse-animation::before {
-        background-color: rgba(103, 194, 58, 0.3);
+        background-color: var(--el-color-success-light-7);
       }
     }
     .status-text {
-      color: #67c23a;
+      color: var(--el-color-success);
     }
   }
 
   &.status-warning {
     .status-dot {
-      background-color: #e6a23c;
+      background-color: var(--el-color-warning);
       &.pulse-animation::before {
-        background-color: rgba(230, 162, 60, 0.3);
+        background-color: var(--el-color-warning-light-7);
       }
     }
     .status-text {
-      color: #e6a23c;
+      color: var(--el-color-warning);
     }
   }
 
   &.status-danger {
     .status-dot {
-      background-color: #f56c6c;
+      background-color: var(--el-color-danger);
       &.pulse-animation::before {
-        background-color: rgba(245, 108, 108, 0.3);
+        background-color: var(--el-color-danger-light-7);
       }
     }
     .status-text {
-      color: #f56c6c;
+      color: var(--el-color-danger);
     }
   }
 
   &.status-info {
     .status-dot {
-      background-color: #909399;
+      background-color: var(--el-color-info);
       &.pulse-animation::before {
-        background-color: rgba(144, 147, 153, 0.3);
+        background-color: var(--el-color-info-light-7);
       }
     }
     .status-text {
-      color: #909399;
+      color: var(--el-color-info);
     }
   }
 
   &.status-primary {
     .status-dot {
-      background-color: #409eff;
+      background-color: var(--el-color-primary);
       &.pulse-animation::before {
-        background-color: rgba(64, 158, 255, 0.3);
+        background-color: var(--el-color-primary-light-7);
       }
     }
     .status-text {
-      color: #409eff;
+      color: var(--el-color-primary);
     }
   }
 }

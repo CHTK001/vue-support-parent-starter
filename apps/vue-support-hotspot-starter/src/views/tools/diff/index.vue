@@ -63,10 +63,10 @@ const prettyHtml = computed(() => {
 .textarea-with-line-numbers textarea::before {
   counter-increment: line;
   content: counter(line);
-  border-right: 1px solid #ccc;
+  border-right: 1px solid var(--el-border-color);
   margin-right: 5px;
   padding-right: 5px;
-  color: #999;
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
   text-align: right;
   display: block;

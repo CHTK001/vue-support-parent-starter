@@ -1204,18 +1204,18 @@ const swapNavPoints = () => {
 
 <style lang="scss" scoped>
 // 变量定义
-$primary-color: #3370ff;
-$primary-hover: #4c80ff;
-$primary-active: #1e58e4;
-$border-color: #dcdfe6;
-$border-hover: #c0c4cc;
-$text-primary: #333333;
-$text-secondary: #666666;
-$text-muted: #909399;
-$success-color: #52c41a;
-$error-color: #f5222d;
-$border-radius: 4px;
-$box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+$primary-color: var(--el-color-primary);
+$primary-hover: var(--el-color-primary-light-3);
+$primary-active: var(--el-color-primary-dark-2);
+$border-color: var(--el-border-color);
+$border-hover: var(--el-border-color-hover);
+$text-primary: var(--el-text-color-primary);
+$text-secondary: var(--el-text-color-regular);
+$text-muted: var(--el-text-color-placeholder);
+$success-color: var(--el-color-success);
+$error-color: var(--el-color-danger);
+$border-radius: var(--el-border-radius-base);
+$box-shadow: var(--el-box-shadow-light);
 $transition-time: 0.2s;
 
 .search-box {
@@ -1225,7 +1225,7 @@ $transition-time: 0.2s;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
 
   .search-container {
     display: flex;
@@ -1248,7 +1248,7 @@ $transition-time: 0.2s;
         padding: 0 26px 0 10px;
         border: 1px solid $border-color;
         border-radius: $border-radius;
-        background-color: #fff;
+        background-color: var(--el-bg-color);
         font-size: 14px;
         color: $text-primary;
         cursor: pointer;
@@ -2269,8 +2269,8 @@ $transition-time: 0.2s;
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background-color: #fff;
-            border: 1px solid #ddd;
+            background-color: var(--el-bg-color);
+            border: 1px solid var(--el-border-color);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2281,14 +2281,14 @@ $transition-time: 0.2s;
             background-size: 14px;
 
             &.icon-start {
-              background-color: #1aad19;
-              border-color: #1aad19;
+              background-color: var(--el-color-success);
+              border-color: var(--el-color-success);
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
 
             &.icon-end {
-              background-color: #ff525d;
-              border-color: #ff525d;
+              background-color: var(--el-color-danger);
+              border-color: var(--el-color-danger);
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
 
@@ -2322,7 +2322,7 @@ $transition-time: 0.2s;
           .step-line {
             position: absolute;
             width: 2px;
-            background-color: #e8e8e8;
+            background-color: var(--el-border-color-light);
             top: 24px;
             bottom: 0;
             left: 12px;
@@ -2335,7 +2335,7 @@ $transition-time: 0.2s;
 
           .step-instruction {
             font-size: 14px;
-            color: #333;
+            color: var(--el-text-color-primary);
             line-height: 1.4;
             margin-bottom: 4px;
           }
@@ -2345,16 +2345,16 @@ $transition-time: 0.2s;
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
-            color: #999;
+            color: var(--el-text-color-placeholder);
 
             .road-name {
-              color: #666;
+              color: var(--el-text-color-regular);
               margin-right: 8px;
               font-weight: 500;
             }
 
             .step-distance {
-              color: #999;
+              color: var(--el-text-color-placeholder);
             }
           }
         }

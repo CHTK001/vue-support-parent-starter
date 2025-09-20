@@ -121,7 +121,7 @@ const fetchData = async params => {
 .item::before {
   counter-increment: counter;
   content: counter(counter);
-  color: #3f3f3f;
+  color: var(--el-text-color-regular);
   font-size: 1.2em;
   right: 50%;
   top: 10px;
@@ -130,7 +130,7 @@ const fetchData = async params => {
   text-align: center;
   vertical-align: middle;
   border-radius: 50%;
-  background-color: #ccc;
+  background-color: var(--el-color-info-light-7);
   display: inline-block;
 }
 </style>

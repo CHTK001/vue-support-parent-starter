@@ -1,13 +1,13 @@
 <template>
   <div class="serial-monitor-container">
     <!-- 工具栏 -->
-    <div class="serial-toolbar flex justify-between items-center p-3 border-b border-gray-100">
+    <div class="serial-toolbar flex justify-between items-center p-3 border-b border-[var(--el-border-color-light)]">
       <div class="serial-info flex items-center">
         <el-tag :type="isConnected ? 'success' : 'info'" class="mr-2">
           {{ isConnected ? "已连接" : "未连接" }}
         </el-tag>
         <span v-if="serialData.monitorSerialName" class="serial-name text-sm"> {{ serialData.monitorSerialName }} ({{ serialData.monitorSerialPort || "COM1" }}) </span>
-        <span v-else class="text-gray-400 text-sm">未选择串口</span>
+        <span v-else class="text-[var(--el-text-color-placeholder)] text-sm">未选择串口</span>
       </div>
       <div class="serial-actions flex gap-2">
         <el-button-group>
@@ -28,14 +28,14 @@
       <!-- 输出区域 -->
       <div class="serial-output flex-1 p-3 overflow-auto" ref="outputRef">
         <div v-if="!serialData.monitorSerialId" class="serial-empty flex flex-col items-center justify-center h-full">
-          <IconifyIconOnline icon="mdi:serial-port" class="text-5xl text-gray-300 mb-4" />
-          <p class="text-gray-400">请从左侧列表选择一个串口</p>
+          <IconifyIconOnline icon="mdi:serial-port" class="text-5xl text-[var(--el-text-color-disabled)] mb-4" />
+          <p class="text-[var(--el-text-color-placeholder)]">请从左侧列表选择一个串口</p>
         </div>
-        <pre v-else class="output-content" :class="{ 'text-gray-400': !isConnected }">{{ outputText }}</pre>
+        <pre v-else class="output-content" :class="{ 'text-[var(--el-text-color-placeholder)]': !isConnected }">{{ outputText }}</pre>
       </div>
 
       <!-- 输入区域 -->
-      <div class="serial-input p-3 border-t border-gray-100">
+      <div class="serial-input p-3 border-t border-[var(--el-border-color-light)]">
         <div class="flex items-center">
           <el-input v-model="inputText" placeholder="输入发送内容" :disabled="!isConnected" @keyup.enter="handleSend" class="flex-1">
             <template #append>
@@ -55,7 +55,7 @@
 
         <!-- 快捷命令 -->
         <div class="quick-commands mt-3" v-if="quickCommands.length > 0">
-          <p class="text-sm text-gray-500 mb-2">快捷命令:</p>
+          <p class="text-sm text-[var(--el-text-color-regular)] mb-2">快捷命令:</p>
           <div class="flex flex-wrap gap-2">
             <el-button v-for="(cmd, index) in quickCommands" :key="index" size="small" :disabled="!isConnected" @click="sendQuickCommand(cmd)">
               {{ cmd.name }}
