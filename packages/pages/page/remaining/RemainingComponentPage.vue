@@ -17,7 +17,6 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 // @ts-ignore
-import noExist from "@repo/assets/status/404.svg?component";
 import { CoolLoading } from "@repo/pages";
 /**
  * 组件页面
@@ -66,9 +65,15 @@ const loadComponent = async () => {
     } else if (componentPath.value === "video-search-result") {
       const { VideoSearchResult } = await import("@pages/video");
       dynamicComponent.value = VideoSearchResult;
+    } else if (componentPath.value === "video-manage-result") {
+      const { VideoManageSearchResult } = await import("@pages/video");
+      dynamicComponent.value = VideoManageSearchResult;
     } else if (componentPath.value === "video-detail-result") {
       const { VideoDetailResult } = await import("@pages/video");
       dynamicComponent.value = VideoDetailResult;
+    } else if (componentPath.value === "video-play") {
+      const { VideoPlay } = await import("@pages/video");
+      dynamicComponent.value = VideoPlay;
     } else if (componentPath.value === "video-manage") {
       const { VideoManage } = await import("@pages/video");
       dynamicComponent.value = VideoManage;
@@ -128,6 +133,4 @@ onMounted(() => {
   width: 100%;
   height: 100%;
 }
-
-
 </style>

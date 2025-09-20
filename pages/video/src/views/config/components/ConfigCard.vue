@@ -7,18 +7,10 @@
     <div class="config-card-header">
       <div class="config-info">
         <div class="config-icon">
-          <IconifyIconOnline :icon="getSourceIcon(config.videoSyncConfigSource)" />
+          <IconifyIconOnline icon=" ep:setting" />
         </div>
         <div class="config-details">
           <h3 class="config-name">{{ config.videoSyncConfigName }}</h3>
-          <div class="config-meta" v-if="config.videoSyncConfigSource">
-            <el-tag :type="getSourceType(config.videoSyncConfigSource)" size="small" class="source-tag">
-              {{ getSourceName(config.videoSyncConfigSource) }}
-            </el-tag>
-            <el-tag :type="getStatusType(config.videoSyncConfigStatus)" size="small" class="status-tag">
-              {{ getStatusName(config.videoSyncConfigStatus) }}
-            </el-tag>
-          </div>
         </div>
       </div>
 
@@ -48,6 +40,10 @@
         <div class="stat-item">
           <div class="stat-label">同步次数</div>
           <div class="stat-value">{{ config.syncCount || 0 }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">同步视频数</div>
+          <div class="stat-value">{{ config.syncVideoCount || 0 }}</div>
         </div>
         <div class="stat-item">
           <div class="stat-label">最后同步</div>
@@ -107,30 +103,14 @@ const emit = defineEmits<Emits>();
  * @param status 状态值
  * @returns CSS类名
  */
-const getStatusClass = (status: number): string => {
-  const statusMap: Record<number, string> = {
-    0: "status-disabled",
-    1: "status-enabled",
-    2: "status-syncing",
-    3: "status-error",
+const getStatusClass = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    START: "status-disabled",
+    FINISH: "status-enabled",
+    PROGRESS: "status-syncing",
+    ERROR: "status-error",
   };
   return statusMap[status] || "status-disabled";
-};
-
-/**
- * 获取来源图标
- * @param source 来源类型
- * @returns 图标名称
- */
-const getSourceIcon = (source: string): string => {
-  const iconMap: Record<string, string> = {
-    pansou: "ep:search",
-    guanying: "ep:video-camera",
-    local: "ep:folder",
-    rss: "ep:rss",
-    api: "ep:link",
-  };
-  return iconMap[source] || "ep:setting";
 };
 
 /**
@@ -185,12 +165,12 @@ const getStatusName = (status: number): string => {
  * @param status 状态值
  * @returns 标签类型
  */
-const getStatusType = (status: number): string => {
-  const typeMap: Record<number, string> = {
-    0: "info",
-    1: "success",
-    2: "warning",
-    3: "danger",
+const getStatusType = (status: string): string => {
+  const typeMap: Record<string, string> = {
+    START: "info",
+    FINISH: "success",
+    PROGRESS: "warning",
+    ERROR: "danger",
   };
   return typeMap[status] || "info";
 };

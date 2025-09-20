@@ -38,6 +38,7 @@
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
     "element-plus": "catalog:",
+    "hls.js": "catalog:",
     "socket.io-client": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:",

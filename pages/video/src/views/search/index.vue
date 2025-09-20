@@ -228,8 +228,14 @@ const handleSearch = () => {
   showResults.value = true;
   // 交由 ScTable 控制分页与加载
   tableRef.value?.refresh?.();
-  const fullUrl = `${window.location.origin}/?keyword=${searchKeyword.value}#/remaining-component/video-search-result`;
-  window.open(fullUrl, "_blank");
+
+  // 跳转到搜索结果页面，传递搜索关键词
+  router.push({
+    path: "/video/search/result",
+    query: {
+      keyword: searchKeyword.value.trim(),
+    },
+  });
 };
 
 // 数据加载回调（ScTable 标准事件）

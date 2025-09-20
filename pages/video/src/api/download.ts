@@ -1,7 +1,6 @@
 import { http, type ReturnResult } from "@repo/utils";
 import type { DownloadItem } from "../types/upload";
 
-
 /**
  * 创建新上传下载地址
  * @param data 上传下载地址数据
@@ -10,7 +9,14 @@ import type { DownloadItem } from "../types/upload";
 export const createDownload = (data: DownloadItem) => {
   return http.request<ReturnResult<any>>("post", "/v1/video/download/save", { data: data });
 };
-
+/**
+ * 根据视频ID获取上传下载地址列表
+ * @param videoId 视频ID
+ * @returns 上传下载地址列表
+ */
+export const getDownloadsByVideoId = (videoId: number | string) => {
+  return http.request<ReturnResult<DownloadItem[]>>("get", `/v1/video/download/get/${videoId}`);
+};
 /**
  * 更新上传下载地址信息
  * @param data 更新的上传下载地址数据
