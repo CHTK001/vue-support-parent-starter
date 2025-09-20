@@ -177,7 +177,7 @@ export default defineComponent({
       @close="dialogClose" />
     <div class="main h-full">
       <el-container>
-        <el-header style="height: 60px">
+        <el-header class="header-height">
           <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
         </el-header>
         <el-main class="nopadding">
@@ -212,8 +212,8 @@ export default defineComponent({
             </el-tree>
           </div>
         </el-main>
-        <el-footer style="height: 51px">
-          <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%"
+        <el-footer class="footer-height">
+          <el-button type="primary" size="small" icon="el-icon-plus" class="full-width"
             @click="dialogOpen({}, 'save')">
             {{ useI18n("buttons.addDict") }}
           </el-button>
@@ -226,6 +226,18 @@ export default defineComponent({
 <style scoped lang="scss">
 :deep(.el-dropdown-menu__item i) {
   margin: 0;
+}
+
+.header-height {
+  height: 60px;
+}
+
+.footer-height {
+  height: 51px;
+}
+
+.full-width {
+  width: 100%;
 }
 
 .search-form {
@@ -252,7 +264,7 @@ export default defineComponent({
 
 .custom-tree-node .code {
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-placeholder);
 }
 
 .custom-tree-node .do {

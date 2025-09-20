@@ -351,7 +351,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #909399;
+    color: var(--el-text-color-placeholder);
 
     p {
       margin-top: 12px;

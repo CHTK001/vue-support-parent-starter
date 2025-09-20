@@ -17,7 +17,7 @@
           <IconifyIconOnline icon="ri:file-upload-line" class="upload-icon" />
           <div class="upload-text">
             <p>选择文件测试MD5计算</p>
-            <p class="text-sm text-gray-500">支持任意文件类型</p>
+            <p class="text-sm text-[var(--el-text-color-regular)]">支持任意文件类型</p>
           </div>
         </div>
       </el-upload>

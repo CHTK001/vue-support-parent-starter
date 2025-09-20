@@ -237,10 +237,10 @@ export default {
 </script>
 <style scoped>
 .log-view-wrapper {
-  background: #292a2b;
-  color: #ffb86c;
+  background: var(--el-bg-color-page);
+  color: var(--el-color-warning);
   padding: 10px;
-  box-shadow: inset 0 0 10px 0 #e8e8e8;
+  box-shadow: inset 0 0 10px 0 var(--el-border-color-light);
   border-radius: 8px;
 }
 .scroller {
@@ -255,7 +255,7 @@ export default {
   position: unset;
 }
 .linenumber {
-  color: #e6e6e6;
+  color: var(--el-text-color-regular);
   padding-right: 4px;
   opacity: 0.6;
   -webkit-user-select: none; /* Safari */

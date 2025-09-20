@@ -49,7 +49,7 @@
         <template #default="{ row }">
           <div>
             <div class="font-medium">{{ getServerName(row.monitorSysGenServerId) }}</div>
-            <div class="text-gray-500 text-sm">{{ getServerHost(row.monitorSysGenServerId) }}</div>
+            <div class="text-[var(--el-text-color-regular)] text-sm">{{ getServerHost(row.monitorSysGenServerId) }}</div>
           </div>
         </template>
       </el-table-column>

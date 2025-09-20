@@ -1,6 +1,6 @@
 <template>
   <div class="serial-list-container">
-    <div class="serial-list-header flex justify-between items-center p-4 border-b border-gray-100">
+    <div class="serial-list-header flex justify-between items-center p-4 border-b border-[var(--el-border-color-light)]">
       <h3 class="text-lg font-medium">串口列表</h3>
       <div class="flex gap-2">
         <el-button type="primary" size="small" @click="handleRefresh">
@@ -25,7 +25,7 @@
         <div class="flex justify-between items-center">
           <div class="serial-info">
             <div class="serial-name font-medium text-base mb-1">{{ item.monitorSerialName || "未命名串口" }}</div>
-            <div class="serial-port text-gray-500 text-sm">{{ item.monitorSerialPort || "COM1" }} - {{ item.monitorSerialBaudRate || "9600" }}波特</div>
+            <div class="serial-port text-[var(--el-text-color-regular)] text-sm">{{ item.monitorSerialPort || "COM1" }} - {{ item.monitorSerialBaudRate || "9600" }}波特</div>
           </div>
           <div class="serial-actions">
             <el-dropdown trigger="click" @command="handleCommand($event, item)">

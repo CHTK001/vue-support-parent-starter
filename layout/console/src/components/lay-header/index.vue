@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'fixed-header': set.fixedHeader }" :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']">
+  <div :class="{ 'fixed-header': set.fixedHeader }" :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px var(--el-color-info-dark-2)' : 'box-shadow: 0 1px 4px var(--el-border-color-extra-light)') : '']">
     <LayNavbar ref="layNavbarRef" @toggleMenu="toggleMenu" @close="triggerClose" />
   </div>
 </template>

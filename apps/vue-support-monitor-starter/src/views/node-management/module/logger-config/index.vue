@@ -90,7 +90,7 @@
             >
               {{ row.configuredLevel }}
             </el-tag>
-            <span v-else class="text-gray-400">未配置</span>
+            <span v-else class="text-[var(--el-text-color-placeholder)]">未配置</span>
           </template>
         </el-table-column>
 

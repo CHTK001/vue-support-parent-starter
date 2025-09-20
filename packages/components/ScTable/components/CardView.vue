@@ -23,7 +23,7 @@
     </div>
 
     <!-- 向上滚动提示 -->
-    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip flex justify-center items-center py-2 text-gray-500 text-sm" @click="loadPrevPage">
+    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm" @click="loadPrevPage">
       <span>向上滚动加载更多</span>
     </div>
 
@@ -62,7 +62,7 @@
     </el-row>
 
     <!-- 向下滚动提示 -->
-    <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip flex justify-center items-center py-2 text-gray-500 text-sm" @click="loadNextPage">
+    <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm" @click="loadNextPage">
       <span>向下滚动加载更多</span>
     </div>
 
@@ -80,7 +80,7 @@
     </div>
 
     <!-- 没有更多数据提示 -->
-    <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-gray-400 text-sm">
+    <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-[var(--el-text-color-placeholder)] text-sm">
       <span>没有更多数据了</span>
     </div>
 
