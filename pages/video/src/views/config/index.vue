@@ -101,6 +101,7 @@ import { deleteSyncConfig, executeSyncConfig, getSyncConfigs, stopSyncTask, test
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
+//@ts-ignore
 import { ScMessageDialog } from "@repo/components";
 import { useGlobalSocket } from "@repo/core";
 import { message } from "@repo/utils";
@@ -186,7 +187,7 @@ const initSocket = () => {
     if (config) {
       config.videoSyncConfigStatus = dataObject.status;
       config.videoSyncConfigLastSyncTime = dataObject.lastSyncTime;
-      config.syncCount = dataObject.syncCount;
+      config.syncVideoCount += 1;
     }
     updateStats();
   });
@@ -238,8 +239,8 @@ const getStatusText = (status: string): string => {
 const updateStats = () => {
   stats.totalConfigs = configList.value.length;
   stats.enabledConfigs = configList.value.filter((c) => c.videoSyncConfigEnable === true).length;
-  stats.syncingConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "syncing").length;
-  stats.errorConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "error").length;
+  stats.syncingConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "PROGRESS").length;
+  stats.errorConfigs = configList.value.filter((c) => c.videoSyncConfigStatus === "ERROR").length;
 };
 
 /**

@@ -131,7 +131,9 @@ export interface VideoSyncConfig {
   videoSyncConfigStatus?: string;
   videoSyncConfigEnable?: boolean;
   videoSyncInterval?: number;
+  videoSyncConfigSource?: number;
   syncCount?: number;
+  syncVideoCount?: number;
   videoSyncConfigLastSyncTime?: string;
   videoConfigHeaders?: string;
   createTime?: string;

@@ -594,6 +594,7 @@ defineExpose({
 .video-card {
   border-radius: 8px;
   overflow: hidden;
+  width: 256px;
   transition: transform 0.3s;
   cursor: pointer;
 }

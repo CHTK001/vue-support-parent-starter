@@ -53,11 +53,37 @@ const routes = [
             },
           },
           {
-            path: "/video/detail/result",
-            name: "VideoDetailResult",
+            path: "/video/manage/result",
+            name: "VideoManageSearchResult",
             component: async () => {
-              const { VideoDetailResult } = await import("@pages/video");
-              return VideoDetailResult;
+              const { VideoManageSearchResult } = await import("@pages/video");
+              return VideoManageSearchResult;
+            },
+            meta: {
+              title: "搜索结果",
+              showLink: false,
+              remaining: true,
+            },
+          },
+          {
+            path: "/video/detail",
+            name: "VideoDetail",
+            component: async () => {
+              const { VideoDetail } = await import("@pages/video");
+              return VideoDetail;
+            },
+            meta: {
+              title: "视频详情",
+              showLink: false,
+              remaining: true,
+            },
+          },
+          {
+            path: "/video/detail/:id",
+            name: "VideoDetailWithId",
+            component: async () => {
+              const { VideoDetail } = await import("@pages/video");
+              return VideoDetail;
             },
             meta: {
               title: "视频详情",
@@ -115,6 +141,19 @@ const routes = [
               title: "视频管理",
               icon: "ep:video-camera",
               rank: 3,
+              remaining: true,
+            },
+          },
+          {
+            path: "/video/play",
+            name: "VideoPlay",
+            component: async () => {
+              const { VideoPlay } = await import("@pages/video");
+              return VideoPlay;
+            },
+            meta: {
+              title: "视频播放",
+              showLink: false,
               remaining: true,
             },
           },

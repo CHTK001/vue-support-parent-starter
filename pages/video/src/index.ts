@@ -11,12 +11,15 @@ import VideoManage from "./views/manage/index.vue";
 import VideoAddResult from "./views/manage/manage/add.vue";
 import VideoDetailResult from "./views/manage/manage/detail.vue";
 import VideoEditResult from "./views/manage/manage/edit.vue";
-import VideoSearchResult from "./views/manage/search.vue";
+import VideoManageSearchResult from "./views/manage/search.vue";
 import VideoParse from "./views/parse/index.vue";
+import VideoPlay from "./views/play/play.vue";
+import VideoDetail from "./views/search/detail.vue";
 import VideoSearch from "./views/search/index.vue";
+import VideoSearchResult from "./views/search/result.vue";
 import VideoSource from "./views/source/index.vue";
 
 // 主模块导出
 export * from "./api";
 export * from "./router";
-export { VideoAddResult, VideoConfig, VideoDetailResult, VideoEditResult, VideoManage, VideoParse, VideoSearch, VideoSearchResult, VideoSource };
+export { VideoAddResult, VideoConfig, VideoDetail, VideoDetailResult, VideoEditResult, VideoManage, VideoManageSearchResult, VideoParse, VideoPlay, VideoSearch, VideoSearchResult, VideoSource };

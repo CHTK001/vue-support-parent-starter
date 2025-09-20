@@ -139,13 +139,7 @@
                 <!-- 过滤器 -->
                 <div class="filter-container">
                   <div class="filter-row">
-                    <el-select v-model="downloadQualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange" class="filter-select">
-                      <el-option label="全部" value="" />
-                      <el-option label="4K" value="4K" />
-                      <el-option label="1080P" value="1080P" />
-                      <el-option label="720P" value="720P" />
-                      <el-option label="标清" value="标清" />
-                    </el-select>
+                    <el-segmented v-model="downloadQualityFilter" :options="qualityFilterOptions"> </el-segmented>
                   </div>
                 </div>
 
@@ -188,44 +182,49 @@
               <!-- 磁力资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="磁力资源">
                 <!-- 高清度和磁力类型过滤 -->
-                <div class="filter-container">
-                  <el-select v-model="qualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange" class="mr-3">
-                    <el-option v-for="option in qualityFilterOptions" :key="option.value" :label="option.label" :value="option.value" />
-                  </el-select>
-                  <el-select v-model="magnetTypeFilter" placeholder="磁力类型" size="small" clearable @change="handleMagnetTypeFilterChange">
-                    <el-option v-for="option in magnetTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
-                  </el-select>
+                <div class="filter-container flex flex-row">
+                  <el-segmented v-model="qualityFilter" :options="qualityFilterOptions" @change="debounceFilter(() => {})"> </el-segmented>
+                  <el-segmented v-model="magnetTypeFilter" :options="magnetTypeOptions" @change="debounceFilter(() => {})"> </el-segmented>
                 </div>
 
-                <div class="download-list compact" v-if="videoData.downloadList">
-                  <div v-for="(magnet, index) in filteredMagnetLinks" :key="'magnet-' + index" class="download-item">
-                    <div class="download-info">
-                      <div class="download-name">
-                        <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
-                        <span>{{ magnet.videoDownloadName }}</span>
-                        <span class="inline-tags"
-                          ><span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span></span
-                        >
-                      </div>
-                      <div class="download-meta">
-                        <span v-if="magnet.videoDownloadSize" class="download-size">{{ magnet.videoDownloadSize }}</span>
-                        <span v-if="magnet.createTime" class="download-date">{{ formatDateTime(magnet.createTime) }}</span>
-                      </div>
-                    </div>
-                    <div class="download-actions">
-                      <el-button type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
-                        <IconifyIconOnline icon="ep:copy-document" />
-                        复制
-                      </el-button>
-                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
-                        <IconifyIconOnline icon="ep:delete" />
-                        删除
-                      </el-button>
-                    </div>
+                <div class="download-list-container">
+                  <!-- 过滤加载状态 -->
+                  <div v-if="isFiltering" class="filter-loading">
+                    <el-skeleton :rows="3" animated />
                   </div>
-                  <div v-if="!filteredMagnetLinks.length" class="no-data">暂无磁力资源</div>
+                  <div v-else class="download-list compact">
+                    <template v-if="videoData.downloadList">
+                      <transition-group name="download-item" tag="div" class="download-items-wrapper">
+                        <div v-for="(magnet, index) in filteredMagnetLinks" :key="'magnet-' + magnet.videoDownloadUrl + magnet.videoDownloadName" class="download-item">
+                          <div class="download-info">
+                            <div class="download-name">
+                              <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
+                              <span>{{ magnet.videoDownloadName }}</span>
+                              <span class="inline-tags"
+                                ><span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span></span
+                              >
+                            </div>
+                            <div class="download-meta">
+                              <span v-if="magnet.videoDownloadSize" class="download-size">{{ magnet.videoDownloadSize }}</span>
+                              <span v-if="magnet.createTime" class="download-date">{{ formatDateTime(magnet.createTime) }}</span>
+                            </div>
+                          </div>
+                          <div class="download-actions">
+                            <el-button type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
+                              <IconifyIconOnline icon="ep:copy-document" />
+                              复制
+                            </el-button>
+                            <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
+                              <IconifyIconOnline icon="ep:delete" />
+                              删除
+                            </el-button>
+                          </div>
+                        </div>
+                      </transition-group>
+                    </template>
+                    <div v-if="!filteredMagnetLinks.length" class="no-data">暂无磁力资源</div>
+                  </div>
                 </div>
-                <div v-else class="no-data">暂无磁力资源</div>
               </el-tab-pane>
 
               <!-- 网盘资源选项卡 - 更紧凑的布局 -->
@@ -233,72 +232,84 @@
                 <!-- 添加网盘类型过滤 -->
                 <div class="filter-container">
                   <div class="pan-type-tags">
-                    <el-tag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="panTypeFilter = ''"> 全部 </el-tag>
-                    <el-tag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="panTypeFilter = type.value">
+                    <el-tag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="debounceFilter(() => (panTypeFilter = ''))"> 全部 </el-tag>
+                    <el-tag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="debounceFilter(() => (panTypeFilter = type.value))">
                       {{ type.label }}
                     </el-tag>
                   </div>
                 </div>
 
-                <div class="download-list compact" v-if="videoData.downloadList">
-                  <div v-for="(pan, index) in filteredPanLinks" :key="'pan-' + index" class="download-item">
-                    <div class="download-info">
-                      <div class="download-name">
-                        <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
-                        <span>{{ pan.videoDownloadName }}</span>
-                        <span class="inline-tags"
-                          ><span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span></span
-                        >
-                      </div>
-                    </div>
-                    <div class="download-actions">
-                      <el-button type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
-                        <IconifyIconOnline icon="ep:copy-document" />
-                        复制
-                      </el-button>
-                      <el-button type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
-                        <IconifyIconOnline icon="ep:link" />
-                        打开
-                      </el-button>
-                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
-                        <IconifyIconOnline icon="ep:delete" />
-                        删除
-                      </el-button>
-                    </div>
+                <div class="download-list-container">
+                  <!-- 过滤加载状态 -->
+                  <div v-if="isFiltering" class="filter-loading">
+                    <el-skeleton :rows="3" animated />
                   </div>
-                  <div v-if="!filteredPanLinks.length" class="no-data">暂无网盘资源</div>
+                  <div v-else class="download-list compact">
+                    <template v-if="videoData.downloadList">
+                      <transition-group name="download-item" tag="div" class="download-items-wrapper">
+                        <div v-for="(pan, index) in filteredPanLinks" :key="'pan-' + pan.videoDownloadUrl + pan.videoDownloadName" class="download-item">
+                          <div class="download-info">
+                            <div class="download-name">
+                              <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
+                              <span>{{ pan.videoDownloadName }}</span>
+                              <span class="inline-tags"
+                                ><span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span></span
+                              >
+                            </div>
+                          </div>
+                          <div class="download-actions">
+                            <el-button type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
+                              <IconifyIconOnline icon="ep:copy-document" />
+                              复制
+                            </el-button>
+                            <el-button type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
+                              <IconifyIconOnline icon="ep:link" />
+                              打开
+                            </el-button>
+                            <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
+                              <IconifyIconOnline icon="ep:delete" />
+                              删除
+                            </el-button>
+                          </div>
+                        </div>
+                      </transition-group>
+                    </template>
+                    <div v-if="!filteredPanLinks.length" class="no-data">暂无网盘资源</div>
+                  </div>
                 </div>
-                <div v-else class="no-data">暂无网盘资源</div>
               </el-tab-pane>
 
               <!-- 在线播放选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="在线播放">
-                <div class="download-list compact" v-if="videoData.downloadList">
-                  <div v-for="(online, index) in parseOnlineLinks(videoData.downloadList)" :key="'online-' + index" class="download-item">
+                <div class="download-list compact" v-if="playAddressList">
+                  <div v-for="(online, index) in playAddressList" :key="'online-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:video-play" class="download-icon online-icon" />
-                        <span>{{ online.name || `在线资源 ${index + 1}` }}</span>
+                        <span>{{ online.videoPlayAddressName || `在线资源 ${index + 1}` }}</span>
                         <span class="inline-tags"
                           ><span v-if="online.quality" class="inline-quality">{{ online.quality }}</span
                           ><span v-if="online.platform" class="inline-platform">{{ online.platform }}</span></span
                         >
                       </div>
+                      <div>
+                        <template v-for="channel in online.videoPlayAddressChannels" :key="channel">
+                          <el-button class="inline-channel" @click="openOnlineLink(channel.videoPlayAddressUrl)">
+                            <IconifyIconOnline icon="ep:video-play" />
+                            {{ channel.videoPlayAddressChannelName }}
+                          </el-button>
+                        </template>
+                      </div>
                     </div>
-                    <div class="download-actions">
-                      <el-button type="success" size="small" @click="openOnlineLink(online.link)">
+                    <div class="download-actions" v-if="online.videoPlayAddressChannels.length == 1">
+                      <el-button type="success" size="small" @click="openOnlineLink(online.videoPlayAddressChannels[0].videoPlayAddressUrl)">
                         <IconifyIconOnline icon="ep:video-play" />
                         播放
                       </el-button>
-                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(online)">
-                        <IconifyIconOnline icon="ep:delete" />
-                        删除
-                      </el-button>
                     </div>
                   </div>
-                  <div v-if="!parseOnlineLinks(videoData.downloadList).length" class="no-data">暂无在线资源</div>
+                  <div v-if="!playAddressList" class="no-data">暂无在线资源</div>
                 </div>
-                <div v-else class="no-data">暂无在线资源</div>
               </el-tab-pane>
             </el-tabs>
           </div>
@@ -326,11 +337,11 @@ import { formatDateTime, getRandomString, message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { deleteDownload } from "../../../api/download";
+import { deleteDownload, getDownloadsByVideoId } from "../../../api/download";
 import { findPlayAddress } from "../../../api/play";
 import { getVideoDetail } from "../../../api/video";
 import { panTypes } from "../../../data/panTypes";
-import { getDownloadField, getDownloadIcon, magnetTypeOptions, parseMagnetLinks, parseOnlineLinks, qualityFilterOptions } from "../../../data/videoFilters";
+import { getDownloadField, getDownloadIcon, magnetTypeOptions, parseMagnetLinks, qualityFilterOptions } from "../../../data/videoFilters";
 import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
 
 const config = getConfig();
@@ -351,6 +362,22 @@ const qualityFilter = ref("");
 const downloadQualityFilter = ref("");
 const panTypeFilter = ref("");
 const magnetTypeFilter = ref("");
+
+// 过滤状态管理
+const isFiltering = ref(false);
+const filterDebounceTimer = ref<NodeJS.Timeout | null>(null);
+
+// 防抖过滤函数
+const debounceFilter = (callback: () => void, delay = 150) => {
+  if (filterDebounceTimer.value) {
+    clearTimeout(filterDebounceTimer.value);
+  }
+  isFiltering.value = true;
+  filterDebounceTimer.value = setTimeout(() => {
+    callback();
+    isFiltering.value = false;
+  }, delay);
+};
 const playAddressList = ref([]);
 
 // 信息项配置
@@ -496,6 +523,14 @@ const filteredPanLinks = computed(() => {
   });
 });
 
+// 处理播放地址索引
+const getIndex = (channel) => {
+  const rs = [];
+  for (let i = channel.videoPlayAddressStartIndex; i <= channel.videoPlayAddressEndIndex; i++) {
+    rs.push(i);
+  }
+  return rs;
+};
 // 处理高清度过滤变化
 const handleQualityFilterChange = () => {
   // 过滤逻辑已经在计算属性中实现
@@ -518,7 +553,17 @@ const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
 };
 
-const fetchPlayAddress = async (videoId: number) => {
+const fetchVideoDonwload = async () => {
+  const videoId: any = route.query.id;
+  if (!videoId) return;
+  getDownloadsByVideoId(videoId).then((res) => {
+    videoData.value.downloadList = res.data;
+  });
+};
+
+const fetchPlayAddress = async () => {
+  const videoId: any = route.query.id;
+  if (!videoId) return;
   findPlayAddress({ videoId }).then((res) => {
     //@ts-ignore
     playAddressList.value = res.data;
@@ -534,7 +579,6 @@ const fetchVideoDetail = async () => {
   getVideoDetail(videoId)
     .then((res) => {
       videoData.value = res.data;
-      fetchPlayAddress(videoId);
     })
     .catch((error) => {
       console.error("获取视频详情失败:", error);
@@ -686,7 +730,10 @@ const openPanLink = (link) => {
 
 // 打开在线播放链接
 const openOnlineLink = (link) => {
-  window.open(link, "_blank");
+  // 跳转到播放页面，传递视频URL参数
+
+  const fullUrl = `${window.location.origin}/#/remaining-component/video-play?url=${encodeURIComponent(link)}`;
+  window.open(fullUrl, "_blank");
 };
 
 // 打开评分网站链接
@@ -755,7 +802,9 @@ const handleDeleteDownload = (download) => {
 };
 
 onMounted(() => {
+  fetchVideoDonwload();
   fetchVideoDetail();
+  fetchPlayAddress();
 });
 </script>
 
@@ -863,7 +912,7 @@ onMounted(() => {
 
 .header-content {
   position: relative;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 20px;
   display: flex;
@@ -907,7 +956,7 @@ onMounted(() => {
 
 /* 主要内容区域 */
 .detail-content {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 20px 40px;
   display: flex;
@@ -1331,8 +1380,28 @@ onMounted(() => {
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-/* 下载列表样式 */
+/* 下载列表容器样式 - 防止抖动 */
+.download-list-container {
+  min-height: 200px;
+  transition: all 0.3s ease;
+}
+
+/* 过滤加载状态样式 */
+.filter-loading {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
 .download-list.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.download-items-wrapper {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -1349,30 +1418,32 @@ onMounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  animation: fadeInUp 0.5s ease-out;
-  animation-fill-mode: both;
-}
-
-.download-item:nth-child(1) {
-  animation-delay: 0.1s;
-}
-.download-item:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.download-item:nth-child(3) {
-  animation-delay: 0.3s;
-}
-.download-item:nth-child(4) {
-  animation-delay: 0.4s;
-}
-.download-item:nth-child(5) {
-  animation-delay: 0.5s;
 }
 
 .download-item:hover {
   background: rgba(255, 255, 255, 0.95);
   transform: translateY(-3px) scale(1.01);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* 过渡动画 - 平滑的进入和离开效果 */
+.download-item-enter-active,
+.download-item-leave-active {
+  transition: all 0.3s ease;
+}
+
+.download-item-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+}
+
+.download-item-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+.download-item-move {
+  transition: transform 0.3s ease;
 }
 
 .download-info {

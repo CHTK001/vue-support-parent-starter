@@ -544,6 +544,8 @@ const handleMenuAction = action => {
   .card-col {
     margin-bottom: 16px;
     min-height: 100px;
+    display: flex;
+    justify-content: center;
   }
 
   .card-item {
