@@ -16,7 +16,10 @@ export interface ApiResponse<T = any> {
  * 视频资源
  */
 export interface VideoSource {
+  // 视频资源ID
   videoSourceId: number;
+  //  连接超时时间 
+  videoSourceConnectTimeout: number;
   //平台
   videoSourcePlatform: string;
   //数据源名称
@@ -27,6 +30,10 @@ export interface VideoSource {
   videoSourceUrl: string;
   //支持类型
   videoSourceType: string;
+  // 支持检索
+  videoSourceSupportSearch: number;
+  // 支持同步
+  videoSourceSupportSync: number;
   //是否启用
   videoSourceEnable: number;
   //最小年份
@@ -130,6 +137,10 @@ export interface VideoSyncConfig {
   videoSyncConfigKeyword?: string;
   videoSyncConfigStatus?: string;
   videoSyncConfigEnable?: boolean;
+  // 支持检索
+  videoSourceSupportSearch?: number;
+  // 支持同步
+  videoSourceSupportSync?: number;
   videoSyncInterval?: number;
   videoSyncConfigSource?: number;
   syncCount?: number;

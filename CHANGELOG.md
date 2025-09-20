@@ -5,6 +5,84 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.4.0] - 2025-01-20
+
+### 新增
+
+- **Video模块下载功能优化**: 全面重构下载功能实现
+  - 🔄 **简化下载逻辑**: 移除复杂的多地址解析，改为单地址直接下载
+  - 🔗 **原生下载支持**: 使用 HTML5 `<a>` 标签的 download 属性实现文件下载
+  - ⚡ **性能提升**: 移除下载进度模拟，提升响应速度
+  - 🎯 **用户体验优化**: 下载操作更加直观和可靠
+  - 🛠️ **重构 downloadFile 函数**: 删除多地址下载支持，参数简化为单参数
+  - 📋 **数据结构优化**: `donwloadUrls` 现在只包含单个下载地址
+
+#### 技术改进细节
+
+**前端实现：**
+```typescript
+// 新的下载函数签名
+const downloadFile = async (item: VideoItem) => {
+  const link = document.createElement("a");
+  link.href = item.donwloadUrls;  // 直接使用下载URL
+  link.download = `${item.videoTitle}.${getFileExtension(item.donwloadUrls) || 'mp4'}`;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+```
+
+**API接口变更：**
+- `donwloadUrls` 字段从多地址格式改为单地址字符串
+- 要求返回完整的、可直接访问的下载链接
+- 建议URL包含适当的文件扩展名以便自动识别
+
+**模板调用简化：**
+```vue
+<!-- 变更前：复杂的多地址循环 -->
+<el-button v-for="(url, urlIndex) in parseDownloadUrls(row.donwloadUrls)" 
+           @click="downloadFile(row, url, urlIndex)">
+  {{ url.quality || `链接${urlIndex + 1}` }}
+</el-button>
+
+<!-- 变更后：简单的单按钮 -->
+<el-button v-if="row.donwloadUrls" @click="downloadFile(row)">
+  <IconifyIconOnline icon="ep:download" />
+  下载
+</el-button>
+```
+
+### 文档完善
+
+- **Video模块README文档**: 新增API接口说明章节
+  - 详细的视频搜索接口参数和响应结构说明
+  - 完整的数据结构定义和字段说明
+  - 重要字段变更说明和迁移指南
+  - API调用示例和错误处理指导
+  - 下载功能技术实现详细说明
+
+- **Video模块CHANGELOG文档**: 新增v1.4.0版本记录
+  - 完整的功能改进说明和技术细节
+  - 数据结构变更对比表和迁移指南
+  - 性能指标和优化效果说明
+  - 对前端和后端开发者的具体指导
+
+### 兼容性说明
+
+⚠️ **重要变更通知**: 此版本包含破坏性变更
+
+**对前端影响：**
+- `downloadFile` 函数参数从 3 个减少为 1 个
+- 移除 `parseDownloadUrls` 函数调用
+- 模板中的下载按钮需要修改事件处理
+
+**对后端影响：**
+- `donwloadUrls` 字段应返回单个有效URL而非多个URL
+- URL应该是完整的、可直接访问的下载地址
+
 ## [2.3.9] - 2025-01-18
 
 ### 新增

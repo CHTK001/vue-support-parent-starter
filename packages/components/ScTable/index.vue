@@ -18,6 +18,7 @@ const props = defineProps({
   tableId: { type: String, default: "" },
   url: { type: Function, default: null },
   data: { type: Object, default: null },
+  center: { type: Boolean, default: false },
   contextmenu: { type: Function, default: () => ({}) },
   contextmenuClass: { type: String, default: "" },
   params: { type: Object, default: () => ({}) },
@@ -1075,6 +1076,7 @@ defineExpose({
           ref="scTable"
           :key="toggleIndex"
           v-loading="loading"
+          :center="center"
           v-bind="$attrs"
           :table-data="tableData"
           :user-column="userColumn"
@@ -1139,9 +1141,6 @@ defineExpose({
         />
       </div>
     </div>
-
-    <!-- 列设置弹窗 -->
-    <columnSetting ref="columnSettingRef" :column="userColumn" :table-name="tableName" @save="columnSave" @reset="columnReset" />
   </div>
 </template>
 

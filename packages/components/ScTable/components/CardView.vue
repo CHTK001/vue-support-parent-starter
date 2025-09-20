@@ -45,6 +45,7 @@
         :lg="computedPageSize"
         :xl="computedPageSize"
         class="card-col"
+        :class="{ 'justify-center flex': center }"
       >
         <div class="is-always-shadow" @contextmenu="handleContextMenu($event, row)" @click="onRowClick(row)">
           <!-- 根据layout属性决定是否使用ScCard包装 -->
@@ -115,6 +116,10 @@ const props = defineProps({
   config: {
     type: Object,
     required: true
+  },
+  center: {
+    type: Boolean,
+    default: false
   },
   contextmenu: Function,
   rowKey: String,
@@ -544,8 +549,6 @@ const handleMenuAction = action => {
   .card-col {
     margin-bottom: 16px;
     min-height: 100px;
-    display: flex;
-    justify-content: center;
   }
 
   .card-item {
