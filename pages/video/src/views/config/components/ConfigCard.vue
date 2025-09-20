@@ -7,9 +7,9 @@
     <div class="config-card-header">
       <div class="config-info">
         <div class="config-icon">
-          <IconifyIconOnline icon=" ep:setting" />
+          <IconifyIconOnline icon="ep:setting" />
         </div>
-        <div class="config-details">
+        <div class="config-details mt-2">
           <h3 class="config-name">{{ config.videoSyncConfigName }}</h3>
         </div>
       </div>

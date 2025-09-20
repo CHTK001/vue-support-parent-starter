@@ -101,7 +101,7 @@
       </div>
 
       <!-- 使用 ScTable 渲染卡片结果，替换原 video-grid + 分页 -->
-      <ScTable ref="tableRef" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded" @row-click="handleRowClick">
+      <ScTable ref="tableRef" :center="true" layout="card" :page-size="12" :col-size="6" :url="getVideoList" :params="searchParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded" @row-click="handleRowClick">
         <template #default="{ row }">
           <div class="video-card" :class="{ 'video-card-large': displayMode === 'large' }">
             <div class="video-cover !w-full">

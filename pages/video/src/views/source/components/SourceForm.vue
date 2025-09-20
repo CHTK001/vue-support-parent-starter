@@ -51,6 +51,10 @@
           <div class="form-tip">设置单次查询返回的最大资源数量，0表示无限制</div>
         </el-form-item>
 
+        <el-form-item label="最大查询时间" prop="videoSourceConnectTimeout">
+          <el-input-number v-model="formData.videoSourceConnectTimeout" type="number" placeholder="最大查询时间" controls-position="right" class="w-full" />
+        </el-form-item>
+
         <el-form-item label="访问Token" prop="videoSourceToken">
           <el-input v-model="formData.videoSourceToken" placeholder="如果API需要认证，请输入访问Token" type="password" show-password>
             <template #prefix>
@@ -66,9 +70,21 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="支持检索">
+          <ScSwitch v-model="formData.videoSourceSupportSearch" layout="modern" active-text="支持" inactive-text="不支持" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+
+        <el-form-item label="支持同步">
+          <ScSwitch v-model="formData.videoSourceSupportSync" layout="modern" active-text="支持" inactive-text="不支持" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+
         <el-form-item label="User Agent" prop="videoSourceUserAgent">
-          <el-input v-model="formData.videoSourceUserAgent" placeholder="自定义User Agent，留空使用默认值" type="textarea" :rows="2" maxlength="500" show-word-limit> </el-input>
-          <div class="form-tip">自定义请求头User Agent，用于模拟不同浏览器访问</div>
+          <el-input class="w-[80%]" v-model="formData.videoSourceUserAgent" placeholder="请输入User Agent，或点击生成按钮自动生成" type="textarea" :rows="2" maxlength="500" show-word-limit>
+          </el-input>
+          <div class="form-tip flex flex-row items-center gap-2">
+            <span>自定义请求头User Agent，用于模拟不同浏览器访问</span>
+            <IconifyIconOnline class="cursor-pointer" class-name="ml-2"  @click="generateRandomUserAgent" icon="ep:refresh" />
+          </div>
         </el-form-item>
 
         <el-form-item label="最小年份" prop="videoSourceMinYear">
@@ -112,6 +128,8 @@
  * @since 2024-12-19
  */
 import { IconSelect } from "@repo/components/ReIcon";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import { clearObject } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";
 import { computed, reactive, ref, watch } from "vue";
 import type { VideoSource } from "../../../api/types";
@@ -141,6 +159,11 @@ const selectedTemplate = ref("");
 const formData = reactive<VideoSource>({
   videoSourceId: 0,
   videoSourcePlatform: "",
+  // 支持检索
+  videoSourceSupportSearch: 0,
+  videoSourceConnectTimeout: 100000,
+  // 支持同步
+  videoSourceSupportSync: 0,
   videoSourceName: "",
   videoSourceIcon: "",
   videoSourceType: "",
@@ -149,7 +172,7 @@ const formData = reactive<VideoSource>({
   videoSourceMinYear: 1970,
   videoSourceMaxResource: 100,
   videoSourceToken: "",
-  videoSourceUserAgent: "",
+  videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 });
 
 // 计算属性
@@ -165,9 +188,9 @@ const formRules: FormRules = {
     { required: true, message: "请输入数据源名称", trigger: "blur" },
     { min: 2, max: 50, message: "数据源名称长度在 2 到 50 个字符", trigger: "blur" },
   ],
-  videoSourceUrl: [
-    { required: true, message: "请输入视频源URL", trigger: "blur" },
-    { type: "url", message: "请输入有效的URL地址", trigger: "blur" },
+  videoSourceUserAgent: [
+    { required: true, message: "请输入User Agent", trigger: "blur" },
+    { min: 10, max: 500, message: "User Agent长度在 10 到 500 个字符", trigger: "blur" },
   ],
   videoSourceMaxResource: [{ type: "number", min: 0, max: 10000, message: "最大查询数范围为 0-10000", trigger: "blur" }],
 };
@@ -183,7 +206,7 @@ const templates = [
       videoSourcePlatform: "GUANYING",
       videoSourceUrl: "https://api.guanyingmv.com",
       videoSourceMaxResource: 50,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
   },
   {
@@ -195,7 +218,7 @@ const templates = [
       videoSourcePlatform: "DOUBAN",
       videoSourceUrl: "https://api.douban.com",
       videoSourceMaxResource: 50,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      videoSourceUserAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     },
   },
   {
@@ -207,7 +230,7 @@ const templates = [
       videoSourcePlatform: "PanSou",
       videoSourceUrl: "https://api.pansou.com",
       videoSourceMaxResource: 500,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      videoSourceUserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
   },
   {
@@ -219,7 +242,7 @@ const templates = [
       videoSourcePlatform: "TMDB",
       videoSourceUrl: "https://api.themoviedb.org/3/discover/movie",
       videoSourceMaxResource: 500,
-      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
     },
   },
 ];
@@ -231,6 +254,35 @@ const templates = [
 const applyTemplate = (template: any) => {
   selectedTemplate.value = template.name;
   Object.assign(formData, template.config);
+};
+
+/**
+ * 随机生成User Agent
+ */
+const generateRandomUserAgent = () => {
+  const userAgents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Android 14; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0",
+    "Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+  ];
+  
+  const randomIndex = Math.floor(Math.random() * userAgents.length);
+  formData.videoSourceUserAgent = userAgents[randomIndex];
 };
 
 /**
@@ -271,6 +323,7 @@ watch(
   () => props.source,
   (newSource) => {
     if (newSource) {
+      clearObject(formData);
       Object.assign(formData, newSource);
     } else {
       resetForm();
@@ -284,7 +337,7 @@ watch(
         videoSourceEnable: 1,
         videoSourceMaxResource: 100,
         videoSourceToken: "",
-        videoSourceUserAgent: "",
+        videoSourceUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       });
     }
   },

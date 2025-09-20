@@ -4,10 +4,6 @@
     <div class="detail-header">
       <div class="header-background"></div>
       <div class="header-content">
-        <el-button @click="goBack" class="back-button">
-          <IconifyIconOnline icon="ep:arrow-left" />
-          返回
-        </el-button>
         <div class="header-title">
           <h1 class="detail-title">{{ videoData.videoTitle || videoData.videoName }}</h1>
           <div class="title-subtitle" v-if="videoData.videoYear">{{ videoData.videoYear }}年</div>

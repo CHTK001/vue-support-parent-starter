@@ -1,3 +1,4 @@
+//@ts-ignore
 import type { VideoItem } from "@/types/video";
 import { http, type ReturnResult } from "@repo/utils";
 
@@ -7,5 +8,5 @@ import { http, type ReturnResult } from "@repo/utils";
  * @returns 视频资源列表
  */
 export const findOnlineResources = (params: any) => {
-  return http.request<ReturnResult<VideoItem[]>>("get", "/v1/video/online/find", { params });
+  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/online/find", { data: params });
 };

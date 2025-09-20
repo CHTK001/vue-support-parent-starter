@@ -185,7 +185,6 @@ const initSocket = () => {
     }
 
     if (config) {
-      config.videoSyncConfigStatus = dataObject.status;
       config.videoSyncConfigLastSyncTime = dataObject.lastSyncTime;
       config.syncVideoCount += 1;
     }

@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import { videoCategories } from "../../data/categories";
 import Search from "./search.vue";
 
@@ -32,8 +32,9 @@ const selectedCategories = ref("ALL");
 const searchKeyword = ref("");
 
 // 处理分类点击
-const handleCategoryClick = (category: any): void => {
+const handleCategoryClick = async (category: any): Promise<void> => {
   selectedCategories.value = category.value;
+  await nextTick();
   searchRef.value.handleSearch();
 };
 

@@ -34,7 +34,7 @@
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { getRandomString } from "@repo/utils";
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { generateYearOptions, hotSearchKeywords, movieTypes, videoCategories } from "../../data/categories";
 import { districtOptions, languageOptions } from "../../data/videoOptions";
@@ -221,21 +221,19 @@ const handleHotTagClick = (keyword: string) => {
 };
 
 // 搜索
-const handleSearch = () => {
+const handleSearch = async () => {
   if (!searchKeyword.value.trim() && !showResults.value) {
     return;
   }
   showResults.value = true;
+  await nextTick();
   // 交由 ScTable 控制分页与加载
   tableRef.value?.refresh?.();
 
   // 跳转到搜索结果页面，传递搜索关键词
-  router.push({
-    path: "/video/search/result",
-    query: {
-      keyword: searchKeyword.value.trim(),
-    },
-  });
+  //VideoDetailResult
+  const fullUrl = `${window.location.origin}/#/remaining-component/video-search-result?keyword=${searchKeyword.value.trim()}`;
+  window.open(fullUrl, "_blank");
 };
 
 // 数据加载回调（ScTable 标准事件）

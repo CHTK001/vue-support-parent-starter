@@ -294,25 +294,28 @@ onMounted(() => {
       </el-tooltip>
 
       <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
-      <el-popover v-if="showColumnSettings" v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
-        <template #reference>
-          <el-button circle size="default">
-            <IconifyIconOnline icon="ep:list" />
-          </el-button>
-        </template>
-        <div class="column-setting-container">
-          <component
-            :is="columnSetting"
-            ref="columnSettingRef"
-            :column="columns"
-            :layout="tableLayout"
-            :live-update="true"
-            @save="handleColumnSave"
-            @back="handleColumnReset"
-            @live-update="handleLiveColumnUpdate"
-          />
-        </div>
-      </el-popover>
+      <template v-if="!!showColumnSettings">
+        <el-popover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
+          <template #reference>
+            <el-button circle size="default">
+              <IconifyIconOnline icon="ep:list" />
+            </el-button>
+          </template>
+          33
+          <div class="column-setting-container">
+            <component
+              :is="columnSetting"
+              ref="columnSettingRef"
+              :column="columns"
+              :layout="tableLayout"
+              :live-update="true"
+              @save="handleColumnSave"
+              @back="handleColumnReset"
+              @live-update="handleLiveColumnUpdate"
+            />
+          </div>
+        </el-popover>
+      </template>
 
       <!-- 表格设置按钮 - 仅在标准表格布局和Canvas表格布局下显示 -->
       <el-popover v-if="showTableSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">

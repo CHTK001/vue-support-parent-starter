@@ -142,10 +142,9 @@ const resetForm = () => {
   formRef.value?.resetFields();
 };
 
-
 const handleReset = async () => {
   formData.videoSyncConfigLastOffset = "";
-}
+};
 /**
  * 处理保存
  */
