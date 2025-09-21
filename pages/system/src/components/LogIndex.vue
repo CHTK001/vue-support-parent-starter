@@ -302,7 +302,7 @@ const moduleOptions = reactive([
 // 主容器样式
 .log-main {
   height: 100%;
-  background-color: var(--el-bg-color);
+  background-color: var(--app-bg-primary);
   animation: log-fade-in 0.5s ease-out;
 }
 
@@ -311,16 +311,16 @@ const moduleOptions = reactive([
   display: flex;
   flex-direction: column;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-shadow);
   overflow: hidden;
 }
 
 // 头部样式
 .log-header {
   padding: 16px;
-  background-color: var(--el-bg-color);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  background-color: var(--app-bg-primary);
+  border-bottom: 1px solid var(--app-border-primary);
+  box-shadow: var(--app-shadow-sm);
   height: auto !important;
   max-height: 160px;
   transition: all 0.3s ease;
@@ -331,7 +331,7 @@ const moduleOptions = reactive([
 }
 
 .log-search-form {
-  background-color: var(--el-bg-color);
+  background-color: var(--app-bg-primary);
   width: 100%;
   padding: 16px;
   border-radius: 8px;
@@ -358,7 +358,7 @@ const moduleOptions = reactive([
 
   &:focus,
   &:hover {
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    box-shadow: var(--app-primary-shadow);
   }
 }
 
@@ -396,7 +396,7 @@ const moduleOptions = reactive([
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--app-shadow-md);
   }
 
   &:active {
@@ -405,16 +405,16 @@ const moduleOptions = reactive([
 }
 
 .log-search-button {
-  background-color: var(--el-color-primary);
+  background-color: var(--app-primary);
 
   &:hover {
-    background-color: var(--el-color-primary-light-3);
+    background-color: var(--app-primary-light);
   }
 }
 
 .log-reset-button {
   &:hover {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+    background-color: var(--app-primary-shadow-sm);
   }
 }
 
@@ -432,7 +432,7 @@ const moduleOptions = reactive([
   :deep(.el-table) {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-shadow-sm);
     width: 100%; // 确保表格宽度为100%
     table-layout: fixed; // 使用固定表格布局
 
@@ -445,7 +445,7 @@ const moduleOptions = reactive([
       transition: all 0.3s ease;
 
       &:hover {
-        background-color: rgba(var(--el-color-primary-rgb), 0.05) !important;
+        background-color: var(--app-primary-shadow-sm) !important;
       }
     }
 
@@ -467,7 +467,7 @@ const moduleOptions = reactive([
   transition: all 0.3s ease;
 
   &:hover {
-    color: var(--el-color-primary);
+    color: var(--app-primary);
   }
 }
 
@@ -508,7 +508,7 @@ const moduleOptions = reactive([
 // 确保主容器不出现滚动条
 .log-main {
   height: 100%;
-  background-color: var(--el-bg-color);
+  background-color: var(--app-bg-primary);
   animation: log-fade-in 0.5s ease-out;
   overflow-x: hidden; // 隐藏横向滚动条
 }

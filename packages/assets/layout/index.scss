@@ -24,9 +24,10 @@
   align-items: center;
   width: 100%;
   font-size: 14px;
-  color: var(--el-text-color-primary);
-  background: #fff;
-  box-shadow: 0 0 1px #888;
+  color: var(--cb-color-text-primary);
+  background: var(--cb-color-bg-primary);
+  box-shadow: 0 0 1px var(--cb-color-shadow-medium);
+  
   .scroll-item {
     position: relative;
     display: inline-block;
@@ -56,17 +57,16 @@
       transition: all 0.3s ease;
 
       &:hover {
-        background: var(--el-fill-color-light);
-        border-radius: 4px;
+        background: var(--cb-color-bg-hover-light);
       }
 
       .tag-title {
         font-weight: 500;
-        color: var(--el-text-color-regular);
+        color: var(--cb-color-text-secondary);
       }
 
       &.is-active .tag-title {
-        color: var(--el-color-primary);
+        color: var(--cb-color-text-brand);
         font-weight: 600;
       }
     }
@@ -74,31 +74,30 @@
     &.rounded-item {
       padding: 0 16px;
       margin: 0 6px;
-      background: var(--el-fill-color-extra-light);
-      border: 1px solid var(--el-border-color-lighter);
+      background: var(--cb-color-bg-light);
+      border: 1px solid var(--cb-color-border-light);
       border-radius: 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 4px var(--cb-color-shadow-light);
 
       &:hover {
-        background: var(--el-fill-color-light);
-        border-color: var(--el-color-primary-light-7);
+        background: var(--cb-color-bg-hover-light);
+        border-color: var(--cb-color-border-brand-light);
         transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 8px var(--cb-color-shadow-medium);
       }
 
       .tag-title {
         font-weight: 500;
-        color: var(--el-text-color-primary);
+        color: var(--cb-color-text-primary);
       }
 
       &.is-active {
-        background: var(--el-color-primary-light-9);
-        border-color: var(--el-color-primary);
-        box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+        background: var(--cb-color-bg-brand-lighter);
+        border-color: var(--cb-color-border-brand);
+        box-shadow: 0 0 0 2px var(--cb-color-shadow-brand-outline);
 
         .tag-title {
-          color: var(--el-color-primary);
+          color: var(--cb-color-text-brand);
           font-weight: 600;
         }
       }
@@ -112,7 +111,7 @@
       justify-content: center;
       width: 18px;
       height: 18px;
-      color: var(--el-color-primary);
+      color: var(--cb-color-text-brand);
       cursor: pointer;
       border-radius: 4px;
       transition:
@@ -121,8 +120,8 @@
       transform: translate(0, -50%);
 
       &:hover {
-        color: rgb(0 0 0 / 88%) !important;
-        background-color: rgb(0 0 0 / 6%);
+        color: var(--cb-color-text-primary-strong) !important;
+        background-color: var(--cb-color-bg-hover-light);
       }
     }
 
@@ -131,8 +130,8 @@
       background: transparent;
 
       &:hover {
-        background-color: var(--el-color-danger-light-8);
-        color: var(--el-color-danger);
+        background-color: var(--cb-color-bg-danger-light);
+        color: var(--cb-color-text-danger);
       }
     }
 
@@ -141,15 +140,15 @@
       border-radius: 50%;
 
       &:hover {
-        background-color: var(--el-color-danger-light-8);
-        color: var(--el-color-danger);
+        background-color: var(--cb-color-bg-danger-light);
+        color: var(--cb-color-text-danger);
       }
     }
   }
 
   .tag-title {
     padding: 0 4px;
-    color: var(--el-text-color-primary);
+    color: var(--cb-color-text-primary);
     text-decoration: none;
   }
 
@@ -201,13 +200,12 @@
     margin: 0;
     font-size: 13px;
     font-weight: normal;
-    color: var(--el-text-color-primary);
+    color: var(--cb-color-text-primary);
     white-space: nowrap;
     list-style-type: none;
-    background: #fff;
+    background: var(--cb-color-bg-primary);
     border-radius: 4px;
-    outline: 0;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+    box-shadow: 0 2px 8px var(--cb-color-shadow-contextmenu);
 
     li {
       display: flex;
@@ -218,7 +216,7 @@
       cursor: pointer;
 
       &:hover {
-        color: var(--el-color-primary);
+        color: var(--cb-color-text-brand);
       }
 
       svg {
@@ -245,8 +243,8 @@
 }
 
 .el-dropdown-menu__item:not(.is-disabled):hover {
-  color: #606266;
-  background: var(--el-bg-color-overlay);
+  color: var(--cb-color-text-secondary);
+  background: var(--cb-color-bg-overlay);
 }
 
 :deep(.el-dropdown-menu__item) i {
@@ -267,26 +265,26 @@
 
 .scroll-item.is-active {
   position: relative;
-  color: #fff;
-  box-shadow: 0 0 0.7px #888;
+  color: var(--cb-color-text-white);
+  box-shadow: 0 0 0.7px var(--cb-color-shadow-medium);
 
   .chrome-tab {
     z-index: 10;
   }
 
   .chrome-tab__bg {
-    color: var(--el-color-primary-light-9) !important;
+    color: var(--cb-color-bg-brand-lighter) !important;
   }
 
   .tag-title {
-    color: var(--el-color-primary) !important;
+    color: var(--cb-color-text-brand) !important;
   }
 
   .chrome-close-btn {
-    color: var(--el-color-primary);
+    color: var(--cb-color-text-brand);
 
     &:hover {
-      background-color: var(--el-color-primary);
+      background-color: var(--cb-color-bg-brand);
     }
   }
 
@@ -297,23 +295,22 @@
   &.minimal-item {
     color: inherit;
     box-shadow: none;
-    background: var(--el-fill-color-light);
-    border-radius: 4px;
+    background: var(--cb-color-bg-hover-light);
 
     .tag-title {
-      color: var(--el-color-primary) !important;
+      color: var(--cb-color-text-brand) !important;
       font-weight: 600;
     }
   }
 
   &.rounded-item {
     color: inherit;
-    box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
-    background: var(--el-color-primary-light-9);
-    border-color: var(--el-color-primary);
+    box-shadow: 0 0 0 2px var(--cb-color-shadow-brand-outline);
+    background: var(--cb-color-bg-brand-lighter);
+    border-color: var(--cb-color-border-brand);
 
     .tag-title {
-      color: var(--el-color-primary) !important;
+      color: var(--cb-color-text-brand) !important;
       font-weight: 600;
     }
   }
@@ -329,9 +326,9 @@
   width: 40px;
   height: 36px;
   margin: 0 4px;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-extra-light);
-  border: 1px solid var(--el-border-color-extra-light);
+  color: var(--cb-color-text-secondary);
+  background: var(--cb-color-bg-light);
+  border: 1px solid var(--cb-color-border-extra-light);
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -342,11 +339,11 @@
   }
 
   &:hover {
-    background: var(--el-color-primary-light-9);
-    border-color: var(--el-color-primary-light-7);
-    color: var(--el-color-primary);
+    background: var(--cb-color-bg-brand-lighter);
+    border-color: var(--cb-color-border-brand-light);
+    color: var(--cb-color-text-brand);
     transform: translateY(-1px);
-    box-shadow: var(--el-box-shadow-lighter);
+    box-shadow: var(--cb-color-shadow-lighter);
   }
 }
 
@@ -364,30 +361,29 @@
 
 /* 卡片模式下鼠标移入显示蓝色边框 */
 .card-in {
-  color: var(--el-color-primary);
+  color: var(--cb-color-text-brand);
 
   .tag-title {
-    color: var(--el-color-primary);
+    color: var(--cb-color-text-brand);
   }
 }
 
 /* 卡片模式下鼠标移出隐藏蓝色边框 */
 .card-out {
-  color: var(--el-text-color-primary);
+  color: var(--cb-color-text-primary);
   border: none;
 
   .tag-title {
-    color: var(--el-text-color-primary);
+    color: var(--cb-color-text-primary);
   }
 }
 
 /* 极简模式鼠标悬停效果 */
 .minimal-in {
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
+  background: var(--cb-color-bg-hover-light);
 
   .tag-title {
-    color: var(--el-color-primary);
+    color: var(--cb-color-text-brand);
   }
 }
 
@@ -395,30 +391,30 @@
   background: transparent;
 
   .tag-title {
-    color: var(--el-text-color-regular);
+    color: var(--cb-color-text-secondary);
   }
 }
 
 /* 圆角模式鼠标悬停效果 */
 .rounded-in {
-  background: var(--el-fill-color-light);
-  border-color: var(--el-color-primary-light-7);
+  background: var(--cb-color-bg-hover-light);
+  border-color: var(--cb-color-border-brand-light);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px var(--cb-color-shadow-medium);
 
   .tag-title {
-    color: var(--el-color-primary);
+    color: var(--cb-color-text-brand);
   }
 }
 
 .rounded-out {
-  background: var(--el-fill-color-extra-light);
-  border-color: var(--el-border-color-lighter);
+  background: var(--cb-color-bg-light);
+  border-color: var(--cb-color-border-light);
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px var(--cb-color-shadow-light);
 
   .tag-title {
-    color: var(--el-text-color-primary);
+    color: var(--cb-color-text-primary);
   }
 }
 
@@ -429,7 +425,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--el-color-primary);
+  background: var(--cb-color-bg-brand);
 }
 
 /* 灵动模式下鼠标移入显示蓝色进度条 */
@@ -439,7 +435,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--el-color-primary);
+  background: var(--cb-color-bg-brand);
   animation: schedule-in-width 200ms ease-in;
 }
 
@@ -450,7 +446,7 @@
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--el-color-primary);
+  background: var(--cb-color-bg-brand);
   animation: schedule-out-width 200ms ease-in;
 }
 
@@ -474,18 +470,18 @@
     right: 7px;
     width: 1px;
     height: 14px;
-    background-color: #d0dde9;
+    background-color: var(--cb-color-border-chrome-tab);
   }
 
   &:hover {
     z-index: 10;
 
     .chrome-tab__bg {
-      color: #dee1e6;
+      color: var(--cb-color-bg-chrome-tab-hover);
     }
 
     .tag-title {
-      color: #1f1f1f;
+      color: var(--cb-color-text-primary-strong);
     }
 
     .chrome-tab-divider {
@@ -510,12 +506,12 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: var(--el-text-color-primary);
+    color: var(--cb-color-text-primary);
     border-radius: 50%;
 
     &:hover {
-      color: var(--el-text-color-primary);
-      background-color: #b1b3b8;
+      color: var(--cb-color-text-primary);
+      background-color: var(--cb-color-bg-chrome-close-hover);
     }
   }
 }

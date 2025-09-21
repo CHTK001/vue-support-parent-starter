@@ -32,7 +32,7 @@ defineExpose({ triggerCloseMenu });
 </script>
 
 <template>
-  <div class="navbar bg-[#fff] shadow-sm shadow-[rgba(0,21,41,0.08)] flex">
+  <div class="navbar bg-[var(--cb-color-bg-primary)] shadow-sm shadow-[var(--cb-color-shadow-light)] flex">
     <div class="vertical-header-left">
       <div class="hamburger-container" @click="toggleMenu">
         <div class="bg-menu">
@@ -56,7 +56,7 @@ defineExpose({ triggerCloseMenu });
   height: var(--navbar-height);
   overflow: hidden;
   background-color: var(--el-bg-color);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px var(--cb-color-shadow-medium);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-family:
     "Inter",
@@ -109,13 +109,13 @@ defineExpose({ triggerCloseMenu });
     }
 
     .bg-menu {
-      background-color: var(--el-color-primary, #ff6a00);
+      background-color: var(--cb-color-bg-brand);
       padding: 7px;
       border-radius: 8px;
       position: relative;
       overflow: hidden;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow: 0 2px 8px var(--cb-color-shadow-brand);
 
       &::before {
         content: "";
@@ -134,7 +134,7 @@ defineExpose({ triggerCloseMenu });
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
+        box-shadow: 0 4px 12px var(--cb-color-shadow-brand-hover);
 
         &::before {
           opacity: 1;
@@ -152,7 +152,7 @@ defineExpose({ triggerCloseMenu });
       }
 
       .bg-menu-icon {
-        color: var(--el-text-color-primary);
+        color: var(--cb-color-text-primary);
         font-size: 12px;
         height: 32px;
         width: 32px;
@@ -186,13 +186,10 @@ defineExpose({ triggerCloseMenu });
       justify-content: space-around;
       height: var(--navbar-height);
       padding: 10px;
-      color: var(--el-text-color-primary);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      border-radius: 8px;
+      color: var(--cb-color-text-primary);
 
       &:hover {
-        background-color: rgba(var(--el-color-primary-rgb), 0.05);
+        background-color: var(--cb-color-bg-hover);
       }
 
       p {
@@ -206,7 +203,7 @@ defineExpose({ triggerCloseMenu });
         height: 32px;
         border-radius: 50%;
         transition: transform 0.3s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px var(--cb-color-shadow-light);
 
         &:hover {
           transform: scale(1.1);
@@ -275,20 +272,19 @@ defineExpose({ triggerCloseMenu });
 /* 暗黑模式适配 */
 .dark {
   .navbar {
-    background-color: var(--el-bg-color);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 12px var(--cb-color-shadow-dark);
   }
 
   .bg-menu {
-    box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.4) !important;
+    box-shadow: 0 2px 8px var(--cb-color-shadow-brand-dark) !important;
 
     &:hover {
-      box-shadow: 0 4px 16px rgba(var(--el-color-primary-rgb), 0.5) !important;
+      box-shadow: 0 4px 16px var(--cb-color-shadow-brand-hover-dark) !important;
     }
   }
 
   .el-dropdown-link:hover {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1) !important;
+    background-color: var(--cb-color-bg-hover-dark) !important;
   }
 }
 

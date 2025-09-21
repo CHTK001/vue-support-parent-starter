@@ -89,7 +89,7 @@ const dialogClose = () => {
                     <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" style="margin-right: 5px">
                       {{ row.sysDictItemName }}
                     </el-tag>
-                    <span class="flex-col justify-start" style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
+                    <span class="flex-col justify-start" style="float: right; color: var(--app-text-secondary); font-size: 11px">
                       <span>{{ row.sysDictItemCode }}</span>
                       <el-divider v-if="row.sysDictItemIcon" direction="vertical" />
                       <el-icon v-if="row.sysDictItemIcon" class="top-[1px]">
@@ -146,7 +146,7 @@ const dialogClose = () => {
   margin: 0;
 }
 .br-1 {
-  border-right: 1px solid var(--el-border-color);
+  border-right: 1px solid var(--app-border-primary);
 }
 .search-form {
   :deep(.el-form-item) {

@@ -1,0 +1,194 @@
+// 默认主题颜色变量
+// Default theme color variables
+
+:root {
+  /* ===== 主题颜色 Theme Colors ===== */
+  --app-primary: #1b84ff;
+  --app-primary-rgb: 27, 132, 255;
+  --app-primary-light: #4096ff;
+  --app-primary-lighter: #69b1ff;
+  --app-primary-dark: #0958d9;
+  --app-primary-darker: #003eb3;
+  
+  --app-success: #17c653;
+  --app-success-rgb: 23, 198, 83;
+  --app-success-light: #4dcb7a;
+  --app-success-lighter: #73d13d;
+  --app-success-dark: #389e0d;
+  --app-success-darker: #237804;
+  
+  --app-warning: #f6c000;
+  --app-warning-rgb: 246, 192, 0;
+  --app-warning-light: #fadb14;
+  --app-warning-lighter: #fff566;
+  --app-warning-dark: #d48806;
+  --app-warning-darker: #ad6800;
+  
+  --app-danger: #f8285a;
+  --app-danger-rgb: 248, 40, 90;
+  --app-danger-light: #ff4d6d;
+  --app-danger-lighter: #ffadd2;
+  --app-danger-dark: #d81e48;
+  --app-danger-darker: #a8071a;
+  
+  --app-info: #7239ea;
+  --app-info-rgb: 114, 57, 234;
+  --app-info-light: #9254de;
+  --app-info-lighter: #b37feb;
+  --app-info-dark: #531dab;
+  --app-info-darker: #391085;
+
+  /* ===== 中性色 Neutral Colors ===== */
+  --app-white: #ffffff;
+  --app-black: #000000;
+  
+  /* 背景色 */
+  --app-bg-primary: #ffffff;
+  --app-bg-secondary: #fafbfc;
+  --app-bg-tertiary: #f5f6fa;
+  --app-bg-disabled: #f5f5f5;
+  --app-bg-overlay: #ffffff;
+  --app-bg-overlay-transparent: rgba(255, 255, 255, 0.95);
+  --app-bg-overlay-light: rgba(255, 255, 255, 0.9);
+  
+  /* 文本颜色 */
+  --app-text-primary: #1e293b;
+  --app-text-secondary: #64748b;
+  --app-text-tertiary: #94a3b8;
+  --app-text-disabled: #cbd5e1;
+  --app-text-inverse: #ffffff;
+  
+  /* 边框颜色 */
+  --app-border-primary: #e2e8f0;
+  --app-border-secondary: #f1f5f9;
+  --app-border-focus: #1b84ff;
+  --app-border-error: #f8285a;
+  --app-border-transparent: rgba(255, 255, 255, 0.2);
+  --app-border-light-transparent: rgba(255, 255, 255, 0.3);
+  --app-border-lighter-transparent: rgba(255, 255, 255, 0.5);
+  
+  /* 状态颜色 */
+  --app-status-online: #10b981;
+  --app-status-offline: #ef4444;
+  --app-status-idle: #f59e0b;
+  --app-status-busy: #8b5cf6;
+  
+  /* 功能色 */
+  --app-link: #1b84ff;
+  --app-link-hover: #0958d9;
+  --app-link-active: #003eb3;
+  
+  /* 阴影 */
+  --app-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --app-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --app-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --app-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* 主色阴影 */
+  --app-primary-shadow: 0 0 0 2px rgba(27, 132, 255, 0.2);
+  --app-primary-shadow-sm: 0 0 0 1px rgba(27, 132, 255, 0.1);
+  --app-primary-shadow-lg: 0 0 0 3px rgba(27, 132, 255, 0.3);
+  --app-primary-shadow-xl: 0 0 0 4px rgba(27, 132, 255, 0.4);
+
+  /* ===== 扩展颜色 Extended Colors ===== */
+  /* 蓝色系 Blues */
+  --app-blue-50: #eff6ff;
+  --app-blue-100: #dbeafe;
+  --app-blue-200: #bfdbfe;
+  --app-blue-300: #93c5fd;
+  --app-blue-400: #60a5fa;
+  --app-blue-500: #3b82f6;
+  --app-blue-600: #2563eb;
+  --app-blue-700: #1d4ed8;
+  --app-blue-800: #1e40af;
+  --app-blue-900: #1e3a8a;
+  
+  /* 绿色系 Greens */
+  --app-green-50: #f0fdf4;
+  --app-green-100: #dcfce7;
+  --app-green-200: #bbf7d0;
+  --app-green-300: #86efac;
+  --app-green-400: #4ade80;
+  --app-green-500: #22c55e;
+  --app-green-600: #16a34a;
+  --app-green-700: #15803d;
+  --app-green-800: #166534;
+  --app-green-900: #14532d;
+  
+  /* 红色系 Reds */
+  --app-red-50: #fef2f2;
+  --app-red-100: #fee2e2;
+  --app-red-200: #fecaca;
+  --app-red-300: #fca5a5;
+  --app-red-400: #f87171;
+  --app-red-500: #ef4444;
+  --app-red-600: #dc2626;
+  --app-red-700: #b91c1c;
+  --app-red-800: #991b1b;
+  --app-red-900: #7f1d1d;
+  
+  /* 黄色系 Yellows */
+  --app-yellow-50: #fefce8;
+  --app-yellow-100: #fef9c3;
+  --app-yellow-200: #fef08a;
+  --app-yellow-300: #fde047;
+  --app-yellow-400: #facc15;
+  --app-yellow-500: #eab308;
+  --app-yellow-600: #ca8a04;
+  --app-yellow-700: #a16207;
+  --app-yellow-800: #854d0e;
+  --app-yellow-900: #713f12;
+  
+  /* 紫色系 Purples */
+  --app-purple-50: #faf5ff;
+  --app-purple-100: #f3e8ff;
+  --app-purple-200: #e9d5ff;
+  --app-purple-300: #d8b4fe;
+  --app-purple-400: #c084fc;
+  --app-purple-500: #a855f7;
+  --app-purple-600: #9333ea;
+  --app-purple-700: #7c3aed;
+  --app-purple-800: #6b21a8;
+  --app-purple-900: #581c87;
+  
+  /* 灰色系 Grays */
+  --app-gray-50: #f9fafb;
+  --app-gray-100: #f3f4f6;
+  --app-gray-200: #e5e7eb;
+  --app-gray-300: #d1d5db;
+  --app-gray-400: #9ca3af;
+  --app-gray-500: #6b7280;
+  --app-gray-600: #4b5563;
+  --app-gray-700: #374151;
+  --app-gray-800: #1f2937;
+  --app-gray-900: #111827;
+}
+
+/* ===== 元素特定颜色映射 Element Specific Color Mappings ===== */
+:root {
+  /* 表格颜色 */
+  --app-table-header-bg: var(--app-bg-secondary);
+  --app-table-row-hover: var(--app-bg-tertiary);
+  --app-table-border: var(--app-border-primary);
+  
+  /* 按钮颜色 */
+  --app-button-primary-bg: var(--app-primary);
+  --app-button-primary-hover: var(--app-primary-light);
+  --app-button-primary-active: var(--app-primary-dark);
+  
+  /* 输入框颜色 */
+  --app-input-bg: var(--app-bg-primary);
+  --app-input-border: var(--app-border-primary);
+  --app-input-focus-border: var(--app-border-focus);
+  
+  /* 卡片颜色 */
+  --app-card-bg: var(--app-bg-primary);
+  --app-card-border: var(--app-border-secondary);
+  --app-card-shadow: var(--app-shadow);
+  
+  /* 导航颜色 */
+  --app-nav-bg: var(--app-bg-primary);
+  --app-nav-text: var(--app-text-primary);
+  --app-nav-hover: var(--app-bg-tertiary);
+}

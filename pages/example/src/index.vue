@@ -247,11 +247,11 @@ const componentList = computed(() => {
 .example-header {
   margin-bottom: 32px;
   backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--app-bg-overlay-transparent);
+  border: 1px solid var(--app-border-transparent);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    0 8px 32px var(--app-shadow-md),
+    0 1px 0 var(--app-border-lighter-transparent) inset;
   border-radius: 16px;
   position: relative;
   z-index: 1;
@@ -264,7 +264,7 @@ const componentList = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, var(--app-border-secondary) 0%, var(--app-border-transparent) 100%);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -284,7 +284,7 @@ const componentList = computed(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 4px var(--app-shadow-sm);
 }
 
 .search-box {
@@ -292,22 +292,22 @@ const componentList = computed(() => {
 }
 
 .search-box :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--app-bg-overlay-light);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--app-border-light-transparent);
   border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px var(--app-shadow);
   transition: all 0.3s ease;
 }
 
 .search-box :deep(.el-input__wrapper:hover) {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(102, 126, 234, 0.3);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+  background: var(--app-bg-overlay-transparent);
+  border-color: var(--app-primary-light);
+  box-shadow: 0 6px 20px var(--app-primary-lighter);
 }
 
 .example-description {
-  color: #555;
+  color: var(--app-text-secondary);
   margin-bottom: 0;
   padding: 16px 20px;
   font-size: 15px;
@@ -320,12 +320,12 @@ const componentList = computed(() => {
   height: 200px;
   padding: 24px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--app-bg-overlay-transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--app-border-transparent);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    0 8px 32px var(--app-shadow-md),
+    0 1px 0 var(--app-border-lighter-transparent) inset;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   display: flex;
@@ -343,7 +343,7 @@ const componentList = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-purple-100) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -351,9 +351,9 @@ const componentList = computed(() => {
 .component-card:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  border-color: rgba(102, 126, 234, 0.3);
+    0 20px 40px var(--app-shadow-lg),
+    0 1px 0 var(--app-border-lighter-transparent) inset;
+  border-color: var(--app-primary-light);
 }
 
 .component-card:hover::before {
@@ -381,7 +381,7 @@ const componentList = computed(() => {
 
 .component-card:hover .component-icon {
   transform: scale(1.1) rotate(5deg);
-  filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.3));
+  filter: drop-shadow(0 4px 8px var(--app-primary-light));
 }
 
 .component-info {
@@ -394,43 +394,43 @@ const componentList = computed(() => {
   font-size: 20px;
   margin-bottom: 12px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--app-text-primary);
   transition: color 0.3s ease;
 }
 
 .component-card:hover .component-name {
-  color: #667eea;
+  color: var(--app-primary);
 }
 
 .component-desc {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--app-text-primary);
   line-height: 1.5;
   transition: color 0.3s ease;
 }
 
 .component-card:hover .component-desc {
-  color: #555;
+  color: var(--app-text-secondary);
 }
 
 .component-tag {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-purple-700) 100%);
+  color: var(--app-text-primary);
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px var(--app-primary-light);
   z-index: 3;
   transition: all 0.3s ease;
 }
 
 .component-card:hover .component-tag {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px var(--app-primary-lighter);
 }
 
 /* 响应式设计 */
@@ -467,29 +467,29 @@ const componentList = computed(() => {
 /* 暗色模式支持 */
 @media (prefers-color-scheme: dark) {
   .example-container {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    background: linear-gradient(135deg, var(--app-gray-800) 0%, var(--app-gray-700) 100%);
   }
 
   .example-header {
-    background: rgba(44, 62, 80, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--app-bg-overlay-transparent);
+    border-color: var(--app-border-primary);
   }
 
   .component-card {
-    background: rgba(44, 62, 80, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--app-bg-overlay-transparent);
+    border-color: var(--app-border-primary);
   }
 
   .component-name {
-    color: #ecf0f1;
+    color: var(--app-gray-100);
   }
 
   .component-desc {
-    color: #bdc3c7;
+    color: var(--app-gray-400);
   }
 
   .example-description {
-    color: #bdc3c7;
+    color: var(--app-gray-400);
   }
 }
 </style>

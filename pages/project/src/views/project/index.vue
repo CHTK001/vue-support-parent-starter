@@ -675,7 +675,7 @@ onMounted(async () => {
   right: 0;
   bottom: 0;
   z-index: -2;
-  background: linear-gradient(135deg, var(--el-bg-color-page, #f8fafc) 0%, var(--el-fill-color-lighter, #f0f2f5) 50%, var(--el-bg-color-page, #f8fafc) 100%);
+  background: linear-gradient(135deg, var(--app-bg-secondary) 0%, var(--app-bg-tertiary) 100%);
 }
 
 .floating-particles {
@@ -689,23 +689,11 @@ onMounted(async () => {
 
   .particle {
     position: absolute;
-    background: linear-gradient(45deg, rgba(64, 158, 255, 0.6), rgba(103, 194, 58, 0.6));
+    background: linear-gradient(45deg, var(--app-primary-light), var(--app-success-light));
     border-radius: 50%;
     animation: float 4s ease-in-out infinite;
     opacity: 0.7;
     filter: blur(1px);
-
-    @keyframes float {
-      0%,
-      100% {
-        transform: translateY(0px) rotate(0deg);
-        opacity: 0.7;
-      }
-      50% {
-        transform: translateY(-20px) rotate(180deg);
-        opacity: 0.3;
-      }
-    }
   }
 }
 
@@ -718,7 +706,7 @@ onMounted(async () => {
   &.orb-1 {
     width: 300px;
     height: 300px;
-    background: linear-gradient(45deg, rgba(64, 158, 255, 0.3), rgba(103, 194, 58, 0.2));
+    background: linear-gradient(45deg, var(--app-primary-lighter), var(--app-success-lighter));
     top: -150px;
     left: -150px;
   }
@@ -726,7 +714,7 @@ onMounted(async () => {
   &.orb-2 {
     width: 200px;
     height: 200px;
-    background: linear-gradient(45deg, rgba(103, 194, 58, 0.3), rgba(255, 193, 7, 0.2));
+    background: linear-gradient(45deg, var(--app-success-lighter), var(--app-warning-lighter));
     top: 50%;
     right: -100px;
   }
@@ -734,7 +722,7 @@ onMounted(async () => {
   &.orb-3 {
     width: 250px;
     height: 250px;
-    background: linear-gradient(45deg, rgba(255, 193, 7, 0.3), rgba(64, 158, 255, 0.2));
+    background: linear-gradient(45deg, var(--app-warning-lighter), var(--app-primary-lighter));
     bottom: -125px;
     left: 30%;
   }
@@ -745,7 +733,7 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--app-border-primary);
   padding: 0;
   height: auto;
   position: relative;
@@ -758,7 +746,7 @@ onMounted(async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(64, 158, 255, 0.05) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--app-primary-lighter) 50%, transparent 100%);
     animation: shimmer 3s ease-in-out infinite;
   }
 
@@ -798,7 +786,7 @@ onMounted(async () => {
       border-radius: 16px;
       background: linear-gradient(135deg, rgba(64, 158, 255, 0.1), rgba(103, 194, 58, 0.1));
       backdrop-filter: blur(10px);
-      box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
+      box-shadow: 0 8px 24px var(--app-primary-lighter);
 
       .title-icon {
         font-size: 2rem;
@@ -907,12 +895,12 @@ onMounted(async () => {
         backdrop-filter: blur(10px);
         border-radius: 12px;
         border: 1px solid var(--el-border-color-lighter);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 12px var(--app-shadow-sm);
         transition: all 0.3s ease;
 
         &:hover {
           background: rgba(255, 255, 255, 0.8);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 6px 16px var(--app-shadow);
         }
 
         .stat-value {
@@ -992,7 +980,7 @@ onMounted(async () => {
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     background: linear-gradient(135deg, rgba(64, 158, 255, 0.9), rgba(64, 158, 255, 0.7));
     color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 1px 2px var(--app-shadow-sm);
 
     &:hover {
       box-shadow: 0 8px 20px rgba(64, 158, 255, 0.3);
@@ -1012,13 +1000,13 @@ onMounted(async () => {
       border: none;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 6px var(--app-shadow-sm);
       transition: all 0.3s ease;
       background: var(--el-color-success-light-9, rgba(103, 194, 58, 0.12));
       color: var(--el-color-success, #67c23a);
 
       &:hover {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px var(--app-shadow);
       }
     }
   }
@@ -1096,8 +1084,8 @@ onMounted(async () => {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 32px var(--app-shadow-md),
+    0 2px 8px var(--app-shadow-sm),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   color: var(--el-text-color-primary);
@@ -1155,7 +1143,7 @@ onMounted(async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(64, 158, 255, 0.02) 0%, rgba(103, 194, 58, 0.02) 50%, rgba(255, 193, 7, 0.02) 100%);
+    background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 50%, var(--app-warning-lighter) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -1165,8 +1153,8 @@ onMounted(async () => {
   &.card-new {
     border: 2px solid var(--el-color-success);
     box-shadow:
-      0 8px 32px rgba(103, 194, 58, 0.2),
-      0 2px 8px rgba(103, 194, 58, 0.1);
+      0 8px 32px var(--app-success-lighter),
+      0 2px 8px var(--app-success-light);
 
     &::after {
       content: "NEW";
@@ -1185,8 +1173,8 @@ onMounted(async () => {
   }
 
   &.card-featured {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 193, 7, 0.05));
-    border: 2px solid rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, var(--app-warning-lighter), var(--app-warning-light));
+    border: 2px solid var(--app-warning-light);
 
     &::after {
       content: "⭐";
@@ -1231,8 +1219,8 @@ onMounted(async () => {
   &:hover {
     transform: translateY(-8px) scale(1.02);
     box-shadow:
-      0 20px 40px rgba(0, 0, 0, 0.12),
-      0 8px 16px rgba(0, 0, 0, 0.08),
+      0 20px 40px var(--app-shadow-lg),
+      0 8px 16px var(--app-shadow-md),
       inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
     &::before {
@@ -1293,7 +1281,7 @@ onMounted(async () => {
     overflow: hidden;
     margin-bottom: 0;
     position: relative;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px var(--app-border-secondary);
     transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 
     &:hover {
@@ -1307,7 +1295,7 @@ onMounted(async () => {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: linear-gradient(135deg, rgba(64, 158, 255, 0.05) 0%, rgba(103, 194, 58, 0.05) 100%);
+      background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
     }
 
     .project-img {
@@ -1316,7 +1304,7 @@ onMounted(async () => {
       object-fit: cover;
       object-position: center;
       transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      background: linear-gradient(135deg, var(--app-bg-secondary), var(--app-bg-tertiary));
     }
 
     .image-overlay {
@@ -1325,7 +1313,7 @@ onMounted(async () => {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 70%, rgba(0, 0, 0, 0.3) 100%);
+      background: linear-gradient(to bottom, transparent 0%, var(--app-shadow-sm) 70%, var(--app-shadow) 100%);
       opacity: 0.3;
       transition: opacity 0.4s ease;
       pointer-events: none;
@@ -1350,20 +1338,20 @@ onMounted(async () => {
       align-items: center;
       justify-content: center;
       color: var(--el-color-primary, #409eff);
-      background: linear-gradient(135deg, rgba(64, 158, 255, 0.08) 0%, rgba(103, 194, 58, 0.08) 100%);
+      background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
       padding: 32px 20px;
 
       .placeholder-icon-wrapper {
         width: 80px;
         height: 80px;
         border-radius: 20px;
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.12), rgba(103, 194, 58, 0.12));
+        background: linear-gradient(135deg, var(--app-primary-light) rgba(103, 194, 58, 0.12));
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 20px;
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 12px 24px rgba(64, 158, 255, 0.15);
+        box-shadow: 0 12px 24px var(--app-primary-light);
       }
 
       .placeholder-icon {
@@ -1383,7 +1371,7 @@ onMounted(async () => {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        text-shadow: 0 1px 2px var(--app-shadow-sm);
       }
     }
   }
@@ -1406,26 +1394,26 @@ onMounted(async () => {
       transition: all 0.3s ease;
 
       &.status-active {
-        background: linear-gradient(135deg, rgba(103, 194, 58, 0.15), rgba(103, 194, 58, 0.08));
-        border: 1px solid rgba(103, 194, 58, 0.3);
+        background: linear-gradient(135deg, var(--app-success-light), var(--app-success-lighter));
+        border: 1px solid var(--app-success-light);
         color: var(--el-color-success);
       }
 
       &.status-completed {
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(64, 158, 255, 0.08));
-        border: 1px solid rgba(64, 158, 255, 0.3);
+        background: linear-gradient(135deg, var(--app-primary-light), var(--app-primary-lighter));
+        border: 1px solid var(--app-primary-light);
         color: var(--el-color-primary);
       }
 
       &.status-paused {
-        background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
-        border: 1px solid rgba(255, 193, 7, 0.3);
+        background: linear-gradient(135deg, var(--app-warning-light), var(--app-warning-lighter));
+        border: 1px solid var(--app-warning-light);
         color: var(--el-color-warning);
       }
 
       &.status-error {
-        background: linear-gradient(135deg, rgba(245, 108, 108, 0.15), rgba(245, 108, 108, 0.08));
-        border: 1px solid rgba(245, 108, 108, 0.3);
+        background: linear-gradient(135deg, var(--app-danger-light), var(--app-danger-lighter));
+        border: 1px solid var(--app-danger-light);
         color: var(--el-color-danger);
       }
 
@@ -1771,13 +1759,13 @@ onMounted(async () => {
       border-radius: 10px;
       background: var(--el-bg-color, rgba(255, 255, 255, 0.8));
       border: 1px solid var(--el-border-color-lighter, rgba(0, 0, 0, 0.05));
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 6px var(--app-shadow-sm);
       transition: all 0.3s ease;
       color: var(--el-text-color-primary);
 
       &:hover {
         background: var(--el-bg-color-overlay, rgba(255, 255, 255, 0.95));
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px var(--app-shadow);
       }
     }
   }
@@ -1816,27 +1804,27 @@ onMounted(async () => {
 .dark {
   .project-workspace {
     .workspace-background {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      background: linear-gradient(135deg, var(--app-bg-primary) 0%, var(--app-bg-secondary) 100%);
     }
 
     .gradient-orb {
       &.orb-1 {
-        background: linear-gradient(45deg, rgba(64, 158, 255, 0.4), rgba(103, 194, 58, 0.3));
+        background: linear-gradient(45deg, var(--app-primary-light), var(--app-success-light));
       }
 
       &.orb-2 {
-        background: linear-gradient(45deg, rgba(103, 194, 58, 0.4), rgba(255, 193, 7, 0.3));
+        background: linear-gradient(45deg, var(--app-success-light), var(--app-warning-light));
       }
 
       &.orb-3 {
-        background: linear-gradient(45deg, rgba(255, 193, 7, 0.4), rgba(64, 158, 255, 0.3));
+        background: linear-gradient(45deg, var(--app-warning-light), var(--app-primary-light));
       }
     }
   }
 
   .dashboard-header {
     background: rgba(15, 23, 42, 0.9);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    border-bottom-color: var(--app-border-primary);
 
     .title-text {
       background: linear-gradient(135deg, #60a5fa, #34d399);
@@ -1854,24 +1842,24 @@ onMounted(async () => {
   .project-card {
     background: rgba(30, 41, 59, 0.9);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 8px 32px var(--app-shadow-lg),
+      0 2px 8px var(--app-shadow-md),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
     &:hover {
       box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.4),
-        0 8px 16px rgba(0, 0, 0, 0.3),
+        0 20px 40px var(--app-shadow-xl),
+        0 8px 16px var(--app-shadow-lg),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
     }
 
     .project-image {
       .image-container {
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(103, 194, 58, 0.1) 100%);
+        background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-success-lighter) 100%);
       }
 
       .image-placeholder {
-        background: linear-gradient(135deg, rgba(64, 158, 255, 0.15), rgba(103, 194, 58, 0.15));
+        background: linear-gradient(135deg, var(--app-primary-light) rgba(103, 194, 58, 0.15));
       }
     }
 
@@ -1881,26 +1869,26 @@ onMounted(async () => {
       }
 
       .project-status {
-        background: linear-gradient(135deg, rgba(103, 194, 58, 0.2), rgba(103, 194, 58, 0.1));
-        border-color: rgba(103, 194, 58, 0.3);
+        background: linear-gradient(135deg, var(--app-success) rgba(103, 194, 58, 0.1));
+        border-color: var(--app-success-light);
       }
     }
   }
 
   .more .el-button-group .el-button {
     background: rgba(51, 65, 85, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--app-border-primary);
     color: var(--el-text-color-primary);
 
     &:hover {
       background: rgba(71, 85, 105, 0.9);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: var(--app-border-secondary);
     }
   }
 
   :deep(.scTable-page) {
     background: rgba(30, 41, 59, 0.85) !important;
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--app-border-primary);
 
     &:hover {
       background: rgba(51, 65, 85, 0.9) !important;

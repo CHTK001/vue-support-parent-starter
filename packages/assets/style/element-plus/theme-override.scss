@@ -1,0 +1,260 @@
+// Element Plus 主题覆盖 - 使用自定义颜色变量
+// Element Plus Theme Override - Using Custom Color Variables
+
+// 导入自定义颜色系统
+@import '../colors/index.scss';
+
+// Element Plus 主要颜色变量覆盖
+:root {
+  /* ===== 主要颜色覆盖 Primary Color Override ===== */
+  --el-color-primary: var(--app-primary);
+  --el-color-primary-light-1: var(--app-primary-light);
+  --el-color-primary-light-2: var(--app-primary-light);
+  --el-color-primary-light-3: var(--app-primary-lighter);
+  --el-color-primary-light-4: var(--app-primary-lighter);
+  --el-color-primary-light-5: var(--app-primary-lighter);
+  --el-color-primary-light-6: var(--app-primary-lighter);
+  --el-color-primary-light-7: var(--app-primary-lighter);
+  --el-color-primary-light-8: var(--app-primary-lighter);
+  --el-color-primary-light-9: var(--app-primary-lighter);
+  --el-color-primary-dark-1: var(--app-primary-dark);
+  --el-color-primary-dark-2: var(--app-primary-darker);
+
+  /* ===== 成功颜色覆盖 Success Color Override ===== */
+  --el-color-success: var(--app-success);
+  --el-color-success-light-1: var(--app-success-light);
+  --el-color-success-light-2: var(--app-success-light);
+  --el-color-success-light-3: var(--app-success-lighter);
+  --el-color-success-light-4: var(--app-success-lighter);
+  --el-color-success-light-5: var(--app-success-lighter);
+  --el-color-success-light-6: var(--app-success-lighter);
+  --el-color-success-light-7: var(--app-success-lighter);
+  --el-color-success-light-8: var(--app-success-lighter);
+  --el-color-success-light-9: var(--app-success-lighter);
+  --el-color-success-dark-1: var(--app-success-dark);
+  --el-color-success-dark-2: var(--app-success-darker);
+
+  /* ===== 警告颜色覆盖 Warning Color Override ===== */
+  --el-color-warning: var(--app-warning);
+  --el-color-warning-light-1: var(--app-warning-light);
+  --el-color-warning-light-2: var(--app-warning-light);
+  --el-color-warning-light-3: var(--app-warning-lighter);
+  --el-color-warning-light-4: var(--app-warning-lighter);
+  --el-color-warning-light-5: var(--app-warning-lighter);
+  --el-color-warning-light-6: var(--app-warning-lighter);
+  --el-color-warning-light-7: var(--app-warning-lighter);
+  --el-color-warning-light-8: var(--app-warning-lighter);
+  --el-color-warning-light-9: var(--app-warning-lighter);
+  --el-color-warning-dark-1: var(--app-warning-dark);
+  --el-color-warning-dark-2: var(--app-warning-darker);
+
+  /* ===== 错误颜色覆盖 Error/Danger Color Override ===== */
+  --el-color-error: var(--app-danger);
+  --el-color-danger: var(--app-danger);
+  --el-color-danger-light-1: var(--app-danger-light);
+  --el-color-danger-light-2: var(--app-danger-light);
+  --el-color-danger-light-3: var(--app-danger-lighter);
+  --el-color-danger-light-4: var(--app-danger-lighter);
+  --el-color-danger-light-5: var(--app-danger-lighter);
+  --el-color-danger-light-6: var(--app-danger-lighter);
+  --el-color-danger-light-7: var(--app-danger-lighter);
+  --el-color-danger-light-8: var(--app-danger-lighter);
+  --el-color-danger-light-9: var(--app-danger-lighter);
+  --el-color-danger-dark-1: var(--app-danger-dark);
+  --el-color-danger-dark-2: var(--app-danger-darker);
+
+  /* ===== 信息颜色覆盖 Info Color Override ===== */
+  --el-color-info: var(--app-info);
+  --el-color-info-light-1: var(--app-info-light);
+  --el-color-info-light-2: var(--app-info-light);
+  --el-color-info-light-3: var(--app-info-lighter);
+  --el-color-info-light-4: var(--app-info-lighter);
+  --el-color-info-light-5: var(--app-info-lighter);
+  --el-color-info-light-6: var(--app-info-lighter);
+  --el-color-info-light-7: var(--app-info-lighter);
+  --el-color-info-light-8: var(--app-info-lighter);
+  --el-color-info-light-9: var(--app-info-lighter);
+  --el-color-info-dark-1: var(--app-info-dark);
+  --el-color-info-dark-2: var(--app-info-darker);
+
+  /* ===== 背景颜色覆盖 Background Color Override ===== */
+  --el-bg-color: var(--app-bg-primary);
+  --el-bg-color-overlay: var(--app-bg-overlay);
+  --el-bg-color-page: var(--app-bg-secondary);
+
+  /* ===== 文本颜色覆盖 Text Color Override ===== */
+  --el-text-color-primary: var(--app-text-primary);
+  --el-text-color-regular: var(--app-text-secondary);
+  --el-text-color-secondary: var(--app-text-secondary);
+  --el-text-color-placeholder: var(--app-text-tertiary);
+  --el-text-color-disabled: var(--app-text-disabled);
+
+  /* ===== 边框颜色覆盖 Border Color Override ===== */
+  --el-border-color: var(--app-border-primary);
+  --el-border-color-light: var(--app-border-primary);
+  --el-border-color-lighter: var(--app-border-secondary);
+  --el-border-color-extra-light: var(--app-border-secondary);
+  --el-border-color-dark: var(--app-border-primary);
+  --el-border-color-darker: var(--app-border-primary);
+  --el-border-color-hover: var(--app-border-focus);
+
+  /* ===== 填充颜色覆盖 Fill Color Override ===== */
+  --el-fill-color: var(--app-bg-secondary);
+  --el-fill-color-light: var(--app-bg-tertiary);
+  --el-fill-color-lighter: var(--app-bg-tertiary);
+  --el-fill-color-extra-light: var(--app-bg-tertiary);
+  --el-fill-color-dark: var(--app-bg-primary);
+  --el-fill-color-darker: var(--app-bg-primary);
+  --el-fill-color-blank: var(--app-bg-primary);
+
+  /* ===== 阴影覆盖 Shadow Override ===== */
+  --el-box-shadow: var(--app-shadow);
+  --el-box-shadow-light: var(--app-shadow-sm);
+  --el-box-shadow-base: var(--app-shadow-md);
+  --el-box-shadow-dark: var(--app-shadow-lg);
+
+  /* ===== 遮罩覆盖 Mask Override ===== */
+  --el-mask-color: rgba(0, 0, 0, 0.8);
+  --el-mask-color-extra-light: rgba(0, 0, 0, 0.3);
+}
+
+/* ===== 深色主题覆盖 Dark Theme Override ===== */
+html.dark {
+  /* 重新定义 Element Plus 变量以适应深色主题 */
+  --el-bg-color: var(--app-bg-primary);
+  --el-bg-color-overlay: var(--app-bg-overlay);
+  --el-bg-color-page: var(--app-bg-secondary);
+  
+  --el-text-color-primary: var(--app-text-primary);
+  --el-text-color-regular: var(--app-text-secondary);
+  --el-text-color-secondary: var(--app-text-secondary);
+  --el-text-color-placeholder: var(--app-text-tertiary);
+  --el-text-color-disabled: var(--app-text-disabled);
+  
+  --el-border-color: var(--app-border-primary);
+  --el-border-color-light: var(--app-border-primary);
+  --el-border-color-lighter: var(--app-border-secondary);
+  --el-border-color-extra-light: var(--app-border-secondary);
+  
+  --el-fill-color: var(--app-bg-secondary);
+  --el-fill-color-light: var(--app-bg-tertiary);
+  --el-fill-color-lighter: var(--app-bg-tertiary);
+  --el-fill-color-extra-light: var(--app-bg-tertiary);
+  
+  /* 调整遮罩颜色以适应深色主题 */
+  --el-mask-color: rgba(0, 0, 0, 0.9);
+  --el-mask-color-extra-light: rgba(0, 0, 0, 0.6);
+}
+
+/* ===== 组件特定的颜色覆盖 Component Specific Color Override ===== */
+
+/* 表格组件 Table Component */
+.el-table {
+  --el-table-border-color: var(--app-border-primary);
+  --el-table-bg-color: var(--app-bg-primary);
+  --el-table-tr-bg-color: var(--app-bg-primary);
+  --el-table-row-hover-bg-color: var(--app-bg-secondary);
+  --el-table-header-bg-color: var(--app-bg-secondary);
+  --el-table-header-text-color: var(--app-text-primary);
+  --el-table-text-color: var(--app-text-primary);
+}
+
+/* 输入框组件 Input Component */
+.el-input {
+  --el-input-bg-color: var(--app-bg-primary);
+  --el-input-border-color: var(--app-border-primary);
+  --el-input-hover-border-color: var(--app-border-focus);
+  --el-input-focus-border-color: var(--app-border-focus);
+  --el-input-text-color: var(--app-text-primary);
+  --el-input-placeholder-color: var(--app-text-tertiary);
+}
+
+/* 按钮组件 Button Component */
+.el-button {
+  --el-button-text-color: var(--app-text-primary);
+  --el-button-bg-color: var(--app-bg-primary);
+  --el-button-border-color: var(--app-border-primary);
+  --el-button-hover-text-color: var(--app-text-inverse);
+  --el-button-hover-bg-color: var(--app-primary-light);
+  --el-button-hover-border-color: var(--app-primary-light);
+  --el-button-active-text-color: var(--app-text-inverse);
+  --el-button-active-bg-color: var(--app-primary-dark);
+  --el-button-active-border-color: var(--app-primary-dark);
+}
+
+/* 卡片组件 Card Component */
+.el-card {
+  --el-card-bg-color: var(--app-bg-primary);
+  --el-card-border-color: var(--app-border-primary);
+}
+
+/* 对话框组件 Dialog Component */
+.el-dialog {
+  --el-dialog-bg-color: var(--app-bg-primary);
+  --el-dialog-box-shadow: var(--app-shadow-lg);
+}
+
+/* 抽屉组件 Drawer Component */
+.el-drawer {
+  --el-drawer-bg-color: var(--app-bg-primary);
+}
+
+/* 下拉菜单组件 Dropdown Component */
+.el-dropdown-menu {
+  --el-dropdown-bg-color: var(--app-bg-primary);
+  --el-dropdown-border-color: var(--app-border-primary);
+  --el-dropdown-box-shadow: var(--app-shadow);
+}
+
+/* 选择器组件 Select Component */
+.el-select {
+  --el-select-input-color: var(--app-text-primary);
+  --el-select-input-focus-border-color: var(--app-border-focus);
+}
+
+.el-select-dropdown {
+  --el-select-dropdown-bg-color: var(--app-bg-primary);
+  --el-select-dropdown-shadow: var(--app-shadow);
+  --el-select-dropdown-border-color: var(--app-border-primary);
+}
+
+/* 分页组件 Pagination Component */
+.el-pagination {
+  --el-pagination-bg-color: var(--app-bg-primary);
+  --el-pagination-text-color: var(--app-text-primary);
+  --el-pagination-border-color: var(--app-border-primary);
+  --el-pagination-hover-color: var(--app-primary);
+}
+
+/* 导航菜单组件 Menu Component */
+.el-menu {
+  --el-menu-bg-color: var(--app-bg-primary);
+  --el-menu-text-color: var(--app-text-primary);
+  --el-menu-hover-bg-color: var(--app-bg-secondary);
+  --el-menu-active-color: var(--app-primary);
+}
+
+/* 标签页组件 Tabs Component */
+.el-tabs {
+  --el-tabs-header-bg-color: var(--app-bg-primary);
+}
+
+/* 工具提示组件 Tooltip Component */
+.el-tooltip__popper {
+  --el-tooltip-bg-color: var(--app-bg-overlay);
+  --el-tooltip-text-color: var(--app-text-primary);
+}
+
+/* 消息提示组件 Message Component */
+.el-message {
+  --el-message-bg-color: var(--app-bg-overlay);
+  --el-message-border-color: var(--app-border-primary);
+  --el-message-text-color: var(--app-text-primary);
+}
+
+/* 通知组件 Notification Component */
+.el-notification {
+  --el-notification-bg-color: var(--app-bg-overlay);
+  --el-notification-border-color: var(--app-border-primary);
+  --el-notification-text-color: var(--app-text-primary);
+}

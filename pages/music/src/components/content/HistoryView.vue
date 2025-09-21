@@ -76,29 +76,29 @@ defineProps({
   }
   
   &__music-list {
-    background-color: var(--el-bg-color);
+    background-color: var(--app-bg-primary);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-shadow-sm);
   }
   
   &__music-item {
     display: flex;
     align-items: center;
     padding: 12px 15px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-bottom: 1px solid var(--app-border-secondary);
     
     &:last-child {
       border-bottom: none;
     }
     
     &:hover {
-      background-color: var(--el-color-primary-light-9);
+      background-color: var(--app-primary-lightest);
     }
     
     &--active {
-      background-color: var(--el-color-primary-light-8);
-      color: var(--el-color-primary);
+      background-color: var(--app-primary-lighter);
+      color: var(--app-primary);
     }
   }
   
@@ -106,7 +106,7 @@ defineProps({
     width: 30px;
     text-align: center;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
   }
   
   &__music-cover-small {
@@ -135,7 +135,7 @@ defineProps({
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--app-shadow);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -144,7 +144,7 @@ defineProps({
     
     .iconify {
       font-size: 20px;
-      color: var(--el-text-color-primary);
+      color: var(--app-text-primary);
     }
   }
   
@@ -164,7 +164,7 @@ defineProps({
   
   &__music-artist {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -173,7 +173,7 @@ defineProps({
   &__music-album {
     width: 150px;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -183,7 +183,7 @@ defineProps({
   &__music-duration {
     width: 50px;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     text-align: center;
   }
   

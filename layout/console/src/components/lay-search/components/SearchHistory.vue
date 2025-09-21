@@ -29,7 +29,7 @@ const itemStyle = computed(() => {
   return item => {
     return {
       background: item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
-      color: item.path === active.value ? "#fff" : "",
+      color: item.path === active.value ? "var(--cb-color-text-white)" : "",
       fontSize: item.path === active.value ? "16px" : "14px"
     };
   };
@@ -37,7 +37,7 @@ const itemStyle = computed(() => {
 
 const titleStyle = computed(() => {
   return {
-    color: useEpThemeStoreHook().epThemeColor,
+    color: "var(--cb-color-text-brand)",
     fontWeight: 500
   };
 });
@@ -146,7 +146,7 @@ defineExpose({ handleScroll });
         v-for="(item, index) in historyList"
         :key="item.path"
         :ref="'historyItemRef' + index"
-        class="history-item dark:bg-[#1d1d1d]"
+        class="history-item dark:bg-[var(--cb-color-bg-dark)]"
         :style="itemStyle(item)"
         @click="handleTo"
         @mouseenter="handleMouse(item)"
@@ -163,7 +163,7 @@ defineExpose({ handleScroll });
           v-for="(item, index) in collectList"
           :key="item.path"
           :ref="'historyItemRef' + (index + historyList.length)"
-          class="history-item dark:bg-[#1d1d1d]"
+          class="history-item dark:bg-[var(--cb-color-bg-dark)]"
           :style="itemStyle(item)"
           @click="handleTo"
           @mouseenter="handleMouse(item)"
@@ -186,7 +186,7 @@ defineExpose({ handleScroll });
     padding: 14px;
     margin: 8px auto 10px;
     cursor: pointer;
-    border: 0.1px solid #ccc;
+    border: 0.1px solid var(--cb-color-border-light);
     border-radius: 4px;
     transition: font-size 0.16s;
   }

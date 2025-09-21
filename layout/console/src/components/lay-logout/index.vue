@@ -11,8 +11,8 @@
   position: relative;
   overflow: hidden;
   transition-duration: 0.3s;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
-  background-color: rgb(255, 65, 65);
+  box-shadow: 2px 2px 10px var(--cb-color-shadow-logout);
+  background-color: var(--cb-color-bg-logout);
 }
 
 /* plus sign */
@@ -30,7 +30,7 @@
 }
 
 .sign svg path {
-  fill: white;
+  fill: var(--cb-color-text-white);
 }
 /* text */
 .text {
