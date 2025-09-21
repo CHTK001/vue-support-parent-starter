@@ -21,16 +21,16 @@
       </el-table-column>
       <el-table-column label="类型" prop="methods" show-overflow-tooltip width="100">
         <template #default="{ row }">
-          <b v-if="row.methods[0] == 'GET'" class="text-green-500" style="color: green">GET</b>
-          <b v-else-if="row.methods[0] == 'HEAD'" class="text-green-500">HEAD</b>
-          <b v-else-if="row.methods[0] == 'POST'" class="text-orange-500">POST</b>
-          <b v-else-if="row.methods[0] == 'PUT'" class="text-blue-500">PUT</b>
+          <b v-if="row.methods[0] == 'GET'" class="http-method-get">GET</b>
+          <b v-else-if="row.methods[0] == 'HEAD'" class="http-method-head">HEAD</b>
+          <b v-else-if="row.methods[0] == 'POST'" class="http-method-post">POST</b>
+          <b v-else-if="row.methods[0] == 'PUT'" class="http-method-put">PUT</b>
           <b v-else-if="row.methods[0] == 'DELETE'">
-            <span class="text-red-600" style="color: red">DELETE</span>
+            <span class="http-method-delete">DELETE</span>
           </b>
-          <b v-else-if="row.methods[0] == 'PATH'" class="text-purple-500">PATH</b>
-          <b v-else-if="row.methods[0] == 'OPTIONS'" class="text-pink-500">OPTIONS</b>
-          <b v-else class="text-green-500">GET</b>
+          <b v-else-if="row.methods[0] == 'PATH'" class="http-method-path">PATH</b>
+          <b v-else-if="row.methods[0] == 'OPTIONS'" class="http-method-options">OPTIONS</b>
+          <b v-else class="http-method-get">GET</b>
         </template>
       </el-table-column>
       <el-table-column label="地址" prop="url" show-overflow-tooltip width="300px" />
@@ -62,7 +62,7 @@
 <script setup>
 import { useTransition } from "@vueuse/core";
 import axios from "axios";
-import { onBeforeMount, reactive, ref, computed } from "vue";
+import { computed, onBeforeMount, reactive, ref } from "vue";
 const filterName = ref("");
 const tableData = computed(() => {
   if (filterName.value) {
@@ -95,16 +95,21 @@ onBeforeMount(async () => {
 });
 </script>
 <style lang="scss" scoped>
+// 导入自定义颜色系统
+@import '../../../../../../packages/assets/style/colors/index.scss';
+
 .counter {
   counter-reset: counter;
 }
+
 :deep(.row-expand-unhas .el-table__expand-icon--expanded) {
   display: none !important;
 }
+
 .item::before {
   counter-increment: counter;
   content: counter(counter);
-  color: var(--el-text-color-regular);
+  color: var(--app-text-secondary);
   font-size: 1.2em;
   right: 50%;
   top: 10px;
@@ -113,7 +118,36 @@ onBeforeMount(async () => {
   text-align: center;
   vertical-align: middle;
   border-radius: 50%;
-  background-color: var(--el-color-info-light-7);
+  background-color: var(--app-info-lighter);
   display: inline-block;
+}
+
+// HTTP方法颜色样式
+.http-method-get {
+  color: var(--app-success) !important;
+}
+
+.http-method-head {
+  color: var(--app-success) !important;
+}
+
+.http-method-post {
+  color: var(--app-warning) !important;
+}
+
+.http-method-put {
+  color: var(--app-info) !important;
+}
+
+.http-method-delete {
+  color: var(--app-danger) !important;
+}
+
+.http-method-path {
+  color: var(--app-purple-500) !important;
+}
+
+.http-method-options {
+  color: var(--app-purple-300) !important;
 }
 </style>

@@ -537,13 +537,10 @@
 <script setup lang="ts">
 console.log(console.track());
 import ScLayer from '@repo/components/ScLayer/index.vue';
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
-import { MapType, MapTile } from '@repo/components/ScLayer/types/index';
-import { DEFAULT_MAP_CONFIG } from '@repo/components/ScLayer/types';
-import type { ShapeOption, Track, TrackPlayer } from '@repo/components/ScLayer/types';
-import type { HeatmapPoint, HeatmapConfig } from '@repo/components/ScLayer/types';
-import { ToolbarPosition, ToolbarDirection } from '@repo/components/ScLayer/types';
-import type { WindConfig } from '@repo/components/ScLayer/types';
+import type { HeatmapPoint, ShapeOption, WindConfig } from '@repo/components/ScLayer/types';
+import { DEFAULT_MAP_CONFIG, ToolbarDirection, ToolbarPosition } from '@repo/components/ScLayer/types';
+import { MapTile, MapType } from '@repo/components/ScLayer/types/index';
+import { computed, reactive, ref, watch } from 'vue';
 // 引入CesiumObject和模型类型定义
 import type { Model3DOptions } from '@repo/components/ScLayer/composables/CesiumModelObject';
 
@@ -553,7 +550,7 @@ const MarkerClusterMode = {
   NONE: 'none'
 };
 // 引入飞线图类型定义
-import type { FlightLinePoint, FlightLineConfig, FlightLineData } from '@repo/components/ScLayer/types';
+import type { FlightLineConfig, FlightLineData, FlightLinePoint } from '@repo/components/ScLayer/types';
 // 引入Element Plus组件
 import { ElMessage } from 'element-plus';
 
@@ -4282,7 +4279,7 @@ button {
   padding: 4px 8px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   cursor: pointer;
   transition: all 0.3s;
   font-size: 12px;
@@ -4330,9 +4327,9 @@ button:hover {
 .heatmap-list {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   padding: 8px;
 }
 
@@ -4343,9 +4340,9 @@ button:hover {
 .heatmap-item {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--app-bg-secondary);
 }
 
 .marker-header,
@@ -4373,13 +4370,13 @@ button:hover {
 }
 
 .heatmap-selected {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
+  border-color: var(--app-primary);
+  background-color: var(--app-primary-lighter);
 }
 
 .heatmap-weight {
   font-size: 12px;
-  color: #ff4d4f;
+  color: var(--app-danger-light);
 }
 
 .heatmap-position {
@@ -4393,7 +4390,7 @@ button:hover {
 .no-flight-lines,
 .no-marker-groups,
 .no-heatmap-points {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
   padding: 8px 0;
   text-align: center;
@@ -4403,7 +4400,7 @@ button:hover {
 .more-shapes,
 .more-flight-lines,
 .more-heatmap-points {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
   text-align: center;
   padding: 4px 0;
@@ -4413,9 +4410,9 @@ button:hover {
 .flight-line-item {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--app-bg-secondary);
   cursor: pointer;
   position: relative;
   display: flex;
@@ -4454,8 +4451,8 @@ button:hover {
 }
 
 .flight-line-selected {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
+  border-color: var(--app-primary);
+  background-color: var(--app-primary-lighter);
 }
 
 .flight-line-route {
@@ -4471,15 +4468,15 @@ button:hover {
 
 .flight-line-value {
   font-size: 12px;
-  color: #ff4d4f;
+  color: var(--app-danger-light);
 }
 
 .log-container {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   padding: 8px;
 }
 
@@ -4502,7 +4499,7 @@ button:hover {
 }
 
 .no-logs {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
 }
 
@@ -4556,9 +4553,9 @@ button:hover {
 
 /* 工具栏位置按钮激活状态 */
 .toolbar-position-row .active-button {
-  background-color: #e6f7ff;
-  color: #1890ff;
-  border-color: #1890ff;
+  background-color: var(--app-primary-lighter);
+  color: var(--app-primary);
+  border-color: var(--app-primary);
   font-weight: bold;
 }
 
@@ -4568,16 +4565,16 @@ button:hover {
 }
 
 .shape-status span.visible {
-  background-color: #e6f7ff;
-  color: #1890ff;
+  background-color: var(--app-primary-lighter);
+  color: var(--app-primary);
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 12px;
 }
 
 .shape-status span.hidden {
-  background-color: #fff1f0;
-  color: #f5222d;
+  background-color: var(--app-danger-lighter);
+  color: var(--app-danger);
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 12px;
@@ -4601,18 +4598,18 @@ button:hover {
 .heatmap-list {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   padding: 8px;
 }
 
 .heatmap-item {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--app-bg-secondary);
   cursor: pointer;
 }
 
@@ -4629,13 +4626,13 @@ button:hover {
 }
 
 .heatmap-selected {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
+  border-color: var(--app-primary);
+  background-color: var(--app-primary-lighter);
 }
 
 .heatmap-weight {
   font-size: 12px;
-  color: #ff4d4f;
+  color: var(--app-danger-light);
 }
 
 .heatmap-position {
@@ -4645,14 +4642,14 @@ button:hover {
 }
 
 .no-heatmap-points {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
   padding: 8px 0;
   text-align: center;
 }
 
 .more-heatmap-points {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
   text-align: center;
   padding: 4px 0;
@@ -4662,24 +4659,24 @@ button:hover {
 .flight-lines-list {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   padding: 8px;
 }
 
 .flight-line-item {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--app-bg-secondary);
   cursor: pointer;
 }
 
 .flight-line-item.active {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
+  border-color: var(--app-primary);
+  background-color: var(--app-primary-lighter);
 }
 
 .flight-line-title {
@@ -4693,15 +4690,15 @@ button:hover {
 }
 
 .active-badge {
-  background-color: #1890ff;
-  color: #fff;
+  background-color: var(--app-primary);
+  color: var(--app-text-inverse);
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 12px;
 }
 
 .empty-tip {
-  color: #999;
+  color: var(--app-text-tertiary);
   font-style: italic;
   padding: 8px 0;
   text-align: center;
@@ -4711,23 +4708,23 @@ button:hover {
 .track-list {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
   padding: 8px;
 }
 
 .track-item {
   padding: 8px;
   margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--app-border-primary);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--app-bg-secondary);
   cursor: pointer;
 }
 
 .track-item:hover {
-  background-color: #e6f7ff;
+  background-color: var(--app-primary-lighter);
 }
 
 .track-item-header {
@@ -4753,7 +4750,7 @@ button:hover {
 }
 
 .track-item.active {
-  border-color: #1890ff;
-  background-color: #e6f7ff;
+  border-color: var(--app-primary);
+  background-color: var(--app-primary-lighter);
 }
 </style>

@@ -264,7 +264,7 @@ export default defineComponent({
 
 .custom-tree-node .code {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--app-text-tertiary);
 }
 
 .custom-tree-node .do {

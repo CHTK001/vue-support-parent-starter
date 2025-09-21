@@ -272,7 +272,7 @@ onMounted(() => {
 .modern-setting-container {
   background-color: var(--el-bg-color);
   border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px var(--app-shadow-md);
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -308,12 +308,12 @@ onMounted(() => {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px var(--app-shadow);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+  background: linear-gradient(135deg, var(--app-success) 0%, var(--app-success-light-3) 100%);
 
   &:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 20px var(--app-shadow-lg);
     transform: translateY(-2px);
   }
 }
@@ -365,7 +365,7 @@ onMounted(() => {
 .setting-card {
   background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px var(--app-shadow-sm);
   padding: 28px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -381,14 +381,14 @@ onMounted(() => {
 
 .setting-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 12px 28px var(--app-shadow);
+  border-color: var(--app-primary-light-5);
 }
 
 .setting-card-active {
   border-color: var(--el-color-primary);
-  box-shadow: 0 12px 28px rgba(var(--el-color-primary-rgb), 0.2);
-  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.05) 0%, rgba(var(--el-color-primary-rgb), 0.02) 100%);
+  box-shadow: 0 12px 28px var(--app-primary-shadow);
+  background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-primary-lightest) 100%);
 }
 
 .setting-card-indicator {
@@ -397,7 +397,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+  background: linear-gradient(90deg, var(--app-primary) 0%, var(--app-primary-light-3) 100%);
   border-radius: 0 0 16px 16px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -414,7 +414,7 @@ onMounted(() => {
   border-radius: 14px;
   margin-right: 20px;
   transition: all 0.4s ease;
-  box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.25);
+  box-shadow: 0 8px 16px var(--app-primary-shadow);
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -427,7 +427,7 @@ onMounted(() => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(circle, var(--app-white-transparent) 0%, var(--app-transparent) 70%);
   opacity: 0;
   transition: opacity 0.5s ease;
 }
@@ -474,7 +474,7 @@ onMounted(() => {
 }
 
 .setting-card-active .setting-card-description {
-  color: var(--el-text-color-regular);
+  color: var(--app-text-regular);
 }
 
 .setting-card-content {
@@ -484,7 +484,7 @@ onMounted(() => {
 .setting-detail-container {
   background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px var(--app-shadow-sm);
   padding: 30px;
   margin-top: 20px;
   animation: fadeIn 0.5s ease-out;
@@ -509,7 +509,7 @@ onMounted(() => {
       left: 15px;
       right: 15px;
       height: 1px;
-      background: linear-gradient(90deg, transparent 0%, var(--el-border-color-light) 15%, var(--el-border-color-light) 85%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, var(--app-border-light) 15%, var(--app-border-light) 85%, transparent 100%);
     }
   }
 
@@ -525,15 +525,15 @@ onMounted(() => {
     font-size: 15px;
 
     &.is-active {
-      color: var(--el-color-primary);
-      border-bottom: 3px solid var(--el-color-primary);
+      color: var(--app-primary);
+      border-bottom: 3px solid var(--app-primary);
       font-weight: 600;
       transform: translateY(-2px);
     }
 
     &:hover:not(.is-active) {
-      color: var(--el-color-primary-light-3);
-      border-bottom: 3px solid var(--el-color-primary-light-7);
+      color: var(--app-primary-light-3);
+      border-bottom: 3px solid var(--app-primary-light-7);
     }
   }
 
@@ -548,7 +548,7 @@ onMounted(() => {
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-border-color-lighter);
+      background: var(--app-border-lighter);
       border-radius: 10px;
     }
 
@@ -621,14 +621,14 @@ onMounted(() => {
   cursor: pointer;
   border-radius: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  background-color: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 5px 15px var(--app-shadow-sm);
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-lighter);
 
   &:hover {
     transform: translateY(-8px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    border-color: var(--el-color-primary-light-7);
+    box-shadow: 0 10px 25px var(--app-shadow);
+    border-color: var(--app-primary-light-7);
   }
 
   &_detail {
@@ -648,15 +648,15 @@ onMounted(() => {
       background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
       border-radius: 15px;
       transition: all 0.3s ease;
-      box-shadow: 0 5px 15px rgba(var(--el-color-primary-rgb), 0.3);
+      box-shadow: 0 5px 15px var(--app-primary-shadow);
 
       &:hover {
         transform: rotate(15deg) scale(1.1);
       }
 
       &__disabled {
-        color: var(--el-text-color-disabled);
-        background: var(--el-fill-color-light);
+        color: var(--app-text-disabled);
+        background: var(--app-fill-light);
         box-shadow: none;
       }
     }
@@ -708,8 +708,8 @@ onMounted(() => {
     }
 
     .list-card-item_detail--operation--tag {
-      color: var(--el-text-color-disabled);
-      background-color: var(--el-fill-color-lighter);
+      color: var(--app-text-disabled);
+      background-color: var(--app-fill-lighter);
     }
   }
 }

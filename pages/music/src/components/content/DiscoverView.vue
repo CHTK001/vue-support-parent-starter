@@ -10,7 +10,7 @@ defineProps({
 <template>
   <div class="discover-view">
     <h2 class="discover-view__title">推荐歌单</h2>
-    <div class="discover-view__playlists">
+    <div class="discover-view__playlist-grid">
       <div
         v-for="playlist in env.recommendPlaylists"
         :key="playlist.musicId"
@@ -66,7 +66,7 @@ defineProps({
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--app-shadow-sm);
     
     img {
       position: absolute;
@@ -84,7 +84,7 @@ defineProps({
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--app-shadow);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -93,7 +93,7 @@ defineProps({
     
     .iconify {
       font-size: 40px;
-      color: var(--el-text-color-primary);
+      color: var(--app-text-primary);
     }
   }
   
@@ -108,7 +108,7 @@ defineProps({
   
   &__playlist-count {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
   }
 }
 </style>

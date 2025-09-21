@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white p-[30px]">
+  <div class="app-bg-primary p-[30px]">
     <el-row>
       <el-col :span="12">
         <el-form :inline="true">
@@ -12,7 +12,7 @@
         </el-form>
       </el-col>
       <el-col :span="12">
-        <div data-v-236d2dc6="" data-v-b6cbd7a9="" class="c-card" style="--51386d66: #ffffff; --1d9c24b0: #efeff5">
+        <div data-v-236d2dc6="" data-v-b6cbd7a9="" class="c-card cron-card">
           <pre data-v-b6cbd7a9="">
 ┌──────────── [可选] 秒 (0 - 59)
 | ┌────────── 分钟 (0 - 59)
@@ -24,8 +24,8 @@
 * * * * * * 命令</pre
           >
           <div data-v-b6cbd7a9="" class="relative overflow-x-auto rounded">
-            <table class="w-full border-collapse text-left text-sm text-gray-500 dark:text-gray-400" role="table" aria-label="数据表">
-              <thead class="bg-#ffffff uppercase text-gray-700 dark:bg-#333333 dark:text-gray-400" border-b="1px solid dark:transparent #efeff5">
+            <table class="cron-table" role="table" aria-label="数据表">
+              <thead class="cron-table-head">
                 <tr>
                   <th scope="col" class="px-6 py-3 text-xs">符号</th>
                   <th scope="col" class="px-6 py-3 text-xs">含义</th>
@@ -34,73 +34,73 @@
                 </tr>
               </thead>
               <tbody>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">*</td>
                   <td class="px-6 py-4">任何值</td>
                   <td class="px-6 py-4">* * * *</td>
                   <td class="px-6 py-4">每分钟</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">-</td>
                   <td class="px-6 py-4">值的范围</td>
                   <td class="px-6 py-4">1-10 * * *</td>
                   <td class="px-6 py-4">第1到第10分钟</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">,</td>
                   <td class="px-6 py-4">值的列表</td>
                   <td class="px-6 py-4">1,10 * * *</td>
                   <td class="px-6 py-4">第1和第10分钟</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">/</td>
                   <td class="px-6 py-4">步进值</td>
                   <td class="px-6 py-4">*/10 * * *</td>
                   <td class="px-6 py-4">每隔10分钟</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@yearly</td>
                   <td class="px-6 py-4">每年1月1日午夜执行一次</td>
                   <td class="px-6 py-4">@yearly</td>
                   <td class="px-6 py-4">0 0 1 1 *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@annually</td>
                   <td class="px-6 py-4">与@yearly相同</td>
                   <td class="px-6 py-4">@annually</td>
                   <td class="px-6 py-4">0 0 1 1 *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@monthly</td>
                   <td class="px-6 py-4">每月1日午夜执行一次</td>
                   <td class="px-6 py-4">@monthly</td>
                   <td class="px-6 py-4">0 0 1 * *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@weekly</td>
                   <td class="px-6 py-4">每周日午夜执行一次</td>
                   <td class="px-6 py-4">@weekly</td>
                   <td class="px-6 py-4">0 0 * * 0</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@daily</td>
                   <td class="px-6 py-4">每天午夜执行一次</td>
                   <td class="px-6 py-4">@daily</td>
                   <td class="px-6 py-4">0 0 * * *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@midnight</td>
                   <td class="px-6 py-4">与@daily相同</td>
                   <td class="px-6 py-4">@midnight</td>
                   <td class="px-6 py-4">0 0 * * *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323">
+                <tr class="cron-table-row">
                   <td class="px-6 py-4">@hourly</td>
                   <td class="px-6 py-4">每小时开始时执行一次</td>
                   <td class="px-6 py-4">@hourly</td>
                   <td class="px-6 py-4">0 * * * *</td>
                 </tr>
-                <tr border-b="1px solid dark:#282828 #efeff5" class="bg-white dark:bg-#232323 important:border-b-none">
+                <tr class="cron-table-row cron-table-row-last">
                   <td class="px-6 py-4">@reboot</td>
                   <td class="px-6 py-4">启动时运行</td>
                   <td class="px-6 py-4" />
@@ -140,3 +140,47 @@ export default {
   }
 };
 </script>
+
+<style lang="scss" scoped>
+// 导入自定义颜色系统
+@import '../../../../../../../packages/assets/style/colors/index.scss';
+
+.cron-card {
+  background-color: var(--app-bg-primary);
+  border: 1px solid var(--app-border-primary);
+}
+
+.cron-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+  color: var(--app-text-secondary);
+}
+
+.cron-table-head {
+  background-color: var(--app-bg-primary);
+  text-transform: uppercase;
+  color: var(--app-text-primary);
+  border-bottom: 1px solid var(--app-border-primary);
+
+  html.dark & {
+    background-color: var(--app-bg-secondary);
+    color: var(--app-text-primary);
+  }
+}
+
+.cron-table-row {
+  background-color: var(--app-bg-primary);
+  border-bottom: 1px solid var(--app-border-primary);
+
+  html.dark & {
+    background-color: var(--app-bg-secondary);
+    border-bottom-color: var(--app-border-secondary);
+  }
+}
+
+.cron-table-row-last {
+  border-bottom: none !important;
+}
+</style>

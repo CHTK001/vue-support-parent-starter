@@ -106,14 +106,13 @@ const deferLang = useDefer(2);
   align-items: center;
   gap: 8px;
   height: 48px;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(to right, var(--cb-color-bg-tool-gradient-start), var(--cb-color-bg-tool-gradient-end));
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  border-bottom: 1px solid var(--cb-color-border-tool);
 
   .dark & {
-    background: linear-gradient(to right, rgba(28, 28, 35, 0.95), rgba(28, 28, 35, 0.98));
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to right, var(--cb-color-bg-tool-gradient-start-dark), var(--cb-color-bg-tool-gradient-end-dark));
+    border-bottom: 1px solid var(--cb-color-border-tool-dark);
   }
 }
 
@@ -151,9 +150,9 @@ const deferLang = useDefer(2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: var(--el-color-primary-light-8);
+    background: var(--cb-color-bg-hover-light);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+    box-shadow: 0 4px 12px var(--cb-color-shadow-brand-light);
   }
 
   &:active {
@@ -163,7 +162,7 @@ const deferLang = useDefer(2);
 
 .tool-icon {
   font-size: 20px;
-  color: var(--el-text-color-primary);
+  color: var(--cb-color-text-primary);
   transition: all 0.3s;
 
   &:hover {
@@ -214,7 +213,7 @@ const deferLang = useDefer(2);
     .user-name {
       font-size: 14px;
       font-weight: 500;
-      color: var(--el-text-color-primary);
+      color: var(--cb-color-text-primary);
       margin: 0;
       transition: color 0.3s;
     }
@@ -224,12 +223,12 @@ const deferLang = useDefer(2);
 .tool-dropdown {
   border-radius: 12px;
   padding: 6px;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--cb-color-bg-dropdown);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
+  border: 1px solid var(--cb-color-border-dropdown);
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.05);
+    0 4px 20px var(--cb-color-shadow-dropdown),
+    0 2px 8px var(--cb-color-shadow-light);
 
   .menu-item {
     margin: 4px;
@@ -238,11 +237,11 @@ const deferLang = useDefer(2);
     transition: all 0.3s;
 
     &:hover {
-      background: var(--el-color-primary-light-9);
+      background: var(--cb-color-bg-brand-lightest);
       transform: translateX(4px);
 
       .menu-icon {
-        color: var(--el-color-primary);
+        color: var(--cb-color-text-brand);
         transform: scale(1.1);
       }
     }
@@ -251,22 +250,21 @@ const deferLang = useDefer(2);
 
 .dark {
   .tool-bar {
-    background: rgba(28, 28, 35, 0.95);
+    background: var(--cb-color-bg-tool-dark);
   }
 
   .tool-item {
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--cb-color-bg-hover-dark);
     }
   }
 
   .user-name {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--cb-color-text-white-transparent);
   }
 
   .tool-dropdown {
-    background: rgba(28, 28, 35, 0.98);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--cb-color-bg-dropdown-dark);
+    border-color: var(--cb-color-border-dropdown-dark);
   }
 }
-</style>

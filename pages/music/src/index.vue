@@ -429,8 +429,8 @@ const musicPlayerProps = {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--el-bg-color);
-  color: var(--el-text-color-primary);
+  background-color: var(--app-bg-primary);
+  color: var(--app-text-primary);
 
   &__main {
     display: flex;

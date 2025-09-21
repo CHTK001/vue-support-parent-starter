@@ -1,0 +1,55 @@
+// 应用颜色系统入口文件
+// Application Color System Entry Point
+
+// 导入默认主题颜色
+@import './default.scss';
+
+// 导入深色主题颜色  
+@import './dark.scss';
+
+// 导入Element Plus主题覆盖
+@import '../element-plus/theme-override.scss';
+
+// 颜色实用类 Color Utility Classes
+.app-text-primary { color: var(--app-text-primary) !important; }
+.app-text-secondary { color: var(--app-text-secondary) !important; }
+.app-text-tertiary { color: var(--app-text-tertiary) !important; }
+.app-text-disabled { color: var(--app-text-disabled) !important; }
+.app-text-inverse { color: var(--app-text-inverse) !important; }
+
+.app-text-success { color: var(--app-success) !important; }
+.app-text-warning { color: var(--app-warning) !important; }
+.app-text-danger { color: var(--app-danger) !important; }
+.app-text-info { color: var(--app-info) !important; }
+
+.app-bg-primary { background-color: var(--app-bg-primary) !important; }
+.app-bg-secondary { background-color: var(--app-bg-secondary) !important; }
+.app-bg-tertiary { background-color: var(--app-bg-tertiary) !important; }
+
+.app-bg-success { background-color: var(--app-success) !important; }
+.app-bg-warning { background-color: var(--app-warning) !important; }
+.app-bg-danger { background-color: var(--app-danger) !important; }
+.app-bg-info { background-color: var(--app-info) !important; }
+
+.app-border-primary { border-color: var(--app-border-primary) !important; }
+.app-border-secondary { border-color: var(--app-border-secondary) !important; }
+.app-border-focus { border-color: var(--app-border-focus) !important; }
+.app-border-error { border-color: var(--app-border-error) !important; }
+
+// 状态颜色实用类
+.app-status-online { color: var(--app-status-online) !important; }
+.app-status-offline { color: var(--app-status-offline) !important; }
+.app-status-idle { color: var(--app-status-idle) !important; }
+.app-status-busy { color: var(--app-status-busy) !important; }
+
+// 链接颜色实用类
+.app-link { color: var(--app-link) !important; }
+.app-link:hover { color: var(--app-link-hover) !important; }
+.app-link:active { color: var(--app-link-active) !important; }
+
+// 阴影实用类
+.app-shadow-sm { box-shadow: var(--app-shadow-sm) !important; }
+.app-shadow { box-shadow: var(--app-shadow) !important; }
+.app-shadow-md { box-shadow: var(--app-shadow-md) !important; }
+.app-shadow-lg { box-shadow: var(--app-shadow-lg) !important; }
+.app-shadow-xl { box-shadow: var(--app-shadow-xl) !important; }
