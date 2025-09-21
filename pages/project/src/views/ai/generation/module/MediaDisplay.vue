@@ -250,7 +250,7 @@ const handleDownload = (url, localUrl) => {
   top: 0;
   font-size: 14px;
   z-index: 2;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .placeholder-image-wrapper {

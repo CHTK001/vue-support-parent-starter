@@ -291,7 +291,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 .el-menu-item.is-active {
   svg{
-    color: white;
+    color: var(--el-text-color-primary);
   }
 }
 // 左栏样式

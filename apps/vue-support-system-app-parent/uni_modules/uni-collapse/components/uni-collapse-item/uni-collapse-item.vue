@@ -286,7 +286,7 @@
 				height: 48px;
 				line-height: 48px;
 				background-color: #fff;
-				color: #303133;
+				color: var(--el-text-color-primary);
 				font-size: 13px;
 				font-weight: 500;
 				/* #ifdef H5 */
@@ -374,7 +374,7 @@
 			&-content {
 				position: absolute;
 				font-size: 13px;
-				color: #303133;
+				color: var(--el-text-color-primary);
 				// transition: height 0.3s;
 				border-bottom-color: transparent;
 				border-bottom-style: solid;

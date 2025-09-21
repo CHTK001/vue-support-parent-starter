@@ -57,7 +57,7 @@ const toggleClick = () => {
   width: 24px;
   height: 34px;
   cursor: pointer;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--pure-border-color);
   border-radius: 4px;
   transform: translate(12px, -50%);

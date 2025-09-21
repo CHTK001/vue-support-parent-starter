@@ -855,7 +855,7 @@ onMounted(() => {
 
 .status-btn.active {
   background: #667eea;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
@@ -901,9 +901,9 @@ onMounted(() => {
   padding: 10px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -1016,7 +1016,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 20px;
 }
 
@@ -1203,7 +1203,7 @@ onMounted(() => {
   border-radius: 8px;
   padding: 6px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--el-bg-color-overlay);
   color: #6b7280;
   transition: all 0.2s ease;
 }

@@ -276,11 +276,11 @@ onUnmounted(() => {
 <style scoped>
 .video-source {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .source-list {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -288,8 +288,9 @@ onUnmounted(() => {
 
 .list-header {
   padding: 20px;
-  border-bottom: 1px solid #ebeef5;
-  background: #fafbfc;
+  border-bottom: 1px solid var(--el-border-color);
+  background: var(--el-bg-color-overlay);
+
 }
 
 .list-header-content {
@@ -312,7 +313,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-button-text-color);
   font-size: 18px;
 }
 
@@ -320,7 +321,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .list-actions {
@@ -350,12 +351,12 @@ onUnmounted(() => {
 .primary-action {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  color: white;
+  color: var(--el-button-text-color);
 }
 
 .secondary-action {
-  background: #f5f7fa;
-  border: 1px solid #dcdfe6;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   color: #606266;
 }
 
@@ -380,13 +381,13 @@ onUnmounted(() => {
 
 .empty-title {
   font-size: 18px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
 }
 
 .empty-description {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 24px;
 }
 

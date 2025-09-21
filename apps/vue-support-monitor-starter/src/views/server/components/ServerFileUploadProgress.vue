@@ -532,14 +532,14 @@ const getProgressStatus = (status: string) => {
   height: 32px;
   border-radius: 8px;
   background: linear-gradient(135deg, #409eff, #66b1ff);
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
 .header-title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   flex: 1;
 }
 
@@ -601,7 +601,7 @@ const getProgressStatus = (status: string) => {
 
 .status-icon {
   font-size: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   transition: all 0.3s ease;
 }
 
@@ -650,12 +650,12 @@ const getProgressStatus = (status: string) => {
 .status-text {
   font-weight: 600;
   font-size: 18px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .status-subtitle {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .connection-metrics {
@@ -670,7 +670,7 @@ const getProgressStatus = (status: string) => {
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
 }
 
@@ -688,7 +688,7 @@ const getProgressStatus = (status: string) => {
   height: 32px;
   border-radius: 8px;
   background: linear-gradient(135deg, #409eff, #66b1ff);
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
@@ -701,13 +701,13 @@ const getProgressStatus = (status: string) => {
 .metric-value {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
 }
 
 .metric-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .connection-actions {
@@ -747,7 +747,7 @@ const getProgressStatus = (status: string) => {
 
 .refresh-btn {
   background: linear-gradient(135deg, #409eff, #66b1ff);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .refresh-btn:hover {
@@ -769,7 +769,7 @@ const getProgressStatus = (status: string) => {
   padding: 20px;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
 }
 
@@ -787,7 +787,7 @@ const getProgressStatus = (status: string) => {
   height: 48px;
   border-radius: 12px;
   font-size: 20px;
-  color: white;
+  color: var(--el-text-color-primary);
   transition: all 0.3s ease;
 }
 
@@ -821,7 +821,7 @@ const getProgressStatus = (status: string) => {
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
 }
 
 .progress-info {
@@ -834,7 +834,7 @@ const getProgressStatus = (status: string) => {
 .progress-label {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .progress-text {
@@ -868,13 +868,13 @@ const getProgressStatus = (status: string) => {
 .empty-title {
   font-size: 18px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
 .empty-description {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -888,7 +888,7 @@ const getProgressStatus = (status: string) => {
   padding: 24px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -971,7 +971,7 @@ const getProgressStatus = (status: string) => {
 .task-id {
   font-weight: 600;
   font-size: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .task-filename {
@@ -1000,7 +1000,7 @@ const getProgressStatus = (status: string) => {
 .progress-percentage {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .progress-size {
@@ -1042,12 +1042,12 @@ const getProgressStatus = (status: string) => {
 .metric-value {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .metric-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .task-actions {
@@ -1096,7 +1096,7 @@ const getProgressStatus = (status: string) => {
   padding: 20px;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -1151,7 +1151,7 @@ const getProgressStatus = (status: string) => {
   height: 48px;
   border-radius: 12px;
   font-size: 20px;
-  color: white;
+  color: var(--el-text-color-primary);
   transition: all 0.3s ease;
 }
 
@@ -1194,13 +1194,13 @@ const getProgressStatus = (status: string) => {
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 /* 响应式设计 */

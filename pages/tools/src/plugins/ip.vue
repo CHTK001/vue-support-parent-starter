@@ -1240,7 +1240,7 @@ onMounted(async () => {
     &-title {
       font-size: 28px;
       font-weight: 700;
-      color: white;
+      color: var(--el-text-color-primary);
       margin-bottom: 10px;
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
@@ -1265,7 +1265,7 @@ onMounted(async () => {
         background-color: rgba(255, 255, 255, 0.15);
         padding: 8px 16px;
         border-radius: 10px;
-        color: white;
+        color: var(--el-text-color-primary);
         font-weight: 500;
         backdrop-filter: blur(4px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1343,7 +1343,7 @@ onMounted(async () => {
     &-title {
       font-size: 28px;
       font-weight: 700;
-      color: white;
+      color: var(--el-text-color-primary);
       margin-bottom: 10px;
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
@@ -1360,7 +1360,7 @@ onMounted(async () => {
       background-color: rgba(255, 255, 255, 0.2);
       padding: 8px 16px;
       border-radius: 20px;
-      color: white;
+      color: var(--el-text-color-primary);
       font-weight: 500;
       backdrop-filter: blur(4px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

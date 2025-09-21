@@ -214,7 +214,7 @@ onMounted(() => {
 
 .control-panel {
   padding: 16px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-top: 1px solid #e0e0e0;
   flex: 1;
   overflow-y: auto;
@@ -234,7 +234,7 @@ h2, h3, h4 {
 button {
   padding: 8px 16px;
   background-color: #1890ff;
-  color: white;
+  color: var(--el-text-color-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -246,7 +246,7 @@ button:hover {
 }
 
 .search-results {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

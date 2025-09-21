@@ -79,7 +79,7 @@ defineEmits<{
     border-radius: 12px;
     border: 2px solid transparent;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     display: flex;
     flex-direction: column;
     overflow: visible;
@@ -103,7 +103,7 @@ defineEmits<{
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       border-radius: 12px 12px 12px 12px;
 
       .option-label {
@@ -114,7 +114,7 @@ defineEmits<{
         position: absolute;
         bottom: 0;
         width: 100%;
-        color: white;
+        color: var(--el-text-color-primary);
         background: linear-gradient(rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%);
       }
     }
@@ -131,7 +131,7 @@ defineEmits<{
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       z-index: 10;
@@ -160,7 +160,7 @@ defineEmits<{
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     border: 2px solid transparent;
 
     &:hover {
@@ -189,7 +189,7 @@ defineEmits<{
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 14px;
         border: none;
         box-shadow: 0 2px 4px rgba(var(--el-color-primary-rgb), 0.3);

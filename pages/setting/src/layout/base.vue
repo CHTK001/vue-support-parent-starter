@@ -357,7 +357,7 @@ export default defineComponent({
 
     .toggle-icon {
       background-color: var(--el-color-success);
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .toggle-text {

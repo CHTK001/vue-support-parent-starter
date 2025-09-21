@@ -273,7 +273,7 @@
 	.uni-searchbar__box-search-input {
 		flex: 1;
 		font-size: 14px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		margin-left: 5px;
 		margin-top: 1px;
 		/* #ifndef APP-NVUE */

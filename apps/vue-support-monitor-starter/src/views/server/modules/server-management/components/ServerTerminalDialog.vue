@@ -912,12 +912,12 @@ defineExpose({
     &.vnc-terminal {
       display: flex;
       flex-direction: column;
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
 
       .rdp-display,
       .vnc-display {
         flex: 1;
-        background-color: white;
+        background-color: var(--el-bg-color-overlay);
         cursor: crosshair;
         overflow: hidden;
 
@@ -982,7 +982,7 @@ defineExpose({
 
     .connection-content {
       text-align: center;
-      color: white;
+      color: var(--el-text-color-primary);
 
       .connection-icon {
         margin-bottom: 16px;

@@ -282,7 +282,7 @@ onMounted(() => {
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-6 top-1/2 transform -translate-y-1/2 z-[99] settings-btn-modern" circle size="large"> </el-button>
 
     <div class="container-wrapper h-full">
-      <el-container class="h-full bg-white">
+      <el-container class="h-full">
         <el-header class="header-panel h-auto flex w-full items-center justify-between px-8 py-6 mb-2">
           <div class="panel-left mr-6">
             <div class="model-selection-card flex flex-row">
@@ -499,7 +499,7 @@ onMounted(() => {
 // 主容器样式
 .face-detection-container {
   position: relative;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--el-bg-color-overlay);
   overflow: hidden;
 }
 
@@ -531,14 +531,14 @@ onMounted(() => {
 
 // 简化设置按钮
   .settings-btn-modern {
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
+    border: 1px solid var(--el-border-color);
+     background: var(--el-bg-color-overlay);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
     border-radius: 8px;
 
     &:hover {
-      background: #f8fafc;
+      background: var(--el-bg-color-overlay);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transform: translateY(-1px);
     }
@@ -550,9 +550,9 @@ onMounted(() => {
 
 // 简化头部面板
   .header-panel {
-    background: #ffffff;
+     background: var(--el-bg-color-overlay);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e2e8f0;
+    border: none;
     border-radius: 12px;
     margin: 16px;
     transition: all 0.2s ease;
@@ -572,17 +572,17 @@ onMounted(() => {
       gap: 12px;
       font-size: 20px;
       font-weight: 700;
-      color: #1a202c;
+      color: var(--el-text-color-primary);
       margin: 0;
 
       .title-icon {
         font-size: 24px;
-        color: #667eea;
+        color: var(--el-text-color-primary);
       }
     }
 
     .card-subtitle {
-      color: #718096;
+      color: var(--el-text-color-primary);
       font-size: 14px;
       margin: 4px 0 0 36px;
     }
@@ -591,8 +591,8 @@ onMounted(() => {
   .model-select-modern {
     :deep(.el-select__wrapper) {
       border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #ffffff;
+      border: 1px solid var(--el-border-color);
+       background: var(--el-bg-color-overlay);
       transition: all 0.2s ease;
       min-height: 40px;
 
@@ -651,7 +651,7 @@ onMounted(() => {
     .model-badge {
       .badge-text {
         background: #3b82f6;
-        color: white;
+        color: var(--el-text-color-primary);
         padding: 4px 12px;
         border-radius: 12px;
         font-size: 12px;
@@ -737,7 +737,7 @@ onMounted(() => {
 
   .upload-btn-modern {
     background: #3b82f6;
-    color: white;
+    color: var(--el-text-color-primary);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 
     &:hover {
@@ -748,7 +748,7 @@ onMounted(() => {
 
   .detect-btn-modern {
     background: #10b981;
-    color: white;
+    color: var(--el-text-color-primary);
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 
     &:hover {
@@ -759,7 +759,7 @@ onMounted(() => {
 
   .reset-btn-modern {
     background: #f59e0b;
-    color: white;
+    color: var(--el-text-color-primary);
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 
     &:hover {
@@ -773,6 +773,7 @@ onMounted(() => {
 .main-content {
   padding: 0;
   overflow: hidden;
+  border: var(--el-button-border-color);
 
   .content-wrapper {
     height: 100%;
@@ -792,7 +793,7 @@ onMounted(() => {
         align-items: center;
         justify-content: center;
         height: 100%;
-        background: #ffffff;
+         background: var(--el-bg-color-overlay);
         border-radius: 12px;
         border: 2px dashed #cbd5e0;
         padding: 60px 40px;
@@ -817,20 +818,20 @@ onMounted(() => {
 
         &:hover .empty-icon-wrapper {
           .empty-icon {
-            color: #64748b;
+            color: var(--el-text-color-primary);
           }
         }
 
         .empty-title {
           font-size: 24px;
           font-weight: 600;
-          color: #374151;
+          color: var(--el-text-color-primary);
           margin: 0 0 12px 0;
         }
 
         .empty-description {
           font-size: 16px;
-          color: #6b7280;
+          color: var(--el-text-color-primary);
           margin: 0 0 32px 0;
           line-height: 1.6;
           max-width: 400px;
@@ -1046,7 +1047,7 @@ onMounted(() => {
 
             &.download-action {
               background: rgba(102, 126, 234, 0.9);
-              color: white;
+              color: var(--el-text-color-primary);
               box-shadow: 0 6px 24px rgba(102, 126, 234, 0.4);
 
               &:hover {
@@ -1058,7 +1059,7 @@ onMounted(() => {
 
             &.share-action {
               background: rgba(72, 187, 120, 0.9);
-              color: white;
+              color: var(--el-text-color-primary);
               box-shadow: 0 6px 24px rgba(72, 187, 120, 0.4);
 
               &:hover {
@@ -1251,7 +1252,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   font-weight: bold;
   border-radius: 12px;
   font-size: 14px;

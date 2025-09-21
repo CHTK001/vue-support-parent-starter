@@ -299,7 +299,7 @@ defineExpose({
   :deep(.el-dialog__header) {
     margin-right: 0;
     padding: 16px 20px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--el-border-color);
   }
 
   :deep(.el-dialog__footer) {
@@ -397,7 +397,7 @@ defineExpose({
   }
 
   .channel-id {
-    color: #909399;
+     color: var(--el-text-color);
     font-size: 11px;
   }
 
@@ -443,7 +443,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 40px 0;
-  color: #909399;
+   color: var(--el-text-color);
 
   .empty-icon {
     font-size: 48px;

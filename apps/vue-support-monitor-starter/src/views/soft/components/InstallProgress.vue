@@ -392,7 +392,7 @@ watch(() => props.logs.length, async () => {
 
 <style scoped>
 .install-progress {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -418,7 +418,7 @@ watch(() => props.logs.length, async () => {
 .title-text {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .progress-actions {
@@ -429,7 +429,7 @@ watch(() => props.logs.length, async () => {
 .software-info {
   margin-bottom: 20px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
 }
 
@@ -443,12 +443,12 @@ watch(() => props.logs.length, async () => {
 .software-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .software-version {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   background: #e4e7ed;
   padding: 2px 8px;
   border-radius: 4px;
@@ -487,7 +487,7 @@ watch(() => props.logs.length, async () => {
 .progress-percentage {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .progress-bar {
@@ -503,7 +503,7 @@ watch(() => props.logs.length, async () => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .step-item:last-child {
@@ -518,25 +518,25 @@ watch(() => props.logs.length, async () => {
   height: 24px;
   border-radius: 50%;
   background: #e4e7ed;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .step-active .step-icon {
-  background: #409eff;
-  color: white;
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
 }
 
 .step-completed .step-icon {
   background: #67c23a;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .step-failed .step-icon {
   background: #f56c6c;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .step-number {
@@ -550,7 +550,7 @@ watch(() => props.logs.length, async () => {
 .step-title {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -566,14 +566,14 @@ watch(() => props.logs.length, async () => {
 
 .step-duration {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
 .progress-stats {
   margin-bottom: 20px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
 }
 
@@ -598,7 +598,7 @@ watch(() => props.logs.length, async () => {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .progress-logs {
@@ -615,13 +615,13 @@ watch(() => props.logs.length, async () => {
 .logs-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .logs-content {
   max-height: 200px;
   overflow-y: auto;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   padding: 12px;
   font-family: 'Courier New', monospace;
@@ -636,7 +636,7 @@ watch(() => props.logs.length, async () => {
 }
 
 .log-time {
-  color: #909399;
+   color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
@@ -659,7 +659,7 @@ watch(() => props.logs.length, async () => {
 }
 
 .log-debug .log-level {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .log-message {

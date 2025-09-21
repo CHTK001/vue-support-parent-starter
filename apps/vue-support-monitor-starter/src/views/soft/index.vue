@@ -487,7 +487,7 @@ onMounted(() => {
 <style scoped>
 .soft-management {
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: calc(100vh - 60px);
 }
 
@@ -498,21 +498,21 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-left h2 {
   margin: 0 0 8px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 24px;
   font-weight: 600;
 }
 
 .header-left p {
   margin: 0;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
@@ -534,7 +534,7 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -562,7 +562,7 @@ onMounted(() => {
   gap: 24px;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -574,7 +574,7 @@ onMounted(() => {
 }
 
 .stat-label {
-  color: #666;
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
@@ -597,7 +597,7 @@ onMounted(() => {
 
 /* 加载状态 */
 .loading-container {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -647,8 +647,8 @@ onMounted(() => {
 .soft-icon-default {
   width: 40px;
   height: 40px;
-  color: #909399;
-  background: #f5f7fa;
+   color: var(--el-text-color-primary);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -664,7 +664,7 @@ onMounted(() => {
 .soft-title .name {
   font-weight: 600;
   font-size: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -672,7 +672,7 @@ onMounted(() => {
 }
 
 .soft-title .code {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -714,12 +714,12 @@ onMounted(() => {
 }
 
 .info-label {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
 }
 
 .info-value {
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 600;
   font-size: 14px;
 }
@@ -755,7 +755,7 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

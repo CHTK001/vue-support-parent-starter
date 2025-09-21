@@ -83,7 +83,7 @@ const handleSearch = () => {
   }
 
   &.active {
-    color: white;
+    color: var(--el-text-color-primary);
     background-color: var(--el-color-primary);
     font-weight: 500;
     box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);

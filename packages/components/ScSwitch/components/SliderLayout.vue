@@ -154,7 +154,7 @@ const toggleSwitch = () => {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s;
   }
@@ -166,7 +166,7 @@ const toggleSwitch = () => {
 
     &--active {
       opacity: 0;
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     &--inactive {

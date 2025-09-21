@@ -532,7 +532,7 @@ const menuItemData = ref([
 }
 
 .el-card h4 {
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 15px;
   font-size: 16px;
   font-weight: 600;

@@ -1310,7 +1310,7 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 顶部工具栏 */
@@ -1339,7 +1339,7 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .header-right {
@@ -1400,14 +1400,14 @@ onBeforeUnmount(() => {
 
 .folder-item.active,
 .tag-item.active {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   color: #fff;
 }
 
 .folder-icon {
   font-size: 16px;
   margin-right: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .folder-item.active .folder-icon {
@@ -1444,7 +1444,7 @@ onBeforeUnmount(() => {
   background: #f56c6c;
 }
 .tag-color.blue {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
 }
 .tag-color.green {
   background: #67c23a;
@@ -1492,14 +1492,14 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
 }
 
 .email-item:hover {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .email-item.active {
@@ -1520,7 +1520,7 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
   width: 4px;
   height: 4px;
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border-radius: 50%;
 }
 
@@ -1560,7 +1560,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   margin-right: 8px;
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .sender-avatar.large {
@@ -1584,7 +1584,7 @@ onBeforeUnmount(() => {
 
 .email-subject {
   font-size: 14px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -1593,7 +1593,7 @@ onBeforeUnmount(() => {
 
 .email-preview {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1608,13 +1608,13 @@ onBeforeUnmount(() => {
 
 .email-time {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: nowrap;
 }
 
 .email-attachment {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .empty-state {
@@ -1623,7 +1623,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -1663,7 +1663,7 @@ onBeforeUnmount(() => {
 .compose-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .compose-actions {
@@ -1725,7 +1725,7 @@ onBeforeUnmount(() => {
 .detail-subject {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .detail-actions {
@@ -1735,7 +1735,7 @@ onBeforeUnmount(() => {
 
 .detail-info {
   padding: 16px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .sender-info {
@@ -1751,13 +1751,13 @@ onBeforeUnmount(() => {
 .sender-details .sender-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .sender-details .sender-email {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -1774,7 +1774,7 @@ onBeforeUnmount(() => {
 
 .email-body {
   line-height: 1.6;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .email-body :deep(p) {
@@ -1800,7 +1800,7 @@ onBeforeUnmount(() => {
 
 .welcome-content {
   text-align: center;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .welcome-icon {

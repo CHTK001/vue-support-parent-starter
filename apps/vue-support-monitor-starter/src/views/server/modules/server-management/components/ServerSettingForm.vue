@@ -1561,7 +1561,7 @@ const testFileManagementConnection = async () => {
 
 .help-icon {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   cursor: help;
   transition: color 0.3s;
 }
@@ -1609,7 +1609,7 @@ const testFileManagementConnection = async () => {
 .form-tip {
   margin-left: 8px;
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 :deep(.el-form-item) {
@@ -1618,7 +1618,7 @@ const testFileManagementConnection = async () => {
 
 :deep(.el-form-item__label) {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 :deep(.el-tooltip__trigger) {
@@ -1661,12 +1661,12 @@ const testFileManagementConnection = async () => {
 
 .client-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
 .client-address {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
   margin-top: 2px;
 }

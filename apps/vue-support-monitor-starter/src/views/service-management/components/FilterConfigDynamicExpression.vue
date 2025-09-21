@@ -168,7 +168,7 @@ function handleClose() { visibleInner.value = false }
   overflow-y: auto;
 }
 .config-section { margin-bottom: 24px; padding: 16px; border: 1px solid #e4e7ed; border-radius: 8px; background: #fafafa; }
-.section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #303133; }
+.section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); }
 .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .editor-wrapper { border: 1px solid #e4e7ed; border-radius: 8px; overflow: hidden; }
 .config-preview { max-height: 240px; overflow: auto; }

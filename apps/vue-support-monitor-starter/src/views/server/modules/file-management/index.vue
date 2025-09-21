@@ -11,10 +11,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { getServerInfo } from "@/api/server";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import FileManagerPage from "./FileManagerPage.vue";
-import { getServerInfo } from "@/api/server";
 
 // 路由实例
 const route = useRoute();
@@ -67,7 +67,7 @@ onMounted(async () => {
 .file-manager {
   height: 100vh; /* 撑满整个视口高度 */
   width: 100vw; /* 撑满整个视口宽度 */
-  background: #ffffff; /* 设置背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
   position: fixed; /* 固定定位确保撑满页面 */
   top: 0;
   left: 0;

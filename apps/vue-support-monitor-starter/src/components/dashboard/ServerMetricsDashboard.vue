@@ -455,7 +455,7 @@ const formatUptime = (seconds: number) => {
           justify-content: center;
           margin-right: 16px;
           font-size: 24px;
-          color: white;
+          color: var(--el-text-color-primary);
         }
 
         .metric-info {
@@ -464,13 +464,13 @@ const formatUptime = (seconds: number) => {
           .metric-value {
             font-size: 24px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
             line-height: 1;
           }
 
           .metric-label {
             font-size: 12px;
-            color: #909399;
+             color: var(--el-text-color-primary);
             margin: 4px 0;
           }
 
@@ -489,13 +489,13 @@ const formatUptime = (seconds: number) => {
             }
 
             &.trend-stable {
-              color: #909399;
+               color: var(--el-text-color-primary);
             }
           }
 
           .metric-detail {
             font-size: 11px;
-            color: #909399;
+             color: var(--el-text-color-primary);
             margin-top: 2px;
           }
         }

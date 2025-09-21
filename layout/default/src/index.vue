@@ -352,7 +352,7 @@ const LayHeader = defineComponent({
   justify-content: center;
   height: 100vh;
   width: 100vw;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
 }
 
 .loading-spinner {

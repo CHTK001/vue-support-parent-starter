@@ -116,7 +116,7 @@ export default defineComponent({
   
   :deep(.is-last .el-breadcrumb__inner) {
     font-weight: bold;
-    color: #303133;
+    color: var(--el-text-color-primary);
   }
 }
 </style> 

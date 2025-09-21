@@ -118,7 +118,7 @@ export default defineComponent({
   border-radius: 10px;
   display: inline-flex;
   font-size: 12px;
-  color: white;
+  color: var(--el-text-color-primary);
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
@@ -144,7 +144,7 @@ export default defineComponent({
 
 .fAFgBy {
   width: 100%;
-  color: white;
+  color: var(--el-text-color-primary);
   font-weight: 800;
   background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
   box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;

@@ -904,10 +904,9 @@ onMounted(async () => {
       .stat-item {
         text-align: center;
         padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.6);
         backdrop-filter: blur(10px);
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid var(--el-border-color-lighter);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
 
@@ -1175,7 +1174,7 @@ onMounted(async () => {
       top: 12px;
       left: 12px;
       background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
-      color: white;
+      color: var(--el-text-color-primary);
       padding: 4px 8px;
       border-radius: 8px;
       font-size: 0.7rem;
@@ -1788,7 +1787,7 @@ onMounted(async () => {
   :deep(.el-dialog) {
     border-radius: 20px;
     overflow: hidden;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     box-shadow:
       0 25px 50px rgba(0, 0, 0, 0.15),
       0 10px 20px rgba(0, 0, 0, 0.08);
@@ -1801,7 +1800,7 @@ onMounted(async () => {
 
     .el-dialog__body {
       padding: 28px;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       color: var(--el-text-color-primary);
     }
 

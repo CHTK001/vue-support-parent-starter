@@ -1,5 +1,5 @@
 <template>
-  <div class="w-96 max-h-[80vh] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+  <div class="w-96 max-h-[80vh] rounded-lg shadow-lg border  overflow-hidden ">
     <div class="flex items-center justify-between p-4 bg-gradient-to-r">
       <div class="flex items-center gap-2">
         <IconifyIconOnline icon="mdi:tune-variant" class="text-lg" />
@@ -185,7 +185,7 @@ const modelSelectLabel = computed(() => {
 
 <style scoped lang="scss">
 .model-config-panel {
-  width: 400px;
+  width: 600px;
   max-height: 80vh;
 }
 
@@ -195,21 +195,21 @@ const modelSelectLabel = computed(() => {
 
 .modern-select {
   :deep(.el-select__wrapper) {
-    border-color: #d1d5db;
+    border-color: var(--el-border-color);
     border-radius: 0.5rem;
   }
 }
 
 .modern-textarea {
   :deep(.el-textarea__inner) {
-    border-color: #d1d5db;
+    border-color: var(--el-border-color);
     border-radius: 0.5rem;
   }
 }
 
 .modern-slider {
   :deep(.el-slider__runway) {
-    background-color: #e5e7eb;
+    background: var(--el-bg-color-overlay);
   }
 
   :deep(.el-slider__bar) {
@@ -223,7 +223,7 @@ const modelSelectLabel = computed(() => {
 
 .modern-number {
   :deep(.el-input__wrapper) {
-    border-color: #d1d5db;
+    border-color: var(--el-border-color);
     border-radius: 0.25rem;
   }
 }
@@ -231,29 +231,29 @@ const modelSelectLabel = computed(() => {
 .dark {
   .modern-select {
     :deep(.el-select__wrapper) {
-      border-color: #4b5563;
-      background-color: #374151;
+      border-color: var(--el-border-color);
+      background: var(--el-bg-color-overlay);
     }
   }
 
   .modern-textarea {
     :deep(.el-textarea__inner) {
-      border-color: #4b5563;
-      background-color: #374151;
-      color: #f3f4f6;
+      border-color: var(--el-border-color);
+      background: var(--el-bg-color-overlay);
+      color: var(--el-text-color-primary);
     }
   }
 
   .modern-slider {
     :deep(.el-slider__runway) {
-      background-color: #4b5563;
+      background: var(--el-bg-color-overlay);
     }
   }
 
   .modern-number {
     :deep(.el-input__wrapper) {
-      border-color: #4b5563;
-      background-color: #374151;
+      border-color: var(--el-border-color);
+      background: var(--el-bg-color-overlay);
     }
   }
 }

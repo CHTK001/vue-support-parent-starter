@@ -380,7 +380,7 @@
 	// 	/* #ifndef APP-NVUE */
 	// 	margin: auto;
 	// 	/* #endif */
-	// 	background-color: white;
+	// 	background-color: var(--el-bg-color-overlay);
 	// 	transform: rotate(0deg);
 	// 	transition: transform 0.3s;
 	// }
@@ -396,7 +396,7 @@
 	// 	/* #ifndef APP-NVUE */
 	// 	margin: auto;
 	// 	/* #endif */
-	// 	background-color: white;
+	// 	background-color: var(--el-bg-color-overlay);
 	// 	transform: rotate(0deg);
 	// 	transition: transform 0.3s;
 	// }

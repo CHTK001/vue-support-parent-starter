@@ -216,7 +216,7 @@ $uni-primary: #007aff !default;
 	/* #endif */
 	font-size: 14px;
 	font-weight: bold;
-	color: #909399;
+	 color: var(--el-text-color);
 	border-bottom: 1px $border-color solid;
 }
 

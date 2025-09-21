@@ -720,7 +720,7 @@ const cleanupWebSocketHandlers = () => {
 <style scoped>
 .soft-detail {
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: calc(100vh - 60px);
 }
 
@@ -730,7 +730,7 @@ const cleanupWebSocketHandlers = () => {
   gap: 12px;
   margin-bottom: 16px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -738,12 +738,12 @@ const cleanupWebSocketHandlers = () => {
 .header .title {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .header .title .code {
   margin-left: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-weight: 400;
   font-size: 14px;
 }
@@ -765,7 +765,7 @@ const cleanupWebSocketHandlers = () => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -784,7 +784,7 @@ const cleanupWebSocketHandlers = () => {
   height: 48px;
   background: linear-gradient(135deg, #409eff, #67c23a);
   border-radius: 12px;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 24px;
 }
 
@@ -795,19 +795,19 @@ const cleanupWebSocketHandlers = () => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 /* 标签页样式 */
 .detail-tabs {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -870,7 +870,7 @@ const cleanupWebSocketHandlers = () => {
 }
 
 :deep(.el-table tr:hover > td) {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 按钮样式 */

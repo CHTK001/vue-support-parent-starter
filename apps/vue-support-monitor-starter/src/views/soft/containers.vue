@@ -1425,7 +1425,7 @@ onUnmounted(() => {
 /* 基础样式与records.vue类似，这里只列出容器管理特有的样式 */
 .containers-page {
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: calc(100vh - 60px);
 }
 
@@ -1436,7 +1436,7 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: 16px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1453,7 +1453,7 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .title-icon {
@@ -1463,7 +1463,7 @@ onUnmounted(() => {
 
 .page-subtitle {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .header-right {
@@ -1479,7 +1479,7 @@ onUnmounted(() => {
   gap: 16px;
   margin-bottom: 16px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1516,7 +1516,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -1534,7 +1534,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 24px;
 }
 
@@ -1561,14 +1561,14 @@ onUnmounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 /* 容器表格特有样式 */
@@ -1580,12 +1580,12 @@ onUnmounted(() => {
 
 .name-text {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .container-id {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-family: "Courier New", monospace;
 }
 
@@ -1597,12 +1597,12 @@ onUnmounted(() => {
 
 .server-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .server-host {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .ports-list {
@@ -1646,7 +1646,7 @@ onUnmounted(() => {
 }
 
 .env-code {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 4px;
   font-family: "Courier New", monospace;
@@ -1661,13 +1661,13 @@ onUnmounted(() => {
 
 .config-section h4 {
   margin: 0 0 12px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
 .config-code {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 4px;
   font-family: "Courier New", monospace;
@@ -1691,7 +1691,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid #e4e7ed;
 }
@@ -1710,7 +1710,7 @@ onUnmounted(() => {
 .monitor-value {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .monitor-stats {
@@ -1725,19 +1725,19 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   border: 1px solid #e4e7ed;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .stat-value {
   font-size: 12px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 500;
   font-family: "Courier New", monospace;
 }
@@ -1766,7 +1766,7 @@ onUnmounted(() => {
 
 .log-lines-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .logs-actions {
@@ -1799,7 +1799,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1858,7 +1858,7 @@ onUnmounted(() => {
 .terminal-title {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .terminal-content {
@@ -1875,7 +1875,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1926,7 +1926,7 @@ onUnmounted(() => {
 }
 
 :deep(.el-table tr:hover > td) {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 按钮样式 */

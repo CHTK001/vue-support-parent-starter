@@ -196,7 +196,7 @@ defineProps({
     
     .iconify {
       font-size: 40px;
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
   

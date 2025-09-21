@@ -303,7 +303,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #e4e7ed;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -341,7 +341,7 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .placeholder-content {
@@ -411,7 +411,7 @@ onUnmounted(() => {
 .error-details pre {
   margin: 0;
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: pre-wrap;
   word-break: break-all;
 }

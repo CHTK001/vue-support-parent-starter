@@ -243,7 +243,7 @@ const loadingValue = ref(false)
 
 .demo-section h3 {
   margin-bottom: 15px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .demo-section .sc-switch {

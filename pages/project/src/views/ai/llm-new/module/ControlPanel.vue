@@ -269,7 +269,7 @@ const handleToggle = () => {
         transition: all 0.3s ease;
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(8px);
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--el-border-color);
 
         &:hover {
           color: var(--primary);
@@ -383,14 +383,14 @@ const handleToggle = () => {
 
         &:hover {
           border-color: rgba(124, 58, 237, 0.5);
-          background-color: white;
+          background-color: var(--el-bg-color-overlay);
           transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
         }
 
         &.is-focus {
           border-color: var(--primary);
-          background-color: white;
+          background-color: var(--el-bg-color-overlay);
           box-shadow:
             0 0 0 4px rgba(124, 58, 237, 0.1),
             0 8px 24px rgba(124, 58, 237, 0.12);
@@ -436,7 +436,7 @@ const handleToggle = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 1.25rem;
         line-height: 1.75rem;
       }
@@ -496,14 +496,14 @@ const handleToggle = () => {
 
       &:hover {
         border-color: rgba(124, 58, 237, 0.5);
-        background-color: white;
+        background-color: var(--el-bg-color-overlay);
         transform: translateY(-2px);
         box-shadow: 0 8px 24px rgba(124, 58, 237, 0.12);
       }
 
       &:focus {
         border-color: var(--primary);
-        background-color: white;
+        background-color: var(--el-bg-color-overlay);
         box-shadow:
           0 0 0 4px rgba(124, 58, 237, 0.1),
           0 8px 24px rgba(124, 58, 237, 0.12);
@@ -582,7 +582,7 @@ const handleToggle = () => {
 
         :deep(.el-slider__button) {
           border: 2px solid;
-          background-color: white;
+          background-color: var(--el-bg-color-overlay);
           width: 1.25rem;
           height: 1.25rem;
           border-color: var(--primary);

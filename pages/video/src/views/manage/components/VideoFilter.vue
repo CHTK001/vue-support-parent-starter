@@ -302,7 +302,7 @@ watch(
     justify-content: flex-end;
   }
   &__container {
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
@@ -361,7 +361,7 @@ watch(
 
     &--active {
       background-color: var(--el-color-primary);
-      color: white;
+      color: var(--el-text-color-primary);
       font-weight: 500;
       box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);
     }

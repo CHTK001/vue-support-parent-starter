@@ -1134,7 +1134,7 @@ onUnmounted(() => {
 
             i {
               font-size: 24px;
-              color: white;
+              color: var(--el-text-color-primary);
             }
           }
 
@@ -1261,7 +1261,7 @@ onUnmounted(() => {
             border-radius: 16px;
             margin-right: 20px;
             font-size: 28px;
-            color: white;
+            color: var(--el-text-color-primary);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
           }
 
@@ -2271,7 +2271,7 @@ onUnmounted(() => {
       border: none;
       border-radius: 50%;
       background: rgba(59, 130, 246, 0.8);
-      color: white;
+      color: var(--el-text-color-primary);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -2325,7 +2325,7 @@ onUnmounted(() => {
     }
 
     &:hover i {
-      color: white;
+      color: var(--el-text-color-primary);
       transform: scale(1.15);
       text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
@@ -2336,7 +2336,7 @@ onUnmounted(() => {
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.9);
-      color: white;
+      color: var(--el-text-color-primary);
       padding: 6px 12px;
       border-radius: 8px;
       font-size: 12px;
@@ -2546,13 +2546,13 @@ onUnmounted(() => {
         margin: 0;
         font-size: 18px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0 0;
         font-size: 14px;
-        color: #909399;
+         color: var(--el-text-color-primary);
       }
     }
   }

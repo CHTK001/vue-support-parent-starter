@@ -338,7 +338,7 @@ function getStatusIcon(status) {
 }
 
 .header-title {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .refresh-button {
@@ -458,7 +458,7 @@ function getStatusIcon(status) {
 
 .original-price {
   text-decoration: line-through;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 0.85em;
 }
 
@@ -506,7 +506,7 @@ function getStatusIcon(status) {
   padding: 12px 15px;
   background-color: #f5f7fa;
   border-bottom: 1px solid #e4e7ed;
-  color: #303133;
+  color: var(--el-text-color-primary);
   position: relative;
   overflow: hidden;
 }
@@ -603,13 +603,13 @@ function getStatusIcon(status) {
 
 .item-label {
   width: 80px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 13px;
 }
 
 .item-value {
   flex: 1;
-  color: #303133;
+  color: var(--el-text-color-primary);
   word-break: break-all;
 }
 

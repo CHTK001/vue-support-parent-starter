@@ -434,7 +434,7 @@ const slotsData = ref([
 }
 
 .example-container {
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
   padding: 20px;
   background-color: #fafafa;
@@ -456,7 +456,7 @@ const slotsData = ref([
 
 .time-display.basic {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 20px 30px;
   border-radius: 12px;
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
@@ -464,7 +464,7 @@ const slotsData = ref([
 
 .time-display.loop {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 20px 30px;
   border-radius: 12px;
   box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
@@ -476,7 +476,7 @@ const slotsData = ref([
 
 .time-display.progress {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 15px 25px;
   border-radius: 8px;
   font-size: 24px;
@@ -485,8 +485,8 @@ const slotsData = ref([
 }
 
 .time-display.mini {
-  background: #409eff;
-  color: white;
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 16px;
@@ -589,14 +589,14 @@ const slotsData = ref([
 .countdown-item {
   text-align: center;
   padding: 20px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  background: white;
+  background: var(--el-bg-color-overlay);
 }
 
 .countdown-item h4 {
   margin: 0 0 15px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
@@ -609,11 +609,11 @@ const slotsData = ref([
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .log-time {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
   min-width: 80px;
 }
@@ -625,7 +625,7 @@ const slotsData = ref([
 
 .no-events {
   text-align: center;
-  color: #909399;
+   color: var(--el-text-color-primary);
   padding: 20px;
 }
 
@@ -634,7 +634,7 @@ const slotsData = ref([
 }
 
 .el-card h4 {
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 15px;
   font-size: 16px;
   font-weight: 600;

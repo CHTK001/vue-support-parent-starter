@@ -393,7 +393,7 @@ onBeforeUnmount(() => {
 }
 
 .control-panel {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 8px;
   border: 1px solid #e9ecef;
@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .memory-pools {

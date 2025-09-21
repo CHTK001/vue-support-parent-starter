@@ -183,7 +183,7 @@ defineExpose({
 <style lang="scss" scoped>
 .video-results {
   &__container {
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -221,7 +221,7 @@ defineExpose({
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
-    background: white;
+    background: var(--el-bg-color-overlay);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 
     &:hover {
@@ -269,7 +269,7 @@ defineExpose({
     align-items: center;
     justify-content: center;
     background-color: #e0e0e0;
-    color: #909399;
+     color: var(--el-text-color-primary);
     font-size: 14px;
   }
 
@@ -292,7 +292,7 @@ defineExpose({
     bottom: 10px;
     right: 10px;
     background-color: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--el-text-color-primary);
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 13px;

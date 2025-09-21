@@ -532,7 +532,7 @@ onMounted(() => {
 
   .header-desc {
     margin: 0;
-    color: #666;
+    color: var(--el-text-color-primary);
     font-size: 14px;
   }
 }
@@ -565,7 +565,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   margin-bottom: 16px;
 }
@@ -577,7 +577,7 @@ onMounted(() => {
 
   .stats-label {
     font-size: 13px;
-    color: #666;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -646,7 +646,7 @@ onMounted(() => {
   .info-label {
     width: 60px;
     font-size: 13px;
-    color: #666;
+    color: var(--el-text-color-primary);
   }
 
   .info-value {
@@ -673,7 +673,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
 }
 
@@ -682,7 +682,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-top: 1px solid #ebeef5;
 }
 </style>

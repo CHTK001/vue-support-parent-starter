@@ -141,7 +141,7 @@
 	}
 
 	.uni-calendar-item--multiple .uni-calendar-item--checked-range-text {
-		color: #333;
+		color: var(--el-text-color-primary);
 	}
 
 	.uni-calendar-item--multiple {

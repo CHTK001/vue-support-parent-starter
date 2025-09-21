@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
 .context-menu {
   position: fixed;
   z-index: 3000;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);

@@ -459,7 +459,7 @@ const handleDelete = (item: any) => {
 }
 
 .stat-card:hover {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   transform: translateY(-2px);
   box-shadow: var(--el-box-shadow-light);
 }
@@ -483,7 +483,7 @@ const handleDelete = (item: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: var(--el-bg-color-overlay);
   padding: 20px 12px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -562,13 +562,13 @@ const handleDelete = (item: any) => {
   border-radius: 12px;
   padding: 12px 20px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
   border: none;
 }
 
 .create-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .create-btn:hover {
@@ -666,7 +666,7 @@ const handleDelete = (item: any) => {
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .app-icon-img {
@@ -716,7 +716,7 @@ const handleDelete = (item: any) => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: white;
+  background: var(--el-bg-color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -880,7 +880,7 @@ const handleDelete = (item: any) => {
 
 .action-btn.primary:hover {
   background: #667eea;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .action-btn.danger {
@@ -890,7 +890,7 @@ const handleDelete = (item: any) => {
 
 .action-btn.danger:hover {
   background: #ef4444;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 /* 空状态 */

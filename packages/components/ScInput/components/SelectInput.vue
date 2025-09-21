@@ -501,7 +501,7 @@ defineExpose({
       
       &:hover {
         background: var(--el-color-danger);
-        color: white;
+        color: var(--el-text-color-primary);
         transform: scale(1.2);
       }
     }
@@ -532,7 +532,7 @@ defineExpose({
     
     &.selected {
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
-      color: white;
+      color: var(--el-text-color-primary);
       font-weight: 600;
       
       &:hover {

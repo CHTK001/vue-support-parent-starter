@@ -369,7 +369,7 @@
 <style lang="scss" scoped>
 	$uni-bg-color-mask: rgba($color: #000000, $alpha: 0.4);
 	$uni-border-color: #EDEDED;
-	$uni-text-color: #333;
+	$uni-text-color: var(--el-text-color-primary);
 	$uni-bg-color-hover:#f1f1f1;
 	$uni-font-size-base:14px;
 	$uni-text-color-placeholder: #808080;

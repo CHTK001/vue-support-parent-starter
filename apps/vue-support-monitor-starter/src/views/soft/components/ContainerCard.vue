@@ -192,7 +192,7 @@ const getUptime = (startTime: string | Date) => {
 
 <style scoped>
 .container-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid #e4e7ed;
   transition: all 0.3s ease;
@@ -208,7 +208,7 @@ const getUptime = (startTime: string | Date) => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .container-info {
@@ -219,7 +219,7 @@ const getUptime = (startTime: string | Date) => {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .container-meta {
@@ -230,7 +230,7 @@ const getUptime = (startTime: string | Date) => {
 
 .container-id {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-family: monospace;
 }
 
@@ -251,7 +251,7 @@ const getUptime = (startTime: string | Date) => {
 }
 
 .stat-item {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 6px;
 }
@@ -271,7 +271,7 @@ const getUptime = (startTime: string | Date) => {
 .percentage {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   min-width: 45px;
 }
 
@@ -288,18 +288,18 @@ const getUptime = (startTime: string | Date) => {
 
 .network-item .label, .disk-item .label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   min-width: 20px;
 }
 
 .network-item .value, .disk-item .value {
   font-size: 12px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .container-details {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 6px;
   margin-top: 16px;
@@ -324,7 +324,7 @@ const getUptime = (startTime: string | Date) => {
 
 .detail-row .value {
   font-size: 12px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-family: monospace;
 }
 

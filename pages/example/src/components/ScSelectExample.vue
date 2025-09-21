@@ -533,11 +533,11 @@ const handleTablePageChange = (page) => {
 .custom-style-container :deep(.card-selector-item.active) {
   background-color: #0ea5e9;
   border-color: #0284c7;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .custom-style-container :deep(.card-selector-item.active .card-icon) {
-  color: white;
+  color: var(--el-text-color-primary);
 }
 </style>`;
   }
@@ -567,7 +567,7 @@ const handleTablePageChange = (page) => {
 }
 
 .text-secondary {
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -591,7 +591,7 @@ h4 {
   margin-top: 0;
   margin-bottom: 16px;
   font-size: 18px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .preview-container {
@@ -638,7 +638,7 @@ pre {
 code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .code-desc {
@@ -661,11 +661,11 @@ code {
 .custom-style :deep(.card-selector-item.active) {
   background-color: #0ea5e9;
   border-color: #0284c7;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .custom-style :deep(.card-selector-item.active .card-icon) {
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .limit-hint {
@@ -682,12 +682,12 @@ code {
 .output-format-display h5 {
   margin: 0 0 8px 0;
   font-size: 14px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 600;
 }
 
 .output-code {
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border: 1px solid #e9ecef;
   border-radius: 4px;
   padding: 12px;
@@ -699,7 +699,7 @@ code {
 }
 
 .output-code code {
-  color: #495057;
+  color: var(--el-text-color-primary);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
@@ -741,7 +741,7 @@ code {
 
 .el-dark .output-code {
   background-color: var(--code-bg);
-  border-color: #333;
+  border-color: var(--el-text-color-primary);
 }
 
 .el-dark .output-code code {
@@ -764,11 +764,11 @@ code {
 .custom-style :deep(.pill-selector-item.active) {
   background-color: #0ea5e9;
   border-color: #0284c7;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .custom-style :deep(.pill-selector-item.active .pill-icon) {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   color: #0ea5e9;
 }
 

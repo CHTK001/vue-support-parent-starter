@@ -666,7 +666,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
     .menu-content {
-      color: white;
+      color: var(--el-text-color-primary);
 
       .menu-icon {
         color: white !important;
@@ -873,7 +873,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   display: flex;
   align-items: center;
   border: 1px solid transparent;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   word-break: break-word;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1061,7 +1061,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   transform: translateY(-50%);
   width: 24px;
   height: 32px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   border-right: none;
   border-radius: 4px 0 0 4px;

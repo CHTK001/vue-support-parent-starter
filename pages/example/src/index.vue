@@ -404,7 +404,7 @@ const componentList = computed(() => {
 
 .component-desc {
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   line-height: 1.5;
   transition: color 0.3s ease;
 }
@@ -418,7 +418,7 @@ const componentList = computed(() => {
   top: 12px;
   right: 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;

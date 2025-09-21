@@ -51,7 +51,7 @@
 // 静态提示样式（测量完成后）
 .ol-tooltip-static {
   background-color: rgba(0, 177, 89, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   border: 1px solid rgba(255, 255, 255, 0.3);
   font-weight: bold;
   font-size: 14px;
@@ -76,7 +76,7 @@
 // 中间节点距离标签样式
 .measure-segment-label .segment-distance {
   background: rgba(24, 144, 255, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 3px 6px;
   border-radius: 4px;
   font-size: 12px;
@@ -91,7 +91,7 @@
 // 终点总距离标签样式
 .measure-total-label .total-distance-label {
   background-color: rgba(0, 177, 89, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 16px;

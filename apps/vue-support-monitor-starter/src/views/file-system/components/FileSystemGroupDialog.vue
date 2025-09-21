@@ -377,7 +377,7 @@ defineExpose({
 
 .icon-presets .el-button.is-active {
   background-color: var(--el-color-primary);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .dialog-footer {

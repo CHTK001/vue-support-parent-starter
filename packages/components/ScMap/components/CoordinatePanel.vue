@@ -69,7 +69,7 @@ const formatCoordinate = (value: number): string => {
 }
 
 .coordinate-label {
-  color: #666;
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 

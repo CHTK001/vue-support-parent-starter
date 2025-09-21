@@ -566,14 +566,14 @@ defineExpose({
 
     .el-dialog__header {
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
-      color: white;
+      color: var(--el-text-color-primary);
       padding: 10px 12px;
       border-bottom: none;
 
       .el-dialog__title {
         font-size: 18px;
         font-weight: 600;
-        color: white;
+        color: var(--el-text-color-primary);
       }
 
       .el-dialog__headerbtn {
@@ -581,7 +581,7 @@ defineExpose({
         right: 24px;
 
         .el-dialog__close {
-          color: white;
+          color: var(--el-text-color-primary);
           font-size: 18px;
 
           &:hover {
@@ -630,7 +630,7 @@ defineExpose({
 
     .icon {
       font-size: 24px;
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -651,7 +651,7 @@ defineExpose({
 }
 
 .view-card {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
@@ -668,7 +668,7 @@ defineExpose({
       height: 64px;
       border-radius: 16px;
       overflow: hidden;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       display: flex;
       align-items: center;
       justify-content: center;

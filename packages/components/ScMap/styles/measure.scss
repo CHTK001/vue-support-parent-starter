@@ -15,7 +15,7 @@
 
   .segment-distance {
     background-color: rgba(255, 71, 87, 0.8);
-    color: white;
+    color: var(--el-text-color-primary);
     border-radius: 2px;
     padding: 2px 4px;
     font-size: 12px;
@@ -34,7 +34,7 @@
 
   .node-distance {
     background-color: rgba(46, 134, 222, 0.8);
-    color: white;
+    color: var(--el-text-color-primary);
     border-radius: 2px;
     padding: 1px 4px;
     font-size: 11px;
@@ -53,7 +53,7 @@
 
   .total-distance-label {
     background-color: rgba(0, 177, 89, 0.9);
-    color: white;
+    color: var(--el-text-color-primary);
     border-radius: 4px;
     padding: 3px 8px;
     font-size: 14px;

@@ -315,10 +315,10 @@ defineExpose({
 <style scoped>
 .sc-message-dialog {
   position: fixed;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e4e7ed;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
   backdrop-filter: blur(10px);
   z-index: 2000;
   transition: all 0.3s ease;
@@ -357,8 +357,8 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(64, 158, 255, 0.1);
-  border-bottom: 1px solid #e4e7ed;
+  background: var(--el-bg-color-overlay);
+  border-bottom: 1px solid var(--el-border-color);
   cursor: pointer;
   user-select: none;
 }
@@ -369,7 +369,7 @@ defineExpose({
 
 .title {
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
@@ -382,7 +382,7 @@ defineExpose({
 .collapse-btn,
 .close-btn {
   padding: 4px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   transition: color 0.2s;
 }
 
@@ -411,7 +411,7 @@ defineExpose({
 .default-content {
   font-size: 14px;
   line-height: 1.6;
-  color: #606266;
+  color: var(--el-text-color-primary);
 }
 
 /* Markdown 内容 */
@@ -426,7 +426,7 @@ defineExpose({
 .markdown-content :deep(h5),
 .markdown-content :deep(h6) {
   margin: 16px 0 8px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .markdown-content :deep(p) {
@@ -434,14 +434,14 @@ defineExpose({
 }
 
 .markdown-content :deep(code) {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: "Courier New", monospace;
 }
 
 .markdown-content :deep(pre) {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 6px;
   overflow-x: auto;
@@ -463,9 +463,9 @@ defineExpose({
 
 .data-item {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--el-border-color);
   transition: all 0.3s ease;
 }
 
@@ -498,7 +498,7 @@ defineExpose({
 
 .item-title {
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -509,7 +509,7 @@ defineExpose({
 
 .item-time {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .item-progress {
@@ -525,7 +525,7 @@ defineExpose({
 
 .step-text {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   transition: color 0.3s ease;
 }
 
@@ -545,8 +545,8 @@ defineExpose({
   left: 0;
   right: 0;
   padding: 12px;
-  background: #f0f9ff;
-  border-top: 1px solid #e1f5fe;
+  background: var(--el-bg-color-overlay);
+  border-top: 1px solid var(--el-border-color);
   border-radius: 0 0 8px 8px;
   z-index: 10;
   transition: all 0.3s ease;
@@ -555,7 +555,7 @@ defineExpose({
 
 .progress-title {
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   font-size: 14px;
   transition: color 0.3s ease;
@@ -588,17 +588,17 @@ defineExpose({
 }
 
 .dialog-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--el-bg-color-overlay);
   border-radius: 3px;
 }
 
 .dialog-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--el-bg-color-overlay);
   border-radius: 3px;
 }
 
 .dialog-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 响应式设计 */

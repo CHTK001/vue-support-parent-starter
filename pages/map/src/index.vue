@@ -4247,7 +4247,7 @@ watch(gaodeKey, (val) => {
 .label {
   padding: 8px 12px;
   font-weight: 600;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -4320,7 +4320,7 @@ button:hover {
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .marker-list,
@@ -4385,7 +4385,7 @@ button:hover {
 .heatmap-position {
   font-size: 12px;
   margin-bottom: 4px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .no-markers,
@@ -4439,7 +4439,7 @@ button:hover {
 
 .line-details {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .active-badge {
@@ -4487,7 +4487,7 @@ button:hover {
   font-size: 12px;
   margin-bottom: 4px;
   padding: 4px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .log-time {
@@ -4586,7 +4586,7 @@ button:hover {
 .shape-data-item {
   font-size: 12px;
   margin-bottom: 2px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 /* 热力图样式 */
@@ -4595,7 +4595,7 @@ button:hover {
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .heatmap-list {
@@ -4641,7 +4641,7 @@ button:hover {
 .heatmap-position {
   font-size: 12px;
   margin-bottom: 4px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .no-heatmap-points {
@@ -4689,7 +4689,7 @@ button:hover {
 
 .flight-line-details {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .active-badge {
@@ -4744,7 +4744,7 @@ button:hover {
 
 .track-points-count {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .track-item-actions {

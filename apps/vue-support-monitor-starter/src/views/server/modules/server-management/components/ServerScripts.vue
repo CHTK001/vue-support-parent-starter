@@ -663,7 +663,7 @@ onMounted(() => {
 
     .script-desc {
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color);
       margin-bottom: 4px;
     }
 
@@ -697,7 +697,7 @@ onMounted(() => {
     }
 
     .code-content {
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 4px;
       padding: 16px;
       max-height: 400px;
@@ -732,7 +732,7 @@ onMounted(() => {
   }
 
   .upload-tip {
-    color: #909399;
+     color: var(--el-text-color);
     font-size: 12px;
     text-align: center;
     margin-top: 8px;

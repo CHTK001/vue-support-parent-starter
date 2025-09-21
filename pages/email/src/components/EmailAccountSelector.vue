@@ -171,7 +171,7 @@ const selectAccount = (accountId) => {
       height: 18px;
       border-radius: 9px;
       background-color: var(--el-color-danger);
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 12px;
       display: flex;
       align-items: center;

@@ -143,7 +143,7 @@ defineExpose({
     .el-dialog__title {
       font-size: 18px;
       font-weight: 600;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -246,7 +246,7 @@ defineExpose({
   transition: all 0.3s ease;
 
   .device-detail-offline & {
-    color: #909399;
+     color: var(--el-text-color-primary);
   }
 }
 
@@ -341,7 +341,7 @@ defineExpose({
 
 .device-detail-secondary {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-top: 4px;
 }
 

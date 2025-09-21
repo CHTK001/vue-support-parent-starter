@@ -421,7 +421,7 @@ export default {
   background: var(--el-bg-color-overlay);
 }
 .dark .sc-filter-main {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-color: var(--el-border-color-light);
 }
 .dark .sc-filter-main table td .del {

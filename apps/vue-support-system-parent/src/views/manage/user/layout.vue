@@ -389,12 +389,12 @@ export default defineComponent({
 
 .bg-red-type {
   background: #ff4949;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .bg-blue-type {
   background: #3a8ee6;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .bg-gray-type {

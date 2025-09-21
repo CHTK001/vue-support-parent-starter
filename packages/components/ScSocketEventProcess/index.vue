@@ -319,7 +319,7 @@ defineExpose({
 .sc-socket-event-process {
   margin: 12px 0;
   padding: 12px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid #ebeef5;
   transition: all 0.3s;
@@ -335,7 +335,7 @@ defineExpose({
 .process-title {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .process-message {
@@ -353,7 +353,7 @@ defineExpose({
 
 .process-step {
   margin-left: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
 }
 
@@ -378,7 +378,7 @@ defineExpose({
 }
 
 .log-time {
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-right: 8px;
 }
 

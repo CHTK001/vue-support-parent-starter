@@ -437,14 +437,14 @@ onMounted(() => {
 
 .config-section {
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .section-title {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--el-text-color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -469,7 +469,7 @@ onMounted(() => {
 
 .form-group label {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .color-picker {
@@ -488,7 +488,7 @@ onMounted(() => {
 
 .color-picker span {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .slider-with-value {
@@ -503,7 +503,7 @@ onMounted(() => {
 
 .slider-with-value span {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   min-width: 36px;
   text-align: right;
 }
@@ -544,7 +544,7 @@ onMounted(() => {
 }
 
 .flight-line-item:hover {
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
 }
 
 .flight-line-item.selected {
@@ -566,7 +566,7 @@ onMounted(() => {
 
 .flight-line-name {
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -589,7 +589,7 @@ onMounted(() => {
 .action-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--el-text-color-primary);
   cursor: pointer;
   padding: 4px;
   display: flex;

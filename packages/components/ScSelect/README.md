@@ -507,7 +507,7 @@ const handleFormatChange = ({ format, data, originalData }) => {
 
 .custom-select .card-selector-item.active {
   background-color: #0ea5e9;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 </style>
 ```

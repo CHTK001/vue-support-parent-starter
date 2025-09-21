@@ -334,14 +334,14 @@ onMounted(async () => {
   --primary-color: #7c3aed;
   --primary-dark: #6d28d9;
   --primary-light: #ede9fe;
-  --primary-50: rgba(124, 58, 237, 0.05);
+  --primary-50: var(--el-bg-color);
   --primary-rgb: 124, 58, 237;
   --transition-bezier: cubic-bezier(0.4, 0, 0.2, 1);
 
-  @apply p-6 bg-gray-50;
+  @apply p-6;
 
   .header-panel {
-    @apply bg-white/80 backdrop-blur-lg border border-gray-100;
+    @apply  backdrop-blur-lg border ;
     margin-bottom: 1.5rem;
     border-radius: 16px;
     box-shadow:
@@ -428,7 +428,7 @@ onMounted(async () => {
   }
 
   .compare-image {
-    @apply bg-white rounded-2xl;
+    @apply  rounded-2xl;
     transition: all 0.4s var(--transition-bezier);
   }
 
@@ -491,43 +491,6 @@ onMounted(async () => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-// 暗黑模式
-.dark {
-  .resolution-container {
-    @apply bg-gray-900;
-
-    .header-panel {
-      @apply bg-gray-800/80 border-gray-700;
-    }
-
-    .model-select {
-      :deep(.el-input__wrapper) {
-        @apply bg-gray-800 border-gray-700 text-gray-200;
-      }
-    }
-
-    .scale-btn {
-      @apply bg-gray-800 border-gray-700 text-gray-300;
-    }
-
-    .compare-image {
-      @apply bg-gray-800;
-    }
-
-    :deep(.el-dropdown-menu) {
-      @apply bg-gray-800/95;
-
-      .el-dropdown-item {
-        @apply text-gray-300;
-
-        &:hover {
-          @apply bg-gray-700;
-        }
-      }
-    }
   }
 }
 </style>

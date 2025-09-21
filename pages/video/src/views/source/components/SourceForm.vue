@@ -378,7 +378,7 @@ defineExpose({
   margin: 0 0 20px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .section-icon {
@@ -388,7 +388,7 @@ defineExpose({
 
 .form-tip {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -408,7 +408,7 @@ defineExpose({
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--el-bg-color-overlay);
 }
 
 .template-card:hover {
@@ -429,7 +429,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -443,13 +443,13 @@ defineExpose({
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .template-desc {
   margin: 0;
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 
@@ -473,7 +473,7 @@ defineExpose({
 }
 
 :deep(.el-input__prefix) {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 :deep(.el-input-number) {

@@ -668,7 +668,7 @@ const getStatusText = (status: string) => {
 // 自定义头部
 .modern-dialog-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 24px 32px;
   position: relative;
   overflow: hidden;
@@ -729,7 +729,7 @@ const getStatusText = (status: string) => {
     .close-btn {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
+      color: var(--el-text-color-primary);
       width: 40px;
       height: 40px;
       border-radius: 50%;
@@ -791,7 +791,7 @@ const getStatusText = (status: string) => {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 24px;
       flex-shrink: 0;
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
@@ -819,7 +819,7 @@ const getStatusText = (status: string) => {
     .script-type-badge {
       :deep(.el-tag) {
         background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: white;
+        color: var(--el-text-color-primary);
         border: none;
         font-weight: 600;
         font-size: 13px;
@@ -856,7 +856,7 @@ const getStatusText = (status: string) => {
 
 // 目标选择区域
 .target-selection-section {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
@@ -894,7 +894,7 @@ const getStatusText = (status: string) => {
         &.is-active .el-radio-button__inner {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           border-color: #667eea;
-          color: white;
+          color: var(--el-text-color-primary);
           box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
       }
@@ -953,7 +953,7 @@ const getStatusText = (status: string) => {
 
 // 执行配置卡片
 .execute-config-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
@@ -1110,7 +1110,7 @@ const getStatusText = (status: string) => {
 
 // 执行结果卡片
 .execution-result-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   padding: 24px;
   border: 1px solid rgba(226, 232, 240, 0.8);
@@ -1189,7 +1189,7 @@ const getStatusText = (status: string) => {
             transition: all 0.3s ease;
             
             &.is-active {
-              background: white;
+              background: var(--el-bg-color-overlay);
               box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
             
@@ -1297,7 +1297,7 @@ const getStatusText = (status: string) => {
   }
   
   .cancel-btn {
-    background: white;
+    background: var(--el-bg-color-overlay);
     border: 2px solid #e2e8f0;
     color: #6b7280;
     font-weight: 600;
@@ -1320,7 +1320,7 @@ const getStatusText = (status: string) => {
   .stop-btn {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border: none;
-    color: white;
+    color: var(--el-text-color-primary);
     font-weight: 600;
     padding: 12px 24px;
     border-radius: 12px;
@@ -1342,7 +1342,7 @@ const getStatusText = (status: string) => {
   .execute-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
-    color: white;
+    color: var(--el-text-color-primary);
     font-weight: 600;
     padding: 12px 24px;
     border-radius: 12px;

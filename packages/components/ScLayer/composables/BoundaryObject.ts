@@ -838,7 +838,7 @@ export class BoundaryObject {
     container.className = 'boundary-popup';
     container.style.cssText = `
       position: absolute;
-      background: white;
+      background: var(--el-bg-color-overlay);
       padding: 16px;
       border-radius: 8px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -891,7 +891,7 @@ export class BoundaryObject {
           tempTip.style.cssText = `
             position: absolute;
             background: rgba(24, 144, 255, 0.9);
-            color: white;
+            color: var(--el-text-color-primary);
             padding: 8px 16px;
             border-radius: 4px;
             font-size: 14px;
@@ -953,12 +953,12 @@ export class BoundaryObject {
             <div style="
               font-size: 16px;
               font-weight: 600;
-              color: #333;
+              color: var(--el-text-color-primary);
               margin-bottom: 4px;
             ">${props.name}</div>
             <div style="
               font-size: 12px;
-              color: #666;
+              color: var(--el-text-color-primary);
               background: #f5f5f5;
               padding: 2px 8px;
               border-radius: 4px;
@@ -970,7 +970,7 @@ export class BoundaryObject {
             grid-template-columns: auto 1fr;
             gap: 8px;
             font-size: 13px;
-            color: #666;
+            color: var(--el-text-color-primary);
           ">
             <div style="color: #999;">区划代码:</div>
             <div>${props.code}</div>

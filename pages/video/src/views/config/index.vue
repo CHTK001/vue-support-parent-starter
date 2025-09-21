@@ -502,7 +502,7 @@ onUnmounted(() => {
 <style scoped>
 .video-config {
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: 100%;
 }
 
@@ -512,7 +512,7 @@ onUnmounted(() => {
 }
 
 .header-content {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -531,25 +531,25 @@ onUnmounted(() => {
 .header-icon {
   width: 48px;
   height: 48px;
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 20px;
 }
 
 .header-title {
   font-size: 1.8rem;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 4px 0;
 }
 
 .header-subtitle {
   font-size: 0.9rem;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -567,32 +567,23 @@ onUnmounted(() => {
 }
 
 .primary-action {
-  background: #409eff;
-  color: white;
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
   border: 1px solid #409eff;
 }
 
-.primary-action:hover {
-  background: #337ecc;
-  border-color: #337ecc;
-}
 
 .secondary-action {
-  background: white;
-  color: #606266;
-  border: 1px solid #dcdfe6;
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
+  border: 1px solid var(--el-border-color);
 }
 
-.secondary-action:hover {
-  background: #ecf5ff;
-  border-color: #409eff;
-  color: #409eff;
-}
 
 /* 配置列表样式 */
 .config-list {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   border-radius: 12px;
   flex: 1;
   overflow: hidden;
@@ -600,8 +591,8 @@ onUnmounted(() => {
 }
 
 .list-header {
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  background: var(--el-bg-color-overlay);
+  border-bottom: 1px solid var(--el-border-color);
   padding: 20px 24px;
 }
 
@@ -620,19 +611,19 @@ onUnmounted(() => {
 .list-icon {
   width: 40px;
   height: 40px;
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 18px;
 }
 
 .list-title {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -660,7 +651,7 @@ onUnmounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -679,7 +670,7 @@ onUnmounted(() => {
 
 .empty-description {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   line-height: 1.5;
   max-width: 400px;
   margin: 0 auto 32px;
@@ -690,9 +681,9 @@ onUnmounted(() => {
   border-radius: 6px;
   font-weight: 600;
   font-size: 14px;
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border: 1px solid #409eff;
-  color: white;
+  color: var(--el-text-color-primary);
   transition: all 0.2s ease;
 }
 

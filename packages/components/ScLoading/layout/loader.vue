@@ -823,7 +823,7 @@ defineExpose({
   position: absolute;
   top: 25%;
   left: 37%;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   filter: blur(5px);
   animation: smoke 5s linear infinite;
 }

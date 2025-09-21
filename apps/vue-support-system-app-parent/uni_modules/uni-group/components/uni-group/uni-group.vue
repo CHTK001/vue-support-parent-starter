@@ -102,7 +102,7 @@
 		height: 40px;
 		background-color: #eee;
 		font-weight: normal;
-		color: #666;
+		color: var(--el-text-color-primary);
 	}
 
 	.uni-group__content {
@@ -117,7 +117,7 @@
 
 	.uni-group__title-text {
 		font-size: 14px;
-		color: #666;
+		color: var(--el-text-color-primary);
 	}
 
 	.distraction {

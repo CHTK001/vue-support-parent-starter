@@ -317,7 +317,7 @@ function downloadAttachment() {
 .detail-subject {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .detail-actions {
@@ -327,7 +327,7 @@ function downloadAttachment() {
 
 .detail-info {
   padding: 16px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .sender-info {
@@ -345,7 +345,7 @@ function downloadAttachment() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .sender-avatar.large {
@@ -361,13 +361,13 @@ function downloadAttachment() {
 .sender-details .sender-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .sender-details .sender-email {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -379,7 +379,7 @@ function downloadAttachment() {
 /* 附件区域 */
 .detail-attachments {
   padding: 16px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background: #fafafa;
 }
 
@@ -412,11 +412,11 @@ function downloadAttachment() {
 
 .attachment-name {
   flex: 1;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .attachment-size {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 12px;
 }
 
@@ -430,7 +430,7 @@ function downloadAttachment() {
 .email-body {
   max-height: 600px;
   line-height: 1.6;
-  color: #303133;
+  color: var(--el-text-color-primary);
   /* 样式隔离 - 防止邮件HTML内容影响全局样式 */
   position: relative;
   isolation: isolate;
@@ -608,7 +608,7 @@ function downloadAttachment() {
 
 .welcome-content {
   text-align: center;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .welcome-icon {

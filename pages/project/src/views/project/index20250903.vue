@@ -1041,7 +1041,7 @@ onMounted(async () => {
       top: 12px;
       left: 12px;
       background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
-      color: white;
+      color: var(--el-text-color-primary);
       padding: 4px 8px;
       border-radius: 8px;
       font-size: 0.7rem;
@@ -1654,7 +1654,7 @@ onMounted(async () => {
   :deep(.el-dialog) {
     border-radius: 20px;
     overflow: hidden;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     box-shadow:
       0 25px 50px rgba(0, 0, 0, 0.15),
       0 10px 20px rgba(0, 0, 0, 0.08);
@@ -1667,7 +1667,7 @@ onMounted(async () => {
 
     .el-dialog__body {
       padding: 28px;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       color: var(--el-text-color-primary);
     }
 

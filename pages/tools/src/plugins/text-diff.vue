@@ -573,7 +573,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border-radius: 8px;
   padding: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -195,14 +195,14 @@ const handleRefresh = async () => {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--el-border-color);
 
     .card-title {
       display: flex;
       align-items: center;
       gap: 8px;
       font-weight: 500;
-      color: #303133;
+      color: var(--el-text-color-primary);
 
       .card-icon {
         color: #409eff;
@@ -232,7 +232,7 @@ const handleRefresh = async () => {
       .partition-item {
         margin-bottom: 20px;
         padding: 16px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
         border-radius: 8px;
         border: 1px solid #e9ecef;
 
@@ -252,13 +252,13 @@ const handleRefresh = async () => {
             gap: 8px;
 
             .partition-icon {
-              color: #909399;
+               color: var(--el-text-color-primary);
               font-size: 16px;
             }
 
             .name {
               font-weight: 500;
-              color: #303133;
+              color: var(--el-text-color-primary);
             }
 
             .partition-type {
@@ -281,7 +281,7 @@ const handleRefresh = async () => {
 
             .label {
               font-size: 12px;
-              color: #909399;
+               color: var(--el-text-color-primary);
               margin-bottom: 4px;
             }
 
@@ -300,7 +300,7 @@ const handleRefresh = async () => {
       padding-top: 12px;
       border-top: 1px solid #f0f0f0;
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color-primary);
       text-align: center;
     }
   }

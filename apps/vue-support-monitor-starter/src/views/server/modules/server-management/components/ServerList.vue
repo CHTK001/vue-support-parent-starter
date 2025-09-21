@@ -550,7 +550,7 @@ onMounted(() => {
 
     .server-address {
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color);
       margin-bottom: 4px;
     }
 

@@ -319,7 +319,7 @@ export default defineComponent({
         padding: 20px;
         margin: 0;
         border-bottom: 1px solid var(--el-border-color-lighter);
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
       }
 
       .el-dialog__body {
@@ -330,7 +330,7 @@ export default defineComponent({
       .el-dialog__footer {
         padding: 16px 20px;
         border-top: 1px solid var(--el-border-color-lighter);
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
       }
     }
   }
@@ -340,7 +340,7 @@ export default defineComponent({
       margin-bottom: 24px;
       padding: 16px;
       width: 50%;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       border-radius: 8px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
       transition: all 0.3s ease;

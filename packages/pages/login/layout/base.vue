@@ -765,7 +765,7 @@ onBeforeUnmount(() => {
             transform: translate(-50%, -50%);
             width: 6px; // 从8px减少到6px
             height: 6px;
-            background: var(--el-bg-color);
+            background: var(--el-bg-color-overlay);
             border-radius: 50%;
             animation: pulse 2s ease-in-out infinite;
           }
@@ -1025,7 +1025,7 @@ onBeforeUnmount(() => {
 
             &.is-focus {
               border-color: var(--el-color-primary);
-              background: var(--el-bg-color);
+              background: var(--el-bg-color-overlay);
               box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
             }
           }
@@ -1121,7 +1121,7 @@ onBeforeUnmount(() => {
         left: 0;
         right: 0;
         background: rgba(0, 0, 0, 0.7);
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 10px;
         text-align: center;
         padding: 2px;
@@ -1196,7 +1196,7 @@ onBeforeUnmount(() => {
       }
 
       .divider-text {
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
         padding: 0 16px;
         color: var(--el-text-color-placeholder);
         font-size: 14px;
@@ -1360,7 +1360,7 @@ onBeforeUnmount(() => {
             transform: translate(-50%, -50%);
             width: 8px;
             height: 8px;
-            background: white;
+            background: var(--el-bg-color-overlay);
             border-radius: 50%;
           }
         }
@@ -1396,7 +1396,7 @@ onBeforeUnmount(() => {
         height: 48px;
         background: var(--el-color-primary);
         border-radius: 50%;
-        color: white;
+        color: var(--el-text-color-primary);
         flex-shrink: 0;
 
         svg {
@@ -1544,7 +1544,7 @@ onBeforeUnmount(() => {
 
       // 拼图区域
       .vcode-puzzle-area {
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
         border-radius: 12px;
         padding: 16px;
         border: 1px solid var(--el-border-color-lighter);
@@ -1673,7 +1673,7 @@ onBeforeUnmount(() => {
               transform: translate(-50%, -50%);
               width: 16px;
               height: 16px;
-              background: white;
+              background: var(--el-bg-color-overlay);
               border-radius: 2px;
               box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             }
@@ -1788,7 +1788,7 @@ onBeforeUnmount(() => {
             transform: translate(-50%, -50%);
             width: 8px;
             height: 8px;
-            background: white;
+            background: var(--el-bg-color-overlay);
             border-radius: 50%;
           }
         }
