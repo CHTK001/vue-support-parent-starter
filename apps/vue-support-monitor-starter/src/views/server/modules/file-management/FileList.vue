@@ -164,13 +164,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { formatBytes } from "@pureadmin/utils";
-import dayjs from "dayjs";
 import type { FileInfo } from "@/api/file-management";
-import { getFileList, createDirectory, deleteFile, renameFile, downloadFile } from "@/api/file-management";
+import { createDirectory, deleteFile, downloadFile, getFileList, renameFile } from "@/api/file-management";
+import { formatBytes } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
+import dayjs from "dayjs";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, reactive, ref } from "vue";
 
 // Props
 const props = defineProps<{
@@ -946,13 +946,13 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff; /* 设置文件列表背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件列表背景为白色 */
 }
 
 .list-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-light);
-  background: #ffffff; /* 设置列表头部背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置列表头部背景为白色 */
 }
 
 .path-navigation {
@@ -1101,7 +1101,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   border: none;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   flex: 1;
 }
 

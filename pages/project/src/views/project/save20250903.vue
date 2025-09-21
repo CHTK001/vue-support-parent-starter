@@ -193,7 +193,7 @@
           font-size: 18px;
           font-weight: 600;
           color: var(--el-text-color-primary);
-          background: var(--el-bg-color);
+          background: var(--el-bg-color-overlay);
           border-bottom: 1px solid var(--el-border-color-lighter);
         }
       }
@@ -201,13 +201,13 @@
       .el-dialog__footer {
         padding: 16px 20px;
         border-top: 1px solid var(--el-border-color-lighter);
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
       }
     }
   }
 
   .form-section {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;

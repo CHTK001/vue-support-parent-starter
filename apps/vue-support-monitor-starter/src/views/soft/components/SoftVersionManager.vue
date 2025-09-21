@@ -462,7 +462,7 @@ const formatChangelog = (changelog: string) => {
 
 <style scoped>
 .version-manager {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -473,7 +473,7 @@ const formatChangelog = (changelog: string) => {
   align-items: center;
   padding: 16px;
   border-bottom: 1px solid #e4e7ed;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .header-left {
@@ -486,7 +486,7 @@ const formatChangelog = (changelog: string) => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .header-actions {
@@ -504,12 +504,12 @@ const formatChangelog = (changelog: string) => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
 }
 
 .version-item:hover {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .version-item.active {
@@ -533,7 +533,7 @@ const formatChangelog = (changelog: string) => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .version-badges {
@@ -562,7 +562,7 @@ const formatChangelog = (changelog: string) => {
 
 .detail-row .value {
   font-size: 12px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
@@ -576,7 +576,7 @@ const formatChangelog = (changelog: string) => {
   margin: 0 0 8px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .changelog-content {
@@ -611,12 +611,12 @@ const formatChangelog = (changelog: string) => {
   margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .description-content {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   font-size: 14px;
   line-height: 1.6;
@@ -625,7 +625,7 @@ const formatChangelog = (changelog: string) => {
 
 :deep(.changelog-content) {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   font-size: 14px;
   line-height: 1.6;
@@ -636,7 +636,7 @@ const formatChangelog = (changelog: string) => {
 :deep(.changelog-content h2),
 :deep(.changelog-content h3) {
   margin: 8px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 :deep(.changelog-content li) {

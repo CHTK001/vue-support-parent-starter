@@ -1336,7 +1336,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   background-color: #3498db;
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 8px 12px;
   font-weight: bold;
 }
@@ -1375,7 +1375,7 @@ defineExpose({
 .minimize-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 16px;
   cursor: pointer;
   width: 26px;
@@ -1404,7 +1404,7 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   padding: 5px 0;
   border-bottom: 1px solid #eee;
 }
@@ -1414,7 +1414,7 @@ defineExpose({
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-bottom: 10px;
 }
 
@@ -1458,7 +1458,7 @@ defineExpose({
 
 .toolbar-btn-primary {
   background-color: #3498db;
-  color: white;
+  color: var(--el-text-color-primary);
   border-color: #2980b9;
 }
 
@@ -1468,7 +1468,7 @@ defineExpose({
 
 .toolbar-btn-info {
   background-color: #3498db;
-  color: white;
+  color: var(--el-text-color-primary);
   border-color: #2980b9;
 }
 
@@ -1516,7 +1516,7 @@ defineExpose({
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin: 10px 0;
   padding: 10px;
   background-color: #f0f8ff;
@@ -1599,13 +1599,13 @@ defineExpose({
   font-weight: bold;
   margin-bottom: 6px;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .flight-line-details {
   display: flex;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   gap: 10px;
 }
 
@@ -1630,7 +1630,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 18px;
   background: linear-gradient(135deg, #1890ff, #096dd9);
   /* border-radius: 50%; */
@@ -1659,7 +1659,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .performance-option input[type="checkbox"] {
@@ -1675,7 +1675,7 @@ defineExpose({
 }
 
 .gl-mode-notice code {
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
@@ -1692,7 +1692,7 @@ defineExpose({
 .section-title {
   font-weight: bold;
   margin-bottom: 8px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .icon-option {
@@ -1830,7 +1830,7 @@ defineExpose({
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   padding: 10px;
   height: 60px;
@@ -1856,7 +1856,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -1882,7 +1882,7 @@ defineExpose({
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-top: 4px;
 }
 
@@ -1920,12 +1920,12 @@ defineExpose({
 
 .detail-label {
   font-weight: bold;
-  color: #666;
+  color: var(--el-text-color-primary);
   width: 40px;
 }
 
 .detail-value {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .selection-tip {
@@ -1933,7 +1933,7 @@ defineExpose({
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-bottom: 10px;
 }
 
@@ -1961,12 +1961,12 @@ defineExpose({
 
 .debug-panel h4 {
   margin: 0 0 8px 0;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .debug-panel p {
   margin: 3px 0;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .diagnose-info {
@@ -1982,7 +1982,7 @@ defineExpose({
   left: 10px;
   right: 10px;
   bottom: 10px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   z-index: 1001; /* 更高的z-index确保在蒙版上方 */
@@ -2015,14 +2015,14 @@ defineExpose({
 
 .settings-popup-title {
   font-weight: bold;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .settings-popup-close {
   background: none;
   border: none;
   font-size: 20px;
-  color: white;
+  color: var(--el-text-color-primary);
   cursor: pointer;
 }
 
@@ -2053,7 +2053,7 @@ defineExpose({
   width: 100px;
   flex-shrink: 0;
   font-size: 13px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .slider-wrap {
@@ -2066,7 +2066,7 @@ defineExpose({
   width: 40px;
   text-align: right;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .settings-actions {
@@ -2077,7 +2077,7 @@ defineExpose({
 
 /* 添加设置按钮样式 */
 .toolbar-btn-settings {
-  color: white;
+  color: var(--el-text-color-primary);
   width: 24px;
   height: 24px;
   display: flex;
@@ -2122,7 +2122,7 @@ defineExpose({
 
 .color-value {
   margin-left: 10px;
-  color: #666;
+  color: var(--el-text-color-primary);
   font-size: 12px;
 }
 
@@ -2135,7 +2135,7 @@ defineExpose({
 
 .subsection-title {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
 }
 </style>

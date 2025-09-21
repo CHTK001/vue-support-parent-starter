@@ -13,9 +13,9 @@ $uni-error: #dd524d;
 // 描述色
 $uni-info: #909399;
 // 中性色
-$uni-main-color: #303133;
+$uni-main-color: var(--el-text-color-primary);
 $uni-base-color: #606266;
-$uni-secondary-color: #909399;
+$uni-secondary- color: var(--el-text-color-primary);
 $uni-extra-color: #C0C4CC;
 // 背景色
 $uni-bg-color: #f5f5f5;

@@ -218,7 +218,7 @@ defineProps({
 
     .iconify {
       font-size: 20px;
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 

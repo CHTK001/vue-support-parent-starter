@@ -207,7 +207,7 @@ onUnmounted(() => {
   justify-content: right;
   align-items: center;
   padding: 12px 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #e4e7ed;
 }
 
@@ -269,7 +269,7 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: white;
+  color: var(--el-text-color-primary);
   gap: 16px;
 }
 

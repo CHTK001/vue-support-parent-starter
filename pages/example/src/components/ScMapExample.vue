@@ -1188,7 +1188,7 @@ function updateGeohashConfig() {
 .label {
   padding: 8px 12px;
   font-weight: 600;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #e0e0e0;
 }
 .controls {
@@ -1253,7 +1253,7 @@ button:hover {
   font-size: 12px;
   margin-bottom: 4px;
   padding: 4px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 .log-time {
   color: #8c8c8c;
@@ -1329,7 +1329,7 @@ button:hover {
   display: flex;
   align-items: center;
   padding: 4px 8px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   font-size: 12px;
 }

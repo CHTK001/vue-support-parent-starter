@@ -179,7 +179,7 @@ defineExpose({
 
 <style scoped>
 .order-detail-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   padding-bottom: 15px;
   margin-bottom: 0;
 }
@@ -224,7 +224,7 @@ defineExpose({
 
 .header-title {
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 15px;
 }
 
@@ -243,7 +243,7 @@ defineExpose({
 
 .merchant-tag {
   background-color: #409eff;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .order-code {

@@ -1095,7 +1095,7 @@ const testBackendAPI = async () => {
     align-items: center;
     margin-bottom: 20px;
     padding: 20px;
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
@@ -1104,14 +1104,14 @@ const testBackendAPI = async () => {
         margin: 0 0 8px 0;
         font-size: 24px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         display: flex;
         align-items: center;
       }
 
       .page-description {
         margin: 0;
-        color: #909399;
+         color: var(--el-text-color-primary);
         font-size: 14px;
       }
     }
@@ -1178,7 +1178,7 @@ const testBackendAPI = async () => {
 
     .stat-card {
       padding: 20px;
-      background: white;
+      background: var(--el-bg-color-overlay);
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       display: flex;
@@ -1198,7 +1198,7 @@ const testBackendAPI = async () => {
         justify-content: center;
         margin-right: 16px;
         font-size: 24px;
-        color: white;
+        color: var(--el-text-color-primary);
       }
 
       .stat-content {
@@ -1207,13 +1207,13 @@ const testBackendAPI = async () => {
         .stat-value {
           font-size: 24px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
           margin-bottom: 4px;
         }
 
         .stat-label {
           font-size: 14px;
-          color: #909399;
+           color: var(--el-text-color-primary);
         }
       }
 
@@ -1243,7 +1243,7 @@ const testBackendAPI = async () => {
 
   .group-tree-container {
     width: 280px;
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     padding: 16px;
     overflow: hidden;
@@ -1263,7 +1263,7 @@ const testBackendAPI = async () => {
         margin: 0;
         font-size: 16px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -1283,8 +1283,8 @@ const testBackendAPI = async () => {
 
         .file-count {
           font-size: 12px;
-          color: #909399;
-          background: #f5f7fa;
+           color: var(--el-text-color-primary);
+          background: var(--el-bg-color-overlay);
           padding: 2px 6px;
           border-radius: 10px;
         }
@@ -1295,7 +1295,7 @@ const testBackendAPI = async () => {
   .file-list-container {
     padding: 20px;
     flex: 1;
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;

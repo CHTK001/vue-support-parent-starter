@@ -781,7 +781,7 @@ onUnmounted(() => removeMatchMedia);
           right: 0;
           width: 70%;
           height: 30%;
-          background: var(--el-bg-color);
+          background: var(--el-bg-color-overlay);
           box-shadow: 0 0 1px #888;
 
           &::after {

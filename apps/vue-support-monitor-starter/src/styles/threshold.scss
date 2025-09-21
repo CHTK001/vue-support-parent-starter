@@ -183,7 +183,7 @@ $threshold-critical-border: rgba(245, 108, 108, 0.3);
   
   &.threshold-normal {
     background-color: $threshold-normal-color;
-    color: white;
+    color: var(--el-text-color-primary);
     border: 1px solid $threshold-normal-color;
     
     &:hover {
@@ -194,7 +194,7 @@ $threshold-critical-border: rgba(245, 108, 108, 0.3);
   
   &.threshold-warning {
     background-color: $threshold-warning-color;
-    color: white;
+    color: var(--el-text-color-primary);
     border: 1px solid $threshold-warning-color;
     
     &:hover {
@@ -205,7 +205,7 @@ $threshold-critical-border: rgba(245, 108, 108, 0.3);
   
   &.threshold-critical {
     background-color: $threshold-critical-color;
-    color: white;
+    color: var(--el-text-color-primary);
     border: 1px solid $threshold-critical-color;
     
     &:hover {

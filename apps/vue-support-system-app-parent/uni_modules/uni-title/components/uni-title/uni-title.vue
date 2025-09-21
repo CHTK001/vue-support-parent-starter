@@ -132,39 +132,39 @@
 
 	.uni-title__base {
 		font-size: 15px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: 500;
 	}
 
 	.uni-h1 {
 		font-size: 20px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: bold;
 	}
 
 	.uni-h2 {
 		font-size: 18px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: bold;
 	}
 
 	.uni-h3 {
 		font-size: 16px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: bold;
 		/* font-weight: 400; */
 	}
 
 	.uni-h4 {
 		font-size: 14px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: bold;
 		/* font-weight: 300; */
 	}
 
 	.uni-h5 {
 		font-size: 12px;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: bold;
 		/* font-weight: 200; */
 	}

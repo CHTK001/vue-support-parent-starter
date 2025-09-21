@@ -1813,7 +1813,7 @@ onUnmounted(() => {
     }
 
     &.layui-segmented-checked {
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       color: var(--el-color-primary);
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
       font-weight: 600;
@@ -1976,7 +1976,7 @@ onUnmounted(() => {
 
 // 拉伸按钮样式 - 现代化设计
 .stretch-button {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 2px solid var(--el-border-color-extra-light);
   border-radius: 12px;
   width: 100%;
@@ -2144,7 +2144,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid var(--el-border-color-light);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2485,7 +2485,7 @@ onUnmounted(() => {
 .custom-number-input {
   display: flex;
   align-items: center;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid var(--el-border-color-light);
   overflow: hidden;
@@ -2542,7 +2542,7 @@ onUnmounted(() => {
   .number-display {
     display: flex;
     align-items: center;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     padding: 0 8px;
     min-width: 80px;
     justify-content: center;
@@ -2609,7 +2609,7 @@ onUnmounted(() => {
   margin-top: 12px;
   border-radius: 12px;
   overflow: hidden;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color);
   box-shadow: var(--el-box-shadow-lighter);
   transition: all 0.3s ease;
@@ -2654,7 +2654,7 @@ onUnmounted(() => {
     border: 2px solid var(--el-border-color);
     transition: all 0.3s ease;
     border-radius: 10px;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
 
     &:hover {
       border-color: var(--el-border-color-hover);
@@ -2663,7 +2663,7 @@ onUnmounted(() => {
 
     &.is-focus {
       border-color: var(--el-color-primary);
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1);
     }
 
@@ -2891,7 +2891,7 @@ onUnmounted(() => {
     }
 
     &.is-selected {
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       color: var(--el-color-primary);
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
       border: 1px solid var(--el-color-primary-light-8);
@@ -3100,7 +3100,7 @@ onUnmounted(() => {
 
         span {
           font-size: 11px;
-          color: #909399;
+           color: var(--el-text-color-primary);
           font-weight: 600;
           text-align: center;
           line-height: 1.2;
@@ -3118,7 +3118,7 @@ onUnmounted(() => {
       text-align: center;
       font-size: 12px;
       font-weight: 600;
-      color: #909399;
+       color: var(--el-text-color-primary);
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 250, 0.8));
       backdrop-filter: blur(8px);
@@ -3133,7 +3133,7 @@ onUnmounted(() => {
     }
 
     &:hover::after {
-      color: #303133;
+      color: var(--el-text-color-primary);
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(236, 245, 255, 0.9));
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -3297,7 +3297,7 @@ onUnmounted(() => {
 
     &.is-active {
       font-weight: 500;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       color: var(--el-color-primary);
       box-shadow: var(--el-box-shadow-lighter);
     }

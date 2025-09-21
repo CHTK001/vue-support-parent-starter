@@ -181,7 +181,7 @@ const handleMenu = async (item) => {
     position: absolute;
     left: -12px;
     z-index: 1000;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     cursor: pointer;
   }
   .engine-menu-router-item-option-right:hover {
@@ -193,7 +193,7 @@ const handleMenu = async (item) => {
     position: absolute;
     right: -12px;
     z-index: 1000;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     cursor: pointer;
   }
 }

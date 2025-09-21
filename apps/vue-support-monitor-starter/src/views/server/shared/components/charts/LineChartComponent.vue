@@ -377,7 +377,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .line-chart-component {
   height: 100%;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
   display: flex;

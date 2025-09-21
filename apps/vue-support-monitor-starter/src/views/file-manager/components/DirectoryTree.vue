@@ -173,9 +173,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
 import { ElMessage, ElTree } from 'element-plus'
 import type { ElTreeNode } from 'element-plus/es/components/tree/src/model/node'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 // 目录节点接口
 interface DirectoryNode {
@@ -529,7 +529,7 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid #e4e7ed;
   overflow: hidden;
@@ -540,7 +540,7 @@ onMounted(() => {
     align-items: center;
     padding: 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: var(--el-text-color-primary);
 
     .header-title {
       display: flex;
@@ -561,7 +561,7 @@ onMounted(() => {
       .action-btn {
         background: rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
+        color: var(--el-text-color-primary);
         width: 32px;
         height: 32px;
 
@@ -617,7 +617,7 @@ onMounted(() => {
         font-size: 14px;
 
         &:hover {
-          background: #f5f7fa;
+          background: var(--el-bg-color-overlay);
         }
 
         &.active {
@@ -632,7 +632,7 @@ onMounted(() => {
         .path-icon {
           margin-right: 8px;
           font-size: 16px;
-          color: #909399;
+           color: var(--el-text-color-primary);
         }
 
         .path-name {
@@ -658,7 +658,7 @@ onMounted(() => {
         transition: all 0.2s ease;
 
         &:hover {
-          background: #f5f7fa;
+          background: var(--el-bg-color-overlay);
 
           .node-actions {
             opacity: 1;
@@ -710,7 +710,7 @@ onMounted(() => {
 
             .node-count {
               font-size: 12px;
-              color: #909399;
+               color: var(--el-text-color-primary);
               background: #f0f2f5;
               padding: 2px 6px;
               border-radius: 10px;

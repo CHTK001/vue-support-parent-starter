@@ -164,7 +164,7 @@ onMounted(() => {
 <style scoped>
 .video-module {
   padding: 24px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   min-height: 100vh;
 }
 

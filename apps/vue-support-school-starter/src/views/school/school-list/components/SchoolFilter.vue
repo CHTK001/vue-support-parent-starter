@@ -288,13 +288,13 @@ watch(
   align-items: center;
   padding-bottom: 15px;
   margin-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
 }
 
 .filter-header-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .filter-section {
@@ -314,7 +314,7 @@ watch(
 .filter-label {
   width: 80px;
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   line-height: 30px;
   flex-shrink: 0;
 }
@@ -337,7 +337,7 @@ watch(
   border: 1px solid #e6e6e6;
   border-radius: 4px;
   font-size: 13px;
-  color: #666;
+  color: var(--el-text-color-primary);
   cursor: pointer;
   transition: all 0.2s;
   background-color: #f9f9f9;
@@ -366,7 +366,7 @@ watch(
 .selected-filters-label {
   width: 80px;
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   line-height: 30px;
   flex-shrink: 0;
 }

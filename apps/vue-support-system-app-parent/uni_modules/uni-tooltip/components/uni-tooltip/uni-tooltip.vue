@@ -92,7 +92,7 @@
 		z-index: 1;
 		display: none;
 		position: absolute;
-		background-color: #333;
+		background-color: var(--el-text-color-primary);
 		border-radius: 8px;
 		color: #fff;
 		font-size: 12px;

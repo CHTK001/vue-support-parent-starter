@@ -231,7 +231,7 @@
 	.files__name {
 		flex: 1;
 		font-size: 14px;
-		color: #666;
+		color: var(--el-text-color-primary);
 		margin-right: 25px;
 		/* #ifndef APP-NVUE */
 		word-break: break-all;
@@ -247,7 +247,7 @@
 	}
 
 	// .icon-files .icon-del {
-	// 	background-color: #333;
+	// 	background-color: var(--el-text-color-primary);
 	// 	width: 12px;
 	// 	height: 1px;
 	// }
@@ -310,7 +310,7 @@
 	.icon-del {
 		width: 15px;
 		height: 1px;
-		background-color: #333;
+		background-color: var(--el-text-color-primary);
 		// border-radius: 1px;
 	}
 

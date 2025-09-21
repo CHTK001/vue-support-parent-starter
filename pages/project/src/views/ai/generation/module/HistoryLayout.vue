@@ -223,7 +223,7 @@ defineExpose({
 .history {
   height: 100%;
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
 }
 
 // 历史记录行布局 - 每个项目独立成行
@@ -272,7 +272,7 @@ defineExpose({
   border-left: 3px solid #409eff;
 
   .prompt-content {
-    color: #495057;
+    color: var(--el-text-color-primary);
     cursor: pointer;
     line-height: 1.5;
     display: -webkit-box;
@@ -301,29 +301,28 @@ defineExpose({
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   border-radius: 16px;
   font-size: 12px;
-  color: #495057;
+  color: var(--el-text-color-primary);
   transition: all 0.2s ease;
   cursor: default;
 
   &:hover {
-    background: #e9ecef;
     transform: translateY(-1px);
   }
 
   &.model-tag {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: var(--el-text-color-primary);
     border: none;
     cursor: pointer;
     font-weight: 500;
 
     &:hover {
       transform: translateY(-1px) scale(1.02);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 4px 12px var(--el-shadow-color);
     }
   }
 
@@ -353,7 +352,7 @@ defineExpose({
 
   .time-value {
     font-size: 12px;
-    color: #495057;
+    color: var(--el-text-color-primary);
     font-weight: 600;
   }
 }
@@ -528,7 +527,7 @@ defineExpose({
     display: flex;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: var(--el-text-color-primary);
   }
 }
 </style>

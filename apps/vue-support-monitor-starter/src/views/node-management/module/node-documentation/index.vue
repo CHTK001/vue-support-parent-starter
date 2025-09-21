@@ -2494,7 +2494,7 @@ watch(showHeaderDialog, (newValue) => {
     .doc-sidebar {
       min-width: 200px;
       max-width: 600px;
-      background: white;
+      background: var(--el-bg-color-overlay);
       border-radius: 16px;
       box-shadow:
         0 10px 25px -5px rgba(0, 0, 0, 0.1),
@@ -2514,7 +2514,7 @@ watch(showHeaderDialog, (newValue) => {
         padding: 28px 24px;
         border-bottom: none;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        color: var(--el-text-color-primary);
         border-radius: 16px 16px 0 0;
         position: relative;
 
@@ -2851,7 +2851,7 @@ watch(showHeaderDialog, (newValue) => {
     .doc-params {
       min-width: 300px;
       max-width: 800px;
-      background: white;
+      background: var(--el-bg-color-overlay);
       border-radius: 16px;
       box-shadow:
         0 10px 25px -5px rgba(0, 0, 0, 0.1),
@@ -3040,7 +3040,7 @@ watch(showHeaderDialog, (newValue) => {
     .doc-result {
       flex: 1;
       min-width: 0; // 确保能够收缩
-      background: white;
+      background: var(--el-bg-color-overlay);
       border-radius: 16px;
       box-shadow:
         0 10px 25px -5px rgba(0, 0, 0, 0.1),
@@ -3209,7 +3209,7 @@ watch(showHeaderDialog, (newValue) => {
 
                 .header-count {
                   background: #6366f1;
-                  color: white;
+                  color: var(--el-text-color-primary);
                   padding: 2px 8px;
                   border-radius: 12px;
                   font-size: 12px;
@@ -3219,7 +3219,7 @@ watch(showHeaderDialog, (newValue) => {
 
                 .content-type-badge {
                   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                  color: white;
+                  color: var(--el-text-color-primary);
                   padding: 4px 12px;
                   border-radius: 20px;
                   font-size: 12px;

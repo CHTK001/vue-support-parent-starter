@@ -252,7 +252,7 @@ function handleClear() {
 .sc-captcha-image {
   height: 36px;
   min-width: 100px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
   overflow: hidden;
   cursor: pointer;

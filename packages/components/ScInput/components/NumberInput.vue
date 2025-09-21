@@ -151,7 +151,7 @@ const handleBlur = (event: FocusEvent) => {
 
       &:hover {
         background: var(--el-color-primary);
-        color: white;
+        color: var(--el-text-color-primary);
         transform: scale(1.1);
         box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
       }

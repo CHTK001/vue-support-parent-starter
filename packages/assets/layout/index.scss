@@ -246,7 +246,7 @@
 
 .el-dropdown-menu__item:not(.is-disabled):hover {
   color: #606266;
-  background: #f0f0f0;
+  background: var(--el-bg-color-overlay);
 }
 
 :deep(.el-dropdown-menu__item) i {
@@ -373,11 +373,11 @@
 
 /* 卡片模式下鼠标移出隐藏蓝色边框 */
 .card-out {
-  color: #666;
+  color: var(--el-text-color-primary);
   border: none;
 
   .tag-title {
-    color: #666;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -510,11 +510,11 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: #666;
+    color: var(--el-text-color-primary);
     border-radius: 50%;
 
     &:hover {
-      color: white;
+      color: var(--el-text-color-primary);
       background-color: #b1b3b8;
     }
   }

@@ -412,10 +412,10 @@ const exportHtml = () => {
       padding: 20px;
       max-width: 800px;
       margin: 0 auto;
-      color: #333;
+      color: var(--el-text-color-primary);
     }
     pre {
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
       padding: 16px;
       border-radius: 4px;
       overflow-x: auto;
@@ -428,7 +428,7 @@ const exportHtml = () => {
       margin: 0;
       padding-left: 16px;
       border-left: 4px solid #ddd;
-      color: #666;
+      color: var(--el-text-color-primary);
     }
     img {
       max-width: 100%;
@@ -445,7 +445,7 @@ const exportHtml = () => {
       text-align: left;
     }
     th {
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
     }
   </style>
 </head>
@@ -851,7 +851,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border-radius: 8px;
   padding: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;

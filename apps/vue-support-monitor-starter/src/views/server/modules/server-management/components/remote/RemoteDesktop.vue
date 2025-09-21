@@ -216,7 +216,7 @@ initializeProtocol();
         gap: 8px;
         font-weight: 600;
         font-size: 18px;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -234,7 +234,7 @@ initializeProtocol();
       text-align: center;
       cursor: pointer;
       transition: all 0.3s ease;
-      background: white;
+      background: var(--el-bg-color-overlay);
 
       &:hover {
         border-color: #409eff;
@@ -255,7 +255,7 @@ initializeProtocol();
           padding: 2px 6px;
           border-radius: 10px;
           background: #67c23a;
-          color: white;
+          color: var(--el-text-color-primary);
           border: 2px solid white;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
           z-index: 1;
@@ -266,7 +266,7 @@ initializeProtocol();
         margin: 0 0 8px 0;
         font-size: 20px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
 
       p {

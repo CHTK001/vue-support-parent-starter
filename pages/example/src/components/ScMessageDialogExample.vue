@@ -513,7 +513,7 @@ onUnmounted(() => {
   margin-bottom: 32px;
   padding: 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
@@ -533,7 +533,7 @@ onUnmounted(() => {
 .example-section {
   margin-bottom: 32px;
   padding: 24px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
@@ -542,7 +542,7 @@ onUnmounted(() => {
 .example-section h3 {
   margin: 0 0 16px 0;
   font-size: 20px;
-  color: #333;
+  color: var(--el-text-color-primary);
   font-weight: 600;
 }
 
@@ -568,7 +568,7 @@ onUnmounted(() => {
 .custom-message {
   padding: 12px;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-left: 4px solid #007bff;
 }
 
@@ -609,7 +609,7 @@ onUnmounted(() => {
 
 .message-time {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .message-content {

@@ -914,7 +914,7 @@ defineExpose({
     width: 100%;
     opacity: 1;
     height: 100%;
-    color: #666;
+    color: var(--el-text-color-primary);
     /* 恢复为灰色图标 */
     transition: all 0.3s ease;
     pointer-events: auto !important;
@@ -1249,7 +1249,7 @@ defineExpose({
 
 /* 确保图标在激活状态下可见 */
 .toolbar-item.active i {
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 /* 激活状态工具的提示框样式 */
@@ -1270,7 +1270,7 @@ defineExpose({
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background-color: #666;
+    background-color: var(--el-text-color-primary);
     right: 3px;
     bottom: 3px;
     transition: all 0.3s ease;
@@ -1447,7 +1447,7 @@ defineExpose({
 /* 工具提示样式 */
 .toolbar-tooltip {
   background-color: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;

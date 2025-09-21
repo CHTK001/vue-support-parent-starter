@@ -312,24 +312,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import type { IResponse } from "@/interface/request";
 import {
-  getAvailableServerTypes,
-  getSystemServerPage,
-  getSystemServerStatistics,
-  startSystemServer,
-  stopSystemServer,
-  restartSystemServer,
-  deleteSystemServer,
-  type SystemServer,
-  type SystemServerStatistics,
+    deleteSystemServer,
+    getAvailableServerTypes,
+    getSystemServerPage,
+    getSystemServerStatistics,
+    restartSystemServer,
+    startSystemServer,
+    stopSystemServer,
+    type SystemServer,
+    type SystemServerStatistics,
 } from "@/api/system-server";
-import ServerFormDialog from "./components/ServerFormDialog.vue";
+import { getProtocolIcon } from "@/components/protocol-icons";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { onMounted, reactive, ref } from "vue";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
-import { getProtocolIcon } from "@/components/protocol-icons";
+import ServerFormDialog from "./components/ServerFormDialog.vue";
 
 // 页面标题
 defineOptions({
@@ -649,7 +648,7 @@ onMounted(() => {
 .service-management-container {
   padding: 24px;
   height: 100%;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   display: flex;
   flex-direction: column;
 }
@@ -663,7 +662,7 @@ onMounted(() => {
   .header-left {
     h2 {
       margin: 0 0 8px 0;
-      color: #303133;
+      color: var(--el-text-color-primary);
       font-size: 24px;
       font-weight: 600;
     }
@@ -712,7 +711,7 @@ onMounted(() => {
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        color: white;
+        color: var(--el-text-color-primary);
 
         &.total {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -731,13 +730,13 @@ onMounted(() => {
         .stat-value {
           font-size: 28px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
           line-height: 1;
         }
 
         .stat-label {
           font-size: 14px;
-          color: #909399;
+           color: var(--el-text-color-primary);
           margin-top: 4px;
         }
       }
@@ -787,8 +786,8 @@ onMounted(() => {
 
   .server-card {
     border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background: #ffffff;
+    border: 1px solid var(--el-border-color);
+     background: var(--el-bg-color-overlay);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     position: relative;
@@ -961,7 +960,7 @@ onMounted(() => {
           &.el-button--success {
             background: #10b981;
             border: none;
-            color: white;
+            color: var(--el-text-color-primary);
 
             &:hover {
               background: #059669;
@@ -971,7 +970,7 @@ onMounted(() => {
           &.el-button--danger {
             background: #ef4444;
             border: none;
-            color: white;
+            color: var(--el-text-color-primary);
 
             &:hover {
               background: #dc2626;
@@ -981,7 +980,7 @@ onMounted(() => {
           &.el-button--warning {
             background: #f59e0b;
             border: none;
-            color: white;
+            color: var(--el-text-color-primary);
 
             &:hover {
               background: #d97706;
@@ -991,7 +990,7 @@ onMounted(() => {
           &.el-button--primary {
             background: #3b82f6;
             border: none;
-            color: white;
+            color: var(--el-text-color-primary);
 
             &:hover {
               background: #2563eb;

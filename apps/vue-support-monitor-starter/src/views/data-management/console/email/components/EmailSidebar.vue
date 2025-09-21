@@ -247,14 +247,14 @@ defineExpose({
 
 .folder-item.active,
 .tag-item.active {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   color: #fff;
 }
 
 .folder-icon {
   font-size: 16px;
   margin-right: 8px;
-  color: #909399;
+   color: var(--el-text-color);
 }
 
 .folder-item.active .folder-icon {
@@ -291,7 +291,7 @@ defineExpose({
   background: #f56c6c;
 }
 .tag-color.blue {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
 }
 .tag-color.green {
   background: #67c23a;

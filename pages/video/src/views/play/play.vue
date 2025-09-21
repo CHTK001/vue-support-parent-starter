@@ -333,7 +333,7 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--el-text-color-primary);
   z-index: 10;
 }
 
@@ -373,13 +373,13 @@ onUnmounted(() => {
 
 .info-label {
   font-weight: 600;
-  color: #666;
+  color: var(--el-text-color-primary);
   min-width: 80px;
   margin-right: 10px;
 }
 
 .info-value {
-  color: #333;
+  color: var(--el-text-color-primary);
   word-break: break-all;
   flex: 1;
 }
@@ -397,7 +397,7 @@ onUnmounted(() => {
   right: 20px;
   z-index: 100;
   background: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .video-player-container:fullscreen .player-wrapper {

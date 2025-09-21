@@ -139,7 +139,7 @@ const executeQuery = () => {
 }
 
 .component-container {
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
   height: 500px;
   overflow: hidden;

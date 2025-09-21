@@ -80,7 +80,7 @@ onMounted(() => {
 }
 
 .header-title {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .merchant-container {

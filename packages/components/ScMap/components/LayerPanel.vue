@@ -325,14 +325,14 @@ $layer-item-border: 1px solid #eaeaea;
             padding: 4px 6px;
             border-radius: 6px 0 0 0;
             font-size: 12px;
-            color: #333;
+            color: var(--el-text-color-primary);
             background-color: rgba(255, 255, 255, 0.8);
             text-align: right;
             transition: all 0.25s ease;
 
             &.active {
               background-color: $layer-item-active-bg;
-              color: white;
+              color: var(--el-text-color-primary);
             }
           }
         }

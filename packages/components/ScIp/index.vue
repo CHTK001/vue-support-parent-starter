@@ -152,14 +152,14 @@ export default defineComponent({
 }
 
 .sc-ip-empty {
-  color: #909399;
+   color: var(--el-text-color);
   font-style: italic;
 }
 
 .sc-ip-icon {
   margin-left: 5px;
   font-size: 16px;
-  color: #909399;
+   color: var(--el-text-color);
   cursor: help;
 }
 </style>

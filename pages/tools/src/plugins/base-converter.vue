@@ -529,7 +529,7 @@ onMounted(() => {
     background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
     border-radius: 12px;
     padding: 30px;
-    color: white;
+    color: var(--el-text-color-primary);
     box-shadow: 0 10px 30px rgba(var(--el-color-primary-rgb), 0.3);
     position: relative;
     overflow: hidden;

@@ -329,7 +329,7 @@ onUnmounted(() => {
   }
 
   .text-secondary {
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin: 0;
   }
 
@@ -337,7 +337,7 @@ onUnmounted(() => {
     margin-top: 0;
     margin-bottom: 16px;
     font-size: 18px;
-    color: #303133;
+    color: var(--el-text-color-primary);
   }
 
   .mt-4 {
@@ -450,7 +450,7 @@ onUnmounted(() => {
     border-radius: 12px;
     padding: 16px;
     position: relative;
-    background-color: #f8f9fa;
+    background: var(--el-bg-color-overlay);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -543,7 +543,7 @@ onUnmounted(() => {
     code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
-      color: #333;
+      color: var(--el-text-color-primary);
     }
   }
 }

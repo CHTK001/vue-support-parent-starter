@@ -80,7 +80,7 @@ const handleClose = () => {
 }
 
 .marker-panel-content {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -97,13 +97,13 @@ const handleClose = () => {
 
 .marker-panel-header .title {
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .marker-panel-header .close-btn {
   cursor: pointer;
   font-size: 18px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .marker-panel-header .close-btn:hover {
@@ -116,7 +116,7 @@ const handleClose = () => {
 }
 
 .default-content {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .coords-info {

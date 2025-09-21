@@ -299,10 +299,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from "vue";
-import { message } from "@repo/utils";
 import { getServerInfo, type ServerInfo } from "@/api/server";
 import { getServerSettingByServerId, saveOrUpdateServerSetting, type ServerSetting } from "@/api/server/setting";
+import { message } from "@repo/utils";
+import { defineAsyncComponent, ref } from "vue";
 
 // 异步组件
 const ServerSettingForm = defineAsyncComponent(() => import("./ServerSettingForm.vue"));
@@ -623,7 +623,7 @@ defineExpose({
 
 .config-nav {
   width: 240px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
@@ -632,7 +632,7 @@ defineExpose({
 .server-info {
   padding: 16px;
   border-bottom: 1px solid #e4e7ed;
-  background: white;
+  background: var(--el-bg-color-overlay);
 }
 
 .server-title {
@@ -653,13 +653,13 @@ defineExpose({
 .server-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .server-host {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .config-menu {
@@ -688,7 +688,7 @@ defineExpose({
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .form-container {
@@ -733,7 +733,7 @@ defineExpose({
 
     .help-icon {
       font-size: 14px;
-      color: #909399;
+       color: var(--el-text-color-primary);
       cursor: help;
       transition: color 0.3s;
 
@@ -747,7 +747,7 @@ defineExpose({
 .form-tip {
   margin-left: 8px;
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 :deep(.el-menu-item) {
@@ -763,7 +763,7 @@ defineExpose({
 
 :deep(.el-menu-item.is-active) {
   background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 
   &:hover {
@@ -790,7 +790,7 @@ defineExpose({
 /* 表单元素美化 */
 :deep(.el-form-item__label) {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 :deep(.el-input) {
@@ -831,7 +831,7 @@ defineExpose({
     .el-col {
       .form-tip {
         font-size: 11px;
-        color: #909399;
+         color: var(--el-text-color-primary);
         margin-top: 4px;
         text-align: center;
       }
@@ -929,7 +929,7 @@ defineExpose({
           padding: 20px;
           border: 1px solid #e4e7ed;
           border-radius: 12px;
-          background: #ffffff;
+           background: var(--el-bg-color-overlay);
           transition: all 0.3s ease;
           height: 100%;
           display: flex;
@@ -947,7 +947,7 @@ defineExpose({
               transition: all 0.3s ease;
 
               &.none {
-                color: #909399;
+                 color: var(--el-text-color-primary);
               }
 
               &.local {
@@ -966,7 +966,7 @@ defineExpose({
             .card-title {
               font-size: 16px;
               font-weight: 500;
-              color: #303133;
+              color: var(--el-text-color-primary);
               transition: all 0.3s ease;
               flex: 1;
             }
@@ -977,12 +977,12 @@ defineExpose({
               top: -2px;
               width: 24px;
               height: 24px;
-              background: #409eff;
+              background: var(--el-bg-color-overlay);
               border-radius: 50%;
               display: flex;
               align-items: center;
               justify-content: center;
-              color: white;
+              color: var(--el-text-color-primary);
               font-size: 12px;
               opacity: 0;
               transform: scale(0);

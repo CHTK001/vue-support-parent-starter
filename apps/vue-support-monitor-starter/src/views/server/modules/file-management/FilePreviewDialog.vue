@@ -143,15 +143,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
-import { formatBytes } from "@pureadmin/utils";
-import { ElMessage } from "element-plus";
-import dayjs from "dayjs";
 import type { FileInfo } from "@/api/file-management";
 import {
-  previewFile,
-  downloadFile as apiDownloadFile,
+    downloadFile as apiDownloadFile,
+    previewFile,
 } from "@/api/file-management";
+import { formatBytes } from "@pureadmin/utils";
+import dayjs from "dayjs";
+import { ElMessage } from "element-plus";
+import { computed, nextTick, ref, watch } from "vue";
 
 // Props
 const props = defineProps<{
@@ -573,7 +573,7 @@ watch(
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: #ffffff; /* 设置工具栏背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置工具栏背景为白色 */
   border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
@@ -601,7 +601,7 @@ watch(
   flex: 1;
   overflow: auto;
   padding: 20px;
-  background: #ffffff; /* 设置代码内容背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
 }
 
 .text-content pre,

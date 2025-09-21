@@ -401,12 +401,12 @@ const generatedCode = computed(() => {
   padding: 16px;
 
   .example-desc {
-    color: #666;
+    color: var(--el-text-color-primary);
     margin-bottom: 16px;
   }
 
   .config-panel {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     padding: 16px;
     height: 100%;
@@ -429,7 +429,7 @@ const generatedCode = computed(() => {
   }
 
   .preview-panel {
-    background: #f8f9fa;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     padding: 16px;
     min-height: 500px;
@@ -447,7 +447,7 @@ const generatedCode = computed(() => {
     margin-top: 30px;
 
     .dialog-frame {
-      border: 1px solid #dcdfe6;
+      border: 1px solid var(--el-border-color);
       border-radius: 4px;
       box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
       background-color: #fff;
@@ -465,7 +465,7 @@ const generatedCode = computed(() => {
         span {
           font-size: 16px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
         }
       }
 
@@ -492,7 +492,7 @@ const generatedCode = computed(() => {
           right: 8px;
           font-size: 16px;
           cursor: pointer;
-          color: #909399;
+           color: var(--el-text-color-primary);
 
           &:hover {
             color: var(--el-color-primary);
@@ -534,7 +534,7 @@ const generatedCode = computed(() => {
             height: 32px;
             border-radius: 50%;
             background-color: #e6a23c;
-            color: white;
+            color: var(--el-text-color-primary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -548,7 +548,7 @@ const generatedCode = computed(() => {
             }
 
             .desc {
-              color: #909399;
+               color: var(--el-text-color-primary);
               font-size: 14px;
             }
           }
@@ -569,7 +569,7 @@ const generatedCode = computed(() => {
           cursor: pointer;
 
           &.btn-cancel {
-            border: 1px solid #dcdfe6;
+            border: 1px solid var(--el-border-color);
             background-color: #fff;
           }
 
@@ -650,7 +650,7 @@ const generatedCode = computed(() => {
       }
 
       .confirm-desc {
-        color: #909399;
+         color: var(--el-text-color-primary);
         font-size: 14px;
       }
     }

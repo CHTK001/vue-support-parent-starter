@@ -509,7 +509,7 @@ onMounted(() => {
 
   .log-detail {
     .log-content-detail {
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 4px;
       padding: 12px;
       max-height: 300px;

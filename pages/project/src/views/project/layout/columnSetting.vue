@@ -105,7 +105,7 @@ export default defineComponent({
 .setting-column__title span {
   display: inline-block;
   font-weight: bold;
-  color: #909399;
+   color: var(--el-text-color);
   font-size: 12px;
 }
 .setting-column__title span.move_b {

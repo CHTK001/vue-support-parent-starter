@@ -622,7 +622,7 @@ watch(
         justify-content: center;
         align-items: center;
         min-height: 400px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
 
         .preview-image {
           max-width: 100%;
@@ -648,12 +648,12 @@ watch(
           justify-content: space-between;
           align-items: center;
           padding: 12px 16px;
-          background: #f8f9fa;
+          background: var(--el-bg-color-overlay);
           border-bottom: 1px solid #e9ecef;
 
           .code-language {
             font-weight: 600;
-            color: #495057;
+            color: var(--el-text-color-primary);
           }
         }
 
@@ -680,7 +680,7 @@ watch(
           }
 
           .code-pre {
-            background: #f8f9fa;
+            background: var(--el-bg-color-overlay);
             
             code {
               font-family: inherit;
@@ -725,12 +725,12 @@ watch(
           justify-content: space-between;
           align-items: center;
           padding: 12px 16px;
-          background: #f8f9fa;
+          background: var(--el-bg-color-overlay);
           border-bottom: 1px solid #e9ecef;
 
           .pdf-info {
             font-weight: 600;
-            color: #495057;
+            color: var(--el-text-color-primary);
           }
         }
 
@@ -746,7 +746,7 @@ watch(
         justify-content: center;
         align-items: center;
         min-height: 400px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
 
         .audio-player {
           display: flex;
@@ -784,7 +784,7 @@ watch(
         justify-content: center;
         align-items: center;
         min-height: 400px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
 
         .unsupported-content {
           text-align: center;
@@ -798,7 +798,7 @@ watch(
 
           h3 {
             margin: 0 0 12px 0;
-            color: #495057;
+            color: var(--el-text-color-primary);
           }
 
           p {

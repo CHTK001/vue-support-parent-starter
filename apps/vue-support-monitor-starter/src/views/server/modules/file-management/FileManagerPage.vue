@@ -117,8 +117,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import type { FileInfo } from "@/api/file-management";
+import { uploadServerFileWithProgress } from "@/api/server/upload";
+import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
+import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import FileDetailContent from "./FileDetailContent.vue";
+import FileList from "./FileList.vue";
+import FilePreviewDialog from "./FilePreviewDialog.vue";
+import FileTree from "./FileTree.vue";
+import MultiTargetDistributeDialog from "./components/MultiTargetDistributeDialog.vue";
+import MultiTargetUploadDialog from "./components/MultiTargetUploadDialog.vue";
+import { useUploadManager } from "./composables/useUploadManager";
 // 上传对话框
 const showUploadDialog = ref(false);
 
@@ -185,17 +196,6 @@ onMounted(() => {
 onUnmounted(() => {
   disconnectSSE();
 });
-import type { FileInfo } from "@/api/file-management";
-import FileTree from "./FileTree.vue";
-import FileList from "./FileList.vue";
-import FilePreviewDialog from "./FilePreviewDialog.vue";
-import FileDetailContent from "./FileDetailContent.vue";
-import MultiTargetUploadDialog from "./components/MultiTargetUploadDialog.vue";
-import MultiTargetDistributeDialog from "./components/MultiTargetDistributeDialog.vue";
-import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
-import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
-import { useUploadManager } from "./composables/useUploadManager";
-import { uploadServerFileWithProgress } from "@/api/server/upload";
 
 // Props
 const props = defineProps<{
@@ -590,7 +590,7 @@ defineExpose({
   width: 100vw; /* 撑满整个视口宽度 */
   display: flex;
   flex-direction: column;
-  background: #ffffff; /* 设置背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置背景为白色 */
   overflow: hidden;
   position: fixed; /* 固定定位确保撑满页面 */
   top: 0;
@@ -610,7 +610,7 @@ defineExpose({
   max-width: 400px;
   height: 100%;
   flex-shrink: 0;
-  background: #ffffff; /* 设置左侧面板背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置左侧面板背景为白色 */
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--el-border-color-light);
@@ -709,7 +709,7 @@ defineExpose({
   flex: 1;
   height: 100%;
   overflow: hidden;
-  background: #ffffff; /* 设置右侧面板背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置右侧面板背景为白色 */
   display: flex;
   flex-direction: column;
 }
@@ -724,7 +724,7 @@ defineExpose({
 /* 文件详情面板 */
 .file-detail-panel {
   overflow: hidden;
-  background: #ffffff; /* 设置文件详情面板背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件详情面板背景为白色 */
   border-top: 1px solid var(--el-border-color-light);
   transition: height 0.3s ease;
   position: relative;

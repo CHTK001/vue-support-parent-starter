@@ -152,7 +152,7 @@ defineExpose({ triggerCloseMenu });
       }
 
       .bg-menu-icon {
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 12px;
         height: 32px;
         width: 32px;

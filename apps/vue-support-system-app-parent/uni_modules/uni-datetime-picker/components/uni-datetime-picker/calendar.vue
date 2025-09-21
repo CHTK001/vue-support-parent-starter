@@ -743,7 +743,7 @@
 		text-align: center;
 		width: 100px;
 		font-size: 15px;
-		color: #666;
+		color: var(--el-text-color-primary);
 	}
 
 	.uni-calendar__button-text {
@@ -852,7 +852,7 @@
 		padding: 0 10px;
 		// line-height: 50px;
 		text-align: center;
-		color: #333;
+		color: var(--el-text-color-primary);
 		border-top-color: #DCDCDC;
 		;
 		border-top-style: solid;

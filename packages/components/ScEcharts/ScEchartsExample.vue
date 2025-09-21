@@ -774,7 +774,7 @@ onUnmounted(() => {
   margin-bottom: 40px;
   padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   border-radius: 10px;
 }
 
@@ -800,7 +800,7 @@ onUnmounted(() => {
 
 .example-section h3 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: var(--el-text-color-primary);
   font-size: 20px;
   border-bottom: 2px solid #409eff;
   padding-bottom: 5px;
@@ -808,13 +808,13 @@ onUnmounted(() => {
 
 .example-section p {
   margin: 0 0 15px 0;
-  color: #666;
+  color: var(--el-text-color-primary);
   line-height: 1.6;
 }
 
 .example-demo {
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   border: 1px solid #e0e0e0;
 }
@@ -843,8 +843,8 @@ onUnmounted(() => {
 .event-log {
   max-height: 300px;
   overflow-y: auto;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
   padding: 10px;
 }
@@ -880,7 +880,7 @@ onUnmounted(() => {
 
 .api-table h4 {
   margin: 20px 0 10px 0;
-  color: #333;
+  color: var(--el-text-color-primary);
   font-size: 16px;
   border-left: 4px solid #409eff;
   padding-left: 10px;
@@ -890,7 +890,7 @@ onUnmounted(() => {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -904,17 +904,17 @@ onUnmounted(() => {
 }
 
 .api-table th {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   font-weight: bold;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .api-table td {
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .api-table tr:hover {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .api-table ul {
@@ -924,7 +924,7 @@ onUnmounted(() => {
 
 .api-table li {
   margin-bottom: 5px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 /* 响应式设计 */

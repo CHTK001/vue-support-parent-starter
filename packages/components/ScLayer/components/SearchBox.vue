@@ -1393,7 +1393,7 @@ $transition-time: 0.2s;
         height: 36px;
         border-radius: $border-radius;
         margin-right: 8px;
-        background-color: #f5f5f5;
+        background: var(--el-bg-color-overlay);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1447,7 +1447,7 @@ $transition-time: 0.2s;
       border: none;
       border-radius: $border-radius;
       background-color: $primary-color;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 14px;
       display: flex;
       align-items: center;
@@ -1614,7 +1614,7 @@ $transition-time: 0.2s;
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 12px;
         font-weight: bold;
         display: flex;
@@ -1706,7 +1706,7 @@ $transition-time: 0.2s;
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
-        color: white;
+        color: var(--el-text-color-primary);
       }
 
       .start-icon,
@@ -1803,7 +1803,7 @@ $transition-time: 0.2s;
         justify-content: center;
         padding: 8px;
         border-radius: 50%;
-        background-color: #f5f5f5;
+        background: var(--el-bg-color-overlay);
         cursor: pointer;
         transition: all 0.2s;
         width: 40px;
@@ -1872,7 +1872,7 @@ $transition-time: 0.2s;
       align-items: center;
       justify-content: center;
       background-color: $primary-color;
-      color: white;
+      color: var(--el-text-color-primary);
       border: none;
       border-radius: $border-radius;
       padding: 8px 16px;
@@ -1906,7 +1906,7 @@ $transition-time: 0.2s;
       padding: 8px 12px;
       border: 1px solid $border-color;
       border-radius: $border-radius;
-      background-color: white;
+      background-color: var(--el-bg-color-overlay);
       color: $text-secondary;
       cursor: pointer;
       transition: all $transition-time;
@@ -2015,12 +2015,12 @@ $transition-time: 0.2s;
       background-color: #f8f8f8;
       border-bottom: 1px dashed #ccc;
       font-size: 12px;
-      color: #666;
+      color: var(--el-text-color-primary);
 
       .debug-title {
         font-weight: bold;
         margin-bottom: 4px;
-        color: #333;
+        color: var(--el-text-color-primary);
       }
 
       .debug-item {
@@ -2148,7 +2148,7 @@ $transition-time: 0.2s;
       justify-content: space-between;
       align-items: center;
       padding: 12px 15px;
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
       border-top-left-radius: $border-radius;
       border-top-right-radius: $border-radius;
 
@@ -2159,12 +2159,12 @@ $transition-time: 0.2s;
         .route-distance {
           font-size: 16px;
           font-weight: 500;
-          color: #333;
+          color: var(--el-text-color-primary);
         }
 
         .route-duration {
           font-size: 14px;
-          color: #666;
+          color: var(--el-text-color-primary);
           margin-top: 4px;
         }
       }
@@ -2210,7 +2210,7 @@ $transition-time: 0.2s;
           border-radius: 50%;
           border: none;
           background-color: #f0f0f0;
-          color: #666;
+          color: var(--el-text-color-primary);
           display: flex;
           align-items: center;
           justify-content: center;

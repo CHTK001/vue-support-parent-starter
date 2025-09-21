@@ -335,7 +335,7 @@ defineExpose({
 
 .sc-window-dialog {
   position: fixed;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: var(--el-border-radius-base);
   box-shadow: var(--el-box-shadow);
   border: 1px solid var(--el-border-color-light);
@@ -432,7 +432,7 @@ defineExpose({
   &--primary {
     .sc-window-dialog__header {
       background: var(--el-color-primary);
-      color: white;
+      color: var(--el-text-color-primary);
       border-bottom-color: var(--el-color-primary-light-3);
 
       &:hover {
@@ -441,15 +441,15 @@ defineExpose({
     }
 
     .sc-window-dialog__title {
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .sc-window-dialog__close {
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -457,7 +457,7 @@ defineExpose({
   &--success {
     .sc-window-dialog__header {
       background: var(--el-color-success);
-      color: white;
+      color: var(--el-text-color-primary);
       border-bottom-color: var(--el-color-success-light-3);
 
       &:hover {
@@ -466,15 +466,15 @@ defineExpose({
     }
 
     .sc-window-dialog__title {
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .sc-window-dialog__close {
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -482,7 +482,7 @@ defineExpose({
   &--warning {
     .sc-window-dialog__header {
       background: var(--el-color-warning);
-      color: white;
+      color: var(--el-text-color-primary);
       border-bottom-color: var(--el-color-warning-light-3);
 
       &:hover {
@@ -491,15 +491,15 @@ defineExpose({
     }
 
     .sc-window-dialog__title {
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .sc-window-dialog__close {
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -507,7 +507,7 @@ defineExpose({
   &--danger {
     .sc-window-dialog__header {
       background: var(--el-color-danger);
-      color: white;
+      color: var(--el-text-color-primary);
       border-bottom-color: var(--el-color-danger-light-3);
 
       &:hover {
@@ -516,15 +516,15 @@ defineExpose({
     }
 
     .sc-window-dialog__title {
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .sc-window-dialog__close {
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -532,7 +532,7 @@ defineExpose({
   &--info {
     .sc-window-dialog__header {
       background: var(--el-color-info);
-      color: white;
+      color: var(--el-text-color-primary);
       border-bottom-color: var(--el-color-info-light-3);
 
       &:hover {
@@ -541,15 +541,15 @@ defineExpose({
     }
 
     .sc-window-dialog__title {
-      color: white;
+      color: var(--el-text-color-primary);
     }
 
     .sc-window-dialog__close {
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }

@@ -620,7 +620,7 @@ const formatTime = (date: Date) => {
       border: none;
       box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      color: white;
+      color: var(--el-text-color-primary);
 
       &:hover {
         transform: translateY(-3px);
@@ -1147,7 +1147,7 @@ const formatTime = (date: Date) => {
         &.primary-action {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: #ffffff;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 4px 12px var(--el-shadow-color);
 
           &:hover {
             background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);

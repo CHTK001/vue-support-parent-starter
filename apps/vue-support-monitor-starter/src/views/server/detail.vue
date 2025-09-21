@@ -478,7 +478,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
@@ -572,7 +572,7 @@ onMounted(() => {
     align-items: center;
     gap: 16px;
     padding: 12px 20px;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     border-radius: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 1px solid var(--el-border-color-lighter);

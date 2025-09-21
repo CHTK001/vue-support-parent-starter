@@ -113,7 +113,7 @@ const toggleValue = () => {
 
       svg {
         font-size: 14px;
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
 

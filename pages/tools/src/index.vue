@@ -400,7 +400,7 @@ onMounted(() => {
 }
 
 .tools-description {
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
 }
 
@@ -444,7 +444,7 @@ onMounted(() => {
 
 .tool-desc {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 

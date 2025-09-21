@@ -704,7 +704,7 @@ onMounted(async () => {
 <style scoped>
 .records-page {
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: calc(100vh - 60px);
 }
 
@@ -715,7 +715,7 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -732,7 +732,7 @@ onMounted(async () => {
   gap: 8px;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .title-icon {
@@ -742,7 +742,7 @@ onMounted(async () => {
 
 .page-subtitle {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .header-right {
@@ -758,7 +758,7 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -799,7 +799,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -817,7 +817,7 @@ onMounted(async () => {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 24px;
 }
 
@@ -844,14 +844,14 @@ onMounted(async () => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 /* 记录卡片 */
@@ -885,12 +885,12 @@ onMounted(async () => {
 
 .server-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .server-host {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .progress-container {
@@ -918,7 +918,7 @@ onMounted(async () => {
 }
 
 .params-code {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
@@ -981,7 +981,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1002,7 +1002,7 @@ onMounted(async () => {
 }
 
 :deep(.el-table tr:hover > td) {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 按钮样式 */

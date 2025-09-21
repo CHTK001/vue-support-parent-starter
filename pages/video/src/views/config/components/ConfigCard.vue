@@ -215,7 +215,7 @@ const handleCopyUrl = (url: string) => {
 <style scoped>
 .config-card {
   position: relative;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -269,7 +269,7 @@ const handleCopyUrl = (url: string) => {
 .config-icon {
   width: 40px;
   height: 40px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -286,7 +286,7 @@ const handleCopyUrl = (url: string) => {
 .config-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 8px 0;
 }
 
@@ -310,7 +310,7 @@ const handleCopyUrl = (url: string) => {
 
 .url-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -319,7 +319,7 @@ const handleCopyUrl = (url: string) => {
   color: #606266;
   cursor: pointer;
   padding: 4px 8px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   transition: all 0.3s ease;
   overflow: hidden;
@@ -343,14 +343,14 @@ const handleCopyUrl = (url: string) => {
 
 .stat-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .config-card-actions {

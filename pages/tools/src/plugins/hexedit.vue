@@ -1122,7 +1122,7 @@ onBeforeUnmount(() => {
     height: 24px;
     border-radius: 50%;
     background-color: var(--el-color-primary);
-    color: white;
+    color: var(--el-text-color-primary);
     display: flex;
     align-items: center;
     justify-content: center;

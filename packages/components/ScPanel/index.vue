@@ -81,10 +81,10 @@ const handleVisibleChange = (visible: boolean) => {
 /* 内容容器样式 */
 .sc-panel-content {
   border-radius: 12px;
-  background: color-mix(in oklab, var(--el-bg-color-overlay, #1f1f1f) 88%, black 12%);
-  border: 1px solid color-mix(in oklab, var(--el-border-color, #3a3a3a) 70%, transparent 30%);
+  background: color-mix(in oklab, var(--el-bg-color-overlay, var(--el-bg-color-overlay)) 88%, black 12%);
+  border: 1px solid color-mix(in oklab, var(--el-border-color, var(--el-border-color)) 70%, transparent 30%);
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.28),
+    0 18px 48px var(--el-shadow-color, rgba(0, 0, 0, 0.24)),
     0 4px 10px rgba(0, 0, 0, 0.16);
   backdrop-filter: saturate(140%) blur(6px);
   -webkit-backdrop-filter: saturate(140%) blur(6px);
@@ -92,11 +92,11 @@ const handleVisibleChange = (visible: boolean) => {
 
 /* 暗色主题下的面板样式 */
 .dark .sc-panel-content {
-  background: color-mix(in oklab, var(--el-bg-color-overlay, #1a1a1a) 92%, black 8%);
-  border-color: color-mix(in oklab, var(--el-border-color, #2e2e2e) 80%, transparent 20%);
+  background: color-mix(in oklab, var(--el-bg-color-overlay, var(--el-bg-color-overlay)) 92%, black 8%);
+  border-color: color-mix(in oklab, var(--el-border-color, var(--el-border-color)) 80%, transparent 20%);
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.36),
-    0 4px 10px rgba(0, 0, 0, 0.22);
+  0 18px 48px var(--el-shadow-color, rgba(0, 0, 0, 0.24)),
+  0 4px 10px rgba(0, 0, 0, 0.22);
 }
 </style>
 

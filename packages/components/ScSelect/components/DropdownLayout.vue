@@ -263,7 +263,7 @@ const selectOption = (value: string | number) => {
   display: flex;
   align-items: center;
   padding: 10px 14px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   cursor: pointer;

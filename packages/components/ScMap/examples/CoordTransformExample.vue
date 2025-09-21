@@ -201,7 +201,7 @@ export default defineComponent({
 .control-panel {
   width: 300px;
   padding: 15px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   border-left: 1px solid #ddd;
   overflow-y: auto;
 }
@@ -225,7 +225,7 @@ button {
   width: 100%;
   padding: 8px 12px;
   background-color: #1677ff;
-  color: white;
+  color: var(--el-text-color-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -239,7 +239,7 @@ button:hover {
 .result-panel {
   margin-top: 20px;
   padding: 10px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 4px;
   border: 1px solid #ddd;
 }

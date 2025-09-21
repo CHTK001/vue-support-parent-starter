@@ -318,7 +318,7 @@ watch(dialogVisible, (newVal) => {
       margin-bottom: 16px;
       font-size: 16px;
       font-weight: 600;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
   }
 
@@ -333,7 +333,7 @@ watch(dialogVisible, (newVal) => {
     .formatted-config {
       max-height: 400px;
       overflow-y: auto;
-      border: 1px solid #dcdfe6;
+      border: 1px solid var(--el-border-color);
       border-radius: 4px;
       padding: 12px;
 
@@ -344,7 +344,7 @@ watch(dialogVisible, (newVal) => {
 
         .node-label {
           font-weight: 500;
-          color: #303133;
+          color: var(--el-text-color-primary);
           margin-right: 8px;
         }
 
@@ -359,17 +359,17 @@ watch(dialogVisible, (newVal) => {
     .json-config {
       max-height: 400px;
       overflow-y: auto;
-      border: 1px solid #dcdfe6;
+      border: 1px solid var(--el-border-color);
       border-radius: 4px;
       padding: 12px;
-      background: #f8f9fa;
+      background: var(--el-bg-color-overlay);
 
       pre {
         margin: 0;
         font-family: 'Courier New', monospace;
         font-size: 12px;
         line-height: 1.5;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
     }
   }
