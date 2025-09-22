@@ -1,5 +1,5 @@
 <template>
-  <div class="containers-page">
+  <div class="container-management">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -7,29 +7,29 @@
           <IconifyIconOnline icon="ri:container-line" class="title-icon" />
           <span>容器管理</span>
         </div>
-        <div class="page-subtitle">Docker容器运行状态监控与管理</div>
+        <div class="page-subtitle">管理Docker容器的启动、停止和监控</div>
       </div>
       <div class="header-right">
-        <el-button @click="refreshContainers" :loading="loading">
+        <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button type="primary" @click="openCreateDialog">
-          <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-          创建容器
+        <el-button type="success" @click="handleSyncStatus" :loading="syncLoading">
+          <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
+          同步状态
         </el-button>
       </div>
     </div>
 
-    <!-- 搜索和筛选 -->
+    <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
         <el-input
           v-model="searchParams.keyword"
-          placeholder="搜索容器名称、镜像或ID"
+          placeholder="搜索容器名称或镜像"
           class="search-input"
           clearable
-          @keyup.enter="loadContainers"
+          @keyup.enter="handleSearch"
         >
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -37,22 +37,24 @@
         </el-input>
         <el-select
           v-model="searchParams.status"
-          placeholder="状态"
+          placeholder="运行状态"
           clearable
           class="filter-select"
+          @change="handleSearch"
         >
           <el-option label="全部" value="" />
           <el-option label="运行中" value="running" />
-          <el-option label="已停止" value="exited" />
+          <el-option label="已停止" value="stopped" />
           <el-option label="暂停" value="paused" />
           <el-option label="重启中" value="restarting" />
-          <el-option label="已删除" value="dead" />
+          <el-option label="错误" value="error" />
         </el-select>
         <el-select
           v-model="searchParams.serverId"
           placeholder="服务器"
           clearable
           class="filter-select"
+          @change="handleSearch"
         >
           <el-option label="全部" value="" />
           <el-option
@@ -62,129 +64,75 @@
             :value="server.id"
           />
         </el-select>
-        <el-select
-          v-model="searchParams.softId"
-          placeholder="软件"
-          clearable
-          class="filter-select"
-        >
-          <el-option label="全部" value="" />
-          <el-option
-            v-for="soft in softOptions"
-            :key="soft.id"
-            :label="soft.name"
-            :value="soft.id"
-          />
-        </el-select>
       </div>
       <div class="search-right">
-        <el-button type="primary" @click="loadContainers">
-          <IconifyIconOnline icon="ri:search-line" class="mr-1" />
-          搜索
+        <el-button @click="handleBatchStart" :disabled="selectedIds.length === 0" type="success">
+          <IconifyIconOnline icon="ri:play-line" class="mr-1" />
+          批量启动
         </el-button>
-        <el-button @click="resetSearch">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-          重置
+        <el-button @click="handleBatchStop" :disabled="selectedIds.length === 0" type="warning">
+          <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
+          批量停止
+        </el-button>
+        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
+          <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+          批量删除
         </el-button>
       </div>
     </div>
 
-    <!-- 统计信息 -->
-    <StatsCard :stats="statsData" :details="statsDetails" :show-toggle="true" />
-
-    <!-- 容器列表 -->
-    <el-card class="containers-card">
-      <template #header>
-        <div class="card-header">
-          <span>容器列表</span>
-          <div class="header-actions">
-            <el-button
-              size="small"
-              @click="batchStart"
-              :disabled="selectedContainers.length === 0"
-            >
-              <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-              批量启动
-            </el-button>
-            <el-button
-              size="small"
-              @click="batchStop"
-              :disabled="selectedContainers.length === 0"
-            >
-              <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
-              批量停止
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              @click="batchDelete"
-              :disabled="selectedContainers.length === 0"
-            >
-              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-              批量删除
-            </el-button>
-          </div>
-        </div>
-      </template>
-
+    <!-- 容器表格 -->
+    <el-card class="container-table-card">
       <el-table
-        :data="containersList"
+        :data="containerList"
         stripe
         v-loading="loading"
         @selection-change="handleSelectionChange"
-        class="containers-table"
+        class="container-table"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column
-          prop="containerName"
-          label="容器名称"
-          width="200"
-          show-overflow-tooltip
-        >
+        
+        <el-table-column label="容器信息" min-width="250">
           <template #default="{ row }">
-            <div class="container-name">
-              <div class="name-text">{{ row.containerName }}</div>
-              <div class="container-id">
-                {{ row.containerId?.substring(0, 12) }}
+            <div class="container-info">
+              <div class="container-details">
+                <div class="container-name">{{ row.systemSoftContainerName }}</div>
+                <div class="container-id">{{ row.systemSoftContainerId?.substring(0, 12) }}</div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column
-          prop="image"
-          label="镜像"
-          width="200"
-          show-overflow-tooltip
-        />
-        <el-table-column prop="status" label="状态" width="120">
+
+        <el-table-column label="镜像信息" min-width="200">
           <template #default="{ row }">
-            <el-tag
-              :type="getStatusType(row.status)"
-              :icon="getStatusIcon(row.status)"
-            >
-              {{ getStatusLabel(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="serverId" label="服务器" width="180">
-          <template #default="{ row }">
-            <div class="server-info">
-              <div class="server-name">{{ getServerName(row.serverId) }}</div>
-              <div class="server-host">{{ getServerHost(row.serverId) }}</div>
+            <div class="image-info">
+              <div class="image-name">{{ row.systemSoftContainerImageName }}</div>
+              <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column
-          prop="softName"
-          label="关联软件"
-          width="150"
-          show-overflow-tooltip
-        />
-        <el-table-column prop="ports" label="端口映射" width="180">
+
+        <el-table-column label="运行状态" width="120">
           <template #default="{ row }">
-            <div class="ports-list">
+            <el-tag :type="getStatusType(row.systemSoftContainerStatus)" size="small">
+              {{ getStatusText(row.systemSoftContainerStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="服务器" width="180">
+          <template #default="{ row }">
+            <div class="server-info">
+              <div class="server-name">{{ row.systemSoftContainerServerName }}</div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="端口映射" min-width="150">
+          <template #default="{ row }">
+            <div class="ports-container">
               <el-tag
-                v-for="port in parsePortMappings(row.ports)"
+                v-for="port in parsePortMappings(row.systemSoftContainerPorts)"
                 :key="port"
                 size="small"
                 class="port-tag"
@@ -194,1276 +142,446 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="cpuUsage" label="CPU使用率" width="120">
+
+        <el-table-column label="资源使用" width="180">
           <template #default="{ row }">
             <div class="resource-usage">
-              <el-progress
-                :percentage="row.cpuUsage || 0"
-                :stroke-width="6"
-                :show-text="false"
-                :color="getUsageColor(row.cpuUsage || 0)"
-              />
-              <span class="usage-text"
-                >{{ (row.cpuUsage || 0).toFixed(1) }}%</span
-              >
+              <div class="usage-item">
+                <span class="usage-label">CPU:</span>
+                <el-progress 
+                  :percentage="row.systemSoftContainerCpuUsage || 0" 
+                  :show-text="false" 
+                  :stroke-width="4"
+                  style="width: 60px"
+                />
+                <span class="usage-value">{{ (row.systemSoftContainerCpuUsage || 0).toFixed(1) }}%</span>
+              </div>
+              <div class="usage-item">
+                <span class="usage-label">内存:</span>
+                <el-progress 
+                  :percentage="row.systemSoftContainerMemoryUsage || 0" 
+                  :show-text="false" 
+                  :stroke-width="4"
+                  style="width: 60px"
+                />
+                <span class="usage-value">{{ (row.systemSoftContainerMemoryUsage || 0).toFixed(1) }}%</span>
+              </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="memoryUsage" label="内存使用率" width="120">
+
+        <el-table-column label="创建时间" width="160">
           <template #default="{ row }">
-            <div class="resource-usage">
-              <el-progress
-                :percentage="row.memoryUsage || 0"
-                :stroke-width="6"
-                :show-text="false"
-                :color="getUsageColor(row.memoryUsage || 0)"
-              />
-              <span class="usage-text"
-                >{{ (row.memoryUsage || 0).toFixed(1) }}%</span
-              >
-            </div>
+            {{ formatTime(row.systemSoftContainerCreatedTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180">
-          <template #default="{ row }">
-            {{ formatDate(row.createTime) }}
-          </template>
-        </el-table-column>
+
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="viewDetail(row)">
-              <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
-              详情
-            </el-button>
-            <el-button size="small" type="info" @click="viewLogs(row)">
-              <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
-              日志
-            </el-button>
-            <el-dropdown @command="(command) => handleAction(command, row)">
-              <el-button size="small">
-                <IconifyIconOnline icon="ri:more-line" />
+            <div class="action-buttons">
+              <el-button 
+                size="small" 
+                type="success" 
+                @click="handleStart(row)"
+                :disabled="row.systemSoftContainerStatus === 'running'"
+              >
+                <IconifyIconOnline icon="ri:play-line" class="mr-1" />
+                启动
               </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                    command="start"
-                    :disabled="row.status === 'running'"
-                  >
-                    <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-                    启动
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    command="stop"
-                    :disabled="row.status !== 'running'"
-                  >
-                    <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
-                    停止
-                  </el-dropdown-item>
-                  <el-dropdown-item command="restart">
-                    <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
-                    重启
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    command="pause"
-                    :disabled="row.status !== 'running'"
-                  >
-                    <IconifyIconOnline icon="ri:pause-line" class="mr-1" />
-                    暂停
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    command="unpause"
-                    :disabled="row.status !== 'paused'"
-                  >
-                    <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-                    恢复
-                  </el-dropdown-item>
-                  <el-dropdown-item
-                    command="terminal"
-                    :disabled="row.status !== 'running'"
-                    divided
-                  >
-                    <IconifyIconOnline icon="ri:terminal-line" class="mr-1" />
-                    进入终端
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-                    删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              <el-button 
+                size="small" 
+                type="warning" 
+                @click="handleStop(row)"
+                :disabled="row.systemSoftContainerStatus !== 'running'"
+              >
+                <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
+                停止
+              </el-button>
+              <el-dropdown @command="(command) => handleMoreAction(command, row)">
+                <el-button size="small">
+                  <IconifyIconOnline icon="ri:more-line" />
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="restart">
+                      <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
+                      重启
+                    </el-dropdown-item>
+                    <el-dropdown-item command="logs">
+                      <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
+                      查看日志
+                    </el-dropdown-item>
+                    <el-dropdown-item command="detail">
+                      <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
+                      详细信息
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
+                      <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-
+      
       <!-- 分页 -->
       <div class="pagination-container">
         <el-pagination
-          v-model:current-page="pageParams.page"
-          v-model:page-size="pageParams.pageSize"
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :total="pagination.total"
           :page-sizes="[10, 20, 50, 100]"
-          :total="total"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadContainers"
-          @current-change="loadContainers"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
         />
       </div>
     </el-card>
 
     <!-- 容器详情对话框 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="容器详情"
-      width="900px"
-      destroy-on-close
-    >
-      <div v-if="currentContainer" class="container-detail">
-        <el-tabs v-model="detailActiveTab">
-          <el-tab-pane label="基本信息" name="basic">
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="容器ID">{{
-                currentContainer.containerId
-              }}</el-descriptions-item>
-              <el-descriptions-item label="容器名称">{{
-                currentContainer.containerName
-              }}</el-descriptions-item>
-              <el-descriptions-item label="镜像">{{
-                currentContainer.image
-              }}</el-descriptions-item>
-              <el-descriptions-item label="状态">
-                <el-tag :type="getStatusType(currentContainer.status)">{{
-                  getStatusLabel(currentContainer.status)
-                }}</el-tag>
-              </el-descriptions-item>
-              <el-descriptions-item label="服务器">{{
-                getServerName(currentContainer.serverId)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="关联软件">{{
-                currentContainer.softName || "-"
-              }}</el-descriptions-item>
-              <el-descriptions-item label="创建时间">{{
-                formatDate(currentContainer.createTime)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="启动时间">{{
-                formatDate(currentContainer.startTime)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="端口映射" :span="2">
-                <div class="ports-detail">
-                  <el-tag
-                    v-for="port in parsePortMappings(currentContainer.ports)"
-                    :key="port"
-                    class="port-tag"
-                  >
-                    {{ port }}
-                  </el-tag>
-                </div>
-              </el-descriptions-item>
-              <el-descriptions-item label="环境变量" :span="2">
-                <div class="env-vars">
-                  <pre v-if="currentContainer.envVars" class="env-code">{{
-                    formatEnvVars(currentContainer.envVars)
-                  }}</pre>
-                  <span v-else>无</span>
-                </div>
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-tab-pane>
+    <ContainerDetailDialog
+      v-model:visible="detailDialogVisible"
+      :container-data="currentContainer"
+    />
 
-          <el-tab-pane label="资源监控" name="monitor">
-            <div class="monitor-grid">
-              <div class="monitor-card">
-                <div class="monitor-title">CPU使用率</div>
-                <div class="monitor-chart">
-                  <el-progress
-                    type="circle"
-                    :percentage="currentContainer.cpuUsage || 0"
-                    :color="getUsageColor(currentContainer.cpuUsage || 0)"
-                  />
-                </div>
-                <div class="monitor-value">
-                  {{ (currentContainer.cpuUsage || 0).toFixed(2) }}%
-                </div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-title">内存使用率</div>
-                <div class="monitor-chart">
-                  <el-progress
-                    type="circle"
-                    :percentage="currentContainer.memoryUsage || 0"
-                    :color="getUsageColor(currentContainer.memoryUsage || 0)"
-                  />
-                </div>
-                <div class="monitor-value">
-                  {{ (currentContainer.memoryUsage || 0).toFixed(2) }}%
-                </div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-title">网络IO</div>
-                <div class="monitor-stats">
-                  <div class="stat-item">
-                    <span class="stat-label">接收:</span>
-                    <span class="stat-value">{{
-                      formatBytes(currentContainer.networkRx || 0)
-                    }}</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">发送:</span>
-                    <span class="stat-value">{{
-                      formatBytes(currentContainer.networkTx || 0)
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-title">磁盘IO</div>
-                <div class="monitor-stats">
-                  <div class="stat-item">
-                    <span class="stat-label">读取:</span>
-                    <span class="stat-value">{{
-                      formatBytes(currentContainer.diskRead || 0)
-                    }}</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">写入:</span>
-                    <span class="stat-value">{{
-                      formatBytes(currentContainer.diskWrite || 0)
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </el-tab-pane>
+    <!-- 容器日志对话框 -->
+    <ContainerLogsDialog
+      v-model:visible="logsDialogVisible"
+      :container-data="currentContainer"
+    />
 
-          <el-tab-pane label="配置信息" name="config">
-            <div class="config-section">
-              <h4>运行配置</h4>
-              <pre class="config-code">{{
-                formatConfig(currentContainer.config)
-              }}</pre>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
+    <!-- 批量操作底部工具栏 -->
+    <div v-if="selectedIds.length > 0" class="batch-actions">
+      <div class="batch-info">
+        已选择 {{ selectedIds.length }} 个容器
       </div>
-    </el-dialog>
-
-    <!-- 日志对话框 -->
-    <el-dialog
-      v-model="logsVisible"
-      title="容器日志"
-      width="900px"
-      destroy-on-close
-    >
-      <div class="logs-container">
-        <div class="logs-header">
-          <div class="logs-controls">
-            <el-switch v-model="followLogs" active-text="实时跟踪" />
-            <el-input-number
-              v-model="logLines"
-              :min="50"
-              :max="1000"
-              :step="50"
-              size="small"
-            />
-            <span class="log-lines-label">行</span>
-          </div>
-          <div class="logs-actions">
-            <el-button size="small" @click="refreshLogs" :loading="logsLoading">
-              <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
-              刷新
-            </el-button>
-            <el-button size="small" @click="downloadLogs">
-              <IconifyIconOnline icon="ri:download-line" class="mr-1" />
-              下载
-            </el-button>
-            <el-button size="small" @click="clearLogs">
-              <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-              清空
-            </el-button>
-          </div>
-        </div>
-        <div class="logs-content" ref="logsContentRef">
-          <pre v-if="logs" class="logs-text">{{ logs }}</pre>
-          <div v-else class="logs-empty">
-            <IconifyIconOnline icon="ri:file-text-line" />
-            <span>暂无日志信息</span>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
-
-    <!-- 创建容器对话框 -->
-    <el-dialog
-      v-model="createVisible"
-      title="创建容器"
-      width="700px"
-      destroy-on-close
-    >
-      <el-form
-        :model="createForm"
-        :rules="createRules"
-        ref="createFormRef"
-        label-width="100px"
-      >
-        <el-form-item label="容器名称" prop="containerName">
-          <el-input
-            v-model="createForm.containerName"
-            placeholder="请输入容器名称"
-          />
-        </el-form-item>
-        <el-form-item label="镜像" prop="image">
-          <el-input
-            v-model="createForm.image"
-            placeholder="请输入镜像名称，如: nginx:latest"
-          />
-        </el-form-item>
-        <el-form-item label="服务器" prop="serverId">
-          <el-select
-            v-model="createForm.serverId"
-            placeholder="请选择服务器"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="server in serverOptions"
-              :key="server.id"
-              :label="server.name"
-              :value="server.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="端口映射">
-          <div class="port-mappings">
-            <div
-              v-for="(port, index) in createForm.portMappings"
-              :key="index"
-              class="port-mapping"
-            >
-              <el-input
-                v-model="port.hostPort"
-                placeholder="主机端口"
-                style="width: 120px"
-              />
-              <span class="port-separator">:</span>
-              <el-input
-                v-model="port.containerPort"
-                placeholder="容器端口"
-                style="width: 120px"
-              />
-              <el-button
-                size="small"
-                @click="removePortMapping(index)"
-                :disabled="createForm.portMappings.length <= 1"
-              >
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-            </div>
-            <el-button size="small" @click="addPortMapping">
-              <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-              添加端口
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item label="环境变量">
-          <div class="env-variables">
-            <div
-              v-for="(env, index) in createForm.envVariables"
-              :key="index"
-              class="env-variable"
-            >
-              <el-input
-                v-model="env.key"
-                placeholder="变量名"
-                style="width: 150px"
-              />
-              <span class="env-separator">=</span>
-              <el-input
-                v-model="env.value"
-                placeholder="变量值"
-                style="width: 200px"
-              />
-              <el-button size="small" @click="removeEnvVariable(index)">
-                <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
-            </div>
-            <el-button size="small" @click="addEnvVariable">
-              <IconifyIconOnline icon="ri:add-line" class="mr-1" />
-              添加变量
-            </el-button>
-          </div>
-        </el-form-item>
-        <el-form-item label="自动启动">
-          <el-switch v-model="createForm.autoStart" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="createVisible = false">取消</el-button>
-          <el-button
-            type="primary"
-            @click="createContainer"
-            :loading="createLoading"
-            >创建</el-button
-          >
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 终端对话框 -->
-    <el-dialog
-      v-model="terminalVisible"
-      title="容器终端"
-      width="900px"
-      destroy-on-close
-    >
-      <div class="terminal-container">
-        <div class="terminal-header">
-          <span class="terminal-title"
-            >{{ currentContainer?.containerName }} - 终端</span
-          >
-          <el-button size="small" @click="clearTerminal">
-            <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
-            清空
-          </el-button>
-        </div>
-        <div class="terminal-content" ref="terminalRef">
-          <!-- 这里可以集成xterm.js或其他终端组件 -->
-          <div class="terminal-placeholder">
-            <IconifyIconOnline icon="ri:terminal-line" />
-            <span>终端功能开发中...</span>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+      <el-button @click="clearSelection">取消选择</el-button>
+      <el-button type="success" @click="handleBatchStart">批量启动</el-button>
+      <el-button type="warning" @click="handleBatchStop">批量停止</el-button>
+      <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, nextTick, onUnmounted } from "vue";
-import { message, ElMessageBox } from "@repo/utils";
-import {
-  getSoftContainers,
-  type SystemSoftContainer,
-  startContainer,
-  stopContainer,
-  restartContainer,
-  pauseContainer,
-  unpauseContainer,
-  deleteContainer,
-  getContainerLogs,
-  createContainer as apiCreateContainer,
-} from "@/api/soft";
-import { getServerPageList } from "@/api/server";
-import { getSoftPageList } from "@/api/soft";
-import {
-  useSoftWebSocket,
-  SOFT_WS_MESSAGE_TYPE,
-  type ContainerStatusMessage,
-  type ContainerLogMessage,
-  type ContainerStatsMessage,
-} from "@/composables/useSoftWebSocket";
-import ContainerCard from "./components/ContainerCard.vue";
-import ContainerActions from "./components/ContainerActions.vue";
-import LogViewer from "./components/LogViewer.vue";
-import StatsCard from "./components/StatsCard.vue";
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { containerApi, getServerList, type SystemSoftContainer } from '@/api/docker-management'
+import ContainerDetailDialog from '@/components/docker/ContainerDetailDialog.vue'
+import ContainerLogsDialog from '@/components/docker/ContainerLogsDialog.vue'
 
-// WebSocket连接
-const {
-  state: wsState,
-  connect: connectWS,
-  disconnect: disconnectWS,
-  onMessage,
-  offMessage,
-  subscribeContainerStatus,
-  unsubscribeContainerStatus,
-  subscribeContainerLogs,
-  unsubscribeContainerLogs,
-} = useSoftWebSocket();
-
-// 基础数据
-const containersList = ref<SystemSoftContainer[]>([]);
-const serverOptions = ref<any[]>([]);
-const softOptions = ref<any[]>([]);
-const selectedContainers = ref<SystemSoftContainer[]>([]);
-const currentContainer = ref<SystemSoftContainer | null>(null);
-const logs = ref("");
-
-// 页面状态
-const loading = ref(false);
-const logsLoading = ref(false);
-const createLoading = ref(false);
-const detailVisible = ref(false);
-const logsVisible = ref(false);
-const createVisible = ref(false);
-const terminalVisible = ref(false);
-const total = ref(0);
-const detailActiveTab = ref("basic");
-const followLogs = ref(false);
-const logLines = ref(200);
+// 响应式数据
+const loading = ref(false)
+const syncLoading = ref(false)
+const selectedIds = ref<number[]>([])
+const containerList = ref<SystemSoftContainer[]>([])
+const serverOptions = ref<any[]>([])
+const detailDialogVisible = ref(false)
+const logsDialogVisible = ref(false)
+const currentContainer = ref<SystemSoftContainer | null>(null)
 
 // 搜索参数
-const searchParams = ref({
-  keyword: "",
-  status: "",
-  serverId: "",
-  softId: "",
-});
+const searchParams = reactive({
+  keyword: '',
+  status: '',
+  serverId: ''
+})
 
 // 分页参数
-const pageParams = ref({
+const pagination = reactive({
   page: 1,
-  pageSize: 20,
-});
+  pageSize: 10,
+  total: 0
+})
 
-// 创建表单
-const createForm = ref({
-  containerName: "",
-  image: "",
-  serverId: "",
-  portMappings: [{ hostPort: "", containerPort: "" }],
-  envVariables: [{ key: "", value: "" }],
-  autoStart: true,
-});
-
-const createRules = {
-  containerName: [
-    { required: true, message: "请输入容器名称", trigger: "blur" },
-  ],
-  image: [{ required: true, message: "请输入镜像名称", trigger: "blur" }],
-  serverId: [{ required: true, message: "请选择服务器", trigger: "change" }],
-};
-
-// 统计信息
-const stats = computed(() => {
-  const runningCount = containersList.value.filter(
-    (c) => c.status === "running"
-  ).length;
-  const stoppedCount = containersList.value.filter((c) =>
-    ["exited", "dead"].includes(c.status)
-  ).length;
-  const errorCount = containersList.value.filter((c) =>
-    ["restarting", "paused"].includes(c.status)
-  ).length;
-  const totalCount = containersList.value.length;
-
-  return {
-    runningCount,
-    stoppedCount,
-    errorCount,
-    totalCount,
-  };
-});
-
-// 统计卡片数据
-const statsData = computed(() => [
-  {
-    key: "running",
-    label: "运行中",
-    value: stats.value.runningCount,
-    icon: "ri:play-circle-line",
-    type: "success",
-    format: "number",
-    description: "当前正在运行的容器数量",
-    trend:
-      stats.value.runningCount > 0 ? { type: "up", value: "+2" } : undefined,
-  },
-  {
-    key: "stopped",
-    label: "已停止",
-    value: stats.value.stoppedCount,
-    icon: "ri:stop-circle-line",
-    type: "warning",
-    format: "number",
-    description: "当前已停止的容器数量",
-  },
-  {
-    key: "error",
-    label: "异常",
-    value: stats.value.errorCount,
-    icon: "ri:error-warning-line",
-    type: "danger",
-    format: "number",
-    description: "运行异常的容器数量",
-  },
-  {
-    key: "total",
-    label: "总计",
-    value: stats.value.totalCount,
-    icon: "ri:archive-line",
-    type: "info",
-    format: "number",
-    description: "容器总数量",
-  },
-]);
-
-// 统计详情数据
-const statsDetails = computed(() => {
-  const runningContainers = containersList.value.filter(
-    (c) => c.status === "running"
-  );
-  const avgCpu =
-    runningContainers.length > 0
-      ? runningContainers.reduce((sum, c) => sum + (c.cpuUsage || 0), 0) /
-        runningContainers.length
-      : 0;
-  const avgMemory =
-    runningContainers.length > 0
-      ? runningContainers.reduce((sum, c) => sum + (c.memoryUsage || 0), 0) /
-        runningContainers.length
-      : 0;
-
-  return {
-    runningContainers: stats.value.runningCount,
-    stoppedContainers: stats.value.stoppedCount,
-    errorContainers: stats.value.errorCount,
-    restartingContainers: containersList.value.filter(
-      (c) => c.status === "restarting"
-    ).length,
-    avgCpuUsage: avgCpu,
-    avgMemoryUsage: avgMemory,
-    avgDiskUsage: 65.3,
-  };
-});
-
-// 引用
-const logsContentRef = ref<HTMLElement>();
-const terminalRef = ref<HTMLElement>();
-const createFormRef = ref();
-
-// 定时器
-let logsTimer: NodeJS.Timeout | null = null;
-let statsTimer: NodeJS.Timeout | null = null;
-
-// 数据加载
+// 基础方法
 const loadContainers = async () => {
   try {
-    loading.value = true;
-    const params = {
-      ...pageParams.value,
-      ...searchParams.value,
-    };
-
-    const res = await getSoftContainers(params);
-    if (res.code === "00000") {
-      containersList.value = res.data.records || [];
-      total.value = res.data.total || 0;
+    loading.value = true
+    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize }
+    Object.keys(params).forEach(key => {
+      if (params[key] === '') delete params[key]
+    })
+    
+    const response = await containerApi.getContainerPageList(params)
+    if (response.code === '00000') {
+      containerList.value = response.data.records || []
+      pagination.total = response.data.total || 0
     }
+  } catch (error) {
+    ElMessage.error('加载容器列表失败')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-const loadServers = async () => {
-  const res = await getServerPageList({ page: 1, pageSize: 1000 });
-  if (res.code === "00000") {
-    const data = (res.data as any).data || res.data.records || [];
-    serverOptions.value = data.map((it: any) => ({
-      id: it.id || it.monitorSysGenServerId,
-      name: it.name || it.monitorSysGenServerName,
-      host: it.host || it.monitorSysGenServerHost,
-    }));
-  }
-};
-
-const loadSofts = async () => {
-  const res = await getSoftPageList({ page: 1, pageSize: 1000 });
-  if (res.code === "00000") {
-    const data = (res.data as any).data || res.data.records || [];
-    softOptions.value = data.map((it: any) => ({
-      id: it.id || it.systemSoftId,
-      name: it.name || it.systemSoftName,
-    }));
-  }
-};
-
-// 搜索和筛选
-const resetSearch = () => {
-  searchParams.value = {
-    keyword: "",
-    status: "",
-    serverId: "",
-    softId: "",
-  };
-  pageParams.value.page = 1;
-  loadContainers();
-};
-
-const refreshContainers = async () => {
-  await loadContainers();
-  message.success("容器列表已刷新");
-};
-
-// 表格操作
+const handleRefresh = () => loadContainers()
+const handleSearch = () => { pagination.page = 1; loadContainers() }
 const handleSelectionChange = (selection: SystemSoftContainer[]) => {
-  selectedContainers.value = selection;
-};
+  selectedIds.value = selection.map(item => item.systemSoftContainerId!)
+}
+const clearSelection = () => { selectedIds.value = [] }
 
-const viewDetail = (container: SystemSoftContainer) => {
-  currentContainer.value = container;
-  detailVisible.value = true;
-  detailActiveTab.value = "basic";
-};
+// 工具函数
+const getStatusType = (status?: string) => {
+  const map = { running: 'success', stopped: 'warning', paused: 'info', restarting: 'warning', error: 'danger' }
+  return map[status] || 'info'
+}
 
-const viewLogs = async (container: SystemSoftContainer) => {
-  currentContainer.value = container;
-  logsVisible.value = true;
-  await loadLogs(container.containerId!);
+const getStatusText = (status?: string) => {
+  const map = { running: '运行中', stopped: '已停止', paused: '暂停', restarting: '重启中', error: '错误' }
+  return map[status] || '未知'
+}
 
-  // 订阅实时日志
-  if (followLogs.value) {
-    subscribeContainerLogs(container.containerId!);
-  }
-};
-
-const loadLogs = async (containerId: string) => {
+const parsePortMappings = (ports?: string) => {
+  if (!ports) return []
   try {
-    logsLoading.value = true;
-    const res = await getContainerLogs({ containerId, lines: logLines.value });
-    if (res.code === "00000") {
-      logs.value = res.data || "暂无日志信息";
-      await nextTick();
-      // 滚动到底部
-      if (logsContentRef.value) {
-        logsContentRef.value.scrollTop = logsContentRef.value.scrollHeight;
-      }
-    }
-  } finally {
-    logsLoading.value = false;
+    const mappings = JSON.parse(ports)
+    return Array.isArray(mappings) ? mappings.map(p => `${p.hostPort}:${p.containerPort}`) : []
+  } catch {
+    return ports.split(',').filter(Boolean)
   }
-};
+}
 
-const refreshLogs = async () => {
-  if (currentContainer.value) {
-    await loadLogs(currentContainer.value.containerId!);
-  }
-};
-
-const downloadLogs = () => {
-  if (!logs.value) {
-    return message.warning("暂无日志可下载");
-  }
-
-  const blob = new Blob([logs.value], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `container-logs-${currentContainer.value?.containerName || "unknown"}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-const clearLogs = () => {
-  logs.value = "";
-};
-
-const startLogsPolling = () => {
-  if (logsTimer) {
-    clearInterval(logsTimer);
-  }
-
-  logsTimer = setInterval(async () => {
-    if (followLogs.value && currentContainer.value && logsVisible.value) {
-      await loadLogs(currentContainer.value.containerId!);
-    }
-  }, 3000);
-};
-
-const stopLogsPolling = () => {
-  if (logsTimer) {
-    clearInterval(logsTimer);
-    logsTimer = null;
-  }
-};
+const formatTime = (time?: string) => time ? new Date(time).toLocaleString() : '-'
 
 // 容器操作
-const handleAction = async (
-  command: string,
-  container: SystemSoftContainer
-) => {
+const handleStart = async (container: SystemSoftContainer) => {
+  try {
+    const response = await containerApi.startContainer(container.systemSoftContainerId!)
+    if (response.code === '00000') {
+      ElMessage.success('容器启动成功')
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '容器启动失败')
+    }
+  } catch (error) {
+    ElMessage.error('容器启动失败')
+  }
+}
+
+const handleStop = async (container: SystemSoftContainer) => {
+  try {
+    await ElMessageBox.confirm('确定要停止这个容器吗？', '停止确认', {
+      type: 'warning'
+    })
+    
+    const response = await containerApi.stopContainer(container.systemSoftContainerId!)
+    if (response.code === '00000') {
+      ElMessage.success('容器停止成功')
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '容器停止失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('容器停止失败')
+    }
+  }
+}
+
+const handleMoreAction = async (command: string, container: SystemSoftContainer) => {
+  currentContainer.value = container
+  
   switch (command) {
-    case "start":
-      await startContainerAction(container);
-      break;
-    case "stop":
-      await stopContainerAction(container);
-      break;
-    case "restart":
-      await restartContainerAction(container);
-      break;
-    case "pause":
-      await pauseContainerAction(container);
-      break;
-    case "unpause":
-      await unpauseContainerAction(container);
-      break;
-    case "terminal":
-      openTerminal(container);
-      break;
-    case "delete":
-      await deleteContainerAction(container);
-      break;
+    case 'restart':
+      await handleRestart(container)
+      break
+    case 'logs':
+      logsDialogVisible.value = true
+      break
+    case 'detail':
+      detailDialogVisible.value = true
+      break
+    case 'delete':
+      await handleDelete(container)
+      break
   }
-};
+}
 
-const startContainerAction = async (container: SystemSoftContainer) => {
+const handleRestart = async (container: SystemSoftContainer) => {
   try {
-    const res = await startContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 启动成功`);
-      await loadContainers();
+    const response = await containerApi.restartContainer(container.systemSoftContainerId!)
+    if (response.code === '00000') {
+      ElMessage.success('容器重启成功')
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '容器重启失败')
     }
   } catch (error) {
-    message.error("启动容器失败");
+    ElMessage.error('容器重启失败')
   }
-};
+}
 
-const stopContainerAction = async (container: SystemSoftContainer) => {
+const handleDelete = async (container: SystemSoftContainer) => {
   try {
-    await ElMessageBox.confirm(
-      `确认停止容器 ${container.containerName}？`,
-      "确认停止",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
-
-    const res = await stopContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 停止成功`);
-      await loadContainers();
+    await ElMessageBox.confirm('确定要删除这个容器吗？此操作不可恢复！', '删除确认', {
+      type: 'error'
+    })
+    
+    const response = await containerApi.deleteContainer(container.systemSoftContainerId!)
+    if (response.code === '00000') {
+      ElMessage.success('容器删除成功')
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '容器删除失败')
     }
   } catch (error) {
-    if (error !== "cancel") {
-      message.error("停止容器失败");
+    if (error !== 'cancel') {
+      ElMessage.error('容器删除失败')
     }
   }
-};
+}
 
-const restartContainerAction = async (container: SystemSoftContainer) => {
+const handleSyncStatus = async () => {
   try {
-    const res = await restartContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 重启成功`);
-      await loadContainers();
+    syncLoading.value = true
+    const response = await containerApi.syncContainerStatus()
+    if (response.code === '00000') {
+      ElMessage.success('容器状态同步成功')
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '同步失败')
     }
   } catch (error) {
-    message.error("重启容器失败");
+    ElMessage.error('同步容器状态失败')
+  } finally {
+    syncLoading.value = false
   }
-};
-
-const pauseContainerAction = async (container: SystemSoftContainer) => {
-  try {
-    const res = await pauseContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 暂停成功`);
-      await loadContainers();
-    }
-  } catch (error) {
-    message.error("暂停容器失败");
-  }
-};
-
-const unpauseContainerAction = async (container: SystemSoftContainer) => {
-  try {
-    const res = await unpauseContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 恢复成功`);
-      await loadContainers();
-    }
-  } catch (error) {
-    message.error("恢复容器失败");
-  }
-};
-
-const deleteContainerAction = async (container: SystemSoftContainer) => {
-  try {
-    await ElMessageBox.confirm(
-      `确认删除容器 ${container.containerName}？此操作不可恢复。`,
-      "确认删除",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "error",
-      }
-    );
-
-    const res = await deleteContainer({ containerId: container.containerId! });
-    if (res.code === "00000") {
-      message.success(`容器 ${container.containerName} 删除成功`);
-      await loadContainers();
-    }
-  } catch (error) {
-    if (error !== "cancel") {
-      message.error("删除容器失败");
-    }
-  }
-};
+}
 
 // 批量操作
-const batchStart = async () => {
-  try {
-    await ElMessageBox.confirm(
-      `确认启动选中的 ${selectedContainers.value.length} 个容器？`,
-      "确认批量启动",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
-
-    // 这里可以调用批量启动API
-    message.success("批量启动成功");
-    await loadContainers();
-  } catch (error) {
-    if (error !== "cancel") {
-      message.error("批量启动失败");
-    }
+const handleBatchStart = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要启动的容器')
+    return
   }
-};
-
-const batchStop = async () => {
+  
   try {
-    await ElMessageBox.confirm(
-      `确认停止选中的 ${selectedContainers.value.length} 个容器？`,
-      "确认批量停止",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
-
-    // 这里可以调用批量停止API
-    message.success("批量停止成功");
-    await loadContainers();
-  } catch (error) {
-    if (error !== "cancel") {
-      message.error("批量停止失败");
-    }
-  }
-};
-
-const batchDelete = async () => {
-  try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${selectedContainers.value.length} 个容器？此操作不可恢复。`,
-      "确认批量删除",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "error",
-      }
-    );
-
-    // 这里可以调用批量删除API
-    message.success("批量删除成功");
-    await loadContainers();
-  } catch (error) {
-    if (error !== "cancel") {
-      message.error("批量删除失败");
-    }
-  }
-};
-
-// 创建容器
-const openCreateDialog = () => {
-  createForm.value = {
-    containerName: "",
-    image: "",
-    serverId: "",
-    portMappings: [{ hostPort: "", containerPort: "" }],
-    envVariables: [{ key: "", value: "" }],
-    autoStart: true,
-  };
-  createVisible.value = true;
-};
-
-const addPortMapping = () => {
-  createForm.value.portMappings.push({ hostPort: "", containerPort: "" });
-};
-
-const removePortMapping = (index: number) => {
-  createForm.value.portMappings.splice(index, 1);
-};
-
-const addEnvVariable = () => {
-  createForm.value.envVariables.push({ key: "", value: "" });
-};
-
-const removeEnvVariable = (index: number) => {
-  createForm.value.envVariables.splice(index, 1);
-};
-
-const createContainer = async () => {
-  try {
-    await createFormRef.value.validate();
-    createLoading.value = true;
-
-    const params = {
-      ...createForm.value,
-      portMappings: createForm.value.portMappings.filter(
-        (p) => p.hostPort && p.containerPort
-      ),
-      envVariables: createForm.value.envVariables.filter(
-        (e) => e.key && e.value
-      ),
-    };
-
-    const res = await apiCreateContainer(params);
-    if (res.code === "00000") {
-      message.success("容器创建成功");
-      createVisible.value = false;
-      await loadContainers();
+    const response = await containerApi.batchStartContainers(selectedIds.value)
+    if (response.code === '00000') {
+      ElMessage.success('批量启动成功')
+      selectedIds.value = []
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '批量启动失败')
     }
   } catch (error) {
-    message.error("创建容器失败");
-  } finally {
-    createLoading.value = false;
+    ElMessage.error('批量启动容器失败')
   }
-};
+}
 
-// 终端
-const openTerminal = (container: SystemSoftContainer) => {
-  currentContainer.value = container;
-  terminalVisible.value = true;
-  // 这里可以初始化终端连接
-};
-
-const clearTerminal = () => {
-  // 清空终端内容
-};
-
-// 工具方法
-const formatDate = (date: string | Date) => {
-  if (!date) return "-";
-  return new Date(date).toLocaleString("zh-CN");
-};
-
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
-const formatEnvVars = (envVars: string) => {
-  if (!envVars) return "无";
+const handleBatchStop = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要停止的容器')
+    return
+  }
+  
   try {
-    const vars = JSON.parse(envVars);
-    return Object.entries(vars)
-      .map(([key, value]) => `${key}=${value}`)
-      .join("\n");
-  } catch {
-    return envVars;
+    await ElMessageBox.confirm(`确定要停止选中的 ${selectedIds.value.length} 个容器吗？`, '批量停止确认', {
+      type: 'warning'
+    })
+    
+    const response = await containerApi.batchStopContainers(selectedIds.value)
+    if (response.code === '00000') {
+      ElMessage.success('批量停止成功')
+      selectedIds.value = []
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '批量停止失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量停止容器失败')
+    }
   }
-};
+}
 
-const formatConfig = (config: string) => {
-  if (!config) return "无配置信息";
+const handleBatchDelete = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要删除的容器')
+    return
+  }
+  
   try {
-    return JSON.stringify(JSON.parse(config), null, 2);
-  } catch {
-    return config;
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个容器吗？此操作不可恢复！`, '批量删除确认', {
+      type: 'error'
+    })
+    
+    const response = await containerApi.batchDeleteContainers(selectedIds.value)
+    if (response.code === '00000') {
+      ElMessage.success('批量删除成功')
+      selectedIds.value = []
+      loadContainers()
+    } else {
+      ElMessage.error(response.message || '批量删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量删除容器失败')
+    }
   }
-};
+}
 
-const parsePortMappings = (ports: string) => {
-  if (!ports) return [];
+const handleSizeChange = (size: number) => { pagination.pageSize = size; loadContainers() }
+const handleCurrentChange = (page: number) => { pagination.page = page; loadContainers() }
+
+// 加载服务器列表
+const loadServers = async () => {
   try {
-    const mappings = JSON.parse(ports);
-    if (Array.isArray(mappings)) {
-      return mappings.map((p) => `${p.hostPort}:${p.containerPort}`);
+    const response = await getServerList()
+    if (response.code === '00000') {
+      serverOptions.value = response.data || []
     }
-    return [ports];
-  } catch {
-    return ports.split(",").filter((p) => p.trim());
+  } catch (error) {
+    console.error('加载服务器列表失败:', error)
   }
-};
+}
 
-const getServerName = (serverId: number) => {
-  const server = serverOptions.value.find((s) => s.id === serverId);
-  return server?.name || `服务器${serverId}`;
-};
-
-const getServerHost = (serverId: number) => {
-  const server = serverOptions.value.find((s) => s.id === serverId);
-  return server?.host || "-";
-};
-
-const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
-    running: "success",
-    exited: "info",
-    paused: "warning",
-    restarting: "warning",
-    dead: "danger",
-  };
-  return statusMap[status] || "info";
-};
-
-const getStatusLabel = (status: string) => {
-  const statusMap: Record<string, string> = {
-    running: "运行中",
-    exited: "已停止",
-    paused: "暂停",
-    restarting: "重启中",
-    dead: "已删除",
-  };
-  return statusMap[status] || status;
-};
-
-const getStatusIcon = (status: string) => {
-  const iconMap: Record<string, string> = {
-    running: "ri:play-circle-line",
-    exited: "ri:stop-circle-line",
-    paused: "ri:pause-circle-line",
-    restarting: "ri:restart-line",
-    dead: "ri:close-circle-line",
-  };
-  return iconMap[status] || "ri:question-line";
-};
-
-const getUsageColor = (usage: number) => {
-  if (usage < 50) return "#67c23a";
-  if (usage < 80) return "#e6a23c";
-  return "#f56c6c";
-};
-
-// 开始统计信息轮询
-const startStatsPolling = () => {
-  statsTimer = setInterval(async () => {
-    // 静默刷新容器状态
-    await loadContainers();
-  }, 30000); // 30秒刷新一次
-};
-
-const stopStatsPolling = () => {
-  if (statsTimer) {
-    clearInterval(statsTimer);
-    statsTimer = null;
-  }
-};
-
-onMounted(async () => {
-  await loadServers();
-  await loadSofts();
-  await loadContainers();
-  startStatsPolling();
-
-  // 连接WebSocket
-  connectWS();
-
-  // 监听容器状态变化
-  onMessage(
-    SOFT_WS_MESSAGE_TYPE.CONTAINER_STATUS,
-    (data: ContainerStatusMessage) => {
-      const container = containersList.value.find(
-        (c) => c.containerId === data.containerId
-      );
-      if (container) {
-        container.status = data.status;
-        container.cpuUsage = data.cpuUsage;
-        container.memoryUsage = data.memoryUsage;
-      }
-    }
-  );
-
-  // 监听容器日志
-  onMessage(
-    SOFT_WS_MESSAGE_TYPE.CONTAINER_LOGS,
-    (data: ContainerLogMessage) => {
-      if (
-        currentContainer.value?.containerId === data.containerId &&
-        logsVisible.value
-      ) {
-        logs.value += data.logs;
-        nextTick(() => {
-          if (logsContentRef.value) {
-            logsContentRef.value.scrollTop = logsContentRef.value.scrollHeight;
-          }
-        });
-      }
-    }
-  );
-
-  // 监听容器统计信息
-  onMessage(
-    SOFT_WS_MESSAGE_TYPE.CONTAINER_STATS,
-    (data: ContainerStatsMessage) => {
-      const container = containersList.value.find(
-        (c) => c.containerId === data.containerId
-      );
-      if (container) {
-        container.cpuUsage = data.cpuUsage;
-        container.memoryUsage = data.memoryUsage;
-        container.networkRx = data.networkRx;
-        container.networkTx = data.networkTx;
-        container.diskRead = data.diskRead;
-        container.diskWrite = data.diskWrite;
-      }
-    }
-  );
-});
-
-onUnmounted(() => {
-  stopLogsPolling();
-  stopStatsPolling();
-
-  // 断开WebSocket连接
-  offMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_STATUS);
-  offMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_LOGS);
-  offMessage(SOFT_WS_MESSAGE_TYPE.CONTAINER_STATS);
-  disconnectWS();
-});
+onMounted(() => {
+  loadContainers()
+  loadServers()
+})
 </script>
 
 <style scoped>
-/* 基础样式与records.vue类似，这里只列出容器管理特有的样式 */
-.containers-page {
-  padding: 16px;
+.container-management {
+  padding: 20px;
   background: #f5f7fa;
   min-height: calc(100vh - 60px);
 }
 
-/* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
   padding: 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .page-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: #2c3e50;
 }
 
 .title-icon {
-  font-size: 24px;
+  margin-right: 8px;
   color: #409eff;
 }
 
 .page-subtitle {
+  color: #6c757d;
+  margin-top: 8px;
   font-size: 14px;
-  color: #909399;
 }
 
 .header-right {
@@ -1471,13 +589,11 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* 搜索栏 */
 .search-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   padding: 16px;
   background: white;
   border-radius: 8px;
@@ -1487,8 +603,148 @@ onUnmounted(() => {
 .search-left {
   display: flex;
   gap: 12px;
-  flex: 1;
 }
+
+.search-right {
+  display: flex;
+  gap: 12px;
+}
+
+.search-input {
+  width: 280px;
+}
+
+.filter-select {
+  width: 120px;
+}
+
+.container-table-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.container-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.container-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.container-name {
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.container-id {
+  font-size: 12px;
+  color: #909399;
+  font-family: monospace;
+}
+
+.image-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.image-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.image-tag {
+  font-size: 12px;
+  color: #909399;
+}
+
+.server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.server-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.ports-container {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.port-tag {
+  margin: 0;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.resource-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.usage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usage-label {
+  font-size: 12px;
+  color: #606266;
+  width: 30px;
+}
+
+.usage-value {
+  font-size: 12px;
+  color: #303133;
+  width: 35px;
+  text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.batch-actions {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.batch-info {
+  color: #409eff;
+  font-weight: 500;
+}
+</style>
+
 
 .search-input {
   width: 280px;

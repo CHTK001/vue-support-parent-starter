@@ -22,8 +22,6 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import ElementPlusX from "vue-element-plus-x";
 import VueTippy from "vue-tippy";
-import setupAntdConfig from "./components/AntdConfig";
-import IconPlugin from "./components/Icon";
 import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import GlobalSocketPlugin from "./plugins/globalSocket";
@@ -40,10 +38,6 @@ app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
 app.use(VueTippy);
-// 注册全局方法
-app.use(IconPlugin);
-// 使用Ant Design Vue全局配置
-app.use(setupAntdConfig);
 // 使用 ElementPlusX
 app.use(ElementPlusX);
 
