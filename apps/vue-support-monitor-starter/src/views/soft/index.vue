@@ -1,501 +1,358 @@
 <template>
-  <div class="soft-management">
+  <div class="software-management">
+    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>软件管理</h2>
-        <p>管理系统中的软件安装、更新和配置</p>
+        <div class="page-title">
+          <IconifyIconOnline icon="ri:apps-line" class="title-icon" />
+          <span>软件管理</span>
+        </div>
+        <div class="page-subtitle">管理Docker软件的信息、版本和安装</div>
       </div>
-      
-      <div class="header-actions">
-        <el-button type="primary" @click="openCreate">
-          <IconifyIconOnline icon="ri:add-fill" class="mr-1" />
-          安装软件
-        </el-button>
-        
-        <el-button @click="handleSync" :loading="syncing">
+      <div class="header-right">
+        <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
+        <el-button type="success" @click="handleSyncFromRegistry" :loading="syncLoading">
+          <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
+          同步软件
+        </el-button>
       </div>
     </div>
-    
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <StatsCard 
-        :stats="statsData" 
-        :details="statsDetails"
-        :show-toggle="true"
-      />
-    </div>
 
-    <!-- 工具栏 -->
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <el-input 
-          v-model="searchParams.systemSoftName" 
-          placeholder="搜索软件名称/编码" 
-          clearable 
-          class="search-input" 
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+      <div class="search-left">
+        <el-input
+          v-model="searchParams.keyword"
+          placeholder="搜索软件名称或描述"
+          class="search-input"
+          clearable
           @keyup.enter="handleSearch"
-          @clear="handleSearch"
         >
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select v-model="searchParams.systemSoftType" placeholder="软件类型" clearable style="width: 150px" @change="handleSearch">
+        <el-select
+          v-model="searchParams.category"
+          placeholder="软件分类"
+          clearable
+          class="filter-select"
+          @change="handleSearch"
+        >
           <el-option label="全部" value="" />
-          <el-option label="应用软件" value="APPLICATION" />
-          <el-option label="系统软件" value="SYSTEM" />
-          <el-option label="开发工具" value="DEVELOPMENT" />
-          <el-option label="数据库" value="DATABASE" />
-          <el-option label="中间件" value="MIDDLEWARE" />
+          <el-option label="数据库" value="database" />
+          <el-option label="Web服务器" value="web" />
+          <el-option label="缓存" value="cache" />
+          <el-option label="消息队列" value="mq" />
+          <el-option label="监控工具" value="monitor" />
+          <el-option label="开发工具" value="dev" />
         </el-select>
-        <el-select v-model="searchParams.systemSoftStatus" placeholder="状态" clearable style="width: 120px" @change="handleSearch">
+        <el-select
+          v-model="searchParams.registryId"
+          placeholder="软件仓库"
+          clearable
+          class="filter-select"
+          @change="handleSearch"
+        >
           <el-option label="全部" value="" />
-          <el-option label="启用" value="1" />
-          <el-option label="禁用" value="0" />
+          <el-option
+            v-for="registry in registryOptions"
+            :key="registry.id"
+            :label="registry.name"
+            :value="registry.id"
+          />
         </el-select>
       </div>
-      <div class="toolbar-right">
-        <el-button @click="handleSearch">
-          <IconifyIconOnline icon="ri:search-line" class="mr-1" /> 搜索
-        </el-button>
-        <el-button @click="resetSearch">
-          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 重置
-        </el-button>
-        <el-button type="info" @click="goToContainerManagement">
-          <IconifyIconOnline icon="ri:container-line" class="mr-1" /> 容器管理
-        </el-button>
-        <el-button type="warning" @click="goToInstallRecords">
-          <IconifyIconOnline icon="ri:history-line" class="mr-1" /> 安装记录
+      <div class="search-right">
+        <el-button @click="handleBatchInstall" :disabled="selectedIds.length === 0" type="primary">
+          <IconifyIconOnline icon="ri:download-line" class="mr-1" />
+          批量安装
         </el-button>
       </div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="6" animated />
-    </div>
+    <!-- 软件表格 -->
+    <el-card class="software-table-card">
+      <el-table
+        :data="softwareList"
+        stripe
+        v-loading="loading"
+        @selection-change="handleSelectionChange"
+        class="software-table"
+      >
+        <el-table-column type="selection" width="55" />
+        
+        <el-table-column label="软件信息" min-width="250">
+          <template #default="{ row }">
+            <div class="software-info">
+              <div class="software-icon">
+                <img v-if="row.systemSoftIcon" :src="row.systemSoftIcon" alt="icon" />
+                <IconifyIconOnline v-else icon="ri:apps-line" class="default-icon" />
+              </div>
+              <div class="software-details">
+                <div class="software-name">{{ row.systemSoftName }}</div>
+                <div class="software-desc">{{ row.systemSoftDesc || '暂无描述' }}</div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
 
-    <!-- 空状态 -->
-    <el-empty v-else-if="list.length === 0" description="暂无软件数据">
-      <el-button type="primary" @click="handleSync">立即同步</el-button>
-    </el-empty>
-
-    <!-- 软件列表 -->
-    <div v-else class="soft-grid">
-      <el-card v-for="item in list" :key="item.systemSoftId" class="soft-card" @click="goDetail(item)">
-        <div class="soft-card-header">
-          <div class="soft-icon-container">
-            <img v-if="item.systemSoftIcon" :src="item.systemSoftIcon" class="soft-icon" />
-            <IconifyIconOnline v-else icon="ri:apps-line" class="soft-icon-default" />
-          </div>
-          <div class="soft-title">
-            <div class="name">{{ item.systemSoftName }}</div>
-            <div class="code">{{ item.systemSoftCode }}</div>
-          </div>
-          <div class="soft-status">
-            <el-tag :type="item.systemSoftStatus === 1 ? 'success' : 'danger'" size="small">
-              {{ item.systemSoftStatus === 1 ? '启用' : '禁用' }}
+        <el-table-column label="分类" width="120">
+          <template #default="{ row }">
+            <el-tag type="info" size="small">
+              {{ getCategoryText(row.systemSoftCategory) }}
             </el-tag>
-          </div>
-        </div>
-        <div class="desc" :title="item.systemSoftDesc">{{ item.systemSoftDesc || '暂无描述' }}</div>
-        <div class="soft-info">
-          <div class="info-item">
-            <span class="info-label">类型:</span>
-            <span class="info-value">{{ getSoftTypeLabel(item.systemSoftType) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">版本数:</span>
-            <span class="info-value">{{ item.versionCount || 0 }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">容器数:</span>
-            <span class="info-value">{{ item.containerCount || 0 }}</span>
-          </div>
-        </div>
-        <div class="tags">
-          <el-tag v-for="tag in (item.systemSoftTags || '').split(',').filter(Boolean)" :key="tag" size="small">{{ tag }}</el-tag>
-        </div>
-        <div class="card-actions" @click.stop>
-          <el-button size="small" type="primary" @click="goDetail(item)">
-            <IconifyIconOnline icon="ri:eye-line" class="mr-1" /> 详情
-          </el-button>
-          <el-button size="small" type="success" @click="handleInstall(item)">
-            <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
-          </el-button>
-          <el-dropdown @command="(command) => handleCardAction(command, item)">
-            <el-button size="small">
-              <IconifyIconOnline icon="ri:more-line" />
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="edit">
-                  <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
-                </el-dropdown-item>
-                <el-dropdown-item command="versions">
-                  <IconifyIconOnline icon="ri:git-branch-line" class="mr-1" /> 版本管理
-                </el-dropdown-item>
-                <el-dropdown-item command="containers">
-                  <IconifyIconOnline icon="ri:container-line" class="mr-1" /> 容器列表
-                </el-dropdown-item>
-                <el-dropdown-item command="toggle" :divided="true">
-                  <IconifyIconOnline :icon="item.systemSoftStatus === 1 ? 'ri:pause-line' : 'ri:play-line'" class="mr-1" />
-                  {{ item.systemSoftStatus === 1 ? '禁用' : '启用' }}
-                </el-dropdown-item>
-                <el-dropdown-item command="delete" class="text-danger">
-                  <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" /> 删除
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </el-card>
-    </div>
+          </template>
+        </el-table-column>
 
-    <!-- 分页 -->
-    <div v-if="list.length > 0" class="pagination-container">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        :page-sizes="[12, 24, 48, 96]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+        <el-table-column label="版本信息" min-width="180">
+          <template #default="{ row }">
+            <div class="version-info">
+              <div class="latest-version">
+                最新：<span class="version-tag">{{ row.systemSoftLatestVersion || 'unknown' }}</span>
+              </div>
+              <div class="version-count">
+                版本数：{{ row.systemSoftVersionCount || 0 }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="标签" min-width="150">
+          <template #default="{ row }">
+            <div class="tags-container">
+              <el-tag
+                v-for="tag in (row.systemSoftTags || '').split(',').filter(Boolean).slice(0, 2)"
+                :key="tag"
+                size="small"
+                class="tag-item"
+              >
+                {{ tag }}
+              </el-tag>
+              <span v-if="(row.systemSoftTags || '').split(',').filter(Boolean).length > 2" class="more-tags">
+                +{{ (row.systemSoftTags || '').split(',').filter(Boolean).length - 2 }}
+              </span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="安装状态" width="120">
+          <template #default="{ row }">
+            <div class="install-status">
+              <div class="status-item">
+                <span class="status-label">镜像：</span>
+                <span class="status-value">{{ row.systemSoftImageCount || 0 }}</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">容器：</span>
+                <span class="status-value">{{ row.systemSoftContainerCount || 0 }}</span>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="更新时间" width="160">
+          <template #default="{ row }">
+            {{ formatTime(row.systemSoftUpdatedTime) }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button 
+                size="small" 
+                type="primary" 
+                @click="handleInstall(row)"
+              >
+                <IconifyIconOnline icon="ri:download-line" class="mr-1" />
+                安装
+              </el-button>
+              <el-button 
+                size="small" 
+                @click="viewSoftwareDetail(row)"
+              >
+                <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
+                详情
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :total="pagination.total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
+
+    <!-- 安装软件对话框 -->
+    <InstallSoftwareDialog
+      v-model:visible="installDialogVisible"
+      :software-data="currentSoftware"
+      @success="handleDialogSuccess"
+    />
+
+    <!-- 同步软件对话框 -->
+    <SyncSoftwareDialog
+      v-model:visible="syncDialogVisible"
+      @success="handleDialogSuccess"
+    />
+
+    <!-- 批量操作底部工具栏 -->
+    <div v-if="selectedIds.length > 0" class="batch-actions">
+      <div class="batch-info">
+        已选择 {{ selectedIds.length }} 个软件
+      </div>
+      <el-button @click="clearSelection">取消选择</el-button>
+      <el-button type="primary" @click="handleBatchInstall">批量安装</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed } from "vue";
-import { message } from "@repo/utils";
-import { 
-  getSoftPageList, 
-  syncSoft, 
-  updateSoft,
-  deleteSoft,
-  getRunningContainers,
-  type SystemSoft 
-} from "@/api/soft";
-import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
-import StatsCard from "./components/StatsCard.vue";
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { softwareApi, registryApi, type SystemSoft } from '@/api/docker-management'
+import InstallSoftwareDialog from '@/components/docker/InstallSoftwareDialog.vue'
+import SyncSoftwareDialog from '@/components/docker/SyncSoftwareDialog.vue'
 
-const router = useRouter();
-const loading = ref(false);
-const syncing = ref(false);
-const list = ref<SystemSoft[]>([]);
+// 响应式数据
+const loading = ref(false)
+const syncLoading = ref(false)
+const selectedIds = ref<number[]>([])
+const softwareList = ref<SystemSoft[]>([])
+const registryOptions = ref<any[]>([])
+const installDialogVisible = ref(false)
+const syncDialogVisible = ref(false)
+const currentSoftware = ref<SystemSoft | null>(null)
 
 // 搜索参数
 const searchParams = reactive({
-  systemSoftName: "",
-  systemSoftType: "",
-  systemSoftStatus: ""
-});
+  keyword: '',
+  category: '',
+  registryId: ''
+})
 
 // 分页参数
 const pagination = reactive({
   page: 1,
-  pageSize: 12,
+  pageSize: 10,
   total: 0
-});
+})
 
-// 统计信息
-const stats = reactive({
-  enabled: 0,
-  disabled: 0,
-  runningContainers: 0
-});
-
-// 统计卡片数据
-const statsData = computed(() => [
-  {
-    key: 'total',
-    label: '总软件数',
-    value: pagination.total,
-    icon: 'ri:apps-line',
-    type: 'primary',
-    format: 'number',
-    description: '系统中已安装的软件总数'
-  },
-  {
-    key: 'enabled',
-    label: '启用软件',
-    value: stats.enabled,
-    icon: 'ri:play-circle-line',
-    type: 'success',
-    format: 'number',
-    description: '当前启用状态的软件数量'
-  },
-  {
-    key: 'disabled',
-    label: '禁用软件',
-    value: stats.disabled,
-    icon: 'ri:pause-circle-line',
-    type: 'warning',
-    format: 'number',
-    description: '当前禁用状态的软件数量'
-  },
-  {
-    key: 'containers',
-    label: '运行容器',
-    value: stats.runningContainers,
-    icon: 'ri:container-line',
-    type: 'info',
-    format: 'number',
-    description: '当前正在运行的容器数量'
-  }
-]);
-
-// 统计详情数据
-const statsDetails = computed(() => ({
-  systemSoftware: list.value.filter(item => item.systemSoftType === 'SYSTEM').length,
-  applicationSoftware: list.value.filter(item => item.systemSoftType === 'APPLICATION').length,
-  developmentTools: list.value.filter(item => item.systemSoftType === 'DEVELOPMENT').length,
-  databases: list.value.filter(item => item.systemSoftType === 'DATABASE').length,
-  middleware: list.value.filter(item => item.systemSoftType === 'MIDDLEWARE').length,
-  runningContainers: stats.runningContainers,
-  totalContainers: list.value.reduce((sum, item) => sum + (item.containerCount || 0), 0),
-  totalVersions: list.value.reduce((sum, item) => sum + (item.versionCount || 0), 0)
-}));
-
-// 软件类型标签映射
-const softTypeMap = {
-  'APPLICATION': '应用软件',
-  'SYSTEM': '系统软件',
-  'DEVELOPMENT': '开发工具',
-  'DATABASE': '数据库',
-  'MIDDLEWARE': '中间件'
-};
-
-const getSoftTypeLabel = (type: string) => {
-  return softTypeMap[type] || type || '未知';
-};
-
-// 加载软件列表
-const loadList = async () => {
+// 基础方法
+const loadSoftwareList = async () => {
   try {
-    loading.value = true;
-    const params = {
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      ...searchParams
-    };
-    
-    // 清空空值参数
+    loading.value = true
+    const params = { ...searchParams, page: pagination.page, pageSize: pagination.pageSize }
     Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null || params[key] === undefined) {
-        delete params[key];
-      }
-    });
+      if (params[key] === '') delete params[key]
+    })
     
-    const res = await getSoftPageList(params);
-    if (res.code === "00000") {
-      list.value = res.data.records || [];
-      pagination.total = res.data.total || 0;
-      
-      // 计算统计信息
-      updateStats();
+    const response = await softwareApi.getSoftwarePageList(params)
+    if (response.code === '00000') {
+      softwareList.value = response.data.records || []
+      pagination.total = response.data.total || 0
     }
   } catch (error) {
-    message.error("加载软件列表失败");
+    ElMessage.error('加载软件列表失败')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-// 更新统计信息
-const updateStats = async () => {
-  stats.enabled = list.value.filter(item => item.systemSoftStatus === 1).length;
-  stats.disabled = list.value.filter(item => item.systemSoftStatus === 0).length;
-  
-  // 获取运行中容器数量
+const handleRefresh = () => loadSoftwareList()
+const handleSearch = () => { pagination.page = 1; loadSoftwareList() }
+const handleSelectionChange = (selection: SystemSoft[]) => {
+  selectedIds.value = selection.map(item => item.systemSoftId!)
+}
+const clearSelection = () => { selectedIds.value = [] }
+
+// 工具函数
+const getCategoryText = (category?: string) => {
+  const map = {
+    database: '数据库',
+    web: 'Web服务器',
+    cache: '缓存',
+    mq: '消息队列',
+    monitor: '监控工具',
+    dev: '开发工具'
+  }
+  return map[category] || '其他'
+}
+
+const formatTime = (time?: string) => time ? new Date(time).toLocaleString() : '-'
+
+// 操作方法
+const handleSyncFromRegistry = () => {
+  syncDialogVisible.value = true
+}
+
+const handleInstall = (software: SystemSoft) => {
+  currentSoftware.value = software
+  installDialogVisible.value = true
+}
+
+const viewSoftwareDetail = (software: SystemSoft) => {
+  ElMessage.info('软件详情功能开发中...')
+}
+
+const handleBatchInstall = () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要安装的软件')
+    return
+  }
+  ElMessage.info('批量安装功能开发中...')
+}
+
+const handleDialogSuccess = () => {
+  loadSoftwareList()
+}
+
+const handleSizeChange = (size: number) => { pagination.pageSize = size; loadSoftwareList() }
+const handleCurrentChange = (page: number) => { pagination.page = page; loadSoftwareList() }
+
+// 加载镜像仓库列表
+const loadRegistries = async () => {
   try {
-    const res = await getRunningContainers();
-    if (res.code === "00000") {
-      stats.runningContainers = res.data.length;
+    const response = await registryApi.getRegistryList()
+    if (response.code === '00000') {
+      registryOptions.value = response.data || []
     }
   } catch (error) {
-    console.error("获取运行中容器数量失败:", error);
+    console.error('加载镜像仓库列表失败:', error)
   }
-};
-
-// 搜索
-const handleSearch = () => {
-  pagination.page = 1;
-  loadList();
-};
-
-// 重置搜索
-const resetSearch = () => {
-  Object.assign(searchParams, {
-    systemSoftName: "",
-    systemSoftType: "",
-    systemSoftStatus: ""
-  });
-  pagination.page = 1;
-  loadList();
-};
-
-// 同步软件
-const handleSync = async () => {
-  try {
-    syncing.value = true;
-    const res = await syncSoft();
-    if (res.code === "00000") {
-      message.success("同步成功");
-      await loadList();
-    } else {
-      message.error(res.message || "同步失败");
-    }
-  } catch (error) {
-    message.error("同步失败");
-  } finally {
-    syncing.value = false;
-  }
-};
-
-// 分页变化
-const handleSizeChange = (size: number) => {
-  pagination.pageSize = size;
-  pagination.page = 1;
-  loadList();
-};
-
-const handleCurrentChange = (page: number) => {
-  pagination.page = page;
-  loadList();
-};
-
-// 新增软件
-const openCreate = () => {
-  message.info("新增功能开发中...");
-};
-
-// 跳转到详情页
-const goDetail = (item: SystemSoft) => {
-  router.push({ name: "softDetail", params: { id: item.systemSoftId } });
-};
-
-// 跳转到容器管理
-const goToContainerManagement = () => {
-  router.push({ name: "containerManagement" });
-};
-
-// 跳转到安装记录
-const goToInstallRecords = () => {
-  router.push({ name: "installRecords" });
-};
-
-// 安装软件
-const handleInstall = (item: SystemSoft) => {
-  router.push({ name: "softDetail", params: { id: item.systemSoftId }, query: { tab: "install" } });
-};
-
-// 卡片操作
-const handleCardAction = async (command: string, item: SystemSoft) => {
-  switch (command) {
-    case 'edit':
-      message.info("编辑功能开发中...");
-      break;
-    case 'versions':
-      router.push({ name: "softDetail", params: { id: item.systemSoftId }, query: { tab: "versions" } });
-      break;
-    case 'containers':
-      router.push({ name: "softDetail", params: { id: item.systemSoftId }, query: { tab: "containers" } });
-      break;
-    case 'toggle':
-      await handleToggleStatus(item);
-      break;
-    case 'delete':
-      await handleDelete(item);
-      break;
-  }
-};
-
-// 切换状态
-const handleToggleStatus = async (item: SystemSoft) => {
-  try {
-    const newStatus = item.systemSoftStatus === 1 ? 0 : 1;
-    const action = newStatus === 1 ? '启用' : '禁用';
-    
-    await ElMessageBox.confirm(
-      `确定要${action}软件 "${item.systemSoftName}" 吗？`,
-      '确认操作',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-    
-    const res = await updateSoft(item.systemSoftId, {
-      ...item,
-      systemSoftStatus: newStatus
-    });
-    
-    if (res.code === "00000") {
-      message.success(`${action}成功`);
-      await loadList();
-    } else {
-      message.error(res.message || `${action}失败`);
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      message.error('操作失败');
-    }
-  }
-};
-
-// 删除软件
-const handleDelete = async (item: SystemSoft) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除软件 "${item.systemSoftName}" 吗？此操作不可恢复！`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'error'
-      }
-    );
-    
-    const res = await deleteSoft(item.systemSoftId);
-    
-    if (res.code === "00000") {
-      message.success('删除成功');
-      await loadList();
-    } else {
-      message.error(res.message || '删除失败');
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      message.error('删除失败');
-    }
-  }
-};
+}
 
 onMounted(() => {
-  loadList();
-});
+  loadSoftwareList()
+  loadRegistries()
+})
 </script>
 
 <style scoped>
-.soft-management {
-  padding: 16px;
+.software-management {
+  padding: 20px;
   background: #f5f7fa;
   min-height: calc(100vh - 60px);
 }
 
-/* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
   background: white;
@@ -503,321 +360,204 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.header-left h2 {
-  margin: 0 0 8px 0;
-  color: #303133;
+.page-title {
+  display: flex;
+  align-items: center;
   font-size: 24px;
   font-weight: 600;
+  color: #2c3e50;
 }
 
-.header-left p {
-  margin: 0;
-  color: #909399;
+.title-icon {
+  margin-right: 8px;
+  color: #409eff;
+}
+
+.page-subtitle {
+  color: #6c757d;
+  margin-top: 8px;
   font-size: 14px;
 }
 
-.header-actions {
+.header-right {
   display: flex;
   gap: 12px;
 }
 
-/* 统计区域 */
-.stats-section {
-  margin-bottom: 20px;
-}
-
-/* 工具栏样式 */
-.toolbar {
+.search-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   padding: 16px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.toolbar-left {
+.search-left {
   display: flex;
-  align-items: center;
   gap: 12px;
-  flex: 1;
 }
 
-.toolbar-right {
+.search-right {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .search-input {
   width: 280px;
 }
 
-/* 统计信息栏 */
-.stats-bar {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 16px;
-  padding: 12px 16px;
+.filter-select {
+  width: 140px;
+}
+
+.software-table-card {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stat-label {
-  color: #666;
-  font-size: 14px;
-}
-
-.stat-value {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.text-success {
-  color: #67c23a;
-}
-
-.text-danger {
-  color: #f56c6c;
-}
-
-.text-primary {
-  color: #409eff;
-}
-
-/* 加载状态 */
-.loading-container {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 软件网格 */
-.soft-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-/* 软件卡片 */
-.soft-card {
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #e4e7ed;
-  position: relative;
-}
-
-.soft-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.soft-card-header {
+.software-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
-  position: relative;
 }
 
-.soft-icon-container {
-  flex-shrink: 0;
-}
-
-.soft-icon {
+.software-icon {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid #e4e7ed;
-}
-
-.soft-icon-default {
-  width: 40px;
-  height: 40px;
-  color: #909399;
-  background: #f5f7fa;
-  border-radius: 8px;
+  border-radius: 6px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f5f7fa;
   border: 1px solid #e4e7ed;
 }
 
-.soft-title {
+.software-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.default-icon {
+  font-size: 20px;
+  color: #909399;
+}
+
+.software-details {
   flex: 1;
   min-width: 0;
 }
 
-.soft-title .name {
-  font-weight: 600;
-  font-size: 16px;
+.software-name {
+  font-weight: 500;
   color: #303133;
   margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.soft-title .code {
-  color: #909399;
+.software-desc {
   font-size: 12px;
+  color: #909399;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.soft-status {
-  flex-shrink: 0;
-}
-
-/* 描述 */
-.desc {
-  color: #606266;
-  font-size: 14px;
-  line-height: 1.5;
-  height: 42px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  margin-bottom: 12px;
-}
-
-/* 软件信息 */
-.soft-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 8px 0;
-  border-top: 1px solid #f0f2f5;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.info-item {
+.version-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 4px;
 }
 
-.info-label {
+.latest-version {
+  font-size: 12px;
+  color: #606266;
+}
+
+.version-tag {
+  color: #409eff;
+  font-weight: 500;
+}
+
+.version-count {
+  font-size: 12px;
   color: #909399;
+}
+
+.tags-container {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tag-item {
+  margin: 0;
+}
+
+.more-tags {
+  font-size: 12px;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.install-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
   font-size: 12px;
 }
 
-.info-value {
+.status-label {
+  color: #909399;
+}
+
+.status-value {
   color: #303133;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
 }
 
-/* 标签 */
-.tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  min-height: 24px;
-}
-
-/* 卡片操作 */
-.card-actions {
+.action-buttons {
   display: flex;
   gap: 8px;
-  align-items: center;
-  padding-top: 8px;
-  border-top: 1px solid #f0f2f5;
+  flex-wrap: wrap;
 }
 
-.card-actions .el-button {
-  flex: 1;
-}
-
-.card-actions .el-dropdown {
-  flex-shrink: 0;
-}
-
-/* 分页容器 */
 .pagination-container {
   display: flex;
   justify-content: center;
   padding: 20px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.batch-actions {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .toolbar-left {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .toolbar-right {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
-  .search-input {
-    width: 100%;
-  }
-  
-  .stats-bar {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  
-  .soft-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .soft-page {
-    padding: 8px;
-  }
-  
-  .toolbar {
-    padding: 12px;
-  }
-  
-  .card-actions {
-    flex-direction: column;
-    gap: 6px;
-  }
-  
-  .card-actions .el-button {
-    width: 100%;
-  }
-}
-
-/* 工具提示样式 */
-.el-dropdown-menu__item.text-danger {
-  color: #f56c6c;
-}
-
-.el-dropdown-menu__item.text-danger:hover {
-  background-color: #fef0f0;
-  color: #f56c6c;
+.batch-info {
+  color: #409eff;
+  font-weight: 500;
 }
 </style>
-

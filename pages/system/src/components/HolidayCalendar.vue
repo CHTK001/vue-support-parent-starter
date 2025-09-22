@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import type { SysHoliday } from "../api/holiday";
+import { Solar, Lunar, Holiday } from "lunisolar";
 
 /**
  * 节假日日历组件
@@ -71,16 +72,48 @@ const getHolidayInfo = (date: Date) => {
 };
 
 /**
+ * 获取农历信息
+ * @param date 日期
+ */
+const getLunarInfo = (date: Date) => {
+  try {
+    const solar = Solar.fromDate(date);
+    const lunar = solar.getLunar();
+    const ganzhi = lunar.getGanZhiYear() + lunar.getGanZhiMonth() + lunar.getGanZhiDay();
+    
+    // 获取节气
+    const jq = solar.getJieQi();
+    
+    // 获取传统节日
+    const festival = lunar.getDayPei() === "初一" ? lunar.getMonthInChinese() + "月" : "";
+    
+    return {
+      ganzhi,
+      lunarDate: lunar.getDayInChinese(),
+      month: lunar.getMonthInChinese(),
+      jq,
+      festival
+    };
+  } catch (error) {
+    console.error("获取农历信息失败:", error);
+    return null;
+  }
+};
+
+/**
  * 自定义日期单元格内容
  * @param date 日期
  */
 const customDateCell = (date: Date) => {
   const holiday = getHolidayInfo(date);
+  const lunarInfo = getLunarInfo(date);
+  
   return {
     holiday,
     isHoliday: holiday?.sysHolidayIsHoliday || false,
     isWorkday: holiday && !holiday.sysHolidayIsHoliday,
     holidayName: holiday?.sysHolidayName || "",
+    lunarInfo
   };
 };
 
@@ -94,6 +127,27 @@ const getHolidayText = (holiday: SysHoliday | null) => {
   // 如果名称过长，进行截取
   const name = holiday.sysHolidayName;
   return name.length > 4 ? name.substring(0, 4) + "..." : name;
+};
+
+/**
+ * 获取农历信息显示文本
+ * @param lunarInfo 农历信息
+ */
+const getLunarText = (lunarInfo: any) => {
+  if (!lunarInfo) return "";
+  
+  // 如果是节气，显示节气
+  if (lunarInfo.jq) {
+    return lunarInfo.jq;
+  }
+  
+  // 如果是初一，显示月份
+  if (lunarInfo.lunarDate === "初一") {
+    return lunarInfo.month + "月";
+  }
+  
+  // 显示农历日期
+  return lunarInfo.lunarDate;
 };
 
 /**
@@ -128,6 +182,11 @@ defineExpose({
             {{ data.date.getDate() }}
           </div>
 
+          <!-- 农历信息 -->
+          <div class="lunar-info">
+            {{ getLunarText(customDateCell(data.date).lunarInfo) }}
+          </div>
+
           <!-- 节假日信息 -->
           <div v-if="customDateCell(data.date).holiday" class="holiday-info">
             <div class="holiday-name">
@@ -153,6 +212,10 @@ defineExpose({
         <div class="legend-item">
           <div class="legend-color today"></div>
           <span>今天</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color lunar"></div>
+          <span>农历/节气</span>
         </div>
       </div>
     </div>
@@ -210,6 +273,13 @@ defineExpose({
               font-weight: 500;
               color: var(--el-text-color-primary);
               margin-bottom: 4px;
+            }
+
+            .lunar-info {
+              font-size: 10px;
+              color: var(--el-text-color-secondary);
+              margin-bottom: 2px;
+              height: 14px;
             }
 
             .holiday-info {
@@ -278,6 +348,11 @@ defineExpose({
             background: var(--el-color-primary-light-9);
             border-color: var(--el-color-primary);
           }
+
+          &.lunar {
+            background: var(--el-color-success-light-9);
+            border-color: var(--el-color-success-light-5);
+          }
         }
       }
     }
@@ -299,6 +374,11 @@ defineExpose({
 
               .date-number {
                 font-size: 14px;
+              }
+
+              .lunar-info {
+                font-size: 9px;
+                height: 12px;
               }
 
               .holiday-info {
