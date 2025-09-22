@@ -123,7 +123,7 @@ const handleBlur = (event: FocusEvent) => {
     padding: 12px 16px;
     font-size: 14px;
     line-height: 1.6;
-    color: #303133;
+    color: var(--el-text-color-primary);
     background-color: #ffffff;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     resize: vertical;
@@ -175,7 +175,7 @@ const handleBlur = (event: FocusEvent) => {
     border-radius: 8px;
     padding: 2px 8px;
     font-size: 12px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     backdrop-filter: blur(4px);
     border: 1px solid rgba(228, 231, 237, 0.6);
   }

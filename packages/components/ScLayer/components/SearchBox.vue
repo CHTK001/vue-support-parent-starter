@@ -1203,19 +1203,22 @@ const swapNavPoints = () => {
 </script>
 
 <style lang="scss" scoped>
+// 导入自定义颜色系统
+@import '../../../assets/style/colors/index.scss';
+
 // 变量定义
-$primary-color: #3370ff;
-$primary-hover: #4c80ff;
-$primary-active: #1e58e4;
-$border-color: #dcdfe6;
-$border-hover: #c0c4cc;
-$text-primary: #333333;
-$text-secondary: #666666;
-$text-muted: #909399;
-$success-color: #52c41a;
-$error-color: #f5222d;
-$border-radius: 4px;
-$box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+$primary-color: var(--app-primary);
+$primary-hover: var(--app-primary-light);
+$primary-active: var(--app-primary-dark);
+$border-color: var(--app-border-primary);
+$border-hover: var(--app-primary-light);
+$text-primary: var(--app-text-primary);
+$text-secondary: var(--app-text-secondary);
+$text-muted: var(--app-text-tertiary);
+$success-color: var(--app-success);
+$error-color: var(--app-danger);
+$border-radius: 6px;
+$box-shadow: var(--app-shadow);
 $transition-time: 0.2s;
 
 .search-box {
@@ -1225,7 +1228,7 @@ $transition-time: 0.2s;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   border-radius: $border-radius;
   box-shadow: $box-shadow;
-  background-color: #fff;
+  background-color: var(--app-bg-primary);
 
   .search-container {
     display: flex;
@@ -1248,7 +1251,7 @@ $transition-time: 0.2s;
         padding: 0 26px 0 10px;
         border: 1px solid $border-color;
         border-radius: $border-radius;
-        background-color: #fff;
+        background-color: var(--app-bg-primary);
         font-size: 14px;
         color: $text-primary;
         cursor: pointer;
@@ -1300,7 +1303,7 @@ $transition-time: 0.2s;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         padding: 0 30px 0 30px;
-        background-color: #fff;
+        background-color: var(--app-bg-primary);
 
         &:hover {
           border-color: $border-hover;
@@ -1360,7 +1363,7 @@ $transition-time: 0.2s;
 
           &:hover {
             color: $text-secondary;
-            background-color: #f0f0f0;
+            background-color: var(--app-bg-secondary);
           }
         }
       }
@@ -1370,7 +1373,7 @@ $transition-time: 0.2s;
         height: 24px;
         margin: 0 8px;
         border-radius: 50%;
-        background-color: #f0f0f0;
+        background-color: var(--app-bg-secondary);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1378,7 +1381,7 @@ $transition-time: 0.2s;
         color: $text-secondary;
 
         &:hover {
-          background-color: #e0e0e0;
+          background-color: var(--app-bg-tertiary);
           color: $primary-color;
         }
       }
@@ -1393,7 +1396,7 @@ $transition-time: 0.2s;
         height: 36px;
         border-radius: $border-radius;
         margin-right: 8px;
-        background-color: #f5f5f5;
+        background: var(--el-bg-color-overlay);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1447,7 +1450,7 @@ $transition-time: 0.2s;
       border: none;
       border-radius: $border-radius;
       background-color: $primary-color;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 14px;
       display: flex;
       align-items: center;
@@ -1541,23 +1544,23 @@ $transition-time: 0.2s;
   .search-results {
     max-height: 300px;
     overflow-y: auto;
-    background-color: #fff;
+    background-color: var(--app-bg-primary);
 
     &::-webkit-scrollbar {
       width: 5px;
     }
 
     &::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: var(--app-bg-secondary);
     }
 
     &::-webkit-scrollbar-thumb {
-      background: #ccc;
+      background: var(--app-border-primary);
       border-radius: 3px;
     }
 
     &::-webkit-scrollbar-thumb:hover {
-      background: #aaa;
+      background: var(--app-text-tertiary);
     }
 
     &.empty-results {
@@ -1578,18 +1581,22 @@ $transition-time: 0.2s;
     }
 
     &.navigation-origin {
-      background-color: rgba(#1aad19, 0.05);
+      background-color: var(--app-success-light);
+      opacity: 0.1;
 
       &:hover {
-        background-color: rgba(#1aad19, 0.1);
+        background-color: var(--app-success-light);
+        opacity: 0.2;
       }
     }
 
     &.navigation-destination {
-      background-color: rgba(#ff525d, 0.05);
+      background-color: var(--app-danger-light);
+      opacity: 0.1;
 
       &:hover {
-        background-color: rgba(#ff525d, 0.1);
+        background-color: var(--app-danger-light);
+        opacity: 0.2;
       }
     }
 
@@ -1614,7 +1621,7 @@ $transition-time: 0.2s;
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 12px;
         font-weight: bold;
         display: flex;
@@ -1622,11 +1629,11 @@ $transition-time: 0.2s;
         justify-content: center;
 
         &.origin-badge {
-          background-color: #1aad19;
+          background-color: var(--app-success);
         }
 
         &.destination-badge {
-          background-color: #ff525d;
+          background-color: var(--app-danger);
         }
       }
     }
@@ -1692,7 +1699,7 @@ $transition-time: 0.2s;
       padding: 3px 8px;
       border-radius: 3px;
       border: 1px solid rgba($border-color, 0.8);
-      background-color: #fff;
+      background-color: var(--app-bg-primary);
       font-size: 12px;
       color: $text-secondary;
       cursor: pointer;
@@ -1706,7 +1713,7 @@ $transition-time: 0.2s;
       &.active {
         background-color: $primary-color;
         border-color: $primary-color;
-        color: white;
+        color: var(--el-text-color-primary);
       }
 
       .start-icon,
@@ -1743,7 +1750,7 @@ $transition-time: 0.2s;
       flex-direction: row;
       margin-bottom: 10px;
       padding: 8px;
-      background-color: #f8f8f8;
+      background-color: var(--app-bg-secondary);
       border-radius: $border-radius;
 
       .endpoint {
@@ -1803,14 +1810,14 @@ $transition-time: 0.2s;
         justify-content: center;
         padding: 8px;
         border-radius: 50%;
-        background-color: #f5f5f5;
+        background: var(--app-bg-secondary);
         cursor: pointer;
         transition: all 0.2s;
         width: 40px;
         height: 40px;
 
         &:hover {
-          background-color: rgba($primary-color, 0.05);
+          background-color: var(--app-bg-tertiary);
         }
 
         &.active {
@@ -1872,7 +1879,7 @@ $transition-time: 0.2s;
       align-items: center;
       justify-content: center;
       background-color: $primary-color;
-      color: white;
+      color: var(--app-text-inverse);
       border: none;
       border-radius: $border-radius;
       padding: 8px 16px;
@@ -1906,7 +1913,7 @@ $transition-time: 0.2s;
       padding: 8px 12px;
       border: 1px solid $border-color;
       border-radius: $border-radius;
-      background-color: white;
+      background-color: var(--app-bg-overlay);
       color: $text-secondary;
       cursor: pointer;
       transition: all $transition-time;
@@ -1926,7 +1933,7 @@ $transition-time: 0.2s;
   .route-details {
     border: 1px solid rgba($border-color, 0.6);
     flex-direction: column;
-    background-color: #fff;
+    background-color: var(--app-bg-primary);
     position: absolute;
     top: 0;
     right: 100%;
@@ -2015,12 +2022,12 @@ $transition-time: 0.2s;
       background-color: #f8f8f8;
       border-bottom: 1px dashed #ccc;
       font-size: 12px;
-      color: #666;
+      color: var(--el-text-color-primary);
 
       .debug-title {
         font-weight: bold;
         margin-bottom: 4px;
-        color: #333;
+        color: var(--el-text-color-primary);
       }
 
       .debug-item {
@@ -2115,23 +2122,27 @@ $transition-time: 0.2s;
             font-weight: 500;
 
             &.traffic-smooth {
-              background-color: rgba(#52c41a, 0.1);
-              color: #52c41a;
+              background-color: var(--app-success-light);
+              opacity: 0.2;
+              color: var(--app-success);
             }
 
             &.traffic-normal {
-              background-color: rgba(#1890ff, 0.1);
-              color: #1890ff;
+              background-color: var(--app-info-light);
+              opacity: 0.2;
+              color: var(--app-info);
             }
 
             &.traffic-slow {
-              background-color: rgba(#faad14, 0.1);
-              color: #faad14;
+              background-color: var(--app-warning-light);
+              opacity: 0.2;
+              color: var(--app-warning);
             }
 
             &.traffic-congested {
-              background-color: rgba(#f5222d, 0.1);
-              color: #f5222d;
+              background-color: var(--app-danger-light);
+              opacity: 0.2;
+              color: var(--app-danger);
             }
 
             &.traffic-unknown {
@@ -2148,7 +2159,7 @@ $transition-time: 0.2s;
       justify-content: space-between;
       align-items: center;
       padding: 12px 15px;
-      background-color: #f5f5f5;
+      background: var(--app-bg-overlay);
       border-top-left-radius: $border-radius;
       border-top-right-radius: $border-radius;
 
@@ -2159,12 +2170,12 @@ $transition-time: 0.2s;
         .route-distance {
           font-size: 16px;
           font-weight: 500;
-          color: #333;
+          color: var(--app-text-primary);
         }
 
         .route-duration {
           font-size: 14px;
-          color: #666;
+          color: var(--app-text-primary);
           margin-top: 4px;
         }
       }
@@ -2209,15 +2220,15 @@ $transition-time: 0.2s;
           height: 24px;
           border-radius: 50%;
           border: none;
-          background-color: #f0f0f0;
-          color: #666;
+          background-color: var(--app-bg-secondary);
+          color: var(--app-text-primary);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
 
           &:hover {
-            background-color: #e0e0e0;
+            background-color: var(--app-bg-tertiary);
           }
 
           .close-icon {
@@ -2269,8 +2280,8 @@ $transition-time: 0.2s;
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background-color: #fff;
-            border: 1px solid #ddd;
+            background-color: var(--el-bg-color);
+            border: 1px solid var(--el-border-color);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2281,14 +2292,14 @@ $transition-time: 0.2s;
             background-size: 14px;
 
             &.icon-start {
-              background-color: #1aad19;
-              border-color: #1aad19;
+              background-color: var(--el-color-success);
+              border-color: var(--el-color-success);
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
 
             &.icon-end {
-              background-color: #ff525d;
-              border-color: #ff525d;
+              background-color: var(--el-color-danger);
+              border-color: var(--el-color-danger);
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
             }
 
@@ -2322,7 +2333,7 @@ $transition-time: 0.2s;
           .step-line {
             position: absolute;
             width: 2px;
-            background-color: #e8e8e8;
+            background-color: var(--el-border-color-light);
             top: 24px;
             bottom: 0;
             left: 12px;
@@ -2335,7 +2346,7 @@ $transition-time: 0.2s;
 
           .step-instruction {
             font-size: 14px;
-            color: #333;
+            color: var(--el-text-color-primary);
             line-height: 1.4;
             margin-bottom: 4px;
           }
@@ -2345,16 +2356,16 @@ $transition-time: 0.2s;
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
-            color: #999;
+            color: var(--el-text-color-placeholder);
 
             .road-name {
-              color: #666;
+              color: var(--el-text-color-regular);
               margin-right: 8px;
               font-weight: 500;
             }
 
             .step-distance {
-              color: #999;
+              color: var(--el-text-color-placeholder);
             }
           }
         }

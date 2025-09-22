@@ -212,7 +212,7 @@ const propsData = ref([
 }
 
 .example-container {
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 8px;
   padding: 20px;
   background-color: #fafafa;
@@ -224,7 +224,7 @@ const propsData = ref([
 }
 
 .el-card h4 {
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 15px;
   font-size: 16px;
   font-weight: 600;

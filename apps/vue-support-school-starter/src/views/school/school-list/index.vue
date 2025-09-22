@@ -226,14 +226,14 @@ onMounted(() => {
 
 .search-title {
   font-size: 24px;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   font-weight: bold;
 }
 
 .search-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -292,7 +292,7 @@ onMounted(() => {
 
 .sort-label {
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-right: 10px;
 }
 
@@ -308,7 +308,7 @@ onMounted(() => {
   cursor: pointer;
   background-color: #f9f9f9;
   border: 1px solid #e6e6e6;
-  color: #666;
+  color: var(--el-text-color-primary);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -358,7 +358,7 @@ onMounted(() => {
   padding: 16px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background-color: #fafafa;
 }
 
@@ -382,7 +382,7 @@ onMounted(() => {
 
 .image-placeholder {
   font-size: 30px;
-  color: #909399;
+   color: var(--el-text-color);
 }
 
 .school-basic-info {
@@ -394,7 +394,7 @@ onMounted(() => {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -449,13 +449,13 @@ onMounted(() => {
 
 .info-label {
   width: 80px;
-  color: #666;
+  color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
 .info-value {
   flex: 1;
-  color: #333;
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
   flex-wrap: wrap;

@@ -151,7 +151,7 @@
 <style lang="scss" scoped>
 	.uni-combox {
 		font-size: 14px;
-		border: 1px solid #DCDFE6;
+		border: 1px solid var(--el-border-color);
 		border-radius: 4px;
 		padding: 6px 10px;
 		position: relative;

@@ -90,7 +90,7 @@ export default {
   height: 100%;
   width: 400px;
   float: left;
-  background: #ebeef5;
+  background: var(--el-fill-color-light);
 }
 .sc-cropper__img img {
   display: none;
@@ -103,13 +103,13 @@ export default {
 .sc-cropper__preview h4 {
   font-weight: normal;
   font-size: 12px;
-  color: #999;
+  color: var(--el-text-color-placeholder);
   margin-bottom: 20px;
 }
 .sc-cropper__preview__img {
   overflow: hidden;
   width: 100%;
   height: 100%;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-light);
 }
 </style>

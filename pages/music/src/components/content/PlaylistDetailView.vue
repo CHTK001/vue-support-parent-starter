@@ -79,10 +79,10 @@ defineProps({
   &__header {
     display: flex;
     margin-bottom: 30px;
-    background-color: var(--el-bg-color);
+    background-color: var(--app-bg-primary);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-shadow-sm);
     padding: 20px;
   }
 
@@ -92,7 +92,7 @@ defineProps({
     border-radius: 8px;
     overflow: hidden;
     margin-right: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--app-shadow-sm);
 
     img {
       width: 100%;
@@ -116,14 +116,14 @@ defineProps({
   &__playlist-creator,
   &__playlist-date {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     margin-bottom: 5px;
   }
 
   &__playlist-desc {
     font-size: 14px;
     margin: 15px 0;
-    color: var(--el-text-color-regular);
+    color: var(--app-text-primary);
     line-height: 1.6;
     flex: 1;
   }
@@ -133,10 +133,10 @@ defineProps({
   }
 
   &__playlist-songs {
-    background-color: var(--el-bg-color);
+    background-color: var(--app-bg-primary);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-shadow-sm);
     padding: 20px;
   }
 
@@ -148,31 +148,31 @@ defineProps({
 
   &__playlist-songs-count {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     font-weight: normal;
   }
 
   &__music-list {
-    border-top: 1px solid var(--el-border-color-lighter);
+    border-top: 1px solid var(--app-border-secondary);
   }
 
   &__music-item {
     display: flex;
     align-items: center;
     padding: 12px 15px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-bottom: 1px solid var(--app-border-secondary);
 
     &:last-child {
       border-bottom: none;
     }
 
     &:hover {
-      background-color: var(--el-color-primary-light-9);
+      background-color: var(--app-primary-lightest);
     }
 
     &--active {
-      background-color: var(--el-color-primary-light-8);
-      color: var(--el-color-primary);
+      background-color: var(--app-primary-lighter);
+      color: var(--app-primary);
     }
   }
 
@@ -180,7 +180,7 @@ defineProps({
     width: 30px;
     text-align: center;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
   }
 
   &__music-cover-small {
@@ -209,7 +209,7 @@ defineProps({
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--app-shadow);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,7 +218,7 @@ defineProps({
 
     .iconify {
       font-size: 20px;
-      color: white;
+      color: var(--app-text-primary);
     }
   }
 
@@ -238,7 +238,7 @@ defineProps({
 
   &__music-artist {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -247,7 +247,7 @@ defineProps({
   &__music-album {
     width: 150px;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -257,7 +257,7 @@ defineProps({
   &__music-duration {
     width: 50px;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     text-align: center;
   }
 

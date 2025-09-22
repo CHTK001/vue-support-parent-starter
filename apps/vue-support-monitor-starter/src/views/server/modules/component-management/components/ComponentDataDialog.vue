@@ -654,7 +654,7 @@ const getExpressionTypeName = (type?: string) => {
   
   .label {
     font-size: 13px;
-    color: #666;
+    color: var(--el-text-color-primary);
   }
   
   .expression-text {
@@ -729,7 +729,7 @@ const getExpressionTypeName = (type?: string) => {
 
 .raw-data-content {
   flex: 1;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   overflow: auto;
   

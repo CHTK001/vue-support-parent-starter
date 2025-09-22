@@ -1,152 +1,155 @@
+// 导入新的颜色系统
+@import '../../colors/index.scss';
+
 // 默认主题变量 ｜ Light 主题变量
 
 :root {
-  // Theme color
-  --art-primary: #1b84ff;
-  --art-success: #17c653;
-  --art-warning: #f6c000;
-  --art-danger: #f8285a;
-  --art-info: #7239ea;
+  // Theme color - 使用新的颜色变量
+  --art-primary: var(--app-primary);
+  --art-success: var(--app-success);
+  --art-warning: var(--app-warning);
+  --art-danger: var(--app-danger);
+  --art-info: var(--app-info);
 
-  --art-color: #ffffff;
-  --art-light: #f9f9f9;
-  --art-dark: #1e2129;
+  --art-color: var(--app-white);
+  --art-light: var(--app-bg-tertiary);
+  --art-dark: var(--app-text-primary);
 
   // Theme active color
-  --art-primary-active: #056ee9;
-  --art-success-active: #111a14;
-  --art-warning-active: #dead00;
-  --art-danger-active: #d81a48;
-  --art-info-active: #5014d0;
+  --art-primary-active: var(--app-primary-dark);
+  --art-success-active: var(--app-success-dark);
+  --art-warning-active: var(--app-warning-dark);
+  --art-danger-active: var(--app-danger-dark);
+  --art-info-active: var(--app-info-dark);
 
-  --art-light-active: #f1f1f4;
+  --art-light-active: var(--app-bg-secondary);
 
-  // Background color | Hover color
-  --art-text-muted: #99a1b7;
-  --art-gray-100: #f9f9f9;
-  --art-gray-100-rgb: 249, 249, 249;
-  --art-gray-200: #f1f1f4;
-  --art-gray-200-rgb: 241, 241, 244;
-  --art-gray-300: #dbdfe9;
-  --art-gray-300-rgb: 219, 223, 233;
-  --art-gray-400: #c4cada;
-  --art-gray-400-rgb: 196, 202, 218;
-  --art-gray-500: #99a1b7;
-  --art-gray-500-rgb: 153, 161, 183;
-  --art-gray-600: #78829d;
-  --art-gray-600-rgb: 120, 130, 157;
-  --art-gray-700: #4b5675;
-  --art-gray-700-rgb: 75, 86, 117;
-  --art-gray-800: #252f4a;
-  --art-gray-800-rgb: 37, 47, 74;
-  --art-gray-900: #071437;
-  --art-gray-900-rgb: 7, 20, 55;
+  // Background color | Hover color - 使用新的灰色系统
+  --art-text-muted: var(--app-text-tertiary);
+  --art-gray-100: var(--app-gray-100);
+  --art-gray-100-rgb: 243, 244, 246;
+  --art-gray-200: var(--app-gray-200);
+  --art-gray-200-rgb: 229, 231, 235;
+  --art-gray-300: var(--app-gray-300);
+  --art-gray-300-rgb: 209, 213, 219;
+  --art-gray-400: var(--app-gray-400);
+  --art-gray-400-rgb: 156, 163, 175;
+  --art-gray-500: var(--app-gray-500);
+  --art-gray-500-rgb: 107, 114, 128;
+  --art-gray-600: var(--app-gray-600);
+  --art-gray-600-rgb: 75, 85, 99;
+  --art-gray-700: var(--app-gray-700);
+  --art-gray-700-rgb: 55, 65, 81;
+  --art-gray-800: var(--app-gray-800);
+  --art-gray-800-rgb: 31, 41, 55;
+  --art-gray-900: var(--app-gray-900);
+  --art-gray-900-rgb: 17, 24, 39;
 
   // Text color
-  --art-text-muted: #99a1b7;
-  --art-text-gray-100: #f9f9f9;
-  --art-text-gray-200: #f1f1f4;
-  --art-text-gray-300: #dbdfe9;
-  --art-text-gray-400: #c4cada;
-  --art-text-gray-500: #99a1b7;
-  --art-text-gray-600: #78829d;
-  --art-text-gray-700: #4b5675;
-  --art-text-gray-800: #252f4a;
-  --art-text-gray-900: #071437;
+  --art-text-muted: var(--app-text-tertiary);
+  --art-text-gray-100: var(--app-gray-100);
+  --art-text-gray-200: var(--app-gray-200);
+  --art-text-gray-300: var(--app-gray-300);
+  --art-text-gray-400: var(--app-gray-400);
+  --art-text-gray-500: var(--app-gray-500);
+  --art-text-gray-600: var(--app-gray-600);
+  --art-text-gray-700: var(--app-gray-700);
+  --art-text-gray-800: var(--app-gray-800);
+  --art-text-gray-900: var(--app-gray-900);
 
   // Border
-  --art-border-color: #eaebf1;
-  --art-border-dashed-color: #dbdfe9;
-  --art-root-card-border-color: #f1f1f4;
+  --art-border-color: var(--app-border-primary);
+  --art-border-dashed-color: var(--app-border-secondary);
+  --art-root-card-border-color: var(--app-border-secondary);
 
   // Shadow
-  --art-box-shadow-xs: 0 0.1rem 0.75rem 0.25rem rgba(0, 0, 0, 0.05);
-  --art-box-shadow-sm: 0 0.1rem 1rem 0.25rem rgba(0, 0, 0, 0.05);
-  --art-box-shadow: 0 0.5rem 1.5rem 0.5rem rgba(0, 0, 0, 0.075);
-  --art-box-shadow-lg: 0 1rem 2rem 1rem rgba(0, 0, 0, 0.1);
+  --art-box-shadow-xs: var(--app-shadow-sm);
+  --art-box-shadow-sm: var(--app-shadow);
+  --art-box-shadow: var(--app-shadow-md);
+  --art-box-shadow-lg: var(--app-shadow-lg);
 
   // Root card box、shadow
-  --art-root-card-box-shadow: 0px 3px 4px 0px rgba(0, 0, 0, 0.03);
-  --art-root-card-border-color: #f1f1f4;
+  --art-root-card-box-shadow: var(--app-card-shadow);
+  --art-root-card-border-color: var(--app-card-border);
 
   // Theme background color
-  --art-bg-color: #fafbfc; // 最底部背景颜色
-  --art-main-bg-color: #ffffff;
+  --art-bg-color: var(--app-bg-secondary); // 最底部背景颜色
+  --art-main-bg-color: var(--app-bg-primary);
 }
 
 // Dark 主题变量
 html.dark {
-  // Theme color
-  --art-primary: #006ae6;
-  --art-success: #00a261;
-  --art-warning: #c59a00;
-  --art-danger: #e42855;
-  --art-info: #883fff;
+  // Theme color - 使用新的颜色变量
+  --art-primary: var(--app-primary);
+  --art-success: var(--app-success);
+  --art-warning: var(--app-warning);
+  --art-danger: var(--app-danger);
+  --art-info: var(--app-info);
 
-  --art-color: #000000;
-  --art-light: #1b1c22;
-  --art-dark: #272a34;
+  --art-color: var(--app-black);
+  --art-light: var(--app-bg-secondary);
+  --art-dark: var(--app-bg-tertiary);
 
   // Theme active color
-  --art-primary-active: #107eff;
-  --art-success-active: #01bf73;
-  --art-warning-active: #d9aa00;
-  --art-danger-active: #ff3767;
-  --art-info-active: #9e63ff;
+  --art-primary-active: var(--app-primary-light);
+  --art-success-active: var(--app-success-light);
+  --art-warning-active: var(--app-warning-light);
+  --art-danger-active: var(--app-danger-light);
+  --art-info-active: var(--app-info-light);
 
-  --art-light-active: #1f212a;
+  --art-light-active: var(--app-bg-tertiary);
 
-  // Background color | Hover color
-  --art-text-muted: #636674;
-  --art-gray-100: #1b1c22;
-  --art-gray-100-rgb: 27, 28, 34;
-  --art-gray-200: #26272f;
-  --art-gray-200-rgb: 38, 39, 47;
-  --art-gray-300: #363843;
-  --art-gray-300-rgb: 54, 56, 67;
-  --art-gray-400: #464852;
-  --art-gray-400-rgb: 70, 72, 82;
-  --art-gray-500: #636674;
-  --art-gray-500-rgb: 99, 102, 116;
-  --art-gray-600: #808290;
-  --art-gray-600-rgb: 128, 130, 144;
-  --art-gray-700: #9a9cae;
-  --art-gray-700-rgb: 154, 156, 174;
-  --art-gray-800: #b5b7c8;
-  --art-gray-800-rgb: 181, 183, 200;
-  --art-gray-900: #f5f5f5;
-  --art-gray-900-rgb: 245, 245, 245;
+  // Background color | Hover color - 使用新的灰色系统(深色主题)
+  --art-text-muted: var(--app-text-disabled);
+  --art-gray-100: var(--app-gray-100);
+  --art-gray-100-rgb: 31, 41, 55;
+  --art-gray-200: var(--app-gray-200);
+  --art-gray-200-rgb: 55, 65, 81;
+  --art-gray-300: var(--app-gray-300);
+  --art-gray-300-rgb: 75, 85, 99;
+  --art-gray-400: var(--app-gray-400);
+  --art-gray-400-rgb: 107, 114, 128;
+  --art-gray-500: var(--app-gray-500);
+  --art-gray-500-rgb: 156, 163, 175;
+  --art-gray-600: var(--app-gray-600);
+  --art-gray-600-rgb: 209, 213, 219;
+  --art-gray-700: var(--app-gray-700);
+  --art-gray-700-rgb: 229, 231, 235;
+  --art-gray-800: var(--app-gray-800);
+  --art-gray-800-rgb: 243, 244, 246;
+  --art-gray-900: var(--app-gray-900);
+  --art-gray-900-rgb: 249, 250, 251;
 
   // Text color
-  --art-text-muted: #636674;
-  --art-text-gray-100: #1b1c22;
-  --art-text-gray-200: #26272f;
-  --art-text-gray-300: #363843;
-  --art-text-gray-400: #464852;
-  --art-text-gray-500: #636674;
-  --art-text-gray-600: #808290;
-  --art-text-gray-700: #9a9cae;
-  --art-text-gray-800: #b5b7c8;
-  --art-text-gray-900: #f5f5f5;
+  --art-text-muted: var(--app-text-disabled);
+  --art-text-gray-100: var(--app-gray-100);
+  --art-text-gray-200: var(--app-gray-200);
+  --art-text-gray-300: var(--app-gray-300);
+  --art-text-gray-400: var(--app-gray-400);
+  --art-text-gray-500: var(--app-gray-500);
+  --art-text-gray-600: var(--app-gray-600);
+  --art-text-gray-700: var(--app-gray-700);
+  --art-text-gray-800: var(--app-gray-800);
+  --art-text-gray-900: var(--app-gray-900);
 
   // Border
-  --art-border-color: #26272f;
-  --art-border-dashed-color: #363843;
-  --art-root-card-border-color: #1e2027;
+  --art-border-color: var(--app-border-primary);
+  --art-border-dashed-color: var(--app-border-secondary);
+  --art-root-card-border-color: var(--app-border-secondary);
 
   // Shadow
-  --art-box-shadow-xs: 0 0.1rem 0.75rem 0.25rem rgba(0, 0, 0, 0.05);
-  --art-box-shadow-sm: 0 0.1rem 1rem 0.25rem rgba(0, 0, 0, 0.05);
-  --art-box-shadow: 0 0.5rem 1.5rem 0.5rem rgba(0, 0, 0, 0.075);
-  --art-box-shadow-lg: 0 1rem 2rem 1rem rgba(0, 0, 0, 0.1);
+  --art-box-shadow-xs: var(--app-shadow-sm);
+  --art-box-shadow-sm: var(--app-shadow);
+  --art-box-shadow: var(--app-shadow-md);
+  --art-box-shadow-lg: var(--app-shadow-lg);
 
   // Root card box、shadow
   --art-root-card-box-shadow: none;
-  --art-root-card-border-color: #1e2027;
+  --art-root-card-border-color: var(--app-border-secondary);
 
   // Theme background color
-  --art-bg-color: #070707;
-  --art-main-bg-color: #161618;
+  --art-bg-color: var(--app-bg-primary);
+  --art-main-bg-color: var(--app-bg-secondary);
 }
 
 // CSS 全局变量

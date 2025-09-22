@@ -307,7 +307,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   width: 100%;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
 
   .tree-search-container {

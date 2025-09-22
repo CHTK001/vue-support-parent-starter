@@ -257,7 +257,7 @@ const handleVideoClick = (video: any) => {
 .video-search-container {
   width: 100%;
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--el-bg-color-overlay);
 }
 
 /* 搜索首页样式 */
@@ -268,15 +268,15 @@ const handleVideoClick = (video: any) => {
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
-  background: linear-gradient(135deg, #e0f2ff 0%, #f0f9ff 100%);
+  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-bg-color-overlay) 100%);
 }
 
 .search-title {
   font-size: 48px;
   font-weight: bold;
-  color: #4e6ef2;
+  color: var(--el-text-color-primary);
   margin-bottom: 40px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 4px var(--el-shadow-color);
 }
 
 .search-box {
@@ -293,7 +293,7 @@ const handleVideoClick = (video: any) => {
 .search-input :deep(.el-input__wrapper) {
   height: 56px;
   border-radius: 28px 0 0 28px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
 }
 
 .search-button {
@@ -308,10 +308,10 @@ const handleVideoClick = (video: any) => {
   flex-direction: column;
   width: 100%;
   max-width: 800px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
 }
 
 .hot-search-title {
@@ -319,12 +319,12 @@ const handleVideoClick = (video: any) => {
   align-items: center;
   font-size: 16px;
   font-weight: bold;
-  color: #606266;
+  color:var(--el-text-color-primary);
   margin-bottom: 15px;
 }
 
 .hot-search-title .el-icon {
-  color: #f56c6c;
+  color: var(--el-text-color-primary);
   margin-right: 8px;
 }
 
@@ -343,8 +343,8 @@ const handleVideoClick = (video: any) => {
 }
 
 .hot-tag:hover {
-  background-color: #4e6ef2;
-  color: white;
+  background-color: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
 }
 
 /* 搜索结果页样式 */
@@ -354,11 +354,11 @@ const handleVideoClick = (video: any) => {
 
 .category-nav {
   display: flex;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 15px 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px var(--el-shadow-color);
   overflow-x: auto;
 }
 
@@ -373,20 +373,20 @@ const handleVideoClick = (video: any) => {
 }
 
 .category-item:hover {
-  color: #4e6ef2;
+  color: var(--el-text-color-primary);
 }
 
 .category-item.active {
-  background-color: #4e6ef2;
-  color: white;
+  background-color: var(--el-bg-color-overlay);
+  color: var(--el-button-text-color);
 }
 
 .filter-container {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px var(--el-shadow-color);
 }
 
 .filter-row {
@@ -404,7 +404,7 @@ const handleVideoClick = (video: any) => {
   width: 80px;
   font-size: 14px;
   font-weight: bold;
-  color: #606266;
+  color: var(--el-text-color-primary);
 }
 
 .filter-label .el-icon {
@@ -427,16 +427,16 @@ const handleVideoClick = (video: any) => {
 }
 
 .filter-option:hover {
-  color: #4e6ef2;
+  color: var(--el-text-color-primary);
 }
 
 .filter-option.active {
-  background-color: #ecf5ff;
-  color: #4e6ef2;
+  background-color: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
 }
 
 .filter-option.more {
-  color: #4e6ef2;
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
 }
@@ -483,7 +483,7 @@ const handleVideoClick = (video: any) => {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--el-bg-color-overlay);
   color: #f7ba2a;
   padding: 2px 6px;
   border-radius: 4px;
@@ -496,7 +496,7 @@ const handleVideoClick = (video: any) => {
   bottom: 10px;
   right: 10px;
   background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
@@ -517,7 +517,7 @@ const handleVideoClick = (video: any) => {
 
 .video-meta {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 5px;
 }
 

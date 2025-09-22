@@ -488,7 +488,7 @@ onMounted(() => {
 }
 
 .vip-parser {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   padding: 30px;
@@ -529,7 +529,7 @@ onMounted(() => {
 }
 
 .vip-result {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   padding: 30px;
@@ -655,7 +655,7 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 20px;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 16px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -707,7 +707,7 @@ onMounted(() => {
 }
 
 .vip-history {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   padding: 24px;
@@ -750,7 +750,7 @@ onMounted(() => {
 }
 
 .vip-guide {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   padding: 30px;

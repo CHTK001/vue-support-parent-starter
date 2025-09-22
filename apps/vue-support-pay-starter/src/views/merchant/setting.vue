@@ -246,14 +246,14 @@ defineExpose({ handleOpen });
   margin-right: 0;
   text-align: center;
   position: relative;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background: linear-gradient(135deg, #f8f9fa 0%, #e9f1f6 100%);
 }
 
 .merchant-setting-drawer :deep(.el-drawer__title) {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .drawer-header-decoration {
@@ -277,7 +277,7 @@ defineExpose({ handleOpen });
   margin-bottom: 24px;
   padding: 16px;
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
@@ -326,7 +326,7 @@ defineExpose({ handleOpen });
 
 .setting-article :deep(.el-card__header) {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9f1f6 100%);
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   padding: 15px 20px;
 }
 
@@ -364,7 +364,7 @@ defineExpose({ handleOpen });
   align-items: center;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .card-icon {
@@ -393,7 +393,7 @@ defineExpose({ handleOpen });
 }
 
 .info-label {
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-right: 4px;
 }
 
@@ -424,7 +424,7 @@ defineExpose({ handleOpen });
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .loading-icon {
@@ -454,7 +454,7 @@ defineExpose({ handleOpen });
   border: 1px solid #ebeef5;
   border-radius: 4px;
   padding: 8px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
 }
 
 .qrcode-tip {

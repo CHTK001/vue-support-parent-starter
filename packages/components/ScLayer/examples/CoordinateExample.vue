@@ -253,7 +253,7 @@ onMounted(() => {
 }
 
 .control-section {
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   padding: 15px;
   border-radius: 8px;
 }
@@ -284,7 +284,7 @@ onMounted(() => {
 button {
   padding: 5px 10px;
   background-color: #1890ff;
-  color: white;
+  color: var(--el-text-color-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;

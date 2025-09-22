@@ -80,7 +80,7 @@ onMounted(() => {
 }
 
 .header-title {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .merchant-container {
@@ -239,7 +239,7 @@ onMounted(() => {
           <el-icon class="mr-2"><component :is="useRenderIcon('ri:store-2-fill')" /></el-icon>
           商户管理
         </h2>
-        <p class="text-gray-500 text-sm mt-1">管理支付商户信息及配置</p>
+        <p class="text-[var(--el-text-color-regular)] text-sm mt-1">管理支付商户信息及配置</p>
       </div>
       <div class="flex items-center gap-4">
         <el-form :model="form" :inline="true" class="search-form">
@@ -266,7 +266,7 @@ onMounted(() => {
           <el-icon class="text-blue-500 text-xl"><component :is="useRenderIcon('ep:shop')" /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-title text-gray-500 text-sm">商户总数</div>
+          <div class="stat-title text-[var(--el-text-color-regular)] text-sm">商户总数</div>
           <div class="stat-value text-xl font-bold">{{ statisticData.totalCount || 0 }}</div>
         </div>
       </div>
@@ -276,7 +276,7 @@ onMounted(() => {
           <el-icon class="text-green-500 text-xl"><component :is="useRenderIcon('ep:checked')" /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-title text-gray-500 text-sm">已启用商户</div>
+          <div class="stat-title text-[var(--el-text-color-regular)] text-sm">已启用商户</div>
           <div class="stat-value text-xl font-bold">{{ statisticData.enabledCount || 0 }}</div>
         </div>
       </div>
@@ -286,7 +286,7 @@ onMounted(() => {
           <el-icon class="text-purple-500 text-xl"><component :is="useRenderIcon('ri:wallet-3-fill')" /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-title text-gray-500 text-sm">钱包已开启</div>
+          <div class="stat-title text-[var(--el-text-color-regular)] text-sm">钱包已开启</div>
           <div class="stat-value text-xl font-bold">{{ statisticData.walletEnabledCount || 0 }}</div>
         </div>
       </div>
@@ -296,7 +296,7 @@ onMounted(() => {
           <el-icon class="text-amber-500 text-xl"><component :is="useRenderIcon('ri:settings-2-line')" /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-title text-gray-500 text-sm">配置管理</div>
+          <div class="stat-title text-[var(--el-text-color-regular)] text-sm">配置管理</div>
           <div class="stat-value text-xl font-bold flex items-center">
             <el-button type="text" class="p-0 text-amber-500 font-bold" @click="handleUpdate({}, 'add')">添加配置</el-button>
           </div>

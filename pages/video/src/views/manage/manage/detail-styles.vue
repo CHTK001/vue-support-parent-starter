@@ -37,7 +37,7 @@
 .back-button {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  color: var(--el-text-color-primary);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }
@@ -55,7 +55,7 @@
 .detail-title {
   font-size: 32px;
   font-weight: 700;
-  color: white;
+  color: var(--el-text-color-primary);
   margin: 0;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   line-height: 1.2;
@@ -241,7 +241,7 @@
   align-items: center;
   gap: 6px;
   background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 8px 16px;
   border-radius: 25px;
   font-weight: 700;
@@ -283,7 +283,7 @@
 
 .rating-item.douban {
   background: linear-gradient(135deg, #00b51d 0%, #00a01a 100%);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .rating-item.imdb {
@@ -343,7 +343,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #495057;
+  color: var(--el-text-color-primary);
   min-width: 100px;
   margin-right: 20px;
 }
@@ -367,7 +367,7 @@
 
 .type-tag {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
@@ -384,7 +384,7 @@
 /* 剧情简介样式 */
 .plot-summary {
   line-height: 1.8;
-  color: #495057;
+  color: var(--el-text-color-primary);
   font-size: 15px;
 }
 
@@ -410,7 +410,7 @@
 .add-link-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   font-weight: 600;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
@@ -438,7 +438,7 @@
   padding: 20px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
 }
 
 .filter-row {
@@ -460,7 +460,7 @@
 .pan-type-tag {
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--el-border-color);
   border-radius: 20px;
   font-weight: 500;
 }
@@ -492,7 +492,7 @@
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -543,7 +543,7 @@
 
 .inline-quality {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 11px;

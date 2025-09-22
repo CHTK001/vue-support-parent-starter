@@ -648,7 +648,7 @@
 
 	.file-title {
 		font-size: 14px;
-		color: #333;
+		color: var(--el-text-color-primary);
 	}
 
 	.file-count {

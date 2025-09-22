@@ -224,7 +224,7 @@ defineExpose({
 
 <style scoped lang="scss">
 .holiday-calendar {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -251,7 +251,7 @@ defineExpose({
               .holiday-info {
                 .holiday-name {
                   background: var(--el-color-danger);
-                  color: white;
+                  color: var(--el-text-color-primary);
                 }
               }
             }
@@ -263,7 +263,7 @@ defineExpose({
               .holiday-info {
                 .holiday-name {
                   background: var(--el-color-warning);
-                  color: white;
+                  color: var(--el-text-color-primary);
                 }
               }
             }

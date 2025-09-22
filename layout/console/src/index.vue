@@ -174,7 +174,7 @@ const triggerClose = async () => {
     left 310ms;
 }
 .lay-menu-hidden-bg {
-  background-color: var(--cb-color-bg-backdrop, rgba(0, 0, 0, 0.2));
+  background-color: var(--app-bg-overlay-transparent);
   opacity: 1;
   transition: opacity 300ms linear;
   z-index: 929;
@@ -188,18 +188,18 @@ const triggerClose = async () => {
   height: calc(100vh - var(--navbar-height));
   margin-top: var(--navbar-height);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-shadow-sm);
   border-radius: 8px;
   margin-left: 8px;
   margin-right: 8px;
 }
 .bg-bg_color {
-  background-color: var(--el-bg-color);
+  background-color: var(--app-bg-primary);
 }
 #app,
 body {
   height: 100vh;
-  color: #000;
+  color: var(--app-text-primary);
   font-family:
     "Inter",
     -apple-system,
@@ -217,7 +217,7 @@ body {
 .console {
   height: 100vh;
   width: 100vw;
-  background-color: var(--el-bg-color-page, #f5f7fa);
+  background-color: var(--app-bg-secondary);
 }
 .hamburger-container {
   float: left;
@@ -236,7 +236,7 @@ body {
   justify-content: flex-end;
   min-width: 280px;
   height: 48px;
-  color: #000000d9;
+  color: var(--app-text-primary);
 }
 .el-dropdown-link {
   display: flex;
@@ -244,13 +244,13 @@ body {
   justify-content: space-around;
   height: 48px;
   padding: 10px;
-  color: #000000d9;
+  color: var(--app-text-primary);
   cursor: pointer;
   transition: background-color 0.3s;
   border-radius: 4px;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--app-bg-tertiary);
   }
 
   p {
@@ -261,7 +261,7 @@ body {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--app-shadow-sm);
     transition: all 0.3s;
 
     &:hover {
@@ -303,7 +303,7 @@ body {
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(64, 158, 255, 0.1);
+      background-color: var(--app-primary-light-9);
     }
   }
 }
@@ -351,23 +351,23 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(144, 147, 153, 0.3);
+  background: var(--app-border-secondary);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(144, 147, 153, 0.5);
+  background: var(--app-border-primary);
 }
 
 /* 添加卡片样式 */
 .card-style {
-  background-color: var(--el-bg-color);
+  background-color: var(--app-bg-primary);
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-shadow-sm);
   transition: all 0.3s;
 
   &:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: var(--app-shadow);
     transform: translateY(-2px);
   }
 }
@@ -389,7 +389,7 @@ body {
 /* 添加菜单过渡效果 */
 .lay-menu {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .lay-menu-hidden {
@@ -398,7 +398,7 @@ body {
 
 /* 添加头部阴影效果 */
 .lay-header {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-shadow-sm);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }

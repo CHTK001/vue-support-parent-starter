@@ -2,8 +2,8 @@
 :root {
   --primary-color: #1890ff;
   --secondary-color: #52c41a;
-  --text-color: #333;
-  --light-text-color: #666;
+  --text-color: var(--el-text-color-primary);
+  --light-text-color: var(--el-text-color-primary);
   --border-color: #eee;
   --background-color: #f5f7fa;
   --box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);

@@ -28,7 +28,7 @@ defineOptions({
 .data-analysis-container {
   padding: 24px;
   height: 100%;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .page-header {
@@ -36,7 +36,7 @@ defineOptions({
   
   h2 {
     margin: 0 0 8px 0;
-    color: #303133;
+    color: var(--el-text-color-primary);
     font-size: 24px;
     font-weight: 600;
   }
@@ -49,7 +49,7 @@ defineOptions({
 }
 
 .content-placeholder {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 40px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);

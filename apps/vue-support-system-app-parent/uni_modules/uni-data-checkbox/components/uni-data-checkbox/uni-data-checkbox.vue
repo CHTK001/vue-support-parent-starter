@@ -516,7 +516,7 @@
 
 					.checklist-text {
 						font-size: 14px;
-						color: #666;
+						color: var(--el-text-color-primary);
 						margin-left: 5px;
 						line-height: 14px;
 					}
@@ -744,11 +744,11 @@
 					padding: 5px 10px;
 					border: 1px $border-color solid;
 					border-radius: 3px;
-					background-color: #f5f5f5;
+					background: var(--el-bg-color-overlay);
 
 					.checklist-text {
 						margin: 0;
-						color: #666;
+						color: var(--el-text-color-primary);
 					}
 
 					// 禁用

@@ -380,7 +380,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 24px;
   padding: 20px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
@@ -418,7 +418,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px 20px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 
@@ -439,7 +439,7 @@ onMounted(() => {
 }
 
 .group-card {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   padding: 20px;
@@ -516,7 +516,7 @@ onMounted(() => {
       .default-badge {
         background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }

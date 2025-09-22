@@ -289,7 +289,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .multi-source-example {
   padding: 20px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   min-height: 100vh;
 }
 
@@ -299,13 +299,13 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   h2 {
     margin: 0;
-    color: #333;
+    color: var(--el-text-color-primary);
   }
 
   .controls {
@@ -315,7 +315,7 @@ onMounted(() => {
 }
 
 .example-content {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -335,7 +335,7 @@ onMounted(() => {
       .stat-label {
         display: block;
         font-size: 14px;
-        color: #666;
+        color: var(--el-text-color-primary);
         margin-bottom: 4px;
       }
 
@@ -354,13 +354,13 @@ onMounted(() => {
   padding: 16px;
   border: 1px solid #e4e7ed;
   border-radius: 8px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   margin-bottom: 12px;
 
   .card-title {
     font-size: 16px;
     font-weight: bold;
-    color: #303133;
+    color: var(--el-text-color-primary);
     margin-bottom: 8px;
   }
 
@@ -403,7 +403,7 @@ onMounted(() => {
     .list-title {
       font-size: 16px;
       font-weight: bold;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
 
     .list-description {

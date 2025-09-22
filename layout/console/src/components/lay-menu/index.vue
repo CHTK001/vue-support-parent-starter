@@ -147,11 +147,11 @@ defineExpose({ triggerClose, triggerOpen });
 
   .lay-menu-parent {
     z-index: 930;
-    border-right: 1px solid rgba(var(--el-border-color-rgb), 0.3);
+    border-right: 1px solid var(--cb-color-border-light);
     height: 100%;
     width: calc(var(--lay-menu-parent-width));
-    background-color: var(--el-bg-color-2);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    background-color: var(--cb-color-bg-secondary);
+    box-shadow: 0 4px 20px var(--cb-color-shadow-light);
     transform: translateX(0px);
     overflow: hidden;
     transition:
@@ -172,15 +172,15 @@ defineExpose({ triggerClose, triggerOpen });
         font-size: 12px;
         z-index: 931;
         width: 240px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 4px 20px var(--cb-color-shadow-lighter);
         left: 0px;
         transform: translateX(0px);
         overflow: hidden;
-        background-color: var(--el-bg-color-2);
+        background-color: var(--cb-color-bg-secondary);
 
         .item.active {
-          background-color: rgba(var(--el-color-primary-rgb), 0.08);
-          border-left: 3px solid var(--el-color-primary);
+          background-color: var(--cb-color-bg-active);
+          border-left: 3px solid var(--cb-color-border-brand);
           font-weight: 600;
         }
 
@@ -216,7 +216,7 @@ defineExpose({ triggerClose, triggerOpen });
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
-              color: var(--el-text-color-primary-2);
+              color: var(--cb-color-text-primary);
               background-color: transparent;
               border-color: transparent;
               height: 40px;
@@ -247,12 +247,12 @@ defineExpose({ triggerClose, triggerOpen });
               }
 
               &:hover {
-                background-color: rgba(var(--el-color-primary-rgb), 0.05);
+                background-color: var(--cb-color-bg-hover);
                 transform: translateX(3px);
 
                 &::before {
                   opacity: 1;
-                  background: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.3), transparent);
+                  background: linear-gradient(to right, var(--cb-color-gradient-brand-start), transparent);
                 }
               }
 
@@ -278,34 +278,34 @@ defineExpose({ triggerClose, triggerOpen });
 
               &:hover .icon {
                 transform: scale(1.15) rotate(5deg);
-                color: var(--el-color-primary);
+                color: var(--cb-color-text-brand);
               }
             }
 
             .menu.active,
             .menu.active-menu {
-              color: var(--el-color-primary);
-              background-color: rgba(var(--el-color-primary-rgb), 0.1);
+              color: var(--cb-color-text-brand);
+              background-color: var(--cb-color-bg-active-brand);
               font-weight: 500;
               transform: translateX(3px);
-              box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+              box-shadow: 0 4px 12px var(--cb-color-shadow-brand-light);
 
               .icon {
-                color: var(--el-color-primary);
-                background-color: rgba(var(--el-color-primary-rgb), 0.1);
+                color: var(--cb-color-text-brand);
+                background-color: var(--cb-color-bg-brand-light);
               }
 
               &::before {
                 opacity: 1;
-                background: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.5), transparent);
+                background: linear-gradient(to right, var(--cb-color-gradient-brand-start), transparent);
               }
             }
           }
         }
 
         .item {
-          border-top: 1px solid rgba(var(--el-border-color-rgb), 0.3);
-          border-bottom: 1px solid rgba(var(--el-border-color-rgb), 0.3);
+          border-top: 1px solid var(--cb-color-border-light);
+          border-bottom: 1px solid var(--cb-color-border-light);
           padding: 0px 16px;
           height: 56px;
           line-height: 56px;
@@ -317,7 +317,7 @@ defineExpose({ triggerClose, triggerOpen });
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          color: var(--el-text-color-primary-2);
+          color: var(--cb-color-text-primary);
           background-color: var(--cb-color-button-menu-bg, transparent);
           transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           position: relative;
@@ -329,13 +329,13 @@ defineExpose({ triggerClose, triggerOpen });
             top: 0;
             height: 100%;
             width: 3px;
-            background: var(--el-color-primary);
+            background: var(--cb-color-border-brand);
             opacity: 0;
             transition: opacity 0.3s ease;
           }
 
           &:hover {
-            background-color: rgba(var(--el-color-primary-rgb), 0.05);
+            background-color: var(--cb-color-bg-hover);
 
             &::before {
               opacity: 0.5;
@@ -353,12 +353,12 @@ defineExpose({ triggerClose, triggerOpen });
               min-width: 16px;
               text-align: left;
               transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-              color: var(--el-text-color-primary-2);
+              color: var(--cb-color-text-primary);
             }
 
             &:hover .icon {
               transform: scale(1.15) rotate(5deg);
-              color: var(--el-color-primary);
+              color: var(--cb-color-text-brand);
             }
 
             .text {
@@ -380,12 +380,12 @@ defineExpose({ triggerClose, triggerOpen });
 
               .arrow-icon {
                 transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-                color: var(--el-text-color-secondary);
+                color: var(--cb-color-text-secondary);
               }
 
               .rotate-icon {
                 transform: rotate(180deg);
-                color: var(--el-color-primary);
+                color: var(--cb-color-text-brand);
               }
             }
           }
@@ -402,12 +402,12 @@ defineExpose({ triggerClose, triggerOpen });
     height: 100%;
     min-width: calc(var(--lay-menu-children-min-width));
     max-width: calc(var(--lay-menu-children-max-width));
-    border-top: 1px solid rgba(var(--el-border-color-rgb), 0.3);
-    border-right: 1px solid rgba(var(--el-border-color-rgb), 0.3);
-    background-color: var(--el-bg-color);
+    border-top: 1px solid var(--cb-color-border-light);
+    border-right: 1px solid var(--cb-color-border-light);
+    background-color: var(--cb-color-bg-primary);
     transform: translateX(0px);
     font-size: 14px;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.06);
+    box-shadow: 4px 0 20px var(--cb-color-shadow-light);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     backdrop-filter: blur(8px);
@@ -445,27 +445,27 @@ defineExpose({ triggerClose, triggerOpen });
 /* 暗黑模式适配 */
 .dark {
   .lay-menu-parent {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    background-color: rgba(var(--el-bg-color-rgb), 0.8);
+    box-shadow: 0 4px 20px var(--cb-color-shadow-dark);
+    background-color: var(--cb-color-bg-secondary-dark);
   }
 
   .menu-title {
-    background-color: rgba(var(--el-bg-color-rgb), 0.8) !important;
+    background-color: var(--cb-color-bg-secondary-dark) !important;
   }
 
   .item.active {
-    background-color: rgba(var(--el-color-primary-rgb), 0.15) !important;
+    background-color: var(--cb-color-bg-active-dark) !important;
   }
 
   .menu.active,
   .menu.active-menu {
-    background-color: rgba(var(--el-color-primary-rgb), 0.2) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    background-color: var(--cb-color-bg-active-brand-dark) !important;
+    box-shadow: 0 4px 12px var(--cb-color-shadow-dark) !important;
   }
 
   .lay-menu-children {
-    background-color: rgba(var(--el-bg-color-rgb), 0.8);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+    background-color: var(--cb-color-bg-primary-dark);
+    box-shadow: 4px 0 20px var(--cb-color-shadow-dark);
   }
 }
 
@@ -483,14 +483,14 @@ defineExpose({ triggerClose, triggerOpen });
 @supports (backdrop-filter: blur(8px)) {
   .lay-menu-parent,
   .lay-menu-children {
-    background-color: rgba(var(--el-bg-color-rgb), 0.85);
+    background-color: var(--cb-color-bg-blur);
     backdrop-filter: blur(8px);
   }
 
   .dark .lay-menu-parent,
   .dark .lay-menu-children,
   .dark .menu-title {
-    background-color: rgba(var(--el-bg-color-rgb), 0.7) !important;
+    background-color: var(--cb-color-bg-blur-dark) !important;
     backdrop-filter: blur(10px);
   }
 }
@@ -539,4 +539,3 @@ defineExpose({ triggerClose, triggerOpen });
     opacity: 0;
   }
 }
-</style>

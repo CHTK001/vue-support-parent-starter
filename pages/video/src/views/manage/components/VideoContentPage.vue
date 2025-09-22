@@ -308,7 +308,7 @@ onMounted(() => {
   }
 
   &__result-container {
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -339,7 +339,7 @@ onMounted(() => {
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
-    background: white;
+    background: var(--el-bg-color-overlay);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     height: 100%;
     display: flex;
@@ -391,7 +391,7 @@ onMounted(() => {
     bottom: 10px;
     right: 10px;
     background-color: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--el-text-color-primary);
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 13px;

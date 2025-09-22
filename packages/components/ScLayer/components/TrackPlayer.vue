@@ -1815,7 +1815,7 @@ const applyAllPerformanceSettings = () => {
 .settings-group-title {
   font-weight: bold;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
@@ -1986,7 +1986,7 @@ const applyAllPerformanceSettings = () => {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 10px;
-  color: #333;
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
 }
@@ -2014,7 +2014,7 @@ const applyAllPerformanceSettings = () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -2026,7 +2026,7 @@ const applyAllPerformanceSettings = () => {
 }
 
 .track-item:hover {
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
 }
 
 .track-item.active {
@@ -2100,7 +2100,7 @@ const applyAllPerformanceSettings = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .track-item-detail {
@@ -2237,7 +2237,7 @@ const applyAllPerformanceSettings = () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #333;
+  color: var(--el-text-color-primary);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
@@ -2313,7 +2313,7 @@ const applyAllPerformanceSettings = () => {
 
 .track-progress-time {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   text-align: center;
 }
 
@@ -2364,7 +2364,7 @@ const applyAllPerformanceSettings = () => {
 .speed-label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin-bottom: 5px;
 }
 
@@ -2405,7 +2405,7 @@ const applyAllPerformanceSettings = () => {
   justify-content: space-between;
   width: 100%;
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-top: 5px;
 }
 
@@ -2506,7 +2506,7 @@ const applyAllPerformanceSettings = () => {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 10px;
-  color: #333;
+  color: var(--el-text-color-primary);
   position: relative;
   padding-left: 12px;
 }

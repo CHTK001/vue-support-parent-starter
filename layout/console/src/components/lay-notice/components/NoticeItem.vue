@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ListItem } from "../data";
-import { ref, PropType, nextTick } from "vue";
-import { useNav } from "../../../hooks/useNav";
 import { deviceDetection } from "@pureadmin/utils";
+import { PropType, nextTick, ref } from "vue";
+import { useNav } from "../../../hooks/useNav";
+import { ListItem } from "../data";
 
 defineProps({
   noticeItem: {
@@ -42,10 +42,10 @@ function hoverDescription(event, description) {
 </script>
 
 <template>
-  <div class="notice-container border-b-[1px] border-solid border-[#f0f0f0] dark:border-[#303030]">
+  <div class="notice-container border-b-[1px] border-solid border-[var(--cb-color-border-light)] dark:border-[var(--cb-color-border-dark)]">
     <el-avatar v-if="noticeItem.avatar" :size="30" :src="noticeItem.avatar" class="notice-container-avatar" />
     <div class="notice-container-text">
-      <div class="notice-text-title text-[#000000d9] dark:text-white">
+      <div class="notice-text-title text-[var(--cb-color-text-primary)] dark:text-[var(--cb-color-text-white)]">
         <el-tooltip popper-class="notice-title-popper" :effect="tooltipEffect" :disabled="!titleTooltip" :content="noticeItem.title" placement="top-start" :enterable="!isMobile">
           <div ref="titleRef" class="notice-title-content" @mouseover="hoverTitle">
             {{ noticeItem.title }}
@@ -61,7 +61,7 @@ function hoverDescription(event, description) {
           {{ noticeItem.description }}
         </div>
       </el-tooltip>
-      <div class="notice-text-datetime text-[#00000073] dark:text-white">
+      <div class="notice-text-datetime text-[var(--cb-color-text-secondary)] dark:text-[var(--cb-color-text-white)]">
         {{ noticeItem.datetime }}
       </div>
     </div>
@@ -80,11 +80,11 @@ function hoverDescription(event, description) {
   justify-content: space-between;
   padding: 12px 0;
 
-  // border-bottom: 1px solid #f0f0f0;
+  // border-bottom: 1px solid var(--el-border-color);
 
   .notice-container-avatar {
     margin-right: 16px;
-    background: #fff;
+    background: var(--cb-color-bg-white);
   }
 
   .notice-container-text {

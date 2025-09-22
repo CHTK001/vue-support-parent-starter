@@ -412,7 +412,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
+  background-color: var(--el-bg-color-overlay);
   padding-top: 20px;
   padding-bottom: 20px;
 }
@@ -476,7 +476,7 @@ defineExpose({
   }
 
   &.active {
-    color: white;
+    color: var(--el-text-color-primary);
     background-color: var(--el-color-primary);
     font-weight: 500;
     box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);
@@ -484,7 +484,7 @@ defineExpose({
 }
 
 .filter-container {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
   margin-bottom: 10px;
   padding: 10px;
@@ -548,7 +548,7 @@ defineExpose({
 }
 
 .results-container {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -636,7 +636,7 @@ defineExpose({
   bottom: 10px;
   right: 10px;
   background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
@@ -657,7 +657,7 @@ defineExpose({
 
 .video-meta {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-bottom: 5px;
 }
 
@@ -712,7 +712,7 @@ defineExpose({
   position: static;
   align-self: flex-end;
   background-color: rgba(247, 186, 42, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   margin-bottom: auto;
 }
 
@@ -730,7 +730,7 @@ defineExpose({
 .video-name-overlay {
   font-size: 18px;
   font-weight: bold;
-  color: white;
+  color: var(--el-text-color-primary);
   margin-bottom: 8px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   line-height: 1.3;
@@ -759,7 +759,7 @@ defineExpose({
   height: 22px;
   background-color: rgba(64, 158, 255, 0.9);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .pagination-container {

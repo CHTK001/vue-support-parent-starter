@@ -630,7 +630,7 @@ export default defineComponent({
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
 }
 
 .custom-segmented .el-segmented {
@@ -698,7 +698,7 @@ export default defineComponent({
         h2 {
           font-size: 16px;
           font-weight: 500;
-          color: #333;
+          color: var(--el-text-color-primary);
 
           @include ellipsis();
         }

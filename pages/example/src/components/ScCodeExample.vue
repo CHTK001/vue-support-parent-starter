@@ -332,7 +332,7 @@ const handleChange = (value) => {
 <style scoped lang="scss">
 .sc-code-example {
   padding: 24px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
 
   .example-header {
@@ -375,7 +375,7 @@ const handleChange = (value) => {
         justify-content: center;
         margin-bottom: 20px;
         padding: 20px;
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
         border-radius: 6px;
         border: 1px solid var(--el-border-color-light);
       }
@@ -383,7 +383,7 @@ const handleChange = (value) => {
       .example-result {
         margin-bottom: 16px;
         padding: 16px;
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
         border-radius: 6px;
         border: 1px solid var(--el-border-color-light);
 

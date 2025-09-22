@@ -185,7 +185,7 @@
   position: absolute;
   z-index: 1000;
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   padding: 10px;
   max-width: 300px;
@@ -227,7 +227,7 @@
   
   div {
     background-color: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--el-text-color-primary);
     padding: 3px 6px;
     border-radius: 2px;
     font-size: 12px;
@@ -267,7 +267,7 @@
 /* 测距样式 */
 .measure-segment-label .segment-distance {
   background: rgba(24, 144, 255, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 13px;
@@ -280,7 +280,7 @@
 
 .measure-node-label .node-distance {
   background: rgba(0, 92, 175, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 3px 7px;
   border-radius: 4px;
   font-size: 12px;
@@ -292,7 +292,7 @@
 
 .measure-total-label .total-distance-label {
   background-color: rgba(0, 177, 89, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 14px;
@@ -370,7 +370,7 @@
 
 .ol-tooltip.ol-tooltip-measure {
   background-color: rgba(24, 144, 255, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 6px 10px;
   border-radius: 4px;
   font-weight: bold;
@@ -560,7 +560,7 @@
   width: 150px;
   height: 150px;
   border: 2px solid rgba(24, 144, 255, 0.8);
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   z-index: 10000;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -575,14 +575,14 @@
   padding: 10px 15px;
   max-width: 300px;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
   position: relative;
   z-index: 1000;
   pointer-events: auto;
   margin-bottom: 12px; // 增加底部间距，为箭头留出更多空间
   transform-origin: center bottom;
   animation: popover-fade-in 0.3s ease-out;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   
   &:hover {
@@ -607,7 +607,7 @@
     
     &:hover {
       background-color: rgba(0, 0, 0, 0.05);
-      color: #333;
+      color: var(--el-text-color-primary);
     }
   }
   
@@ -770,7 +770,7 @@
 
 .start-point-label {
   background: rgba(82, 196, 26, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 12px;
@@ -797,7 +797,7 @@
 
 .end-point-label {
   background: rgba(245, 34, 45, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 12px;
@@ -933,7 +933,7 @@
   
   .clear-button {
     background-color: transparent;
-    color: #666;
+    color: var(--el-text-color-primary);
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 6px 12px;
@@ -987,7 +987,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 15px;
-    background-color: #f5f5f5;
+    background: var(--el-bg-color-overlay);
     border-bottom: 1px solid #e8e8e8;
     
     .route-info {
@@ -997,12 +997,12 @@
       .route-distance {
         font-size: 16px;
         font-weight: 500;
-        color: #333;
+        color: var(--el-text-color-primary);
       }
       
       .route-duration {
         font-size: 14px;
-        color: #666;
+        color: var(--el-text-color-primary);
         margin-top: 4px;
       }
     }
@@ -1013,7 +1013,7 @@
       border-radius: 50%;
       border: none;
       background-color: #f0f0f0;
-      color: #666;
+      color: var(--el-text-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1138,7 +1138,7 @@
         
         .step-instruction {
           font-size: 14px;
-          color: #333;
+          color: var(--el-text-color-primary);
           line-height: 1.4;
           margin-bottom: 4px;
         }
@@ -1151,7 +1151,7 @@
           color: #999;
           
           .road-name {
-            color: #666;
+            color: var(--el-text-color-primary);
             margin-right: 8px;
             font-weight: 500;
           }

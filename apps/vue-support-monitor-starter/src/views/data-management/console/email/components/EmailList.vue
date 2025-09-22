@@ -98,9 +98,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage } from "element-plus";
+import { ref, watch } from "vue";
 
 // 定义接口
 interface Email {
@@ -315,14 +315,14 @@ function formatTime(time: any) {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
 }
 
 .email-item:hover {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .email-item:active {
@@ -344,7 +344,7 @@ function formatTime(time: any) {
 
 /* 已读邮件样式 */
 .email-item:not(.unread) {
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   color: #6b7280;
 }
 
@@ -376,7 +376,7 @@ function formatTime(time: any) {
   transform: translateY(-50%);
   width: 4px;
   height: 4px;
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border-radius: 50%;
 }
 
@@ -416,7 +416,7 @@ function formatTime(time: any) {
   justify-content: center;
   margin-right: 8px;
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .sender-name {
@@ -434,7 +434,7 @@ function formatTime(time: any) {
 
 .email-subject {
   font-size: 14px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -443,7 +443,7 @@ function formatTime(time: any) {
 
 .email-preview {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -458,13 +458,13 @@ function formatTime(time: any) {
 
 .email-time {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: nowrap;
 }
 
 .email-attachment {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .loading-state {
@@ -477,7 +477,7 @@ function formatTime(time: any) {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .empty-icon {
@@ -523,7 +523,7 @@ function formatTime(time: any) {
   gap: 8px;
   margin-top: 12px;
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .loading-icon {

@@ -485,13 +485,13 @@ onMounted(() => {
       .upload-text {
         .primary-text {
           font-size: 16px;
-          color: #303133;
+          color: var(--el-text-color-primary);
           margin: 0 0 8px 0;
         }
 
         .secondary-text {
           font-size: 14px;
-          color: #909399;
+           color: var(--el-text-color-primary);
           margin: 0;
         }
       }
@@ -505,7 +505,7 @@ onMounted(() => {
 
     .list-header {
       padding: 12px 16px;
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
       border-bottom: 1px solid #ebeef5;
       display: flex;
       justify-content: space-between;
@@ -519,7 +519,7 @@ onMounted(() => {
 
       .file-item {
         padding: 12px 16px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--el-border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -546,7 +546,7 @@ onMounted(() => {
 
             .file-name {
               font-size: 14px;
-              color: #303133;
+              color: var(--el-text-color-primary);
               overflow: hidden;
               text-overflow: ellipsis;
               white-space: nowrap;
@@ -555,7 +555,7 @@ onMounted(() => {
 
             .file-size {
               font-size: 12px;
-              color: #909399;
+               color: var(--el-text-color-primary);
             }
           }
         }

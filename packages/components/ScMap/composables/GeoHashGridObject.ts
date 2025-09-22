@@ -484,7 +484,7 @@ export class GeoHashGridObject {
       this.highlightLabel = L.marker(bounds.getCenter(), {
         icon: L.divIcon({
           className: 'geohash-highlight-label',
-          html: `<div style="background-color: #ff4500; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-family: monospace; white-space: nowrap;">${geohash}</div>`,
+          html: `<div style="background-color: #ff4500; color: var(--el-text-color-primary); padding: 3px 8px; border-radius: 4px; font-weight: bold; font-family: monospace; white-space: nowrap;">${geohash}</div>`,
           iconSize: [100, 20],
           iconAnchor: [50, 10]
         }),

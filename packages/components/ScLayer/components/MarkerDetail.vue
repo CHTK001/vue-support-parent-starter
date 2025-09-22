@@ -142,7 +142,7 @@ defineExpose({
 .marker-detail-title {
   font-size: 16px;
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .close-button {
@@ -167,7 +167,7 @@ defineExpose({
 }
 
 .marker-info .value {
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .marker-position, .marker-description, .marker-data {
@@ -184,7 +184,7 @@ defineExpose({
 }
 
 .no-marker-selected {
-  color: #909399;
+   color: var(--el-text-color-primary);
   text-align: center;
   padding: 20px 0;
 }

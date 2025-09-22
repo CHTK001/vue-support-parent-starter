@@ -149,7 +149,7 @@ onMounted(() => {
           <el-icon class="mr-2"><component :is="useRenderIcon('ri:bill-line')" /></el-icon>
           订单管理
         </h2>
-        <p class="text-gray-500 text-sm mt-1">管理和查询支付订单信息</p>
+        <p class="text-[var(--el-text-color-regular)] text-sm mt-1">管理和查询支付订单信息</p>
       </div>
       <div class="flex items-center gap-2">
         <el-tooltip content="刷新数据" placement="top">
@@ -165,7 +165,7 @@ onMounted(() => {
           <el-icon class="text-blue-500 text-xl"><component :is="useRenderIcon('ep:shopping-cart')" /></el-icon>
         </div>
         <div class="stat-info">
-          <div class="stat-title text-gray-500 text-sm">订单总数</div>
+          <div class="stat-title text-[var(--el-text-color-regular)] text-sm">订单总数</div>
           <div class="stat-value text-xl font-bold">{{ statsData.totalCount || 0 }}</div>
         </div>
       </div>
@@ -338,7 +338,7 @@ function getStatusIcon(status) {
 }
 
 .header-title {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .refresh-button {
@@ -458,7 +458,7 @@ function getStatusIcon(status) {
 
 .original-price {
   text-decoration: line-through;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 0.85em;
 }
 
@@ -506,7 +506,7 @@ function getStatusIcon(status) {
   padding: 12px 15px;
   background-color: #f5f7fa;
   border-bottom: 1px solid #e4e7ed;
-  color: #303133;
+  color: var(--el-text-color-primary);
   position: relative;
   overflow: hidden;
 }
@@ -603,13 +603,13 @@ function getStatusIcon(status) {
 
 .item-label {
   width: 80px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 13px;
 }
 
 .item-value {
   flex: 1;
-  color: #303133;
+  color: var(--el-text-color-primary);
   word-break: break-all;
 }
 

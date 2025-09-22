@@ -115,14 +115,14 @@ defineExpose({
   margin-right: 0;
   text-align: center;
   position: relative;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background: linear-gradient(135deg, #f8f9fa 0%, #e9f1f6 100%);
 }
 
 .merchant-save-dialog :deep(.el-dialog__title) {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .dialog-header-decoration {
@@ -143,7 +143,7 @@ defineExpose({
   margin-bottom: 24px;
   padding: 16px;
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
@@ -207,7 +207,7 @@ defineExpose({
 }
 
 .wallet-inactive {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .wallet-status {

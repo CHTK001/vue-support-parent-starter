@@ -226,7 +226,7 @@ const handleSelect = (item: any) => {
 
       &.highlighted {
         background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
-        color: white;
+        color: var(--el-text-color-primary);
         font-weight: 600;
       }
     }

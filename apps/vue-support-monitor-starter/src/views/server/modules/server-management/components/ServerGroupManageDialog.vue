@@ -394,7 +394,7 @@ defineExpose({
     border: 1px solid var(--el-border-color-light);
     border-radius: 8px;
     padding: 16px;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     transition: all 0.3s ease;
 
     &:hover {

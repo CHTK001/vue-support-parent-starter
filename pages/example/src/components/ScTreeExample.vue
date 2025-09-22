@@ -500,7 +500,7 @@ const generatedCode = computed(() => generateCode());
   }
 
   .example-description {
-    color: #666;
+    color: var(--el-text-color-primary);
     margin-bottom: 24px;
     line-height: 1.6;
   }
@@ -511,7 +511,7 @@ const generatedCode = computed(() => generateCode());
   }
 
   .text-secondary {
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin: 0;
   }
 
@@ -519,7 +519,7 @@ const generatedCode = computed(() => generateCode());
     margin-top: 0;
     margin-bottom: 16px;
     font-size: 18px;
-    color: #303133;
+    color: var(--el-text-color-primary);
   }
 
   h5 {
@@ -651,7 +651,7 @@ const generatedCode = computed(() => generateCode());
     code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
-      color: #333;
+      color: var(--el-text-color-primary);
     }
   }
 }

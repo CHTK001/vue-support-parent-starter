@@ -319,7 +319,7 @@ defineExpose({
       
       &.w-e-bar-item-active {
         background-color: var(--el-color-primary);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -339,7 +339,7 @@ defineExpose({
       padding: 16px;
       font-size: 14px;
       line-height: 1.6;
-      color: #303133;
+      color: var(--el-text-color-primary);
       
       p {
         margin: 0 0 8px 0;

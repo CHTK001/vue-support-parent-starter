@@ -412,7 +412,7 @@ const getSummaries = (param) => {
 
 .custom-table .el-table__header th {
   background-color: #409eff;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .custom-table .el-table__row:nth-child(even) {

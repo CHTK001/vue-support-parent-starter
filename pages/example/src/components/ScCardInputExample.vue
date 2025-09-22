@@ -384,7 +384,7 @@ const fetchRemoteOptions = async (params) => {
   
   .text-secondary {
     margin: 0;
-    color: #909399;
+     color: var(--el-text-color);
   }
 }
 
@@ -485,7 +485,7 @@ pre {
 code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .code-desc {

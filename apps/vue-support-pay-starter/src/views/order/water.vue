@@ -166,7 +166,7 @@ defineExpose({
 
 <style scoped>
 .order-water-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   padding-bottom: 15px;
   margin-bottom: 0;
 }
@@ -259,7 +259,7 @@ defineExpose({
 
 .info-label {
   font-size: 13px;
-  color: #909399;
+   color: var(--el-text-color);
   margin-bottom: 5px;
 }
 

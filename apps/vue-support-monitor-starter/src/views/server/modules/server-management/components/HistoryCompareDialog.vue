@@ -419,7 +419,7 @@ watch(dialogVisible, (newVal) => {
   .compare-selector {
     margin-bottom: 24px;
     padding: 20px;
-    background: #f8f9fa;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
 
     .selector-section {
@@ -427,7 +427,7 @@ watch(dialogVisible, (newVal) => {
         margin-bottom: 12px;
         font-size: 14px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -440,7 +440,7 @@ watch(dialogVisible, (newVal) => {
 
       .option-time {
         font-size: 12px;
-        color: #909399;
+         color: var(--el-text-color-primary);
       }
     }
 
@@ -461,7 +461,7 @@ watch(dialogVisible, (newVal) => {
         margin: 0;
         font-size: 16px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         display: flex;
         align-items: center;
       }
@@ -510,13 +510,13 @@ watch(dialogVisible, (newVal) => {
         margin-bottom: 16px;
         font-size: 16px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         display: flex;
         align-items: center;
       }
 
       .config-panel {
-        border: 1px solid #dcdfe6;
+        border: 1px solid var(--el-border-color);
         border-radius: 4px;
         overflow: hidden;
 
@@ -525,14 +525,14 @@ watch(dialogVisible, (newVal) => {
           justify-content: space-between;
           align-items: center;
           padding: 12px 16px;
-          background: #f5f7fa;
+          background: var(--el-bg-color-overlay);
           border-bottom: 1px solid #dcdfe6;
 
           h5 {
             margin: 0;
             font-size: 14px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
           }
         }
 
@@ -547,7 +547,7 @@ watch(dialogVisible, (newVal) => {
             font-family: 'Courier New', monospace;
             font-size: 12px;
             line-height: 1.5;
-            color: #303133;
+            color: var(--el-text-color-primary);
           }
         }
       }

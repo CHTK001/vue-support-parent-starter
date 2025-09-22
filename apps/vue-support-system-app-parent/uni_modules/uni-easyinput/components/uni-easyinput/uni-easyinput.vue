@@ -532,7 +532,7 @@
 		flex: 1;
 		position: relative;
 		text-align: left;
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-size: 14px;
 	}
 

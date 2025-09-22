@@ -10,7 +10,7 @@ const target = ref(null);
 const show = ref<Boolean>(false);
 
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[var(--cb-color-bg-hover-light)]", "dark:hover:bg-[var(--cb-color-bg-hover-dark)]", "dark:hover:text-[var(--cb-color-text-white)]"];
 });
 
 const { t } = useI18n();
@@ -37,7 +37,7 @@ onBeforeUnmount(() => {
   <div :class="{ show }">
     <div class="right-panel-background" />
     <div ref="target" class="right-panel bg-bg_color">
-      <div class="project-configuration border-b-[1px] border-solid border-[var(--pure-border-color)]">
+      <div class="project-configuration border-b-[1px] border-solid border-[var(--cb-color-border-light)]">
         <h4 class="dark:text-white">
           {{ t("panel.pureSystemSet") }}
         </h4>
@@ -56,7 +56,7 @@ onBeforeUnmount(() => {
         <slot />
       </el-scrollbar>
 
-      <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--pure-border-color)]">
+      <div class="flex justify-end p-3 border-t-[1px] border-solid border-[var(--cb-color-border-light)]">
         <el-button
           v-tippy="{
             content: t('panel.pureClearCacheAndToLogin'),
@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
   top: 0;
   left: 0;
   z-index: -1;
-  background: rgb(0 0 0 / 20%);
+  background: var(--cb-color-bg-overlay);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
 }
@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
   z-index: 40000;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 0 15px 0 rgb(0 0 0 / 5%);
+  box-shadow: 0 0 15px 0 var(--cb-color-shadow-panel);
   transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
   transform: translate(100%);
 }

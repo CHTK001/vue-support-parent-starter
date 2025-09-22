@@ -722,7 +722,7 @@ defineExpose({
       }
 
       .detail-code {
-        background-color: #f5f5f5;
+        background: var(--el-bg-color-overlay);
         border: 1px solid var(--el-border-color-light);
         border-radius: 4px;
         padding: 12px;

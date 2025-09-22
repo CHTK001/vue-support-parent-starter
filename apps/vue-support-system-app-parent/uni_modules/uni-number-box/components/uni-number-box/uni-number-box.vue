@@ -170,7 +170,7 @@
 	$box-height: 26px;
 	$bg: #f5f5f5;
 	$br: 2px;
-	$color: #333;
+	$color: var(--el-text-color-primary);
 
 	.uni-numbox {
 		/* #ifndef APP-NVUE */

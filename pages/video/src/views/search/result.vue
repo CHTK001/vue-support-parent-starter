@@ -916,7 +916,7 @@ watch(
 
 .play-icon {
   font-size: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
@@ -925,7 +925,7 @@ watch(
   bottom: 4px;
   right: 4px;
   background: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
@@ -1016,7 +1016,7 @@ watch(
 /* 网格卡片样式 */
 .video-grid-card {
   position: relative;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -1129,7 +1129,7 @@ watch(
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
-  background: white;
+  background: var(--el-bg-color-overlay);
 }
 
 .video-list-item:hover {
@@ -1529,7 +1529,7 @@ watch(
 
 .play-icon {
   font-size: 36px;
-  color: white;
+  color: var(--el-text-color-primary);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
@@ -1538,7 +1538,7 @@ watch(
   bottom: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 12px;
@@ -1644,7 +1644,7 @@ watch(
 }
 
 .grid-item {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -1750,7 +1750,7 @@ watch(
 
 /* 分页 */
 .pagination-wrapper {
-  background: white;
+  background: var(--el-bg-color-overlay);
   padding: 24px;
   border-radius: 0 0 16px 16px;
   border-top: 1px solid #e2e8f0;

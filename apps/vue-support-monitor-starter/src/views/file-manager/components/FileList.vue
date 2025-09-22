@@ -285,8 +285,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { computed, ref, watch } from 'vue'
 
 // 文件接口
 interface FileItem {
@@ -696,7 +696,7 @@ watch(() => props.searchText, () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid #e4e7ed;
   overflow: hidden;
@@ -789,7 +789,7 @@ watch(() => props.searchText, () => {
 
       .empty-content {
         text-align: center;
-        color: #909399;
+         color: var(--el-text-color-primary);
 
         .empty-icon {
           font-size: 64px;
@@ -840,7 +840,7 @@ watch(() => props.searchText, () => {
 
             .file-name {
               font-weight: 500;
-              color: #303133;
+              color: var(--el-text-color-primary);
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -848,7 +848,7 @@ watch(() => props.searchText, () => {
 
             .file-path {
               font-size: 12px;
-              color: #909399;
+               color: var(--el-text-color-primary);
             }
           }
         }
@@ -874,7 +874,7 @@ watch(() => props.searchText, () => {
 
         .file-card {
           position: relative;
-          background: #ffffff;
+           background: var(--el-bg-color-overlay);
           border: 1px solid #e4e7ed;
           border-radius: 12px;
           padding: 16px;
@@ -927,8 +927,8 @@ watch(() => props.searchText, () => {
                 .folder-count {
                   position: absolute;
                   bottom: -8px;
-                  background: #409eff;
-                  color: white;
+                  background: var(--el-bg-color-overlay);
+                  color: var(--el-text-color-primary);
                   font-size: 10px;
                   padding: 2px 6px;
                   border-radius: 8px;
@@ -969,7 +969,7 @@ watch(() => props.searchText, () => {
             .file-details {
               .file-name {
                 font-weight: 500;
-                color: #303133;
+                color: var(--el-text-color-primary);
                 margin-bottom: 4px;
                 white-space: nowrap;
                 overflow: hidden;
@@ -982,7 +982,7 @@ watch(() => props.searchText, () => {
                 gap: 8px;
                 margin-bottom: 4px;
                 font-size: 12px;
-                color: #909399;
+                 color: var(--el-text-color-primary);
 
                 .file-size {
                   background: #f0f2f5;
@@ -1019,7 +1019,7 @@ watch(() => props.searchText, () => {
               border: 1px solid #e4e7ed;
 
               &:hover {
-                background: #ffffff;
+                 background: var(--el-bg-color-overlay);
                 border-color: #409eff;
               }
             }
@@ -1052,7 +1052,7 @@ watch(() => props.searchText, () => {
   cursor: pointer;
 
   &:hover {
-    background: #f5f7fa;
+    background: var(--el-bg-color-overlay);
   }
 }
 

@@ -152,7 +152,7 @@ defineEmits<{
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 12px;
       border: none;
       box-shadow: 0 2px 4px rgba(var(--el-color-primary-rgb), 0.3);
@@ -214,7 +214,7 @@ defineEmits<{
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--el-text-color-primary);
       font-size: 12px;
     }
   }

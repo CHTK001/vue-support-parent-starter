@@ -771,7 +771,7 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--el-text-color-primary);
     position: relative;
     z-index: 2;
   }

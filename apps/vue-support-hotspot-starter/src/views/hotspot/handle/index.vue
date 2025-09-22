@@ -90,7 +90,7 @@ onBeforeMount(async () => {
 .results::before {
   counter-increment: results;
   content: counter(results);
-  color: #eee;
+  color: var(--el-color-info-light-5);
   font-size: 4.5em;
   position: absolute;
   text-align: right;

@@ -198,7 +198,7 @@ const handleEdit = () => {
 
 <style scoped>
 .source-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -213,7 +213,7 @@ const handleEdit = () => {
 
 .source-card.disabled {
   opacity: 0.6;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
 }
 
 .card-header {
@@ -239,7 +239,7 @@ const handleEdit = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 20px;
   flex-shrink: 0;
 }
@@ -253,7 +253,7 @@ const handleEdit = () => {
   margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -262,7 +262,7 @@ const handleEdit = () => {
 .platform-url {
   margin: 0;
   font-size: 13px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -274,7 +274,7 @@ const handleEdit = () => {
 
 .more-btn {
   padding: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
@@ -301,19 +301,19 @@ const handleEdit = () => {
 
 .config-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
 .config-value {
   font-size: 14px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 500;
 }
 
 .token-value {
   font-family: "Courier New", monospace;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
@@ -321,7 +321,7 @@ const handleEdit = () => {
 
 .ua-value {
   font-size: 12px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -341,19 +341,19 @@ const handleEdit = () => {
 .test-btn {
   background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .edit-btn {
-  background: #f5f7fa;
-  border: 1px solid #dcdfe6;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
   color: #606266;
 }
 
 .edit-btn:hover {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   border-color: #409eff;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 /* 下拉菜单样式 */

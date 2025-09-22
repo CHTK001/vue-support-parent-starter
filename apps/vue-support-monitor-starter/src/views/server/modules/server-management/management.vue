@@ -515,7 +515,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .server-management {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   min-height: 100vh;
 
   .page-header {
@@ -524,7 +524,7 @@ onMounted(() => {
     align-items: center;
     margin-bottom: 20px;
     padding: 20px;
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
@@ -535,7 +535,7 @@ onMounted(() => {
         margin: 0 0 8px 0;
         font-size: 24px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
 
         .title-icon {
           margin-right: 8px;
@@ -544,7 +544,7 @@ onMounted(() => {
       }
 
       .page-breadcrumb {
-        color: #909399;
+         color: var(--el-text-color-primary);
       }
     }
   }
@@ -566,7 +566,7 @@ onMounted(() => {
           justify-content: center;
           margin-right: 16px;
           font-size: 24px;
-          color: white;
+          color: var(--el-text-color-primary);
 
           &.total {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -589,13 +589,13 @@ onMounted(() => {
           .stats-value {
             font-size: 28px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
             line-height: 1;
           }
 
           .stats-label {
             font-size: 14px;
-            color: #909399;
+             color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -604,7 +604,7 @@ onMounted(() => {
   }
 
   .main-content {
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 

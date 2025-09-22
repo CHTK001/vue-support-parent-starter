@@ -555,7 +555,7 @@ onMounted(() => {
           justify-content: center;
           margin-right: 16px;
           font-size: 24px;
-          color: white;
+          color: var(--el-text-color-primary);
 
           &.total {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -578,13 +578,13 @@ onMounted(() => {
           .status-value {
             font-size: 28px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
             line-height: 1;
           }
 
           .status-label {
             font-size: 14px;
-            color: #909399;
+             color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -625,7 +625,7 @@ onMounted(() => {
 
     .server-address {
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color-primary);
     }
   }
 
@@ -651,9 +651,9 @@ onMounted(() => {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 8px;
-      color: #909399;
+       color: var(--el-text-color-primary);
     }
   }
 }

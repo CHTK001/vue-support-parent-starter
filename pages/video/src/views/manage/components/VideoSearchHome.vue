@@ -134,7 +134,7 @@ fetchHotKeywords();
     display: flex;
     flex-direction: column;
     width: 100%;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
@@ -169,7 +169,7 @@ fetchHotKeywords();
 
     &:hover {
       background-color: var(--el-color-primary);
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 }

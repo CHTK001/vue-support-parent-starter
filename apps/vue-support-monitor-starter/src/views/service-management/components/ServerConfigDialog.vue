@@ -592,14 +592,14 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #e4e7ed;
 
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #303133;
+    color: var(--el-text-color-primary);
   }
 
   .header-actions {
@@ -646,7 +646,7 @@ watch(
   margin-bottom: 12px;
   border: 1px solid #e4e7ed;
   border-radius: 8px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   transition: all 0.3s ease;
 
   &:last-child {
@@ -666,13 +666,13 @@ watch(
 
     &.disabled {
       opacity: 0.6;
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
     }
   }
 
   .drag-handle {
     cursor: move;
-    color: #909399;
+     color: var(--el-text-color-primary);
     font-size: 16px;
 
     &:hover {
@@ -686,7 +686,7 @@ watch(
     .filter-name {
       font-size: 16px;
       font-weight: 600;
-      color: #303133;
+      color: var(--el-text-color-primary);
       margin-bottom: 4px;
       display: flex;
       align-items: center;
@@ -712,7 +712,7 @@ watch(
 
     .filter-type {
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color-primary);
       background: #f0f2f5;
       padding: 2px 8px;
       border-radius: 4px;
@@ -730,7 +730,7 @@ watch(
       margin-top: 4px;
 
       .detail-icon {
-        color: #909399;
+         color: var(--el-text-color-primary);
         font-size: 14px;
         cursor: help;
 

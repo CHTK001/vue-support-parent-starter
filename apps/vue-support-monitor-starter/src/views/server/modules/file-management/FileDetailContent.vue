@@ -66,9 +66,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
 import type { FileInfo } from "@/api/file-management";
+import { ElMessageBox } from "element-plus";
+import { computed } from "vue";
 
 // Props
 const props = defineProps<{
@@ -379,7 +379,7 @@ const handleDelete = async () => {
   padding: 16px;
   height: 100%;
   overflow-y: auto;
-  background: #ffffff; /* 设置文件详情内容背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件详情内容背景为白色 */
 }
 
 .file-header {

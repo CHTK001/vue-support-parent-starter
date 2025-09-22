@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
   }
 
   &__list {
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     overflow: hidden;
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
     width: 30px;
     text-align: center;
     font-size: 14px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     position: relative;
 
     .music-category__item-number {
@@ -670,7 +670,7 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.5);
-    color: white;
+    color: var(--el-text-color-primary);
     opacity: 0;
     transform: scale(0.8);
     transition: all 0.3s;
@@ -712,7 +712,7 @@ onBeforeUnmount(() => {
 
   &__item-duration {
     font-size: 14px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin-left: 16px;
     margin-right: 16px;
   }
@@ -728,7 +728,7 @@ onBeforeUnmount(() => {
     padding: 6px;
     height: auto;
     width: auto;
-    color: #909399;
+     color: var(--el-text-color-primary);
 
     &:hover {
       color: var(--el-color-primary);
@@ -738,7 +738,7 @@ onBeforeUnmount(() => {
 
 .music-player {
   position: relative;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -883,7 +883,7 @@ onBeforeUnmount(() => {
     top: 50%;
     width: 12px;
     height: 12px;
-    background-color: white;
+    background-color: var(--el-bg-color-overlay);
     border: 2px solid var(--el-color-primary);
     border-radius: 50%;
     transform: scale(0);
@@ -910,13 +910,13 @@ onBeforeUnmount(() => {
 
     &--play {
       background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-      color: white;
+      color: var(--el-text-color-primary);
       transform: scale(1.2);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 
       &:hover {
         transform: scale(1.3);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
 
@@ -939,7 +939,7 @@ onBeforeUnmount(() => {
 }
 
 .music-lyrics {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
@@ -1039,7 +1039,7 @@ onBeforeUnmount(() => {
     width: 30px;
     text-align: center;
     font-size: 14px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     position: relative;
 
     .music-playlist__item-number {
@@ -1095,7 +1095,7 @@ onBeforeUnmount(() => {
 
   &__item-duration {
     font-size: 12px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin-left: 16px;
     margin-right: 8px;
   }
@@ -1109,7 +1109,7 @@ onBeforeUnmount(() => {
     padding: 6px;
     height: auto;
     width: auto;
-    color: #909399;
+     color: var(--el-text-color-primary);
 
     &:hover {
       color: var(--el-color-primary);

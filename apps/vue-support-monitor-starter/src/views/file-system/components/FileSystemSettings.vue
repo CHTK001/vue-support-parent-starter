@@ -494,7 +494,7 @@ const handleClose = () => {
 
 .form-item-tip {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color);
   margin-top: 4px;
   line-height: 1.4;
 }

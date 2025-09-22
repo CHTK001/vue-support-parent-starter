@@ -289,7 +289,11 @@ const defer = useDefer(firstLevelMenus.value.length);
     }
   }
 }
-
+.el-menu-item.is-active {
+  svg{
+    color: var(--el-text-color-primary);
+  }
+}
 // 左栏样式
 .double-nav-left {
   width: 64px;

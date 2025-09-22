@@ -264,14 +264,13 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 import { fetchAppList } from "@/api/monitor/app";
+import { fetchJobDelete, fetchJobNextTriggerTime, fetchJobPageList, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 // import { fetchServiceList } from "@/api/monitor/service"; // 已删除服务监控功能
-import { defineAsyncComponent, ref, reactive, onMounted, computed } from "vue";
 import ScTable from "@repo/components/ScTable/index.vue";
-import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 // 动态导入组件
 const Save = defineAsyncComponent(() => import("./save.vue"));
@@ -623,7 +622,6 @@ onMounted(() => {
 <style scoped>
 /* 基础样式 */
 .job-dashboard {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -631,13 +629,12 @@ onMounted(() => {
 
 /* 页面头部样式 */
 .page-header {
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 20px;
   padding: 12px;
   margin-bottom: 12px;
   color: #1f2937;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .header-content {
@@ -661,17 +658,17 @@ onMounted(() => {
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
 }
 
 .title-icon {
   font-size: 32px;
-  color: #667eea;
+  color: var(--el-text-color-primary);
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #6b7280;
+  color: var(--el-text-color-primary);
   margin: 0;
   line-height: 1.5;
 }
@@ -683,8 +680,7 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
   padding: 20px;
   text-align: center;
@@ -694,7 +690,6 @@ onMounted(() => {
 }
 
 .stat-card:hover {
-  background: #f8fafc;
   transform: translateY(-2px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
@@ -702,20 +697,19 @@ onMounted(() => {
 .stat-number {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--el-text-color-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* 工具栏样式 */
 .job-control-panel {
-  background: white;
   border-radius: 16px;
   margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -747,7 +741,6 @@ onMounted(() => {
   align-items: center;
   gap: 20px;
   flex-wrap: wrap;
-  background: white;
   border-radius: 16px;
   padding: 20px 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -774,18 +767,18 @@ onMounted(() => {
 .search-input :deep(.el-input__wrapper) {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e5e9;
+  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
 }
 
 .search-input :deep(.el-input__wrapper:hover) {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .search-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px var(--el-color-primary-light-8);
 }
 
 .search-icon {
@@ -804,13 +797,13 @@ onMounted(() => {
 
 .group-select :deep(.el-select__wrapper) {
   border-radius: 12px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid var(--el-border-color-lighter);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .group-select :deep(.el-select__wrapper:hover) {
-  border-color: #667eea;
+  border-color: var(--el-border-color-lighter);
 }
 
 .option-item {
@@ -836,10 +829,9 @@ onMounted(() => {
 .status-filter {
   display: flex;
   gap: 4px;
-  background: #f8fafc;
   padding: 4px;
   border-radius: 12px;
-  border: 1px solid #e1e5e9;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .status-btn {
@@ -863,7 +855,7 @@ onMounted(() => {
 
 .status-btn.active {
   background: #667eea;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
@@ -890,9 +882,8 @@ onMounted(() => {
 .search-btn {
   border-radius: 12px;
   padding: 10px 16px;
-  border: 1px solid #e1e5e9;
-  background: white;
-  color: #6b7280;
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-primary);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -910,9 +901,9 @@ onMounted(() => {
   padding: 10px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -936,10 +927,9 @@ onMounted(() => {
 /* 任务卡片样式 */
 .modern-job-card {
   height: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 20px;
   overflow: hidden;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -951,8 +941,8 @@ onMounted(() => {
 
 .modern-job-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  border-color: #3b82f6;
+  box-shadow: var(--el-box-shadow);
+  border-color: var(--el-color-primary);
 }
 
 .modern-job-card::before {
@@ -1026,7 +1016,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 20px;
 }
 
@@ -1037,14 +1027,14 @@ onMounted(() => {
 .job-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--el-text-color-primary);
   margin: 0 0 4px 0;
   line-height: 1.4;
 }
 
 .job-handler {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--el-text-color-primary);
   background: #f3f4f6;
   padding: 4px 8px;
   border-radius: 6px;
@@ -1090,21 +1080,20 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: #f8fafc;
   border-radius: 8px;
   margin-bottom: 16px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--el-border-color-lighter);
 }
 
 .schedule-icon {
   font-size: 16px;
-  color: #667eea;
+  color: var(--el-text-color-primary);
 }
 
 .schedule-text {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 13px;
-  color: #374151;
+  color: var(--el-border-color-lighter);
   font-weight: 500;
 }
 
@@ -1124,18 +1113,18 @@ onMounted(() => {
 
 .meta-icon {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--el-text-color-primary);
   width: 16px;
 }
 
 .meta-label {
-  color: #6b7280;
+  color: var(--el-text-color-primary);
   font-weight: 500;
   min-width: 60px;
 }
 
 .meta-value {
-  color: #374151;
+  color: var(--el-text-color-primary);
 }
 
 .job-tags {
@@ -1177,7 +1166,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--el-text-color-primary);
 }
 
 .primary-actions {
@@ -1214,7 +1203,7 @@ onMounted(() => {
   border-radius: 8px;
   padding: 6px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--el-bg-color-overlay);
   color: #6b7280;
   transition: all 0.2s ease;
 }

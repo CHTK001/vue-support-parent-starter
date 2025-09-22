@@ -779,11 +779,11 @@ onMounted(() => {
 
     &--active {
       background-color: var(--el-color-primary);
-      color: white;
+      color: var(--el-text-color-primary);
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
       .meme-tool__category-icon {
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }

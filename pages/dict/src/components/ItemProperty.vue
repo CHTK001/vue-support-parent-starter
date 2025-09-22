@@ -118,7 +118,7 @@ defineExpose({
 <style scoped lang="scss">
 .input-with-select {
   :deep(.el-input-group__prepend) {
-    background-color: var(--el-fill-color-blank);
+    background-color: var(--app-bg-primary);
   }
 }
 </style>

@@ -376,7 +376,7 @@ const handleFullscreenChange = () => {
         flex-direction: column;
         align-items: center;
         gap: 8px;
-        color: #909399;
+         color: var(--el-text-color);
 
         .loading-icon,
         .empty-icon {

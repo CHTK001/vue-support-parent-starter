@@ -73,7 +73,7 @@ const handleClose = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   padding: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--el-text-color-primary);
   z-index: 2000;
   border: 1px solid #e8e8e8;
   backdrop-filter: blur(4px);
@@ -127,7 +127,7 @@ const handleClose = () => {
 
 .coordinate-close:hover {
   background-color: #f0f0f0;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .coordinate-content {
@@ -143,7 +143,7 @@ const handleClose = () => {
 
 .coordinate-label {
   width: 40px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-right: 8px;
 }
 

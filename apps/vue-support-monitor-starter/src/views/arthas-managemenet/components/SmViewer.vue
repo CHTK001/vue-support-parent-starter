@@ -168,7 +168,7 @@ async function run() {
   height: 100%;
 }
 .control-panel {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 8px;
   border: 1px solid #e9ecef;
@@ -180,7 +180,7 @@ async function run() {
   flex-wrap: wrap;
 }
 .label {
-  color: #666;
+  color: var(--el-text-color-primary);
   font-size: 12px;
 }
 .mb-4 {

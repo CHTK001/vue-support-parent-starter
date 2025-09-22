@@ -889,7 +889,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .statistics-container {
   padding: 20px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   min-height: 100vh;
 }
 
@@ -926,7 +926,7 @@ onUnmounted(() => {
 
         .el-icon {
           font-size: 24px;
-          color: white;
+          color: var(--el-text-color-primary);
         }
 
         &.total-rooms {
@@ -952,14 +952,14 @@ onUnmounted(() => {
         .stat-value {
           font-size: 28px;
           font-weight: 700;
-          color: #303133;
+          color: var(--el-text-color-primary);
           line-height: 1;
           margin-bottom: 8px;
         }
 
         .stat-label {
           font-size: 14px;
-          color: #909399;
+           color: var(--el-text-color-primary);
         }
       }
     }
@@ -1020,7 +1020,7 @@ onUnmounted(() => {
 
     h4 {
       margin-bottom: 16px;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
   }
 }
@@ -1035,7 +1035,7 @@ onUnmounted(() => {
 @media (prefers-color-scheme: dark) {
   .statistics-container {
     background-color: #1a1a1a;
-    color: white;
+    color: var(--el-text-color-primary);
   }
 
   .stat-card {
@@ -1053,9 +1053,9 @@ onUnmounted(() => {
     border-color: #404040;
 
     :deep(.el-card__header) {
-      background-color: #333;
+      background-color: var(--el-text-color-primary);
       border-bottom-color: #404040;
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 }

@@ -10,13 +10,13 @@
             <span class="ml-[30px]">
               {{ row.threadId + "".repeat(4) }}
               <span class="pl-[20px]">
-                <el-tag v-if="row.threadState == 'WAITING'" type="default" class="!text-gray-400 !w-[160px]">{{ row.threadState }}</el-tag>
+                <el-tag v-if="row.threadState == 'WAITING'" type="default" class="!text-[var(--el-text-color-placeholder)] !w-[160px]">{{ row.threadState }}</el-tag>
                 <el-tag v-else-if="row.threadState == 'TIMED_WAITING'" type="warning" class="!w-[160px]">{{ row.threadState }}</el-tag>
                 <el-tag v-else-if="row.threadState == 'RUNNABLE'" class="!w-[160px]">{{ row.threadState }}</el-tag>
                 <el-tag v-else class="!w-[160px]">{{ row.threadState }}</el-tag>
               </span>
               <span class="text-red-400 pl-[20px]">{{ row.threadName }}</span>
-              <span class="text-gray-400 pl-[20px] text-[12px]">{{ row.daemon ? "守护线程" : "" }}</span>
+              <span class="text-[var(--el-text-color-placeholder)] pl-[20px] text-[12px]">{{ row.daemon ? "守护线程" : "" }}</span>
             </span>
           </span>
           <span v-else class="pl-10">
@@ -86,7 +86,7 @@ onBeforeMount(async () => {
 .item::before {
   counter-increment: counter;
   content: counter(counter);
-  color: #3f3f3f;
+  color: var(--el-text-color-regular);
   font-size: 1.2em;
   right: 50%;
   top: 10px;
@@ -95,7 +95,7 @@ onBeforeMount(async () => {
   text-align: center;
   vertical-align: middle;
   border-radius: 50%;
-  background-color: #ccc;
+  background-color: var(--el-color-info-light-7);
   display: inline-block;
 }
 </style>

@@ -185,7 +185,7 @@
               </el-button>
 
               <!-- 模型配置浮动面板 -->
-              <ScPanel v-model:visible="showModelConfig" position="top-right" @close="showModelConfig = false">
+              <ScPanel v-model:visible="showModelConfig" :width="390" position="top-right" @close="showModelConfig = false">
                 <template #reference>
                   <el-button circle @click="toggleModelConfig" class="config-btn" title="高级功能">
                     <IconifyIconOnline icon="mdi:tune-variant" />
@@ -1174,7 +1174,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: row;
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -1182,8 +1182,8 @@ defineExpose({
   // 会话管理面板样式
   .conversation-panel {
     width: 280px;
-    background: #ffffff;
-    border-right: 1px solid #e5e7eb;
+    background: var(--el-bg-color-overlay);
+    border-right: 1px solid var(--el-border-color);
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
@@ -1198,8 +1198,8 @@ defineExpose({
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #f0f0f0;
-      background: #ffffff;
+      border-bottom: 1px solid var(--el-border-color);
+       background: var(--el-bg-color-overlay);
 
       .header-content {
         display: flex;
@@ -1212,13 +1212,13 @@ defineExpose({
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #666;
+          color: var(--el-text-color-primary);
           font-size: 18px;
         }
 
         .conversation-title {
           font-weight: 600;
-          color: #333;
+          color: var(--el-text-color-primary);
           font-size: 16px;
         }
       }
@@ -1229,7 +1229,7 @@ defineExpose({
         background: transparent;
 
         &:hover {
-          background-color: #f5f5f5;
+          background: var(--el-bg-color-overlay);
         }
       }
     }
@@ -1243,7 +1243,7 @@ defineExpose({
 
       .new-conversation-section {
         padding: 16px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--el-border-color);
 
         .new-conversation-btn {
           width: 100%;
@@ -1261,14 +1261,14 @@ defineExpose({
 
           &:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px var(--el-shadow-color);
           }
         }
       }
 
       .quick-actions {
         padding: 16px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--el-border-color);
 
         .action-item {
           display: flex;
@@ -1281,7 +1281,7 @@ defineExpose({
           margin-bottom: 4px;
 
           &:hover {
-            background-color: #f8f9fa;
+            background: var(--el-bg-color-overlay);
           }
 
           .action-icon {
@@ -1292,43 +1292,43 @@ defineExpose({
             align-items: center;
             justify-content: center;
             font-size: 16px;
-            background: #f0f0f0;
-            color: #666;
+            background: var(--el-bg-color-overlay);
+            color: var(--el-text-color-primary);
 
             &.kimi-icon {
               background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-              color: white;
+              color: var(--el-text-color-primary);
             }
 
             &.study-icon {
               background: linear-gradient(135deg, #feca57, #ff9ff3);
-              color: white;
+              color: var(--el-text-color-primary);
             }
 
             &.medical-icon {
               background: linear-gradient(135deg, #48dbfb, #0abde3);
-              color: white;
+              color: var(--el-text-color-primary);
             }
 
             &.ppt-icon {
               background: linear-gradient(135deg, #ff9ff3, #f368e0);
-              color: white;
+              color: var(--el-text-color-primary);
             }
 
             &.translate-icon {
               background: linear-gradient(135deg, #54a0ff, #2e86de);
-              color: white;
+              color: var(--el-text-color-primary);
             }
 
             &.explore-icon {
               background: linear-gradient(135deg, #5f27cd, #341f97);
-              color: white;
+              color: var(--el-text-color-primary);
             }
           }
 
           .action-text {
             font-size: 14px;
-            color: #333;
+            color: var(--el-text-color-primary);
             font-weight: 500;
           }
         }
@@ -1345,23 +1345,28 @@ defineExpose({
           align-items: center;
           gap: 8px;
           margin-bottom: 12px;
-          color: #666;
+          color: var(--el-text-color-primary);
           font-size: 14px;
           font-weight: 500;
         }
 
         .conversation-list {
           flex: 1;
-
+          background: var(--el-bg-color-overlay) !important;
           :deep(.el-scrollbar__view) {
             padding: 0;
           }
+
+          :deep(.conversations-list) {
+            background: var(--el-bg-color-overlay) !important;
+          }
+
         }
 
         .view-all {
           margin-top: 12px;
           text-align: center;
-          color: #666;
+          color: var(--el-text-color-primary);
           font-size: 14px;
           cursor: pointer;
           padding: 8px;
@@ -1369,8 +1374,8 @@ defineExpose({
           transition: all 0.2s ease;
 
           &:hover {
-            background-color: #f8f9fa;
-            color: #333;
+            background: var(--el-bg-color-overlay);
+            color: var(--el-text-color-primary);
           }
         }
       }
@@ -1414,7 +1419,7 @@ defineExpose({
   .input-area {
     height: 120px;
     padding: 16px;
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-top: 1px solid #e5e7eb;
 
     .editor-sender {
@@ -1494,7 +1499,7 @@ defineExpose({
           align-items: center;
           justify-content: space-between;
           padding: 8px 12px;
-          background: white;
+          background: var(--el-bg-color-overlay);
           border-radius: 4px;
           border: 1px solid #e5e7eb;
           transition: all 0.2s;
@@ -1548,10 +1553,10 @@ defineExpose({
 // 暗色主题
 .dark {
   .chat-container {
-    background: #1f2937;
+    background: var(--el-bg-color-overlay);
 
     .messages-area {
-      background: #111827;
+      background: var(--el-bg-color-overlay);
 
       .message-item {
         &.message-user {
@@ -1562,23 +1567,23 @@ defineExpose({
 
         &.message-assistant {
           .message-content {
-            background: #374151;
-            border-color: #4b5563;
-            color: #f9fafb;
+            background: var(--el-bg-color-overlay);
+            border-color: var(--el-border-color);
+            color: var(--el-text-color-primary);
           }
         }
       }
     }
 
     .input-area {
-      background: #1f2937;
-      border-top-color: #4b5563;
+      background: var(--el-bg-color-overlay);
+      border-top-color:  var(--el-border-color);
 
       .editor-sender {
         :deep(.editor-sender-container) {
-          background: #374151;
-          border-color: #4b5563;
-          color: #f9fafb;
+          background: var(--el-bg-color-overlay);
+          border-color:  var(--el-border-color);
+          color: var(--el-text-color-primary);
 
           &:focus-within {
             border-color: #4f46e5;
@@ -1635,7 +1640,7 @@ defineExpose({
         .config-btn {
           background: #8b5cf6;
           border-color: #8b5cf6;
-          color: white;
+          color: var(--el-text-color-primary);
 
           &:hover {
             background: #7c3aed;

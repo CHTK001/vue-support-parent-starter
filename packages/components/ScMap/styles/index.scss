@@ -179,7 +179,7 @@
   position: absolute;
   z-index: 1000;
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   padding: 10px;
   max-width: 300px;
@@ -221,7 +221,7 @@
   
   div {
     background-color: rgba(0, 0, 0, 0.7);
-    color: white;
+    color: var(--el-text-color-primary);
     padding: 3px 6px;
     border-radius: 2px;
     font-size: 12px;
@@ -261,7 +261,7 @@
 /* 测距样式 */
 .measure-segment-label .segment-distance {
   background: rgba(24, 144, 255, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 13px;
@@ -274,7 +274,7 @@
 
 .measure-node-label .node-distance {
   background: rgba(0, 92, 175, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 3px 7px;
   border-radius: 4px;
   font-size: 12px;
@@ -286,7 +286,7 @@
 
 .measure-total-label .total-distance-label {
   background-color: rgba(0, 177, 89, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 14px;
@@ -364,7 +364,7 @@
 
 .ol-tooltip.ol-tooltip-measure {
   background-color: rgba(24, 144, 255, 0.9);
-  color: white;
+  color: var(--el-text-color-primary);
   padding: 6px 10px;
   border-radius: 4px;
   font-weight: bold;
@@ -554,7 +554,7 @@
   width: 150px;
   height: 150px;
   border: 2px solid rgba(24, 144, 255, 0.8);
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   z-index: 10000;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -564,7 +564,7 @@
 /* 标记点popover样式 */
 .marker-popover {
   position: relative;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   padding: 6px 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -592,6 +592,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: bold;
-    color: #333;
+    color: var(--el-text-color-primary);
   }
 } 

@@ -107,7 +107,7 @@
 		display: table-cell;
 		vertical-align: middle;
 		/* #endif */
-		color: #333;
+		color: var(--el-text-color-primary);
 		font-weight: 500;
 		border-bottom: 1px $border-color solid;
 		font-size: 14px;

@@ -409,7 +409,7 @@ defineExpose({
       border: 1px solid var(--el-border-color-light);
       border-radius: 8px;
       overflow: hidden;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
 
       &.preview-small {
         height: 200px;
@@ -509,7 +509,7 @@ defineExpose({
       position: absolute;
       width: 80px;
       height: 80px;
-      background: var(--el-bg-color);
+      background: var(--el-bg-color-overlay);
       border-radius: 50%;
     }
 

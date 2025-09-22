@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'fixed-header': set.fixedHeader }" :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']">
+  <div :class="{ 'fixed-header': set.fixedHeader }" :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px var(--app-border-primary)' : 'box-shadow: 0 1px 4px var(--app-border-secondary)') : '']">
     <LayNavbar ref="layNavbarRef" @toggleMenu="toggleMenu" @close="triggerClose" />
   </div>
 </template>
@@ -62,12 +62,12 @@ defineExpose({
 .fixed-header {
   z-index: 999;
   width: 100vw !important;
-  box-shadow: 0 2px 4px 0 var(--cb-color-shadow, rgba(0, 0, 0, 0.16));
+  box-shadow: var(--app-shadow-sm);
   font-size: 12px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   font-family: var(--cb-typo-font-family-base, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif);
-  background-color: var(--cb-color-bg-primary, #fff);
+  background-color: var(--app-bg-primary);
   position: fixed;
   top: 0px;
   right: 0px;

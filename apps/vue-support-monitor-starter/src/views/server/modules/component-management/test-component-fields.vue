@@ -215,7 +215,7 @@ const resetTestData = () => {
 }
 
 pre {
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 4px;
   overflow-x: auto;

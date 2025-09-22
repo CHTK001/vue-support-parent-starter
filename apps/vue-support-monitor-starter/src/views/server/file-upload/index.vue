@@ -284,7 +284,7 @@ const stopAutoRefresh = () => {
 <style scoped>
 .server-file-upload-page {
   padding: 24px;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   min-height: 100vh;
 }
 
@@ -340,7 +340,7 @@ const stopAutoRefresh = () => {
   justify-content: center;
   margin-right: 16px;
   font-size: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .stat-icon.pending {
@@ -381,7 +381,7 @@ const stopAutoRefresh = () => {
 }
 
 .task-management {
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   border-radius: 8px;
 }
 

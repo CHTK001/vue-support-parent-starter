@@ -175,7 +175,7 @@ function getUsageType(depth: number): "success" | "warning" | "danger" {
   gap: 16px;
 }
 .control-panel {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 8px;
   border: 1px solid #e9ecef;
@@ -187,7 +187,7 @@ function getUsageType(depth: number): "success" | "warning" | "danger" {
   flex-wrap: wrap;
 }
 .label {
-  color: #666;
+  color: var(--el-text-color-primary);
   font-size: 12px;
 }
 .mb-4 {
@@ -221,7 +221,7 @@ function getUsageType(depth: number): "success" | "warning" | "danger" {
   line-height: 1.6;
 }
 .stack-frame {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 .class-name {
   color: #0366d6;
@@ -230,7 +230,7 @@ function getUsageType(depth: number): "success" | "warning" | "danger" {
   color: #e06c75;
 }
 .file-info {
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-left: 4px;
 }
 .empty-state {
