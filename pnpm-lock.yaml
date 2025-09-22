@@ -483,6 +483,9 @@ catalogs:
     luckyexcel:
       specifier: ^1.0.1
       version: 1.0.1
+    lunisolar:
+      specifier: ^3.0.0-beta.14
+      version: 3.0.0-beta.14
     mapv:
       specifier: ^2.0.62
       version: 2.0.62
@@ -6703,6 +6706,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.11.2(vue@3.5.21(typescript@5.9.2))
+      lunisolar:
+        specifier: 'catalog:'
+        version: 3.0.0-beta.14
       unbuild:
         specifier: 'catalog:'
         version: 2.0.0(sass@1.92.1)(typescript@5.9.2)(vue-tsc@2.2.12(typescript@5.9.2))
@@ -9347,6 +9353,12 @@ packages:
 
   '@lezer/yaml@1.0.3':
     resolution: {integrity: sha512-GuBLekbw9jDBDhGur82nuwkxKQ+a3W5H0GfaAthDXcAu+XdpS43VlnxA9E9hllkpSP5ellRDKjLLj7Lu9Wr6xA==}
+
+  '@lunisolar/julian@0.7.1':
+    resolution: {integrity: sha512-lLUWN3A7dnLUGV76ZJ1xEFvI1heG/35iz/nWmuCeaGvd7Tr4M+DBRRxZq7BFqMeC18GKgED9/NbJli8XSvUEjA==}
+
+  '@lunisolar/utils@0.6.1':
+    resolution: {integrity: sha512-8X+PlC4eIlRZebvqG3FnW/1NGiM3/+7XcXG2U/vGBYc4O1gz17RSOk7xr/fZjcHOv6fzcAZ99rf9DfpQ2pHfVg==}
 
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
@@ -14588,6 +14600,9 @@ packages:
 
   luckyexcel@1.0.1:
     resolution: {integrity: sha512-hvbJmCXNp/vST/huA6sieDn32Ib8bd80L9aIu5ZGxniJvZle7VlpHZrl6weLGaEnX99+t7cPAoYGqrqbfZp/AQ==}
+
+  lunisolar@3.0.0-beta.14:
+    resolution: {integrity: sha512-qTtrw6PxFLK3nPKWZOcCoNmp/lEIEFTp+oK4nLaBcmQ0btnbyy3h7305S8jYDvQrboyK85CnzCYuaIaIhiIRYA==}
 
   m3u8-parser@4.8.0:
     resolution: {integrity: sha512-UqA2a/Pw3liR6Df3gwxrqghCP17OpPlQj6RBPLYygf/ZSQ4MoSgvdvhvt35qV+3NaaA0FSZx93Ix+2brT1U7cA==}
@@ -21151,6 +21166,12 @@ snapshots:
       '@lezer/highlight': 1.2.1
       '@lezer/lr': 1.4.2
 
+  '@lunisolar/julian@0.7.1':
+    dependencies:
+      '@lunisolar/utils': 0.6.1
+
+  '@lunisolar/utils@0.6.1': {}
+
   '@manypkg/find-root@1.1.0':
     dependencies:
       '@babel/runtime': 7.28.4
@@ -27632,6 +27653,11 @@ snapshots:
   luckyexcel@1.0.1:
     dependencies:
       jszip: 3.10.1
+
+  lunisolar@3.0.0-beta.14:
+    dependencies:
+      '@lunisolar/julian': 0.7.1
+      '@lunisolar/utils': 0.6.1
 
   m3u8-parser@4.8.0:
     dependencies:
