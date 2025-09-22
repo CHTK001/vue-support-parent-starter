@@ -186,14 +186,14 @@ defineExpose({
   margin-right: 0;
   text-align: center;
   position: relative;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background: linear-gradient(135deg, #f8f9fa 0%, #e9f1f6 100%);
 }
 
 .wechat-config-dialog :deep(.el-dialog__title) {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .dialog-header-decoration {
@@ -214,7 +214,7 @@ defineExpose({
   margin-bottom: 24px;
   padding: 16px;
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
@@ -268,14 +268,14 @@ defineExpose({
 .status-active :deep(.el-radio-button__inner) {
   background-color: #67c23a;
   border-color: #67c23a;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: none;
 }
 
 .status-inactive :deep(.el-radio-button__inner) {
   background-color: #f56c6c;
   border-color: #f56c6c;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: none;
 }
 
@@ -316,7 +316,7 @@ defineExpose({
   margin-right: 10px;
   background: linear-gradient(90deg, #e6a23c, #f0c78a);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .test-button:hover:not(:disabled) {
@@ -326,7 +326,7 @@ defineExpose({
 }
 
 .test-button:disabled {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   color: #c0c4cc;
   cursor: not-allowed;
   border: 1px solid #e4e7ed;
@@ -346,7 +346,7 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .loading-icon {
@@ -376,7 +376,7 @@ defineExpose({
   border: 1px solid #ebeef5;
   border-radius: 4px;
   padding: 8px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
 }
 
 .qrcode-tip {

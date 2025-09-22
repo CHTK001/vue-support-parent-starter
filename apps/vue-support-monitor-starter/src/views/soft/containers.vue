@@ -548,9 +548,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
+<<<<<<< HEAD
 .container-management {
   padding: 20px;
   background: #f5f7fa;
+=======
+/* 基础样式与records.vue类似，这里只列出容器管理特有的样式 */
+.containers-page {
+  padding: 16px;
+  background: var(--el-bg-color-overlay);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   min-height: calc(100vh - 60px);
 }
 
@@ -560,7 +567,7 @@ onMounted(() => {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -570,7 +577,11 @@ onMounted(() => {
   align-items: center;
   font-size: 24px;
   font-weight: 600;
+<<<<<<< HEAD
   color: #2c3e50;
+=======
+  color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
 }
 
 .title-icon {
@@ -582,6 +593,10 @@ onMounted(() => {
   color: #6c757d;
   margin-top: 8px;
   font-size: 14px;
+<<<<<<< HEAD
+=======
+   color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
 }
 
 .header-right {
@@ -595,7 +610,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -772,7 +787,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -790,7 +805,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 24px;
 }
 
@@ -817,14 +832,14 @@ onMounted(() => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 /* 容器表格特有样式 */
@@ -836,12 +851,12 @@ onMounted(() => {
 
 .name-text {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .container-id {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-family: "Courier New", monospace;
 }
 
@@ -853,12 +868,12 @@ onMounted(() => {
 
 .server-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .server-host {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .ports-list {
@@ -902,7 +917,7 @@ onMounted(() => {
 }
 
 .env-code {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 12px;
   border-radius: 4px;
   font-family: "Courier New", monospace;
@@ -917,13 +932,13 @@ onMounted(() => {
 
 .config-section h4 {
   margin: 0 0 12px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
 .config-code {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 4px;
   font-family: "Courier New", monospace;
@@ -947,7 +962,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid #e4e7ed;
 }
@@ -966,7 +981,7 @@ onMounted(() => {
 .monitor-value {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .monitor-stats {
@@ -981,19 +996,19 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   border: 1px solid #e4e7ed;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .stat-value {
   font-size: 12px;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-weight: 500;
   font-family: "Courier New", monospace;
 }
@@ -1022,7 +1037,7 @@ onMounted(() => {
 
 .log-lines-label {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .logs-actions {
@@ -1055,7 +1070,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1114,7 +1129,7 @@ onMounted(() => {
 .terminal-title {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .terminal-content {
@@ -1131,7 +1146,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
   gap: 8px;
 }
@@ -1182,7 +1197,7 @@ onMounted(() => {
 }
 
 :deep(.el-table tr:hover > td) {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 }
 
 /* 按钮样式 */

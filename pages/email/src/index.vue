@@ -1,23 +1,23 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { 
-  fetchEmailAccounts, 
-  fetchEmailFolders, 
-  fetchEmailLabels, 
-  searchEmails, 
-  fetchEmailDetail,
-  markEmailStatus,
-  moveEmailToFolder,
-  updateEmailLabels,
-  sendEmail,
-  saveDraft,
-  deleteEmail
+import { computed, onMounted, ref } from 'vue';
+import {
+    deleteEmail,
+    fetchEmailAccounts,
+    fetchEmailDetail,
+    fetchEmailFolders,
+    fetchEmailLabels,
+    markEmailStatus,
+    moveEmailToFolder,
+    saveDraft,
+    searchEmails,
+    sendEmail,
+    updateEmailLabels
 } from './api';
 
-import EmailSidebar from './components/EmailSidebar.vue';
-import EmailList from './components/EmailList.vue';
-import EmailDetail from './components/EmailDetail.vue';
 import EmailComposer from './components/EmailComposer.vue';
+import EmailDetail from './components/EmailDetail.vue';
+import EmailList from './components/EmailList.vue';
+import EmailSidebar from './components/EmailSidebar.vue';
 
 // 状态管理
 const accounts = ref([]);
@@ -621,7 +621,7 @@ const layoutClass = computed(() => {
   grid-template-columns: 280px 350px 1fr;
   grid-template-rows: 100%;
   height: 100%;
-  background-color: var(--el-bg-color-page);
+  background-color: var(--app-bg-secondary);
   
   &__sidebar {
     grid-column: 1;
@@ -650,7 +650,7 @@ const layoutClass = computed(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--el-bg-color);
+    background-color: var(--app-bg-primary);
     z-index: 100;
     overflow: hidden;
   }

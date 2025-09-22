@@ -17,7 +17,7 @@
           <IconifyIconOnline icon="ri:file-upload-line" class="upload-icon" />
           <div class="upload-text">
             <p>选择文件测试MD5计算</p>
-            <p class="text-sm text-gray-500">支持任意文件类型</p>
+            <p class="text-sm text-[var(--el-text-color-regular)]">支持任意文件类型</p>
           </div>
         </div>
       </el-upload>
@@ -280,12 +280,12 @@ const clearResults = () => {
   .file-info {
     margin: 20px 0;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
 
     h4 {
       margin: 0 0 12px 0;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
 
     p {
@@ -304,7 +304,7 @@ const clearResults = () => {
 
     h4 {
       margin: 0 0 16px 0;
-      color: #303133;
+      color: var(--el-text-color-primary);
     }
 
     .result-item {
@@ -320,7 +320,7 @@ const clearResults = () => {
         margin-bottom: 8px;
 
         .time {
-          color: #909399;
+           color: var(--el-text-color-primary);
           font-size: 12px;
         }
       }

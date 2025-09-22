@@ -131,7 +131,7 @@ defineExpose({
 .compose-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .compose-actions {

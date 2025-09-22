@@ -107,7 +107,7 @@ export default defineComponent({
                 background-color: #50505a;
                 padding: 0.2rem;
                 padding-left: 1rem;
-                color: white;
+                color: var(--el-text-color-primary);
                 font-size: 1rem;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;

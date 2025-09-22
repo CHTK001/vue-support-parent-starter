@@ -758,14 +758,14 @@ onUnmounted(() => {
   padding: 20px;
   height: 100vh;
   background-color: #1a1a1a;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .page-header {
   margin-bottom: 20px;
   
   :deep(.el-breadcrumb__inner) {
-    color: white;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -790,7 +790,7 @@ onUnmounted(() => {
       }
       
       .participant-count {
-        color: #909399;
+         color: var(--el-text-color-primary);
         font-size: 14px;
       }
     }
@@ -991,7 +991,7 @@ onUnmounted(() => {
         .sender-name {
           font-size: 12px;
           font-weight: 500;
-          color: #909399;
+           color: var(--el-text-color-primary);
         }
         
         .message-time {
@@ -1042,19 +1042,19 @@ onUnmounted(() => {
     border: 1px solid #404040;
     
     :deep(.el-card__header) {
-      background-color: #333;
+      background-color: var(--el-text-color-primary);
       border-bottom: 1px solid #404040;
       
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
     
     :deep(.el-card__body) {
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 }

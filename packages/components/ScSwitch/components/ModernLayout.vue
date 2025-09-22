@@ -266,7 +266,7 @@ const toggleSwitch = () => {
     0 1px 4px rgba(0, 0, 0, 0.15),
     0 1px 2px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--el-border-color);
   z-index: 2;
 }
 

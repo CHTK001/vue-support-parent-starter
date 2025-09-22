@@ -310,7 +310,7 @@ defineExpose({
   }
 
   .queue-panel {
-    background: white;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     border: 1px solid #ebeef5;
@@ -318,7 +318,7 @@ defineExpose({
 
     .panel-header {
       padding: 12px 16px;
-      background: #f5f7fa;
+      background: var(--el-bg-color-overlay);
       border-bottom: 1px solid #ebeef5;
       cursor: pointer;
       display: flex;
@@ -337,18 +337,18 @@ defineExpose({
 
         .collapse-icon {
           font-size: 16px;
-          color: #909399;
+           color: var(--el-text-color-primary);
           transition: transform 0.3s ease;
         }
 
         .panel-title {
           font-weight: 500;
-          color: #303133;
+          color: var(--el-text-color-primary);
         }
 
         .queue-badge {
           :deep(.el-badge__content) {
-            background: #409eff;
+            background: var(--el-bg-color-overlay);
           }
         }
       }
@@ -385,7 +385,7 @@ defineExpose({
       .empty-queue {
         padding: 40px 20px;
         text-align: center;
-        color: #909399;
+         color: var(--el-text-color-primary);
 
         .empty-icon {
           font-size: 32px;
@@ -401,7 +401,7 @@ defineExpose({
       .queue-list {
         .queue-item {
           padding: 12px 16px;
-          border-bottom: 1px solid #f0f0f0;
+          border-bottom: 1px solid var(--el-border-color);
           transition: background-color 0.2s ease;
 
           &:last-child {
@@ -448,7 +448,7 @@ defineExpose({
               .file-name {
                 flex: 1;
                 font-size: 14px;
-                color: #303133;
+                color: var(--el-text-color-primary);
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
@@ -471,7 +471,7 @@ defineExpose({
 
               .status-message {
                 font-size: 12px;
-                color: #909399;
+                 color: var(--el-text-color-primary);
                 max-width: 150px;
                 overflow: hidden;
                 text-overflow: ellipsis;

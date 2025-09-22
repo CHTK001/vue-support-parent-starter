@@ -1,17 +1,17 @@
 <script setup>
-import { reactive, ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import Prism from "prismjs";
-import "prismjs/themes/prism-tomorrow.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.css";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-css";
+import "prismjs/components/prism-java";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-markdown";
 import "prismjs/components/prism-markup";
 import "prismjs/components/prism-python";
-import "prismjs/components/prism-java";
+import "prismjs/components/prism-typescript";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
+import "prismjs/plugins/line-numbers/prism-line-numbers.css";
+import "prismjs/themes/prism-tomorrow.css";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import useMarkdownIt from "./hook/useMarkdownIt";
 
 // 创建markdown-it实例
@@ -412,10 +412,10 @@ const exportHtml = () => {
       padding: 20px;
       max-width: 800px;
       margin: 0 auto;
-      color: #333;
+      color: var(--el-text-color-primary);
     }
     pre {
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
       padding: 16px;
       border-radius: 4px;
       overflow-x: auto;
@@ -428,7 +428,7 @@ const exportHtml = () => {
       margin: 0;
       padding-left: 16px;
       border-left: 4px solid #ddd;
-      color: #666;
+      color: var(--el-text-color-primary);
     }
     img {
       max-width: 100%;
@@ -445,7 +445,7 @@ const exportHtml = () => {
       text-align: left;
     }
     th {
-      background-color: #f5f5f5;
+      background: var(--el-bg-color-overlay);
     }
   </style>
 </head>
@@ -848,14 +848,14 @@ onBeforeUnmount(() => {
 }
 
 .markdown-tool__header {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, var(--app-primary) 0%, var(--app-primary-dark) 100%);
   border-radius: 8px;
   padding: 24px;
-  color: white;
+  color: var(--app-text-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--app-shadow-lg);
   position: relative;
   overflow: hidden;
 }
@@ -887,8 +887,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: var(--app-bg-secondary);
+  border: 1px solid var(--app-border-primary);
   border-radius: 8px;
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -913,13 +913,13 @@ onBeforeUnmount(() => {
 }
 
 .markdown-tool__toolbar-item:hover {
-  background-color: #e5e7eb;
+  background-color: var(--app-border-primary);
 }
 
 .markdown-tool__toolbar-divider {
   width: 1px;
   height: 24px;
-  background-color: #e5e7eb;
+  background-color: var(--app-border-primary);
   margin: 0 4px;
   cursor: default;
 }
@@ -943,7 +943,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 600px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border-primary);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -954,8 +954,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background-color: var(--app-bg-secondary);
+  border-bottom: 1px solid var(--app-border-primary);
   font-weight: 500;
 }
 
@@ -970,7 +970,7 @@ onBeforeUnmount(() => {
   resize: none;
   border: none;
   outline: none;
-  background-color: #ffffff;
+  background-color: var(--app-bg-primary);
   overflow: auto;
 }
 
@@ -978,7 +978,7 @@ onBeforeUnmount(() => {
   flex: 1;
   padding: 16px;
   overflow: auto;
-  background-color: #ffffff;
+  background-color: var(--app-bg-primary);
 }
 
 .markdown-tool__editor-footer,
@@ -987,10 +987,10 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background-color: var(--app-bg-secondary);
+  border-top: 1px solid var(--app-border-primary);
   font-size: 12px;
-  color: #6b7280;
+  color: var(--app-text-tertiary);
 }
 
 .markdown-tool__word-count {
@@ -999,11 +999,11 @@ onBeforeUnmount(() => {
 }
 
 .markdown-tool__status-unsaved {
-  color: #ef4444;
+  color: var(--app-danger);
 }
 
 .markdown-tool__status-saved {
-  color: #10b981;
+  color: var(--app-success);
 }
 
 .markdown-tool__card-header {
@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
 
 .markdown-tool__empty-icon {
   font-size: 48px;
-  color: var(--el-color-info-light-5);
+  color: var(--app-text-disabled);
 }
 
 /* 行号样式 */
@@ -1044,7 +1044,7 @@ onBeforeUnmount(() => {
   left: 3em;
   bottom: 0;
   width: 1px;
-  background-color: #e5e7eb;
+  background-color: var(--app-border-primary);
 }
 
 .markdown-tool__editor.line-numbers::after {
@@ -1054,8 +1054,8 @@ onBeforeUnmount(() => {
   left: 0;
   bottom: 0;
   width: 3em;
-  background-color: #f9fafb;
-  border-right: 1px solid #e5e7eb;
+  background-color: var(--app-bg-secondary);
+  border-right: 1px solid var(--app-border-primary);
 }
 
 /* 自动换行 */
@@ -1067,8 +1067,8 @@ onBeforeUnmount(() => {
 
 /* 暗色模式 */
 .markdown-tool.dark-mode {
-  background-color: #1f2937;
-  color: #e5e7eb;
+  background-color: var(--app-bg-primary);
+  color: var(--app-text-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__toolbar,
@@ -1076,31 +1076,31 @@ onBeforeUnmount(() => {
 .markdown-tool.dark-mode .markdown-tool__preview-header,
 .markdown-tool.dark-mode .markdown-tool__editor-footer,
 .markdown-tool.dark-mode .markdown-tool__preview-footer {
-  background-color: #374151;
-  border-color: #4b5563;
+  background-color: var(--app-bg-secondary);
+  border-color: var(--app-border-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__toolbar-divider {
-  background-color: #4b5563;
+  background-color: var(--app-border-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__toolbar-item:hover {
-  background-color: #4b5563;
+  background-color: var(--app-border-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__editor,
 .markdown-tool.dark-mode .markdown-tool__preview {
-  background-color: #1f2937;
-  color: #e5e7eb;
+  background-color: var(--app-bg-primary);
+  color: var(--app-text-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__editor.line-numbers::after {
-  background-color: #374151;
-  border-color: #4b5563;
+  background-color: var(--app-bg-secondary);
+  border-color: var(--app-border-primary);
 }
 
 .markdown-tool.dark-mode .markdown-tool__editor.line-numbers::before {
-  background-color: #4b5563;
+  background-color: var(--app-border-primary);
 }
 
 /* 响应式调整 */

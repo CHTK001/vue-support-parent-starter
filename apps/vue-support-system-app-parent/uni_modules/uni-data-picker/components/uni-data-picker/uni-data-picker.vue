@@ -355,7 +355,7 @@
   }
 
   .text-color {
-    color: #333;
+    color: var(--el-text-color-primary);
   }
 
   .placeholder {
@@ -432,7 +432,7 @@
     display: flex;
     /* #endif */
     flex-direction: row;
-    /* border-bottom: 1px solid #f0f0f0; */
+    /* border-bottom: 1px solid var(--el-border-color); */
   }
 
   .title-area {
@@ -467,7 +467,7 @@
   .dialog-close-plus {
     width: 16px;
     height: 2px;
-    background-color: #666;
+    background-color: var(--el-text-color-primary);
     border-radius: 2px;
     transform: rotate(45deg);
   }

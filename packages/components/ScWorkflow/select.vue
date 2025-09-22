@@ -353,7 +353,7 @@ export default {
   align-items: center;
 }
 .sc-user-select__selected li .name .el-avatar {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
   margin-right: 10px;
 }
 .sc-user-select__selected li .name label {

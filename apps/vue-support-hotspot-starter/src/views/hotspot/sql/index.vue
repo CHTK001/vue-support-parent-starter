@@ -186,7 +186,7 @@ onUnmounted(() => {
   margin-right: 10px;
   text-align: left;
   vertical-align: middle;
-  color: #999;
+  color: var(--el-text-color-placeholder);
   font-weight: 800;
 }
 </style>

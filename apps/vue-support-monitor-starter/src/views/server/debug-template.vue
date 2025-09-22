@@ -157,7 +157,7 @@ const toggleServers = () => {
 
 .section-title {
   font-weight: bold;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin-bottom: 15px;
   padding: 8px;
   background: #e3f2fd;
@@ -181,12 +181,12 @@ const toggleServers = () => {
     justify-content: center;
     background: #e0e0e0;
     border-radius: 8px;
-    color: #666;
+    color: var(--el-text-color-primary);
   }
   
   span {
     font-size: 12px;
-    color: #666;
+    color: var(--el-text-color-primary);
   }
 }
 
@@ -209,11 +209,11 @@ const toggleServers = () => {
   .server-name {
     font-weight: bold;
     margin-bottom: 8px;
-    color: #333;
+    color: var(--el-text-color-primary);
   }
   
   .server-address {
-    color: #666;
+    color: var(--el-text-color-primary);
     margin-bottom: 5px;
   }
   
@@ -230,7 +230,7 @@ const toggleServers = () => {
   
   h3 {
     margin-top: 0;
-    color: #333;
+    color: var(--el-text-color-primary);
   }
   
   .logic-item {
@@ -246,7 +246,7 @@ const toggleServers = () => {
       
       li {
         margin-bottom: 5px;
-        color: #666;
+        color: var(--el-text-color-primary);
       }
     }
   }

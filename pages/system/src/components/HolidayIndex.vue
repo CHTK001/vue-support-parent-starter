@@ -258,7 +258,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .holiday-container {
   .el-header {
-    border-bottom: 1px solid var(--el-border-color);
+    border-bottom: 1px solid var(--app-border-primary);
     padding: 0 20px;
   }
 
@@ -274,7 +274,7 @@ onMounted(() => {
 :deep(.el-table) {
   .el-table__header {
     th {
-      background-color: var(--el-fill-color-light);
+      background-color: var(--app-table-header-bg);
     }
   }
 }

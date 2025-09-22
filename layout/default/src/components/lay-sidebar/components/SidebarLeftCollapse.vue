@@ -63,7 +63,7 @@ const toggleClick = () => {
   /* 确保收缩按钮在悬浮菜单弹出层之上 */
   pointer-events: auto;
   /* 确保可以接收鼠标事件 */
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   /* 添加背景色确保可见性 */
   border-top: 1px solid var(--el-border-color-light);
   /* 添加顶部边框分隔 */

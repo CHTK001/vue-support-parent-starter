@@ -957,7 +957,7 @@ onMounted(() => {
         display: flex;
         gap: 4px;
         padding: 4px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
         border-radius: 8px;
 
         .view-btn {
@@ -966,7 +966,7 @@ onMounted(() => {
           
           &.el-button--primary {
             background: #3498db;
-            color: white;
+            color: var(--el-text-color-primary);
           }
         }
       }
@@ -1228,7 +1228,7 @@ onMounted(() => {
 
               .file-card {
                 position: relative;
-                background: white;
+                background: var(--el-bg-color-overlay);
                 border-radius: 12px;
                 padding: 16px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1242,7 +1242,7 @@ onMounted(() => {
 
                 &.selected {
                   border: 2px solid #3498db;
-                  background: #f8f9fa;
+                  background: var(--el-bg-color-overlay);
                 }
 
                 .file-card-content {
@@ -1296,7 +1296,7 @@ onMounted(() => {
                       justify-content: center;
 
                       .check-icon {
-                        color: white;
+                        color: var(--el-text-color-primary);
                         font-size: 14px;
                       }
                     }

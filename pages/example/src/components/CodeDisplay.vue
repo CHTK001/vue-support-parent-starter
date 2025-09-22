@@ -171,7 +171,7 @@ watch(isFullscreen, (newVal) => {
 
 .code-header h4 {
   margin: 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 16px;
   font-weight: 600;
 }
@@ -211,7 +211,7 @@ watch(isFullscreen, (newVal) => {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e4e7ed;
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   transition: all 0.3s ease;
 }
 
@@ -243,7 +243,7 @@ pre {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   line-height: 1.6;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 code {
@@ -375,7 +375,7 @@ code {
 }
 
 .el-dark .line-number {
-  color: #8b949e;
+  color: var(--el-text-color-primary);
 }
 
 .el-dark .copy-success {

@@ -336,7 +336,7 @@ function handleClear() {
 .sc-ip-input-container {
   display: flex;
   align-items: center;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
   background-color: var(--el-fill-color-blank, #fff);
   transition: all 0.2s;

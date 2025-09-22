@@ -228,7 +228,7 @@ const handleChange = (value) => {
 }
 
 .text-secondary {
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -252,7 +252,7 @@ h4 {
   margin-top: 0;
   margin-bottom: 16px;
   font-size: 18px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .preview-container {
@@ -335,7 +335,7 @@ pre {
 code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .code-desc {

@@ -120,7 +120,7 @@
 	}
 	.uni-share-title-text {
 		font-size: 14px;
-		color: #666;
+		color: var(--el-text-color-primary);
 	}
 	.uni-share-content {
 		/* #ifndef APP-NVUE */
@@ -152,7 +152,7 @@
 	}
 
 	.uni-share-content-item:active {
-		background-color: #f5f5f5;
+		background: var(--el-bg-color-overlay);
 	}
 
 	.uni-share-image {
@@ -177,7 +177,7 @@
 	.uni-share-button {
 		flex: 1;
 		border-radius: 50px;
-		color: #666;
+		color: var(--el-text-color-primary);
 		font-size: 16px;
 	}
 

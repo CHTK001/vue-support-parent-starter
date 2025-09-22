@@ -1072,11 +1072,11 @@ export class LeafletTrackplayerObject {
         font-weight: bold;
         margin-bottom: 5px;
         font-size: 14px;
-        color: #333;
+        color: var(--el-text-color-primary);
       }
       
       .track-node-time {
-        color: #666;
+        color: var(--el-text-color-primary);
         font-size: 12px;
         margin-bottom: 5px;
       }
@@ -2983,7 +2983,7 @@ export class LeafletTrackplayerObject {
     style.innerHTML = `
       . {
         background-color: #1890ff;
-        color: white;
+        color: var(--el-text-color-primary);
         padding: 4px 8px;
         border-radius: 4px;
         margin: -8px -8px 8px -8px;
@@ -3392,7 +3392,7 @@ export class LeafletTrackplayerObject {
         background-color: rgba(0, 0, 0, 0.7);
         border: none;
         border-radius: 4px;
-        color: white;
+        color: var(--el-text-color-primary);
         font-weight: bold;
         padding: 3px 8px;
         white-space: nowrap;
@@ -3406,7 +3406,7 @@ export class LeafletTrackplayerObject {
         background-color: rgba(33, 150, 243, 0.8);
         border: none;
         border-radius: 4px;
-        color: white;
+        color: var(--el-text-color-primary);
         font-weight: bold;
         padding: 3px 8px;
         white-space: nowrap;
@@ -3429,7 +3429,7 @@ export class LeafletTrackplayerObject {
         font-weight: bold;
         margin-bottom: 8px;
         font-size: 14px;
-        color: #333;
+        color: var(--el-text-color-primary);
         border-bottom: 1px solid #eee;
         padding-bottom: 5px;
       }
@@ -3448,7 +3448,7 @@ export class LeafletTrackplayerObject {
         background-color: rgba(0, 0, 0, 0.8);
         border: none;
         border-radius: 4px;
-        color: white;
+        color: var(--el-text-color-primary);
         padding: 5px 10px;
         font-size: 12px;
         max-width: 300px;
@@ -3480,7 +3480,7 @@ export class LeafletTrackplayerObject {
       }
       
       .track-marker-real-speed {
-        color: #666;
+        color: var(--el-text-color-primary);
         font-size: 12px;
         margin-bottom: 5px;
         background: rgba(0, 0, 0, 0.05);
@@ -3494,7 +3494,7 @@ export class LeafletTrackplayerObject {
         padding: 2px 8px;
         display: inline-block;
         font-size: 12px;
-        color: #666;
+        color: var(--el-text-color-primary);
         margin: 5px 0;
       }
       

@@ -192,7 +192,7 @@ const getValueClass = () => {
 
 .card-footer {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   text-align: right;
 }
 </style>

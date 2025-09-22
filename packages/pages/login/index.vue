@@ -305,7 +305,7 @@ loginType.value = getSwitchLoginType();
       }
 
       :deep(.el-switch__action) {
-        background: var(--el-bg-color);
+        background: var(--el-bg-color-overlay);
         box-shadow: var(--el-box-shadow-lighter);
       }
     }
@@ -501,7 +501,7 @@ loginType.value = getSwitchLoginType();
 .form-section {
   flex: 1;
   padding: 32px 32px; // 从48px 40px减少到32px 32px
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1,13 +1,12 @@
 <script setup lang="ts">
+import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
+import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { computed, nextTick, onBeforeMount, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import LayPanel from "../lay-panel/index.vue";
-import { useNav } from "../../hooks/useNav";
-import { toggleTheme } from "@pureadmin/theme/dist/browser-utils";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
-import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
+import { useNav } from "../../hooks/useNav";
+import LayPanel from "../lay-panel/index.vue";
 
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
@@ -781,7 +780,7 @@ onUnmounted(() => removeMatchMedia);
           right: 0;
           width: 70%;
           height: 30%;
-          background: var(--el-bg-color);
+          background: var(--el-bg-color-overlay);
           box-shadow: 0 0 1px #888;
 
           &::after {
@@ -810,7 +809,7 @@ onUnmounted(() => removeMatchMedia);
           height: 30%;
           background: var(--el-color-primary);
           opacity: 0.8;
-          box-shadow: 0 0 1px #888;
+          box-shadow: 0 0 1px var(--cb-color-shadow-medium);
           position: relative;
 
           &::after {
@@ -822,7 +821,7 @@ onUnmounted(() => removeMatchMedia);
             width: 16px;
             height: 16px;
             border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--cb-color-bg-white-transparent);
           }
 
           &::before {
@@ -834,7 +833,7 @@ onUnmounted(() => removeMatchMedia);
             width: 16px;
             height: 3px;
             border-radius: 1px;
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--cb-color-bg-white-transparent-light);
           }
         }
 
@@ -845,7 +844,7 @@ onUnmounted(() => removeMatchMedia);
           right: 10px;
           height: 8px;
           border-radius: 4px;
-          background: var(--el-fill-color-light);
+          background: var(--cb-color-bg-light);
         }
       }
     }
@@ -861,7 +860,7 @@ onUnmounted(() => removeMatchMedia);
           height: 30%;
           background: var(--el-color-primary);
           opacity: 0.8;
-          box-shadow: 0 0 1px #888;
+          box-shadow: 0 0 1px var(--cb-color-shadow-medium);
           position: relative;
 
           &::after {
@@ -873,7 +872,7 @@ onUnmounted(() => removeMatchMedia);
             width: 16px;
             height: 16px;
             border-radius: 2px;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--cb-color-bg-white-transparent);
           }
         }
 
@@ -883,8 +882,8 @@ onUnmounted(() => removeMatchMedia);
           left: 0;
           width: 30%;
           height: 70%;
-          background: var(--el-color-primary-light-8);
-          box-shadow: 0 0 1px #888;
+          background: var(--cb-color-bg-brand-lightest);
+          box-shadow: 0 0 1px var(--cb-color-shadow-medium);
 
           &::after {
             content: "";
@@ -895,7 +894,7 @@ onUnmounted(() => removeMatchMedia);
             width: 16px;
             height: 3px;
             border-radius: 1px;
-            background: var(--el-color-primary);
+            background: var(--cb-color-bg-brand);
           }
         }
 
@@ -906,7 +905,7 @@ onUnmounted(() => removeMatchMedia);
           width: 40px;
           height: 6px;
           border-radius: 3px;
-          background: var(--el-fill-color-light);
+          background: var(--cb-color-bg-light);
         }
       }
     }
@@ -914,17 +913,17 @@ onUnmounted(() => removeMatchMedia);
 }
 
 .is-select {
-  border: 2px solid var(--el-color-primary);
+  border: 2px solid var(--cb-color-border-brand);
 }
 .bg-bg_color {
-  background-color: var(--el-bg-color) !important;
+  background-color: var(--cb-color-bg-primary) !important;
 }
 .setting {
   margin-top: 12px;
-  background: var(--el-bg-color-page);
+  background: var(--cb-color-bg-page);
   border-radius: 12px;
   padding: 8px 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px var(--cb-color-shadow-light);
 
   li {
     display: flex;
@@ -932,15 +931,14 @@ onUnmounted(() => removeMatchMedia);
     justify-content: space-between;
     padding: 12px 0;
     font-size: 14px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    transition: all 0.3s;
+    border-bottom: 1px solid var(--cb-color-border-light);
 
     &:last-child {
       border-bottom: none;
     }
 
     &:hover {
-      background: var(--el-fill-color-light);
+      background: var(--cb-color-bg-hover-light);
       padding-left: 8px;
       border-radius: 6px;
     }
@@ -951,7 +949,7 @@ onUnmounted(() => removeMatchMedia);
   }
 }
 :deep(.el-segmented-control) {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px var(--cb-color-shadow-light);
   border-radius: 8px;
   overflow: hidden;
 
@@ -959,7 +957,7 @@ onUnmounted(() => removeMatchMedia);
     transition: all 0.3s;
 
     &:hover:not(.is-active) {
-      background: var(--el-fill-color-light);
+      background: var(--cb-color-bg-hover-light);
     }
 
     &.is-active {
@@ -982,7 +980,7 @@ p.mt-5 {
     transform: translateY(-50%);
     width: 4px;
     height: 16px;
-    background: var(--el-color-primary);
+    background: var(--cb-color-bg-brand);
     border-radius: 2px;
   }
 }

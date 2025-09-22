@@ -1196,7 +1196,6 @@ defineExpose({
   padding: 10px 0;
   width: 100%;
   padding: 16px;
-  background-color: white;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }

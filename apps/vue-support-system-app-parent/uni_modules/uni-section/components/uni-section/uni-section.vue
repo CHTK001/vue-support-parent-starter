@@ -144,7 +144,7 @@
         /* #endif */
         flex-direction: column;
         flex: 1;
-        color: #333;
+        color: var(--el-text-color-primary);
 
         .distraction {
           flex-direction: row;

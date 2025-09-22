@@ -267,7 +267,7 @@ export default defineComponent({
   :deep(.el-dialog__header) {
     margin-right: 0;
     padding: 16px 24px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--el-border-color);
   }
 
   :deep(.el-dialog__footer) {
@@ -313,7 +313,7 @@ export default defineComponent({
   /* 帮助文本样式 */
   .form-help {
     font-size: 12px;
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin-top: 4px;
   }
 
@@ -399,7 +399,7 @@ export default defineComponent({
 
       &.is-active {
         background-color: var(--el-color-primary);
-        color: white;
+        color: var(--el-text-color-primary);
       }
     }
   }
@@ -430,7 +430,7 @@ export default defineComponent({
 }
 
 .text-gray-400 {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .font-medium {

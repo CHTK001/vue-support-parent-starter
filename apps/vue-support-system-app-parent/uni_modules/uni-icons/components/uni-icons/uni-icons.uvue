@@ -86,6 +86,6 @@
 		font-family: UniIconsFontFamily;
 		font-size: 18px;
 		font-style: normal;
-		color: #333;
+		color: var(--el-text-color-primary);
 	}
 </style>

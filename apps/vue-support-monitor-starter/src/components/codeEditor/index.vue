@@ -607,7 +607,7 @@ export default {
   color: white !important;
 }
 .cm-matchhighlight {
-  background-color: #fef6f6;
+  background-color: var(--el-color-danger-light-9);
 }
 .CodeMirror-scroll {
   margin: 0;

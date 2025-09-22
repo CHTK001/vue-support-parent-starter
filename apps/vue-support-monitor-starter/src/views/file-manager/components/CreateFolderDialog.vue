@@ -368,14 +368,14 @@ watch(dialogVisible, (visible) => {
       padding: 16px;
       background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       border-radius: 12px;
-      border: 1px solid #dee2e6;
+      border: 1px solid var(--el-border-color);
 
       .path-label {
         display: flex;
         align-items: center;
         margin-bottom: 8px;
         font-weight: 600;
-        color: #495057;
+        color: var(--el-text-color-primary);
 
         .path-icon {
           margin-right: 8px;
@@ -409,7 +409,7 @@ watch(dialogVisible, (visible) => {
     .preview-section {
       margin-bottom: 24px;
       padding: 16px;
-      background: #f8f9fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 12px;
       border: 1px solid #e9ecef;
 
@@ -418,7 +418,7 @@ watch(dialogVisible, (visible) => {
         align-items: center;
         margin-bottom: 12px;
         font-weight: 600;
-        color: #495057;
+        color: var(--el-text-color-primary);
 
         .preview-icon {
           margin-right: 8px;
@@ -444,7 +444,7 @@ watch(dialogVisible, (visible) => {
 
           .preview-value {
             flex: 1;
-            color: #495057;
+            color: var(--el-text-color-primary);
             word-break: break-all;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
           }
@@ -473,7 +473,7 @@ watch(dialogVisible, (visible) => {
             .option-details {
               .option-title {
                 font-weight: 500;
-                color: #495057;
+                color: var(--el-text-color-primary);
                 margin-bottom: 2px;
               }
 
@@ -509,11 +509,11 @@ watch(dialogVisible, (visible) => {
 
 // 深度选择器修改Element Plus样式
 :deep(.el-collapse-item__header) {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 12px 16px;
   font-weight: 500;
-  color: #495057;
+  color: var(--el-text-color-primary);
 }
 
 :deep(.el-collapse-item__content) {

@@ -357,7 +357,7 @@
 		justify-content: center;
 		align-items: center;
 		text-align: center;
-		color: #666;
+		color: var(--el-text-color-primary);
 		font-size: 12px;
 	}
 
@@ -372,7 +372,7 @@
 		height: 30px;
 		line-height: 30px;
 		font-size: 12px;
-		color: #666;
+		color: var(--el-text-color-primary);
 		margin: 0 5px;
 	}
 

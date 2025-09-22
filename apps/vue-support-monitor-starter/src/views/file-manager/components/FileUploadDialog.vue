@@ -548,7 +548,7 @@ watch(
             .upload-hint {
               margin: 0 0 8px 0;
               font-size: 16px;
-              color: #495057;
+              color: var(--el-text-color-primary);
 
               em {
                 color: #3498db;
@@ -578,7 +578,7 @@ watch(
         justify-content: space-between;
         align-items: center;
         padding: 16px 20px;
-        background: #f8f9fa;
+        background: var(--el-bg-color-overlay);
         border-bottom: 1px solid #e9ecef;
 
         .list-title {
@@ -587,7 +587,7 @@ watch(
           margin: 0;
           font-size: 16px;
           font-weight: 600;
-          color: #495057;
+          color: var(--el-text-color-primary);
 
           .title-icon {
             margin-right: 8px;
@@ -753,7 +753,7 @@ watch(
     }
 
     .upload-config {
-      background: #f8f9fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 12px;
       padding: 20px;
 

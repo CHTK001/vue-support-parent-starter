@@ -377,7 +377,7 @@ defineExpose({
     svg {
       width: 32px;
       height: 32px;
-      color: white;
+      color: var(--el-text-color-primary);
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
   }
@@ -419,7 +419,7 @@ defineExpose({
   height: 56px;
   border: 2px solid var(--el-border-color-lighter);
   border-radius: 12px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   color: var(--el-text-color-primary);
   font-size: 20px;
   font-weight: 600;
@@ -446,7 +446,7 @@ defineExpose({
   &:focus,
   &.active {
     border-color: var(--el-color-primary);
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     box-shadow:
       0 0 0 4px var(--el-color-primary-light-8),
       0 4px 16px rgba(var(--el-color-primary-rgb), 0.2);

@@ -64,8 +64,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // 初始化路由
 const router = useRouter();
@@ -400,7 +400,7 @@ onMounted(() => {
 }
 
 .tools-description {
-  color: #666;
+  color: var(--app-text-primary);
   margin-bottom: 8px;
 }
 
@@ -408,8 +408,8 @@ onMounted(() => {
   height: 100%;
   padding: 20px;
   border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background-color: var(--app-bg-overlay);
+  box-shadow: 0 2px 12px 0 var(--app-shadow-sm);
   transition: all 0.3s;
   cursor: pointer;
   display: flex;
@@ -420,13 +420,14 @@ onMounted(() => {
 
 .tool-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px 0 var(--app-shadow);
+  background-color: var(--app-bg-overlay-light);
 }
 
 .tool-icon {
   font-size: 40px;
   margin-bottom: 16px;
-  color: var(--el-color-primary);
+  color: var(--app-primary);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -440,11 +441,12 @@ onMounted(() => {
   font-size: 16px;
   margin-bottom: 8px;
   font-weight: 600;
+  color: var(--app-text-primary);
 }
 
 .tool-desc {
   font-size: 12px;
-  color: #666;
+  color: var(--app-text-secondary);
   line-height: 1.4;
 }
 

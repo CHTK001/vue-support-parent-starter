@@ -1345,7 +1345,7 @@ defineExpose({
     padding: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
 
     &:hover {
       border-color: var(--el-color-primary);

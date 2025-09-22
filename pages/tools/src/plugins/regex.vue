@@ -739,7 +739,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   border-radius: 8px;
   padding: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -757,7 +757,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
   border-radius: 8px;
   padding: 24px;
-  color: white;
+  color: var(--el-text-color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -832,7 +832,7 @@ onMounted(() => {
 }
 
 .regex-tool__pattern-delimiter {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-weight: bold;
 }
 
@@ -870,7 +870,7 @@ onMounted(() => {
 
 .regex-tool__empty-icon {
   font-size: 48px;
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .regex-tool__result-content {

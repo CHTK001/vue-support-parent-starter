@@ -457,7 +457,7 @@ defineExpose({
   padding: 3px 16px;
   cursor: pointer;
   white-space: nowrap;
-  color: #333;
+  color: var(--el-text-color-primary);
   transition: all 0.2s;
   position: relative;
 }

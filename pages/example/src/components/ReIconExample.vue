@@ -67,7 +67,7 @@
             <span>黄色</span>
           </div>
           <div class="color-item">
-            <IconifyIconOnline icon="ri:heart-fill" style="color: #909399; font-size: 32px" />
+            <IconifyIconOnline icon="ri:heart-fill" style=" color: var(--el-text-color-primary); font-size: 32px" />
             <span>灰色</span>
           </div>
         </div>
@@ -396,7 +396,7 @@ const copyIconCode = () => {
   max-height: 240px;
   overflow-y: auto;
   padding: 8px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
 }
 
@@ -444,7 +444,7 @@ const copyIconCode = () => {
   margin-top: 0;
   margin-bottom: 16px;
   font-size: 16px;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .selected-icon-display {
@@ -490,7 +490,7 @@ const copyIconCode = () => {
 
 .http-icon-item span {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
   text-align: center;
 }
 </style>

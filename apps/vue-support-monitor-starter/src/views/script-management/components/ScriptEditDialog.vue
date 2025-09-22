@@ -402,7 +402,7 @@ const handleSave = async () => {
 
   :deep(.el-dialog__header) {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: var(--el-text-color-primary);
     padding: 20px 24px;
     margin: 0;
 
@@ -416,7 +416,7 @@ const handleSave = async () => {
       right: 24px;
 
       .el-dialog__close {
-        color: white;
+        color: var(--el-text-color-primary);
         font-size: 20px;
 
         &:hover {
@@ -486,7 +486,7 @@ const handleSave = async () => {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     overflow: hidden;
-    background: white;
+    background: var(--el-bg-color-overlay);
   }
 }
 

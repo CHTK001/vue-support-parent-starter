@@ -210,7 +210,7 @@ const handleSubmit = async () => {
   display: flex;
   align-items: center;
   padding: 20px 20px 30px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid #ebeef5;
   margin-bottom: 20px;
 }
@@ -231,13 +231,13 @@ const handleSubmit = async () => {
 .dialog-title-info h3 {
   margin: 0 0 8px;
   font-size: 18px;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .dialog-title-info p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .config-form {
@@ -260,7 +260,7 @@ const handleSubmit = async () => {
 .status-text {
   margin-left: 10px;
   font-size: 13px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .dialog-footer {

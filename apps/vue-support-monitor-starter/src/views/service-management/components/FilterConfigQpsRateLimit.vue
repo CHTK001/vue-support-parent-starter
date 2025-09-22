@@ -361,7 +361,7 @@ function removeFromBlacklist(ip: string) {
   margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .config-grid {

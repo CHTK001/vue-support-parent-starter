@@ -345,7 +345,7 @@
       <div style="text-align: center; padding: 20px">
         <IconifyIconOnline icon="mdi:help-circle" style="font-size: 48px; color: #e6a23c; margin-bottom: 16px" />
         <p>您确定要执行此操作吗？</p>
-        <p style="color: #666; font-size: 14px">此操作不可撤销，请谨慎操作。</p>
+        <p style="color: var(--el-text-color-primary); font-size: 14px">此操作不可撤销，请谨慎操作。</p>
       </div>
 
       <template #footer>
@@ -832,7 +832,7 @@ const advancedCode = `<template>
 .demo-section {
   margin-bottom: 32px;
   padding: 24px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -880,12 +880,12 @@ const advancedCode = `<template>
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 .header-text span {
   font-size: 12px;
-  color: #666;
+  color: var(--el-text-color-primary);
 }
 
 .custom-content {
@@ -914,7 +914,7 @@ const advancedCode = `<template>
 .feature-description {
   margin-top: 16px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   border-left: 4px solid #409eff;
 }

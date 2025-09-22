@@ -281,7 +281,7 @@
 
 	.uni-dialog-button-text {
 		font-size: 16px;
-		color: #333;
+		color: var(--el-text-color-primary);
 	}
 
 	.uni-button-color {
@@ -311,6 +311,6 @@
 	}
 
 	.uni-popup__info {
-		color: #909399;
+		 color: var(--el-text-color);
 	}
 </style>

@@ -38,7 +38,7 @@
   right: 0%;
   width: 0%;
   opacity: 0;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 1.2em;
   font-weight: 600;
   transition-duration: 0.3s;

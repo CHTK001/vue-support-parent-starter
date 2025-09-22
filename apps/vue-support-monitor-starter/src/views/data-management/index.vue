@@ -754,7 +754,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 24px;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -820,7 +820,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: var(--el-bg-color-overlay);
   padding: 20px 24px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -960,7 +960,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: white;
+  color: var(--el-text-color-primary);
   border-radius: 12px;
 }
 
@@ -1052,7 +1052,7 @@ onMounted(() => {
 
 .quick-action-btn.backup-active {
   background: linear-gradient(135deg, #67c23a, #85ce61);
-  color: white;
+  color: var(--el-text-color-primary);
   border-color: #67c23a;
 }
 
@@ -1067,7 +1067,7 @@ onMounted(() => {
 
 .quick-action-btn.danger:hover {
   background: linear-gradient(135deg, #f56c6c, #f78989);
-  color: white;
+  color: var(--el-text-color-primary);
   border-color: #f56c6c;
 }
 
@@ -1285,7 +1285,7 @@ onMounted(() => {
   font-size: 14px;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
@@ -1293,7 +1293,7 @@ onMounted(() => {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .secondary-actions {
@@ -1374,7 +1374,7 @@ onMounted(() => {
 .empty-wrap {
   padding: 80px 40px;
   text-align: center;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 20px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -1415,7 +1415,7 @@ onMounted(() => {
   font-weight: 600;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   border: none;
-  color: white;
+  color: var(--el-text-color-primary);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   transition: all 0.2s ease;
 }

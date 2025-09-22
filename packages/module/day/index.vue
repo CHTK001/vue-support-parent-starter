@@ -181,7 +181,7 @@ const getTimePhase = computed(() => {
   justify-content: space-between;
   width: 100%;
   height: 75%;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .left-side {
@@ -274,10 +274,10 @@ button {
   opacity: 0.8;
 }
 .noon.info-section {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 .noon ~ .days-section .day {
-  color: #333;
+  color: var(--el-text-color-primary);
 }
 
 /* 黄昏样式 */
@@ -407,7 +407,7 @@ button {
 .days-section .day {
   font-size: 10pt;
   font-weight: 500;
-  color: white;
+  color: var(--el-text-color-primary);
   opacity: 0.7;
 }
 

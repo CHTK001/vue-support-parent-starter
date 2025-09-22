@@ -282,7 +282,7 @@ const handleClose = () => {
     .filter-info {
       h4 {
         margin: 0 0 8px 0;
-        color: #303133;
+        color: var(--el-text-color-primary);
         font-size: 16px;
         font-weight: 600;
       }
@@ -301,7 +301,7 @@ const handleClose = () => {
 
     .item-description {
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color-primary);
       margin-top: 4px;
       line-height: 1.4;
     }

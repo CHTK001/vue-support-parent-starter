@@ -21,6 +21,7 @@ html.dark {
   /* switch关闭状态下的color 需要时可取用 */
   --pure-switch-off-color: #ffffff3f;
 
+  --el-button-text-color: var(--el-text-color-primary);
   /* vxe-table */
   --vxe-form-background-color: #151515;
   --vxe-toolbar-background-color: #151515;
@@ -58,7 +59,7 @@ html.dark {
   --vxe-loading-background-color: rgb(0 0 0 / 50%);
   --vxe-tooltip-dark-background-color: color.adjust(#303133, $lightness: 25%);
   --vxe-modal-header-background-color: #1e1e1e;
-  --vxe-modal-body-background-color: #303133;
+  --vxe-modal-body-background-color: var(--el-bg-color-overlay);
   --vxe-modal-border-color: #303030;
   --vxe-toolbar-panel-background-color: #151515;
   --vxe-input-disabled-color: color.adjust(#1e1e1e, $lightness: 20%);
@@ -110,12 +111,12 @@ html.dark {
 
       .chrome-tab {
         .tag-title {
-          color: #666;
+          color: var(--el-text-color-primary);
         }
 
         &:hover {
           .chrome-tab__bg {
-            color: #333;
+            color: var(--el-text-color-primary);
           }
 
           .tag-title {

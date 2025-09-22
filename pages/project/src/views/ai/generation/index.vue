@@ -891,7 +891,7 @@ onMounted(async () => {
 /* 现代化容器样式 */
 .modern-container {
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px var(--el-box-shadow);
   transition: all 0.3s ease;
   height: calc(100vh - 20px);
 }
@@ -906,7 +906,7 @@ onMounted(async () => {
 /* 内容卡片样式 */
 .modern-content {
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 16px var(--el-box-shadow);
   transition: all 0.3s ease;
   overflow: hidden;
 }
@@ -958,7 +958,7 @@ onMounted(async () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, var(--el-bg-color-2) 0%, #c3cfe2 100%);
   overflow: hidden;
 }
 
@@ -976,7 +976,7 @@ onMounted(async () => {
 /* 历史记录区域 */
 .history-section {
   height: 100%;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   margin-bottom: 5px;
@@ -985,7 +985,7 @@ onMounted(async () => {
 
 /* 底部输入区域 */
 .bottom-input-area {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -995,7 +995,7 @@ onMounted(async () => {
 .settings-bar {
   margin-bottom: 16px;
   max-height: 120px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 16px;
 }
@@ -1022,7 +1022,7 @@ onMounted(async () => {
 
 .setting-label {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--el-text-color-primary);
   min-width: 40px;
   white-space: nowrap;
   font-weight: 500;
@@ -1081,7 +1081,7 @@ onMounted(async () => {
 
 /* 输入容器 */
 .input-container {
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   padding: 16px;
 }
@@ -1387,7 +1387,7 @@ onMounted(async () => {
 }
 
 .action-btn:hover {
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   color: var(--el-text-color-primary);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px var(--el-box-shadow-light);
@@ -1596,7 +1596,7 @@ onMounted(async () => {
     &.active {
       background: var(--el-color-primary);
       border-color: var(--el-color-primary);
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 }

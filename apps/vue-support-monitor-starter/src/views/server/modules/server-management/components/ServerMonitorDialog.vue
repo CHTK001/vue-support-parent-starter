@@ -523,7 +523,7 @@ onUnmounted(() => {
           justify-content: center;
           margin-right: 16px;
           font-size: 24px;
-          color: white;
+          color: var(--el-text-color-primary);
 
           &.cpu {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -546,13 +546,13 @@ onUnmounted(() => {
           .metric-value {
             font-size: 24px;
             font-weight: 600;
-            color: #303133;
+            color: var(--el-text-color-primary);
             line-height: 1;
           }
 
           .metric-label {
             font-size: 12px;
-            color: #909399;
+             color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -571,8 +571,8 @@ onUnmounted(() => {
 
       .chart-placeholder {
         text-align: center;
-        color: #909399;
-        background: #f5f7fa;
+         color: var(--el-text-color-primary);
+        background: var(--el-bg-color-overlay);
         border-radius: 8px;
         padding: 40px;
         width: 100%;
@@ -594,7 +594,7 @@ onUnmounted(() => {
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
   }
 }

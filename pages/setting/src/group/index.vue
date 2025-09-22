@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ElMessage, ElMessageBox } from "element-plus";
-import draggable from "vuedraggable";
 import { nextTick, onMounted, reactive, ref } from "vue";
+import draggable from "vuedraggable";
 import { fetchBatchUpdateForGroup, fetchDeleteForGroup, fetchListForGroup, fetchSaveOrUpdateForGroup, type SysSettingGroup } from "../api/group";
 
 // 响应式数据
@@ -183,7 +183,6 @@ onMounted(async () => {
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import draggable from "vuedraggable";
 
 export default defineComponent({
   components: {
@@ -295,34 +294,33 @@ export default defineComponent({
 <style scoped>
 .group-management {
   padding: 20px;
-  background: #f5f5f5;
-  min-height: 100vh;
+  background: var(--el-bg-color-overlay);
 }
 
 .page-header {
   margin-bottom: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .page-header h2 {
   margin: 0 0 8px 0;
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 24px;
   font-weight: 600;
 }
 
 .page-header p {
   margin: 0;
-  color: #606266;
+  color: var(--el-text-color-secondary);
   font-size: 14px;
 }
 
 .toolbar {
   margin-bottom: 20px;
   padding: 16px 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -337,10 +335,10 @@ export default defineComponent({
 }
 
 .group-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--el-border-color);
   transition: all 0.3s ease;
   cursor: move;
   overflow: hidden;
@@ -353,7 +351,7 @@ export default defineComponent({
 
 .card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -374,13 +372,13 @@ export default defineComponent({
 .group-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .group-code {
-  background: #f0f9ff;
+  background: var(--el-bg-color-overlay);
   color: #0369a1;
-  border: 1px solid #bae6fd;
+  border: 1px solid var(--el-border-color);
 }
 
 .card-actions {
@@ -394,7 +392,7 @@ export default defineComponent({
 
 .group-description {
   margin: 0;
-  color: #606266;
+  color: var(--el-text-color-primary);
   font-size: 14px;
   line-height: 1.5;
   min-height: 21px;
@@ -402,7 +400,7 @@ export default defineComponent({
 
 .card-footer {
   padding: 12px 20px;
-  background: #fafafa;
+  background: var(--el-bg-color-overlay);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -412,7 +410,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #909399;
+  color: var(--el-text-color-primary);
   font-size: 12px;
   cursor: move;
 }

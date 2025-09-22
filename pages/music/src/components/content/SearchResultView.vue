@@ -108,7 +108,7 @@ defineProps({
   &__filters {
     margin-bottom: 20px;
     padding: 15px;
-    background-color: var(--el-bg-color-page);
+    background-color: var(--app-bg-primary);
     border-radius: 8px;
   }
   
@@ -125,7 +125,7 @@ defineProps({
   &__filter-label {
     margin-right: 10px;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     width: 80px;
   }
   
@@ -137,7 +137,7 @@ defineProps({
   
   &__result-count {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     font-weight: normal;
   }
   
@@ -148,15 +148,15 @@ defineProps({
   }
   
   &__music-card {
-    background-color: var(--el-bg-color);
+    background-color: var(--app-bg-overlay);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-shadow-sm);
     transition: all 0.3s;
     
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--app-shadow-sm);
       
       .search-result-view__music-play {
         opacity: 1;
@@ -187,7 +187,7 @@ defineProps({
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--app-shadow);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -196,7 +196,7 @@ defineProps({
     
     .iconify {
       font-size: 40px;
-      color: white;
+      color: var(--app-text-primary);
     }
   }
   
@@ -215,7 +215,7 @@ defineProps({
   
   &__music-artist {
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
     margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
@@ -232,8 +232,8 @@ defineProps({
     font-size: 10px;
     padding: 2px 6px;
     border-radius: 4px;
-    background-color: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
+    background-color: var(--app-primary-lightest);
+    color: var(--app-primary);
   }
   
   &__music-actions {

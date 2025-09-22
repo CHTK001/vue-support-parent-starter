@@ -483,7 +483,7 @@ export default {
     background: #2b2b2b;
   }
   .col-box {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
   }
   .top-left-cover-line,
   .top-right-cover-line,
@@ -496,14 +496,14 @@ export default {
     background-color: var(--el-bg-color);
   }
   .branch-box .add-branch {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
   }
   .end-node .end-node-text {
     color: #d0d0d0;
   }
   .auto-judge .sort-left:hover,
   .auto-judge .sort-right:hover {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
   }
 }
 </style>

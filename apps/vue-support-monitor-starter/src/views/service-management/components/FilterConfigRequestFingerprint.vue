@@ -380,7 +380,7 @@ function getDuplicateStrategyText() {
   margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .config-grid {
@@ -425,7 +425,7 @@ function getDuplicateStrategyText() {
 
 .unit-text {
   margin-left: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-size: 14px;
 }
 

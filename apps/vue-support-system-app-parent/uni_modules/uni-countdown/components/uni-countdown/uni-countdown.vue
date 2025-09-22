@@ -269,7 +269,7 @@
 		&__splitor {
 			margin: 0 2px;
 			font-size: $font-size;
-			color: #333;
+			color: var(--el-text-color-primary);
 		}
 
 		&__number {

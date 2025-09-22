@@ -3000,7 +3000,7 @@ const setupMapClickListener = () => {
 .map-container {
   width: 100%;
   height: 100%;
-  background-color: #f5f5f5;
+  background: var(--el-bg-color-overlay);
   /* 添加背景色以便于调试 */
   flex: 1;
   position: relative;

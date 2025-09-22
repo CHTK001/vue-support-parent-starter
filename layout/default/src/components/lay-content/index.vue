@@ -304,7 +304,7 @@ const router = useRouter();
   background-color: var(--el-color-primary);
   box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
   border-radius: 50%;
-  color: white;
+  color: var(--el-text-color-primary);
   height: 44px;
   width: 44px;
   display: flex;

@@ -93,10 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from "vue";
-import { ElMessage, ElTree } from "element-plus";
 import type { FileInfo } from "@/api/file-management";
-import { getFileTree, getFileList, createDirectory, previewFile } from "@/api/file-management";
+import { createDirectory, getFileList, getFileTree } from "@/api/file-management";
+import { ElMessage, ElTree } from "element-plus";
+import { nextTick, onMounted, reactive, ref, watch } from "vue";
 
 // Props
 const props = defineProps<{
@@ -764,7 +764,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff; /* 设置文件树背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件树背景为白色 */
   border-right: 1px solid var(--el-border-color-light);
 }
 
@@ -774,7 +774,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff; /* 设置树头部背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置树头部背景为白色 */
 }
 
 .tree-title {

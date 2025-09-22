@@ -666,7 +666,7 @@ onUnmounted(() => {
   overflow: auto;
 
   .dark & {
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     box-shadow:
       0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 2px 4px -1px rgba(0, 0, 0, 0.2);
@@ -990,7 +990,7 @@ onUnmounted(() => {
 .sub-menu-popup {
   position: fixed;
   transform: translate(-50%, calc(-100% - 15px));
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   border: 2px solid #e5e7eb;
   border-radius: 16px;
   box-shadow:
@@ -1109,7 +1109,7 @@ onUnmounted(() => {
   position: relative;
   width: 90px;
   height: 100px;
-  background: #ffffff;
+   background: var(--el-bg-color-overlay);
   border: 2px solid #f3f4f6;
   border-radius: 12px;
   display: flex;

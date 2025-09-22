@@ -86,7 +86,7 @@ const handleSearch = () => {
 .navbar-container {
   width: 100%;
   height: 60px;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   position: fixed;
   top: 0;
@@ -135,7 +135,7 @@ const handleSearch = () => {
     padding: 0 15px;
     font-size: 15px;
     font-weight: 500;
-    color: #333;
+    color: var(--el-text-color-primary);
     cursor: pointer;
     height: 60px;
     line-height: 60px;
@@ -187,8 +187,8 @@ const handleSearch = () => {
     border-radius: 0 20px 20px 0;
     border: 1px solid #e0e0e0;
     border-left: none;
-    background-color: white;
-    color: #666;
+    background-color: var(--el-bg-color-overlay);
+    color: var(--el-text-color-primary);
 
     &:hover {
       color: #108cee;
@@ -207,7 +207,7 @@ const handleSearch = () => {
     align-items: center;
     margin: 0 12px;
     font-size: 12px;
-    color: #666;
+    color: var(--el-text-color-primary);
     cursor: pointer;
 
     svg {

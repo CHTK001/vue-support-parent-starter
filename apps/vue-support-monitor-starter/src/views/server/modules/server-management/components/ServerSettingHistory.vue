@@ -523,7 +523,7 @@ onMounted(() => {
         margin: 0;
         font-size: 18px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         display: flex;
         align-items: center;
       }
@@ -548,13 +548,13 @@ onMounted(() => {
         .stat-value {
           font-size: 24px;
           font-weight: 600;
-          color: #303133;
+          color: var(--el-text-color-primary);
           margin-bottom: 4px;
         }
 
         .stat-label {
           font-size: 14px;
-          color: #909399;
+           color: var(--el-text-color-primary);
         }
       }
 

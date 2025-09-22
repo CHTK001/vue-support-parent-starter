@@ -451,17 +451,17 @@ const handleDelete = (item: any) => {
 .stat-card {
   text-align: center;
   padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--el-bg-color-overlay);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--el-border-color-light);
   min-width: 80px;
   transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-  background: rgba(255, 255, 255, 1);
+  background: var(--el-bg-color-overlay);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .stat-number {
@@ -483,7 +483,7 @@ const handleDelete = (item: any) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
+  background: var(--el-bg-color-overlay);
   padding: 20px 12px;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -512,9 +512,9 @@ const handleDelete = (item: any) => {
 
 .search-input :deep(.el-input__wrapper) {
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--el-box-shadow-light);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(10px);
 }
 
@@ -534,8 +534,8 @@ const handleDelete = (item: any) => {
 
 .platform-select :deep(.el-input__wrapper) {
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--el-box-shadow-light);
+  background: var(--el-bg-color-overlay);
   backdrop-filter: blur(10px);
 }
 
@@ -562,13 +562,13 @@ const handleDelete = (item: any) => {
   border-radius: 12px;
   padding: 12px 20px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--el-shadow-color);
   border: none;
 }
 
 .create-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .create-btn:hover {
@@ -603,10 +603,8 @@ const handleDelete = (item: any) => {
 }
 
 .app-card:hover {
-  border-color: #3b82f6;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow);
   transform: translateY(-8px);
 }
 
@@ -632,18 +630,18 @@ const handleDelete = (item: any) => {
 }
 
 .status-indicator.status-success {
-  background: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px var(--el-color-success-light-7);
 }
 
 .status-indicator.status-warning {
-  background: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  background: var(--el-color-warning);
+  box-shadow: 0 0 0 3px var(--el-color-warning-light-7);
 }
 
 .status-indicator.status-error {
-  background: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  background: var(--el-color-danger);
+  box-shadow: 0 0 0 3px var(--el-color-danger-light-7);
 }
 
 /* 卡片头部 */
@@ -668,7 +666,7 @@ const handleDelete = (item: any) => {
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .app-icon-img {
@@ -718,7 +716,7 @@ const handleDelete = (item: any) => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: white;
+  background: var(--el-bg-color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -730,15 +728,15 @@ const handleDelete = (item: any) => {
 }
 
 .status-success .status-icon {
-  color: #10b981;
+  color: var(--el-color-success);
 }
 
 .status-warning .status-icon {
-  color: #f59e0b;
+  color: var(--el-color-warning);
 }
 
 .status-error .status-icon {
-  color: #ef4444;
+  color: var(--el-color-danger);
 }
 
 .app-info {
@@ -812,15 +810,15 @@ const handleDelete = (item: any) => {
 }
 
 .metric-value.status-success {
-  color: #10b981;
+  color: var(--el-color-success);
 }
 
 .metric-value.status-warning {
-  color: #f59e0b;
+  color: var(--el-color-warning);
 }
 
 .metric-value.status-error {
-  color: #ef4444;
+  color: var(--el-color-danger);
 }
 
 .tags-section {
@@ -882,7 +880,7 @@ const handleDelete = (item: any) => {
 
 .action-btn.primary:hover {
   background: #667eea;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .action-btn.danger {
@@ -892,7 +890,7 @@ const handleDelete = (item: any) => {
 
 .action-btn.danger:hover {
   background: #ef4444;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 /* 空状态 */

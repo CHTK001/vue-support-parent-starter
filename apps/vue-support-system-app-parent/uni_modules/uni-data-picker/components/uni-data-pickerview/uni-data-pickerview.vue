@@ -278,7 +278,7 @@
 
   .item {
     padding: 12px 15px;
-    /* border-bottom: 1px solid #f0f0f0; */
+    /* border-bottom: 1px solid var(--el-border-color); */
     /* #ifndef APP-NVUE */
     display: flex;
     /* #endif */

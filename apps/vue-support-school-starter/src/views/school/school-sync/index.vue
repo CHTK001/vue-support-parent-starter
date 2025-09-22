@@ -255,14 +255,14 @@ const handleDataLoaded = (data: any[], count: number) => {
 
 .header-title h2 {
   font-size: 24px;
-  color: #333;
+  color: var(--el-text-color-primary);
   margin: 0 0 8px 0;
   font-weight: bold;
 }
 
 .header-subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -328,7 +328,7 @@ const handleDataLoaded = (data: any[], count: number) => {
   padding: 16px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color);
   background-color: #fafafa;
 }
 
@@ -355,7 +355,7 @@ const handleDataLoaded = (data: any[], count: number) => {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -384,13 +384,13 @@ const handleDataLoaded = (data: any[], count: number) => {
 
 .info-label {
   width: 80px;
-  color: #666;
+  color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
 .info-value {
   flex: 1;
-  color: #333;
+  color: var(--el-text-color-primary);
   display: flex;
   align-items: center;
   word-break: break-all;
@@ -425,7 +425,7 @@ const handleDataLoaded = (data: any[], count: number) => {
 }
 
 .empty-text {
-  color: #909399;
+   color: var(--el-text-color);
   font-size: 14px;
   margin: 10px 0 20px;
 }

@@ -228,24 +228,24 @@ export default defineComponent({
     :deep(.el-dialog) {
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--app-shadow-lg);
 
       .el-dialog__header {
         padding: 20px;
         margin: 0;
-        border-bottom: 1px solid var(--el-border-color-lighter);
-        background: var(--el-bg-color);
+        border-bottom: 1px solid var(--app-border-secondary);
+        background: var(--app-bg-overlay);
       }
 
       .el-dialog__body {
         padding: 24px;
-        background: var(--el-bg-color-page);
+        background: var(--app-bg-primary);
       }
 
       .el-dialog__footer {
         padding: 16px 20px;
-        border-top: 1px solid var(--el-border-color-lighter);
-        background: var(--el-bg-color);
+        border-top: 1px solid var(--app-border-secondary);
+        background: var(--app-bg-overlay);
       }
     }
   }
@@ -254,13 +254,13 @@ export default defineComponent({
     .form-section {
       margin-bottom: 24px;
       padding: 16px;
-      background: var(--el-bg-color);
+      background: var(--app-bg-overlay);
       border-radius: 8px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+      box-shadow: var(--app-shadow);
       transition: all 0.3s ease;
 
       &:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--app-shadow-md);
       }
     }
 
@@ -269,14 +269,14 @@ export default defineComponent({
       padding-bottom: 8px;
       font-size: 16px;
       font-weight: 600;
-      color: var(--el-text-color-primary);
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      color: var(--app-text-primary);
+      border-bottom: 1px solid var(--app-border-secondary);
     }
 
     .form-item-help {
       margin-top: 4px;
       font-size: 12px;
-      color: var(--el-text-color-secondary);
+      color: var(--app-text-secondary);
     }
   }
 
@@ -288,12 +288,12 @@ export default defineComponent({
     }
 
     .dict-root-node {
-      color: var(--el-color-primary);
+      color: var(--app-primary);
       font-weight: 500;
     }
 
     .dict-deleted-node {
-      color: var(--el-color-danger);
+      color: var(--app-danger);
     }
 
     .dict-node-label {
@@ -307,7 +307,7 @@ export default defineComponent({
 
       .el-input__prefix {
         margin-right: 8px;
-        color: var(--el-text-color-secondary);
+        color: var(--app-text-secondary);
       }
     }
   }
@@ -345,8 +345,8 @@ export default defineComponent({
 :root[data-theme="dark"] {
   .dict-save-container {
     .form-section {
-      background: var(--el-bg-color-overlay);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      background: var(--app-bg-overlay);
+      box-shadow: var(--app-shadow);
     }
   }
 }

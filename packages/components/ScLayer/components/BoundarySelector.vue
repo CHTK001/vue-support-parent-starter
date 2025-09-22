@@ -868,7 +868,7 @@ $text-muted: #909399;
 $success-color: #67C23A;
 $error-color: #F56C6C;
 $warning-color: #E6A23C;
-$info-color: #909399;
+$info- color: var(--el-text-color-primary);
 $background-color: #FFFFFF;
 $border-radius: 4px;
 $box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -1248,7 +1248,7 @@ $transition-time: 0.3s;
   padding: 0 12px;
   border: 1px solid $border-color;
   border-radius: $border-radius;
-  background-color: white;
+  background-color: var(--el-bg-color-overlay);
   color: $text-secondary;
           cursor: pointer;
   font-size: 14px;
@@ -1268,7 +1268,7 @@ $transition-time: 0.3s;
   
   &.btn-primary {
     background-color: $primary-color;
-    color: white;
+    color: var(--el-text-color-primary);
     border-color: $primary-color;
     
     &:hover {

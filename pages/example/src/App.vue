@@ -23,7 +23,7 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  color: #333;
+  color: var(--el-text-color-primary);
   background-color: #f5f7fa;
 }
 
@@ -54,7 +54,7 @@ nav {
 
 nav a {
   text-decoration: none;
-  color: #666;
+  color: var(--el-text-color-primary);
   font-weight: 500;
   padding: 5px 10px;
   border-radius: 4px;

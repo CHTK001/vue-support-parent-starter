@@ -121,7 +121,7 @@ function handleCloudBackup() {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .header-right {

@@ -242,7 +242,7 @@ const formatDuration = (seconds: number) => {
 
 <style scoped>
 .stats-card {
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -259,7 +259,7 @@ const formatDuration = (seconds: number) => {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border-left: 4px solid #e4e7ed;
   transition: all 0.3s ease;
@@ -287,7 +287,7 @@ const formatDuration = (seconds: number) => {
 }
 
 .stat-item.info {
-  border-left-color: #909399;
+  border-left- color: var(--el-text-color-primary);
 }
 
 .stat-icon {
@@ -298,11 +298,11 @@ const formatDuration = (seconds: number) => {
   height: 48px;
   border-radius: 8px;
   margin-right: 16px;
-  color: white;
+  color: var(--el-text-color-primary);
 }
 
 .stat-item.primary .stat-icon {
-  background: #409eff;
+  background: var(--el-bg-color-overlay);
 }
 
 .stat-item.success .stat-icon {
@@ -330,7 +330,7 @@ const formatDuration = (seconds: number) => {
   align-items: center;
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-bottom: 4px;
 }
 
@@ -359,7 +359,7 @@ const formatDuration = (seconds: number) => {
 
 .stat-description {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 
@@ -373,7 +373,7 @@ const formatDuration = (seconds: number) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f0f0;
+  background: var(--el-bg-color-overlay);
   border-radius: 4px;
   font-size: 20px;
 }
@@ -403,7 +403,7 @@ const formatDuration = (seconds: number) => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
 }
 
@@ -416,7 +416,7 @@ const formatDuration = (seconds: number) => {
 .detail-value {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .detail-value.running {
@@ -424,7 +424,7 @@ const formatDuration = (seconds: number) => {
 }
 
 .detail-value.stopped {
-  color: #909399;
+   color: var(--el-text-color-primary);
 }
 
 .detail-value.error {
@@ -455,7 +455,7 @@ const formatDuration = (seconds: number) => {
 .resource-value {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .stats-footer {

@@ -849,7 +849,7 @@
 		justify-content: center;
 		border-radius: 4px;
 		background-color: #fff;
-		color: #666;
+		color: var(--el-text-color-primary);
 		font-size: 14px;
 		flex: 1;
 
@@ -989,7 +989,7 @@
 		border-top-width: 1px;
 		line-height: 40px;
 		text-align: right;
-		color: #666;
+		color: var(--el-text-color-primary);
 	}
 
 	.popup-x-footer text:hover {
@@ -1005,7 +1005,7 @@
 
 	.uni-date-changed {
 		text-align: center;
-		color: #333;
+		color: var(--el-text-color-primary);
 		border-bottom-color: #F1F1F1;
 		border-bottom-style: solid;
 		border-bottom-width: 1px;
@@ -1021,7 +1021,7 @@
 	}
 
 	.uni-date-changed--time-date {
-		color: #333;
+		color: var(--el-text-color-primary);
 		opacity: 0.6;
 	}
 

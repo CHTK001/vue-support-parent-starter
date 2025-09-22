@@ -333,18 +333,18 @@ const formatViews = (views: number) => {
 
 .play-icon {
   font-size: 64px;
-  color: white;
+  color: var(--el-text-color-primary);
   margin-bottom: 10px;
 }
 
 .play-text {
-  color: white;
+  color: var(--el-text-color-primary);
   font-size: 16px;
   font-weight: 500;
 }
 
 .rating-section {
-  background: white;
+  background: var(--el-bg-color-overlay);
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -392,7 +392,7 @@ const formatViews = (views: number) => {
 .video-title {
   font-size: 32px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 15px 0;
   line-height: 1.3;
 }
@@ -414,7 +414,7 @@ const formatViews = (views: number) => {
 .description-section h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 15px 0;
 }
 
@@ -432,7 +432,7 @@ const formatViews = (views: number) => {
 .download-section h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin: 0 0 20px 0;
 }
 
@@ -447,7 +447,7 @@ const formatViews = (views: number) => {
   align-items: center;
   justify-content: space-between;
   padding: 15px;
-  background: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   border: 1px solid #e9ecef;
 }
@@ -458,13 +458,13 @@ const formatViews = (views: number) => {
 
 .download-quality {
   font-weight: 500;
-  color: #303133;
+  color: var(--el-text-color-primary);
   margin-right: 15px;
 }
 
 .download-url {
   font-size: 13px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-family: monospace;
 }
 

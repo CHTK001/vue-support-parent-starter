@@ -312,7 +312,7 @@ const handleBatchPreview = () => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
   border-radius: 6px;
   transition: all 0.3s ease;
   background-color: var(--el-color-primary-light-9);
@@ -531,7 +531,7 @@ const handleBatchPreview = () => {
 }
 
 :deep(.text-empty) {
-  color: #909399;
+   color: var(--el-text-color-primary);
   font-style: italic;
 }
 
@@ -558,7 +558,7 @@ const handleBatchPreview = () => {
   display: flex;
   align-items: center;
   background-color: var(--el-color-success);
-  color: white;
+  color: var(--el-text-color-primary);
   animation: device-scale-in 0.3s ease-out;
 
   &:hover {

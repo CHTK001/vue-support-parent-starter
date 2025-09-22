@@ -635,19 +635,18 @@
 
 <script setup lang="ts">
 import { type ServerProxy } from "@/api/monitor/gen/server-proxy";
-import { getServerProxyPageList } from "@/api/server/proxy";
 import {
-  type ServerDisplayData,
-  saveServer,
-  testLocalIpDetection,
-  testServerConnection,
-  updateServer,
+    type ServerDisplayData,
+    saveServer,
+    testLocalIpDetection,
+    updateServer
 } from "@/api/server";
 import {
-  type ServerGroup,
-  getEnabledServerGroups,
-  getDefaultGroup,
+    type ServerGroup,
+    getDefaultGroup,
+    getEnabledServerGroups,
 } from "@/api/server/group";
+import { getServerProxyPageList } from "@/api/server/proxy";
 // 服务器设置相关导入已移除，配置功能在专门的服务器配置页面中
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref } from "vue";
@@ -1747,7 +1746,7 @@ defineExpose({
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 2px solid var(--el-border-color-light);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
 
     &:hover {
       border-color: var(--el-color-primary-light-5);
@@ -1982,7 +1981,7 @@ defineExpose({
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: #ffffff;
+         background: var(--el-bg-color-overlay);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -2008,7 +2007,7 @@ defineExpose({
         border-color: transparent;
 
         .el-switch__action {
-          background: #ffffff;
+           background: var(--el-bg-color-overlay);
 
           &::before {
             opacity: 0.2;
@@ -2102,7 +2101,7 @@ defineExpose({
         &:hover {
           background-color: var(--el-color-success);
           border-color: var(--el-color-success);
-          color: white;
+          color: var(--el-text-color-primary);
         }
       }
     }
@@ -2718,14 +2717,14 @@ defineExpose({
 // 新增样式
 .form-tip {
   font-size: 12px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   margin-top: 4px;
   line-height: 1.4;
 }
 
 .help-icon {
   margin-left: 8px;
-  color: #909399;
+   color: var(--el-text-color-primary);
   cursor: help;
 
   &:hover {

@@ -48,7 +48,7 @@
         </el-button>
         <div
           class="search-info"
-          style="color: #909399; font-size: 14px"
+          style=" color: var(--el-text-color-primary); font-size: 14px"
           v-if="searchText"
         >
           找到 {{ filteredLoggers.length }} 个日志器
@@ -90,7 +90,7 @@
             >
               {{ row.configuredLevel }}
             </el-tag>
-            <span v-else class="text-gray-400">未配置</span>
+            <span v-else class="text-[var(--el-text-color-placeholder)]">未配置</span>
           </template>
         </el-table-column>
 
@@ -403,13 +403,13 @@ const handleClose = () => {
         margin: 0;
         font-size: 18px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
 
       p {
         margin: 4px 0 0 0;
         font-size: 14px;
-        color: #909399;
+         color: var(--el-text-color-primary);
       }
     }
   }

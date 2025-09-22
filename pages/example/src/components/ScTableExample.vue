@@ -728,7 +728,7 @@ onMounted(() => {
 }
 
 .example-desc {
-  color: #666;
+  color: var(--el-text-color-primary);
   margin-bottom: 15px;
 }
 
@@ -779,7 +779,7 @@ code {
 
       .field-label {
         width: 80px;
-        color: #909399;
+         color: var(--el-text-color);
       }
 
       .field-value {
@@ -841,7 +841,7 @@ code {
     .list-time {
       margin-top: 8px;
       font-size: 12px;
-      color: #909399;
+       color: var(--el-text-color);
     }
   }
 
@@ -862,7 +862,7 @@ code {
   padding: 15px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background: var(--el-bg-color-overlay);
 
   h4 {
     margin-bottom: 10px;

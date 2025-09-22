@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
-import { useNav } from "../..//hooks/useNav";
+import { isAllEmpty } from "@pureadmin/utils";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
-import { isAllEmpty } from "@pureadmin/utils";
+import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
+import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import LaySidebarLogo from "./components/SidebarLogo.vue";
+import { useRoute } from "vue-router";
+import { useNav } from "../..//hooks/useNav";
+import LaySidebarCenterCollapse from "./components/SidebarCenterCollapse.vue";
 import LaySidebarItem from "./components/SidebarItem.vue";
 import LaySidebarLeftCollapse from "./components/SidebarLeftCollapse.vue";
-import LaySidebarCenterCollapse from "./components/SidebarCenterCollapse.vue";
-import { localStorageProxy, useDefer } from "@repo/utils";
+import LaySidebarLogo from "./components/SidebarLogo.vue";
 
 const route = useRoute();
 const isShow = ref(false);
@@ -84,7 +84,7 @@ const defer = useDefer(menuData.value.length);
   opacity: 0.45;
 }
 .sidebar-custom {
-  --un-shadow: var(--sider-box-shadow);
+  --un-shadow: var(--cb-color-shadow-sider);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 </style>

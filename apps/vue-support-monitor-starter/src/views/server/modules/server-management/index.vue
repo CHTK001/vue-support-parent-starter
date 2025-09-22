@@ -1405,7 +1405,7 @@ onUnmounted(() => {
       .group-btn {
         background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
-        color: white;
+        color: var(--el-text-color-primary);
         font-weight: 500;
         padding: 8px 16px;
         border-radius: 8px;
@@ -1570,7 +1570,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
   min-height: 48px;
 
@@ -1605,7 +1605,7 @@ onUnmounted(() => {
   height: 44px;
   margin-bottom: 8px;
   border-radius: 8px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
   display: flex;
   align-items: center;
@@ -1662,7 +1662,7 @@ onUnmounted(() => {
   .group-tabs {
     padding: 20px 20px 0 20px;
     border-bottom: 1px solid var(--el-border-color-lighter);
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
 
     :deep(.el-tabs__header) {
       margin: 0;
@@ -1979,7 +1979,7 @@ onUnmounted(() => {
 
             &:hover {
               background-color: var(--el-color-primary);
-              color: white;
+              color: var(--el-text-color-primary);
               transform: translateY(-1px);
             }
 
@@ -2024,7 +2024,7 @@ onUnmounted(() => {
     background: linear-gradient(180deg, var(--el-color-primary-light-7) 0%, var(--el-color-primary) 100%);
 
     &::before {
-      background: white;
+      background: var(--el-bg-color-overlay);
       opacity: 1;
       height: 30px;
     }
@@ -2090,7 +2090,7 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--el-bg-color);
+    background: var(--el-bg-color-overlay);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 

@@ -462,7 +462,7 @@ onMounted(() => {
 }
 
 .raw-data {
-  background: #f5f7fa;
+  background: var(--el-bg-color-overlay);
   padding: 16px;
   border-radius: 4px;
   max-height: 400px;

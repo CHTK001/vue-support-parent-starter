@@ -348,7 +348,7 @@ const onConfirm = () => {
 
     svg {
       font-size: 24px;
-      color: white;
+      color: var(--el-text-color-primary);
     }
   }
 

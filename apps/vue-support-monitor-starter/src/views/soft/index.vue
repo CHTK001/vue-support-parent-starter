@@ -343,9 +343,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
+<<<<<<< HEAD
 .software-management {
   padding: 20px;
   background: #f5f7fa;
+=======
+.soft-management {
+  padding: 16px;
+  background: var(--el-bg-color-overlay);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   min-height: calc(100vh - 60px);
 }
 
@@ -355,19 +361,26 @@ onMounted(() => {
   align-items: flex-start;
   margin-bottom: 20px;
   padding: 20px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+<<<<<<< HEAD
 .page-title {
   display: flex;
   align-items: center;
+=======
+.header-left h2 {
+  margin: 0 0 8px 0;
+  color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   font-size: 24px;
   font-weight: 600;
   color: #2c3e50;
 }
 
+<<<<<<< HEAD
 .title-icon {
   margin-right: 8px;
   color: #409eff;
@@ -376,6 +389,11 @@ onMounted(() => {
 .page-subtitle {
   color: #6c757d;
   margin-top: 8px;
+=======
+.header-left p {
+  margin: 0;
+   color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   font-size: 14px;
 }
 
@@ -390,7 +408,7 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -409,17 +427,88 @@ onMounted(() => {
   width: 280px;
 }
 
+<<<<<<< HEAD
 .filter-select {
   width: 140px;
 }
 
 .software-table-card {
   background: white;
+=======
+/* 统计信息栏 */
+.stats-bar {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--el-bg-color-overlay);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+<<<<<<< HEAD
 .software-info {
+=======
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+}
+
+.stat-value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.text-success {
+  color: #67c23a;
+}
+
+.text-danger {
+  color: #f56c6c;
+}
+
+.text-primary {
+  color: #409eff;
+}
+
+/* 加载状态 */
+.loading-container {
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 软件网格 */
+.soft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* 软件卡片 */
+.soft-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #e4e7ed;
+  position: relative;
+}
+
+.soft-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.soft-card-header {
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   display: flex;
   align-items: center;
   gap: 12px;
@@ -428,8 +517,22 @@ onMounted(() => {
 .software-icon {
   width: 40px;
   height: 40px;
+<<<<<<< HEAD
   border-radius: 6px;
   overflow: hidden;
+=======
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e4e7ed;
+}
+
+.soft-icon-default {
+  width: 40px;
+  height: 40px;
+   color: var(--el-text-color-primary);
+  background: var(--el-bg-color-overlay);
+  border-radius: 8px;
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   display: flex;
   align-items: center;
   justify-content: center;
@@ -453,13 +556,25 @@ onMounted(() => {
   min-width: 0;
 }
 
+<<<<<<< HEAD
 .software-name {
   font-weight: 500;
   color: #303133;
+=======
+.soft-title .name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   margin-bottom: 4px;
 }
 
+<<<<<<< HEAD
 .software-desc {
+=======
+.soft-title .code {
+   color: var(--el-text-color-primary);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   font-size: 12px;
   color: #909399;
   overflow: hidden;
@@ -473,6 +588,7 @@ onMounted(() => {
   gap: 4px;
 }
 
+<<<<<<< HEAD
 .latest-version {
   font-size: 12px;
   color: #606266;
@@ -526,6 +642,17 @@ onMounted(() => {
 .status-value {
   color: #303133;
   font-weight: 500;
+=======
+.info-label {
+   color: var(--el-text-color-primary);
+  font-size: 12px;
+}
+
+.info-value {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 14px;
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
 }
 
 .action-buttons {
@@ -538,6 +665,7 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 20px;
+<<<<<<< HEAD
   border-top: 1px solid #f0f2f5;
 }
 
@@ -551,6 +679,9 @@ onMounted(() => {
   gap: 16px;
   padding: 12px 20px;
   background: white;
+=======
+  background: var(--el-bg-color-overlay);
+>>>>>>> f41a2b14569952e9369b72ca2cb47746fc1a53ad
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;

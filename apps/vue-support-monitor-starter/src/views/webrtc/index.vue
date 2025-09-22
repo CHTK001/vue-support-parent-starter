@@ -325,12 +325,12 @@ onUnmounted(() => {
   .page-title {
     font-size: 28px;
     font-weight: 600;
-    color: #303133;
+    color: var(--el-text-color-primary);
     margin: 8px 0 4px 0;
   }
   
   .page-description {
-    color: #909399;
+     color: var(--el-text-color-primary);
     margin: 0;
   }
 }
@@ -358,7 +358,7 @@ onUnmounted(() => {
       
       .el-icon {
         font-size: 28px;
-        color: white;
+        color: var(--el-text-color-primary);
       }
       
       &.room-icon {
@@ -382,13 +382,13 @@ onUnmounted(() => {
       .stat-value {
         font-size: 32px;
         font-weight: 700;
-        color: #303133;
+        color: var(--el-text-color-primary);
         line-height: 1;
       }
       
       .stat-label {
         font-size: 14px;
-        color: #909399;
+         color: var(--el-text-color-primary);
         margin-top: 4px;
       }
     }
@@ -426,7 +426,7 @@ onUnmounted(() => {
       
       .el-icon {
         font-size: 24px;
-        color: white;
+        color: var(--el-text-color-primary);
       }
       
       &.room-feature {
@@ -456,13 +456,13 @@ onUnmounted(() => {
       .feature-title {
         font-size: 18px;
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
         margin: 0 0 4px 0;
       }
       
       .feature-description {
         font-size: 14px;
-        color: #909399;
+         color: var(--el-text-color-primary);
         margin: 0;
       }
     }
@@ -493,7 +493,7 @@ onUnmounted(() => {
       justify-content: space-between;
       align-items: center;
       padding: 12px;
-      background-color: #f8f9fa;
+      background: var(--el-bg-color-overlay);
       border-radius: 8px;
       
       .monitoring-label {
@@ -503,7 +503,7 @@ onUnmounted(() => {
       
       .monitoring-value {
         font-weight: 600;
-        color: #303133;
+        color: var(--el-text-color-primary);
       }
     }
   }

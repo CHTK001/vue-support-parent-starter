@@ -73,7 +73,7 @@ defineProps({
 <style lang="scss" scoped>
 .music-header {
   padding: 20px;
-  background: linear-gradient(to right, var(--el-color-primary-light-7), var(--el-color-primary-light-9));
+  background: linear-gradient(to right, var(--app-primary-lighter), var(--app-primary-lightest));
   border-radius: 8px;
   margin-bottom: 20px;
 
@@ -84,13 +84,13 @@ defineProps({
   &__title {
     font-size: 24px;
     margin: 0 0 8px;
-    color: var(--el-color-primary-dark-2);
+    color: var(--app-primary-dark);
   }
 
   &__subtitle {
     font-size: 14px;
     margin: 0;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
   }
 
   &__search {
@@ -112,7 +112,7 @@ defineProps({
     align-items: center;
     margin-bottom: 10px;
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--app-text-secondary);
 
     .iconify {
       margin-right: 5px;

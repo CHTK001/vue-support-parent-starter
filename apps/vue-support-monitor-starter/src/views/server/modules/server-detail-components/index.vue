@@ -359,7 +359,7 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: var(--el-bg-color);
+  background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-light);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
